@@ -35,6 +35,7 @@ class Table(object):
     _primary_key: A list of the primary key fields.
     _database: The underlying database.
   """
+
   def __init__(self, database):
     self._database = database
     self._executor_factory = database.GetExecutorFactory()
@@ -297,7 +298,7 @@ class Q(object):
           # TODO(pihsun): Fix this for SQL LIKE with % or _ inside.
           'val_str': str(val),
           'val': val_repr,
-          })
+      })
       self._args += cur_args * op_str.count('%(val)')
     self._sql = ' AND '.join('(%s)' % c for c in condition_list)
 
@@ -364,6 +365,7 @@ class QuerySet(object):
     _annotate_dict: A dict of name to (aggregate function, target field name)
                     that is used to annotate extra fields.
   """
+
   def __init__(self, database, model):
     self._model = models.ToModelSubclass(model)
     self._database = database

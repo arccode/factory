@@ -86,12 +86,13 @@ def GetTouchscreenDevices():
 
 class InputDeviceDispatcher(asyncore.file_dispatcher):
   """Extends asyncore.file_dispatcher to read input device."""
+
   def __init__(self, device, event_handler):
     self.device = device
     self.event_handler = event_handler
     asyncore.file_dispatcher.__init__(self, device)
 
-  def recv(self, ign=None): # pylint:disable=W0613
+  def recv(self, ign=None):  # pylint:disable=W0613
     return self.device.read()
 
   def handle_read(self):

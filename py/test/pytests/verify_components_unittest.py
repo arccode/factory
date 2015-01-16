@@ -22,8 +22,10 @@ from cros.factory.test.pytests.verify_components import CheckComponentsTask
 from cros.factory.test.pytests.verify_components import VerifyAnyBOMTask
 from cros.factory.test.ui_templates import OneSection
 
+
 class VerifyComponentsUnitTest(unittest.TestCase):
   """Unit tests for verify_components factory test."""
+
   def setUp(self):
     self._mox = mox.Mox()
 
@@ -38,7 +40,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.hwid_db = self._mox.CreateMock(database.Database)
     self._mock_shopfloor = self._mox.CreateMock(shopfloor)
     self._mock_test.template = self._mox.CreateMock(OneSection)
-    self._mock_test.board = "BENDER"
+    self._mock_test.board = 'BENDER'
     verify_components.hwid_utils = self._mox.CreateMock(hwid_utils)
 
     self._mox.StubOutWithMock(verify_components, 'Log')
@@ -52,8 +54,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     interested to unit tests here.
     """
 
-    self._mox.StubOutWithMock(task, "Pass")
-    self._mox.StubOutWithMock(task, "Fail")
+    self._mox.StubOutWithMock(task, 'Pass')
+    self._mox.StubOutWithMock(task, 'Fail')
 
   def testCheckComponentsTaskPass(self):
     task = CheckComponentsTask(self._mock_test)
@@ -63,11 +65,11 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.template.SetState(mox.IsA(unicode))
 
     # good probed results
-    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+    probed = {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               'cpu': [ProbedComponentResult('cpu_1', 'CPU_1', None)]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", results=probed)
+    verify_components.Log('probed_components', results=probed)
 
     task.Pass()
 
@@ -85,14 +87,14 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.template.SetState(mox.IsA(unicode))
 
     # good probed results
-    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+    probed = {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               'cpu': [ProbedComponentResult('cpu_1', 'CPU_1', None)]}
     verify_components.hwid_utils.GetProbedResults(
         fast_fw_probe=False).AndReturn('fake probed results')
     verify_components.hwid_utils.VerifyComponents(
         self._mock_test.hwid_db, 'fake probed results',
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", results=probed)
+    verify_components.Log('probed_components', results=probed)
 
     task.Pass()
 
@@ -101,7 +103,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     # esnure the result is appended
 
   def testCheckComponentsTaskFailed(self):
-    '''Test for component name not found error.'''
+    """Test for component name not found error."""
 
     task = CheckComponentsTask(self._mock_test)
     self._StubPassFail(task)
@@ -110,11 +112,11 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.template.SetState(mox.IsA(unicode))
 
     # bad probed results
-    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
-              'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
+    probed = {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+              'cpu': [ProbedComponentResult(None, 'CPU_1', 'Fake error')]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", results=probed)
+    verify_components.Log('probed_components', results=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -124,7 +126,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self.assertEquals(probed, self._mock_test.probed_results)
 
   def testCheckComponentsTaskFailedV3(self):
-    '''Test for component name not found error with HWIDv3.'''
+    """Test for component name not found error with HWIDv3."""
 
     self._mock_test.args.hwid_version = 3
     task = CheckComponentsTask(self._mock_test)
@@ -134,14 +136,14 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.template.SetState(mox.IsA(unicode))
 
     # bad probed results
-    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
-              'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
+    probed = {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+              'cpu': [ProbedComponentResult(None, 'CPU_1', 'Fake error')]}
     verify_components.hwid_utils.GetProbedResults(
         fast_fw_probe=False).AndReturn('fake probed results')
     verify_components.hwid_utils.VerifyComponents(
         self._mock_test.hwid_db, 'fake probed results',
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", results=probed)
+    verify_components.Log('probed_components', results=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -151,7 +153,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self.assertEquals(probed, self._mock_test.probed_results)
 
   def testCheckComponentsTaskAllowMissing(self):
-    '''Test for component missing error when it is allowed.'''
+    """Test for component missing error when it is allowed."""
 
     task = CheckComponentsTask(self._mock_test, allow_missing=True)
     self._StubPassFail(task)
@@ -159,12 +161,12 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mock_test.template.SetState(mox.IsA(unicode))
 
-    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+    probed = {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               # Missing is allowed.
-              'cpu': [ProbedComponentResult(None, None, "Fake missing error")]}
+              'cpu': [ProbedComponentResult(None, None, 'Fake missing error')]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", results=probed)
+    verify_components.Log('probed_components', results=probed)
 
     task.Pass()
 
@@ -174,7 +176,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self.assertEquals(probed, self._mock_test.probed_results)
 
   def testCheckComponentsTaskNotAllowMissing(self):
-    '''Test for component missing error when it is NOT allowed.'''
+    """Test for component missing error when it is NOT allowed."""
 
     task = CheckComponentsTask(self._mock_test, allow_missing=False)
     self._StubPassFail(task)
@@ -182,12 +184,12 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mock_test.template.SetState(mox.IsA(unicode))
 
-    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+    probed = {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               # Missing is not allowed and should be captured.
-              'cpu': [ProbedComponentResult(None, None, "Fake missing error")]}
+              'cpu': [ProbedComponentResult(None, None, 'Fake missing error')]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", results=probed)
+    verify_components.Log('probed_components', results=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -213,16 +215,16 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
   def testVerifyAnyBOMTaskPass(self):
     task = VerifyAnyBOMTask(self._mock_test, ['LEELA'])
-    verify_components.Log("bom_whitelist", whitelist=['LEELA'])
+    verify_components.Log('bom_whitelist', whitelist=['LEELA'])
     self._StubPassFail(task)
     self._mock_test.probed_results = (
-        {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)]})
+        {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)]})
 
     self._mock_test.template.SetState(mox.IsA(unicode))
 
     self._mock_test.gooftool.FindBOMMismatches(
         'BENDER', 'LEELA', self._mock_test.probed_results).AndReturn({})
-    verify_components.Log("verified_bom", bom='LEELA')
+    verify_components.Log('verified_bom', bom='LEELA')
 
     task.Pass()
 
@@ -232,10 +234,10 @@ class VerifyComponentsUnitTest(unittest.TestCase):
   def testVerifyAnyBOMTaskFail(self):
     task = VerifyAnyBOMTask(self._mock_test, ['LEELA'])
     self._StubPassFail(task)
-    verify_components.Log("bom_whitelist", whitelist=['LEELA'])
+    verify_components.Log('bom_whitelist', whitelist=['LEELA'])
     self._mock_test.probed_results = (
-        {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
-         'cpu':[ProbedComponentResult('cpu_2', 'cpu_2', None)]})
+        {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+         'cpu': [ProbedComponentResult('cpu_2', 'cpu_2', None)]})
 
     self._mock_test.template.SetState(mox.IsA(unicode))
 
@@ -243,8 +245,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.gooftool.FindBOMMismatches(
         'BENDER', 'LEELA', self._mock_test.probed_results).AndReturn(
             mismatched)
-    verify_components.Log("failed_matching_bom",
-        all_mismatches={'LEELA': mismatched})
+    verify_components.Log('failed_matching_bom',
+                          all_mismatches={'LEELA': mismatched})
 
     task.Fail(mox.IsA(str))
 
@@ -252,57 +254,57 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     task.Run()
 
   def testLookupBOMList(self):
-    stub_table = "table"
+    stub_table = 'table'
     self._mock_shopfloor.get_server_url().MultipleTimes().AndReturn(
-        "http://StubUrl.com")
+        'http://StubUrl.com')
     self._mock_shopfloor.get_selected_aux_data(
         stub_table).MultipleTimes().AndReturn(
-           {"field_1": 1, "field_2": 2, "field_3": 3})
+            {'field_1': 1, 'field_2': 2, 'field_3': 3})
 
     self._mox.ReplayAll()
-    stub_mapping = {1: ["BLUE"], 2: ["RED"]}
+    stub_mapping = {1: ['BLUE'], 2: ['RED']}
 
     # tests to cover both mapping cases
     self.assertEquals(
-      ["BLUE"],
-      verify_components.LookupBOMList(self._mock_shopfloor, stub_table,
-                                      "field_1", stub_mapping))
+        ['BLUE'],
+        verify_components.LookupBOMList(self._mock_shopfloor, stub_table,
+                                        'field_1', stub_mapping))
     self.assertEquals(
-      ["RED"],
-      verify_components.LookupBOMList(self._mock_shopfloor, stub_table,
-                                      "field_2", stub_mapping))
+        ['RED'],
+        verify_components.LookupBOMList(self._mock_shopfloor, stub_table,
+                                        'field_2', stub_mapping))
 
     # the field and its value exist but no BOM mapping
     self.assertRaises(
-      ValueError,
-      verify_components.LookupBOMList, self._mock_shopfloor, stub_table,
-                                       "field_3", stub_mapping)
+        ValueError,
+        verify_components.LookupBOMList, self._mock_shopfloor, stub_table,
+        'field_3', stub_mapping)
     # the field doesn't exist
     self.assertRaises(
-      ValueError,
-      verify_components.LookupBOMList, self._mock_shopfloor, stub_table,
-                                       "field_4", stub_mapping)
+        ValueError,
+        verify_components.LookupBOMList, self._mock_shopfloor, stub_table,
+        'field_4', stub_mapping)
 
   def testLookupBOMListNoShopfloor(self):
-    self._mock_shopfloor.get_server_url().AndReturn("")
+    self._mock_shopfloor.get_server_url().AndReturn('')
 
     self._mox.ReplayAll()
 
     self.assertRaises(
-      ValueError,
-      verify_components.LookupBOMList,
-      self._mock_shopfloor, "table", "field_1", [])
+        ValueError,
+        verify_components.LookupBOMList,
+        self._mock_shopfloor, 'table', 'field_1', [])
 
   def testLookupBOMListNoAuxTable(self):
-    self._mock_shopfloor.get_server_url().AndReturn("http://StubUrl.com")
-    self._mock_shopfloor.get_selected_aux_data("table").AndRaise(ValueError)
+    self._mock_shopfloor.get_server_url().AndReturn('http://StubUrl.com')
+    self._mock_shopfloor.get_selected_aux_data('table').AndRaise(ValueError)
 
     self._mox.ReplayAll()
 
     self.assertRaises(
-      ValueError,
-      verify_components.LookupBOMList,
-      self._mock_shopfloor, "table", "field_1", [])
+        ValueError,
+        verify_components.LookupBOMList,
+        self._mock_shopfloor, 'table', 'field_1', [])
 
 
 if __name__ == '__main__':

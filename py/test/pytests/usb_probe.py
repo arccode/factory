@@ -31,13 +31,13 @@ from cros.factory.utils.process_utils import SpawnOutput
 
 class USBProbeTest(unittest.TestCase):
   ARGS = [
-    Arg('vid', str, '4-digit vendor ID', '', optional=True),
-    Arg('pid', str, '4-digit product ID', '', optional=True),
-    Arg('use_re', bool,
-        'true to treat vid, pid, search_string as a regular expression',
-        default=False, optional=True),
-    Arg('search_string', str, 'manual string to check for in lsusb -v', None,
-        optional=True),
+      Arg('vid', str, '4-digit vendor ID', '', optional=True),
+      Arg('pid', str, '4-digit product ID', '', optional=True),
+      Arg('use_re', bool,
+          'true to treat vid, pid, search_string as a regular expression',
+          default=False, optional=True),
+      Arg('search_string', str, 'manual string to check for in lsusb -v', None,
+          optional=True),
   ]
 
   def _ProbeUSB(self, lsusb_string):

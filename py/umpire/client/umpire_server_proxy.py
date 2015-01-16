@@ -23,8 +23,10 @@ from cros.factory.umpire.common import UMPIRE_VERSION
 from cros.factory.utils.string_utils import ParseDict
 from cros.factory.utils import net_utils
 
+
 class UmpireServerError(object):
   """Class to hold error code and message."""
+
   def __init__(self, code, message):
     self.code = code
     self.message = message
@@ -130,6 +132,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
       handler use different ports from Umpire server, while in operation mode,
       they are at different paths, which complicates unittest.
   """
+
   def __init__(self, server_uri, test_mode=False, max_retries=5,
                umpire_client_info=None, *args, **kwargs):
     """Initializes an UmpireServerProxy.
@@ -279,8 +282,8 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
       # This is pretty common and not necessarily an error because by the time
       # when proxy instance is initiated, connection might not be ready.
       logging.warning(
-        'Unable to contact shopfloor server to decide using Umpire or not: %s',
-        '\n'.join(traceback.format_exception_only(*sys.exc_info()[:2])).strip())
+          'Unable to contact shopfloor server to decide using Umpire or not: %s',
+          '\n'.join(traceback.format_exception_only(*sys.exc_info()[:2])).strip())
       return None
     if isinstance(result, dict) and result.get('version') == UMPIRE_VERSION:
       logging.debug('Got Umpire server version %r', result.get('version'))
@@ -298,7 +301,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     logging.info('Getting resource map from Umpire server')
     request = urllib2.Request(
         '%s/resourcemap' % self._umpire_http_server_uri,
-        headers={"X-Umpire-DUT" : self._umpire_client_info.GetXUmpireDUT()})
+        headers={'X-Umpire-DUT': self._umpire_client_info.GetXUmpireDUT()})
     content = urllib2.urlopen(request).read()
     logging.info('Got resource map: %r', content)
     return content
@@ -554,6 +557,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
 
 class TimeoutUmpireServerProxy(UmpireServerProxy):
   """UmpireServerProxy supporting timeout."""
+
   def __init__(self, server_uri, timeout=10, *args, **kwargs):
     """Initializes UmpireServerProxy with its transport supporting timeout.
 
@@ -571,5 +575,5 @@ class TimeoutUmpireServerProxy(UmpireServerProxy):
       logging.debug('Using TimeoutUmpireServerProxy with timeout %r seconds',
                     timeout)
       kwargs['transport'] = net_utils.TimeoutXMLRPCTransport(
-        timeout=timeout)
+          timeout=timeout)
     UmpireServerProxy.__init__(self, server_uri, *args, **kwargs)

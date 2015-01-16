@@ -16,7 +16,7 @@ class SummaryAutomator(Automator):
 
   @AutomationFunction(override_dargs=dict(
       disable_input_on_fail=False, pass_without_prompt=False),
-      automation_mode=AutomationMode.FULL)
+                      automation_mode=AutomationMode.FULL)
   def automateSkipSummary(self):
     # Simply pass the test.
     if not self.args.pass_without_prompt:

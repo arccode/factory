@@ -14,7 +14,9 @@ from cros.factory.utils.type_utils import Error
 _COMMAND_RETRY_TIMES = 5
 _RECEIVE_RETRY_TIMES = 10
 
+
 class Modem(object):
+
   def __init__(self, port, timeout=2,
                cancel_echo=False, disable_operation=False):
     """Initiates a modem serial port communication.
@@ -115,13 +117,13 @@ class Modem(object):
         raise Error('Expected %r but got %r' % (expected_msg, modem_response))
 
   def ExpectLine(self, expected_line):
-    '''Expects a line from the modem.'''
+    """Expects a line from the modem."""
     line = self.ReadLine()
     if line != expected_line:
       raise Error('Expected %r but got %r' % (expected_line, line))
 
   def ExpectMultipleLines(self, expected_regex):
-    '''Expects a multiple line regular expression.'''
+    """Expects a multiple line regular expression."""
     lines = self.ser.readlines()
     for line in lines:
       logging.info('modem[ %r', line)

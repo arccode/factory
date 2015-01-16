@@ -2,13 +2,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
 class ExporterBase(object):
   """The base class of exporters.
 
   An exporter is a customized class which analyses event logs and dumps their
   knowledge into a database.
 
-  All exporter classes should inherit this ExporterBase class and implement/reuse
+  All exporter classes should inherit this ExporterBase class and
+  implement/reuse
   the following methods:
     Setup(self): This method is called on Minijack start-up.
     Handle_xxx(self, packet): This method is called when an event packet, with
@@ -33,6 +35,7 @@ class ExporterBase(object):
     _database: The database object of the database.
     _table: The table object.
   """
+
   def __init__(self, database):
     self._database = database
 

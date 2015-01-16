@@ -180,6 +180,6 @@ def GetResourceMap(dut_info, env):
             '__token__: %s' % handler_token,
             'shop_floor_handler: %s/%d' % (HANDLER_BASE, handler_port)]
   result.extend('%s: %s' % (k, urllib.quote(v)) for k, v in
-                            bundle['resources'].items())
+                bundle['resources'].items())
 
   return '\n'.join(result)

@@ -8,7 +8,7 @@
 import os
 import unittest
 import yaml
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.common import HWIDException
 from cros.factory.hwid.database import Database
@@ -19,6 +19,7 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class EncoderTest(unittest.TestCase):
+
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -91,7 +92,7 @@ class EncoderTest(unittest.TestCase):
     self.assertRaisesRegexp(
         HWIDException, r"Invalid 'dram' component found with probe result "
         "{ 'size': '4G', 'vendor': 'FOO'} \(no matching name in the component "
-        "DB\)", Encode, self.database, bom)
+        'DB\)', Encode, self.database, bom)
 
   def testEncodeRegion(self):
     db = Database.LoadFile(

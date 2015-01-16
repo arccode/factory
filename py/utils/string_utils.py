@@ -18,9 +18,11 @@ def DecodeUTF8(data):
   else:
     return unicode(data, encoding='utf-8', errors='replace')
 
+
 def CleanUTF8(data):
   """Returns a UTF-8-clean string."""
   return DecodeUTF8(data).encode('utf-8')
+
 
 def ParseDict(lines, delimeter=':'):
   """Parses list of lines into a dict. Each line is a string containing
@@ -44,6 +46,7 @@ def ParseDict(lines, delimeter=':'):
     else:
       ret[key.strip()] = value.strip()
   return ret
+
 
 def ParseString(value):
   """Parses a string if it is actually a True/False/None/Int value.

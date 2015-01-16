@@ -24,8 +24,8 @@ from cros.factory.utils.process_utils import Spawn
 
 class SMARTCheckFWVersionTest(unittest.TestCase):
   ARGS = [
-    Arg('regexp', str, 'Expected firmware revision (regexp)'),
-    Arg('device', str, 'Device path to check', default='sda'),
+      Arg('regexp', str, 'Expected firmware revision (regexp)'),
+      Arg('device', str, 'Device path to check', default='sda'),
   ]
 
   def runTest(self):

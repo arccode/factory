@@ -72,7 +72,7 @@ def _SqueezeCorners(corners):
   # TODO(jchuang): it would be simplier and more general with newer numpy
   # (>1.7), which supports 'axis' parameter in np.squeeze().
   assert(len(corners.shape) == 3 and corners.shape[1] == 1 and
-       corners.shape[2] == 2)
+         corners.shape[2] == 2)
   if corners.shape[0] == 1:
     return corners[0]
   else:
@@ -89,8 +89,8 @@ def _FindCornersOnConvexHull(hull):
   hull_dr = hull_right - hull
 
   angle = np.sum(hull_dl * hull_dr, axis=1)
-  angle /= np.sum(hull_dl ** 2, axis=1) ** (1./2)
-  angle /= np.sum(hull_dr ** 2, axis=1) ** (1./2)
+  angle /= np.sum(hull_dl ** 2, axis=1) ** (1. / 2)
+  angle /= np.sum(hull_dr ** 2, axis=1) ** (1. / 2)
 
   # Take the top four sharpest angle points and
   # arrange them in the same order as on the hull.
@@ -151,8 +151,8 @@ def _CheckSquareness(contour, min_square_area):
   min_angle = 0
   for i in range(0, 4):
     # Find the minimum inner angle.
-    dl = contour[i] - contour[i-1]
-    dr = contour[i-2] - contour[i-1]
+    dl = contour[i] - contour[i - 1]
+    dr = contour[i - 2] - contour[i - 1]
     angle = _ComputeCosine(dl, dr)
 
     ac = abs(angle)
@@ -255,8 +255,8 @@ def PrepareTest(pat_file):
   min_corner_dist = diag_len * _CORNER_MIN_DISTANCE_RATIO
 
   ret.corners = _SqueezeCorners(
-    cv2.goodFeaturesToTrack(pat, _CORNER_MAX_NUM, _CORNER_QUALITY_RATIO,
-                            min_corner_dist))
+      cv2.goodFeaturesToTrack(pat, _CORNER_MAX_NUM, _CORNER_QUALITY_RATIO,
+                              min_corner_dist))
 
   ret.pmatch_tol = diag_len * _POINT_MATCHING_MAX_TOLERANCE_RATIO
 
@@ -351,11 +351,11 @@ def CheckLensShading(sample, max_shading_ratio, check_low_freq,
 
 
 def CheckVisualCorrectness(
-  sample, ref_data, max_image_shift, max_image_tilt,
-  register_grid=False, corner_only=False,
-  min_corner_quality_ratio=_CORNER_QUALITY_RATIO,
-  min_square_size_ratio=_EDGE_MIN_SQUARE_SIZE_RATIO,
-  min_corner_distance_ratio=_CORNER_MIN_DISTANCE_RATIO):
+    sample, ref_data, max_image_shift, max_image_tilt,
+    register_grid=False, corner_only=False,
+    min_corner_quality_ratio=_CORNER_QUALITY_RATIO,
+    min_square_size_ratio=_EDGE_MIN_SQUARE_SIZE_RATIO,
+    min_corner_distance_ratio=_CORNER_MIN_DISTANCE_RATIO):
   """Checks if the test pattern is present.
 
   Args:
@@ -410,7 +410,7 @@ def CheckVisualCorrectness(
   # Find the 4 corners of the square grid.
   hull = _SqueezeCorners(cv2.convexHull(utils.Pad(sample_corners)))
   if hull.shape[0] < 4:
-    ret.msg = "All the corners are co-linear."
+    ret.msg = 'All the corners are co-linear.'
     return False, ret
   ret.four_corners = _FindCornersOnConvexHull(hull)
 
@@ -473,9 +473,9 @@ def CheckVisualCorrectness(
 
 
 def CheckSharpness(sample, edges, min_pass_mtf, min_pass_lowest_mtf,
-           use_50p, mtf_sample_count, mtf_patch_width,
-           mtf_crop_ratio=_MTF_DEFAULT_CROP_RATIO,
-           n_thread=_MTF_DEFAULT_THREAD_COUNT):
+                   use_50p, mtf_sample_count, mtf_patch_width,
+                   mtf_crop_ratio=_MTF_DEFAULT_CROP_RATIO,
+                   n_thread=_MTF_DEFAULT_THREAD_COUNT):
   """Checks if the captured image is sharp.
 
   Args:
@@ -613,15 +613,15 @@ def CalculateIQ(params, sfr_target, white_target, output_vc, output_mtf):
       ('lowest_mtf', tar_mtf.min_mtf),
       ('highest_mtf', tar_mtf.max_mtf),
       ('lens_shading_ratio', tar_ls.lowest_ratio)
-      ])
+  ])
 
 
 def main():
   parser = argparse.ArgumentParser(description='Calculate image quality '
-                                               'index')
+                                   'index')
   parser.add_argument('--params', dest='params', default=_DEFAULT_PARAM_PATH,
                       help='IQ parameters configuration file '
-                           '(default: static/iq.params)')
+                      '(default: static/iq.params)')
   parser.add_argument('--vc', metavar='PATH', dest='vc',
                       default=None,
                       help='output visual correctness result image')

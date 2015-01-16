@@ -6,7 +6,7 @@ import glob
 import logging
 import os
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 
 DEFAULT_CRASH_PATH = '/var/factory/crash'
@@ -24,6 +24,7 @@ class CoreDumpManager(object):
     watchlist: The file patterns to match. E.g. ['*glbench*']. If it is not set
       in constructor, use [].
   """
+
   def __init__(self, watchlist=None, crash_dir=DEFAULT_CRASH_PATH):
     self._crash_dir = crash_dir
     self._watchlist = watchlist if watchlist else []
@@ -57,7 +58,7 @@ class CoreDumpManager(object):
           core dump files.
     """
     watched_files = sum([glob.glob(os.path.join(self._crash_dir, x))
-        for x in self._watchlist], [])
+                         for x in self._watchlist], [])
 
     try:
       for root, dirs, files in os.walk(self._crash_dir):

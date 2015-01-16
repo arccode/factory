@@ -61,6 +61,7 @@ _RE_WIPHY = re.compile(r'wiphy (\d+)')
 # will be neglected.
 _THRESHOLD_LAST_SEEN_MS = 1000
 
+
 def GetProp(message, pattern, default):
   """Gets the property from searching pattern in message.
 
@@ -123,7 +124,7 @@ def IwSetAntenna(devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
   while try_count < max_retries:
     process = Spawn(['iw', 'phy', phyname,
                      'set', 'antenna', tx_bitmap, rx_bitmap],
-                     read_stdout=True, log_stderr_on_error=True, log=True)
+                    read_stdout=True, log_stderr_on_error=True, log=True)
     retcode = process.returncode
     if retcode == 0:
       success = True
@@ -207,28 +208,36 @@ class WirelessTest(unittest.TestCase):
     _done: An event that test has been done.
   """
   ARGS = [
-    Arg('device_name', str, 'wireless device name to test.'
-        'Set this correctly if check_antenna is True.', default='wlan0'),
-    Arg('spec_dict', dict, 'Keys: a tuple of (service_ssid, freq) tuples like '
-        '((SSID_AP1, FREQ_AP1), (SSID_AP2, FREQ_AP2), (SSID_AP3, FREQ_AP3)). '
-        'The test will only check the service whose antenna_all signal strength'
-        ' is the largest. If (SSID_AP1, FREQ_AP1) has the largest signal among '
-        'AP1, AP2, AP3, then its result will be checked against the spec value.'
-        ' Values: a dict of minimal signal strength. For example, a dict like '
-        '{"main": strength_1, "aux": strength_2, "all": strength_all}. '
-        'The test will check signal strength under different antenna config. '
-        'Example of spec_dict: { '
-        '    ((SSID_AP1, FREQ_AP1), (SSID_AP2, FREQ_AP2)): {"all": 50}, '
-        '    ((SSID_AP3, FREQ_AP3)): {"main": 50, "aux": 50, "all": 60}}.',
-        optional=False),
-    Arg('scan_count', int, 'number of scanning to get average signal strength',
-        default=5),
-    Arg('switch_antenna_sleep_secs', int, 'The sleep time after switching'
-        'antenna and ifconfig up. Need to decide this value carefully since it'
-        'depends on the platform and antenna config to test.', default=10),
-    Arg('disable_switch', bool, 'Do not switch antenna, just check "all" '
-        'config.', default=False)
-  ]
+      Arg(
+          'device_name', str,
+          'wireless device name to test.'
+          'Set this correctly if check_antenna is True.', default='wlan0'),
+      Arg(
+          'spec_dict', dict,
+          'Keys: a tuple of (service_ssid, freq) tuples like ((SSID_AP1, '
+          'FREQ_AP1), (SSID_AP2, FREQ_AP2), (SSID_AP3, FREQ_AP3)). The test '
+          'will only check the service whose antenna_all signal strength is '
+          'the largest. If (SSID_AP1, FREQ_AP1) has the largest signal among '
+          'AP1, AP2, AP3, then its result will be checked against the spec '
+          'value. Values: a dict of minimal signal strength. For example, a '
+          'dict like {"main": strength_1, "aux": strength_2, "all": '
+          'strength_all}. The test will check signal strength under different '
+          'antenna config. Example of spec_dict: {     ((SSID_AP1, FREQ_AP1), '
+          '(SSID_AP2, FREQ_AP2)): {"all": 50},     ((SSID_AP3, FREQ_AP3)): '
+          '{"main": 50, "aux": 50, "all": 60}}.',
+          optional=False),
+      Arg(
+          'scan_count', int,
+          'number of scanning to get average signal strength', default=5),
+      Arg(
+          'switch_antenna_sleep_secs', int,
+          'The sleep time after switchingantenna and ifconfig up. Need to '
+          'decide this value carefully since itdepends on the platform and '
+          'antenna config to test.', default=10),
+      Arg(
+          'disable_switch', bool,
+          'Do not switch antenna, just check "all" '
+          'config.', default=False)]
 
   def setUp(self):
     self._ui = test_ui.UI()
@@ -348,7 +357,8 @@ class WirelessTest(unittest.TestCase):
       factory.console.warning('There are more than one results for ssid %s.',
                               service_ssid)
       for mac, freq, signal, last_seen in parsed_tuples:
-        factory.console.warning('mac: %s, ssid: %s, freq: %d, signal %f, '
+        factory.console.warning(
+            'mac: %s, ssid: %s, freq: %d, signal %f, '
             'last_seen %d ms', mac, service_ssid, freq, signal, last_seen)
       return (None, None, None, None)
 
@@ -415,15 +425,16 @@ class WirelessTest(unittest.TestCase):
               scan_output, service_ssid)
           if last_seen > _THRESHOLD_LAST_SEEN_MS:
             logging.warning('Neglect cached scan : %s %d ms ago.',
-                service_ssid, last_seen)
+                            service_ssid, last_seen)
             continue
           # strength may be 0.
           if strength is not None:
             # iw returns the scan results of other frequencies as well.
             if freq_scanned != freq:
               continue
-            factory.console.info('scan : %s %s %d %f %d ms.',
-                service_ssid, mac, freq_scanned, strength, last_seen)
+            factory.console.info(
+                'scan : %s %s %d %f %d ms.', service_ssid, mac, freq_scanned,
+                strength, last_seen)
             scan_results[service].append(strength)
 
     # keys are services and values are averages
@@ -444,7 +455,7 @@ class WirelessTest(unittest.TestCase):
     self._template.SetState(_MSG_SWITCHING_ANTENNA(antenna))
     self.SwitchAntenna(antenna)
     self._antenna_service_strength[antenna] = self.ScanAndAverageSignals(
-      self._test_spec.keys(), times=self.args.scan_count)
+        self._test_spec.keys(), times=self.args.scan_count)
     factory.console.info(
         'Average scan result: %s.', self._antenna_service_strength[antenna])
 
@@ -523,8 +534,8 @@ class WirelessTest(unittest.TestCase):
 
     # Gets the service with the largest strength to test for each spec.
     for candidate_services, spec_strength in self.args.spec_dict.iteritems():
-      test_service = self.ChooseMaxStrengthService(candidate_services,
-          self._antenna_service_strength['all'])
+      test_service = self.ChooseMaxStrengthService(
+          candidate_services, self._antenna_service_strength['all'])
       if test_service is None:
         self.fail('Services %s are not valid.' % candidate_services)
       else:

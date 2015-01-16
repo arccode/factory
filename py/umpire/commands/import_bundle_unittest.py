@@ -36,6 +36,7 @@ UMPIRE_RELATIVE_PATH = os.path.join('usr', 'local', 'factory', 'bin', 'umpire')
 
 
 class LoadBundleManifestTest(unittest.TestCase):
+
   def setUp(self):
     self.bundle = FactoryBundle()
 
@@ -63,7 +64,6 @@ class LoadBundleManifestTest(unittest.TestCase):
       self.bundle.Load(bundle_dir)
       self.assertTrue(self.bundle.factory_toolkit.startswith(real_bundle_dir))
 
-
   # TODO(deanliao): figure out if mandatory image check is necessary.
   # Temporary remove the check.
   # def testMissingRelease(self):
@@ -87,6 +87,7 @@ TEST_IMAGE_VERSION = '0.0.4'
 
 
 class testImportBundle(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.env = UmpireEnvForTest()
@@ -105,7 +106,7 @@ class testImportBundle(unittest.TestCase):
     self.mox.StubOutWithMock(
         get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
     self.mox.StubOutWithMock(
-          get_version, 'GetReleaseVersionFromOmahaChannelFile')
+        get_version, 'GetReleaseVersionFromOmahaChannelFile')
 
     # pylint: disable=E1101
     get_version.GetFirmwareVersionsFromOmahaChannelFile(
@@ -223,7 +224,6 @@ class testImportBundle(unittest.TestCase):
     importer = BundleImporter(self.env)
     self.assertRaisesRegexp(UmpireError, 'Found 2 hash collision',
                             importer.Import, TEST_BUNDLE_DIR, 'test_bundle')
-
 
   def testImportBundleIdCollision(self):
     importer = BundleImporter(self.env)

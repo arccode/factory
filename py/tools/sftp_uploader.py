@@ -23,7 +23,7 @@ import os
 import sys
 
 try:
-  import paramiko # pylint: disable=F0401
+  import paramiko  # pylint: disable=F0401
 except ImportError:
   print ('Paramiko SSH2 library not found. Try something like: '
          'sudo apt-get install python-paramiko')
@@ -75,7 +75,7 @@ def main():
         raise
       remote_file_attr = None
     return (remote_file_attr is not None and
-        local_file_attr.st_size == remote_file_attr.st_size)
+            local_file_attr.st_size == remote_file_attr.st_size)
 
   USAGE = 'usage: %prog [options] [file]...'
   parser = optparse.OptionParser(USAGE)

@@ -8,7 +8,7 @@
 import os
 import unittest
 import yaml
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.common import HWIDException
 from cros.factory.hwid.database import Database
@@ -20,6 +20,7 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class DecoderTest(unittest.TestCase):
+
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -123,7 +124,7 @@ class DecoderTest(unittest.TestCase):
     bom = BinaryStringToBOM(
         self.database,
         '00000'         # image ID
-        '0000111101000' # 13 bits, up through second cpu_field
+        '0000111101000'  # 13 bits, up through second cpu_field
         '00'            # storage_field
         '1')            # stop bit
     # Bit 15 is 1, which is the first cpu_field. The cpu_field should be decoded
@@ -137,7 +138,7 @@ class DecoderTest(unittest.TestCase):
     bom = BinaryStringToBOM(
         self.database,
         '00000'         # image ID
-        '0000111101000' # 12 bits, up through second cpu_field
+        '0000111101000'  # 12 bits, up through second cpu_field
         '1'             # the incomplete storage_field chunk
         '1')            # stop bit
     # The cpu_field should still be b01 = 1.
@@ -191,7 +192,7 @@ class DecoderTest(unittest.TestCase):
            'time_zone': Value('America/Los_Angeles'),
            'language_codes': Value('en-US'),
            'keyboard_mechanical_layout': Value('ANSI')},
-         None)],
+          None)],
         hwid.bom.components['region'])
 
 

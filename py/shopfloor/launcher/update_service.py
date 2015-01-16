@@ -22,6 +22,7 @@ class FactoryUpdateService(ServiceBase):
   Args:
     yaml_config: Launcher YAML config dictionary.
   """
+
   def __init__(self, yaml_config):  # pylint: disable=W0613
     # ServiceBase is an old-style python class. Initialize it the old-way.
     ServiceBase.__init__(self)

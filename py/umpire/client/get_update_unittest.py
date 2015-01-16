@@ -147,8 +147,10 @@ FAKE_FIRMWARE_UPDATE_RESULT = 'chromeos-firmwareupdate content\n'
 TESTDATA_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'testdata')
 
+
 class GetUpdateForComponentsTest(unittest.TestCase):
   """Tests GetUpdateForComponents."""
+
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()
@@ -187,6 +189,7 @@ class GetUpdateForComponentsTest(unittest.TestCase):
 
 class GetUpdateTests(unittest.TestCase):
   """Tests other utilities in get_update that use GetUpdateForComponents."""
+
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()
@@ -214,7 +217,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.StubOutWithMock(urllib2, 'urlopen')
     fake_urlopen = self.mox.CreateMockAnything()
     gzip_content = None
-    with open(os.path.join(TESTDATA_DIRECTORY , 'hwid.sh.gz')) as f:
+    with open(os.path.join(TESTDATA_DIRECTORY, 'hwid.sh.gz')) as f:
       gzip_content = f.read()
     get_update.GetUpdateForComponents(
         self.proxy, ['hwid']).AndReturn(FAKE_HWID_RESULT)
@@ -280,7 +283,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.StubOutWithMock(urllib2, 'urlopen')
     fake_urlopen = self.mox.CreateMockAnything()
     gzip_content = None
-    with open(os.path.join(TESTDATA_DIRECTORY , 'firmware.gz')) as f:
+    with open(os.path.join(TESTDATA_DIRECTORY, 'firmware.gz')) as f:
       gzip_content = f.read()
     get_update.GetUpdateForComponents(
         self.proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd']).AndReturn(
@@ -300,7 +303,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.StubOutWithMock(urllib2, 'urlopen')
     fake_urlopen = self.mox.CreateMockAnything()
     gzip_content = None
-    with open(os.path.join(TESTDATA_DIRECTORY , 'firmware.gz')) as f:
+    with open(os.path.join(TESTDATA_DIRECTORY, 'firmware.gz')) as f:
       gzip_content = f.read()
     get_update.GetUpdateForComponents(
         self.proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd']).AndReturn(
@@ -346,7 +349,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.StubOutWithMock(urllib2, 'urlopen')
     fake_urlopen = self.mox.CreateMockAnything()
     gzip_content = None
-    with open(os.path.join(TESTDATA_DIRECTORY , 'firmware.gz')) as f:
+    with open(os.path.join(TESTDATA_DIRECTORY, 'firmware.gz')) as f:
       gzip_content = f.read()
     get_update.GetUpdateForComponents(
         self.proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd']).AndReturn(

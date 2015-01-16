@@ -14,6 +14,7 @@ from cros.factory.tools.build_board import BuildBoard, BuildBoardException
 
 class BuildBoardTest(unittest.TestCase):
   """Unit tests for BuildBoard class."""
+
   def runTest(self):
     have_private_overlays = os.path.exists(
         os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src',

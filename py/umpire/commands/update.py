@@ -38,6 +38,7 @@ class ResourceUpdater(object):
     ResourceUpdater.Update(resources_to_update, source_id='old_bundle_id',
                            dest_id='new_bundle_id')
   """
+
   def __init__(self, env):
     """Constructor.
 
@@ -85,7 +86,7 @@ class ResourceUpdater(object):
     self._UpdateResourceMap(resources_to_update)
     return self._WriteToStagingConfig()
 
-  def _PrepareTargetBundle(self, source_id,  dest_id):
+  def _PrepareTargetBundle(self, source_id, dest_id):
     target_bundle = self._config.GetBundle(source_id)
     if not target_bundle:
       raise UmpireError('Source bundle ID does not exist: ' + source_id)

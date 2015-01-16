@@ -48,6 +48,7 @@ class MinijackFrontendService(ServiceBase):
   Args:
     dummy_config: Launcher YAML config dictionary.
   """
+
   def __init__(self, unused_config):
     # ServiceBase inherits from old-style ProcessProtocol.
     ServiceBase.__init__(self)

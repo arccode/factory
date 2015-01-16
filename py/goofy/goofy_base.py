@@ -20,6 +20,7 @@ from cros.factory.test import utils
 
 RUN_QUEUE_TIMEOUT_SECS = 10
 
+
 class GoofyBase(object):
   """Base class from which Goofy[Host] and GoofyDevice derive.
 
@@ -29,6 +30,7 @@ class GoofyBase(object):
   exceptions: List of exceptions encountered in invocation threads.
   last_idle: The most recent time of invoking the idle queue handler, or none
   """
+
   def __init__(self):
     self.run_queue = Queue.Queue()
     self.exceptions = []
@@ -125,7 +127,7 @@ class GoofyBase(object):
     """
     if self.exceptions:
       raise RuntimeError('Exception in invocation thread: %r' %
-                 self.exceptions)
+                         self.exceptions)
 
   def record_exception(self, msg):
     """Records an exception in an invocation thread.
@@ -157,7 +159,6 @@ class GoofyBase(object):
         # No threads remain
         all_threads_joined = True
     return all_threads_joined
-
 
   @classmethod
   def run_main_and_exit(cls):
@@ -198,6 +199,6 @@ class GoofyBase(object):
         # do want to capture all logs, so we shut down logging gracefully.
         logging.info('Graceful shutdown interrupted, shutting down abruptly')
         logging.shutdown()
-        os._exit(1) # pylint: disable=W0212
+        os._exit(1)  # pylint: disable=W0212
       # Normal exit path
       sys.exit(0)

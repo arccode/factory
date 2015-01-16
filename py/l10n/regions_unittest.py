@@ -96,9 +96,9 @@ class RegionTest(unittest.TestCase):
       if r.time_zone not in self.time_zones:
         if r.region_code in regions.REGIONS:
           self.fail(
-            'Missing time zone %r; does a new time zone need to be added '
-            'to CrOS, or does testdata need to be updated?' %
-            r.time_zone)
+              'Missing time zone %r; does a new time zone need to be added '
+              'to CrOS, or does testdata need to be updated?' %
+              r.time_zone)
         else:
           # This is an unconfirmed region; just print a warning.
           logging.warn('Missing time zone %r; does a new time zone need to be '
@@ -114,9 +114,9 @@ class RegionTest(unittest.TestCase):
         if l not in self.languages:
           missing.append(l)
     self.assertFalse(
-      missing,
-      ('Missing languages; does testdata need to be updated?: %r' %
-       missing))
+        missing,
+        ('Missing languages; does testdata need to be updated?: %r' %
+         missing))
 
   def testInputMethods(self):
     # Verify that every region is present in the dict.
@@ -131,7 +131,7 @@ class RegionTest(unittest.TestCase):
 
   def testFirmwareLanguages(self):
     bmpblk_dir = os.path.join(
-      os.environ.get('CROS_WORKON_SRCROOT'), 'src', 'platform', 'bmpblk')
+        os.environ.get('CROS_WORKON_SRCROOT'), 'src', 'platform', 'bmpblk')
     if not os.path.exists(bmpblk_dir):
       logging.warn('Skipping testFirmwareLanguages, since %r is missing',
                    bmpblk_dir)
@@ -146,7 +146,7 @@ class RegionTest(unittest.TestCase):
         if not any([os.path.exists(x) for x in paths]):
           if r.region_code in regions.REGIONS:
             self.fail(
-              'For region %r, none of %r exists' % (r.region_code, paths))
+                'For region %r, none of %r exists' % (r.region_code, paths))
           else:
             logging.warn('For region %r, none of %r exists; '
                          'just a warning since this region is not confirmed',
@@ -157,56 +157,55 @@ class RegionTest(unittest.TestCase):
     # regardless of allow_multiple.
     for allow_multiple in [True, False]:
       self.assertEquals(
-        {'initial_locale': 'en-US',
-         'initial_timezone': 'America/Los_Angeles',
-         'keyboard_layout': 'xkb:us::eng',
-         'region': 'us'},
-        regions.BuildRegionsDict()['us'].GetVPDSettings(allow_multiple))
+          {'initial_locale': 'en-US',
+           'initial_timezone': 'America/Los_Angeles',
+           'keyboard_layout': 'xkb:us::eng',
+           'region': 'us'},
+          regions.BuildRegionsDict()['us'].GetVPDSettings(allow_multiple))
 
     region = regions.Region(
-      'a', ['xkb:b::b1', 'xkb:b::b2'], 'c', ['d1', 'd2'], 'e')
+        'a', ['xkb:b::b1', 'xkb:b::b2'], 'c', ['d1', 'd2'], 'e')
     self.assertEquals(
-      {'initial_locale': 'd1',
-       'initial_timezone': 'c',
-       'keyboard_layout': 'xkb:b::b1',
-       'region': 'a'},
-      region.GetVPDSettings(False))
+        {'initial_locale': 'd1',
+         'initial_timezone': 'c',
+         'keyboard_layout': 'xkb:b::b1',
+         'region': 'a'},
+        region.GetVPDSettings(False))
     self.assertEquals(
-      {'initial_locale': 'd1,d2',
-       'initial_timezone': 'c',
-       'keyboard_layout': 'xkb:b::b1,xkb:b::b2',
-       'region': 'a'},
-      region.GetVPDSettings(True))
-
+        {'initial_locale': 'd1,d2',
+         'initial_timezone': 'c',
+         'keyboard_layout': 'xkb:b::b1,xkb:b::b2',
+         'region': 'a'},
+        region.GetVPDSettings(True))
 
   def testYAMLOutput(self):
     output = StringIO.StringIO()
     regions.main(['--format', 'yaml'], output)
     data = yaml.load(output.getvalue())
     self.assertEquals(
-      {'keyboards': ['xkb:us::eng'],
-       'keyboard_mechanical_layout': 'ANSI',
-       'language_codes': ['en-US'],
-       'region_code': 'us',
-       'numeric_id': 29,
-       'time_zone': 'America/Los_Angeles',
-       'vpd_settings': {'initial_locale': 'en-US',
-                        'initial_timezone': 'America/Los_Angeles',
-                        'keyboard_layout': 'xkb:us::eng',
-                        'region': 'us'}},
-      data['us'])
+        {'keyboards': ['xkb:us::eng'],
+         'keyboard_mechanical_layout': 'ANSI',
+         'language_codes': ['en-US'],
+         'region_code': 'us',
+         'numeric_id': 29,
+         'time_zone': 'America/Los_Angeles',
+         'vpd_settings': {'initial_locale': 'en-US',
+                          'initial_timezone': 'America/Los_Angeles',
+                          'keyboard_layout': 'xkb:us::eng',
+                          'region': 'us'}},
+        data['us'])
 
   def testFieldsDict(self):
     # 'description' and 'notes' should be missing.
     self.assertEquals(
-      {'keyboards': ['xkb:b::b'],
-       'keyboard_mechanical_layout': 'e',
-       'language_codes': ['d'],
-       'numeric_id': 11,
-       'region_code': 'a',
-       'time_zone': 'c'},
-      (regions.Region('a', 'xkb:b::b', 'c', 'd', 'e', 'description', 'notes',
-                      11).GetFieldsDict()))
+        {'keyboards': ['xkb:b::b'],
+         'keyboard_mechanical_layout': 'e',
+         'language_codes': ['d'],
+         'numeric_id': 11,
+         'region_code': 'a',
+         'time_zone': 'c'},
+        (regions.Region('a', 'xkb:b::b', 'c', 'd', 'e', 'description', 'notes',
+                        11).GetFieldsDict()))
 
   def testConsolidateRegionsDups(self):
     """Test duplicate handling.  Two identical Regions are OK."""
@@ -215,14 +214,14 @@ class RegionTest(unittest.TestCase):
                    for _ in range(2)]
     # It's OK.
     self.assertEquals(
-      {'a': region_list[0]}, regions._ConsolidateRegions(region_list))
+        {'a': region_list[0]}, regions._ConsolidateRegions(region_list))
 
     # Modify the second copy.
     region_list[1].keyboards = ['f']
     # Not OK anymore!
     self.assertRaisesRegexp(
-      regions.RegionException, "Conflicting definitions for region 'a':",
-      regions._ConsolidateRegions, region_list)
+        regions.RegionException, "Conflicting definitions for region 'a':",
+        regions._ConsolidateRegions, region_list)
 
   def testNumericIds(self):
     """Make sure that numeric IDs are unique, and all confirmed regions have a
@@ -232,14 +231,14 @@ class RegionTest(unittest.TestCase):
       if region.numeric_id is not None:
         self.assertNotIn(region.numeric_id, numeric_ids,
                          'Duplicate numeric ID %d in %s' % (
-            region.numeric_id, region.region_code))
+                             region.numeric_id, region.region_code))
         numeric_ids.add(region.numeric_id)
 
       # Confirmed regions only
       if region.region_code in regions.REGIONS:
         self.assertIsNotNone(region.numeric_id,
                              'Region %s has no numeric ID assigned' % (
-            region.region_code))
+                                 region.region_code))
 
 if __name__ == '__main__':
   unittest.main()

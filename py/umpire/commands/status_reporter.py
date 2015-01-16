@@ -16,6 +16,7 @@ class StatusReporter(object):
     status = reporter.Report()
     # You can get active config from status['active_config'].
   """
+
   def __init__(self, env):
     """Constructor."""
     self._env = env

@@ -12,7 +12,7 @@ Otherwise the unittest will be skipped automatically.
 
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.test.fixture.camera.light_chamber import LightChamber
 import cros.factory.test.fixture.camera.perf_tester as camperf
@@ -20,6 +20,7 @@ import cros.factory.test.fixture.camera.perf_tester as camperf
 
 class CameraFixtureTest(unittest.TestCase):
   """Unit test for CameraFixture class."""
+
   def TestIQ(self):
     """Test Image Quality."""
     #######################
@@ -56,7 +57,7 @@ class CameraFixtureTest(unittest.TestCase):
         sample=gray_img, edges=tar_data.edges,
         min_pass_mtf=0.3, min_pass_lowest_mtf=0.2,
         use_50p=False, mtf_sample_count=308,
-        mtf_patch_width=20) # patch width 20 for 720p
+        mtf_patch_width=20)  # patch width 20 for 720p
     self.assertEqual(success, True)
     self.assertAlmostEqual(tar_mtf.mtf, 0.53719148, delta=0.00001)
     self.assertAlmostEqual(tar_mtf.min_mtf, 0.3479868, delta=0.00001)
@@ -93,7 +94,7 @@ class CameraFixtureTest(unittest.TestCase):
         sample=gray_img, edges=tar_data.edges,
         min_pass_mtf=0.2, min_pass_lowest_mtf=0.2,
         use_50p=False, mtf_sample_count=252,
-        mtf_patch_width=10) # patch width 10 for VGA
+        mtf_patch_width=10)  # patch width 10 for VGA
     self.assertEqual(success, True)
     self.assertAlmostEqual(tar_mtf.mtf, 0.2961126, delta=0.00001)
     self.assertAlmostEqual(tar_mtf.min_mtf, 0.2250828, delta=0.00001)
@@ -112,5 +113,5 @@ class CameraFixtureTest(unittest.TestCase):
     print('IQ unit test has completed successfully.')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

@@ -4,6 +4,7 @@
 
 """A text buffer that prepends indentation."""
 
+
 class IndentTextWriter(object):
   """A text buffer that prepends indentation.
 
@@ -30,6 +31,7 @@ class IndentTextWriter(object):
   Its constructor can specify the initial indentation level, indentation
   spaces, and if it should indent the first line.
   """
+
   def __init__(self, indent=0, indent_space=2, indent_first_line=True):
     """Constructor.
 

@@ -16,6 +16,7 @@ from cros.factory.test import phase
 
 class MockBoard(object):
   """A mock board class."""
+
   def __init__(self, version):
     self.version = version
 
@@ -25,6 +26,7 @@ class MockBoard(object):
 
 class MLBVersionTestUnittest(unittest.TestCase):
   """Unit tests for mlb_version factory test."""
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(system, 'GetBoard')

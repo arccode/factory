@@ -18,7 +18,7 @@ from cros.factory.utils.sys_utils import MountPartition
 def main():
   logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser(
-      description="Mount a partition in an image file.")
+      description='Mount a partition in an image file.')
   parser.add_argument('-rw', '--rw', action='store_true',
                       help='mount partition read/write')
   parser.add_argument('source_path', help='an image file or a block device')

@@ -6,15 +6,15 @@ import functools
 import logging
 import os
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.utils import file_utils
 
 
 PHASE_NAMES = ['PROTO', 'EVT', 'DVT', 'PVT_DOGFOOD', 'PVT']
 PHASE_NAME_TO_INDEX_MAP = dict(
-  (name, index)
-  for (index, name) in enumerate(PHASE_NAMES))
+    (name, index)
+    for (index, name) in enumerate(PHASE_NAMES))
 
 
 # Current phase; unknown at first and read lazily from
@@ -41,6 +41,7 @@ class Phase(object):
     be sold.
   - PVT = production of salable units
   """
+
   def __init__(self, name):
     """Constructor.
 
@@ -79,6 +80,8 @@ class Phase(object):
 
 
 _state_root_for_testing = None
+
+
 def GetPhaseStatePath():
   """Returns the path used to save the current phase."""
   return os.path.join((_state_root_for_testing or factory.get_state_root()),
@@ -148,8 +151,8 @@ def AssertStartingAtPhase(starting_at_phase, condition, message):
 
   if not condition:
     raise PhaseAssertionError(
-      'Assertion starting at %s failed (currently in %s): %s' % (
-          starting_at_phase, current_phase, message))
+        'Assertion starting at %s failed (currently in %s): %s' % (
+            starting_at_phase, current_phase, message))
 
 
 def SetPersistentPhase(phase):

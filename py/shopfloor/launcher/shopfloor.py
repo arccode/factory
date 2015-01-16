@@ -83,8 +83,8 @@ class ClientProtocol(Protocol):  # pylint: disable=W0232
     """Passes command line arguments and current working directory to launcher.
     """
     json_cmd = {
-      'args': self.factory.argv,
-      'cwd': self.factory.cwd}
+        'args': self.factory.argv,
+        'cwd': self.factory.cwd}
     # Launcher commands uses JSON line protocol, add trailing newline.
     self.transport.write(json.dumps(json_cmd, separators=(',', ':')) + '\n')
 
@@ -365,13 +365,13 @@ def Init(args):
   if args.local:
     env.runtime_dir = os.getcwd()
   elif not os.path.isdir(constants.SHOPFLOOR_INSTALL_DIR):
-    print("Install folder not found!")
-    print("Please create folder: \n\t%s\n" % constants.SHOPFLOOR_INSTALL_DIR)
-    print("And change the owner to current user ID.")
-    print("Example:")
+    print('Install folder not found!')
+    print('Please create folder: \n\t%s\n' % constants.SHOPFLOOR_INSTALL_DIR)
+    print('And change the owner to current user ID.')
+    print('Example:')
     print("  for user 'sfuser' and group 'sf'")
-    print("  sudo mkdir /var/db/factory")
-    print("  sudo chown sfuser.sf /var/db/factory")
+    print('  sudo mkdir /var/db/factory')
+    print('  sudo chown sfuser.sf /var/db/factory')
     sys.exit(-1)
   utils.CreateSystemFolders()
 

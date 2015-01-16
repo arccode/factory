@@ -21,7 +21,7 @@ INITIAL_LOCALE = set(','.join(x.language_codes)
 INITIAL_TIMEZONE = set(x.time_zone for x in regions.REGIONS.itervalues())
 
 KNOWN_VPD_FIELD_DATA = {
-  'keyboard_layout': KEYBOARD_LAYOUT,
-  'initial_locale': INITIAL_LOCALE,
-  'initial_timezone': INITIAL_TIMEZONE,
-  }
+    'keyboard_layout': KEYBOARD_LAYOUT,
+    'initial_locale': INITIAL_LOCALE,
+    'initial_timezone': INITIAL_TIMEZONE,
+}

@@ -3,8 +3,7 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-A factory test to test the function of display.
+"""A factory test to test the function of display.
 """
 
 import logging
@@ -27,8 +26,8 @@ _HTML_DISPLAY = (
 
 
 class DisplayIdleTest(unittest.TestCase):
-  '''
-  Tests the function of display.
+  '''Tests the function of display.
+
   Properties:
     self.ui: test ui.
     self.template: ui template handling html layout.
@@ -37,12 +36,13 @@ class DisplayIdleTest(unittest.TestCase):
   '''
 
   ARGS = [
-    Arg('timeout_secs', int, 'Timeout for the test.', default=20),
-    Arg('start_without_prompt', int, 'Start the test without prompt',
-        default=False),
+      Arg('timeout_secs', int, 'Timeout for the test.', default=20),
+      Arg('start_without_prompt', int, 'Start the test without prompt',
+          default=False),
   ]
+
   def setUp(self):
-    '''Initializes frontend presentation and properties.'''
+    """Initializes frontend presentation and properties."""
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
@@ -62,7 +62,7 @@ class DisplayIdleTest(unittest.TestCase):
     self.ui.Pass()
 
   def runTest(self):
-    '''Sets the callback function of keys and run the test.'''
+    """Sets the callback function of keys and run the test."""
     self.ui.BindKey(' ', lambda _: self.OnSpacePressed())
     self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
     if self.args.start_without_prompt:
@@ -81,7 +81,7 @@ class DisplayIdleTest(unittest.TestCase):
     self.fullscreen = not self.fullscreen
 
   def OnFailPressed(self):
-    '''Fails the subtest only if self.checked is True.'''
+    """Fails the subtest only if self.checked is True."""
     if self.checked:
       self.ui.CallJSFunction('failSubTest')
       # If the next subtest will be in fullscreen mode, checked should be True

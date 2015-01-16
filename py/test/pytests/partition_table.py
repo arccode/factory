@@ -42,7 +42,7 @@ class PartitionTableTest(unittest.TestCase):
           'partition must end at a sector that is >=95% of the total number of '
           'sectors on the device.',
           default=95),
-      ]
+  ]
 
   longMessage = True
 
@@ -57,8 +57,8 @@ class PartitionTableTest(unittest.TestCase):
 
     def CgptShow(flag):
       """Returns the value for 'cgpt show' with the given flag."""
-      return CheckOutput(['cgpt', 'show', '-i', str(stateful_no), dev, flag]
-                         ).strip()
+      return CheckOutput(['cgpt', 'show', '-i', str(stateful_no), dev,
+                          flag]).strip()
 
     start_sector = int(CgptShow('-b'))
     size_sectors = int(CgptShow('-s'))

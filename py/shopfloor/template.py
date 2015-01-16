@@ -3,9 +3,7 @@
 # found in the LICENSE file.
 
 
-"""
-(CHANGE THIS) This is a template for creating new implementation of factory shop
-floor system module.
+"""(CHANGE THIS) This is a template for creating new implementation of factory shop floor system module.
 """
 
 

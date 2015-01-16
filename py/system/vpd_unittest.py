@@ -13,6 +13,7 @@ from cros.factory.system import vpd
 
 
 class VPDTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(vpd, 'Spawn')
@@ -32,7 +33,7 @@ class VPDTest(unittest.TestCase):
     process.stdout_lines(strip=True).AndReturn(
         ['"%s"="%s"' % (k, v) for k, v in data.iteritems()])
     vpd.Spawn(['vpd', '-i', section, '-l'], check_output=True).AndReturn(
-      process)
+        process)
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -45,8 +46,8 @@ class VPDTest(unittest.TestCase):
          '"empty"=""'])
 
     # pylint: disable=E1101
-    vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_output=True
-              ).MultipleTimes().AndReturn(process)
+    vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'],
+              check_output=True).MultipleTimes().AndReturn(process)
     self.mox.ReplayAll()
     self.assertEquals(dict(a='b', foo='bar', empty=''), vpd.rw.GetAll())
     self.assertEquals('b', vpd.rw.get('a'))
@@ -61,7 +62,7 @@ class VPDTest(unittest.TestCase):
     process.stdout_lines(strip=True).AndReturn(['"a"="b',  # Missing trailing "
                                                 '"foo"="bar"'])
     vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_output=True).AndReturn(
-      process)
+        process)
     logging.error('Unexpected line in %s VPD: %r',
                   'RW_VPD', '"a"="b')
     self.mox.ReplayAll()

@@ -19,6 +19,7 @@ from cros.factory.utils import net_utils
 
 
 class TimeoutXMLRPCTest(unittest.TestCase):
+
   def __init__(self, *args, **kwargs):
     super(TimeoutXMLRPCTest, self).__init__(*args, **kwargs)
     self.client = None
@@ -26,8 +27,8 @@ class TimeoutXMLRPCTest(unittest.TestCase):
   def setUp(self):
     self.port = net_utils.FindUnusedTCPPort()
     self.server = SimpleXMLRPCServer.SimpleXMLRPCServer(
-      (net_utils.LOCALHOST, self.port),
-      allow_none=True)
+        (net_utils.LOCALHOST, self.port),
+        allow_none=True)
     self.server.register_function(time.sleep)
     self.thread = threading.Thread(target=self.server.serve_forever)
     self.thread.daemon = True
@@ -38,8 +39,8 @@ class TimeoutXMLRPCTest(unittest.TestCase):
 
   def MakeProxy(self, timeout):
     return net_utils.TimeoutXMLRPCServerProxy(
-      'http://%s:%d' % (net_utils.LOCALHOST, self.port),
-      timeout=timeout, allow_none=True)
+        'http://%s:%d' % (net_utils.LOCALHOST, self.port),
+        timeout=timeout, allow_none=True)
 
   def runTest(self):
     self.client = self.MakeProxy(timeout=1)

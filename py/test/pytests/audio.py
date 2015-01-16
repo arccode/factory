@@ -40,6 +40,7 @@ _SOUND_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), '..', '..', 'goofy',
     'static', 'sounds')
 
+
 class AudioDigitPlaybackTask(InteractiveFactoryTask):
   """Task to verify audio playback function.
 
@@ -87,9 +88,9 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
   def _InitUI(self):
     self._ui.SetHTML(self._port_label, id=self._title_id)
     self._ui.SetHTML(
-      '%s<br>%s' % (_INSTRUCTION_AUDIO_RANDOM_TEST(self._port_label, 'r'),
-                    test_ui.MakePassFailKeyLabel(pass_key=False)),
-      id=self._instruction_id)
+        '%s<br>%s' % (_INSTRUCTION_AUDIO_RANDOM_TEST(self._port_label, 'r'),
+                      test_ui.MakePassFailKeyLabel(pass_key=False)),
+        id=self._instruction_id)
     self.BindPassFailKeys(pass_key=False)
 
   def Run(self):
@@ -126,7 +127,7 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     # It makes no sense to continue if it fails to enable audio port.
     if _HasControl('Playback Switch'):
       if not self.RunCommand(self._port_switch + ['on,on'],
-                           'Fail to enable audio port.'):
+                             'Fail to enable audio port.'):
         return
 
     self._InitUI()
@@ -159,6 +160,7 @@ class WaitHeadphoneThread(threading.Thread):
     on_success: callback for success.
     check_period: status checking period in seconds. Default 1.
   """
+
   def __init__(self, headphone_numid, wait_for_connect, on_success,
                check_period=1.0):
     super(WaitHeadphoneThread, self).__init__(name='WaitHeadphoneThread')
@@ -198,6 +200,7 @@ class DetectHeadphoneTask(InteractiveFactoryTask):
     title_id: HTML id for placing testing title.
     instruction_id: HTML id for placing instruction.
   """
+
   def __init__(self, ui, headphone_numid, wait_for_connect,
                title_id, instruction_id):
     super(DetectHeadphoneTask, self).__init__(ui)
@@ -228,9 +231,9 @@ class DetectHeadphoneTask(InteractiveFactoryTask):
   def _InitUI(self):
     self._ui.SetHTML(self._title, id=self._title_id)
     self._ui.SetHTML(
-      '%s<br>%s' % (self._instruction,
-                    test_ui.MakePassFailKeyLabel(pass_key=False)),
-      id=self._instruction_id)
+        '%s<br>%s' % (self._instruction,
+                      test_ui.MakePassFailKeyLabel(pass_key=False)),
+        id=self._instruction_id)
     self.BindPassFailKeys(pass_key=False, fail_later=False)
 
   def Run(self):
@@ -249,28 +252,28 @@ class AudioTest(unittest.TestCase):
   correct digit. It also prevents key-swiping cheating.
   """
   ARGS = [
-    Arg('internal_port_id', str,
-        ('amixer name for internal audio (w/o "Playback Switch" postfix).\n'
-         'Use empty string to skip internal audio test.'),
-        default='Speaker'),
-    Arg('internal_port_label', tuple, 'Label of internal audio (en, zh).',
-        default=('Internal Speaker', u'内建喇叭')),
-    Arg('internal_volume', int, 'Internal playback volume, default 100%.',
-        default=100),
-    Arg('external_port_id', str,
-        ('amixer name for external audio (w/o "Playback Switch" postfix).\n'
-         'Use empty string to skip external audio test.'),
-        default='Headphone'),
-    Arg('external_port_label', tuple, 'Label of external audio (en, zh).',
-        default=('External Headphone', u'外接耳机')),
-    Arg('external_volume', int, 'External playback volume, default 100%.',
-        default=100),
-    Arg('test_left_right', bool, 'Test left and right channel.', default=True),
-    Arg('headphone_numid', str,
-        'amixer numid for headphone. Skip connection check if empty.',
-        optional=True),
-    Arg('bypass_cras', bool, 'Use basic alsa utilities and bypass cras '
-        'to play audio.', default=False)
+      Arg('internal_port_id', str,
+          ('amixer name for internal audio (w/o "Playback Switch" postfix).\n'
+           'Use empty string to skip internal audio test.'),
+          default='Speaker'),
+      Arg('internal_port_label', tuple, 'Label of internal audio (en, zh).',
+          default=('Internal Speaker', u'内建喇叭')),
+      Arg('internal_volume', int, 'Internal playback volume, default 100%.',
+          default=100),
+      Arg('external_port_id', str,
+          ('amixer name for external audio (w/o "Playback Switch" postfix).\n'
+           'Use empty string to skip external audio test.'),
+          default='Headphone'),
+      Arg('external_port_label', tuple, 'Label of external audio (en, zh).',
+          default=('External Headphone', u'外接耳机')),
+      Arg('external_volume', int, 'External playback volume, default 100%.',
+          default=100),
+      Arg('test_left_right', bool, 'Test left and right channel.', default=True),
+      Arg('headphone_numid', str,
+          'amixer numid for headphone. Skip connection check if empty.',
+          optional=True),
+      Arg('bypass_cras', bool, 'Use basic alsa utilities and bypass cras '
+          'to play audio.', default=False)
   ]
 
   def setUp(self):
@@ -328,6 +331,6 @@ class AudioTest(unittest.TestCase):
   def runTest(self):
     self.InitUI()
     self._task_manager = FactoryTaskManager(
-      self._ui, self.ComposeTasks(),
-      update_progress=self._template.SetProgressBarValue)
+        self._ui, self.ComposeTasks(),
+        update_progress=self._template.SetProgressBarValue)
     self._task_manager.Run()

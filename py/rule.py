@@ -17,7 +17,7 @@ import logging
 import re
 import threading
 import time
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.common import MakeList
 from cros.factory.utils import yaml_utils
@@ -86,6 +86,7 @@ class Context(object):
   It converts its constructor's input key-value pairs to the object's
   attributes.
   """
+
   def __init__(self, **kwargs):
     for key, value in kwargs.iteritems():
       setattr(self, key, value)
@@ -97,13 +98,16 @@ _context = threading.local()
 _context.value = None
 _context.logger = RuleLogger()
 
+
 def GetContext():
   """API to get the Context object."""
   return _context.value
 
+
 def GetLogger():
   """API to get the RuleLogger object."""
   return _context.logger
+
 
 def SetContext(context):
   """API to set the Context object. Logger should also be cleared."""
@@ -271,6 +275,7 @@ class Rule(object):
       RuleException if evaluation fails.
     """
     logger = GetLogger()
+
     def EvaluateAllFunctions(function_list):
       for function in function_list:
         try:

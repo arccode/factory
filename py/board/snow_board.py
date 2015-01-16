@@ -11,12 +11,13 @@ from cros.factory.board.chromeos_board import ChromeOSBoard
 from cros.factory.system.board import Board, BoardException
 from cros.factory.test import factory
 
+
 class SnowBoard(ChromeOSBoard):
   """Board interface for Snow."""
 
   def GetTemperatures(self):
     with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
-      return [int(f.readline().rstrip())/1000]
+      return [int(f.readline().rstrip()) / 1000]
 
   def GetMainTemperatureIndex(self):
     return 0

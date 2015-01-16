@@ -25,7 +25,7 @@ import os
 import re
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import pytests
 from cros.factory.test.utils import Enum
 from cros.factory.utils import file_utils
@@ -33,7 +33,7 @@ from cros.factory.utils import file_utils
 
 def Escape(text):
   """Escapes characters that must be escaped in a raw tag (*, `, and \)."""
-  return re.sub(r"([*`\\])", '\\\\\\1', text)
+  return re.sub(r'([*`\\])', '\\\\\\1', text)
 
 
 def Indent(text, prefix, first_line_prefix=None):
@@ -49,9 +49,9 @@ def Indent(text, prefix, first_line_prefix=None):
     first_line_prefix = prefix
 
   return re.sub(
-    '(?m)^',
-    lambda match: first_line_prefix if match.start() == 0 else prefix,
-    text)
+      '(?m)^',
+      lambda match: first_line_prefix if match.start() == 0 else prefix,
+      text)
 
 
 def WriteTestArgs(args, out):
@@ -66,12 +66,12 @@ def WriteTestArgs(args, out):
     return
 
   out.write(
-    'Test Arguments\n'
-    '--------------\n'
-    '.. list-table::\n'
-    '   :widths: 20 10 60\n'
-    '   :header-rows: 1\n'
-    '\n')
+      'Test Arguments\n'
+      '--------------\n'
+      '.. list-table::\n'
+      '   :widths: 20 10 60\n'
+      '   :header-rows: 1\n'
+      '\n')
 
   def WriteRow(cols):
     for i, col in enumerate(cols):
@@ -162,7 +162,7 @@ def GenerateTestDocs(pytest_name, module, out):
 
 def main():
   parser = argparse.ArgumentParser(
-      description="Generate .rst files for the factory toolkit")
+      description='Generate .rst files for the factory toolkit')
   parser.add_argument('--output-dir', '-o',
                       help='Output directory (default: %default)', default='.')
   args = parser.parse_args()
@@ -206,7 +206,7 @@ def main():
       with codecs.open(os.path.join(pytests_output_dir, pytest_name + '.rst'),
                        'w', 'utf-8') as out:
         pytest_info[pytest_name] = GenerateTestDocs(
-          pytest_name, module_name, out)
+            pytest_name, module_name, out)
 
   index_rst = os.path.join(pytests_output_dir, 'index.rst')
   with open(index_rst, 'a') as f:
@@ -218,4 +218,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-

@@ -25,6 +25,7 @@ import SocketServer
 
 from scpi_mock import MockServerHandler, MockTestServer
 
+
 class E5601CMock(object):
   # Class level variable to keep current status
   _sweep_type = None
@@ -69,14 +70,14 @@ class E5601CMock(object):
     match_obj = re.match(cls.RE_SET_TRIGGER_CONTINUOUS, input_str)
     channel = int(match_obj.group(1))
     state = match_obj.group(2)
-    logging.info("Simulated to set trigger continuous to %s on channel %d",
+    logging.info('Simulated to set trigger continuous to %s on channel %d',
                  state, channel)
 
   @classmethod
   def TriggerImmediately(cls, input_str):
     match_obj = re.match(cls.RE_TRIGGER_IMMEDIATEDLY, input_str)
     channel = int(match_obj.group(1))
-    logging.info("Simulated to trigger immediately on channel %d", channel)
+    logging.info('Simulated to trigger immediately on channel %d', channel)
 
   @classmethod
   def SetSweepType(cls, input_str):
@@ -84,7 +85,7 @@ class E5601CMock(object):
     cls._sweep_type = match_obj.group(1)
 
   @classmethod
-  def GetSweepType(cls, input_str): # pylint: disable=W0613
+  def GetSweepType(cls, input_str):  # pylint: disable=W0613
     return cls._sweep_type + '\n'
 
   @classmethod
@@ -95,20 +96,20 @@ class E5601CMock(object):
     assert (
         cls.SWEEP_SEGMENT_PREFIX ==
         parameters[:cls.SWEEP_SEGMENT_PREFIX_LEN]), (
-        "Only specific prefix is support for command SENS:SEGM:DATA")
+            'Only specific prefix is support for command SENS:SEGM:DATA')
     # Parse and store the segments
     num_of_segments = int(parameters[cls.SWEEP_SEGMENT_PREFIX_LEN])
     assert len(parameters) == (
-        cls.SEGMENT_TUPLE_LEN*num_of_segments +
+        cls.SEGMENT_TUPLE_LEN * num_of_segments +
         len(cls.SWEEP_SEGMENT_PREFIX) + 1), (
-        "Length of parameters is %d, not supported") % len(parameters)
+            'Length of parameters is %d, not supported') % len(parameters)
 
     cls._sweep_segment = list()
     x_axis_points = list()
     for idx in xrange(cls.SWEEP_SEGMENT_PREFIX_LEN + 1, len(parameters), 3):
       start_freq = float(parameters[idx])
-      end_freq = float(parameters[idx+1])
-      sample_points = int(parameters[idx+2])
+      end_freq = float(parameters[idx + 1])
+      sample_points = int(parameters[idx + 2])
       assert sample_points == 2, (
           'sample points only support two (start and end)')
 
@@ -120,17 +121,17 @@ class E5601CMock(object):
     cls._x_axis = sorted(x_axis_points)
 
   @classmethod
-  def GetSweepSegment(cls, input_str): # pylint: disable=W0613
+  def GetSweepSegment(cls, input_str):  # pylint: disable=W0613
     return_strings = list()
     return_strings.extend(cls.SWEEP_SEGMENT_PREFIX)
     return_strings.append(str(len(cls._sweep_segment)))
     for start_freq, end_freq, sample_points in cls._sweep_segment:
       return_strings.extend(
-        ['%.1f' % start_freq, '%.1f' % end_freq, str(sample_points)])
+          ['%.1f' % start_freq, '%.1f' % end_freq, str(sample_points)])
     return ','.join(return_strings) + '\n'
 
   @classmethod
-  def GetXAxis(cls, input_str): # pylint: disable=W0613
+  def GetXAxis(cls, input_str):  # pylint: disable=W0613
     return ','.join(['%+.11E' % x for x in cls._x_axis]) + '\n'
 
   @classmethod
@@ -142,7 +143,7 @@ class E5601CMock(object):
     cls._trace_config = ['UndefinedTrace' for idx in xrange(lens)]
 
   @classmethod
-  def GetTraceCount(cls, input_str): # pylint: disable=W0613
+  def GetTraceCount(cls, input_str):  # pylint: disable=W0613
     return str(len(cls._trace_config)) + '\n'
 
   @classmethod
@@ -150,7 +151,7 @@ class E5601CMock(object):
     match_obj = re.match(cls.RE_SET_TRACE_CONFIG, input_str)
     parameter_idx = int(match_obj.group(1)) - 1  # index starts from 0
     assert parameter_idx < len(cls._trace_config), (
-        "Index out of predefined trace size %d") % len(cls._trace_config)
+        'Index out of predefined trace size %d') % len(cls._trace_config)
     port_x = int(match_obj.group(2))
     port_y = int(match_obj.group(3))
     cls._trace_config[parameter_idx] = 'S%d%d' % (port_x, port_y)
@@ -160,7 +161,7 @@ class E5601CMock(object):
     match_obj = re.match(cls.RE_GET_TRACE_CONFIG, input_str)
     parameter_idx = int(match_obj.group(1)) - 1  # index starts from 0
     assert parameter_idx < len(cls._trace_config), (
-        "Index out of predefined trace size %d") % len(cls._trace_config)
+        'Index out of predefined trace size %d') % len(cls._trace_config)
     return cls._trace_config[parameter_idx] + '\n'
 
   @classmethod
@@ -168,11 +169,11 @@ class E5601CMock(object):
     match_obj = re.match(cls.RE_GET_TRACE, input_str)
     parameter_idx = int(match_obj.group(1)) - 1  # index starts from 0
     assert parameter_idx < len(cls._trace_config), (
-        "Index out of predefined trace size %d") % len(cls._trace_config)
+        'Index out of predefined trace size %d') % len(cls._trace_config)
 
     trace_info = cls._trace_map.get(cls._trace_config[parameter_idx], None)
     if not trace_info:
-      logging.info("No existing trace info for %s",
+      logging.info('No existing trace info for %s',
                    cls._trace_config[parameter_idx])
       # Set trace_info to an empty dict so DEFAULT_SIGNAL will be returned
       trace_info = dict()
@@ -181,8 +182,8 @@ class E5601CMock(object):
     for x_pos in sorted(cls._x_axis):  # pylint: disable=W0612
       signal = trace_info.get(x_pos, None)
       if not signal:
-        logging.info("Freq %15.2f is not defined in trace, "
-                     "use default value %15.2f", x_pos, cls.DEFAULT_SIGNAL)
+        logging.info('Freq %15.2f is not defined in trace, '
+                     'use default value %15.2f', x_pos, cls.DEFAULT_SIGNAL)
         signal = cls.DEFAULT_SIGNAL
       values.append('%+.11E' % signal)
       # Second is always 0 when the data format is not the Smith chart
@@ -193,7 +194,7 @@ class E5601CMock(object):
   def SaveScreenshot(cls, input_str):
     match_obj = re.match(cls.RE_SAVE_SCREENSHOT, input_str)
     filename = match_obj.group(1)
-    logging.info("Simulated screenshot saved under %r", filename)
+    logging.info('Simulated screenshot saved under %r', filename)
 
   @classmethod
   def SetMarker(cls, input_str):
@@ -201,21 +202,21 @@ class E5601CMock(object):
     active_channel = int(match_obj.group(1))
     marker_num = int(match_obj.group(2))
     marker_freq = float(match_obj.group(3))
-    logging.info("Simulated marker setting: channel[%d], "
-                 "marker[%d] to freq[%15.2f]",
+    logging.info('Simulated marker setting: channel[%d], '
+                 'marker[%d] to freq[%15.2f]',
                  active_channel, marker_num, marker_freq)
 
   @classmethod
   def SetFrequencyStart(cls, input_str):
     match_obj = re.match(cls.RE_SET_FREQ_START, input_str)
     freq = float(match_obj.group(1))
-    logging.info("Simulated spectrum to start at [%15.2f]", freq)
+    logging.info('Simulated spectrum to start at [%15.2f]', freq)
 
   @classmethod
   def SetFrequencyStop(cls, input_str):
     match_obj = re.match(cls.RE_SET_FREQ_STOP, input_str)
     freq = float(match_obj.group(1))
-    logging.info("Simulated spectrum to stop at [%15.2f]", freq)
+    logging.info('Simulated spectrum to stop at [%15.2f]', freq)
 
   @classmethod
   def SetupLookupTable(cls):
@@ -268,6 +269,7 @@ class E5601CMock(object):
     AddLookup(cls.RE_SET_FREQ_START, cls.SetFrequencyStart)
     AddLookup(cls.RE_SET_FREQ_STOP, cls.SetFrequencyStop)
 
+
 def ServeHttpScreenshot():
   """Serves screenshot url requests.
 
@@ -287,7 +289,7 @@ def ServeHttpScreenshot():
   httpd_thread = threading.Thread(target=httpd.serve_forever)
   httpd_thread.daemon = True
   httpd_thread.start()
-  logging.info("Httpd served at port 80 for screenshot request")
+  logging.info('Httpd served at port 80 for screenshot request')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
@@ -304,7 +306,7 @@ if __name__ == '__main__':
   if args.httpd:
     ServeHttpScreenshot()
   server_port = int(args.port)
-  logging.info("Going to start E5071C mock at port %d", server_port)
+  logging.info('Going to start E5071C mock at port %d', server_port)
   # pylint: disable=E1101
   ena_host = MockTestServer(('0.0.0.0', server_port), MockServerHandler)
   ena_host.serve_forever()

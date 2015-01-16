@@ -17,7 +17,9 @@ import logging
 import time
 import unittest
 
+
 class UrandomTest(unittest.TestCase):
+
   def runTest(self):
     duration_secs = self.test_info.args['duration_secs']
     logging.info('Getting /dev/urandom for %d seconds', duration_secs)
@@ -25,5 +27,5 @@ class UrandomTest(unittest.TestCase):
     with open('/dev/urandom') as f:
       end_time = time.time() + duration_secs
       while time.time() <= end_time:
-        data = f.read(1024*1024)
+        data = f.read(1024 * 1024)
         self.assertTrue(data, '/dev/urandom returns nothing!')

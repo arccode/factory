@@ -25,7 +25,7 @@ import signal
 from twisted.internet import error
 from twisted.internet import reactor
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher import ShopFloorLauncherException
@@ -133,4 +133,3 @@ if __name__ == '__main__':
   signal.signal(signal.SIGTERM, SignalHandler)
   signal.signal(signal.SIGINT, SignalHandler)
   main()
-

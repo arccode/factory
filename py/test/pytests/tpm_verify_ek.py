@@ -22,6 +22,7 @@ from cros.factory.utils.file_utils import Sync
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 from cros.factory.utils.string_utils import ParseDict
 
+
 class TPMVerifyEK(unittest.TestCase):
   ARGS = [
       # Chromebooks and Chromeboxes should set this to False.
@@ -72,7 +73,7 @@ class TPMVerifyEK(unittest.TestCase):
 
     # Verify the endorsement key.
     process = Spawn(['cryptohome', '--action=tpm_verify_ek'] + (
-                    ["--cros_core"] if self.args.is_cros_core else []),
+        ['--cros_core'] if self.args.is_cros_core else []),
                     read_stderr=True,
                     log=True, check_call=True)
     # Make sure there's no stderr from tpm_verify_ek (since that, plus
@@ -88,7 +89,7 @@ class TPMVerifyEK(unittest.TestCase):
 
     # Verify TPM endorsement.
     Spawn(['tpm-manager', 'verify_endorsement'] + (
-          ["--cros_core"] if self.args.is_cros_core else []),
+        ['--cros_core'] if self.args.is_cros_core else []),
           log=True, check_call=True)
 
   def runTest(self):

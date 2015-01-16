@@ -23,15 +23,16 @@ _FAKE_SUBSERVICE_LIST = ['flimflam_respawn', 'wpasupplicant', 'modemmanager']
 _FAKE_PROFILE_LOCATION = '/var/cache/%s/default.profile'
 _FAKE_INTERFACES = ['wlan0', 'eth0', 'lo']
 _FAKE_DATA = {
-  'scan_interval': _FAKE_SCAN_INTERVAL_SECS,
-  'network_manager': _FAKE_MANAGER,
-  'process_name': _FAKE_PROC_NAME,
-  'subservices': _FAKE_SUBSERVICE_LIST,
-  'profile_path': _FAKE_PROFILE_LOCATION
-  }
+    'scan_interval': _FAKE_SCAN_INTERVAL_SECS,
+    'network_manager': _FAKE_MANAGER,
+    'process_name': _FAKE_PROC_NAME,
+    'subservices': _FAKE_SUBSERVICE_LIST,
+    'profile_path': _FAKE_PROFILE_LOCATION
+}
 
 
 class WLANTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -51,6 +52,7 @@ class WLANTest(unittest.TestCase):
 
 
 class ConnectionManagerTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(connection_manager, 'GetBaseNetworkManager')
@@ -68,13 +70,13 @@ class ConnectionManagerTest(unittest.TestCase):
 
   def MockDisableNetworking(self):
     for service in _FAKE_SUBSERVICE_LIST + [_FAKE_MANAGER]:
-      subprocess.call("stop %s" % service, shell=True,
+      subprocess.call('stop %s' % service, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
     interfaces = list(_FAKE_INTERFACES)
     interfaces.remove('lo')
     glob.glob('/sys/class/net/*').AndReturn(_FAKE_INTERFACES)
     for dev in interfaces:
-      subprocess.call("ifconfig %s down" % dev, shell=True,
+      subprocess.call('ifconfig %s down' % dev, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
 
   def MockEnableNetworking(self, reset=True):
@@ -87,32 +89,32 @@ class ConnectionManagerTest(unittest.TestCase):
     interfaces.remove('lo')
     glob.glob('/sys/class/net/*').AndReturn(_FAKE_INTERFACES)
     for dev in interfaces:
-      subprocess.call("ifconfig %s up" % dev, shell=True,
+      subprocess.call('ifconfig %s up' % dev, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
 
     for service in [_FAKE_MANAGER] + _FAKE_SUBSERVICE_LIST:
-      subprocess.call("start %s" % service, shell=True,
+      subprocess.call('start %s' % service, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
 
     connection_manager.GetBaseNetworkManager().AndReturn(
-      self.fakeBaseNetworkManager)
+        self.fakeBaseNetworkManager)
     glob.glob('/sys/class/net/*').AndReturn(_FAKE_INTERFACES)
     fakeDevice = self.mox.CreateMockAnything()
     self.fakeBaseNetworkManager.FindElementByNameSubstring(
-      'Device', 'wlan0').AndReturn(fakeDevice)
+        'Device', 'wlan0').AndReturn(fakeDevice)
     fakeDevice.SetProperty('ScanInterval',
                            dbus.UInt16(_FAKE_SCAN_INTERVAL_SECS))
 
     fakeMgr = self.mox.CreateMockAnything()
     self.fakeBaseNetworkManager.manager = fakeMgr
     self.fakeBaseNetworkManager.manager.ConfigureService({
-      'Type': 'wifi',
-      'Mode': 'managed',
-      'AutoConnect': True,
-      'SSID': 'fake_server',
-      'Security': 'psk',
-      'Passphrase': 'test0000'
-      })
+        'Type': 'wifi',
+        'Mode': 'managed',
+        'AutoConnect': True,
+        'SSID': 'fake_server',
+        'Security': 'psk',
+        'Passphrase': 'test0000'
+    })
 
   def testInitWithEnableNetworking(self):
     self.MockEnableNetworking(reset=False)
@@ -141,7 +143,7 @@ class ConnectionManagerTest(unittest.TestCase):
   def testIsConnectedOK(self):
     self.MockDisableNetworking()
     connection_manager.GetBaseNetworkManager().AndReturn(
-      self.fakeBaseNetworkManager)
+        self.fakeBaseNetworkManager)
     self.fakeBaseNetworkManager.GetSystemState().AndReturn('online')
 
     self.mox.ReplayAll()
@@ -152,7 +154,7 @@ class ConnectionManagerTest(unittest.TestCase):
   def testIsConnectedFailNotConnected(self):
     self.MockDisableNetworking()
     connection_manager.GetBaseNetworkManager().AndReturn(
-      self.fakeBaseNetworkManager)
+        self.fakeBaseNetworkManager)
     self.fakeBaseNetworkManager.GetSystemState().AndReturn('offline')
 
     self.mox.ReplayAll()
@@ -163,7 +165,7 @@ class ConnectionManagerTest(unittest.TestCase):
   def testIsConnectedFailNetworkManagerNotRunning(self):
     self.MockDisableNetworking()
     connection_manager.GetBaseNetworkManager().AndRaise(
-            dbus.exceptions.DBusException("YAYA"))
+        dbus.exceptions.DBusException('YAYA'))
 
     self.mox.ReplayAll()
     x = connection_manager.ConnectionManager(start_enabled=False,

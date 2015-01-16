@@ -113,7 +113,7 @@ def MountUSB(read_only=False):
 
 @contextmanager
 def DummyContext(arg):
-  '''A context manager that simply yields its argument.'''
+  """A context manager that simply yields its argument."""
   yield arg
 
 
@@ -153,7 +153,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
   # SuperIO-based platform has no EC chip, check ectool exists or not.
   has_ectool = Spawn(['whereis', 'ectool'], read_stdout=True,
-      log=True).stdout_data.split(':')[1].strip()
+                     log=True).stdout_data.split(':')[1].strip()
   try:
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:
       Spawn('crossystem', stdout=f, stderr=f, check_call=True)
@@ -189,13 +189,13 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
             # /sys, never on the SSD.
             '/dev/pstore',
             '/sys/firmware/log',
-            ]], [])
+        ]], [])
 
     # Exclude various items from bug reports.
     exclude_files = list(chain.from_iterable(('--exclude', x) for x in [
         os.path.join(factory.get_state_root(), factory.CHROME_DATA_DIR_NAME),
         'Extensions',
-        ]))
+    ]))
     if not include_network_log:
       exclude_files += ['--exclude', os.path.join(var, 'log', 'net.log')]
 
@@ -249,6 +249,7 @@ EXAMPLES = """Examples:
 
 """
 
+
 def main():
   logging.basicConfig(level=logging.INFO)
 
@@ -271,8 +272,8 @@ def main():
       mounted_sda3 = mount_point
 
   parser = argparse.ArgumentParser(
-      description=("Save logs to a file or USB drive "
-                   "and/or mount encrypted SSD partition."),
+      description=('Save logs to a file or USB drive '
+                   'and/or mount encrypted SSD partition.'),
       epilog=EXAMPLES,
       formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('--output_dir', '-o', dest='output_dir', metavar='DIR',
@@ -282,15 +283,15 @@ def main():
                             USB_ROOT_OUTPUT_DIR + ' when booted '
                             'from USB'))
   parser.add_argument('--mount', action='store_true',
-                      help=("when booted from USD, only "
+                      help=('when booted from USD, only '
                             "mount encrypted SSD and exit (don't save logs)"))
   parser.add_argument('--usb', action='store_true',
                       help=('save logs to a USB stick (using any mounted '
                             'USB drive partition if available, otherwise '
                             'attempting to temporarily mount one)'))
   parser.add_argument('--net', action='store_true',
-                      help=("whether to include network related logs or not. "
-                            "Network logs are excluded by default."))
+                      help=('whether to include network related logs or not. '
+                            'Network logs are excluded by default.'))
   parser.add_argument('--id', '-i', metavar='ID',
                       help=('short ID to include in file name to help '
                             'differentiate archives'))
@@ -348,8 +349,7 @@ def main():
   # collect logs.
   if not args.mount:
     with (MountUSB() if args.usb
-          else DummyContext(MountUSBInfo(None, args.output_dir, False))
-          ) as mount:
+          else DummyContext(MountUSBInfo(None, args.output_dir, False))) as mount:
       output_file = SaveLogs(mount.mount_point, args.net, args.id, **paths)
       logging.info('Wrote %s (%d bytes)',
                    output_file, os.path.getsize(output_file))

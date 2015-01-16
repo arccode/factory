@@ -218,7 +218,7 @@ class BundleImporter(object):
     bundle_files = []
     bundle_files.extend(self.download_files)
     bundle_files.extend([self.netboot_file, self.update_bundle,
-                        self.hwid_bundle, self.factory_software])
+                         self.hwid_bundle, self.factory_software])
     bundle_files = filter(None, bundle_files)
 
     # File-resource tuple list (src_file, res_file).
@@ -253,7 +253,7 @@ class BundleImporter(object):
     if conflict_list:
       for src, src_hash, dst, dst_hash in conflict_list:
         logging.warning('hash conflict:\n\t%s:%s\n\t%s:%s',
-                      src_hash, src, dst_hash, dst)
+                        src_hash, src, dst_hash, dst)
       raise ImporterError('Hash conflicted')
     # Raise exception on unexpected error
     if error_list:
@@ -287,7 +287,7 @@ class BundleImporter(object):
         # The image version in source URL contains:
         #   .../MAJOR.MINOR.BUILD/...
         # Where MAJOR, MINOR and BUILD are decimal digits.
-        m = re.match(r'''.*/(\d+\.\d+\.\d+)/.*''', add_file['source'])
+        m = re.match(r""".*/(\d+\.\d+\.\d+)/.*""", add_file['source'])
         if m:
           return m.group(1)
         else:
@@ -387,4 +387,3 @@ class BundleImporter(object):
       f.write(self.shopfloor_config)
     logging.info('Shopfloor import from bundle complete.\n\n\tNew config: %s\n',
                  os.path.basename(self.shopfloor_config))
-

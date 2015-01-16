@@ -10,6 +10,7 @@ import csv
 import logging
 import pprint
 
+
 def WriteCsv(target, list_of_dict, key_orders):
   '''Writes a list of dict to a CSV file.
 

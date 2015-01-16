@@ -27,6 +27,7 @@ TEST_CONFIG = os.path.join(os.path.dirname(__file__), 'testdata',
 
 class TestResultUnittest(unittest.TestCase):
   """Unit tests for TestResult class."""
+
   def setUp(self):
     self.board = 'rambi'
     self.test_config = test_factory_flow.LoadConfig(filepath=TEST_CONFIG)
@@ -125,6 +126,7 @@ class TestResultUnittest(unittest.TestCase):
 
 
 class FactoryFlowRunnerUnittest(unittest.TestCase):
+
   def setUp(self):
     self.board = 'rambi'
     self.test_config = test_factory_flow.LoadConfig(filepath=TEST_CONFIG)
@@ -238,6 +240,7 @@ class FactoryFlowRunnerUnittest(unittest.TestCase):
 
 
 class LocateBundleDirUnittest(unittest.TestCase):
+
   def setUp(self):
     self.base_dir = tempfile.mkdtemp(prefix='bundle_dir.')
     self.board = build_board.BuildBoard('rambi')

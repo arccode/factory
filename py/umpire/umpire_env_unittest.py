@@ -350,7 +350,6 @@ class UmpireEnvTest(unittest.TestCase):
     toolkit_hash = GetHashFromResourceName(toolkit_resource)
     return os.path.join(self.env.device_toolkits_dir, toolkit_hash)
 
-
   def testGetBundleDeviceToolkit(self):
     expected_toolkit_dir = self.PrepareBundleDeviceToolkit()
 

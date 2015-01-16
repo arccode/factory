@@ -87,8 +87,8 @@ class ValidHWIDDBsTest(unittest.TestCase):
       logging.info('Checking %s: %s:%s', board_name, commit, db_path)
       try:
         db_raw = process_utils.CheckOutput(
-                ['git', 'show', '%s:%s' % (commit, db_path)],
-                cwd=hwid_dir, ignore_stderr=True)
+            ['git', 'show', '%s:%s' % (commit, db_path)],
+            cwd=hwid_dir, ignore_stderr=True)
       except subprocess.CalledProcessError as e:
         if e.returncode == 128:
           logging.info('Database %s is removed. Skip test for %s.',
@@ -117,8 +117,8 @@ class ValidHWIDDBsTest(unittest.TestCase):
 
       try:
         test_samples = yaml.load_all(process_utils.CheckOutput(
-                ['git', 'show', '%s:%s' % (commit, test_path)],
-                cwd=hwid_dir, ignore_stderr=True))
+            ['git', 'show', '%s:%s' % (commit, test_path)],
+            cwd=hwid_dir, ignore_stderr=True))
       except subprocess.CalledProcessError as e:
         if e.returncode == 128:
           logging.info('Cannot find %s. Skip encoding / decoding test for %s.',
@@ -157,7 +157,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
     for k, v in probe_results.found_volatile_values.items():
       # Use items(), not iteritems(), since we will be modifying the dict in the
       # loop.
-      match = re.match('^vpd\.(ro|rw)\.(\w+)$', k)
+      match = re.match(r'^vpd\.(ro|rw)\.(\w+)$', k)
       if match:
         del probe_results.found_volatile_values[k]
         vpd[match.group(1)][match.group(2)] = v

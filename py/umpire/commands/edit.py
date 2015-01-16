@@ -40,6 +40,7 @@ class ConfigEditor(object):
     config_editor = ConfigEditor(umpire_cli)
     config_editor.Edit(config_file="/path/to/config_file")
   """
+
   def __init__(self, umpire_cli, temp_dir=None, max_retry=1):
     """Constructor.
 

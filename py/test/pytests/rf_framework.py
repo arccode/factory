@@ -83,6 +83,7 @@ MSG_POST_TEST = test_ui.MakeLabel(
     'Running post-test.',
     u'执行剩馀测试中...')
 
+
 class _RfFrameworkDelegate(object):
   """UI Delegate for RfFramework."""
 
@@ -133,10 +134,10 @@ class RfFramework(object):
           'the IP setting in previous stage', default=None, optional=True),
       Arg('use_shopfloor', bool, 'True to communicate with shopfloor.',
           default=True)
-      ]
+  ]
 
   def __init__(self, *args, **kwargs):
-    super(RfFramework, self ).__init__(*args, **kwargs)
+    super(RfFramework, self).__init__(*args, **kwargs)
     self.config = None
     self.calibration_target = None
     self.calibration_config = None
@@ -166,7 +167,7 @@ class RfFramework(object):
         self.args.base_directory, self.args.calibration_config)
     self.args.parameters = ([
         os.path.join(self.args.base_directory, x) for x
-            in self.args.parameters])
+        in self.args.parameters])
 
     # Allowed user to apply fine controls in engineering_mode
     if self.delegate.ui.InEngineeringMode():
@@ -201,7 +202,7 @@ class RfFramework(object):
       self.calibration_mode = True
       # Load the calibration_target
       with open(os.path.join(
-          self.caches_dir, self.args.calibration_target), "r") as fd:
+          self.caches_dir, self.args.calibration_target), 'r') as fd:
         self.calibration_target = yaml.load(fd.read())
 
       # Confirm if this DUT is in the list of targets.
@@ -214,11 +215,11 @@ class RfFramework(object):
       self.calibration_target = (
           self.calibration_target[self.unique_identification])
       factory.console.info('Calibration target=\n%s',
-          self.calibration_target)
+                           self.calibration_target)
 
     # Load the main configuration.
     with open(os.path.join(
-        self.caches_dir, self.args.config_file), "r") as fd:
+        self.caches_dir, self.args.config_file), 'r') as fd:
       self.config = yaml.load(fd.read())
     config_version = self.config['annotation']
     factory.console.info('Loaded config = %r', config_version)
@@ -267,7 +268,7 @@ class RfFramework(object):
     self.field_to_csv[EQUIPMENT_ID] = equipment_id
     if equipment_id not in self.calibration_config:
       raise ValueError(
-          "Equipment %r is not in the calibraion white list", equipment_id)
+          'Equipment %r is not in the calibraion white list', equipment_id)
 
     self.calibration_config = self.calibration_config[equipment_id]
     calibration_config_version = self.calibration_config['annotation']
@@ -317,7 +318,7 @@ class RfFramework(object):
         self.TestStep3_PrimaryTestInsideShieldBox()
 
       # Light all LEDs to indicate test is completed.
-      leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
+      leds.SetLeds(leds.LED_SCR | leds.LED_NUM | leds.LED_CAP)
       self.Prompt(MSG_PRIMARY_TEST_COMPLETED, force_prompt=True)
       leds.SetLeds(0)
 
@@ -419,7 +420,6 @@ class RfFramework(object):
              [LOG_TIME, MODULE_ID, DEVICE_SN, DEVICE_ID,
               PATH, FAILURES, INVOCATION])
     factory.console.info('Details saved to %s', csv_path)
-
 
   def _PrepareNetwork(self):
     """Blocks forever until network is prepared."""
@@ -540,7 +540,7 @@ class RfComboTestLoader(unittest.TestCase):
       Arg('blinking_pattern_combo', tuple, 'Combo arguments.'),
       Arg('static_ips_combo', tuple, 'Combo arguments.'),
       Arg('use_shopfloor', bool, 'Shared argument.', default=True)
-      ]
+  ]
 
   def __init__(self, *args, **kwargs):
     super(RfComboTestLoader, self).__init__(*args, **kwargs)
@@ -620,7 +620,7 @@ class RfComboTestLoader(unittest.TestCase):
         self.rf_tests[1].TestStep3_PrimaryTestInsideShieldBox()
 
       # Light all LEDs to indicate test is completed.
-      leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
+      leds.SetLeds(leds.LED_SCR | leds.LED_NUM | leds.LED_CAP)
       self.rf_tests[0].Prompt(MSG_PRIMARY_TEST_COMPLETED, force_prompt=True)
       leds.SetLeds(0)
 

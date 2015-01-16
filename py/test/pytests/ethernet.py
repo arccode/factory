@@ -56,17 +56,18 @@ window.onkeydown = function(event) {
 
 _LOCAL_FILE_PATH = '/tmp/test'
 
+
 class EthernetTest(unittest.TestCase):
   """Test built-in ethernet port"""
   ARGS = [
-    Arg('auto_start', bool, 'Auto start option.', False),
-    Arg('test_url', str, 'URL for testing data transmission.',
-        optional=True),
-    Arg('md5sum', str, 'md5sum of the test file in test_url.',
-        optional=True),
-    Arg('retry_interval_msecs', int,
-        'Milliseconds before next retry.',
-        default=1000),
+      Arg('auto_start', bool, 'Auto start option.', False),
+      Arg('test_url', str, 'URL for testing data transmission.',
+          optional=True),
+      Arg('md5sum', str, 'md5sum of the test file in test_url.',
+          optional=True),
+      Arg('retry_interval_msecs', int,
+          'Milliseconds before next retry.',
+          default=1000),
   ]
 
   def setUp(self):
@@ -107,7 +108,7 @@ class EthernetTest(unittest.TestCase):
       factory.console.info(
           'Failed to connect to %s: %s.', self.args.test_url, e.reason)
     else:
-      with open(_LOCAL_FILE_PATH, "w") as local_file:
+      with open(_LOCAL_FILE_PATH, 'w') as local_file:
         local_file.write(remote_file.read())
         local_file.flush()
         os.fdatasync(local_file)
@@ -125,14 +126,14 @@ class EthernetTest(unittest.TestCase):
 
   def StartTest(self, event):  # pylint: disable=W0613
     # Only retry 5 times
-    for i in xrange(5): # pylint: disable=W0612
+    for i in xrange(5):  # pylint: disable=W0612
       eth = self.GetCandidateInterface()
       if eth:
         if self.args.test_url is None:
           ethernet_ip = GetEthernetIp(eth)
           if ethernet_ip:
             factory.console.info('Get ethernet IP %s for %s',
-                ethernet_ip, eth)
+                                 ethernet_ip, eth)
             self.ui.Pass()
             break
         else:

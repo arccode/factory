@@ -5,12 +5,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 import unittest
 
 from cros.factory.hwid.base8192 import Base8192
 
+
 class Base8192Test(unittest.TestCase):
+
   def testEncode(self):
     self.assertEquals('E', Base8192.Encode('001'))
     self.assertEquals('C', Base8192.Encode('0001'))
@@ -27,7 +29,7 @@ class Base8192Test(unittest.TestCase):
         r"Length of base8192 encoded string 'AA' is not multiple of 3",
         Base8192.Decode, 'AA')
     self.assertRaisesRegexp(
-        KeyError, r"Encoded string should be of format: \(\[A-Z2-7\]\[2-9\]\["
+        KeyError, r'Encoded string should be of format: \(\[A-Z2-7\]\[2-9\]\['
         "A-Z2-7\]\)\+: 'FIB'", Base8192.Decode, 'FIB')
 
   def testChecksum(self):
@@ -37,4 +39,3 @@ class Base8192Test(unittest.TestCase):
 
 if __name__ == '__main__':
   unittest.main()
-

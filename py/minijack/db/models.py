@@ -16,6 +16,7 @@ class Field(object):
     _primary_key: True if this field is a primary key; otherwise, False.
     _db_index: True if this field is indexed; otherwise, False.
   """
+
   def __init__(self, primary_key=False, db_index=False):
     self._primary_key = primary_key
     self._db_index = db_index
@@ -46,6 +47,7 @@ class Field(object):
 
 
 class IntegerField(Field):
+
   def IsValid(self, value):
     if isinstance(value, int):
       return True
@@ -67,6 +69,7 @@ class IntegerField(Field):
 
 
 class FloatField(Field):
+
   def IsValid(self, value):
     # Both float and int are acceptable.
     if isinstance(value, float) or isinstance(value, int):
@@ -93,6 +96,7 @@ class FloatField(Field):
 
 
 class TextField(Field):
+
   def IsValid(self, value):
     return isinstance(value, str) or isinstance(value, unicode)
 
@@ -107,7 +111,7 @@ class TextField(Field):
     if database_type == bigquery.Database:
       return 'STRING'
     elif (database_type == cloud_sql.Database and
-        (self._primary_key or self._db_index)):
+          (self._primary_key or self._db_index)):
       # MySQL can't do index on TEXT, only on VARCHAR, which has maximum length
       # limit of 255. We just use the maximum length limit here.
       return 'VARCHAR(255)'
@@ -181,7 +185,7 @@ class Model(object):
                      db.bigquery, db.cloud_sql
     """
     return dict((k, v.GetDbType(database_type)) for k, v in
-        cls._model.iteritems())
+                cls._model.iteritems())
 
   @classmethod
   def GetPrimaryKey(cls):

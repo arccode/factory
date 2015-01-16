@@ -12,6 +12,7 @@ from cros.factory.utils import type_utils
 
 
 class PollForConditionTest(unittest.TestCase):
+
   def _Increment(self):
     self.counter = self.counter + 1
     return self.counter
@@ -34,12 +35,14 @@ class PollForConditionTest(unittest.TestCase):
         timeout_secs=5, poll_interval_secs=0.01))
 
   def testPollForConditionTimeout(self):
-    self.assertRaises(type_utils.TimeoutError, sync_utils.PollForCondition,
+    self.assertRaises(
+        type_utils.TimeoutError, sync_utils.PollForCondition,
         poll_method=lambda: self._IncrementCheckTrigger(trigger=30),
         timeout_secs=2, poll_interval_secs=0.1)
 
 
 class WaitForTest(unittest.TestCase):
+
   def runTest(self):
     def _ReturnTrueAfter(t):
       return time.time() > t

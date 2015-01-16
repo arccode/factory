@@ -5,7 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 import unittest
 
 from cros.factory.schema import (AnyOf, Dict, FixedDict, List, Optional, Scalar,
@@ -13,6 +13,7 @@ from cros.factory.schema import (AnyOf, Dict, FixedDict, List, Optional, Scalar,
 
 
 class SchemaTest(unittest.TestCase):
+
   def testScalar(self):
     self.assertRaisesRegexp(
         SchemaException,
@@ -206,33 +207,33 @@ class SchemaTest(unittest.TestCase):
                                  List('component_name_list')])))))
 
     data = {
-      'audio_codec': {
-        0: {
-          'audio_codec': ['codec_0', 'hdmi_0']
+        'audio_codec': {
+            0: {
+                'audio_codec': ['codec_0', 'hdmi_0']
+            },
+            1: {
+                'audio_codec': ['codec_1', 'hdmi_1']
+            }
         },
-        1: {
-          'audio_codec': ['codec_1', 'hdmi_1']
+        'bluetooth': {
+            0: {
+                'bluetooth': 'bluetooth_0'
+            }
+        },
+        'cellular': {
+            0: {
+                'cellular': None
+            }
+        },
+        'firmware': {
+            0: {
+                'hash_gbb': 'hash_gbb_0',
+                'key_recovery': 'key_recovery_0',
+                'key_root': 'key_root_0',
+                'ro_ec_firmware': 'ro_ec_firmware_0',
+                'ro_main_firmware': 'ro_main_firmware_0'
+            }
         }
-      },
-      'bluetooth': {
-        0: {
-          'bluetooth': 'bluetooth_0'
-        }
-      },
-      'cellular': {
-        0: {
-          'cellular': None
-        }
-      },
-      'firmware': {
-        0: {
-          'hash_gbb': 'hash_gbb_0',
-          'key_recovery': 'key_recovery_0',
-          'key_root': 'key_root_0',
-          'ro_ec_firmware': 'ro_ec_firmware_0',
-          'ro_main_firmware': 'ro_main_firmware_0'
-        }
-      }
 
     }
     self.assertEquals(None, schema1.Validate(data))
@@ -240,49 +241,49 @@ class SchemaTest(unittest.TestCase):
 
     schema = (
         List('patterns',
-          Dict('pattern', Scalar('encoded_field', str),
-               Scalar('bit_length', int))))
+             Dict('pattern', Scalar('encoded_field', str),
+                  Scalar('bit_length', int))))
     data = [
-      {'audio_codec': 1},
-      {'battery': 2},
-      {'bluetooth': 2},
-      {'camera': 0},
-      {'cellular': 1}
+        {'audio_codec': 1},
+        {'battery': 2},
+        {'bluetooth': 2},
+        {'camera': 0},
+        {'cellular': 1}
     ]
     self.assertEquals(None, schema.Validate(data))
     schema = (
         Dict('components', Scalar('component_class', str),
-          Dict('component_names', Scalar('component_name', str),
-            FixedDict('component_attrs',
-                      {'value': AnyOf([
-                          List('value_list'), Scalar('value_str', str)])},
-                      {'labels': List('labels_list', Scalar('label', str))}))))
+             Dict('component_names', Scalar('component_name', str),
+                  FixedDict('component_attrs',
+                            {'value': AnyOf([
+                                List('value_list'), Scalar('value_str', str)])},
+                            {'labels': List('labels_list', Scalar('label', str))}))))
     data = {
-      'flash_chip': {
-        'flash_chip_0': {
-          'value': 'Flash Chip'
-        }
-      },
-      'keyboard': {
-        'keyboard_gb': {
-          'value': 'xkb:gb:extd:eng',
-          'labels': ['GB']
+        'flash_chip': {
+            'flash_chip_0': {
+                'value': 'Flash Chip'
+            }
         },
-        'keyboard_us': {
-          'value': 'xkb:us::eng',
-          'labels': ['US']
-        }
-      },
-      'storage': {
-        'storage_0': {
-          'value': '16G SSD #123456',
-          'labels': ['SSD', '16G']
+        'keyboard': {
+            'keyboard_gb': {
+                'value': 'xkb:gb:extd:eng',
+                'labels': ['GB']
+            },
+            'keyboard_us': {
+                'value': 'xkb:us::eng',
+                'labels': ['US']
+            }
         },
-        'storage_1': {
-          'value': '32G SSD #123456',
-          'labels': ['SSD', '32G']
+        'storage': {
+            'storage_0': {
+                'value': '16G SSD #123456',
+                'labels': ['SSD', '16G']
+            },
+            'storage_1': {
+                'value': '32G SSD #123456',
+                'labels': ['SSD', '32G']
+            }
         }
-      }
     }
     self.assertEquals(None, schema.Validate(data))
 

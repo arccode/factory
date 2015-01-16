@@ -18,6 +18,7 @@ LOCALHOST = '127.0.0.1'
 # TODO(rong): Move to constants or make it an option.
 MINIJACK_FCGI_PORT = constants.DEFAULT_BIND_PORT + 4
 
+
 def main():
   logging.basicConfig(level=logging.INFO, format='%(message)s')
   bind_address = (LOCALHOST, MINIJACK_FCGI_PORT)

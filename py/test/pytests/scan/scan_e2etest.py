@@ -8,6 +8,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import shopfloor
 from cros.factory.test.e2e_test import e2e_test
 
+
 class ScanE2ETest(e2e_test.E2ETest):
   """The scan E2E test."""
   pytest_name = 'scan'

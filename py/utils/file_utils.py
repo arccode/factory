@@ -75,6 +75,7 @@ class Glob(object):
     exclude: Patterns identifying files to exclude.  This can be
       None, or a single pattern, or a list of patterns.
   """
+
   def __init__(self, include, exclude=None):
     self.include = include
     if exclude is None:
@@ -499,6 +500,7 @@ class FileLock(object):
     timeout_secs: The maximum duration in seconds to wait for the lock, or None
       to fail immediately if unable to acquire lock.
   """
+
   def __init__(self, lockfile, timeout_secs=None):
     self._lockfile = lockfile
     self._timeout_secs = timeout_secs
@@ -643,6 +645,7 @@ def HashFiles(root, path_filter=None, hash_function=hashlib.sha1):
 
 
 SOURCE_HASH_FUNCTION_NAME = 'sha1prefix'
+
 
 def HashSourceTree(py_path):
   """Calculates hashes of sources in a source tree using HashFiles.

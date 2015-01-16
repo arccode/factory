@@ -56,6 +56,7 @@ class ArduinoController(SerialDevice):
     }
   }
   """
+
   def __init__(self, send_receive_interval_secs=0.5, retry_interval_secs=0.2,
                log=True, ready_delay_secs=2.0):
     """Constructor.
@@ -136,6 +137,7 @@ class ArduinoDigitalPinController(ArduinoController):
   So if you want to modify this class such that its command format would
   change, be sure to update arduino_digital_pin_controller.ino as well.
   """
+
   def __init__(self, send_receive_interval_secs=0.5, retry_interval_secs=0.2,
                log=True, ready_delay_secs=2.0):
     """Constructor."""
@@ -152,7 +154,7 @@ class ArduinoDigitalPinController(ArduinoController):
     command = chr(pin) + ('H' if level_high else 'L')
     if not self.SendExpectReceive(command, command):
       raise serial.SerialException('Send command "chr(%d) %s" failed' % (
-                                   ord(command[0]), command[1]))
+          ord(command[0]), command[1]))
 
 
 def _Blink(arduino, times=1, interval_secs=0.1):

@@ -38,6 +38,7 @@ def RunPyTest(name, args):
     invocation.RunPytest(info)
     return pickle.load(open(results))[0] == factory.TestState.PASSED
 
+
 def main():
   # Unbuffer stdout
   sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)

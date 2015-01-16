@@ -51,10 +51,12 @@ _TEST_HWID = 'DEVICE CADT-QQOP'
 _TEST_VPD = {'ro': {'initial_locale': 'en-US', 'timezone': 'some_when'},
              'rw': {'attribute1': '1value', 'attribute2': '2value'}}
 
+
 class DecodeHWIDv3ComponentsTest(unittest.TestCase):
+
   def setUp(self):
     self.testdata = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "testdata")
+        os.path.realpath(__file__)), 'testdata')
 
   def testBasicHWIDv3ComponentDecode(self):
     ret = DecodeHWIDv3Components(_TEST_HWID, self.testdata)
@@ -63,7 +65,9 @@ class DecodeHWIDv3ComponentsTest(unittest.TestCase):
     self.assertEqual(ret['keyboard'][0].component_name, 'us_clicker')
     self.assertEqual(ret['pcb_vendor'][0].component_name, 'awesome_1')
 
+
 class LoadAuxCsvDataTest(unittest.TestCase):
+
   def setUp(self):
     self.tmp = tempfile.NamedTemporaryFile()
 
@@ -71,13 +75,13 @@ class LoadAuxCsvDataTest(unittest.TestCase):
     self.tmp.close()
 
   def _WriteValidRows(self):
-    print >> self.tmp, "id,a_bool[bool],a_str[str],a_int[int],a_float[float]"
-    print >> self.tmp, "1,True,foo,111,.5"
-    print >> self.tmp, "2,1,foo,111,.5"
-    print >> self.tmp, "3,true,foo,111,.5"
-    print >> self.tmp, "4,False,bar,222,1.5"
-    print >> self.tmp, "6,false,bar,222,1.5"
-    print >> self.tmp, "5,0,bar,222,1.5"
+    print >> self.tmp, 'id,a_bool[bool],a_str[str],a_int[int],a_float[float]'
+    print >> self.tmp, '1,True,foo,111,.5'
+    print >> self.tmp, '2,1,foo,111,.5'
+    print >> self.tmp, '3,true,foo,111,.5'
+    print >> self.tmp, '4,False,bar,222,1.5'
+    print >> self.tmp, '6,false,bar,222,1.5'
+    print >> self.tmp, '5,0,bar,222,1.5'
 
   def _ReadData(self):
     self.tmp.flush()
@@ -102,49 +106,51 @@ class LoadAuxCsvDataTest(unittest.TestCase):
 
   def testDuplicateID(self):
     self._WriteValidRows()
-    print >> self.tmp, "1,False,foo,222,.5"
+    print >> self.tmp, '1,False,foo,222,.5'
     self.assertRaisesRegexp(ValueError,
                             r"^In \S+:8, duplicate ID '1'$",
                             self._ReadData)
 
   def testInvalidBoolean(self):
     self._WriteValidRows()
-    print >> self.tmp, "1,x,foo,222,.5"
+    print >> self.tmp, '1,x,foo,222,.5'
     self.assertRaisesRegexp(ValueError,
                             r"^In \S+:8\.a_bool, 'x' is not a Boolean value$",
                             self._ReadData)
 
   def testInvalidInt(self):
     self._WriteValidRows()
-    print >> self.tmp, "1,True,foo,x,.5"
+    print >> self.tmp, '1,True,foo,x,.5'
     self.assertRaisesRegexp(ValueError,
-                            r"^In \S+:8\.a_int, invalid literal",
+                            r'^In \S+:8\.a_int, invalid literal',
                             self._ReadData)
 
   def testDuplicateHeader(self):
-    print >> self.tmp, "id,a,a"
+    print >> self.tmp, 'id,a,a'
     self.assertRaisesRegexp(ValueError,
                             r"^In \S+, more than one column named 'a'",
                             self._ReadData)
 
   def testBadHeader(self):
-    print >> self.tmp, "id,a["
+    print >> self.tmp, 'id,a['
     self.assertRaisesRegexp(ValueError,
                             r"^In \S+, header 'a\[' does not match regexp",
                             self._ReadData)
 
   def testUnknownType(self):
-    print >> self.tmp, "id,a[foo]"
+    print >> self.tmp, 'id,a[foo]'
     self.assertRaisesRegexp(ValueError,
                             (r"^In \S+, header 'a' has unknown type 'foo' "
-                             r"\(should be one of "
+                             r'\(should be one of '
                              r"\['bool', 'float', 'int', 'str'\]\)"),
                             self._ReadData)
 
+
 class LoadDeviceDataTest(unittest.TestCase):
+
   def setUp(self):
     self.testdata = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "testdata")
+        os.path.realpath(__file__)), 'testdata')
 
   def testLoadMinimalYAML(self):
     test_yaml = os.path.join(self.testdata, _RMA00000000_FILE)
@@ -190,11 +196,13 @@ class LoadDeviceDataTest(unittest.TestCase):
     self.assertEqual(device_dict['gbind_attribute'], '<group_code>')
     self.assertEqual(device_dict['ubind_attribute'], '<user_code>')
 
+
 class ShopFloorTest(unittest.TestCase):
+
   def setUp(self):
     self.testdata = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "testdata")
-    self.rma_config = os.path.join(self.testdata, "rma_config_board.yaml")
+        os.path.realpath(__file__)), 'testdata')
+    self.rma_config = os.path.join(self.testdata, 'rma_config_board.yaml')
 
   def tearDown(self):
     if os.path.isfile(self.rma_config):
@@ -217,18 +225,18 @@ class ShopFloorTest(unittest.TestCase):
     test_shopfloor = ShopFloor()
     test_shopfloor.data_dir = self.testdata
     test_shopfloor.LoadConfiguration(self.testdata)
-    self.assertTrue(test_shopfloor.CheckSN("RMA99999999"))
-    self.assertRaisesRegexp(ValueError, r"Invalid RMA number",
-                            test_shopfloor.CheckSN, "BLAHBLAH")
+    self.assertTrue(test_shopfloor.CheckSN('RMA99999999'))
+    self.assertRaisesRegexp(ValueError, r'Invalid RMA number',
+                            test_shopfloor.CheckSN, 'BLAHBLAH')
 
   def testCheckSNMustExist(self):
     self._WriteRMAConfigYAML(file_path=self.rma_config, test_config=2)
     test_shopfloor = ShopFloor()
     test_shopfloor.data_dir = self.testdata
     test_shopfloor.LoadConfiguration(self.testdata)
-    self.assertTrue(test_shopfloor.CheckSN("RMA00000000"))
-    self.assertRaisesRegexp(ValueError, r"RMA YAML not found on shopfloor",
-                            test_shopfloor.CheckSN, "RMA12345678")
+    self.assertTrue(test_shopfloor.CheckSN('RMA00000000'))
+    self.assertRaisesRegexp(ValueError, r'RMA YAML not found on shopfloor',
+                            test_shopfloor.CheckSN, 'RMA12345678')
 
   def testSaveDeviceDataSimple(self):
     # Simple data saving test

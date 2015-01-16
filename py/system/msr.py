@@ -5,7 +5,7 @@
 # found in the LICENSE file.
 
 
-'''Support for x86 model-specific registers.'''
+"""Support for x86 model-specific registers."""
 
 import struct
 import time

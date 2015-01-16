@@ -27,8 +27,11 @@ NORMAL_ESR_REGISTER = '+0\n'
 NORMAL_OPC_RESPONSE = '+1\n'
 
 # pylint: disable=W0232
+
+
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
   allow_reuse_address = True
+
 
 class MockServerHandler(SocketServer.StreamRequestHandler):
   """A mocking handler for socket.
@@ -46,7 +49,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   @classmethod
   def AddCommandsLookup(cls, commands, wait=True):
-    '''Wrapper for adding commands.'''
+    """Wrapper for adding commands."""
     if type(commands) == str:
       commands = [commands]
 
@@ -59,7 +62,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   @classmethod
   def AddQueryLookup(cls, command, response):
-    '''Wrapper for adding a success query.'''
+    """Wrapper for adding a success query."""
     cls.AddLookup('*CLS', None)
     cls.AddLookup(command, response + '\n')
     cls.AddLookup('*ESR?', NORMAL_ESR_REGISTER)
@@ -83,8 +86,9 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
         if output:
           self.wfile.write(output)
       else:
-        raise ValueError("Expecting [%s] but got [%s]" % (
+        raise ValueError('Expecting [%s] but got [%s]' % (
             expected_input, line))
+
 
 class N1914ATest(unittest.TestCase):
   EXPECTED_MODEL = 'Agilent Technologies,N1914A,MY50001187,A2.01.06'
@@ -96,7 +100,7 @@ class N1914ATest(unittest.TestCase):
   FETCH1_EXPECTED_VALUE = -65.05119874255999
 
   def _AddInitialLookup(self):
-    '''Adds necessary lookup for every connection.'''
+    """Adds necessary lookup for every connection."""
     MockServerHandler.ResetLookup()
     MockServerHandler.AddLookup('*CLS', None)
     MockServerHandler.AddLookup('*IDN?', self.EXPECTED_MODEL + '\n')
@@ -104,7 +108,7 @@ class N1914ATest(unittest.TestCase):
     MockServerHandler.AddLookup('SYST:ERR?', NORMAL_ERR_RESPONSE)
 
   def _StartMockServer(self):
-    '''Starts a thread for the mock equipment.'''
+    """Starts a thread for the mock equipment."""
     server_port = net_utils.FindUnusedTCPPort()
     mock_server = MockTestServer(
         (net_utils.LOCALHOST, server_port), MockServerHandler)
@@ -112,7 +116,7 @@ class N1914ATest(unittest.TestCase):
     server_thread = threading.Thread(target=mock_server.serve_forever)
     server_thread.daemon = True
     server_thread.start()
-    logging.info("Server loop running in thread %s with port %d",
+    logging.info('Server loop running in thread %s with port %d',
                  server_thread.name, server_port)
     return (mock_server, server_port)
 
@@ -251,7 +255,7 @@ class N1914ATest(unittest.TestCase):
 
   def tearDown(self):
     self.n1914a.Close()
-    self.mock_server.shutdown() # pylint: disable=E1101
+    self.mock_server.shutdown()  # pylint: disable=E1101
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

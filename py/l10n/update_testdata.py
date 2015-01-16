@@ -61,8 +61,8 @@ def UpdateLanguages(source_dir):
     source_dir: the directory storing Chromium source.
   """
   cpp_code = CheckOutput(
-    ['git', 'show', SRC_REMOTE_BRANCH + ':ui/base/l10n/l10n_util.cc'],
-    log=True, cwd=source_dir)
+      ['git', 'show', SRC_REMOTE_BRANCH + ':ui/base/l10n/l10n_util.cc'],
+      log=True, cwd=source_dir)
   match = re.search('static[^\n]+kAcceptLanguageList\[\] = \{(.+?)^\}',
                     cpp_code, re.DOTALL | re.MULTILINE)
   if not match:
@@ -85,11 +85,11 @@ def UpdateTimeZones(source_dir):
     source_dir: the directory storing Chromium source.
   """
   cpp_code = CheckOutput(
-    ['git', 'show',
-     SRC_REMOTE_BRANCH + ':chromeos/settings/timezone_settings.cc'],
-    log=True, cwd=source_dir)
+      ['git', 'show',
+       SRC_REMOTE_BRANCH + ':chromeos/settings/timezone_settings.cc'],
+      log=True, cwd=source_dir)
   match = re.search('static[^\n]+kTimeZones\[\] = \{(.+?)^\}',
-                         cpp_code, re.DOTALL | re.MULTILINE)
+                    cpp_code, re.DOTALL | re.MULTILINE)
   if not match:
     sys.exit('Unable to find time zones')
 
@@ -110,10 +110,10 @@ def UpdateMigrationMap(source_dir):
     source_dir: the directory storing Chromium source.
   """
   cpp_code = CheckOutput(
-    ['git', 'show',
-     (SRC_REMOTE_BRANCH +
-      ':chrome/browser/chromeos/input_method/input_method_util.cc')],
-    log=True, cwd=source_dir)
+      ['git', 'show',
+       (SRC_REMOTE_BRANCH +
+        ':chrome/browser/chromeos/input_method/input_method_util.cc')],
+      log=True, cwd=source_dir)
   match = re.search(r'kEngineIdMigrationMap\[\]\[2\] = \{(.+?)^\}',
                     cpp_code, re.DOTALL | re.MULTILINE)
   if not match:
@@ -137,20 +137,20 @@ def UpdateInputMethods(source_dir):
     source_dir: the directory storing Chromium source.
   """
   files = GetLines(
-    CheckOutput(
-      ['git', 'show',
-       SRC_REMOTE_BRANCH + ':chrome/browser/resources/chromeos/input_method'],
-      log=True, cwd=source_dir),
-    strip=True)
+      CheckOutput(
+          ['git', 'show',
+           SRC_REMOTE_BRANCH +
+           ':chrome/browser/resources/chromeos/input_method'],
+          log=True, cwd=source_dir), strip=True)
   pattern = re.compile(r'\.json$')
   json_files = [f for f in files if pattern.search(f)]
 
   input_methods = set()
   for f in json_files:
     contents = json.loads(CheckOutput(
-      ['git', 'show', (SRC_REMOTE_BRANCH +
-                       ':chrome/browser/resources/chromeos/input_method/' + f)],
-      log=True, cwd=source_dir))
+        ['git', 'show', (SRC_REMOTE_BRANCH +
+                         ':chrome/browser/resources/chromeos/input_method/' + f)],
+        log=True, cwd=source_dir))
     for c in contents['input_components']:
       input_methods.add(str(c['id']))
 

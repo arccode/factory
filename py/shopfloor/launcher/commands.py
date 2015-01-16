@@ -106,6 +106,7 @@ class ConnectionDispatcher(LineReceiver):
 
 class CommandHandler(object):
   """Command handler base class."""
+
   def Handle(self, args, request):
     raise NotImplementedError('Handle')
 
@@ -116,6 +117,7 @@ class CommandHandler(object):
 
 class CommandDeploy(CommandHandler):
   """Handler for deploy command."""
+
   def Handle(self, args, request):
     """Deploys new configuration file."""
     new_config_file = os.path.join(env.GetResourcesDir(), args[0])
@@ -126,12 +128,13 @@ class CommandDeploy(CommandHandler):
       return 'ERROR: failed to deploy new configuration %s' % e
     if os.getuid() == 0:
       utils.CreateConfigSymlink(new_config_file)
-      #TODO(rong): utils.CreateBinSymlink()
-    return "OK: %r deployed successfully." % new_config_file
+      # TODO(rong): utils.CreateBinSymlink()
+    return 'OK: %r deployed successfully.' % new_config_file
 
 
 class CommandImport(CommandHandler):
   """Handler for import command."""
+
   def Handle(self, args, request):
     """Imports resource files to system folder."""
     cwd = request['cwd']
@@ -159,6 +162,7 @@ class CommandImport(CommandHandler):
 
 class CommandInfo(CommandHandler):
   """Handler for info command."""
+
   def Handle(self, args, request):
     """Gets human readable running config file name, version and other info."""
     return utils.GetInfo()
@@ -166,19 +170,21 @@ class CommandInfo(CommandHandler):
 
 class CommandInit(CommandHandler):
   """Handler for init command."""
+
   def Handle(self, args, request):
     """Creates system directory structure."""
     utils.CreateSystemFolders()
-    return "OK: system folders created."
+    return 'OK: system folders created.'
 
 
 class CommandList(CommandHandler):
   """Handler for list command."""
+
   def Handle(self, args, request):
     """Lists available configurations."""
     response = ['OK: available YAML configurations:']
     config_files = glob.glob(os.path.join(env.GetResourcesDir(),
-                             "shopfloor.yaml#*"))
+                                          'shopfloor.yaml#*'))
     for config in config_files:
       filename = os.path.basename(config)
       yaml_config = LauncherYAMLConfig(config)
@@ -188,16 +194,17 @@ class CommandList(CommandHandler):
 
 class CommandVerify(CommandHandler):
   """Handler for verify command."""
+
   def Handle(self, args, request):
     """Verifies the resource files and structure of YAML config file."""
     cwd = request['cwd']
     all_passed = True
     local_config = set([os.path.basename(res) for res in
                         glob.glob(os.path.join(cwd, 'resources',
-                                  'shopfloor.yaml#*'))])
+                                               'shopfloor.yaml#*'))])
     system_config = set([os.path.basename(res) for res in
                          glob.glob(os.path.join(env.GetResourcesDir(),
-                                  'shopfloor.yaml#*'))])
+                                                'shopfloor.yaml#*'))])
     all_config = set().union(local_config, system_config)
     config_name = os.path.basename(args[0])
     if config_name not in all_config:
@@ -222,6 +229,7 @@ class CommandVerify(CommandHandler):
 
 class CommandService(CommandHandler):
   """Handler for service command."""
+
   def Handle(self, args, request):
     """Starts, stops or lists the services."""
     def _FindFirstService(name):
@@ -286,4 +294,3 @@ class LauncherCommandFactory(ServerFactory):
 
   def Dispatch(self, cmd, request):
     return self.commands[cmd](request)
-

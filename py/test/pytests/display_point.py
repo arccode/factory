@@ -3,8 +3,7 @@
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-A factory test to test the function of display panel using some points.
+"""A factory test to test the function of display panel using some points.
 """
 
 import logging
@@ -39,14 +38,14 @@ class DisplayPointTest(unittest.TestCase):
     self.list_number_point: a list of the number of points in each subtest.
   '''
   ARGS = [
-    Arg('point_size', (float, int), 'width and height of testing point in px',
-        optional=True, default=3.0),
-    Arg('max_point_count', int, 'maximum number of points in each subtest',
-        optional=True, default=3)
+      Arg('point_size', (float, int), 'width and height of testing point in px',
+          optional=True, default=3.0),
+      Arg('max_point_count', int, 'maximum number of points in each subtest',
+          optional=True, default=3)
   ]
 
   def setUp(self):
-    '''Initializes frontend presentation and properties.'''
+    """Initializes frontend presentation and properties."""
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
@@ -58,15 +57,15 @@ class DisplayPointTest(unittest.TestCase):
                            self.list_number_point, float(self.args.point_size))
 
   def runTest(self):
-    '''Sets the callback function of keys and run the test.'''
+    """Sets the callback function of keys and run the test."""
     self.ui.BindKey(' ', lambda _: self.OnSpacePressed())
     self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
     self.ui.Run()
 
   def OnSpacePressed(self):
-    '''Calls JS function to switch display on/off.'''
+    """Calls JS function to switch display on/off."""
     self.ui.CallJSFunction('switchDisplayOnOff')
 
   def OnFailPressed(self):
-    '''Fails the test.'''
+    """Fails the test."""
     self.ui.CallJSFunction('failTest')

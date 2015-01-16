@@ -14,51 +14,52 @@ import re
 import sys
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import Spawn
 
 
 # Files allowed to have errors now.  TODO: Clean these up.
 BLACKLIST = [
-  'keyboard.rst',
-  'led.rst',
-  'lid_switch.rst',
-  'light_sensor.rst',
-  'line_check_item.rst',
-  'read_device_data_from_vpd.rst',
-  'removable_storage.rst',
-  'scan.rst',
-  'select_components.rst',
-  'thermal_load.rst',
-  'touch_device_fw_update.rst',
-  'touchscreen_uniformity.rst',
-  'touchscreen_wrap.rst',
-  'verify_touch_device_fw.rst',
-  ]
+    'keyboard.rst',
+    'led.rst',
+    'lid_switch.rst',
+    'light_sensor.rst',
+    'line_check_item.rst',
+    'read_device_data_from_vpd.rst',
+    'removable_storage.rst',
+    'scan.rst',
+    'select_components.rst',
+    'thermal_load.rst',
+    'touch_device_fw_update.rst',
+    'touchscreen_uniformity.rst',
+    'touchscreen_wrap.rst',
+    'verify_touch_device_fw.rst',
+]
 
 
 """Tests the overall documentation generation process."""
 
 
 class DocTest(unittest.TestCase):
+
   def testMakeDoc(self):
     stderr_lines = Spawn(
-      ['make', 'doc'], cwd=factory.FACTORY_PATH,
-      check_output=True, read_stderr=True,
-      log=True, log_stderr_on_error=True).stderr_lines()
+        ['make', 'doc'], cwd=factory.FACTORY_PATH,
+        check_output=True, read_stderr=True,
+        log=True, log_stderr_on_error=True).stderr_lines()
 
     files_with_errors = set()
 
     for l in stderr_lines:
-      match = re.match('^([^:]+):(\d+): (ERROR|WARNING): (.+)',
+      match = re.match(r'^([^:]+):(\d+): (ERROR|WARNING): (.+)',
                        l.strip())
 
       if match:
         basename = os.path.basename(match.group(1))
         blacklisted = basename in BLACKLIST
-        sys.stderr.write("%s%s\n" % (
-          l.strip(), ' (blacklisted)' if blacklisted else ''))
+        sys.stderr.write('%s%s\n' % (
+            l.strip(), ' (blacklisted)' if blacklisted else ''))
         files_with_errors.add(basename)
 
     if files_with_errors:

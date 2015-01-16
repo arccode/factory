@@ -27,11 +27,13 @@ def StartServices():
     if service.run_on_start and not service.subprocess:
       service.Start()
 
+
 def StopServices():
   """Stops all services."""
   for service in env.launcher_services:
     if service.subprocess:
       service.Stop()
+
 
 def UpdateConfig(yaml_config_file):
   """Loads new launcher config file and restarts all services."""
@@ -40,6 +42,7 @@ def UpdateConfig(yaml_config_file):
   UpdateImageVersions()
   env.launcher_services = GenerateServices()
   StartServices()
+
 
 def UpdateImageVersions():
   """Updates image versions stored in <resources_dir>/image_versions."""
@@ -52,6 +55,7 @@ def UpdateImageVersions():
     for image_type, version in env.launcher_config[_IMAGE_VERSIONS].iteritems():
       with open(os.path.join(version_dir, image_type), 'w') as f:
         f.write(version)
+
 
 def _IterateServices():
   """Iterates through services in YAML config.
@@ -67,6 +71,7 @@ def _IterateServices():
     for svc in service_config:
       yield (svc, {})
 
+
 def GenerateServices():
   """Generates service list."""
   services = []
@@ -75,6 +80,7 @@ def GenerateServices():
     svc.SetConfig(init)
     services.append(svc)
   return services
+
 
 def SearchFile(filename, folders):
   """Gets first match of filename in folders.
@@ -92,20 +98,23 @@ def SearchFile(filename, folders):
       return fullpathname
   return None
 
+
 def CreateConfigSymlink(launcher_config_file):
   """Creates symbolic link to default startup YAML config file."""
   if not launcher_config_file.startswith(env.GetResourcesDir()):
     raise ShopFloorLauncherException('Config file should be in %r' %
-                             env.GetResourcesDir())
+                                     env.GetResourcesDir())
   dest_file = os.path.join(env.runtime_dir, 'shopfloor.yaml')
   if os.path.exist(dest_file):
     os.unlink(dest_file)
   os.symlink(launcher_config_file, dest_file)
 
+
 def GetResourceChecksum(string):
   """Checks if a string represents a resource filename.
 
-  A resource filename is a Unix filename with '#' followed by 8 hex-digits checksum.
+  A resource filename is a Unix filename with '#' followed by 8 hex-digits
+  checksum.
 
   Args:
     string: a string to be checked.
@@ -118,6 +127,7 @@ def GetResourceChecksum(string):
 
   match = re.match(r'^[\w.-]+#([0-9a-f]{8})$', string)
   return match.group(1) if match else None
+
 
 def ListResources(launcher_config_file=None):
   """Collects all resource files from an YAML config file.
@@ -148,15 +158,18 @@ def ListResources(launcher_config_file=None):
 
   return _GetResourceLeaves(config)
 
+
 def Md5sum(filename):
   """Gets hex coded md5sum of input file."""
   return hashlib.md5(
       open(filename, 'rb').read()).hexdigest()
 
+
 def B64Sha1(filename):
   """Gets standard base64 coded sha1 sum of input file."""
   return base64.standard_b64encode(hashlib.sha1(
       open(filename, 'rb').read()).digest())
+
 
 def VerifyResource(resource_name):
   """Verifies resource file by checking the hashsum in the filename tail."""
@@ -167,6 +180,7 @@ def VerifyResource(resource_name):
   calculated_hashsum = Md5sum(resource_name)
   if not calculated_hashsum.startswith(hashsum):
     raise ShopFloorLauncherException('Hashsum mismatch %r' % resource_name)
+
 
 def PrepareResources(resources):
   """Copies resource files to system resouce folder.
@@ -197,14 +211,15 @@ def PrepareResources(resources):
       else:
         raise ShopFloorLauncherException('File not found: %r' % fname)
 
+
 def GetInfo():
   """Gets currunt running configuration info."""
   return '\n'.join([env.launcher_config['info']['version'],
                     env.launcher_config['info']['note']])
 
+
 def CreateSystemFolders():
   """Creates folder for Uber ShopFloor installation."""
   dirs = ['', 'resources', 'run', 'log', 'dashboard']
   map((lambda folder: TryMakeDirs(os.path.join(env.runtime_dir,
-      folder))), dirs)
-
+                                               folder))), dirs)

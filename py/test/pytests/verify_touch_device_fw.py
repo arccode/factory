@@ -22,11 +22,11 @@ from cros.factory.test.args import Arg
 
 class VerifyTouchDeviceFWTest(unittest.TestCase):
   ARGS = [
-    Arg('config_file', str,
-        'Name of the touch config file (as in '
-        '/sys/bus/i2c/devices/\\*/config_file)'),
-    Arg('fw_version', str, 'Expected firmware version'),
-    Arg('config_csum', str, 'Expected config checksum'),
+      Arg('config_file', str,
+          'Name of the touch config file (as in '
+          '/sys/bus/i2c/devices/\\*/config_file)'),
+      Arg('fw_version', str, 'Expected firmware version'),
+      Arg('config_csum', str, 'Expected config checksum'),
   ]
 
   def runTest(self):

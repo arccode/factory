@@ -72,7 +72,7 @@ _CSS_CAMERA_TEST = '.camera-test-info { font-size: 2em; }'
 
 class WebrtcCameraTest(unittest.TestCase):
   ARGS = [
-    Arg('timeout_secs', int, 'Timeout value for the test.', default=60),
+      Arg('timeout_secs', int, 'Timeout value for the test.', default=60),
   ]
 
   def setUp(self):

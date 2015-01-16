@@ -17,7 +17,7 @@ class FinalizeAutomator(Automator):
 
   @AutomationFunction(override_dargs=dict(
       allow_force_finalize=['engineer', 'operator'], write_protection=False),
-      automation_mode=AutomationMode.FULL)
+                      automation_mode=AutomationMode.FULL)
   def automateFinalize(self):
     self.uictl.WaitForContent(
         search_regexp=r'Press .*f.* to force starting finalization procedure\.')

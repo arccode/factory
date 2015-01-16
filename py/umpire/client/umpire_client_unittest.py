@@ -17,6 +17,7 @@ from cros.factory import system
 from cros.factory.tools import build_board
 from cros.factory.umpire.client.umpire_client import UmpireClientInfo
 
+
 class MockBuildBoard(object):
   """Mocked BuildBoard which always return 'test' as full_name."""
   full_name = 'test'
@@ -27,6 +28,7 @@ mock_build_board = MockBuildBoard()
 
 class MockSystemInfo(object):
   """Mocked SystemInfo class."""
+
   def __init__(self, serial_number, mlb_serial_number, firmware_version,
                ec_version, pd_version, stage, eth_macs, wlan0_mac,
                factory_image_version, release_image_version,
@@ -139,6 +141,7 @@ OUTPUT_GET_UPDATE_DUT_INFO = {
 
 class UmpireClientInfoTest(unittest.TestCase):
   """Tests UmpireClient"""
+
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()

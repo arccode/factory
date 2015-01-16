@@ -21,12 +21,13 @@ from cros.factory.utils.process_utils import SpawnOutput
 from cros.factory.utils.process_utils import TerminateOrKillProcess
 
 
-
 class SpawnTest(unittest.TestCase):
+
   def setUp(self):
     log_entries = self.log_entries = []
 
     class Target(object):
+
       def handle(self, record):
         log_entries.append((record.levelname, record.msg % record.args))
 
@@ -88,8 +89,10 @@ class SpawnTest(unittest.TestCase):
 
   def testCheckCallFunction(self):
     Spawn('exit 3', shell=True, check_call=lambda code: code == 3)
-    self.assertRaises(subprocess.CalledProcessError,
-        lambda: Spawn('exit 2', shell=True, check_call=lambda code: code == 3))
+    self.assertRaises(
+        subprocess.CalledProcessError,
+        lambda: Spawn('exit 2', shell=True,
+                      check_call=lambda code: code == 3))
 
   def testCheckOutput(self):
     self.assertEquals(
@@ -158,6 +161,7 @@ _CMD_FOO_FAILED = 'echo foo; exit 1'
 
 
 class CheckOutputTest(unittest.TestCase):
+
   def testCheckOutput(self):
     self.assertEquals('foo\n', CheckOutput(_CMD_FOO_SUCCESS, shell=True))
     self.assertRaises(subprocess.CalledProcessError,
@@ -165,6 +169,7 @@ class CheckOutputTest(unittest.TestCase):
 
 
 class SpawnOutputTest(unittest.TestCase):
+
   def testSpawnOutput(self):
     self.assertEquals('foo\n', SpawnOutput(_CMD_FOO_SUCCESS, shell=True))
     self.assertEquals('foo\n', SpawnOutput(_CMD_FOO_FAILED, shell=True))
@@ -174,6 +179,7 @@ class SpawnOutputTest(unittest.TestCase):
 
 
 class TerminateOrKillProcessTest(unittest.TestCase):
+
   def setUp(self):
     self.m = mox.Mox()
     self.m.StubOutWithMock(logging, 'info')
@@ -211,6 +217,7 @@ class TerminateOrKillProcessTest(unittest.TestCase):
 
 
 class TestSpawnTee(unittest.TestCase):
+
   def runTest(self):
     with file_utils.UnopenedTemporaryFile() as stdout, \
          file_utils.UnopenedTemporaryFile() as tee_file:

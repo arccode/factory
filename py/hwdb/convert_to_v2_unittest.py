@@ -7,7 +7,7 @@ import os
 import unittest
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwdb import convert_to_v2
 
@@ -17,11 +17,13 @@ V1_DIR = os.path.join(HWDB_DIR, "convert_to_v2_test_files")
 V15_FILE = os.path.join(HWDB_DIR, "convert_to_v2_test_files", "v15_TEST_FILE")
 OUTPUT_FILE = os.path.join(HWDB_DIR, "convert_to_v2_test_files", "output_file")
 
+
 class ConvertToV2Test(unittest.TestCase):
+
   def testConvertV1Dir(self):
     """Test v1 convert script."""
     convert_to_v2.ConvertV1Dir(V1_DIR, OUTPUT_FILE)
-    v2_file = open(OUTPUT_FILE, 'r')
+    v2_file = open(OUTPUT_FILE, "r")
     v2_yaml = yaml.load(v2_file)
     v2_file.close()
     os.remove(OUTPUT_FILE)
@@ -72,7 +74,7 @@ class ConvertToV2Test(unittest.TestCase):
 
   def testConvertV15(self):
     """Test v1.5 convert script."""
-    v15_file = open(V15_FILE, 'r')
+    v15_file = open(V15_FILE, "r")
     v15_yaml = yaml.load(v15_file)
     v15_file.close()
     v2_yaml = convert_to_v2.ConvertV15YamlToV2Yaml(v15_yaml)
@@ -121,5 +123,5 @@ class ConvertToV2Test(unittest.TestCase):
       elif "ro_main_firmware" in vol:
         self.assertTrue("Google_Lumpy.2" in value.rpartition("#")[2])
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   unittest.main()

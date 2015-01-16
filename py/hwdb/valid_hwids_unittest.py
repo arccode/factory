@@ -22,13 +22,14 @@ def Indent(data):
 
 
 class ValidHWIDsTest(unittest.TestCase):
+
   def runTest(self):
     hwid_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'],
         'src', 'platform', 'chromeos-hwid', 'v2')
 
     if not os.path.exists(hwid_dir):
-      print "ValidHWIDsTest: ignored, no %s in source tree." % hwid_dir
+      print 'ValidHWIDsTest: ignored, no %s in source tree.' % hwid_dir
       return
 
     # Create a temporary copy of the hwid directory

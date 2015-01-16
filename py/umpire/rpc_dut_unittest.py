@@ -73,18 +73,18 @@ class DUTRPCTest(unittest.TestCase):
         TEST_RPC_PORT, server.Site(xmlrpc_resource))
     # The device info that matches TESTCONFIG
     self.device_info = {
-      'x_umpire_dut': {
-          'mac': 'aa:bb:cc:dd:ee:ff',
-          'sn': '0C1234567890',
-          'mlb_sn': 'SN001',
-          'stage': 'SMT'},
-      'components': {
-          'device_factory_toolkit': 'd41d8cd9',
-          'rootfs_release': 'release_v9876.0.0',
-          'rootfs_test': 'test_v5432.0.0',
-          'firmware_ec': 'ec_v0.2',
-          'firmware_pd': 'pd_v0.1',
-          'firmware_bios': 'bios_v0.3'}}
+        'x_umpire_dut': {
+            'mac': 'aa:bb:cc:dd:ee:ff',
+            'sn': '0C1234567890',
+            'mlb_sn': 'SN001',
+            'stage': 'SMT'},
+        'components': {
+            'device_factory_toolkit': 'd41d8cd9',
+            'rootfs_release': 'release_v9876.0.0',
+            'rootfs_test': 'test_v5432.0.0',
+            'firmware_ec': 'ec_v0.2',
+            'firmware_pd': 'pd_v0.1',
+            'firmware_bios': 'bios_v0.3'}}
 
   def tearDown(self):
     self.twisted_port.stopListening()

@@ -37,17 +37,17 @@ I18nLabel = namedtuple('I18nLabel', 'en zh')
 LEDColor = Board.LEDColor
 LEDIndex = Board.LEDIndex
 _COLOR_LABEL = {
-    LEDColor.YELLOW : I18nLabel('yellow', u'黃色'),
-    LEDColor.GREEN  : I18nLabel('green', u'绿色'),
-    LEDColor.RED    : I18nLabel('red', u'紅色'),
-    LEDColor.WHITE  : I18nLabel('white', u'白色'),
-    LEDColor.BLUE   : I18nLabel('blue', u'蓝色'),
-    LEDColor.OFF    : I18nLabel('off', u'关闭')}
+    LEDColor.YELLOW: I18nLabel('yellow', u'黃色'),
+    LEDColor.GREEN: I18nLabel('green', u'绿色'),
+    LEDColor.RED: I18nLabel('red', u'紅色'),
+    LEDColor.WHITE: I18nLabel('white', u'白色'),
+    LEDColor.BLUE: I18nLabel('blue', u'蓝色'),
+    LEDColor.OFF: I18nLabel('off', u'关闭')}
 _INDEX_LABEL = {
-    None             : I18nLabel('', ''),
-    LEDIndex.POWER   : I18nLabel('power ', u'电源 '),
-    LEDIndex.BATTERY : I18nLabel('battery ', u'电池 '),
-    LEDIndex.ADAPTER : I18nLabel('adapter ', u'电源适配器 ')}
+    None: I18nLabel('', ''),
+    LEDIndex.POWER: I18nLabel('power ', u'电源 '),
+    LEDIndex.BATTERY: I18nLabel('battery ', u'电池 '),
+    LEDIndex.ADAPTER: I18nLabel('adapter ', u'电源适配器 ')}
 
 
 class CheckLEDTask(InteractiveFactoryTask):
@@ -89,7 +89,7 @@ class CheckLEDTask(InteractiveFactoryTask):
           'If the %sLED lights up in %s, press ENTER.' % (index_label.en,
                                                           color_label.en),
           u'請檢查 %sLED 是否亮%s，是請按 ENTER。' % (index_label.zh,
-                                                      color_label.zh))
+                                           color_label.zh))
     self._template.SetState(instruction)
 
     self.BindPassFailKeys(fail_later=_FAIL_LATER)
@@ -137,17 +137,18 @@ class FixtureCheckLEDTask(FactoryTask):
 class LEDTest(unittest.TestCase):
   """Tests if the onboard LED can light yellow/green/red colors."""
   ARGS = [
-    Arg('bft_fixture', dict, TEST_ARG_HELP, optional=True),
-    Arg('colors', (list, tuple),
-        'List of colors or (index, color) to test. color must be in '
-        'Board.LEDColor or OFF, and index, if specified, must be in '
-        'Board.LEDIndex.',
-        default=[LEDColor.YELLOW, LEDColor.GREEN, LEDColor.RED, LEDColor.OFF]),
-    Arg('target_leds', (list, tuple),
-        'List of LEDs to test. If specified, it turns off all LEDs first, '
-        'and turns auto after test.',
-        optional=True)
-  ]
+      Arg('bft_fixture', dict, TEST_ARG_HELP, optional=True),
+      Arg(
+          'colors', (list, tuple),
+          'List of colors or (index, color) to test. color must be in '
+          'Board.LEDColor or OFF, and index, if specified, must be in '
+          'Board.LEDIndex.',
+          default=[LEDColor.YELLOW, LEDColor.GREEN, LEDColor.RED,
+                   LEDColor.OFF]),
+      Arg(
+          'target_leds', (list, tuple),
+          'List of LEDs to test. If specified, it turns off all LEDs first, '
+          'and turns auto after test.', optional=True)]
 
   def setUp(self):
     self._ui = test_ui.UI()

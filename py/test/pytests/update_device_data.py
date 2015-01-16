@@ -18,8 +18,8 @@ from cros.factory.test.args import Arg
 
 class CallShopfloor(unittest.TestCase):
   ARGS = [
-    Arg('data', dict,
-        'Items to update in device data dict.'),
+      Arg('data', dict,
+          'Items to update in device data dict.'),
   ]
 
   def runTest(self):

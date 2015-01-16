@@ -54,7 +54,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
 
   Device data is read from a 'devices.csv' file in the data directory.
   """
-  NAME = "CSV-file based shop floor system"
+  NAME = 'CSV-file based shop floor system'
   VERSION = 4
 
   def __init__(self):
@@ -64,35 +64,35 @@ class ShopFloor(shopfloor.ShopFloorBase):
 
   def Init(self):
     devices_csv = os.path.join(self.data_dir, 'devices.csv')
-    logging.info("Parsing %s...", devices_csv)
+    logging.info('Parsing %s...', devices_csv)
     self.data_store = LoadCsvData(devices_csv)
-    logging.info("Loaded %d entries from %s.",
+    logging.info('Loaded %d entries from %s.',
                  len(self.data_store), devices_csv)
 
     for f in glob.glob(os.path.join(self.data_dir, '*.csv')):
-      match = re.match('^aux_(\w+)\.csv',
+      match = re.match(r'^aux_(\w+)\.csv',
                        os.path.basename(f))
       if not match:
         continue
       table_name = match.group(1)
-      logging.info("Reading table %s from %s...", table_name, f)
+      logging.info('Reading table %s from %s...', table_name, f)
       assert table_name not in self.aux_data
       self.aux_data[table_name] = LoadAuxCsvData(f)
-      logging.info("Loaded %d entries from %s",
+      logging.info('Loaded %d entries from %s',
                    len(self.aux_data[table_name]), f)
 
     # Try to touch some files inside directory, to make sure the directory is
     # writable, and everything I/O system is working fine.
-    stamp_file = os.path.join(self.data_dir, ".touch")
-    with open(stamp_file, "w") as stamp_handle:
-      stamp_handle.write("%s - VERSION %s" % (self.NAME, self.VERSION))
+    stamp_file = os.path.join(self.data_dir, '.touch')
+    with open(stamp_file, 'w') as stamp_handle:
+      stamp_handle.write('%s - VERSION %s' % (self.NAME, self.VERSION))
     os.remove(stamp_file)
 
   def _CheckSerialNumber(self, serial):
     """Checks if serial number is valid, otherwise raise ValueError."""
     if (serial in self.data_store) or (serial.startswith('TEST')):
       return True
-    message = "Unknown serial number: %s" % serial
+    message = 'Unknown serial number: %s' % serial
     logging.error(message)
     raise ValueError(message)
 
@@ -128,15 +128,15 @@ class ShopFloor(shopfloor.ShopFloorBase):
       report_blob = report_blob.data
     if not report_name:
       report_name = ('%s-%s.rpt' % (re.sub('[^a-zA-Z0-9]', '', serial),
-                                    time.strftime("%Y%m%d-%H%M%S%z")))
+                                    time.strftime('%Y%m%d-%H%M%S%z')))
       if is_gzip_blob(report_blob):
-        report_name += ".gz"
+        report_name += '.gz'
     self.SaveReport(report_name, report_blob)
 
   def Finalize(self, serial):
     # Finalize is currently not implemented.
     self._CheckSerialNumber(serial)
-    logging.info("Finalized: %s", serial)
+    logging.info('Finalized: %s', serial)
 
 
 def LoadCsvData(filename):
@@ -195,21 +195,21 @@ def LoadCsvData(filename):
     for row in reader:
       row_number += 1
       if KEY_SERIAL_NUMBER not in row:
-        raise ValueError("Missing %s in row %d" % (KEY_SERIAL_NUMBER,
+        raise ValueError('Missing %s in row %d' % (KEY_SERIAL_NUMBER,
                                                    row_number))
       serial_number = row[KEY_SERIAL_NUMBER].strip()
       hwid = row[KEY_HWID].strip()
 
       # Checks data validity.
       if serial_number in data:
-        raise ValueError("Duplicated %s in row %d: %s" %
+        raise ValueError('Duplicated %s in row %d: %s' %
                          (KEY_SERIAL_NUMBER, row_number, serial_number))
       if None in row:
-        raise ValueError("Extra fields in row %d: %s" %
+        raise ValueError('Extra fields in row %d: %s' %
                          (row_number, ','.join(row[None])))
       for field in row:
         if not check_field_name(field):
-          raise ValueError("Invalid field: %s" % field)
+          raise ValueError('Invalid field: %s' % field)
 
       entry = {'hwid': hwid,
                'vpd': build_vpd(row),
@@ -257,19 +257,19 @@ def LoadAuxCsvData(csv_file):
         'bool': ParseBoolean,
         'int': int,
         'float': float
-        }
+    }
     for header in headers:
       match = HEADER_REGEXP.match(header)
       if not match:
-        raise ValueError("In %s, header %r does not match regexp %s"
+        raise ValueError('In %s, header %r does not match regexp %s'
                          % (csv_file, header, HEADER_REGEXP.pattern))
 
       col_name, col_type = match.groups()
       if col_type:
         parser = PARSERS.get(col_type)
         if not parser:
-          raise ValueError("In %s, header %r has unknown type %r"
-                           " (should be one of %r)"
+          raise ValueError('In %s, header %r has unknown type %r'
+                           ' (should be one of %r)'
                            % (csv_file, col_name, col_type,
                               sorted(PARSERS.keys())))
       else:
@@ -278,7 +278,7 @@ def LoadAuxCsvData(csv_file):
       cols.append((col_name, parser))
 
       if col_name in col_name_set:
-        raise ValueError("In %s, more than one column named %r"
+        raise ValueError('In %s, more than one column named %r'
                          % (csv_file, col_name))
       col_name_set.add(col_name)
 
@@ -289,7 +289,7 @@ def LoadAuxCsvData(csv_file):
     for row in reader:
       row_number += 1
       if len(row) != len(cols):
-        raise ValueError("In %s:%d, expected %d columns but got %d",
+        raise ValueError('In %s:%d, expected %d columns but got %d',
                          csv_file, row_number, len(headers), len(row))
       row_data = {}
 
@@ -298,12 +298,12 @@ def LoadAuxCsvData(csv_file):
           row_data[col[0]] = col[1](value)
         except ValueError as e:
           # Re-raise with row number and column name
-          raise ValueError("In %s:%d.%s, %s" %
+          raise ValueError('In %s:%d.%s, %s' %
                            (csv_file, row_number, col[0], e))
 
       row_id = row_data.get(id_column_name)
       if row_id in data:
-        raise ValueError("In %s:%d, duplicate ID %r" %
+        raise ValueError('In %s:%d, duplicate ID %r' %
                          (csv_file, row_number, row_id))
       data[row_id] = row_data
 

@@ -13,14 +13,15 @@ import cros.factory.test.fixture.bft_fixture as bft
 # shortcut
 BFT = bft.BFTFixture
 
+
 class ColorSensor(object):
   """Whale color sensor."""
 
   # mapping from color names in bft.conf to BFTFixture.LEDColor
   _COLOR_NAMES = {
-    'red': BFT.LEDColor.RED,
-    'green': BFT.LEDColor.GREEN,
-    'yellow': BFT.LEDColor.YELLOW
+      'red': BFT.LEDColor.RED,
+      'green': BFT.LEDColor.GREEN,
+      'yellow': BFT.LEDColor.YELLOW
   }
 
   # config names
@@ -106,7 +107,7 @@ class ColorSensor(object):
                  read_h, read_s, read_v)
 
     for color_name in self._color_params:
-      thresholds =  self._color_params[color_name]
+      thresholds = self._color_params[color_name]
       color_hue = thresholds['hue']
       hue_tolerance = thresholds['hue_tolerance']
       min_saturation = thresholds['min_saturation']

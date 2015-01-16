@@ -460,6 +460,7 @@ class UmpireEnvForTest(UmpireEnv):
   subdirectories (those which define property). The temp directory is removed
   once it is deleted.
   """
+
   def __init__(self):
     super(UmpireEnvForTest, self).__init__()
     self.base_dir = tempfile.mkdtemp()

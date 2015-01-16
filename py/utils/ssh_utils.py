@@ -134,6 +134,7 @@ class SSHTunnelToDUT(object):
     bind_address: The local address to bind to; default to '127.0.0.1'.
     host: The remote address to bind to; default to '127.0.0.1'.
   """
+
   def __init__(self, remote, bind_port, host_port,
                bind_address=net_utils.LOCALHOST, host=net_utils.LOCALHOST):
     self._remote = remote

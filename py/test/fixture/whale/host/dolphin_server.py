@@ -44,14 +44,14 @@ def ParseArgs():
     tuple (options, args) from optparse.parse_args().
   """
   description = (
-    '%prog is a server for Dolphin serial control. '
-    'This server communicates with the client via xmlrpc.'
-    )
+      '%prog is a server for Dolphin serial control. '
+      'This server communicates with the client via xmlrpc.'
+  )
 
   examples = (
-    '\nExamples:\n'
-    '   > %prog -p 8888\n\tLaunch server listening on port 8888\n'
-    )
+      '\nExamples:\n'
+      '   > %prog -p 8888\n\tLaunch server listening on port 8888\n'
+  )
 
   parser = optparse.OptionParser()
   parser.description = description

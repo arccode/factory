@@ -48,7 +48,7 @@ _STATE_ACCESSING = 5
 _UDEV_ACTION_INSERT = 'add'
 _UDEV_ACTION_REMOVE = 'remove'
 _UDEV_ACTION_CHANGE = 'change'
-_UDEV_MMCBLK_PATH   = '/dev/mmcblk'
+_UDEV_MMCBLK_PATH = '/dev/mmcblk'
 # USB card reader attributes and common text string in descriptors
 _CARD_READER_ATTRS = ['vendor', 'model', 'product', 'configuration',
                       'manufacturer', 'driver']
@@ -75,10 +75,10 @@ _MILLION = 1000000
 
 _RW_TEST_INSERT_FMT_STR = (
     lambda t, extra_en, extra_zh: test_ui.MakeLabel(
-      '<br/>'.join(['Insert %s drive for read/write test... %s' % (t, extra_en),
-                    'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!']),
-      '<br/>'.join([u'插入 %s 存储以进行读写测试... %s' % (t, extra_zh),
-                    u'注意: 插入装置上的资料将会被清除!'])))
+        '<br/>'.join(['Insert %s drive for read/write test... %s' % (t, extra_en),
+                      'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!']),
+        '<br/>'.join([u'插入 %s 存储以进行读写测试... %s' % (t, extra_zh),
+                      u'注意: 插入装置上的资料将会被清除!'])))
 _REMOVE_FMT_STR = lambda t: test_ui.MakeLabel('Remove %s drive...' % t,
                                               u'提取 %s 存储...' % t)
 _TESTING_FMT_STR = lambda t: test_ui.MakeLabel('Testing %s...' % t,
@@ -91,19 +91,19 @@ _TESTING_SEQUENTIAL_RW_FMT_STR = lambda bsize: test_ui.MakeLabel(
     u'执行 %d 字节区块连续读写测试...</br>' % bsize)
 _LOCKTEST_INSERT_FMT_STR = (
     lambda t:
-      test_ui.MakeLabel('Toggle lock switch and insert %s drive again...' % t,
-                        u'切换写保护开关并再次插入 %s 存储...' % t))
+    test_ui.MakeLabel('Toggle lock switch and insert %s drive again...' % t,
+                      u'切换写保护开关并再次插入 %s 存储...' % t))
 _LOCKTEST_REMOVE_FMT_STR = (
     lambda t:
-      test_ui.MakeLabel('Remove %s drive and toggle lock switch...' % t,
-                        u'提取 %s 存储并关闭写保护开关...' % t))
+    test_ui.MakeLabel('Remove %s drive and toggle lock switch...' % t,
+                      u'提取 %s 存储并关闭写保护开关...' % t))
 _ERR_REMOVE_TOO_EARLY_FMT_STR = (
     lambda t:
-      test_ui.MakeLabel('Device removed too early (%s).' % t,
-                        u'太早移除外部储存装置 (%s).' % t))
+    test_ui.MakeLabel('Device removed too early (%s).' % t,
+                      u'太早移除外部储存装置 (%s).' % t))
 _ERR_TEST_FAILED_FMT_STR = (
     lambda test_name, target_dev:
-      'IO error while running %s test on %s.' % (test_name, target_dev))
+    'IO error while running %s test on %s.' % (test_name, target_dev))
 _ERR_GET_DEV_SIZE_FAILED_FMT_STR = (
     lambda target_dev: 'Unable to determine dev size of %s.' % target_dev)
 _ERR_RO_TEST_FAILED_FMT_STR = (
@@ -114,19 +114,19 @@ _ERR_DEVICE_READ_ONLY_STR = (
     lambda target_dev: '%s is read-only.' % target_dev)
 _ERR_SPEED_CHECK_FAILED_FMT_STR = (
     lambda test_type, target_dev:
-        '%s_speed of %s does not meet lower bound.' % (test_type, target_dev))
+    '%s_speed of %s does not meet lower bound.' % (test_type, target_dev))
 _ERR_CREATE_PARTITION_FMT_STR = (
     lambda test_type, target_dev, dev_size:
-        'The size on %s device %s is too small (only %d bytes) for '
-        'partition test.' % (test_type, target_dev, dev_size))
+    'The size on %s device %s is too small (only %d bytes) for '
+    'partition test.' % (test_type, target_dev, dev_size))
 _ERR_VERIFY_PARTITION_FMT_STR = (
     lambda test_type, target_dev:
-        'Partition verification failed on %s device %s. Problem with card '
-        'reader module maybe?' % (test_type, target_dev))
+    'Partition verification failed on %s device %s. Problem with card '
+    'reader module maybe?' % (test_type, target_dev))
 _ERR_BFT_ACTION_STR = (
     lambda action, test_type, target_dev, reason:
-        'BFT fixture failed to %s %s device %s. Reason: %s' % (
-            action, test_type, target_dev, reason))
+    'BFT fixture failed to %s %s device %s. Reason: %s' % (
+        action, test_type, target_dev, reason))
 
 _TEST_TITLE = test_ui.MakeLabel('Removable Storage Test', u'可移除储存装置测试')
 
@@ -141,52 +141,70 @@ _IMG_HTML_TAG = (
 class RemovableStorageTest(unittest.TestCase):
   """The removable storage factory test."""
   ARGS = [
-    Arg('media', str, 'Media type'),
-    Arg('vidpid', (str, list),
-        'Vendor ID and Product ID of the target testing device', None,
-        optional=True),
-    Arg('sysfs_path', str, 'The expected sysfs path that udev events should'
-        'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',
-        None, optional=True),
-    Arg('block_size', int,
-        'Size of each block in bytes used in read / write test', 1024),
-    Arg('perform_random_test', bool,
-        'Whether to run random read / write test', True),
-    Arg('random_read_threshold', (int, float),
-        'The lowest random read rate the device should achieve', None,
-        optional=True),
-    Arg('random_write_threshold', (int, float),
-        'The lowest random write rate the device should achieve', None,
-        optional=True),
-    Arg('random_block_count', int,
-        'Number of blocks to test during random read / write test', 3),
-    Arg('perform_sequential_test', bool,
-        'Whether to run sequential read / write tes', False),
-    Arg('sequential_read_threshold', (int, float),
-        'The lowest sequential read rate the device should achieve',
-        None, optional=True),
-    Arg('sequential_write_threshold', (int, float),
-        'The lowest sequential write rate the device should achieve',
-        None, optional=True),
-    Arg('sequential_block_count', int,
-        'Number of blocks to test in sequential read / write test', 1024),
-    Arg('perform_locktest', bool, 'Whether to run lock test', False),
-    Arg('extra_prompt_en', (str, unicode),
-        'An extra prompt (in English), e.g., to specify which USB port to use',
-        optional=True),
-    Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
-        optional=True),
-    Arg('timeout_secs', int,
-        'Timeout in seconds for the test to wait before it fails', default=20),
-    Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
-    Arg('skip_insert_remove', bool,
-        'Skip the step of device insertion and removal', default=False),
-    Arg('bft_media_device', str,
-        'Device name of BFT used to insert/remove the media.',
-        optional=True),
-    Arg('usbpd_port_polarity', tuple,
-        'A tuple of integers indicating (port, polarity)', optional=True),
-  ]
+      Arg('media', str, 'Media type'),
+      Arg(
+          'vidpid', (str, list),
+          'Vendor ID and Product ID of the target testing device', None,
+          optional=True),
+      Arg(
+          'sysfs_path', str,
+          'The expected sysfs path that udev events should'
+          'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',
+          None, optional=True),
+      Arg(
+          'block_size', int,
+          'Size of each block in bytes used in read / write test', 1024),
+      Arg(
+          'perform_random_test', bool,
+          'Whether to run random read / write test', True),
+      Arg(
+          'random_read_threshold', (int, float),
+          'The lowest random read rate the device should achieve', None,
+          optional=True),
+      Arg(
+          'random_write_threshold', (int, float),
+          'The lowest random write rate the device should achieve', None,
+          optional=True),
+      Arg(
+          'random_block_count', int,
+          'Number of blocks to test during random read / write test', 3),
+      Arg(
+          'perform_sequential_test', bool,
+          'Whether to run sequential read / write tes', False),
+      Arg(
+          'sequential_read_threshold', (int, float),
+          'The lowest sequential read rate the device should achieve', None,
+          optional=True),
+      Arg(
+          'sequential_write_threshold', (int, float),
+          'The lowest sequential write rate the device should achieve', None,
+          optional=True),
+      Arg(
+          'sequential_block_count', int,
+          'Number of blocks to test in sequential read / write test', 1024),
+      Arg('perform_locktest', bool, 'Whether to run lock test', False),
+      Arg(
+          'extra_prompt_en', (str, unicode),
+          'An extra prompt (in English), e.g., to specify which USB port to use',
+          optional=True),
+      Arg(
+          'extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
+          optional=True),
+      Arg(
+          'timeout_secs', int,
+          'Timeout in seconds for the test to wait before it fails',
+          default=20),
+      Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
+      Arg(
+          'skip_insert_remove', bool,
+          'Skip the step of device insertion and removal', default=False),
+      Arg(
+          'bft_media_device', str,
+          'Device name of BFT used to insert/remove the media.',
+          optional=True),
+      Arg(
+          'usbpd_port_polarity', tuple,
+          'A tuple of integers indicating (port, polarity)', optional=True)]
   # pylint: disable=E1101
 
   def setUp(self):
@@ -408,7 +426,7 @@ class RemovableStorageTest(unittest.TestCase):
         if random_tail < random_head:
           self.Fail('Block size too large for r/w test.')
 
-        for x in range(loop): # pylint: disable=W0612
+        for x in range(loop):  # pylint: disable=W0612
           # Select one random block as starting point.
           random_block = random.randint(random_head, random_tail)
           offset = random_block * _SECTOR_SIZE
@@ -472,6 +490,7 @@ class RemovableStorageTest(unittest.TestCase):
                                                     self._target_device))
       else:
         update_bin = {}
+
         def _CheckThreshold(test_type, value, threshold):
           update_bin['%s_speed' % test_type] = value
           logging.info('%s_speed: %.3f MB/s', test_type, value)
@@ -537,7 +556,7 @@ class RemovableStorageTest(unittest.TestCase):
       return
     dev_path = self._target_device
     # Set partition size to 128 MB or (dev_size / 2) MB
-    partition_size = min(128, (self._device_size/ 2) / (1024 * 1024))
+    partition_size = min(128, (self._device_size / 2) / (1024 * 1024))
     if partition_size < _MIN_PARTITION_SIZE_MB:
       self.Fail(_ERR_CREATE_PARTITION_FMT_STR(
           self.args.media, dev_path, self._device_size))
@@ -696,8 +715,8 @@ class RemovableStorageTest(unittest.TestCase):
     self._template.SetInstruction(
         _RW_TEST_INSERT_FMT_STR(
             self.args.media,
-            self.args.extra_prompt_en or "",
-            self.args.extra_prompt_zh or self.args.extra_prompt_en or ""))
+            self.args.extra_prompt_en or '',
+            self.args.extra_prompt_zh or self.args.extra_prompt_en or ''))
     self._state = _STATE_RW_TEST_WAIT_INSERT
     self._template.SetState(_TEST_HTML)
     self.SetState(_IMG_HTML_TAG(self._insertion_image))

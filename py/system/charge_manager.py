@@ -4,13 +4,15 @@
 
 import logging
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.system.board import Board
 from cros.factory.test.utils import Enum
 
+
 class ChargeManagerException(Exception):
   pass
+
 
 class ChargeManager(object):
   '''Properties:
@@ -47,7 +49,7 @@ class ChargeManager(object):
   def _SetState(self, new_state):
     if self.state != new_state:
       self.state = new_state
-      logging.info("Charger state: %s", self.state)
+      logging.info('Charger state: %s', self.state)
 
   def _StartCharging(self):
     self._SetState(Board.ChargeState.CHARGE)

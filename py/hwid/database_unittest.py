@@ -11,7 +11,7 @@ import copy
 import os
 import unittest
 import yaml
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.common import HWIDException, ProbedComponentResult
 from cros.factory.hwid.database import Database, Components
@@ -21,6 +21,7 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class DatabaseTest(unittest.TestCase):
+
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -83,7 +84,7 @@ class DatabaseTest(unittest.TestCase):
     mock_db = copy.deepcopy(self.database)
     mock_db.pattern.pattern[1]['image_ids'].remove(2)
     self.assertRaisesRegexp(
-        HWIDException, r"Pattern for image id 2 is not defined",
+        HWIDException, r'Pattern for image id 2 is not defined',
         mock_db._SanityChecks)
 
   def testPatternBitLength(self):
@@ -98,9 +99,9 @@ class DatabaseTest(unittest.TestCase):
         'audio_codec': ['codec_0', 'hdmi_1']}
     self.assertRaisesRegexp(
         HWIDException,
-        r"Pattern does not have enough bits to hold all items for encoded "
+        r'Pattern does not have enough bits to hold all items for encoded '
         r"field 'audio_codec'\. The maximum index of 'audio_codec' is 2 but "
-        r"its bit length is 1 in the pattern",
+        r'its bit length is 1 in the pattern',
         mock_db._SanityChecks)
 
   def testProbeResultToBOM(self):
@@ -164,7 +165,7 @@ class DatabaseTest(unittest.TestCase):
                      {'type': Value('SSD'), 'size': Value('16G'),
                       'serial': Value(r'^#123\d+$', is_re=True)},
                      None)]},
-        bom.components)
+                      bom.components)
     self.assertEquals({
         'audio_codec': 1,
         'battery': 3,
@@ -222,12 +223,12 @@ class DatabaseTest(unittest.TestCase):
                         {'idVendor': Value('89ab'), 'idProduct': Value('abcd'),
                          'name': Value('Cellular Card')},
                         None)],
-                       new_bom.components['cellular'])
+                      new_bom.components['cellular'])
     self.assertEquals(1, new_bom.encoded_fields['cellular'])
     new_bom = self.database.UpdateComponentsOfBOM(
         bom, {'cellular': None})
     self.assertEquals([(None, None, "Missing 'cellular' component")],
-                       new_bom.components['cellular'])
+                      new_bom.components['cellular'])
     self.assertEquals(0, new_bom.encoded_fields['cellular'])
     self.assertRaisesRegexp(
         HWIDException,
@@ -260,38 +261,38 @@ class DatabaseTest(unittest.TestCase):
 
   def testGetAttributesByIndex(self):
     self.assertEquals({'battery': [{
-                          'name': 'battery_large',
-                          'values': {
-                              'tech': Value('Battery Li-ion'),
-                              'size': Value('7500000')}}]},
+        'name': 'battery_large',
+        'values': {
+            'tech': Value('Battery Li-ion'),
+            'size': Value('7500000')}}]},
                       self.database._GetAttributesByIndex('battery', 2))
     self.assertEquals(
         {'hash_gbb': [{
-              'name': 'hash_gbb_0',
-              'values': {
-                  'compact_str': Value('gv2#hash_gbb_0')}}],
+            'name': 'hash_gbb_0',
+            'values': {
+                'compact_str': Value('gv2#hash_gbb_0')}}],
          'key_recovery': [{
-              'name': 'key_recovery_0',
-              'values': {
-                  'compact_str': Value('kv3#key_recovery_0')}}],
+             'name': 'key_recovery_0',
+             'values': {
+                 'compact_str': Value('kv3#key_recovery_0')}}],
          'key_root': [{
-              'name': 'key_root_0',
-              'values': {
-                  'compact_str': Value('kv3#key_root_0')}}],
+             'name': 'key_root_0',
+             'values': {
+                 'compact_str': Value('kv3#key_root_0')}}],
          'ro_ec_firmware': [{
-              'name': 'ro_ec_firmware_0',
-              'values': {
-                  'compact_str': Value('ev2#ro_ec_firmware_0')}}],
+             'name': 'ro_ec_firmware_0',
+             'values': {
+                 'compact_str': Value('ev2#ro_ec_firmware_0')}}],
          'ro_main_firmware': [{
-              'name': 'ro_main_firmware_0',
-              'values': {
-                  'compact_str': Value('mv2#ro_main_firmware_0')}}]},
+             'name': 'ro_main_firmware_0',
+             'values': {
+                 'compact_str': Value('mv2#ro_main_firmware_0')}}]},
         self.database._GetAttributesByIndex('firmware', 0))
     self.assertEquals({
         'audio_codec': [
             {'name': 'codec_0', 'values': {'compact_str': Value('Codec 0')}},
             {'name': 'hdmi_0', 'values': {'compact_str': Value('HDMI 0')}}]},
-        self.database._GetAttributesByIndex('audio_codec', 0))
+                      self.database._GetAttributesByIndex('audio_codec', 0))
     self.assertEquals({'cellular': None},
                       self.database._GetAttributesByIndex('cellular', 0))
 
@@ -402,37 +403,37 @@ class DatabaseTest(unittest.TestCase):
         'cpu': [
             ('cpu_5', {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
              None)]},
-        self.database.VerifyComponents(
-            self.results[0], ['audio_codec', 'cellular', 'cpu']))
+                      self.database.VerifyComponents(
+                          self.results[0], ['audio_codec', 'cellular', 'cpu']))
     self.assertEquals({
         'audio_codec': [
             ('codec_1', {'compact_str': Value('Codec 1')}, None),
             (None, {'compact_str': 'HDMI 3'},
              "Invalid 'audio_codec' component found with probe result "
              "{ 'compact_str': 'HDMI 3'} (no matching name in the "
-             "component DB)")
+             'component DB)')
         ]}, self.database.VerifyComponents(self.results[1], ['audio_codec']))
     self.assertEquals({
         'storage': [
             (None, {'type': 'SSD', 'size': '16G', 'serial': '#1234aa'},
              "Invalid 'storage' component found with probe result "
              "{ 'serial': '#1234aa', 'size': '16G', 'type': 'SSD'} "
-             "(no matching name in the component DB)")]},
-        self.database.VerifyComponents(self.results[2], ['storage']))
+             '(no matching name in the component DB)')]},
+                      self.database.VerifyComponents(self.results[2], ['storage']))
     self.assertEquals({
         'storage': [
             ('storage_2', {'type': Value('HDD'), 'size': Value('500G'),
                            'serial': Value(r'^#123\d+$', is_re=True)},
              None)]},
-        self.database.VerifyComponents(self.results[3], ['storage'],
-                                       loose_matching=True))
+                      self.database.VerifyComponents(self.results[3], ['storage'],
+                                                     loose_matching=True))
     self.assertEquals({
         'storage': [
             (None, {'foo': 'bar'},
              "Invalid 'storage' component found with probe result "
              "{ 'foo': 'bar'} (no matching name in the component DB)")]},
-        self.database.VerifyComponents(self.results[4], ['storage'],
-                                       loose_matching=True))
+                      self.database.VerifyComponents(self.results[4], ['storage'],
+                                                     loose_matching=True))
 
   def testLoadDatabaseWithRegionInfo(self):
     db = Database.LoadFile(
@@ -452,6 +453,7 @@ class DatabaseTest(unittest.TestCase):
 
 
 class PatternTest(unittest.TestCase):
+
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -550,8 +552,8 @@ class ComponentsTest(unittest.TestCase):
           'items': {
               'comp_1': {
                   'values': {
-                    'field1': 'foo',
-                    'field2': 'bar'}},
+                      'field1': 'foo',
+                      'field2': 'bar'}},
               'comp_3': {
                   'values': {
                       'field1': 'foo',
@@ -563,8 +565,8 @@ class ComponentsTest(unittest.TestCase):
               'comp_2': {
                   'values': None,
                   'labels': {
-                    'label1': 'FOO',
-                    'label2': 'BAR'}}}}}
+                      'label1': 'FOO',
+                      'label2': 'BAR'}}}}}
 
   def setUp(self):
     self.components = Components(ComponentsTest.MOCK_COMPONENTS_DICT)

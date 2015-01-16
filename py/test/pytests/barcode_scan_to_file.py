@@ -27,21 +27,24 @@ _CHECK_BARCODE_SECS = 0.3
 class BarcodeScanToFileTest(unittest.TestCase):
   """Scans barcode and saves it to a specific file."""
   ARGS = [
-    Arg('label_en', (str, unicode), 'Name of the barcode to scan'),
-    Arg('label_zh', (str, unicode),
-        'Chinese name of barcode being scanned '
-        '(defaults to the same as the English label)'),
-    Arg('regexp', str,
-        'Regexp that the scanned value must match', optional=True),
-    Arg('ignore_case', bool,
-        'True to ignore case from input.', default=False),
-    Arg('save_path', str,
-        'The file path of saving barcode'),
-    Arg('bft_params', dict,
-        'Parameters to initialize WhaleBFTFixture. It is a dict which contains '
-        'at least "host" and "port" that points to BeagleBone servod.',
-        optional=True),
-  ]
+      Arg('label_en', (str, unicode), 'Name of the barcode to scan'),
+      Arg(
+          'label_zh', (str, unicode),
+          'Chinese name of barcode being scanned '
+          '(defaults to the same as the English label)'),
+      Arg(
+          'regexp', str, 'Regexp that the scanned value must match',
+          optional=True),
+      Arg(
+          'ignore_case', bool, 'True to ignore case from input.',
+          default=False),
+      Arg('save_path', str, 'The file path of saving barcode'),
+      Arg(
+          'bft_params', dict,
+          'Parameters to initialize WhaleBFTFixture. It is a dict which '
+          'contains at least "host" and "port" that points to BeagleBone '
+          'servod.',
+          optional=True)]
 
   def ShowError(self, message, message_zh):
     logging.info('Scan error: %r', message)

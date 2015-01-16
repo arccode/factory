@@ -42,7 +42,7 @@ from cros.factory.utils.net_utils import Ifconfig
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
   import flimflam  # pylint: disable=F0401
-except: # pylint: disable=W0702
+except:  # pylint: disable=W0702
   pass
 
 _DEFAULT_WIRELESS_TEST_CSS = '.wireless-info {font-size: 2em;}'
@@ -165,16 +165,16 @@ def IwScan(devname, sleep_retry_time_secs=2, max_retries=10):
       time.sleep(sleep_retry_time_secs)
     elif retcode == 234:  # Invalid argument (-22)
       raise Exception('Failed to iw scan, ret code: %d. stderr: %s'
-                        'Frequency might be wrong.' %
-                        (retcode, stderr))
+                      'Frequency might be wrong.' %
+                      (retcode, stderr))
     else:
       raise Exception('Failed to iw scan, ret code: %d. stderr: %s' %
-                        (retcode, stderr))
+                      (retcode, stderr))
   raise Exception('Failed to iw scan for %s tries' % max_retries)
 
 
 class RadiotapPacket(object):
-  FIELD = collections.namedtuple('Field', [ 'name', 'struct', 'align' ])
+  FIELD = collections.namedtuple('Field', ['name', 'struct', 'align'])
   ANTENNA_SIGNAL_FIELD = FIELD('Antenna Signal', struct.Struct('b'), 0)
   ANTENNA_INDEX_FIELD = FIELD('Antenna Index', struct.Struct('B'), 0)
   EXTENDED_BIT = 31
@@ -196,11 +196,11 @@ class RadiotapPacket(object):
       FIELD('RX Flags', struct.Struct('H'), 2),
       FIELD('MCS', struct.Struct('BBB'), 1),
       FIELD('AMPDU status', struct.Struct('IHBB'), 4),
-      FIELD('VHT', struct.Struct('HBBBBBBBBH'), 2),]
+      FIELD('VHT', struct.Struct('HBBBBBBBBH'), 2)]
   MAIN_HEADER_FORMAT = struct.Struct('BBhI')
   PARSE_INFO = collections.namedtuple('AntennaData', ['header_size',
-      'data_bytes',
-      'antenna_offsets'])
+                                                      'data_bytes',
+                                                      'antenna_offsets'])
 
   # This is a variable-length header, but this is what we want to see.
   EXPECTED_HEADER_FORMAT = struct.Struct(MAIN_HEADER_FORMAT.format + 'II')
@@ -266,6 +266,7 @@ class RadiotapPacket(object):
 
 class Capture(object):
   """Context for a live tcpdump packet capture for beacons."""
+
   def __init__(self, device_name, phy):
     self.monitor_process = None
     self.created_device = None
@@ -275,7 +276,7 @@ class Capture(object):
   def create_device(self, monitor_device='antmon0'):
     """Creates a monitor device to monitor beacon."""
     Spawn(['iw', self.parent_device, 'interface', 'add',
-        monitor_device, 'type', 'monitor'], check_call=True)
+           monitor_device, 'type', 'monitor'], check_call=True)
     self.created_device = monitor_device
 
   def remove_device(self, device_name):
@@ -314,7 +315,7 @@ class Capture(object):
     This function may only for Intel WP2 7260 chip.
     """
     with open('/sys/kernel/debug/ieee80211/%s/netdev:%s/iwlmvm/bf_params' %
-        (self.phy, self.parent_device), 'w') as f:
+              (self.phy, self.parent_device), 'w') as f:
       f.write('bf_enable_beacon_filter=%d\n' % value)
 
   def __enter__(self):
@@ -322,10 +323,12 @@ class Capture(object):
       self.create_device()
     Spawn(['ip', 'link', 'set', self.created_device, 'up'], check_call=True)
     Spawn(['iw', self.parent_device, 'set', 'power_save', 'off'],
-        check_call=True)
+          check_call=True)
     self.set_beacon_filter(0)
-    self.monitor_process = Spawn(['tcpdump', '-nUxxi', self.created_device,
-        'type', 'mgt', 'subtype', 'beacon'], stdout=PIPE)
+    self.monitor_process = (
+        Spawn(
+            ['tcpdump', '-nUxxi', self.created_device, 'type', 'mgt',
+             'subtype', 'beacon'], stdout=PIPE))
     return self
 
   def __exit__(self, exception, value, traceback):
@@ -350,28 +353,33 @@ class WirelessRadiotapTest(unittest.TestCase):
     _done: An event that test has been done.
   """
   ARGS = [
-    Arg('device_name', str, 'wireless device name to test.'
-        'Set this correctly if check_antenna is True.', default='wlan0'),
-    Arg('spec_dict', dict, 'Keys: a tuple of (service_ssid, freq, password) '
-        'tuples like ((SSID_AP1, FREQ_AP1, PASS_AP1), (SSID_AP2, FREQ_AP2, '
-        'PASS_AP2), (SSID_AP3, FREQ_AP3, PASS_AP3)). '
-        'The test will only check the service whose antenna_all signal strength'
-        ' is the largest. If (SSID_AP1, FREQ_AP1) has the largest signal among '
-        'AP1, AP2, AP3, then its result will be checked against the spec value.'
-        ' Values: a dict of minimal signal strength. For example, a dict like '
-        '{"main": strength_1, "aux": strength_2, "all": strength_all}. '
-        'The test will check signal strength under different antenna config. '
-        'Example of spec_dict: { '
-        '    ((SSID_AP1, FREQ_AP1, PASS_AP1), (SSID_AP2, FREQ_AP2, PASS_AP2)): '
-        '        {"all": 50, "main": 50, "aux": 50}, '
-        '    ((SSID_AP3, FREQ_AP3, PASS_AP3)): {"all": 60}}.',
-        optional=False),
-    Arg('scan_count', int, 'number of scanning to get average signal strength',
-        default=5),
-    Arg('switch_antenna_sleep_secs', int, 'The sleep time after switching'
-        'antenna and ifconfig up. Need to decide this value carefully since it'
-        'depends on the platform and antenna config to test.', default=10)
-  ]
+      Arg(
+          'device_name', str,
+          'wireless device name to test.'
+          'Set this correctly if check_antenna is True.', default='wlan0'),
+      Arg(
+          'spec_dict', dict,
+          'Keys: a tuple of (service_ssid, freq, password) tuples like '
+          '((SSID_AP1, FREQ_AP1, PASS_AP1), (SSID_AP2, FREQ_AP2, PASS_AP2), '
+          '(SSID_AP3, FREQ_AP3, PASS_AP3)). The test will only check the '
+          'service whose antenna_all signal strength is the largest. If '
+          '(SSID_AP1, FREQ_AP1) has the largest signal among AP1, AP2, AP3, '
+          'then its result will be checked against the spec value. Values: a '
+          'dict of minimal signal strength. For example, a dict like {"main": '
+          'strength_1, "aux": strength_2, "all": strength_all}. The test will '
+          'check signal strength under different antenna config. Example of '
+          'spec_dict: {     ((SSID_AP1, FREQ_AP1, PASS_AP1), (SSID_AP2, '
+          'FREQ_AP2, PASS_AP2)):         {"all": 50, "main": 50, "aux": 50},'
+          '     ((SSID_AP3, FREQ_AP3, PASS_AP3)): {"all": 60}}.',
+          optional=False),
+      Arg(
+          'scan_count', int,
+          'number of scanning to get average signal strength', default=5),
+      Arg(
+          'switch_antenna_sleep_secs', int,
+          'The sleep time after switchingantenna and ifconfig up. Need to '
+          'decide this value carefully since itdepends on the platform and '
+          'antenna config to test.', default=10)]
 
   def setUp(self):
     self._ui = test_ui.UI()
@@ -409,7 +417,7 @@ class WirelessRadiotapTest(unittest.TestCase):
           service=self._connect_service)
       if not success:
         factory.console.info('Unable to connect to %s, diagnostics %s' %
-            (service_name, diagnostics))
+                             (service_name, diagnostics))
         return False
       else:
         factory.console.info(
@@ -420,8 +428,10 @@ class WirelessRadiotapTest(unittest.TestCase):
     """Disconnect wifi AP."""
     if self._connect_service:
       self._flim.DisconnectService(service=self._connect_service)
-      factory.console.info('Disconnect to service %s' %
-          FlimGetServiceProperty(self._connect_service, 'Name'))
+      factory.console.info(
+          'Disconnect to service %s' % FlimGetServiceProperty(
+              self._connect_service,
+              'Name'))
       self._connect_service = None
 
   def DetectPhyName(self):
@@ -622,7 +632,7 @@ class WirelessRadiotapTest(unittest.TestCase):
     # Gets the service with the largest strength to test for each spec.
     for candidate_services, spec_strength in self.args.spec_dict.iteritems():
       test_service = self.ChooseMaxStrengthService(candidate_services,
-          average_signal)
+                                                   average_signal)
       if test_service is None:
         self.fail('Services %s are not valid.' % candidate_services)
       else:

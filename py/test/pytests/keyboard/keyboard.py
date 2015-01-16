@@ -34,7 +34,7 @@ _ID_IMAGE = 'keyboard-test-image'
 _ID_COUNTDOWN_TIMER = 'keyboard-test-timer'
 _HTML_KEYBOARD = (
     '<div id="%s" style="position: relative"></div>\n<div id="%s"></div>\n' %
-        (_ID_IMAGE, _ID_COUNTDOWN_TIMER))
+    (_ID_IMAGE, _ID_COUNTDOWN_TIMER))
 
 _KEYBOARD_TEST_DEFAULT_CSS = (
     '#keyboard-test-timer { font-size: 2em; }\n'
@@ -51,19 +51,20 @@ class KeyboardTest(unittest.TestCase):
   and passes if both events of all keys are received.
   """
   ARGS = [
-    Arg('allow_multi_keys', bool, 'Allow multiple keys pressed simultaneously. '
-        '(Less strictly checking with shorter cycle time)', default=False),
-    Arg('layout', (str, unicode),
-        ('Use specified layout other than derived from VPD. '
-         'If None, the layout from the VPD is used.'),
-        default=None, optional=True),
-    Arg('timeout_secs', int, 'Timeout for the test.', default=30),
-    Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
-        'pressed sequentially or not.', default=False, optional=True),
-    Arg('board', str,
-        'If presents, in filename, the board name is appended after layout.',
-        default=''),
-    Arg('skip_power_key', bool, 'Skip power button testing', default=False),
+      Arg('allow_multi_keys', bool, 'Allow multiple keys pressed '
+          'simultaneously. (Less strictly checking '
+          'with shorter cycle time)', default=False),
+      Arg('layout', (str, unicode),
+          ('Use specified layout other than derived from VPD. '
+           'If None, the layout from the VPD is used.'),
+          default=None, optional=True),
+      Arg('timeout_secs', int, 'Timeout for the test.', default=30),
+      Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
+          'pressed sequentially or not.', default=False, optional=True),
+      Arg('board', str,
+          'If presents, in filename, the board name is appended after layout.',
+          default=''),
+      Arg('skip_power_key', bool, 'Skip power button testing', default=False),
   ]
 
   def setUp(self):
@@ -139,7 +140,7 @@ class KeyboardTest(unittest.TestCase):
     for k in bindings:
       # Convert single tuple to list of tuples
       if not isinstance(bindings[k], list):
-        bindings[k] = [bindings[k],]
+        bindings[k] = [bindings[k]]
     return bindings
 
   def ReadKeyOrder(self, layout):
@@ -151,7 +152,6 @@ class KeyboardTest(unittest.TestCase):
     with open(key_order_list_filename, 'r') as f:
       key_order_list = eval(f.read())
     return key_order_list
-
 
   def MonitorEvdevEvent(self):
     """Monitors keyboard events from evdev."""

@@ -31,6 +31,7 @@ _CSS = """
 }
 """
 
+
 class SyncShopfloor(unittest.TestCase):
   ARGS = [
       Arg('first_retry_secs', int,
@@ -47,14 +48,14 @@ class SyncShopfloor(unittest.TestCase):
           'update is available', default=False, optional=True),
       Arg('sync_event_logs', bool, 'Sync event logs to shopfloor',
           default=True)
-      ]
+  ]
 
   def runTest(self):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
     ui.AppendCSS(_CSS)
     if self.args.disable_update:
-      factory.console.info("Update is disabled.")
+      factory.console.info('Update is disabled.')
 
     def target():
       retry_secs = self.args.first_retry_secs
@@ -65,7 +66,7 @@ class SyncShopfloor(unittest.TestCase):
             '正在与shopfloor server连线...'))
         shopfloor_url = shopfloor.get_server_url()
         if shopfloor_url:
-          template.SetState('<br>'+shopfloor_url, append=True)
+          template.SetState('<br>' + shopfloor_url, append=True)
 
         try:
           goofy = factory.get_state_instance()

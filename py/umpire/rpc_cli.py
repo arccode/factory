@@ -18,6 +18,7 @@ from cros.factory.umpire import daemon
 from cros.factory.umpire import umpire_rpc
 from cros.factory.utils import file_utils
 
+
 class CLICommand(umpire_rpc.UmpireRPC):
 
   """Container of Umpire RPC commands.

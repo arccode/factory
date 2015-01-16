@@ -53,6 +53,8 @@ MIC_JACK_NAME = 'mic_jack'
 DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
 
 # SOX related utilities
+
+
 def GetPlaySineArgs(channel, odev='default', freq=1000, duration_secs=10,
                     sample_size=16):
   """Gets the command args to generate a sine wav to play to odev.
@@ -67,14 +69,14 @@ def GetPlaySineArgs(channel, odev='default', freq=1000, duration_secs=10,
   Returns:
     A command string to generate a sine wav
   """
-  cmdargs = "%s -b %d -n -t alsa %s synth %d" % (
+  cmdargs = '%s -b %d -n -t alsa %s synth %d' % (
       SOX_PATH, sample_size, odev, duration_secs)
   if channel == 0:
-    cmdargs += " sine %d sine 0" % freq
+    cmdargs += ' sine %d sine 0' % freq
   elif channel == 1:
-    cmdargs += " sine 0 sine %d" % freq
+    cmdargs += ' sine 0 sine %d' % freq
   else:
-    cmdargs += " sine %d" % freq
+    cmdargs += ' sine %d' % freq
   return cmdargs
 
 
@@ -91,7 +93,7 @@ def TrimAudioFile(in_path, out_path, start, end,
     num_channel: The number of channels in input file.
     sox_format: Format to generate sox command.
   """
-  cmd = "%s -c %s %s %s -c %s %s %s trim %s" % (
+  cmd = '%s -c %s %s %s -c %s %s %s trim %s' % (
       SOX_PATH, str(num_channel), sox_format, in_path,
       str(num_channel), sox_format, out_path, str(start))
   if end is not None:
@@ -116,8 +118,9 @@ def SoxMixerOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
   # The selected channel from input.(1 for the first channel).
   remix_channel = channel + 1
 
-  command = '%s -c 2 %s %s -c 1 %s - remix %s' % (SOX_PATH,
-      sox_format, in_file, sox_format, str(remix_channel))
+  command = (
+      '%s -c 2 %s %s -c 1 %s - remix %s' %
+      (SOX_PATH, sox_format, in_file, sox_format, str(remix_channel)))
   return Spawn(command.split(' '), log=True, read_stdout=True).stdout_data
 
 
@@ -218,11 +221,11 @@ def NoiseReduceFile(in_file, noise_file, out_file,
   f = tempfile.NamedTemporaryFile(delete=False)
   f.close()
   prof_cmd = '%s -c 2 %s %s -n noiseprof %s' % (SOX_PATH,
-      sox_format, noise_file, f.name)
+                                                sox_format, noise_file, f.name)
   Spawn(prof_cmd.split(' '), check_call=True)
 
   reduce_cmd = ('%s -c 2 %s %s -c 2 %s %s noisered %s' %
-      (SOX_PATH, sox_format, in_file, sox_format, out_file, f.name))
+                (SOX_PATH, sox_format, in_file, sox_format, out_file, f.name))
   Spawn(reduce_cmd.split(' '), check_call=True)
   os.unlink(f.name)
 
@@ -247,11 +250,13 @@ def GetCardIndexByName(card_name):
       return m.group(1)
   raise ValueError('device name %s is incorrect' % card_name)
 
+
 class AudioUtil(object):
   """This class is used for setting audio related configuration.
   It reads audio.conf initially to decide how to enable/disable each
   component by amixer.
   """
+
   def __init__(self, config_path=_DEFAULT_CONFIG_PATH):
     self._restore_mixer_control_stack = []
     if os.path.exists(config_path):
@@ -342,7 +347,7 @@ class AudioUtil(object):
     for evdev in glob('/dev/input/event*'):
       f = open(os.path.join('/sys/class/input/',
                             os.path.basename(evdev),
-                           'device/name'),
+                            'device/name'),
                'r')
       evdev_name = f.read()
       if evdev_name.find(name) != -1:
@@ -363,7 +368,7 @@ class AudioUtil(object):
     """
     if card in self.audio_config and 'jack_detect' in self.audio_config[card]:
       jack_status = Spawn(self.audio_config[card]['jack_detect'],
-          read_stdout=True).stdout_data.strip()
+                          read_stdout=True).stdout_data.strip()
       return True if jack_status == '1' else False
 
     return self.GetHeadphoneJackStatus(card) or self.GetMicJackStatus(card)
@@ -522,6 +527,7 @@ class AudioUtil(object):
                 self.audio_config[card]['set_headphone_volume'], card)
             break
 
+
 class CRAS(object):
   """Class used to access CRAS information by
   executing commnad cras_test_clinet.
@@ -531,6 +537,7 @@ class CRAS(object):
 
   class Node(object):
     """Class to represent a input or output node in CRAS."""
+
     def __init__(self, node_id, plugged, name):
       self.node_id = node_id
       self.plugged = plugged
@@ -589,7 +596,7 @@ class CRAS(object):
     """
     command = [self.CRAS_TEST_CLIENT,
                '--select_input' if direction == CRAS.INPUT
-                                else '--select_output',
+               else '--select_output',
                node.node_id]
     Spawn(command, call=True)
 

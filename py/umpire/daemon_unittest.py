@@ -93,7 +93,8 @@ class DaemonTest(unittest.TestCase):
     shutil.copy(TESTCONFIG, self.env.active_config_file)
     self.env.LoadConfig()
     self.daemon = UmpireDaemon(self.env)
-    self.rpc_proxy = xmlrpc.Proxy('http://%s:%d' %
+    self.rpc_proxy = xmlrpc.Proxy(
+        'http://%s:%d' %
         (net_utils.LOCALHOST, self.env.umpire_cli_port))
     self.agent = client.Agent(reactor)
 
@@ -117,7 +118,7 @@ class DaemonTest(unittest.TestCase):
     if session is None:
       session = AttrDict()
     url = 'http://%s:%d%s' % (net_utils.LOCALHOST,
-        self.env.umpire_webapp_port, path)
+                              self.env.umpire_webapp_port, path)
     logging.debug('GET %s', url)
     if headers:
       headers = copy.deepcopy(headers)

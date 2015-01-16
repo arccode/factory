@@ -35,25 +35,25 @@ _TEST_TITLE = test_ui.MakeLabel('RMA Factory WiFi RF Test')
 TestRow = collections.namedtuple('TestRow', 'en_label zh_label freq antenna db')
 _SUBTESTS = []
 _SUBTESTS.append(TestRow(
-                 '2.4GHz Antenna 1.', '2.4GHz 天线 1.', '2.4', '1', -65))
+    '2.4GHz Antenna 1.', '2.4GHz 天线 1.', '2.4', '1', -65))
 _SUBTESTS.append(TestRow(
-                 '2.4GHz Antenna 2.', '2.4GHz 天线 2.', '2.4', '2', -62))
+    '2.4GHz Antenna 2.', '2.4GHz 天线 2.', '2.4', '2', -62))
 _SUBTESTS.append(TestRow(
-                 '5.5GHz Antenna 1.', '5.5GHz 天线 1.', '5.5', '1', -68))
+    '5.5GHz Antenna 1.', '5.5GHz 天线 1.', '5.5', '1', -68))
 _SUBTESTS.append(TestRow(
-                 '5.5GHz Antenna 2.', '5.5GHz 天线 2.', '5.5', '2', -57))
+    '5.5GHz Antenna 2.', '5.5GHz 天线 2.', '5.5', '2', -57))
 
 
 _MSG_INSTRUCTION = test_ui.MakeLabel(
-   'WiFi RF Chamber Testing.', u'WiFi RF 测试')
+    'WiFi RF Chamber Testing.', u'WiFi RF 测试')
 
 _MSG_CHAMBER_REMOVE = test_ui.MakeLabel(
-   'Remove device from chamber. Press SPACE when re-attached to network.',
-  u'将装置从测试箱取出，重新连接网路后按下空白键')
+    'Remove device from chamber. Press SPACE when re-attached to network.',
+    u'将装置从测试箱取出，重新连接网路后按下空白键')
 
 _MSG_READY_CLOSE = test_ui.MakeLabel(
-   'Place device in WiFi chamber. When ready to close chamber, press SPACE.',
-  u'将设备放置在WiFi室。当您准备关闭室，按空格键。')
+    'Place device in WiFi chamber. When ready to close chamber, press SPACE.',
+    u'将设备放置在WiFi室。当您准备关闭室，按空格键。')
 
 # Here's a command line that can be used to find the USB-serial dongle
 #_CMD_FINDTTY = '/usr/bin/find /sys/bus/usb/drivers/pl2303/2-1.2\:1.0/ '\
@@ -134,7 +134,7 @@ class LEDflasher(threading.Thread):
     self._duration = duration
     self._on = on_secs
     self._off = off_secs
-    self.pinmap = { 'red':self.SetRedLED, 'green':self.SetGreenLED }
+    self.pinmap = {'red': self.SetRedLED, 'green': self.SetGreenLED}
     self._done = threading.Event()
 
     ser.setRTS(False)
@@ -166,7 +166,6 @@ class LEDflasher(threading.Thread):
     self._done.set()
 
 
-
 class Wifi_RF(unittest.TestCase):
   """Factory test for Wifi.
     Tests both 2.5 and 5.5 GHz bands. Uses modified WAP with attenuated
@@ -179,15 +178,14 @@ class Wifi_RF(unittest.TestCase):
     could fail incorrectly.
   """
   ARGS = [
-    Arg('led_serial_port', str,
-        'Serial port device for controlling LED Annunciator',
-        default= '/dev/ttyUSB4'),
-    Arg('delay_network_scan_secs', int,
-        'Delay while WiFi looks for WAPs', default= 5),
-    Arg('delay_packet_capture_secs', int,
-        'Delay while test WAP captures measurment packets', default= 15),
+      Arg('led_serial_port', str,
+          'Serial port device for controlling LED Annunciator',
+          default='/dev/ttyUSB4'),
+      Arg('delay_network_scan_secs', int,
+          'Delay while WiFi looks for WAPs', default=5),
+      Arg('delay_packet_capture_secs', int,
+          'Delay while test WAP captures measurment packets', default=15),
   ]
-
 
   def setUp(self):
     self._ui = test_ui.UI()
@@ -198,15 +196,14 @@ class Wifi_RF(unittest.TestCase):
     self._led_testing = 0
     self._led_flasher = 0
 
-
   def mkdir_p(self, path):
     try:
       os.makedirs(path)
-    except OSError as exc: # Python >2.5
+    except OSError as exc:  # Python >2.5
       if exc.errno == errno.EEXIST and os.path.isdir(path):
         pass
-      else: raise
-
+      else:
+        raise
 
   def TestInit(self):
     """Setup in-chamber test.
@@ -220,7 +217,7 @@ class Wifi_RF(unittest.TestCase):
     # Delay to let operator close RF Chamber door after hitting SPACE key.
     for i in range(5, 0, -1):
       self._template.SetState(test_ui.MakeLabel(
-                              'Countdown', '倒计时') + ': %d ' % i)
+          'Countdown', '倒计时') + ': %d ' % i)
       time.sleep(1)
 
     # Have serial port initialization here because the USB-serial dongle
@@ -240,7 +237,6 @@ class Wifi_RF(unittest.TestCase):
     self._led_testing = LEDflasher(self._ser, 'red', 150, on_secs=1.0,
                                    off_secs=0.5)
     self._led_testing.start()
-
 
   def TestFinish(self):
     """Indicate in-chamber test is finished.
@@ -264,7 +260,6 @@ class Wifi_RF(unittest.TestCase):
     self._template.SetState(_MSG_CHAMBER_REMOVE)
     self._ui.BindKey(' ', self.TestEnd)
 
-
   def TestEnd(self, unused_event):
     """Test is Done.
 
@@ -277,7 +272,6 @@ class Wifi_RF(unittest.TestCase):
     else:
       self._ui.Pass()
     # Testing Finished.
-
 
   def Calc_Signal_Strength(self, db_val_line):
     """Calculate average, Min, Max signal strength.
@@ -313,7 +307,6 @@ class Wifi_RF(unittest.TestCase):
     results.avg = db_avg
     return results
 
-
   def RunSubtests(self, unused_event):
     """Iterate to next test.
 
@@ -324,7 +317,6 @@ class Wifi_RF(unittest.TestCase):
       self.Subtest(test)
 
     self.TestFinish()
-
 
   def Subtest(self, test):
     """Basic test sequence for one band and one antenna.
@@ -343,7 +335,7 @@ class Wifi_RF(unittest.TestCase):
     subprocess.call(['/sbin/ifconfig', 'wlan0', 'down'])
 
     # A dynamic file path. Don't keep it open longterm.
-    with open("/sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask", "wb") as f:
+    with open('/sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask', 'wb') as f:
       subprocess.call(['/bin/echo', '%s' % test.antenna], stdout=f)
 
     subprocess.call(['/sbin/ifconfig', 'wlan0', 'up'])
@@ -356,7 +348,7 @@ class Wifi_RF(unittest.TestCase):
     wap_index = str(0) if test.freq == '2.4' else str(1)
     subprocess.call(['/usr/sbin/iw', 'wlan0', 'connect',
                      'WifiManaged%s' % wap_index])
-    factory.console.info('%sGHz. Antenna %s. Connecting WifiManaged%s. '\
+    factory.console.info('%sGHz. Antenna %s. Connecting WifiManaged%s. '
                          'sleep 15s' % (test.freq, test.antenna, wap_index))
 
     time.sleep(self.args.delay_packet_capture_secs)
@@ -369,7 +361,7 @@ class Wifi_RF(unittest.TestCase):
                          (test.freq, test.antenna))
     ssh_proc = subprocess.Popen(_CMD_SSH % (wap_index, wap_index), shell=True,
                                 stdout=subprocess.PIPE)
-    subprocess.Popen( _CMD_PING % wap_index, shell=True)
+    subprocess.Popen(_CMD_PING % wap_index, shell=True)
     db_val_line = ssh_proc.communicate()[0]
 
     db_result = self.Calc_Signal_Strength(db_val_line)
@@ -379,17 +371,16 @@ class Wifi_RF(unittest.TestCase):
         (test.freq, test.antenna, db_result.avg))
     if abs(db_result.max - db_result.min) > 10:
       factory.console.info(
-      '%sGHz. Antenna %s. Signal strength inconsistent, did the door open ?' %
-      (test.freq, test.antenna))
+          '%sGHz. Antenna %s. Signal strength inconsistent, did the door open ?' %
+          (test.freq, test.antenna))
 
-    if ( db_result.avg == 0 ):
+    if (db_result.avg == 0):
       factory.console.info('Possible problem with test equipment.')
 
-    if ((db_result.avg < test.db) or (abs(db_result.max-db_result.min) > 10)) :
+    if ((db_result.avg < test.db) or (abs(db_result.max - db_result.min) > 10)):
       logging.info('%sGHz. Antenna %s. Signal problems.',
                    test.freq, test.antenna)
       self._fail = True
-
 
   def runTest(self):
     """Run the test.
@@ -414,24 +405,24 @@ class Wifi_RF(unittest.TestCase):
     self.mkdir_p('/home/chronos/wifi')
 
     with os.fdopen(
-        os.open("/home/chronos/wifi/testing_rsa", os.O_WRONLY | os.O_CREAT,
+        os.open('/home/chronos/wifi/testing_rsa', os.O_WRONLY | os.O_CREAT,
                 0600),
-        "w") as f:
+        'w') as f:
       f.write(_TESTING_RSA)
 
-    with open("/home/chronos/wifi/known_hosts", "w") as f:
+    with open('/home/chronos/wifi/known_hosts', 'w') as f:
       f.write(_SSH_KNOWN_HOSTS)
 
     subprocess.call(['stop', 'shill'])
 
-    ifc_proc = subprocess.Popen(['/sbin/ifconfig','eth1'])
+    ifc_proc = subprocess.Popen(['/sbin/ifconfig', 'eth1'])
     ifc_proc.wait()
     if ifc_proc.returncode == 0:
       subprocess.call(['/sbin/ifconfig', 'eth1', '192.168.10.2'])
-      factory.console.info( 'LTE system, using eth1 for wired network.' )
+      factory.console.info('LTE system, using eth1 for wired network.')
     else:
       subprocess.call(['/sbin/ifconfig', 'eth0', '192.168.10.2'])
-      factory.console.info( 'Not LTE system, using eth0 for wired network.' )
+      factory.console.info('Not LTE system, using eth0 for wired network.')
 
     factory.console.info('Stopping WPA Supplicant.')
     subprocess.call(['stop', 'wpasupplicant'])

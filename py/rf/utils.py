@@ -13,6 +13,7 @@ from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.shopfloor import GetShopfloorConnection
 
+
 def IsInRange(observed, threshold_min, threshold_max):
   """Returns True if threshold_min <= observed <= threshold_max.
 
@@ -27,9 +28,11 @@ def IsInRange(observed, threshold_min, threshold_max):
     return False
   return True
 
+
 def FormattedPower(power, format_str='%7.2f'):
   """Returns a formatted power while allowing power be a None."""
   return 'None' if power is None else (format_str % power)
+
 
 def CheckPower(measurement_name, power, threshold,
                failures=None, prefix='Power'):
@@ -56,7 +59,7 @@ def CheckPower(measurement_name, power, threshold,
     return False
 
   logging.info('%s for %r is %s',
-      prefix, measurement_name, FormattedPower(power))
+               prefix, measurement_name, FormattedPower(power))
   return True
 
 

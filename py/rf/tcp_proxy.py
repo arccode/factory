@@ -55,6 +55,7 @@ from twisted.internet.protocol import ReconnectingClientFactory
 
 
 class ClientProtocol(Protocol):
+
   def __init__(self):
     self.factory = None
     self.uuid = "ClientProtocol(%s)" % uuid.uuid4()
@@ -73,6 +74,7 @@ class ClientProtocol(Protocol):
 
   def __del__(self):
     logging.info("%s: __del__ is called()", self.uuid)
+
 
 class ClientFactory(ReconnectingClientFactory):
   protocol = ClientProtocol
@@ -115,7 +117,9 @@ class ClientFactory(ReconnectingClientFactory):
     self.active_client = None
     self.listener.stopListening()
 
+
 class ServerProtocol(Protocol):
+
   def __init__(self, client_factory):
     self.client_factory = client_factory
     self.uuid = "ServerProtocol(%s)" % uuid.uuid4()
@@ -147,7 +151,9 @@ class ServerProtocol(Protocol):
   def __del__(self):
     logging.info("%s: __del__ is called()", self.uuid)
 
+
 class ServerFactory(Factory):
+
   def __init__(self, client_factory):
     self.client_factory = client_factory
     self.uuid = "ServerFactory(%s)" % uuid.uuid4()
@@ -160,26 +166,27 @@ class ServerFactory(Factory):
   def __del__(self):
     logging.info("%s: __del__ is called()", self.uuid)
 
+
 def main():
   parser = optparse.OptionParser()
-  parser.add_option('--remote_host', dest='remote_host', type='string',
-                    help='IP address of remote host.')
-  parser.add_option('--remote_port', dest='remote_port', type='int',
-                    help='Port number of remote host.')
-  parser.add_option('--local_port', dest='local_port', type='int',
-                    help='Local port number to listen.')
-  parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
-                    help='Print detail logs.')
+  parser.add_option("--remote_host", dest="remote_host", type="string",
+                    help="IP address of remote host.")
+  parser.add_option("--remote_port", dest="remote_port", type="int",
+                    help="Port number of remote host.")
+  parser.add_option("--local_port", dest="local_port", type="int",
+                    help="Local port number to listen.")
+  parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
+                    help="Print detail logs.")
 
   (options, args) = parser.parse_args()
   if args:
-    parser.error('Invalid args: %s' % ' '.join(args))
+    parser.error("Invalid args: %s" % " ".join(args))
 
   loggerLevel = logging.DEBUG if options.verbose else logging.INFO
-  logging.basicConfig(level=loggerLevel, format='%(message)s')
+  logging.basicConfig(level=loggerLevel, format="%(message)s")
   reactor.connectTCP(options.remote_host, options.remote_port,
                      ClientFactory(options.local_port), timeout=1)
   reactor.run()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   main()

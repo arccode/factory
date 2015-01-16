@@ -30,6 +30,7 @@ Properties:
   scheme: update scheme provided by Umpire server, e.g. 'http', 'rsync'.
 """
 
+
 class UmpireClientGetUpdateException(Exception):
   """Exception for Umpire client get_update utils."""
   pass
@@ -113,7 +114,8 @@ def GetUpdateForHWID(proxy):
   if not update_info.needs_update:
     return None
   if update_info.scheme != 'http':
-    raise UmpireClientGetUpdateException('HWID update scheme %s other than http'
+    raise UmpireClientGetUpdateException(
+        'HWID update scheme %s other than http'
         ' is not supported.' % update_info.scheme)
   return Download(update_info.url)
 
@@ -139,11 +141,11 @@ def Download(url, unzip=True):
     return file_content
 
 
-
 def GetUpdateForFirmware(proxy):
   """Gets firmware update from Umpire server.
 
-  The user of this method is get_firmware_updater in cros.factory.test.shopfloor.
+  The user of this method is get_firmware_updater in
+  cros.factory.test.shopfloor.
   This method returns the content of unzipped firmware.gz file, that is,
   chromeos-firmwareupdate.
 

@@ -5,4 +5,3 @@
 
 class ShopFloorLauncherException(Exception):
   pass
-

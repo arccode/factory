@@ -42,7 +42,7 @@ def IsInRange(observed, min_val, max_val):
 
 
 def CheckRefPowerRange(table, expected_range_dict, band_name):
-  '''Checks if the ref power is in range.'''
+  """Checks if the ref power is in range."""
   for row_idx, single_row in enumerate(table):
     chain = int(single_row[0])
     ref_power = int(single_row[1])
@@ -56,7 +56,7 @@ def CheckRefPowerRange(table, expected_range_dict, band_name):
 
 
 def CheckCalibratedUnits(table, min_required_units, band_name):
-  '''Checks min_required_units presented in calibration table.'''
+  """Checks min_required_units presented in calibration table."""
   if len(table) < min_required_units:
     factory.console.info(
         '%s table has only %d calibrated units, '
@@ -68,25 +68,25 @@ def CheckCalibratedUnits(table, min_required_units, band_name):
 
 class CheckWifiCalibrationTest(unittest.TestCase):
   ARGS = [
-    Arg('min_low_band_required_unit', int,
-        'Expected the minimum numbers of calibrate units in 2.4G'),
-    Arg('min_high_band_required_unit', int,
-        'Expected the minimum numbers of calibrate units in 5G'),
-    Arg('expected_low_band_ref_power_range', dict,
-        'Expected range (min, max) for each chain in 2.4G.\n'
-        'Chain is the key of the dict.\n'
-        'For example::\n'
-        '\n'
-        '  {0: (-20, None),\n'
-        '   1: (None, -10)}\n'
-        '\n'
-        'will check all refPower for chain 0 is greater than -20\n'
-        'and all refPower for chain 1 is less than -10.\n'
-        ),
-    Arg('expected_high_band_ref_power_range', dict,
-        'Expected range (min, max) for each chain in 5G.\n'
-        'Chain is the key of the dict.')
+      Arg('min_low_band_required_unit', int,
+          'Expected the minimum numbers of calibrate units in 2.4G'),
+      Arg('min_high_band_required_unit', int,
+          'Expected the minimum numbers of calibrate units in 5G'),
+      Arg('expected_low_band_ref_power_range', dict,
+          'Expected range (min, max) for each chain in 2.4G.\n'
+          'Chain is the key of the dict.\n'
+          'For example::\n'
+          '\n'
+          '  {0: (-20, None),\n'
+          '   1: (None, -10)}\n'
+          '\n'
+          'will check all refPower for chain 0 is greater than -20\n'
+          'and all refPower for chain 1 is less than -10.\n'),
+      Arg('expected_high_band_ref_power_range', dict,
+          'Expected range (min, max) for each chain in 5G.\n'
+          'Chain is the key of the dict.')
   ]
+
   def readCalibrationTable(self, path, anchor_string):
     with open(path) as f:
       lines = f.readlines()

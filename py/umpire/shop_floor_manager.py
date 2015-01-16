@@ -26,6 +26,7 @@ class ShopFloorManager(object):
   requests and gets 405 response, it means the path is invalid and the DUT needs
   to refresh resource map again.
   """
+
   def __init__(self, port_begin, port_end):
     # Bundle ID to (port, token) mapping.
     self._bundle_port = dict()

@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Wrappers to convert Unicode strings to UTF-8 strings.'''
+"""Wrappers to convert Unicode strings to UTF-8 strings."""
 
 import types
 
@@ -18,7 +18,7 @@ def UnicodeToString(obj):
     return [UnicodeToString(x) for x in obj]
   elif isinstance(obj, dict):
     return dict((UnicodeToString(k), UnicodeToString(v))
-          for k, v in obj.iteritems())
+                for k, v in obj.iteritems())
   elif isinstance(obj, unicode):
     return obj.encode('utf-8')
   elif isinstance(obj, tuple):
@@ -34,8 +34,8 @@ def UnicodeToStringArgs(function):
   Unicode to strings using UnicodeToString.
   '''
   return (lambda *args, **kwargs:
-        function(*UnicodeToString(args),
-             **UnicodeToString(kwargs)))
+          function(*UnicodeToString(args),
+                   **UnicodeToString(kwargs)))
 
 
 def UnicodeToStringClass(cls):

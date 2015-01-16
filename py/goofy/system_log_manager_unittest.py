@@ -28,6 +28,8 @@ from cros.factory.utils import file_utils
 # Mocks CatchException decorator since it will suppress exception in
 # SystemLogManager.
 CatchExceptionImpl = debug_utils.CatchException
+
+
 def CatchExceptionDisabled(*args, **kwargs):
   kwargs['enable'] = False
   return CatchExceptionImpl(*args, **kwargs)
@@ -59,14 +61,17 @@ MOCK_SERVER_URL = 'http://0.0.0.0:1234'
 MOCK_PORT = '8084'
 MOCK_DEVICE_ID = 'ab:cd:ef:12:34:56'
 MOCK_IMAGE_ID = '123456'
-MOCK_RSYNC_DESTINATION = ['rsync://%s:%s/system_logs/%s' %
-            (urlparse(MOCK_SERVER_URL).hostname, MOCK_PORT,
-             MOCK_DEVICE_ID.replace(':', '') + '_' + MOCK_IMAGE_ID)]
+MOCK_RSYNC_DESTINATION = [
+    'rsync://%s:%s/system_logs/%s' %
+    (urlparse(MOCK_SERVER_URL).hostname, MOCK_PORT,
+     MOCK_DEVICE_ID.replace(':', '') + '_' + MOCK_IMAGE_ID)]
 MOCK_RSYNC_COMMAND_ARG = ['rsync', '-azR', '--stats', '--chmod=o-t',
                           '--timeout=%s' % MOCK_RSYNC_IO_TIMEOUT]
 
+
 class TestSystemLogManager(unittest.TestCase):
   """Unittest for SystemLogManager."""
+
   def setUp(self):
     self.mox = mox.Mox()
     self.manager = None
@@ -78,8 +83,8 @@ class TestSystemLogManager(unittest.TestCase):
         tempfile.mkstemp(prefix=mock_file_prefix, dir=TEST_DIRECTORY)
         for _ in xrange(3)]
     self.base_rsync_command = (MOCK_RSYNC_COMMAND_ARG +
-        sum([glob.glob(x) for x in mock_sync_log_paths], []) +
-        MOCK_RSYNC_DESTINATION)
+                               sum([glob.glob(x) for x in mock_sync_log_paths], []) +
+                               MOCK_RSYNC_DESTINATION)
     # Modifies the minimum sync log period secs in system_log_manager for
     # unittest.
     system_log_manager.MIN_SYNC_LOG_PERIOD_SECS = MOCK_MIN_SYNC_PERIOD_SEC
@@ -125,8 +130,8 @@ class TestSystemLogManager(unittest.TestCase):
       terminated: times argument to MockPollToFinish.
     """
     shopfloor.get_server_url().AndReturn(MOCK_SERVER_URL)
-    shopfloor.get_instance(detect=True,
-        timeout=MOCK_SHOPFLOOR_TIMEOUT).AndReturn(self.fake_shopfloor)
+    shopfloor.get_instance(detect=True, timeout=MOCK_SHOPFLOOR_TIMEOUT).AndReturn(
+        self.fake_shopfloor)
     self.fake_shopfloor.GetFactoryLogPort().AndReturn(MOCK_PORT)
     event_log.GetDeviceId().AndReturn(MOCK_DEVICE_ID)
     event_log.GetReimageId().AndReturn(MOCK_IMAGE_ID)
@@ -136,7 +141,7 @@ class TestSystemLogManager(unittest.TestCase):
     else:
       mock_rsync_command = self.base_rsync_command
     system_log_manager.Spawn(mock_rsync_command, ignore_stdout=True,
-        ignore_stderr=True).AndReturn(self.fake_process)
+                             ignore_stderr=True).AndReturn(self.fake_process)
 
     self.MockPollToFinish(times=times, code=code, terminated=terminated)
     if not self.fake_process.returncode and callback:
@@ -209,7 +214,7 @@ class TestSystemLogManager(unittest.TestCase):
     #--...--------------------------------------------->
     #|      |                    |
     #      1st
-    #start _SyncLogs()         stop
+    # start _SyncLogs()         stop
 
     self.mox.ReplayAll()
 
@@ -238,7 +243,7 @@ class TestSystemLogManager(unittest.TestCase):
     #---------------------------------------------->
     #|             |             |             |
     #             1st scan     2nd scan
-    #start       _SyncLogs()                  stop
+    # start       _SyncLogs()                  stop
 
     self.mox.ReplayAll()
 
@@ -542,7 +547,7 @@ class TestSystemLogManager(unittest.TestCase):
     # scan_log_period_secs is greater than sync_log_period_secs.
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.manager = system_log_manager.SystemLogManager(
-          mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC ,
+          mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
           1.5 * MOCK_SYNC_PERIOD_SEC,
           MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
           MOCK_POLLING_PERIOD, [])
@@ -581,7 +586,7 @@ class TestSystemLogManager(unittest.TestCase):
           ['/foo/bar1', '/foo/bar3'])
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
-      level=logging.DEBUG)
+                      level=logging.DEBUG)
   unittest.main()

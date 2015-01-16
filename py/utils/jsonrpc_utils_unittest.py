@@ -19,6 +19,7 @@ from cros.factory.utils import net_utils
 
 
 class JSONRPCTest(unittest.TestCase):
+
   def setUp(self):
     self.port = net_utils.FindUnusedTCPPort()
     self.server = jsonrpc_utils.JSONRPCServer(
@@ -42,7 +43,7 @@ class JSONRPCTest(unittest.TestCase):
 
   def testServer(self):
     self.server.Start()
-    time.sleep(0.1) # Wait for the server to start
+    time.sleep(0.1)  # Wait for the server to start
     self.assertTrue(self.simple_proxy.IsAlive())
     self.assertEqual(self.simple_proxy.Echo('test'), 'test')
 
@@ -53,13 +54,13 @@ class JSONRPCTest(unittest.TestCase):
     self.server.Start()
 
     start = time.time()
-    self.timeout_proxy.Sleep(.001) # No timeout
+    self.timeout_proxy.Sleep(.001)  # No timeout
     delta = time.time() - start
     self.assertTrue(delta < 1, delta)
 
     start = time.time()
     try:
-      self.timeout_proxy.Sleep(2) # Cause a timeout in 1 s
+      self.timeout_proxy.Sleep(2)  # Cause a timeout in 1 s
       self.fail('Expected exception')
     except socket.timeout:
       delta = time.time() - start

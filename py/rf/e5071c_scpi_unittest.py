@@ -20,6 +20,7 @@ Y_VALUES = [0.5, 0.7, 0.9, 1.2, 0.6, 0.7, 0.1, 1.1, 9.1]
 
 
 class TestInterpolation(unittest.TestCase):
+
   def testInterpolateNormal(self):
     """Tests whether the Interpolate function works for query in range."""
     # Test cases for non-ambiguous situation.
@@ -44,6 +45,7 @@ class TestInterpolation(unittest.TestCase):
 
 
 class TestTraceValid(unittest.TestCase):
+
   def testCheckTraceValid(self):
     # Check whether x_values is empty.
     self.assertRaises(ValueError, CheckTraceValid, [], [])

@@ -14,6 +14,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
 
+
 class NopTest(unittest.TestCase):
   ARGS = [
       Arg('wait_secs', (int, float), 'Wait for N seconds.', default=0)]

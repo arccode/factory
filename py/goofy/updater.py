@@ -26,21 +26,21 @@ class UpdaterException(Exception):
 
 
 def CheckCriticalFiles(new_path):
-  '''Raises an exception if certain critical files are missing.'''
+  """Raises an exception if certain critical files are missing."""
   critical_files = [
-    os.path.join(new_path, f)
-    for f in ['factory/MD5SUM',
-          'factory/py_pkg/cros/factory/goofy/goofy.py',
-          'factory/py/test/pytests/finalize/finalize.py']]
+      os.path.join(new_path, f)
+      for f in ['factory/MD5SUM',
+                'factory/py_pkg/cros/factory/goofy/goofy.py',
+                'factory/py/test/pytests/finalize/finalize.py']]
   missing_files = [f for f in critical_files
-           if not os.path.exists(f)]
+                   if not os.path.exists(f)]
   if missing_files:
     raise UpdaterException(
-      'Aborting update: Missing critical files %r' % missing_files)
+        'Aborting update: Missing critical files %r' % missing_files)
 
 
 def RunRsync(*rsync_command):
-  '''Runs rsync with the given command.'''
+  """Runs rsync with the given command."""
   rsync = Spawn(rsync_command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -50,7 +50,7 @@ def RunRsync(*rsync_command):
     factory.console.info('rsync output: %s', stdout)
   if rsync.returncode:
     raise UpdaterException('rsync returned status %d; aborting' %
-                 rsync.returncode)
+                           rsync.returncode)
   factory.console.info('rsync succeeded')
 
 
@@ -85,8 +85,8 @@ def TryUpdate(pre_update_hook=None, timeout=15):
 
   url = shopfloor.get_server_url() or shopfloor.detect_default_server_url()
   factory.console.info(
-    'Checking for updates at <%s>... (current MD5SUM is %s)',
-    url, current_md5sum)
+      'Checking for updates at <%s>... (current MD5SUM is %s)',
+      url, current_md5sum)
 
   new_md5sum = None
   autotest_src_path = None
@@ -118,13 +118,13 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     # An update is necessary.  Construct the rsync command.
     update_port = shopfloor_client.GetUpdatePort()
     autotest_src_path = 'rsync://%s:%d/factory/%s/autotest' % (
-      urlparse(url).hostname,
-      update_port,
-      new_md5sum)
+        urlparse(url).hostname,
+        update_port,
+        new_md5sum)
     factory_src_path = 'rsync://%s:%d/factory/%s/factory' % (
-      urlparse(url).hostname,
-      update_port,
-      new_md5sum)
+        urlparse(url).hostname,
+        update_port,
+        new_md5sum)
 
   # /usr/local on the device (parent to both factory and autotest)
   parent_dir = os.path.dirname(factory.FACTORY_PATH)
@@ -135,12 +135,11 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   # Just rsync them in place. If it fail, it can still get update again.
   autotest_path = os.path.join(parent_dir, 'autotest')
   RunRsync(
-    'rsync',
-    '-a', '--delete', '--stats',
-    '--timeout=%s' % timeout,
-    autotest_src_path,
-    '%s/' % autotest_path)
-
+      'rsync',
+      '-a', '--delete', '--stats',
+      '--timeout=%s' % timeout,
+      autotest_src_path,
+      '%s/' % autotest_path)
 
   new_path = os.path.join(parent_dir, 'updater.new')
   # rsync --link-dest considers any existing files to be definitive,
@@ -149,21 +148,21 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     shutil.rmtree(new_path)
 
   RunRsync(
-    'rsync',
-    '-a', '--delete', '--stats',
-    '--timeout=%s' % timeout,
-    # Use hard links of identical files from the old directories to
-    # save network bandwidth and temporary space on disk.
-    '--link-dest=%s' % parent_dir,
-    factory_src_path,
-    '%s/' % new_path)
+      'rsync',
+      '-a', '--delete', '--stats',
+      '--timeout=%s' % timeout,
+      # Use hard links of identical files from the old directories to
+      # save network bandwidth and temporary space on disk.
+      '--link-dest=%s' % parent_dir,
+      factory_src_path,
+      '%s/' % new_path)
 
   hwid_path = os.path.join(factory.FACTORY_PATH, 'hwid')
   new_hwid_path = os.path.join(new_path, 'factory', 'hwid')
   if os.path.exists(hwid_path) and not os.path.exists(new_hwid_path):
     RunRsync(
-      'rsync', '-a',
-      hwid_path, '%s/factory' % new_path)
+        'rsync', '-a',
+        hwid_path, '%s/factory' % new_path)
 
   CheckCriticalFiles(new_path)
 
@@ -171,8 +170,8 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   new_md5sum_from_fs = open(new_md5sum_path).read().strip()
   if new_md5sum != new_md5sum_from_fs:
     raise UpdaterException(
-      'Unexpected MD5SUM in %s: expected %s but found %s' %
-      new_md5sum_path, new_md5sum, new_md5sum_from_fs)
+        'Unexpected MD5SUM in %s: expected %s but found %s' %
+        new_md5sum_path, new_md5sum, new_md5sum_from_fs)
 
   if factory.in_chroot():
     raise UpdaterException('Aborting update: In chroot')
@@ -241,8 +240,8 @@ def CheckForUpdateAsync(callback, timeout):
       # Just an info, not a trace, since this is pretty common (and not
       # necessarily an error) and we don't want logs to get out of control.
       logging.info(
-        'Unable to contact shopfloor server to check for updates: %s',
-        '\n'.join(traceback.format_exception_only(*sys.exc_info()[:2])).strip())
+          'Unable to contact shopfloor server to check for updates: %s',
+          '\n'.join(traceback.format_exception_only(*sys.exc_info()[:2])).strip())
       callback(False, None, False)
 
   update_thread = threading.Thread(target=Run, name='UpdateThread')

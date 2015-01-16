@@ -56,6 +56,7 @@ builder_state = threading.local()
 #   1.0: 100% sampling rate
 SamplingRate = namedtuple('SamplingRate', ['key', 'rate'])
 
+
 class TestListError(Exception):
   """TestList exception"""
   pass
@@ -176,6 +177,7 @@ def FactoryTest(*args, **kwargs):
 
 def AutomatedSequence(*args, **kwargs):
   return Add(factory.AutomatedSequence(*args, **kwargs))
+
 
 def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False):
   # pylint: disable=W0622
@@ -338,6 +340,7 @@ class OldStyleTestList(object):
   loading all test lists may be slow and have side effects.  Use Load
   to actually load the list.
   """
+
   def __init__(self, test_list_id, label_en, path):
     self.test_list_id = test_list_id
     self.label_en = label_en
@@ -442,11 +445,11 @@ def BuildAllTestLists(force_generic=False):
 
       with open(path) as f:
         # Look for the test list name, if specified in the test list.
-        match = re.search(r"^\s*TEST_LIST_NAME\s*=\s*"
-                          r"u?"        # Optional u for unicode
+        match = re.search(r'^\s*TEST_LIST_NAME\s*=\s*'
+                          r'u?'        # Optional u for unicode
                           r"([\'\"])"  # Single or double quote
-                          r"(.+)"      # The actual name
-                          r"\1",       # The quotation mark
+                          r'(.+)'      # The actual name
+                          r'\1',       # The quotation mark
                           f.read(), re.MULTILINE)
       name = match.group(2) if match else test_list_id
       test_lists[test_list_id] = OldStyleTestList(test_list_id, name, path)

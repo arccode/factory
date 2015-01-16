@@ -18,8 +18,11 @@ import types
 import SocketServer
 
 # pylint: disable=W0232
+
+
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
   allow_reuse_address = True
+
 
 class MockServerHandler(SocketServer.StreamRequestHandler):
   """A mocking handler for socket.
@@ -61,7 +64,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
         if not re.search(regexp, line):
           continue
         matched = True
-        logging.info("Input %r matched with regexp %r", line, regexp)
+        logging.info('Input %r matched with regexp %r', line, regexp)
         if (inspect.isfunction(response) or inspect.ismethod(response)):
           response = response(line)
 
@@ -72,4 +75,4 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
         # Only the first match will be used.
         break
       if not matched:
-        raise ValueError("Input %r is not matching any." % line)
+        raise ValueError('Input %r is not matching any.' % line)

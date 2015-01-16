@@ -32,11 +32,12 @@ class BarModel(models.Model):
 
 
 class QueryTest(unittest.TestCase):
+
   def setUp(self):
     self.database = db.Database(':memory:')
     for i in xrange(1, 5):
       self.database.Insert(
-          FooModel(field_i=i, field_r=i/2.0, field_t='#%d' % (i % 2)))
+          FooModel(field_i=i, field_r=i / 2.0, field_t='#%d' % (i % 2)))
     for j in xrange(1, 3):
       self.database.Insert(
           FooChildModel(field_i=2, field_t1='#2.%d' % j))
@@ -201,7 +202,7 @@ class QueryTest(unittest.TestCase):
         ['the', 'brown', 'fox'],
         self.database(BarModel).ValuesList('val', flat=True).Filter(
             ~Q(key__gt=5) & (Q(val__contains='o') | Q(val='the'))
-            ).GetAll())
+        ).GetAll())
 
   def testDeepCopy(self):
     query = self.database(FooModel).ValuesList('field_i', flat=True).Filter(
@@ -223,5 +224,5 @@ class QueryTest(unittest.TestCase):
     self.database.Close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

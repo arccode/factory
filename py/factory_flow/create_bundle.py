@@ -419,7 +419,7 @@ class CreateBundle(FactoryFlowCommand):
 
     # Update mini omaha URL.
     if self.options.mini_omaha_ip:
-      manifest['mini_omaha_url'] = 'http://%s:%d/update' %  (
+      manifest['mini_omaha_url'] = 'http://%s:%d/update' % (
           self.options.mini_omaha_ip, self.options.mini_omaha_port)
 
     manifest['use_factory_toolkit'] = self.options.use_toolkit

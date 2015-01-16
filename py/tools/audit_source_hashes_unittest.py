@@ -19,6 +19,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 class AuditSourceHashesTest(unittest.TestCase):
+
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp(prefix='audit_source_hashes_unittest.')
 
@@ -46,8 +47,8 @@ class AuditSourceHashesTest(unittest.TestCase):
     This is comparing the tree to itself, so it should succeed."""
     out = StringIO()
     self.assertRaisesRegexp(
-      SystemExit, '^0$',
-      audit_source_hashes.main, [os.path.join(factory.FACTORY_PATH, 'py')], out)
+        SystemExit, '^0$', audit_source_hashes.main,
+        [os.path.join(factory.FACTORY_PATH, 'py')], out)
     self.assertEquals('PASSED (1/1 samples passed).\n', out.getvalue())
 
   def testGooftoolLogSourceHashes(self):
@@ -100,6 +101,7 @@ class AuditSourceHashesTest(unittest.TestCase):
 
 class FakeSourceTreeTest(unittest.TestCase):
   """Creates and tests based on fake source trees."""
+
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp(prefix='audit_source_hashes_unittest.')
 
@@ -131,16 +133,16 @@ class FakeSourceTreeTest(unittest.TestCase):
     out = StringIO()
     self._ModifyTree()
     self.assertRaisesRegexp(
-      SystemExit, '^1$', audit_source_hashes.main,
-      ['-g', golden_source, self.py2], out)
+        SystemExit, '^1$', audit_source_hashes.main,
+        ['-g', golden_source, self.py2], out)
     self.assertRegexpMatches(
-      out.getvalue(),
-      r'In sample .+:\n'
-      r'- b\.py: missing from sample\n'
-      r'- b2\.py: unexpected file encountered in sample\n'
-      r'- c\.py: hash mismatch .+\n\n'
-      r'Found 3 mismatched hashes and 0 exceptions\.\n'
-      r'FAILED \(0/1 samples passed\)\.\n')
+        out.getvalue(),
+        r'In sample .+:\n'
+        r'- b\.py: missing from sample\n'
+        r'- b2\.py: unexpected file encountered in sample\n'
+        r'- c\.py: hash mismatch .+\n\n'
+        r'Found 3 mismatched hashes and 0 exceptions\.\n'
+        r'FAILED \(0/1 samples passed\)\.\n')
 
   def testMatches(self):
     """Tests that py matches py2."""

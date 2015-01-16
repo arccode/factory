@@ -17,7 +17,9 @@ import unittest
 
 from cros.factory.system import core_dump_manager
 
+
 class CoreDumpManagerTest(unittest.TestCase):
+
   def CreateFiles(self):
     self.watched_file = tempfile.NamedTemporaryFile(
         prefix='watch', dir=self.crash_dir, delete=False)
@@ -88,4 +90,3 @@ class CoreDumpManagerTest(unittest.TestCase):
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   unittest.main()
-

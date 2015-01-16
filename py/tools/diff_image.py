@@ -25,7 +25,7 @@ BLACKLIST = map(re.compile, [
     'autotest/deps/',
     'autotest/site_tests/.+/src/',
     'autotest/site_tests/audiovideo_V4L2/media_v4l2_.*test$',
-    ])
+])
 
 
 def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
@@ -53,11 +53,11 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
         (['-x', 'client'] if d == 'autotest' else []) +
         [os.path.join(x, 'dev_image', d) for x in mount_points],
         read_stdout=True, log=True,
-        check_call=lambda returncode: returncode in [0,1],
+        check_call=lambda returncode: returncode in [0, 1],
         env=os_env)
 
     for line in process.stdout_lines():
-      match = re.match('^Files (.+) and (.+) differ$|'
+      match = re.match(r'^Files (.+) and (.+) differ$|'
                        '^Only in (.+): (.+)$',
                        line)
       assert match, 'Weird line in diff output: %r' % line
@@ -130,14 +130,14 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
         # contents.
         process = Spawn(
             ['diff', '-u'] + paths,
-            check_call=lambda returncode: returncode in [0,1,2],
+            check_call=lambda returncode: returncode in [0, 1, 2],
             read_stdout=True, env=os_env)
         if process.returncode == 2:
-          if re.match('Binary files .+ differ\n$', process.stdout_data):
+          if re.match(r'Binary files .+ differ\n$', process.stdout_data):
             PrintHeader('Binary files differ')
           else:
             raise subprocess.CalledProcessError(process.returncode,
-              process.args)
+                                                process.args)
         else:
           PrintHeader('Files differ; unified diff follows')
           out.write(process.stdout_data)
@@ -147,8 +147,8 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
 
 def main(argv=None, out=sys.stdout):
   parser = argparse.ArgumentParser(
-      description=("Compares the autotest and factory directories in "
-                   "two partitions."))
+      description=('Compares the autotest and factory directories in '
+                   'two partitions.'))
   parser.add_argument('--verbose', '-v', action='count')
   parser.add_argument('images', metavar='IMAGE', nargs=2)
   args = parser.parse_args(argv or sys.argv)

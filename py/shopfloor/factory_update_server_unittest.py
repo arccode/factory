@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Tests for Factory Update Server.'''
+"""Tests for Factory Update Server."""
 
 import os
 import shutil
@@ -21,6 +21,7 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 class BasicTests(unittest.TestCase):
+
   def testMd5sumCalculation(self):
     md5sum = factory_update_server.CalculateMd5sum(
         os.path.join(BASE_DIR, 'testdata/factory.tar.bz2'))
@@ -28,6 +29,7 @@ class BasicTests(unittest.TestCase):
 
 
 class FactoryUpdateServerTest(unittest.TestCase):
+
   def setUp(self):
     self.work_dir = tempfile.mkdtemp(prefix='dts')
     self.update_server = None
@@ -65,15 +67,15 @@ class FactoryUpdateServerTest(unittest.TestCase):
     self.assertTrue(self.update_server.NeedsUpdate(None))
     # Test with current md5sum
     self.assertFalse(self.update_server.NeedsUpdate(
-        "18cac06201e65e060f757193c153cacb"))
+        '18cac06201e65e060f757193c153cacb'))
     # Test with a different md5sum
     self.assertTrue(self.update_server.NeedsUpdate(
-        "bb51d673f53129a2cc454e95e958e43e"))
+        'bb51d673f53129a2cc454e95e958e43e'))
 
     # Test with blacklist
 
-    with open(blacklist_path, "w") as f:
-      f.write("bb51d673f53129a2cc454e95e958e43e")
+    with open(blacklist_path, 'w') as f:
+      f.write('bb51d673f53129a2cc454e95e958e43e')
     # Kick the update server to detect blacklist
     self.update_server.RunOnce()
 
@@ -81,10 +83,10 @@ class FactoryUpdateServerTest(unittest.TestCase):
     self.assertTrue(self.update_server.NeedsUpdate(None))
     # Test with current md5sum
     self.assertFalse(self.update_server.NeedsUpdate(
-        "18cac06201e65e060f757193c153cacb"))
+        '18cac06201e65e060f757193c153cacb'))
     # Test with a different md5sum in blacklist
     self.assertFalse(self.update_server.NeedsUpdate(
-        "bb51d673f53129a2cc454e95e958e43e"))
+        'bb51d673f53129a2cc454e95e958e43e'))
 
   def testLogic(self):
     self.update_server.RunOnce()
@@ -101,8 +103,8 @@ class FactoryUpdateServerTest(unittest.TestCase):
     tarball_dest = os.path.join(self.work_dir, 'factory.tar.bz2')
 
     # Put partially-written factory.tar.bz2 into the working folder.
-    with open(tarball_dest, "w") as f:
-      f.write("Not really a bzip2")
+    with open(tarball_dest, 'w') as f:
+      f.write('Not really a bzip2')
     self.update_server.RunOnce()
 
     # Put factory.tar.bz2 into the working folder.

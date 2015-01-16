@@ -28,24 +28,26 @@ DISABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=1'
 
 
 def GetIMEI():
-  '''Gets the IMEI of current active modem.'''
+  """Gets the IMEI of current active modem."""
   stdout = Spawn(MODEM_STATUS, read_stdout=True,
                  log_stderr_on_error=True, check_call=True).stdout_data
   match = re.search(MODEM_IMEI_REG_EX, stdout)
   if not match:
-    logging.info("Returned stdout %r", stdout)
-    raise Error("Cannot get IMEI from modem")
+    logging.info('Returned stdout %r', stdout)
+    raise Error('Cannot get IMEI from modem')
   return match.group(1)
 
+
 def GetModemFirmware():
-  '''Returns the firmware info.'''
+  """Returns the firmware info."""
   stdout = Spawn(MODEM_STATUS, read_stdout=True,
                  log_stderr_on_error=True, check_call=True).stdout_data
   match = re.search(MODEM_FIRMWARE_REG_EX, stdout)
   if not match:
-    logging.info("Returned stdout %r", stdout)
-    raise Error("Cannot switching firmware")
+    logging.info('Returned stdout %r', stdout)
+    raise Error('Cannot switching firmware')
   return match.group(1)
+
 
 def SwitchModemFirmware(target):
   """Switch firmware if different from target.
@@ -66,6 +68,7 @@ def SwitchModemFirmware(target):
     raise
   return firmware_info
 
+
 def EnterFactoryMode(modem_path):
   """Enters factory mode of a modem.
 
@@ -84,6 +87,7 @@ def EnterFactoryMode(modem_path):
   modem.ExpectLine('OK')
   factory.console.info('Entered factory test mode')
   return modem
+
 
 def ExitFactoryMode(modem):
   """Exits factory mode of a modem.

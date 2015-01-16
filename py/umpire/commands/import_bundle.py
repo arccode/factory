@@ -319,8 +319,8 @@ class BundleImporter(object):
           continue
         # Remove '.gz' suffix.
         base_path = os.path.basename(path)[:-3]
-        resource_key, resource_type =  _RESOURCE_KEY_MAP.get(base_path,
-                                                             (None, None))
+        resource_key, resource_type = _RESOURCE_KEY_MAP.get(base_path,
+                                                            (None, None))
         if not resource_key:
           continue
         resource_name = AddResource(path, res_type=resource_type)

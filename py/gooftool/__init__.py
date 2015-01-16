@@ -39,10 +39,11 @@ from cros.factory.utils.type_utils import Error
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',
-                                  ['component_name', 'probed_string', 'error'])
+                                   ['component_name', 'probed_string', 'error'])
 
 # The mismatch result tuple.
 Mismatch = namedtuple('Mismatch', ['expected', 'actual'])
+
 
 class Util(object):
   """A collection of util functions that Gooftool needs."""
@@ -139,9 +140,9 @@ class Util(object):
     assert not pre_opts or isinstance(pre_opts, list)
 
     script = self.FindScript(script_name)
-    cmd = '%s %s %s' % (" ".join(pre_opts) if pre_opts else "",
+    cmd = '%s %s %s' % (' '.join(pre_opts) if pre_opts else '',
                         script,
-                        " ".join(post_opts) if post_opts else "")
+                        ' '.join(post_opts) if post_opts else '')
     result = self.shell(cmd.strip())
     if not result.success:
       raise Error, '%r failed, stderr: %r' % (cmd, result.stderr)
@@ -195,6 +196,7 @@ class Util(object):
 
     return output
 
+
 class Gooftool(object):
   """A class to perform hardware probing and verification and to implement
   Google required tests.
@@ -240,7 +242,7 @@ class Gooftool(object):
       self._db_creator = lambda: Database.LoadFile(
           os.path.join(self._hwdb_path, self._board.upper()))
     else:
-      raise ValueError("Invalid HWID version: %r" % hwid_version)
+      raise ValueError('Invalid HWID version: %r' % hwid_version)
 
     self._probe = probe or Probe
     self._util = Util()
@@ -280,15 +282,15 @@ class Gooftool(object):
     """
     probeable_classes = self.db.probeable_components.keys()
     if not component_list:
-      raise ValueError("No component classes specified;\n" +
-                       "Possible choices: %s" % probeable_classes)
+      raise ValueError('No component classes specified;\n' +
+                       'Possible choices: %s' % probeable_classes)
 
     unknown_class = [component_class for component_class in component_list
                      if component_class not in probeable_classes]
     if unknown_class:
-      raise ValueError(("Invalid component classes specified: %s\n" +
-                        "Possible choices: %s") %
-                        (unknown_class, probeable_classes))
+      raise ValueError(('Invalid component classes specified: %s\n' +
+                        'Possible choices: %s') %
+                       (unknown_class, probeable_classes))
 
     probe_results = self._probe(
         target_comp_classes=component_list,
@@ -336,14 +338,14 @@ class Gooftool(object):
     """
 
     if board not in self._hardware_db.devices:
-      raise ValueError("Unable to find BOMs for board %r" % board)
+      raise ValueError('Unable to find BOMs for board %r' % board)
 
     boms = self._hardware_db.devices[board].boms
     if not bom_name or not probed_comps:
-      raise ValueError("both bom_name and probed components must be specified")
+      raise ValueError('both bom_name and probed components must be specified')
 
     if bom_name not in boms:
-      raise ValueError("BOM %r not found. Available BOMs: %s" % (
+      raise ValueError('BOM %r not found. Available BOMs: %s' % (
           bom_name, boms.keys()))
 
     primary = boms[bom_name].primary
@@ -436,9 +438,10 @@ class Gooftool(object):
     logging.info('RO VPD customization_id: %r', customization_id)
     if customization_id is not None:
       if not branding.CUSTOMIZATION_ID_REGEXP.match(customization_id):
-        raise ValueError('Bad format for customization_id %r in RO VPD '
-                         '(expected it to match regexp %r)' % (
-            customization_id, branding.CUSTOMIZATION_ID_REGEXP.pattern))
+        raise ValueError(
+            'Bad format for customization_id %r in RO VPD '
+            '(expected it to match regexp %r)' %
+            (customization_id, branding.CUSTOMIZATION_ID_REGEXP.pattern))
 
     rlz_brand_code = ro_vpd.get('rlz_brand_code')
 
@@ -451,7 +454,7 @@ class Gooftool(object):
         if not os.path.exists(path):
           raise ValueError('rlz_brand_code is not present in RO VPD, and %s '
                            'does not exist in release rootfs' % (
-              branding.BRAND_CODE_PATH))
+                               branding.BRAND_CODE_PATH))
         with open(path) as f:
           rlz_brand_code = f.read().strip()
           logging.info('rlz_brand_code from rootfs: %r', rlz_brand_code)
@@ -462,14 +465,14 @@ class Gooftool(object):
     if not branding.RLZ_BRAND_CODE_REGEXP.match(rlz_brand_code):
       raise ValueError('Bad format for rlz_brand_code %r in %s '
                        '(expected it to match regexp %r)' % (
-          rlz_brand_code, rlz_brand_code_source,
-          branding.CUSTOMIZATION_ID_REGEXP.pattern))
+                           rlz_brand_code, rlz_brand_code_source,
+                           branding.CUSTOMIZATION_ID_REGEXP.pattern))
 
     phase.AssertStartingAtPhase(
-      phase.DVT,
-      rlz_brand_code not in branding.TEST_BRAND_CODES,
-      "Brand code is %r, but test brand codes are not allowed" %
-      rlz_brand_code)
+        phase.DVT,
+        rlz_brand_code not in branding.TEST_BRAND_CODES,
+        'Brand code is %r, but test brand codes are not allowed' %
+        rlz_brand_code)
 
     return dict(rlz_brand_code=rlz_brand_code,
                 customization_id=customization_id)
@@ -534,7 +537,7 @@ class Gooftool(object):
     assert hwid
     main_fw = self._crosfw.LoadMainFirmware()
     self._util.shell('gbb_utility --set --hwid="%s" "%s"' %
-          (hwid, main_fw.GetFileName()))
+                     (hwid, main_fw.GetFileName()))
     main_fw.Write(sections=['GBB'])
 
   def VerifyWPSwitch(self):  # pylint: disable=W0613
@@ -607,7 +610,7 @@ class Gooftool(object):
     # hyphen-separated language code and country code pair.  We care
     # only about the language code part for some cases. Note some old firmware
     # bitmaps use underscore instead hyphen.
-    for language_code in [locale, locale.replace('-','_'),
+    for language_code in [locale, locale.replace('-', '_'),
                           locale.partition('-')[0]]:
       if language_code in bitmap_locales:
         locale_index = bitmap_locales.index(language_code)

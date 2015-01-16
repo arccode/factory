@@ -44,10 +44,13 @@ SHOPFLOOR_HANDLER_METHOD = 'shopfloor_handler_method'
 # Allow reuse address to prevent "[Errno 98] Address already in use."
 SocketServer.TCPServer.allow_reuse_address = True
 
+
 class ResourceMapWrapper(object):
   """Class to change which resourcemap http server should provide."""
+
   def __init__(self):
     self.resourcemap_path = None
+
   def SetPath(self, path):
     os.chdir(TESTDATA_DIRECTORY)
     logging.debug('Setting resourcemap link to %s', path)
@@ -60,6 +63,7 @@ class ResourceMapWrapper(object):
 
 class MockUmpireHTTPHandler(SimpleHTTPRequestHandler):
   """Class to mock Umpire http handler."""
+
   def __init__(self, *args, **kwargs):
     SimpleHTTPRequestHandler.__init__(self, *args, **kwargs)
 
@@ -101,6 +105,7 @@ signal.signal(signal.SIGTERM, SignalHandler)
 class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
   """Mock xmlrpc request handler."""
   handler_name = None
+
   def do_POST(self):
     """Extends do_POST to generate error code and message."""
     os.chdir(TESTDATA_DIRECTORY)
@@ -125,8 +130,8 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     """Responses with a 410 error."""
     self.send_response(410)
     response = 'Gone'
-    self.send_header("Content-type", "text/plain")
-    self.send_header("Content-length", str(len(response)))
+    self.send_header('Content-type', 'text/plain')
+    self.send_header('Content-length', str(len(response)))
     self.end_headers()
     self.wfile.write(response)
 
@@ -134,10 +139,11 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     """Responses with a 410 error."""
     self.send_response(111)
     response = 'Connection refused'
-    self.send_header("Content-type", "text/plain")
-    self.send_header("Content-length", str(len(response)))
+    self.send_header('Content-type', 'text/plain')
+    self.send_header('Content-length', str(len(response)))
     self.end_headers()
     self.wfile.write(response)
+
 
 def MyXMLRPCRequestHandlerWrapper(name):
   """Wrapper for user to set handler_name in MyXMLRPCRequestHandler."""
@@ -146,6 +152,7 @@ def MyXMLRPCRequestHandlerWrapper(name):
     handler_name = name
   return HandlerWithName
 
+
 def HandlerFunctionWrapper(handler_name, use_umpire=False):
   """Wrapper for user to set handler_name in HandlerFunction."""
   def HandlerFunction(message):
@@ -153,19 +160,23 @@ def HandlerFunctionWrapper(handler_name, use_umpire=False):
     logging.debug('Shop floor handler gets message: %s', message)
     return 'Handler: %s; message: %s' % (handler_name, message)
   # pylint: disable=W0613
+
   def UmpireHandlerFunction(message):
     """Umpire handler function"""
     logging.debug('Umpire handler gets message: %s', message)
     return 'Handler: %s; message: %s' % (handler_name, message)
   return UmpireHandlerFunction if use_umpire else HandlerFunction
 
+
 def PingOfUmpire():
   """Ping method served on Umpire base XMLRPC handler."""
   return {'version': 3}
 
+
 def PingOfShopFloor():
   """Ping method served on shop floor XMLRPC handler."""
   return True
+
 
 def LongBusyMethod():
   """A long busy method"""
@@ -173,6 +184,7 @@ def LongBusyMethod():
   time.sleep(10)
   logging.warning('Ended busy work')
   return True
+
 
 def SetHandlerError(handler_name, code, message):
   """Triggers specified error for handler.
@@ -193,6 +205,7 @@ def SetHandlerError(handler_name, code, message):
   error_file = 'error_%s' % handler_name
   with open(error_file, 'w') as f:
     f.write('%d %s' % (code, message))
+
 
 class UmpireServerProxyTest(unittest.TestCase):
   """Tests UmpireServerProxy.
@@ -335,7 +348,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     logging.debug('Using UMPIRE_HTTP_SERVER_PORT: %r',
                   cls.UMPIRE_HTTP_SERVER_PORT)
     cls.umpire_http_server = SocketServer.TCPServer(
-        ("", cls.UMPIRE_HTTP_SERVER_PORT), MockUmpireHTTPHandler)
+        ('', cls.UMPIRE_HTTP_SERVER_PORT), MockUmpireHTTPHandler)
     cls.umpire_http_server_process = multiprocessing.Process(
         target=RunServer, args=(cls.umpire_http_server,))
     cls.umpire_http_server_process.start()
@@ -344,7 +357,7 @@ class UmpireServerProxyTest(unittest.TestCase):
   def SetupHandlers(cls):
     """Setups xmlrpc servers and handlers in their own processes."""
     cls.umpire_base_handler = SimpleXMLRPCServer(
-        addr=("", cls.UMPIRE_BASE_HANDLER_PORT),
+        addr=('', cls.UMPIRE_BASE_HANDLER_PORT),
         requestHandler=MyXMLRPCRequestHandlerWrapper('base_handler'),
         allow_none=True,
         logRequests=True)
@@ -355,7 +368,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     cls.umpire_base_handler_process.start()
 
     cls.umpire_handler = SimpleXMLRPCServer(
-        ("", cls.UMPIRE_HANDLER_PORT),
+        ('', cls.UMPIRE_HANDLER_PORT),
         allow_none=True,
         logRequests=True)
     cls.umpire_handler.register_function(
@@ -367,7 +380,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     cls.umpire_handler_process.start()
 
     cls.shopfloor_handler_1 = SimpleXMLRPCServer(
-        addr=("", cls.SHOPFLOOR_1_PORT),
+        addr=('', cls.SHOPFLOOR_1_PORT),
         requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler1'),
         allow_none=True,
         logRequests=True)
@@ -382,7 +395,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     cls.shopfloor_handler_1_process.start()
 
     cls.shopfloor_handler_2 = SimpleXMLRPCServer(
-        ("", cls.SHOPFLOOR_2_PORT),
+        ('', cls.SHOPFLOOR_2_PORT),
         requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler2'),
         allow_none=True,
         logRequests=True)
@@ -468,7 +481,6 @@ class UmpireServerProxyTest(unittest.TestCase):
     self.fake_umpire_client_info.Update().AndReturn(True)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO2')
 
-
     self.mox.ReplayAll()
 
     # Http server serves resourcemap1 to DUT.
@@ -485,7 +497,8 @@ class UmpireServerProxyTest(unittest.TestCase):
     # to shopfloor 2 after requesing resource map.
     result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
     self.assertEqual(result,
-        'Handler: %s; message: %s' % ('shopfloor_handler2', 'hi shopfloor 1'))
+                     'Handler: %s; message: %s' %
+                     ('shopfloor_handler2', 'hi shopfloor 1'))
     # Token will be changed to the token in resourcemap2.
     self.assertEqual(proxy._token, '00000002')  # pylint: disable=W0212
     self.mox.VerifyAll()

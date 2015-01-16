@@ -3,8 +3,7 @@
 # found in the LICENSE file.
 
 
-'''
-SCPI-over-TCP controller.
+'''SCPI-over-TCP controller.
 '''
 
 
@@ -19,30 +18,34 @@ from contextlib import contextmanager
 
 
 class Error(Exception):
-  '''
-  A SCPI error.
+  '''A SCPI error.
 
   Properties:
       error_id: The numeric SCPI error code, if any.
       error_msg: The SCPI error message, if any.
   '''
+
   def __init__(self, msg, error_id=None, error_msg=None):
     super(Error, self).__init__(msg)
     self.error_id = error_id
     self.error_msg = error_msg
 
+
 class TimeoutError(Error):
   pass
 
 MAX_LOG_LENGTH = 800
+
+
 def _TruncateForLogging(msg):
   if len(msg) > MAX_LOG_LENGTH:
     msg = msg[0:MAX_LOG_LENGTH] + '<truncated>'
   return msg
 
+
 @contextmanager
 def Timeout(secs):
-  def handler(signum, frame): # pylint: disable=W0613
+  def handler(signum, frame):  # pylint: disable=W0613
     raise TimeoutError('Timeout')
 
   if secs:
@@ -60,10 +63,10 @@ def Timeout(secs):
 
 
 class LANSCPI(object):
-  '''A SCPI-over-TCP controller.'''
+  """A SCPI-over-TCP controller."""
+
   def __init__(self, host, port=5025, timeout=3, retries=5, delay=1):
-    '''
-    Connects to a device using SCPI-over-TCP.
+    '''Connects to a device using SCPI-over-TCP.
 
     Parameters:
         host: Host to connect to.
@@ -85,24 +88,24 @@ class LANSCPI(object):
     for times in range(1, retries + 1):
       try:
         self.logger.info('Connecting to %s:%d [try %d/%d]...' % (
-                         host, port, times, retries))
+            host, port, times, retries))
         self._Connect()
         return
       except Exception as e:
         self.Close()
         time.sleep(1)
-        self.logger.info("Unable to connect to %s:%d: %s" % (
-                           host, port, e))
+        self.logger.info('Unable to connect to %s:%d: %s' % (
+            host, port, e))
 
     raise Error('Failed to connect %s:%d after %d tries' % (
-                host, port, retries))
+        host, port, retries))
 
   def _Connect(self):
     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     with Timeout(self.timeout):
       self.logger.debug('] Connecting to %s:%d...' % (
-                        self.host, self.port))
+          self.host, self.port))
       self.socket.connect((self.host, self.port))
 
     self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -125,16 +128,14 @@ class LANSCPI(object):
       self.socket.close()
 
   def Reopen(self):
-    '''
-    Closes and reopens the connection.
+    '''Closes and reopens the connection.
     '''
     self.Close()
     time.sleep(1)
     self._Connect()
 
   def Send(self, commands, wait=True):
-    '''
-    Sends a command or series of commands.
+    '''Sends a command or series of commands.
 
     Args:
         commands: The commands to send.  May be list, or a string if
@@ -179,8 +180,7 @@ class LANSCPI(object):
         raise Error('Expected 1 after *OPC? but got %r' % ret)
 
   def Query(self, command, formatter=None):
-    '''
-    Issues a query, returning the result.
+    '''Issues a query, returning the result.
 
     Args:
         command: The command to issue.
@@ -218,8 +218,7 @@ class LANSCPI(object):
 
   def QueryWithoutErrorChecking(self, command,
                                 expected_length, formatter=None):
-    '''
-    Issues a query, returning the fixed-length result without error checking.
+    '''Issues a query, returning the fixed-length result without error checking.
 
     This is a specialized version of Query(). Error checking is disabled and
     result is assumed to be fixed length to increase the speed.
@@ -242,15 +241,13 @@ class LANSCPI(object):
     return line1
 
   def Quote(self, string):
-    '''
-    Quotes a string.
+    '''Quotes a string.
     '''
     # TODO(jsalz): Use the real IEEE 488.2 string format.
     return '"%s"' % string
 
   def _ReadLine(self):
-    '''
-    Reads a single line, timing out in self.timeout seconds.
+    '''Reads a single line, timing out in self.timeout seconds.
     '''
 
     with Timeout(self.timeout):
@@ -295,7 +292,7 @@ class LANSCPI(object):
         return ret
 
   def _ReadBinary(self, expected_length):
-    '''Reads a binary of fixed bytes.'''
+    """Reads a binary of fixed bytes."""
     with Timeout(self.timeout):
       if not self.timeout:
         self.logger.debug('[ (waiting)')
@@ -306,8 +303,7 @@ class LANSCPI(object):
       return ret
 
   def _WriteLine(self, command):
-    '''
-    Writes a single line.
+    '''Writes a single line.
     '''
     if '\n' in command:
       raise Error('Newline in command: %r' % command)
@@ -319,13 +315,15 @@ class LANSCPI(object):
 # Formatters.
 #
 
-FLOATS = lambda s: [float(f) for f in s.split(",")]
+FLOATS = lambda s: [float(f) for f in s.split(',')]
+
 
 def BINARY_FLOATS(binary_string):
   if len(binary_string) % 4:
     raise Error('Binary float data contains %d bytes '
                 '(not a multiple of 4)' % len(binary_string))
-  return struct.unpack('>' + 'f' * (len(binary_string)/4), binary_string)
+  return struct.unpack('>' + 'f' * (len(binary_string) / 4), binary_string)
+
 
 def BINARY_FLOATS_WITH_LENGTH(expected_length):
   def formatter(binary_string):
@@ -334,7 +332,7 @@ def BINARY_FLOATS_WITH_LENGTH(expected_length):
       raise Error('Unable to retrieve array')
     if len(ret) != expected_length:
       raise Error('Expected %d elements but got %d' % (
-                  expected_length, len(ret)))
+          expected_length, len(ret)))
     return ret
 
   return formatter

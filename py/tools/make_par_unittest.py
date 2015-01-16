@@ -20,6 +20,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 class MakePARTest(unittest.TestCase):
+
   def setUp(self):
     self.tmp = tempfile.mkdtemp(prefix='make_par_unittest.')
     self.par = os.path.join(self.tmp, 'factory.par')
@@ -37,10 +38,10 @@ class MakePARTest(unittest.TestCase):
     for expected_retcode, script in ((0, 'pass'),
                                      (1, 'raise ValueError')):
       self.assertEquals(
-        expected_retcode,
-        Spawn(command + ['execpython', '--args', 'dict(script=%r)' % script],
-              log=True, call=True, env={}, cwd='/',
-              ignore_stdout=True, ignore_stderr=True).returncode)
+          expected_retcode,
+          Spawn(command + ['execpython', '--args', 'dict(script=%r)' % script],
+                log=True, call=True, env={}, cwd='/',
+                ignore_stdout=True, ignore_stderr=True).returncode)
 
   def testPAR(self):
     # Launch via a symlink.

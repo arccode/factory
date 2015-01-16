@@ -29,6 +29,7 @@ END_TX_TEST_RESPONSE = 'ALLUP: OFF'
 ENABLE_TX_MODE_TIMEOUT_SECS = 5
 TX_MODE_POLLING_INTERVAL_SECS = 0.5
 
+
 class RadiatedCellularGobiImpl(RfFramework):
   measurements = None
   modem = None
@@ -36,7 +37,7 @@ class RadiatedCellularGobiImpl(RfFramework):
   firmware = None
 
   def __init__(self, *args, **kwargs):
-    super(RadiatedCellularGobiImpl, self ).__init__(*args, **kwargs)
+    super(RadiatedCellularGobiImpl, self).__init__(*args, **kwargs)
 
   def PreTestOutsideShieldBox(self):
     factory.console.info('PreTestOutsideShieldBox called')
@@ -104,7 +105,7 @@ class RadiatedCellularGobiImpl(RfFramework):
         tx_power = self.RunEquipmentCommand(
             N1914A.MeasureInBinary, self.n1914a,
             port, self.config['avg_length'])
-        if tx_power == None: # For 'without equipment' test
+        if tx_power == None:  # For 'without equipment' test
           tx_power = 0
 
         # Gracefully turn off the channel.
@@ -136,7 +137,7 @@ class RadiatedCellularGobiImpl(RfFramework):
 
         # Record verbose information of this channel.
         self.field_to_eventlog[measurement_name] = dict()
-        self.field_to_eventlog[measurement_name]["parameters"] = measurement
+        self.field_to_eventlog[measurement_name]['parameters'] = measurement
 
         if self.calibration_mode:
           # Check if the path_loss is in expected range.
@@ -189,12 +190,12 @@ class RadiatedCellularGobiImpl(RfFramework):
           self.calibration_config.get(measurement_name))
       tx_power_str = FormattedPower(
           self.field_to_eventlog[measurement_name].get('tx_power'))
-      factory.console.info('tx_power for %20r = %s [calibration_config: %s]',
-          measurement_name, tx_power_str, calibration_config_str)
+      factory.console.info(
+          'tx_power for %20r = %s [calibration_config: %s]', measurement_name,
+          tx_power_str, calibration_config_str)
       # Log import information into CSV.
       self.field_to_csv[measurement_name + '_tx_power'] = tx_power_str
       self.field_to_csv[measurement_name + '_cal'] = calibration_config_str
-
 
   def PostTest(self):
     # TODO(itspeter): save statistic of measurements to csv file.

@@ -43,7 +43,6 @@ class GetVersionTest(unittest.TestCase):
       file_utils.WriteFile(hwid_path, CONTENT_NO_CHECKSUM)
       self.assertIsNone(get_version.GetHWIDVersion(hwid_path))
 
-
   def testHWIDVersionGzipped(self):
     # The checksum is actually for 'X\nX'.
     CHECKSUM = 'da9449cebe8f96641c9e6fbdca1783cc5ff3a05a'

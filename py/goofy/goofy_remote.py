@@ -132,7 +132,7 @@ def main():
                             ', '.join(HOST_BASED_ROLES)))
   parser.add_argument('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
-                      default='none', help="Factory test automation mode.")
+                      default='none', help='Factory test automation mode.')
   parser.add_argument('--no-auto-run-on-start', dest='auto_run_on_start',
                       action='store_false', default=True,
                       help=('do not automatically run the test list on goofy '
@@ -147,12 +147,12 @@ def main():
   parser.add_argument('--norestart', dest='restart', action='store_false',
                       help="don't restart Goofy")
   parser.add_argument('--hwid', action='store_true',
-                      help="update HWID bundle")
+                      help='update HWID bundle')
   parser.add_argument('--run', '-r', dest='run_test',
-                      help="the test to run on device")
+                      help='the test to run on device')
   parser.add_argument('--test_list',
-                      help=("test list to activate (defaults to the main test "
-                            "list)"))
+                      help=('test list to activate (defaults to the main test '
+                            'list)'))
   parser.add_argument('--local', action='store_true',
                       help=('Rather than syncing the source tree, only '
                             'perform test list modifications locally. '
@@ -199,21 +199,21 @@ def main():
 
   if args.autotest:
     SpawnRsyncToDUT(
-          ['-azC', '--exclude', 'tests'] +
-          [os.path.join(SRCROOT, 'src/third_party/autotest/files/client/'),
-           '%s:/usr/local/autotest/' % args.host],
-          check_call=True, log=True)
+        ['-azC', '--exclude', 'tests'] +
+        [os.path.join(SRCROOT, 'src/third_party/autotest/files/client/'),
+         '%s:/usr/local/autotest/' % args.host],
+        check_call=True, log=True)
 
   # We need to rsync the public factory repo first to set up goofy symlink.
   # We need --force to remove the original goofy directory if it's not a
   # symlink, -l for re-creating the symlink on DUT, -K for following the symlink
   # on DUT.
   SpawnRsyncToDUT(
-        ['-azlKC', '--force', '--exclude', '*.pyc'] +
-        [os.path.join(factory.FACTORY_PATH, x)
-         for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party', 'init')] +
-        ['%s:/usr/local/factory' % args.host],
-        check_call=True, log=True)
+      ['-azlKC', '--force', '--exclude', '*.pyc'] +
+      [os.path.join(factory.FACTORY_PATH, x)
+       for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party', 'init')] +
+      ['%s:/usr/local/factory' % args.host],
+      check_call=True, log=True)
 
   SetHostBasedRole()
 
@@ -230,9 +230,9 @@ def main():
   for private_path in private_paths:
     if os.path.isdir(private_path):
       SpawnRsyncToDUT(
-            ['-azlKC', '--exclude', 'bundle'] +
-            [private_path + '/', '%s:/usr/local/factory/' % args.host],
-            check_call=True, log=True)
+          ['-azlKC', '--exclude', 'bundle'] +
+          [private_path + '/', '%s:/usr/local/factory/' % args.host],
+          check_call=True, log=True)
 
   # Call goofy_remote on the remote host, allowing it to tweak test lists.
   SpawnSSHToDUT([args.host, 'goofy_remote', '--local'] +

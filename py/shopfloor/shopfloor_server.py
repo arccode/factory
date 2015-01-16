@@ -4,8 +4,7 @@
 # found in the LICENSE file.
 
 
-'''
-This file starts a server for factory shop floor system.
+'''This file starts a server for factory shop floor system.
 
 To use it, invoke as a standalone program and assign the shop floor system
 module you want to use (modules are located in "shopfloor" subdirectory).
@@ -64,6 +63,7 @@ def _LoadShopFloorModule(module_name):
   logging.debug('_LoadShopFloorModule: trying %s', module_name)
   return __import__(module_name, fromlist=['ShopFloor']).ShopFloor
 
+
 def _LoadFactoryUpdater(updater_name):
   '''Loads factory updater module.
 
@@ -76,6 +76,7 @@ def _LoadFactoryUpdater(updater_name):
   logging.debug('_LoadUpdater: trying %s', updater_name)
   return __import__(updater_name,
                     fromlist=['FactoryUpdater']).FactoryUpdater
+
 
 class MyXMLRPCServer(SocketServer.ThreadingMixIn,
                      SimpleXMLRPCServer):
@@ -117,6 +118,7 @@ class MyXMLRPCServer(SocketServer.ThreadingMixIn,
 
 
 class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
+
   def do_POST(self):
     MyXMLRPCServer.local.client_address = self.client_address
     SimpleXMLRPCRequestHandler.do_POST(self)
@@ -161,7 +163,7 @@ def GetDefaultShopFloorModule():
 
 
 def main():
-  '''Main entry when being invoked by command line.'''
+  """Main entry when being invoked by command line."""
   default_data_dir = 'shopfloor_data'
   external_updater_dir = 'updates'
   if not os.path.exists(default_data_dir) and (
@@ -201,7 +203,7 @@ def main():
       help=("File in which to automatically archive previous few days' logs. "
             "Logs will be archived if this path's parent exists.  The format "
             "must contain the string 'DATE'; this will be replaced with "
-            "the date. (default: %default)"))
+            'the date. (default: %default)'))
   parser.add_option(
       '--auto-archive-logs-days', metavar='NUM_DAYS', type=int,
       default=3, help="Number of previous days' logs to save to USB.")

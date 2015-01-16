@@ -26,6 +26,7 @@ class BarModel(models.Model):
 
 
 class ModelTest(unittest.TestCase):
+
   def setUp(self):
     self.foo_model = FooModel(field_i=5, field_r=3.0, field_t='foo_model')
     self.bar_model = BarModel(key1='KEY1', key2='KEY2')
@@ -38,28 +39,28 @@ class ModelTest(unittest.TestCase):
   def testGetDbSchema(self):
     # GetDbSchema() is a class method.
     self.assertDictEqual({
-      'field_i': 'INTEGER',
-      'field_r': 'REAL',
-      'field_t': 'TEXT',
+        'field_i': 'INTEGER',
+        'field_r': 'REAL',
+        'field_t': 'TEXT',
     }, FooModel.GetDbSchema(sqlite.Database))
     self.assertDictEqual({
-      'key1': 'TEXT',
-      'key2': 'TEXT',
-      'val1': 'TEXT',
-      'val2': 'INTEGER',
-      'val3': 'REAL',
+        'key1': 'TEXT',
+        'key2': 'TEXT',
+        'val1': 'TEXT',
+        'val2': 'INTEGER',
+        'val3': 'REAL',
     }, self.bar_model.GetDbSchema(sqlite.Database))
     self.assertDictEqual({
-      'field_i': 'INTEGER',
-      'field_r': 'FLOAT',
-      'field_t': 'STRING',
+        'field_i': 'INTEGER',
+        'field_r': 'FLOAT',
+        'field_t': 'STRING',
     }, self.foo_model.GetDbSchema(bigquery.Database))
     self.assertDictEqual({
-      'key1': 'VARCHAR(255)',
-      'key2': 'VARCHAR(255)',
-      'val1': 'TEXT',
-      'val2': 'INTEGER',
-      'val3': 'REAL',
+        'key1': 'VARCHAR(255)',
+        'key2': 'VARCHAR(255)',
+        'val1': 'TEXT',
+        'val2': 'INTEGER',
+        'val3': 'REAL',
     }, BarModel.GetDbSchema(cloud_sql.Database))
 
   def testGetPrimaryKey(self):
@@ -79,16 +80,16 @@ class ModelTest(unittest.TestCase):
 
   def testGetFields(self):
     self.assertDictEqual({
-      'field_i': 5,
-      'field_r': 3.0,
-      'field_t': 'foo_model',
+        'field_i': 5,
+        'field_r': 3.0,
+        'field_t': 'foo_model',
     }, self.foo_model.GetFields())
     self.assertDictEqual({
-      'key1': 'KEY1',
-      'key2': 'KEY2',
-      'val1': '',
-      'val2': 0,
-      'val3': 0.0,
+        'key1': 'KEY1',
+        'key2': 'KEY2',
+        'val1': '',
+        'val2': 0,
+        'val3': 0.0,
     }, self.bar_model.GetFields())
 
   def testGetFieldNames(self):
@@ -104,8 +105,8 @@ class ModelTest(unittest.TestCase):
 
   def testGetNonEmptyFields(self):
     self.assertDictEqual({
-      'key1': 'KEY1',
-      'key2': 'KEY2',
+        'key1': 'KEY1',
+        'key2': 'KEY2',
     }, self.bar_model.GetNonEmptyFields())
 
   def testGetNonEmptyFieldNames(self):
@@ -118,9 +119,9 @@ class ModelTest(unittest.TestCase):
 
   def testCloneOnlyPrimaryKey(self):
     self.assertDictEqual({
-      'field_i': 5,
-      'field_r': 0.0,
-      'field_t': '',
+        'field_i': 5,
+        'field_r': 0.0,
+        'field_t': '',
     }, self.foo_model.CloneOnlyPrimaryKey().GetFields())
 
   def testInitFromTuple(self):
@@ -147,5 +148,5 @@ class ModelTest(unittest.TestCase):
     self.assertEqual(field.ToPython('1'), 1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

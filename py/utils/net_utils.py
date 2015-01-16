@@ -39,13 +39,14 @@ def Ifconfig(devname, enable, sleep_time_secs=1):
     sleep_time_secs: The sleeping time after ifconfig up.
   """
   Spawn(['ifconfig', devname, 'up' if enable else 'down'],
-      check_call=True, log=True)
+        check_call=True, log=True)
   # Wait for device to settle down.
   time.sleep(sleep_time_secs)
 
 
 class TimeoutXMLRPCTransport(xmlrpclib.Transport):
   """Transport subclass supporting timeout."""
+
   def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
     xmlrpclib.Transport.__init__(self, *args, **kwargs)
     self.timeout = timeout
@@ -57,10 +58,11 @@ class TimeoutXMLRPCTransport(xmlrpclib.Transport):
 
 class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
   """XML/RPC ServerProxy supporting timeout."""
+
   def __init__(self, uri, timeout=10, *args, **kwargs):
     if timeout:
       kwargs['transport'] = TimeoutXMLRPCTransport(
-        timeout=timeout)
+          timeout=timeout)
     xmlrpclib.ServerProxy.__init__(self, uri, *args, **kwargs)
 
 
@@ -207,7 +209,7 @@ def IsPortBeingUsed(port):
   Returns:
     True if the port is being used.
   """
-  ret = Spawn(['lsof' , '-i', ':%d' % port], call=True, sudo=True).returncode
+  ret = Spawn(['lsof', '-i', ':%d' % port], call=True, sudo=True).returncode
   return True if ret == 0 else False
 
 
@@ -328,6 +330,7 @@ class WLAN(object):
   This class is used in test lists to specify WLAN settings for the
   connection manager.
   """
+
   def __init__(self, ssid, security, passphrase):
     """Constructor.
 
@@ -353,10 +356,10 @@ class WLAN(object):
       passphrase: Wireless network password.
     """
     if security == 'wpa':
-      raise ValueError("Invalid wireless network security type:"
+      raise ValueError('Invalid wireless network security type:'
                        " wpa. Use 'psk' instead")
     if not security in ['none', 'wep', 'rsn', 'psk', '802_1x']:
-      raise ValueError("Invalid wireless network security type: %s"
+      raise ValueError('Invalid wireless network security type: %s'
                        % security)
     self.ssid = ssid
     self.security = security

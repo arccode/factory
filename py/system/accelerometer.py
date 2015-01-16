@@ -56,7 +56,7 @@ class AccelerometerController(object):
     if not os.path.exists(_ACCELEROMETER_DEVICES_PATH):
       raise AccelerometerControllerException('Accelerometer not found')
     self.trigger_number = '0'
-    self.num_signals = 2 * 3 # Two sensors * (x, y, z).
+    self.num_signals = 2 * 3  # Two sensors * (x, y, z).
     self.iio_bus_id = os.readlink(_ACCELEROMETER_DEVICES_PATH)
     self.spec_offset = spec_offset
     self.spec_ideal_values = spec_ideal_values
@@ -115,7 +115,7 @@ class AccelerometerController(object):
     for calibscale in self._GenSignalNames('_calibscale'):
       self._SetSysfsValues([SYSFS_VALUE(
           os.path.join(iio_bus_path, calibscale),
-                       str(self.spec_ideal_values[1]))])
+          str(self.spec_ideal_values[1]))])
 
   def GetRawDataAverage(self, capture_count=1):
     """Reads several records of raw data and returns the average.

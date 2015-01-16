@@ -17,19 +17,20 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.test.args import Arg
 
+
 class BoardTempSensorsTest(unittest.TestCase):
   """Tests communication with temperature sensors."""
   ARGS = [
-    Arg('num_temp_sensor', int,
-        'Number of temperature sensor(s). '
-        'Only used when temp_sensor_to_test is unset.',
-        default=0),
-    Arg('temp_sensor_to_test', list,
-        'List of temperature sensor(s) to test. '
-        'If None, it tests all sensors in [0, ..., num_temp_sensor - 1].',
-        default=None, optional=True),
-    Arg('temp_range', tuple, 'A tuple of (min_temp, max_temp) in Celsius.',
-        default=(0, 100)),
+      Arg('num_temp_sensor', int,
+          'Number of temperature sensor(s). '
+          'Only used when temp_sensor_to_test is unset.',
+          default=0),
+      Arg('temp_sensor_to_test', list,
+          'List of temperature sensor(s) to test. '
+          'If None, it tests all sensors in [0, ..., num_temp_sensor - 1].',
+          default=None, optional=True),
+      Arg('temp_range', tuple, 'A tuple of (min_temp, max_temp) in Celsius.',
+          default=(0, 100)),
   ]
 
   def setUp(self):
@@ -41,8 +42,8 @@ class BoardTempSensorsTest(unittest.TestCase):
       temp_sensor_to_test = xrange(self.args.num_temp_sensor)
 
     self.assertTrue(
-      len(temp_sensor_to_test) > 0,
-      'Either num_temp_sensor or temp_sensor_to_test must be set.')
+        len(temp_sensor_to_test) > 0,
+        'Either num_temp_sensor or temp_sensor_to_test must be set.')
 
     all_sensors_temp = self._board.GetTemperatures()
     logging.info('Get temperature sensors: %s', str(all_sensors_temp))
@@ -54,5 +55,6 @@ class BoardTempSensorsTest(unittest.TestCase):
       self.assertFalse(temperature is None,
                        'Cannot get temperature reading from sensor %d.' % index)
       self.assertTrue(
-        self.args.temp_range[0] <= temperature <= self.args.temp_range[1],
-        'Abnormal temperature reading on sensor %d: %d' % (index, temperature))
+          self.args.temp_range[0] <= temperature <= self.args.temp_range[1],
+          'Abnormal temperature reading on sensor %d: %d' %
+          (index, temperature))

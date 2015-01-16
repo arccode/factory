@@ -96,7 +96,9 @@ rw_version: xxxxxx_v1.4.35-a8ac50f
 ---
 """
 
+
 class EventStreamTest(unittest.TestCase):
+
   def setUp(self):
     self._yaml_str_list = _YAML_STR.split('\n')
 
@@ -162,13 +164,13 @@ class EventStreamTest(unittest.TestCase):
 
   def testNotSupportedYamlDatatype(self):
     not_supported_str = '\n'.join([
-      "tuple: !!python/tuple [1, 2, 3]",
-      "unicode: !!python/unicode 'ABC'",
-      "name: !!python/name:cros.factory.gooftool.CreateReportArchiveBlob ''",
-      "object: !!python/object/new:cros.factory.hwid.ProbedComponentResult",
-      "  state: !!python/object/apply:collections.OrderedDict",
-      "  - component_name",
-      "  - probed_values",
+        'tuple: !!python/tuple [1, 2, 3]',
+        "unicode: !!python/unicode 'ABC'",
+        "name: !!python/name:cros.factory.gooftool.CreateReportArchiveBlob ''",
+        'object: !!python/object/new:cros.factory.hwid.ProbedComponentResult',
+        '  state: !!python/object/apply:collections.OrderedDict',
+        '  - component_name',
+        '  - probed_values',
     ])
     self._yaml_str_list.insert(
         self._yaml_str_list.index('EVENT: waived_tests') + 1,
@@ -190,6 +192,7 @@ class EventStreamTest(unittest.TestCase):
 
 
 class EventPacketTest(unittest.TestCase):
+
   def setUp(self):
     yaml_str = _YAML_STR
     self._stream = next(GenerateEventStreamsFromYaml(None, yaml_str), None)
@@ -214,7 +217,8 @@ class EventPacketTest(unittest.TestCase):
     self.assertIn('test_states.subtests.0.id', flattened)
     self.assertEqual('SMT', flattened['test_states.subtests.0.id'])
     self.assertIn('test_states.subtests.0.subtests.1.subtests.0.id', flattened)
-    self.assertEqual('SyncShopFloor',
+    self.assertEqual(
+        'SyncShopFloor',
         flattened['test_states.subtests.0.subtests.1.subtests.0.id'])
 
   def testFindAttrContainingKey(self):
@@ -226,6 +230,6 @@ class EventPacketTest(unittest.TestCase):
     self.assertIn('SMT.CheckeMMCFirmwareVersion', attr_dict['path'])
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   logging.disable(logging.ERROR)
   unittest.main()

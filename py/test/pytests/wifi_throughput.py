@@ -129,7 +129,7 @@ def _RetryWithTimeout(f, log_text=None, fail_text=None, timeout=None, sleep=1):
   result = False
   while True:
     if log_text:
-      logging.info("[%ds left] %s", deadline - time.time(), log_text)
+      logging.info('[%ds left] %s', deadline - time.time(), log_text)
     try:
       result = f()
     except Exception as e:
@@ -642,7 +642,7 @@ class WiFiThroughput(unittest.TestCase):
     # In case we're in a chamber without a monitor, start blinking keyboard LEDs
     # to inform the operator that we're still working.
     self._leds_blinker = leds.Blinker(
-        [(0, 0.5), (leds.LED_NUM|leds.LED_CAP|leds.LED_SCR, 0.5)])
+        [(0, 0.5), (leds.LED_NUM | leds.LED_CAP | leds.LED_SCR, 0.5)])
     self._leds_blinker.Start()
 
     # If arduino_high_pins is provided as an argument, then set the requested

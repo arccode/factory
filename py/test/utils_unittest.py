@@ -9,7 +9,7 @@ import tempfile
 import time
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 from cros.factory.utils import type_utils
 
@@ -31,7 +31,9 @@ VAR_LOG_MESSAGES = '''19:00:00 kernel: 7 p.m. and all's well.
 19:27:56 kernel: [  0.000000] Command line: blahblahblah
 '''
 
+
 class VarLogMessagesTest(unittest.TestCase):
+
   def _GetMessages(self, data, lines):
     with tempfile.NamedTemporaryFile() as f:
       path = f.name
@@ -45,24 +47,25 @@ class VarLogMessagesTest(unittest.TestCase):
         "19:27:17 kernel: That's all, folks.",
         "19:27:17 kernel: Kernel logging (proc) stopped.",
         "<after reboot, kernel came up at 19:27:56>",
-        ], self._GetMessages(VAR_LOG_MESSAGES, 2))
+    ], self._GetMessages(VAR_LOG_MESSAGES, 2))
     self.assertEquals([
         "19:27:17 kernel: Kernel logging (proc) stopped.",
         "<after reboot, kernel came up at 19:27:56>",
-        ], self._GetMessages(VAR_LOG_MESSAGES, 1))
+    ], self._GetMessages(VAR_LOG_MESSAGES, 1))
     self.assertEquals([
         "19:00:00 kernel: 7 p.m. and all's well.",
         "19:27:17 kernel: That's all, folks.",
         "19:27:17 kernel: Kernel logging (proc) stopped.",
         "<after reboot, kernel came up at 19:27:56>",
-        ], self._GetMessages(VAR_LOG_MESSAGES, 100))
+    ], self._GetMessages(VAR_LOG_MESSAGES, 100))
     self.assertEquals([
         "19:26:17 kernel: That's all, folks.",
         "<after reboot, kernel came up at 19:26:56>",
-        ], self._GetMessages(EARLIER_VAR_LOG_MESSAGES, 1))
+    ], self._GetMessages(EARLIER_VAR_LOG_MESSAGES, 1))
 
 
 class TimeoutTest(unittest.TestCase):
+
   def runTest(self):
     with utils.Timeout(3):
       time.sleep(1)
@@ -76,7 +79,7 @@ class TimeoutTest(unittest.TestCase):
     except AssertionError:
       pass
     else:
-      self.assertTrue(False, msg='No assert raised on previous signal.alarm()')
+      self.assertTrue(False, msg="No assert raised on previous signal.alarm()")
     signal.alarm(0)
 
     try:
@@ -85,7 +88,7 @@ class TimeoutTest(unittest.TestCase):
     except type_utils.TimeoutError:
       pass
     else:
-      self.assertTrue(False, msg='No timeout')
+      self.assertTrue(False, msg="No timeout")
 
 
 if __name__ == "__main__":

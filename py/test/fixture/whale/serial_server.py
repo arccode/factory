@@ -14,6 +14,7 @@ import xmlrpclib
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import serial_utils
 
+
 class SerialServerError(Exception):
   """Exception class for serial server."""
   pass

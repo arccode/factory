@@ -23,22 +23,23 @@ _MSG_WRITING_VPD = lambda vpd_section: test_ui.MakeLabel(
     'Writing device data to %s VPD...' % vpd_section.upper(),
     '机器资料正在写入到 %s VPD...' % vpd_section.upper())
 
+
 class CallShopfloor(unittest.TestCase):
   ARGS = [
-    Arg('device_data_keys', list,
-         ('List of keys for device_data we want to write into RW_VPD.'
-          'Each key is a tuple of (prefix, key) meaning that the pair '
-          '(prefix + key, value) should be added into RW_VPD if there is '
-          'a pair (key, value) in device_data.')),
-    Arg('vpd_section', str,
-        'It should be rw or ro which means RW_VPD or RO_VPD to write.',
-        default='rw', optional=True),
+      Arg('device_data_keys', list,
+          ('List of keys for device_data we want to write into RW_VPD.'
+           'Each key is a tuple of (prefix, key) meaning that the pair '
+           '(prefix + key, value) should be added into RW_VPD if there is '
+           'a pair (key, value) in device_data.')),
+      Arg('vpd_section', str,
+          'It should be rw or ro which means RW_VPD or RO_VPD to write.',
+          default='rw', optional=True),
   ]
 
   def runTest(self):
     if self.args.vpd_section not in ['ro', 'rw']:
       self.fail('Invalid vpd_section:% r, should be %r or %r.' %
-          (self.args.vpd_section, 'ro', 'rw'))
+                (self.args.vpd_section, 'ro', 'rw'))
 
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)

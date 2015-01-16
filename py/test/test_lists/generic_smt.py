@@ -251,7 +251,7 @@ def SMTShopFloor2(args):
                 gooftool.CreateReportArchiveBlob,
                 None,
                 'SMT',
-                ]))
+            ]))
 
 
 def VerifyComponents(args):
@@ -271,9 +271,9 @@ def VerifyComponents(args):
               'cpu', 'dram', 'embedded_controller', 'flash_chip',
               'pmic', 'storage', 'tpm', 'usb_hosts', 'wireless',
               'power_mgmt_chip'],
-              # We skipped ro_main_firmware and ro_ec_firmware here because
-              # they will get updated in RunIn. Update firmware in SMT takes
-              # too much time.
+          # We skipped ro_main_firmware and ro_ec_firmware here because
+          # they will get updated in RunIn. Update firmware in SMT takes
+          # too much time.
           hwid_version=3))
 
 
@@ -290,7 +290,7 @@ def SMTCountdown(args):
       backgroundable=True,
       dargs=dict(
           duration_secs=(args.smt_stress_duration_secs +
-              args.smt_thermal_load_duration_secs),
+                         args.smt_thermal_load_duration_secs),
           title_en='Stress/Component Tests',
           title_zh='压力及元件测试'))
 
@@ -341,6 +341,7 @@ def I2CProbeThermalSensor(args):
           bus=7,
           addr=0x4c))
 
+
 def I2CProbeTouchpad(args):
   """Creates a test to probe touchpad on I2C bus.
 
@@ -355,6 +356,7 @@ def I2CProbeTouchpad(args):
       dargs=dict(
           bus=1,
           addr=[0x25, 0x4b, 0x67]))
+
 
 def I2CProbeTSU671(args):
   """Creates a test to check EC connected I2C device's ID.
@@ -373,6 +375,7 @@ def I2CProbeTSU671(args):
           bus=0,
           spec=[(0x4a, 0x1, 0xa), (0x4a, 0x1, 0x12)]))
 
+
 def CameraProbe(args, retries=None):
   """Creates a test to probe camera on USB bus.
 
@@ -389,6 +392,7 @@ def CameraProbe(args, retries=None):
                else args.smt_retries_camera_probe),
       dargs=dict(search_string='Camera'))
 
+
 def SysfsBattery(args):
   """Creates a test to check the existence and status of battery.
 
@@ -400,6 +404,7 @@ def SysfsBattery(args):
       label_zh=u'电池',
       pytest_name='sysfs_battery',
       backgroundable=True)
+
 
 def SMT3G(args, retries=None):
   """Creates a test to check the connection of 3G board with MLB.
@@ -426,6 +431,7 @@ def SMT3G(args, retries=None):
                   False)]),
       backgroundable=True)
 
+
 def SMTThermalLoad(args, retries=None):
   """Creates a test to check thermal response under load.
 
@@ -447,6 +453,7 @@ def SMTThermalLoad(args, retries=None):
           heat_up_timeout_secs=args.smt_thermal_load_heat_up_timeout_secs,
           duration_secs=args.smt_thermal_load_duration_secs))
 
+
 def SMTComponents(args):
   """Creates a test group for components tests.
 
@@ -466,6 +473,7 @@ def SMTComponents(args):
       SMT3G(args)
     SMTThermalLoad(args)
 
+
 def SMTLed(args):
   """Creates a test for LED.
 
@@ -477,6 +485,7 @@ def SMTLed(args):
       label_zh=u'LED',
       has_automator=True,
       pytest_name='led')
+
 
 def Keyboard(args):
   """Creates a test for keyboard.
@@ -495,6 +504,8 @@ def Keyboard(args):
           skip_power_key=False))
 
 # Can use it directly for manual SMT test.
+
+
 def SMTAudioJack(args, retries=None):
   """Creates a test for audio jack.
 
@@ -518,6 +529,7 @@ def SMTAudioJack(args, retries=None):
                                    'rms_threshold': (0.08, None)}]},
       retries=retries)
 
+
 def SpeakerDMic(args):
   """Creates a test for Digital Microphone.
 
@@ -539,6 +551,7 @@ def SpeakerDMic(args):
                                    'duration': 4,
                                    'threshold': 80}]})
 
+
 def LidSwitch(args, retries=3):
   """Creates a test for lid switch.
 
@@ -552,6 +565,7 @@ def LidSwitch(args, retries=3):
       has_automator=True,
       pytest_name='lid_switch',
       retries=retries)
+
 
 def MicroUSBPerformance(args):
   """Creates a test for micro usb performance test through On-The-Go dongle.
@@ -567,11 +581,12 @@ def MicroUSBPerformance(args):
       retries=1,
       dargs=dict(
           media='USB',
-          #sysfs_path='/sys/devices/s5p-ehci/usb1/1-1/1-1:1.0',
+          # sysfs_path='/sys/devices/s5p-ehci/usb1/1-1/1-1:1.0',
           block_size=512 * 1024,
           perform_random_test=False,
           perform_sequential_test=True,
           sequential_block_count=8))
+
 
 def BadBlocks(args):
   """Creates a test to check storage.
@@ -584,7 +599,8 @@ def BadBlocks(args):
       label_zh=u'毁损扇區',
       pytest_name='bad_blocks',
       backgroundable=True,
-      dargs=dict(max_bytes=30*1024*1024))
+      dargs=dict(max_bytes=30 * 1024 * 1024))
+
 
 def PartitionTable(args):
   """Creates a test to check partition utilize most of the storage space.
@@ -596,6 +612,7 @@ def PartitionTable(args):
               label_zh=u'分区表',
               pytest_name='partition_table',
               backgroundable=True)
+
 
 def VerifyRootPartition(args):
   """Creates a test to check kernel and part of rootfs of release image.
@@ -610,7 +627,8 @@ def VerifyRootPartition(args):
       label_zh=u'验证根磁區',
       pytest_name='verify_root_partition',
       backgroundable=True,
-      dargs=dict(max_bytes=1024*1024))
+      dargs=dict(max_bytes=1024 * 1024))
+
 
 def SMTFinish(args):
   """Creates a test for finishing smt.
@@ -630,6 +648,7 @@ def SMTFinish(args):
           html_en='SMT tests finished, press SPACE to shutdown.\n',
           html_zh='SMT 测试结束，按下空白键关机\n'))
 
+
 def ParallelTestGroup(args):
   """Create a parallel test group containing several tests.
 
@@ -644,6 +663,7 @@ def ParallelTestGroup(args):
     VerifyRootPartition(args)
     BadBlocks(args)
     SpeakerDMic(args)
+
 
 def TPM(args):
   """Creates a test for testing TPM endorsement key.

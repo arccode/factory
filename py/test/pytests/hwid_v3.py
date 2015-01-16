@@ -10,7 +10,7 @@ import os
 import unittest
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 from cros.factory.gooftool import probe
 from cros.factory.hwid import common
@@ -39,18 +39,18 @@ OVERRIDE_PROBED_RESULTS_PATH = os.path.join(
 class HWIDV3Test(unittest.TestCase):
   """A test for generating and verifying HWID v3."""
   ARGS = [
-    Arg('generate', bool,
-        'Generate and write the HWID (if False, only verify it).',
-        True),
-    Arg('skip_shopfloor', bool,
-        'Set this value to True to skip updating hwid data from shopfloor '
-        'server.',
-        default=False, optional=True),
-    Arg('rma_mode', bool,
-        'Enable rma_mode, do not check for deprecated components.',
-        default=False, optional=True),
-    Arg('verify_checksum', bool,
-        'Enable database checksum verification.', default=True, optional=True)
+      Arg('generate', bool,
+          'Generate and write the HWID (if False, only verify it).',
+          True),
+      Arg('skip_shopfloor', bool,
+          'Set this value to True to skip updating hwid data from shopfloor '
+          'server.',
+          default=False, optional=True),
+      Arg('rma_mode', bool,
+          'Enable rma_mode, do not check for deprecated components.',
+          default=False, optional=True),
+      Arg('verify_checksum', bool,
+          'Enable database checksum verification.', default=True, optional=True)
   ]
 
   def runTest(self):

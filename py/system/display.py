@@ -106,6 +106,7 @@ def GetPortInfo():
 
   return ports
 
+
 def CaptureFramebuffer(port, box=None, downscale=False):
   """Captures a RGB image of the framebuffer on the given display port.
 

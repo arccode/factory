@@ -24,20 +24,20 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput
 _MSG_TEST_TITLE = test_ui.MakeLabel('Non-touchpad Pointing Device Test',
                                     u'非触控板之指向装置测试')
 _MSG_INSTRUCTION = test_ui.MakeLabel(
-  'Please move the pointer over four quarters.', u'请移動鼠標至此文字四周')
+    'Please move the pointer over four quarters.', u'请移動鼠標至此文字四周')
 _MSG_MOVE_HERE = test_ui.MakeLabel('Move Here!', u'移動鼠標至此')
 _MSG_INSTRUCTION_CLICK = test_ui.MakeLabel(
-  'Please click the pointing device.',
-  u'请按下指向装置左键')
+    'Please click the pointing device.',
+    u'请按下指向装置左键')
 _MSG_INSTRUCTION_RIGHT_CLICK = test_ui.MakeLabel(
-  'Please right-click the pointing device.',
-  u'请按下指向装置右键')
+    'Please right-click the pointing device.',
+    u'请按下指向装置右键')
 _MSG_INSTRUCTION_SCROLL_UP = test_ui.MakeLabel(
-  'Please scroll up with the pointing device.',
-  u'请用指向装置向上卷动')
+    'Please scroll up with the pointing device.',
+    u'请用指向装置向上卷动')
 _MSG_INSTRUCTION_SCROLL_DOWN = test_ui.MakeLabel(
-  'Please scroll down with the pointing device.',
-  u'请用指向装置向下卷动')
+    'Please scroll down with the pointing device.',
+    u'请用指向装置向下卷动')
 
 _CSS = """
 .pd-quarter { height: 50%; width: 50%; position: absolute; display: table;}
@@ -49,7 +49,8 @@ _CSS = """
 """
 
 _INSTRUCTION_HTML = (
-  '<div id="pd-instruction">%s</div>') % _MSG_INSTRUCTION
+    '<div id="pd-instruction">%s</div>') % _MSG_INSTRUCTION
+
 
 def _QuarterHTML(nth_quarter):
   """Generates a div of a quarter area.
@@ -183,10 +184,10 @@ class PointingDeviceTest(unittest.TestCase):
   clicked and a right-click is triggered.
   """
   ARGS = [
-    Arg('touchpad', str, 'TouchPad device name in xinput.', optional=False),
-    Arg('test_scroll', bool, 'Test device\'s scroll feature.', default=False),
-    Arg('scroll_threshold', int, 'Threshold for recognizing scroll event.',
-        default=50)
+      Arg('touchpad', str, 'TouchPad device name in xinput.', optional=False),
+      Arg('test_scroll', bool, 'Test device\'s scroll feature.', default=False),
+      Arg('scroll_threshold', int, 'Threshold for recognizing scroll event.',
+          default=50)
   ]
 
   def setUp(self):
@@ -222,5 +223,5 @@ class PointingDeviceTest(unittest.TestCase):
       return False
 
     return Spawn(
-      ['xinput', 'set-prop', device, 'Device Enabled', str(int(enabled))],
-      log_stderr_on_error=True).returncode == 0
+        ['xinput', 'set-prop', device, 'Device Enabled', str(int(enabled))],
+        log_stderr_on_error=True).returncode == 0

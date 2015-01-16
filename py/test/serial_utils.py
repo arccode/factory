@@ -43,7 +43,7 @@ def OpenSerial(**params):
     raise ValueError('Missing parameter "port".')
   ser = serial.Serial(**params)
   if not ser.isOpen():
-    raise serial.SerialException('Failed to open serial: %r'  % port)
+    raise serial.SerialException('Failed to open serial: %r' % port)
   return ser
 
 
@@ -162,6 +162,7 @@ class SerialDevice(object):
     # Send 'FID' for getting fixture ID. Return received result. No retry.
     fixture_id = fixture.SendRecv('FID')
   """
+
   def __init__(self, send_receive_interval_secs=0.2, retry_interval_secs=0.5,
                log=False):
     """Constructor.

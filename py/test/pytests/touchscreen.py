@@ -33,6 +33,7 @@ _Y_SEGMENTS = 8
 
 class TouchEvent(object):
   """The class to store touchscreen touch event."""
+
   def __init__(self):
     self.x = None
     self.y = None
@@ -59,8 +60,8 @@ class TouchscreenTest(unittest.TestCase):
     self.checked: user has already pressed spacebar to check touchscreen.
   """
   ARGS = [
-    Arg('touchscreen_event_id', int, 'Touchscreen input event id.',
-        default=None, optional=True)
+      Arg('touchscreen_event_id', int, 'Touchscreen input event id.',
+          default=None, optional=True)
   ]
 
   def setUp(self):

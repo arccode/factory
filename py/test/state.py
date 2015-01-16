@@ -4,15 +4,13 @@
 # found in the LICENSE file.
 
 
-'''
-This module provides both client and server side of a XML RPC based server which
-can be used to handle factory test states (status) and shared persistent data.
+'''This module provides both client and server side of a XML RPC based server which can be used to handle factory test states (status) and shared persistent data.
 '''
 
 
 from __future__ import print_function
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 import glob
 import logging
@@ -50,11 +48,11 @@ POST_SHUTDOWN_TAG = '%s.post_shutdown'
 
 
 def _synchronized(f):
+  '''Decorates a function to grab a lock.
   '''
-  Decorates a function to grab a lock.
-  '''
+
   def wrapped(self, *args, **kw):
-    with self._lock: # pylint: disable=W0212
+    with self._lock:  # pylint: disable=W0212
       return f(self, *args, **kw)
   return wrapped
 
@@ -66,13 +64,14 @@ def clear_state(state_file_path=None):
     state_file_path: Path to state; uses the default path if None.
   '''
   state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
-  logging.warn('Clearing state file path %s' % state_file_path)
+  logging.warn('Clearing state file path %s', state_file_path)
   if os.path.exists(state_file_path):
     shutil.rmtree(state_file_path)
 
 
 class PathResolver(object):
-  '''Resolves paths in URLs.'''
+  """Resolves paths in URLs."""
+
   def __init__(self):
     self._paths = {}
 
@@ -118,10 +117,9 @@ class PathResolver(object):
 
 @unicode_to_string.UnicodeToStringClass
 class FactoryState(object):
-  '''
-  The core implementation for factory state control.
-  The major provided features are:
+  '''The core implementation for factory state control.
 
+  The major provided features are:
   SHARED DATA
     You can get/set simple data into the states and share between all tests.
     See get_shared_data(name) and set_shared_data(name, value) for more
@@ -150,8 +148,7 @@ class FactoryState(object):
   '''
 
   def __init__(self, state_file_path=None):
-    '''
-    Initializes the state server.
+    '''Initializes the state server.
 
     Parameters:
       state_file_path:  External file to store the state information.
@@ -174,8 +171,7 @@ class FactoryState(object):
 
   @_synchronized
   def close(self):
-    '''
-    Shuts down the state instance.
+    '''Shuts down the state instance.
     '''
     for shelf in [self._tests_shelf,
                   self._data_shelf]:
@@ -186,8 +182,7 @@ class FactoryState(object):
 
   @_synchronized
   def update_test_state(self, path, **kw):
-    '''
-    Updates the state of a test.
+    '''Updates the state of a test.
 
     See TestState.update for the allowable keyword arguments.
 
@@ -207,11 +202,11 @@ class FactoryState(object):
       changed = True
       state = TestState()
 
-    changed = changed | state.update(**kw) # Don't short-circuit
+    changed = changed | state.update(**kw)  # Don't short-circuit
 
     if changed:
       logging.debug('Updating test state for %s: %s -> %s',
-             path, old_state_repr, state)
+                    path, old_state_repr, state)
       self._tests_shelf[path] = state
       self._tests_shelf.sync()
 
@@ -219,42 +214,36 @@ class FactoryState(object):
 
   @_synchronized
   def get_test_state(self, path):
-    '''
-    Returns the state of a test.
+    '''Returns the state of a test.
     '''
     return self._tests_shelf[path]
 
   @_synchronized
   def get_test_paths(self):
-    '''
-    Returns a list of all tests' paths.
+    '''Returns a list of all tests' paths.
     '''
     return self._tests_shelf.keys()
 
   @_synchronized
   def get_test_states(self):
-    '''
-    Returns a map of each test's path to its state.
+    '''Returns a map of each test's path to its state.
     '''
     return dict(self._tests_shelf)
 
   @_synchronized
   def clear_test_state(self):
-    '''
-    Clears all test state.
+    '''Clears all test state.
     '''
     self._tests_shelf.clear()
 
   def get_test_list(self):
-    '''
-    Returns the test list.
+    '''Returns the test list.
     '''
     return self.test_list.to_struct()
 
   @_synchronized
   def set_shared_data(self, *key_value_pairs):
-    '''
-    Sets shared data items.
+    '''Sets shared data items.
 
     Args:
       key_value_pairs: A series of alternating keys and values
@@ -268,8 +257,7 @@ class FactoryState(object):
 
   @_synchronized
   def get_shared_data(self, key, optional=False):
-    '''
-    Retrieves a shared data item.
+    '''Retrieves a shared data item.
 
     Args:
       key: The key whose value to retrieve.
@@ -283,15 +271,13 @@ class FactoryState(object):
 
   @_synchronized
   def has_shared_data(self, key):
-    '''
-    Returns if a shared data item exists.
+    '''Returns if a shared data item exists.
     '''
     return key in self._data_shelf
 
   @_synchronized
   def del_shared_data(self, key, optional=False):
-    '''
-    Deletes a shared data item.
+    '''Deletes a shared data item.
 
     Args:
       key: The key whose value to retrieve.
@@ -305,8 +291,7 @@ class FactoryState(object):
 
   @_synchronized
   def update_shared_data_dict(self, key, new_data):
-    '''
-    Updates values a shared data item whose value is a dictionary.
+    '''Updates values a shared data item whose value is a dictionary.
 
     This is roughly equivalent to
 
@@ -332,8 +317,7 @@ class FactoryState(object):
   @_synchronized
   def delete_shared_data_dict_item(self, shared_data_key,
                                    delete_keys, optional):
-    '''
-    Deletes items from a shared data item whose value is a dict.
+    '''Deletes items from a shared data item whose value is a dict.
 
     This is roughly equivalent to
 
@@ -369,8 +353,7 @@ class FactoryState(object):
 
   @_synchronized
   def append_shared_data_list(self, key, new_item):
-    '''
-    Appends an item to a shared data item whose value is a list.
+    '''Appends an item to a shared data item whose value is a list.
 
     This is roughly equivalent to
 
@@ -394,7 +377,7 @@ class FactoryState(object):
     return data
 
   def get_test_history(self, *test_paths):
-    '''Returns metadata for all previous (and current) runs of a test.'''
+    """Returns metadata for all previous (and current) runs of a test."""
     ret = []
 
     for path in test_paths:
@@ -410,7 +393,7 @@ class FactoryState(object):
     return ret
 
   def get_test_history_entry(self, path, invocation):
-    '''Returns metadata and log for one test invocation.'''
+    """Returns metadata and log for one test invocation."""
     test_dir = os.path.join(factory.get_test_data_root(),
                             '%s-%s' % (path, invocation))
 
@@ -457,7 +440,7 @@ class FactoryState(object):
     if expiration_secs:
       now = time.time()
       self._generated_data_expiration.put(
-        (now + expiration_secs, uuid))
+          (now + expiration_secs, uuid))
 
       # Reap old items.
       while True:
@@ -490,8 +473,7 @@ class FactoryState(object):
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
                  port=None):
-  '''
-  Gets an instance (for client side) to access the state server.
+  '''Gets an instance (for client side) to access the state server.
 
   @param address: Address of the server to be connected.
   @param port: Port of the server to be connected.  Defaults to
@@ -504,6 +486,7 @@ def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
 
 
 class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
+
   def do_GET(self):
     logging.debug('HTTP request for path %s', self.path)
 
@@ -511,12 +494,12 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
     if handler:
       return handler(self)
 
-    match = re.match('^/generated-data/([-0-9a-f]+)$', self.path)
+    match = re.match(r'^/generated-data/([-0-9a-f]+)$', self.path)
     if match:
       generated_data = self.server._generated_data.get(match.group(1))
       if not generated_data:
         logging.warn('Unknown or expired generated data %s',
-               match.group(1))
+                     match.group(1))
         self.send_response(404)
         return
 
@@ -531,49 +514,50 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
     if self.path.endswith('/'):
       self.path += 'index.html'
 
-    if ".." in self.path.split("/"):
-      logging.warn("Invalid path")
+    if '..' in self.path.split('/'):
+      logging.warn('Invalid path')
       self.send_response(404)
       return
 
     mime_type = mimetypes.guess_type(self.path)
     if not mime_type:
-      logging.warn("Unable to guess MIME type")
+      logging.warn('Unable to guess MIME type')
       self.send_response(404)
       return
 
     local_path = None
-    match = re.match('^/generated-files/([-0-9a-f]+)/', self.path)
+    match = re.match(r'^/generated-files/([-0-9a-f]+)/', self.path)
     if match:
       local_path = self.server._generated_files.get(match.group(1))
       if not local_path:
         logging.warn('Unknown generated file %s in path %s',
-               match.group(1), self.path)
+                     match.group(1), self.path)
         self.send_response(404)
         return
 
     local_path = self.server._resolver.Resolve(self.path)
     if not local_path or not os.path.exists(local_path):
-      logging.warn("File not found: %s", (local_path or self.path))
+      logging.warn('File not found: %s', (local_path or self.path))
       self.send_response(404)
       return
 
     self.send_response(200)
-    self.send_header("Content-Type", mime_type[0])
-    self.send_header("Content-Length", os.path.getsize(local_path))
+    self.send_header('Content-Type', mime_type[0])
+    self.send_header('Content-Length', os.path.getsize(local_path))
     self.end_headers()
     with open(local_path) as f:
       shutil.copyfileobj(f, self.wfile)
 
 
 class ThreadedJSONRPCServer(SocketServer.ThreadingMixIn,
-              SimpleJSONRPCServer.SimpleJSONRPCServer):
+                            SimpleJSONRPCServer.SimpleJSONRPCServer):
   '''The JSON/RPC server.
 
   Properties:
     handlers: A map from URLs to callbacks handling them. (The callback
       takes a single argument: the request to handle.)
   '''
+
   def __init__(self, *args, **kwargs):
     SimpleJSONRPCServer.SimpleJSONRPCServer.__init__(self, *args, **kwargs)
     self.handlers = {}
@@ -583,8 +567,7 @@ class ThreadedJSONRPCServer(SocketServer.ThreadingMixIn,
 
 
 def create_server(state_file_path=None, bind_address=None, port=None):
-  '''
-  Creates a FactoryState object and an JSON/RPC server to serve it.
+  '''Creates a FactoryState object and an JSON/RPC server to serve it.
 
   @param state_file_path: The path containing the saved state.
   @param bind_address: Address to bind to, defaulting to
@@ -603,13 +586,13 @@ def create_server(state_file_path=None, bind_address=None, port=None):
     port = DEFAULT_FACTORY_STATE_PORT
   instance = FactoryState(state_file_path)
   instance._resolver.AddPath(
-    '/',
-    os.path.join(factory.FACTORY_PACKAGE_PATH, 'goofy/static'))
+      '/',
+      os.path.join(factory.FACTORY_PACKAGE_PATH, 'goofy/static'))
 
   server = ThreadedJSONRPCServer(
-    (bind_address, port),
-    requestHandler=MyJSONRPCRequestHandler,
-    logRequests=False)
+      (bind_address, port),
+      requestHandler=MyJSONRPCRequestHandler,
+      logRequests=False)
 
   # Give the server the information it needs to resolve URLs.
   server._generated_files = instance._generated_files

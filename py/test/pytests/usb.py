@@ -39,8 +39,9 @@ _HTML_USB = '<div id="%s"></div>\n' % (_ID_CONTAINER)
 
 _CSS_USB_TEST = '.usb-test-info { font-size: 2em; }'
 
+
 class PyudevThread(threading.Thread):
-  '''A thread class for monitoring udev events in the background.'''
+  """A thread class for monitoring udev events in the background."""
 
   def __init__(self, callback, **udev_filters):
     threading.Thread.__init__(self)
@@ -48,20 +49,24 @@ class PyudevThread(threading.Thread):
     self._udev_filters = dict(udev_filters)
 
   def run(self):
-    '''Create a loop to monitor udev events and invoke callback function.'''
+    """Create a loop to monitor udev events and invoke callback function."""
     context = pyudev.Context()
     monitor = pyudev.Monitor.from_netlink(context)
     monitor.filter_by(**self._udev_filters)
     for action, device in monitor:
       self._callback(action, device)
 
+
 class USBTest(unittest.TestCase):
   ARGS = [
-    Arg('expected_paths', str, 'USB device path', None, optional=True),
-    Arg('num_usb_ports', int, 'number of USB port', None, optional=True),
-    Arg('num_usb2_ports', int, 'number of USB 2.0 ports', None, optional=True),
-    Arg('num_usb3_ports', int, 'number of USB 3.0 ports', None, optional=True),
-  ]
+      Arg('expected_paths', str, 'USB device path', None, optional=True),
+      Arg('num_usb_ports', int, 'number of USB port', None, optional=True),
+      Arg(
+          'num_usb2_ports', int, 'number of USB 2.0 ports', None,
+          optional=True),
+      Arg(
+          'num_usb3_ports', int, 'number of USB 3.0 ports', None,
+          optional=True)]
   version = 1
 
   def setUp(self):
@@ -75,9 +80,9 @@ class USBTest(unittest.TestCase):
     self._num_usb3_ports = self.args.num_usb3_ports
 
     self.assertTrue((self._num_usb_ports and (self._num_usb_ports > 0)) or
-        (self._num_usb2_ports and (self._num_usb2_ports > 0)) or
-        (self._num_usb3_ports and (self._num_usb3_ports > 0)),
-        'USB port count not specified.')
+                    (self._num_usb2_ports and (self._num_usb2_ports > 0)) or
+                    (self._num_usb3_ports and (self._num_usb3_ports > 0)),
+                    'USB port count not specified.')
 
     if not self._num_usb_ports:
       self._num_usb_ports = (self._num_usb2_ports or 0) + (
@@ -124,7 +129,7 @@ class USBTest(unittest.TestCase):
       self.ui.Pass()
     else:
       self.ui.SetHTML(_MSG_PROMPT_FMT(self._num_usb_ports - total_count),
-          id=_ID_CONTAINER)
+                      id=_ID_CONTAINER)
 
   def usb_event_cb(self, action, device):
     if action not in [_UDEV_ACTION_INSERT, _UDEV_ACTION_REMOVE]:
@@ -138,8 +143,10 @@ class USBTest(unittest.TestCase):
 
   def runTest(self):
     # Create a daemon pyudev thread to listen to device events
-    self._pyudev_thread = PyudevThread(self.usb_event_cb,
-        subsystem='usb', device_type='usb_device')
+    self._pyudev_thread = (
+        PyudevThread(
+            self.usb_event_cb, subsystem='usb',
+            device_type='usb_device'))
     self._pyudev_thread.daemon = True
     self._pyudev_thread.start()
 

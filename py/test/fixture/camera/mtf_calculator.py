@@ -26,7 +26,7 @@ def _ExtractPatch(sample, edge_start, edge_end, desired_width, crop_ratio):
   miny = int(round(min(safe_start[1], safe_end[1])))
   maxx = int(round(max(safe_start[0], safe_end[0])))
   maxy = int(round(max(safe_start[1], safe_end[1])))
-  if abs(vec[0]) > abs(vec[1]): # near-horizontal edge
+  if abs(vec[0]) > abs(vec[1]):  # near-horizontal edge
     ylb = max(0, miny - desired_width)
     yub = min(sample.shape[0], maxy + desired_width + 1)
     patch = np.transpose(sample[ylb:yub, minx:(maxx + 1)])
@@ -69,7 +69,7 @@ def _FindEdgeSubPix(patch, desired_width):
     # 2nd iteration due to bias of different num of black and white pixels.
     dw = min(min(c, desired_width), pw - c - 1)
     b = np.sum(x_dummy[(c - dw):(c + dw + 1)] *
-           grad[y, (c - dw):(c + dw + 1)])
+               grad[y, (c - dw):(c + dw + 1)])
     a = np.sum(grad[y, (c - dw):(c + dw + 1)])
     xs[y] = int(round(b / a))
 

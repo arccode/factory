@@ -129,12 +129,14 @@ _UI_HTML = """
 
 MicSource = Enum(['external', 'panel', 'mlb'])
 
+
 class PlaySineThread(threading.Thread):
   """Wraps the execution of arecord in a thread."""
+
   def __init__(self, channel, odev, freq, seconds):
     threading.Thread.__init__(self)
     self.cmdargs = audio_utils.GetPlaySineArgs(channel, odev, freq,
-        seconds)
+                                               seconds)
 
   def run(self):
     Spawn(self.cmdargs.split(' '), log=True, check_call=True)
@@ -146,67 +148,69 @@ class AudioLoopTest(unittest.TestCase):
   2. Headphone out to headphone in.
   """
   ARGS = [
-    Arg('initial_actions', list, 'List of tuple (card, actions)', []),
-    Arg('input_dev', (str, tuple),
-        'Input ALSA device for string.  (card_name, sub_device) for tuple. '
-        'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
-    Arg('output_dev', (str, tuple),
-        'Onput ALSA device for string.  (card_name, sub_device) for tuple. '
-        'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
-    Arg('output_volume', (int, list), 'An int of output volume or a list of'
-        ' output volume candidates', 10),
-    Arg('autostart', bool, 'Auto start option', False),
-    Arg('require_dongle', bool, 'Require dongle option', False),
-    Arg('check_dongle', bool,
-        'Check dongle status whether match require_dongle', False),
-    Arg('cras_enabled', bool, 'Whether cras should be running or not',
-        False),
-    Arg('mic_source', str, 'Microphone source: external, panel, mlb',
-        'external'),
-    Arg('tests_to_conduct', list, 'A list of dicts.  A dict should contain \n'
-        'at least one key named **type** indicating the test type, which can \n'
-        'be **audiofun**, **sinewav**, or **noise**.\n'
-        '\n'
-        'If type is **audiofun**, the dict can optionally contain:\n'
-        '  - **duration**: The test duration, in seconds.\n'
-        '  - **threshold**: The minimum success rate to pass the test.\n'
-        '  - **test_pairs**: A list of tuple to show speaker and microphone\n'
-        '      channel. [(speaker_channel, microphone_channel)], 0 is left\n'
-        '      and 1 is right.\n'
-        '\n'
-        'If type is **sinewav**, the dict can optionally contain:\n'
-        '  - **duration**: The test duration, in seconds.\n'
-        '  - **freq_threshold**: Acceptable frequency margin.\n'
-        '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
-        '      sure the following inequality is true: *min <= recorded audio\n'
-        '      RMS (root mean square) value <= max*, otherwise, fail the\n'
-        '      test.  Both of **min** and **max** can be set to None, which\n'
-        '      means no limit.\n'
-        '  - **amplitude_threshold**: A tuple of (min, max) and it will make\n'
-        '      sure the inequality is true: *min <= minimum measured\n'
-        '      amplitude <= maximum measured amplitude <= max*, otherwise,\n'
-        '      fail the test.  Both of **min** and **max** can be set to\n'
-        '      None, which means no limit.\n'
-        '\n'
-        'If type is **noise**, the dict can optionally contain:\n'
-        '  - **duration**: The test duration, in seconds.\n'
-        '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
-        '      sure the following inequality is true: *min <= recorded audio\n'
-        '      RMS (root mean square) value <= max*, otherwise, fail the\n'
-        '      test.  Both of **min** and **max** can be set to None, which\n'
-        '      means no limit.\n'
-        '  - **amplitude_threshold**: A tuple of (min, max) and it will make\n'
-        '      sure the inequality is true: *min <= minimum measured\n'
-        '      amplitude <= maximum measured amplitude <= max*, otherwise,\n'
-        '      fail the test.  Both of **min** and **max** can be set to\n'
-        '      None, which means no limit.\n', optional=False),
-  ]
+      Arg('initial_actions', list, 'List of tuple (card, actions)', []),
+      Arg(
+          'input_dev', (str, tuple),
+          'Input ALSA device for string.  (card_name, sub_device) for tuple. '
+          'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
+      Arg(
+          'output_dev', (str, tuple),
+          'Onput ALSA device for string.  (card_name, sub_device) for tuple. '
+          'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
+      Arg(
+          'output_volume', (int, list),
+          'An int of output volume or a list of'
+          ' output volume candidates', 10),
+      Arg('autostart', bool, 'Auto start option', False),
+      Arg('require_dongle', bool, 'Require dongle option', False),
+      Arg(
+          'check_dongle', bool,
+          'Check dongle status whether match require_dongle', False),
+      Arg(
+          'cras_enabled', bool, 'Whether cras should be running or not',
+          False),
+      Arg(
+          'mic_source', str, 'Microphone source: external, panel, mlb',
+          'external'),
+      Arg(
+          'tests_to_conduct', list,
+          'A list of dicts.  A dict should contain \nat least one key named '
+          '**type** indicating the test type, which can \nbe **audiofun**, '
+          '**sinewav**, or **noise**.\n\nIf type is **audiofun**, the dict can'
+          ' optionally contain:\n  - **duration**: The test duration, in '
+          'seconds.\n  - **threshold**: The minimum success rate to pass the '
+          'test.\n  - **test_pairs**: A list of tuple to show speaker and '
+          'microphone\n      channel. [(speaker_channel, microphone_channel)],'
+          ' 0 is left\n      and 1 is right.\n\nIf type is **sinewav**, the '
+          'dict can optionally contain:\n  - **duration**: The test duration, '
+          'in seconds.\n  - **freq_threshold**: Acceptable frequency margin.\n'
+          '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
+          '      sure the following inequality is true: *min <= recorded '
+          'audio\n      RMS (root mean square) value <= max*, otherwise, fail '
+          'the\n      test.  Both of **min** and **max** can be set to None, '
+          'which\n      means no limit.\n  - **amplitude_threshold**: A tuple '
+          'of (min, max) and it will make\n      sure the inequality is true: '
+          '*min <= minimum measured\n      amplitude <= maximum measured '
+          'amplitude <= max*, otherwise,\n      fail the test.  Both of '
+          '**min** and **max** can be set to\n      None, which means no '
+          'limit.\n\nIf type is **noise**, the dict can optionally contain:\n'
+          '  - **duration**: The test duration, in seconds.\n  - '
+          '**rms_threshold**: A tuple of **(min, max)** that will make\n      '
+          'sure the following inequality is true: *min <= recorded audio\n'
+          '      RMS (root mean square) value <= max*, otherwise, fail the\n'
+          '      test.  Both of **min** and **max** can be set to None, '
+          'which\n      means no limit.\n  - **amplitude_threshold**: A tuple '
+          'of (min, max) and it will make\n      sure the inequality is true: '
+          '*min <= minimum measured\n      amplitude <= maximum measured '
+          'amplitude <= max*, otherwise,\n      fail the test.  Both of '
+          '**min** and **max** can be set to\n      None, which means no '
+          'limit.\n', optional=False)]
 
   def setUp(self):
     # Tansfer input and output device format
     if type(self.args.input_dev) is tuple:
       self._in_card = audio_utils.GetCardIndexByName(self.args.input_dev[0])
-      self._input_device = "hw:%s,%s" % (
+      self._input_device = 'hw:%s,%s' % (
           self._in_card, self.args.input_dev[1])
     else:
       self._input_device = self.args.input_dev
@@ -214,7 +218,7 @@ class AudioLoopTest(unittest.TestCase):
 
     if type(self.args.output_dev) is tuple:
       self._out_card = audio_utils.GetCardIndexByName(self.args.output_dev[0])
-      self._output_device = "hw:%s,%s" % (
+      self._output_device = 'hw:%s,%s' % (
           self._out_card, self.args.output_dev[1])
     else:
       self._output_device = self.args.output_dev
@@ -261,7 +265,7 @@ class AudioLoopTest(unittest.TestCase):
       self._ui.Fail('cras status is wrong (expected status: %s). '
                     'Please make sure that you have appropriate setting for '
                     '"disable_services=[\'cras\']" in the test item.' %
-          cras_status)
+                    cras_status)
 
   def tearDown(self):
     self._audio_util.RestoreMixerControls()
@@ -270,7 +274,7 @@ class AudioLoopTest(unittest.TestCase):
     # If autostart, JS triggers start_run_test event.
     # Otherwise, it binds start_run_test with 's' key pressed.
     self._ui.CallJSFunction('init', self.args.autostart,
-        self.args.require_dongle)
+                            self.args.require_dongle)
     self._ui.Run()
 
   def AppendErrorMessage(self, error_message):
@@ -278,7 +282,7 @@ class AudioLoopTest(unittest.TestCase):
     self._test_results[self._output_volume_index] = False
     self._test_message.append(
         'Under output volume %r' % self._output_volumes[
-             self._output_volume_index])
+            self._output_volume_index])
     self._test_message.append(error_message)
     factory.console.error(error_message)
 
@@ -288,7 +292,7 @@ class AudioLoopTest(unittest.TestCase):
     Args:
       device: ALSA device name
     """
-    dev_name_pattern = re.compile(".*?hw:([0-9]+),([0-9]+)")
+    dev_name_pattern = re.compile('.*?hw:([0-9]+),([0-9]+)')
     match = dev_name_pattern.match(device)
     if match:
       return match.group(1)
@@ -309,7 +313,7 @@ class AudioLoopTest(unittest.TestCase):
       mic_channel: 0 is left channel, 1 is right channel
     """
     factory.console.info('Test speaker channel %d and mic channel %d' %
-        (speaker_channel, mic_channel))
+                         (speaker_channel, mic_channel))
     if self._mic_source == MicSource.panel:
       self._audio_util.EnableDmic(self._in_card)
       if mic_channel is 0:
@@ -326,10 +330,10 @@ class AudioLoopTest(unittest.TestCase):
     test_result = None
     duration = self._current_test_args.get(
         'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
-    process = Spawn([audio_utils.AUDIOFUNTEST_PATH,
-        '-r', '48000', '-i', self._input_device, '-o', self._output_device,
-        '-l', '%d' % duration, '-a', '%d' % speaker_channel],
-        stderr=PIPE)
+    process = Spawn(
+        [audio_utils.AUDIOFUNTEST_PATH, '-r', '48000', '-i',
+         self._input_device, '-o', self._output_device, '-l',
+         '%d' % duration, '-a', '%d' % speaker_channel], stderr=PIPE)
     last_success_rate = None
 
     while True:
@@ -356,7 +360,7 @@ class AudioLoopTest(unittest.TestCase):
         self.AppendErrorMessage(
             'For speaker channel %s and mic channel %s, The success rate is '
             '%.1f, too low!' % (speaker_channel, mic_channel, last_success_rate)
-            )
+        )
       else:
         self.AppendErrorMessage('audiofuntest terminated unexpectedly')
       time.sleep(0.5)
@@ -380,14 +384,14 @@ class AudioLoopTest(unittest.TestCase):
       num_channels: Number of channels to test
     """
     for channel in xrange(num_channels):
-      record_file_path = "/tmp/record-%d-%s.raw" % (channel, time.time())
+      record_file_path = '/tmp/record-%d-%s.raw' % (channel, time.time())
 
       # Play thread has one more second to ensure record process can record
       # entire sine tone
       duration = self._current_test_args.get('duration',
-          _DEFAULT_SINEWAV_TEST_DURATION)
+                                             _DEFAULT_SINEWAV_TEST_DURATION)
       playsine_thread = PlaySineThread(channel, output_device, self._freq,
-          duration + 1)
+                                       duration + 1)
       playsine_thread.start()
       time.sleep(0.5)
 
@@ -412,7 +416,7 @@ class AudioLoopTest(unittest.TestCase):
     # Record the noise file.
     duration = self._current_test_args.get(
         'duration', _DEFAULT_NOISE_TEST_DURATION)
-    noise_file_path = "/tmp/noise-%s.wav" % time.time()
+    noise_file_path = '/tmp/noise-%s.wav' % time.time()
     # Do not trim because we want to check all possible noises and artifacts.
     self.RecordFile(duration, noise_file_path, None)
 
@@ -435,7 +439,7 @@ class AudioLoopTest(unittest.TestCase):
                    else file_path)
 
     rec_cmd = ['arecord', '-D', self._input_device, '-f', 'dat', '-d',
-        str(duration), '-t', 'raw', record_path]
+               str(duration), '-t', 'raw', record_path]
     Spawn(rec_cmd, log=True, check_call=True)
 
     if trim:
@@ -450,10 +454,10 @@ class AudioLoopTest(unittest.TestCase):
         'rms_threshold', _DEFAULT_SOX_RMS_THRESHOLD)
     if (rms_threshold[0] is not None and rms_threshold[0] > rms_value):
       self.AppendErrorMessage('Audio RMS value %f too low. Minimum pass is %f.'
-          % (rms_value, rms_threshold[0]))
+                              % (rms_value, rms_threshold[0]))
     if (rms_threshold[1] is not None and rms_threshold[1] < rms_value):
       self.AppendErrorMessage('Audio RMS value %f too high. Maximum pass is %f.'
-          % (rms_value, rms_threshold[1]))
+                              % (rms_value, rms_threshold[1]))
 
     amplitude_threshold = self._current_test_args.get(
         'amplitude_threshold', _DEFAULT_SOX_AMPLITUDE_THRESHOLD)
@@ -503,7 +507,7 @@ class AudioLoopTest(unittest.TestCase):
                          zip(self._output_volumes, self._test_results))
     self._ui.Fail('; '.join(self._test_message))
 
-  def StartRunTest(self, event): # pylint: disable=W0613
+  def StartRunTest(self, event):  # pylint: disable=W0613
     jack_status = self._audio_util.GetAudioJackStatus(self._in_card)
     # When audio jack detection feature is ready on a platform, we can
     # enable check_dongle option to check jack status matches we expected.

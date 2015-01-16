@@ -34,7 +34,7 @@ sys.path.insert(0, autotest_dir)
 import setup_modules
 sys.path.pop(0)
 setup_modules.setup(base_path=autotest_dir,
-    root_module_name='autotest_lib.client')
+                    root_module_name='autotest_lib.client')
 
 # Re-add the factory cros module.
 if _cros:

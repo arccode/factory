@@ -14,6 +14,7 @@ from cros.factory.test.fixture.whale import servo_client
 
 
 class ServoClientTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.server_mock = self.mox.CreateMockAnything()
@@ -119,4 +120,3 @@ class ServoClientTest(unittest.TestCase):
 
 if __name__ == '__main__':
   unittest.main()
-

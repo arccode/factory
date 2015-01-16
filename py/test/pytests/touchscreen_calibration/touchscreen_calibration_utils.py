@@ -154,6 +154,7 @@ def GetDebugfs(vendor=ATMEL):
 
 class NetworkStatus(object):
   """Show the network and service status."""
+
   def __init__(self, BB_ip, shopfloor_ip):
     self._BB_ip = BB_ip
     self._shopfloor_ip = shopfloor_ip

@@ -19,7 +19,7 @@ from cros.factory.utils import sys_utils
 class RemovableStorageE2ETest(e2e_test.E2ETest):
   """The removable storage E2E test."""
   pytest_name = 'removable_storage'
-  dargs=dict(
+  dargs = dict(
       block_size=512 * 1024,
       perform_random_test=False,
       perform_sequential_test=True,
@@ -59,7 +59,7 @@ class RemovableStorageE2ETest(e2e_test.E2ETest):
       rs.sys_utils, 'GetPartitions', side_effect=[
           [sys_utils.PartitionInfo(0, 0, 1000, 'fake_usb_node')], []])
   @mock.patch.object(
-      rs, 'CheckOutput', side_effect=[str(4*1024*1024*1024)])
+      rs, 'CheckOutput', side_effect=[str(4 * 1024 * 1024 * 1024)])
   @mock.patch.object(rs.os, 'open', side_effect=['mock_fd'])
   @mock.patch.object(rs.os, 'close')
   @mock.patch.object(rs.os, 'read')

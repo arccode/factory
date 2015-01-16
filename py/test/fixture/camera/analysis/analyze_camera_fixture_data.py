@@ -64,9 +64,10 @@ _TEXT_FILE_FORMAT = [
     ('Tilt', r'^Image tilt:\s*(\S+)$'),
     ('LensShading', r'^Lens shading ratio:\s*(\S+)$')]
 
+
 def _Percent(a, b):
-  """
-  Returns:
+  """Returns:
+
      Floating percentage of a / b.
   """
   return 100.0 * a / b
@@ -107,6 +108,7 @@ def _PrintStatistics(values, criteria):
                                       total_count,
                                       _Percent(failed_count, total_count)))
 
+
 def AnalyzeData(data_list):
   """Anaylzes data and print the summary.
 
@@ -119,7 +121,7 @@ def AnalyzeData(data_list):
   numeric_pattern = re.compile(r'^[+\-]?[0-9.]+$')
   data_count = len(data_list)
   if data_count == 0:
-    print("No test data is found")
+    print('No test data is found')
     return
 
   values = defaultdict(list)
@@ -138,10 +140,10 @@ def AnalyzeData(data_list):
   passed_count = values['Result'].count('PASSED')
   failed_count = values['Result'].count('FAILED')
   assert passed_count + failed_count == data_count
-  print("Passed: %d/%d (%.1f%%)" % (passed_count,
+  print('Passed: %d/%d (%.1f%%)' % (passed_count,
                                     data_count,
                                     _Percent(passed_count, data_count)))
-  print("Failed: %d/%d (%.1f%%)" % (failed_count,
+  print('Failed: %d/%d (%.1f%%)' % (failed_count,
                                     data_count,
                                     _Percent(failed_count, data_count)))
 

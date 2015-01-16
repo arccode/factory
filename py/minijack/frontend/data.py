@@ -20,11 +20,10 @@ def GetStatistic(data):
     return dict((k, 'No Data')
                 for k in ['len', 'min', 'max', 'avg', 'median', 'stddev'])
   return {
-    'len': len(data),
-    'min': min(data),
-    'max': max(data),
-    'avg': numpy.mean(data),
-    'median': numpy.median(data),
-    'stddev': numpy.std(data),
+      'len': len(data),
+      'min': min(data),
+      'max': max(data),
+      'avg': numpy.mean(data),
+      'median': numpy.median(data),
+      'stddev': numpy.std(data),
   }
-

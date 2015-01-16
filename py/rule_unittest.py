@@ -7,7 +7,7 @@
 
 import unittest
 import yaml
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.rule import (
     RuleFunction, Rule, Value, Context, RuleException,
@@ -18,6 +18,7 @@ from cros.factory.rule import (
 def StrLen():
   return len(GetContext().string)
 
+
 @RuleFunction(['string'])
 def AssertStrLen(length):
   logger = GetLogger()
@@ -26,6 +27,7 @@ def AssertStrLen(length):
 
 
 class HWIDRuleTest(unittest.TestCase):
+
   def setUp(self):
     self.context = Context(string='12345')
 
@@ -40,14 +42,13 @@ class HWIDRuleTest(unittest.TestCase):
                 evaluate='AssertStrLen(6)',
                 otherwise='AssertStrLen(8)')
     self.assertRaisesRegexp(
-        RuleException, r"ERROR: Assertion error", rule.Evaluate, self.context)
+        RuleException, r'ERROR: Assertion error', rule.Evaluate, self.context)
     rule = Rule(name='foobar2',
                 when='StrLen() > 6',
                 evaluate='AssertStrLen(6)',
                 otherwise='AssertStrLen(8)')
     self.assertRaisesRegexp(
-        RuleException, r"ERROR: Assertion error", rule.Evaluate, self.context)
-
+        RuleException, r'ERROR: Assertion error', rule.Evaluate, self.context)
 
   def testValue(self):
     self.assertTrue(Value('foo').Matches('foo'))
@@ -58,14 +59,14 @@ class HWIDRuleTest(unittest.TestCase):
   def testYAMLParsing(self):
     SetContext(self.context)
     self.assertRaisesRegexp(
-        SyntaxError, r"unexpected EOF while parsing", yaml.load("""
+        SyntaxError, r'unexpected EOF while parsing', yaml.load("""
             !rule
             name: foobar1
             when: StrLen() > 3
             evaluate: AssertStrLen(5
         """).Validate)
     self.assertRaisesRegexp(
-        SyntaxError, r"invalid syntax \(<string>, line 1\)", yaml.load("""
+        SyntaxError, r'invalid syntax \(<string>, line 1\)', yaml.load("""
             !rule
             name: foobar1
             when: StrLen( > 3
@@ -87,12 +88,12 @@ class HWIDRuleTest(unittest.TestCase):
         evaluate: AssertStrLen(6)
     """)
     self.assertRaisesRegexp(
-        RuleException, r"ERROR: Assertion error", rule.Evaluate, self.context)
+        RuleException, r'ERROR: Assertion error', rule.Evaluate, self.context)
 
   def testEvaluateOnce(self):
     self.assertEquals(5, Rule.EvaluateOnce('StrLen()', self.context))
     self.assertRaisesRegexp(
-        RuleException, r"ERROR: Assertion error",
+        RuleException, r'ERROR: Assertion error',
         Rule.EvaluateOnce, 'AssertStrLen(6)', self.context)
 
 if __name__ == '__main__':

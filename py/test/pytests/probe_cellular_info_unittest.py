@@ -19,6 +19,7 @@ from cros.factory.test.args import Args
 
 
 class ProbeCellularInfoTestTest(unittest.TestCase):
+
   def setUp(self):
     self.test = probe_cellular_info.ProbeCellularInfoTest()
     self.mox = mox.Mox()
@@ -139,7 +140,7 @@ Modem /org/chromium/ModemManager/Gobi/1:
   GetStatus:
     imei: #
     meid: Q9298301CDF827
-""".replace("#", "")
+""".replace('#', '')
     # Remove hash mark; necessary to make white-space check pass
 
     probe_cellular_info.CheckOutput(['modem', 'status'], log=True).AndReturn(

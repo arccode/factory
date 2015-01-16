@@ -20,6 +20,7 @@ LOG_FILE_NAME = 'shop_floor.log'
 
 class ExistingLogWriter(object):
   """ExistingLogWriter writes data to existing file only."""
+
   def __init__(self, path):
     super(ExistingLogWriter, self).__init__()
     self._path = path
@@ -89,6 +90,7 @@ class ShopFloorService(umpire_service.UmpireService):
         logging.debug('Allocate %s(%d,%s)', bundle['id'], fcgi_port, token)
         proc.SetNonhashArgs(['--port', str(fcgi_port), '--token', token])
         # Adds release callbacks on error and stopped state.
+
         def ReleaseResource():
           logging.debug('Release %s(%d,%s)', bundle['id'], fcgi_port, token)
           env.shop_floor_manager.Release(fcgi_port)

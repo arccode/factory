@@ -10,6 +10,7 @@ import httplib
 import logging
 import ws4py
 
+
 def WebSocketHandshake(request):
   '''Takes a HTTP request and upgrades it to web socket connection.
 
@@ -26,8 +27,8 @@ def WebSocketHandshake(request):
   encoded_key = request.headers.get('Sec-WebSocket-Key')
 
   if (request.headers.get('Upgrade') != 'websocket' or
-    request.headers.get('Connection') != 'Upgrade' or
-    not encoded_key):
+      request.headers.get('Connection') != 'Upgrade' or
+      not encoded_key):
     send_error('Missing/unexpected headers in WebSocket request')
     return False
 
@@ -47,8 +48,8 @@ def WebSocketHandshake(request):
   request.send_header('Upgrade', 'websocket')
   request.send_header('Connection', 'Upgrade')
   request.send_header(
-    'Sec-WebSocket-Accept',
-    base64.b64encode(hashlib.sha1(encoded_key + ws4py.WS_KEY).digest()))
+      'Sec-WebSocket-Accept',
+      base64.b64encode(hashlib.sha1(encoded_key + ws4py.WS_KEY).digest()))
   request.end_headers()
   request.wfile.flush()
 

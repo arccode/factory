@@ -88,7 +88,7 @@ class DUTEnvironment(Environment):
   def __init__(self):
     super(DUTEnvironment, self).__init__()
     self.goofy = None  # Must be assigned later by goofy.
-    self.has_sockets = None # Must be assigned later by goofy.
+    self.has_sockets = None  # Must be assigned later by goofy.
 
   def shutdown(self, operation):
     def prepare_shutdown():
@@ -138,6 +138,7 @@ class DUTEnvironment(Environment):
     chrome.SetActivePage()
     # Wait for state server to be ready.
     state_server = state.get_instance(address=host, port=int(port))
+
     def is_state_server_ready():
       try:
         return state_server.IsReadyForUIConnection()
@@ -158,6 +159,7 @@ class DUTEnvironment(Environment):
 
 class FakeChrootEnvironment(Environment):
   """A chroot environment that doesn't actually shutdown or run autotests."""
+
   def shutdown(self, operation):
     assert operation in ['reboot', 'full_reboot', 'halt']
     logging.warn('In chroot: skipping %s', operation)

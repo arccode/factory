@@ -32,11 +32,12 @@ class ChromeOSBoard(Board):
   I2C_READ_RE = re.compile(r'I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
   EC_BATTERY_RE = re.compile(r'^\s+Present current\s+(\d+)\s+mA$', re.MULTILINE)
   EC_BATTERY_CHARGING_RE = re.compile(r'^\s+Flags\s+.*\s+CHARGING.*$',
-      re.MULTILINE)
+                                      re.MULTILINE)
   EC_CHARGER_RE = re.compile(r'^chg_current = (\d+)mA$', re.MULTILINE)
 
   # Expected battery info.
-  BATTERY_DESIGN_CAPACITY_RE = re.compile('Design capacity:\s+([1-9]\d*)\s+mAh')
+  BATTERY_DESIGN_CAPACITY_RE = re.compile(
+      r'Design capacity:\s+([1-9]\d*)\s+mAh')
 
   # USB PD info.
   USB_PD_INFO_RE = re.compile(

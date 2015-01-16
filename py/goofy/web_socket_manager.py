@@ -44,6 +44,7 @@ class WebSocketManager(object):
     tail_buffer: A rotating buffer of the last TAIL_BUFFER_SIZE lines,
         to give to new web clients.
   '''
+
   def __init__(self, uuid):
     self.uuid = uuid
     self.lock = threading.Lock()
@@ -53,9 +54,9 @@ class WebSocketManager(object):
     self.has_confirmed_socket = threading.Event()
 
     self.event_client = EventClient(callback=self._handle_event,
-                    name='WebSocketManager')
+                                    name='WebSocketManager')
     self.tail_process = Spawn(
-        ["tail", "-F", factory.CONSOLE_LOG_PATH],
+        ['tail', '-F', factory.CONSOLE_LOG_PATH],
         ignore_stdin=True,
         stdout=subprocess.PIPE)
     self.tail_thread = threading.Thread(target=self._tail_console)
@@ -85,7 +86,7 @@ class WebSocketManager(object):
       self.tail_thread.join()
 
   def has_sockets(self):
-    '''Returns true if any web sockets are currently connected.'''
+    """Returns true if any web sockets are currently connected."""
     with self.lock:
       return len(self.web_sockets) > 0
 
@@ -98,13 +99,14 @@ class WebSocketManager(object):
       return
 
     class MyWebSocket(WebSocket):
+
       def __init__(self, **kwargs):
         # Add a per-socket lock to use for sending, since ws4py is not
         # thread-safe.
         self.send_lock = threading.Lock()
         super(MyWebSocket, self).__init__(**kwargs)
 
-      def received_message(socket_self, message): # pylint: disable=E0213
+      def received_message(socket_self, message):  # pylint: disable=E0213
         event = Event.from_json(str(message))
         if event.type == Event.Type.KEEPALIVE:
           if event.uuid == self.uuid:
@@ -113,7 +115,7 @@ class WebSocketManager(object):
             self.has_confirmed_socket.set()
           else:
             logging.warning('Disconnecting web socket with '
-                    'incorrect UUID')
+                            'incorrect UUID')
             socket_self.close_connection()
         else:
           self.event_client.post_event(event)
@@ -125,13 +127,12 @@ class WebSocketManager(object):
 
     with web_socket.send_lock:
       web_socket.send(Event(Event.Type.HELLO,
-                  uuid=self.uuid).to_json())
+                            uuid=self.uuid).to_json())
       for line in lines:
         # Send the last n lines.
         web_socket.send(
-          Event(Event.Type.LOG,
-                message=DecodeUTF8(line)).to_json())
-
+            Event(Event.Type.LOG,
+                  message=DecodeUTF8(line)).to_json())
 
     try:
       with self.lock:
@@ -139,14 +140,14 @@ class WebSocketManager(object):
       logging.info('Running web socket')
       web_socket.run()
       logging.info('Web socket closed gracefully')
-    except: # pylint: disable=W0702
+    except:  # pylint: disable=W0702
       logging.exception('Web socket closed with exception')
     finally:
       with self.lock:
         self.web_sockets.discard(web_socket)
 
   def wait(self):
-    '''Waits for one socket to connect successfully.'''
+    """Waits for one socket to connect successfully."""
     while not self.has_confirmed_socket.is_set():
       # Wait at most 100 ms at a time; without a timeout, this seems
       # to eat SIGINT signals.
@@ -182,11 +183,11 @@ class WebSocketManager(object):
         while len(self.tail_buffer) > TAIL_BUFFER_SIZE:
           self.tail_buffer.popleft()
       self._handle_event(
-        Event(Event.Type.LOG,
-            message=DecodeUTF8(line).rstrip("\n")))
+          Event(Event.Type.LOG,
+                message=DecodeUTF8(line).rstrip('\n')))
 
   def _handle_event(self, event):
-    '''Sends an event to each open WebSocket client.'''
+    """Sends an event to each open WebSocket client."""
     with self.lock:
       web_sockets = list(self.web_sockets)
 
@@ -198,5 +199,5 @@ class WebSocketManager(object):
       try:
         with web_socket.send_lock:
           web_socket.send(event_json)
-      except: # pylint: disable=W0702
+      except:  # pylint: disable=W0702
         logging.exception('Unable to send event on web socket')

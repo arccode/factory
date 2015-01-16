@@ -52,13 +52,13 @@ _I2C_DEVICES_PATH = '/sys/bus/i2c/devices'
 _KERNEL_DRIVER_PATH = '/sys/kernel/debug/atmel_mxt_ts'
 
 _LABEL_CALIBRATING_TOUCHSCREEN = test_ui.MakeLabel('Calibrating Touchscreen',
-    u'触屏校正中', 'test-info')
+                                                   u'触屏校正中', 'test-info')
 _LABEL_NOT_FOUND = test_ui.MakeLabel('ERROR: Touchscreen Not Found',
-    u'没有找到触屏', 'test-fail')
+                                     u'没有找到触屏', 'test-fail')
 _LABEL_TESTING_REFERENCES = test_ui.MakeLabel('Testing References',
-    u'参考值测试中', 'test-info')
+                                              u'参考值测试中', 'test-info')
 _LABEL_TESTING_DELTAS = test_ui.MakeLabel('Testing Deltas',
-    u'差量测试中', 'test-info')
+                                          u'差量测试中', 'test-info')
 _LABEL_PASS = test_ui.MakeLabel('PASS', u'成功', 'test-pass')
 _LABEL_FAIL = test_ui.MakeLabel('FAIL', u'失败', 'test-fail')
 _MESSAGE_DELAY_SECS = 1
@@ -70,6 +70,7 @@ _CSS = """
   .test-pass {font-size: 2em; color:green;}
   .test-fail {font-size: 2em; color:red;}
 """
+
 
 class AtmelTouchController(object):
   """Utility class for the Atmel 1664s touch controller.
@@ -117,11 +118,11 @@ class AtmelTouchController(object):
     file_path = os.path.join(self.kernel_device_path, filename)
     raw_data = []
     with open(file_path) as f:
-    # Per chrome-os-partner:27424, for each row of data self.cols long read
-    # from controller, we will only use the first self.cols_enabled of data
-    # since the rest is garbage. And we’ll only read self.rows_enabled rows
-    # instead of self.rows since the rest is also garbage. Note that
-    # (rows_enabled, cols_enabled) is a subset of (rows, cols).
+      # Per chrome-os-partner:27424, for each row of data self.cols long read
+      # from controller, we will only use the first self.cols_enabled of data
+      # since the rest is garbage. And we’ll only read self.rows_enabled rows
+      # instead of self.rows since the rest is also garbage. Note that
+      # (rows_enabled, cols_enabled) is a subset of (rows, cols).
       for unused_row in range(self.rows_enabled):
         row_data = []
         line = f.read(self.cols * 2)
@@ -168,7 +169,7 @@ class AtmelTouchController(object):
     self.WriteObject('06000201')
     # Empirical value to give the controller some time to finish calibration.
     time.sleep(_CALIBRATION_DELAY_SECS)
-    return True #TODO(dparker): Figure out how to detect calibration errors.
+    return True  # TODO(dparker): Figure out how to detect calibration errors.
 
   def WriteObject(self, value):
     """Writes an object control value to the controller.
@@ -250,14 +251,13 @@ class CheckRawDataTask(FactoryTask):
     logging.info('Standard deviation %f', standard_deviation)
     Log('touchscreen_%s_stats' % self.data_name,
         **{
-           'allowed_min_val': self.min_val,
-           'allowed_max_val': self.max_val,
-           'acutal_min_val': actual_min_val,
-           'acutal_max_val': actual_max_val,
-           'standard_deviation': standard_deviation,
-           'test_passed': check_passed,
-          }
-    )
+            'allowed_min_val': self.min_val,
+            'allowed_max_val': self.max_val,
+            'acutal_min_val': actual_min_val,
+            'acutal_max_val': actual_max_val,
+            'standard_deviation': standard_deviation,
+            'test_passed': check_passed,
+        })
 
     return check_passed
 
@@ -275,18 +275,20 @@ class CheckReferencesTask(CheckRawDataTask):
   """Checks refernece data is in an expected range."""
 
   def __init__(self, test):
-    super(CheckReferencesTask, self).__init__(test, 'refs',
-        _LABEL_TESTING_REFERENCES, test.touch_controller.ReadRefs,
-        test.args.refs_min_val, test.args.refs_max_val)
+    super(CheckReferencesTask, self).__init__(
+        test, 'refs', _LABEL_TESTING_REFERENCES,
+        test.touch_controller.ReadRefs, test.args.refs_min_val,
+        test.args.refs_max_val)
 
 
 class CheckDeltasTask(CheckRawDataTask):
   """Checks delta data is in an expected range."""
 
   def __init__(self, test):
-    super(CheckDeltasTask, self).__init__(test, 'deltas',
-        _LABEL_TESTING_DELTAS, test.touch_controller.ReadDeltas,
-        test.args.deltas_min_val, test.args.deltas_max_val)
+    super(CheckDeltasTask, self).__init__(
+        test, 'deltas', _LABEL_TESTING_DELTAS,
+        test.touch_controller.ReadDeltas, test.args.deltas_min_val,
+        test.args.deltas_max_val)
 
 
 class CheckTouchController(FactoryTask):
@@ -325,22 +327,22 @@ class WaitTask(FactoryTask):
 class TouchscreenUniformity(unittest.TestCase):
 
   ARGS = [
-    Arg('refs_max_val', int, 'Maximum value for reference data.',
-      default=_DEFAULT_REFS_MAX, optional=True),
-    Arg('refs_min_val', int, 'Minimum value for reference data.',
-      default=_DEFAULT_REFS_MIN, optional=True),
-    Arg('deltas_max_val', int, 'Maximum value for delta data.',
-      default=_DEFAULT_DELTAS_MAX, optional=True),
-    Arg('deltas_min_val', int, 'Minimum value for delta data.',
-      default=_DEFAULT_DELTAS_MIN, optional=True),
-    Arg('i2c_bus_id', str, 'i2c bus address of controller',
-      default=_DEFAULT_I2C_BUS_ID, optional=True),
-    Arg('matrix_size', tuple,
-        'The size of touchscreen sensor row data for enabled sensors in the '
-        'form of (rows, cols). This is used when the matrix size read from '
-        'kernel i2c device path is different from the matrix size of enabled '
-        'sensors.',
-        optional=True),
+      Arg('refs_max_val', int, 'Maximum value for reference data.',
+          default=_DEFAULT_REFS_MAX, optional=True),
+      Arg('refs_min_val', int, 'Minimum value for reference data.',
+          default=_DEFAULT_REFS_MIN, optional=True),
+      Arg('deltas_max_val', int, 'Maximum value for delta data.',
+          default=_DEFAULT_DELTAS_MAX, optional=True),
+      Arg('deltas_min_val', int, 'Minimum value for delta data.',
+          default=_DEFAULT_DELTAS_MIN, optional=True),
+      Arg('i2c_bus_id', str, 'i2c bus address of controller',
+          default=_DEFAULT_I2C_BUS_ID, optional=True),
+      Arg('matrix_size', tuple,
+          'The size of touchscreen sensor row data for enabled sensors in the '
+          'form of (rows, cols). This is used when the matrix size read from '
+          'kernel i2c device path is different from the matrix size of enabled '
+          'sensors.',
+          optional=True),
   ]
 
   def setUp(self):

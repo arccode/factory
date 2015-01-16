@@ -23,8 +23,11 @@ from cros.factory.rf.lan_scpi import TimeoutError
 from cros.factory.rf.lan_scpi import LANSCPI
 
 # pylint: disable=W0232
+
+
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
   allow_reuse_address = True
+
 
 class MockServerHandler(SocketServer.StreamRequestHandler):
   """A mocking handler for socket.
@@ -58,8 +61,9 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
         if output:
           self.wfile.write(output)
       else:
-        raise ValueError("Expecting [%s] but got [%s]" % (
+        raise ValueError('Expecting [%s] but got [%s]' % (
             expected_input, line))
+
 
 class LanScpiTest(unittest.TestCase):
   EXPECTED_MODEL = 'Agilent Technologies,N1914A,MY50001187,A2.01.06'
@@ -68,7 +72,7 @@ class LanScpiTest(unittest.TestCase):
   NORMAL_OPC_RESPONSE = '+1\n'
 
   def _AddInitialLookup(self):
-    '''Adds necessary lookup for every connection.'''
+    """Adds necessary lookup for every connection."""
     MockServerHandler.ResetLookup()
     MockServerHandler.AddLookup('*CLS', None)
     MockServerHandler.AddLookup('*IDN?', self.EXPECTED_MODEL + '\n')
@@ -76,7 +80,7 @@ class LanScpiTest(unittest.TestCase):
     MockServerHandler.AddLookup('SYST:ERR?', self.NORMAL_ERR_RESPONSE)
 
   def _StartMockServer(self):
-    '''Starts a thread for the mock equipment.'''
+    """Starts a thread for the mock equipment."""
     server_port = net_utils.FindUnusedTCPPort()
     mock_server = MockTestServer(
         (net_utils.LOCALHOST, server_port), MockServerHandler)
@@ -84,7 +88,7 @@ class LanScpiTest(unittest.TestCase):
     server_thread = threading.Thread(target=mock_server.serve_forever)
     server_thread.daemon = True
     server_thread.start()
-    logging.info("Server loop running in thread %s with port %d",
+    logging.info('Server loop running in thread %s with port %d',
                  server_thread.name, server_port)
     return (mock_server, server_port)
 
@@ -123,7 +127,7 @@ class LanScpiTest(unittest.TestCase):
   def testQuery(self):
     TEST_COMMAND = 'FETCh?'
     MockServerHandler.AddLookup('*CLS', None)
-    MockServerHandler.AddLookup(TEST_COMMAND, "33333\n")
+    MockServerHandler.AddLookup(TEST_COMMAND, '33333\n')
     MockServerHandler.AddLookup('*ESR?', self.NORMAL_ESR_REGISTER)
     MockServerHandler.AddLookup('SYST:ERR?', self.NORMAL_ERR_RESPONSE)
 
@@ -136,7 +140,7 @@ class LanScpiTest(unittest.TestCase):
     self._AddInitialLookup()
     MockServerHandler.AddLookup('*CLS', None)
     # Intensionally mute the output to trigger timeout
-    MockServerHandler.AddLookup(TEST_COMMAND, "3333")
+    MockServerHandler.AddLookup(TEST_COMMAND, '3333')
     MockServerHandler.AddLookup('*ESR?', None)
     MockServerHandler.AddLookup('SYST:ERR?', None)
 
@@ -152,7 +156,7 @@ class LanScpiTest(unittest.TestCase):
 
   def tearDown(self):
     self.lan_scpi.Close()
-    self.mock_server.shutdown() # pylint: disable=E1101
+    self.mock_server.shutdown()  # pylint: disable=E1101
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

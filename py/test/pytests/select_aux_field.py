@@ -25,22 +25,18 @@ class SelectAuxField(unittest.TestCase):
   '''
 
   ARGS = [
-    Arg('label_en', str,
-        'Name of the model being selected'),
-    Arg('label_zh', str,
-        'Chinese name of the model being selected '
-        '(defaults to the same as the English label)'),
-    Arg('event_log_key', str,
-        'Key to use for event log', optional=True),
-    Arg('aux_table_name', str,
-        'Name of the auxiliary table'),
-    Arg('aux_id', str,
-        'Name of the auxiliary ID'),
-    Arg('col_name', str,
-        'Column name to store the selected value'),
-    Arg('choices', dict,
-        'Dictionary consists of pairs of choice label and value to be stored.'),
-  ]
+      Arg('label_en', str, 'Name of the model being selected'),
+      Arg(
+          'label_zh', str,
+          'Chinese name of the model being selected '
+          '(defaults to the same as the English label)'),
+      Arg('event_log_key', str, 'Key to use for event log', optional=True),
+      Arg('aux_table_name', str, 'Name of the auxiliary table'),
+      Arg('aux_id', str, 'Name of the auxiliary ID'),
+      Arg('col_name', str, 'Column name to store the selected value'),
+      Arg(
+          'choices', dict,
+          'Dictionary consists of pairs of choice label and value to be stored.')]
 
   def HandleSelectValue(self, event):
     def SetError(label_en, label_zh=None):
@@ -90,14 +86,14 @@ class SelectAuxField(unittest.TestCase):
       choice = choices[i]
       radio_button_html += (
           '<input name="select-value" type="radio" value="%s" id="choice_%d">' %
-           (choice, i) +
+          (choice, i) +
           '<label for="choice_%d">%s</label><br>' % (i, choice))
     template.SetState(
         test_ui.MakeLabel(
             'Please select the %s and press ENTER.' % self.args.label_en,
             '请选择%s後按下 ENTER。' % (
                 self.args.label_zh or self.args.label_en)) + '<br>' +
-                radio_button_html + '<br>&nbsp;'
+        radio_button_html + '<br>&nbsp;'
         '<p id="select-error" class="test-error">&nbsp;')
 
     # Handle selected value when Enter pressed.

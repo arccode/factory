@@ -29,8 +29,8 @@ class RegionsList(Directive):
     # Create the header row.
     thead_row = nodes.row('')
     column_names = (
-      'Description', 'Region Code', 'Keyboard', 'Time Zone', 'Lang.',
-      'Layout', 'Notes')
+        'Description', 'Region Code', 'Keyboard', 'Time Zone', 'Lang.',
+        'Layout', 'Notes')
     # Make the "Notes" field a bit wider.
     column_widths = (1, 1, 1, 1, 1, 1, 2)
     for column in column_names:
@@ -50,9 +50,9 @@ class RegionsList(Directive):
     # region information... (we add a '?' to fields for unconfirmed regions,
     # '??' for incomplete regions)
     for name, confirmed, suffix in (
-      ('REGIONS_LIST', True, ''),
-      ('UNCONFIRMED_REGIONS_LIST', False, '?'),
-      ('INCOMPLETE_REGIONS_LIST', False, '??')):
+        ('REGIONS_LIST', True, ''),
+        ('UNCONFIRMED_REGIONS_LIST', False, '?'),
+        ('INCOMPLETE_REGIONS_LIST', False, '??')):
       # For both the public repo and the overlay...
       for module in filter(None, [regions, overlay]):
         # For each of the elements in the list...
@@ -64,7 +64,7 @@ class RegionsList(Directive):
           # Add an asterisk to description/region code for
           # regions from the overlay.
           overlay_suffix = (
-            '*' if module == overlay else '')
+              '*' if module == overlay else '')
 
           # For each of the columns...
           for value in [r.description + overlay_suffix,
@@ -137,4 +137,3 @@ def setup(app):
 
   app.add_node(regionslist)
   app.add_directive('regionslist', RegionsList)
-

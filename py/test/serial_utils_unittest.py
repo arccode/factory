@@ -29,6 +29,7 @@ _RECEIVE_SIZE = 1
 
 
 class OpenSerialTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -53,6 +54,7 @@ class OpenSerialTest(unittest.TestCase):
 
 
 class FindTtyByDriverTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(glob, 'glob')
@@ -101,7 +103,7 @@ class FindTtyByDriverTest(unittest.TestCase):
     self.mox.ReplayAll()
     self.assertEquals('/dev/ttyUSB1',
                       serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
-                                                   interface_protocol = '01'))
+                                                   interface_protocol='01'))
 
   def testFindTtyByDriverMultiple(self):
     os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
@@ -112,10 +114,11 @@ class FindTtyByDriverTest(unittest.TestCase):
     self.mox.ReplayAll()
     self.assertEquals([_DEFAULT_PORT, '/dev/ttyUSB1'],
                       serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
-                                                   multiple_ports = True))
+                                                   multiple_ports=True))
 
 
 class FindTtyByPortIndexTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(glob, 'glob')
@@ -159,6 +162,7 @@ class FindTtyByPortIndexTest(unittest.TestCase):
 
 
 class SerialDeviceCtorTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -212,7 +216,9 @@ class SerialDeviceCtorTest(unittest.TestCase):
     device = SerialDevice()
     device.Connect(driver='UnknownDriver', port=_DEFAULT_PORT)
 
+
 class SerialDeviceSendAndReceiveTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.device = SerialDevice()
@@ -282,7 +288,9 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
     self.mox.ReplayAll()
     self.assertEqual(IN_BUFFER, self.device.Receive(0))
 
+
 class SerialDeviceSendReceiveTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.device = SerialDevice()
@@ -360,7 +368,9 @@ class SerialDeviceSendReceiveTest(unittest.TestCase):
     self.assertRaises(SerialTimeoutException, self.device.SendReceive,
                       _COMMAND, retry=1)
 
+
 class SerialDeviceSendExpectReceiveTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.device = SerialDevice()

@@ -20,6 +20,7 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import audio_utils
 
+
 class AudioDiagnosticTest(unittest.TestCase):
   """A test executing audio diagnostic tools.
 
@@ -61,10 +62,10 @@ class AudioDiagnosticTest(unittest.TestCase):
                             json.dumps(plugged_nodes,
                                        default=lambda o: o.__dict__))
 
-  def Fail(self, event): # pylint:disable=W0613
+  def Fail(self, event):  # pylint:disable=W0613
     self._ui.Fail('Fail with bad audio quality')
 
-  def Pass(self, event): # pylint:disable=W0613
+  def Pass(self, event):  # pylint:disable=W0613
     self._ui.Pass()
 
   def runTest(self):

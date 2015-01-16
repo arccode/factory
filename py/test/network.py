@@ -57,18 +57,21 @@ def _SendDhclientCommand(arguments, interface,
   little tweaks on few paths.
 
   """
-  DHCLIENT_SCRIPT = "/usr/local/sbin/dhclient-script"
-  DHCLIENT_LEASE = os.path.join(factory.get_state_root(), "dhclient.leases")
+  DHCLIENT_SCRIPT = '/usr/local/sbin/dhclient-script'
+  DHCLIENT_LEASE = os.path.join(factory.get_state_root(), 'dhclient.leases')
   assert timeout > 0, 'Must have a timeout'
 
   logging.info('Starting dhclient')
-  dhcp_process = pexpect.spawn('dhclient',
-      ['-sf', DHCLIENT_SCRIPT, '-lf', DHCLIENT_LEASE,
-       '-d', '-v', '--no-pid', interface] + arguments, timeout=timeout)
+  dhcp_process = (
+      pexpect.spawn(
+          'dhclient',
+          ['-sf', DHCLIENT_SCRIPT, '-lf', DHCLIENT_LEASE, '-d',
+           '-v', '--no-pid', interface], +arguments,
+          timeout=timeout))
   try:
     dhcp_process.expect(expect_str)
   except:
-    logging.info("dhclient output before timeout - %r", dhcp_process.before)
+    logging.info('dhclient output before timeout - %r', dhcp_process.before)
     raise type_utils.Error(
         'Timeout when running DHCP command, check if cable is connected.')
   finally:
@@ -85,7 +88,7 @@ def SendDhcpRequest(interface=None):
   interface = interface or net_utils.FindUsableEthDevice(raise_exception=True)
   net_utils.Ifconfig(interface, True)
   _SendDhclientCommand([], interface,
-                       expect_str=r"bound to (\d+\.\d+\.\d+\.\d+)")
+                       expect_str=r'bound to (\d+\.\d+\.\d+\.\d+)')
 
 
 def ReleaseDhcp(interface=None):

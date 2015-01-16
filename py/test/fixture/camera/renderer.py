@@ -15,11 +15,11 @@ import numpy as np
 
 # Color constants.
 _COLORS = {
-  'important': (0, 0, 255),
-  'corner': (0, 255, 255),
-  'success': (0, 255, 0),
-  'deviation': (255, 0, 255),
-  }
+    'important': (0, 0, 255),
+    'corner': (0, 255, 255),
+    'success': (0, 255, 0),
+    'deviation': (255, 0, 255),
+}
 
 _UPSAMPLING_SCALE = 8
 _UPSAMPLING_BITS = 3
@@ -128,7 +128,7 @@ def DrawMTF(img, edges, perm, mtfs, crop_ratio, color_map_range):
   # Map MTF values to hue values.
   hues = ((mtfs - color_map_range[0]) /
           (color_map_range[1] - color_map_range[0])) / 3.0
-  np.clip(hues, 0.0, 1.0/3, out=hues)
+  np.clip(hues, 0.0, 1.0 / 3, out=hues)
 
   # Draw the edges.
   for idx, edge_id in enumerate(perm):

@@ -9,12 +9,13 @@ import logging
 
 from cros.factory.board.chromeos_board import ChromeOSBoard
 
+
 class PitBoard(ChromeOSBoard):
   """Board interface for Pit."""
 
   def GetTemperatures(self):
     with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
-      return [int(f.readline().rstrip())/1000]
+      return [int(f.readline().rstrip()) / 1000]
 
   def GetMainTemperatureIndex(self):
     return 0
@@ -23,7 +24,7 @@ class PitBoard(ChromeOSBoard):
     return ['CPU']
 
   def SetChargeState(self, state):
-    #TODO: Add an actual SetChargeState implementation
+    # TODO: Add an actual SetChargeState implementation
     logging.info('SetChargeState: Non-functional. See crosbug.com/p/19417')
 
   def GetChargerCurrent(self):

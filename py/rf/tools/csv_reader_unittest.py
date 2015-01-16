@@ -15,9 +15,10 @@ from cros.factory.rf.tools.csv_reader import ReadCsvAsListOfDict
 
 
 class CsvReaderTest(unittest.TestCase):
+
   def setUp(self):
     self.testdata_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "testdata")
+        os.path.dirname(os.path.realpath(__file__)), 'testdata')
     self.list_expected = [
         {'key1': 3, 'key2': 4},
         {'key1': 2, 'key2': 5},
@@ -26,17 +27,17 @@ class CsvReaderTest(unittest.TestCase):
     self.dict_expected = {'key1': 33, 'key2': 2}
 
   def testReadSingleCell(self):
-    self.assertEqual(ReadSingleCell("100"), 100)
-    self.assertEqual(ReadSingleCell("'str_test'"), "str_test")
-    self.assertEqual(ReadSingleCell("(300, 600)"), (300, 600))
-    self.assertEqual(ReadSingleCell(""), None)
-    self.assertEqual(ReadSingleCell("[1, 4, 7]"), [1, 4, 7])
-    self.assertEqual(ReadSingleCell("[1, 4, 7]"), [1, 4, 7])
+    self.assertEqual(ReadSingleCell('100'), 100)
+    self.assertEqual(ReadSingleCell("'str_test'"), 'str_test')
+    self.assertEqual(ReadSingleCell('(300, 600)'), (300, 600))
+    self.assertEqual(ReadSingleCell(''), None)
+    self.assertEqual(ReadSingleCell('[1, 4, 7]'), [1, 4, 7])
+    self.assertEqual(ReadSingleCell('[1, 4, 7]'), [1, 4, 7])
     self.assertRaisesRegexp(
-        NameError, "name .* is not defined",
-        ReadSingleCell, "invalid_syntax")
+        NameError, 'name .* is not defined',
+        ReadSingleCell, 'invalid_syntax')
     self.assertRaisesRegexp(
-        ValueError, "Failed to load external",
+        ValueError, 'Failed to load external',
         ReadSingleCell, "CsvLink('not_exist_file.csv')")
 
   def testReadCsvAsADict(self):

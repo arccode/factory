@@ -3,10 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-This program dumps all datas in a local sqlite database into device.json,
-test.json, event.json and component.json that are suitable to be imported to
-Google BigQuery using the schemas in schemas/.
+"""This program dumps all datas in a local sqlite database into device.json, test.json, event.json and component.json that are suitable to be imported to Google BigQuery using the schemas in schemas/.
 
 To use it, invoke as a standalone program:
   ./dump_db.py [options]
@@ -57,12 +54,13 @@ def Main():
       for cd in database(ComponentDetail).Filter(
           device_id=c['device_id'],
           component_class=c['component_class']).Values():
-        c['details'].append(dict((k, v[:ATTR_LENGTH_LIMIT])
-                               for k, v in cd.iteritems()
-                               if k != 'device_id' and k != 'component_class'))
+        c['details'].append(dict(
+            (k, v[: ATTR_LENGTH_LIMIT])
+            for k, v in cd.iteritems()
+            if k != 'device_id' and k != 'component_class'))
       json.dump(c, f, separators=(',', ':'), sort_keys=True)
       f.write('\n')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   Main()

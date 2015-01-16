@@ -16,6 +16,7 @@ from cros.factory.utils.sys_utils import MountPartition
 
 BUNDLE_MOUNT_POINT = '/mnt/factory_bundle'
 
+
 def MakeUpdateBundle(factory_image, output):
   """Prepares an updater bundle.
 
@@ -39,7 +40,7 @@ def MakeUpdateBundle(factory_image, output):
            '-C', os.path.join(BUNDLE_MOUNT_POINT, 'dev_image'),
            '--exclude', 'factory/MD5SUM',
            'factory', 'autotest'],
-           check_call=True, log=True)
+          check_call=True, log=True)
     md5sum = (Spawn(['md5sum', output], check_output=True).
               stdout_data.split()[0])
     logging.info('MD5SUM is %s', md5sum)
@@ -55,7 +56,7 @@ def MakeUpdateBundle(factory_image, output):
 def main():
   logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser(
-      description="Prepare an updater bundle.")
+      description='Prepare an updater bundle.')
   parser.add_argument('-i', '--factory_image', metavar='FILE',
                       dest='factory_image',
                       required=True,

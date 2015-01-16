@@ -19,6 +19,7 @@ from cros.factory.umpire.umpire_env import UmpireEnv
 
 
 class MockShopFloorManager(object):
+
   def Allocate(self, *unused_args, **unused_kwargs):
     return (9876, 'dummy_token')
 
@@ -28,6 +29,7 @@ class MockShopFloorManager(object):
 
 
 class TestShopFloorService(unittest.TestCase):
+
   def setUp(self):
     self.env = UmpireEnv()
     self.temp_dir = tempfile.mkdtemp()

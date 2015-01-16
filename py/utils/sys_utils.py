@@ -82,7 +82,7 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
     all_options.append('offset=%d' % offset)
   elif index:
     def RunCGPT(option):
-      '''Runs cgpt and returns the integer result.'''
+      """Runs cgpt and returns the integer result."""
       return int(
           Spawn(['cgpt', 'show', '-i', str(index),
                  option, source_path],
@@ -204,6 +204,7 @@ def GetI2CBus(device_names):
 
 class PartitionInfo(object):
   """A class that holds the info of a partition."""
+
   def __init__(self, major, minor, blocks, name):
     self.major = major
     self.minor = minor

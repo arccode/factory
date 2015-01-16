@@ -3,8 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-Minijack is a real-time log converter for on-site factory log analysis.
+"""Minijack is a real-time log converter for on-site factory log analysis.
 
 It runs in the same device of the shopfloor service and keeps monitoring
 the event log directory. When new logs come, it converts these event logs
@@ -55,6 +54,7 @@ class EventSinker(object):
     _event_invokers: A dict of lists, where the event id as key and the list
                      of handler functions as value.
   """
+
   def __init__(self, database):
     self._database = database
     self._all_exporters = []
@@ -130,6 +130,7 @@ class Minijack(object):
     _event_blob_queue: The queue storing event blobs.
     _event_stream_queue: The queue storing event streams.
   """
+
   def __init__(self):
     self._database = None
     self._file_scanner = None
@@ -228,12 +229,12 @@ class Minijack(object):
 
     logging.debug('Init event loading workers, jobs = %d', options.jobs)
     self._worker_processes.extend([multiprocessing.Process(
-          target=EventLoadingWorker(options.event_log_dir),
-          kwargs=dict(
+        target=EventLoadingWorker(options.event_log_dir),
+        kwargs=dict(
             output_writer=self._event_stream_queue.put,
             input_reader=iter(self._event_blob_queue.get, None),
             input_done=self._event_blob_queue.task_done)
-        ) for _ in range(options.jobs)])
+    ) for _ in range(options.jobs)])
 
     logging.debug('Init event sinking workers')
     self._database = db.Database(options.minijack_db)
@@ -246,13 +247,13 @@ class Minijack(object):
     self._worker_processes.append(multiprocessing.Process(
         target=IdentityWorker(),
         kwargs=dict(
-          output_writer=sinker.SinkEventStream,
-          input_reader=iter(self._event_stream_queue.get, None),
-          input_done=lambda: (
-            self._event_stream_queue.task_done(),
-            # TODO(waihong): Move the queue monitoring to the main loop such
-            # that it has better controls to create/terminate processes.
-            self.CheckQueuesEmpty()))))
+            output_writer=sinker.SinkEventStream,
+            input_reader=iter(self._event_stream_queue.get, None),
+            input_done=lambda: (
+                self._event_stream_queue.task_done(),
+                # TODO(waihong): Move the queue monitoring to the main loop such
+                # that it has better controls to create/terminate processes.
+                self.CheckQueuesEmpty()))))
 
   def Destory(self):
     """Destorys Minijack."""

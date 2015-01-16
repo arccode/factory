@@ -30,7 +30,7 @@ class SelectForSamplingTest(unittest.TestCase):
       Arg('device_data_key', str,
           'Key in the device data dictionary',
           default='selected_for_sampling'),
-      ]
+  ]
 
   def runTest(self):
     self.assertGreaterEqual(self.args.rate, 0.0)

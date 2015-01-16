@@ -44,9 +44,9 @@ class UIActuator(test_ui.UI):
     def _Run():
       self.event_client.wait(
           lambda e:
-            (e.type == event.Event.Type.END_TEST and
-             e.invocation == self.invocation and
-             e.test == self.test))
+          (e.type == event.Event.Type.END_TEST and
+           e.invocation == self.invocation and
+           e.test == self.test))
 
     utils.StartDaemonThread(target=_Run)
 
@@ -177,7 +177,7 @@ class UIActuator(test_ui.UI):
           if (element) { element.%s = "%s"; return true; }
           return false;
         }()""" % (element_id, attribute, test_ui.Escape(text)),
-        lambda rv: rv, timeout_secs=timeout_secs)
+                       lambda rv: rv, timeout_secs=timeout_secs)
 
   def SetElementValue(self, element_id, text, timeout_secs=5):
     """Sets "value" attribute of a DOM element.
@@ -239,7 +239,7 @@ class UIActuator(test_ui.UI):
           element.dispatchEvent(event);
           """ % ({'target': target, 'event_type': event_type,
                   'key_code': key_code}),
-          key=key, ctrl=ctrl, alt=alt, shift=shift, meta=meta)
+                 key=key, ctrl=ctrl, alt=alt, shift=shift, meta=meta)
 
     if event_type:
       # An explicit event_type is given.  Send only the given event.

@@ -5,8 +5,10 @@
 
 """Interfaces for FetchSource and UploadTarget."""
 
+
 class CommonFunction(object):
   """Basics function that both FetchSource and UploadTarget should have."""
+
   def LoadConfiguration(self, config, config_name=None):
     """Loads a configuration from a dictionary.
 
@@ -83,6 +85,7 @@ class CommonFunction(object):
 
 
 class FetchSourceInterface(CommonFunction):
+
   def ListFiles(self):
     """Returns a list of files exist in the source recursively.
 
@@ -118,6 +121,7 @@ class FetchSourceInterface(CommonFunction):
 
 
 class UploadTargetInterface(CommonFunction):
+
   def UploadFile(self, local_path, target_path,
                  metadata_path=None, resume=True):
     """Uploads a file to target.

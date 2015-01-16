@@ -3,8 +3,7 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-A factory test to test the function of display.
+"""A factory test to test the function of display.
 """
 
 import os
@@ -26,8 +25,8 @@ _HTML_DISPLAY = (
 
 
 class DisplayTest(unittest.TestCase):
-  '''
-  Tests the function of display.
+  '''Tests the function of display.
+
   Properties:
     self.ui: test ui.
     self.template: ui template handling html layout.
@@ -36,8 +35,8 @@ class DisplayTest(unittest.TestCase):
     self.static_dir: string of static file directory.
   '''
   ARGS = [
-    Arg('colors', list,
-        """Set colors. Available colors are
+      Arg('colors', list,
+          """Set colors. Available colors are
         "solid-gray-170",
         "solid-gray-127",
         "solid-gray-63",
@@ -54,11 +53,11 @@ class DisplayTest(unittest.TestCase):
         "gradient-blue",
         "gradient-white"
         """,
-        default= ["solid-gray-170", "solid-gray-127", "solid-gray-63",
-                  "solid-red", "solid-green", "solid-blue"],
-        optional=True),
-    Arg('images',list,
-        """Set customized images. Available images are
+          default=['solid-gray-170', 'solid-gray-127', 'solid-gray-63',
+                   'solid-red', 'solid-green', 'solid-blue'],
+          optional=True),
+      Arg('images', list,
+          """Set customized images. Available images are
         "complex.bmp",
         "BLACK.BMP",
         "WHITE.BMP",
@@ -70,12 +69,12 @@ class DisplayTest(unittest.TestCase):
         "Horizontal(RGBW).bmp",
         "Vertical(RGBW).bmp"
         """,
-        default= [],
-        optional=True),
+          default=[],
+          optional=True),
   ]
 
   def setUp(self):
-    '''Initializes frontend presentation and properties.'''
+    """Initializes frontend presentation and properties."""
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
@@ -93,7 +92,7 @@ class DisplayTest(unittest.TestCase):
     return
 
   def runTest(self):
-    '''Sets the callback function of keys and run the test.'''
+    """Sets the callback function of keys and run the test."""
     self.ui.BindKey(' ', lambda _: self.OnSpacePressed())
     self.ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
     self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
@@ -112,31 +111,31 @@ class DisplayTest(unittest.TestCase):
     return file_static_dir
 
   def ExtractTestImages(self):
-    '''Extracts selected test images from test_images.tar.gz.'''
+    """Extracts selected test images from test_images.tar.gz."""
     file_utils.ExtractFile(os.path.join(self.static_dir, 'test_images.tar.gz'),
                            self.static_dir, self.args.images)
 
   def RemoveTestImages(self):
-    '''Removes extracted image files after test finished.'''
+    """Removes extracted image files after test finished."""
     for image in self.args.images:
       file_utils.TryUnlink(os.path.join(self.static_dir, image))
 
   def OnSpacePressed(self):
-    '''Sets self.checked to True.Calls JS function to switch display on/off.'''
+    """Sets self.checked to True.Calls JS function to switch display on/off."""
     self.checked = True
     self.ui.CallJSFunction('switchDisplayOnOff')
     self.fullscreen = not self.fullscreen
     self.ui.HideTooltips()
 
   def OnEnterPressed(self):
-    '''Passes the subtest only if self.checked is True.'''
+    """Passes the subtest only if self.checked is True."""
     if self.checked:
       self.ui.CallJSFunction('passSubTest')
       # If the next subtest will be in fullscreen mode, checked should be True
       self.checked = self.fullscreen
 
   def OnFailPressed(self):
-    '''Fails the subtest only if self.checked is True.'''
+    """Fails the subtest only if self.checked is True."""
     if self.checked:
       self.ui.CallJSFunction('failSubTest')
       # If the next subtest will be in fullscreen mode, checked should be True

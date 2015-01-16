@@ -40,6 +40,7 @@ exception_list = []
 # HTML for spinner icon.
 SPINNER_HTML_16x16 = '<img src="/images/active.gif" width=16 height=16>'
 
+
 def Escape(text, preserve_line_breaks=True):
   """Escapes HTML.
 
@@ -102,10 +103,10 @@ def MakeStatusLabel(status):
       status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
   """
   STATUS_ZH = {
-    TestState.PASSED: u'良好',
-    TestState.FAILED: u'不良',
-    TestState.ACTIVE: u'正在测',
-    TestState.UNTESTED: u'未测'
+      TestState.PASSED: u'良好',
+      TestState.FAILED: u'不良',
+      TestState.ACTIVE: u'正在测',
+      TestState.UNTESTED: u'未测'
   }
   return MakeLabel(status.lower(),
                    STATUS_ZH.get(status, status))
@@ -113,6 +114,7 @@ def MakeStatusLabel(status):
 
 class UI(object):
   """Web UI for a factory test."""
+
   def __init__(self, css=None, setup_static_files=True):
     self.lock = threading.RLock()
     self.event_client = EventClient(callback=self._HandleEvent,
@@ -151,8 +153,7 @@ class UI(object):
     # Find and register the static directory, if any.
     static_dirs = filter(os.path.exists,
                          [base + '_static',
-                          os.path.join(os.path.dirname(py_script), 'static')
-                         ])
+                          os.path.join(os.path.dirname(py_script), 'static')])
     if len(static_dirs) > 1:
       raise FactoryTestFailure('Cannot have both of %s - delete one!' %
                                static_dirs)
@@ -175,16 +176,16 @@ class UI(object):
             autoload)
 
       factory.get_state_instance().register_path(
-        '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
-        autoload[0])
+          '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
+          autoload[0])
       return open(autoload[0]).read()
 
     html = '\n'.join(
-      ['<head id="head">',
-       '<base href="/tests/%s/">' % self.test,
-       '<link rel="stylesheet" type="text/css" href="/goofy.css">',
-       '<link rel="stylesheet" type="text/css" href="/test.css">',
-       GetAutoload('html')])
+        ['<head id="head">',
+         '<base href="/tests/%s/">' % self.test,
+         '<link rel="stylesheet" type="text/css" href="/goofy.css">',
+         '<link rel="stylesheet" type="text/css" href="/test.css">',
+         GetAutoload('html')])
     self.PostEvent(Event(Event.Type.INIT_TEST_UI, html=html))
 
     js = GetAutoload('js')
@@ -212,7 +213,7 @@ class UI(object):
   def AppendCSS(self, css):
     """Append CSS in the test pane."""
     self.AppendHTML('<style type="text/css">%s</style>' % css,
-                    id="head")
+                    id='head')
 
   def RunJS(self, js, **kwargs):
     """Runs JavaScript code in the UI.
@@ -343,12 +344,13 @@ class UI(object):
       on_finish: Callback function when UI ends. This can be used to notify
         the test for necessary clean-up (e.g. terminate an event loop.)
     """
+
     def _RunImpl(self, blocking, on_finish):
       event = self.event_client.wait(
           lambda event:
-            (event.type == Event.Type.END_TEST and
-             event.invocation == self.invocation and
-             event.test == self.test))
+          (event.type == Event.Type.END_TEST and
+           event.invocation == self.invocation and
+           event.test == self.test))
       logging.info('Received end test event %r', event)
       if self.task_hook:
         # Let factory task have a chance to do its clean up work.

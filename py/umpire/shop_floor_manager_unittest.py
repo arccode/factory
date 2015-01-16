@@ -11,6 +11,7 @@ from cros.factory.umpire.shop_floor_manager import ShopFloorManager
 
 
 class ShopFloorManagerTest(unittest.TestCase):
+
   def testOnlyOnePort(self):
     m = ShopFloorManager(9001, 9001)
     port, token = m.Allocate('b1')
@@ -34,7 +35,6 @@ class ShopFloorManagerTest(unittest.TestCase):
     self.assertListEqual([(9001, 'b1')], m.GetPortMapping())
     self.assertListEqual([('b1', '/shop_floor/9001/' + token)],
                          m.GetBundleHandlerMapping())
-
 
   def testAllocateTwice(self):
     # Give 3 free ports.
@@ -89,4 +89,3 @@ class ShopFloorManagerTest(unittest.TestCase):
 
 if __name__ == '__main__':
   unittest.main()
-

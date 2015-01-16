@@ -16,6 +16,7 @@ from cros.factory.goofy import goofy_rpc
 from cros.factory.test import utils
 from cros.factory.utils import process_utils
 
+
 @contextmanager
 def ReplaceAttribute(obj, name, value):
   old_value = getattr(obj, name)
@@ -27,6 +28,7 @@ def ReplaceAttribute(obj, name, value):
 
 
 class GoofyRPCTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.goofy_rpc = goofy_rpc.GoofyRPC(None)
@@ -41,19 +43,19 @@ class GoofyRPCTest(unittest.TestCase):
     with tempfile.NamedTemporaryFile(bufsize=0) as f:
       self.mox.stubs.Set(goofy_rpc, 'VAR_LOG_MESSAGES', f.name)
       data = ("Captain's log.\xFF\n"  # \xFF = invalid UTF-8
-              "We are in pursuit of a starship of Ferengi design.\n")
+              'We are in pursuit of a starship of Ferengi design.\n')
       f.write(('X' * 100) + '\n' + data)
       # Use max_length=len(data) + 5 so that we'll end up reading
       # (and discarding) the last 5 bytes of garbage X's.
       self.assertEquals(
-          u"<truncated 101 bytes>\n"
+          u'<truncated 101 bytes>\n'
           u"Captain's log.\ufffd\n"
-          u"We are in pursuit of a starship of Ferengi design.\n",
+          u'We are in pursuit of a starship of Ferengi design.\n',
           self.goofy_rpc.GetVarLogMessages(max_length=(len(data) + 5)))
 
   def testGetVarLogMessagesBeforeReboot(self):
     utils.var_log_messages_before_reboot(lines=2, max_length=100).AndReturn(
-        ['foo\xFF','bar'])
+        ['foo\xFF', 'bar'])
     self.mox.ReplayAll()
     self.assertEquals(u'foo\ufffd\nbar\n',
                       self.goofy_rpc.GetVarLogMessagesBeforeReboot(2, 100))

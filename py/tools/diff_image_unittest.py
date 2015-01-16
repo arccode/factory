@@ -37,7 +37,9 @@ EXPECTED_OUTPUT = '''
 Found 4 differences
 '''
 
+
 class DiffImageTest(unittest.TestCase):
+
   def setUp(self):
     self.tmp = tempfile.mkdtemp(suffix='.diff_image_unittest')
     self.mox = mox.Mox()

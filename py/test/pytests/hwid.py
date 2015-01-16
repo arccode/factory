@@ -14,7 +14,7 @@
 # To use the auto-probing feature, you have to specify some arguments to the
 # test. Please refer to ARGS below for detailed explanation.
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 import logging
 import re
 import unittest
@@ -36,9 +36,10 @@ _MESSAGE_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
 _MESSAGE_AUTO_PROBE_HWID = test_ui.MakeLabel('Auto probing HWID...',
                                              u'自动侦测 HWID 中...',
                                              'hwid-font-size')
-_MESSAGE_WRITING = (lambda hwid:
-    test_ui.MakeLabel('Writing HWID: %s' % hwid, u'写入 HWID: %s' % hwid,
-                      'hwid-font-size'))
+_MESSAGE_WRITING = (
+    lambda hwid: test_ui.MakeLabel(
+        'Writing HWID: %s' % hwid,
+        u'写入 HWID: %s' % hwid, 'hwid-font-size'))
 _MESSAGE_CHOOSE_HWID = test_ui.MakeLabel('Select HWID:</br></br>',
                                          u'选择 HWID：</br></br>',
                                          'hwid-font-size')
@@ -67,7 +68,8 @@ _TEST_TITLE = test_ui.MakeLabel('HWID Test', u'HWID测试')
 
 
 class WriteHWIDTask(FactoryTask):
-  '''Writes HWID using gooftool.'''
+  """Writes HWID using gooftool."""
+
   def __init__(self, test):
     super(WriteHWIDTask, self).__init__()
     self.test = test
@@ -75,7 +77,7 @@ class WriteHWIDTask(FactoryTask):
   def Run(self):
     hwid = self.test.hwid
     if not hwid:
-      raise ValueError("Invalid empty HWID")
+      raise ValueError('Invalid empty HWID')
 
     self.test.template.SetState(_MESSAGE_WRITING(hwid))
     # TODO(hungte) Support partial matching by gooftools or hwid_tool.
@@ -88,13 +90,14 @@ class WriteHWIDTask(FactoryTask):
     if hwid != current_hwid:
       gooftools.run("gooftool write_hwid '%s'" % hwid)
     else:
-      logging.info("Probed HWID is the same as the one already on "
-                           "the machine. Skip write.")
+      logging.info('Probed HWID is the same as the one already on '
+                   'the machine. Skip write.')
     self.Stop()
 
 
 class ShopFloorHWIDTask(FactoryTask):
-  '''Fetchs HWID from shop floor server.'''
+  """Fetchs HWID from shop floor server."""
+
   def __init__(self, test):
     super(ShopFloorHWIDTask, self).__init__()
     self.test = test
@@ -107,7 +110,8 @@ class ShopFloorHWIDTask(FactoryTask):
 
 
 class AutoProbeHWIDTask(FactoryTask):
-  '''Automatically probes matched HWID(s) using gooftool.'''
+  """Automatically probes matched HWID(s) using gooftool."""
+
   def __init__(self, test):
     super(AutoProbeHWIDTask, self).__init__()
     self.test = test
@@ -126,7 +130,7 @@ class AutoProbeHWIDTask(FactoryTask):
     if self.test.args.status:
       gooftool_cmd += ' --status %s' % self.test.args.status
     (stdout, _, _) = gooftools.run(gooftool_cmd)
-    matched_hwids = re.findall(r"^MATCHING HWID: (.+)$", stdout,
+    matched_hwids = re.findall(r'^MATCHING HWID: (.+)$', stdout,
                                re.MULTILINE)
 
     if matched_hwids:
@@ -136,15 +140,15 @@ class AutoProbeHWIDTask(FactoryTask):
         match = HWID_RE.search(matched_hwids[i]).group(0)
         if match:
           self.test.hwid_list.append(match)
-      logging.info("Found matched HWIDs: %s", self.test.hwid_list)
+      logging.info('Found matched HWIDs: %s', self.test.hwid_list)
     else:
       self.test.template.SetState(_ERR_HWID_NOT_FOUND)
-      factory.console.error("Cannot find matched HWID.")
+      factory.console.error('Cannot find matched HWID.')
     self.Stop()
 
 
 class SelectHWIDTask(FactoryTask):
-  '''Shows a list of HWIDs on UI and let operator choose a HWID from the it.'''
+  """Shows a list of HWIDs on UI and let operator choose a HWID from the it."""
 
   def __init__(self, test):
     super(SelectHWIDTask, self).__init__()
@@ -159,7 +163,7 @@ class SelectHWIDTask(FactoryTask):
     if self.test.hwid_list:
       known_list = self.test.hwid_list
     else:
-      (stdout, _, result) = gooftools.run("hwid_tool hwid_list",
+      (stdout, _, result) = gooftools.run('hwid_tool hwid_list',
                                           ignore_status=True)
       known_list = stdout.splitlines()
       if (not known_list) or (result != 0):
@@ -206,32 +210,40 @@ class SelectHWIDTask(FactoryTask):
 
 class HWIDTest(unittest.TestCase):
   ARGS = [
-    Arg('override_hwid', (str, unicode),
-        'An override HWID which is used during development.', default=None,
-        optional=True),
-    Arg('manual_override', bool, 'Whether to allow manual HWID selection even '
-        'when the shopfloor server is enabled.', default=False,
-        optional=True),
-    Arg('auto_probe', bool, 'Whether to enable HWID auto probe.', default=False,
-        optional=True),
-    Arg('auto_select', bool,
-        'Whether to auto select HWID if there is only one match', default=True,
-        optional=True),
-    Arg('missing', list,
-        'A list of missing components in the following format:'
-        '["comp1", "comp2", ..]', default=None, optional=True),
-    Arg('comps', list,
-        'A list of known component canonicals to pass to gooftool in the'
-        'following format: ["comp_canonical1", "comp_canonical2", ...]',
-        default=None, optional=True),
-    Arg('variant', (str, unicode),
-        'A string indicating the variant code to pass to gooftool',
-        default=None, optional=True),
-    Arg('status', (str, unicode),
-        'A string indicating from what status of HWIDs should the program'
-        'find possible match. (deprecated, eol, qualified, supported)',
-        default='supported', optional=True)
-  ]
+      Arg(
+          'override_hwid', (str, unicode),
+          'An override HWID which is used during development.', default=None,
+          optional=True),
+      Arg(
+          'manual_override', bool,
+          'Whether to allow manual HWID selection even '
+          'when the shopfloor server is enabled.', default=False,
+          optional=True),
+      Arg(
+          'auto_probe', bool, 'Whether to enable HWID auto probe.',
+          default=False, optional=True),
+      Arg(
+          'auto_select', bool,
+          'Whether to auto select HWID if there is only one match',
+          default=True, optional=True),
+      Arg(
+          'missing', list,
+          'A list of missing components in the following format:'
+          '["comp1", "comp2", ..]', default=None, optional=True),
+      Arg(
+          'comps', list,
+          'A list of known component canonicals to pass to gooftool in the'
+          'following format: ["comp_canonical1", "comp_canonical2", ...]',
+          default=None, optional=True),
+      Arg(
+          'variant', (str, unicode),
+          'A string indicating the variant code to pass to gooftool',
+          default=None, optional=True),
+      Arg(
+          'status', (str, unicode),
+          'A string indicating from what status of HWIDs should the program'
+          'find possible match. (deprecated, eol, qualified, supported)',
+          default='supported', optional=True)]
 
   def setUp(self):
     self.hwid = None

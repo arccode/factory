@@ -153,7 +153,6 @@ def GenerateUploaderMetadata():
                    default_flow_style=False)
 
 
-
 # TODO(itspeter):
 #   Move to cros.factory.test.utils once migration to Umpire is fully
 #   rolled-out.

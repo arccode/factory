@@ -15,6 +15,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import edid
 
+
 class EdidTest(unittest.TestCase):
   """Unittest for edid.py"""
 
@@ -58,4 +59,3 @@ class EdidTest(unittest.TestCase):
 
 if __name__ == '__main__':
   unittest.main()
-

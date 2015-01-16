@@ -2,8 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''
-Implementation for Agilent ENA Series Network Analyzer (E5071C) device.
+'''Implementation for Agilent ENA Series Network Analyzer (E5071C) device.
 '''
 
 # TODO(itspeter): write unittest and verify it on a real E5071C
@@ -33,11 +32,11 @@ def CheckTraceValid(x_values, y_values):
       (3) len(x_values) != len(y_values).
   """
   if not x_values:
-    raise ValueError("Parameter x_values is empty")
+    raise ValueError('Parameter x_values is empty')
   if len(x_values) != len(y_values):
-    raise ValueError("Parameter x_values and y_values are not equal in length")
+    raise ValueError('Parameter x_values and y_values are not equal in length')
   if not all(x <= y for x, y in zip(x_values, x_values[1:])):
-    raise ValueError("Parameter x_values is not an increasing sequence")
+    raise ValueError('Parameter x_values is not an increasing sequence')
 
 
 def Interpolate(x_values, y_values, x_position):
@@ -75,7 +74,7 @@ def Interpolate(x_values, y_values, x_position):
   # Check if the x_position is inside some interval in the trace
   if x_position < x_values[0] or x_position > x_values[-1]:
     raise ValueError(
-        "x_position is not in the current range of x_values[%s,%s]" %
+        'x_position is not in the current range of x_values[%s,%s]' %
         (x_values[0], x_values[-1]))
 
   # Binary search where to interpolate the x_position
@@ -85,20 +84,20 @@ def Interpolate(x_values, y_values, x_position):
 
   # Interpolate the value according to the x_position
   delta_interval = (float(x_position - x_values[right_index - 1]) /
-      float(x_values[right_index] - x_values[right_index - 1]))
+                    float(x_values[right_index] - x_values[right_index - 1]))
   return (y_values[right_index - 1] +
-      (y_values[right_index] - y_values[right_index - 1]) * delta_interval)
+          (y_values[right_index] - y_values[right_index - 1]) * delta_interval)
 
 
 class Traces(object):
+
   def __init__(self):
     self.parameters = None
     self.x_axis = None
     self.traces = dict()
 
   def __repr__(self):
-    """
-    Returns a representation of the object, including its properties.
+    """Returns a representation of the object, including its properties.
     """
     return (self.__class__.__name__ + '(' +
             ', '.join('%s=%s' % (k, repr(getattr(self, k)))
@@ -122,13 +121,12 @@ class Traces(object):
       A floating point value in dB at freq.
     '''
     if parameter not in self.traces:
-      raise Error("No trace available for parameter %s" % parameter)
+      raise Error('No trace available for parameter %s' % parameter)
     return Interpolate(self.x_axis, self.traces[parameter], freq)
 
 
 class ENASCPI(AgilentSCPI):
-  '''
-  An Agilent ENA (E5071C) device.
+  '''An Agilent ENA (E5071C) device.
   '''
   PARAMETERS = Enum(['S11', 'S12', 'S21', 'S22'])
 
@@ -202,7 +200,7 @@ class ENASCPI(AgilentSCPI):
       min_freq, max_freq, pts = segments[i]
       assert max_freq >= min_freq
       if i < len(segments) - 1:
-        assert segments[i+1][0] >= min_freq
+        assert segments[i + 1][0] >= min_freq
 
     data = [
         5,              # Magic number from the device documentation
@@ -241,16 +239,16 @@ class ENASCPI(AgilentSCPI):
 
     ret = Traces()
     ret.parameters = parameters
-    ret.x_axis = self.Query(":CALC:SEL:DATA:XAX?", FLOATS)
+    ret.x_axis = self.Query(':CALC:SEL:DATA:XAX?', FLOATS)
     ret.traces = {}
     # Force the FDATA to be updated immediatedly.
-    self.Send(":INITiate1:CONTinuous OFF")
-    self.Send(":INITiate1:IMMediate")
+    self.Send(':INITiate1:CONTinuous OFF')
+    self.Send(':INITiate1:IMMediate')
     for i, p in zip(itertools.count(1), parameters):
       ret.traces[p] = (
-          self.Query(":CALC:TRACE%d:DATA:FDAT?" % i, FLOATS)[0::2])
+          self.Query(':CALC:TRACE%d:DATA:FDAT?' % i, FLOATS)[0::2])
       if len(ret.x_axis) != len(ret.traces[p]):
-        raise Error("x_axis has %d elements but trace has %d" %
+        raise Error('x_axis has %d elements but trace has %d' %
                     (len(ret.x_axis), len(ret.traces[p])))
       CheckTraceValid(ret.x_axis, ret.traces[p])
     # Unfreeze the trace.

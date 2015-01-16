@@ -15,6 +15,7 @@ class BaseExecutor(object):
   It abstracts the underlying database execution behaviors, like executing
   an SQL query, fetching results, etc.
   """
+
   def Execute(self, sql_cmd, args=None, dummy_commit=False, many=False):
     """Executes an SQL command.
 
@@ -79,6 +80,7 @@ class BaseExecutor(object):
 
 class BaseExecutorFactory(object):
   """A factory to generate Executor objects."""
+
   def NewExecutor(self):
     """Generates a new Executor object."""
     raise NotImplementedError()
@@ -89,6 +91,7 @@ class BaseDatabase(object):
 
   It abstracts the underlying database.
   """
+
   def __del__(self):
     self.Close()
 
@@ -314,7 +317,7 @@ class BaseDatabase(object):
     field_names = row.GetNonEmptyFieldNames()
     field_values = row.GetNonEmptyFieldValues()
     sql_cmd = ('DELETE FROM %s%s%s' % (
-                row.GetModelName(),
-                ' WHERE ' if field_names else '',
-                ' AND '.join([f + ' = ?' for f in field_names])))
+        row.GetModelName(),
+        ' WHERE ' if field_names else '',
+        ' AND '.join([f + ' = ?' for f in field_names])))
     return sql_cmd, field_values

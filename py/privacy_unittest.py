@@ -10,7 +10,9 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory import privacy
 
+
 class PrivacyTest(unittest.TestCase):
+
   def testList(self):
     self.assertEquals(
         ['element1', {u'gbind_attribute': '<redacted 1 chars>'}],
@@ -42,9 +44,11 @@ class PrivacyTest(unittest.TestCase):
         test_attribute=dict(ubind_attribute='<redacted 1 chars>'),
         test_attribute_2=[dict(ubind_attribute='<redacted 1 chars>'), 'hi'])
     self.assertEquals(filtered_data, golden_data)
-    self.assertEquals(data, dict(gbind_attribute='1',
-        test_attribute=dict(ubind_attribute='2'),
-        test_attribute_2=[dict(ubind_attribute='3'), 'hi']))
+    self.assertEquals(
+        data,
+        dict(
+            gbind_attribute='1', test_attribute=dict(ubind_attribute='2'),
+            test_attribute_2=[dict(ubind_attribute='3'), 'hi']))
 
 if __name__ == '__main__':
   unittest.main()

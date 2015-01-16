@@ -206,7 +206,7 @@ def main(argv):
       # Import system may have been corrupted by packages with static
       # registration like Zope or Twisted. Let's try again.
       if argv.index(argv_path) > 0:
-        print("(cleaning import space for %s)" % argv_path)
+        print('(cleaning import space for %s)' % argv_path)
         os.putenv(ENV_EXIT_VALUE, str(exit_value))
         os.execlp(sys.argv[0], sys.argv[0], *argv[argv.index(argv_path):])
 

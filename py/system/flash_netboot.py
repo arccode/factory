@@ -32,6 +32,7 @@ class FlashNetboot(object):
         matches exactly one file.
     on_output: Output callback. Default None: output to stdout.
   """
+
   def __init__(self, image_file_pattern, on_output=None):
     self._on_output = on_output
     self._fw_main = None

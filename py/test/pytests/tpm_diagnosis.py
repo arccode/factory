@@ -24,12 +24,12 @@ _CSS = '#state {text-align:left;}'
 
 class TpmDiagnosisTest(unittest.TestCase):
   ARGS = [
-    Arg('tpm_selftest', str, 'Path of tpm_selftest program.',
-        default='/usr/local/sbin/tpm_selftest'),
-    Arg('tpm_args', list, 'List of tpm_selftest args.',
-        default=['-l', 'debug']),
-    Arg('success_pattern', str, 'Pattern of success.',
-        default='tpm_selftest succeeded')
+      Arg('tpm_selftest', str, 'Path of tpm_selftest program.',
+          default='/usr/local/sbin/tpm_selftest'),
+      Arg('tpm_args', list, 'List of tpm_selftest args.',
+          default=['-l', 'debug']),
+      Arg('success_pattern', str, 'Pattern of success.',
+          default='tpm_selftest succeeded')
   ]
 
   def setUp(self):
@@ -59,9 +59,9 @@ class TpmDiagnosisTest(unittest.TestCase):
       self._ui.Pass()
     else:
       self._ui.Fail(
-        'TPM self-diagnose failed: Cannot find a success pattern: "%s". '
-        'tpm_selftest returncode: %d.' % (self.args.success_pattern,
-                                          p.returncode))
+          'TPM self-diagnose failed: Cannot find a success pattern: "%s". '
+          'tpm_selftest returncode: %d.' % (self.args.success_pattern,
+                                            p.returncode))
 
   def runTest(self):
     threading.Thread(target=self.DiagnoseTpm).start()

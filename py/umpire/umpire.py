@@ -314,12 +314,12 @@ def ImportResource(args, umpire_cli):
 
     print 'Adding %r to resources' % resource_path
     resource_name = umpire_cli.AddResource(resource_path)
-    print 'Resource added as %r' %  resource_name
+    print 'Resource added as %r' % resource_name
 
 
 @Command('start-service',
-          CmdArg('services',
-                 help='Comma separate list of services to start.'))
+         CmdArg('services',
+                help='Comma separate list of services to start.'))
 def StartService(args, umpire_cli):
   """Starts a list of Umpire services."""
   services = args.services.split(',')

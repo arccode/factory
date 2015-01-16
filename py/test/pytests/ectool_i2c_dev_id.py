@@ -21,18 +21,18 @@ RE_I2C_RESULT = re.compile('Read from I2C port \d+ at \S+ offset \S+ = (0x\S+)')
 class EctoolI2CDevIdTest(unittest.TestCase):
 
   ARGS = [
-    Arg('bus', int, 'I2C bus to probe.'),
-    Arg('spec', list,
-        'A list of tuples containing address/registers and expected '
-        'values. Each tuple is in the following format:\n'
-        '\n'
-        '  (addr, reg, expected_value)\n'
-        '\n'
-        '- addr: The I2C address of the peripheral.\n'
-        '- reg: The register containing device ID.\n'
-        '- expected_value: The expected device ID.\n'
-        '\n'
-        'If the condition in any tuple matches, the test passes.'),
+      Arg('bus', int, 'I2C bus to probe.'),
+      Arg('spec', list,
+          'A list of tuples containing address/registers and expected '
+          'values. Each tuple is in the following format:\n'
+          '\n'
+          '  (addr, reg, expected_value)\n'
+          '\n'
+          '- addr: The I2C address of the peripheral.\n'
+          '- reg: The register containing device ID.\n'
+          '- expected_value: The expected device ID.\n'
+          '\n'
+          'If the condition in any tuple matches, the test passes.'),
   ]
 
   def CheckDevice(self, bus, addr, reg, expected_value):

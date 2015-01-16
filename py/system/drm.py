@@ -226,7 +226,7 @@ class DRMModeConnector(DRMModeBaseStruct):
       DRM_MODE_CONNECTOR_SVIDEO: 's-video',
       DRM_MODE_CONNECTOR_LVDS: 'LVDS',
       DRM_MODE_CONNECTOR_Component: 'component',
-      DRM_MODE_CONNECTOR_9PinDIN: "9-pin DIN",
+      DRM_MODE_CONNECTOR_9PinDIN: '9-pin DIN',
       DRM_MODE_CONNECTOR_DisplayPort: 'DP',
       DRM_MODE_CONNECTOR_HDMIA: 'HDMI-A',
       DRM_MODE_CONNECTOR_HDMIB: 'HDMI-B',
@@ -409,9 +409,8 @@ class DRMModeFB(DRMModeBaseStruct):
   DRM_IOCTL_MODE_MAP_DUMB = 0xc01064b3
 
   class DRMModeMapDumb(ctypes.Structure):
-    """
-    /* set up for mmap of a dumb scanout buffer */
-    struct drm_mode_map_dumb {
+    """/* set up for mmap of a dumb scanout buffer */ struct drm_mode_map_dumb {
+
             /** Handle for the object being mapped. */
             __u32 handle;
             __u32 pad;
@@ -501,6 +500,7 @@ class DRMModePropertyBlob(DRMModeBaseStruct):
 
 class DRM(object):
   """An abstraction of the DRM device."""
+
   def __init__(self, handle):
     self.handle = handle
     self.fd = handle.fileno()

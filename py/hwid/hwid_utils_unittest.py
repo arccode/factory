@@ -13,7 +13,7 @@ import re
 import unittest2
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import rule
 from cros.factory.hwid import common
 from cros.factory.hwid import database
@@ -25,8 +25,11 @@ from cros.factory.test import phase
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 # pylint: disable=E1101
+
+
 class HWIDv3UtilsTest(unittest2.TestCase):
   """Test cases for HWID v3 utilities."""
+
   def setUp(self):
     self.db = database.Database.LoadFile(
         os.path.join(TEST_DATA_PATH, 'TEST_BOARD'))
@@ -41,9 +44,9 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         },
         'rw': {
             'gbind_attribute': '333333333333333333333'
-            '33333333333333333333333333333333333333333332dbecc73',
+                               '33333333333333333333333333333333333333333332dbecc73',
             'ubind_attribute': '323232323232323232323'
-            '232323232323232323232323232323232323232323256850612'
+                               '232323232323232323232323232323232323232323256850612'
         }
     }
 
@@ -90,7 +93,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         [(None, {'compact_str': 'fake value'},
           ("Invalid 'battery' component found with probe result "
            "{ 'compact_str': 'fake value'} "
-           "(no matching name in the component DB)"))],
+           '(no matching name in the component DB)'))],
         results['battery'])
     self.assertEquals(
         [('codec_1', {'compact_str': rule.Value('Codec 1')}, None),
@@ -98,7 +101,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
          (None, {'compact_str': 'fake value'},
           ("Invalid 'audio_codec' component found with probe result "
            "{ 'compact_str': 'fake value'} "
-           "(no matching name in the component DB)"))],
+           '(no matching name in the component DB)'))],
         results['audio_codec'])
 
   def testVerifyBadComponents3(self):
@@ -238,7 +241,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     # ...but not in PVT
     self.assertRaisesRegexp(
         common.HWIDException,
-        "MP keys are required in PVT, but key_recovery component name is "
+        'MP keys are required in PVT, but key_recovery component name is '
         "'key_recovery_premp' and key_root component name is 'key_root_premp'",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F6A-A6B',
         probed_results, self.vpd, False, phase.PVT)
@@ -248,7 +251,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     probed_results['found_volatile_values']['ro_main_firmware'].update(
         {'compact_str': 'mv2#ro_main_firmware_1'})
     self.assertRaisesRegexp(
-        common.HWIDException, r"Not in RMA mode. Found deprecated component of "
+        common.HWIDException, r'Not in RMA mode. Found deprecated component of '
         r"'ro_main_firmware': 'ro_main_firmware_1'",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-H9T', probed_results,
         self.vpd, False, phase.PVT)

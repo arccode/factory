@@ -10,7 +10,7 @@
 """Unittest for factory.py."""
 
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 import glob
 import logging
@@ -26,8 +26,9 @@ SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
 class FactoryModuleTest(unittest.TestCase):
   """Unittest for Factory module."""
+
   def test_parse_test_lists(self):
-    '''Checks that all known test lists are parseable.'''
+    """Checks that all known test lists are parseable."""
     # This test is located in a full source checkout (e.g.,
     # src/third_party/autotest/files/client/cros/factory/
     # factory_unittest.py). Construct the paths to any test lists in
@@ -36,8 +37,8 @@ class FactoryModuleTest(unittest.TestCase):
 
     test_lists.extend(os.path.realpath(x) for x in glob.glob(
         os.path.join(SRCROOT, 'src/private-overlays/*/'
-               'chromeos-base/autotest-private-board/'
-               'files/test_list*')))
+                     'chromeos-base/autotest-private-board/'
+                     'files/test_list*')))
 
     failures = []
     for test_list in test_lists:
@@ -58,25 +59,25 @@ class FactoryModuleTest(unittest.TestCase):
 
     # This is a valid option.
     factory.read_test_list(
-      text=base_test_list +
-      'options.auto_run_on_start = True')
+        text=base_test_list +
+        'options.auto_run_on_start = True')
 
     try:
       factory.read_test_list(
-        text=base_test_list + 'options.auto_run_on_start = 3')
+          text=base_test_list + 'options.auto_run_on_start = 3')
       self.fail('Expected exception')
     except factory.TestListError as e:
       self.assertTrue(
-        'Option auto_run_on_start has unexpected type' in e[0], e)
+          'Option auto_run_on_start has unexpected type' in e[0], e)
 
     try:
       factory.read_test_list(
-        text=base_test_list + 'options.fly_me_to_the_moon = 3')
+          text=base_test_list + 'options.fly_me_to_the_moon = 3')
       self.fail('Expected exception')
     except factory.TestListError as e:
       # Sorry, swinging among the stars is currently unsupported.
       self.assertTrue(
-        'Unknown option fly_me_to_the_moon' in e[0], e)
+          'Unknown option fly_me_to_the_moon' in e[0], e)
 
   def test_py_test_name_to_id(self):
     for name, test_id in (('a', 'A'),
@@ -86,6 +87,6 @@ class FactoryModuleTest(unittest.TestCase):
                           ('foo_bar', 'FooBar')):
       self.assertEqual(test_id, factory.FactoryTest.pytest_name_to_id(name))
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   factory.init_logging('factory_unittest')
   unittest.main()

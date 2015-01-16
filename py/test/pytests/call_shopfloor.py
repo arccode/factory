@@ -42,15 +42,15 @@ class CallShopfloor(unittest.TestCase):
   }
 
   ARGS = [
-    Arg('method', str,
-        'Name of shopfloor method to call'),
-    Arg('args', list,
-        'Method arguments.  If any argument is a function, it will be '
-        'invoked.'),
-    Arg('action', str,
-        ('Action to perform with return value; one of %s' %
-         sorted(RETURN_VALUE_ACTIONS.keys())),
-        optional=True),
+      Arg('method', str,
+          'Name of shopfloor method to call'),
+      Arg('args', list,
+          'Method arguments.  If any argument is a function, it will be '
+          'invoked.'),
+      Arg('action', str,
+          ('Action to perform with return value; one of %s' %
+           sorted(RETURN_VALUE_ACTIONS.keys())),
+          optional=True),
   ]
 
   def setUp(self):
@@ -68,6 +68,7 @@ class CallShopfloor(unittest.TestCase):
       action_handler = lambda value: None
 
     ui = test_ui.UI()
+
     def Done():
       self.done = True
       self.event.set()
@@ -102,7 +103,7 @@ class CallShopfloor(unittest.TestCase):
             """<button onclick="test.sendTestEvent('retry')">""" +
             test_ui.MakeLabel('Retry', '重试') +
             '</button>'
-            )
+        )
         WaitEvent(self.event)
         self.event.clear()
 

@@ -215,7 +215,7 @@ class TouchscreenCalibration(unittest.TestCase):
           'the USB calbe.\n\n'
           '请确认USB缆线是否已连结制具与控制电脑\n'
           '请连结USB缆线,并点击萤幕上治具连结的刷新按钮。'
-          )
+      )
       self.fixture = None
 
     fixture_ready = bool(self.fixture) and not self.fixture.IsEmergencyStop()
@@ -235,7 +235,7 @@ class TouchscreenCalibration(unittest.TestCase):
           '(1) 治具电源尚未开启。请开启电源，并点击萤幕上治具连结的刷新按钮。\n'
           '(2) 治具电源已经开启，但是处於紧急停止状态。'
           '请按治具左侧的debug按钮一次。\n'
-          )
+      )
     self._CreateMonitorPort()
 
   def RefreshTouchscreen(self, unused_event):
@@ -610,13 +610,13 @@ class TouchscreenCalibration(unittest.TestCase):
     self._CheckMountedMedia()
 
     self._RegisterEvents([
-      # Events that are emitted from buttons on the factory UI.
-      'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
-      'DriveProbeDown', 'DriveProbeUp', 'ShutDown', 'QueryFixtureState',
-      'RefreshNetwork',
+        # Events that are emitted from buttons on the factory UI.
+        'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
+        'DriveProbeDown', 'DriveProbeUp', 'ShutDown', 'QueryFixtureState',
+        'RefreshNetwork',
 
-      # Events that are emitted from other callback functions.
-      'StartCalibration',
+        # Events that are emitted from other callback functions.
+        'StartCalibration',
     ])
 
     self.ui.Run()

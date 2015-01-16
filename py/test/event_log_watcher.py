@@ -34,13 +34,14 @@ class ScanException(Exception):
 class Chunk(collections.namedtuple('Chunk', 'log_name chunk pos')):
   # pylint: disable=W0232
   # pylint: disable=E1101
+
   def __str__(self):
     return 'Chunk(log_name=%r, len=%s, pos=%d)' % (
         self.log_name, len(self.chunk), self.pos)
 
 
 class EventLogWatcher(object):
-  '''An object watches event log and invokes a callback as new logs appear.'''
+  """An object watches event log and invokes a callback as new logs appear."""
 
   def __init__(self,
                watch_period_sec=30,
@@ -74,18 +75,18 @@ class EventLogWatcher(object):
     self._db = {} if self._use_sync_markers else self.GetOrCreateDb()
 
   def StartWatchThread(self):
-    '''Starts a thread to watch event logs.'''
+    """Starts a thread to watch event logs."""
     logging.info('Watching event logs...')
     self._watch_thread = threading.Thread(target=self.WatchForever,
                                           name='EventLogWatcher')
     self._watch_thread.start()
 
   def IsThreadStarted(self):
-    '''Returns True if the thread is currently running.'''
+    """Returns True if the thread is currently running."""
     return self._watch_thread is not None
 
   def IsScanning(self):
-    '''Returns True if currently scanning (i.e., the lock is held).'''
+    """Returns True if currently scanning (i.e., the lock is held)."""
     if self._scan_lock.acquire(blocking=False):
       self._scan_lock.release()
       return False
@@ -127,7 +128,7 @@ class EventLogWatcher(object):
             f.flush()
             os.fdatasync(f)
 
-    except: # pylint: disable=W0702
+    except:  # pylint: disable=W0702
       if suppress_error:
         logging.exception('Upload handler error')
       else:
@@ -142,7 +143,7 @@ class EventLogWatcher(object):
         self._db[chunk.log_name] = log_state
       if not self._use_sync_markers:
         self._db.sync()
-    except: # pylint: disable=W0702
+    except:  # pylint: disable=W0702
       if suppress_error:
         logging.exception('Upload handler error')
       else:
@@ -159,7 +160,7 @@ class EventLogWatcher(object):
       ScanException: if at least one ScanEventLog call throws exception.
     '''
     if not os.path.exists(self._event_log_dir):
-      logging.warn("Event log directory %s does not exist yet",
+      logging.warn('Event log directory %s does not exist yet',
                    self._event_log_dir)
       return
 
@@ -202,9 +203,8 @@ class EventLogWatcher(object):
     if chunks:
       self._CallEventLogHandler(chunks, suppress_error)
 
-
   def StopWatchThread(self):
-    '''Stops the event logs watching thread.'''
+    """Stops the event logs watching thread."""
     self._aborted.set()
     self._kick.set()
     self._watch_thread.join()
@@ -216,12 +216,12 @@ class EventLogWatcher(object):
     self._kick.set()
 
   def Close(self):
-    '''Closes the database.'''
+    """Closes the database."""
     if not self._use_sync_markers:
       self._db.close()
 
   def WatchForever(self):
-    '''Watches event logs forever.'''
+    """Watches event logs forever."""
     while True:
       # Flush the event logs once every watch period.
       self._kick.wait(self._watch_period_sec)
@@ -235,7 +235,7 @@ class EventLogWatcher(object):
         logging.exception('Error in event log watcher thread')
 
   def GetOrCreateDb(self):
-    '''Gets the database or recreate one if exception occurs.'''
+    """Gets the database or recreate one if exception occurs."""
     assert not self._use_sync_markers
 
     try:
@@ -290,5 +290,5 @@ class EventLogWatcher(object):
       return Chunk(log_name, chunk, log_state[KEY_OFFSET])
 
   def GetEventLog(self, log_name):
-    '''Gets the log for given log name.'''
+    """Gets the log for given log name."""
     return self._db.get(log_name)

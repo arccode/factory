@@ -47,7 +47,9 @@ BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK = os.path.join(
 TFTPBOOT_UMPIRE_SYMLINK = os.path.join('tftpboot', 'vmlinux-%s.bin' %
                                        TEST_BOARD)
 
+
 class InitTest(unittest.TestCase):
+
   def setUp(self):
     self.env = UmpireEnv()
     self.mox = mox.Mox()
@@ -89,7 +91,6 @@ class InitTest(unittest.TestCase):
                                   umpire_common.DUMMY_RESOURCE)
     self.assertTrue(os.path.isfile(dummy_resource))
     self.assertEqual('', open(dummy_resource).read())
-
 
   def VerifyToolkitInResource(self):
     self.assertTrue(os.path.exists(os.path.join(
@@ -192,7 +193,6 @@ class InitTest(unittest.TestCase):
     self.assertEqual('modified active config',
                      active_config.GetDefaultBundle()['note'])
 
-
   def testSetLocal(self):
     self.MockOsModule()
     self.mox.ReplayAll()
@@ -243,7 +243,7 @@ class InitTest(unittest.TestCase):
 
     # Touch /usr/local/bin/umpire first to verify that Init doesn't change it.
     umpire_default_symlink = os.path.join(
-          self.root_dir, 'usr', 'local', 'bin', 'umpire')
+        self.root_dir, 'usr', 'local', 'bin', 'umpire')
     TouchFile(umpire_default_symlink)
 
     # default=False

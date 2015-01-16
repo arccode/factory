@@ -20,6 +20,7 @@ from cros.factory.test.test_lists.test_lists import (
 
 
 class CommonTest(unittest.TestCase):
+
   def testBasic(self):
     class FakeModule(object):
       __file__ = 'fake.py'

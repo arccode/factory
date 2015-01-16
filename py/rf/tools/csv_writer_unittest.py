@@ -12,6 +12,7 @@ from cros.factory.utils.file_utils import UnopenedTemporaryFile
 
 
 class CsvWriterTest(unittest.TestCase):
+
   def testReadSingleCell(self):
     with UnopenedTemporaryFile() as tmp_file:
       WriteCsv(tmp_file,

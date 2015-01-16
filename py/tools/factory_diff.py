@@ -4,10 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-A script to diff master branch and factory branch. It shows the commits that
-only in master branch or only in factory branch.
+"""A script to diff master branch and factory branch.
 
+It shows the commits that only in master branch or only in factory branch.
 By default, these repos are diff'ed:
   platform/factory
   platform/chromeos-hwid
@@ -70,12 +69,15 @@ FORCE_FETCH_REPO_LIST = ['src/third_party/chromiumos-overlay']
 
 
 SRC = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
+
+
 def GetDefaultBoardOrNone():
   try:
     return (open(os.path.join(SRC, 'scripts', '.default_board')).read()
             .strip().rpartition('_')[2])
   except IOError:
     return None
+
 
 def GetFullRepoPath(repo_path):
   """Returns the full path of the given repo."""
@@ -92,7 +94,6 @@ def FindGitPrefix(repo_path):
     if match and match.group(1).startswith('cros'):
       return match.group(1)
   return None
-
 
 
 def GetBranch(board):
@@ -126,7 +127,7 @@ def GetBoardKernelVersion(board):
   KERNEL_SRC_USE_RE = re.compile(r'\+kernel-(\d+_\d+)', re.MULTILINE)
   return KERNEL_SRC_USE_RE.search(
       CheckOutput(['equery-%s' % board, 'uses', 'linux-sources'])
-      ).group(1).replace('_', '.')
+  ).group(1).replace('_', '.')
 
 
 def GetDiffList(diff):

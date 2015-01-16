@@ -34,6 +34,7 @@ _DICT_RESULT = {'TPM Being Owned': 'false',
 
 class DecodeUTF8Test(unittest.TestCase):
   """Unittest for DecodeUTF8."""
+
   def testDecodeUTF8(self):
     self.assertEquals(u'abc', DecodeUTF8('abc'))
     self.assertEquals(u'abc', DecodeUTF8(u'abc'))
@@ -42,12 +43,14 @@ class DecodeUTF8Test(unittest.TestCase):
 
 class ParseDictTest(unittest.TestCase):
   """Unittest for ParseDict."""
+
   def testParseDict(self):
     self.assertEquals(_DICT_RESULT, ParseDict(_LINES, ':'))
 
 
 class ParseStringTest(unittest.TestCase):
   """Unittest for ParseString."""
+
   def testPaseString(self):
     self.assertEquals('abc', ParseString('abc'))
     self.assertEquals(True, ParseString('true'))

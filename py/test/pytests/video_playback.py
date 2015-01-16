@@ -15,20 +15,20 @@ DEFAULT_SECONDS = 10
 
 
 class VideoPlaybackTest(unittest.TestCase):
-  '''Video Playback Test.'''
+  """Video Playback Test."""
   ARGS = [
-    Arg('video_file', str,
-        'Relative path to load the video.',
-        default='', optional=True),
-    Arg('loop', bool,
-        'Whether we want to loop the video.',
-        default=False, optional=True),
-    Arg('time_limit', int,
-        'Seconds to force terminate the test.',
-        default=DEFAULT_SECONDS, optional=True),
-    Arg('show_controls', bool,
-        'Whether we want to show the control UI.',
-        default=False, optional=True),
+      Arg('video_file', str,
+          'Relative path to load the video.',
+          default='', optional=True),
+      Arg('loop', bool,
+          'Whether we want to loop the video.',
+          default=False, optional=True),
+      Arg('time_limit', int,
+          'Seconds to force terminate the test.',
+          default=DEFAULT_SECONDS, optional=True),
+      Arg('show_controls', bool,
+          'Whether we want to show the control UI.',
+          default=False, optional=True),
   ]
 
   def runTest(self):

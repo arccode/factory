@@ -3,8 +3,7 @@
 # found in the LICENSE file.
 
 
-"""
-Shop Floor Launcher shared environment
+"""Shop Floor Launcher shared environment
 
 To use it, import the class and use class variables and class methods without
 instanciate.
@@ -36,15 +35,17 @@ launcher_config = {}
 # Launcher services contains all external applications launched by shopfloord
 launcher_services = []
 
+
 def GetFCGIExec():
   """Gets FastCGI program path."""
   return os.path.join(runtime_dir, constants.FCGI_EXEC)
+
 
 def GetResourcesDir():
   """Gets shopfloor resources dir."""
   return os.path.join(runtime_dir, constants.RESOURCES_DIR)
 
+
 def GetUpdatesDir():
   """Gets update dir."""
   return os.path.join(runtime_dir, constants.UPDATES_DIR)
-

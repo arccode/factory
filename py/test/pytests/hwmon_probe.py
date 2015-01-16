@@ -22,15 +22,15 @@ class HwmonProbeTest(unittest.TestCase):
   max_temp_celsius. Also, ensures that deviation of any hwmon temp sensor is
   less or equal to max_temp_delta_celsius from the mean temperature."""
   ARGS = [
-    Arg('hwmon_count', int,
-        'Number of hwmon temp sensors the system is supposed to have.'),
-    Arg('delta_temp_max_celsius', int,
-        'Max allowed delta between temp sensor and an average temp.',
-        default=5),
-    Arg('min_temp_celsius', int,
-        'Min allowed temperature recorded by hwmon.', default=15),
-    Arg('max_temp_celsius', int,
-        'Max allowed temperature recorded by hwmon.', default=110),
+      Arg('hwmon_count', int,
+          'Number of hwmon temp sensors the system is supposed to have.'),
+      Arg('delta_temp_max_celsius', int,
+          'Max allowed delta between temp sensor and an average temp.',
+          default=5),
+      Arg('min_temp_celsius', int,
+          'Min allowed temperature recorded by hwmon.', default=15),
+      Arg('max_temp_celsius', int,
+          'Max allowed temperature recorded by hwmon.', default=110),
   ]
 
   def _FindHwmons(self):
@@ -55,7 +55,7 @@ class HwmonProbeTest(unittest.TestCase):
                     'Unable to locate sensor %s' % sensor)
     try:
       with open(sensor, 'r') as f:
-        t = int(f.readline().rstrip())/1000
+        t = int(f.readline().rstrip()) / 1000
     except Exception as e:
       raise IOError('Unable to open hwmon sensor %s : %s' % (sensor, e))
 
@@ -71,10 +71,10 @@ class HwmonProbeTest(unittest.TestCase):
 
     sensor_values = [self._ReadTemp(sensor) for sensor in hwmon_temp_sensor]
 
-    average_sensor_value = sum(sensor_values)/len(sensor_values)
+    average_sensor_value = sum(sensor_values) / len(sensor_values)
 
     for sensor_value in sensor_values:
-      self.assertLessEqual(abs(sensor_value-average_sensor_value),
+      self.assertLessEqual(abs(sensor_value - average_sensor_value),
                            self.args.delta_temp_max_celsius,
                            'temp %d C is out of range. Average temp: %d C' %
                            (sensor_value, average_sensor_value))

@@ -258,7 +258,7 @@ class DumpTestListCommand(Subcommand):
 
     if self.args.format == 'csv':
       writer = csv.writer(sys.stdout)
-      writer.writerow(('id','module'))
+      writer.writerow(('id', 'module'))
       for t in test_list.walk():
         if t.is_leaf():
           if t.pytest_name:
@@ -333,7 +333,7 @@ class TestListCommand(Subcommand):
       try:
         uuid = goofy.GetGoofyStatus()['uuid']
       except socket.error:
-        logging.info("goofy is not up")
+        logging.info('goofy is not up')
       except:  # pylint: disable=W0702
         logging.exception('Unable to get goofy status; assuming it is down')
         uuid = None
@@ -415,7 +415,7 @@ class DeviceDataCommand(Subcommand):
     if self.args.set:
       update = {}
       for item in self.args.set:
-        match = re.match('^([^=]+)=(.*)$', item)
+        match = re.match(r'^([^=]+)=(.*)$', item)
         if not match:
           sys.exit('--set argument %r should be in the form KEY=VALUE')
 
@@ -476,9 +476,9 @@ class PhaseCommand(Subcommand):
 
   def Init(self):
     self.subparser.add_argument(
-      '--set', metavar='PHASE',
-      help='Sets the current phase (one of %(choices)s)',
-      choices=phase.PHASE_NAMES + ['None'])
+        '--set', metavar='PHASE',
+        help='Sets the current phase (one of %(choices)s)',
+        choices=phase.PHASE_NAMES + ['None'])
 
   def Run(self):
     if self.args.set:

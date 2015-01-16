@@ -15,6 +15,7 @@ from models import Event, Attr, Device
 
 
 class ArchiverTest(unittest.TestCase):
+
   def setUp(self):
     self._temp_dir = tempfile.mkdtemp()
     self._db_path = os.path.join(self._temp_dir, 'minijack_db')
@@ -84,5 +85,5 @@ class ArchiverTest(unittest.TestCase):
     shutil.rmtree(self._temp_dir, ignore_errors=True)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

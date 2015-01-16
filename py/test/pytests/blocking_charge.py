@@ -5,9 +5,7 @@
 # found in the LICENSE file.
 
 
-'''
-This is a factory test that only pass when battery is charged to specific
-level.
+'''This is a factory test that only pass when battery is charged to specific level.
 '''
 
 import logging
@@ -25,8 +23,10 @@ from cros.factory.test.args import Arg
 
 _TEST_TITLE = test_ui.MakeLabel('Charging', u'充电')
 
+
 def FormatTime(seconds):
-  return "%d:%02d:%02d" % (seconds / 3600, (seconds / 60) % 60, seconds % 60)
+  return '%d:%02d:%02d' % (seconds / 3600, (seconds / 60) % 60, seconds % 60)
+
 
 def MakeChargeTextLabel(start, current, target, elapsed, remaining):
   _LABEL_EN = ('Charging to %d%% (Start: %d%%. Current: %d%%.)<br>' +
@@ -36,10 +36,12 @@ def MakeChargeTextLabel(start, current, target, elapsed, remaining):
   values = (target, start, current, FormatTime(elapsed), FormatTime(remaining))
   return test_ui.MakeLabel(_LABEL_EN % values, _LABEL_ZH % values)
 
+
 def MakeSpriteHTMLTag(src, height, width):
   return (('<div id="batteryIcon" style="background-image: url(%s);' +
-          'width: %dpx; height: %dpx; margin:auto;"></div>') %
+           'width: %dpx; height: %dpx; margin:auto;"></div>') %
           (src, width, height))
+
 
 class ChargerTest(unittest.TestCase):
   ARGS = [
@@ -50,7 +52,7 @@ class ChargerTest(unittest.TestCase):
           default=False),
       Arg('timeout_secs', int, 'Maximum allowed time to charge battery',
           default=3600),
-      ]
+  ]
 
   def setUp(self):
     self._board = system.GetBoard()
@@ -86,11 +88,11 @@ class ChargerTest(unittest.TestCase):
       self._ui.RunJS('$("batteryIcon").style.backgroundPosition = "-%dpx 0px"' %
                      ((elapsed % 4) * 256))
       self._template.SetInstruction(MakeChargeTextLabel(
-                                      start_charge,
-                                      charge,
-                                      target_charge,
-                                      elapsed,
-                                      self.args.timeout_secs - elapsed))
+          start_charge,
+          charge,
+          target_charge,
+          elapsed,
+          self.args.timeout_secs - elapsed))
       if elapsed % 300 == 0:
         logging.info('Battery level is %d%% after %d minutes',
                      charge,

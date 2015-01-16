@@ -12,6 +12,7 @@ from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.utils import process_utils
 
+
 class CPUUsageMonitor(object):
   # Lines of header from 'top'.
   HEADER_LINES = 6
@@ -27,7 +28,7 @@ class CPUUsageMonitor(object):
     factory.init_logging()
 
   def _GetLoadString(self):
-    return ', '.join("%.1f" % load for load in system.SystemStatus().load_avg)
+    return ', '.join('%.1f' % load for load in system.SystemStatus().load_avg)
 
   def Check(self):
     """Checks the current CPU usage status.
@@ -56,7 +57,7 @@ class CPUUsageMonitor(object):
         command = ' '.join(attr[command_column:])[0:self.COMMAND_LENGTH]
         msg.append('Process %s using %s%% CPU: %s' %
                    (attr[pid_column], attr[cpu_column], command))
-    except: # pylint: disable=W0702
+    except:  # pylint: disable=W0702
       logging.exception('Unable to check CPU usage')
     else:
       logging.info('; '.join(msg))
@@ -65,6 +66,7 @@ class CPUUsageMonitor(object):
     while True:
       self.Check()
       time.sleep(self._period_secs)
+
 
 def main():
   parser = argparse.ArgumentParser(description='Monitor CPU usage')

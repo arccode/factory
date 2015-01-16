@@ -222,19 +222,19 @@ def ParseArgs():
       formatter_class=argparse.RawDescriptionHelpFormatter)
 
   parser.add_argument('--src_board_name', dest='src_board_name',
-                      help=("The board name of the source directory to "
-                            "copy the files from."))
+                      help=('The board name of the source directory to '
+                            'copy the files from.'))
   parser.add_argument('--dst_board_name', dest='dst_board_name',
-                      help=("The board name of the destination directory to "
-                            "copy the files to."))
+                      help=('The board name of the destination directory to '
+                            'copy the files to.'))
 
   parser.add_argument('--src_dir', dest='src_dir',
-                      help=("The source directory to copy the files from."))
+                      help=('The source directory to copy the files from.'))
   parser.add_argument('--dst_dir', dest='dst_dir',
-                      help=("The destinaton directory to copy the files to."))
+                      help=('The destinaton directory to copy the files to.'))
 
   parser.add_argument('--reset_ebuild_file', action='store_true',
-                      help=("whether to reset ebuild files to version r1."))
+                      help=('whether to reset ebuild files to version r1.'))
 
   return parser.parse_args()
 

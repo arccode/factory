@@ -13,7 +13,7 @@ import unittest
 import yaml
 
 import factory_common   # pylint: disable=W0611
-import cros.factory.common_rule_functions   #pylint: disable=W0611
+import cros.factory.common_rule_functions  # pylint: disable=W0611
 from cros.factory.hwid.common import HWIDException
 from cros.factory.hwid.database import Database
 from cros.factory.hwid.encoder import Encode
@@ -30,6 +30,7 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class HWIDRuleTest(unittest.TestCase):
+
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -42,17 +43,17 @@ class HWIDRuleTest(unittest.TestCase):
         'display_panel': 'display_panel_0'})
     self.hwid = Encode(self.database, bom)
     self.device_info = {
-      'SKU': 1,
-      'has_cellular': False
+        'SKU': 1,
+        'has_cellular': False
     }
     self.vpd = {
-      'ro': {
-        'serial_number': 'foo',
-        'initial_locale': 'en-us'
-      },
-      'rw': {
-        'registration_code': 'buz'
-      }
+        'ro': {
+            'serial_number': 'foo',
+            'initial_locale': 'en-us'
+        },
+        'rw': {
+            'registration_code': 'buz'
+        }
     }
     self.context = Context(hwid=self.hwid, device_info=self.device_info,
                            vpd=self.vpd)
@@ -78,7 +79,7 @@ class HWIDRuleTest(unittest.TestCase):
                     "Assert(ComponentEq('cpu', 'cpu_3'))"],
                 otherwise=None)
     self.assertRaisesRegexp(
-        RuleException, r"ERROR: Assertion failed",
+        RuleException, r'ERROR: Assertion failed',
         rule.Evaluate, self.context)
 
   def testYAMLParsing(self):
@@ -92,7 +93,7 @@ class HWIDRuleTest(unittest.TestCase):
             - SetComponent('dram', 'dram_1')
         """)
     self.assertRaisesRegexp(
-        SyntaxError, r"unexpected EOF while parsing", rule.Validate)
+        SyntaxError, r'unexpected EOF while parsing', rule.Validate)
     rule = yaml.load("""
             !rule
             name: foobar1
@@ -103,7 +104,7 @@ class HWIDRuleTest(unittest.TestCase):
             - SetComponent('dram', 'dram_1')
         """)
     self.assertRaisesRegexp(
-        SyntaxError, r"invalid syntax \(<string>, line 1\)", rule.Validate)
+        SyntaxError, r'invalid syntax \(<string>, line 1\)', rule.Validate)
 
     rule = yaml.load("""
         !rule
@@ -135,7 +136,7 @@ class HWIDRuleTest(unittest.TestCase):
         evaluate: Assert(ComponentEq('cellular', 'cellular_0'))
     """)
     self.assertRaisesRegexp(
-        RuleException, r"ERROR: Assertion failed.",
+        RuleException, r'ERROR: Assertion failed.',
         rule.Evaluate, self.context)
 
     rule = yaml.load("""
@@ -145,7 +146,7 @@ class HWIDRuleTest(unittest.TestCase):
         evaluate: Assert(ComponentEq('cpu', 'cpu_3'))
     """)
     self.assertRaisesRegexp(
-        RuleException, r"ERROR: Assertion failed.",
+        RuleException, r'ERROR: Assertion failed.',
         rule.Evaluate, self.context)
 
     rule = yaml.load("""
@@ -155,7 +156,7 @@ class HWIDRuleTest(unittest.TestCase):
         evaluate: Assert(ComponentEq('cpu', 'cpu_3'))
     """)
     self.assertRaisesRegexp(
-        RuleException, r"ERROR: Assertion failed.",
+        RuleException, r'ERROR: Assertion failed.',
         rule.Evaluate, self.context)
 
   def testGetClassAttributesOnBOM(self):
@@ -227,7 +228,7 @@ class HWIDRuleTest(unittest.TestCase):
     self.assertEquals(True, ValidVPDValue('ro', 'serial_number'))
 
     mock_vpd = {
-        'ro':{
+        'ro': {
             'initial_locale': 'foo'
         }
     }
@@ -237,7 +238,7 @@ class HWIDRuleTest(unittest.TestCase):
                       GetLogger().error[0].message)
 
     mock_vpd = {
-        'ro':{
+        'ro': {
             'initial_timezone': 'foo'
         }
     }
@@ -247,7 +248,7 @@ class HWIDRuleTest(unittest.TestCase):
                       GetLogger().error[0].message)
 
     mock_vpd = {
-        'ro':{
+        'ro': {
             'keyboard_layout': 'foo'
         }
     }
@@ -255,7 +256,6 @@ class HWIDRuleTest(unittest.TestCase):
     self.assertFalse(ValidVPDValue('ro', 'keyboard_layout'))
     self.assertEquals("ERROR: Invalid VPD value 'foo' of 'keyboard_layout'",
                       GetLogger().error[0].message)
-
 
   def testCheckRegistrationCode_Legacy(self):
     mock_gbind_attribute = ('3333333333333333333333333333333333333'

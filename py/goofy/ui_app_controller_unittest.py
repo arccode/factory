@@ -18,7 +18,9 @@ from cros.factory.goofy import ui_app_controller
 from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.utils import net_utils
 
+
 class UIAppControllerTest(unittest.TestCase):
+
   def setUp(self):
     ui_app_controller.UI_APP_CONTROLLER_PORT = net_utils.FindUnusedTCPPort()
     self.hook = mox.MockAnything()
@@ -36,10 +38,10 @@ class UIAppControllerTest(unittest.TestCase):
     self.hook.message(json.loads('%s' % message))
 
   def SendOK(self, unused_cmd):
-    self.client.send("OK\n")
+    self.client.send('OK\n')
 
   def SendError(self, unused_cmd):
-    self.client.send("ERROR\n")
+    self.client.send('ERROR\n')
 
   def tearDown(self):
     if self.controller:
@@ -64,7 +66,7 @@ class UIAppControllerTest(unittest.TestCase):
     self.assertTrue(self.controller.ShowUI('10.3.0.11', dut_uuid=this_uuid))
     self.client.close()
 
-    time.sleep(0.2) # Wait for WebSocket to close
+    time.sleep(0.2)  # Wait for WebSocket to close
 
     mox.Verify(self.hook)
 

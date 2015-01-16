@@ -16,7 +16,9 @@ from cros.factory.system.board import Board
 from cros.factory.system.power import Power
 from cros.factory.system.charge_manager import ChargeManager
 
+
 class ChargeManagerTest(unittest.TestCase):
+
   def setUp(self):
     self._charge_manager = ChargeManager(70, 80)
     self.mox = mox.Mox()

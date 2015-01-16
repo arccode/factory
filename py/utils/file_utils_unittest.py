@@ -75,18 +75,20 @@ class MakeDirsUidGidTest(unittest.TestCase):
 
 class UnopenedTemporaryFileTest(unittest.TestCase):
   """Unittest for UnopenedTemporaryFile."""
+
   def testUnopenedTemporaryFile(self):
     with file_utils.UnopenedTemporaryFile(
         prefix='prefix', suffix='suffix') as x:
       self.assertTrue(os.path.exists(x))
       self.assertEquals(0, os.path.getsize(x))
-      assert re.match('prefix.+suffix', os.path.basename(x))
+      assert re.match(r'prefix.+suffix', os.path.basename(x))
       self.assertEquals(tempfile.gettempdir(), os.path.dirname(x))
     self.assertFalse(os.path.exists(x))
 
 
 class ReadLinesTest(unittest.TestCase):
   """Unittest for ReadLines."""
+
   def testNormalFile(self):
     tmp = tempfile.NamedTemporaryFile(delete=False)
     tmp.write('line 1\nline 2\n')
@@ -120,6 +122,7 @@ class ReadLinesTest(unittest.TestCase):
 
 class TempDirectoryTest(unittest.TestCase):
   """Unittest for TempDirectory."""
+
   def testNormal(self):
     with file_utils.TempDirectory(prefix='abc') as d:
       self.assertTrue(os.path.basename(d).startswith('abc'))
@@ -144,6 +147,7 @@ class TempDirectoryTest(unittest.TestCase):
 
 
 class PrependFileTest(unittest.TestCase):
+
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp()
 
@@ -168,6 +172,7 @@ class PrependFileTest(unittest.TestCase):
 
 class CopyFileSkipBytesTest(unittest.TestCase):
   """Unittest for CopyFileSkipBytes."""
+
   def setUp(self):
     self.in_file = None
     self.out_file = None
@@ -304,6 +309,7 @@ class ExtractFileTest(unittest.TestCase):
 
 
 class ForceSymlinkTest(unittest.TestCase):
+
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp()
 
@@ -351,6 +357,7 @@ class ForceSymlinkTest(unittest.TestCase):
 
 
 class AtomicCopyTest(unittest.TestCase):
+
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp()
 
@@ -386,7 +393,6 @@ class AtomicCopyTest(unittest.TestCase):
     # dest is overwritten.
     self.assertEqual('source', file_utils.ReadLines(dest_path)[0])
 
-
   def testCopyFailed(self):
     m = mox.Mox()
     m.StubOutWithMock(shutil, 'copy2')
@@ -410,6 +416,7 @@ class AtomicCopyTest(unittest.TestCase):
 
 
 class Md5sumInHexTest(unittest.TestCase):
+
   def runTest(self):
     temp_file = tempfile.NamedTemporaryFile(delete=False)
     temp_file.write('Md5sumInHex test')
@@ -420,6 +427,7 @@ class Md5sumInHexTest(unittest.TestCase):
 
 
 class FileLockTest(unittest.TestCase):
+
   def setUp(self):
     self.temp_file = tempfile.mkstemp()[1]
 
@@ -493,6 +501,7 @@ class FileLockTest(unittest.TestCase):
 
 
 class ReadWriteFileTest(unittest.TestCase):
+
   def runTest(self):
     with file_utils.UnopenedTemporaryFile() as tmp:
       data = 'abc\n\0'
@@ -501,6 +510,7 @@ class ReadWriteFileTest(unittest.TestCase):
 
 
 class GlobSingleFileTest(unittest.TestCase):
+
   def runTest(self):
     with file_utils.TempDirectory() as d:
       for f in ('a', 'b'):
@@ -511,16 +521,17 @@ class GlobSingleFileTest(unittest.TestCase):
           file_utils.GlobSingleFile(os.path.join(d, '[a]')))
       self.assertRaisesRegexp(
           ValueError,
-          r"Expected one match for .+/\* but got "
+          r'Expected one match for .+/\* but got '
           r"\['.+/(a|b)', '.+/(a|b)'\]",
           file_utils.GlobSingleFile, os.path.join(d, '*'))
       self.assertRaisesRegexp(
           ValueError,
-          r"Expected one match for .+/nomatch but got \[\]",
+          r'Expected one match for .+/nomatch but got \[\]',
           file_utils.GlobSingleFile, os.path.join(d, 'nomatch'))
 
 
 class HashFilesTest(unittest.TestCase):
+
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp(prefix='HashFilesTest.')
 
@@ -537,34 +548,34 @@ class HashFilesTest(unittest.TestCase):
 
   def testDefault(self):
     self.assertEquals({
-          'a': 'fbd313f05f277535c6f0bb2e9b0cff43cebef360',
-          'b': '1ac13620623e6ff9049a7a261e04dda284b2c52a',
-          'c': 'eef64cf8244577e292e46fc6a12e64261239d972',
-          'd/e': '585a50860871f4df30be233ace89b3c83f776c9b',
-          'd/f': '025b55bbf9d628147696b63970edca695109e9ba'
-          }, file_utils.HashFiles(self.tmpdir))
+        'a': 'fbd313f05f277535c6f0bb2e9b0cff43cebef360',
+        'b': '1ac13620623e6ff9049a7a261e04dda284b2c52a',
+        'c': 'eef64cf8244577e292e46fc6a12e64261239d972',
+        'd/e': '585a50860871f4df30be233ace89b3c83f776c9b',
+        'd/f': '025b55bbf9d628147696b63970edca695109e9ba'
+    }, file_utils.HashFiles(self.tmpdir))
 
   def testSimpleHash(self):
     self.assertEquals({
-          'a': 2937989080,
-          'b': 907507298,
-          'c': 1091585780,
-          'd/e': 2218600652,
-          'd/f': 489978230
-          }, file_utils.HashFiles(
-              self.tmpdir,
-              hash_function=lambda data: binascii.crc32(data) & 0xffffffff))
+        'a': 2937989080,
+        'b': 907507298,
+        'c': 1091585780,
+        'd/e': 2218600652,
+        'd/f': 489978230
+    }, file_utils.HashFiles(
+        self.tmpdir,
+        hash_function=lambda data: binascii.crc32(data) & 0xffffffff))
 
   def testFilter(self):
     # Get checksum only everything but 'c'.
     self.assertEquals({
-          'a': 'fbd313f05f277535c6f0bb2e9b0cff43cebef360',
-          'b': '1ac13620623e6ff9049a7a261e04dda284b2c52a',
-          'd/e': '585a50860871f4df30be233ace89b3c83f776c9b',
-          'd/f': '025b55bbf9d628147696b63970edca695109e9ba'
-        }, file_utils.HashFiles(
-            self.tmpdir,
-            path_filter=lambda path: path != os.path.join(self.tmpdir, 'c')))
+        'a': 'fbd313f05f277535c6f0bb2e9b0cff43cebef360',
+        'b': '1ac13620623e6ff9049a7a261e04dda284b2c52a',
+        'd/e': '585a50860871f4df30be233ace89b3c83f776c9b',
+        'd/f': '025b55bbf9d628147696b63970edca695109e9ba'
+    }, file_utils.HashFiles(
+        self.tmpdir,
+        path_filter=lambda path: path != os.path.join(self.tmpdir, 'c')))
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)

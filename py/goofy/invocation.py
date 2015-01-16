@@ -49,7 +49,7 @@ from cros.factory.utils.string_utils import DecodeUTF8
 
 
 # Number of bytes to include from the log of a failed test.
-ERROR_LOG_TAIL_LENGTH = 8*1024
+ERROR_LOG_TAIL_LENGTH = 8 * 1024
 
 # pylint: disable=W0702
 
@@ -70,6 +70,7 @@ class TestArgEnv(object):
     state: Instance to obtain factory test.
     device_data: Cached device data from shopfloor.
   """
+
   def __init__(self):
     self.state = factory.get_state_instance()
     self.device_data = None
@@ -186,6 +187,7 @@ class TestInvocation(object):
     aborted_reason: A reason that the test was aborted (e.g.,
       'Stopped by operator' or 'Factory update')
   """
+
   def __init__(self, goofy, test, on_completion=None, on_test_failure=None):
     """Constructor.
 
@@ -252,7 +254,7 @@ class TestInvocation(object):
 
   def __repr__(self):
     return 'TestInvocation(_aborted=%s, _completed=%s)' % (
-      self._aborted, self._completed)
+        self._aborted, self._completed)
 
   def update_metadata(self, **kwargs):
     self.metadata.update(kwargs)
@@ -331,18 +333,18 @@ class TestInvocation(object):
         print('import common, traceback, utils', file=f)
         print('import cPickle as pickle', file=f)
         print("success = job.run_test('%s', **pickle.load(open('%s')))" % (
-          self.test.autotest_name, args_file), file=f)
+            self.test.autotest_name, args_file), file=f)
 
         print(
-          "pickle.dump((success, "
-          "str(job.last_error) if job.last_error else None), "
-          "open('%s', 'w'), protocol=2)"
-          % result_file, file=f)
+            'pickle.dump((success, '
+            'str(job.last_error) if job.last_error else None), '
+            "open('%s', 'w'), protocol=2)"
+            % result_file, file=f)
 
       args = [os.path.join(os.path.dirname(factory.FACTORY_PATH),
-                 'autotest/bin/autotest'),
-          '--output_dir', self.output_dir,
-          control_file]
+                           'autotest/bin/autotest'),
+              '--output_dir', self.output_dir,
+              control_file]
 
       logging.debug('Test command line: %s', ' '.join(
           [pipes.quote(arg) for arg in args]))
@@ -354,8 +356,8 @@ class TestInvocation(object):
       with self._lock:
         with self.goofy.env.lock:
           self._process = self.goofy.env.spawn_autotest(
-            self.test.autotest_name, args, self.env_additions,
-            result_file)
+              self.test.autotest_name, args, self.env_additions,
+              result_file)
 
       returncode = self._process.wait()
       with self._lock:
@@ -398,7 +400,7 @@ class TestInvocation(object):
     try:
       def make_tmp(prefix):
         ret = tempfile.mktemp(
-          prefix='%s-%s-' % (self.test.path, prefix))
+            prefix='%s-%s-' % (self.test.path, prefix))
         files_to_delete.append(ret)
         return ret
 
@@ -473,7 +475,7 @@ class TestInvocation(object):
             return TestState.FAILED, self._aborted_message()
         if self._process.returncode:
           return TestState.FAILED, (
-            'Test returned code %d' % self._process.returncode)
+              'Test returned code %d' % self._process.returncode)
 
       if not os.path.exists(results_path):
         return TestState.FAILED, 'pytest did not complete'
@@ -490,7 +492,7 @@ class TestInvocation(object):
             os.unlink(f)
         except:
           logging.exception('Unable to delete temporary file %s',
-                    f)
+                            f)
 
   def _invoke_target(self):
     """Invokes a target directly within Goofy."""
@@ -536,7 +538,7 @@ class TestInvocation(object):
         # Not empty; that's OK
         pass
     logging.info('Preserved %d files matching %s and removed %d',
-           preserved_count, globs, deleted_count)
+                 preserved_count, globs, deleted_count)
 
   def _run(self):
     with self._lock:
@@ -547,14 +549,14 @@ class TestInvocation(object):
     retries_string = ''
     if self.test.iterations > 1:
       iteration_string = ' [%s/%s]' % (
-        self.test.iterations -
-        self.test.get_state().iterations_left + 1,
-        self.test.iterations)
+          self.test.iterations -
+          self.test.get_state().iterations_left + 1,
+          self.test.iterations)
     if self.test.retries > 0:
       retries_string = ' [retried %s/%s]' % (
-        self.test.retries -
-        self.test.get_state().retries_left,
-        self.test.retries)
+          self.test.retries -
+          self.test.get_state().retries_left,
+          self.test.retries)
     logging.info('Running test %s%s%s', self.test.path,
                  iteration_string, retries_string)
 
@@ -563,11 +565,11 @@ class TestInvocation(object):
                                   disable_services=self.test.disable_services)
 
     log_args = dict(
-      path=self.test.path,
-      # Use Python representation for dargs, since some elements
-      # may not be representable in YAML.
-      dargs=repr(self.test.dargs),
-      invocation=self.uuid)
+        path=self.test.path,
+        # Use Python representation for dargs, since some elements
+        # may not be representable in YAML.
+        dargs=repr(self.test.dargs),
+        invocation=self.uuid)
     if self.test.autotest_name:
       log_args['autotest_name'] = self.test.autotest_name
     if self.test.pytest_name:
@@ -586,7 +588,7 @@ class TestInvocation(object):
         self.test.prepare()
     except:
       logging.exception('Exception while invoking before_callback %s',
-          traceback.format_exc())
+                        traceback.format_exc())
 
     try:
       status, error_msg = None, None
@@ -599,7 +601,7 @@ class TestInvocation(object):
       else:
         status = TestState.FAILED
         error_msg = (
-          'No autotest_name, pytest_name, or invocation_target')
+            'No autotest_name, pytest_name, or invocation_target')
     finally:
       if error_msg:
         error_msg = DecodeUTF8(error_msg)
@@ -663,13 +665,13 @@ class TestInvocation(object):
         self.test.finish(status)
     except:
       logging.exception('Exception while invoking finish_callback %s',
-          traceback.format_exc())
+                        traceback.format_exc())
 
     with self._lock:
       self.update_state_on_completion = dict(
-        status=status, error_msg=error_msg,
-        visible=False, decrement_iterations_left=decrement_iterations_left,
-        decrement_retries_left=decrement_retries_left)
+          status=status, error_msg=error_msg,
+          visible=False, decrement_iterations_left=decrement_iterations_left,
+          decrement_retries_left=decrement_retries_left)
       self._completed = True
 
     self.goofy.run_queue.put(self.goofy.reap_completed_tests)
@@ -705,6 +707,7 @@ def GetTestCases(suite):
     A list of strings of test case IDs.
   """
   test_cases = []
+
   def FilterTestCase(test):
     # Filter out the test case from base Automator class.
     if test.id() == 'cros.factory.test.e2e_test.automator.Automator.runTest':
@@ -738,7 +741,7 @@ def InvokeTestCase(suite, test_case_id, test_info):
   def _InvokeByID(test_case):
     if test_case.id() == test_case_id:
       logging.debug('[%s] Really invoke test case: %s',
-                   os.getpid(), test_case_id)
+                    os.getpid(), test_case_id)
       with file_utils.UnopenedTemporaryFile() as info_path, \
           file_utils.UnopenedTemporaryFile() as results_path:
         # Update test_info attributes for the test case.
@@ -945,7 +948,7 @@ def main():
   parser.add_option('--prespawn-pytest', dest='prespawn_pytest',
                     action='store_true', default=False,
                     help='Prespawn pytest process. '
-                         'Read info and env from stdin.')
+                    'Read info and env from stdin.')
   (options, unused_args) = parser.parse_args()
 
   assert options.pytest_info or options.prespawn_pytest

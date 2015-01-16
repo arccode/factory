@@ -11,7 +11,7 @@ import os
 import tempfile
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
@@ -26,6 +26,7 @@ SPU:          0          0          0          0   Spurious interrupts"""
 
 class GetInterruptsTest(unittest.TestCase):
   """Unit tests for GetInterrupts."""
+
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -36,7 +37,7 @@ class GetInterruptsTest(unittest.TestCase):
   def testGetCount(self):
     self.mox.StubOutWithMock(file_utils, 'ReadLines')
     file_utils.ReadLines('/proc/interrupts').AndReturn(
-      SAMPLE_INTERRUPTS.split('\n'))
+        SAMPLE_INTERRUPTS.split('\n'))
     self.mox.ReplayAll()
 
     ints = sys_utils.GetInterrupts()
@@ -54,7 +55,7 @@ class GetInterruptsTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.assertRaisesRegexp(
-        OSError, r"Unable to read /proc/interrupts",
+        OSError, r'Unable to read /proc/interrupts',
         sys_utils.GetInterrupts)
 
 
@@ -146,6 +147,7 @@ B: SW=140
 
 class GetI2CBusTest(unittest.TestCase):
   """Unit tests for GetI2CBus."""
+
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -201,6 +203,7 @@ SAMPLE_PARTITIONS = """major minor  #blocks  name
  254        1     313564 dm-1
  253        0    1953128 zram0"""
 
+
 class GetPartitionsTest(unittest.TestCase):
   """Unit tests for GetInterrupts."""
 
@@ -224,6 +227,7 @@ class GetPartitionsTest(unittest.TestCase):
 
 class MountDeviceAndReadFileTest(unittest.TestCase):
   """Unittest for MountDeviceAndReadFile."""
+
   def setUp(self):
     # Creates a temp file and create file system on it as a mock device.
     self.device = tempfile.NamedTemporaryFile(prefix='MountDeviceAndReadFile')
@@ -246,8 +250,10 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
     self.device.close()
 
   def testMountDeviceAndReadFile(self):
-    self.assertEqual(self.content,
-        sys_utils.MountDeviceAndReadFile(self.device.name, self.file_name))
+    self.assertEqual(
+        self.content,
+        sys_utils.MountDeviceAndReadFile(
+            self.device.name, self.file_name))
 
   def testMountDeviceAndReadFileWrongFile(self):
     with self.assertRaises(IOError):
@@ -258,5 +264,5 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
       sys_utils.MountDeviceAndReadFile('no_device', self.file_name)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

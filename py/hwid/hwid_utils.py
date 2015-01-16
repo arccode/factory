@@ -10,7 +10,7 @@ import collections
 import re
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import common as factory_common_utils
 from cros.factory import rule
 from cros.factory.gooftool import crosfw
@@ -146,18 +146,18 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
   hwid.VerifyComponentStatus()
   hwid.VerifyPhase(current_phase)
   context = rule.Context(hwid=hwid, vpd=vpd)
-  db.rules.EvaluateRules(context, namespace="verify.*")
+  db.rules.EvaluateRules(context, namespace='verify.*')
 
   mandatory_rules = [
-    # VPD
-    {'name': 'verify.vpd.ro',
-     'evaluate': ['Assert(ValidVPDValue("ro", "%s"))' % field for field in
-                  ('initial_locale', 'initial_timezone', 'keyboard_layout',
-                   'serial_number')]},
-    {'name': 'verify.vpd.rw',
-     'evaluate': ['CheckRegistrationCode(GetVPDValue("rw", "%s"))' % field
-                  for field in ('gbind_attribute', 'ubind_attribute')]},
-    ]
+      # VPD
+      {'name': 'verify.vpd.ro',
+       'evaluate': ['Assert(ValidVPDValue("ro", "%s"))' % field for field in
+                    ('initial_locale', 'initial_timezone', 'keyboard_layout',
+                     'serial_number')]},
+      {'name': 'verify.vpd.rw',
+       'evaluate': ['CheckRegistrationCode(GetVPDValue("rw", "%s"))' % field
+                    for field in ('gbind_attribute', 'ubind_attribute')]},
+  ]
   database.Rules(mandatory_rules).EvaluateRules(context)
 
 
@@ -273,7 +273,7 @@ def EnumerateHWID(db, image_id=None, status='supported'):
       component_list.append(' '.join(comp_items))
     if pass_check:
       bom = common.BOM(db.board, encoding_pattern, image_id, components,
-          encoded_fields)
+                       encoded_fields)
       binary_string = encoder.BOMToBinaryString(db, bom)
       encoded_string = encoder.BinaryStringToEncodedString(db, binary_string)
       hwid_dict[encoded_string] = ','.join(component_list)
@@ -300,7 +300,6 @@ def EnumerateHWID(db, image_id=None, status='supported'):
         encoded_fields[field] = i
         _RecursivelyGenerate(index + 1, encoded_fields)
 
-
   def _ConvertImageID(image_id=None):
     """Gets image ID.
 
@@ -325,7 +324,7 @@ def EnumerateHWID(db, image_id=None, status='supported'):
             if image_id == v:
               image_id = k
               break
-    assert image_id in range(0, max_image_id+1), "Invalid Image ID"
+    assert image_id in range(0, max_image_id + 1), 'Invalid Image ID'
     return image_id
 
   hwid_dict = {}
@@ -424,7 +423,7 @@ def GetVPD(probed_results):
   for k, v in probed_results['found_volatile_values'].items():
     # Use items(), not iteritems(), since we will be modifying the dict in the
     # loop.
-    match = re.match('^vpd\.(ro|rw)\.(\w+)$', k)
+    match = re.match(r'^vpd\.(ro|rw)\.(\w+)$', k)
     if match:
       del probed_results['found_volatile_values'][k]
       vpd[match.group(1)][match.group(2)] = v

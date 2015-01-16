@@ -6,14 +6,19 @@ import numpy as np
 
 # Dimension padding/unpadding function for converting points matrices to
 # the OpenCV format (channel-based).
+
+
 def Pad(x):
   return np.expand_dims(x, axis=0)
+
 
 def Unpad(x):
   return np.squeeze(x)
 
+
 class Pod(object):
   """A POD (plain-old-data) object containing arbitrary fields."""
+
   def __init__(self, **args):
     self.__dict__.update(args)
 

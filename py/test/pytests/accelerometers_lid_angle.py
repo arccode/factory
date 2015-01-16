@@ -34,7 +34,7 @@ from cros.factory.utils.process_utils import SpawnOutput
 _IIO_DEVICES_PATH = '/sys/bus/iio/devices/'
 
 
-_MSG_SPACE = lambda a : test_ui.MakeLabel(
+_MSG_SPACE = lambda a: test_ui.MakeLabel(
     'Please open the lid to %s degree. <br>'
     'Press space to start.' % a,
     u'请将上盖掀开到 %s 度.<br> 压下空白键开始测试' % a,
@@ -60,13 +60,14 @@ window.onkeydown = function(event) {
 }
 """
 
+
 class AccelerometersLidAngleTest(unittest.TestCase):
 
   ARGS = [
-    Arg('angle', int, 'The target lid angle to test.',
-        default=180, optional=True),
-    Arg('tolerance', int, 'The tolerance ',
-        default=5, optional=True),
+      Arg('angle', int, 'The target lid angle to test.',
+          default=180, optional=True),
+      Arg('tolerance', int, 'The tolerance ',
+          default=5, optional=True),
   ]
 
   def setUp(self):

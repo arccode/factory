@@ -105,7 +105,7 @@ class USBInstall(FactoryFlowCommand):
     if self.options.method == INSTALL_METHOD.install_shim:
       logging.info('\n'.join(['Found the following binaries for %s:'
                               'Factory install shim: %s']),
-                    self.options.board.full_name, install_shim_path)
+                   self.options.board.full_name, install_shim_path)
       self.usb_image_path = install_shim_path
 
     else:   # Using INSTALL_METHOD.usb_image.

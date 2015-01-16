@@ -2,9 +2,7 @@
 # Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-This module provides basic encode and decode functionality to the flashrom
-memory map (FMAP) structure.
+"""This module provides basic encode and decode functionality to the flashrom memory map (FMAP) structure.
 
 Usage:
   (decode)
@@ -26,7 +24,7 @@ import sys
 
 
 # constants imported from lib/fmap.h
-FMAP_SIGNATURE = "__FMAP__"
+FMAP_SIGNATURE = '__FMAP__'
 FMAP_VER_MAJOR = 1
 FMAP_VER_MINOR_MIN = 0
 FMAP_VER_MINOR_MAX = 1
@@ -56,8 +54,8 @@ FMAP_AREA_NAMES = (
 
 
 # format string
-FMAP_HEADER_FORMAT = "<8sBBQI%dsH" % (FMAP_STRLEN)
-FMAP_AREA_FORMAT = "<II%dsH" % (FMAP_STRLEN)
+FMAP_HEADER_FORMAT = '<8sBBQI%dsH' % (FMAP_STRLEN)
+FMAP_AREA_FORMAT = '<II%dsH' % (FMAP_STRLEN)
 
 
 def _fmap_decode_header(blob, offset):
@@ -163,7 +161,7 @@ def main():
     filename = sys.argv[1]
   else:
     filename = 'bin/example.bin'
-  print "Decoding FMAP from: %s" % filename
+  print 'Decoding FMAP from: %s' % filename
   blob = open(filename).read()
   obj = fmap_decode(blob)
   print obj

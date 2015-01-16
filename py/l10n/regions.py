@@ -120,6 +120,7 @@ class Region(object):
     numeric_id: See :py:attr:`numeric_id`.  This must be None or a
       non-negative integer.
   """
+
   def __init__(self, region_code, keyboards, time_zone, language_codes,
                keyboard_mechanical_layout, description=None, notes=None,
                numeric_id=None):
@@ -230,7 +231,7 @@ REGIONS_LIST = [
     Region('ca.multix', 'xkb:ca:multix:fra', 'America/Toronto', 'fr-CA',
            _KML.ISO, 'Canada (multilingual)',
            ("Canadian Multilingual keyboard; you probably don't want this. See "
-            "http://goto/cros-canada"), 10),
+            'http://goto/cros-canada'), 10),
     Region('ch', 'xkb:ch::ger', 'Europe/Zurich', 'en-US', _KML.ISO,
            'Switzerland',
            'German keyboard, but US English to be language-neutral; used in '
@@ -279,8 +280,8 @@ REGIONS_LIST = [
     Region('ru', 'xkb:ru::rus', 'Europe/Moscow', 'ru', _KML.ANSI, 'Russia',
            'For R31+ only; R30 and earlier must use US keyboard for login', 26),
     Region('se', 'xkb:se::swe', 'Europe/Stockholm', 'sv', _KML.ISO, 'Sweden',
-           ("Use this if there separate SKUs for Nordic countries (Sweden, "
-            "Norway, and Denmark), or the device is only shipping to Sweden. "
+           ('Use this if there separate SKUs for Nordic countries (Sweden, '
+            'Norway, and Denmark), or the device is only shipping to Sweden. '
             "If there is a single unified SKU, use 'nordic' instead."), 27),
     Region('sg', 'xkb:us::eng', 'Asia/Singapore', 'en-GB', _KML.ANSI,
            'Singapore', None, 28),
@@ -309,8 +310,7 @@ all **confirmed** regions.  A confirmed region is a region whose
 properties are known to be correct and may be used to launch a device."""
 
 
-UNCONFIRMED_REGIONS_LIST = [
-]
+UNCONFIRMED_REGIONS_LIST = []
 """A list of :py:class:`cros.factory.l10n.regions.Region` objects for
 **unconfirmed** regions. These are believed to be correct but
 unconfirmed, and all fields should be verified (and the row moved into
@@ -358,12 +358,14 @@ def _ConsolidateRegions(regions):
     if existing_region:
       if existing_region.GetFieldsDict() != r.GetFieldsDict():
         raise RegionException(
-          "Conflicting definitions for region %r: %r, %r" % (
-            r.region_code, existing_region.GetFieldsDict(), r.GetFieldsDict()))
+            'Conflicting definitions for region %r: %r, %r' %
+            (r.region_code, existing_region.GetFieldsDict(),
+             r.GetFieldsDict()))
     else:
       region_dict[r.region_code] = r
 
   return region_dict
+
 
 def BuildRegionsDict(include_all=False):
   """Builds a dictionary mapping region code to
@@ -434,6 +436,7 @@ def main(args=sys.argv[1:], out=sys.stdout):
 
   # Handle CSV or plain-text output: build a list of lines to print.
   lines = [Region.FIELDS]
+
   def CoerceToString(value):
     """If value is a list, concatenate its values with commas.
     Otherwise, just return value.

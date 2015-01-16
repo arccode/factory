@@ -10,7 +10,7 @@
 import os
 import unittest
 import yaml
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.common import MakeSet, MakeList
 from cros.factory.hwid.common import HWIDException
@@ -22,6 +22,7 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class IsMPKeyNameTest(unittest.TestCase):
+
   def testPreMP(self):
     self.assertFalse(IsMPKeyName('foo_premp'))
     self.assertFalse(IsMPKeyName('foo_pre_mp'))
@@ -39,6 +40,7 @@ class IsMPKeyNameTest(unittest.TestCase):
 
 
 class HWIDTest(unittest.TestCase):
+
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -75,7 +77,7 @@ class HWIDTest(unittest.TestCase):
     hwid.binary_string = '0000000001111010000011'
     self.assertRaisesRegexp(
         HWIDException,
-        r"Encoded string CHROMEBOOK C2H-I3Q-A6Q does not decode to binary "
+        r'Encoded string CHROMEBOOK C2H-I3Q-A6Q does not decode to binary '
         r"string '0000000001111010000011'",
         hwid.VerifySelf)
     hwid.binary_string = original_value

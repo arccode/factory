@@ -78,12 +78,12 @@ from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 
 
 _MSG_NOT_SUPPORTED = test_ui.MakeLabel('ERROR: The function is not supported.',
-    u'此功能尚未支持。', 'test-fail')
+                                       u'此功能尚未支持。', 'test-fail')
 _MSG_SPACE = test_ui.MakeLabel(
     'Please put device on a horizontal plane then press space to '
     'start calibration.',
     u'请将待测物放置于水平面上，并按空白键开始校准。', 'test-info')
-_MSG_PREPARING_CALIBRATION = lambda t : test_ui.MakeLabel(
+_MSG_PREPARING_CALIBRATION = lambda t: test_ui.MakeLabel(
     'Calibration will be started within %d seconds.'
     'Please do not move device.' % t,
     u'校准程序即将于 %d 秒后开始，请勿移动待测物。' % t, 'test-info')
@@ -198,55 +198,59 @@ class SixSidedCalibrationTask(FactoryTask):
 class AccelerometersCalibration(unittest.TestCase):
 
   ARGS = [
-    Arg('calibration_method', str,
-        'There are two calibration methods: horizontal calibration and '
-        'six-sided calibration. The value can be either "horizontal" or '
-        '"sixsided".',
-        default='horizontal', optional=True),
-    Arg('orientation', dict,
-        'Keys: the name of the accelerometer signal. For example, '
-        '"in_accel_x_base" or "in_accel_x_lid". The possible keys are '
-        '"in_accel_(x|y|z)_(base|lid)".'
-        'Values: an int or a tuple of (orientation-1, orientation-2, ...).'
-        'Each orientation is 0, 1 or -1 representing the ideal '
-        'value for gravity under such orientation. For example, 1 or '
-        '(0, 0, 1, 0, 0, -1).'
-        'An example of orientation for horizontal calibration: {'
-        '    "in_accel_x_base": 0,'
-        '    "in_accel_y_base": 0,'
-        '    "in_accel_z_base": 1,'
-        '    "in_accel_x_lid": 0,'
-        '    "in_accel_y_lid": 0,'
-        '    "in_accel_z_lid": -1}.'
-        'Another example of orientation_gravity for six-sided calibration: {'
-        '    "in_accel_x_base": (0, 0, 1, -1, 0, 0),'
-        '    "in_accel_y_base": (0, 0, 0, 0, 1, -1),'
-        '    "in_accel_z_base": (1, -1, 0, 0, 0, 0),'
-        '    "in_accel_x_lid": (0, 0, 1, -1, 0, 0),'
-        '    "in_accel_y_lid": (0, 0, 0, 0, 1, -1),'
-        '    "in_accel_z_lid": (1, -1, 0, 0, 0, 0)}.',
-        optional=False),
-    Arg('sample_rate_hz', int, 'The sample rate in Hz to get raw data from '
-        'acceleromters.',
-        default=20, optional=True),
-    Arg('capture_count', int, 'How many times to capture the raw data to '
-        'calculate the average value.',
-        default=100, optional=True),
-    Arg('setup_time_secs', int, 'How many seconds to wait before starting '
-        'to calibration.',
-        default=2, optional=True),
-    Arg('spec_offset', tuple, 'A tuple of two integers, ex: (128, 230) '
-        'indicating the tolerance for the digital output of sensors under '
-        'zero gravity and one gravity. Those values are vendor-specific '
-        'and should be provided by the vendor.',
-        optional=False),
-    Arg('spec_ideal_values', tuple, 'A tuple of two integers, ex(0, 1024) '
-        'indicating the ideal value of digital output corresponding to 0G '
-        'and 1G, respectively. For example, if a sensor has a 12 bits digital '
-        'output and -/+ 2G detection range so the sensitivity is 1024 count/g.'
-        'The value should be provided by the vendor.',
-        optional=False),
-  ]
+      Arg(
+          'calibration_method', str,
+          'There are two calibration methods: horizontal calibration and '
+          'six-sided calibration. The value can be either "horizontal" or '
+          '"sixsided".', default='horizontal', optional=True),
+      Arg(
+          'orientation', dict,
+          'Keys: the name of the accelerometer signal. For example, '
+          '"in_accel_x_base" or "in_accel_x_lid". The possible keys are '
+          '"in_accel_(x|y|z)_(base|lid)".'
+          'Values: an int or a tuple of (orientation-1, orientation-2, ...).'
+          'Each orientation is 0, 1 or -1 representing the ideal '
+          'value for gravity under such orientation. For example, 1 or '
+          '(0, 0, 1, 0, 0, -1).'
+          'An example of orientation for horizontal calibration: {'
+          '    "in_accel_x_base": 0,'
+          '    "in_accel_y_base": 0,'
+          '    "in_accel_z_base": 1,'
+          '    "in_accel_x_lid": 0,'
+          '    "in_accel_y_lid": 0,'
+          '    "in_accel_z_lid": -1}.'
+          'Another example of orientation_gravity for six-sided calibration: {'
+          '    "in_accel_x_base": (0, 0, 1, -1, 0, 0),'
+          '    "in_accel_y_base": (0, 0, 0, 0, 1, -1),'
+          '    "in_accel_z_base": (1, -1, 0, 0, 0, 0),'
+          '    "in_accel_x_lid": (0, 0, 1, -1, 0, 0),'
+          '    "in_accel_y_lid": (0, 0, 0, 0, 1, -1),'
+          '    "in_accel_z_lid": (1, -1, 0, 0, 0, 0)}.', optional=False),
+      Arg(
+          'sample_rate_hz', int,
+          'The sample rate in Hz to get raw data from '
+          'acceleromters.', default=20, optional=True),
+      Arg(
+          'capture_count', int,
+          'How many times to capture the raw data to '
+          'calculate the average value.', default=100, optional=True),
+      Arg(
+          'setup_time_secs', int,
+          'How many seconds to wait before starting '
+          'to calibration.', default=2, optional=True),
+      Arg(
+          'spec_offset', tuple,
+          'A tuple of two integers, ex: (128, 230) '
+          'indicating the tolerance for the digital output of sensors under '
+          'zero gravity and one gravity. Those values are vendor-specific '
+          'and should be provided by the vendor.', optional=False),
+      Arg(
+          'spec_ideal_values', tuple,
+          'A tuple of two integers, ex(0, 1024) indicating the ideal value of '
+          'digital output corresponding to 0G and 1G, respectively. For '
+          'example, if a sensor has a 12 bits digital output and -/+ 2G '
+          'detection range so the sensitivity is 1024 count/g.The value should'
+          ' be provided by the vendor.', optional=False)]
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -255,7 +259,7 @@ class AccelerometersCalibration(unittest.TestCase):
     self.assertIn(self.args.calibration_method, ['horizontal', 'sixsided'])
     self.assertEquals(2, len(self.args.spec_offset))
     self.assertEquals(2, len(self.args.spec_ideal_values))
-    #Initializes a accelerometer utility class.
+    # Initializes a accelerometer utility class.
     self.accelerometer_controller = AccelerometerController(
         self.args.spec_offset,
         self.args.spec_ideal_values,

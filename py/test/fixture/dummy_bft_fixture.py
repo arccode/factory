@@ -33,7 +33,7 @@ class DummyBFTFixture(BFTFixture):
 
   def SetDeviceEngaged(self, device, engage):
     self._Prompt(
-      'Please %s device: %s' % ('engage' if engage else 'disengage', device))
+        'Please %s device: %s' % ('engage' if engage else 'disengage', device))
 
   def Ping(self):
     self._Log('ping back.')

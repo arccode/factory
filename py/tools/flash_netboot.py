@@ -23,7 +23,7 @@ def main():
   logging.basicConfig(level=logging.INFO)
 
   parser = argparse.ArgumentParser(
-      description="Flash netboot firmware with VPD preserved.")
+      description='Flash netboot firmware with VPD preserved.')
   parser.add_argument('--image', '-i', help='Netboot firmware image',
                       default=DEFAULT_NETBOOT_FIRMWARE_PATH,
                       required=False)

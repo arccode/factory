@@ -27,11 +27,13 @@ REPOS = ['platform/factory',
          '%OVERLAY%/chromeos-base/chromeos-factory-board/files']
 MERGED_MSG = ['Reviewed-on', 'Marking set of ebuilds as stable']
 
+
 def GitLog(repo, skip=0, max_count=NUM_COMMITS_PER_REPO, extra_args=None):
   cmd = ['git', 'log', '--max-count', '%d' % max_count, '--skip', '%d' % skip]
   if extra_args:
     cmd.extend(extra_args)
   return CheckOutput(cmd, cwd=repo).strip()
+
 
 def GetCommitList(repo, skip=0, max_count=NUM_COMMITS_PER_REPO):
   if not max_count:
@@ -39,11 +41,13 @@ def GetCommitList(repo, skip=0, max_count=NUM_COMMITS_PER_REPO):
   return GitLog(repo, skip=skip, max_count=max_count,
                 extra_args=['--oneline']).split('\n')
 
+
 def GetUncommittedFiles(repo):
   files = CheckOutput(['git', 'status', '--porcelain'], cwd=repo)
   if not files:
     return []
   return files.strip().split('\n')
+
 
 def GetUnmergedCommits(repo):
   for idx in xrange(NUM_COMMITS_PER_REPO):
@@ -58,7 +62,7 @@ def main():
   parser = argparse.ArgumentParser(
       description='Prints the status of factory-related repositories.')
   parser.add_argument('--board', '-b', required=True,
-      help='The board to check overlay repositories for.')
+                      help='The board to check overlay repositories for.')
   args = parser.parse_args()
 
   overlay_root = BuildBoard(args.board).overlay_relpath

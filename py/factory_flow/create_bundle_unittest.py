@@ -23,7 +23,7 @@ TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 # pylint: disable=C0301
 FAKE_GS_BUILDS_OUTPUT_FACTORY_BRANCH = (
-"""gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/ChromeOS-R29-4262.140.0-daisy-spring.zip
+    """gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/ChromeOS-R29-4262.140.0-daisy-spring.zip
 gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/ChromeOS-factory-R29-4262.140.0-daisy-spring.instructions
 gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/ChromeOS-factory-R29-4262.140.0-daisy-spring.instructions.json
 gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/ChromeOS-factory-R29-4262.140.0-daisy-spring.zip
@@ -51,7 +51,7 @@ gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/chromeos_4262.140.
 gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/debug-daisy-spring.tgz""")
 
 FAKE_GS_BUILDS_OUTPUT_FIRMWARE_BRANCH = (
-"""
+    """
 gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/ChromeOS-firmware-R27-3824.120.0-daisy-spring-spring-mp.instructions
 gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/ChromeOS-firmware-R27-3824.120.0-daisy-spring-spring-mp.instructions.json
 gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/ChromeOS-firmware-R27-3824.120.0-daisy-spring.instructions

@@ -16,8 +16,12 @@ _Open = open
 
 
 VFSInfo = collections.namedtuple('VFSInfo', ['mount_points', 'statvfs'])
-DiskUsedPercentage = collections.namedtuple('DiskUsedPercentage',
-    ['bytes_used_pct', 'inodes_used_pct'])
+DiskUsedPercentage = (
+    collections.namedtuple(
+        'DiskUsedPercentage',
+        ['bytes_used_pct', 'inodes_used_pct']))
+
+
 def GetAllVFSInfo():
   '''Returns results for statvfs on all filesystems.
 
@@ -60,7 +64,7 @@ def FormatSpaceUsed(vfs_info):
     and 17% of inodes are used (unavailable to unprivileged users).
   '''
   return ' '.join(vfs_info.mount_points) + (': %d%%/%d%%' %
-    GetPartitionUsage(vfs_info))
+                                            GetPartitionUsage(vfs_info))
 
 
 def FormatSpaceUsedAll(vfs_infos):
@@ -112,10 +116,11 @@ def GetPartitionUsage(vfs_info):
                                           inodes_used_pct=17).
   '''
   return DiskUsedPercentage(
-             GetUsedPercentage(vfs_info.statvfs.f_bavail,
-                               vfs_info.statvfs.f_blocks),
-             GetUsedPercentage(vfs_info.statvfs.f_favail,
-                               vfs_info.statvfs.f_files))
+      GetUsedPercentage(vfs_info.statvfs.f_bavail,
+                        vfs_info.statvfs.f_blocks),
+      GetUsedPercentage(vfs_info.statvfs.f_favail,
+                        vfs_info.statvfs.f_files))
+
 
 def GetMaxStatefulPartitionUsage():
   '''Gets the max stateful partition usage.
@@ -130,16 +135,17 @@ def GetMaxStatefulPartitionUsage():
   stateful_usage = dict()
   for vfs_info in vfs_infos.values():
     if '/mnt/stateful_partition' in vfs_info.mount_points:
-      stateful_usage["stateful"] = GetPartitionUsage(vfs_info)
+      stateful_usage['stateful'] = GetPartitionUsage(vfs_info)
     if '/mnt/stateful_partition/encrypted' in vfs_info.mount_points:
-      stateful_usage["encrypted"] = GetPartitionUsage(vfs_info)
+      stateful_usage['encrypted'] = GetPartitionUsage(vfs_info)
 
   logging.debug('stateful usage: %s', stateful_usage)
 
   max_partition, max_usage_type, max_usage = None, None, 0
   for partition, usage in stateful_usage.iteritems():
     larger_usage = max(usage.bytes_used_pct, usage.inodes_used_pct)
-    larger_usage_type = ('bytes'
+    larger_usage_type = (
+        'bytes'
         if (usage.bytes_used_pct > usage.inodes_used_pct) else 'inodes')
     if larger_usage > max_usage:
       max_partition, max_usage_type, max_usage = (partition, larger_usage_type,
@@ -166,7 +172,7 @@ class DiskSpace(object):
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         '--stateful-partition-threshold', metavar='PCT', default='95',
-        help="Checks if stateful partition disk usage is above threshold")
+        help='Checks if stateful partition disk usage is above threshold')
     self.args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
@@ -186,9 +192,9 @@ class DiskSpace(object):
     max_partition, max_usage_type, max_usage = GetMaxStatefulPartitionUsage()
     if max_usage > self.args.stateful_partition_threshold:
       raise DiskException(
-            ('%s partition %s usage %d%% is above threshold %d%%' %
-             (max_partition, max_usage_type, max_usage,
-              self.args.stateful_partition_threshold)))
+          ('%s partition %s usage %d%% is above threshold %d%%' %
+           (max_partition, max_usage_type, max_usage,
+            self.args.stateful_partition_threshold)))
 
 
 if __name__ == '__main__':

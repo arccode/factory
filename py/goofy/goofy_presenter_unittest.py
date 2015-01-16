@@ -21,6 +21,7 @@ import unittest
 from cros.factory.goofy.goofy_presenter import GoofyPresenter
 from cros.factory.test import factory
 
+
 class GoofyPresenterTest(unittest.TestCase):
   """Base class for GoofyPresenter test cases."""
 
@@ -37,7 +38,7 @@ class GoofyPresenterTest(unittest.TestCase):
                        if t != threading.current_thread()]
       if not extra_threads:
         break
-      logging.info('Waiting for %d threads to die', len(extra_threads))
+      logging.info("Waiting for %d threads to die", len(extra_threads))
 
       # Wait another 100 ms
       time.sleep(.1)
@@ -47,12 +48,14 @@ class GoofyPresenterTest(unittest.TestCase):
 
 class BasicSanityTest(GoofyPresenterTest):
   """Do nothing except invoke setup and teardown."""
+
   def runTest(self):
     self.assertIsNotNone(self.goofy)
 
 
 class UIControlTest(GoofyPresenterTest):
   """Present UI according to connection status."""
+
   def runTest(self):
     m = mox.Mox()
 
@@ -98,5 +101,5 @@ class UIControlTest(GoofyPresenterTest):
 
 
 if __name__ == "__main__":
-  factory.init_logging('goofy_presenter_unittest')
+  factory.init_logging("goofy_presenter_unittest")
   unittest.main()

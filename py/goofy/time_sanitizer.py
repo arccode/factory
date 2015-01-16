@@ -25,8 +25,9 @@ def _FormatTime(t):
   return '%s.%06dZ' % (time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime(s)),
                        int(us * 1000000))
 
+
 def CheckHwclock():
-  '''Check hwclock is working by a write(retry once if fail) and a read.'''
+  """Check hwclock is working by a write(retry once if fail) and a read."""
   for _ in xrange(2):
     if Spawn(['hwclock', '-w', '--utc', '--noadjfile'], log=True,
              log_stderr_on_error=True).returncode == 0:
@@ -35,17 +36,20 @@ def CheckHwclock():
       logging.error('Unable to set hwclock time')
 
   logging.info('Current hwclock time: %s',
-      Spawn(['hwclock', '-r'], log=True, read_stdout=True).stdout_data)
+               Spawn(['hwclock', '-r'], log=True, read_stdout=True).stdout_data)
 
 librt_name = find_library('rt')
 librt = ctypes.cdll.LoadLibrary(librt_name)
+
+
 class timespec(ctypes.Structure):
   _fields_ = [('tv_sec', ctypes.c_long),
               ('tv_nsec', ctypes.c_long)]
 
 
 class Time(object):
-  '''Time object for mocking.'''
+  """Time object for mocking."""
+
   def Time(self):
     return time.time()
 
@@ -62,6 +66,7 @@ SECONDS_PER_DAY = 86400
 
 
 class TimeSanitizer(object):
+
   def __init__(self,
                state_file=os.path.join(factory.get_state_root(),
                                        'time_sanitizer_base_time'),
@@ -119,7 +124,7 @@ class TimeSanitizer(object):
     utils.StartDaemonThread(target=CheckHwclock)
 
   def Run(self):
-    '''Runs forever, immediately and then every monitor_interval_secs.'''
+    """Runs forever, immediately and then every monitor_interval_secs."""
     while True:
       try:
         self.RunOnce()
@@ -129,7 +134,7 @@ class TimeSanitizer(object):
       time.sleep(self.monitor_interval_secs)
 
   def RunOnce(self):
-    '''Runs once, returning immediately.'''
+    """Runs once, returning immediately."""
     minimum_time = self.base_time  # May be None
     if os.path.exists(self.state_file):
       try:
@@ -157,8 +162,8 @@ class TimeSanitizer(object):
         now = sane_time
       elif now > minimum_time + self.max_leap_secs:
         logging.warn(
-          'Current time %s is too far past %s; assuming clock is hosed',
-          _FormatTime(now), _FormatTime(minimum_time + self.max_leap_secs))
+            'Current time %s is too far past %s; assuming clock is hosed',
+            _FormatTime(now), _FormatTime(minimum_time + self.max_leap_secs))
         self._time.SetTime(sane_time)
         now = sane_time
 
@@ -254,18 +259,18 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   time_sanitizer = TimeSanitizer(
-    monitor_interval_secs=args.monitor_interval,
-    time_bump_secs=args.time_bump,
-    max_leap_secs=args.max_leap,
-    base_time=GetBaseTimeFromFile(
-        # lsb-factory is written by the factory install shim during
-        # installation, so it should have a good time obtained from
-        # the mini-Omaha server.  If it's not available, we'll use
-        # /etc/lsb-factory (which will be much older, but reasonably
-        # sane) and rely on a shopfloor sync to set a more accurate
-        # time.
-        '/usr/local/etc/lsb-factory',
-        '/etc/lsb-release'))
+      monitor_interval_secs=args.monitor_interval,
+      time_bump_secs=args.time_bump,
+      max_leap_secs=args.max_leap,
+      base_time=GetBaseTimeFromFile(
+          # lsb-factory is written by the factory install shim during
+          # installation, so it should have a good time obtained from
+          # the mini-Omaha server.  If it's not available, we'll use
+          # /etc/lsb-factory (which will be much older, but reasonably
+          # sane) and rely on a shopfloor sync to set a more accurate
+          # time.
+          '/usr/local/etc/lsb-factory',
+          '/etc/lsb-release'))
 
   if args.run_once:
     time_sanitizer.RunOnce()

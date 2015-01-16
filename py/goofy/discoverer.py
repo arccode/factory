@@ -85,7 +85,7 @@ class DiscovererBase(object):
     # Workaround enabling constructing ThreadPool on a background thread
     # See http://bugs.python.org/issue10015
     cur_thread = threading.current_thread()
-    if not hasattr(cur_thread, "_children"):
+    if not hasattr(cur_thread, '_children'):
       cur_thread._children = weakref.WeakKeyDictionary()
     pool = ThreadPool(num_threads)
     if type(ip_prefixes) != list:
@@ -96,6 +96,7 @@ class DiscovererBase(object):
     # When the scan completes, None is enqueued on result_queue. If the
     # specified limit is reached, we return before the scan is complete.
     result_queue = Queue.Queue()
+
     def enqueue_remote_if_responds(ip):
       if self.TryRemote(ip, port):
         result_queue.put(ip)
@@ -104,8 +105,8 @@ class DiscovererBase(object):
       result_queue.put(None)
 
     remotes = ['%s.%d' % (prefix, low_octet)
-      for prefix in ip_prefixes
-      for low_octet in xrange(1, 255)]
+               for prefix in ip_prefixes
+               for low_octet in xrange(1, 255)]
     pool.map_async(enqueue_remote_if_responds, remotes, callback=scan_complete)
 
     # Dequeue items until we reach our limit or dequeue None,
@@ -134,6 +135,7 @@ class DiscovererBase(object):
 
 class DUTDiscoverer(DiscovererBase):
   """Discoverer that looks for the DUT."""
+
   def __init__(self, port, localhost_only=False):
     super(DUTDiscoverer, self).__init__(localhost_only)
     self._port = port
@@ -148,6 +150,7 @@ class DUTDiscoverer(DiscovererBase):
 
 class PresenterDiscoverer(DiscovererBase):
   """Discoverer that looks for the presenter."""
+
   def __init__(self, port, localhost_only=False):
     super(PresenterDiscoverer, self).__init__(localhost_only)
     self._port = port

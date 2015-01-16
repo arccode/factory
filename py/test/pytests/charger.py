@@ -28,6 +28,7 @@ from cros.factory.test.utils import LoadManager
 
 _TEST_TITLE = test_ui.MakeLabel('Charger Test', u'充電放電測試')
 
+
 def _REGULATE_CHARGE_TEXT(charge, target, timeout, load,
                           battery_current, use_percentage):
   """Makes label to show subtest information
@@ -53,6 +54,7 @@ def _REGULATE_CHARGE_TEXT(charge, target, timeout, load,
       u'負載 %d.<br>剩餘時間: %d 秒.' %
       (target, unit, charge, unit, battery_current, load, timeout))
 
+
 def _MEET_TEXT(target, use_percentage):
   """Makes label to show subtest completes.
   Args:
@@ -72,6 +74,7 @@ _DISCHARGE_TEXT = test_ui.MakeLabel('Testing discharge', u'測試放電中')
 Spec = namedtuple('Spec', 'charge_change timeout_secs load')
 
 CHARGE_TOLERANCE = 0.001
+
 
 class ChargerTest(unittest.TestCase):
   """This class tests that charger can charge/discharge battery for certain
@@ -112,8 +115,8 @@ class ChargerTest(unittest.TestCase):
           'for discharging.\n'
           'One unit of load is one thread doing memory copy in stressapptest.\n'
           'The default value for load is the number of processor',
-          default=[(2, 300, 1), (-2, 300, )])
-      ]
+          default=[(2, 300, 1), (-2, 300)])
+  ]
 
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
@@ -352,7 +355,7 @@ class ChargerTest(unittest.TestCase):
     return Spec(charge_change, timeout_secs, load)
 
   def runTest(self):
-    '''Main entrance of charger test.'''
+    """Main entrance of charger test."""
     self._thread.start()
     try:
       self._CheckPower()

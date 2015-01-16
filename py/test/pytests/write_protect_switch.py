@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Verifies that the write-protect switch is on.'''
+"""Verifies that the write-protect switch is on."""
 
 import logging
 import re
@@ -14,10 +14,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
 from cros.factory.utils.process_utils import SpawnOutput
 
+
 class WriteProtectSwitchTest(unittest.TestCase):
   ARGS = [
-    Arg('has_ectool', bool, 'Has ectool utility or not.',
-        default=True)
+      Arg('has_ectool', bool, 'Has ectool utility or not.',
+          default=True)
   ]
 
   def runTest(self):

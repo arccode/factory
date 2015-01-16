@@ -74,8 +74,10 @@ _LSB_RELEASE_PATH = '/etc/lsb-release'
 _SHOPFLOOR_TIMEOUT_SECS = 10
 _RETRY_INTERVAL_SECS = 3
 
+
 class ImageCheckTask(FactoryTask):
-  def __init__(self, test): # pylint: disable=W0231
+
+  def __init__(self, test):  # pylint: disable=W0231
     self._test = test
 
   def CheckNetwork(self):
@@ -105,7 +107,7 @@ class ImageCheckTask(FactoryTask):
              if self._test.args.netboot_fw else []),
             check_call=True, log=True, log_stderr_on_error=True)
       Spawn(['reboot'])
-    except: # pylint: disable=W0702
+    except:  # pylint: disable=W0702
       self._test.template.SetState(_MSG_FLASH_ERROR)
 
   def CheckImageFromUmpire(self):
@@ -158,23 +160,23 @@ class ImageCheckTask(FactoryTask):
 
 class CheckImageVersionTest(unittest.TestCase):
   ARGS = [
-    Arg('min_version', str,
-        'Minimum allowed factory or release image version. If umpire is set, '
-        ' this args will be neglected.', default=None, optional=True),
-    Arg('loose_version', bool, 'Allow any version number representation.',
-        default=False),
-    Arg('netboot_fw', str, 'The path to netboot firmware image.',
-        default=None, optional=True),
-    Arg('reimage', bool, 'True to re-image when image version mismatch.',
-        default=True, optional=True),
-    Arg('require_space', bool,
-        'True to require a space key press before reimaging.',
-        default=True, optional=True),
-    Arg('check_release_image', bool,
-        'True to check release image instead of factory image.',
-        default=False, optional=True),
-    Arg('umpire', bool, 'True to check image update from Umpire server',
-        default=False)]
+      Arg('min_version', str,
+          'Minimum allowed factory or release image version. If umpire is set, '
+          ' this args will be neglected.', default=None, optional=True),
+      Arg('loose_version', bool, 'Allow any version number representation.',
+          default=False),
+      Arg('netboot_fw', str, 'The path to netboot firmware image.',
+          default=None, optional=True),
+      Arg('reimage', bool, 'True to re-image when image version mismatch.',
+          default=True, optional=True),
+      Arg('require_space', bool,
+          'True to require a space key press before reimaging.',
+          default=True, optional=True),
+      Arg('check_release_image', bool,
+          'True to check release image instead of factory image.',
+          default=False, optional=True),
+      Arg('umpire', bool, 'True to check image update from Umpire server',
+          default=False)]
 
   def setUp(self):
     self._task_list = [ImageCheckTask(self)]

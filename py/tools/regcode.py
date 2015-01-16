@@ -36,17 +36,17 @@ def Decode(options):
 
 
 @Command(
-  'generate-dummy',
-  CmdArg('--board', '-b', metavar='BOARD', required=True,
-         help=('Board to generate codes for.  This must be exactly the '
-               'same as the HWID board name, except lowercase.  For '
-               'boards with variants (like "daisy_spring"), use only '
-               'the variant name ("spring").')),
-  CmdArg('--type', '-t', metavar='TYPE', required=True,
-         choices=['unique', 'group'],
-         help='The type of code to generate (choices: %(choices)s)'),
-  CmdArg('--seed', '-s', metavar='INT', type=int, default=None,
-         help='Seed to use for pseudo-random payload; defaults to clock'))
+    'generate-dummy',
+    CmdArg('--board', '-b', metavar='BOARD', required=True,
+           help=('Board to generate codes for.  This must be exactly the '
+                 'same as the HWID board name, except lowercase.  For '
+                 'boards with variants (like "daisy_spring"), use only '
+                 'the variant name ("spring").')),
+    CmdArg('--type', '-t', metavar='TYPE', required=True,
+           choices=['unique', 'group'],
+           help='The type of code to generate (choices: %(choices)s)'),
+    CmdArg('--seed', '-s', metavar='INT', type=int, default=None,
+           help='Seed to use for pseudo-random payload; defaults to clock'))
 def GenerateDummy(options):
   print ('*** This may be used only to generate a code for testing, '
          'not for a real device.')
@@ -66,12 +66,12 @@ def GenerateDummy(options):
   # results in a reg code that looks like
   # '=CiwKIP______TESTING_______'...)
   proto.content.code = (
-    '\xff\xff\xff\xff\xffLD\x93 \xd1\xbf\xff\xff\xff\xff\xff' + "".join(
-    chr(random.getrandbits(8))
-    for i in range(registration_codes.REGISTRATION_CODE_PAYLOAD_BYTES - 16)))
+      '\xff\xff\xff\xff\xffLD\x93 \xd1\xbf\xff\xff\xff\xff\xff' + ''.join(
+          chr(random.getrandbits(8))
+          for i in range(registration_codes.REGISTRATION_CODE_PAYLOAD_BYTES - 16)))
   proto.content.device = options.board.lower()
   proto.checksum = (
-    binascii.crc32(proto.content.SerializeToString()) & 0xFFFFFFFF)
+      binascii.crc32(proto.content.SerializeToString()) & 0xFFFFFFFF)
 
   encoded_string = '=' + base64.urlsafe_b64encode(
       proto.SerializeToString()).strip()
@@ -85,16 +85,16 @@ def GenerateDummy(options):
 
 
 @Command(
-  'check',
-  CmdArg(
-    '--unique-code', '-u', metavar='UNIQUE_CODE',
-    help='Unique/user code to check (default: ubind_attribute RW VPD value)'),
-  CmdArg(
-    '--group-code', '-g', metavar='GROUP_CODE',
-    help='Group code to check (default: gbind_attribute RW VPD value)'),
-  CmdArg(
-    '--board', '-b', metavar='BOARD',
-    help='Board to check (default: from .default_board or lsb-release)'))
+    'check',
+    CmdArg(
+        '--unique-code', '-u', metavar='UNIQUE_CODE',
+        help='Unique/user code to check (default: ubind_attribute RW VPD value)'),
+    CmdArg(
+        '--group-code', '-g', metavar='GROUP_CODE',
+        help='Group code to check (default: gbind_attribute RW VPD value)'),
+    CmdArg(
+        '--board', '-b', metavar='BOARD',
+        help='Board to check (default: from .default_board or lsb-release)'))
 def Check(options):
   if not options.board:
     options.board = BuildBoard().short_name

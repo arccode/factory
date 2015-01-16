@@ -426,7 +426,7 @@ def _GetCallingModuleObjectAndName():
       module, module_name = _GetModuleObjectAndName(globals_for_frame)
       if module_name is not None:
         return module, module_name
-  raise AssertionError("No module was found")
+  raise AssertionError('No module was found')
 
 
 def _GetCallingModule():
@@ -448,6 +448,7 @@ class FlagsError(Exception):
 class DuplicateFlag(FlagsError):
   """Raised if there is a flag naming conflict."""
   pass
+
 
 class CantOpenFlagFileError(FlagsError):
   """Raised if flagfile fails to open: doesn't exist, wrong permissions, etc."""
@@ -518,6 +519,7 @@ class UnrecognizedFlag(FlagsError):
 # If flagvalue is the empty string, then this exception is an due to a
 # reference to a flag that was not already defined.
 class UnrecognizedFlagError(UnrecognizedFlag):
+
   def __init__(self, flagname, flagvalue=''):
     self.flagname = flagname
     self.flagvalue = flagvalue
@@ -1022,10 +1024,10 @@ class FlagValues:
     fl = self.FlagDict()
     if not isinstance(flag, Flag):
       raise IllegalFlagValue(flag)
-    if not isinstance(name, type("")):
-      raise FlagsError("Flag name must be a string")
+    if not isinstance(name, type('')):
+      raise FlagsError('Flag name must be a string')
     if len(name) == 0:
-      raise FlagsError("Flag name cannot be empty")
+      raise FlagsError('Flag name cannot be empty')
     # If running under pychecker, duplicate keys are likely to be
     # defined.  Disable check for duplicate keys when pycheck'ing.
     if (name in fl and not flag.allow_override and
@@ -1206,7 +1208,7 @@ class FlagValues:
     # Support any sequence type that can be converted to a list
     argv = list(argv)
 
-    shortopts = ""
+    shortopts = ''
     longopts = []
 
     fl = self.FlagDict()
@@ -1238,7 +1240,7 @@ class FlagValues:
         if arg.find('=') >= 0: continue
         if arg.startswith('--'+prefix) and ('--'+name).startswith(arg):
           argv[arg_idx] = ('--%s=true' % name)
-        elif arg.startswith('--'+no_prefix) and ('--'+no_name).startswith(arg):
+        elif arg.startswith('--' + no_prefix) and ('--' + no_name).startswith(arg):
           argv[arg_idx] = ('--%s=false' % name)
 
     # Loop over all of the flags, building up the lists of short options
@@ -1247,11 +1249,11 @@ class FlagValues:
     # if it takes an argument.  Long options are stored in an array of
     # strings.  Each string ends with an '=' if it takes an argument.
     for name, flag in fl.items():
-      longopts.append(name + "=")
+      longopts.append(name + '=')
       if len(name) == 1:  # one-letter option: allow short flag type also
         shortopts += name
         if not flag.boolean:
-          shortopts += ":"
+          shortopts += ':'
 
     longopts.append('undefok=')
     undefok_flags = []
@@ -1277,7 +1279,7 @@ class FlagValues:
               (args[arg_index] == '-' + e.opt) or
               (args[arg_index].startswith('--' + e.opt + '='))):
             unrecognized_opts.append((e.opt, args[arg_index]))
-            args = args[0:arg_index] + args[arg_index+1:]
+            args = args[0:arg_index] + args[arg_index + 1:]
             break
         else:
           # We should have found the option, so we don't expect to get
@@ -1386,20 +1388,20 @@ class FlagValues:
 
     return '\n'.join(helplist)
 
-  def __RenderModuleFlags(self, module, flags, output_lines, prefix=""):
+  def __RenderModuleFlags(self, module, flags, output_lines, prefix=''):
     """Generates a help string for a given module."""
     if not isinstance(module, str):
       module = module.__name__
     output_lines.append('\n%s%s:' % (prefix, module))
-    self.__RenderFlagList(flags, output_lines, prefix + "  ")
+    self.__RenderFlagList(flags, output_lines, prefix + '  ')
 
-  def __RenderOurModuleFlags(self, module, output_lines, prefix=""):
+  def __RenderOurModuleFlags(self, module, output_lines, prefix=''):
     """Generates a help string for a given module."""
     flags = self._GetFlagsDefinedByModule(module)
     if flags:
       self.__RenderModuleFlags(module, flags, output_lines, prefix)
 
-  def __RenderOurModuleKeyFlags(self, module, output_lines, prefix=""):
+  def __RenderOurModuleKeyFlags(self, module, output_lines, prefix=''):
     """Generates a help string for the key flags of a given module.
 
     Args:
@@ -1433,7 +1435,7 @@ class FlagValues:
     """
     return self.ModuleHelp(_GetMainModule())
 
-  def __RenderFlagList(self, flaglist, output_lines, prefix="  "):
+  def __RenderFlagList(self, flaglist, output_lines, prefix='  '):
     fl = self.FlagDict()
     special_fl = _SPECIAL_FLAGS.FlagDict()
     flaglist = [(flag.name, flag) for flag in flaglist]
@@ -1449,25 +1451,25 @@ class FlagValues:
       # only print help once
       if flag in flagset: continue
       flagset[flag] = 1
-      flaghelp = ""
-      if flag.short_name: flaghelp += "-%s," % flag.short_name
+      flaghelp = ''
+      if flag.short_name: flaghelp += '-%s,' % flag.short_name
       if flag.boolean:
-        flaghelp += "--[no]%s" % flag.name + ":"
+        flaghelp += '--[no]%s' % flag.name + ':'
       else:
-        flaghelp += "--%s" % flag.name + ":"
-      flaghelp += "  "
+        flaghelp += '--%s' % flag.name + ':'
+      flaghelp += '  '
       if flag.help:
         flaghelp += flag.help
-      flaghelp = TextWrap(flaghelp, indent=prefix+"  ",
+      flaghelp = TextWrap(flaghelp, indent=prefix + '  ',
                           firstline_indent=prefix)
       if flag.default_as_str:
-        flaghelp += "\n"
-        flaghelp += TextWrap("(default: %s)" % flag.default_as_str,
-                             indent=prefix+"  ")
+        flaghelp += '\n'
+        flaghelp += TextWrap('(default: %s)' % flag.default_as_str,
+                             indent=prefix + '  ')
       if flag.parser.syntactic_help:
-        flaghelp += "\n"
-        flaghelp += TextWrap("(%s)" % flag.parser.syntactic_help,
-                             indent=prefix+"  ")
+        flaghelp += '\n'
+        flaghelp += TextWrap('(%s)' % flag.parser.syntactic_help,
+                             indent=prefix + '  ')
       output_lines.append(flaghelp)
 
   def get(self, name, default):
@@ -1504,7 +1506,7 @@ class FlagValues:
       if flag_idx == (len(sorted_flags) - 1):
         next = None
       else:
-        next = sorted_flags[flag_idx+1]
+        next = sorted_flags[flag_idx + 1]
         next_len = len(next)
       for curr_idx in range(len(curr)):
         if (next is None
@@ -1522,7 +1524,7 @@ class FlagValues:
 
   def __IsFlagFileDirective(self, flag_string):
     """Checks whether flag_string contain a --flagfile=<foo> directive."""
-    if isinstance(flag_string, type("")):
+    if isinstance(flag_string, type('')):
       if flag_string.startswith('--flagfile='):
         return 1
       elif flag_string == '--flagfile':
@@ -1884,7 +1886,7 @@ class Flag:
     try:
       self.value = self.parser.Parse(argument)
     except ValueError, e:  # recast ValueError as IllegalFlagValue
-      raise IllegalFlagValue("flag --%s=%s: %s" % (self.name, argument, e))
+      raise IllegalFlagValue('flag --%s=%s: %s' % (self.name, argument, e))
     self.present += 1
 
   def Unparse(self):
@@ -1899,13 +1901,13 @@ class Flag:
       return ''
     if self.boolean:
       if self.value:
-        return "--%s" % self.name
+        return '--%s' % self.name
       else:
-        return "--no%s" % self.name
+        return '--no%s' % self.name
     else:
       if not self.serializer:
-        raise FlagsError("Serializer not present for flag %s" % self.name)
-      return "--%s=%s" % (self.name, self.serializer.Serialize(self.value))
+        raise FlagsError('Serializer not present for flag %s' % self.name)
+      return '--%s=%s' % (self.name, self.serializer.Serialize(self.value))
 
   def SetDefault(self, value):
     """Changes the default value (and current value too) for this Flag."""
@@ -2047,7 +2049,7 @@ class ArgumentParser(object):
   """
   __metaclass__ = _ArgumentParserCache
 
-  syntactic_help = ""
+  syntactic_help = ''
 
   def Parse(self, argument):
     """Default implementation: always returns its argument unmodified."""
@@ -2105,8 +2107,8 @@ def RegisterValidator(flag_name,
     AttributeError: if flag_name is not registered as a valid flag name.
   """
   flag_values.AddValidator(gflags_validators.SimpleValidator(flag_name,
-                                                            checker,
-                                                            message))
+                                                             checker,
+                                                             message))
 
 
 def MarkFlagAsRequired(flag_name, flag_values=FLAGS):
@@ -2361,7 +2363,8 @@ class BooleanFlag(Flag):
   def __init__(self, name, default, help, short_name=None, **args):
     p = BooleanParser()
     Flag.__init__(self, p, None, name, default, help, short_name, 1, **args)
-    if not self.help: self.help = "a boolean value"
+    if not self.help:
+      self.help = 'a boolean value'
 
 
 def DEFINE_boolean(name, default, help, flag_values=FLAGS, **args):
@@ -2383,52 +2386,59 @@ DEFINE_bool = DEFINE_boolean
 
 
 class HelpFlag(BooleanFlag):
+  """HelpFlag is a special boolean flag that prints usage information and raises a SystemExit exception if it is ever found in the command line arguments.
+
+  Note this is called with allow_override=1, so other apps can define their
+  own --help flag, replacing this one, if they want.
   """
-  HelpFlag is a special boolean flag that prints usage information and
-  raises a SystemExit exception if it is ever found in the command
-  line arguments.  Note this is called with allow_override=1, so other
-  apps can define their own --help flag, replacing this one, if they want.
-  """
+
   def __init__(self):
-    BooleanFlag.__init__(self, "help", 0, "show this help",
-                         short_name="?", allow_override=1)
+    BooleanFlag.__init__(self, 'help', 0, 'show this help',
+                         short_name='?', allow_override=1)
+
   def Parse(self, arg):
     if arg:
-      doc = sys.modules["__main__"].__doc__
+      doc = sys.modules['__main__'].__doc__
       flags = str(FLAGS)
-      print doc or ("\nUSAGE: %s [flags]\n" % sys.argv[0])
+      print doc or ('\nUSAGE: %s [flags]\n' % sys.argv[0])
       if flags:
-        print "flags:"
+        print 'flags:'
         print flags
       sys.exit(1)
+
+
 class HelpXMLFlag(BooleanFlag):
   """Similar to HelpFlag, but generates output in XML format."""
+
   def __init__(self):
     BooleanFlag.__init__(self, 'helpxml', False,
                          'like --help, but generates XML output',
                          allow_override=1)
+
   def Parse(self, arg):
     if arg:
       FLAGS.WriteHelpInXMLFormat(sys.stdout)
       sys.exit(1)
+
+
 class HelpshortFlag(BooleanFlag):
+  """HelpshortFlag is a special boolean flag that prints usage information for the "main" module, and rasies a SystemExit exception if it is ever found in the command line arguments.
+
+  Note this is called with allow_override=1, so other apps can define their
+  own --helpshort flag, replacing this one, if they want.
   """
-  HelpshortFlag is a special boolean flag that prints usage
-  information for the "main" module, and rasies a SystemExit exception
-  if it is ever found in the command line arguments.  Note this is
-  called with allow_override=1, so other apps can define their own
-  --helpshort flag, replacing this one, if they want.
-  """
+
   def __init__(self):
-    BooleanFlag.__init__(self, "helpshort", 0,
-                         "show usage only for this module", allow_override=1)
+    BooleanFlag.__init__(self, 'helpshort', 0,
+                         'show usage only for this module', allow_override=1)
+
   def Parse(self, arg):
     if arg:
-      doc = sys.modules["__main__"].__doc__
+      doc = sys.modules['__main__'].__doc__
       flags = FLAGS.MainModuleHelp()
-      print doc or ("\nUSAGE: %s [flags]\n" % sys.argv[0])
+      print doc or ('\nUSAGE: %s [flags]\n' % sys.argv[0])
       if flags:
-        print "flags:"
+        print 'flags:'
         print flags
       sys.exit(1)
 
@@ -2450,7 +2460,7 @@ class NumericParser(ArgumentParser):
   def Parse(self, argument):
     val = self.Convert(argument)
     if self.IsOutsideBounds(val):
-      raise ValueError("%s is not %s" % (val, self.syntactic_help))
+      raise ValueError('%s is not %s' % (val, self.syntactic_help))
     return val
 
   def WriteCustomInfoInXMLFormat(self, outfile, indent):
@@ -2475,9 +2485,9 @@ class FloatParser(NumericParser):
 
   Parsed value may be bounded to a given upper and lower bound.
   """
-  number_article = "a"
-  number_name = "number"
-  syntactic_help = " ".join((number_article, number_name))
+  number_article = 'a'
+  number_name = 'number'
+  syntactic_help = ' '.join((number_article, number_name))
 
   def __init__(self, lower_bound=None, upper_bound=None):
     super(FloatParser, self).__init__()
@@ -2485,15 +2495,15 @@ class FloatParser(NumericParser):
     self.upper_bound = upper_bound
     sh = self.syntactic_help
     if lower_bound is not None and upper_bound is not None:
-      sh = ("%s in the range [%s, %s]" % (sh, lower_bound, upper_bound))
+      sh = ('%s in the range [%s, %s]' % (sh, lower_bound, upper_bound))
     elif lower_bound == 0:
-      sh = "a non-negative %s" % self.number_name
+      sh = 'a non-negative %s' % self.number_name
     elif upper_bound == 0:
-      sh = "a non-positive %s" % self.number_name
+      sh = 'a non-positive %s' % self.number_name
     elif upper_bound is not None:
-      sh = "%s <= %s" % (self.number_name, upper_bound)
+      sh = '%s <= %s' % (self.number_name, upper_bound)
     elif lower_bound is not None:
-      sh = "%s >= %s" % (self.number_name, lower_bound)
+      sh = '%s >= %s' % (self.number_name, lower_bound)
     self.syntactic_help = sh
 
   def Convert(self, argument):
@@ -2527,9 +2537,9 @@ class IntegerParser(NumericParser):
 
   Parsed value may be bounded to a given upper and lower bound.
   """
-  number_article = "an"
-  number_name = "integer"
-  syntactic_help = " ".join((number_article, number_name))
+  number_article = 'an'
+  number_name = 'integer'
+  syntactic_help = ' '.join((number_article, number_name))
 
   def __init__(self, lower_bound=None, upper_bound=None):
     super(IntegerParser, self).__init__()
@@ -2537,26 +2547,26 @@ class IntegerParser(NumericParser):
     self.upper_bound = upper_bound
     sh = self.syntactic_help
     if lower_bound is not None and upper_bound is not None:
-      sh = ("%s in the range [%s, %s]" % (sh, lower_bound, upper_bound))
+      sh = ('%s in the range [%s, %s]' % (sh, lower_bound, upper_bound))
     elif lower_bound == 1:
-      sh = "a positive %s" % self.number_name
+      sh = 'a positive %s' % self.number_name
     elif upper_bound == -1:
-      sh = "a negative %s" % self.number_name
+      sh = 'a negative %s' % self.number_name
     elif lower_bound == 0:
-      sh = "a non-negative %s" % self.number_name
+      sh = 'a non-negative %s' % self.number_name
     elif upper_bound == 0:
-      sh = "a non-positive %s" % self.number_name
+      sh = 'a non-positive %s' % self.number_name
     elif upper_bound is not None:
-      sh = "%s <= %s" % (self.number_name, upper_bound)
+      sh = '%s <= %s' % (self.number_name, upper_bound)
     elif lower_bound is not None:
-      sh = "%s >= %s" % (self.number_name, lower_bound)
+      sh = '%s >= %s' % (self.number_name, lower_bound)
     self.syntactic_help = sh
 
   def Convert(self, argument):
     __pychecker__ = 'no-returnvalues'
     if type(argument) == str:
       base = 10
-      if len(argument) > 2 and argument[0] == "0" and argument[1] == "x":
+      if len(argument) > 2 and argument[0] == '0' and argument[1] == 'x':
         base = 16
       return int(argument, base)
     else:
@@ -2596,8 +2606,8 @@ class EnumParser(ArgumentParser):
 
   def Parse(self, argument):
     if self.enum_values and argument not in self.enum_values:
-      raise ValueError("value should be one of <%s>" %
-                       "|".join(self.enum_values))
+      raise ValueError('value should be one of <%s>' %
+                       '|'.join(self.enum_values))
     return argument
 
   def Type(self):
@@ -2613,8 +2623,8 @@ class EnumFlag(Flag):
     p = EnumParser(enum_values)
     g = ArgumentSerializer()
     Flag.__init__(self, p, g, name, default, help, short_name, **args)
-    if not self.help: self.help = "an enum string"
-    self.help = "<%s>: %s" % ("|".join(enum_values), self.help)
+    if not self.help: self.help = 'an enum string'
+    self.help = '<%s>: %s' % ('|'.join(enum_values), self.help)
 
   def _WriteCustomInfoInXMLFormat(self, outfile, indent):
     for enum_value in self.parser.enum_values:
@@ -2649,7 +2659,7 @@ class BaseListParser(ArgumentParser):
     super(BaseListParser, self).__init__()
     self._token = token
     self._name = name
-    self.syntactic_help = "a %s separated list" % self._name
+    self.syntactic_help = 'a %s separated list' % self._name
 
   def Parse(self, argument):
     if isinstance(argument, list):
@@ -2762,7 +2772,7 @@ class MultiFlag(Flag):
 
   def Serialize(self):
     if not self.serializer:
-      raise FlagsError("Serializer not present for flag %s" % self.name)
+      raise FlagsError('Serializer not present for flag %s' % self.name)
     if self.value is None:
       return ''
 
@@ -2850,13 +2860,13 @@ _SPECIAL_FLAGS = FlagValues()
 
 
 DEFINE_string(
-    'flagfile', "",
-    "Insert flag definitions from the given file into the command line.",
+    'flagfile', '',
+    'Insert flag definitions from the given file into the command line.',
     _SPECIAL_FLAGS)
 
 DEFINE_string(
-    'undefok', "",
-    "comma-separated list of flag names that it is okay to specify "
-    "on the command line even if the program does not define a flag "
-    "with that name.  IMPORTANT: flags in this list that have "
-    "arguments MUST use the --flag=value format.", _SPECIAL_FLAGS)
+    'undefok', '',
+    'comma-separated list of flag names that it is okay to specify '
+    'on the command line even if the program does not define a flag '
+    'with that name.  IMPORTANT: flags in this list that have '
+    'arguments MUST use the --flag=value format.', _SPECIAL_FLAGS)

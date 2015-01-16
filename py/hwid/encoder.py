@@ -7,7 +7,7 @@
 
 """Implementation of HWID v3 encoder."""
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid import common
 from cros.factory.hwid.base32 import Base32
@@ -69,7 +69,7 @@ def BinaryStringToEncodedString(database, binary_string):
   # Insert dashes to increase readibility.
   encoded_string = ('-'.join(
       [encoded_string[i:i + encoder.DASH_INSERTION_WIDTH]
-      for i in xrange(0, len(encoded_string), encoder.DASH_INSERTION_WIDTH)]))
+       for i in xrange(0, len(encoded_string), encoder.DASH_INSERTION_WIDTH)]))
   return database.board.upper() + ' ' + encoded_string
 
 
@@ -109,7 +109,7 @@ def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,
   for field, index in updated_bom.encoded_fields.iteritems():
     if index is None:
       err_msg = ('Unable to determine index for encoded field %r. Probed '
-          'components are:\n') % field
+                 'components are:\n') % field
       for comp_cls in database.encoded_fields[field][0].iterkeys():
         for probed_comp in bom.components[comp_cls]:
           err_msg += '  %r: %r\n' % (comp_cls, probed_comp.component_name)

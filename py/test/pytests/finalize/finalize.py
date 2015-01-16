@@ -35,25 +35,26 @@ from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel
 
 
-MSG_CHECKING = MakeLabel("Checking system status for finalization...",
-                         "正在检查系统是否已可执行最终程序...")
-MSG_NOT_READY = MakeLabel("System is not ready.<br>"
-                        "Please fix RED tasks and then press SPACE.",
-                        "系统尚未就绪。<br>"
-                        "请修正红色项目后按空白键重新检查。")
-MSG_NOT_READY_POLLING = MakeLabel("System is NOT ready. Please fix RED tasks.",
-                                  "系统尚未就绪。请修正红色项目。")
-MSG_FORCE = MakeLabel("Press “f” to force starting finalization procedure.",
-                      "按下 「f」 键以强迫开始最终程序。")
-MSG_READY = MakeLabel("System is READY. Press SPACE to start FINALIZATION.",
-                      "系统已準备就绪。 请按空白键开始最终程序!")
+MSG_CHECKING = MakeLabel('Checking system status for finalization...',
+                         '正在检查系统是否已可执行最终程序...')
+MSG_NOT_READY = MakeLabel('System is not ready.<br>'
+                          'Please fix RED tasks and then press SPACE.',
+                          '系统尚未就绪。<br>'
+                          '请修正红色项目后按空白键重新检查。')
+MSG_NOT_READY_POLLING = MakeLabel('System is NOT ready. Please fix RED tasks.',
+                                  '系统尚未就绪。请修正红色项目。')
+MSG_FORCE = MakeLabel('Press “f” to force starting finalization procedure.',
+                      '按下 「f」 键以强迫开始最终程序。')
+MSG_READY = MakeLabel('System is READY. Press SPACE to start FINALIZATION.',
+                      '系统已準备就绪。 请按空白键开始最终程序!')
 MSG_FINALIZING = MakeLabel(
-    "Finalizing, please wait.<br>"
-    "Do not restart the device or terminate this test,<br>"
-    "or the device may become unusable.",
-    "正在开始最终程序，请稍等.<br>"
-    "不要重启机器或停止测试，<br>"
-    "不然机器将无法开机。")
+    'Finalizing, please wait.<br>'
+    'Do not restart the device or terminate this test,<br>'
+    'or the device may become unusable.',
+    '正在开始最终程序，请稍等.<br>'
+    '不要重启机器或停止测试，<br>'
+    '不然机器将无法开机。')
+
 
 class Finalize(unittest.TestCase):
   """The main class for finalize pytest."""
@@ -102,7 +103,7 @@ class Finalize(unittest.TestCase):
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
           default=False, optional=True),
-      ]
+  ]
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -151,7 +152,7 @@ class Finalize(unittest.TestCase):
 
     test_list = self.test_info.ReadTestList()
     test_states = test_list.as_dict(
-      factory.get_state_instance().get_test_states())
+        factory.get_state_instance().get_test_states())
 
     with open(self.test_states_path, 'w') as f:
       yaml.dump(test_states, f)
@@ -198,8 +199,9 @@ class Finalize(unittest.TestCase):
 
   def RunPreflight(self):
     power = system.GetBoard().power
+
     def CheckRequiredTests():
-      '''Returns True if all tests (except waived tests) have passed.'''
+      """Returns True if all tests (except waived tests) have passed."""
       test_list = self.test_info.ReadTestList()
       state_map = factory.get_state_instance().get_test_states()
 
@@ -246,23 +248,23 @@ class Finalize(unittest.TestCase):
       return True
 
     items = [(CheckRequiredTests,
-              MakeLabel("Verify all tests passed",
-                        "确认测试项目都已成功了")),
+              MakeLabel('Verify all tests passed',
+                        '确认测试项目都已成功了')),
              (lambda: (
-                self.gooftool.CheckDevSwitchForDisabling() in (True, False)),
-              MakeLabel("Turn off Developer Switch",
-                        "停用开发者开关(DevSwitch)"))]
+                 self.gooftool.CheckDevSwitchForDisabling() in (True, False)),
+              MakeLabel('Turn off Developer Switch',
+                        '停用开发者开关(DevSwitch)'))]
     if self.args.min_charge_pct:
       items.append((lambda: (power.CheckBatteryPresent() and
                              power.GetChargePct() >= self.args.min_charge_pct),
-                    MakeLabel("Charge battery to %d%%" %
+                    MakeLabel('Charge battery to %d%%' %
                               self.args.min_charge_pct,
-                              "充电到%d%%" %
+                              '充电到%d%%' %
                               self.args.min_charge_pct)))
     if self.args.write_protection:
       items += [(lambda: self.gooftool.VerifyWPSwitch() == None,
-                 MakeLabel("Enable write protection pin",
-                           "确认硬体写入保护已开启"))]
+                 MakeLabel('Enable write protection pin',
+                           '确认硬体写入保护已开启'))]
 
     self.template.SetState(
         '<table style="margin: auto; font-size: 150%"><tr><td>' +
@@ -382,6 +384,6 @@ class Finalize(unittest.TestCase):
 
     # TODO(hungte): Use Reboot in test list to replace this, or add a
     # key-press check in developer mode.
-    os.system("sync; sync; sync; shutdown -r now")
+    os.system('sync; sync; sync; shutdown -r now')
     time.sleep(60)
     self.ui.Fail('Unable to shutdown')

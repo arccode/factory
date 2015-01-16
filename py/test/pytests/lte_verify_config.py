@@ -39,15 +39,17 @@ except ImportError:
 
 class LTEVerifyConfig(unittest.TestCase):
   ARGS = [
-    Arg('modem_path', str, 'The path of the serial port.'),
-    Arg('attempts', int,
-        'Number of tries to enter factory mode, since the firmware AT+CFUN=4 '
-        'is not stable enough.', default=2),
-    Arg('config_to_check', list, 'A list of tuples. For each tuple, the first '
-        'element is the command and the second element is the expected '
-        'response. Expected response can be a single string indicating only '
-        'one line response or a list of strings indicating multiline response.')
-  ]
+      Arg('modem_path', str, 'The path of the serial port.'),
+      Arg(
+          'attempts', int,
+          'Number of tries to enter factory mode, since the firmware AT+CFUN=4 '
+          'is not stable enough.', default=2),
+      Arg(
+          'config_to_check', list,
+          'A list of tuples. For each tuple, the first element is the command '
+          'and the second element is the expected response. Expected response '
+          'can be a single string indicating only one line response or a list '
+          'of strings indicating multiline response.')]
 
   def setUp(self):
     self.modem = modem.Modem(self.args.modem_path)

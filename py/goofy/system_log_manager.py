@@ -62,6 +62,7 @@ class SystemLogManager(object):
     aborted: The event to abort main_thread.
     queue: The queue to store all the sync requests.
   """
+
   def __init__(self, sync_log_paths, sync_log_period_secs=300,
                scan_log_period_secs=120, shopfloor_timeout=5,
                rsync_io_timeout=20, polling_period=1, clear_log_paths=None,
@@ -86,10 +87,12 @@ class SystemLogManager(object):
     """Checks the parameters are valid."""
     if self._sync_log_period_secs:
       if self._sync_log_period_secs < MIN_SYNC_LOG_PERIOD_SECS:
-        raise SystemLogManagerException('sync_log_period_secs should not'
+        raise SystemLogManagerException(
+            'sync_log_period_secs should not'
             ' be less than %d.' % MIN_SYNC_LOG_PERIOD_SECS)
       if self._scan_log_period_secs > self._sync_log_period_secs:
-        raise SystemLogManagerException('scan_log_period_secs should not'
+        raise SystemLogManagerException(
+            'scan_log_period_secs should not'
             ' be greater than sync_log_period_seconds.')
     for list_name in ['_clear_log_paths', '_clear_log_excluded_paths']:
       list_attribute = getattr(self, list_name)
@@ -98,10 +101,11 @@ class SystemLogManager(object):
     if self._clear_log_paths and self._sync_log_paths:
       if (set(self._clear_log_paths) & set(self._sync_log_paths)):
         raise SystemLogManagerException('clear_log_paths should not be '
-            'overlapped with sync_log_paths.')
+                                        'overlapped with sync_log_paths.')
     if self._clear_log_paths and self._clear_log_excluded_paths:
       if set(self._clear_log_paths) & set(self._clear_log_excluded_paths):
-        raise SystemLogManagerException('clear_log_paths should not be '
+        raise SystemLogManagerException(
+            'clear_log_paths should not be '
             'overlapped with clear_log_excluded_paths.')
 
   def IsThreadRunning(self):
@@ -172,8 +176,10 @@ class SystemLogManager(object):
            shopfloor.detect_default_server_url())
     proxy = shopfloor.get_instance(detect=True, timeout=self._shopfloor_timeout)
     factory_log_port = proxy.GetFactoryLogPort()
-    folder_name = ('%s_%s' %
-        (event_log.GetDeviceId().replace(':', ''), event_log.GetReimageId()))
+    folder_name = (
+        '%s_%s' %
+        (event_log.GetDeviceId().replace(':', ''),
+         event_log.GetReimageId()))
     return ['rsync://%s:%s/system_logs/%s' %
             (urlparse(url).hostname, factory_log_port, folder_name)]
 

@@ -368,6 +368,7 @@ def CreateFirmwareStressLargeTestList():
     SetOptions(test_list.options, args)
     firmware_stress_generic.RunIn(args)
 
+
 def CreateTestLists():
   """Creates test list.
 

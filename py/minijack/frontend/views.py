@@ -63,10 +63,10 @@ def GetDeviceFilterContext(unused_database, filter_dict):
   default_filter = [[False, 'latest_test_time', 'lt',
                      datetime.now().strftime(DATETIME_FORMAT)[:10]]]
   return {
-    'enabled': bool(filter_dict),
-    'keys': sorted(Device.GetFieldNames()),
-    'list': BuildFilterList(filter_dict, default_filter),
-    'enumerate_keys': dict(),
+      'enabled': bool(filter_dict),
+      'keys': sorted(Device.GetFieldNames()),
+      'list': BuildFilterList(filter_dict, default_filter),
+      'enumerate_keys': dict(),
   }
 
 
@@ -79,10 +79,10 @@ def GetTestFilterContext(database, filter_dict):
       database(Test).Exclude(factory_md5sum='')
       .ValuesList('factory_md5sum', distinct=True)))
   return {
-    'enabled': bool(filter_dict),
-    'keys': sorted(Test.GetFieldNames()),
-    'list': BuildFilterList(filter_dict, default_filter),
-    'enumerate_keys': enumerate_keys,
+      'enabled': bool(filter_dict),
+      'keys': sorted(Test.GetFieldNames()),
+      'list': BuildFilterList(filter_dict, default_filter),
+      'enumerate_keys': enumerate_keys,
   }
 
 
@@ -97,8 +97,8 @@ def GetDevicesView(request):
     ips = [kv for kv in device.ips.split(', ') if not kv.endswith('=none')]
     device.ips = ', '.join(ips)
   context = {
-    'device_list': device_list,
-    'filter': GetDeviceFilterContext(database, filter_dict),
+      'device_list': device_list,
+      'filter': GetDeviceFilterContext(database, filter_dict),
   }
   return render(request, 'devices_life.html', context)
 
@@ -124,10 +124,10 @@ def GetDeviceView(request, device_id):
   top_failed_list = [dict(path=p, count=c) for p, c in top_failed]
 
   stat_dict = {
-    'cpassed': count_passed,
-    'cfailed': count_failed,
-    'ctotal': count_passed + count_failed,
-    'top_failed': top_failed_list[:5],
+      'cpassed': count_passed,
+      'cfailed': count_failed,
+      'ctotal': count_passed + count_failed,
+      'top_failed': top_failed_list[:5],
   }
 
   grouped_event = dict()
@@ -135,12 +135,12 @@ def GetDeviceView(request, device_id):
     grouped_event[k] = [(e.event_id, e.event) for e in v]
 
   context = {
-    'device': device,
-    'tests': tests,
-    'comps': comps,
-    'events': events,
-    'stat': stat_dict,
-    'grouped_event': grouped_event,
+      'device': device,
+      'tests': tests,
+      'comps': comps,
+      'events': events,
+      'stat': stat_dict,
+      'grouped_event': grouped_event,
   }
   return render(request, 'device_life.html', context)
 
@@ -159,17 +159,17 @@ def GetEventView(request, event_id):
   events = sorted(events, key=operator.attrgetter('time'), reverse=True)
   for i in range(len(events)):
     if events[i].event_id == event_id:
-      events_after = events[max(0, i - 5) : i]
-      events_before = events[i + 1 : min(len(events), i + 6)]
+      events_after = events[max(0, i - 5): i]
+      events_before = events[i + 1: min(len(events), i + 6)]
       break
   else:
     events_after = events_before = []
 
   context = {
-    'event': event,
-    'attrs': attrs,
-    'events_before': events_before,
-    'events_after': events_after,
+      'event': event,
+      'attrs': attrs,
+      'events_before': events_before,
+      'events_after': events_after,
   }
   return render(request, 'event_life.html', context)
 
@@ -227,24 +227,24 @@ def GetTestsView(request):
     num_fail = len([x for x in test_list if x['status'] == 'FAILED'])
 
     test_stats.append({
-      'path': k,
-      'num_test': num_test,
-      'latest_time': max(x['end_time'] for x in test_list),
-      'duration_stats': duration_stats,
-      'try_stats': try_stats,
-      'pass_rate': num_pass / float(num_test),
-      'fail_rate': num_fail / float(num_test),
+        'path': k,
+        'num_test': num_test,
+        'latest_time': max(x['end_time'] for x in test_list),
+        'duration_stats': duration_stats,
+        'try_stats': try_stats,
+        'pass_rate': num_pass / float(num_test),
+        'fail_rate': num_fail / float(num_test),
     })
   device_info = dict((d.device_id,
                       (d.serial, d.mlb_serial, d.latest_test_time)) for d in
                      database(Device).IterFilterIn('device_id', all_failed_set))
 
   context = {
-    'order': order,
-    'test_stats': test_stats,
-    'failed_devices': test_to_devices,
-    'device_info': device_info,
-    'filter': GetTestFilterContext(database, filter_dict),
+      'order': order,
+      'test_stats': test_stats,
+      'failed_devices': test_to_devices,
+      'device_info': device_info,
+      'filter': GetTestFilterContext(database, filter_dict),
   }
   return render(request, 'tests_life.html', context)
 
@@ -252,19 +252,19 @@ def GetTestsView(request):
 def GetScreenshotImage(unused_request, ip_address):
   if settings.IS_APPENGINE:
     return HttpResponse(
-        "Screenshot feature is disabled on App Engine" +
+        'Screenshot feature is disabled on App Engine' +
         " (can't create subprocess)")
   remote_url = 'root@' + ip_address
   remote_filename = '/tmp/screenshot.png'
   capture_cmd = (
-    'DISPLAY=:0 XAUTHORITY=/home/chronos/.Xauthority '
-    'import -window root -display :0 -screen ' + remote_filename)
+      'DISPLAY=:0 XAUTHORITY=/home/chronos/.Xauthority '
+      'import -window root -display :0 -screen ' + remote_filename)
   rc = subprocess.call(['ssh', remote_url, capture_cmd])
 
   # Check if ssh returns an error.
   if rc != 0:
     return HttpResponse(
-      'Failed to ssh ' + ip_address + ', returned ' + str(rc) + '.')
+        'Failed to ssh ' + ip_address + ', returned ' + str(rc) + '.')
   else:
     with tempfile.NamedTemporaryFile() as f:
       subprocess.call(['scp', remote_url + ':' + remote_filename, f.name])
@@ -302,10 +302,10 @@ def GetHwidsView(request):
     hwid_names_pair.append((k, name_list))
 
   context = {
-    'hwid_list': hwid_names_pair,
-    'class_set': class_set,
-    'device_list': hwid_to_devices,
-    'filter': GetDeviceFilterContext(database, filter_dict),
+      'hwid_list': hwid_names_pair,
+      'class_set': class_set,
+      'device_list': hwid_to_devices,
+      'filter': GetDeviceFilterContext(database, filter_dict),
   }
   return render(request, 'hwids_life.html', context)
 
@@ -317,7 +317,7 @@ def BuildTestQuerySet(database, test_type, name, order):
   if test_type == 'pytest_name':
     queryset.Filter(pytest_name=name)
   elif test_type == 'short_path':
-    queryset.Filter(Q(path=name) | Q(path__endswith='.'+name))
+    queryset.Filter(Q(path=name) | Q(path__endswith='.' + name))
   else:
     queryset.Filter(path=name)
   if order == 'last_passed':
@@ -352,7 +352,7 @@ def GetTestView(request):
             list(database(Event).IterFilterIn('event_id', event_id_list)))
 
   all_attrs = sorted(list(database.GetRelated(Attr, events)),
-      key=operator.attrgetter('event_id'))
+                     key=operator.attrgetter('event_id'))
   event_id_dict = dict((e.event_id, e) for e in events)
   event_attr_list = []
   for e, g in itertools.groupby(all_attrs, key=operator.attrgetter('event_id')):
@@ -368,10 +368,9 @@ def GetTestView(request):
   rendered_result = all_renderer[renderer_name](event_attr_list)
 
   context = {
-    'get_params': get_params,
-    'test_name': name,
-    'filter': GetTestFilterContext(database, filter_dict),
-    'rendered_result': rendered_result,
+      'get_params': get_params,
+      'test_name': name,
+      'filter': GetTestFilterContext(database, filter_dict),
+      'rendered_result': rendered_result,
   }
   return render(request, 'test_life.html', context)
-

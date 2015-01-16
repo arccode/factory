@@ -21,26 +21,27 @@ def DutInfo(x_umpire_dut):
 
 
 class ParseDUTHeaderTest(unittest.TestCase):
+
   def testSingleKeyValue(self):
-    self.assertDictEqual({'sn':'SN001'}, ParseDUTHeader('sn=SN001'))
-    self.assertDictEqual({'mlb_sn':'MLB001'}, ParseDUTHeader('mlb_sn=MLB001'))
-    self.assertDictEqual({'board':'spring'}, ParseDUTHeader('board=spring'))
-    self.assertDictEqual({'firmware':'spring_1.0.1'},
+    self.assertDictEqual({'sn': 'SN001'}, ParseDUTHeader('sn=SN001'))
+    self.assertDictEqual({'mlb_sn': 'MLB001'}, ParseDUTHeader('mlb_sn=MLB001'))
+    self.assertDictEqual({'board': 'spring'}, ParseDUTHeader('board=spring'))
+    self.assertDictEqual({'firmware': 'spring_1.0.1'},
                          ParseDUTHeader('firmware=spring_1.0.1'))
-    self.assertDictEqual({'ec':'spring_ec_1.0.1'},
+    self.assertDictEqual({'ec': 'spring_ec_1.0.1'},
                          ParseDUTHeader('ec=spring_ec_1.0.1'))
 
   def testSingleKeyPrefixValue(self):
-    self.assertDictEqual({'mac':'aa:bb:cc:dd:ee:ff'},
+    self.assertDictEqual({'mac': 'aa:bb:cc:dd:ee:ff'},
                          ParseDUTHeader('mac=aa:bb:cc:dd:ee:ff'))
-    self.assertDictEqual({'mac.eth0':'aa:bb:cc:dd:ee:ff'},
+    self.assertDictEqual({'mac.eth0': 'aa:bb:cc:dd:ee:ff'},
                          ParseDUTHeader('mac.eth0=aa:bb:cc:dd:ee:ff'))
-    self.assertDictEqual({'mac.wlan0':'aa:bb:cc:dd:ee:ff'},
+    self.assertDictEqual({'mac.wlan0': 'aa:bb:cc:dd:ee:ff'},
                          ParseDUTHeader('mac.wlan0=aa:bb:cc:dd:ee:ff'))
 
   def testMultipleValues(self):
     self.assertDictEqual(
-        {'mac':'aa:bb:cc:dd:ee:ff', 'sn':'SN001', 'mlb_sn':'MLB001'},
+        {'mac': 'aa:bb:cc:dd:ee:ff', 'sn': 'SN001', 'mlb_sn': 'MLB001'},
         ParseDUTHeader('mac=aa:bb:cc:dd:ee:ff; sn=SN001; mlb_sn=MLB001'))
 
   def testInvalidKey(self):
@@ -49,6 +50,7 @@ class ParseDUTHeaderTest(unittest.TestCase):
 
 
 class SelectBundleTest(unittest.TestCase):
+
   def testDefault(self):
     config = yaml.load("""rulesets:
 - bundle_id: 'default'
@@ -83,7 +85,7 @@ class SelectBundleTest(unittest.TestCase):
     # Both mlb_sn and sn are matched. However, first ruleset matches first.
     self.assertEqual('sn_matcher',
                      SelectBundle(config,
-                                   dict(mlb_sn='MLBSN001', sn='SN001')))
+                                  dict(mlb_sn='MLBSN001', sn='SN001')))
 
     # Match stage.
     self.assertEqual('for_smt', SelectBundle(config, dict(stage='SMT')))
@@ -92,7 +94,7 @@ class SelectBundleTest(unittest.TestCase):
     # No match. Fallback to default.
     self.assertEqual('default',
                      SelectBundle(config,
-                                   dict(mlb_sn='MLBSN002', sn='SN002')))
+                                  dict(mlb_sn='MLBSN002', sn='SN002')))
 
   def testScalarPrefixMatcher(self):
     config = yaml.load("""rulesets:
@@ -107,21 +109,21 @@ class SelectBundleTest(unittest.TestCase):
 - bundle_id: 'default'
   active: true""")
     self.assertEqual('ethernet_mac_matcher',
-                     SelectBundle(config, {'mac':'aa:bb:cc:dd:ee:ff'}))
+                     SelectBundle(config, {'mac': 'aa:bb:cc:dd:ee:ff'}))
     self.assertEqual('ethernet_mac_matcher',
-                     SelectBundle(config, {'mac.eth0':'aa:bb:cc:dd:ee:ff'}))
+                     SelectBundle(config, {'mac.eth0': 'aa:bb:cc:dd:ee:ff'}))
     self.assertEqual('wireless_mac_matcher',
-                     SelectBundle(config, {'mac.wlan0':'00:11:22:33:44:55'}))
+                     SelectBundle(config, {'mac.wlan0': '00:11:22:33:44:55'}))
     # Both ethernet MAC and wireless MAC matches, first ruleset matches first.
     self.assertEqual('ethernet_mac_matcher',
-                     SelectBundle(config, {'mac.eth0':'aa:bb:cc:dd:ee:ff',
-                                            'mac.wlan0':'00:11:22:33:44:55'}))
+                     SelectBundle(config, {'mac.eth0': 'aa:bb:cc:dd:ee:ff',
+                                           'mac.wlan0': '00:11:22:33:44:55'}))
     # Only wireless MAC matches.
     self.assertEqual(
         'wireless_mac_matcher',
         SelectBundle(config,
-                      DutInfo('mac.eth0=aa:bb:cc:dd:ee:00; '
-                              'mac.wlan0=00:11:22:33:44:55')))
+                     DutInfo('mac.eth0=aa:bb:cc:dd:ee:00; '
+                             'mac.wlan0=00:11:22:33:44:55')))
 
   def testInactiveMatcher(self):
     config = yaml.load("""rulesets:
@@ -225,7 +227,6 @@ class SelectBundleTest(unittest.TestCase):
     self.assertEqual(None,
                      SelectBundle(config, dict(mlb_sn='MLBSN011')))
 
-
   def testMultipleScalarMatcher(self):
     config = yaml.load("""rulesets:
 - bundle_id: 'sn_and_mac_matcher'
@@ -239,15 +240,15 @@ class SelectBundleTest(unittest.TestCase):
     sn: ['SN001', 'SN002']""")
     self.assertEqual('sn_and_mac_matcher',
                      SelectBundle(config, dict(sn='SN001',
-                                                mac='aa:bb:cc:dd:ee:ff')))
+                                               mac='aa:bb:cc:dd:ee:ff')))
     # mac mismatch.
     self.assertEqual('sn_matcher',
                      SelectBundle(config, dict(sn='SN001',
-                                                mac='aa:bb:cc:dd:ee:00')))
+                                               mac='aa:bb:cc:dd:ee:00')))
     # sn mismatch
     self.assertEqual('sn_matcher',
                      SelectBundle(config, dict(sn='SN002',
-                                                mac='aa:bb:cc:dd:ee:ff')))
+                                               mac='aa:bb:cc:dd:ee:ff')))
 
 
 if __name__ == '__main__':

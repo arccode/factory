@@ -23,7 +23,7 @@ def _EscapeArgument(arg):
     dangerous_chars = set('%?,;\\\"\'&')
     for c in arg:
       if ord(c) < 32 or c in dangerous_chars:
-        ret += "\\x%02x" % ord(c)
+        ret += '\\x%02x' % ord(c)
       else:
         ret += c
     ret += '"'
@@ -46,7 +46,7 @@ def _BuildQuery(sql_cmd, args):
   """
   safe_args = [_EscapeArgument(arg) for arg in args]
   idx = 0
-  ret = ""
+  ret = ''
   for c in sql_cmd:
     if c == '?':
       if idx == len(safe_args):
@@ -74,6 +74,7 @@ class Executor(db.base.BaseExecutor):
     _job_id: The job id of last job.
     _column_names: The column names of the last query.
   """
+
   def __init__(self, service):
     super(Executor, self).__init__()
     self._service = service
@@ -109,13 +110,13 @@ class Executor(db.base.BaseExecutor):
         query_result = self._service.jobs().query(
             projectId=settings_bigquery.PROJECT_ID,
             body={
-              'kind': 'bigquery#queryRequest',
-              'defaultDataset': {
-                'datasetId': settings_bigquery.DATASET_ID,
-              },
-              'query': query,
-              'maxResults': 1,
-              'preserveNulls': True,
+                'kind': 'bigquery#queryRequest',
+                'defaultDataset': {
+                    'datasetId': settings_bigquery.DATASET_ID,
+                },
+                'query': query,
+                'maxResults': 1,
+                'preserveNulls': True,
             }).execute()
       except HttpError as e:
         self._page_token = None
@@ -220,6 +221,7 @@ class ExecutorFactory(db.base.BaseExecutorFactory):
   Properties:
     _service: The service object for Google BigQuery API client.
   """
+
   def __init__(self, service):
     super(ExecutorFactory, self).__init__()
     self._service = service
@@ -241,16 +243,17 @@ class Database(db.base.BaseDatabase):
     _executor_factory: A factory of executor objects.
     _table_names: All table names in the dataset, cache when first fetched.
   """
+
   def __init__(self):
     super(Database, self).__init__()
     # Disable lint error since the file only exist if using BigQuery.
     import settings_bigquery  # pylint: disable=F0401
     credential = SignedJwtAssertionCredentials(
-      settings_bigquery.GOOGLE_API_ID,
-      settings_bigquery.GOOGLE_API_PRIVATE_KEY,
-      scope=[
-        'https://www.googleapis.com/auth/bigquery',
-      ])
+        settings_bigquery.GOOGLE_API_ID,
+        settings_bigquery.GOOGLE_API_PRIVATE_KEY,
+        scope=[
+            'https://www.googleapis.com/auth/bigquery',
+        ])
     http = httplib2.Http(timeout=60)
     http = credential.authorize(http)
 
@@ -364,7 +367,7 @@ class Database(db.base.BaseDatabase):
       ('contains', '%(key)s CONTAINS %(val)s'),
       ('startswith', 'LEFT(%(key), LENGTH(%(val))) = %(val)'),
       ('endswith', 'RIGHT(%(key), LENGTH(%(val))) = %(val)'),
-      ])
+  ])
 
   @staticmethod
   def EscapeColumnName(name, table=None):
@@ -416,4 +419,3 @@ class Database(db.base.BaseDatabase):
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, field_values)
     return executor.FetchAll(model=child_type)
-

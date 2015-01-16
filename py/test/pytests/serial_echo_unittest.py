@@ -9,7 +9,7 @@ from mox import IgnoreArg
 import serial
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import serial_utils
 from cros.factory.test.args import Args
 from cros.factory.test.pytests import serial_echo
@@ -45,8 +45,8 @@ class SerialEchoUnittest(unittest.TestCase):
   def HasFailure(self, expected_failure, assert_message):
     self.assertEqual(1, len(self._test_result.failures), assert_message)
     self.assertTrue(
-      self._test_result.failures[0][1].find(expected_failure) != -1,
-      assert_message)
+        self._test_result.failures[0][1].find(expected_failure) != -1,
+        assert_message)
 
   def testSendRecvTupleTooLong(self):
     self.SetUpTestCase({'send_recv': ('tuple', 'too', 'long')})
@@ -156,5 +156,5 @@ class SerialEchoUnittest(unittest.TestCase):
                     'Unable to handle read timeout.')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

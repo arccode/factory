@@ -52,6 +52,7 @@ th, td {
 }
 """
 
+
 class Report(unittest.TestCase):
   """A factory test to report test status."""
   ARGS = [
@@ -71,7 +72,7 @@ class Report(unittest.TestCase):
       Arg('accessibility', bool,
           'Display bright red background when the overall status is not PASSED',
           default=False, optional=True),
-      ]
+  ]
 
   def _SetFixtureStatusLight(self, all_pass):
     try:

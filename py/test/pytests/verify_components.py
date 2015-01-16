@@ -12,8 +12,7 @@
 import logging
 import unittest
 
-import factory_common # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import Gooftool
 from cros.factory.hwid import database
 from cros.factory.hwid import hwid_utils
@@ -23,6 +22,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.test.event_log import Log
 
 _TEST_TITLE = test_ui.MakeLabel('Components Verification Test',
                                 u'元件验证测试')
@@ -64,8 +64,8 @@ class CheckComponentsTask(FactoryTask):
       self.Fail(str(e))
       return
 
-    logging.info("Probed components: %s", results)
-    Log("probed_components", results=results)
+    logging.info('Probed components: %s', results)
+    Log('probed_components', results=results)
     self._test.probed_results = results
 
     # extract all errors out
@@ -79,10 +79,11 @@ class CheckComponentsTask(FactoryTask):
         if component_result.error:
           error_msgs.append(component_result.error)
     if error_msgs:
-      self.Fail("At least one component is invalid:\n%s" %
+      self.Fail('At least one component is invalid:\n%s' %
                 '\n'.join(error_msgs))
     else:
       self.Pass()
+
 
 class VerifyAnyBOMTask(FactoryTask):
   """Verifies the given probed_results matches any of the given BOMs."""
@@ -105,24 +106,25 @@ class VerifyAnyBOMTask(FactoryTask):
     """
 
     self._test.template.SetState(_MESSAGE_MATCHING_ANY_BOM)
-    logging.info("Verifying BOMs: %r", self._bom_whitelist)
-    Log("bom_whitelist", whitelist=self._bom_whitelist)
+    logging.info('Verifying BOMs: %r', self._bom_whitelist)
+    Log('bom_whitelist', whitelist=self._bom_whitelist)
 
     all_mismatches = {}  # tracks all mismatches for each BOM for debugging
     for bom in self._bom_whitelist:
       mismatches = self._test.gooftool.FindBOMMismatches(
           self._test.board, bom, self._test.probed_results)
       if not mismatches:
-        logging.info("Components verified with BOM %r", bom)
-        Log("verified_bom", bom=bom)
+        logging.info('Components verified with BOM %r', bom)
+        Log('verified_bom', bom=bom)
         self.Pass()
         return
       else:
         all_mismatches[bom] = mismatches
 
-    Log("failed_matching_bom", all_mismatches=all_mismatches)
-    self.Fail("Probed components did not match any of listed BOM: %s" %
+    Log('failed_matching_bom', all_mismatches=all_mismatches)
+    self.Fail('Probed components did not match any of listed BOM: %s' %
               all_mismatches)
+
 
 def LookupBOMList(shopfloor_wrapper, aux_table, aux_field, bom_mapping):
   """Looks up the BOMs from a mapping table and return the list.
@@ -143,21 +145,21 @@ def LookupBOMList(shopfloor_wrapper, aux_table, aux_field, bom_mapping):
   """
 
   if not shopfloor_wrapper.get_server_url():
-    raise ValueError("Shopfloor URL is missing")
+    raise ValueError('Shopfloor URL is missing')
 
   value = None
   try:
     aux = shopfloor_wrapper.get_selected_aux_data(aux_table)
     value = aux.get(aux_field)
     if value is None:
-      raise ValueError("Retrieved None value from %s.%s" % (
+      raise ValueError('Retrieved None value from %s.%s' % (
           aux_table, aux_field))
   except ValueError, e:
-    raise ValueError("Unable to obtain the aux value for %s.%s: %s" % (
+    raise ValueError('Unable to obtain the aux value for %s.%s: %s' % (
         aux_table, aux_field, e))
 
   if value not in bom_mapping:
-    raise ValueError("Unable to lookup %r from the mapping table %s" % (
+    raise ValueError('Unable to lookup %r from the mapping table %s' % (
         value, bom_mapping))
 
   return bom_mapping[value]
@@ -166,42 +168,43 @@ def LookupBOMList(shopfloor_wrapper, aux_table, aux_field, bom_mapping):
 class VerifyComponentsTest(unittest.TestCase):
   """Factory test to verify components."""
   ARGS = [
-    Arg('component_list', list,
-        'A list of components to be verified'),
-    Arg('board', str,
-        'The board which includes the BOMs to whitelist.',
-        optional=True),
-    Arg('bom_whitelist', list,
-        'A whitelist of BOMs that the component probed results must match. '
-        'When specified, probed components must match at least one BOM',
-        optional=True),
-    Arg('aux_table', str,
-        'The name of the aux lookup table used for bom_mapping',
-        optional=True),
-    Arg('aux_field', str,
-        'The name of the field for looking up the BOM list to verify.',
-        optional=True),
-    Arg('bom_mapping', dict,
-        'A mapping from the values of aux_field to BOM lists. The probed '
-        'result must match at least one BOM from the according list when '
-        'specified. The matching is triggered only when a mapping if found. '
-        'If no mapping is found, an error will be raised. e.g. '
-        '{True: ["APPLE", "MELON"], False: ["ORANGE"]}',
-        optional=True),
-    Arg('hwid_version', int,
-        'The version of HWID functions to call. This should be set to "3" if '
-        'the DUT is using HWIDv3.',
-        default=3, optional=True),
-    Arg('fast_fw_probe', bool,
-        'Whether to do a fast firmware probe. The fast firmware probe just '
-        'checks the RO EC and main firmware version and does not compute'
-        'firmware hashes.',
-        default=True, optional=True),
-    Arg('skip_shopfloor', bool,
-        'Set this value to True to skip updating hwid data from shopfloor '
-        'server.',
-        default=False, optional=True)
+      Arg('component_list', list,
+          'A list of components to be verified'),
+      Arg('board', str,
+          'The board which includes the BOMs to whitelist.',
+          optional=True),
+      Arg('bom_whitelist', list,
+          'A whitelist of BOMs that the component probed results must match. '
+          'When specified, probed components must match at least one BOM',
+          optional=True),
+      Arg('aux_table', str,
+          'The name of the aux lookup table used for bom_mapping',
+          optional=True),
+      Arg('aux_field', str,
+          'The name of the field for looking up the BOM list to verify.',
+          optional=True),
+      Arg('bom_mapping', dict,
+          'A mapping from the values of aux_field to BOM lists. The probed '
+          'result must match at least one BOM from the according list when '
+          'specified. The matching is triggered only when a mapping if found. '
+          'If no mapping is found, an error will be raised. e.g. '
+          '{True: ["APPLE", "MELON"], False: ["ORANGE"]}',
+          optional=True),
+      Arg('hwid_version', int,
+          'The version of HWID functions to call. This should be set to "3" if '
+          'the DUT is using HWIDv3.',
+          default=3, optional=True),
+      Arg('fast_fw_probe', bool,
+          'Whether to do a fast firmware probe. The fast firmware probe just '
+          'checks the RO EC and main firmware version and does not compute'
+          'firmware hashes.',
+          default=True, optional=True),
+      Arg('skip_shopfloor', bool,
+          'Set this value to True to skip updating hwid data from shopfloor '
+          'server.',
+          default=False, optional=True)
   ]
+
   def setUp(self):
     self._shopfloor = shopfloor
     self._ui = test_ui.UI()
@@ -251,4 +254,3 @@ class VerifyComponentsTest(unittest.TestCase):
                         self.args.aux_field, self.args.bom_mapping)))
 
     FactoryTaskManager(self._ui, task_list).Run()
-

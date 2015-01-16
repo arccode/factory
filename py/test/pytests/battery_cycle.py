@@ -82,7 +82,7 @@ class BatteryCycleTest(unittest.TestCase):
       Arg('max_duration_hours', (int, float),
           'Maximum number of hours to run', optional=True),
       Arg('cycle_timeout_secs', int,
-          'Maximum time for one charge/discharge cycle', 12*60*60),
+          'Maximum time for one charge/discharge cycle', 12 * 60 * 60),
       Arg('minimum_charge_pct', (int, float), 'Minimum charge, in percent', 5),
       Arg('maximum_charge_pct', (int, float), 'Maximum charge, in percent', 95),
       Arg('charge_threshold_secs', int,
@@ -92,7 +92,7 @@ class BatteryCycleTest(unittest.TestCase):
       Arg('idle_time_secs', int, 'Time to idle between battery checks.', 1),
       Arg('log_interval_secs', int, 'Interval at which to log system status',
           30),
-      ]
+  ]
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -161,8 +161,8 @@ class BatteryCycleTest(unittest.TestCase):
         ('bc-phase', 'Charging' if self.mode == Mode.CHARGE else 'Discharging'),
         ('bc-current-cycle', self.completed_cycles + 1),
         ('bc-cycles-remaining', (self.args.num_cycles - self.completed_cycles
-                              if self.args.num_cycles
-                              else u'∞')),
+                                 if self.args.num_cycles
+                                 else u'∞')),
         ('bc-target-charge', '%.2f%%' % target_charge_pct)):
       self.ui.SetHTML(content, id=elt_id)
 
@@ -171,6 +171,7 @@ class BatteryCycleTest(unittest.TestCase):
       return comparator(self._GetChargePct(), target_charge_pct)
 
     first_done_time = [None]
+
     def IsDone():
       """Returns True if the cycle really is done.
 

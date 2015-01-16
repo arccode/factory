@@ -3,9 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-Reports fetcher is a command line tool to fetch reports from remote server
-and upload it to Google Cloud Storage Server.
+"""Reports fetcher is a command line tool to fetch reports from remote server and upload it to Google Cloud Storage Server.
 
 To run this tool, environment have to be setup as instructed in this URL:
 https://developers.google.com/storage/docs/gspythonlibrary
@@ -89,7 +87,7 @@ def UploadFile(source, target):
 
 
 def CleanUp(directory):
-  logging.info("Clean up temporary directory %s", directory)
+  logging.info('Clean up temporary directory %s', directory)
   shutil.rmtree(directory, ignore_errors=True)
 
 
@@ -120,7 +118,7 @@ def Main():
 
   if source_on_remote:
     local_dir = tempfile.mkdtemp()
-    logging.info("Temporary directory created %s", local_dir)
+    logging.info('Temporary directory created %s', local_dir)
     source_files = ListRemoteFile(
         options.dir_to_monitor, options.ssh_portal)
     signal_handler = lambda _, __: CleanUp(local_dir)

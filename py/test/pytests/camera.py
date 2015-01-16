@@ -163,7 +163,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
     camera_test: The main CameraTest object.
     task_type: (CaptureTaskType enum) The test type of this capture task.
   """
-  _CAPTURE_THREAD_NAME = "TestCaptureThread"
+  _CAPTURE_THREAD_NAME = 'TestCaptureThread'
 
   def __init__(self, camera_test, task_type):
     super(CaptureTask, self).__init__(camera_test.ui)
@@ -305,39 +305,59 @@ class LEDTask(factory_task.InteractiveFactoryTask):
 class CameraTest(unittest.TestCase):
   """Main class for camera test."""
   ARGS = [
-    Arg('mock_mode', bool, 'Whether to use mock mode.', default=False),
-    Arg('do_QR_scan', bool, 'Automates camera check by scanning QR Code.',
-        default=False),
-    Arg('do_facial_recognition', bool, 'Automates camera check by using '
-        'face recognition.', default=False),
-    Arg('do_capture_timeout', bool, 'Just run camera capturing for '
-        "'timeout_secs' without manual intervention of operator. "
-        'This is usually used in run-in stress test. ', default=False),
-    Arg('do_capture_manual', bool, 'Manually checks if camera capturing is '
-        'working.', default=False),
-    Arg('do_led_manual', bool, 'Manully tests LED on camera.', default=False),
-    Arg('num_frames_to_pass', int, 'The number of frames with faces or '
-        'QR code presented to pass the test.', default=10),
-    Arg('process_rate', (int, float), 'The process rate of face recognition or '
-        'QR code scanning in times per second.', default=5),
-    Arg('QR_string', str, 'Encoded string in QR code.',
-        default='Hello ChromeOS!'),
-    Arg('capture_fps', (int, float),
-        'Camera capture rate in frames per second.', default=30),
-    Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
-    Arg('capture_resolution', tuple, 'A tuple (x-res, y-res) indicating the '
-        'image capture resolution.', default=(1280, 720)),
-    Arg('resize_ratio', float, 'The resize ratio of captured image '
-        'on screen.', default=0.4),
-    Arg('show_image', bool, 'Whether to actually show the image on screen.',
-        default=True),
-    Arg('device_index', int, 'Index of video device (-1 for default).',
-        default=-1),
-    Arg('use_yavta', bool, 'Use yavta to capture image.', default=False),
-    Arg('yavta_postprocess', bool, 'Postprocess image.', default=False),
-    Arg('yavta_ctls', list, 'List of controls used in yavta.', default=[]),
-    Arg('yavta_skip', int, 'Skip first n frames.', default=0),
-  ]
+      Arg('mock_mode', bool, 'Whether to use mock mode.', default=False),
+      Arg(
+          'do_QR_scan', bool, 'Automates camera check by scanning QR Code.',
+          default=False),
+      Arg(
+          'do_facial_recognition', bool,
+          'Automates camera check by using '
+          'face recognition.', default=False),
+      Arg(
+          'do_capture_timeout', bool,
+          'Just run camera capturing for '
+          "'timeout_secs' without manual intervention of operator. "
+          'This is usually used in run-in stress test. ', default=False),
+      Arg(
+          'do_capture_manual', bool,
+          'Manually checks if camera capturing is '
+          'working.', default=False),
+      Arg(
+          'do_led_manual', bool, 'Manully tests LED on camera.',
+          default=False),
+      Arg(
+          'num_frames_to_pass', int,
+          'The number of frames with faces or '
+          'QR code presented to pass the test.', default=10),
+      Arg(
+          'process_rate', (int, float),
+          'The process rate of face recognition or '
+          'QR code scanning in times per second.', default=5),
+      Arg(
+          'QR_string', str, 'Encoded string in QR code.',
+          default='Hello ChromeOS!'),
+      Arg(
+          'capture_fps', (int, float),
+          'Camera capture rate in frames per second.', default=30),
+      Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
+      Arg(
+          'capture_resolution', tuple,
+          'A tuple (x-res, y-res) indicating the '
+          'image capture resolution.', default=(1280, 720)),
+      Arg(
+          'resize_ratio', float,
+          'The resize ratio of captured image '
+          'on screen.', default=0.4),
+      Arg(
+          'show_image', bool,
+          'Whether to actually show the image on screen.', default=True),
+      Arg(
+          'device_index', int, 'Index of video device (-1 for default).',
+          default=- 1),
+      Arg('use_yavta', bool, 'Use yavta to capture image.', default=False),
+      Arg('yavta_postprocess', bool, 'Postprocess image.', default=False),
+      Arg('yavta_ctls', list, 'List of controls used in yavta.', default=[]),
+      Arg('yavta_skip', int, 'Skip first n frames.', default=0)]
 
   def _CountdownTimer(self):
     """Starts countdown timer and fails the test if timer reaches zero,

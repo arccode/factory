@@ -76,6 +76,7 @@ class MediaMonitor(object):
     monitor.Start(on_insert=on_insert, on_remove=on_remove)
     monitor.Stop()
   """
+
   def __init__(self, subsystem='block'):
     self.on_insert = None
     self.on_remove = None
@@ -88,7 +89,7 @@ class MediaMonitor(object):
     if self.is_monitoring == False:
       return
     if action == _UDEV_ACTION_INSERT:
-      logging.info("Device inserted: %s", device.device_node)
+      logging.info('Device inserted: %s', device.device_node)
       if self.on_insert:
         self.on_insert(device.device_node)
     elif action == _UDEV_ACTION_REMOVE:
@@ -98,7 +99,7 @@ class MediaMonitor(object):
 
   def Start(self, on_insert, on_remove):
     if self.is_monitoring:
-      raise Exception("Multiple start() call is not allowed")
+      raise Exception('Multiple start() call is not allowed')
     self.on_insert = on_insert
     self.on_remove = on_remove
     # Setup the media monitor,
@@ -118,7 +119,7 @@ class MediaMonitor(object):
       self._pyudev_thread.daemon = True
       self._pyudev_thread.start()
     self.is_monitoring = True
-    logging.info("Start monitoring media actitivities.")
+    logging.info('Start monitoring media actitivities.')
 
   def Stop(self):
     # TODO(littlecvr): Use pyudev.MonitorObserver instead of writing our
@@ -132,7 +133,7 @@ class MediaMonitor(object):
     # pretend we have stopped. This problem should be fixed after pyudev has
     # been upgraded.
     self.is_monitoring = False
-    logging.info("Stop monitoring media actitivities.")
+    logging.info('Stop monitoring media actitivities.')
 
 
 class MountedMedia(object):
@@ -195,12 +196,12 @@ class MountedMedia(object):
     """
     # Create an temporary mount directory to mount.
     self._mount_dir = tempfile.mkdtemp(prefix='MountedMedia')
-    logging.info("Media mount directory created: %s", self._mount_dir)
+    logging.info('Media mount directory created: %s', self._mount_dir)
     exit_code, output = commands.getstatusoutput(
         'mount %s %s' % (self._dev_path, self._mount_dir))
     if exit_code != 0:
       shutil.rmtree(self._mount_dir)
-      raise Exception("Failed to mount. Message-%s" % output)
+      raise Exception('Failed to mount. Message-%s' % output)
     self._mounted = True
 
   def _UmountMedia(self):
@@ -209,6 +210,6 @@ class MountedMedia(object):
     exit_code, output = commands.getstatusoutput(
         'umount %s' % self._mount_dir)
     if exit_code != 0:
-      raise Exception("Failed to umount. Message-%s" % output)
+      raise Exception('Failed to umount. Message-%s' % output)
     shutil.rmtree(self._mount_dir)
     self._mounted = False

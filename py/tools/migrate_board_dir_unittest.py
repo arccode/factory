@@ -64,6 +64,7 @@ def CreateFileWithContent(path_contents_dict):
 
 
 class PrepareDirectoryCopyTest(unittest.TestCase):
+
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp(prefix='migrate_board_dir_unittest')
     self.mox = mox.Mox()
@@ -124,6 +125,7 @@ class PrepareDirectoryCopyTest(unittest.TestCase):
 
 
 class CopyFilesAndRenameTest(unittest.TestCase):
+
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp(prefix='migrate_board_dir_unittest')
     self.mox = mox.Mox()
@@ -161,7 +163,7 @@ class CopyFilesAndRenameTest(unittest.TestCase):
     migrate_board_dir.CopyFilesAndRename(
         src_dir,
         dst_dir,
-        ReplacePattern('dog', 'cat'), # Renames 'dog' to 'cat' in file names.
+        ReplacePattern('dog', 'cat'),  # Renames 'dog' to 'cat' in file names.
         reset_ebuild_file=True)
     CheckFileContent(expected_dst_files)
 
@@ -216,13 +218,14 @@ class CopyFilesAndRenameTest(unittest.TestCase):
       migrate_board_dir.CopyFilesAndRename(
           src_dir,
           dst_dir,
-          ReplacePattern('dog', 'cat'), # Renames 'dog' to 'cat' in file names.
+          ReplacePattern('dog', 'cat'),  # Renames 'dog' to 'cat' in file names.
           reset_ebuild_file=True)
     # Checks it includes all errors raised from recursive call in the exception.
     self.assertEqual(set(context_manager.exception.args[0]), set(errors))
 
 
 class ReplaceStringInFilesTest(unittest.TestCase):
+
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp(prefix='migrate_board_dir_unittest')
 

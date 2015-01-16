@@ -19,11 +19,12 @@ from cros.factory.utils.process_utils import Spawn
 
 
 class ShopFloorStandaloneTest(unittest.TestCase):
+
   def setUp(self):
     self.process = None
     self.tmp = tempfile.mkdtemp(prefix='shopfloor_standalone_unittest.')
     self.tmp_build_dir = tempfile.mkdtemp(
-      prefix='shopfloor_standalone_unittest_build_dir.')
+        prefix='shopfloor_standalone_unittest_build_dir.')
 
   def tearDown(self):
     if self.process and self.process.poll() is None:
@@ -47,7 +48,7 @@ class ShopFloorStandaloneTest(unittest.TestCase):
 
     os.environ['SHOPFLOOR_SERVER_CMD'] = shopfloor_server_path
     # Disable all site directories to simulate a plain-vanilla Python.
-    os.environ['CROS_SHOPFLOOR_PYTHON_OPTS'] = "-sS"
+    os.environ['CROS_SHOPFLOOR_PYTHON_OPTS'] = '-sS'
 
     shopfloor_unittest = os.path.join(script_dir, 'shopfloor_unittest.py')
     self.process = Spawn([shopfloor_unittest], check_call=True, log=True)

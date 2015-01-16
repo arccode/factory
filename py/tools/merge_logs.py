@@ -17,10 +17,10 @@ MAX_TIMESTAMP = datetime.datetime(datetime.MAXYEAR, 12, 31)
 #   1. Compiled regular expression pattern. Used to match the timestamp.
 #   2. datetime format string. Used by datetime.strptime().
 TIMESTAMP_PATTERN = [
-    (re.compile("\d{4}-\d+-\d+T\d+:\d+:\d+\.\d+"),
-     "%Y-%m-%dT%H:%M:%S.%f"),
-    (re.compile("\d{4}-\d+-\d+ \d+:\d+:\d+\.\d+"),
-     "%Y-%m-%d %H:%M:%S.%f")]
+    (re.compile('\d{4}-\d+-\d+T\d+:\d+:\d+\.\d+'),
+     '%Y-%m-%dT%H:%M:%S.%f'),
+    (re.compile('\d{4}-\d+-\d+ \d+:\d+:\d+\.\d+'),
+     '%Y-%m-%d %H:%M:%S.%f')]
 
 
 def ParseTimestamp(line):
@@ -38,6 +38,7 @@ def ParseTimestamp(line):
       return datetime.datetime.strptime(match.group(0), ptime)
   return None
 
+
 class TimestampedFileReader(object):
   '''A reader that wraps file object.
 
@@ -47,6 +48,7 @@ class TimestampedFileReader(object):
   When the line is read from the buffer, automatically reads and buffers the
   next line.
   '''
+
   def __init__(self, f):
     self._f = f
     self._time = datetime.datetime.utcfromtimestamp(0)
@@ -95,9 +97,10 @@ EXAMPLES = """Examples:
 
 """
 
+
 def main():
   parser = argparse.ArgumentParser(
-      description="Merge kernel/factory log by timestamps.",
+      description='Merge kernel/factory log by timestamps.',
       epilog=EXAMPLES,
       formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('file', metavar='file', type=argparse.FileType('r'),
@@ -109,7 +112,7 @@ def main():
 
   while True:
     ts, idx = min(itertools.izip([r.GetTimestamp() for r in reader],
-                               itertools.count()))
+                                 itertools.count()))
     if ts == MAX_TIMESTAMP:
       break
     args.output.write(str(idx) + '> ' + reader[idx].GetNextLine())

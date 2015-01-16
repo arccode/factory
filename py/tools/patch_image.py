@@ -26,15 +26,19 @@ FIRMWARE_UPDATE_BINARIES = [
 
 
 SRC = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
+
+
 def GetDefaultBoardOrNone():
   try:
     return open(os.path.join(SRC, 'scripts', '.default_board')).read().strip()
   except IOError:
     return None
 
+
 def ParseListArg(value):
   value = sum([re.split('[ ,:]', x) for x in value], [])
   return [x for x in value if x]
+
 
 def ContentsDiffer(src_path, dest_path):
   """Returns True if the two files differ.
@@ -75,26 +79,26 @@ def ContentsDiffer(src_path, dest_path):
 
 PACKAGES = {
     'factory':
-      dict(path='platform/factory',
-           package='chromeos-base/chromeos-factory',
-           workon=True),
+        dict(path='platform/factory',
+             package='chromeos-base/chromeos-factory',
+             workon=True),
     'chromeos-factory-board':
-      dict(path='%(overlay_relpath)s',
-           package='chromeos-base/chromeos-factory-board',
-           workon=False),
+        dict(path='%(overlay_relpath)s',
+             package='chromeos-base/chromeos-factory-board',
+             workon=False),
     'autotest-private-board':
-      dict(path='%(overlay_relpath)s',
-           package='chromeos-base/autotest-private-board',
-           workon=False),
+        dict(path='%(overlay_relpath)s',
+             package='chromeos-base/autotest-private-board',
+             workon=False),
     'autotest':
-      dict(path='third_party/autotest/files',
-           package='chromeos-base/autotest',
-           workon=True),
+        dict(path='third_party/autotest/files',
+             package='chromeos-base/autotest',
+             workon=True),
     'autotest-factory':
-      dict(path='third_party/autotest/files',
-           package='chromeos-base/autotest-factory',
-           workon=True),
-    }
+        dict(path='third_party/autotest/files',
+             package='chromeos-base/autotest-factory',
+             workon=True),
+}
 
 # A secret value for 'output' to make the script modify the image in place.
 # Only for testing.
@@ -102,6 +106,7 @@ IN_PLACE = 'IN_PLACE'
 OLD_IMAGE_MOUNT_POINT = '/tmp/old_image_mount'
 NEW_IMAGE_MOUNT_POINT = '/tmp/new_image_mount'
 ALL = 'ALL'
+
 
 def HasDeletedComponent(old_image_mount_path, rel_path):
   """Returns True if rel_path has a deleted component.
@@ -116,9 +121,10 @@ def HasDeletedComponent(old_image_mount_path, rel_path):
       return True
   return False
 
+
 def main():
   parser = argparse.ArgumentParser(
-      description="Patches a factory image according with particular commits.")
+      description='Patches a factory image according with particular commits.')
   parser.add_argument('--input', '-i', help='Input image', required=True)
   parser.add_argument('--output', '-o', help='Output image', required=True)
   parser.add_argument('--output-updater', help='Output factory.tar.bz2')
@@ -139,7 +145,7 @@ def main():
   parser.add_argument('--no-sync', action='store_false', dest='sync',
                       help="Don't emerge (for debugging only)")
   parser.add_argument('--no-firmware', action='store_false', dest='firmware',
-                      help="Never update chromeos-firmwareupdater")
+                      help='Never update chromeos-firmwareupdater')
   parser.add_argument('--yes', '-y', action='store_true',
                       help="Don't ask for confirmation")
   args = parser.parse_args()

@@ -10,7 +10,7 @@ import logging
 import os
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.hacked_argparse import Command, CmdArg, ParseCmdline
 from cros.factory.hwid import common
 from cros.factory.hwid import database
@@ -35,6 +35,7 @@ class Arg(object):
   """A simple class to store arguments passed to the add_argument method of
   argparse module.
   """
+
   def __init__(self, *args, **kwargs):
     self.args = args
     self.kwargs = kwargs

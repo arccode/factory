@@ -6,7 +6,7 @@
 
 import argparse
 import dbus
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 import gobject
 import logging
 import os
@@ -17,7 +17,7 @@ import yaml
 
 from cros.factory.utils.sync_utils import PollForCondition, Retry
 from dbus.mainloop.glib import DBusGMainLoop
-from dbus import service # pylint: disable=W0611
+from dbus import service  # pylint: disable=W0611
 from dbus import DBusException
 
 
@@ -33,7 +33,7 @@ class BluetoothManagerException(Exception):
   pass
 
 
-#TODO(cychiang) Add unittest for this class.
+# TODO(cychiang) Add unittest for this class.
 class BluetoothManager(object):
   """The class to handle bluetooth adapter and device through dbus interface.
 
@@ -48,6 +48,7 @@ class BluetoothManager(object):
     Raises BluetoothManagerException if org.bluez.Manager object is not
     available through dbus interface.
   """
+
   def __init__(self):
     DBusGMainLoop(set_as_default=True)
     self._main_loop = gobject.MainLoop()
@@ -58,8 +59,7 @@ class BluetoothManager(object):
                                      'org.freedesktop.DBus.ObjectManager')
     except DBusException as e:
       raise BluetoothManagerException('DBus Exception in getting Manager'
-          'dbus Interface: %s.' % e)
-
+                                      'dbus Interface: %s.' % e)
 
   def _FindDeviceInterface(self, mac_addr, adapter):
     """ Given a MAC address, returns the corresponding device dbus object
@@ -76,7 +76,7 @@ class BluetoothManager(object):
     for path, ifaces in remote_objects.iteritems():
       if path.startswith(path_prefix):
         device = ifaces.get(DEVICE_INTERFACE)
-        if device and str(device["Address"]) == mac_addr:
+        if device and str(device['Address']) == mac_addr:
           matching_device = bus.get_object(SERVICE_NAME, path)
           return dbus.Interface(matching_device, DEVICE_INTERFACE)
     return None
@@ -218,7 +218,7 @@ class BluetoothManager(object):
       return True
     else:
       raise BluetoothManagerException('Pair: reply_handler'
-          ' did not get called.')
+                                      ' did not get called.')
 
   def GetFirstAdapter(self):
     """Returns the first adapter object found by bluetooth manager.
@@ -301,10 +301,10 @@ class BluetoothManager(object):
     device_prop = dbus.Interface(bus.get_object(BUS_NAME, adapter.object_path),
                                  'org.freedesktop.DBus.Properties')
     PollForCondition(poll_method=lambda: (
-                         device_prop.Get(ADAPTER_INTERFACE, 'Discovering')),
+        device_prop.Get(ADAPTER_INTERFACE, 'Discovering')),
                      condition_method=lambda ret: ret == 1,
                      timeout_secs=timeout_secs,
-                     condition_name="Wait for Discovering==1")
+                     condition_name='Wait for Discovering==1')
 
   def RemoveDevices(self, adapter, paths):
     """Lets adapter to remove devices in paths.
@@ -463,14 +463,14 @@ class BluetoothManager(object):
     bus = dbus.SystemBus()
 
     bus.add_signal_receiver(_CallbackInterfacesAdded,
-        dbus_interface='org.freedesktop.DBus.ObjectManager',
-        signal_name='InterfacesAdded')
+                            dbus_interface='org.freedesktop.DBus.ObjectManager',
+                            signal_name='InterfacesAdded')
 
     bus.add_signal_receiver(_CallbackDevicePropertiesChanged,
-        dbus_interface='org.freedesktop.DBus.Properties',
-        signal_name='PropertiesChanged',
-        arg0=DEVICE_INTERFACE,
-        path_keyword="path")
+                            dbus_interface='org.freedesktop.DBus.Properties',
+                            signal_name='PropertiesChanged',
+                            arg0=DEVICE_INTERFACE,
+                            path_keyword='path')
 
     adapter.StartDiscovery()
     logging.info('Start discovery')
@@ -483,15 +483,16 @@ class BluetoothManager(object):
     gobject.timeout_add(timeout_secs * 1000, _ScanTimeout)
     self._main_loop.run()
 
-    bus.remove_signal_receiver(_CallbackInterfacesAdded,
+    bus.remove_signal_receiver(
+        _CallbackInterfacesAdded,
         dbus_interface='org.freedesktop.DBus.ObjectManager',
         signal_name='InterfacesAdded')
 
     bus.remove_signal_receiver(_CallbackDevicePropertiesChanged,
-        dbus_interface='org.freedesktop.DBus.Properties',
-        signal_name='PropertiesChanged',
-        arg0=DEVICE_INTERFACE,
-        path_keyword="path")
+                               dbus_interface='org.freedesktop.DBus.Properties',
+                               signal_name='PropertiesChanged',
+                               arg0=DEVICE_INTERFACE,
+                               path_keyword='path')
 
     logging.info('Transform the key from path to address...')
     devices_address_properties = dict(
@@ -522,10 +523,10 @@ class BluetoothTest(object):
         description=USAGE)
     parser.add_argument(
         '--properties', dest='properties', action='store_true',
-        help="Shows properties in the scanned results")
+        help='Shows properties in the scanned results')
     parser.add_argument(
         '--forever', dest='forever', action='store_true',
-        help="Scans forever")
+        help='Scans forever')
     self.args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 

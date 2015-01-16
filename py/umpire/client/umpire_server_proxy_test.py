@@ -25,6 +25,7 @@ DEFAULT_SERVER_URI = 'http://10.3.0.1:9090'
 class FakeClientInfo(object):
   """Fake client info which implements UmpireClientInfoInterface."""
   __implements__ = (UmpireClientInfoInterface)
+
   def __init__(self, dut):
     """Initializes a fake client info.
 
@@ -74,7 +75,6 @@ class FakeClientInfo(object):
     raise NotImplementedError
 
 
-
 class UmpireServerProxyCLI(object):
   """The main class of Umpire server proxy command line tool.
 
@@ -90,6 +90,7 @@ class UmpireServerProxyCLI(object):
     data: Data read from test data yaml file.
     proxy: An UmpireServerProxy object.
   """
+
   def __init__(self):
     self.args = None
     self.fake_client_info = None
@@ -106,9 +107,9 @@ class UmpireServerProxyCLI(object):
 
   def ParseArgs(self):
     parser = argparse.ArgumentParser(
-        description=('Using UmpireServerProxy to connect to an Umpire server'
-        ' for testing. Fake client info and method arguments can be specified'
-        ' in test data yaml file.'))
+        description='Using UmpireServerProxy to connect to an Umpire server for '
+        'testing. Fake client info and method arguments can be specified '
+        'in test data yaml file.')
     parser.add_argument(
         '--test-data', '-t', default=None,
         help='Path to the test data yaml file. The default file '
@@ -140,7 +141,7 @@ class UmpireServerProxyCLI(object):
     """
     if not self.args.test_data:
       self.args.test_data = os.path.join(
-        os.path.dirname(__file__), 'testdata', 'umpire_test_data.yaml')
+          os.path.dirname(__file__), 'testdata', 'umpire_test_data.yaml')
     logging.debug('Using test data %r', self.args.test_data)
     with open(self.args.test_data) as f:
       content = f.read()

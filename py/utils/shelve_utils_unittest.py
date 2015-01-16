@@ -24,6 +24,7 @@ def WipeFiles(parent_dir):
 
 
 class ShelveUtilsTest(unittest.TestCase):
+
   def setUp(self):
     # Use a whole temp directory, since some DB mechanisms use multiple files.
     self.tmp = tempfile.mkdtemp(prefix='shelve_utils_unittest.')

@@ -27,11 +27,12 @@ with a patched iperf binary.  The important source code change is adding a
 stdout flush after printing output::
 
   diff -urBN iperf-3.0.10/src/iperf_api.c iperf-3.0.10-patch/src/iperf_api.c
-  --- iperf-3.0.10/src/iperf_api.c	2014-12-16 11:39:58.000000000 -0800
-  +++ iperf-3.0.10-patch/src/iperf_api.c	2014-12-19 21:26:27.108536953 -0800
+  --- iperf-3.0.10/src/iperf_api.c      2014-12-16 11:39:58.000000000 -0800
+  +++ iperf-3.0.10-patch/src/iperf_api.c        2014-12-19 21:26:27.108536953
+  -0800
   @@ -2668,5 +2668,6 @@
-   	    TAILQ_INSERT_TAIL(&(test->server_output_list), l, textlineentries);
-   	}
+            TAILQ_INSERT_TAIL(&(test->server_output_list), l, textlineentries);
+        }
        }
   +    fflush(stdout);
        return r;

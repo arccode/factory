@@ -27,7 +27,7 @@ class ProbeCellularInfoTest(unittest.TestCase):
       Arg('probe_lte_imei', bool, 'Whether to probe IMEI on LTE modem', False),
       Arg('probe_lte_iccid', bool, 'Whether to probe ICCID on LTE SIM card',
           False),
-      ]
+  ]
 
   def runTest(self):
     output = CheckOutput(['modem', 'status'], log=True)

@@ -17,6 +17,7 @@ from cros.factory.system import partitions
 
 class PartitionsTest(unittest.TestCase):
   """Unit test for Partition class."""
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(partitions, 'Spawn')
@@ -24,6 +25,7 @@ class PartitionsTest(unittest.TestCase):
   def testGetPartition(self):
     class Stdout(object):
       """A dummy class to mock Spawn output."""
+
       def __init__(self, stdout_data):
         self.stdout_data = stdout_data
 
@@ -31,13 +33,13 @@ class PartitionsTest(unittest.TestCase):
       partitions.Spawn(
           ['rootdev', '-s', '-d'],
           check_output=True, ignore_stderr=True).AndReturn(
-        Stdout('/dev/mmcblk0'))
+              Stdout('/dev/mmcblk0'))
 
     for _ in xrange(5):
       partitions.Spawn(
           ['rootdev', '-s', '-d'],
           check_output=True, ignore_stderr=True).AndReturn(
-        Stdout('/dev/sda'))
+              Stdout('/dev/sda'))
 
     self.mox.ReplayAll()
 

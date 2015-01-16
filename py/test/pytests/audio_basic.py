@@ -78,11 +78,12 @@ window.onkeyup = function(event) {
 }
 """
 
+
 class AudioBasicTest(unittest.TestCase):
   ARGS = [
-    Arg('audio_title', str, 'Title of audio test', 'Headset Audio Test'),
-    Arg('amixer_init_config', list, 'Initial config of amixer', None,
-        optional=True)
+      Arg('audio_title', str, 'Title of audio test', 'Headset Audio Test'),
+      Arg('amixer_init_config', list, 'Initial config of amixer', None,
+          optional=True)
   ]
 
   def setUp(self):
@@ -101,7 +102,7 @@ class AudioBasicTest(unittest.TestCase):
     self.key_press = None
     base = os.path.dirname(os.path.realpath(__file__))
     self.file_path = os.path.join(base, '..', '..', 'goofy', 'static', 'sounds',
-        _SAMPLE_FILE)
+                                  _SAMPLE_FILE)
 
     if self.args.amixer_init_config:
       self.ConfigAmixerSetting(self.args.amixer_init_config)
@@ -113,7 +114,7 @@ class AudioBasicTest(unittest.TestCase):
   def ConfigAmixerSetting(self, config_list):
     for config in config_list:
       command = _CMD_CONFIG_AUDIO + ["name='%s'" % config['name'],
-          config['value']]
+                                     config['value']]
       Spawn(command, check_call=True)
 
   def HandleRecordEvent(self, event):
@@ -137,7 +138,7 @@ class AudioBasicTest(unittest.TestCase):
       logging.info('stop play sample')
       self.key_press = None
 
-  def MarkPass(self, event): # pylint: disable=W0613
+  def MarkPass(self, event):  # pylint: disable=W0613
     self.ui.Pass()
 
   def runTest(self):

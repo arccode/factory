@@ -156,6 +156,7 @@ class TestListArgs(object):
   smt_thremal_load_temperature_limit_deg_c = 80
   # The duration of thermal load test during SMT.
   smt_thermal_load_heat_up_timeout_secs = 12
+
   @property
   def smt_thermal_load_duration_secs(self):
     return self.smt_thermal_load_heat_up_timeout_secs + 3
@@ -252,21 +253,21 @@ class TestListArgs(object):
 
   # A dict containing all SamplingRate used in the test list:
   fatp_sampling_rate = {
-    # Sampling for audio fixture tests
-    'fatp_audio_fixture': SamplingRate(
-        key='selected_for_audio_fixture_tests', rate=0.0),
-    # Sampling for camera fixture test.
-    'fatp_camera_fixture': SamplingRate(
-        key='selected_for_camera_fixture_tests', rate=0.0),
-    # Sampling for RF fixture test.
-    'fatp_rf_fixture': SamplingRate(
-        key='selected_for_rf_fixture_tests', rate=0.0),
-    # Sampling for RF fixture test for LTE model.
-    'fatp_rf_fixture_lte_model': SamplingRate(
-        key='selected_for_rf_fixture_tests', rate=0.0),
-    # Sampling for LTE fixture test.
-    'fatp_lte_fixture': SamplingRate(
-        key='selected_for_lte_fixture_tests', rate=0.0)
+      # Sampling for audio fixture tests
+      'fatp_audio_fixture': SamplingRate(
+          key='selected_for_audio_fixture_tests', rate=0.0),
+      # Sampling for camera fixture test.
+      'fatp_camera_fixture': SamplingRate(
+          key='selected_for_camera_fixture_tests', rate=0.0),
+      # Sampling for RF fixture test.
+      'fatp_rf_fixture': SamplingRate(
+          key='selected_for_rf_fixture_tests', rate=0.0),
+      # Sampling for RF fixture test for LTE model.
+      'fatp_rf_fixture_lte_model': SamplingRate(
+          key='selected_for_rf_fixture_tests', rate=0.0),
+      # Sampling for LTE fixture test.
+      'fatp_lte_fixture': SamplingRate(
+          key='selected_for_lte_fixture_tests', rate=0.0)
   }
 
   # Retries for FATP basic wifi test.
@@ -290,14 +291,14 @@ class TestListArgs(object):
   # In this example, A and B share an AP. Config AP so it can have two
   # SSID for 2.4G and two SSID for 5G.
   fatp_ap_map = {
-      'A': {'2.4G': (('antenna_test_A', 2412), {"main": -50, "all": -50}),
-            '5G': (('antenna_test_A_5G', 5745), {"main": -60, "all": -60})},
-      'B': {'2.4G': (('antenna_test_B', 2412), {"main": -50, "all": -50}),
-            '5G': (('antenna_test_B_5G', 5745), {"main": -60, "all": -60})},
-      'C': {'2.4G': (('antenna_test_C', 2427), {"main": -50, "all": -50}),
-            '5G': (('antenna_test_C_5G', 5765), {"main": -60, "all": -60})},
-      'D': {'2.4G': (('antenna_test_D', 2447), {"main": -50, "all": -50}),
-            '5G': (('antenna_test_D_5G', 5785), {"main": -60, "all": -60})},
+      'A': {'2.4G': (('antenna_test_A', 2412), {'main': -50, 'all': -50}),
+            '5G': (('antenna_test_A_5G', 5745), {'main': -60, 'all': -60})},
+      'B': {'2.4G': (('antenna_test_B', 2412), {'main': -50, 'all': -50}),
+            '5G': (('antenna_test_B_5G', 5745), {'main': -60, 'all': -60})},
+      'C': {'2.4G': (('antenna_test_C', 2427), {'main': -50, 'all': -50}),
+            '5G': (('antenna_test_C_5G', 5765), {'main': -60, 'all': -60})},
+      'D': {'2.4G': (('antenna_test_D', 2447), {'main': -50, 'all': -50}),
+            '5G': (('antenna_test_D_5G', 5785), {'main': -60, 'all': -60})},
   }
 
   #####
@@ -467,7 +468,6 @@ class TestListArgs(object):
     """
     return lambda env: env.GetDeviceData().get(
         self.fatp_sampling_rate[name].key, True)
-
 
   def SelectedForAnyFixture(self, env):
     """Helper function to check if device needs to run any fixture test.

@@ -107,11 +107,13 @@ _REGEX_TYPE = type(re.compile(''))
 # come from device data.
 FROM_DEVICE_DATA = 'FROM_DEVICE_DATA'
 
+
 class WriteVPDTask(FactoryTask):
   """A task to write VPD.
 
   Args:
     vpd_test: The main VPD TestCase object."""
+
   def __init__(self, vpd_test):
     super(WriteVPDTask, self).__init__()
     self.test = vpd_test
@@ -138,7 +140,7 @@ class WriteVPDTask(FactoryTask):
 
     self.test.template.SetState(_MSG_WRITING)
     self.test.template.SetState('<div class="vpd-info">%s</div>' % (
-                                '</br>'.join(vpd_list)), append=True)
+        '</br>'.join(vpd_list)), append=True)
 
     for (vpd_type, section) in _VPD_SECTIONS.items():
       if not self.test.vpd.get(vpd_type, None):
@@ -153,8 +155,8 @@ class WriteVPDTask(FactoryTask):
           raise factory.FactoryTestFailure('Missing %s registration code' % k)
         try:
           code_type = {
-            'user': registration_codes.RegistrationCode.Type.UNIQUE_CODE,
-            'group': registration_codes.RegistrationCode.Type.GROUP_CODE}[k]
+              'user': registration_codes.RegistrationCode.Type.UNIQUE_CODE,
+              'group': registration_codes.RegistrationCode.Type.GROUP_CODE}[k]
           registration_codes.CheckRegistrationCode(
               self.test.registration_code_map[k],
               code_type, BuildBoard().short_name)
@@ -172,10 +174,10 @@ class WriteVPDTask(FactoryTask):
       # Add registration codes, being careful not to log the command.
       logging.info('Storing registration codes.')
       Spawn(['vpd', '-i', 'RW_VPD'] + self.FormatVPDParameter(
-            # See <http://src.chromium.org/svn/trunk/src/chrome/
-            # browser/chromeos/extensions/echo_private_api.cc>.
-            {'ubind_attribute': self.test.registration_code_map['user'],
-             'gbind_attribute': self.test.registration_code_map['group']}),
+          # See <http://src.chromium.org/svn/trunk/src/chrome/
+          # browser/chromeos/extensions/echo_private_api.cc>.
+          {'ubind_attribute': self.test.registration_code_map['user'],
+           'gbind_attribute': self.test.registration_code_map['group']}),
             log=False, check_call=True)
     self.Pass()
 
@@ -185,6 +187,7 @@ class ShopFloorVPDTask(FactoryTask):
 
   Args:
     vpd_test: The main VPD TestCase object."""
+
   def __init__(self, vpd_test):
     super(ShopFloorVPDTask, self).__init__()
     self.test = vpd_test
@@ -194,12 +197,13 @@ class ShopFloorVPDTask(FactoryTask):
     self.test.vpd.update(shopfloor.get_vpd())
     if self.test.registration_code_map:
       self.test.registration_code_map.update(
-        shopfloor.get_registration_code_map())
+          shopfloor.get_registration_code_map())
     self.Pass()
 
 
 class VPDInfo(object):
   """A class for checking all the manual input VPD fields."""
+
   def __init__(self, region, key, label_en, label_zh, value_check):
     if region not in ['ro', 'rw']:
       raise ValueError('VPD region must be either \'ro\' or \'rw\'.')
@@ -223,7 +227,7 @@ class VPDInfo(object):
       self.value_check = value_check
     elif isinstance(value_check, str):
       self.value_check = re.compile(value_check)
-    else: # value_check is None
+    else:  # value_check is None
       self.value_check = value_check
 
 
@@ -236,6 +240,7 @@ class ManualInputTask(FactoryTask):
   Args:
     vpd_test: The main VPD TestCase object.
     vpd_info: The VPD info field that requires to be manually entered."""
+
   def __init__(self, vpd_test, vpd_info):
     super(ManualInputTask, self).__init__()
     self.test = vpd_test
@@ -266,7 +271,7 @@ class ManualInputTask(FactoryTask):
 
   def OnESCPressed(self):
     vpd_value = CheckOutput(['vpd', '-i', _VPD_SECTIONS[self.vpd_info.region],
-                            '-g', self.vpd_info.key]).strip()
+                             '-g', self.vpd_info.key]).strip()
     if not vpd_value:
       self.test.ui.SetHTML(_ERR_NO_VALID_VPD(
           self.vpd_info.label_en, self.vpd_info.label_zh), id='errormsg')
@@ -323,6 +328,7 @@ class SelectRegionTask(FactoryTask):
   Args:
     vpd_test: The main VPD TestCase object.
   """
+
   def __init__(self, vpd_test):
     super(SelectRegionTask, self).__init__()
     self.region_list = sorted(REGIONS)
@@ -343,11 +349,11 @@ class SelectRegionTask(FactoryTask):
       vpd_setting = REGIONS[region].GetVPDSettings(
           self.test.args.allow_multiple_l10n)
       select_box.InsertOption(index, '%s - [%s], [%s], [%s], [%s]' % (
-                                     REGIONS[region].description,
-                                     vpd_setting['region'],
-                                     vpd_setting['initial_locale'],
-                                     vpd_setting['keyboard_layout'],
-                                     vpd_setting['initial_timezone']))
+          REGIONS[region].description,
+          vpd_setting['region'],
+          vpd_setting['initial_locale'],
+          vpd_setting['keyboard_layout'],
+          vpd_setting['initial_timezone']))
     select_box.SetSelectedIndex(0)
     self.test.template.SetState(select_box.GenerateHTML(), append=True)
     self.test.template.SetState(_MSG_HOW_TO_SELECT, append=True)
@@ -418,73 +424,81 @@ class VPDTest(unittest.TestCase):
   VPDTasks = Enum(['serial', 'region'])
 
   ARGS = [
-    Arg('override_vpd', dict,
-        'A dict of override VPDs. This is for development purpose and is '
-        'useable only in engineering mode. The dict should be of the format: '
-        '{"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value pairs }}',
-        default=None, optional=True),
-    Arg('override_vpd_entries', dict,
-        'A dict of override VPD entries. Unlike override_vpd, it only '
-        'overrides some key-value pairs instead of the whole VPD section.'
-        'It does not require engineering mode. The dict should be of the '
-        'format: {"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value '
-        'pairs }}',
-        default=None, optional=True),
-    Arg('store_registration_codes', bool,
-        'Whether to store registration codes onto the machine.', default=False),
-    Arg('task_list', list, 'A list of tasks to execute.',
-        default=[VPDTasks.serial, VPDTasks.region]),
-    Arg('use_shopfloor_device_data', bool,
-        'If shopfloor is enabled, use accumulated data in shopfloor device '
-        'data dictionary instead of contacting shopfloor server again. '
-        'See file-level docs in vpd.py for more information.',
-        default=False),
-    Arg('extra_device_data_fields', list,
-        'Extra fields to write to VPD from shopfloor device_data.  Each item '
-        'is a tuple of the form ("ro", key) or ("rw", key) meaning that the '
-        'value from key should be added to the ro or rw VPD.  This option '
-        'only applies if use_shopfloor_device_data is True.',
-        default=[]),
-    Arg('manual_input_fields', list, 'A list of tuples (vpd_region, key, '
-        'en_display_name, zh_display_name, VALUE_CHECK) indicating the VPD '
-        'fields that need to be manually entered.\n'
-        'VALUE_CHECK can be a list of strings, a regexp string, or None. '
-        'If VALUE_CHECK is None or a regexp string then a text input box will '
-        'show up to let user input value. The entered value will be validated '
-        'if VALUE_CHECK is a regexp string. Otherwise a select box containing '
-        'all the possible values will be used to let user select a value from '
-        'it.', default=[], optional=True),
-    Arg('allow_multiple_l10n', bool, 'True to allow multiple locales and '
-        'keyboards.  Fully supported only in M35+ FSIs, so this is disabled '
-        'by default', default=False, optional=True),
-    Arg('rlz_brand_code', (str, dict),
-        'RLZ brand code to write to RO VPD.  This may be any of:\n'
-        '\n'
-        '- A fixed string\n'
-        '- None, to not set any value at all\n'
-        '- The string `"FROM_DEVICE_DATA"`, to use a value obtained from\n'
-        '  device data.\n'
-        '- A dict of possible values to select. This is used for a shared\n'
-        '  RMA shim for multiple local OEM partners. The dict should be\n'
-        '  of the format: {"LOEM1 description": "LOEM1_brand_code",\n'
-        '  "LOEM2_description": "LOEM2_brand_code"}. The description is a\n'
-        '  helpful string and only the brand_code will be written into VPD.',
-        default=None, optional=True),
-    Arg('customization_id', (str, dict),
-        'Customization ID to write to RO VPD.  This may be any of:\n'
-        '\n'
-        '- A fixed string\n'
-        '- None, to not set any value at all\n'
-        '- The string `"FROM_DEVICE_DATA"`, to use a value obtained from\n'
-        '  device data.\n'
-        '- A dict of possible values to select. This is used for a shared\n'
-        '  RMA shim for multiple local OEM partners. The dict should be\n'
-        '  of the format: {"LOEM1 description": "LOEM1_customization_id",\n'
-        '  "LOEM2_description": "LOEM2_customization_id"}. The description\n'
-        '  is a helpful string and only the customization_id will be\n'
-        '  written into VPD.',
-        default=None, optional=True),
-  ]
+      Arg(
+          'override_vpd', dict,
+          'A dict of override VPDs. This is for development purpose and is '
+          'useable only in engineering mode. The dict should be of the format: '
+          '{"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value pairs }}',
+          default=None, optional=True),
+      Arg(
+          'override_vpd_entries', dict,
+          'A dict of override VPD entries. Unlike override_vpd, it only '
+          'overrides some key-value pairs instead of the whole VPD section.'
+          'It does not require engineering mode. The dict should be of the '
+          'format: {"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value '
+          'pairs }}', default=None, optional=True),
+      Arg(
+          'store_registration_codes', bool,
+          'Whether to store registration codes onto the machine.',
+          default=False),
+      Arg(
+          'task_list', list, 'A list of tasks to execute.',
+          default=[VPDTasks.serial, VPDTasks.region]),
+      Arg(
+          'use_shopfloor_device_data', bool,
+          'If shopfloor is enabled, use accumulated data in shopfloor device '
+          'data dictionary instead of contacting shopfloor server again. '
+          'See file-level docs in vpd.py for more information.',
+          default=False),
+      Arg(
+          'extra_device_data_fields', list,
+          'Extra fields to write to VPD from shopfloor device_data.  Each item '
+          'is a tuple of the form ("ro", key) or ("rw", key) meaning that the '
+          'value from key should be added to the ro or rw VPD.  This option '
+          'only applies if use_shopfloor_device_data is True.', default=[]),
+      Arg(
+          'manual_input_fields', list,
+          'A list of tuples (vpd_region, key, en_display_name, '
+          'zh_display_name, VALUE_CHECK) indicating the VPD fields that need '
+          'to be manually entered.\nVALUE_CHECK can be a list of strings, a '
+          'regexp string, or None. If VALUE_CHECK is None or a regexp string '
+          'then a text input box will show up to let user input value. The '
+          'entered value will be validated if VALUE_CHECK is a regexp string. '
+          'Otherwise a select box containing all the possible values will be '
+          'used to let user select a value from it.', default=[], optional=True),
+      Arg(
+          'allow_multiple_l10n', bool,
+          'True to allow multiple locales and '
+          'keyboards.  Fully supported only in M35+ FSIs, so this is disabled '
+          'by default', default=False, optional=True),
+      Arg(
+          'rlz_brand_code', (str, dict),
+          'RLZ brand code to write to RO VPD.  This may be any of:\n'
+          '\n'
+          '- A fixed string\n'
+          '- None, to not set any value at all\n'
+          '- The string `"FROM_DEVICE_DATA"`, to use a value obtained from\n'
+          '  device data.\n'
+          '- A dict of possible values to select. This is used for a shared\n'
+          '  RMA shim for multiple local OEM partners. The dict should be\n'
+          '  of the format: {"LOEM1 description": "LOEM1_brand_code",\n'
+          '  "LOEM2_description": "LOEM2_brand_code"}. The description is a\n'
+          '  helpful string and only the brand_code will be written into VPD.',
+          default=None, optional=True),
+      Arg(
+          'customization_id', (str, dict),
+          'Customization ID to write to RO VPD.  This may be any of:\n'
+          '\n'
+          '- A fixed string\n'
+          '- None, to not set any value at all\n'
+          '- The string `"FROM_DEVICE_DATA"`, to use a value obtained from\n'
+          '  device data.\n'
+          '- A dict of possible values to select. This is used for a shared\n'
+          '  RMA shim for multiple local OEM partners. The dict should be\n'
+          '  of the format: {"LOEM1 description": "LOEM1_customization_id",\n'
+          '  "LOEM2_description": "LOEM2_customization_id"}. The description\n'
+          '  is a helpful string and only the customization_id will be\n'
+          '  written into VPD.', default=None, optional=True)]
 
   def _ReadShopFloorDeviceData(self):
     device_data = shopfloor.GetDeviceData()
@@ -514,7 +528,7 @@ class VPDTest(unittest.TestCase):
     self.registration_code_map = {
         'user': device_data['ubind_attribute'],
         'group': device_data['gbind_attribute'],
-        }
+    }
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -574,8 +588,8 @@ class VPDTest(unittest.TestCase):
     cached_device_data = None
 
     for attr, regexp in (
-      ('rlz_brand_code', branding.RLZ_BRAND_CODE_REGEXP),
-      ('customization_id', branding.CUSTOMIZATION_ID_REGEXP)):
+        ('rlz_brand_code', branding.RLZ_BRAND_CODE_REGEXP),
+        ('customization_id', branding.CUSTOMIZATION_ID_REGEXP)):
       arg_value = getattr(self.args, attr)
 
       if arg_value is None:
@@ -599,7 +613,7 @@ class VPDTest(unittest.TestCase):
       if not regexp.match(value):
         raise ValueError('Bad format for %s %r '
                          '(expected it to match regexp %r)' % (
-            attr, value, regexp.pattern))
+                             attr, value, regexp.pattern))
 
       # We're good to go!
       self.vpd['ro'][attr] = value

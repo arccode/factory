@@ -17,7 +17,7 @@ import traceback
 import types
 from Queue import Empty, Queue
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.unicode_to_string import UnicodeToString
 
@@ -38,6 +38,7 @@ _MAX_EVENT_SIZE_FOR_DEBUG_LOG = 512
 # the client.
 _HELLO_MESSAGE = '\1'
 
+
 def json_default_repr(obj):
   '''Converts an object into a suitable representation for
   JSON-ification.
@@ -48,14 +49,13 @@ def json_default_repr(obj):
   '''
   if isinstance(obj, object):
     return dict([(k, v) for k, v in obj.__dict__.iteritems()
-           if k[0] != "_"])
+                 if k[0] != '_'])
   else:
     return obj
 
 
 class Event(object):
-  '''
-  An event object that may be written to the event server.
+  '''An event object that may be written to the event server.
 
   E.g.:
 
@@ -65,15 +65,15 @@ class Event(object):
   '''
   Type = type('Event.Type', (), {
       # The state of a test has changed.
-      'STATE_CHANGE':     'goofy:state_change',
+      'STATE_CHANGE': 'goofy:state_change',
       # The UI has come up.
-      'UI_READY':       'goofy:ui_ready',
+      'UI_READY': 'goofy:ui_ready',
       # Tells goofy to switch to a new test.
-      'SWITCH_TEST':      'goofy:switch_test',
+      'SWITCH_TEST': 'goofy:switch_test',
       # Tells goofy to rotate visibility to the next active test.
       'SHOW_NEXT_ACTIVE_TEST': 'goofy:show_next_active_test',
       # Tells goofy to show a particular test.
-      'SET_VISIBLE_TEST':   'goofy:set_visible_test',
+      'SET_VISIBLE_TEST': 'goofy:set_visible_test',
       # Tells goofy to clear all state and restart testing.
       'RESTART_TESTS': 'goofy:restart_tests',
       # Tells goofy to run all tests that haven't been run yet.
@@ -127,9 +127,9 @@ class Event(object):
       'DIAGNOSIS_TOOL_EVENT': 'goofy:diagnosis_tool:event',
       # Tells UI to hide tooltips.
       'HIDE_TOOLTIPS': 'goofy:hide_tooltips',
-      })
+  })
 
-  def __init__(self, type, **kw): # pylint: disable=W0622
+  def __init__(self, type, **kw):  # pylint: disable=W0622
     self.type = type
     self.timestamp = time.time()
     for k, v in kw.iteritems():
@@ -137,11 +137,11 @@ class Event(object):
 
   def __repr__(self):
     return factory.std_repr(
-      self,
-      extra=[
-        'type=%s' % self.type,
-        'timestamp=%s' % time.ctime(self.timestamp)],
-      excluded_keys=['type', 'timestamp'])
+        self,
+        extra=[
+            'type=%s' % self.type,
+            'timestamp=%s' % time.ctime(self.timestamp)],
+        excluded_keys=['type', 'timestamp'])
 
   def to_json(self):
     return json.dumps(self, default=json_default_repr)
@@ -154,6 +154,8 @@ class Event(object):
 
 _unique_id_lock = threading.Lock()
 _unique_id = 1
+
+
 def get_unique_id():
   global _unique_id
   with _unique_id_lock:
@@ -163,16 +165,16 @@ def get_unique_id():
 
 
 class EventServerRequestHandler(SocketServer.BaseRequestHandler):
-  '''
-  Request handler for the event server.
+  '''Request handler for the event server.
 
   This class is agnostic to message format (except for logging).
   '''
   # pylint: disable=W0201,W0212
+
   def setup(self):
     SocketServer.BaseRequestHandler.setup(self)
     threading.current_thread().name = (
-      'EventServerRequestHandler-%d' % get_unique_id())
+        'EventServerRequestHandler-%d' % get_unique_id())
     # A thread to be used to send messages that are posted to the queue.
     self.send_thread = None
     # A queue containing messages.
@@ -190,8 +192,8 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
       self.request.send(_HELLO_MESSAGE)
 
       self.send_thread = threading.Thread(
-        target=self._run_send_thread,
-        name='EventServerSendThread-%d' % get_unique_id())
+          target=self._run_send_thread,
+          name='EventServerSendThread-%d' % get_unique_id())
       self.send_thread.daemon = True
       self.send_thread.start()
 
@@ -202,16 +204,16 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
         if len(msg) > _MAX_MESSAGE_SIZE:
           logging.error('Event server: message too large')
         if len(msg) == 0:
-          break # EOF
+          break  # EOF
         self.server._post_message(msg)
     except socket.error, e:
       if e.errno in [errno.ECONNRESET, errno.ESHUTDOWN]:
-        pass # Client just quit
+        pass  # Client just quit
       else:
         raise e
     finally:
       logging.debug('Event server: client disconnected')
-      self.queue.put(None) # End of stream; make writer quit
+      self.queue.put(None)  # End of stream; make writer quit
       self.server._unsubscribe(self.queue)
 
   def _run_send_thread(self):
@@ -221,13 +223,12 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
         return
       try:
         self.request.send(message)
-      except: # pylint: disable=W0702
+      except:  # pylint: disable=W0702
         return
 
 
 class EventServer(SocketServer.ThreadingUnixStreamServer):
-  '''
-  An event server that broadcasts messages to all clients.
+  '''An event server that broadcasts messages to all clients.
 
   This class is agnostic to message format (except for logging).
   '''
@@ -236,8 +237,7 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
   daemon_threads = True
 
   def __init__(self, path=None):
-    '''
-    Constructor.
+    '''Constructor.
 
     @param path: Path at which to create a UNIX stream socket.
       If None, uses a temporary path and sets the CROS_FACTORY_EVENT
@@ -251,12 +251,11 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
       path = tempfile.mktemp(prefix='cros_factory_event.')
       os.environ[CROS_FACTORY_EVENT] = path
       logging.info('Setting %s=%s', CROS_FACTORY_EVENT, path)
-    SocketServer.UnixStreamServer.__init__( # pylint: disable=W0233
+    SocketServer.UnixStreamServer.__init__(  # pylint: disable=W0233
       self, path, EventServerRequestHandler)
 
   def _subscribe(self, queue):
-    '''
-    Subscribes a queue to receive events.
+    '''Subscribes a queue to receive events.
 
     Invoked only from the request handler.
     '''
@@ -264,8 +263,7 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
       self._queues.add(queue)
 
   def _unsubscribe(self, queue):
-    '''
-    Unsubscribes a queue to receive events.
+    '''Unsubscribes a queue to receive events.
 
     Invoked only from the request handler.
     '''
@@ -273,19 +271,18 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
       self._queues.discard(queue)
 
   def _post_message(self, message):
-    '''
-    Posts a message to all clients.
+    '''Posts a message to all clients.
 
     Invoked only from the request handler.
     '''
     try:
       if logging.getLogger().isEnabledFor(logging.DEBUG):
         logging.debug('Event server: dispatching object %s',
-               pickle.loads(message))
-    except: # pylint: disable=W0702
+                      pickle.loads(message))
+    except:  # pylint: disable=W0702
       # Message isn't parseable as a pickled object; weird!
       logging.info(
-        'Event server: dispatching message %r', message)
+          'Event server: dispatching message %r', message)
 
     with self._lock:
       for q in self._queues:
@@ -299,15 +296,14 @@ class EventClient(object):
   EVENT_LOOP_GOBJECT_IO = 'EVENT_LOOP_GOBJECT_IO'
   EVENT_LOOP_WAIT = 'EVENT_LOOP_WAIT'
 
-  '''
-  A client used to post and receive messages from an event server.
+  '''A client used to post and receive messages from an event server.
 
   All events sent through this class must be subclasses of Event. It
   marshals Event classes through the server by pickling them.
   '''
+
   def __init__(self, path=None, callback=None, event_loop=None, name=None):
-    '''
-    Constructor.
+    '''Constructor.
 
     @param path: The UNIX seqpacket socket endpoint path. If None, uses
       the CROS_FACTORY_EVENT environment variable.
@@ -349,32 +345,32 @@ class EventClient(object):
     if callback:
       if isinstance(event_loop, Queue):
         self.callbacks.add(
-          lambda event: event_loop.put(
-            lambda: callback(event)))
+            lambda event: event_loop.put(
+                lambda: callback(event)))
       elif event_loop == self.EVENT_LOOP_GOBJECT_IDLE:
         import gobject
         self.callbacks.add(
-          lambda event: gobject.idle_add(callback, event))
+            lambda event: gobject.idle_add(callback, event))
       elif event_loop == self.EVENT_LOOP_GOBJECT_IO:
         import gobject
         gobject.io_add_watch(
-          self.socket, gobject.IO_IN,
-          lambda source, condition: self._read_one_message()[0])
+            self.socket, gobject.IO_IN,
+            lambda source, condition: self._read_one_message()[0])
         self.callbacks.add(callback)
       else:
         self.callbacks.add(callback)
 
     if should_start_thread:
       self.recv_thread = threading.Thread(
-        target=self._run_recv_thread,
-        name='EventServerRecvThread-%s' % (name or get_unique_id()))
+          target=self._run_recv_thread,
+          name='EventServerRecvThread-%s' % (name or get_unique_id()))
       self.recv_thread.daemon = True
       self.recv_thread.start()
     else:
       self.recv_thread = None
 
   def close(self):
-    '''Closes the client, waiting for any threads to terminate.'''
+    """Closes the client, waiting for any threads to terminate."""
     if not self.socket:
       return
 
@@ -399,8 +395,7 @@ class EventClient(object):
     return False
 
   def _truncate_event_for_debug_log(self, event):
-    '''
-    Truncates event to a size of _MAX_EVENT_SIZE_FOR_DEBUG_LOG.
+    '''Truncates event to a size of _MAX_EVENT_SIZE_FOR_DEBUG_LOG.
 
     Args:
       event: The event to be printed.
@@ -415,8 +410,7 @@ class EventClient(object):
       return event_repr
 
   def post_event(self, event):
-    '''
-    Posts an event to the server.
+    '''Posts an event to the server.
     '''
     if logging.getLogger().isEnabledFor(logging.DEBUG):
       logging.debug('Event client: sending event %s',
@@ -424,15 +418,13 @@ class EventClient(object):
     message = pickle.dumps(event, protocol=2)
     if len(message) > _MAX_MESSAGE_SIZE:
       # Log it first so we know what event caused the problem.
-      logging.error("Message too large (%d bytes): event is %s" %
-             (len(message), event))
-      raise IOError("Message too large (%d bytes)" % len(message))
+      logging.error('Message too large (%d bytes): event is %s',
+                    len(message), event)
+      raise IOError('Message too large (%d bytes)' % len(message))
     self.socket.sendall(message)
 
   def request_response(self, request_event, check_response, timeout=None):
-    '''
-    Starts a request-response communication: sends a request event and waits for
-    an valid response event until timeout.
+    '''Starts a request-response communication: sends a request event and waits for an valid response event until timeout.
 
     Args:
       request_event: An event to start protocol. None to send no events.
@@ -477,8 +469,7 @@ class EventClient(object):
         self.callbacks.remove(check_response_callback)
 
   def wait(self, condition, timeout=None):
-    '''
-    Waits for an event matching a condition.
+    '''Waits for an event matching a condition.
 
     Args:
       condition: A function to evaluate. The function takes one
@@ -493,15 +484,13 @@ class EventClient(object):
     return self.request_response(None, condition, timeout)
 
   def _run_recv_thread(self):
-    '''
-    Thread to receive messages and broadcast them to callbacks.
+    '''Thread to receive messages and broadcast them to callbacks.
     '''
     while self._read_one_message()[0]:
       pass
 
   def _read_one_message(self):
-    '''
-    Handles one incoming message from the socket.
+    '''Handles one incoming message from the socket.
 
     Returns:
       (keep_going, event), where:

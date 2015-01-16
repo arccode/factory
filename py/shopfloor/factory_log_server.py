@@ -30,6 +30,7 @@ class FactoryLogServer(object):
     rsyncd_addr: Address on which to open rsyncd.
     rsyncd_port: Port on which to open rsyncd.
   """
+
   def __init__(self, state_dir,
                rsyncd_addr=DEFAULT_RSYNCD_FACTORY_LOG_ADDR,
                rsyncd_port=DEFAULT_RSYNCD_FACTORY_LOG_PORT):

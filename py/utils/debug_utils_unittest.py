@@ -17,6 +17,7 @@ from cros.factory.utils.debug_utils import CatchException
 
 class CatchExceptionTest(unittest.TestCase):
   """Unittest for CatchException."""
+
   def testCatchException(self):
     class Foo(object):
       """A class that should suppress its exception in its function."""

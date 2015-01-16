@@ -17,6 +17,7 @@ VPD_FILE = os.path.join(TAR_FILE_DIR, 'vpd')
 CAMERA_FILE = os.path.join(TAR_FILE_DIR, 'camera')
 LOGPARSER_PORT_OFFSET = 5
 
+
 class LogParserService(umpire_service.UmpireService):
   """Log parser service.
 
@@ -25,6 +26,7 @@ class LogParserService(umpire_service.UmpireService):
     procs = logparser_service.CreateProcess(umpire_config_attrdict, umpire_env)
     logparser_service.Start(procs)
   """
+
   def __init__(self):
     super(LogParserService, self).__init__()
     self.properties['fastcgi_handlers'] = [
@@ -53,7 +55,7 @@ class LogParserService(umpire_service.UmpireService):
             '--vpd-file', os.path.join(env.umpire_data_dir, VPD_FILE),
             '--camera-file', os.path.join(env.umpire_data_dir, CAMERA_FILE),
             '--fastcgi-tcp-port', config.port + LOGPARSER_PORT_OFFSET],
-          'path': '/tmp'}
+        'path': '/tmp'}
     return [proc_config]
 
 _logparser_service = LogParserService()

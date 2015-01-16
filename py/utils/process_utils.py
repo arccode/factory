@@ -56,7 +56,7 @@ def OpenDevNull():
 def IsProcessAlive(pid):
   """Returns true if the named process is alive and not a zombie."""
   try:
-    with open("/proc/%d/stat" % pid) as f:
+    with open('/proc/%d/stat' % pid) as f:
       return f.readline().split()[2] != 'Z'
   except IOError:
     return False
@@ -142,8 +142,7 @@ class _ExtendedPopen(subprocess.Popen):
 
 
 def Spawn(args, **kwargs):
-  """
-  Popen wrapper with extra functionality:
+  """Popen wrapper with extra functionality:
 
     - Sets close_fds to True by default.  (You may still set
       close_fds=False to leave all fds open.)
@@ -311,6 +310,7 @@ def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
     process.terminate()
 
   reaped = threading.Event()
+
   def WaitAndKill():
     reaped.wait(wait_seconds)
     if not reaped.is_set():
@@ -347,6 +347,7 @@ def KillProcessTree(process, caption):
       match = re.findall('\d+', line)
       children.setdefault(int(match[1]), []).append(int(match[0]))
     pids = []
+
     def add_children(pid):
       pids.append(pid)
       map(add_children, children.get(pid, []))
@@ -361,17 +362,17 @@ def KillProcessTree(process, caption):
   for sig in [signal.SIGTERM, signal.SIGKILL]:
     logging.info('Stopping %s (pid=%s)...', caption, sorted(pids))
 
-    for _ in range(25): # Try 25 times (200 ms between tries)
+    for _ in range(25):  # Try 25 times (200 ms between tries)
       for pid in pids:
         try:
-          logging.info("Sending signal %s to %d", sig, pid)
+          logging.info('Sending signal %s to %d', sig, pid)
           os.kill(pid, sig)
         except OSError:
           pass
       pids = filter(IsProcessAlive, pids)
       if not pids:
         return
-      time.sleep(0.2) # Sleep 200 ms and try again
+      time.sleep(0.2)  # Sleep 200 ms and try again
 
   logging.warn('Failed to stop %s process. Ignoring.', caption)
 

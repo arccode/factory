@@ -20,6 +20,7 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import Passed
 from cros.factory.test.test_lists.test_lists import TestGroup
 
+
 def FATP(args):
   """Creates FATP test list.
 
@@ -33,10 +34,10 @@ def FATP(args):
         pytest_name='start',
         never_fails=True,
         dargs=dict(
-          press_to_continue=True,
-          require_external_power=args.fatp_check_external_power,
-          check_factory_install_complete=args.check_factory_install_complete,
-          require_shop_floor='defer' if args.enable_shopfloor else False))
+            press_to_continue=True,
+            require_external_power=args.fatp_check_external_power,
+            check_factory_install_complete=args.check_factory_install_complete,
+            require_shop_floor='defer' if args.enable_shopfloor else False))
 
     # Decides if DUT is sampled for audio fixture test.
     FactoryTest(
@@ -150,14 +151,14 @@ def FATP(args):
 
     # Lets operator check camera and camera light function.
     OperatorTest(
-      id='Camera',
-      label_zh=u'相机',
-      pytest_name='camera',
-      dargs=dict(
-          do_capture_manual=True,
-          do_led_manual=True,
-          capture_resolution=(640, 480),
-          resize_ratio=0.7))
+        id='Camera',
+        label_zh=u'相机',
+        pytest_name='camera',
+        dargs=dict(
+            do_capture_manual=True,
+            do_led_manual=True,
+            capture_resolution=(640, 480),
+            resize_ratio=0.7))
 
     # Lets operator check LED function.
     OperatorTest(
@@ -262,15 +263,15 @@ def FATP(args):
           dargs=dict(
               device_name='mlan0',
               # This is for testing without device_data.line.
-              #spec_dict={(('antenna_test_5G_1', 5745),):
+              # spec_dict={(('antenna_test_5G_1', 5745),):
               #                   {"main": -60, "all": -60},
               #              (('antenna_test_1', 2412),):
               #                   {"main": -50, "all": -50}},
               spec_dict=lambda env: {
                   (args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][0],):
-                  args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][1],
+                      args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][1],
                   (args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][0],):
-                  args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][1]},
+                      args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][1]},
               scan_count=10,
               switch_antenna_sleep_secs=1))
 
@@ -282,7 +283,7 @@ def FATP(args):
           label_zh=u'RSSI 测试开始',
           pytest_name='message',
           never_fails=True,
-          run_if= lambda env: args.HasCellular(env) or args.HasLTE(env),
+          run_if=lambda env: args.HasCellular(env) or args.HasLTE(env),
           dargs=dict(
               html_en='Press space to start RSSI tests.',
               html_zh='按下空白键开始RSSI测试',
@@ -314,8 +315,8 @@ def FATP(args):
           run_if=args.HasLTE,
           dargs=dict(
               strength_map=[
-                  ('US_700c_Upper_MAIN', 5230, 1000 , 0, 3, -56, -20),
-                  ('US_700c_Upper_AUX',  5230, 1000 , 1, 3, -56, -20)]))
+                  ('US_700c_Upper_MAIN', 5230, 1000, 0, 3, -56, -20),
+                  ('US_700c_Upper_AUX', 5230, 1000, 1, 3, -56, -20)]))
 
     # Checks Received signal strength indication (RSSI) for bluetooth signal.
     OperatorTest(
@@ -561,8 +562,7 @@ def FATP(args):
             block_size=args.fatp_usb_performance_block_size,
             perform_random_test=False,
             perform_sequential_test=True,
-            sequential_block_count=
-                args.fatp_usb_performance_sequential_block_count))
+            sequential_block_count=args.fatp_usb_performance_sequential_block_count))
 
     # Performs a USB performance test near audio jack.
     # Checks the log of the test for correct sysfs path.
@@ -577,8 +577,7 @@ def FATP(args):
             block_size=args.fatp_usb_performance_block_size,
             perform_random_test=False,
             perform_sequential_test=True,
-            sequential_block_count=
-                args.fatp_usb_performance_sequential_block_count))
+            sequential_block_count=args.fatp_usb_performance_sequential_block_count))
 
     args.Barrier('FATP')
 

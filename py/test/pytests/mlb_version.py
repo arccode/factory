@@ -16,11 +16,11 @@ class MLBVersionTest(unittest.TestCase):
   """A factory test to verify MLB board version."""
 
   ARGS = [
-    args.Arg(
-        'expected_version', (str, unicode),
-        ('The expected version string. If not given, try to match the board '
-         'version with current build phase'),
-        optional=True),
+      args.Arg(
+          'expected_version', (str, unicode),
+          ('The expected version string. If not given, try to match the board '
+           'version with current build phase'),
+          optional=True),
   ]
 
   def runTest(self):

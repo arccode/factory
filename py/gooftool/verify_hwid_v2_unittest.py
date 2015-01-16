@@ -24,13 +24,14 @@ def Indent(data):
 
 class VerifyHWIDv2Test(unittest.TestCase):
   """Unit test for --verify_hwid_v2 command of gooftool."""
+
   def testHWIDRepo(self):
     hwid_dir = os.path.join(os.environ['CROS_WORKON_SRCROOT'],
                             'src', 'platform', 'chromeos-hwid', 'v2')
     if os.path.exists(hwid_dir):
       self._RunTest(hwid_dir)
     else:
-      print "testHWIDRepo: ignored, no %s in source tree." % hwid_dir
+      print 'testHWIDRepo: ignored, no %s in source tree.' % hwid_dir
 
   def testFakeData(self):
     self._RunTest(os.path.join(os.path.dirname(os.path.realpath(__file__)),

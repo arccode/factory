@@ -33,7 +33,7 @@ import logging
 import os
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test.utils import Enum
 
 
@@ -253,6 +253,7 @@ class BFTFixture(object):
     """Turn the scanner on and off."""
     raise NotImplementedError
 
+
 def CreateBFTFixture(class_name, params):
   """Initializes a BFT fixture instance.
 
@@ -399,20 +400,20 @@ def main():
   elif command == 'SimulateKeyPress':
     bitmask = args.bitmask
     period_secs = args.period_secs
-    print "SimulateKeyPress(%s, %s)" % (bitmask, period_secs)
+    print 'SimulateKeyPress(%s, %s)' % (bitmask, period_secs)
     fixture.SimulateKeyPress(bitmask, period_secs)
   elif command == 'SetLcmText':
     row_number = args.row_number
     message = args.message
-    print "SetLcmText(%s, %s)" % (row_number, message)
+    print 'SetLcmText(%s, %s)' % (row_number, message)
     fixture.SetLcmText(row_number, message)
   elif command == 'IssueLcmCommand':
     action = args.action
-    print "IssueLcmCommand(%s)" % (action)
+    print 'IssueLcmCommand(%s)' % (action)
     fixture.IssueLcmCommand(action)
   else:
     print getattr(fixture, command)()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   main()

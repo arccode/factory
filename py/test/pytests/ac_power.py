@@ -40,6 +40,7 @@ _AC_TYPE_PROBING = test_ui.MakeLabel('Identifying AC adapter...',
                                      u'充电器型号识别中...')
 _AC_TYPE = test_ui.MakeLabel('AC adapter type: ', u'充电器型号: ')
 
+
 class ACPowerTest(unittest.TestCase):
   """A test to instruct the operator to plug/unplug AC power.
 
@@ -55,20 +56,20 @@ class ACPowerTest(unittest.TestCase):
   """
 
   ARGS = [
-    Arg('power_type', str, 'Type of the power source', optional=True),
-    Arg('online', bool, 'True if expecting AC power', default=True),
-    Arg('bft_fixture', dict, TEST_ARG_HELP, optional=True),
-    Arg('retries', int,
-        'Maximum number of retries allowed to pass the test. '
-        '0 means only probe once. Default None means probe forever.',
-        optional=True),
-    Arg('polling_period_secs', (int, float),
-        'Polling period in seconds.', default=1),
-    Arg('silent_warning', int,
-        'Skips first N charger type mismatch before giving a warning. '
-        'Because EC needs about 1.6 seconds to identify charger type after '
-        'it is plugged in, it skips first N mismatched probe.',
-        default=2),
+      Arg('power_type', str, 'Type of the power source', optional=True),
+      Arg('online', bool, 'True if expecting AC power', default=True),
+      Arg('bft_fixture', dict, TEST_ARG_HELP, optional=True),
+      Arg('retries', int,
+          'Maximum number of retries allowed to pass the test. '
+          '0 means only probe once. Default None means probe forever.',
+          optional=True),
+      Arg('polling_period_secs', (int, float),
+          'Polling period in seconds.', default=1),
+      Arg('silent_warning', int,
+          'Skips first N charger type mismatch before giving a warning. '
+          'Because EC needs about 1.6 seconds to identify charger type after '
+          'it is plugged in, it skips first N mismatched probe.',
+          default=2),
   ]
 
   def setUp(self):

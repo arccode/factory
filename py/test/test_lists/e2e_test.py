@@ -14,7 +14,7 @@ from cros.factory.test import factory
 from cros.factory.test.test_lists.test_lists import (
     TestList,
     OperatorTest
-    )
+)
 
 
 def CreateTestLists():

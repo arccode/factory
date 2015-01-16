@@ -76,6 +76,7 @@ class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
     instruction: task instruction showed on the center of the test area.
     pass_key: True to bind Enter key to pass the task.
   """
+
   def __init__(self, args, title, instruction,  # pylint: disable=W0231
                pass_key=True):
     super(ExtDisplayTask, self).__init__(args.ui)
@@ -94,9 +95,9 @@ class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
     """
     self._template.SetInstruction(self._title)
     self._ui.SetHTML(
-      '%s<br>%s' % (self._instruction,
-                    test_ui.MakePassFailKeyLabel(pass_key=self._pass_key)),
-      id='instruction-center')
+        '%s<br>%s' % (self._instruction,
+                      test_ui.MakePassFailKeyLabel(pass_key=self._pass_key)),
+        id='instruction-center')
 
   def InitUI(self, fail_later=True):
     """Initializes UI.
@@ -123,6 +124,7 @@ class WaitDisplayThread(threading.Thread):
     connect: DetectDisplayTask.CONNECT or DetectDisplayTask.DISCONNECT
     on_success: callback for success.
   """
+
   def __init__(self, display_id, connect, on_success):
     threading.Thread.__init__(self, name='WaitDisplayThread')
     self._display_id = display_id
@@ -221,12 +223,13 @@ class ConnectTask(DetectDisplayTask):
   Args:
     args: refer base class.
   """
+
   def __init__(self, args):
     super(ConnectTask, self).__init__(
-      args,
-      _TITLE_CONNECT_TEST(args.display_label),
-      _MSG_CONNECT_TEST(args.display_label),
-      DetectDisplayTask.CONNECT)
+        args,
+        _TITLE_CONNECT_TEST(args.display_label),
+        _MSG_CONNECT_TEST(args.display_label),
+        DetectDisplayTask.CONNECT)
 
 
 class DisconnectTask(DetectDisplayTask):
@@ -235,12 +238,13 @@ class DisconnectTask(DetectDisplayTask):
   Args:
     args: refer base class.
   """
+
   def __init__(self, args):
     super(DisconnectTask, self).__init__(
-      args,
-      _TITLE_DISCONNECT_TEST(args.display_label),
-      _MSG_DISCONNECT_TEST(args.display_label),
-      DetectDisplayTask.DISCONNECT)
+        args,
+        _TITLE_DISCONNECT_TEST(args.display_label),
+        _MSG_DISCONNECT_TEST(args.display_label),
+        DetectDisplayTask.DISCONNECT)
 
 
 class FixtureCheckDisplayThread(threading.Thread):
@@ -257,6 +261,7 @@ class FixtureCheckDisplayThread(threading.Thread):
     on_success: callback for success.
     on_failure: callback for failure.
   """
+
   def __init__(self, fixture, check_interval_secs, retry_times, on_success,
                on_failure):
     threading.Thread.__init__(self, name='FixtureCheckDisplayThread')
@@ -279,13 +284,13 @@ class FixtureCheckDisplayThread(threading.Thread):
         num_tries += 1
         if num_tries < self._retry_times:
           logging.info(
-            'Cannot see screen on external display. Wait for %.1f seconds.',
-            self._check_interval)
+              'Cannot see screen on external display. Wait for %.1f seconds.',
+              self._check_interval)
           self._done.wait(self._check_interval)
         else:
           logging.error(
-            'Failed to see screen on external display after %d retries.',
-            self._retry_times)
+              'Failed to see screen on external display after %d retries.',
+              self._retry_times)
           self._on_failure()
           self.Stop()
 
@@ -303,6 +308,7 @@ class VideoTask(ExtDisplayTask):
   Args:
     args: refer base class.
   """
+
   def __init__(self, args):
     self._fixture = args.fixture
     self._manual = not self._fixture
@@ -313,8 +319,8 @@ class VideoTask(ExtDisplayTask):
     if self._manual:
       self._pass_digit = random.randint(0, 9)
       instruction = '%s<br>%s' % (
-        _MSG_VIDEO_TEST(args.display_label),
-        _MSG_PROMPT_PASS_KEY(self._pass_digit))
+          _MSG_VIDEO_TEST(args.display_label),
+          _MSG_PROMPT_PASS_KEY(self._pass_digit))
 
     if self._fixture:
       instruction = _MSG_FIXTURE_VIDEO_TEST(args.display_label)
@@ -416,6 +422,7 @@ class VideoTask(ExtDisplayTask):
 
 class ExtDisplayTaskArg(object):
   """Contains args needed by ExtDisplayTask."""
+
   def __init__(self):
     self.main_display_id = None
     self.display_label = None
@@ -462,41 +469,45 @@ class ExtDisplayTaskArg(object):
 class ExtDisplayTest(unittest.TestCase):
   """Main class for external display test."""
   ARGS = [
-    Arg('main_display', str,
-        'xrandr/modeprint ID for ChromeBook\'s main display.', optional=False),
-    Arg('display_info', list,
-        ('A list of tuples: (display_label, display_id, audio_info)\n'
-         'Each tuple represents an external port:\n'
-         '- display_label: (str) display name seen by operator, e.g. VGA.\n'
-         '- display_id: (str) ID used to identify display in xrandr/modeprint, '
-         '  e.g. VGA1.\n'
-         '- audio_info: a tuple of (audio_card, audio_port), or just a '
-         '  single string indicating the audio_port (deprecated). audio_card '
-         '  is either the card\'s name (str), or the card\'s index (int). '
-         '  audio_port is the amixer port\'s name (str). If you specify only '
-         '  the audio_port, the test assumes that the card is at index 0 '
-         '  (deprecated, don\'t use it if possible). This argument is '
-         '  optional. If set, the audio playback test is added.'
-         ),
-        optional=False),
-    Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
-    Arg('connect_only', bool,
-        'Just detect ext display connection. This is for a hack that DUT needs '
-        'reboot after connect to prevent X crash.',
-        default=False),
-    Arg('start_output_only', bool,
-        'Only start output of external display. This is for bringing up '
-        'the external display for other tests that need it.',
-        default=False),
-    Arg('stop_output_only', bool,
-        'Only stop output of external display. This is for bringing down '
-        'the external display that other tests have finished using.',
-        default=False),
-    Arg('already_connect', bool,
-        'Also for the reboot hack with fixture. With it set to True, DUT does '
-        'not issue plug ext display command.',
-        default=False),
-  ]
+      Arg(
+          'main_display', str,
+          'xrandr/modeprint ID for ChromeBook\'s main display.',
+          optional=False),
+      Arg(
+          'display_info', list,
+          (
+              'A list of tuples: (display_label, display_id, audio_info)\nEach'
+          ' tuple represents an external port:\n- display_label: (str) '
+          'display name seen by operator, e.g. VGA.\n- display_id: (str) '
+          'ID used to identify display in xrandr/modeprint,   e.g. '
+          'VGA1.\n- audio_info: a tuple of (audio_card, audio_port), or '
+          'just a   single string indicating the audio_port (deprecated). '
+          "audio_card   is either the card\'s name (str), or the card\'s "
+          "index (int).   audio_port is the amixer port\'s name (str). If "
+          'you specify only   the audio_port, the test assumes that the '
+          "card is at index 0   (deprecated, don\'t use it if possible). "
+          'This argument is   optional. If set, the audio playback test is'
+          ' added.'),
+          optional=False),
+      Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
+      Arg(
+          'connect_only', bool,
+          'Just detect ext display connection. This is for a hack that DUT '
+          'needs reboot after connect to prevent X crash.', default=False),
+      Arg(
+          'start_output_only', bool,
+          'Only start output of external display. This is for bringing up '
+          'the external display for other tests that need it.',
+          default=False),
+      Arg(
+          'stop_output_only', bool,
+          'Only stop output of external display. This is for bringing down '
+          'the external display that other tests have finished using.',
+          default=False),
+      Arg(
+          'already_connect', bool,
+          'Also for the reboot hack with fixture. With it set to True, DUT '
+          'does not issue plug ext display command.', default=False)]
 
   def setUp(self):
     self._ui = test_ui.UI()
@@ -555,6 +566,6 @@ class ExtDisplayTest(unittest.TestCase):
   def runTest(self):
     self.InitUI()
     self._task_manager = FactoryTaskManager(
-      self._ui, self.ComposeTasks(),
-      update_progress=self._template.SetProgressBarValue)
+        self._ui, self.ComposeTasks(),
+        update_progress=self._template.SetProgressBarValue)
     self._task_manager.Run()

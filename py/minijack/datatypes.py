@@ -27,13 +27,14 @@ def YamlObjectConstructor(loader, unused_tag_suffix, node):
 # tuples as lists, unicodes/names as strings, and objects as lists/dicts.
 CustomLoader = yaml.SafeLoader
 CustomLoader.add_constructor('tag:yaml.org,2002:python/tuple',
-    CustomLoader.construct_yaml_seq)
+                             CustomLoader.construct_yaml_seq)
 CustomLoader.add_constructor('tag:yaml.org,2002:python/unicode',
-    CustomLoader.construct_yaml_str)
-CustomLoader.add_multi_constructor('tag:yaml.org,2002:python/name',
+                             CustomLoader.construct_yaml_str)
+CustomLoader.add_multi_constructor(
+    'tag:yaml.org,2002:python/name',
     lambda loader, _, node: CustomLoader.construct_yaml_str(loader, node))
 CustomLoader.add_multi_constructor('tag:yaml.org,2002:python/object',
-    YamlObjectConstructor)
+                                   YamlObjectConstructor)
 
 
 class EventBlob(object):
@@ -43,6 +44,7 @@ class EventBlob(object):
     metadata: A dict to keep the metadata.
     chunk: A byte-list to store the orignal event data.
   """
+
   def __init__(self, metadata, chunk):
     self.metadata = metadata
     self.chunk = chunk
@@ -58,6 +60,7 @@ class EventStream(list):
     metadata: A dict to keep the metadata.
     preamble: The dict of the preamble event.
   """
+
   def __init__(self, metadata):
     super(EventStream, self).__init__()
     self.metadata = metadata
@@ -117,6 +120,7 @@ class EventPacket(object):
     event: The dict of the non-preamble event.
     _event_id: The event_id string.
   """
+
   def __init__(self, metadata, preamble, event):
     self.metadata = metadata
     self.preamble = preamble
@@ -157,7 +161,7 @@ class EventPacket(object):
       reimage_id_bytes = uuid.UUID(reimage_id).bytes
       seq_bytes = struct.pack('>L', int(self.event.get('SEQ')))
       self._event_id = ''.join([base64.urlsafe_b64encode(s).rstrip('=')
-          for s in [reimage_id_bytes, seq_bytes]])
+                                for s in [reimage_id_bytes, seq_bytes]])
     return self._event_id
 
   def FindAttrContainingKey(self, key):

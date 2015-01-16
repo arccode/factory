@@ -23,10 +23,10 @@ class InterruptTest(unittest.TestCase):
   """Tests if an interrupt's count is larger than expected."""
 
   ARGS = [
-    Arg('interrupt', (int, str), 'Interrupt number or name.'),
-    Arg('reload_module', str,
-        'Kernel module name. If set, rmmod and modprobe it.', optional=True),
-    Arg('min_count', int, 'Minimum #interrupts to pass.', default=1),
+      Arg('interrupt', (int, str), 'Interrupt number or name.'),
+      Arg('reload_module', str,
+          'Kernel module name. If set, rmmod and modprobe it.', optional=True),
+      Arg('min_count', int, 'Minimum #interrupts to pass.', default=1),
   ]
 
   def _GetInterruptCount(self, interrupt):
@@ -40,7 +40,7 @@ class InterruptTest(unittest.TestCase):
 
   def runTest(self):
     interrupt, reload_module, min_count = (
-      self.args.interrupt, self.args.reload_module, self.args.min_count)
+        self.args.interrupt, self.args.reload_module, self.args.min_count)
     count = self._GetInterruptCount(interrupt)
 
     if reload_module:
@@ -51,6 +51,6 @@ class InterruptTest(unittest.TestCase):
       count = self._GetInterruptCount(interrupt) - count
 
     self.assertTrue(
-      count >= min_count,
-      'Interrupt test failed: int[%s] = %d < min_count %d' % (
-          interrupt, count, min_count))
+        count >= min_count,
+        'Interrupt test failed: int[%s] = %d < min_count %d' % (
+            interrupt, count, min_count))

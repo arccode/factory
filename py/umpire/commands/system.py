@@ -131,7 +131,7 @@ def CreateDefaultUmpireUser():
         'useradd',
         '--system',                     # Umpire is a system account.
         '--user-group',                 # Create a group with same name as user.
-        '--shell', '/usr/sbin/nologin', # Umpire will not login.
+        '--shell', '/usr/sbin/nologin',  # Umpire will not login.
         '--home', common.DEFAULT_BASE_DIR,
         '--create-home',
         '--skel', temp_dir,             # Create empty home.

@@ -3,8 +3,7 @@
 # found in the LICENSE file.
 
 
-'''
-Implementation for Agilent EPM Series Power Meter (N1914A) device.
+'''Implementation for Agilent EPM Series Power Meter (N1914A) device.
 
 Because N1914A enables up to 4 ports, methods in this class default to
 expose a parameter called port to specify where action will take place.
@@ -19,33 +18,33 @@ from cros.factory.rf.lan_scpi import Error
 
 
 class N1914A(AgilentSCPI):
+  '''An Agilent EPM Series Power Meter (N1914A) device.
   '''
-  An Agilent EPM Series Power Meter (N1914A) device.
-  '''
+
   def __init__(self, *args, **kwargs):
     super(N1914A, self).__init__('N1914A', *args, **kwargs)
     self.timeout = 20  # Weak power will cause a relatively long run.
 
   # Format related methods.
   def SetAsciiFormat(self):
-    '''Sets the numeric data transferred over SCPI to ASCII.'''
+    """Sets the numeric data transferred over SCPI to ASCII."""
     self.Send('FORM ASCii')
 
   def SetRealFormat(self):
-    '''Sets the numeric data transferred over SCPI to binary.'''
+    """Sets the numeric data transferred over SCPI to binary."""
     self.Send('FORM REAL')
 
   # Sampling setting related methods.
   def ToNormalMode(self, port):
-    '''Sets sampling mode to 20 readings per seconds.'''
+    """Sets sampling mode to 20 readings per seconds."""
     self.SetMode(port, 'NORMAL')
 
   def ToDoubleMode(self, port):
-    '''Sets sampling mode to 40 readings per seconds.'''
+    """Sets sampling mode to 40 readings per seconds."""
     self.SetMode(port, 'DOUBLE')
 
   def ToFastMode(self, port):
-    '''Sets sampling mode to fast mode, which performance depends on sensor.'''
+    """Sets sampling mode to fast mode, which performance depends on sensor."""
     self.SetMode(port, 'FAST')
 
   def SetMode(self, port, mode):
@@ -111,33 +110,33 @@ class N1914A(AgilentSCPI):
 
   # Trigger related methods.
   def SetContinuousTrigger(self, port):
-    '''Sets the trigger to repeatedly active.'''
+    """Sets the trigger to repeatedly active."""
     self.Send(['INITiate%d:CONTinuous ON' % port])
 
   def SetOnetimeTrigger(self, port):
-    '''Sets the trigger to active only once.'''
+    """Sets the trigger to active only once."""
     self.Send(['INITiate%d:CONTinuous OFF' % port])
 
   def SetTriggerToFreeRun(self, port):
-    '''Sets unconditional trigger (i.e. FreeRun mode).'''
+    """Sets unconditional trigger (i.e. FreeRun mode)."""
     self.Send(['TRIGger%d:SOURce IMMediate' % port])
 
   def EnableTriggerImmediately(self, port):
-    '''Forces to trigger immediately.'''
+    """Forces to trigger immediately."""
     self.Send(['INITiate%d:IMMediate' % port])
 
   def GetMACAddress(self):
-    '''Returns the mac address of N1914A.'''
+    """Returns the mac address of N1914A."""
     ret = self.Query('SYST:COMM:LAN:MAC?')
     return ret.rstrip('"').lstrip('"')
 
   def MeasureOnce(self, port):
-    '''Performs a single measurement.'''
+    """Performs a single measurement."""
     ret = self.Query('FETCh%d?' % port, formatter=float)
     return ret
 
   def MeasureOnceInBinary(self, port):
-    '''Performs a single measurement in binary format.'''
+    """Performs a single measurement in binary format."""
     def UnpackBinaryInDouble(binary_array):
       if len(binary_array) != 8:
         raise Error('Binary double must be 8 bytes'
@@ -149,7 +148,7 @@ class N1914A(AgilentSCPI):
     return ret
 
   def MeasureInBinary(self, port, avg_length):
-    '''Performs measurements in binary format and returns its average.'''
+    """Performs measurements in binary format and returns its average."""
     assert avg_length > 0, 'avg_length need to be greater than 1'
     power = [self.MeasureOnceInBinary(port) for _ in xrange(avg_length)]
     return sum(power) / float(avg_length)

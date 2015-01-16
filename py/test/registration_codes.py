@@ -89,17 +89,17 @@ class RegistrationCode(object):
                 len(self.proto.content.code)))
 
       expected_checksum = (
-        binascii.crc32(self.proto.content.SerializeToString()) & 0xFFFFFFFF)
+          binascii.crc32(self.proto.content.SerializeToString()) & 0xFFFFFFFF)
       if expected_checksum != self.proto.checksum:
         raise RegistrationCodeException(
-          'In reg code %r, expected checksum 0x%x but got 0x%x' % (
-            encoded_string, self.proto.checksum, expected_checksum))
+            'In reg code %r, expected checksum 0x%x but got 0x%x' % (
+                encoded_string, self.proto.checksum, expected_checksum))
 
       self.type = {
-        reg_code_pb2.UNIQUE_CODE: RegistrationCode.Type.UNIQUE_CODE,
-        reg_code_pb2.GROUP_CODE: RegistrationCode.Type.GROUP_CODE,
-        reg_code_pb2.ONE_TIME_CODE: RegistrationCode.Type.ONE_TIME_CODE
-        }.get(self.proto.content.code_type)
+          reg_code_pb2.UNIQUE_CODE: RegistrationCode.Type.UNIQUE_CODE,
+          reg_code_pb2.GROUP_CODE: RegistrationCode.Type.GROUP_CODE,
+          reg_code_pb2.ONE_TIME_CODE: RegistrationCode.Type.ONE_TIME_CODE
+      }.get(self.proto.content.code_type)
       if self.type is None:
         raise RegistrationCodeException(
             'In reg code %r, unexpected code type' % encoded_string)
@@ -113,9 +113,9 @@ class RegistrationCode(object):
 
       if self.device is not None and not DEVICE_PATTERN.match(self.device):
         raise RegistrationCodeException(
-          'In reg code %r, invalid device %r '
-          '(expected pattern %r)' % (
-              encoded_string, self.device, DEVICE_PATTERN.pattern))
+            'In reg code %r, invalid device %r '
+            '(expected pattern %r)' % (
+                encoded_string, self.device, DEVICE_PATTERN.pattern))
     elif len(encoded_string) == LEGACY_REGISTRATION_CODE_LENGTH:
       # Old representation
       CheckLegacyRegistrationCode(encoded_string)
@@ -128,7 +128,7 @@ class RegistrationCode(object):
 
   def __str__(self):
     return 'RegistrationCode(type=%r, device=%r, encoded_string=%r)' % (
-      self.type, self.device, self.encoded_string)
+        self.type, self.device, self.encoded_string)
 
 
 def CheckLegacyRegistrationCode(code):
@@ -146,7 +146,7 @@ def CheckLegacyRegistrationCode(code):
             code, LEGACY_REGISTRATION_CODE_LENGTH))
   if re.search('[^0-9a-f]', code):
     raise RegistrationCodeException(
-      'Registration code %r has invalid characters' % code)
+        'Registration code %r has invalid characters' % code)
 
   # Parse payload and CRC as byte strings.
   payload = binascii.unhexlify(code[0:64])
@@ -154,7 +154,7 @@ def CheckLegacyRegistrationCode(code):
   expected_crc = struct.pack('!I', binascii.crc32(payload) & 0xFFFFFFFF)
   if expected_crc != crc:
     raise RegistrationCodeException('CRC of %r is invalid (should be %s)' %
-                     (code, binascii.hexlify(expected_crc)))
+                                    (code, binascii.hexlify(expected_crc)))
 
 
 # pylint: disable=W0622

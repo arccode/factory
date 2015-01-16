@@ -15,7 +15,9 @@ from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.link_manager import LinkDownError
 from cros.factory.utils import net_utils
 
+
 class LinkManagerTest(unittest.TestCase):
+
   def setUp(self):
     self.dut_link = None
     self.presenter_link = None
@@ -46,10 +48,12 @@ class LinkManagerTest(unittest.TestCase):
     self.dut_link = None
 
   def StartDUT(self):
-    self.presenter_link = PresenterLinkManager(check_interval=1,
-                                methods={'Echo': self.Echo},
-                                connect_hook=self.hook.presenter_connect,
-                                disconnect_hook=self.hook.presenter_disconnect)
+    self.presenter_link = PresenterLinkManager(
+        check_interval=1, methods={
+            'Echo': self.Echo
+        },
+        connect_hook=self.hook.presenter_connect,
+        disconnect_hook=self.hook.presenter_disconnect)
 
   def StopDUT(self):
     self.presenter_link.Stop()

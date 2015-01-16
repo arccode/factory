@@ -212,10 +212,10 @@ class ArchiverUnittest(unittest.TestCase):
       Returns:
         The absolute lock file path if run_forever is False.
       """
-      logging.debug("Wrapper running on pid:%d", os.getpid())
+      logging.debug('Wrapper running on pid:%d', os.getpid())
       lock_path = LockSource(configs[0])
       lock_completed.release()
-      logging.debug("lock_completed released, pid:%d", os.getpid())
+      logging.debug('lock_completed released, pid:%d', os.getpid())
       if run_forever:
         while True:
           pass
@@ -397,7 +397,7 @@ class ArchiverUnittest(unittest.TestCase):
     expected_return = {
         '20140406/incomplete_with_chunks': {'start': 0, 'end': 352},
         '20140406/normal_chunks': {'start': 0, 'end': 666}
-        }
+    }
     self.assertDictContainsSubset(expected_return, archive_metadata['files'])
     self.assertDictContainsSubset(archive_metadata['files'], expected_return)
     shutil.rmtree(tmp_dir)
@@ -425,7 +425,7 @@ class ArchiverUnittest(unittest.TestCase):
         '20140406/incomplete_without_chunks': {'start': 0, 'end': 311},
         '20140406/incomplete_with_chunks': {'start': 0, 'end': 411},
         '20140406/normal_chunks': {'start': 0, 'end': 666}
-        }
+    }
     self.assertDictContainsSubset(expected_return, archive_metadata['files'])
     self.assertDictContainsSubset(archive_metadata['files'], expected_return)
     shutil.rmtree(tmp_dir)

@@ -25,6 +25,7 @@ class TimeoutJSONRPCTransport(jsonrpclib.jsonrpc.TransportMixIn,
     proxy = jsonrpclib.Server(server_url,
                               transport=TimeoutJSONRPCTransport(0.5))
   """
+
   def __init__(self, timeout):
     TimeoutXMLRPCTransport.__init__(self, timeout=timeout)
     jsonrpclib.jsonrpc.TransportMixIn.__init__(self)
@@ -32,6 +33,7 @@ class TimeoutJSONRPCTransport(jsonrpclib.jsonrpc.TransportMixIn,
 
 class JSONRPCServer(object):
   """JSON RPC Server that runs in a separate thread."""
+
   def __init__(self, port, methods=None):
     self._server = None
     self._aborted = threading.Event()
@@ -65,7 +67,7 @@ class JSONRPCServer(object):
                           transport=TimeoutJSONRPCTransport(0.01))
     try:
       s.IsAlive()
-    except: # pylint: disable=W0702
+    except:  # pylint: disable=W0702
       pass
     self._server_thread.join()
     self._server.server_close()

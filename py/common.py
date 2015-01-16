@@ -57,7 +57,7 @@ def CompactStr(data):
   """
   if isinstance(data, list) or isinstance(data, tuple):
     data = ' '.join(x for x in data if x)
-  return re.sub('\s+', ' ', data).strip()
+  return re.sub(r'\s+', ' ', data).strip()
 
 
 def SetupLogging(level=logging.WARNING, log_file_name=None):
@@ -159,6 +159,7 @@ class AttrDict(dict):
     assertEqual(bar.x.y, 'value_x_y')
     assertEqual(bar.z[0].m, 'value_z_0_m')
   """
+
   def _IsBuiltinDict(self, item):
     return (isinstance(item, dict) and
             item.__class__.__module__ == '__builtin__' and
@@ -205,7 +206,8 @@ class Singleton(type):
     bar = C()  # foo == bar
   """
   _instances = {}
-  def __call__(mcs, *args, **kwargs):
-    if mcs not in mcs._instances:
-      mcs._instances[mcs] = super(Singleton, mcs).__call__(*args, **kwargs)
-    return mcs._instances[mcs]
+
+  def __call__(cls, *args, **kwargs):
+    if cls not in cls._instances:
+      cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+    return cls._instances[cls]

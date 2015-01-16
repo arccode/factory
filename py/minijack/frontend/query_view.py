@@ -37,7 +37,7 @@ def FormatExceptionOnly():
     A string.
   """
   return '\n'.join(
-    traceback.format_exception_only(*sys.exc_info()[:2])).strip()
+      traceback.format_exception_only(*sys.exc_info()[:2])).strip()
 
 
 def GetQueryView(request):
@@ -68,21 +68,21 @@ def GetQueryView(request):
   else:
     # TODO(pihsun): Fix schemas message when using BigQuery
     usage_message = ('<p>Type the SQL select statement in the above box. '
-        'Table schemas:</p>')
+                     'Table schemas:</p>')
     for model in (Event, Attr, Test, Device, Component, ComponentDetail):
       usage_message += ('<p>' +
-          ' '.join([w if w.isupper() else '<b>' + w + '</b>'
-            for w in Database.SqlCmdCreateTable(model).split(' ')]) +
-          '</p>\n')
+                        ' '.join([w if w.isupper() else '<b>' + w + '</b>'
+                                  for w in Database.SqlCmdCreateTable(model).split(' ')]) +
+                        '</p>\n')
 
   if output.lower() == 'json':
-    return HttpResponse(json.dumps(results), content_type="application/json")
+    return HttpResponse(json.dumps(results), content_type='application/json')
   else:
     context = {
-      'sql_query': sql_query,
-      'column_list': columns,
-      'result_list': results,
-      'error_message': error_message,
-      'usage_message': usage_message,
+        'sql_query': sql_query,
+        'column_list': columns,
+        'result_list': results,
+        'error_message': error_message,
+        'usage_message': usage_message,
     }
     return render(request, 'query_life.html', context)

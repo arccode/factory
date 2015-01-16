@@ -19,6 +19,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.goofy.goofy_base import GoofyBase
 
+
 def call_counter():
   """Helper iterator that returns the number of previous calls."""
   count = 0
@@ -40,7 +41,7 @@ class GoofyBaseTest(unittest.TestCase):
     # after a second.
     for _ in range(10):
       extra_threads = [t for t in threading.enumerate()
-               if t != threading.current_thread()]
+                       if t != threading.current_thread()]
       if not extra_threads:
         break
       logging.info('Waiting for %d threads to die', len(extra_threads))
@@ -53,6 +54,7 @@ class GoofyBaseTest(unittest.TestCase):
 
 class EventLoopStopTest(GoofyBaseTest):
   """Check that event loops stop when passed None."""
+
   def runTest(self):
     counter = call_counter().next
     self.goofy.run_enqueue(counter)
@@ -66,10 +68,13 @@ class EventLoopStopTest(GoofyBaseTest):
     # because the None should have shut down the run loop
     self.assertEqual(counter(), 2)
 
+
 class DrainThreadsTest(GoofyBaseTest):
   """Check that we can drain threads correctly """
+
   def runTest(self):
     counter = call_counter().next
+
     def thread_task():
       time.sleep(.5)
       counter()
@@ -87,6 +92,6 @@ class DrainThreadsTest(GoofyBaseTest):
     self.assertEqual(counter(), thread_count)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   factory.init_logging('goofy_base_unittest')
   unittest.main()

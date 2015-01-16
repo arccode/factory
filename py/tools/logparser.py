@@ -533,7 +533,7 @@ def main():
   parser.add_option('-c', '--camera-file', dest='camera_file',
                     metavar='CAMERA_FILE', default=_CAMERA_MAPPING_FILE,
                     help='file to store panel serial number and '
-                         'camera serial number mapping')
+                    'camera serial number mapping')
   parser.add_option('-p', '--fastcgi-tcp-port', dest='fastcgi_port',
                     metavar='FASTCGI_PORT',
                     help='assign a port number to start FastCGI in TCP mode')

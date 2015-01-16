@@ -12,6 +12,7 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.utils import Enum, ReadOneLine
 
+
 class PowerException(Exception):
   pass
 
@@ -27,7 +28,7 @@ class Power(object):
     self._current_state = None
 
   def FindPowerPath(self, power_source):
-    '''Find battery path in sysfs.'''
+    """Find battery path in sysfs."""
     if power_source == self.PowerSource.BATTERY:
       for p in glob.glob(os.path.join(self._sys, 'class/power_supply/*/type')):
         if ReadOneLine(p) == 'Battery':
@@ -44,7 +45,7 @@ class Power(object):
     raise PowerException('Cannot find %s' % power_source)
 
   def CheckACPresent(self):
-    '''Check if AC power is present.'''
+    """Check if AC power is present."""
     try:
       p = self.FindPowerPath(self.PowerSource.AC)
       return ReadOneLine(os.path.join(p, 'online')) == '1'
@@ -52,7 +53,7 @@ class Power(object):
       return False
 
   def GetACType(self):
-    '''Get AC power type.'''
+    """Get AC power type."""
     try:
       p = self.FindPowerPath(self.PowerSource.AC)
       return ReadOneLine(os.path.join(p, 'type'))
@@ -60,7 +61,7 @@ class Power(object):
       return 'Unknown'
 
   def CheckBatteryPresent(self):
-    '''Check if battery is present and also set battery path.'''
+    """Check if battery is present and also set battery path."""
     try:
       self._battery_path = self.FindPowerPath(self.PowerSource.BATTERY)
       return True
@@ -83,7 +84,7 @@ class Power(object):
       return None
 
   def GetCharge(self):
-    '''Get current charge level in mAh.'''
+    """Get current charge level in mAh."""
     charge_now = self.GetBatteryAttribute('charge_now')
     if charge_now:
       return int(charge_now) / 1000
@@ -91,7 +92,7 @@ class Power(object):
       return None
 
   def GetChargeMedian(self, read_count=10):
-    '''Read charge level several times and return the median.'''
+    """Read charge level several times and return the median."""
     charge_nows = []
     for _ in xrange(read_count):
       charge_now = self.GetCharge()
@@ -101,7 +102,7 @@ class Power(object):
     return numpy.median(charge_nows)
 
   def GetChargeFull(self):
-    '''Get full charge level in mAh.'''
+    """Get full charge level in mAh."""
     charge_full = self.GetBatteryAttribute('charge_full')
     if charge_full:
       return int(charge_full) / 1000
@@ -126,7 +127,7 @@ class Power(object):
         return None
 
     if float(full) <= 0:
-      return None # Something wrong with the battery
+      return None  # Something wrong with the battery
     charge_pct = float(now) * 100.0 / float(full)
     if get_float:
       return charge_pct
@@ -134,7 +135,7 @@ class Power(object):
       return round(charge_pct)
 
   def GetWearPct(self):
-    '''Get current battery wear in percentage of new capacity.'''
+    """Get current battery wear in percentage of new capacity."""
     capacity = self.GetBatteryAttribute('charge_full')
     design_capacity = self.GetBatteryAttribute('charge_full_design')
 
@@ -147,5 +148,5 @@ class Power(object):
         return None
 
     if float(design_capacity) <= 0:
-      return None #Something wrong with the battery
+      return None  # Something wrong with the battery
     return 100 - (round(float(capacity) * 100 / float(design_capacity)))

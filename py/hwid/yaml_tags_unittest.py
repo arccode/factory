@@ -6,11 +6,12 @@
 import unittest
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.hwid import yaml_tags
 
 
 class RegionFieldUnittest(unittest.TestCase):
+
   def testRegionFieldDict(self):
     regions_field = yaml_tags.RegionField()
     self.assertEquals({'region': 'us'}, regions_field[29])
@@ -22,6 +23,7 @@ class RegionFieldUnittest(unittest.TestCase):
 
 
 class RegionComponentUnittest(unittest.TestCase):
+
   def testRegionComponentDict(self):
     regions_component = yaml_tags.RegionComponent()
     self.assertEquals(

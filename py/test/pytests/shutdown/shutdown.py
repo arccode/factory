@@ -165,8 +165,8 @@ class ShutdownTest(unittest.TestCase):
     """
     fail_shutdown = False
     files_to_check_not_exist = [
-      '/mnt/stateful_partition/umount-encrypted.log',
-      '/mnt/stateful_partition/shutdown_stateful_umount_failure'
+        '/mnt/stateful_partition/umount-encrypted.log',
+        '/mnt/stateful_partition/shutdown_stateful_umount_failure'
     ]
     for path in files_to_check_not_exist:
       if os.path.exists(path):

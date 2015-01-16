@@ -187,7 +187,7 @@ def RunIn(args, group_suffix=''):
                   method='GetDeviceInfo',
                   args=lambda env: [
                       env.GetDeviceData()['mlb_serial_number'],
-                      ],
+                  ],
                   action='update_device_data'))
 
           # This test has two meaning:
@@ -222,10 +222,10 @@ def RunIn(args, group_suffix=''):
               dargs=dict(
                   comps=dict(
                       has_cellular=('component.has_cellular',
-                          ['true', 'false']),
+                                    ['true', 'false']),
                       has_lte=('component.has_lte', ['true', 'false']),
                       color=('color',
-                          ['red', 'green', 'blue', 'yellow', 'black']),
+                             ['red', 'green', 'blue', 'yellow', 'black']),
                       line=('line', ['A', 'B', 'C', 'D']),
                       region=('region', ['us', 'gb']))))
 
@@ -233,53 +233,52 @@ def RunIn(args, group_suffix=''):
               id='ScanSerialNumber',
               label_zh=u'扫描机器编号',
               pytest_name='scan',
-              dargs = dict(
-                device_data_key='serial_number',
-                event_log_key='serial_number',
-                label_en='Serial Number',
-                label_zh='机器编号',
-                regexp=args.grt_serial_number_format))
+              dargs=dict(
+                  device_data_key='serial_number',
+                  event_log_key='serial_number',
+                  label_en='Serial Number',
+                  label_zh='机器编号',
+                  regexp=args.grt_serial_number_format))
 
           OperatorTest(
               id='ScanGoldenICCID',
               label_zh=u'扫描 GoldenICCID',
               pytest_name='scan',
               run_if=args.HasLTE,
-              dargs = dict(
-                device_data_key='golden_iccid',
-                label_en='golden_iccid',
-                label_zh='机器编号',
-                regexp=args.run_in_golden_iccid_format))
+              dargs=dict(
+                  device_data_key='golden_iccid',
+                  label_en='golden_iccid',
+                  label_zh='机器编号',
+                  regexp=args.run_in_golden_iccid_format))
 
           OperatorTest(
               id='ScanGoldenIMEI',
               label_zh=u'扫描 GoldenIMEI',
               pytest_name='scan',
               run_if=args.HasLTE,
-              dargs = dict(
-                device_data_key='golden_imei',
-                label_en='golden_imei',
-                label_zh='机器编号',
-                regexp=args.run_in_golden_imei_format))
+              dargs=dict(
+                  device_data_key='golden_imei',
+                  label_en='golden_imei',
+                  label_zh='机器编号',
+                  regexp=args.run_in_golden_imei_format))
 
           OperatorTest(
               id='ScanGbindAttribute',
               label_zh=u'扫描 gbind_attribute',
               pytest_name='scan',
-              dargs = dict(
-                device_data_key='gbind_attribute',
-                label_en='Group code',
-                label_zh='Group 编号'))
+              dargs=dict(
+                  device_data_key='gbind_attribute',
+                  label_en='Group code',
+                  label_zh='Group 编号'))
 
           OperatorTest(
               id='ScanUbindAttribute',
               label_zh=u'扫描 ubind_attribute',
               pytest_name='scan',
-              dargs = dict(
-                device_data_key='ubind_attribute',
-                label_en='User code',
-                label_zh='User 编号'))
-
+              dargs=dict(
+                  device_data_key='ubind_attribute',
+                  label_en='User code',
+                  label_zh='User 编号'))
 
         # For LTE model only. Note that different factory can have different
         # testing sequences of LTE model. The tests set in this test list are
@@ -304,10 +303,10 @@ def RunIn(args, group_suffix=''):
             pytest_name='probe_cellular_info',
             run_if=args.HasLTE,
             dargs=dict(
-               probe_meid=False,
-               probe_imei=False,
-               probe_lte_imei=True,
-               probe_lte_iccid=True))
+                probe_meid=False,
+                probe_imei=False,
+                probe_lte_imei=True,
+                probe_lte_iccid=True))
 
         # Writes VPD values into RO/RW VPD. This includes at least
         # 'serial_number', 'region', 'ubind_attribute', 'gbind_attribute',
@@ -584,7 +583,7 @@ def RunIn(args, group_suffix=''):
           label_zh=u'睡眠、唤醒 (%s 次)' % args.run_in_resume_iterations,
           pytest_name='suspend_resume',
           backgroundable=True,
-          retries=1, # workaround for premature awake failure
+          retries=1,  # workaround for premature awake failure
           dargs=dict(
               cycles=args.run_in_resume_iterations,
               suspend_delay_min_secs=28,
@@ -633,25 +632,25 @@ def RunIn(args, group_suffix=''):
         exclusive=['CHARGER'],
         pytest_name='charger',
         dargs=dict(
-           min_starting_charge_pct=args.min_charge_pct,
-           max_starting_charge_pct=args.max_charge_pct,
-           # Allow 7 hours to charge up to min_charge_pct, in
-           # case we start with an empty battery.
-           starting_timeout_secs=7 * HOURS,
-           check_battery_current=False,
-           use_percentage=False,
-           charger_type=args.run_in_ac_type,
-           spec_list=[
-               # Discharge 30 mAh within 600 s.  Should take ~150
-               # s; load is about -700-1100 mA.
-               (-30, 600, 2),
-               # Charge 20 mAh within 1600 s.  Should take ~800 s;
-               # current is about 75-140 mA.  Note that if a SW
-               # bug causes Python task to occupy 100% CPU, this
-               # test may fail due to lower-than-expected charging
-               # current.
-               (20, 1600, 1),
-                   ]))
+            min_starting_charge_pct=args.min_charge_pct,
+            max_starting_charge_pct=args.max_charge_pct,
+            # Allow 7 hours to charge up to min_charge_pct, in
+            # case we start with an empty battery.
+            starting_timeout_secs=7 * HOURS,
+            check_battery_current=False,
+            use_percentage=False,
+            charger_type=args.run_in_ac_type,
+            spec_list=[
+                # Discharge 30 mAh within 600 s.  Should take ~150
+                # s; load is about -700-1100 mA.
+                (-30, 600, 2),
+                # Charge 20 mAh within 1600 s.  Should take ~800 s;
+                # current is about 75-140 mA.  Note that if a SW
+                # bug causes Python task to occupy 100% CPU, this
+                # test may fail due to lower-than-expected charging
+                # current.
+                (20, 1600, 1),
+            ]))
 
     args.Barrier('RunInCharger',
                  pass_without_prompt=True,
@@ -665,8 +664,8 @@ def RunIn(args, group_suffix=''):
           label_zh=u'验证根磁區2',
           pytest_name='verify_root_partition',
           dargs=dict(
-             kern_a_device='mmcblk0p4',
-             root_device='mmcblk0p5'))
+              kern_a_device='mmcblk0p4',
+              root_device='mmcblk0p5'))
 
       args.Barrier('RunInVerifyRootPartition2',
                    pass_without_prompt=True,

@@ -26,6 +26,7 @@ class MinijackService(ServiceBase):
   Aargs:
     dummy_config: Launcher YAML config dictionary.
   """
+
   def __init__(self, unused_config):
     # ServiceBase inherits from twisted ProcessProtocol, which is an old-
     # style python class.

@@ -188,7 +188,7 @@ class Point:
     Returns:
       the distance between p and this point
     """
-    return (math.sqrt((p.x - self.x) ** 2 + (p.y - self.y) ** 2 )
+    return (math.sqrt((p.x - self.x) ** 2 + (p.y - self.y) ** 2)
             if (self and p) else None)
 
   def Value(self):
@@ -441,6 +441,7 @@ class MtbStateMachine:
   internal state machine, it is possible that either x or y in
   self._point[tid] is None initially even the instance has been created.
   """
+
   def __init__(self):
     self._tid = None
     # Set the default slot to 0 as it may not be displayed in the MTB events
@@ -530,7 +531,7 @@ class MtbStateMachine:
       #       which is not what we want. We want it to return False
       #       only when there are None values.
       data_ready = all(map(lambda e: e is not None,
-                       list(point.Value()) + [pressure, self._syn_time]))
+                           list(point.Value()) + [pressure, self._syn_time]))
 
       if (not request_data_ready) or data_ready:
         tid_packet = TidPacket(self._syn_time, point, pressure)

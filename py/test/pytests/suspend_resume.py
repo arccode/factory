@@ -45,30 +45,45 @@ _MIN_SUSPEND_MARGIN_SECS = 5
 
 _MESSAGES = '/var/log/messages'
 
+
 class SuspendResumeTest(unittest.TestCase):
   ARGS = [
-    Arg('cycles', int, 'Number of cycles to suspend/resume', default=1),
-    Arg('suspend_delay_max_secs', int, 'Max time in sec during suspend per '
-        'cycle', default=10),
-    Arg('suspend_delay_min_secs', int, 'Min time in sec during suspend per '
-        'cycle', default=5),
-    Arg('resume_delay_max_secs', int, 'Max time in sec during resume per cycle',
-        default=10),
-    Arg('resume_delay_min_secs', int, 'Min time in sec during resume per cycle',
-        default=5),
-    Arg('resume_early_margin_secs', int, 'The allowable margin for the '
-        'DUT to wake early', default=0),
-    Arg('resume_worst_case_secs', int, 'The worst case time a device is '
-        'expected to take to resume', default=30),
-    Arg('suspend_worst_case_secs', int, 'The worst case time a device is '
-        'expected to take to suspend', default=60),
-    Arg('wakealarm_path', str, 'Path to the wakealarm file',
-        default='/sys/class/rtc/rtc0/wakealarm'),
-    Arg('time_path', str, 'Path to the time (since_epoch) file',
-        default='/sys/class/rtc/rtc0/since_epoch'),
-    Arg('wakeup_count_path', str, 'Path to the wakeup_count file',
-        default='/sys/power/wakeup_count'),
-  ]
+      Arg('cycles', int, 'Number of cycles to suspend/resume', default=1),
+      Arg(
+          'suspend_delay_max_secs', int,
+          'Max time in sec during suspend per '
+          'cycle', default=10),
+      Arg(
+          'suspend_delay_min_secs', int,
+          'Min time in sec during suspend per '
+          'cycle', default=5),
+      Arg(
+          'resume_delay_max_secs', int,
+          'Max time in sec during resume per cycle', default=10),
+      Arg(
+          'resume_delay_min_secs', int,
+          'Min time in sec during resume per cycle', default=5),
+      Arg(
+          'resume_early_margin_secs', int,
+          'The allowable margin for the '
+          'DUT to wake early', default=0),
+      Arg(
+          'resume_worst_case_secs', int,
+          'The worst case time a device is '
+          'expected to take to resume', default=30),
+      Arg(
+          'suspend_worst_case_secs', int,
+          'The worst case time a device is '
+          'expected to take to suspend', default=60),
+      Arg(
+          'wakealarm_path', str, 'Path to the wakealarm file',
+          default='/sys/class/rtc/rtc0/wakealarm'),
+      Arg(
+          'time_path', str, 'Path to the time (since_epoch) file',
+          default='/sys/class/rtc/rtc0/since_epoch'),
+      Arg(
+          'wakeup_count_path', str, 'Path to the wakeup_count file',
+          default='/sys/power/wakeup_count')]
 
   def setUp(self):
     self.assertTrue(os.path.exists(self.args.wakealarm_path), 'wakealarm_path '
@@ -274,7 +289,7 @@ class SuspendResumeTest(unittest.TestCase):
               r'\] Restarting tasks \.\.\.'  # "Restarting tasks" line
               r'.+'                          # Any number of charcaters
               r'\] done\.\n',                # "done." line
-              messages, re.DOTALL|re.MULTILINE)
+              messages, re.DOTALL | re.MULTILINE)
           if match:
             messages = messages[:match.end()]
             return messages
@@ -330,7 +345,7 @@ class SuspendResumeTest(unittest.TestCase):
       self.goofy.SuspendDUTMonitoring(suspend_time +
                                       self.args.resume_worst_case_secs)
       logging.info('Monitoring suspended for %d seconds',
-          suspend_time + self.args.resume_worst_case_secs)
+                   suspend_time + self.args.resume_worst_case_secs)
       self._Suspend()
       wake_time = self._ReadCurrentTime()
       wake_source = self._HandleMessages(messages_start)
@@ -345,7 +360,7 @@ class SuspendResumeTest(unittest.TestCase):
       try:
         logging.info('Resuming monitoring')
         self.goofy.ResumeDUTMonitoring()
-      except: # pylint: disable=W0702
+      except:  # pylint: disable=W0702
         # Monitoring suspension will time out eventually
         logging.exception('Failed to resume monitoring. Ignore.')
 

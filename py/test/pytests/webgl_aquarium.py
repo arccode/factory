@@ -9,7 +9,7 @@
 import time
 import unittest
 
-import factory_common   #pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI
 from cros.factory.test.ui_templates import OneSection
@@ -79,11 +79,12 @@ window.onload = registerContextLostHandler;
 
 class WebglAquarium(unittest.TestCase):
   ARGS = [
-    Arg('duration_secs', int, 'Duration of time in seconds to run the test',
-        default=60),
-    Arg('hide_options', bool, 'Whether to hide the options on UI',
-        default=True)
+      Arg('duration_secs', int, 'Duration of time in seconds to run the test',
+          default=60),
+      Arg('hide_options', bool, 'Whether to hide the options on UI',
+          default=True)
   ]
+
   def setUp(self):
     self.ui = UI()
     self.template = OneSection(self.ui)

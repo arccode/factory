@@ -54,6 +54,7 @@ _DEFAULT_CONFIG_PATH = '/usr/local/factory/py/test/indicator.conf'
 
 _indicator_instance = None
 
+
 def get_indicator_instance():
   global _indicator_instance  # pylint: disable=W0603
   if _indicator_instance is None:

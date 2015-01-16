@@ -13,6 +13,7 @@ from cros.factory.system.service_manager import Status
 
 
 class ServiceManagerTest(unittest.TestCase):
+
   def runTest(self):
     self.assertEqual(
         service_manager.ParseServiceStatus('service start/running, process 99'),

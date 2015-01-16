@@ -12,7 +12,7 @@ import sys
 import yaml
 from collections import defaultdict
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import common
 import cros.factory.hwid.common
 from cros.factory.hwid import database
@@ -55,7 +55,7 @@ def main():
     missing_boards = set(args.boards) - set(boards_yaml.keys())
     if missing_boards:
       print sys.stderr, 'Unknown board(s) %r; valid choices are %r' % (
-        missing_boards, sorted(boards_yaml.keys()))
+          missing_boards, sorted(boards_yaml.keys()))
 
   for board, board_info in sorted(boards_yaml.items()):
     if board_info['version'] != 3:
@@ -64,8 +64,8 @@ def main():
       continue
     logging.info('Reading %(path)s on branch %(branch)s', board_info)
     board_db_yaml = Spawn(
-      ['git', 'show', 'cros-internal/%(branch)s:%(path)s' % board_info],
-      check_output=True, log_stderr_on_error=True, cwd=hwid_dir).stdout_data
+        ['git', 'show', 'cros-internal/%(branch)s:%(path)s' % board_info],
+        check_output=True, log_stderr_on_error=True, cwd=hwid_dir).stdout_data
 
     board_dbs[board] = database.Database.LoadData(yaml.load(board_db_yaml),
                                                   strict=False)
@@ -106,22 +106,22 @@ def main():
 
   # Summarize to board and component view.
   print separator
-  print "Matches by board:"
+  print 'Matches by board:'
   for board, results in sorted(board_matches.items()):
-    print "  %s matches:" % board
+    print '  %s matches:' % board
     for component_class, r in results:
-      print "    %s: %s" % (component_class, r.component_name)
+      print '    %s: %s' % (component_class, r.component_name)
 
   print separator
-  print "Matches by component class:"
+  print 'Matches by component class:'
   for component_class, results in sorted(component_matches.items()):
-    print "  %s matches:" % component_class
+    print '  %s matches:' % component_class
     for board, r in results:
-      print "    %s: %s" % (board, r.component_name)
+      print '    %s: %s' % (board, r.component_name)
 
   # Detailed view.
   print separator
-  print "Detailed information about matches:"
+  print 'Detailed information about matches:'
   yaml_out = {}
   for k, results in sorted(matches.items()):
     board, component_class = k

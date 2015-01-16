@@ -9,7 +9,9 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
 
+
 class TestIndentTextWriter(unittest.TestCase):
+
   def testIndentDefault(self):
     w = IndentTextWriter()
     self.assertEqual('', w.Flush())

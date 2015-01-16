@@ -8,7 +8,7 @@
 """Implementation of HWID v3 decoder."""
 
 import collections
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid import common
 from cros.factory.hwid.base32 import Base32

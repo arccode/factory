@@ -232,7 +232,7 @@ class ArchiverConfig(object):
         raise ValueError(
             'duration %r is not supported at this time. '
             'We support the integer in seconds or the following: %s' % (
-            duration, pprint.pformat(ALLOWED_DURATION.keys())))
+                duration, pprint.pformat(ALLOWED_DURATION.keys())))
     else:
       self.duration = duration
 

@@ -28,7 +28,7 @@ class Servo(object):
   BoardMap = {
       'expresso': 'rambi',
       'big': 'nyan_big',
-      }
+  }
 
   def __init__(self, board, host, port=9999, serial=None):
     self._InstallRequiredPackages()
@@ -46,6 +46,7 @@ class Servo(object):
           ['servod', '--board', board, '--port', str(port)] +
           (['--serialname', serial] if serial else []),
           sudo=True, log=True)
+
       def WaitForServod():
         REGEXP = re.compile(r'^tcp.*(127\.0\.0\.1|localhost):%d' % port,
                             re.MULTILINE)

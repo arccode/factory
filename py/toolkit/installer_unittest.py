@@ -69,18 +69,18 @@ class ToolkitInstallerTest(unittest.TestCase):
 
   def testNonRoot(self):
     self.makeLiveDevice()
-    os.getuid = lambda: 9999 # Not root
+    os.getuid = lambda: 9999  # Not root
     self._override_in_cros_device = True
     self.assertRaises(Exception, self.createInstaller, True, self.dest)
 
   def testInChroot(self):
     self.makeLiveDevice()
-    os.getuid = lambda: 0 # root
+    os.getuid = lambda: 0  # root
     self.assertRaises(SystemExit, self.createInstaller, True, self.dest)
 
   def testInstall(self):
     self.makeLiveDevice()
-    os.getuid = lambda: 0 # root
+    os.getuid = lambda: 0  # root
     self._override_in_cros_device = True
     self.createInstaller(system_root=self.dest)
     self._installer.Install()
@@ -94,7 +94,8 @@ class ToolkitInstallerTest(unittest.TestCase):
         os.path.join(self.dest, 'usr/local/factory/init/run_goofy_presenter')))
     self.assertFalse(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
-    self.assertEquals('../factory/bin/gooftool',
+    self.assertEquals(
+        '../factory/bin/gooftool',
         os.readlink(os.path.join(self.dest, 'usr/local/bin/gooftool')))
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/py/umpire/__init__.py')))
@@ -106,7 +107,7 @@ class ToolkitInstallerTest(unittest.TestCase):
 
   def testDeviceOnly(self):
     self.makeLiveDevice()
-    os.getuid = lambda: 0 # root
+    os.getuid = lambda: 0  # root
     self._override_in_cros_device = True
     self.createInstaller(system_root=self.dest,
                          enable_presenter=False, enable_device=True)
@@ -136,7 +137,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     os.makedirs(os.path.join(self.dest, 'usr/local/factory'))
     with open(os.path.join(self.dest, 'usr/local/factory/enabled'), 'w') as f:
       pass
-    os.getuid = lambda: 0 # root
+    os.getuid = lambda: 0  # root
     self._override_in_cros_device = True
     self.createInstaller(enabled_tag=False, system_root=self.dest)
     self._installer.Install()
@@ -148,6 +149,6 @@ class ToolkitInstallerTest(unittest.TestCase):
         os.path.join(self.dest, 'usr/local/factory/enabled')))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   unittest.main()

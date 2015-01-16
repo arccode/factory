@@ -44,8 +44,8 @@ REIMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".reimage_id")
 
 # The /var/run directory (or something writable by us if in the chroot).
 RUN_DIR = os.path.join(
-    factory.get_factory_root('run') if utils.in_chroot() else "/var/run",
-    'factory')
+    factory.get_factory_root("run") if utils.in_chroot() else "/var/run",
+    "factory")
 
 # File containing the next sequence number to write.  This is in
 # /var/run so it is cleared on each boot.
@@ -108,14 +108,14 @@ EVENT_KEY_RE = EVENT_NAME_RE
 #
 # In this case, events 1 and 2 have been synced (since the last #S entry is
 # in event 2).  Event 3 has not yet been synced.
-SYNC_MARKER = '#s\n'
-SYNC_MARKER_COMPLETE = '#S\n'
+SYNC_MARKER = "#s\n"
+SYNC_MARKER_COMPLETE = "#S\n"
 assert len(SYNC_MARKER) == len(SYNC_MARKER_COMPLETE)
 
 # The strings that the event log watcher will search and replace with
 # to mark a portion of the log as synced.
-SYNC_MARKER_SEARCH = '\n' + SYNC_MARKER + '---\n'
-SYNC_MARKER_REPLACE = '\n' + SYNC_MARKER_COMPLETE + '---\n'
+SYNC_MARKER_SEARCH = "\n" + SYNC_MARKER + "---\n"
+SYNC_MARKER_REPLACE = "\n" + SYNC_MARKER_COMPLETE + "---\n"
 
 # Since gooftool uses this.
 TimeString = utils.TimeString
@@ -136,6 +136,7 @@ class FloatDigit(object):
   print yaml.dump(FloatDigit(0.12345, 4))
   0.1235
   """
+
   def __init__(self, value, digit):
     self._value = value
     self._digit = digit
@@ -146,7 +147,7 @@ class FloatDigit(object):
 
 def YamlFloatDigitRepresenter(dumper, data):
   """The representer for FloatDigit type."""
-  return dumper.represent_scalar(u'tag:yaml.org,2002:float', repr(data))
+  return dumper.represent_scalar(u"tag:yaml.org,2002:float", repr(data))
 
 
 def YamlObjectRepresenter(dumper, data):
@@ -218,12 +219,12 @@ def GetGlobalLogger():
     with _event_logger_lock:
       if _global_event_logger is None:
         path = (_default_event_logger_prefix or
-               os.environ.get('CROS_FACTORY_TEST_PATH', None))
+                os.environ.get("CROS_FACTORY_TEST_PATH", None))
         if not path:
           raise ValueError("CROS_FACTORY_TEST_PATH environment"
-            "variable is not set")
-        uuid = (os.environ.get('CROS_FACTORY_TEST_PARENT_INVOCATION') or
-                os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid())
+                           "variable is not set")
+        uuid = (os.environ.get("CROS_FACTORY_TEST_PARENT_INVOCATION") or
+                os.environ.get("CROS_FACTORY_TEST_INVOCATION") or TimedUuid())
         _global_event_logger = EventLog(path, uuid)
 
   return _global_event_logger
@@ -249,10 +250,10 @@ def SetGlobalLoggerDefaultPrefix(prefix):
 
   if not PREFIX_RE.match(prefix):
     raise ValueError("prefix %r must match re %s" % (
-      prefix, PREFIX_RE.pattern))
+        prefix, PREFIX_RE.pattern))
   elif _global_event_logger:
     raise EventLogException(("Unable to set default prefix %r after "
-      "initializing the global event logger") % prefix)
+                             "initializing the global event logger") % prefix)
 
   _default_event_logger_prefix = prefix
 
@@ -289,7 +290,7 @@ def GetDeviceId():
         break
   else:
     device_id = str(uuid4())
-    logging.warning('No device_id available yet: generated %s', device_id)
+    logging.warning("No device_id available yet: generated %s", device_id)
 
   # Cache the device ID to DEVICE_ID_PATH for all future references.
   utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
@@ -322,12 +323,12 @@ def GetReimageId():
         print >> f, reimage_id
         f.flush()
         os.fdatasync(f)
-      logging.info('No reimage_id available yet: generated %s', reimage_id)
+      logging.info("No reimage_id available yet: generated %s", reimage_id)
   return reimage_id
 
 
 def GetBootSequence():
-  '''Returns the current boot sequence (or -1 if not available).'''
+  """Returns the current boot sequence (or -1 if not available)."""
   try:
     return int(open(BOOT_SEQUENCE_PATH).read())
   except (IOError, ValueError):
@@ -341,11 +342,11 @@ def IncrementBootSequence():
   '''
   boot_sequence = GetBootSequence() + 1
 
-  logging.info('Boot sequence: %d', boot_sequence)
+  logging.info("Boot sequence: %d", boot_sequence)
 
   utils.TryMakeDirs(os.path.dirname(BOOT_SEQUENCE_PATH))
   with open(BOOT_SEQUENCE_PATH, "w") as f:
-    f.write('%d' % boot_sequence)
+    f.write("%d" % boot_sequence)
     f.flush()
     os.fdatasync(f.fileno())
 
@@ -360,6 +361,7 @@ class GlobalSeq(object):
     _after_read: A function to call immediately after reading the
       sequence number (for testing).
   '''
+
   def __init__(self, path=None, _after_read=lambda: True):
     path = path or os.path.join(SEQUENCE_PATH)
 
@@ -369,12 +371,12 @@ class GlobalSeq(object):
     self._Create()
 
   def _Create(self):
-    '''Creates the file if it does not yet exist or is invalid.'''
+    """Creates the file if it does not yet exist or is invalid."""
     # Need to use os.open, because Python's open does not support
     # O_RDWR | O_CREAT.
     utils.TryMakeDirs(os.path.dirname(self.path))
     fd = os.open(self.path, os.O_RDWR | os.O_CREAT)
-    with os.fdopen(fd, 'r+') as f:
+    with os.fdopen(fd, "r+") as f:
       fcntl.flock(fd, fcntl.LOCK_EX)
       contents = f.read()
       if contents:
@@ -383,7 +385,7 @@ class GlobalSeq(object):
           return  # It's all good
         except ValueError:
           logging.exception(
-              'Sequence number file %s contains non-integer %r',
+              "Sequence number file %s contains non-integer %r",
               self.path, dummy_value)
 
       value = self._FindNextSequenceNumber()
@@ -391,12 +393,12 @@ class GlobalSeq(object):
       f.flush()
       os.fdatasync(fd)
 
-    logging.info('Created global sequence file %s with sequence number %d',
+    logging.info("Created global sequence file %s with sequence number %d",
                  self.path, value)
 
   def _NextOrRaise(self):
-    '''Returns the next sequence number, raising an exception on failure.'''
-    with open(self.path, 'r+') as f:
+    """Returns the next sequence number, raising an exception on failure."""
+    with open(self.path, "r+") as f:
       # The file will be closed, and the lock freed, as soon as this
       # block goes out of scope.
       fcntl.flock(f.fileno(), fcntl.LOCK_EX)
@@ -409,12 +411,12 @@ class GlobalSeq(object):
       return value
 
   def Next(self):
-    '''Returns the next sequence number.'''
+    """Returns the next sequence number."""
     try:
       return self._NextOrRaise()
     except (IOError, OSError, ValueError):
-      logging.exception('Unable to read global sequence number from %s; '
-                        'trying to re-create', self.path)
+      logging.exception("Unable to read global sequence number from %s; "
+                        "trying to re-create", self.path)
 
     # This should really never happen (unless, say, some process
     # corrupts or deletes the file).  Try our best to re-create it;
@@ -447,7 +449,7 @@ class GlobalSeq(object):
 
       for l in open(EVENTS_PATH).readlines():
         # Optimization to avoid needing to evaluate the regexp for each line
-        if not l.startswith('SEQ'):
+        if not l.startswith("SEQ"):
           continue
         match = SEQ_RE.match(l)
         if match:
@@ -457,9 +459,10 @@ class GlobalSeq(object):
     except:  # pylint: disable=W0702
       # This should really never happen; maybe the events file is
       # so corrupted that a read operation is failing.
-      logging.exception('Unable to find next sequence number from '
-                        'events file; using system time in ms')
+      logging.exception("Unable to find next sequence number from "
+                        "events file; using system time in ms")
       return int(time.time() * 1000)
+
 
 class EventLog(object):
   """Event logger.
@@ -478,8 +481,8 @@ class EventLog(object):
 
     Creates an EventLog object for the running autotest."""
 
-    path = os.environ.get('CROS_FACTORY_TEST_PATH', 'autotest')
-    uuid = os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid()
+    path = os.environ.get("CROS_FACTORY_TEST_PATH", "autotest")
+    uuid = os.environ.get("CROS_FACTORY_TEST_INVOCATION") or TimedUuid()
     return EventLog(path, uuid)
 
   def __init__(self, prefix, log_id=None, defer=True, seq=None, suppress=False):
@@ -513,7 +516,7 @@ class EventLog(object):
     self.suppress = suppress
     if not PREFIX_RE.match(prefix):
       raise ValueError("prefix %r must match re %s" % (
-        prefix, PREFIX_RE.pattern))
+          prefix, PREFIX_RE.pattern))
     self.prefix = prefix
     self.lock = threading.Lock()
     self.seq = seq or GlobalSeq()
@@ -577,7 +580,7 @@ class EventLog(object):
       return
     self.opened = True
 
-    logging.info('Logging events for %s into %s', self.prefix, EVENTS_PATH)
+    logging.info("Logging events for %s into %s", self.prefix, EVENTS_PATH)
 
     self.file = open(EVENTS_PATH, "a")
     self._LogUnlocked("preamble",
@@ -596,21 +599,21 @@ class EventLog(object):
 
     if self.file is None:
       raise IOError, "cannot append to closed file for prefix %r" % (
-        self.prefix)
+          self.prefix)
     if not EVENT_NAME_RE.match(event_name):
       raise ValueError("event_name %r must match %s" % (
-        event_name, EVENT_NAME_RE.pattern))
+          event_name, EVENT_NAME_RE.pattern))
     for k in kwargs:
       if not EVENT_KEY_RE.match(k):
         raise ValueError("key %r must match re %s" % (
-          k, EVENT_KEY_RE.pattern))
+            k, EVENT_KEY_RE.pattern))
     data = {
         "EVENT": event_name,
         "SEQ": self.seq.Next(),
         "TIME": utils.TimeString(),
         "LOG_ID": self.log_id,
         "PREFIX": self.prefix,
-        }
+    }
     data.update(kwargs)
     yaml_data = YamlDump(data) + SYNC_MARKER + "---\n"
     fcntl.flock(self.file.fileno(), fcntl.LOCK_EX)

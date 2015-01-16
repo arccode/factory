@@ -26,25 +26,26 @@ from cros.factory.utils.sync_utils import PollForCondition
 
 _TEST_TITLE = test_ui.MakeLabel('Battery Current Test', u'充電放電电流測試')
 
+
 def _PROMPT_TEXT(charge, current, target):
   return test_ui.MakeLabel(
       'Waiting for %s current to meet %d mA. (Currently %s at %d mA)' %
-          ('charging' if charge else 'discharging',
-           target,
-           'charging' if current >= 0 else 'discharging',
-           abs(current)),
+      ('charging' if charge else 'discharging',
+       target,
+       'charging' if current >= 0 else 'discharging',
+       abs(current)),
       u'等待%s电流大于 %d mA. (目前%s中:%d mA)' %
-          (u'充电' if charge else u'放电',
-           target,
-           u'充电' if current >= 0 else u'放电',
-           abs(current)))
+      (u'充电' if charge else u'放电',
+       target,
+       u'充电' if current >= 0 else u'放电',
+       abs(current)))
 
 _CHARGE_TEXT = lambda c, t: _PROMPT_TEXT(True, c, t)
 _DISCHARGE_TEXT = lambda c, t: _PROMPT_TEXT(False, c, t)
 
+
 class BatteryCurrentTest(unittest.TestCase):
-  """
-  A factory test to test battery charging/discharging current.
+  """A factory test to test battery charging/discharging current.
   """
   ARGS = [
       Arg('min_charging_current', int,
@@ -55,7 +56,7 @@ class BatteryCurrentTest(unittest.TestCase):
           'Test timeout value', default=10, optional=True),
       Arg('max_battery_level', int,
           'maximum allowed starting battery level', optional=True),
-      ]
+  ]
 
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes

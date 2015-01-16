@@ -16,6 +16,7 @@ MOCK_EVENT = lambda x: 'EVENT: start_test\nSEQ: %d\n---\n' % x
 
 
 class EventLoadingWorkerTest(unittest.TestCase):
+
   def testGetLastPreambleFromFile(self):
     log_file = tempfile.NamedTemporaryFile()
     log_file.write(''.join([MOCK_PREAMBLE(1), MOCK_EVENT(2),
@@ -23,8 +24,8 @@ class EventLoadingWorkerTest(unittest.TestCase):
     log_file.flush()
     preamble = EventLoadingWorker.GetLastPreambleFromFile(log_file.name)
     self.assertDictEqual({
-      'EVENT': 'preamble',
-      'SEQ': 3,
+        'EVENT': 'preamble',
+        'SEQ': 3,
     }, preamble)
 
   def testGetYesterdayLogDir(self):
@@ -36,6 +37,6 @@ class EventLoadingWorkerTest(unittest.TestCase):
     self.assertIs(None, yesterday('invalid'))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   logging.disable(logging.WARN)
   unittest.main()

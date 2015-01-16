@@ -20,7 +20,8 @@ from cros.factory.utils.sys_utils import MountPartition
 
 
 FIRMWARE_LABELS = ('BIOS', 'EC', 'PD')
-EMPTY_FIRMWARE_TUPLE = tuple([None] *  len(FIRMWARE_LABELS))
+EMPTY_FIRMWARE_TUPLE = tuple([None] * len(FIRMWARE_LABELS))
+
 
 def GetReleaseVersion(mount_point):
   """Gets CHROMEOS_RELEASE_VERSION of the rootfs partition.

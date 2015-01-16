@@ -31,6 +31,7 @@ class RegExpMatcher(object):
   Args:
     regexp: The regular expression to search in a given string.
   """
+
   def __init__(self, regexp):
     self.regexp = re.compile(regexp)
 

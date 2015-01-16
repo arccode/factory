@@ -20,6 +20,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 
+
 def DumpStackTracebacks():
   """Prints all threads' stack traces.
 
@@ -58,8 +59,10 @@ def DumpStackTracebacks():
 
 class DebugRequestHandler(SocketServer.StreamRequestHandler):
   """Prints all threads' stack traces."""
+
   def handle(self):
     self.wfile.write(DumpStackTracebacks())
+
 
 def StartDebugServer(address=net_utils.LOCALHOST, port=5339):
   """Opens a TCP server to print debug information.
@@ -118,9 +121,9 @@ def CatchException(name, enable=True):
         method(*args, **kwargs)
       except:  # pylint: disable=W0702
         logging.warning(
-          '%s Exception: %s.', name,
-          '\n'.join(traceback.format_exception_only(
-              *sys.exc_info()[:2])).strip())
+            '%s Exception: %s.', name,
+            '\n'.join(traceback.format_exception_only(
+                *sys.exc_info()[:2])).strip())
     return Wrap if enable else method
   return _CatchExceptionDecorator
 

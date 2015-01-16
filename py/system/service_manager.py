@@ -15,7 +15,7 @@ Status = utils.Enum(['START', 'STOP', 'UNKNOWN'])
 
 
 def ParseServiceStatus(status_output):
-  '''Parses service status output and returns service status.'''
+  """Parses service status output and returns service status."""
   if START_TEXT in status_output:
     return Status.START
   elif STOP_TEXT in status_output:
@@ -25,7 +25,7 @@ def ParseServiceStatus(status_output):
 
 
 def SetServiceStatus(service, status=None):
-  '''Sets service to the given status and returns the status'''
+  """Sets service to the given status and returns the status"""
   upstart_command = {
       None: 'status',
       Status.START: 'start',

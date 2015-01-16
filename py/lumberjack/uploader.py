@@ -63,7 +63,7 @@ def _CheckTreadsHealthy(current_threads, thread_infos):
     True if status is healthy (able to restore to all alive state). False
     otherwise.
   """
-  if not hasattr(_CheckTreadsHealthy, "thread_restart_retries"):
+  if not hasattr(_CheckTreadsHealthy, 'thread_restart_retries'):
     _CheckTreadsHealthy.thread_restart_retries = 0
   # Avoid name that is too long.
   thread_restart_retries = _CheckTreadsHealthy.thread_restart_retries
@@ -223,12 +223,11 @@ def _DetermineMetadataStatus(file_pool, path_from_pool, enable_logging=False):
       logging.debug(msg)
 
   def _GenerateDebugTuple():
-    return (local_full_path, '\n'.join(msgs), raw_metadata, )
+    return (local_full_path, '\n'.join(msgs), raw_metadata)
 
   def _ReturnStatus(status):
     """Wrapper to return both status and debug tuple."""
     return (status, _GenerateDebugTuple())
-
 
   local_full_path = os.path.join(file_pool, path_from_pool)
   metadata_path = GetMetadataPath(local_full_path, UPLOADER_METADATA_DIRECTORY)
@@ -276,7 +275,7 @@ def _DetermineMetadataStatus(file_pool, path_from_pool, enable_logging=False):
         else:
           _Log(('File %r is abnormal. Uploaded %d bytes.'
                 'More than expected %d bytes.' % (
-                local_full_path, uploaded_bytes, expected_file_size)),
+                    local_full_path, uploaded_bytes, expected_file_size)),
                enable_logging, msgs)
           return _ReturnStatus(_Status.UPLOADED_GREATER_THAN_EXPECTED)
 
@@ -284,8 +283,8 @@ def _DetermineMetadataStatus(file_pool, path_from_pool, enable_logging=False):
         # is downloaded or uploading solely on the metadata.
       else:
         _Log(('File %r is abnormal. Downloaded %d bytes.'
-               'More than expected %d bytes.',
-               local_full_path, downloaded_bytes, expected_file_size),
+              'More than expected %d bytes.',
+              local_full_path, downloaded_bytes, expected_file_size),
              enable_logging, msgs)
         return _ReturnStatus(_Status.DOWNLOADED_GREATER_THAN_EXPECTED)
 
@@ -391,7 +390,7 @@ def _UploadTargetThread(target, file_pool):
       if os.path.basename(current_dir) == UPLOADER_METADATA_DIRECTORY:
         # TODO(itspeter): turn the debug message on if we found it useful.
         # Temporary turn this off and might turn on once we found we need it.
-        #logging.debug(
+        # logging.debug(
         #    'Metadata directory %r found, skipped for uploading.', current_dir)
         continue
       for filename in filenames:
@@ -441,6 +440,7 @@ def _UploadTargetThread(target, file_pool):
     LogListDifference(files_status, new_files_status,
                       help_text='File status in pool (UploadTarget)')
     files_status = new_files_status
+
 
 def main(argv):
   top_parser = argparse.ArgumentParser(description='Uploader')

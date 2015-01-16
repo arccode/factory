@@ -96,7 +96,7 @@ class RunAutomatedTests(FactoryFlowCommand):
   def Init(self):
     if not self.options.log_dir:
       self.options.log_dir = os.path.join(self.options.bundle, os.path.pardir,
-                             'logs', 'factory_logs')
+                                          'logs', 'factory_logs')
     file_utils.TryMakeDirs(self.options.log_dir)
 
   def Run(self):

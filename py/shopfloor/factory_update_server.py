@@ -27,7 +27,6 @@ from cros.factory.utils.server_utils import (RsyncModule, StartRsyncServer,
                                              StopRsyncServer)
 
 
-
 FACTORY_DIR = 'factory'
 AUTOTEST_DIR = 'autotest'
 TARBALL_NAME = 'factory.tar.bz2'
@@ -38,6 +37,8 @@ DEFAULT_UPDATE_DIR = '/var/db/factory/updates/'
 MD5SUM = 'MD5SUM'
 DEFAULT_RSYNCD_ADDR = '0.0.0.0'
 DEFAULT_RSYNCD_PORT = 8083
+
+
 def CalculateMd5sum(filename):
   p = subprocess.Popen(('md5sum', filename), stdout=subprocess.PIPE)
   output, _ = p.communicate()
@@ -50,6 +51,7 @@ class ChangeDetector(object):
   Properties:
     path: The last path detected to the file.
   """
+
   def __init__(self, pattern):
     """Constructor:
 
@@ -185,9 +187,7 @@ class FactoryUpdateServer():
       return f.readline().strip()
 
   def NeedsUpdate(self, device_md5sum):
-    """
-    Checks if the device with device_md5sum needs to get the update
-    of current_md5sum subjected to blacklist.
+    """Checks if the device with device_md5sum needs to get the update of current_md5sum subjected to blacklist.
 
     Args:
       device_md5sum: The md5sum of factory environment on device.
@@ -255,8 +255,8 @@ class FactoryUpdateServer():
           return
 
         missing_dirs = [
-          d for d in (FACTORY_DIR, AUTOTEST_DIR)
-          if not os.path.exists(os.path.join(new_subfolder, d))]
+            d for d in (FACTORY_DIR, AUTOTEST_DIR)
+            if not os.path.exists(os.path.join(new_subfolder, d))]
         if missing_dirs:
           logging.error('Tarball is missing directories: %r', missing_dirs)
           return
@@ -386,6 +386,7 @@ def main():
   update_server = FactoryUpdateServer(
       options.state_dir, rsyncd_port=options.port)
   # Hook SIGTERM,SIGINT and enter the polling loop.
+
   def SignalHandler(unused_signum, unused_frame):
     update_server.Stop()
     raise SystemExit

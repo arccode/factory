@@ -124,12 +124,12 @@ class GoofyTest(unittest.TestCase):
     self.state = state.get_instance()
     self.connection_manager = self.mocker.CreateMock(ConnectionManager)
     self.env.create_connection_manager(
-      *self.expected_create_connection_manager_args).AndReturn(
-      self.connection_manager)
+        *self.expected_create_connection_manager_args).AndReturn(
+            self.connection_manager)
     self.before_init_goofy()
     self.mocker.ReplayAll()
     self.goofy = init_goofy(self.env, self.test_list, self.options,
-                ui=self.ui)
+                            ui=self.ui)
     self.mocker.VerifyAll()
     self.mocker.ResetAll()
 
@@ -140,7 +140,7 @@ class GoofyTest(unittest.TestCase):
     # after a second.
     for _ in range(10):
       extra_threads = [t for t in threading.enumerate()
-               if t != threading.current_thread()]
+                       if t != threading.current_thread()]
       if not extra_threads:
         break
       logging.info('Waiting for %d threads to die', len(extra_threads))
@@ -194,7 +194,7 @@ class GoofyTest(unittest.TestCase):
     self._wait()
     test_state = self.state.get_test_state(test_id)
     self.assertEqual(TestState.PASSED if passed else TestState.FAILED,
-             test_state.status)
+                     test_state.status)
     self.assertEqual(0 if does_not_start else expected_count, test_state.count)
     self.assertEqual(error_msg, test_state.error_msg)
 
@@ -232,8 +232,8 @@ class GoofyUITest(GoofyTest):
                                  uuid=event.uuid).to_json())
 
     ws = MyClient('ws://%s:%d/event' %
-        (net_utils.LOCALHOST, state.DEFAULT_FACTORY_STATE_PORT),
-        protocols=None, extensions=None)
+                  (net_utils.LOCALHOST, state.DEFAULT_FACTORY_STATE_PORT),
+                  protocols=None, extensions=None)
 
     def open_web_socket():
       ws.connect()
@@ -245,8 +245,8 @@ class GoofyUITest(GoofyTest):
       self.ws_done.set()
     # pylint: disable=W0108
     self.env.controller_ready_for_ui().WithSideEffects(
-      lambda: threading.Thread(target=open_web_socket).start()
-      ).AndReturn(None)
+        lambda: threading.Thread(target=open_web_socket).start()
+    ).AndReturn(None)
 
 
 # A simple test list with three tests.
@@ -260,6 +260,7 @@ ABC_TEST_LIST = """
 class BasicTest(GoofyTest):
   """A simple test case that checks that tests are run in the correct order."""
   test_list = ABC_TEST_LIST
+
   def runTest(self):
     self.check_one_test('a', 'a_A', True, '')
     self.check_one_test('b', 'b_B', False, 'Uh-oh')
@@ -302,12 +303,12 @@ class WebSocketTest(GoofyUITest):
                                ('b', TestState.FAILED),
                                ('c', TestState.FAILED)):
       statuses = [
-        event.state['status']
-        for event in events_by_type[Event.Type.STATE_CHANGE]
-        if event.path == path]
+          event.state['status']
+          for event in events_by_type[Event.Type.STATE_CHANGE]
+          if event.path == path]
       self.assertEqual(
-        ['ACTIVE', 'ACTIVE', final_status],
-        statuses)
+          ['ACTIVE', 'ACTIVE', final_status],
+          statuses)
 
 
 class ShutdownTest(GoofyTest):
@@ -316,6 +317,7 @@ class ShutdownTest(GoofyTest):
     RebootStep(id='shutdown', iterations=3),
     OperatorTest(id='a', autotest_name='a_A')
   """
+
   def runTest(self):
     # Stub out PytestPrespawner.spawn to mock pytest invocation.
     PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
@@ -378,6 +380,7 @@ class RebootFailureTest(GoofyTest):
   test_list = """
     RebootStep(id='shutdown'),
   """
+
   def runTest(self):
     # Stub out PytestPrespawner.spawn to mock pytest invocation.
     PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
@@ -439,9 +442,9 @@ class NoAutoRunTest(GoofyTest):
 
     # Tell Goofy to run 'b'.
     self.check_one_test(
-      'b', 'b_B', True, '',
-      trigger=lambda: self.goofy.handle_switch_test(
-        Event(Event.Type.SWITCH_TEST, path='b')))
+        'b', 'b_B', True, '',
+        trigger=lambda: self.goofy.handle_switch_test(
+            Event(Event.Type.SWITCH_TEST, path='b')))
 
   def runTest(self):
     self._runTestB()
@@ -478,24 +481,25 @@ class PyTestTest(GoofyTest):
            dargs={'script': ("assert 'Pa-TAY-to' == 'Pa-TAH-to', "
                              "'Let\\\\\'s call the whole thing off'")})
   """
+
   def runTest(self):
     self.goofy.run_once()
     self.assertEquals(['a'],
-              [test.id for test in self.goofy.invocations])
+                      [test.id for test in self.goofy.invocations])
     self.goofy.wait()
     self.assertEquals(
-      TestState.PASSED,
-      factory.get_state_instance().get_test_state('a').status)
+        TestState.PASSED,
+        factory.get_state_instance().get_test_state('a').status)
 
     self.goofy.run_once()
     self.assertEquals(['b'],
-              [test.id for test in self.goofy.invocations])
+                      [test.id for test in self.goofy.invocations])
     self.goofy.wait()
     failed_state = factory.get_state_instance().get_test_state('b')
     self.assertEquals(TestState.FAILED, failed_state.status)
     self.assertTrue(
-      """Let's call the whole thing off""" in failed_state.error_msg,
-      failed_state.error_msg)
+        """Let's call the whole thing off""" in failed_state.error_msg,
+        failed_state.error_msg)
 
 
 class PyLambdaTest(GoofyTest):
@@ -504,14 +508,15 @@ class PyLambdaTest(GoofyTest):
     OperatorTest(id='a', pytest_name='execpython',
            dargs={'script': lambda env: 'raise ValueError("It"+"Failed")'})
   """
+
   def runTest(self):
     self.goofy.run_once()
     self.goofy.wait()
     failed_state = factory.get_state_instance().get_test_state('a')
     self.assertEquals(TestState.FAILED, failed_state.status)
     self.assertTrue(
-      """ItFailed""" in failed_state.error_msg,
-      failed_state.error_msg)
+        """ItFailed""" in failed_state.error_msg,
+        failed_state.error_msg)
 
 
 class MultipleIterationsTest(GoofyTest):
@@ -522,6 +527,7 @@ class MultipleIterationsTest(GoofyTest):
     OperatorTest(id='c', autotest_name='c_C', iterations=3),
     OperatorTest(id='d', autotest_name='d_D'),
   """
+
   def runTest(self):
     self.check_one_test('a', 'a_A', True, '')
 
@@ -554,11 +560,11 @@ class ConnectionManagerTest(GoofyTest):
     OperatorTest(id='c', autotest_name='c_C'),
   """
   expected_create_connection_manager_args = (mox.Func(
-    lambda arg: (len(arg) == 1 and
-           arg[0].__dict__ == dict(ssid='foo',
-                       security='psk',
-                       passphrase='bar'))),
-    factory.Options.scan_wifi_period_secs)
+      lambda arg: (len(arg) == 1 and
+                   arg[0].__dict__ == dict(ssid='foo',
+                                           security='psk',
+                                           passphrase='bar'))),
+                                             factory.Options.scan_wifi_period_secs)
 
   def runTest(self):
     self.check_one_test('a', 'a_A', True, '')
@@ -578,12 +584,13 @@ class RequireRunTest(GoofyTest):
     OperatorTest(id='a', autotest_name='a_A'),
     OperatorTest(id='b', autotest_name='b_B', require_run='a'),
   """
+
   def runTest(self):
     self.goofy.restart_tests(
-      root=self.goofy.test_list.lookup_path('b'))
+        root=self.goofy.test_list.lookup_path('b'))
     self.check_one_test('b', 'b_B', False,
-              'Required tests [a] have not been run yet',
-              does_not_start=True)
+                        'Required tests [a] have not been run yet',
+                        does_not_start=True)
 
     self.goofy.restart_tests()
     self.check_one_test('a', 'a_A', True, '')
@@ -599,11 +606,12 @@ class RequireRunPassedTest(GoofyTest):
     OperatorTest(id='a', autotest_name='a_A'),
     OperatorTest(id='b', autotest_name='b_B', require_run=Passed('a')),
   """
+
   def runTest(self):
     self.check_one_test('a', 'a_A', False, '')
     self.check_one_test('b', 'b_B', False,
-              'Required tests [a] have not been run yet',
-              does_not_start=True)
+                        'Required tests [a] have not been run yet',
+                        does_not_start=True)
 
     self.goofy.restart_tests()
     self.check_one_test('a', 'a_A', True, '', expected_count=2)
@@ -620,6 +628,7 @@ class RunIfTest(GoofyTest):
     OperatorTest(id='b', autotest_name='b_B', run_if='!foo.bar'),
     OperatorTest(id='c', autotest_name='c_C'),
   """
+
   def runTest(self):
     state_instance = factory.get_state_instance()
 
@@ -664,6 +673,7 @@ class GroupRunIfTest(GoofyTest):
       OperatorTest(id='T4', autotest_name='a_A'),
     ])
   """
+
   def runTest(self):
     state_instance = factory.get_state_instance()
 
@@ -678,58 +688,58 @@ class GroupRunIfTest(GoofyTest):
     # Keeps group G1 but skips G1.T1.
     # G1.T1 should be the only test to skip.
     shopfloor.save_aux_data('foo', 'MLB00001',
-        {'g1': True,
-         't1': False,
-         't2': True,
-         't3': True})
+                            {'g1': True,
+                             't1': False,
+                             't2': True,
+                             't3': True})
     self.goofy.update_skipped_tests()
     _check_state(
-      {'G1': (False, TestState.UNTESTED, None),
-       'G1.T1': (True, TestState.UNTESTED,None),
-       'G1.T2': (False, TestState.UNTESTED,None),
-       'G1.T3': (False, TestState.UNTESTED,None),
-       'G1.T4': (False, TestState.UNTESTED,None)})
+        {'G1': (False, TestState.UNTESTED, None),
+         'G1.T1': (True, TestState.UNTESTED, None),
+         'G1.T2': (False, TestState.UNTESTED, None),
+         'G1.T3': (False, TestState.UNTESTED, None),
+         'G1.T4': (False, TestState.UNTESTED, None)})
 
     # Disables group G1. All tests are skipped.
     shopfloor.save_aux_data('foo', 'MLB00001',
-        {'g1' : False,
-         't1' : False,
-         't2' : True,
-         't3' : True})
+                            {'g1': False,
+                             't1': False,
+                             't2': True,
+                             't3': True})
     self.goofy.update_skipped_tests()
     _check_state(
-      {'G1': (True, TestState.UNTESTED, None),
-       'G1.T1': (True, TestState.UNTESTED, None),
-       'G1.T2': (True, TestState.UNTESTED, None),
-       'G1.T3': (True, TestState.UNTESTED, None ),
-       'G1.T4': (True, TestState.UNTESTED, None)})
+        {'G1': (True, TestState.UNTESTED, None),
+         'G1.T1': (True, TestState.UNTESTED, None),
+         'G1.T2': (True, TestState.UNTESTED, None),
+         'G1.T3': (True, TestState.UNTESTED, None),
+         'G1.T4': (True, TestState.UNTESTED, None)})
 
     # Runs group G1. All tests are skipped and passed.
     for _ in range(4):
       self.assertTrue(self.goofy.run_once())
       self.goofy.wait()
     _check_state(
-      {'G1': (True, TestState.PASSED, None),
-       'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T4': (True, TestState.PASSED, TestState.SKIPPED_MSG)})
+        {'G1': (True, TestState.PASSED, None),
+         'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T4': (True, TestState.PASSED, TestState.SKIPPED_MSG)})
 
     # Re-enable group G1, but skips G1.T1.
     # G1, G1.T2, G1.T3, G1.T4 should not be skipped now. Also, they
     # should be untested.
     shopfloor.save_aux_data('foo', 'MLB00001',
-        {'g1' : True,
-         't1' : False,
-         't2' : True,
-         't3' : True})
+                            {'g1': True,
+                             't1': False,
+                             't2': True,
+                             't3': True})
     self.goofy.update_skipped_tests()
     _check_state(
-      {'G1': (False, TestState.UNTESTED, None),
-       'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T2': (False, TestState.UNTESTED, ''),
-       'G1.T3': (False, TestState.UNTESTED, ''),
-       'G1.T4': (False, TestState.UNTESTED, '')})
+        {'G1': (False, TestState.UNTESTED, None),
+         'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T2': (False, TestState.UNTESTED, ''),
+         'G1.T3': (False, TestState.UNTESTED, ''),
+         'G1.T4': (False, TestState.UNTESTED, '')})
 
 
 class GroupRunIfSkipTest(GoofyTest):
@@ -745,6 +755,7 @@ class GroupRunIfSkipTest(GoofyTest):
       OperatorTest(id='T4', autotest_name='a_A'),
     ])
   """
+
   def runTest(self):
     state_instance = factory.get_state_instance()
 
@@ -760,54 +771,54 @@ class GroupRunIfSkipTest(GoofyTest):
     # G1, G1.T2, G1.T3, G1.T4 should not be skipped. Also, they
     # should be untested.
     shopfloor.save_aux_data('foo', 'MLB00001',
-        {'g1' : True,
-         't1' : False,
-         't2' : True,
-         't3' : True})
+                            {'g1': True,
+                             't1': False,
+                             't2': True,
+                             't3': True})
     self.goofy.update_skipped_tests()
     _check_state(
-      {'G1': (False, TestState.UNTESTED, None),
-       'G1.T1': (True, TestState.UNTESTED, None),
-       'G1.T2': (False, TestState.UNTESTED, None),
-       'G1.T3': (False, TestState.UNTESTED, None),
-       'G1.T4': (False, TestState.UNTESTED, None)})
+        {'G1': (False, TestState.UNTESTED, None),
+         'G1.T1': (True, TestState.UNTESTED, None),
+         'G1.T2': (False, TestState.UNTESTED, None),
+         'G1.T3': (False, TestState.UNTESTED, None),
+         'G1.T4': (False, TestState.UNTESTED, None)})
 
     # Runs and Fails G1.T3 test.
     self.check_one_test('G1.T3', 'a_A', False, 'Uh-oh',
-        trigger=lambda: self.goofy.handle_switch_test(
-        Event(Event.Type.SWITCH_TEST, path='G1.T3')))
+                        trigger=lambda: self.goofy.handle_switch_test(
+                            Event(Event.Type.SWITCH_TEST, path='G1.T3')))
     # Runs and Passes G1.T4 test.
     self.check_one_test('G1.T4', 'a_A', True, '',
-        trigger=lambda: self.goofy.handle_switch_test(
-        Event(Event.Type.SWITCH_TEST, path='G1.T4')))
+                        trigger=lambda: self.goofy.handle_switch_test(
+                            Event(Event.Type.SWITCH_TEST, path='G1.T4')))
     # Now G1.T3 status is FAILED, and G1.T4 status is PASSED.
     # Now G1 status is FAILED because G1.T3 status is FAILED.
     _check_state(
-      {'G1': (False, TestState.FAILED, None),
-       'G1.T1': (True, TestState.UNTESTED, None),
-       'G1.T2': (False, TestState.UNTESTED, None),
-       'G1.T3': (False, TestState.FAILED, 'Uh-oh'),
-       'G1.T4': (False, TestState.PASSED, '')})
+        {'G1': (False, TestState.FAILED, None),
+         'G1.T1': (True, TestState.UNTESTED, None),
+         'G1.T2': (False, TestState.UNTESTED, None),
+         'G1.T3': (False, TestState.FAILED, 'Uh-oh'),
+         'G1.T4': (False, TestState.PASSED, '')})
 
     # Skips G1 on purpose. Then all tests should be skipped.
     # G1.T4 has already passed, so its error_msg should not be modified.
     self.goofy.test_list.lookup_path('G1').skip()
     _check_state(
-      {'G1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T4': (False, TestState.PASSED, '')})
+        {'G1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T4': (False, TestState.PASSED, '')})
 
     # update_skipped_tests should not re-enable G1 test group.
     # It only modifies the skip status of G1.T4 from False to True.
     self.goofy.update_skipped_tests()
     _check_state(
-      {'G1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-       'G1.T4': (True, TestState.PASSED, '')})
+        {'G1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+         'G1.T4': (True, TestState.PASSED, '')})
 
 
 class StopOnFailureTest(GoofyTest):
@@ -817,6 +828,7 @@ class StopOnFailureTest(GoofyTest):
     options.auto_run_on_start = True
     options.stop_on_failure = True
   """
+
   def runTest(self):
     mock_autotest(self.env, 'a_A', True, '')
     mock_autotest(self.env, 'b_B', False, 'Oops!')
@@ -862,6 +874,7 @@ class ForceBackgroundTest(GoofyTest):
     FactoryTest(id='fF', pytest_name='f_F', force_background=True),
     FactoryTest(id='gG', pytest_name='g_G', backgroundable=True),
   """
+
   def runTest(self):
     # Stub out PytestPrespawner.spawn to mock pytest invocation.
     PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
@@ -933,6 +946,7 @@ class WaivedTestTest(GoofyTest):
         [state_instance.get_test_state(x).status for x in ['waived', 'normal']])
     self._wait()
 
+
 class NoHostTest(GoofyUITest):
   """A test to verify that tests marked 'no_host' run without host UI."""
 
@@ -949,8 +963,8 @@ class NoHostTest(GoofyUITest):
     self.goofy.run_once()
     self._wait()
     self.assertEquals(
-      TestState.PASSED,
-      factory.get_state_instance().get_test_state('a').status)
+        TestState.PASSED,
+        factory.get_state_instance().get_test_state('a').status)
 
     # Start the UI for test 'b'
     self.setUpWebSocketMock()
@@ -958,11 +972,11 @@ class NoHostTest(GoofyUITest):
     self.goofy.run_once()
     self._wait()
     self.assertEquals(
-      TestState.PASSED,
-      factory.get_state_instance().get_test_state('b').status)
+        TestState.PASSED,
+        factory.get_state_instance().get_test_state('b').status)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   factory.init_logging('goofy_unittest')
   goofy._inited_logging = True
   goofy.suppress_chroot_warning = True

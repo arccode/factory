@@ -17,7 +17,7 @@ import time
 
 # Ref: https://www.kernel.org/doc/Documentation/gpio/sysfs.txt
 _GPIO_ROOT = '/sys/class/gpio'
-_EXPORT_FILE =  os.path.join(_GPIO_ROOT, 'export')
+_EXPORT_FILE = os.path.join(_GPIO_ROOT, 'export')
 _UNEXPORT_FILE = os.path.join(_GPIO_ROOT, 'unexport')
 _GPIO_PIN_PATTERN = os.path.join(_GPIO_ROOT, 'gpio%d')
 
@@ -42,7 +42,7 @@ class PollGpio(object):
       'gpio_rising': 'rising',
       'gpio_falling': 'falling',
       'gpio_both': 'both'
-      }
+  }
 
   @classmethod
   def GetInstance(cls, port, edge):

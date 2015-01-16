@@ -131,9 +131,11 @@ _JS_SHOP_FLOOR = """
     element.focus();""" % _EVENT_SUBTYPE_SHOP_FLOOR
 _LSB_FACTORY_PATH = '/usr/local/etc/lsb-factory'
 
+
 class PressSpaceTask(FactoryTask):
   """A factory task to wait for space press event."""
-  def __init__(self, test): # pylint: disable=W0231
+
+  def __init__(self, test):  # pylint: disable=W0231
     self._test = test
 
   def Run(self):
@@ -148,7 +150,7 @@ class ExternalPowerTask(FactoryTask):
   AC_DISCONNECTED = 2
   AC_CHECK_PERIOD = 0.5
 
-  def __init__(self, test): # pylint: disable=W0231
+  def __init__(self, test):  # pylint: disable=W0231
     self._test = test
 
   def Run(self):
@@ -171,9 +173,11 @@ class ExternalPowerTask(FactoryTask):
     else:
       return self.AC_DISCONNECTED
 
+
 class FactoryInstallCompleteTask(FactoryTask):
   """A factory task to check if factory install is complete."""
-  def __init__(self, test): # pylint: disable=W0231
+
+  def __init__(self, test):  # pylint: disable=W0231
     self._test = test
 
   def Run(self):
@@ -203,7 +207,8 @@ class FactoryInstallCompleteTask(FactoryTask):
 
 class ShopFloorTask(FactoryTask):
   """A factory task to connect to shopfloor server."""
-  def __init__(self, test): # pylint: disable=W0231
+
+  def __init__(self, test):  # pylint: disable=W0231
     self._test = test
 
   def Run(self):
@@ -261,7 +266,8 @@ class ShopFloorTask(FactoryTask):
 
 class ReadVPDSerialTask(FactoryTask):
   """If the serial number is already stored in VPD, we can just read it."""
-  def __init__(self, test): # pylint: disable=W0231
+
+  def __init__(self, test):  # pylint: disable=W0231
     self._test = test
 
   def Run(self):
@@ -281,7 +287,7 @@ class ReadVPDSerialTask(FactoryTask):
           return
         else:
           serial_number = vpd_value
-      else: # If we need multiple VPD entries as the serial number...
+      else:  # If we need multiple VPD entries as the serial number...
         serial_number = dict()
         for v in serial_number_vpd_keys:
           vpd_value = _ReadVPD(v)
@@ -300,30 +306,30 @@ class ReadVPDSerialTask(FactoryTask):
 class StartTest(unittest.TestCase):
   """The factory test to start the whole factory test process."""
   ARGS = [
-    Arg('press_to_continue', bool, 'Need to press space to continue',
-        default=True, optional=True),
-    Arg('require_external_power', bool,
-        'Prompts and waits for external power to be applied.',
-        default=False, optional=True),
-    Arg('require_shop_floor', Enum([True, False, 'defer']),
-        'Prompts and waits for serial number as input if no VPD keys are '
-        'provided as serial numbers, or reads serial numbers from VPD. '
-        'This may be set to True, or "defer" to enable shopfloor but skip '
-        'reading the serial number.',
-        default=None, optional=True),
-    Arg('check_factory_install_complete', bool,
-        'Check factory install process was complete.',
-        default=None, optional=True),
-    Arg('serial_number_vpd_keys', (str, unicode, list),
-        'A string or list of strings indicating a set of VPDs that are used '
-        'as the key to fetch data from shop floor proxy.',
-        default=None, optional=True),
-    Arg('prompt', tuple,
-        'Message to show to the operator when prompting for input.',
-        default=('Enter valid serial number:<br/>',
-                 u'请输入有效的序号:<br/>'), optional=True),
-    Arg('has_ectool', bool, 'Has ectool utility or not.',
-        default=True, optional=True)]
+      Arg('press_to_continue', bool, 'Need to press space to continue',
+          default=True, optional=True),
+      Arg('require_external_power', bool,
+          'Prompts and waits for external power to be applied.',
+          default=False, optional=True),
+      Arg('require_shop_floor', Enum([True, False, 'defer']),
+          'Prompts and waits for serial number as input if no VPD keys are '
+          'provided as serial numbers, or reads serial numbers from VPD. '
+          'This may be set to True, or "defer" to enable shopfloor but skip '
+          'reading the serial number.',
+          default=None, optional=True),
+      Arg('check_factory_install_complete', bool,
+          'Check factory install process was complete.',
+          default=None, optional=True),
+      Arg('serial_number_vpd_keys', (str, unicode, list),
+          'A string or list of strings indicating a set of VPDs that are used '
+          'as the key to fetch data from shop floor proxy.',
+          default=None, optional=True),
+      Arg('prompt', tuple,
+          'Message to show to the operator when prompting for input.',
+          default=('Enter valid serial number:<br/>',
+                   u'请输入有效的序号:<br/>'), optional=True),
+      Arg('has_ectool', bool, 'Has ectool utility or not.',
+          default=True, optional=True)]
 
   def setUp(self):
     self._task_list = []

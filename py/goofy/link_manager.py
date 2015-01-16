@@ -39,20 +39,25 @@ def MakeTimeoutServerProxy(ip, port, timeout):
                            (ip, port),
                            transport=TimeoutJSONRPCTransport(timeout))
 
+
 class PingServer(object):
   """Runs a ping server in a separate process."""
+
   def __init__(self, port):
     self._process = Spawn(['python', __file__, '--port', str(port)])
 
   def Stop(self):
     self._process.terminate()
 
+
 class LinkDownError(Exception):
   """The exception raised on RPC calls when the link is down."""
   pass
 
+
 class PresenterLinkManager(object):
   """The manager that runs on the DUT to maintain a link to the presenter."""
+
   def __init__(self,
                check_interval=5,
                methods=None,
@@ -100,7 +105,7 @@ class PresenterLinkManager(object):
     """Stops and destroys the link manager."""
     self._server.Destroy()
     self._abort_event.set()
-    self._kick_event.set() # Kick the thread
+    self._kick_event.set()  # Kick the thread
     self._thread.join()
     self._ping_server.Stop()
 
@@ -144,7 +149,8 @@ class PresenterLinkManager(object):
     """Attempts to connect the the presenter.
 
     Args:
-      my_ip: The IP address of this DUT received from the presenter; None to guess.
+      my_ip: The IP address of this DUT received from the presenter; None to
+        guess.
       presenter_ip: The IP address of the presenter.
     """
     if self._presenter_connected and self._presenter_ip == presenter_ip:
@@ -159,9 +165,9 @@ class PresenterLinkManager(object):
                                                      PRESENTER_LINK_RPC_PORT,
                                                      self._handshake_timeout)
       self._presenter_ping_proxy = MakeTimeoutServerProxy(
-                                        presenter_ip,
-                                        PRESENTER_PING_PORT,
-                                        self._handshake_timeout)
+          presenter_ip,
+          PRESENTER_PING_PORT,
+          self._handshake_timeout)
       self._presenter_ip = presenter_ip
       self._presenter_proxy.IsAlive()
       self._presenter_ping_proxy.IsAlive()
@@ -201,7 +207,7 @@ class PresenterLinkManager(object):
             self._connect_hook(presenter_ip)
           return
         except:  # pylint: disable=W0702
-          logging.exception("Failed to register DUT as %s", ip)
+          logging.exception('Failed to register DUT as %s', ip)
 
     except (socket.error, socket.timeout):
       pass
@@ -221,7 +227,7 @@ class PresenterLinkManager(object):
     """
     if self._presenter_connected:
       if self.PresenterIsAlive():
-        return # everything's fine
+        return  # everything's fine
       else:
         logging.info('Lost connection to presenter %s', self._presenter_ip)
         self._presenter_connected = False
@@ -258,6 +264,7 @@ class PresenterLinkManager(object):
 
 class DUTLinkManager(object):
   """The manager that runs on the presenter to maintain the link to the DUT."""
+
   def __init__(self,
                check_interval=5,
                methods=None,
@@ -364,7 +371,7 @@ class DUTLinkManager(object):
       try:
         if self._dut_connected:
           if self.DUTIsAlive():
-            return # All good!
+            return  # All good!
           else:
             logging.info('Disconnected from DUT %s', self._dut_ip)
             self._dut_connected = False
@@ -435,6 +442,6 @@ if __name__ == '__main__':
     while True:
       time.sleep(1000)
   except KeyboardInterrupt:
-    pass # Server is destroyed in finally clause
+    pass  # Server is destroyed in finally clause
   finally:
     server.Destroy()

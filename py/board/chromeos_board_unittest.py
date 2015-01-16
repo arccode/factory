@@ -400,7 +400,7 @@ batt_state_of_charge = 52%
     self.assertRaisesRegexp(
         BoardException,
         (r"Unable to get board version: Command 'mosys platform version' "
-         r"returned non-zero exit status 38"),
+         r'returned non-zero exit status 38'),
         self.board.GetBoardVersion)
     self.mox.VerifyAll()
 

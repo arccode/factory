@@ -20,7 +20,7 @@ from cros.factory.test.args import Arg
 
 class CellularFirmwareSwitching(unittest.TestCase):
   ARGS = [
-    Arg('target', str, 'The firmware name to switch.', optional=False)]
+      Arg('target', str, 'The firmware name to switch.', optional=False)]
 
   def runTest(self):
     ui = test_ui.UI()

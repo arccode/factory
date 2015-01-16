@@ -103,6 +103,7 @@ def GetHashes(path):
 
 def FindMismatches(golden_hashes, sample_hashes, sample, out):
   error_count = [0]
+
   def ReportLine(path, msg):
     if error_count[0] == 0:
       out.write('In sample %s:\n' % sample)
@@ -160,10 +161,10 @@ def AuditHashes(golden, samples, out):
     out.write('\n'
               'Found %d mismatched hashes and %d exceptions.\n'
               'FAILED (%d/%d samples passed).\n' % (
-        total_mismatched_hashes,
-        total_exceptions,
-        len(samples) - total_bad_samples,
-        len(samples)))
+                  total_mismatched_hashes,
+                  total_exceptions,
+                  len(samples) - total_bad_samples,
+                  len(samples)))
     return False
   else:
     out.write('PASSED (%d/%d samples passed).\n' % (
@@ -192,4 +193,3 @@ def main(argv=None, out=sys.stderr):
 
 if __name__ == '__main__':
   main()
-

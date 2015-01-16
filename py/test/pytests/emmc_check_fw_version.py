@@ -36,20 +36,21 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 
+
 class eMMCCheckFWVersionTest(unittest.TestCase):
   ARGS = [
-    Arg('valid_versions', list, 'A list of tuples, specifying the MID, PNM '
-        'and a regex for the versions supported for that MID/PNM.'),
-    Arg('cid_path', str, 'Path to CID value',
-        default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/cid'),
-    Arg('mid_path', str, 'Path to MID value',
-        default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/manfid'),
-    Arg('pnm_path', str, 'Path to PNM value',
-        default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/name'),
-    Arg('prv_path', str, 'Path to PRV value',
-        default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/prv'),
-    Arg('emmc_updater_available', bool, 'Boolean for if an eMMC FW update '
-        'utility is available.', default=False)
+      Arg('valid_versions', list, 'A list of tuples, specifying the MID, PNM '
+          'and a regex for the versions supported for that MID/PNM.'),
+      Arg('cid_path', str, 'Path to CID value',
+          default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/cid'),
+      Arg('mid_path', str, 'Path to MID value',
+          default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/manfid'),
+      Arg('pnm_path', str, 'Path to PNM value',
+          default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/name'),
+      Arg('prv_path', str, 'Path to PRV value',
+          default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/prv'),
+      Arg('emmc_updater_available', bool, 'Boolean for if an eMMC FW update '
+          'utility is available.', default=False)
   ]
 
   def _ValidatePRVField(self, mid, pnm, prv, valid_versions):
@@ -118,7 +119,7 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
     logging.info('MID: %s, PNM: %s, PRV: %s', mid, pnm, prv)
     Log('emmc_obtained', cid=cid, mid=mid, pnm=pnm, prv=prv)
     if self._ValidatePRVField(mid, pnm, prv, self.args.valid_versions):
-      return # Pass the test
+      return  # Pass the test
 
     if self.args.emmc_updater_available:
       ui = test_ui.UI()

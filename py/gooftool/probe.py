@@ -52,7 +52,7 @@ from cros.factory.utils.type_utils import Error
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
   import flimflam  # pylint: disable=F0401
-except: # pylint: disable=W0702
+except:  # pylint: disable=W0702
   pass
 
 # TODO(tammo): Some tests look for multiple components, some tests
@@ -107,7 +107,7 @@ def _ReadSysfsFields(base_path, field_list, optional_field_list=None):
     Dict of field names and values, or None if required fields are not
     all present.
   """
-  all_fields_list  = field_list + (optional_field_list or [])
+  all_fields_list = field_list + (optional_field_list or [])
   path_list = [os.path.join(base_path, field) for field in all_fields_list]
   data = dict((field, open(path).read().strip())
               for field, path in zip(all_fields_list, path_list)
@@ -250,6 +250,7 @@ def _RecursiveProbe(path, read_method):
   _InternalRecursiveProbe(path, visited_path, data_list, read_method)
   return data_list
 
+
 class _FlimflamDevices(object):
   """Wrapper around flimflam (connection manager) information.
 
@@ -273,14 +274,14 @@ class _FlimflamDevices(object):
       properties = device.GetProperties()
       get_prop = lambda p: flimflam.convert_dbus_value(properties[p])
       result = Obj(
-        devtype=get_prop('Type'),
-        path='/sys/class/net/%s/device' % get_prop('Interface'))
+          devtype=get_prop('Type'),
+          path='/sys/class/net/%s/device' % get_prop('Interface'))
       if result.devtype == 'cellular':
         result.attributes = dict(
-          (key, get_prop('Cellular.%s' % key))
-          for key in ['Carrier', 'FirmwareRevision', 'HardwareRevision',
-                      'ModelID', 'Manufacturer']
-          if ('Cellular.%s' % key) in properties)
+            (key, get_prop('Cellular.%s' % key))
+            for key in ['Carrier', 'FirmwareRevision', 'HardwareRevision',
+                        'ModelID', 'Manufacturer']
+            if ('Cellular.%s' % key) in properties)
       return result
 
     if cls.cached_dev_list is None:
@@ -295,6 +296,7 @@ class _FlimflamDevices(object):
            for dev in cls.GetDevices(devtype)]
     # Filter out 'None' results
     return sorted(device for device in ids if device is not None)
+
 
 class _GobiDevices(object):
   """Wrapper around Gobi specific utility information."""
@@ -324,7 +326,7 @@ class _GobiDevices(object):
     # We separate out the * for active as it is an initial configuration,
     # modifiable by the user or tests to enable different carriers/regions.
     for l in Shell('gobi-fw list').stdout.splitlines()[1:]:
-      m = re.match('^([A ][I ][P ][M ])([* ]) (\S+)\s+(.+)$', l)
+      m = re.match(r'^([A ][I ][P ][M ])([* ]) (\S+)\s+(.+)$', l)
       if not m:
         raise ValueError('Unable to parse line %r in gobi-fw output' % l)
       firmwares.append(Firmware(m.group(1), m.group(2) != ' ', m.group(3),
@@ -340,6 +342,7 @@ class _GobiDevices(object):
     active_firmwares = [fw.build_id for fw in firmwares if fw.active]
     active_firmware = active_firmwares[0] if active_firmwares else None
     return active_firmware
+
 
 class _TouchpadData():  # pylint: disable=W0232
   """Return Obj with hw_ident and fw_ident string fields."""
@@ -376,9 +379,9 @@ class _TouchpadData():  # pylint: disable=W0232
                  model_path_list + [firmware_path]):
         continue
       return Obj(
-        ident_str=CompactStr(
-            [open(path).read().strip() for path in model_path_list]),
-        fw_version=CompactStr(open(firmware_path).read().strip()))
+          ident_str=CompactStr(
+              [open(path).read().strip() for path in model_path_list]),
+          fw_version=CompactStr(open(firmware_path).read().strip()))
     return None
 
   @classmethod
@@ -419,7 +422,7 @@ class _TouchpadData():  # pylint: disable=W0232
     # so we use a list of tuple [("vendor id","product id"),...] to list
     # all known touchpad here so that we can report touchpad info correctly.
     # ("06cb","7a3b") is synaptics hid-over-i2c touchpad.
-    known_hid_tp = [("06cb","7a3b")]
+    known_hid_tp = [('06cb', '7a3b')]
     input_file = '/proc/bus/input/devices'
     re_device_name = re.compile(r'^N: Name="(hid-over-i2c.*)"$', re.MULTILINE)
     re_sysfs = re.compile(r'^S: Sysfs=(.*)$', re.MULTILINE)
@@ -438,7 +441,7 @@ class _TouchpadData():  # pylint: disable=W0232
         idProduct = f.read().strip()
       for vendor, product in known_hid_tp:
         if((vendor.lower() == idVendor.lower()) and
-             (product.lower() == idProduct.lower())):
+           (product.lower() == idProduct.lower())):
           return Obj(ident_str=device_name, fw_version=None)
 
   cached_data = None
@@ -454,6 +457,7 @@ class _TouchpadData():  # pylint: disable=W0232
           cls.cached_data = data
           break
     return cls.cached_data
+
 
 class _TouchscreenData():  # pylint: disable=W0232
   """Return Obj with hw_ident and fw_ident string fields."""
@@ -675,7 +679,7 @@ def _ProbeCellular():
     modem_status = Shell('modem status').stdout
     for key in ['carrier', 'firmware_revision', 'Revision']:
       matches = re.findall(
-        r'^\s*' + key + ': (.*)$', modem_status, re.M)
+          r'^\s*' + key + ': (.*)$', modem_status, re.M)
       if matches:
         data[0][key] = matches[0]
     # For some chipsets we can use custom utilities for more data
@@ -822,7 +826,7 @@ def _ProbeDisplayPanel():
   glob_list = [
       '/sys/class/drm/*LVDS*/edid',
       '/sys/kernel/debug/edid*',
-      ]
+  ]
   path_list = []
   for path in glob_list:
     path_list += glob(path)
@@ -915,7 +919,7 @@ def _GetFixedDevices():
     path = os.path.join(node, 'removable')
     if not os.path.exists(path) or open(path).read().strip() != '0':
       continue
-    if re.match('^loop|^dm-', os.path.basename(node)):
+    if re.match(r'^loop|^dm-', os.path.basename(node)):
       # Loopback or dm-verity device; skip
       continue
 
@@ -1102,11 +1106,13 @@ def _ProbeVga():
 def _ProbeWireless():
   return _FlimflamDevices.ReadSysfsDeviceIds('wifi')
 
+
 @_ComponentProbe('pmic')
 def _ProbePmic():
   pmics = glob('/sys/bus/platform/devices/*-pmic')
   return ([{COMPACT_PROBE_STR: os.path.basename(x)} for x in pmics]
           if pmics else [])
+
 
 @_ComponentProbe('keyboard')
 def _ProbeKeyboard():
@@ -1187,7 +1193,7 @@ def _ProbeStorageFirmwareVersion():
   ret = []
   for f in _GetFixedDevices():
     smartctl = Shell('smartctl --all %s' %
-                      os.path.join('/dev', os.path.basename(f))).stdout
+                     os.path.join('/dev', os.path.basename(f))).stdout
     matches = re.findall('(?m)^Firmware Version:\s+(.+)$', smartctl)
     if matches:
       if re.search(r'(?m)^Device Model:\s+SanDisk', smartctl):
@@ -1220,7 +1226,7 @@ def _GbbHash(image):
     f.flush()
     if not Shell('gbb_utility -s --hwid="ChromeOS" --flags=0 "%s"' %
                  f.name).success:
-      logging.error("Failed calling gbb_utility to calcuate GBB hash.")
+      logging.error('Failed calling gbb_utility to calcuate GBB hash.')
       return None
     # Rewind to re-read the data.
     f.seek(0)
@@ -1243,7 +1249,7 @@ def _MainRoHash(image):
       'hash': hashlib.sha256(hash_src).hexdigest(),
       'version': _AddFirmwareIdTag(image).lstrip('#'),
       COMPACT_PROBE_STR: 'mv2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
-                                           _AddFirmwareIdTag(image))}
+                                       _AddFirmwareIdTag(image))}
 
 
 def _EcRoHash(image):
@@ -1255,7 +1261,7 @@ def _EcRoHash(image):
       'hash': hashlib.sha256(hash_src).hexdigest(),
       'version': _AddFirmwareIdTag(image).lstrip('#'),
       COMPACT_PROBE_STR: 'ev2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
-                                           _AddFirmwareIdTag(image))}
+                                       _AddFirmwareIdTag(image))}
 
 
 def _FwKeyHash(main_fw_file, key_name):
@@ -1271,7 +1277,7 @@ def _FwKeyHash(main_fw_file, key_name):
     key_info = Shell('vbutil_key --unpack %s' % f.name).stdout
     sha1sum = re.findall(r'Key sha1sum:[\s]+([\w]+)', key_info)
     if len(sha1sum) != 1:
-      logging.error("Failed calling vbutil_key for firmware key hash.")
+      logging.error('Failed calling vbutil_key for firmware key hash.')
       return None
     sha1 = sha1sum[0]
     if sha1 in known_hashes:
@@ -1364,6 +1370,7 @@ def Probe(target_comp_classes=None,
       logging.exception('Probe %r FAILED (see traceback), returning None.',
                         probe_fun.__name__)
       return None
+
   def FilterProbes(ref_probe_map, arch, probe_class_white_list):
     generic_probes = ref_probe_map.get(None, {})
     arch_probes = ref_probe_map.get(arch, {})
@@ -1424,11 +1431,11 @@ def Probe(target_comp_classes=None,
   if probe_vpd:
     image_file = crosfw.LoadMainFirmware().GetFileName()
     for which, vpd_field in (('ro', ReadRoVpd(image_file)),
-                       ('rw', ReadRwVpd(image_file))):
+                             ('rw', ReadRwVpd(image_file))):
       for k, v in sorted(vpd_field.items()):
         volatiles['vpd.%s.%s' % (which, k)] = v
   return ProbeResults(
-    found_probe_value_map=found_probe_value_map,
-    missing_component_classes=missing_component_classes,
-    found_volatile_values=volatiles,
-    initial_configs=initial_configs)
+      found_probe_value_map=found_probe_value_map,
+      missing_component_classes=missing_component_classes,
+      found_volatile_values=volatiles,
+      initial_configs=initial_configs)

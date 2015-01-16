@@ -28,16 +28,16 @@ _CSS = '#state {text-align:left;}'
 
 class UpdateFirmwareTest(unittest.TestCase):
   ARGS = [
-    Arg('firmware_updater', str, 'Full path of chromeos-firmwareupdate.',
-        default='/usr/local/factory/board/chromeos-firmwareupdate'),
-    Arg('update_ec', bool, 'Update EC firmware.', default=True),
-    Arg('update_pd', bool, 'Update PD firmware.', default=True),
-    Arg('umpire', bool, 'Update firmware updater from Umpire server',
-        default=False),
-    Arg('update_main', bool, 'Update main firmware.', default=True),
-    Arg('apply_customization_id', bool,
-        'Update root key based on the customization_id stored in VPD.',
-        default=False, optional=True),
+      Arg('firmware_updater', str, 'Full path of chromeos-firmwareupdate.',
+          default='/usr/local/factory/board/chromeos-firmwareupdate'),
+      Arg('update_ec', bool, 'Update EC firmware.', default=True),
+      Arg('update_pd', bool, 'Update PD firmware.', default=True),
+      Arg('umpire', bool, 'Update firmware updater from Umpire server',
+          default=False),
+      Arg('update_main', bool, 'Update main firmware.', default=True),
+      Arg('apply_customization_id', bool,
+          'Update root key based on the customization_id stored in VPD.',
+          default=False, optional=True),
   ]
 
   def setUp(self):
@@ -70,13 +70,13 @@ class UpdateFirmwareTest(unittest.TestCase):
         # Found a chromeos-firmwareupdate alive.
         self._ui.Fail('Lock file %s is present and firmware update already '
                       'running (PID %s)' % (
-            LOCK_FILE, ', '.join(process.stdout_data.split())))
+                          LOCK_FILE, ', '.join(process.stdout_data.split())))
         return
       logging.warn('Removing %s', LOCK_FILE)
       os.unlink(LOCK_FILE)
 
     if self.args.apply_customization_id:
-      customization_id = vpd.ro.get("customization_id")
+      customization_id = vpd.ro.get('customization_id')
       if customization_id is None:
         self._ui.Fail('Customization_id not found in VPD.')
         return
@@ -85,17 +85,17 @@ class UpdateFirmwareTest(unittest.TestCase):
             'Main firmware must be updated when apply customization_id.')
         return
       p = Spawn(
-        [self.args.firmware_updater, '--force', '--factory',
-         '--customization_id', customization_id, '--update_main',
-         '--update_ec' if self.args.update_ec else '--noupdate_ec',],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
+          [self.args.firmware_updater, '--force', '--factory',
+           '--customization_id', customization_id, '--update_main',
+           '--update_ec' if self.args.update_ec else '--noupdate_ec'],
+          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
     else:
       p = Spawn(
-        [self.args.firmware_updater, '--force', '--factory',
-         '--update_ec' if self.args.update_ec else '--noupdate_ec',
-         '--update_pd' if self.args.update_pd else '--noupdate_pd',
-         '--update_main' if self.args.update_main else '--noupdate_main',],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
+          [self.args.firmware_updater, '--force', '--factory',
+           '--update_ec' if self.args.update_ec else '--noupdate_ec',
+           '--update_pd' if self.args.update_pd else '--noupdate_pd',
+           '--update_main' if self.args.update_main else '--noupdate_main'],
+          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
     for line in iter(p.stdout.readline, ''):
       logging.info(line.strip())
       self._template.SetState(Escape(line), append=True)

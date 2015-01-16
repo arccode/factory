@@ -17,6 +17,7 @@ from cros.factory.shopfloor.launcher.service import ServiceBase
 class LightyConditionalType(str):
   pass
 
+
 class HttpService(ServiceBase):
 
   # Indent shift width for the generated lighttpd.conf file
@@ -32,9 +33,9 @@ class HttpService(ServiceBase):
     self._GenerateConfigFile(yamlconf, httpd_conf)
     # Setup a non-daemon mode lighttpd
     svc_conf = {
-      'executable': '/usr/sbin/lighttpd',
-      'name': 'httpsvc',
-      'args': ['-D', '-f', httpd_conf]
+        'executable': '/usr/sbin/lighttpd',
+        'name': 'httpsvc',
+        'args': ['-D', '-f', httpd_conf]
     }
     self.SetConfig(svc_conf)
 
@@ -80,11 +81,11 @@ class HttpService(ServiceBase):
         # Blocks section, keep the order
         'alias.url': {'/res': env.GetResourcesDir()},
         LightyConditionalType('$HTTP["url"] =~ "^/$"'): {
-          'fastcgi.server': {
-              '/': [{
-                  'host': '127.0.0.1',
-                  'port': env.fcgi_port,
-                  'check-local': 'disable' }]}}}
+            'fastcgi.server': {
+                '/': [{
+                    'host': '127.0.0.1',
+                    'port': env.fcgi_port,
+                    'check-local': 'disable'}]}}}
 
     self._WriteLightyConf(lighty_conf, conf_file)
 
@@ -124,9 +125,9 @@ class HttpService(ServiceBase):
     with open(name, mode) as f:
       for key, value in conf.iteritems():
         if isinstance(key, LightyConditionalType):
-          f.write("%s %s\n" % (key, self._LightyConfBlock(value)))
+          f.write('%s %s\n' % (key, self._LightyConfBlock(value)))
         else:
-          f.write("%s = %s\n" % (key, self._LightyConfAuto(value)))
+          f.write('%s = %s\n' % (key, self._LightyConfAuto(value)))
 
   def _LightyConfAuto(self, value):
     """Detects and writes value in lighty conf format."""
@@ -147,7 +148,7 @@ class HttpService(ServiceBase):
     self._IncIndent()
     for key, value in value_dict.iteritems():
       output.append('%s%s = %s,' % (self._GetIndent(), key,
-                    self._LightyConfAuto(value)))
+                                    self._LightyConfAuto(value)))
     self._DecIndent()
     output.append(self._GetIndent() + '}')
     return '\n'.join(output)
@@ -158,7 +159,7 @@ class HttpService(ServiceBase):
     self._IncIndent()
     for key, value in value_dict.iteritems():
       output.append('%s"%s" => %s,' % (self._GetIndent(), key,
-                    self._LightyConfAuto(value)))
+                                       self._LightyConfAuto(value)))
     self._DecIndent()
     output.append(self._GetIndent() + ')')
     return '\n'.join(output)
@@ -169,7 +170,7 @@ class HttpService(ServiceBase):
     self._IncIndent()
     for value in value_list:
       output.append('%s%s,\n' % (self._GetIndent(),
-                    self._LightyConfAuto(value)))
+                                 self._LightyConfAuto(value)))
     self._DecIndent()
     output.append(self._GetIndent() + ')')
     return '\n'.join(output)

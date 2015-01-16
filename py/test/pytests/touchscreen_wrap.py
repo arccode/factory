@@ -60,7 +60,7 @@ class TouchscreenTest(unittest.TestCase):
       Arg('retries', int, 'Number of retries.', default=5),
       Arg('demo_interval_ms', int,
           'Interval (ms) to show drawing pattern. <= 0 means no demo.',
-          default=150),]
+          default=150)]
 
   def setUp(self):
     # Initialize frontend presentation

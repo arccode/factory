@@ -2,8 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-This file provides an FastCGI to XMLRPC server interface.
+"""This file provides an FastCGI to XMLRPC server interface.
 
 Import this mod and call RunAsFastCGI function to start the server in
 FastCGI mode.
@@ -96,6 +95,7 @@ class SessionMediator(object):
     session: WSGI session object
     dispatcher: XMLRPCDispatcher object
   """
+
   def __init__(self, session, dispatcher):
     self.session = session
     self.dispatcher = dispatcher
@@ -203,5 +203,3 @@ def RunAsFastCGI(address, port, instance):
   fork_args['maxRequests'] = 16
   server = WSGIServer(application, bindAddress=bind_address, **fork_args)
   server.run()
-
-

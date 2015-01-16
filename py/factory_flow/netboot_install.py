@@ -65,7 +65,7 @@ class NetbootInstall(FactoryFlowCommand):
     if self.options.flash_method == 'servo':
       self.servo = servo.Servo(
           self.options.board.short_name, self.options.servo_host,
-        port=self.options.servo_port, serial=self.options.servo_serial)
+          port=self.options.servo_port, serial=self.options.servo_serial)
 
     self.netboot_firmware_path = self.LocateUniquePath(
         'netboot firmware',
@@ -152,7 +152,7 @@ class NetbootInstall(FactoryFlowCommand):
                                '%s:%s' % (self.options.dut, remote_fw_path)],
                               log=True, check_output=True)
     ssh_utils.SpawnSSHToDUT([self.options.dut, 'flashrom', '-p', 'host', '-w',
-                            remote_fw_path], log=True, check_output=True)
+                             remote_fw_path], log=True, check_output=True)
 
     logging.info('Flashing EC %s on DUT %s with SSH',
                  self.netboot_ec_path, self.options.dut)
@@ -161,7 +161,7 @@ class NetbootInstall(FactoryFlowCommand):
                                '%s:%s' % (self.options.dut, remote_ec_path)],
                               log=True, check_output=True)
     ssh_utils.SpawnSSHToDUT([self.options.dut, 'flashrom', '-p', 'ec', '-w',
-                        remote_ec_path], log=True, check_output=True)
+                             remote_ec_path], log=True, check_output=True)
 
     logging.info('Rebooting DUT %s', self.options.dut)
     ssh_utils.SpawnSSHToDUT(

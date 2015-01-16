@@ -45,6 +45,7 @@ class AutomatorMetaclass(e2e_test.E2ETestMetaclass):
 
 class AutomatorSetting(object):
   """A class to hold the settings for a board automation function."""
+
   def __init__(self, function, override_dargs=None,
                automation_mode=AutomationMode.PARTIAL,
                wait_for_factory_test=True):

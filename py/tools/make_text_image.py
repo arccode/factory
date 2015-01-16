@@ -4,11 +4,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-This script generates a PNG file according to the specified text message and
-attributes. The attributes are saved as a text chunk in the PNG file.
-If we are overwriting an existing PNG file and the attributes are the same as
-that used to generate the existing PNG file, we just skip this file.
+"""This script generates a PNG file according to the specified text message and attributes.
+
+The attributes are saved as a text chunk in the PNG file. If we are
+overwriting an existing PNG file and the attributes are the same as that used
+to generate the existing PNG file, we just skip this file.
 """
 
 
@@ -21,27 +21,32 @@ import sys
 import yaml
 from PIL import Image, PngImagePlugin
 
+
 def WriteAttrData(img_path, attr):
   i = Image.open(img_path)
   meta = PngImagePlugin.PngInfo()
   meta.add_text('text_attr', yaml.dump(attr).encode('UTF-8'))
   i.save(img_path, 'png', pnginfo=meta)
 
+
 def GetAttrData(img_path):
   try:
     i = Image.open(img_path)
     return yaml.load(i.info['text_attr'].decode('UTF-8'))
-  except: # pylint: disable=W0702
+  except:  # pylint: disable=W0702
     return None
+
 
 def CheckDuplicate(attr, img_path):
   if not os.path.exists(img_path):
     return False
   return GetAttrData(img_path) == attr
 
+
 def GetFont(attr):
-  FONT = "sans-serif, %dpx"
+  FONT = 'sans-serif, %dpx'
   return pango.FontDescription(FONT % attr['font_size'])
+
 
 def ColorTriplet(color):
   if color[0] == '#':
@@ -51,10 +56,12 @@ def ColorTriplet(color):
           int(color[2:4], 16),
           int(color[4:6], 16))
 
+
 def FillInDefaultAttr(attr):
   attr.setdefault('bg_color', '#000000')
   attr.setdefault('fg_color', '#ffffff')
   attr.setdefault('font_size', 20)
+
 
 def GetTextLayout(pangocontext, attr):
   layout = pangocontext.create_layout()
@@ -63,10 +70,12 @@ def GetTextLayout(pangocontext, attr):
   layout.set_text(attr['text'])
   return layout
 
+
 def GetTextSize(attr):
   surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 1000, 1000)
   pangocontext = pangocairo.CairoContext(cairo.Context(surface))
   return GetTextLayout(pangocontext, attr).get_pixel_size()
+
 
 def CreateMessageImage(attr):
   FillInDefaultAttr(attr)
@@ -96,17 +105,18 @@ def CreateMessageImage(attr):
 
   sys.stdout.write('Generated %s.\n' % img_path)
 
+
 def main():
   parser = argparse.ArgumentParser(
       description='Make text image.')
   parser.add_argument('--input_file', '-i',
                       help='Yaml file with the following field:\n'
-                           '  text - The text to draw\n'
-                           '  font_size - The size of text\n'
-                           '  fg_color - Foreground color\n'
-                           '  bg_color - Background color\n'
-                           'If an input file is specified, other arguments\n'
-                           'are ignored.',
+                      '  text - The text to draw\n'
+                      '  font_size - The size of text\n'
+                      '  fg_color - Foreground color\n'
+                      '  bg_color - Background color\n'
+                      'If an input file is specified, other arguments\n'
+                      'are ignored.',
                       required=False)
   parser.add_argument('--output', '-o', help='Output image file name',
                       required=False)

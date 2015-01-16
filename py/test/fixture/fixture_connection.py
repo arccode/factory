@@ -86,7 +86,7 @@ class MockFixtureConnection(FixtureConnection):
     super(MockFixtureConnection, self).__init__()
 
     self._script = script
-    self._curr_cmd  = None
+    self._curr_cmd = None
 
   def Connect(self):
     pass
@@ -108,6 +108,7 @@ class MockFixtureConnection(FixtureConnection):
 
 
 class SerialFixtureConnection(FixtureConnection):
+
   def __init__(self, driver, serial_delay, serial_params, retries=5):
     """Constructor.
 

@@ -25,10 +25,10 @@ _CSS = '#state {text-align:left;}'
 
 class FlashNetbootTest(unittest.TestCase):
   ARGS = [
-    Arg('image', str,
-        'Path of netboot firmware image. Default to use '
-        '/usr/local/factory/board/nv_image_*.bin',
-        optional=True),
+      Arg('image', str,
+          'Path of netboot firmware image. Default to use '
+          '/usr/local/factory/board/nv_image_*.bin',
+          optional=True),
   ]
 
   def setUp(self):
@@ -48,4 +48,3 @@ class FlashNetbootTest(unittest.TestCase):
                                    on_output=self.ShowResult)
     self.ShowResult(netboot_flasher.WarningMessage())
     netboot_flasher.Run()
-

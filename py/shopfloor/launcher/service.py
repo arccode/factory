@@ -111,8 +111,8 @@ class ServiceBase(protocol.ProcessProtocol):
 
   def _ConnectionLost(self, pipe):
     """Genetic handler for broken pipes."""
-    if not self.daemon and not self.stopping :
-      logging.info('%s was closed',  pipe)
+    if not self.daemon and not self.stopping:
+      logging.info('%s was closed', pipe)
 
   def SetConfig(self, conf):
     """Sets service configuration."""

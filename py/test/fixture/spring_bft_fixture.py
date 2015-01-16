@@ -35,27 +35,27 @@ class SpringBFTFixture(BFTFixture):
   # None means unsupported.
   Device = BFTFixture.Device
   DEVICE_COMMAND = {
-    Device.AC_ADAPTER       : (chr(0xC8), chr(0xD0)),
-    Device.AUDIO_JACK       : (chr(0xCC), chr(0xCD)),
-    Device.EXT_DISPLAY      : (chr(0xCB), chr(0xD0)),
-    Device.LID_MAGNET       : (chr(0xC2), chr(0xC3)),
-    Device.USB_0            : (chr(0xCA), chr(0xD0)),
-    Device.USB_1            : (None, None),
-    Device.USB_2            : (None, None)}
+      Device.AC_ADAPTER: (chr(0xC8), chr(0xD0)),
+      Device.AUDIO_JACK: (chr(0xCC), chr(0xCD)),
+      Device.EXT_DISPLAY: (chr(0xCB), chr(0xD0)),
+      Device.LID_MAGNET: (chr(0xC2), chr(0xC3)),
+      Device.USB_0: (chr(0xCA), chr(0xD0)),
+      Device.USB_1: (None, None),
+      Device.USB_2: (None, None)}
 
   # (command, response) pairs for fixture to check LED colors.
   LEDColor = BFTFixture.LEDColor
   LED_CHECK_COMMAND = {
-    LEDColor.RED    : (chr(0xC4), chr(0xB4)),
-    LEDColor.GREEN  : (chr(0xC5), chr(0xB5)),
-    LEDColor.YELLOW : (chr(0xC6), chr(0xB6)),
-    LEDColor.OFF    : (chr(0xD4), chr(0xFC))}
+      LEDColor.RED: (chr(0xC4), chr(0xB4)),
+      LEDColor.GREEN: (chr(0xC5), chr(0xB5)),
+      LEDColor.YELLOW: (chr(0xC6), chr(0xB6)),
+      LEDColor.OFF: (chr(0xD4), chr(0xFC))}
 
   StatusColor = BFTFixture.StatusColor
   STATUS_COLOR_COMMAND = {
-    StatusColor.GREEN : chr(0xCE),
-    StatusColor.RED   : chr(0xCF),
-    }
+      StatusColor.GREEN: chr(0xCE),
+      StatusColor.RED: chr(0xCF),
+  }
 
   DEFAULT_RESPONSE = chr(0xFA)
   ENGAGE_BARCODE_SCANNER = chr(0xC7)
@@ -68,7 +68,7 @@ class SpringBFTFixture(BFTFixture):
           'status_map': {
               chr(0xFA): BFTFixture.Status.ON,
               chr(0xFE): BFTFixture.Status.OFF,
-              }}}
+          }}}
 
   # Defaut value of self._serial.
   _serial = None
@@ -178,9 +178,9 @@ class SpringBFTFixture(BFTFixture):
     actual = self._Recv(fail_message)
     if actual != expect:
       raise BFTFixtureException(
-        '%s Sent:%s. Expect response:%s, actual:%s.' %
-        (fail_message, _CommandStr(command), _CommandStr(expect),
-         _CommandStr(actual)))
+          '%s Sent:%s. Expect response:%s, actual:%s.' %
+          (fail_message, _CommandStr(command), _CommandStr(expect),
+           _CommandStr(actual)))
 
     logging.info(
         'Successfully sent %s to fixture %d. Got expected response %s.',

@@ -25,7 +25,9 @@ LEGACY_UNIQUE_CODE = ('323232323232323232323232323232323232'
 LEGACY_GROUP_CODE = ('333333333333333333333333333333333333'
                      '33333333333333333333333333332dbecc73')
 
+
 class VPDBrandingFieldsTest(unittest.TestCase):
+
   def setUp(self):
     self.test_case = vpd.VPDTest()
     self.test_case.vpd = dict(ro={})
@@ -80,6 +82,7 @@ class VPDBrandingFieldsTest(unittest.TestCase):
 
 
 class WriteVPDTaskTest(unittest.TestCase):
+
   def setUp(self):
     self.test_case = vpd.VPDTest()
     self.test_case.vpd = dict(ro={}, rw={})

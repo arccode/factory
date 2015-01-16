@@ -120,10 +120,11 @@ exit 1
 # ZIP file follows...
 """
 
+
 def main(argv=None):
   parser = argparse.ArgumentParser(
-    description=DESCRIPTION,
-    formatter_class=argparse.RawDescriptionHelpFormatter)
+      description=DESCRIPTION,
+      formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('--verbose', '-v', action='count')
   parser.add_argument(
       '--output', '-o', metavar='FILE', default='factory.par',
@@ -231,7 +232,7 @@ def main(argv=None):
       if not os.path.islink(f):
         continue
       dest = os.readlink(f)
-      match = re.match('\.\./py/(.+)\.py$', dest)
+      match = re.match(r'\.\./py/(.+)\.py$', dest)
       if not match:
         continue
 
@@ -261,8 +262,8 @@ def main(argv=None):
       link = os.path.join(tmp, 'make_par')
       os.symlink(os.path.realpath(args.output), link)
       output = SpawnOutput(
-        [link, '--help'], env={}, cwd='/',
-        check_call=True, read_stdout=True,log_stderr_on_error=True)
+          [link, '--help'], env={}, cwd='/',
+          check_call=True, read_stdout=True, log_stderr_on_error=True)
       if 'show this help message and exit' not in output:
         logging.error('Unable to run "make_par --help": output is %r', output)
     except subprocess.CalledProcessError:

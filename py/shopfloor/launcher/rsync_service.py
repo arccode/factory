@@ -39,6 +39,7 @@ class RsyncService(ServiceBase):
   Args:
     yaml_config: Launcher YAML config dictionary.
   """
+
   def __init__(self, config):
     # ServiceBase inherits from an old-style python class.
     ServiceBase.__init__(self)
@@ -74,7 +75,6 @@ class RsyncService(ServiceBase):
       if os.path.isfile(latest_md5file):
         os.unlink(latest_md5file)
 
-
     # Log upload module
     upload_path = os.path.join(env.runtime_dir, 'upload_logs')
     TryMakeDirs(upload_path)
@@ -87,15 +87,15 @@ class RsyncService(ServiceBase):
       f.write(rsync_config)
 
     svc_conf = {
-      'executable': 'rsync',
-      'name': 'rsyncsvc',
-      'args': [
-        '--daemon',
-        '--no-detach',
-        '--config=%s' % config_file],
-      'path': env.runtime_dir,
-      'logpipe': False,
-      'auto_restart': True}
+        'executable': 'rsync',
+        'name': 'rsyncsvc',
+        'args': [
+            '--daemon',
+            '--no-detach',
+            '--config=%s' % config_file],
+        'path': env.runtime_dir,
+        'logpipe': False,
+        'auto_restart': True}
     self.SetConfig(svc_conf)
 
   def _PrepareUpdateBundle(self, bundle):

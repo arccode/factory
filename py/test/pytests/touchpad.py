@@ -3,8 +3,7 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-A factory test to test the functionality of touchpad.
+"""A factory test to test the functionality of touchpad.
 
 dargs:
   touchpad_event_id: Touchpad input event id. (default: None)
@@ -135,6 +134,7 @@ class UpDown(object):
   The value is the same as value from evtest KEY event, where "0" is up and "1"
   is down.
   """
+
   def __init__(self):
     pass
   Up = 0
@@ -151,6 +151,7 @@ class Quadrant(object):
     Quadrant 3 is Left-Bottom Corner
     Quadrant 4 is Right-Bottom Corner
   """
+
   def __init__(self):
     self.quadrant = 0
 
@@ -167,6 +168,7 @@ class Quadrant(object):
 
 class MoveEvent(object):
   """The class to store touchpad move event."""
+
   def __init__(self):
     self.x = None
     self.y = None
@@ -182,6 +184,7 @@ class ClickEvent(object):
 
   Double tap event is also stored to catch double click event.
   """
+
   def __init__(self):
     self.double_tap = None
     self.btn_left = None
@@ -221,15 +224,17 @@ class TouchpadTest(unittest.TestCase):
     self.quadrant: This represents the current quadrant of mouse.
   """
   ARGS = [
-    Arg('touchpad_event_id', int, 'Touchpad input event id. The test will probe'
-        ' for event id if it is not given.', default=None, optional=True),
-    Arg('timeout_secs', int, 'Timeout for the test.', default=20),
-    Arg('number_to_click', int, 'Target number to click.', default=10),
-    Arg('number_to_quadrant', int, 'Target number to click for each quadrant.',
-        default=3),
-    Arg('x_segments', int, 'Number of X axis segments to test.', default=5),
-    Arg('y_segments', int, 'Number of Y axis segments to test.', default=5)
-  ]
+      Arg(
+          'touchpad_event_id', int,
+          'Touchpad input event id. The test will probe'
+          ' for event id if it is not given.', default=None, optional=True),
+      Arg('timeout_secs', int, 'Timeout for the test.', default=20),
+      Arg('number_to_click', int, 'Target number to click.', default=10),
+      Arg(
+          'number_to_quadrant', int,
+          'Target number to click for each quadrant.', default=3),
+      Arg('x_segments', int, 'Number of X axis segments to test.', default=5),
+      Arg('y_segments', int, 'Number of Y axis segments to test.', default=5)]
 
   def setUp(self):
     # Initialize frontend presentation
@@ -237,8 +242,9 @@ class TouchpadTest(unittest.TestCase):
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_TOUCHPAD_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_TOUCHPAD)
-    self.ui.CallJSFunction('setupTouchpadTest', _ID_CONTAINER,
-        self.args.x_segments, self.args.y_segments, self.args.number_to_click,
+    self.ui.CallJSFunction(
+        'setupTouchpadTest', _ID_CONTAINER, self.args.x_segments,
+        self.args.y_segments, self.args.number_to_click,
         self.args.number_to_quadrant)
 
     # Initialize properties
@@ -441,7 +447,6 @@ class TouchpadTest(unittest.TestCase):
     y_segment = int(y_ratio * self.args.y_segments)
     logging.info('mark %d scroll segment tested', y_segment)
     self.ui.CallJSFunction('markScrollSectorTested', y_segment)
-
 
   def MarkSectorTested(self, x_ratio, y_ratio):
     """Marks a touch sector tested.

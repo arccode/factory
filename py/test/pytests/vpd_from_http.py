@@ -64,6 +64,7 @@ function setClear() {
 }
 """
 
+
 class GetPanelVPDTest(unittest.TestCase):
 
   """Gets VPD of the panel from shop floor / Umpire server.

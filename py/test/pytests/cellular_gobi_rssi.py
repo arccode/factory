@@ -29,15 +29,16 @@ RX_TEST_COMMAND = 'AT$QCAGC="%s",%d,"%s"'
 FTM_WAIT_TIMEOUT_SECS = 10  # Timeout for waiting factory mode ready.
 RETRY_INTERVAL_SECS = 1  # Retry interval in secs.
 
+
 class CellularGobiRSSI(unittest.TestCase):
   ARGS = [
-    Arg('modem_path', str,
-        'The relative path from /dev/, the entry point to control the modem'),
-    Arg('strength_map', list,
-        'A list of tuple in the format (ANTENNA_NAME, BAND_NAME, CHANNEL_NO, '
-        ' RETRIES, MIN_POWER, MAX_POWER)'),
-    Arg('firmware_switching', bool,
-        'Whether to switch modem firmware to UMTS.', default=True)
+      Arg('modem_path', str,
+          'The relative path from /dev/, the entry point to control the modem'),
+      Arg('strength_map', list,
+          'A list of tuple in the format (ANTENNA_NAME, BAND_NAME, CHANNEL_NO, '
+          ' RETRIES, MIN_POWER, MAX_POWER)'),
+      Arg('firmware_switching', bool,
+          'Whether to switch modem firmware to UMTS.', default=True)
   ]
 
   def setUp(self):
@@ -46,9 +47,9 @@ class CellularGobiRSSI(unittest.TestCase):
   def GetRSSI(self, antenna_name, band_name, channel_no):
     def _CheckFTMError():
       self.modem.SendCommand(RX_TEST_COMMAND % (
-        band_name, channel_no, antenna_name))
+          band_name, channel_no, antenna_name))
       line = self.modem.ReadLine()
-      logging.info("Modem returned %r", line)
+      logging.info('Modem returned %r', line)
       if 'restricted to FTM' in line:
         return False
       return line
@@ -83,7 +84,7 @@ class CellularGobiRSSI(unittest.TestCase):
       self.modem = cellular.EnterFactoryMode(self.args.modem_path)
       for config_to_test in self.args.strength_map:
         antenna_name, band_name, channel_no, retries, min_power, max_power = (
-          config_to_test)
+            config_to_test)
         rssis = list()
         channel_name = '%s_%d_%s' % (band_name, channel_no, antenna_name)
         for tries in xrange(1, retries + 1):

@@ -19,7 +19,10 @@ _DEFAULT_DRIVER = 'cdc_acm'
 _DEFAULT_READY_DELAY_SECS = 2.0
 
 # pylint: disable=E1120
+
+
 class ArduinoControllerTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.device = ArduinoController()
@@ -118,4 +121,3 @@ class ArduinoControllerTest(unittest.TestCase):
 
 if __name__ == '__main__':
   unittest.main()
-

@@ -63,47 +63,49 @@ _TIMESTAMP_BL_OFF = _BACKLIGHT_OFF_TIMEOUT + _TEST_TOLERANCE
 
 class InputDeviceDispatcher(asyncore.file_dispatcher):
   """A class to monitor input events asynchronously."""
+
   def __init__(self, device, event_handler):
     self.device = device
     self.event_handler = event_handler
     asyncore.file_dispatcher.__init__(self, device)
 
-  def recv(self, ign=None): # pylint:disable=W0613
+  def recv(self, ign=None):  # pylint:disable=W0613
     return self.device.read()
 
   def handle_read(self):
     for event in self.recv():
       self.event_handler(event)
 
+
 class LidSwitchTest(unittest.TestCase):
   """Lid switch factory test."""
   ARGS = [
-    Arg('timeout_secs', int, 'Timeout value for the test.',
-        default=_DEFAULT_TIMEOUT),
-    Arg('ok_audio_path', (str, unicode),
-        'Path to the OK audio file which is played after detecting lid close'
-        'signal. Defaults to play ok_*.ogg in /sounds.',
-        default=None, optional=True),
-    Arg('audio_volume', int,
-        'Percentage of audio volume to use when playing OK audio file.',
-        default=100),
-    Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
-        default=None, optional=True),
-    Arg('bft_fixture', dict, TEST_ARG_HELP,
-        default=None, optional=True),
-    Arg('bft_retries', int,
-        'Number of retries for BFT lid open / close.',
-        default=3),
-    Arg('bft_pause_secs', (int, float),
-        'Pause time before issuing BFT command.',
-        default=0.5),
-    Arg('brightness_path', str, 'Path to control brightness level.',
-        default=None, optional=True),
-    Arg('brightness_when_closed', int,
-        'Value to brightness when lid switch closed.',
-        default=None, optional=True),
-    Arg('check_delayed_backlight', bool, 'True to check delayed backlight.',
-        default=False)
+      Arg('timeout_secs', int, 'Timeout value for the test.',
+          default=_DEFAULT_TIMEOUT),
+      Arg('ok_audio_path', (str, unicode),
+          'Path to the OK audio file which is played after detecting lid close'
+          'signal. Defaults to play ok_*.ogg in /sounds.',
+          default=None, optional=True),
+      Arg('audio_volume', int,
+          'Percentage of audio volume to use when playing OK audio file.',
+          default=100),
+      Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
+          default=None, optional=True),
+      Arg('bft_fixture', dict, TEST_ARG_HELP,
+          default=None, optional=True),
+      Arg('bft_retries', int,
+          'Number of retries for BFT lid open / close.',
+          default=3),
+      Arg('bft_pause_secs', (int, float),
+          'Pause time before issuing BFT command.',
+          default=0.5),
+      Arg('brightness_path', str, 'Path to control brightness level.',
+          default=None, optional=True),
+      Arg('brightness_when_closed', int,
+          'Value to brightness when lid switch closed.',
+          default=None, optional=True),
+      Arg('check_delayed_backlight', bool, 'True to check delayed backlight.',
+          default=False)
   ]
 
   def AdjustBrightness(self, value):
@@ -149,7 +151,6 @@ class LidSwitchTest(unittest.TestCase):
     else:
       self.ui.SetHTML(_MSG_PROMPT_CLOSE, id=_ID_PROMPT)
 
-
     # Create a thread to monitor evdev events.
     self.dispatcher = None
     StartDaemonThread(target=self.MonitorEvdevEvent)
@@ -187,9 +188,9 @@ class LidSwitchTest(unittest.TestCase):
         self.AdjustBrightness(self._restore_brightness)
 
   def getCurrentEpochSec(self):
-    '''Returns the time since epoch.'''
+    """Returns the time since epoch."""
 
-    return float(datetime.datetime.now().strftime("%s.%f"))
+    return float(datetime.datetime.now().strftime('%s.%f'))
 
   def ProbeLidEventSource(self):
     """Probe for lid event source."""
@@ -247,7 +248,7 @@ class LidSwitchTest(unittest.TestCase):
 
   def HandleEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
-      if event.value == 1: # LID_CLOSED
+      if event.value == 1:  # LID_CLOSED
         self._closed_sec = self.getCurrentEpochSec()
         if self.fixture:
           if self.args.check_delayed_backlight:
@@ -260,7 +261,7 @@ class LidSwitchTest(unittest.TestCase):
             self._restore_brightness = self.GetBrightness()
             # Close backlight
             self.AdjustBrightness(self.args.brightness_when_closed)
-      elif event.value == 0: # LID_OPEN
+      elif event.value == 0:  # LID_OPEN
         self._opened_sec = self.getCurrentEpochSec()
         # Restore brightness
         if self.args.brightness_path is not None:

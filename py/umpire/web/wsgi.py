@@ -97,7 +97,7 @@ class WSGISession(AttrDict):
     return '%d %s' % (code, http.RESPONSES.get(code, 'Unknown Status'))
 
   def Respond(self, data='', content_type=TEXT_PLAIN,
-               code=http.OK):
+              code=http.OK):
     """Sends response header then returns body.
 
     Args:

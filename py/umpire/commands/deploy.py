@@ -25,6 +25,7 @@ from cros.factory.utils import file_utils
 
 NONE_FILENAME = 'none##d41d8cd9'
 
+
 class ConfigDeployer(object):
   """Deploys an Umpire config file."""
   _RESOURCE_FOR_DOWNLOAD_CONF = (
@@ -136,7 +137,7 @@ class ConfigDeployer(object):
           need_add_download_conf = True
 
       if need_add_download_conf:
-        logging.info('download-conf differ for bundle %s',  bundle['id'])
+        logging.info('download-conf differ for bundle %s', bundle['id'])
         header = '# date:   %s\n# bundle: %s_%s\n' % (
             datetime.datetime.utcnow(), board, bundle['id'])
         with file_utils.TempDirectory() as temp_dir:

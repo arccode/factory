@@ -26,10 +26,11 @@ READ_RSSI_RESPONSE = r'RSSI: ([-\d]+)'
 ENABLE_TX_MODE_TIMEOUT_SECS = 5
 TX_MODE_POLLING_INTERVAL_SECS = 0.5
 
+
 class RadiatedCellular(RfFramework, unittest.TestCase):
 
   def __init__(self, *args, **kwargs):
-    super(RadiatedCellular, self ).__init__(*args, **kwargs)
+    super(RadiatedCellular, self).__init__(*args, **kwargs)
     self.measurements = None
     self.power_meter_ip = None
     self.power_meter_port = None
@@ -73,9 +74,9 @@ class RadiatedCellular(RfFramework, unittest.TestCase):
         PollForCondition(poll_method=(
             lambda: self.StartTxTest(
                 measurement['band_name'], measurement['channel'])),
-            timeout_secs=ENABLE_TX_MODE_TIMEOUT_SECS,
-            poll_interval_secs=TX_MODE_POLLING_INTERVAL_SECS,
-            condition_name='Start TX test')
+                         timeout_secs=ENABLE_TX_MODE_TIMEOUT_SECS,
+                         poll_interval_secs=TX_MODE_POLLING_INTERVAL_SECS,
+                         condition_name='Start TX test')
         self.modem.ExpectLine('')
         self.modem.ExpectLine('OK')
 

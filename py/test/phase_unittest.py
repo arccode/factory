@@ -9,7 +9,7 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.test import phase
 from cros.factory.test.phase import Phase, PHASE_NAMES, PhaseAssertionError
@@ -21,6 +21,7 @@ from cros.factory.test.phase import Phase, PHASE_NAMES, PhaseAssertionError
 
 
 class BasicPhaseTest(unittest.TestCase):
+
   def testBasicOps(self):
     for l in xrange(len(PHASE_NAMES)):
       for r in xrange(len(PHASE_NAMES)):
@@ -39,13 +40,14 @@ class BasicPhaseTest(unittest.TestCase):
 
   def testInvalidName(self):
     self.assertRaisesRegexp(
-      ValueError,
-      (r"'evt' is not a valid phase name \(valid names are "
-       r"\[PROTO,EVT,DVT,PVT_DOGFOOD,PVT\]\)",
-      Phase, 'evt'))
+        ValueError,
+        (r"'evt' is not a valid phase name \(valid names are "
+         r'\[PROTO,EVT,DVT,PVT_DOGFOOD,PVT\]\)',
+         Phase, 'evt'))
 
 
 class PersistentPhaseTest(unittest.TestCase):
+
   def setUp(self):
     phase._current_phase = None
     phase._state_root_for_testing = tempfile.mkdtemp()
@@ -78,6 +80,7 @@ class PersistentPhaseTest(unittest.TestCase):
 
 
 class AssertionTest(unittest.TestCase):
+
   def setUp(self):
     phase._current_phase = phase.EVT
 
@@ -104,28 +107,28 @@ class AssertionTest(unittest.TestCase):
   def testAssertionFails(self):
     # Condition is True, so these always pass.
     self.assertRaisesRegexp(
-      PhaseAssertionError,
-      r'Assertion starting at PROTO failed \(currently in EVT\): msg',
-      phase.AssertStartingAtPhase, phase.PROTO, False, 'msg')
+        PhaseAssertionError,
+        r'Assertion starting at PROTO failed \(currently in EVT\): msg',
+        phase.AssertStartingAtPhase, phase.PROTO, False, 'msg')
     self.assertRaisesRegexp(
-      PhaseAssertionError,
-      r'Assertion starting at EVT failed \(currently in EVT\): msg',
-      phase.AssertStartingAtPhase, phase.EVT, False, 'msg')
+        PhaseAssertionError,
+        r'Assertion starting at EVT failed \(currently in EVT\): msg',
+        phase.AssertStartingAtPhase, phase.EVT, False, 'msg')
     phase.AssertStartingAtPhase(phase.DVT, False, 'msg')  # Not evaluated
 
   def testAssertionFailsCallable(self):
     # Only PROTO and EVT ones get evaluated and fail.
     called = []
     self.assertRaisesRegexp(
-      PhaseAssertionError,
-      r'Assertion starting at PROTO failed \(currently in EVT\): msg',
-      phase.AssertStartingAtPhase, phase.PROTO,
-      lambda: called.append('PROTO'), 'msg')
+        PhaseAssertionError,
+        r'Assertion starting at PROTO failed \(currently in EVT\): msg',
+        phase.AssertStartingAtPhase, phase.PROTO,
+        lambda: called.append('PROTO'), 'msg')
     self.assertRaisesRegexp(
-      PhaseAssertionError,
-      r'Assertion starting at EVT failed \(currently in EVT\): msg',
-      phase.AssertStartingAtPhase, phase.EVT,
-      lambda: called.append('EVT'), 'msg')
+        PhaseAssertionError,
+        r'Assertion starting at EVT failed \(currently in EVT\): msg',
+        phase.AssertStartingAtPhase, phase.EVT,
+        lambda: called.append('EVT'), 'msg')
     # DVT check is not evaluated
     phase.AssertStartingAtPhase(phase.DVT,
                                 lambda: called.append('DVT') or True, 'msg')

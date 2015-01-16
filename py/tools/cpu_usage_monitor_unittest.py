@@ -33,7 +33,9 @@ EXPECTED_OUTPUT = ('Load average: 1.2, 0.9, 0.8; ' +
                    'Process 32753 using 60% CPU: longer_tha; ' +
                    'Process 30275 using 25% CPU: i_use_cpu')
 
+
 class TestCpuUsageMonitor(unittest.TestCase):
+
   def setUp(self):
     self.monitor = CPUUsageMonitor(120)
     self.monitor.COMMAND_LENGTH = 10
@@ -47,7 +49,7 @@ class TestCpuUsageMonitor(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def testTopParsing(self):
-    self.monitor._GetLoadString().AndReturn(MOCK_LOAD) # pylint: disable=W0212
+    self.monitor._GetLoadString().AndReturn(MOCK_LOAD)  # pylint: disable=W0212
     process_utils.CheckOutput(['top', '-b', '-c', '-n', '1']).AndReturn(
         MOCK_TOP_OUTPUT)
     logging.info(EXPECTED_OUTPUT)

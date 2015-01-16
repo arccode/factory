@@ -13,6 +13,7 @@ except ImportError:
 
 import numpy as np
 
+
 def ScanQRCode(cv_img):
   """Encodes OpenCV image to common image format.
 

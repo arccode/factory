@@ -164,6 +164,7 @@ class GSUtil(object):
     """
     class ParsedObj(object):
       """An object to hold the parsed results."""
+
       def __init__(self, channel, board, image_version, image_type, key=None):
         self.channel = channel
         self.board = build_board.BuildBoard(board).full_name
@@ -228,7 +229,7 @@ class GSUtil(object):
     cached_path = os.path.join(cache_dir, uri.replace('/', '!'))
     if os.path.exists(cached_path):
       logging.info('Using cached %s (%.1f MiB)',
-                   uri, os.path.getsize(cached_path) / (1024.*1024.))
+                   uri, os.path.getsize(cached_path) / (1024. * 1024.))
       return cached_path
 
     in_progress_path = cached_path + '.INPROGRESS'

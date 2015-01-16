@@ -124,13 +124,13 @@ class FactoryToolkitInstaller():
       if not _in_cros_device():
         sys.stderr.write(
             "ERROR: You're not on a CrOS device (for more details, please\n"
-            "check utils.py:in_cros_device), so you must specify a test\n"
-            "image or a mounted stateful partition on which to install the\n"
-            "factory toolkit.  Please run\n"
-            "\n"
-            "  install_factory_toolkit.run -- --help\n"
-            "\n"
-            "for help.\n")
+            'check utils.py:in_cros_device), so you must specify a test\n'
+            'image or a mounted stateful partition on which to install the\n'
+            'factory toolkit.  Please run\n'
+            '\n'
+            '  install_factory_toolkit.run -- --help\n'
+            '\n'
+            'for help.\n')
         sys.exit(1)
       if os.getuid() != 0:
         raise Exception('You must be root to install the factory toolkit on a '
@@ -151,7 +151,7 @@ class FactoryToolkitInstaller():
 
     self._enable_presenter = enable_presenter
     self._presenter_tag_file = os.path.join(self._usr_local_dest, 'factory',
-                                       'init', 'run_goofy_presenter')
+                                            'init', 'run_goofy_presenter')
 
     self._enable_device = enable_device
     self._device_tag_file = os.path.join(self._usr_local_dest, 'factory',
@@ -181,20 +181,16 @@ class FactoryToolkitInstaller():
           '***' % self._dest)
     if self._dest == self._system_root:
       if self._no_enable:
-        ret += ('\n'
-          '*** Factory tests will be disabled after this process is done, but\n'
-          '*** you can enable them by creating the factory enabled tag:\n'
-          '***   %s\n'
-          '***' % self._tag_file)
+        ret += (
+                '\n*** Factory tests will be disabled after this process is '
+                'done, but\n*** you can enable them by creating the factory '
+                'enabled tag:\n***   %s\n***' % self._tag_file)
       else:
-        ret += ('\n'
-          '*** After this process is done, your device will start factory\n'
-          '*** tests on the next reboot.\n'
-          '***\n'
-          '*** Factory tests can be disabled by deleting the factory enabled\n'
-          '*** tag:\n'
-          '***   %s\n'
-          '***' % self._tag_file)
+        ret += (
+                '\n*** After this process is done, your device will start '
+                'factory\n*** tests on the next reboot.\n***\n*** Factory '
+                'tests can be disabled by deleting the factory enabled\n*** '
+                'tag:\n***   %s\n***' % self._tag_file)
     return ret
 
   def _SetTagFile(self, name, path, enabled):
@@ -224,7 +220,7 @@ class FactoryToolkitInstaller():
           Spawn(['chmod', '-R', 'go+rX', src],
                 sudo=True, log=True, check_call=True)
         print '***   %s -> %s' % (src, dest)
-        Spawn(['rsync', '-a', '--force', ] + SERVER_FILE_MASK +
+        Spawn(['rsync', '-a', '--force'] + SERVER_FILE_MASK +
               [src + '/', dest], sudo=self._sudo, log=True,
               check_output=True, cwd=src)
       finally:
@@ -274,7 +270,7 @@ def PackFactoryToolkit(src_root, output_path, enable_device, enable_presenter):
   with open(os.path.join(src_root, 'VERSION'), 'r') as f:
     version = f.read().strip()
   with tempfile.NamedTemporaryFile() as help_header:
-    help_header.write(version + "\n" + HELP_HEADER + HELP_HEADER_MAKESELF)
+    help_header.write(version + '\n' + HELP_HEADER + HELP_HEADER_MAKESELF)
     help_header.flush()
     cmd = [os.path.join(src_root, 'makeself.sh'), '--bzip2', '--nox11',
            '--help-header', help_header.name,
@@ -285,15 +281,15 @@ def PackFactoryToolkit(src_root, output_path, enable_device, enable_presenter):
       cmd.append('--no-enable-presenter')
     Spawn(cmd, check_call=True, log=True)
   print ('\n'
-      '  Factory toolkit generated at %s.\n'
-      '\n'
-      '  To install factory toolkit on a live device running a test image,\n'
-      '  copy this to the device and execute it as root.\n'
-      '\n'
-      '  Alternatively, the factory toolkit can be used to patch a test\n'
-      '  image. For more information, run:\n'
-      '    %s --help\n'
-      '\n' % (output_path, output_path))
+         '  Factory toolkit generated at %s.\n'
+         '\n'
+         '  To install factory toolkit on a live device running a test image,\n'
+         '  copy this to the device and execute it as root.\n'
+         '\n'
+         '  Alternatively, the factory toolkit can be used to patch a test\n'
+         '  image. For more information, run:\n'
+         '    %s --help\n'
+         '\n' % (output_path, output_path))
 
 
 def InitUmpire(exe_path, src_root, target_board):
@@ -318,17 +314,17 @@ def InitUmpire(exe_path, src_root, target_board):
     os.symlink(exe_path, os.path.join(bundle_toolkit_dir,
                                       os.path.basename(exe_path)))
     umpire_bin = os.path.join(src_root, 'usr', 'local', 'factory', 'bin',
-                                  'umpire')
+                              'umpire')
     Spawn([umpire_bin, 'init', '--board', target_board, nano_bundle],
           check_call=True, log=True)
     print ('\n'
-        '  Umpire initialized successfully. Upstart service is running:\n'
-        '    umpire BOARD=%(board)s.\n'
-        '  For more information, please check umpire command line:\n'
-        '\n'
-        '    umpire-%(board)s --help  (if your id is in umpire group)\n'
-        '    or sudo umpire-%(board)s --help\n'
-        '\n' % {'board': target_board})
+           '  Umpire initialized successfully. Upstart service is running:\n'
+           '    umpire BOARD=%(board)s.\n'
+           '  For more information, please check umpire command line:\n'
+           '\n'
+           '    umpire-%(board)s --help  (if your id is in umpire group)\n'
+           '    or sudo umpire-%(board)s --help\n'
+           '\n' % {'board': target_board})
 
 
 def main():
@@ -349,40 +345,41 @@ def main():
       usage=('install_factory_toolkit.run -- [options]' if in_archive
              else None),
       formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument('dest', nargs='?', default='/',
+  parser.add_argument(
+      'dest', nargs='?', default='/',
       help='A test image or the mount point of the stateful partition. '
            "If omitted, install to live system, i.e. '/'.")
   parser.add_argument('--no-enable', '-n', action='store_true',
-      help="Don't enable factory tests after installing")
+                      help="Don't enable factory tests after installing")
   parser.add_argument('--yes', '-y', action='store_true',
-      help="Don't ask for confirmation")
+                      help="Don't ask for confirmation")
   parser.add_argument('--build-info', action='store_true',
-      help="Print build information and exit")
+                      help='Print build information and exit')
   parser.add_argument('--pack-into', metavar='NEW_TOOLKIT',
-      help="Pack the files into a new factory toolkit")
+                      help='Pack the files into a new factory toolkit')
   parser.add_argument('--repack', metavar='UNPACKED_TOOLKIT',
-      help="Repack from previously unpacked toolkit")
+                      help='Repack from previously unpacked toolkit')
 
   parser.add_argument('--enable-presenter', dest='enable_presenter',
-      action='store_true',
-      help="Run goofy in presenter mode on startup")
+                      action='store_true',
+                      help='Run goofy in presenter mode on startup')
   parser.add_argument('--no-enable-presenter', dest='enable_presenter',
-      action='store_false', help=argparse.SUPPRESS)
+                      action='store_false', help=argparse.SUPPRESS)
   parser.set_defaults(enable_presenter=True)
 
   parser.add_argument('--enable-device', dest='enable_device',
-      action='store_true',
-      help="Run goofy in device mode on startup")
+                      action='store_true',
+                      help='Run goofy in device mode on startup')
   parser.add_argument('--no-enable-device', dest='enable_device',
-      action='store_false', help=argparse.SUPPRESS)
+                      action='store_false', help=argparse.SUPPRESS)
   parser.set_defaults(enable_device=True)
 
   parser.add_argument('--init-umpire-board', dest='umpire_board',
-      nargs='?', default=None,
-      help="Locally install Umpire server for specific board")
+                      nargs='?', default=None,
+                      help='Locally install Umpire server for specific board')
   parser.add_argument('--exe-path', dest='exe_path',
-      nargs='?', default=None,
-      help="Current self-extracting archive pathname")
+                      nargs='?', default=None,
+                      help='Current self-extracting archive pathname')
 
   args = parser.parse_args()
 
@@ -432,8 +429,9 @@ def main():
 
   with (MountPartition(args.dest, 1, rw=True) if patch_test_image
         else DummyContext(args.dest)) as dest:
-    installer = FactoryToolkitInstaller(src_root, dest, args.no_enable,
-        args.enable_presenter, args.enable_device)
+    installer = FactoryToolkitInstaller(
+        src_root, dest, args.no_enable, args.enable_presenter,
+        args.enable_device)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
 

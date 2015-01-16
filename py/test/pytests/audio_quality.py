@@ -46,10 +46,10 @@ _LOCAL_IP = '192.168.1.2'
 _GATEWAY_IP = '192.168.1.200'
 
 # Setting
-_SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
-_SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
-_CHECK_FIXTURE_COMPLETE_SECS = 1 # Seconds to check fixture test.
-_REMOVE_ETHERNET_TIMEOUT_SECS = 30 # Timeout for inserting dongle.
+_SHOPFLOOR_TIMEOUT_SECS = 10  # Timeout for shopfloor connection.
+_SHOPFLOOR_RETRY_INTERVAL_SECS = 10  # Seconds to wait between retries.
+_CHECK_FIXTURE_COMPLETE_SECS = 1  # Seconds to check fixture test.
+_REMOVE_ETHERNET_TIMEOUT_SECS = 30  # Timeout for inserting dongle.
 _FIXTURE_PARAMETERS = ['audio/audio_md5', 'audio/audio.zip']
 
 # Label strings.
@@ -82,20 +82,21 @@ _LABEL_UPLOAD_AUXLOG = test_ui.MakeLabel('Upload log', u'上传记录档')
 _LABEL_FAIL_LOGS = 'Test fail, find more detail in log.'
 
 # Regular expression to match external commands.
-_LOOP_0_RE = re.compile("(?i)loop_0")
-_LOOP_1_RE = re.compile("(?i)loop_1")
-_LOOP_2_RE = re.compile("(?i)loop_2")
-_LOOP_3_RE = re.compile("(?i)loop_3")
-_LOOP_4_RE = re.compile("(?i)loop_4")
-_XTALK_L_RE = re.compile("(?i)xtalk_l")
-_XTALK_R_RE = re.compile("(?i)xtalk_r")
-_MULTITONE_RE = re.compile("(?i)multitone")
-_SEND_FILE_RE = re.compile("(?i)send_file")
-_TEST_COMPLETE_RE = re.compile("(?i)test_complete")
-_RESULT_PASS_RE = re.compile("(?i)result_pass")
-_RESULT_FAIL_RE = re.compile("(?i)result_fail")
-_VERSION_RE = re.compile("(?i)version")
-_CONFIG_FILE_RE = re.compile("(?i)config_file")
+_LOOP_0_RE = re.compile('(?i)loop_0')
+_LOOP_1_RE = re.compile('(?i)loop_1')
+_LOOP_2_RE = re.compile('(?i)loop_2')
+_LOOP_3_RE = re.compile('(?i)loop_3')
+_LOOP_4_RE = re.compile('(?i)loop_4')
+_XTALK_L_RE = re.compile('(?i)xtalk_l')
+_XTALK_R_RE = re.compile('(?i)xtalk_r')
+_MULTITONE_RE = re.compile('(?i)multitone')
+_SEND_FILE_RE = re.compile('(?i)send_file')
+_TEST_COMPLETE_RE = re.compile('(?i)test_complete')
+_RESULT_PASS_RE = re.compile('(?i)result_pass')
+_RESULT_FAIL_RE = re.compile('(?i)result_fail')
+_VERSION_RE = re.compile('(?i)version')
+_CONFIG_FILE_RE = re.compile('(?i)config_file')
+
 
 class AudioQualityTest(unittest.TestCase):
   ARGS = [
@@ -122,7 +123,7 @@ class AudioQualityTest(unittest.TestCase):
     # Tansfer input and output device format
     if isinstance(self.args.input_dev, tuple):
       self._in_card = audio_utils.GetCardIndexByName(self.args.input_dev[0])
-      self._input_device = "hw:%s,%s" % (
+      self._input_device = 'hw:%s,%s' % (
           self._in_card, self.args.input_dev[1])
     else:
       self._input_device = self.args.input_dev
@@ -130,7 +131,7 @@ class AudioQualityTest(unittest.TestCase):
 
     if isinstance(self.args.output_dev, tuple):
       self._out_card = audio_utils.GetCardIndexByName(self.args.output_dev[0])
-      self._output_device = "hw:%s,%s" % (
+      self._output_device = 'hw:%s,%s' % (
           self._out_card, self.args.output_dev[1])
     else:
       self._output_device = self.args.output_dev
@@ -196,7 +197,7 @@ class AudioQualityTest(unittest.TestCase):
     Args:
       device: ALSA device name
     """
-    dev_name_pattern = re.compile(".*?hw:([0-9]+),([0-9]+)")
+    dev_name_pattern = re.compile('.*?hw:([0-9]+),([0-9]+)')
     match = dev_name_pattern.match(device)
     if match:
       return match.group(1)
@@ -265,14 +266,14 @@ class AudioQualityTest(unittest.TestCase):
             self._handlers[key](conn, attr_list)
             break
         if not match_command:
-          factory.console.error("Command %s cannot find", instruction)
+          factory.console.error('Command %s cannot find', instruction)
           conn.send(instruction + '\x05' + 'Active_End' + '\x05' +
                     'Fail' + '\x04\x03')
 
       if self._test_complete:
         factory.console.info('Test completed')
         break
-    factory.console.info("Connection disconnect")
+    factory.console.info('Connection disconnect')
     return False
 
   def RestoreConfiguration(self):
@@ -288,7 +289,7 @@ class AudioQualityTest(unittest.TestCase):
     if self._loop_process:
       TerminateOrKillProcess(self._loop_process)
       self._loop_process = None
-      logging.info("Stopped audio loop process")
+      logging.info('Stopped audio loop process')
 
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
@@ -331,26 +332,25 @@ class AudioQualityTest(unittest.TestCase):
 
     file_path = os.path.join(self._caches_dir, self._parameters[0])
     try:
-      with open(file_path, "rb") as md5_file:
+      with open(file_path, 'rb') as md5_file:
         rawstring = md5_file.read()
         self.SendResponse(rawstring.strip(), args)
     except IOError:
       factory.console.error('No such file or directory: %s', file_path)
-      self.SendResponse("NO_VERSION", args)
+      self.SendResponse('NO_VERSION', args)
 
   def HandleConfigFile(self, *args):
     """Return the content of configuration file."""
     file_path = os.path.join(self._caches_dir, self._parameters[1])
     try:
-      with open(file_path, "rb") as config_file:
+      with open(file_path, 'rb') as config_file:
         rawstring = config_file.read()
-        """
-        The format of file content is
-        'file_name;file_size;file_content'.
-        The file size is real file size instead of the size after b2a_hex.
-        Using b2a_hex is to avoid the file content including special
-        character such as '\x03', '\x04', and '\x05'.
-        """ # pylint: disable=W0105
+        """The format of file content is 'file_name;file_size;file_content'.
+
+        The file size is real file size instead of the size after
+        b2a_hex. Using b2a_hex is to avoid the file content including
+        special character such as '\x03', '\x04', and '\x05'.
+        """  # pylint: disable=W0105
         rawdata = (os.path.basename(self._parameters[1]) + ';' +
                    str(len(rawstring)) + ';' +
                    binascii.b2a_hex(rawstring))
@@ -358,7 +358,7 @@ class AudioQualityTest(unittest.TestCase):
         self.SendResponse(rawdata, args)
     except IOError:
       factory.console.error('No such file or directory: %s', file_path)
-      self.SendResponse("NO_CONFIG;0;%s" % binascii.b2a_hex(''), args)
+      self.SendResponse('NO_CONFIG;0;%s' % binascii.b2a_hex(''), args)
 
   def DecompressZip(self, file_path, target_path):
     """Decompresses ZIP format file
@@ -387,7 +387,7 @@ class AudioQualityTest(unittest.TestCase):
     size = int(attr_list[2])
     received_data = attr_list[3]
 
-    logging.info("Received file %s with size %d", file_name, size)
+    logging.info('Received file %s with size %d', file_name, size)
     real_data = binascii.a2b_hex(received_data)
 
     write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
@@ -423,13 +423,12 @@ class AudioQualityTest(unittest.TestCase):
       f.write(received_data)
     self._auxlogs.append(write_path)
 
-    logging.info("Received file %s with size %d", file_name, size)
+    logging.info('Received file %s with size %d', file_name, size)
 
     # Dump another copy of logs
     logging.info(repr(received_data))
 
-    '''
-    The result logs are stored in filename ending in _[0-9]+.txt.
+    '''The result logs are stored in filename ending in _[0-9]+.txt.
 
     Its content looks like:
     Freq [Hz]   dBV         Phase [Deg]
@@ -445,31 +444,29 @@ class AudioQualityTest(unittest.TestCase):
 
     Unfortunately, we cannot read the column names in the header row
     by splitting with spaces.
-    ''' # pylint: disable=W0105
+    '''  # pylint: disable=W0105
 
-    match = re.search(r"(\d+)_(\d+)_(\d+).txt", file_name)
-    match2 = re.search(r"(\d+)_(\d+).txt", file_name)
+    match = re.search(r'(\d+)_(\d+)_(\d+).txt', file_name)
+    match2 = re.search(r'(\d+)_(\d+).txt', file_name)
 
     if match:
-      """
-      serial_number and timestamp are generated by camerea test fixture.
+      """serial_number and timestamp are generated by camerea test fixture.
+
       We can use these two strings to lookup the raw logs on fixture.
-      """ # pylint: disable=W0105
+      """  # pylint: disable=W0105
       serial_number, timestamp, test_index = match.groups()
 
       lines = received_data.splitlines()
       header_row = lines[0]
 
       table = []
-      """
-      record the maximum column_number, to add sufficient 'nan' to
-      the end of list if the spaces in the end of line are stripped.
-      """ # pylint: disable=W0105
-      column_number = max([len(line)/12 + 1 for line in lines[1:]])
+      """record the maximum column_number, to add sufficient 'nan' to the end of list if the spaces in the end of line are stripped.
+      """  # pylint: disable=W0105
+      column_number = max([len(line) / 12 + 1 for line in lines[1:]])
       for line in lines[1:]:
         x = []
         for i in range(column_number):
-          x.append(float(line[i*12:i*12 + 12].strip() or 'nan'))
+          x.append(float(line[i * 12:i * 12 + 12].strip() or 'nan'))
         table.append(x)
 
       test_result = {}
@@ -479,7 +476,7 @@ class AudioQualityTest(unittest.TestCase):
       2. because the harmonic of some frequencies are not valid, we may
          have empty values in certain fields
       3. The missing fields are always in the last columns
-      """ # pylint: disable=W0105
+      """  # pylint: disable=W0105
       frequencies = dict((row[0], row[1:]) for row in table)
       test_result['frequencies'] = frequencies
       test_result['header_row'] = header_row
@@ -497,7 +494,7 @@ class AudioQualityTest(unittest.TestCase):
 
       Log('audio_quality_final_result', **final_result)
     else:
-      logging.info("Unrecognizable filename %s", file_name)
+      logging.info('Unrecognizable filename %s', file_name)
 
     self.SendResponse(None, args)
 
@@ -521,7 +518,7 @@ class AudioQualityTest(unittest.TestCase):
     self.SendResponse(None, args)
     self._test_complete = True
 
-    #Restores the original state before exiting the test.
+    # Restores the original state before exiting the test.
     Spawn(['iptables', '-D', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
            '-j', 'ACCEPT'], check_call=True)
     self.RestoreConfiguration()
@@ -714,7 +711,7 @@ class AudioQualityTest(unittest.TestCase):
       factory.console.error('Parameters cannot be found on shopfloor:\n%s',
                             self._parameters)
       self._ui.Fail('Parameters cannot be found on shopfloor')
-    #Download the list and saved to caches in state directory.
+    # Download the list and saved to caches in state directory.
     for filepath in download_list:
       Spawn(['mkdir', '-p', os.path.join(
           self._caches_dir, os.path.dirname(filepath))], check_call=True)
@@ -730,7 +727,7 @@ class AudioQualityTest(unittest.TestCase):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((_HOST, self._port))
     sock.listen(1)
-    logging.info("Listening at port %d", self._port)
+    logging.info('Listening at port %d', self._port)
 
     self._listen_thread = threading.Thread(target=self.ListenForever,
                                            args=(sock,))
@@ -750,7 +747,7 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
     shopfloor.UploadAuxLogs(self._auxlogs, dir_name='audio')
 
-  def StartRun(self, event): #pylint: disable=W0613
+  def StartRun(self, event):  # pylint: disable=W0613
     """Runs the testing flow after user press 'space'.
 
     Args:

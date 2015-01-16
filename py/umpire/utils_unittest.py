@@ -81,7 +81,6 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
     self.assertTrue(0440, self.GetPermissionBits(expected_md5sum_path))
     self.assertEqual(TOOLKIT_MD5, file_utils.Read(expected_md5sum_path))
 
-
   def testUnpackServerToolkit(self):
     expected_toolkit_dir = os.path.join(self.env.server_toolkits_dir,
                                         TOOLKIT_MD5)

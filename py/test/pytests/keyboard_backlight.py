@@ -5,7 +5,7 @@
 # found in the LICENSE file.
 
 
-'''This is a factory test to test keyboard backlight.'''
+"""This is a factory test to test keyboard backlight."""
 
 import unittest
 
@@ -23,6 +23,7 @@ _SUBTESTS = (('lights up', u'亮起', '100'),
 _INSTRUCTION_EN = 'If the keyboard backlight %s, press ENTER. '
 _INSTRUCTION_ZH = u'檢查鍵盤背光是否%s，是請按ENTER。'
 
+
 class KeyboardBacklightTest(unittest.TestCase):
 
   def setUp(self):
@@ -38,7 +39,7 @@ class KeyboardBacklightTest(unittest.TestCase):
     self._template.SetState(instruction)
     process_utils.Spawn(['ectool', 'pwmsetkblight',
                          _SUBTESTS[self._current][2]], ignore_stdout=True,
-                         log_stderr_on_error=True, check_call=True)
+                        log_stderr_on_error=True, check_call=True)
     self._current = self._current + 1
 
   def PassSubtest(self, unused_event):
@@ -49,7 +50,7 @@ class KeyboardBacklightTest(unittest.TestCase):
     return True
 
   def runTest(self):
-    '''Main entrance of keyboard backlight test.'''
+    """Main entrance of keyboard backlight test."""
     self._template.SetTitle(_TEST_TITLE)
     self._ui.BindKeyJS(test_ui.ENTER_KEY,
                        'test.sendTestEvent("pass_subtest", {});')

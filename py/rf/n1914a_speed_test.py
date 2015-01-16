@@ -32,10 +32,10 @@ if __name__ == '__main__':
 
   modes = [('Normal', n1914a.ToNormalMode),
            ('Double', n1914a.ToDoubleMode),
-           ('Fast',  n1914a.ToFastMode)]
+           ('Fast', n1914a.ToFastMode)]
 
   # Preparation
-  print "Preparing device..."
+  print 'Preparing device...'
   n1914a.SetRealFormat()
   # Disable average filter
   n1914a.SetAverageFilter(port=args.port, avg_length=None)

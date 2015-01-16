@@ -62,7 +62,7 @@ class RunnerInfo(BaseInfo):
   fields = {
       'board': None,
       'output_dir': None,
-      }
+  }
 
 
 class HostInfo(BaseInfo):
@@ -71,7 +71,7 @@ class HostInfo(BaseInfo):
   fields = {
       'dhcp_iface': None,
       'host_ip': None,
-      }
+  }
 
 
 class DUTInfo(BaseInfo):
@@ -86,7 +86,7 @@ class DUTInfo(BaseInfo):
       'servo_port': None,
       'servo_serial': None,
       'test_list_customization': None,
-      }
+  }
 
 
 CommandArguments = collections.namedtuple('CommandArguments', ['duts', 'args'])
@@ -136,7 +136,7 @@ class FactoryFlowCommandBuilder(object):
     base_args = copy.deepcopy(test_item)
     base_args['board'] = runner_info['board']
     dut_args_list = self.BuildArgs(base_args, runner_info, host_info,
-                                  dut_info_list)
+                                   dut_info_list)
     self.VerifyArgs(dut_args_list)
     return self.GenerateCommand(dut_args_list)
 
@@ -339,6 +339,7 @@ class RunHostCommandCommandBuilder(FactoryFlowCommandBuilder):
 
   def BuildArgs(self, base_args, runner_info, host_info, dut_info_list):
     REPLACE_ARG_RE = re.compile(r'\$\{(?P<arg_name>.+?)\}')
+
     def ReplaceArg(matchobj, dut_info):
       """Replaces '${<arg_name>}' with appropriate string.
 
@@ -361,7 +362,7 @@ class RunHostCommandCommandBuilder(FactoryFlowCommandBuilder):
             'runner_info': runner_info,
             'host_info': host_info,
             'dut_info': dut_info,
-            }[info_name][arg_name])
+        }[info_name][arg_name])
       else:
         return os.environ[arg_name]
 
@@ -382,4 +383,4 @@ CommandBuilder = {
     'usb-install': USBInstallCommandBuilder(),
     'run-automated-tests': RunAutomatedTestsCommandBuilder(),
     'run-host-command': RunHostCommandCommandBuilder(),
-    }
+}

@@ -15,12 +15,12 @@ import pprint
 import re
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import rule, schema
 from cros.factory.common import MakeList, MakeSet
 from cros.factory.hwid import common
 # Import yaml_tags to decode special YAML tags specific to HWID module.
-from cros.factory.hwid import yaml_tags # pylint: disable=W0611
+from cros.factory.hwid import yaml_tags  # pylint: disable=W0611
 from cros.factory.hwid.base32 import Base32
 from cros.factory.hwid.base8192 import Base8192
 from cros.factory.utils import file_utils
@@ -45,7 +45,7 @@ class Database(object):
           r'^([A-Z0-9]+)'                 # group(0): Board
           r' ('                           # group(1): Entire BOM.
           r'(?:[A-Z2-7]{4}-)*'            # Zero or more 4-character groups with
-                                          # dash.
+          # dash.
           r'[A-Z2-7]{1,4}'                # Last group with 1 to 4 characters.
           r')$'                           # End group(1)
       ),
@@ -53,7 +53,7 @@ class Database(object):
           r'^([A-Z0-9]+)'                 # group(0): Board
           r' ('                           # group(1): Entire BOM
           r'(?:[A-Z2-7][2-9][A-Z2-7]-)*'  # Zero or more 3-character groups with
-                                          # dash.
+          # dash.
           r'[A-Z2-7][2-9][A-Z2-7]'        # Last group with 3 characters.
           r')$'                           # End group(1)
       )}
@@ -128,7 +128,6 @@ class Database(object):
     return Database.LoadFile(os.path.join(common.DEFAULT_HWID_DATA_PATH,
                                           common.ProbeBoard().upper()),
                              verify_checksum=verify_checksum)
-
 
   @staticmethod
   def LoadFile(file_name, verify_checksum=False):
@@ -209,7 +208,7 @@ class Database(object):
           pass
         else:
           raise common.HWIDException(
-            '%r is not specified in component database' % key)
+              '%r is not specified in component database' % key)
 
     # Verify database integrity.
     if (expected_checksum is not None and
@@ -451,17 +450,17 @@ class Database(object):
 
     if '1' not in binary_string:
       raise common.HWIDException('Binary string %r does not have stop bit set',
-                          binary_string)
+                                 binary_string)
     # Truncate trailing 0s.
     string_without_paddings = binary_string[:binary_string.rfind('1') + 1]
 
     image_id = self.pattern.GetImageIdFromBinaryString(binary_string)
     if len(string_without_paddings) > self.pattern.GetTotalBitLength(image_id):
       raise common.HWIDException('Invalid bit string length of %r. Expected '
-                          'length <= %d, got length %d' %
-                          (binary_string,
-                           self.pattern.GetTotalBitLength(image_id),
-                           len(string_without_paddings)))
+                                 'length <= %d, got length %d' %
+                                 (binary_string,
+                                  self.pattern.GetTotalBitLength(image_id),
+                                  len(string_without_paddings)))
 
   def VerifyEncodedStringFormat(self, encoded_string):
     """Verifies that the format of the given encoded string.
@@ -492,7 +491,7 @@ class Database(object):
     try:
       image_id = self.pattern.GetImageIdFromEncodedString(encoded_string)
       encoding_scheme = self.pattern.GetPatternByImageId(
-        image_id)['encoding_scheme']
+          image_id)['encoding_scheme']
       board, bom_checksum = Database._HWID_FORMAT[encoding_scheme].findall(
           encoded_string)[0]
     except IndexError:
@@ -534,28 +533,28 @@ class Database(object):
                              if comp_cls not in bom.components])
     if missing_comp:
       raise common.HWIDException('Missing component classes: %r',
-                          ', '.join(sorted(missing_comp)))
+                                 ', '.join(sorted(missing_comp)))
 
     bom_encoded_fields = MakeSet(bom.encoded_fields.keys())
     db_encoded_fields = MakeSet(self.encoded_fields.keys())
     # Every encoded field defined in the database must present in BOM.
     if db_encoded_fields - bom_encoded_fields:
       raise common.HWIDException('Missing encoded fields in BOM: %r',
-                          ', '.join(sorted(db_encoded_fields -
-                                           bom_encoded_fields)))
+                                 ', '.join(sorted(db_encoded_fields -
+                                                  bom_encoded_fields)))
     # Every encoded field the BOM has must exist in the database.
     if bom_encoded_fields - db_encoded_fields:
       raise common.HWIDException('Extra encoded fields in BOM: %r',
-                          ', '.join(sorted(bom_encoded_fields -
-                                           db_encoded_fields)))
+                                 ', '.join(sorted(bom_encoded_fields -
+                                                  db_encoded_fields)))
 
     if bom.board != self.board:
       raise common.HWIDException('Invalid board name. Expected %r, got %r' %
-                          (self.board, bom.board))
+                                 (self.board, bom.board))
 
     if bom.encoding_pattern_index not in self.encoding_patterns:
       raise common.HWIDException('Invalid encoding pattern: %r' %
-                          bom.encoding_pattern_index)
+                                 bom.encoding_pattern_index)
     if bom.image_id not in self.image_id:
       raise common.HWIDException('Invalid image id: %r' % bom.image_id)
 
@@ -574,7 +573,7 @@ class Database(object):
               probed_values, indent=0, width=1024)))
     if unknown_values:
       raise common.HWIDException('Unknown component values: %r' %
-                          ', '.join(sorted(unknown_values)))
+                                 ', '.join(sorted(unknown_values)))
 
     # All the encoded index should exist in the database.
     invalid_fields = []
@@ -583,7 +582,7 @@ class Database(object):
         invalid_fields.append(field)
     if invalid_fields:
       raise common.HWIDException('Encoded fields %r have unknown indices' %
-                          ', '.join(sorted(invalid_fields)))
+                                 ', '.join(sorted(invalid_fields)))
 
   def VerifyComponents(self, probe_result, comp_list=None,
                        loose_matching=False):
@@ -636,10 +635,11 @@ class EncodingPatterns(dict):
           ...
         }
   """
+
   def __init__(self, encoding_patterns_dict):
     self.schema = schema.Dict('encoding patterns',
-                       key_type=schema.Scalar('encoding pattern', int),
-                       value_type=schema.Scalar('encoding scheme', str))
+                              key_type=schema.Scalar('encoding pattern', int),
+                              value_type=schema.Scalar('encoding scheme', str))
     self.schema.Validate(encoding_patterns_dict)
     super(EncodingPatterns, self).__init__(encoding_patterns_dict)
 
@@ -655,10 +655,11 @@ class ImageId(dict):
           ...
         }
   """
+
   def __init__(self, image_id_dict):
     self.schema = schema.Dict('image id',
-                       key_type=schema.Scalar('image id', int),
-                       value_type=schema.Scalar('image name', str))
+                              key_type=schema.Scalar('image id', int),
+                              value_type=schema.Scalar('image name', str))
     self.schema.Validate(image_id_dict)
     super(ImageId, self).__init__(image_id_dict)
 
@@ -685,16 +686,17 @@ class EncodedFields(dict):
           ...
         }
   """
+
   def __init__(self, encoded_fields_dict):
     self.schema = schema.Dict(
-      'encoded fields', schema.Scalar('encoded field', str),
-      schema.Dict(
-          'encoded indices', schema.Scalar('encoded index', int),
-          schema.Dict(
-              'component classes', schema.Scalar('component class', str),
-              schema.Optional([schema.Scalar('component name', str),
-                               schema.List('list of component names',
-                               schema.Scalar('component name', str))]))))
+        'encoded fields', schema.Scalar('encoded field', str),
+        schema.Dict(
+            'encoded indices', schema.Scalar('encoded index', int),
+            schema.Dict(
+                'component classes', schema.Scalar('component class', str),
+                schema.Optional([schema.Scalar('component name', str),
+                                 schema.List('list of component names',
+                                             schema.Scalar('component name', str))]))))
     self.schema.Validate(encoded_fields_dict)
     super(EncodedFields, self).__init__(encoded_fields_dict)
     # Convert string to list of string.
@@ -741,6 +743,7 @@ class Components(object):
   Raises:
     HWIDException if the given dict fails sanity checks.
   """
+
   def __init__(self, components_dict):
     self.schema = schema.Dict(
         'components',
@@ -755,11 +758,11 @@ class Components(object):
                         'component attributes',
                         items={'values': schema.Optional(
                             schema.Dict('probe key-value pairs',
-                                 key_type=schema.Scalar('probe key', str),
-                                 value_type=schema.AnyOf([
-                                     schema.Scalar('probe value', str),
-                                     schema.Scalar('probe value regexp',
-                                                   rule.Value)])))},
+                                        key_type=schema.Scalar('probe key', str),
+                                        value_type=schema.AnyOf([
+                                            schema.Scalar('probe value', str),
+                                            schema.Scalar('probe value regexp',
+                                                          rule.Value)])))},
                         optional_items={
                             'labels': schema.Dict(
                                 'dict of labels',
@@ -926,6 +929,7 @@ class Pattern(object):
     pattern_list: A list of dicts that maps encoded fields to their
         bit length.
   """
+
   def __init__(self, pattern_list):
     self.schema = schema.List(
         'pattern', schema.FixedDict(
@@ -1098,6 +1102,7 @@ class Rules(object):
   Args:
     rule_list: A list of dicts that can be converted to a list of Rule objects.
   """
+
   def __init__(self, rule_list):
     self.schema = schema.List('list of rules', schema.FixedDict(
         'rule', items={

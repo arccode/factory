@@ -143,7 +143,7 @@ class iio_generic(object):
       delay = self._mindelay
     while True:
       try:
-        with open(self._rd, "r") as f:
+        with open(self._rd, 'r') as f:
           value = int(f.readline().rstrip())
       except IOError:
         continue
@@ -218,19 +218,19 @@ class LightSensorTest(unittest.TestCase):
 
     test = 0
     for name in self._subtest_list:
-      self.ui.SetHTML(self._subtest_instruction[name], id="title%d" % test)
-      desc = "%s (%s)" % (
+      self.ui.SetHTML(self._subtest_instruction[name], id='title%d' % test)
+      desc = '%s (%s)' % (
           name, self.GetConfigDescription(self._subtest_cfg[name]))
-      self.ui.SetHTML(desc, id="desc%d" % test)
-      self.ui.SetHTML(" : UNTESTED", id="result%d" % test)
+      self.ui.SetHTML(desc, id='desc%d' % test)
+      self.ui.SetHTML(' : UNTESTED', id='result%d' % test)
       test += 1
 
     StartDaemonThread(target=self.MonitorSensor)
 
-  def StartCountDown(self, event): # pylint: disable=W0613
+  def StartCountDown(self, event):  # pylint: disable=W0613
     self._started = True
     self._active_subtest = self._subtest_list[0]
-    self.ui.SetHTML(" : ACTIVE", id="result%d" % self._tested)
+    self.ui.SetHTML(' : ACTIVE', id='result%d' % self._tested)
     StartCountdownTimer(self._timeout_per_subtest * len(self._subtest_list),
                         self.TimeoutHandler,
                         self.ui,
@@ -242,19 +242,19 @@ class LightSensorTest(unittest.TestCase):
       self.ui.Pass()
       return False
     self._active_subtest = self._subtest_list[self._tested]
-    self.ui.SetHTML(" : ACTIVE", id="result%d" % self._tested)
+    self.ui.SetHTML(' : ACTIVE', id='result%d' % self._tested)
     self._current_iter_remained = self._iter_req_per_subtest
     self._cumulative_val = 0
     return True
 
   def TimeoutHandler(self):
-    self.ui.SetHTML(" : FAILED", id="result%d" % self._tested)
+    self.ui.SetHTML(' : FAILED', id='result%d' % self._tested)
     self.ui.Fail('Timeout on subtest "%s"' % self._active_subtest)
 
   def PassOneIter(self, name):
     self._current_iter_remained -= 1
     if self._current_iter_remained is 0:
-      self.ui.SetHTML(" : PASSED", id="result%d" % self._tested)
+      self.ui.SetHTML(' : PASSED', id='result%d' % self._tested)
       self._current_iter_remained = self._iter_req_per_subtest
       mean_val = self._cumulative_val / self._iter_req_per_subtest
       logging.info('Passed subtest "%s" with mean value %d.', name, mean_val)
@@ -293,7 +293,7 @@ class LightSensorTest(unittest.TestCase):
         self._cumulative_val = 0
         self._current_iter_remained = self._iter_req_per_subtest
 
-    self.ui.SetHTML("Input: %d" % val, id="sensor_input")
+    self.ui.SetHTML('Input: %d' % val, id='sensor_input')
     return True
 
   def GetConfigDescription(self, cfg):

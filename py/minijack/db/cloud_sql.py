@@ -22,6 +22,7 @@ class Executor(db.base.BaseExecutor):
     _conn: The connection of the Google Cloud SQL database.
     _cursor: The cursor of the Google Cloud SQL database.
   """
+
   def __init__(self, conn):
     super(Executor, self).__init__()
     self._conn = conn
@@ -117,6 +118,7 @@ class ExecutorFactory(db.base.BaseExecutorFactory):
   Properties:
     _conn: The connection of the Google Cloud SQL database.
   """
+
   def __init__(self, conn):
     super(ExecutorFactory, self).__init__()
     self._conn = conn
@@ -137,6 +139,7 @@ class Database(db.base.BaseDatabase):
     _tables: A dict of the created tables.
     _executor_factory: A factory of executor objects.
   """
+
   def __init__(self, instance_name, database_name):
     super(Database, self).__init__()
     # This module only exist on Google App Engine.
@@ -237,7 +240,7 @@ class Database(db.base.BaseDatabase):
       ('contains', "%(key)s LIKE '%%%(val_str)s%%' ESCAPE '\\\\'"),
       ('startswith', "%(key)s LIKE '%(val_str)s%%' ESCAPE '\\\\'"),
       ('endswith', "%(key)s LIKE '%%%(val_str)s' ESCAPE '\\\\'"),
-      ])
+  ])
 
   @staticmethod
   def EscapeColumnName(name, table=None):
@@ -258,7 +261,7 @@ class Database(db.base.BaseDatabase):
     # Disable lint error since the file only exist if using Cloud SQL.
     import settings_cloud_sql  # pylint: disable=F0401
     return Database(settings_cloud_sql.INSTANCE_NAME,
-        settings_cloud_sql.DATABASE_NAME)
+                    settings_cloud_sql.DATABASE_NAME)
 
   # TODO(pihsun): This only works when there is exactly one primary key field
   #               for parent model, so it won't work on ComponentDetail now.

@@ -84,7 +84,7 @@ def _SanitizeTask(config):
         raise FormatError('Same sub-task name: %r' % repeat_name)
     return config
   except FormatError as e:
-    raise FormatError(config[TOKEN.NAME] + ":" + str(e))
+    raise FormatError(config[TOKEN.NAME] + ':' + str(e))
 
 
 def _SanitizeInputs(configs):
@@ -282,7 +282,7 @@ def _SanitizeStep(config):
   found = 0
   if TOKEN.CONFIRM in config:
     if not isinstance(config[TOKEN.CONFIRM], basestring):
-      raise FormatError("A confirm content must be a string")
+      raise FormatError('A confirm content must be a string')
     _SanitizeDefaultValueAndType(config, [
         (TOKEN.TITLE, _DEFAULT_CONFIRM_TITLE, basestring),
         (TOKEN.OPTIONS, list(_DEFAULT_CONFIRM_OPTIONS), list),
@@ -291,12 +291,12 @@ def _SanitizeStep(config):
       raise FormatError('No options for user to select.')
     config.setdefault(TOKEN.EXPECTED_OUTPUT, config[TOKEN.OPTIONS][0])
     if config[TOKEN.EXPECTED_OUTPUT] not in config[TOKEN.OPTIONS]:
-      raise FormatError("expected_output not in the options: %r" %
+      raise FormatError('expected_output not in the options: %r' %
                         config[TOKEN.EXPECTED_OUTPUT])
     found += 1
   for key in [x for x in [TOKEN.COMMAND, TOKEN.FINALLY] if x in config]:
     if not isinstance(config[key], basestring):
-      raise FormatError("A linux shell command must be a string")
+      raise FormatError('A linux shell command must be a string')
     _SanitizeDefaultValueAndType(config, [
         (TOKEN.TERMINATE_TIMEOUT, None, (int, type(None))),
         (TOKEN.TERMINATING_TIMEOUT, None, (int, type(None))),

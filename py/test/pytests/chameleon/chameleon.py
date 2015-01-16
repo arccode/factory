@@ -42,7 +42,7 @@ EDIDS = {
         ('1920x1080', '60Hz'): 'HDMI_1920x1080_60Hz',
     }
 }
-DEFAULT_CSS = "body { font-size: 32px; }"
+DEFAULT_CSS = 'body { font-size: 32px; }'
 
 
 class Chameleon(object):
@@ -78,7 +78,7 @@ class Chameleon(object):
     Args:
       port: The port to plug.
     """
-    logging.info('Emit HPD on %s port' , port)
+    logging.info('Emit HPD on %s port', port)
     self.chameleond.Plug(self.PORT_ID_MAP[port])
 
   def CreateEdid(self, edid):
@@ -318,8 +318,8 @@ class ChameleonDisplayTest(unittest.TestCase):
     with open(self.image_template_file, 'w') as output:
       with open(image_template) as f:
         output.write(f.read().format(
-            scale_width=float(width)/self.IMAGE_TEMPLATE_WIDTH,
-            scale_height=float(height)/self.IMAGE_TEMPLATE_HEIGHT))
+            scale_width=float(width) / self.IMAGE_TEMPLATE_WIDTH,
+            scale_height=float(height) / self.IMAGE_TEMPLATE_HEIGHT))
 
     tab_id = self.goofy_rpc.DeviceQueryTabs(window_id)[0]['id']
     url = 'http://127.0.0.1:%s%s' % (

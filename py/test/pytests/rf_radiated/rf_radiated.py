@@ -118,12 +118,11 @@ class RFRadiatedTest(unittest.TestCase):
         'power_meter': {
             'mac_address': None}}
 
-
   def setUp(self):
     # We're in the chamber without a monitor.  Start blinking keyboard LEDs to
     # inform the operator that we're still working.
     self.leds_blinker = leds.Blinker(
-        [(0, 0.5), (leds.LED_NUM|leds.LED_CAP|leds.LED_SCR, 0.5)])
+        [(0, 0.5), (leds.LED_NUM | leds.LED_CAP | leds.LED_SCR, 0.5)])
     self.leds_blinker.Start()
 
     # TODO(littlecvr): Enable fine controls in engineering mode.

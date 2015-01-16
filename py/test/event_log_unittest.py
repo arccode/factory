@@ -43,6 +43,7 @@ def Reset():
 
 class BasicTest(unittest.TestCase):
   """Tests basic elements in event_log.py."""
+
   def testEventNameRE(self):
     for i in ('a', '_', 'azAZ09_', 'a0'):
       self.assertTrue(event_log.EVENT_NAME_RE.match(i))
@@ -53,6 +54,7 @@ class BasicTest(unittest.TestCase):
 
 class GlobalSeqTest(unittest.TestCase):
   """Unittests for GlobalSeq."""
+
   def setUp(self):
     Reset()
     self.tmp = tempfile.mkdtemp(prefix='GlobalSeqTest.')
@@ -75,28 +77,29 @@ class GlobalSeqTest(unittest.TestCase):
   def testYamlDump(self):
     class OtherType(object):
       """A generic class."""
+
       def __init__(self, attr_foo):
         self.attr_foo = attr_foo
 
     dump = lambda x: event_log.YamlDump(x).strip()
     # FloatDigit type
     self.assertEqual('\n'.join(['0.1235', '...']),
-        dump(event_log.FloatDigit(0.12345, 4)))
+                     dump(event_log.FloatDigit(0.12345, 4)))
     # A subclass of a dict
     self.assertEqual('\n'.join(['bar: 1', 'foo: 3']),
-        dump(collections.OrderedDict([('bar', 1), ('foo', 3)])))
+                     dump(collections.OrderedDict([('bar', 1), ('foo', 3)])))
     # A subclass of a list
     self.assertEqual('\n'.join(['- comp_foo', '- value_foo', '- null']),
-        dump(ProbedComponentResult('comp_foo', 'value_foo', None)))
+                     dump(ProbedComponentResult('comp_foo', 'value_foo', None)))
     # Tuple type
     self.assertEqual('\n'.join(['- v1', '- v2', '- v3']),
-        dump(('v1', 'v2', 'v3')))
+                     dump(('v1', 'v2', 'v3')))
     # A subclass of an unicode, treating as a str
     self.assertEqual('\n'.join(['a dbus string', '...']),
-        dump(dbus.String('a dbus string')))
+                     dump(dbus.String('a dbus string')))
     # A general object
     self.assertEqual('\n'.join(['attr_foo: Foo']),
-        dump(OtherType('Foo')))
+                     dump(OtherType('Foo')))
     # An object without attribute
     self.assertEqual('{}', dump(self.testYamlDump))
 
@@ -129,7 +132,7 @@ class GlobalSeqTest(unittest.TestCase):
       seq = event_log.GlobalSeq()
       # Sequence file should be re-created, increasing by 2 for the logged
       # event, and SEQ_INCREMENT_ON_BOOT for the reboot.
-      self.assertEquals(7 + i*3 + (i+2)*event_log.SEQ_INCREMENT_ON_BOOT,
+      self.assertEquals(7 + i * 3 + (i + 2) * event_log.SEQ_INCREMENT_ON_BOOT,
                         seq.Next())
 
   def _testThreads(self, after_read=lambda: True):
@@ -176,6 +179,7 @@ class GlobalSeqTest(unittest.TestCase):
 
 class EventLogTest(unittest.TestCase):
   """Unittests for EventLog."""
+
   def setUp(self):
     Reset()
     self.tmp = tempfile.mkdtemp()
@@ -199,7 +203,7 @@ class EventLogTest(unittest.TestCase):
     self.assertNotEqual(device_id, event_log.GetReimageId())
 
   def testGetDeviceIdFromSearchPath(self):
-    mock_id = "MOCK_ID"
+    mock_id = 'MOCK_ID'
     device_id_search_path = os.path.join(self.tmp, '.device_id_search')
     with open(device_id_search_path, 'w') as f:
       print >> f, mock_id
@@ -250,12 +254,12 @@ class EventLogTest(unittest.TestCase):
 
     event0 = dict(a='A',
                   b=1,
-                  c=[1,2],
+                  c=[1, 2],
                   d={'D1': 3, 'D2': 4},
                   e=['E1', {'E2': 'E3'}],
                   f=True,
-                  g=u"[[[囧]]]".encode('utf-8'),
-                  h=u"[[[囧]]]")
+                  g=u'[[[囧]]]'.encode('utf-8'),
+                  h=u'[[[囧]]]')
     log.Log('event0', **event0)
 
     # Open and close another logger as well
@@ -273,7 +277,7 @@ class EventLogTest(unittest.TestCase):
     except:  # pylint: disable=W0702
       pass
 
-    log_data = list(yaml.load_all(open(event_log.EVENTS_PATH, "r")))
+    log_data = list(yaml.load_all(open(event_log.EVENTS_PATH, 'r')))
     self.assertEqual(6, len(log_data))
     # The last one should be empty; remove it
     self.assertIsNone(None, log_data[-1])
@@ -286,10 +290,10 @@ class EventLogTest(unittest.TestCase):
       del i['TIME']
 
     self.assertEqual(
-      ['EVENT', 'LOG_ID', 'PREFIX', 'SEQ',
-       'boot_id', 'boot_sequence', 'device_id',
-       'factory_md5sum', 'reimage_id'],
-      sorted(log_data[0].keys()))
+        ['EVENT', 'LOG_ID', 'PREFIX', 'SEQ',
+         'boot_id', 'boot_sequence', 'device_id',
+         'factory_md5sum', 'reimage_id'],
+        sorted(log_data[0].keys()))
     self.assertEqual('preamble', log_data[0]['EVENT'])
     self.assertEqual('test', log_data[0]['PREFIX'])
     self.assertEqual(0, log_data[0]['SEQ'])
@@ -347,6 +351,7 @@ class EventLogTest(unittest.TestCase):
 
 class GlobalEventLogTest(unittest.TestCase):
   """Unittests for GetGlobalLogger."""
+
   def setUp(self):
     # reset the global event logger
     event_log._global_event_logger = None  # pylint: disable=W0212
@@ -361,30 +366,26 @@ class GlobalEventLogTest(unittest.TestCase):
   def testGlobalInstanceNoEnv(self):
     self.assertRaises(ValueError, event_log.GetGlobalLogger)
 
-
   def testGlobalInstancePrefix(self):
-    event_log.SetGlobalLoggerDefaultPrefix("bar")
+    event_log.SetGlobalLoggerDefaultPrefix('bar')
     log = event_log.GetGlobalLogger()
     self.assertEqual('bar', log.prefix)
     self.assertTrue(log.log_id)
 
-
   def testInvalidDefaultPrefix(self):
     self.assertRaises(ValueError,
-      event_log.SetGlobalLoggerDefaultPrefix, "---")
-
+                      event_log.SetGlobalLoggerDefaultPrefix, '---')
 
   def testDefaultPrefix(self):
     os.environ['CROS_FACTORY_TEST_PATH'] = 'FooTest'
-    event_log.SetGlobalLoggerDefaultPrefix("bar")
+    event_log.SetGlobalLoggerDefaultPrefix('bar')
 
     log = event_log.GetGlobalLogger()
     self.assertEqual('bar', log.prefix)
     self.assertTrue(log.log_id)
 
     self.assertRaises(event_log.EventLogException,
-      event_log.SetGlobalLoggerDefaultPrefix, "bar2")
-
+                      event_log.SetGlobalLoggerDefaultPrefix, 'bar2')
 
   def testGlobalInstanceWithEnv(self):
     stub_uuid = 'bfa88756-ef2b-4e58-a4a2-eda1408bc93f'
@@ -395,7 +396,6 @@ class GlobalEventLogTest(unittest.TestCase):
     self.assertEqual('FooTest', log.prefix)
     self.assertEqual(stub_uuid, log.log_id)
 
-
   def testSingleton(self):
     os.environ['CROS_FACTORY_TEST_PATH'] = 'FooTest'
     # pylint: disable=W0212
@@ -404,6 +404,6 @@ class GlobalEventLogTest(unittest.TestCase):
     log2 = event_log.GetGlobalLogger()
     self.assertTrue(log1 is log2)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   unittest.main()

@@ -164,7 +164,7 @@ def ValidateResources(config, env):
           resource_path = env.GetResourcePath(resource_filename)
         except IOError as e:
           error.append('[NOT FOUND] resource %s:%s for bundle %r' % (
-            resource_name, e.filename, bundle['id']))
+              resource_name, e.filename, bundle['id']))
         else:
           if not VerifyResource(resource_path):
             error.append('[CHECKSUM MISMATCH] resource %s:%s for bundle %r' % (
@@ -226,7 +226,6 @@ class UmpireOrderedDict(dict):
 
 
 def DictToOrderedList(d, key_order, d_name):
-
   """Converts a dict to list of key, value pairs with key_order.
 
   Args:

@@ -23,6 +23,7 @@ from cros.factory.utils import file_utils
 
 
 class TestLightyConfigWriter(unittest.TestCase):
+
   def setUp(self):
     self.writer = IndentTextWriter(indent_first_line=False)
 
@@ -98,6 +99,7 @@ class TestLightyConfigWriter(unittest.TestCase):
 
 
 class TestHTTPService(unittest.TestCase):
+
   def setUp(self):
     self.env = UmpireEnv()
     self.temp_dir = tempfile.mkdtemp()
@@ -119,7 +121,7 @@ class TestHTTPService(unittest.TestCase):
                 {'remoteip': '192.168.51.0/24',
                  'proxy_addr': '192.168.51.1:8080'},
                 {'remoteip': '192.168.52.0/24',
-                 'proxy_addr': '192.168.52.1:8080'},]}},
+                 'proxy_addr': '192.168.52.1:8080'}]}},
         'bundles': [{
             'id': 'default',
             'note': '',
@@ -127,8 +129,8 @@ class TestHTTPService(unittest.TestCase):
             'resources': {
                 'device_factory_toolkit': '',
                 'stateful_partition': '',
-                'oem_partition':'',
-                'rootfs_release':'',
+                'oem_partition': '',
+                'rootfs_release': '',
                 'rootfs_test': ''}}],
         'rulesets': [{
             'bundle_id': 'default',
@@ -146,7 +148,7 @@ class TestHTTPService(unittest.TestCase):
     # Store the output lighttpd.conf file into config (list).
     # Also make a dict (line => line number) to speed up line and line block
     # matching.
-    config = map(lambda s:s.rstrip(), file_utils.ReadLines(config_path))
+    config = map(lambda s: s.rstrip(), file_utils.ReadLines(config_path))
     config_first_occur_line = {}
     for i, line in enumerate(config):
       if line not in config_first_occur_line:
@@ -184,7 +186,7 @@ class TestHTTPService(unittest.TestCase):
           '      "host" => "127.0.0.1",',
           '      "port" => %d,' % p,
           '    ),',
-          '  ),',])
+          '  ),'])
     expect_fastcgi_conf.append(')')
     ExpectLines(expect_fastcgi_conf)
 

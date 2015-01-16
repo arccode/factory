@@ -111,17 +111,17 @@ class ConnectionManager():
       self.DisableNetworking(clear=False)
 
   def _DetectProcName(self):
-    '''Tries to auto-detect the network manager process name.'''
+    """Tries to auto-detect the network manager process name."""
     # Try to detects the network manager process with pgrep.
     for process_name in _PROC_NAME_LIST[1:]:
-      if not subprocess.call("pgrep %s" % process_name,
+      if not subprocess.call('pgrep %s' % process_name,
                              shell=True, stdout=self.fnull):
         self.process_name = process_name
         return
     raise ConnectionManagerException("Can't find the network manager process")
 
   def _GetInterfaces(self):
-    '''Gets the list of all network interfaces.'''
+    """Gets the list of all network interfaces."""
     device_paths = glob.glob('/sys/class/net/*')
     interfaces = [os.path.basename(x) for x in device_paths]
     try:
@@ -142,16 +142,16 @@ class ConnectionManager():
     '''
     for wlan in wlans:
       wlan_dict = {
-        'Type': 'wifi',
-        'Mode': 'managed',
-        'AutoConnect': True,
-        'SSID': wlan.ssid,
-        'Security': wlan.security
+          'Type': 'wifi',
+          'Mode': 'managed',
+          'AutoConnect': True,
+          'SSID': wlan.ssid,
+          'Security': wlan.security
       }
       # "Passphrase" is only needed for secure wifi.
-      if wlan.security is not "none":
+      if wlan.security is not 'none':
         wlan_dict.update({
-          'Passphrase': wlan.passphrase
+            'Passphrase': wlan.passphrase
         })
       self.wlans.append(wlan_dict)
 
@@ -171,12 +171,12 @@ class ConnectionManager():
     # Turn on drivers for interfaces.
     for dev in self._GetInterfaces():
       logging.info('ifconfig %s up', dev)
-      subprocess.call("ifconfig %s up" % dev, shell=True, stdout=self.fnull,
+      subprocess.call('ifconfig %s up' % dev, shell=True, stdout=self.fnull,
                       stderr=self.fnull)
 
     # Start network manager.
     for service in [self.network_manager] + self.subservices:
-      subprocess.call("start %s" % service, shell=True,
+      subprocess.call('start %s' % service, shell=True,
                       stdout=self.fnull, stderr=self.fnull)
 
     # Configure the network manager to auto-connect wireless networks.
@@ -217,12 +217,12 @@ class ConnectionManager():
 
     # Stop network manager.
     for service in self.subservices + [self.network_manager]:
-      subprocess.call("stop %s" % service, shell=True,
+      subprocess.call('stop %s' % service, shell=True,
                       stdout=self.fnull, stderr=self.fnull)
 
     # Turn down drivers for interfaces to really stop the network.
     for dev in self._GetInterfaces():
-      subprocess.call("ifconfig %s down" % dev, shell=True, stdout=self.fnull,
+      subprocess.call('ifconfig %s down' % dev, shell=True, stdout=self.fnull,
                       stderr=self.fnull)
 
     # Delete the configured profiles
@@ -230,8 +230,8 @@ class ConnectionManager():
       try:
         os.remove(self.profile_path % self.process_name)
       except OSError:
-        logging.exception("Unable to remove the network profile."
-                          " File non-existent?")
+        logging.exception('Unable to remove the network profile.'
+                          ' File non-existent?')
 
   def WaitForConnection(self, timeout=_CONNECTION_TIMEOUT_SECS):
     '''A blocking function that waits until any network is connected.
@@ -249,7 +249,7 @@ class ConnectionManager():
       time.sleep(_SLEEP_INTERVAL_SECS)
 
   def IsConnected(self):
-    '''Returns (network state == online).'''
+    """Returns (network state == online)."""
     # Check if we are connected to any network.
     # We can't cache the flimflam object because each time we re-start
     # the network some filepaths that flimflam works on will change.
@@ -267,6 +267,7 @@ class DummyConnectionManager(object):
   '''A dummy connection manager that always reports being connected.
 
   Useful, e.g., in the chroot.'''
+
   def __init__(self):
     pass
 
@@ -282,6 +283,7 @@ class DummyConnectionManager(object):
   def IsConnected(self):
     return True
 
+
 def PingHost(host, timeout=_PING_TIMEOUT_SECS):
   '''Checks if we can reach a host.
 
@@ -292,7 +294,7 @@ def PingHost(host, timeout=_PING_TIMEOUT_SECS):
   Returns:
     True if host is successfully pinged.
   '''
-  with open(os.devnull, "w") as fnull:
+  with open(os.devnull, 'w') as fnull:
     return subprocess.call(
-      "ping %s -c 1 -w %d" % (host, int(timeout)),
-      shell=True, stdout=fnull, stderr=fnull)
+        'ping %s -c 1 -w %d' % (host, int(timeout)),
+        shell=True, stdout=fnull, stderr=fnull)

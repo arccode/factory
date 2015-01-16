@@ -29,6 +29,7 @@ TEST_RUNNER_ENV_VAR = 'CROS_FACTORY_TEST_RUNNER'
 # Timeout for running any individual test program.
 TEST_TIMEOUT_SECS = 300
 
+
 def _MaybeRunPytestsOnly(tests, isolated_tests):
   """Filters tests according to changed file.
 
@@ -67,6 +68,7 @@ def _MaybeRunPytestsOnly(tests, isolated_tests):
   return ([test for test in tests if test.startswith(PYTEST_PATH)],
           [test for test in isolated_tests if test.startswith(PYTEST_PATH)])
 
+
 class _TestProc(object):
   """Creates and runs a subprocess to run an unittest.
 
@@ -79,6 +81,7 @@ class _TestProc(object):
     test_name: unittest path.
     log_name: path of log file for unittest.
   """
+
   def __init__(self, test_name, log_name):
     self.test_name = test_name
     self.log_file = open(log_name, 'w')
@@ -130,6 +133,7 @@ class RunTests(object):
     isolated_tests: list of test to run in isolate mode.
     fallback: True to re-run failed test sequentially.
   """
+
   def __init__(self, tests, max_jobs, log_dir, isolated_tests=None,
                fallback=True):
     self._tests = tests if tests else []

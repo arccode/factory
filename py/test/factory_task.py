@@ -50,7 +50,7 @@ class FactoryTaskManager(object):
       self._current_task = self._task_list.pop(0)
       self._current_task._task_manager = self
       self._current_task._ui = self._ui
-      self._current_task._Start() # pylint: disable=W0212
+      self._current_task._Start()  # pylint: disable=W0212
     else:
       self._ui.Pass()
 
@@ -119,7 +119,7 @@ class FactoryTask(object):
     """
     logging.info('%s %s.', self.__class__.__name__, reason)
     assert self._IsRunning(), (
-      'Trying to finish %s which is not running.' % (self.__class__.__name__))
+        'Trying to finish %s which is not running.' % (self.__class__.__name__))
     self._execution_status = TaskState.FINISHED
     self._ui.task_hook = None
     self.Cleanup()
@@ -129,11 +129,11 @@ class FactoryTask(object):
 
   def Stop(self):
     self._Finish(FinishReason.STOPPED)
-    self._task_manager.RunNextTask() # pylint: disable=E1101
+    self._task_manager.RunNextTask()  # pylint: disable=E1101
 
   def Pass(self):
     self._Finish(FinishReason.PASSED)
-    self._task_manager.RunNextTask() # pylint: disable=E1101
+    self._task_manager.RunNextTask()  # pylint: disable=E1101
 
   def Fail(self, error_msg, later=False):
     '''Fails the task and perform cleanup.
@@ -150,8 +150,8 @@ class FactoryTask(object):
 
     self._Finish(FinishReason.FAILED)
     if later:
-      self._ui.FailLater(error_msg) # pylint: disable=E1101
-      self._task_manager.RunNextTask() # pylint: disable=E1101
+      self._ui.FailLater(error_msg)  # pylint: disable=E1101
+      self._task_manager.RunNextTask()  # pylint: disable=E1101
     else:
       self._ui.Fail(error_msg)  # pylint: disable=E1101
 
@@ -178,9 +178,9 @@ class FactoryTask(object):
               log=True)
     if p.returncode != 0 and fail_message:
       self.Fail(
-        '%s\nFailed running: %s\nSTDERR: %s' % (
-          fail_message, ' '.join(command), p.stderr_data),
-        later=fail_later)
+          '%s\nFailed running: %s\nSTDERR: %s' % (
+              fail_message, ' '.join(command), p.stderr_data),
+          later=fail_later)
     return p.returncode == 0
 
 
@@ -192,6 +192,7 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
   Args:
     ui: UI object.
   """
+
   def __init__(self, ui):
     super(InteractiveFactoryTask, self).__init__()
     self._ui = ui
@@ -212,7 +213,9 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
 
     self._ui.BindKey(test_ui.ESCAPE_KEY,
                      lambda _: self.Fail(
-        '%s failed by operator.' % self.__class__.__name__, later=fail_later))
+                         '%s failed by operator.' %
+                         self.__class__.__name__,
+                         later=fail_later))
 
   def BindDigitKeys(self, pass_digit, fail_later=True):
     """Binds the pass_digit to pass the task and other digits to fail it.

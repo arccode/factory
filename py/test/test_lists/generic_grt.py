@@ -18,6 +18,7 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import Passed
 from cros.factory.test.test_lists.test_lists import RebootStep
 
+
 def GRT(args):
   """Creates Google required test list.
 

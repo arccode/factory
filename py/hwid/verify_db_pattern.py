@@ -33,6 +33,7 @@ from cros.factory.tools import build_board
 
 class HWIDDBsPatternTest(unittest.TestCase):
   """Unit test for HWID database."""
+
   def __init__(self, board=None, commit=None):
     super(HWIDDBsPatternTest, self).__init__()
     self.board = board
@@ -111,10 +112,10 @@ class HWIDDBsPatternTest(unittest.TestCase):
       for index in old_bit_mapping.iterkeys():
         if (new_bit_mapping[index] != old_bit_mapping[index]):
           raise common.HWIDException(
-            'Bit pattern mismatch found at bit %d (encoded field=%r). '
-            'If you are trying to append new bit(s), be sure to create a new '
-            'bit pattern field instead of simply incrementing the last field' %
-            (index, old_bit_mapping[index][0]))
+              'Bit pattern mismatch found at bit %d (encoded field=%r). '
+              'If you are trying to append new bit(s), be sure to create a new '
+              'bit pattern field instead of simply incrementing the last field' %
+              (index, old_bit_mapping[index][0]))
 
 
 if __name__ == '__main__':

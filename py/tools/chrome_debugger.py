@@ -25,10 +25,8 @@ information."""
 from __future__ import print_function
 
 import json
-import logging
 import sys
 import threading
-import time
 import urllib2
 
 from ws4py.client.threadedclient import WebSocketClient

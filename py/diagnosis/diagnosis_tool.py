@@ -50,6 +50,7 @@ class _ConfirmEventRegister(object):
         second element: The extra arguemnts for the callback function.
         third element: The extra keyword-arguments for the callback function.
   """
+
   def __init__(self):
     """Constructor."""
     self._register_counter = 0
@@ -251,7 +252,7 @@ class DiagnosisToolRPC(object):
     self._goofy_rpc = goofy_rpc
     self._confirm_event_register = _ConfirmEventRegister()
     self._ui_proxy = DiagnosisToolUIProxy(self._goofy_rpc,
-                                           self._confirm_event_register)
+                                          self._confirm_event_register)
     self._task_configs = {}
     self._current_task = None
     self._current_task_id = None
@@ -340,8 +341,8 @@ class DiagnosisToolRPC(object):
     if self._current_task.state != TASK_STATE.RUNNING:
       return
     self._ui_proxy.Confirm(title='Confirm',
-                           content='Do you really want to stop the task %r?' %
-                                   self._current_task.name,
+                           content=('Do you really want to stop the task %r?' %
+                                    self._current_task.name),
                            options=[OPTIONS.YES, OPTIONS.CANCEL],
                            timeout=10,
                            default_option=OPTIONS.CANCEL,
@@ -380,7 +381,7 @@ def _ImportConfigFiles():
   for (dirpath, unused_dirnames, filenames) in os.walk(_BASE_PATH):
     for filename in [x for x in filenames if x[-5:] == '.yaml']:
       try:
-        opened_file = open(os.path.join(dirpath, filename), "r")
+        opened_file = open(os.path.join(dirpath, filename), 'r')
         new_configs = yaml.load(opened_file)
       except Exception as e:  # pylint: disable=W0703
         logging.exception('Cought an exception while reading and parsing ' +
@@ -422,12 +423,13 @@ def _GetMenuAndTaskConfigs(config):
     A tuple (menu_config, the_dict)
   """
   tasks = {}
+
   def Tracer(config, path):
     name = config[TOKEN.NAME]
     curr_path = path + [name]
     identify = _TaskPathToId(curr_path)
     tasks[identify] = config
-    ret = {TOKEN.TASK_ID : identify, TOKEN.NAME : name}
+    ret = {TOKEN.TASK_ID: identify, TOKEN.NAME: name}
     if TOKEN.MEMBER in config:
       ret[TOKEN.MEMBER] = [Tracer(x, curr_path) for x in config[TOKEN.MEMBER]]
     return ret

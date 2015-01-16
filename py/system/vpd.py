@@ -31,6 +31,7 @@ class Partition(object):
 
   This should not be created by the caller; rather, the caller should use
   vpd.ro or vpd.rw."""
+
   def __init__(self, name):
     """Constructor.
 

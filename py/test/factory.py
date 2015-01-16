@@ -25,7 +25,7 @@ import re
 import sys
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 from cros.factory.test.unicode_to_string import UnicodeToString
 from cros.factory.utils import net_utils
@@ -76,8 +76,8 @@ def get_factory_root(subdir=None):
    subdir: If not None, returns that subdirectory.
   """
   ret = (os.environ.get('CROS_FACTORY_ROOT') or
-      (('/tmp/factory.%s' % getpass.getuser())
-      if utils.in_chroot() else '/var/factory'))
+         (('/tmp/factory.%s' % getpass.getuser())
+          if utils.in_chroot() else '/var/factory'))
   if subdir:
     ret = os.path.join(ret, subdir)
   utils.TryMakeDirs(ret)
@@ -110,12 +110,12 @@ _state_instance = None
 
 def get_current_test_path():
   # Returns the path of the currently executing test, if any.
-  return os.environ.get("CROS_FACTORY_TEST_PATH")
+  return os.environ.get('CROS_FACTORY_TEST_PATH')
 
 
 def get_current_test_metadata():
   """Returns metadata for the currently executing test, if any."""
-  path = os.environ.get("CROS_FACTORY_TEST_METADATA")
+  path = os.environ.get('CROS_FACTORY_TEST_METADATA')
   if not path or not os.path.exists(path):
     return {}
 
@@ -142,7 +142,7 @@ def get_lsb_data():
   for lsb_file in lsb_files:
     if not os.path.exists(lsb_file):
       continue
-    with open(lsb_file, "rt") as lsb_handle:
+    with open(lsb_file, 'rt') as lsb_handle:
       for line in lsb_handle.readlines():
         line = line.strip()
         if ('=' not in line) or line.startswith('#'):
@@ -165,14 +165,14 @@ def get_current_md5sum():
 
 
 def _init_console_log():
-  handler = logging.FileHandler(CONSOLE_LOG_PATH, "a", delay=True)
+  handler = logging.FileHandler(CONSOLE_LOG_PATH, 'a', delay=True)
   log_format = '[%(levelname)s] %(message)s'
   test_path = get_current_test_path()
   if test_path:
     log_format = test_path + ': ' + log_format
   handler.setFormatter(logging.Formatter(log_format))
 
-  ret = logging.getLogger("console")
+  ret = logging.getLogger('console')
   ret.addHandler(handler)
   ret.setLevel(logging.INFO)
   return ret
@@ -291,7 +291,7 @@ def read_test_list(path=None, state_instance=None, text=None):
   else:
     exec text in test_list_locals
   assert 'TEST_LIST' in test_list_locals, (
-    'Test list %s does not define TEST_LIST' % (path or '<text>'))
+      'Test list %s does not define TEST_LIST' % (path or '<text>'))
 
   options.check_valid()
 
@@ -308,6 +308,8 @@ def read_test_list(path=None, state_instance=None, text=None):
 
 
 _inited_logging = False
+
+
 def init_logging(prefix=None, verbose=False):
   """Initializes logging.
 
@@ -317,7 +319,7 @@ def init_logging(prefix=None, verbose=False):
     verbose: True for debug logging, false for info logging.
   """
   global _inited_logging  # pylint: disable=W0603
-  assert not _inited_logging, "May only call init_logging once"
+  assert not _inited_logging, 'May only call init_logging once'
   _inited_logging = True
 
   if not prefix:
@@ -326,13 +328,13 @@ def init_logging(prefix=None, verbose=False):
   # Make sure that nothing else has initialized logging yet (e.g.,
   # autotest, whose logging_config does basicConfig).
   assert not logging.getLogger().handlers, (
-    "Logging has already been initialized")
+      'Logging has already been initialized')
 
   logging.basicConfig(
-    format=('[%(levelname)s] ' + prefix +
-            ' %(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
-    level=logging.DEBUG if verbose else logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S')
+      format=('[%(levelname)s] ' + prefix +
+              ' %(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
+      level=logging.DEBUG if verbose else logging.INFO,
+      datefmt='%Y-%m-%d %H:%M:%S')
 
   logging.debug('Initialized logging')
 
@@ -417,7 +419,6 @@ class Options(object):
         '266abb9bec3aff5c37bd025463ee5c14ac18bfca'
   """
   _types['engineering_password_sha1'] = (type(None), str)
-
 
   wlans = []
   """WLANs that the connection manager may connect to."""
@@ -706,12 +707,12 @@ class TestState(object):
     self.count += increment_count
     self.shutdown_count += increment_shutdown_count
     self.iterations_left = max(
-      0, self.iterations_left - decrement_iterations_left)
+        0, self.iterations_left - decrement_iterations_left)
     # If retries_left is 0 after update, it is the usual case, so test
     # can be run for the last time. If retries_left is -1 after update,
     # it had already used the first try and all the retries.
     self.retries_left = max(
-      -1, self.retries_left - decrement_retries_left)
+        -1, self.retries_left - decrement_retries_left)
 
     return self.__dict__ != old_dict
 
@@ -757,6 +758,7 @@ class FactoryTestFailure(Exception):
     status: The status to report for the failure (usually FAILED
       but possibly UNTESTED).
   """
+
   def __init__(self, message=None, status=TestState.FAILED):
     super(FactoryTestFailure, self).__init__(message)
     self.status = status
@@ -764,6 +766,7 @@ class FactoryTestFailure(Exception):
 
 class RequireRun(object):
   """Requirement that a test has run (and optionally passed)."""
+
   def __init__(self, path, passed=True):
     """Constructor.
 
@@ -916,12 +919,12 @@ class FactoryTest(object):
     self.root = None
     self.iterations = iterations
     assert isinstance(self.iterations, int) and self.iterations > 0, (
-      'In test %s, Iterations must be a positive integer, not %r' % (
-        self.path, self.iterations))
+        'In test %s, Iterations must be a positive integer, not %r' % (
+            self.path, self.iterations))
     self.retries = retries
     assert isinstance(self.retries, int) and self.retries >= 0, (
-      'In test %s, Retries must be a positive integer or 0, not %r' % (
-        self.path, self.retries))
+        'In test %s, Retries must be a positive integer or 0, not %r' % (
+            self.path, self.retries))
     if _root:
       self.id = None
       self.implicit_id = False
@@ -946,10 +949,11 @@ class FactoryTest(object):
               self.id, ID_REGEXP.pattern))
       # Note that we check ID uniqueness in _init.
 
-    assert len(filter(None, [autotest_name, pytest_name,
-                             invocation_target, subtests])) <= 1, (
-        'No more than one of autotest_name, pytest_name, '
-        'invocation_target, and subtests must be specified')
+    assert len(filter(
+        None,
+        [autotest_name, pytest_name, invocation_target,
+         subtests])) <= 1, ('No more than one of autotest_name, pytest_name, '
+                            'invocation_target, and subtests must be specified')
 
     if has_ui is not None:
       self.has_ui = has_ui
@@ -972,8 +976,8 @@ class FactoryTest(object):
         (self.id, bogus_exclusive_items, self.EXCLUSIVE_OPTIONS))
     assert not ((backgroundable or force_background) and (
         enable_services or disable_services)), (
-        'Test %s may not be backgroundable with enable_services or '
-        'disable_services specified.' % self.id)
+            'Test %s may not be backgroundable with enable_services or '
+            'disable_services specified.' % self.id)
     assert not (force_background and self.has_ui), (
         'Test %s may not have UI with force background.' % self.id)
     assert not (force_background and backgroundable), (
@@ -1002,19 +1006,14 @@ class FactoryTest(object):
     ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
     return ret
 
-
   def __repr__(self, recursive=False):
     attrs = ['%s=%s' % (k, repr(getattr(self, k)))
              for k in sorted(self.__dict__.keys())
              if k in FactoryTest.REPR_FIELDS and getattr(self, k)]
     if recursive and self.subtests:
       indent = '  ' * (1 + self.path.count('.'))
-      attrs.append(
-          'subtests=['
-          + ('\n' + ',\n'.join([subtest.__repr__(recursive)
-                                for subtest in self.subtests])
-             ).replace('\n', '\n' + indent)
-          + '\n]')
+      attrs.append('subtests=[' + ('\n' + ',\n'.join([subtest.__repr__(recursive)
+                                                      for subtest in self.subtests])).replace('\n', '\n' + indent) + '\n]')
 
     return '%s(%s)' % (self.__class__.__name__, ', '.join(attrs))
 
@@ -1062,7 +1061,7 @@ class FactoryTest(object):
   def get_state(self):
     """Returns the current test state from the state instance."""
     return TestState.from_dict_or_object(
-      self.root.state_instance.get_test_state(self.path))
+        self.root.state_instance.get_test_state(self.path))
 
   def update_state(self, update_parent=True, status=None, **kwargs):
     """Updates the test state.
@@ -1076,7 +1075,7 @@ class FactoryTest(object):
       kwargs['shutdown_count'] = 0
 
     ret = TestState.from_dict_or_object(
-      self.root._update_test_state(  # pylint: disable=W0212
+        self.root._update_test_state(  # pylint: disable=W0212
         self.path, status=status, **kwargs))
     if update_parent and self.parent:
       self.parent.update_status_from_children()
@@ -1207,6 +1206,7 @@ class FactoryTest(object):
         self.update_state(status=TestState.PASSED, skip=True,
                           error_msg=TestState.SKIPPED_MSG)
 
+
 class FactoryTestList(FactoryTest):
   """The root node for factory tests.
 
@@ -1215,6 +1215,7 @@ class FactoryTestList(FactoryTest):
     source_path: The path to the file in which the test list was defined,
         if known.  For new-style test lists only.
   """
+
   def __init__(self, subtests, state_instance, options,
                test_list_id=None, label_en=None, finish_construction=True):
     """Constructor.
@@ -1272,9 +1273,9 @@ class FactoryTestList(FactoryTest):
         requirement.test = self.lookup_path(requirement.path)
         if not requirement.test:
           raise TestListError(
-            "Unknown test %s in %s's require_run argument (note "
-            "that full paths are required)"
-            % (requirement.path, test.path))
+              "Unknown test %s in %s's require_run argument (note "
+              'that full paths are required)'
+              % (requirement.path, test.path))
 
     if self.options.strict_ids:
       bad_implicit_ids = []
@@ -1282,8 +1283,8 @@ class FactoryTestList(FactoryTest):
         if test.implicit_id:
           bad_implicit_ids.append(test.path)
       if bad_implicit_ids:
-        raise TestListError("options.strict_ids is set, but tests %s lack "
-                            "explicitly specified IDs" % bad_implicit_ids)
+        raise TestListError('options.strict_ids is set, but tests %s lack '
+                            'explicitly specified IDs' % bad_implicit_ids)
 
   def get_all_tests(self):
     """Returns all FactoryTest objects."""
@@ -1294,8 +1295,8 @@ class FactoryTestList(FactoryTest):
     # The state instance may return a dict (for the XML/RPC proxy)
     # or the TestState object itself. Convert accordingly.
     return dict(
-      (self.lookup_path(k), TestState.from_dict_or_object(v))
-      for k, v in self.state_instance.get_test_states().iteritems())
+        (self.lookup_path(k), TestState.from_dict_or_object(v))
+        for k, v in self.state_instance.get_test_states().iteritems())
 
   def lookup_path(self, path):
     """Looks up a test from its path."""
@@ -1366,6 +1367,7 @@ class ShutdownStep(OperatorTest):
 
 class HaltStep(ShutdownStep):
   """Halts the machine."""
+
   def __init__(self, **kw):
     kw.setdefault('id', 'Halt')
     super(HaltStep, self).__init__(operation=ShutdownStep.HALT, **kw)
@@ -1373,6 +1375,7 @@ class HaltStep(ShutdownStep):
 
 class RebootStep(ShutdownStep):
   """Reboots the machine."""
+
   def __init__(self, **kw):
     kw.setdefault('id', 'Reboot')
     super(RebootStep, self).__init__(operation=ShutdownStep.REBOOT, **kw)
@@ -1380,6 +1383,7 @@ class RebootStep(ShutdownStep):
 
 class FullRebootStep(ShutdownStep):
   """Fully reboots the machine."""
+
   def __init__(self, **kw):
     kw.setdefault('id', 'FullReboot')
     super(FullRebootStep, self).__init__(

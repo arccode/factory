@@ -17,6 +17,7 @@ class EventAttrExporter(ExporterBase):
 
   TODO(waihong): Unit tests.
   """
+
   def Setup(self):
     super(EventAttrExporter, self).Setup()
     self._database.GetOrCreateTable(Event)
@@ -37,21 +38,21 @@ class EventAttrExporter(ExporterBase):
   def _InsertEvent(self, packet):
     """Retrieves event information and inserts to Event table"""
     row = Event(
-      event_id       = packet.GetEventId(),
-      device_id      = packet.preamble.get('device_id'),
-      time           = packet.event.get('TIME'),
-      event          = packet.event.get('EVENT'),
-      seq            = int(packet.event.get('SEQ')),
-      # Backward compatibile with the old tags, i.e. log_id and filename.
-      log_id         = (packet.event.get('LOG_ID') or
-                        packet.preamble.get('log_id')),
-      prefix         = (packet.event.get('PREFIX') or
-                        packet.preamble.get('filename', '').split('-')[0]),
-      boot_id        = packet.preamble.get('boot_id'),
-      boot_sequence  = int(packet.preamble.get('boot_sequence')),
-      factory_md5sum = packet.preamble.get('factory_md5sum'),
-      reimage_id     = (packet.preamble.get('reimage_id') or
-                        packet.preamble.get('image_id')),
+        event_id=packet.GetEventId(),
+        device_id=packet.preamble.get('device_id'),
+        time=packet.event.get('TIME'),
+        event=packet.event.get('EVENT'),
+        seq=int(packet.event.get('SEQ')),
+        # Backward compatibile with the old tags, i.e. log_id and filename.
+        log_id=(packet.event.get('LOG_ID') or
+                packet.preamble.get('log_id')),
+        prefix = (packet.event.get('PREFIX') or
+                  packet.preamble.get('filename', '').split('-')[0]),
+        boot_id = packet.preamble.get('boot_id'),
+        boot_sequence = int(packet.preamble.get('boot_sequence')),
+        factory_md5sum = packet.preamble.get('factory_md5sum'),
+        reimage_id = (packet.preamble.get('reimage_id') or
+                      packet.preamble.get('image_id')),
     )
     self._database.Insert(row)
 
@@ -64,9 +65,9 @@ class EventAttrExporter(ExporterBase):
     for attr, value in EventPacket.FlattenAttr(packet.event):
       if attr not in RESERVED_PATH:
         row = Attr(
-          event_id = packet.GetEventId(),
-          attr     = _ToAsciiString(attr),
-          value    = _ToAsciiString(value),
+            event_id=packet.GetEventId(),
+            attr=_ToAsciiString(attr),
+            value=_ToAsciiString(value),
         )
         rows.append(row)
     if rows:

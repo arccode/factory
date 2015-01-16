@@ -18,6 +18,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestGroup
 
+
 def Diagnostic(args):
   """Creates Diagnostic test list.
 
@@ -25,9 +26,9 @@ def Diagnostic(args):
     args: A TestListArgs object.
   """
   group_id = 'Diagnostic'
-  with TestGroup(id=group_id, run_if=lambda env:env.InEngineeringMode()):
+  with TestGroup(id=group_id, run_if=lambda env: env.InEngineeringMode()):
     OperatorTest(
         id='AudioDiagnostic',
         label_zh=u'音效诊断',
         pytest_name='audio_diagnostic',
-        )
+    )

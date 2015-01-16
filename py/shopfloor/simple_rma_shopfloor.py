@@ -93,10 +93,12 @@ _RMA_NUMBER_YAML_MUST_EXIST = True
 _HWIDV3_HWDB_PATH = '../../hwid'
 _HWID_FACTORY_TRANSLATION = []
 
+
 def _synchronized(f):
   """Decorates a function to grab a lock."""
+
   def wrapped(self, *args, **kw):
-    with self._lock: # pylint: disable=W0212
+    with self._lock:  # pylint: disable=W0212
       return f(self, *args, **kw)
   return wrapped
 
@@ -104,7 +106,8 @@ def _synchronized(f):
 class DeviceData(yaml.YAMLObject):
   """Class to keep the device data of a machine."""
   yaml_tag = u'!DeviceData'
-  def __init__(self, rma_number, vpd, hwid): # pylint: disable=W0231
+
+  def __init__(self, rma_number, vpd, hwid):  # pylint: disable=W0231
     self.rma_number = rma_number
     self.vpd = vpd
     self.hwid = hwid
@@ -114,7 +117,7 @@ class DeviceData(yaml.YAMLObject):
     self.ubind_attribute = ''
 
   def __repr__(self):
-    return "%s(rma_number=%r, vpd=%r, hwid=%r)" % (
+    return '%s(rma_number=%r, vpd=%r, hwid=%r)' % (
         self.__class__.__name__, self.rma_number, self.vpd, self.hwid)
 
 
@@ -123,14 +126,14 @@ class ShopFloor(shopfloor.ShopFloorBase):
 
   Device data is read from '<serial_number>.yaml' files in the data directory.
   """
-  NAME = "Simple RMA shopfloor."
+  NAME = 'Simple RMA shopfloor.'
   VERSION = 2
 
   def __init__(self):
     super(ShopFloor, self).__init__()
     self.aux_data = {}
     self.data_store = {}
-    self._lock = threading.RLock() # Used to serialize shopfloor API calls.
+    self._lock = threading.RLock()  # Used to serialize shopfloor API calls.
 
     self.required_aux_tables = _REQUIRED_AUX_TABLES
     self.device_info_fields = _DEVICE_INFO_FIELDS
@@ -143,27 +146,27 @@ class ShopFloor(shopfloor.ShopFloorBase):
     self.LoadConfiguration(self.data_dir)
     # Load AUX data files.
     for f in glob.glob(os.path.join(self.data_dir, '*.csv')):
-      match = re.match('^aux_(\w+)\.csv',
+      match = re.match(r'^aux_(\w+)\.csv',
                        os.path.basename(f))
       if not match:
         continue
       table_name = match.group(1)
-      logging.info("Reading table %s from %s...", table_name, f)
+      logging.info('Reading table %s from %s...', table_name, f)
       assert table_name not in self.aux_data
       self.aux_data[table_name] = LoadAuxCsvData(f)
-      logging.info("Loaded %d entries from %s",
+      logging.info('Loaded %d entries from %s',
                    len(self.aux_data[table_name]), f)
 
     # Verify all required tables were loaded.
     for required_table in self.required_aux_tables:
       assert required_table in self.aux_data, (
-          "Required AUX table %s not found." % required_table)
+          'Required AUX table %s not found.' % required_table)
 
     # Try to touch some files inside directory, to make sure the directory is
     # writable, and everything I/O system is working fine.
-    stamp_file = os.path.join(self.data_dir, ".touch")
-    with open(stamp_file, "w") as stamp_handle:
-      stamp_handle.write("%s: VERSION %s" % (self.NAME, self.VERSION))
+    stamp_file = os.path.join(self.data_dir, '.touch')
+    with open(stamp_file, 'w') as stamp_handle:
+      stamp_handle.write('%s: VERSION %s' % (self.NAME, self.VERSION))
     os.remove(stamp_file)
 
   def LoadConfiguration(self, config_path):
@@ -171,7 +174,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     if not config_path or not os.path.exists(config_path):
       logging.warning('Bad path to rma_config_board.yaml, ignoring.')
       return
-    config = os.path.join(config_path, "rma_config_board.yaml")
+    config = os.path.join(config_path, 'rma_config_board.yaml')
     if(os.path.exists(config)):
       logging.info('Found a rma_config_board.yaml file, loading...')
       with open(config, 'rb') as yaml_file:
@@ -224,7 +227,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     # anyway, or at least determine if the file was touched.
     if serial in self.data_store:
       return
-    data_path = os.path.join(self.data_dir, serial + ".yaml")
+    data_path = os.path.join(self.data_dir, serial + '.yaml')
     if(os.path.exists(data_path)):
       device_data = LoadDeviceData(data_path, self.device_info_fields)
       logging.info('%s: Loading device data.', serial)
@@ -251,12 +254,12 @@ class ShopFloor(shopfloor.ShopFloorBase):
       ValueError: If the rma number format is invalid.
     """
     if not re.match(self.rma_number_regex, serial):
-      message = "Invalid RMA number: %s" % serial
+      message = 'Invalid RMA number: %s' % serial
       raise ValueError(message)
     if self.rma_number_yaml_must_exist:
-      data_path = os.path.join(self.data_dir, serial + ".yaml")
+      data_path = os.path.join(self.data_dir, serial + '.yaml')
       if not os.path.exists(data_path):
-        message = "RMA YAML not found on shopfloor: %s" % serial
+        message = 'RMA YAML not found on shopfloor: %s' % serial
         raise ValueError(message)
     logging.info('Validated RMA number: %s', serial)
     return True
@@ -294,8 +297,8 @@ class ShopFloor(shopfloor.ShopFloorBase):
       A dictionary containing information about the expected
       configuration of the device.
     """
-    return { key: self._GetDataStoreValue(serial, key)
-             for key in self.device_info_fields }
+    return {key: self._GetDataStoreValue(serial, key)
+            for key in self.device_info_fields}
 
   @_synchronized
   def GetHWID(self, serial):
@@ -320,7 +323,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
       Registration code dictionary or {} if data for the device can't be found.
     """
     registration_code_map = self._GetDataStoreValue(
-                                serial, 'registration_code_map')
+        serial, 'registration_code_map')
     return registration_code_map or {}
 
   @_synchronized
@@ -354,11 +357,11 @@ class ShopFloor(shopfloor.ShopFloorBase):
       report_blob = report_blob.data
     if not report_name:
       report_name = ('%s-%s.rpt' % (re.sub('[^a-zA-Z0-9]', '', serial),
-                                    time.strftime("%Y%m%d-%H%M%S%z")))
+                                    time.strftime('%Y%m%d-%H%M%S%z')))
       if is_gzip_blob(report_blob):
-        report_name += ".gz"
+        report_name += '.gz'
     self.SaveReport(report_name, report_blob)
-    logging.info("%s: Saved report", serial)
+    logging.info('%s: Saved report', serial)
 
   @_synchronized
   def Finalize(self, serial):
@@ -367,11 +370,11 @@ class ShopFloor(shopfloor.ShopFloorBase):
     Args:
       serial: Serial number of device.
     """
-    data_path = os.path.join(self.data_dir, serial + ".yaml")
+    data_path = os.path.join(self.data_dir, serial + '.yaml')
     if(os.path.exists(data_path)):
       os.remove(data_path)
-      logging.info("%s: Removed yaml file: %s", serial, data_path)
-    logging.info("%s: Finalized", serial)
+      logging.info('%s: Removed yaml file: %s', serial, data_path)
+    logging.info('%s: Finalized', serial)
 
   @_synchronized
   def SaveDeviceData(self, data, overwrite):
@@ -445,6 +448,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
       yaml.dump(device_data, yaml_file)
     return {'status': 'success'}
 
+
 def DecodeHWIDv3Components(hwid, hwdb_path):
   """Decodes a HWIDv3 string into components.
 
@@ -471,6 +475,7 @@ def DecodeHWIDv3Components(hwid, hwdb_path):
   decoded_hwid = hwid_utils.DecodeHWID(hwdb, hwid)
   return decoded_hwid.bom.components
 
+
 def LoadDeviceData(filename, device_info_fields):
   """Loads a YAML file and returns structured shop floor system data.
 
@@ -488,7 +493,7 @@ def LoadDeviceData(filename, device_info_fields):
   with open(filename, 'rb') as yaml_file:
     device_data = yaml.load(yaml_file)
 
-  #TODO(dparker): Use DeviceData objects directly instead of remapping them.
+  # TODO(dparker): Use DeviceData objects directly instead of remapping them.
   vpd = device_data.vpd.copy()
   registration_code_map = {'user': vpd['rw']['ubind_attribute'],
                            'group': vpd['rw']['gbind_attribute']}
@@ -541,19 +546,19 @@ def LoadAuxCsvData(csv_file):
         'bool': ParseBoolean,
         'int': int,
         'float': float
-        }
+    }
     for header in headers:
       match = HEADER_REGEXP.match(header)
       if not match:
-        raise ValueError("In %s, header %r does not match regexp %s"
+        raise ValueError('In %s, header %r does not match regexp %s'
                          % (csv_file, header, HEADER_REGEXP.pattern))
 
       col_name, col_type = match.groups()
       if col_type:
         parser = PARSERS.get(col_type)
         if not parser:
-          raise ValueError("In %s, header %r has unknown type %r"
-                           " (should be one of %r)"
+          raise ValueError('In %s, header %r has unknown type %r'
+                           ' (should be one of %r)'
                            % (csv_file, col_name, col_type,
                               sorted(PARSERS.keys())))
       else:
@@ -562,7 +567,7 @@ def LoadAuxCsvData(csv_file):
       cols.append((col_name, parser))
 
       if col_name in col_name_set:
-        raise ValueError("In %s, more than one column named %r"
+        raise ValueError('In %s, more than one column named %r'
                          % (csv_file, col_name))
       col_name_set.add(col_name)
 
@@ -573,7 +578,7 @@ def LoadAuxCsvData(csv_file):
     for row in reader:
       row_number += 1
       if len(row) != len(cols):
-        raise ValueError("In %s:%d, expected %d columns but got %d",
+        raise ValueError('In %s:%d, expected %d columns but got %d',
                          csv_file, row_number, len(headers), len(row))
       row_data = {}
 
@@ -582,12 +587,12 @@ def LoadAuxCsvData(csv_file):
           row_data[col[0]] = col[1](value)
         except ValueError as e:
           # Re-raise with row number and column name
-          raise ValueError("In %s:%d.%s, %s" %
+          raise ValueError('In %s:%d.%s, %s' %
                            (csv_file, row_number, col[0], e))
 
       row_id = row_data.get(id_column_name)
       if row_id in data:
-        raise ValueError("In %s:%d, duplicate ID %r" %
+        raise ValueError('In %s:%d, duplicate ID %r' %
                          (csv_file, row_number, row_id))
       data[row_id] = row_data
 

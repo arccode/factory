@@ -19,7 +19,8 @@ from cros.factory.test import ui_templates
 from cros.factory.utils import process_utils
 
 CheckItem = namedtuple('CheckItem', 'instruction_en instruction_zh'
-                                    ' command judge_to_pass')
+                       ' command judge_to_pass')
+
 
 class LineCheckItemTest(unittest.TestCase):
   """Test a list of commands are successful or not.
@@ -30,22 +31,22 @@ class LineCheckItemTest(unittest.TestCase):
     _current: current test item index in _items.
   """
   ARGS = [
-    Arg('title_en', (str, unicode), 'English test title.', optional=False),
-    Arg('title_zh', (str, unicode), 'Chinese test title.', optional=False),
-    Arg('items', list,
-        ('A list of tuples, each representing an item to check.  Each tuple\n'
-         'is of the format:\n'
-         '\n'
-         '  (instruction_en, instruction_zh, command, judge_to_pass)\n'
-         '\n'
-         'The fields are:\n'
-         '\n'
-         '- instruction_en: (str or unicode) instruction in English.\n'
-         '- instruction_zh: (str or unicode) instruction in Chinese.\n'
-         '- command: (list) commands to be passed to Spawn.\n'
-         '- judge_to_pass: (bool) require user to judge pass/fail\n'
-         '  even if command is successful.'),
-        optional=False),
+      Arg('title_en', (str, unicode), 'English test title.', optional=False),
+      Arg('title_zh', (str, unicode), 'Chinese test title.', optional=False),
+      Arg('items', list,
+          ('A list of tuples, each representing an item to check.  Each tuple\n'
+           'is of the format:\n'
+           '\n'
+           '  (instruction_en, instruction_zh, command, judge_to_pass)\n'
+           '\n'
+           'The fields are:\n'
+           '\n'
+           '- instruction_en: (str or unicode) instruction in English.\n'
+           '- instruction_zh: (str or unicode) instruction in Chinese.\n'
+           '- command: (list) commands to be passed to Spawn.\n'
+           '- judge_to_pass: (bool) require user to judge pass/fail\n'
+           '  even if command is successful.'),
+          optional=False),
   ]
 
   def setUp(self):
@@ -60,10 +61,11 @@ class LineCheckItemTest(unittest.TestCase):
     return self._items[self._current].judge_to_pass
 
   def RunSubTest(self):
-    """
-    Runs current subtest and checks if command is successful.
-    If current subtest needs to be judged, waits for user hitting Enter/Esc.
-    If current subtest does not need to be judges, proceed to the next subtest.
+    """Runs current subtest and checks if command is successful.
+
+    If current subtest needs to be judged, waits for user hitting
+    Enter/Esc. If current subtest does not need to be judges, proceed to
+    the next subtest.
     """
     inst_en = self._items[self._current].instruction_en
     inst_zh = self._items[self._current].instruction_zh
@@ -98,24 +100,23 @@ class LineCheckItemTest(unittest.TestCase):
     self.RunSubTest()
 
   def EnterKeyPressed(self, unused_event):
-    """
-    Handler for enter key pressed by user. Passes the subtest if this subtest
-    needs to be judged.
+    """Handler for enter key pressed by user.
+
+    Passes the subtest if this subtest needs to be judged.
     """
     if self.NeedToJudgeSubTest():
       self.PassSubTest()
 
   def EscapeKeyPressed(self, unused_event):
-    """
-    Handler for escape key pressed by user. Fails the subtest if this subtest
-    needs to be judged.
+    """Handler for escape key pressed by user.
+
+    Fails the subtest if this subtest needs to be judged.
     """
     if self.NeedToJudgeSubTest():
       self._ui.Fail('Judged as fail by operator.')
 
   def PassSubTest(self):
-    """
-    Passes the test if there is no test left, runs the next subtest otherwise.
+    """Passes the test if there is no test left, runs the next subtest otherwise.
     """
     if self._current + 1 == len(self.args.items):
       self._ui.Pass()
@@ -125,7 +126,7 @@ class LineCheckItemTest(unittest.TestCase):
   def runTest(self):
     """Main entrance of the test."""
     self._items = [CheckItem._make(item)  # pylint: disable=W0212
-                       for item in self.args.items]
+                   for item in self.args.items]
     self._template.SetTitle(test_ui.MakeLabel(self.args.title_en,
                                               self.args.title_zh))
     self._ui.BindKeyJS(test_ui.ENTER_KEY,

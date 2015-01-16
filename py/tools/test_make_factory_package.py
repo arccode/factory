@@ -99,7 +99,7 @@ def PrepareArtifacts(url):
     Spawn(['gsutil', 'cp', os.path.join(url, pattern), artifacts_dir],
           check_call=True)
     archive_path = file_utils.GlobSingleFile(
-      os.path.join(artifacts_dir, pattern))
+        os.path.join(artifacts_dir, pattern))
     file_utils.ExtractFile(archive_path, unpacked_path)
 
   logging.info('Setup complete: touching %s', setup_complete_path)
@@ -125,13 +125,13 @@ class MakeFactoryPackageTest(unittest.TestCase):
     file_utils.WriteFile(self.firmware_updater, 'dummy firmware updater')
 
     self.base_args = [
-      self.make_factory_package,
-      '--factory_toolkit',
-      'unpacked/factory_toolkit/install_factory_toolkit.run',
-      '--test', 'unpacked/chromiumos_test_image.bin',
-      '--release', 'unpacked/chromiumos_base_image.bin',
-      '--hwid_updater', self.hwid,
-      ]
+        self.make_factory_package,
+        '--factory_toolkit',
+        'unpacked/factory_toolkit/install_factory_toolkit.run',
+        '--test', 'unpacked/chromiumos_test_image.bin',
+        '--release', 'unpacked/chromiumos_base_image.bin',
+        '--hwid_updater', self.hwid,
+    ]
 
   def tearDown(self):
     if not self.args.save_tmp:
@@ -141,16 +141,16 @@ class MakeFactoryPackageTest(unittest.TestCase):
     static = os.path.join(self.tmp_dir, 'static')
     if not self.args.skip_mfp:
       Spawn(self.base_args + [
-              '--omaha_data_dir', static,
-              '--firmware_updater', self.firmware_updater,
-          ], cwd=self.artifacts_dir, check_call=True, log=True)
+          '--omaha_data_dir', static,
+          '--firmware_updater', self.firmware_updater,
+      ], cwd=self.artifacts_dir, check_call=True, log=True)
 
     # The static directory should have been created with a particular
     # set of files.
     self.assertItemsEqual(
-      ['efi.gz', 'firmware.gz', 'hwid.gz', 'miniomaha.conf',
-       'oem.gz', 'rootfs-release.gz', 'rootfs-test.gz', 'state.gz'],
-      os.listdir(static))
+        ['efi.gz', 'firmware.gz', 'hwid.gz', 'miniomaha.conf',
+         'oem.gz', 'rootfs-release.gz', 'rootfs-test.gz', 'state.gz'],
+        os.listdir(static))
 
     # miniomaha.conf should be parseable Python that sets the 'config'
     # variable.
@@ -196,11 +196,11 @@ class MakeFactoryPackageTest(unittest.TestCase):
     image = os.path.join(self.tmp_dir, 'out.img')
     if not self.args.skip_mfp:
       Spawn(self.base_args + [
-                '--usbimg', image,
-                '--firmware_updater', self.firmware_updater,
-                '--install_shim',
-                'unpacked/factory_shim/factory_install_shim.bin',
-            ],
+          '--usbimg', image,
+          '--firmware_updater', self.firmware_updater,
+          '--install_shim',
+          'unpacked/factory_shim/factory_install_shim.bin',
+      ],
             cwd=self.artifacts_dir, check_call=True, log=True)
 
     self.CheckPartitions(self.PartitionMapForImage(image, 2), True)
@@ -244,10 +244,10 @@ class MakeFactoryPackageTest(unittest.TestCase):
                                'hwid', 'X86-GENERIC')
       self.assertEquals(expect_hwid, os.path.exists(hwid_file))
       if expect_hwid:
-        assert re.search('^board:', file_utils.ReadFile(hwid_file),
-                         re.MULTILINE), (
-            '%s should be a valid HWID file, but it does not contain a line '
-            'beginning with "board:"' % hwid_file)
+        assert re.search(
+            '^board:', file_utils.ReadFile(hwid_file), re.MULTILINE), (
+                '%s should be a valid HWID file, but it does not contain a '
+                'line beginning with "board:"' % hwid_file)
 
       # For release builds, there should be a stateful_files.tar.xz
       # archive in the generated stateful partition.
@@ -260,7 +260,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
                                quiet=True)
         # There should be an "unencrypted" directory.
         self.assertTrue(os.path.isdir(os.path.join(
-              stateful_files_unpacked, 'unencrypted')))
+            stateful_files_unpacked, 'unencrypted')))
 
   def PartitionMapForImage(self, image, offset=0):
     """Returns a partition map for a given image.
@@ -275,8 +275,8 @@ class MakeFactoryPackageTest(unittest.TestCase):
           and 0 for regular disk images.
     """
     return {'state': dict(
-                source_path=image,
-                index=partitions.STATEFUL.index),
+        source_path=image,
+        index=partitions.STATEFUL.index),
             'rootfs-release': dict(
                 source_path=image,
                 index=partitions.RELEASE_ROOTFS.index + offset),

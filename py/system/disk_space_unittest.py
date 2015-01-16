@@ -21,6 +21,7 @@ FakeStatVFSResult = collections.namedtuple(
 
 class DiskSpaceTest(unittest.TestCase):
   # pylint: disable=W0212
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(disk_space, '_Open')
@@ -36,7 +37,7 @@ class DiskSpaceTest(unittest.TestCase):
         '/dev/sda1 /home ext4 rw\n',
         'tmp /tmp tmpfs rw\n',
         'fusectl /sys/fs/fuse/connections fusectl rw\n'
-        ])
+    ])
 
     os.statvfs('/mnt/stateful_partition').AndReturn(self.stateful_stats)
     os.statvfs('/tmp').AndReturn(self.tmp_stats)

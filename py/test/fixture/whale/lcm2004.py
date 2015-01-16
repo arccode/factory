@@ -19,14 +19,14 @@ class Lcm2004(object):
       BFT.LcmRow.ROW1: 'r1',
       BFT.LcmRow.ROW2: 'r2',
       BFT.LcmRow.ROW3: 'r3',
-      }
+  }
 
   _LCM_COMMAND = {
       BFT.LcmCommand.BACKLIGHT_OFF: 'bkloff',
       BFT.LcmCommand.BACKLIGHT_ON: 'bklon',
       BFT.LcmCommand.CLEAR: 'clear',
       BFT.LcmCommand.HOME: 'home',
-      }
+  }
 
   def __init__(self, servo):
     """Constructor.

@@ -18,7 +18,7 @@ import struct
 import sys
 
 # Constant Definition
-BMPBLOCK_SIGNATURE = "$BMP"
+BMPBLOCK_SIGNATURE = '$BMP'
 BMPBLOCK_SIGNATURE_SIZE = 4
 MAX_IMAGE_IN_LAYOUT = 8
 
@@ -117,8 +117,7 @@ def unpack_LocaleString(blob, base=0, offset=0):
 
 
 def unpack_bmpblock(blob, offset=0):
-  """
-  Unpacks a Chrome OS Bitmap Block.
+  """Unpacks a Chrome OS Bitmap Block.
 
   Returns a dictionary of unpacked data
   """
@@ -144,9 +143,9 @@ def unpack_bmpblock(blob, offset=0):
 
 
 # When running in command line, try to report blob in the parameters
-if __name__ == "__main__":
+if __name__ == '__main__':
   # Only load pprint if we are in console (debug / test) mode
   import pprint
   for filename in sys.argv[1:]:
-    bmpblk = unpack_bmpblock(open(filename, "rb").read(), 0)
+    bmpblk = unpack_bmpblock(open(filename, 'rb').read(), 0)
     print pprint.pformat(bmpblk)

@@ -38,6 +38,7 @@ class HackedArgParser(ArgumentParser):
     """Return str with aligned list of 'cmd-name : first-doc-line' strs."""
     max_cmd_len = (max(len(c) for c in self.subcommands) if self.subcommands
                    else 0)
+
     def format_item(cmd_name):
       doc = self.subcommands[cmd_name][1]
       if doc is None:
@@ -68,6 +69,7 @@ def CmdArg(*args, **kwargs):
 
 class VerbosityAction(Action):
   """A function to set logging verbosity."""
+
   def __call__(self, parser, namespace, values, option_string=None):
     logging_level = {4: logging.DEBUG, 3: logging.INFO, 2: logging.WARNING,
                      1: logging.ERROR, 0: logging.CRITICAL}[int(values)]
@@ -82,6 +84,7 @@ verbosity_cmd_arg = CmdArg(
 # Map the caller frame to subcommands
 _caller_subcommands_map = {}
 
+
 def Command(cmd_name, *args, **kwargs):
   """Decorator to populate the per-module sub-command list.
 
@@ -94,6 +97,7 @@ def Command(cmd_name, *args, **kwargs):
   """
   CheckDictKeys(kwargs, ['doc'])
   caller = inspect.getouterframes(inspect.currentframe())[1][1]
+
   def Decorate(fun):
     doc = fun.__doc__ if fun.__doc__ else None
     # Use the provided doc if any.

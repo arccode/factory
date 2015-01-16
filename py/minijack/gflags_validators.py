@@ -108,6 +108,7 @@ class SimpleValidator(Validator):
   Validates that a single flag passes its checker function. The checker function
   takes the flag value and returns True (if value looks fine) or, if flag value
   is not valid, either returns False or raises an Exception."""
+
   def __init__(self, flag_name, checker, message):
     """Constructor.
 
@@ -148,6 +149,7 @@ class DictionaryValidator(Validator):
   function takes flag values and returns True (if values look fine) or,
   if values are not valid, either returns False or raises an Exception.
   """
+
   def __init__(self, flag_names, checker, message):
     """Constructor.
 

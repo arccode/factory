@@ -87,4 +87,3 @@ class FactoryUpdater(object):
     """
     current_md5sum = self.GetTestMd5sum()
     return current_md5sum and (current_md5sum != device_md5sum)
-

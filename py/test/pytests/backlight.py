@@ -3,8 +3,7 @@
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-A factory test to test the function of backlight of display panel.
+"""A factory test to test the function of backlight of display panel.
 """
 
 import logging
@@ -31,6 +30,7 @@ _ADJUST_STEP = 10
 BrightnessSetting = namedtuple('BrightnessSetting',
                                ['lowest', 'normal', 'highest'])
 
+
 class BacklightTest(unittest.TestCase):
   """Tests the function of backlight of display panel.
 
@@ -49,13 +49,16 @@ class BacklightTest(unittest.TestCase):
     self.current_brightness: The current brightness.
   """
   ARGS = [
-    Arg('brightness_path', str, 'The field under sysfs to control brightness',
-        optional=False),
-    Arg('brightness', tuple, 'Brightness value (lowest, normal, highest)',
-        optional=True, default=(10, 100, 250)),
-    Arg('adjust_step', int, 'How much the brightness value should be adjusted',
-        optional=True, default=_ADJUST_STEP),
-  ]
+      Arg(
+          'brightness_path', str,
+          'The field under sysfs to control brightness', optional=False),
+      Arg(
+          'brightness', tuple, 'Brightness value (lowest, normal, highest)',
+          optional=True, default=(10, 100, 250)),
+      Arg(
+          'adjust_step', int,
+          'How much the brightness value should be adjusted', optional=True,
+          default=_ADJUST_STEP)]
 
   def AdjustBrightness(self, value):
     """Adjust the intensity by writing targeting value to sysfs.
@@ -124,12 +127,13 @@ class BacklightTest(unittest.TestCase):
         'brightness', 'max_brightness')) as f:
       max_brightness = int(f.read())
       if self.brightness_setting.highest > max_brightness:
-        logging.warning('highest brightness %r is larger than'
+        logging.warning(
+            'highest brightness %r is larger than'
             'max_brightness %r under sysfs. Use sysfs value instead',
             self.brightness_setting.highest, max_brightness)
         # pylint: disable=W0212
         self.brightness_setting = self.brightness_setting._replace(
-            highest = max_brightness)
+            highest=max_brightness)
         logging.info('New brightness_setting: %r', self.brightness_setting)
 
   def OnAdjustBrightness(self):

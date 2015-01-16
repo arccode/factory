@@ -25,6 +25,7 @@ MOCK_RES_HASH = '##12345678'
 
 
 class ConfigEditorTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = Mox()
     self.umpire_cli = self.mox.CreateMockAnything()
@@ -44,7 +45,7 @@ class ConfigEditorTest(unittest.TestCase):
     """Simulates edit action by prepending '# edited\n'."""
     self.mox.StubOutWithMock(subprocess, 'call')
     subprocess.call(In(self.editor)).WithSideEffects(
-        lambda args: file_utils.PrependFile(args[-1], EDITOR_PREPEND  + '\n'))
+        lambda args: file_utils.PrependFile(args[-1], EDITOR_PREPEND + '\n'))
 
   def MockUmpireCLIValidate(self, config_basename=None):
     self.umpire_cli.ValidateConfig(StrContains(EDITOR_PREPEND))
@@ -170,7 +171,6 @@ class ConfigEditorTest(unittest.TestCase):
     self.assertTrue(config_lines[0].startswith(
         '# Failed to validate Umpire config'))
     self.assertRegexpMatches(config_lines[1], 'resource not found')
-
 
 
 if __name__ == '__main__':

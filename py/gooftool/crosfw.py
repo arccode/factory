@@ -40,12 +40,12 @@ class Flashrom(object):
   # flashrom(8) command line parameters
   _VALID_TARGETS = (TARGET_MAIN, TARGET_EC, TARGET_PD)
   _TARGET_MAP = {
-      TARGET_MAIN: "-p host",
-      TARGET_EC: "-p ec",
-      TARGET_PD: "-p ec:dev=1",
+      TARGET_MAIN: '-p host',
+      TARGET_EC: '-p ec',
+      TARGET_PD: '-p ec:dev=1',
   }
-  _WRITE_FLAGS = "--fast-verify"
-  _READ_FLAGS = ""
+  _WRITE_FLAGS = '--fast-verify'
+  _READ_FLAGS = ''
 
   def __init__(self, target=None):
     self._target = target or TARGET_MAIN
@@ -55,7 +55,7 @@ class Flashrom(object):
     logging.debug('Flashrom._InvokeCommand: %s', command)
     result = Shell(command)
     if not (ignore_status or result.success):
-      raise IOError, "Failed in command: %s\n%s" % (command, result.stderr)
+      raise IOError, 'Failed in command: %s\n%s' % (command, result.stderr)
     return result
 
   def GetTarget(self):
@@ -64,15 +64,15 @@ class Flashrom(object):
 
   def SetTarget(self, target):
     """Sets current target (bus) to access."""
-    assert target in self._VALID_TARGETS, "Unknown target: %s" % target
+    assert target in self._VALID_TARGETS, 'Unknown target: %s' % target
     self._target = target
 
   def GetSize(self):
-    return int(self._InvokeCommand("--get-size").stdout.splitlines()[-1], 0)
+    return int(self._InvokeCommand('--get-size').stdout.splitlines()[-1], 0)
 
   def GetName(self):
     """Returns a key-value dict for chipset info, or None for any failure."""
-    results = self._InvokeCommand("--flash-name", ignore_status=True).stdout
+    results = self._InvokeCommand('--flash-name', ignore_status=True).stdout
     match_list = re.findall(r'\b(\w+)="([^"]*)"', results)
     return dict(match_list) if match_list else None
 
@@ -105,7 +105,7 @@ class Flashrom(object):
     """
     assert (((data is not None) and (filename is None)) or
             ((data is None) and (filename is not None))), \
-                "Either data or filename should be None."
+                'Either data or filename should be None.'
     if data is not None:
       with NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
         f.write(data)
@@ -124,18 +124,18 @@ class Flashrom(object):
     #                     WP: status.srp0: 1
     #                     WP: write protect is %s. (disabled/enabled)
     #                     WP: write protect range: start=0x%8x, len=0x%08x
-    results = self._InvokeCommand("--wp-status").stdout
+    results = self._InvokeCommand('--wp-status').stdout
     status = re.findall(r'WP: write protect is (\w+)\.', results)
     if len(status) != 1:
-      raise IOError, "Failed getting write protection status"
+      raise IOError, 'Failed getting write protection status'
     status = status[0]
     if status not in ('enabled', 'disabled'):
-      raise ValueError, "Unknown write protection status: %s" % status
+      raise ValueError, 'Unknown write protection status: %s' % status
 
     wp_range = re.findall(r'WP: write protect range: start=(\w+), len=(\w+)',
                           results)
     if len(wp_range) != 1:
-      raise IOError, "Failed getting write protection range"
+      raise IOError, 'Failed getting write protection range'
     wp_range = wp_range[0]
     return WpStatus(True if status == 'enabled' else False,
                     int(wp_range[0], 0),
@@ -150,18 +150,19 @@ class Flashrom(object):
     result = self.GetWriteProtectionStatus()
     if ((not result.enabled) or (result.offset != offset) or
         (result.size != size)):
-      raise IOError, "Failed to enabled write protection."
+      raise IOError, 'Failed to enabled write protection.'
 
   def DisableWriteProtection(self):
     """Tries to Disable whole write protection range and status."""
     self._InvokeCommand('--wp-disable --wp-range 0 0')
     result = self.GetWriteProtectionStatus()
     if (result.enabled or (result.offset != 0) or (result.size != 0)):
-      raise IOError, "Failed to disable write protection."
+      raise IOError, 'Failed to disable write protection.'
 
 
 class FirmwareImage(object):
   """Provides access to firmware image via FMAP sections."""
+
   def __init__(self, image_source):
     self._image = image_source
     self._fmap = fmap.fmap_decode(self._image)
@@ -196,7 +197,7 @@ class FirmwareImage(object):
     """Updates content of specified section in image."""
     area = self.get_section_area(name)
     if len(value) != area[1]:
-      raise ValueError("Value size (%d) does not fit into section (%s, %d)" %
+      raise ValueError('Value size (%d) does not fit into section (%s, %d)' %
                        (len(value), name, area[1]))
     self._image = (self._image[0:area[0]] +
                    value +
@@ -267,6 +268,7 @@ def LoadEcFirmware():
 def LoadPDFirmware():
   """Returns flashrom data from Power Delivery chipset."""
   return FirmwareContent.Load(TARGET_PD)
+
 
 def LoadMainFirmware():
   """Returns flashrom data from main firmware (also known as BIOS)."""

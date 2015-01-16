@@ -15,6 +15,7 @@ from cros.factory.test import shopfloor
 
 
 class CheckForUpdateTest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -49,9 +50,10 @@ class CheckForUpdateTest(unittest.TestCase):
 
 
 class CheckForUpdateAsyncTest(unittest.TestCase):
-  '''Test CheckForUpdateAsync with mocked CheckForUpdate and other functions.'''
+  """Test CheckForUpdateAsync with mocked CheckForUpdate and other functions."""
+
   def CallbackCalled(self, *unused_args, **unused_kwargs):
-    '''Arguments of this function are dummy.'''
+    """Arguments of this function are dummy."""
     self.event.set()
 
   def setUp(self):
@@ -63,7 +65,7 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def _testUpdate(self, available):
-    '''Provides basic testing flow for testMustUpdate and testNotUpdate.'''
+    """Provides basic testing flow for testMustUpdate and testNotUpdate."""
     self.mox.StubOutWithMock(updater, 'CheckForUpdate')
     updater.CheckForUpdate(1).AndReturn(('11111', available))
     callback = self.mox.CreateMockAnything()
@@ -102,5 +104,5 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
     self.mox.VerifyAll()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

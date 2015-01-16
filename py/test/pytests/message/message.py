@@ -29,19 +29,19 @@ CSS_TEMPLATE = """
 class MessageTest(unittest.TestCase):
   """A factory test to display a message."""
   ARGS = [
-    Arg('html_en', str, 'Message (HTML in English).'),
-    Arg('html_zh', (str, unicode),' Message (HTML, in Chinese).',
-        optional=True),
-    Arg('text_size', str, 'size of message in percentage', default='200'),
-    Arg('text_color', str, 'color of message (in CSS)', default='black'),
-    Arg('background_color', str, 'background color (in CSS)', default='white')
+      Arg('html_en', str, 'Message (HTML in English).'),
+      Arg('html_zh', (str, unicode), ' Message (HTML, in Chinese).',
+          optional=True),
+      Arg('text_size', str, 'size of message in percentage', default='200'),
+      Arg('text_color', str, 'color of message (in CSS)', default='black'),
+      Arg('background_color', str, 'background color (in CSS)', default='white')
   ]
 
   def runTest(self):
     css = (CSS_TEMPLATE %
-        dict(text_size=self.args.text_size,
-             text_color=self.args.text_color,
-             background_color=self.args.background_color))
+           dict(text_size=self.args.text_size,
+                text_color=self.args.text_color,
+                background_color=self.args.background_color))
     ui = UI(css=css)
     template = OneSection(ui)
     template.SetTitle(MakeLabel('Message', '讯息'))

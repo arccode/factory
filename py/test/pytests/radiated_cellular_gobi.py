@@ -11,6 +11,8 @@ import factory_common  # pylint: disable=W0611
 # pylint: disable=C0301
 from cros.factory.test.pytests.radiated_cellular_gobi_impl import RadiatedCellularGobiImpl
 
+
 class RadiatedCellularGobi(RadiatedCellularGobiImpl, unittest.TestCase):
+
   def __init__(self, *args, **kwargs):
-    super(RadiatedCellularGobi, self ).__init__(*args, **kwargs)
+    super(RadiatedCellularGobi, self).__init__(*args, **kwargs)

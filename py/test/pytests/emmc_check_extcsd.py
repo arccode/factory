@@ -28,12 +28,12 @@ from cros.factory.utils.process_utils import CheckOutput, GetLines
 
 class VerifyMMCFirmware(unittest.TestCase):
   ARGS = [
-    Arg('ext_csd_index', int, 'Index of EXT_CSD to check.'),
-    Arg('ext_csd_value', int, 'Expected value in ext_csd[ext_csd_index].'),
-    Arg('manfid', str,
-        'Specific Manufacturer ID to check. \n'
-        'If we have multiple sources of eMMC, we may only want to apply '
-        'this check for certain vendor.')
+      Arg('ext_csd_index', int, 'Index of EXT_CSD to check.'),
+      Arg('ext_csd_value', int, 'Expected value in ext_csd[ext_csd_index].'),
+      Arg('manfid', str,
+          'Specific Manufacturer ID to check. \n'
+          'If we have multiple sources of eMMC, we may only want to apply '
+          'this check for certain vendor.')
   ]
 
   def _GetFixedDevice(self, manfid):
@@ -48,7 +48,7 @@ class VerifyMMCFirmware(unittest.TestCase):
       path = os.path.join(node, 'removable')
       if not os.path.exists(path) or open(path).read().strip() != '0':
         continue
-      if re.match('^loop|^dm-', os.path.basename(node)):
+      if re.match(r'^loop|^dm-', os.path.basename(node)):
         # Loopback or dm-verity device; skip
         continue
       path = os.path.join(node, 'device', 'manfid')

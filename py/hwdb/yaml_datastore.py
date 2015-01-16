@@ -109,9 +109,9 @@ class _DatastoreBase(object):
             continue
       elif issubclass(elt_type, _DatastoreBase):
         cooked_field_dict = dict(
-          (subelt_key, NestedDecode(subelt_type, elt_data[subelt_key]))
-          # pylint: disable=W0212
-          for subelt_key, subelt_type in elt_type._schema.items())
+            (subelt_key, NestedDecode(subelt_type, elt_data[subelt_key]))
+            # pylint: disable=W0212
+            for subelt_key, subelt_type in elt_type._schema.items())
         return elt_type(**cooked_field_dict)
       elif isinstance(elt_data, elt_type):
         return elt_data
@@ -119,7 +119,7 @@ class _DatastoreBase(object):
     try:
       field_dict = YamlRead(data)
     except yaml.YAMLError, e:
-      raise InvalidDataError("YAML deserialization error: %s" % e)
+      raise InvalidDataError('YAML deserialization error: %s' % e)
     cls.ValidateSchema(field_dict)
     cooked_field_dict = dict(
         (elt_key, NestedDecode(elt_type, field_dict[elt_key]))
@@ -175,6 +175,7 @@ class _DatastoreBase(object):
       elif collection_type is list:
         for field_data in collection_data:
           ValidateField(top_level_tag, field_type, field_data)
+
     def ValidateField(top_level_tag, field_type, field_data):
       if isinstance(field_type, tuple):
         ValidateCollection(top_level_tag, field_type, field_data)
@@ -192,9 +193,9 @@ class _DatastoreBase(object):
       elif isinstance(field_data, field_type):
         return
       raise InvalidDataError(
-        '%r schema validation failed for element %r, expected type %r, found %r'
-        % (cls.__name__, top_level_tag,
-           field_type.__name__, type(field_data).__name__))
+          '%r schema validation failed for element %r, expected type %r, found %r' %
+          (cls.__name__, top_level_tag, field_type.__name__,
+           type(field_data).__name__))
     if (set(cls._schema) ^ set(field_dict)):
       raise InvalidDataError(
           '%r schema and data dict keys do not match, ' % cls.__name__ +

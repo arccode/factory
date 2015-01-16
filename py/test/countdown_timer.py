@@ -39,7 +39,8 @@ def StartCountdownTimer(timeout_secs, timeout_handler, ui, element_id,
   """
   tick = lambda t: ui.SetHTML(_MSG_TIME_REMAINING(t), id=element_id)
   if disable_event:
-    thread = threading.Thread(target=CountdownTimer,
+    thread = threading.Thread(
+        target=CountdownTimer,
         args=(timeout_secs, timeout_handler, tick, disable_event))
     thread.start()
   else:

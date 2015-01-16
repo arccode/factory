@@ -28,6 +28,7 @@ class WorkerBase(object):
   multiple processes/machines to complete the job. All its subclasses should
   implement the Process() method.
   """
+
   def __call__(self, output_writer, input_reader=None, input_done=None):
     """Iterates the input_reader and calls output_writer to process the values.
 
@@ -61,6 +62,7 @@ class FileScanner(WorkerBase):
     _aborted: Is the process aborted?
     _db: The record db object.
   """
+
   def __init__(self, scan_dir, scan_db_file, scan_period_sec=30):
     super(FileScanner, self).__init__()
     self._scan_dir = scan_dir
@@ -153,6 +155,7 @@ class FileScanner(WorkerBase):
 
 class IdentityWorker(WorkerBase):
   """A callable worker to simply put the data from input to output."""
+
   def Process(self, data):
     yield data
 
@@ -163,6 +166,7 @@ class EventLoadingWorker(WorkerBase):
   Properties:
     _log_dir: The path of the event log directory.
   """
+
   def __init__(self, log_dir):
     super(EventLoadingWorker, self).__init__()
     self._log_dir = log_dir

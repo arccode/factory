@@ -2,8 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-gft_upload: Provides various protocols for uploading report files.
+"""gft_upload: Provides various protocols for uploading report files.
 """
 
 import ftplib
@@ -48,7 +47,7 @@ def RetryCommand(callback, message_prefix, interval):
     logging.error('%s: %s', message_prefix, message)
     for i in range(interval, 0, -1):
       if i % 10 == 0:
-        sys.stderr.write(" Retry in %d seconds...\n" % i)
+        sys.stderr.write(' Retry in %d seconds...\n' % i)
       time.sleep(1)
 
 
@@ -57,7 +56,7 @@ def ShopFloorUpload(source_path, remote_spec,
   if '#' not in remote_spec:
     raise Error('ShopFloorUpload: need a valid parameter in URL#SN format.')
   (server_url, _, serial_number) = remote_spec.partition('#')
-  logging.debug("ShopFloorUpload: [%s].UploadReport(%s, %s)",
+  logging.debug('ShopFloorUpload: [%s].UploadReport(%s, %s)',
                 server_url, serial_number, source_path)
   instance = xmlrpclib.ServerProxy(server_url, allow_none=True, verbose=False)
   remote_name = os.path.basename(source_path)
@@ -117,12 +116,12 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
     message = None
     return_value = False
     if abort_string and cmd_result.stdout.find(abort_string) >= 0:
-      message = "Abort: Found abort pattern: %s" % abort_string
+      message = 'Abort: Found abort pattern: %s' % abort_string
       abort = True
       return_value = False
     elif cmd_result.success:
       if success_string and cmd_result.stdout.find(success_string) < 0:
-        message = "Retry: No valid pattern (%s) in response." % success_string
+        message = 'Retry: No valid pattern (%s) in response.' % success_string
       else:
         return_value = True
     else:
@@ -131,7 +130,7 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
       if cmd_result.status in curl_abort_exit_codes:
         abort = True
 
-    logging.debug("CurlCallback: original response: %s",
+    logging.debug('CurlCallback: original response: %s',
                   ' '.join(cmd_result.stdout.splitlines()))
     result['abort'] = abort
     result['message'] = message

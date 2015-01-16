@@ -16,19 +16,20 @@ from cros.factory.tools import build_board
 
 # The component keys in the return value of GetUpdate RPC call.
 COMPONENT_KEYS = {
-  'rootfs_test',
-  'rootfs_release',
-  'firmware_ec',
-  'firmware_bios',
-  'firmware_pd',
-  'netboot_firmware',
-  'hwid',
-  'device_factory_toolkit'
+    'rootfs_test',
+    'rootfs_release',
+    'firmware_ec',
+    'firmware_bios',
+    'firmware_pd',
+    'netboot_firmware',
+    'hwid',
+    'device_factory_toolkit'
 }
 
 
 class UmpireClientInfoInterface(object):
   """The interface that provide client info for Umpire server proxy."""
+
   def Update(self):
     """Updates client info.
 

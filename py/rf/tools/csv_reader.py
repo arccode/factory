@@ -22,12 +22,16 @@ import factory_common  # pylint: disable=W0611
 KEY = '__key__'
 VALUE = '__value__'
 
+
 class CsvLink(object):
-  '''Special wrapper class for identifying an external link in cell.'''
+  """Special wrapper class for identifying an external link in cell."""
+
   def __init__(self, link=None):
     self.link = link
+
   def __eq__(self, rhs):
     return self.link == rhs.link
+
 
 def ReadSingleCell(value):
   '''Converts a single cell to a python object.
@@ -48,6 +52,7 @@ def ReadSingleCell(value):
           'Failed to load external csv - %s, %s',
           (value_in_python.link, e))
   return value_in_python
+
 
 def IsAnnotation(row_in_dict, fieldnames):
   '''Returns if a row is an annotaion.
@@ -73,7 +78,7 @@ def IsAnnotation(row_in_dict, fieldnames):
 
 
 def IsCsvADictHeader(source):
-  '''Reads its first row and see if it fits the pre-defined format.'''
+  """Reads its first row and see if it fits the pre-defined format."""
   with open(source, 'rb') as fd:
     reader = csv.DictReader(fd)
     fieldnames = reader.fieldnames
@@ -81,6 +86,7 @@ def IsCsvADictHeader(source):
     if fieldnames != [KEY, VALUE]:
       return False
   return True
+
 
 def ReadCsvAsDict(source):
   '''Reads a csv and converts to python dict.
@@ -109,9 +115,9 @@ def ReadCsvAsDict(source):
         raise ValueError('Unexpectecd data at row %d' % idx)
   return data
 
+
 def ReadCsvAsListOfDict(source):
-  '''
-  Reads csv and treat it as a list of dict.
+  '''Reads csv and treat it as a list of dict.
 
   The dict's key will follow the column in first row.
   '''
@@ -140,7 +146,7 @@ def ReadCsvAsListOfDict(source):
 
 
 def ReadCsv(source):
-  '''Reads a csv from source and returns as a python object.'''
+  """Reads a csv from source and returns as a python object."""
   original_directory = os.getcwd()
   source = os.path.abspath(source)
   os.chdir(os.path.dirname(source))

@@ -43,6 +43,7 @@ from cros.factory.utils.process_utils import Spawn
 
 Keystroke = collections.namedtuple('Keystroke', ['mod', 'key'])
 
+
 def InitGrabKeys(grab_keys):
   """Initializes a list of keys to be grabbed.
 
@@ -205,6 +206,7 @@ class KeyFilter:
     # when done...
     key_filter.Stop()
   """
+
   def __init__(self, unmap_caps_lock=False, caps_lock_keycode=0):
     self._unmap_caps_lock = unmap_caps_lock
     self._caps_lock_keycode = caps_lock_keycode

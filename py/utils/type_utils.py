@@ -28,6 +28,7 @@ class Enum(frozenset):
       dummy_enum.A
       dummy_enum.B
   """
+
   def __getattr__(self, name):
     if name in self:
       return name

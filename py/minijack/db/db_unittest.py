@@ -27,6 +27,7 @@ class BarModel(models.Model):
 
 
 class DatabaseTest(unittest.TestCase):
+
   def setUp(self):
     self.database = db.Database(':memory:')
 
@@ -51,7 +52,7 @@ class DatabaseTest(unittest.TestCase):
     executor = executor_factory.NewExecutor()
     executor.Execute('SELECT name FROM sqlite_master WHERE type = "table"')
     results = executor.FetchAll()
-    self.assertItemsEqual([('FooModel',), ], results)
+    self.assertItemsEqual([('FooModel',)], results)
 
     # Verify the DoesTableExist method.
     self.assertTrue(self.database.DoesTableExist(FooModel))
@@ -126,9 +127,9 @@ class DatabaseTest(unittest.TestCase):
     self.database.Insert(FooModel(field_i=78, field_r=7.8))
     row = self.database.GetOne(FooModel(field_i=78))
     self.assertDictEqual({
-      'field_i': 78,
-      'field_r': 7.8,
-      'field_t': '',
+        'field_i': 78,
+        'field_r': 7.8,
+        'field_t': '',
     }, row.GetFields())
     # Get not-matched.
     self.assertIs(None, self.database.GetOne(FooModel(field_i=34)))
@@ -140,14 +141,14 @@ class DatabaseTest(unittest.TestCase):
     rows = self.database.GetAll(FooModel())
     self.assertEqual(2, len(rows))
     self.assertDictEqual({
-      'field_i': 56,
-      'field_r': 0.0,
-      'field_t': 'Five Six',
+        'field_i': 56,
+        'field_r': 0.0,
+        'field_t': 'Five Six',
     }, rows[0].GetFields())
     self.assertDictEqual({
-      'field_i': 78,
-      'field_r': 7.8,
-      'field_t': '',
+        'field_i': 78,
+        'field_r': 7.8,
+        'field_t': '',
     }, rows[1].GetFields())
     # Get one row matched.
     rows = self.database.GetAll(FooModel(field_i=78))
@@ -163,15 +164,15 @@ class DatabaseTest(unittest.TestCase):
     for row in self.database.IterateAll(FooModel()):
       if index == 0:
         self.assertDictEqual({
-          'field_i': 56,
-          'field_r': 0.0,
-          'field_t': 'Five Six',
+            'field_i': 56,
+            'field_r': 0.0,
+            'field_t': 'Five Six',
         }, row.GetFields())
       elif index == 1:
         self.assertDictEqual({
-          'field_i': 78,
-          'field_r': 7.8,
-          'field_t': '',
+            'field_i': 78,
+            'field_r': 7.8,
+            'field_t': '',
         }, row.GetFields())
       index = index + 1
     self.assertEqual(2, index)
@@ -203,14 +204,14 @@ class DatabaseTest(unittest.TestCase):
     rows = self.database.GetAll(FooModel())
     self.assertEqual(2, len(rows))
     self.assertDictEqual({
-      'field_i': 56,
-      'field_r': 5.6,
-      'field_t': 'Five Six',
+        'field_i': 56,
+        'field_r': 5.6,
+        'field_t': 'Five Six',
     }, rows[0].GetFields())
     self.assertDictEqual({
-      'field_i': 78,
-      'field_r': 7.8,
-      'field_t': '',
+        'field_i': 78,
+        'field_r': 7.8,
+        'field_t': '',
     }, rows[1].GetFields())
     # Update or insert a row without a primary key.
     with self.assertRaises(db.DatabaseException):
@@ -231,5 +232,5 @@ class DatabaseTest(unittest.TestCase):
     self.database.Close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

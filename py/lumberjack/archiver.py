@@ -37,7 +37,7 @@ MAX_ALLOWED_FAILURES = 5
 
 # Class equivalent from namedtuple
 EligibleFile = collections.namedtuple(
-  'EligibleFile', ['last_completed_bytes', 'current_size', 'full_path'])
+    'EligibleFile', ['last_completed_bytes', 'current_size', 'full_path'])
 
 
 def _ListEligibleFiles(dir_path):
@@ -545,7 +545,6 @@ def Archive(config, next_cycle=True):
   # TODO(itspeter): Special treat for zip (prepare file list instead of chunks)
   started_time = common.TimeString()
   generated_archive = None
-
 
   try:
     tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver_',

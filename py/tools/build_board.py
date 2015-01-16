@@ -37,6 +37,7 @@ class BuildBoard(object):
       "tegra2_dev-board").  This is available only when this module is
       invoked in chroot.
   """
+
   def __init__(self, board_name=None):
     """Constructor.
 
@@ -73,7 +74,7 @@ class BuildBoard(object):
           src, 'third_party', 'chromiumos-overlay', 'eclass',
           'cros-board.eclass')
       eclass_contents = open(eclass_path).read()
-      pattern = "(?s)ALL_BOARDS=\((.+?)\)"
+      pattern = '(?s)ALL_BOARDS=\((.+?)\)'
       match = re.search(pattern, eclass_contents)
       if not match:
         raise BuildBoardException('Unable to read pattern %s in %s',
@@ -123,7 +124,7 @@ class BuildBoard(object):
             [os.path.join(chromite, 'bin', 'cros_setup_toolchains'),
              '--show-board-cfg=%s' % self.full_name]).split(',')[0].strip()
         target_cfg = process_utils.CheckOutput(
-                    ['/usr/bin/crossdev', '--show-target-cfg', toolchain])
+            ['/usr/bin/crossdev', '--show-target-cfg', toolchain])
         self.arch = re.search(r'^arch=(.*)$', target_cfg, re.MULTILINE).group(1)
         if self.arch == '*':
           self.arch = None

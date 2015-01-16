@@ -13,10 +13,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.tools import install_symlinks
 
 
-FAKE_SYMLINKS = {'binaries': {'fullbin': 'full', 'minibin': 'mini' }}
+FAKE_SYMLINKS = {'binaries': {'fullbin': 'full', 'minibin': 'mini'}}
 
 
 class TestInstallSymlinks(unittest.TestCase):
+
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp(prefix='install_symlinks_unittest.')
 
@@ -26,9 +27,9 @@ class TestInstallSymlinks(unittest.TestCase):
   def testInstallFull(self):
     self.assertEqual(
         ['fullbin', 'minibin'],
-         install_symlinks.InstallSymlinks(
-             '../foo', self.tmpdir, install_symlinks.MODE_FULL,
-             symlinks=FAKE_SYMLINKS))
+        install_symlinks.InstallSymlinks(
+            '../foo', self.tmpdir, install_symlinks.MODE_FULL,
+            symlinks=FAKE_SYMLINKS))
     self.assertItemsEqual(['fullbin', 'minibin'], os.listdir(self.tmpdir))
     self.assertEqual('../foo/fullbin',
                      os.readlink(os.path.join(self.tmpdir, 'fullbin')))
@@ -38,9 +39,9 @@ class TestInstallSymlinks(unittest.TestCase):
   def testInstallFullPar(self):
     self.assertEqual(
         ['fullbin', 'minibin'],
-         install_symlinks.InstallSymlinks(
-             '../foo.par', self.tmpdir, install_symlinks.MODE_FULL,
-             symlinks=FAKE_SYMLINKS))
+        install_symlinks.InstallSymlinks(
+            '../foo.par', self.tmpdir, install_symlinks.MODE_FULL,
+            symlinks=FAKE_SYMLINKS))
     self.assertItemsEqual(['fullbin', 'minibin'], os.listdir(self.tmpdir))
     self.assertEqual('../foo.par',
                      os.readlink(os.path.join(self.tmpdir, 'fullbin')))
@@ -50,9 +51,9 @@ class TestInstallSymlinks(unittest.TestCase):
   def testInstallMini(self):
     self.assertEqual(
         ['minibin'],
-         install_symlinks.InstallSymlinks(
-             '../foo', self.tmpdir, install_symlinks.MODE_MINI,
-             symlinks=FAKE_SYMLINKS))
+        install_symlinks.InstallSymlinks(
+            '../foo', self.tmpdir, install_symlinks.MODE_MINI,
+            symlinks=FAKE_SYMLINKS))
     install_symlinks.InstallSymlinks(
         '../foo', self.tmpdir, install_symlinks.MODE_MINI,
         symlinks=FAKE_SYMLINKS)

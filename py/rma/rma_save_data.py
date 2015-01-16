@@ -3,8 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-Extracts data from firmware binaries and sends it to the shopfloor server.
+"""Extracts data from firmware binaries and sends it to the shopfloor server.
 
 Example:
   ./rma_save_data.py --firmware bios.bin --rma RMA00001234 --outdir /tmp/
@@ -27,9 +26,10 @@ _SHOPFLOOR_SERVER_URL = 'http://192.168.2.1:8082'
 _VPD_UTILITY_LOCATION = '/usr/sbin/vpd'
 # These are standard required fields, this can be added to as needed
 _REQUIRED_RO_VPD_FIELDS = ('initial_locale', 'initial_timezone',
-                           'keyboard_layout','serial_number')
+                           'keyboard_layout', 'serial_number')
 
 _options = None
+
 
 class ServerFault(Exception):
   pass
@@ -141,7 +141,7 @@ class DeviceData(object):
   def __str__(self):
     pretty_str = 'RMA Number: %s\n' % self.serial_number
     pretty_str += 'HWID: %s\n' % self.hwid
-    pretty_str += str(self.vpd) + "\n"
+    pretty_str += str(self.vpd) + '\n'
     return pretty_str
 
   def is_valid(self):
@@ -219,9 +219,9 @@ def ExtractVPD(partition, filename):
   vpd_dict = {}
   vpd_response = Shell(_options.vpd_utility + ' -l -i %s -f %s' %
                        (partition, filename))
-  raw_vpd = vpd_response.stdout # pylint: disable=E1101
+  raw_vpd = vpd_response.stdout  # pylint: disable=E1101
   for line in raw_vpd.splitlines():
-    match = re.match('"(.*)"="(.*)"$', line.strip())
+    match = re.match(r'"(.*)"="(.*)"$', line.strip())
     (name, value) = (match.group(1), match.group(2))
     vpd_dict[name] = value
   return vpd_dict
@@ -231,8 +231,8 @@ def GetHWID(filename):
   """Returns the HWID from a firmware or gbb binary."""
 
   gbb_response = Shell(_GBB_UTILITY_LOCATION + ' -g --hwid %s' % filename)
-  raw_gbb = gbb_response.stdout # pylint: disable=E1101
-  match = re.match('hardware_id: (.*)', raw_gbb.strip())
+  raw_gbb = gbb_response.stdout  # pylint: disable=E1101
+  match = re.match(r'hardware_id: (.*)', raw_gbb.strip())
   if match is None:
     logging.warning('Unable to find HWID in gbb: %s', filename)
     return None
@@ -311,7 +311,7 @@ def option_parser():
 def main():
   """Main entry when invoked from the command line."""
 
-  global _options # pylint: disable=W0603
+  global _options  # pylint: disable=W0603
 
   parser = option_parser()
   (_options, args) = parser.parse_args()
@@ -336,7 +336,7 @@ def main():
     sys.exit(1)
 
   if not _options.firmware and (not _options.ro_vpd or not _options.rw_vpd or
-                               not _options.gbb):
+                                not _options.gbb):
     parser.error('You must specify a firmware file. (-f)')
 
   if not _options.rma_number:
@@ -350,8 +350,8 @@ def main():
                                               _options.rma_number)
   if not device_data.is_valid():
     logging.warning('Device data is not valid. Not sending data to shopfloor '
-                  'server: %r', device_data)
-    sys.exit(0) # Return success to proceed with flashing netboot firmware.
+                    'server: %r', device_data)
+    sys.exit(0)  # Return success to proceed with flashing netboot firmware.
 
   reply = SaveDeviceData(shopfloor, device_data)
   if reply['status'] == 'success':

@@ -18,7 +18,7 @@ from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 def main():
   parser = argparse.ArgumentParser(
-      description="Lints files that are new, changed, or in a pending CL.")
+      description='Lints files that are new, changed, or in a pending CL.')
   parser.add_argument('--verbose', '-v', action='count')
   args = parser.parse_args()
   logging.basicConfig(level=logging.WARNING - 10 * (args.verbose or 0))

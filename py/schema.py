@@ -52,7 +52,7 @@ For example:
 """
 
 import copy
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.common import MakeList
 
@@ -64,6 +64,7 @@ class SchemaException(Exception):
 class BaseType(object):
   """Base type class for schema classes.
   """
+
   def __init__(self, label):
     self._label = label
 
@@ -86,20 +87,20 @@ class Scalar(BaseType):
   Raises:
     SchemaException if argument format is incorrect.
   """
+
   def __init__(self, label, element_type, choices=None):
     super(Scalar, self).__init__(label)
     if getattr(element_type, '__iter__', None):
       raise SchemaException(
-        'element_type %r of Scalar %r is not a scalar type' % (element_type,
-                                                               label))
+          'element_type %r of Scalar %r is not a scalar type' % (element_type,
+                                                                 label))
     self._element_type = element_type
     self._choices = set(choices) if choices else None
 
-
   def __repr__(self):
     return 'Scalar(%r, %r%s)' % (
-      self._label, self._element_type,
-      ', choices=%r' % sorted(self._choices) if self._choices else '')
+        self._label, self._element_type,
+        ', choices=%r' % sorted(self._choices) if self._choices else '')
 
   def Validate(self, data):
     """Validates the given data against the Scalar schema.
@@ -138,11 +139,12 @@ class Dict(BaseType):
   Raises:
     SchemaException if argument format is incorrect.
   """
+
   def __init__(self, label, key_type, value_type):
     super(Dict, self).__init__(label)
     if not (isinstance(key_type, Scalar) or
-           (isinstance(key_type, AnyOf) and
-            key_type.CheckTypeOfPossibleValues(Scalar))):
+            (isinstance(key_type, AnyOf) and
+             key_type.CheckTypeOfPossibleValues(Scalar))):
       raise SchemaException('key_type %r of Dict %r is not Scalar' %
                             (key_type, self._label))
     self._key_type = key_type
@@ -200,6 +202,7 @@ class FixedDict(BaseType):
   Raises:
     SchemaException if argument format is incorrect.
   """
+
   def __init__(self, label, items=None, optional_items=None):
     super(FixedDict, self).__init__(label)
     if items and not isinstance(items, dict):
@@ -216,6 +219,7 @@ class FixedDict(BaseType):
     return 'FixedDict(%r, items=%r, optional_items=%r)' % (self._label,
                                                            self._items,
                                                            self._optional_items)
+
   def Validate(self, data):
     """Validates the given data and all its key-value pairs against the Dict
     schema.
@@ -263,6 +267,7 @@ class List(BaseType):
   Raises:
     SchemaException if argument format is incorrect.
   """
+
   def __init__(self, label, element_type=None):
     super(List, self).__init__(label)
     if element_type and not isinstance(element_type, BaseType):
@@ -285,7 +290,7 @@ class List(BaseType):
     """
     if not isinstance(data, list):
       raise SchemaException('Type mismatch on %r: expected list, got %r' %
-                             (self._label, type(data)))
+                            (self._label, type(data)))
     if self._element_type:
       for data_value in data:
         self._element_type.Validate(data_value)
@@ -305,6 +310,7 @@ class Tuple(BaseType):
   Raises:
     SchemaException if argument format is incorrect.
   """
+
   def __init__(self, label, element_types=None):
     super(Tuple, self).__init__(label)
     if (element_types and
@@ -345,13 +351,14 @@ class AnyOf(BaseType):
     types: A list of Schema objects to be matched.
     label: An optional string to describe this AnyOf type.
   """
+
   def __init__(self, types, label=None):
     super(AnyOf, self).__init__(label)
     if (not isinstance(types, list) or
         not all([isinstance(x, BaseType) for x in types])):
       raise SchemaException(
-        'types in AnyOf(types=%r%s) should be a list of Schemas' %
-        (types, '' if label is None else ', label=%r' % label))
+          'types in AnyOf(types=%r%s) should be a list of Schemas' %
+          (types, '' if label is None else ', label=%r' % label))
     self._types = list(types)
 
   def __repr__(self):
@@ -398,14 +405,14 @@ class Optional(AnyOf):
     types: A (or a list of) Schema object(s) to be matched.
     label: An optional string to describe this Optional type.
   """
+
   def __init__(self, types, label=None):
     try:
       super(Optional, self).__init__(MakeList(types), label=label)
     except SchemaException:
       raise SchemaException(
-        'types in Optional(types=%r%s) should be a Schema or a list of '
-        'Schemas' % (types, '' if label is None else ', label=%r' % label))
-
+          'types in Optional(types=%r%s) should be a Schema or a list of '
+          'Schemas' % (types, '' if label is None else ', label=%r' % label))
 
   def __repr__(self):
     label = '' if self._label is None else ', label=%r' % self._label
@@ -427,5 +434,5 @@ class Optional(AnyOf):
       super(Optional, self).Validate(data)
     except SchemaException:
       raise SchemaException(
-        '%r is not None and does not match any type in %r' % (data,
-                                                              self._types))
+          '%r is not None and does not match any type in %r' % (data,
+                                                                self._types))

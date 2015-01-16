@@ -8,7 +8,7 @@
 """Prompts operator to select components, and updates device_data."""
 
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 import logging
 import unittest
 
@@ -38,24 +38,21 @@ _TEST_TITLE = test_ui.MakeLabel('Select Components', u'选择元件')
 class SelectComponentTest(unittest.TestCase):
   """The main class for this pytest."""
   ARGS = [
-    Arg(
-      'comps', dict,
-      ('A dict from components to (device_data_field, choices). If component\n'
-       'can be found in hwid database, the default choices will be available\n'
-       'components in hwid database. If choices is not None, user selects\n'
-       'value from choices. That value will be stored as device_data_field\n'
-       'in device_data. E.g.::\n'
-       '\n'
-       '  comps={\n'
-       '    "comp_a": ("component.comp_a", ["choice_a1", "choice_a2"]),\n'
-       '    "comp_b": ("component.comp_b", None),\n'
-       '    "comp_c": ("component.comp_c", ["choice_c1", "choice_c2"]),\n'
-       '    }\n'
-       '\n'
-       'where comp_a is in hwid database, but we set the available choices.\n'
-       'comp_b is in hwid database, and we use the choices in database.\n'
-       'comp_c is not in hwid database, so we provide the choices.\n'),
-      optional=False),
+      Arg(
+          'comps', dict,
+          ('A dict from components to (device_data_field, choices). If '
+          'component\ncan be found in hwid database, the default choices will'
+          ' be available\ncomponents in hwid database. If choices is not '
+          'None, user selects\nvalue from choices. That value will be stored '
+          'as device_data_field\nin device_data. E.g.::\n\n  comps={\n    '
+          '"comp_a": ("component.comp_a", ["choice_a1", "choice_a2"]),\n    '
+          '"comp_b": ("component.comp_b", None),\n    "comp_c": '
+          '("component.comp_c", ["choice_c1", "choice_c2"]),\n    }\n\nwhere '
+          'comp_a is in hwid database, but we set the available '
+          'choices.\ncomp_b is in hwid database, and we use the choices in '
+          'database.\ncomp_c is not in hwid database, so we provide the '
+          'choices.\n'),
+          optional=False),
   ]
 
   def setUp(self):
@@ -67,9 +64,9 @@ class SelectComponentTest(unittest.TestCase):
     # The component names.
     self.fields = self.args.comps.keys()
     self.component_device_data = dict((k, self.args.comps[k][0])
-        for k in self.fields)
+                                      for k in self.fields)
     self.component_choices = dict((k, self.args.comps[k][1])
-        for k in self.fields)
+                                  for k in self.fields)
 
   def SelectComponent(self, event):
     """Handle component selection RPC call from Javascript.
@@ -98,12 +95,14 @@ class SelectComponentTest(unittest.TestCase):
     # Checks those fields not in hwid database have choices from test list.
     for field in set(self.fields) - set(fields_in_db):
       self.assertTrue(self.component_choices[field],
-          'Field %r is not in hwid database, user should provide'
-          ' choices' % field)
+                      'Field %r is not in hwid database, user should provide'
+                      ' choices' % field)
     comp_values = hwid_utils.ListComponents(db, fields_in_db)
     # Updates comp_values with choices from test list.
-    comp_values.update(dict((field, self.component_choices[field])
-        for field in self.fields if self.component_choices[field]))
+    comp_values.update(dict(
+        (field, self.component_choices[field])
+        for field in self.fields
+        if self.component_choices[field]))
 
     for field_index, field in enumerate(self.fields):
       self.ui.RunJS('addComponentField("%s");' % field)
@@ -128,7 +127,7 @@ class SelectComponentTest(unittest.TestCase):
 
     html.append('<input type="button" value="OK" '
                 'onClick="SelectComponents();"/>')
-    self.ui.BindKeyJS(13, "SelectComponents();")
+    self.ui.BindKeyJS(13, 'SelectComponents();')
 
     self.template.SetState(''.join(html))
     self.ui.Run()

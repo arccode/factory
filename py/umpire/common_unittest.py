@@ -16,7 +16,9 @@ from cros.factory.utils import file_utils
 TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
                             'testdata')
 
+
 class TestGetHashFromResourceName(unittest.TestCase):
+
   def testNormal(self):
     self.assertEqual(
         '12345678',
@@ -29,6 +31,7 @@ class TestGetHashFromResourceName(unittest.TestCase):
 
 
 class TestGetVersionFromResourceName(unittest.TestCase):
+
   def testNormal(self):
     self.assertEqual(
         'ver1.1.1',
@@ -47,6 +50,7 @@ class TestGetVersionFromResourceName(unittest.TestCase):
 
 
 class TestVerifyResource(unittest.TestCase):
+
   def testNormal(self):
     with file_utils.TempDirectory() as temp_dir:
       test_file = os.path.join(temp_dir, 'test')
@@ -70,6 +74,7 @@ class TestVerifyResource(unittest.TestCase):
 
 
 class TestLoadBundleManifest(unittest.TestCase):
+
   def testNormal(self):
     manifest_path = os.path.join(TESTDATA_DIR, 'sample_MANIFEST.yaml')
     manifest = common.LoadBundleManifest(manifest_path)
@@ -88,7 +93,9 @@ class TestLoadBundleManifest(unittest.TestCase):
       file_utils.WriteFile(f, 'key: %scalar cannot start with %')
       self.assertRaises(common.UmpireError, common.LoadBundleManifest, f)
 
+
 class TestParseResourceName(unittest.TestCase):
+
   def testNormal(self):
     self.assertTupleEqual(
         ('/foo/bar/resources/buz', '', '12345678'),

@@ -3,11 +3,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-Directory lister is a ls-like wrapper to return listed files in yaml format.
+"""Directory lister is a ls-like wrapper to return listed files in yaml format.
+
 The output of this tool will be a dictionary where key is file name and value
 is the file size.
-
   ./list_dir.py <directory>
 """
 import os

@@ -68,6 +68,7 @@ class TestResultInfo(object):
     start_time: The time the test starts.
     end_time: The time the test ends.
   """
+
   def __init__(self, status, log_file=None, start_time=None, end_time=None):
     self.status = status
     self.log_file = log_file
@@ -88,6 +89,7 @@ class TestResult(object):
     end_time: The time that the test ends.
     results: The test results of each test item, stored in a per DUT basis.
   """
+
   def __init__(self, board_name, plan_name, plan_config, base_log_dir,
                bundle_dir):
     self.board_name = build_board.BuildBoard(board_name)
@@ -206,8 +208,7 @@ class TestResult(object):
               {item: {'status': result[item].status,
                       'log_file': result[item].log_file,
                       'start_time': result[item].start_time,
-                      'end_time': result[item].end_time,}
-              })
+                      'end_time': result[item].end_time}})
 
     return report
 
@@ -220,7 +221,7 @@ class TestResult(object):
     log_dir = os.path.join(self.base_log_dir, self.test_plan_name)
     if not os.path.exists(log_dir):
       raise FactoryFlowTestError('Log directory of %r not found' %
-                                   self.test_plan_name)
+                                 self.test_plan_name)
 
     now = time_utils.TimeString(time_separator='-', milliseconds=False)
     log_file_name = '%s-%s-%s.tar.bz2' % (
@@ -249,7 +250,7 @@ class TestResult(object):
     log_dir = os.path.join(self.base_log_dir, self.test_plan_name)
     if not os.path.exists(log_dir):
       raise FactoryFlowTestError('Log directory of %r not found' %
-                                   self.test_plan_name)
+                                 self.test_plan_name)
 
     logging.info('Preparing notification E-mail...')
     report_txt = []
@@ -344,7 +345,7 @@ class FactoryFlowRunner(object):
     runner_info = test_runner_common.RunnerInfo({
         'board': self.board,
         'output_dir': self.output_dir,
-        })
+    })
 
     host_info = test_runner_common.HostInfo(self.config['host_info'])
 

@@ -3,8 +3,7 @@
 # found in the LICENSE file.
 
 
-'''
-A library to prespawn autotest/pytest processes to minimize startup overhead.
+'''A library to prespawn autotest/pytest processes to minimize startup overhead.
 '''
 
 import cPickle as pickle
@@ -27,6 +26,7 @@ PYTEST_PRESPAWNER_PATH = os.path.join(factory.FACTORY_PATH,
 
 
 class Prespawner(object):
+
   def __init__(self, prespawner_path, prespawner_args, pipe_stdout=False):
     self.prespawned = Queue(NUM_PRESPAWNED_PROCESSES)
     self.thread = None
@@ -37,8 +37,7 @@ class Prespawner(object):
     self.pipe_stdout = pipe_stdout
 
   def spawn(self, args, env_additions=None):
-    '''
-    Spawns a new process (reusing an prespawned process if available).
+    '''Spawns a new process (reusing an prespawned process if available).
 
     @param args: A list of arguments (sys.argv)
     @param env_additions: Items to add to the current environment
@@ -55,8 +54,7 @@ class Prespawner(object):
     return process
 
   def start(self):
-    '''
-    Starts a thread to pre-spawn autotests.
+    '''Starts a thread to pre-spawn autotests.
     '''
     def run():
       while not self.terminated:
@@ -67,10 +65,10 @@ class Prespawner(object):
           pipe_stdout_args = {}
 
         process = Spawn(
-          ['python', '-u', self.prespawner_path] + self.prespawner_args,
-          cwd=os.path.dirname(self.prespawner_path),
-          stdin=subprocess.PIPE,
-          **pipe_stdout_args)
+            ['python', '-u', self.prespawner_path] + self.prespawner_args,
+            cwd=os.path.dirname(self.prespawner_path),
+            stdin=subprocess.PIPE,
+            **pipe_stdout_args)
         logging.debug('Pre-spawned a test process %d', process.pid)
         self.prespawned.put(process)
 
@@ -82,8 +80,7 @@ class Prespawner(object):
       self.thread.start()
 
   def stop(self):
-    '''
-    Stops the pre-spawn thread gracefully.
+    '''Stops the pre-spawn thread gracefully.
     '''
     self.terminated = True
     if self.thread:
@@ -100,12 +97,16 @@ class Prespawner(object):
           process.wait()
       self.thread = None
 
+
 class AutotestPrespawner(Prespawner):
+
   def __init__(self):
     super(AutotestPrespawner, self).__init__(
         AUTOTEST_PRESPAWNER_PATH, ['--prespawn_autotest'], pipe_stdout=False)
 
+
 class PytestPrespawner(Prespawner):
+
   def __init__(self):
     super(PytestPrespawner, self).__init__(
         PYTEST_PRESPAWNER_PATH, ['--prespawn-pytest'], pipe_stdout=True)

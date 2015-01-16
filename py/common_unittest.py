@@ -13,6 +13,7 @@ from cros.factory.common import AttrDict
 
 
 class CommonTest(unittest.TestCase):
+
   def testAttrDictInit(self):
     init_value = {
         'key': 'value_1',

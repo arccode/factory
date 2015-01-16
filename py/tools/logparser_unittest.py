@@ -243,7 +243,7 @@ rawdata: ['abc.png', 'def.wav']
   def test_DecompressFile(self):
     self.createFile(os.path.join(self.tmpdir, 'abc.png'), 123)
     with zipfile.ZipFile(os.path.join(self.tmpdir,
-        'abc_1234567890_12345678901234567.zip'), 'w') as f:
+                                      'abc_1234567890_12345678901234567.zip'), 'w') as f:
       f.write(os.path.join(self.tmpdir, 'abc.png'), 'abc.png')
 
     zip_desc = {
@@ -258,12 +258,13 @@ rawdata: ['abc.png', 'def.wav']
     self.assertEqual(str(e.exception), 'Unsupport format.')
 
     # Check Zip format
-    ret = logparser.DecompressFile(os.path.join(self.tmpdir,
-        'abc_1234567890_12345678901234567.zip'), zip_desc)
+    ret = logparser.DecompressFile(
+        os.path.join(self.tmpdir, 'abc_1234567890_12345678901234567.zip'),
+        zip_desc)
     self.assertEqual(ret, None)
 
     with tarfile.open(os.path.join(self.tmpdir,
-        'def_2345678901_98765432109876543.tar'), 'w') as f:
+                                   'def_2345678901_98765432109876543.tar'), 'w') as f:
       f.add(os.path.join(self.tmpdir, 'abc.png'), 'abc.png')
 
     tar_desc = {
@@ -272,18 +273,20 @@ rawdata: ['abc.png', 'def.wav']
         'time_stamp': '98765432109876'}
     logparser = LogParser(self.options)
     # Check Tar format
-    ret = logparser.DecompressFile(os.path.join(self.tmpdir,
-        'def_2345678901_98765432109876543.tar'), tar_desc)
+    ret = logparser.DecompressFile(
+        os.path.join(self.tmpdir, 'def_2345678901_98765432109876543.tar'),
+        tar_desc)
     self.assertEqual(ret, None)
 
     with tarfile.open(os.path.join(self.tmpdir,
-        'def_2345678901_98765432109876543.tgz'), 'w:gz') as f:
+                                   'def_2345678901_98765432109876543.tgz'), 'w:gz') as f:
       f.add(os.path.join(self.tmpdir, 'abc.png'), 'abc.png')
 
     logparser = LogParser(self.options)
     # Check Tar+GZip format
-    ret = logparser.DecompressFile(os.path.join(self.tmpdir,
-        'def_2345678901_98765432109876543.tgz'), tar_desc)
+    ret = logparser.DecompressFile(
+        os.path.join(self.tmpdir, 'def_2345678901_98765432109876543.tgz'),
+        tar_desc)
     self.assertEqual(ret, None)
 
   def test_LoadDescription(self):

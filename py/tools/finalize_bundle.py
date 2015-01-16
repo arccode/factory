@@ -231,15 +231,15 @@ class FinalizeBundle(object):
         '--no-check-files', dest='check_files',
         action='store_false',
         help=("Don't check for missing or extra files in the bundle "
-              "(for testing only)"))
+              '(for testing only)'))
     parser.add_argument(
         '--tip-of-branch', dest='tip_of_branch', action='store_true',
-        help="Use tip version of release image, install shim, and "
-             "netboot install shim on the branch (for testing only)")
+        help='Use tip version of release image, install shim, and '
+             'netboot install shim on the branch (for testing only)')
     parser.add_argument(
         '--test-list', dest='test_list', metavar='TEST_LIST',
-        help="Set active test_list. e.g. --test-list manual_smt to set active "
-             "test_list to test_list.manual_smt")
+        help='Set active test_list. e.g. --test-list manual_smt to set active '
+             'test_list to test_list.manual_smt')
     parser.add_argument(
         '--patch', action='store_true',
         help=('Invoke patch_image before finalizing (requires '
@@ -250,7 +250,7 @@ class FinalizeBundle(object):
 
     parser.add_argument(
         'dir', metavar='DIR',
-        help="Directory containing the bundle")
+        help='Directory containing the bundle')
     self.args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
     self.bundle_dir = os.path.realpath(self.args.dir)
@@ -275,16 +275,16 @@ class FinalizeBundle(object):
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'^\d{8}_', self.bundle_name):
       sys.exit("The self.bundle_name (currently %r) should be today's date, "
-               "plus an underscore, plus a description of the build, e.g.: %r" %
-               (self.bundle_name, time.strftime("%Y%m%d_proto")))
+               'plus an underscore, plus a description of the build, e.g.: %r' %
+               (self.bundle_name, time.strftime('%Y%m%d_proto')))
 
     expected_dir_name = 'factory_bundle_' + self.board + '_' + self.bundle_name
     if expected_dir_name != os.path.basename(self.bundle_dir):
       sys.exit(
-        'bundle_name in manifest is %s, so directory name should be %s, '
-        'but it is %s' % (
-            self.bundle_name, expected_dir_name,
-            os.path.basename(self.bundle_dir)))
+          'bundle_name in manifest is %s, so directory name should be %s, '
+          'but it is %s' % (
+              self.bundle_name, expected_dir_name,
+              os.path.basename(self.bundle_dir)))
 
     self.factory_image_path = os.path.join(
         self.bundle_dir, 'factory_test', 'chromiumos_factory_image.bin')
@@ -302,7 +302,7 @@ class FinalizeBundle(object):
         # directory. On ToT, we deprecated factory test image and factory
         # toolkit is moved to factory_toolkit/.
         self.factory_toolkit_path = os.path.join(
-          self.bundle_dir, path, 'install_factory_toolkit.run')
+            self.bundle_dir, path, 'install_factory_toolkit.run')
         if os.path.isfile(self.factory_toolkit_path):
           break
       if not os.path.isfile(self.factory_toolkit_path):
@@ -310,8 +310,8 @@ class FinalizeBundle(object):
       output = Spawn([self.factory_toolkit_path, '--info'],
                      check_output=True).stdout_data
       match = re.match(
-        r'^Identification: .+ Factory Toolkit (.+)$',
-        output, re.MULTILINE)
+          r'^Identification: .+ Factory Toolkit (.+)$',
+          output, re.MULTILINE)
       assert match, 'Unable to parse toolkit info: %r' % output
 
       self.toolkit_version = match.group(1)  # May be None if locally built
@@ -326,14 +326,14 @@ class FinalizeBundle(object):
       else:
         if not self.toolkit_version:
           raise Exception(
-            'Toolkit was built locally or by a tryjob; unable to automatically '
-            'determine which test image to download')
+              'Toolkit was built locally or by a tryjob; unable to '
+              'automatically determine which test image to download')
         self.test_image_version = self.toolkit_version
         logging.info('Test image version: %s, same as the toolkit, since '
                      'no version was specified in the manifest',
                      self.test_image_version)
       self.test_image_path = os.path.join(
-        self.bundle_dir, 'factory_test', 'chromiumos_test_image.bin')
+          self.bundle_dir, 'factory_test', 'chromiumos_test_image.bin')
     else:
       with MountPartition(self.factory_image_path, 3) as mount:
         self.factory_image_base_version = _GetReleaseVersion(mount)
@@ -355,12 +355,12 @@ class FinalizeBundle(object):
           'gsutil version >=%s is required; you seem to have %s.\n'
           'Please download and install gsutil ('
           'https://developers.google.com/storage/docs/gsutil_install), and '
-          'make sure this is in your PATH before the system gsutil.'  % (
+          'make sure this is in your PATH before the system gsutil.' % (
               '.'.join(str(x) for x in REQUIRED_GSUTIL_VERSION), version))
 
   def Download(self):
     need_test_image = (
-      self.test_image_version and self.test_image_version != LOCAL)
+        self.test_image_version and self.test_image_version != LOCAL)
 
     if (not 'add_files' in self.manifest and not need_test_image):
       return
@@ -379,11 +379,11 @@ class FinalizeBundle(object):
         try_urls = []
         for channel in channels:
           url = (
-            'gs://chromeos-releases/%(channel)s-channel/%(board)s/'
-            '%(version)s/ChromeOS-test-*-%(version)s-%(board)s.tar.xz' %
-            dict(channel=channel,
-                 board=self.build_board.gsutil_name,
-                 version=self.test_image_version))
+              'gs://chromeos-releases/%(channel)s-channel/%(board)s/'
+              '%(version)s/ChromeOS-test-*-%(version)s-%(board)s.tar.xz' %
+              dict(channel=channel,
+                   board=self.build_board.gsutil_name,
+                   version=self.test_image_version))
           try_urls.append(url)
 
       for url in try_urls:
@@ -395,8 +395,8 @@ class FinalizeBundle(object):
           continue
 
         assert len(output) == 1, (
-          'Expected %r to matched 1 files, but it matched %r',
-          url, output)
+            'Expected %r to matched 1 files, but it matched %r',
+            url, output)
 
         # Found.  Download it!
         cached_file = self.gsutil.GSDownload(output[0].strip())
@@ -449,7 +449,7 @@ class FinalizeBundle(object):
                       only_extracts=f['extract_files'])
         for f in f['extract_files']:
           self.expected_files.add(os.path.relpath(os.path.join(install_into, f),
-                                             self.bundle_dir))
+                                                  self.bundle_dir))
       else:
         dest_path = os.path.join(dest_dir, os.path.basename(source))
         if self.args.download:
@@ -767,7 +767,7 @@ class FinalizeBundle(object):
                '-o', new_netboot_firmware_image,
                '--omahaserver=%s' % mini_omaha_url,
                '--tftpserverip=%s' %
-                 urlparse.urlparse(mini_omaha_url).hostname],
+               urlparse.urlparse(mini_omaha_url).hostname],
               check_call=True, log=True)
         shutil.move(new_netboot_firmware_image, netboot_firmware_image)
 
@@ -874,7 +874,7 @@ class FinalizeBundle(object):
   def MakeFactoryPackages(self):
     release_images = glob.glob(os.path.join(self.bundle_dir, 'release/*.bin'))
     if len(release_images) != 1:
-      sys.exit("Expected one release image but found %d" % len(release_images))
+      sys.exit('Expected one release image but found %d' % len(release_images))
     self.release_image_path = release_images[0]
 
     factory_setup_dir = os.path.join(self.bundle_dir, 'factory_setup')
@@ -885,7 +885,7 @@ class FinalizeBundle(object):
                                      factory_setup_dir),
         '--factory', '../factory_test/chromiumos_factory_image.bin',
         '--hwid_updater', '../hwid/hwid_v3_bundle_%s.sh' %
-                          self.simple_board.upper()]
+        self.simple_board.upper()]
 
     if 'complete_script' in self.manifest:
       script_base_name = self.manifest['complete_script']
@@ -898,7 +898,7 @@ class FinalizeBundle(object):
     else:
       # Use factory_setup/complete_script_sample.sh, if it exists
       complete_script = os.path.join(
-        self.bundle_dir, 'factory_setup/complete_script_sample.sh')
+          self.bundle_dir, 'factory_setup/complete_script_sample.sh')
       if not os.path.exists(complete_script):
         complete_script = None
 
@@ -934,7 +934,7 @@ class FinalizeBundle(object):
           'echo Starting download server.',
           'python miniomaha.py',
           ''  # Add newline at EOF
-          ]))
+      ]))
       os.fchmod(f.fileno(), 0555)
 
   def FixFactoryPar(self):
@@ -1030,7 +1030,7 @@ class FinalizeBundle(object):
       readme_section_index[s[1]] = i
     for k in ['VITAL INFORMATION', 'CHANGES']:
       if k not in readme_section_index:
-        sys.exit("README is missing %s section" % k)
+        sys.exit('README is missing %s section' % k)
 
     # Make sure that the CHANGES section contains this version.
     expected_str = '%s changes:' % self.bundle_name
@@ -1104,7 +1104,7 @@ class FinalizeBundle(object):
     vital_lines = []
     max_key_length = max(len(k) for k, v in vitals)
     for k, v in vitals:
-      vital_lines.append("%s:%s %s" % (k, ' ' * (max_key_length - len(k)), v))
+      vital_lines.append('%s:%s %s' % (k, ' ' * (max_key_length - len(k)), v))
     vital_contents = '\n'.join(vital_lines)
     readme_sections[readme_section_index['VITAL INFORMATION']][2] = (
         vital_contents + '\n\n')
@@ -1115,7 +1115,7 @@ class FinalizeBundle(object):
           'To start a mini-Omaha server:',
           '',
           '  ./start_download_server.sh'
-          ]
+      ]
       readme_sections[index][2] = (
           '\n'.join(instructions) + '\n\n')
 
@@ -1149,13 +1149,13 @@ class FinalizeBundle(object):
               log=True, check_call=True)
         logging.info(
             'Created %s (%.1f GiB).',
-            output_file, os.path.getsize(output_file) / (1024.*1024.*1024.))
+            output_file, os.path.getsize(output_file) / (1024. * 1024. * 1024.))
 
     logging.info('The README file (%s) has been updated.  Make sure to check '
                  'that it is correct!', self.readme_path)
     logging.info(
         "IMPORTANT: If you modified the README or MANIFEST.yaml, don't forget "
-        "to check your changes into %s.",
+        'to check your changes into %s.',
         os.path.join(os.environ['CROS_WORKON_SRCROOT'],
                      'src', self.build_board.overlay_relpath,
                      'chromeos-base', 'chromeos-factory-board',
@@ -1172,7 +1172,7 @@ class FinalizeBundle(object):
         'BOARD': self.simple_board.upper(),
         'FACTORY_IMAGE_BASE_VERSION': (self.factory_image_base_version or
                                        self.toolkit_version)
-        }
+    }
     return re.sub(r'\$\{(\w+)\}', lambda match: subst_vars[match.group(1)],
                   input_str)
 

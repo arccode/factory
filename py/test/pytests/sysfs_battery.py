@@ -22,17 +22,18 @@ from cros.factory import system
 _TEST_TITLE = MakeLabel('Battery Self-diagnosis', u'电池自我诊断')
 _CSS = '#state {text-align:left;}'
 
+
 class SysfsBatteryTest(unittest.TestCase):
   """Checks battery status."""
   ARGS = [
-    Arg('maximum_cycle_count', int,
-        'Maximum cycle count allowed to pass test', optional=True,
-        default=None),
-    Arg('percent_battery_wear_allowed', int,
-        'Maximum pecent battery wear allowed to pass test', default=100),
-    Arg('verify_battery_health_good', bool,
-        'Boolean to verify that the battery health value is good',
-        default=False),
+      Arg('maximum_cycle_count', int,
+          'Maximum cycle count allowed to pass test', optional=True,
+          default=None),
+      Arg('percent_battery_wear_allowed', int,
+          'Maximum pecent battery wear allowed to pass test', default=100),
+      Arg('verify_battery_health_good', bool,
+          'Boolean to verify that the battery health value is good',
+          default=False),
   ]
 
   def setUp(self):

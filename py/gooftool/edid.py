@@ -56,6 +56,7 @@ def Parse(content):
   else:
     return _ParseBinaryBlob(content)
 
+
 def _ParseTegra(content):
   """Parser for EDID data exported by tegra_edid driver.
 
@@ -79,6 +80,7 @@ def _ParseTegra(content):
   return _ParseBinaryBlob(binascii.unhexlify(
       re.sub(r'\s|(edid\[\d{3}\] = )', '', content)))
 
+
 def _ParseBinaryBlob(blob):
   """Binary EDID Parser (light-weight parse-edid replacement).
 
@@ -99,28 +101,29 @@ def _ParseBinaryBlob(blob):
   """
   def read_short_be(offset):
     return ((ord(blob[offset]) << 8) | ord(blob[offset + 1]))
+
   def read_short_le(offset):
     return ((ord(blob[offset + 1]) << 8) | ord(blob[offset]))
   # Check size, magic, and version
   if len(blob) < MINIMAL_SIZE:
-    logging.warning("EDID parsing error: length too small.")
+    logging.warning('EDID parsing error: length too small.')
     return None
   if (blob[MAGIC_OFFSET:(MAGIC_OFFSET + len(MAGIC))] !=
       MAGIC):
-    logging.warning("EDID parse error: incorrect header.")
+    logging.warning('EDID parse error: incorrect header.')
     return None
   if ord(blob[VERSION_OFFSET]) != VERSION:
-    logging.warning("EDID parse error: unsupported EDID version.")
+    logging.warning('EDID parse error: unsupported EDID version.')
     return None
   # Verify checksum
-  if sum([ord(char) for char in blob[:CHECKSUM_OFFSET+1]]) % 0x100 != 0:
-    logging.warning("EDID parse error: checksum error.")
+  if sum([ord(char) for char in blob[:CHECKSUM_OFFSET + 1]]) % 0x100 != 0:
+    logging.warning('EDID parse error: checksum error.')
     return None
   # Currently we don't support EDID not using pixel clock
   pixel_clock = read_short_le(PIXEL_CLOCK_OFFSET)
   if not pixel_clock:
-    logging.warning("EDID parse error: "
-                    "non-pixel clock format is not supported yet.")
+    logging.warning('EDID parse error: '
+                    'non-pixel clock format is not supported yet.')
     return None
   # Extract manufactuer
   vendor_name = ''

@@ -10,12 +10,12 @@ from cros.factory.test.args import Arg
 
 
 class ExecPythonTest(unittest.TestCase):
-  '''A simple test that just executes a Python script.'''
+  """A simple test that just executes a Python script."""
   ARGS = [
-    Arg('script', str, 'Python code to execute'),
+      Arg('script', str, 'Python code to execute'),
   ]
 
   def runTest(self):
     logging.info("Executing Python script: '''%s'''", self.args.script)
     exec self.args.script in {'test_info': self.test_info}, {}
-    logging.info("Script succeeded")
+    logging.info('Script succeeded')

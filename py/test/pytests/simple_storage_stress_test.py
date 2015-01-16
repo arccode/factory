@@ -35,15 +35,15 @@ BLOCK_SIZE = 4096
 class StartTest(unittest.TestCase):
 
   ARGS = [
-    Arg('dir', str, 'Directory for creating files for random access'),
-    Arg('file_size', int,
-        'The file size of generated file'),
-    Arg('operations', int,
-        'The number of operations to perform')
+      Arg('dir', str, 'Directory for creating files for random access'),
+      Arg('file_size', int,
+          'The file size of generated file'),
+      Arg('operations', int,
+          'The number of operations to perform')
   ]
 
   def ReadWriteFile(self, file_obj, file_size):
-    '''Performs a read/write to a specific file descriptor.'''
+    """Performs a read/write to a specific file descriptor."""
     # Prepare a random content
     random_content = os.urandom(BLOCK_SIZE)
 
@@ -88,6 +88,6 @@ class StartTest(unittest.TestCase):
     for iteration in xrange(self.args.operations):
       with tempfile.NamedTemporaryFile(dir=self.args.dir) as temp_file:
         logging.info(
-          '[%d/%d]: Tempfile[%s] created for %d bytes write/read test',
-          iteration, self.args.operations, temp_file.name, file_size)
+            '[%d/%d]: Tempfile[%s] created for %d bytes write/read test',
+            iteration, self.args.operations, temp_file.name, file_size)
         self.ReadWriteFile(temp_file, file_size)

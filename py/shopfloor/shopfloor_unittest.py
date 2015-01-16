@@ -29,8 +29,9 @@ from cros.factory.utils.process_utils import Spawn
 
 
 class ShopFloorServerTest(unittest.TestCase):
+
   def setUp(self):
-    '''Starts shop floor server and creates client proxy.'''
+    """Starts shop floor server and creates client proxy."""
     # pylint: disable=W0212
     self.server_port = net_utils.FindUnusedTCPPort()
     self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -88,7 +89,7 @@ class ShopFloorServerTest(unittest.TestCase):
       self.fail('Server never came up')
 
   def tearDown(self):
-    '''Terminates shop floor server'''
+    """Terminates shop floor server"""
     self.process.terminate()
     self.process.wait()
     shutil.rmtree(self.data_dir)
@@ -109,15 +110,15 @@ class ShopFloorServerTest(unittest.TestCase):
 
   def _CreateFileAndContextAsFilename(self, filename):
     utils.TryMakeDirs(os.path.dirname(filename))
-    with open(filename, "w") as fd:
+    with open(filename, 'w') as fd:
       fd.write(os.path.basename(filename))
 
   def testListParameters(self):
     # Make few temporary files.
-    wifi_production = set(["rf/wifi/parameters.production"])
-    wifi_calibration = set(["rf/wifi/calibration_config.1",
-                            "rf/wifi/calibration_config.2"])
-    cell_production = set(["rf/cell/parameters.production"])
+    wifi_production = set(['rf/wifi/parameters.production'])
+    wifi_calibration = set(['rf/wifi/calibration_config.1',
+                            'rf/wifi/calibration_config.2'])
+    cell_production = set(['rf/cell/parameters.production'])
 
     for filename in (wifi_production | wifi_calibration | cell_production):
       self._CreateFileAndContextAsFilename(
@@ -134,7 +135,7 @@ class ShopFloorServerTest(unittest.TestCase):
     self.assertRaises(xmlrpclib.Fault, self.proxy.ListParameters, 'rf/../../*')
 
   def testGetParameter(self):
-    wifi_production = "parameters.production"
+    wifi_production = 'parameters.production'
     relpath = os.path.join('rf/wifi/', wifi_production)
     self._CreateFileAndContextAsFilename(
         os.path.join(self.parameters_dir, relpath))
@@ -217,10 +218,10 @@ class ShopFloorServerTest(unittest.TestCase):
       serial = 'CR0010%02d' % (i + 1)
       vpd = self.proxy.GetVPD(serial)
       wifi_mac = vpd['rw']['wifi_mac']
-      self.assertEqual(wifi_mac, "0b:ad:f0:0d:15:%02x" % (i + 1))
+      self.assertEqual(wifi_mac, '0b:ad:f0:0d:15:%02x' % (i + 1))
       if i < 5:
         cellular_mac = vpd['rw']['cellular_mac']
-        self.assertEqual(cellular_mac, "70:75:65:6c:6c:%02x" % (i + 0x61))
+        self.assertEqual(cellular_mac, '70:75:65:6c:6c:%02x' % (i + 0x61))
 
     # Checks invalid serial numbers
     self.assertRaises(xmlrpclib.Fault, self.proxy.GetVPD, 'MAGICA')
@@ -321,7 +322,7 @@ class ShopFloorServerTest(unittest.TestCase):
     self.proxy.UploadReport('CR001020', shopfloor.Binary(blob),
                             report_name)
     self.assertEquals(blob, open(report_path).read())
-    self.assertTrue(re.match('^[0-9a-f]{32}\s',
+    self.assertTrue(re.match(r'^[0-9a-f]{32}\s',
                              open(report_path + '.md5').read()))
 
     # Try to upload to invalid serial number
@@ -329,7 +330,7 @@ class ShopFloorServerTest(unittest.TestCase):
 
     # Move the report to yesterday's dir.  "Insert" some media and
     # check that the logs are archived.
-    yesterday_localtime = time.localtime(time.time() - 24*60*60)
+    yesterday_localtime = time.localtime(time.time() - 24 * 60 * 60)
     yesterday = time.strftime(shopfloor.LOGS_DIR_FORMAT, yesterday_localtime)
     shutil.move(self.reports_dir,
                 os.path.join(self.data_dir, shopfloor.REPORTS_DIR, yesterday))

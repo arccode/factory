@@ -26,6 +26,7 @@ class Executor(db.base.BaseExecutor):
     _conn: The connection of the sqlite3 database.
     _cursor: The cursor of the sqlite3 database.
   """
+
   def __init__(self, conn):
     super(Executor, self).__init__()
     self._conn = conn
@@ -120,6 +121,7 @@ class ExecutorFactory(db.base.BaseExecutorFactory):
   Properties:
     _conn: The connection of the sqlite3 database.
   """
+
   def __init__(self, conn):
     super(ExecutorFactory, self).__init__()
     self._conn = conn
@@ -132,11 +134,11 @@ class ExecutorFactory(db.base.BaseExecutorFactory):
 # Don't change the class name. 'sqlite_master' is the special table in Sqlite.
 class sqlite_master(models.Model):
   """The master table of Sqlite database which contains the info of tables."""
-  type     = models.TextField()
-  name     = models.TextField()
+  type = models.TextField()
+  name = models.TextField()
   tbl_name = models.TextField()
   rootpage = models.IntegerField()
-  sql      = models.TextField()
+  sql = models.TextField()
 
 
 def _SqliteRegexp(pattern, val):
@@ -154,10 +156,11 @@ class Database(db.base.BaseDatabase):
     _tables: A dict of the created tables.
     _executor_factory: A factory of executor objects.
   """
+
   def __init__(self, filename):
     super(Database, self).__init__()
     self._conn = sqlite3.connect(filename)
-    self._conn.create_function("regexp", 2, _SqliteRegexp)
+    self._conn.create_function('regexp', 2, _SqliteRegexp)
     # Make sqlite3 always return bytestrings for the TEXT data type.
     self._conn.text_factory = str
     self._executor_factory = ExecutorFactory(self._conn)
@@ -193,7 +196,8 @@ class Database(db.base.BaseDatabase):
       True if exist; otherwise, False.
     """
     for field_name in model.GetDbIndexes():
-      condition = sqlite_master(type='index',
+      condition = sqlite_master(
+          type='index',
           name='_'.join(['index', model.GetModelName(), field_name]))
       if not self._master_table.DoesRowExist(condition):
         return False
@@ -265,7 +269,7 @@ class Database(db.base.BaseDatabase):
       ('contains', "%(key)s LIKE '%%%(val_str)s%%' ESCAPE '\\'"),
       ('startswith', "%(key)s LIKE '%(val_str)s%%' ESCAPE '\\'"),
       ('endswith', "%(key)s LIKE '%%%(val_str)s' ESCAPE '\\'"),
-      ])
+  ])
 
   @staticmethod
   def EscapeColumnName(name, table=None):
@@ -308,8 +312,8 @@ class Database(db.base.BaseDatabase):
 
   @staticmethod
   def GetMaxArguments():
-    """
-    Sqlite has a limit of 999 host parameters used in a single statement.
+    """Sqlite has a limit of 999 host parameters used in a single statement.
+
     Be safe and reserve some for other things.
     """
     return 900

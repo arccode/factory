@@ -30,6 +30,7 @@ class SerialClient(object):
   used for indicating the corresponding n-th serial connection (zero based)
   while requesting 'send' and 'receive' commands on the server side.
   """
+
   def __init__(self, host, tcp_port, verbose=False):
     """Constructor.
 
@@ -87,21 +88,21 @@ def ParseArgs():
     tuple (options, args) from optparse.parse_args().
   """
   usage = (
-    'usage: %prog [options] <function> <serial_index> <arg1 arg2 ...> ...\n'
-    '\t- function is [send, receive].\n'
-    '\t- serial_index is serial connection index.\n'
-    '\t- arg<n> is the function arguments.\n'
-    )
+      'usage: %prog [options] <function> <serial_index> <arg1 arg2 ...> ...\n'
+      '\t- function is [send, receive].\n'
+      '\t- serial_index is serial connection index.\n'
+      '\t- arg<n> is the function arguments.\n'
+  )
 
   description = (
-    '%prog is command-line tool to test serial server. '
-    )
+      '%prog is command-line tool to test serial server. '
+  )
 
   examples = (
-    '\nExamples:\n'
-    '   > %prog send 0 usbc_action usb\n'
-    '\tSend command \'usbc_action usb\' to serial connection index 0.\n'
-    )
+      '\nExamples:\n'
+      '   > %prog send 0 usbc_action usb\n'
+      '\tSend command \'usbc_action usb\' to serial connection index 0.\n'
+  )
 
   parser = optparse.OptionParser(usage=usage)
   parser.description = description

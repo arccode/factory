@@ -19,6 +19,7 @@ from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.test import factory
 from cros.factory.test import utils
 
+
 class GoofyPresenter(GoofyBase):
   """Presenter side of Goofy.
 
@@ -32,6 +33,7 @@ class GoofyPresenter(GoofyBase):
         UI presenter app.
     dut_ip: The last known IP address of the DUT. None if a DUT is never seen.
   """
+
   def __init__(self):
     super(GoofyPresenter, self).__init__()
 
@@ -56,7 +58,7 @@ class GoofyPresenter(GoofyBase):
         standalone=self.args.standalone)
 
   def ParseOptions(self):
-    parser = argparse.ArgumentParser(description="Run Goofy presenter")
+    parser = argparse.ArgumentParser(description='Run Goofy presenter')
     parser.add_argument('--standalone', action='store_true',
                         help=('Assume the controller is running on the same '
                               'machines.'))

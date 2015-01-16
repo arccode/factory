@@ -6,13 +6,14 @@
 import mox
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.common import Obj
 from cros.factory.gooftool import probe
 from cros.factory.system import vpd
 
 
 class ProbeRegionUnittest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(vpd.ro, 'get')
@@ -24,7 +25,7 @@ class ProbeRegionUnittest(unittest.TestCase):
     vpd.ro.get('region').AndReturn('us')
     self.mox.ReplayAll()
 
-    result = probe._ProbeRegion() # pylint: disable=W0212
+    result = probe._ProbeRegion()  # pylint: disable=W0212
     self.assertEquals(
         [{'region_code': 'us',
           'keyboards': 'xkb:us::eng',
@@ -37,6 +38,7 @@ class ProbeRegionUnittest(unittest.TestCase):
 
 
 class GetEMMC5FirmwareVersionUnittest(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(probe, 'Shell')

@@ -3,8 +3,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-Converts a directory of v1 component files into one v2 HWID file.
+"""Converts a directory of v1 component files into one v2 HWID file.
+
 Designed to be used to convert ALEX component files to v2.
 """
 import argparse
@@ -17,6 +17,7 @@ from os.path import isfile, join
 
 class Hwid:
   """BOM object"""
+
   def __init__(self, name):
     self.name = name
     self.components = {}
@@ -33,14 +34,15 @@ class Hwid:
     """
     bom_dict = dict()
     primary = {'classes_dontcare': sorted(self.dontcare),
-                   'classes_missing': sorted(self.missing),
-                   'components': self.components}
+               'classes_missing': sorted(self.missing),
+               'components': self.components}
     bom_dict = {'primary': primary, 'variants': sorted(self.variants)}
     return bom_dict
 
 
 class InitialConfig:
   """Initial config"""
+
   def __init__(self, num):
     self.num = num
     self.constraints = {}
@@ -60,6 +62,7 @@ class InitialConfig:
 
 class Variant:
   """HWID variant"""
+
   def __init__(self):
     self.letter = ''
     self.components = {}
@@ -92,6 +95,7 @@ class Variant:
 
 class Volatile:
   """HWID volatile"""
+
   def __init__(self, name):
     self.name = name
     self.volatile_values = {}
@@ -127,7 +131,7 @@ def ConvertV1Dir(directory, outfile):
       # Get all components for the BOM
       if (line[5:13] == 'part_id_' or
           line[5:15] == 'vendor_id_'):
-        part = ""
+        part = ''
         if line[5:13] == 'part_id_':
           temp = line[13:]
           templist = temp.partition(':')
@@ -176,9 +180,9 @@ def ConvertV1Dir(directory, outfile):
         var1 = Variant()
         var2 = Variant()
         for old_key, old_value in sorted((k, v) for k, v in
-                                   old_hwid.components.items()):
+                                         old_hwid.components.items()):
           for new_key, new_value in sorted((k, v) for k, v in
-                                     hwid.components.items()):
+                                           hwid.components.items()):
             if not old_key in hwid.components:
               var1.components[old_key] = old_value
               var2.missing.append(old_key)
@@ -201,9 +205,9 @@ def ConvertV1Dir(directory, outfile):
       else:
         new_variant = Variant()
         for old_key, old_value in sorted((k, v) for k, v in
-                                   old_hwid.components.items()):
+                                         old_hwid.components.items()):
           for new_key, new_value in sorted((k, v) for k, v in
-                                     hwid.components.items()):
+                                           hwid.components.items()):
             if not old_key in hwid.components:
               for var in old_hwid.variants:
                 var.components[old_key] = old_value
@@ -231,6 +235,7 @@ def ConvertV1Dir(directory, outfile):
         hwids[old_hwid.name] = old_hwid
     component_file.close()
   MakeV2FileFromV1(hwids, outfile)
+
 
 def MakeV2FileFromV1(hwids, outfile):
   """Creates a v2 file from the list of hwids and saves it to outfile.
@@ -272,8 +277,8 @@ def MakeV2FileFromV1(hwids, outfile):
     # class is not present in the BOM's primary components or any of its
     # variants.
     for comp in all_components:
-      if (not comp in hwid.components) and (not comp in hwid_var_comps) and (not
-          comp in hwid_var_miss):
+      if (not comp in hwid.components) and (not comp in hwid_var_comps) and (
+          not comp in hwid_var_miss):
         missing.append(comp)
     if len(missing) > 0:
       v2_file.write('\n')
@@ -300,10 +305,10 @@ def MakeV2FileFromV1(hwids, outfile):
   for var in variants:
     var_num = variants.index(var)
     if var_num < 25:
-      var_ltr = 'A' + chr(var_num + ord ('A') + 1)
+      var_ltr = 'A' + chr(var_num + ord('A') + 1)
     else:
       var_num -= 26
-      var_ltr = 'B' + chr(var_num + ord ('A') + 1)
+      var_ltr = 'B' + chr(var_num + ord('A') + 1)
     v2_file.write(('\t' + var_ltr +
                    ':\n\t\tclasses_dontcare: []\n\t\tclasses_missing:')
                   .expandtabs(2))
@@ -322,6 +327,7 @@ def MakeV2FileFromV1(hwids, outfile):
       v2_file.write(('\t\t\t' + k + ': ' + v + '\n').expandtabs(2))
   v2_file.write('volatile_values: {}\nvolatiles: {}\nvpd_ro_fields: []')
   v2_file.close()
+
 
 def GenerateVariantLetterList(hwid, variants):
   """Returns a list of variant letters.
@@ -342,20 +348,21 @@ def GenerateVariantLetterList(hwid, variants):
       if var_a.Equals(var_b):
         var_num = variants.index(var_b)
         if var_num < 25:
-          var_letter_list.append('A' + chr(var_num + ord ('A') + 1))
+          var_letter_list.append('A' + chr(var_num + ord('A') + 1))
         else:
           var_num -= 26
-          var_letter_list.append('B' + chr(var_num + ord ('A') + 1))
+          var_letter_list.append('B' + chr(var_num + ord('A') + 1))
         already_exists = True
     if not already_exists:
       variants.append(var_a)
       var_num = variants.index(var_a)
       if var_num < 25:
-        var_letter_list.append('A' + chr(var_num + ord ('A') + 1))
+        var_letter_list.append('A' + chr(var_num + ord('A') + 1))
       else:
         var_num -= 26
-        var_letter_list.append('B' + chr(var_num + ord ('A') + 1))
+        var_letter_list.append('B' + chr(var_num + ord('A') + 1))
   return var_letter_list
+
 
 def ConvertV15(infile, outfile):
   """Converts a v1.5 file to v2.
@@ -369,6 +376,7 @@ def ConvertV15(infile, outfile):
   v15_file.close()
 
   SaveYamlToV2File(ConvertV15YamlToV2Yaml(v15_yaml), outfile)
+
 
 def ConvertV15YamlToV2Yaml(v15_yaml):
   """Converts a v15 yaml to a v2 yaml.
@@ -433,7 +441,7 @@ def ConvertV15YamlToV2Yaml(v15_yaml):
                      'ro_main_firmware': dict()}
   for name, value in v15_yaml['volatile_value_map'].items():
     new_name = ''
-    vol_type = value[:2] # Type determines the format of the value in v2
+    vol_type = value[:2]  # Type determines the format of the value in v2
     if vol_type == 'gv':
       new_name = 'hash_gbb_{0}'.format(len(volatile_values['hash_gbb']))
       new_value = value
@@ -505,6 +513,7 @@ def ConvertV15YamlToV2Yaml(v15_yaml):
 
   return yaml_output
 
+
 def SaveYamlToV2File(yaml_dict, outfile):
   """Saves a yaml dict to a v2 yaml file.
 
@@ -519,6 +528,7 @@ def SaveYamlToV2File(yaml_dict, outfile):
                 + '\n')
   v2_file.write(yaml.dump(yaml_dict, indent=2, default_flow_style=False))
   v2_file.close()
+
 
 def main():
   """Checks for command line arguments and calls the corresponding function"""

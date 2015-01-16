@@ -12,7 +12,7 @@ import os
 import re
 import pprint
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import common, schema, rule
 from cros.factory.hwid import base32, base8192
 from cros.factory.test import phase
@@ -29,6 +29,7 @@ DEFAULT_HWID_DATA_PATH = (
 
 PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')
 MP_KEY_NAME_PATTERN = re.compile('_mp[_0-9v]*$')
+
 
 def ProbeBoard(hwid=None):
   """Probes the board name by looking up the CHROMEOS_RELEASE_BOARD variable
@@ -131,7 +132,7 @@ class HWID(object):
     self.encoded_string = encoded_string
     self.bom = bom
     if mode not in HWID.OPERATION_MODE:
-      raise HWIDException("Invalid operation mode: %r. Mode must be one of: "
+      raise HWIDException('Invalid operation mode: %r. Mode must be one of: '
                           "'normal' or 'rma'" % mode)
     self.mode = mode
     if not skip_check:
@@ -161,13 +162,15 @@ class HWID(object):
             decoded.components.keys() + target.components.keys()):
           if comp_cls not in decoded.components:
             results.append('Decoded: does not exist. BOM: %r' %
-                target.components[comp_cls])
+                           target.components[comp_cls])
           elif comp_cls not in target.components:
             results.append('Decoded: %r. BOM: does not exist.' %
-                decoded.components[comp_cls])
+                           decoded.components[comp_cls])
           elif decoded.components[comp_cls] != target.components[comp_cls]:
-            results.append('Decoded: %r != BOM: %r' %
-                (decoded.components[comp_cls], target.components[comp_cls]))
+            results.append(
+                'Decoded: %r != BOM: %r' %
+                (decoded.components[comp_cls],
+                 target.components[comp_cls]))
         return results
       raise HWIDException(
           'Binary string %r does not decode to BOM. Differences: %r' %
@@ -217,6 +220,7 @@ class HWID(object):
     """
     self.database.VerifyComponents(probe_result)
     probed_bom = self.database.ProbeResultToBOM(probe_result)
+
     def PackProbedValues(bom, comp_cls):
       results = []
       for e in bom.components[comp_cls]:
@@ -270,10 +274,11 @@ class HWID(object):
                                   else current_phase.name)
     image_name = self.database.image_id[self.bom.image_id]
     if not image_name.startswith(expected_image_name_prefix):
-      raise HWIDException('In %s phase, expected an image name beginning with '
-                          '%r (but %r has image ID %r)' % (
-          current_phase, expected_image_name_prefix, self.encoded_string,
-          image_name))
+      raise HWIDException(
+          'In %s phase, expected an image name beginning with '
+          '%r (but %r has image ID %r)' %
+          (current_phase, expected_image_name_prefix, self.encoded_string,
+           image_name))
 
     # MP-key checking applies only in PVT and above
     if current_phase >= phase.PVT:
@@ -341,13 +346,13 @@ class BOM(object):
       value_type=schema.List(
           'list of ProbedComponentResult',
           schema.Tuple('ProbedComponentResult',
-                [schema.Optional(schema.Scalar('component name', str)),
-                 schema.Optional(schema.Dict('probed_values',
-                               key_type=schema.Scalar('key', str),
-                               value_type=schema.AnyOf([
-                                   schema.Scalar('value', str),
-                                   schema.Scalar('value', rule.Value)]))),
-                 schema.Optional(schema.Scalar('error', str))])))
+                       [schema.Optional(schema.Scalar('component name', str)),
+                        schema.Optional(schema.Dict('probed_values',
+                                                    key_type=schema.Scalar('key', str),
+                                                    value_type=schema.AnyOf([
+                                                        schema.Scalar('value', str),
+                                                        schema.Scalar('value', rule.Value)]))),
+                        schema.Optional(schema.Scalar('error', str))])))
 
   def __init__(self, board, encoding_pattern_index, image_id,
                components, encoded_fields):
@@ -385,9 +390,9 @@ def _CompareBase32BinaryString(database, expected, given):
 
   def ParseBinaryString(label, string):
     msg = '\n%12s' % (label + ': ') + ' '.join(
-        [string[i:i+5] for i in xrange(0, len(string), 5)])
+        [string[i:i + 5] for i in xrange(0, len(string), 5)])
     msg += '\n%12s' % ' ' + ' '.join(
-        ['%5s' % base32.Base32.Encode(string[i:i+5])
+        ['%5s' % base32.Base32.Encode(string[i:i + 5])
          for i in xrange(0, len(string), 5)])
     return msg
 
@@ -418,8 +423,9 @@ def _CompareBase8192BinaryString(database, expected, given):
   def ParseBinaryString(label, string):
     msg = '\n%12s' % (label + ': ') + ' '.join(
         ['%-5s %-3s %-5s' % (
-            string[i:i+5], string[i+5:i+8], string[i+8:i+13])
+            string[i:i + 5], string[i + 5:i + 8], string[i + 8:i + 13])
          for i in xrange(0, len(string), 13)])
+
     def _SplitString(s):
       results = list(base8192.Base8192.Encode(s))
       if len(results) == 4:
@@ -428,7 +434,7 @@ def _CompareBase8192BinaryString(database, expected, given):
         results.extend([' '] * (3 - len(results)))
       return tuple(results)
     msg += '\n%12s' % ' ' + ' '.join(
-        [('%5s %3s %5s' % _SplitString(string[i:i+13]))
+        [('%5s %3s %5s' % _SplitString(string[i:i + 13]))
          for i in xrange(0, len(string), 13)])
     return msg
 
@@ -446,6 +452,7 @@ def _CompareBase8192BinaryString(database, expected, given):
           ParseBinaryString('Expected', expected) +
           ParseBinaryString('Given', given) +
           BitMap(database))
+
 
 def CompareBinaryString(database, expected, given):
   image_id = database.pattern.GetImageIdFromBinaryString(given)

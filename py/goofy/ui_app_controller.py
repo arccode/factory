@@ -115,7 +115,7 @@ class UIAppController(object):
     if not self._msg_event.wait(timeout=5):
       return False
     self._msg_event.clear()
-    return self._last_msg == "OK"
+    return self._last_msg == 'OK'
 
   def ShowDisconnectedScreen(self):
     self.SendMessage({'command': UI_APP_COMMAND.DISCONNECT})

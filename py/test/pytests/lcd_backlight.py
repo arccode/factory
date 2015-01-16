@@ -38,10 +38,11 @@ _HTML_BACKLIGHT_TEST = '<div id="%s"></div>\n<div id="%s"></div>\n' % (
     _ID_PROMPT, _ID_COUNTDOWN_TIMER)
 _BACKLIGHT_TEST_DEFAULT_CSS = '.backlight-test-info { font-size: 2em; }'
 
+
 class LCDBacklightTest(unittest.TestCase):
   ARGS = [
-    Arg('timeout_secs', int, 'Timeout value for the test.',
-        default=10)
+      Arg('timeout_secs', int, 'Timeout value for the test.',
+          default=10)
   ]
 
   def setUp(self):

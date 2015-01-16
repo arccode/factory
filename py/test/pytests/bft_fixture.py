@@ -16,14 +16,14 @@ from cros.factory.test.fixture.bft_fixture import CreateBFTFixture
 
 class BFTFixture(unittest.TestCase):
   ARGS = [
-    Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
-    Arg('method', str, 'BFTFixture method to call.'),
-    Arg('args', (list, tuple), 'args of the method.',
-        default=(), optional=True),
-    Arg('retry_secs', (int, float),
-        'retry interval in seconds (or None for no retry)',
-        optional=True),
-    ]
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
+      Arg('method', str, 'BFTFixture method to call.'),
+      Arg('args', (list, tuple), 'args of the method.',
+          default=(), optional=True),
+      Arg('retry_secs', (int, float),
+          'retry interval in seconds (or None for no retry)',
+          optional=True),
+  ]
 
   def runTest(self):
     while True:

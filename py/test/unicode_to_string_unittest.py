@@ -5,7 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 import unittest
 from cros.factory.test.unicode_to_string \
@@ -14,7 +14,9 @@ from cros.factory.test.unicode_to_string \
 # My favorite character: 囧
 JIONG_UTF8 = '\xe5\x9b\xa7'
 
+
 class UnicodeToStringTest(unittest.TestCase):
+
   def isSame(self, a, b):
     '''Returns True if a and b are equal and the same type.
 
@@ -41,24 +43,24 @@ class UnicodeToStringTest(unittest.TestCase):
     self.assertTrue(self.isSame(a, b), 'isSame(%r,%r)' % (a, b))
 
   def testAssertSame(self):
-    '''Makes sense that assertSame works properly.'''
+    """Makes sense that assertSame works properly."""
     self.assertSame('abc', 'abc')
     self.assertRaises(AssertionError,
-             lambda: self.assertSame('abc', u'abc'))
+                      lambda: self.assertSame('abc', u'abc'))
     self.assertSame(['a'], ['a'])
     self.assertRaises(AssertionError,
-             lambda: self.assertSame(['a'], [u'a']))
+                      lambda: self.assertSame(['a'], [u'a']))
     self.assertSame(('a'), ('a'))
     self.assertRaises(AssertionError,
-             lambda: self.assertSame(('a'), (u'a')))
+                      lambda: self.assertSame(('a'), (u'a')))
     self.assertSame(set(['a']), set(['a']))
     self.assertRaises(
-      AssertionError,
-      lambda: self.assertSame(set(['a']),
-                  set([u'a'])))
+        AssertionError,
+        lambda: self.assertSame(set(['a']),
+                                set([u'a'])))
     self.assertSame({1: 'a'}, {1: 'a'})
     self.assertRaises(AssertionError,
-             lambda: self.assertSame({1: 'a'}, {1: u'a'}))
+                      lambda: self.assertSame({1: 'a'}, {1: u'a'}))
 
   def testUnicodeToString(self):
     self.assertSame(1, UnicodeToString(1))
@@ -71,22 +73,24 @@ class UnicodeToStringTest(unittest.TestCase):
       return ('func', args, kwargs)
 
     self.assertSame(('func', ('a',), {'b': 'c'}),
-            func(u'a', b=u'c'))
+                    func(u'a', b=u'c'))
 
   def testUnicodeToStringClass(self):
     @UnicodeToStringClass
     class MyClass(object):
+
       def f1(self, *args, **kwargs):
         return ('f1', args, kwargs)
+
       def f2(self, *args, **kwargs):
         return ('f2', args, kwargs)
 
     obj = MyClass()
     self.assertSame(('f1', ('a',), {'b': 'c', 'd': set(['e'])}),
-            obj.f1(u'a', b=u'c', d=set([u'e'])))
+                    obj.f1(u'a', b=u'c', d=set([u'e'])))
     self.assertSame(('f2', ('a',), {'b': 'c', 'd': set(['e'])}),
-            obj.f2(u'a', b=u'c', d=set([u'e'])))
+                    obj.f2(u'a', b=u'c', d=set([u'e'])))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   unittest.main()

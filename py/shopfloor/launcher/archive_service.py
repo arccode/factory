@@ -21,6 +21,7 @@ class ArchiveService(ServiceBase):
   Args:
     dummy_config: Launcher YAML config dictionary.
   """
+
   def __init__(self, unused_config):
     # ServiceBase is an old-style python class.
     ServiceBase.__init__(self)
@@ -28,14 +29,14 @@ class ArchiveService(ServiceBase):
     archiver_executable = os.path.join(env.runtime_dir, 'archive_reports')
     TryMakeDirs(os.path.join(env.runtime_dir, constants.SHOPFLOOR_DATA))
     svc_conf = {
-      'executable': archiver_executable,
-      'name': 'archive_reports',
-      'args': ['--period', '10',
-               '--dir', REPORTS_DIR,
-               '--dir', INCREMENTAL_EVENTS_DIR],
-      'path': env.runtime_dir,
-      'logpipe': True,
-      'auto_restart': True}
+        'executable': archiver_executable,
+        'name': 'archive_reports',
+        'args': ['--period', '10',
+                 '--dir', REPORTS_DIR,
+                 '--dir', INCREMENTAL_EVENTS_DIR],
+        'path': env.runtime_dir,
+        'logpipe': True,
+        'auto_restart': True}
     self.SetConfig(svc_conf)
 
     # Creates archiver symlink and folders.

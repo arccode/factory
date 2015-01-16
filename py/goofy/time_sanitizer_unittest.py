@@ -19,12 +19,13 @@ from cros.factory.goofy import time_sanitizer
 
 
 BASE_TIME = float(
-  calendar.timegm(time.strptime('Sat Jun  9 00:00:00 2012')))
+    calendar.timegm(time.strptime('Sat Jun  9 00:00:00 2012')))
 
 SECONDS_PER_DAY = 86400
 
 
 class TimeSanitizerTestBase(unittest.TestCase):
+
   def setUp(self):
     self.mox = mox.Mox()
     self.fake_time = self.mox.CreateMock(time_sanitizer.Time)
@@ -32,17 +33,17 @@ class TimeSanitizerTestBase(unittest.TestCase):
 
     self.state_file = tempfile.NamedTemporaryFile().name
     self.sanitizer = time_sanitizer.TimeSanitizer(
-      self.state_file,
-      monitor_interval_secs=30,
-      time_bump_secs=60,
-      max_leap_secs=SECONDS_PER_DAY)
+        self.state_file,
+        monitor_interval_secs=30,
+        time_bump_secs=60,
+        max_leap_secs=SECONDS_PER_DAY)
     self.sanitizer._time = self.fake_time
     self.sanitizer._suppress_exceptions = False
     self.sanitizer._shopfloor = self.fake_shopfloor
 
   @contextmanager
   def Mock(self):
-    '''Context manager that sets up a mock, then runs the sanitizer once.'''
+    """Context manager that sets up a mock, then runs the sanitizer once."""
     self.mox.ResetAll()
     yield
     self.mox.ReplayAll()
@@ -54,6 +55,7 @@ class TimeSanitizerTestBase(unittest.TestCase):
 
 
 class TimeSanitizerBaseTimeTest(TimeSanitizerTestBase):
+
   def runTest(self):
     # pylint: disable=W0212
     # (access to protected members)
@@ -61,16 +63,17 @@ class TimeSanitizerBaseTimeTest(TimeSanitizerTestBase):
       self.assertEquals(os.stat(f.name).st_mtime,
                         time_sanitizer.GetBaseTimeFromFile(f.name))
     self.assertEquals(
-      None,
-      time_sanitizer.GetBaseTimeFromFile('/some-nonexistent-file'))
+        None,
+        time_sanitizer.GetBaseTimeFromFile('/some-nonexistent-file'))
 
 
 class TimeSanitizerShopfloor(TimeSanitizerTestBase):
+
   def _RunWithShopfloorUnavailable(self):
-    '''Simulate trying to contact the shopfloor server but failing.'''
+    """Simulate trying to contact the shopfloor server but failing."""
     self.mox.ResetAll()
     self.fake_shopfloor.get_instance(detect=True, timeout=5).AndRaise(
-      OSError())
+        OSError())
     self.mox.ReplayAll()
 
     self.assertRaises(OSError, self.sanitizer.SyncWithShopfloor)
@@ -116,6 +119,7 @@ class TimeSanitizerShopfloor(TimeSanitizerTestBase):
 
 
 class TimeSanitizerTest(TimeSanitizerTestBase):
+
   def runTest(self):
     with self.Mock():
       self.fake_time.Time().AndReturn(BASE_TIME)
@@ -147,7 +151,6 @@ class TimeSanitizerTest(TimeSanitizerTestBase):
     self.assertEquals(BASE_TIME + 261.5, self._ReadStateFile())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)
   unittest.main()
-

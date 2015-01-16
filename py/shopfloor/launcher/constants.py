@@ -26,4 +26,3 @@ SHOPFLOOR_DATA = 'shopfloor_data'
 HTTPD_MAX_FDS = 32768
 # Maximum number of connections
 HTTPD_MAX_CONN = HTTPD_MAX_FDS / 2
-

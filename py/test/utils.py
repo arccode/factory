@@ -79,7 +79,7 @@ def in_cros_device():
     return False
   with open('/etc/lsb-release') as f:
     lsb_release = f.read()
-  return re.match('^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
+  return re.match(r'^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
 
 
 def are_shift_keys_depressed():
@@ -88,7 +88,7 @@ def are_shift_keys_depressed():
   KEY_LEFTSHIFT = 42
   KEY_RIGHTSHIFT = 54
 
-  for kbd in glob.glob("/dev/input/by-path/*kbd"):
+  for kbd in glob.glob('/dev/input/by-path/*kbd'):
     try:
       f = os.open(kbd, os.O_RDONLY)
     except OSError:
@@ -112,7 +112,7 @@ def are_shift_keys_depressed():
 
 
 def var_log_messages_before_reboot(lines=100,
-                                   max_length=5*1024*1024,
+                                   max_length=5 * 1024 * 1024,
                                    path='/var/log/messages'):
   """Returns the last few lines in /var/log/messages before the current boot.
 
@@ -138,15 +138,15 @@ def var_log_messages_before_reboot(lines=100,
 
   match = matches[-1]
   tail_lines = data[:match.start()].split('\n')
-  tail_lines.pop() # Remove incomplete line at end
+  tail_lines.pop()  # Remove incomplete line at end
 
   # Skip some common lines that may have been written before the Linux
   # version.
   while tail_lines and any(
-    re.search(x, tail_lines[-1])
-    for x in [r'0\.000000\]',
-         r'rsyslogd.+\(re\)start',
-         r'/proc/kmsg started']):
+      re.search(x, tail_lines[-1])
+      for x in [r'0\.000000\]',
+                r'rsyslogd.+\(re\)start',
+                r'/proc/kmsg started']):
     tail_lines.pop()
 
   # Done! Return the last few lines.
@@ -163,7 +163,7 @@ def FormatExceptionOnly():
     A string.
   """
   return '\n'.join(
-    traceback.format_exception_only(*sys.exc_info()[:2])).strip()
+      traceback.format_exception_only(*sys.exc_info()[:2])).strip()
 
 
 def ResetCommitTime():
@@ -204,6 +204,7 @@ class LoadManager(object):
     _num_threads: The number of threads in running stressapptest.
     _memory_ratio: The memory ratio in running stressapptest.
   """
+
   def __init__(self, duration_secs, num_threads=None, memory_ratio=0.2, ):
     """Initialize LoadManager.
 
@@ -231,7 +232,7 @@ class LoadManager(object):
     mem_usage = int(int(mem) * self._memory_ratio / 1024)
     self._process = process_utils.Spawn(
         ['stressapptest', '-m', '%d' % self._num_threads,
-         '-M', '%d' %  mem_usage, '-s',  '%d' % duration_secs])
+         '-M', '%d' % mem_usage, '-s', '%d' % duration_secs])
     logging.info('LoadManager: Start LoadManager with %d processes'
                  ' %d M memory %d seconds.',
                  self._num_threads, mem_usage, duration_secs)
@@ -255,7 +256,7 @@ def Timeout(secs):
   """Timeout context manager. It will raise TimeoutError after timeout.
   It does not support nested "with Timeout" blocks.
   """
-  def handler(signum, frame): # pylint: disable=W0613
+  def handler(signum, frame):  # pylint: disable=W0613
     raise type_utils.TimeoutError('Timeout')
 
   if secs:

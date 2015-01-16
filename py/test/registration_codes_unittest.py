@@ -17,6 +17,7 @@ from cros.factory.proto import reg_code_pb2
 
 
 class RegistrationCodeTest(unittest.TestCase):
+
   def setUp(self):
     # Construct a valid reg code and store it in self.proto.  Other tests
     # may modify the code.
@@ -52,17 +53,17 @@ class RegistrationCodeTest(unittest.TestCase):
 
   def testValid_Pregenerated(self):
     for expected_type, encoded_string in (
-      (RegistrationCode.Type.UNIQUE_CODE,
-       '=CioKIKMVpeuuIkf5epYYO5oivYR6HnjFjLg0ZPbFUuUkMOv2EAEaBGxpbmsQ4PvXgAM='),
-      (RegistrationCode.Type.GROUP_CODE,
-       '=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE='),
-      (RegistrationCode.Type.UNIQUE_CODE,
-       (u'=CioKIEkzPma0JQrR6gvdlYHzbjp1IN8v1'
-        'ybuSPQrindTXip2EAEaBGxpbmsQtKi9uQg=')),
-      (RegistrationCode.Type.GROUP_CODE,
-       (u'=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEf'
-        'iB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE=')),
-      ):
+        (RegistrationCode.Type.UNIQUE_CODE,
+         '=CioKIKMVpeuuIkf5epYYO5oivYR6HnjFjLg0ZPbFUuUkMOv2EAEaBGxpbmsQ4PvXgAM='),
+        (RegistrationCode.Type.GROUP_CODE,
+         '=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE='),
+        (RegistrationCode.Type.UNIQUE_CODE,
+         (u'=CioKIEkzPma0JQrR6gvdlYHzbjp1IN8v1'
+          'ybuSPQrindTXip2EAEaBGxpbmsQtKi9uQg=')),
+        (RegistrationCode.Type.GROUP_CODE,
+         (u'=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEf'
+          'iB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE=')),
+    ):
       reg_code = RegistrationCode(encoded_string)
       self.assertEquals(expected_type, reg_code.type)
       self.assertEquals('link', reg_code.device)
@@ -140,8 +141,8 @@ class RegistrationCodeTest(unittest.TestCase):
     encoded_string = ('000000000000000000000000000000000000'
                       '0000000000000000000000000000190a55ae')
     self.assertRaisesRegexp(
-      RegistrationCodeException, 'CRC of', RegistrationCode,
-      encoded_string)
+        RegistrationCodeException, 'CRC of', RegistrationCode,
+        encoded_string)
 
   def testCheckRegistrationCode(self):
     encoded_string = self._Encode()
@@ -167,7 +168,7 @@ class RegistrationCodeTest(unittest.TestCase):
 
   def testCheckRegistrationCode_Invalid(self):
     self.assertRaisesRegexp(RegistrationCodeException,
-                            "Invalid registration code",
+                            'Invalid registration code',
                             CheckRegistrationCode, 'abcde')
 
   def testCheckRegistrationCode_Legacy(self):

@@ -31,7 +31,7 @@ import urlparse
 import xmlrpclib
 from xmlrpclib import Binary
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import privacy
 from cros.factory.test import factory, utils
 from cros.factory.test.event import EventClient, Event
@@ -73,11 +73,11 @@ DEFAULT_SERVER_PORT = 8082
 SHOPFLOOR_SERVER_ENV_VAR_NAME = 'CROS_SHOPFLOOR_SERVER_URL'
 
 # Exception message when shopfloor server is not configured.
-SHOPFLOOR_NOT_CONFIGURED_STR = "Shop floor server URL is not configured"
+SHOPFLOOR_NOT_CONFIGURED_STR = 'Shop floor server URL is not configured'
 
 # Default timeout and retry interval for getting a valid shopfloor instance.
-SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
-SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
+SHOPFLOOR_TIMEOUT_SECS = 10  # Timeout for shopfloor connection.
+SHOPFLOOR_RETRY_INTERVAL_SECS = 10  # Seconds to wait between retries.
 
 # Some tests refer to "shopfloor.Fault" so we need to export it from
 # shopfloor.
@@ -85,6 +85,7 @@ Fault = xmlrpclib.Fault
 
 # ----------------------------------------------------------------------------
 # Exception Types
+
 
 class ServerFault(Exception):
   """Server fault exception."""
@@ -109,8 +110,10 @@ def _server_api(call):
 # ----------------------------------------------------------------------------
 # Utility Functions
 
+
 def _get_aux_shared_data_key(table_name):
   return KEY_SESSION_AUX_PREFIX + table_name
+
 
 def _fetch_current_session():
   """Gets current shop floor session from factory states shared data.
@@ -124,7 +127,7 @@ def _fetch_current_session():
         SESSION_SERIAL_NUMBER: None,
         SESSION_SERVER_URL: None,
         SESSION_ENABLED: False,
-        }
+    }
     factory.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
   return session
 
@@ -137,7 +140,7 @@ def _set_session(key, value):
   # session should be singularily configured in the very beginning, let's fix
   # this only if that really becomes an issue.
   session = _fetch_current_session()
-  assert key in session, "Unknown session key: %s" % key
+  assert key in session, 'Unknown session key: %s' % key
   session[key] = value
   factory.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
 
@@ -145,7 +148,7 @@ def _set_session(key, value):
 def _get_session(key):
   """Gets shop floor session value from factory states shared data."""
   session = _fetch_current_session()
-  assert key in session, "Unknown session key: %s" % key
+  assert key in session, 'Unknown session key: %s' % key
   return session[key]
 
 
@@ -158,7 +161,7 @@ def reset():
 def is_enabled():
   """Checks if current factory is configured to use shop floor system."""
   return (bool(os.environ.get(SHOPFLOOR_SERVER_ENV_VAR_NAME)) or
-      _get_session(SESSION_ENABLED))
+          _get_session(SESSION_ENABLED))
 
 
 def set_enabled(enabled):
@@ -220,7 +223,7 @@ def get_instance(url=None, detect=False, timeout=None):
   if not url:
     raise Exception(SHOPFLOOR_NOT_CONFIGURED_STR)
   return umpire_server_proxy.TimeoutUmpireServerProxy(
-    url, allow_none=True, verbose=False, timeout=timeout)
+      url, allow_none=True, verbose=False, timeout=timeout)
 
 
 def save_aux_data(table_name, id, data):  # pylint: disable=W0622
@@ -389,10 +392,12 @@ def update_local_hwid_data(target_dir='/usr/local/factory/hwid'):
     factory.log('No HWID update available from shopfloor server')
     return False
 
+
 @_server_api
 def get_vpd():
   """Gets VPD associated with current pinned serial number."""
   return get_instance().GetVPD(get_serial_number())
+
 
 @_server_api
 def get_registration_code_map():
@@ -470,7 +475,7 @@ def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
     The updated dictionary.
   """
   logging.info('Deleting device data: %s', delete_keys)
-  data  = factory.get_state_instance().delete_shared_data_dict_item(
+  data = factory.get_state_instance().delete_shared_data_dict_item(
       KEY_DEVICE_DATA, delete_keys, optional)
   if 'serial_number' in delete_keys:
     set_serial_number(None)
@@ -479,6 +484,7 @@ def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
   if post_update_event:
     EventClient().post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
   return data
+
 
 def UpdateDeviceData(new_device_data, post_update_event=True):
   """Returns the accumulated dictionary of device data.
@@ -555,7 +561,7 @@ def UploadAuxLogs(file_paths, ignore_on_fail=False, dir_name=None):
       start_time = time.time()
       shopfloor_client.SaveAuxLog(log_name, Binary(chunk))
       factory.console.info('Successfully synced %s in %.03f s',
-          log_name, time.time() - start_time)
+                           log_name, time.time() - start_time)
     except:  # pylint: disable=W0702
       if ignore_on_fail:
         factory.console.info(

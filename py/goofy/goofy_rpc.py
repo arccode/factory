@@ -77,6 +77,7 @@ class GoofyRPC(object):
     # return value or exc is any exception thrown.  Only one will be
     # set.
     result = Queue.Queue()
+
     def Target():
       try:
         # Call the function, and put the the return value on success.
@@ -129,7 +130,7 @@ class GoofyRPC(object):
       def SetEntry(m):
         # pylint: disable=W0108
         state_instance.__dict__[name] = (
-          lambda *args, **kwargs: m(*args, **kwargs))
+            lambda *args, **kwargs: m(*args, **kwargs))
       SetEntry(m)
 
   def FlushEventLogs(self):
@@ -207,7 +208,7 @@ class GoofyRPC(object):
         'factory_note', note)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
-  def GetVarLogMessages(self, max_length=256*1024):
+  def GetVarLogMessages(self, max_length=256 * 1024):
     """Returns the last n bytes of /var/log/messages.
 
     Args:
@@ -226,7 +227,8 @@ class GoofyRPC(object):
 
     return unicode(data, encoding='utf-8', errors='replace')
 
-  def GetVarLogMessagesBeforeReboot(self, lines=100, max_length=5*1024*1024):
+  def GetVarLogMessagesBeforeReboot(
+      self, lines=100, max_length=5 * 1024 * 1024):
     """Returns the last few lines in /var/log/messages before the current boot.
 
     Args:
@@ -428,7 +430,7 @@ class GoofyRPC(object):
           [('fw', fw_version, True), ('ec', ec_version, True),
            ('image', image_version, True)])
 
-    def GetVPD(): # pylint: disable=W0612
+    def GetVPD():  # pylint: disable=W0612
       """Returns RO VPD and RW VPD info."""
       ro_vpd = subprocess.check_output(['vpd', '-i', 'RO_VPD', '-l'])
       rw_vpd = subprocess.check_output(['vpd', '-i', 'RW_VPD', '-l'])
@@ -678,7 +680,7 @@ class GoofyRPC(object):
       html_string = ''.join(content_rows)
       return html_string.replace('<table', '<table class="multi-column-table"')
 
-    def GetPowerUsage(fetch_time=20): # pylint: disable=W0612
+    def GetPowerUsage(fetch_time=20):  # pylint: disable=W0612
       """Returns power usage detail.
 
       Args:
@@ -824,7 +826,7 @@ class GoofyRPC(object):
         archive_key: A "key" that may later be used to refer to the archive.
             This is just a randomly-chosen 8-digit number.
     """
-    archive_key = "%08d" % random.SystemRandom().randint(0, 1e8)
+    archive_key = '%08d' % random.SystemRandom().randint(0, 1e8)
     archive_id = '.'.join([re.sub('[^A-Za-z0-9.]', '_', x)
                            for x in (archive_key, name, serial, description)])
     output_file = factory_bug.SaveLogs(tempfile.gettempdir(),
@@ -834,8 +836,8 @@ class GoofyRPC(object):
         data = f.read()
       shopfloor.get_instance(
           detect=True, timeout=UPLOAD_FACTORY_LOGS_TIMEOUT_SECS
-          ).SaveAuxLog(os.path.basename(output_file),
-                       shopfloor.Binary(data))
+      ).SaveAuxLog(os.path.basename(output_file),
+                   shopfloor.Binary(data))
       return [os.path.basename(output_file), os.path.getsize(output_file),
               archive_key]
     finally:
@@ -1004,8 +1006,8 @@ class GoofyRPC(object):
     ret = []
     for k, v in self.goofy.test_lists.iteritems():
       ret.append(
-        dict(id=k, name=v.label_en,
-             enabled=(k == self.goofy.test_list.test_list_id)))
+          dict(id=k, name=v.label_en,
+               enabled=(k == self.goofy.test_list.test_list_id)))
 
     # Sort by name.
     ret.sort(key=lambda x: x['name'].lower())
@@ -1141,7 +1143,7 @@ class GoofyRPC(object):
     """
     if not output_file:
       output_filename = ('/var/log/screenshot_%s-%%s.png' %
-                         time.strftime("%Y%m%d-%H%M%S"))
+                         time.strftime('%Y%m%d-%H%M%S'))
     else:
       output_filename = '%s-%%s%s' % os.path.splitext(output_file)
 
@@ -1288,7 +1290,7 @@ class GoofyRPC(object):
 
 def main():
   parser = argparse.ArgumentParser(
-      description="Sends an RPC to Goofy.")
+      description='Sends an RPC to Goofy.')
   parser.add_argument(
       'command',
       help=('The command to run (as a Python expression), e.g.: '

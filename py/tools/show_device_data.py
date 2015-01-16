@@ -15,6 +15,7 @@ import pprint
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import shopfloor
 
+
 def main():
   pprint.pprint(shopfloor.GetDeviceData())
 

@@ -6,7 +6,8 @@
 
 """A helper module to set up sys.path so that cros.factory.* can be located."""
 
-import os, sys
+import os
+import sys
 
 # factory_common.py itself is usually a symlink that refers to top level of
 # factory code. To find that, we need to get the source name (the compiled

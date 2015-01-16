@@ -17,6 +17,7 @@ from cros.factory.test.utils import TryMakeDirs
 
 
 class FcgiService(ServiceBase):
+
   def __init__(self, yaml_conf):
     """Configures shopfloor xmlrpc server to FastCGI mode."""
 
@@ -27,17 +28,17 @@ class FcgiService(ServiceBase):
     shopfloor_server = os.path.abspath(
         os.path.join(env.runtime_dir, 'shopfloor_server'))
     svc_conf = {
-      'executable': shopfloor_server,
-      'name': 'fcgisvc',
-      'args': ['-a', '127.0.0.1',
-               '-p', str(env.fcgi_port),
-               '-m', yaml_conf['shopfloor']['shopfloor_module'],
-               '-f',
-               '-v',
-               '-u', 'cros.factory.shopfloor.launcher.update_state',
-               '--updater-dir', env.GetUpdatesDir()],
-      'auto_restart': True,
-      'logpipe': True
+        'executable': shopfloor_server,
+        'name': 'fcgisvc',
+        'args': ['-a', '127.0.0.1',
+                 '-p', str(env.fcgi_port),
+                 '-m', yaml_conf['shopfloor']['shopfloor_module'],
+                 '-f',
+                 '-v',
+                 '-u', 'cros.factory.shopfloor.launcher.update_state',
+                 '--updater-dir', env.GetUpdatesDir()],
+        'auto_restart': True,
+        'logpipe': True
     }
     self.SetConfig(svc_conf)
 

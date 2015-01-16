@@ -36,6 +36,7 @@ TYPE = type
 class Arg(object):
   """The specification for a single test argument."""
   # pylint: disable=W0622
+
   def __init__(self, name, type, help, default=None, optional=False):
     """Constructs a test argument.
 
@@ -101,7 +102,7 @@ class Arg(object):
     # Check type of default.
     if default and not self.ValueMatchesType(default):
       raise ValueError('Default value %s should have type %r, not %r' % (
-                       default, type, TYPE(default)))
+          default, type, TYPE(default)))
 
   def ValueMatchesType(self, value):
     """Returns True if value matches the type for this argument."""
@@ -116,6 +117,7 @@ class Arg(object):
 
 class Dargs(object):
   """A class to hold all the parsed arguments for a factory test."""
+
   def __init__(self, **kwargs):
     for key, value in kwargs.iteritems():
       setattr(self, key, value)
@@ -127,6 +129,7 @@ class Dargs(object):
 
 class Args(object):
   """A class to hold a list of argument specs for an argument parser."""
+
   def __init__(self, *args):
     """Constructs an argument parser.
 

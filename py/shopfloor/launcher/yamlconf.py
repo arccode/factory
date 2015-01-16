@@ -39,7 +39,7 @@ class LauncherYAMLConfig(dict):
                               'oem': Scalar('OEM partition image', str),
                               'rootfs-release': Scalar(
                                   'Release rootfs and Kernel',
-                                   str),
+                                  str),
                               'rootfs-test': Scalar(
                                   'Factory test rootfs and Kernel',
                                   str),
@@ -119,4 +119,3 @@ class LauncherYAMLConfig(dict):
         launcher_config['shopfloor']['port'] = (
             constants.DEFAULT_BIND_PORT)
       super(LauncherYAMLConfig, self).__init__(launcher_config)
-

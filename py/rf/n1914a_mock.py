@@ -15,6 +15,7 @@ import logging
 
 from scpi_mock import MockServerHandler, MockTestServer
 
+
 def SetupLookupTable():
   # Abbreviation for better readability
   AddLookup = MockServerHandler.AddLookup

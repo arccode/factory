@@ -8,7 +8,7 @@
 import os
 
 import factory_common  # pylint: disable=W0611
-from  cros.factory.umpire.service import umpire_service
+from cros.factory.umpire.service import umpire_service
 
 
 MINIJACK_NAME = 'minijack'
@@ -18,6 +18,7 @@ MINIJACK_EXEC = 'usr/local/factory/py/minijack/main.py'
 
 class MinijackService(umpire_service.UmpireService):
   """Minijack event log database service."""
+
   def __init__(self):
     super(MinijackService, self).__init__()
 

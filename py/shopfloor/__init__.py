@@ -42,6 +42,7 @@ HOURLY_DIR_FORMAT = 'logs.%Y%m%d-%H'
 
 IN_PROGRESS_SUFFIX = '.INPROGRESS'
 
+
 class NewlineTerminatedCSVDialect(csv.excel):
   lineterminator = '\n'
 
@@ -164,11 +165,11 @@ class ShopFloorBase(object):
       # If the auto-archive directory is newly present (or not present),
       # log a message.
       if new_auto_archive_logs_dir_exists:
-        logging.info("Auto-archive directory %s found; will auto-archive "
+        logging.info('Auto-archive directory %s found; will auto-archive '
                      "past %d days' logs there if not present",
                      auto_archive_dir, self._auto_archive_logs_days)
       else:
-        logging.info("Auto-archive directory %s not found; create it (or mount "
+        logging.info('Auto-archive directory %s not found; create it (or mount '
                      "media there) to auto-archive past %d days' logs",
                      auto_archive_dir, self._auto_archive_logs_days)
       self._auto_archive_logs_dir_exists = new_auto_archive_logs_dir_exists
@@ -219,7 +220,7 @@ class ShopFloorBase(object):
     report_path = os.path.join(self.GetReportsDir(), report_name)
     in_progress_path = report_path + IN_PROGRESS_SUFFIX
     try:
-      with open(in_progress_path, "wb") as f:
+      with open(in_progress_path, 'wb') as f:
         f.write(report_blob)
       self.CheckReportIntegrity(in_progress_path)
       shutil.move(in_progress_path, report_path)
@@ -241,7 +242,7 @@ class ShopFloorBase(object):
       ShopFloorException on error.
     """
     process = Spawn(['tar', '-tf', report_path], log=True,
-                     read_stdout=True, read_stderr=True)
+                    read_stdout=True, read_stderr=True)
 
     if process.returncode:
       error = 'Corrupt report: tar failed'
@@ -271,7 +272,6 @@ class ShopFloorBase(object):
         process.returncode, process.stderr_data)
     logging.error(error)
     raise ShopFloorException(error)
-
 
   def GetLogsDir(self, subdir=None, log_format=LOGS_DIR_FORMAT):
     """Returns the active logs directory.
@@ -480,7 +480,7 @@ class ShopFloorBase(object):
 
     path = os.path.join(self.GetAuxLogsDir(), name)
     utils.TryMakeDirs(os.path.dirname(path))
-    with open(path, "wb") as f:
+    with open(path, 'wb') as f:
       f.write(contents)
 
   def Finalize(self, serial):
@@ -556,13 +556,13 @@ class ShopFloorBase(object):
       hwid = ''
 
     # See http://goto/nkjyr for file format.
-    with open(os.path.join(self.data_dir, log_filename), "ab") as f:
+    with open(os.path.join(self.data_dir, log_filename), 'ab') as f:
       csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([
-        board,
-        registration_code_map['user'],
-        registration_code_map['group'],
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-        hwid])
+          board,
+          registration_code_map['user'],
+          registration_code_map['group'],
+          time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
+          hwid])
       os.fdatasync(f.fileno())
 
   def GetFactoryLogPort(self):

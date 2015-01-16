@@ -111,6 +111,7 @@ initial_configs: {}
 missing_component_classes: []
 '''
 
+
 class HwidTest(unittest.TestCase):
 
   def setUp(self):
@@ -124,10 +125,10 @@ class HwidTest(unittest.TestCase):
     self.hwid_tool_log = os.path.join(self.dir, 'hwid_tool_log')
     comp_classes = PROBEABLE_COMPONENT_CLASSES | set(['keyboard'])
     registry = hwid_tool.ComponentRegistry(
-      opaque_components={'keyboard':[]},
-      probeable_components=dict(
-          (comp_class, {}) for comp_class in comp_classes),
-      status=hwid_tool.StatusData.New())
+        opaque_components={'keyboard': []},
+        probeable_components=dict(
+            (comp_class, {}) for comp_class in comp_classes),
+        status=hwid_tool.StatusData.New())
     comp_db = hwid_tool.CompDb(registry)
     comp_db.Write(self.dir)
 
@@ -136,7 +137,7 @@ class HwidTest(unittest.TestCase):
 
   def runTool(self, args, stdin='', show_stdout=False, assertSuccess=True):
     cmd = '%s -v 4 -l %s -p %s %s' % (
-      self.hwid_tool_cmd, self.hwid_tool_log, self.dir, args)
+        self.hwid_tool_cmd, self.hwid_tool_log, self.dir, args)
     cmd_result = Shell(cmd, stdin=stdin)
     logging.info(cmd)
     if cmd_result.stderr:
@@ -149,7 +150,7 @@ class HwidTest(unittest.TestCase):
 
   def testComplexRunthrough(self):
     with LogOnException(
-      self._testMethodName, self.test_log, self.hwid_tool_log):
+        self._testMethodName, self.test_log, self.hwid_tool_log):
       self.runTool('create_device FOO')
       self.runTool('create_bom --board=FOO --dontcare="*" '
                    '--variant_classes keyboard')
@@ -157,7 +158,8 @@ class HwidTest(unittest.TestCase):
                    stdin=g_zgb_probe_results_str,
                    show_stdout=True)
       hw_db = hwid_tool.HardwareDb(self.dir)
-      self.assertEqual(len(hw_db.comp_db.probeable_components['usb_hosts']), 5,
+      self.assertEqual(
+          len(hw_db.comp_db.probeable_components['usb_hosts']), 5,
           hw_db.comp_db.probeable_components.get('usb_hosts', None))
       self.assertEqual(len(hw_db.devices), 1, hw_db.devices.keys())
       device = hw_db.devices['FOO']
@@ -193,7 +195,7 @@ class HwidTest(unittest.TestCase):
 
   def testStatusChanges(self):
     with LogOnException(
-      self._testMethodName, self.test_log, self.hwid_tool_log):
+        self._testMethodName, self.test_log, self.hwid_tool_log):
       self.runTool('create_device FOO')
       hw_db = hwid_tool.HardwareDb(self.dir)
       hw_db.comp_db.AddComponent('keyboard', comp_name='sunrex_kbd_us')
@@ -237,7 +239,7 @@ class HwidTest(unittest.TestCase):
 
   def testRename(self):
     with LogOnException(
-      self._testMethodName, self.test_log, self.hwid_tool_log):
+        self._testMethodName, self.test_log, self.hwid_tool_log):
       hw_db = hwid_tool.HardwareDb(self.dir)
       hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_0')
       hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_1')
@@ -252,20 +254,20 @@ class HwidTest(unittest.TestCase):
                        ['kbd_1', 'sunrex_kbd_us'],
                        hw_db.comp_db.opaque_components)
       variant_component_spec = hw_db.comp_db.CreateComponentSpec(
-        components=['tpm_0'], dontcare=[], missing=[])
+          components=['tpm_0'], dontcare=[], missing=[])
       bom_component_spec = hw_db.comp_db.CreateComponentSpec(
-        components=['kbd_1', 'cpu_0', 'cpu_1'],
-        dontcare=list(hw_db.comp_db.all_comp_classes -
-                      set(['keyboard', 'cpu', 'tpm'])),
-        missing=[])
+          components=['kbd_1', 'cpu_0', 'cpu_1'],
+          dontcare=list(hw_db.comp_db.all_comp_classes -
+                        set(['keyboard', 'cpu', 'tpm'])),
+          missing=[])
       device = hw_db.CreateDevice('FOO')
       device.CreateVariant(variant_component_spec)
       device.CreateBom('BAR', bom_component_spec)
       hw_db.Write()
       rename_stdin_1 = (
-        'kbd_1 sunrex_kbd_gb\n'
-        'cpu_1 ibm_deep_blue_4\n'
-        'tpm_0 nsa_spies_on_U_2000\n')
+          'kbd_1 sunrex_kbd_gb\n'
+          'cpu_1 ibm_deep_blue_4\n'
+          'tpm_0 nsa_spies_on_U_2000\n')
       self.runTool('rename_components', stdin=rename_stdin_1)
       hw_db = hwid_tool.HardwareDb(self.dir)
       self.assertEqual(hw_db.comp_db.opaque_components['keyboard'],
@@ -287,7 +289,7 @@ class HwidTest(unittest.TestCase):
 
   def testFilterDatabase(self):
     with LogOnException(
-      self._testMethodName, self.test_log, self.hwid_tool_log):
+        self._testMethodName, self.test_log, self.hwid_tool_log):
       hw_db = hwid_tool.HardwareDb(self.dir)
       hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_0')
       hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_1')
@@ -304,9 +306,9 @@ class HwidTest(unittest.TestCase):
                         set(['keyboard', 'cpu', 'tpm'])),
           missing=[]))
       device.CreateBom('BAZ', hw_db.comp_db.CreateComponentSpec(
-            components=[],
-            dontcare=list(hw_db.comp_db.all_comp_classes - set(['tpm'])),
-            missing=[]))
+          components=[],
+          dontcare=list(hw_db.comp_db.all_comp_classes - set(['tpm'])),
+          missing=[]))
       device.AddVolatileValue('hash_gbb', 'AAA', 'v0')
       device.AddVolatileValue('key_recovery', 'BBB', 'v1')
       device.AddVolatileValue('key_root', 'CCC', 'v2')
@@ -343,7 +345,7 @@ class HwidTest(unittest.TestCase):
 
   def testBomMatrixCreation(self):
     with LogOnException(
-      self._testMethodName, self.test_log, self.hwid_tool_log):
+        self._testMethodName, self.test_log, self.hwid_tool_log):
       hw_db = hwid_tool.HardwareDb(self.dir)
       hw_db.comp_db.AddComponent('cpu', comp_name='cpu_0', probe_result='XXX')
       hw_db.comp_db.AddComponent('cpu', comp_name='cpu_1', probe_result='YYY')
@@ -379,95 +381,95 @@ class HwidRegexpTest(unittest.TestCase):
     failed_to_unmatch = [item for item in unmatched_strings
                          if regex.match(item)]
     self.assertFalse(failed_to_match or failed_to_unmatch,
-        "regex %r matching test failed:\n"
-        "should match:%s\n  should NOT match:%s" % (
-            regex.pattern, failed_to_match or "pass",
-            failed_to_unmatch or "pass"))
+                     'regex %r matching test failed:\n'
+                     'should match:%s\n  should NOT match:%s' % (
+                         regex.pattern, failed_to_match or 'pass',
+                         failed_to_unmatch or 'pass'))
 
   def testHwidNameRegex(self):
     parseable = [
-      "TREE BLUE A-B 1234",
-      "WATER YELLOW A-AA 4217",
-      "STONE BLACK A-C 3547",
-      "SAND 8AA-ABC A-A 1234",
-      "ABCDEFGHI 123456789-123456789-123456789-12 A-A 1234",
-      "CLOUD WWW-4ZZ-3MABC-2 A-AA 1234"]
+        'TREE BLUE A-B 1234',
+        'WATER YELLOW A-AA 4217',
+        'STONE BLACK A-C 3547',
+        'SAND 8AA-ABC A-A 1234',
+        'ABCDEFGHI 123456789-123456789-123456789-12 A-A 1234',
+        'CLOUD WWW-4ZZ-3MABC-2 A-AA 1234']
     unparseable = [
-      "TREE A-B 9152",
-      "TREE 1-B 9152",
-      "TREE A-2 9152",
-      "TREE A-B 19152",
-      "TREE A-B A152",
-      "TREE BLUE A- 4217",
-      "TREE BLUE -C 3547",
-      "ABCDEFGHIJ 123456789-123456789-123456789-12 A-A 1234",
-      "ABCDEFGHI 123456789-123456789-123456789-123 A-A 1234",
-      "SAND 8AA_ABC A-A 1234",
-      "SAND 8AA.ABC A-A 1234",
-      "SAND 8AA ABC A-A 1234"]
+        'TREE A-B 9152',
+        'TREE 1-B 9152',
+        'TREE A-2 9152',
+        'TREE A-B 19152',
+        'TREE A-B A152',
+        'TREE BLUE A- 4217',
+        'TREE BLUE -C 3547',
+        'ABCDEFGHIJ 123456789-123456789-123456789-12 A-A 1234',
+        'ABCDEFGHI 123456789-123456789-123456789-123 A-A 1234',
+        'SAND 8AA_ABC A-A 1234',
+        'SAND 8AA.ABC A-A 1234',
+        'SAND 8AA ABC A-A 1234']
     self._assertRegexMatches(hwid_tool.HWID_RE, parseable, unparseable)
 
   def testHwidBbvvNameRegex(self):
     """Ensure the BOM names are parsed correctly with the regular expression"""
     parseable = [
-      "TREE BLUE A-B",
-      "TREE BLUE *-B",
-      "TREE BLUE A-*",
-      "TREE BLUE *-*",
-      "WATER YELLOW A-AA",
-      "STONE BLACK A-C",
-      "SAND 8AA-ABC A-A",
-      "ABCDEFGHI 123456789-123456789-123456789-12 A-A",
-      "CLOUD WWW-4ZZ-3MABC-2 A-AA"]
+        'TREE BLUE A-B',
+        'TREE BLUE *-B',
+        'TREE BLUE A-*',
+        'TREE BLUE *-*',
+        'WATER YELLOW A-AA',
+        'STONE BLACK A-C',
+        'SAND 8AA-ABC A-A',
+        'ABCDEFGHI 123456789-123456789-123456789-12 A-A',
+        'CLOUD WWW-4ZZ-3MABC-2 A-AA']
     unparseable = [
-      "TREE BLUE A-",
-      "TREE BLUE A-1",
-      "TREE BLUE -C",
-      "TREE BLUE 1-C",
-      "ABCDEFGHIJ 123456789-123456789-123456789-12 A-A",
-      "ABCDEFGHI 123456789-123456789-123456789-123 A-A",
-      "SAND 8AA_ABC A-A",
-      "SAND 8AA.ABC A-A",
-      "SAND 8AA ABC A-A"]
+        'TREE BLUE A-',
+        'TREE BLUE A-1',
+        'TREE BLUE -C',
+        'TREE BLUE 1-C',
+        'ABCDEFGHIJ 123456789-123456789-123456789-12 A-A',
+        'ABCDEFGHI 123456789-123456789-123456789-123 A-A',
+        'SAND 8AA_ABC A-A',
+        'SAND 8AA.ABC A-A',
+        'SAND 8AA ABC A-A']
     self._assertRegexMatches(hwid_tool.BBVV_GLOB_RE, parseable, unparseable)
 
   def testHwidBvvNameRegex(self):
     """Ensure the BOM names are parsed correctly with the regular expression"""
     parseable = [
-      "BLUE A-B",
-      "BLUE *-B",
-      "BLUE A-*",
-      "BLUE *-*",
-      "YELLOW A-AA",
-      "BLACK A-C",
-      "8AA-ABC A-A",
-      "123456789-123456789-123456789-12 A-A",
-      "WWW-4ZZ-3MABC-2 A-AA"]
+        'BLUE A-B',
+        'BLUE *-B',
+        'BLUE A-*',
+        'BLUE *-*',
+        'YELLOW A-AA',
+        'BLACK A-C',
+        '8AA-ABC A-A',
+        '123456789-123456789-123456789-12 A-A',
+        'WWW-4ZZ-3MABC-2 A-AA']
     unparseable = [
-      "BLUE A-",
-      "BLUE A-1",
-      "BLUE -C",
-      "BLUE 1-C",
-      "123456789-123456789-123456789-123 A-A",
-      "8AA_ABC A-A",
-      "8AA.ABC A-A",
-      "8AA ABC A-A"]
+        'BLUE A-',
+        'BLUE A-1',
+        'BLUE -C',
+        'BLUE 1-C',
+        '123456789-123456789-123456789-123 A-A',
+        '8AA_ABC A-A',
+        '8AA.ABC A-A',
+        '8AA ABC A-A']
     self._assertRegexMatches(hwid_tool.BVV_GLOB_RE, parseable, unparseable)
 
   def testValidate(self):
-    hwid_tool.Validate.BoardName("WATER")
-    hwid_tool.Validate.BoardName("ABCDEFGHI")
-    self.assertRaises(Error, hwid_tool.Validate.BoardName, ("WATER123"))
-    self.assertRaises(Error, hwid_tool.Validate.BoardName, ("123"))
-    self.assertRaises(Error, hwid_tool.Validate.BoardName, ("WATER-ABC"))
-    self.assertRaises(Error, hwid_tool.Validate.BoardName, ("ABCDEFGHIJ"))
+    hwid_tool.Validate.BoardName('WATER')
+    hwid_tool.Validate.BoardName('ABCDEFGHI')
+    self.assertRaises(Error, hwid_tool.Validate.BoardName, ('WATER123'))
+    self.assertRaises(Error, hwid_tool.Validate.BoardName, ('123'))
+    self.assertRaises(Error, hwid_tool.Validate.BoardName, ('WATER-ABC'))
+    self.assertRaises(Error, hwid_tool.Validate.BoardName, ('ABCDEFGHIJ'))
 
-    hwid_tool.Validate.BomName("BLUE")
-    hwid_tool.Validate.BomName("8AB-CEF")
-    hwid_tool.Validate.BomName("888-4H4-CEF-2")
-    self.assertRaises(Error, hwid_tool.Validate.BomName, ("A_B"))
-    self.assertRaises(Error, hwid_tool.Validate.BomName, ("A.B"))
-    self.assertRaises(Error, hwid_tool.Validate.BomName, ("ABC-ABC ABC"))
+    hwid_tool.Validate.BomName('BLUE')
+    hwid_tool.Validate.BomName('8AB-CEF')
+    hwid_tool.Validate.BomName('888-4H4-CEF-2')
+    self.assertRaises(Error, hwid_tool.Validate.BomName, ('A_B'))
+    self.assertRaises(Error, hwid_tool.Validate.BomName, ('A.B'))
+    self.assertRaises(Error, hwid_tool.Validate.BomName, ('ABC-ABC ABC'))
 
 if __name__ == '__main__':
   unittest.main()

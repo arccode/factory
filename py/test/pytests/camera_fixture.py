@@ -304,7 +304,7 @@ MSG_TEST_STATUS = {
 
 
 # LED pattern.
-LED_PATTERN = ((leds.LED_NUM|leds.LED_CAP, 0.05), (0, 0.05))
+LED_PATTERN = ((leds.LED_NUM | leds.LED_CAP, 0.05), (0, 0.05))
 
 
 # Data structures.
@@ -1051,6 +1051,7 @@ class _TestDelegate(object):
 
     # 2. Log IQ data.
     IQ_data = {}
+
     def mylog(value, key, log_text_fmt):
       self._Log((log_text_fmt % value))
       IQ_data[key] = value
@@ -1096,6 +1097,7 @@ class _TestDelegate(object):
 
     # 2. Log IQ data.
     ALS_data = {}
+
     def mylog(value, key, log_text_fmt):
       self._Log((log_text_fmt % value))
       ALS_data[key] = value
@@ -1247,7 +1249,7 @@ class CameraFixture(unittest.TestCase):
     self.internal_queue = Queue.Queue()
 
     os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %
-                          self.test_info.pytest_name)) # pylint: disable=E1101
+                          self.test_info.pytest_name))  # pylint: disable=E1101
 
     self.test_type = CameraFixture.TEST_TYPES[self.args.test_type]
     self.fixture_type = CameraFixture.FIXTURE_TYPES[self.args.fixture_type]
@@ -1354,9 +1356,9 @@ class CameraFixture(unittest.TestCase):
         # display is unavailable.
         log_msg = 'PASS: ' if success else 'FAIL: '
         if hasattr(tar_vc, 'shift'):
-          log_msg += ("Shift=%.3f (%.01f, %0.01f) " % (
+          log_msg += ('Shift=%.3f (%.01f, %0.01f) ' % (
               tar_vc.shift, tar_vc.v_shift[0], tar_vc.v_shift[1]))
-          log_msg += ("Tilt=%0.2f" % tar_vc.tilt)
+          log_msg += ('Tilt=%0.2f' % tar_vc.tilt)
         else:
           log_msg += 'Incorrect Chart'
 
@@ -1416,7 +1418,7 @@ class CameraFixture(unittest.TestCase):
         ls_ratio = float(1.0 - tar_ls.lowest_ratio)
 
         log_msg = 'PASS: ' if success else 'FAIL: '
-        log_msg += "Remaining %d s. Shading ratio=%.3f " % (
+        log_msg += 'Remaining %d s. Shading ratio=%.3f ' % (
             remaining_time, ls_ratio)
         self.ShowTestStatus(msg=log_msg, style=(
             STYLE_PASS if success else STYLE_FAIL))
@@ -1527,7 +1529,7 @@ class CameraFixture(unittest.TestCase):
       style: CSS style.
     """
     label = test_ui.MakeLabel(en=msg, zh=msg_zh, css_class=style)
-    self.ui.CallJSFunction("UpdateTextLabel", label, ID_TEST_STATUS)
+    self.ui.CallJSFunction('UpdateTextLabel', label, ID_TEST_STATUS)
 
   def ShowImage(self, img, html_id):
     """Shows displayed image.
@@ -1549,10 +1551,10 @@ class CameraFixture(unittest.TestCase):
       p = 0
       while p < data_len:
         if p + MAX_MESSAGE_SIZE >= data_len:
-          self.ui.CallJSFunction("AddImageData", data[p:data_len])
+          self.ui.CallJSFunction('AddImageData', data[p:data_len])
           p = data_len
         else:
-          self.ui.CallJSFunction("AddImageData", data[p:p+MAX_MESSAGE_SIZE])
+          self.ui.CallJSFunction('AddImageData', data[p:p + MAX_MESSAGE_SIZE])
           p += MAX_MESSAGE_SIZE
       self.ui.CallJSFunction('UpdateAndShowImage', html_id)
     except AttributeError:

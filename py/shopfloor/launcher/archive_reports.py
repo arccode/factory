@@ -68,7 +68,7 @@ def ArchiveLogs(options):
       get_instance(url=options.rpc_url, timeout=5).GetReportsDir()
     if INCREMENTAL_EVENTS_DIR in options.dirs:
       get_instance(url=options.rpc_url, timeout=5).GetIncrementalEventsDir()
-  except: #pylint: disable=W0702
+  except:  # pylint: disable=W0702
     exception_string = FormatExceptionOnly()
     # Continue to archive if the backend even if the backend is down.
     logging.error(
@@ -98,7 +98,7 @@ def ArchiveFolder(folder, dest_folder, log_prefix=LOGS_PREFIX,
   """
   # Get an accending order list of incremental events dirs.
   dirs = filter((lambda path: os.path.isdir(os.path.join(folder, path)) and
-                path.startswith(log_prefix)), os.listdir(folder))
+                 path.startswith(log_prefix)), os.listdir(folder))
   dirs.sort()
   if len(dirs) == 0:
     logging.debug('watching dir = %s', folder)
@@ -140,7 +140,7 @@ def ArchiveFolder(folder, dest_folder, log_prefix=LOGS_PREFIX,
     Spawn(['tar', '-I', 'pbzip2' if have_pbzip2 else 'bzip2',
            '-cf', in_progress_name, '-C', folder,
            log_name],
-           check_call=True, log=True, log_stderr_on_error=True)
+          check_call=True, log=True, log_stderr_on_error=True)
     shutil.move(in_progress_name, archived_log)
     if recycle_dir:
       shutil.move(log_fullpath, recycle_dir)
@@ -149,11 +149,13 @@ def ArchiveFolder(folder, dest_folder, log_prefix=LOGS_PREFIX,
     logging.info('Finished archive %s to %s',
                  log_name, archive_name)
 
+
 def SignalHandler(unused_signal, unused_frame):
   # Call reactor.stop() from reactor instance to make sure no spawned process
   # is running parallely.
   logging.info('Stopping...')
   reactor.callLater(1, reactor.stop)  # pylint: disable=E1101
+
 
 def main():
   logging.basicConfig(level=logging.INFO, format='%(message)s')

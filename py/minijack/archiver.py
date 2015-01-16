@@ -25,6 +25,7 @@ class Archiver(object):
     _main_db: The database object of the main Minijack DB.
     _backup_dbs: The database object dict of the backup DBs, with dates as keys.
   """
+
   def __init__(self, minijack_db_path):
     self._db_path = minijack_db_path
     self._main_db = db.Database(self._db_path)

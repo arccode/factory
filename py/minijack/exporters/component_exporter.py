@@ -16,6 +16,7 @@ class ComponentExporter(ExporterBase):
 
   TODO(waihong): Unit tests.
   """
+
   def Setup(self):
     """This method is called on Minijack start-up."""
     super(ComponentExporter, self).Setup()
@@ -40,11 +41,11 @@ class ComponentExporter(ExporterBase):
     components = packet.FindAttrContainingKey(COMPONENT_KEYWORD)
     for comp_class, comps in components.iteritems():
       row = Component(
-        device_id       = packet.preamble.get('device_id'),
-        component_class = comp_class,
-        # Flatten the symbolic names by joining them together.
-        # Only one key-value pair in the dict.
-        component_name  = ','.join([str(c.keys()[0]) for c in comps]),
+          device_id=packet.preamble.get('device_id'),
+          component_class=comp_class,
+          # Flatten the symbolic names by joining them together.
+          # Only one key-value pair in the dict.
+          component_name=','.join([str(c.keys()[0]) for c in comps]),
       )
       self._database.UpdateOrInsert(row)
 
@@ -66,9 +67,9 @@ class ComponentExporter(ExporterBase):
     for comp_class, comp_detail in parent.iteritems():
       for field_name, field_value in EventPacket.FlattenAttr(comp_detail):
         row = ComponentDetail(
-          device_id = packet.preamble.get('device_id'),
-          component_class = comp_class,
-          field_name  = field_name,
-          field_value  = field_value,
+            device_id=packet.preamble.get('device_id'),
+            component_class=comp_class,
+            field_name=field_name,
+            field_value=field_value,
         )
         self._database.UpdateOrInsert(row)

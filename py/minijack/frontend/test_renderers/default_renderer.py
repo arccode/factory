@@ -55,8 +55,8 @@ def GetIntStatistic(int_lists):
     v = CalcFreqencyList(vals)
     if IsUsefulAttr(v, vals):
       int_stats[k] = {
-        'stats': data.GetStatistic(vals),
-        'freq_list': v,
+          'stats': data.GetStatistic(vals),
+          'freq_list': v,
       }
   return sorted(int_stats.items())
 
@@ -74,8 +74,8 @@ def GetStrStatistic(str_lists):
     v = CalcFreqencyList(vals)
     if IsUsefulAttr(v, vals):
       str_stats[k] = {
-        'len': len(vals),
-        'list': v,
+          'len': len(vals),
+          'list': v,
       }
   return sorted(str_stats.items())
 
@@ -100,8 +100,8 @@ def Render(event_attrs):
 
   template = loader.get_template('test_renderers/default_renderer.html')
   context = Context({
-    'int_stats': GetIntStatistic(int_lists),
-    'float_stats': GetFloatStatistic(float_lists),
-    'str_stats': GetStrStatistic(str_lists),
+      'int_stats': GetIntStatistic(int_lists),
+      'float_stats': GetFloatStatistic(float_lists),
+      'str_stats': GetStrStatistic(str_lists),
   })
   return template.render(context)

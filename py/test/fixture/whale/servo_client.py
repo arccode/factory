@@ -41,40 +41,40 @@ from cros.factory.utils.net_utils import TimeoutXMLRPCServerProxy
 
 # Whale's buttons. Can get its value ('on'/'off').
 WHALE_BUTTON = common.AttrDict(dict(
-    BUG_FILING = 'whale_bug_filing_btn',
-    EC_FLASH = 'whale_ec_flash_btn',
-    FIXTURE_START = 'whale_fixture_start_btn',
-    FIXTURE_STOP = 'whale_fixture_stop_btn',
-    FW_FLASH = 'whale_fw_flash_btn',
-    IMAGE_FLASH = 'whale_image_flash_btn',
-    RESERVE_1 = 'whale_reserve_btn1',
-    RESERVE_2 = 'whale_reserve_btn2',
-    RESERVE_3 = 'whale_reserve_btn3',
-    USBIMG_FLASH = 'whale_usbimg_flash_btn',
+    BUG_FILING='whale_bug_filing_btn',
+    EC_FLASH='whale_ec_flash_btn',
+    FIXTURE_START='whale_fixture_start_btn',
+    FIXTURE_STOP='whale_fixture_stop_btn',
+    FW_FLASH='whale_fw_flash_btn',
+    IMAGE_FLASH='whale_image_flash_btn',
+    RESERVE_1='whale_reserve_btn1',
+    RESERVE_2='whale_reserve_btn2',
+    RESERVE_3='whale_reserve_btn3',
+    USBIMG_FLASH='whale_usbimg_flash_btn',
     # Treat three latched feedback as button.
-    WHALE_FB1 = 'whale_a_fb1',
-    WHALE_FB2 = 'whale_a_fb2',
-    WHALE_FB3 = 'whale_a_fb3'))
+    WHALE_FB1='whale_a_fb1',
+    WHALE_FB2='whale_a_fb2',
+    WHALE_FB3='whale_a_fb3'))
 WHALE_BUTTONS = tuple(WHALE_BUTTON.values())
 
 # Fixture mechanics feedback 1 ~ 14. Can get its value ('on'/'off').
 FIXTURE_FEEDBACK = common.AttrDict(
     dict(('FB%d' % i, 'fixture_fb%d' % i) for i in range(1, 15)))
 FIXTURE_FEEDBACK.update(dict(
-    NEEDLE_CYLINDER_LEFT_RELEASE = 'fixture_fb1',
-    NEEDLE_CYLINDER_LEFT_ACTIVE = 'fixture_fb2',
-    NEEDLE_CYLINDER_RIGHT_RELEASE = 'fixture_fb3',
-    NEEDLE_CYLINDER_RIGHT_ACTIVE = 'fixture_fb4',
-    HOOK_CYLINDER_LEFT_ACTIVE = 'fixture_fb5',
-    HOOK_CYLINDER_RIGHT_ACTIVE = 'fixture_fb6',
-    LATERAL_CYLINDER_LEFT_RELEASE = 'fixture_fb7',
-    LATERAL_CYLINDER_LEFT_ACTIVE = 'fixture_fb8',
-    LATERAL_CYLINDER_RIGHT_RELEASE = 'fixture_fb9',
-    LATERAL_CYLINDER_RIGHT_ACTIVE = 'fixture_fb10',
-    COVER_CYLINDER_RELEASE = 'fixture_fb11',
-    COVER_CYLINDER_ACTIVE = 'fixture_fb12',
-    DUT_SENSOR = 'fixture_fb13',
-    NC = 'fixture_fb14'))
+    NEEDLE_CYLINDER_LEFT_RELEASE='fixture_fb1',
+    NEEDLE_CYLINDER_LEFT_ACTIVE='fixture_fb2',
+    NEEDLE_CYLINDER_RIGHT_RELEASE='fixture_fb3',
+    NEEDLE_CYLINDER_RIGHT_ACTIVE='fixture_fb4',
+    HOOK_CYLINDER_LEFT_ACTIVE='fixture_fb5',
+    HOOK_CYLINDER_RIGHT_ACTIVE='fixture_fb6',
+    LATERAL_CYLINDER_LEFT_RELEASE='fixture_fb7',
+    LATERAL_CYLINDER_LEFT_ACTIVE='fixture_fb8',
+    LATERAL_CYLINDER_RIGHT_RELEASE='fixture_fb9',
+    LATERAL_CYLINDER_RIGHT_ACTIVE='fixture_fb10',
+    COVER_CYLINDER_RELEASE='fixture_fb11',
+    COVER_CYLINDER_ACTIVE='fixture_fb12',
+    DUT_SENSOR='fixture_fb13',
+    NC='fixture_fb14'))
 
 # Plankton feedback 1 ~ 8. Can get its value ('on'/'off').
 PLANKTON_FEEDBACK = common.AttrDict(
@@ -89,35 +89,35 @@ WHALE_DEBUG_MODE_EN = 'whale_debug_mode_en'
 
 # Whale's control components. Can get/set its value ('on'/'off').
 WHALE_CONTROL = common.AttrDict(dict(
-    ADC = 'whale_adc',
-    AUDIO_PLUG = 'whale_audio_plug_det',
-    BATTERY = 'whale_battery_on',
-    DC = 'whale_dc_in',
+    ADC='whale_adc',
+    AUDIO_PLUG='whale_audio_plug_det',
+    BATTERY='whale_battery_on',
+    DC='whale_dc_in',
     # Note that Whale's 'whale_elctro_magnet' is NC now and use
     # 'whale_fixture_ctrl5' instead.
-    ELECTRO_MAGNET = 'whale_fixture_ctrl5',
-    FAIL_LED = 'whale_fail_led',
-    FIXTURE_PUSH_NEEDLE = 'whale_fixture_ctrl1',
-    FIXTURE_HOOK_COVER = 'whale_fixture_ctrl2',
-    FIXTURE_PLUG_LATERAL = 'whale_fixture_ctrl3',
-    FIXTURE_CLOSE_COVER = 'whale_fixture_ctrl4',
-    FIXTURE_RELAY = 'whale_fixture_ctrl5',
-    FIXTURE_NC = 'whale_fixture_ctrl6',
-    INPUT_RESET = 'whale_input_rst',
-    KEYBOARD_SHIFT_REGISTER_CLOCK = 'whale_kb_shfg_clk',
-    KEYBOARD_SHIFT_REGISTER_DATA = 'whale_kb_shfg_data',
-    KEYBOARD_SHIFT_REGISTER_LATCH = 'whale_kb_shfg_latch',
-    KEYBOARD_SHIFT_REGISTER_RESET = 'whale_kb_shfg_rst',
-    LCM_CMD = 'whale_lcm_cmd',
-    LCM_ROW = 'whale_lcm_row',
-    LCM_TEXT = 'whale_lcm_text',
-    OUTPUT_RESERVE_1 = 'whale_output_reserve1',
-    OUTPUT_RESERVE_2 = 'whale_output_reserve2',
-    OUTPUT_RESERVE_3 = 'whale_output_reserve3',
-    PASS_LED = 'whale_pass_led',
-    USBHUB_RESET = 'whale_usbhub_rst',
-    WRITE_PROTECT = 'whale_write_protect',
-    EXPANDER_RESET = 'whale_xpander_rst'))
+    ELECTRO_MAGNET='whale_fixture_ctrl5',
+    FAIL_LED='whale_fail_led',
+    FIXTURE_PUSH_NEEDLE='whale_fixture_ctrl1',
+    FIXTURE_HOOK_COVER='whale_fixture_ctrl2',
+    FIXTURE_PLUG_LATERAL='whale_fixture_ctrl3',
+    FIXTURE_CLOSE_COVER='whale_fixture_ctrl4',
+    FIXTURE_RELAY='whale_fixture_ctrl5',
+    FIXTURE_NC='whale_fixture_ctrl6',
+    INPUT_RESET='whale_input_rst',
+    KEYBOARD_SHIFT_REGISTER_CLOCK='whale_kb_shfg_clk',
+    KEYBOARD_SHIFT_REGISTER_DATA='whale_kb_shfg_data',
+    KEYBOARD_SHIFT_REGISTER_LATCH='whale_kb_shfg_latch',
+    KEYBOARD_SHIFT_REGISTER_RESET='whale_kb_shfg_rst',
+    LCM_CMD='whale_lcm_cmd',
+    LCM_ROW='whale_lcm_row',
+    LCM_TEXT='whale_lcm_text',
+    OUTPUT_RESERVE_1='whale_output_reserve1',
+    OUTPUT_RESERVE_2='whale_output_reserve2',
+    OUTPUT_RESERVE_3='whale_output_reserve3',
+    PASS_LED='whale_pass_led',
+    USBHUB_RESET='whale_usbhub_rst',
+    WRITE_PROTECT='whale_write_protect',
+    EXPANDER_RESET='whale_xpander_rst'))
 
 WHALE_INA = common.AttrDict(dict((v.upper(), 'krill_%s_mv' % v) for v in [
     'pp3300_dsw_gated', 'pp3300_pch', 'pp3300_lcd', 'pp1800_codec',
@@ -130,6 +130,7 @@ WHALE_INAS = tuple(WHALE_INA.values())
 
 class ServoClientError(Exception):
   """Exception for ServoClient by filtering out actual error messages."""
+
   def __init__(self, text, e=None):
     """Constructor for ServoClientError Class
 
@@ -158,6 +159,7 @@ class ServoClient(object):
 
   All exceptions happening in ServoClient are raised as ServoClientError.
   """
+
   def __init__(self, host, port, timeout=10, verbose=False):
     """Constructor.
 

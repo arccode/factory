@@ -13,6 +13,7 @@ from cros.factory.test import test_ui
 
 _UI_TEMPLATE_PATH = '/ui_templates'
 
+
 class Option(object):
   '''Utility class for generating and manipulating HTML option tag.
 
@@ -21,6 +22,7 @@ class Option(object):
     display: Displayed value of the option. This is the value shown on page.
     selected: Boolean value indicating whether this option is selected.
   '''
+
   def __init__(self, value, display, selected=False):
     self._value = value
     self._display = display
@@ -35,9 +37,9 @@ class Option(object):
     self._selected = value
 
   def GenerateHTML(self):
-    '''Generate HTML tag.'''
+    """Generate HTML tag."""
     return '<option value="%s" %s>%s</option>' % (
-           self._value, 'selected' if self._selected else '', self._display)
+        self._value, 'selected' if self._selected else '', self._display)
 
 
 class SelectBox(object):
@@ -48,6 +50,7 @@ class SelectBox(object):
     size: The size of the select box.
     style: CSS style to apply on the select box.
   '''
+
   def __init__(self, element_id, size=10, style=None):
     self._element_id = element_id
     self._size = size
@@ -68,15 +71,15 @@ class SelectBox(object):
       self._option_list.append(option)
 
   def SetSelectedIndex(self, index):
-    '''Set the given index as selected.'''
+    """Set the given index as selected."""
     if len(self._option_list) < index:
       return
     self._option_list[index].SetSelected(True)
 
   def GenerateHTML(self):
-    '''Generate HTML tags.'''
+    """Generate HTML tags."""
     ele_list = ['<select id="%s" size=%d style="%s">' % (
-                self._element_id, self._size, self._style)]
+        self._element_id, self._size, self._style)]
     for opt in self._option_list:
       ele_list += [opt.GenerateHTML()]
     ele_list += ['</select>']
@@ -100,6 +103,7 @@ class Table(object):
     cols: Number of columns.
     style: CSS style to apply on the table.
   '''
+
   def __init__(self, element_id=None, rows=1, cols=1, style=None):
     self._element_id = element_id or ''
     self._style = style or ''
@@ -108,13 +112,13 @@ class Table(object):
     self.cols = cols
 
   def SetContent(self, row, col, content):
-    '''Sets HTML content of specified row and column.'''
+    """Sets HTML content of specified row and column."""
     self._content[(row, col)] = content
 
   def GenerateHTML(self):
-    '''Generates HTML tags.'''
+    """Generates HTML tags."""
     html = ['<table id="%s" style="%s">' % (
-            self._element_id, self._style)]
+        self._element_id, self._style)]
     for r in xrange(self.rows):
       html.append('<tr>')
       for c in xrange(self.cols):
@@ -128,7 +132,8 @@ class Table(object):
 
 
 class BaseTemplate(object):
-  '''Base class for test UI template.'''
+  """Base class for test UI template."""
+
   def __init__(self, ui, template_name):
     self._ui = ui
 
@@ -170,9 +175,9 @@ class BaseTemplate(object):
       bind_fail_key: True to bind keys to fail the test.
     '''
     self._ui.SetHTML(
-      test_ui.MakePassFailKeyLabel(pass_key=bind_pass_key,
-                                   fail_key=bind_fail_key),
-      id='prompt-pass-fail-keys')
+        test_ui.MakePassFailKeyLabel(pass_key=bind_pass_key,
+                                     fail_key=bind_fail_key),
+        id='prompt-pass-fail-keys')
     self._ui.BindStandardKeys(bind_pass_keys=bind_pass_key,
                               bind_fail_keys=bind_fail_key)
 
@@ -189,7 +194,8 @@ class OneSection(BaseTemplate):
   * SetState: For displaying the state of the test or instructions to
     operator.
   '''
-  def __init__(self, ui): # pylint: disable=W0231
+
+  def __init__(self, ui):  # pylint: disable=W0231
     super(OneSection, self).__init__(ui, 'template_one_section')
 
   def SetState(self, html, append=False):
@@ -211,9 +217,10 @@ class OneScrollableSection(BaseTemplate):
   * SetTitle: For the title of the test.
   * SetState: For displaying the state of the test.
   '''
-  def __init__(self, ui): # pylint: disable=W0231
+
+  def __init__(self, ui):  # pylint: disable=W0231
     super(OneScrollableSection, self).__init__(
-      ui, 'template_one_scrollable_section')
+        ui, 'template_one_scrollable_section')
 
   def SetState(self, html, append=False, scroll_down=False):
     '''Sets the state section in the test UI.
@@ -226,7 +233,7 @@ class OneScrollableSection(BaseTemplate):
     self._ui.SetHTML(html, append=append, id='state')
     if scroll_down:
       self._ui.RunJS("var s = document.getElementById('state');"
-                     "s.scrollTop = s.scrollHeight;")
+                     's.scrollTop = s.scrollHeight;')
 
 
 class TwoSections(BaseTemplate):
@@ -246,7 +253,8 @@ class TwoSections(BaseTemplate):
     regarding the progress or state of the test. The progress bar
     is hidden by default.
   '''
-  def __init__(self, ui): # pylint: disable=W0231
+
+  def __init__(self, ui):  # pylint: disable=W0231
     super(TwoSections, self).__init__(ui, 'template_two_sections')
 
   def SetInstruction(self, html, append=False):
@@ -255,7 +263,6 @@ class TwoSections(BaseTemplate):
     Args:
       html: The html content to write.'''
     self._ui.SetHTML(html, append=append, id='instruction')
-
 
   def SetState(self, html, append=False):
     '''Sets the state section in the test UI.

@@ -36,7 +36,7 @@ import logging
 import time
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.test.event_log import Log
 from cros.factory.system import SystemStatus
@@ -46,6 +46,7 @@ from cros.factory.test.args import Arg
 from cros.factory.utils.process_utils import Spawn
 
 POWER_SAMPLES = 3
+
 
 class ThermalSlopeTest(unittest.TestCase):
   ARGS = [
@@ -85,8 +86,7 @@ class ThermalSlopeTest(unittest.TestCase):
           'Enable console log (disabling may make results more accurate '
           'since updating the console log on screen requires CPU cycles)',
           default=False),
-      ]
-
+  ]
 
   def setUp(self):
     self.log = factory.console if self.args.console_log else logging
@@ -126,13 +126,13 @@ class ThermalSlopeTest(unittest.TestCase):
         pkg_power_w=self.msr.pkg_power_w)
 
   def _StartStage(self, stage):
-    '''Begins a new stage.'''
+    """Begins a new stage."""
     self.stage = stage
     self.stage_start_time = time.time()
     self.last_sleep = time.time()
 
   def _MainTemperature(self):
-    '''Returns the main temperature.'''
+    """Returns the main temperature."""
     return self.system_status.temperatures[
         self.system_status.main_temperature_index]
 

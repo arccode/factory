@@ -30,6 +30,7 @@ FACTORY_TOOLKIT_RES = 'install_factory_toolkit.run##7509337e'
 
 
 class ResourceUpdaterTest(unittest.TestCase):
+
   def setUp(self):
     self.env = UmpireEnvForTest()
     self.env.LoadConfig(custom_path=MINIMAL_UMPIRE_CONFIG)
@@ -111,7 +112,7 @@ class ResourceUpdaterTest(unittest.TestCase):
     # dest_id: update source bundle and store in new bundle dest_id.
     updated_config_path = updater.Update(
         [('factory_toolkit', FACTORY_TOOLKIT_DIR)],
-        source_id='non_default_test',  dest_id='update_test')
+        source_id='non_default_test', dest_id='update_test')
     updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # Add a new bundle with updated component.
@@ -184,12 +185,12 @@ class ResourceUpdaterTest(unittest.TestCase):
     mox_obj.StubOutWithMock(
         get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
     mox_obj.StubOutWithMock(
-          get_version, 'GetReleaseVersionFromOmahaChannelFile')
+        get_version, 'GetReleaseVersionFromOmahaChannelFile')
 
     get_version.GetFirmwareVersionsFromOmahaChannelFile(
         firmware_path).AndReturn((BIOS_VERSION, EC_VERSION, PD_VERSION))
     get_version.GetReleaseVersionFromOmahaChannelFile(
-          fsi_path, no_root=True).AndReturn(FSI_VERSION)
+        fsi_path, no_root=True).AndReturn(FSI_VERSION)
 
     mox_obj.ReplayAll()
     updater = ResourceUpdater(self.env)

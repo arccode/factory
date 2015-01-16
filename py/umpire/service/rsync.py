@@ -38,6 +38,7 @@ class RsyncService(umpire_service.UmpireService):
     procs = rsync_service.CreateProcesses(umpire_config_dict, env)
     rsync_service.Start(procs)
   """
+
   def __init__(self):
     super(RsyncService, self).__init__()
     self.properties['toolkit_update'] = True

@@ -17,23 +17,23 @@ TEMPLATE_DEBUG = DEBUG
 ROOT_URLCONF = 'urls'
 
 INSTALLED_APPS = (
-  'django.contrib.staticfiles',
-  'django.contrib.contenttypes',
-  'django.contrib.sessions',
-  'frontend',
+    'django.contrib.staticfiles',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'frontend',
 )
 
 MIDDLEWARE_CLASSES = (
-  'django.middleware.common.CommonMiddleware',
-  'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
-  'django.core.context_processors.request',
+    'django.core.context_processors.request',
 )
 
 TEMPLATE_DIRS = (
-  os.path.join(os.path.dirname(__file__), 'templates'),
+    os.path.join(os.path.dirname(__file__), 'templates'),
 )
 
 STATIC_URL = '/static/'

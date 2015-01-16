@@ -19,11 +19,12 @@ import multiprocessing
 import time
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.system import SystemStatus
 from cros.factory.test.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.utils import LoadManager
+
 
 class ThermalLoadTest(unittest.TestCase):
   ARGS = [
@@ -45,7 +46,7 @@ class ThermalLoadTest(unittest.TestCase):
           optional=True, default=0),
       Arg('temperatures_difference', int, 'The difference of temperatures '
           'should be under a specified limit.', optional=True),
-      ]
+  ]
 
   def GetTemperatures(self):
     """Gets the temperature reading from specified sensor."""
@@ -75,7 +76,7 @@ class ThermalLoadTest(unittest.TestCase):
             lower_threshold=self.args.lower_threshold[index],
             sensor_index=self.args.sensor_index[index],
             elapsed_sec=elapsed)
-        logging.info("Sensor %d heated up to %d C in %d seconds.",
+        logging.info('Sensor %d heated up to %d C in %d seconds.',
                      self.args.sensor_index[index],
                      self.args.lower_threshold[index], elapsed)
 
@@ -84,7 +85,7 @@ class ThermalLoadTest(unittest.TestCase):
             temperature_limit=self.args.temperature_limit[index],
             sensor_index=self.args.sensor_index[index],
             elapsed_sec=elapsed)
-        self.fail("Sensor %d temperature got over %d." % (
+        self.fail('Sensor %d temperature got over %d.' % (
             self.args.sensor_index[index], self.args.temperature_limit[index]))
 
       if elapsed >= self.args.heat_up_timeout_secs and (
@@ -93,7 +94,7 @@ class ThermalLoadTest(unittest.TestCase):
             lower_threshold=self.args.lower_threshold[index],
             sensor_index=self.args.sensor_index[index],
             timeout=self.args.heat_up_timeout_secs)
-        logging.info("temperature track: %r", self.temperatures_track)
+        logging.info('temperature track: %r', self.temperatures_track)
         self.fail("Temperature %d didn't go over %d in %s seconds." % (
             self.args.sensor_index[index],
             self.args.lower_threshold[index],
@@ -102,8 +103,8 @@ class ThermalLoadTest(unittest.TestCase):
     if self.args.temperatures_difference:
       difference = max(temperatures) - min(temperatures)
       if difference > self.args.temperatures_difference:
-        logging.info("temperature track: %r", self.temperatures_track)
-        self.fail("The difference of temperatures %d exceeds the limit %d." % (
+        logging.info('temperature track: %r', self.temperatures_track)
+        self.fail('The difference of temperatures %d exceeds the limit %d.' % (
             difference, self.args.temperatures_difference))
 
   def setUp(self):
@@ -122,7 +123,7 @@ class ThermalLoadTest(unittest.TestCase):
 
     self.assertTrue(
         len(self.args.sensor_index) == len(self.args.lower_threshold) and (
-        len(self.args.sensor_index) == len(self.args.temperature_limit)),
+            len(self.args.sensor_index) == len(self.args.temperature_limit)),
         'The number of sensor_index, lower_threshold, and temperature_limit '
         'should be the same.')
 
@@ -133,11 +134,11 @@ class ThermalLoadTest(unittest.TestCase):
   def runTest(self):
     start_temperatures = self.GetTemperatures()
     Log('start_temperatures', tempertures=start_temperatures)
-    logging.info("Starting temperatures are: %s", start_temperatures)
+    logging.info('Starting temperatures are: %s', start_temperatures)
 
     # Check temperatures before heat up to make sure all sensors are normal.
     self.CheckTemperatures(start_temperatures, 0)
-    logging.info("Stressing with %d threads...", self.load)
+    logging.info('Stressing with %d threads...', self.load)
 
     with LoadManager(duration_secs=self.args.duration_secs,
                      num_threads=self.load):
@@ -147,6 +148,6 @@ class ThermalLoadTest(unittest.TestCase):
         self.temperatures_track.append(temperatures)
         self.CheckTemperatures(temperatures, elapsed)
 
-      logging.info("Passed. Maximum temperature seen is %s",
-          self.max_temperature)
+      logging.info('Passed. Maximum temperature seen is %s',
+                   self.max_temperature)
       Log('passed', max_temperature=self.max_temperature)

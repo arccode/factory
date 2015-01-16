@@ -23,10 +23,10 @@ CONFIG_UPDATER = '/opt/google/touch/scripts/chromeos-touch-config-update.sh'
 
 class UpdateTouchDeviceFWTest(unittest.TestCase):
   ARGS = [
-    Arg('device_name', str, 'Name of the touch device as in'
-        '/sys/bus/i2c/devices/\\*/name)'),
-    Arg('fw_name', str, 'Expected firmware file name (in /lib/firmware)'),
-    Arg('fw_version', str, 'Expected firmware version'),
+      Arg('device_name', str, 'Name of the touch device as in'
+          '/sys/bus/i2c/devices/\\*/name)'),
+      Arg('fw_name', str, 'Expected firmware file name (in /lib/firmware)'),
+      Arg('fw_version', str, 'Expected firmware version'),
   ]
 
   def run_updater_command(self, command):
@@ -54,11 +54,11 @@ class UpdateTouchDeviceFWTest(unittest.TestCase):
     if expected_ver != actual_ver:
       logging.info('Updating firmware from version %s to version %s',
                    actual_ver, expected_ver)
-      firmware_updater_cmd = "%s -f -d %s -n %s" % (
+      firmware_updater_cmd = '%s -f -d %s -n %s' % (
           FIRMWARE_UPDATER, self.args.device_name, self.args.fw_name)
       self.run_updater_command(firmware_updater_cmd)
 
     # Always force-update the device configuration
     logging.info('Updating device configuration.')
-    config_updater_cmd = "%s -f -d %s" % (CONFIG_UPDATER, self.args.device_name)
+    config_updater_cmd = '%s -f -d %s' % (CONFIG_UPDATER, self.args.device_name)
     self.run_updater_command(config_updater_cmd)

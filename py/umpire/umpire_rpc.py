@@ -26,6 +26,7 @@ def RPCCall(method):
   method.is_rpc_method = True
   return method
 
+
 class UmpireRPC(object):
 
   """RPC base class.
@@ -33,6 +34,7 @@ class UmpireRPC(object):
   Properties:
     env: UmpireEnv object.
   """
+
   def __init__(self, env):
     super(UmpireRPC, self).__init__()
     self.env = env

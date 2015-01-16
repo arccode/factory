@@ -24,6 +24,7 @@ def AllowIOError(func):
 
 
 class WatchdogTest(unittest.TestCase):
+
   def setUp(self):
     self.watchdog = watchdog_utils.Watchdog()
 

@@ -24,10 +24,12 @@ DISCONNECTED_RETRY = 3
 
 def _MakeConnected(func):
   """Decorator to check and establish SFTP channel if necessary."""
+
   def _Wrapper(self, *args, **kwargs):
     self._Connect()  # pylint: disable=W0212
     return func(self, *args, **kwargs)  # pylint: disable=E1102
   return _Wrapper
+
 
 class SFTPBase(object):
   """Common function shared across FetchSource and UploadTarget on SFTP.
@@ -119,7 +121,7 @@ class SFTPBase(object):
         raise UploaderConnectionError(
             'Cannot create SFTP channel with %s:%s' % (self.host, self.port))
 
-    if self._sftp: # Verify if the sftp session is still valid.
+    if self._sftp:  # Verify if the sftp session is still valid.
       try:
         self._sftp.chdir('.')
       except:  # pylint: disable=W0702
@@ -160,7 +162,6 @@ class FetchSource(SFTPBase):  # pylint: disable=W0223
 
   _last_dirs = None  # Last time we list the archive_path
   _last_recursively_walk = []
-
 
   def LoadConfiguration(self, config, config_name=None):
     # Check if the private key exist.
@@ -250,7 +251,7 @@ class FetchSource(SFTPBase):  # pylint: disable=W0223
                 metadata_path=None, resume=True):
     def _UpdateDownloadMetadata():
       logging.info(
-          "Downloading...%9.5f%% of %10d bytes",
+          'Downloading...%9.5f%% of %10d bytes',
           ComputePercentage(local_size, remote_size), remote_size)
       metadata = GetOrCreateMetadata(
           metadata_path, RegenerateUploaderMetadataFile)
@@ -351,7 +352,7 @@ class UploadTarget(SFTPBase):  # pylint: disable=W0223
       metadata = GetOrCreateMetadata(
           metadata_path, RegenerateUploaderMetadataFile)
       logging.info(
-          "Uploading...%9.5f%% of %10d bytes",
+          'Uploading...%9.5f%% of %10d bytes',
           ComputePercentage(remote_size, local_size), local_size)
       upload_metadata = metadata.setdefault('upload', {})
       upload_metadata.update(
@@ -380,8 +381,8 @@ class UploadTarget(SFTPBase):  # pylint: disable=W0223
       remote_size = self._sftp.stat(target_path).st_size
     except IOError:
       logging.info(
-        '%r doesn\'t exist on remote, no resuming will be conducted',
-        target_path)
+          '%r doesn\'t exist on remote, no resuming will be conducted',
+          target_path)
       remote_size = 0
       resume = False
 

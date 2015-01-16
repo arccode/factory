@@ -11,6 +11,7 @@ from cros.factory.utils import type_utils
 
 
 class FlattenListTest(unittest.TestCase):
+
   def runTest(self):
     self.assertEquals([], type_utils.FlattenList([]))
     self.assertEquals([], type_utils.FlattenList([[]]))

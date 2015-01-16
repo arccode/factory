@@ -46,6 +46,7 @@ _CHECK_SIM_INSTRUCTION = test_ui.MakeLabel(
 _INSERT_CHECK_PERIOD_SECS = 1
 _INSERT_CHECK_MAX_WAIT = 60
 
+
 def ResetModem(reset_commands):
   """Resets modem.
 
@@ -59,6 +60,7 @@ def ResetModem(reset_commands):
       Spawn(command, call=True, log=True)
     time.sleep(_INSERT_CHECK_PERIOD_SECS)
 
+
 class WaitSIMCardThread(threading.Thread):
   """The thread to wait for SIM card state.
 
@@ -67,6 +69,7 @@ class WaitSIMCardThread(threading.Thread):
         ProbeSIMCardTask.REMOVE_SIM_CARD
     on_success: The callback function to call upon success.
   """
+
   def __init__(self, simcard_event, on_success, force_stop, test):
     threading.Thread.__init__(self, name='WaitSIMCardThread')
     self._done = threading.Event()
@@ -131,8 +134,10 @@ class ProbeSIMCardTask(FactoryTask):
     self._template = test.template
     self._force_stop = test.force_stop
     self._instruction = instruction
-    self._wait_sim = WaitSIMCardThread(simcard_event,
-        self.PostSuccessEvent, self._force_stop, test)
+    self._wait_sim = (
+        WaitSIMCardThread(
+            simcard_event, self.PostSuccessEvent,
+            self._force_stop, test))
     self._pass_event = str(uuid.uuid4())
 
   def PostSuccessEvent(self):
@@ -151,20 +156,23 @@ class ProbeSIMCardTask(FactoryTask):
 
 class InsertSIMTask(ProbeSIMCardTask):
   """Task to wait for SIM card insertion"""
+
   def __init__(self, test):
     super(InsertSIMTask, self).__init__(test, _INSERT_SIM_INSTRUCTION,
-          ProbeSIMCardTask.INSERT_SIM_CARD)
+                                        ProbeSIMCardTask.INSERT_SIM_CARD)
 
 
 class RemoveSIMTask(ProbeSIMCardTask):
   """Task to wait for SIM card removal"""
+
   def __init__(self, test):
     super(RemoveSIMTask, self).__init__(test, _REMOVE_SIM_INSTRUCTION,
-          ProbeSIMCardTask.REMOVE_SIM_CARD)
+                                        ProbeSIMCardTask.REMOVE_SIM_CARD)
 
 
 class CheckSIMTask(FactoryTask):
   """Task to check SIM card state"""
+
   def __init__(self, test):
     super(CheckSIMTask, self).__init__()
     self._template = test.template

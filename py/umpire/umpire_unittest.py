@@ -35,7 +35,9 @@ def GetStdout():
   # pylint: enable=E1101
   return output.split('\n')
 
+
 class InitTest(unittest.TestCase):
+
   def setUp(self):
     self.args = Obj(base_dir=None, board=None, bundle_path=DEFAULT_BUNDLE,
                     default=False, local=False, user='user', group='group')
@@ -107,6 +109,7 @@ class InitTest(unittest.TestCase):
 
   def testSpecifyBaseDir(self):
     BASE_DIR = '/tmp/base_dir'
+
     def EnvBaseDirMatcher(env):
       return env.base_dir == BASE_DIR
 
@@ -158,7 +161,7 @@ class UpdateTest(unittest.TestCase):
     umpire.Update(self.args, self.mock_cli)
     self.assertListEqual(
         ["Creating a new bundle 'bundle2' based on bundle 'bundle1' with new "
-         "resources",
+         'resources',
          'Updating resources:',
          '  factory_toolkit  %s' % self.TOOLKIT_PATH,
          'Update successfully.', ''],
@@ -264,7 +267,7 @@ class DeployTest(unittest.TestCase):
 
   def setUp(self):
     self.args = Obj()
-    self.mox  = mox.Mox()
+    self.mox = mox.Mox()
     self.mock_cli = self.mox.CreateMockAnything()
 
   def tearDown(self):

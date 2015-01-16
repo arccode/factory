@@ -6,11 +6,12 @@
 import unittest
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.utils import yaml_utils
 
 
 class BaseYAMLTagMetaclassUnittest(unittest.TestCase):
+
   def runTest(self):
     class FooTagMetaclass(yaml_utils.BaseYAMLTagMetaclass):
       YAML_TAG = '!foo'

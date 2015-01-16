@@ -33,7 +33,7 @@ from cros.factory.test.utils import StartDaemonThread
 _WAIT_TIMEOUT = 0.1
 
 
-class _STEP_STATE:  # pylint: disable=W0232
+class _STEP_STATE(object):  # pylint: disable=W0232
   """Enumeration of the states of a step."""
   SUCCESS = 'success'
   FAILED = 'failed'
@@ -179,8 +179,8 @@ class Task(object):
           (regexp, flags) = tuple(input_element[TOKEN.REGEXP])
           if not CreateRegExp(regexp, flags).search(value):
             raise FormatError(
-              'Invalid input field "%s%s", %r not matched (%r, %r)' %
-              (input_element[TOKEN.PROMPT], value, value, regexp, flags))
+                'Invalid input field "%s%s", %r not matched (%r, %r)' %
+                (input_element[TOKEN.PROMPT], value, value, regexp, flags))
         ret[var_id] = value
     return ret
 
@@ -340,6 +340,7 @@ class _CommandStep(_Step):
         stopped.
     _stdout_text: A string to store the stdout of the command if needs.
   """
+
   def __init__(self, command, expected_output,
                terminate_timeout, terminating_timeout, error_message,
                ui_append_output):
@@ -447,12 +448,12 @@ class _CommandStep(_Step):
       Boolean value indicate whether the command is successful or not.
     """
     if expected_output is None:
-      return (return_code == 0)
+      return return_code == 0
     elif isinstance(expected_output, basestring):
-      return (stdout_text == expected_output)
+      return stdout_text == expected_output
     elif isinstance(expected_output, list):
       (regexp, flags) = tuple(expected_output)
-      return (CreateRegExp(regexp, flags).search(stdout_text) is not None)
+      return CreateRegExp(regexp, flags).search(stdout_text) is not None
 
 
 class _FinallyStep(_CommandStep):
@@ -462,6 +463,7 @@ class _FinallyStep(_CommandStep):
   be stopped.
   """
   MUST_BE_RUN = True
+
   def __init__(self, command, expected_output,
                terminate_timeout, terminating_timeout, error_message,
                ui_append_output):
@@ -518,9 +520,9 @@ def _ParseCommandLine(command, input_values):
     dollar_star += splitter + value
     dollar_at += splitter + '"' + value + '"'
     splitter = ' '
-    ret = ret.replace("$%d" % int(key), value)
-  ret = ret.replace("$*", dollar_star)
-  ret = ret.replace("$@", dollar_at)
+    ret = ret.replace('$%d' % int(key), value)
+  ret = ret.replace('$*', dollar_star)
+  ret = ret.replace('$@', dollar_at)
   ret = ret.replace('<splash!!>', '\\')
   ret = ret.replace('<dollar!!>', '$')
   return ret

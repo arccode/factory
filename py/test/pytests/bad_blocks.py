@@ -41,6 +41,7 @@ HTML = '''
 <div id="bb-progress"></div>
 '''
 
+
 class BadBlocksTest(unittest.TestCase):
   # SATA link speed, or None if unknown.
   sata_link_speed_mbps = None
@@ -53,7 +54,7 @@ class BadBlocksTest(unittest.TestCase):
           default='stateful_partition_free_space'),
       Arg('device_path', str, 'Override the device path on which to test. '
           'Also functions as a file path for file and raw modes.',
-           optional=True),
+          optional=True),
       Arg('max_bytes', (int, long), 'Maximum size to test, in bytes.',
           optional=True),
       Arg('max_errors', int, 'Stops testing after the given number of errors.',
@@ -73,7 +74,7 @@ class BadBlocksTest(unittest.TestCase):
       Arg('drop_caches_interval_secs', int,
           'The interval between dropping caches in seconds.',
           default=120),
-      ]
+  ]
 
   def setUp(self):
     self.ui = UI()
@@ -206,7 +207,7 @@ class BadBlocksTest(unittest.TestCase):
       raise ValueError('Invalid mode selected, check test_list mode setting.')
 
     test_size_mb = '%.1f MiB' % (
-        (last_block - first_block + 1) * sector_size / 1024.**2)
+        (last_block - first_block + 1) * sector_size / 1024. ** 2)
 
     self.template.SetInstruction(
         MakeLabel('Testing %s region of storage' % test_size_mb,
@@ -329,8 +330,7 @@ class BadBlocksTest(unittest.TestCase):
                       last_line)
 
   def _GenerateTestFile(self, file_path, file_bytes):
-    '''
-    Generate a sparse file for testing of a given size.
+    '''Generate a sparse file for testing of a given size.
 
     Args:
       file_path: String of the path to the file to generate.
@@ -359,8 +359,7 @@ class BadBlocksTest(unittest.TestCase):
     return file_bytes
 
   def _GetBlockSize(self, dev_node_path):
-    '''
-    Read the block size of a given device from sysfs.
+    '''Read the block size of a given device from sysfs.
 
     Args:
       dev_node_path: String of the path to the dev node of a device.
@@ -387,7 +386,7 @@ class BadBlocksTest(unittest.TestCase):
       if process.stderr_data:
         logging.info('stderr:\n%s', process.stderr_data)
       Log('log_command', command=self.args.extra_log_cmd,
-                         stdout=process.stdout_data, stderr=process.stderr_data)
+          stdout=process.stdout_data, stderr=process.stderr_data)
 
     smartctl_output = Spawn(['smartctl', '-a', self.args.device_path],
                             check_output=True).stdout_data
@@ -400,7 +399,7 @@ class BadBlocksTest(unittest.TestCase):
         'SMART says drive is not healthy')
 
   def _UpdateSATALinkSpeed(self):
-    '''Updates the current SATA link speed based on /var/log/messages.'''
+    """Updates the current SATA link speed based on /var/log/messages."""
     # No SATA on mmc.
     if self._is_mmc:
       return
@@ -422,7 +421,7 @@ class BadBlocksTest(unittest.TestCase):
             int(float(match.group(2)) *
                 (1000 if match.group(3) == 'G' else 1)))
         link_info_events.append(dict(speed_mbps=self.sata_link_speed_mbps,
-                           log_line=log_line))
+                                     log_line=log_line))
 
       # Copy any ATA-related messages to the test log, and put in event logs.
       if not first_time and re.search(r'\bata[0-9.]+:', log_line):
