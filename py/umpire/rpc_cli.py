@@ -200,7 +200,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
   @umpire_rpc.RPCCall
   def StopUmpired(self):
     """Stops Umpire daemon."""
-    daemon.UmpireDaemon().Stop()
+    daemon.UmpireDaemon(self.env).Stop()
 
   @umpire_rpc.RPCCall
   def GetStatus(self):
@@ -211,9 +211,9 @@ class CLICommand(umpire_rpc.UmpireRPC):
   @umpire_rpc.RPCCall
   def StartServices(self, services):
     """Starts a list of services."""
-    return daemon.UmpireDaemon().StartServices(services)
+    return daemon.UmpireDaemon(self.env).StartServices(services)
 
   @umpire_rpc.RPCCall
   def StopServices(self, services):
     """Stops a list of services."""
-    return daemon.UmpireDaemon().StopServices(services)
+    return daemon.UmpireDaemon(self.env).StopServices(services)

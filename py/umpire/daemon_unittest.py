@@ -99,7 +99,8 @@ class DaemonTest(unittest.TestCase):
     self.agent = client.Agent(reactor)
 
   def tearDown(self):
-    map(lambda p: p.stopListening(), self.daemon.twisted_ports)
+    for p in self.daemon.twisted_ports:
+      p.stopListening()
     self.daemon.twisted_ports = []
     self.daemon = None
     self.rpc_proxy = None

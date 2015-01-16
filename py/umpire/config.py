@@ -385,7 +385,7 @@ class UmpireConfig(dict):
     Returns:
       Iterable of active bundles.
     """
-    for active_rule in filter(lambda r: r['active'], self.get('rulesets', [])):
+    for active_rule in (r for r in self.get('rulesets', []) if r['active']):
       bundle_id = active_rule['bundle_id']
       if bundle_id in self.bundle_map:
         yield self.bundle_map[bundle_id]

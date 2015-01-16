@@ -122,6 +122,7 @@ class testImportBundle(unittest.TestCase):
   def testImport(self):
     importer = BundleImporter(self.env)
     # Inject timestamp so that download conf can be compared easily.
+    # pylint: disable=W0212
     importer._timestamp = datetime.datetime(2014, 1, 1, 0, 0)
 
     self.MockOutGetVersion()

@@ -79,7 +79,7 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
     os.umask(022)
     if not run_as:
       return
-    uid, gid = run_as
+    uid, gid = run_as  # pylint: disable=W0633
     os.setgid(gid)
     os.setuid(uid)
 
@@ -98,7 +98,7 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
     return unpack_dir
 
   if run_as:
-    uid, gid = run_as
+    uid, gid = run_as  # pylint: disable=W0633
   else:
     uid, gid = -1, -1
 

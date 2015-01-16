@@ -92,6 +92,7 @@ class ShopFloorService(umpire_service.UmpireService):
         # Adds release callbacks on error and stopped state.
 
         def ReleaseResource():
+          # pylint: disable=W0640
           logging.debug('Release %s(%d,%s)', bundle['id'], fcgi_port, token)
           env.shop_floor_manager.Release(fcgi_port)
 

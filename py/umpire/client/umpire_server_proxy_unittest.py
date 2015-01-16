@@ -276,7 +276,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     lines_to_write = []
     for line in open(file_path).readlines():
       line = re.sub(
-          'shop_floor_handler: /shop_floor/(\d+)',
+          r'shop_floor_handler: /shop_floor/(\d+)',
           'shop_floor_handler: /shop_floor/%d' % port,
           line)
       lines_to_write.append(line)

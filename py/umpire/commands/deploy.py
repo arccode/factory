@@ -202,7 +202,7 @@ class ConfigDeployer(object):
                   self._config_path_to_deploy, str(failure))
     self._env.LoadConfig(custom_path=self._original_config_path,
                          init_shop_floor_manager=False)
-    deferred = daemon.UmpireDaemon().Deploy()
+    deferred = daemon.UmpireDaemon(self._env).Deploy()
     deferred.addCallbacks(self._HandleRollbackSuccess,
                           self._HandleRollbackError)
     return deferred
@@ -227,7 +227,7 @@ class ConfigDeployer(object):
     error = 'Rollback to config %r failed: %s. Stopping Umpire daemon' % (
         self._original_config_path, str(failure))
     logging.error(error)
-    daemon.UmpireDaemon().Stop()
+    daemon.UmpireDaemon(self._env).Stop()
     raise common.UmpireError(error)
 
   def Deploy(self, config_res):
@@ -261,6 +261,6 @@ class ConfigDeployer(object):
                          init_shop_floor_manager=False)
     logging.info('Config %r validated. Try deploying...',
                  self._config_path_to_deploy)
-    deferred = daemon.UmpireDaemon().Deploy()
+    deferred = daemon.UmpireDaemon(self._env).Deploy()
     deferred.addCallbacks(self._HandleDeploySuccess, self._HandleDeployError)
     return deferred

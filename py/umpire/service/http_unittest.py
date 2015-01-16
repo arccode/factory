@@ -148,7 +148,7 @@ class TestHTTPService(unittest.TestCase):
     # Store the output lighttpd.conf file into config (list).
     # Also make a dict (line => line number) to speed up line and line block
     # matching.
-    config = map(lambda s: s.rstrip(), file_utils.ReadLines(config_path))
+    config = [s.rstrip() for s in file_utils.ReadLines(config_path)]
     config_first_occur_line = {}
     for i, line in enumerate(config):
       if line not in config_first_occur_line:

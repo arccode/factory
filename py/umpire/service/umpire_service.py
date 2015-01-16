@@ -49,7 +49,7 @@ _INSTANCE_MAP = {}
 
 
 # Process and service state
-class State:  # pylint: disable=W0232
+class State(object):  # pylint: disable=W0232
   INIT = 'init'
   STARTING = 'starting'
   RESTARTING = 'restarting'

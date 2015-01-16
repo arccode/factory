@@ -70,8 +70,8 @@ class TestShopFloorService(unittest.TestCase):
     # Activate configuration.
     self.env.config = UmpireConfig(umpire_config, validate=False)
     os.makedirs(self.env.device_toolkits_dir)
-    map(lambda h: os.makedirs(os.path.join(self.env.device_toolkits_dir, h)),
-        ['00000001', '00000002', '00000003', '00000004'])
+    for h in ['00000001', '00000002', '00000003', '00000004']:
+      os.makedirs(os.path.join(self.env.device_toolkits_dir, h))
     # Create processes.
     service = shop_floor.ShopFloorService()
     processes = service.CreateProcesses(None, self.env)

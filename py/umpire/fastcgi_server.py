@@ -340,6 +340,7 @@ class MyXMLRPCApp(object):
     error_message = session[SessionMediator.XMLRPC_EXCEPTION]
     error_message = ': %s' % error_message if error_message else ''
     duration = time.time() - session.time
+    # pylint: disable=W1202
     logging.info(LOG_MESSAGE.format(
         remote_address=session.RemoteAddress(),
         method=session[SessionMediator.XMLRPC_METHOD],
