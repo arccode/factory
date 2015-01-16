@@ -192,7 +192,7 @@ class KeyFilterImpl(object):
                                          self._caps_lock_keymapping)
 
 
-class KeyFilter:
+class KeyFilter(object):
   """A launcher to run key filter in a sub-process.
 
   Args:

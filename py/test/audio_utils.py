@@ -153,7 +153,7 @@ def GetAudioMinimumAmplitude(sox_output):
   Returns:
     The minimum amplitude parsed from sox stat output.
   """
-  m = re.search('^Minimum\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
+  m = re.search(r'^Minimum\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
   if m is not None:
     return float(m.group(1))
   return None
@@ -168,7 +168,7 @@ def GetAudioMaximumAmplitude(sox_output):
   Returns:
     The maximum amplitude parsed from sox stat output.
   """
-  m = re.search('^Maximum\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
+  m = re.search(r'^Maximum\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
   if m is not None:
     return float(m.group(1))
   return None
@@ -183,7 +183,7 @@ def GetAudioRms(sox_output):
   Returns:
     The RMS value parsed from sox stat output.
   """
-  m = re.search('^RMS\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
+  m = re.search(r'^RMS\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
   if m is not None:
     return float(m.group(1))
   return None
@@ -198,7 +198,7 @@ def GetRoughFreq(sox_output):
   Returns:
     The rough frequency value parsed from sox stat output.
   """
-  _SOX_ROUGH_FREQ_RE = re.compile('Rough\s+frequency:\s+(.+)')
+  _SOX_ROUGH_FREQ_RE = re.compile(r'Rough\s+frequency:\s+(.+)')
   for rms_line in sox_output.split('\n'):
     m = _SOX_ROUGH_FREQ_RE.match(rms_line)
     if m is not None:
@@ -279,7 +279,7 @@ class AudioUtil(object):
     """
     list_controls = Spawn(['amixer', '-c%d' % int(card), 'controls'],
                           stdout=PIPE)
-    _CONTROL_RE = re.compile('numid=(\d+).*?name=\'%s\'' % name)
+    _CONTROL_RE = re.compile(r'numid=(\d+).*?name=\'%s\'' % name)
     numid = 0
     for ctl in list_controls.stdout:
       m = _CONTROL_RE.match(ctl)
@@ -551,8 +551,8 @@ class CRAS(object):
     self.CRAS_TEST_CLIENT = 'cras_test_client'
     self._RE_INPUT_NODES_SECTION = re.compile('Input Nodes:.*')
     self._RE_OUTPUT_NOTES_SECTION = re.compile('Output Nodes:.*')
-    self._RE_END_SECTION = re.compile('^[A-Z].*')
-    self._RE_IO_NODE_LINE = re.compile('\t(\d+:\d+).*')
+    self._RE_END_SECTION = re.compile(r'^[A-Z].*')
+    self._RE_IO_NODE_LINE = re.compile(r'\t(\d+:\d+).*')
 
     self.input_nodes = []
     self.output_nodes = []

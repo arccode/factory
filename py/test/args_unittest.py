@@ -90,7 +90,7 @@ class ArgsTest(unittest.TestCase):
          'enum_typed': 'a'},
         self.Parse(dict(required='x', int_typed=3, enum_typed='a')))
     self.assertRaisesRegexp(ValueError,
-                            'Argument enum_typed should have type \(Enum',
+                            r'Argument enum_typed should have type \(Enum',
                             self.Parse, dict(required='x', enum_typed='c'))
 
   def testIntOrString(self):

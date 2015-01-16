@@ -330,7 +330,7 @@ class Wifi_RF(unittest.TestCase):
       self.TestInit()
       self._initflag = False
 
-    factory.console.info('%sGHz. Antenna %s.' % (test.freq, test.antenna))
+    factory.console.info('%sGHz. Antenna %s.', test.freq, test.antenna)
 
     subprocess.call(['/sbin/ifconfig', 'wlan0', 'down'])
 
@@ -341,24 +341,24 @@ class Wifi_RF(unittest.TestCase):
     subprocess.call(['/sbin/ifconfig', 'wlan0', 'up'])
     subprocess.call(['/usr/sbin/iw', 'wlan0', 'scan'])
 
-    factory.console.info('%sGHz. Antenna %s. Scanning for networks.' %
-                         (test.freq, test.antenna))
+    factory.console.info('%sGHz. Antenna %s. Scanning for networks.', test.freq,
+                         test.antenna)
     time.sleep(self.args.delay_network_scan_secs)
 
     wap_index = str(0) if test.freq == '2.4' else str(1)
     subprocess.call(['/usr/sbin/iw', 'wlan0', 'connect',
                      'WifiManaged%s' % wap_index])
     factory.console.info('%sGHz. Antenna %s. Connecting WifiManaged%s. '
-                         'sleep 15s' % (test.freq, test.antenna, wap_index))
+                         'sleep 15s', test.freq, test.antenna, wap_index)
 
     time.sleep(self.args.delay_packet_capture_secs)
 
-    factory.console.info('%sGHz. Antenna %s. Bringing up network' %
-                         (test.freq, test.antenna))
+    factory.console.info('%sGHz. Antenna %s. Bringing up network',
+                         test.freq, test.antenna)
 
     subprocess.Popen(_CMD_IFCONFIG % wap_index, shell=True)
-    factory.console.info('%sGHz. Antenna %s. Gathering packet data on AP' %
-                         (test.freq, test.antenna))
+    factory.console.info('%sGHz. Antenna %s. Gathering packet data on AP',
+                         test.freq, test.antenna)
     ssh_proc = subprocess.Popen(_CMD_SSH % (wap_index, wap_index), shell=True,
                                 stdout=subprocess.PIPE)
     subprocess.Popen(_CMD_PING % wap_index, shell=True)
@@ -367,12 +367,11 @@ class Wifi_RF(unittest.TestCase):
     db_result = self.Calc_Signal_Strength(db_val_line)
 
     factory.console.info(
-        '%sGHz. Antenna %s. Run complete. Average signal strength %d db.' %
-        (test.freq, test.antenna, db_result.avg))
+        '%sGHz. Antenna %s. Run complete. Average signal strength %d db.',
+        test.freq, test.antenna, db_result.avg)
     if abs(db_result.max - db_result.min) > 10:
-      factory.console.info(
-          '%sGHz. Antenna %s. Signal strength inconsistent, did the door open ?' %
-          (test.freq, test.antenna))
+      factory.console.info('%sGHz. Antenna %s. Signal strength inconsistent, '
+                           'did the door open ?', test.freq, test.antenna)
 
     if (db_result.avg == 0):
       factory.console.info('Possible problem with test equipment.')

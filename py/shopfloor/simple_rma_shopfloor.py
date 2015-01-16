@@ -540,7 +540,7 @@ def LoadAuxCsvData(csv_file):
     # Set of all column names, for duplicate detection.
     col_name_set = set()
     # Matches 'foo' or 'foo[int]'.
-    HEADER_REGEXP = re.compile('^(\w+)(?:\[(\w+)\])?$')
+    HEADER_REGEXP = re.compile(r'^(\w+)(?:\[(\w+)\])?$')
     PARSERS = {
         'str': str,
         'bool': ParseBoolean,

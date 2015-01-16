@@ -134,7 +134,7 @@ class SuspendResumeTest(unittest.TestCase):
       #   call
       #   G[A-Z]{2}\d? (a register name)
       #   save
-      messages = re.sub('^.*\] (call|G[A-Z]{2}\d?|save).*$\n?', '',
+      messages = re.sub(r'^.*\] (call|G[A-Z]{2}\d?|save).*$\n?', '',
                         self.messages, flags=re.MULTILINE)
       logging.info('Last suspend block:\n' +
                    re.sub('^', '    ', messages, flags=re.MULTILINE))

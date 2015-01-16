@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Reports fetcher is a command line tool to fetch reports from remote server and upload it to Google Cloud Storage Server.
+"""Fetch reports from remote server and upload to Google Cloud Storage Server.
 
 To run this tool, environment have to be setup as instructed in this URL:
 https://developers.google.com/storage/docs/gspythonlibrary

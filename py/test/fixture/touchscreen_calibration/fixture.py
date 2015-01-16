@@ -167,7 +167,7 @@ class FakeFixture(BaseFixture):
 
   def IsEmergencyStop(self):
     """Checks if the fixture is in the EMERGENCY_STOP state."""
-    return (self.state == STATE.EMERGENCY_STOP)
+    return self.state == STATE.EMERGENCY_STOP
 
   def DriveProbeDown(self):
     """Drives the probe to the 'down' position."""
@@ -218,7 +218,7 @@ class FixtureSerialDevice(BaseFixture):
 
   def IsEmergencyStop(self):
     """Checks if the fixture is in the EMERGENCY_STOP state."""
-    return (self.QueryState() == STATE.EMERGENCY_STOP)
+    return self.QueryState() == STATE.EMERGENCY_STOP
 
   def AssertStateWithTimeout(self, expected_states, timeout):
     """Assert the state with timeout."""

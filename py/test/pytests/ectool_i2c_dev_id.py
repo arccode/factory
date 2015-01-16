@@ -15,7 +15,8 @@ from cros.factory.test.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.utils.process_utils import SpawnOutput
 
-RE_I2C_RESULT = re.compile('Read from I2C port \d+ at \S+ offset \S+ = (0x\S+)')
+RE_I2C_RESULT = re.compile(
+    r'Read from I2C port \d+ at \S+ offset \S+ = (0x\S+)')
 
 
 class EctoolI2CDevIdTest(unittest.TestCase):

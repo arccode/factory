@@ -25,10 +25,10 @@ class SnowBoard(ChromeOSBoard):
   def GetTemperatureSensorNames(self):
     return ['CPU']
 
-  def GetFanRPM(self):
+  def GetFanRPM(self, fan_id=None):
     raise NotImplementedError
 
-  def SetFanRPM(self, rpm):
+  def SetFanRPM(self, rpm, fan_id=None):
     raise NotImplementedError
 
   def SetChargeState(self, state):

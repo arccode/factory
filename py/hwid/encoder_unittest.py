@@ -91,8 +91,8 @@ class EncoderTest(unittest.TestCase):
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(
         HWIDException, r"Invalid 'dram' component found with probe result "
-        "{ 'size': '4G', 'vendor': 'FOO'} \(no matching name in the component "
-        'DB\)', Encode, self.database, bom)
+        r"{ 'size': '4G', 'vendor': 'FOO'} \(no matching name in the component "
+        r'DB\)', Encode, self.database, bom)
 
   def testEncodeRegion(self):
     db = Database.LoadFile(

@@ -24,7 +24,7 @@ REGISTRATION_CODE_PAYLOAD_BYTES = 32
 
 
 # Pattern matching devices in reg code.
-DEVICE_PATTERN = re.compile('^\w+$')
+DEVICE_PATTERN = re.compile(r'^\w+$')
 
 
 class RegistrationCodeException(Exception):

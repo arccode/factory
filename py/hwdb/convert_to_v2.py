@@ -15,7 +15,7 @@ from os import listdir
 from os.path import isfile, join
 
 
-class Hwid:
+class Hwid(object):
   """BOM object"""
 
   def __init__(self, name):
@@ -40,7 +40,7 @@ class Hwid:
     return bom_dict
 
 
-class InitialConfig:
+class InitialConfig(object):
   """Initial config"""
 
   def __init__(self, num):
@@ -60,7 +60,7 @@ class InitialConfig:
     return config_dict
 
 
-class Variant:
+class Variant(object):
   """HWID variant"""
 
   def __init__(self):
@@ -93,7 +93,7 @@ class Variant:
     return variant_dict
 
 
-class Volatile:
+class Volatile(object):
   """HWID volatile"""
 
   def __init__(self, name):

@@ -87,15 +87,14 @@ class LANSCPI(object):
 
     for times in range(1, retries + 1):
       try:
-        self.logger.info('Connecting to %s:%d [try %d/%d]...' % (
-            host, port, times, retries))
+        self.logger.info('Connecting to %s:%d [try %d/%d]...', host, port,
+                         times, retries)
         self._Connect()
         return
       except Exception as e:
         self.Close()
         time.sleep(1)
-        self.logger.info('Unable to connect to %s:%d: %s' % (
-            host, port, e))
+        self.logger.info('Unable to connect to %s:%d: %s', host, port, e)
 
     raise Error('Failed to connect %s:%d after %d tries' % (
         host, port, retries))
@@ -104,8 +103,7 @@ class LANSCPI(object):
     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     with Timeout(self.timeout):
-      self.logger.debug('] Connecting to %s:%d...' % (
-          self.host, self.port))
+      self.logger.debug('] Connecting to %s:%d...', self.host, self.port)
       self.socket.connect((self.host, self.port))
 
     self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -279,7 +277,7 @@ class LANSCPI(object):
           raise Error('Expected newline at end of binary data')
 
         if self.logger.isEnabledFor(logging.DEBUG):
-          self.logger.debug('[binary %r' % _TruncateForLogging(ret))
+          self.logger.debug('[binary %r', _TruncateForLogging(ret))
         return ret
       elif ch == '\n':
         # Empty line
@@ -288,7 +286,7 @@ class LANSCPI(object):
       else:
         ret = ch + self.rfile.readline().rstrip('\n')
         if self.logger.isEnabledFor(logging.DEBUG):
-          self.logger.debug('[ %s' % _TruncateForLogging(ret))
+          self.logger.debug('[ %s', _TruncateForLogging(ret))
         return ret
 
   def _ReadBinary(self, expected_length):
@@ -307,7 +305,7 @@ class LANSCPI(object):
     '''
     if '\n' in command:
       raise Error('Newline in command: %r' % command)
-    self.logger.debug('] %s' % command)
+    self.logger.debug('] %s', command)
     self.wfile.write(command + '\n')
 
 

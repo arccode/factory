@@ -30,7 +30,7 @@ class Base8192Test(unittest.TestCase):
         Base8192.Decode, 'AA')
     self.assertRaisesRegexp(
         KeyError, r'Encoded string should be of format: \(\[A-Z2-7\]\[2-9\]\['
-        "A-Z2-7\]\)\+: 'FIB'", Base8192.Decode, 'FIB')
+        r"A-Z2-7\]\)\+: 'FIB'", Base8192.Decode, 'FIB')
 
   def testChecksum(self):
     self.assertEquals('7L', Base8192.Checksum('FOO'))

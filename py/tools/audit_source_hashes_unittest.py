@@ -86,7 +86,7 @@ class AuditSourceHashesTest(unittest.TestCase):
           r'- tools/audit_source_hashes_unittest\.py: hash mismatch '
           r'\(expected .+, found deadbeef\)\n\n'
           r'Found 1 mismatched hashes and 0 exceptions\.\n'
-          'FAILED \(0/1 samples passed\)\.\n')
+          r'FAILED \(0/1 samples passed\)\.\n')
 
     # First try with the event log file itself.
     AssertMismatch(bad_log_path)

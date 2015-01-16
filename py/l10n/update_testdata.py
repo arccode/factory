@@ -63,7 +63,7 @@ def UpdateLanguages(source_dir):
   cpp_code = CheckOutput(
       ['git', 'show', SRC_REMOTE_BRANCH + ':ui/base/l10n/l10n_util.cc'],
       log=True, cwd=source_dir)
-  match = re.search('static[^\n]+kAcceptLanguageList\[\] = \{(.+?)^\}',
+  match = re.search(r'static[^\n]+kAcceptLanguageList\[\] = \{(.+?)^\}',
                     cpp_code, re.DOTALL | re.MULTILINE)
   if not match:
     sys.exit('Unable to find language list')
@@ -88,7 +88,7 @@ def UpdateTimeZones(source_dir):
       ['git', 'show',
        SRC_REMOTE_BRANCH + ':chromeos/settings/timezone_settings.cc'],
       log=True, cwd=source_dir)
-  match = re.search('static[^\n]+kTimeZones\[\] = \{(.+?)^\}',
+  match = re.search(r'static[^\n]+kTimeZones\[\] = \{(.+?)^\}',
                     cpp_code, re.DOTALL | re.MULTILINE)
   if not match:
     sys.exit('Unable to find time zones')

@@ -85,7 +85,7 @@ class Finalize(unittest.TestCase):
           'expression that must match the error message in order to waive the '
           'test. If regular expression of error message is empty, the test '
           'can be waived if it is either UNTESTED or FAILED. '
-          'e.g.: [(r"^FATP\.FooBar$", r"Timeout"), (r"Diagnostic\..*")] will '
+          r'e.g.: [(r"^FATP\.FooBar$", r"Timeout"), (r"Diagnostic\..*")] will '
           'waive FATP.FooBar test if error message starts with Timeout. It '
           'will also waive all Diagnostic.* tests, either UNTESTED or FAILED. '
           'Error messages may be multiline (e.g., stack traces) so this is a '
@@ -328,7 +328,7 @@ class Finalize(unittest.TestCase):
       factory.console.warn(
           '%s. '
           'THIS DEVICE CANNOT BE QUALIFIED. '
-          '(will continue in %d seconds)' % (message, i))
+          '(will continue in %d seconds)', message, i)
       time.sleep(1)
 
   def ForcePermissions(self):

@@ -92,7 +92,7 @@ _DEFAULT_FREQ_HZ = 1000
 
 # Regular expressions to match audiofuntest message.
 _AUDIOFUNTEST_STOP_RE = re.compile('^Stop')
-_AUDIOFUNTEST_SUCCESS_RATE_RE = re.compile('.*rate\s*=\s*(.*)$')
+_AUDIOFUNTEST_SUCCESS_RATE_RE = re.compile(r'.*rate\s*=\s*(.*)$')
 
 # Default minimum success rate of audiofun test to pass.
 _DEFAULT_AUDIOFUN_TEST_THRESHOLD = 50

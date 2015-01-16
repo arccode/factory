@@ -19,7 +19,7 @@ class GenerateDocsTest(unittest.TestCase):
 
   def testGenerateTestDocs(self):
     # A class that looks like a test module.
-    class PseudoModule:  # pylint: disable=W0232
+    class PseudoModule(object):  # pylint: disable=W0232
       """Module-level help."""
       class FooTest(unittest.TestCase):
         ARGS = [

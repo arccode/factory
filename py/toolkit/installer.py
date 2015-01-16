@@ -97,7 +97,7 @@ SERVER_FILE_MASK = [
 ]
 
 
-class FactoryToolkitInstaller():
+class FactoryToolkitInstaller(object):
   """Factory toolkit installer.
 
   Args:
@@ -181,13 +181,11 @@ class FactoryToolkitInstaller():
           '***' % self._dest)
     if self._dest == self._system_root:
       if self._no_enable:
-        ret += (
-                '\n*** Factory tests will be disabled after this process is '
+        ret += ('\n*** Factory tests will be disabled after this process is '
                 'done, but\n*** you can enable them by creating the factory '
                 'enabled tag:\n***   %s\n***' % self._tag_file)
       else:
-        ret += (
-                '\n*** After this process is done, your device will start '
+        ret += ('\n*** After this process is done, your device will start '
                 'factory\n*** tests on the next reboot.\n***\n*** Factory '
                 'tests can be disabled by deleting the factory enabled\n*** '
                 'tag:\n***   %s\n***' % self._tag_file)

@@ -99,7 +99,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self._GetSysfsService()
     self._ConnectTouchDevice()
     self.log = Log if self.use_shopfloor else self._DummyLog
-    factory.console.info('Use shopfloor: %s' % str(self.use_shopfloor))
+    factory.console.info('Use shopfloor: %s', str(self.use_shopfloor))
 
   def _DummyLog(self, *args, **kwargs):
     pass
@@ -128,11 +128,11 @@ class TouchscreenCalibration(unittest.TestCase):
       """Check the status of sys fs."""
       try:
         if self.sysfs.CheckStatus():
-          factory.console.info('Sysfs service: %s' % msg)
+          factory.console.info('Sysfs service: %s', msg)
           return
-        factory.console.info('No Sysfs service: %s' % msg)
+        factory.console.info('No Sysfs service: %s', msg)
       except Exception as e:
-        factory.console.info('No Sysfs service (%s): %s' % (e, msg))
+        factory.console.info('No Sysfs service (%s): %s', e, msg)
       _ShowError()
 
     if not self.sysfs_ip:
@@ -182,7 +182,7 @@ class TouchscreenCalibration(unittest.TestCase):
     """Reads the raw sensor data.."""
     if self.sysfs:
       data = self.sysfs.Read(self.DELTAS)
-      factory.console.info('Get data %s' % data)
+      factory.console.info('Get data %s', data)
       data = json.dumps(data)
       self.ui.CallJSFunction('displayDebugData', data)
     else:
@@ -206,7 +206,7 @@ class TouchscreenCalibration(unittest.TestCase):
         raise FixtureException('Fail to create the fixture serial device.')
 
     except Exception as e:
-      factory.console.info('Refresh fixture serial device exception, %s' % e)
+      factory.console.info('Refresh fixture serial device exception, %s', e)
       self.ui.CallJSFunction(
           'showMessage',
           'Please check if the USB cable has been connected '
@@ -252,7 +252,7 @@ class TouchscreenCalibration(unittest.TestCase):
         self.ui.CallJSFunction('setTouchscreenStatus', True)
         return
     except Exception as e:
-      factory.console.info('Exception at refreshing touch screen: %s' % e)
+      factory.console.info('Exception at refreshing touch screen: %s', e)
     self.ui.CallJSFunction('setTouchscreenStatus', False)
 
   def RefreshNetwork(self, unused_event):
@@ -295,7 +295,7 @@ class TouchscreenCalibration(unittest.TestCase):
     try:
       os.system(command)
     except Exception as e:
-      factory.console.warn('%s: %s' % (fail_msg, e))
+      factory.console.warn('%s: %s', fail_msg, e)
 
   def _CommandOutputSearch(self, command_str, pattern_str, pattern_flags):
     """Execute the command and search the pattern from its output."""
@@ -375,8 +375,8 @@ class TouchscreenCalibration(unittest.TestCase):
       for col in touched_cols:
         value = row_data[col]
         if (value < self.delta_lower_bound or value > self.delta_higher_bound):
-          factory.console.info('  Failed at (row, col) (%d, %d) value %d' %
-                               (row, col, value))
+          factory.console.info('  Failed at (row, col) (%d, %d) value %d',
+                               row, col, value)
           test_pass = False
     return test_pass
 
@@ -402,7 +402,7 @@ class TouchscreenCalibration(unittest.TestCase):
       return
 
     try:
-      factory.console.info('Start calibrating SN %s' % sn)
+      factory.console.info('Start calibrating SN %s', sn)
       log_to_file = StringIO.StringIO()
 
       if not self.sysfs.WriteSysfsSection('PreRead'):
@@ -423,7 +423,7 @@ class TouchscreenCalibration(unittest.TestCase):
       time.sleep(1)
 
       data = self.sysfs.Read(self.DELTAS)
-      factory.console.info('Get data %s' % data)
+      factory.console.info('Get data %s', data)
       time.sleep(1)
 
       # Verifies whether the sensor data is good or not.

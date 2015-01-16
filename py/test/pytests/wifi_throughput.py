@@ -73,7 +73,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.system import service_manager
 from cros.factory.test import event_log
 from cros.factory.test import factory, leds
@@ -377,8 +376,8 @@ class _ServiceTest(object):
         logging.info('running %s(**kwargs=%s)', fn.__name__, kwargs)
         status = fn(**kwargs)
         if status:
-          factory.console.info('[%s] PASS [%s] %s' % (
-              ap_config.ssid, fn.__name__, status))
+          factory.console.info(
+              '[%s] PASS [%s] %s', ap_config.ssid, fn.__name__, status)
       except self._TestException as e:
         e.message = '[%s] FAIL [%s] %s' % (
             ap_config.ssid, fn.__name__, e.message)

@@ -107,7 +107,7 @@ def GetMtbPacketsFromFile(event_file):
   return Mtb(packets=MtbParser().ParseFile(event_file))
 
 
-class Point:
+class Point(object):
   """A point class to hold MTB (x, y) coordinates.
 
   Note that the kernel driver only reports what is changed. Due to its
@@ -431,7 +431,7 @@ class MtbEvent(object):                           # pylint: disable=W0232
     return bool(event.get(MTB.SYN_REPORT, False))
 
 
-class MtbStateMachine:
+class MtbStateMachine(object):
   """The state machine for MTB events.
 
   It traces the slots, tracking IDs, x coordinates, y coordinates, etc. If
@@ -546,7 +546,7 @@ class MtbStateMachine:
     return sorted(current_tid_data)
 
 
-class Mtb:
+class Mtb(object):
   """An MTB class providing MTB format related utility methods."""
 
   def __init__(self, device=None, packets=None):
@@ -680,7 +680,7 @@ class Mtb:
       return [packet[-1].get(MTB.EV_TIME) for packet in self.packets]
 
 
-class MtbParser:
+class MtbParser(object):
   """Touch device MTB event Parser."""
 
   def __init__(self):
@@ -693,17 +693,17 @@ class MtbParser:
       Event: time 10788.289613, -------------- SYN_REPORT ------------
     """
     # Get the pattern of an ordinary event
-    ev_pattern_time = 'Event:\s*time\s*(\d+\.\d+)'
-    ev_pattern_type = 'type\s*(\d+)\s*\(\w+\)'
-    ev_pattern_code = 'code\s*(\d+)\s*\(\w+\)'
-    ev_pattern_value = 'value\s*(-?\d+)'
-    ev_sep = ',\s*'
+    ev_pattern_time = r'Event:\s*time\s*(\d+\.\d+)'
+    ev_pattern_type = r'type\s*(\d+)\s*\(\w+\)'
+    ev_pattern_code = r'code\s*(\d+)\s*\(\w+\)'
+    ev_pattern_value = r'value\s*(-?\d+)'
+    ev_sep = r',\s*'
     ev_pattern = ev_sep.join([ev_pattern_time, ev_pattern_type,
                               ev_pattern_code, ev_pattern_value])
     self._ev_pattern = re.compile(ev_pattern, re.I)
 
     # Get the pattern of the SYN_REPORT event
-    ev_pattern_type_SYN_REPORT = '-+\s*SYN_REPORT\s-+'
+    ev_pattern_type_SYN_REPORT = r'-+\s*SYN_REPORT\s-+'
     ev_pattern_SYN_REPORT = ev_sep.join([ev_pattern_time,
                                          ev_pattern_type_SYN_REPORT])
     self._ev_pattern_SYN_REPORT = re.compile(ev_pattern_SYN_REPORT, re.I)

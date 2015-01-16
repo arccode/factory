@@ -74,7 +74,7 @@ class BuildBoard(object):
           src, 'third_party', 'chromiumos-overlay', 'eclass',
           'cros-board.eclass')
       eclass_contents = open(eclass_path).read()
-      pattern = '(?s)ALL_BOARDS=\((.+?)\)'
+      pattern = r'(?s)ALL_BOARDS=\((.+?)\)'
       match = re.search(pattern, eclass_contents)
       if not match:
         raise BuildBoardException('Unable to read pattern %s in %s',

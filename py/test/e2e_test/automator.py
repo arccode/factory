@@ -35,12 +35,12 @@ class AutomatorMetaclass(e2e_test.E2ETestMetaclass):
   """
   automator_registry = {}
 
-  def __init__(mcs, name, bases, attrs):
+  def __init__(cls, name, bases, attrs):
     # Copy the constructed board automation function map cache to the automator
     # subclass and reset the cache.
-    mcs.automator_for_board = AutomatorMetaclass.automator_registry
+    cls.automator_for_board = AutomatorMetaclass.automator_registry
     AutomatorMetaclass.automator_registry = {}
-    super(AutomatorMetaclass, mcs).__init__(name, bases, attrs)
+    super(AutomatorMetaclass, cls).__init__(name, bases, attrs)
 
 
 class AutomatorSetting(object):

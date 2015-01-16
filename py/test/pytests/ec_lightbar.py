@@ -32,5 +32,5 @@ class ECLightbarTest(unittest.TestCase):
     response = _ECLightbar('')
     _ECLightbar('off')
     self.assertFalse(
-        re.search('^ 05\s+3f\s+3f$', response, re.MULTILINE) is None,
+        re.search(r'^ 05\s+3f\s+3f$', response, re.MULTILINE) is None,
         'Fail to match expected lightbar status: %s' % response)

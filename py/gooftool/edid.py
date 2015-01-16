@@ -100,10 +100,10 @@ def _ParseBinaryBlob(blob):
     indicating the reason for parsing failure.
   """
   def read_short_be(offset):
-    return ((ord(blob[offset]) << 8) | ord(blob[offset + 1]))
+    return (ord(blob[offset]) << 8) | ord(blob[offset + 1])
 
   def read_short_le(offset):
-    return ((ord(blob[offset + 1]) << 8) | ord(blob[offset]))
+    return (ord(blob[offset + 1]) << 8) | ord(blob[offset])
   # Check size, magic, and version
   if len(blob) < MINIMAL_SIZE:
     logging.warning('EDID parsing error: length too small.')

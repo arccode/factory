@@ -94,7 +94,7 @@ def PrepareDirectoryCopy(src_dir, dst_dir,
 
 
 def CopyFilesAndRename(src_dir, dst_dir, rename_pattern, reset_ebuild_file):
-  """Copies all files under src_dir to dst_dir.
+  r"""Copies all files under src_dir to dst_dir.
 
   It will rename folder/file names based on the value in rename_pattern.
   For example, renaming rambi_shopfloor.py to cranky_shopfloor.py if the

@@ -53,7 +53,7 @@ def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
     out = tempfile.NamedTemporaryFile(prefix='test_list', delete=False)
 
     # Remove whitespace at the beginning of each line of options.
-    options = re.sub('(?m)^\s+', '', options)
+    options = re.sub(r'(?m)^\s+', '', options)
     out.write('TEST_LIST = [' + test_list + ']\n' + options)
     out.close()
     args.extend(['--test_list', out.name])

@@ -32,7 +32,7 @@ from cros.factory.utils import file_utils
 
 
 def Escape(text):
-  """Escapes characters that must be escaped in a raw tag (*, `, and \)."""
+  r"""Escapes characters that must be escaped in a raw tag (*, `, and \)."""
   return re.sub(r'([*`\\])', '\\\\\\1', text)
 
 
@@ -156,7 +156,7 @@ def GenerateTestDocs(pytest_name, module, out):
 
   WriteTestArgs(args, out)
   # Remove everything after the first pair of newlines.
-  short_docstring = re.sub('(?s)\n\s*\n.+', '', doc).strip()
+  short_docstring = re.sub(r'(?s)\n\s*\n.+', '', doc).strip()
   return dict(short_docstring=short_docstring)
 
 

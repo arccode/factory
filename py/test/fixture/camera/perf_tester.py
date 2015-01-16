@@ -48,7 +48,7 @@ _TEST_CHART_FILE = os.path.join('static', 'test_chart_%s.png')
 _DEFAULT_PARAM_PATH = os.path.join('static', 'iq.params')
 
 
-# pylint: disable-msg=W0201
+# pylint: disable=W0201
 class ReturnValue(utils.Pod):
   pass
 

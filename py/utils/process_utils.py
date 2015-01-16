@@ -344,7 +344,7 @@ def KillProcessTree(process, caption):
                       stdout=subprocess.PIPE)
     children = {}
     for line in ps_output.stdout:
-      match = re.findall('\d+', line)
+      match = re.findall(r'\d+', line)
       children.setdefault(int(match[1]), []).append(int(match[0]))
     pids = []
 

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Utility functions to mock SCPI device over TCP.
+r"""Utility functions to mock SCPI device over TCP.
 
 Example Usage:
   MockServerHandler.AddLookup(r'\*CLS', None)

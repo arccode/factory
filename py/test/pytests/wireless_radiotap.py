@@ -66,9 +66,9 @@ _MSG_PRECHECK = test_ui.MakeLabel(
     'Checking frequencies...',
     u'檢查頻率中...', 'wireless-info')
 
-_RE_IWSCAN = re.compile('freq: (\d+).*SSID: (.+)$')
+_RE_IWSCAN = re.compile(r'freq: (\d+).*SSID: (.+)$')
 _RE_WIPHY = re.compile(r'wiphy (\d+)')
-_RE_BEACON = re.compile('(\d+) MHz.*Beacon \((.+)\)')
+_RE_BEACON = re.compile(r'(\d+) MHz.*Beacon \((.+)\)')
 
 _ANTENNA_CONFIG = ['all', 'main', 'aux']
 
@@ -140,7 +140,7 @@ def IwScan(devname, sleep_retry_time_secs=2, max_retries=10):
     IwException if fail to scan for max_retries tries,
     or fail because of reason other than device or resource busy (-16)
   """
-  cmd = "iw %s scan | grep -e 'freq\|SSID' | sed 'N;s/\\n/ /'" % devname
+  cmd = r"iw %s scan | grep -e 'freq\|SSID' | sed 'N;s/\\n/ /'" % devname
   try_count = 0
   scan_result = []
   while try_count < max_retries:
@@ -406,7 +406,7 @@ class WirelessRadiotapTest(unittest.TestCase):
     """
     self._connect_service = FlimGetService(self._flim, service_name)
     if self._connect_service is None:
-      factory.console.info('Unable to find service %s' % service_name)
+      factory.console.info('Unable to find service %s', service_name)
       return False
     if FlimGetServiceProperty(self._connect_service, 'IsActive'):
       logging.warning('Already connected to %s', service_name)
@@ -416,12 +416,12 @@ class WirelessRadiotapTest(unittest.TestCase):
       success, diagnostics = self._flim.ConnectService(
           service=self._connect_service)
       if not success:
-        factory.console.info('Unable to connect to %s, diagnostics %s' %
-                             (service_name, diagnostics))
+        factory.console.info('Unable to connect to %s, diagnostics %s',
+                             service_name, diagnostics)
         return False
       else:
         factory.console.info(
-            'Successfully connected to service %s' % service_name)
+            'Successfully connected to service %s', service_name)
     return True
 
   def DisconnectService(self):
@@ -429,9 +429,8 @@ class WirelessRadiotapTest(unittest.TestCase):
     if self._connect_service:
       self._flim.DisconnectService(service=self._connect_service)
       factory.console.info(
-          'Disconnect to service %s' % FlimGetServiceProperty(
-              self._connect_service,
-              'Name'))
+          'Disconnect to service %s',
+          FlimGetServiceProperty(self._connect_service, 'Name'))
       self._connect_service = None
 
   def DetectPhyName(self):

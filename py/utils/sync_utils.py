@@ -117,7 +117,7 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
       result = target(*args, **kwargs)
     except Exception:  # pylint: disable=W0703
       logging.exception('Retry...')
-    if(callback):
+    if callback:
       callback(retry_time, max_retry_times)
     if result:
       logging.info('Retry: Get result in retry_time: %d.', retry_time)

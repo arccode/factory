@@ -224,7 +224,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     self.assertRaisesRegexp(
         common.HWIDException,
         (r"Component class 'cellular' has extra components: "
-         "\['cellular_0'\]. Expected components are: None"),
+         r"\['cellular_0'\]. Expected components are: None"),
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U', probed_results,
         self.vpd, False, phase.PVT)
 

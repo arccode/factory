@@ -255,7 +255,7 @@ def ComponentSpecsEqual(a, b):
           a.components == b.components)
 
 
-class Validate:  # pylint: disable=W0232
+class Validate(object):  # pylint: disable=W0232
 
   @classmethod
   def HwidPart(cls, tag, name, matching_re):

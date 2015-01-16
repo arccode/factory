@@ -344,7 +344,7 @@ class _GobiDevices(object):
     return active_firmware
 
 
-class _TouchpadData():  # pylint: disable=W0232
+class _TouchpadData(object):  # pylint: disable=W0232
   """Return Obj with hw_ident and fw_ident string fields."""
 
   @classmethod
@@ -459,7 +459,7 @@ class _TouchpadData():  # pylint: disable=W0232
     return cls.cached_data
 
 
-class _TouchscreenData():  # pylint: disable=W0232
+class _TouchscreenData(object):  # pylint: disable=W0232
   """Return Obj with hw_ident and fw_ident string fields."""
 
   @classmethod
@@ -1160,7 +1160,7 @@ def _ProbeCellularFirmwareVersion():
     # If nothing available, try 'modem status'.
     cmd = 'modem status | grep firmware_revision'
     modem_status = Shell(cmd).stdout.strip()
-    info = re.findall('^\s*firmware_revision:\s*(.*)', modem_status)
+    info = re.findall(r'^\s*firmware_revision:\s*(.*)', modem_status)
     if info and info[0]:
       return info[0]
     return None
@@ -1197,7 +1197,7 @@ def _ProbeStorageFirmwareVersion():
   for f in _GetFixedDevices():
     smartctl = Shell('smartctl --all %s' %
                      os.path.join('/dev', os.path.basename(f))).stdout
-    matches = re.findall('(?m)^Firmware Version:\s+(.+)$', smartctl)
+    matches = re.findall(r'(?m)^Firmware Version:\s+(.+)$', smartctl)
     if matches:
       if re.search(r'(?m)^Device Model:\s+SanDisk', smartctl):
         # Canonicalize SanDisk firmware versions by replacing 'CS' with '11'.

@@ -19,7 +19,7 @@ class BaseYAMLTagMetaclass(type):
   def YAMLRepresenter(mcs, dumper, data):
     raise NotImplementedError
 
-  def __init__(mcs, name, bases, attrs):
-    yaml.add_constructor(mcs.YAML_TAG, mcs.YAMLConstructor)
-    yaml.add_representer(mcs, mcs.YAMLRepresenter)
-    super(BaseYAMLTagMetaclass, mcs).__init__(name, bases, attrs)
+  def __init__(cls, name, bases, attrs):
+    yaml.add_constructor(cls.YAML_TAG, cls.YAMLConstructor)
+    yaml.add_representer(cls, cls.YAMLRepresenter)
+    super(BaseYAMLTagMetaclass, cls).__init__(name, bases, attrs)

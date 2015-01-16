@@ -492,7 +492,7 @@ def _PipeCapturer(pipe, callback_list):
 
 
 def _ParseCommandLine(command, input_values):
-  """Parses a command line string.
+  r"""Parses a command line string.
 
   It will:
     * replace $N (N is a number) with input_values[N]

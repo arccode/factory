@@ -30,7 +30,6 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg, Args
 from cros.factory.test.shopfloor import UploadAuxLogs
-from cros.factory.utils import net_utils
 
 
 # Common field name shared across CSV and EventLog.

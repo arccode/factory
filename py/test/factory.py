@@ -142,7 +142,7 @@ def get_lsb_data():
   for lsb_file in lsb_files:
     if not os.path.exists(lsb_file):
       continue
-    with open(lsb_file, 'rt') as lsb_handle:
+    with open(lsb_file, 'r') as lsb_handle:
       for line in lsb_handle.readlines():
         line = line.strip()
         if ('=' not in line) or line.startswith('#'):
@@ -1012,8 +1012,9 @@ class FactoryTest(object):
              if k in FactoryTest.REPR_FIELDS and getattr(self, k)]
     if recursive and self.subtests:
       indent = '  ' * (1 + self.path.count('.'))
-      attrs.append('subtests=[' + ('\n' + ',\n'.join([subtest.__repr__(recursive)
-                                                      for subtest in self.subtests])).replace('\n', '\n' + indent) + '\n]')
+      attrs.append('subtests=[' + ('\n' + ',\n'.join(
+          [subtest.__repr__(recursive)
+           for subtest in self.subtests])).replace('\n', '\n' + indent) + '\n]')
 
     return '%s(%s)' % (self.__class__.__name__, ', '.join(attrs))
 
@@ -1075,8 +1076,8 @@ class FactoryTest(object):
       kwargs['shutdown_count'] = 0
 
     ret = TestState.from_dict_or_object(
-        self.root._update_test_state(  # pylint: disable=W0212
-        self.path, status=status, **kwargs))
+        # pylint: disable=W0212
+        self.root._update_test_state(self.path, status=status, **kwargs))
     if update_parent and self.parent:
       self.parent.update_status_from_children()
     return ret

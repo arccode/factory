@@ -67,7 +67,7 @@ class DatabaseTest(unittest.TestCase):
     executor.Execute('SELECT sql FROM sqlite_master '
                      'WHERE type = "table" AND name = "FooModel"')
     (sql,) = executor.FetchOne()
-    pattern = 'CREATE TABLE FooModel \( (.*), PRIMARY KEY \( (.*) \) \)'
+    pattern = r'CREATE TABLE FooModel \( (.*), PRIMARY KEY \( (.*) \) \)'
     self.assertRegexpMatches(sql, pattern)
     matches = re.match(pattern, sql)
     self.assertItemsEqual(['field_i INTEGER', 'field_r REAL', 'field_t TEXT'],

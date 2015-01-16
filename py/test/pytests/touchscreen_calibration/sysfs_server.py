@@ -152,7 +152,7 @@ def RunXMLRPCSysfsServer(addr, log=logging):
     """Check if the server is running."""
     filename = os.path.basename(__file__)
     # Exclude the one with 'sudo python ....' which is only a shell.
-    re_pattern = re.compile('(?<!sudo)\s+python.+' + filename)
+    re_pattern = re.compile(r'(?<!sudo)\s+python.+' + filename)
     count = 0
     for line in utils.SimpleSystemOutput('ps aux').splitlines():
       result = re_pattern.search(line)
@@ -179,7 +179,7 @@ def RunXMLRPCSysfsServer(addr, log=logging):
 
 def _ParseAddr(addr_str):
   """Parse the address string into (ip, port) pair."""
-  result = re.search('(.+):(\d+)', addr_str)
+  result = re.search(r'(.+):(\d+)', addr_str)
   if not result:
     _Usage()
   ip = result.group(1)

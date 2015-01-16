@@ -17,9 +17,9 @@ MAX_TIMESTAMP = datetime.datetime(datetime.MAXYEAR, 12, 31)
 #   1. Compiled regular expression pattern. Used to match the timestamp.
 #   2. datetime format string. Used by datetime.strptime().
 TIMESTAMP_PATTERN = [
-    (re.compile('\d{4}-\d+-\d+T\d+:\d+:\d+\.\d+'),
+    (re.compile(r'\d{4}-\d+-\d+T\d+:\d+:\d+\.\d+'),
      '%Y-%m-%dT%H:%M:%S.%f'),
-    (re.compile('\d{4}-\d+-\d+ \d+:\d+:\d+\.\d+'),
+    (re.compile(r'\d{4}-\d+-\d+ \d+:\d+:\d+\.\d+'),
      '%Y-%m-%d %H:%M:%S.%f')]
 
 

@@ -41,17 +41,17 @@ class SelectComponentTest(unittest.TestCase):
       Arg(
           'comps', dict,
           ('A dict from components to (device_data_field, choices). If '
-          'component\ncan be found in hwid database, the default choices will'
-          ' be available\ncomponents in hwid database. If choices is not '
-          'None, user selects\nvalue from choices. That value will be stored '
-          'as device_data_field\nin device_data. E.g.::\n\n  comps={\n    '
-          '"comp_a": ("component.comp_a", ["choice_a1", "choice_a2"]),\n    '
-          '"comp_b": ("component.comp_b", None),\n    "comp_c": '
-          '("component.comp_c", ["choice_c1", "choice_c2"]),\n    }\n\nwhere '
-          'comp_a is in hwid database, but we set the available '
-          'choices.\ncomp_b is in hwid database, and we use the choices in '
-          'database.\ncomp_c is not in hwid database, so we provide the '
-          'choices.\n'),
+           'component\ncan be found in hwid database, the default choices will'
+           ' be available\ncomponents in hwid database. If choices is not '
+           'None, user selects\nvalue from choices. That value will be stored '
+           'as device_data_field\nin device_data. E.g.::\n\n  comps={\n    '
+           '"comp_a": ("component.comp_a", ["choice_a1", "choice_a2"]),\n    '
+           '"comp_b": ("component.comp_b", None),\n    "comp_c": '
+           '("component.comp_c", ["choice_c1", "choice_c2"]),\n    }\n\nwhere '
+           'comp_a is in hwid database, but we set the available '
+           'choices.\ncomp_b is in hwid database, and we use the choices in '
+           'database.\ncomp_c is not in hwid database, so we provide the '
+           'choices.\n'),
           optional=False),
   ]
 

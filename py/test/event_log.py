@@ -75,9 +75,9 @@ BOOT_SEQUENCE_PATH = os.path.join(EVENT_LOG_DIR, ".boot_sequence")
 SEQ_INCREMENT_ON_BOOT = 1000000
 
 # Regexp matching the sequence number in the events file.
-SEQ_RE = re.compile("^SEQ: (\d+)$")
+SEQ_RE = re.compile(r"^SEQ: (\d+)$")
 
-PREFIX_RE = re.compile("^[a-zA-Z0-9_\.]+$")
+PREFIX_RE = re.compile(r"^[a-zA-Z0-9_\.]+$")
 EVENT_NAME_RE = re.compile(r"^[a-zA-Z_]\w*$")
 EVENT_KEY_RE = EVENT_NAME_RE
 

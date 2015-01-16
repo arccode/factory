@@ -475,19 +475,19 @@ class ExtDisplayTest(unittest.TestCase):
           optional=False),
       Arg(
           'display_info', list,
-          (
-              'A list of tuples: (display_label, display_id, audio_info)\nEach'
-          ' tuple represents an external port:\n- display_label: (str) '
-          'display name seen by operator, e.g. VGA.\n- display_id: (str) '
-          'ID used to identify display in xrandr/modeprint,   e.g. '
-          'VGA1.\n- audio_info: a tuple of (audio_card, audio_port), or '
-          'just a   single string indicating the audio_port (deprecated). '
-          "audio_card   is either the card\'s name (str), or the card\'s "
-          "index (int).   audio_port is the amixer port\'s name (str). If "
-          'you specify only   the audio_port, the test assumes that the '
-          "card is at index 0   (deprecated, don\'t use it if possible). "
-          'This argument is   optional. If set, the audio playback test is'
-          ' added.'),
+          ('A list of tuples: (display_label, display_id, audio_info)\n'
+           'Each tuple represents an external port:\n'
+           '- display_label: (str) display name seen by operator, e.g. VGA.\n'
+           '- display_id: (str) ID used to identify display in '
+           'xrandr/modeprint, e.g. VGA1.\n'
+           '- audio_info: a tuple of (audio_card, audio_port), or just a '
+           'single string indicating the audio_port (deprecated). '
+           "audio_card is either the card\'s name (str), or the card\'s "
+           "index (int). audio_port is the amixer port\'s name (str). If "
+           'you specify only the audio_port, the test assumes that the '
+           "card is at index 0 (deprecated, don\'t use it if possible). "
+           'This argument is optional. If set, the audio playback test is '
+           'added.'),
           optional=False),
       Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
       Arg(

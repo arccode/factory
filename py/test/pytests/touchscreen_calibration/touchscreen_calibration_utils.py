@@ -65,7 +65,7 @@ def IsDestinationPortEnabled(port):
   If port 8000 is enabled, it looks like
     ACCEPT  tcp  --  0.0.0.0/0  0.0.0.0/0  ctstate NEW tcp dpt:8000
   """
-  pattern = re.compile('ACCEPT\s+tcp.+\s+ctstate\s+NEW\s+tcp\s+dpt:%d' % port)
+  pattern = re.compile(r'ACCEPT\s+tcp.+\s+ctstate\s+NEW\s+tcp\s+dpt:%d' % port)
   rules = SimpleSystemOutput('iptables -L INPUT -n --line-number')
   for rule in rules.splitlines():
     if pattern.search(rule):

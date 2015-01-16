@@ -2,7 +2,7 @@
 # Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""This module provides basic encode and decode functionality to the flashrom memory map (FMAP) structure.
+"""Basic encode and decode function for flashrom memory map (FMAP) structure.
 
 Usage:
   (decode)

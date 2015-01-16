@@ -244,8 +244,7 @@ class ChameleonDisplayTest(unittest.TestCase):
       for info in display_info:
         if info['id'] != original_display['id'] and not info['isInternal']:
           return (original_display, info)
-      else:
-        return None
+      return None
 
     display_info = self.goofy_rpc.DeviceGetDisplayInfo()
     ext_display = None

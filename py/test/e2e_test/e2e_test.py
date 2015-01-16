@@ -23,28 +23,28 @@ class E2ETestError(Exception):
 
 class E2ETestMetaclass(type):
   """A metaclass for setting up args for E2E tests."""
-  def __init__(mcs, name, bases, attrs):
+  def __init__(cls, name, bases, attrs):
     """Initializes the ARGS attribute of a E2ETest subclass.
 
     Scans through all the TestCase classes in the module specified by
     pytest_name and look for one that has the ARGS attribute.  The found ARGS
     attribute is set to the E2ETest subclass.
     """
-    if (getattr(mcs, 'pytest_name', None) and not getattr(mcs, 'ARGS', None)):
-      module = invocation.LoadPytestModule(mcs.pytest_name)
-      mcs.pytest_module = module
+    if (getattr(cls, 'pytest_name', None) and not getattr(cls, 'ARGS', None)):
+      module = invocation.LoadPytestModule(cls.pytest_name)
+      cls.pytest_module = module
 
       for name, obj in module.__dict__.iteritems():
         if (inspect.isclass(obj) and
             issubclass(obj, unittest.TestCase)):
           args_list = getattr(obj, 'ARGS', None)
           if args_list:
-            if mcs.ARGS:
+            if cls.ARGS:
               raise E2ETestError(
                   'Only one TestCase subclass with ARGS attribute is allowed '
                   'in a pytest')
-            mcs.ARGS = args_list
-    super(E2ETestMetaclass, mcs).__init__(name, bases, attrs)
+            cls.ARGS = args_list
+    super(E2ETestMetaclass, cls).__init__(name, bases, attrs)
 
 
 class E2ETest(unittest.TestCase):
