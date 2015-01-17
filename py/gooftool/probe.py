@@ -23,6 +23,7 @@ import os
 import re
 import string  # pylint: disable=W0402
 import struct
+import subprocess
 import sys
 import time
 
@@ -45,7 +46,7 @@ from cros.factory.system import board
 from cros.factory.system import service_manager
 from cros.factory.system import vpd
 from cros.factory.test import factory
-from cros.factory.utils.process_utils import GetLines
+from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Error
 
 
@@ -883,8 +884,14 @@ def _ProbeDram():
 
 @_ComponentProbe('ec_flash_chip')
 def _ProbeEcFlashChip():
-  chip_id = crosfw.LoadEcFirmware().GetChipId()
-  return [{COMPACT_PROBE_STR: chip_id}] if chip_id is not None else []
+  ret = []
+  ec_chip_id = crosfw.LoadEcFirmware().GetChipId()
+  if ec_chip_id is not None:
+    ret.append({COMPACT_PROBE_STR: ec_chip_id})
+  pd_chip_id = crosfw.LoadPDFirmware().GetChipId()
+  if pd_chip_id is not None:
+    ret.append({COMPACT_PROBE_STR: pd_chip_id})
+  return ret
 
 
 @_ComponentProbe('embedded_controller')
@@ -892,12 +899,22 @@ def _ProbeEmbeddedController():
   """Reformat mosys output."""
   # Example mosys command output:
   # vendor="VENDOR" name="CHIPNAME" fw_version="ECFWVER"
-  ecinfo = re.findall(r'\bvendor="([^"]*)".*\bname="([^"]*)"',
-                      Shell('mosys -k ec info').stdout)
-  if not ecinfo:
-    return []
-  return [{'vendor': ecinfo[0][0], 'name': ecinfo[0][1],
-           COMPACT_PROBE_STR: CompactStr(*ecinfo)}]
+  ret = []
+  info_keys = ('vendor', 'name')
+  for name in ('ec', 'pd'):
+    try:
+      ec_info = dict(
+          (key, process_utils.CheckOutput(
+              ['mosys', name, 'info', '-s', key]).strip())
+          for key in info_keys)
+      ec_info[COMPACT_PROBE_STR] = CompactStr(
+          [ec_info[key] for key in info_keys])
+    except subprocess.CalledProcessError:
+      # The EC type is not supported on this board.
+      pass
+    else:
+      ret.append(ec_info)
+  return ret
 
 
 @_ComponentProbe('power_mgmt_chip')
@@ -952,7 +969,7 @@ def _GetEMMC5FirmwareVersion(node_path):
     A string indicating the firmware version if firmware version is found.
     Return None if firmware version doesn't present.
   """
-  ext_csd = GetLines(Shell(
+  ext_csd = process_utils.GetLines(Shell(
       'mmc extcsd read /dev/%s' % os.path.basename(node_path)).stdout)
   # The output for firmware version is encoded by hexdump of a ASCII
   # string or hexdump of hexadecimal values, always in 8 characters.
