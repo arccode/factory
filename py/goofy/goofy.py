@@ -1346,9 +1346,6 @@ class Goofy(GoofyBase):
       else:
         logging.warn('Never received test_widget_size from UI')
 
-      logging.info('Waiting for a web socket connection')
-      self.web_socket_manager.wait()
-
   def init(self, args=None, env=None):
     """Initializes Goofy.
 
