@@ -5,6 +5,7 @@
 
 MYDIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_BASE="/usr/local/factory"
+IPTABLESD="${FACTORY_BASE}/init/iptables.d"
 
 is_freon() {
   # Currently we only install frecon on freon boards.
@@ -22,6 +23,11 @@ main() {
   if is_freon; then
     backlight_tool --set_brightness_percent=50.0
   fi
+
+  # Load iptables rules
+  for rule_file in ${IPTABLESD}/*.sh; do
+    "$rule_file"
+  done
 
   # Install console (VT2) customizations
   mount --bind "${MYDIR}/profile.d/vt2.sh" /etc/profile.d/cursor.sh

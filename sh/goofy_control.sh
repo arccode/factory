@@ -24,10 +24,6 @@ export PATH="/usr/local/factory/bin:${PATH}"
 GOOFY_ARGS=""
 PRESENTER_ARGS=""
 
-# Ports used by goofy
-GOOFY_UI_PORT="4012"
-GOOFY_LINK_PORTS="4020 4021 4022 4023"
-
 # Default implementation for factory_setup (no-op).  May be overriden
 # by board_setup_factory.sh.
 factory_setup() {
@@ -174,14 +170,10 @@ init_modules() {
   modprobe i2c-dev 2>/dev/null || true
 }
 
-# Initialize firewall settings.
-init_firewall() {
-  # Open ports in the firewall so that the presenter can reach us
-  # Note we want these ports to be expanded as a list, and so are unquoted
-  local port=
-  for port in $GOOFY_LINK_PORTS $GOOFY_UI_PORT; do
-    /sbin/iptables -A INPUT -p tcp --dport ${port} -j ACCEPT
-  done
+# Initialize network settings.
+init_network() {
+  # Make sure local loopback device is activated
+  ifconfig lo up
 }
 
 # http://crbug.com/410233: If TPM is owned, UI may get freak.
@@ -232,7 +224,7 @@ start_factory() {
 
   init_modules
   init_tty
-  init_firewall
+  init_network
 
   check_tpm
   check_disk_usage
