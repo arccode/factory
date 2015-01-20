@@ -17,6 +17,7 @@ from cros.factory.test.fixture.whale import serial_client
 from cros.factory.test.fixture.whale import servo_client
 from cros.factory.test.fixture.whale.host import poll_client
 from cros.factory.test.utils import Enum
+from cros.factory.utils.process_utils import Spawn
 
 ActionType = Enum(['CLOSE_COVER', 'HOOK_COVER', 'PUSH_NEEDLE',
                    'PLUG_LATERAL', 'FIXTURE_STARTED'])
@@ -290,6 +291,9 @@ class InterruptHandler(object):
     if status[self._BUTTON.FIXTURE_STOP]:
       logging.info('Calling _HandleStopFixture because FIXTURE_STOP is True.')
       self._HandleStopFixture()
+      # Disable stop button, and use 'i2cset' to set it back to input mode.
+      self._servo.Disable(self._BUTTON.FIXTURE_STOP)
+      Spawn(['i2cset', '-y', '1', '0x77', '0x07', '0xff'])
       return True
 
     if (self._starting_fixture_action != ActionType.FIXTURE_STARTED and
