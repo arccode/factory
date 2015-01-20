@@ -68,6 +68,14 @@ class EthernetTest(unittest.TestCase):
       Arg('retry_interval_msecs', int,
           'Milliseconds before next retry.',
           default=1000),
+      Arg('iface', str, 'Interface name for testing.', default=None,
+          optional=True),
+      Arg('link_only', bool, 'Only test if link is up or not', default=False),
+      Arg('use_swconfig', bool, 'Use swconfig for polling link status.',
+          default=False),
+      Arg('swconfig_switch', str, 'swconfig switch name.', default='switch0'),
+      Arg('swconfig_ports', (int, list), 'swconfig port numbers. Either '
+          'a single int or a list of int.', default=None, optional=True)
   ]
 
   def setUp(self):
@@ -81,6 +89,21 @@ class EthernetTest(unittest.TestCase):
     self.ui.CallJSFunction('init', self.args.auto_start)
     if bool(self.args.test_url) != bool(self.args.md5sum):
       raise ValueError('Should both assign test_url and md5sum.')
+    if self.args.use_swconfig:
+      if not self.args.link_only:
+        raise ValueError('Should set link_only=True if use_swconfig is set.')
+      if self.args.swconfig_ports is None:
+        raise ValueError('Should assign swconfig_ports if use_swconfig is'
+                         'set.')
+    elif self.args.link_only and not self.args.iface:
+      raise ValueError('Should assign iface if link_only is set.')
+
+  def GetInterface(self):
+    devices = GetEthernetInterfaces()
+    if self.args.iface:
+      return self.args.iface if self.args.iface in devices else None
+    else:
+      return self.GetCandidateInterface()
 
   def GetCandidateInterface(self):
     devices = GetEthernetInterfaces()
@@ -124,25 +147,64 @@ class EthernetTest(unittest.TestCase):
         factory.console.info('md5 checksum error')
     return False
 
+  def CheckLinkSimple(self, dev):
+    if dev:
+      with open('/sys/class/net/%s/carrier' % dev, 'r') as f:
+        status = f.read().strip()
+      if int(status):
+        self.ui.Pass()
+        return True
+      else:
+        self.ui.Fail('Link is down on dev %s' % dev)
+        return False
+
+  def CheckLinkSWconfig(self):
+    if type(self.args.swconfig_ports) == int:
+      self.args.swconfig_ports = [self.args.swconfig_ports]
+
+    for i in self.args.swconfig_ports:
+      status = CheckOutput(['swconfig', 'dev', self.args.swconfig_switch,
+                            'port', str(i), 'get', 'link'])
+      if 'up' in status:
+        factory.console.info('Link is up on switch %s port %d',
+                             self.args.swconfig_switch, i)
+      else:
+        self.ui.Fail('Link is down on switch %s port %d' %
+                     (self.args.swconfig_switch, i))
+        return False
+
+    self.ui.Pass()
+    return True
+
   def StartTest(self, event):  # pylint: disable=W0613
     # Only retry 5 times
     for i in xrange(5):  # pylint: disable=W0612
-      eth = self.GetCandidateInterface()
-      if eth:
-        if self.args.test_url is None:
-          ethernet_ip = GetEthernetIp(eth)
-          if ethernet_ip:
-            factory.console.info('Get ethernet IP %s for %s',
-                                 ethernet_ip, eth)
-            self.ui.Pass()
+      eth = self.GetInterface()
+      if self.args.link_only:
+        if not self.args.use_swconfig:
+          if self.CheckLinkSimple(eth):
             break
         else:
-          if self.GetFile():
-            self.ui.Pass()
+          if self.CheckLinkSWconfig():
             break
-      time.sleep(self.args.retry_interval_msecs / 1000.0)
+      else:
+        if eth:
+          if self.args.test_url is None:
+            ethernet_ip = GetEthernetIp(eth)
+            if ethernet_ip:
+              factory.console.info('Get ethernet IP %s for %s',
+                                   ethernet_ip, eth)
+              self.ui.Pass()
+              break
+          else:
+            if self.GetFile():
+              self.ui.Pass()
+              break
+        time.sleep(self.args.retry_interval_msecs / 1000.0)
 
-    if self.args.test_url is None:
+    if self.args.link_only:
+      self.ui.Fail('Cannot find interface %s' % self.args.iface)
+    elif self.args.test_url is None:
       self.ui.Fail('Cannot get ethernet IP')
     else:
       self.ui.Fail('Failed to download url %s' % self.args.test_url)
