@@ -19,9 +19,9 @@ toneGen.init = function(freq, freq_max) {
   this.setFreq(freq);
   this.setFreqMax(freq_max);
   this.setToneType('sine');
-  this.audioContext = new webkitAudioContext();
-  this.gainLeft = this.audioContext.createGainNode();
-  this.gainRight = this.audioContext.createGainNode();
+  this.audioContext = new AudioContext();
+  this.gainLeft = this.audioContext.createGain();
+  this.gainRight = this.audioContext.createGain();
   this.splitter = this.audioContext.createChannelSplitter(2);
   this.merger = this.audioContext.createChannelMerger(2);
   this.splitter.connect(this.gainLeft);
@@ -134,7 +134,7 @@ var loopback = {};
  * @param {Object} stream the input media stream
  */
 loopback.init = function(stream) {
-  this.audioContext = new webkitAudioContext();
+  this.audioContext = new AudioContext();
   this.src = this.audioContext.createMediaStreamSource(stream);
 }
 
@@ -163,9 +163,9 @@ var recorder = {};
  * @param {Object} stream the input media stream
  */
 recorder.init = function(stream) {
-  this.audioContext = new webkitAudioContext();
+  this.audioContext = new AudioContext();
   this.src = this.audioContext.createMediaStreamSource(stream);
-  this.processor = this.audioContext.createJavaScriptNode(1024, 1, 1);
+  this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
   this.buffers = [];
   this.recording = false;
   this.playing = false;
