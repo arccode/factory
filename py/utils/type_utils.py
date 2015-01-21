@@ -14,7 +14,13 @@ class Error(Exception):
 
 class TimeoutError(Error):
   """Timeout error."""
-  pass
+  def __init__(self, message, output=None):
+    Error.__init__(self)
+    self.message = message
+    self.output = output
+
+  def __str__(self):
+    return repr(self.message)
 
 
 class Enum(frozenset):

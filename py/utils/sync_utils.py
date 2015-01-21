@@ -49,6 +49,9 @@ def PollForCondition(poll_method, condition_method=None,
     condition_method = lambda ret: ret
   end_time = time_utils.MonotonicTime() + timeout_secs if timeout_secs else None
   while True:
+    if condition_name:
+      logging.info('[%ds left] %s', end_time - time_utils.MonotonicTime(),
+                   condition_name)
     ret = poll_method()
     if condition_method(ret):
       return ret
@@ -59,7 +62,7 @@ def PollForCondition(poll_method, condition_method=None,
       else:
         condition_name = 'Timed out waiting for unnamed condition'
       logging.error(condition_name)
-      raise type_utils.TimeoutError(condition_name)
+      raise type_utils.TimeoutError(condition_name, ret)
     time.sleep(poll_interval_secs)
 
 
