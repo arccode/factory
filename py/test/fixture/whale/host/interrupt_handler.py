@@ -10,6 +10,8 @@ import logging
 import optparse
 import sys
 import time
+import os
+import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.whale import keyboard_emulator
@@ -18,6 +20,8 @@ from cros.factory.test.fixture.whale import servo_client
 from cros.factory.test.fixture.whale.host import poll_client
 from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
+from cros.factory.utils import ssh_utils
 
 ActionType = Enum(['CLOSE_COVER', 'HOOK_COVER', 'PUSH_NEEDLE',
                    'PLUG_LATERAL', 'FIXTURE_STARTED'])
@@ -134,6 +138,8 @@ class InterruptHandler(object):
                              (self._CONTROL.FAIL_LED, red),
                              (self._CONTROL.LCM_CMD, 'clear'),
                              (self._CONTROL.LCM_TEXT, message)])
+
+    self.ShowNucIpOnLED()
 
   @TimeClassMethodDebug
   def _HandleStopFixture(self, show_state=True):
@@ -416,6 +422,37 @@ class InterruptHandler(object):
 
       self.WaitForInterrupt()
 
+  def ShowNucIpOnLED(self):
+    """Shows NUC dongle IP on LED second line"""
+    nuc_host = '192.168.234.1'
+    testing_rsa_path = '/usr/local/factory/board/testing_rsa'
+    get_dongle_eth_script = 'timeout 1s /usr/local/factory/py/test/fixture/get_dongle_eth.sh'
+
+    # Make identity file less open to make ssh happy
+    os.chmod(testing_rsa_path, 0600)
+    ssh_command_base = ssh_utils.BuildSSHCommand(
+        identity_file=testing_rsa_path)
+
+    try:
+      interface = process_utils.SpawnOutput(
+          ssh_command_base + [nuc_host, get_dongle_eth_script]).strip()
+    except BaseException:
+      interface = None
+
+    if not interface:
+      ip_address = 'dongle not found...'
+    else:
+      ifconfig_command = 'ifconfig %s' % interface
+      ifconfig_result = process_utils.SpawnOutput(
+        ssh_command_base + [nuc_host, ifconfig_command]).strip()
+      ip_matcher = re.search(r'inet (\d+\.\d+\.\d+\.\d+)', ifconfig_result, re.MULTILINE)
+      if not ip_matcher:
+        ip_address = 'dongle not found...'
+      else:
+        ip_address = ip_matcher.group(1)
+
+    self._servo.MultipleSet([(self._CONTROL.LCM_ROW, 'r1'),
+                             (self._CONTROL.LCM_TEXT, ip_address)])
 
 def ParseArgs():
   """Parses command line arguments.
