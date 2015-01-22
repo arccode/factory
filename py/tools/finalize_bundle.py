@@ -432,9 +432,8 @@ class FinalizeBundle(object):
         # Gets netboot install shim version from source url since version
         # is not stored in the image.
         install_into = os.path.join(self.bundle_dir, f['install_into'])
-        shims_to_extract = filter(
-            lambda f: any(shim in f for shim in NETBOOT_SHIMS),
-            f['extract_files'])
+        shims_to_extract = [x for x in f['extract_files']
+                            if x in NETBOOT_SHIMS]
         if shims_to_extract:
           self.netboot_install_shim_version = str(LooseVersion(
               os.path.basename(os.path.dirname(source))))
@@ -569,8 +568,16 @@ class FinalizeBundle(object):
                  os.path.basename(self.factory_image_path),
                  os.path.basename(self.test_image_path))
     shutil.copyfile(self.test_image_path, self.factory_image_path)
+
+    # PYTHONPATH is set when finalize_bundle is executing from a par file.
+    # Remove PYTHONPATH variable when spawning factory toolkit installer
+    # since it cause factory toolkit to find the wrong module path.
+    exec_env = os.environ.copy()
+    if 'PYTHONPATH' in exec_env:
+      del exec_env['PYTHONPATH']
+
     Spawn([self.factory_toolkit_path, self.factory_image_path, '--yes'],
-          check_call=True)
+          check_call=True, env=exec_env)
 
   def PatchImage(self):
     if not self.args.patch:
