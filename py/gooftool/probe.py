@@ -281,7 +281,7 @@ class _FlimflamDevices(object):
             (key, get_prop('Cellular.%s' % key))
             for key in ['Carrier', 'FirmwareRevision', 'HardwareRevision',
                         'ModelID', 'Manufacturer']
-            if ('Cellular.%s' % key) in properties)
+            if 'Cellular.%s' % key in properties)
       return result
 
     if cls.cached_dev_list is None:
@@ -569,14 +569,13 @@ def _ProbeAudioCodecArm():
   return value.
   """
   KNOWN_INVALID_CODEC_NAMES = set([
-    'snd-soc-dummy',
-    'ts3a227e.4-003b',  # autonomous audiojack switch, not an audio codec
-    'dw-hdmi-audio'  # this is a virtual audio codec driver
-    ])
+      'snd-soc-dummy',
+      'ts3a227e.4-003b',  # autonomous audiojack switch, not an audio codec
+      'dw-hdmi-audio'  # this is a virtual audio codec driver
+      ])
   with open('/sys/kernel/debug/asoc/codecs') as f:
-    return [DictCompactProbeStr(codec) for codec in
-            filter(lambda value: value not in KNOWN_INVALID_CODEC_NAMES,
-                   f.read().splitlines())]
+    return [DictCompactProbeStr(codec) for codec in f.read().splitlines()
+            if codec not in KNOWN_INVALID_CODEC_NAMES]
 
 
 @_ComponentProbe('audio_codec', 'x86')
@@ -636,43 +635,54 @@ def _ProbeBluetooth():
 
 @_ComponentProbe('camera')
 def _ProbeCamera():
-  # TODO(tammo): What is happening here?  Arch-specific stuff?  Doc string...
   # TODO(tammo/sheckylin): Try to replace the code below with OpenCV calls.
-  info = {}
-  camera_node = '/sys/class/video4linux/video0'
-  camera_data = _ReadSysfsNodeId(camera_node)
-  if camera_data:
-    info.update(camera_data)
-  # Also check camera max packet size
-  camera_max_packet_size = _ReadSysfsFields(
-      os.path.join(camera_node, 'device', 'ep_82'),
-      ['wMaxPacketSize'])
-  # We do not want to override compact_str in info
-  if camera_max_packet_size:
-    info.update({'wMaxPacketSize': camera_max_packet_size['wMaxPacketSize']})
-  # For SOC cameras
-  camera_data_soc = _ReadSysfsFields(camera_node, ['device/control/name'])
-  if camera_data_soc:
-    info.update(camera_data_soc)
-  # Try video4linux2 (v4l2) interface.
-  # See /usr/include/linux/videodev2.h for definition of these consts.
-  # 'ident' values are defined in include/media/v4l2-chip-ident.h
-  VIDIOC_DBG_G_CHIP_IDENT = 0xc02c5651
-  V4L2_DBG_CHIP_IDENT_SIZE = 11
-  V4L2_INDEX_REVISION = V4L2_DBG_CHIP_IDENT_SIZE - 1
-  V4L2_INDEX_IDENT = V4L2_INDEX_REVISION - 1
-  V4L2_VALID_IDENT = 3  # V4L2_IDENT_UNKNOWN + 1
-  try:
-    with open('/dev/video0', 'r+') as f:
-      buf = array('i', [0] * V4L2_DBG_CHIP_IDENT_SIZE)
-      ioctl(f.fileno(), VIDIOC_DBG_G_CHIP_IDENT, buf, 1)
-      v4l2_ident = buf[V4L2_INDEX_IDENT]
-      if v4l2_ident >= V4L2_VALID_IDENT:
-        info['ident'] = 'V4L2:%04x %04x' % (v4l2_ident,
-                                            buf[V4L2_INDEX_REVISION])
-  except:  # pylint: disable=W0702
-    pass
-  return [info] if info else []
+
+  KNOWN_INVALID_VIDEO_IDS = set([])
+
+  result = []
+  for camera_node in glob('/sys/class/video4linux/video*'):
+    video_idx = re.search(r'video(\d+)$', camera_node).group(1)
+
+    info = {}
+    camera_data = _ReadSysfsNodeId(camera_node)
+    if camera_data[COMPACT_PROBE_STR] in KNOWN_INVALID_VIDEO_IDS:
+      continue
+
+    if camera_data:
+      info.update(camera_data)
+
+    # Also check camera max packet size
+    camera_max_packet_size = _ReadSysfsFields(
+        os.path.join(camera_node, 'device', 'ep_82'),
+        ['wMaxPacketSize'])
+    # We do not want to override compact_str in info
+    if camera_max_packet_size:
+      info.update({'wMaxPacketSize': camera_max_packet_size['wMaxPacketSize']})
+    # For SOC cameras
+    camera_data_soc = _ReadSysfsFields(camera_node, ['device/control/name'])
+    if camera_data_soc:
+      info.update(camera_data_soc)
+    # Try video4linux2 (v4l2) interface.
+    # See /usr/include/linux/videodev2.h for definition of these consts.
+    # 'ident' values are defined in include/media/v4l2-chip-ident.h
+    VIDIOC_DBG_G_CHIP_IDENT = 0xc02c5651
+    V4L2_DBG_CHIP_IDENT_SIZE = 11
+    V4L2_INDEX_REVISION = V4L2_DBG_CHIP_IDENT_SIZE - 1
+    V4L2_INDEX_IDENT = V4L2_INDEX_REVISION - 1
+    V4L2_VALID_IDENT = 3  # V4L2_IDENT_UNKNOWN + 1
+    try:
+      with open('/dev/video%d' % video_idx, 'r+') as f:
+        buf = array('i', [0] * V4L2_DBG_CHIP_IDENT_SIZE)
+        ioctl(f.fileno(), VIDIOC_DBG_G_CHIP_IDENT, buf, 1)
+        v4l2_ident = buf[V4L2_INDEX_IDENT]
+        if v4l2_ident >= V4L2_VALID_IDENT:
+          info['ident'] = 'V4L2:%04x %04x' % (v4l2_ident,
+                                              buf[V4L2_INDEX_REVISION])
+    except:  # pylint: disable=W0702
+      pass
+
+    result.append(info)
+  return result
 
 
 @_ComponentProbe('cellular')
