@@ -869,10 +869,12 @@ class Goofy(GoofyBase):
         logging.exception('Unable to %s cpufreq services',
                           'enable' if enabled else 'disable')
 
-    # Only adjust charge state if not excluded
-    if (EXCL_OPT.CHARGER not in current_exclusive_items and
-        not utils.in_chroot()):
-      if self.charge_manager:
+    # Use charge_manager to control charge state unless there's no
+    # charge_manager or DUT is in CHARGE exclusive mode. Otherwise, set back to
+    # default state, charge.
+    if not utils.in_chroot():
+      if (EXCL_OPT.CHARGER not in current_exclusive_items and
+          self.charge_manager):
         self.charge_manager.AdjustChargeState()
       else:
         self.charge()
