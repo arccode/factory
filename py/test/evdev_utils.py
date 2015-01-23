@@ -98,3 +98,6 @@ class InputDeviceDispatcher(asyncore.file_dispatcher):
   def handle_read(self):
     for event in self.recv():
       self.event_handler(event)
+
+  def writable(self):
+    return False
