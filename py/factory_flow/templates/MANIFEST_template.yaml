@@ -16,12 +16,12 @@ test_image_version: null
 add_files_to_image: []
 
 # Files to delete in the bundle.
-delete_files:
-- dev_image/piglit
-- dev_image/telemetry
+delete_files: []
 
 # Files to delete in the factory test image.
-delete_files_from_image: []
+delete_files_from_image:
+- dev_image/piglit
+- dev_image/telemetry
 
 # Wipe option must be one of 'shutdown', 'battery_cut_off', 'reboot'.
 wipe_option:
