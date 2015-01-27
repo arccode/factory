@@ -1062,8 +1062,13 @@ class FinalizeBundle(object):
       vitals.append(('Factory image base', self.factory_image_base_version))
     if self.toolkit_version:
       vitals.append(('Factory toolkit', self.toolkit_version))
-    if self.test_image_version:
+
+    if self.test_image_version == LOCAL:
+      with MountPartition(self.factory_image_path, 3) as f:
+        vitals.append(('Test image', '%s (local)' % _GetReleaseVersion(f)))
+    elif self.test_image_version:
       vitals.append(('Test image', self.test_image_version))
+
     with MountPartition(self.factory_image_path, 1) as f:
       vitals.append(('Factory updater MD5SUM', open(
           os.path.join(f, 'dev_image/factory/MD5SUM')).read().strip()))
