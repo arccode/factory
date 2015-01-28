@@ -78,6 +78,10 @@ class LinkManagerTest(unittest.TestCase):
     self.hook.dut_connect('127.0.0.1')
     self.hook.presenter_connect('127.0.0.1')
 
+    # Glitch in DUT ping response
+    self.hook.dut_connect('127.0.0.1')
+    self.hook.presenter_connect('127.0.0.1')
+
     mox.Replay(self.hook)
 
     self.StartDUT()
@@ -120,6 +124,14 @@ class LinkManagerTest(unittest.TestCase):
     self.StopDUT()
     time.sleep(1.5)
     self.StartDUT()
+
+    # A glitch in DUT ping response
+    self.presenter_link.StopPingServer()
+    time.sleep(1.5)
+    self.presenter_link.StartPingServer()
+    time.sleep(1.5)
+    self.assertTrue(self.dut_link.DUTIsAlive())
+    self.assertTrue(self.presenter_link.PresenterIsAlive())
 
     mox.Verify(self.hook)
 

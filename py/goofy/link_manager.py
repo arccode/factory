@@ -87,7 +87,8 @@ class PresenterLinkManager(object):
     self._abort_event = threading.Event()
     self._server = JSONRPCServer(port=DUT_LINK_RPC_PORT, methods=self._methods)
     self._server.Start()
-    self._ping_server = PingServer(DUT_PING_PORT)
+    self._ping_server = None
+    self.StartPingServer()
     self._thread = threading.Thread(target=self.MonitorLink)
     self._thread.start()
 
@@ -101,13 +102,24 @@ class PresenterLinkManager(object):
       # _presenter_proxy is None. Link is probably down.
       raise LinkDownError()
 
+  def StartPingServer(self):
+    """Starts ping server."""
+    if not self._ping_server:
+      self._ping_server = PingServer(DUT_PING_PORT)
+
+  def StopPingServer(self):
+    """Stops and discard ping server."""
+    if self._ping_server:
+      self._ping_server.Stop()
+      self._ping_server = None
+
   def Stop(self):
     """Stops and destroys the link manager."""
     self._server.Destroy()
     self._abort_event.set()
     self._kick_event.set()  # Kick the thread
     self._thread.join()
-    self._ping_server.Stop()
+    self.StopPingServer()
 
   def SuspendMonitoring(self, interval_sec):
     """Suspend monitoring of connection for a given period.
@@ -138,7 +150,7 @@ class PresenterLinkManager(object):
     self._kick_event.set()
 
   def _HandlePresenterAnnouncement(self):
-    my_ip, presenter_ips = self._presenter_announcement
+    my_ip, presenter_ips = self._presenter_announcement # pylint: disable=W0633
     self._presenter_announcement = None
     for presenter_ip in presenter_ips:
       self._MakePresenterConnection(my_ip, presenter_ip)
@@ -153,9 +165,6 @@ class PresenterLinkManager(object):
         guess.
       presenter_ip: The IP address of the presenter.
     """
-    if self._presenter_connected and self._presenter_ip == presenter_ip:
-      return
-
     log = (logging.info if presenter_ip not in self._reported_failure else
            lambda *args: None)
 
@@ -213,6 +222,7 @@ class PresenterLinkManager(object):
       pass
 
     # If we are here, we failed to make connection. Clean up.
+    self._presenter_connected = False
     self._presenter_ip = None
     self._presenter_proxy = None
     self._presenter_ping_proxy = None
@@ -342,6 +352,7 @@ class DUTLinkManager(object):
                                                       DUT_PING_PORT,
                                                       self._rpc_timeout)
         self._dut_proxy.IsAlive()
+        self._dut_ping_proxy.IsAlive()
         self._dut_connected = True
         logging.info('DUT %s registered', dut_ip)
         self._reported_announcement.clear()
