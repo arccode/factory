@@ -896,7 +896,10 @@ class Goofy(GoofyBase):
       return
 
     try:
-      system.GetBoard().SetChargeState(Board.ChargeState.CHARGE)
+      if self.charge_manager:
+        self.charge_manager.StartCharging()
+      else:
+        system.GetBoard().SetChargeState(Board.ChargeState.CHARGE)
     except NotImplementedError:
       logging.info('Charging is not supported')
       self._can_charge = False

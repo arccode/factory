@@ -51,26 +51,28 @@ class ChargeManager(object):
       self.state = new_state
       logging.info('Charger state: %s', self.state)
 
-  def _StartCharging(self):
+  def StartCharging(self):
     self._SetState(Board.ChargeState.CHARGE)
     self._board.SetChargeState(Board.ChargeState.CHARGE)
 
-  def _StopCharging(self):
+  def StopCharging(self):
     self._SetState(Board.ChargeState.IDLE)
     self._board.SetChargeState(Board.ChargeState.IDLE)
 
-  def _ForceDischarge(self):
+  def ForceDischarge(self):
     self._SetState(Board.ChargeState.DISCHARGE)
     self._board.SetChargeState(Board.ChargeState.DISCHARGE)
 
   def AdjustChargeState(self):
-    '''Adjust charge state according to battery level.
+    """Adjust charge state according to battery level.
 
     If current battery level is lower than min_charge_pct, this method starts
     battery charging. If it is higher than max_charge_pct, this method forces
     battery discharge. Otherwise, charger is set to idle mode and is neither
     charging nor discharging.
-    This method never throw exception.'''
+
+    This method never throw exception.
+    """
     try:
       if not self._power.CheckBatteryPresent():
         self._SetState(self.ErrorState.BATTERY_NOT_PRESENT)
@@ -83,10 +85,10 @@ class ChargeManager(object):
       if charge is None:
         self._SetState(self.ErrorState.BATTERY_ERROR)
       elif charge < self._min_charge_pct:
-        self._StartCharging()
+        self.StartCharging()
       elif charge > self._max_charge_pct:
-        self._ForceDischarge()
+        self.ForceDischarge()
       else:
-        self._StopCharging()
+        self.StopCharging()
     except Exception as e:  # pylint: disable=W0703
       logging.error('Unable to set charge state: %s', e)
