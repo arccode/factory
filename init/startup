@@ -16,6 +16,11 @@ is_freon() {
   fi
 }
 
+run_chrome_in_tmp() {
+  # For factory environment, we don't need to preserve Chrome session data.
+  mount -t tmpfs none /home/chronos
+}
+
 main() {
   # For freon boards: We disable powerd in factory test mode, but the screen
   # backlight is turned on by powerd. Manually set the brightness level to
@@ -45,9 +50,11 @@ main() {
   if [ -f "${tag_presenter}" ]; then
     # Presenter-only or standalone mode.
     mount --bind "${MYDIR}/etc/presenter.conf" /etc/chrome_dev.conf
+    run_chrome_in_tmp
   elif [ ! -f "${tag_device}" ]; then
     # Monolithic mode.
     mount --bind "${MYDIR}/etc/chrome_dev.conf" /etc/chrome_dev.conf
+    run_chrome_in_tmp
   fi
 }
 
