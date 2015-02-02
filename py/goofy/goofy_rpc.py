@@ -405,7 +405,7 @@ class GoofyRPC(object):
       try:
         ec_wp_stat = (
             subprocess.check_output(['flashrom', '-p', 'ec', '--wp-status']))
-      except OSError:
+      except subprocess.CalledProcessError:
         ec_wp_stat = 'EC not available.'
 
       return DeviceNodeString(
@@ -420,7 +420,7 @@ class GoofyRPC(object):
 
       try:
         ec_version = subprocess.check_output(['ectool', 'version'])
-      except OSError:
+      except subprocess.CalledProcessError:
         ec_version = 'EC not available.'
 
       image_version = ''.join(open('/etc/lsb-release', 'r').readlines())
