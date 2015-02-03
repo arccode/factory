@@ -172,3 +172,15 @@ class ShopFloorHandlerBase(object):
       serial_number: The DUT's serial number.
     """
     raise NotImplementedError()
+
+  @RPCCall
+  def GetMemSize(self, serial_number):
+    """Get the memory size of DUT in GB.
+
+    Args:
+      serial_number: The DUT's serial number.
+
+    Returns:
+      {'mem_size': (float, int)}
+    """
+    raise NotImplementedError()
