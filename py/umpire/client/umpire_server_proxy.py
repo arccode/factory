@@ -8,7 +8,9 @@
 """UmpireServerProxy handles connection to UmpireServer."""
 
 
+import json
 import logging
+import mimetypes
 import re
 import sys
 import traceback
@@ -50,7 +52,7 @@ def CheckProtocolError(protocol_error, umpire_server_error):
 
 
 class UmpireServerProxyException(Exception):
-  """Exceptsion of UmpireServerProxy."""
+  """Exception of UmpireServerProxy."""
   pass
 
 
@@ -335,6 +337,89 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     logging.debug('Set Umpire HTTP server URI to %s',
                   self._umpire_http_server_uri)
     logging.debug('Set Umpire handler URI to %s', self._umpire_handler_uri)
+
+  def _SendPOSTRequest(self, handler, args):
+    """Sends HTTP POST request to Umpire HTTP server.
+
+    The URI is same as Umpire HTTP server URI.
+
+    Args:
+      handler: case-sensitive Umpire POST handler name
+      args: A dict which stores content to be sent, saving field => value pair.
+        multipart/form-data allows multiple values share the same field name,
+        so value can be an list of values.
+        Values of fields named 'file' or starts with 'file-' will be treated
+        as file path, file content will be read and sent instead.
+        The order of fields is not preserved.
+
+    Returns:
+      A tuple (http_code, response_json) where response_json is a JSON object
+      decoded from POST response
+    """
+    uri = '%s/upload/%s' % (self._umpire_http_server_uri, handler)
+    fields = {}
+    files = {}
+    for k, v in args.iteritems():
+      if k == 'file' or k.startswith('file-'):
+        files[k] = v
+      else:
+        fields[k] = v
+    content_type, body = self._EncodeMultipartFormdata(fields, files)
+    content_length = len(body)
+    header = {'content-type': content_type, 'content-length': content_length}
+    response = urllib2.urlopen(urllib2.Request(uri, body, header))
+    response_json = json.loads(response.read())
+
+    return (response.getcode(), response_json)
+
+  def _EncodeMultipartFormdata(self, fields, files):
+    """Writes multipart/form-data request body.
+
+    Args:
+      fields: A dict which contains (field_name, field_value).
+        Multipart/form-data allows multiple values share the same field name,
+        so field_value can be a list.
+      files: A dict which contains (field_name, field_value), same as above
+        except every value will be treated as file path.
+        It reads each file and writes their contents as value.
+    """
+    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
+    DELIMITER = '--' + BOUNDARY
+    EOF = '--' + BOUNDARY + '--'
+    CRLF = '\r\n'
+    lines = []
+
+    for k, v in fields.iteritems():
+      if not isinstance(v, list):
+        v = [v]
+      for item in v:
+        lines.append(DELIMITER)
+        lines.append('Content-Disposition: form-data; name="%s"' % k)
+        lines.append('')
+        lines.append(str(item))
+
+    for k, v in files.iteritems():
+      if not isinstance(v, list):
+        v = [v]
+      for item in v:
+        lines.append(DELIMITER)
+        lines.append('Content-Disposition: form-data; name="%s"; filename="%s"'
+                     % (k, item))
+        lines.append('Content-Type: %s' % self._GetContentType(item))
+        lines.append('')
+        with open(item, 'rb') as f:
+          lines.append(f.read())
+
+    lines.append(EOF)
+    lines.append('')
+
+    body = CRLF.join(lines)
+    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+    return (content_type, body)
+
+  def _GetContentType(self, filename):
+    """Guesses file type by filename."""
+    return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
 
   def _SetShopFloorHandlerUri(self, shop_floor_handler):
     """Sets _shop_floor_handler_uri from shop_floor_handler.
