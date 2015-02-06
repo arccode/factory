@@ -42,6 +42,9 @@ EXAMPLES = r"""Examples:
 
   4. Lists factory bundle info for all boards to a HTML file:
      py/tools/factory_bundle_info.py --html_file=bundle.html
+
+  5. Lists factory bundle info using a local boards.yaml file:
+     py/tools/factory_bundle_info.py --boards_yaml=boards.yaml
 """
 
 
@@ -181,7 +184,7 @@ _ExtractBaseboardAndVersion.static_dict = {
     }
 
 
-def GetFactoryBranchInfo(board, base_board):
+def GetFactoryBranchInfo(board, base_board, boards_yaml=None):
   """Gets factory branch info.
 
   Gets factory branch info for a board, or all boards based on the base_board,
@@ -191,21 +194,26 @@ def GetFactoryBranchInfo(board, base_board):
     board: The board name to get its factory branch info.
     base_board: The base board name to get factory branches info for
         all boards base on the base_board.
+    boards_yaml: A local yaml file specifying factory branch info for
+        all boards.
 
   Returns: A list of tuples (board name, factory branch name) sorted by
       factory branch version and group by base board.
   """
-  hwid_dir = os.path.join(
-      os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform', 'chromeos-hwid')
-  if not os.path.exists(hwid_dir):
-    logging.error('No %s in source tree.', hwid_dir)
-    sys.exit(1)
+  if boards_yaml:
+    boards_info = yaml.load(open(boards_yaml))
+  else:
+    hwid_dir = os.path.join(
+        os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform', 'chromeos-hwid')
+    if not os.path.exists(hwid_dir):
+      logging.error('No %s in source tree.', hwid_dir)
+      sys.exit(1)
 
-  # Always read boards.yaml from ToT as all boards are required to have an
-  # entry in it.
-  boards_info = yaml.load(process_utils.CheckOutput(
-      ['git', 'show', 'remotes/cros-internal/master:boards.yaml'],
-      cwd=hwid_dir))
+    # Always read boards.yaml from ToT as all boards are required to have an
+    # entry in it.
+    boards_info = yaml.load(process_utils.CheckOutput(
+        ['git', 'show', 'remotes/cros-internal/master:boards.yaml'],
+        cwd=hwid_dir))
 
   def _LogBaseboardMaxVersion(branch_name, max_version):
     base_board, version = _ExtractBaseboardAndVersion(branch_name)
@@ -218,7 +226,7 @@ def GetFactoryBranchInfo(board, base_board):
   base_board_max_version = {}
   for b in boards_info.itervalues():
     # Only get branch info for boards using v3 HWID.
-    if b['version'] != 3:
+    if 'version' in b and b['version'] != 3:
       continue
 
     if board:
@@ -307,22 +315,32 @@ def ParseArgs():
   parser = argparse.ArgumentParser(
       description=DESCRIPTION,
       epilog=EXAMPLES,
-      formatter_class=argparse.RawDescriptionHelpFormatter)
+      formatter_class=argparse.RawTextHelpFormatter)
 
   parser.add_argument('--board', dest='board',
                       help=('The board name to get factory bundle info.'))
   parser.add_argument('--base_board', dest='base_board',
-                      help=('The base board name to get factory bundle info '
+                      help=('The base board name to get factory bundle info\n'
                             'for all boards based on the base board.'))
   parser.add_argument('--html_file', dest='html_file',
                       help=('File name to store the output in HTML format.'))
+  parser.add_argument('--boards_yaml', dest='boards_yaml',
+                      help=('A local boards.yaml file storing factory branch\n'
+                            'info for all boards. An example of boards.yaml:\n'
+                            'SQUAWKS:\n'
+                            '    board: SQUAWKS\n'
+                            '    branch: factory-rambi-5517.B\n'
+                            'CANDY:\n'
+                            '    board: CANDY\n'
+                            '    branch: factory-rambi-6420.B\n'))
 
   return parser.parse_args()
 
 
 def main():
   args = ParseArgs()
-  boards_branch_info = GetFactoryBranchInfo(args.board, args.base_board)
+  boards_branch_info = GetFactoryBranchInfo(
+      args.board, args.base_board, args.boards_yaml)
   OutputBundleInfo(boards_branch_info, args.html_file)
 
 
