@@ -567,12 +567,9 @@ class UmpireService(object):
       return failure
 
     deferreds = [p.Stop() for p in self.processes]
-    if deferreds:
-      deferred = ConcentrateDeferreds(deferreds)
-      deferred.addCallbacks(HandleStopResult, HandleStopFailure)
-      return deferred
-
-    return HandleStopResult(defer.succeed(-1))
+    deferred = ConcentrateDeferreds(deferreds)
+    deferred.addCallbacks(HandleStopResult, HandleStopFailure)
+    return deferred
 
 
 def GetServiceSchemata():

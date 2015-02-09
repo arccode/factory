@@ -59,6 +59,7 @@ class UmpireDaemon(object):
                       to application object.
     twisted_ports: binded twisted ports.
     deploying: daemon is deploying a config and not finished yet.
+    stopping: daemon is stopping.
   """
   __metaclass__ = Singleton
 
@@ -74,6 +75,7 @@ class UmpireDaemon(object):
     # between tests.
     self.twisted_ports = []
     self.deploying = False
+    self.stopping = False
 
   def _HandleStopSignal(self, sig, unused_frame):
     """Handles signals that stops event loop.
@@ -83,18 +85,20 @@ class UmpireDaemon(object):
     loop nicely.
     """
     logging.info('Received signal %d', sig)
-    logging.info('Stopping umpired...')
+    if self.stopping:
+      reactor.callLater(3, reactor.stop)
+      return
+
+    logging.info('Stop umpired...')
     self.Stop()
 
   def Stop(self):
     """Stops subprocesses and quits daemon loop."""
+    self.stopping = True
     service_names = GetAllServiceNames()
-    if service_names:
-      deferred = self.StopServices(service_names)
-      deferred.addBoth(lambda _: reactor.stop())
-    else:
-      reactor.stop()
-    return defer.succeed(True)
+    deferred = self.StopServices(service_names)
+    deferred.addBoth(lambda _: reactor.stop())
+    return deferred
 
   def OnStart(self):
     """Daemon start handler."""
