@@ -52,10 +52,15 @@ resize_filesystem() {
   local image="$(readlink -f "$1")"
   local index="$2"
   local new_size="$3"
-
+  local max_size_bs="$(image_part_size "${image}" "${index}")"
   local partition="$(image_map_partition "${image}" "${index}")" ||
     die "Cannot access partition ${index} on image ${image} ."
   MAPPED_IMAGE="${partition}"
+
+  local max_size="$((max_size_bs / (1048576 / 512) ))"
+  if [ "${new_size}" -gt "${max_size}" ]; then
+    die "Max size of partition ${index} is ${max_size}M."
+  fi
 
   # Decide new size.
   info "Checking existing file system size..."
@@ -68,7 +73,12 @@ resize_filesystem() {
   info "${image}#${index}: ${size_mb}MBs."
 
   # File system must be clean before we perform resize2fs.
-  sudo fsck -y "${partition}"
+  local fsck_result=0
+  sudo fsck -y "${partition}" || fsck_result="$?"
+  # 'fsck' may return 1 "errors corrected" or 2 "corrected and need reboot".
+  if [ "${fsck_result}" -gt 2 ]; then
+    die "Failed in ensuring file system integrity (fsck)."
+  fi
   sudo resize2fs -f "${partition}" "${new_size}M" ||
     die "Failed to resize file system to ${new_size} MBs."
 
