@@ -125,7 +125,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     }
 
     self.assertEquals(
-        'CHROMEBOOK D9I-E6A-A5P',
+        'CHROMEBOOK D9I-E4A-A2B',
         hwid_utils.GenerateHWID(
             self.db, self.probed_results,
             device_info, self.vpd, False).encoded_string)
@@ -137,7 +137,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         'component.audio_codec': 'set_1'
     }
     self.assertEquals(
-        'CHROMEBOOK D92-E6A-A7R',
+        'CHROMEBOOK D92-E4A-A87',
         hwid_utils.GenerateHWID(
             self.db, self.probed_results,
             device_info, self.vpd, False).encoded_string)
@@ -149,7 +149,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         'component.audio_codec': 'set_0'
     }
     self.assertEquals(
-        'CHROMEBOOK D52-E6A-A8K',
+        'CHROMEBOOK D52-E4A-A7E',
         hwid_utils.GenerateHWID(
             self.db, self.probed_results,
             device_info, self.vpd, False).encoded_string)
@@ -260,6 +260,24 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     self.assertEquals(None, hwid_utils.VerifyHWID(
         self.db, 'CHROMEBOOK D9I-H9T', probed_results, self.vpd, True,
         phase.PVT))
+
+    # Test unqualified component.
+    probed_results = copy.deepcopy(self.probed_results)
+    probed_results['found_probe_value_map']['dram'].update(
+        {'vendor': 'DRAM 2',
+         'size': '8G'})
+    self.assertRaisesRegexp(
+        common.HWIDException, r'Found unqualified component of '
+        r"'dram': 'dram_2' in Phase\(PVT\)",
+        hwid_utils.VerifyHWID, self.db,
+        'CHROMEBOOK D9I-E8A-A5F', probed_results,
+        self.vpd, False, phase.PVT)
+
+    # Test unqualified component is allowed in early builds: PROTO/EVT/DVT.
+    self.assertEquals(None, hwid_utils.VerifyHWID(
+        self.db, 'CHROMEBOOK A5AT-PC', probed_results, self.vpd, False,
+        phase.EVT))
+
 
   def testDecodeHWID(self):
     """Tests HWID decoding."""

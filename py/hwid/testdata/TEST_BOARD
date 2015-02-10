@@ -1,5 +1,4 @@
 checksum: 71343da7919352cbc255e2c232aca27c1fadbd6d
-
 board: CHROMEBOOK
 
 encoding_patterns:
@@ -30,7 +29,8 @@ pattern:
     - storage: 2              # 10 bits
     - cpu: 1
     - firmware: 1
-    - firmware: 1             # 13 bits
+    - firmware: 1
+    - dram: 1                 # 14 bits
 
   - image_ids: [2, 3]
     encoding_scheme: base8192
@@ -48,8 +48,9 @@ pattern:
     - cpu: 1
     - storage: 2              # 10 bits
     - cpu: 1
-    - firmware: 1             # 12 bits
     - firmware: 1
+    - firmware: 1
+    - dram: 1                 # 14 bits
 
 encoded_fields:
   audio_codec:
@@ -101,6 +102,8 @@ encoded_fields:
       dram: dram_0
     1:
       dram: dram_1
+    2:
+      dram: dram_2
   ec_flash_chip:
     0:
       ec_flash_chip: ec_flash_chip_0
@@ -258,6 +261,12 @@ components:
           vendor: DRAM 1
           size: 4G
 
+      dram_2:
+        status: unqualified
+        values:
+          vendor: DRAM 2
+          size: 8G
+
   ec_flash_chip:
     items:
       ec_flash_chip_0:
@@ -369,7 +378,8 @@ rules:
       SetComponent(
           'dram', LookupMap(GetDeviceInfo('component.dram'), {
               'foo': 'dram_0',
-              'bar': 'dram_1'
+              'bar': 'dram_1',
+              'unqualified': 'dram_2'
           }))
 
 - name: device_info.component.audio_codec

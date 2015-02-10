@@ -143,7 +143,7 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
   hwid_mode = _HWIDMode(rma_mode)
   hwid = decoder.Decode(db, encoded_string, mode=hwid_mode)
   hwid.VerifyProbeResult(yaml.dump(probed_results))
-  hwid.VerifyComponentStatus()
+  hwid.VerifyComponentStatus(current_phase=current_phase)
   hwid.VerifyPhase(current_phase)
   context = rule.Context(hwid=hwid, vpd=vpd)
   db.rules.EvaluateRules(context, namespace='verify.*')
@@ -232,7 +232,8 @@ def EnumerateHWID(db, image_id=None, status='supported'):
     image_id: The image ID to use.  Defaults to the latest image ID.
     status: By default only 'supported' components are enumerated.  Set this to
         'released' will include 'supported' and 'deprecated'. Set this to
-        'all' if you want to include 'deprecated' and 'unsupported' components.
+        'all' if you want to include 'deprecated', 'unsupported' and
+        'unqualified' components.
 
   Returns:
     A dict of all enumetated HWIDs to their list of components.
@@ -260,11 +261,13 @@ def EnumerateHWID(db, image_id=None, status='supported'):
           for attrs in attr_list:
             if status == 'supported' and attrs.get('status') in (
                 common.HWID.COMPONENT_STATUS.unsupported,
-                common.HWID.COMPONENT_STATUS.deprecated):
+                common.HWID.COMPONENT_STATUS.deprecated,
+                common.HWID.COMPONENT_STATUS.unqualified):
               pass_check = False
               break
-            if status == 'released' and attrs.get('status') == (
-                common.HWID.COMPONENT_STATUS.unsupported):
+            if status == 'released' and attrs.get('status') in (
+                common.HWID.COMPONENT_STATUS.unsupported,
+                common.HWID.COMPONENT_STATUS.unqualified):
               pass_check = False
               break
             comp_items.append(attrs['name'])

@@ -122,7 +122,8 @@ class HWID(object):
   """
   HEADER_BITS = 5
   OPERATION_MODE = utils.Enum(['normal', 'rma', 'no_check'])
-  COMPONENT_STATUS = utils.Enum(['supported', 'deprecated', 'unsupported'])
+  COMPONENT_STATUS = utils.Enum(['supported', 'deprecated',
+                                 'unsupported', 'unqualified'])
   ENCODING_SCHEME = utils.Enum(['base32', 'base8192'])
 
   def __init__(self, database, binary_string, encoded_string, bom,
@@ -178,12 +179,18 @@ class HWID(object):
               BinaryStringToBOM(self.database, self.binary_string), self.bom)))
     # No exception. Everything is good!
 
-  def VerifyComponentStatus(self):
+  def VerifyComponentStatus(self, current_phase=None):
     """Verifies the status of all components.
 
     Accepts all 'supported' components, rejects all 'unsupported' components,
-    and accepts/rejects 'deprecated' components if operation mode is/is not
-    rma.
+    , accepts/rejects 'deprecated' components if operation mode is/is not
+    rma and accepts 'unqualified' components if current phase is not
+    PVT_DOGFOOD/PVT.
+
+    Args:
+      current_phase: The current phase, for phase checks.  If None is
+          specified, then phase.GetPhase() is used (this defaults to PVT
+          if none is available).
 
     Raises:
       HWIDException is verification fails.
@@ -198,6 +205,17 @@ class HWID(object):
             comp_cls, comp_name)
         if status == HWID.COMPONENT_STATUS.supported:
           continue
+        if status == HWID.COMPONENT_STATUS.unqualified:
+          # Coerce current_phase to a Phase object, and use default phase
+          # if unspecified.
+          current_phase = (phase.Phase(current_phase) if current_phase
+                           else phase.GetPhase())
+          if current_phase == phase.PVT_DOGFOOD or current_phase == phase.PVT:
+            raise HWIDException(
+                'Found unqualified component of %r: %r in %r' %
+                (comp_cls, comp_name, current_phase))
+          else:
+            continue
         elif status == HWID.COMPONENT_STATUS.unsupported:
           raise HWIDException('Found unsupported component of %r: %r' %
                               (comp_cls, comp_name))
