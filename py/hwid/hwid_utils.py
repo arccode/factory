@@ -365,7 +365,7 @@ def GetProbedResults(infile=None, *args, **kwargs):
     if utils.in_chroot():
       raise ValueError('Cannot probe components in chroot. Please specify '
                        'probed results with an input file. If you are running '
-                       'with command-line, use --probed_results_file')
+                       'with command-line, use --probed-results-file')
     kwargs['probe_vpd'] = True
     probed_results = yaml.load(probe.Probe(*args, **kwargs).Encode())
   return probed_results

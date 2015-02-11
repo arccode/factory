@@ -110,6 +110,9 @@ def VerifyHWIDWrapper(options):
 
 @Command(
     'verify-components',
+    CmdArg('--probed-results-file', default=None,
+           help=('a file with probed results.\n'
+                 '(required if not running on a DUT)')),
     CmdArg('-c', '--components', default=None,
            help='the list of component classes to verify'),
     CmdArg('--no-fast-fw-probe', dest='fast_fw_probe', action='store_false',
@@ -118,6 +121,7 @@ def VerifyComponentsWrapper(options):
   """Verifies components."""
   if not options.components:
     probed_results = hwid_utils.GetProbedResults(
+        infile=options.probed_results_file,
         fast_fw_probe=options.fast_fw_probe)
   else:
     options.components = [v.strip() for v in options.components.split(',')]
@@ -126,6 +130,7 @@ def VerifyComponentsWrapper(options):
     else:
       probe_volatile = False
     probed_results = hwid_utils.GetProbedResults(
+        infile=options.probed_results_file,
         target_comp_classes=options.components,
         fast_fw_probe=options.fast_fw_probe,
         probe_volatile=probe_volatile, probe_initial_config=False)
