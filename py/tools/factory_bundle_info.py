@@ -48,7 +48,7 @@ EXAMPLES = r"""Examples:
 """
 
 
-def _GetFactoryBundleInfo(board, factory_branch):
+def _GetFactoryBundleInfo(board, factory_branch, repo_sync):
   """Gets factory bundle info from the bundle README file.
 
   A typical README file has the following format. This function extracts
@@ -88,6 +88,7 @@ def _GetFactoryBundleInfo(board, factory_branch):
   Args:
     board: the board name to get factory bundle info.
     factory_branch: the factory branch of the board.
+    repo_sync: whether to 'repo sync' under board private overlays.
 
   Returns: A BundleInfo tuple.
   """
@@ -97,6 +98,12 @@ def _GetFactoryBundleInfo(board, factory_branch):
 
   bundle_readme_relpath = os.path.join(
       'chromeos-base', 'chromeos-factory-board', 'files', 'bundle', 'README')
+
+  # Do repo syncs (followed by a rebase+sync if it fails).
+  if repo_sync:
+    process_utils.Spawn(
+        'repo sync . || (repo rebase . && repo sync .)',
+        log=True, cwd=overlay_relpath, shell=True, check_call=True)
 
   try:
     bundle_readme = process_utils.CheckOutput(
@@ -257,17 +264,18 @@ def GetFactoryBranchInfo(board, base_board, boards_yaml=None):
   return sorted(board_branch_list, key=_key_func, reverse=True)
 
 
-def OutputBundleInfo(boards_branch_info, html_file):
+def OutputBundleInfo(boards_branch_info, html_file, sync):
   """Print factory bundle information.
 
   Args:
    boards_branch_info: A list of tuples, each tuple is (board, factory_branch)
        containing the board name and its factory branch name.
    html_file: File name to store the output in HTML format.
+   sync: Whether to sync codebase to get the latest info.
   """
   output_lines = [BundleFields]
   for board, branch in boards_branch_info:
-    bundle_info = _GetFactoryBundleInfo(board, branch)
+    bundle_info = _GetFactoryBundleInfo(board, branch, sync)
     if bundle_info is not None:
       output_lines.append(list(bundle_info))
 
@@ -317,14 +325,14 @@ def ParseArgs():
       epilog=EXAMPLES,
       formatter_class=argparse.RawTextHelpFormatter)
 
-  parser.add_argument('--board', dest='board',
-                      help=('The board name to get factory bundle info.'))
-  parser.add_argument('--base_board', dest='base_board',
+  parser.add_argument('--board', '-b',
+                      help='The board name to get factory bundle info.')
+  parser.add_argument('--base_board', '-bb',
                       help=('The base board name to get factory bundle info\n'
                             'for all boards based on the base board.'))
-  parser.add_argument('--html_file', dest='html_file',
-                      help=('File name to store the output in HTML format.'))
-  parser.add_argument('--boards_yaml', dest='boards_yaml',
+  parser.add_argument('--html_file', '-f',
+                      help='File name to store the output in HTML format.')
+  parser.add_argument('--boards_yaml', '-by',
                       help=('A local boards.yaml file storing factory branch\n'
                             'info for all boards. An example of boards.yaml:\n'
                             'SQUAWKS:\n'
@@ -333,15 +341,24 @@ def ParseArgs():
                             'CANDY:\n'
                             '    board: CANDY\n'
                             '    branch: factory-rambi-6420.B\n'))
+  parser.add_argument('--no-sync', action='store_false', dest='sync',
+                      help="Don't run repo sync in board private overlays.")
+  parser.add_argument('--yes', '-y', action='store_true',
+                      help="Don't ask for confirmation to repo sync.")
 
   return parser.parse_args()
 
 
 def main():
   args = ParseArgs()
+  if not args.yes and args.sync:
+    answer = raw_input('*** repo sync will be invoked in private overlays.\n'
+                       '*** Continue? [y/N] ')
+    if not answer or answer[0] not in 'yY':
+      sys.exit('Aborting.')
   boards_branch_info = GetFactoryBranchInfo(
       args.board, args.base_board, args.boards_yaml)
-  OutputBundleInfo(boards_branch_info, args.html_file)
+  OutputBundleInfo(boards_branch_info, args.html_file, args.sync)
 
 
 if __name__ == '__main__':
