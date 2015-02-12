@@ -4,6 +4,9 @@
 
 """A factory test to verify MLB board version."""
 
+from __future__ import print_function
+
+import re
 import unittest
 
 import factory_common   # pylint: disable=W0611
@@ -33,12 +36,13 @@ class MLBVersionTest(unittest.TestCase):
           (self.args.expected_version, board_version))
     else:
       current_phase = phase.GetPhase()
-      if current_phase == phase.PVT_DOGFOOD:
-        expected_version_prefix = 'PVT'
+      if current_phase in [phase.PVT, phase.PVT_DOGFOOD]:
+        expected_version_prefix = '(PVT|MP)'
       else:
         expected_version_prefix = str(current_phase)
+
       self.assertTrue(
-          board_version.upper().startswith(expected_version_prefix),
+          re.search(r'^%s' % expected_version_prefix, board_version.upper()),
           ('In phase %s, expect board version to start with %s, '
            'but got board version %s') %
           (current_phase, expected_version_prefix, board_version))
