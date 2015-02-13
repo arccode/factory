@@ -9,6 +9,7 @@ import SocketServer
 import glob
 import httplib
 import logging
+from multiprocessing import pool
 import os
 import re
 import socket
@@ -372,6 +373,72 @@ def StartNATService(interface_in, interface_out):
 
   # Enable routing in kernel
   file_utils.WriteFile('/proc/sys/net/ipv4/ip_forward', '1')
+
+
+def RenewDhcpLease(interface, timeout=3):
+  """Renews DHCP lease on a network interface.
+
+  Runs dhclient to obtain a new DHCP lease on the given network interface.
+
+  Args:
+    interface: The name of the network interface.
+    timeout: Timeout for waiting DHCPOFFERS in seconds.
+
+  Returns:
+    True if a new lease is obtained; otherwise, False.
+  """
+  with file_utils.UnopenedTemporaryFile() as conf_file:
+    with open(conf_file, "w") as f:
+      f.write("timeout %d;" % timeout)
+    p = process_utils.Spawn(['dhclient', '-1', '-cf', conf_file, interface])
+    # Allow one second for dhclient to gracefully exit
+    deadline = time.time() + timeout + 1
+    while p.poll() is None:
+      if time.time() > deadline:
+        # Well, dhclient is ignoring the timeout value. Kill it.
+        p.terminate()
+        return False
+      time.sleep(0.1)
+  return p.returncode == 0
+
+
+def GetUnmanagedEthernetInterfaces():
+  """Gets a list of unmanaged Ethernet interfaces.
+
+  This method returns a list of network interfaces on which no DHCP server
+  could be found.
+
+  On CrOS devices, shill should take care of managing this, so we simply
+  find Ethernet interfaces without IP addresses assigned. On non-CrOS devices,
+  we try to renew DHCP lease with dhclient on each interface.
+
+  Returns:
+    A list of interface names.
+  """
+  def IsShillRunning():
+    try:
+      shill_status = process_utils.Spawn(['status', 'shill'], read_stdout=True,
+                                         sudo=True)
+      return (shill_status.returncode == 0 and
+              'running' in shill_status.stdout_data)
+    except OSError:
+      return False
+
+  if IsShillRunning():
+    # 'shill' running. Let's not mess with it. Just look at the IP address
+    # of each interface.
+    return [intf for intf in GetEthernetInterfaces() if
+            GetEthernetIp(intf) is None]
+  else:
+    # 'shill' not running. Use dhclient.
+    p = pool.ThreadPool(5)
+    def CheckManaged(interface):
+      if RenewDhcpLease(interface):
+        return None
+      else:
+        return interface
+    managed = p.map(CheckManaged, GetEthernetInterfaces())
+    return [x for x in managed if x]
 
 
 class WLAN(object):
