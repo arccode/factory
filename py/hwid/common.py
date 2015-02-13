@@ -183,7 +183,7 @@ class HWID(object):
     """Verifies the status of all components.
 
     Accepts all 'supported' components, rejects all 'unsupported' components,
-    , accepts/rejects 'deprecated' components if operation mode is/is not
+    accepts/rejects 'deprecated' components if operation mode is/is not
     rma and accepts 'unqualified' components if current phase is not
     PVT_DOGFOOD/PVT.
 
