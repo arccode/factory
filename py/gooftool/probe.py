@@ -634,53 +634,109 @@ def _ProbeBluetooth():
   return sorted(x for x in device_id_list if x)
 
 
-@_ComponentProbe('camera')
-def _ProbeCamera():
+def _GetV4L2Data(video_idx):
+  # Get information from video4linux2 (v4l2) interface.
+  # See /usr/include/linux/videodev2.h for definition of these consts.
+  # 'ident' values are defined in include/media/v4l2-chip-ident.h
+  info = {}
+  VIDIOC_DBG_G_CHIP_IDENT = 0xc02c5651
+  V4L2_DBG_CHIP_IDENT_SIZE = 11
+  V4L2_INDEX_REVISION = V4L2_DBG_CHIP_IDENT_SIZE - 1
+  V4L2_INDEX_IDENT = V4L2_INDEX_REVISION - 1
+  V4L2_VALID_IDENT = 3  # V4L2_IDENT_UNKNOWN + 1
+
+  # Get v4l2 capability
+  V4L2_CAPABILITY_FORMAT = '<16B32B32BII4I'
+  V4L2_CAPABILITY_STRUCT_SIZE = struct.calcsize(V4L2_CAPABILITY_FORMAT)
+  V4L2_CAPABILITIES_OFFSET = struct.calcsize(V4L2_CAPABILITY_FORMAT[0:-3])
+  # struct v4l2_capability
+  # {
+  #   __u8  driver[16];
+  #   __u8  card[32];
+  #   __u8  bus_info[32];
+  #   __u32 version;
+  #   __u32 capabilities;  /* V4L2_CAPABILITIES_OFFSET */
+  #   __u32 reserved[4];
+  # };
+
+  IOCTL_VIDIOC_QUERYCAP = 0x80685600
+
+  # Webcam should have CAPTURE capability but no OUTPUT capability.
+  V4L2_CAP_VIDEO_CAPTURE = 0x00000001
+  V4L2_CAP_VIDEO_OUTPUT = 0x00000002
+
+  # V4L2 encode/decode device should have the following capabilities.
+  V4L2_CAP_VIDEO_CAPTURE_MPLANE = 0x00001000
+  V4L2_CAP_VIDEO_OUTPUT_MPLANE = 0x00002000
+  V4L2_CAP_STREAMING = 0x04000000
+  V4L2_CAP_VIDEO_CODEC = (V4L2_CAP_VIDEO_CAPTURE_MPLANE |
+                          V4L2_CAP_VIDEO_OUTPUT_MPLANE |
+                          V4L2_CAP_STREAMING)
+
+  def _TryIoctl(fileno, request, *args):
+    """Try to invoke ioctl without raising an exception if it fails."""
+    try:
+      ioctl(fileno, request, *args)
+    except:  # pylint: disable=W0702
+      pass
+
+  try:
+    with open('/dev/video%d' % video_idx, 'r+') as f:
+      # Read chip identifier.
+      buf = array('i', [0] * V4L2_DBG_CHIP_IDENT_SIZE)
+      _TryIoctl(f.fileno(), VIDIOC_DBG_G_CHIP_IDENT, buf, 1)
+      v4l2_ident = buf[V4L2_INDEX_IDENT]
+      if v4l2_ident >= V4L2_VALID_IDENT:
+        info['ident'] = 'V4L2:%04x %04x' % (v4l2_ident,
+                                            buf[V4L2_INDEX_REVISION])
+      # Read V4L2 capabilities.
+      buf = array('B', [0] * V4L2_CAPABILITY_STRUCT_SIZE)
+      _TryIoctl(f.fileno(), IOCTL_VIDIOC_QUERYCAP, buf, 1)
+      capabilities = struct.unpack_from('<I', buf, V4L2_CAPABILITIES_OFFSET)[0]
+      if ((capabilities & V4L2_CAP_VIDEO_CAPTURE) and
+          (not capabilities & V4L2_CAP_VIDEO_OUTPUT)):
+        info['type'] = 'webcam'
+      elif capabilities & V4L2_CAP_VIDEO_CODEC == V4L2_CAP_VIDEO_CODEC:
+        info['type'] = 'video_codec'
+  except:  # pylint: disable=W0702
+    pass
+
+  return info
+
+
+@_ComponentProbe('video')
+def _ProbeVideo():
   # TODO(tammo/sheckylin): Try to replace the code below with OpenCV calls.
 
   KNOWN_INVALID_VIDEO_IDS = set([])
 
   result = []
-  for camera_node in glob('/sys/class/video4linux/video*'):
-    video_idx = re.search(r'video(\d+)$', camera_node).group(1)
+  for video_node in glob('/sys/class/video4linux/video*'):
+    video_idx = re.search(r'video(\d+)$', video_node).group(1)
 
     info = {}
-    camera_data = _ReadSysfsNodeId(camera_node)
-    if camera_data[COMPACT_PROBE_STR] in KNOWN_INVALID_VIDEO_IDS:
+    video_data = _ReadSysfsNodeId(video_node)
+    if video_data[COMPACT_PROBE_STR] in KNOWN_INVALID_VIDEO_IDS:
       continue
 
-    if camera_data:
-      info.update(camera_data)
+    if video_data:
+      info.update(video_data)
 
-    # Also check camera max packet size
-    camera_max_packet_size = _ReadSysfsFields(
-        os.path.join(camera_node, 'device', 'ep_82'),
+    # Also check video max packet size
+    video_max_packet_size = _ReadSysfsFields(
+        os.path.join(video_node, 'device', 'ep_82'),
         ['wMaxPacketSize'])
     # We do not want to override compact_str in info
-    if camera_max_packet_size:
-      info.update({'wMaxPacketSize': camera_max_packet_size['wMaxPacketSize']})
-    # For SOC cameras
-    camera_data_soc = _ReadSysfsFields(camera_node, ['device/control/name'])
-    if camera_data_soc:
-      info.update(camera_data_soc)
-    # Try video4linux2 (v4l2) interface.
-    # See /usr/include/linux/videodev2.h for definition of these consts.
-    # 'ident' values are defined in include/media/v4l2-chip-ident.h
-    VIDIOC_DBG_G_CHIP_IDENT = 0xc02c5651
-    V4L2_DBG_CHIP_IDENT_SIZE = 11
-    V4L2_INDEX_REVISION = V4L2_DBG_CHIP_IDENT_SIZE - 1
-    V4L2_INDEX_IDENT = V4L2_INDEX_REVISION - 1
-    V4L2_VALID_IDENT = 3  # V4L2_IDENT_UNKNOWN + 1
-    try:
-      with open('/dev/video%d' % video_idx, 'r+') as f:
-        buf = array('i', [0] * V4L2_DBG_CHIP_IDENT_SIZE)
-        ioctl(f.fileno(), VIDIOC_DBG_G_CHIP_IDENT, buf, 1)
-        v4l2_ident = buf[V4L2_INDEX_IDENT]
-        if v4l2_ident >= V4L2_VALID_IDENT:
-          info['ident'] = 'V4L2:%04x %04x' % (v4l2_ident,
-                                              buf[V4L2_INDEX_REVISION])
-    except:  # pylint: disable=W0702
-      pass
+    if video_max_packet_size:
+      info.update({'wMaxPacketSize': video_max_packet_size['wMaxPacketSize']})
+    # For SOC videos
+    video_data_soc = _ReadSysfsFields(video_node, ['device/control/name'])
+    if video_data_soc:
+      info.update(video_data_soc)
+    # Get video4linux2 (v4l2) info.
+    v4l2_data = _GetV4L2Data(int(video_idx))
+    if v4l2_data:
+      info.update(v4l2_data)
 
     result.append(info)
   return result

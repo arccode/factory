@@ -47,8 +47,6 @@ found_probe_value_map:
   battery: { compact_str: 'SANYO AS10B73 Li-ion 4400000' }
   bluetooth: { compact_str: '0cf3:3005 0001' }
   board_version: { compact_str: 'PVT' }
-  camera:
-    compact_str: '04f2:b1d8 Sonix Technology Co., Ltd. Chicony 1.3M WebCam 5582'
   cellular:
     compact_str: '05c6:9215 Qualcomm Incorporated Qualcomm Gobi2000 0002'
   chipset: { compact_str: '8086:a010' }
@@ -72,6 +70,8 @@ found_probe_value_map:
   - { compact_str: '8086:27c9' }
   - { compact_str: '8086:27ca' }
   - { compact_str: '8086:27cb' }
+  video:
+    compact_str: '04f2:b1d8 Sonix Technology Co., Ltd. Chicony 1.3M WebCam 5582'
   vga: { compact_str: '8086:a011' }
   wireless: { compact_str: '168c:0030' }
 found_volatile_values:
