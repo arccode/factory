@@ -46,6 +46,7 @@ class ToolkitInstallerTest(unittest.TestCase):
 
     # True if we are pretending to be running inside CrOS.
     self._override_in_cros_device = False
+    # pylint: disable=W0212
     installer._in_cros_device = lambda: self._override_in_cros_device
 
   def tearDown(self):
@@ -61,11 +62,13 @@ class ToolkitInstallerTest(unittest.TestCase):
     os.makedirs(os.path.join(self.dest, 'var'))
 
   def createInstaller(self, enabled_tag=True, system_root='/',
-                      enable_presenter=True, enable_device=False):
+                      enable_presenter=True, enable_device=False,
+                      non_cros=False):
     self._installer = installer.FactoryToolkitInstaller(
         self.src, self.dest, not enabled_tag, enable_presenter,
-        enable_device, system_root=system_root)
-    self._installer._sudo = False
+        enable_device, non_cros=non_cros,
+        system_root=system_root)
+    self._installer._sudo = False # pylint: disable=W0212
 
   def testNonRoot(self):
     self.makeLiveDevice()
@@ -78,11 +81,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     os.getuid = lambda: 0  # root
     self.assertRaises(SystemExit, self.createInstaller, True, self.dest)
 
-  def testInstall(self):
-    self.makeLiveDevice()
-    os.getuid = lambda: 0  # root
-    self._override_in_cros_device = True
-    self.createInstaller(system_root=self.dest)
+  def installLiveDevice(self):
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:
       self.assertEqual(f.read(), 'install me!')
@@ -104,6 +103,18 @@ class ToolkitInstallerTest(unittest.TestCase):
                      'usr/local/factory/py/umpire/client/umpire_client.py')))
     self.assertFalse(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/py/umpire/archiver.py')))
+
+  def testNonCrosInstaller(self):
+    self.makeLiveDevice()
+    self.createInstaller(non_cros=True, system_root=self.dest)
+    self.installLiveDevice()
+
+  def testInstall(self):
+    self.makeLiveDevice()
+    os.getuid = lambda: 0  # root
+    self._override_in_cros_device = True
+    self.createInstaller(system_root=self.dest)
+    self.installLiveDevice()
 
   def testDeviceOnly(self):
     self.makeLiveDevice()

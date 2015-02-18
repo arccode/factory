@@ -113,7 +113,7 @@ class FactoryToolkitInstaller(object):
   _sudo = True
 
   def __init__(self, src, dest, no_enable, enable_presenter,
-               enable_device, system_root='/'):
+               enable_device, non_cros=False, system_root='/'):
     self._src = src
     self._system_root = system_root
     if dest == self._system_root:
@@ -121,7 +121,7 @@ class FactoryToolkitInstaller(object):
       self._var_dest = os.path.join(dest, 'var')
 
       # Make sure we're on a CrOS device.
-      if not _in_cros_device():
+      if not non_cros and not _in_cros_device():
         sys.stderr.write(
             "ERROR: You're not on a CrOS device (for more details, please\n"
             'check utils.py:in_cros_device), so you must specify a test\n'
@@ -130,7 +130,14 @@ class FactoryToolkitInstaller(object):
             '\n'
             '  install_factory_toolkit.run -- --help\n'
             '\n'
-            'for help.\n')
+            'for help.\n'
+            '\n'
+            'If you want to install the presenter on a non-CrOS host,\n'
+            'please run\n'
+            '\n'
+            '  install_factory_toolkit.run -- \\\n'
+            '      --non-cros --no-enable-device --enable-presenter\n'
+            '\n')
         sys.exit(1)
       if os.getuid() != 0:
         raise Exception('You must be root to install the factory toolkit on a '
@@ -365,6 +372,10 @@ def main():
                       action='store_false', help=argparse.SUPPRESS)
   parser.set_defaults(enable_presenter=True)
 
+  parser.add_argument('--non-cros', dest='non_cros',
+                      action='store_true',
+                      help='Install on non-ChromeOS host.')
+
   parser.add_argument('--enable-device', dest='enable_device',
                       action='store_true',
                       help='Run goofy in device mode on startup')
@@ -429,7 +440,7 @@ def main():
         else DummyContext(args.dest)) as dest:
     installer = FactoryToolkitInstaller(
         src_root, dest, args.no_enable, args.enable_presenter,
-        args.enable_device)
+        args.enable_device, args.non_cros)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
 
