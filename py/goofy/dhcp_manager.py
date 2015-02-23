@@ -96,7 +96,7 @@ class DHCPManager(object):
     Args:
       argv: The complete arguments received from dnsmasq callback.
     """
-    if len(argv) != 4 or argv[1] not in self._dhcp_action:
+    if len(argv) < 4 or argv[1] not in self._dhcp_action:
       logging.error("Invalid DHCP callback: %s", argv)
       return
     action = self._dhcp_action[argv[1]]
