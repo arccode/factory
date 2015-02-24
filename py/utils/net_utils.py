@@ -352,6 +352,9 @@ def StartNATService(interface_in, interface_out):
   def CallIptables(args):
     process_utils.LogAndCheckCall(['sudo', 'iptables'] + args)
 
+  if type(interface_in) != list:
+    interface_in = [interface_in]
+
   # Clear everything in 'nat' table
   CallIptables(['--table', 'nat', '--flush'])
   CallIptables(['--table', 'nat', '--delete-chain'])
@@ -365,12 +368,13 @@ def StartNATService(interface_in, interface_out):
                 '--out-interface', interface_out,
                 '-j', 'MASQUERADE'])
   # Allow new connections
-  CallIptables(['--append', 'FORWARD',
-                '--out-interface', interface_out,
-                '--in-interface', interface_in,
-                '--match', 'conntrack',
-                '--ctstate', 'NEW',
-                '-j', 'ACCEPT'])
+  for interface in interface_in:
+    CallIptables(['--append', 'FORWARD',
+                  '--out-interface', interface_out,
+                  '--in-interface', interface,
+                  '--match', 'conntrack',
+                  '--ctstate', 'NEW',
+                  '-j', 'ACCEPT'])
   # Allow established connection packets
   CallIptables(['--append', 'FORWARD',
                 '--match', 'conntrack',

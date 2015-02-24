@@ -9,10 +9,12 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy import dhcp_manager
 from cros.factory.goofy import link_manager
 from cros.factory.goofy.link_manager import DUTLinkManager
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.link_manager import LinkDownError
+from cros.factory.test import factory
 from cros.factory.utils import net_utils
 
 
@@ -22,11 +24,15 @@ class LinkManagerTest(unittest.TestCase):
     self.dut_link = None
     self.presenter_link = None
     self.hook = mox.MockAnything()
+    link_manager.dhcp_manager.DHCPManager = dhcp_manager.DummyDHCPManager
+    link_manager.net_utils.GetUnmanagedEthernetInterfaces = lambda: ['eth0']
 
     link_manager.PRESENTER_LINK_RPC_PORT = net_utils.FindUnusedTCPPort()
     link_manager.PRESENTER_PING_PORT = net_utils.FindUnusedTCPPort()
     link_manager.DUT_LINK_RPC_PORT = net_utils.FindUnusedTCPPort()
     link_manager.DUT_PING_PORT = net_utils.FindUnusedTCPPort()
+
+    net_utils.StartNATService = lambda x, y: None
 
   def tearDown(self):
     if self.dut_link:
@@ -42,6 +48,7 @@ class LinkManagerTest(unittest.TestCase):
                                    methods={'Echo1': self.Echo},
                                    connect_hook=self.hook.dut_connect,
                                    disconnect_hook=self.hook.dut_disconnect)
+    self.dut_link.Start()
 
   def StopPresenter(self):
     self.dut_link.Stop()
@@ -54,6 +61,9 @@ class LinkManagerTest(unittest.TestCase):
         },
         connect_hook=self.hook.presenter_connect,
         disconnect_hook=self.hook.presenter_disconnect)
+    if self.dut_link:
+      time.sleep(0.5)
+      self.dut_link.OnDHCPEvent('127.0.0.1')
 
   def StopDUT(self):
     self.presenter_link.Stop()
@@ -71,22 +81,20 @@ class LinkManagerTest(unittest.TestCase):
     self.hook.dut_connect('127.0.0.1')
     self.hook.presenter_connect('127.0.0.1')
 
-    # Presenter is down
-    self.hook.presenter_disconnect()
-
-    # Presenter is back up
+    # DUT suspend/resume
     self.hook.dut_connect('127.0.0.1')
     self.hook.presenter_connect('127.0.0.1')
 
     # Glitch in DUT ping response
+    self.hook.dut_disconnect()
     self.hook.dut_connect('127.0.0.1')
     self.hook.presenter_connect('127.0.0.1')
 
     mox.Replay(self.hook)
 
-    self.StartDUT()
-    time.sleep(0.5)
     self.StartPresenter()
+    time.sleep(0.5)
+    self.StartDUT()
     time.sleep(0.5)
 
     self.dut_link.Kick()
@@ -108,22 +116,16 @@ class LinkManagerTest(unittest.TestCase):
     self.assertEqual(self.dut_link.Echo('test'), 'test')
     self.assertEqual(self.presenter_link.Echo1(10), 10)
 
-    self.StopPresenter()
-    time.sleep(1.5)
-    self.assertFalse(self.presenter_link.PresenterIsAlive())
-    self.assertRaises(LinkDownError, lambda: self.presenter_link.Echo1('test'))
-    self.StartPresenter()
-    time.sleep(1.5)
-    self.assertTrue(self.dut_link.DUTIsAlive())
-    self.assertTrue(self.presenter_link.PresenterIsAlive())
-    self.assertEqual(self.dut_link.Echo('test'), 'test')
-    self.assertEqual(self.presenter_link.Echo1(10), 10)
-
     # Should not call disconnect hook if monitoring is stopped
     self.dut_link.SuspendMonitoring(3)
     self.StopDUT()
     time.sleep(1.5)
     self.StartDUT()
+    time.sleep(1.5)
+    self.assertTrue(self.dut_link.DUTIsAlive())
+    self.assertTrue(self.presenter_link.PresenterIsAlive())
+    self.assertEqual(self.dut_link.Echo('test'), 'test')
+    self.assertEqual(self.presenter_link.Echo1(10), 10)
 
     # A glitch in DUT ping response
     self.presenter_link.StopPingServer()
@@ -136,4 +138,5 @@ class LinkManagerTest(unittest.TestCase):
     mox.Verify(self.hook)
 
 if __name__ == '__main__':
+  factory.init_logging()
   unittest.main()

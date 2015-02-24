@@ -56,6 +56,7 @@ class GoofyPresenter(GoofyBase):
         disconnect_hook=self.DUTDisconnected,
         methods={'StartCountdown': self.UIAppCountdown},
         standalone=self.args.standalone)
+    self.link_manager.Start()
 
   def ParseOptions(self):
     parser = argparse.ArgumentParser(description='Run Goofy presenter')

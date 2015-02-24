@@ -10,21 +10,22 @@ from __future__ import print_function
 import argparse
 import jsonrpclib
 import logging
+import os
 import signal
 import socket
 import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy.discoverer import DUTDiscoverer
-from cros.factory.goofy.discoverer import PresenterDiscoverer
+from cros.factory.goofy import dhcp_manager
+from cros.factory.system import service_manager
+from cros.factory.test import factory
 from cros.factory.test import utils
-from cros.factory.test.network import GetAllIPs
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
-from cros.factory.utils.net_utils import GetEthernetInterfaces
-from cros.factory.utils.net_utils import GetEthernetIp
+from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import sync_utils
 
 
 # Standard RPC ports.  These may be replaced by unit tests.
@@ -74,15 +75,14 @@ class PresenterLinkManager(object):
     self._standalone = standalone
     self._suspend_deadline = None
     self._methods = methods or {}
-    self._methods.update({'Announce': self._PresenterAnnounce})
+    self._methods.update({'Announce': self._PresenterAnnounce,
+                          'IsConnected': lambda: self._presenter_connected})
     self._reported_failure = set()
     self._presenter_connected = False
     self._presenter_ip = None
     self._presenter_proxy = None
     self._presenter_ping_proxy = None
     self._presenter_announcement = None
-    self._discoverer = PresenterDiscoverer(PRESENTER_LINK_RPC_PORT,
-                                           localhost_only=standalone)
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
     self._server = JSONRPCServer(port=DUT_LINK_RPC_PORT, methods=self._methods)
@@ -145,24 +145,22 @@ class PresenterLinkManager(object):
     except (socket.error, socket.timeout, AttributeError):
       return False
 
-  def _PresenterAnnounce(self, my_ip, presenter_ips):
-    self._presenter_announcement = (my_ip, presenter_ips)
+  def _PresenterAnnounce(self, my_ip, presenter_ip):
+    self._presenter_announcement = (my_ip, presenter_ip)
     self._kick_event.set()
 
   def _HandlePresenterAnnouncement(self):
-    my_ip, presenter_ips = self._presenter_announcement # pylint: disable=W0633
+    my_ip, presenter_ip = self._presenter_announcement # pylint: disable=W0633
     self._presenter_announcement = None
-    for presenter_ip in presenter_ips:
-      self._MakePresenterConnection(my_ip, presenter_ip)
-      if self._presenter_connected:
-        return
+    self._MakePresenterConnection(my_ip, presenter_ip)
+    if self._presenter_connected:
+      return
 
   def _MakePresenterConnection(self, my_ip, presenter_ip):
     """Attempts to connect the the presenter.
 
     Args:
-      my_ip: The IP address of this DUT received from the presenter; None to
-        guess.
+      my_ip: The IP address of this DUT received from the presenter.
       presenter_ip: The IP address of the presenter.
     """
     log = (logging.info if presenter_ip not in self._reported_failure else
@@ -183,26 +181,13 @@ class PresenterLinkManager(object):
 
       # Presenter is alive. Let's register!
       log('Registering to presenter %s', presenter_ip)
-      if not my_ip:
-        if utils.in_chroot() or self._standalone:
-          my_ip = ['127.0.0.1']
-        else:
-          my_ip = map(GetEthernetIp, GetEthernetInterfaces())
-          my_ip = [x for x in my_ip if x != '127.0.0.1' and x is not None]
-        log('Trying available IP addresses %s', my_ip)
-      elif type(my_ip) != list:
-        my_ip = [my_ip]
+      try:
+        log('Trying IP address %s', my_ip)
+        self._presenter_proxy.Register(my_ip)
 
-      for ip in my_ip:
-        try:
-          log('Trying IP address %s', ip)
-          self._presenter_proxy.Register(ip)
-
-          # Make sure the presenter sees us
-          log('Registered. Checking connection.')
-          if not self._presenter_proxy.ConnectionGood():
-            log('Registration failed.')
-            continue
+        # Make sure the presenter sees us
+        log('Registered. Checking connection.')
+        if self._presenter_proxy.ConnectionGood():
           self._presenter_connected = True
           logging.info('Connected to presenter %s', presenter_ip)
           # Now that we are connected, use a longer timeout for the proxy
@@ -215,8 +200,8 @@ class PresenterLinkManager(object):
           if self._connect_hook:
             self._connect_hook(presenter_ip)
           return
-        except:  # pylint: disable=W0702
-          logging.exception('Failed to register DUT as %s', ip)
+      except:  # pylint: disable=W0702
+        logging.exception('Failed to register DUT as %s', my_ip)
 
     except (socket.error, socket.timeout):
       pass
@@ -245,16 +230,6 @@ class PresenterLinkManager(object):
         self._presenter_proxy = None
         if self._disconnect_hook:
           self._disconnect_hook()
-
-    ips = self._discoverer.Discover()
-    if not ips:
-      return
-    if type(ips) != list:
-      ips = [ips]
-    for ip in ips:
-      self._MakePresenterConnection(None, ip)
-      if self._presenter_connected:
-        return
 
   def MonitorLink(self):
     while True:
@@ -301,14 +276,13 @@ class DUTLinkManager(object):
     self._lock = threading.Lock()
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
-    self._discoverer = DUTDiscoverer(DUT_LINK_RPC_PORT,
-                                     localhost_only=standalone)
     self._server = JSONRPCServer(port=PRESENTER_LINK_RPC_PORT,
                                  methods=self._methods)
-    self._server.Start()
     self._ping_server = PingServer(PRESENTER_PING_PORT)
     self._thread = threading.Thread(target=self.MonitorLink)
-    self._thread.start()
+
+    self._dhcp_servers = []
+    self._dhcp_event_ip = None
 
   def __getattr__(self, name):
     """A wrapper that proxies the RPC calls to the real server proxy."""
@@ -320,8 +294,90 @@ class DUTLinkManager(object):
       # _dut_proxy is None. Link is probably down.
       raise LinkDownError()
 
+  def OnDHCPEvent(self, ip):
+    """Call backs on 'add' or 'old' events from DHCP server."""
+    logging.info('DHCP event: %s', ip)
+    # Save the IP address and try to talk to it. If it fails, the device may
+    # be booting and is not ready for connection. Retry later.
+    self._dhcp_event_ip = ip
+    self.AnnounceToLastDUT()
+
+  def AnnounceToLastDUT(self):
+    """Make announcement to the last DHCP event client."""
+    if not self._dhcp_event_ip:
+      return
+    if (self._dut_connected and self._dut_ip == self._dhcp_event_ip and
+        self._dut_proxy.IsConnected()):
+      return
+    proxy = MakeTimeoutServerProxy(self._dhcp_event_ip, DUT_LINK_RPC_PORT,
+                                   timeout=0.05)
+    dhcp_subnet = self._dhcp_event_ip.rsplit('.', 1)[0]
+    my_ip = dhcp_subnet + '.1'
+    try:
+      proxy.Announce(self._dhcp_event_ip, my_ip)
+    except: # pylint: disable=W0702
+      pass
+
+  def _GetDHCPInterfaceBlacklist(self):
+    """Returns the blacklist of DHCP interfaces.
+
+    This parses board/dhcp_interface_blacklist for a list of network
+    interfaces on which we don't want to run DHCP.
+    """
+    blacklist_file = os.path.join(factory.FACTORY_PATH, 'board',
+                                  'dhcp_interface_blacklist')
+    if os.path.exists(blacklist_file):
+      with open(blacklist_file) as f:
+        return [line.strip() for line in f.readlines()]
+    return []
+
+  def _StartDHCPServers(self):
+    dhcp_manager.DHCPManager.CleanupStaleInstance()
+    if utils.in_cros_device():
+      # Wait for shill to start
+      sync_utils.WaitFor(lambda: service_manager.GetServiceStatus('shill') ==
+                         service_manager.Status.START, 15)
+      # Give shill some time to run DHCP
+      time.sleep(3)
+    # OK, shill has done its job now. Let's see what interfaces are not managed.
+    intf_blacklist = self._GetDHCPInterfaceBlacklist()
+    intfs = [intf for intf in net_utils.GetUnmanagedEthernetInterfaces()
+             if intf not in intf_blacklist]
+    ip_range = 0
+    for intf in intfs:
+      dhcp_server = dhcp_manager.DHCPManager(
+          interface=intf,
+          my_ip='192.168.%d.1' % ip_range,
+          ip_start='192.168.%d.10' % ip_range,
+          ip_end='192.168.%d.230' % ip_range,
+          lease_time=3600,
+          on_add=self.OnDHCPEvent,
+          on_old=self.OnDHCPEvent)
+      dhcp_server.StartDHCP()
+      self._dhcp_servers.append(dhcp_server)
+      ip_range += 1
+
+    # Start NAT service
+    managed_intfs = [x for x in net_utils.GetEthernetInterfaces()
+                     if x not in intfs]
+    if not managed_intfs:
+      return
+    nat_out_interface = managed_intfs[0]
+    net_utils.StartNATService(intfs, nat_out_interface)
+
+  def Start(self):
+    """Starts services."""
+    self._server.Start()
+    self._thread.start()
+    if self._standalone:
+      self._dhcp_event_ip = '127.0.0.1'
+    else:
+      self._StartDHCPServers()
+
   def Stop(self):
     """Stops and destroys the link manager."""
+    for dhcp_server in self._dhcp_servers:
+      dhcp_server.StopDHCP()
     self._server.Destroy()
     self._abort_event.set()
     self._kick_event.set()
@@ -391,28 +447,8 @@ class DUTLinkManager(object):
             self._dut_ping_proxy = None
             if self._disconnect_hook:
               self._disconnect_hook()
-
-        ips = self._discoverer.Discover()
-        if not ips:
-          return
-        if type(ips) != list:
-          ips = [ips]
-        for ip in ips:
-          try:
-            # We don't get response from the DUT for announcement, so let's
-            # keep the timeout short.
-            proxy = MakeTimeoutServerProxy(ip, DUT_LINK_RPC_PORT, timeout=0.05)
-            if self._standalone:
-              my_ips = ['127.0.0.1']
-            else:
-              my_ips = GetAllIPs()
-            if ip not in self._reported_announcement:
-              logging.info('Announcing to DUT %s: presenter ip is %s',
-                           ip, my_ips)
-              self._reported_announcement.add(ip)
-            proxy.Announce(ip, my_ips)
-          except (socket.error, socket.timeout):
-            pass
+        else:
+          self.AnnounceToLastDUT()
       finally:
         self._lock.release()
 
