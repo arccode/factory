@@ -140,7 +140,7 @@ def IwScan(devname, sleep_retry_time_secs=2, max_retries=10):
     IwException if fail to scan for max_retries tries,
     or fail because of reason other than device or resource busy (-16)
   """
-  cmd = r"iw %s scan | grep -e 'freq\|SSID' | sed 'N;s/\\n/ /'" % devname
+  cmd = r"iw %s scan | grep -e 'freq\|SSID' | sed 'N;s/\n/ /'" % devname
   try_count = 0
   scan_result = []
   while try_count < max_retries:
