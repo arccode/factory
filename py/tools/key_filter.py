@@ -227,7 +227,7 @@ class KeyFilter(object):
 
   def Stop(self):
     if self._process:
-      self._process.terminate()
+      self._process.kill()
       self._process.wait()
 
 

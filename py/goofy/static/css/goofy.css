@@ -264,7 +264,7 @@ h1 {
 #goofy-language-selector td {
   font-size: 55%;
 }
-#goofy-go, #goofy-language-selector {
+#goofy-go, #goofy-terminal, #goofy-language-selector {
   cursor: pointer;
 }
 #goofy-go:hover, #goofy-language-selector:hover {
@@ -725,6 +725,79 @@ button {
 .goofy-log-data .goog-flat-button {
   color: black;
   cursor: pointer;
+}
+
+/* Used by the Terminal window. */
+#goofy-terminal {
+  display: none;
+}
+
+#goofy-terminal.goofy-engineering-mode {
+  display: inline-block;
+}
+
+.goofy-terminal-window {
+  position: fixed;
+  top: 15%;
+  left: 25%;
+  z-index: 100;
+  float: left;
+  border: 5px solid #eee;
+  box-shadow: 0px 0px 20px 5px rgba(0,0,0,0.8);
+  border-radius: 4px;
+}
+
+.goofy-terminal-title {
+  float: left;
+  text-align: center;
+  display: inline-block;
+  width: 100%;
+  line-height: 20px;
+  background-color: #eee;
+  cursor: move;
+  padding-bottom: 4px;
+}
+
+.goofy-terminal-control {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  height: 20px;
+  color: black;
+  background-color: #eee;
+}
+
+.goofy-terminal-control * {
+  display: inline-block;
+}
+
+.goofy-terminal-close:hover, .goofy-terminal-minimize:hover {
+  opacity: 0.7;
+}
+
+.goofy-terminal-close {
+  background-image: url(/images/close.png);
+  width: 20px;
+  height: 20px;
+  opacity: 0.5;
+}
+
+.goofy-terminal-minimize {
+  background-image: url(/images/minimize.png);
+  width: 20px;
+  height: 20px;
+  opacity: 0.5;
+}
+
+.terminal {
+  clear: both;
+  font-size: 14px;
+  line-height: 16px;
+  text-rendering: auto;
+}
+
+.terminal * {
+  font-family: monospace;
 }
 
 /* Fonts. */

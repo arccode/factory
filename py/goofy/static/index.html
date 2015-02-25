@@ -7,8 +7,11 @@
     <link rel="stylesheet" type="text/css" href="/css/diagnosis_tool.css">
     <link rel="icon" type="image/png" href="images/logo32.png">
 
-    <script type="text/javascript" src="js/goofy.js">
-    </script>
+    <script type="text/javascript" src="/js/goofy.js"></script>
+    <script type="text/javascript" src="/js/term.min.js"></script>
+    <script type="text/javascript" src="/js/base64.min.js"></script>
+    <script type="text/javascript" src="/js/jquery.min.js"></script>
+    <script type="text/javascript" src="/js/jquery-ui.min.js"></script>
   </head>
   <body>
     <div class="goofy-automation-indicator" id="goofy-automation-div"></div>
@@ -28,6 +31,8 @@
           ></td></tr></table>
           <img id="goofy-go" src="images/play.svg" width="32" height="32"
                onclick="goofy.startAutoTest()">
+          <img id="goofy-terminal" src="images/terminal.svg" width="32" height="32"
+               onclick="goofy.launchTerminal()">
         </span>
         <h1 id="goofy-title">
           <span id="goofy-logo" onclick="goofy.viewNotes()"></span>

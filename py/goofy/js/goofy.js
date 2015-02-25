@@ -77,7 +77,7 @@ cros.factory.MOUNT_USB_DELAY_MSEC = 1000;
  * Width of the control panel, as a fraction of the viewport size.
  * @type number
  */
-cros.factory.CONTROL_PANEL_WIDTH_FRACTION = 0.2;
+cros.factory.CONTROL_PANEL_WIDTH_FRACTION = 0.21;
 
 /**
  * Minimum width of the control panel, in pixels.
@@ -1036,6 +1036,9 @@ cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
                                 !this.engineeringMode);
         goog.dom.classes.enable(doc.body, 'goofy-enable-automation',
                                 this.automationEnabled);
+        goog.dom.classes.enable(document.getElementById('goofy-terminal'),
+                                'goofy-engineering-mode',
+                                this.engineeringMode);
     }
 };
 
@@ -2734,7 +2737,9 @@ cros.factory.Goofy.prototype.sendEvent = function(type, properties) {
     dict.type = type;
     var serialized = goog.json.serialize(dict);
     cros.factory.logger.info('Sending event: ' + serialized);
-    this.ws.send(serialized);
+    if (this.ws.isOpen()) {
+      this.ws.send(serialized);
+    }
 };
 
 /**
@@ -3037,6 +3042,93 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         this.hideTooltips();
     }
 };
+
+/**
+ * External reference used for terminal.
+ */
+
+/**
+ * @constructor
+ */
+function Terminal(text) {
+  this.open = function(x) {},
+  this.write = function(x) {}
+  this.on = function(x, y) {}
+};
+
+var Base64 = {
+  decode: function() {},
+  encode: function() {}
+};
+function jQuery(text){ return undefined };
+
+/**
+ * Start the terminal session.
+ */
+cros.factory.Goofy.prototype.launchTerminal = function() {
+  this.sendEvent('goofy:key_filter_mode', {'enabled': false});
+
+  if (typeof(this.terminal_win) != "undefined") {
+    goog.style.showElement(this.terminal_win, true);
+    goog.style.setStyle(document.getElementById("goofy-terminal"),
+                        "opacity", 1.0)
+    return;
+  }
+
+  var mini = goog.dom.createDom('div', {'class': 'goofy-terminal-minimize'});
+  var close = goog.dom.createDom('div', {'class': 'goofy-terminal-close'});
+  var win = goog.dom.createDom('div', {'class': 'goofy-terminal-window'},
+      goog.dom.createDom('div', {'class': 'goofy-terminal-title'}, 'Terminal'),
+      goog.dom.createDom('div', {'class': 'goofy-terminal-control'},
+        mini, close));
+
+  goog.events.listen(close, goog.events.EventType.MOUSEUP,
+      this.closeTerminal.bind(this));
+  goog.events.listen(mini, goog.events.EventType.MOUSEUP,
+      this.hideTerminal.bind(this));
+  goog.dom.appendChild(document.body, win);
+
+  var ws_url = 'ws://' + window.location.host + '/pty';
+  var sock = new WebSocket(ws_url);
+
+  this.terminal_sock = sock;
+  this.terminal_win = win;
+
+  sock.onerror = function (e) {
+    cros.factory.logger.info('socket error', e);
+  };
+  jQuery(win).draggable({ cancel: ".terminal" });
+  sock.onopen = function (e) {
+    var term = new Terminal({
+      cols: 80,
+      rows: 24,
+      useStyle: true,
+      screenKeys: true
+    });
+    term.open(win);
+    term.on('data', function(data) {
+      sock.send(data);
+    });
+    sock.onmessage = function(msg) {
+      term.write(Base64.decode(msg.data));
+    };
+  }
+}
+
+cros.factory.Goofy.prototype.closeTerminal = function(e) {
+  goog.dom.removeNode(this.terminal_win);
+  this.terminal_sock.close();
+  this.terminal_win = undefined;
+  this.terminal_sock = undefined;
+  this.sendEvent('goofy:key_filter_mode', {'enabled': true});
+}
+
+cros.factory.Goofy.prototype.hideTerminal = function(e) {
+  goog.style.showElement(this.terminal_win, false);
+  goog.style.setStyle(document.getElementById("goofy-terminal"),
+                      "opacity", 0.5)
+  this.sendEvent('goofy:key_filter_mode', {'enabled': true});
+}
 
 goog.events.listenOnce(window, goog.events.EventType.LOAD, function() {
         window.goofy = new cros.factory.Goofy();

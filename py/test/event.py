@@ -127,6 +127,8 @@ class Event(object):
       'DIAGNOSIS_TOOL_EVENT': 'goofy:diagnosis_tool:event',
       # Tells UI to hide tooltips.
       'HIDE_TOOLTIPS': 'goofy:hide_tooltips',
+      # Enable/disable key filtering
+      'KEY_FILTER_MODE': 'goofy:key_filter_mode',
   })
 
   def __init__(self, type, **kw):  # pylint: disable=W0622

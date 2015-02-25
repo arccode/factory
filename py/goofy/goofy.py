@@ -39,6 +39,7 @@ from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy import prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
+from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.system.board import Board, BoardException
 from cros.factory.system.charge_manager import ChargeManager
@@ -247,9 +248,11 @@ class Goofy(GoofyBase):
         Event.Type.CLEAR_STATE:
             lambda event: self.clear_state(
                 self.test_list.lookup_path(event.path)),
+        Event.Type.KEY_FILTER_MODE: self.handle_key_filter_mode,
     }
 
     self.web_socket_manager = None
+    self.terminal_manager = None
 
   def destroy(self):
     """Performs any shutdown tasks. Overrides base class method."""
@@ -348,6 +351,11 @@ class Goofy(GoofyBase):
     self.web_socket_manager = WebSocketManager(self.uuid)
     self.state_server.add_handler('/event',
                                   self.web_socket_manager.handle_web_socket)
+
+  def start_terminal_server(self):
+    self.terminal_manager = TerminalManager()
+    self.state_server.add_handler('/pty',
+                                  self.terminal_manager.handle_web_socket)
 
   def start_ui(self):
     ui_proc_args = [
@@ -1460,6 +1468,7 @@ class Goofy(GoofyBase):
 
     self.init_states()
     self.start_event_server()
+    self.start_terminal_server()
 
     if self.options.dummy_connection_manager:
       # Override network manager creation to dummy implmenetation.
@@ -1986,6 +1995,13 @@ class Goofy(GoofyBase):
       self.auto_run(starting_at=test)
     else:
       self.run_tests(test)
+
+  def handle_key_filter_mode(self, event):
+    if self.key_filter:
+      if getattr(event, 'enabled'):
+        self.key_filter.Start()
+      else:
+        self.key_filter.Stop()
 
   def wait(self):
     """Waits for all pending invocations.
