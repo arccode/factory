@@ -19,11 +19,12 @@ CGPT_BS="512"
 # Alignment of partition sectors
 PARTITION_SECTOR_ALIGNMENT=256
 
+# Temp file to store layout, will be removed at exit.
 LAYOUT_FILE="$(mktemp --tmpdir)"
 
-RESERVED_PARTITION="10"
-LEGACY_PARTITIONS="10 11 12"  # RESERVED, RWFW, EFI
-MAX_INPUT_SOURCES=4  # (2~9) / 2
+# Special name for creating dummy partitions in layout file.
+DUMMY_FILE_NAME="@DUMMYFILE@"
+
 
 alert() {
   echo "$*" >&2
@@ -101,7 +102,9 @@ layout_get_sectors() {
   local image_file="$1"
   local part_num="$2"
 
-  if [ -n "$part_num" ]; then
+  if [ "$image_file" = "$DUMMY_FILE_NAME" ]; then
+    echo 1
+  elif [ -n "$part_num" ]; then
     image_part_size "$image_file" "$part_num"
   else
     image_alignment "$(stat -c"%s" "$image_file")" $CGPT_BS ""
@@ -118,7 +121,9 @@ layout_copy_partition() {
   alert "$(basename "$input_file"):$input_part =>" \
         "$(basename "$output_file"):$output_part"
 
-  if [ -n "$input_part" ]; then
+  if [ "$input_file" = "$DUMMY_FILE_NAME" ]; then
+    true  # do nothing
+  elif [ -n "$input_part" ]; then
     image_partition_copy "$input_file" "$input_part" \
                          "$output_file" "$output_part"
     # Update partition type information
@@ -131,7 +136,6 @@ layout_copy_partition() {
     image_update_partition "$output_file" "$output_part" <"$input_file"
   fi
 }
-
 
 # Callback of image_process_geometry. Creates a partition by give offset,
 # size(sectors), and index.
@@ -189,6 +193,26 @@ build_image_file() {
   image_process_layout "$layout_file" layout_copy_partition "$output_file"
 }
 
+# Add kernel-rootfs pair from image source to layout file.
+add_kernel_rootfs_pair() {
+  local layout_file="$1"
+  local image_source="$2"
+
+  local kernel_source="$image_source:2"
+  local rootfs_source="$image_source:3"
+  echo "$kernel_source" >>"$layout_file"
+  echo "$rootfs_source" >>"$layout_file"
+}
+
+add_dummy_kernel_rootfs_pair() {
+  local layout_file="$1"
+
+  local kernel_source="$DUMMY_FILE_NAME"
+  local rootfs_source="$DUMMY_FILE_NAME"
+  echo "$kernel_source" >>"$layout_file"
+  echo "$rootfs_source" >>"$layout_file"
+}
+
 # Creates standard multiple image layout
 create_standard_layout() {
   local main_source="$1"
@@ -204,25 +228,41 @@ create_standard_layout() {
   done
 
   echo "$main_source:1" >>"$layout_file"  # stateful partition
-  for index in $(seq 1 $MAX_INPUT_SOURCES); do
-    local kernel_source="$main_source:$RESERVED_PARTITION"
-    local rootfs_source="$main_source:$RESERVED_PARTITION"
-    if [ "$#" -gt 0 ]; then
+
+  # Adding must-have kernel-rootfs pairs. There are 3 must-have pairs, namely:
+  # partition 2-3, 4-5, and 6-7.
+  local must_have_kernel_rootfs_pairs="3"
+  for index in $(seq 1 $must_have_kernel_rootfs_pairs); do
+    if [ "$#" -eq 0 ]; then
+      add_dummy_kernel_rootfs_pair "$layout_file"
+    else
       # TODO(hungte) detect if input source is a recovery/USB image
-      kernel_source="$1:2"
-      rootfs_source="$1:3"
+      add_kernel_rootfs_pair "$layout_file" "$1"
       shift
     fi
-    echo "$kernel_source" >>"$layout_file"
-    echo "$rootfs_source" >>"$layout_file"
   done
-  for index in $LEGACY_PARTITIONS; do
-    echo "$main_source:$index" >>"$LAYOUT_FILE"
+
+  # Adding legacy partitions 8 to 12. They're OEM, reserved, reserved, RWFW,
+  # EFI respectively.
+  local legacy_partitions="$(seq 8 12)"
+  for index in $legacy_partitions; do
+    local partition_source="$DUMMY_FILE_NAME"
+    local size="$(cgpt show -s -i $index "$main_source")"
+    if [ "$size" -ne "0" ]; then
+      partition_source="$main_source:$index"
+    fi
+    echo "$partition_source" >>"$layout_file"
+  done
+
+  # Adding additional partitions if needed.
+  while [ "$#" -gt 0 ]; do
+    add_kernel_rootfs_pair "$layout_file" "$1"
+    shift
   done
 }
 
 usage_die() {
-  alert "Usage: $SCRIPT [-m master] [-f] output shim1 [shim2 ... shim4]"
+  alert "Usage: $SCRIPT [-m master] [-f] output shim1 [shim2 shim3 ...]"
   alert "   or  $SCRIPT -l layout [-f] output"
   exit 1
 }
@@ -260,7 +300,7 @@ main() {
 
   if [ -n "$layout_mode" ]; then
     [ "$#" = 1 ] || usage_die
-  elif [ "$#" -lt 2 -o "$#" -gt "$((MAX_INPUT_SOURCES + 1))" ]; then
+  elif [ "$#" -lt 2 ]; then
     alert "ERROR: invalid number of parameters ($#)."
     usage_die
   fi
