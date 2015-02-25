@@ -465,7 +465,7 @@ cros.factory.CriticalNoteDisplay = function(goofy, notes) {
 
     var titleDiv = goog.dom.createDom('div', 'goofy-fullnote-title');
     var titleImg = goog.dom.createDom('img', {'class': 'goofy-fullnote-logo',
-                                              'src': 'images/warning.svg'});
+                                              'src': '/images/warning.svg'});
     titleDiv.appendChild(titleImg);
     titleDiv.appendChild(cros.factory.Content('Factory tests stopped',
                                               '工厂测试已停止'));
@@ -755,7 +755,7 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
 
     mainComponent.getElement().id = 'goofy-main';
     mainComponent.getElement().innerHTML = (
-        '<img id="goofy-main-logo" src="images/logo256.png">');
+        '<img id="goofy-main-logo" src="/images/logo256.png">');
     consoleComponent.getElement().id = 'goofy-console';
     this.console = consoleComponent.getElement();
     this.main = mainComponent.getElement();

@@ -183,8 +183,8 @@ class UI(object):
     html = '\n'.join(
         ['<head id="head">',
          '<base href="/tests/%s/">' % self.test,
-         '<link rel="stylesheet" type="text/css" href="/goofy.css">',
-         '<link rel="stylesheet" type="text/css" href="/test.css">',
+         '<link rel="stylesheet" type="text/css" href="/css/goofy.css">',
+         '<link rel="stylesheet" type="text/css" href="/css/test.css">',
          GetAutoload('html')])
     self.PostEvent(Event(Event.Type.INIT_TEST_UI, html=html))
 

@@ -193,7 +193,7 @@ body {
 }
 
 #goofy-eth-indicator {
-  background-image: url('images/eth_off.png');
+  background-image: url('/images/eth_off.png');
   background-repeat: no-repeat;
   background-position: center;
   vertical-align: -4px;
@@ -201,10 +201,10 @@ body {
   padding-left: 0.15em;
 }
 .goofy-eth-enabled#goofy-eth-indicator {
-  background-image: url('images/eth_on.png');
+  background-image: url('/images/eth_on.png');
 }
 #goofy-wlan-indicator {
-  background-image: url('images/wlan_off.png');
+  background-image: url('/images/wlan_off.png');
   background-repeat: no-repeat;
   background-position: center;
   vertical-align: -4px;
@@ -212,7 +212,7 @@ body {
   padding-left: 0.15em;
 }
 .goofy-wlan-enabled#goofy-wlan-indicator {
-  background-image: url('images/wlan_on.png');
+  background-image: url('/images/wlan_on.png');
 }
 /* Elements in the control pane. */
 h1 {
@@ -229,17 +229,17 @@ h1 {
   min-width: 18px;
   display: inline-block;
   background-color: white;
-  background-image: url('images/logo128.png');
+  background-image: url('/images/logo128.png');
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
 }
 .goofy-note-warning#goofy-logo, .goofy-note-critical#goofy-logo {
-  background-image: url('images/warning.svg');
+  background-image: url('/images/warning.svg');
   cursor: pointer;
 }
 .goofy-note-info#goofy-logo {
-  background-image: url('images/info.png');
+  background-image: url('/images/info.png');
   cursor: pointer;
 }
 #goofy-logo-text {
@@ -295,19 +295,19 @@ h1 {
   background-color: red;
 }
 .goofy-status-passed > div > .goofy-test-icon {
-  background-image: url(images/passed.gif);
+  background-image: url(/images/passed.gif);
 }
 .goofy-status-active > div > .goofy-test-icon {
-  background-image: url(images/active.gif);
+  background-image: url(/images/active.gif);
 }
 .goofy-status-failed > div > .goofy-test-icon {
-  background-image: url(images/failed.gif);
+  background-image: url(/images/failed.gif);
 }
 .goofy-status-failed-and-waived > div > .goofy-test-icon {
-  background-image: url(images/failed_and_waived.gif);
+  background-image: url(/images/failed_and_waived.gif);
 }
 .goofy-status-untested > div > .goofy-test-icon {
-  background-image: url(images/untested.gif);
+  background-image: url(/images/untested.gif);
 }
 .goofy-skip .goog-tree-item-label {
   text-decoration: line-through;
@@ -625,7 +625,7 @@ button {
 #goofy-device-manager-refresh-icon {
   width: 36px;
   height: 36px;
-  background-image: url('images/refresh.png');
+  background-image: url('/images/refresh.png');
   background-size: 100%;
   vertical-align: middle;
   display: inline-block;
@@ -707,7 +707,7 @@ button {
 }
 
 .goofy-log-data tr.goog-drilldown-expanded .toggle {
-  background-image: url('images/dropdown.png');
+  background-image: url('/images/dropdown.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 170%;
@@ -715,7 +715,7 @@ button {
 }
 
 .goofy-log-data tr.goog-drilldown-collapsed .toggle {
-  background-image: url('images/dropright.png');
+  background-image: url('/images/dropright.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 170%;
@@ -732,23 +732,23 @@ button {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 400;
-  src: url('fonts/OpenSans-Latin.ttf') format('truetype');
+  src: url('/fonts/OpenSans-Latin.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: italic;
   font-weight: 400;
-  src: url('fonts/OpenSans-Italic-Latin.ttf') format('truetype');
+  src: url('/fonts/OpenSans-Italic-Latin.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 700;
-  src: url('fonts/OpenSans-Bold-Latin.ttf') format('truetype');
+  src: url('/fonts/OpenSans-Bold-Latin.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: italic;
   font-weight: 700;
-  src: url('fonts/OpenSans-BoldItalic-Latin.ttf') format('truetype');
+  src: url('/fonts/OpenSans-BoldItalic-Latin.ttf') format('truetype');
 }

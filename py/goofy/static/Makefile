@@ -59,7 +59,8 @@ goofy.js: $(CLOSURE_LIB_DIR) ../js/goofy.js ../js/device_manager.js \
 	  echo Set GOOFY_ALLOW_WARNINGS=1 to prevent aborting.; \
 	  $(if $(not $(GOOFY_ALLOW_WARNINGS)),exit 1;) \
 	fi
-	$(CLOSURE_BUILD) --output_mode=script --output_file=$@ >& tmp/errors.script \
+	mkdir -p js
+	$(CLOSURE_BUILD) --output_mode=script --output_file=js/$@ >& tmp/errors.script \
 	    >& tmp/errors.script || ( cat tmp/errors.script; exit 1 )
 	rm -rf tmp
 
@@ -67,8 +68,8 @@ $(CSS_SOURCE_PATHS): $(CLOSURE_LIB_DIR)
 
 closure.css: $(CSS_SOURCE_PATHS)
 # Replace all references to URLs with resources in this project.
-	cat $^ | sed -re 's/\/\/ssl\.gstatic\.com\/(closure|editor)/images/g' > $@
+	cat $^ | sed -re 's/\/\/ssl\.gstatic\.com\/(closure|editor)/\/images/g' > css/$@
 
 .PHONY: clean
 clean:
-	rm -rf $(CLOSURE_LIB_DIR) goofy.js closure.css
+	rm -rf $(CLOSURE_LIB_DIR) js/goofy.js css/closure.css
