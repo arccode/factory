@@ -72,13 +72,13 @@ class DRMModeResource(DRMModeBaseStruct):
 
   def __del__(self):
     if self.need_free:
-      _lib.drmModeFreeResources(ctypes.byref(self))
+      _GetDRMLibrary().drmModeFreeResources(ctypes.byref(self))
 
   @property
   def crtcs(self):
     ret = []
     for i in xrange(self.count_crtcs):
-      crtc = _lib.drmModeGetCrtc(self.fd, self._crtcs[i]).contents
+      crtc = _GetDRMLibrary().drmModeGetCrtc(self.fd, self._crtcs[i]).contents
       crtc.fd = self.fd
       crtc.need_free = True
       ret.append(crtc)
@@ -88,7 +88,8 @@ class DRMModeResource(DRMModeBaseStruct):
   def connectors(self):
     ret = []
     for i in xrange(self.count_connectors):
-      conn = _lib.drmModeGetConnector(self.fd, self._connectors[i]).contents
+      conn = _GetDRMLibrary().drmModeGetConnector(
+          self.fd, self._connectors[i]).contents
       conn.fd = self.fd
       conn.need_free = True
       ret.append(conn)
@@ -134,7 +135,7 @@ class DRMModeModeInfo(DRMModeBaseStruct):
 
   def __del__(self):
     if self.need_free:
-      _lib.drmModeFreeModeInfo(ctypes.byref(self))
+      _GetDRMLibrary().drmModeFreeModeInfo(ctypes.byref(self))
 
 
 class DRMModeConnector(DRMModeBaseStruct):
@@ -256,7 +257,7 @@ class DRMModeConnector(DRMModeBaseStruct):
 
   def __del__(self):
     if self.need_free:
-      _lib.drmModeFreeConnector(ctypes.byref(self))
+      _GetDRMLibrary().drmModeFreeConnector(ctypes.byref(self))
 
   @property
   def id(self):
@@ -269,7 +270,7 @@ class DRMModeConnector(DRMModeBaseStruct):
 
   @property
   def encoder(self):
-    encoder_ptr = _lib.drmModeGetEncoder(self.fd, self.encoder_id)
+    encoder_ptr = _GetDRMLibrary().drmModeGetEncoder(self.fd, self.encoder_id)
     if encoder_ptr:
       encoder = encoder_ptr.contents
       encoder.fd = self.fd
@@ -289,7 +290,7 @@ class DRMModeConnector(DRMModeBaseStruct):
     if not blob_id:
       return None
 
-    blob = _lib.drmModeGetPropertyBlob(self.fd, blob_id).contents
+    blob = _GetDRMLibrary().drmModeGetPropertyBlob(self.fd, blob_id).contents
     blob.fd = self.fd
     blob.need_free = True
     return ctypes.cast(blob.data, ctypes.POINTER(ctypes.c_uint8))[0:blob.length]
@@ -328,11 +329,11 @@ class DRMModeEncoder(DRMModeBaseStruct):
 
   def __del__(self):
     if self.need_free:
-      _lib.drmModeFreeEncoder(ctypes.byref(self))
+      _GetDRMLibrary().drmModeFreeEncoder(ctypes.byref(self))
 
   @property
   def crtc(self):
-    crtc = _lib.drmModeGetCrtc(self.fd, self.crtc_id).contents
+    crtc = _GetDRMLibrary().drmModeGetCrtc(self.fd, self.crtc_id).contents
     crtc.fd = self.fd
     crtc.need_free = True
     return crtc
@@ -367,13 +368,13 @@ class DRMModeCrtc(DRMModeBaseStruct):
 
   def __del__(self):
     if self.need_free:
-      _lib.drmModeFreeCrtc(ctypes.byref(self))
+      _GetDRMLibrary().drmModeFreeCrtc(ctypes.byref(self))
 
   @property
   def framebuffer(self):
     if not self.buffer_id:
       return None
-    ret = _lib.drmModeGetFB(self.fd, self.buffer_id).contents
+    ret = _GetDRMLibrary().drmModeGetFB(self.fd, self.buffer_id).contents
     ret.fd = self.fd
     ret.need_free = True
     return ret
@@ -434,7 +435,7 @@ class DRMModeFB(DRMModeBaseStruct):
 
   def __del__(self):
     if self.need_free:
-      _lib.drmModeFreeFB(ctypes.byref(self))
+      _GetDRMLibrary().drmModeFreeFB(ctypes.byref(self))
 
   @property
   def contents(self):
@@ -462,8 +463,8 @@ class DRMModeFB(DRMModeBaseStruct):
       return
     map_dumb = self.DRMModeMapDumb()
     map_dumb.handle = self.handle   # pylint: disable=W0201
-    ret = _lib.drmIoctl(self.fd, self.DRM_IOCTL_MODE_MAP_DUMB,
-                        ctypes.byref(map_dumb))
+    ret = _GetDRMLibrary().drmIoctl(self.fd, self.DRM_IOCTL_MODE_MAP_DUMB,
+                                    ctypes.byref(map_dumb))
     if ret:
       raise DRMError(ret, os.strerror(ret))
     size = self.pitch * self.height
@@ -495,7 +496,7 @@ class DRMModePropertyBlob(DRMModeBaseStruct):
 
   def __del__(self):
     if self.need_free:
-      _lib.drmModeFreePropertyBlob(ctypes.byref(self))
+      _GetDRMLibrary().drmModeFreePropertyBlob(ctypes.byref(self))
 
 
 class DRM(object):
@@ -507,7 +508,7 @@ class DRM(object):
 
   @property
   def resources(self):
-    ret = _lib.drmModeGetResources(self.fd).contents
+    ret = _GetDRMLibrary().drmModeGetResources(self.fd).contents
     ret.fd = self.fd
     ret.need_free = True
     return ret
@@ -564,4 +565,15 @@ def _LoadDRMLibrary():
 
   return lib
 
-_lib = _LoadDRMLibrary()
+
+def _GetDRMLibrary():
+  if _lib:
+    return _lib
+  else:
+    raise DRMError('DRM library is not available')
+
+
+try:
+  _lib = _LoadDRMLibrary()
+except OSError:
+  _lib = None

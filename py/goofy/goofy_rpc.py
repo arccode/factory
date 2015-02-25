@@ -86,7 +86,7 @@ class GoofyRPC(object):
         # Failure; put e.
         logging.exception('Exception in RPC handler')
         result.put((None, e))
-      except:
+      except Exception:
         # Failure (but not an Exception); wrap whatever it is in an exception.
         result.put((None, GoofyRPCException(utils.FormatExceptionOnly())))
 
@@ -128,9 +128,10 @@ class GoofyRPC(object):
       # put this in a separate method to rebind m, since it will
       # change during the next for loop iteration.)
       def SetEntry(m):
-        # pylint: disable=W0108
+        # pylint: disable=W0108,W0640
         state_instance.__dict__[name] = (
             lambda *args, **kwargs: m(*args, **kwargs))
+        # pylint: enable=W0108,W0640
       SetEntry(m)
 
   def FlushEventLogs(self):
@@ -770,7 +771,7 @@ class GoofyRPC(object):
     # In second stage, we execute slower commands and return their results.
     else:
       result = (
-          [eval(reload_function)
+          [eval(reload_function)  # pylint: disable=W0123
            for reload_function in json.loads(reload_function_array)])
 
       return json.dumps(result)
@@ -1208,7 +1209,7 @@ class GoofyRPC(object):
 
     Args:
       left: The offset in pixels from left.
-      top: The offiset in pixels from top.
+      top: The offset in pixels from top.
       timeout: Seconds to wait before RPC timeout.
 
     Returns:
@@ -1305,7 +1306,7 @@ def main():
                  """RunTest('RunIn.Stress.BadBlocks')""")
 
   logging.info('Evaluating expression: %s', args.command)
-  ret = eval(args.command, {},
+  ret = eval(args.command, {},  # pylint: disable=W0123
              dict((x, getattr(goofy, x))
                   for x in GoofyRPC.__dict__.keys()
                   if not x.startswith('_')))
