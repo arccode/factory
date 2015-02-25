@@ -18,13 +18,13 @@ pattern:
     - audio_codec: 1
     - battery: 2
     - bluetooth: 0
-    - camera: 0
     - cellular: 1
     - chipset: 0
     - cpu: 1                  # 5 bits
     - display_panel: 0
     - dram: 1
     - keyboard: 1
+    - video: 0
     - cpu: 1
     - storage: 2              # 10 bits
     - cpu: 1
@@ -38,13 +38,13 @@ pattern:
     - audio_codec: 1
     - battery: 2
     - bluetooth: 0
-    - camera: 0
     - cellular: 1
     - chipset: 0
     - cpu: 1                  # 5 bits
     - display_panel: 0
     - dram: 1
     - keyboard: 1
+    - video: 0
     - cpu: 1
     - storage: 2              # 10 bits
     - cpu: 1
@@ -70,9 +70,6 @@ encoded_fields:
   bluetooth:
     0:
       bluetooth: bluetooth_0
-  camera:
-    0:
-      camera: camera_0
   cellular:
     0:
       cellular: NULL
@@ -125,6 +122,9 @@ encoded_fields:
       storage: storage_1
     2:
       storage: storage_2
+  video:
+    0:
+      video: camera_0
   firmware:
     0:
       hash_gbb: hash_gbb_0
@@ -189,14 +189,6 @@ components:
           idVendor: '0123'
           idProduct: abcd
           bcd: '0001'
-
-  camera:
-    items:
-      camera_0:
-        values:
-          idVendor: '4567'
-          idProduct: abcd
-          name: Camera
 
   cellular:
     items:
@@ -323,6 +315,14 @@ components:
         labels:
           technology: HDD
           size: 500G
+
+  video:
+    items:
+      camera_0:
+        values:
+          idVendor: '4567'
+          idProduct: abcd
+          type: webcam
 
   hash_gbb:
     items:

@@ -11,10 +11,6 @@ found_probe_value_map:
     idVendor: '0123'
     idProduct: abcd
     bcd: '0001'
-  camera:
-    idVendor: '4567'
-    idProduct: abcd
-    name: Camera
   chipset:
     compact_str: cdef:abcd
   cpu:
@@ -35,6 +31,10 @@ found_probe_value_map:
     type: SSD
     size: 16G
     serial: '#123456'
+  video:
+    idVendor: '4567'
+    idProduct: abcd
+    type: webcam
 found_volatile_values:
   hash_gbb:
     compact_str: gv2#hash_gbb_0

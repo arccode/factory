@@ -121,10 +121,6 @@ class DatabaseTest(unittest.TestCase):
                        {'idVendor': Value('0123'), 'idProduct': Value('abcd'),
                         'bcd': Value('0001')},
                        None)],
-        'camera': [('camera_0',
-                    {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
-                     'name': Value('Camera')},
-                    None)],
         'cellular': [(None, None, "Missing 'cellular' component")],
         'chipset': [('chipset_0', {'compact_str': Value('cdef:abcd')}, None)],
         'cpu': [('cpu_5',
@@ -164,13 +160,16 @@ class DatabaseTest(unittest.TestCase):
         'storage': [('storage_0',
                      {'type': Value('SSD'), 'size': Value('16G'),
                       'serial': Value(r'^#123\d+$', is_re=True)},
-                     None)]},
+                     None)],
+        'video': [('camera_0',
+                   {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
+                    'type': Value('webcam')},
+                    None)]},
                       bom.components)
     self.assertEquals({
         'audio_codec': 1,
         'battery': 3,
         'bluetooth': 0,
-        'camera': 0,
         'cellular': 0,
         'chipset': 0,
         'cpu': 5,
@@ -181,7 +180,8 @@ class DatabaseTest(unittest.TestCase):
         'firmware': 0,
         'flash_chip': 0,
         'keyboard': None,
-        'storage': 0}, bom.encoded_fields)
+        'storage': 0,
+        'video': 0}, bom.encoded_fields)
 
     result = yaml.load(result)
     result['found_probe_value_map']['chipset']['compact_str'] = 'something else'
@@ -190,7 +190,6 @@ class DatabaseTest(unittest.TestCase):
         'audio_codec': 1,
         'battery': 3,
         'bluetooth': 0,
-        'camera': 0,
         'cellular': 0,
         'chipset': None,
         'cpu': 5,
@@ -201,7 +200,8 @@ class DatabaseTest(unittest.TestCase):
         'firmware': 0,
         'flash_chip': 0,
         'keyboard': None,
-        'storage': 0}, self.database.ProbeResultToBOM(result).encoded_fields)
+        'storage': 0,
+        'video': 0}, self.database.ProbeResultToBOM(result).encoded_fields)
 
   def testUpdateComponentsOfBOM(self):
     bom = self.database.ProbeResultToBOM(self.results[0])
@@ -464,7 +464,6 @@ class PatternTest(unittest.TestCase):
     self.assertEquals(1, length['audio_codec'])
     self.assertEquals(2, length['battery'])
     self.assertEquals(0, length['bluetooth'])
-    self.assertEquals(0, length['camera'])
     self.assertEquals(1, length['cellular'])
     self.assertEquals(0, length['chipset'])
     self.assertEquals(3, length['cpu'])
@@ -479,6 +478,7 @@ class PatternTest(unittest.TestCase):
     self.assertEquals(0, length['tpm'])
     self.assertEquals(0, length['usb_hosts'])
     self.assertEquals(0, length['vga'])
+    self.assertEquals(0, length['video'])
     self.assertEquals(0, length['wireless'])
     self.assertEquals(5, length['firmware'])
 

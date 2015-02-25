@@ -38,10 +38,6 @@ class DecoderTest(unittest.TestCase):
                        {'idVendor': Value('0123'), 'idProduct': Value('abcd'),
                         'bcd': Value('0001')},
                        None)],
-        'camera': [('camera_0',
-                    {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
-                     'name': Value('Camera')},
-                    None)],
         'cellular': [(None, None, "Missing 'cellular' component")],
         'chipset': [('chipset_0', {'compact_str': Value('cdef:abcd')}, None)],
         'cpu': [('cpu_5',
@@ -79,7 +75,11 @@ class DecoderTest(unittest.TestCase):
         'storage': [('storage_0',
                      {'type': Value('SSD'), 'size': Value('16G'),
                       'serial': Value(r'^#123\d+$', is_re=True)},
-                     None)]}
+                     None)],
+        'video': [('camera_0',
+                   {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
+                    'type': Value('webcam')},
+                    None)]}
 
   def testEncodedStringToBinaryString(self):
     self.assertEquals('0000000000111010000011',

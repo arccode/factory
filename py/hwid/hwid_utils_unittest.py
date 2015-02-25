@@ -284,7 +284,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     self.assertEquals(
         {'audio_codec': 1, 'battery': 3, 'ec_flash_chip': 0, 'firmware': 0,
          'storage': 0, 'flash_chip': 0, 'bluetooth': 0,
-         'embedded_controller': 0, 'camera': 0, 'display_panel': 0,
+         'embedded_controller': 0, 'video': 0, 'display_panel': 0,
          'cellular': 0, 'keyboard': 0, 'dram': 0, 'chipset': 0, 'cpu': 5},
         hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U').bom.encoded_fields)
 

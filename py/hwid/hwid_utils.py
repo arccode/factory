@@ -170,7 +170,7 @@ def VerifyComponents(db, probed_results, component_list):
   Args:
     db: A Database object to be used.
     probed_results: A dict containing the probed results to be verified.
-    component_list: A list of components to verify. (e.g., ['camera', 'cpu'])
+    component_list: A list of components to verify. (e.g., ['cpu', 'video'])
 
   Returns:
     A dict from component class to a list of one or more
