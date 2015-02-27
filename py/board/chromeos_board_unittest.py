@@ -404,7 +404,7 @@ batt_state_of_charge = 52%
         self.board.GetBoardVersion)
     self.mox.VerifyAll()
 
-  def testGetUSBPDStatus(self):
+  def testGetUSBPDStatusV0(self):
     self.board._CallECTool(
         ['--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
             'Port C0 is enabled, Role:SRC Polarity:CC1 State:8')
@@ -425,6 +425,32 @@ batt_state_of_charge = 52%
     self.assertEquals('SNK', status['role'])
     self.assertEquals('CC2', status['polarity'])
     self.assertEquals(11, status['state'])
+
+    self.mox.VerifyAll()
+
+  def testGetUSBPDStatusV1(self):
+    self.board._CallECTool(
+        ['--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+            'Port C0 is enabled, Role:SRC UFP Polarity:CC1 State:SRC_READY')
+    self.board._CallECTool(
+        ['--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+            'Port C1 is disabled, Role:SNK DFP Polarity:CC2 State:SNK_DISCOVERY')
+
+    self.mox.ReplayAll()
+
+    status = self.board.GetUSBPDStatus(0)
+    self.assertTrue(status['enabled'])
+    self.assertEquals('SRC', status['role'])
+    self.assertEquals('UFP', status['datarole'])
+    self.assertEquals('CC1', status['polarity'])
+    self.assertEquals('SRC_READY', status['state'])
+
+    status = self.board.GetUSBPDStatus(1)
+    self.assertFalse(status['enabled'])
+    self.assertEquals('SNK', status['role'])
+    self.assertEquals('DFP', status['datarole'])
+    self.assertEquals('CC2', status['polarity'])
+    self.assertEquals('SNK_DISCOVERY', status['state'])
 
     self.mox.VerifyAll()
 

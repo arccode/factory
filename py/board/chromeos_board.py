@@ -40,10 +40,14 @@ class ChromeOSBoard(Board):
       r'Design capacity:\s+([1-9]\d*)\s+mAh')
 
   # USB PD info.
-  USB_PD_INFO_RE = re.compile(
+  USB_PD_INFO_RE_V0 = re.compile(
       r'Port C(?P<port>\d+) is (?P<enabled>enabled|disabled), '
       r'Role:(?P<role>SRC|SNK) Polarity:(?P<polarity>CC1|CC2) '
       r'State:(?P<state>\d+)')
+  USB_PD_INFO_RE_V1 = re.compile(
+      r'Port C(?P<port>\d+) is (?P<enabled>enabled|disabled), '
+      r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) Polarity:(?P<polarity>CC1|CC2) '
+      r'State:(?P<state>\w+)')
 
   # EC tool arguments for accessing PD. Subclass may override this to match the
   # arguments used on the actual board.
@@ -278,14 +282,22 @@ class ChromeOSBoard(Board):
 
   def GetUSBPDStatus(self, port):
     response = self._CallECTool(self.ECTOOL_PD_ARGS + ['usbpd', '%d' % port])
-    match = self.USB_PD_INFO_RE.match(response)
-    if not match:
-      raise BoardException('Unable to parse USB PD status from: %s' % response)
-    return dict(
-        enabled=match.group('enabled') == 'enabled',
-        role=match.group('role'),
-        polarity=match.group('polarity'),
-        state=int(match.group('state')))
+    match = self.USB_PD_INFO_RE_V1.match(response)
+    if match:
+      return dict(
+          enabled=match.group('enabled') == 'enabled',
+          role=match.group('role'),
+          datarole=match.group('datarole'),
+          polarity=match.group('polarity'),
+          state=match.group('state'))
+    match = self.USB_PD_INFO_RE_V0.match(response)
+    if match:
+      return dict(
+          enabled=match.group('enabled') == 'enabled',
+          role=match.group('role'),
+          polarity=match.group('polarity'),
+          state=int(match.group('state')))
+    raise BoardException('Unable to parse USB PD status from: %s' % response)
 
   def GetPDGPIOValue(self, gpio_name):
     gpio_info_re = re.compile(r'^GPIO %s = (\d)' % gpio_name)
