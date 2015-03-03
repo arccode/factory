@@ -3,19 +3,43 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-INIT_BASE="/usr/local/factory/init"
-FACTORY_BASE="/usr/local/factory"
+INIT_BASE="$(dirname $(readlink -f $0))"
 GOOFY_ROLES=""
 
-export INIT_BASE FACTORY_BASE GOOFY_ROLES
+export INIT_BASE GOOFY_ROLES
 
 execute_rules() {
   local init_folder="$1"
   local rule_file=""
 
   for rule_file in "${INIT_BASE}/${init_folder}"/*.sh; do
+    [ -e "${rule_file}" ] || continue  # Skip if no rules found.
     echo "Applying ${rule_file}..."
     "${rule_file}"
+  done
+}
+
+execute_optional_rules() {
+  local init_folder="$1"
+  local prefix="$2"
+  local rule_file=""
+  local rule_name=""
+  for rule_name in ${INIT_BASE}/${prefix}_*; do
+    [ -e "${rule_name}" ] || continue  # Skip if no rules found.
+    # Strip the directory and prefix so we can get the real rule name.
+    # For example, init/run_whale_servo => whale_servo.
+    rule_name="${rule_name##*/${prefix}_}"
+    rule_file="${INIT_BASE}/${init_folder}/${rule_name}.sh"
+    if [ -x "${rule_file}" ]; then
+      echo "Applying ${rule_file}..."
+      "${rule_file}"
+    elif [ "${rule_name#goofy_}" != "${rule_name}" ]; then
+      # Skip rules with name started as "goofy_" because they will be invoked in
+      # a different way.
+      true
+    else
+      echo "No rule files found for [${rule_name}]."
+    fi
   done
 }
 
@@ -25,14 +49,7 @@ main() {
 
   execute_rules common.d
   execute_rules iptables.d
-
-  # Optional daemons.
-  for tag_file in ${INIT_BASE}/tag_*; do
-    local tag_script="${INIT_BASE}/tags.d/start_${tag_file#${INIT_BASE}/tag_}"
-    if [ -x "${tag_script}" ]; then
-      "${tag_script}"
-    fi
-  done
+  execute_optional_rules run.d run
 
   # TODO(hungte) Stop here to support fixtures that don't run Goofy.
 

@@ -6,7 +6,7 @@
 MYDIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_BASE="/usr/local/factory"
 
-TAG_FILE="${MYDIR}/../tag_whale_servo"
+CONFIG_FILE="${MYDIR}/../run_whale_servo"
 SERVOD_DIR="/var/lib/servod"
 SERVOD_CONFIG="${SERVOD_DIR}/config"
 
@@ -20,7 +20,7 @@ WHALE_SERVO_BIN="${FACTORY_BASE}/py/test/fixture/whale/host/whale_servo"
 DOLPHIN_SERVER_BIN="${FACTORY_BASE}/py/test/fixture/whale/host/dolphin_server"
 
 start_servod() {
-  . $TAG_FILE
+  . ${CONFIG_FILE}
   if [ -n "${BOARD}" ]; then
     mkdir -p $SERVOD_DIR
     echo "BOARD=${BOARD}" >$SERVOD_CONFIG

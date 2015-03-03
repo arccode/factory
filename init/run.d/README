@@ -1,0 +1,6 @@
+This folder supports running additional services on a ChromiumOS factory test
+image. To add your own service, create a NAME.sh in run.d folder, and then
+create a run_NAME file in the init folder.
+
+Factory init service will only run your run.d/NAME.sh if the run_NAME tag file
+exist.
