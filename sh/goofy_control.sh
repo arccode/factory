@@ -176,36 +176,6 @@ init_network() {
   ifconfig lo up
 }
 
-# http://crbug.com/410233: If TPM is owned, UI may get freak.
-check_tpm() {
-  if [ "$(crossystem mainfw_type 2>/dev/null)" = "nonchrome" ] ||
-     [ "$(cat /sys/class/misc/tpm0/device/owned 2>/dev/null)" != "1" ]; then
-    return
-  fi
-  # If TPM is owned, we have to reboot otherwise UI may get freak.
-  # Alert user and try to clear TPM.
-  stop -n ui >/dev/null 2>&1 &
-  echo "
-        Sorry, you must clear TPM owner before running factory UI.
-        We are going to do that for you (and then reboot) in 10 seconds.
-
-        If you want to abort, do Ctrl-Alt-F2, login, and run
-
-          stop factory
-       "
-  show_interactive_console
-  for i in $(seq 10 -1 0); do
-    echo " > Clear & reboot in ${i} seconds..."
-    sleep 1
-  done
-
-  crossystem clear_tpm_owner_request=1
-  echo "Restarting system..."
-  reboot
-  # Wait forever.
-  sleep 1d
-}
-
 start_factory() {
   init_output
 
@@ -226,7 +196,6 @@ start_factory() {
   init_tty
   init_network
 
-  check_tpm
   check_disk_usage
 
   if [ -z "$(status ui | grep start)" ]; then
