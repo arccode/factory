@@ -99,10 +99,10 @@ def _GetFactoryBundleInfo(board, factory_branch, repo_sync):
   bundle_readme_relpath = os.path.join(
       'chromeos-base', 'chromeos-factory-board', 'files', 'bundle', 'README')
 
-  # Do repo syncs (followed by a rebase+sync if it fails).
+  # Do repo sync -n (fetch only, don't update working tree).
   if repo_sync:
     process_utils.Spawn(
-        'repo sync . || (repo rebase . && repo sync .)',
+        'repo sync -n .',
         log=True, cwd=overlay_relpath, shell=True, check_call=True)
 
   try:
@@ -123,8 +123,8 @@ def _GetFactoryBundleInfo(board, factory_branch, repo_sync):
       r'((?:(?!\*\*\*).)+)', bundle_readme, re.DOTALL)
 
   # Group(1) contains the 'KEY: VALUE (COMMENT)' pairs in vital contents.
-  RE_KEY = r'([\w \(\)/-]+)'
-  RE_VALUE = r'([\w._-]+)'
+  RE_KEY = r'([\w \(\)\./_-]+)'
+  RE_VALUE = r'([\w \._-]+)'
   RE_IGNORE_COMMENT = r'(?: \(.*?\))?'
   RE_VITAL_CONTENTS = RE_KEY + r':\s+' + RE_VALUE + RE_IGNORE_COMMENT + r'\n'
   vital_key_value = re.findall(RE_VITAL_CONTENTS, vital_info.group(1))
@@ -191,7 +191,7 @@ _ExtractBaseboardAndVersion.static_dict = {
     }
 
 
-def GetFactoryBranchInfo(board, base_board, boards_yaml=None):
+def GetFactoryBranchInfo(board, base_board, repo_sync, boards_yaml=None):
   """Gets factory branch info.
 
   Gets factory branch info for a board, or all boards based on the base_board,
@@ -201,6 +201,7 @@ def GetFactoryBranchInfo(board, base_board, boards_yaml=None):
     board: The board name to get its factory branch info.
     base_board: The base board name to get factory branches info for
         all boards base on the base_board.
+    repo_sync: whether to 'repo sync' in platform/chromeos-hwid repo.
     boards_yaml: A local yaml file specifying factory branch info for
         all boards.
 
@@ -215,6 +216,12 @@ def GetFactoryBranchInfo(board, base_board, boards_yaml=None):
     if not os.path.exists(hwid_dir):
       logging.error('No %s in source tree.', hwid_dir)
       sys.exit(1)
+
+    # Do repo sync -n (fetch only, don't update working tree).
+    if repo_sync:
+      process_utils.Spawn(
+          'repo sync -n .',
+          log=True, cwd=hwid_dir, shell=True, check_call=True)
 
     # Always read boards.yaml from ToT as all boards are required to have an
     # entry in it.
@@ -268,10 +275,10 @@ def OutputBundleInfo(boards_branch_info, html_file, sync):
   """Print factory bundle information.
 
   Args:
-   boards_branch_info: A list of tuples, each tuple is (board, factory_branch)
-       containing the board name and its factory branch name.
-   html_file: File name to store the output in HTML format.
-   sync: Whether to sync codebase to get the latest info.
+    boards_branch_info: A list of tuples, each tuple is (board, factory_branch)
+        containing the board name and its factory branch name.
+    html_file: File name to store the output in HTML format.
+    sync: Whether to sync codebase to get the latest info.
   """
   output_lines = [BundleFields]
   for board, branch in boards_branch_info:
@@ -342,7 +349,8 @@ def ParseArgs():
                             '    board: CANDY\n'
                             '    branch: factory-rambi-6420.B\n'))
   parser.add_argument('--no-sync', action='store_false', dest='sync',
-                      help="Don't run repo sync in board private overlays.")
+                      help=('Don\'t run repo sync in platform/chromeos-hwid '
+                            'repo and board private overlays.'))
   parser.add_argument('--yes', '-y', action='store_true',
                       help="Don't ask for confirmation to repo sync.")
 
@@ -352,12 +360,13 @@ def ParseArgs():
 def main():
   args = ParseArgs()
   if not args.yes and args.sync:
-    answer = raw_input('*** repo sync will be invoked in private overlays.\n'
+    answer = raw_input('*** repo sync will be invoked in platform/'
+                       'chromeos-hwid repo and board private overlays.\n'
                        '*** Continue? [y/N] ')
     if not answer or answer[0] not in 'yY':
       sys.exit('Aborting.')
   boards_branch_info = GetFactoryBranchInfo(
-      args.board, args.base_board, args.boards_yaml)
+      args.board, args.base_board, args.sync, args.boards_yaml)
   OutputBundleInfo(boards_branch_info, args.html_file, args.sync)
 
 
