@@ -3,59 +3,53 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-MYDIR="$(dirname "$(readlink -f "$0")")"
+INIT_BASE="/usr/local/factory/init"
 FACTORY_BASE="/usr/local/factory"
-IPTABLESD="${FACTORY_BASE}/init/iptables.d"
+GOOFY_ROLES=""
 
-is_freon() {
-  # Currently we only install frecon on freon boards.
-  if [ -x "/sbin/frecon" ]; then
-    return 0
-  else
-    return 1
-  fi
-}
+export INIT_BASE FACTORY_BASE GOOFY_ROLES
 
-run_chrome_in_tmp() {
-  # For factory environment, we don't need to preserve Chrome session data.
-  mount -t tmpfs none /home/chronos
+execute_rules() {
+  local init_folder="$1"
+  local rule_file=""
+
+  for rule_file in "${INIT_BASE}/${init_folder}"/*.sh; do
+    echo "Applying ${rule_file}..."
+    "${rule_file}"
+  done
 }
 
 main() {
-  # For freon boards: We disable powerd in factory test mode, but the screen
-  # backlight is turned on by powerd. Manually set the brightness level to
-  # 50% of max brightness.
-  if is_freon; then
-    backlight_tool --set_brightness_percent=50.0
-  fi
+  echo "Starting ChromeOS factory initialization..."
+  local rule_file
 
-  # Load iptables rules
-  for rule_file in ${IPTABLESD}/*.sh; do
-    "$rule_file"
-  done
+  execute_rules common.d
+  execute_rules iptables.d
 
-  # Install console (VT2) customizations
-  mount --bind "${MYDIR}/profile.d/vt2.sh" /etc/profile.d/cursor.sh
-
-  for tag_file in ${MYDIR}/tag_*; do
-    local tag_script="${MYDIR}/tags.d/start_${tag_file#${MYDIR}/tag_}"
+  # Optional daemons.
+  for tag_file in ${INIT_BASE}/tag_*; do
+    local tag_script="${INIT_BASE}/tags.d/start_${tag_file#${INIT_BASE}/tag_}"
     if [ -x "${tag_script}" ]; then
       "${tag_script}"
     fi
   done
 
-  local tag_presenter="${MYDIR}/run_goofy_presenter"
-  local tag_device="${MYDIR}/run_goofy_device"
+  # TODO(hungte) Stop here to support fixtures that don't run Goofy.
 
-  if [ -f "${tag_presenter}" ]; then
-    # Presenter-only or standalone mode.
-    mount --bind "${MYDIR}/etc/presenter.conf" /etc/chrome_dev.conf
-    run_chrome_in_tmp
-  elif [ ! -f "${tag_device}" ]; then
-    # Monolithic mode.
-    mount --bind "${MYDIR}/etc/chrome_dev.conf" /etc/chrome_dev.conf
-    run_chrome_in_tmp
-  fi
+  # Determine Goofy roles (device or presenter).
+  local tag_presenter="${INIT_BASE}/run_goofy_presenter"
+  local tag_device="${INIT_BASE}/run_goofy_device"
+  local role
+
+  [ -f "${tag_device}" ] && GOOFY_ROLES="${GOOFY_ROLES} device"
+  [ -f "${tag_presenter}" ] && GOOFY_ROLES="${GOOFY_ROLES} presenter"
+  [ -z "${GOOFY_ROLES}" ] && GOOFY_ROLES="${GOOFY_ROLES} device monolithic"
+  echo "Goofy roles: ${GOOFY_ROLES}"
+
+  for role in ${GOOFY_ROLES}; do
+    execute_rules goofy.d/${role}
+  done
 }
 
-main "$@"
+mkdir -p /var/log
+main "$@" 2>&1 | tee /var/log/factory-init-startup.log

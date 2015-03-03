@@ -14,7 +14,8 @@ The new solution is to alter UI startup procedure:
 1. /etc/init/factory-init.conf must be executed when 'starting'
    boot-services.conf (before UI is started), then calls factory/init/startup.
 
-2. factory/init/startup will change /etc/chrome_dev.conf (which will be parsed
+2. factory/init/startup will apply any rules in in its sub folders, for
+   example binding a customized /etc/chrome_dev.conf (which will be parsed
    by Chrome session manager and applied for startup in "ui.conf").
 
 Now, when everything is set, we'll have a new and unified boot flow:
