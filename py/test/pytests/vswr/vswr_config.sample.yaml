@@ -1,0 +1,256 @@
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This is the sample config file of VSWR test.
+
+
+# Info of this config file.
+info:
+  name: VSWR Config Sample  # human-readable name
+  last_updated: 2015-03-13 12:00:00  # last update time
+
+
+# Config of the host.
+host:
+  # "network" specifies how the host connects to the ENA.  It contains 3 keys:
+  #
+  #   interface: Specifies the interface that connects to the network
+  #       analyzer.  Can be set to a real interface name like "eth1", alias
+  #       like: "eth1:1", default interface "default", alias of default
+  #       interface "default:1", or "auto".  If set to "auto", the system simply
+  #       does nothing but assumes that the host can connect to the ENA
+  #       directly.  If set to "default" or "default:x" (where x is the alias
+  #       number), the system tries to replace "default" with the real interface
+  #       name like "eth0" or "eth1".
+  #   ip: If "interface" is set to a real interface name, the system will try to
+  #       set the interface IP to this value.  No use if "interface" is "auto".
+  #   netmask: If "interface" is set to a real interface name, the system will
+  #       try to set the interface netmask to this value.  No use if "interface"
+  #       is "auto".
+  #
+  # Examples:
+  #
+  #   network:
+  #     interface: auto
+  #
+  #   network:
+  #     interface: default
+  #     ip: 192.168.132.88
+  #     netmask: 255.255.255.0
+  #
+  #   network:
+  #     interface: eth0:1
+  #     ip: 192.168.132.88
+  #     netmask: 255.255.255.0
+  #
+  # Normally we'd like to connect both the ENA and host to a router (with the
+  # router's uplink to shopfloor) and set this to auto.  But in case we don't
+  # have a router, we'll need to use the 2nd or 3rd examples to config.
+  network:
+    interface: auto
+
+
+# Config of the network analyzer (ENA).
+network_analyzer:
+  # "possible_ips" lists all possible IPs of the ENA.  The system will try to
+  # ping these IPs simultaneously, and use the first reachable IP after all ping
+  # processes returned.  That is, if both the 2nd one and 3rd one are reachable,
+  # the system chooses the 2nd one.
+  #
+  # In fact, we need only one ENA IP address since there will be only one ENA.
+  # But it would be more convenient to make this a list.  Say you're testing a
+  # config file on your computer and later you want to upload it to shopfloor.
+  # Your computer runs an ENA mock with a different IP than the real ENA in the
+  # factory.  Now the only thing you need to do is to add both IPs here.  If
+  # this was not a list, you would have to change the IP every time before
+  # uploading.
+  #
+  # TODO(littlecvr): Different behavior from the previous code.  Modify the code
+  #                  to match the comment here.
+  possible_ips:
+  - 10.3.0.12
+  - 192.168.132.11
+  - 192.168.132.22
+  - 192.168.132.33
+  - 192.168.132.44
+
+  # "possible_ids" whitelists all ENA IDs that the system accepts.  It's a list
+  # of key-value pairs, where key is the ENA ID like MY12345678 and value is
+  # the human-readable name.  If "possible_ids" is set to null, any ID will be
+  # accepted.
+  #
+  # Examples:
+  #
+  #   possible_ids: null  # this accepts any ID
+  #
+  #   possible_ids:
+  #     MY12345678: ENA in line A
+  #     MY87654321: ENA in line B
+  possible_ids: null  # this accepts any ID
+
+  # "measure_segment" specifies the "min_frequency", "max_frequency", and
+  # "sample_points" to the ENA.  For more info, please refer to the ENA's
+  # manual.
+  measure_segment:
+    min_frequency: 1500000000.0
+    max_frequency: 6000000000.0
+    sample_points: 1601
+
+  # "calibration_check_thresholds" is a dict which contains both "min" and "max"
+  # elements.  When running the test, before plugging in the antenna each time,
+  # the system checks if values on all sample points (see "measure_segment"
+  # above) are between this tuple (ideally they should all be 0).  If any of the
+  # sample points are outside the range [min, max], the system rejects to test
+  # the next DUT and notifies the user to re-calibrate the ENA.
+  calibration_check_thresholds:
+    min: -0.5
+    max: 0.5
+
+  # TODO(littlecvr): Figure out if we can remove this.
+  # set_marker: []
+  # sweep_restore: null
+  # take_screenshot: false
+
+
+# Config of shopfloor.
+#
+# TODO(littlecvr): Figure out if we can remove this.
+# shopfloor:
+#   enabled: true
+#   ignore_on_fail: false
+#   timeout: 15
+
+
+# Config of the test itself.
+test:
+  # TODO(littlecvr): Figure out if we can remove this (suppose the test does
+  #                  calibration check every time).
+  # max_iterations: 3000
+
+  # Test-wide thresholds.  This can be overriden by "default_thresholds" in
+  # "device_models" or "thresholds" in "measurement_sequence" below.
+  #
+  # When the system finishes measuring the spectrum and is judging whether the
+  # unit passed or not.  It works like this:
+  #
+  #   for each sample_point in measurement:
+  #     if sample_point.frequency is in measurement_sequence
+  #         and measurement_sequence.frequency is not null:
+  #       thresholds = measurement_sequence.frequency
+  #     else if default_thresholds is in device_models and is not null:
+  #       thresholds = device_models.default_thresholds
+  #     else if test-wide default_thresholds exists and is not null:
+  #       thresholds = test-wide default_thresholds
+  #     else:
+  #       thresholds = (-inf, inf)
+  #     pass if sample_point.value is in thresholds else fail
+  #
+  # In other words, thresholds in measurement_sequence has the highest priority,
+  # in device_models has the medium priority, and this section has the lowest
+  # priority.
+  #
+  # "min" or "max" can be individually set to null to imply no threshold from
+  # that side, or the entire block can be commented out to imply no threshold
+  # from both sides.
+  default_thresholds:
+    min: -180.0
+    max: -1.0
+
+  # Specifies different profiles by serial number regex.  When a new unit
+  # arrives, the operator scans its serial number, and the system tries to find
+  # a matching among all models defined here.  It will use the first model that
+  # matches.
+  #
+  # The insight of doing this is, for example, if we may want to build WiFi and
+  # WiFi+LTE devices simultaneously.  With this functionality (and assuming that
+  # they can be distinguished by serial number format), we can switch between
+  # them without changing config file.
+  #
+  # In each device model entry, there is a key called "measurement_sequence"
+  # which specifies how the ENA should measure the DUT.  The ENA has only 2 RF
+  # ports, but the DUT may have more than 2 antennas.  So it's not possible to
+  # measure only once.  This element is a sequence of mapping that tells the
+  # system how it should map the RF port to each antenna.
+  #
+  # In the first device model example (WiFi only devices), the device has only 2
+  # antennas.  WiFi main and aux.  But they're on the same side so can't be
+  # tested in one round. Suppose they're near RF port 1 and the RF cable is not
+  # long enough to connect any of the antennas to RF port 2.  Thus, we need 2
+  # rounds.  In the 1st round, we specify that for RF port 1, the antenna's name
+  # is "wifi_main", and also specify thresholds that will override the ones
+  # listed in default_thresholds above.  And because there's nothing to test for
+  # RF port 2, we don't specify key 2.  In the 2nd round we specify port 1 for
+  # wifi_aux antenna and also port 2 as nothing.
+  #
+  # In the second device profile example (WiFi+LTE+GPS devices), the device has
+  # 5 antennas: wifi_main, wifi_aux, lte_main, lte_aux, and gps.  So we need 3
+  # rounds, and in the last round, we set RF port 1 to nothing since the GPS
+  # antenna is closer to port 2.
+  device_models:
+  - name: WiFi only devices  # a human-readable name for this profile
+    serial_number_regex: ^(TESTDEV-WIFI-.*)$  # serial number regex
+    default_thresholds:  # see default_thresholds in test above
+      min: -170.0
+      max: -1.0
+    measurement_sequence:
+    - 1:
+        name: wifi_main
+        thresholds:
+          2400:
+            min: -50.0
+            max: -1.0
+          5000:
+            min: -50.0
+            max: -1.0
+    - 1:
+        name: wifi_aux
+        thresholds:
+          2400:
+            min: -50.0
+            max: -1.0
+          5000:
+            min: -50.0
+            max: -1.0
+  - name: WiFi+LTE+GPS devices
+    serial_number_regex: ^(TESTDEV-LTE-.*)$
+    default_thresholds:
+      min: -170.0
+      max: -1.0
+    measurement_sequence:
+    - 1:
+        name: wifi_main
+        thresholds:
+          2400:
+            min: -50.0
+            max: -1.0
+          5000:
+            min: -50.0
+            max: -1.0
+      2:
+        name: lte_main
+        thresholds:
+          800:
+            min: -30.0
+            max: -1.0
+    - 1:
+        name: wifi_aux
+        thresholds:
+          2400:
+            min: -50.0
+            max: -1.0
+          5000:
+            min: -50.0
+            max: -1.0
+      2:
+        name: lte_aux
+        thresholds:
+          800:
+            min: -30.0
+            max: -1.0
+    - 2:
+        name: gps
+        thresholds:
+          1575:
+            min: -40.0
+            max: -1.0
