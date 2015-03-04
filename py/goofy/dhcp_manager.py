@@ -10,6 +10,7 @@ from __future__ import print_function
 import jsonrpclib
 import logging
 import os
+import signal
 import sys
 
 import factory_common  # pylint: disable=W0611
@@ -35,11 +36,17 @@ class DHCPManager(object):
     on_del: Similar to on_del, but called when a lease is revoked.
   """
 
-  # Where callback files are placed
-  CALLBACK_DIR = '/var/run/dhcpcd'
+  # Where run files are placed
+  VARRUN_DIR = '/var/run/dhcp_manager'
 
   # Callback file name prefix
   CALLBACK_PREFIX = 'dhcp_manager_cb_'
+
+  # Dnsmasq PID file name prefix
+  PID_PREFIX = 'dnsmasq_dhcp_manager_pid_'
+
+  # Lease file name prefix
+  LEASE_PREFIX = 'dnsmasq_leases_'
 
   def __init__(self, interface,
                my_ip='192.168.0.1',
@@ -61,21 +68,24 @@ class DHCPManager(object):
 
   def StartDHCP(self):
     """Starts DHCP service."""
+    if not os.path.exists(self.VARRUN_DIR):
+      os.makedirs(self.VARRUN_DIR)
     self._callback_port = net_utils.FindUnusedTCPPort()
     self._rpc_server = jsonrpc_utils.JSONRPCServer(
         port=self._callback_port, methods={'Callback': self.DHCPCallback})
     self._rpc_server.Start()
     # __file__ may be a generated .pyc file that's not executable. Use .py.
     callback_file_target = __file__.replace('.pyc', '.py')
-    callback_file_symlink = os.path.join(self.CALLBACK_DIR,
+    callback_file_symlink = os.path.join(self.VARRUN_DIR,
                                          '%s%d' % (self.CALLBACK_PREFIX,
                                                    self._callback_port))
-    if not os.path.exists(self.CALLBACK_DIR):
-      os.makedirs(self.CALLBACK_DIR)
     os.symlink(callback_file_target, callback_file_symlink)
     dhcp_range = '%s,%s,%d' % (self._ip_start, self._ip_end, self._lease_time)
     dns_port = net_utils.FindUnusedTCPPort()
-    lease_file = '/var/lib/dhcpcd/dnsmasq-%s.leases' % self._interface
+    lease_file = os.path.join(self.VARRUN_DIR,
+                              '%s%s' % (self.LEASE_PREFIX, self._interface))
+    pid_file = os.path.join(self.VARRUN_DIR,
+                            '%s%s' % (self.PID_PREFIX, self._interface))
     # Make sure the interface is up
     net_utils.SetEthernetIp(self._my_ip, self._interface)
     # Start dnsmasq and have it call back to us on any DHCP event.
@@ -86,10 +96,11 @@ class DHCPManager(object):
          '--bind-interfaces',
          '--port', str(dns_port),
          '--dhcp-leasefile=%s' % lease_file,
+         '--pid-file=%s' % pid_file,
          '--dhcp-script', callback_file_symlink],
         sudo=True, log=True)
     # Make sure the IP address is set on the interface
-    net_utils.SetEthernetIp(self._my_ip, self._interface)
+    net_utils.SetEthernetIp(self._my_ip, self._interface, force=True)
     # Make sure DHCP packets are not blocked
     process_utils.Spawn(['iptables',
                          '--insert', 'INPUT',
@@ -105,6 +116,11 @@ class DHCPManager(object):
     self._process = None
     self._rpc_server.Destroy()
     self._rpc_server = None
+    net_utils.Ifconfig(self._interface, enable=False)
+    callback_file_symlink = os.path.join(self.VARRUN_DIR,
+                                         '%s%d' % (self.CALLBACK_PREFIX,
+                                                   self._callback_port))
+    os.unlink(callback_file_symlink)
 
   def DHCPCallback(self, argv):
     """RPC method that processes the parameters from dnsmasq.
@@ -121,6 +137,26 @@ class DHCPManager(object):
     ip = argv[3]
     if action:
       action(ip)
+
+  @classmethod
+  def CleanupStaleInstance(cls):
+    """Kills all running dnsmasq instance and clean up run directory."""
+    if not os.path.exists(cls.VARRUN_DIR):
+      return
+    for run_file in os.listdir(cls.VARRUN_DIR):
+      if run_file.startswith(cls.PID_PREFIX):
+        intf = run_file[len(cls.PID_PREFIX):]
+        full_run_path = os.path.join(cls.VARRUN_DIR, run_file)
+        with open(full_run_path, 'r') as f:
+          pid = int(f.read())
+        try:
+          os.kill(pid, signal.SIGKILL)
+        except OSError:
+          pass
+        net_utils.Ifconfig(intf, enable=False)
+        os.unlink(full_run_path)
+      if run_file.startswith(cls.CALLBACK_PREFIX):
+        os.unlink(os.path.join(cls.VARRUN_DIR, run_file))
 
 
 if __name__ == '__main__':
