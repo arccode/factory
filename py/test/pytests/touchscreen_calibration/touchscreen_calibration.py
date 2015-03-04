@@ -16,7 +16,6 @@ import xmlrpclib
 
 import factory_common     # pylint: disable=W0611
 import sensors_server
-import touchscreen_calibration_utils
 
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
@@ -28,6 +27,8 @@ from cros.factory.test.fixture.touchscreen_calibration.fixture import (
 from cros.factory.test.media_util import MountedMedia
 from cros.factory.test.test_ui import UI
 from cros.factory.utils.process_utils import SpawnOutput
+from touchscreen_calibration_utils import (
+    IsSuccessful, NetworkStatus, SimpleSystem)
 
 
 # Temporary file to store stdout for commands executed in this test.
@@ -43,7 +44,9 @@ test_name = __name__.split('.')[-1]
 
 
 class Error(Exception):
-  pass
+  def __init__(self, msg):
+    factory.console.error(msg)
+    super(Error, self).__init__()
 
 
 def _CreateXMLRPCSensorsClient(addr=('localhost', 8000)):
@@ -78,17 +81,15 @@ class TouchscreenCalibration(unittest.TestCase):
     self._board = self._GetBoard()
     factory.console.info('Get Board: %s', self._board)
     self.config = sensors_server.TSConfig(self._board)
-    self.sensors_ip = self.config.Read('Sensors', 'SENSORS_IP')
-    self.sensors_port = int(self.config.Read('Sensors', 'SENSORS_PORT'))
     self.use_sensors_server = (
         self.config.Read('Sensors', 'USE_SENSORS_SERVER') == 'True')
     self.sn_length = int(self.config.Read('Misc', 'SN_LENGTH'))
     self.fake_fixture = self.config.Read('Misc', 'FAKE_FIXTURE') == 'True'
     self.use_shopfloor = (self.config.Read('Misc', 'USE_SHOPFLOOR') == 'True')
-    self.network_status = touchscreen_calibration_utils.NetworkStatus(
-        self.sensors_ip, self.args.shopfloor_ip)
     self.sensors = None
     self.start_time = None
+    self.RefreshNetwork(None)
+
     # There are multiple boards running this test now.
     # The log path of a particular board is distinguished by the board name.
     self.aux_log_path = os.path.join('touchscreen_calibration', self._board)
@@ -260,17 +261,58 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def RefreshNetwork(self, unused_event):
     """Refreshes all possible saved state for the old touchscreen.
-    """
-    host_ip = self.network_status.GetHostIP()
-    bb_status = self.network_status.PingBB()
-    shopfloor_status = self.network_status.PingShopfloor()
-    factory.console.info('shopfloor_status: %s', str(shopfloor_status))
-    factory.console.info('shopfloor_ip : %s', self.args.shopfloor_ip)
 
-    self.ui.CallJSFunction('setHostNetworkStatus', str(host_ip))
+    There are two legitimate scenarios of configuring the host network.
+
+    Case 1: there is only 1 network interface on the host
+      Both the host and the BB connect to the same subnet of the
+      shopfloor server and got their IP addresses from a dhcp server.
+
+    Case 2: there are exactly 2 network interfaces on the host
+      The host connects to the same subnet of the shopfloor server and
+      got their IP addresses from a dhcp server.
+
+      Besides, the host and the BB connects directly to each other in which
+      situation the host is assigned DIRECT_HOST_IP and the BB is assigned
+      DIRECT_SENSORS_IP. Both DIRECT_HOST_IP and DIRECT_SENSORS_IP are
+      defined in the board config file.
+    """
+    host_ip_dict = NetworkStatus.GetHostIPs()
+    direct_host_ip = self.config.Read('Sensors', 'DIRECT_HOST_IP')
+    direct_sensors_ip = self.config.Read('Sensors', 'DIRECT_SENSORS_IP')
+    self.sensors_ip = self.config.Read('Sensors', 'SENSORS_IP')
+    if len(host_ip_dict) == 2:
+      for interface, ip in host_ip_dict.items():
+        if ip is None:
+          cmd = 'ifconfig %s %s' % (interface, direct_host_ip)
+          if IsSuccessful(SimpleSystem(cmd)):
+            factory.console.info('Successfully assign direct host ip: %s',
+                                 direct_host_ip)
+          else:
+            raise Error('Failed to assign direct host ip.')
+          host_ip_dict[interface] = direct_host_ip
+          self.sensors_ip = direct_sensors_ip
+        elif ip == direct_host_ip:
+          self.sensors_ip = direct_sensors_ip
+    elif len(host_ip_dict) > 2:
+      msg = 'There should be no more than 2 network interfaces on the host.'
+      raise Error(msg)
+
+    self.sensors_port = int(self.config.Read('Sensors', 'SENSORS_PORT'))
+    self.network_status = NetworkStatus(self.sensors_ip, self.args.shopfloor_ip)
+    bb_status = self.network_status.PingBB()
+    if self.use_shopfloor:
+      shopfloor_status = (self.network_status.PingShopfloor() and
+                          self.args.shopfloor_ip)
+    else:
+      shopfloor_status = 'Skipped for debugging'
+
+    factory.console.info('host_ips: %s', str(host_ip_dict))
+    factory.console.info('bb_status: %s', str(bb_status))
+    factory.console.info('shopfloor_status: %s', str(shopfloor_status))
+    self.ui.CallJSFunction('setHostNetworkStatus', str(host_ip_dict.values()))
     self.ui.CallJSFunction('setBBNetworkStatus', bb_status and self.sensors_ip)
-    self.ui.CallJSFunction('setShopfloorNetworkStatus',
-                           shopfloor_status and self.args.shopfloor_ip)
+    self.ui.CallJSFunction('setShopfloorNetworkStatus', shopfloor_status)
 
   def DriveProbeDown(self, unused_event=None):
     """A wrapper to drive the probe down."""

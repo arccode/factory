@@ -36,7 +36,6 @@ function snEntered(event) {
 function init() {
   test.sendTestEvent('RefreshFixture', {});
   test.sendTestEvent('RefreshTouchscreen', {});
-  test.sendTestEvent('RefreshNetwork', {});
 }
 
 function displayDebugData(data) {

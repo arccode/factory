@@ -159,11 +159,27 @@ class NetworkStatus(object):
     self._BB_ip = BB_ip
     self._shopfloor_ip = shopfloor_ip
 
-  def GetHostIP(self):
-    """Get this host's IP."""
-    cmd = "ifconfig eth0 | egrep 'inet .+netmask.+broadcast' | awk '{print $2}'"
-    ip = SimpleSystemOutput(cmd)
-    return ip or None
+  @staticmethod
+  def GetHostIPs():
+    """Get this host's IPs.
+
+    Its output is a dictionary looking like
+    {
+      'eth0': 10.3.13.25,
+      'eth1': 192.168.2.2,
+    }
+    """
+    interfaces_strings = SimpleSystemOutput('ifconfig | egrep "^eth[0-9]"')
+    interface_dict = {}
+    for line in interfaces_strings.splitlines():
+      # Each line look like
+      #  eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+      interface = line.split(':')[0]
+
+      cmd = "ifconfig %s | egrep 'inet .+netmask.+broadcast' | awk '{print $2}'"
+      ip = SimpleSystemOutput(cmd % interface)
+      interface_dict[interface] = ip or None
+    return interface_dict
 
   def PingBB(self):
     """Ping the Beagle Bone."""
