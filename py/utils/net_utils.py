@@ -17,6 +17,12 @@ import subprocess
 import time
 import xmlrpclib
 
+try:
+  import dbus
+  HAS_DBUS = True
+except ImportError:
+  HAS_DBUS = False
+
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import file_utils
@@ -424,11 +430,26 @@ def GetUnmanagedEthernetInterfaces():
     except OSError:
       return False
 
+  def IsShillUsingDHCP(intf):
+    if HAS_DBUS:
+      bus = dbus.SystemBus()
+      dev = bus.get_object("org.chromium.flimflam", "/device/%s" % intf)
+      dev_intf = dbus.Interface(dev, "org.chromium.flimflam.Device")
+      properties = dev_intf.GetProperties()
+      for config in properties['IPConfigs']:
+        if 'dhcp' in config:
+          return True
+      return False
+    else:
+      # We can't talk to shill without DBus, so let's just check for IP
+      # address.
+      return GetEthernetIp(intf) is not None
+
   if IsShillRunning():
-    # 'shill' running. Let's not mess with it. Just look at the IP address
-    # of each interface.
+    # 'shill' running. Let's not mess with it. Just check whether shill got
+    # DHCP response on each interface.
     return [intf for intf in GetEthernetInterfaces() if
-            GetEthernetIp(intf) is None]
+            not IsShillUsingDHCP(intf)]
   else:
     # 'shill' not running. Use dhclient.
     p = pool.ThreadPool(5)
