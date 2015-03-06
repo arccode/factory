@@ -18,13 +18,11 @@ main groups:
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import OperatorTest
-from cros.factory.test.test_lists.test_lists import TestGroup
 from cros.factory.test.test_lists.test_lists import TestList
 
 
-_SHOPFLOOR_IP = '10.3.0.11'
+_SHOPFLOOR_IP = '10.3.0.12'
 _SHOPFLOOR_PORT = 8082
-_PARAMETER_BASE_NAME = 'vswr.%s.%s.params'
 _DEFAULT_TIMEZONE = 'Asia/Taipei'
 
 
@@ -45,75 +43,45 @@ def CreateTestLists():
   '''
   with TestList('vswr_station', 'VSWR Station') as test_list:
     test_list.options.auto_run_on_start = False
+
     # Override some shopfloor settings.
     test_list.options.sync_event_log_period_secs = 30
     test_list.options.sync_time_period_secs = 300
     test_list.options.update_period_secs = None
-    test_list.options.shopfloor_server_url = 'http://%s:%s/' % (
+
+    # If you're using old shopfloor then add a slash at the end of the URL:
+    # 'http://%s:%s/'.  If you're using umpire then don't add the slash.
+    test_list.options.shopfloor_server_url = 'http://%s:%s' % (
         _SHOPFLOOR_IP, _SHOPFLOOR_PORT)
 
-    with TestGroup(id='Production', label_zh='生产线端测试'):
-      with AutomatedSequence(id='WiFi', label_zh='WiFi 天线'):
-        OperatorTest(
-            id='VSWR',
-            label_en='VSWR WiFi Antenna Test',
-            label_zh=u'VSWR WiFi 天线测试',
-            pytest_name='vswr',
-            dargs={
-                'config_path': (
-                    'rf/vswr/' + _PARAMETER_BASE_NAME % ('prod', 'wifi')),
-                'timezone': _DEFAULT_TIMEZONE,
-                'load_from_shopfloor': True})
-        _SyncShopfloor()
-
-      with AutomatedSequence(id='Cellular', label_zh='Cellular 天线'):
-        OperatorTest(
-            id='VSWR',
-            label_en='VSWR Cellular Antenna Test',
-            label_zh=u'VSWR Cellular 天线测试',
-            pytest_name='vswr',
-            dargs={
-                'config_path': (
-                    'rf/vswr/' + _PARAMETER_BASE_NAME % ('prod', 'cellular')),
-                'timezone': _DEFAULT_TIMEZONE,
-                'load_from_shopfloor': True})
-        _SyncShopfloor()
-
-      with AutomatedSequence(id='LTE', label_zh='LTE 天线'):
-        OperatorTest(
-            id='VSWR',
-            label_en='VSWR LTE Antenna Test',
-            label_zh=u'VSWR LTE 天线测试',
-            pytest_name='vswr',
-            dargs={
-                'config_path': (
-                    'rf/vswr/' + _PARAMETER_BASE_NAME % ('prod', 'lte')),
-                'timezone': _DEFAULT_TIMEZONE,
-                'load_from_shopfloor': True})
-        _SyncShopfloor()
-
-    with TestGroup(id='OfflineDebug', label_zh='非产线除错用'):
+    # TODO(littlecvr): Should separate prepressed and postpressed in order to
+    #                  prevent partners using the wrong one in the factory?
+    with AutomatedSequence(id='VSWRPrepressed',
+                           label_en='VSWR Prepressed', label_zh='VSWR 组装前'):
       OperatorTest(
-          id='VSWRDebugWiFi',
-          label_en='VSWR WiFi Antenna Debug',
-          label_zh=u'VSWR WiFi 天线非产线除错用',
+          id='VSWR',
+          label_en='VSWR Antenna Test',
+          label_zh=u'VSWR 天线测试',
           pytest_name='vswr',
-          dargs={'config_path': _PARAMETER_BASE_NAME % ('debug', 'wifi'),
-                 'timezone': _DEFAULT_TIMEZONE,
-                 'load_from_shopfloor': False})
+          dargs={
+              'event_log_name': 'vswr_prepressed',
+              'shopfloor_log_dir': 'vswr_prepressed',
+              'config_path': 'rf/vswr/vswr_config.prepressed.yaml',
+              'timezone': _DEFAULT_TIMEZONE,
+              'load_from_shopfloor': True})
+      _SyncShopfloor()
+
+    with AutomatedSequence(id='VSWRPostpressed',
+                           label_en='VSWR Postpressed', label_zh='VSWR 组装后'):
       OperatorTest(
-          id='VSWRDebugCellular',
-          label_en='VSWR Cellular Antenna Debug',
-          label_zh=u'VSWR Cellular 天线非产线除错用',
+          id='VSWR',
+          label_en='VSWR Antenna Test',
+          label_zh=u'VSWR 天线测试',
           pytest_name='vswr',
-          dargs={'config_path': _PARAMETER_BASE_NAME % ('debug', 'cellular'),
-                 'timezone': _DEFAULT_TIMEZONE,
-                 'load_from_shopfloor': False})
-      OperatorTest(
-          id='VSWRDebugLTE',
-          label_en='VSWR LTE Antenna Debug',
-          label_zh=u'VSWR LTE 天线非产线除错用',
-          pytest_name='vswr',
-          dargs={'config_path': _PARAMETER_BASE_NAME % ('debug', 'lte'),
-                 'timezone': _DEFAULT_TIMEZONE,
-                 'load_from_shopfloor': False})
+          dargs={
+              'event_log_name': 'vswr_postpressed',
+              'shopfloor_log_dir': 'vswr_postpressed',
+              'config_path': 'rf/vswr/vswr_config.postpressed.yaml',
+              'timezone': _DEFAULT_TIMEZONE,
+              'load_from_shopfloor': True})
+      _SyncShopfloor()
