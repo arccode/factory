@@ -1,0 +1,47 @@
+.cont {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: contain;
+}
+.cont.notebook-to-tablet { background-image: url(notebook-to-tablet.webp) }
+.cont.tablet-to-notebook { background-image: url(tablet-to-notebook.webp) }
+.right {
+  width: 54.5%;
+  float: right;
+}
+.success, .failure {
+  width: 100%;
+  line-height: 3em;
+  font-size: 4em;
+  margin-top: 2em;
+}
+.success { background: #afa; }
+.failure { background: #faa; }
+.img-cont img {
+  height: 100%;
+  display: block;
+  float: left;
+}
+.prompt {
+  font-size: 2em;
+  margin: 0.2em 0 0.8em;
+}
+.confirm-button {
+  font-size: 4em;
+  padding: 0.5em 1em;
+  margin: 0 auto;
+  width: 90%;
+  height: 60%;
+  line-height: 1.2;
+}
+.countdown-timer {
+  position: absolute;
+  bottom: .3em;
+  right: .5em;
+  font-size: 2em;
+}

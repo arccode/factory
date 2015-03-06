@@ -82,7 +82,8 @@ class TouchscreenTest(unittest.TestCase):
 
     if self.args.touchscreen_event_id is None:
       touchscreen_devices = evdev_utils.GetTouchscreenDevices()
-      assert len(touchscreen_devices) == 1, 'Multiple touchscreen detected'
+      assert len(touchscreen_devices) == 1, (
+          'Multiple touchscreen devices detected')
       self.touchscreen_device = touchscreen_devices[0]
     else:
       self.touchscreen_device = evdev.InputDevice(
