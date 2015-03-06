@@ -233,8 +233,8 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
     self.device = tempfile.NamedTemporaryFile(prefix='MountDeviceAndReadFile')
     Spawn(['truncate', '-s', '1M', self.device.name], log=True,
           check_call=True)
-    Spawn(['/sbin/mkfs', '-F', '-t', 'ext3', self.device.name],
-          log=True, check_call=True)
+    Spawn(['/sbin/mkfs', '-E', 'root_owner=%d:%d' % (os.getuid(), os.getgid()),
+           '-F', '-t', 'ext3', self.device.name], log=True, check_call=True)
 
     # Creates a file with some content on the device.
     mount_point = tempfile.mkdtemp(prefix='MountDeviceAndReadFileSetup')
