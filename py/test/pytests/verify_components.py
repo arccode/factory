@@ -16,6 +16,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import Gooftool
 from cros.factory.hwid import database
 from cros.factory.hwid import hwid_utils
+from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -43,6 +44,8 @@ class CheckComponentsTask(FactoryTask):
     super(CheckComponentsTask, self).__init__()
     self._test = test
     self._allow_missing = allow_missing
+    self._allow_unqualified = phase.GetPhase() in [
+        phase.PROTO, phase.EVT, phase.DVT]
 
   def Run(self):
     """Runs the test.
@@ -77,6 +80,11 @@ class CheckComponentsTask(FactoryTask):
         if not component_result[1] and self._allow_missing:
           continue
         if component_result.error:
+          # The format of component_result.error is
+          # 'Component %r of %r is %s' % (comp_name, comp_cls, comp_status).
+          if (self._allow_unqualified and
+              component_result.error.endswith('is unqualified')):
+            continue
           error_msgs.append(component_result.error)
     if error_msgs:
       self.Fail('At least one component is invalid:\n%s' %
