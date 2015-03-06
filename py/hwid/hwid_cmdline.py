@@ -137,7 +137,12 @@ def VerifyComponentsWrapper(options):
   result = hwid_utils.VerifyComponents(options.database, probed_results,
                                        options.components)
   failed = []
+  waive_list = []
+  if options.fast_fw_probe:
+    waive_list = ['key_recovery', 'key_root', 'hash_gbb']
   for comp_cls, comps in result.iteritems():
+    if comp_cls in waive_list:
+      continue
     for comp_result in comps:
       if comp_result.error:
         failed.append('%s: %s' % (comp_cls, comp_result.error))

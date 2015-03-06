@@ -1429,7 +1429,8 @@ def Probe(target_comp_classes=None,
     target_comp_classes: Which component classes to probe for.  A None
       value implies all classes.
     fast_fw_probe: Do a fast probe for EC and main firmware version. Setting
-      this to True implies probe_volatile = False and probe_initial_config =
+      this to True implies probe_volatile, probe_initial_config, probe_vpd,
+      and all probing related to VPD (for example, keyboard and region) are
       False.
     probe_volatile: On False, do not probe for volatile data and
       return None for the corresponding field.
@@ -1475,12 +1476,14 @@ def Probe(target_comp_classes=None,
   initial_configs = {}
   volatiles = {}
   if fast_fw_probe:
+    logging.debug('fast_fw_probe enabled.')
     volatiles['ro_ec_firmware'] = {'version': system.GetBoard().GetECVersion()}
     volatiles['ro_pd_firmware'] = {'version': system.GetBoard().GetPDVersion()}
     volatiles['ro_main_firmware'] = {
         'version': system.GetBoard().GetMainFWVersion()}
     probe_volatile = False
     probe_initial_config = False
+    probe_vpd = False
 
   if probe_initial_config:
     ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, None)
@@ -1488,7 +1491,14 @@ def Probe(target_comp_classes=None,
     ic_probes = {}
   found_probe_value_map = {}
   missing_component_classes = []
+  # TODO(hungte) Extend _ComponentProbe to support filtering flashrom related
+  # probing methods.
+  vpd_classes = ['keyboard', 'region']
   for comp_class, probe_fun in comp_probes.items():
+    logging.info('probing [%s]...', comp_class)
+    if comp_class in vpd_classes and not probe_vpd:
+      logging.warn('Ignored probing [%s]', comp_class)
+      continue
     probe_values = RunProbe(probe_fun)
     if not probe_values:
       missing_component_classes.append(comp_class)
