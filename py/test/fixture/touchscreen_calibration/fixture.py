@@ -79,7 +79,7 @@ class FixutreNativeUSB(SerialDevice):
     try:
       self.Connect(port=port, timeout=self.timeout)
       msg = 'Connect to native USB port "%s" for monitoring internal state.'
-      factory.console.info(msg % port)
+      factory.console.info(msg, port)
     except Exception:
       msg = 'FixtureNativeUSB: failed to connect to native usb port: %s'
       factory.console.warn(msg, port)
@@ -189,8 +189,8 @@ class FixtureSerialDevice(BaseFixture):
       port = FindTtyByDriver(driver, interface_protocol)
       self.Connect(port=port, timeout=timeout)
       msg = 'Connect to programming port "%s" for issuing commands.'
-      factory.console.info(msg % port)
-      factory.console.info('Wait up to %d seconds for arduino initialization.' %
+      factory.console.info(msg, port)
+      factory.console.info('Wait up to %d seconds for arduino initialization.',
                            timeout)
     except:
       raise FixtureException('Failed to connect the test fixture.')
@@ -257,8 +257,8 @@ class FixtureSerialDevice(BaseFixture):
     """Drives the probe to the 'down' position."""
     try:
       response = self.SendReceive(COMMAND.DOWN)
-      factory.console.info('Send COMMAND.DOWN(%s). Receive state(%s).' %
-                           (COMMAND.DOWN, response))
+      factory.console.info('Send COMMAND.DOWN(%s). Receive state(%s).',
+                           COMMAND.DOWN, response)
     except Exception:
       raise FixtureException('DriveProbeDown failed.')
 
@@ -268,8 +268,8 @@ class FixtureSerialDevice(BaseFixture):
     """Drives the probe to the 'up' position."""
     try:
       response = self.SendReceive(COMMAND.UP)
-      factory.console.info('Send COMMAND.UP(%s). Receive state(%s).' %
-                           (COMMAND.UP, response))
+      factory.console.info('Send COMMAND.UP(%s). Receive state(%s).',
+                           COMMAND.UP, response)
     except Exception:
       raise FixtureException('DriveProbeUp failed.')
 

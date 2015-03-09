@@ -374,7 +374,7 @@ class TouchscreenCalibration(unittest.TestCase):
     for row, row_data in enumerate(data):
       for col in touched_cols:
         value = row_data[col]
-        if (value < self.delta_lower_bound or value > self.delta_higher_bound):
+        if value < self.delta_lower_bound or value > self.delta_higher_bound:
           factory.console.info('  Failed at (row, col) (%d, %d) value %d',
                                row, col, value)
           test_pass = False
@@ -524,7 +524,7 @@ class TouchscreenCalibration(unittest.TestCase):
     """
     for event in events:
       assert hasattr(self, event)
-      factory.console.debug('Registered event %s' % event)
+      factory.console.debug('Registered event %s', event)
       self.ui.AddEventHandler(event, getattr(self, event))
 
   def _MakeLocalLogDir(self):
@@ -544,7 +544,7 @@ class TouchscreenCalibration(unittest.TestCase):
     except Exception:
       self._mounted_media_flag = False
       msg = 'Mounted media does not exist. Use %s instead.'
-      factory.console.warn(msg % self._local_log_dir)
+      factory.console.warn(msg, self._local_log_dir)
       self._MakeLocalLogDir()
       self._WriteLog('touchscreen_calibration_launch.txt',
                      '%s\n' % time.ctime())
@@ -556,7 +556,7 @@ class TouchscreenCalibration(unittest.TestCase):
         self.fixture.native_usb.QueryFixtureState()
         self.query_fixture_state_flag = True
       except Exception as e:
-        factory.console.warn('Failed to query fixture state: %s' % e)
+        factory.console.warn('Failed to query fixture state: %s', e)
 
   def _MonitorNativeUsb(self, native_usb):
     """Get the complete state and show the values that are changed."""
@@ -580,7 +580,7 @@ class TouchscreenCalibration(unittest.TestCase):
             except Exception:
               msg = 'Not able to invoke CallJSFunction to show probe state.'
               factory.console.warn(msg)
-          factory.console.info('      %s: %s' % (name, value))
+          factory.console.info('      %s: %s', name, value)
 
   def _CreateMonitorPort(self):
     """Create a thread to monitor the native USB port."""

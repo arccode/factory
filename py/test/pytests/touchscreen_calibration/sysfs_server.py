@@ -158,7 +158,7 @@ def RunXMLRPCSysfsServer(addr, log=logging):
       result = re_pattern.search(line)
       if result:
         count += 1
-    return (count > 1)
+    return count > 1
 
   _, port = addr
   if _IsServerRunning():
