@@ -27,12 +27,20 @@ _PING_TIMEOUT_SECS = 15
 _SLEEP_INTERVAL_SECS = 0.5
 _SCAN_INTERVAL_SECS = 10
 
+# The dependency of network manager in current ChromeOS is:
+#    wpasupplicant +-> shill -> shill_respawn
+#                  \-> modemmanager
+# So the right order to stop network is:
+#    shill_respawn -> shill -> wpasupplicant.
+#              modemmanager /
+
 _UNKNOWN_PROC = 'unknown'
 _DEFAULT_MANAGER = 'shill'
 _DEFAULT_PROC_NAME = 'shill'
 _MANAGER_LIST = ['flimflam', 'shill']
 _PROC_NAME_LIST = [_UNKNOWN_PROC, 'flimflamd', 'shill']
-_SUBSERVICE_LIST = ['shill_respawn', 'wpasupplicant', 'modemmanager']
+_DEPSERVICE_LIST = ['wpasupplicant']
+_SUBSERVICE_LIST = ['shill_respawn', 'modemmanager']
 
 # %s is the network manager process name, i.e. flimflam or shill.
 _PROFILE_LOCATION = '/var/cache/%s/default.profile'
@@ -63,6 +71,7 @@ class ConnectionManager(object):
                network_manager=_DEFAULT_MANAGER,
                process_name=_DEFAULT_PROC_NAME,
                start_enabled=True,
+               depservices=list(_DEPSERVICE_LIST),
                subservices=list(_SUBSERVICE_LIST),
                profile_path=_PROFILE_LOCATION):
     '''Constructor.
@@ -79,8 +88,10 @@ class ConnectionManager(object):
                     flimflamd or shill. If you are not sure about it, you can
                     use _UNKNOWN_PROC to let the class auto-detect it.
       start_enabled: Whether networking should start enabled.
+      depservices: The list of networking-related system services that flimflam/
+                   shill depends on.
       subservices: The list of networking-related system services other than
-                   flimflam/shill.
+                   flimflam/shill and their dependency.
       profile_path: The file path of the network profile used by flimflam/shill.
     '''
     # Black hole for those useless outputs.
@@ -92,6 +103,7 @@ class ConnectionManager(object):
     self.network_manager = network_manager
     self.process_name = process_name
     self.scan_interval = scan_interval
+    self.depservices = depservices
     self.subservices = subservices
     self.profile_path = profile_path
     # Auto-detect the network manager process name if unknown.
@@ -175,7 +187,7 @@ class ConnectionManager(object):
                       stderr=self.fnull)
 
     # Start network manager.
-    for service in [self.network_manager] + self.subservices:
+    for service in self.depservices + [self.network_manager] + self.subservices:
       subprocess.call('start %s' % service, shell=True,
                       stdout=self.fnull, stderr=self.fnull)
 
@@ -216,7 +228,7 @@ class ConnectionManager(object):
     logging.info('Disabling networking')
 
     # Stop network manager.
-    for service in self.subservices + [self.network_manager]:
+    for service in self.subservices + [self.network_manager] + self.depservices:
       subprocess.call('stop %s' % service, shell=True,
                       stdout=self.fnull, stderr=self.fnull)
 

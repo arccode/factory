@@ -19,13 +19,15 @@ from cros.factory.utils.net_utils import WLAN
 _FAKE_MANAGER = 'flimflam'
 _FAKE_PROC_NAME = 'shill'
 _FAKE_SCAN_INTERVAL_SECS = 10
-_FAKE_SUBSERVICE_LIST = ['flimflam_respawn', 'wpasupplicant', 'modemmanager']
+_FAKE_DEPSERVICE_LIST = ['wpasupplicant']
+_FAKE_SUBSERVICE_LIST = ['flimflam_respawn', 'modemmanager']
 _FAKE_PROFILE_LOCATION = '/var/cache/%s/default.profile'
 _FAKE_INTERFACES = ['wlan0', 'eth0', 'lo']
 _FAKE_DATA = {
     'scan_interval': _FAKE_SCAN_INTERVAL_SECS,
     'network_manager': _FAKE_MANAGER,
     'process_name': _FAKE_PROC_NAME,
+    'depservices': _FAKE_DEPSERVICE_LIST,
     'subservices': _FAKE_SUBSERVICE_LIST,
     'profile_path': _FAKE_PROFILE_LOCATION
 }
@@ -69,7 +71,8 @@ class ConnectionManagerTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def MockDisableNetworking(self):
-    for service in _FAKE_SUBSERVICE_LIST + [_FAKE_MANAGER]:
+    for service in (_FAKE_SUBSERVICE_LIST + [_FAKE_MANAGER] +
+                    _FAKE_DEPSERVICE_LIST):
       subprocess.call('stop %s' % service, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
     interfaces = list(_FAKE_INTERFACES)
@@ -92,7 +95,8 @@ class ConnectionManagerTest(unittest.TestCase):
       subprocess.call('ifconfig %s up' % dev, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
 
-    for service in [_FAKE_MANAGER] + _FAKE_SUBSERVICE_LIST:
+    for service in (_FAKE_DEPSERVICE_LIST + [_FAKE_MANAGER] +
+                    _FAKE_SUBSERVICE_LIST):
       subprocess.call('start %s' % service, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
 
