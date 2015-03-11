@@ -149,7 +149,8 @@ class ArchiverService(umpire_service.UmpireService):
     config_path = ArchiverService.GenerateConfig(config, env)
 
     proc_config = {
-        'executable': os.path.join(env.server_toolkits_dir, ARCHIVER_CLI),
+        'executable': os.path.join(env.server_toolkits_dir, 'active',
+                                   ARCHIVER_CLI),
         'name': NAME_PREFIX + env.config['board'],
         'args': ['run', config_path],
         'path': '/tmp'}

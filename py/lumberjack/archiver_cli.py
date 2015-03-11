@@ -13,6 +13,8 @@ import signal
 import sys
 
 import twisted
+import twisted.internet
+import twisted.internet.reactor
 import yaml
 
 import archiver
