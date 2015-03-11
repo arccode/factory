@@ -288,6 +288,19 @@ class _FlimflamDevices(object):
     if cls.cached_dev_list is None:
       cls.cached_dev_list = [ProcessDevice(device) for device in
                              flimflam.FlimFlam().GetObjectList('Device')]
+      # On some Brillo (AP-type) devices, WiFi interfaces are blacklisted by
+      # shill and needs to be discovered manually.
+      wifi_devs = [dev for dev in cls.cached_dev_list if dev.devtype == 'wifi']
+      if not wifi_devs:
+        logging.info('No WiFi components found by shill. Use iwconfig.')
+        shell_command = 'iwconfig | grep "IEEE 802.11" | cut -d " " -f 1'
+        nodes = Shell(shell_command).stdout.split()
+        wifi_devs = [Obj(devtype='wifi', path='/sys/class/net/%s/device' % node)
+                     for node in nodes]
+        if wifi_devs:
+          logging.info('iwconfig found: %s', wifi_devs)
+          cls.cached_dev_list += wifi_devs
+
     return [dev for dev in cls.cached_dev_list if dev.devtype == devtype]
 
   @classmethod
