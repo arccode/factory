@@ -414,7 +414,7 @@ class TouchscreenCalibration(unittest.TestCase):
     test_pass, failed_sensors, min_value, max_value = self.sensors.Verify(data)
     failed_msg = '  Failed sensor at (%d, %d) value %d'
     for sensor in failed_sensors:
-      factory.console.info(failed_msg, tuple(sensor))
+      factory.console.info(failed_msg, *sensor)
     factory.console.info('min delta value: %d', min_value)
     factory.console.info('max delta value: %d', max_value)
     return test_pass, min_value, max_value
