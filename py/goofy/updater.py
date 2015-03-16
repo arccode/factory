@@ -192,8 +192,13 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   return True
 
 
-def CheckForUpdate(timeout):
+def CheckForUpdate(timeout, quiet=False):
   '''Checks for an update synchronously.
+
+  Args:
+    timeout: If not None, the timeout in seconds. This timeout is for RPC
+             calls on the proxy, not for get_instance() itself.
+    quiet: Suppresses error messages when shopfloor can not be reached.
 
   Returns:
     A tuple (md5sum, needs_update):
@@ -207,7 +212,8 @@ def CheckForUpdate(timeout):
   Raises:
     An exception if unable to contact the shopfloor server.
   '''
-  shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
+  shopfloor_client = shopfloor.get_instance(
+      detect=True, timeout=timeout, quiet=quiet)
   # Use GetUpdate API provided by Umpire server.
   if shopfloor_client.use_umpire:
     update_info = get_update.GetUpdateForDeviceFactoryToolkit(shopfloor_client)
@@ -220,7 +226,7 @@ def CheckForUpdate(timeout):
   return (new_md5sum, needs_update)
 
 
-def CheckForUpdateAsync(callback, timeout):
+def CheckForUpdateAsync(callback, timeout, quiet=False):
   '''Checks for an update asynchronously.
 
   Launches a separate thread, checks for an update, and invokes callback (in
@@ -232,16 +238,25 @@ def CheckForUpdateAsync(callback, timeout):
   with the shopfloor server, or False on timeout.
 
   md5sum and needs_update are as in the return value for CheckForUpdate.
+
+  Args:
+    callback: Callback function to run in the separate thread as explained
+              above.
+    timeout: If not None, the timeout in seconds. This timeout is for RPC
+             calls on the proxy, not for get_instance() itself.
+    quiet: Suppresses error messages when shopfloor can not be reached.
   '''
   def Run():
     try:
-      callback(True, *CheckForUpdate(timeout))
+      callback(True, *CheckForUpdate(timeout=timeout, quiet=quiet))
     except:  # pylint: disable=W0702
       # Just an info, not a trace, since this is pretty common (and not
       # necessarily an error) and we don't want logs to get out of control.
-      logging.info(
-          'Unable to contact shopfloor server to check for updates: %s',
-          '\n'.join(traceback.format_exception_only(*sys.exc_info()[:2])).strip())
+      if not quiet:
+        logging.info(
+            'Unable to contact shopfloor server to check for updates: %s',
+            '\n'.join(traceback.format_exception_only(
+                *sys.exc_info()[:2])).strip())
       callback(False, None, False)
 
   update_thread = threading.Thread(target=Run, name='UpdateThread')

@@ -203,7 +203,7 @@ def detect_default_server_url():
   return None
 
 
-def get_instance(url=None, detect=False, timeout=None):
+def get_instance(url=None, detect=False, timeout=None, quiet=False):
   """Gets an instance (for client side) to access the shop floor server.
 
   Args:
@@ -213,6 +213,7 @@ def get_instance(url=None, detect=False, timeout=None):
       specified.
     timeout: If not None, the timeout in seconds. This timeout is for RPC
       calls on the proxy, not for get_instance() itself.
+    quiet: Suppresses error messages when shopfloor can not be reached.
 
   Returns:
     A TimeoutUmpireServerProxy object that can work with either
@@ -223,7 +224,7 @@ def get_instance(url=None, detect=False, timeout=None):
   if not url:
     raise Exception(SHOPFLOOR_NOT_CONFIGURED_STR)
   return umpire_server_proxy.TimeoutUmpireServerProxy(
-      url, allow_none=True, verbose=False, timeout=timeout)
+      url, quiet=quiet, allow_none=True, verbose=False, timeout=timeout)
 
 
 def save_aux_data(table_name, id, data):  # pylint: disable=W0622

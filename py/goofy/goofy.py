@@ -184,6 +184,7 @@ class Goofy(GoofyBase):
     self.last_idle = None
     self.last_shutdown_time = None
     self.last_update_check = None
+    self._suppress_periodic_update_messages = False
     self.last_sync_time = None
     self.last_log_disk_space_time = None
     self.last_log_disk_space_message = None
@@ -929,10 +930,16 @@ class Goofy(GoofyBase):
           logging.info('Received new update MD5SUM: %s', new_update_md5sum)
           system.SystemInfo.update_md5sum = new_update_md5sum
           self.run_enqueue(self.update_system_info)
+      else:
+        if not self._suppress_periodic_update_messages:
+          logging.warning('Suppress error messages for periodic update checking'
+                          ' after the first one.')
+          self._suppress_periodic_update_messages = True
 
     updater.CheckForUpdateAsync(
         handle_check_for_update,
-        self.test_list.options.shopfloor_timeout_secs)
+        self.test_list.options.shopfloor_timeout_secs,
+        self._suppress_periodic_update_messages)
 
   def cancel_pending_tests(self):
     """Cancels any tests in the run queue."""
