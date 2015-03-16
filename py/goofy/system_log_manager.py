@@ -80,6 +80,7 @@ class SystemLogManager(object):
     self._main_thread = None
     self._aborted = threading.Event()
     self._queue = Queue.Queue()
+    self._suppress_periodic_shopfloor_messages = False
 
     self._CheckSettings()
 
@@ -170,11 +171,19 @@ class SystemLogManager(object):
     self._main_thread = None
     logging.info('SystemLogManager main thread stopped.')
 
-  def _RsyncDestination(self):
-    """Gets rsync destination including server url, module, and folder name."""
+  def _RsyncDestination(self, quiet=False):
+    """Gets rsync destination including server url, module, and folder name.
+
+    Args:
+      quiet: Suppresses error messages when shopfloor can not be reached.
+
+    Returns:
+      The rsync destination path for system logs.
+    """
     url = (shopfloor.get_server_url() or
            shopfloor.detect_default_server_url())
-    proxy = shopfloor.get_instance(detect=True, timeout=self._shopfloor_timeout)
+    proxy = shopfloor.get_instance(detect=True, timeout=self._shopfloor_timeout,
+                                   quiet=quiet)
     factory_log_port = proxy.GetFactoryLogPort()
     folder_name = (
         '%s_%s' %
@@ -203,7 +212,33 @@ class SystemLogManager(object):
     logging.debug('Logs cleared.')
 
   @CatchException('SystemLogManager')
-  def _SyncLogs(self, extra_files, callback, abort_time):
+  def _SyncLogs(self, extra_files, callback, abort_time, periodic=False):
+    """Wrapper of _SyncLogsImpl.
+
+    Handles exception differently for periodic and non-periodic case.
+    Error messages for periodic case will only be shown once.
+
+    Args:
+      extra_files: A list of extra files to sync.
+      callback: A callback function to call after sync succeeds.
+      abort_time: The time to abort rsync subprocess if abort_time is not None.
+      periodic: This is a periodic sync.
+    """
+    if periodic:
+      try:
+        self._SyncLogsImpl(extra_files, callback, abort_time, periodic)
+      except Exception:
+        if not self._suppress_periodic_shopfloor_messages:
+          logging.warning('Suppress periodic shopfloor error messages '
+                          'after the first one.')
+          self._suppress_periodic_shopfloor_messages = True
+          raise
+        else:
+          return
+    else:
+      self._SyncLogsImpl(extra_files, callback, abort_time, periodic)
+
+  def _SyncLogsImpl(self, extra_files, callback, abort_time, periodic=False):
     """Syncs system logs and extra files to server with a callback.
 
     If the threads gets kicked, terminates the running subprocess.
@@ -214,13 +249,18 @@ class SystemLogManager(object):
       extra_files: A list of extra files to sync.
       callback: A callback function to call after sync succeeds.
       abort_time: The time to abort rsync subprocess if abort_time is not None.
+      periodic: This is a periodic sync.
     """
-    logging.debug('Starts _SyncLogs.')
+    logging.debug('Starts _SyncLogsImpl.')
+    # If in periodic sync, show error messages if
+    # _suppress_periodic_shopfloor_message is not set.
+    # If not in periodic sync, always show error messages.
+    quiet = self._suppress_periodic_shopfloor_messages if periodic else False
     rsync_command = ['rsync', '-azR', '--stats', '--chmod=o-t',
                      '--timeout=%s' % self._rsync_io_timeout]
     rsync_command += sum([glob.glob(x) for x in self._sync_log_paths], [])
     rsync_command += extra_files
-    rsync_command += self._RsyncDestination()
+    rsync_command += self._RsyncDestination(quiet=quiet)
 
     rsync = Spawn(rsync_command, ignore_stdout=True, ignore_stderr=True)
     while rsync.poll() is None:
@@ -267,8 +307,8 @@ class SystemLogManager(object):
             (last_sync_time is None or
              (time.time() - last_sync_time > self._sync_log_period_secs))):
           last_sync_time = time.time()
-          self._SyncLogs([], None, time.time() + self._scan_log_period_secs)
-
+          self._SyncLogs([], None, time.time() + self._scan_log_period_secs,
+                         True)
       else:
         logging.debug('Gets a request with extra_files, callback, clear_only:'
                       '%r, %r, %r.', extra_files, callback, clear_only)

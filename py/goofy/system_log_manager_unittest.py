@@ -126,12 +126,13 @@ class TestSystemLogManager(unittest.TestCase):
       extra_files: extra_files argument to KickToSync.
       callback: extra_files argument to KickToSync.
       times: times argument to MockPollToFinish.
-      code: times argument to MockPollToFinish.
-      terminated: times argument to MockPollToFinish.
+      code: code argument to MockPollToFinish.
+      terminated: terminated argument to MockPollToFinish.
     """
     shopfloor.get_server_url().AndReturn(MOCK_SERVER_URL)
-    shopfloor.get_instance(detect=True, timeout=MOCK_SHOPFLOOR_TIMEOUT).AndReturn(
-        self.fake_shopfloor)
+    shopfloor.get_instance(
+        detect=True, timeout=MOCK_SHOPFLOOR_TIMEOUT, quiet=False).AndReturn(
+            self.fake_shopfloor)
     self.fake_shopfloor.GetFactoryLogPort().AndReturn(MOCK_PORT)
     event_log.GetDeviceId().AndReturn(MOCK_DEVICE_ID)
     event_log.GetReimageId().AndReturn(MOCK_IMAGE_ID)
