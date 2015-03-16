@@ -75,20 +75,6 @@ network_analyzer:
   - 192.168.132.33
   - 192.168.132.44
 
-  # "possible_ids" whitelists all ENA IDs that the system accepts.  It's a list
-  # of key-value pairs, where key is the ENA ID like MY12345678 and value is
-  # the human-readable name.  If "possible_ids" is set to null, any ID will be
-  # accepted.
-  #
-  # Examples:
-  #
-  #   possible_ids: null  # this accepts any ID
-  #
-  #   possible_ids:
-  #     MY12345678: ENA in line A
-  #     MY87654321: ENA in line B
-  possible_ids: null  # this accepts any ID
-
   # "measure_segment" specifies the "min_frequency", "max_frequency", and
   # "sample_points" to the ENA.  For more info, please refer to the ENA's
   # manual.

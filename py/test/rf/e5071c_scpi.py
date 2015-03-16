@@ -9,10 +9,13 @@
 
 import bisect
 import itertools
+import logging
+import urllib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.rf.agilent_scpi import AgilentSCPI
 from cros.factory.test.rf.lan_scpi import Error, FLOATS
+from cros.factory.test.rf.utils import CheckPower
 from cros.factory.utils.type_utils import Enum
 
 
@@ -254,3 +257,64 @@ class ENASCPI(AgilentSCPI):
     # Unfreeze the trace.
     self.Send(':INITiate1:CONTinuous ON')
     return ret
+
+  def CheckCalibration(self, min_frequency, max_frequency, sample_points,
+                       min_threshold, max_threshold):
+    """Checks if the trace is as flat as expected.
+
+    This function uniformly samples "sample_points" from the ENA between
+    [min_frequency, max_frequency], and checks if the response values on all
+    these points are between [min_threshold, max_threshold].
+
+    Args:
+      min_frequency: a Frequency instance indicating the minimum frequency.
+      max_frequency: a Frequency instance indicating the maximum frequency.
+      sample_points: an int indicating how many points to sample.
+      min_threshold: a float indicating the lowest threshold.
+      max_threshold: a float indicating the highest threshold.
+
+    Returns:
+      A tuple. The 1st element is True if the values of all sample points
+      between [min_frequency, max_frequency] are between [min_threshold,
+      max_threshold], otherwise, False. The 2nd element is the trace data
+      obtained by the ENA.
+    """
+    logging.info(
+        'Checking calibration from %.2f to %.2f with threshold (%f, %f)...',
+        min_frequency, max_frequency, min_threshold, max_threshold)
+
+    self.SetSweepSegments([(
+        min_frequency.Hzf(), max_frequency.Hzf(), sample_points)])
+    TRACES_TO_CHECK = ['S11', 'S22']
+    traces = self.GetTraces(TRACES_TO_CHECK)
+
+    calibration_check_passed = True
+    for trace_name in TRACES_TO_CHECK:
+      trace_data = traces.traces[trace_name]
+      for index, freq in enumerate(traces.x_axis):
+        check_point = '%s-%15.2f' % (trace_name, freq)
+        power_check_passed = CheckPower(
+            check_point, trace_data[index], (min_threshold, max_threshold))
+        if not power_check_passed:
+          # Do not stop, continue to find all failing parts.
+          logging.info(
+              'Calibration check failed at %s', check_point)
+          calibration_check_passed = False
+
+    if calibration_check_passed:
+      return (True, traces)
+    else:
+      return (False, traces)
+
+  def CaptureScreenshot(self):
+    """Return the screenshot content in PNG format."""
+    # Save a screenshot copy in ENA.
+    self.SaveScreen('screenshot')
+
+    # The SaveScreen above has saved a screenshot inside ENA, but it does not
+    # allow reading that file directly (see SCPI protocol for details). To save
+    # a copy locally, we need to make another screenshot using ENA's HTTP
+    # service (image.asp) which always puts the file publicly available as
+    # "disp.png".
+    urllib.urlopen('http://%s/image.asp' % self.host).read()
+    return urllib.urlopen('http://%s/disp.png' % self.host).read()

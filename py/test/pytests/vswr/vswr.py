@@ -1,3 +1,5 @@
+# -*- mode: python; coding: utf-8 -*-
+#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -25,39 +27,40 @@ This test measures VSWR value using an Agilent E5071C Network Analyzer (ENA).
 """
 
 
+import datetime
 import logging
 import os
-import pprint
+import posixpath
 import Queue
+import random
 import re
 import shutil
+import string
 import StringIO
 import time
 import unittest
-import urllib
 import uuid
 import xmlrpclib
 import yaml
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test.event_log import Log
 from cros.factory.goofy.connection_manager import PingHost
-from cros.factory.goofy.goofy import CACHES_DIR
-from cros.factory.test.rf.e5071c_scpi import ENASCPI
-from cros.factory.test.rf.utils import CheckPower, DownloadParameters
-from cros.factory.test import factory
-from cros.factory.test import shopfloor
-from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
+from cros.factory.test import event_log
+from cros.factory.test import factory
+from cros.factory.test import rf
+from cros.factory.test import shopfloor
+from cros.factory.test import test_ui
+from cros.factory.test.rf.e5071c_scpi import ENASCPI
 from cros.factory.test.utils.media_utils import MountedMedia
 from cros.factory.test.utils.media_utils import RemovableDiskMonitor
 from cros.factory.utils import file_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils.net_utils import FindUsableEthDevice
 from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils import time_utils
 
 
 class VSWR(unittest.TestCase):
@@ -68,18 +71,16 @@ class VSWR(unittest.TestCase):
   was designed to test many antennas.
 
   Ideally, the test won't stop after it has been started. But practically, to
-  prevent operators from overusing some accessories. It will stop after
-  reaching self._max_iterations. Reminding the operator to change those
-  accessories.
+  prevent operators from overusing some accessories. It will stop after reaching
+  self._config['test']['max_iterations']. This will remind the operator to
+  change those accessories.
   """
-
-  # Items in the final result table.
-  _RESULT_IDS = [
-      'cell-main', 'cell-aux', 'wifi-main', 'wifi-aux', 'final-result']
-  _RESULTS_TO_CHECK = [
-      'cell-main', 'cell-aux', 'wifi-main', 'wifi-aux']
-
   ARGS = [
+      Arg('event_log_name', str, 'Name of the event_log, like '
+          '"vswr_prepressed" or "vswr_postpressed".', optional=False),
+      Arg('shopfloor_log_dir', str, 'Directory in which to save logs on '
+          'shopfloor.  For example: "vswr_prepressed" or "vswr_postpressed".',
+          optional=False),
       Arg('config_path', str, 'Configuration path relative to the root of USB '
           'disk or shopfloor parameters. E.g. path/to/config_file_name.',
           optional=True),
@@ -88,96 +89,101 @@ class VSWR(unittest.TestCase):
           'shopfloor or not.', default=True),
   ]
 
-  def _CheckCalibration(self):
-    """Checks if the trace are as flat as expected.
+  def __init__(self, *args, **kwargs):
+    super(VSWR, self).__init__(*args, **kwargs)
 
-    The expected flatness is defined in calibration_check config, which is a
-    tuple of:
+    self._config = None
+    self._usb_path = None
 
-        ((begin_freqency, end_frequency, sample_points), (min_value, max_value))
+    self.log = {
+        'config': {
+            'file_path': None,
+            'content': None},
+        'dut': {
+            'serial_number': None},
+        'network_analyzer': {
+            'calibration_traces': None,
+            'id': None,
+            'ip': None},
+        'test': {
+            'start_time': None,
+            'end_time': None,
+            'fixture_id': None,
+            # TODO(littlecvr): These 2 will always be the same everytime,
+            #                  consider removing them?
+            'path': os.environ.get('CROS_FACTORY_TEST_PATH'),
+            'invocation': os.environ.get('CROS_FACTORY_TEST_INVOCATION'),
+            'hash': str(uuid.uuid4()),  # new hash for this iteration
+            'traces': {},  # wifi_main, wifi_aux, lte_main, lte_aux
+            'results': {},  # wifi_main, wifi_aux, lte_main, lte_aux
+            'failures': []}}
 
-    For example:
+  def _ConnectToENA(self, network_analyzer_config):
+    """Connnects to the ENA and initializes the SCPI object."""
+    valid_ping_count = 0
+    for ena_ip in network_analyzer_config['possible_ips']:
+      # Ping the host
+      logging.info('Searching for ENA at %s...', ena_ip)
+      if PingHost(ena_ip, 2) != 0:
+        logging.info('Not found at %s.', ena_ip)
+      else:
+        logging.info('Found ENA at %s.', ena_ip)
+        valid_ping_count += 1
+        self.log['network_analyzer']['ip'] = ena_ip
+    if valid_ping_count != 1:
+      raise Exception(
+          'Found %d ENAs which should be only 1.' % valid_ping_count)
+    logging.info('IP of ENA automatic detected as %s',
+                 self.log['network_analyzer']['ip'])
 
-      ((800*1E6, 6000*1E6, 100), (-0.3, 0.3))
-
-    from 800MHz to 6GHz, sampling 100 points and requires the value to stay
-    with in (-0.3, 0.3).
-    """
-    calibration_check = self._config.get('calibration_check', None)
-    if not calibration_check:
-      raise Exception('No calibration data in config file.')
-    start_freq, stop_freq, sample_points = calibration_check[0]
-    threshold = calibration_check[1]
-    logging.info(
-        'Checking calibration status from %.2f to %.2f '
-        'with threshold (%f, %f)...', start_freq, stop_freq,
-        threshold[0], threshold[1])
-    self._ena.SetSweepSegments([(start_freq, stop_freq, sample_points)])
-    TRACES_TO_CHECK = ['S11', 'S22']
-    traces = self._ena.GetTraces(TRACES_TO_CHECK)
-    calibration_check_passed = True
-    for trace_name in TRACES_TO_CHECK:
-      trace_data = traces.traces[trace_name]
-      for index, freq in enumerate(traces.x_axis):
-        check_point = '%s-%15.2f' % (trace_name, freq)
-        power_check_passed = CheckPower(
-            check_point, trace_data[index], threshold)
-        if not power_check_passed:
-          # Do not stop, continue to find all failing parts.
-          factory.console.info(
-              'Calibration check failed at %s', check_point)
-          calibration_check_passed = False
-    if calibration_check_passed:
-      logging.info('Calibration check passed.')
-    else:
-      raise Exception('Calibration check failed.')
-
-  def _ConnectToENA(self):
-    """Connnects to E5071C (ENA) and initializes the SCPI object."""
     # Set up the ENA host.
     logging.info('Connecting to ENA...')
-    self._ena = ENASCPI(self._ena_ip)
+    # TODO(littlecvr): Don't acquire ENA's IP via self.log.
+    self._ena = ENASCPI(self.log['network_analyzer']['ip'])
     # Check if this is an expected ENA.
-    ena_sn = self._ena.GetSerialNumber()
-    logging.info('Connected to ENA %s.', ena_sn)
-    # Check if this SN is in the whitelist.
-    ena_whitelist = self._config['network']['ena_mapping'][self._ena_ip]
-    if ena_sn not in ena_whitelist:
-      self._ena.Close()
-      raise ValueError('ENA %s is not in the while list.' % ena_sn)
-    self._ena_name = ena_whitelist[ena_sn]
-    logging.info('The ENA is now identified as %r.', self._ena_name)
+    self.log['network_analyzer']['id'] = self._ena.GetSerialNumber()
+    logging.info('Connected to ENA %s.', self.log['network_analyzer']['id'])
 
   def _DownloadParametersFromShopfloor(self):
     """Downloads parameters from shopfloor."""
     logging.info('Downloading parameters from shopfloor...')
-    caches_dir = os.path.join(CACHES_DIR, 'parameters')
-    DownloadParameters([self.args.config_path], caches_dir)
+
+    shopfloor_server = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
+    config_content = shopfloor_server.GetParameter(self.args.config_path)
+
     logging.info('Parameters downloaded.')
     # Parse and load parameters.
-    self._LoadConfig(os.path.join(caches_dir, self.args.config_path))
+    self._LoadConfig(config_content.data)
 
   def _ResetDataForNextTest(self):
     """Resets internal data for the next testing cycle."""
-    self._log_to_file = StringIO.StringIO()
-    self._raw_traces = {}
-    self._vswr_detail_results = {}
-    self._iteration_hash = str(uuid.uuid4())
-    self._results = {name: TestState.UNTESTED for name in self._RESULT_IDS}
     logging.info('Reset internal data.')
+    self.log['dut']['serial_number'] = None
+    self.log['test']['start_time'] = None
+    self.log['test']['end_time'] = None
+    self.log['test']['hash'] = str(uuid.uuid4())  # new hash for this iteration
+    self.log['test']['traces'] = {}  # wifi_main, wifi_aux, lte_main, lte_aux
+    self.log['test']['results'] = {}  # wifi_main, wifi_aux, lte_main, lte_aux
+    self.log['test']['failures'] = []
+    self.log['test']['start_time'] = datetime.datetime.now()
 
-  def _LoadConfig(self, config_path):
+  def _SerializeTraces(self, traces):
+    result = {}
+    for parameter in traces.parameters:
+      response = {}
+      for i in range(len(traces.x_axis)):
+        response[rf.Frequency.FromHz(traces.x_axis[i]).MHzi()] = (
+            traces.traces[parameter][i])
+      result[parameter] = response
+    return result
+
+  def _LoadConfig(self, config_content):
     """Reads the configuration from a file."""
-    logging.info('Loading config from %s...', config_path)
-    self._config = yaml.load(open(config_path).read())
-    # Load shopfloor related settings.
-    self._path_name = self._config.get('path_name', 'UnknownPath')
-    shopfloor_config = self._config.get('shopfloor', {})
-    self._shopfloor_enabled = shopfloor_config.get('enabled', False)
-    self._shopfloor_timeout = shopfloor_config.get('timeout', 15)
-    self._shopfloor_ignore_on_fail = shopfloor_config.get('ignore_on_fail')
-    self._max_iterations = self._config.get('max_iterations', None)
-    logging.info('Config %s loaded.', self._config.get('annotation'))
+    logging.info('Loading config')
+    self._config = yaml.load(config_content)
+
+    self.log['config']['file_path'] = self.args.config_path
+    self.log['config']['content'] = self._config
 
   def _SetUSBPath(self, usb_path):
     """Updates the USB device path."""
@@ -188,22 +194,12 @@ class VSWR(unittest.TestCase):
     """Loads parameters from USB."""
     with MountedMedia(self._usb_path, 1) as config_root:
       config_path = os.path.join(config_root, self.args.config_path)
-      self._LoadConfig(config_path)
+      with open(config_path, 'r') as f:
+        self._LoadConfig(f.read())
 
   def _RaiseUSBRemovalException(self, unused_event):
     """Prevents unexpected USB removal."""
     raise Exception('USB removal is not allowed during test.')
-
-  def _LoadSNSpecificParameters(self):
-    """Loads parameters for a specific serial number from the matched config."""
-    self._sn_config_name = self._sn_config.get('config_name')
-    self._take_screenshot = self._sn_config.get('take_screenshot', False)
-    self._reference_info = self._sn_config.get('reference_info', False)
-    self._marker_info = self._sn_config.get('set_marker', None)
-    self._sweep_restore = self._sn_config.get('sweep_restore', None)
-    self._vswr_threshold = {
-        'cell': self._sn_config['cell_vswr_threshold'],
-        'wifi': self._sn_config['wifi_vswr_threshold']}
 
   def _WaitForValidSN(self):
     """Waits for the operator to enter/scan a valid serial number.
@@ -220,7 +216,7 @@ class VSWR(unittest.TestCase):
     _GetConfigForSerialNumber() function for more info about 'corresponding
     config.'
     """
-    def _GetConfigForSerialNumber():
+    def _GetConfigForSerialNumber(serial_number):
       """Searches the suitable config for this serial number.
 
       TODO(littlecvr): Move the following description to the module level
@@ -239,57 +235,29 @@ class VSWR(unittest.TestCase):
       Returns:
         The first config that matches the serial number, or None if no match.
       """
-      for sn_config in self._config['serial_specific_configuration']:
-        sn_config_name = sn_config.get('config_name')
-        if not sn_config_name:
-          raise Exception('Config name does not exist.')
-        sn_regex = sn_config.get('sn_regex')
-        if not sn_regex:
-          raise Exception("Regexp doesn't exist in config %s." % sn_config_name)
-        if re.search(sn_regex, self._serial_number):
-          logging.info('SN matched config %s.', sn_config_name)
+      for sn_config in self._config['test']['device_models']:
+        if re.search(sn_config['serial_number_regex'], serial_number):
+          logging.info('SN matched config %s.', sn_config['name'])
           return sn_config
       return None
 
     # Reset SN input box and hide error message.
-    self._ui.RunJS('$("sn").value = ""')
-    self._ui.RunJS('$("sn-format-error").style.display = "none"')
+    self._ui.RunJS('resetSNField()')
     self._ShowMessageBlock('enter-sn')
     # Loop until the right serial number has been entered.
     while True:
       # Focus and select the text for convenience.
       self._ui.RunJS('$("sn").select()')
       self._WaitForKey(test_ui.ENTER_KEY)
-      self._serial_number = self._GetSN()
-      self._sn_config = _GetConfigForSerialNumber()
+      serial_number = self._GetSN()
+      self._sn_config = _GetConfigForSerialNumber(serial_number)
       if self._sn_config:
+        self.log['dut']['serial_number'] = serial_number
         return
       else:
         self._ui.RunJS('$("sn-format-error-value").innerHTML = "%s"' %
-                       self._serial_number)
+                       serial_number)
         self._ui.RunJS('$("sn-format-error").style.display = ""')
-
-  def _GetTraces(self, freqs_in_mhz, parameters, purpose='unspecified'):
-    """Wrapper for GetTraces in order to log details.
-
-    Args:
-      freqs_in_mhz: an iterable container of frequencies to acquire.
-      parameters: the type of trace to acquire, e.g., 'S11', 'S22', etc.
-          Detailed in GetTraces().
-      purpose: additional tag for detailed logging.
-
-    Returns:
-      Current traces from the ENA.
-    """
-    # Generate the sweep tuples.
-    freqs = sorted(freqs_in_mhz)
-    segments = [(freq_min * 1e6, freq_max * 1e6, 2) for
-                freq_min, freq_max in zip(freqs, freqs[1:])]
-
-    self._ena.SetSweepSegments(segments)
-    ret = self._ena.GetTraces(parameters)
-    self._raw_traces[purpose] = ret
-    return ret
 
   def _CaptureScreenshot(self, filename_prefix):
     """Captures the screenshot based on the settings.
@@ -302,23 +270,13 @@ class VSWR(unittest.TestCase):
       filename_prefix: prefix for the image file name.
     """
     # Save a screenshot copy in ENA.
-    filename = '%s[%s]' % (
-        filename_prefix, time_utils.TimeString(time_separator='-',
-                                               milliseconds=False))
-    self._ena.SaveScreen(filename)
-
-    # The SaveScreen above has saved a screenshot inside ENA, but it does not
-    # allow reading that file directly (see SCPI protocol for details). To save
-    # a copy locally, we need to make another screenshot using ENA's HTTP
-    # service (image.asp) which always puts the file publicly available as
-    # "disp.png".
-    logging.info('Requesting ENA to generate screenshot')
-    urllib.urlopen('http://%s/image.asp' % self._ena_ip).read()
-    png_content = urllib.urlopen('http://%s/disp.png' % self._ena_ip).read()
-    Log('vswr_screenshot',
-        ab_serial_number=self._serial_number,
-        path=self._path_name,
-        filename=filename)
+    filename = '%s[%s]' % (filename_prefix, time_utils.TimeString(
+        time_separator='-', milliseconds=False))
+    png_content = self._ena.CaptureScreenshot()
+    event_log.Log('vswr_screenshot',
+                  ab_serial_number=self._serial_number,
+                  path=self._config['event_log_name'],
+                  filename=filename)
 
     with file_utils.UnopenedTemporaryFile() as temp_png_path:
       with open(temp_png_path, 'w') as f:
@@ -335,13 +293,14 @@ class VSWR(unittest.TestCase):
         logging.info('Screenshot %s saved in USB.', filename)
 
       # Save screenshot to shopfloor if needed.
-      if self._shopfloor_enabled:
+      if self._config['shopfloor_enabled']:
         logging.info('Sending screenshot to shopfloor')
-        log_name = os.path.join(self._path_name, 'screenshot', filename)
+        log_name = os.path.join(self._config['shopfloor_log_dir'],
+                                'screenshot', filename)
         self._UploadToShopfloor(
             temp_png_path, log_name,
-            ignore_on_fail=self._shopfloor_ignore_on_fail,
-            timeout=self._shopfloor_timeout)
+            ignore_on_fail=self._config['shopfloor_ignore_on_fail'],
+            timeout=self._config['shopfloor_timeout'])
         logging.info('Screenshot %s uploaded.', filename)
 
   def _CheckMeasurement(self, threshold, extracted_value,
@@ -360,8 +319,8 @@ class VSWR(unittest.TestCase):
           True), usually it's one of 'cell_main', 'cell_aux', 'wifi_main',
           'wifi_aux'.
     """
-    min_value = threshold[0]
-    max_value = threshold[1]
+    min_value = threshold['min']
+    max_value = threshold['max']
     difference = max(
         (min_value - extracted_value) if min_value else 0,
         (extracted_value - max_value) if max_value else 0)
@@ -372,69 +331,17 @@ class VSWR(unittest.TestCase):
       factory.console.info(
           '%10s failed at %.0f MHz[%9.3f dB], %9.3f dB '
           'away from threshold[%s, %s]',
-          title, freq / 1000000.0, float(extracted_value),
+          title, freq.MHzi(), float(extracted_value),
           float(difference), min_value, max_value)
     # Record the detail for event_log.
-    self._vswr_detail_results['%.0fM' % (freq / 1E6)] = {
+    self._vswr_detail_results['%dM' % freq.MHzi()] = {
         'type': title,
-        'freq': freq,
+        'freq': freq.Hzf(),
         'observed': extracted_value,
         'result': check_pass,
         'threshold': [min_value, max_value],
         'diff': difference}
     return check_pass
-
-  def _CompareTraces(self, traces, cell_or_wifi, main_or_aux, ena_parameter):
-    """Returns the traces and spec are aligned or not.
-
-    It calls the check_measurement for each frequency and records
-    coressponding result in eventlog and raw logs.
-
-    Usage example:
-        self._test_sweep_segment(traces, 'cell', 1, 'cell_main', 'S11')
-
-    Args:
-      traces: Trace information from ENA.
-      cell_or_wifi: 'cell' or 'wifi' antenna.
-      main_or_aux: 'main' or 'aux' antenna.
-      ena_parameter: the type of trace to acquire, e.g., 'S11', 'S22', etc.
-          Detailed in ena.GetTraces()
-    """
-    log_title = '%s_%s' % (cell_or_wifi, main_or_aux)
-    self._log_to_file.write(
-        'Start measurement [%s], with profile[%s,col %s], from ENA-%s\n' %
-        (log_title, cell_or_wifi, main_or_aux, ena_parameter))
-
-    # Generate sweep tuples.
-    all_passed = True
-    logs = [('Frequency',
-             'Antenna-%s' % main_or_aux,
-             'ENA-%s' % ena_parameter,
-             'Result')]
-    for threshold in self._vswr_threshold[cell_or_wifi]:
-      freq = threshold['freq'] * 1e6
-      standard = (threshold['%s_min' % main_or_aux],
-                  threshold['%s_max' % main_or_aux])
-      response = traces.GetFreqResponse(freq, ena_parameter)
-      passed = self._CheckMeasurement(
-          standard, response, print_on_failure=True,
-          freq=freq, title=log_title)
-      logs.append((freq, standard, response, passed))
-      all_passed = all_passed and passed
-
-    self._log_to_file.write(
-        '%s results:\n%s\n' % (log_title, pprint.pformat(logs)))
-    Log('vswr_%s' % log_title,
-        ab_serial_number=self._serial_number,
-        iterations=self._current_iteration,
-        iteration_hash=self._iteration_hash,
-        current_config_name=self._sn_config_name,
-        ena_name=self._ena_name,
-        ena_parameter=ena_parameter,
-        config=(log_title, cell_or_wifi, main_or_aux, ena_parameter),
-        detail=self._vswr_detail_results)
-
-    return all_passed
 
   def _UploadToShopfloor(
       self, file_path, log_name, ignore_on_fail=False, timeout=10):
@@ -454,7 +361,7 @@ class VSWR(unittest.TestCase):
       shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
       shopfloor_client.SaveAuxLog(log_name, xmlrpclib.Binary(chunk))
       logging.info(
-          'Successfully synced %s in %.03f s',
+          'Successfully uploaded %s in %.03f s',
           description, time.time() - start_time)
     except Exception as e:
       if ignore_on_fail:
@@ -465,170 +372,149 @@ class VSWR(unittest.TestCase):
         raise e
     return True
 
-  def _TestAntennas(self, main_or_aux):
-    """Tests either main or aux antenna for both cellular and wifi.
+  def _TestAntennas(self, measurement_sequence, default_thresholds):
+    """Tests either main or aux antenna for both cellular and wifi."""
+    # Make sure the segment is correct.
+    self._ena.SetSweepSegments([(
+        self._config['network_analyzer']['measure_segment']['min_frequency'],
+        self._config['network_analyzer']['measure_segment']['max_frequency'],
+        self._config['network_analyzer']['measure_segment']['sample_points'])])
 
-    Args:
-      main_or_aux: str, specify which antenna to test, either 'main' or 'aux'.
-    """
-    # Get frequencies we want to test.
-    freqs = (
-        set([f['freq'] for f in self._vswr_threshold['cell']]) |
-        set([f['freq'] for f in self._vswr_threshold['wifi']]))
-    traces = self._GetTraces(
-        freqs, ['S11', 'S22'], purpose=('test_%s_antennas' % main_or_aux))
+    # TODO(littlecvr): Name is not right.
+    ports = measurement_sequence.keys()
+    rf_ports = []
+    for port in ports:
+      rf_ports.append('S%s%s' % (port, port))
+    traces = self._ena.GetTraces(rf_ports)
+    for port in ports:
+      rf_port = 'S%s%s' % (port, port)
+      antenna_name = measurement_sequence[port]['name']
+      thresholds_list = measurement_sequence[port]['thresholds']
+      if not thresholds_list:
+        thresholds_list = {}
 
-    # Restore sweep if needed.
-    if self._sweep_restore:
-      self._ena.SetLinearSweep(self._sweep_restore[0], self._sweep_restore[1])
-    # Set marker.
-    for marker in self._marker_info:
-      self._ena.SetMarker(
-          marker['channel'], marker['marker_num'], marker['marker_freq'])
-    # Take screenshot if needed.
-    if self._take_screenshot:
-      self._CaptureScreenshot('[%s]%s' % (main_or_aux, self._serial_number))
+      trace = self._SerializeTraces(traces)
+      self.log['test']['traces'][antenna_name] = trace[rf_port]
 
-    self._results['cell-%s' % main_or_aux] = (
-        TestState.PASSED
-        if self._CompareTraces(traces, 'cell', main_or_aux, 'S11') else
-        TestState.FAILED)
-    self._results['wifi-%s' % main_or_aux] = (
-        TestState.PASSED
-        if self._CompareTraces(traces, 'wifi', main_or_aux, 'S22') else
-        TestState.FAILED)
+      # Check all sample points.
+      results = {}
+      all_passed = True
+      # TODO(littlecvr): Should skip particular frequencies specified by user,
+      #                  although specified frequencies are normally tighter.
+      # Check default thresholds.
+      for frequency in traces.x_axis:
+        frequency = rf.Frequency.FromHz(frequency)
+        response = traces.GetFreqResponse(frequency.Hzf(), rf_port)
+        passed = self._CheckMeasurement(
+            default_thresholds, response, print_on_failure=True,
+            freq=frequency, title=antenna_name)
+        all_passed = all_passed and passed
+      # Check specified frequencies.
+      for frequency, thresholds in thresholds_list.items():
+        frequency = rf.Frequency.FromMHz(frequency)
+        response = traces.GetFreqResponse(frequency.Hzf(), rf_port)
+        passed = self._CheckMeasurement(
+            thresholds, response, print_on_failure=True,
+            freq=frequency, title=antenna_name)
+        results[frequency.MHzi()] = {
+            'value': response,
+            'thresholds': thresholds,
+            'passed': passed}
+        all_passed = all_passed and passed
+
+      self.log['test']['results'][antenna_name] = results
+
+      self._results[antenna_name] = (
+          TestState.PASSED if all_passed else TestState.FAILED)
 
   def _GenerateFinalResult(self):
     """Generates the final result."""
-    self._results['final-result'] = (
-        TestState.PASSED
-        if all(self._results[f] for f in self._RESULTS_TO_CHECK) else
-        TestState.FAILED)
-    self._log_to_file.write('Result in summary:\n%s\n' %
-                            pprint.pformat(self._results))
-    Log('vswr_result',
-        ab_serial_number=self._serial_number,
-        path=self._path_name,
-        results=self._results)
+    self.log['test']['end_time'] = datetime.datetime.now()
 
   def _SaveLog(self):
     """Saves the logs and writes event log."""
-    self._log_to_file.write('\n\nRaw traces:\n%s\n' %
-                            pprint.pformat(self._raw_traces))
-    Log('vswr_detail',
-        ab_serial_number=self._serial_number,
-        path=self._path_name,
-        raw_trace=self._raw_traces)
+    logging.info('Writing log with SN: %s.', self.log['dut']['serial_number'])
 
-    logging.info('Writing log with SN: %s.', self._serial_number)
-    with file_utils.UnopenedTemporaryFile() as temp_log_path:
-      with open(temp_log_path, 'w') as f:
-        f.write(self._log_to_file.getvalue())
-      filename = self._serial_number + '.txt'
+    log_file_name = 'log_%s_%s.yaml' % (
+        datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3],  # time
+        self.log['dut']['serial_number'])  # serial number
+    log_content = yaml.dump(self.log, default_flow_style=False)
 
-      # Write log file to USB.
-      with MountedMedia(self._usb_path, 1) as mount_dir:
-        formatted_date = time.strftime('%Y%m%d', time.localtime())
-        target_dir = os.path.join(mount_dir, formatted_date, 'usb')
-        file_utils.TryMakeDirs(target_dir)
-        full_path = os.path.join(target_dir, filename)
-        shutil.copyfile(temp_log_path, full_path)
+    # Write log file to USB.
+    with MountedMedia(self._usb_path, 1) as mount_dir:
+      target_dir = os.path.join(
+          mount_dir, self.args.shopfloor_log_dir)
+      file_utils.TryMakeDirs(target_dir)
+      full_path = os.path.join(target_dir, log_file_name)
+      with open(full_path, 'w') as f:
+        f.write(log_content)
 
-      # Upload to shopfloor.
-      log_name = os.path.join(self._path_name, 'usb', filename)
-      if self._shopfloor_enabled:
-        self._UploadToShopfloor(
-            temp_log_path, log_name,
-            ignore_on_fail=self._shopfloor_ignore_on_fail,
-            timeout=self._shopfloor_timeout)
+    # Feed into event log.
+    logging.info('Feeding into event log.')
+    event_log_fields = {
+        'fixture_id': self.log['test']['fixture_id'],
+        'panel_serial': self.log['dut']['serial_number']}
+    event_log_fields.update(self.log)
+    event_log.Log(self.args.event_log_name, **event_log_fields)
 
-  def _SetUpNetwork(self):
+    logging.info('Uploading aux log onto shopfloor.')
+    shopfloor_server = shopfloor.GetShopfloorConnection()
+    shopfloor_server.SaveAuxLog(
+        posixpath.join(self.args.shopfloor_log_dir,
+                       log_file_name),
+        xmlrpclib.Binary(log_content))
+
+  def _SetUpNetwork(self, host_config):
     """Sets up the local network.
 
-    The network config should look like the example below:
-
-      network:
-        local_ip: !!python/tuple
-        - interface:1
-        - 192.168.100.20
-        - 255.255.255.0
-        ena_mapping:
-          192.168.100.1:
-            MY99999999: Taipei E5071C-mock
-          192.168.132.55:
-            MY46107723: Line C VSWR 1
-            MY46108580: Line C VSWR 2(tds)
-            MY46417768: Line A VSWR 3
-
-    About local_ip: use 'eth1' for a specific interface; or 'interface:1' for
-    alias, in which 'interface' will be automatically replaced by the default
-    interface. And the ':1' part is just a postfix number to distinguish from
-    the original interface. You can choose whatever you like. It means the same
-    thing as the ifconfig alias. Please refer to ifconfig's manual for more
-    detail.
+    Please see the sample config file on how the network config should look
+    like (it's under host -> network).
     """
     logging.info('Setting up network...')
-    network_config = self._config['network']
+    network_config = host_config['network']
 
     # Flush route cache just in case.
     Spawn(['ip', 'route', 'flush', 'cache'], check_call=True)
-    default_interface = FindUsableEthDevice(raise_exception=True)
-    logging.info('Default interface is %s.', default_interface)
+
     # Use the default interface if local_ip is not given.
-    local_ip = network_config['local_ip']
-    if local_ip is None:
-      interface = default_interface
+    interface = network_config['interface']
+    if interface == 'auto':
+      pass  # do nothing
     else:
-      interface, address, netmask = local_ip
-      # Try to replace the string to default interface.
-      interface = interface.replace('interface', default_interface)
-      self._SetLocalIP(interface, address, netmask)
-    self._FindENA(interface, network_config['ena_mapping'])
+      # Replace 'default' with real interface name if necessary.
+      if 'default' in interface:
+        default_interface = FindUsableEthDevice(raise_exception=True)
+        logging.info('Default interface is %s.', default_interface)
+        interface = str.replace(interface, 'default', default_interface)
 
-  def _SetLocalIP(self, interface, address, netmask):
-    """Sets the interface with specific IP address."""
-    logging.info(
-        'Set interface %s as %s/%s.', interface, address, netmask)
-    Spawn(['ifconfig', interface, address, 'netmask', netmask], check_call=True)
-    # Make sure the underlying interface is up.
-    Spawn(['ifconfig', interface.split(':')[0], 'up'], check_call=True)
-
-  def _FindENA(self, interface, ena_mapping):
-    """Tries to find the available ENA.
-
-    This function adds the route information for each of the possible ENA in
-    the mapping list. In addition, check if there's only one ENA in the visible
-    scope.
-
-    Args:
-      interface: The network interface used. E.g. eth0, eth1:2.
-      ena_mapping: ENA config, see doc of self._SetUpNetwork for more info.
-    """
-    valid_ping_count = 0
-    for ena_ip in ena_mapping.iterkeys():
-      # Manually add route information for all possible ENAs. Might be
-      # duplicated, so ignore the exit code.
-      Spawn(['route', 'add', ena_ip, interface], call=True)
-      # Flush route cache just in case.
-      Spawn(['ip', 'route', 'flush', 'cache'], check_call=True)
-      # Ping the host
-      logging.info('Searching for ENA at %s...', ena_ip)
-      if PingHost(ena_ip, 2) != 0:
-        logging.info('Not found at %s.', ena_ip)
-      else:
-        logging.info('Found ENA at %s.', ena_ip)
-        valid_ping_count += 1
-        self._ena_ip = ena_ip
-    if valid_ping_count != 1:
-      raise Exception(
-          'Found %d ENAs which should be only 1.' % valid_ping_count)
-    logging.info('IP of ENA automatic detected as %s', self._ena_ip)
+      ip = network_config['ip']
+      netmask = network_config['netmask']
+      logging.info(
+          'Set interface %s as %s/%s.', interface, ip, netmask)
+      Spawn(['ifconfig', interface, ip, 'netmask', netmask], check_call=True)
+      # Make sure the underlying interface is up.
+      Spawn(['ifconfig', interface.split(':')[0], 'up'], check_call=True)
 
   def _ShowResults(self):
     """Displays the final result."""
     self._ui.SetHTML(self._serial_number, id='result-serial-number')
-    for name in self._RESULT_IDS:
-      self._ui.SetHTML(self._results[name], id='result-%s' % name)
+
+    # TODO(littlecvr): Don't construct HTML string directly.
+    result_html_string = ''
+    row_count = 1
+    for measurement_sequence in self._sn_config['measurement_sequence']:
+      for port in measurement_sequence:
+        antenna_name = measurement_sequence[port]['name']
+        if self._results[antenna_name] == TestState.PASSED:
+          result_html_string += (
+              '<tr><td>%s</td><td>%s</td><td>%s</td></tr>' % (
+                  row_count, antenna_name, self._results[antenna_name]))
+        else:
+          result_html_string += (
+              '<tr><td>%s</td><td>%s</td><td style="color:red">%s</td></tr>' % (
+                  row_count, antenna_name, self._results[antenna_name]))
+        row_count += 1
+    self._ui.SetHTML(result_html_string, id='result-table')
 
   def _WaitForEvent(self, subtype):
     """Waits until a specific event subtype has been sent."""
@@ -672,16 +558,10 @@ class VSWR(unittest.TestCase):
     # The following attributes will be overridden when loading config or USB's
     # been inserted.
     self._config = {}
-    self._max_iterations = 0
-    self._path_name = ''
     self._usb_path = ''
-    self._shopfloor_enabled = False
-    self._shopfloor_timeout = 0
-    self._shopfloor_ignore_on_fail = False
     self._serial_number = ''
     self._ena = None
     self._ena_name = None
-    self._ena_ip = None
     # Serial specific config attributes.
     self._sn_config = None
     self._sn_config_name = None
@@ -695,7 +575,7 @@ class VSWR(unittest.TestCase):
     self._log_to_file = StringIO.StringIO()
     self._vswr_detail_results = {}
     self._iteration_hash = str(uuid.uuid4())
-    self._results = {name: TestState.UNTESTED for name in self._RESULT_IDS}
+    self._results = {}
     # Misc.
     self._current_iteration = 0
 
@@ -746,48 +626,69 @@ class VSWR(unittest.TestCase):
       self._LoadParametersFromUSB()
 
     self._ShowMessageBlock('set-up-network')
-    self._SetUpNetwork()
+    self._SetUpNetwork(self._config['host'])
 
     self._ShowMessageBlock('connect-to-ena')
-    self._ConnectToENA()
+    self._ConnectToENA(self._config['network_analyzer'])
 
-    self._ShowMessageBlock('check-calibration')
-    self._CheckCalibration()
-
-    self._current_iteration = 0
     while True:
-      # Force to quit if max iterations reached.
-      self._current_iteration += 1
-      if self._max_iterations and (
-          self._current_iteration > self._max_iterations):
-        factory.console.info('Max iterations reached, please restart.')
-        break
-      logging.info('Starting iteration %s...', self._current_iteration)
+      self._ShowMessageBlock('check-calibration')
+
+      ena_config = self._config['network_analyzer']
+      calibration_passed, calibration_traces = self._ena.CheckCalibration(
+          rf.Frequency.FromHz(ena_config['measure_segment']['min_frequency']),
+          rf.Frequency.FromHz(ena_config['measure_segment']['max_frequency']),
+          ena_config['measure_segment']['sample_points'],
+          ena_config['calibration_check_thresholds']['min'],
+          ena_config['calibration_check_thresholds']['max'])
+      self.log['network_analyzer']['calibration_traces'] = calibration_traces
+
+      if not calibration_passed:
+        self._ShowMessageBlock('need-calibration')
+        while True:
+          time.sleep(0.5)
 
       self._ShowMessageBlock('prepare-panel')
       self._ResetDataForNextTest()
       self._WaitForKey(test_ui.ENTER_KEY)
 
       self._WaitForValidSN()
-      self._LoadSNSpecificParameters()
 
-      self._ShowMessageBlock('prepare-main-antenna')
-      self._WaitForKey('A')
+      for measurement_sequence in self._sn_config['measurement_sequence']:
+        # Pick a random letter to prevent the operator from pressing too fast.
+        letter = random.choice(string.ascii_uppercase)
+        factory.console.info('Press %s to continue', letter)
+        # TODO(littlecvr): Should not construct HTML string here.
+        html_string_en = ''
+        html_string_ch = ''
+        for port in measurement_sequence:
+          antenna_name = measurement_sequence[port]['name']
+          html_string_en += (
+              'Make sure the %s antennta is connected to port %s<br>' % (
+                  antenna_name, port))
+          html_string_ch += u'连接 %s 天线至 port %s<br>' % (antenna_name, port)
+        html_string_en += 'Then press key "%s" to next stage.' % letter
+        html_string_ch += u'完成后按 %s 键' % letter
+        html_string = test_ui.MakeLabel(html_string_en, html_string_ch)
+        self._ui.SetHTML(html_string, id='state-prepare-antennas')
+        self._ShowMessageBlock('prepare-antennas')
+        self._WaitForKey(letter)
 
-      self._ShowMessageBlock('test-main-antenna')
-      self._TestAntennas('main')
-
-      self._ShowMessageBlock('prepare-aux-antenna')
-      self._WaitForKey('K')
-
-      self._ShowMessageBlock('test-aux-antenna')
-      self._TestAntennas('aux')
+        self._ShowMessageBlock('test-antennas')
+        # TODO(littlecvr): Get rid of _sn_config.
+        if 'default_thresholds' in self._sn_config:
+          default_thresholds = self._sn_config['default_thresholds']
+        elif 'default_thresholds' in self._config['test']:
+          default_thresholds = self._config['test']['default_thresholds']
+        else:
+          default_thresholds = (None, None)
+        self._TestAntennas(measurement_sequence, default_thresholds)
 
       self._GenerateFinalResult()
 
       self._ShowMessageBlock('save-log')
       self._SaveLog()
 
-      self._ShowMessageBlock('show-result')
       self._ShowResults()
+      self._ShowMessageBlock('show-result')
       self._WaitForKey(test_ui.ENTER_KEY)

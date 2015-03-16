@@ -30,6 +30,12 @@
     <span class="goofy-label-en">Checking its calibration status...</span>
     <span class="goofy-label-zh">验证仪器矫正状态中...</span>
   </div>
+  <div id="state-need-calibration">
+    <span class="goofy-label-en" style="color: red">
+      The ENA needs to be calibrated.</span>
+    <span class="goofy-label-zh" style="color: red">
+      请矫正 ENA 並重新啟動測試。</span>
+  </div>
   <div id="state-prepare-panel">
     <span class="goofy-label-en">
       Please place the LCD panel into the fixture.<br>
@@ -48,7 +54,7 @@
       <span class="goofy-label-zh">格式错误，请重新输入</span>
     </span>
   </div>
-  <div id="state-prepare-main-antenna">
+  <div id="state-prepare-antennas">
     <span class="goofy-label-en">
       Make sure the main WWAN antennta is connected to Port 1<br>
       Make sure the main WLAN antennta is connected to Port 2<br>
@@ -58,22 +64,9 @@
       连接主 WLAN 天线至 Port 2<br>
       完成后按 A 键</span>
   </div>
-  <div id="state-test-main-antenna">
-    <span class="goofy-label-en">Testing MAIN antenna...</span>
-    <span class="goofy-label-zh">测试主天线中...</span>
-  </div>
-  <div id="state-prepare-aux-antenna">
-    <span class="goofy-label-en">
-      Make sure the aux WWAN antennta is connected to Port 1<br>
-      Make sure the aux WLAN antennta is connected to Port 2<br>
-      Then press key "K" to next stage.</span>
-    <span class="goofy-label-zh">连接副 WWAN 天线至 Port 1<br>
-      连接副 WLAN 天线至 Port 2<br>
-      完成后按 K 键</span>
-  </div>
-  <div id="state-test-aux-antenna">
-    <span class="goofy-label-en">Testing AUX antenna...</span>
-    <span class="goofy-label-zh">测试副天线中...</span>
+  <div id="state-test-antennas">
+    <span class="goofy-label-en">Testing...</span>
+    <span class="goofy-label-zh">测试中...</span>
   </div>
   <div id="state-save-log">
     <span class="goofy-label-en">Writing log....</span>
@@ -86,17 +79,15 @@
       测试结果显示如下：</span>
     <div>Serial Number: <span id="result-serial-number"></span></div>
     <div id="result">
-      <table>
-        <tr><td>1</td><td>Cellular Antenna (MAIN)</td>
-          <td id="result-cell-main"></td></tr>
-        <tr><td>2</td><td>Cellular Antenna (AUX)</td>
-          <td id="result-cell-aux"></td></tr>
+      <table id="result-table" style="margin: 0 auto">
+        <tr><td>1</td><td>LTE Antenna (MAIN)</td>
+          <td>PASSED</td></tr>
+        <tr><td>2</td><td>LTE Antenna (AUX)</td>
+          <td id="result-lte-aux"></td></tr>
         <tr><td>3</td><td>WiFi Antenna (MAIN)</td>
           <td id="result-wifi-main"></td></tr>
         <tr><td>4</td><td>WiFi Antenna (AUX)</td>
           <td id="result-wifi-aux"></td></tr>
-        <tr><td>5</td><td>Test Result</td>
-          <td id="result-final-result"></td></tr>
       </table>
     </div>
     <span class="goofy-label-en">
