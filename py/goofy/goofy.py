@@ -1678,7 +1678,7 @@ class Goofy(GoofyBase):
                                    'bytes_used_pct': FloatDigit(encrypted.bytes_used_pct, 2),
                                    'inodes_used_pct': FloatDigit(encrypted.inodes_used_pct, 2)}
                            })
-        self.log_watcher.ScanEventLogs()
+        self.log_watcher.KickWatchThread()
         if (not utils.in_chroot() and
             self.test_list.options.stateful_usage_above_threshold_action):
           Spawn(self.test_list.options.stateful_usage_above_threshold_action,
