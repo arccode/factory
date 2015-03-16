@@ -40,6 +40,16 @@ clear_files() {
   [ -n "$enabled" ] && echo rm -rf "$FACTORY_BASE/$dir/*"
 }
 
+kill_tree() {
+  local pid="$1"
+  local sig="${2:-TERM}"
+  kill -STOP ${pid}  # Stop parent from generating more children
+  for child in $(ps -o pid --no-headers --ppid ${pid}); do
+    kill_tree ${child} ${sig}
+  done
+  kill -${sig} ${pid} 2>/dev/null
+}
+
 clear_vpd=false
 automation_mode=none
 stop_auto_run_on_start=false
@@ -94,15 +104,14 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-KILL_REGEXP='^(python|/usr/bin/python|.*pytest|.*stressapptest)'
-
+goofy_control_pid="$(pgrep goofy_control)"
 echo -n "Stopping factory test programs... "
-pkill -f "$KILL_REGEXP" 2>/dev/null
+kill_tree $goofy_control_pid
 for sec in 3 2 1; do
   echo -n "${sec} "
   sleep 1
 done
-pkill -9 -f "$KILL_REGEXP" 2>/dev/null
+kill_tree $goofy_control_pid KILL
 echo "done."
 
 for d in $delete; do
