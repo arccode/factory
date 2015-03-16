@@ -136,7 +136,8 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
   """
 
   def __init__(self, server_uri, test_mode=False, max_retries=5,
-               umpire_client_info=None, *args, **kwargs):
+               umpire_client_info=None, quiet=False,
+               *args, **kwargs):
     """Initializes an UmpireServerProxy.
     Args:
       server_uri: A string containing Umpire server URI or shopfloor
@@ -149,6 +150,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
       umpire_client_info: An object which implements UmpireClientInfoInterface.
         This is useful when user wants to use implementation other than
         UmpireClientInfo, e.g. when UmpireServerProxy is used in chroot.
+      quiet: Suppresses error messages when shopfloor can not be reached.
       Other args are for base class.
     """
     self._server_uri = server_uri
@@ -165,6 +167,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     self._kwargs = kwargs
     self._test_mode = test_mode
     self._max_retries = max_retries
+    self._quiet = quiet
 
     if umpire_client_info:
       logging.warning('Using injected Umpire client info.')
@@ -283,9 +286,12 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     except Exception:
       # This is pretty common and not necessarily an error because by the time
       # when proxy instance is initiated, connection might not be ready.
-      logging.warning(
-          'Unable to contact shopfloor server to decide using Umpire or not: %s',
-          '\n'.join(traceback.format_exception_only(*sys.exc_info()[:2])).strip())
+      if not self._quiet:
+        logging.warning(
+            'Unable to contact shopfloor server to decide using'
+            ' Umpire or not : %s',
+            '\n'.join(
+                traceback.format_exception_only(*sys.exc_info()[:2])).strip())
       return None
     if isinstance(result, dict) and result.get('version') == UMPIRE_VERSION:
       logging.debug('Got Umpire server version %r', result.get('version'))
@@ -572,7 +578,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     # Using Umpire or not is not decided yet. Tries to decide it and initializes
     # proxies if needed. Raises exception if it still can not be decided.
     if self._use_umpire is None:
-      logging.warning('Need to decide using Umpire or not')
+      logging.debug('Need to decide using Umpire or not')
       self._Init(raise_exception=True)
 
     # Not using Umpire. Uses __request in base class.
