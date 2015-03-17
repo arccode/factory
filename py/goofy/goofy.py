@@ -185,6 +185,7 @@ class Goofy(GoofyBase):
     self.last_shutdown_time = None
     self.last_update_check = None
     self._suppress_periodic_update_messages = False
+    self._suppress_event_log_error_messages = False
     self.last_sync_time = None
     self.last_log_disk_space_time = None
     self.last_log_disk_space_message = None
@@ -1852,16 +1853,22 @@ class Goofy(GoofyBase):
     self.check_core_dump()
     self.check_log_rotation()
 
-  def handle_event_logs(self, chunks):
+  def handle_event_logs(self, chunks, periodic=False):
     """Callback for event watcher.
 
     Attempts to upload the event logs to the shopfloor server.
 
     Args:
       chunks: A list of Chunk objects.
+      periodic: This event log handling is periodic. Error messages
+                will only be shown for the first time.
     """
     first_exception = None
     exception_count = 0
+    # Suppress error messages for periodic event syncing except for the
+    # first time. If event syncing is not periodic, always show the error
+    # messages.
+    quiet = self._suppress_event_log_error_messages if periodic else False
 
     for chunk in chunks:
       try:
@@ -1869,7 +1876,8 @@ class Goofy(GoofyBase):
         start_time = time.time()
         shopfloor_client = shopfloor.get_instance(
             detect=True,
-            timeout=self.test_list.options.shopfloor_timeout_secs)
+            timeout=self.test_list.options.shopfloor_timeout_secs,
+            quiet=quiet)
         shopfloor_client.UploadEvent(chunk.log_name + '.' +
                                      event_log.GetReimageId(),
                                      Binary(chunk.chunk))
@@ -1887,7 +1895,16 @@ class Goofy(GoofyBase):
       else:
         msg = '%d log upload failed; first is: %s' % (
             exception_count, first_exception)
-      raise Exception(msg)
+      # For periodic event log syncing, only show the first error messages.
+      if periodic:
+        if not self._suppress_event_log_error_messages:
+          self._suppress_event_log_error_messages = True
+          logging.warning('Suppress periodic shopfloor error messages for '
+                          'event log syncing after the first one.')
+          raise Exception(msg)
+      # For event log syncing by request, show the error messages.
+      else:
+        raise Exception(msg)
 
   def run_tests_with_status(self, statuses_to_run, starting_at=None, root=None):
     """Runs all top-level tests with a particular status.
