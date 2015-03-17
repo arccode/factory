@@ -100,7 +100,7 @@ class SystemLogManager(object):
       if list_attribute and not isinstance(list_attribute, list):
         raise SystemLogManagerException('%r should be a list.', list_name)
     if self._clear_log_paths and self._sync_log_paths:
-      if (set(self._clear_log_paths) & set(self._sync_log_paths)):
+      if set(self._clear_log_paths) & set(self._sync_log_paths):
         raise SystemLogManagerException('clear_log_paths should not be '
                                         'overlapped with sync_log_paths.')
     if self._clear_log_paths and self._clear_log_excluded_paths:

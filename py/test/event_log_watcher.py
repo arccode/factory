@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import factory_common  # pylint: disable=W0611
+
 import collections
 import logging
 import os
@@ -179,7 +181,7 @@ class EventLogWatcher(object):
     for dir_path, _, file_names in sorted(os.walk(self._event_log_dir),
                                           key=dir_name):
       # Sorts files by their modification time.
-      file_mtime = lambda f: os.lstat(os.path.join(dir_path, f)).st_mtime
+      file_mtime = lambda f, p=dir_path: os.lstat(os.path.join(p, f)).st_mtime
       for file_name in sorted(file_names, key=file_mtime):
         file_path = os.path.join(dir_path, file_name)
         if not os.path.isfile(file_path):

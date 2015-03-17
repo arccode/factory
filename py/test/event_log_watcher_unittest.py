@@ -4,8 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=W0611
-
 import mox
 import os
 import shutil
@@ -13,6 +11,7 @@ import tempfile
 import time
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
 from cros.factory.test import event_log_watcher
 from cros.factory.test.event_log_watcher import Chunk, EventLogWatcher
