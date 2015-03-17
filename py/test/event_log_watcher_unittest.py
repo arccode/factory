@@ -81,7 +81,7 @@ class EventLogWatcherTest(unittest.TestCase):
       def __init__(self):
         pass
 
-      def handle_cb(self, chunk_infos):
+      def handle_cb(self, chunk_infos, periodic):
         self.handled = True
     h = Handler()
 
@@ -91,6 +91,7 @@ class EventLogWatcherTest(unittest.TestCase):
     self.WriteLog(MOCK_PREAMBLE(0))
 
     # Assert handle_cb has ever been called in 2 seconds.
+
     for _ in range(200):
       if h.handled:
         break
@@ -143,7 +144,7 @@ class EventLogWatcherTest(unittest.TestCase):
   def testHandleEventLogsCallback(self):
     mock = mox.MockAnything()
     mock.handle_event_log([
-        Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)])
+        Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)], False)
     mox.Replay(mock)
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
@@ -161,8 +162,8 @@ class EventLogWatcherTest(unittest.TestCase):
 
   def testHandleEventLogsCallbackMultiple(self):
     mock = mox.MockAnything()
-    mock.handle_event_log(mox.IgnoreArg())
-    mock.handle_event_log(mox.IgnoreArg())
+    mock.handle_event_log(mox.IgnoreArg(), False)
+    mock.handle_event_log(mox.IgnoreArg(), False)
     mox.Replay(mock)
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
@@ -182,7 +183,7 @@ class EventLogWatcherTest(unittest.TestCase):
 
   def testHandleEventLogsCallbackUnlimited(self):
     mock = mox.MockAnything()
-    mock.handle_event_log(mox.IgnoreArg())
+    mock.handle_event_log(mox.IgnoreArg(), False)
     mox.Replay(mock)
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
@@ -218,7 +219,7 @@ class EventLogWatcherTest(unittest.TestCase):
     self.WriteLog(MOCK_PREAMBLE(0, True), MOCK_LOG_NAME(0))
 
     mock_callback([
-        Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0, True), 0)])
+        Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0, True), 0)], False)
     m.ReplayAll()
     watcher.ScanEventLogs()
     m.VerifyAll()
@@ -250,7 +251,7 @@ class EventLogWatcherTest(unittest.TestCase):
     m.ResetAll()
     mock_callback([
         Chunk(MOCK_LOG_NAME(0), MOCK_EVENT(0, True) + MOCK_EVENT(1, True),
-              len(MOCK_PREAMBLE(0, True)))])
+              len(MOCK_PREAMBLE(0, True)))], False)
     m.ReplayAll()
     watcher.ScanEventLogs()
     m.VerifyAll()
@@ -265,7 +266,7 @@ class EventLogWatcherTest(unittest.TestCase):
   def testHandleEventLogsFail(self):
     mock = mox.MockAnything()
     mock.handle_event_log(
-        [Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)]
+        [Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)], False
     ).AndRaise(Exception('Bar'))
     mox.Replay(mock)
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
@@ -284,8 +285,9 @@ class EventLogWatcherTest(unittest.TestCase):
 
   def testFlushEventLogsFail(self):
     mock = mox.MockAnything()
-    mock.handle_event_log([(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0))]).AndRaise(
-        Exception('Foo'))
+    mock.handle_event_log(
+        [(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0))], False).AndRaise(
+            Exception('Foo'))
     mox.Replay(mock)
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
                               mock.handle_event_log)

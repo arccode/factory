@@ -57,7 +57,11 @@ class EventLogWatcher(object):
       event_log_db_file: The file in which to store the DB of event logs,
           or None to use sync markers instead (see event_log.py).
       handle_event_logs_callback: The callback to trigger after new event logs
-          found.
+          found. This is a function which accepts two arguments:
+              chunks: A list of Chunk objects.
+              periodic: True if this event log handling is periodic.
+                        False if this event log handling is requested by
+                        user calling FlushEventLogs.
       num_log_per_callback: The maximum number of log files per callback, or 0
           for unlimited number of log files.
     '''
@@ -99,22 +103,23 @@ class EventLogWatcher(object):
     Call ScanEventLogs and with suppress_error flag to false.
     '''
     with self._scan_lock:
-      self.ScanEventLogs(False)
+      self.ScanEventLogs(False, False)
 
-  def _CallEventLogHandler(self, chunks, suppress_error):
+  def _CallEventLogHandler(self, chunks, suppress_error, periodic):
     '''Invoke event log handler callback.
 
     Args:
       chunks: A list of Chunks.
       suppress_error: if set to true then any exception from handle event
           log callback will be ignored.
+      periodic: This is a periodic event scanning, not by request.
 
     Raises:
       ScanException: if upload handler throws exception.
     '''
     try:
       if self._handle_event_logs_callback is not None:
-        self._handle_event_logs_callback(chunks)
+        self._handle_event_logs_callback(chunks, periodic)
       if self._use_sync_markers:
         # Update the sync marker in each chunk.
         for chunk in chunks:
@@ -130,7 +135,7 @@ class EventLogWatcher(object):
 
     except:  # pylint: disable=W0702
       if suppress_error:
-        logging.exception('Upload handler error')
+        logging.debug('Upload handler error')
       else:
         raise ScanException(utils.FormatExceptionOnly())
       return
@@ -145,23 +150,24 @@ class EventLogWatcher(object):
         self._db.sync()
     except:  # pylint: disable=W0702
       if suppress_error:
-        logging.exception('Upload handler error')
+        logging.debug('Upload handler error')
       else:
         raise ScanException(utils.FormatExceptionOnly())
 
-  def ScanEventLogs(self, suppress_error=True):
+  def ScanEventLogs(self, suppress_error=True, periodic=False):
     '''Scans event logs.
 
     Args:
       suppress_error: if set to true then any exception from handle event
           log callback will be ignored.
+      periodic: This is a periodic event scanning, not by request.
 
     Raise:
       ScanException: if at least one ScanEventLog call throws exception.
     '''
     if not os.path.exists(self._event_log_dir):
-      logging.warn('Event log directory %s does not exist yet',
-                   self._event_log_dir)
+      logging.warning('Event log directory %s does not exist yet',
+                      self._event_log_dir)
       return
 
     chunks = []
@@ -193,7 +199,7 @@ class EventLogWatcher(object):
               raise ScanException(msg)
         if (self._num_log_per_callback and
             len(chunks) >= self._num_log_per_callback):
-          self._CallEventLogHandler(chunks, suppress_error)
+          self._CallEventLogHandler(chunks, suppress_error, periodic)
           chunks = []
           # Skip remaining when abort. We don't want to wait too long for the
           # remaining finished.
@@ -201,7 +207,7 @@ class EventLogWatcher(object):
             return
 
     if chunks:
-      self._CallEventLogHandler(chunks, suppress_error)
+      self._CallEventLogHandler(chunks, suppress_error, periodic)
 
   def StopWatchThread(self):
     """Stops the event logs watching thread."""
@@ -230,7 +236,7 @@ class EventLogWatcher(object):
         return
       try:
         with self._scan_lock:
-          self.ScanEventLogs()
+          self.ScanEventLogs(True, True)
       except:  # pylint: disable=W0702
         logging.exception('Error in event log watcher thread')
 
