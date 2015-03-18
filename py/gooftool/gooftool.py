@@ -877,8 +877,8 @@ def VerifyHWIDv3(options):
     probed_results = yaml.load(Probe(probe_vpd=True).Encode())
   vpd = hwid_utils.GetVPD(probed_results)
 
-  event_log.Log('probed_results', probed_results=probed_results)
-  event_log.Log('vpd', vpd=vpd)
+  event_log.Log('probed_results', probed_results=FilterDict(probed_results))
+  event_log.Log('vpd', vpd=FilterDict(vpd))
 
   hwid_utils.VerifyHWID(db, encoded_string, probed_results, vpd,
                         rma_mode=options.rma_mode)
