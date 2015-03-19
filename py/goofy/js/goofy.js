@@ -3113,6 +3113,9 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
       term.write(Base64.decode(msg.data));
     };
   }
+  sock.onclose = function (e) {
+    this.closeTerminal();
+  }.bind(this)
 }
 
 cros.factory.Goofy.prototype.closeTerminal = function(e) {

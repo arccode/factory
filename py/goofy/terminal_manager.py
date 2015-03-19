@@ -11,11 +11,11 @@ import threading
 
 from ws4py.websocket import WebSocket
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from cros.factory.test.web_socket_utils import WebSocketHandshake
 
 
-_SHELL = os.getenv('SHELL') or '/bin/bash'
+_SHELL = os.getenv('SHELL', '/bin/bash')
 _BUFSIZ = 8192
 
 
@@ -28,8 +28,8 @@ class TerminalManager(object):
     pid, fd = os.forkpty()
     if pid == 0:
       env = os.environ.copy()
-      env['USER'] = os.getenv('USER') or 'root'
-      env['HOME'] = os.getenv('HOME') or '/root'
+      env['USER'] = os.getenv('USER', 'root')
+      env['HOME'] = os.getenv('HOME', '/root')
       os.chdir(env['HOME'])
       os.execve(_SHELL, [_SHELL], env)
 
