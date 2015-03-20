@@ -303,6 +303,7 @@ class InterruptHandler(object):
       return True
 
     if (self._starting_fixture_action != ActionType.FIXTURE_STARTED and
+        self._starting_fixture_action is not None and
         not status[self._BUTTON.FIXTURE_START]):
       logging.info('Calling _HandleStopFixture because FIXTURE_START is False.')
       self._HandleStopFixture()
