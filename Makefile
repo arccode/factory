@@ -70,10 +70,10 @@ LINT_BLACKLIST=\
 	py/minijack/uritemplate/% \
 	py/proto/%_pb2.py
 
-LINT_FILES=$(shell find py -name '*.py' -type f | sort)
+LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 
-UNITTESTS=$(shell find py -name '*_unittest.py' | sort)
+UNITTESTS=$(shell find py go -name '*_unittest.py' | sort)
 # TODO(sheckylin): Get py/test/media_util_unittest.py working.
 UNITTESTS_BLACKLIST=\
 	py/test/media_util_unittest.py
