@@ -214,7 +214,7 @@ rawdata: ['abc.png', 'def.wav']
 
     name_list = [
         'abc.tgz', 'abc_1234567890.tgz', 'abc_1234567890_1234567890123456.tgz',
-        'abc_1234_12345678901234567.tgz', '1234567890_12345678901234567.tgz']
+        '1234567890_12345678901234567.tgz']
     for name in name_list:
       check_FileName(name, False, 'File name %s does not match pattern.' % name)
 
