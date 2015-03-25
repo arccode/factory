@@ -13,6 +13,7 @@ from multiprocessing import pool
 import os
 import re
 import socket
+import struct
 import subprocess
 import time
 import xmlrpclib
@@ -36,6 +37,97 @@ DEFAULT_TIMEOUT = 10
 # that these systems run tests under IPv4.
 LOCALHOST = '127.0.0.1'
 MAX_PORT = 65535
+FULL_MASK = 2 ** 32 - 1
+FULL_MASK6 = 2 ** 128 - 1
+
+
+class IP(object):
+  """A class representing IP addresses, provide some conversion methods."""
+  def __init__(self, obj, family=4):
+    """Constructor.
+
+    Args:
+      obj: either string representation or integer representation of an IP.
+    """
+    if isinstance(obj, int) or isinstance(obj, long):
+      if family == 4:
+        self.family = socket.AF_INET
+        self._ip = socket.inet_ntop(self.family, struct.pack('>I', obj))
+      elif family == 6:
+        self.family = socket.AF_INET6
+        ip_bytes = struct.pack('>2Q', obj >> 64, obj & (FULL_MASK6 >> 64))
+        self._ip = socket.inet_ntop(self.family, ip_bytes)
+      else:
+        raise RuntimeError('invalid inet family assignment')
+    elif isinstance(obj, str):
+      try:
+        socket.inet_pton(socket.AF_INET, obj)
+      except socket.error:
+        try:
+          socket.inet_pton(socket.AF_INET6, obj)
+        except socket.error:
+          raise RuntimeError('invalid ip string')
+
+      self._ip = obj
+      self.family = socket.AF_INET if '.' in self._ip else socket.AF_INET6
+    else:
+      raise RuntimeError('invalid argument to IP __init__ function')
+
+  def __int__(self):
+    """Convert IP string to integer representation."""
+    return int(socket.inet_pton(self.family, self._ip).encode('hex'), 16)
+
+  def __str__(self):
+    return self._ip
+
+  def __eq__(self, obj):
+    return self._ip == obj._ip
+
+
+class CIDR(object):
+  """A class storing IP ranges in the CIDR format."""
+  def __init__(self, ip, prefix):
+    """Constructor.
+
+    Args:
+      ip: either an IP object, or IP string.
+      prefix: the CIDR prefix number.
+    """
+    if isinstance(ip, str):
+      self.IP = IP(ip)
+    elif isinstance(ip, IP):
+      self.IP = ip
+    else:
+      raise RuntimeError('invalid ip argument in constructor')
+    self.prefix = prefix
+
+  def __str__(self):
+    return '%s/%d' % (self.IP, self.prefix)
+
+  def __eq__(self, obj):
+    return self.IP == obj.IP and self.prefix == obj.prefix
+
+  def SelectIP(self, n=0):
+    """Select IP within the CIDR network range.
+
+    Args:
+      n: select the n-th IP. If n is a negative value, the selection is done
+      from the end, i.e. select the last n-th IP.
+    """
+    if self.IP.family != socket.AF_INET:
+      raise RuntimeError('only IPv4 address selction is supported for now')
+
+    ip_int = int(self.IP) & int(self.Netmask())
+    host_bits = 32 - self.prefix
+
+    if abs(n) > 2 ** host_bits - 1:
+      raise RuntimeError('selection beyond IP range')
+
+    return IP(ip_int | n) if n >= 0 else IP(ip_int | (2 ** host_bits + n))
+
+  def Netmask(self):
+    full_mask = FULL_MASK if self.IP.family == socket.AF_INET else FULL_MASK6
+    return IP(full_mask ^ (full_mask >> self.prefix))
 
 
 def Ifconfig(devname, enable, sleep_time_secs=1):
@@ -112,13 +204,14 @@ def FindUsableEthDevice(raise_exception=False):
   return good_eth
 
 
-def SetEthernetIp(ip, interface=None, force=False, logger=None):
+def SetEthernetIp(ip, interface=None, netmask=None, force=False, logger=None):
   """Sets the IP address for Ethernet.
 
   Args:
     ip: The ip address want to set.
     interface: The target interface. The interface will be automatically
         assigned by Connection Manager if None is given.
+    netmask: The netmask to set.
     force: If force is False, the address is set only if the interface
         does not already have an assigned IP address.
     logger: A callback function to send verbose messages.
@@ -127,33 +220,44 @@ def SetEthernetIp(ip, interface=None, force=False, logger=None):
   Ifconfig(interface, True)
   current_ip = GetEthernetIp(interface)
   if force or not current_ip:
-    process_utils.Spawn(['ifconfig', interface, ip], call=True)
+    cmd = ['ifconfig', interface, ip]
+    if netmask:
+      cmd += ['netmask', netmask]
+    process_utils.Spawn(cmd, call=True)
   elif logger:
     logger('Not setting IP address for interface %s: already set to %s' %
            (interface, current_ip))
 
 
-def GetEthernetIp(interface=None):
+def GetEthernetIp(interface=None, netmask=False):
   """Returns the IP of interface.
 
   Args:
     interface: None to use FindUsableEthDevice, otherwise, querying a
     specific interface.
+    netmask: Whether or not to return netmask.
 
   Returns:
-    IP address in string format. None if interface doesn't exist nor
-    IP is not assigned.
+    IP address in string format. If netmask=True, returns a tuple
+    (IP address string, preifx number).  None or (None, None) if interface
+    doesn't exist nor IP is not assigned
   """
   ip_address = None
+  prefix_number = None
   interface = interface or FindUsableEthDevice(raise_exception=False)
   if interface is None:
     return None
   ip_output = process_utils.SpawnOutput(
       ['ip', 'addr', 'show', 'dev', interface])
-  match = re.search(r'^\s+inet ([.0-9]+)', ip_output, re.MULTILINE)
+  match = re.search(r'^\s+inet ([.0-9]+)/([0-9]+)', ip_output, re.MULTILINE)
   if match:
     ip_address = match.group(1)
-  return ip_address
+    prefix_number = int(match.group(2))
+
+  if not netmask:
+    return ip_address
+  else:
+    return (ip_address, prefix_number)
 
 
 def GetWLANMACAddress():
@@ -172,6 +276,17 @@ def GetWLANMACAddress():
         return f.read().strip()
 
   raise IOError('Unable to determine WLAN MAC address')
+
+
+def GetNetworkInterfaces():
+  """Returns all network interfaces.
+
+  Returns:
+    A list like ['eth0', 'eth1', 'wlan0'] Or return [] if there is no other
+    network interface.
+  """
+  return [os.path.basename(path) for path in glob.glob('/sys/class/net/*')
+          if os.path.basename(path) != 'lo']
 
 
 def GetWLANInterface():
@@ -352,7 +467,7 @@ def StartNATService(interface_in, interface_out):
   def CallIptables(args):
     process_utils.LogAndCheckCall(['sudo', 'iptables'] + args)
 
-  if type(interface_in) != list:
+  if not isinstance(interface_in, list):
     interface_in = [interface_in]
 
   # Clear everything in 'nat' table
@@ -412,6 +527,23 @@ def RenewDhcpLease(interface, timeout=3):
   return p.returncode == 0
 
 
+def GetDefaultGatewayInterface():
+  """Return the default gateway interface.
+
+  `route -n` has the output in the form of:
+  Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+  0.0.0.0         192.168.0.1     0.0.0.0         UG    600    0        0 wlan0
+
+  Flag UG means the route is Up, and it's the Gateway. We can simply extract the
+  eighth column `Iface` to get the default gateway interface.
+  """
+  output = process_utils.CheckOutput('route -n | grep UG', shell=True)
+  if output:
+    return output.split()[7]
+  else:
+    raise RuntimeError('no default gateway found')
+
+
 def GetUnmanagedEthernetInterfaces():
   """Gets a list of unmanaged Ethernet interfaces.
 
@@ -464,6 +596,92 @@ def GetUnmanagedEthernetInterfaces():
         return interface
     managed = p.map(CheckManaged, GetEthernetInterfaces())
     return [x for x in managed if x]
+
+
+def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None):
+  """Find unused IP ranges in IPV4 private address space.
+
+  Args:
+    preferred_prefix_bits: the preferred prefix length in bits
+    exclude_ip_prefix: A list of tuple of (ip, prefix_bits) to exclude.
+
+  Returns:
+    A CIDR object representing the network range.
+  """
+  IPV4_PRIVATE_RANGE = [
+      CIDR('10.0.0.0', 8),
+      CIDR('172.16.0.0', 12),
+      CIDR('192.168.0.0', 16)
+  ]
+
+  # If no exclude_ip_prefix is specified, populate it with all the ip/prefix
+  # currently on the machine interfaces.
+  if not exclude_ip_prefix:
+    exclude_ip_prefix = []
+    for iface in GetNetworkInterfaces():
+      ip_mask = GetEthernetIp(iface, True)
+      if ip_mask[0] and ip_mask[1]:
+        exclude_ip_prefix.append(ip_mask)
+
+  # available_ranges_bits stores (ip_range, available_subnet_range_bits)
+  # For example: available_ranges_bits = {0xc0a80000: 8}
+  # means we have 8 bits of subnet range 192.168.[0-255].0/24
+  available_ranges_bits = dict((int(x.IP), preferred_prefix_bits - x.prefix)
+                               for x in IPV4_PRIVATE_RANGE)
+
+  # used_subnet_range stores (ip_range, used_subnet ranges)
+  # For example: if there are two interfaces with IP 192.168.0.1/24,
+  # 192.168.1.1/24, this means available_ranges_bits [0xc0a80000] = 8
+  # used_subnet_range = {0xc0a80000: [0, 1]}.
+  used_subnet_range = dict((int(x.IP), []) for x in IPV4_PRIVATE_RANGE)
+
+  for ip_str, prefix_bits in exclude_ip_prefix:
+    # Select the min of (prefix_bits, preferred_prefix_bits). For example:
+    # if 192.168.0.0/16 (prefix_bits=16) is used, and preferred_prefix_bits=24.
+    # Since the entire /16 range is unavailable, we can't use any /24 ranges.
+    selected_prefix_bits = min(prefix_bits, preferred_prefix_bits)
+    excluded_ip = int(IP(ip_str))
+
+    for cidr in IPV4_PRIVATE_RANGE:
+      mask = int(cidr.Netmask())
+      ip = int(cidr.IP)
+      base_prefix_bits = cidr.prefix
+      range_bits = selected_prefix_bits - base_prefix_bits
+
+      # If the IP is in the same range as the current IPV4_PRIVATE_RANGE.
+      if excluded_ip & mask == ip:
+        if range_bits < available_ranges_bits[ip]:
+          # Target target IP has range smaller then previous stored range bit,
+          # so previous record is invalid, create a new list.
+          #
+          # This happens when exclude_ip_prefix = [('10.0.0.1', 24),
+          # ('10.0.0.2', 16)]. At first range_bits = 24 - 8 = 16, means we have
+          # 16 bit for different subnet. Later when the second target comes in,
+          # range_bits = 16 - 8 = 8, means we only have 8 bit of subnet ranges
+          # left.
+          available_ranges_bits[ip] = range_bits
+          used_subnet_range[ip] = [(excluded_ip & (mask ^ FULL_MASK)) >>
+                                   (32 - selected_prefix_bits)]
+        elif range_bits == available_ranges_bits[ip]:
+          # The target IP has same range with the available_ranges_bits, append
+          # the used range to the used_subnet_range.
+          used_subnet_range[ip].append((excluded_ip & (mask ^ FULL_MASK)) >>
+                                       (32 - selected_prefix_bits))
+        break
+
+  for cidr in IPV4_PRIVATE_RANGE:
+    ip = int(cidr.IP)
+    subnet_range_bits = available_ranges_bits[ip]
+    # if subnet_range_bits == 0 means the entire range is used out.
+    if subnet_range_bits > 0:
+      # Iterate through all avaialble subnet range, pick one that is not used.
+      for i in range(0, 2 ** subnet_range_bits - 1):
+        if i not in used_subnet_range[ip]:
+          prefix_bits = cidr.prefix + subnet_range_bits
+          ip_base = ip | i << (32 - prefix_bits)
+          return CIDR(IP(ip_base), prefix_bits)
+
+  raise RuntimeError('can not find unused IP range')
 
 
 class WLAN(object):

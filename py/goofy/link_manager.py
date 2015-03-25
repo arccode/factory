@@ -343,19 +343,26 @@ class DUTLinkManager(object):
     intf_blacklist = self._GetDHCPInterfaceBlacklist()
     intfs = [intf for intf in net_utils.GetUnmanagedEthernetInterfaces()
              if intf not in intf_blacklist]
-    ip_range = 0
+
     for intf in intfs:
+      network_cidr = net_utils.GetUnusedIPV4RangeCIDR()
+      # DHCP server IP assignment:
+      # my_ip: the first available IP. e.g.: 192.168.0.1
+      # ip_start: the second available IP. e.g.: 192.168.0.2
+      # ip_end: the third from the last IP. since .255 is the broadcast address
+      # and .254 is usually used by gateway, skip it to avoid unexpected
+      # problems.
       dhcp_server = dhcp_manager.DHCPManager(
           interface=intf,
-          my_ip='192.168.%d.1' % ip_range,
-          ip_start='192.168.%d.10' % ip_range,
-          ip_end='192.168.%d.230' % ip_range,
+          my_ip=str(network_cidr.SelectIP(1)),
+          netmask=str(network_cidr.Netmask()),
+          ip_start=str(network_cidr.SelectIP(2)),
+          ip_end=str(network_cidr.SelectIP(-3)),
           lease_time=3600,
           on_add=self.OnDHCPEvent,
           on_old=self.OnDHCPEvent)
       dhcp_server.StartDHCP()
       self._dhcp_servers.append(dhcp_server)
-      ip_range += 1
 
     # Start NAT service
     managed_intfs = [x for x in net_utils.GetEthernetInterfaces()

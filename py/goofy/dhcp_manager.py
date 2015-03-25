@@ -50,6 +50,7 @@ class DHCPManager(object):
 
   def __init__(self, interface,
                my_ip='192.168.0.1',
+               netmask='255.255.255.0',
                ip_start='192.168.0.10',
                ip_end='192.168.0.20',
                lease_time=3600,
@@ -58,6 +59,7 @@ class DHCPManager(object):
                on_del=None):
     self._interface = interface
     self._my_ip = my_ip
+    self._netmask = netmask
     self._ip_start = ip_start
     self._ip_end = ip_end
     self._lease_time = lease_time
@@ -87,7 +89,7 @@ class DHCPManager(object):
     pid_file = os.path.join(self.VARRUN_DIR,
                             '%s%s' % (self.PID_PREFIX, self._interface))
     # Make sure the interface is up
-    net_utils.SetEthernetIp(self._my_ip, self._interface)
+    net_utils.SetEthernetIp(self._my_ip, self._interface, self._netmask)
     # Start dnsmasq and have it call back to us on any DHCP event.
     self._process = process_utils.Spawn(
         ['dnsmasq', '--keep-in-foreground',
@@ -100,7 +102,8 @@ class DHCPManager(object):
          '--dhcp-script', callback_file_symlink],
         sudo=True, log=True)
     # Make sure the IP address is set on the interface
-    net_utils.SetEthernetIp(self._my_ip, self._interface, force=True)
+    net_utils.SetEthernetIp(self._my_ip, self._interface, self._netmask,
+                            force=True)
     # Make sure DHCP packets are not blocked
     process_utils.Spawn(['iptables',
                          '--insert', 'INPUT',
