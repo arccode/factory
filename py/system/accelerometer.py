@@ -12,6 +12,7 @@ import time
 from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.system import vpd
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 
@@ -192,6 +193,46 @@ class AccelerometerController(object):
       ret[signal_name] = int(round(ret[signal_name] / capture_count))
     logging.info('Average of %d raw data: %s', capture_count, ret)
     return ret
+
+  def GetCalibratedDataAverage(self, capture_count=1):
+    """Returns average values of the calibrated data.
+
+    Args:
+      capture_count: how many records to read to compute the average.
+
+    Returns:
+      A dict of the format {'signal_name': average value}
+      Ex, {'in_accel_x_base': 1,
+           'in_accel_y_base': -1,
+           'in_accel_z_base': 1019,
+           'in_accel_x_lid': -3,
+           'in_accel_y_lid': 2,
+           'in_accel_z_lid': -1021}
+
+    Raises:
+      Raises AccelerometerControllerException if there is no calibration
+      value in VPD.
+    """
+    def _CalculateCalibratedValue(signal_name, value):
+      calib_scale = int(ro_vpd[signal_name + '_calibscale'])
+      calib_bias = int(ro_vpd[signal_name + '_calibbias'])
+      ideal_scale = self.spec_ideal_values[1]
+      return (value * calib_scale / float(ideal_scale)) + calib_bias
+
+    # Get calibration data from VPD first.
+    ro_vpd = vpd.ro.GetAll()
+    for signal_name in self._GenSignalNames():
+      for calib_postfix in ['_calibbias', '_calibscale']:
+        calib_name = signal_name + calib_postfix
+        if calib_name not in ro_vpd:
+          raise AccelerometerControllerException(
+              'Calibration value: %r not found in RO_VPD.' % calib_name)
+
+    # Get raw data and apply the calibration values on it.
+    raw_data = self.GetRawDataAverage(capture_count=capture_count)
+    return dict(
+        (k, _CalculateCalibratedValue(k, v)) for k, v in raw_data.iteritems())
+
 
   def IsWithinOffsetRange(self, raw_data, orientations):
     """Checks whether the value of raw data is within the spec or not.
