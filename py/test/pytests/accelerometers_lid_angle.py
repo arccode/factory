@@ -25,6 +25,7 @@ Usage examples::
 import logging
 import math
 import numpy as np
+import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -35,35 +36,61 @@ from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 
 
-_MSG_SPACE = lambda a: test_ui.MakeLabel(
-    'Please open the lid to %s degree. <br>'
-    'Press space to start.' % a,
-    u'请将上盖掀开到 %s 度.<br> 压下空白键开始测试' % a,
-    css_class='accelerometers-lid-angle-test')
+_MSG_PROMPT_BUILDER = lambda a: test_ui.MakeLabel(
+    'Please open the lid to %s degrees.' % a,
+    u'请将上盖掀开到 %s 度。' % a)
+_MSG_CONFIRM_BUILDER = lambda a: test_ui.MakeLabel(
+    'Confirm %s degrees' % a,
+    u'确认掀开到 %s 度' % a)
+_MSG_CHECKING = test_ui.MakeLabel(
+    'Checking angle...',
+    u'正在确认角度……')
 
-_HTML_ACCELEROMETERS_LID_ANGLE = """
-<table style="width: 70%%; margin: auto;">
-  <tr>
-    <td align="center"><div id="accelerometers_lid_angle_title"></div></td>
-  </tr>
-</table>
-"""
+_ID_PROMPT = 'prompt'
+_ID_CONFIRM_BUTTON = 'confirm-button'
 
-_CSS_ACCELEROMETERS_LID_ANGLE = """
-  .accelerometers-lid-angle-test { font-size: 2em; }
-"""
+_EVENT_CONFIRM = 'confirm'
 
-_JS_ACCELEROMETERS_LID_ANGLE = """
-window.onkeydown = function(event) {
-  if (event.keyCode == 32) { // space
-    test.sendTestEvent("StartTest", '');
-  }
+_HTML_PROMPT = """
+<div id="%s" class="prompt"></div>
+<button id="%s" class="confirm-button" onclick="test.sendTestEvent(\'%s\')">
+</button>
+""" % (_ID_PROMPT, _ID_CONFIRM_BUTTON, _EVENT_CONFIRM)
+
+_HTML_CHECKING = '<div class="status">%s</div>' % _MSG_CHECKING
+
+_CSS = """
+.prompt {
+  font-size: 2em;
+  margin: 0.2em 0 0.8em;
+}
+.confirm-button {
+  font-size: 4em;
+  padding: 0.5em 1em;
+  margin: 0 auto;
+  width: 90%;
+  height: 60%;
+  line-height: 1.2;
+}
+.status {
+  width: 100%;
+  line-height: 3em;
+  font-size: 4em;
+  margin-top: 1em;
+  background: #ccc;
 }
 """
 
+_JS = """
+window.onkeydown = function(event) {
+  if (event.keyCode == 32) {  // space
+    test.sendTestEvent('%s');
+  }
+}
+""" % _EVENT_CONFIRM
+
 
 class AccelerometersLidAngleTest(unittest.TestCase):
-
   ARGS = [
       Arg(
           'angle', int, 'The target lid angle to test.',
@@ -95,14 +122,16 @@ class AccelerometersLidAngleTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.lock = threading.Lock()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
-    self.ui.AppendCSS(_CSS_ACCELEROMETERS_LID_ANGLE)
-    self.template.SetState(_HTML_ACCELEROMETERS_LID_ANGLE)
-    self.ui.RunJS(_JS_ACCELEROMETERS_LID_ANGLE)
-    self.ui.SetHTML(
-        _MSG_SPACE(self.args.angle), id='accelerometers_lid_angle_title')
-    self.ui.AddEventHandler('StartTest', self.StartTest)
+    self.ui.AppendCSS(_CSS)
+    self.template.SetState(_HTML_PROMPT)
+    self.ui.RunJS(_JS)
+    self.ui.SetHTML(_MSG_PROMPT_BUILDER(self.args.angle), id=_ID_PROMPT)
+    self.ui.SetHTML(_MSG_CONFIRM_BUILDER(self.args.angle),
+                    id=_ID_CONFIRM_BUTTON)
+    self.ui.AddEventHandler(_EVENT_CONFIRM, self.StartTest)
 
     # Initializes an accelerometer utility class.
     self.accelerometer = AccelerometerController(
@@ -149,6 +178,12 @@ class AccelerometersLidAngleTest(unittest.TestCase):
       return angle_between_vectors
 
   def StartTest(self, _):
+    # Only allow the first event handler to run. Otherwise, other threads could
+    # be started, and Goofy will wait for all of them to complete before passing
+    # or failing.
+    if not self.lock.acquire(False):
+      return
+    self.template.SetState(_HTML_CHECKING)
     angle = self._CalculateLidAngle()
     if angle is None:
       self.ui.Fail('There is no calibration value for accelerometer in VPD.')
