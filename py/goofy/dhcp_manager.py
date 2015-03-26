@@ -29,6 +29,7 @@ class DHCPManager(object):
     ip_start: The start of DHCP IP range.
     ip_end: The end of DHCP IP range.
     lease_time: How long in seconds before the DHCP lease expires.
+    bootp: A tuple (ip, filename, hostname) specifying the boot parameters.
     on_add: Optional callback function that's called when a client is issued
       a new IP address. The callback takes the IP address as the only argument.
     on_old: Similar to on_add, but called when a client is fed an IP address
@@ -54,6 +55,7 @@ class DHCPManager(object):
                ip_start='192.168.0.10',
                ip_end='192.168.0.20',
                lease_time=3600,
+               bootp=None,
                on_add=None,
                on_old=None,
                on_del=None):
@@ -63,6 +65,7 @@ class DHCPManager(object):
     self._ip_start = ip_start
     self._ip_end = ip_end
     self._lease_time = lease_time
+    self._bootp = bootp
     self._rpc_server = None
     self._process = None
     self._dhcp_action = {'add': on_add, 'old': on_old, 'del': on_del}
@@ -91,16 +94,19 @@ class DHCPManager(object):
     # Make sure the interface is up
     net_utils.SetEthernetIp(self._my_ip, self._interface, self._netmask)
     # Start dnsmasq and have it call back to us on any DHCP event.
-    self._process = process_utils.Spawn(
-        ['dnsmasq', '--keep-in-foreground',
-         '--dhcp-range', dhcp_range,
-         '--interface', self._interface,
-         '--bind-interfaces',
-         '--port', str(dns_port),
-         '--dhcp-leasefile=%s' % lease_file,
-         '--pid-file=%s' % pid_file,
-         '--dhcp-script', callback_file_symlink],
-        sudo=True, log=True)
+    cmd = ['dnsmasq',
+           '--no-daemon',
+           '--dhcp-range', dhcp_range,
+           '--interface', self._interface,
+           '--port', str(dns_port),
+           '--no-dhcp-interface=%s' % net_utils.GetDefaultGatewayInterface(),
+           '--dhcp-leasefile=%s' % lease_file,
+           '--pid-file=%s' % pid_file,
+           '--dhcp-script', callback_file_symlink]
+    if self._bootp:
+      cmd.append('--dhcp-boot=%s,%s,%s' %
+                 (self._bootp[1], self._bootp[2], self._bootp[0]))
+    self._process = process_utils.Spawn(cmd, sudo=True, log=True)
     # Make sure the IP address is set on the interface
     net_utils.SetEthernetIp(self._my_ip, self._interface, self._netmask,
                             force=True)

@@ -21,6 +21,7 @@ check_missing_prerequisites() {
   has_python_package "numpy" || echo "python-numpy package"
   has_python_package "jsonrpclib" || echo "python-jsonrpclib package"
   has_python_package "ws4py" || echo "python-ws4py package"
+  has_python_package "dpkt" || echo "python-dpkt package"
 }
 
 MISSING_PREREQUISITES="$(check_missing_prerequisites)"

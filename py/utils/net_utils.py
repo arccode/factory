@@ -9,7 +9,6 @@ import SocketServer
 import glob
 import httplib
 import logging
-from multiprocessing import pool
 import os
 import re
 import socket
@@ -17,13 +16,6 @@ import struct
 import subprocess
 import time
 import xmlrpclib
-
-try:
-  import dbus
-  HAS_DBUS = True
-except ImportError:
-  HAS_DBUS = False
-
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import file_utils
@@ -81,7 +73,7 @@ class IP(object):
     return self._ip
 
   def __eq__(self, obj):
-    return self._ip == obj._ip
+    return self._ip == obj._ip  # pylint: disable=W0212
 
 
 class CIDR(object):
@@ -500,33 +492,6 @@ def StartNATService(interface_in, interface_out):
   file_utils.WriteFile('/proc/sys/net/ipv4/ip_forward', '1')
 
 
-def RenewDhcpLease(interface, timeout=3):
-  """Renews DHCP lease on a network interface.
-
-  Runs dhclient to obtain a new DHCP lease on the given network interface.
-
-  Args:
-    interface: The name of the network interface.
-    timeout: Timeout for waiting DHCPOFFERS in seconds.
-
-  Returns:
-    True if a new lease is obtained; otherwise, False.
-  """
-  with file_utils.UnopenedTemporaryFile() as conf_file:
-    with open(conf_file, "w") as f:
-      f.write("timeout %d;" % timeout)
-    p = process_utils.Spawn(['dhclient', '-1', '-cf', conf_file, interface])
-    # Allow one second for dhclient to gracefully exit
-    deadline = time.time() + timeout + 1
-    while p.poll() is None:
-      if time.time() > deadline:
-        # Well, dhclient is ignoring the timeout value. Kill it.
-        p.terminate()
-        return False
-      time.sleep(0.1)
-  return p.returncode == 0
-
-
 def GetDefaultGatewayInterface():
   """Return the default gateway interface.
 
@@ -542,60 +507,6 @@ def GetDefaultGatewayInterface():
     return output.split()[7]
   else:
     raise RuntimeError('no default gateway found')
-
-
-def GetUnmanagedEthernetInterfaces():
-  """Gets a list of unmanaged Ethernet interfaces.
-
-  This method returns a list of network interfaces on which no DHCP server
-  could be found.
-
-  On CrOS devices, shill should take care of managing this, so we simply
-  find Ethernet interfaces without IP addresses assigned. On non-CrOS devices,
-  we try to renew DHCP lease with dhclient on each interface.
-
-  Returns:
-    A list of interface names.
-  """
-  def IsShillRunning():
-    try:
-      shill_status = process_utils.Spawn(['status', 'shill'], read_stdout=True,
-                                         sudo=True)
-      return (shill_status.returncode == 0 and
-              'running' in shill_status.stdout_data)
-    except OSError:
-      return False
-
-  def IsShillUsingDHCP(intf):
-    if HAS_DBUS:
-      bus = dbus.SystemBus()
-      dev = bus.get_object("org.chromium.flimflam", "/device/%s" % intf)
-      dev_intf = dbus.Interface(dev, "org.chromium.flimflam.Device")
-      properties = dev_intf.GetProperties()
-      for config in properties['IPConfigs']:
-        if 'dhcp' in config:
-          return True
-      return False
-    else:
-      # We can't talk to shill without DBus, so let's just check for IP
-      # address.
-      return GetEthernetIp(intf) is not None
-
-  if IsShillRunning():
-    # 'shill' running. Let's not mess with it. Just check whether shill got
-    # DHCP response on each interface.
-    return [intf for intf in GetEthernetInterfaces() if
-            not IsShillUsingDHCP(intf)]
-  else:
-    # 'shill' not running. Use dhclient.
-    p = pool.ThreadPool(5)
-    def CheckManaged(interface):
-      if RenewDhcpLease(interface):
-        return None
-      else:
-        return interface
-    managed = p.map(CheckManaged, GetEthernetInterfaces())
-    return [x for x in managed if x]
 
 
 def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None):

@@ -2,20 +2,36 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Advanced Networking-related utilities."""
+"""Advanced Networking-related utilities.
 
-import os
+Utilities with more complex functionalities and required interaction with other
+system components.
+"""
+
 import logging
+import os
+from multiprocessing import pool
+import tempfile
+import time
 
+import dpkt
 import netifaces
 import pexpect
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.utils import FormatExceptionOnly
+from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
+
+try:
+  import dbus
+  HAS_DBUS = True
+except ImportError:
+  HAS_DBUS = False
 
 
 INSERT_ETHERNET_DONGLE_TIMEOUT = 30
@@ -66,8 +82,7 @@ def _SendDhclientCommand(arguments, interface,
       pexpect.spawn(
           'dhclient',
           ['-sf', DHCLIENT_SCRIPT, '-lf', DHCLIENT_LEASE, '-d',
-           '-v', '--no-pid', interface], +arguments,
-          timeout=timeout))
+           '-v', '--no-pid', interface] + arguments, timeout))
   try:
     dhcp_process.expect(expect_str)
   except:
@@ -101,6 +116,33 @@ def ReleaseDhcp(interface=None):
   interface = interface or net_utils.FindUsableEthDevice(raise_exception=True)
   net_utils.Ifconfig(interface, True)
   _SendDhclientCommand(['-r'], interface)
+
+
+def RenewDhcpLease(interface, timeout=3):
+  """Renews DHCP lease on a network interface.
+
+  Runs dhclient to obtain a new DHCP lease on the given network interface.
+
+  Args:
+    interface: The name of the network interface.
+    timeout: Timeout for waiting DHCPOFFERS in seconds.
+
+  Returns:
+    True if a new lease is obtained; otherwise, False.
+  """
+  with file_utils.UnopenedTemporaryFile() as conf_file:
+    with open(conf_file, "w") as f:
+      f.write("timeout %d;" % timeout)
+    p = process_utils.Spawn(['dhclient', '-1', '-cf', conf_file, interface])
+    # Allow one second for dhclient to gracefully exit
+    deadline = time.time() + timeout + 1
+    while p.poll() is None:
+      if time.time() > deadline:
+        # Well, dhclient is ignoring the timeout value. Kill it.
+        p.terminate()
+        return False
+      time.sleep(0.1)
+  return p.returncode == 0
 
 
 def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
@@ -143,3 +185,94 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
     exception_string = FormatExceptionOnly()
     factory.console.error('Unable to setup network: %s', exception_string)
   factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
+
+
+def GetUnmanagedEthernetInterfaces():
+  """Gets a list of unmanaged Ethernet interfaces.
+
+  This method returns a list of network interfaces on which no DHCP server
+  could be found.
+
+  On CrOS devices, shill should take care of managing this, so we simply
+  find Ethernet interfaces without IP addresses assigned. On non-CrOS devices,
+  we try to renew DHCP lease with dhclient on each interface.
+
+  Returns:
+    A list of interface names.
+  """
+  def IsShillRunning():
+    try:
+      shill_status = process_utils.Spawn(['status', 'shill'], read_stdout=True,
+                                         sudo=True)
+      return (shill_status.returncode == 0 and
+              'running' in shill_status.stdout_data)
+    except OSError:
+      return False
+
+  def IsShillUsingDHCP(intf):
+    if HAS_DBUS:
+      bus = dbus.SystemBus()
+      dev = bus.get_object("org.chromium.flimflam", "/device/%s" % intf)
+      dev_intf = dbus.Interface(dev, "org.chromium.flimflam.Device")
+      properties = dev_intf.GetProperties()
+      for config in properties['IPConfigs']:
+        if 'dhcp' in config:
+          return True
+      return False
+    else:
+      # We can't talk to shill without DBus, so let's just check for IP
+      # address.
+      return net_utils.GetEthernetIp(intf) is not None
+
+  if IsShillRunning():
+    # 'shill' running. Let's not mess with it. Just check whether shill got
+    # DHCP response on each interface.
+    return [intf for intf in net_utils.GetEthernetInterfaces() if
+            not IsShillUsingDHCP(intf)]
+  else:
+    # 'shill' not running. Use dhclient.
+    p = pool.ThreadPool(5)
+    def CheckManaged(interface):
+      if RenewDhcpLease(interface):
+        return None
+      else:
+        return interface
+    managed = p.map(CheckManaged, net_utils.GetEthernetInterfaces())
+    return [x for x in managed if x]
+
+
+def GetDHCPBootParameters(interface):
+  """Get DHCP Bootp parameters from interface.
+
+  Args:
+    interface: the target interface managed by some DHCP server
+
+  Returns:
+    A tuple (ip, filename, hostname) if bootp parameter is found, else None.
+  """
+  dhcp_filter = '((port 67 or port 68) and (udp[8:1] = 0x2))'
+  _, dump_file = tempfile.mkstemp()
+  p = process_utils.Spawn("tcpdump -i %s -c 1 -w %s '%s'" %
+                          (interface, dump_file, dhcp_filter), shell=True)
+
+  # Send two renew requests to make sure tcmpdump can capture the response.
+  for _ in range(2):
+    if not RenewDhcpLease(interface):
+      return RuntimeError('can not find DHCP server on %s' % interface)
+    time.sleep(0.5)
+
+  p.wait()
+
+  with open(dump_file, 'r') as f:
+    pcap = dpkt.pcap.Reader(f)
+    for _, buf in pcap:
+      eth = dpkt.ethernet.Ethernet(buf)
+      udp = eth.ip.data
+      dhcp = dpkt.dhcp.DHCP(udp.data)
+
+      if dhcp['siaddr'] != 0 and len(dhcp['file'].strip('\x00')):
+        ip = '.'.join([str(ord(x)) for x in
+                       ('%x' % dhcp['siaddr']).decode('hex')])
+        return (ip, dhcp['file'].strip('\x00'), dhcp['sname'].strip('\x00'))
+
+  return None

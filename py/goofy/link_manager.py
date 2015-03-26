@@ -21,6 +21,7 @@ from cros.factory.goofy import dhcp_manager
 from cros.factory.system import service_manager
 from cros.factory.test import factory
 from cros.factory.test import utils
+from cros.factory.test import network
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
 from cros.factory.utils import net_utils
@@ -339,9 +340,14 @@ class DUTLinkManager(object):
                          service_manager.Status.START, 15)
       # Give shill some time to run DHCP
       time.sleep(3)
+
+    # Get bootp parameters from gateway DHCP server
+    default_iface = net_utils.GetDefaultGatewayInterface()
+    bootp_params = network.GetDHCPBootParameters(default_iface)
+
     # OK, shill has done its job now. Let's see what interfaces are not managed.
     intf_blacklist = self._GetDHCPInterfaceBlacklist()
-    intfs = [intf for intf in net_utils.GetUnmanagedEthernetInterfaces()
+    intfs = [intf for intf in network.GetUnmanagedEthernetInterfaces()
              if intf not in intf_blacklist]
 
     for intf in intfs:
@@ -359,6 +365,7 @@ class DUTLinkManager(object):
           ip_start=str(network_cidr.SelectIP(2)),
           ip_end=str(network_cidr.SelectIP(-3)),
           lease_time=3600,
+          bootp=bootp_params,
           on_add=self.OnDHCPEvent,
           on_old=self.OnDHCPEvent)
       dhcp_server.StartDHCP()
