@@ -3119,11 +3119,13 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
 }
 
 cros.factory.Goofy.prototype.closeTerminal = function(e) {
-  goog.dom.removeNode(this.terminal_win);
-  this.terminal_sock.close();
-  this.terminal_win = undefined;
-  this.terminal_sock = undefined;
-  this.sendEvent('goofy:key_filter_mode', {'enabled': true});
+  if (typeof(this.terminal_win) != "undefined") {
+    goog.dom.removeNode(this.terminal_win);
+    this.terminal_sock.close();
+    this.terminal_win = undefined;
+    this.terminal_sock = undefined;
+    this.sendEvent('goofy:key_filter_mode', {'enabled': true});
+  }
 }
 
 cros.factory.Goofy.prototype.hideTerminal = function(e) {
