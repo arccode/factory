@@ -258,6 +258,8 @@ class AudioUtil(object):
   """
 
   def __init__(self, config_path=_DEFAULT_CONFIG_PATH):
+    # used for audio config logging.
+    self._audio_config_sn = 0
     self._restore_mixer_control_stack = []
     if os.path.exists(config_path):
       with open(config_path, 'r') as config_file:
@@ -287,18 +289,18 @@ class AudioUtil(object):
         numid = int(m.group(1))
         break
     if numid == 0:
-      logging.info('Unable to find mixer control %s', name)
+      logging.info('Unable to find mixer control \'%s\'', name)
       return None
 
     output = Spawn(['amixer', '-c%d' % int(card), 'cget', 'numid=%d' % numid],
                    stdout=PIPE)
     lines = output.stdout.read()
-    logging.info('lines: %r', lines)
+    logging.info('lines: %s', lines)
     m = re.search(r'^.*: values=(.*)$', lines, re.MULTILINE)
     if m:
       return m.group(1)
     else:
-      logging.info('Unable to get value for mixer control %s, numid=%d',
+      logging.info('Unable to get value for mixer control \'%s\', numid=%d',
                    name, numid)
       return None
 
@@ -311,17 +313,17 @@ class AudioUtil(object):
       store: Store the current value so it can be restored later using
         RestoreMixerControls.
     """
-    logging.info('Setting mixer control values on %s', card)
+    logging.info('Setting mixer control values on card %s', card)
     restore_mixer_settings = dict()
     for name, value in mixer_settings.items():
       if store:
         old_value = self.GetMixerControls(name, card)
         restore_mixer_settings[name] = old_value
-        logging.info('Saving %s with value %s on card %s',
+        logging.info('Saving \'%s\' with value %s on card %s',
                      name, old_value, card)
-      logging.info('Setting %s to %s on card %s', name, value, card)
+      logging.info('Setting \'%s\' to %s on card %s', name, value, card)
       command = ['amixer', '-c', card, 'cset', 'name=%r' % name, value]
-      Spawn(command, check_call=True)
+      Spawn(command, check_call=True, log=True)
     if store:
       self._restore_mixer_control_stack.append((restore_mixer_settings, card))
 
@@ -434,7 +436,12 @@ class AudioUtil(object):
   def ApplyAudioConfig(self, action, card='0'):
     if card in self.audio_config:
       if action in self.audio_config[card]:
+        logging.info('\nvvv-- Do(%d) \'%s\' on card %s Start --vvv',
+                     self._audio_config_sn, action, card)
         self.SetMixerControls(self.audio_config[card][action], card)
+        logging.info('\n^^^-- Do(%d) \'%s\' on card %s End   --^^^',
+                     self._audio_config_sn, action, card)
+        self._audio_config_sn += 1
       else:
         logging.info('Action %s cannot be found in card %s', action, card)
     else:

@@ -312,8 +312,8 @@ class AudioLoopTest(unittest.TestCase):
       speaker_channel: 0 is left channel, 1 is right channel
       mic_channel: 0 is left channel, 1 is right channel
     """
-    factory.console.info('Test speaker channel %d and mic channel %d' %
-                         (speaker_channel, mic_channel))
+    factory.console.info('Test speaker channel %d and mic channel %d',
+                         speaker_channel, mic_channel)
     if self._mic_source == MicSource.panel:
       self._audio_util.EnableDmic(self._in_card)
       if mic_channel is 0:
@@ -368,8 +368,8 @@ class AudioLoopTest(unittest.TestCase):
   def AudioFunTest(self):
     """Setup speaker and microphone test pairs and run audiofuntest program."""
 
-    factory.console.info('Run audiofuntest from %r to %r' % (
-        self._output_device, self._input_device))
+    factory.console.info('Run audiofuntest from %r to %r',
+                         self._output_device, self._input_device)
 
     test_pairs = self._current_test_args.get(
         'test_pairs', _DEFAULT_AUDIOFUN_TEST_PAIRS)
@@ -384,7 +384,9 @@ class AudioLoopTest(unittest.TestCase):
       num_channels: Number of channels to test
     """
     for channel in xrange(num_channels):
-      record_file_path = '/tmp/record-%d-%s.raw' % (channel, time.time())
+      record_file_path = '/tmp/record-%d-%d-%s.raw' % (
+          self._output_volumes[self._output_volume_index],
+          channel, time.time())
 
       # Play thread has one more second to ensure record process can record
       # entire sine tone
@@ -438,6 +440,7 @@ class AudioLoopTest(unittest.TestCase):
     record_path = (tempfile.NamedTemporaryFile(delete=False).name if trim
                    else file_path)
 
+    factory.console.info('RecordFile : %s.', file_path)
     rec_cmd = ['arecord', '-D', self._input_device, '-f', 'dat', '-d',
                str(duration), '-t', 'raw', record_path]
     Spawn(rec_cmd, log=True, check_call=True)
@@ -452,10 +455,10 @@ class AudioLoopTest(unittest.TestCase):
     factory.console.info('Got audio RMS value: %f.', rms_value)
     rms_threshold = self._current_test_args.get(
         'rms_threshold', _DEFAULT_SOX_RMS_THRESHOLD)
-    if (rms_threshold[0] is not None and rms_threshold[0] > rms_value):
+    if rms_threshold[0] is not None and rms_threshold[0] > rms_value:
       self.AppendErrorMessage('Audio RMS value %f too low. Minimum pass is %f.'
                               % (rms_value, rms_threshold[0]))
-    if (rms_threshold[1] is not None and rms_threshold[1] < rms_value):
+    if rms_threshold[1] is not None and rms_threshold[1] < rms_value:
       self.AppendErrorMessage('Audio RMS value %f too high. Maximum pass is %f.'
                               % (rms_value, rms_threshold[1]))
 
@@ -481,10 +484,12 @@ class AudioLoopTest(unittest.TestCase):
       freq = audio_utils.GetRoughFreq(sox_output)
       freq_threshold = self._current_test_args.get(
           'freq_threshold', _DEFAULT_SINEWAV_FREQ_THRESHOLD)
+      factory.console.info('Extected frequency %r +- %d',
+                           self._freq, freq_threshold)
       if freq is None or (abs(freq - self._freq) > freq_threshold):
         self.AppendErrorMessage('Test Fail at frequency %r' % freq)
       else:
-        factory.console.info('Got frequency %d' % freq)
+        factory.console.info('Got frequency %d', freq)
 
   def MayPassTest(self):
     """Checks if test can pass with result of one output volume.
