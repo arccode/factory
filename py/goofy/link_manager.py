@@ -284,6 +284,7 @@ class DUTLinkManager(object):
 
     self._dhcp_servers = []
     self._dhcp_event_ip = None
+    self._relay_process = None
 
   def __getattr__(self, name):
     """A wrapper that proxies the RPC calls to the real server proxy."""
@@ -346,11 +347,12 @@ class DUTLinkManager(object):
     bootp_params = network.GetDHCPBootParameters(default_iface)
 
     # OK, shill has done its job now. Let's see what interfaces are not managed.
-    intf_blacklist = self._GetDHCPInterfaceBlacklist()
-    intfs = [intf for intf in network.GetUnmanagedEthernetInterfaces()
-             if intf not in intf_blacklist]
+    interface_blacklist = self._GetDHCPInterfaceBlacklist()
+    interfaces = [interface
+                  for interface in network.GetUnmanagedEthernetInterfaces()
+                  if interface not in interface_blacklist]
 
-    for intf in intfs:
+    for interface in interfaces:
       network_cidr = net_utils.GetUnusedIPV4RangeCIDR()
       # DHCP server IP assignment:
       # my_ip: the first available IP. e.g.: 192.168.0.1
@@ -359,7 +361,7 @@ class DUTLinkManager(object):
       # and .254 is usually used by gateway, skip it to avoid unexpected
       # problems.
       dhcp_server = dhcp_manager.DHCPManager(
-          interface=intf,
+          interface=interface,
           my_ip=str(network_cidr.SelectIP(1)),
           netmask=str(network_cidr.Netmask()),
           ip_start=str(network_cidr.SelectIP(2)),
@@ -372,12 +374,28 @@ class DUTLinkManager(object):
       self._dhcp_servers.append(dhcp_server)
 
     # Start NAT service
-    managed_intfs = [x for x in net_utils.GetEthernetInterfaces()
-                     if x not in intfs]
-    if not managed_intfs:
+    managed_interfaces = [x for x in net_utils.GetEthernetInterfaces()
+                          if x not in interfaces]
+    if not managed_interfaces:
       return
-    nat_out_interface = managed_intfs[0]
-    net_utils.StartNATService(intfs, nat_out_interface)
+    nat_out_interface = managed_interfaces[0]
+    net_utils.StartNATService(interfaces, nat_out_interface)
+
+  def _StartOverlordRelay(self):
+    interface_blacklist = self._GetDHCPInterfaceBlacklist()
+    interfaces = [interface
+                  for interface in network.GetUnmanagedEthernetInterfaces()
+                  if interface not in interface_blacklist]
+
+    for interface in interfaces:
+      path = os.path.join(factory.FACTORY_PATH, 'bin',
+                          'relay_overlord_discovery_packet')
+      self._relay_process = Spawn([path, interface], log=True)
+
+  def _StopOverlordRelay(self):
+    self._relay_process.terminate()
+    Spawn(['pkill', '-15', '-f', 'socat', '-P', str(self._relay_process.pid)],
+          log=True)
 
   def Start(self):
     """Starts services."""
@@ -387,6 +405,7 @@ class DUTLinkManager(object):
       self._dhcp_event_ip = '127.0.0.1'
     else:
       self._StartDHCPServers()
+      self._StartOverlordRelay()
 
   def Stop(self):
     """Stops and destroys the link manager."""
@@ -397,6 +416,7 @@ class DUTLinkManager(object):
     self._kick_event.set()
     self._thread.join()
     self._ping_server.Stop()
+    self._StopOverlordRelay()
 
   def SuspendMonitoring(self, interval_sec):
     """Suspend monitoring of connection for a given period.
