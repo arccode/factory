@@ -1094,13 +1094,7 @@ def _ProbeRegion():
   region_code = vpd.ro.get('region')
   if region_code:
     region_obj = regions.REGIONS[region_code]
-    ret = [{
-        'region_code': region_obj.region_code,
-        'keyboards': ','.join(region_obj.keyboards),
-        'time_zone': region_obj.time_zone,
-        'language_codes': ','.join(region_obj.language_codes),
-        'keyboard_mechanical_layout': region_obj.keyboard_mechanical_layout,
-    }]
+    ret = [{'region_code': region_obj.region_code,}]
   else:
     ret = []
 
@@ -1211,15 +1205,6 @@ def _ProbePmic():
   pmics = glob('/sys/bus/platform/devices/*-pmic')
   return ([{COMPACT_PROBE_STR: os.path.basename(x)} for x in pmics]
           if pmics else [])
-
-
-@_ComponentProbe('keyboard')
-def _ProbeKeyboard():
-  ro_vpd = ReadRoVpd(crosfw.LoadMainFirmware().GetFileName())
-  try:
-    return [{COMPACT_PROBE_STR: ro_vpd['keyboard_layout']}]
-  except KeyError:
-    return []
 
 
 @_ComponentProbe('board_version')
@@ -1443,8 +1428,7 @@ def Probe(target_comp_classes=None,
       value implies all classes.
     fast_fw_probe: Do a fast probe for EC and main firmware version. Setting
       this to True implies probe_volatile, probe_initial_config, probe_vpd,
-      and all probing related to VPD (for example, keyboard and region) are
-      False.
+      and all probing related to VPD (for example, region) are False.
     probe_volatile: On False, do not probe for volatile data and
       return None for the corresponding field.
     probe_initial_config: On False, do not probe for initial_config
@@ -1506,7 +1490,7 @@ def Probe(target_comp_classes=None,
   missing_component_classes = []
   # TODO(hungte) Extend _ComponentProbe to support filtering flashrom related
   # probing methods.
-  vpd_classes = ['keyboard', 'region']
+  vpd_classes = ['region']
   for comp_class, probe_fun in comp_probes.items():
     logging.info('probing [%s]...', comp_class)
     if comp_class in vpd_classes and not probe_vpd:

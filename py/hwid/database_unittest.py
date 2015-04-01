@@ -164,7 +164,7 @@ class DatabaseTest(unittest.TestCase):
         'video': [('camera_0',
                    {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
                     'type': Value('webcam')},
-                    None)]},
+                   None)]},
                       bom.components)
     self.assertEquals({
         'audio_codec': 1,
@@ -444,11 +444,7 @@ class DatabaseTest(unittest.TestCase):
     # Make sure that region components are generated correctly.
     self.assertEquals(
         {'values': {
-            'region_code': Value('us'),
-            'keyboards': Value('xkb:us::eng'),
-            'time_zone': Value('America/Los_Angeles'),
-            'language_codes': Value('en-US'),
-            'keyboard_mechanical_layout': Value('ANSI')}},
+            'region_code': Value('us')}},
         db.components.GetComponentAttributes('region', 'us'))
 
 

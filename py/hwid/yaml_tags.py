@@ -63,10 +63,6 @@ class RegionComponent(dict):
     for code, region in regions.REGIONS.iteritems():
       components_dict['items'][code] = {
           'values': {
-              'region_code': region.region_code,
-              'keyboards': ','.join(region.keyboards),
-              'time_zone': region.time_zone,
-              'language_codes': ','.join(region.language_codes),
-              'keyboard_mechanical_layout': region.keyboard_mechanical_layout,
+              'region_code': region.region_code
           }}
     super(RegionComponent, self).__init__(components_dict)

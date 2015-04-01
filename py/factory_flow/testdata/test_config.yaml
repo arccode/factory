@@ -100,9 +100,7 @@ dut_info:
           component.keyboard: US_API
         vpd:
           ro:
-            initial_locale: en-US
-            initial_timezone: America/Los_Angeles
-            keyboard_layout: xkb:us::eng
+            region: us
             serial_number: TESTDEV-M-USWIFI
             rlz_brand_code: ZZCR
           rw:

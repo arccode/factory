@@ -49,7 +49,7 @@ class HWIDRuleTest(unittest.TestCase):
     self.vpd = {
         'ro': {
             'serial_number': 'foo',
-            'initial_locale': 'en-us'
+            'region': 'us'
         },
         'rw': {
             'registration_code': 'buz'
@@ -152,7 +152,7 @@ class HWIDRuleTest(unittest.TestCase):
     rule = yaml.load("""
         !rule
         name: foobar3
-        when: Re('en-.*').Matches(GetVPDValue('ro', 'initial_locale'))
+        when: Re('us').Matches(GetVPDValue('ro', 'region'))
         evaluate: Assert(ComponentEq('cpu', 'cpu_3'))
     """)
     self.assertRaisesRegexp(
@@ -215,46 +215,22 @@ class HWIDRuleTest(unittest.TestCase):
   def testValidVPDValue(self):
     mock_vpd = {
         'ro': {
-            'initial_locale': 'en-US',
-            'initial_timezone': 'America/Los_Angeles',
-            'keyboard_layout': 'xkb:us::eng',
+            'region': 'us',
             'serial_number': 'foobar'
         }
     }
     SetContext(Context(vpd=mock_vpd))
-    self.assertEquals(True, ValidVPDValue('ro', 'initial_locale'))
-    self.assertEquals(True, ValidVPDValue('ro', 'initial_timezone'))
-    self.assertEquals(True, ValidVPDValue('ro', 'keyboard_layout'))
+    self.assertEquals(True, ValidVPDValue('ro', 'region'))
     self.assertEquals(True, ValidVPDValue('ro', 'serial_number'))
 
     mock_vpd = {
         'ro': {
-            'initial_locale': 'foo'
+            'region': 'foo'
         }
     }
     SetContext(Context(vpd=mock_vpd))
-    self.assertFalse(ValidVPDValue('ro', 'initial_locale'))
-    self.assertEquals("ERROR: Invalid VPD value 'foo' of 'initial_locale'",
-                      GetLogger().error[0].message)
-
-    mock_vpd = {
-        'ro': {
-            'initial_timezone': 'foo'
-        }
-    }
-    SetContext(Context(vpd=mock_vpd))
-    self.assertFalse(ValidVPDValue('ro', 'initial_timezone'))
-    self.assertEquals("ERROR: Invalid VPD value 'foo' of 'initial_timezone'",
-                      GetLogger().error[0].message)
-
-    mock_vpd = {
-        'ro': {
-            'keyboard_layout': 'foo'
-        }
-    }
-    SetContext(Context(vpd=mock_vpd))
-    self.assertFalse(ValidVPDValue('ro', 'keyboard_layout'))
-    self.assertEquals("ERROR: Invalid VPD value 'foo' of 'keyboard_layout'",
+    self.assertFalse(ValidVPDValue('ro', 'region'))
+    self.assertEquals("ERROR: Invalid VPD value 'foo' of 'region'",
                       GetLogger().error[0].message)
 
   def testCheckRegistrationCode_Legacy(self):

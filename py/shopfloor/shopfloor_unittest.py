@@ -187,7 +187,7 @@ class ShopFloorServerTest(unittest.TestCase):
 
   def testGetVPD(self):
     # VPD fields defined in simple.csv
-    RO_FIELDS = ('keyboard_layout', 'initial_locale', 'initial_timezone')
+    RO_FIELDS = ('region', 'serial_number')
     RW_FIELDS_SET1 = ('wifi_mac', 'cellular_mac')
     RW_FIELDS_SET2 = ('wifi_mac', )
 
@@ -196,9 +196,7 @@ class ShopFloorServerTest(unittest.TestCase):
       self.assertTrue(field in vpd['ro'] and vpd['ro'][field])
     for field in RW_FIELDS_SET1:
       self.assertTrue(field in vpd['rw'] and vpd['rw'][field])
-    self.assertEqual(vpd['ro']['keyboard_layout'], 'xkb:us::eng')
-    self.assertEqual(vpd['ro']['initial_locale'], 'en-US')
-    self.assertEqual(vpd['ro']['initial_timezone'], 'America/Los_Angeles')
+    self.assertEqual(vpd['ro']['region'], 'us')
     self.assertEqual(vpd['rw']['wifi_mac'], '0b:ad:f0:0d:15:05')
     self.assertEqual(vpd['rw']['cellular_mac'], '70:75:65:6c:6c:65')
 
@@ -207,9 +205,7 @@ class ShopFloorServerTest(unittest.TestCase):
       self.assertTrue(field in vpd['ro'] and vpd['ro'][field])
     for field in RW_FIELDS_SET2:
       self.assertTrue(field in vpd['rw'] and vpd['rw'][field])
-    self.assertEqual(vpd['ro']['keyboard_layout'], 'xkb:us:intl:eng')
-    self.assertEqual(vpd['ro']['initial_locale'], 'nl')
-    self.assertEqual(vpd['ro']['initial_timezone'], 'Europe/Amsterdam')
+    self.assertEqual(vpd['ro']['region'], 'nl')
     self.assertEqual(vpd['rw']['wifi_mac'], '0b:ad:f0:0d:15:10')
     self.assertEqual(vpd['rw']['cellular_mac'], '')
 

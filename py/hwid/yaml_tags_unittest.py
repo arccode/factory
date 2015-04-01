@@ -28,11 +28,7 @@ class RegionComponentUnittest(unittest.TestCase):
     regions_component = yaml_tags.RegionComponent()
     self.assertEquals(
         {'values': {
-            'region_code': 'us',
-            'keyboards': 'xkb:us::eng',
-            'time_zone': 'America/Los_Angeles',
-            'language_codes': 'en-US',
-            'keyboard_mechanical_layout': 'ANSI'}},
+            'region_code': 'us'}},
         regions_component['items']['us'])
 
 

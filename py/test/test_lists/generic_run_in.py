@@ -158,9 +158,7 @@ def RunIn(args, group_suffix=''):
         #     some tests in the test list.
         #   'component.has_lte': for LTE model. Use this to enable/disable
         #     some tests in the test list.
-        #   'region': The region is the key for other setting including
-        #     'initial_locale', 'initial_timezone', 'keyboard_layout' and we use
-        #     'region' in VPD test to determine those values.
+        #   'region': The region defined in /usr/share/misc/cros-regions.json
         # 3. Codes related to group/user like 'gbind_attribute' and
         #     'ubind_attribute'.
         # 4. Information that shopfloor has and will be used during the testing
@@ -309,8 +307,7 @@ def RunIn(args, group_suffix=''):
                 probe_lte_iccid=True))
 
         # Writes VPD values into RO/RW VPD. This includes at least
-        # 'serial_number', 'region', 'ubind_attribute', 'gbind_attribute',
-        # 'initial_locale', 'keyboard_layout', 'initial_timezone'.
+        # 'serial_number', 'region', 'ubind_attribute', 'gbind_attribute'.
         OperatorTest(
             id='VPD',
             label_zh=u'产品资讯 (VPD)',

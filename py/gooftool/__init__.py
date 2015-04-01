@@ -18,7 +18,6 @@ import factory_common  # pylint: disable=W0611
 import cros.factory.hwid.common as hwid3_common
 from cros.factory.common import Shell
 from cros.factory.hwdb import hwid_tool
-from cros.factory.hwid import common
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, ReadRoVpd, ReadRwVpd
@@ -27,6 +26,7 @@ from cros.factory.hwid.database import Database
 from cros.factory.hwid.decoder import Decode
 from cros.factory.hwid.encoder import Encode, BOMToBinaryString
 from cros.factory.hwid.encoder import BinaryStringToEncodedString
+from cros.factory.l10n import regions
 from cros.factory.privacy import FilterDict
 from cros.factory.rule import Context
 from cros.factory.system import vpd
@@ -595,11 +595,11 @@ class Gooftool(object):
       not supported.
     """
     image_file = self._crosfw.LoadMainFirmware().GetFileName()
-    locale = self._read_ro_vpd(image_file).get('initial_locale', None)
-    if locale is None:
-      raise Error, 'Missing initial_locale VPD.'
+    region = self._read_ro_vpd(image_file).get('region', None)
+    if region is None:
+      raise Error, 'Missing VPD "region".'
     # Use the primary initial locale for the firmware bitmap.
-    locale = locale.partition(',')[0]
+    locales = regions.REGIONS[region].language_codes
     bitmap_locales = []
     with self._named_temporary_file() as f:
       self._util.shell('gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
@@ -610,17 +610,18 @@ class Gooftool(object):
     # hyphen-separated language code and country code pair.  We care
     # only about the language code part for some cases. Note some old firmware
     # bitmaps use underscore instead hyphen.
-    for language_code in [locale, locale.replace('-', '_'),
-                          locale.partition('-')[0]]:
-      if language_code in bitmap_locales:
-        locale_index = bitmap_locales.index(language_code)
-        self._util.shell('crossystem loc_idx=%d' % locale_index)
-        return (locale_index, language_code)
+    for locale in locales:
+      for language_code in [locale, locale.replace('-', '_'),
+                            locale.partition('-')[0]]:
+        if language_code in bitmap_locales:
+          locale_index = bitmap_locales.index(language_code)
+          self._util.shell('crossystem loc_idx=%d' % locale_index)
+          return (locale_index, language_code)
 
     raise Error, ('Firmware bitmaps do not contain support for the specified '
-                  'initial locale language %r.\n'
+                  'initial locales: %r.\n'
                   'Current supported locales are %r.' % (
-                      locale, bitmap_locales))
+                      locales, bitmap_locales))
 
   def GetSystemDetails(self):
     """Gets the system details including: platform name, crossystem,

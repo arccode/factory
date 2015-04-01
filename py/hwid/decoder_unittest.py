@@ -79,7 +79,7 @@ class DecoderTest(unittest.TestCase):
         'video': [('camera_0',
                    {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
                     'type': Value('webcam')},
-                    None)]}
+                   None)]}
 
   def testEncodedStringToBinaryString(self):
     self.assertEquals('0000000000111010000011',
@@ -187,12 +187,7 @@ class DecoderTest(unittest.TestCase):
     # The BOM should load 'us' region from the probe result (numeric_id=29).)
     self.assertEquals(29, hwid.bom.encoded_fields['region_field'])
     self.assertEquals(
-        [('us',
-          {'region_code': Value('us'), 'keyboards': Value('xkb:us::eng'),
-           'time_zone': Value('America/Los_Angeles'),
-           'language_codes': Value('en-US'),
-           'keyboard_mechanical_layout': Value('ANSI')},
-          None)],
+        [('us', {'region_code': Value('us')}, None)],
         hwid.bom.components['region'])
 
 

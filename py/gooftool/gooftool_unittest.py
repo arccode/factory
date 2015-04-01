@@ -490,7 +490,7 @@ class GooftoolTest(unittest.TestCase):
     # Stub data from VPD for en.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
     self._gooftool._read_ro_vpd('firmware').AndReturn(
-        {'initial_locale': 'zh-TW'})
+        {'region': 'tw'})
     self._gooftool._named_temporary_file().AndReturn(MockFile())
     self._gooftool._util.shell('gbb_utility -g --bmpfv=filename firmware')
 
@@ -511,7 +511,7 @@ class GooftoolTest(unittest.TestCase):
     # Stub data from VPD for en.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
     self._gooftool._read_ro_vpd('firmware').AndReturn(
-        {'initial_locale': 'en'})
+        {'region': 'us'})
     self._gooftool._named_temporary_file().AndReturn(MockFile())
     self._gooftool._util.shell('gbb_utility -g --bmpfv=filename firmware')
 

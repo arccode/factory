@@ -26,13 +26,7 @@ class ProbeRegionUnittest(unittest.TestCase):
     self.mox.ReplayAll()
 
     result = probe._ProbeRegion()  # pylint: disable=W0212
-    self.assertEquals(
-        [{'region_code': 'us',
-          'keyboards': 'xkb:us::eng',
-          'time_zone': 'America/Los_Angeles',
-          'language_codes': 'en-US',
-          'keyboard_mechanical_layout': 'ANSI'}],
-        result)
+    self.assertEquals([{'region_code': 'us'}], result)
 
     self.mox.VerifyAll()
 

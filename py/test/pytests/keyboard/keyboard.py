@@ -123,17 +123,12 @@ class KeyboardTest(unittest.TestCase):
 
   def GetKeyboardLayout(self):
     """Uses the given keyboard layout or auto-detect from VPD."""
-    kml_mapping = dict((x.keyboard, x.keyboard_mechanical_layout)
-                       for x in regions.REGIONS.itervalues())
     if self.args.layout:
       return self.args.layout
+
     # Use the primary keyboard_layout for testing.
-    vpd_layout = CheckOutput(
-        ['vpd', '-g', 'keyboard_layout']).strip().partition(',')[0]
-    if vpd_layout:
-      return kml_mapping[vpd_layout]
-    else:
-      return 'ANSI'
+    region = CheckOutput(['vpd', '-g', 'region']).strip()
+    return regions.REGIONS[region].keyboard_mechanical_layout
 
   def ReadBindings(self, layout):
     """Reads in key bindings and their associates figure regions."""

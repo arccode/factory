@@ -23,8 +23,7 @@ Example:
 hwid: DEVICE BOMN-SUCH
 serial_number: RMA12341234
 vpd:
-  ro: {initial_locale: en-US, initial_timezone: America/Los_Angeles,
-       keyboard_layout: 'xkb:us::eng', serial_number: 2C063017607000163}
+  ro: {region: 'us', serial_number: 2C063017607000163}
   rw: {gbind_attribute: <group code>, ubind_attribute: <user code>}
 
 You may also add files named aux_*.csv; they will be parsed and their
@@ -425,15 +424,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
                        component_name)
           setattr(device_data, key, component_name)
         elif key == 'region':
-          locale = device_data.vpd['ro']['initial_locale']
-          # TODO(bhthompson): this can probably be determined somehow with
-          # cros_locale instead of a huge if/else block.
-          if locale == 'en-US':
-            device_data.region = 'us'
-          elif locale == 'en-GB':
-            device_data.region = 'gb'
-          else:
-            raise ValueError('Unsupported region detected: %s' % locale)
+          device_data.region = device_data.vpd['ro']['region']
         elif key == 'serial_number':
           device_data.serial_number = device_data.vpd['ro']['serial_number']
         elif key == 'gbind_attribute':

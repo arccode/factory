@@ -1,5 +1,20 @@
 # Test DEVICE HWID HWDB file
-checksum: 34872c46dde8dbe13b7b9f313b2aaba02d3d6e31
+
+
+##### BEGIN CHECKSUM BLOCK
+#
+# WARNING: This checksum is generated and audited by Google. Do not
+# modify it. If you modify it, devices' configurations will be
+# invalid, and the devices may not be sold.
+#
+# 警告：此校验码由 Google 产生及审核，禁止手动修改。
+# 若修改将使设备配置變為无效，并且不得销售此设备。
+#
+#####
+checksum: 1deb4e0832e889e8d6337393dce6a4a5fd3b3263
+
+##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
+
 
 board: DEVICE
 
@@ -436,9 +451,7 @@ rules:
 
 - name: verify.vpd.ro
   evaluate:
-  - Assert(ValidVPDValue('ro', 'initial_locale'))
-  - Assert(ValidVPDValue('ro', 'initial_timezone'))
-  - Assert(ValidVPDValue('ro', 'keyboard_layout'))
+  - Assert(ValidVPDValue('ro', 'region'))
   - Assert(ValidVPDValue('ro', 'serial_number'))
 
 - name: verify.vpd.rw

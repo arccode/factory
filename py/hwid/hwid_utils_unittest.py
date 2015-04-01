@@ -37,9 +37,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         TEST_DATA_PATH, 'test_probe_result_hwid_utils.yaml')).read())
     self.vpd = {
         'ro': {
-            'initial_locale': 'en-US',
-            'initial_timezone': 'America/Los_Angeles',
-            'keyboard_layout': 'xkb:us::eng',
+            'region': 'us',
             'serial_number': 'foo'
         },
         'rw': {
@@ -183,10 +181,10 @@ class HWIDv3UtilsTest(unittest2.TestCase):
 
     # Check for invalid RO VPD.
     vpd = copy.deepcopy(self.vpd)
-    vpd['ro']['keyboard_layout'] = 'invalid_layout'
+    vpd['ro']['region'] = 'invalid_region'
     self.assertRaisesRegexp(
         rule.RuleException,
-        r"Invalid VPD value 'invalid_layout' of 'keyboard_layout'",
+        r"Invalid VPD value 'invalid_region' of 'region'",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
         self.probed_results, vpd, False, phase.PVT)
 

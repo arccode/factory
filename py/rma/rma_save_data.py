@@ -25,8 +25,7 @@ _GBB_UTILITY_LOCATION = '/usr/bin/gbb_utility'
 _SHOPFLOOR_SERVER_URL = 'http://192.168.2.1:8082'
 _VPD_UTILITY_LOCATION = '/usr/sbin/vpd'
 # These are standard required fields, this can be added to as needed
-_REQUIRED_RO_VPD_FIELDS = ('initial_locale', 'initial_timezone',
-                           'keyboard_layout', 'serial_number')
+_REQUIRED_RO_VPD_FIELDS = ('region', 'serial_number')
 
 _options = None
 

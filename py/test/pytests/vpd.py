@@ -14,9 +14,8 @@ argument:
 - From shopfloor device data.  If this option is selected with the
   use_shopfloor_device_data arg, the following algorithm is applied:
 
-  - Locale fields (RO initial_locale, keyboard_layout, initial_timezone)
-    are set based on the 'locale' entry, which must be an item in the locale
-    database in locale.py.
+  - Region data (RO region) is set based on 'region' entry, which must be an
+    item in the region database from region.py.
   - Registration codes are set based on the 'ubind_attribute' and
     'gbind_attribute' entries.
   - The RO 'serial_number' field is set based on the 'serial_number' entry.
@@ -336,24 +335,31 @@ class SelectRegionTask(FactoryTask):
 
   def SaveVPD(self, event):
     index = int(event.data)
-    vpd_setting = REGIONS[self.region_list[index]].GetVPDSettings(
-        self.test.args.allow_multiple_l10n)
-    self.test.vpd['ro'].update(vpd_setting)
+    region = REGIONS[self.region_list[index]]
+    self.test.vpd['ro']['region'] = region.region_code
+    if self.test.args.write_legacy_regional_vpd_values:
+      self.test.vpd['ro'].update(region.GetLegacyVPDSettings(
+          self.test.args.allow_multiple_l10n))
     self.Pass()
 
   def RenderPage(self):
+    def short_label(value, limit=16):
+      text = '%s' % (','.join(value) if type(value) is list else value)
+      if len(text) >= limit:
+        text = text[:limit] + '...'
+      return text
+
     self.test.template.SetState(_MSG_SELECT_REGION)
     select_box = SelectBox(_REGION_SELECT_BOX_ID, _SELECTION_PER_PAGE,
                            _SELECT_BOX_STYLE)
     for index, region in enumerate(self.region_list):
-      vpd_setting = REGIONS[region].GetVPDSettings(
-          self.test.args.allow_multiple_l10n)
+      region = REGIONS[region]
       select_box.InsertOption(index, '%s - [%s], [%s], [%s], [%s]' % (
-          REGIONS[region].description,
-          vpd_setting['region'],
-          vpd_setting['initial_locale'],
-          vpd_setting['keyboard_layout'],
-          vpd_setting['initial_timezone']))
+          short_label(region.description),
+          region.region_code,
+          short_label(region.language_codes),
+          short_label(region.keyboards),
+          short_label(region.time_zone)))
     select_box.SetSelectedIndex(0)
     self.test.template.SetState(select_box.GenerateHTML(), append=True)
     self.test.template.SetState(_MSG_HOW_TO_SELECT, append=True)
@@ -498,7 +504,18 @@ class VPDTest(unittest.TestCase):
           '  of the format: {"LOEM1 description": "LOEM1_customization_id",\n'
           '  "LOEM2_description": "LOEM2_customization_id"}. The description\n'
           '  is a helpful string and only the customization_id will be\n'
-          '  written into VPD.', default=None, optional=True)]
+          '  written into VPD.', default=None, optional=True),
+      Arg(
+          'write_legacy_regional_vpd_values', bool,
+          'Writes legacy VPD values for regional data. When set to True, fill '
+          'additional entries as:\n'
+          '- initial_locale\n'
+          '- initial_timezone\n'
+          '- keyboard_layout\n'
+          'And only set "region" if this argument is set to False.',
+          # TODO(hungte) Change default to False when OOBE starts using new
+          # regional database.
+          default=True, optional=True)]
 
   def _ReadShopFloorDeviceData(self):
     device_data = shopfloor.GetDeviceData()
@@ -511,11 +528,7 @@ class VPDTest(unittest.TestCase):
                 sorted(missing_keys))
 
     self.vpd['ro']['serial_number'] = device_data['serial_number']
-
-    self.assertIn(device_data['region'], REGIONS)
-    region = REGIONS[device_data['region']]
-
-    self.vpd['ro'].update(region.GetVPDSettings(self.args.allow_multiple_l10n))
+    self.vpd['ro']['region'] = device_data['region']
 
     for ro_or_rw, key in self.args.extra_device_data_fields:
       self.vpd[ro_or_rw][key] = device_data[key]

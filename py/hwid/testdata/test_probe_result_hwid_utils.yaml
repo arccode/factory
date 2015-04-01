@@ -35,10 +35,6 @@ found_probe_value_map:
     type: webcam
   region:
     region_code: us
-    keyboards: xkb:us::eng
-    time_zone: America/Los_Angeles
-    language_codes: en-US
-    keyboard_mechanical_layout: ANSI
 
 found_volatile_values:
   hash_gbb:
@@ -51,9 +47,7 @@ found_volatile_values:
     compact_str: ev2#ro_ec_firmware_0
   ro_main_firmware:
     compact_str: mv2#ro_main_firmware_0
-  vpd.ro.initial_locale: en-US
-  vpd.ro.initial_timezone: America/Los_Angeles
-  vpd.ro.keyboard_layout: xkb:us::eng
+  vpd.ro.region: us
   vpd.ro.serial_number: foo
   vpd.rw.gbind_attribute: '33333333333333333333333333333333333333333333333333333333333333332dbecc73'
   vpd.rw.ubind_attribute: '323232323232323232323232323232323232323232323232323232323232323256850612'

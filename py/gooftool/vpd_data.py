@@ -14,14 +14,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.l10n import regions
 
 
-KEYBOARD_LAYOUT = set(','.join(x.keyboards)
-                      for x in regions.REGIONS.itervalues())
-INITIAL_LOCALE = set(','.join(x.language_codes)
-                     for x in regions.REGIONS.itervalues())
-INITIAL_TIMEZONE = set(x.time_zone for x in regions.REGIONS.itervalues())
+REGION_CODES = set(regions.REGIONS.iterkeys())
 
 KNOWN_VPD_FIELD_DATA = {
-    'keyboard_layout': KEYBOARD_LAYOUT,
-    'initial_locale': INITIAL_LOCALE,
-    'initial_timezone': INITIAL_TIMEZONE,
+    'region': REGION_CODES,
 }

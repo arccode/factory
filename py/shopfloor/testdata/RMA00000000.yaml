@@ -7,6 +7,5 @@ rma_number: RMA00000000
 serial_number: 123456789012345
 ubind_attribute: <user_code>
 vpd:
-  ro: {initial_locale: en-US, initial_timezone: America/Los_Angeles,
-    keyboard_layout: 'xkb:us::eng', serial_number: 123456789012345}
+  ro: {region: us, serial_number: 123456789012345}
   rw: {gbind_attribute: <group_code>, ubind_attribute: <user_code>}

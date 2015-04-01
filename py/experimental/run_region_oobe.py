@@ -34,10 +34,7 @@ def main():
   args = parser.parse_args()
   common.SetupLogging(level=logging.INFO)
 
-  vpd_settings = REGIONS[args.region].GetVPDSettings(args.multi)
-  vpd_command_args = ' '.join(
-      ['-s %s=%s' % (k, v)
-       for k, v in sorted(vpd_settings.items())])
+  vpd_command_args = ['-s region=%s' % (REGIONS[args.region].region_code)]
 
   Spawn(['ssh', args.host,
          'set -x; '

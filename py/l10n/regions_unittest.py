@@ -138,7 +138,7 @@ class RegionTest(unittest.TestCase):
           self.fail(
               'For region %r, none of %r exists' % (r.region_code, paths))
 
-  def testVPDSettings(self):
+  def testLegacyVPDSettings(self):
     # US has only a single VPD setting, so this should be the same
     # regardless of allow_multiple.
     for allow_multiple in [True, False]:
@@ -147,7 +147,7 @@ class RegionTest(unittest.TestCase):
            'initial_timezone': 'America/Los_Angeles',
            'keyboard_layout': 'xkb:us::eng',
            'region': 'us'},
-          regions.BuildRegionsDict()['us'].GetVPDSettings(allow_multiple))
+          regions.BuildRegionsDict()['us'].GetLegacyVPDSettings(allow_multiple))
 
     region = regions.Region(
         'a', ['xkb:b::b1', 'xkb:b::b2'], 'c', ['d1', 'd2'], 'e')
@@ -156,13 +156,13 @@ class RegionTest(unittest.TestCase):
          'initial_timezone': 'c',
          'keyboard_layout': 'xkb:b::b1',
          'region': 'a'},
-        region.GetVPDSettings(False))
+        region.GetLegacyVPDSettings(False))
     self.assertEquals(
         {'initial_locale': 'd1,d2',
          'initial_timezone': 'c',
          'keyboard_layout': 'xkb:b::b1,xkb:b::b2',
          'region': 'a'},
-        region.GetVPDSettings(True))
+        region.GetLegacyVPDSettings(True))
 
   def testFieldsDict(self):
     # 'description' and 'notes' should be missing.

@@ -25,7 +25,7 @@ rma_number: RMA11111111
 serial_number: ''
 ubind_attribute: ''
 vpd:
-  ro: {initial_locale: en-US, timezone: some_when}
+  ro: {region: us}
   rw: {attribute1: 1value, attribute2: 2value}
 """
 _RMA_CONFIG_BOARD_YAML_2 = """rma_number_yaml_must_exist: True
@@ -44,11 +44,11 @@ rma_number: RMA11111111
 serial_number: ''
 ubind_attribute: ''
 vpd:
-  ro: {initial_locale: en-US, timezone: some_when}
+  ro: {region: us}
   rw: {attribute1: 1value, attribute2: 2value}
 """
 _TEST_HWID = 'DEVICE CADT-QQOP'
-_TEST_VPD = {'ro': {'initial_locale': 'en-US', 'timezone': 'some_when'},
+_TEST_VPD = {'ro': {'region': 'us'},
              'rw': {'attribute1': '1value', 'attribute2': '2value'}}
 
 
@@ -161,12 +161,7 @@ class LoadDeviceDataTest(unittest.TestCase):
                      '<user_code>')
     self.assertEqual(device_dict['registration_code_map']['group'],
                      '<group_code>')
-    self.assertEqual(device_dict['vpd']['ro']['initial_locale'],
-                     'en-US')
-    self.assertEqual(device_dict['vpd']['ro']['initial_timezone'],
-                     'America/Los_Angeles')
-    self.assertEqual(device_dict['vpd']['ro']['keyboard_layout'],
-                     'xkb:us::eng')
+    self.assertEqual(device_dict['vpd']['ro']['region'], 'us')
     self.assertEqual(device_dict['vpd']['ro']['serial_number'],
                      123456789012345)
     self.assertEqual(device_dict['vpd']['rw'], {})
@@ -181,12 +176,7 @@ class LoadDeviceDataTest(unittest.TestCase):
                      '<user_code>')
     self.assertEqual(device_dict['registration_code_map']['group'],
                      '<group_code>')
-    self.assertEqual(device_dict['vpd']['ro']['initial_locale'],
-                     'en-US')
-    self.assertEqual(device_dict['vpd']['ro']['initial_timezone'],
-                     'America/Los_Angeles')
-    self.assertEqual(device_dict['vpd']['ro']['keyboard_layout'],
-                     'xkb:us::eng')
+    self.assertEqual(device_dict['vpd']['ro']['region'], 'us')
     self.assertEqual(device_dict['vpd']['ro']['serial_number'],
                      123456789012345)
     self.assertEqual(device_dict['vpd']['rw'], {})

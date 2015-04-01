@@ -53,16 +53,10 @@ class Region(object):
   """
 
   keyboards = None
-  """A list of keyboard layout identifiers (e.g., ``xkb:us:intl:eng``
+  """A list of logical keyboard layout identifiers (e.g., ``xkb:us:intl:eng``
   or ``m17n:ar``).
-  """
-  @property
-  def keyboard(self):
-    """The first item in the 'keyboards' array, for backward compatibility.
 
-    Deprecated; use :py:attr:`keyboards` instead.
-    """
-    return self.keyboards[0]
+  This was used for legacy VPD ``keyboard_layouts`` value."""
 
   time_zone = None
   """A `tz database time zone
@@ -71,21 +65,13 @@ class Region(object):
   `timezone_settings.cc <http://goo.gl/WSVUeE>`_ for supported time
   zones.
 
-  This is used to set the VPD ``initial_timezone`` value."""
+  This was used for legacy VPD ``initial_timezone`` value."""
 
   language_codes = None
   """A list of default language codes (e.g., ``en-US``); see
   `l10n_util.cc <http://goo.gl/kVkht>`_ for supported languages.
 
-  This is used to set the VPD ``initial_locale`` language."""
-
-  @property
-  def language_code(self):
-    """The first item in the language_codes list, for backward compatibility.
-
-    Deprecated; use :py:attr:`language_codes` instead.
-    """
-    return self.language_codes[0]
+  This was used for legacy VPD ``initial_locale`` value."""
 
   keyboard_mechanical_layout = None
   """The keyboard's mechanical layout (``ANSI`` [US-like], ``ISO``
@@ -164,8 +150,8 @@ class Region(object):
     """
     return dict((k, getattr(self, k)) for k in self.FIELDS)
 
-  def GetVPDSettings(self, allow_multiple=True):
-    """Returns a dictionary of VPD settings for the locale.
+  def GetLegacyVPDSettings(self, allow_multiple=True):
+    """Returns a dictionary of legacy VPD settings for the locale.
 
     Args:
       allow_multiple: Allow multiple initial_locale and initial_timezone values
