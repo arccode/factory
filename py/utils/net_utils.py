@@ -251,6 +251,32 @@ def GetEthernetIp(interface=None, netmask=False):
   else:
     return (ip_address, prefix_number)
 
+def SetAliasEthernetIp(ip, alias_index=0, interface=None, mask='255.255.255.0'):
+  """Sets the alias IP address for Ethernet.
+
+  Args:
+    ip: The ip address want to set.
+    alias_index: Alias interface index.
+    interface: The target interface.
+    mask: Network mask.
+  """
+  interface = interface or FindUsableEthDevice(raise_exception=False)
+  alias_interface = '%s:%d' % (interface, alias_index)
+  process_utils.Spawn(['ifconfig', alias_interface, ip, 'netmask', mask, 'up'],
+                      call=True, log=True)
+
+def UnsetAliasEthernetIp(alias_index=0, interface=None):
+  """UnSets the alias IP address for Ethernet.
+
+  Args:
+    alias_index: Alias interface index.
+    interface: The target interface.
+  """
+  interface = interface or FindUsableEthDevice(raise_exception=False)
+  alias_interface = '%s:%d' % (interface, alias_index)
+  process_utils.Spawn(['ifconfig', alias_interface, 'down'],
+                      call=True, log=True)
+
 
 def GetWLANMACAddress():
   """Returns the MAC address of the first wireless LAN device.
