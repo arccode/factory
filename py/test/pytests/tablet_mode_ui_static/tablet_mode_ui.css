@@ -39,9 +39,3 @@
   height: 60%;
   line-height: 1.2;
 }
-.countdown-timer {
-  position: absolute;
-  bottom: .3em;
-  right: .5em;
-  font-size: 2em;
-}
