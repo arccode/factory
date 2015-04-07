@@ -133,7 +133,10 @@ def RenewDhcpLease(interface, timeout=3):
   with file_utils.UnopenedTemporaryFile() as conf_file:
     with open(conf_file, "w") as f:
       f.write("timeout %d;" % timeout)
-    p = process_utils.Spawn(['dhclient', '-1', '-cf', conf_file, interface])
+    try:
+      p = process_utils.Spawn(['dhclient', '-1', '-cf', conf_file, interface])
+    except OSError:  # No such file or directory
+      return False
     # Allow one second for dhclient to gracefully exit
     deadline = time.time() + timeout + 1
     while p.poll() is None:
@@ -238,6 +241,7 @@ def GetUnmanagedEthernetInterfaces():
       else:
         return interface
     managed = p.map(CheckManaged, net_utils.GetEthernetInterfaces())
+    p.terminate()
     return [x for x in managed if x]
 
 
@@ -252,8 +256,12 @@ def GetDHCPBootParameters(interface):
   """
   dhcp_filter = '((port 67 or port 68) and (udp[8:1] = 0x2))'
   _, dump_file = tempfile.mkstemp()
-  p = process_utils.Spawn("tcpdump -i %s -c 1 -w %s '%s'" %
-                          (interface, dump_file, dhcp_filter), shell=True)
+  try:
+    p = process_utils.Spawn("tcpdump -i %s -c 1 -w %s '%s'" %
+                            (interface, dump_file, dhcp_filter), shell=True)
+  except OSError as e:
+    logging.exception(str(e))
+    return None
 
   # Send two renew requests to make sure tcmpdump can capture the response.
   for _ in range(2):
