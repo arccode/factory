@@ -13,8 +13,7 @@ SESSION_LOG_FILE=/var/log/factory_session.log
 INTERACTIVE_CONSOLES=""
 LOG_PROCESSES=""
 
-BOARD_SETUP=("$FACTORY/board/board_setup_factory.sh"
-             "$FACTORY/custom/board_setup_factory.sh")
+BOARD_SETUP="${FACTORY}/board/board_setup_factory.sh"
 
 # Put '/usr/local/factory/bin' at the head of PATH so that Goofy doesn't need to
 # specify full path name when running factory binaries.
@@ -86,13 +85,10 @@ show_interactive_console() {
 
 # Load board-specific parameters, if any.
 load_setup() {
-  for f in "${BOARD_SETUP[@]}"; do
-    if [ -s $f ]; then
-      echo "Loading board-specific parameters $f..."
-      . $f
-      break
-    fi
-  done
+  if [ -s "${BOARD_SETUP}" ]; then
+    echo "Loading board-specific parameters ${BOARD_SETUP}..."
+    . "${BOARD_SETUP}"
+  fi
 
   if [[ -f ${AUTOMATION_MODE_TAG_FILE} ]]; then
     local mode="$(cat ${AUTOMATION_MODE_TAG_FILE})"
