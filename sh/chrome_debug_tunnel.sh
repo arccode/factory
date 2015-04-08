@@ -43,7 +43,7 @@ main() {
   echo "Got remote debugging port: ${remote_port}"
 
   echo "Create SSH tunnel ${local_port}:localhost:${remote_port} to ${dut}"
-  local ssh_cmd="ssh -Nf -L ${local_port}:localhost:${remote_port} ${dut}"
+  local ssh_cmd="ssh -Nf -L ${local_port}:localhost:${remote_port} root@${dut}"
   sh -c "${ssh_cmd}"
   local ssh_pid="$(ps -ef | grep "${ssh_cmd}" | grep -v "grep" | \
       awk '{print $2}')"
