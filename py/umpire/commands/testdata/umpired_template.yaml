@@ -12,6 +12,7 @@ services:
       remoteip: 192.168.51.0/24
   shop_floor: {}
   rsync: {}
+  overlord: {}
 bundles:
 - id: empty_init_bundle
   note: n/a

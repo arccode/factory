@@ -27,7 +27,7 @@ TEST_BUNDLE_DIR = os.path.join(TEST_DIR, '..', 'testdata', 'init_bundle')
 
 UMPIRE_CONFIG_TEMPLATE_PATH = os.path.join(TEST_DIR, 'testdata',
                                            'umpired_template.yaml')
-UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##a2e913b7'
+UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##189d695c'
 
 # MD5SUM of install_factory_toolkit.run in TEST_BUNDLE_DIR
 TOOLKIT_MD5 = '43bc8d96'
