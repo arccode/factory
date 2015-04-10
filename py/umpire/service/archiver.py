@@ -158,7 +158,3 @@ class ArchiverService(umpire_service.UmpireService):
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(proc_config)
     return [proc]
-
-
-# Create a shop floor service instance
-_service_instance = ArchiverService()

@@ -43,7 +43,3 @@ class MinijackService(umpire_service.UmpireService):
                  os.path.join(env.log_dir, MINIJACK_LOG)],
         'path': '/tmp'})
     return [proc]
-
-
-# Instanciate
-_service_instance = MinijackService()

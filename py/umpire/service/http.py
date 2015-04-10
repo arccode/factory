@@ -246,12 +246,6 @@ class HTTPService(umpire_service.UmpireService):
     config_writer.Close()
 
 
-# Create a dummy HTTPService object.
-# During the first instantiate process, its parent constructor registers its
-# class name to _INSTANCE_MAP, a global variable.
-dummy_http_service = HTTPService()
-
-
 class LightyConfigWriter(object):
 
   """Writer for Lighty httpd config.

@@ -101,6 +101,3 @@ class ShopFloorService(umpire_service.UmpireService):
 
     self.properties['num_shopfloor_handlers'] = len(processes)
     return list(processes)
-
-# Create a shop floor service instance
-_service_instance = ShopFloorService()

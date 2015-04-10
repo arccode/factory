@@ -58,7 +58,3 @@ class MockBackendService(umpire_service.UmpireService):
         'args': ['-v', mlbs_csv],
         'path': env.umpire_data_dir})
     return [proc]
-
-
-# Create service instance
-_service_instance = MockBackendService()

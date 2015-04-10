@@ -74,7 +74,3 @@ class OverlordService(umpire_service.UmpireService):
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(proc_config)
     return [proc]
-
-
-# Create an Overlord service instance
-_service_instance = OverlordService()

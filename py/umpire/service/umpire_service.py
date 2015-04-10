@@ -18,9 +18,9 @@ for all service module.
 import collections
 import copy
 import importlib
+import inspect
 import logging
 import os
-import sys
 import time
 import uuid
 from twisted.internet import protocol, reactor, defer
@@ -42,7 +42,7 @@ _MESSAGE_LINES = 10
 # Optional service config schema
 _OPTIONAL_SERVICE_SCHEMA = {
     'active': Scalar('Default service state on start', bool)}
-# Map service name to sys.modules.
+# Map service name to module object
 _SERVICE_MAP = {}
 # Map service name to object.
 _INSTANCE_MAP = {}
@@ -489,9 +489,6 @@ class UmpireService(object):
     self.classname = self.__class__.__name__
     full_modulename = self.__class__.__module__
     self.modulename = full_modulename.split('.')[-1]
-    self.module = sys.modules[full_modulename]
-    _SERVICE_MAP[self.modulename] = self.module
-    _INSTANCE_MAP[self.modulename] = self
     if not hasattr(self, 'name'):
       self.name = self.modulename
       if '_unittest' in self.modulename or 'test_' in self.modulename:
@@ -603,7 +600,7 @@ def GetServiceSchemata():
 
 
 def LoadServiceModule(module_name):
-  """Imports service python module.
+  """Imports service python module, populate _SERVICE_MAP and _INSTANCE_MAP.
 
   Returns:
     Module object.
@@ -611,7 +608,12 @@ def LoadServiceModule(module_name):
   Raises:
     ImportError: when fails to find a name.
   """
-  return importlib.import_module('.' + module_name, _SERVICE_PACKAGE)
+  module = importlib.import_module('.' + module_name, _SERVICE_PACKAGE)
+  for _, obj in inspect.getmembers(module):
+    if inspect.isclass(obj) and issubclass(obj, UmpireService):
+      _SERVICE_MAP[module_name] = module
+      _INSTANCE_MAP[module_name] = obj()
+  return module
 
 
 def GetServiceInstance(module_name):

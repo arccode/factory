@@ -81,7 +81,3 @@ class RsyncService(umpire_service.UmpireService):
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(proc_config)
     return [proc]
-
-
-# Create one instance.
-_rsync_service = RsyncService()
