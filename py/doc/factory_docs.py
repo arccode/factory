@@ -47,12 +47,10 @@ class RegionsList(Directive):
       overlay = None
 
     # For each of the possible names of an attribute containing the
-    # region information... (we add a '?' to fields for unconfirmed regions,
-    # '??' for incomplete regions)
+    # region information... (we add a '?' to fields for unconfirmed regions)
     for name, confirmed, suffix in (
         ('REGIONS_LIST', True, ''),
-        ('UNCONFIRMED_REGIONS_LIST', False, '?'),
-        ('INCOMPLETE_REGIONS_LIST', False, '??')):
+        ('UNCONFIRMED_REGIONS_LIST', False, '?')):
       # For both the public repo and the overlay...
       for module in filter(None, [regions, overlay]):
         # For each of the elements in the list...

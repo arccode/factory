@@ -13,7 +13,6 @@ pulled from the Chromium sources; use update_testdata.py to update.
 
 import logging
 import os
-import StringIO
 import unittest
 import yaml
 
@@ -63,7 +62,7 @@ class RegionTest(unittest.TestCase):
     return method
 
   def testZoneInfo(self):
-    all_regions = regions.BuildRegionsDict(include_all=True)
+    all_regions = regions.BuildRegionsDict(include_all=False)
 
     # Make sure all time zones are present in /usr/share/zoneinfo.
     all_zoneinfos = [os.path.join('/usr/share/zoneinfo', r.time_zone)
@@ -92,24 +91,16 @@ class RegionTest(unittest.TestCase):
     self.assertFalse(regions.KEYBOARD_PATTERN.match('foo_bar'))
 
   def testTimeZones(self):
-    for r in regions.BuildRegionsDict(include_all=True).values():
+    for r in regions.BuildRegionsDict(include_all=False).values():
       if r.time_zone not in self.time_zones:
-        if r.region_code in regions.REGIONS:
-          self.fail(
-              'Missing time zone %r; does a new time zone need to be added '
-              'to CrOS, or does testdata need to be updated?' %
-              r.time_zone)
-        else:
-          # This is an unconfirmed region; just print a warning.
-          logging.warn('Missing time zone %r; does a new time zone need to be '
-                       'added to CrOS, or does testdata need to '
-                       'be updated? (just a warning, since region '
-                       '%r is not a confirmed region)',
-                       r.time_zone, r.region_code)
+        self.fail(
+            'Missing time zone %r; does a new time zone need to be added '
+            'to CrOS, or does testdata need to be updated?' %
+            r.time_zone)
 
   def testLanguages(self):
     missing = []
-    for r in regions.BuildRegionsDict(include_all=True).values():
+    for r in regions.BuildRegionsDict(include_all=False).values():
       for l in r.language_codes:
         if l not in self.languages:
           missing.append(l)
@@ -120,7 +111,7 @@ class RegionTest(unittest.TestCase):
 
   def testInputMethods(self):
     # Verify that every region is present in the dict.
-    for r in regions.BuildRegionsDict(include_all=True).values():
+    for r in regions.BuildRegionsDict(include_all=False).values():
       for k in r.keyboards:
         resolved_method = self._ResolveInputMethod(k)
         # Make sure the keyboard method is present.
@@ -138,19 +129,14 @@ class RegionTest(unittest.TestCase):
       return
 
     bmp_locale_dir = os.path.join(bmpblk_dir, 'strings', 'locale')
-    for r in regions.BuildRegionsDict(include_all=True).values():
+    for r in regions.BuildRegionsDict(include_all=False).values():
       for l in r.language_codes:
         paths = [os.path.join(bmp_locale_dir, l)]
         if '-' in l:
           paths.append(os.path.join(bmp_locale_dir, l.partition('-')[0]))
         if not any([os.path.exists(x) for x in paths]):
-          if r.region_code in regions.REGIONS:
-            self.fail(
-                'For region %r, none of %r exists' % (r.region_code, paths))
-          else:
-            logging.warn('For region %r, none of %r exists; '
-                         'just a warning since this region is not confirmed',
-                         r.region_code, paths)
+          self.fail(
+              'For region %r, none of %r exists' % (r.region_code, paths))
 
   def testVPDSettings(self):
     # US has only a single VPD setting, so this should be the same
@@ -177,23 +163,6 @@ class RegionTest(unittest.TestCase):
          'keyboard_layout': 'xkb:b::b1,xkb:b::b2',
          'region': 'a'},
         region.GetVPDSettings(True))
-
-  def testYAMLOutput(self):
-    output = StringIO.StringIO()
-    regions.main(['--format', 'yaml'], output)
-    data = yaml.load(output.getvalue())
-    self.assertEquals(
-        {'keyboards': ['xkb:us::eng'],
-         'keyboard_mechanical_layout': 'ANSI',
-         'language_codes': ['en-US'],
-         'region_code': 'us',
-         'numeric_id': 29,
-         'time_zone': 'America/Los_Angeles',
-         'vpd_settings': {'initial_locale': 'en-US',
-                          'initial_timezone': 'America/Los_Angeles',
-                          'keyboard_layout': 'xkb:us::eng',
-                          'region': 'us'}},
-        data['us'])
 
   def testFieldsDict(self):
     # 'description' and 'notes' should be missing.

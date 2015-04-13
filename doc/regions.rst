@@ -52,11 +52,9 @@ are used in this document, are specific to the factory SDK.  There is
 no single accepted worldwide standard for setting region
 configurations.
 
-Currently, the region code is not directly used anywhere in CrOS; it
-is solely an identifier used by the factory flow to identify the
-shipping market for a device.  However, in the future it may be used
-in CrOS (e.g., to enable or disable functionality for certain markets
-for regulatory reasons).
+Currently, the region code is used by CrOS to derive regional data, for example
+locales or Wi-Fi regulatory domain. The regional data can be updated, but the
+region code itself is locked in VPD RO area.
 
 The :py:class:`cros.factory.l10n.regions.Region` [#l10n]_ class encapsulates a
 single regional configuration.
@@ -65,7 +63,7 @@ single regional configuration.
 
 Available regions
 -----------------
-Following is a table of known regions.  Incomplete and unconfirmed
+Following is a table of known regions.  Unconfirmed
 regions (not ready for use in shipping products) are italicized and
 marked with question marks; if you need to use one of these please see
 http://goto/vpdsettings for review.
@@ -86,10 +84,8 @@ For more information on how to choose field values, see
 .. warning::
 
   Launch plans for regions marked with asterisks, if any, may not be
-  publicly known.  Take caution when sharing these values.  These
-  regions are stored in the `private repository
-  <http://goto/private-regions>`_, and to use one of these you will
-  need to create a ``regions_overlay.py`` in your board overlay.
+  publicly known.  Take caution when sharing these values. Check
+  src/platform2/regions/README for how to proceed.
 
 
 .. regionslist::
@@ -333,25 +329,17 @@ shipping products) is specified by
 
 .. autodata:: cros.factory.l10n.regions.REGIONS_LIST
 
-In addition, there are two module-level attributes used to accumulate
+In addition, there is a module-level attributes used to accumulate
 region configuration settings that are thought to be correct but have
 not been completely verified yet.
 
 .. autodata:: cros.factory.l10n.regions.UNCONFIRMED_REGIONS_LIST
 
-.. autodata:: cros.factory.l10n.regions.INCOMPLETE_REGIONS_LIST
-
 If you cannot add a region to the public factory repository, you may
-add it to the ``cros.factory.l10n.regions_overlay`` module, in one of
-the following attributes:
+add it to the private repository that overrides the REGION_LIST.
 
-* ``cros.factory.l10n.regions_overlay.REGIONS_LIST``
-* ``cros.factory.l10n.regions_overlay.UNCONFIRMED_REGIONS_LIST``
-* ``cros.factory.l10n.regions_overlay.INCOMPLETE_REGIONS_LIST``
-
-There is a reference list of "private" regions, suitable for addition
-to board overlays, in the ``factory-private`` repository
-(http://goto/private-regions).
+There is a reference list of "private" regions, shared by private board
+overlays, in the ``chromeos-partner-overlay`` repository.
 
 .. rubric:: Footnotes
 
