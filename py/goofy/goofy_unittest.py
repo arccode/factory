@@ -106,7 +106,7 @@ class GoofyTest(unittest.TestCase):
   options = ''
   ui = 'none'
   expected_create_connection_manager_args = (
-      [], factory.Options.scan_wifi_period_secs)
+      [], factory.Options.scan_wifi_period_secs, None)
   test_list = None  # Overridden by subclasses
 
   def setUp(self):
@@ -344,7 +344,7 @@ class ShutdownTest(GoofyTest):
     for _ in range(2):
       self.mocker.ResetAll()
       self.env.create_connection_manager(
-          [], factory.Options.scan_wifi_period_secs).AndReturn(
+          [], factory.Options.scan_wifi_period_secs, None).AndReturn(
               self.connection_manager)
       # Goofy should invoke shutdown test to do post-shutdown verification.
       mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.PASSED, '')
@@ -361,7 +361,7 @@ class ShutdownTest(GoofyTest):
     # The third shutdown iteration.
     self.mocker.ResetAll()
     self.env.create_connection_manager(
-        [], factory.Options.scan_wifi_period_secs).AndReturn(
+        [], factory.Options.scan_wifi_period_secs, None).AndReturn(
             self.connection_manager)
     # Goofy should invoke shutdown test to do post-shutdown verification.
     mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.PASSED, '')
@@ -410,7 +410,7 @@ class RebootFailureTest(GoofyTest):
 
     self.mocker.ResetAll()
     self.env.create_connection_manager(
-        [], factory.Options.scan_wifi_period_secs).AndReturn(
+        [], factory.Options.scan_wifi_period_secs, None).AndReturn(
             self.connection_manager)
     # Mock a failed shutdown post-shutdown verification.
     mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.FAILED,
@@ -559,12 +559,13 @@ class ConnectionManagerTest(GoofyTest):
     ]),
     OperatorTest(id='c', autotest_name='c_C'),
   """
-  expected_create_connection_manager_args = (mox.Func(
-      lambda arg: (len(arg) == 1 and
-                   arg[0].__dict__ == dict(ssid='foo',
-                                           security='psk',
-                                           passphrase='bar'))),
-                                             factory.Options.scan_wifi_period_secs)
+  expected_create_connection_manager_args = (
+      mox.Func(lambda arg: (
+          len(arg) == 1 and
+          arg[0].__dict__ == dict(ssid='foo', security='psk',
+                                  passphrase='bar'))),
+      factory.Options.scan_wifi_period_secs,
+      None)
 
   def runTest(self):
     self.check_one_test('a', 'a_A', True, '')

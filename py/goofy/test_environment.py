@@ -73,7 +73,8 @@ class Environment(object):
     """
     raise NotImplementedError()
 
-  def create_connection_manager(self, wlans, scan_wifi_period_secs):
+  def create_connection_manager(self, wlans, scan_wifi_period_secs,
+                                override_blacklisted_devices=None):
     """Creates a ConnectionManager."""
     raise NotImplementedError()
 
@@ -152,9 +153,11 @@ class DUTEnvironment(Environment):
     sync_utils.WaitFor(self.has_sockets, 30)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
 
-  def create_connection_manager(self, wlans, scan_wifi_period_secs):
-    return connection_manager.ConnectionManager(wlans,
-                                                scan_wifi_period_secs)
+  def create_connection_manager(self, wlans, scan_wifi_period_secs,
+                                override_blacklisted_devices=None):
+    return connection_manager.ConnectionManager(
+        wlans, scan_wifi_period_secs,
+        override_blacklisted_devices=override_blacklisted_devices)
 
 
 class FakeChrootEnvironment(Environment):
@@ -184,5 +187,6 @@ class FakeChrootEnvironment(Environment):
                  'open http://localhost:%d/ in Chrome.',
                  state.DEFAULT_FACTORY_STATE_PORT)
 
-  def create_connection_manager(self, wlans, scan_wifi_period_secs):
+  def create_connection_manager(self, wlans, scan_wifi_period_secs,
+                                override_blacklisted_devices=None):
     return connection_manager.DummyConnectionManager()

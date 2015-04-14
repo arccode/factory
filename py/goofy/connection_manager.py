@@ -73,7 +73,8 @@ class ConnectionManager(object):
                start_enabled=True,
                depservices=list(_DEPSERVICE_LIST),
                subservices=list(_SUBSERVICE_LIST),
-               profile_path=_PROFILE_LOCATION):
+               profile_path=_PROFILE_LOCATION,
+               override_blacklisted_devices=None):
     '''Constructor.
 
     Args:
@@ -93,6 +94,11 @@ class ConnectionManager(object):
       subservices: The list of networking-related system services other than
                    flimflam/shill and their dependency.
       profile_path: The file path of the network profile used by flimflam/shill.
+      override_blacklisted_devices: Blacklist to override shill's default
+                                    settings.  Should be a list of strings
+                                    (like ['eth0', 'wlan0']), an empty list or
+                                    empty string (block nothing), or None
+                                    (don't override).
     '''
     # Black hole for those useless outputs.
     self.fnull = open(os.devnull, 'w')
@@ -106,6 +112,7 @@ class ConnectionManager(object):
     self.depservices = depservices
     self.subservices = subservices
     self.profile_path = profile_path
+    self.override_blacklisted_devices = override_blacklisted_devices
     # Auto-detect the network manager process name if unknown.
     if self.process_name == _UNKNOWN_PROC:
       self._DetectProcName()
@@ -118,7 +125,10 @@ class ConnectionManager(object):
                  ', '.join([x['SSID'] for x in self.wlans]))
 
     if start_enabled:
-      self.EnableNetworking(reset=False)
+      if override_blacklisted_devices is None:
+        self.EnableNetworking(reset=False)
+      else:
+        self.EnableNetworking(reset=True)
     else:
       self.DisableNetworking(clear=False)
 
@@ -188,8 +198,12 @@ class ConnectionManager(object):
 
     # Start network manager.
     for service in self.depservices + [self.network_manager] + self.subservices:
-      subprocess.call('start %s' % service, shell=True,
-                      stdout=self.fnull, stderr=self.fnull)
+      cmd = 'start %s' % service
+      if (service in _MANAGER_LIST and
+          self.override_blacklisted_devices is not None):
+        cmd += ' BLACKLISTED_DEVICES="%s"' % (
+            ','.join(self.override_blacklisted_devices))
+      subprocess.call(cmd, shell=True, stdout=self.fnull, stderr=self.fnull)
 
     # Configure the network manager to auto-connect wireless networks.
     try:

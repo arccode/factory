@@ -23,13 +23,15 @@ _FAKE_DEPSERVICE_LIST = ['wpasupplicant']
 _FAKE_SUBSERVICE_LIST = ['flimflam_respawn', 'modemmanager']
 _FAKE_PROFILE_LOCATION = '/var/cache/%s/default.profile'
 _FAKE_INTERFACES = ['wlan0', 'eth0', 'lo']
+_FAKE_OVERRIDE_BLACKLISTED_DEVICES = ['wlan0']
 _FAKE_DATA = {
     'scan_interval': _FAKE_SCAN_INTERVAL_SECS,
     'network_manager': _FAKE_MANAGER,
     'process_name': _FAKE_PROC_NAME,
     'depservices': _FAKE_DEPSERVICE_LIST,
     'subservices': _FAKE_SUBSERVICE_LIST,
-    'profile_path': _FAKE_PROFILE_LOCATION
+    'profile_path': _FAKE_PROFILE_LOCATION,
+    'override_blacklisted_devices': None,
 }
 
 
@@ -97,7 +99,12 @@ class ConnectionManagerTest(unittest.TestCase):
 
     for service in (_FAKE_DEPSERVICE_LIST + [_FAKE_MANAGER] +
                     _FAKE_SUBSERVICE_LIST):
-      subprocess.call('start %s' % service, shell=True,
+      cmd = 'start %s' % service
+      if (service in [_FAKE_MANAGER] and
+          self.fakeData['override_blacklisted_devices'] is not None):
+        cmd += ' BLACKLISTED_DEVICES="%s"' % (
+            ','.join(self.fakeData['override_blacklisted_devices']))
+      subprocess.call(cmd, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
 
     connection_manager.GetBaseNetworkManager().AndReturn(
@@ -132,6 +139,15 @@ class ConnectionManagerTest(unittest.TestCase):
 
     self.mox.ReplayAll()
     connection_manager.ConnectionManager(start_enabled=False,
+                                         **self.fakeData)
+
+  def testOverrideBlacklistedDevices(self):
+    self.fakeData['override_blacklisted_devices'] = (
+        _FAKE_OVERRIDE_BLACKLISTED_DEVICES)
+    self.MockEnableNetworking(reset=True)
+
+    self.mox.ReplayAll()
+    connection_manager.ConnectionManager(start_enabled=True,
                                          **self.fakeData)
 
   def testInitFailInvalidNetworkManager(self):

@@ -423,6 +423,12 @@ class Options(object):
   wlans = []
   """WLANs that the connection manager may connect to."""
 
+  override_blacklisted_network_devices = None
+  """Override blacklisted network devices in the system.  On some boards, some
+  specific devices may be blacklisted by default, but we need to test those
+  devices as well.  This should be a list of strings (like ['eth0', 'wlan0']),
+  an empty list or empty string (blocks nothing), or None (don't override)."""
+
   sync_event_log_period_secs = None
   """Send events to the shopfloor server when it is reachable at this
   interval.  Set to ``None`` to disable."""

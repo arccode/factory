@@ -1488,7 +1488,8 @@ class Goofy(GoofyBase):
     else:
       self.connection_manager = self.env.create_connection_manager(
           self.test_list.options.wlans,
-          self.test_list.options.scan_wifi_period_secs)
+          self.test_list.options.scan_wifi_period_secs,
+          self.test_list.options.override_blacklisted_network_devices)
 
     # Note that we create a log watcher even if
     # sync_event_log_period_secs isn't set (no background
