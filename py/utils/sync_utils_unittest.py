@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import signal
 import time
 import unittest
 
@@ -55,6 +56,33 @@ class WaitForTest(unittest.TestCase):
     now = time.time()
     self.assertRaises(type_utils.TimeoutError, sync_utils.WaitFor,
                       lambda: _ReturnTrueAfter(now + 1), timeout_secs=0.5)
+
+
+class TimeoutTest(unittest.TestCase):
+
+  def runTest(self):
+    with sync_utils.Timeout(3):
+      time.sleep(1)
+
+    prev_secs = signal.alarm(10)
+    self.assertTrue(prev_secs == 0,
+                    msg='signal.alarm() is in use after "with Timeout()"')
+    try:
+      with sync_utils.Timeout(3):
+        time.sleep(1)
+    except AssertionError:
+      pass
+    else:
+      raise AssertionError("No assert raised on previous signal.alarm()")
+    signal.alarm(0)
+
+    try:
+      with sync_utils.Timeout(1):
+        time.sleep(3)
+    except type_utils.TimeoutError:
+      pass
+    else:
+      raise AssertionError("No timeout")
 
 
 if __name__ == '__main__':

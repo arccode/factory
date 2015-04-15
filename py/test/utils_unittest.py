@@ -4,9 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import signal
 import tempfile
-import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -62,33 +60,6 @@ class VarLogMessagesTest(unittest.TestCase):
         "19:26:17 kernel: That's all, folks.",
         "<after reboot, kernel came up at 19:26:56>",
     ], self._GetMessages(EARLIER_VAR_LOG_MESSAGES, 1))
-
-
-class TimeoutTest(unittest.TestCase):
-
-  def runTest(self):
-    with utils.Timeout(3):
-      time.sleep(1)
-
-    prev_secs = signal.alarm(10)
-    self.assertTrue(prev_secs == 0,
-                    msg='signal.alarm() is in use after "with Timeout()"')
-    try:
-      with utils.Timeout(3):
-        time.sleep(1)
-    except AssertionError:
-      pass
-    else:
-      self.assertTrue(False, msg="No assert raised on previous signal.alarm()")
-    signal.alarm(0)
-
-    try:
-      with utils.Timeout(1):
-        time.sleep(3)
-    except type_utils.TimeoutError:
-      pass
-    else:
-      self.assertTrue(False, msg="No timeout")
 
 
 if __name__ == "__main__":

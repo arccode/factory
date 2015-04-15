@@ -8,7 +8,10 @@ from __future__ import print_function
 
 import inspect
 import logging
+import signal
 import time
+
+from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import time_utils
@@ -127,3 +130,24 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
       break
     time.sleep(interval)
   return result
+
+
+@contextmanager
+def Timeout(secs):
+  """Timeout context manager. It will raise TimeoutError after timeout.
+  It does not support nested "with Timeout" blocks.
+  """
+  def handler(signum, frame):  # pylint: disable=W0613
+    raise type_utils.TimeoutError('Timeout')
+
+  if secs:
+    old_handler = signal.signal(signal.SIGALRM, handler)
+    prev_secs = signal.alarm(secs)
+    assert not prev_secs, 'Alarm was already set before.'
+
+  try:
+    yield
+  finally:
+    if secs:
+      signal.alarm(0)
+      signal.signal(signal.SIGALRM, old_handler)

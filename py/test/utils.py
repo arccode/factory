@@ -15,15 +15,12 @@ import multiprocessing
 import os
 import pipes
 import re
-import signal
 import subprocess
 import sys
 import tempfile
 import threading
 import time
 import traceback
-
-from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import file_utils
@@ -50,6 +47,7 @@ Error = type_utils.Error
 TimeoutError = type_utils.TimeoutError
 Retry = sync_utils.Retry
 WaitFor = sync_utils.WaitFor
+Timeout = sync_utils.Timeout
 
 
 def IsFreon():
@@ -248,25 +246,3 @@ class LoadManager(object):
     if self._process and self._process.poll() is None:
       logging.info('LoadManager: Terminating the process.')
       self._process.terminate()
-
-
-# TODO(hungte) Move Timeout, FormatExceptionOnly to py/utils/*.
-@contextmanager
-def Timeout(secs):
-  """Timeout context manager. It will raise TimeoutError after timeout.
-  It does not support nested "with Timeout" blocks.
-  """
-  def handler(signum, frame):  # pylint: disable=W0613
-    raise type_utils.TimeoutError('Timeout')
-
-  if secs:
-    old_handler = signal.signal(signal.SIGALRM, handler)
-    prev_secs = signal.alarm(secs)
-    assert not prev_secs, 'Alarm was already set before.'
-
-  try:
-    yield
-  finally:
-    if secs:
-      signal.alarm(0)
-      signal.signal(signal.SIGALRM, old_handler)

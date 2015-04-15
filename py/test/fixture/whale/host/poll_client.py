@@ -8,8 +8,8 @@ import sys
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.whale.host import poll_gpio
-from cros.factory.test import utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
@@ -68,7 +68,7 @@ class PollClient(object):
         try:
           # TODO: Interrupting HTTP requests with Timeout() is problematic.
           #       Use with caution!
-          with utils.Timeout(timeout_secs):
+          with sync_utils.Timeout(timeout_secs):
             self._server.poll_gpio(gpio_port, edge)
             return True
         except type_utils.TimeoutError:
