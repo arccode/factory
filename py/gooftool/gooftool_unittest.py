@@ -29,7 +29,7 @@ from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
-from cros.factory.system import vpd
+from cros.factory.system import vpd, SystemInfo
 from cros.factory.test import branding
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import CheckOutput
@@ -356,6 +356,40 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.FindAndRunScript('clear_gbb_flags.sh')
     self.mox.ReplayAll()
     self._gooftool.ClearGBBFlags()
+
+  def testGenerateStableDeviceSecretSuccess(self):
+    SystemInfo.release_image_version = '6887.0.0'
+    self._gooftool._util.shell('tpm-manager get_random 32').AndReturn(
+        StubStdout('00' * 32 + '\n'))
+    self.mox.StubOutWithMock(vpd.ro, 'Update')
+    vpd.ro.Update({'stable_device_secret_DO_NOT_SHARE': '00' * 32})
+    self.mox.ReplayAll()
+    self._gooftool.GenerateStableDeviceSecret()
+
+  def testGenerateStableDeviceSecretNoOutput(self):
+    SystemInfo.release_image_version = '6887.0.0'
+    self._gooftool._util.shell('tpm-manager get_random 32').AndReturn(
+        StubStdout(''))
+    self.mox.ReplayAll()
+    self.assertRaises(Error, self._gooftool.GenerateStableDeviceSecret)
+
+  def testGenerateStableDeviceSecretShortOutput(self):
+    SystemInfo.release_image_version = '6887.0.0'
+    self._gooftool._util.shell('tpm-manager get_random 32').AndReturn(
+        StubStdout('00' * 31))
+    self.mox.ReplayAll()
+    self.assertRaises(Error, self._gooftool.GenerateStableDeviceSecret)
+
+  def testGenerateStableDeviceSecretBadOutput(self):
+    SystemInfo.release_image_version = '6887.0.0'
+    self._gooftool._util.shell('tpm-manager get_random 32').AndReturn(
+        StubStdout('Err0r!'))
+    self.mox.ReplayAll()
+    self.assertRaises(Error, self._gooftool.GenerateStableDeviceSecret)
+
+  def testGenerateStableDeviceSecretBadReleaseImageVersion(self):
+    SystemInfo.release_image_version = '6886.0.0'
+    self.assertRaises(Error, self._gooftool.GenerateStableDeviceSecret)
 
   def testPrepareWipe(self):
     self._gooftool._util.GetReleaseRootPartitionPath(

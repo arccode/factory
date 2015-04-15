@@ -12,6 +12,7 @@ import re
 
 import collections
 from collections import namedtuple
+from distutils.version import LooseVersion
 from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
@@ -29,7 +30,7 @@ from cros.factory.hwid.encoder import BinaryStringToEncodedString
 from cros.factory.l10n import regions
 from cros.factory.privacy import FilterDict
 from cros.factory.rule import Context
-from cros.factory.system import vpd
+from cros.factory.system import vpd, SystemInfo
 from cros.factory.test import branding
 from cros.factory.test import phase
 from cros.factory.utils.process_utils import CheckOutput, GetLines
@@ -656,3 +657,56 @@ class Gooftool(object):
                    if k.startswith('factory.'))
     logging.info('Removing VPD entries %s', FilterDict(entries))
     vpd.rw.Delete(*entries.keys())
+
+  def GenerateStableDeviceSecret(self):
+    """Generates a fresh stable device secret and stores it in RO VPD.
+
+    The stable device secret generated here is a high-entropy identifier that
+    is unique to each device. It gets generated at manufacturing time and reset
+    during RMA, but is stable under normal operation and notably also across
+    recovery image installation.
+
+    The stable device secret is suitable to obtain per-device stable hardware
+    identifiers and/or encryption keys. Please never use the secret directly,
+    but derive a secret specific for your context like this:
+
+        your_secret = HMAC_SHA256(stable_device_secret,
+                                  context_label\0optional_parameters)
+
+    The stable_device_secret acts as the HMAC key. context_label is a string
+    that uniquely identifies your usage context, which allows us to generate as
+    many per-context secrets as we need. The optional_parameters string can
+    contain additional information to further segregate your context, for
+    example if there is a need for multiple secrets.
+
+    The resulting secret(s) can be used freely, in particular they may be
+    shared with the environment or servers. Before you start generating and
+    using a secret in a new context, please always make sure to contact the
+    privacy and security teams to check whether your intended usage meets the
+    Chrome OS privacy and security guidelines.
+
+    MOST IMPORTANTLY: THE STABLE DEVICE SECRET MUST NOT LEAVE THE DEVICE AT ANY
+    TIME. DO NOT INCLUDE IT IN NETWORK COMMUNICATION, AND MAKE SURE IT DOES NOT
+    SHOW UP IN DATA THAT GETS SHARED POTENTIALLY (LOGS, ETC.). FAILURE TO DO SO
+    MAY BREAK THE SECURITY AND PRIVACY OF ALL OUR USERS. YOU HAVE BEEN WARNED.
+    """
+
+    # Ensure that the release image is recent enough to handle the stable
+    # device secret key in VPD. Version 6887.0.0 is the first one that has the
+    # session_manager change to generate server-backed state keys for forced
+    # re-enrollment from the stable device secret.
+    release_image_version = LooseVersion(SystemInfo().release_image_version)
+    if not release_image_version >= LooseVersion('6887.0.0'):
+      raise Error, 'Release image version can\'t handle stable device secret!'
+
+    # Generate the stable device secret and write it to VPD.
+    secret = self._util.shell('tpm-manager get_random 32').stdout.strip()
+    try:
+      secret_bytes = secret.decode('hex')
+      if len(secret_bytes) != 32:
+        raise Error, 'Stable device secret is not of correct length!'
+    except:
+      raise Error, 'Failed to hex-decode stable device secret!'
+
+    vpd.ro.Update(
+        {'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')})

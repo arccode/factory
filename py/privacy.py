@@ -12,7 +12,8 @@ import copy
 
 BLACKLIST_KEYS = [
     'ubind_attribute',
-    'gbind_attribute'
+    'gbind_attribute',
+    'stable_device_secret_DO_NOT_SHARE',
 ]
 
 

@@ -641,6 +641,13 @@ def ClearFactoryVPDEntries(options):  # pylint: disable=W0613
   event_log.Log('clear_factory_vpd_entries', entries=FilterDict(entries))
 
 
+@Command('generate_stable_device_secret')
+def GenerateStableDeviceSecret(options):  # pylint: disable=W0613
+  """Generates a a fresh stable device secret and stores it in the RO VPD."""
+  GetGooftool(options).GenerateStableDeviceSecret()
+  event_log.Log('generate_stable_device_secret')
+
+
 @Command('prepare_wipe',
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'))
@@ -853,6 +860,7 @@ def Finalize(options):
   SetFirmwareBitmapLocale(options)
   ClearGBBFlags(options)
   ClearFactoryVPDEntries(options)
+  GenerateStableDeviceSecret(options)
   if options.no_write_protect:
     logging.warn('WARNING: Firmware Write Protection is SKIPPED.')
     event_log.Log('wp', fw='both', status='skipped')
