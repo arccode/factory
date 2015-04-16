@@ -11,7 +11,13 @@
 
 get_broadcast_ip() {
   local iface="$1"
-  echo "$(ifconfig $iface | awk '/broadcast/ { print $6 }')"
+  # There are two version of ifconfig producing different output
+  # 1st:
+  #   192.168.0.1  netmask 255.255.255.0  broadcast 192.168.0.255
+  # 2nd:
+  #   inet addr:192.168.0.1  Bcast:192.168.0.255  Mask:255.255.255.0
+  echo "$(ifconfig $iface | awk \
+    '/broadcast/ { print $6 } /Bcast/ { split($3, p, ":"); print p[2] }')"
 }
 
 main() {
