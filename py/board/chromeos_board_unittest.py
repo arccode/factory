@@ -212,6 +212,7 @@ batt_state_of_charge = 52%
 
       def __init__(self):
         self.stdout_data = None
+        self.returncode = 0
 
     dummy = MockSpawnOutput()
     dummy.stdout_data = 'link_v1.1.227-3b0e131'
@@ -228,6 +229,7 @@ batt_state_of_charge = 52%
 
       def __init__(self):
         self.stdout_data = None
+        self.returncode = 0
 
     dummy = MockSpawnOutput()
     dummy.stdout_data = 'samus_pd_v1.1.2122-e1ff1a3'

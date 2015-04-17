@@ -173,12 +173,14 @@ class ChromeOSBoard(Board):
         raise BoardException('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
   def GetECVersion(self):
-    return self._Spawn(['mosys', 'ec', 'info', '-s', 'fw_version'],
-                       read_stdout=True, ignore_stderr=True).stdout_data.strip()
+    process = self._Spawn(['mosys', 'ec', 'info', '-s', 'fw_version'],
+                          read_stdout=True, ignore_stderr=True)
+    return process.stdout_data.strip() if process.returncode == 0 else None
 
   def GetPDVersion(self):
-    return self._Spawn(['mosys', 'pd', 'info', '-s', 'fw_version'],
-                       read_stdout=True, ignore_stderr=True).stdout_data.strip()
+    process = self._Spawn(['mosys', 'pd', 'info', '-s', 'fw_version'],
+                          read_stdout=True, ignore_stderr=True)
+    return process.stdout_data.strip() if process.returncode == 0 else None
 
   def GetMainFWVersion(self):
     return Spawn(['crossystem', 'ro_fwid'],
