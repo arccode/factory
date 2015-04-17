@@ -72,7 +72,10 @@ class BFTFixture(object):
   StatusColor = Enum(['RED', 'GREEN', 'OFF'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
                  'USB_0', 'USB_1', 'USB_2', 'BATTERY',
-                 'C0_CC2_DUT', 'C1_CC2_DUT'])
+                 'C0_CC2_DUT', 'C1_CC2_DUT',
+                 # Dolphin mini fixture devices.
+                 'CHARGE_5V', 'CHARGE_12V', 'CHARGE_20V',
+                 'USB2', 'USB3', 'DP', 'DEFAULT'])
 
   # LCM enumeration.
   LcmCommand = Enum(['BACKLIGHT_OFF', 'BACKLIGHT_ON', 'CLEAR', 'HOME'])
@@ -253,6 +256,31 @@ class BFTFixture(object):
     """Turn the scanner on and off."""
     raise NotImplementedError
 
+  def SetUSBHubChargeStatus(self, enable):
+    """Sets Plankton charge or not to device on USB hub.
+
+    Args:
+      enable: True for charging; False for not charging.
+    """
+    raise NotImplementedError
+
+  def ResetUSBHub(self, wait_before_reset_secs=1, wait_after_reset_secs=1):
+    """Toggles reset signal of Plankton USB Hub.
+
+    Args:
+      wait_before_reset_secs: Waiting seconds before reset sequence.
+      wait_after_reset_secs: Waiting seconds after reset sequence.
+    """
+    raise NotImplementedError
+
+  def ReadINACurrent(self):
+    """Sends Plankton INA command and read back current value.
+
+    Returns:
+      Current value (mA) on Plankton INA.
+    """
+    raise NotImplementedError
+
 
 def CreateBFTFixture(class_name, params):
   """Initializes a BFT fixture instance.
@@ -351,11 +379,19 @@ def main():
       'action', choices=sorted(BFTFixture.LcmCommand),
       help='Action to execute.')
 
+  parser_set_usb_hub_charge = subparsers.add_parser(
+      'SetUSBHubChargeStatus', help='Set Plankton USB hub charge status.')
+  parser_set_usb_hub_charge.add_argument(
+      'enable', type=int, help='Set 1 to enable, 0 to disable.')
+
   subparsers.add_parser('CheckExtDisplay', help='Check external display.')
   subparsers.add_parser('CheckPowerRail', help='Check power rail.')
   subparsers.add_parser('GetFixtureId', help='Get fixture ID.')
   subparsers.add_parser('Ping', help='Ping fixture.')
   subparsers.add_parser('ScanBarcode', help='Trigger barcode scanner.')
+  subparsers.add_parser('ResetUSBHub', help='Reset Plankton USB hub')
+  subparsers.add_parser('ReadINACurrent',
+                        help='Read current (mA) from Plankton INA.')
 
   args = parser.parse_args()
 
@@ -411,6 +447,10 @@ def main():
     action = args.action
     print 'IssueLcmCommand(%s)' % (action)
     fixture.IssueLcmCommand(action)
+  elif command == 'SetUSBHubChargeStatus':
+    enable = args.enable
+    print 'SetUSBHubChargeStatus(%r)' % (enable)
+    fixture.SetUSBHubChargeStatus(enable)
   else:
     print getattr(fixture, command)()
 
