@@ -93,7 +93,6 @@ class TabletModeTest(unittest.TestCase):
         self.tablet_mode_ui.FlashFailure()
         self.ui.Fail('Lid switch was triggered unexpectedly')
 
-
   def HandleConfirmTabletMode(self, _):
     self.tablet_mode_ui.FlashSuccess()
     if self.args.prompt_flip_notebook:

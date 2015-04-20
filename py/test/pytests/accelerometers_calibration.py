@@ -229,7 +229,7 @@ class AccelerometersCalibration(unittest.TestCase):
       Arg(
           'sample_rate_hz', int,
           'The sample rate in Hz to get raw data from '
-          'acceleromters.', default=20, optional=True),
+          'accelerometers.', default=20, optional=True),
       Arg(
           'capture_count', int,
           'How many times to capture the raw data to '
@@ -246,11 +246,11 @@ class AccelerometersCalibration(unittest.TestCase):
           'and should be provided by the vendor.', optional=False),
       Arg(
           'spec_ideal_values', tuple,
-          'A tuple of two integers, ex(0, 1024) indicating the ideal value of '
-          'digital output corresponding to 0G and 1G, respectively. For '
-          'example, if a sensor has a 12 bits digital output and -/+ 2G '
-          'detection range so the sensitivity is 1024 count/g.The value should'
-          ' be provided by the vendor.', optional=False)]
+          'A tuple of two integers, ex: (0, 1024) indicating the ideal value '
+          'of digital output corresponding to 0G and 1G, respectively. For '
+          'example, if a sensor has a 12-bit digital output and -/+ 2G '
+          'detection range so the sensitivity is 1024 count/G. The value '
+          'should be provided by the vendor.', optional=False)]
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -276,7 +276,6 @@ class AccelerometersCalibration(unittest.TestCase):
           self.args.capture_count,
           self.args.setup_time_secs)]
     else:
-      task_list = [SixSidedCalibrationTask(
-          self, self.args.orientation)]
+      task_list = [SixSidedCalibrationTask(self.args.orientation)]
     self._task_manager = FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()

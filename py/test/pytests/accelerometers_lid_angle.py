@@ -92,33 +92,27 @@ window.onkeydown = function(event) {
 
 class AccelerometersLidAngleTest(unittest.TestCase):
   ARGS = [
-      Arg(
-          'angle', int, 'The target lid angle to test.',
+      Arg('angle', int, 'The target lid angle to test.',
           default=180, optional=True),
-      Arg(
-          'tolerance', int, 'The tolerance ',
+      Arg('tolerance', int, 'The tolerance ',
           default=5, optional=True),
-      Arg(
-          'sample_rate_hz', int,
-          'The sample rate in Hz to get raw data from '
-          'acceleromters.', default=20, optional=True),
-      Arg(
-          'capture_count', int,
+      Arg('capture_count', int,
           'How many times to capture the raw data to '
           'calculate the lid angle.', default=20, optional=True),
-      Arg(
-          'spec_offset', tuple,
+      Arg('spec_offset', tuple,
           'A tuple of two integers, ex: (128, 230) '
           'indicating the tolerance for the digital output of sensors under '
           'zero gravity and one gravity. Those values are vendor-specific '
           'and should be provided by the vendor.', optional=False),
-      Arg(
-          'spec_ideal_values', tuple,
+      Arg('spec_ideal_values', tuple,
           'A tuple of two integers, ex: (0, 1024) indicating the ideal value '
           'of digital output corresponding to 0G and 1G, respectively. For '
           'example, if a sensor has a 12-bit digital output and -/+ 2G '
           'detection range so the sensitivity is 1024 count/G. The value '
           'should be provided by the vendor.', optional=False),
+      Arg('sample_rate_hz', int,
+          'The sample rate in Hz to get raw data from '
+          'accelerometers.', default=20, optional=True),
   ]
 
   def setUp(self):
