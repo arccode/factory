@@ -153,7 +153,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
       quiet: Suppresses error messages when shopfloor can not be reached.
       Other args are for base class.
     """
-    self._server_uri = server_uri
+    self._server_uri = server_uri.rstrip('/')
     self._umpire_http_server_uri = None
     self._use_umpire = None
     self._umpire_client_info = None
