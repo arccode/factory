@@ -1,0 +1,32 @@
+/*
+ * Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+.display-full-screen-hide {
+  background-color: white;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  visibility: hidden;}
+.display-full-screen-show {
+  background-color: white;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  visibility: visible;}
+.display-subtest-solid-red {
+  background-color: red; width: 100%; height: 100%; }
+.display-subtest-solid-green {
+  background-color: green; width: 100%; height: 100%; }
+.display-subtest-image {
+  background-image: url(./template.png); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-r {
+  background-image: url(./result.jpeg); width: 100%; height: 100%;
+  background-size: 100% 100%; }
