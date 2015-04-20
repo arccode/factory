@@ -217,6 +217,11 @@ class UmpireDUTCommands(UmpireRPC):
 
       resource_type = (component if not component.startswith('firmware_') else
                        'firmware')
+
+      # Factory bundle does not contain the resource_type e.g. netboot_firmware
+      if resource_type not in resource_map:
+        continue
+
       resource_filename = resource_map[resource_type]
       resource_tag, resource_hash = self._GetResourceTag(
           component, resource_filename)

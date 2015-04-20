@@ -196,8 +196,12 @@ def GetUpdateForNetbootFirmware(proxy):
     None if there is no netboot firmware update. Otherwise, return the
     downloaded netboot firmware.
   """
-  update_info = GetUpdateForComponents(
-      proxy, ['netboot_firmware'])['netboot_firmware']
+  try:
+    update_info = GetUpdateForComponents(
+        proxy, ['netboot_firmware'])['netboot_firmware']
+  except KeyError:
+    raise RuntimeError('factory bundle does not contain netboot_firmware')
+
   if update_info.needs_update:
     return Download(update_info.url, unzip=False)
   else:
