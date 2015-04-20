@@ -17,6 +17,8 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Enum
 
+_RE_INA_VOLTAGE = re.compile(r'^\s*Bus voltage\s+:\s+\w+\s+=>\s+(-?\d+)\s+mV',
+                             re.MULTILINE)
 _RE_INA_CURRENT = re.compile(r'^\s*Current\s+:\s+\w+\s+=>\s+(-?\d+)\s+mA',
                              re.MULTILINE)
 _RE_I2C_READ = re.compile(r'^\s*0x\w\w \[(\d+)\]', re.MULTILINE)
@@ -298,21 +300,22 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     self._Send('hub_reset', 'Reset USB Hub')
     time.sleep(wait_after_reset_secs)  # Wait for USB recovering
 
-  def ReadINACurrent(self):
-    """Sends INA command and read back current value.
+  def ReadINAValues(self):
+    """Sends INA command and read back voltage and current value.
 
     Returns:
-      Current value (mA) on Plankton INA.
+      A dict which contains 'voltage' (in mV) and 'current' (in mA) data.
     """
     self._Send('ina 0', 'read INA current')
     time.sleep(0.1)  # Wait for message output
     read_output = self._Recv(0, 'read output')
     logging.info('read_output = %r', read_output)
-    read_object = _RE_INA_CURRENT.findall(read_output)
-    if read_object:
-      return int(read_object[0])
+    read_current = _RE_INA_CURRENT.findall(read_output)
+    read_voltage = _RE_INA_VOLTAGE.findall(read_output)
+    if read_current and read_voltage:
+      return dict(current=int(read_current[0]), voltage=int(read_voltage[0]))
     else:
-      raise bft_fixture.BFTFixtureException('Cannot read INA current')
+      raise bft_fixture.BFTFixtureException('Cannot read INA values')
 
   def _I2CWrite(self, reg_address, value):
     """Writes IO expander register through I2C interface.

@@ -94,6 +94,10 @@ class RaidenChargeBFTTest(unittest.TestCase):
           'A tuple for indicating reasonable current in mA during discharging '
           'from Plankton INA',
           default=(-3500, 0)),
+      Arg('ina_voltage_tolerance', float,
+          'Tolerance ratio for Plankton INA voltage compared to expected '
+          'charging voltage',
+          default=0.12)
   ]
 
   # Supported charging voltage
@@ -149,26 +153,31 @@ class RaidenChargeBFTTest(unittest.TestCase):
       raise factory.FactoryTestFailure(
           'min_discharge_current_mA must be less than zero')
 
-  def SampleCurrent(self, duration_secs):
-    """Samples battery current and Plankton INA current for a given duration.
+  def SampleCurrentAndVoltage(self, duration_secs):
+    """Samples battery current and Plankton INA current/voltage for duration.
 
     Args:
       duration_secs: The duration in seconds to sample current.
 
     Returns:
-      A tuple of two lists (sampled battery current, sampled INA current).
+      A tuple of three lists (sampled battery current, sampled INA current,
+      sampled INA voltage).
     """
     sampled_battery_current = []
     sampled_ina_current = []
+    sampled_ina_voltage = []
     end_time = time_utils.MonotonicTime() + duration_secs
     while time_utils.MonotonicTime() < end_time:
       sampled_battery_current.append(self._board.GetBatteryCurrent())
-      sampled_ina_current.append(self._bft_fixture.ReadINACurrent())
+      ina_values = self._bft_fixture.ReadINAValues()
+      sampled_ina_current.append(ina_values['current'])
+      sampled_ina_voltage.append(ina_values['voltage'])
       time.sleep(self.args.current_sampling_period_secs)
 
     logging.info('Sampled battery current: %s', str(sampled_battery_current))
     logging.info('Sampled ina current: %s', str(sampled_ina_current))
-    return (sampled_battery_current, sampled_ina_current)
+    logging.info('Sampled ina voltage: %s', str(sampled_ina_voltage))
+    return (sampled_battery_current, sampled_ina_current, sampled_ina_voltage)
 
   def Check5VINACurrent(self):
     """Checks if Plankton INA is within range for charge-5V.
@@ -187,7 +196,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
     retry = self.args.protect_ina_retry_times
     while retry > 0:
       time.sleep(1)  # Wait for INA stable
-      ina_current = self._bft_fixture.ReadINACurrent()
+      ina_current = self._bft_fixture.ReadINAValues()['current']
       logging.info('Current of plankton INA = %d mA', ina_current)
       if current_min <= ina_current <= current_max:
         break
@@ -199,12 +208,14 @@ class RaidenChargeBFTTest(unittest.TestCase):
                 (ina_current, current_min, current_max,
                  self.args.protect_ina_retry_times))
 
-  def TestCharging(self, min_threshold, testing_volt):
+  def TestCharging(self, current_min_threshold, voltage_tolerance,
+                   testing_volt):
     """Tests charge scenario. It will monitor within args.charge_duration_secs.
 
     Args:
-      min_threshold: Minimum threshold to check charging current. If None,
-          skip the test.
+      current_min_threshold: Minimum threshold to check charging current. If
+          None, skip the test.
+      voltage_tolerance: Error ratio threshold to check charging voltage.
       testing_volt: An integer to specify testing charge voltage.
 
     Raises:
@@ -212,7 +223,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
           the given threshold in dargs.
     """
 
-    if min_threshold is None:
+    if current_min_threshold is None:
       return
 
     if testing_volt not in self._SUPPORT_CHARGE_VOLT:
@@ -227,15 +238,23 @@ class RaidenChargeBFTTest(unittest.TestCase):
     # Plankton-Raiden board setting: engage
     self._bft_fixture.SetDeviceEngaged(command_device, engage=True)
 
-    (sampled_battery_current, sampled_ina_current) = (
-        self.SampleCurrent(self.args.charge_duration_secs))
-    # Fail if all samples are below threshold
+    (sampled_battery_current, sampled_ina_current, sampled_ina_voltage) = (
+        self.SampleCurrentAndVoltage(self.args.charge_duration_secs))
+    # Fail if all battery current samples are below threshold
     if not any(
-        c > min_threshold for c in sampled_battery_current):
+        c > current_min_threshold for c in sampled_battery_current):
       raise factory.FactoryTestFailure(
           'Battery charge current did not reach defined threshold %f mA' %
-          min_threshold)
-    self.CheckINASample(sampled_ina_current, charging=True)
+          current_min_threshold)
+    # Fail if all Plankton INA voltage samples are not within specified range
+    tolerance = testing_volt * 1000 * voltage_tolerance
+    if not any(abs(
+        v - testing_volt * 1000.0) <= tolerance for v in sampled_ina_voltage):
+      raise factory.FactoryTestFailure(
+          'Plankton INA voltage did not meet expected charge voltage')
+    # If args.check_ina_current, fail if average of Plankton INA current
+    # samples is not within specified range.
+    self.CheckINASampleCurrent(sampled_ina_current, charging=True)
 
   def TestDischarging(self):
     """Tests discharging within args.discharge_duration_secs.
@@ -247,8 +266,8 @@ class RaidenChargeBFTTest(unittest.TestCase):
           the given threshold in dargs.
     """
 
-    min_threshold = self.args.min_discharge_current_mA
-    if min_threshold is None:
+    current_min_threshold = self.args.min_discharge_current_mA
+    if current_min_threshold is None:
       return
 
     logging.info('Testing discharge...')
@@ -257,17 +276,19 @@ class RaidenChargeBFTTest(unittest.TestCase):
 
     # Discharge under high system load.
     with utils.LoadManager(self.args.discharge_duration_secs):
-      (sampled_battery_current, sampled_ina_current) = (
-          self.SampleCurrent(self.args.discharge_duration_secs))
+      (sampled_battery_current, sampled_ina_current, _) = (
+          self.SampleCurrentAndVoltage(self.args.discharge_duration_secs))
     # Fail if all samples are over threshold.
     if not any(
-        c < min_threshold for c in sampled_battery_current):
+        c < current_min_threshold for c in sampled_battery_current):
       raise factory.FactoryTestFailure(
           'Battery discharge current did not reach defined threshold %f mA' %
-          min_threshold)
-    self.CheckINASample(sampled_ina_current, charging=False)
+          current_min_threshold)
+    # If args.check_ina_current, fail if average of Plankton INA current
+    # samples is not within specified range.
+    self.CheckINASampleCurrent(sampled_ina_current, charging=False)
 
-  def CheckINASample(self, ina_sample, charging):
+  def CheckINASampleCurrent(self, ina_sample, charging):
     """Checks if average INA current is within range on Plankton.
 
     Args:
@@ -311,7 +332,10 @@ class RaidenChargeBFTTest(unittest.TestCase):
     logging.info('Set charge state: CHARGE')
 
     self.Check5VINACurrent()
-    self.TestCharging(self.args.min_charge_5V_current_mA, testing_volt=5)
-    self.TestCharging(self.args.min_charge_12V_current_mA, testing_volt=12)
-    self.TestCharging(self.args.min_charge_20V_current_mA, testing_volt=20)
+    self.TestCharging(self.args.min_charge_5V_current_mA,
+                      self.args.ina_voltage_tolernace, testing_volt=5)
+    self.TestCharging(self.args.min_charge_12V_current_mA,
+                      self.args.ina_voltage_tolernace, testing_volt=12)
+    self.TestCharging(self.args.min_charge_20V_current_mA,
+                      self.args.ina_voltage_tolernace, testing_volt=20)
     self.TestDischarging()

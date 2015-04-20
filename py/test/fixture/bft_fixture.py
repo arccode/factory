@@ -273,11 +273,11 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
-  def ReadINACurrent(self):
-    """Sends Plankton INA command and read back current value.
+  def ReadINAValues(self):
+    """Sends INA command and read back voltage and current value.
 
     Returns:
-      Current value (mA) on Plankton INA.
+      A dict which contains 'voltage' (in mV) and 'current' (in mA) data.
     """
     raise NotImplementedError
 
@@ -390,8 +390,9 @@ def main():
   subparsers.add_parser('Ping', help='Ping fixture.')
   subparsers.add_parser('ScanBarcode', help='Trigger barcode scanner.')
   subparsers.add_parser('ResetUSBHub', help='Reset Plankton USB hub')
-  subparsers.add_parser('ReadINACurrent',
-                        help='Read current (mA) from Plankton INA.')
+  subparsers.add_parser(
+      'ReadINAValues',
+      help='Read current (mA) and voltage (mV) from Plankton INA.')
 
   args = parser.parse_args()
 
