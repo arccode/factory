@@ -28,7 +28,7 @@ DEFAULT_HWID_DATA_PATH = (
     else '/usr/local/factory/hwid')
 
 PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')
-MP_KEY_NAME_PATTERN = re.compile('_mp[_0-9v]*$')
+MP_KEY_NAME_PATTERN = re.compile('_mp[_0-9v]*?[_a-z]*$')
 
 
 def ProbeBoard(hwid=None):
