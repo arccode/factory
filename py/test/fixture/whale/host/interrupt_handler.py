@@ -17,8 +17,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import serial_client
 from cros.factory.test.fixture.whale import servo_client
-from cros.factory.test.fixture.whale.host import poll_client
 from cros.factory.test.utils import Enum
+from cros.factory.utils import gpio_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
@@ -91,7 +91,7 @@ class InterruptHandler(object):
       rpc_debug: True to enable XMLRPC debug message.
       polling_wait_secs: # seconds for polling button clicking event.
     """
-    self._poll = poll_client.PollClient(
+    self._poll = gpio_utils.GpioManager(
         use_polld=polld_port is not None, host=host, tcp_port=polld_port,
         verbose=rpc_debug)
 
@@ -366,9 +366,9 @@ class InterruptHandler(object):
     logging.debug('Polling interrupt (GPIO %d %s) for %r seconds',
                   self._INPUT_INTERRUPT_GPIO, self._poll.GPIO_EDGE_FALLING,
                   self._polling_wait_secs)
-    if self._poll.PollGPIO(self._INPUT_INTERRUPT_GPIO,
-                           self._poll.GPIO_EDGE_FALLING,
-                           self._polling_wait_secs):
+    if self._poll.Poll(self._INPUT_INTERRUPT_GPIO,
+                       self._poll.GPIO_EDGE_FALLING,
+                       self._polling_wait_secs):
       logging.debug('Interrupt polled')
     else:
       logging.debug('Polling interrupt timeout')
@@ -445,7 +445,7 @@ class InterruptHandler(object):
     else:
       ifconfig_command = 'ifconfig %s' % interface
       ifconfig_result = process_utils.SpawnOutput(
-        ssh_command_base + [nuc_host, ifconfig_command]).strip()
+          ssh_command_base + [nuc_host, ifconfig_command]).strip()
       ip_matcher = re.search(r'inet (\d+\.\d+\.\d+\.\d+)', ifconfig_result, re.MULTILINE)
       if not ip_matcher:
         ip_address = 'dongle not found...'
@@ -509,6 +509,6 @@ if __name__ == '__main__':
     main()
   except KeyboardInterrupt:
     sys.exit(0)
-  except poll_client.PollClientError as e:
+  except gpio_utils.GpioManagerError as e:
     sys.stderr.write(e.message + '\n')
     sys.exit(1)
