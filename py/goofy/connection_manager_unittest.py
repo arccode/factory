@@ -69,8 +69,8 @@ class ConnectionManagerTest(unittest.TestCase):
                                    passphrase='test0000')]
 
   def tearDown(self):
-    self.mox.VerifyAll()
     self.mox.UnsetStubs()
+    self.mox.VerifyAll()
 
   def MockDisableNetworking(self):
     for service in (_FAKE_SUBSERVICE_LIST + [_FAKE_MANAGER] +
