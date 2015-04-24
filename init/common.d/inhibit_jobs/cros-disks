@@ -1,0 +1,4 @@
+We want auto-mount disabled in factory test image so that it will not confuse
+our test programs.
+
+See crosbug.com/p/24798 for more information.

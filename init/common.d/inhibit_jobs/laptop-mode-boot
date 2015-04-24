@@ -1,0 +1,2 @@
+We don't want laptop-specic settings (which may invoke powerd or ask screen to
+enter power-saving mode) in factory environment.

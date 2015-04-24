@@ -1,0 +1,4 @@
+In factory environment, we need to disable powerd so run-in tests (and many
+non-interactive tests) won't fall into suspended mode.
+Also we need to disable powerd to access power button (and being able to close
+lid).

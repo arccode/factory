@@ -1,0 +1,3 @@
+During factor setup the network environment may be restricted. We want the
+system time to be sanitized (and always synced at first boot) so tlsdated should
+not be invoked by default.

@@ -1,0 +1,3 @@
+During factory setup, we don't want update-engine to execute. This helps:
+ - No unexpected AU
+ - No extra execution of firmware updating and kernel flags (bootok).

@@ -1,0 +1,9 @@
+To inhibit an Upstart job (/etc/init/*.conf) from execution, add a file using
+job name and describe why we want to disable it as file content.
+
+To start these jobs, execute
+ run_inhibited_job <JOBNAME>
+
+Example:
+ run_inhibited_job powerd
+
