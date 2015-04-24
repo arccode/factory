@@ -67,7 +67,9 @@ init_output() {
 
   # This should already exist, but just in case...
   mkdir -p "$(dirname "$FACTORY_LOG_FILE")"
-  ln -sf "$FACTORY_LOG_FILE" /var/log
+  # To help reading archived logs (not on DUT), we assume the FACTORY_LOG_FILE
+  # starts with /var and try to create the symlink as relative path.
+  ln -s "../${FACTORY_LOG_FILE#/var/}" /var/log
 }
 
 # Try to show the interactive console if available.

@@ -3,4 +3,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-echo "This system will run Goofy device."
+# TODO(hungte) Probe and create Frecon TTY if possible.
+TTY=/dev/tty3
+
+if [ -c "${TTY}" ]; then
+  tail -n 48 -F /var/factory/log/factory.log >>/dev/tty3 &
+fi
