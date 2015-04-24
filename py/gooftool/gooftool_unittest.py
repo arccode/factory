@@ -359,8 +359,9 @@ class GooftoolTest(unittest.TestCase):
 
   def testGenerateStableDeviceSecretSuccess(self):
     SystemInfo.release_image_version = '6887.0.0'
-    self._gooftool._util.shell('tpm-manager get_random 32').AndReturn(
-        StubStdout('00' * 32 + '\n'))
+    self._gooftool._util.shell(
+        'tpm-manager get_random 32', log=False).AndReturn(
+            StubStdout('00' * 32 + '\n'))
     self.mox.StubOutWithMock(vpd.ro, 'Update')
     vpd.ro.Update({'stable_device_secret_DO_NOT_SHARE': '00' * 32})
     self.mox.ReplayAll()
@@ -368,28 +369,47 @@ class GooftoolTest(unittest.TestCase):
 
   def testGenerateStableDeviceSecretNoOutput(self):
     SystemInfo.release_image_version = '6887.0.0'
-    self._gooftool._util.shell('tpm-manager get_random 32').AndReturn(
-        StubStdout(''))
+    self._gooftool._util.shell(
+        'tpm-manager get_random 32', log=False).AndReturn(
+            StubStdout('00' * 32 + '\n'))
     self.mox.ReplayAll()
-    self.assertRaises(Error, self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegexp(Error, 'Error validating device secret',
+                            self._gooftool.GenerateStableDeviceSecret)
 
   def testGenerateStableDeviceSecretShortOutput(self):
     SystemInfo.release_image_version = '6887.0.0'
-    self._gooftool._util.shell('tpm-manager get_random 32').AndReturn(
-        StubStdout('00' * 31))
+    self._gooftool._util.shell(
+        'tpm-manager get_random 32', log=False).AndReturn(
+            StubStdout('00' * 32 + '\n'))
     self.mox.ReplayAll()
-    self.assertRaises(Error, self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegexp(Error, 'Error validating device secret',
+                            self._gooftool.GenerateStableDeviceSecret)
 
   def testGenerateStableDeviceSecretBadOutput(self):
     SystemInfo.release_image_version = '6887.0.0'
-    self._gooftool._util.shell('tpm-manager get_random 32').AndReturn(
-        StubStdout('Err0r!'))
+    self._gooftool._util.shell(
+        'tpm-manager get_random 32', log=False).AndReturn(
+            StubStdout('00' * 32 + '\n'))
     self.mox.ReplayAll()
-    self.assertRaises(Error, self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegexp(Error, 'Error validating device secret',
+                            self._gooftool.GenerateStableDeviceSecret)
 
   def testGenerateStableDeviceSecretBadReleaseImageVersion(self):
     SystemInfo.release_image_version = '6886.0.0'
-    self.assertRaises(Error, self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegexp(Error, 'Release image version',
+                            self._gooftool.GenerateStableDeviceSecret)
+
+  def testGenerateStableDeviceSecretVPDWriteFailed(self):
+    SystemInfo.release_image_version = '6887.0.0'
+    self._gooftool._util.shell(
+        'tpm-manager get_random 32', log=False).AndReturn(
+            StubStdout('00' * 32 + '\n'))
+    self.mox.StubOutWithMock(vpd.ro, 'Update')
+    vpd.ro.Update({'stable_device_secret_DO_NOT_SHARE': '00' * 32}).AndRaise(
+        Error('VPD b0rked!'))
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(Error, 'Error writing device secret',
+                            self._gooftool.GenerateStableDeviceSecret)
 
   def testPrepareWipe(self):
     self._gooftool._util.GetReleaseRootPartitionPath(

@@ -9,9 +9,12 @@ from __future__ import print_function
 import logging
 import os
 import re
+import sys
+import traceback
 
 import collections
 from collections import namedtuple
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 from tempfile import NamedTemporaryFile
 
@@ -699,14 +702,35 @@ class Gooftool(object):
     if not release_image_version >= LooseVersion('6887.0.0'):
       raise Error, 'Release image version can\'t handle stable device secret!'
 
-    # Generate the stable device secret and write it to VPD.
-    secret = self._util.shell('tpm-manager get_random 32').stdout.strip()
-    try:
+    # A context manager useful for wrapping code blocks that handle the device
+    # secret in an exception handler, so the secret value does not leak due to
+    # exception handling (for example, the value will be part of the VPD update
+    # command, which may get included in exceptions). Chances are that
+    # exceptions will prevent the secret value from getting written to VPD
+    # anyways, but better safe than sorry.
+    @contextmanager
+    def scrub_exceptions(operation):
+      try:
+        yield
+      except:
+        # Re-raise an exception including type and stack trace for the original
+        # exception to facilitate error analysis. Don't include the exception
+        # value as it may contain the device secret.
+        (exc_type, _, exc_traceback) = sys.exc_info()
+        cause = '%s: %s' % (operation, exc_type)
+        raise Error, cause, exc_traceback
+
+    with scrub_exceptions('Error generating device secret'):
+      # Generate the stable device secret and write it to VPD. Turn off logging,
+      # so the generated secret doesn't leak to the logs.
+      secret = self._util.shell('tpm-manager get_random 32',
+                                log=False).stdout.strip()
+
+    with scrub_exceptions('Error validating device secret'):
       secret_bytes = secret.decode('hex')
       if len(secret_bytes) != 32:
-        raise Error, 'Stable device secret is not of correct length!'
-    except:
-      raise Error, 'Failed to hex-decode stable device secret!'
+        raise Error
 
-    vpd.ro.Update(
-        {'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')})
+    with scrub_exceptions('Error writing device secret to VPD'):
+      vpd.ro.Update(
+          {'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')})
