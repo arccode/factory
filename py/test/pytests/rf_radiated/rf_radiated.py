@@ -28,6 +28,7 @@ Usage example::
       pytest_name='wifi_radiated',
       dargs={
           'config_file_path': 'rf/wifi_radiated/wifi_radiated_config.yaml',
+          'enable_shopfloor': True,
           'network_settings': {'ip': '192.168.137.101',
                                'netmask': '255.255.255.0',
                                'gateway': '192.168.137.1'},
@@ -43,11 +44,11 @@ Usage example::
       pytest_name='lte_radiated',
       dargs={
           'config_file_path': 'rf/lte_radiated/lte_radiated_config.yaml',
+          'enable_shopfloor': False,
           'network_settings': {'ip': '192.168.137.101',
                                'netmask': '255.255.255.0',
                                'gateway': '192.168.137.1'},
-          'event_log_name': 'lte_radiated',
-          'shopfloor_log_dir': 'lte_radiated'})
+          'event_log_name': 'lte_radiated'})
 """
 
 import datetime
@@ -76,14 +77,27 @@ from cros.factory.utils import process_utils
 class RFRadiatedTest(unittest.TestCase):
 
   ARGS = [
-      Arg('config_file_path', str, 'Path to config file on shopfloor.',
+      Arg('config_file_path', str,
+          'Path to config file.  If "enable_shopfloor" is True, this is '
+          'interpreted as the path relative to shopfloor\'s parameter folder. '
+          'If "enable_shopfloor" is False, this is interprested as a local '
+          'path.  Note that in the later case, if the path starts with a '
+          'slash, it is interpreted as an absolute path; otherwise, it is '
+          'interpreted as a relative path (based on factory.FACTORY_PATH).',
+          optional=False),
+      Arg('enable_shopfloor', bool,
+          'Whether to use shopfloor or not.  If True, the test will try to '
+          'load config file from and upload aux log to shopfloor server.  If '
+          'False, the test will try to load config file from local disk and '
+          'won\'t upload aux log. ',
           optional=False),
       Arg('network_config', dict, 'A dict containing keys {ip, netmask, '
           'gateway} to set on the ethernet adapter.', optional=False),
       Arg('event_log_name', str, 'Name of the event_log, like '
           '"wifi_radiated".', optional=False),
       Arg('shopfloor_log_dir', str, 'Directory in which to save logs on '
-          'shopfloor.  For example: "wifi_radiated".', optional=False)]
+          'shopfloor.  For example: "wifi_radiated".  Only takes effect if '
+          '"enable_shopfloor" is set to True.', default=None, optional=True)]
 
   def __init__(self, *args, **kwargs):
     super(RFRadiatedTest, self).__init__(*args, **kwargs)
@@ -131,11 +145,25 @@ class RFRadiatedTest(unittest.TestCase):
       # Set up network manually because we're in network exclusive mode.
       self._SetUpNetwork(self.args.network_config)
 
-      # Load config file from shopfloor.
-      logging.info('Loading config file from %s.', self.args.config_file_path)
-      shopfloor_server = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
-      config_content = shopfloor_server.GetParameter(self.args.config_file_path)
-      self.config = yaml.load(config_content.data)
+      # Load config file either from shopfloor or local disk.
+      if self.args.enable_shopfloor:
+        logging.info('Loading config file from shopfloor %s.',
+                     self.args.config_file_path)
+        shopfloor_server = shopfloor.GetShopfloorConnection(
+            retry_interval_secs=3)
+        config_content = shopfloor_server.GetParameter(
+            self.args.config_file_path).data
+      else:
+        if os.path.isabs(self.args.config_file_path):
+          config_file_path = self.args.config_file_path
+        else:
+          config_file_path = os.path.join(
+              factory.FACTORY_PATH, self.args.config_file_path)
+        logging.info(
+            'Loading config file from local disk %s.', config_file_path)
+        with open(config_file_path, 'r') as f:
+          config_content = f.read()
+      self.config = yaml.load(config_content)
       # Record config content and path into the log.
       self.log['config']['content'] = self.config
       self.log['config']['file_path'] = self.args.config_file_path
@@ -291,17 +319,18 @@ class RFRadiatedTest(unittest.TestCase):
         'panel_serial': self.log['dut']['serial_number']}
     event_log_fields.update(self.log)
     event_log.Log(self.args.event_log_name, **event_log_fields)
-    # Upload aux log onto shopfloor.
-    logging.info('Uploading aux log onto shopfloor.')
-    log_file_name = 'log_%s_%s_%s.yaml' % (
-        datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3],  # time
-        self.log['dut']['serial_number'],  # serial number
-        self.log['dut']['mac_address'].replace(':', ''))  # MAC w/o delimiters
-    log_content = yaml.dump(self.log, default_flow_style=False)
-    shopfloor_server = shopfloor.GetShopfloorConnection()
-    shopfloor_server.SaveAuxLog(
-        posixpath.join(self.args.shopfloor_log_dir, log_file_name),
-        xmlrpclib.Binary(log_content))
+    # Upload aux log onto shopfloor if needed.
+    if self.args.enable_shopfloor and self.args.shopfloor_log_dir is not None:
+      logging.info('Uploading aux log onto shopfloor.')
+      log_file_name = 'log_%s_%s_%s.yaml' % (
+          datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3],  # time
+          self.log['dut']['serial_number'],  # serial number
+          self.log['dut']['mac_address'].replace(':', ''))  # MAC w/o delimiters
+      log_content = yaml.dump(self.log, default_flow_style=False)
+      shopfloor_server = shopfloor.GetShopfloorConnection()
+      shopfloor_server.SaveAuxLog(
+          posixpath.join(self.args.shopfloor_log_dir, log_file_name),
+          xmlrpclib.Binary(log_content))
 
     # Stop blinking LEDs.
     if self.leds_blinker:
