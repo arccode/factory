@@ -4,20 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# Script to generate an universal factory install shim image, by merging
-# multiple images signed by different keys.
+# Script to generate an universal installation image (usually used for factory
+# install or RMA purpose), by merging multiple images signed by different keys.
 # CAUTION: Recovery shim images are not supported yet because they require the
 # kernel partitions to be laid out in a special way
 
 . "$(dirname "$(readlink -f "$0")")/factory_common.sh" || exit 1
-
-# CGPT Header: PMBR, header, table; sec_table, sec_header
-CGPT_START_SIZE=$((1 + 1 + 32))
-CGPT_END_SIZE=$((32 + 1))
-CGPT_BS="512"
-
-# Alignment of partition sectors
-PARTITION_SECTOR_ALIGNMENT=256
 
 # Temp file to store layout, will be removed at exit.
 LAYOUT_FILE="$(mktemp --tmpdir)"
@@ -37,22 +29,6 @@ die() {
 
 on_exit() {
   rm -f "$LAYOUT_FILE"
-}
-
-# Returns offset aligned to alignment.
-# If size is given, only align if size >= alignment.
-image_alignment() {
-  local offset="$1"
-  local alignment="$2"
-  local size="$3"
-
-  # If size is assigned, align only if the new size is larger then alignment.
-  if [ "$((offset % alignment))" != "0" ]; then
-    if [ -z "$size" -o "$size" -ge "$alignment" ]; then
-      offset=$((offset + alignment - (offset % alignment)))
-    fi
-  fi
-  echo "$((offset))"
 }
 
 # Processes a logical disk image layout description file.
@@ -77,37 +53,21 @@ image_process_layout() {
   done <"$layout_file"
 }
 
-# Processes a list of disk geometry sectors into aligned (offset, sectors) form.
-# The index starts at zero, referring to the partition table object itself.
-image_process_geometry() {
-  local sectors_list="$1"
-  local callback="$2"
-  shift
-  shift
-  local param="$@"
-  local offset=0 sectors
-  local index=0
-
-  for sectors in $sectors_list; do
-    offset="$(image_alignment $offset $PARTITION_SECTOR_ALIGNMENT $sectors)"
-    "$callback" "$offset" "$sectors" "$index" "$param"
-    offset="$((offset + sectors))"
-    index="$((index + 1))"
-  done
-}
-
 # Callback of image_process_layout. Returns the size (in sectors) of given
 # object (partition in image or file).
 layout_get_sectors() {
   local image_file="$1"
   local part_num="$2"
+  local aligned_size_in_bytes
 
   if [ "$image_file" = "$DUMMY_FILE_NAME" ]; then
     echo 1
   elif [ -n "$part_num" ]; then
     image_part_size "$image_file" "$part_num"
   else
-    image_alignment "$(stat -c"%s" "$image_file")" $CGPT_BS ""
+    aligned_size_in_bytes="$(image_alignment "$(stat -c"%s" "$image_file")" \
+                                             "$IMAGE_CGPT_BS" "")"
+    echo $((aligned_size_in_bytes / IMAGE_CGPT_BS))
   fi
 }
 
@@ -137,58 +97,16 @@ layout_copy_partition() {
   fi
 }
 
-# Callback of image_process_geometry. Creates a partition by give offset,
-# size(sectors), and index.
-geometry_create_partition() {
-  local offset="$1"
-  local sectors="$2"
-  local index="$3"
-  local output_file="$4"
-
-  if [ "$offset" = "0" ]; then
-    # first entry is CGPT; ignore.
-    return
-  fi
-  cgpt add -b $offset -s $sectors -i $index -t reserved "$output_file"
-}
-
-# Callback of image_process_geometry. Prints the proper offset of current
-# partition by give offset and size.
-geometry_get_partition_offset() {
-  local offset="$1"
-  local sectors="$2"
-  local index="$3"
-
-  image_alignment "$offset" "$PARTITION_SECTOR_ALIGNMENT" "$sectors"
-}
-
 build_image_file() {
   local layout_file="$1"
   local output_file="$2"
-  local output_file_size=0
-  local sectors_list partition_offsets
+  local sectors_list
 
   # Check and obtain size information from input sources
   sectors_list="$(image_process_layout "$layout_file" layout_get_sectors)"
 
-  # Calculate output image file size
-  partition_offsets="$(image_process_geometry \
-                       "$CGPT_START_SIZE $sectors_list $CGPT_END_SIZE 1" \
-                       geometry_get_partition_offset)"
-  output_file_size="$(echo "$partition_offsets" | tail -n 1)"
+  image_geometry_build_file "$sectors_list" "$output_file"
 
-  # Create empty image file
-  truncate -s "0" "$output_file"  # starting with a new file is much faster.
-  truncate -s "$((output_file_size * CGPT_BS))" "$output_file"
-
-  # Initialize partition table (GPT)
-  cgpt create "$output_file"
-  cgpt boot -p "$output_file" >/dev/null
-
-  # Create partition tables
-  image_process_geometry "$CGPT_START_SIZE $sectors_list" \
-                         geometry_create_partition \
-                         "$output_file"
   # Copy partitions content
   image_process_layout "$layout_file" layout_copy_partition "$output_file"
 }

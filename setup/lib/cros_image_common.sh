@@ -8,6 +8,14 @@
 # especially for being redistributed into platforms without complete Chromium OS
 # developing environment.
 
+# CGPT Header: PMBR, header, table; sec_table, sec_header
+IMAGE_CGPT_START_SIZE=$((1 + 1 + 32))
+IMAGE_CGPT_END_SIZE=$((32 + 1))
+IMAGE_CGPT_BS="512"
+
+# Alignment of partition sectors
+IMAGE_PARTITION_SECTOR_ALIGNMENT=256
+
 # Checks if given command is available in current system
 image_has_command() {
   type "$1" >/dev/null 2>&1
@@ -58,6 +66,22 @@ image_find_tool() {
   fi
 }
 
+# Returns offset aligned to alignment.
+# If size is given, only align if size >= alignment.
+image_alignment() {
+  local offset="$1"
+  local alignment="$2"
+  local size="$3"
+
+  # If size is assigned, align only if the new size is larger then alignment.
+  if [ "$((offset % alignment))" != "0" ]; then
+    if [ -z "$size" ] || [ "$size" -ge "$alignment" ]; then
+      offset=$((offset + alignment - (offset % alignment)))
+    fi
+  fi
+  echo "$((offset))"
+}
+
 # Finds the best partition tool and print partition offset
 image_part_offset() {
   local file="$1"
@@ -96,6 +120,84 @@ image_part_size() {
   else
     exit 1
   fi
+}
+
+# Callback of image_process_geometry. Prints the proper offset of current
+# partition by give offset and size.
+image_geometry_get_partition_offset() {
+  local offset="$1"
+  local sectors="$2"
+  local index="$3"
+
+  image_alignment "$offset" "$IMAGE_PARTITION_SECTOR_ALIGNMENT" "$sectors"
+}
+
+# Callback of image_process_geometry. Creates a partition by give offset,
+# size (sectors), and index.
+image_geometry_create_partition() {
+  local offset="$1"
+  local sectors="$2"
+  local index="$3"
+  local output_file="$4"
+
+  if [ "$offset" = "0" ]; then
+    # first entry is CGPT; ignore.
+    return
+  fi
+
+  cgpt add -b "$offset" -s "$sectors" -i "$index" -t reserved "$output_file"
+}
+
+# Processes a list of disk geometry sectors into aligned (offset, sectors) form.
+# The index starts at zero, referring to the partition table object itself.
+image_process_geometry() {
+  local sectors_list="$1"
+  local callback="$2"
+  shift
+  shift
+  local param="$@"
+  local offset=0 sectors
+  local index=0
+
+  for sectors in $sectors_list; do
+    offset="$(image_alignment \
+              $offset $IMAGE_PARTITION_SECTOR_ALIGNMENT $sectors)"
+    "$callback" "$offset" "$sectors" "$index" $param
+    offset="$((offset + sectors))"
+    index="$((index + 1))"
+  done
+}
+
+# Create a cgpt image file based on a list of disk geometry sectors in
+# (offset, sectors) form. The form doesn't have to be aligned since this
+# funciton will process it. Each partition will be formatted to
+# cgpt data partition with $part_filesystem if it's specified.
+image_geometry_build_file() {
+  local sectors_list="$1"
+  local output_file="$2"
+  local part_filesystem="$3"
+
+  local output_file_size=0
+  local partition_offsets
+
+  # Calculate output image file size
+  partition_offsets="$(image_process_geometry \
+      "$IMAGE_CGPT_START_SIZE $sectors_list $IMAGE_CGPT_END_SIZE 1" \
+      image_geometry_get_partition_offset)"
+  output_file_size="$(echo "$partition_offsets" | tail -n 1)"
+
+  # Create empty image file
+  truncate -s "0" "$output_file"  # starting with a new file is much faster.
+  truncate -s "$((output_file_size * IMAGE_CGPT_BS))" "$output_file"
+
+  # Initialize partition table (GPT)
+  cgpt create "$output_file"
+  cgpt boot -p "$output_file" >/dev/null
+
+  # Create partition tables
+  image_process_geometry "$IMAGE_CGPT_START_SIZE $sectors_list" \
+                         image_geometry_create_partition \
+                         "$output_file"
 }
 
 # Dumps a file by given offset and size (in sectors)

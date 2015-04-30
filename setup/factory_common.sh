@@ -12,6 +12,7 @@ SCRIPT_DIR="$(dirname "$SCRIPT")"
 # Loads script libraries.
 . "$SCRIPT_DIR/lib/shflags" || exit 1
 . "$SCRIPT_DIR/lib/cros_image_common.sh" || exit 1
+. "$SCRIPT_DIR/lib/compress_cros_image.sh" || exit 1
 . "$SCRIPT_DIR/lib/chromeos-common.sh" || exit 1
 
 # Finds binary utilities if available.

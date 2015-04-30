@@ -486,47 +486,6 @@ prepare_dir() {
   fi
 }
 
-# Compresses kernel and rootfs of an imge file, and output its hash.
-# Usage:compress_and_hash_memento_image kernel rootfs output_file
-# Please see "mk_memento_images --help" for detail of parameter syntax
-compress_and_hash_memento_image() {
-  local kernel="$1"
-  local rootfs="$2"
-  local output_file="$3"
-  [ "$#" = "3" ] || die "Internal error: compress_and_hash_memento_image $*"
-
-  "${SCRIPT_DIR}/mk_memento_images.sh" "$kernel" "$rootfs" "$output_file" |
-    grep hash |
-    awk '{print $4}'
-}
-
-compress_and_hash_file() {
-  local input_file="$1"
-  local output_file="$2"
-
-  if [ -z "$input_file" ]; then
-    # Runs as a pipe processor
-    image_gzip_compress -c -9 |
-    tee "$output_file" |
-    openssl sha1 -binary |
-    openssl base64
-  else
-    image_gzip_compress -c -9 "$input_file" |
-    tee "$output_file" |
-    openssl sha1 -binary |
-    openssl base64
-  fi
-}
-
-compress_and_hash_partition() {
-  local input_file="$1"
-  local part_num="$2"
-  local output_file="$3"
-
-  image_dump_partition "$input_file" "$part_num" |
-    compress_and_hash_file "" "$output_file"
-}
-
 # Applies HWID component list files updater into stateful partition
 apply_hwid_updater() {
   local hwid_updater="$1"
