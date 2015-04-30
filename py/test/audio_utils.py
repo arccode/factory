@@ -49,8 +49,12 @@ _DEFAULT_SOX_FORMAT = '-t raw -b 16 -e signed -r 48000 -L'
 # Strings for key in audio.conf
 HP_JACK_NAME = 'headphone_jack'
 MIC_JACK_NAME = 'mic_jack'
+HP_JACK_DETECT = 'headphone_jack_detect'
+MIC_JACK_DETECT = 'mic_jack_detect'
 
 DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
+# The input device event may be on Headphone Jack
+DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
 
 # SOX related utilities
 
@@ -353,27 +357,9 @@ class AudioUtil(object):
                'r')
       evdev_name = f.read()
       if evdev_name.find(name) != -1:
+        logging.info('Find %s Event Device %s', name, evdev)
         return evdev
     return None
-
-  def GetAudioJackStatus(self, card='0'):
-    """Gets the plug/unplug status of audio jack.
-    Check audio jack status by two ways:
-    1. Check audio jack detection command
-    2. Get headphone jack and mic jack status
-
-    Args:
-      card: The index of audio card.
-
-    Returns:
-      True if headphone jack is plugged, False otherwise.
-    """
-    if card in self.audio_config and 'jack_detect' in self.audio_config[card]:
-      jack_status = Spawn(self.audio_config[card]['jack_detect'],
-                          read_stdout=True).stdout_data.strip()
-      return True if jack_status == '1' else False
-
-    return self.GetHeadphoneJackStatus(card) or self.GetMicJackStatus(card)
 
   def GetHeadphoneJackStatus(self, card='0'):
     """Gets the plug/unplug status of headphone jack.
@@ -384,6 +370,16 @@ class AudioUtil(object):
     Returns:
       True if headphone jack is plugged, False otherwise.
     """
+    status = None
+
+    if card in self.audio_config and HP_JACK_DETECT in self.audio_config[card]:
+      command = self.audio_config[card][HP_JACK_DETECT]
+      logging.info('Getting headphone jack status by %s', command)
+      jack_status = Spawn(command, read_stdout=True).stdout_data.strip()
+      status = True if jack_status == '1' else False
+      logging.info('headphone jack status %s', status)
+      return status
+
     possible_names = []
     if card in self.audio_config and HP_JACK_NAME in self.audio_config[card]:
       possible_names = [self.audio_config[card][HP_JACK_NAME]]
@@ -395,7 +391,8 @@ class AudioUtil(object):
     for hp_jack_name in possible_names:
       values = self.GetMixerControls(hp_jack_name, card)
       if values:
-        return True if values == 'on' else False
+        status = True if values == 'on' else False
+        break
 
       # Check input device for headphone
       evdev = self.FindEventDeviceByName(hp_jack_name)
@@ -403,9 +400,14 @@ class AudioUtil(object):
         query = Spawn(['evtest', '--query', evdev, 'EV_SW',
                        'SW_HEADPHONE_INSERT'],
                       call=True)
-        return query.returncode != 0
+        status = (query.returncode != 0)
+        break
 
-    return False
+    logging.info('Getting headphone jack status %s', status)
+    if status is None:
+      raise ValueError('No methods to get headphone jack status')
+
+    return status
 
   def GetMicJackStatus(self, card='0'):
     """Gets the plug/unplug status of mic jack.
@@ -416,22 +418,43 @@ class AudioUtil(object):
     Returns:
       True if mic jack is plugged, False otherwise.
     """
-    if card in self.audio_config and MIC_JACK_NAME in self.audio_config[card]:
-      mic_jack_name = self.audio_config[card][MIC_JACK_NAME]
-    else:
-      mic_jack_name = 'Mic Jack'
-    values = self.GetMixerControls(mic_jack_name, card)
-    if values:
-      return True if values == 'on' else False
+    status = None
 
-    # Check input device for headphone
-    evdev = self.FindEventDeviceByName(mic_jack_name)
-    if evdev:
-      query = Spawn(['evtest', '--query', evdev, 'EV_SW',
-                     'SW_MICROPHONE_INSERT'],
-                    call=True)
-      return query.returncode != 0
-    return False
+    if card in self.audio_config and MIC_JACK_DETECT in self.audio_config[card]:
+      command = self.audio_config[card][MIC_JACK_DETECT]
+      logging.info('Getting microphone jack status by %s', command)
+      jack_status = Spawn(command, read_stdout=True).stdout_data.strip()
+      status = True if jack_status == '1' else False
+      logging.info('microphone jack status %s', status)
+      return status
+
+    possible_names = []
+    if card in self.audio_config and MIC_JACK_NAME in self.audio_config[card]:
+      possible_names = [self.audio_config[card][MIC_JACK_NAME]]
+    else:
+      possible_names = DEFAULT_MIC_JACK_NAMES
+
+    # Loops through possible names. Uses mixer control or evtest
+    # to query jack status.
+    for jack_name in possible_names:
+      values = self.GetMixerControls(jack_name, card)
+      if values:
+        status = True if values == 'on' else False
+        break
+
+      evdev = self.FindEventDeviceByName(jack_name)
+      if evdev:
+        query = Spawn(['evtest', '--query', evdev, 'EV_SW',
+                       'SW_MICROPHONE_INSERT'],
+                      call=True)
+        status = (query.returncode != 0)
+        break
+
+    logging.info('Getting microphone jack status %s', status)
+    if status is None:
+      raise ValueError('No methods to get microphone jack status')
+
+    return status
 
   def ApplyAudioConfig(self, action, card='0'):
     if card in self.audio_config:
