@@ -4,7 +4,7 @@
 # found in the LICENSE file.
 
 # This script performs following tasks to prepare a wiping process at reboot:
-# - install "wiping" splash image and tag file
+# - install "wiping" message and tag file
 # - enable release partition
 # - rollback if anything goes wrong
 # To assign additional wiping tags, use FACTORY_WIPE_TAGS envinronment variable.
@@ -16,12 +16,12 @@ set -e
 # Variables for cleaning up
 NEED_ROLLBACK=""
 
-# Location for splash and tag files
+# Location for message and tag files
 SCRIPT_DIR="$(dirname "$0")"
 STATEFUL_PARTITION="/mnt/stateful_partition"
 WIPE_TAG_FILE="$STATEFUL_PARTITION/factory_install_reset"
-SPLASH_FILE="$STATEFUL_PARTITION/wipe_splash.png"
-SPLASH_SOURCE="$SCRIPT_DIR/../misc/wipe_splash.png"
+MESSAGE_FILE="$STATEFUL_PARTITION/wipe_message.txt"
+MESSAGE_SOURCE="$SCRIPT_DIR/../misc/wipe_message.txt"
 TAGS="factory"
 
 rollback_changes() {
@@ -37,13 +37,13 @@ cleanup() {
   fi
 }
 
-install_splash() {
-  if [ ! -f "$SPLASH_SOURCE" ]; then
-    die "Missing splash file for wiping: $SPLASH_SOURCE"
+install_message() {
+  if [ ! -f "$MESSAGE_SOURCE" ]; then
+    die "Missing message file for wiping: $MESSAGE_SOURCE"
   fi
-  cp -f "$SPLASH_SOURCE" "$SPLASH_FILE" ||
-    die "Failed to install splash file: $SPLASH_SOURCE => $SPLASH_FILE"
-  alert "Splash file $SPLASH_FILE installed."
+  cp -f "$MESSAGE_SOURCE" "$MESSAGE_FILE" ||
+    die "Failed to install message file: $MESSAGE_SOURCE => $MESSAGE_FILE"
+  alert "Message file $MESSAGE_FILE installed."
 }
 
 install_wipe_tag() {
@@ -63,7 +63,7 @@ main() {
   fi
 
   NEED_ROLLBACK="YES"
-  install_splash
+  install_message
   install_wipe_tag
   . "$SCRIPT_DIR/enable_release_partition.sh" "$1" || exit 1
   NEED_ROLLBACK=""
