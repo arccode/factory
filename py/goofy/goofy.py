@@ -591,6 +591,8 @@ class Goofy(GoofyBase):
         test.update_state(
             status=TestState.FAILED,
             error_msg=error_msg)
+        # Trigger the OnTestFailure callback.
+        self.run_queue.put(system.GetBoard().OnTestFailure)
 
         if not test.never_fails:
           # For "never_fails" tests (such as "Start"), don't cancel
