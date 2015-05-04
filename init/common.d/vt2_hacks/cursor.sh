@@ -4,6 +4,14 @@
 # found in the LICENSE file.
 
 # This file will be executed when user logins into VT2 or ssh.
+is_freon() {
+  # Currently 'frecon' is only available on boards with Freon enabled.
+  if [ -x "/sbin/frecon" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
 
 is_highres() {
   local modes_file="/sys/class/graphics/fb0/modes"
@@ -53,11 +61,14 @@ set_vt_fonts() {
 }
 
 main() {
-  # Factory always needs cursor.
-  setterm -cursor on
+  # Frecon by default has cursor and large font enabled.
+  if ! is_freon; then
+    # Factory with VT always needs cursor.
+    setterm -cursor on
 
-  # On high-DPI systems, we need large console fonts.
-  set_vt_fonts || true
+    # On high-DPI systems, we need large console fonts.
+    set_vt_fonts || true
+  fi
 
   # Put '/usr/local/factory/bin' at the head of PATH so that we can run factory
   # binaries easily.
