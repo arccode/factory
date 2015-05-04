@@ -45,6 +45,13 @@ TouchscreenTest = function(container, numColumns, numRows,
   this.MSG_LEAVE_EARLY = {
     en: 'Finger leaving too early. Please try again.',
     zh: '手指太早离开！请重来'};
+  this.MSG_CHECK_GODS_TOUCH = {
+    en: 'Test failed! Please test this panel carefully with Gods Touch test.',
+    zh: '触控面板测试失败. 请以Gods Touch测试软体加以仔细验证'};
+
+  this.previousX = 0;
+  this.previousY = 0;
+  this.MOVE_TOLERANCE = 20;
 };
 
 /**
@@ -129,7 +136,9 @@ TouchscreenTest.prototype.generateTouchSequence = function() {
 
     // Go right.
     for (; x < startX + sizeX; x++) {
-      result.push(xyToIndex(x, y));
+      result.push({blockIndex: xyToIndex(x, y),
+                   directionX: 1,
+                   directionY: (x == startX + sizeX - 1) ? 1 : 0});
     }
 
     if (sizeY == 1) {
@@ -138,7 +147,9 @@ TouchscreenTest.prototype.generateTouchSequence = function() {
 
     // Go down. Skips the duplicate first point (same below).
     for (x--, y++; y < startY + sizeY; y++) {
-      result.push(xyToIndex(x, y));
+      result.push({blockIndex: xyToIndex(x, y),
+                   directionX: (y == startY + sizeY - 1) ? -1 : 0,
+                   directionY: 1});
     }
 
     if (sizeX == 1) {
@@ -147,12 +158,16 @@ TouchscreenTest.prototype.generateTouchSequence = function() {
 
     // Go left.
     for (y--, x--; x >= startX; x--) {
-      result.push(xyToIndex(x, y));
+      result.push({blockIndex: xyToIndex(x, y),
+                   directionX: -1,
+                   directionY: (x == startX) ? -1 : 0});
     }
 
     // Go up.
     for (x++, y--; y > startY; y--) {
-      result.push(xyToIndex(x, y));
+      result.push({blockIndex: xyToIndex(x, y),
+                   directionX: (y == startY + 1) ? 1 : 0,
+                   directionY: -1});
     }
 
     return result.concat(impl(startX + 1, startY + 1, sizeX - 2, sizeY - 2));
@@ -182,6 +197,63 @@ TouchscreenTest.prototype.getBlockIndex = function(touch) {
 };
 
 /**
+ * Update previous x, y coordinates.
+ * @param {touch event} touch Touch event.
+ */
+TouchscreenTest.prototype.updatePreviousXY= function(touch) {
+  this.previousX = touch.screenX;
+  this.previousY = touch.screenY;
+}
+
+/**
+ * Checks if the moving direction conforms to expectSequence.
+ *
+ * On conducting the God's touch test in OQC, circles are supposed to show up
+ * exactly under the touching finger. If this is not the case, the touchscreen
+ * is considered bad. It is desirable to catch the mis-location problem too in
+ * this test. Such a bad panel may be caught in this test when a finger moves
+ * in some direction, its reported coordinates jump in the other directions
+ * when the finger moves to near around the problematic spot of the touchscreen.
+ *
+ * If directionX == 1, the finger is supposed to move to the right.
+ * If directionX == -1, the finger is supposed to move to the left.
+ * If directionX == 0, the finger is supposed to move in a vertical direction.
+ * The rules apply to directionY in a similar way.
+ * MOVE_TOLERANCE is used to allow a little deviation.
+ *
+ * @param {touch event} touch Touch event.
+ * @returns false if the moving direction is not correct.
+ */
+TouchscreenTest.prototype.checkDirection = function(touch) {
+  var diffX = touch.screenX - this.previousX;
+  var diffY = touch.screenY - this.previousY;
+  switch (this.expectSequence[this.expectBlockIndex].directionX) {
+    case 1:
+      var checkX = diffX + this.MOVE_TOLERANCE > 0;
+      break;
+    case 0:
+      var checkX = Math.abs(diffX) < this.MOVE_TOLERANCE;
+      break;
+    case -1:
+      var checkX = diffX < this.MOVE_TOLERANCE;
+      break;
+  }
+  switch (this.expectSequence[this.expectBlockIndex].directionY) {
+    case 1:
+      var checkY = diffY + this.MOVE_TOLERANCE > 0;
+      break;
+    case 0:
+      var checkY = Math.abs(diffY) < this.MOVE_TOLERANCE;
+      break;
+    case -1:
+      var checkY = diffY < this.MOVE_TOLERANCE;
+      break;
+  }
+  this.updatePreviousXY(touch);
+  return checkX && checkY;
+};
+
+/**
  * Fails this try and if #retries is reached, fail the test.
  */
 TouchscreenTest.prototype.failThisTry = function() {
@@ -206,6 +278,7 @@ TouchscreenTest.prototype.failThisTry = function() {
 TouchscreenTest.prototype.touchStartHandler = function(event) {
   var touch = event.changedTouches[0];
   var touchBlockIndex = this.getBlockIndex(touch);
+  this.updatePreviousXY(touch);
   event.preventDefault();
 
   if (touchBlockIndex != 0) {
@@ -236,6 +309,13 @@ TouchscreenTest.prototype.touchMoveHandler = function(event) {
   var touchBlockIndex = this.getBlockIndex(touch);
   event.preventDefault();
 
+  if (!this.checkDirection(touch)) {
+    // Failed case. Ask the tester to verify with God's touch test.
+    this.prompt(this.MSG_CHECK_GODS_TOUCH);
+    this.markBlock(touchBlockIndex, false);
+    this.failThisTry();
+  }
+
   // Filter out move event of the same block.
   if (this.previousBlockIndex == touchBlockIndex) {
     return;
@@ -243,7 +323,8 @@ TouchscreenTest.prototype.touchMoveHandler = function(event) {
 
   // No need to check block sequence if last one is out-of-sequence.
   if (!this.tryFailed &&
-      this.expectSequence[this.expectBlockIndex] == touchBlockIndex) {
+      this.expectSequence[this.expectBlockIndex].blockIndex ==
+          touchBlockIndex) {
     // Successful touched a expected block. Expecting next one.
     this.markBlock(touchBlockIndex, true);
     this.expectBlockIndex++;
@@ -328,12 +409,13 @@ TouchscreenTest.prototype.showDemoIndicator = function() {
     if (index >= this.expectSequence.length) {
       continue;
     }
-    var block = $('touch-' + this.expectSequence[index]);
+    var block = $('touch-' + this.expectSequence[index].blockIndex);
     block.className = 'touchscreen-test-block-demo-' + indicatorSegment;
   }
   var cleanupIndex = this.indicatorHead - this.indicatorLength;
   if (cleanupIndex >= this.expectBlockIndex) {
-    var untestedBlock = $('touch-' + this.expectSequence[cleanupIndex]);
+    var untestedBlock = $('touch-' +
+                          this.expectSequence[cleanupIndex].blockIndex);
     untestedBlock.className = 'touchscreen-test-block-untested';
   }
 
