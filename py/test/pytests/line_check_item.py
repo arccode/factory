@@ -47,6 +47,8 @@ class LineCheckItemTest(unittest.TestCase):
            '- judge_to_pass: (bool) require user to judge pass/fail\n'
            '  even if command is successful.'),
           optional=False),
+      Arg('use_shell', bool, 'True to execute with shell=True.',
+          default=True, optional=True),
   ]
 
   def setUp(self):
@@ -76,7 +78,8 @@ class LineCheckItemTest(unittest.TestCase):
     self._template.SetState(instruction)
 
     process = process_utils.Spawn(command, read_stdout=True,
-                                  log_stderr_on_error=True, shell=True)
+                                  log_stderr_on_error=True,
+                                  shell=self.args.use_shell)
     stdout, stderr = process.communicate()
     retcode = process.returncode
     Log('checked_item', command=command, retcode=retcode, stdout=stdout,
