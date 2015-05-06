@@ -224,8 +224,6 @@ class RaidenChargeBFTTest(unittest.TestCase):
     logging.info('Testing %s...', command_device)
 
     self._template.SetState(_TESTING_CHARGE(testing_volt))
-    # Wait for Plankton_Raiden PD negotiates
-    time.sleep(1)
     # Plankton-Raiden board setting: engage
     self._bft_fixture.SetDeviceEngaged(command_device, engage=True)
 
@@ -255,8 +253,6 @@ class RaidenChargeBFTTest(unittest.TestCase):
 
     logging.info('Testing discharge...')
     self._template.SetState(_TESTING_DISCHARGE)
-    # Wait for Plankton_Raiden PD negotiates.
-    time.sleep(1)
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=False)
 
     # Discharge under high system load.

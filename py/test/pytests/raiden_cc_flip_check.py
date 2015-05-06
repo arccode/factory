@@ -80,6 +80,9 @@ class RaidenCCFlipCheck(unittest.TestCase):
     if (port_status['state'] == self.args.state_src_ready or
         port_status['state'] == 'SRC_READY'):
       return port_status['polarity']
+    logging.info('Detected port state is not state_src_ready (expect: %d, '
+                 'got: %d).',
+                 self.args.state_src_ready, port_status['state'])
     return 'UNCONNECTED'
 
   def tearDown(self):
@@ -103,9 +106,9 @@ class RaidenCCFlipCheck(unittest.TestCase):
 
   def runTest(self):
     if self._polarity != self.args.original_enabled_cc:
-      self.fail('Default polarity is wrong (expect: %s). '
+      self.fail('Original polarity is wrong (expect: %s, got: %s). '
                 'Does Raiden cable connect in correct direction?' %
-                self.args.original_enabled_cc)
+                (self.args.original_enabled_cc, self._polarity))
 
     if self.args.ask_flip_operation:
       self._template.SetState(_STATE_HTML)
