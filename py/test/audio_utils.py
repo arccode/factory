@@ -16,6 +16,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from glob import glob
+from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import PIPE, Spawn
 
 # Configuration file is put under overlay directory and it can be customized
@@ -55,6 +56,12 @@ MIC_JACK_DETECT = 'mic_jack_detect'
 DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
 # The input device event may be on Headphone Jack
 DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
+
+MIC_JACK_TYPE_DETECT = 'mic_jack_type_detect'
+MicJackType = Enum(['none', 'lrgm', 'lrmg'])
+# Used for external command return value
+MIC_JACK_TYPE_RETURN_LRGM = '1'
+MIC_JACK_TYPE_RETURN_LRMG = '2'
 
 # SOX related utilities
 
@@ -455,6 +462,34 @@ class AudioUtil(object):
       raise ValueError('No methods to get microphone jack status')
 
     return status
+
+  def GetMicJackType(self, card='0'):
+    """Gets the mic jack type.
+
+    Args:
+      card: The index of audio card.
+
+    Returns:
+      MicJackType enum value to indicate the mic jack type.
+    """
+    mictype = None
+    if (card in self.audio_config and
+        MIC_JACK_TYPE_DETECT in self.audio_config[card]):
+      command = self.audio_config[card][MIC_JACK_TYPE_DETECT]
+      logging.info('Getting mic jack type by %s', command)
+      type_status = Spawn(command, read_stdout=True).stdout_data.strip()
+      if type_status == MIC_JACK_TYPE_RETURN_LRGM:
+        mictype = MicJackType.lrgm
+      elif type_status == MIC_JACK_TYPE_RETURN_LRMG:
+        mictype = MicJackType.lrmg
+      else:
+        mictype = MicJackType.none
+
+    logging.info('Getting mic jack type %s', mictype)
+    if mictype is None:
+      raise ValueError('No methods to get mic jack type')
+
+    return mictype
 
   def ApplyAudioConfig(self, action, card='0'):
     if card in self.audio_config:

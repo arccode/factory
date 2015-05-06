@@ -84,6 +84,7 @@ from cros.factory.test import audio_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.audio_utils import MicJackType
 from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
 
@@ -178,6 +179,8 @@ class AudioLoopTest(unittest.TestCase):
           'Title on the test screen.'
           'It can be used to tell operators the test info'
           'For example: "LRGM Mic", "LRMG Mic"', ''),
+      Arg('mic_jack_type', str, 'Microphone jack Type: nocheck, lrgm, lrmg',
+          'nocheck'),
       Arg(
           'tests_to_conduct', list,
           'A list of dicts.  A dict should contain \nat least one key named '
@@ -247,6 +250,10 @@ class AudioLoopTest(unittest.TestCase):
     self._mic_source = {'external': MicSource.external,
                         'panel': MicSource.panel,
                         'mlb': MicSource.mlb}[self.args.mic_source]
+
+    self._mic_jack_type = {'nocheck': None,
+                        'lrgm': MicJackType.lrgm,
+                        'lrmg': MicJackType.lrmg}[self.args.mic_jack_type]
 
     self._audio_util = audio_utils.AudioUtil()
     for card, action in self.args.initial_actions:
@@ -545,6 +552,14 @@ class AudioLoopTest(unittest.TestCase):
                                headphone_status
                               )
           raise ValueError('Dongle Status is wrong.')
+
+    if self._mic_jack_type:
+      mictype = self._audio_util.GetMicJackType(self._in_card)
+      if mictype != self._mic_jack_type:
+        factory.console.info('Mic Jack Type is wrong. need %s, but %s',
+                             self._mic_jack_type,
+                             mictype)
+        raise ValueError('Mic Jack Type is wrong.')
 
     # Enable/disable devices according to require_dongle.
     # We don't use plug_status because plug_status may not be ready at early
