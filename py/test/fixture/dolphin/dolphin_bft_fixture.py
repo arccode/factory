@@ -54,7 +54,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
   # Devices on Plankton-Raiden to be engaged/disengaged.
   Device = Enum(
       ['CHARGE_5V', 'CHARGE_12V', 'CHARGE_20V',
-       'USB2', 'USB3', 'DP', 'DEFAULT'])
+       'USB2', 'USB3', 'DP', 'ADB_HOST', 'DEFAULT'])
 
   # dev means charge-to-device.
   DEVICE_COMMAND = {
@@ -65,6 +65,9 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       Device.USB2       : ['dp', 'dev'],
       Device.USB3       : ['usb', 'dev'],
       Device.DP         : ['dp', 'dev'],
+      # For ADB target device, provide power to target device as engaging host
+      # connection.
+      Device.ADB_HOST   : ['5v'],
       # DEFAULT status: USB3.0/DP unplugged
       # 5v: set charge-to-device off (USB3.0 unplugged)
       # usb: set USB3.0/DP switch to usb (DP unplugged)

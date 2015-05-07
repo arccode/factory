@@ -75,7 +75,7 @@ class BFTFixture(object):
                  'C0_CC2_DUT', 'C1_CC2_DUT',
                  # Dolphin mini fixture devices.
                  'CHARGE_5V', 'CHARGE_12V', 'CHARGE_20V',
-                 'USB2', 'USB3', 'DP', 'DEFAULT'])
+                 'USB2', 'USB3', 'DP', 'ADB_HOST', 'DEFAULT'])
 
   # LCM enumeration.
   LcmCommand = Enum(['BACKLIGHT_OFF', 'BACKLIGHT_ON', 'CLEAR', 'HOME'])
