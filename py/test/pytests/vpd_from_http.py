@@ -115,7 +115,7 @@ class GetPanelVPDTest(unittest.TestCase):
       self.ui.CallJSFunction('setClear')
       return
 
-    data = urllib.urlencode({'serial': scan_value})
+    data = urllib.urlencode({'serial': scan_value, 'action': 'getvpd'})
     try:
       filehandle = urllib2.urlopen(self.url + '?' + data)
     except urllib2.URLError as e:
