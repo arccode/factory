@@ -1008,8 +1008,9 @@ class Goofy(GoofyBase):
         new_state = t.update_state(**v.update_state_on_completion)
         del self.invocations[t]
 
-        # Stop on failure if flag is true.
+        # Stop on failure if flag is true and there is no retry chances.
         if (self.test_list.options.stop_on_failure and
+            new_state.retries_left < 0 and
             new_state.status == TestState.FAILED):
           # Clean all the tests to cause goofy to stop.
           self.tests_to_run = []
