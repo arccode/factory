@@ -599,6 +599,14 @@ class Options(object):
   strictest (PVT) checks are applied."""
   _types['phase'] = (type(None), str)
 
+  dut_options = {}
+  """Options for DUT target.  Automatically inherits from parent node.
+  Valid options include:
+     {'dut_class': 'LocalTarget'},  # To run tests locally.
+     {'dut_class': 'AdbTarget'},  # To run tests via ADB.
+     {'dut_class': 'SshTarget', 'host': TARGET_IP},  # To run tests over SSH.
+     See :py:attr:`cros.factory.test.dut.KNOWN_TARGETS` for more options."""
+
   def check_valid(self):
     """Throws a TestListError if there are any invalid options."""
     # Make sure no errant options, or options with weird types,
@@ -820,7 +828,7 @@ class FactoryTest(object):
   has_ui = False
 
   REPR_FIELDS = ['test_list_id', 'id', 'autotest_name', 'pytest_name', 'dargs',
-                 'backgroundable', 'exclusive', 'never_fails',
+                 'dut_options', 'backgroundable', 'exclusive', 'never_fails',
                  'enable_services', 'disable_services', 'no_host']
 
   # Subsystems that the test may require exclusive access to.
@@ -837,6 +845,7 @@ class FactoryTest(object):
                invocation_target=None,
                kbd_shortcut=None,
                dargs=None,
+               dut_options=None,
                backgroundable=False,
                subtests=None,
                id=None,  # pylint: disable=W0622
@@ -875,6 +884,7 @@ class FactoryTest(object):
     self.finish = finish
     self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
     self.dargs = dargs or {}
+    self.dut_options = dut_options or {}
     self.backgroundable = backgroundable
     self.force_background = force_background
     self.no_host = no_host
@@ -1006,7 +1016,7 @@ class FactoryTest(object):
     """Returns the node as a struct suitable for JSONification."""
     ret = dict(
         (k, getattr(self, k))
-        for k in ['id', 'path', 'label_en', 'label_zh',
+        for k in ['id', 'path', 'label_en', 'label_zh', 'dut_options',
                   'kbd_shortcut', 'backgroundable', 'disable_abort'])
     ret['is_shutdown_step'] = isinstance(self, ShutdownStep)
     ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]

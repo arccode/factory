@@ -179,7 +179,8 @@ def AutomatedSequence(*args, **kwargs):
   return Add(factory.AutomatedSequence(*args, **kwargs))
 
 
-def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False):
+def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False,
+              dut_options=None):
   # pylint: disable=W0622
   """Adds a test group to the current test list.
 
@@ -205,7 +206,8 @@ def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False):
       of FactoryTest.
   """
   return Add(factory.TestGroup(id=id, label_en=label_en, label_zh=label_zh,
-                               run_if=run_if, no_host=no_host))
+                               run_if=run_if, no_host=no_host,
+                               dut_options=(dut_options or {})))
 
 
 def OperatorTest(*args, **kwargs):

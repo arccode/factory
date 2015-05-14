@@ -32,6 +32,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
 from cros.factory.privacy import FilterDict
 from cros.factory.system.service_manager import ServiceManager
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import state
@@ -148,10 +149,11 @@ class PyTestInfo(object):
     results_path: The path to the result file.
     test_case_id: The ID of the test case to run.
     automation_mode: The enabled automation mode.
+    dut_options: The options to override default DUT target.
   """
 
   def __init__(self, test_list, path, pytest_name, args, results_path,
-               test_case_id=None, automation_mode=None):
+               test_case_id=None, automation_mode=None, dut_options=None):
     self.test_list = test_list
     self.path = path
     self.pytest_name = pytest_name
@@ -159,6 +161,7 @@ class PyTestInfo(object):
     self.results_path = results_path
     self.test_case_id = test_case_id
     self.automation_mode = automation_mode
+    self.dut_options = dut_options or {}
 
   def ReadTestList(self):
     """Reads and returns the test list."""
@@ -451,13 +454,26 @@ class TestInvocation(object):
             return TestState.FAILED, (
                 'Before starting: %s' % self._aborted_message())
 
+          # Resolve dut_options: Climb the tree of test options and choose the
+          # first non-empty dut_options encountered. Note we are not stacking
+          # the options because most DUT targets don't share any options.
+          dut_options = {}
+          test_node = self.test
+          while test_node and not dut_options:
+            dut_options = test_node.dut_options
+            test_node = test_node.parent
+          if not dut_options:
+            # Use the options in test list (via test.root).
+            dut_options = self.test.root.options.dut_options or {}
+
           self._process = self.goofy.pytest_prespawner.spawn(
               PyTestInfo(test_list=self.goofy.options.test_list,
                          path=self.test.path,
                          pytest_name=pytest_name,
                          args=args,
                          results_path=results_path,
-                         automation_mode=self.goofy.options.automation_mode),
+                         automation_mode=self.goofy.options.automation_mode,
+                         dut_options=dut_options),
               self.env_additions)
 
         # Tee process's stderr to both the log and our stderr; this
@@ -892,6 +908,7 @@ def RunPytest(test_info):
       def SetTestInfo(test):
         if isinstance(test, unittest.TestCase):
           test.test_info = test_info
+          test.dut = dut.Create(**test_info.dut_options)
           arg_spec = getattr(test, 'ARGS', None)
           if arg_spec:
             try:
