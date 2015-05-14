@@ -41,7 +41,6 @@ class RaidenChargeBFTTest(unittest.TestCase):
   """Tests raiden port charge functionality."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
-      Arg('raiden_index', int, 'Index of DUT raiden port'),
       Arg('charge_duration_secs', (int, float),
           'The duration in seconds to charge the battery', default=5),
       Arg('discharge_duration_secs', (int, float),
