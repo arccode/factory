@@ -64,7 +64,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       # Set dp/usb mux to dp to block usb 3.0 signal and remain only usb 2.0
       Device.USB2       : ['dp', 'dev'],
       Device.USB3       : ['usb', 'dev'],
-      Device.DP         : ['dp', 'dev'],
+      Device.DP         : ['dp'],
       # For ADB target device, provide power to target device as engaging host
       # connection.
       Device.ADB_HOST   : ['5v'],
@@ -95,6 +95,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     self._i2c_address = None
     self._use_proxy = False
     self._raiden_index = None
+    self._parallel_test = False
 
   def Init(self, **port_params):
     """Initializes Dolphin fixture connection.
@@ -121,6 +122,8 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
               usb_serial_params.
           - plankton_conn_index: Like auto_pairing, but limit the serach
               range for physical USB port location, e.g. 1-1.
+          - parallel_test: When enabled, do not SetDefault at the beginning
+            and the end to avoid interfering concurrent tests.
 
     Raises:
       BFTFixtureException: Can't detect tty* serial port for Plankton.
@@ -166,12 +169,16 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
             'No serial device with driver %r detected' % serial_driver)
       serial_params['port'] = serial_path
 
+    if 'parallel_test' in port_params:
+      self._parallel_test = port_params['parallel_test']
+
     print 'connect to ' + serial_params['port']
     self._plankton_conn = serial_utils.SerialDevice()
     self._plankton_conn.Connect(**serial_params)
-    # Waits for serial connection stable.
-    time.sleep(1)
-    self.SetDefault('set default')
+    if not self._parallel_test:
+      # Waits for serial connection stable.
+      time.sleep(1)
+      self.SetDefault('set default')
     self.SetOutputBufferChannel(0)  # channel 0: command only
 
   def Disconnect(self):
@@ -211,10 +218,11 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       if device in self._LIST_CHARGE:
         self._Send('usbc_action dev', action_str)
       else:
-        # Disengage USB3.0/DP = set fixture to default setting.
-        if device in self._LIST_USB:
-          time.sleep(self._WAIT_USB3_NEGOTIATE_SECS)
-        self.SetDefault(action_str)
+        if not self._parallel_test:
+          # Disengage USB3.0/DP = set fixture to default setting.
+          if device in self._LIST_USB:
+            time.sleep(self._WAIT_USB3_NEGOTIATE_SECS)
+          self.SetDefault(action_str)
 
   def Ping(self):
     """Uses 'version' command for pinging."""
