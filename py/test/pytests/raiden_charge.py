@@ -332,9 +332,9 @@ class RaidenChargeBFTTest(unittest.TestCase):
 
     self.Check5VINACurrent()
     self.TestCharging(self.args.min_charge_5V_current_mA,
-                      self.args.ina_voltage_tolernace, testing_volt=5)
+                      self.args.ina_voltage_tolerance, testing_volt=5)
     self.TestCharging(self.args.min_charge_12V_current_mA,
-                      self.args.ina_voltage_tolernace, testing_volt=12)
+                      self.args.ina_voltage_tolerance, testing_volt=12)
     self.TestCharging(self.args.min_charge_20V_current_mA,
-                      self.args.ina_voltage_tolernace, testing_volt=20)
+                      self.args.ina_voltage_tolerance, testing_volt=20)
     self.TestDischarging()
