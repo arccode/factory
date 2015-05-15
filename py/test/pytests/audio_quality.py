@@ -33,6 +33,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test import audio_utils
+from cros.factory.test.audio_control import alsa
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
@@ -120,22 +121,26 @@ class AudioQualityTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self._audio_control = alsa.AlsaAudioControl()
+    self._audio_control.SetDut(self.dut)
     # Tansfer input and output device format
     if isinstance(self.args.input_dev, tuple):
-      self._in_card = audio_utils.GetCardIndexByName(self.args.input_dev[0])
+      self._in_card = self._audio_control.GetCardIndexByName(
+          self.args.input_dev[0])
       self._input_device = 'hw:%s,%s' % (
           self._in_card, self.args.input_dev[1])
     else:
       self._input_device = self.args.input_dev
-      self._in_card = self.GetCardIndex(self._input_device)
+      self._in_card = self._audio_control.GetCardIndex(self._input_device)
 
     if isinstance(self.args.output_dev, tuple):
-      self._out_card = audio_utils.GetCardIndexByName(self.args.output_dev[0])
+      self._out_card = self._audio_control.GetCardIndexByName(
+          self.args.output_dev[0])
       self._output_device = 'hw:%s,%s' % (
           self._out_card, self.args.output_dev[1])
     else:
       self._output_device = self.args.output_dev
-      self._out_card = self.GetCardIndex(self._output_device)
+      self._out_card = self._audio_control.GetCardIndex(self._output_device)
 
     # Initialize frontend presentation
     self._eth = None
@@ -177,7 +182,6 @@ class AudioQualityTest(unittest.TestCase):
     self._handlers[_VERSION_RE] = self.HandleVersion
     self._handlers[_CONFIG_FILE_RE] = self.HandleConfigFile
 
-    self._audio_util = audio_utils.AudioUtil()
     self._ui = test_ui.UI()
     self._ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
     self._ui.AddEventHandler('start_run', self.StartRun)
@@ -189,20 +193,7 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.Run()
 
   def tearDown(self):
-    self._audio_util.RestoreMixerControls()
-
-  def GetCardIndex(self, device):
-    """Gets the card index from given device names.
-
-    Args:
-      device: ALSA device name
-    """
-    dev_name_pattern = re.compile('.*?hw:([0-9]+),([0-9]+)')
-    match = dev_name_pattern.match(device)
-    if match:
-      return match.group(1)
-    else:
-      raise ValueError('device name %s is incorrect' % device)
+    self._audio_control.RestoreMixerControls()
 
   def HandleConnection(self, conn):
     """Asynchronous handler for socket connection.
@@ -293,13 +284,13 @@ class AudioQualityTest(unittest.TestCase):
 
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
-        card = audio_utils.GetCardIndexByName(card)
-      self._audio_util.ApplyAudioConfig(action, card)
-    self._audio_util.DisableDmic(self._in_card)
-    self._audio_util.DisableMLBDmic(self._in_card)
-    self._audio_util.EnableExtmic(self._in_card)
-    self._audio_util.DisableSpeaker(self._out_card)
-    self._audio_util.EnableHeadphone(self._out_card)
+        card = self._audio_control.GetCardIndexByName(card)
+      self._audio_control.ApplyAudioConfig(action, card)
+    self._audio_control.DisableDmic(self._in_card)
+    self._audio_control.DisableMLBDmic(self._in_card)
+    self._audio_control.EnableExtmic(self._in_card)
+    self._audio_control.DisableSpeaker(self._out_card)
+    self._audio_control.EnableHeadphone(self._out_card)
 
   def SendResponse(self, response, args):
     """Sends response to DUT for each command.
@@ -562,11 +553,11 @@ class AudioQualityTest(unittest.TestCase):
     """LCD mic loop to headphone."""
     self.HandleLoop()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
-    self._audio_util.DisableExtmic(self._in_card)
-    self._audio_util.DisableMLBDmic(self._in_card)
-    self._audio_util.EnableDmic(self._in_card)
-    self._audio_util.DisableSpeaker(self._out_card)
-    self._audio_util.EnableHeadphone(self._out_card)
+    self._audio_control.DisableExtmic(self._in_card)
+    self._audio_control.DisableMLBDmic(self._in_card)
+    self._audio_control.EnableDmic(self._in_card)
+    self._audio_control.DisableSpeaker(self._out_card)
+    self._audio_control.EnableHeadphone(self._out_card)
     self.SendResponse(None, args)
 
   def HandleLoopFromJackToSpeaker(self, *args):
@@ -577,29 +568,29 @@ class AudioQualityTest(unittest.TestCase):
       self.HandleLoop()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP +
                             _LABEL_SPEAKER_MUTE_OFF)
-    self._audio_util.DisableDmic(self._in_card)
-    self._audio_util.DisableMLBDmic(self._in_card)
-    self._audio_util.EnableExtmic(self._in_card)
-    self._audio_util.DisableHeadphone(self._out_card)
-    self._audio_util.EnableSpeaker(self._out_card)
+    self._audio_control.DisableDmic(self._in_card)
+    self._audio_control.DisableMLBDmic(self._in_card)
+    self._audio_control.EnableExtmic(self._in_card)
+    self._audio_control.DisableHeadphone(self._out_card)
+    self._audio_control.EnableSpeaker(self._out_card)
     self.SendResponse(None, args)
 
   def HandleLoopFromKeyboardDmicToJack(self, *args):
     """Keyboard mic loop to headphone."""
     self.HandleLoop()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_MLBDMIC_ON)
-    self._audio_util.DisableExtmic(self._in_card)
-    self._audio_util.DisableDmic(self._in_card)
-    self._audio_util.EnableMLBDmic(self._in_card)
-    self._audio_util.DisableSpeaker(self._out_card)
-    self._audio_util.EnableHeadphone(self._out_card)
+    self._audio_control.DisableExtmic(self._in_card)
+    self._audio_control.DisableDmic(self._in_card)
+    self._audio_control.EnableMLBDmic(self._in_card)
+    self._audio_control.DisableSpeaker(self._out_card)
+    self._audio_control.EnableHeadphone(self._out_card)
     self.SendResponse(None, args)
 
   def HandleXtalkLeft(self, *args):
     """Cross talk left."""
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_LEFT)
-    self._audio_util.MuteLeftHeadphone(self._out_card)
+    self._audio_control.MuteLeftHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(1, self._output_device)
     self._tone_process = Spawn(cmdargs)
     self.SendResponse(None, args)
@@ -608,7 +599,7 @@ class AudioQualityTest(unittest.TestCase):
     """Cross talk right."""
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_RIGHT)
-    self._audio_util.MuteRightHeadphone(self._out_card)
+    self._audio_control.MuteRightHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(0, self._output_device)
     self._tone_process = Spawn(cmdargs)
     self.SendResponse(None, args)

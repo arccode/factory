@@ -84,7 +84,8 @@ from cros.factory.test import audio_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.audio_utils import MicJackType
+from cros.factory.test.audio_control import alsa
+from cros.factory.test.audio_control.base import MicJackType
 from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
 
@@ -216,9 +217,11 @@ class AudioLoopTest(unittest.TestCase):
           'limit.\n', optional=False)]
 
   def setUp(self):
+    self._audio_control = alsa.AlsaAudioControl()
     # Tansfer input and output device format
     if type(self.args.input_dev) is tuple:
-      self._in_card = audio_utils.GetCardIndexByName(self.args.input_dev[0])
+      self._in_card = self._audio_control.GetCardIndexByName(
+          self.args.input_dev[0])
       self._input_device = 'hw:%s,%s' % (
           self._in_card, self.args.input_dev[1])
     else:
@@ -226,7 +229,8 @@ class AudioLoopTest(unittest.TestCase):
       self._in_card = self.GetCardIndex(self._input_device)
 
     if type(self.args.output_dev) is tuple:
-      self._out_card = audio_utils.GetCardIndexByName(self.args.output_dev[0])
+      self._out_card = self._audio_control.GetCardIndexByName(
+          self.args.output_dev[0])
       self._output_device = 'hw:%s,%s' % (
           self._out_card, self.args.output_dev[1])
     else:
@@ -252,14 +256,13 @@ class AudioLoopTest(unittest.TestCase):
                         'mlb': MicSource.mlb}[self.args.mic_source]
 
     self._mic_jack_type = {'nocheck': None,
-                        'lrgm': MicJackType.lrgm,
-                        'lrmg': MicJackType.lrmg}[self.args.mic_jack_type]
+                           'lrgm': MicJackType.lrgm,
+                           'lrmg': MicJackType.lrmg}[self.args.mic_jack_type]
 
-    self._audio_util = audio_utils.AudioUtil()
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
-        card = audio_utils.GetCardIndexByName(card)
-      self._audio_util.ApplyAudioConfig(action, card)
+        card = self._audio_control.GetCardIndexByName(card)
+      self._audio_control.ApplyAudioConfig(action, card)
 
     self._current_test_args = None
 
@@ -281,7 +284,7 @@ class AudioLoopTest(unittest.TestCase):
                     cras_status)
 
   def tearDown(self):
-    self._audio_util.RestoreMixerControls()
+    self._audio_control.RestoreMixerControls()
 
   def runTest(self):
     # If autostart, JS triggers start_run_test event.
@@ -328,17 +331,17 @@ class AudioLoopTest(unittest.TestCase):
     factory.console.info('Test speaker channel %d and mic channel %d',
                          speaker_channel, mic_channel)
     if self._mic_source == MicSource.panel:
-      self._audio_util.EnableDmic(self._in_card)
+      self._audio_control.EnableDmic(self._in_card)
       if mic_channel is 0:
-        self._audio_util.MuteRightDmic(self._in_card)
+        self._audio_control.MuteRightDmic(self._in_card)
       else:
-        self._audio_util.MuteLeftDmic(self._in_card)
+        self._audio_control.MuteLeftDmic(self._in_card)
     elif self._mic_source == MicSource.mlb:
-      self._audio_util.EnableMLBDmic(self._in_card)
+      self._audio_control.EnableMLBDmic(self._in_card)
       if mic_channel is 0:
-        self._audio_util.MuteRightMLBDmic(self._in_card)
+        self._audio_control.MuteRightMLBDmic(self._in_card)
       else:
-        self._audio_util.MuteLeftMLBDmic(self._in_card)
+        self._audio_control.MuteLeftMLBDmic(self._in_card)
 
     test_result = None
     duration = self._current_test_args.get(
@@ -526,8 +529,8 @@ class AudioLoopTest(unittest.TestCase):
     self._ui.Fail('; '.join(self._test_message))
 
   def StartRunTest(self, event): # pylint: disable=W0613
-    mic_status = self._audio_util.GetMicJackStatus(self._in_card)
-    headphone_status = self._audio_util.GetHeadphoneJackStatus(self._out_card)
+    mic_status = self._audio_control.GetMicJackStatus(self._in_card)
+    headphone_status = self._audio_control.GetHeadphoneJackStatus(self._out_card)
     plug_status = mic_status or headphone_status
     # When audio jack detection feature is ready on a platform, we can
     # enable check_dongle option to check jack status matches we expected.
@@ -554,7 +557,7 @@ class AudioLoopTest(unittest.TestCase):
           raise ValueError('Dongle Status is wrong.')
 
     if self._mic_jack_type:
-      mictype = self._audio_util.GetMicJackType(self._in_card)
+      mictype = self._audio_control.GetMicJackType(self._in_card)
       if mictype != self._mic_jack_type:
         factory.console.info('Mic Jack Type is wrong. need %s, but %s',
                              self._mic_jack_type,
@@ -565,29 +568,29 @@ class AudioLoopTest(unittest.TestCase):
     # We don't use plug_status because plug_status may not be ready at early
     # stage.
     if self.args.require_dongle:
-      self._audio_util.DisableSpeaker(self._out_card)
-      self._audio_util.EnableHeadphone(self._out_card)
+      self._audio_control.DisableSpeaker(self._out_card)
+      self._audio_control.EnableHeadphone(self._out_card)
     else:
-      self._audio_util.DisableHeadphone(self._out_card)
-      self._audio_util.EnableSpeaker(self._out_card)
+      self._audio_control.DisableHeadphone(self._out_card)
+      self._audio_control.EnableSpeaker(self._out_card)
 
-    self._audio_util.DisableDmic(self._in_card)
-    self._audio_util.DisableMLBDmic(self._in_card)
-    self._audio_util.DisableExtmic(self._in_card)
+    self._audio_control.DisableDmic(self._in_card)
+    self._audio_control.DisableMLBDmic(self._in_card)
+    self._audio_control.DisableExtmic(self._in_card)
     if self._mic_source == MicSource.external:
-      self._audio_util.EnableExtmic(self._in_card)
+      self._audio_control.EnableExtmic(self._in_card)
     elif self._mic_source == MicSource.panel:
-      self._audio_util.EnableDmic(self._in_card)
+      self._audio_control.EnableDmic(self._in_card)
     elif self._mic_source == MicSource.mlb:
-      self._audio_util.EnableMLBDmic(self._in_card)
+      self._audio_control.EnableMLBDmic(self._in_card)
 
     # Run each tests to conduct under each output volume candidate.
     for self._output_volume_index, output_volume in enumerate(
         self._output_volumes):
       if self.args.require_dongle:
-        self._audio_util.SetHeadphoneVolume(output_volume, self._out_card)
+        self._audio_control.SetHeadphoneVolume(output_volume, self._out_card)
       else:
-        self._audio_util.SetSpeakerVolume(output_volume, self._out_card)
+        self._audio_control.SetSpeakerVolume(output_volume, self._out_card)
 
       for test in self.args.tests_to_conduct:
         self._current_test_args = test
