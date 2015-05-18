@@ -43,6 +43,9 @@ clear_files() {
 kill_tree() {
   local pid="$1"
   local sig="${2:-TERM}"
+  if [ -z "${pid}" ]; then
+    return
+  fi
   kill -STOP ${pid}  # Stop parent from generating more children
   for child in $(ps -o pid --no-headers --ppid ${pid}); do
     kill_tree ${child} ${sig}
@@ -106,12 +109,12 @@ done
 
 goofy_control_pid="$(pgrep goofy_control)"
 echo -n "Stopping factory test programs... "
-kill_tree $goofy_control_pid
+kill_tree "$goofy_control_pid"
 for sec in 3 2 1; do
   echo -n "${sec} "
   sleep 1
 done
-kill_tree $goofy_control_pid KILL
+kill_tree "$goofy_control_pid" KILL
 echo "done."
 
 for d in $delete; do
