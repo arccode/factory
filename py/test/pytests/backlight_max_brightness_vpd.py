@@ -3,6 +3,7 @@
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
 """
 A factory test to set the maximum brightness value for a panel in vpd.
 
@@ -23,11 +24,12 @@ was unable to set a brightness value for any reason.
 
 Usage examples::
 
-FactoryTest(
-    id='BacklightMaxBrightnessVPD',
-    label_zh=u'背光最大亮度VPD',
-    pytest_name='backlight_max_brightness_vpd',
-    dargs={'brightness_values': [('2d04', 'LGD', 250), ('2c13', 'AUO', 200)]})
+    FactoryTest(
+        id='BacklightMaxBrightnessVPD',
+        label_zh=u'背光最大亮度VPD',
+        pytest_name='backlight_max_brightness_vpd',
+        dargs={'brightness_values': [('2d04', 'LGD', 250),
+                                     ('2c13', 'AUO', 200)]})
 
 """
 
@@ -41,15 +43,15 @@ from cros.factory.test.args import Arg
 class BacklightMaxBrightnessVPDTest(unittest.TestCase):
   """Sets the maximum brighness value in nits to vpd."""
   ARGS = [
-    Arg('edid_file', str, 'The file under sysfs to read the EDID',
-        optional=True, default='/sys/class/drm/card0-eDP-1/edid'),
-    Arg('brightness_values', list, 'Brightness values per panel in a list of '
-        'tuples of the form (panel_id, vendor, brightness).', optional=False),
-    Arg('vpd_key', str, 'The label to save the value in VPD',
-        optional=True, default='panel_backlight_max_nits'),
-    Arg('allow_unidentified', bool, 'Allow the test to pass even if a panel '
-        'was not identified with a max brightness value', optional=True,
-        default=True),
+      Arg('edid_file', str, 'The file under sysfs to read the EDID',
+          optional=True, default='/sys/class/drm/card0-eDP-1/edid'),
+      Arg('brightness_values', list, 'Brightness values per panel in a list of '
+          'tuples of the form (panel_id, vendor, brightness).', optional=False),
+      Arg('vpd_key', str, 'The label to save the value in VPD',
+          optional=True, default='panel_backlight_max_nits'),
+      Arg('allow_unidentified', bool, 'Allow the test to pass even if a panel '
+          'was not identified with a max brightness value', optional=True,
+          default=True),
   ]
 
   def _ReadPanelEDID(self, edid_file):
