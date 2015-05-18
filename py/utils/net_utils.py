@@ -628,12 +628,16 @@ class WLAN(object):
   connection manager.
   """
 
-  def __init__(self, ssid, security, passphrase):
+  def __init__(self, ssid=None, security='none', passphrase=''):
     """Constructor.
 
     Please see 'http://code.google.com/searchframe#wZuuyuB8jKQ/src/third_party/
     flimflam/doc/service-api.txt' for a detailed explanation of these
     parameters.
+
+    Note the instance of this class may be serialized via JSONRPC, so a default
+    constructor without parameter must be allowed (jsonrpc calls __setstate__
+    instead of constructor).
 
     Args:
       ssid: Wireless network SSID.
