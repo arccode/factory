@@ -320,45 +320,38 @@ class SensorServiceRyu(BaseSensorService):
 
   On Ryu, the sensor data are provided by a user-level program f54test.
   """
-  TOOL = 'f54test'
-  TOOL_REMOTE_DIR = '/tmp'
-  READ_CMD = 'sudo %s -r ' % os.path.join(TOOL_REMOTE_DIR, TOOL)
   REPORT_TYPE = {'deltas': 2, 'refs': 3}
 
-  def __init__(self, ip, log=None):
+  def __init__(self, ip, dut, remote_system_dir='', tool='', log=None):
     super(SensorServiceRyu, self).__init__(RYU, log=log)
     self.ip = ip
+    self.dut = dut
+    self.remote_system_dir = remote_system_dir
+    self.tool = tool
+    self.remote_tool_bin_dir = os.path.join(self.remote_system_dir, 'bin')
     self.num_rows = None
     self.num_cols = None
+    self.tool_src = os.path.join(os.path.dirname(__file__),
+                                 'boards', self.board, self.tool)
+    self.tool_dst = os.path.join(self.remote_tool_bin_dir, self.tool)
+    self.read_cmd_prefix = '%s --no_reset -r ' % self.tool_dst
+    self.check_cmd = 'test -e ' + self.tool_dst
 
-    self.tool = os.path.join(os.path.dirname(__file__),
-                             'boards', self.board, self.TOOL)
     if self.InstallTool():
       self.log.info('Sucessfully installed the tool: %s' % self.tool)
     else:
       self.log.error('Failed to install the tool: %s' % self.tool)
       self.log.error('Restart the test to try again!')
 
-    if self.InstallDriver():
-      self.log.info('Sucessfully installed the touchscreen driver.')
-    else:
-      self.log.error('Failed to install the touchscreen driver.')
-
   def _CheckTool(self):
-    """Check if the tool exists in the remote machine."""
-    cmd = 'ls %s/%s' % (self.TOOL_REMOTE_DIR, self.TOOL)
-    return SshCommand(self.ip, cmd, output=False)
+    """Check if the tool exists in the DUT."""
+    return utils.IsSuccessful(self.dut.Shell(self.check_cmd))
 
   def InstallTool(self):
     """Install f54test tool on the target machine.."""
+    self.dut.Call('mount -o remount,rw ' + self.remote_system_dir)
     return (self._CheckTool() or
-            ScpCommand(self.ip, self.tool, self.TOOL_REMOTE_DIR))
-
-  def InstallDriver(self):
-    cmd_check_driver_installed = 'lsmod | grep i2c_hid'
-    cmd_install_driver = 'modprobe i2c_hid'
-    return (SshCommand(self.ip, cmd_check_driver_installed, output=False) or
-            SshCommand(self.ip, cmd_install_driver, output=False))
+            utils.IsSuccessful(self.dut.Push(self.tool_src, self.tool_dst)))
 
   def CalibrateBaseline(self):
     """Do baseline calibraiton."""
@@ -371,6 +364,11 @@ class SensorServiceRyu(BaseSensorService):
       True if could read sensor deltas values.
     """
     return len(self.Read('deltas')) > 0
+
+  def _ReadRawData(self, category):
+    """Read the output from dut.Shell()."""
+    read_cmd = self.read_cmd_prefix + str(self.REPORT_TYPE[category])
+    return self.dut.CheckOutput(read_cmd)
 
   def Read(self, category):
     """Reads touchscreen sensors raw data.
@@ -387,9 +385,8 @@ class SensorServiceRyu(BaseSensorService):
     Reset completed.
 
     """
-    read_cmd = self.READ_CMD + str(self.REPORT_TYPE[category])
     out_data = []
-    for line in SshCommand(self.ip, read_cmd).splitlines():
+    for line in self._ReadRawData(category).splitlines():
       if line.startswith('tx'):
         _, value = line.split('=')
         self.num_rows = int(value)

@@ -65,6 +65,8 @@ class TouchscreenCalibration(unittest.TestCase):
 
   ARGS = [
       Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
+      Arg('remote_system_dir', str, 'The remote system directory', ''),
+      Arg('tool', str, 'The test tool', ''),
   ]
 
   def setUp(self):
@@ -156,7 +158,11 @@ class TouchscreenCalibration(unittest.TestCase):
     else:
       # Instantiate a local sensor object.
       board_sensors = sensors_server.GetSensorServiceClass(self._board)
-      self.sensors = board_sensors(self.sensors_ip, log=factory.console)
+      self.sensors = board_sensors(
+          self.sensors_ip, self.dut,
+          remote_system_dir=self.args.remote_system_dir,
+          tool=self.args.tool,
+          log=factory.console)
       _CheckStatus('Use local sensors object.')
 
   def _AlertFixtureDisconnected(self):
