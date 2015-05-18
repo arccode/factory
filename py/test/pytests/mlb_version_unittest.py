@@ -76,8 +76,8 @@ class MLBVersionTestUnittest(unittest.TestCase):
     # version prefix.
     self.assertRaisesRegexp(
         AssertionError,
-        (r'In phase PVT_DOGFOOD, expect board version to start with PVT, but '
-         r'got board version Proto2B'),
+        (r'In phase PVT_DOGFOOD, expect board version to start with '
+         r'\(PVT\|MP\), but got board version Proto2B'),
         self.test.runTest)
     # PVT3 board in phase PVT_DOGFOOD. This should pass.
     self.test.runTest()
