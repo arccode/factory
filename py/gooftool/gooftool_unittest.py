@@ -370,8 +370,7 @@ class GooftoolTest(unittest.TestCase):
   def testGenerateStableDeviceSecretNoOutput(self):
     SystemInfo.release_image_version = '6887.0.0'
     self._gooftool._util.shell(
-        'tpm-manager get_random 32', log=False).AndReturn(
-            StubStdout('00' * 32 + '\n'))
+        'tpm-manager get_random 32', log=False).AndReturn(StubStdout(''))
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error, 'Error validating device secret',
                             self._gooftool.GenerateStableDeviceSecret)
@@ -379,8 +378,7 @@ class GooftoolTest(unittest.TestCase):
   def testGenerateStableDeviceSecretShortOutput(self):
     SystemInfo.release_image_version = '6887.0.0'
     self._gooftool._util.shell(
-        'tpm-manager get_random 32', log=False).AndReturn(
-            StubStdout('00' * 32 + '\n'))
+        'tpm-manager get_random 32', log=False).AndReturn(StubStdout('00' * 31))
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error, 'Error validating device secret',
                             self._gooftool.GenerateStableDeviceSecret)
@@ -388,8 +386,7 @@ class GooftoolTest(unittest.TestCase):
   def testGenerateStableDeviceSecretBadOutput(self):
     SystemInfo.release_image_version = '6887.0.0'
     self._gooftool._util.shell(
-        'tpm-manager get_random 32', log=False).AndReturn(
-            StubStdout('00' * 32 + '\n'))
+        'tpm-manager get_random 32', log=False).AndReturn(StubStdout('Err0r!'))
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error, 'Error validating device secret',
                             self._gooftool.GenerateStableDeviceSecret)
