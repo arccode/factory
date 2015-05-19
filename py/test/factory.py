@@ -526,7 +526,7 @@ class Options(object):
 
   kick_sync_min_interval_secs = 120
   """The minimum interval between two kick syncs due to core dump files."""
-  _types[kick_sync_min_interval_secs] = int
+  _types['kick_sync_min_interval_secs'] = int
 
   stateful_usage_threshold = None
   """Upload stateful partition disk usage stats to shopfloor server if
