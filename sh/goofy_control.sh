@@ -66,10 +66,19 @@ init_output() {
   trap on_error EXIT
 
   # This should already exist, but just in case...
-  mkdir -p "$(dirname "$FACTORY_LOG_FILE")"
+  mkdir -p "$(dirname "${FACTORY_LOG_FILE}")"
+  touch "${FACTORY_LOG_FILE}"
   # To help reading archived logs (not on DUT), we assume the FACTORY_LOG_FILE
   # starts with /var and try to create the symlink as relative path.
   ln -sf "../${FACTORY_LOG_FILE#/var/}" /var/log
+
+  # Provide the latest factory log on TTY3 if available.
+  local tty_log=/dev/tty3
+  if [ -c "${tty_log}" ]; then
+    setsid sh -c \
+      "script -afqc 'while true; do less -W +F ${FACTORY_LOG_FILE}; done' \
+       /dev/null <${tty_log} >${tty_log}" &
+  fi
 }
 
 # Try to show the interactive console if available.
