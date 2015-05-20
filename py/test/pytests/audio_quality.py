@@ -8,6 +8,7 @@
 #
 # This test case is used to communicate with audio fixture and parse
 # the result of CLIO which is audio quality analysis software.
+# DUT will connect to 2 subnets, one is for shopfloor the other is for fixture.
 
 from __future__ import print_function
 
@@ -28,14 +29,14 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
-from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test import audio_utils
 from cros.factory.test.audio_control import alsa
+from cros.factory.test.audio_control import tinyalsa
+from cros.factory.test.utils import Enum
 from cros.factory.utils import net_utils
-from cros.factory.utils import sync_utils
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 from cros.factory.goofy.goofy import CACHES_DIR
 
@@ -44,7 +45,6 @@ from cros.factory.goofy.goofy import CACHES_DIR
 _HOST = ''
 _PORT = 8888
 _LOCAL_IP = '192.168.1.2'
-_GATEWAY_IP = '192.168.1.200'
 
 # Setting
 _SHOPFLOOR_TIMEOUT_SECS = 10  # Timeout for shopfloor connection.
@@ -88,6 +88,7 @@ _LOOP_1_RE = re.compile('(?i)loop_1')
 _LOOP_2_RE = re.compile('(?i)loop_2')
 _LOOP_3_RE = re.compile('(?i)loop_3')
 _LOOP_4_RE = re.compile('(?i)loop_4')
+_LOOP_5_RE = re.compile('(?i)loop_5')
 _XTALK_L_RE = re.compile('(?i)xtalk_l')
 _XTALK_R_RE = re.compile('(?i)xtalk_r')
 _MULTITONE_RE = re.compile('(?i)multitone')
@@ -98,6 +99,8 @@ _RESULT_FAIL_RE = re.compile('(?i)result_fail')
 _VERSION_RE = re.compile('(?i)version')
 _CONFIG_FILE_RE = re.compile('(?i)config_file')
 
+LoopType = Enum(['sox', 'looptest', 'tinyloop'])
+
 
 class AudioQualityTest(unittest.TestCase):
   ARGS = [
@@ -105,11 +108,15 @@ class AudioQualityTest(unittest.TestCase):
           'can be card index number or card name', []),
       Arg('input_dev', (str, tuple),
           'Input ALSA device for string.  (card_name, sub_device) for tuple. '
+          'Tiny ALSA device only support tuple type'
           'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
       Arg('output_dev', (str, tuple),
           'Output ALSA device for string.  (card_name, sub_device) for tuple. '
+          'Tiny ALSA device only support tuple type'
           'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
-      Arg('use_sox_loop', bool, 'Use SOX loop', False, optional=True),
+      Arg('use_tinyalsa', bool, 'Use Tiny ALSA tool', False, optional=True),
+      Arg('loop_type', str, 'Audio loop type: sox, looptest, tinyloop',
+          'sox'),
       Arg('use_multitone', bool, 'Use multitone', False, optional=True),
       Arg('loop_buffer_count', int, 'Count of loop buffer', 10,
           optional=True),
@@ -120,13 +127,23 @@ class AudioQualityTest(unittest.TestCase):
           '*port*, *gateway_ip*', {}, optional=True),
   ]
 
-  def setUp(self):
-    self._audio_control = alsa.AlsaAudioControl()
-    self._audio_control.SetDut(self.dut)
+  def setUpAudioDevice(self):
+    if self.args.use_tinyalsa:
+      self._audio_control = tinyalsa.TinyalsaAudioControl(self.dut)
+    else:
+      self._audio_control = alsa.AlsaAudioControl(self.dut)
+    # Devices Type check
+    if self.args.use_tinyalsa:
+      if not isinstance(self.args.input_dev, tuple):
+        raise ValueError('input_dev type is incorrect, need tuple')
+      if not isinstance(self.args.output_dev, tuple):
+        raise ValueError('output_dev type is incorrect, need tuple')
+
     # Tansfer input and output device format
     if isinstance(self.args.input_dev, tuple):
       self._in_card = self._audio_control.GetCardIndexByName(
           self.args.input_dev[0])
+      self._in_subdevice = self.args.input_dev[1]
       self._input_device = 'hw:%s,%s' % (
           self._in_card, self.args.input_dev[1])
     else:
@@ -136,35 +153,14 @@ class AudioQualityTest(unittest.TestCase):
     if isinstance(self.args.output_dev, tuple):
       self._out_card = self._audio_control.GetCardIndexByName(
           self.args.output_dev[0])
+      self._out_subdevice = self.args.output_dev[1]
       self._output_device = 'hw:%s,%s' % (
           self._out_card, self.args.output_dev[1])
     else:
       self._output_device = self.args.output_dev
       self._out_card = self._audio_control.GetCardIndex(self._output_device)
 
-    # Initialize frontend presentation
-    self._eth = None
-    self._test_complete = False
-    self._test_passed = False
-    self._use_sox_loop = self.args.use_sox_loop
-    self._use_multitone = self.args.use_multitone
-    self._loop_buffer_count = self.args.loop_buffer_count
-    self._parameters = self.args.fixture_param
-    self._use_shopfloor = self.args.use_shopfloor
-    self._local_ip = self.args.network_setting.get('local_ip', _LOCAL_IP)
-    self._port = self.args.network_setting.get('port', _PORT)
-    self._gateway_ip = self.args.network_setting.get('gateway_ip', _GATEWAY_IP)
-
-    self._listen_thread = None
-    self._multitone_process = None
-    self._tone_process = None
-    self._loop_process = None
-    self._caches_dir = os.path.join(CACHES_DIR, 'parameters')
-    base = os.path.dirname(os.path.realpath(__file__))
-    self._file_path = os.path.join(base, '..', '..', 'goofy', 'static',
-                                   'sounds')
-    self._auxlogs = []
-
+  def setUpLoopHandler(self):
     # Register commands to corresponding handlers.
     self._handlers = {}
     self._handlers[_SEND_FILE_RE] = self.HandleSendFile
@@ -176,11 +172,42 @@ class AudioQualityTest(unittest.TestCase):
     self._handlers[_LOOP_2_RE] = self.HandleLoopFromJackToSpeaker
     self._handlers[_LOOP_3_RE] = self.HandleLoopJack
     self._handlers[_LOOP_4_RE] = self.HandleLoopFromKeyboardDmicToJack
+    self._handlers[_LOOP_5_RE] = self.HandleLoopFromDmic2ToJack
     self._handlers[_XTALK_L_RE] = self.HandleXtalkLeft
     self._handlers[_XTALK_R_RE] = self.HandleXtalkRight
     self._handlers[_MULTITONE_RE] = self.HandleMultitone
     self._handlers[_VERSION_RE] = self.HandleVersion
     self._handlers[_CONFIG_FILE_RE] = self.HandleConfigFile
+
+  def setUp(self):
+    self.setUpAudioDevice()
+    self.setUpLoopHandler()
+
+    # Initialize frontend presentation
+    self._eth = None
+    self._test_complete = False
+    self._test_passed = False
+    self._loop_type = {'sox': LoopType.sox,
+                       'looptest': LoopType.looptest,
+                       'tinyloop': LoopType.tinyloop}[self.args.loop_type]
+
+    self._use_multitone = self.args.use_multitone
+    self._loop_buffer_count = self.args.loop_buffer_count
+    self._parameters = self.args.fixture_param
+    self._use_shopfloor = self.args.use_shopfloor
+    self._local_ip = self.args.network_setting.get('local_ip', _LOCAL_IP)
+    self._port = self.args.network_setting.get('port', _PORT)
+
+    self._listen_thread = None
+    self._multitone_process = None
+    self._tone_process = None
+    self._loop_process = None
+    self._tinyloop = False
+    self._caches_dir = os.path.join(CACHES_DIR, 'parameters')
+    base = os.path.dirname(os.path.realpath(__file__))
+    self._file_path = os.path.join(base, '..', '..', 'goofy', 'static',
+                                   'sounds')
+    self._auxlogs = []
 
     self._ui = test_ui.UI()
     self._ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
@@ -194,6 +221,19 @@ class AudioQualityTest(unittest.TestCase):
 
   def tearDown(self):
     self._audio_control.RestoreMixerControls()
+    net_utils.UnsetAliasEthernetIp(0, self._eth)
+
+  def DisableAllAudioInputs(self):
+    """Disable all audio inputs"""
+    self._audio_control.DisableDmic(self._in_card)
+    self._audio_control.DisableDmic2(self._in_card)
+    self._audio_control.DisableMLBDmic(self._in_card)
+    self._audio_control.DisableExtmic(self._in_card)
+
+  def DisableAllAudioOutputs(self):
+    """Disable all audio outputs"""
+    self._audio_control.DisableHeadphone(self._in_card)
+    self._audio_control.DisableSpeaker(self._out_card)
 
   def HandleConnection(self, conn):
     """Asynchronous handler for socket connection.
@@ -282,15 +322,16 @@ class AudioQualityTest(unittest.TestCase):
       self._loop_process = None
       logging.info('Stopped audio loop process')
 
+    if self._tinyloop:
+      self._audio_control.DestroyAudioLoop()
+      self._tinyloop = False
+
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
         card = self._audio_control.GetCardIndexByName(card)
       self._audio_control.ApplyAudioConfig(action, card)
-    self._audio_control.DisableDmic(self._in_card)
-    self._audio_control.DisableMLBDmic(self._in_card)
-    self._audio_control.EnableExtmic(self._in_card)
-    self._audio_control.DisableSpeaker(self._out_card)
-    self._audio_control.EnableHeadphone(self._out_card)
+    self.DisableAllAudioInputs()
+    self.DisableAllAudioOutputs()
 
   def SendResponse(self, response, args):
     """Sends response to DUT for each command.
@@ -520,21 +561,25 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleLoop(self):
     """Starts the internal audio loopback."""
-    self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP)
-    if self._use_sox_loop:
+
+    if self._loop_type == LoopType.sox:
       cmdargs = [audio_utils.SOX_PATH, '-t', 'alsa',
                  self._input_device, '-t',
                  'alsa', self._output_device]
       self._loop_process = Spawn(cmdargs)
-    else:
+    elif self._loop_type == LoopType.looptest:
       cmdargs = [audio_utils.AUDIOLOOP_PATH, '-i', self._input_device, '-o',
                  self._output_device, '-c', str(self._loop_buffer_count)]
       self._loop_process = Spawn(cmdargs)
+    elif self._loop_type == LoopType.tinyloop:
+      self._audio_control.CreateAudioLoop(self._in_card, self._in_subdevice,
+                                          self._out_card, self._out_subdevice)
+      self._tinyloop = True
+
 
   def HandleMultitone(self, *args):
     """Plays the multi-tone wav file."""
-    self.RestoreConfiguration()
     wav_path = os.path.join(self._file_path, '10SEC.wav')
     cmdargs = ['aplay', wav_path]
     self._multitone_process = Spawn(cmdargs)
@@ -542,6 +587,10 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleLoopJack(self, *args):
     """External mic loop to headphone."""
+    factory.console.info('Audio Loop Mic Jack->Headphone')
+    self.RestoreConfiguration()
+    self._audio_control.EnableExtmic(self._in_card)
+    self._audio_control.EnableHeadphone(self._out_card)
     if self._use_multitone:
       self.HandleMultitone()
     else:
@@ -551,39 +600,46 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleLoopFromDmicToJack(self, *args):
     """LCD mic loop to headphone."""
-    self.HandleLoop()
+    factory.console.info('Audio Loop DMIC->Headphone')
+    self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
-    self._audio_control.DisableExtmic(self._in_card)
-    self._audio_control.DisableMLBDmic(self._in_card)
-    self._audio_control.EnableDmic(self._in_card)
-    self._audio_control.DisableSpeaker(self._out_card)
     self._audio_control.EnableHeadphone(self._out_card)
+    self._audio_control.EnableDmic(self._in_card)
+    self.HandleLoop()
+    self.SendResponse(None, args)
+
+  def HandleLoopFromDmic2ToJack(self, *args):
+    """LCD mic loop to headphone."""
+    factory.console.info('Audio Loop DMIC2->Headphone')
+    self.RestoreConfiguration()
+    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
+    self._audio_control.EnableDmic2(self._in_card)
+    self._audio_control.EnableHeadphone(self._out_card)
+    self.HandleLoop()
     self.SendResponse(None, args)
 
   def HandleLoopFromJackToSpeaker(self, *args):
     """External mic loop to speaker."""
+    factory.console.info('Audio Loop Mic Jack->Speaker')
+    self.RestoreConfiguration()
+    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP +
+                            _LABEL_SPEAKER_MUTE_OFF)
+    self._audio_control.EnableExtmic(self._in_card)
+    self._audio_control.EnableSpeaker(self._out_card)
     if self._use_multitone:
       self.HandleMultitone()
     else:
       self.HandleLoop()
-    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP +
-                            _LABEL_SPEAKER_MUTE_OFF)
-    self._audio_control.DisableDmic(self._in_card)
-    self._audio_control.DisableMLBDmic(self._in_card)
-    self._audio_control.EnableExtmic(self._in_card)
-    self._audio_control.DisableHeadphone(self._out_card)
-    self._audio_control.EnableSpeaker(self._out_card)
     self.SendResponse(None, args)
 
   def HandleLoopFromKeyboardDmicToJack(self, *args):
     """Keyboard mic loop to headphone."""
-    self.HandleLoop()
+    factory.console.info('Audio Loop MLB DMIC->Headphone')
+    self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_MLBDMIC_ON)
-    self._audio_control.DisableExtmic(self._in_card)
-    self._audio_control.DisableDmic(self._in_card)
     self._audio_control.EnableMLBDmic(self._in_card)
-    self._audio_control.DisableSpeaker(self._out_card)
     self._audio_control.EnableHeadphone(self._out_card)
+    self.HandleLoop()
     self.SendResponse(None, args)
 
   def HandleXtalkLeft(self, *args):
@@ -634,41 +690,6 @@ class AudioQualityTest(unittest.TestCase):
         self._handlers[key]()
         break
 
-  def RemoveNetwork(self):
-    """Detect and wait ethernet remove."""
-    while True:
-      try:
-        self._ui.CallJSFunction('setMessage', _LABEL_REMOVE_ETHERNET)
-        logging.info('Removing Ethernet device...')
-        sync_utils.PollForCondition(
-            poll_method=net_utils.FindUsableEthDevice,
-            condition_method=lambda ret: not ret,
-            timeout_secs=_REMOVE_ETHERNET_TIMEOUT_SECS,
-            condition_name='Remove Ethernet device')
-        break
-      except:  # pylint: disable=W0702
-        exception_string = utils.FormatExceptionOnly()
-        factory.console.error('Remove Ethernet Exception: %s',
-                              exception_string)
-
-  def PrepareNetwork(self, ip, msg):
-    """Blocks forever until network is prepared.
-
-    Args:
-      ip: If None, use DHCP. Otherwise, set ip
-      msg: The message will be shown in UI
-    """
-    self._ui.CallJSFunction('setMessage', msg)
-    force_ip = not ip is None
-    network.PrepareNetwork(
-        ip, force_ip,
-        lambda: self._ui.CallJSFunction('setMessage', _LABEL_WAITING_IP))
-    self._eth = net_utils.FindUsableEthDevice()
-
-    if self._use_shopfloor:
-      Spawn(['route', 'add', 'default', 'gw', self._gateway_ip],
-            check_call=True)
-
   def InitAudioParameter(self):
     """Downloads parameters from shopfloor and saved to state/caches.
 
@@ -708,7 +729,9 @@ class AudioQualityTest(unittest.TestCase):
 
   def RunAudioServer(self):
     """Initializes server and starts listening for external commands."""
-    self.PrepareNetwork(self._local_ip, _LABEL_WAITING_ETHERNET)
+    # Setup alias IP, the subnet is the same as Fixture
+    self._eth = net_utils.FindUsableEthDevice(True)
+    net_utils.SetAliasEthernetIp(self._local_ip, 0, self._eth)
 
     sock = socket.socket()
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

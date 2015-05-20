@@ -185,9 +185,11 @@ def FindUsableEthDevice(raise_exception=False):
     # we favor the one that has the cable connected end-to-end.
     current_level = 0
     if 'Supported ports:' in stat:
-      current_level = 1
-      if 'Link detected: yes' in stat:
-        current_level = 2
+      current_level += 1
+    # For Linksys USB-Ethernet Adapter, it won't have 'Supported ports' field
+    # So we also give weight to 'Link detected: yes'
+    if 'Link detected: yes' in stat:
+      current_level += 2
     if current_level > last_level:
       good_eth = dev
       last_level = current_level

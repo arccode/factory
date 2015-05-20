@@ -37,11 +37,11 @@ MIC_JACK_TYPE_RETURN_LRMG = '2'
 class BaseAudioControl(object):
   """An abstract class for different target audio utils"""
 
-  def __init__(self, config_path=_DEFAULT_CONFIG_PATH):
+  def __init__(self, dut=None, config_path=_DEFAULT_CONFIG_PATH):
     # used for audio config logging.
     self._audio_config_sn = 0
     self._restore_mixer_control_stack = []
-    self._dut = None
+    self._dut = dut
     if os.path.exists(config_path):
       with open(config_path, 'r') as config_file:
         self.audio_config = yaml.load(config_file)
@@ -88,15 +88,6 @@ class BaseAudioControl(object):
       return query.returncode
     # Use dut wrapper to execute command
     return self._dut.CheckCall(command)
-
-  def SetDut(self, dut):
-    """
-    Setup _dut instance for executing command on different duts.
-    Args:
-      dut: the dut instance
-    """
-    logging.info('Set dut %s', dut)
-    self._dut = dut
 
   def GetCardIndexByName(self, card_name):
     """Get audio card index by card name.
@@ -338,6 +329,18 @@ class BaseAudioControl(object):
 
   def DisableDmic(self, card='0'):
     self.ApplyAudioConfig('disable_dmic', card)
+
+  def EnableDmic2(self, card='0'):
+    self.ApplyAudioConfig('enable_dmic2', card)
+
+  def MuteLeftDmic2(self, card='0'):
+    self.ApplyAudioConfig('mute_left_dmic2', card)
+
+  def MuteRightDmic2(self, card='0'):
+    self.ApplyAudioConfig('mute_right_dmic2', card)
+
+  def DisableDmic2(self, card='0'):
+    self.ApplyAudioConfig('disable_dmic2', card)
 
   def EnableMLBDmic(self, card='0'):
     self.ApplyAudioConfig('enable_mlb_dmic', card)
