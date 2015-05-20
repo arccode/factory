@@ -66,7 +66,9 @@ class KeyboardTest(unittest.TestCase):
           'If presents, in filename, the board name is appended after layout.',
           default=''),
       Arg('skip_power_key', bool, 'Skip power button testing', default=False),
-      Arg('skip_keycodes', list, 'Keycodes to skip', default=[])
+      Arg('skip_keycodes', list, 'Keycodes to skip', default=[]),
+      Arg('replacement_keymap', dict, 'Dictionary mapping key codes to '
+          'replacement key codes', default={})
   ]
 
   def setUp(self):
@@ -88,6 +90,12 @@ class KeyboardTest(unittest.TestCase):
     if self.args.board:
       self.layout += '_%s' % self.args.board
     self.bindings = self.ReadBindings(self.layout)
+
+    # Apply any replaceent keymap
+    for old_key, new_key in self.args.replacement_keymap.iteritems():
+      if old_key in self.bindings:
+        self.bindings[new_key] = self.bindings[old_key]
+        del self.bindings[old_key]
 
     keycodes_to_skip_dict = dict((k, True) for k in self.args.skip_keycodes)
     if self.args.skip_power_key:
