@@ -420,6 +420,23 @@ class _TouchpadData(object):  # pylint: disable=W0232
                  config_csum=config_csum)
 
   @classmethod
+  def Elan(cls):
+    for driver_link in glob('/sys/bus/i2c/drivers/elan_i2c/*'):
+      if not os.path.islink(driver_link):
+        continue
+
+      with open(os.path.join(driver_link, 'name'), 'r') as f:
+        name = f.read().strip()
+      with open(os.path.join(driver_link, 'product_id'), 'r') as f:
+        product_id = f.read().strip()
+      with open(os.path.join(driver_link, 'firmware_version'), 'r') as f:
+        firmware_version = f.read().strip()
+      with open(os.path.join(driver_link, 'fw_checksum'), 'r') as f:
+        fw_checksum = f.read().strip()
+      return Obj(ident_str=name, product_id=product_id,
+                 fw_version=firmware_version, fw_csum=fw_checksum)
+
+  @classmethod
   def Generic(cls):
     # TODO(hungte) add more information from id/*
     # format: N: Name="???_trackpad"
@@ -465,7 +482,7 @@ class _TouchpadData(object):  # pylint: disable=W0232
     if cls.cached_data is None:
       cls.cached_data = Obj(ident_str=None, fw_version=None)
       for vendor_fun in [cls.Cypress, cls.Synaptics, cls.Atmel,
-                         cls.HidOverI2c, cls.Generic]:
+                         cls.HidOverI2c, cls.Elan, cls.Generic]:
         data = vendor_fun()
         if data is not None:
           cls.cached_data = data
@@ -1136,7 +1153,7 @@ def _ProbeTouchpad():
 
   results = {'id': data.ident_str}
   results.update(DictCompactProbeStr(data.ident_str))
-  for key in ('fw_version', 'config_csum'):
+  for key in ('product_id', 'fw_version', 'fw_csum', 'config_csum'):
     value = getattr(data, key, '')
     if value:
       results[key] = value
