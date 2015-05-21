@@ -77,7 +77,7 @@ compress_partitions() {
   local save_partitions="$1,"
   shift
   local image next_part partitions_list
-  local rootfs_guid
+  local kern_guid
   local compressed_size_in_bytes overhead_in_bytes
   local filesystem_overhead_fraction=7  # Add extra 1 / 7 size for overhead.
 
@@ -88,16 +88,16 @@ compress_partitions() {
   done
 
   for image in "$@"; do
-    # Use GUID of installed rootfs (partition 3) as the directory name to
+    # Use GUID of installer kernel (partition 2) as the directory name to
     # store the compressed partitions of the image.
-    rootfs_guid="$(cgpt show -u -i 3 "${image}")"
+    kern_guid="$(cgpt show -u -i 2 "${image}")"
 
     partitions_list="${save_partitions}"
     # Compress each partition to the shared folder.
     next_part=${partitions_list%%,*}
     while [ $((next_part)) -ne 0 ]; do
       compress_one_partition "${image}" "$((next_part))" \
-                             "${INSTALLER_RESOURCES_DIR}/${rootfs_guid}"
+                             "${INSTALLER_RESOURCES_DIR}/${kern_guid}"
       partitions_list=${partitions_list#*,}
       next_part=${partitions_list%%,*}
     done
@@ -153,7 +153,7 @@ image_geometry_format_partition() {
   truncate -s "0" "${TMP_PARTITION_FILE}"
   truncate -s "$((sectors * IMAGE_CGPT_BS))" "${TMP_PARTITION_FILE}"
   # Format the tmp file.
-  "mkfs.${filesystem}" "${TMP_PARTITION_FILE}"
+  "mkfs.${filesystem}" -F "${TMP_PARTITION_FILE}"
 
   image_partition_copy_from_file \
       "${TMP_PARTITION_FILE}" "${output_file}" "${index}"
@@ -193,9 +193,13 @@ copy_dir_to_partition() {
   local dst_dir="$4"
   local data_dir="$(mktemp -d --tmpdir)"
 
+  alert "Copying ${src_dir} to partition #${part_num} of ${image_file}..."
+
   image_add_temp "${data_dir}"
   image_mount_partition "${image_file}" "${part_num}" "${data_dir}" "rw"
-  sudo cp -rfp "${src_dir}" "${data_dir}/${dst_dir}"
+  # Add a trailing / on the source to "copy the contents of this directory"
+  # as opposed to "copy the directory by name".
+  sudo rsync -Pa "${src_dir}/" "${data_dir}/${dst_dir}"
   image_umount_partition "${data_dir}"
 }
 
