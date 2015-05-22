@@ -23,6 +23,7 @@ die() {
 
 on_exit() {
   rm -f "$RESOURCE_FILE"
+  image_clean_temp
 }
 
 usage_die() {
@@ -78,6 +79,29 @@ merge_images() {
   "$builder" -m "$RESOURCE_FILE" -f "$output_file" "$@"
 }
 
+# lsb file is required for factory shim bootstrapping.
+generate_lsb() {
+  local image_file="$1"
+  local temp_mount="$(mktemp -d --tmpdir)"
+  local lsb_file="${temp_mount}/dev_image/etc/lsb-factory"
+
+  image_add_temp "${temp_mount}"
+  image_mount_partition "${image_file}" "1" "${temp_mount}" "rw" ||
+    die "Failed to mount partition 1 in ${image_file}"
+
+  # INSTALL_FROM_USB=1 tells factory_installer/factory_install.sh to install
+  # images from USB drive instead of mini-omaha server.
+  # Install shim kernel and rootfs are in partition #2 and #3 in a usbimg,
+  # and the factory and release image partitions are moved to +2 location.
+  # USB_OFFSET=2 tells factory_installer/factory_install.sh this information.
+  sudo mkdir -p "$(dirname "${lsb_file}")"
+  (echo "FACTORY_INSTALL_FROM_USB=1" &&
+    echo "FACTORY_INSTALL_USB_OFFSET=2") |
+    sudo dd of="${lsb_file}"
+
+  image_umount_partition "${temp_mount}"
+}
+
 main() {
   local force=""
   local output=""
@@ -105,6 +129,7 @@ main() {
   fi
 
   merge_images "$output" "$@"
+  generate_lsb "$output"
 }
 
 set -e
