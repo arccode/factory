@@ -61,9 +61,28 @@ _MSG_TEST_INPUT = MakeLabel('Please test input. '
                             'start-font-size')
 
 _MSG_UNPAIRING = MakeLabel('Unpairing', u'取消配对', 'start-font-size')
+_MSG_AUTH_FAILED = MakeLabel('Authentication failed, retrying...',
+                             u'验证失败，重试', 'start-font-size')
 
 INPUT_MAX_RETRY_TIMES = 10
 INPUT_RETRY_INTERVAL = 2
+
+
+def ColonizeMac(mac):
+  """ Given a MAC address, normalize its colons.
+
+  Example: ABCDEF123456 -> AB:CD:EF:12:34:56
+  """
+  mac_no_colons = ''.join(mac.split(':'))
+  groups = [mac_no_colons[x:x+2] for x in range(0, len(mac_no_colons), 2)]
+  return ':'.join(groups)
+
+
+def MakePasskeyLabelPrompt(passkey):
+  """Creates a label prompting the operator to enter a passkey"""
+  return MakeLabel('Enter passkey %s' % passkey,
+                   u'Enter passkey %s' % passkey,
+                   'start-font-size')
 
 
 def CheckInputCount():
@@ -153,9 +172,6 @@ class ScanDevicesTask(FactoryTask):
   If target_addresses is provided, the test will also check if it can find
   at least one device specified in target_addresses list.
   This passes the strongest matching device mac to _test.SetStrongestRssiMac
-
-  Args:
-    timeout_secs: The time duration to scan for devices.
   """
   # pylint: disable=W0231
 
@@ -163,9 +179,8 @@ class ScanDevicesTask(FactoryTask):
     self._test = test
     self._keyword = test.args.keyword
     self._average_rssi_threshold = test.args.average_rssi_threshold
-    self._scan_counts = 1
-    if self._average_rssi_threshold is not None:
-      self._scan_counts = test.args.scan_counts
+    self._mac_to_scan = test.GetInputDeviceMac()
+    self._scan_counts = test.args.scan_counts
     self._timeout_secs = test.args.scan_timeout_secs
 
     self._progress_thread = None
@@ -235,6 +250,10 @@ class ScanDevicesTask(FactoryTask):
     # Records RSSI of each scan and calculates average rssi.
     candidate_rssis = dict()
 
+    # Helper to check if the target MAC has been scanned
+    def has_scanned_target_mac():
+      return self._mac_to_scan and self._mac_to_scan in candidate_rssis
+
     for _ in xrange(self._scan_counts):
       self._test.template.SetState(_MSG_SCAN_DEVICE)
       self.SetAndStartScanProgressBar(self._timeout_secs)
@@ -250,6 +269,11 @@ class ScanDevicesTask(FactoryTask):
           logging.exception('Name or RSSI is not available in %s', mac)
 
       self.UpdateRssi(candidate_rssis, self.FilterByKeyword(devices))
+      # Optimization: if we are only interested in one particular address,
+      # then we can early-out as soon as we find it
+      if self._average_rssi_threshold is None and has_scanned_target_mac():
+        logging.info("Address found, ending scan early")
+        break
 
     logging.info('Found %d candidate device(s) in %s scans.',
                  len(candidate_rssis), self._scan_counts)
@@ -280,6 +304,12 @@ class ScanDevicesTask(FactoryTask):
         meet=max_average_rssi >= self._average_rssi_threshold)
 
     self._test.SetStrongestRssiMac(max_average_rssi_mac)
+
+    if self._mac_to_scan and not has_scanned_target_mac():
+      found_addresses = [str(k) for k in candidate_rssis]
+      self.Fail('Failed to find MAC address %s.'
+                'Scanned addresses: %s' % (self._mac_to_scan, found_addresses))
+      return
 
     if self._average_rssi_threshold is None:
       # Test is uninterested in RSSI thresholds
@@ -320,7 +350,8 @@ class UnpairTask(FactoryTask):
     """
     if self._device_mac and device_props["Address"] != self._device_mac:
       return False
-    if self._name_fragment and self._name_fragment not in device_props["Name"]:
+    if self._name_fragment and \
+       self._name_fragment not in device_props.get('Name', ''):
       return False
     return device_props["Paired"]
 
@@ -481,7 +512,8 @@ class InputTestTask(FactoryTask):
     success_create_device = self.RetryWithProgress(
         _MSG_PAIR_INPUT_DEVICE, 'create paired device',
         self._bt_manager.CreatePairedDevice, self._adapter,
-        self._target_mac)
+        self._target_mac, self._DisplayPasskey,
+        self._AuthenticationCancelled)
     if not success_create_device:
       self.Fail('InputTestTask: Fail to create paired device.')
       return
@@ -504,6 +536,14 @@ class InputTestTask(FactoryTask):
       return
 
     self.OperatorTestInput()
+
+  def _DisplayPasskey(self, passkey):
+    logging.info("Displaying passkey %s", passkey)
+    label = MakePasskeyLabelPrompt(passkey)
+    self._test.template.SetState(label)
+
+  def _AuthenticationCancelled(self):
+    self._test.template.SetState(_MSG_AUTH_FAILED)
 
 
 class BluetoothTest(unittest.TestCase):
@@ -529,6 +569,10 @@ class BluetoothTest(unittest.TestCase):
       Arg('scan_timeout_secs', int, 'Timeout to do one scan', default=5),
       Arg('input_device_mac', str, 'The mac address of bluetooth input device',
           default=None, optional=True),
+      Arg('input_device_mac_key', str, 'A key for factory shared data '
+          'containing the mac address', default=None, optional=True),
+      Arg('scan_mac_only', bool, 'If true, do not attempt to pair with '
+          'input_device_mac', default=None, optional=True),
       Arg('pair_with_match', bool, 'Whether to pair with the strongest match.',
           default=False, optional=True),
       Arg('finish_after_pair', bool, 'Whether the test should end immediately '
@@ -545,17 +589,23 @@ class BluetoothTest(unittest.TestCase):
 
     This may be specified in the arguments, or computed at scan time.
     """
-    if self.args.input_device_mac:
-      return self.args.input_device_mac
+    if self._input_device_mac:
+      return self._input_device_mac
     else:
       return self._strongest_rssi_mac
 
   def setUp(self):
     self.ui = test_ui.UI()
+    self.ui.AppendCSS('.start-font-size {font-size: 2em;}')
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetTitle(_TEST_TITLE)
     self._task_list = []
     self._strongest_rssi_mac = None
+    if self.args.input_device_mac_key:
+      self._input_device_mac = \
+        ColonizeMac(factory.get_shared_data(self.args.input_device_mac_key))
+    else:
+      self._input_device_mac = self.args.input_device_mac
 
   def runTest(self):
     if self.args.expected_adapter_count:
@@ -569,15 +619,12 @@ class BluetoothTest(unittest.TestCase):
 
     if self.args.unpair:
       self._task_list.append(
-          UnpairTask(self, self.args.input_device_mac, self.args.keyword))
-    else:
-      # Only prompt to turn on the input device if the MAC address was explicit
-      # If we found the device via a scan, then of course it's already on
-      if self.args.input_device_mac:
+          UnpairTask(self, self._input_device_mac, self.args.keyword))
+    elif not self.args.scan_mac_only and \
+        (self._input_device_mac or self.args.pair_with_match):
+      # If the MAC address was found via a scan, then of course it's already on
+      if not self.args.pair_with_match:
         self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_INPUT_DEVICE))
-
-      if self.args.input_device_mac or self.args.pair_with_match:
-        self._task_list.append(
-            InputTestTask(self, self.args.finish_after_pair))
+      self._task_list.append(InputTestTask(self, self.args.finish_after_pair))
 
     FactoryTaskManager(self.ui, self._task_list).Run()
