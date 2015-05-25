@@ -5,6 +5,7 @@
 
 from __future__ import print_function
 
+import collections
 import json
 import os
 import re
@@ -41,6 +42,9 @@ _TMP_STDOUT = '/tmp/stdout.txt'
 # __name__ looks like "cros.factory.test.pytests.touchscreen_calibration".
 # test_name is "touchscreen_calibration"
 test_name = __name__.split('.')[-1]
+
+
+Event = collections.namedtuple('Event', ['data',])
 
 
 class Error(Exception):
@@ -260,6 +264,7 @@ class TouchscreenCalibration(unittest.TestCase):
       if self.sensors.CheckStatus():
         factory.console.info('touchscreen exist')
         self.ui.CallJSFunction('setTouchscreenStatus', True)
+        self.GetSerialNumber()
         return
     except Exception as e:
       factory.console.info('Exception at refreshing touch screen: %s', e)
@@ -553,6 +558,12 @@ class TouchscreenCalibration(unittest.TestCase):
       self.ui.CallJSFunction('showMessage', msg)
       return False
     return True
+
+  def GetSerialNumber(self, unused_event=None):
+    """Get the DUT's serial number from the shopfloor."""
+    sn = shopfloor.get_serial_number()
+    self.ui.CallJSFunction('fillInSerialNumber', sn)
+    self.StartCalibration(Event({'sn': sn}))
 
   def StartCalibration(self, event):
     """Starts the calibration thread.

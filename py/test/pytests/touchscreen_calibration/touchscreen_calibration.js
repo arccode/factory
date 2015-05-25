@@ -33,6 +33,12 @@ function snEntered(event) {
   }
 }
 
+function fillInSerialNumber(sn) {
+  var elm = document.getElementById('sn');
+  elm.value = sn;
+  elm.style.backgroundColor = '#5F5';
+}
+
 function init() {
   test.sendTestEvent('RefreshFixture', {});
   test.sendTestEvent('RefreshTouchscreen', {});
