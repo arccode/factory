@@ -90,8 +90,9 @@ layout_copy_partition() {
     local partition_type="$(cgpt show -q -n -t -i "$input_part" "$input_file")"
     local partition_attr="$(cgpt show -q -n -A -i "$input_part" "$input_file")"
     local partition_label="$(cgpt show -q -n -l -i "$input_part" "$input_file")"
+    local partition_guid="$(cgpt show -q -n -u -i "$input_part" "$input_file")"
     cgpt add -t "$partition_type" -l "$partition_label" -A "$partition_attr" \
-             -i "$output_part" "$output_file"
+             -u "$partition_guid" -i "$output_part" "$output_file"
   else
     image_update_partition "$output_file" "$output_part" <"$input_file"
   fi
