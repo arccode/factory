@@ -716,9 +716,10 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Download list prepared:\n%s',
                          '\n'.join(download_list))
     if len(download_list) < len(self._parameters):
-      factory.console.error('Parameters cannot be found on shopfloor:\n%s',
-                            self._parameters)
-      self._ui.Fail('Parameters cannot be found on shopfloor')
+      factory.console.warn('Parameters cannot be found on shopfloor:\n%s',
+                           self._parameters)
+      return
+
     # Download the list and saved to caches in state directory.
     for filepath in download_list:
       Spawn(['mkdir', '-p', os.path.join(
