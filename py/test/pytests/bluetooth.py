@@ -80,8 +80,8 @@ def ColonizeMac(mac):
 
 def MakePasskeyLabelPrompt(passkey):
   """Creates a label prompting the operator to enter a passkey"""
-  return MakeLabel('Enter passkey %s' % passkey,
-                   u'Enter passkey %s' % passkey,
+  return MakeLabel('Enter passkey %s then press enter' % passkey,
+                   u'型 %s 按回车' % passkey,
                    'start-font-size')
 
 
