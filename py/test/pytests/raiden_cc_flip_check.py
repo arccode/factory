@@ -64,7 +64,12 @@ class RaidenCCFlipCheck(unittest.TestCase):
       self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
     self._board = system.GetBoard()
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
-    self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
+    self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')
+    if self._adb_remote_test:
+      # For remote test, keep adb connection enabled.
+      self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
+    else:
+      self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
     time.sleep(1)  # Wait for PD negotiate and settle down
     self._polarity = self.GetCCPolarity()
 
@@ -77,6 +82,9 @@ class RaidenCCFlipCheck(unittest.TestCase):
     port_status = self._board.GetUSBPDStatus(self.args.raiden_index)
     # For newer version EC, port_status[state] will return string instead of
     # state number.
+    if self._adb_remote_test:
+      # For remote test, just feedback polarity.
+      return port_status['polarity']
     if (port_status['state'] == self.args.state_src_ready or
         port_status['state'] == 'SRC_READY'):
       return port_status['polarity']
