@@ -528,7 +528,12 @@ class VPDTest(unittest.TestCase):
                 sorted(missing_keys))
 
     self.vpd['ro']['serial_number'] = device_data['serial_number']
-    self.vpd['ro']['region'] = device_data['region']
+
+    region = REGIONS[device_data['region']]
+    self.vpd['ro']['region'] = region.region_code
+    if self.args.write_legacy_regional_vpd_values:
+      self.vpd['ro'].update(region.GetLegacyVPDSettings(
+          self.args.allow_multiple_l10n))
 
     for ro_or_rw, key in self.args.extra_device_data_fields:
       self.vpd[ro_or_rw][key] = device_data[key]
