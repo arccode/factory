@@ -175,12 +175,12 @@ class ChromeOSBoard(Board):
   def GetECVersion(self):
     process = self._Spawn(['mosys', 'ec', 'info', '-s', 'fw_version'],
                           read_stdout=True, ignore_stderr=True)
-    return process.stdout_data.strip() if process.returncode == 0 else None
+    return process.stdout_data.strip() if process.returncode == 0 else ""
 
   def GetPDVersion(self):
     process = self._Spawn(['mosys', 'pd', 'info', '-s', 'fw_version'],
                           read_stdout=True, ignore_stderr=True)
-    return process.stdout_data.strip() if process.returncode == 0 else None
+    return process.stdout_data.strip() if process.returncode == 0 else ""
 
   def GetMainFWVersion(self):
     return Spawn(['crossystem', 'ro_fwid'],
