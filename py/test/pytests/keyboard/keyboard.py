@@ -65,6 +65,9 @@ class KeyboardTest(unittest.TestCase):
       Arg('board', str,
           'If presents, in filename, the board name is appended after layout.',
           default=''),
+      Arg('name_fragment', str, 'If present, a substring of the input device '
+          'name specifying which keyboard to test.',
+          default=None, optional=True),
       Arg('skip_power_key', bool, 'Skip power button testing', default=False),
       Arg('skip_keycodes', list, 'Keycodes to skip', default=[]),
       Arg('replacement_keymap', dict, 'Dictionary mapping key codes to '
@@ -82,7 +85,11 @@ class KeyboardTest(unittest.TestCase):
 
     # Get the keyboard input device.
     keyboard_devices = evdev_utils.GetKeyboardDevices()
-    assert len(keyboard_devices) == 1, 'Multiple keyboards detected.'
+    if self.args.name_fragment:
+      device_matcher = lambda k: self.args.name_fragment in k.name
+      keyboard_devices = filter(device_matcher, keyboard_devices)
+    assert len(keyboard_devices) >= 1, 'No matching keyboards detected.'
+    assert len(keyboard_devices) <= 1, 'Multiple keyboards detected.'
     self.keyboard_device = keyboard_devices[0]
 
     # Initialize keyboard layout and bindings
@@ -91,7 +98,7 @@ class KeyboardTest(unittest.TestCase):
       self.layout += '_%s' % self.args.board
     self.bindings = self.ReadBindings(self.layout)
 
-    # Apply any replaceent keymap
+    # Apply any replacement keymap
     for old_key, new_key in self.args.replacement_keymap.iteritems():
       if old_key in self.bindings:
         self.bindings[new_key] = self.bindings[old_key]
