@@ -60,6 +60,11 @@ class SyncShopfloor(unittest.TestCase):
     def target():
       retry_secs = self.args.first_retry_secs
 
+      def needs_update():
+        unused_md5sum, has_update = updater.CheckForUpdate(
+            self.args.timeout_secs)
+        return has_update
+
       while True:
         template.SetState(test_ui.MakeLabel(
             'Contacting shopfloor server...',
@@ -73,9 +78,7 @@ class SyncShopfloor(unittest.TestCase):
           if self.args.sync_event_logs:
             goofy.FlushEventLogs()
           goofy.SyncTimeWithShopfloorServer()
-          unused_md5sum, needs_update = updater.CheckForUpdate(
-              self.args.timeout_secs)
-          if not needs_update or self.args.disable_update:
+          if self.args.disable_update or not needs_update():
             # No update necessary; pass.
             ui.Pass()
             return
