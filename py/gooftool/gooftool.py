@@ -571,6 +571,17 @@ def VerifyBranding(options):  # pylint: disable=W0613
   return GetGooftool(options).VerifyBranding()
 
 
+@Command('verify_release_channel')
+def VerifyReleaseChannel(options):  # pylint: disable=W0613
+  """Verify that release image channel is correct.
+
+  ChromeOS has four channels: canary, dev, beta and stable.
+  The last three channels support image auto-updates, checks
+  that release image channel is one of them.
+  """
+  return GetGooftool(options).VerifyReleaseChannel()
+
+
 @Command('write_protect')
 def EnableFwWp(options):  # pylint: disable=W0613
   """Enable then verify firmware write protection."""
@@ -691,6 +702,7 @@ def Verify(options):
   VerifyRootFs(options)
   VerifyTPM(options)
   VerifyBranding(options)
+  VerifyReleaseChannel(options)
 
 
 @Command('untar_stateful_files')

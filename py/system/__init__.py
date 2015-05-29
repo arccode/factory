@@ -68,8 +68,9 @@ class SystemInfo(object):
   # If not None, an update that is available from the update server.
   update_md5sum = None
 
-  # The cached release image version.
+  # The cached release image version and channel.
   release_image_version = None
+  release_image_channel = None
 
   def __init__(self):
     self.mlb_serial_number = None
@@ -110,30 +111,59 @@ class SystemInfo(object):
     except:
       pass
 
-    self.release_image_version = None
-    try:
-      if SystemInfo.release_image_version:
-        self.release_image_version = SystemInfo.release_image_version
-        logging.debug('Obtained release image version from SystemInfo: %r',
-                      self.release_image_version)
+    def _GetReleaseLSBValue(lsb_key):
+      """Gets the value from the lsb-release file on release image."""
+      if not _GetReleaseLSBValue.lsb_content:
+        try:
+          release_rootfs = partitions.RELEASE_ROOTFS.path
+          _GetReleaseLSBValue.lsb_content = (
+              MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release'))
+        except:
+          pass
+
+      match = re.search('^%s=(.+)$' % lsb_key,
+                        _GetReleaseLSBValue.lsb_content,
+                        re.MULTILINE)
+      if match:
+        return match.group(1)
       else:
-        release_rootfs = partitions.RELEASE_ROOTFS.path
-        lsb_release = MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release')
-        logging.debug('Release image version does not exist in SystemInfo. '
-                      'Try to get it from lsb-release from release partition.')
+        return None
+    # The cached content of lsb-release file.
+    _GetReleaseLSBValue.lsb_content = ""
 
-        match = re.search('^GOOGLE_RELEASE=(.+)$', lsb_release, re.MULTILINE)
-        if match:
-          self.release_image_version = match.group(1)
-          logging.debug('release image version: %s',
-                        self.release_image_version)
-          logging.debug('Cache release image version to SystemInfo.')
-          SystemInfo.release_image_version = self.release_image_version
-        else:
-          logging.debug('Can not read release image version from lsb-release.')
+    self.release_image_version = None
+    if SystemInfo.release_image_version:
+      self.release_image_version = SystemInfo.release_image_version
+      logging.debug('Obtained release image version from SystemInfo: %r',
+                    self.release_image_version)
+    else:
+      logging.debug('Release image version does not exist in SystemInfo. '
+                    'Try to get it from lsb-release from release partition.')
 
-    except:
-      pass
+      self.release_image_version = _GetReleaseLSBValue('GOOGLE_RELEASE')
+      if self.release_image_version:
+        logging.debug('Release image version: %s', self.release_image_version)
+        logging.debug('Cache release image version to SystemInfo.')
+        SystemInfo.release_image_version = self.release_image_version
+      else:
+        logging.debug('Can not read release image version from lsb-release.')
+
+    self.release_image_channel = None
+    if SystemInfo.release_image_channel:
+      self.release_image_channel = SystemInfo.release_image_channel
+      logging.debug('Obtained release image channel from SystemInfo: %r',
+                    self.release_image_channel)
+    else:
+      logging.debug('Release image channel does not exist in SystemInfo. '
+                    'Try to get it from lsb-release from release partition.')
+
+      self.release_image_channel = _GetReleaseLSBValue('CHROMEOS_RELEASE_TRACK')
+      if self.release_image_channel:
+        logging.debug('Release image channel: %s', self.release_image_channel)
+        logging.debug('Cache release image channel to SystemInfo.')
+        SystemInfo.release_image_channel = self.release_image_channel
+      else:
+        logging.debug('Can not read release image channel from lsb-release.')
 
     self.wlan0_mac = None
     try:

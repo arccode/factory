@@ -17,7 +17,8 @@ from cros.factory import system
 from cros.factory.system.board import Board
 from cros.factory.system import partitions
 
-MOCK_RELEASE_IMAGE_LSB_RELEASE = 'GOOGLE_RELEASE=5264.0.0'
+MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
+                                  'CHROMEOS_RELEASE_TRACK=canary-channel\n')
 
 
 class SystemStatusTest(unittest.TestCase):
@@ -89,9 +90,11 @@ class SystemInfoTest(unittest.TestCase):
 
     info = system.SystemInfo()
     self.assertEquals('5264.0.0', info.release_image_version)
+    self.assertEquals('canary-channel', info.release_image_channel)
     # The cached release image version will be used in the second time.
     info = system.SystemInfo()
     self.assertEquals('5264.0.0', info.release_image_version)
+    self.assertEquals('canary-channel', info.release_image_channel)
 
     self.mox.VerifyAll()
 

@@ -29,7 +29,8 @@ from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
-from cros.factory.system import vpd, SystemInfo
+from cros.factory.system import SystemInfo
+from cros.factory.system import vpd
 from cros.factory.test import branding
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import CheckOutput
@@ -517,6 +518,29 @@ class GooftoolTest(unittest.TestCase):
     self.mox.ReplayAll()
     self.assertRaisesRegexp(ValueError, 'Bad format for customization_id',
                             self._gooftool.VerifyBranding)
+
+  def testVerifyReleaseChannel_CanaryChannel(self):
+    SystemInfo.release_image_channel = 'canary-channel'
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(Error,
+                            'Release image channel is incorrect: %s' % (
+                                SystemInfo.release_image_channel),
+                            self._gooftool.VerifyReleaseChannel)
+
+  def testVerifyReleaseChannel_DevChannel(self):
+    SystemInfo.release_image_channel = 'dev-channel'
+    self.mox.ReplayAll()
+    self._gooftool.VerifyReleaseChannel()
+
+  def testVerifyReleaseChannel_BetaChannel(self):
+    SystemInfo.release_image_channel = 'beta-channel'
+    self.mox.ReplayAll()
+    self._gooftool.VerifyReleaseChannel()
+
+  def testVerifyReleaseChannel_StableChannel(self):
+    SystemInfo.release_image_channel = 'stable-channel'
+    self.mox.ReplayAll()
+    self._gooftool.VerifyReleaseChannel()
 
   def testCheckDevSwitchForDisabling(self):
     # 1st call: virtual switch
