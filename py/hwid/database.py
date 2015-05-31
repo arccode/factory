@@ -379,12 +379,12 @@ class Database(object):
             found = False
             break
         else:
-          # Create a set of component names of db_comp_cls from the
+          # Create a sorted list of component names of db_comp_cls from the
           # probed_components argument.
-          bom_component_names_of_the_class = MakeSet([
+          bom_component_names_of_the_class = sorted([
               x.component_name for x in probed_components[db_comp_cls]])
-          # Create a set of component names of db_comp_cls from the database.
-          db_component_names_of_the_class = MakeSet(db_comp_names)
+          # Create a sorted list of component names of db_comp_cls from the database.
+          db_component_names_of_the_class = sorted(db_comp_names)
           if (bom_component_names_of_the_class !=
               db_component_names_of_the_class):
             found = False
