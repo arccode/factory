@@ -7,7 +7,7 @@
 """
 This is audio utility module to setup tinymix related options.
 We don't use original tinymix to get old value.
-We use modified version, because the enum value is too hard to know the boundary.
+We use modified version because the enum value is too hard to know the boundary.
 The original one only have start sign before the value.
 e.g. >ABC DEF GHI
 In this case we don't know the value is 'ABC' or 'ABC DEF' or 'ABC DEF GHI'
@@ -20,7 +20,9 @@ value.
 from __future__ import print_function
 
 import logging
+import os
 import re
+import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.process_utils import Spawn
@@ -54,8 +56,9 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   _RE_CARD_INDEX = re.compile(r'.*(\d+).*?\[(.+?)\]')
 
-  def __init__(self, dut):
+  def __init__(self, dut, remote_directory='/data'):
     super(TinyalsaAudioControl, self).__init__(dut)
+    self._remote_directory = remote_directory
 
   def GetCardIndexByName(self, card_name):
     """See BaseAudioControl.GetCardIndexByName"""
@@ -66,13 +69,8 @@ class TinyalsaAudioControl(base.BaseAudioControl):
         return m.group(1)
     raise ValueError('device name %s is incorrect' % card_name)
 
-  def GetMixerControls(self, name, card='0'):
-    """See BaseAudioControl.GetMixerControls """
-    # It's too hard to specify a name for Enum value.
-    # So we provide our tinymix to get value.
-    # The output looks like >value<
-    command = ['tinymixget', '-D', card, name]
-    lines = self.CheckOutput(command)
+  def _GetMixerControlsByLines(self, name, lines):
+    """Get Mixer control value by the tinymixget results"""
     # Try Enum value
     m = re.search(r'.*%s:.*>(.*)<.*' % name, lines, re.MULTILINE)
     if m:
@@ -98,8 +96,55 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     logging.info('Unable to get value for mixer control \'%s\'', name)
     return None
 
+  def GetMixerControls(self, name, card='0'):
+    """See BaseAudioControl.GetMixerControls """
+    # It's too hard to specify a name for Enum value.
+    # So we provide our tinymix to get value.
+    # The output looks like >value<
+    command = ['tinymixget', '-D', card, name]
+    lines = self.CheckOutput(command)
+    return self._GetMixerControlsByLines(name, lines)
+
+  def _PushAndExecute(self, push_path, pull_path=None):
+    """Push file to dut and execute it and then get result file back
+    The function will not leave the files on the dut.
+    So it will remove them after execution and pull.
+
+    Args:
+      push_path: The file path to be pushed in Fixture
+      pull_path: The file path to be pulled in Fixture
+    """
+    filename = os.path.basename(push_path)
+    remote_path = os.path.join(self._remote_directory, filename)
+    self._dut.Push(push_path, remote_path)
+    self._dut.Shell(['chmod', '777', remote_path])
+    self._dut.Shell(remote_path)
+    self._dut.Shell(['rm', '-f', remote_path])
+    if pull_path:
+      filename = os.path.basename(pull_path)
+      remote_path = os.path.join(self._remote_directory, filename)
+      self._dut.Pull(remote_path, pull_path)
+      self._dut.Shell(['rm', '-f', remote_path])
+
+  def _GenerateGetOldValueShellScript(self, open_file, output_file,
+                                      mixer_settings, card):
+    """Generate a bash file to get tinymix old value"""
+    result_file = os.path.basename(output_file.name)
+    result_path = os.path.join(self._remote_directory, result_file)
+    for name in mixer_settings:
+      open_file.write('tinymixget -D %s \'%s\' >> %s\n' % (card, name,
+                                                           result_path))
+
+  def _GenerateSetValueShellScript(self, open_file, mixer_settings, card):
+    """Generate a bash file to get tinymix old value"""
+    for name, value in mixer_settings.items():
+      logging.info('Set \'%s\' to \'%s\' on card %s', name, value, card)
+      open_file.write('tinymix -D %s \'%s\' \'%s\'\n' % (card, name, value))
+
   def SetMixerControls(self, mixer_settings, card='0', store=True):
     """Sets all mixer controls listed in the mixer settings on card.
+    ADB is too slow to execute command one by one.
+    So we will do batch execution
 
     Args:
       mixer_settings: A dict of mixer settings to set.
@@ -109,17 +154,26 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     """
     logging.info('Setting mixer control values on card %s', card)
     restore_mixer_settings = dict()
-    for name, value in mixer_settings.items():
-      if store:
-        old_value = self.GetMixerControls(name, card)
-        restore_mixer_settings[name] = old_value
-        logging.info('Save \'%s\' with value \'%s\' on card %s',
-                     name, old_value, card)
-      logging.info('Set \'%s\' to \'%s\' on card %s', name, value, card)
-      command = ['tinymix', '-D', card, name, value]
-      self.CheckCall(command)
     if store:
-      self._restore_mixer_control_stack.append((restore_mixer_settings, card))
+      with tempfile.NamedTemporaryFile() as get_sh_file:
+        with tempfile.NamedTemporaryFile() as output:
+          self._GenerateGetOldValueShellScript(get_sh_file, output,
+                                               mixer_settings, card)
+          get_sh_file.flush()
+          self._PushAndExecute(get_sh_file.name, output.name)
+          lines = open(output.name).read()
+          for name in mixer_settings:
+            old_value = self._GetMixerControlsByLines(name, lines)
+            restore_mixer_settings[name] = old_value
+            logging.info('Save \'%s\' with value \'%s\' on card %s',
+                         name, old_value, card)
+            self._restore_mixer_control_stack.append((restore_mixer_settings,
+                                                      card))
+    # Set Mixer controls
+    with tempfile.NamedTemporaryFile() as set_sh_file:
+      self._GenerateSetValueShellScript(set_sh_file, mixer_settings, card)
+      set_sh_file.flush()
+      self._PushAndExecute(set_sh_file.name)
 
   def CreateAudioLoop(self, in_card, in_dev, out_card, out_dev):
     """Create an audio loop by tinyloop.
