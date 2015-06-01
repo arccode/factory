@@ -8,13 +8,14 @@ FACTORY_BASE="/usr/local/factory"
 DOLPHIN="${FACTORY_BASE}/py/test/fixture/whale/host/dolphin_server.py"
 DOLPHIN_LOG="/var/log/dolphin_server.log"
 
+BOARD=$1
 PORT=9997
 
 main() {
   while true; do
     echo "Starting $DOLPHIN..."
     iptables -A INPUT -p tcp --dport $PORT -j ACCEPT
-    $DOLPHIN -d --host=0.0.0.0 --port=$PORT 2>$DOLPHIN_LOG
+    $DOLPHIN -d --board=$BOARD --host=0.0.0.0 --port=$PORT 2>$DOLPHIN_LOG
     echo "$DOLPHIN exits with exit code $?. Restarting..."
     sleep 3
   done

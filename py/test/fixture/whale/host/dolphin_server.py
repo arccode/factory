@@ -20,6 +20,7 @@ from cros.factory.test.fixture.whale import serial_server
 # server address
 DEFAULT_PORT = 9997
 DEFAULT_HOST = 'localhost'
+DEFAULT_BOARD = 'whale_samus'
 
 # definition of plankton raiden parameters
 PLANKTON_SERIAL_PARAMS = {'driver': 'ftdi_sio',
@@ -30,11 +31,9 @@ PLANKTON_SERIAL_PARAMS = {'driver': 'ftdi_sio',
                           'timeout': 3,
                           'writeTimeout': 3}
 
-PLANKTON_CONN_PORT = ['1-1.3.2',  # left raiden
-                      '1-1.2.4']  # right raiden
-
-DOLPHIN_PARAMS = [{'serial_params': PLANKTON_SERIAL_PARAMS,
-                   'port_index': port} for port in PLANKTON_CONN_PORT]
+PLANKTON_CONN_PORT = {'whale_samus': ['1-1.3.2',  # left raiden
+                                      '1-1.2.4'],  # right raiden
+                      'whale_ryu': ['1-1.2.4']}  # right raiden
 
 
 def ParseArgs():
@@ -61,6 +60,8 @@ def ParseArgs():
                     help='hostname to start server on')
   parser.add_option('', '--port', default=DEFAULT_PORT, type=int,
                     help='port for server to listen on')
+  parser.add_option('', '--board', default=DEFAULT_BOARD, type=str,
+                    help='board name for whale server')
   parser.set_usage(parser.get_usage() + examples)
   return parser.parse_args()
 
@@ -71,6 +72,24 @@ def ModprobeFtdiDriver():
   with open('/sys/bus/usb-serial/drivers/ftdi_sio/new_id', 'w') as f:
     f.write('18d1 500c\n')
   time.sleep(1)  # Wait after modprobe for TTY connection
+
+
+def GetDolphinParamsByBoard(board):
+  """Gets dolphin parameters for specified whale board name.
+
+  Args:
+    board: Board name for whale server.
+
+  Returns:
+    Dolphin parameters in a list to indicate the dolphin server(s).
+  """
+  if board not in PLANKTON_CONN_PORT:
+    logging.info(
+        'board=%s not supported, use whale_samus as default board...', board)
+    board = 'whale_samus'
+  logging.info('Set config board=%s', board)
+  return [{'serial_params': PLANKTON_SERIAL_PARAMS,
+           'port_index': port} for port in PLANKTON_CONN_PORT[board]]
 
 
 def RealMain():
@@ -91,11 +110,12 @@ def RealMain():
       allow_none=True)
 
   ModprobeFtdiDriver()
-  dolphin_server = serial_server.SerialServer(DOLPHIN_PARAMS,
+  dolphin_params = GetDolphinParamsByBoard(options.board)
+  dolphin_server = serial_server.SerialServer(dolphin_params,
                                               verbose=options.debug)
   server.register_introspection_functions()
   server.register_instance(dolphin_server)
-  logger.info('Listening on %s port %s' % (options.host, options.port))
+  logger.info('Listening on %s port %s', options.host, options.port)
   server.serve_forever()
 
 

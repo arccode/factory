@@ -41,7 +41,7 @@ main() {
   start_servod
   start_network
   # TODO(deanliao): make interrupt_handler as a service.
-  $DOLPHIN_SERVER_BIN &
+  $DOLPHIN_SERVER_BIN ${BOARD} &
   $WHALE_SERVO_BIN &
 }
 
