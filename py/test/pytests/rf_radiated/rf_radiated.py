@@ -64,6 +64,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory import system
 from cros.factory.rf import n1914a
 from cros.factory.test.args import Arg
 from cros.factory.test import event_log
@@ -91,13 +92,18 @@ class RFRadiatedTest(unittest.TestCase):
           'False, the test will try to load config file from local disk and '
           'won\'t upload aux log. ',
           optional=False),
-      Arg('network_config', dict, 'A dict containing keys {ip, netmask, '
-          'gateway} to set on the ethernet adapter.', optional=False),
+      Arg('network_config', dict, 'A dict containing keys {interface, ip, '
+          'netmask, gateway} to set on the ethernet adapter.', optional=False),
       Arg('event_log_name', str, 'Name of the event_log, like '
           '"wifi_radiated".', optional=False),
       Arg('shopfloor_log_dir', str, 'Directory in which to save logs on '
           'shopfloor.  For example: "wifi_radiated".  Only takes effect if '
-          '"enable_shopfloor" is set to True.', default=None, optional=True)]
+          '"enable_shopfloor" is set to True.', default=None, optional=True),
+      Arg('blink_keyboard_lights', bool,
+          'Blink keyboard lights while running test.  Useful if test is '
+          'running on a DUT within a chamber.', default=False, optional=True),
+      ]
+
 
   def __init__(self, *args, **kwargs):
     super(RFRadiatedTest, self).__init__(*args, **kwargs)
@@ -108,6 +114,7 @@ class RFRadiatedTest(unittest.TestCase):
 
     # Initialize the log dict, which will later be fed into event log and
     # stored as an aux_log on shopfloor.
+    board = system.GetBoard()
     self.log = {
         'config': {
             'file_path': None,
@@ -116,10 +123,9 @@ class RFRadiatedTest(unittest.TestCase):
             'antenna_model': None,
             'device_id': event_log.GetDeviceId(),
             'mac_address': net_utils.GetWLANMACAddress(),
-            'serial_number': shopfloor.GetDeviceData().get(
-                'serial_number', None),
-            'mlb_serial_number': shopfloor.GetDeviceData().get(
-                'mlb_serial_number', None)},
+            'serial_number': board.GetSerialNumber(),
+            'mlb_serial_number': board.GetMlbSerialNumber(),
+            'nvidia_serial_number': board.GetNvidiaSerialNumber()},
         'test': {
             'start_time': None,
             'end_time': None,
@@ -134,9 +140,10 @@ class RFRadiatedTest(unittest.TestCase):
   def setUp(self):
     # We're in the chamber without a monitor.  Start blinking keyboard LEDs to
     # inform the operator that we're still working.
-    self.leds_blinker = leds.Blinker(
-        [(0, 0.5), (leds.LED_NUM | leds.LED_CAP | leds.LED_SCR, 0.5)])
-    self.leds_blinker.Start()
+    if self.args.blink_keyboard_lights:
+      self.leds_blinker = leds.Blinker(
+          [(0, 0.5), (leds.LED_NUM | leds.LED_CAP | leds.LED_SCR, 0.5)])
+      self.leds_blinker.Start()
 
     # TODO(littlecvr): Enable fine controls in engineering mode.
 
@@ -169,9 +176,9 @@ class RFRadiatedTest(unittest.TestCase):
       self.log['config']['file_path'] = self.args.config_file_path
 
       # Enter manufacturing mode.
-      logging.info('Entering manufacturing mode.')
+      factory.console.info('Entering manufacturing mode.')
       self.chip_controller = self._CreateChipController(
-          self.config['chip_controller_config'])
+          self.dut, self.config['chip_controller_config'])
       self.chip_controller.EnterMFGMode()
 
       # Set up power meter.
@@ -188,11 +195,16 @@ class RFRadiatedTest(unittest.TestCase):
       self.log['test']['failures'].append(
           ''.join(traceback.format_exception(*sys.exc_info())))
       self._EndTest()
+    finally:
+      raise
 
   def _SetUpNetwork(self, network_config):
     """Manually sets ethernet IP address and adds route to shopfloor."""
     # Find ethernet adapter and set IP.
-    interface = net_utils.FindUsableEthDevice(raise_exception=True)
+    if 'interface' in network_config:
+      interface = network_config['interface']
+    else:
+      interface = net_utils.FindUsableEthDevice(raise_exception=True)
     process_utils.Spawn([
         'ifconfig', interface, network_config['ip'],
         'netmask', network_config['netmask']], check_call=True)
@@ -212,7 +224,7 @@ class RFRadiatedTest(unittest.TestCase):
       power_meter.SetContinuousTrigger(port)
     return power_meter
 
-  def _CreateChipController(self, chip_controller_config):
+  def _CreateChipController(self, dut, chip_controller_config):
     """Creates WiFi/LTE chip controller for the current system.
 
     This is a virtual function that derived classes should override.
@@ -304,37 +316,70 @@ class RFRadiatedTest(unittest.TestCase):
       2. Save into event log, and upload aux log onto shopfloor.
       3. Stop blinking USB keyboard LEDs.
       4. Raise an exception if there are any failures.
+
+    _EndTest should never raise an exception due to internal failure.  It should
+    catch internal failures and store them into self.log['test']['failures'].
+    At the end of _EndTest, if there are any failures in self.log, it will raise
+    an Exception with these failures.
+
+    Raises:
+      Exception if there are any failures in self.log['test']['failures'].  The
+      exception message will be all failure strings joined together.
     """
-    # Leave manufacturing mode.
-    if self.chip_controller:
-      self.chip_controller.LeaveMFGMode()
-    # Close the connection to power meter.
-    if self.power_meter:
-      self.power_meter.Close()
+    try:
+      # Leave manufacturing mode.
+      if self.chip_controller:
+        self.chip_controller.LeaveMFGMode()
+    except Exception:
+      self.log['test']['failures'].append(
+          'Error leaving manufacturing mode: '
+          ''.join(traceback.format_exception(*sys.exc_info())))
 
-    # Save into event log.
-    logging.info('Saving into event log.')
-    event_log_fields = {
-        'fixture_id': self.log['test']['fixture_id'],
-        'panel_serial': self.log['dut']['serial_number']}
-    event_log_fields.update(self.log)
-    event_log.Log(self.args.event_log_name, **event_log_fields)
-    # Upload aux log onto shopfloor if needed.
-    if self.args.enable_shopfloor and self.args.shopfloor_log_dir is not None:
-      logging.info('Uploading aux log onto shopfloor.')
-      log_file_name = 'log_%s_%s_%s.yaml' % (
-          datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3],  # time
-          self.log['dut']['serial_number'],  # serial number
-          self.log['dut']['mac_address'].replace(':', ''))  # MAC w/o delimiters
-      log_content = yaml.dump(self.log, default_flow_style=False)
-      shopfloor_server = shopfloor.GetShopfloorConnection()
-      shopfloor_server.SaveAuxLog(
-          posixpath.join(self.args.shopfloor_log_dir, log_file_name),
-          xmlrpclib.Binary(log_content))
+    try:
+      # Close the connection to power meter.
+      if self.power_meter:
+        self.power_meter.Close()
+    except Exception:
+      self.log['test']['failures'].append(
+          'Error closing connection to power meter: '
+          ''.join(traceback.format_exception(*sys.exc_info())))
 
-    # Stop blinking LEDs.
-    if self.leds_blinker:
-      self.leds_blinker.Stop()
+    try:
+      # Save into event log.
+      logging.info('Saving into event log.')
+      event_log_fields = {
+          'fixture_id': self.log['test']['fixture_id'],
+          'panel_serial': self.log['dut']['serial_number']}
+      event_log_fields.update(self.log)
+      event_log.Log(self.args.event_log_name, **event_log_fields)
+      # Upload aux log onto shopfloor if needed.
+      if self.args.enable_shopfloor and self.args.shopfloor_log_dir is not None:
+        logging.info('Uploading aux log onto shopfloor.')
+        log_file_name = 'log_%s_%s_%s.yaml' % (
+            # time
+            datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3],
+            # serial number
+            self.log['dut']['serial_number'],
+            # MAC w/o delimeters
+            self.log['dut']['mac_address'].replace(':', ''))
+        log_content = yaml.dump(self.log, default_flow_style=False)
+        shopfloor_server = shopfloor.GetShopfloorConnection()
+        shopfloor_server.SaveAuxLog(
+            posixpath.join(self.args.shopfloor_log_dir, log_file_name),
+            xmlrpclib.Binary(log_content))
+    except Exception:
+      self.log['test']['failures'].append(
+          'Error saving event log: '
+          ''.join(traceback.format_exception(*sys.exc_info())))
+
+    try:
+      # Stop blinking LEDs.
+      if self.leds_blinker:
+        self.leds_blinker.Stop()
+    except Exception:
+      self.log['test']['failures'].append(
+          'Error stopping LED blinking: '
+          ''.join(traceback.format_exception(*sys.exc_info())))
 
     # Raise exception if there are any failures.
     if self.log['test']['failures']:
