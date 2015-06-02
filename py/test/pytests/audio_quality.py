@@ -202,7 +202,6 @@ class AudioQualityTest(unittest.TestCase):
     self._multitone_process = None
     self._tone_process = None
     self._loop_process = None
-    self._tinyloop = False
     self._caches_dir = os.path.join(CACHES_DIR, 'parameters')
     base = os.path.dirname(os.path.realpath(__file__))
     self._file_path = os.path.join(base, '..', '..', 'goofy', 'static',
@@ -322,9 +321,14 @@ class AudioQualityTest(unittest.TestCase):
       self._loop_process = None
       logging.info('Stopped audio loop process')
 
-    if self._tinyloop:
+    # Always destroy tinyloop process.
+    # If user has disconnected the device before test ends, there may be
+    # tinyloop process left and will cause problem when we try to re-run, so we
+    # have to always kill existing processes before starting to test.
+    #
+    # The DestroyAudioLoop is also ok if there is no tinyloop process.
+    if self._loop_type == LoopType.tinyloop:
       self._audio_control.DestroyAudioLoop()
-      self._tinyloop = False
 
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
@@ -575,8 +579,6 @@ class AudioQualityTest(unittest.TestCase):
     elif self._loop_type == LoopType.tinyloop:
       self._audio_control.CreateAudioLoop(self._in_card, self._in_subdevice,
                                           self._out_card, self._out_subdevice)
-      self._tinyloop = True
-
 
   def HandleMultitone(self, *args):
     """Plays the multi-tone wav file."""
