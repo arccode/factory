@@ -99,7 +99,7 @@ _RESULT_FAIL_RE = re.compile('(?i)result_fail')
 _VERSION_RE = re.compile('(?i)version')
 _CONFIG_FILE_RE = re.compile('(?i)config_file')
 
-LoopType = Enum(['sox', 'looptest', 'tinyloop'])
+LoopType = Enum(['sox', 'looptest', 'tinyloop', 'hwloop'])
 
 
 class AudioQualityTest(unittest.TestCase):
@@ -115,7 +115,7 @@ class AudioQualityTest(unittest.TestCase):
           'Tiny ALSA device only support tuple type'
           'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
       Arg('use_tinyalsa', bool, 'Use Tiny ALSA tool', False, optional=True),
-      Arg('loop_type', str, 'Audio loop type: sox, looptest, tinyloop',
+      Arg('loop_type', str, 'Audio loop type: sox, looptest, tinyloop, hwloop',
           'sox'),
       Arg('use_multitone', bool, 'Use multitone', False, optional=True),
       Arg('loop_buffer_count', int, 'Count of loop buffer', 10,
@@ -189,7 +189,9 @@ class AudioQualityTest(unittest.TestCase):
     self._test_passed = False
     self._loop_type = {'sox': LoopType.sox,
                        'looptest': LoopType.looptest,
-                       'tinyloop': LoopType.tinyloop}[self.args.loop_type]
+                       'tinyloop': LoopType.tinyloop,
+                       'hwloop': LoopType.hwloop
+                      }[self.args.loop_type]
 
     self._use_multitone = self.args.use_multitone
     self._loop_buffer_count = self.args.loop_buffer_count
@@ -579,6 +581,8 @@ class AudioQualityTest(unittest.TestCase):
     elif self._loop_type == LoopType.tinyloop:
       self._audio_control.CreateAudioLoop(self._in_card, self._in_subdevice,
                                           self._out_card, self._out_subdevice)
+    elif self._loop_type == LoopType.hwloop:
+      pass
 
   def HandleMultitone(self, *args):
     """Plays the multi-tone wav file."""
