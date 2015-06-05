@@ -36,6 +36,7 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import common
+from cros.factory.test.fixture.whale import servo_config
 from cros.factory.utils.net_utils import TimeoutXMLRPCServerProxy
 
 
@@ -58,23 +59,8 @@ WHALE_BUTTON = common.AttrDict(dict(
 WHALE_BUTTONS = tuple(WHALE_BUTTON.values())
 
 # Fixture mechanics feedback 1 ~ 14. Can get its value ('on'/'off').
-FIXTURE_FEEDBACK = common.AttrDict(
-    dict(('FB%d' % i, 'fixture_fb%d' % i) for i in range(1, 15)))
-FIXTURE_FEEDBACK.update(dict(
-    NEEDLE_CYLINDER_LEFT_RELEASE='fixture_fb1',
-    NEEDLE_CYLINDER_LEFT_ACTIVE='fixture_fb2',
-    NEEDLE_CYLINDER_RIGHT_RELEASE='fixture_fb3',
-    NEEDLE_CYLINDER_RIGHT_ACTIVE='fixture_fb4',
-    HOOK_CYLINDER_LEFT_ACTIVE='fixture_fb5',
-    HOOK_CYLINDER_RIGHT_ACTIVE='fixture_fb6',
-    LATERAL_CYLINDER_LEFT_RELEASE='fixture_fb7',
-    LATERAL_CYLINDER_LEFT_ACTIVE='fixture_fb8',
-    LATERAL_CYLINDER_RIGHT_RELEASE='fixture_fb9',
-    LATERAL_CYLINDER_RIGHT_ACTIVE='fixture_fb10',
-    COVER_CYLINDER_RELEASE='fixture_fb11',
-    COVER_CYLINDER_ACTIVE='fixture_fb12',
-    DUT_SENSOR='fixture_fb13',
-    NC='fixture_fb14'))
+# Specified in servo_config.py in private overlays.
+FIXTURE_FEEDBACK = servo_config.FIXTURE_FEEDBACK
 
 # Plankton feedback 1 ~ 8. Can get its value ('on'/'off').
 PLANKTON_FEEDBACK = common.AttrDict(
@@ -119,12 +105,8 @@ WHALE_CONTROL = common.AttrDict(dict(
     WRITE_PROTECT='whale_write_protect',
     EXPANDER_RESET='whale_xpander_rst'))
 
-WHALE_INA = common.AttrDict(dict((v.upper(), 'krill_%s_mv' % v) for v in [
-    'pp3300_dsw_gated', 'pp3300_pch', 'pp3300_lcd', 'pp1800_codec',
-    'pp1200_cpu', 'pp3300_lte', 'pp1050_vccst', 'pp1050_pch_sus', 'pp5000',
-    'pp3300_pch_sus', 'pp3300_wlan', 'pp3300_ssd', 'pp3300_ec', 'pp1200_ddr',
-    'pp1050_modphy', 'pp1050_pch']))
-
+# Whale's krill INA, specified in servo_config.py in private overlays.
+WHALE_INA = servo_config.WHALE_INA
 WHALE_INAS = tuple(WHALE_INA.values())
 
 
