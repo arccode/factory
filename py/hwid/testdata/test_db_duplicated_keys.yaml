@@ -1,0 +1,36 @@
+# Dummy line before checksum
+checksum: c83402d5afa4a70f16cba436b61c4e4ad52ff138
+# Dummy line after checksum
+board: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: MP
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - cpu_field: 2
+
+encoded_fields:
+  cpu_field:
+    0: { cpu: fast_cpu }
+    1: { cpu: really_fast_cpu }
+    1: { cpu: super_fast_cpu }
+
+components:
+  cpu:
+    items:
+      fast_cpu:
+        values: { compact_str: fast CPU }
+      really_fast_cpu:
+        values: { compact_str: really fast CPU }
+      super_fast_cpu:
+        values: { compact_str: super fast CPU }
+
+rules:
+- name: device_info.set_image_id
+  evaluate: SetImageId('MP')

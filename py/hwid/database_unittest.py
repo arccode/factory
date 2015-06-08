@@ -37,6 +37,11 @@ class DatabaseTest(unittest.TestCase):
         Database.LoadFile,
         os.path.join(_TEST_DATA_PATH, 'test_db_wrong_checksum_field.yaml'),
         verify_checksum=True)
+    self.assertRaisesRegexp(
+        yaml.constructor.ConstructorError,
+        r'while constructing a mapping\n.*\nfound duplicated key \(1\)',
+        Database.LoadFile,
+        os.path.join(_TEST_DATA_PATH, 'test_db_duplicated_keys.yaml'))
 
   def testDatabaseChecksum(self):
     self.assertEquals(

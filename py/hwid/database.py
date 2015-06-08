@@ -26,6 +26,37 @@ from cros.factory.hwid.base8192 import Base8192
 from cros.factory.utils import file_utils
 
 
+def PatchYAMLMappingConstructor():
+  """Patch the mapping constructor of PyYAML to fail on duplicated keys."""
+  def ConstructMapping(self, node, deep=False):
+    if not isinstance(node, yaml.nodes.MappingNode):
+      raise yaml.constructor.ConstructorError(
+          None, None, 'expected a mapping node, but found %s' % node.id,
+          node.start_mark)
+    mapping = {}
+    for key_node, value_node in node.value:
+      key = self.construct_object(key_node, deep=deep)
+      try:
+        hash(key)
+      except TypeError, exc:
+        raise yaml.constructor.ConstructorError(
+            'while constructing a mapping', node.start_mark,
+            'found unacceptable key (%s)' % exc, key_node.start_mark)
+      value = self.construct_object(value_node, deep=deep)
+      if key in mapping:
+        raise yaml.constructor.ConstructorError(
+            'while constructing a mapping', node.start_mark,
+            'found duplicated key (%s)' % key, key_node.start_mark)
+      mapping[key] = value
+    return mapping
+
+  yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+                       ConstructMapping)
+
+
+PatchYAMLMappingConstructor()
+
+
 class Database(object):
   """A class for reading in, parsing, and obtaining information of the given
   device-specific component database.
