@@ -16,11 +16,10 @@ import sys
 # For platforms without symlink (i.e., Windows), we need to derive the top level
 # by environment variable.
 
-pk_pkg = os.path.join(
-    os.getenv('CROS_FACTORY_ROOT',
-              os.path.dirname(os.path.dirname(
-                  os.path.realpath(__file__.replace('.pyc', '.py'))))),
-    'py_pkg')
+py_pkg = os.getenv(
+    'CROS_FACTORY_PY_ROOT',
+    os.path.join(os.path.dirname(os.path.dirname(
+        os.path.realpath(__file__.replace('.pyc', '.py')))), 'py_pkg'))
 
-if pk_pkg not in sys.path:
-  sys.path.append(pk_pkg)
+if py_pkg not in sys.path:
+  sys.path.append(py_pkg)
