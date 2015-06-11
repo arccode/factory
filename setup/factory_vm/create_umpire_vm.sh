@@ -19,6 +19,8 @@
 #     virsh net-edit default
 #
 
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
 # uvtools/libvirt domain
 VM_DOMAIN="umpire"
 # debian/ubuntu distribution
@@ -31,7 +33,7 @@ VM_CPU=1
 # disk size in GiB
 VM_DISK=32
 # ssh public key file name, place in same directory as this script
-VM_PUBLIC_KEY=testing_rsa.pub
+VM_PUBLIC_KEY=$SCRIPT_DIR/../sshkeys/testing_rsa.pub
 # extra packages to install
 VM_PACKAGES="linux-image-generic,python-yaml,python-netifaces,python-pexpect,"\
 "python-numpy,python-twisted,python-twisted-web,python-protobuf,lighttpd,"\
