@@ -135,16 +135,16 @@ bundle: par
 	mkdir -p $(FACTORY_BUNDLE)/shopfloor
 	cp -a $(PAR_BUILD_DIR)/$(PAR_NAME) \
 	  $(FACTORY_BUNDLE)/shopfloor
-	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
-	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/manage
-	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/minijack
-	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor
+	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
+	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/manage
+	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/minijack
+	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor
 	mkdir -p $(FACTORY_BUNDLE)/factory_flow
 	# Create a dedicated directory for factory flow tools.
 	cp -a $(PAR_BUILD_DIR)/$(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow
-	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/factory_flow
-	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/finalize_bundle
-	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/test_factory_flow
+	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/factory_flow
+	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/finalize_bundle
+	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/test_factory_flow
 	# Archive docs into bundle
 	$(MAKE) doc
 	cp build/doc.tar.bz2 $(FACTORY_BUNDLE)
