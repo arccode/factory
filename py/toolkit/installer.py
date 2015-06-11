@@ -15,6 +15,7 @@ is deployed and is responsible for installing files.
 import argparse
 from contextlib import contextmanager
 import os
+import shutil
 import sys
 import tempfile
 
@@ -332,6 +333,25 @@ def InitUmpire(exe_path, src_root, target_board):
            '\n' % {'board': target_board})
 
 
+def ExtractOverlord(src_root, output_dir):
+  output_dir = os.path.join(output_dir, 'overlord')
+  try:
+    os.makedirs(output_dir)
+  except OSError as e:
+    print str(e)
+    return
+
+  # Copy overlord binary and resource files
+  shutil.copyfile(os.path.join(src_root, 'usr/bin/overlordd'),
+                  os.path.join(output_dir, 'overlordd'))
+  shutil.copytree(os.path.join(src_root, 'usr/share/overlord/app'),
+                  os.path.join(output_dir, 'app'))
+
+  # Give overlordd execution permission
+  os.chmod(os.path.join(output_dir, 'overlordd'), 0755)
+  print "Extarcted overlord under '%s'" % output_dir
+
+
 def main():
   import logging
   logging.basicConfig(level=logging.INFO)
@@ -389,6 +409,9 @@ def main():
   parser.add_argument('--exe-path', dest='exe_path',
                       nargs='?', default=None,
                       help='Current self-extracting archive pathname')
+  parser.add_argument('--extract-overlord', dest='extract_overlord',
+                      metavar='OUTPUT_DIR', type=str, default=None,
+                      help='Extract overlord from the toolkit')
 
   args = parser.parse_args()
 
@@ -400,6 +423,10 @@ def main():
   # line utility to install the server code and upstart configurations.
   if args.umpire_board:
     InitUmpire(args.exe_path, src_root, args.umpire_board)
+    return
+
+  if args.extract_overlord is not None:
+    ExtractOverlord(src_root, args.extract_overlord)
     return
 
   # --pack-into may be called directly so this must be done before changing
