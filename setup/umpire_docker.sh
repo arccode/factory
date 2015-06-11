@@ -5,16 +5,25 @@
 # found in the LICENSE file.
 #
 
-. "$(dirname "$(readlink -f "$0")")/common.sh" || exit 1
-
 UMPIRE_CONTAINER_NAME="umpire"
 UMPIRE_IMAGE_NAME="cros/umpire"
 
-DIRBASE="$(dirname "$(readlink -f "$0")")"
-BUILDDIR=${DIRBASE}/../misc/umpire_docker
-SDKROOT=${DIRBASE}/../../../..
-KEYDIR=${SDKROOT}/src/scripts/mod_for_test_scripts/ssh_keys
-KEYFILE=${KEYDIR}/testing_rsa
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+BUILDDIR=${SCRIPT_DIR}/umpire_docker
+KEYSDIR=${SCRIPT_DIR}/sshkeys
+KEYFILE=${KEYSDIR}/testing_rsa
+KEYFILE_PUB=${KEYSDIR}/testing_rsa.pub
+
+die() {
+  echo "ERROR: $@"
+  exit 1
+}
+
+check_docker() {
+  if ! type docker >/dev/null 2>&1; then
+    die "Docker not installed, abort."
+  fi
+}
 
 check_status() {
   local container_name="$1"
@@ -34,6 +43,8 @@ get_container_IP() {
 }
 
 do_ssh() {
+  check_docker
+
   local container_name="$1"
   check_status "${container_name}"
   shift
@@ -43,9 +54,11 @@ do_ssh() {
 }
 
 do_build() {
+  check_docker
+
   # docker build requires resource to be in the build directory, copy keyfile
   # for using as authorized_keys
-  cp ${KEYDIR}/testing_rsa.pub ${BUILDDIR}/authorized_keys
+  cp -f ${KEYFILE_PUB} ${BUILDDIR}/authorized_keys
 
   sudo docker build -t ${UMPIRE_IMAGE_NAME} ${BUILDDIR}
   if [ $? -eq 0 ]; then
@@ -57,6 +70,8 @@ do_build() {
 }
 
 do_destroy() {
+  check_docker
+
   echo -n "Deleting ${UMPIRE_CONTAINER_NAME} container ... "
   sudo docker stop "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
   sudo docker rm "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
@@ -64,13 +79,15 @@ do_destroy() {
 }
 
 do_start() {
+  check_docker
+
   echo -n "Starting ${UMPIRE_CONTAINER_NAME} container ... "
   sudo docker run -d \
     -p 4455:4455 \
     -p 9000:9000 \
     -p 8082:8082 \
     -p 8086:8086 \
-    -v ${SDKROOT}:/mnt \
+    -v ${PWD}:/mnt \
     --name "${UMPIRE_CONTAINER_NAME}" \
     "${UMPIRE_IMAGE_NAME}" >/dev/null 2>&1
 
@@ -81,12 +98,14 @@ do_start() {
   echo "done"
 
   echo -e '\n*** NOTE ***'
-  echo '- Chromium source directory is mounted under /mnt.'
+  echo "- Current directory \"$PWD\" is mounted under /mnt."
   echo '- Umpire service ports 8082, 8086 is mapped to the local machine.'
   echo '- Overlord service ports 4455, 9000 is mapped to the local machine.'
 }
 
 do_stop() {
+  check_docker
+
   echo -n "Stopping ${UMPIRE_CONTAINER_NAME} container ... "
   sudo docker stop "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
   echo "done"
@@ -101,6 +120,8 @@ do_install() {
   if [ ! -e "${toolkit}" ]; then
     die "Factory toolkit '${toolkit}' does not exist, abort."
   fi
+
+  check_docker
 
   local ip=$(get_container_IP "${UMPIRE_CONTAINER_NAME}")
   scp -o StrictHostKeyChecking=no -i ${KEYFILE} ${toolkit} root@${ip}:/tmp
