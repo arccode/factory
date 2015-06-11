@@ -234,6 +234,30 @@ def GetOrCreateMetadata(metadata_path, default_metadata_func):
   return yaml.load(default_metadata_func(metadata_path))
 
 
+def AtomicWrite(path, data):
+  """Writes atomically to a file on the disk.
+
+  First writes to a file called .<file_name>_tmp in the same directory as the
+  target path.  Then renames that file to the target path.  It is a POSIX
+  requirement for renaming to be an atomic operation, provided the source and
+  destination are both on the same filesystem.
+
+  Modeled after Anurag Uniyal's answer in:
+  http://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
+
+  Args:
+    path: The path to the file that will be written.
+    data: The data that will be written to the file.
+  """
+  dir_name, file_name = os.path.split(path)
+  tmp_path = os.path.join(dir_name, '.%s_tmp' % file_name)
+  fd = open(tmp_path, 'w')
+  fd.write(data)
+  fd.flush()
+  os.fsync(fd.fileno())
+  os.rename(tmp_path, path)
+
+
 def RegenerateUploaderMetadataFile(metadata_path):
   """Regenerates the metadata file for uploader.
 
@@ -245,8 +269,7 @@ def RegenerateUploaderMetadataFile(metadata_path):
   """
   logging.info('Re-generate metadata at %r', metadata_path)
   ret_str = GenerateUploaderMetadata()
-  with open(metadata_path, 'w') as fd:
-    fd.write(ret_str)
+  AtomicWrite(metadata_path, ret_str)
   return ret_str
 
 
@@ -261,8 +284,7 @@ def RegenerateArchiverMetadataFile(metadata_path):
   """
   logging.info('Re-generate metadata at %r', metadata_path)
   ret_str = GenerateArchiverMetadata()
-  with open(metadata_path, 'w') as fd:
-    fd.write(ret_str)
+  AtomicWrite(metadata_path, ret_str)
   return ret_str
 
 
@@ -373,8 +395,8 @@ def LogListDifference(old_list, new_list, help_text=None):
   added = new_set - old_set
   removed = old_set - new_set
   if len(removed):
-    logging.info('Old itmes%s are removed:\n%s\n',
+    logging.info('Old items%s are removed:\n%s\n',
                  help_text, pprint.pformat(removed))
   if len(added):
-    logging.info('New itmes%s are added:\n%s\n',
+    logging.info('New items%s are added:\n%s\n',
                  help_text, pprint.pformat(added))

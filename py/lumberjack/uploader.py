@@ -23,7 +23,8 @@ from uploader_exception import UploaderError, UploaderFieldError
 # Global variable to keep locked file open during process life-cycle
 lock = None
 # Supported protocol
-PROTOCOL_MAPPING = {'SFTP': 'uploader_sftp'}
+PROTOCOL_MAPPING = {'SFTP': 'uploader_sftp',
+                    'GCS': 'uploader_gcs'}
 
 UPLOADER_LOCK_FILE = '.uploader.lock'
 PARSING_ERROR_REST_SECS = 0.2

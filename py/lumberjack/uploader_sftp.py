@@ -14,7 +14,7 @@ import yaml
 
 from common import (ComputePercentage, GetMetadataPath, GetOrCreateMetadata,
                     LogListDifference, RegenerateUploaderMetadataFile,
-                    UPLOADER_METADATA_DIRECTORY)
+                    UPLOADER_METADATA_DIRECTORY, AtomicWrite)
 from uploader_exception import UploaderConnectionError, UploaderFieldError
 from uploader_interface import FetchSourceInterface, UploadTargetInterface
 
@@ -263,8 +263,7 @@ class FetchSource(SFTPBase):  # pylint: disable=W0223
            'path': source_path,
            'downloaded_bytes': local_size,
            'percentage': ComputePercentage(local_size, remote_size)})
-      with open(metadata_path, 'w') as metadata_fd:
-        metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
+      AtomicWrite(metadata_path, yaml.dump(metadata, default_flow_style=False))
 
     if metadata_path is None:
       metadata_path = GetMetadataPath(
@@ -362,8 +361,7 @@ class UploadTarget(SFTPBase):  # pylint: disable=W0223
            'path': target_path,
            'uploaded_bytes': remote_size,
            'percentage': ComputePercentage(remote_size, local_size)})
-      with open(metadata_path, 'w') as metadata_fd:
-        metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
+      AtomicWrite(metadata_path, yaml.dump(metadata, default_flow_style=False))
 
     # Check if file to upload exists.
     if not os.path.isfile(local_path):
