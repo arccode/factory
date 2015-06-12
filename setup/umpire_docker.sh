@@ -13,6 +13,8 @@ BUILDDIR=${SCRIPT_DIR}/umpire_docker
 KEYSDIR=${SCRIPT_DIR}/sshkeys
 KEYFILE=${KEYSDIR}/testing_rsa
 KEYFILE_PUB=${KEYSDIR}/testing_rsa.pub
+HOST_DIR=/shared
+SSH_OPTIONS='-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 
 die() {
   echo "ERROR: $@"
@@ -50,7 +52,7 @@ do_ssh() {
   shift
 
   local ip="$(get_container_IP ${container_name})"
-  ssh -o StrictHostKeyChecking=no -i ${KEYFILE} root@${ip} $@
+  ssh ${SSH_OPTIONS} -i ${KEYFILE} root@${ip} $@
 }
 
 do_build() {
@@ -82,12 +84,13 @@ do_start() {
   check_docker
 
   echo -n "Starting ${UMPIRE_CONTAINER_NAME} container ... "
+  sudo mkdir -p ${HOST_DIR}
   sudo docker run -d \
     -p 4455:4455 \
     -p 9000:9000 \
     -p 8082:8082 \
     -p 8086:8086 \
-    -v ${PWD}:/mnt \
+    -v ${HOST_DIR}:/mnt \
     --name "${UMPIRE_CONTAINER_NAME}" \
     "${UMPIRE_IMAGE_NAME}" >/dev/null 2>&1
 
@@ -98,7 +101,7 @@ do_start() {
   echo "done"
 
   echo -e '\n*** NOTE ***'
-  echo "- Current directory \"$PWD\" is mounted under /mnt."
+  echo "- Host directory ${HOST_DIR} is mounted under /mnt in the container."
   echo '- Umpire service ports 8082, 8086 is mapped to the local machine.'
   echo '- Overlord service ports 4455, 9000 is mapped to the local machine.'
 }
@@ -124,11 +127,12 @@ do_install() {
   check_docker
 
   local ip=$(get_container_IP "${UMPIRE_CONTAINER_NAME}")
-  scp -o StrictHostKeyChecking=no -i ${KEYFILE} ${toolkit} root@${ip}:/tmp
-  ssh -o StrictHostKeyChecking=no -i ${KEYFILE} root@${ip} \
+  scp ${SSH_OPTIONS} -i ${KEYFILE} ${toolkit} root@${ip}:/tmp
+  ssh ${SSH_OPTIONS} -i ${KEYFILE} root@${ip} \
     /tmp/${toolkit##*/} -- --init-umpire-board=${board}
-  ssh -o StrictHostKeyChecking=no -i ${KEYFILE} root@${ip} \
-    "echo export BOARD=$board >> /root/.bashrc"
+  ssh ${SSH_OPTIONS} -i ${KEYFILE} root@${ip} \
+    "echo export BOARD=${board} >> /root/.bashrc"
+  ssh ${SSH_OPTIONS} -i ${KEYFILE} root@${ip} restart umpire BOARD=${board}
 }
 
 usage() {
