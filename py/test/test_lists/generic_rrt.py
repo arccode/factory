@@ -106,11 +106,12 @@ class TestListArgs(object):
 
   #####
   #
-  # Parameter for warm reboot and warm/cold reboot stress tests.
+  # Parameter for warm reboot, warm/cold reboot and clear TPM stress tests.
   #
   #####
   warm_reboot_iterations = 1500
   warm_cold_reboot_iterations = 100
+  clear_tpm_iterations = 100
 
   reboot_warning_en = (
       'This RRT will start reboot stress test and it might take 24+ hours.<br>'
@@ -145,7 +146,7 @@ class TestListArgs(object):
 
   # Stress test parameters for each iteration.
   run_in_sat_duration_secs = int(8 * HOURS)
-  # Disable disk thread in hardware_SAT test because it may wear out eMMC.
+  # Whether to enable disk thread in hardware_SAT test.
   run_in_stress_test_disk = True
 
   # The interval of logging events in seconds during run-in.
@@ -397,6 +398,42 @@ def WarmColdReboot(args):
         Barrier(pass_without_prompt=True)
 
 
+def ClearTPM(args):
+  """Tests clear TPM for multiple iterations."""
+  iterations = args.clear_tpm_iterations
+  with TestGroup(id='ClearTPM',
+                 label_en='ClearTPM (%s %s)' % (
+                     iterations, 'time' if iterations == 1 else 'times'),
+                 label_zh=u'清除 TPM (%s 次)' % iterations):
+    for i in range(iterations):
+      with TestGroup(id='ClearTPM%d' % i, label_zh=u'清除 TPM%d' % i):
+        FactoryTest(
+            id='TPMVerifyEK',
+            label_zh=u'TPM 证书',
+            pytest_name='tpm_verify_ek')
+
+        FactoryTest(
+            id='RequestClearTPM',
+            label_zh=u'请求清除 TPM',
+            pytest_name='clear_tpm_owner_request')
+
+        WarmReboot(id_suffix='RebootAfterClearTPM')
+        Idle(wait_secs=30)
+
+        FactoryTest(
+            id='VerifyTPM',
+            label_zh=u'验证 TPM',
+            pytest_name='line_check_item',
+            dargs=dict(
+                title_en='VerifyTPM',
+                title_zh=u'验证 TPM',
+                items=[('verify TPM command', u'验证 TPM',
+                        'gooftool verify_tpm', False)]))
+
+        WarmReboot(id_suffix='RebootAfterVerifyTPM')
+        Barrier('ClearTPM', pass_without_prompt=True)
+
+
 def StressTest(args):
   """StressAppTest, graphics and camera tests for each RunIn iteration."""
   with FactoryTest(id='Stress', label_zh=u'集合压力测试'):
@@ -549,6 +586,7 @@ def CreateRebootStressTestList():
     ResizeStatefulPartition(args.desired_stateful_size)
     WarmReboot('StressChrome', args.warm_reboot_iterations)
     WarmColdReboot(args)
+    ClearTPM(args)
 
 
 def CreateRunInStressTestList():
