@@ -85,24 +85,32 @@ do_start() {
 
   echo -n "Starting ${UMPIRE_CONTAINER_NAME} container ... "
   sudo mkdir -p ${HOST_DIR}
-  sudo docker run -d \
-    -p 4455:4455 \
-    -p 9000:9000 \
-    -p 8082:8082 \
-    -p 8086:8086 \
-    -v ${HOST_DIR}:/mnt \
-    --name "${UMPIRE_CONTAINER_NAME}" \
-    "${UMPIRE_IMAGE_NAME}" >/dev/null 2>&1
+  sudo docker start "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
 
-  # Container is already created, run the container instead
+  # Container does not exist, run a new one
   if [ $? -ne 0 ]; then
-    sudo docker start "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
+    local umpire_port_map=""
+    for base in $(seq 8080 10 8380); do
+      p1=${base}              # Imaging
+      p2=$(expr ${base} + 2)  # Shopfloor
+      p3=$(expr ${base} + 6)  # Rsync
+      umpire_port_map="-p $p1:$p1 -p $p2:$p2 -p $p3:$p3 ${umpire_port_map}"
+    done
+
+    sudo docker run -d \
+      --privileged \
+      -p 4455:4455 \
+      -p 9000:9000 \
+      ${umpire_port_map} \
+      -v ${HOST_DIR}:/mnt \
+      --name "${UMPIRE_CONTAINER_NAME}" \
+      "${UMPIRE_IMAGE_NAME}" >/dev/null 2>&1
   fi
   echo "done"
 
   echo -e '\n*** NOTE ***'
   echo "- Host directory ${HOST_DIR} is mounted under /mnt in the container."
-  echo '- Umpire service ports 8082, 8086 is mapped to the local machine.'
+  echo '- Umpire service ports is mapped to the local machine.'
   echo '- Overlord service ports 4455, 9000 is mapped to the local machine.'
 }
 
