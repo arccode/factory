@@ -34,11 +34,20 @@ def UpdateDeviceData(data):
   Log('update_device_data', data=FilterDict(data))
 
 
+def UpdateFactorySharedData(data):
+  key, value = data.items()[0]
+  factory.set_shared_data(key, value)
+  factory.console.info('%s: %s', key, value)
+  Log('update_factory_shared_data', data=data)
+
+
 class CallShopfloor(unittest.TestCase):
   # Possible values for the "action" handler
   RETURN_VALUE_ACTIONS = {
       # Update device data with the returned dictionary.
-      'update_device_data': UpdateDeviceData
+      'update_device_data': UpdateDeviceData,
+      # set factory shared data
+      'update_factory_shared_data': UpdateFactorySharedData,
   }
 
   ARGS = [
