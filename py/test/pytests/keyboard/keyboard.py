@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import ast
 import asyncore
 import evdev
 import logging
@@ -152,7 +153,7 @@ class KeyboardTest(unittest.TestCase):
         os.path.dirname(os.path.realpath(__file__)), 'static')
     bindings_filename = os.path.join(base, layout + '.bindings')
     with open(bindings_filename, 'r') as f:
-      bindings = eval(f.read())
+      bindings = ast.literal_eval(f.read())
     for k in bindings:
       # Convert single tuple to list of tuples
       if not isinstance(bindings[k], list):
@@ -166,7 +167,7 @@ class KeyboardTest(unittest.TestCase):
         os.path.dirname(os.path.realpath(__file__)), 'static')
     key_order_list_filename = os.path.join(base, layout + '.key_order')
     with open(key_order_list_filename, 'r') as f:
-      key_order_list = eval(f.read())
+      key_order_list = ast.literal_eval(f.read())
     return key_order_list
 
   def MonitorEvdevEvent(self):
