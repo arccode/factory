@@ -24,6 +24,7 @@ import sys
 import time
 import unittest
 
+
 from cros.factory.system.bluetooth import BluetoothManager
 from cros.factory.system.bluetooth import BluetoothManagerException
 from cros.factory.test import factory
@@ -32,8 +33,10 @@ from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.test.test_ui import MakeLabel
+from cros.factory.test.test_ui import (
+    ENTER_KEY, ESCAPE_KEY, SPACE_KEY, MakeLabel)
 from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils import process_utils
 from cros.factory.utils.sync_utils import Retry
 
 
@@ -42,6 +45,32 @@ _MSG_DETECT_ADAPTER = MakeLabel('Detect bluetooth adapter', u'检测蓝牙适配
 _MSG_TURN_ON_DEVICE = MakeLabel('Enable the connection ability of'
                                 ' bluetooth device and press Enter',
                                 u'启用蓝牙装置的连接功能然后按输入键',
+                                'start-font-size')
+_MSG_INTO_FIXTURE = MakeLabel('Place the base into the fixture, '
+                              'and press the space key on the test host.',
+                              u'请把测试键盘放入测试机具中,然後按下电脑的 space 键',
+                              'start-font-size')
+_MSG_START_CHARGE = MakeLabel('Turn on charging by pressing the green button, '
+                              'take the keyboard out and put it back, '
+                              'and press the space key on the test host.',
+                              u'请按下绿色键开始充电, 然後取出再放回键盘, 最後按下电脑的 space 键',
+                              'start-font-size')
+_MSG_READ_BATTERY_1 = MakeLabel('Read battery level for the 1st time.',
+                                u'第1次读取电池电量',
+                                'start-font-size')
+_MSG_READ_BATTERY_2 = MakeLabel('Read battery level for the 2nd time.',
+                                u'第2次读取电池电量',
+                                'start-font-size')
+_MSG_CHECK_BATTERY_LEVEL = MakeLabel('Check battery level.',
+                                     u'检查电池电量',
+                                     'start-font-size')
+_MSG_STOP_CHARGE = MakeLabel('Press the green button again to stop charging, '
+                             'and press the space key on the test host.',
+                             u'请按下绿色键以停止充电,然後按下电脑的 space 键',
+                             'start-font-size')
+_MSG_OUT_OF_FIXTURE = MakeLabel('Take the base out of the fixture, '
+                                'and press the space key on the test host.',
+                                u'請把測試鍵盤取出,然後按下电脑的 space 键',
                                 'start-font-size')
 _MSG_SCAN_DEVICE = MakeLabel('Scanning...', u'扫描中...', 'start-font-size')
 _MSG_TURN_ON_INPUT_DEVICE = MakeLabel('Enable the connection ability of '
@@ -59,13 +88,17 @@ _MSG_TEST_INPUT = MakeLabel('Please test input. '
                             u'请测试输入, 如果失败, 请按Esc键'
                             u'如果成功，请按Enter键',
                             'start-font-size')
-
 _MSG_UNPAIRING = MakeLabel('Unpairing', u'取消配对', 'start-font-size')
 _MSG_AUTH_FAILED = MakeLabel('Authentication failed, retrying...',
                              u'验证失败，重试', 'start-font-size')
 
+
 INPUT_MAX_RETRY_TIMES = 10
 INPUT_RETRY_INTERVAL = 2
+RESET_ADAPTER_SLEEP_TIME = 5
+READ_BATTERY_MAX_RETRY_TIMES = 10
+
+BATTERY_LEVEL_KEY = 'battery_level'
 
 
 def ColonizeMac(mac):
@@ -80,8 +113,8 @@ def ColonizeMac(mac):
 
 def MakePasskeyLabelPrompt(passkey):
   """Creates a label prompting the operator to enter a passkey"""
-  return MakeLabel('Enter passkey %s then press enter' % passkey,
-                   u'型 %s 按回车' % passkey,
+  return MakeLabel('Enter passkey %s then press enter on the base.' % passkey,
+                   u'按 %s 再按回车' % passkey,
                    'start-font-size')
 
 
@@ -112,6 +145,16 @@ def WaitForInputCount(task, expected_input_count, timeout=10):
   task.Fail('Input device count %d is different than expected %d.' %
             (input_count, expected_input_count))
   return False
+
+
+def _ResetAdapter():
+  """Reset the adapter every time when using the BT device.
+  This is because the adapter may be down anytime for some unknown reason.
+  """
+  cmd = 'hciconfig hci0 reset'
+  factory.console.info('Reset adapter and wait 5 seconds....: %s', cmd)
+  process_utils.Spawn(cmd.split(), log=True, check_call=True)
+  time.sleep(RESET_ADAPTER_SLEEP_TIME)
 
 
 class DetectAdapterTask(FactoryTask):
@@ -148,19 +191,20 @@ class TurnOnTask(FactoryTask):
     message: Html code containing message to show on the screen.
   """
 
-  def __init__(self, test, message):  # pylint: disable=W0231
+  def __init__(self, test, message, key=ENTER_KEY):  # pylint: disable=W0231
     self._test = test
     self._message = message
+    self._key = key
 
   def Cleanup(self):
     """Unbinds the Enter key after this task is done."""
-    self._test.ui.UnbindKey(test_ui.ENTER_KEY)
+    self._test.ui.UnbindKey(self._key)
 
   def Run(self):
     self._test.template.SetState(self._message)
     self._test.ui.AppendCSS('.start-font-size {font-size: 2em;}')
-    self._test.ui.BindKey(test_ui.ENTER_KEY, lambda _: self.Pass())
-    logging.info('wait for enter key')
+    self._test.ui.BindKey(self._key, lambda _: self.Pass())
+    logging.info('wait for the user to press a key')
 
 
 class ScanDevicesTask(FactoryTask):
@@ -376,6 +420,73 @@ class UnpairTask(FactoryTask):
       self.Pass()
 
 
+class ChargeTestTask(FactoryTask):
+
+  def __init__(self, test, mac, step):  # pylint: disable=W0231
+    self._test = test
+    self._mac = mac
+    self._step = step
+
+  def ReadBatteryLevel(self, step):
+    _ResetAdapter()
+    factory.console.info('Begin reading battery level...')
+    cmd = 'python /usr/local/factory/py/utils/rel_tester.py -a ' + self._mac
+    value = process_utils.SpawnOutput(cmd.split(), log=True)
+    factory.console.info('%s: %s', step, value)
+    return int(value)
+
+  def Run(self):
+    if self._step == 'READ_BATTERY_1':
+      self._test.template.SetState(_MSG_READ_BATTERY_1)
+      battery_level = self.ReadBatteryLevel(self._step)
+      factory.set_shared_data(BATTERY_LEVEL_KEY, battery_level)
+      self.Pass()
+
+    elif self._step == 'READ_BATTERY_2':
+      def _ReadAndCheckBatteryLevel():
+        battery_level2 = self.ReadBatteryLevel(self._step)
+        result = battery_level2 > battery_level1
+        if result:
+          factory.set_shared_data(BATTERY_LEVEL_KEY, battery_level2)
+        return result
+
+      self._test.template.SetState(_MSG_READ_BATTERY_2)
+      battery_level1 = factory.get_shared_data(BATTERY_LEVEL_KEY)
+
+      # Check if the battery is charging for up to READ_BATTERY_MAX_RETRY_TIMES.
+      # TODO: the magnet needs to be taken away and re-applied each time.
+      #       We will do this action automatically with a control circuit.
+      #       Note that there is a 5-second delay at reading the battery level.
+      count = 0
+      success_increased_level = False
+      while (not success_increased_level and
+             count < READ_BATTERY_MAX_RETRY_TIMES):
+        success_increased_level = _ReadAndCheckBatteryLevel()
+        count += 1
+
+      if success_increased_level:
+        self.Pass()
+      else:
+        self.Fail('ChargeTestTask: the battery is not charging!')
+
+
+class BatteryLevelTestTask(FactoryTask):
+  EXPECTED_LEVEL = 50
+
+  def __init__(self, test):  # pylint: disable=W0231
+    self._test = test
+
+  def Run(self):
+    self._test.template.SetState(_MSG_CHECK_BATTERY_LEVEL)
+    battery_level = factory.get_shared_data(BATTERY_LEVEL_KEY)
+    # Check if the battery level is above the expected level.
+    if battery_level >= self.EXPECTED_LEVEL:
+      self.Pass()
+    else:
+      msg = 'BatteryLevelTestTask: %d is below the expected level (%d)',
+      self.Fail(msg % (battery_level, self.EXPECTED_LEVEL))
+
+
 class InputTestTask(FactoryTask):
   """The task to test bluetooth input device functionality.
 
@@ -493,10 +604,8 @@ class InputTestTask(FactoryTask):
     """Lets operator test the input and press key to pass/fail the task."""
     logging.info('InputTestTask: Test the input by operator now')
     self._test.template.SetState(_MSG_TEST_INPUT)
-    self._test.ui.BindKey(test_ui.ENTER_KEY,
-                          lambda _: self.RemoveInputAndQuit(True))
-    self._test.ui.BindKey(test_ui.ESCAPE_KEY,
-                          lambda _: self.RemoveInputAndQuit(False))
+    self._test.ui.BindKey(ENTER_KEY, lambda _: self.RemoveInputAndQuit(True))
+    self._test.ui.BindKey(ESCAPE_KEY, lambda _: self.RemoveInputAndQuit(False))
 
   def Run(self):
     input_count_before_connection = CheckInputCount()
@@ -578,7 +687,18 @@ class BluetoothTest(unittest.TestCase):
       Arg('finish_after_pair', bool, 'Whether the test should end immediately '
           'after pairing completes', default=False),
       Arg('unpair', bool, 'Whether to unpair matching devices instead of pair',
-          default=False, optional=True)
+          default=False, optional=True),
+      Arg('check_battery_charging', bool,
+          'Whether to check if the battery is charging',
+          default=False, optional=True),
+      Arg('check_battery_level', bool, 'Whether to check the battery level',
+          default=False, optional=True),
+      Arg('prompt_into_fixture', bool, 'Prompt the user to place the base into '
+          'the test fixture', default=False, optional=True),
+      Arg('prompt_start_charging', bool, 'Prompt the user to start charging '
+          'the base', default=False, optional=True),
+      Arg('prompt_stop_charging', bool, 'Prompt the user to stop charging '
+          'the base', default=False, optional=True),
   ]
 
   def SetStrongestRssiMac(self, mac_addr):
@@ -617,6 +737,19 @@ class BluetoothTest(unittest.TestCase):
         self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_DEVICE))
       self._task_list.append(ScanDevicesTask(self))
 
+    if self.args.prompt_into_fixture:
+      self._task_list.append(TurnOnTask(self, _MSG_INTO_FIXTURE, SPACE_KEY))
+
+    if self.args.check_battery_charging:
+      self._task_list.append(
+          ChargeTestTask(self, self._input_device_mac, 'READ_BATTERY_1'))
+
+    if self.args.check_battery_level:
+      self._task_list.append(BatteryLevelTestTask(self))
+
+    if self.args.prompt_start_charging:
+      self._task_list.append(TurnOnTask(self, _MSG_START_CHARGE, SPACE_KEY))
+
     if self.args.unpair:
       self._task_list.append(
           UnpairTask(self, self._input_device_mac, self.args.keyword))
@@ -626,5 +759,12 @@ class BluetoothTest(unittest.TestCase):
       if not self.args.pair_with_match:
         self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_INPUT_DEVICE))
       self._task_list.append(InputTestTask(self, self.args.finish_after_pair))
+
+    if self.args.check_battery_charging:
+      self._task_list.append(
+          ChargeTestTask(self, self._input_device_mac, 'READ_BATTERY_2'))
+
+    if self.args.prompt_stop_charging:
+      self._task_list.append(TurnOnTask(self, _MSG_STOP_CHARGE, SPACE_KEY))
 
     FactoryTaskManager(self.ui, self._task_list).Run()
