@@ -67,7 +67,7 @@ class BFTFixture(object):
   Status = Enum(['OFF', 'ON', 'OPEN', 'CLOSING', 'CLOSED'])
 
   # A subset of factory.system.board.Board.LEDColor.
-  LEDColor = Enum(['RED', 'GREEN', 'YELLOW', 'OFF'])
+  LEDColor = Enum(['RED', 'GREEN', 'YELLOW', 'BLUE', 'OFF'])
 
   StatusColor = Enum(['RED', 'GREEN', 'OFF'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',

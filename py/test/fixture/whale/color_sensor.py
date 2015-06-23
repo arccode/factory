@@ -21,7 +21,8 @@ class ColorSensor(object):
   _COLOR_NAMES = {
       'red': BFT.LEDColor.RED,
       'green': BFT.LEDColor.GREEN,
-      'yellow': BFT.LEDColor.YELLOW
+      'yellow': BFT.LEDColor.YELLOW,
+      'blue': BFT.LEDColor.BLUE
   }
 
   # config names
