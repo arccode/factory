@@ -41,7 +41,7 @@ get_container_IP() {
   check_status "${container_name}"
 
   sudo docker inspect "${container_name}" | \
-    awk '/IPAddress/ { gsub(/[",]/, "", $2); print $2 }'
+    awk '/\"IPAddress/ { gsub(/[",]/, "", $2); print $2 }'
 }
 
 do_ssh() {
@@ -91,10 +91,9 @@ do_start() {
   if [ $? -ne 0 ]; then
     local umpire_port_map=""
     for base in $(seq 8080 10 8380); do
-      p1=${base}              # Imaging
-      p2=$(expr ${base} + 2)  # Shopfloor
-      p3=$(expr ${base} + 6)  # Rsync
-      umpire_port_map="-p $p1:$p1 -p $p2:$p2 -p $p3:$p3 ${umpire_port_map}"
+      p1=${base}              # Imaging & Shopfloor
+      p2=$(expr ${base} + 4)  # Rsync
+      umpire_port_map="-p $p1:$p1 -p $p2:$p2 ${umpire_port_map}"
     done
 
     sudo docker run -d \
@@ -102,6 +101,7 @@ do_start() {
       -p 4455:4455 \
       -p 9000:9000 \
       ${umpire_port_map} \
+      -v /etc/localtime:/etc/localtime:ro \
       -v ${HOST_DIR}:/mnt \
       --name "${UMPIRE_CONTAINER_NAME}" \
       "${UMPIRE_IMAGE_NAME}" >/dev/null 2>&1
