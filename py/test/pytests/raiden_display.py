@@ -86,7 +86,11 @@ class RaidenDisplayTest(unittest.TestCase):
       Arg('dp_verify_server', str,
           'Server URL for verifying DP output, e.g. "http://192.168.0.1:9999". '
           'Default None means verifying locally.',
-          optional=True)
+          optional=True),
+      Arg('verify_display_switch', bool,
+          'Set False to test without display switch, and compare default '
+          'wallpaper only (can save more testing time).',
+          default=True)
   ]
 
   def setUp(self):
@@ -142,8 +146,10 @@ class RaidenDisplayTest(unittest.TestCase):
     return
 
   def ExtractTestImage(self):
-    """Extracts selected test images from template.tar.gz."""
-    file_utils.ExtractFile(os.path.join(self._static_dir, 'template.tar.gz'),
+    """Extracts selected test images from zipped files."""
+    filename = ('template.tar.gz' if self.args.verify_display_switch else
+                'wallpaper.tar.gz')
+    file_utils.ExtractFile(os.path.join(self._static_dir, filename),
                            self._static_dir)
 
   def RemoveTestImage(self):
@@ -175,6 +181,10 @@ class RaidenDisplayTest(unittest.TestCase):
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
       utils.WaitFor(lambda: not self._PollDisplayConnected(), timeout_secs=10)
 
+    if not self.args.verify_display_switch:
+      self.AdvanceProgress()
+      return
+
     time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # need a delay for display_info
     display_info = factory.get_state_instance().DeviceGetDisplayInfo()
     # In the case of connecting an external display, make sure there
@@ -192,9 +202,11 @@ class RaidenDisplayTest(unittest.TestCase):
     """Projects the screen to external display, make the display to show an
     image by JS function.
     """
-    self._template.SetInstruction(_VIDEO_STR(self._bft_media_device))
-    self._ui.CallJSFunction('switchDisplayOnOff')
-    self.SetMainDisplay(recover_original=False)
+    if self.args.verify_display_switch:
+      self._template.SetInstruction(_VIDEO_STR(self._bft_media_device))
+      self._ui.CallJSFunction('switchDisplayOnOff')
+      self.SetMainDisplay(recover_original=False)
+
     time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
     self.AdvanceProgress()
 
@@ -218,9 +230,11 @@ class RaidenDisplayTest(unittest.TestCase):
       logging.info('CompareHist correlation result = b: %.4f, g: %.4f, r: %.4f',
                    corr_values[0], corr_values[1], corr_values[2])
 
-    self._ui.CallJSFunction('switchDisplayOnOff')
-    self.SetMainDisplay(recover_original=True)
-    time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
+    if self.args.verify_display_switch:
+      self._ui.CallJSFunction('switchDisplayOnOff')
+      self.SetMainDisplay(recover_original=True)
+      time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
+
     self.AdvanceProgress()
 
   def SetMainDisplay(self, recover_original=True):
@@ -296,7 +310,8 @@ class RaidenDisplayTest(unittest.TestCase):
   def runTest(self):
     """Runs display test."""
     # Sanity check
-    self.assertTrue(os.path.isfile(self._display_image_path))
+    if self.args.verify_display_switch:
+      self.assertTrue(os.path.isfile(self._display_image_path))
     self.assertTrue(os.path.isfile(self._golden_image_path))
 
     self._template.DrawProgressBar()

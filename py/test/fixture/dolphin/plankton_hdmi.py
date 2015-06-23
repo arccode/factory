@@ -227,9 +227,9 @@ class PlanktonHDMI(object):
       corr_values.append(corr)
       if corr < threshold[color_channel]:
         result = False
-        logging.debug('Correlation of channel %d == %.2f < threshold %.2f',
-                      color_channel, corr, threshold[color_channel])
+        logging.info('Correlation of channel %d == %.2f < threshold %.2f',
+                     color_channel, corr, threshold[color_channel])
 
-    logging.debug('CompareHist correlation result = b: %.4f, g: %.4f, r: %.4f',
-                  corr_values[0], corr_values[1], corr_values[2])
+    logging.info('CompareHist correlation result = b: %.4f, g: %.4f, r: %.4f',
+                 corr_values[0], corr_values[1], corr_values[2])
     return corr_values if return_corr else result
