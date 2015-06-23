@@ -18,6 +18,7 @@ SERVO_CONFIG_FILENAME_SPEC = '*_servo_config.py'
 IMPORT_PATH = 'cros.factory.test.fixture.whale.%s'
 
 WHALE_INA = dict()  # Whale's krill INA dict
+WHALE_ADC = []  # Whale's krill ADC list
 FIXTURE_FEEDBACK = dict()  # Whale's fixture feedback dict
 
 def _GetBoardServoConfig():
@@ -39,4 +40,5 @@ if board_config:
   import_config = __import__(IMPORT_PATH % board_config,
                              fromlist=['ServoConfig'])
   WHALE_INA = import_config.WHALE_INA
+  WHALE_ADC = import_config.WHALE_ADC
   FIXTURE_FEEDBACK = import_config.FIXTURE_FEEDBACK

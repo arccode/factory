@@ -103,12 +103,15 @@ WHALE_CONTROL = common.AttrDict(dict(
     PASS_LED='whale_pass_led',
     USBHUB_RESET='whale_usbhub_rst',
     WRITE_PROTECT='whale_write_protect',
-    EXPANDER_RESET='whale_xpander_rst'))
+    EXPANDER_RESET='whale_xpander_rst',
+    DEVICE_PWR_BUTTON='krill_btn_r_pwr'))
 
 # Whale's krill INA, specified in servo_config.py in private overlays.
 WHALE_INA = servo_config.WHALE_INA
 WHALE_INAS = tuple(WHALE_INA.values())
 
+# Whale's krill ADC, specified in servo_config.py in private overlays.
+WHALE_ADC = servo_config.WHALE_ADC
 
 class ServoClientError(Exception):
   """Exception for ServoClient by filtering out actual error messages."""

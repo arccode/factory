@@ -72,7 +72,7 @@ class BFTFixture(object):
   StatusColor = Enum(['RED', 'GREEN', 'OFF'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
                  'USB_0', 'USB_1', 'USB_2', 'BATTERY',
-                 'C0_CC2_DUT', 'C1_CC2_DUT',
+                 'C0_CC2_DUT', 'C1_CC2_DUT', 'PWR_BUTTON',
                  # Dolphin mini fixture devices.
                  'CHARGE_5V', 'CHARGE_12V', 'CHARGE_20V',
                  'USB2', 'USB3', 'DP', 'ADB_HOST', 'DEFAULT'])
@@ -217,6 +217,10 @@ class BFTFixture(object):
 
   def ResetKeyboard(self):
     """Reset keyboard device."""
+    raise NotImplementedError
+
+  def SimulateButtonPress(self, button, duration_secs):
+    """Simulates button press for a period of time."""
     raise NotImplementedError
 
   def SetLcmText(self, row, message):

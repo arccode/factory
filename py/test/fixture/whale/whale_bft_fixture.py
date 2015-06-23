@@ -4,6 +4,7 @@
 """Provides interfaces to interact with Whale BFT fixture."""
 
 from __future__ import print_function
+import ast
 import logging
 import os
 
@@ -29,6 +30,7 @@ class WhaleBFTFixture(bft.BFTFixture):
   _FIXTURE_FEEDBACK = servo_client.FIXTURE_FEEDBACK
   _FEEDBACKS = servo_client.WHALE_FEEDBACKS
   _WHALE_INAS = servo_client.WHALE_INAS
+  _WHALE_ADC = servo_client.WHALE_ADC
 
   # Mapping of Whale controlled device to Servo control.
   _WHALE_DEVICE = {
@@ -36,7 +38,8 @@ class WhaleBFTFixture(bft.BFTFixture):
       bft.BFTFixture.Device.BATTERY: _WHALE_CONTROL.BATTERY,
       bft.BFTFixture.Device.LID_MAGNET: _WHALE_CONTROL.ELECTRO_MAGNET,
       bft.BFTFixture.Device.C0_CC2_DUT: _WHALE_CONTROL.DC,
-      bft.BFTFixture.Device.C1_CC2_DUT: _WHALE_CONTROL.OUTPUT_RESERVE_1}
+      bft.BFTFixture.Device.C1_CC2_DUT: _WHALE_CONTROL.OUTPUT_RESERVE_1,
+      bft.BFTFixture.Device.PWR_BUTTON: _WHALE_CONTROL.DEVICE_PWR_BUTTON}
 
   # Mapping from status color to (pass, fail) led status.
   _STATUS_COLOR = {
@@ -137,14 +140,10 @@ class WhaleBFTFixture(bft.BFTFixture):
     result = dict((k, int(v)) for k, v in inas.iteritems())
 
     # Servo returns a string of list of integers
-    adc = eval(self._servo.Get(self._WHALE_CONTROL.ADC))
-    result['vdd_kbd_bl_dut'] = adc[0] * 32.5
-    result['pp1200_ssd_dut'] = adc[1]
-    result['vcore_dut'] = adc[2]
-    result['pp600_vtt_dut'] = adc[3]
-    result['pp3300_rtc_dut'] = adc[4] * 2
-    result['pp1800_ssd_dut'] = adc[5]
-    result['pp3300_usb_pd_dut'] = adc[6] * 2
+    adc = ast.literal_eval(self._servo.Get(self._WHALE_CONTROL.ADC))
+    for i in xrange(len(self._WHALE_ADC)):
+      result[self._WHALE_ADC[i][0]] = adc[i] * self._WHALE_ADC[i][1]
+
     return result
 
   def CheckExtDisplay(self):
@@ -188,9 +187,8 @@ class WhaleBFTFixture(bft.BFTFixture):
       for color, value in WhaleBFTFixture._STATUS_COLOR.iteritems():
         if value == (is_pass, is_fail):
           return color
-      else:
-        # If no match, treat as OFF status
-        return bft.BFTFixture.StatusColor.OFF
+      # If no match, treat as OFF status
+      return bft.BFTFixture.StatusColor.OFF
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException('Failed to get LED status. Reason: %s' % e)
 
@@ -217,6 +215,21 @@ class WhaleBFTFixture(bft.BFTFixture):
       self._keyboard_emulator.KeyPress(int(bitmask, 0), float(duration_secs))
     except ValueError as e:
       raise bft.BFTFixtureException('Failed to convert bitmask. Reason %s' % e)
+
+  def SimulateButtonPress(self, button, duration_secs):
+    logging.debug('press %s for %d seconds', button, duration_secs)
+
+    whale_device = self._WHALE_DEVICE.get(button)
+    if not whale_device:
+      raise bft.BFTFixtureException('Unsupported device: ' + whale_device)
+    try:
+      if not duration_secs:  # set duration_secs 0 for long press
+        self._servo.Set(whale_device, 'on')
+      else:
+        self._servo.Click(whale_device, duration_secs)
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException(
+          'Failed to press %s. Reason: %s' % (button, e))
 
   def SetLcmText(self, row, message):
     try:
