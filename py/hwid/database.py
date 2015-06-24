@@ -26,8 +26,13 @@ from cros.factory.hwid.base8192 import Base8192
 from cros.factory.utils import file_utils
 
 
-def PatchYAMLMappingConstructor():
-  """Patch the mapping constructor of PyYAML to fail on duplicated keys."""
+def PatchYAMLMappingConstructor(yaml_loader=yaml.Loader,
+                                use_hwid_exceptions=False):
+  """Patch the mapping constructor of PyYAML to fail on duplicated keys.
+
+  The two parameters, yaml_loader and use_hwid_exceptions are used by the HWID
+  server.
+  """
   def ConstructMapping(self, node, deep=False):
     if not isinstance(node, yaml.nodes.MappingNode):
       raise yaml.constructor.ConstructorError(
@@ -38,20 +43,26 @@ def PatchYAMLMappingConstructor():
       key = self.construct_object(key_node, deep=deep)
       try:
         hash(key)
-      except TypeError, exc:
-        raise yaml.constructor.ConstructorError(
-            'while constructing a mapping', node.start_mark,
-            'found unacceptable key (%s)' % exc, key_node.start_mark)
+      except TypeError:
+        if use_hwid_exceptions:
+          raise common.HWIDException('Invalid key: %s' % key)
+        else:
+          raise yaml.constructor.ConstructorError(
+              'while constructing a mapping', node.start_mark,
+              'found unacceptable key (%s)' % key, key_node.start_mark)
       value = self.construct_object(value_node, deep=deep)
       if key in mapping:
-        raise yaml.constructor.ConstructorError(
-            'while constructing a mapping', node.start_mark,
-            'found duplicated key (%s)' % key, key_node.start_mark)
+        if use_hwid_exceptions:
+          raise common.HWIDException('Duplicate key: %s' % key)
+        else:
+          raise yaml.constructor.ConstructorError(
+              'while constructing a mapping', node.start_mark,
+              'found duplicated key (%s)' % key, key_node.start_mark)
       mapping[key] = value
     return mapping
 
-  yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-                       ConstructMapping)
+  yaml_loader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+                              ConstructMapping)
 
 
 PatchYAMLMappingConstructor()
