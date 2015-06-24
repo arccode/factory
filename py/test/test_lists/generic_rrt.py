@@ -14,6 +14,8 @@ This test list can also be used to verify the software stability of base image
 """
 
 
+import re
+
 import factory_common  # pylint: disable=W0611
 from cros.factory.system import GetBoard
 from cros.factory.system import partitions
@@ -27,6 +29,7 @@ from cros.factory.test.test_lists.test_lists import TestList
 from cros.factory.test.test_lists.test_lists import WLAN
 from cros.factory.utils.net_utils import GetWLANInterface
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import SpawnOutput
 
 HOURS = 60 * 60
 MINUTES = 60
@@ -86,7 +89,7 @@ class TestListArgs(object):
                  ignore_stderr=True).returncode == 0
 
   # Need to enlarge stateful partition size for long-run stress tests.
-  desired_stateful_size = '4G'
+  desired_stateful_size_gb = 4
 
   # Main temperature sensor index.
   @property
@@ -176,6 +179,43 @@ class TestListArgs(object):
 
   # Number of warm reboots for each run.
   run_in_reboot_iterations = 15
+
+  #####
+  #
+  # Helper methods.
+  # Some helper methods can be used in run_if test argument.
+  #
+  #####
+  def NeedEnlargeStateful(self, env):
+    """Helper function to check if need to enlarge stateful partition.
+
+    During the long-running stress test, the log files might make stateful
+    partition full.  We need to enlarge stateful partition to before
+    the test starts.  This function is used to check the current size of
+    stateful partition and decide whether the enlargement is needed or not.
+
+    Args:
+      env: The TestArgEnv object passed by goofy when evaluating
+        run_if argument.
+
+    Returns:
+      Returns True if need to enlarge stateful partition, else returns False.
+    """
+    # Skip enlarge stateful partition if it has been done before.
+    if env.GetDeviceData().get('resize_complete', False):
+      return False
+
+    df_output_gb = SpawnOutput(
+        ['df', '-BG', partitions.STATEFUL.path], log=True)
+    match = re.search(
+        r'^%s\s+(\d+)G' % partitions.STATEFUL.path,
+        df_output_gb,
+        re.MULTILINE)
+    current_size_gb = int(match.group(1)) if match else None
+    if current_size_gb and current_size_gb < self.desired_stateful_size_gb:
+      return True
+    else:
+      return False
 
 
 def SetOptions(options, args):
@@ -291,22 +331,29 @@ def PressToStart(id_suffix='',
           background_color='red'))
 
 
-def ResizeStatefulPartition(desired_size):
-  """Resize stateful partition to prevent disk full during long run tests."""
-  with TestGroup(id='ResizeStatefulPartition', label_zh=u'调整硬盘空间'):
+def EnlargeStatefulPartition(args):
+  """Enlarge stateful partition to prevent disk full during long run tests."""
+  with TestGroup(id='EnlargeStatefulPartition', label_zh=u'扩大硬盘空间'):
     FactoryTest(
-        id='ResizeFilesystem',
+        id='ResizeFileSystem',
         label_zh=u'调整硬盘空间',
         pytest_name='line_check_item',
+        run_if=args.NeedEnlargeStateful,
         dargs=dict(
-            title_en='ResizeFilesystem',
+            title_en='ResizeFileSystem',
             title_zh=u'调整硬盘空间',
-            items=[('ResizeFilesystem', u'调整硬盘空间',
-                    'resize2fs %s %s' % (
-                        partitions.STATEFUL.path, desired_size),
+            items=[('ResizeFileSystem', u'调整硬盘空间',
+                    'resize2fs %s %dG' % (
+                        partitions.STATEFUL.path,
+                        args.desired_stateful_size_gb),
                     False)]))
-
-    WarmReboot(id_suffix='RebootAfterResizeStateful')
+    # Writes 'resize_complete' into device_data to mark this DUT has finished
+    # EnlargeStatefulPartition.
+    OperatorTest(
+        id='UpdateDeviceData',
+        label_zh='更新机器资料',
+        pytest_name='update_device_data',
+        dargs=dict(data=dict(resize_complete=True)))
 
 
 def Idle(id_suffix='', wait_secs=1):
@@ -583,7 +630,7 @@ def CreateRebootStressTestList():
     PressToStart(id_suffix='RebootStress',
                  message_en=args.reboot_warning_en,
                  message_zh=args.reboot_warning_zh)
-    ResizeStatefulPartition(args.desired_stateful_size)
+    EnlargeStatefulPartition(args)
     WarmReboot('StressChrome', args.warm_reboot_iterations)
     WarmColdReboot(args)
     ClearTPM(args)
@@ -598,7 +645,7 @@ def CreateRunInStressTestList():
     PressToStart(id_suffix='RunInStress',
                  message_en=args.run_in_warning_en,
                  message_zh=args.run_in_warning_zh)
-    ResizeStatefulPartition(args.desired_stateful_size)
+    EnlargeStatefulPartition(args)
     RunInStress(args)
 
 
