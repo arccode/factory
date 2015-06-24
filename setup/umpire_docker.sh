@@ -40,8 +40,7 @@ get_container_IP() {
   local container_name="$1"
   check_status "${container_name}"
 
-  sudo docker inspect "${container_name}" | \
-    awk '/\"IPAddress/ { gsub(/[",]/, "", $2); print $2 }'
+  sudo docker inspect -f "{{ .NetworkSettings.IPAddress }}" "${container_name}"
 }
 
 do_ssh() {
@@ -104,7 +103,7 @@ do_start() {
       -v /etc/localtime:/etc/localtime:ro \
       -v ${HOST_DIR}:/mnt \
       --name "${UMPIRE_CONTAINER_NAME}" \
-      "${UMPIRE_IMAGE_NAME}" >/dev/null 2>&1
+      "${UMPIRE_IMAGE_NAME}" >> umpire_docker.log 2>&1
   fi
   echo "done"
 
