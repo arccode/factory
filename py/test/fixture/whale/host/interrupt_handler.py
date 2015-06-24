@@ -263,8 +263,10 @@ class InterruptHandler(object):
       return
     # Set dolphin to discharging mode, if dolphin is charging, DUT will fail to
     # boot up after battery connection.
-    self._dolphin.Send(0, 'usbc_action dev')
-    self._dolphin.Send(1, 'usbc_action dev')
+    # Assuming all serial connections are connected to Dolphin.
+    serial_amount = self._dolphin.GetSerialAmount()
+    for serial_index in xrange(serial_amount):
+      self._dolphin.Send(serial_index, 'usbc_action dev')
 
   @TimeClassMethodDebug
   def _ToggleBattery(self):

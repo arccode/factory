@@ -36,6 +36,7 @@ class SerialServer(object):
     self._verbose = verbose
     self._init_wait_time = init_wait_time
     self._params_list = params_list
+    self._serial_amount = len(params_list)
     self._serials = [self._InitSerial(**p) for p in params_list]
 
   def Send(self, serial_index, command):
@@ -89,6 +90,15 @@ class SerialServer(object):
     except serial.SerialTimeoutException as e:
       raise SerialServerError('Serial index %d receive fail: %s' %
                               (serial_index, e))
+
+  def GetSerialAmount(self):
+    """Gets total serial amount on server.
+
+    Returns:
+      Number of serial connections.
+    """
+    logging.debug('Getting serial amount = %d', self._serial_amount)
+    return self._serial_amount
 
   def InitConnection(self, serial_index):
     logging.debug('Init connection for serial index %d', serial_index)

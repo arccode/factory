@@ -75,10 +75,24 @@ class SerialClient(object):
     try:
       recv = self._server.Receive(serial_index, num_bytes)
       logging.debug('Receive data: %s', recv)
+      return recv
     except Exception as e:
       raise SerialClientError(
           'Fail to receive %d bytes from serial_index %d: %s' %
           (num_bytes, serial_index, e))
+
+  def GetSerialAmount(self):
+    """Gets total serial amount on server.
+
+    Returns:
+      Number of serial connections.
+    """
+    try:
+      serial_amount = self._server.GetSerialAmount()
+      logging.debug('Get total serial amount = %d', serial_amount)
+      return serial_amount
+    except Exception as e:
+      raise SerialClientError('Fail to get serial amount: %s' % e)
 
 
 def ParseArgs():
@@ -89,7 +103,7 @@ def ParseArgs():
   """
   usage = (
       'usage: %prog [options] <function> <serial_index> <arg1 arg2 ...> ...\n'
-      '\t- function is [send, receive].\n'
+      '\t- function is [send, receive, get_serial_num].\n'
       '\t- serial_index is serial connection index.\n'
       '\t- arg<n> is the function arguments.\n'
   )
@@ -124,12 +138,17 @@ def CallFunction(commands, sclient):
     commands: list of function commands, like:
         Send command: ['send', serial_index, contents to send...]
         Receive command: ['receive', serial_index, number of bytes to receive]
+        Get serial amount command: ['get_serial_num']
     sclient: SerialClient object.
   """
   if not commands:
     raise SerialClientError('No command is given')
 
   function = commands.pop(0)
+  if function == 'get_serial_num':
+    sclient.GetSerialAmount()
+    return
+
   if not commands:
     raise SerialClientError('No serial index is assigned')
 
