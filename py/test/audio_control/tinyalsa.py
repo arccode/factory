@@ -6,15 +6,6 @@
 
 """
 This is audio utility module to setup tinymix related options.
-We don't use original tinymix to get old value.
-We use modified version because the enum value is too hard to know the boundary.
-The original one only have start sign before the value.
-e.g. >ABC DEF GHI
-In this case we don't know the value is 'ABC' or 'ABC DEF' or 'ABC DEF GHI'
-So we add end sign for the modified tinymix. The value will be
->ABC DEF< GHI
-in the modified version. So we can use '>' and '<' to know the
-value.
 """
 
 from __future__ import print_function
@@ -70,12 +61,15 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     raise ValueError('device name %s is incorrect' % card_name)
 
   def _GetMixerControlsByLines(self, name, lines):
-    """Get Mixer control value by the tinymixget results"""
+    """Get Mixer control value by the tinymix results"""
     # Try Enum value
-    m = re.search(r'.*%s:.*>(.*)<.*' % name, lines, re.MULTILINE)
+    m = re.search(r'.*%s:.*\t>.*' % name, lines, re.MULTILINE)
     if m:
-      value = m.group(1)
-      return value
+      values = m.group(0).split('\t')
+      # Find the value start with '>', and return value
+      for s in values:
+        if s.startswith('>'):
+          return s[1:]
     # Try Int value
     m = re.search(r'.*%s: (.*) \(range.*' % name, lines, re.MULTILINE)
     if m:
@@ -98,10 +92,7 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   def GetMixerControls(self, name, card='0'):
     """See BaseAudioControl.GetMixerControls """
-    # It's too hard to specify a name for Enum value.
-    # So we provide our tinymix to get value.
-    # The output looks like >value<
-    command = ['tinymixget', '-D', card, name]
+    command = ['tinymix', '-D', card, name]
     lines = self.CheckOutput(command)
     return self._GetMixerControlsByLines(name, lines)
 
@@ -132,8 +123,8 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     result_file = os.path.basename(output_file.name)
     result_path = os.path.join(self._remote_directory, result_file)
     for name in mixer_settings:
-      open_file.write('tinymixget -D %s \'%s\' >> %s\n' % (card, name,
-                                                           result_path))
+      open_file.write('tinymix -D %s \'%s\' >> %s\n' % (card, name,
+                                                        result_path))
 
   def _GenerateSetValueShellScript(self, open_file, mixer_settings, card):
     """Generate a bash file to get tinymix old value"""
@@ -152,7 +143,8 @@ class TinyalsaAudioControl(base.BaseAudioControl):
       store: Store the current value so it can be restored later using
         RestoreMixerControls.
     """
-    logging.info('Setting mixer control values on card %s', card)
+    logging.info('Setting mixer control values on card %s, store %s',
+                 card, store)
     restore_mixer_settings = dict()
     if store:
       with tempfile.NamedTemporaryFile() as get_sh_file:

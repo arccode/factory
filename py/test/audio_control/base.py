@@ -128,10 +128,17 @@ class BaseAudioControl(object):
 
     Also, clear _restore_mixer_control_stack.
     """
+    # Merge all restore command sets to one set
+    final_settings = {}
     while self._restore_mixer_control_stack:
       mixer_settings, card = self._restore_mixer_control_stack.pop()
-      self.SetMixerControls(mixer_settings, card, False)
+      if card in final_settings:
+        final_settings[card].update(mixer_settings)
+      else:
+        final_settings[card] = mixer_settings
     self._restore_mixer_control_stack = []
+    for card, mixer_settings in final_settings.items():
+      self.SetMixerControls(mixer_settings, card, False)
 
   def FindEventDeviceByName(self, name):
     """Finds the event device by matching name.

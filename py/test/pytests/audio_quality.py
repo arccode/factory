@@ -332,6 +332,7 @@ class AudioQualityTest(unittest.TestCase):
     if self._loop_type == LoopType.tinyloop:
       self._audio_control.DestroyAudioLoop()
 
+    self._audio_control.RestoreMixerControls()
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
         card = self._audio_control.GetCardIndexByName(card)
