@@ -16,6 +16,8 @@ KEYFILE_PUB=${KEYSDIR}/testing_rsa.pub
 HOST_DIR=/shared
 SSH_OPTIONS='-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 
+. ${BUILDDIR}/config.sh
+
 die() {
   echo "ERROR: $@"
   exit 1
@@ -82,14 +84,15 @@ do_destroy() {
 do_start() {
   check_docker
 
-  echo -n "Starting ${UMPIRE_CONTAINER_NAME} container ... "
+  echo -n "Starting container ... "
   sudo mkdir -p ${HOST_DIR}
-  sudo docker start "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
 
-  # Container does not exist, run a new one
-  if [ $? -ne 0 ]; then
+  if [ -n "$(sudo docker ps -a | grep ${UMPIRE_CONTAINER_NAME})" ]; then
+    sudo docker start "${UMPIRE_CONTAINER_NAME}"
+  else
     local umpire_port_map=""
-    for base in $(seq 8080 10 8380); do
+    for base in $(seq ${PORT_START} ${PORT_STEP} \
+        $(expr ${PORT_START} + \( ${NUM_BOARDS} - 1 \) \* ${PORT_STEP} )); do
       p1=${base}              # Imaging & Shopfloor
       p2=$(expr ${base} + 4)  # Rsync
       umpire_port_map="-p $p1:$p1 -p $p2:$p2 ${umpire_port_map}"
@@ -103,14 +106,24 @@ do_start() {
       -v /etc/localtime:/etc/localtime:ro \
       -v ${HOST_DIR}:/mnt \
       --name "${UMPIRE_CONTAINER_NAME}" \
-      "${UMPIRE_IMAGE_NAME}" >> umpire_docker.log 2>&1
-  fi
-  echo "done"
+      "${UMPIRE_IMAGE_NAME}"
 
-  echo -e '\n*** NOTE ***'
-  echo "- Host directory ${HOST_DIR} is mounted under /mnt in the container."
-  echo '- Umpire service ports is mapped to the local machine.'
-  echo '- Overlord service ports 4455, 9000 is mapped to the local machine.'
+    if [ $? -ne 0 ]; then
+      echo -n 'Removing stale container due to error ... '
+      sudo docker rm ${UMPIRE_CONTAINER_NAME}
+      echo 'Possibly wrong port binding? Please fix and retry.'
+      return
+    fi
+  fi
+
+  if [ $? -eq 0 ]; then
+    echo "done"
+    echo
+    echo '*** NOTE ***'
+    echo "- Host directory ${HOST_DIR} is mounted under /mnt in the container."
+    echo '- Umpire service ports is mapped to the local machine.'
+    echo '- Overlord service ports 4455, 9000 is mapped to the local machine.'
+  fi
 }
 
 do_stop() {
@@ -165,7 +178,13 @@ Options:
 __EOF__
 }
 
+init() {
+  chmod 400 ${KEYFILE}
+}
+
 main() {
+  init
+
   case "$1" in
     build)
       do_build
