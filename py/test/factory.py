@@ -447,6 +447,12 @@ class Options(object):
   scan_wifi_period_secs = 10
   """Scan wireless networks at the given interval."""
 
+  thermal_monitor_period_secs = 120.0
+  """Dump thermal data at the given interval. Negative to disable."""
+
+  thermal_monitor_delta = 1.1
+  """Dump thermal data only if a value greater than delta observed."""
+
   shopfloor_timeout_secs = 10
   """Timeout when talking to shopfloor server for background
   operations."""

@@ -27,7 +27,7 @@ from optparse import OptionParser
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
 from cros.factory import system
-from cros.factory.test.event_log import EventLog, FloatDigit
+from cros.factory.test.event_log import EventLog, FloatDigit, GetBootSequence
 from cros.factory.goofy import connection_manager
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
@@ -1118,6 +1118,7 @@ class Goofy(GoofyBase):
 
     self.status = Status.RUNNING
     syslog.syslog('Goofy (factory test harness) starting')
+    syslog.syslog('Boot sequence = %d' % GetBootSequence())
     self.run()
 
   def update_system_info(self):
@@ -1494,6 +1495,14 @@ class Goofy(GoofyBase):
       self.cpu_usage_watcher = Spawn(
           ['py/tools/cpu_usage_monitor.py', '-p',
            str(self.test_list.options.check_cpu_usage_period_secs)],
+          cwd=factory.FACTORY_PATH)
+
+    # Enable thermal monitor
+    if self.test_list.options.thermal_monitor_period_secs > 0:
+      self.cpu_usage_watcher = Spawn(
+          ['py/tools/thermal_monitor.py',
+           '-p', str(self.test_list.options.thermal_monitor_period_secs),
+           '-d', str(self.test_list.options.thermal_monitor_delta)],
           cwd=factory.FACTORY_PATH)
 
     self.init_states()
