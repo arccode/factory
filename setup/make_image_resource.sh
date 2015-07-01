@@ -25,11 +25,7 @@ ORIGINAL_PARAMS="$@"
 eval set -- "${FLAGS_ARGV}"
 
 # Temp folder to store the compressed partitions for each images.
-INSTALLER_RESOURCES_DIR="$(mktemp -d --tmpdir)"
-
-# Temp file to be formatted then copy to a target partition of a file.
-TMP_PARTITION_FILE="$(mktemp --tmpdir)"
-image_add_temp "${TMP_PARTITION_FILE}"
+INSTALLER_RESOURCES_DIR="$(mktemp -d)"
 
 # Partition number on the output file storing compressed input partitions.
 DATA_PART_NUM=1
@@ -64,6 +60,16 @@ compress_one_partition() {
   alert "Compressing partition ${part_num} of ${image_file}..."
   part_hash="$(compress_and_hash_partition \
       "${image_file}" "${part_num}" "${output_dir}/${part_num}.gz")"
+
+  # The compress_and_hash_partition returns the hash of the compressed
+  # file but it doesn't guarantee the copy to destination is completed.
+  # Verifies the hash of the destination file to ensure the copy is
+  # completed and throws error if the hash verification failed.
+  actual_hash=$(openssl sha1 -binary "${output_dir}/${part_num}.gz" |
+                openssl base64)
+  [ "${part_hash}" = "${actual_hash}" ] ||
+      die "Failed to generate ${output_dir}/${part_num}.gz."
+
   echo "${part_num}_checksum = ${part_hash}" >> "${output_dir}/config"
 }
 
@@ -149,14 +155,12 @@ image_geometry_format_partition() {
   cgpt add -b "${offset}" -s "${sectors}" -i "${index}" -t "data" \
            -l "DATA" "${output_file}"
 
-  # Starting with a new file is much faster.
-  truncate -s "0" "${TMP_PARTITION_FILE}"
-  truncate -s "$((sectors * IMAGE_CGPT_BS))" "${TMP_PARTITION_FILE}"
-  # Format the tmp file.
-  "mkfs.${filesystem}" -F "${TMP_PARTITION_FILE}"
-
-  image_partition_copy_from_file \
-      "${TMP_PARTITION_FILE}" "${output_file}" "${index}"
+  part_dev=$(sudo losetup -f --show --offset="$((offset * IMAGE_CGPT_BS))" \
+             --sizelimit="$((sectors * IMAGE_CGPT_BS))" "${output_file}")
+  # Format the file.
+  sudo "mkfs.${filesystem}" "${part_dev}" ||
+    die "Failed to format file: ${output_file}."
+  sudo losetup -d "${part_dev}"
 }
 
 # Create a cgpt image with partitions
@@ -191,7 +195,7 @@ copy_dir_to_partition() {
   local image_file="$2"
   local part_num="$3"
   local dst_dir="$4"
-  local data_dir="$(mktemp -d --tmpdir)"
+  local data_dir="$(mktemp -d)"
 
   alert "Copying ${src_dir} to partition #${part_num} of ${image_file}..."
 

@@ -10,7 +10,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "$SCRIPT_DIR/factory_common.sh" || exit 1
 
 # Temp file to store image resources.
-RESOURCE_FILE="$(mktemp --tmpdir)"
+RESOURCE_FILE="$(mktemp)"
 
 alert() {
   echo "$*" >&2
@@ -19,6 +19,18 @@ alert() {
 die() {
   alert "ERROR: $*"
   exit 1
+}
+
+check_output_on_exit() {
+  local output_file="$1"
+
+  if [ ! -f "$output_file" ]; then
+    alert "Failed to generate the output file: $output_file."
+    alert "This may be related to not enough space left on /tmp."
+    alert "Please try to specify TMPDIR to another location."
+    alert "For example, TMPDIR=/some/other/dir $0"
+  fi
+  on_exit
 }
 
 on_exit() {
@@ -82,7 +94,7 @@ merge_images() {
 # lsb file is required for factory shim bootstrapping.
 generate_lsb() {
   local image_file="$1"
-  local temp_mount="$(mktemp -d --tmpdir)"
+  local temp_mount="$(mktemp -d)"
   local lsb_file="${temp_mount}/dev_image/etc/lsb-factory"
 
   image_add_temp "${temp_mount}"
@@ -127,7 +139,10 @@ main() {
   if [ -f "$output" -a -z "$force" ]; then
     die "Output file $output already exists. To overwrite the file, add -f."
   fi
+  [ -z "$force" ] || rm -f "$output"
 
+  # Reset trap here to check whether output file is generated or not.
+  trap 'check_output_on_exit $output' EXIT
   merge_images "$output" "$@"
   generate_lsb "$output"
 }
