@@ -96,6 +96,10 @@ _MSG_READING_VPD_SERIAL = test_ui.MakeLabel(
 _MSG_CONTACTING_SERVER = test_ui.MakeLabel(
     'Contacting shop floor server...', u'正在和 shop floor server 联络...',
     r'start-contacting-server')
+_MSG_INIT_SHARED_DATA = test_ui.MakeLabel(
+    'Initialize some shared data...',
+    u'重设旧有共用资料...',
+    'start-font-size')
 
 # Javascripts and HTML for tasks
 _JS_SPACE = """
@@ -182,7 +186,7 @@ class FactoryInstallCompleteTask(FactoryTask):
 
   def Run(self):
     if not os.path.exists(_LSB_FACTORY_PATH):
-      factory.console.error('%s is missing' % _LSB_FACTORY_PATH)
+      factory.console.error('%s is missing', _LSB_FACTORY_PATH)
       self._test.template.SetState(_MSG_INSTALL_INCOMPLETE)
       return
 
@@ -196,7 +200,7 @@ class FactoryInstallCompleteTask(FactoryTask):
           or ro_version_output.group(1) != rw_version_output.group(1)):
         self._test.template.SetState(_MSG_INSTALL_INCOMPLETE)
         factory.console.info(
-            'EC RO and RW version does not match, %s' % version_info)
+            'EC RO and RW version does not match, %s', version_info)
         return
       Log('factory_installed', ro_version=ro_version_output.group(1),
           rw_version=rw_version_output.group(1))
@@ -259,7 +263,7 @@ class ShopFloorTask(FactoryTask):
       ShowErrorMsg('Network failure (address error).')
     except socket.error as e:
       ShowErrorMsg('Network failure: %s' % test_ui.Escape(e[1].__str__()))
-    except:
+    except Exception:
       ShowErrorMsg(sys.exc_info()[1])
     return False
 
@@ -303,6 +307,20 @@ class ReadVPDSerialTask(FactoryTask):
     self.Pass()
 
 
+class InitializeSharedData(FactoryTask):
+  """Initialize shared data."""
+
+  def __init__(self, test):  # pylint: disable=W0231
+    self._test = test
+
+  def Run(self):
+    self._test.template.SetState(_MSG_INIT_SHARED_DATA)
+    for key, value in self._test.args.init_shared_data.iteritems():
+      factory.console.debug('set_shared_data[%s] = "%s"', key, value)
+      factory.set_shared_data(key, value)
+    self.Pass()
+
+
 class StartTest(unittest.TestCase):
   """The factory test to start the whole factory test process."""
   ARGS = [
@@ -329,7 +347,9 @@ class StartTest(unittest.TestCase):
           default=('Enter valid serial number:<br/>',
                    u'请输入有效的序号:<br/>'), optional=True),
       Arg('has_ectool', bool, 'Has ectool utility or not.',
-          default=True, optional=True)]
+          default=True, optional=True),
+      Arg('init_shared_data', dict, 'the shared data to initialize',
+          default={}, optional=True)]
 
   def setUp(self):
     self._task_list = []
@@ -339,6 +359,9 @@ class StartTest(unittest.TestCase):
     self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
+
+    if self.args.init_shared_data:
+      self._task_list.append(InitializeSharedData(self))
 
     # Reset shop floor data only if require_shop_floor is explicitly
     # defined, for test lists using factory_Start multiple times between
