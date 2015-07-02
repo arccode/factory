@@ -20,6 +20,7 @@ from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils.file_utils import TryUnlink
 from cros.factory.utils.net_utils import GetEthernetInterfaces
 from cros.factory.utils.net_utils import GetEthernetIp
+from cros.factory.utils.net_utils import DEFAULT_ETHERNET_NAME_PATTERNS
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 _MSG_ETHERNET_INFO = test_ui.MakeLabel(
@@ -70,6 +71,8 @@ class EthernetTest(unittest.TestCase):
           default=1000),
       Arg('iface', str, 'Interface name for testing.', default=None,
           optional=True),
+      Arg('inteface_name_patterns', list, 'The ethernet interface name patterns',
+          default=DEFAULT_ETHERNET_NAME_PATTERNS, optional=True),
       Arg('link_only', bool, 'Only test if link is up or not', default=False),
       Arg('use_swconfig', bool, 'Use swconfig for polling link status.',
           default=False),
@@ -98,15 +101,18 @@ class EthernetTest(unittest.TestCase):
     elif self.args.link_only and not self.args.iface:
       raise ValueError('Should assign iface if link_only is set.')
 
+  def GetEthernetInterfaces(self):
+    return GetEthernetInterfaces(self.args.inteface_name_patterns)
+
   def GetInterface(self):
-    devices = GetEthernetInterfaces()
+    devices = self.GetEthernetInterfaces()
     if self.args.iface:
       return self.args.iface if self.args.iface in devices else None
     else:
       return self.GetCandidateInterface()
 
   def GetCandidateInterface(self):
-    devices = GetEthernetInterfaces()
+    devices = self.GetEthernetInterfaces()
     if not devices:
       self.fail('No ethernet interface')
       return None

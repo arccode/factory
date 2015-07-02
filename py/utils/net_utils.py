@@ -31,6 +31,7 @@ LOCALHOST = '127.0.0.1'
 MAX_PORT = 65535
 FULL_MASK = 2 ** 32 - 1
 FULL_MASK6 = 2 ** 128 - 1
+DEFAULT_ETHERNET_NAME_PATTERNS = ['eth*']
 
 
 class IP(object):
@@ -158,7 +159,7 @@ class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
     xmlrpclib.ServerProxy.__init__(self, uri, *args, **kwargs)
 
 
-def FindUsableEthDevice(raise_exception=False):
+def FindUsableEthDevice(raise_exception=False, name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
   """Find the real ethernet interface when the flimflam is unavailable.
 
   Some devices with 4G modules may bring up fake eth interfaces during
@@ -172,9 +173,8 @@ def FindUsableEthDevice(raise_exception=False):
   """
   good_eth = None
   last_level = 0
-  candidates = glob.glob('/sys/class/net/eth*')
-  for path in candidates:
-    dev = os.path.basename(path)
+  devices = GetEthernetInterfaces(name_patterns)
+  for dev in devices:
     p = subprocess.Popen('ethtool %s' % dev, shell=True,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stat = p.communicate()[0]
@@ -323,23 +323,29 @@ def GetWLANInterface():
   return None
 
 
-def GetEthernetInterfaces():
+def GetEthernetInterfaces(name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
   """Returns the interfaces for Ethernet.
+
+  Args:
+    name_patterns: A list that contains all name patterns of ethernet interfaces.
 
   Returns:
     A list like ['eth0', 'eth1'] if those Ethernet interfaces are available.
     Or return [] if there is no Ethernet interface.
   """
-  return [os.path.basename(path) for path in glob.glob('/sys/class/net/eth*')]
+  interfaces = []
+  for name in name_patterns:
+    interfaces += [os.path.basename(path) for path in glob.glob('/sys/class/net/' + name)]
+  return interfaces
 
 
-def SwitchEthernetInterfaces(enable):
+def SwitchEthernetInterfaces(enable, name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
   """Switches on/off all Ethernet interfaces.
 
   Args:
     enable: True to turn up, False to turn down.
   """
-  devs = GetEthernetInterfaces()
+  devs = GetEthernetInterfaces(name_patterns)
   for dev in devs:
     Ifconfig(dev, enable)
 
