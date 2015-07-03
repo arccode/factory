@@ -20,6 +20,7 @@ import sys
 import tempfile
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.tools import install_symlinks
@@ -114,7 +115,7 @@ class FactoryToolkitInstaller(object):
   _sudo = True
 
   def __init__(self, src, dest, no_enable, enable_presenter,
-               enable_device, non_cros=False, system_root='/'):
+               enable_device, non_cros=False, device_id=None, system_root='/'):
     self._src = src
     self._system_root = system_root
     if dest == self._system_root:
@@ -164,6 +165,7 @@ class FactoryToolkitInstaller(object):
     self._enable_device = enable_device
     self._device_tag_file = os.path.join(self._usr_local_dest, 'factory',
                                          'init', 'run_goofy_device')
+    self._device_id = device_id
 
     if (not os.path.exists(self._usr_local_src) or
         not os.path.exists(self._var_src)):
@@ -209,6 +211,11 @@ class FactoryToolkitInstaller(object):
       print '*** Removing %s enabled tag...' % name
       Spawn(['rm', '-f', path], sudo=True, log=True, check_call=True)
 
+  def _SetDeviceID(self):
+    if self._device_id is not None:
+      with open(os.path.join(event_log.DEVICE_ID_PATH), 'w') as f:
+        f.write(self._device_id)
+
   def Install(self):
     print '*** Installing factory toolkit...'
     for src, dest in ((self._usr_local_src, self._usr_local_dest),
@@ -252,6 +259,8 @@ class FactoryToolkitInstaller(object):
     self._SetTagFile('presenter', self._presenter_tag_file,
                      self._enable_presenter)
     self._SetTagFile('device', self._device_tag_file, self._enable_device)
+
+    self._SetDeviceID()
 
     print '*** Installation completed.'
 
@@ -403,6 +412,9 @@ def main():
                       action='store_false', help=argparse.SUPPRESS)
   parser.set_defaults(enable_device=True)
 
+  parser.add_argument('--device-id', dest='device_id', type=str, default=None,
+                      help='Set device ID for this device')
+
   parser.add_argument('--init-umpire-board', dest='umpire_board',
                       nargs='?', default=None,
                       help='Locally install Umpire server for specific board')
@@ -466,8 +478,10 @@ def main():
   with (MountPartition(args.dest, 1, rw=True) if patch_test_image
         else DummyContext(args.dest)) as dest:
     installer = FactoryToolkitInstaller(
-        src_root, dest, args.no_enable, args.enable_presenter,
-        args.enable_device, args.non_cros)
+        src=src_root, dest=dest, no_enable=args.no_enable,
+        enable_presenter=args.enable_presenter,
+        enable_device=args.enable_device, non_cros=args.non_cros,
+        device_id=args.device_id)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
 
