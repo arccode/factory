@@ -612,7 +612,8 @@ def LoadServiceModule(module_name):
   for _, obj in inspect.getmembers(module):
     if inspect.isclass(obj) and issubclass(obj, UmpireService):
       _SERVICE_MAP[module_name] = module
-      _INSTANCE_MAP[module_name] = obj()
+      if module_name not in _INSTANCE_MAP:
+        _INSTANCE_MAP[module_name] = obj()
   return module
 
 
