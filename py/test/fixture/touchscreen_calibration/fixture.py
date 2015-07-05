@@ -154,6 +154,7 @@ class BaseFixture(SerialDevice):
 
 class FakeFixture(BaseFixture):
   """A fake fixture class used for development purpose only."""
+  TIMEOUT = 10
 
   def __init__(self, ui, state=None):
     super(FakeFixture, self).__init__(state)
@@ -185,7 +186,7 @@ class FakeFixture(BaseFixture):
     self.ui.CallJSFunction('showMessageAndCallback',
                            'Pull the lever up.\n'
                            '拉起把手')
-    self.final_calibration_lock.wait()
+    self.final_calibration_lock.wait(self.TIMEOUT)
 
   def DriveProbeUpDone(self):
     """Notify that the DriveProbeUp has been done."""

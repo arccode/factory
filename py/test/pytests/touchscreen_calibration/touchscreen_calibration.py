@@ -69,6 +69,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
   ARGS = [
       Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
+      Arg('phase', str, 'The test phase of touchscreen calibration', ''),
       Arg('remote_system_dir', str, 'The remote system directory', ''),
       Arg('tool', str, 'The test tool', ''),
   ]
@@ -412,23 +413,13 @@ class TouchscreenCalibration(unittest.TestCase):
     else:
       _AppendLog(self._local_log_dir, filename, content)
 
-  def _WriteSensorDataToFile(self, logger, sn, test_pass, data):
+  def _WriteSensorDataToFile(self, logger, sn, phase, test_pass, data):
     """Writes the sensor data and the test result to a file."""
-    logger.write('%s %s\n' % (sn, 'Pass' if test_pass else 'Fail'))
+    logger.write('%s: %s %s\n' % (phase, sn, 'Pass' if test_pass else 'Fail'))
     for row in data:
       logger.write(' '.join([str(val) for val in row]))
       logger.write('\n')
     self._WriteLog(sn, logger.getvalue())
-
-  def _VerifySensorData(self, data):
-    """Determines whether the sensor data is good or not."""
-    test_pass, failed_sensors, min_value, max_value = self.sensors.Verify(data)
-    failed_msg = '  Failed sensor at (%d, %d) value %d'
-    for sensor in failed_sensors:
-      factory.console.info(failed_msg, *sensor)
-    factory.console.info('min delta value: %d', min_value)
-    factory.console.info('max delta value: %d', max_value)
-    return test_pass, min_value, max_value
 
   def _GetTime(self):
     """Get the time format like 2014_1225.10:35:20"""
@@ -445,78 +436,84 @@ class TouchscreenCalibration(unittest.TestCase):
       return False
     return True
 
-  def _Calibrate(self, sn):
+  def _ReadAndVerifySensorData(self, sn, phase, category, verify_method):
+    # Get data based on the category, i.e., REFS or DELTAS.
+    data = self.sensors.Read(category)
+    self.ui.CallJSFunction('displayDebugData', json.dumps(data))
+    factory.console.info('%s: get %s data: %s', phase, category, data)
+    time.sleep(1)
+
+    # Verifies whether the sensor data is good or not by the verify_method.
+    self.test_pass, failed_sensors, min_value, max_value = verify_method(data)
+    factory.console.info('Invoked verify_method: %s', verify_method.func_name)
+    for sensor in failed_sensors:
+      factory.console.info('Failed sensor at (%d, %d) value %d', *sensor)
+    factory.console.info('Number of failed sensors: %d', len(failed_sensors))
+    factory.console.info('(min, max): (%d, %d)', min_value, max_value)
+
+    # Write the sensor data and the test result to USB stick, the UI,
+    # and also to the shop floor.
+    log_to_file = StringIO.StringIO()
+    self._WriteSensorDataToFile(log_to_file, sn, phase, self.test_pass, data)
+    self.log('touchscreen_calibration', sn=sn, phase=phase,
+             test_pass=self.test_pass, sensor_data=str(data))
+    result = 'pass' if self.test_pass else 'fail'
+    log_name = '%s_%s_%s_%s' % (self.start_time, sn, 'deltas', result)
+    self._UploadLog(log_name, str(data))
+    self._WriteLog(self.summary_file,
+                   '%s: %s [min: %d, max: %d]  (time: %s)\n' %
+                   (sn, result, min_value, max_value, self._GetTime()))
+
+    if self.test_pass:
+      self.ui.Pass()
+    else:
+      msg = '[min, max] of phase %s: [%d, %d]' % (phase, min_value, max_value)
+      self.ui.Fail(msg)
+
+  def _DoTest(self, sn, phase):
     """The actual calibration method.
 
     Args:
       sn: the serial number of the touchscreen under test
+      phase: the test phase, including PHASE_REFS, PHASE_DELTAS_UNTOUCHED, and
+             PHASE_DELTAS_TOUCHED
     """
-    self._CheckFixtureStateUp()
+    factory.console.info('Start testing SN %s for phase %s', sn, phase)
     if not self._CheckSerialNumber(sn):
       return
 
-    try:
-      factory.console.info('Start calibrating SN %s', sn)
-      log_to_file = StringIO.StringIO()
+    if phase == 'PHASE_REFS':
+      # Dump one frame of the baseline refs data before the probe touches the
+      # panel, and verify the uniformity.
+      self._ReadAndVerifySensorData(
+          sn, phase, self.REFS, self.sensors.VerifyRefs)
+
+    elif phase == 'PHASE_DELTAS_UNTOUCHED':
+      # Dump delta values a few times before the probe touches the panel.
+      for _ in range(self.dump_frames):
+        self._ReadAndVerifySensorData(
+            sn, phase, self.DELTAS, self.sensors.VerifyDeltasUntouched)
+
+    elif phase == 'PHASE_DELTAS_TOUCHED':
+      # Dump delta values after the probe has touched the panel.
+      # This test involves controlling the test fixture.
+      self._CheckFixtureStateUp()
 
       if not self.sensors.PreRead():
         factory.console.error('Failed to execute PreRead().')
-
-      # Dump one frame of the baseline data.
-      self._DumpOneFrameToLog(log_to_file, self.REFS, sn, 1)
-      time.sleep(0.1)
-
-      # Dump whole frame a few times before probe touches panel.
-      for f in range(self.dump_frames):           # pylint: disable=W0612
-        self._DumpOneFrameToLog(log_to_file, self.DELTAS, sn, f)
-        time.sleep(0.1)
 
       self.DriveProbeDown()
 
       # Wait a while to let the probe touch the panel stably.
       time.sleep(10 if self.fake_fixture else 1)
 
-      data = self.sensors.Read(self.DELTAS)
-      factory.console.info('Get data %s', data)
-      time.sleep(1)
-
-      # Verifies whether the sensor data is good or not.
-      self.test_pass, min_value, max_value = self._VerifySensorData(data)
-
-      # Write the sensor data and the test result to USB stick, the UI,
-      # and also to the shop floor.
-      self._WriteSensorDataToFile(log_to_file, sn, self.test_pass, data)
-      self.ui.CallJSFunction('displayDebugData', json.dumps(data))
-      self.log('touchscreen_calibration',
-               sn=sn, test_pass=self.test_pass, sensor_data=str(data))
-
-      result = 'pass' if self.test_pass else 'fail'
-      log_name = '%s_%s_%s_%s' % (self.start_time, sn, 'deltas', result)
-      self._UploadLog(log_name, str(data))
-      self._WriteLog(self.summary_file,
-                     '%s: %s [min: %d, max: %d]  (time: %s)\n' %
-                     (sn, result, min_value, max_value, self._GetTime()))
+      self._ReadAndVerifySensorData(
+          sn, phase, self.DELTAS, self.sensors.VerifyDeltasTouched)
 
       self.DriveProbeUp()
 
       if not self.sensors.PostRead():
         factory.console.error('Failed to execute PostRead().')
-
-      self.min_max_msg = ('[min, max] of deltas: [%d, %d]' %
-                          (min_value, max_value))
-
-      self.ui.CallJSFunction('showMessage', 'OK 测试完成' if self.test_pass else
-                             'NO GOOD 测试失败')
-
-      if self.test_pass:
-        self.ui.Pass()
-      else:
-        self.ui.Fail(self.min_max_msg)
-
-    except Exception as e:
-      if not self.fixture:
-        self._AlertFixtureDisconnected()
-      raise e
 
   def FinishTest(self, unused_event):
     """Finish the test and do cleanup if needed.
@@ -592,8 +589,8 @@ class TouchscreenCalibration(unittest.TestCase):
       self.ui.CallJSFunction('displayDebugData', '[]')
       return
 
-    self._calibration_thread = threading.Thread(target=self._Calibrate,
-                                                args=[sn])
+    self._calibration_thread = threading.Thread(target=self._DoTest,
+                                                args=[sn, self.args.phase])
     self._calibration_thread.start()
 
   def _RegisterEvents(self, events):
