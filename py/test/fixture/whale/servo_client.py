@@ -104,7 +104,9 @@ WHALE_CONTROL = common.AttrDict(dict(
     USBHUB_RESET='whale_usbhub_rst',
     WRITE_PROTECT='whale_write_protect',
     EXPANDER_RESET='whale_xpander_rst',
-    DEVICE_PWR_BUTTON='krill_btn_r_pwr'))
+    DEVICE_PWR_BUTTON='krill_btn_r_pwr',
+    LID_HALL_MAGNET='whale_electro_magnet',
+    BASE_HALL_MAGNET='krill_lid_present_hall'))
 
 # Whale's krill INA, specified in servo_config.py in private overlays.
 WHALE_INA = servo_config.WHALE_INA
