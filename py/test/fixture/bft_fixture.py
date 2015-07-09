@@ -249,6 +249,14 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
+  def IsBaseInFixture(self):
+    """Is Base in BFT fixture?
+
+    Returns:
+       True if Base is in BFT fixture.
+    """
+    raise NotImplementedError
+
   def CoverStatus(self):
     """Gets the status of fixture cover.
 

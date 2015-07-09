@@ -254,6 +254,13 @@ class WhaleBFTFixture(bft.BFTFixture):
       raise bft.BFTFixtureException(
           'Failed to check if DUT in the fixture. Reason: ' + e)
 
+  def IsBaseInFixture(self):
+    try:
+      return not self._servo.IsOn(self._FIXTURE_FEEDBACK.BASE_SENSOR)
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException(
+          'Failed to check if Base in the fixture. Reason: ' + e)
+
   def CoverStatus(self):
     status = self._servo.MultipleIsOn(self._FEEDBACKS)
     is_open = all([

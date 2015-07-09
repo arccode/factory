@@ -141,6 +141,22 @@ class InterruptHandler(object):
 
     self.ShowNucIpOnLED()
 
+  def _IsMLBInFixture(self):
+    """Checks MLB(s) is(are) inside the fixture.
+
+    If the project has only one board, check DUT_SENSOR is enough. For two
+    boards project, ex. lid and base boards, check DUT_SENSOR and BASE_SENSOR.
+
+    Returns:
+      True if MLB(s) is(are) inside the fixture; otherwise False.
+    """
+    dut_inside = not self._servo.IsOn(self._FIXTURE_FEEDBACK.DUT_SENSOR)
+    if self._FIXTURE_FEEDBACK.get('BASE_SENSOR'):
+      base_inside = not self._servo.IsOn(self._FIXTURE_FEEDBACK.BASE_SENSOR)
+    else:
+      base_inside = True
+    return dut_inside and base_inside
+
   @TimeClassMethodDebug
   def _HandleStopFixture(self, show_state=True):
     """Stop Fixture Step"""
@@ -224,9 +240,9 @@ class InterruptHandler(object):
       return
 
     if self._starting_fixture_action is None:
-      if self._servo.IsOn(self._FIXTURE_FEEDBACK.DUT_SENSOR):
+      if not self._IsMLBInFixture():
         logging.info(
-            '[HandleStartFixture] OOPS! Cannot close cover without DUT')
+            '[HandleStartFixture] OOPS! Cannot close cover without MLBs')
         return
       self._ResetWhaleDeviceBeforeClosing()
       self._ResetDolphinDeviceBeforeClosing()
