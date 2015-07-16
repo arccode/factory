@@ -14,7 +14,7 @@ See RETURN_VALUE_ACTIONS for the list of possible actions.
 import logging
 import threading
 import unittest
-
+import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
@@ -53,6 +53,9 @@ class CallShopfloor(unittest.TestCase):
   ARGS = [
       Arg('method', str,
           'Name of shopfloor method to call'),
+      Arg('server_proxy_url', str,
+          'the server_proxy_url for the shopfloor server',
+          default='', optional=True),
       Arg('args', list,
           'Method arguments.  If any argument is a function, it will be '
           'invoked.'),
@@ -89,7 +92,15 @@ class CallShopfloor(unittest.TestCase):
     ui.AddEventHandler('retry', lambda dummy_event: self.event.set())
 
     while not self.done:
-      method = getattr(shopfloor.get_instance(detect=True), self.args.method)
+      # If the server_proxy_url has been specified, create a simple XML-PRC
+      # server. This applies to the scenario where an umpire server is not
+      # set up.
+      if bool(self.args.server_proxy_url):
+        server_proxy = xmlrpclib.ServerProxy(self.args.server_proxy_url)
+      else:
+        server_proxy = shopfloor.get_instance(detect=True)
+      method = getattr(server_proxy, self.args.method)
+
       args_to_log = FilterDict(self.args.args)
       message = 'Invoking %s(%s)' % (
           self.args.method, ', '.join(repr(x) for x in args_to_log))
