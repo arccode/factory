@@ -109,12 +109,14 @@ class MockFixtureConnection(FixtureConnection):
 
 class SerialFixtureConnection(FixtureConnection):
 
-  def __init__(self, driver, serial_delay, serial_params, retries=5):
+  def __init__(self, driver, serial_delay, serial_params, response_delay,
+               retries=5):
     """Constructor.
 
     Args:
       driver: name of the driver, e.g. pl2303
-      serial_delay: delay time between writing each character to serial port
+      serial_delay: delay time in seconds between writing each character to
+        serial port
       serial_params: a dictionary containing the following keys:
         {
           'baudrate': 9600,
@@ -125,6 +127,7 @@ class SerialFixtureConnection(FixtureConnection):
           'rtscts': False,
           'timeout': None
         }
+      response_delay: delay time in seconds before reading the response
       retries: number of retires when write failed
     """
     super(SerialFixtureConnection, self).__init__()
@@ -133,6 +136,7 @@ class SerialFixtureConnection(FixtureConnection):
     self._driver = driver
     self._serial_delay = serial_delay
     self._serial_params = serial_params
+    self._response_delay = response_delay
     self._retries = retries
 
   def Connect(self):
@@ -161,6 +165,7 @@ class SerialFixtureConnection(FixtureConnection):
         else:
           break
 
+    time.sleep(self._response_delay)
     if read_response:
       return self.Recv()
 

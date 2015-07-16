@@ -181,9 +181,7 @@ Usage examples::
         },
         'data_method': 'Shopfloor',
         'param_pathname': 'camera/camera.params.FATP',
-        'ALS_val_path': '/sys/bus/iio/devices/iio:device0/illuminance0_input',
-        'ALS_scale_path': '/sys/bus/iio/devices/iio:device0/'
-                          'illuminance0_calibscale'})
+        'ALS_val_path': '/sys/bus/iio/devices/iio:device0/illuminance0_input'})
 
 """
 
@@ -256,7 +254,8 @@ STAGE100_SAVED = 'cam_data_saved'  # test data saved
 STAGE30_ALS_LIGHT1 = 'cam_als_light1'
 STAGE40_ALS_LIGHT2 = 'cam_als_light2'
 STAGE50_ALS_LIGHT3 = 'cam_als_light3'
-STAGE60_VPD = 'cam_als_vpd'
+STAGE60_ALS_CALCULATION = 'cam_als_calculation'
+STAGE70_VPD = 'cam_als_vpd'
 
 
 # CSS style classes defined in the corresponding HTML file.
@@ -281,7 +280,8 @@ MSG_TITLE_LENS_SHADING_TEST = test_ui.MakeLabel(
     'Camera Lens Shading Test', u'相机镜头黑点测试')
 MSG_TITLE_IQ_TEST = test_ui.MakeLabel(
     'Camera Image Quality Test', u'相机影像品质测试')
-
+MSG_TITLE_ALS_TEST = test_ui.MakeLabel(
+    'ALS Sensor Calibration', u'光感应器校正')
 
 # Test stage => (English message, Chinese message).
 MSG_TEST_STATUS = {
@@ -296,7 +296,8 @@ MSG_TEST_STATUS = {
     STAGE50_ALS_LIGHT3: ('Reading Light3 ALS value', u'读取灯光3 ALS数值'),
     STAGE50_VC: ('Locating test pattern', u'定位测试图样'),
     STAGE60_LS: ('Checking vignetting level', u'检测影像暗角'),
-    STAGE60_VPD: ('Writing the ALS calibration data to vpd',
+    STAGE60_ALS_CALCULATION: ('Calculate the ALS line', u'计算ALS结果'),
+    STAGE70_VPD: ('Writing the ALS calibration data to vpd',
                   u'写入ALS校正结果'),
     STAGE70_MTF: ('Checking image sharpness', u'检测影像清晰度'),
     STAGE90_END: ('All tests are complete', u'测试已全部完成'),
@@ -332,6 +333,7 @@ FAIL_USB = 'USB'  # Fail to save to USB.
 FAIL_ALS_NOT_FOUND = 'AlsNotFound'  # ALS not found.
 FAIL_ALS_INIT = 'AlsInit'  # ALS initialization error.
 FAIL_ALS_ORDER = 'AlsOrder'  # ALS order error.
+FAIL_ALS_LIMIT = 'AlsLimit'  # ALS linear regression result not within limit.
 FAIL_ALS_CALIB = 'AlsCalibration'  # ALS calibration error.
 FAIL_ALS_VPD = 'AlsVPD'  # ALS write VPD error
 FAIL_UNKNOWN = 'UnknownError'  # Unknown error.
@@ -362,7 +364,8 @@ LOG_FORMAT_MTF_MEDIAN = 'Median MTF value: %f'
 LOG_FORMAT_MTF_LOWEST = 'Lowest MTF value: %f'
 LOG_FORMAT_MTF_MSG = 'MTF Sharpness: %s'
 
-LOG_FORMAT_ALS = 'ALS cal data: %d'
+LOG_FORMAT_ALS_SLOPE = 'ALS cal slope: %f'
+LOG_FORMAT_ALS_INTERCEPT = 'ALS cal intercept: %f'
 
 
 # Serial numbers.
@@ -381,7 +384,8 @@ CHAMBER_CONN_PARAMS_DEFAULT = {
         'xonxoff': False,
         'rtscts': False,
         'timeout': None
-    }
+    },
+    'response_delay': 2
 }
 
 
@@ -468,7 +472,7 @@ class _TestDelegate(object):
     self.analyzed_img = None
 
     # ALS test state
-    self.light_index = 0
+    self.light_index = -1
 
   def LoadParamsAndShowTestScreen(self):
     """Loads parameters and then shows main test screen."""
@@ -477,8 +481,8 @@ class _TestDelegate(object):
     elif self.data_method == DataMethod.SF:
       self.params = self._LoadParamsFromShopfloor()
 
-    MediaMonitor('usb-serial').Start(on_insert=self._OnU2SInsertion,
-                                     on_remove=self._OnU2SRemoval)
+    MediaMonitor('usb-serial', None).Start(on_insert=self._OnU2SInsertion,
+                                           on_remove=self._OnU2SRemoval)
 
     # Basic pre-processing of the parameters.
     self._Log('Parameter version: %s\n' % self.params['version'])
@@ -526,12 +530,21 @@ class _TestDelegate(object):
         self.timing[chk_point[i][0]] = 0
 
   def RunTest(self, input_sn):
+    if self.delegator.args.assume_chamber_connected:
+      self._SetupFixture()
+
+    ret = None
     if self.test_type == TestType.IQ:
-      return self._IQTest(input_sn)
+      ret = self._IQTest(input_sn)
     elif self.test_type == TestType.ALS:
-      return self._ALSTest(input_sn)
+      ret = self._ALSTest(input_sn)
     else:
       raise RuntimeError("invalid test type '%s'" % self.test_type)
+
+    if self.delegator.args.auto_mode:
+      self.delegator._PostInternalQueue(EventType.EXIT_TEST)
+
+    return ret
 
   def _IQTest(self, input_sn):
     """Runs IQ (Image Quality) test.
@@ -682,9 +695,11 @@ class _TestDelegate(object):
       update_status(True)
     finally:
       # (8) Logs to event log, and save to USB and shopfloor.
-      self._CollectIQLogs(test_status, tar_vc, tar_ls, tar_mtf)
-      self._SaveTestData(test_status[STAGE90_END] == TestStatus.PASSED)
       update_progress(STAGE100_SAVED)
+      self._SaveTestData(test_status[STAGE90_END] == TestStatus.PASSED)
+      update_status(True)
+      self._CollectIQLogs(test_status, tar_vc, tar_ls, tar_mtf)
+      self._FlushEventLogs()
 
       # JavaScript needs to cleanup after the test is completed.
       self.delegator.ui.CallJSFunction('OnTestCompleted')
@@ -701,12 +716,14 @@ class _TestDelegate(object):
         (STAGE30_ALS_LIGHT1, TestStatus.UNTESTED),
         (STAGE40_ALS_LIGHT2, TestStatus.UNTESTED),
         (STAGE50_ALS_LIGHT3, TestStatus.UNTESTED),
-        (STAGE60_VPD, TestStatus.UNTESTED),
+        (STAGE60_ALS_CALCULATION, TestStatus.UNTESTED),
+        (STAGE70_VPD, TestStatus.UNTESTED),
         (STAGE90_END, TestStatus.UNTESTED),
         (STAGE100_SAVED, TestStatus.NA),
     ])
 
-    calib_result = None
+    intercept = None
+    slope = None
     non_locals = {}  # hack to immitate nonlocal keyword in Python 3.x
 
     def update_progress(test_stage):
@@ -720,6 +737,7 @@ class _TestDelegate(object):
         test_status[non_locals['current_stage']] = TestStatus.FAILED
 
     update_progress(STAGE00_START)
+    update_status(True)
 
     # (1) Check / read module serial number.
     update_progress(STAGE10_SN)
@@ -733,28 +751,26 @@ class _TestDelegate(object):
     # (2) Initializing ALS
     update_progress(STAGE20_INIT)
     success = self.chamber.EnableALS()
-    if not success:
-      return False, FAIL_ALS_NOT_FOUND
-
-    success = self.chamber.SetScaleFactor(conf['calibscale'])
     update_status(success)
     if not success:
-      return False, FAIL_ALS_INIT
+      return False, FAIL_ALS_NOT_FOUND
 
     LIGHT_STAGES = [STAGE30_ALS_LIGHT1, STAGE40_ALS_LIGHT2, STAGE50_ALS_LIGHT3]
 
     try:
       vals = []
-      # (3) (4) (5) Measure and calibrate for different LUX value
+      # (3) Measure light level at three different light levels
       while True:
+        # Go to the next lighting preset.
+        if not self._SwitchToNextLight():
+          break
+
         update_progress(LIGHT_STAGES[self.light_index])
-        scale = self.chamber.GetScaleFactor()
         val = self.chamber.ReadMean(conf['read_delay'], conf['n_samples'])
         vals.append(val)
         self._Log('Lighting preset lux value: %d' %
                   conf['luxs'][self.light_index])
         self._Log('ALS value: %d' % val)
-        self._Log('ALS calibration scale: %d' % scale)
 
         # Check if it is a false read.
         if not val:
@@ -762,23 +778,9 @@ class _TestDelegate(object):
           self._Log('The ALS value is stuck at zero.')
           return False, FAIL_ALS_CALIB
 
-        # Compute calibration data if it is the calibration target.
-        if conf['luxs'][self.light_index] == conf['calib_lux']:
-          calib_result = int(round(float(conf['calib_target']) / val * scale))
-          if not calib_result:
-            update_status(False)
-            self._Log('Invalid ALS calibration data: %s' % calib_result)
-            return False, FAIL_ALS_CALIB
-          else:
-            self._Log('ALS calibration data will be %d' % calib_result)
-
         update_status(True)
 
-        # Go to the next lighting preset.
-        if not self._SwitchToNextLight():
-          break
-
-      # Check value ordering
+      # (4) Check value ordering
       # Skipping value ordering check when in mock mode since we don't have
       # real ALS device
       if not self.mock_mode:
@@ -789,16 +791,48 @@ class _TestDelegate(object):
               self._Log('The ordering of ALS values is wrong.')
               return False, FAIL_ALS_ORDER
 
-      # (6) Save ALS values to vpd for FATP test.
-      update_progress(STAGE60_VPD)
+      # (5) Perform linear regression
+      # The linear regression can be calculate as follows:
+      # y = A + Bx
+      # B = Covariance[x, y] / Variance[x]
+      #     _    _
+      # A = y - Bx
+      #
+      # Here our x is conf['luxs'] and y is vals
+
+      def Mean(xs):
+        return float(sum(xs)) / len(xs)
+
+      def Variance(xs):
+        return Mean([x * x for x in xs]) - Mean(xs) ** 2
+
+      def Covariance(xs, ys):
+        return Mean([x * y for x, y in zip(xs, ys)]) - Mean(xs) * Mean(ys)
+
+      slope = Covariance(conf['luxs'], vals) / Variance(conf['luxs'])
+      intercept = Mean(vals) - slope * Mean(conf['luxs'])
+
+      # (6) Check if the result is within range
+      update_progress(STAGE60_ALS_CALCULATION)
+      if ((slope < conf['slope_limit'][0] or
+           slope > conf['slope_limit'][1]) or
+           intercept < conf['intercept_limit'][0] or
+           intercept > conf['intercept_limit'][1]):
+        update_status(False)
+        self._Log('The result line spec is not within limit.')
+        return False, FAIL_ALS_LIMIT
+      update_status(True)
+
+      # (7) Save ALS values to vpd for FATP test.
+      update_progress(STAGE70_VPD)
       if (not self.mock_mode and
-          Spawn(conf['save_vpd'] % calib_result, shell=True)):
+          self.delegator.dut.Shell(conf['save_vpd'] % (slope, intercept))):
         update_status(False)
         self._Log('Writing VPD data failed!')
         return False, FAIL_ALS_VPD
       update_status(True)
 
-      # (7) Final test result.
+      # (8) Final test result.
       update_progress(STAGE90_END)
       update_status(True)
     except FixtureConnectionError:
@@ -810,11 +844,16 @@ class _TestDelegate(object):
       self._Log('Failed to read values from ALS or unknown error.' +
                 traceback.format_exc())
       return False, FAIL_UNKNOWN
-    finally:
+    else:
       # (8) Logs to event log, and save to USB and shopfloor.
-      self._CollectALSLogs(test_status, calib_result)
-      self._SaveTestData(test_status[STAGE90_END] == TestStatus.PASSED)
       update_progress(STAGE100_SAVED)
+      self._UploadALSCalibData(
+          test_status[STAGE90_END] == TestStatus.PASSED,
+          {'sn': self.module_sn, 'vals': vals, 'slope': slope,
+           'intercept': intercept})
+      update_status(True)
+      self._CollectALSLogs(test_status, slope, intercept)
+      self._FlushEventLogs()
 
       # JavaScript needs to cleanup after the test is completed.
       self.delegator.ui.CallJSFunction('OnTestCompleted')
@@ -823,10 +862,12 @@ class _TestDelegate(object):
 
   def _SwitchToNextLight(self):
     self.light_index += 1
+    if self.light_index >= len(self.params['cam_als']['luxs']):
+      return False
+
     self.chamber.SetLight(self.params['cam_als']['light_seq'][self.light_index])
     time.sleep(self.params['cam_als']['light_delay'])
-
-    return self.light_index < len(self.params['cam_als']['luxs'])
+    return True
 
   def _ResetForNewTest(self):
     """Reset per-test context for new test."""
@@ -837,7 +878,7 @@ class _TestDelegate(object):
     self._UpdateOriginalImage()
     self.analyzed_img = None
     self._UpdateAnalyzedImage()
-    self.light_index = 0
+    self.light_index = -1
 
   def _UpdateOriginalImage(self):
     """Shows or hide original image on screen."""
@@ -867,6 +908,19 @@ class _TestDelegate(object):
     """Custom log function to log to factory console and USB/shopfloor later."""
     factory.console.info(text)
     self.logs.append(text)
+
+  def _UploadALSCalibData(self, test_passed, result):
+    """Upload ALS calibration data to shopfloor.
+
+    Args:
+      test_passed: whether the IQ test has passed the criteria.
+    """
+
+    if test_passed:
+      shopfloor_client = shopfloor.GetShopfloorConnection()
+      shopfloor_client.SaveAuxLog(
+          os.path.join('als', '%s.als' % self.module_sn),
+          str(result))
 
   def _SaveTestData(self, test_passed):
     """Saves test data to USB drive or shopfloor.
@@ -974,13 +1028,15 @@ class _TestDelegate(object):
     """Read module serial number.
 
     The module serial number can be read from sysfs for USB camera or from
-    i2c for MIPI camera.
+    i2c for MIPI camera or using a custom command.
     """
 
     if self.params['cam_sn']['source'] == 'sysfs':
       return self._GetModuleSNSysfs()
     elif self.params['cam_sn']['source'] == 'i2c':
       return self._GetModuleSNI2C()
+    elif self.params['cam_sn']['source'] == 'command':
+      return self._GetModuleSNCommand()
     else:
       raise RuntimeError('Invalid camera SN source.')
 
@@ -1011,6 +1067,15 @@ class _TestDelegate(object):
       return True, ''.join([chr(x) for x in reversed(ret)])
     finally:
       os.close(fd)
+
+  def _GetModuleSNCommand(self):
+    command = self.params['cam_sn']['command']
+    try:
+      result = self.delegator.dut.CheckOutput(command).strip()
+    except Exception:
+      return False, None
+    else:
+      return True, result
 
   def _CheckCameraFirmware(self):
     if self.params['cam_fw']['fw_check']:
@@ -1091,7 +1156,7 @@ class _TestDelegate(object):
 
     event_log.Log(EVENT_IQ_DATA, **IQ_data)
 
-  def _CollectALSLogs(self, test_status, calib_result):
+  def _CollectALSLogs(self, test_status, slope, intercept):
     # 1. Log overall test states.
     self._Log('Test status:\n%s' % self._FormatOrderedDict(test_status))
     event_log.Log(EVENT_ALS_STATUS, **test_status)
@@ -1104,11 +1169,15 @@ class _TestDelegate(object):
       ALS_data[key] = value
 
     ALS_data['module_sn'] = self.module_sn
-
-    if not calib_result:
-      mylog(calib_result, 'als_cal_data', LOG_FORMAT_ALS)
+    mylog(slope, 'als_cal_slope', LOG_FORMAT_ALS_SLOPE)
+    mylog(intercept, 'als_cal_intercept', LOG_FORMAT_ALS_INTERCEPT)
 
     event_log.Log(EVENT_ALS_DATA, **ALS_data)
+
+  def _FlushEventLogs(self):
+    if self.data_method == DataMethod.SF:
+      goofy = factory.get_state_instance()
+      goofy.FlushEventLogs()
 
   def _FormatOrderedDict(self, ordered_dict):
     l = ['{']
@@ -1160,9 +1229,17 @@ class CameraFixture(unittest.TestCase):
       Arg('test_type', str, 'What to test. '
           'Supported types: Calibration, LensShading, and IQ.'),
 
+      # Some options
+      Arg('auto_mode', bool, 'Automatically start and end the test.',
+          default=False),
+
       # chamber connection
       Arg('control_chamber', bool, 'Whether or not to control the chart in the '
           'light chamber.', default=False),
+      Arg('assume_chamber_connected', bool, 'Assume chamber is connected on '
+          'test startup. This is useful when running fixture-based testing. '
+          'The OP won\'t have to reconnect the fixture everytime.',
+          default=False),
       Arg('chamber_conn_params', (dict, str), 'Chamber connection parameters, '
           "either a dict or 'default'", default=None, optional=True),
       Arg('chamber_cmd', dict, 'A mapping between charts listed in '
@@ -1219,7 +1296,6 @@ class CameraFixture(unittest.TestCase):
 
       # when test_type = ALS
       Arg('ALS_val_path', str, 'ALS value path', default=None, optional=True),
-      Arg('ALS_scale_path', str, 'ALS scale path', default=None, optional=True)
   ]
 
   # self.args.test_type => TestType
@@ -1280,8 +1356,9 @@ class CameraFixture(unittest.TestCase):
 
     if self.fixture_type == Fixture.ALS:
       self.chamber = ALSLightChamber(
+          dut=self.dut,
           val_path=self.args.ALS_val_path,
-          scale_path=self.args.ALS_scale_path,
+          scale_path=None,
           fixture_conn=fixture_conn,
           fixture_cmd=self.args.chamber_cmd,
           mock_mode=self.args.mock_mode)
@@ -1372,7 +1449,7 @@ class CameraFixture(unittest.TestCase):
           if success:
             self.ui.Pass()
           else:
-            self.ui.Fail('Failed to meet the calibration criteria.')
+            self.fail('Failed to meet the calibration criteria.')
           break
 
         time.sleep(frame_delay)
@@ -1431,7 +1508,7 @@ class CameraFixture(unittest.TestCase):
           if success:
             self.ui.Pass()
           else:
-            self.ui.Fail(
+            self.fail(
                 'Failed to meet the lens shading criteria with '
                 'ratio=%f (> %f).' % (ls_ratio, self.args.lens_shading_ratio))
           break
@@ -1460,10 +1537,21 @@ class CameraFixture(unittest.TestCase):
 
     self.ui.CallJSFunction('InitForTest', self.args.data_method,
                            self.args.control_chamber)
-    self.ui.CallJSFunction('UpdateTextLabel', MSG_TITLE_IQ_TEST,
-                           ID_MAIN_SCREEN_TITLE)
+
+    if self.args.test_type == TestType.IQ:
+      self.ui.CallJSFunction('UpdateTextLabel', MSG_TITLE_IQ_TEST,
+                             ID_MAIN_SCREEN_TITLE)
+    else:
+      self.ui.CallJSFunction('UpdateTextLabel', MSG_TITLE_ALS_TEST,
+                             ID_MAIN_SCREEN_TITLE)
 
     delegate.LoadParamsAndShowTestScreen()
+
+    if self.args.assume_chamber_connected:
+      self.ui.CallJSFunction('UpdateFixtureStatus', True)
+
+    if self.args.auto_mode and delegate.params['cam_sn']['auto_read']:
+      self._PostInternalQueue(EventType.START_TEST)
 
     prefix = 'Camera' if self.args.test_type == TestType.IQ else 'ALS'
 
@@ -1476,8 +1564,11 @@ class CameraFixture(unittest.TestCase):
       if event.event_type == EventType.START_TEST:
         with leds.Blinker(LED_PATTERN):
           # pylint: disable=W0633
-          success, fail_cause = delegate.RunTest(
-              input_sn=event.aux_data.data.get('input_sn', ''))
+          input_sn = ''
+          if event.aux_data is not None:
+            input_sn = event.aux_data.data.get('input_sn', '')
+
+          success, fail_cause = delegate.RunTest(input_sn)
 
         if success:
           self.ShowTestStatus(msg='%s: PASS' % prefix, style=STYLE_PASS)
@@ -1488,8 +1579,7 @@ class CameraFixture(unittest.TestCase):
         if success:
           self.ui.Pass()
         else:
-          self.ui.Fail('Camera %s test failed - fail cause = %r.' %
-                       (prefix, fail_cause))
+          self.fail('Test %s failed - fail cause = %r.' % (prefix, fail_cause))
         break
       else:
         raise ValueError('Invalid event type.')

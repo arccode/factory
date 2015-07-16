@@ -21,7 +21,7 @@
     # Whether to auto read serial number from sysfs.
     'auto_read': False,
 
-    # source: could be either 'sysfs' or 'i2c'
+    # source: could be either 'sysfs' or 'i2c' or 'command'
     'source': 'i2c',
 
     # if source is sysfs
@@ -35,6 +35,9 @@
       'data_addr': 0x3508,
       'length': 12
     },
+
+    # if source is command, specify the command to reterive serial number
+    'command': 'cat /data/factory/serial_number',
   },
 
   'cam_fw': {
@@ -79,6 +82,7 @@
     ('cam_als_light1', 2.00),
     ('cam_als_light2', 2.00),
     ('cam_als_light3', 2.00),
+    ('cam_als_calculation', 1.00),
     ('cam_als_vpd', 0.5),
     ('cam_end', 0.5),
     ('cam_data_saved', 0)
@@ -146,15 +150,11 @@
 
   # ALS sensor parameters
   'cam_als': {
-    'calibscale': 100,
-
     # Light seq command
     # sequence of light name defined in chamber_cmd of ALS test argument
     'light_seq': ['LUX1', 'LUX2', 'LUX3', 'OFF'],
 
-    # Perform calibration at this lux
-    'calib_lux': 500,
-    'calib_target': 125,
+    # Number of samples to read
     'n_samples': 1,
 
     # Delay betwen each sample
@@ -164,9 +164,13 @@
     'light_delay': 3.0,
 
     # List of light intensity to test
-    'luxs': [500, 1000, 30],
+    'luxs': [30, 500, 1000],
 
-    # Command for saving calibration result into VPD
-    'save_vpd': 'vpd -s "als_cal_data"="%d"',
+    'slope_limit': (-1000, 1000),
+    'intercept_limit': (-1000, 1000),
+
+    # Command for saving measured result into VPD
+    # The first argument is slope and the second is the intercept.
+    'save_vpd': 'vpd -s "als_cal_slope"="%f"; vpd -s "als_cal_intercept"="%f"',
   }
 }

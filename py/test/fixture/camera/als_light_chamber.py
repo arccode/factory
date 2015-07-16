@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import os
 import time
 
@@ -21,8 +22,8 @@ class ALSLightChamber(object):
   # Default min delay seconds.
   _DEFAULT_MIN_DELAY = 0.178
 
-  def __init__(self, val_path, scale_path, fixture_conn, fixture_cmd,
-               mock_mode=False):
+  def __init__(self, dut, val_path, scale_path, fixture_conn, fixture_cmd,
+               mock_mode=False, retries=3):
     """Initializes ALSLightChamber.
 
     Args:
@@ -30,11 +31,13 @@ class ALSLightChamber(object):
       fixture_cmd: A mapping between light name and a list of tuple
                    (cmd, response) required to activate the light.
     """
+    self._dut = dut
     self._val_path = val_path
     self._scale_path = scale_path
     self._fixture_conn = fixture_conn
     self._fixture_cmd = fixture_cmd
     self._mock_mode = mock_mode
+    self._retries = retries
 
   def Connect(self):
     self._fixture_conn.Connect()
@@ -43,18 +46,27 @@ class ALSLightChamber(object):
     if self._mock_mode:
       return True
 
-    if (not os.path.isfile(self._val_path) or
-        not os.path.isfile(self._scale_path)):
+    if self._dut.Shell(['test', '-e', self._val_path]):
+      logging.info('ALS val_path does not exist')
       return False
+
+    # Some drivers do not support setting/getting calibration scale. in such
+    # case we can still work with it, but GetScaleFactor/SetScaleFactor is
+    # not supported.
+    if self._scale_path is None:
+      logging.info('ALS scaling is not supported')
+    elif self._dut.Shell(['test', '-e', self._scale_path]):
+      # The user specified scale path, but it does not exist.
+      logging.info('ALS scale_path does not exist')
+      return False
+
     return True
 
   def DisableALS(self):
     pass
 
   def _ReadCore(self):
-    with open(self._val_path, 'r') as f:
-      val = int(f.readline().rstrip())
-    return val
+    return int(self._dut.Pull(self._val_path).rstrip())
 
   def _Read(self, delay=None, samples=1):
     """Reads the light sensor value.
@@ -96,9 +108,11 @@ class ALSLightChamber(object):
     if self._mock_mode:
       return True
 
+    if self._scale_path is None:
+      raise RuntimeError('ALS scaling is not supported')
+
     try:
-      with open(self._scale_path, 'w') as f:
-        f.write(str(int(round(scale))))
+      self._dut.Shell('echo %d >%s' % (int(round(scale)), self._scale_path))
     except Exception:
       return False
 
@@ -108,9 +122,10 @@ class ALSLightChamber(object):
     if self._mock_mode:
       return _ALS_MOCK_SCALE_FACTOR
 
-    with open(self._scale_path, 'r') as f:
-      s = int(f.readline().rstrip())
-    return s
+    if self._scale_path is None:
+      raise RuntimeError('ALS scaling is not supported')
+
+    return int(self._dut.Pull(self._scale_path).rstrip())
 
   def SetLight(self, name, response=None):
     """Sets light through fixture connection.
@@ -118,7 +133,10 @@ class ALSLightChamber(object):
     Args:
       name: name of light specified in fixture_cmd.
     """
-    for cmd, response in self._fixture_cmd[name]:
-      ret = self._fixture_conn.Send(cmd, response is not None)
-      if response and response != ret:
-        raise ALSLightChamberError('SetLight: fixture fault')
+    for i in range(self._retries):
+      for cmd, response in self._fixture_cmd[name]:
+        ret = self._fixture_conn.Send(cmd, True)
+        if response is None or ret.strip() == response:
+          return
+
+    raise ALSLightChamberError('SetLight: fixture fault')
