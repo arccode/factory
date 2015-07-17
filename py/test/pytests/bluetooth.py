@@ -73,6 +73,8 @@ _MSG_OUT_OF_FIXTURE = MakeLabel('Take the base out of the fixture, '
                                 u'請把測試鍵盤取出,然後按下电脑的 space 键',
                                 'start-font-size')
 _MSG_SCAN_DEVICE = MakeLabel('Scanning...', u'扫描中...', 'start-font-size')
+_RAW_MSG_DETECT_RSSI = ['Detect RSSI (count %d/%d)', u'侦测RSSI (第 %d/%d 次)',
+                        'start-font-size']
 _MSG_TURN_ON_INPUT_DEVICE = MakeLabel('Enable the connection ability of '
                                       'input bluetooth device and press Enter',
                                       u'启用蓝牙输入装置的连接功能然后按输入键',
@@ -207,6 +209,23 @@ class TurnOnTask(FactoryTask):
     logging.info('wait for the user to press a key')
 
 
+def SetAndStartScanProgressBar(template, timeout_secs):
+  """Control progress bar fo a duration of timeout_secs."""
+  def UpdateProgressBar():
+    """Updates progress bar for a duration of timeout_secs"""
+    start_time = time.time()
+    end_time = start_time + timeout_secs
+    while time.time() < end_time:
+      template.SetProgressBarValue(int(
+          100 * (time.time() - start_time) / timeout_secs))
+      time.sleep(0.2)
+    template.SetProgressBarValue(100)
+    logging.debug('UpdateProgressBar stopped.')
+
+  template.DrawProgressBar()
+  return StartDaemonThread(target=UpdateProgressBar, name='ProgressThread')
+
+
 class ScanDevicesTask(FactoryTask):
   """The task to scan bluetooth devices around.
 
@@ -216,6 +235,10 @@ class ScanDevicesTask(FactoryTask):
   If target_addresses is provided, the test will also check if it can find
   at least one device specified in target_addresses list.
   This passes the strongest matching device mac to _test.SetStrongestRssiMac
+
+  Note: this task is intended to be executed on a DUT, i.e., a chromebook,
+  to test its bluetooth module. A typical test case is to see if it can detect
+  a bluetooth mouse placed around it.
   """
   # pylint: disable=W0231
 
@@ -228,23 +251,6 @@ class ScanDevicesTask(FactoryTask):
     self._timeout_secs = test.args.scan_timeout_secs
 
     self._progress_thread = None
-
-  def SetAndStartScanProgressBar(self, timeout_secs):
-    """Control progress bar fo a duration of timeout_secs."""
-    def UpdateProgressBar():
-      """Updates progress bar for a duration of timeout_secs"""
-      start_time = time.time()
-      end_time = start_time + timeout_secs
-      while time.time() < end_time:
-        self._test.template.SetProgressBarValue(int(
-            100 * (time.time() - start_time) / timeout_secs))
-        time.sleep(0.2)
-      self._test.template.SetProgressBarValue(100)
-      logging.debug('UpdateProgressBar stopped.')
-
-    self._test.template.DrawProgressBar()
-    self._progress_thread = StartDaemonThread(target=UpdateProgressBar,
-                                              name='ProgressThread')
 
   def FilterByKeyword(self, devices):
     """Returns the devices filtered by self._keyword.
@@ -300,7 +306,8 @@ class ScanDevicesTask(FactoryTask):
 
     for _ in xrange(self._scan_counts):
       self._test.template.SetState(_MSG_SCAN_DEVICE)
-      self.SetAndStartScanProgressBar(self._timeout_secs)
+      self._progress_thread = SetAndStartScanProgressBar(self._test.template,
+                                                         self._timeout_secs)
       devices = bluetooth_manager.ScanDevices(adapter, self._timeout_secs)
       self._progress_thread.join()
 
@@ -370,6 +377,67 @@ class ScanDevicesTask(FactoryTask):
       factory.console.info('The largest average RSSI %f meets threshold %f.',
                            max_average_rssi, self._average_rssi_threshold)
       self.Pass()
+
+
+class DetectRSSIofTargetMACTask(FactoryTask):
+  """The task to detect the RSSI strength at a given target MAC address.
+
+  In this task, a generic test host uses the first adapter from
+  BluetoothManager and scans devices around for timeout_secs. The task
+  passed if it can detect the RSSI strength at the target MAC.
+
+  Note: this task is intended to be executed on a generic test host to test
+  if the RSSI of a target device, e.g., a Ryu base, could be detected.
+  """
+  # pylint: disable=W0231
+
+  def __init__(self, test):
+    self._test = test
+    self._mac_to_scan = test.GetInputDeviceMac()
+    self._scan_counts = test.args.scan_counts
+    self._average_rssi_lower_threshold = test.args.average_rssi_lower_threshold
+    self._average_rssi_upper_threshold = test.args.average_rssi_upper_threshold
+    self._timeout_secs = test.args.scan_timeout_secs
+    self._input_device_rssi_key = test.args.input_device_rssi_key
+    self._progress_thread = None
+
+  def Run(self):
+    bluetooth_manager = BluetoothManager()
+    adapter = bluetooth_manager.GetFirstAdapter()
+
+    rssis = []
+    for i in xrange(1, 1 + self._scan_counts):
+      label = MakeLabel(*[m % (i, self._scan_counts) if '%' in m else m
+                          for m in _RAW_MSG_DETECT_RSSI])
+      self._test.template.SetState(label)
+      self._progress_thread = SetAndStartScanProgressBar(self._test.template,
+                                                         self._timeout_secs)
+      devices = bluetooth_manager.ScanDevices(adapter, self._timeout_secs)
+      self._progress_thread.join()
+      for mac, props in devices.iteritems():
+        if mac == self._mac_to_scan and 'RSSI' in props:
+          factory.console.info('RSSI of count %d: %.2f', i, props['RSSI'])
+          rssis.append(props['RSSI'])
+
+    if len(rssis) == 0:
+      self.Fail('DetectRSSIofTargetMACTask: Fail to get RSSI from device %s.' %
+                self._mac_to_scan)
+    else:
+      average_rssi = float(sum(rssis)) / len(rssis)
+      factory.set_shared_data(self._input_device_rssi_key, average_rssi)
+      logging.info('RSSIs at MAC %s: %s', self._mac_to_scan, rssis)
+      factory.console.info('Average RSSI: %.2f', average_rssi)
+
+      if (self._average_rssi_lower_threshold is not None and
+          average_rssi < self._average_rssi_lower_threshold):
+        self.Fail('Average RSSI %.2f less than the lower threshold %.2f' %
+                  (average_rssi, self._average_rssi_lower_threshold))
+      elif (self._average_rssi_upper_threshold is not None and
+            average_rssi > self._average_rssi_upper_threshold):
+        self.Fail('Average RSSI %.2f greater than the upper threshold %.2f' %
+                  (average_rssi, self._average_rssi_upper_threshold))
+      else:
+        self.Pass()
 
 
 class UnpairTask(FactoryTask):
@@ -680,6 +748,14 @@ class BluetoothTest(unittest.TestCase):
           default=None, optional=True),
       Arg('input_device_mac_key', str, 'A key for factory shared data '
           'containing the mac address', default=None, optional=True),
+      Arg('input_device_rssi_key', str, 'A key for factory shared data '
+          'containing the rssi value', default=None, optional=True),
+      Arg('average_rssi_lower_threshold', float, 'Checks the average RSSI'
+          ' of the target mac is equal to or greater than this threshold.',
+          default=None, optional=True),
+      Arg('average_rssi_upper_threshold', float, 'Checks the average RSSI'
+          ' of the target mac is equal to or less than this threshold.',
+          default=None, optional=True),
       Arg('scan_mac_only', bool, 'If true, do not attempt to pair with '
           'input_device_mac', default=None, optional=True),
       Arg('pair_with_match', bool, 'Whether to pair with the strongest match.',
@@ -736,6 +812,9 @@ class BluetoothTest(unittest.TestCase):
       if self.args.prompt_scan_message:
         self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_DEVICE))
       self._task_list.append(ScanDevicesTask(self))
+
+    if self.args.input_device_rssi_key:
+      self._task_list.append(DetectRSSIofTargetMACTask(self))
 
     if self.args.prompt_into_fixture:
       self._task_list.append(TurnOnTask(self, _MSG_INTO_FIXTURE, SPACE_KEY))
