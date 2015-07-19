@@ -41,6 +41,13 @@ def UpdateFactorySharedData(data):
   Log('update_factory_shared_data', data=data)
 
 
+def UpdateFactorySharedDataWithKeyAndListData(data, key, filter_index):
+  """Apply a filter on the incoming data, and make a dictionary
+  with the specified key and filtered data.
+  """
+  UpdateFactorySharedData({key: data[filter_index]})
+
+
 class CallShopfloor(unittest.TestCase):
   # Possible values for the "action" handler
   RETURN_VALUE_ACTIONS = {
@@ -48,6 +55,8 @@ class CallShopfloor(unittest.TestCase):
       'update_device_data': UpdateDeviceData,
       # set factory shared data
       'update_factory_shared_data': UpdateFactorySharedData,
+      'update_factory_shared_data_with_key_and_list_data':
+          UpdateFactorySharedDataWithKeyAndListData,
   }
 
   ARGS = [
@@ -63,6 +72,9 @@ class CallShopfloor(unittest.TestCase):
           ('Action to perform with return value; one of %s' %
            sorted(RETURN_VALUE_ACTIONS.keys())),
           optional=True),
+      Arg('action_args', dict,
+          'Action arguments.',
+          default=None, optional=True),
   ]
 
   def setUp(self):
@@ -142,7 +154,12 @@ class CallShopfloor(unittest.TestCase):
         continue
 
       try:
-        action_handler(result)
+        if self.args.action_args is None:
+          action_handler(result)
+        else:
+          # See UpdateFactorySharedDataWithKeyAndListData() about
+          # using action_args.
+          action_handler(result, **self.args.action_args)
         break  # All done
       except:  # pylint: disable=W0702
         logging.exception('Exception in action handler')
