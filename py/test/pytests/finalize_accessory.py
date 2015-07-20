@@ -36,6 +36,9 @@ class FinalizeAccessory(unittest.TestCase):
       Arg('final_test_result_key', str,
           'the final test result key',
           default=''),
+      Arg('failed_reasons_key', str,
+          'the failed-reasons key',
+          default=''),
   ]
 
   def setUp(self):
@@ -59,22 +62,28 @@ class FinalizeAccessory(unittest.TestCase):
                          factory.TestState.ACTIVE])
     test_states = self._state.get_test_states()
     factory.console.debug('states: %s', test_states)
-    failed_results = [(path, s.status) for path, s in test_states.iteritems()
-                      if (s.status not in passed_states and
-                          path not in skip_path and
-                          not _IsWaived(path))]
+    failed_results = dict([(path, (s.status, s.error_msg))
+                           for path, s in test_states.iteritems()
+                           if (s.status not in passed_states and
+                               path not in skip_path and
+                               not _IsWaived(path))])
+
     if failed_results:
+      # The 'FAIL' is defined explicitly for partner's shopfloor.
+      final_test_result = 'FAIL'
       factory.console.info('failed_results:')
-      for path, status in failed_results:
-        factory.console.info('  %s: %s', path, status)
+      for path, (status, error_msg) in failed_results.iteritems():
+        factory.console.info('%s: %s (error_msg: %s)', path, status, error_msg)
     else:
+      # The 'PASS' is defined explicitly for partner's shopfloor.
+      final_test_result = 'PASS'
       factory.console.info('All tests passed!')
     Log('failed_results', failed_results=failed_results)
 
-    # The 'FAIL' and 'PASS' are defined explicitly for partner's shopfloor,
-    # different from TestState.
-    final_test_result = 'FAIL' if failed_results else 'PASS'
     factory.set_shared_data(self.args.final_test_result_key, final_test_result)
+    failed_msgs_dict = dict([(path, error_msg) for path, (status, error_msg) in
+                             failed_results.iteritems()])
+    factory.set_shared_data(self.args.failed_reasons_key, failed_msgs_dict)
     self.ui.Pass()
 
   def runTest(self):
