@@ -199,6 +199,7 @@ class Goofy(GoofyBase):
     self.status = Status.UNINITIALIZED
     self.ready_for_ui_connection = False
     self.link_manager = None
+    self.is_restart_requested = False
 
     def test_or_root(event, parent_or_group=True):
       """Returns the test affected by a particular event.
@@ -720,6 +721,19 @@ class Goofy(GoofyBase):
     notes = self.state_instance.get_shared_data('factory_note', True)
     return notes and notes[-1]['level'] == 'CRITICAL'
 
+  def schedule_restart(self):
+    """Schedules a restart event when any invocation is completed."""
+    self.is_restart_requested = True
+
+  def invocation_completion(self):
+    """Callback when an invocation is completed."""
+    if self.is_restart_requested:
+      logging.info('Restart by scheduled event.')
+      self.is_restart_requested = False
+      self.restart_tests()
+    else:
+      self.run_next_test()
+
   def run_next_test(self):
     """Runs the next eligible test (or tests) in self.tests_to_run.
 
@@ -836,7 +850,7 @@ class Goofy(GoofyBase):
     if not self._ui_initialized and not test.is_no_host():
       self.init_ui()
     invoc = TestInvocation(
-        self, test, on_completion=self.run_next_test,
+        self, test, on_completion=self.invocation_completion,
         on_test_failure=system.GetBoard().OnTestFailure)
     new_state = test.update_state(
         status=TestState.ACTIVE, increment_count=1, error_msg='',

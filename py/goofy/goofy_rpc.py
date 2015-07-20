@@ -899,6 +899,14 @@ class GoofyRPC(object):
     self._InRunQueue(self.goofy.restart_tests, timeout_secs=timeout_secs)
     return self.goofy.run_id
 
+  def ScheduleRestart(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Schedules to restart all tests when current test finished.
+
+    Args:
+      timeout_secs: The duration in seconds after which to abort the call.
+    """
+    self._InRunQueue(self.goofy.schedule_restart, timeout_secs=timeout_secs)
+
   def CancelPendingTests(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Cancels all pending tests."""
     self._InRunQueue(self.goofy.cancel_pending_tests,
