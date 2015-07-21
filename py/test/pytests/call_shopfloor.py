@@ -108,7 +108,8 @@ class CallShopfloor(unittest.TestCase):
       # server. This applies to the scenario where an umpire server is not
       # set up.
       if bool(self.args.server_proxy_url):
-        server_proxy = xmlrpclib.ServerProxy(self.args.server_proxy_url)
+        server_proxy = xmlrpclib.ServerProxy(self.args.server_proxy_url,
+                                             allow_none=True)
       else:
         server_proxy = shopfloor.get_instance(detect=True)
       method = getattr(server_proxy, self.args.method)
