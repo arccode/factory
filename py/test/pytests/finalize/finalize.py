@@ -107,6 +107,10 @@ class Finalize(unittest.TestCase):
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
           default=False, optional=True),
+      Arg('is_cros_core', bool,
+          'For ChromeOS Core device, skip verifying branding and setting'
+          'firmware bitmap locale.',
+          default=False, optional=True),
   ]
 
   def setUp(self):
@@ -387,6 +391,9 @@ class Finalize(unittest.TestCase):
     if self.args.rma_mode:
       command += ' --rma_mode'
       logging.info('Using RMA mode. Accept deprecated components')
+    if self.args.is_cros_core:
+      command += ' --cros_core'
+      logging.info('ChromeOS Core device. Skip some check.')
 
     gooftools.run(command)
 

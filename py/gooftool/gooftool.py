@@ -124,6 +124,12 @@ _rma_mode_cmd_arg = CmdArg(
     '--rma_mode', action='store_true',
     help='Enable RMA mode, do not check for deprecated components.')
 
+_cros_core_cmd_arg = CmdArg(
+    '--cros_core', action='store_true',
+    help='Finalize for ChromeOS Core devices (may add or remove few test '
+         'items. For example, branding verification or firmware bitmap '
+         'locale settings).')
+
 _hwid_version_cmd_arg = CmdArg(
     '-i', '--hwid-version', default=3, choices=(2, 3), type=int,
     help='Version of HWID to operate on. (default: %(default)s)')
@@ -677,7 +683,8 @@ def PrepareWipe(options):
          _board_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
-         _rma_mode_cmd_arg)
+         _rma_mode_cmd_arg,
+         _cros_core_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
 
@@ -701,7 +708,10 @@ def Verify(options):
   VerifyKeys(options)
   VerifyRootFs(options)
   VerifyTPM(options)
-  VerifyBranding(options)
+  if options.cros_core:
+    logging.info('VerifyBranding is skipped for ChromeOS Core device.')
+  else:
+    VerifyBranding(options)
   VerifyReleaseChannel(options)
 
 
@@ -850,7 +860,8 @@ def UploadReport(options):
          _board_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
-         _rma_mode_cmd_arg)
+         _rma_mode_cmd_arg,
+         _cros_core_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
@@ -869,7 +880,10 @@ def Finalize(options):
   Verify(options)
   LogSourceHashes(options)
   UntarStatefulFiles(options)
-  SetFirmwareBitmapLocale(options)
+  if options.cros_core:
+    logging.info('SetFirmwareBitmapLocale is skipped for ChromeOS Core device.')
+  else:
+    SetFirmwareBitmapLocale(options)
   ClearGBBFlags(options)
   ClearFactoryVPDEntries(options)
   GenerateStableDeviceSecret(options)
