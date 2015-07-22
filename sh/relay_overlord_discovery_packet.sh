@@ -9,6 +9,13 @@
 
 . "$(dirname "$(readlink -f "$0")")/common.sh" || exit 1
 
+QUIT=false
+
+clean_up() {
+  QUIT=true
+  pkill -9 -P $$
+}
+
 get_broadcast_ip() {
   local iface="$1"
   # There are two version of ifconfig producing different output
@@ -32,9 +39,14 @@ main() {
   fi
 
   while true; do
-    socat -v -u UDP-RECVFROM:4456 UDP-DATAGRAM:${bcast_ip}:4456,broadcast
+    socat -u UDP-RECVFROM:4456 UDP-DATAGRAM:${bcast_ip}:4456,broadcast
+    if ${QUIT}; then
+      break
+    fi
     sleep 1
   done
 }
+
+trap clean_up EXIT INT
 
 main "$@"
