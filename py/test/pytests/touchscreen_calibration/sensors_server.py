@@ -96,10 +96,14 @@ class BaseSensorService(object):
     self.log = log
     kernel_module_name = self.config.Read('Misc', 'kernel_module_name')
     self.kernel_module = utils.KernelModule(kernel_module_name)
-    self.delta_lower_bound = int(self.config.Read('TouchSensors',
-                                                  'DELTA_LOWER_BOUND'))
-    self.delta_higher_bound = int(self.config.Read('TouchSensors',
-                                                   'DELTA_HIGHER_BOUND'))
+    self.delta_lower_bound = int(
+        self.config.Read('TouchSensors', 'DELTA_LOWER_BOUND'))
+    self.delta_higher_bound = int(
+        self.config.Read('TouchSensors', 'DELTA_HIGHER_BOUND'))
+    self.delta_untouched_higher_bound = int(
+        self.config.Read('TouchSensors', 'DELTA_UNTOUCHED_HIGHER_BOUND'))
+    self.normalized_deviation_threshold = float(
+        self.config.Read('TouchSensors', 'NORMALIZED_DEVIATION_THRESHOLD'))
 
   def CheckStatus(self):
     """Checks if the touchscreen sensor data object is present.
@@ -119,11 +123,58 @@ class BaseSensorService(object):
     raise NotImplementedError(
         'Should implement the Read() method in the subclass.')
 
-  def _Verify(self, data, touched_cols):
-    """Verify sensor data.
+  def VerifyRefs(self, data):
+    """Verify sensor refs data.
+
+    This checks the uniformity of the refs data.
+
+    mean = the sum of all refs data divided by the number of sensors
+    deviation = ref_value_of_a_sensor - mean
+    normalized_deviation = abs(deviation) / mean
 
     Returns:
-      True if the sensor data are legitimate.
+      True if the sensor refs data are legitimate.
+    """
+    test_pass = True
+    failed_sensors = []
+    min_value = float('inf')
+    max_value = float('-inf')
+    mean = (float(sum([sum(row_data) for row_data in data])) /
+            sum([len(row_data) for row_data in data]))
+    for row, row_data in enumerate(data):
+      for col, value in enumerate(row_data):
+        min_value = min(min_value, value)
+        max_value = max(max_value, value)
+        normalized_deviation = abs(value - mean) / mean
+        if normalized_deviation > self.normalized_deviation_threshold:
+          failed_sensors.append((row, col, value))
+          test_pass = False
+    return test_pass, failed_sensors, min_value, max_value
+
+  def VerifyDeltasUntouched(self, data):
+    """Verify sensor deltas data before the panel is touched.
+
+    Returns:
+      True if the sensor deltas data are legitimate.
+    """
+    test_pass = True
+    failed_sensors = []
+    min_value = float('inf')
+    max_value = float('-inf')
+    for row, row_data in enumerate(data):
+      for col, value in enumerate(row_data):
+        min_value = min(min_value, value)
+        max_value = max(max_value, value)
+        if abs(value) > self.delta_untouched_higher_bound:
+          failed_sensors.append((row, col, value))
+          test_pass = False
+    return test_pass, failed_sensors, min_value, max_value
+
+  def _VerifyDeltasTouched(self, data, touched_cols):
+    """Verify sensor deltas data when the panel is touched.
+
+    Returns:
+      True if the sensor deltas data are legitimate.
     """
     test_pass = True
     failed_sensors = []
@@ -312,7 +363,8 @@ class SensorServiceSamus(BaseSensorService):
     # There are 3 columns of metal fingers on the probe. The touched_cols are
     # derived through experiments. The values may vary from board to board.
     touched_cols = [1, 35, 69]
-    return super(SensorServiceSamus, self)._Verify(data, touched_cols)
+    return super(SensorServiceSamus, self)._VerifyDeltasTouched(data,
+                                                                touched_cols)
 
 
 class SensorServiceRyu(BaseSensorService):
@@ -403,14 +455,15 @@ class SensorServiceRyu(BaseSensorService):
           out_data.append(map(int, values))
     return out_data
 
-  def Verify(self, data):
-    """Verify sensor data.
+  def VerifyDeltasTouched(self, data):
+    """Verify sensor data when the panel is touched.
 
     Returns:
       True if the sensor data are legitimate.
     """
     touched_cols = range(self.num_cols)
-    return super(SensorServiceRyu, self)._Verify(data, touched_cols)
+    return super(SensorServiceRyu, self)._VerifyDeltasTouched(data,
+                                                              touched_cols)
 
   def PostTest(self):
     """A method to invoke after conducting the test.
