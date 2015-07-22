@@ -56,7 +56,6 @@ class GoofyPresenter(GoofyBase):
         disconnect_hook=self.DUTDisconnected,
         methods={'StartCountdown': self.UIAppCountdown},
         standalone=self.args.standalone)
-    self.link_manager.Start()
 
   def ParseOptions(self):
     parser = argparse.ArgumentParser(description='Run Goofy presenter')
@@ -108,6 +107,7 @@ class GoofyPresenter(GoofyBase):
     """Entry point for goofy_presenter instance."""
     syslog.openlog('goofy_presenter')
     syslog.syslog('GoofyPresenter (factory test harness) starting')
+    self.link_manager.Start()
     self.run()
 
   def destroy(self):

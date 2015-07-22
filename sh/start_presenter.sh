@@ -24,37 +24,46 @@ check_missing_prerequisites() {
   has_python_package "dpkt" || echo "python-dpkt package"
 }
 
-MISSING_PREREQUISITES="$(check_missing_prerequisites)"
-if [ -n "${MISSING_PREREQUISITES}" ]; then
-  echo "The following packages are missing. Please install and retry:"
-  echo "${MISSING_PREREQUISITES}" | sed 's/^/  /'
-  exit 1
-fi
+main() {
+  if [ "$(whoami)" != "root" ]; then
+    echo "This script requires root to execute, abort."
+    exit 1
+  fi
 
-FACTORY_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
-IPTABLESD="${FACTORY_DIR}/init/iptables.d"
+  MISSING_PREREQUISITES="$(check_missing_prerequisites)"
+  if [ -n "${MISSING_PREREQUISITES}" ]; then
+    echo "The following packages are missing. Please install and retry:"
+    echo "${MISSING_PREREQUISITES}" | sed 's/^/  /'
+    exit 1
+  fi
 
-# Load iptables rules
-for rule_file in ${IPTABLESD}/*.sh; do
-  "$rule_file"
-done
+  FACTORY_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+  IPTABLESD="${FACTORY_DIR}/init/iptables.d"
 
-# Start presenter frontend and backend
-TMP_DATA_DIR=""
-CHROME_PID=""
+  # Load iptables rules
+  for rule_file in ${IPTABLESD}/*.sh; do
+    "$rule_file"
+  done
 
-clean_up() {
-  [ -n "${TMP_DATA_DIR}" ] && rm -f "${TMP_DATA_DIR}"
-  [ -n "${CHROME_PID}" ] && kill "${CHROME_PID}"
+  # Start presenter frontend and backend
+  TMP_DATA_DIR=""
+  CHROME_PID=""
+
+  clean_up() {
+    [ -n "${TMP_DATA_DIR}" ] && rm -rf "${TMP_DATA_DIR}"
+    [ -n "${CHROME_PID}" ] && kill "${CHROME_PID}"
+  }
+
+  trap clean_up EXIT
+  TMP_DATA_DIR="$(mktemp -d --tmpdir || mktemp -d)"
+  google-chrome \
+    --load-and-launch-app="${FACTORY_DIR}/py/goofy/ui_presenter_app" \
+    chrome-extension://oaaomfgfdeefdhpfbokkpkhodmjaicoh/main.html \
+    --user-data-dir="${TMP_DATA_DIR}" \
+    --disable-translate \
+    --overscroll-history-navigation=0 &
+  CHROME_PID="$!"
+  "${FACTORY_DIR}/py/goofy/goofy_presenter.py"
 }
 
-trap clean_up EXIT
-TMP_DATA_DIR="$(mktemp -d --tmpdir || mktemp -d)"
-google-chrome \
-  --load-and-launch-app="${FACTORY_DIR}/py/goofy/ui_presenter_app" \
-  chrome-extension://oaaomfgfdeefdhpfbokkpkhodmjaicoh/main.html \
-  --user-data-dir="${TMP_DATA_DIR}" \
-  --disable-translate \
-  --overscroll-history-navigation=0 &
-CHROME_PID="$!"
-"${FACTORY_DIR}/py/goofy/goofy_presenter.py"
+main

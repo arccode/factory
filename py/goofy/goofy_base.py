@@ -172,7 +172,14 @@ class GoofyBase(object):
     Args:
       cls: 'self', a class object that derives from goofy_base
     """
-    goofy = cls()
+    try:
+      goofy = cls()
+    except Exception:
+      logging.info('Failed to instantiate %s, shutting down.', cls.__name__)
+      traceback.print_exc()
+      os._exit(1)  # pylint: disable=W0212
+      sys.exit(1)
+
     try:
       goofy.main()
     except SystemExit:
@@ -190,7 +197,7 @@ class GoofyBase(object):
         # so that we can report to the user which threads are stuck
         goofy.destroy()
         cls.drain_nondaemon_threads()
-      except KeyboardInterrupt:
+      except (KeyboardInterrupt, Exception):
         # We got a keyboard interrupt while attempting to shut down.
         # The user is waiting impatiently! This can happen if threads get stuck.
         # We need to exit via os._exit, not sys.exit, because sys.exit() will

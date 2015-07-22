@@ -56,6 +56,7 @@ class JSONRPCServer(object):
         self._server.register_function(v, k)
     self._server_thread = threading.Thread(target=self._ServeRPCForever,
                                            name='RPCServer')
+    self._server_thread.daemon = True
     self._server_thread.start()
 
   def Destroy(self):

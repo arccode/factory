@@ -393,9 +393,8 @@ class DUTLinkManager(object):
       self._relay_process = Spawn([path, interface], log=True)
 
   def _StopOverlordRelay(self):
-    self._relay_process.terminate()
-    Spawn(['pkill', '-15', '-f', 'socat', '-P', str(self._relay_process.pid)],
-          log=True)
+    if self._relay_process is not None:
+      self._relay_process.terminate()
 
   def Start(self):
     """Starts services."""
