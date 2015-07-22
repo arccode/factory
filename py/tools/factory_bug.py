@@ -20,6 +20,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -153,8 +154,8 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
 
   # SuperIO-based platform has no EC chip, check its existence first.
-  has_ec = Spawn(['ectool', 'version'], read_stdout=True,
-                 ignore_stderr=True).returncode == 0
+  has_ec = sys_utils.HasEC()
+
   try:
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:
       Spawn('crossystem', stdout=f, stderr=f, check_call=True)

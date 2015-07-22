@@ -273,3 +273,14 @@ def GetUidGid(user, group):
   except KeyError:
     raise KeyError('Group %r not found. Please create it.' % group)
   return (uid, gid)
+
+
+def HasEC():
+  """Return whether the platform has EC chip."""
+  try:
+    has_ec = Spawn(['ectool', 'version'], read_stdout=True,
+                   ignore_stderr=True).returncode == 0
+  except OSError:
+    # The system might not have 'ectool' command if the platform has no EC chip.
+    has_ec = False
+  return has_ec

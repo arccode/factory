@@ -27,8 +27,8 @@ from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
 from cros.factory.test.test_lists.test_lists import TestList
 from cros.factory.test.test_lists.test_lists import WLAN
+from cros.factory.utils import sys_utils
 from cros.factory.utils.net_utils import GetWLANInterface
-from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.process_utils import SpawnOutput
 
 HOURS = 60 * 60
@@ -85,8 +85,7 @@ class TestListArgs(object):
   # cold reset from EC.
   @property
   def has_ec(self):
-    return Spawn(['ectool', 'version'], read_stdout=True,
-                 ignore_stderr=True).returncode == 0
+    return sys_utils.HasEC()
 
   # Need to enlarge stateful partition size for long-run stress tests.
   desired_stateful_size_gb = 4
