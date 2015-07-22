@@ -47,8 +47,9 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   _RE_CARD_INDEX = re.compile(r'.*(\d+).*?\[(.+?)\]')
 
-  def __init__(self, dut, remote_directory='/data'):
-    super(TinyalsaAudioControl, self).__init__(dut)
+  def __init__(self, dut, config_path=base.DEFAULT_CONFIG_PATH,
+               remote_directory='/data'):
+    super(TinyalsaAudioControl, self).__init__(dut, config_path)
     self._remote_directory = remote_directory
 
   def GetCardIndexByName(self, card_name):
@@ -167,8 +168,19 @@ class TinyalsaAudioControl(base.BaseAudioControl):
       set_sh_file.flush()
       self._PushAndExecute(set_sh_file.name)
 
+  def _GetAudioLoopPID(self):
+    """Used to get audio loop process ID"""
+    lines = self.CheckOutput(['ps'])
+    m = re.search(r'\w+\s+(\d+).*tinycap_stdout', lines, re.MULTILINE)
+    if m:
+      pid = m.group(1)
+      return pid
+    else:
+      return None
+
   def CreateAudioLoop(self, in_card, in_dev, out_card, out_dev):
     """Create an audio loop by tinyloop.
+    Currently, we only support one audio loop a time
     It will put the tinyloop thread to background to prevent block current
     thread.
     Use DestroyAudioLoop to destroy the audio loop
@@ -179,25 +191,26 @@ class TinyalsaAudioControl(base.BaseAudioControl):
       out_card: output card
       out_dev: output device
     """
+    # Make sure we only have on audio loop.
+    self.DestroyAudioLoop()
+
     # TODO(mojahsu): try to figure out why CheckCall will be hang.
     # Now we workaround it by Spawn with ['adb', 'shell'].
     # It will have problem is the dut is not android device
-    command = ['adb', 'shell',
-               'tinyloop', '-iD', in_card, '-id', in_dev, '-oD', out_card,
-               '-od', out_dev, '&']
-    logging.info('Create tinyloop for input %s,%s output %s,%s',
-                 in_card, in_dev, out_card, out_dev)
+    command = ['adb', 'shell', 'loopback.sh']
     # self.CheckCall(' '.join(command))
     # self.CheckCall(command)
     Spawn(command)
+    pid = self._GetAudioLoopPID()
+
+    logging.info('Create tinyloop pid %s for input %s,%s output %s,%s',
+                 pid, in_card, in_dev, out_card, out_dev)
 
   def DestroyAudioLoop(self):
-    lines = self.CheckOutput(['ps'])
-    m = re.search(r'\w+\s+(\d+).*tinyloop', lines, re.MULTILINE)
-    if m:
-      pid = m.group(1)
+    pid = self._GetAudioLoopPID()
+    if pid:
       logging.info('Destroy audio loop with pid %s', pid)
       command = ['kill', pid]
       self.CheckCall(command)
     else:
-      logging.info('Destroy audio loop - not found tinyloop pid')
+      logging.info('Destroy audio loop - not found tinycap_stdout pid')

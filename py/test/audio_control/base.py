@@ -15,7 +15,7 @@ from glob import glob
 from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import Spawn
 
-_DEFAULT_CONFIG_PATH = '/usr/local/factory/py/test/audio.conf'
+DEFAULT_CONFIG_PATH = '/usr/local/factory/py/test/audio.conf'
 
 # Strings for key in audio.conf
 HP_JACK_NAME = 'headphone_jack'
@@ -37,7 +37,7 @@ MIC_JACK_TYPE_RETURN_LRMG = '2'
 class BaseAudioControl(object):
   """An abstract class for different target audio utils"""
 
-  def __init__(self, dut=None, config_path=_DEFAULT_CONFIG_PATH):
+  def __init__(self, dut=None, config_path=DEFAULT_CONFIG_PATH):
     # used for audio config logging.
     self._audio_config_sn = 0
     self._restore_mixer_control_stack = []

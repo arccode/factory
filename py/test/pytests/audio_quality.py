@@ -33,6 +33,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test import audio_utils
+from cros.factory.test import audio_control
 from cros.factory.test.audio_control import alsa
 from cros.factory.test.audio_control import tinyalsa
 from cros.factory.test.utils import Enum
@@ -125,13 +126,18 @@ class AudioQualityTest(unittest.TestCase):
       Arg('use_shopfloor', bool, 'Use shopfloor', True, optional=True),
       Arg('network_setting', dict, 'Network setting to define *local_ip*, \n'
           '*port*, *gateway_ip*', {}, optional=True),
+      Arg('audio_conf', str, 'Audio config file path',
+          audio_control.base.DEFAULT_CONFIG_PATH, optional=True),
   ]
 
   def setUpAudioDevice(self):
+    logging.info('audio conf %s', self.args.audio_conf)
     if self.args.use_tinyalsa:
-      self._audio_control = tinyalsa.TinyalsaAudioControl(self.dut)
+      self._audio_control = tinyalsa.TinyalsaAudioControl(self.dut,
+                                                          self.args.audio_conf)
     else:
-      self._audio_control = alsa.AlsaAudioControl(self.dut)
+      self._audio_control = alsa.AlsaAudioControl(self.dut,
+                                                  self.args.audio_conf)
     # Devices Type check
     if self.args.use_tinyalsa:
       if not isinstance(self.args.input_dev, tuple):
