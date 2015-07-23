@@ -10,6 +10,7 @@ This is audio utility module to setup tinymix related options.
 
 from __future__ import print_function
 
+import copy
 import logging
 import os
 import re
@@ -133,6 +134,25 @@ class TinyalsaAudioControl(base.BaseAudioControl):
       logging.info('Set \'%s\' to \'%s\' on card %s', name, value, card)
       open_file.write('tinymix -D %s \'%s\' \'%s\'\n' % (card, name, value))
 
+  def _GetMixerSettingsNotInStack(self, mixer_settings, card):
+    """Gets mixer settings not yet stored in the stack.
+
+    Args:
+      mixer_settings: A dict of mixer settings to set.
+      card: The index of audio card
+    """
+    new_settings = copy.deepcopy(mixer_settings)
+    for store_settings, store_card in self._restore_mixer_control_stack:
+      if card != store_card:
+        continue
+      for name in new_settings.keys():
+        if name in store_settings:
+          del new_settings[name]
+      if not new_settings:
+        break
+
+    return new_settings
+
   def SetMixerControls(self, mixer_settings, card='0', store=True):
     """Sets all mixer controls listed in the mixer settings on card.
     ADB is too slow to execute command one by one.
@@ -148,18 +168,22 @@ class TinyalsaAudioControl(base.BaseAudioControl):
                  card, store)
     restore_mixer_settings = dict()
     if store:
-      with tempfile.NamedTemporaryFile() as get_sh_file:
-        with tempfile.NamedTemporaryFile() as output:
-          self._GenerateGetOldValueShellScript(get_sh_file, output,
-                                               mixer_settings, card)
-          get_sh_file.flush()
-          self._PushAndExecute(get_sh_file.name, output.name)
-          lines = open(output.name).read()
-          for name in mixer_settings:
-            old_value = self._GetMixerControlsByLines(name, lines)
-            restore_mixer_settings[name] = old_value
-            logging.info('Save \'%s\' with value \'%s\' on card %s',
-                         name, old_value, card)
+      new_mixer_settings_to_store = \
+          self._GetMixerSettingsNotInStack(mixer_settings, card)
+      if new_mixer_settings_to_store:
+        with tempfile.NamedTemporaryFile() as get_sh_file:
+          with tempfile.NamedTemporaryFile() as output:
+            self._GenerateGetOldValueShellScript(get_sh_file, output,
+                                                 new_mixer_settings_to_store,
+                                                 card)
+            get_sh_file.flush()
+            self._PushAndExecute(get_sh_file.name, output.name)
+            lines = open(output.name).read()
+            for name in new_mixer_settings_to_store:
+              old_value = self._GetMixerControlsByLines(name, lines)
+              restore_mixer_settings[name] = old_value
+              logging.info('Save \'%s\' with value \'%s\' on card %s',
+                           name, old_value, card)
             self._restore_mixer_control_stack.append((restore_mixer_settings,
                                                       card))
     # Set Mixer controls
