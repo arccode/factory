@@ -12,6 +12,17 @@ RUN apt-get install -y python-yaml python-netifaces python-pexpect \
 	lighttpd python-flup unzip parallel pbzip2 pigz binutils sharutils \
 	rsync aptitude screen vim psmisc dbus ssh htop openssh-server
 
+# https://github.com/sequenceiq/docker-pam
+# Workaround pam issue for chpasswd
+RUN apt-get -y build-dep pam
+# Rebuild and install libpam with --disable-audit option
+RUN mkdir /tmp/pam_build
+RUN export CONFIGURE_OPTS=--disable-audit && cd /tmp/pam_build && apt-get -b \
+    source pam && dpkg -i libpam-doc*.deb libpam-modules*.deb \
+    libpam-runtime*.deb libpam0g*.deb
+# Remove pam build modules
+RUN rm -rf /tmp/pam_build
+
 RUN mkdir /var/run/sshd
 RUN echo 'root:test0000' | chpasswd
 RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' \
