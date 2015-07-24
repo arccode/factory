@@ -23,6 +23,12 @@ _RE_INA_CURRENT = re.compile(r'^\s*Current\s+:\s+\w+\s+=>\s+(-?\d+)\s+mA',
                              re.MULTILINE)
 _RE_I2C_READ = re.compile(r'^\s*0x\w\w \[(\d+)\]', re.MULTILINE)
 
+_RE_PD_STATE = re.compile(
+    r'Port C(?P<port>\d+) (?P<polarity>CC1|CC2), '
+    r'(?P<enabled>Ena|Dis) - Role: (?P<role>SRC|SNK)-(?P<datarole>DFP|UFP) '
+    r'State: (?P<state>\w+), Flags: (?P<flags>\w+)', re.MULTILINE)
+
+_RE_GET_GPIO = lambda g: re.compile(r'(1|0)\*?\s+%s' % g, re.MULTILINE)
 
 def _ChangeBit(byte, offset, bit_value):
   """Changes a bit of given offset.
@@ -73,7 +79,8 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       # usb: set USB3.0/DP switch to usb (DP unplugged)
       Device.DEFAULT    : ['5v', 'usb']}
 
-  _LIST_CHARGE = [Device.CHARGE_5V, Device.CHARGE_12V, Device.CHARGE_20V]
+  _LIST_CHARGE = [Device.CHARGE_5V, Device.CHARGE_12V, Device.CHARGE_20V,
+                  Device.ADB_HOST]
   _LIST_USB = [Device.USB2, Device.USB3]
 
   _WAIT_USB3_NEGOTIATE_SECS = 1  # Waits for USB3 signal negotiation.
@@ -267,6 +274,25 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     time.sleep(flip_wait_secs)
     self._Send('usbc_action flip', 'set mux flip')
 
+  def SetPDDataRole(self, swap_data):
+    """Sets PD state data role swap.
+
+    Args:
+      swap_data: True for swapping to data; False for swapping to power.
+    """
+    role = 'data' if swap_data else 'power'
+    self._Send('pd 0 swap %s' % role, 'swap role to %s' % role)
+
+  def SetGPIOValue(self, gpio, value):
+    """Sets Plankton board GPIO value.
+
+    Args:
+      gpio: GPIO name.
+      value: 1 for high; 0 for low.
+    """
+    self._Send('gpioset %s %d' % (gpio, value),
+               'set gpio %s=%d' % (gpio, value))
+
   def SetFakeDisconnection(self, disconnect_secs):
     """Sets Raiden signal fake disconnected for an interval.
 
@@ -327,6 +353,49 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       return dict(current=int(read_current[0]), voltage=int(read_voltage[0]))
     else:
       raise bft_fixture.BFTFixtureException('Cannot read INA values')
+
+  def GetPDState(self):
+    """Gets PD state information.
+
+    Returns:
+      A dict with PD state information.
+    """
+    self._Recv(0, 'clean buffer')
+    self._Send('pd 0 state', 'get pd state information')
+    time.sleep(0.1)  # Wait for message output
+    read_output = self._Recv(0, 'read output')
+    logging.info('read_output = %r', read_output)
+    match = _RE_PD_STATE.search(read_output)
+    if match:
+      return dict(
+          enabled=match.group('enabled') == 'Ena',
+          role=match.group('role'),
+          datarole=match.group('datarole'),
+          polarity=match.group('polarity'),
+          state=match.group('state'),
+          flags=match.group('flags'))
+    else:
+      raise bft_fixture.BFTFixtureException('Cannot get pd state')
+
+  def GetGPIOValue(self, gpio):
+    """Gets Plankton board GPIO value.
+
+    Args:
+      gpio: GPIO name.
+
+    Returns:
+      1 for high; 0 for low.
+    """
+    self._Recv(0, 'clean buffer')
+    self._Send('gpioget %s' % gpio, 'get gpio %s value' % gpio)
+    time.sleep(0.1) # Wait for message output
+    read_output = self._Recv(0, 'read output')
+    logging.info('read_output = %r', read_output)
+    read_value = _RE_GET_GPIO(gpio).findall(read_output)
+    if read_value:
+      return int(read_value[0])
+    else:
+      raise bft_fixture.BFTFixtureException('Cannot get gpio %s value' % gpio)
 
   def _I2CWrite(self, reg_address, value):
     """Writes IO expander register through I2C interface.
