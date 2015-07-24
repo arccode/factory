@@ -73,7 +73,13 @@ class RaidenChargeBFTTest(unittest.TestCase):
           'charge/discharge current during test',
           default=0.5),
       Arg('check_battery_cycle', bool,
-          'Whether to check battery cycle count equals to zero',
+          'Whether to check battery cycle count is lower than threshold',
+          default=False),
+      Arg('battery_cycle_threshold', int,
+          'The threshold for battery cycle count',
+          default=0),
+      Arg('check_current_max', bool,
+          'Whether to check battery current max is not zero',
           default=False),
       Arg('check_protect_ina_current', bool,
           'If set True, it would check if Plankton 5V INA current is within '
@@ -367,8 +373,13 @@ class RaidenChargeBFTTest(unittest.TestCase):
       raise factory.FactoryTestFailure(
           'Cannot locate battery sysfs path. Missing battery?')
     if (self.args.check_battery_cycle and
-        int(self._power.GetBatteryAttribute('cycle_count').strip()) != 0):
-      raise factory.FactoryTestFailure('Battery cycle count is not zero')
+        int(self._power.GetBatteryAttribute('cycle_count').strip()) > (
+            self.args.battery_cycle_threshold)):
+      raise factory.FactoryTestFailure('Battery cycle count is higher than %d' %
+                                       self.args.battery_cycle_threshold)
+    if (self.args.check_current_max and
+        int(self._power.GetBatteryAttribute('current_max').strip()) == 0):
+      raise factory.FactoryTestFailure('Battery current max is zero')
 
     if self._adb_remote_test:
       # Get adb target battery capacity and warn if almost full
