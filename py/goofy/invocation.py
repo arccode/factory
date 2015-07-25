@@ -138,7 +138,7 @@ def ResolveTestArgs(dargs):
   return dict((k, ResolveArg(k, v)) for k, v in dargs.iteritems())
 
 
-class PyTestInfo(object):
+class PytestInfo(object):
   """A class to hold all the data needed when invoking a test.
 
   Properties:
@@ -467,7 +467,7 @@ class TestInvocation(object):
             dut_options = self.test.root.options.dut_options or {}
 
           self._process = self.goofy.pytest_prespawner.spawn(
-              PyTestInfo(test_list=self.goofy.options.test_list,
+              PytestInfo(test_list=self.goofy.options.test_list,
                          path=self.test.path,
                          pytest_name=pytest_name,
                          args=args,
@@ -746,7 +746,7 @@ def InvokeTestCase(suite, test_case_id, test_info):
   Args:
     suite: A TestSuite object.
     test_case_id: The ID of the test case to invoke.
-    test_info: A PyTestInfo object containing information about what to
+    test_info: A PytestInfo object containing information about what to
       run.
 
   Returns:
@@ -859,7 +859,7 @@ def RunPytest(test_info):
   appropriate results file.
 
   Args:
-    test_info: A PyTestInfo object containing information about what to
+    test_info: A PytestInfo object containing information about what to
       run.
   """
   try:
