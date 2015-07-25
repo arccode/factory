@@ -104,6 +104,8 @@ class BaseSensorService(object):
         self.config.Read('TouchSensors', 'DELTA_UNTOUCHED_HIGHER_BOUND'))
     self.normalized_deviation_threshold = float(
         self.config.Read('TouchSensors', 'NORMALIZED_DEVIATION_THRESHOLD'))
+    self.normalized_edge_deviation_threshold = float(
+        self.config.Read('TouchSensors', 'NORMALIZED_EDGE_DEVIATION_THRESHOLD'))
 
   def CheckStatus(self):
     """Checks if the touchscreen sensor data object is present.
@@ -135,18 +137,28 @@ class BaseSensorService(object):
     Returns:
       True if the sensor refs data are legitimate.
     """
+    def IsEdge(row, col):
+      return (row == 0 or row == max_row_number or
+              col == 0 or col == max_col_number)
+
     test_pass = True
     failed_sensors = []
     min_value = float('inf')
     max_value = float('-inf')
     mean = (float(sum([sum(row_data) for row_data in data])) /
             sum([len(row_data) for row_data in data]))
+    max_row_number = len(data) - 1
+    max_col_number = len(data[0]) - 1
     for row, row_data in enumerate(data):
       for col, value in enumerate(row_data):
         min_value = min(min_value, value)
         max_value = max(max_value, value)
         normalized_deviation = abs(value - mean) / mean
-        if normalized_deviation > self.normalized_deviation_threshold:
+        if IsEdge(row, col):
+          threshold = self.normalized_edge_deviation_threshold
+        else:
+          threshold = self.normalized_deviation_threshold
+        if normalized_deviation > threshold:
           failed_sensors.append((row, col, value))
           test_pass = False
     return test_pass, failed_sensors, min_value, max_value
