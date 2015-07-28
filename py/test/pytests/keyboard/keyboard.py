@@ -51,6 +51,11 @@ class KeyboardTest(unittest.TestCase):
   """Tests if all the keys on a keyboard are functioning. The test checks for
   keydown and keyup events for each key, following certain order if required,
   and passes if both events of all keys are received.
+
+  Among the args are two related arguments:
+  - sequential_press: a keycode is simply ignored if the key is not pressed
+    in order
+  - strict_sequential_press: the test failed immediately if a key is skipped.
   """
   ARGS = [
       Arg('allow_multi_keys', bool, 'Allow multiple keys pressed '
@@ -63,6 +68,9 @@ class KeyboardTest(unittest.TestCase):
       Arg('timeout_secs', int, 'Timeout for the test.', default=30),
       Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
           'pressed sequentially or not.', default=False, optional=True),
+      Arg('strict_sequential_press', bool, 'Indicate whether keycodes need to '
+          'be pressed strictly sequentially or not.',
+          default=False, optional=True),
       Arg('board', str,
           'If presents, in filename, the board name is appended after layout.',
           default=''),
@@ -78,7 +86,10 @@ class KeyboardTest(unittest.TestCase):
   def setUp(self):
     self.assertTrue(not (self.args.allow_multi_keys and
                          self.args.sequential_press),
-                    'Sequential press requires one key one time.')
+                    'Sequential press requires one key at a time.')
+    self.assertTrue(not (self.args.allow_multi_keys and
+                         self.args.strict_sequential_press),
+                    'Strict sequential press requires one key at a time.')
 
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
@@ -110,7 +121,7 @@ class KeyboardTest(unittest.TestCase):
       keycodes_to_skip_dict[_POWER_KEY_CODE] = True
 
     self.key_order_list = None
-    if self.args.sequential_press:
+    if self.args.sequential_press or self.args.strict_sequential_press:
       self.key_order_list = self.ReadKeyOrder(self.layout)
 
     self.key_down = set()
@@ -120,7 +131,9 @@ class KeyboardTest(unittest.TestCase):
     # but JavaScript will receive them as string keys, due to JSON conversion
     self.ui.CallJSFunction('setUpKeyboardTest', self.layout, self.bindings,
                            keycodes_to_skip_dict, _ID_IMAGE,
-                           self.key_order_list, self.args.allow_multi_keys)
+                           self.key_order_list,
+                           self.args.strict_sequential_press,
+                           self.args.allow_multi_keys)
 
     self.dispatchers = []
     self.keyboard_device.grab()
@@ -188,6 +201,7 @@ class KeyboardTest(unittest.TestCase):
     """Calls Javascript to mark the given keycode as keydown."""
     if not keycode in self.bindings:
       return True
+    logging.debug('Get key down %d', keycode)
     # Fails the test if got two key pressed at the same time.
     if not self.args.allow_multi_keys and len(self.key_down):
       fail_msg = ('Got key down event on keycode %d but there are other keys '
@@ -196,7 +210,6 @@ class KeyboardTest(unittest.TestCase):
       self.ui.CallJSFunction('failTest', fail_msg)
     self.ui.CallJSFunction('markKeydown', keycode)
     self.key_down.add(keycode)
-    logging.info('Mark key down %d', keycode)
 
   def MarkKeyup(self, keycode):
     """Calls Javascript to mark the given keycode as keyup."""

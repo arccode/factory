@@ -10,15 +10,18 @@
  * @param {Object} skipKeycodes
  * @param {string} container
  * @param {Array} keyOrderList
+ * @param {boolean} strictSequentialPress
  * @param {boolean} allowMultiKeys
  */
 keyboardTest = function(layout, bindings, skipKeycodes, container, keyOrderList,
-                        allowMultiKeys) {
+                        strictSequentialPress, allowMultiKeys) {
   this.layout = layout;
   this.bindings = bindings;
   this.skipKeycodes = skipKeycodes;
   this.container = container;
   this.keyOrderList = keyOrderList;
+  this.strictSequentialPress = strictSequentialPress;
+  this.next_key_index = 0
   if (allowMultiKeys) {
     this.enInstruct = "";
     this.zhInstruct = "";
@@ -74,15 +77,28 @@ keyboardTest.prototype.markKeydown = function(keycode) {
   if (!divs.length) {
     return;
   }
+
   if (this.keyOrderList && this.keyOrderList.indexOf(keycode) != -1) {
     // Checks if the key has been pressed following the given order.
     var index = this.keyOrderList.indexOf(keycode);
-    if (index > 0) {
-      var untested = this.getClassArray("keyboard-test-key-untested");
-      for (var i = 0; i < untested.length; ++i) {
-        if (this.matchKeycode(untested[i].id, this.keyOrderList[index - 1])) {
-          // Returns if the previous key is untested.
-          return;
+    if (this.strictSequentialPress) {
+      // Check the keys in the strict sequential manner.
+      if (index != this.next_key_index) {
+        var failMsg = "expect keycode " + this.keyOrderList[this.next_key_index]
+            + " but get keycode " + keycode;
+        this.failTest(failMsg);
+      } else {
+        this.next_key_index += 1;
+      }
+    } else {
+      // Check the keys in a somewhat relaxed sequential manner.
+      if (index > 0) {
+        var untested = this.getClassArray("keyboard-test-key-untested");
+        for (var i = 0; i < untested.length; ++i) {
+          if (this.matchKeycode(untested[i].id, this.keyOrderList[index - 1])) {
+            // Returns if the previous key is untested.
+            return;
+          }
         }
       }
     }
@@ -200,12 +216,15 @@ keyboardTest.prototype.getClassArray = function(className) {
  * @param {Object}  skipKeycodes
  * @param {string} container
  * @param {Array} keyOrderList
+ * @param {boolean} strictSequentialPress
  * @param {boolean} allowMultiKeys
  */
-function setUpKeyboardTest(layout, bindings, skipKeycodes, container, keyOrderList,
+function setUpKeyboardTest(layout, bindings, skipKeycodes, container,
+                           keyOrderList, strictSequentialPress,
                            allowMultiKeys) {
-  window.keyboardTest = new keyboardTest(layout, bindings, skipKeycodes, container,
-                                         keyOrderList, allowMultiKeys);
+  window.keyboardTest = new keyboardTest(layout, bindings, skipKeycodes,
+                                         container, keyOrderList,
+                                         strictSequentialPress, allowMultiKeys);
   window.keyboardTest.init();
 }
 
