@@ -534,7 +534,7 @@ def main():
                     help='file to store panel serial number and '
                     'camera serial number mapping')
   parser.add_option('-p', '--fastcgi-tcp-port', dest='fastcgi_port',
-                    metavar='FASTCGI_PORT',
+                    metavar='FASTCGI_PORT', type=int,
                     help='assign a port number to start FastCGI in TCP mode')
   (options, _) = parser.parse_args()
 
