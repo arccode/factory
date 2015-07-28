@@ -142,7 +142,14 @@ keyboardTest.prototype.checkTestComplete = function() {
 /**
  * Fails the test and prints out all the failed keys.
  */
-keyboardTest.prototype.failTest = function() {
+keyboardTest.prototype.failTest = function(failMsg) {
+  window.test.fail(failMsg);
+}
+
+/**
+ * Fails the test and prints out all the failed keys.
+ */
+keyboardTest.prototype.failTestTimeout = function() {
   var failedKeys = new Array();
 
   function getKeyCode(divId) {
@@ -164,7 +171,7 @@ keyboardTest.prototype.failTest = function() {
         this.failMsg += ",";
       }
     }, this);
-  window.test.fail(this.failMsg);
+  this.failTest(this.failMsg);
 };
 
 /**
@@ -221,8 +228,8 @@ function markKeyup(keycode) {
 /**
  * Fails the test.
  */
-function failTest() {
-  window.keyboardTest.failTest();
+function failTest(failMsg) {
+  window.keyboardTest.failTest(failMsg);
 }
 
 /**

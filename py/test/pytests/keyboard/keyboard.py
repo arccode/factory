@@ -126,7 +126,7 @@ class KeyboardTest(unittest.TestCase):
     self.keyboard_device.grab()
     StartDaemonThread(target=self.MonitorEvdevEvent)
     StartCountdownTimer(self.args.timeout_secs,
-                        lambda: self.ui.CallJSFunction('failTest'),
+                        lambda: self.ui.CallJSFunction('failTestTimeout'),
                         self.ui,
                         _ID_COUNTDOWN_TIMER)
 
@@ -190,10 +190,10 @@ class KeyboardTest(unittest.TestCase):
       return True
     # Fails the test if got two key pressed at the same time.
     if not self.args.allow_multi_keys and len(self.key_down):
-      factory.console.error(
-          'Got key down event on keycode %r but there is other key pressed: %r',
-          keycode, self.key_down)
-      self.ui.CallJSFunction('failTest')
+      fail_msg = ('Got key down event on keycode %d but there are other keys '
+                  'pressed: %s' % (keycode, self.key_down))
+      factory.console.error(fail_msg)
+      self.ui.CallJSFunction('failTest', fail_msg)
     self.ui.CallJSFunction('markKeydown', keycode)
     self.key_down.add(keycode)
     logging.info('Mark key down %d', keycode)
@@ -203,10 +203,10 @@ class KeyboardTest(unittest.TestCase):
     if not keycode in self.bindings:
       return True
     if keycode not in self.key_down:
-      factory.console.error(
-          'Got key up event for keycode %r but did not get key down event',
-          keycode)
-      self.ui.CallJSFunction('failTest')
+      fail_msg = ('Got key up event for keycode %d '
+                  'but did not get key down event' % keycode)
+      factory.console.error(fail_msg)
+      self.ui.CallJSFunction('failTest', fail_msg)
     else:
       self.key_down.remove(keycode)
     self.ui.CallJSFunction('markKeyup', keycode)
