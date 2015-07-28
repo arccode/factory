@@ -8,13 +8,14 @@ import ctypes
 import ctypes.util
 import datetime
 import os
+import platform
 import time
 
 
 EPOCH_ZERO = datetime.datetime(1970, 1, 1)
 
 
-def MonotonicTime():
+def UnixMonotonicTime():
   """Gets the raw monotonic time.
 
   This function opens librt.so with ctypes and call:
@@ -44,6 +45,14 @@ def MonotonicTime():
     errno = ctypes.get_errno()
     raise OSError(errno, os.strerror(errno))
   return t.tv_sec + 1e-9 * t.tv_nsec
+
+
+# TODO(kitching): Write a MonotonicTime for Windows.  See notes written here:
+# https://docs.python.org/3/library/time.html#time.monotonic
+# Fall back to time.time on Windows systems.
+MonotonicTime = (time.time
+                 if platform.system() == 'Windows'
+                 else UnixMonotonicTime)
 
 
 def FormatElapsedTime(elapsed_secs):
