@@ -72,18 +72,19 @@ class MediaMonitor(object):
     is_monitoring: Bool indicating whether it's monitoring or not.
 
   Usage example:
-    monitor = MediaMonitor()
+    monitor = MediaMonitor('block', 'disk')
     monitor.Start(on_insert=on_insert, on_remove=on_remove)
     monitor.Stop()
   """
 
-  def __init__(self, subsystem='block'):
+  def __init__(self, subsystem, device_type):
     self.on_insert = None
     self.on_remove = None
     self.is_monitoring = False
     self._observer = None
     self._pyudev_thread = None
     self._subsystem = subsystem
+    self._device_type = device_type
 
   def _UdevEventCallback(self, action, device):
     if self.is_monitoring == False:
@@ -115,7 +116,7 @@ class MediaMonitor(object):
     if self._pyudev_thread == None:
       self._pyudev_thread = _PyudevThread(self._UdevEventCallback,
                                           subsystem=self._subsystem,
-                                          device_type='disk')
+                                          device_type=self._device_type)
       self._pyudev_thread.daemon = True
       self._pyudev_thread.start()
     self.is_monitoring = True
@@ -134,6 +135,12 @@ class MediaMonitor(object):
     # been upgraded.
     self.is_monitoring = False
     logging.info('Stop monitoring media actitivities.')
+
+
+class RemovableDiskMonitor(MediaMonitor):
+  """MediaMonitor specifically used for monitoring removable storage devices."""
+  def __init__(self):
+    super(RemovableDiskMonitor, self).__init__('block', 'disk')
 
 
 class MountedMedia(object):

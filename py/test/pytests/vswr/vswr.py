@@ -52,7 +52,7 @@ from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
-from cros.factory.test.media_util import MediaMonitor, MountedMedia
+from cros.factory.test.media_util import MountedMedia, RemovableDiskMonitor
 from cros.factory.test.utils import TimeString, TryMakeDirs
 from cros.factory.utils import file_utils
 from cros.factory.utils.net_utils import FindUsableEthDevice
@@ -706,7 +706,7 @@ class VSWR(unittest.TestCase):
     self._ui.AddEventHandler('usbremove', self._event_queue.put)
 
     # Set up USB monitor.
-    self._monitor = MediaMonitor()
+    self._monitor = RemovableDiskMonitor()
     self._monitor.Start(
         on_insert=lambda usb_path: self._ui.PostEvent(Event(
             Event.Type.TEST_UI_EVENT, subtype='usbinsert', usb_path=usb_path)),

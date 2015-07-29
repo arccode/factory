@@ -176,7 +176,7 @@ class TestMediaMonitor(unittest.TestCase):
 
     # Start the monitor.
     TIMEOUT_SECOND = 1
-    monitor = MediaMonitor()
+    monitor = MediaMonitor('block', 'disk')
     monitor.start(on_insert=on_insert, on_remove=on_remove)
     # Simulating the insertion of a valid media device.
     timer_tag = glib.timeout_add_seconds(TIMEOUT_SECOND,

@@ -223,7 +223,8 @@ from cros.factory.test.fixture.camera.light_chamber import (
     LightChamber, LightChamberError, LightChamberCameraError)
 import cros.factory.test.fixture.camera.perf_tester as camperf
 import cros.factory.test.fixture.camera.renderer as renderer
-from cros.factory.test.media_util import MediaMonitor, MountedMedia
+from cros.factory.test.media_util import (
+    MediaMonitor, MountedMedia, RemovableDiskMonitor)
 from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import Spawn
 
@@ -491,8 +492,8 @@ class _TestDelegate(object):
   def _LoadParamsFromUSB(self):
     """Loads parameters from USB drive."""
     self.usb_ready_event = threading.Event()
-    MediaMonitor().Start(on_insert=self._OnUSBInsertion,
-                         on_remove=self._OnUSBRemoval)
+    RemovableDiskMonitor().Start(on_insert=self._OnUSBInsertion,
+                                 on_remove=self._OnUSBRemoval)
 
     while self.usb_ready_event.wait():
       with MountedMedia(self.usb_dev_path, 1) as mount_point:
