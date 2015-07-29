@@ -13,6 +13,7 @@ import uuid
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import base
+from cros.factory.utils import file_utils
 
 
 class AdbTarget(base.BaseTarget):
@@ -29,12 +30,12 @@ class AdbTarget(base.BaseTarget):
   def Pull(self, remote, local=None):
     """See BaseTarget.Pull"""
     if local is None:
-      with tempfile.NamedTemporaryFile() as f:
-        return self.Pull(remote, f.name)
+      with file_utils.UnopenedTemporaryFile() as path:
+        self.Pull(remote, path)
+        with open(path) as f:
+          return f.read()
 
     subprocess.check_call(['adb', 'pull', remote, local])
-    with open(local) as f:
-      return f.read()
 
   def Shell(self, command, stdin=None, stdout=None, stderr=None):
     """See BaseTarget.Shell"""
