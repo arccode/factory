@@ -8,7 +8,6 @@
 import logging
 import pipes
 import subprocess
-import tempfile
 import uuid
 
 import factory_common  # pylint: disable=W0611

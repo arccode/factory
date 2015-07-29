@@ -41,6 +41,7 @@ class BaseTarget(object):
              None to return the contents directly.
     Returns:
       If local is None, return a string as contents in remote file.
+      Otherwise, do not return anything.
     """
     raise NotImplementedError
 

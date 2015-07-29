@@ -7,10 +7,10 @@
 
 import logging
 import subprocess
-import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import base
+from cros.factory.utils import file_utils
 
 
 class SshTarget(base.BaseTarget):
@@ -61,14 +61,14 @@ class SshTarget(base.BaseTarget):
   def Pull(self, remote, local=None):
     """See BaseTarget.Pull"""
     if local is None:
-      with tempfile.NamedTemporaryFile() as f:
-        return self.Pull(remote, f.name)
+      with file_utils.UnopenedTemporaryFile() as path:
+        self.Pull(remote, path)
+        with open(path) as f:
+          return f.read()
 
     remote_sig, options = self._signature(True)
     subprocess.check_call(['scp'] + options +
                           ['%s:%s' % (remote_sig, remote), local])
-    with open(local) as f:
-      return f.read()
 
   def Shell(self, command, stdin=None, stdout=None, stderr=None):
     """See BaseTarget.Shell"""
