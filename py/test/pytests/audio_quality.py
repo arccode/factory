@@ -92,6 +92,8 @@ _LOOP_4_RE = re.compile('(?i)loop_4')
 _LOOP_5_RE = re.compile('(?i)loop_5')
 _XTALK_L_RE = re.compile('(?i)xtalk_l')
 _XTALK_R_RE = re.compile('(?i)xtalk_r')
+_MUTE_SPK_L_RE = re.compile('(?i)mute_spk_l')
+_MUTE_SPK_R_RE = re.compile('(?i)mute_spk_r')
 _MULTITONE_RE = re.compile('(?i)multitone')
 _SEND_FILE_RE = re.compile('(?i)send_file')
 _TEST_COMPLETE_RE = re.compile('(?i)test_complete')
@@ -101,6 +103,17 @@ _VERSION_RE = re.compile('(?i)version')
 _CONFIG_FILE_RE = re.compile('(?i)config_file')
 
 LoopType = Enum(['sox', 'looptest', 'tinyloop', 'hwloop'])
+
+# To optimize execution time. If we have shell script to create loop and restore
+# configuration, we just use it and don't need to do separate actions.
+# Note: If we use script to setup audio loop, we need to prepare restore script
+# too.
+_RESTORE_SCRIPT = 'restore_script'
+_DMIC_JACK_SCRIPT = 'dmic_jack_script'
+_KDMIC_JACK_SCRIPT = 'kdmic_jack_script'
+_JACK_SPEAKER_SCRIPT = 'jack_speaker_script'
+_JACK_HP_SCRIPT = 'jack_hp_script'
+_DMIC2_JACK_SCRIPT = 'dmic2_jack_script'
 
 
 class AudioQualityTest(unittest.TestCase):
@@ -181,6 +194,8 @@ class AudioQualityTest(unittest.TestCase):
     self._handlers[_LOOP_5_RE] = self.HandleLoopFromDmic2ToJack
     self._handlers[_XTALK_L_RE] = self.HandleXtalkLeft
     self._handlers[_XTALK_R_RE] = self.HandleXtalkRight
+    self._handlers[_MUTE_SPK_L_RE] = self.HandleMuteSpeakerLeft
+    self._handlers[_MUTE_SPK_R_RE] = self.HandleMuteSpeakerRight
     self._handlers[_MULTITONE_RE] = self.HandleMultitone
     self._handlers[_VERSION_RE] = self.HandleVersion
     self._handlers[_CONFIG_FILE_RE] = self.HandleConfigFile
@@ -338,6 +353,8 @@ class AudioQualityTest(unittest.TestCase):
     if self._loop_type == LoopType.tinyloop:
       self._audio_control.DestroyAudioLoop()
 
+    if self._audio_control.ApplyAudioConfig(_RESTORE_SCRIPT, 0, True):
+      return
     self._audio_control.RestoreMixerControls()
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
@@ -602,8 +619,9 @@ class AudioQualityTest(unittest.TestCase):
     """External mic loop to headphone."""
     factory.console.info('Audio Loop Mic Jack->Headphone')
     self.RestoreConfiguration()
-    self._audio_control.EnableExtmic(self._in_card)
-    self._audio_control.EnableHeadphone(self._out_card)
+    if not self._audio_control.ApplyAudioConfig(_JACK_HP_SCRIPT, 0, True):
+      self._audio_control.EnableExtmic(self._in_card)
+      self._audio_control.EnableHeadphone(self._out_card)
     if self._use_multitone:
       self.HandleMultitone()
     else:
@@ -616,8 +634,9 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Audio Loop DMIC->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
-    self._audio_control.EnableHeadphone(self._out_card)
-    self._audio_control.EnableDmic(self._in_card)
+    if not self._audio_control.ApplyAudioConfig(_DMIC_JACK_SCRIPT, 0, True):
+      self._audio_control.EnableHeadphone(self._out_card)
+      self._audio_control.EnableDmic(self._in_card)
     self.HandleLoop()
     self.SendResponse(None, args)
 
@@ -626,8 +645,9 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Audio Loop DMIC2->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
-    self._audio_control.EnableDmic2(self._in_card)
-    self._audio_control.EnableHeadphone(self._out_card)
+    if not self._audio_control.ApplyAudioConfig(_DMIC2_JACK_SCRIPT, 0, True):
+      self._audio_control.EnableDmic2(self._in_card)
+      self._audio_control.EnableHeadphone(self._out_card)
     self.HandleLoop()
     self.SendResponse(None, args)
 
@@ -637,8 +657,9 @@ class AudioQualityTest(unittest.TestCase):
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP +
                             _LABEL_SPEAKER_MUTE_OFF)
-    self._audio_control.EnableExtmic(self._in_card)
-    self._audio_control.EnableSpeaker(self._out_card)
+    if not self._audio_control.ApplyAudioConfig(_JACK_SPEAKER_SCRIPT, 0, True):
+      self._audio_control.EnableExtmic(self._in_card)
+      self._audio_control.EnableSpeaker(self._out_card)
     if self._use_multitone:
       self.HandleMultitone()
     else:
@@ -650,8 +671,9 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Audio Loop MLB DMIC->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_MLBDMIC_ON)
-    self._audio_control.EnableMLBDmic(self._in_card)
-    self._audio_control.EnableHeadphone(self._out_card)
+    if not self._audio_control.ApplyAudioConfig(_KDMIC_JACK_SCRIPT, 0, True):
+      self._audio_control.EnableMLBDmic(self._in_card)
+      self._audio_control.EnableHeadphone(self._out_card)
     self.HandleLoop()
     self.SendResponse(None, args)
 
@@ -671,6 +693,18 @@ class AudioQualityTest(unittest.TestCase):
     self._audio_control.MuteRightHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(0, self._output_device)
     self._tone_process = Spawn(cmdargs)
+    self.SendResponse(None, args)
+
+  def HandleMuteSpeakerLeft(self, *args):
+    """Mute Left Speaker."""
+    factory.console.info('Mute Speaker Left')
+    self._audio_control.MuteLeftSpeaker(self._out_card)
+    self.SendResponse(None, args)
+
+  def HandleMuteSpeakerRight(self, *args):
+    """Mute Left Speaker."""
+    factory.console.info('Mute Speaker Right')
+    self._audio_control.MuteRightSpeaker(self._out_card)
     self.SendResponse(None, args)
 
   def ListenForever(self, sock):

@@ -33,6 +33,9 @@ MicJackType = Enum(['none', 'lrgm', 'lrmg'])
 MIC_JACK_TYPE_RETURN_LRGM = '1'
 MIC_JACK_TYPE_RETURN_LRMG = '2'
 
+# Virtual Card Index for script.
+script_card_index = '999'
+
 
 class BaseAudioControl(object):
   """An abstract class for different target audio utils"""
@@ -284,19 +287,41 @@ class BaseAudioControl(object):
 
     return mictype
 
-  def ApplyAudioConfig(self, action, card='0'):
+  def ApplyAudioConfig(self, action, card='0', is_script=False):
+    """Apply audio configuration to dut.
+
+    Args:
+      action: action key in audio configuration file
+      card: The index of audio card.
+        If is_script=True The card argument is not used.
+      is_script: True for shell script. False for mixer controls
+
+    Returns:
+      True for applying to dut. False for not.
+    """
+    if is_script:
+      card = script_card_index
+
     if card in self.audio_config:
       if action in self.audio_config[card]:
-        logging.info('\nvvv-- Do(%d) \'%s\' on card %s Start --vvv',
-                     self._audio_config_sn, action, card)
-        self.SetMixerControls(self.audio_config[card][action], card)
-        logging.info('\n^^^-- Do(%d) \'%s\' on card %s End   --^^^',
-                     self._audio_config_sn, action, card)
-        self._audio_config_sn += 1
+        if is_script:
+          script = self.audio_config[card][action]
+          logging.info('Execute \'%s\'', script)
+          self.CheckCall(script)
+        else:
+          logging.info('\nvvv-- Do(%d) \'%s\' on card %s Start --vvv',
+                       self._audio_config_sn, action, card)
+          self.SetMixerControls(self.audio_config[card][action], card)
+          logging.info('\n^^^-- Do(%d) \'%s\' on card %s End   --^^^',
+                       self._audio_config_sn, action, card)
+          self._audio_config_sn += 1
+        return True
       else:
         logging.info('Action %s cannot be found in card %s', action, card)
+        return False
     else:
       logging.info('Card %s does not exist', card)
+      return False
 
   def InitialSetting(self, card='0'):
     self.ApplyAudioConfig('initial', card)
