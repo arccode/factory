@@ -593,7 +593,7 @@ class Goofy(GoofyBase):
             status=TestState.FAILED,
             error_msg=error_msg)
         # Trigger the OnTestFailure callback.
-        self.run_queue.put(system.GetBoard().OnTestFailure)
+        self.run_queue.put(lambda: system.GetBoard().OnTestFailure(test))
 
         if not test.never_fails:
           # For "never_fails" tests (such as "Start"), don't cancel
@@ -851,7 +851,7 @@ class Goofy(GoofyBase):
       self.init_ui()
     invoc = TestInvocation(
         self, test, on_completion=self.invocation_completion,
-        on_test_failure=system.GetBoard().OnTestFailure)
+        on_test_failure=lambda: system.GetBoard().OnTestFailure(test))
     new_state = test.update_state(
         status=TestState.ACTIVE, increment_count=1, error_msg='',
         invocation=invoc.uuid, iterations_left=iterations_left,

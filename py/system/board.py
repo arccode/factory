@@ -322,7 +322,7 @@ class Board(object):
     """
     pass
 
-  def OnTestFailure(self):
+  def OnTestFailure(self, test):
     """Callback invoked when a test fails.
 
     This method can be used to bring the attention of the operators
@@ -346,7 +346,6 @@ class Board(object):
     """Callback invoked when the test summary page shows and some test failed.
 
     Similar to OnSummaryGood, but is used to notify the operator of failing
-    test(s). This defaults to call OnTestFailure() but may be overridden by
-    each board.
+    test(s).
     """
-    self.OnTestFailure()
+    pass
