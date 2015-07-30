@@ -423,7 +423,8 @@ class BluetoothManager(object):
           result[device["Address"]] = device
     return result
 
-  def ScanDevices(self, adapter, timeout_secs=10, remove_before_scan=True):
+  def ScanDevices(self, adapter, timeout_secs=10, match_address=None,
+                  remove_before_scan=True):
     """Scans device around using adapter for timeout_secs.
 
     The returned value devices is a dict containing the properties of
@@ -463,6 +464,8 @@ class BluetoothManager(object):
     Args:
       adapter: The adapter interface to control.
       timeout_secs: The duration of scan.
+      match_address: return the device immediately that matches the MAC address.
+                     The purpose is to speed up the scanning.
       remove_before_scan: Remove devices under adapter before scanning.
 
     Returns:
@@ -481,19 +484,19 @@ class BluetoothManager(object):
     self._SwitchAdapterPower(adapter, True)
     logging.info('Powered on adapter')
 
-    def _ScanTimeout():
-      """The callback when scan duration is over.
+    def _QuitScan(reason):
+      """Quit the scan with the given reason.
 
-      If adapter is still scanning, stop it and
-      quit self._main_loop.
+      Possible reasons
+        - timeout occurs
+        - the match_address has been found
 
       Returns:
         False since we want this to be called at most once.
       """
-      logging.info('Device scan timed out.')
+      logging.info(reason)
       adapter.StopDiscovery()
-      logging.info('Stop Discovery')
-      logging.info('Quit main loop without waiting for Discovery=1.')
+      logging.info('Discovery is stopped.')
       self._main_loop.quit()
       return False
 
@@ -523,6 +526,10 @@ class BluetoothManager(object):
       address = (properties['Address'] if 'Address' in properties
                  else '<unknown>')
       logging.info('Bluetooth Device Found: %s.', address)
+
+      if match_address and address == match_address:
+        _QuitScan('Device %s found.' % match_address)
+
       if 'RSSI' in properties:
         logging.info('Address: %s, RSSI: %s', address, properties['RSSI'])
 
@@ -572,7 +579,7 @@ class BluetoothManager(object):
     logging.info('Device scan started.')
 
     # Scan for timeout_secs
-    gobject.timeout_add(timeout_secs * 1000, _ScanTimeout)
+    gobject.timeout_add(timeout_secs * 1000, _QuitScan, 'Device scan timed out')
     self._main_loop.run()
 
     bus.remove_signal_receiver(
