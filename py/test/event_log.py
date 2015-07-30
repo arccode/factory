@@ -6,7 +6,6 @@
 """Routines for producing event logs."""
 
 
-import fcntl
 import logging
 import re
 import os
@@ -20,7 +19,10 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import platform_utils
 
+
+FileLock = platform_utils.GetProvider('FileLock')
 
 # A global event logger to log all events for a test. Since each
 # test is invoked separately as a process, each test will have
@@ -377,7 +379,7 @@ class GlobalSeq(object):
     utils.TryMakeDirs(os.path.dirname(self.path))
     fd = os.open(self.path, os.O_RDWR | os.O_CREAT)
     with os.fdopen(fd, "r+") as f:
-      fcntl.flock(fd, fcntl.LOCK_EX)
+      FileLock(fd, True)
       contents = f.read()
       if contents:
         try:
@@ -401,7 +403,7 @@ class GlobalSeq(object):
     with open(self.path, "r+") as f:
       # The file will be closed, and the lock freed, as soon as this
       # block goes out of scope.
-      fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+      FileLock(f.fileno(), True)
       # Now the FD will be closed/unlocked as soon as we go out of
       # scope.
       value = int(f.read())
@@ -616,10 +618,10 @@ class EventLog(object):
     }
     data.update(kwargs)
     yaml_data = YamlDump(data) + SYNC_MARKER + "---\n"
-    fcntl.flock(self.file.fileno(), fcntl.LOCK_EX)
+    FileLock(self.file.fileno(), True)
     try:
       self.file.write(yaml_data)
       self.file.flush()
     finally:
-      fcntl.flock(self.file.fileno(), fcntl.LOCK_UN)
+      FileLock(self.file.fileno(), False)
     os.fdatasync(self.file.fileno())

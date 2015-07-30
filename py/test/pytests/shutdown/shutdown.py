@@ -140,12 +140,6 @@ class ShutdownTest(unittest.TestCase):
       if expected_device_number != total_device_number:
         raise ShutdownError(message)
 
-    if utils.are_shift_keys_depressed():
-      logging.info('Shift keys are depressed; cancelling restarts')
-      # Abort shutdown
-      self.goofy.CancelPendingTests()
-      raise ShutdownError('Shutdown aborted with double shift keys')
-
     if self.PromptCancelShutdown(self.test_state.shutdown_count + 1):
       factory.console.info('Shutdown aborted by operator')
       event_log.Log('reboot_cancelled')

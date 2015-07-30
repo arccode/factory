@@ -18,7 +18,6 @@ from cros.factory.umpire.commands import init
 from cros.factory.umpire.commands import system
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils.file_utils import TouchFile
-from cros.factory.utils import sys_utils
 
 
 TEST_DIR = os.path.dirname(sys.modules[__name__].__file__)
@@ -77,8 +76,8 @@ class InitTest(unittest.TestCase):
 
   def MockOsModule(self):
     # Mock out user.group id to current uid.gid.
-    self.mox.StubOutWithMock(sys_utils, 'GetUidGid')
-    sys_utils.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
+    self.mox.StubOutWithMock(system, 'GetUidGid')
+    system.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
         (os.getuid(), os.getgid()))
 
   def VerifyDirectories(self):
@@ -155,7 +154,7 @@ class InitTest(unittest.TestCase):
     system.CreateUmpireUpstart()
     system.StartUmpire(TEST_BOARD)
     system.StopUmpire(TEST_BOARD)
-    sys_utils.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
+    system.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
         (os.getuid(), os.getgid()))
 
     self.mox.ReplayAll()

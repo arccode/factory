@@ -4,10 +4,8 @@
 
 """A collective of system-related functions."""
 
-import grp
 import logging
 import os
-import pwd
 import re
 import stat
 import struct
@@ -249,30 +247,6 @@ def GetPartitions():
     if match_obj:
       results.append(PartitionInfo(*match_obj.groups()))
   return results
-
-
-def GetUidGid(user, group):
-  """Gets user ID and group ID.
-
-  Args:
-    user: user name.
-    group: group name.
-
-  Returns:
-    (uid, gid)
-
-  Raises:
-    KeyError if user or group is not found.
-  """
-  try:
-    uid = pwd.getpwnam(user).pw_uid
-  except KeyError:
-    raise KeyError('User %r not found. Please create it.' % user)
-  try:
-    gid = grp.getgrnam(group).gr_gid
-  except KeyError:
-    raise KeyError('Group %r not found. Please create it.' % group)
-  return (uid, gid)
 
 
 def HasEC():

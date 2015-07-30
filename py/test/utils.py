@@ -7,9 +7,6 @@
 
 """Utility functions that are useful to factory tests."""
 
-import array
-import fcntl
-import glob
 import logging
 import multiprocessing
 import os
@@ -78,35 +75,6 @@ def in_cros_device():
   with open('/etc/lsb-release') as f:
     lsb_release = f.read()
   return re.match(r'^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
-
-
-def are_shift_keys_depressed():
-  """Returns True if both shift keys are depressed."""
-  # From #include <linux/input.h>
-  KEY_LEFTSHIFT = 42
-  KEY_RIGHTSHIFT = 54
-
-  for kbd in glob.glob('/dev/input/by-path/*kbd'):
-    try:
-      f = os.open(kbd, os.O_RDONLY)
-    except OSError:
-      if in_chroot():
-        # That's OK; we're just not root
-        continue
-      else:
-        raise
-    buf = array.array('b', [0] * 96)
-
-    # EVIOCGKEY (from #include <linux/input.h>)
-    fcntl.ioctl(f, 0x80604518, buf)
-
-    def is_pressed(key):
-      return (buf[key / 8] & (1 << (key % 8))) != 0
-
-    if is_pressed(KEY_LEFTSHIFT) and is_pressed(KEY_RIGHTSHIFT):
-      return True
-
-  return False
 
 
 def var_log_messages_before_reboot(lines=100,

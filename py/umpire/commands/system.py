@@ -21,7 +21,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import sys_utils
 
 
 # Umpire init creates a group with same name as user.
@@ -227,7 +226,31 @@ def SetupDaemon(user, group):
   if user == group and user in [None, UMPIRE_USER_GROUP]:
     uid, gid = CreateDefaultUmpireUser()
   else:
-    uid, gid = sys_utils.GetUidGid(user, group)
+    uid, gid = GetUidGid(user, group)
 
   CreateUmpireUpstart()
+  return (uid, gid)
+
+
+def GetUidGid(user, group):
+  """Gets user ID and group ID.
+
+  Args:
+    user: user name.
+    group: group name.
+
+  Returns:
+    (uid, gid)
+
+  Raises:
+    KeyError if user or group is not found.
+  """
+  try:
+    uid = pwd.getpwnam(user).pw_uid
+  except KeyError:
+    raise KeyError('User %r not found. Please create it.' % user)
+  try:
+    gid = grp.getgrnam(group).gr_gid
+  except KeyError:
+    raise KeyError('Group %r not found. Please create it.' % group)
   return (uid, gid)
