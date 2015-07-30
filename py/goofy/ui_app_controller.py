@@ -7,7 +7,6 @@
 import json
 import logging
 import threading
-import uuid
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from ws4py.websocket import WebSocket
@@ -103,22 +102,19 @@ class UIAppController(object):
     self._last_msg = str(msg).strip()
     self._msg_event.set()
 
-  def ShowUI(self, dut_ip, dut_uuid=None):
-    # If dut_uuid is not specified, generate one in the same format
-    # as jsonrpc_utils:GetUuid.
-    if not dut_uuid:
-      dut_uuid = str(uuid.uuid4())
+  def ShowUI(self, dut_ip, dongle_mac_address=None):
     url = 'http://%s:%d/' % (dut_ip, state.DEFAULT_FACTORY_STATE_PORT)
     self.SendMessage({'command': UI_APP_COMMAND.CONNECT,
-                      'url': url, 'uuid': dut_uuid})
+                      'url': url, 'dongle_mac_address': dongle_mac_address})
     # Wait for the UI presenter app to acknowledge
     if not self._msg_event.wait(timeout=5):
       return False
     self._msg_event.clear()
     return self._last_msg == 'OK'
 
-  def ShowDisconnectedScreen(self):
-    self.SendMessage({'command': UI_APP_COMMAND.DISCONNECT})
+  def ShowDisconnectedScreen(self, dongle_mac_address):
+    self.SendMessage({'command': UI_APP_COMMAND.DISCONNECT,
+                      'dongle_mac_address': dongle_mac_address})
 
   def ShowInfoMessage(self, msg):
     self.SendMessage({'command': UI_APP_COMMAND.INFO, 'str': msg})

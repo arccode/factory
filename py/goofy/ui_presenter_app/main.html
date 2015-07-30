@@ -3,9 +3,17 @@
     <title>CrOS Factory</title>
     <script src="ui.js"></script>
     <link rel="stylesheet" type="text/css" href="ui.css">
+    <link rel="stylesheet" href="jquery-ui.min.css">
+    <script src="jquery.min.js"></script>
+    <script src="jquery-ui.min.js"></script>
   </head>
   <body>
-    <iframe id="goofy-content" src="about:blank"></iframe>
+    <div id="tabs">
+      <ul id="tab-names">
+        <button id="lock">Lock</button>
+      </ul>
+      <div id="tab-contents"></div>
+    </div>
     <div id="goofy-logo" class="overlay overlay-bg"></div>
     <div id="goofy-message-container" class="overlay vcenter-outer">
       <div class="vcenter-middle">

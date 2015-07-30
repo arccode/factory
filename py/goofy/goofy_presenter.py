@@ -31,7 +31,9 @@ class GoofyPresenter(GoofyBase):
     link_manager: The DUTLinkManager for this invocation of Goofy.
     ui_app_controller: UIAppController instance used to communicate with
         UI presenter app.
-    dut_ip: The last known IP address of the DUT. None if a DUT is never seen.
+    dut_ips: The list of DUT ips.
+    dut_dongle_mac_address: The dictionary maping the ip address of DUT to
+        the dongle mac address of it.
   """
 
   def __init__(self):
@@ -40,8 +42,8 @@ class GoofyPresenter(GoofyBase):
     self.args = self.ParseOptions()
 
     self.ui_app_controller = UIAppController(connect_hook=self.UIConnected)
-    self.dut_ip = None
-    self.dut_uuid = None
+    self.dut_ips = []
+    self.dut_dongle_mac_address = {}
 
     if utils.in_cros_device():
       self.env = test_environment.DUTEnvironment()
@@ -65,29 +67,34 @@ class GoofyPresenter(GoofyBase):
     return parser.parse_args()
 
   def RetryShowUI(self):
-    if self.dut_ip is None:
+    if not self.dut_ips:
       return
-    if self.ui_app_controller.ShowUI(self.dut_ip, dut_uuid=self.dut_uuid):
+    dut_ip = self.dut_ips[-1]
+    if self.ui_app_controller.ShowUI(dut_ip,
+                                     self.dut_dongle_mac_address[dut_ip]):
       return
     # The UI is still not ready. Retry again.
     self.run_enqueue(self.RetryShowUI)
 
-  def DUTConnected(self, dut_ip):
-    self.dut_uuid = self.link_manager.GetUuid()
-    self.dut_ip = dut_ip
+  def DUTConnected(self, dut_ip, dongle_mac_address):
+    self.dut_dongle_mac_address[dut_ip] = dongle_mac_address
+    self.dut_ips.append(dut_ip)
     # If the UI web server is ready, show it.
-    if self.ui_app_controller.ShowUI(dut_ip, dut_uuid=self.dut_uuid):
+    if self.ui_app_controller.ShowUI(dut_ip, dongle_mac_address):
       return
     # Well, it's probably not. Let's schedule a retry.
     self.run_enqueue(self.RetryShowUI)
 
-  def DUTDisconnected(self):
-    self.ui_app_controller.ShowDisconnectedScreen()
-    self.dut_ip = None
+  def DUTDisconnected(self, dut_ip):
+    dongle_mac_address = self.dut_dongle_mac_address[dut_ip]
+    self.ui_app_controller.ShowDisconnectedScreen(dongle_mac_address)
+    self.dut_ips.remove(dut_ip)
+    del self.dut_dongle_mac_address[dut_ip]
 
   def UIConnected(self):
-    if self.dut_ip:
-      self.ui_app_controller.ShowUI(self.dut_ip, dut_uuid=self.dut_uuid)
+    if self.dut_ips:
+      dut_ip = self.dut_ips[-1]
+      self.ui_app_controller.ShowUI(dut_ip, self.dut_dongle_mac_address[dut_ip])
 
   def UIAppCountdown(self, message, timeout_secs, timeout_message,
                      timeout_message_color):

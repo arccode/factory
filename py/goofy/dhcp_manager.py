@@ -94,6 +94,7 @@ class DHCPManager(object):
     # Make sure the interface is up
     net_utils.SetEthernetIp(self._my_ip, self._interface, self._netmask)
     # Start dnsmasq and have it call back to us on any DHCP event.
+
     cmd = ['dnsmasq',
            '--no-daemon',
            '--dhcp-range', dhcp_range,
@@ -138,14 +139,18 @@ class DHCPManager(object):
 
     Args:
       argv: The complete arguments received from dnsmasq callback.
+      argv[1]: The action, which is a string containing, "add", "old" or "del".
+      argv[2]: The dongle mac address of connected DUT.
+      argv[3]: The ip address of connected DUT.
     """
     if len(argv) < 4 or argv[1] not in self._dhcp_action:
       logging.error("Invalid DHCP callback: %s", argv)
       return
     action = self._dhcp_action[argv[1]]
+    dongle_mac_address = argv[2]
     ip = argv[3]
     if action:
-      action(ip)
+      action(ip, dongle_mac_address)
 
   @classmethod
   def CleanupStaleInstance(cls):

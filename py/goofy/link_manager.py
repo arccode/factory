@@ -270,10 +270,10 @@ class DUTLinkManager(object):
                           'SuspendMonitoring': self.SuspendMonitoring,
                           'ResumeMonitoring': self.ResumeMonitoring})
     self._reported_announcement = set()
-    self._dut_proxy = None
-    self._dut_ping_proxy = None
-    self._dut_ip = None
-    self._dut_connected = False
+    self._dut_proxies = {}
+    self._dut_ping_proxies = {}
+    self._dut_ips = []
+    self._dut_dongle_mac_address = {}
     self._lock = threading.Lock()
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
@@ -288,29 +288,35 @@ class DUTLinkManager(object):
 
   def __getattr__(self, name):
     """A wrapper that proxies the RPC calls to the real server proxy."""
-    if not self._dut_connected:
-      raise LinkDownError()
-    try:
-      return self._dut_proxy.__getattr__(name)
-    except AttributeError:
-      # _dut_proxy is None. Link is probably down.
+    if not self._dut_ips:
       raise LinkDownError()
 
-  def OnDHCPEvent(self, ip):
+    dut_ip = self._dut_ips[-1]
+    try:
+      return self._dut_proxies[dut_ip].__getattr__(name)
+    except AttributeError:
+      # _dut_proxies is None. Link is probably down.
+      raise LinkDownError()
+
+  def OnDHCPEvent(self, ip, dongle_mac_address):
     """Call backs on 'add' or 'old' events from DHCP server."""
     logging.info('DHCP event: %s', ip)
     # Save the IP address and try to talk to it. If it fails, the device may
     # be booting and is not ready for connection. Retry later.
     self._dhcp_event_ip = ip
+    self._dut_dongle_mac_address[ip] = dongle_mac_address
     self.AnnounceToLastDUT()
 
   def AnnounceToLastDUT(self):
     """Make announcement to the last DHCP event client."""
     if not self._dhcp_event_ip:
       return
-    if (self._dut_connected and self._dut_ip == self._dhcp_event_ip and
-        self._dut_proxy.IsConnected()):
-      return
+
+    if self._dut_ips:
+      dut_ip = self._dut_ips[-1]
+      if (dut_ip == self._dhcp_event_ip and
+          self._dut_proxies[dut_ip].IsConnected()):
+        return
     proxy = MakeTimeoutServerProxy(self._dhcp_event_ip, DUT_LINK_RPC_PORT,
                                    timeout=0.05)
     dhcp_subnet = self._dhcp_event_ip.rsplit('.', 1)[0]
@@ -433,30 +439,27 @@ class DUTLinkManager(object):
   def _DUTRegister(self, dut_ip):
     with self._lock:
       try:
-        self._dut_ip = dut_ip
-        self._dut_proxy = MakeTimeoutServerProxy(dut_ip,
-                                                 DUT_LINK_RPC_PORT,
-                                                 self._rpc_timeout)
-        self._dut_ping_proxy = MakeTimeoutServerProxy(dut_ip,
-                                                      DUT_PING_PORT,
-                                                      self._rpc_timeout)
-        self._dut_proxy.IsAlive()
-        self._dut_ping_proxy.IsAlive()
-        self._dut_connected = True
+        self._dut_ips.append(dut_ip)
+        self._dut_proxies[dut_ip] = MakeTimeoutServerProxy(
+            dut_ip, DUT_LINK_RPC_PORT, self._rpc_timeout)
+        self._dut_ping_proxies[dut_ip] = MakeTimeoutServerProxy(
+            dut_ip, DUT_PING_PORT, self._rpc_timeout)
+        self._dut_proxies[dut_ip].IsAlive()
+        self._dut_ping_proxies[dut_ip].IsAlive()
         logging.info('DUT %s registered', dut_ip)
         self._reported_announcement.clear()
         if self._connect_hook:
-          self._connect_hook(dut_ip)
+          self._connect_hook(dut_ip, self._dut_dongle_mac_address[dut_ip])
       except (socket.error, socket.timeout):
-        self._dut_ip = None
-        self._dut_proxy = None
+        self._dut_ips.pop()
+        del self._dut_proxies[dut_ip]
+        del self._dut_ping_proxies[dut_ip]
+        del self._dut_dongle_mac_address[dut_ip]
 
-  def DUTIsAlive(self):
+  def DUTIsAlive(self, dut_ip):
     """Pings the DUT."""
-    if not self._dut_connected:
-      return False
     try:
-      self._dut_ping_proxy.IsAlive()
+      self._dut_ping_proxies[dut_ip].IsAlive()
       return True
     except (socket.error, socket.timeout, AttributeError):
       return False
@@ -469,19 +472,15 @@ class DUTLinkManager(object):
     """
     if self._lock.acquire(False):
       try:
-        if self._dut_connected:
-          if self.DUTIsAlive():
-            return  # All good!
-          else:
-            logging.info('Disconnected from DUT %s', self._dut_ip)
-            self._dut_connected = False
-            self._dut_ip = None
-            self._dut_proxy = None
-            self._dut_ping_proxy = None
+        for dut_ip in self._dut_ips:
+          if not self.DUTIsAlive(dut_ip):
+            logging.info('Disconnected from DUT %s', dut_ip)
+            self._dut_ips.remove(dut_ip)
+            del self._dut_proxies[dut_ip]
+            del self._dut_ping_proxies[dut_ip]
+            del self._dut_dongle_mac_address[dut_ip]
             if self._disconnect_hook:
-              self._disconnect_hook()
-        else:
-          self.AnnounceToLastDUT()
+              self._disconnect_hook(dut_ip)
       finally:
         self._lock.release()
 

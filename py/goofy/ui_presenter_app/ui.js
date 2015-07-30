@@ -3,9 +3,10 @@
 // found in the LICENSE file.
 
 var myWindowName = 'goofy_presenter';
-var connected = false;
-var lastUuid = null;
 var mySocket = null;
+var macAddressList = [];
+var connectedDongle = [];
+var lock = false;
 
 var countdown = {
   timeout: null,
@@ -63,36 +64,144 @@ function startCountdown(msg, timeout, end_msg, end_msg_color) {
   countdownCallback();
 }
 
-function handleDisconnect() {
-  if (connected) {
-    /* Instead of destroying the UI, just hide it in case we need it later. */
-    setDisplay('goofy-content', 'none');
-    setDisplay('goofy-logo', '');
-    setDisplay('goofy-message-container', '');
-    connected = false;
+function handleDisconnect(dongle_mac_address) {
+  if (connectedDongle.indexOf(dongle_mac_address) != -1) {
+    var index = macAddressList.indexOf(dongle_mac_address);
+    if (lock) {
+      var iframe = document.getElementById(dongle_mac_address + "_iframe");
+      iframe.src = 'about:blank';
+      iframe.onload = function() {
+        $("#tabs").tabs("disable", '#' + dongle_mac_address);
+      };
+    } else {
+      document.getElementById(dongle_mac_address).remove();
+      document.getElementById(dongle_mac_address + "_list").remove();
+
+      macAddressList.splice(index, 1);
+
+      if (macAddressList.length == 0) {
+        /* Instead of destroying the UI, just hide it in case we need it later. */
+        setDisplay('tabs', 'none');
+        setDisplay('goofy-logo', '');
+        setDisplay('goofy-message-container', '');
+      }
+    }
+
+    $('#tabs').tabs('refresh');
+    connectedDongle.splice(connectedDongle.indexOf(dongle_mac_address), 1);
+
+    var flag = false;
+    if ($("#tabs").tabs('option', 'active') == index) {
+      for (var i = index - 1; i >= 0; i--) {
+        var address = macAddressList[i];
+        if (connectedDongle.indexOf(address) != -1) {
+          $('#tabs').tabs('option', 'active', i);
+          flag = true;
+          break;
+        }
+      }
+      if (!flag) {
+        for (var i = index; i < macAddressList.length; i++) {
+          var address = macAddressList[i];
+          if (connectedDongle.indexOf(address) != -1) {
+            $('#tabs').tabs('option', 'active', i);
+            break;
+          }
+        }
+      }
+    }
   }
 }
 
-function handleConnect(serverUrl, serverUuid) {
-  if (!connected) {
-    /* Now that a device is connected, restore message and stop countdown. */
+function handleConnect(serverUrl, dongle_mac_address) {
+  if (connectedDongle.indexOf(dongle_mac_address) == -1) {
+    //TODO(tientzu): get dongle address, and start countdown
     stopCountdown();
     setInfo("Waiting for device...");
 
-    var content = document.getElementById('goofy-content');
-    /*
-     * Only re-open the UI if it's not from the same session from the last
-     * connection.
-     */
-    if (serverUuid != lastUuid) {
-      content.src = serverUrl;
-      lastUuid = serverUuid;
+    connectedDongle.push(dongle_mac_address);
+
+    if (macAddressList.length == 0) {
+      setDisplay('tabs', '');
+      setDisplay('goofy-logo', 'none');
+      setDisplay('goofy-message-container', 'none');
     }
-    setDisplay('goofy-content', '');
-    content.focus();
-    setDisplay('goofy-logo', 'none');
-    setDisplay('goofy-message-container', 'none');
-    connected = true;
+
+    if (lock) {
+      if (macAddressList.indexOf(dongle_mac_address) == -1) {
+        alert("Can't add device under lock.");
+        return;
+      } else {
+        var iframe = document.getElementById(dongle_mac_address + "_iframe");
+        iframe.src = serverUrl;
+        iframe.onload = function() {
+          var index = macAddressList.indexOf(dongle_mac_address);
+          $("#tabs").tabs("enable", '#' + dongle_mac_address);
+          $('#tabs').tabs('option', 'active', index);
+          iframe.focus();
+        };
+      }
+    } else {
+      macAddressList.push(dongle_mac_address);
+
+      var tabs = document.getElementById('tab-names');
+      var newLi = document.createElement('li');
+      newLi.id = dongle_mac_address + "_list";
+      var newTab = document.createElement('a');
+      newTab.id = dongle_mac_address + "_name";
+      newTab.href = '#' + dongle_mac_address;
+      newTab.innerHTML = "device";
+
+      newLi.appendChild(newTab);
+      tabs.appendChild(newLi);
+
+      var tabContents = document.getElementById("tab-contents");
+      var newTabContent = document.createElement('div');
+      newTabContent.id = dongle_mac_address;
+      var iframe = document.createElement("IFRAME");
+
+      iframe.src = serverUrl;
+      iframe.id = dongle_mac_address + "_iframe";
+      iframe.onload = function() {
+        var index = macAddressList.indexOf(dongle_mac_address);
+        $('#tabs').tabs('refresh');
+        $('#tabs').tabs('option', 'active', index);
+        iframe.focus();
+      };
+
+      newTabContent.appendChild(iframe);
+      tabContents.appendChild(newTabContent);
+
+    }
+  }
+}
+
+function lockTabs() {
+  for (var i = 0; i < macAddressList.length; i++) {
+    var dongle_mac_address = macAddressList[i];
+    var tab = document.getElementById(dongle_mac_address + "_name");
+    tab.innerHTML = "device " + (i + 1);
+  }
+}
+
+function unlockTabs() {
+  for (var i = 0; i < macAddressList.length; i++) {
+    var dongle_mac_address = macAddressList[i];
+    if (connectedDongle.indexOf(dongle_mac_address) != -1) {
+      var tab = document.getElementById(dongle_mac_address + "_name");
+      tab.innerHTML = "device";
+    } else {
+      document.getElementById(dongle_mac_address).remove();
+      document.getElementById(dongle_mac_address + "_list").remove();
+      macAddressList.splice(i, 1);
+      i--;
+    }
+  }
+  if (macAddressList.length == 0) {
+    /* Instead of destroying the UI, just hide it in case we need it later. */
+    setDisplay('tabs', 'none');
+    setDisplay('goofy-logo', '');
+    setDisplay('goofy-message-container', '');
   }
 }
 
@@ -121,6 +230,22 @@ function connectWebSocket() {
   // GoofyPresenter talks to us through port 4010. This port is only
   // used for communication between GoofyPresenter and the UI presenter
   // extension.
+
+  $("#tabs").tabs();
+  setDisplay('tabs', 'none');
+  var button = document.getElementById('lock');
+  button.onclick = function() {
+    if (button.innerHTML == "Lock") {
+      button.innerHTML = "Unlock";
+      lock = true;
+      lockTabs();
+    } else {
+      button.innerHTML = "Lock";
+      lock = false;
+      unlockTabs();
+    }
+  };
+
   mySocket = new WebSocket('ws://127.0.0.1:4010/');
 
   mySocket.onclose = function(e) {
@@ -132,11 +257,11 @@ function connectWebSocket() {
     console.log("Server says:", e.data);
     message = JSON.parse(e.data);
     if (message.command == "DISCONNECT") {
-      handleDisconnect();
+      handleDisconnect(message.dongle_mac_address);
     } else if (message.command == "CONNECT") {
       // Check the URL given by the backend and connect to it if
       // it's alive.
-      checkDUT(message.url, message.uuid);
+      checkDUT(message.url, message.dongle_mac_address);
     } else if (message.command == "INFO") {
       // Show info message.
       setInfo(message.str);
@@ -155,6 +280,8 @@ function connectWebSocket() {
       //                     "timeout": 180,
       //                     "end_message": "Reboot test failed!",
       //                     "end_message_color": "red"}
+
+      //TODO(tientzu): get dongle address, and start countdown
       startCountdown(message.message,
                      message.timeout,
                      message.end_message,
@@ -164,6 +291,8 @@ function connectWebSocket() {
       // countdown on-going.  Note that the message on the UI is not
       // cleared, so the backend must send "INFO" or "ERROR" to change
       // it.
+
+      //TODO(tientzu): get dongle address, and stop countdown, removing tab
       stopCountdown();
     } else {
       console.log("Unknown command:", e.data);
