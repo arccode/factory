@@ -7,7 +7,6 @@
 import base64
 from contextlib import contextmanager
 import errno
-import fcntl
 import fnmatch
 import glob
 import gzip
@@ -25,6 +24,7 @@ import zipfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import CheckDictKeys, MakeList
+from cros.factory.utils import platform_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -506,6 +506,7 @@ class FileLock(object):
     self._timeout_secs = timeout_secs
     self._fd = os.open(lockfile, os.O_RDWR | os.O_CREAT)
     self._locked = False
+    self._sys_lock = platform_utils.GetProvider('FileLock')
 
   def Acquire(self):
     if self._timeout_secs:
@@ -513,7 +514,7 @@ class FileLock(object):
 
     while True:
       try:
-        fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        self._sys_lock(self._fd, is_exclusive=True, is_blocking=True)
         self._locked = True
         logging.debug('%s locked by %s', self._lockfile, os.getpid())
         break
@@ -529,7 +530,7 @@ class FileLock(object):
 
   def Release(self):
     if self._locked:
-      fcntl.flock(self._fd, fcntl.LOCK_UN)
+      self._sys_lock(self._fd, do_lock=False)
       self._locked = False
       logging.debug('%s unlocked by %s', self._lockfile, os.getpid())
 

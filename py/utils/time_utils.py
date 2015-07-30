@@ -4,56 +4,14 @@
 
 """Time-related utilities."""
 
-import ctypes
-import ctypes.util
 import datetime
-import os
-import platform
 import time
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils import platform_utils
 
 EPOCH_ZERO = datetime.datetime(1970, 1, 1)
-
-
-def UnixMonotonicTime():
-  """Gets the raw monotonic time.
-
-  This function opens librt.so with ctypes and call:
-
-    int clock_gettime(clockid_t clk_id, struct timespec *tp);
-
-  to get raw monotonic time.
-
-  Returns:
-    The system monotonic time in seconds.
-  """
-  CLOCK_MONOTONIC_RAW = 4
-
-  class TimeSpec(ctypes.Structure):
-    """A representation of struct timespec in C."""
-    _fields_ = [
-        ('tv_sec', ctypes.c_long),
-        ('tv_nsec', ctypes.c_long),
-    ]
-
-  librt_name = ctypes.util.find_library('rt')
-  librt = ctypes.cdll.LoadLibrary(librt_name)
-  clock_gettime = librt.clock_gettime
-  clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(TimeSpec)]
-  t = TimeSpec()
-  if clock_gettime(CLOCK_MONOTONIC_RAW, ctypes.pointer(t)) != 0:
-    errno = ctypes.get_errno()
-    raise OSError(errno, os.strerror(errno))
-  return t.tv_sec + 1e-9 * t.tv_nsec
-
-
-# TODO(kitching): Write a MonotonicTime for Windows.  See notes written here:
-# https://docs.python.org/3/library/time.html#time.monotonic
-# Fall back to time.time on Windows systems.
-MonotonicTime = (time.time
-                 if platform.system() == 'Windows'
-                 else UnixMonotonicTime)
-
+MonotonicTime = platform_utils.GetProvider('MonotonicTime')
 
 def FormatElapsedTime(elapsed_secs):
   """Formats an elapsed time.
