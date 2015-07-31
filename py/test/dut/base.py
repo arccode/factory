@@ -6,6 +6,12 @@
 import subprocess
 import tempfile
 
+# Assume most DUTs will be running POSIX os.
+import posixpath
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils import file_utils
+
 
 class CalledProcessError(subprocess.CalledProcessError):
   pass
@@ -13,6 +19,9 @@ class CalledProcessError(subprocess.CalledProcessError):
 
 class BaseTarget(object):
   """An abstract class for DUT (Device Under Test) Targets."""
+
+  """Path module that provides os.path equivelant on DUT."""
+  path = posixpath
 
   def Push(self, local, remote):
     """Uploads a local file to DUT.
@@ -61,6 +70,29 @@ class BaseTarget(object):
       A boolean indicating if target DUT is ready.
     """
     raise NotImplementedError
+
+  def Read(self, path):
+    """Returns file content on DUT.
+
+    Args:
+      path: A string for file path on DUT.
+
+    Returns:
+      A string as file contents.
+    """
+    return self.Pull(path)
+
+  def Write(self, path, content):
+    """Writes some content into file on DUT.
+
+    Args:
+      path: A string for file path on DUT.
+      content: A string to be written into file.
+    """
+    with file_utils.UnopenedTemporaryFile() as temp_path:
+      with open(temp_path, 'w') as f:
+        f.write(content)
+      self.Push(temp_path, path)
 
   def Call(self, command, stdin=None, stdout=None, stderr=None):
     """Executes a command on DUT, using subprocess.call convention.
