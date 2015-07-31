@@ -6,8 +6,10 @@
 
 from __future__ import print_function
 
+from BaseHTTPServer import BaseHTTPRequestHandler
 import jsonrpclib
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
+import inspect
 import threading
 import uuid
 
@@ -72,3 +74,20 @@ class JSONRPCServer(object):
       pass
     self._server_thread.join()
     self._server.server_close()
+
+
+def GetJSONRPCCallerIP():
+  """Retrieve the IP address of the JSON RPC caller.
+
+  This is a hack that depends on the implementation details of jsonrpclib.
+  We know that JSON-RPC over HTTP requires a SimpleHTTPServer and
+  SimpleJSONRPCRequestHandler dervies from SimpleXMLRPCRequestHandler, which
+  derives from BaseHTTPRequestHandler. Thus we can extract the 'client_address'
+  property of BaseHTTPRequestHandler, which is the address of the caller.
+  """
+  for st in inspect.stack():
+    caller = st[0].f_locals.get('self', None)
+    if caller and isinstance(caller, BaseHTTPRequestHandler):
+      return caller.client_address[0]
+
+  raise RuntimeError('no BaseHTTPRequestHandler found in stack')
