@@ -136,11 +136,11 @@ class UsbGpioGinkgo(object):
   def ReadValue(self, gpio_port):
     """Read the value of the GPIO port."""
     gpio_pin = self._GetGPIOPin(gpio_port)
-    pin_value = byref(c_ushort(0))
+    pin_value = c_ushort(0)
     ret = self.ginkgo_lib.VGI_ReadDatas(c_int(self.VGI_USBGPIO),
                                         c_int(self.device_index),
                                         c_ushort(gpio_pin),
-                                        pin_value)
+                                        byref(pin_value))
     if ret != self.ERR_SUCCESS:
       raise UsbGpioError('read gpio_%d' % gpio_port)
     return GPIO_HIGH if (pin_value.value & gpio_pin) != 0 else GPIO_LOW
