@@ -33,6 +33,9 @@ class FinalizeAccessory(unittest.TestCase):
       Arg('waive_tests', list,
           'the waved tests',
           default=[]),
+      Arg('specified_group', str,
+          'If specified, only test results in this group are collected.',
+          optional=True),
       Arg('final_test_result_key', str,
           'the final test result key',
           default=''),
@@ -49,14 +52,24 @@ class FinalizeAccessory(unittest.TestCase):
 
   def _GetFinalTestResult(self):
     def _IsWaived(path):
-      for re_path in waive_tests:
+      # Skips the root and this test itself.
+      if path in skip_paths:
+        return True
+      # Skips tests which match skip_patterns.
+      for re_path in skip_patterns:
         if re_path.match(path):
           return True
+      # For specified group, skips the root of group and tests not belonged to
+      # the group.
+      if (self.args.specified_group and
+          (path == self.args.specified_group or
+           not path.startswith(self.args.specified_group))):
+        return True
       return False
 
     # The root (test list, path='') and this test itself should be skipped.
-    skip_path = ['', self.test_info.path]
-    waive_tests = map(re.compile, self.args.waive_tests)
+    skip_paths = ['', self.test_info.path]
+    skip_patterns = map(re.compile, self.args.waive_tests)
     passed_states = set([factory.TestState.PASSED,
                          factory.TestState.FAILED_AND_WAIVED,
                          factory.TestState.ACTIVE])
@@ -65,7 +78,6 @@ class FinalizeAccessory(unittest.TestCase):
     failed_results = dict([(path, (s.status, s.error_msg))
                            for path, s in test_states.iteritems()
                            if (s.status not in passed_states and
-                               path not in skip_path and
                                not _IsWaived(path))])
 
     if failed_results:
