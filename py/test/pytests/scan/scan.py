@@ -68,6 +68,10 @@ class Scan(unittest.TestCase):
           'bft_scan_barcode', bool, 'True to trigger BFT barcode scanner.',
           default=False),
       Arg(
+          'bft_save_barcode', bool,
+          'True to trigger BFT barcode scanner and save in BFT.',
+          default=False),
+      Arg(
           'bft_get_barcode', bool,
           'True to get barcode from BFT. BFT stores barcode in advance so this '
           'obtains barcode immidiately.', default=False),
@@ -207,6 +211,11 @@ class Scan(unittest.TestCase):
       self.fixture.ScanBarcode()
       time.sleep(self.args.barcode_scan_interval_secs)
 
+  def BFTScanSaveBarcode(self):
+    while True:
+      self.fixture.TriggerScanner()
+      time.sleep(self.args.barcode_scan_interval_secs)
+
   def KickGhost(self):
     server = ghost.GhostRPCServer()
     try:
@@ -255,6 +264,9 @@ class Scan(unittest.TestCase):
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
       StartDaemonThread(target=self.ScanBarcode)
+    elif self.args.bft_save_barcode:
+      logging.info('Triggering barcode scanner...')
+      StartDaemonThread(target=self.BFTScanSaveBarcode)
     elif self.args.bft_get_barcode:
       logging.info('Getting barcode from BFT...')
       barcode = self.fixture.ScanBarcode()
