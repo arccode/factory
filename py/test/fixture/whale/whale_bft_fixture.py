@@ -41,7 +41,8 @@ class WhaleBFTFixture(bft.BFTFixture):
       bft.BFTFixture.Device.C1_CC2_DUT: _WHALE_CONTROL.OUTPUT_RESERVE_1,
       bft.BFTFixture.Device.PWR_BUTTON: _WHALE_CONTROL.DEVICE_PWR_BUTTON,
       bft.BFTFixture.Device.LID_HALL_MAGNET: _WHALE_CONTROL.LID_HALL_MAGNET,
-      bft.BFTFixture.Device.BASE_HALL_MAGNET: _WHALE_CONTROL.BASE_HALL_MAGNET}
+      bft.BFTFixture.Device.BASE_HALL_MAGNET: _WHALE_CONTROL.BASE_HALL_MAGNET,
+      bft.BFTFixture.Device.BASE_CHARGER: _WHALE_CONTROL.BASE_CHARGER}
 
   # Mapping from status color to (pass, fail) led status.
   _STATUS_COLOR = {

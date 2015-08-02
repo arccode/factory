@@ -73,7 +73,7 @@ class BFTFixture(object):
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
                  'USB_0', 'USB_1', 'USB_2', 'BATTERY',
                  'C0_CC2_DUT', 'C1_CC2_DUT', 'PWR_BUTTON',
-                 'LID_HALL_MAGNET', 'BASE_HALL_MAGNET',
+                 'LID_HALL_MAGNET', 'BASE_HALL_MAGNET', 'BASE_CHARGER',
                  # Dolphin mini fixture devices.
                  'CHARGE_5V', 'CHARGE_12V', 'CHARGE_20V',
                  'USB2', 'USB3', 'DP', 'ADB_HOST', 'DEFAULT'])
