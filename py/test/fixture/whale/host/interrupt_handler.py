@@ -70,11 +70,12 @@ class InterruptHandler(object):
   # Used to avoid toggle battery too fast.
   _BATTERY_CEASE_TOGGLE_SECS = 1.0
 
-  _FixtureState = Enum(['WAIT', 'CLOSED', 'CLOSING', 'OPENING'])
+  _FixtureState = Enum(['WAIT', 'CLOSED', 'ERR_CLOSING', 'CLOSING', 'OPENING'])
   # Fixture state to LED light and LCD message (green, red, message).
   _FixtureStateParams = {
       _FixtureState.WAIT: ('on', 'on', 'ready'),
       _FixtureState.CLOSED: ('off', 'off', 'closed'),
+      _FixtureState.ERR_CLOSING: ('off', 'on', '!!no board inside!!'),
       _FixtureState.CLOSING: ('off', 'on', 'closing'),
       _FixtureState.OPENING: ('off', 'on', 'opening')}
 
@@ -243,6 +244,7 @@ class InterruptHandler(object):
       if not self._IsMLBInFixture():
         logging.info(
             '[HandleStartFixture] OOPS! Cannot close cover without MLBs')
+        self._SetState(self._FixtureState.ERR_CLOSING)
         return
       self._ResetWhaleDeviceBeforeClosing()
       self._ResetDolphinDeviceBeforeClosing()
