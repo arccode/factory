@@ -43,6 +43,8 @@ _TESTING_DISCHARGE = test_ui.MakeLabel('Testing battery discharging...',
                                        u'测试电池放电中...')
 _CSS = 'body { font-size: 2em; }'
 
+_ADB_RECOVER_WAIT_SECS = 3
+
 
 class RaidenChargeBFTTest(unittest.TestCase):
   """Tests raiden port charge functionality."""
@@ -254,10 +256,25 @@ class RaidenChargeBFTTest(unittest.TestCase):
     logging.info('Testing %s...', command_device)
 
     self._template.SetState(_TESTING_CHARGE(testing_volt))
+
+    if self._adb_remote_test and testing_volt > 5:
+      # It's easy to fail for device and Plankton to negotitate from 5v to high
+      # volatge stage. We intend to set Plankton to device mode first and go
+      # high voltage mode directly.
+      self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=False)
+      time.sleep(1)
+
     # Plankton-Raiden board setting: engage
     self._bft_fixture.SetDeviceEngaged(command_device, engage=True)
+
     if self._adb_remote_test:
-      time.sleep(1)  # adb connection instable while voltage changing
+      # ADB connection is unstable for a while after Plankton switches datarole.
+      # dut.IsReady() doesn't guarantee the connection so we wait for a while.
+      time.sleep(_ADB_RECOVER_WAIT_SECS)
+      if testing_volt > 5:
+        # Additional wait time is needed for Plankton switching from device mode
+        # to charging high voltage mode.
+        time.sleep(2)
 
     (sampled_battery_current, sampled_ina_current, sampled_ina_voltage) = (
         self.SampleCurrentAndVoltage(self.args.charge_duration_secs,
