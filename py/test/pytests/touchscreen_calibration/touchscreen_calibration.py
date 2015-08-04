@@ -104,7 +104,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self._ConnectTouchDevice()
     self.log = Log if self.use_shopfloor else self._DummyLog
     factory.console.info('Use shopfloor: %s', str(self.use_shopfloor))
-    self.summary_file = 'summary.txt'
+    self.summary_file = None
     self.test_pass = None
     self.min_max_msg = None
 
@@ -458,11 +458,14 @@ class TouchscreenCalibration(unittest.TestCase):
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))
     result = 'pass' if self.test_pass else 'fail'
-    log_name = '%s_%s_%s_%s' % (self.start_time, sn, 'deltas', result)
+    log_name = '%s_%s_%s_%s' % (sn, self.start_time, phase, result)
     self._UploadLog(log_name, str(data))
+    self.summary_file = 'summary_%s.txt' % sn
     self._WriteLog(self.summary_file,
-                   '%s: %s [min: %d, max: %d]  (time: %s)\n' %
-                   (sn, result, min_value, max_value, self._GetTime()))
+                   '%s: %s (%s) [min: %d, max: %d]  (time: %s)\n' %
+                   (sn, result, phase, min_value, max_value, self._GetTime()))
+    with open(os.path.join(self._local_log_dir, self.summary_file)) as f:
+      self._UploadLog(self.summary_file, f.read())
 
     if self.test_pass:
       self.ui.Pass()
