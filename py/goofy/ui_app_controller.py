@@ -23,7 +23,7 @@ UI_APP_CONTROLLER_PORT = 4010
 
 # The commands that UI presenter app accepts.
 UI_APP_COMMAND = Enum(['CONNECT', 'DISCONNECT', 'INFO', 'ERROR',
-                       'START_COUNTDOWN', 'STOP_COUNTDOWN'])
+                       'START_COUNTDOWN', 'STOP_COUNTDOWN', 'UPDATE_STATUS'])
 
 
 class UIAppControllerHandler(SimpleHTTPRequestHandler):
@@ -131,3 +131,8 @@ class UIAppController(object):
 
   def StopCountdown(self):
     self.SendMessage({'command': UI_APP_COMMAND.STOP_COUNTDOWN})
+
+  def UpdateStatus(self, dongle_mac_address, all_pass):
+    self.SendMessage({'command': UI_APP_COMMAND.UPDATE_STATUS,
+                      'dongle_mac_address': dongle_mac_address,
+                      'all_pass': all_pass})

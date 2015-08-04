@@ -1297,6 +1297,15 @@ class GoofyRPC(object):
     self.CallExtension('UpdateTab', timeout=timeout,
                        tab_id=tab_id, update_info=update_info)
 
+  def UpdateStatus(self, all_pass):
+    """Updates the color of tab in presenter.
+
+    Args:
+      all_pass: A boolean value. True if no failed test.
+    """
+    if self.goofy.link_manager:
+      self.goofy.link_manager.UpdateStatus(all_pass)
+
 
 def main():
   parser = argparse.ArgumentParser(

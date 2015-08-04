@@ -18,6 +18,7 @@ from cros.factory.goofy.link_manager import DUTLinkManager
 from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.test import factory
 from cros.factory.test import utils
+from cros.factory.utils import jsonrpc_utils
 
 
 class GoofyPresenter(GoofyBase):
@@ -56,7 +57,8 @@ class GoofyPresenter(GoofyBase):
         check_interval=1,
         connect_hook=self.DUTConnected,
         disconnect_hook=self.DUTDisconnected,
-        methods={'StartCountdown': self.UIAppCountdown},
+        methods={'StartCountdown': self.UIAppCountdown,
+                 'UpdateStatus': self.UpdateStatus},
         standalone=self.args.standalone)
 
   def ParseOptions(self):
@@ -109,6 +111,11 @@ class GoofyPresenter(GoofyBase):
     self.ui_app_controller.StartCountdown(message, timeout_secs,
                                           timeout_message,
                                           timeout_message_color)
+
+  def UpdateStatus(self, all_pass):
+    dut_ip = jsonrpc_utils.GetJSONRPCCallerIP()
+    dongle_mac_address = self.dut_dongle_mac_address[dut_ip]
+    self.ui_app_controller.UpdateStatus(dongle_mac_address, all_pass)
 
   def main(self):
     """Entry point for goofy_presenter instance."""

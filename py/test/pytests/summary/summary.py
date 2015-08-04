@@ -116,6 +116,11 @@ class Report(unittest.TestCase):
       board.OnSummaryGood()
     else:
       board.OnSummaryBad()
+    """factory.get_state_instance().UpdateStatus(all_pass) will call
+    UpdateStatus in goofy_rpc.py, and notify ui to update the color of
+    dut's tab.
+    """
+    factory.get_state_instance().UpdateStatus(all_pass)
 
     if self.args.bft_fixture:
       self._SetFixtureStatusLight(all_pass)

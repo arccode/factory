@@ -72,6 +72,8 @@ function handleDisconnect(dongle_mac_address) {
       iframe.onload = function() {
         $("#tabs").tabs("disable", '#' + dongle_mac_address);
       };
+      var tab = document.getElementById(dongle_mac_address + "_list");
+      tab.style.backgroundColor = "#fff";
     } else {
       document.getElementById(dongle_mac_address).remove();
       document.getElementById(dongle_mac_address + "_list").remove();
@@ -197,6 +199,15 @@ function handleConnect(serverUrl, dongle_mac_address) {
   setDisplay(dongle_mac_address + "_goofy-message", 'none');
 }
 
+function updateTabColor(dongle_mac_address, all_pass) {
+  var tab = document.getElementById(dongle_mac_address + "_list");
+  if (all_pass) {
+    tab.style.background = '#C8FFC8';
+  } else {
+    tab.style.backgroundColor = '#FFC8C8';
+  }
+}
+
 function lockTabs() {
   for (var i = 0; i < macAddressList.length; i++) {
     var dongle_mac_address = macAddressList[i];
@@ -315,6 +326,9 @@ function connectWebSocket() {
 
       //TODO(tientzu): get dongle address, and stop countdown, removing tab
       stopCountdown();
+    } else if (message.command == "UPDATE_STATUS") {
+      // When a DUT finish tests, update the color of its tab.
+      updateTabColor(message.dongle_mac_address, message.all_pass);
     } else {
       console.log("Unknown command:", e.data);
     }

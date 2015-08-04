@@ -188,7 +188,7 @@ class PresenterLinkManager(object):
 
         # Make sure the presenter sees us
         log('Registered. Checking connection.')
-        if self._presenter_proxy.ConnectionGood():
+        if self._presenter_proxy.ConnectionGood(my_ip):
           self._presenter_connected = True
           logging.info('Connected to presenter %s', presenter_ip)
           # Now that we are connected, use a longer timeout for the proxy
