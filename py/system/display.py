@@ -69,9 +69,14 @@ def GetPortInfo():
       port_info.drm_connector = connector
       if port_info.connected:
         fb = connector.GetAssociatedFramebuffer()
-        port_info.width = fb.width
-        port_info.height = fb.height
-        port_info.drm_fb = fb
+        if fb:
+          port_info.width = fb.width
+          port_info.height = fb.height
+          port_info.drm_fb = fb
+        else:
+          # Sometimes display may response framebuffer info slowly, so
+          # we should assume the port is not connected yet and retry later.
+          port_info.connected = False
       ports[connector.id] = port_info
 
   else:
