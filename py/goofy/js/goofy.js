@@ -3077,7 +3077,8 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
 
   var mini = goog.dom.createDom('div', {'class': 'goofy-terminal-minimize'});
   var close = goog.dom.createDom('div', {'class': 'goofy-terminal-close'});
-  var win = goog.dom.createDom('div', {'class': 'goofy-terminal-window'},
+  var win = goog.dom.createDom('div', {'class': 'goofy-terminal-window',
+                                       'id': 'goofy-terminal-window'},
       goog.dom.createDom('div', {'class': 'goofy-terminal-title'}, 'Terminal'),
       goog.dom.createDom('div', {'class': 'goofy-terminal-control'},
         mini, close));
@@ -3112,6 +3113,68 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
     sock.onmessage = function(msg) {
       term.write(Base64.decode(msg.data));
     };
+
+    var terminalWindow = document.getElementById('goofy-terminal-window');
+    var $terminalWindow = jQuery(terminalWindow);
+    var $terminal = $terminalWindow.find(".terminal");
+    var termBorderRightWidth = $terminal.css("border-right-width");
+    var termBorderBottomWidth = $terminal.css("border-bottom-width");
+    var totalWidthOffset = $terminalWindow.width() - term.element.clientWidth;
+    var totalHeightOffset = $terminalWindow.height()
+      - term.element.clientHeight;
+
+    // hide terminal right and bottom border
+    $terminal.css("border-right-width", "0px");
+    $terminal.css("border-bottom-width", "0px");
+
+    // initial terminal-window size
+    terminalWindow.style.width = term.element.clientWidth + totalWidthOffset;
+    terminalWindow.style.height = term.element.clientHeight + totalHeightOffset;
+
+    $terminalWindow.resizable();
+    $terminalWindow.bind("resize", function () {
+        // Ghost uses the CONTROL_START and CONTROL_END to know the control
+        // string.
+        // format: CONTROL_START ControlString CONTROL_END
+        var CONTROL_START = 128;
+        var CONTROL_END = 129;
+
+        // If there is no terminal now, just return.
+        // It may happen when we close the window
+        if (term.element.clientWidth == 0 || term.element.clientHeight == 0) {
+            return;
+        }
+
+        // convert to cols/rows
+        var widthToColsFactor = term.cols / term.element.clientWidth;
+        var heightToRowsFactor = term.rows / term.element.clientHeight;
+        var newTermWidth = parseInt(terminalWindow.style.width)
+          - totalWidthOffset;
+        var newTermHeight = parseInt(terminalWindow.style.height)
+          - totalHeightOffset;
+        var newCols = Math.floor(newTermWidth * widthToColsFactor);
+        var newRows = Math.floor(newTermHeight * heightToRowsFactor);
+        if (newCols != term.cols || newRows != term.rows) {
+            var msg = {
+                command: "resize",
+                params: [newRows, newCols]
+            }
+            term.resize(newCols, newRows);
+            term.refresh(0, term.rows - 1);
+
+            // Fine tune terminal-window size to match terminal.
+            // Prevent white space between terminal-window and terminal.
+            terminalWindow.style.width = term.element.clientWidth
+              + totalWidthOffset;
+            terminalWindow.style.height = term.element.clientHeight
+              + totalHeightOffset;
+
+            // Send to ghost to set new size
+            sock.send((new Uint8Array([CONTROL_START])).buffer);
+            sock.send(JSON.stringify(msg));
+            sock.send((new Uint8Array([CONTROL_END])).buffer);
+        }
+    });
   }
   sock.onclose = function (e) {
     this.closeTerminal();
