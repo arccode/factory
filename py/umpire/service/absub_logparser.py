@@ -54,7 +54,7 @@ class LogParserService(umpire_service.UmpireService):
             '--event-log-dir', os.path.join(env.umpire_data_dir, 'eventlog'),
             '--vpd-file', os.path.join(env.umpire_data_dir, VPD_FILE),
             '--camera-file', os.path.join(env.umpire_data_dir, CAMERA_FILE),
-            '--fastcgi-tcp-port', str(config.port + LOGPARSER_PORT_OFFSET]),
+            '--fastcgi-tcp-port', str(config.port + LOGPARSER_PORT_OFFSET)],
         'path': '/tmp'}
 
     proc = umpire_service.ServiceProcess(self)
