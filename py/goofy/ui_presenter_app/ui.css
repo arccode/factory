@@ -43,43 +43,27 @@ iframe {
   font-family: ui-sans, Arial, sans-serif;
   font-weight: bold;
 }
-#goofy-countdown {
-  font-size: 2em;
-  font-family: ui-sans, Arial, sans-serif;
-}
-#goofy-content {
-  height: 100%;
-  width: 100%;
-  border: 0px;
-}
-
 /* remove the border of the whole page */
 .ui-widget-content {
      border: 0 !important;
 }
-
 .ui-tabs {
   padding: 0 !important;
 }
-
 .ui-tabs .ui-tabs-nav {
   padding: 0 !important;
 }
-
 /* remove the padding outside of iframe */
 .ui-tabs .ui-tabs-panel {
   padding: 0 !important;
 }
-
 /* make the labels of tabs smaller */
 .ui-tabs .ui-tabs-nav .ui-tabs-anchor {
     padding: .1em 0.7em !important;
 }
-
 #tab-names {
   height: 30px !important;
 }
-
 #lock {
   position: relative;
   float: right;
@@ -102,6 +86,9 @@ iframe {
   font-family: ui-sans, Arial, sans-serif;
   font-weight: bold;
   text-align: center;
+}
+.center-aligned {
+  height: calc(50% - 4em) !important;
 }
 .goofy-countdown-logo {
   background-image: url('logo256.png');

@@ -108,7 +108,11 @@ class GoofyPresenter(GoofyBase):
       timeout_message: The text to show when countdown eneds.
       timeout_message_color: The color of the text when countdown ends.
     """
-    self.ui_app_controller.StartCountdown(message, timeout_secs,
+    dut_ip = jsonrpc_utils.GetJSONRPCCallerIP()
+    dongle_mac_address = self.dut_dongle_mac_address[dut_ip]
+    self.ui_app_controller.StartCountdown(message,
+                                          dongle_mac_address,
+                                          timeout_secs,
                                           timeout_message,
                                           timeout_message_color)
 

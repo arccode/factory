@@ -122,15 +122,18 @@ class UIAppController(object):
   def ShowErrorMessage(self, msg):
     self.SendMessage({'command': UI_APP_COMMAND.ERROR, 'str': msg})
 
-  def StartCountdown(self, msg, timeout, end_msg, end_msg_color):
+  def StartCountdown(self, msg, dongle_mac_address, timeout, end_msg,
+                     end_msg_color):
     self.SendMessage({'command': UI_APP_COMMAND.START_COUNTDOWN,
                       'message': msg,
+                      'dongle_mac_address': dongle_mac_address,
                       'timeout': timeout,
                       'end_message': end_msg,
                       'end_message_color': end_msg_color})
 
-  def StopCountdown(self):
-    self.SendMessage({'command': UI_APP_COMMAND.STOP_COUNTDOWN})
+  def StopCountdown(self, dongle_mac_address):
+    self.SendMessage({'command': UI_APP_COMMAND.STOP_COUNTDOWN,
+                      'dongle_mac_address': dongle_mac_address})
 
   def UpdateStatus(self, dongle_mac_address, all_pass):
     self.SendMessage({'command': UI_APP_COMMAND.UPDATE_STATUS,
