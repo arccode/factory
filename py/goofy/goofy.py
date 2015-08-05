@@ -593,7 +593,7 @@ class Goofy(GoofyBase):
             status=TestState.FAILED,
             error_msg=error_msg)
         # Trigger the OnTestFailure callback.
-        self.run_queue.put(lambda: system.GetBoard().OnTestFailure(test))
+        self.run_queue.put(lambda: self.test_fail(test))
 
         if not test.never_fails:
           # For "never_fails" tests (such as "Start"), don't cancel
@@ -851,7 +851,7 @@ class Goofy(GoofyBase):
       self.init_ui()
     invoc = TestInvocation(
         self, test, on_completion=self.invocation_completion,
-        on_test_failure=lambda: system.GetBoard().OnTestFailure(test))
+        on_test_failure=lambda: self.test_fail(test))
     new_state = test.update_state(
         status=TestState.ACTIVE, increment_count=1, error_msg='',
         invocation=invoc.uuid, iterations_left=iterations_left,
@@ -2058,6 +2058,11 @@ class Goofy(GoofyBase):
         logging.info('Waiting for %s to complete...', k)
         v.thread.join()
       self.reap_completed_tests()
+
+  def test_fail(self, test):
+    system.GetBoard().OnTestFailure(test)
+    if self.link_manager:
+      self.link_manager.UpdateStatus(False)
 
 if __name__ == '__main__':
   Goofy.run_main_and_exit()
