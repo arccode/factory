@@ -408,6 +408,7 @@ class DUTLinkManager(object):
     self._thread.start()
     if self._standalone:
       self._dhcp_event_ip = '127.0.0.1'
+      self._dut_dongle_mac_address[self._dhcp_event_ip] = 'standalone'
     else:
       self._StartDHCPServers()
       self._StartOverlordRelay()
@@ -469,18 +470,25 @@ class DUTLinkManager(object):
 
     If the connection is down, put ourselves into disconnected state and start
     announcing ourselves to potential DUTs again.
+
+    If we are running in standalone mode, OnDHCPEvent is never triggered and
+    thus AnnouceToLastDUT will also never be called. If no DUT is connected,
+    we call AnnouceToLastDUT manually to try to connect to localhost.
     """
     if self._lock.acquire(False):
       try:
-        for dut_ip in self._dut_ips:
-          if not self.DUTIsAlive(dut_ip):
-            logging.info('Disconnected from DUT %s', dut_ip)
-            self._dut_ips.remove(dut_ip)
-            del self._dut_proxies[dut_ip]
-            del self._dut_ping_proxies[dut_ip]
-            del self._dut_dongle_mac_address[dut_ip]
-            if self._disconnect_hook:
-              self._disconnect_hook(dut_ip)
+        if self._dut_ips:
+          for dut_ip in self._dut_ips:
+            if not self.DUTIsAlive(dut_ip):
+              logging.info('Disconnected from DUT %s', dut_ip)
+              self._dut_ips.remove(dut_ip)
+              del self._dut_proxies[dut_ip]
+              del self._dut_ping_proxies[dut_ip]
+              del self._dut_dongle_mac_address[dut_ip]
+              if self._disconnect_hook:
+                self._disconnect_hook(dut_ip)
+        else:
+          self.AnnounceToLastDUT()
       finally:
         self._lock.release()
 
