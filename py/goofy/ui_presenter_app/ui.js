@@ -41,12 +41,11 @@ function stopCountdown() {
   setDisplay("goofy-countdown", "none");
 }
 
-function countdownCallback() {
-  countdown_div = document.getElementById('goofy-countdown');
-  if (countdown.timeout > 0) {
-    countdown_div.innerText = countdown.timeout + " seconds remaining";
-    setDisplay("goofy-countdown", "");
-    countdown.timeout--;
+function countdownCallback(dongle_mac_address) {
+  countdown_div = document.getElementById(dongle_mac_address + '_goofy-countdown');
+  if (countdown[dongle_mac_address].timeout > 0) {
+    countdown_div.innerText = countdown[dongle_mac_address].timeout + " seconds remaining";
+    countdown[dongle_mac_address].timeout--;
   } else {
     stopCountdown();
     setMessage(countdown.end_msg, countdown.end_msg_color);
@@ -172,8 +171,30 @@ function handleConnect(serverUrl, dongle_mac_address) {
       newTabContent.appendChild(iframe);
       tabContents.appendChild(newTabContent);
 
+      if (dongle_mac_address == 'standalone'){
+        /* in standalone mode, hide the tabs */
+        logo.style.height = "100%";
+        tabContents.style.height = "100%";
+        setDisplay('tab-names', 'none');
+      }
     }
+  } else {
+    /* successfully rebooted or reconnected after reboot fail */
+    stopCountdown(dongle_mac_address);
+    var iframe = document.getElementById(dongle_mac_address + "_iframe");
+    iframe.src = serverUrl;
+    iframe.onload = function() {
+      var index = macAddressList.indexOf(dongle_mac_address);
+      $("#tabs").tabs("enable", '#' + dongle_mac_address);
+      $('#tabs').tabs('option', 'active', index);
+      iframe.focus();
+    };
   }
+
+  setDisplay(dongle_mac_address + "_iframe", '');
+  setDisplay(dongle_mac_address + "_logo", 'none');
+  setDisplay(dongle_mac_address + "_goofy-countdown", 'none');
+  setDisplay(dongle_mac_address + "_goofy-message", 'none');
 }
 
 function lockTabs() {

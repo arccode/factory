@@ -8,7 +8,7 @@ body {
   margin: 0;
 }
 iframe {
-  height: calc(100% - 32px);;
+  height: 100%;
   width: 100%;
   border: 0;
 }
@@ -85,4 +85,33 @@ iframe {
   float: right;
   z-index: 100;
   margin: auto 2px;
+}
+/* for countdown message */
+.goofy-content {
+  height: 100%;
+  width: 100%;
+  border: 0;
+}
+.goofy-countdown {
+  font-size: 2em;
+  font-family: ui-sans, Arial, sans-serif;
+  text-align: center;
+}
+.countdown-message {
+  font-size: 4em;
+  font-family: ui-sans, Arial, sans-serif;
+  font-weight: bold;
+  text-align: center;
+}
+.goofy-countdown-logo {
+  background-image: url('logo256.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.2;
+  position: absolute;
+  height: calc(100% - 32px);
+  width: 100%;
+}
+#tab-contents{
+  height: calc(100% - 32px);
 }
