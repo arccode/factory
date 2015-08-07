@@ -182,6 +182,8 @@ class AudioLoopTest(unittest.TestCase):
           'For example: "LRGM Mic", "LRMG Mic"', ''),
       Arg('mic_jack_type', str, 'Microphone jack Type: nocheck, lrgm, lrmg',
           'nocheck'),
+      Arg('audiofuntest_run_delay', (int, float), 'Delay between consecutive calls to '
+          'audiofuntest', default=None, optional=True),
       Arg(
           'tests_to_conduct', list,
           'A list of dicts.  A dict should contain \nat least one key named '
@@ -391,6 +393,8 @@ class AudioLoopTest(unittest.TestCase):
         'test_pairs', _DEFAULT_AUDIOFUN_TEST_PAIRS)
     for pair in test_pairs:
       self.AudioFunTestPair(pair[0], pair[1])
+      if self.args.audiofuntest_run_delay is not None:
+        time.sleep(self.args.audiofuntest_run_delay)
 
   def TestLoopbackChannel(self, output_device, num_channels):
     """Tests loopback on all channels.
