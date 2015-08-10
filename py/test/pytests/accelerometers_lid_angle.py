@@ -128,28 +128,35 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     self.ui.AddEventHandler(_EVENT_CONFIRM, self.StartTest)
 
     # Initializes an accelerometer utility class.
-    self.accelerometer = AccelerometerController(
-        self.args.spec_offset,
-        self.args.spec_ideal_values,
-        self.args.sample_rate_hz
-    )
+    self.accelerometers_locations = ['base', 'lid']
+    self.accelerometers = {}
+    for location in self.accelerometers_locations:
+      self.accelerometers[location] = AccelerometerController(
+          self.args.spec_offset,
+          self.args.spec_ideal_values,
+          self.args.sample_rate_hz,
+          location
+      )
 
   def _CalculateLidAngle(self):
-    try:
-      cal_data = self.accelerometer.GetCalibratedDataAverage(
-          self.args.capture_count)
-    except AccelerometerControllerException as err:
-      logging.info('Read calibrated data failed: %r.', err.args[0])
-      return None
+    cal_data = {}
+    for location in self.accelerometers_locations:
+      try:
+        cal_data[location] = self.accelerometers[location].GetCalibratedDataAverage(
+            self.args.capture_count)
+      except AccelerometerControllerException as err:
+        logging.info('Read %s calibrated data failed: %r.', location, err.args[0])
+        return None
+
     # Calculate the angle between base and lid vectors.
     base_vec = [
-        cal_data['in_accel_x_base'],
-        cal_data['in_accel_y_base'],
-        cal_data['in_accel_z_base']]
+        cal_data['base']['in_accel_x'],
+        cal_data['base']['in_accel_y'],
+        cal_data['base']['in_accel_z']]
     lid_vec = [
-        cal_data['in_accel_x_lid'],
-        cal_data['in_accel_y_lid'],
-        cal_data['in_accel_z_lid']]
+        cal_data['lid']['in_accel_x'],
+        cal_data['lid']['in_accel_y'],
+        cal_data['lid']['in_accel_z']]
     # +Y axis aligned with the hinge.
     hinge_vec = [0.0, float(self.args.spec_ideal_values[1]), 0.0]
 

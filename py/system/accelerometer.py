@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import glob
 import logging
 import math
 import os
@@ -17,7 +18,6 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 
 _IIO_DEVICES_PATH = '/sys/bus/iio/devices/'
-_ACCELEROMETER_DEVICES_PATH = '/dev/cros-ec-accel'
 SYSFS_VALUE = namedtuple('sysfs_value', ['sysfs', 'value'])
 
 
@@ -36,33 +36,48 @@ class AccelerometerController(object):
       the ideal value of the digitial output corresponding to zero gravity
       and one gravity, respectively.
     sample_rate: Sample rate in Hz to get raw data from accelerometers.
+    location: the location of the accelerometer, e.g., 'base' or 'lid'.
+      This will be used to lookup a matched location in
+      /sys/bus/iio/devices/iio:deviceX/location to get
+      the corresponding iio:deviceX.
+    resolution: the number of bits in the accelerometer to store the
+      output number.  For example: 12 or 16.
 
   Raises:
     Raises AccelerometerControllerException if there is no accelerometer.
   """
 
-  def __init__(self, spec_offset, spec_ideal_values, sample_rate):
+  def __init__(self, spec_offset, spec_ideal_values,
+               sample_rate, location, resolution=12):
     """Cleans up previous calibration values and stores the scan order.
 
     We can get raw data from below sysfs:
-      /sys/bus/iio/devices/iio:deviceX/in_accel_(x|y|z)_(base|lid)_raw.
+      /sys/bus/iio/devices/iio:deviceX/in_accel_(x|y|z)_raw.
 
     However, there is no guarantee that the data will have been sampled
     at the same time. We can use existing triggers (see below CL) to get
     simultaneous raw data from /dev/iio:deviceX ordered by
-    in_accel_(x|y|z)_(base|lid)_index.
+    in_accel_(x|y|z)_index.
 
     https://chromium-review.googlesource.com/#/c/190471/.
     """
-    if not os.path.exists(_ACCELEROMETER_DEVICES_PATH):
-      raise AccelerometerControllerException('Accelerometer not found')
     self.trigger_number = '0'
-    self.num_signals = 2 * 3  # Two sensors * (x, y, z).
-    self.iio_bus_id = os.readlink(_ACCELEROMETER_DEVICES_PATH)
+    self.num_signals = 3  # (x, y, z).
+    self.iio_bus_id = None
     self.spec_offset = spec_offset
     self.spec_ideal_values = spec_ideal_values
     self.sample_rate = sample_rate
-
+    self.location = location
+    self.resolution = resolution
+    for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'iio:device*')):
+      location = SpawnOutput(
+          ['cat', os.path.join(iio_path, 'location')], log=True).strip()
+      if self.location == location:
+        self.iio_bus_id = os.path.basename(iio_path)
+        break
+    if self.iio_bus_id is None:
+      raise AccelerometerControllerException(
+          'Accelerometer at %r not found' % self.location)
     scan_elements_path = os.path.join(
         _IIO_DEVICES_PATH, self.iio_bus_id, 'scan_elements')
 
@@ -97,11 +112,10 @@ class AccelerometerController(object):
       postfix: a string that will be appended to each signale name.
 
     Returns:
-      Strings: 'in_accel_(x|y|z)_(base|lid)_' + postfix.
+      Strings: 'in_accel_(x|y|z)' + postfix.
     """
-    for location in ['base', 'lid']:
-      for axis in ['x', 'y', 'z']:
-        yield 'in_accel_' + axis + '_' + location + postfix
+    for axis in ['x', 'y', 'z']:
+      yield 'in_accel_' + axis + postfix
 
   def _CleanUpCalibrationValues(self):
     """Clean up calibration values.
@@ -113,10 +127,6 @@ class AccelerometerController(object):
     for calibbias in self._GenSignalNames('_calibbias'):
       self._SetSysfsValues(
           [SYSFS_VALUE(os.path.join(iio_bus_path, calibbias), '0')])
-    for calibscale in self._GenSignalNames('_calibscale'):
-      self._SetSysfsValues([SYSFS_VALUE(
-          os.path.join(iio_bus_path, calibscale),
-          str(self.spec_ideal_values[1]))])
 
   def GetRawDataAverage(self, capture_count=1):
     """Reads several records of raw data and returns the average.
@@ -131,22 +141,19 @@ class AccelerometerController(object):
 
     Returns:
       A dict of the format {'signal_name': average value}
-      Ex, {'in_accel_x_base': 4,
-           'in_accel_y_base': 1,
-           'in_accel_z_base': 1001,
-           'in_accel_x_lid': -3,
-           'in_accel_y_lid': 32,
-           'in_accel_z_lid': -999}
+      Ex, {'in_accel_x': 4,
+           'in_accel_y': 1,
+           'in_accel_z': 1001}
     """
     # Each accelerometer raw data is 2 bytes and there are
-    # 6 signals, so the buffer lenght of one record is 12 bytes.
-    # The default order is in_accel_(x|y|z)_base, in_accel_(x|y|z)_lid.
-    #  0 1 2 3 4 5 6 7 8 9 0 1
-    # +-+-+-+-+-+-+-+-+-+-+-+-+
-    # | x | y | z | x | y | z |
-    # +-+-+-+-+-+-+-+-+-+-+-+-+
-    buffer_length_per_record = 12
-    FORMAT_RAW_DATA = '<6h'
+    # 3 signals, so the buffer lenght of one record is 6 bytes.
+    # The default order is in_accel_(x|y|z).
+    #  0 1 2 3 4 5
+    # +-+-+-+-+-+-+
+    # | x | y | z |
+    # +-+-+-+-+-+-+
+    buffer_length_per_record = 6
+    FORMAT_RAW_DATA = '<3h'
     trigger_now_path = os.path.join(
         _IIO_DEVICES_PATH, 'trigger' + self.trigger_number, 'trigger_now')
 
@@ -186,8 +193,12 @@ class AccelerometerController(object):
         raw_data = struct.unpack_from(FORMAT_RAW_DATA, line)
         logging.info('(%d) Getting raw data: %s.', raw_data_captured, raw_data)
         # Accumulating raw data.
+        # Starting from kernel 3.18, the raw data output will be normalized
+        # to 16 bits by shifting <<= (16 - resolution). However, the
+        # calibration offset is still unchanged. Here we reverse the raw data
+        # to its original value for calculating calibration offset (_calibbias).
         for i in xrange(self.num_signals):
-          ret[self.index_to_signal_name[i]] += raw_data[i]
+          ret[self.index_to_signal_name[i]] += (raw_data[i] >> (16 - self.resolution))
     # Calculates the average
     for signal_name in ret:
       ret[signal_name] = int(round(ret[signal_name] / capture_count))
@@ -202,31 +213,24 @@ class AccelerometerController(object):
 
     Returns:
       A dict of the format {'signal_name': average value}
-      Ex, {'in_accel_x_base': 1,
-           'in_accel_y_base': -1,
-           'in_accel_z_base': 1019,
-           'in_accel_x_lid': -3,
-           'in_accel_y_lid': 2,
-           'in_accel_z_lid': -1021}
+      Ex, {'in_accel_x': 1,
+           'in_accel_y': -1,
+           'in_accel_z': 1019}
 
     Raises:
       Raises AccelerometerControllerException if there is no calibration
       value in VPD.
     """
     def _CalculateCalibratedValue(signal_name, value):
-      calib_scale = int(ro_vpd[signal_name + '_calibscale'])
-      calib_bias = int(ro_vpd[signal_name + '_calibbias'])
-      ideal_scale = self.spec_ideal_values[1]
-      return (value * calib_scale / float(ideal_scale)) + calib_bias
+      calib_bias = int(ro_vpd[signal_name + '_' + self.location + '_calibbias'])
+      return value + calib_bias
 
     # Get calibration data from VPD first.
     ro_vpd = vpd.ro.GetAll()
-    for signal_name in self._GenSignalNames():
-      for calib_postfix in ['_calibbias', '_calibscale']:
-        calib_name = signal_name + calib_postfix
-        if calib_name not in ro_vpd:
-          raise AccelerometerControllerException(
-              'Calibration value: %r not found in RO_VPD.' % calib_name)
+    for calib_name in self._GenSignalNames('_' + self.location + '_calibbias'):
+      if calib_name not in ro_vpd:
+        raise AccelerometerControllerException(
+            'Calibration value: %r not found in RO_VPD.' % calib_name)
 
     # Get raw data and apply the calibration values on it.
     raw_data = self.GetRawDataAverage(capture_count=capture_count)
@@ -241,21 +245,15 @@ class AccelerometerController(object):
 
     Args:
       raw_data: a dict containing digital output for each signal.
-        Ex, {'in_accel_x_base': 5,
-             'in_accel_y_base': 21,
-             'in_accel_z_base': 1004,
-             'in_accel_x_lid': -39,
-             'in_accel_y_lid': 12,
-             'in_accel_z_lid': -998}
+        Ex, {'in_accel_x': 5,
+             'in_accel_y': 21,
+             'in_accel_z': 1004}
 
       orientations: a dict indicating the orentation in gravity
         (either 0 or -/+1) of the signal.
-        Ex, {'in_accel_x_base': 0,
-             'in_accel_y_base': 0,
-             'in_accel_z_base': 1,
-             'in_accel_x_lid': 0,
-             'in_accel_y_lid': 0,
-             'in_accel_z_lid': -1}
+        Ex, {'in_accel_x': 0,
+             'in_accel_y': 0,
+             'in_accel_z': 1}
     Returns:
       True if the raw data is within the tolerance of the spec.
     """
@@ -284,22 +282,18 @@ class AccelerometerController(object):
 
     Args:
       raw_data: a dict containing digital output for each signal.
-        Ex, {'in_accel_x_base': 23,
-             'in_accel_y_base': -19,
-             'in_accel_z_base': 998,
-             'in_accel_x_lid': 12,
-             'in_accel_y_lid': 21,
-             'in_accel_z_lid': -1005}
+        Ex, {'in_accel_x': 23,
+             'in_accel_y': -19,
+             'in_accel_z': 998}
     Returns:
       True if the gravity is within the tolerance of the spec.
     """
-    for location in ['base', 'lid']:
-      (x, y, z) = (raw_data['in_accel_x_' + location],
-                   raw_data['in_accel_y_' + location],
-                   raw_data['in_accel_z_' + location])
-      gravity_value = math.sqrt(x * x + y * y + z * z)
-      logging.info('Gravity value at %s is: %d.', location, gravity_value)
-      if (gravity_value < self.spec_ideal_values[1] - self.spec_offset[1] or
-          gravity_value > self.spec_ideal_values[1] + self.spec_offset[1]):
-        return False
+    (x, y, z) = (raw_data['in_accel_x'],
+                 raw_data['in_accel_y'],
+                 raw_data['in_accel_z'])
+    gravity_value = math.sqrt(x * x + y * y + z * z)
+    logging.info('Gravity value is: %d.', gravity_value)
+    if (gravity_value < self.spec_ideal_values[1] - self.spec_offset[1] or
+        gravity_value > self.spec_ideal_values[1] + self.spec_offset[1]):
+      return False
     return True

@@ -51,15 +51,13 @@ Usage examples::
         id='AccelerometersCalibration',
         label_zh=u'加速度计校准',
         pytest_name='accelerometers_calibration',
-        dargs={'orientation' = {
-                   'in_accel_x_base': 0,
-                   'in_accel_y_base': 0,
-                   'in_accel_z_base': 1,
-                   'in_accel_x_lid': 0,
-                   'in_accel_y_lid': 0,
-                   'in_accel_z_lid': -1},
+        dargs={'orientation': {
+                   'in_accel_x': 0,
+                   'in_accel_y': 0,
+                   'in_accel_z': 1},
                'spec_offset': (128, 230),
-               'spec_ideal_values': (0, 1024)})
+               'spec_ideal_values': (0, 1024),
+               'location': 'base'})
 
 """
 
@@ -159,16 +157,11 @@ class HorizontalCalibrationTask(FactoryTask):
       # For -1G, the ideal_value is -1024.
       if self.orientation[signal_name] == -1:
         ideal_value *= -1
-      # For each signal, the final value will be adjusted by '_calibscale' and
-      # '_calibbias' by below equation:
-      #     _input = (_raw * _calibscale / ideal_value_1G) + _calibbias
-      # We calculate the difference of ideal value and the sampled average
-      # then store it into '_calibbias'. For '_calibscale', we keep it as
-      # default value.
-      self.vpd[signal_name + '_calibbias'] = str(
+      # Calculate the difference between the ideal value and actual value
+      # then store it into _calibbias.  In release image, the raw data will
+      # be adjusted by _calibbias to generate the 'post-calibrated' values.
+      self.vpd[signal_name + '_' + self.test.args.location  + '_calibbias'] = str(
           ideal_value - raw_data[signal_name])
-      self.vpd[signal_name + '_calibscale'] = str(
-          self.accelerometer.spec_ideal_values[1])
     # Writes the calibration results into ro vpd.
     logging.info('Calibration results: %s.', self.vpd)
     vpd.ro.Update(self.vpd)
@@ -250,7 +243,11 @@ class AccelerometersCalibration(unittest.TestCase):
           'of digital output corresponding to 0G and 1G, respectively. For '
           'example, if a sensor has a 12-bit digital output and -/+ 2G '
           'detection range so the sensitivity is 1024 count/G. The value '
-          'should be provided by the vendor.', optional=False)]
+          'should be provided by the vendor.', optional=False),
+      Arg(
+          'location', str,
+          'The location for the accelerometer', default='base',
+          optional=True)]
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -263,7 +260,8 @@ class AccelerometersCalibration(unittest.TestCase):
     self.accelerometer_controller = AccelerometerController(
         self.args.spec_offset,
         self.args.spec_ideal_values,
-        self.args.sample_rate_hz
+        self.args.sample_rate_hz,
+        self.args.location,
     )
     self.ui.AppendCSS(_CSS)
     self._task_manager = None
