@@ -437,6 +437,14 @@ class DUTLinkManager(object):
     self._suspend_deadline = None
     self.Kick()
 
+  def removeDUT(self, dut_ip):
+    """If we delete self._dut_dongle_mac_address[dut_ip] here,
+    running factory_restart won't get the dongle mac address.
+    """
+    del self._dut_proxies[dut_ip]
+    del self._dut_ping_proxies[dut_ip]
+    self._dut_ips.remove(dut_ip)
+
   def _DUTRegister(self, dut_ip):
     with self._lock:
       try:
@@ -452,10 +460,7 @@ class DUTLinkManager(object):
         if self._connect_hook:
           self._connect_hook(dut_ip, self._dut_dongle_mac_address[dut_ip])
       except (socket.error, socket.timeout):
-        self._dut_ips.pop()
-        del self._dut_proxies[dut_ip]
-        del self._dut_ping_proxies[dut_ip]
-        del self._dut_dongle_mac_address[dut_ip]
+        self.removeDUT(dut_ip)
 
   def DUTIsAlive(self, dut_ip):
     """Pings the DUT."""
@@ -481,10 +486,7 @@ class DUTLinkManager(object):
           for dut_ip in self._dut_ips:
             if not self.DUTIsAlive(dut_ip):
               logging.info('Disconnected from DUT %s', dut_ip)
-              self._dut_ips.remove(dut_ip)
-              del self._dut_proxies[dut_ip]
-              del self._dut_ping_proxies[dut_ip]
-              del self._dut_dongle_mac_address[dut_ip]
+              self.removeDUT(dut_ip)
               if self._disconnect_hook:
                 self._disconnect_hook(dut_ip)
         else:
