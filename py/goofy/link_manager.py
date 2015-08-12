@@ -84,6 +84,7 @@ class PresenterLinkManager(object):
     self._presenter_proxy = None
     self._presenter_ping_proxy = None
     self._presenter_announcement = None
+    self._my_ip = None
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
     self._server = JSONRPCServer(port=DUT_LINK_RPC_PORT, methods=self._methods)
@@ -129,13 +130,13 @@ class PresenterLinkManager(object):
       interval_sec: Number of seconds to suspend.
     """
     self._suspend_deadline = time.time() + interval_sec
-    self._presenter_proxy.SuspendMonitoring(interval_sec)
+    self._presenter_proxy.SuspendMonitoring(interval_sec, self._my_ip)
 
   def ResumeMonitoring(self):
     """Immediately resume suspended monitoring of connection."""
     self._suspend_deadline = None
     self.Kick()
-    self._presenter_proxy.ResumeMonitoring()
+    self._presenter_proxy.ResumeMonitoring(self._my_ip)
 
   def PresenterIsAlive(self):
     """Pings the presenter."""
@@ -177,6 +178,7 @@ class PresenterLinkManager(object):
           PRESENTER_PING_PORT,
           self._handshake_timeout)
       self._presenter_ip = presenter_ip
+      self._my_ip = my_ip
       self._presenter_proxy.IsAlive()
       self._presenter_ping_proxy.IsAlive()
 
@@ -212,6 +214,7 @@ class PresenterLinkManager(object):
     self._presenter_ip = None
     self._presenter_proxy = None
     self._presenter_ping_proxy = None
+    self._my_ip = None
     self._reported_failure.add(presenter_ip)
     log('Connection failed.')
 
@@ -229,6 +232,7 @@ class PresenterLinkManager(object):
         self._presenter_connected = False
         self._presenter_ip = None
         self._presenter_proxy = None
+        self._my_ip = None
         if self._disconnect_hook:
           self._disconnect_hook()
 
@@ -263,7 +267,7 @@ class DUTLinkManager(object):
     self._connect_hook = connect_hook
     self._disconnect_hook = disconnect_hook
     self._standalone = standalone
-    self._suspend_deadline = None
+    self._suspend_deadlines = {}
     self._methods = methods or {}
     self._methods.update({'Register': self._DUTRegister,
                           'ConnectionGood': self.DUTIsAlive,
@@ -424,17 +428,17 @@ class DUTLinkManager(object):
     self._ping_server.Stop()
     self._StopOverlordRelay()
 
-  def SuspendMonitoring(self, interval_sec):
+  def SuspendMonitoring(self, interval_sec, dut_ip):
     """Suspend monitoring of connection for a given period.
 
     Args:
       interval_sec: Number of seconds to suspend.
     """
-    self._suspend_deadline = time.time() + interval_sec
+    self._suspend_deadlines[dut_ip] = time.time() + interval_sec
 
-  def ResumeMonitoring(self):
+  def ResumeMonitoring(self, dut_ip):
     """Immediately resume suspended monitoring of connection."""
-    self._suspend_deadline = None
+    self._suspend_deadlines[dut_ip] = None
     self.Kick()
 
   def removeDUT(self, dut_ip):
@@ -443,12 +447,14 @@ class DUTLinkManager(object):
     """
     del self._dut_proxies[dut_ip]
     del self._dut_ping_proxies[dut_ip]
+    del self._suspend_deadlines[dut_ip]
     self._dut_ips.remove(dut_ip)
 
   def _DUTRegister(self, dut_ip):
     with self._lock:
       try:
         self._dut_ips.append(dut_ip)
+        self._suspend_deadlines[dut_ip] = None
         self._dut_proxies[dut_ip] = MakeTimeoutServerProxy(
             dut_ip, DUT_LINK_RPC_PORT, self._rpc_timeout)
         self._dut_ping_proxies[dut_ip] = MakeTimeoutServerProxy(
@@ -470,27 +476,19 @@ class DUTLinkManager(object):
     except (socket.error, socket.timeout, AttributeError):
       return False
 
-  def CheckDUTConnection(self):
+  def CheckDUTConnection(self, dut_ip):
     """Check the connection to the DUT.
 
     If the connection is down, put ourselves into disconnected state and start
     announcing ourselves to potential DUTs again.
-
-    If we are running in standalone mode, OnDHCPEvent is never triggered and
-    thus AnnouceToLastDUT will also never be called. If no DUT is connected,
-    we call AnnouceToLastDUT manually to try to connect to localhost.
     """
     if self._lock.acquire(False):
       try:
-        if self._dut_ips:
-          for dut_ip in self._dut_ips:
-            if not self.DUTIsAlive(dut_ip):
-              logging.info('Disconnected from DUT %s', dut_ip)
-              self.removeDUT(dut_ip)
-              if self._disconnect_hook:
-                self._disconnect_hook(dut_ip)
-        else:
-          self.AnnounceToLastDUT()
+        if not self.DUTIsAlive(dut_ip):
+          logging.info('Disconnected from DUT %s', dut_ip)
+          self.removeDUT(dut_ip)
+          if self._disconnect_hook:
+            self._disconnect_hook(dut_ip)
       finally:
         self._lock.release()
 
@@ -500,11 +498,19 @@ class DUTLinkManager(object):
 
   def MonitorLink(self):
     while True:
-      if self._suspend_deadline:
-        if time.time() > self._suspend_deadline:
-          self._suspend_deadline = None
+      if self._dut_ips:
+        for dut_ip in self._dut_ips:
+          if self._suspend_deadlines[dut_ip]:
+            if time.time() > self._suspend_deadlines[dut_ip]:
+              self._suspend_deadlines[dut_ip] = None
+          else:
+            self.CheckDUTConnection(dut_ip)
       else:
-        self.CheckDUTConnection()
+        # If we are running in standalone mode, OnDHCPEvent is never triggered
+        # and thus AnnouceToLastDUT will also never be called. If no DUT is
+        # connected, we call AnnouceToLastDUT manually to try to connect to
+        # localhost.
+        self.AnnounceToLastDUT()
       self._kick_event.wait(self._check_interval)
       self._kick_event.clear()
       if self._abort_event.isSet():
