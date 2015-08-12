@@ -976,7 +976,7 @@ class Goofy(GoofyBase):
     self.state_instance.set_shared_data('scheduled_run_tests',
                                         self.scheduled_run_tests)
 
-  def run_tests(self, subtrees, untested_only=False):
+  def run_tests(self, subtrees, status_filter=None):
     """Runs tests under subtree.
 
     The tests are run in order unless one fails (then stops).
@@ -986,7 +986,8 @@ class Goofy(GoofyBase):
     Args:
       subtrees: Node or nodes containing tests to run (may either be
         a single test or a list).  Duplicates will be ignored.
-      untested_only: True to run untested tests only.
+      status_filter: List of available test states. Only run the tests which
+        states are in the list. Set to None if all test states are available.
     """
     system.GetBoard().OnTestStart()
 
@@ -1005,7 +1006,8 @@ class Goofy(GoofyBase):
 
         if not test.is_leaf():
           continue
-        if untested_only and test.get_state().status != TestState.UNTESTED:
+        if (status_filter is not None and
+            test.get_state().status not in status_filter):
           continue
         self.tests_to_run.append(test)
     if subtrees:
@@ -1597,8 +1599,10 @@ class Goofy(GoofyBase):
         # If automation mode is enabled, allow suppress auto_run_on_start.
         if (self.options.automation_mode == 'NONE' or
             self.options.auto_run_on_start):
-          self.run_enqueue(
-              lambda: self.run_tests(self.test_list, untested_only=True))
+          status_filter = [TestState.UNTESTED]
+          if self.test_list.options.retry_failed_on_start:
+            status_filter.append(TestState.FAILED)
+          self.run_enqueue(lambda: self.run_tests(self.test_list, status_filter))
     self.state_instance.set_shared_data('tests_after_shutdown', None)
     self.restore_active_run_state()
 
@@ -1973,7 +1977,7 @@ class Goofy(GoofyBase):
       for test in test_to_reset.walk():
         test.update_state(status=TestState.UNTESTED)
 
-    self.run_tests(tests_to_run, untested_only=True)
+    self.run_tests(tests_to_run, [TestState.UNTESTED])
 
   def restart_tests(self, root=None):
     """Restarts all tests."""

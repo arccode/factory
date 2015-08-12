@@ -376,6 +376,11 @@ class Options(object):
   the test harness starts.  If False, then the operator will have to
   manually start a test."""
 
+  retry_failed_on_start = False
+  """If set to True, then the failed tests are automatically retried
+  when the test harness starts. It is effective when auto_run_on_start
+  is set to True."""
+
   clear_state_on_start = False
   """If set to True, the state of all tests is cleared each time the
   test harness starts."""
