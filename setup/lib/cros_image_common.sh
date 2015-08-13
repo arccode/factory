@@ -428,7 +428,7 @@ image_cros_kernel_boot_type() {
         # strings is less secure than dump_kernel_config, so let's try more
         # keywords
         kernel_config="$(strings "$keyblock" |
-                         grep -w "root=" | grep -w "cros_recovery")"
+                         grep -w "root" | grep -w "cros_recovery")"
       fi
       if (echo "$kernel_config" | grep -qw "cros_recovery") &&
          (echo "$kernel_config" | grep -qw "kern_b_hash"); then
