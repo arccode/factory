@@ -23,6 +23,7 @@ from cros.factory.goofy.goofy_presenter import GoofyPresenter
 from cros.factory.goofy import link_manager
 from cros.factory.test import factory
 
+_FAKE_MAC_ADDRESS = "FakeMacAddress"
 
 class GoofyPresenterTest(unittest.TestCase):
   """Base class for GoofyPresenter test cases."""
@@ -32,6 +33,7 @@ class GoofyPresenterTest(unittest.TestCase):
     link_manager.net_utils.GetUnmanagedEthernetInterfaces = lambda: ['eth0']
     link_manager.net_utils.StartNATService = lambda intf_in, intf_out: None
     self.goofy = GoofyPresenter()
+    self.goofy.link_manager.Start()
 
   def tearDown(self):
     self.goofy.destroy()
@@ -70,27 +72,25 @@ class UIControlTest(GoofyPresenterTest):
     old_link_manager = self.goofy.link_manager
     self.goofy.link_manager = m.CreateMockAnything()
 
-    self.goofy.link_manager.GetUuid().AndReturn("FakeUuid")
     self.goofy.ui_app_controller.ShowUI("192.168.1.1",
-                                        dut_uuid="FakeUuid").AndReturn(True)
+                                        _FAKE_MAC_ADDRESS).AndReturn(True)
 
-    self.goofy.ui_app_controller.ShowDisconnectedScreen()
+    self.goofy.ui_app_controller.ShowDisconnectedScreen(_FAKE_MAC_ADDRESS)
 
-    self.goofy.link_manager.GetUuid().AndReturn("FakeUuid")
     self.goofy.ui_app_controller.ShowUI("192.168.1.1",
-                                        dut_uuid="FakeUuid").AndReturn(False)
+                                        _FAKE_MAC_ADDRESS).AndReturn(False)
     self.goofy.ui_app_controller.ShowUI("192.168.1.1",
-                                        dut_uuid="FakeUuid").AndReturn(True)
+                                        _FAKE_MAC_ADDRESS).AndReturn(True)
 
     m.ReplayAll()
 
     # DUT connected. GoofyPresenter shows the UI.
-    self.goofy.DUTConnected("192.168.1.1")
+    self.goofy.DUTConnected("192.168.1.1", _FAKE_MAC_ADDRESS)
     # Now hide it.
-    self.goofy.DUTDisconnected()
+    self.goofy.DUTDisconnected("192.168.1.1")
 
     # DUT connected again. This time, the UI fails to show at the first try.
-    self.goofy.DUTConnected("192.168.1.1")
+    self.goofy.DUTConnected("192.168.1.1", _FAKE_MAC_ADDRESS)
     # Kick GoofyPresenter so that it retries
     self.goofy.run_once()
     time.sleep(0.3)

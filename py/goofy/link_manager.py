@@ -453,7 +453,8 @@ class DUTLinkManager(object):
   def _DUTRegister(self, dut_ip):
     with self._lock:
       try:
-        self._dut_ips.append(dut_ip)
+        if dut_ip not in self._dut_ips:
+          self._dut_ips.append(dut_ip)
         self._suspend_deadlines[dut_ip] = None
         self._dut_proxies[dut_ip] = MakeTimeoutServerProxy(
             dut_ip, DUT_LINK_RPC_PORT, self._rpc_timeout)
@@ -473,7 +474,7 @@ class DUTLinkManager(object):
     try:
       self._dut_ping_proxies[dut_ip].IsAlive()
       return True
-    except (socket.error, socket.timeout, AttributeError):
+    except (socket.error, socket.timeout, AttributeError, KeyError):
       return False
 
   def CheckDUTConnection(self, dut_ip):

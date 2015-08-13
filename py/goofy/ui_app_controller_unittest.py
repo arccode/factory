@@ -48,13 +48,13 @@ class UIAppControllerTest(unittest.TestCase):
       self.controller.Stop()
 
   def testHook(self):
-    this_uuid = str(uuid.uuid4())
-
     self.hook.connect()
     self.hook.message({'url': 'http://10.3.0.11:4012/', 'command': 'CONNECT',
-                       'uuid': this_uuid}).WithSideEffects(self.SendError)
+                       'dongle_mac_address': 'unittest'
+                       }).WithSideEffects(self.SendError)
     self.hook.message({'url': 'http://10.3.0.11:4012/', 'command': 'CONNECT',
-                       'uuid': this_uuid}).WithSideEffects(self.SendOK)
+                       'dongle_mac_address': 'unittest'
+                       }).WithSideEffects(self.SendOK)
     self.hook.disconnect()
 
     mox.Replay(self.hook)
@@ -62,8 +62,8 @@ class UIAppControllerTest(unittest.TestCase):
     self.StartControllerAndClient()
 
     self.client.connect()
-    self.assertFalse(self.controller.ShowUI('10.3.0.11', dut_uuid=this_uuid))
-    self.assertTrue(self.controller.ShowUI('10.3.0.11', dut_uuid=this_uuid))
+    self.assertFalse(self.controller.ShowUI('10.3.0.11', 'unittest'))
+    self.assertTrue(self.controller.ShowUI('10.3.0.11', 'unittest'))
     self.client.close()
 
     time.sleep(0.2)  # Wait for WebSocket to close
