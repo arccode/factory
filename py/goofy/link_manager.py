@@ -34,6 +34,8 @@ PRESENTER_LINK_RPC_PORT = 4020
 DUT_LINK_RPC_PORT = 4021
 PRESENTER_PING_PORT = 4022
 DUT_PING_PORT = 4023
+LOCALHOST = '127.0.0.1'
+STANDALONE = 'standalone'
 
 
 def MakeTimeoutServerProxy(ip, port, timeout):
@@ -255,6 +257,52 @@ class PresenterLinkManager(object):
 class DUTLinkManager(object):
   """The manager that runs on the presenter to maintain the link to the DUT."""
 
+  class DUT(object):
+    """Maintain the DUTs info and provide the necessary functions"""
+    def __init__(self, ip, dongle_mac_address):
+      self._suspend_deadline = None
+      self._dut_ip = ip
+      self._dut_proxy = None
+      self._dut_ping_proxy = None
+      self._dut_dongle_mac_address = dongle_mac_address
+
+    def Reset(self):
+      """Reset after a DUT is disconnected. If self._dut_ip is setted to None,
+      running factory_restart will fail when calling self.ProxyAlive().
+      """
+      self._suspend_deadline = None
+      self._dut_proxy = None
+      self._dut_ping_proxy = None
+
+    def GetDongleMacAddress(self):
+      return self._dut_dongle_mac_address
+
+    def GetSuspendDeadline(self):
+      return self._suspend_deadline
+
+    def GetProxy(self):
+      return self._dut_proxy
+
+    def SetSuspendDeadline(self, suspend_deadline):
+      self._suspend_deadline = suspend_deadline
+
+    def SetProxy(self, rpc_timeout):
+      self._dut_proxy = MakeTimeoutServerProxy(self._dut_ip, DUT_LINK_RPC_PORT,
+                                               rpc_timeout)
+
+    def SetPingProxy(self, rpc_timeout):
+      self._dut_ping_proxy = MakeTimeoutServerProxy(self._dut_ip, DUT_PING_PORT,
+                                                    rpc_timeout)
+
+    def ProxyConnected(self):
+      return self._dut_proxy.IsConnected()
+
+    def ProxyAlive(self):
+      self._dut_proxy.IsAlive()
+
+    def Ping(self):
+      self._dut_ping_proxy.IsAlive()
+
   def __init__(self,
                check_interval=5,
                methods=None,
@@ -267,17 +315,14 @@ class DUTLinkManager(object):
     self._connect_hook = connect_hook
     self._disconnect_hook = disconnect_hook
     self._standalone = standalone
-    self._suspend_deadlines = {}
     self._methods = methods or {}
     self._methods.update({'Register': self._DUTRegister,
                           'ConnectionGood': self.DUTIsAlive,
                           'SuspendMonitoring': self.SuspendMonitoring,
                           'ResumeMonitoring': self.ResumeMonitoring})
     self._reported_announcement = set()
-    self._dut_proxies = {}
-    self._dut_ping_proxies = {}
     self._dut_ips = []
-    self._dut_dongle_mac_address = {}
+    self._duts = {}
     self._lock = threading.Lock()
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
@@ -297,7 +342,8 @@ class DUTLinkManager(object):
 
     dut_ip = self._dut_ips[-1]
     try:
-      return self._dut_proxies[dut_ip].__getattr__(name)
+      dut_proxy = self._duts[dut_ip].GetProxy()
+      return dut_proxy.__getattr__(name)
     except AttributeError:
       # _dut_proxies is None. Link is probably down.
       raise LinkDownError()
@@ -308,7 +354,9 @@ class DUTLinkManager(object):
     # Save the IP address and try to talk to it. If it fails, the device may
     # be booting and is not ready for connection. Retry later.
     self._dhcp_event_ip = ip
-    self._dut_dongle_mac_address[ip] = dongle_mac_address
+    if ip not in self._duts:
+      # calling OnDHCPEvent twice may set _dut_proxy and _dut_ping_proxy to None
+      self._duts[ip] = self.DUT(ip, dongle_mac_address)
     self.AnnounceToLastDUT()
 
   def AnnounceToLastDUT(self):
@@ -319,7 +367,7 @@ class DUTLinkManager(object):
     if self._dut_ips:
       dut_ip = self._dut_ips[-1]
       if (dut_ip == self._dhcp_event_ip and
-          self._dut_proxies[dut_ip].IsConnected()):
+          self._duts[dut_ip].ProxyConnected()):
         return
     proxy = MakeTimeoutServerProxy(self._dhcp_event_ip, DUT_LINK_RPC_PORT,
                                    timeout=0.05)
@@ -411,8 +459,8 @@ class DUTLinkManager(object):
     self._server.Start()
     self._thread.start()
     if self._standalone:
-      self._dhcp_event_ip = '127.0.0.1'
-      self._dut_dongle_mac_address[self._dhcp_event_ip] = 'standalone'
+      self._dhcp_event_ip = LOCALHOST
+      self._duts[LOCALHOST] = self.DUT(LOCALHOST, STANDALONE)
     else:
       self._StartDHCPServers()
       self._StartOverlordRelay()
@@ -434,45 +482,47 @@ class DUTLinkManager(object):
     Args:
       interval_sec: Number of seconds to suspend.
     """
-    self._suspend_deadlines[dut_ip] = time.time() + interval_sec
+    self._duts[dut_ip].SetSuspendDeadline(time.time() + interval_sec)
 
   def ResumeMonitoring(self, dut_ip):
     """Immediately resume suspended monitoring of connection."""
-    self._suspend_deadlines[dut_ip] = None
+    self._duts[dut_ip].SetSuspendDeadline(None)
     self.Kick()
 
-  def removeDUT(self, dut_ip):
-    """If we delete self._dut_dongle_mac_address[dut_ip] here,
+  def RemoveDUT(self, dut_ip):
+    """If we delete self._duts[dut_ip] here,
     running factory_restart won't get the dongle mac address.
     """
-    del self._dut_proxies[dut_ip]
-    del self._dut_ping_proxies[dut_ip]
-    del self._suspend_deadlines[dut_ip]
-    self._dut_ips.remove(dut_ip)
+    try:
+      self._duts[dut_ip].Reset()
+      self._dut_ips.remove(dut_ip)
+    except ValueError:
+      pass
 
   def _DUTRegister(self, dut_ip):
     with self._lock:
       try:
-        if dut_ip not in self._dut_ips:
-          self._dut_ips.append(dut_ip)
-        self._suspend_deadlines[dut_ip] = None
-        self._dut_proxies[dut_ip] = MakeTimeoutServerProxy(
-            dut_ip, DUT_LINK_RPC_PORT, self._rpc_timeout)
-        self._dut_ping_proxies[dut_ip] = MakeTimeoutServerProxy(
-            dut_ip, DUT_PING_PORT, self._rpc_timeout)
-        self._dut_proxies[dut_ip].IsAlive()
-        self._dut_ping_proxies[dut_ip].IsAlive()
+        dut = self._duts[dut_ip]
+        dut.SetSuspendDeadline(None)
+        dut.SetProxy(self._rpc_timeout)
+        dut.SetPingProxy(self._rpc_timeout)
+        dut.ProxyAlive()
+        dut.Ping()
+
         logging.info('DUT %s registered', dut_ip)
         self._reported_announcement.clear()
         if self._connect_hook:
-          self._connect_hook(dut_ip, self._dut_dongle_mac_address[dut_ip])
+          self._connect_hook(dut_ip, self._duts[dut_ip].GetDongleMacAddress())
+
+        if dut_ip not in self._dut_ips:
+          self._dut_ips.append(dut_ip)
       except (socket.error, socket.timeout):
-        self.removeDUT(dut_ip)
+        self.RemoveDUT(dut_ip)
 
   def DUTIsAlive(self, dut_ip):
     """Pings the DUT."""
     try:
-      self._dut_ping_proxies[dut_ip].IsAlive()
+      self._duts[dut_ip].Ping()
       return True
     except (socket.error, socket.timeout, AttributeError, KeyError):
       return False
@@ -487,7 +537,7 @@ class DUTLinkManager(object):
       try:
         if not self.DUTIsAlive(dut_ip):
           logging.info('Disconnected from DUT %s', dut_ip)
-          self.removeDUT(dut_ip)
+          self.RemoveDUT(dut_ip)
           if self._disconnect_hook:
             self._disconnect_hook(dut_ip)
       finally:
@@ -501,9 +551,10 @@ class DUTLinkManager(object):
     while True:
       if self._dut_ips:
         for dut_ip in self._dut_ips:
-          if self._suspend_deadlines[dut_ip]:
-            if time.time() > self._suspend_deadlines[dut_ip]:
-              self._suspend_deadlines[dut_ip] = None
+          suspend_deadline = self._duts[dut_ip].GetSuspendDeadline()
+          if suspend_deadline:
+            if time.time() > suspend_deadline:
+              self._duts[dut_ip].SetSuspendDeadline(None)
           else:
             self.CheckDUTConnection(dut_ip)
       else:
