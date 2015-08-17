@@ -15,6 +15,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 
+from cros.factory.test import audio_utils
 from cros.factory.test import evdev_utils
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -111,6 +112,7 @@ class LidSwitchTest(unittest.TestCase):
         self.ui.Fail('Can not read brightness.')
 
   def setUp(self):
+    audio_utils.CRAS().EnableOutput()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     if self.args.event_id:
