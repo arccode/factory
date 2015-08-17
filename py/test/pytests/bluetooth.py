@@ -114,6 +114,11 @@ READ_BATTERY_STEP_1 = 'read_battery_1'
 READ_BATTERY_STEP_2 = 'read_battery_2'
 
 
+def GetCurrentTime():
+  """Get the current time."""
+  return time.strftime('%Y-%m-%d %H:%M:%S')
+
+
 def ColonizeMac(mac):
   """ Given a MAC address, normalize its colons.
 
@@ -543,6 +548,15 @@ class FixtureControlTask(FactoryTask):
       self.Fail('error in executing %s (%s)' % (self._operation, e))
 
 
+def _SaveLocalBatteryLog(base_enclosure_serial_number, mac, step,
+                         battery_level, log_filename):
+  """Save the battery log on the local test host."""
+  with open(log_filename, 'a') as f:
+    f.write('%s %s %s [%s]: %s\n' %
+            (GetCurrentTime(), base_enclosure_serial_number, mac, step,
+             battery_level))
+
+
 class ReadBatteryLevelTask(FactoryTask):
   """A class to read battery level."""
 
@@ -586,6 +600,11 @@ class ReadBatteryLevelTask(FactoryTask):
     elif self._step == READ_BATTERY_STEP_2:
       # We keep the latest battery level read at step 2.
       factory.set_shared_data(self._step, battery_level)
+
+    if self._test.args.battery_log:
+      _SaveLocalBatteryLog(self._test.args.base_enclosure_serial_number,
+                           self._mac, self._step, battery_level,
+                           self._test.args.battery_log)
 
     self.Pass()
 
@@ -951,6 +970,10 @@ class BluetoothTest(unittest.TestCase):
           default=False, optional=True),
       Arg('stop_charging', bool, 'Prompt the user to stop charging the base',
           default=False, optional=True),
+      Arg('base_enclosure_serial_number', unicode,
+          'the base enclusore serial number', default=None, optional=True),
+      Arg('battery_log', str,
+          'the battery log file', default=None, optional=True),
   ]
 
   def SetStrongestRssiMac(self, mac_addr):
