@@ -456,6 +456,33 @@ batt_state_of_charge = 52%
 
     self.mox.VerifyAll()
 
+  def testGetUSBPDStatusV1_1(self):
+    self.board._CallECTool(
+        ['--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+            'Port C0 is enabled,connected, Role:SRC UFP Polarity:CC1 State:SRC_READY')
+    self.board._CallECTool(
+        ['--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+            'Port C1 is disabled,disconnected, Role:SNK DFP Polarity:CC2 State:SNK_DISCOVERY')
+
+    self.mox.ReplayAll()
+
+    status = self.board.GetUSBPDStatus(0)
+    self.assertTrue(status['enabled'])
+    self.assertTrue(status['connected'])
+    self.assertEquals('SRC', status['role'])
+    self.assertEquals('UFP', status['datarole'])
+    self.assertEquals('CC1', status['polarity'])
+    self.assertEquals('SRC_READY', status['state'])
+
+    status = self.board.GetUSBPDStatus(1)
+    self.assertFalse(status['enabled'])
+    self.assertFalse(status['connected'])
+    self.assertEquals('SNK', status['role'])
+    self.assertEquals('DFP', status['datarole'])
+    self.assertEquals('CC2', status['polarity'])
+    self.assertEquals('SNK_DISCOVERY', status['state'])
+
+    self.mox.VerifyAll()
 
 if __name__ == '__main__':
   unittest.main()
