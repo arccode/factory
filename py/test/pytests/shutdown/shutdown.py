@@ -103,10 +103,10 @@ class ShutdownTest(unittest.TestCase):
     # test.
     pending_shutdown_data = {
         'delay_secs': self.args.delay_secs,
-        'time': time.time() + self.args.delay_secs,
         'operation': self.args.operation,
         'iteration': iteration,
         'iterations': self.test.iterations,
+        'wait_shutdown_secs': self.args.wait_shutdown_secs,
     }
 
     # Create a new (threaded) event client since we
@@ -139,10 +139,17 @@ class ShutdownTest(unittest.TestCase):
       raise ShutdownError('Shutdown aborted by operator')
 
     try:
-      self.goofy.UIPresenterCountdown(
-          'Reboot test in progress...',
-          self.args.max_reboot_time_secs,
-          'Reboot test failed.')
+      if self.args.operation == factory.ShutdownStep.HALT:
+        self.goofy.UIPresenterCountdown(
+            'Shutdown test in progress...',
+            self.args.wait_shutdown_secs,
+            'Shutdown test succeeded.',
+            False)
+      else:
+        self.goofy.UIPresenterCountdown(
+            'Reboot test in progress...',
+            self.args.max_reboot_time_secs,
+            'Reboot test failed.')
     except ProtocolError:
       # The presenter may be absent (e.g. during run-in). Ignore error
       # in this case.
@@ -150,8 +157,10 @@ class ShutdownTest(unittest.TestCase):
     self.goofy.Shutdown(self.args.operation)
 
     time.sleep(self.args.wait_shutdown_secs)
-    self.ui.Fail('System did not shutdown in %d seconds.' %
-                 self.args.wait_shutdown_secs)
+    error_msg = 'System did not shutdown in %s seconds.' % (
+                self.args.wait_shutdown_secs)
+    self.ui.Fail(error_msg)
+    raise ShutdownError(error_msg)
 
   def CheckShutdownFailureTagFile(self):
     """Checks if there is any shutdown failure tag file.

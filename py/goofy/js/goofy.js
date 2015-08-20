@@ -1295,7 +1295,7 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
         this.shutdownDialog.dispose();
         this.shutdownDialog = null;
     }
-    if (!shutdownInfo || !shutdownInfo.time) {
+    if (!shutdownInfo) {
         return;
     }
 
@@ -1322,24 +1322,35 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
     var progressBar = new goog.ui.ProgressBar();
     progressBar.render(this.shutdownDialog.getContentElement());
 
+    var startTime = new Date().getTime() / 1000.0;
+    var endTime = new Date().getTime() / 1000.0 + shutdownInfo.delay_secs;
+    var shutdownDialog = this.shutdownDialog;
+
     function tick() {
         var now = new Date().getTime() / 1000.0;
 
-        var startTime = shutdownInfo.time - shutdownInfo.delay_secs;
-        var endTime = shutdownInfo.time;
-        var fraction = (now - startTime) / (endTime - startTime);
-        progressBar.setValue(goog.math.clamp(fraction, 0, 1) * 100);
+        if (endTime > now) {
+            var fraction = (now - startTime) / (endTime - startTime);
+            progressBar.setValue(goog.math.clamp(fraction, 0, 1) * 100);
 
-        var secondsLeft = 1 + Math.floor(Math.max(0, endTime - now));
-        goog.array.forEach(
-            goog.dom.getElementsByClass('goofy-shutdown-secs'), function(elt) {
-                elt.innerHTML = secondsLeft;
-            }, this);
-        goog.array.forEach(
-            goog.dom.getElementsByClass('goofy-shutdown-secs-plural'),
-            function(elt) {
-                elt.innerHTML = secondsLeft == 1 ? '' : 's';
-            }, this);
+            var secondsLeft = 1 + Math.floor(Math.max(0, endTime - now));
+            goog.array.forEach(
+                goog.dom.getElementsByClass('goofy-shutdown-secs'),
+                function(elt) {
+                    elt.innerHTML = secondsLeft;
+                }, this);
+            goog.array.forEach(
+                goog.dom.getElementsByClass('goofy-shutdown-secs-plural'),
+                function(elt) {
+                    elt.innerHTML = secondsLeft == 1 ? '' : 's';
+                }, this);
+        } else if (now - endTime < shutdownInfo.wait_shutdown_secs) {
+            shutdownDialog.setContent(
+            '<p>Shutting down...<br></p><p>关机中...</p>');
+        } else {
+            this.setPendingShutdown(false);
+            return;
+        }
     }
 
     var timer = new goog.Timer(20);

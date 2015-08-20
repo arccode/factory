@@ -64,30 +64,25 @@ function startCountdown(msg, dongle_mac_address, timeout, end_msg,
 
   setInfo(msg, dongle_mac_address);
 
-  var iframe = document.getElementById(dongle_mac_address + "_iframe");
-  iframe.src = 'about:blank';
-
   countdown[dongle_mac_address] = {
-    timeout: null,
-    end_msg: null,
-    end_msg_color: null,
-    interval_id: null
+    timeout: timeout,
+    end_msg: end_msg,
+    end_msg_color: end_msg_color,
+    interval_id: window.setInterval(function() {
+      countdownCallback(dongle_mac_address);
+    }, 1000),
   };
-  countdown[dongle_mac_address].timeout = timeout;
-  countdown[dongle_mac_address].end_msg = end_msg;
-  countdown[dongle_mac_address].end_msg_color = end_msg_color;
-  countdown[dongle_mac_address].interval_id = window.setInterval(function() {
-    countdownCallback(dongle_mac_address);
-  }, 1000);
   countdownCallback(dongle_mac_address);
-
-  setDisplay(dongle_mac_address + '_countdown-container', '');
-  setDisplay(dongle_mac_address + '_iframe', 'none');
 }
 
 function handleDisconnect(dongle_mac_address) {
-  if (dongle_mac_address in countdown)
-    return
+  if (dongle_mac_address in countdown) {
+    var iframe = document.getElementById(dongle_mac_address + "_iframe");
+    iframe.src = 'about:blank';
+    setDisplay(dongle_mac_address + '_countdown-container', '');
+    setDisplay(dongle_mac_address + '_iframe', 'none');
+    return;
+  }
 
   if (connectedDongle.indexOf(dongle_mac_address) != -1) {
     var index = macAddressList.indexOf(dongle_mac_address);
