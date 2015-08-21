@@ -73,6 +73,9 @@ _MSG_OUT_OF_FIXTURE = MakeLabel('Take the base out of the fixture, '
                                 'and press the space key on the test host.',
                                 u'請把測試鍵盤取出,然後按下电脑的 space 键',
                                 'start-font-size')
+_MSG_READ_FIRMWARE_REVISION_STRING = MakeLabel('Read firmware revision string.',
+                                               u'读取键盘韧体版本',
+                                               'start-font-size')
 _MSG_SCAN_DEVICE = MakeLabel('Scanning...', u'扫描中...', 'start-font-size')
 _RAW_MSG_DETECT_RSSI = ['Detect RSSI (count %d/%d)', u'侦测RSSI (第 %d/%d 次)',
                         'start-font-size']
@@ -102,7 +105,6 @@ RESET_ADAPTER_SLEEP_TIME = 5
 READ_BATTERY_MAX_RETRY_TIMES = 10
 
 BATTERY_LEVEL_KEY = 'battery_level'
-
 
 def ColonizeMac(mac):
   """ Given a MAC address, normalize its colons.
@@ -597,6 +599,42 @@ class BatteryLevelTestTask(FactoryTask):
       self.Fail(msg % (battery_level, self.EXPECTED_LEVEL))
 
 
+class CheckFirmwareRevisionTestTask(FactoryTask):
+  """A factory task class to read firmware revision string."""
+
+  def __init__(self, test, mac):  # pylint: disable=W0231
+    self._test = test
+    self._mac = mac
+
+  def Run(self):
+    self._test.template.SetState(_MSG_READ_FIRMWARE_REVISION_STRING)
+
+    if self._test.args.use_charge_fixture:
+      _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
+
+    factory.console.info('Begin reading firmware revision string...')
+    try:
+      fw = bluetooth_utils.GattTool.GetDeviceInfo(self._mac,
+                                                  'firmware revision string')
+    except bluetooth_utils.BluetoothUtilsError as e:
+      self.Fail('Failed to get firmware revision string: %s' % e)
+      return
+
+    if self._test.args.use_charge_fixture:
+      _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
+
+    factory.console.info('Expected firmware: %s',
+                         self._test.args.firmware_revision_string)
+    factory.console.info('Actual firmware: %s', fw)
+    factory.set_shared_data(self._test.args.firmware_revision_string_key, fw)
+
+    if fw == self._test.args.firmware_revision_string:
+      self.Pass()
+    else:
+      self.Fail('Expected firmware: %s, actual firmware: %s' %
+                (self._test.args.firmware_revision_string, fw))
+
+
 class InputTestTask(FactoryTask):
   """The task to test bluetooth input device functionality.
 
@@ -792,6 +830,11 @@ class BluetoothTest(unittest.TestCase):
           'containing the mac address', default=None, optional=True),
       Arg('input_device_rssi_key', str, 'A key for factory shared data '
           'containing the rssi value', default=None, optional=True),
+      Arg('firmware_revision_string_key', str,
+          'A key of factory shared data containing firmware revision string',
+          optional=True),
+      Arg('firmware_revision_string', str,
+          'the firmware revision string', optional=True),
       Arg('average_rssi_lower_threshold', float, 'Checks the average RSSI'
           ' of the target mac is equal to or greater than this threshold.',
           default=None, optional=True),
@@ -898,6 +941,9 @@ class BluetoothTest(unittest.TestCase):
     if self.args.unpair:
       self._task_list.append(
           UnpairTask(self, self._input_device_mac, self.args.keyword))
+    elif self.args.firmware_revision_string:
+      self._task_list.append(
+          CheckFirmwareRevisionTestTask(self, self._input_device_mac))
     elif not self.args.scan_mac_only and \
         (self._input_device_mac or self.args.pair_with_match):
       # If the MAC address was found via a scan, then of course it's already on
