@@ -27,6 +27,7 @@ import unittest
 
 from cros.factory.system.bluetooth import BluetoothManager
 from cros.factory.system.bluetooth import BluetoothManagerException
+from cros.factory.test import bluetooth_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -537,8 +538,7 @@ class ChargeTestTask(FactoryTask):
     if self._test.args.use_charge_fixture:
       _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
     factory.console.info('Begin reading battery level...')
-    cmd = 'python /usr/local/factory/py/utils/rel_tester.py -a ' + self._mac
-    value = process_utils.SpawnOutput(cmd.split(), log=True)
+    value = bluetooth_utils.GattTool.GetDeviceInfo(self._mac, 'battery level')
     if self._test.args.use_charge_fixture:
       _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
     factory.console.info('%s: %s', step, value)
