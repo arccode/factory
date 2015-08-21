@@ -62,6 +62,10 @@ _MSG_READ_BATTERY_1 = MakeLabel('Read battery level for the 1st time.',
 _MSG_READ_BATTERY_2 = MakeLabel('Read battery level for the 2nd time.',
                                 u'第2次读取电池电量',
                                 'start-font-size')
+_MSG_BATTERY_CHARGE_TEST = MakeLabel('Check if the battery has charged to '
+                                     'a higher percentage',
+                                     u'检查充电之後电量是否增加',
+                                     'start-font-size')
 _MSG_CHECK_BATTERY_LEVEL = MakeLabel('Check battery level.',
                                      u'检查电池电量',
                                      'start-font-size')
@@ -105,6 +109,9 @@ RESET_ADAPTER_SLEEP_TIME = 5
 READ_BATTERY_MAX_RETRY_TIMES = 10
 
 BATTERY_LEVEL_KEY = 'battery_level'
+READ_BATTERY_STEP_1 = 'read_battery_1'
+READ_BATTERY_STEP_2 = 'read_battery_2'
+
 
 def ColonizeMac(mac):
   """ Given a MAC address, normalize its colons.
@@ -530,6 +537,75 @@ class FixtureControlTask(FactoryTask):
       self.Fail('error in executing %s (%s)' % (self._operation, e))
 
 
+class ReadBatteryLevelTask(FactoryTask):
+  """A class to read battery level."""
+
+  MSG_DICT = {READ_BATTERY_STEP_1: _MSG_READ_BATTERY_1,
+              READ_BATTERY_STEP_2: _MSG_READ_BATTERY_2}
+
+  def __init__(self, test, mac, step):  # pylint: disable=W0231
+    self._test = test
+    self._mac = mac
+    self._step = step
+
+  def Run(self):
+    self._test.template.SetState(self.MSG_DICT.get(self._step))
+
+    if self._test.args.use_charge_fixture:
+      _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
+
+    factory.console.info('Begin reading battery level...')
+    try:
+      battery_level = int(
+          bluetooth_utils.GattTool.GetDeviceInfo(self._mac, 'battery level'))
+      factory.console.info('%s: %d', self._step, battery_level)
+    except bluetooth_utils.BluetoothUtilsError as e:
+      self.Fail('%s failed to get battery level: %s' % (self._step, e))
+      return
+
+    if self._test.args.use_charge_fixture:
+      _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
+
+    old_battery_level = factory.get_shared_data(self._step)
+    if (self._step == READ_BATTERY_STEP_1 and
+        (old_battery_level is None or battery_level < old_battery_level)):
+      # If the battery level at step 1 becomes higher over different rounds
+      # (when the operator keeps retesting it for any reasons),
+      # we only keep the lowest one. This is because we want to test if the
+      # battery could charge to a higher level at step 2 than step 1.
+      factory.set_shared_data(self._step, battery_level)
+    elif self._step == READ_BATTERY_STEP_2:
+      # We keep the latest battery level read at step 2.
+      factory.set_shared_data(self._step, battery_level)
+
+    self.Pass()
+
+
+class CheckBatteryLevelTask(FactoryTask):
+  """This test checks if the battery charges to a higher percentage.
+
+  The battery level read at step 2 must be higher than that at step 1.
+  """
+
+  def __init__(self, test):  # pylint: disable=W0231
+    self._test = test
+
+  def Run(self):
+    self._test.template.SetState(_MSG_BATTERY_CHARGE_TEST)
+
+    battery_level_1 = factory.get_shared_data(READ_BATTERY_STEP_1)
+    battery_level_2 = factory.get_shared_data(READ_BATTERY_STEP_2)
+    factory.console.info('%s: %s', READ_BATTERY_STEP_1, str(battery_level_1))
+    factory.console.info('%s: %s', READ_BATTERY_STEP_2, str(battery_level_2))
+
+    if (battery_level_1 and battery_level_2 and
+        battery_level_1 < battery_level_2):
+      self.Pass()
+    else:
+      msg = 'battery_level_1 (%s) is not lower than battery_level_2 (%s)'
+      self.Fail(msg % (str(battery_level_1), str(battery_level_2)))
+
+
 class ChargeTestTask(FactoryTask):
 
   def __init__(self, test, mac, step):  # pylint: disable=W0231
@@ -549,13 +625,13 @@ class ChargeTestTask(FactoryTask):
     return int(value)
 
   def Run(self):
-    if self._step == 'READ_BATTERY_1':
+    if self._step == READ_BATTERY_STEP_1:
       self._test.template.SetState(_MSG_READ_BATTERY_1)
       battery_level = self.ReadBatteryLevel(self._step)
       factory.set_shared_data(BATTERY_LEVEL_KEY, battery_level)
       self.Pass()
 
-    elif self._step == 'READ_BATTERY_2':
+    elif self._step == READ_BATTERY_STEP_2:
       def _ReadAndCheckBatteryLevel():
         battery_level2 = self.ReadBatteryLevel(self._step)
         result = battery_level2 > battery_level1
@@ -843,8 +919,6 @@ class BluetoothTest(unittest.TestCase):
       Arg('average_rssi_upper_threshold', float, 'Checks the average RSSI'
           ' of the target mac is equal to or less than this threshold.',
           default=None, optional=True),
-      Arg('scan_mac_only', bool, 'If true, do not attempt to pair with '
-          'input_device_mac', default=None, optional=True),
       Arg('pair_with_match', bool, 'Whether to pair with the strongest match.',
           default=False, optional=True),
       Arg('finish_after_pair', bool, 'Whether the test should end immediately '
@@ -854,11 +928,15 @@ class BluetoothTest(unittest.TestCase):
       Arg('check_battery_charging', bool,
           'Whether to check if the battery is charging',
           default=False, optional=True),
+      Arg('read_battery_level', int, 'read the battery level',
+          default=None, optional=True),
       Arg('check_battery_level', bool, 'Whether to check the battery level',
           default=False, optional=True),
       Arg('prompt_into_fixture', bool, 'Prompt the user to place the base into '
           'the test fixture', default=False, optional=True),
       Arg('use_charge_fixture', bool, 'whether a charge fixture is employed',
+          default=False, optional=True),
+      Arg('reset_fixture', bool, 'whether to reset the fixture',
           default=False, optional=True),
       Arg('start_charging', bool, 'Prompt the user to start charging the base',
           default=False, optional=True),
@@ -904,7 +982,14 @@ class BluetoothTest(unittest.TestCase):
       # A base SMT test station does not need to use the charge fixture.
       # pylint: disable=E0611
       from cros.factory.test.fixture import base_charge_fixture
-      self.fixture = base_charge_fixture.BaseChargeFixture()
+      # Note: only reset the fixture in InitializeFixture test.
+      #       This will stop charging and disable the magnet initially.
+      #       For the following tests, do not reset the fixture so that
+      #       the charging could be continued across tests in the test list
+      #       defined in the base_host. The purpose is to keep charing the
+      #       battery while executing other tests.
+      self.fixture = base_charge_fixture.BaseChargeFixture(
+          reset=self.args.reset_fixture)
 
     if self.args.expected_adapter_count:
       self._task_list.append(DetectAdapterTask(
@@ -925,41 +1010,41 @@ class BluetoothTest(unittest.TestCase):
     if self.args.prompt_into_fixture:
       self._task_list.append(TurnOnTask(self, _MSG_INTO_FIXTURE, SPACE_KEY))
 
-    if self.args.check_battery_charging:
+    if self.args.read_battery_level == 1:
       self._task_list.append(
-          ChargeTestTask(self, self._input_device_mac, 'READ_BATTERY_1'))
-
-    if self.args.check_battery_level:
-      self._task_list.append(BatteryLevelTestTask(self))
+          ReadBatteryLevelTask(self, self._input_device_mac,
+                               READ_BATTERY_STEP_1))
 
     if self.args.start_charging:
       if self.args.use_charge_fixture:
         self._task_list.append(
             # Let it charge for a little while.
-            FixtureControlTask(self, 'START_CHARGING', sleep_secs=10))
+            FixtureControlTask(self, 'START_CHARGING'))
       else:
         self._task_list.append(TurnOnTask(self, _MSG_START_CHARGE, SPACE_KEY))
 
     if self.args.unpair:
       self._task_list.append(
           UnpairTask(self, self._input_device_mac, self.args.keyword))
-    elif self.args.firmware_revision_string:
+
+    if self.args.firmware_revision_string:
       self._task_list.append(
           CheckFirmwareRevisionTestTask(self, self._input_device_mac))
-    elif not self.args.scan_mac_only and \
-        (self._input_device_mac or self.args.pair_with_match):
-      # If the MAC address was found via a scan, then of course it's already on
-      if not self.args.pair_with_match:
-        self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_INPUT_DEVICE))
+
+    if self.args.pair_with_match:
       if self.args.use_charge_fixture:
         self._task_list.append(FixtureControlTask(self, 'ENABLE_MAGNET'))
       self._task_list.append(InputTestTask(self, self.args.finish_after_pair))
       if self.args.use_charge_fixture:
         self._task_list.append(FixtureControlTask(self, 'DISABLE_MAGNET'))
 
-    if self.args.check_battery_charging:
+    if self.args.read_battery_level == 2:
       self._task_list.append(
-          ChargeTestTask(self, self._input_device_mac, 'READ_BATTERY_2'))
+          ReadBatteryLevelTask(self, self._input_device_mac,
+                               READ_BATTERY_STEP_2))
+
+    if self.args.check_battery_level:
+      self._task_list.append(CheckBatteryLevelTask(self))
 
     if self.args.stop_charging:
       if self.args.use_charge_fixture:
