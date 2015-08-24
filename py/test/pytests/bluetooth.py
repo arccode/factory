@@ -21,6 +21,7 @@ import factory_common  # pylint: disable=W0611
 import glob
 import logging
 import sys
+import threading
 import time
 import unittest
 
@@ -219,13 +220,15 @@ class TurnOnTask(FactoryTask):
     logging.info('wait for the user to press a key')
 
 
-def SetAndStartScanProgressBar(template, timeout_secs):
+def SetAndStartScanProgressBar(template, timeout_secs, scan_event=None):
   """Control progress bar fo a duration of timeout_secs."""
   def UpdateProgressBar():
     """Updates progress bar for a duration of timeout_secs"""
     start_time = time.time()
     end_time = start_time + timeout_secs
     while time.time() < end_time:
+      if scan_event and scan_event.isSet():
+        break
       template.SetProgressBarValue(int(
           100 * (time.time() - start_time) / timeout_secs))
       time.sleep(0.2)
@@ -412,6 +415,7 @@ class DetectRSSIofTargetMACTask(FactoryTask):
     self._timeout_secs = test.args.scan_timeout_secs
     self._input_device_rssi_key = test.args.input_device_rssi_key
     self._progress_thread = None
+    self._scan_rssi_event = threading.Event()
 
   def Run(self):
     bluetooth_manager = BluetoothManager()
@@ -422,9 +426,14 @@ class DetectRSSIofTargetMACTask(FactoryTask):
       label = MakeLabel(*[m % (i, self._scan_counts) if '%' in m else m
                           for m in _RAW_MSG_DETECT_RSSI])
       self._test.template.SetState(label)
+      self._scan_rssi_event.clear()
       self._progress_thread = SetAndStartScanProgressBar(self._test.template,
-                                                         self._timeout_secs)
-      devices = bluetooth_manager.ScanDevices(adapter, self._timeout_secs)
+                                                         self._timeout_secs,
+                                                         self._scan_rssi_event)
+      devices = bluetooth_manager.ScanDevices(adapter,
+                                              timeout_secs=self._timeout_secs,
+                                              match_address=self._mac_to_scan)
+      self._scan_rssi_event.set()
       self._progress_thread.join()
       for mac, props in devices.iteritems():
         if mac == self._mac_to_scan and 'RSSI' in props:
