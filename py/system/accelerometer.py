@@ -191,14 +191,16 @@ class AccelerometerController(object):
         raw_data_captured += 1
         retry_count_per_record = 0
         raw_data = struct.unpack_from(FORMAT_RAW_DATA, line)
-        logging.info('(%d) Getting raw data: %s.', raw_data_captured, raw_data)
-        # Accumulating raw data.
         # Starting from kernel 3.18, the raw data output will be normalized
         # to 16 bits by shifting <<= (16 - resolution). However, the
         # calibration offset is still unchanged. Here we reverse the raw data
-        # to its original value for calculating calibration offset (_calibbias).
+        # to its original value for calculating calibratio offset (_calibbias).
+        original_raw_data = [r >> (16 - self.resolution) for r in raw_data]
+        logging.info(
+            '(%d) Getting raw data: %s.', raw_data_captured, original_raw_data)
+        # Accumulating raw data.
         for i in xrange(self.num_signals):
-          ret[self.index_to_signal_name[i]] += (raw_data[i] >> (16 - self.resolution))
+          ret[self.index_to_signal_name[i]] += original_raw_data[i]
     # Calculates the average
     for signal_name in ret:
       ret[signal_name] = int(round(ret[signal_name] / capture_count))
