@@ -67,6 +67,11 @@ class TouchscreenCalibration(unittest.TestCase):
   DELTAS = 'deltas'
   REFS = 'refs'
 
+  PHASE_SETUP_ENVIRONMENT = 'PHASE_SETUP_ENVIRONMENT'
+  PHASE_REFS = 'PHASE_REFS'
+  PHASE_DELTAS_UNTOUCHED = 'PHASE_DELTAS_UNTOUCHED'
+  PHASE_DELTAS_TOUCHED = 'PHASE_DELTAS_TOUCHED'
+
   ARGS = [
       Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
       Arg('phase', str, 'The test phase of touchscreen calibration', ''),
@@ -87,15 +92,12 @@ class TouchscreenCalibration(unittest.TestCase):
     self._local_log_dir = '/var/tmp/%s' % test_name
     self._board = self._GetBoard()
     factory.console.info('Get Board: %s', self._board)
-    self.config = sensors_server.TSConfig(self._board)
-    self.use_sensors_server = (
-        self.config.Read('Sensors', 'USE_SENSORS_SERVER') == 'True')
-    self.sn_length = int(self.config.Read('Misc', 'SN_LENGTH'))
-    self.fake_fixture = self.config.Read('Misc', 'FAKE_FIXTURE') == 'True'
-    self.use_shopfloor = (self.config.Read('Misc', 'USE_SHOPFLOOR') == 'True')
     self.sensors = None
     self.start_time = None
-    self.RefreshNetwork(None)
+    self.sensors_ip = None
+    self._ReadConfig()
+    self._AssignDirectIPsIfTwoInterfaces()
+    self.network_status = self.RefreshNetwork(None)
 
     # There are multiple boards running this test now.
     # The log path of a particular board is distinguished by the board name.
@@ -107,6 +109,24 @@ class TouchscreenCalibration(unittest.TestCase):
     self.summary_file = None
     self.test_pass = None
     self.min_max_msg = None
+
+  def _ReadConfig(self):
+    self.config = sensors_server.TSConfig(self._board)
+    self.use_sensors_server = (
+        self.config.Read('Sensors', 'USE_SENSORS_SERVER') == 'True')
+    self.sn_length = int(self.config.Read('Misc', 'SN_LENGTH'))
+    self.fake_fixture = self.config.Read('Misc', 'FAKE_FIXTURE') == 'True'
+    self.use_shopfloor = (self.config.Read('Misc', 'USE_SHOPFLOOR') == 'True')
+    self.sensors_ip = self.config.Read('Sensors', 'SENSORS_IP')
+    self.direct_host_ip = self.config.Read('Sensors', 'DIRECT_HOST_IP')
+    self.direct_sensors_ip = self.config.Read('Sensors', 'DIRECT_SENSORS_IP')
+    self.sensors_port = int(self.config.Read('Sensors', 'SENSORS_PORT'))
+
+  def _SetupEnvironment(self):
+    if self.network_status:
+      self.ui.Pass()
+    else:
+      self.ui.Fail('Check network status error.')
 
   def _DummyLog(self, *args, **kwargs):
     pass
@@ -147,14 +167,13 @@ class TouchscreenCalibration(unittest.TestCase):
         factory.console.info('No Sensors service (%s): %s', e, msg)
       _ShowError()
 
-    if not self.sensors_ip:
-      msg = ('No sensors_ip is assigned.\n'
-             'If you intend to run a sensors_server on another machine, '
-             'you need to assign _SENSORS_SERVER_IP in generic_tsab.py.\n'
-             'And then do a factory_restart.')
-      factory.console.warn(msg)
-
     if self.use_sensors_server:
+      if not self.sensors_ip:
+        msg = ('Fail to assign DIRECT_SENSORS_IP in ryu.conf\n'
+               '需要在 ryu.conf 指定 DIRECT_SENSORS_IP')
+        self.ui.CallJSFunction('showMessage', msg)
+        raise Error('Failed to assign sensors_ip.')
+
       # Connect to the sensors_server at the IP address.
       server_addr = (self.sensors_ip, self.sensors_port)
       self.sensors = _CreateXMLRPCSensorsClient(addr=server_addr)
@@ -261,18 +280,27 @@ class TouchscreenCalibration(unittest.TestCase):
     After old states of previous touchscreen panel are cleared and
     new panel detected, show the sign on UI.
     """
-    try:
-      if self.sensors.CheckStatus():
-        factory.console.info('touchscreen exist')
-        self.ui.CallJSFunction('setTouchscreenStatus', True)
-        self.GetSerialNumber()
-        return
-    except Exception as e:
-      factory.console.info('Exception at refreshing touch screen: %s', e)
-    self.ui.CallJSFunction('setTouchscreenStatus', False)
+    if self.args.phase == self.PHASE_SETUP_ENVIRONMENT:
+      self.touchscreen_status = False
+      try:
+        if self.sensors.CheckStatus():
+          self.touchscreen_status = True
+          factory.console.info('touchscreen exists')
+        else:
+          factory.console.info('touchscreen does not exist')
+      except Exception as e:
+        factory.console.info('Exception at refreshing touch screen: %s', e)
+      finally:
+        factory.set_shared_data('touchscreen_status', self.touchscreen_status)
+    else:
+      self.touchscreen_status = factory.get_shared_data('touchscreen_status')
 
-  def RefreshNetwork(self, unused_event):
-    """Refreshes all possible saved state for the old touchscreen.
+    self.ui.CallJSFunction('setTouchscreenStatus', self.touchscreen_status)
+    self.GetSerialNumber()
+
+  def _AssignDirectIPsIfTwoInterfaces(self):
+    """Assign direct IPs to the test host and the BB if two network
+    interfaces are found.
 
     There are two legitimate scenarios of configuring the host network.
 
@@ -289,42 +317,57 @@ class TouchscreenCalibration(unittest.TestCase):
       DIRECT_SENSORS_IP. Both DIRECT_HOST_IP and DIRECT_SENSORS_IP are
       defined in the board config file.
     """
-    host_ip_dict = NetworkStatus.GetHostIPs()
-    direct_host_ip = self.config.Read('Sensors', 'DIRECT_HOST_IP')
-    direct_sensors_ip = self.config.Read('Sensors', 'DIRECT_SENSORS_IP')
-    self.sensors_ip = self.config.Read('Sensors', 'SENSORS_IP')
-    if len(host_ip_dict) == 2:
-      for interface, ip in host_ip_dict.items():
+    self.host_ip_dict = NetworkStatus.GetHostIPs()
+    if len(self.host_ip_dict) == 2:
+      for interface, ip in self.host_ip_dict.items():
         if ip is None:
-          cmd = 'ifconfig %s %s' % (interface, direct_host_ip)
+          cmd = 'ifconfig %s %s' % (interface, self.direct_host_ip)
           if IsSuccessful(SimpleSystem(cmd)):
             factory.console.info('Successfully assign direct host ip: %s',
-                                 direct_host_ip)
+                                 self.direct_host_ip)
           else:
             raise Error('Failed to assign direct host ip.')
-          host_ip_dict[interface] = direct_host_ip
-          self.sensors_ip = direct_sensors_ip
-        elif ip == direct_host_ip:
-          self.sensors_ip = direct_sensors_ip
-    elif len(host_ip_dict) > 2:
+          self.host_ip_dict[interface] = self.direct_host_ip
+          self.sensors_ip = self.direct_sensors_ip
+        elif ip == self.direct_host_ip:
+          self.sensors_ip = self.direct_sensors_ip
+    elif len(self.host_ip_dict) > 2:
       msg = 'There should be no more than 2 network interfaces on the host.'
-      raise Error(msg)
+      factory.console.error(msg)
+      return False
 
-    self.sensors_port = int(self.config.Read('Sensors', 'SENSORS_PORT'))
-    self.network_status = NetworkStatus(self.sensors_ip, self.args.shopfloor_ip)
-    bb_status = self.network_status.PingBB()
-    if self.use_shopfloor:
-      shopfloor_status = (self.network_status.PingShopfloor() and
-                          self.args.shopfloor_ip)
+  def RefreshNetwork(self, unused_event):
+    """Refreshes all possible saved state for the touchscreen."""
+    if self.args.phase == self.PHASE_SETUP_ENVIRONMENT:
+      network_status = NetworkStatus(self.sensors_ip, self.args.shopfloor_ip)
+      if self.use_sensors_server:
+        bb_status = self.sensors_ip if network_status.PingBB() else False
+      else:
+        bb_status = 'Not used'
+
+      if self.use_shopfloor:
+        shopfloor_status = (self.args.shopfloor_ip
+                            if network_status.PingShopfloor() else False)
+      else:
+        shopfloor_status = 'Skipped for debugging'
+
+      factory.set_shared_data('bb_status', bb_status)
+      factory.set_shared_data('shopfloor_status', shopfloor_status)
     else:
-      shopfloor_status = 'Skipped for debugging'
+      bb_status = factory.get_shared_data('bb_status')
+      shopfloor_status = factory.get_shared_data('shopfloor_status')
 
-    factory.console.info('host_ips: %s', str(host_ip_dict))
-    factory.console.info('bb_status: %s', str(bb_status))
-    factory.console.info('shopfloor_status: %s', str(shopfloor_status))
-    self.ui.CallJSFunction('setHostNetworkStatus', str(host_ip_dict.values()))
-    self.ui.CallJSFunction('setBBNetworkStatus', bb_status and self.sensors_ip)
+    factory.console.info('host_ips: %s', str(self.host_ip_dict))
+    factory.console.info('bb_status: %s', bb_status)
+    factory.console.info('shopfloor_status: %s', shopfloor_status)
+    self.ui.CallJSFunction('setHostNetworkStatus',
+                           str(self.host_ip_dict.values()))
+    self.ui.CallJSFunction('setBBNetworkStatus', bb_status)
     self.ui.CallJSFunction('setShopfloorNetworkStatus', shopfloor_status)
+
+    return (bool(self.host_ip_dict) and
+            (not self.use_shopfloor or shopfloor_status) and
+            (not self.sensors_ip or bb_status))
 
   def DriveProbeDown(self, unused_event=None):
     """A wrapper to drive the probe down."""
@@ -440,14 +483,14 @@ class TouchscreenCalibration(unittest.TestCase):
     # Get data based on the category, i.e., REFS or DELTAS.
     data = self.sensors.Read(category)
     self.ui.CallJSFunction('displayDebugData', json.dumps(data))
-    factory.console.info('%s: get %s data: %s', phase, category, data)
+    factory.console.debug('%s: get %s data: %s', phase, category, data)
     time.sleep(1)
 
     # Verifies whether the sensor data is good or not by the verify_method.
     self.test_pass, failed_sensors, min_value, max_value = verify_method(data)
     factory.console.info('Invoked verify_method: %s', verify_method.func_name)
     for sensor in failed_sensors:
-      factory.console.info('Failed sensor at (%d, %d) value %d', *sensor)
+      factory.console.debug('Failed sensor at (%d, %d) value %d', *sensor)
     factory.console.info('Number of failed sensors: %d', len(failed_sensors))
     factory.console.info('(min, max): (%d, %d)', min_value, max_value)
 
@@ -485,19 +528,22 @@ class TouchscreenCalibration(unittest.TestCase):
     if not self._CheckSerialNumber(sn):
       return
 
-    if phase == 'PHASE_REFS':
+    if phase == self.PHASE_SETUP_ENVIRONMENT:
+      self._SetupEnvironment()
+
+    elif phase == self.PHASE_REFS:
       # Dump one frame of the baseline refs data before the probe touches the
       # panel, and verify the uniformity.
       self._ReadAndVerifySensorData(
           sn, phase, self.REFS, self.sensors.VerifyRefs)
 
-    elif phase == 'PHASE_DELTAS_UNTOUCHED':
+    elif phase == self.PHASE_DELTAS_UNTOUCHED:
       # Dump delta values a few times before the probe touches the panel.
       for _ in range(self.dump_frames):
         self._ReadAndVerifySensorData(
             sn, phase, self.DELTAS, self.sensors.VerifyDeltasUntouched)
 
-    elif phase == 'PHASE_DELTAS_TOUCHED':
+    elif phase == self.PHASE_DELTAS_TOUCHED:
       # Dump delta values after the probe has touched the panel.
       # This test involves controlling the test fixture.
       self._CheckFixtureStateUp()
@@ -681,12 +727,12 @@ class TouchscreenCalibration(unittest.TestCase):
     if dev_path is None:
       # Temp hack to determine it is sdb or sdc
       dev_path = '/dev/sdb' if os.path.exists('/dev/sdb1') else '/dev/sdc'
+    self.dev_path = dev_path
+    self.dump_frames = dump_frames
 
     os.environ['DISPLAY'] = ':0'
     self.start_time = self._GetTime()
 
-    self.dev_path = dev_path
-    self.dump_frames = dump_frames
     self._CheckMountedMedia()
 
     self._RegisterEvents([

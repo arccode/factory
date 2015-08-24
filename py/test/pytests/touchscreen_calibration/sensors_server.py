@@ -413,9 +413,10 @@ class SensorServiceRyu(BaseSensorService):
 
   def InstallTool(self):
     """Install f54test tool on the target machine.."""
+    if self._CheckTool():
+      return True
     self.dut.Call('mount -o remount,rw ' + self.remote_system_dir)
-    return (self._CheckTool() or
-            utils.IsSuccessful(self.dut.Push(self.tool_src, self.tool_dst)))
+    return utils.IsSuccessful(self.dut.Push(self.tool_src, self.tool_dst))
 
   def CalibrateBaseline(self):
     """Do baseline calibraiton."""
