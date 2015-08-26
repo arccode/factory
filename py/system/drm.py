@@ -508,22 +508,25 @@ class DRM(object):
 
   @property
   def resources(self):
-    ret = _GetDRMLibrary().drmModeGetResources(self.fd).contents
-    ret.fd = self.fd
-    ret.need_free = True
-    return ret
+    resources_ptr = _GetDRMLibrary().drmModeGetResources(self.fd)
+    if resources_ptr and resources_ptr.contents.count_connectors:
+      ret = resources_ptr.contents
+      ret.fd = self.fd
+      ret.need_free = True
+      return ret
+    return None
 
 
-def DRMFromMinor(minor):
-  """Opens the DRM device from minor device number.
+def DRMFromPath(path):
+  """Opens the DRM device from path.
 
   Args:
-    minor: the minor device number.
+    path: the path of minor node.
 
   Returns:
     A DRM instance.
   """
-  return DRM(open('/dev/dri/card%d' % minor))
+  return DRM(open(path))
 
 
 def _LoadDRMLibrary():

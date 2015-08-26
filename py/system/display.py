@@ -5,6 +5,7 @@
 
 from __future__ import print_function
 
+import glob
 import re
 
 from PIL import Image
@@ -61,7 +62,14 @@ def GetPortInfo():
   ports = {}
 
   if utils.IsFreon():
-    d = drm.DRMFromMinor(0)
+    d = None
+    for p in sorted(glob.glob('/dev/dri/*')):
+      d = drm.DRMFromPath(p)
+      if d.resources:
+        break
+    else:
+      raise DisplayError('Can\'t find suitable DRM devices')
+
     for connector in d.resources.connectors:
       port_info = PortInfo(
           connected=(connector.status == 'connected'))
