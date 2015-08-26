@@ -430,9 +430,11 @@ class DetectRSSIofTargetMACTask(FactoryTask):
       self._progress_thread = SetAndStartScanProgressBar(self._test.template,
                                                          self._timeout_secs,
                                                          self._scan_rssi_event)
+
       devices = bluetooth_manager.ScanDevices(adapter,
                                               timeout_secs=self._timeout_secs,
                                               match_address=self._mac_to_scan)
+
       self._scan_rssi_event.set()
       self._progress_thread.join()
       for mac, props in devices.iteritems():
@@ -509,9 +511,10 @@ class UnpairTask(FactoryTask):
       self.Pass()
 
 
-def _ExecuteFixtureMethod(fixture, operation, sleep_secs=0.2):
+def _ExecuteFixtureMethod(fixture, operation):
   """Execute a method of the charge test fixture."""
-  # An operation is mapped to a method name in BaseChargeFixture class.
+  # An operation is mapped to its corresponding fixture method defined in
+  # base_charge_fixture.BaseChargeFixture class.
   FIXTURE_METHOD_DICT = {'START_CHARGING': 'StartCharging',
                          'STOP_CHARGING': 'StopCharging',
                          'ENABLE_MAGNET': 'EnableMagnet',
@@ -519,9 +522,6 @@ def _ExecuteFixtureMethod(fixture, operation, sleep_secs=0.2):
   fixture_method = getattr(fixture, FIXTURE_METHOD_DICT.get(operation))
   factory.console.info('Executing fixture method: %s', fixture_method.__name__)
   fixture_method()
-  if sleep_secs > 1:
-    factory.console.info('sleep %.2f seconds', sleep_secs)
-  time.sleep(sleep_secs)
 
 
 class FixtureControlTask(FactoryTask):
@@ -529,18 +529,15 @@ class FixtureControlTask(FactoryTask):
 
   Args:
     operation: the operation to be performed by the test fixture.
-    sleep_secs: the time interval to sleep after executing the fixture method
   """
 
-  def __init__(self, test, operation, sleep_secs=0.2):  # pylint: disable=W0231
+  def __init__(self, test, operation):  # pylint: disable=W0231
     self._fixture = test.fixture
     self._operation = operation
-    self._sleep_secs = sleep_secs
 
   def Run(self):
     try:
-      _ExecuteFixtureMethod(self._fixture, self._operation,
-                            sleep_secs=self._sleep_secs)
+      _ExecuteFixtureMethod(self._fixture, self._operation)
       self.Pass()
     except Exception as e:
       self.Fail('error in executing %s (%s)' % (self._operation, e))
@@ -561,6 +558,9 @@ class ReadBatteryLevelTask(FactoryTask):
     self._test.template.SetState(self.MSG_DICT.get(self._step))
 
     if self._test.args.use_charge_fixture:
+      # Disable the magnet before enabling it is required since it is possible
+      # that the magnet is left on in the previous test.
+      _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
       _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
 
     factory.console.info('Begin reading battery level...')
@@ -1044,8 +1044,6 @@ class BluetoothTest(unittest.TestCase):
       if self.args.use_charge_fixture:
         self._task_list.append(FixtureControlTask(self, 'ENABLE_MAGNET'))
       self._task_list.append(InputTestTask(self, self.args.finish_after_pair))
-      if self.args.use_charge_fixture:
-        self._task_list.append(FixtureControlTask(self, 'DISABLE_MAGNET'))
 
     if self.args.read_battery_level == 2:
       self._task_list.append(
