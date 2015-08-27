@@ -67,16 +67,19 @@ class RaidenCCFlipCheck(unittest.TestCase):
     self._board = system.GetBoard()
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')
-    if self._adb_remote_test:
-      # For remote test, keep adb connection enabled.
-      self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
-      # ADB connection is unstable for a while after Plankton switches datarole.
-      # dut.IsReady() doesn't guarantee the connection so we wait for a while.
-      time.sleep(_ADB_RECOVER_WAIT_SECS)
-    else:
-      self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
-    time.sleep(1)  # Wait for PD negotiate and settle down
+    if not self._bft_fixture.IsParallelTest():
+      # No preparation is required for parallel test.
+      if self._adb_remote_test:
+        # For remote test, keep adb connection enabled.
+        self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
+        # ADB connection is unstable for a while after Plankton switches datarole.
+        # dut.IsReady() doesn't guarantee the connection so we wait for a while.
+        time.sleep(_ADB_RECOVER_WAIT_SECS)
+      else:
+        self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
+      time.sleep(1)  # Wait for PD negotiate and settle down
     self._polarity = self.GetCCPolarity()
+    logging.info('Initial polarity: %s', self._polarity)
 
   def GetCCPolarity(self):
     """Gets enabled CC line for raiden port arg.raiden_index.
@@ -87,8 +90,8 @@ class RaidenCCFlipCheck(unittest.TestCase):
     port_status = self._board.GetUSBPDStatus(self.args.raiden_index)
     # For newer version EC, port_status[state] will return string instead of
     # state number.
-    if self._adb_remote_test:
-      # For remote test, just feedback polarity.
+    if self._adb_remote_test or self._bft_fixture.IsParallelTest():
+      # For remote or parallel test, just feedback polarity.
       return port_status['polarity']
     if (port_status['state'] == self.args.state_src_ready or
         port_status['state'] == 'SRC_READY'):
@@ -118,7 +121,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
       self._ui.Fail('DUT does not detect cable flipped. Was it really flipped?')
 
   def runTest(self):
-    if self._polarity != self.args.original_enabled_cc:
+    if self._polarity != self.args.original_enabled_cc and not self._bft_fixture.IsDoubleCCCable():
       self.fail('Original polarity is wrong (expect: %s, got: %s). '
                 'Does Raiden cable connect in correct direction?' %
                 (self.args.original_enabled_cc, self._polarity))

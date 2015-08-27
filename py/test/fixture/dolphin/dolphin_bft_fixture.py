@@ -103,6 +103,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     self._use_proxy = False
     self._raiden_index = None
     self._parallel_test = False
+    self._double_cc_cable = False
 
   def Init(self, **port_params):
     """Initializes Dolphin fixture connection.
@@ -131,6 +132,8 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
               range for physical USB port location, e.g. 1-1.
           - parallel_test: When enabled, do not SetDefault at the beginning
             and the end to avoid interfering concurrent tests.
+          - double_cc_cable: When enabled, double CC USB Type-C is used to save
+            operators' effort on manually flipping the cable during testing.
 
     Raises:
       BFTFixtureException: Can't detect tty* serial port for Plankton.
@@ -178,6 +181,9 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
 
     if 'parallel_test' in port_params:
       self._parallel_test = port_params['parallel_test']
+
+    if 'double_cc_cable' in port_params:
+      self._double_cc_cable = port_params['double_cc_cable']
 
     print 'connect to ' + serial_params['port']
     self._plankton_conn = serial_utils.SerialDevice()
@@ -271,6 +277,15 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       flip_wait_secs: Wait interval in seconds before mux flip.
     """
     self.SetDeviceEngaged('USB3', 'set mux flip')
+    time.sleep(flip_wait_secs)
+    self._Send('usbc_action flip', 'set mux flip')
+
+  def SetMuxFlip(self, flip_wait_secs):
+    """Flips MUX.
+
+    Args:
+      flip_wait_secs: Wait interval in seconds before mux flip.
+    """
     time.sleep(flip_wait_secs)
     self._Send('usbc_action flip', 'set mux flip')
 
@@ -396,6 +411,22 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       return int(read_value[0])
     else:
       raise bft_fixture.BFTFixtureException('Cannot get gpio %s value' % gpio)
+
+  def IsParallelTest(self):
+    """Checks if parallel test is enabled or not.
+
+    Returns:
+      True for enabled; False for disabled.
+    """
+    return self._parallel_test
+
+  def IsDoubleCCCable(self):
+    """Checks if double CC cable is used or not.
+
+    Returns:
+      True if in use; False if not in use.
+    """
+    return self._double_cc_cable
 
   def _I2CWrite(self, reg_address, value):
     """Writes IO expander register through I2C interface.
