@@ -370,7 +370,9 @@ class ScanDevicesTask(FactoryTask):
       self.Pass()
     elif self._average_rssi_threshold > max_average_rssi:
       factory.console.error('The largest average RSSI %f does not meet'
-                            ' threshold %f.',
+                            ' threshold %f. Please ensure that the test BT '
+                            'device is \'visible\' and close to the DUT '
+                            'antenna.',
                             max_average_rssi, self._average_rssi_threshold)
       self.Fail('ScanDeviceTask: The largest average RSSI %f of device %s does'
                 ' not meet threshold %f.' % (
