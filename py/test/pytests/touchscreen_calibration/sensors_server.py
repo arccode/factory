@@ -384,7 +384,16 @@ class SensorServiceRyu(BaseSensorService):
 
   On Ryu, the sensor data are provided by a user-level program f54test.
   """
-  REPORT_TYPE = {'deltas': 2, 'refs': 3}
+  # Refer to the vendor developer guide for details of the various report types.
+  REPORT_TYPE = {'deltas': 2, 'refs': 3,
+                 'trx_opens': 24, 'trx_gnd_shorts': 25, 'trx-shorts': 26}
+  EXPECTED_VALUES = {
+      'trx_opens':
+          [0x00, 0x00, 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f, 0x00, 0x00],
+      'trx_gnd_shorts':
+          [0x00, 0x00, 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f, 0x00, 0x00],
+      'trx-shorts':
+          [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]}
 
   def __init__(self, ip, dut, remote_system_dir='', tool='', log=None):
     super(SensorServiceRyu, self).__init__(RYU, log=log)
@@ -393,12 +402,10 @@ class SensorServiceRyu(BaseSensorService):
     self.remote_system_dir = remote_system_dir
     self.tool = tool
     self.remote_tool_bin_dir = os.path.join(self.remote_system_dir, 'bin')
-    self.num_rows = None
-    self.num_cols = None
     self.tool_src = os.path.join(os.path.dirname(__file__),
                                  'boards', self.board, self.tool)
     self.tool_dst = os.path.join(self.remote_tool_bin_dir, self.tool)
-    self.read_cmd_prefix = '%s --no_reset -r ' % self.tool_dst
+    self.read_cmd_prefix = '%s -r ' % self.tool_dst
     self.check_cmd = 'test -e ' + self.tool_dst
 
     if self.InstallTool():
@@ -406,6 +413,10 @@ class SensorServiceRyu(BaseSensorService):
     else:
       self.log.error('Failed to install the tool: %s' % self.tool)
       self.log.error('Restart the test to try again!')
+
+    self.num_rows = None
+    self.num_cols = None
+    self.Read('deltas')
 
   def _CheckTool(self):
     """Check if the tool exists in the DUT."""
@@ -428,7 +439,10 @@ class SensorServiceRyu(BaseSensorService):
     Returns:
       True if could read sensor deltas values.
     """
-    return len(self.Read('deltas')) > 0
+    if self.num_rows is None or self.num_cols is None:
+      return None
+    else:
+      return (self.num_rows, self.num_cols)
 
   def _ReadRawData(self, category):
     """Read the output from dut.Shell()."""
@@ -477,6 +491,70 @@ class SensorServiceRyu(BaseSensorService):
     touched_cols = range(self.num_cols)
     return super(SensorServiceRyu, self)._VerifyDeltasTouched(data,
                                                               touched_cols)
+
+  def ReadTRx(self, category):
+    """Read TRx test data.
+
+    Report type 24: TRx opens.
+    Report type 25: TRx-Gnd shorts.
+    Report type 26: TRx shorts.
+    Refer to the vendor's developer guide for details.
+
+    Args:
+      category: correspoding to the report type of f54test
+
+    Returns:
+      a list of bytes
+    """
+    out_data = []
+    for line in self._ReadRawData(category).splitlines():
+      if ':' in line:
+        _, value_str = line.split(':')
+        out_data.append(int(value_str, 16))
+    return out_data
+
+  def VerifyTRx(self, data, category):
+    """Condcut TRx open/short tests.
+
+    Report type 24: TRx opens. All bits should read '1' to pass.
+    Report type 25: TRx-Gnd shorts. All bits should read '1' to pass.
+    Report type 26: TRx shorts. All bits should read '0' to pass.
+
+    The correct output of the report types 24 and 25 should look like
+    000: 0x00
+    001: 0x00
+    002: 0xfc
+    003: 0xff
+    004: 0xff
+    005: 0xff
+    006: 0xff
+    007: 0xff
+    008: 0x1f
+    009: 0x00
+    010: 0x00
+
+    The correct output of the report type 26 should look like
+    000: 0x00
+    001: 0x00
+    002: 0x00
+    003: 0x00
+    004: 0x00
+    005: 0x00
+    006: 0x00
+    007: 0x00
+    008: 0x00
+    009: 0x00
+    010: 0x00
+
+    Refer to the vendor's developer guide for details.
+
+    Returns:
+      True if the data are legitimate.
+    """
+    expected_values = self.EXPECTED_VALUES.get(category)
+    if expected_values is None:
+      raise Error('The "%s" is not supported in EXPECTED_VALUES.' % category)
+    return data == expected_values
 
   def PostTest(self):
     """A method to invoke after conducting the test.

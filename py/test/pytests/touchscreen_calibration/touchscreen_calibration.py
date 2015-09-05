@@ -66,11 +66,17 @@ class TouchscreenCalibration(unittest.TestCase):
 
   DELTAS = 'deltas'
   REFS = 'refs'
+  TRX_OPENS = 'trx_opens'
+  TRX_GND_SHORTS = 'trx_gnd_shorts'
+  TRX_SHORTS = 'trx-shorts'
 
   PHASE_SETUP_ENVIRONMENT = 'PHASE_SETUP_ENVIRONMENT'
   PHASE_REFS = 'PHASE_REFS'
   PHASE_DELTAS_UNTOUCHED = 'PHASE_DELTAS_UNTOUCHED'
   PHASE_DELTAS_TOUCHED = 'PHASE_DELTAS_TOUCHED'
+  PHASE_TRX_OPENS = 'PHASE_TRX_OPENS'
+  PHASE_TRX_GND_SHORTS = 'PHASE_TRX_GND_SHORTS'
+  PHASE_TRX_SHORTS = 'PHASE_TRX_SHORTS'
 
   ARGS = [
       Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
@@ -109,6 +115,9 @@ class TouchscreenCalibration(unittest.TestCase):
     self.summary_file = None
     self.test_pass = None
     self.min_max_msg = None
+    self.num_tx = 0
+    self.num_rx = 0
+    self.touchscreen_status = False
 
   def _ReadConfig(self):
     self.config = sensors_server.TSConfig(self._board)
@@ -283,7 +292,9 @@ class TouchscreenCalibration(unittest.TestCase):
     if self.args.phase == self.PHASE_SETUP_ENVIRONMENT:
       self.touchscreen_status = False
       try:
-        if self.sensors.CheckStatus():
+        result = self.sensors.CheckStatus()
+        if result is not None:
+          self.num_tx, self.num_rx = result
           self.touchscreen_status = True
           factory.console.info('touchscreen exists')
         else:
@@ -292,9 +303,14 @@ class TouchscreenCalibration(unittest.TestCase):
         factory.console.info('Exception at refreshing touch screen: %s', e)
       finally:
         factory.set_shared_data('touchscreen_status', self.touchscreen_status)
+        factory.set_shared_data('num_tx', self.num_tx)
+        factory.set_shared_data('num_rx', self.num_rx)
     else:
       self.touchscreen_status = factory.get_shared_data('touchscreen_status')
+      self.num_tx = factory.get_shared_data('num_tx')
+      self.num_rx = factory.get_shared_data('num_rx')
 
+    factory.console.info('tx = %d, rx = %d', self.num_tx, self.num_rx)
     self.ui.CallJSFunction('setTouchscreenStatus', self.touchscreen_status)
     self.GetSerialNumber()
 
@@ -460,8 +476,11 @@ class TouchscreenCalibration(unittest.TestCase):
     """Writes the sensor data and the test result to a file."""
     logger.write('%s: %s %s\n' % (phase, sn, 'Pass' if test_pass else 'Fail'))
     for row in data:
-      logger.write(' '.join([str(val) for val in row]))
-      logger.write('\n')
+      if isinstance(row, collections.Iterable):
+        logger.write(' '.join([str(val) for val in row]))
+        logger.write('\n')
+      else:
+        logger.write('%s\n' % str(row))
     self._WriteLog(sn, logger.getvalue())
 
   def _GetTime(self):
@@ -478,6 +497,37 @@ class TouchscreenCalibration(unittest.TestCase):
       self.ui.CallJSFunction('showMessage', 'Wrong serial number! 序号错误!')
       return False
     return True
+
+  def _ReadAndVerifyTRxData(self, sn, phase, category, verify_method):
+    # Get data based on the category, i.e., REFS or DELTAS.
+    data = self.sensors.ReadTRx(category)
+    self.ui.CallJSFunction('displayDebugData', json.dumps(data))
+    factory.console.debug('%s: get %s data: %s', phase, category, data)
+    time.sleep(1)
+
+    # Verifies whether the sensor data is good or not by the verify_method.
+    self.test_pass = verify_method(data, category)
+    factory.console.info('Invoked verify_method: %s', verify_method.func_name)
+
+    # Write the sensor data and the test result to USB stick, the UI,
+    # and also to the shop floor.
+    log_to_file = StringIO.StringIO()
+    self._WriteSensorDataToFile(log_to_file, sn, phase, self.test_pass, data)
+    self.log('touchscreen_calibration', sn=sn, phase=phase,
+             test_pass=self.test_pass, sensor_data=str(data))
+    result = 'pass' if self.test_pass else 'fail'
+    log_name = '%s_%s_%s_%s' % (sn, self.start_time, phase, result)
+    self._UploadLog(log_name, str(data))
+    self.summary_file = 'summary_%s.txt' % sn
+    self._WriteLog(self.summary_file, '%s: %s (%s) (time: %s)\n' %
+                   (sn, result, phase, self._GetTime()))
+    with open(os.path.join(self._local_log_dir, self.summary_file)) as f:
+      self._UploadLog(self.summary_file, f.read())
+
+    if self.test_pass:
+      self.ui.Pass()
+    else:
+      self.ui.Fail('%s failed' % phase)
 
   def _ReadAndVerifySensorData(self, sn, phase, category, verify_method):
     # Get data based on the category, i.e., REFS or DELTAS.
@@ -542,6 +592,21 @@ class TouchscreenCalibration(unittest.TestCase):
       for _ in range(self.dump_frames):
         self._ReadAndVerifySensorData(
             sn, phase, self.DELTAS, self.sensors.VerifyDeltasUntouched)
+
+    elif phase == self.PHASE_TRX_OPENS:
+      # Read the TRx test data and verify the test result.
+      self._ReadAndVerifyTRxData(sn, phase, self.TRX_OPENS,
+                                 self.sensors.VerifyTRx)
+
+    elif phase == self.PHASE_TRX_GND_SHORTS:
+      # Read the TRx test data and verify the test result.
+      self._ReadAndVerifyTRxData(sn, phase, self.TRX_GND_SHORTS,
+                                 self.sensors.VerifyTRx)
+
+    elif phase == self.PHASE_TRX_SHORTS:
+      # Read the TRx test data and verify the test result.
+      self._ReadAndVerifyTRxData(sn, phase, self.TRX_SHORTS,
+                                 self.sensors.VerifyTRx)
 
     elif phase == self.PHASE_DELTAS_TOUCHED:
       # Dump delta values after the probe has touched the panel.
