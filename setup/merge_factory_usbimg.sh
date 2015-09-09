@@ -142,7 +142,8 @@ main() {
   [ -z "$force" ] || rm -f "$output"
 
   # Reset trap here to check whether output file is generated or not.
-  trap 'check_output_on_exit $output' EXIT
+  # Use double quote to expand the local variable ${output} now.
+  trap "check_output_on_exit ${output}" EXIT
   merge_images "$output" "$@"
   generate_lsb "$output"
 }
