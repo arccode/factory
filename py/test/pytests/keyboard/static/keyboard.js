@@ -252,6 +252,13 @@ function failTest(failMsg) {
 }
 
 /**
+ * Fails the test due to timeout.
+ */
+function failTestTimeout() {
+  window.keyboardTest.failTestTimeout();
+}
+
+/**
  * Appends en span and zh span to the input element.
  * @param {Element} div the element we to which we want to append spans.
  * @param {string} en the English text to append.
