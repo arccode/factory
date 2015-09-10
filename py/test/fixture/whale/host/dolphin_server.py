@@ -33,7 +33,7 @@ PLANKTON_SERIAL_PARAMS = {'driver': 'ftdi_sio',
 
 PLANKTON_CONN_PORT = {'whale_samus': ['1-1.3.2',  # left raiden
                                       '1-1.2.4'],  # right raiden
-                      'whale_ryu': ['1-1.2.4']}  # right raiden
+                      'whale_ryu': ['1-1.4']}  # right raiden
 
 
 def ParseArgs():
