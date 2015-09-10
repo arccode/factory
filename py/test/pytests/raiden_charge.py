@@ -27,7 +27,9 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 _TEST_TITLE = test_ui.MakeLabel('Raiden Charging Test', u'Raiden 充电测试')
 _TESTING_ADB_CONNECTION = test_ui.MakeLabel(
@@ -42,8 +44,6 @@ _TESTING_CHARGE = lambda v: test_ui.MakeLabel(
 _TESTING_DISCHARGE = test_ui.MakeLabel('Testing battery discharging...',
                                        u'测试电池放电中...')
 _CSS = 'body { font-size: 2em; }'
-
-_ADB_RECOVER_WAIT_SECS = 3
 
 
 class RaidenChargeBFTTest(unittest.TestCase):
@@ -111,7 +111,11 @@ class RaidenChargeBFTTest(unittest.TestCase):
       Arg('ina_voltage_tolerance', float,
           'Tolerance ratio for Plankton INA voltage compared to expected '
           'charging voltage',
-          default=0.12)
+          default=0.12),
+      Arg('monitor_plankton_voltage_only', bool,
+          'If set True, it would only check Plankton INA voltage whether as '
+          'expected (not check DUT side)',
+          default=False)
   ]
 
   _SUPPORT_CHARGE_VOLT = [5, 12, 20]  # supported charging voltage
@@ -128,10 +132,13 @@ class RaidenChargeBFTTest(unittest.TestCase):
     self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')
     if self._adb_remote_test:
       self._template.SetState(_TESTING_ADB_CONNECTION)
+      self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
 
   def tearDown(self):
     if self._adb_remote_test:
-      self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=False)
+      # Set back the state of ADB-connected before leaving test. It can make
+      # sequential tests smoother by reducing ADB connection wait time.
+      self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
     self._bft_fixture.Disconnect()
 
   def VerifyArgs(self):
@@ -203,6 +210,32 @@ class RaidenChargeBFTTest(unittest.TestCase):
     logging.info('Sampled ina voltage: %s', str(sampled_ina_voltage))
     return (sampled_battery_current, sampled_ina_current, sampled_ina_voltage)
 
+  def MonitorINAVoltage(self, timeout_secs, testing_volt):
+    """Polls Plankton INA voltage until it reaches the expected voltage.
+
+    Args:
+      timeout_secs: The duration of polling interval in seconds.
+      testing_volt: The testing voltage in V.
+
+    Returns:
+      True if voltage meets as expected during polling cycle; otherwise False.
+    """
+    tolerance = testing_volt * 1000 * self.args.ina_voltage_tolerance
+    def _PollINAVoltage():
+      ina_voltage = self._bft_fixture.ReadINAValues()['voltage']
+      logging.info('Monitored ina voltage: %d', ina_voltage)
+      return abs(ina_voltage - testing_volt * 1000.0) <= tolerance
+
+    try:
+      sync_utils.WaitFor(_PollINAVoltage, timeout_secs,
+                         self.args.current_sampling_period_secs)
+      return True
+    except type_utils.TimeoutError:
+      ina_voltage = self._bft_fixture.ReadINAValues()['voltage']
+      factory.console.error('Expected voltage: %d mV, got: %d mV',
+                            testing_volt * 1000, ina_voltage)
+      return False
+
   def Check5VINACurrent(self):
     """Checks if Plankton INA is within range for charge-5V.
 
@@ -257,24 +290,15 @@ class RaidenChargeBFTTest(unittest.TestCase):
 
     self._template.SetState(_TESTING_CHARGE(testing_volt))
 
-    if self._adb_remote_test and testing_volt > 5:
-      # It's easy to fail for device and Plankton to negotitate from 5v to high
-      # volatge stage. We intend to set Plankton to device mode first and go
-      # high voltage mode directly.
-      self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=False)
-      time.sleep(1)
-
     # Plankton-Raiden board setting: engage
     self._bft_fixture.SetDeviceEngaged(command_device, engage=True)
 
-    if self._adb_remote_test:
-      # ADB connection is unstable for a while after Plankton switches datarole.
-      # dut.IsReady() doesn't guarantee the connection so we wait for a while.
-      time.sleep(_ADB_RECOVER_WAIT_SECS)
-      if testing_volt > 5:
-        # Additional wait time is needed for Plankton switching from device mode
-        # to charging high voltage mode.
-        time.sleep(2)
+    if self.args.monitor_plankton_voltage_only:
+      if not self.MonitorINAVoltage(self.args.charge_duration_secs,
+                                    testing_volt):
+        raise factory.FactoryTestFailure(
+            'INA voltage did not meet the expected one.')
+      return
 
     (sampled_battery_current, sampled_ina_current, sampled_ina_voltage) = (
         self.SampleCurrentAndVoltage(self.args.charge_duration_secs,
@@ -310,6 +334,12 @@ class RaidenChargeBFTTest(unittest.TestCase):
     logging.info('Testing discharge...')
     self._template.SetState(_TESTING_DISCHARGE)
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=False)
+
+    if self.args.monitor_plankton_voltage_only:
+      if not self.MonitorINAVoltage(self.args.charge_duration_secs, 5):
+        raise factory.FactoryTestFailure(
+            'INA voltage did not meet the expected one.')
+      return
 
     if self._adb_remote_test:
       (_, sampled_ina_current, sampled_ina_voltage) = (

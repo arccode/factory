@@ -37,8 +37,6 @@ _ID_COUNTDOWN_DIV = 'countdown_div'
 _STATE_HTML = '<div id="%s"></div><div id="%s"></div>' % (
     _ID_OPERATION_DIV, _ID_COUNTDOWN_DIV)
 
-_ADB_RECOVER_WAIT_SECS = 3
-
 
 class RaidenCCFlipCheck(unittest.TestCase):
   """Raiden CC line polarity check and operation flip test."""
@@ -72,9 +70,6 @@ class RaidenCCFlipCheck(unittest.TestCase):
       if self._adb_remote_test:
         # For remote test, keep adb connection enabled.
         self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
-        # ADB connection is unstable for a while after Plankton switches datarole.
-        # dut.IsReady() doesn't guarantee the connection so we wait for a while.
-        time.sleep(_ADB_RECOVER_WAIT_SECS)
       else:
         self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
       time.sleep(1)  # Wait for PD negotiate and settle down
