@@ -71,6 +71,7 @@ class SystemInfo(object):
   # The cached release image version and channel.
   release_image_version = None
   release_image_channel = None
+  allowed_release_channels = ['dev', 'beta', 'stable']
 
   def __init__(self):
     self.mlb_serial_number = None

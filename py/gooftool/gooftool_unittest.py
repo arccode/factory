@@ -532,15 +532,44 @@ class GooftoolTest(unittest.TestCase):
     self.mox.ReplayAll()
     self._gooftool.VerifyReleaseChannel()
 
+  def testVerifyReleaseChannel_DevChannelFailed(self):
+    SystemInfo.release_image_channel = 'dev-channel'
+    enforced_channels = ['stable', 'beta']
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(Error,
+                            'Release image channel is incorrect: %s' % (
+                                SystemInfo.release_image_channel),
+                            self._gooftool.VerifyReleaseChannel,
+                            enforced_channels)
+
   def testVerifyReleaseChannel_BetaChannel(self):
     SystemInfo.release_image_channel = 'beta-channel'
     self.mox.ReplayAll()
     self._gooftool.VerifyReleaseChannel()
 
+  def testVerifyReleaseChannel_BetaChannelFailed(self):
+    SystemInfo.release_image_channel = 'beta-channel'
+    enforced_channels = ['stable']
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(Error,
+                            'Release image channel is incorrect: %s' % (
+                                SystemInfo.release_image_channel),
+                            self._gooftool.VerifyReleaseChannel,
+                            enforced_channels)
+
   def testVerifyReleaseChannel_StableChannel(self):
     SystemInfo.release_image_channel = 'stable-channel'
     self.mox.ReplayAll()
     self._gooftool.VerifyReleaseChannel()
+
+  def testVerifyReleaseChannel_InvalidEnforcedChannels(self):
+    SystemInfo.release_image_channel = 'stable-channel'
+    enforced_channels = ['canary']
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(Error,
+                            r'Enforced channels are incorrect: \[\'canary\'\].',
+                            self._gooftool.VerifyReleaseChannel,
+                            enforced_channels)
 
   def testCheckDevSwitchForDisabling(self):
     # 1st call: virtual switch

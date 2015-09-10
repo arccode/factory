@@ -133,5 +133,6 @@ def GRT(args):
               min_charge_pct=args.grt_finalize_battery_min_pct,
               hwid_version=3,
               sync_event_logs=args.enable_flush_event_logs,
-              waive_tests=args.grt_waive_tests
+              waive_tests=args.grt_waive_tests,
+              enforced_release_channels=args.grt_enforced_release_channels
           ))

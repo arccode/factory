@@ -116,6 +116,10 @@ class Finalize(unittest.TestCase):
           'False for legacy implementation to invoke wiping under '
           'release image after reboot.',
           default=False, optional=True),
+      Arg('enforced_release_channels', list,
+          'A list of string indicating the enforced release image channels. '
+          'Each item should be one of "dev", "beta" or "stable".',
+          default=None, optional=True),
       ]
 
   def setUp(self):
@@ -401,6 +405,11 @@ class Finalize(unittest.TestCase):
     if self.args.is_cros_core:
       command += ' --cros_core'
       logging.info('ChromeOS Core device. Skip some check.')
+    if self.args.enforced_release_channels:
+      command += ' --enforced_release_channels %s' % (
+          ' '.join(self.args.enforced_release_channels))
+      logging.info(
+          'Enforced release channels: %s.', self.args.enforced_release_channels)
 
     gooftools.run(command)
 

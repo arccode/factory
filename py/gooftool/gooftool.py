@@ -134,6 +134,10 @@ _hwid_version_cmd_arg = CmdArg(
     '-i', '--hwid-version', default=3, choices=(2, 3), type=int,
     help='Version of HWID to operate on. (default: %(default)s)')
 
+_enforced_release_channels_cmd_arg = CmdArg(
+    '--enforced_release_channels', nargs='*', default=None,
+    help='Enforced release image channels.')
+
 
 @Command('best_match_hwids',
          _hwdb_path_cmd_arg,
@@ -577,7 +581,8 @@ def VerifyBranding(options):  # pylint: disable=W0613
   return GetGooftool(options).VerifyBranding()
 
 
-@Command('verify_release_channel')
+@Command('verify_release_channel',
+         _enforced_release_channels_cmd_arg)
 def VerifyReleaseChannel(options):  # pylint: disable=W0613
   """Verify that release image channel is correct.
 
@@ -585,7 +590,8 @@ def VerifyReleaseChannel(options):  # pylint: disable=W0613
   The last three channels support image auto-updates, checks
   that release image channel is one of them.
   """
-  return GetGooftool(options).VerifyReleaseChannel()
+  return GetGooftool(options).VerifyReleaseChannel(
+      options.enforced_release_channels)
 
 
 @Command('write_protect')
@@ -692,7 +698,8 @@ def PrepareWipe(options):
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
-         _cros_core_cmd_arg)
+         _cros_core_cmd_arg,
+         _enforced_release_channels_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
 
@@ -871,7 +878,8 @@ def UploadReport(options):
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
-         _cros_core_cmd_arg)
+         _cros_core_cmd_arg,
+         _enforced_release_channels_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 

@@ -339,6 +339,11 @@ class TestListArgs(object):
     # Assume battery will discharge at most 12% during FATP testing.
     return self.run_in_blocking_charge_pct - 12
 
+  # Enforce release channel to be 'stable' in PVT phase.
+  @property
+  def grt_enforced_release_channels(self):
+    return ['stable'] if self.phase == 'PVT' else None
+
   # Serial number format. This is used in RunIn.ShopFloor.Scan test as well.
   grt_serial_number_format = r'.+'
 
