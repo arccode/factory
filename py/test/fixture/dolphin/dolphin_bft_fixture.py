@@ -85,6 +85,10 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
 
   _WAIT_USB3_NEGOTIATE_SECS = 1  # Waits for USB3 signal negotiation.
 
+  _POLL_PD_MAX_RETRIES = 30  # Polls for PD state to SNK_READY or SRC_READY.
+  # Polls PD ready in consecutive duration.
+  _POLL_PD_MIN_CONSECUTIVE_READY_COUNT = 5
+
   # The devices IO-expander I2C addresses refer to are not in DUT.
   # _I2C_ADDR_MINI is for Dolphin Mini configuration which is reachable by USB
   #   serial.
@@ -237,6 +241,9 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
             time.sleep(self._WAIT_USB3_NEGOTIATE_SECS)
           self.SetDefault(action_str)
 
+    if device == self.Device.ADB_HOST:
+      self.SetPDDataRole('DFP' if engage else 'UFP')
+
   def Ping(self):
     """Uses 'version' command for pinging."""
     self._Send('version', 'ping device')
@@ -289,14 +296,39 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     time.sleep(flip_wait_secs)
     self._Send('usbc_action flip', 'set mux flip')
 
-  def SetPDDataRole(self, swap_data):
+  def SetPDDataRole(self, mode):
     """Sets PD state data role swap.
 
+    It needs to wait PD state to SNK_READY or SRC_READY first.
+
     Args:
-      swap_data: True for swapping to data; False for swapping to power.
+      mode: 'UFP' for swapping to UFP mode (device mode); 'DFP' for swapping
+          to DFP mode (host mode).
     """
-    role = 'data' if swap_data else 'power'
-    self._Send('pd 0 swap %s' % role, 'swap role to %s' % role)
+    if mode not in ['UFP', 'DFP']:
+      raise bft_fixture.BFTFixtureException('Unsupported mode %s' % mode)
+
+    DELAY_BEFORE_RETRY = 0.1
+    retries_left = self._POLL_PD_MAX_RETRIES
+    consecutive_ready_count = 0
+    while consecutive_ready_count < self._POLL_PD_MIN_CONSECUTIVE_READY_COUNT:
+      if 'READY' in self.GetPDState().get('state'):
+        consecutive_ready_count += 1
+      else:
+        # Need to get state ready in consecutive times.
+        consecutive_ready_count = 0
+      time.sleep(DELAY_BEFORE_RETRY)
+      retries_left -= 1
+      if retries_left <= 0:
+        raise bft_fixture.BFTFixtureException(
+            'Failed to wait PD state ready in %.1f seconds' % (
+                DELAY_BEFORE_RETRY * self._POLL_PD_MAX_RETRIES))
+
+    if self.GetPDState().get('datarole') == mode:
+      return
+
+    self._Send('pd 0 swap data', 'swap datarole to %s' % mode)
+    logging.info('Sending swap data to %s', mode)
 
   def SetGPIOValue(self, gpio, value):
     """Sets Plankton board GPIO value.
