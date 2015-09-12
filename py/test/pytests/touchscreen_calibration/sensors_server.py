@@ -395,39 +395,62 @@ class SensorServiceRyu(BaseSensorService):
       'trx-shorts':
           [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]}
 
-  def __init__(self, ip, dut, remote_system_dir='', tool='', log=None):
+  def __init__(self, ip, dut, remote_system_dir='', remote_data_dir='', tool='',
+               fw_update_tool='', hid_tool='', fw_file='', log=None):
     super(SensorServiceRyu, self).__init__(RYU, log=log)
     self.ip = ip
     self.dut = dut
     self.remote_system_dir = remote_system_dir
+    self.remote_data_dir = remote_data_dir
     self.tool = tool
-    self.remote_tool_bin_dir = os.path.join(self.remote_system_dir, 'bin')
-    self.tool_src = os.path.join(os.path.dirname(__file__),
-                                 'boards', self.board, self.tool)
-    self.tool_dst = os.path.join(self.remote_tool_bin_dir, self.tool)
-    self.read_cmd_prefix = '%s -r ' % self.tool_dst
-    self.check_cmd = 'test -e ' + self.tool_dst
+    self.fw_update_tool = fw_update_tool
+    self.hid_tool = hid_tool
+    self.fw_file = fw_file
 
-    if self.InstallTool():
-      self.log.info('Sucessfully installed the tool: %s' % self.tool)
+    self.remote_tool_bin_dir = os.path.join(self.remote_system_dir, 'bin')
+    self.src_dir = os.path.join(os.path.dirname(__file__), 'boards', self.board)
+    self.read_cmd_prefix = '%s -r ' % self._GetToolPath(tool)
+    self.check_cmd = 'test -e %s'
+
+    self.dut.Call('mount -o remount,rw ' + self.remote_system_dir)
+
+    if self.InstallFiles():
+      self.log.info('Sucessfully installed files.')
     else:
-      self.log.error('Failed to install the tool: %s' % self.tool)
-      self.log.error('Restart the test to try again!')
+      self.log.error('Failed to install files.')
 
     self.num_rows = None
     self.num_cols = None
     self.Read('deltas')
 
-  def _CheckTool(self):
-    """Check if the tool exists in the DUT."""
-    return utils.IsSuccessful(self.dut.Shell(self.check_cmd))
+  def _GetToolPath(self, filename):
+    """Return the filepath of a binary tool."""
+    return os.path.join(self.remote_tool_bin_dir, filename)
 
-  def InstallTool(self):
-    """Install f54test tool on the target machine.."""
-    if self._CheckTool():
+  def _GetDataPath(self, filename):
+    """Return the filepath of a data file."""
+    return os.path.join(self.remote_data_dir, filename)
+
+  def _CheckFileExistence(self, filepath):
+    """Check if the file exists in the DUT."""
+    return utils.IsSuccessful(self.dut.Shell(self.check_cmd % filepath))
+
+  def InstallFiles(self):
+    """Install the tools and the data file on the remote machine."""
+    return (self._InstallFile(self.remote_tool_bin_dir, self.tool) and
+            self._InstallFile(self.remote_tool_bin_dir, self.fw_update_tool) and
+            self._InstallFile(self.remote_tool_bin_dir, self.hid_tool) and
+            self._InstallFile(self.remote_data_dir, self.fw_file))
+
+  def _InstallFile(self, dst_dir, filename):
+    """Install the file on the remote machine."""
+    dst_filepath = os.path.join(dst_dir, filename)
+    # If the filename is '' or the dst_filepath already exists, just return.
+    if not filename or self._CheckFileExistence(dst_filepath):
       return True
-    self.dut.Call('mount -o remount,rw ' + self.remote_system_dir)
-    return utils.IsSuccessful(self.dut.Push(self.tool_src, self.tool_dst))
+
+    src_filepath = os.path.join(self.src_dir, filename)
+    return utils.IsSuccessful(self.dut.Push(src_filepath, dst_filepath))
 
   def CalibrateBaseline(self):
     """Do baseline calibraiton."""
@@ -555,6 +578,17 @@ class SensorServiceRyu(BaseSensorService):
     if expected_values is None:
       raise Error('The "%s" is not supported in EXPECTED_VALUES.' % category)
     return data == expected_values
+
+  def FlashFirmware(self):
+    """Flash a touch firmware to the device.
+
+    Flashing a new firmware must be followed by resetting the
+    touch device. Otherwise, the touch device does not work.
+    """
+    cmd_update = '%s -f -d /dev/hidraw0 %s' % (
+        self._GetToolPath(self.fw_update_tool),
+        self._GetDataPath(self.fw_file))
+    return utils.IsSuccessful(self.dut.Shell(cmd_update))
 
   def PostTest(self):
     """A method to invoke after conducting the test.

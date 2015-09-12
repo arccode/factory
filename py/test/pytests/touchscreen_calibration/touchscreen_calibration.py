@@ -77,11 +77,16 @@ class TouchscreenCalibration(unittest.TestCase):
   PHASE_TRX_OPENS = 'PHASE_TRX_OPENS'
   PHASE_TRX_GND_SHORTS = 'PHASE_TRX_GND_SHORTS'
   PHASE_TRX_SHORTS = 'PHASE_TRX_SHORTS'
+  PHASE_FLASH_FIRMWARE = 'PHASE_FLASH_FIRMWARE'
 
   ARGS = [
       Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
       Arg('phase', str, 'The test phase of touchscreen calibration', ''),
       Arg('remote_system_dir', str, 'The remote system directory', ''),
+      Arg('remote_data_dir', str, 'The remote data directory', ''),
+      Arg('fw_update_tool', str, 'The firmware update tool', None),
+      Arg('fw_file', str, 'The firmware file', None),
+      Arg('hid_tool', str, 'The hid tool to query version information', None),
       Arg('tool', str, 'The test tool', ''),
   ]
 
@@ -194,7 +199,11 @@ class TouchscreenCalibration(unittest.TestCase):
       self.sensors = board_sensors(
           self.sensors_ip, self.dut,
           remote_system_dir=self.args.remote_system_dir,
+          remote_data_dir=self.args.remote_data_dir,
           tool=self.args.tool,
+          fw_update_tool=self.args.fw_update_tool,
+          hid_tool=self.args.hid_tool,
+          fw_file=self.args.fw_file,
           log=factory.console)
       _CheckStatus('Use local sensors object.')
 
@@ -566,6 +575,16 @@ class TouchscreenCalibration(unittest.TestCase):
       msg = '[min, max] of phase %s: [%d, %d]' % (phase, min_value, max_value)
       self.ui.Fail(msg)
 
+  def _FlashFirmware(self, sn):
+    """."""
+    fw_file = self.args.fw_file
+    result = self.sensors.FlashFirmware()
+    if not result:
+      self.ui.Fail('Fail to flash firmware: %s' % fw_file)
+    else:
+      factory.console.info('Have flashed %s to %s', fw_file, sn)
+      self.ui.Pass()
+
   def _DoTest(self, sn, phase):
     """The actual calibration method.
 
@@ -580,6 +599,9 @@ class TouchscreenCalibration(unittest.TestCase):
 
     if phase == self.PHASE_SETUP_ENVIRONMENT:
       self._SetupEnvironment()
+
+    elif phase == self.PHASE_FLASH_FIRMWARE:
+      self._FlashFirmware(sn)
 
     elif phase == self.PHASE_REFS:
       # Dump one frame of the baseline refs data before the probe touches the
