@@ -590,6 +590,20 @@ class SensorServiceRyu(BaseSensorService):
         self._GetDataPath(self.fw_file))
     return utils.IsSuccessful(self.dut.Shell(cmd_update))
 
+  def ReadFirmwareVersion(self):
+    """Read whether the firmware version and config are correct."""
+    fw_version = None
+    fw_config = None
+    read_cmd = '%s -o /dev/hidraw0' % self._GetToolPath(self.hid_tool)
+    for line in self.dut.CheckOutput(read_cmd).splitlines():
+      if ':' in line:
+        name, value = [elm.strip() for elm in line.split(':')]
+        if name == 'Build ID':
+          fw_version = value
+        elif name == 'Config ID':
+          fw_config = value
+    return (fw_version, fw_config)
+
   def PostTest(self):
     """A method to invoke after conducting the test.
 

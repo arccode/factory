@@ -78,6 +78,7 @@ class TouchscreenCalibration(unittest.TestCase):
   PHASE_TRX_GND_SHORTS = 'PHASE_TRX_GND_SHORTS'
   PHASE_TRX_SHORTS = 'PHASE_TRX_SHORTS'
   PHASE_FLASH_FIRMWARE = 'PHASE_FLASH_FIRMWARE'
+  PHASE_CHECK_FIRMWARE_VERSION = 'PHASE_CHECK_FIRMWARE_VERSION'
 
   ARGS = [
       Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
@@ -86,6 +87,8 @@ class TouchscreenCalibration(unittest.TestCase):
       Arg('remote_data_dir', str, 'The remote data directory', ''),
       Arg('fw_update_tool', str, 'The firmware update tool', None),
       Arg('fw_file', str, 'The firmware file', None),
+      Arg('fw_version', str, 'The firmware version', None),
+      Arg('fw_config', str, 'The firmware config', None),
       Arg('hid_tool', str, 'The hid tool to query version information', None),
       Arg('tool', str, 'The test tool', ''),
   ]
@@ -585,6 +588,17 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Have flashed %s to %s', fw_file, sn)
       self.ui.Pass()
 
+  def _CheckFirmwareVersion(self):
+    """Check whether the firmware version and the config are correct."""
+    fw_version, fw_config = self.sensors.ReadFirmwareVersion()
+    factory.console.info('firmware version  %s:%s', fw_version, fw_config)
+    if fw_version == self.args.fw_version and fw_config == self.args.fw_config:
+      self.ui.Pass()
+    else:
+      self.ui.Fail(
+          'Firmware version failed. Expected %s:%s, but got %s:%s' %
+          (self.args.fw_version, self.args.fw_config, fw_version, fw_config))
+
   def _DoTest(self, sn, phase):
     """The actual calibration method.
 
@@ -602,6 +616,9 @@ class TouchscreenCalibration(unittest.TestCase):
 
     elif phase == self.PHASE_FLASH_FIRMWARE:
       self._FlashFirmware(sn)
+
+    elif phase == self.PHASE_CHECK_FIRMWARE_VERSION:
+      self._CheckFirmwareVersion()
 
     elif phase == self.PHASE_REFS:
       # Dump one frame of the baseline refs data before the probe touches the
