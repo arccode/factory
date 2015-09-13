@@ -164,6 +164,25 @@ class PlanktonHDMI(object):
     return self.CompareImage(
         captured_image, golden_image, threshold, return_corr)
 
+  def CaptureCheckPixels(self, points):
+    """Captures an image and grabs the values of some pixels.
+
+    Args:
+      points: A list of checked point locations (x, y)
+
+    Returns:
+      A list of pixel values (b, g, r) of captured image.
+    """
+    captured_image = self.Capture()
+    pixels = []
+    for x, y in points:
+      value = (int(captured_image[y, x, 0]),
+               int(captured_image[y, x, 1]),
+               int(captured_image[y, x, 2]))
+      logging.info('Get pixel (%d, %d) = %s', x, y, str(value))
+      pixels.append(value)
+    return pixels
+
   def _CameraStream(self):
     """A daemon thread to read camera in target fps.
 
