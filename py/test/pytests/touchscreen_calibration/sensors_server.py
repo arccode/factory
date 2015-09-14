@@ -579,15 +579,22 @@ class SensorServiceRyu(BaseSensorService):
       raise Error('The "%s" is not supported in EXPECTED_VALUES.' % category)
     return data == expected_values
 
-  def FlashFirmware(self):
+  def FlashFirmware(self, fw_version, fw_config):
     """Flash a touch firmware to the device.
 
     Flashing a new firmware must be followed by resetting the
     touch device. Otherwise, the touch device does not work.
     """
+    existing_fw_version, existing_fw_config = self.ReadFirmwareVersion()
+    if existing_fw_version == fw_version and existing_fw_config == fw_config:
+      msg = 'Existing fw %s:%s is already the target one. No flashing needed.'
+      self.log.info(msg % (existing_fw_version, existing_fw_config))
+      return True
+
     cmd_update = '%s -f -d /dev/hidraw0 %s' % (
         self._GetToolPath(self.fw_update_tool),
         self._GetDataPath(self.fw_file))
+    self.log.info('flashing a new firmware %s:%s...' %(fw_version, fw_config))
     return utils.IsSuccessful(self.dut.Shell(cmd_update))
 
   def ReadFirmwareVersion(self):

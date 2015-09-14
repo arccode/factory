@@ -581,7 +581,8 @@ class TouchscreenCalibration(unittest.TestCase):
   def _FlashFirmware(self, sn):
     """."""
     fw_file = self.args.fw_file
-    result = self.sensors.FlashFirmware()
+    result = self.sensors.FlashFirmware(self.args.fw_version,
+                                        self.args.fw_config)
     if not result:
       self.ui.Fail('Fail to flash firmware: %s' % fw_file)
     else:
