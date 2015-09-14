@@ -13,16 +13,19 @@
 import argparse
 import imp
 import json
+import logging
 import os
 import shutil
 import SimpleXMLRPCServer
 import sqlite3
+import sys
 import textwrap
 
 import gnupg
 
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+LOG_FILE_PATH = os.path.join(SCRIPT_DIR, 'dkps.log')
 FILTERS_DIR = os.path.join(SCRIPT_DIR, 'filters')
 CREATE_DATABASE_SQL_FILE_PATH = os.path.join(
     SCRIPT_DIR, 'sql', 'create_database.sql')
@@ -433,6 +436,11 @@ class DRMKeysProvisioningServer(object):
     server.register_function(self.Upload)
     server.register_function(self.Request)
 
+    # Redirect stdout and stderr to log file.
+    log_file = open(LOG_FILE_PATH, 'a')
+    sys.stdout = log_file
+    sys.stderr = log_file
+
     server.serve_forever()
 
   def _ImportGPGKey(self, key_file_path):
@@ -601,6 +609,14 @@ def _ParseArguments():
 
 def main():
   args = _ParseArguments()
+
+  # TODO(littlecvr): Customizable logging level.
+  # TODO(littlecvr): Also print on stdout if it's not running in background.
+  logging.basicConfig(
+      filename=LOG_FILE_PATH,
+      format='%(asctime)s:%(levelname)s:%(funcName)s:%(lineno)d:%(message)s',
+      level=logging.DEBUG)
+  logging.debug('Parsed arguments: %r', args)
 
   dkps = DRMKeysProvisioningServer(args.database_file_path, args.gnupg_homedir)
   if args.command == 'init':
