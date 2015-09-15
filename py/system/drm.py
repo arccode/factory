@@ -566,6 +566,15 @@ def _LoadDRMLibrary():
   lib.drmIoctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_voidp]
   lib.drmIoctl.restype = ctypes.c_int
 
+  lib.drmSetMaster.argtypes = [ctypes.c_int]
+  lib.drmSetMaster.restypes = ctypes.c_int
+  lib.drmDropMaster.argtypes = [ctypes.c_int]
+  lib.drmDropMaster.restypes = ctypes.c_int
+
+  lib.drmModeConnectorSetProperty.argtypes = [ctypes.c_int, ctypes.c_uint32,
+                                              ctypes.c_uint32, ctypes.c_uint64]
+  lib.drmModeConnectorSetProperty.restype = ctypes.c_int
+
   return lib
 
 
