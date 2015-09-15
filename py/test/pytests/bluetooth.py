@@ -124,7 +124,7 @@ def ColonizeMac(mac):
 
   Example: ABCDEF123456 -> AB:CD:EF:12:34:56
   """
-  mac_no_colons = ''.join(mac.split(':'))
+  mac_no_colons = ''.join(mac.strip().split(':'))
   groups = [mac_no_colons[x:x+2] for x in range(0, len(mac_no_colons), 2)]
   return ':'.join(groups)
 
