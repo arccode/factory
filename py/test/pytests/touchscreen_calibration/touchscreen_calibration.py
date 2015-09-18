@@ -510,6 +510,19 @@ class TouchscreenCalibration(unittest.TestCase):
       return False
     return True
 
+  def _UpdateSummaryFile(self, sn, summary_line):
+    """Write the summary line to the summary file of the serial number.
+
+    If a device is tested multiple times, the summary lines are accumulated.
+    Both the summary files on the local host and on the shopfloor are updated.
+    """
+    self.summary_file = 'summary_%s.txt' % sn
+    if summary_line.strip():
+      summary_line += '  (time: %s)\n' % self._GetTime()
+    self._WriteLog(self.summary_file, summary_line)
+    with open(os.path.join(self._local_log_dir, self.summary_file)) as f:
+      self._UploadLog(self.summary_file, f.read())
+
   def _ReadAndVerifyTRxData(self, sn, phase, category, verify_method):
     # Get data based on the category, i.e., REFS or DELTAS.
     data = self.sensors.ReadTRx(category)
@@ -530,11 +543,8 @@ class TouchscreenCalibration(unittest.TestCase):
     result = 'pass' if self.test_pass else 'fail'
     log_name = '%s_%s_%s_%s' % (sn, self.start_time, phase, result)
     self._UploadLog(log_name, str(data))
-    self.summary_file = 'summary_%s.txt' % sn
-    self._WriteLog(self.summary_file, '%s: %s (%s) (time: %s)\n' %
-                   (sn, result, phase, self._GetTime()))
-    with open(os.path.join(self._local_log_dir, self.summary_file)) as f:
-      self._UploadLog(self.summary_file, f.read())
+    summary_line = '%s: %s (%s)' % (sn, result, phase)
+    self._UpdateSummaryFile(sn, summary_line)
 
     if self.test_pass:
       self.ui.Pass()
@@ -565,12 +575,11 @@ class TouchscreenCalibration(unittest.TestCase):
     result = 'pass' if self.test_pass else 'fail'
     log_name = '%s_%s_%s_%s' % (sn, self.start_time, phase, result)
     self._UploadLog(log_name, str(data))
-    self.summary_file = 'summary_%s.txt' % sn
-    self._WriteLog(self.summary_file,
-                   '%s: %s (%s) [min: %d, max: %d]  (time: %s)\n' %
-                   (sn, result, phase, min_value, max_value, self._GetTime()))
-    with open(os.path.join(self._local_log_dir, self.summary_file)) as f:
-      self._UploadLog(self.summary_file, f.read())
+    summary_line = ('%s: %s (%s) [min: %d, max: %d]' %
+                    (sn, result, phase, min_value, max_value))
+    self._UpdateSummaryFile(sn, summary_line)
+    if phase == 'PHASE_DELTAS_TOUCHED':
+      self._UpdateSummaryFile(sn, '\n')
 
     if self.test_pass:
       self.ui.Pass()
@@ -578,22 +587,33 @@ class TouchscreenCalibration(unittest.TestCase):
       msg = '[min, max] of phase %s: [%d, %d]' % (phase, min_value, max_value)
       self.ui.Fail(msg)
 
-  def _FlashFirmware(self, sn):
+  def _FlashFirmware(self, sn, phase):
     """."""
     fw_file = self.args.fw_file
-    result = self.sensors.FlashFirmware(self.args.fw_version,
-                                        self.args.fw_config)
-    if not result:
-      self.ui.Fail('Fail to flash firmware: %s' % fw_file)
-    else:
+    test_pass = self.sensors.FlashFirmware(self.args.fw_version,
+                                           self.args.fw_config)
+    result = 'pass' if test_pass else 'fail'
+    summary_line = ('%s: %s (%s) flashed fw %s:%s' %
+                    (sn, result, phase, self.args.fw_version,
+                     self.args.fw_config))
+    self._UpdateSummaryFile(sn, summary_line)
+    if test_pass:
       factory.console.info('Have flashed %s to %s', fw_file, sn)
       self.ui.Pass()
+    else:
+      self.ui.Fail('Fail to flash firmware: %s' % fw_file)
 
-  def _CheckFirmwareVersion(self):
+  def _CheckFirmwareVersion(self, sn, phase):
     """Check whether the firmware version and the config are correct."""
     fw_version, fw_config = self.sensors.ReadFirmwareVersion()
     factory.console.info('firmware version  %s:%s', fw_version, fw_config)
-    if fw_version == self.args.fw_version and fw_config == self.args.fw_config:
+    test_pass = (fw_version == self.args.fw_version and
+                 fw_config == self.args.fw_config)
+    result = 'pass' if test_pass else 'fail'
+    summary_line = ('%s: %s (%s) detected base fw %s:%s' %
+                    (sn, result, phase, fw_version, fw_config))
+    self._UpdateSummaryFile(sn, summary_line)
+    if test_pass:
       self.ui.Pass()
     else:
       self.ui.Fail(
@@ -616,10 +636,10 @@ class TouchscreenCalibration(unittest.TestCase):
       self._SetupEnvironment()
 
     elif phase == self.PHASE_FLASH_FIRMWARE:
-      self._FlashFirmware(sn)
+      self._FlashFirmware(sn, phase)
 
     elif phase == self.PHASE_CHECK_FIRMWARE_VERSION:
-      self._CheckFirmwareVersion()
+      self._CheckFirmwareVersion(sn, phase)
 
     elif phase == self.PHASE_REFS:
       # Dump one frame of the baseline refs data before the probe touches the
