@@ -610,9 +610,12 @@ class ReadBatteryLevelTask(FactoryTask):
 
 
 class CheckBatteryLevelTask(FactoryTask):
-  """This test checks if the battery charges to a higher percentage.
+  """This battery level test checks whether the following condistions
+  are satisfied:
 
-  The battery level read at step 2 must be higher than that at step 1.
+  1. The battery levels are read twice.
+  2. battery_level_1 < battery_level_2
+  3. battery_level_1 >= expected_battery_level
   """
 
   def __init__(self, test):  # pylint: disable=W0231
@@ -626,12 +629,19 @@ class CheckBatteryLevelTask(FactoryTask):
     factory.console.info('%s: %s', READ_BATTERY_STEP_1, str(battery_level_1))
     factory.console.info('%s: %s', READ_BATTERY_STEP_2, str(battery_level_2))
 
-    if (battery_level_1 and battery_level_2 and
-        battery_level_1 < battery_level_2):
-      self.Pass()
+    if not battery_level_1 or not battery_level_2:
+      fail_msg = 'Battery levels should be read twice. read_1: %s, read_2: %s'
+    elif battery_level_1 >= battery_level_2:
+      fail_msg = 'Base battery is not charged up. read_1: %s, read_2: %s'
+    elif battery_level_1 < self._test.args.expected_battery_level:
+      # Note: battery_level_1 instead of battery_level_2 should be larger than
+      #       the expected_battery_level since battery_level_2 is read while
+      #       charging and its value is usually larger than its actual value.
+      fail_msg = 'Measured battery level %s is less than the expected level %s.'
     else:
-      msg = 'battery_level_1 (%s) is not lower than battery_level_2 (%s)'
-      self.Fail(msg % (str(battery_level_1), str(battery_level_2)))
+      self.Pass()
+      return
+    self.Fail(fail_msg % (battery_level_1, battery_level_2))
 
 
 class ChargeTestTask(FactoryTask):
@@ -686,23 +696,6 @@ class ChargeTestTask(FactoryTask):
         self.Pass()
       else:
         self.Fail('ChargeTestTask: the battery is not charging!')
-
-
-class BatteryLevelTestTask(FactoryTask):
-  EXPECTED_LEVEL = 50
-
-  def __init__(self, test):  # pylint: disable=W0231
-    self._test = test
-
-  def Run(self):
-    self._test.template.SetState(_MSG_CHECK_BATTERY_LEVEL)
-    battery_level = factory.get_shared_data(BATTERY_LEVEL_KEY)
-    # Check if the battery level is above the expected level.
-    if battery_level >= self.EXPECTED_LEVEL:
-      self.Pass()
-    else:
-      msg = 'BatteryLevelTestTask: %d is below the expected level (%d)',
-      self.Fail(msg % (battery_level, self.EXPECTED_LEVEL))
 
 
 class CheckFirmwareRevisionTestTask(FactoryTask):
@@ -974,6 +967,8 @@ class BluetoothTest(unittest.TestCase):
           'the base enclusore serial number', default=None, optional=True),
       Arg('battery_log', str,
           'the battery log file', default=None, optional=True),
+      Arg('expected_battery_level', int,
+          'the expected battery level', default=100, optional=True),
   ]
 
   def SetStrongestRssiMac(self, mac_addr):
