@@ -513,9 +513,7 @@ class VPDTest(unittest.TestCase):
           '- initial_timezone\n'
           '- keyboard_layout\n'
           'And only set "region" if this argument is set to False.',
-          # TODO(hungte) Change default to False when OOBE starts using new
-          # regional database.
-          default=True, optional=True)]
+          default=False, optional=True)]
 
   def _ReadShopFloorDeviceData(self):
     device_data = shopfloor.GetDeviceData()
