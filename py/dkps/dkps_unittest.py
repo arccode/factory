@@ -14,14 +14,12 @@ import unittest
 import gnupg
 
 import factory_common  # pylint: disable=W0611
-
 from cros.factory.dkps import dkps
 
 
 FNULL = open(os.devnull, 'w')  # for hiding unnecessary messages from subprocess
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-
 
 # Mock key list for testing.
 MOCK_KEY_LIST = [
@@ -123,13 +121,15 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
   def runTest(self):
     self.dkps.AddProject(
         'TestProject', self.uploader_public_key_file_path,
-        self.requester_public_key_file_path, 'sample_filter.py')
+        self.requester_public_key_file_path, 'sample_parser.py',
+        'sample_filter.py')
 
     # Test add duplicate project.
     with self.assertRaisesRegexp(ValueError, 'already exists'):
       self.dkps.AddProject(
           'TestProject', self.uploader_public_key_file_path,
-          self.requester_public_key_file_path, 'sample_filter.py')
+          self.requester_public_key_file_path, 'sample_parser.py',
+          'sample_filter.py')
 
     # TODO(littlecvr): Test dkps.UpdateProject().
 
@@ -145,14 +145,11 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     drm_keys_file_path = os.path.join(self.temp_dir, 'mock_drm_keys')
     with open(drm_keys_file_path, 'w') as f:
       f.write(json.dumps(MOCK_KEY_LIST))
-    subprocess.check_output(
-        ['python', os.path.join(SCRIPT_DIR, 'uploader_helper.py'),
-         '--server_ip', 'localhost',
-         '--server_port', str(DRMKeysProvisioningServerTest.SERVER_PORT),
-         '--uploader_key_file_path', self.uploader_private_key_file_path,
-         '--server_key_file_path', self.server_key_file_path,
-         '--passphrase_file_path', self.passphrase_file_path,
-         'upload', drm_keys_file_path])
+    self._Upload(drm_keys_file_path)
+
+    # Test upload duplicate DRM keys.
+    with self.assertRaises(subprocess.CalledProcessError):
+      self._Upload(drm_keys_file_path)
 
     # Request and finalize DRM keys.
     for i in xrange(len(MOCK_KEY_LIST)):
@@ -194,6 +191,17 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
 
     if os.path.exists(self.temp_dir):
       shutil.rmtree(self.temp_dir)
+
+  def _Upload(self, drm_keys_file_path):
+    return subprocess.check_output(
+        ['python', os.path.join(SCRIPT_DIR, 'uploader_helper.py'),
+         '--server_ip', 'localhost',
+         '--server_port', str(DRMKeysProvisioningServerTest.SERVER_PORT),
+         '--uploader_key_file_path', self.uploader_private_key_file_path,
+         '--server_key_file_path', self.server_key_file_path,
+         '--passphrase_file_path', self.passphrase_file_path,
+         'upload', drm_keys_file_path],
+        stderr=FNULL)
 
   def _Request(self, device_serial_number):
     return subprocess.check_output(

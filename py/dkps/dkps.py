@@ -11,6 +11,7 @@
 # TODO(littlecvr): Allow using pre-generated server GPG key when initializing.
 
 import argparse
+import hashlib
 import imp
 import json
 import logging
@@ -27,6 +28,7 @@ import gnupg
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 LOG_FILE_PATH = os.path.join(SCRIPT_DIR, 'dkps.log')
 FILTERS_DIR = os.path.join(SCRIPT_DIR, 'filters')
+PARSERS_DIR = os.path.join(SCRIPT_DIR, 'parsers')
 CREATE_DATABASE_SQL_FILE_PATH = os.path.join(
     SCRIPT_DIR, 'sql', 'create_database.sql')
 
@@ -178,20 +180,22 @@ class DRMKeysProvisioningServer(object):
       shutil.rmtree(self.gnupg_homedir)
 
   def AddProject(self, name, uploader_key_file_path, requester_key_file_path,
-                 filter_module_file_name=None):
+                 parser_module_file_name, filter_module_file_name=None):
     """Adds a project.
 
     Args:
       name: name of the project, must be unique.
       uploader_key_file_path: path to the OEM's public key file.
       requester_key_file_path: path to the ODM's public key file.
+      parser_module_file_name: file name of the parser python module.
       filter_module_file_name: file name of the filter python module.
 
     Raises:
       ValueError if either the uploader's or requester's key are imported (which
       means they are used by another project).
     """
-    # Try to load the filter module.
+    # Try to load the parser and filter modules.
+    self._LoadParserModule(parser_module_file_name)
     if filter_module_file_name is not None:
       self._LoadFilterModule(filter_module_file_name)
 
@@ -210,11 +214,12 @@ class DRMKeysProvisioningServer(object):
         raise ValueError('Requester key already exists')
       with self.db_connection:
         self.db_cursor.execute(
-            'INSERT INTO projects (name, uploader_key_fingerprint, '
-            'requester_key_fingerprint, filter_module_file_name) VALUES '
-            '(?, ?, ?, ?)',
+            'INSERT INTO projects ('
+            '    name, uploader_key_fingerprint, requester_key_fingerprint, '
+            '    parser_module_file_name, filter_module_file_name) '
+            'VALUES (?, ?, ?, ?, ?)',
             (name, uploader_key_fingerprint, requester_key_fingerprint,
-             filter_module_file_name))
+             parser_module_file_name, filter_module_file_name))
     except BaseException:
       if not uploader_key_already_exists and uploader_key_fingerprint:
         self.gpg.delete_keys(uploader_key_fingerprint)
@@ -321,9 +326,17 @@ class DRMKeysProvisioningServer(object):
         decrypted_obj.fingerprint)
     serialized_drm_keys = decrypted_obj.data
 
+    # Pass to the parse function.
+    parser_module = self._LoadParserModule(project['parser_module_file_name'])
+    drm_key_list = parser_module.Parse(serialized_drm_keys)
+
+    drm_key_hash_list = []
+    for drm_key in drm_key_list:
+      drm_key_hash_list.append(hashlib.sha1(json.dumps(drm_key)).hexdigest())
+
     # Pass to the filter function.
     filter_module = self._LoadFilterModule(project['filter_module_file_name'])
-    filtered_drm_key_list = filter_module.Filter(serialized_drm_keys)
+    filtered_drm_key_list = filter_module.Filter(drm_key_list)
 
     # Fetch server key for signing.
     server_key_fingerprint = self._FetchServerKeyFingerprint()
@@ -341,10 +354,11 @@ class DRMKeysProvisioningServer(object):
     # Insert into the database.
     with self.db_connection:
       self.db_cursor.executemany(
-          'INSERT INTO drm_keys (project_name, encrypted_drm_key) '
-          'VALUES (?, ?)',
+          'INSERT INTO drm_keys ('
+          '    project_name, drm_key_hash, encrypted_drm_key) '
+          'VALUES (?, ?, ?)',
           zip([project['name']] * len(encrypted_serialized_drm_key_list),
-              encrypted_serialized_drm_key_list))
+              drm_key_hash_list, encrypted_serialized_drm_key_list))
 
   def AvailableKeyCount(self, requester_signature):
     """Queries the number of remaining keys.
@@ -464,8 +478,7 @@ class DRMKeysProvisioningServer(object):
     """Loads the filter module.
 
     Args:
-      filter_module_file_name: file name of the filter module in the "filters"
-          folder.
+      filter_module_file_name: file name of the filter module in FILTERS_DIR.
 
     Returns:
       The loaded filter module on success.
@@ -475,6 +488,21 @@ class DRMKeysProvisioningServer(object):
     """
     return imp.load_source(
         'filter_module', os.path.join(FILTERS_DIR, filter_module_file_name))
+
+  def _LoadParserModule(self, parser_module_file_name):
+    """Loads the parser module.
+
+    Args:
+      parser_module_file_name: file name of the parser module in PARSERS_DIR.
+
+    Returns:
+      The loaded parser module on success.
+
+    Raises:
+      Exception if failed, see imp.load_source()'s doc for what could be raised.
+    """
+    return imp.load_source(
+        'parser_module', os.path.join(PARSERS_DIR, parser_module_file_name))
 
   def _FetchServerKeyFingerprint(self):
     """Returns the server GPG key's fingerprint."""
@@ -570,6 +598,8 @@ def _ParseArguments():
                           help="path to the uploader's public key file")
   parser_add.add_argument('-r', '--requester_key_file_path', required=True,
                           help="path to the requester's public key file")
+  parser_add.add_argument('-p', '--parser_module_file_name', required=True,
+                          help='file name of the parser module')
   parser_add.add_argument('-f', '--filter_module_file_name', default=None,
                           help='file name of the filter module')
 
