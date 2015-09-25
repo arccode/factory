@@ -14,7 +14,7 @@ import re
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.
@@ -240,6 +240,17 @@ def GetCardIndexByName(card_name):
     if m is not None and m.group(2) == card_name:
       return m.group(1)
   raise ValueError('device name %s is incorrect' % card_name)
+
+
+def GetTotalNumberOfAudioDevices():
+  """Get total number of audio devices.
+
+  Returns:
+    Total number of audio devices.
+  """
+  playback_num = int(SpawnOutput('aplay -l | grep ^card | wc -l', shell=True))
+  record_num = int(SpawnOutput('arecord -l | grep ^card | wc -l', shell=True))
+  return playback_num + record_num
 
 
 class CRAS(object):

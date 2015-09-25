@@ -13,6 +13,7 @@ import unittest
 from jsonrpclib import ProtocolError
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import audio_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import state
@@ -76,7 +77,10 @@ class ShutdownTest(unittest.TestCase):
       Arg('wait_shutdown_secs', int,
           'Number of seconds to wait for system shutdown.', default=60),
       Arg('check_tag_file', bool, 'Checks shutdown failure tag file',
-          default=False)
+          default=False),
+      Arg('check_audio_devices', int,
+          ('Check total number of audio devices. None for non-check.'),
+          default=None, optional=True),
   ]
 
   def setUp(self):
@@ -127,6 +131,15 @@ class ShutdownTest(unittest.TestCase):
       raise ShutdownError(
           'Skipped shutdown since %s is present' % NO_REBOOT_FILE)
 
+    expected_device_number = self.args.check_audio_devices
+    if expected_device_number:
+      total_device_number = audio_utils.GetTotalNumberOfAudioDevices()
+      message = 'Expect %d audio devices, found %d' % (expected_device_number,
+                                                       total_device_number)
+      logging.info(message)
+      if expected_device_number != total_device_number:
+        raise ShutdownError(message)
+
     if utils.are_shift_keys_depressed():
       logging.info('Shift keys are depressed; cancelling restarts')
       # Abort shutdown
@@ -158,7 +171,7 @@ class ShutdownTest(unittest.TestCase):
 
     time.sleep(self.args.wait_shutdown_secs)
     error_msg = 'System did not shutdown in %s seconds.' % (
-                self.args.wait_shutdown_secs)
+        self.args.wait_shutdown_secs)
     self.ui.Fail(error_msg)
     raise ShutdownError(error_msg)
 
