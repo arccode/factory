@@ -93,31 +93,67 @@ class ColorSensor(object):
             abs(hue1 - hue2 - 1.0) <= tolerance or
             abs(hue1 - hue2 + 1.0) <= tolerance)
 
+  def _CompareColor(self, hsv, color_name):
+    """Compares input HSV to criteria of color_name.
+
+    Args:
+      hsv: HSV value tuple.
+      color_name: specified color to be compared.
+
+    Returns:
+      True if HSV value matches with color_name; otherwise False.
+    """
+    read_h, read_s, read_v = hsv
+    thresholds = self._color_params[color_name]
+    color_hue = thresholds['hue']
+    hue_tolerance = thresholds['hue_tolerance']
+    min_saturation = thresholds['min_saturation']
+    min_lightness = thresholds['min_lightness']
+    if (self._CompareHue(read_h, color_hue, hue_tolerance) and
+        read_s >= min_saturation and read_v >= min_lightness):
+      logging.info('Match color %s with HSV criteria '
+                   '(%.3f +/- %.3f, >= %.3f, >= %.3f)', color_name,
+                   color_hue, hue_tolerance, min_saturation, min_lightness)
+      return True
+    return False
+
+  def ReadHSV(self):
+    """Reads out current HSV value from sensor.
+
+    Returns:
+      A tuple of values (hue, saturation, lightness).
+    """
+    if self._sensor_index == 1:
+      # Servo returns a string containing list expression.
+      read_hsv = ast.literal_eval(self._servo.whale_color1_HSV)
+    else:
+      raise ValueError('Sensor index %s is unsupported' % self._sensor_index)
+    logging.info('Read Hue=%.3f, Saturation=%.3f, Lightness=%.3f',
+                 read_hsv[0], read_hsv[1], read_hsv[2])
+    return read_hsv
+
+  def IsColor(self, color_name):
+    """Judges whether current color is color_name.
+
+    Args:
+      color_name: specified color name to be compared.
+
+    Returns:
+      True if cuurent color is color_name; otherwise False.
+    """
+    if color_name not in self._color_params:
+      raise ValueError('Unsupported color name: %s' % color_name)
+    return self._CompareColor(self.ReadHSV(), color_name)
+
   def ReadColor(self):
     """Reads color value from sensor.
 
     Returns:
       BFTFixture.LEDColor; BFTFixture.LEDColor.OFF if no color is detected.
     """
-    if self._sensor_index == 1:
-      # Servo returns a string containing list expression.
-      read_h, read_s, read_v = ast.literal_eval(self._servo.whale_color1_HSV)
-    else:
-      raise ValueError('Sensor index %s is unsupported' % self._sensor_index)
-    logging.info('Read Hue=%.3f, Saturation=%.3f, Lightness=%.3f',
-                 read_h, read_s, read_v)
-
+    read_hsv = self.ReadHSV()
     for color_name in self._color_params:
-      thresholds = self._color_params[color_name]
-      color_hue = thresholds['hue']
-      hue_tolerance = thresholds['hue_tolerance']
-      min_saturation = thresholds['min_saturation']
-      min_lightness = thresholds['min_lightness']
-      if (self._CompareHue(read_h, color_hue, hue_tolerance) and
-          read_s >= min_saturation and read_v >= min_lightness):
-        logging.info('Match color %s with HSV criteria '
-                     '(%.3f +/- %.3f, >= %.3f, >= %.3f)', color_name,
-                     color_hue, hue_tolerance, min_saturation, min_lightness)
+      if self._CompareColor(read_hsv, color_name):
         return self._COLOR_NAMES[color_name]
 
     logging.info('Do not match any color')
