@@ -50,6 +50,13 @@ replace_or_append() {
   fi
 }
 
+remove_flag() {
+  local key="$1"
+  local edit_file="$2"
+
+  sed -i "/^$key=.*/d" "$edit_file"
+}
+
 interaction_menu() {
   local src_file="$1"
   local edit_file="$2"
@@ -63,6 +70,7 @@ interaction_menu() {
   echo "(1) Modify mini-Omaha server host."
   echo "(2) Enable/disable board prompt on download."
   echo "(3) Enable/disable RELEASE-ONLY recovery download mode."
+  echo "(4) Modify cutoff method after factory reset."
   echo "(w) Write settings and exit."
   echo "(q) Quit without saving."
   echo ""
@@ -107,6 +115,58 @@ interaction_menu() {
         * )
           warn "Unknown answer: $ans"
       esac
+      ;;
+    4 )
+      echo "Select cutoff method after factory reset: "
+      echo "(1) shutdown"
+      echo "(2) reboot"
+      echo "(3) battery cutoff"
+      echo "(4) battery cutoff at shutdown"
+      echo -n "Please select an option: "
+      read ans
+      case "$ans" in
+        1 )
+          replace_or_append "CUTOFF_METHOD" "SHUTDOWN" "$edit_file"
+          ;;
+        2 )
+          replace_or_append "CUTOFF_METHOD" "REBOOT" "$edit_file"
+          ;;
+        3 )
+          replace_or_append "CUTOFF_METHOD" "EC_BATTERY_CUTOFF" "$edit_file"
+          ;;
+        4 )
+          replace_or_append "CUTOFF_METHOD" "EC_BATTERY_CUTOFF_AT_SHUTDOWN" \
+            "$edit_file"
+          ;;
+        * )
+          warn "Unknown answer: $ans"
+      esac
+
+      echo -n "Minimum allowed battery percentage:" \
+        "(Keep empty to bypass checking):"
+      read ans
+      if [ -z "$ans" ]; then
+        remove_flag "MIN_CUTOFF_BATTERY_PERCENTAGE" "$edit_file"
+      else
+        if [ "$ans" -ge "0" ] && [ "$ans" -le "100" ]; then
+          replace_or_append "MIN_CUTOFF_BATTERY_PERCENTAGE" "$ans" "$edit_file"
+        else
+          warn "Invalid percentage: $ans"
+        fi
+      fi
+
+      echo -n "Maximum allowed battery percentage:" \
+        "(Keep empty to bypass checking):"
+      read ans
+      if [ -z "$ans" ]; then
+        remove_flag "MAX_CUTOFF_BATTERY_PERCENTAGE" "$edit_file"
+      else
+        if [ "$ans" -ge "0" ] && [ "$ans" -le "100" ]; then
+          replace_or_append "MAX_CUTOFF_BATTERY_PERCENTAGE" "$ans" "$edit_file"
+        else
+          warn "Invalid percentage: $ans"
+        fi
+      fi
       ;;
     w )
       # Make a backup of current (before modification) lsb-factor file so people
