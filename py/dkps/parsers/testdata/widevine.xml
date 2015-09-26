@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Widevine>
+  <NumberOfKeyboxes>3</NumberOfKeyboxes>
+  <Keybox DeviceID="device01">
+    <Key>key01</Key><ID>id01</ID><Magic>magic01</Magic><CRC>crc01</CRC>
+  </Keybox>
+  <Keybox DeviceID="device02">
+    <Key>key02</Key><ID>id02</ID><Magic>magic02</Magic><CRC>crc02</CRC>
+  </Keybox>
+  <Keybox DeviceID="device03">
+    <Key>key03</Key><ID>id03</ID><Magic>magic03</Magic><CRC>crc03</CRC>
+  </Keybox>
+</Widevine>
