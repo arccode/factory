@@ -94,7 +94,8 @@ class BluetoothManager(object):
     available through dbus interface.
   """
 
-  def __init__(self):
+  def __init__(self, host_mac=None):
+    self._host_mac = host_mac
     DBusGMainLoop(set_as_default=True)
     self._main_loop = gobject.MainLoop()
     self._manager = None
@@ -320,6 +321,8 @@ class BluetoothManager(object):
       adapter = interfaces.get(ADAPTER_INTERFACE)
       if adapter is None:
         continue
+      if self._host_mac and adapter.get(u'Address') != self._host_mac:
+        continue
       obj = bus.get_object(BUS_NAME, path)
       adapters.append(dbus.Interface(obj, ADAPTER_INTERFACE))
     return adapters
@@ -336,12 +339,12 @@ class BluetoothManager(object):
       the interface of 'org.bluez.Adapter1'. Returns None if there is no
       available adapter.
     """
-    adapters = Retry(max_retry_times, interval, None,
-                     self._GetAdapters)
+    adapters = Retry(max_retry_times, interval, None, self._GetAdapters)
     if adapters is None:
       logging.error('BluetoothManager: Fail to get any adapter.')
       return None
     else:
+      logging.info('GetAdapters (host_mac=%s): %s', self._host_mac, adapters)
       return adapters
 
   def _SwitchAdapterPower(self, adapter, on):
