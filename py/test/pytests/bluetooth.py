@@ -312,7 +312,7 @@ class ScanDevicesTask(FactoryTask):
     logging.info('UpdateRssi: %s', devices_rssis)
 
   def Run(self):
-    bluetooth_manager = BluetoothManager()
+    bluetooth_manager = BluetoothManager(self._test.host_mac)
     adapter = bluetooth_manager.GetFirstAdapter()
 
     # Records RSSI of each scan and calculates average rssi.
@@ -423,8 +423,9 @@ class DetectRSSIofTargetMACTask(FactoryTask):
     self._scan_rssi_event = threading.Event()
 
   def Run(self):
-    bluetooth_manager = BluetoothManager()
+    bluetooth_manager = BluetoothManager(self._test.host_mac)
     adapter = bluetooth_manager.GetFirstAdapter()
+    logging.info('mac (%s): %s', self._test.host_mac, adapter)
 
     rssis = []
     for i in xrange(1, 1 + self._scan_counts):
@@ -500,7 +501,7 @@ class UnpairTask(FactoryTask):
     self._test.ui.AppendCSS('.start-font-size {font-size: 2em;}')
 
     input_count_before_unpair = CheckInputCount()
-    bluetooth_manager = BluetoothManager()
+    bluetooth_manager = BluetoothManager(self._test.host_mac)
     adapter = bluetooth_manager.GetFirstAdapter()
     devices = bluetooth_manager.GetAllDevices(adapter).values()
     devices_to_unpair = filter(self._ShouldUnpairDevice, devices)
@@ -579,8 +580,9 @@ class ReadBatteryLevelTask(FactoryTask):
 
     factory.console.info('Begin reading battery level...')
     try:
-      battery_level = int(
-          bluetooth_utils.GattTool.GetDeviceInfo(self._mac, 'battery level'))
+      logging.info('Reading battery level via %s', self._test.hci_device)
+      battery_level = int(bluetooth_utils.GattTool.GetDeviceInfo(
+          self._mac, 'battery level', hci_device=self._test.hci_device))
       factory.console.info('%s: %d', self._step, battery_level)
     except bluetooth_utils.BluetoothUtilsError as e:
       self.Fail('%s failed to get battery level: %s' % (self._step, e))
@@ -656,7 +658,8 @@ class ChargeTestTask(FactoryTask):
     if self._test.args.use_charge_fixture:
       _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
     factory.console.info('Begin reading battery level...')
-    value = bluetooth_utils.GattTool.GetDeviceInfo(self._mac, 'battery level')
+    value = bluetooth_utils.GattTool.GetDeviceInfo(
+        self._mac, 'battery level', hci_device=self._test.hci_device)
     if self._test.args.use_charge_fixture:
       _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
     factory.console.info('%s: %s', step, value)
@@ -713,8 +716,10 @@ class CheckFirmwareRevisionTestTask(FactoryTask):
 
     factory.console.info('Begin reading firmware revision string...')
     try:
-      fw = bluetooth_utils.GattTool.GetDeviceInfo(self._mac,
-                                                  'firmware revision string')
+      logging.info('Reading firmware revision via %s', self._test.hci_device)
+      fw = bluetooth_utils.GattTool.GetDeviceInfo(
+          self._mac, 'firmware revision string',
+          hci_device=self._test.hci_device)
     except bluetooth_utils.BluetoothUtilsError as e:
       self.Fail('Failed to get firmware revision string: %s' % e)
       return
@@ -856,7 +861,7 @@ class InputTestTask(FactoryTask):
 
   def Run(self):
     input_count_before_connection = CheckInputCount()
-    self._bt_manager = BluetoothManager()
+    self._bt_manager = BluetoothManager(self._test.host_mac)
     self._adapter = self._bt_manager.GetFirstAdapter()
     self._target_mac = self._test.GetInputDeviceMac()
     if not self._target_mac:
@@ -905,7 +910,8 @@ class InputTestTask(FactoryTask):
 class BluetoothTest(unittest.TestCase):
   ARGS = [
       Arg('expected_adapter_count', int, 'Number of bluetooth adapters'
-          ' on the machine.', default=1),
+          ' on the machine.', default=0),
+      Arg('manufacturer_id', int, 'manufacturer id', optional=True),
       Arg('detect_adapters_retry_times', int, 'Maximum retry time to'
           ' detect adapters', default=10),
       Arg('detect_adapters_interval_secs', int, 'Interval in seconds between'
@@ -997,6 +1003,12 @@ class BluetoothTest(unittest.TestCase):
         ColonizeMac(factory.get_shared_data(self.args.input_device_mac_key))
     else:
       self._input_device_mac = self.args.input_device_mac
+
+    self.btmgmt = bluetooth_utils.BtMgmt(self.args.manufacturer_id)
+    self.hci_device = self.btmgmt.GetHciDevice()
+    self.host_mac = self.btmgmt.GetMac()
+    logging.info('manufacturer_id %s: %s %s',
+                 self.args.manufacturer_id, self.hci_device, self.host_mac)
 
   def tearDown(self):
     """Close the charge test fixture."""
