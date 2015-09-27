@@ -17,6 +17,7 @@ from __future__ import print_function
 
 import binascii
 import datetime
+import logging
 import optparse
 import pexpect
 
@@ -39,10 +40,18 @@ class GattTool(object):
   DEFAULT_LOG_FILE = '/var/log/gatt.log'
   DEFAULT_TIMEOUT = 20
 
-  def __init__(self, target_mac, logfile=DEFAULT_LOG_FILE,
+  def __init__(self, target_mac, hci_device=None, logfile=DEFAULT_LOG_FILE,
                timeout=DEFAULT_TIMEOUT):
-    self._gatttool = pexpect.spawn('gatttool -b %s -t random --interactive' %
-                                   target_mac.upper())
+    # An hci_devices is something like hci0 or hci1.
+    hci_option = ''
+    if hci_device:
+      if hci_device.startswith('hci'):
+        hci_option = '-i %s' % hci_device
+      else:
+        msg = 'hci device "%s" should start with "hci", e.g., hci0 or hci1.'
+        logging.warning(msg, hci_device)
+    self._gatttool = pexpect.spawn('gatttool %s -b %s -t random --interactive' %
+                                   (hci_option, target_mac.upper()))
     self._gatttool.logfile = open(logfile, 'w')
     self._timeout = timeout
 
@@ -152,15 +161,16 @@ class GattTool(object):
     self.__del__()
 
   @staticmethod
-  def GetDeviceInfo(target_mac, spec_name):
+  def GetDeviceInfo(target_mac, spec_name, hci_device=None):
     """A helper method to get information conveniently from a specified
     bluetooth device.
 
     Args:
       target_mac: the MAC address of the target device
       spec_name: the specification name to display in the log
+      hci_device: the hci device to get information from
     """
-    gatttool = GattTool(target_mac)
+    gatttool = GattTool(target_mac, hci_device=hci_device)
     gatttool.ScanAndConnect()
     if spec_name == 'battery level':
       info = gatttool.GetBatteryLevel()
