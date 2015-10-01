@@ -355,3 +355,14 @@ class CRAS(object):
     interface = self._GetControlInterface()
     interface.SetOutputMute(False)
     interface.SetOutputUserMute(False)
+
+  def SetActiveOutputNodeVolume(self, volume):
+    """Sets active output node volume.
+
+    Args:
+      volume: 0-100 for active output node volume.
+    """
+    interface = self._GetControlInterface()
+    for node in interface.GetNodes():
+      if not node['IsInput'] and node['Active']:
+        interface.SetOutputNodeVolume(node['Id'], volume)
