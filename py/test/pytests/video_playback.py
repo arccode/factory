@@ -37,6 +37,7 @@ class VideoPlaybackTest(unittest.TestCase):
     logging.info('video_file=[%s]', self.args.video_file)
     logging.info('time_limit=%s secs', self.args.time_limit)
     audio_utils.CRAS().EnableOutput()
+    audio_utils.CRAS().SetActiveOutputNodeVolume(100)
     ui = test_ui.UI()
     ui.CallJSFunction('init',
                       self.args.video_file,

@@ -113,6 +113,7 @@ class LidSwitchTest(unittest.TestCase):
 
   def setUp(self):
     audio_utils.CRAS().EnableOutput()
+    audio_utils.CRAS().SetActiveOutputNodeVolume(100)
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     if self.args.event_id:
