@@ -115,13 +115,13 @@ def FlimConfigureService(flim, ssid, password):
     password: wifi key to authenticate
   """
   wlan_dict = {
-      'Type': 'wifi',
-      'Mode': 'managed',
-      'AutoConnect': False,
-      'SSID': ssid}
+      'Type': dbus.String('wifi', variant_level=1),
+      'Mode': dbus.String('managed', variant_level=1),
+      'AutoConnect': dbus.Boolean(False, variant_level=1),
+      'SSID': dbus.String(ssid, variant_level=1)}
   if password:
-    wlan_dict['Security'] = 'psk'
-    wlan_dict['Passphrase'] = password
+    wlan_dict['Security'] = dbus.String('psk', variant_level=1)
+    wlan_dict['Passphrase'] = dbus.String(password, variant_level=1)
 
   flim.manager.ConfigureService(wlan_dict)
 
