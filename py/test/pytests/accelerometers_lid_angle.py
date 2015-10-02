@@ -9,6 +9,7 @@
 There are two accelerometers in ChromeOS for lid angle calculation.
 This test asks OP to turn lid angle into a desired angle and then
 checks whether the lid angle is within some threshold.
+Please notice this test requires the hinge to be in a horizontal plane.
 
 Usage examples::
 
@@ -139,44 +140,76 @@ class AccelerometersLidAngleTest(unittest.TestCase):
       )
 
   def _CalculateLidAngle(self):
+    """ Calculate the lid angle based on the two accelerometers (base/lid).
+
+    When the lid angle is 180 degrees and the keyboard is on a horizontal
+    plane in front of an user, the standard orientation of both
+    accelerometers is:
+      +X axis is aligned with the hinge and pointing to the right.
+      +Y axis is in the same plane as the keyboard pointing towards the
+         top of the screen.
+      +Z axis is perpendicular to the keyboard, pointing out of the keyboard.
+
+    This orientation is used in kernel 3.18 and later, previous kernel
+    might use different orientation. It's also used in Android and is defined
+    in the w3 spec: http://www.w3.org/TR/orientation-event/#description.
+    """
     cal_data = {}
     for location in self.accelerometers_locations:
       try:
-        cal_data[location] = self.accelerometers[location].GetCalibratedDataAverage(
-            self.args.capture_count)
+        cal_data[location] = (
+            self.accelerometers[location].GetCalibratedDataAverage(
+                self.args.capture_count))
       except AccelerometerControllerException as err:
-        logging.info('Read %s calibrated data failed: %r.', location, err.args[0])
+        logging.info(
+            'Read %s calibrated data failed: %r.', location, err.args[0])
         return None
 
-    # Calculate the angle between base and lid vectors.
-    base_vec = [
-        cal_data['base']['in_accel_x'],
+    # +X axis is aligned with the hinge.
+    hinge_vec = [float(self.args.spec_ideal_values[1]), 0.0, 0.0]
+    # The calulation requires hinge in a horizontal position.
+    min_value = self.args.spec_ideal_values[0] - self.args.spec_offset[0]
+    max_value = self.args.spec_ideal_values[0] + self.args.spec_offset[0]
+    for location in self.accelerometers_locations:
+      if not min_value <= cal_data[location]['in_accel_x'] <= max_value:
+        self.ui.Fail('The hinge is not in a horizontal plane.')
+
+    base_vec_flattened = [
+        0.0,
         cal_data['base']['in_accel_y'],
         cal_data['base']['in_accel_z']]
-    lid_vec = [
-        cal_data['lid']['in_accel_x'],
+    lid_vec_flattened = [
+        0.0,
         cal_data['lid']['in_accel_y'],
         cal_data['lid']['in_accel_z']]
-    # +Y axis aligned with the hinge.
-    hinge_vec = [0.0, float(self.args.spec_ideal_values[1]), 0.0]
 
     # http://en.wikipedia.org/wiki/Dot_product#Geometric_definition
     # We use dot product and inverse Cosine to get the angle between
-    # base_vec and lid_vec in degrees.
+    # base_vec_flattened and lid_vec_flattened in degrees.
     angle_between_vectors = math.degrees(math.acos(
-        np.dot(base_vec, lid_vec) / np.linalg.norm(base_vec) /
-        np.linalg.norm(lid_vec)))
+        np.dot(base_vec_flattened, lid_vec_flattened) /
+        np.linalg.norm(base_vec_flattened) /
+        np.linalg.norm(lid_vec_flattened)))
+
+    # Based on the standare orientation described above, the sum of the
+    # lid angle (between keyboard and screen) and angle_between_vectors
+    # is 180 degrees. For example, when turning the lid angle to 180 degrees,
+    # the orientation of two accelerometers is the same, hence
+    # angle_between_vectors is 0 degrees.
+    lid_angle = 180.0 - angle_between_vectors
 
     # http://en.wikipedia.org/wiki/Cross_product#Geometric_meaning
     # If the dot product of this cross product is normal, it means that the
     # shortest angle between |base| and |lid| was counterclockwise with
     # respect to the surface represented by |hinge| and this angle must be
-    # reversed.
-    lid_base_cross_vec = np.cross(base_vec, lid_vec)
+    # reversed. That means the current lid angle is >= 180 degrees and the
+    # value should be (360.0 - lid_angle), where lid_angle is always the
+    # smaller angle between the keyboard and the screen.
+    lid_base_cross_vec = np.cross(base_vec_flattened, lid_vec_flattened)
     if np.dot(lid_base_cross_vec, hinge_vec) > 0.0:
-      return 360.0 - angle_between_vectors
+      return 360.0 - lid_angle
     else:
-      return angle_between_vectors
+      return lid_angle
 
   def StartTest(self, _):
     # Only allow the first event handler to run. Otherwise, other threads could
