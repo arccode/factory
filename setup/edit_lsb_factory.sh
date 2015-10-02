@@ -16,6 +16,14 @@ DEFINE_string image "" \
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 
+# Constants
+FLAG_CUTOFF_METHOD="CUTOFF_METHOD"
+FLAG_CUTOFF_AC_STATE="CUTOFF_AC_STATE"
+FLAG_CUTOFF_BATTERY_MIN_PERCENTAGE="CUTOFF_BATTERY_MIN_PERCENTAGE"
+FLAG_CUTOFF_BATTERY_MAX_PERCENTAGE="CUTOFF_BATTERY_MAX_PERCENTAGE"
+FLAG_CUTOFF_BATTERY_MIN_VOLTAGE="CUTOFF_BATTERY_MIN_VOLTAGE"
+FLAG_CUTOFF_BATTERY_MAX_VOLTAGE="CUTOFF_BATTERY_MAX_VOLTAGE"
+
 on_exit() {
   image_clean_temp
 }
@@ -55,6 +63,104 @@ remove_flag() {
   local edit_file="$2"
 
   sed -i "/^$key=.*/d" "$edit_file"
+}
+
+interaction_cutoff_menu() {
+  local edit_file="$1"
+  local ans=""
+  echo "Select cutoff method after factory reset: "
+  echo "(1) shutdown"
+  echo "(2) reboot"
+  echo "(3) battery cutoff"
+  echo "(4) battery cutoff at shutdown"
+  echo ""
+  echo -n "Please select an option: "
+  read ans
+  case "$ans" in
+    1 )
+      replace_or_append "$FLAG_CUTOFF_METHOD" "SHUTDOWN" "$edit_file"
+      ;;
+    2 )
+      replace_or_append "$FLAG_CUTOFF_METHOD" "REBOOT" "$edit_file"
+      ;;
+    3 )
+      replace_or_append "$FLAG_CUTOFF_METHOD" "EC_BATTERY_CUTOFF" "$edit_file"
+      ;;
+    4 )
+      replace_or_append "$FLAG_CUTOFF_METHOD" "EC_BATTERY_CUTOFF_AT_SHUTDOWN" \
+        "$edit_file"
+      ;;
+    * )
+      warn "Unknown answer: $ans"
+  esac
+
+  # Set up cutoff ac state
+  if [ "$ans" -eq 3 ] || [ "$ans" -eq 4 ]; then
+    echo "Select cutoff AC state:"
+    echo "(1) disconnect AC"
+    echo "(2) connect AC"
+    echo ""
+    echo -n "Please select an option:"
+    read ans
+    case "$ans" in
+      1 )
+        replace_or_append "$FLAG_CUTOFF_AC_STATE" "DISCONNECT_AC" "$edit_file"
+        ;;
+      2 )
+        replace_or_append "$FLAG_CUTOFF_AC_STATE" "CONNECT_AC" "$edit_file"
+        ;;
+      * )
+        warn "Unknown answer: $ans"
+    esac
+  fi
+
+  echo -n "Minimum allowed battery percentage:" \
+    "(Keep empty to bypass checking):"
+  read ans
+  if [ -z "$ans" ]; then
+    remove_flag "$FLAG_CUTOFF_BATTERY_MIN_PERCENTAGE" "$edit_file"
+  else
+    if [ "$ans" -ge "0" ] && [ "$ans" -le "100" ]; then
+      replace_or_append "$FLAG_CUTOFF_BATTERY_MIN_PERCENTAGE" \
+        "$ans" "$edit_file"
+    else
+      warn "Invalid percentage: $ans"
+    fi
+  fi
+
+  echo -n "Maximum allowed battery percentage:" \
+    "(Keep empty to bypass checking):"
+  read ans
+  if [ -z "$ans" ]; then
+    remove_flag "$FLAG_CUTOFF_BATTERY_MAX_PERCENTAGE" "$edit_file"
+  else
+    if [ "$ans" -ge "0" ] && [ "$ans" -le "100" ]; then
+      replace_or_append "$FLAG_CUTOFF_BATTERY_MAX_PERCENTAGE" \
+        "$ans" "$edit_file"
+    else
+      warn "Invalid percentage: $ans"
+    fi
+  fi
+
+  echo -n "Minimum allowed battery voltage(mA):" \
+    "(Keep empty to bypass checking):"
+  read ans
+  if [ -z "$ans" ]; then
+    remove_flag "$FLAG_CUTOFF_BATTERY_MIN_VOLTAGE" "$edit_file"
+  else
+    replace_or_append "$FLAG_CUTOFF_BATTERY_MIN_VOLTAGE" \
+      "$ans" "$edit_file"
+  fi
+
+  echo -n "Maximum allowed battery voltage(mA):" \
+    "(Keep empty to bypass checking):"
+  read ans
+  if [ -z "$ans" ]; then
+    remove_flag "$FLAG_CUTOFF_BATTERY_MAX_VOLTAGE" "$edit_file"
+  else
+    replace_or_append "$FLAG_CUTOFF_BATTERY_MAX_VOLTAGE" \
+      "$ans" "$edit_file"
+  fi
 }
 
 interaction_menu() {
@@ -117,56 +223,7 @@ interaction_menu() {
       esac
       ;;
     4 )
-      echo "Select cutoff method after factory reset: "
-      echo "(1) shutdown"
-      echo "(2) reboot"
-      echo "(3) battery cutoff"
-      echo "(4) battery cutoff at shutdown"
-      echo -n "Please select an option: "
-      read ans
-      case "$ans" in
-        1 )
-          replace_or_append "CUTOFF_METHOD" "SHUTDOWN" "$edit_file"
-          ;;
-        2 )
-          replace_or_append "CUTOFF_METHOD" "REBOOT" "$edit_file"
-          ;;
-        3 )
-          replace_or_append "CUTOFF_METHOD" "EC_BATTERY_CUTOFF" "$edit_file"
-          ;;
-        4 )
-          replace_or_append "CUTOFF_METHOD" "EC_BATTERY_CUTOFF_AT_SHUTDOWN" \
-            "$edit_file"
-          ;;
-        * )
-          warn "Unknown answer: $ans"
-      esac
-
-      echo -n "Minimum allowed battery percentage:" \
-        "(Keep empty to bypass checking):"
-      read ans
-      if [ -z "$ans" ]; then
-        remove_flag "MIN_CUTOFF_BATTERY_PERCENTAGE" "$edit_file"
-      else
-        if [ "$ans" -ge "0" ] && [ "$ans" -le "100" ]; then
-          replace_or_append "MIN_CUTOFF_BATTERY_PERCENTAGE" "$ans" "$edit_file"
-        else
-          warn "Invalid percentage: $ans"
-        fi
-      fi
-
-      echo -n "Maximum allowed battery percentage:" \
-        "(Keep empty to bypass checking):"
-      read ans
-      if [ -z "$ans" ]; then
-        remove_flag "MAX_CUTOFF_BATTERY_PERCENTAGE" "$edit_file"
-      else
-        if [ "$ans" -ge "0" ] && [ "$ans" -le "100" ]; then
-          replace_or_append "MAX_CUTOFF_BATTERY_PERCENTAGE" "$ans" "$edit_file"
-        else
-          warn "Invalid percentage: $ans"
-        fi
-      fi
+      interaction_cutoff_menu "$edit_file"
       ;;
     w )
       # Make a backup of current (before modification) lsb-factor file so people
