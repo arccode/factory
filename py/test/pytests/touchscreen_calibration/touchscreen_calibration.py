@@ -83,7 +83,7 @@ class TouchscreenCalibration(unittest.TestCase):
   ARGS = [
       Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
       Arg('phase', str, 'The test phase of touchscreen calibration', ''),
-      Arg('remote_system_dir', str, 'The remote system directory', ''),
+      Arg('remote_bin_root', str, 'The remote binary root path', ''),
       Arg('remote_data_dir', str, 'The remote data directory', ''),
       Arg('fw_update_tool', str, 'The firmware update tool', None),
       Arg('fw_file', str, 'The firmware file', None),
@@ -201,7 +201,7 @@ class TouchscreenCalibration(unittest.TestCase):
       board_sensors = sensors_server.GetSensorServiceClass(self._board)
       self.sensors = board_sensors(
           self.sensors_ip, self.dut,
-          remote_system_dir=self.args.remote_system_dir,
+          remote_bin_root=self.args.remote_bin_root,
           remote_data_dir=self.args.remote_data_dir,
           tool=self.args.tool,
           fw_update_tool=self.args.fw_update_tool,

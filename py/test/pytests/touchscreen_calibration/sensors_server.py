@@ -395,20 +395,20 @@ class SensorServiceRyu(BaseSensorService):
       'trx-shorts':
           [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]}
 
-  def __init__(self, ip, dut, remote_system_dir='', remote_data_dir='', tool='',
+  def __init__(self, ip, dut, remote_bin_root='', remote_data_dir='', tool='',
                fw_update_tool='', hid_tool='', fw_file='', install_flag=True,
                log=None):
     super(SensorServiceRyu, self).__init__(RYU, log=log)
     self.ip = ip
     self.dut = dut
-    self.remote_system_dir = remote_system_dir
+    self.remote_bin_root = remote_bin_root
     self.remote_data_dir = remote_data_dir
     self.tool = tool
     self.fw_update_tool = fw_update_tool
     self.hid_tool = hid_tool
     self.fw_file = fw_file
 
-    self.remote_tool_bin_dir = os.path.join(self.remote_system_dir, 'bin')
+    self.remote_tool_bin_dir = os.path.join(self.remote_bin_root, 'bin')
     self.src_dir = os.path.join(os.path.dirname(__file__), 'boards', self.board)
     self.read_cmd_prefix = '%s -r ' % self._GetToolPath(tool)
     self.check_cmd = 'test -e %s'
@@ -416,7 +416,7 @@ class SensorServiceRyu(BaseSensorService):
     self.num_cols = None
 
     if install_flag:
-      self.dut.Call('mount -o remount,rw ' + self.remote_system_dir)
+      self.dut.Call('mount -o remount,rw ' + self.remote_bin_root)
       if self.InstallFiles():
         self.log.info('Sucessfully installed files.')
       else:
