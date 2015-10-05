@@ -396,7 +396,8 @@ class SensorServiceRyu(BaseSensorService):
           [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]}
 
   def __init__(self, ip, dut, remote_system_dir='', remote_data_dir='', tool='',
-               fw_update_tool='', hid_tool='', fw_file='', log=None):
+               fw_update_tool='', hid_tool='', fw_file='', install_flag=True,
+               log=None):
     super(SensorServiceRyu, self).__init__(RYU, log=log)
     self.ip = ip
     self.dut = dut
@@ -411,17 +412,19 @@ class SensorServiceRyu(BaseSensorService):
     self.src_dir = os.path.join(os.path.dirname(__file__), 'boards', self.board)
     self.read_cmd_prefix = '%s -r ' % self._GetToolPath(tool)
     self.check_cmd = 'test -e %s'
-
-    self.dut.Call('mount -o remount,rw ' + self.remote_system_dir)
-
-    if self.InstallFiles():
-      self.log.info('Sucessfully installed files.')
-    else:
-      self.log.error('Failed to install files.')
-
     self.num_rows = None
     self.num_cols = None
-    self.Read('deltas')
+
+    if install_flag:
+      self.dut.Call('mount -o remount,rw ' + self.remote_system_dir)
+      if self.InstallFiles():
+        self.log.info('Sucessfully installed files.')
+      else:
+        self.log.error('Failed to install files.')
+      self.Read('deltas')
+      self.status_flag = self.num_rows is not None and self.num_cols is not None
+    else:
+      self.status_flag = True
 
   def _GetToolPath(self, filename):
     """Return the filepath of a binary tool."""
@@ -453,7 +456,7 @@ class SensorServiceRyu(BaseSensorService):
     return utils.IsSuccessful(self.dut.Push(src_filepath, dst_filepath))
 
   def CalibrateBaseline(self):
-    """Do baseline calibraiton."""
+    """Do baseline calibration."""
     return len(self.Read('deltas')) > 0
 
   def CheckStatus(self):
@@ -462,10 +465,15 @@ class SensorServiceRyu(BaseSensorService):
     Returns:
       True if could read sensor deltas values.
     """
-    if self.num_rows is None or self.num_cols is None:
-      return None
-    else:
-      return (self.num_rows, self.num_cols)
+    return self.status_flag
+
+  def GetSensorDimensions(self):
+    """Get the numbers of rows and columns.
+
+    Returns:
+      (num_rows, num_cols): the numbers of rows and columns
+    """
+    return (self.num_rows, self.num_cols)
 
   def _ReadRawData(self, category):
     """Read the output from dut.Shell()."""

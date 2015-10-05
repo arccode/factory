@@ -207,6 +207,7 @@ class TouchscreenCalibration(unittest.TestCase):
           fw_update_tool=self.args.fw_update_tool,
           hid_tool=self.args.hid_tool,
           fw_file=self.args.fw_file,
+          install_flag=(self.args.phase == self.PHASE_SETUP_ENVIRONMENT),
           log=factory.console)
       _CheckStatus('Use local sensors object.')
 
@@ -304,9 +305,8 @@ class TouchscreenCalibration(unittest.TestCase):
     if self.args.phase == self.PHASE_SETUP_ENVIRONMENT:
       self.touchscreen_status = False
       try:
-        result = self.sensors.CheckStatus()
-        if result is not None:
-          self.num_tx, self.num_rx = result
+        if self.sensors.CheckStatus():
+          self.num_tx, self.num_rx = self.sensors.GetSensorDimensions()
           self.touchscreen_status = True
           factory.console.info('touchscreen exists')
         else:
