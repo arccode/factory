@@ -20,11 +20,68 @@ import datetime
 import logging
 import optparse
 import pexpect
+import re
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils.process_utils import CheckOutput
 
 
 class BluetoothUtilsError(Exception):
   """An excpetion class for the bluetooth_utils module."""
   pass
+
+
+class BtMgmt(object):
+  """A wrapper of linux btmgmt tool."""
+
+  def __init__(self, manufacturer_id=None):
+    self._manufacturer_id = manufacturer_id
+    self._hci_device = None
+    self._host_mac = None
+    self._GetInfo(self._manufacturer_id)
+
+  def _GetInfo(self, manufacturer_id):
+    """Get the bluetooth hci device and MAC of the adapter with spceified
+    manufacturer id.
+
+    Examples of the output from "btmgmt info" could be as follows depending
+    on the version of btmgmt.
+
+        hci1:   addr 00:1A:7D:DA:71:05 version 6 manufacturer 10 class 0x080104
+        ...
+
+    or
+
+        hci0:   Primary controller
+                addr 00:1A:7D:DA:71:14 version 6 manufacturer 10 class 0x480104
+        ...
+    """
+    if manufacturer_id is None:
+      return
+
+    patt = re.compile(
+        r'.*\s+addr\s+(.+)\s+version.+manufacturer\s(\d+)\s+class.+')
+    hci_device = None
+    for line in CheckOutput(['btmgmt', 'info']).splitlines():
+      if line.startswith('hci'):
+        hci_device = line.split(':')[0]
+      # The manufacturer id may or may not be on the same line of
+      # the hci device.
+      result = patt.match(line)
+      if result:
+        mid = int(result.group(2))
+        if mid == manufacturer_id:
+          self._hci_device = hci_device
+          self._host_mac = result.group(1)
+          return
+
+  def GetMac(self):
+    """Get the MAC address of the bluetooth adapter."""
+    return self._host_mac
+
+  def GetHciDevice(self):
+    """Get the HCI device of the bluetooth adapter."""
+    return self._hci_device
 
 
 class GattTool(object):
