@@ -78,16 +78,16 @@ interaction_cutoff_menu() {
   read ans
   case "$ans" in
     1 )
-      replace_or_append "$FLAG_CUTOFF_METHOD" "SHUTDOWN" "$edit_file"
+      replace_or_append "$FLAG_CUTOFF_METHOD" "shutdown" "$edit_file"
       ;;
     2 )
-      replace_or_append "$FLAG_CUTOFF_METHOD" "REBOOT" "$edit_file"
+      replace_or_append "$FLAG_CUTOFF_METHOD" "reboot" "$edit_file"
       ;;
     3 )
-      replace_or_append "$FLAG_CUTOFF_METHOD" "EC_BATTERY_CUTOFF" "$edit_file"
+      replace_or_append "$FLAG_CUTOFF_METHOD" "battery_cutoff" "$edit_file"
       ;;
     4 )
-      replace_or_append "$FLAG_CUTOFF_METHOD" "EC_BATTERY_CUTOFF_AT_SHUTDOWN" \
+      replace_or_append "$FLAG_CUTOFF_METHOD" "battery_cutoff_at_shutdown" \
         "$edit_file"
       ;;
     * )
@@ -104,10 +104,10 @@ interaction_cutoff_menu() {
     read ans
     case "$ans" in
       1 )
-        replace_or_append "$FLAG_CUTOFF_AC_STATE" "DISCONNECT_AC" "$edit_file"
+        replace_or_append "$FLAG_CUTOFF_AC_STATE" "remove_ac" "$edit_file"
         ;;
       2 )
-        replace_or_append "$FLAG_CUTOFF_AC_STATE" "CONNECT_AC" "$edit_file"
+        replace_or_append "$FLAG_CUTOFF_AC_STATE" "connect_ac" "$edit_file"
         ;;
       * )
         warn "Unknown answer: $ans"
