@@ -309,20 +309,33 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       raise bft_fixture.BFTFixtureException('Unsupported mode %s' % mode)
 
     DELAY_BEFORE_RETRY = 0.1
-    retries_left = self._POLL_PD_MAX_RETRIES
-    consecutive_ready_count = 0
-    while consecutive_ready_count < self._POLL_PD_MIN_CONSECUTIVE_READY_COUNT:
-      if 'READY' in self.GetPDState().get('state'):
-        consecutive_ready_count += 1
-      else:
-        # Need to get state ready in consecutive times.
-        consecutive_ready_count = 0
-      time.sleep(DELAY_BEFORE_RETRY)
-      retries_left -= 1
-      if retries_left <= 0:
-        raise bft_fixture.BFTFixtureException(
-            'Failed to wait PD state ready in %.1f seconds' % (
-                DELAY_BEFORE_RETRY * self._POLL_PD_MAX_RETRIES))
+    def _PollPDConsecutiveReady():
+      retries_left = self._POLL_PD_MAX_RETRIES
+      consecutive_ready_count = 0
+      while consecutive_ready_count < self._POLL_PD_MIN_CONSECUTIVE_READY_COUNT:
+        if 'READY' in self.GetPDState().get('state'):
+          consecutive_ready_count += 1
+        else:
+          # Need to get state ready in consecutive times.
+          consecutive_ready_count = 0
+        time.sleep(DELAY_BEFORE_RETRY)
+        retries_left -= 1
+        if retries_left <= 0:
+          return False
+      return True
+
+    is_ready = _PollPDConsecutiveReady()
+    if not is_ready and self.IsDoubleCCCable():
+      # For double CC cable, it has chances to fail to negotiate. Make a fake
+      # disconnection period can temporary fix this issue.
+      logging.info(
+          'Double CC fail to negotiate, make fake disconnection to recover...')
+      self.SetFakeDisconnection(1)
+      is_ready = _PollPDConsecutiveReady()
+    if not is_ready:
+      raise bft_fixture.BFTFixtureException(
+          'Failed to wait PD state ready in %.1f seconds' % (
+              DELAY_BEFORE_RETRY * self._POLL_PD_MAX_RETRIES))
 
     if self.GetPDState().get('datarole') == mode:
       return
