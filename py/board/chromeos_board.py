@@ -57,6 +57,12 @@ class ChromeOSBoard(Board):
               r'(?P<connected>connected|disconnected), '
               r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) '
               r'Polarity:(?P<polarity>CC1|CC2) State:(?P<state>\w+)'),
+      'USB_PD_INFO_RE_V1_2':
+          re.compile(
+              r'Port C(?P<port>\d+): (?P<enabled>enabled|disabled), '
+              r'(?P<connected>connected|disconnected)  State:(?P<state>\w+)\n'
+              r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) *(?P<vconn>VCONN|), '
+              r'Polarity:(?P<polarity>CC1|CC2)'),
   }
 
   # EC tool arguments for accessing PD. Subclass may override this to match the
@@ -306,8 +312,10 @@ class ChromeOSBoard(Board):
         else:
           status['state'] = match.group('state')
           status['datarole'] = match.group('datarole')
-          if pd_version == 'USB_PD_INFO_RE_V1_1':
+          if pd_version == 'USB_PD_INFO_RE_V1_1' or pd_version == 'USB_PD_INFO_RE_V1_2':
             status['connected'] = match.group('connected') == 'connected'
+            if pd_version == 'USB_PD_INFO_RE_V1_2':
+              status['vconn'] = match.group('vconn')
         return status
     raise BoardException('Unable to parse USB PD status from: %s' % response)
 
