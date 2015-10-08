@@ -116,6 +116,18 @@ class Finalize(unittest.TestCase):
           'False for legacy implementation to invoke wiping under '
           'release image after reboot.',
           default=False, optional=True),
+      Arg('cutoff_options', dict,
+          'Battery cutoff options after wiping. Only used when wipe_in_place'
+          'is set to true. Should be a dict with following optional keys:\n'
+          '- "method": The cutoff method after wiping. Value should be one of'
+          '    {shutdown, reboot, battery_cutoff, battery_cutoff_at_shutdown}\n'
+          '- "check_ac": Allowed AC state when performing battery cutoff'
+          '     Value should be one of {remove_ac, connect_ac}\n'
+          '- "min_battery_percent": Minimum battery percentage allowed\n'
+          '- "max_battery_percent": Maximum battery percentage allowed\n'
+          '- "min_battery_voltage": Minimum battery voltage allowed\n'
+          '- "max_battery_voltage": Maximum battery voltage allowed',
+          optional=True),
       Arg('enforced_release_channels', list,
           'A list of string indicating the enforced release image channels. '
           'Each item should be one of "dev", "beta" or "stable".',
@@ -395,8 +407,15 @@ class Finalize(unittest.TestCase):
       command += ' --no_write_protect'
     if not self.args.secure_wipe:
       command += ' --fast'
+
     if self.args.wipe_in_place:
       command += ' --wipe_in_place'
+      if self.args.cutoff_options:
+        cutoff_args = ''
+        for key, value in self.args.cutoff_options.iteritems():
+          cutoff_args += ' --%s %s' % (key.replace('_', '-'), str(value))
+        command += ' --cutoff_args "%s"' % cutoff_args
+
     command += ' --upload_method "%s"' % upload_method
     command += ' --add_file "%s"' % self.test_states_path
     if self.args.rma_mode:

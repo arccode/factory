@@ -3,13 +3,23 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# This script mounts stateful partition, reads options in stateful reset file
-# to invoke clobber-state for factory wiping.
+# This script invokes clobber-state for factory wiping, and then invokes
+# battery_cutoff.sh
+#
 
+# ======================================================================
+# Constants
+
+STATE_PATH="/mnt/stateful_partition"
+
+BATTERY_CUTOFF="/usr/local/factory/sh/battery_cutoff.sh"
+DISPLAY_MESSAGE="/usr/local/factory/sh/display_wipe_message.sh"
+ENABLE_RELEASE_PARTITION="/usr/local/factory/bin/enable_release_partition"
+
+LOG_FILE="/tmp/wipe_init.log"
 
 # =====================================================================
 # Set up logging
-LOG_FILE="/tmp/wipe_init.log"
 
 stop_and_save_logging() {
   # Stop appending to the log and preserve it.
@@ -24,26 +34,11 @@ stop_and_save_logging() {
   sync && sleep 3
 }
 
-# Appends messages with newline.
-split_messages() {
-  local message=""
-  for message in "$@"; do
-    printf "${message}\n"
-  done
-}
-
-display_message() {
-  local text_file="$(mktemp)"
-  split_messages "$@" >"${text_file}"
-  display_boot_message show_file "${text_file}"
-}
-
 die() {
   echo "ERROR: $*"
   stop_and_save_logging
 
-  display_message "Factory wipe failed in wipe_init" \
-                  "Please contact engineer for help."
+  ${DISPLAY_MESSAGE} wipe_failed
 
   exit 1
 }
@@ -56,19 +51,14 @@ exec >"${LOG_FILE}" 2>&1
 trap die EXIT
 
 # ======================================================================
-# Constants
-
-STATE_PATH="/mnt/stateful_partition"
-
-# ======================================================================
 # Global variables
 
 FACTORY_ROOT_DEV="$1"
 STATE_DEV=${FACTORY_ROOT_DEV%[0-9]*}1
-WIPE_MESSAGE="/usr/local/factory/misc/wipe_message.png"
 
 ROOT_DISK="$2"
 WIPE_ARGS="$3"
+CUTOFF_ARGS="$4"
 
 # ======================================================================
 # Helper functions
@@ -81,21 +71,22 @@ start_wipe() {
     FACTORY_RETURN_AFTER_WIPING="YES" clobber-state "${WIPE_ARGS}"
   mv -f "/tmp/clobber-state.log" "${STATE_PATH}/unencrypted/clobber-state.log"
 
-  enable_release_partition "${release_root_dev}"
+  "${ENABLE_RELEASE_PARTITION}" "${release_root_dev}"
 
   # TODO(shunhsingou): need to inform shopfloor here.
-  # TODO(shunhsingou): enable more wiping options,
-  # e.g., battery cutoff, shutdown, etc.
+
   trap - EXIT
-  shutdown -r now
-  sleep 1d  # Wait for shutdown
+  "${BATTERY_CUTOFF}" ${CUTOFF_ARGS}
+
+  # Should not reach here.
+  sleep 1d
 }
 
 # ======================================================================
 # Main function
 
 main() {
-  display_boot_message show_spinner "${WIPE_MESSAGE}"
+  "${DISPLAY_MESSAGE}" wipe
   start_wipe
 }
 

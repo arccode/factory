@@ -514,14 +514,55 @@ class Gooftool(object):
 
     self._util.FindAndRunScript('clear_gbb_flags.sh')
 
-  def WipeInPlace(self, is_fast=None):
+  def _VerifyCutoffArgs(self, cutoff_args):
+    """Verify the cutoff args passed to battery_cutoff.sh.
+
+    Raises:
+      Error when format is not correct.
+    """
+
+    args = cutoff_args.split()
+    args_len = len(args)
+    if args_len % 2 != 0:
+      raise ValueError('Invalid arguments number in cutoff_args')
+
+    for i in range(0, args_len, 2):
+      if '--method' == args[i]:
+        if args[i + 1] not in (
+            'shutdown', 'reboot', 'battery_cutoff',
+            'battery_cutoff_at_shutdown'):
+          raise ValueError('Invalid value for %s: %s' % (args[i], args[i + 1]))
+      elif '--check-ac' == args[i]:
+        if args[i + 1] not in ('remove_ac', 'connect_ac'):
+          raise ValueError('Invalid value for %s: %s' % (args[i], args[i + 1]))
+      elif args[i] in (
+          '--min-battery-percent', '--max-battery-percent',
+          '--min-battery-voltage', '--max-battery-voltage'):
+        try:
+          int(args[i + 1])
+        except ValueError:
+          raise ValueError('Invalid value for %s: %s' % (args[i], args[i + 1]))
+      else:
+        raise ValueError('Unknown argument in cutoff_args: %s' % args[i])
+
+  def WipeInPlace(self, is_fast=None, cutoff_args=None):
     """Start transition to release state directly without reboot.
 
     Args:
       is_fast: Whether or not to apply fast wipe.
+
+      cutoff_args: Args to be passed to battery_cutoff.sh after wiping.
     """
+    args = ''
     if is_fast:
-      file_utils.TouchFile("/tmp/factory_fast_wipe")
+      args += 'FAST_WIPE=true\n'
+
+    if cutoff_args:
+      self._VerifyCutoffArgs(cutoff_args)
+      args += 'CUTOFF_ARGS=%s' % cutoff_args
+
+    if args:
+      file_utils.WriteFile('/tmp/factory_wipe_args', args)
     os.system('start factory-wipe')
 
   def PrepareWipe(self, is_fast=None):

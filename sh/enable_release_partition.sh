@@ -8,7 +8,7 @@
 # - (legacy firmware) perform "postinst" to configure legacy boot loaders
 # - rollback if anything goes wrong
 
-. "$(dirname "$0")/common.sh" || exit 1
+. "$(dirname "$(readlink -f $0)")"/common.sh || exit 1
 set -e
 
 # Kernel activation parameters

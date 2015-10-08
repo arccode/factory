@@ -14,7 +14,7 @@
 # Constants
 
 TMPFS_PATH="$1"
-TMPFS_SIZE=100M
+TMPFS_SIZE=1024M
 
 FACTORY_DIR="/usr/local/factory"
 ASSETS_DIR="/usr/share/chromeos-assets"
@@ -25,11 +25,22 @@ MISC_DIR="/usr/share/misc"
 # "src_dir:dst_dir" meaning copy the src_file/src_dir in factory rootfs to
 # dst_file/dst_dir in the tmpfs.
 FILES_DIRS_COPIED_FROM_ROOTFS="
-  ${ASSETS_DIR}/images:${ASSETS_DIR}/images
-  ${ASSETS_DIR}/text/boot_messages:${ASSETS_DIR}/text/boot_messages
-  ${MISC_DIR}/chromeos-common.sh:${MISC_DIR}/chromeos-common.sh
-  ${FACTORY_DIR}/misc/wipe_message.png:${FACTORY_DIR}/misc/wipe_message.png
-  ${FACTORY_DIR}/sh/common.sh:/bin/common.sh
+  ${ASSETS_DIR}/images
+  ${ASSETS_DIR}/text/boot_messages
+  ${MISC_DIR}/chromeos-common.sh
+  ${FACTORY_DIR}/misc/wipe_message.png
+  ${FACTORY_DIR}/bin/enable_release_partition
+  ${FACTORY_DIR}/sh/battery_cutoff.sh
+  ${FACTORY_DIR}/sh/common.sh
+  ${FACTORY_DIR}/sh/display_wipe_message.sh
+  ${FACTORY_DIR}/sh/enable_release_partition.sh
+  ${FACTORY_DIR}/sh/wipe_init.sh
+  /etc/fonts
+  /etc/pango
+  /lib/modules
+  /usr/lib64/pango
+  /usr/share/fonts/notocjk
+  /usr/share/cache/fontconfig
 "
 
 # Layout of directories to be created in tmpfs
@@ -69,14 +80,15 @@ BIN_DEPS="
   /usr/bin/mktemp
   /usr/bin/od
   /usr/bin/pango-view
+  /usr/bin/power_supply_info
   /usr/bin/pkill
   /usr/bin/pv
   /usr/bin/setterm
   /usr/local/bin/busybox
+  /usr/sbin/activate_date
   /usr/sbin/display_boot_message
+  /usr/sbin/ectool
   /usr/sbin/mosys
-  ${FACTORY_DIR}/bin/enable_release_partition
-  ${FACTORY_DIR}/bin/wipe_init
 "
 
 # ======================================================================
@@ -106,15 +118,13 @@ copy_dependent_binary_files() {
 }
 
 copy_rootfs_files_and_dirs() {
-  local layout src_file dst_file dst_dir
+  local file="" dis_dir=""
   # Copy some files from factory rootfs to the wiping tmpfs.
-  for layout in ${FILES_DIRS_COPIED_FROM_ROOTFS}; do
-    src_file="${layout%:*}"
-    dst_file="${layout#*:}"
-    dst_dir=$(dirname "${dst_file}")
+  for file in ${FILES_DIRS_COPIED_FROM_ROOTFS}; do
+    dst_dir=$(dirname "${file}")
 
     mkdir -p "${TMPFS_PATH}/${dst_dir}"
-    cp -rf "${src_file}" "${TMPFS_PATH}/${dst_dir}"
+    cp -af "${file}" "${TMPFS_PATH}/${dst_dir}"
   done
 }
 

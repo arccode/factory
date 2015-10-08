@@ -10,9 +10,27 @@
 # - chroot to the wiping tmpfs.
 
 # ======================================================================
-# Set up logging
+# Constants
+
+NEWROOT="/tmp/wipe_tmpfs"
+
+STATE_PATH="/mnt/stateful_partition"
+
+# Move the following mount points to tmpfs by mount --rbind
+REBIND_MOUNT_POINTS="/dev /proc /sys"
+
+SERVICES_NEEDS_RUNNING="boot-services console-tty2 dbus factory-wipe"
+
+CREATE_TMPFS="/usr/local/factory/sh/create_wiping_tmpfs.sh"
+WIPE_INIT="/usr/local/factory/sh/wipe_init.sh"
+DISPLAY_MESSAGE="/usr/local/factory/sh/display_wipe_message.sh"
+
+WIPE_ARGS_FILE="/tmp/factory_wipe_args"
 
 LOG_FILE="/tmp/wipe_in_tmpfs.log"
+
+# ======================================================================
+# Set up logging
 
 stop_and_save_logging() {
   # Stop appending to the log and preserve it.
@@ -27,29 +45,11 @@ stop_and_save_logging() {
   sync; sleep 3
 }
 
-# Appends messages with newline.
-split_messages() {
-  local message=""
-  for message in "$@"; do
-    printf "${message}\n"
-  done
-}
-
-display_message() {
-  local text_file="$(mktemp)"
-  split_messages "$@" >"${text_file}"
-
-  # TODO(shunshingou): display_boot_message usually fails in this situation,
-  # we need other method to show error message.
-  display_boot_message show_file "${text_file}"
-}
-
 die() {
   echo "ERROR: $*"
   stop_and_save_logging
 
-  display_message "Factory wipe failed in wipe_in_tmpfs." \
-                  "Please contact engineer for help."
+  "${DISPLAY_MESSAGE}" wipe_failed
 
   exit 1
 }
@@ -62,28 +62,31 @@ exec >"${LOG_FILE}" 2>&1
 trap die EXIT
 
 # ======================================================================
-# Constants
-
-NEWROOT="/tmp/wipe_tmpfs"
-
-SERVICES_NEEDS_RUNNING="boot-services console-tty2 dbus factory-wipe"
-
-CREATE_TMPFS_SCRIPT="/usr/local/factory/sh/create_wiping_tmpfs.sh"
-
-FAST_WIPE_FILE="/tmp/factory_fast_wipe"
-WIPE_ARGS="factory"
-[ -f "${FAST_WIPE_FILE}" ] && WIPE_ARGS="${WIPE_ARGS} fast"
+# Global variables
 
 FACTORY_ROOT_DEV=$(rootdev -s)
 ROOT_DISK=$(rootdev -d -s)
 STATE_DEV="${FACTORY_ROOT_DEV%[0-9]*}1"
-STATE_PATH="/mnt/stateful_partition"
 
-# Move the following mount points to tmpfs by mount --rbind
-REBIND_MOUNT_POINTS="/dev /proc /sys"
+WIPE_ARGS="factory"
+CUTOFF_ARGS=""
 
 # ======================================================================
 # Helper functions
+
+find_wipe_args() {
+  grep "^$1" "${WIPE_ARGS_FILE}" | cut -d '=' -f 2 - || true
+}
+
+parse_wipe_args() {
+  local fast_wipe=""
+
+  if [ -f "${WIPE_ARGS_FILE}" ]; then
+    fast_wipe="$(find_wipe_args FAST_WIPE)"
+    [ "${fast_wipe}" = "true" ] && WIPE_ARGS="${WIPE_ARGS} fast"
+    CUTOFF_ARGS="$(find_wipe_args CUTOFF_ARGS)"
+  fi
+}
 
 invoke_self_under_tmp() {
   local target_script="/tmp/wipe_in_tmpfs.sh"
@@ -190,7 +193,8 @@ chroot_tmpfs_to_wipe() {
   oldroot=$(mktemp -d --tmpdir="${NEWROOT}")
   cd "${NEWROOT}"
   pivot_root . "$(basename "${oldroot}")"
-  exec chroot . wipe_init "${FACTORY_ROOT_DEV}" "${ROOT_DISK}" "${WIPE_ARGS}"
+  exec chroot . "${WIPE_INIT}" "${FACTORY_ROOT_DEV}" "${ROOT_DISK}" \
+    "${WIPE_ARGS}" "${CUTOFF_ARGS}"
 }
 
 # ======================================================================
@@ -199,9 +203,10 @@ chroot_tmpfs_to_wipe() {
 main() {
   # Create the wiping tmpfs and it will copy some files from rootfs to tmpfs.
   # Therefore, we need to do this before unmount stateful partition.
-  "${CREATE_TMPFS_SCRIPT}" "${NEWROOT}"
+  "${CREATE_TMPFS}" "${NEWROOT}"
 
   invoke_self_under_tmp
+  parse_wipe_args
   stop_running_upstart_jobs
   unmount_stateful
   rebind_mount_point
