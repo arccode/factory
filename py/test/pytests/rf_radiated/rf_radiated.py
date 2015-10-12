@@ -102,8 +102,9 @@ class RFRadiatedTest(unittest.TestCase):
       Arg('blink_keyboard_lights', bool,
           'Blink keyboard lights while running test.  Useful if test is '
           'running on a DUT within a chamber.', default=False, optional=True),
-      ]
-
+      Arg('single_profile_max_try_count', int,
+          'Maximum number of tries for a single profile',
+          default=1, optional=True)]
 
   def __init__(self, *args, **kwargs):
     super(RFRadiatedTest, self).__init__(*args, **kwargs)
@@ -255,11 +256,20 @@ class RFRadiatedTest(unittest.TestCase):
     for profile in self.config['test_profiles']['antenna_%s' % antenna_model]:
       # Testing profiles are not like steps in setUp().  They're not critical,
       # so continue on errors (but still record them).
-      try:
-        self._TestOneSingleProfile(profile)
-      except Exception:
-        self.log['test']['failures'].append(
-            ''.join(traceback.format_exception(*sys.exc_info())))
+      passed = False
+      failures = []
+      for try_time in xrange(self.args.single_profile_max_try_count):
+        factory.console.info(
+            'Testing profile: %r, try %d/%d', profile['name'],
+            1 + try_time, self.args.single_profile_max_try_count)
+        try:
+          self._TestOneSingleProfile(profile)
+          passed = True
+          break
+        except Exception:
+          failures.append(''.join(traceback.format_exception(*sys.exc_info())))
+      if not passed:
+        self.log['test']['failures'] += failures
     self.log['test']['end_time'] = datetime.datetime.now()
 
   def _TestOneSingleProfile(self, test_profile):
@@ -271,8 +281,6 @@ class RFRadiatedTest(unittest.TestCase):
       3. Measure power multiple times, and average them.
       4. Raise exception if result is not within thresholds.
     """
-    factory.console.info('Testing profile: %r', test_profile['name'])
-
     # Range and frequency need to be set for every test item.
     self.power_meter.SetRange(test_profile['power_meter_rf_port'],
                               test_profile['power_meter_range'])
