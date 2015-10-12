@@ -967,6 +967,8 @@ class BluetoothTest(unittest.TestCase):
           default=False, optional=True),
       Arg('start_charging', bool, 'Prompt the user to start charging the base',
           default=False, optional=True),
+      Arg('enable_magnet', bool, 'enable the base',
+          default=False, optional=True),
       Arg('stop_charging', bool, 'Prompt the user to stop charging the base',
           default=False, optional=True),
       Arg('base_enclosure_serial_number', unicode,
@@ -1053,6 +1055,9 @@ class BluetoothTest(unittest.TestCase):
       self._task_list.append(
           ReadBatteryLevelTask(self, self._input_device_mac,
                                READ_BATTERY_STEP_1))
+
+    if self.args.enable_magnet and self.args.use_charge_fixture:
+      self._task_list.append(FixtureControlTask(self, 'ENABLE_MAGNET'))
 
     if self.args.start_charging:
       if self.args.use_charge_fixture:
