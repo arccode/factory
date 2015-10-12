@@ -176,11 +176,9 @@ class RFRadiatedTest(unittest.TestCase):
       self.log['config']['content'] = self.config
       self.log['config']['file_path'] = self.args.config_file_path
 
-      # Enter manufacturing mode.
-      factory.console.info('Entering manufacturing mode.')
+      # Create chip controller.
       self.chip_controller = self._CreateChipController(
           self.dut, self.config['chip_controller_config'])
-      self.chip_controller.EnterMFGMode()
 
       # Set up power meter.
       logging.info('Setting up power meter.')
@@ -196,7 +194,6 @@ class RFRadiatedTest(unittest.TestCase):
       self.log['test']['failures'].append(
           ''.join(traceback.format_exception(*sys.exc_info())))
       self._EndTest()
-    finally:
       raise
 
   def _SetUpNetwork(self, network_config):
@@ -250,6 +247,10 @@ class RFRadiatedTest(unittest.TestCase):
       logging.info('Antenna model is %r.', antenna_model)
     # Record antenna model.
     self.log['dut']['antenna_model'] = antenna_model
+
+    # Enter MFG mode.
+    factory.console.info('Entering manufacturing mode.')
+    self.chip_controller.EnterMFGMode()
 
     # Run through all test profiles, recording the total time spent.
     self.log['test']['start_time'] = datetime.datetime.now()
