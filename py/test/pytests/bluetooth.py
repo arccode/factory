@@ -572,12 +572,6 @@ class ReadBatteryLevelTask(FactoryTask):
   def Run(self):
     self._test.template.SetState(self.MSG_DICT.get(self._step))
 
-    if self._test.args.use_charge_fixture:
-      # Disable the magnet before enabling it is required since it is possible
-      # that the magnet is left on in the previous test.
-      _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
-      _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
-
     factory.console.info('Begin reading battery level...')
     try:
       logging.info('Reading battery level via %s', self._test.hci_device)
@@ -587,9 +581,6 @@ class ReadBatteryLevelTask(FactoryTask):
     except bluetooth_utils.BluetoothUtilsError as e:
       self.Fail('%s failed to get battery level: %s' % (self._step, e))
       return
-
-    if self._test.args.use_charge_fixture:
-      _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
 
     old_battery_level = factory.get_shared_data(self._step)
     if (self._step == READ_BATTERY_STEP_1 and
@@ -711,9 +702,6 @@ class CheckFirmwareRevisionTestTask(FactoryTask):
   def Run(self):
     self._test.template.SetState(_MSG_READ_FIRMWARE_REVISION_STRING)
 
-    if self._test.args.use_charge_fixture:
-      _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
-
     factory.console.info('Begin reading firmware revision string...')
     try:
       logging.info('Reading firmware revision via %s', self._test.hci_device)
@@ -723,9 +711,6 @@ class CheckFirmwareRevisionTestTask(FactoryTask):
     except bluetooth_utils.BluetoothUtilsError as e:
       self.Fail('Failed to get firmware revision string: %s' % e)
       return
-
-    if self._test.args.use_charge_fixture:
-      _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
 
     factory.console.info('Expected firmware: %s',
                          self._test.args.firmware_revision_string)
@@ -1042,11 +1027,7 @@ class BluetoothTest(unittest.TestCase):
       self._task_list.append(ScanDevicesTask(self))
 
     if self.args.input_device_rssi_key:
-      if self.args.use_charge_fixture:
-        self._task_list.append(FixtureControlTask(self, 'ENABLE_MAGNET'))
       self._task_list.append(DetectRSSIofTargetMACTask(self))
-      if self.args.use_charge_fixture:
-        self._task_list.append(FixtureControlTask(self, 'DISABLE_MAGNET'))
 
     if self.args.prompt_into_fixture:
       self._task_list.append(TurnOnTask(self, _MSG_INTO_FIXTURE, SPACE_KEY))
@@ -1076,8 +1057,6 @@ class BluetoothTest(unittest.TestCase):
           CheckFirmwareRevisionTestTask(self, self._input_device_mac))
 
     if self.args.pair_with_match:
-      if self.args.use_charge_fixture:
-        self._task_list.append(FixtureControlTask(self, 'ENABLE_MAGNET'))
       self._task_list.append(InputTestTask(self, self.args.finish_after_pair))
 
     if self.args.read_battery_level == 2:
