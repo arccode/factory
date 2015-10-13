@@ -90,7 +90,10 @@ class Scan(unittest.TestCase):
           default=False),
       Arg(
           'value_assigned', str,
-          'If not None, use the value to fill the key.', optional=True)]
+          'If not None, use the value to fill the key.', optional=True),
+      Arg(
+          'reconnect_ghost', bool,
+          'Reconnect ghost to update machine ID', default=False, optional=True)]
 
   def HandleScanValue(self, event):
     def SetError(label_en, label_zh=None):
@@ -204,7 +207,8 @@ class Scan(unittest.TestCase):
     if self.auto_scan_timer:
       self.auto_scan_timer.cancel()
 
-    self.KickGhost()
+    if self.args.reconnect_ghost:
+      self.KickGhost()
 
   def ScanBarcode(self):
     while True:
