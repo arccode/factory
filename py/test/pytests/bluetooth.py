@@ -20,6 +20,7 @@
 import factory_common  # pylint: disable=W0611
 import glob
 import logging
+import os
 import sys
 import threading
 import time
@@ -30,6 +31,7 @@ from cros.factory.system.bluetooth import BluetoothManager
 from cros.factory.system.bluetooth import BluetoothManagerException
 from cros.factory.test import bluetooth_utils
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -173,6 +175,37 @@ def _ResetAdapter():
   factory.console.info('Reset adapter and wait 5 seconds....: %s', cmd)
   process_utils.Spawn(cmd.split(), log=True, check_call=True)
   time.sleep(RESET_ADAPTER_SLEEP_TIME)
+
+
+def _SaveLocalLog(log_file, data):
+  """Save the log locally on a test host."""
+  log_dir = os.path.dirname(log_file)
+  if not os.path.isdir(log_dir):
+    os.makedirs(log_dir)
+  with open(log_file, 'a') as log:
+    log.write(str(data))
+
+
+def _SaveAuxLogOnShopfloor(aux_log_file, data):
+  """Save the local log file to shopfloor."""
+  try:
+    shopfloor_client = shopfloor.GetShopfloorConnection()
+    shopfloor_client.SaveAuxLog(aux_log_file, str(data))
+  except Exception as e:
+    # It is only a logging error. Do not fail the test.
+    logging.warning('Save aux log failure: %s', e)
+
+
+def _SaveLogs(log_file, aux_log_file, data):
+  """Save the log files on the local test host and on the shopfloor."""
+  # Prepend the current timestamp to each line.
+  data = ''.join([(GetCurrentTime() + ' ' + line + '\n') if line else '\n'
+                  for line in data.splitlines()])
+  if log_file:
+    _SaveLocalLog(log_file, data)
+    if aux_log_file:
+      with open(log_file) as log:
+        _SaveAuxLogOnShopfloor(aux_log_file, log.read())
 
 
 class DetectAdapterTask(FactoryTask):
@@ -457,6 +490,10 @@ class DetectRSSIofTargetMACTask(FactoryTask):
       logging.info('RSSIs at MAC %s: %s', self._mac_to_scan, rssis)
       factory.console.info('Average RSSI: %.2f', average_rssi)
 
+      # Convert dbus.Int16 in rssis below to regular integers.
+      data = 'Average RSSI: %.2f %s\n' % (average_rssi, map(int, rssis))
+      _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+
       if (self._average_rssi_lower_threshold is not None and
           average_rssi < self._average_rssi_lower_threshold):
         self.Fail('Average RSSI %.2f less than the lower threshold %.2f' %
@@ -594,6 +631,14 @@ class ReadBatteryLevelTask(FactoryTask):
       # We keep the latest battery level read at step 2.
       factory.set_shared_data(self._step, battery_level)
 
+    if self._step == READ_BATTERY_STEP_1:
+      data = ('\nSN: %s\nMAC: %s\n' %
+              (self._test.args.base_enclosure_serial_number, self._mac))
+    else:
+      data = ''
+    data += '%s: %s\n' % (self._step, battery_level)
+    _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+
     if self._test.args.battery_log:
       _SaveLocalBatteryLog(self._test.args.base_enclosure_serial_number,
                            self._mac, self._step, battery_level,
@@ -716,6 +761,9 @@ class CheckFirmwareRevisionTestTask(FactoryTask):
                          self._test.args.firmware_revision_string)
     factory.console.info('Actual firmware: %s', fw)
     factory.set_shared_data(self._test.args.firmware_revision_string_key, fw)
+
+    data = 'FW: %s\n' % fw
+    _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
 
     if fw == self._test.args.firmware_revision_string:
       self.Pass()
@@ -845,12 +893,18 @@ class InputTestTask(FactoryTask):
     self._test.ui.BindKey(ESCAPE_KEY, lambda _: self.RemoveInputAndQuit(False))
 
   def Run(self):
+    def SaveLogAndFail(fail_reason):
+      """Save the fail log and invoke Fail()."""
+      data = 'Pairing fail: %s\n' % fail_reason
+      _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+      self.Fail(fail_reason)
+
     input_count_before_connection = CheckInputCount()
     self._bt_manager = BluetoothManager(self._test.host_mac)
     self._adapter = self._bt_manager.GetFirstAdapter()
     self._target_mac = self._test.GetInputDeviceMac()
     if not self._target_mac:
-      self.Fail('InputTestTask: No MAC with which to pair')
+      SaveLogAndFail('InputTestTask: No MAC with which to pair')
     logging.info('Attempting pair with %s', self._target_mac)
 
     self._bt_manager.DisconnectAndUnpairDevice(self._adapter, self._target_mac)
@@ -861,7 +915,7 @@ class InputTestTask(FactoryTask):
         self._target_mac, self._DisplayPasskey,
         self._AuthenticationCancelled)
     if not success_create_device:
-      self.Fail('InputTestTask: Fail to create paired device.')
+      SaveLogAndFail('InputTestTask: Fail to create paired device.')
       return
 
     success_connect_device = self.RetryWithProgress(
@@ -869,7 +923,7 @@ class InputTestTask(FactoryTask):
         self._bt_manager.SetDeviceConnected, self._adapter,
         self._target_mac, True)
     if not success_connect_device:
-      self.Fail('InputTestTask: Fail to connect device.')
+      SaveLogAndFail('InputTestTask: Fail to connect device.')
       return
 
     if not WaitForInputCount(self, input_count_before_connection + 1):
@@ -878,6 +932,8 @@ class InputTestTask(FactoryTask):
     if self._finish_after_pair:
       # We leave the device paired
       self._need_to_cleanup = False
+      data = 'Pairing finished\n'
+      _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
       self.Pass()
       return
 
@@ -962,6 +1018,10 @@ class BluetoothTest(unittest.TestCase):
           'the battery log file', default=None, optional=True),
       Arg('expected_battery_level', int,
           'the expected battery level', default=100, optional=True),
+      Arg('log_path', str, 'the directory of the log on the local test host',
+          optional=True),
+      Arg('aux_log_path', str, 'the path of the aux log on shopfloor',
+          optional=True),
   ]
 
   def SetStrongestRssiMac(self, mac_addr):
@@ -996,6 +1056,17 @@ class BluetoothTest(unittest.TestCase):
     self.host_mac = self.btmgmt.GetMac()
     logging.info('manufacturer_id %s: %s %s',
                  self.args.manufacturer_id, self.hci_device, self.host_mac)
+
+    if self.args.base_enclosure_serial_number:
+      filename = self.args.base_enclosure_serial_number + '.log'
+      self.log_file = None
+      self.aux_log_file = None
+      if self.args.log_path:
+        self.log_file = os.path.join(self.args.log_path, filename)
+        # Note: aux_log_file is generated from log_file
+        #       Not all projects would generate aux_log_file.
+        if self.args.aux_log_path:
+          self.aux_log_file = os.path.join(self.args.aux_log_path, filename)
 
   def tearDown(self):
     """Close the charge test fixture."""
