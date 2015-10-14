@@ -208,6 +208,37 @@ def _SaveLogs(log_file, aux_log_file, data):
         _SaveAuxLogOnShopfloor(aux_log_file, log.read())
 
 
+def RetryWithProgress(template, template_message, action_string,
+                      max_retry_times, retry_interval, target, *args, **kwargs):
+  """Runs target function with retries and shows retry times on progress bar.
+
+  Args:
+    template: an ui_template
+    template_message: The message to show when target function is running.
+    action_string: The string to describe the action in logging.
+    max_retry_times: the maximal retry times
+    retry_interval: the interval between retries
+    target: The target function. *args and **kwargs will be passed to target.
+
+  Returns:
+    Return the return value of the target function.
+  """
+  def _UpdateProgressBar(retry_time, max_retry_time):
+    """Updates the progress bar according to retry_time and max_retry_time."""
+    msg = 'Update progress bar with retry time: %d, max retry time: %d.'
+    logging.info(msg, retry_time, max_retry_time)
+    template.SetProgressBarValue(int(100 * retry_time / max_retry_time))
+
+  template.SetState(template_message)
+  template.DrawProgressBar()
+  target_result = Retry(max_retry_times, retry_interval,
+                        _UpdateProgressBar, target, *args, **kwargs)
+  template.SetProgressBarValue(100)
+  log_msg = ('%s was done.' if target_result else '%s failed.') % action_string
+  logging.info(log_msg)
+  return target_result
+
+
 class DetectAdapterTask(FactoryTask):
   """The task checking number of adapters.
 
@@ -609,10 +640,12 @@ class ReadBatteryLevelTask(FactoryTask):
   def Run(self):
     self._test.template.SetState(self.MSG_DICT.get(self._step))
 
-    factory.console.info('Begin reading battery level...')
+    factory.console.info('%s via %s ...', self._step, self._test.hci_device)
     try:
-      logging.info('Reading battery level via %s', self._test.hci_device)
-      battery_level = int(bluetooth_utils.GattTool.GetDeviceInfo(
+      battery_level = int(RetryWithProgress(
+          self._test.template, self.MSG_DICT.get(self._step), self._step,
+          INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
+          bluetooth_utils.GattTool.GetDeviceInfo,
           self._mac, 'battery level', hci_device=self._test.hci_device))
       factory.console.info('%s: %d', self._step, battery_level)
     except bluetooth_utils.BluetoothUtilsError as e:
@@ -747,12 +780,14 @@ class CheckFirmwareRevisionTestTask(FactoryTask):
   def Run(self):
     self._test.template.SetState(_MSG_READ_FIRMWARE_REVISION_STRING)
 
-    factory.console.info('Begin reading firmware revision string...')
+    factory.console.info('Begin reading firmware revision string via %s...',
+                         self._test.hci_device)
     try:
-      logging.info('Reading firmware revision via %s', self._test.hci_device)
-      fw = bluetooth_utils.GattTool.GetDeviceInfo(
-          self._mac, 'firmware revision string',
-          hci_device=self._test.hci_device)
+      fw = RetryWithProgress(
+          self._test.template, _MSG_READ_FIRMWARE_REVISION_STRING,
+          'reading firmware', INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
+          bluetooth_utils.GattTool.GetDeviceInfo, self._mac,
+          'firmware revision string', hci_device=self._test.hci_device)
     except bluetooth_utils.BluetoothUtilsError as e:
       self.Fail('Failed to get firmware revision string: %s' % e)
       return
@@ -798,10 +833,6 @@ class InputTestTask(FactoryTask):
     self._adapter = None
     self._need_to_cleanup = True
     self._finish_after_pair = finish_after_pair
-
-  def FinishProgressBar(self):
-    """Sets progress bar to 100 to indicate retry is done."""
-    self._test.template.SetProgressBarValue(100)
 
   def Cleanup(self):
     """Cleans up input device if it was not cleaned"""
@@ -855,36 +886,6 @@ class InputTestTask(FactoryTask):
     else:
       self.Fail('Failed by operator')
 
-  def RetryWithProgress(self, message, action_string, target, *args, **kwargs):
-    """Trys to run a target function with progress bar
-
-    Args:
-      message: The message to show when target function is running.
-      action_string: The string to describe the action in logging.
-      target: The target function. *args and **kwargs will be passed to target.
-
-    Returns:
-      Return the return value of the target function.
-    """
-    self._test.template.DrawProgressBar()
-    self._test.template.SetState(message)
-
-    def _UpdateProgressBar(retry_time, max_retry_time):
-      """Updates the progress bar according to retry_time and max_retry_time."""
-      logging.info('Update progress bar with retry time: %d,'
-                   ' max retry time: %d.', retry_time, max_retry_time)
-      self._test.template.SetProgressBarValue(
-          int(100 * retry_time / max_retry_time))
-
-    target_result = Retry(INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
-                          _UpdateProgressBar, target, *args, **kwargs)
-    self.FinishProgressBar()
-    if target_result:
-      logging.info('InputTestTask: %s Done.', action_string)
-    else:
-      logging.error('InputTestTask: %s Fail.', action_string)
-    return target_result
-
   def OperatorTestInput(self):
     """Lets operator test the input and press key to pass/fail the task."""
     logging.info('InputTestTask: Test the input by operator now')
@@ -909,17 +910,18 @@ class InputTestTask(FactoryTask):
 
     self._bt_manager.DisconnectAndUnpairDevice(self._adapter, self._target_mac)
 
-    success_create_device = self.RetryWithProgress(
-        _MSG_PAIR_INPUT_DEVICE, 'create paired device',
+    success_create_device = RetryWithProgress(
+        self._test.template, _MSG_PAIR_INPUT_DEVICE, 'create paired device',
+        INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
         self._bt_manager.CreatePairedDevice, self._adapter,
-        self._target_mac, self._DisplayPasskey,
-        self._AuthenticationCancelled)
+        self._target_mac, self._DisplayPasskey, self._AuthenticationCancelled)
     if not success_create_device:
       SaveLogAndFail('InputTestTask: Fail to create paired device.')
       return
 
-    success_connect_device = self.RetryWithProgress(
-        _MSG_CONNECT_INPUT_DEVICE, 'connect input device',
+    success_connect_device = RetryWithProgress(
+        self._test.template, _MSG_CONNECT_INPUT_DEVICE, 'connect input device',
+        INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
         self._bt_manager.SetDeviceConnected, self._adapter,
         self._target_mac, True)
     if not success_connect_device:
