@@ -15,6 +15,7 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import serial_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils.type_utils import Enum
 
 _RE_INA_VOLTAGE = re.compile(r'^\s*Bus voltage\s+:\s+\w+\s+=>\s+(-?\d+)\s+mV',
@@ -313,7 +314,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       retries_left = self._POLL_PD_MAX_RETRIES
       consecutive_ready_count = 0
       while consecutive_ready_count < self._POLL_PD_MIN_CONSECUTIVE_READY_COUNT:
-        if 'READY' in self.GetPDState().get('state'):
+        if 'READY' in self.GetPDStateWithRetries(3).get('state'):
           consecutive_ready_count += 1
         else:
           # Need to get state ready in consecutive times.
@@ -337,7 +338,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
           'Failed to wait PD state ready in %.1f seconds' % (
               DELAY_BEFORE_RETRY * self._POLL_PD_MAX_RETRIES))
 
-    if self.GetPDState().get('datarole') == mode:
+    if self.GetPDStateWithRetries(3).get('datarole') == mode:
       return
 
     self._Send('pd 0 swap data', 'swap datarole to %s' % mode)
@@ -413,6 +414,17 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       return dict(current=int(read_current[0]), voltage=int(read_voltage[0]))
     else:
       raise bft_fixture.BFTFixtureException('Cannot read INA values')
+
+  def GetPDStateWithRetries(self, retry_times):
+    """Gets PD state information with retries.
+
+    This can be used to prevent unavoidable Plankton console message.
+    (ex. 'VBUS! = 0')
+
+    Returns:
+      A dict with PD state information.
+    """
+    return sync_utils.Retry(retry_times, 0.1, None, self.GetPDState)
 
   def GetPDState(self):
     """Gets PD state information.
