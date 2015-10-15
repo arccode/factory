@@ -1015,7 +1015,7 @@ class BluetoothTest(unittest.TestCase):
       Arg('stop_charging', bool, 'Prompt the user to stop charging the base',
           default=False, optional=True),
       Arg('base_enclosure_serial_number', unicode,
-          'the base enclusore serial number', default=None, optional=True),
+          'the base enclosure serial number', default=None, optional=True),
       Arg('battery_log', str,
           'the battery log file', default=None, optional=True),
       Arg('expected_battery_level', int,
@@ -1023,6 +1023,8 @@ class BluetoothTest(unittest.TestCase):
       Arg('log_path', str, 'the directory of the log on the local test host',
           optional=True),
       Arg('aux_log_path', str, 'the path of the aux log on shopfloor',
+          optional=True),
+      Arg('test_host_id_file', str, 'the file storing the id of the test host',
           optional=True),
   ]
 
@@ -1060,7 +1062,15 @@ class BluetoothTest(unittest.TestCase):
                  self.args.manufacturer_id, self.hci_device, self.host_mac)
 
     if self.args.base_enclosure_serial_number:
-      filename = self.args.base_enclosure_serial_number + '.log'
+      if (self.args.test_host_id_file and
+          os.path.isfile(self.args.test_host_id_file)):
+        with open(self.args.test_host_id_file) as f:
+          test_host_id = f.read().strip()
+      else:
+        test_host_id = None
+
+      filename = '.'.join([self.args.base_enclosure_serial_number,
+                           str(test_host_id)])
       self.log_file = None
       self.aux_log_file = None
       if self.args.log_path:
