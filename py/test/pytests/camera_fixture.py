@@ -511,7 +511,7 @@ class _TestDelegate(object):
 
   def _LoadParamsFromShopfloor(self):
     """Loads parameters from shopfloor."""
-    network.PrepareNetwork(ip=self.local_ip, force_new_ip=True)
+    network.PrepareNetwork(ip=self.local_ip, force_new_ip=False)
 
     factory.console.info('Reading %s from shopfloor', self.param_pathname)
     shopfloor_client = shopfloor.GetShopfloorConnection()
