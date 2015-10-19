@@ -115,7 +115,7 @@ class Finalize(unittest.TestCase):
           'Wipe the stateful partition directly in a tmpfs without reboot. '
           'False for legacy implementation to invoke wiping under '
           'release image after reboot.',
-          default=False, optional=True),
+          default=True, optional=True),
       Arg('cutoff_options', dict,
           'Battery cutoff options after wiping. Only used when wipe_in_place'
           'is set to true. Should be a dict with following optional keys:\n'
