@@ -54,6 +54,9 @@ _MSG_INTO_FIXTURE = MakeLabel('Place the base into the fixture, '
                               'and press the space key on the test host.',
                               u'请把测试键盘放入测试机具中,然後按下电脑的 space 键',
                               'start-font-size')
+_MSG_RESET_MAGNET = MakeLabel('Please re-attach the magnet.',
+                              u'请重新連結磁鐵,然後按下电脑的 space 键',
+                              'start-font-size')
 _MSG_START_CHARGE = MakeLabel('Turn on charging by pressing the green button, '
                               'take the keyboard out and put it back, '
                               'and press the space key on the test host.',
@@ -1012,6 +1015,8 @@ class BluetoothTest(unittest.TestCase):
           default=False, optional=True),
       Arg('enable_magnet', bool, 'enable the base',
           default=False, optional=True),
+      Arg('reset_magnet', bool, 'reset the base',
+          default=False, optional=True),
       Arg('stop_charging', bool, 'Prompt the user to stop charging the base',
           default=False, optional=True),
       Arg('base_enclosure_serial_number', unicode,
@@ -1122,6 +1127,13 @@ class BluetoothTest(unittest.TestCase):
 
     if self.args.enable_magnet and self.args.use_charge_fixture:
       self._task_list.append(FixtureControlTask(self, 'ENABLE_MAGNET'))
+
+    if self.args.reset_magnet:
+      if self.args.use_charge_fixture:
+        self._task_list.append(FixtureControlTask(self, 'DISABLE_MAGNET'))
+        self._task_list.append(FixtureControlTask(self, 'ENABLE_MAGNET'))
+      else:
+        self._task_list.append(TurnOnTask(self, _MSG_RESET_MAGNET, SPACE_KEY))
 
     if self.args.start_charging:
       if self.args.use_charge_fixture:
