@@ -588,7 +588,7 @@ class UnpairTask(FactoryTask):
       self.Pass()
 
 
-def _ExecuteFixtureMethod(fixture, operation):
+def _ExecuteFixtureMethod(fixture, operation, post_sleep=0):
   """Execute a method of the charge test fixture."""
   # An operation is mapped to its corresponding fixture method defined in
   # base_charge_fixture.BaseChargeFixture class.
@@ -599,6 +599,7 @@ def _ExecuteFixtureMethod(fixture, operation):
   fixture_method = getattr(fixture, FIXTURE_METHOD_DICT.get(operation))
   factory.console.info('Executing fixture method: %s', fixture_method.__name__)
   fixture_method()
+  time.sleep(post_sleep)
 
 
 class FixtureControlTask(FactoryTask):
@@ -608,13 +609,15 @@ class FixtureControlTask(FactoryTask):
     operation: the operation to be performed by the test fixture.
   """
 
-  def __init__(self, test, operation):  # pylint: disable=W0231
+  def __init__(self, test, operation, post_sleep=0):  # pylint: disable=W0231
     self._fixture = test.fixture
     self._operation = operation
+    self._post_sleep = post_sleep
 
   def Run(self):
     try:
-      _ExecuteFixtureMethod(self._fixture, self._operation)
+      _ExecuteFixtureMethod(self._fixture, self._operation,
+                            post_sleep=self._post_sleep)
       self.Pass()
     except Exception as e:
       self.Fail('error in executing %s (%s)' % (self._operation, e))
@@ -1130,7 +1133,8 @@ class BluetoothTest(unittest.TestCase):
 
     if self.args.reset_magnet:
       if self.args.use_charge_fixture:
-        self._task_list.append(FixtureControlTask(self, 'DISABLE_MAGNET'))
+        self._task_list.append(
+            FixtureControlTask(self, 'DISABLE_MAGNET', post_sleep=1))
         self._task_list.append(FixtureControlTask(self, 'ENABLE_MAGNET'))
       else:
         self._task_list.append(TurnOnTask(self, _MSG_RESET_MAGNET, SPACE_KEY))
