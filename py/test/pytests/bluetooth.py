@@ -110,7 +110,7 @@ _MSG_AUTH_FAILED = MakeLabel('Authentication failed, retrying...',
 
 
 INPUT_MAX_RETRY_TIMES = 10
-INPUT_RETRY_INTERVAL = 2
+INPUT_RETRY_INTERVAL = 1
 RESET_ADAPTER_SLEEP_TIME = 5
 READ_BATTERY_MAX_RETRY_TIMES = 10
 
@@ -652,7 +652,8 @@ class ReadBatteryLevelTask(FactoryTask):
           self._test.template, self.MSG_DICT.get(self._step), self._step,
           INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
           bluetooth_utils.GattTool.GetDeviceInfo,
-          self._mac, 'battery level', hci_device=self._test.hci_device))
+          self._mac, 'battery level', hci_device=self._test.hci_device,
+          timeout=self._test.args.read_bluetooth_uuid_timeout_secs))
       factory.console.info('%s: %d', self._step, battery_level)
     except bluetooth_utils.BluetoothUtilsError as e:
       self.Fail('%s failed to get battery level: %s' % (self._step, e))
@@ -734,7 +735,8 @@ class ChargeTestTask(FactoryTask):
       _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
     factory.console.info('Begin reading battery level...')
     value = bluetooth_utils.GattTool.GetDeviceInfo(
-        self._mac, 'battery level', hci_device=self._test.hci_device)
+        self._mac, 'battery level', hci_device=self._test.hci_device,
+        timeout=self._test.args.read_bluetooth_uuid_timeout_secs)
     if self._test.args.use_charge_fixture:
       _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
     factory.console.info('%s: %s', step, value)
@@ -793,7 +795,8 @@ class CheckFirmwareRevisionTestTask(FactoryTask):
           self._test.template, _MSG_READ_FIRMWARE_REVISION_STRING,
           'reading firmware', INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
           bluetooth_utils.GattTool.GetDeviceInfo, self._mac,
-          'firmware revision string', hci_device=self._test.hci_device)
+          'firmware revision string', hci_device=self._test.hci_device,
+          timeout=self._test.args.read_bluetooth_uuid_timeout_secs)
     except bluetooth_utils.BluetoothUtilsError as e:
       self.Fail('Failed to get firmware revision string: %s' % e)
       return
@@ -965,6 +968,9 @@ class BluetoothTest(unittest.TestCase):
           ' detect adapters', default=10),
       Arg('detect_adapters_interval_secs', int, 'Interval in seconds between'
           ' each retry to detect adapters', default=2),
+      Arg('read_bluetooth_uuid_timeout_secs', int,
+          'Timeout to read bluetooth characteristics via uuid', default=None,
+          optional=True),
       Arg('scan_devices', bool, 'Scan bluetooth device.',
           default=False),
       Arg('prompt_scan_message', bool, 'Prompts a message to tell user to'
