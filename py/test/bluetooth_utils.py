@@ -110,7 +110,10 @@ class GattTool(object):
     self._gatttool = pexpect.spawn('gatttool %s -b %s -t random --interactive' %
                                    (hci_option, target_mac.upper()))
     self._gatttool.logfile = open(logfile, 'w')
-    self._timeout = timeout
+    if timeout is None:
+      self._timeout = self.DEFAULT_TIMEOUT
+    else:
+      self._timeout = timeout
 
   def __del__(self):
     if not self._gatttool.closed:
@@ -218,7 +221,7 @@ class GattTool(object):
     self.__del__()
 
   @staticmethod
-  def GetDeviceInfo(target_mac, spec_name, hci_device=None):
+  def GetDeviceInfo(target_mac, spec_name, hci_device=None, timeout=None):
     """A helper method to get information conveniently from a specified
     bluetooth device.
 
@@ -227,7 +230,7 @@ class GattTool(object):
       spec_name: the specification name to display in the log
       hci_device: the hci device to get information from
     """
-    gatttool = GattTool(target_mac, hci_device=hci_device)
+    gatttool = GattTool(target_mac, hci_device=hci_device, timeout=timeout)
     gatttool.ScanAndConnect()
     if spec_name == 'battery level':
       info = gatttool.GetBatteryLevel()
