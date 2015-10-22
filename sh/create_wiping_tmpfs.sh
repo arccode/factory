@@ -28,7 +28,6 @@ FILES_DIRS_COPIED_FROM_ROOTFS="
   ${ASSETS_DIR}/images
   ${ASSETS_DIR}/text/boot_messages
   ${MISC_DIR}/chromeos-common.sh
-  ${FACTORY_DIR}/misc/wipe_message.png
   ${FACTORY_DIR}/bin/enable_release_partition
   ${FACTORY_DIR}/sh/battery_cutoff.sh
   ${FACTORY_DIR}/sh/common.sh
@@ -67,7 +66,6 @@ BIN_DEPS="
   /sbin/clobber-log
   /sbin/clobber-state
   /sbin/dumpe2fs
-  /sbin/frecon
   /sbin/halt
   /sbin/initctl
   /sbin/mkfs.ext4
@@ -80,7 +78,6 @@ BIN_DEPS="
   /usr/bin/mktemp
   /usr/bin/od
   /usr/bin/pango-view
-  /usr/bin/power_supply_info
   /usr/bin/pkill
   /usr/bin/pv
   /usr/bin/setterm
@@ -90,6 +87,13 @@ BIN_DEPS="
   /usr/sbin/ectool
   /usr/sbin/mosys
 "
+
+# Include frecon if the system has frecon, otherwice use ply-image instead.
+if [ -e /sbin/frecon ]; then
+  BIN_DEPS="${BIN_DEPS} /sbin/frecon"
+else
+  BIN_DEPS="${BIN_DEPS} /usr/bin/ply-image"
+fi
 
 # ======================================================================
 # Helper functions
