@@ -757,7 +757,8 @@ class CheckBatteryLevelTask(FactoryTask):
 
     if not battery_level_1 or not battery_level_2:
       fail_msg = 'Battery levels should be read twice. read_1: %s, read_2: %s'
-    elif battery_level_1 >= battery_level_2:
+    elif (battery_level_1 > battery_level_2 or
+          (battery_level_1 == battery_level_2 and battery_level_1 < 100)):
       fail_msg = 'Base battery is not charged up. read_1: %s, read_2: %s'
     elif battery_level_1 < self._test.args.expected_battery_level:
       # Note: battery_level_1 instead of battery_level_2 should be larger than
