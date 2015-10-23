@@ -96,6 +96,9 @@ _MSG_TURN_ON_INPUT_DEVICE = MakeLabel('Enable the connection ability of '
 _MSG_PAIR_INPUT_DEVICE = MakeLabel('Pairing to input device now...',
                                    u'配对到蓝牙输入设备...',
                                    'start-font-size')
+_MSG_UNPAIR = MakeLabel('Press shift-p-a-i-r simultaneously on the base.',
+                        u'请在在测试键盘上同时按住 shift-p-a-i-r',
+                        'start-font-size')
 _MSG_CONNECT_INPUT_DEVICE = MakeLabel('Connecting to input device now...',
                                       u'连接到蓝牙输入设备...',
                                       'start-font-size')
@@ -588,6 +591,51 @@ class UnpairTask(FactoryTask):
       self.Pass()
 
 
+class CheckDisconnectionOfPairedDeviceTask(FactoryTask):
+  """A task to check whether a paired device has disconnected.
+
+  Args:
+    device_mac: None, or the MAC address of the device to unpair
+    name_fragment: None, or a substring of the name of the device(s) to unpair
+  """
+  # pylint: disable=W0231
+  def __init__(self, test, device_mac):
+    self._test = test
+    self._device_mac = device_mac
+
+  def _ConnectedDevice(self, device_props):
+    """Indicates if a device matches the filter, and so should be unpaired
+
+    If a name fragment or MAC address is given, the corresponding property
+    must match. If neither is given, all devices should be unpaired.
+    """
+    return (device_props["Address"] == self._device_mac and
+            int(device_props["Connected"]) >= 1)
+
+  def _CheckDisconnection(self):
+    bluetooth_manager = BluetoothManager(self._test.host_mac)
+    adapter = bluetooth_manager.GetFirstAdapter()
+    devices = bluetooth_manager.GetAllDevices(adapter).values()
+    connected_devices = filter(self._ConnectedDevice, devices)
+    logging.info('Connected and paired %d device(s)', len(connected_devices))
+    return len(connected_devices) == 0
+
+  def Run(self):
+    flag_disconnection = RetryWithProgress(
+        self._test.template, _MSG_UNPAIR,
+        'Check disconnection of the paired base',
+        INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
+        self._CheckDisconnection)
+    if flag_disconnection:
+      msg = 'Shift-P-A-I-R: done'
+      self.Pass()
+    else:
+      msg = 'Shift-P-A-I-R: not done'
+      self.Fail(msg)
+    factory.console.info(msg)
+    _SaveLogs(self._test.log_file, self._test.aux_log_file, msg)
+
+
 def _ExecuteFixtureMethod(fixture, operation, post_sleep=0):
   """Execute a method of the charge test fixture."""
   # An operation is mapped to its corresponding fixture method defined in
@@ -1007,6 +1055,9 @@ class BluetoothTest(unittest.TestCase):
           'after pairing completes', default=False),
       Arg('unpair', bool, 'Whether to unpair matching devices instead of pair',
           default=False, optional=True),
+      Arg('check_shift_pair_keys', bool,
+          'check if shift-p-a-i-r keys are pressed.',
+          default=False, optional=True),
       Arg('check_battery_charging', bool,
           'Whether to check if the battery is charging',
           default=False, optional=True),
@@ -1152,6 +1203,10 @@ class BluetoothTest(unittest.TestCase):
             FixtureControlTask(self, 'START_CHARGING'))
       else:
         self._task_list.append(TurnOnTask(self, _MSG_START_CHARGE, SPACE_KEY))
+
+    if self.args.check_shift_pair_keys:
+      self._task_list.append(
+          CheckDisconnectionOfPairedDeviceTask(self, self._input_device_mac))
 
     if self.args.unpair:
       self._task_list.append(
