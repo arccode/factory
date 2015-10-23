@@ -86,9 +86,14 @@ merge_images() {
   local builder="$SCRIPT_DIR/make_universal_factory_shim.sh"
   local save_partitions="1,4,5,6,7,8,12"
 
+  # The partition resource files generated are stored in directories named
+  # by partition GUID in $RESOURCE_FILE. We need to preserve GUID when
+  # making the universal shim image. Otherwise, the factory installer
+  # cannot find the corresponding partition images.
   "$compressor" --force --save_partitions="$save_partitions" \
                 --output "$RESOURCE_FILE" "$@"
-  "$builder" -m "$RESOURCE_FILE" -f "$output_file" "$@"
+  UNIVERSAL_SHIM_PRESERVE_GUID="YES" \
+    "$builder" -m "$RESOURCE_FILE" -f "$output_file" "$@"
 }
 
 # lsb file is required for factory shim bootstrapping.

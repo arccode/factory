@@ -90,9 +90,16 @@ layout_copy_partition() {
     local partition_type="$(cgpt show -q -n -t -i "$input_part" "$input_file")"
     local partition_attr="$(cgpt show -q -n -A -i "$input_part" "$input_file")"
     local partition_label="$(cgpt show -q -n -l -i "$input_part" "$input_file")"
-    local partition_guid="$(cgpt show -q -n -u -i "$input_part" "$input_file")"
+    local preserve_guid_opt=""
+    if [ -n "$UNIVERSAL_SHIM_PRESERVE_GUID" ]; then
+      local partition_guid="$(cgpt show -q -n -u -i "$input_part" \
+                              "$input_file")"
+      preserve_guid_opt="-u $partition_guid"
+      alert "Preserving GUID as: $partition_guid."
+    fi
+
     cgpt add -t "$partition_type" -l "$partition_label" -A "$partition_attr" \
-             -u "$partition_guid" -i "$output_part" "$output_file"
+             -i "$output_part" $preserve_guid_opt "$output_file"
   else
     image_update_partition "$output_file" "$output_part" <"$input_file"
   fi
