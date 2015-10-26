@@ -349,16 +349,18 @@ class GPS(unittest.TestCase):
     glgps_thread.daemon = True
     glgps_thread.start()
 
-    # Check that glgps is running.
+    # Check that glgps is running and is writing to <self.args.nmea_out_path>.
     def CheckGLGPSRunning():
       try:
         self.dut.CheckCall('ps | grep %s' % GLGPS_BINARY)
+        self.dut.CheckCall('[[ -n `timeout 1 cat %s` ]]'
+                           % self.args.nmea_out_path)
         return True
       except CalledProcessError:
         return False
     if not sync_utils.PollForCondition(poll_method=CheckGLGPSRunning,
                                        timeout_secs=START_GLGPS_TIMEOUT,
-                                       poll_interval_secs=1):
+                                       poll_interval_secs=0):
       self.fail('%s was not running' % GLGPS_BINARY)
 
     # Get the latest readings from the NMEA output file.
