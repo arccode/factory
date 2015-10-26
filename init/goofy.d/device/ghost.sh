@@ -5,4 +5,5 @@
 
 FACTORY_BASE="/usr/local/factory"
 
+export PATH=${FACTORY_BASE}/bin:${FACTORY_BASE}/bin/overlord:$PATH
 ${FACTORY_BASE}/bin/ghost --fork > /dev/null 2>&1
