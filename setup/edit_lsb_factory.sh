@@ -23,6 +23,7 @@ FLAG_CUTOFF_BATTERY_MIN_PERCENTAGE="CUTOFF_BATTERY_MIN_PERCENTAGE"
 FLAG_CUTOFF_BATTERY_MAX_PERCENTAGE="CUTOFF_BATTERY_MAX_PERCENTAGE"
 FLAG_CUTOFF_BATTERY_MIN_VOLTAGE="CUTOFF_BATTERY_MIN_VOLTAGE"
 FLAG_CUTOFF_BATTERY_MAX_VOLTAGE="CUTOFF_BATTERY_MAX_VOLTAGE"
+FLAG_SHOPFLOOR_URL="SHOPFLOOR_URL"
 
 on_exit() {
   image_clean_temp
@@ -160,6 +161,17 @@ interaction_cutoff_menu() {
   else
     replace_or_append "$FLAG_CUTOFF_BATTERY_MAX_VOLTAGE" \
       "$ans" "$edit_file"
+  fi
+
+  echo ""
+  echo "Shopfloor URL (Keep empty if no need to inform shopfloor after reset):"
+  echo "Default XML-RPC request will be sent via HTTP/POST with method"
+  echo "'FinalizeFQA' and SN as the parameter."
+  read ans
+  if [ -z "$ans" ]; then
+    remove_flag "$FLAG_SHOPFLOOR_URL" "$edit_file"
+  else
+    replace_or_append "$FLAG_SHOPFLOOR_URL" "$ans" "$edit_file"
   fi
 }
 
