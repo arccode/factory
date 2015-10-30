@@ -196,6 +196,10 @@ class KeyboardTest(unittest.TestCase):
         self.MarkKeydown(event.code)
       elif event.value == 0:
         self.MarkKeyup(event.code)
+      elif event.value == 2:
+        fail_msg = 'Got events on keycode %d pressed too long.' % event.code
+        factory.console.error(fail_msg)
+        self.ui.CallJSFunction('failTest', fail_msg)
 
   def MarkKeydown(self, keycode):
     """Calls Javascript to mark the given keycode as keydown."""
