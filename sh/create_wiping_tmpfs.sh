@@ -20,6 +20,9 @@ FACTORY_DIR="/usr/local/factory"
 ASSETS_DIR="/usr/share/chromeos-assets"
 MISC_DIR="/usr/share/misc"
 
+PANGO_MODULE="$(pango-querymodules --system |
+  awk '$2 == "ModulesPath" {print $NF}')"
+
 # A list of files or directories required to be copied to the wiping tmpfs
 # from factory rootfs. The format of each entry is "src_file:dst_file" or
 # "src_dir:dst_dir" meaning copy the src_file/src_dir in factory rootfs to
@@ -27,17 +30,17 @@ MISC_DIR="/usr/share/misc"
 FILES_DIRS_COPIED_FROM_ROOTFS="
   ${ASSETS_DIR}/images
   ${ASSETS_DIR}/text/boot_messages
-  ${MISC_DIR}/chromeos-common.sh
   ${FACTORY_DIR}/bin/enable_release_partition
   ${FACTORY_DIR}/sh/battery_cutoff.sh
   ${FACTORY_DIR}/sh/common.sh
   ${FACTORY_DIR}/sh/display_wipe_message.sh
   ${FACTORY_DIR}/sh/enable_release_partition.sh
   ${FACTORY_DIR}/sh/wipe_init.sh
+  ${PANGO_MODULE}
+  ${MISC_DIR}/chromeos-common.sh
   /etc/fonts
   /etc/pango
   /lib/modules
-  /usr/lib64/pango
   /usr/share/fonts/notocjk
   /usr/share/cache/fontconfig
 "
@@ -59,33 +62,34 @@ TMPFS_LAYOUT_DIRS="
 # Dependency list of binary programs.
 # The busybox dd doesn't support iflag option, so need to copy it from rootfs.
 BIN_DEPS="
-  /bin/dd
-  /bin/mount
-  /bin/sh
-  /bin/umount
-  /sbin/clobber-log
-  /sbin/clobber-state
-  /sbin/dumpe2fs
-  /sbin/halt
-  /sbin/initctl
-  /sbin/mkfs.ext4
-  /sbin/reboot
-  /sbin/shutdown
-  /usr/bin/backlight_tool
-  /usr/bin/cgpt
-  /usr/bin/coreutils
-  /usr/bin/crossystem
-  /usr/bin/mktemp
-  /usr/bin/od
-  /usr/bin/pango-view
-  /usr/bin/pkill
-  /usr/bin/pv
-  /usr/bin/setterm
-  /usr/local/bin/busybox
-  /usr/sbin/activate_date
-  /usr/sbin/display_boot_message
-  /usr/sbin/ectool
-  /usr/sbin/mosys
+  activate_date
+  backlight_tool
+  busybox
+  cgpt
+  clobber-log
+  clobber-state
+  coreutils
+  crossystem
+  dd
+  display_boot_message
+  dumpe2fs
+  ectool
+  flashrom
+  halt
+  initctl
+  mkfs.ext4
+  mktemp
+  mosys
+  mount
+  od
+  pango-view
+  pkill
+  pv
+  reboot
+  setterm
+  sh
+  shutdown
+  umount
 "
 
 # Include frecon if the system has frecon, otherwice use ply-image instead.
@@ -98,45 +102,40 @@ fi
 # ======================================================================
 # Helper functions
 
+die() {
+  echo "$@"
+  exit 1
+}
+
 create_tmpfs_layout() {
   (cd "${TMPFS_PATH}" && mkdir -p ${TMPFS_LAYOUT_DIRS})
   # Create symlinks because some binary programs will call them via full path.
   ln -s . "${TMPFS_PATH}/usr"
+  ln -s . "${TMPFS_PATH}/local"
   ln -s bin "${TMPFS_PATH}/sbin"
 }
 
 copy_dependent_binary_files() {
-  local bin file dirname
-  for bin in ${BIN_DEPS}; do
-    cp -f "${bin}" "${TMPFS_PATH}/bin/."
-    # Copy the dependent .so files into $TMPFS_PATH/lib/.
-    for file in $(lddtree -l "${bin}"); do
-      dirname=$(dirname "${file}")
-      mkdir -p "${TMPFS_PATH}/${dirname}"
-      cp -L "${file}" "${TMPFS_PATH}/${dirname}"
-    done
-  done
+  local bin_files=""
+  if bin_files="$(which ${BIN_DEPS})"; then
+    tar -ch $(lddtree -l ${bin_files} 2>/dev/null | sort -u) |
+      tar -C ${TMPFS_PATH} -x
+  else
+    die "Some requried binary files missing."
+  fi
   # Use busybox to install other common utilities.
   # Run the busybox inside tmpfs to prevent 'invalid cross-device link'.
   "${TMPFS_PATH}/bin/busybox" --install "${TMPFS_PATH}/bin"
 }
 
 copy_rootfs_files_and_dirs() {
-  local file="" dis_dir=""
-  # Copy some files from factory rootfs to the wiping tmpfs.
-  for file in ${FILES_DIRS_COPIED_FROM_ROOTFS}; do
-    dst_dir=$(dirname "${file}")
-
-    mkdir -p "${TMPFS_PATH}/${dst_dir}"
-    cp -af "${file}" "${TMPFS_PATH}/${dst_dir}"
-  done
+  tar -c ${FILES_DIRS_COPIED_FROM_ROOTFS} | tar -C "${TMPFS_PATH}" -x
 }
 
 # ======================================================================
 # Main function
 
 main() {
-  set -xe
   if [ "$#" != "1" ]; then
     echo "Usage: $0 TMPFS_PATH"
     exit 1
@@ -150,4 +149,5 @@ main() {
   copy_rootfs_files_and_dirs
 }
 
+set -xe
 main "$@"
