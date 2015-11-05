@@ -45,7 +45,8 @@ class SshTarget(base.BaseTarget):
     else:
       sig = self.host
 
-    options = []
+    options = ['-o', 'UserKnownHostsFile=/dev/null',
+               '-o', 'StrictHostKeyChecking=no']
     if self.port:
       options += ['-P' if is_scp else '-p', str(self.port)]
     if self.identity:
