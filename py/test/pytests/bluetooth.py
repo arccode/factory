@@ -35,7 +35,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
-from cros.factory.test.event_log import Log
+from cros.factory.test.event_log import GetDeviceId, Log
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.test_ui import (
     ENTER_KEY, ESCAPE_KEY, SPACE_KEY, MakeLabel)
@@ -485,14 +485,36 @@ class DetectRSSIofTargetMACTask(FactoryTask):
     self._test = test
     self._mac_to_scan = test.GetInputDeviceMac()
     self._scan_counts = test.args.scan_counts
-    self._average_rssi_lower_threshold = test.args.average_rssi_lower_threshold
-    self._average_rssi_upper_threshold = test.args.average_rssi_upper_threshold
     self._timeout_secs = test.args.scan_timeout_secs
     self._input_device_rssi_key = test.args.input_device_rssi_key
     self._progress_thread = None
     self._scan_rssi_event = threading.Event()
+    self.fail_msg = ''
+    self._average_rssi_lower_threshold = None
+    self._average_rssi_upper_threshold = None
+
+  def _DeriveRSSIThreshold(self, threshold, fid):
+    if isinstance(threshold, (int, float)):
+      return threshold
+    elif isinstance(threshold, dict):
+      if fid in threshold:
+        return threshold.get(fid)
+      else:
+        self.fail_msg += 'Fixture ID "%s" is not legitimate!\n' % fid
+    else:
+      self.fail_msg += 'Wrong type of RSSI threshold: %s\n' % str(threshold)
 
   def Run(self):
+    fid = GetDeviceId()
+    self._average_rssi_lower_threshold = self._DeriveRSSIThreshold(
+        self._test.args.average_rssi_lower_threshold, fid)
+    self._average_rssi_upper_threshold = self._DeriveRSSIThreshold(
+        self._test.args.average_rssi_upper_threshold, fid)
+    if self.fail_msg:
+      factory.console.error(self.fail_msg)
+      self.Fail(self.fail_msg)
+      return
+
     bluetooth_manager = BluetoothManager(self._test.host_mac)
     adapter = bluetooth_manager.GetFirstAdapter()
     logging.info('mac (%s): %s', self._test.host_mac, adapter)
@@ -527,18 +549,27 @@ class DetectRSSIofTargetMACTask(FactoryTask):
       logging.info('RSSIs at MAC %s: %s', self._mac_to_scan, rssis)
       factory.console.info('Average RSSI: %.2f', average_rssi)
 
-      # Convert dbus.Int16 in rssis below to regular integers.
-      data = 'Average RSSI: %.2f %s\n' % (average_rssi, map(int, rssis))
-      _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
-
+      fail_msg = ''
       if (self._average_rssi_lower_threshold is not None and
           average_rssi < self._average_rssi_lower_threshold):
-        self.Fail('Average RSSI %.2f less than the lower threshold %.2f' %
-                  (average_rssi, self._average_rssi_lower_threshold))
-      elif (self._average_rssi_upper_threshold is not None and
-            average_rssi > self._average_rssi_upper_threshold):
-        self.Fail('Average RSSI %.2f greater than the upper threshold %.2f' %
-                  (average_rssi, self._average_rssi_upper_threshold))
+        fail_msg += ('Average RSSI %.2f less than the lower threshold %.2f\n' %
+                     (average_rssi, self._average_rssi_lower_threshold))
+      if (self._average_rssi_upper_threshold is not None and
+          average_rssi > self._average_rssi_upper_threshold):
+        fail_msg += ('Average RSSI %.2f greater than the upper threshold %.2f' %
+                     (average_rssi, self._average_rssi_upper_threshold))
+
+      # Convert dbus.Int16 in rssis below to regular integers.
+      status = (('pass' if fail_msg == '' else 'fail') +
+                ' exp: [%.2f, %.2f]' % (self._average_rssi_lower_threshold,
+                                        self._average_rssi_upper_threshold))
+      data = ('Average RSSI: %.2f %s  (%s)\n' %
+              (average_rssi, map(int, rssis), status))
+      _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+
+      if fail_msg:
+        factory.console.error(fail_msg)
+        self.Fail(fail_msg)
       else:
         self.Pass()
 
@@ -1044,11 +1075,11 @@ class BluetoothTest(unittest.TestCase):
           optional=True),
       Arg('firmware_revision_string', str,
           'the firmware revision string', optional=True),
-      Arg('average_rssi_lower_threshold', float, 'Checks the average RSSI'
-          ' of the target mac is equal to or greater than this threshold.',
+      Arg('average_rssi_lower_threshold', (float, dict), 'Checks the average'
+          ' RSSI of the target mac is equal to or greater than this threshold.',
           default=None, optional=True),
-      Arg('average_rssi_upper_threshold', float, 'Checks the average RSSI'
-          ' of the target mac is equal to or less than this threshold.',
+      Arg('average_rssi_upper_threshold', (float, dict), 'Checks the average'
+          ' RSSI of the target mac is equal to or less than this threshold.',
           default=None, optional=True),
       Arg('pair_with_match', bool, 'Whether to pair with the strongest match.',
           default=False, optional=True),
