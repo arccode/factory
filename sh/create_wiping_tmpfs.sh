@@ -35,6 +35,8 @@ FILES_DIRS_COPIED_FROM_ROOTFS="
   ${FACTORY_DIR}/sh/common.sh
   ${FACTORY_DIR}/sh/display_wipe_message.sh
   ${FACTORY_DIR}/sh/enable_release_partition.sh
+  ${FACTORY_DIR}/sh/generate_finalize_request.sh
+  ${FACTORY_DIR}/sh/inform_shopfloor.sh
   ${FACTORY_DIR}/sh/wipe_init.sh
   ${PANGO_MODULE}
   ${MISC_DIR}/chromeos-common.sh
@@ -90,6 +92,8 @@ BIN_DEPS="
   sh
   shutdown
   umount
+  vpd
+  wget
 "
 
 # Include frecon if the system has frecon, otherwice use ply-image instead.

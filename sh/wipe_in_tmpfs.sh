@@ -19,7 +19,13 @@ STATE_PATH="/mnt/stateful_partition"
 # Move the following mount points to tmpfs by mount --rbind
 REBIND_MOUNT_POINTS="/dev /proc /sys"
 
-SERVICES_NEEDS_RUNNING="boot-services console-tty2 dbus factory-wipe"
+SERVICES_NEEDS_RUNNING="
+  boot-services
+  console-tty2
+  dbus
+  factory-wipe
+  shill
+  openssh-server"
 
 CREATE_TMPFS="/usr/local/factory/sh/create_wiping_tmpfs.sh"
 WIPE_INIT="/usr/local/factory/sh/wipe_init.sh"
@@ -70,6 +76,7 @@ STATE_DEV="${FACTORY_ROOT_DEV%[0-9]*}1"
 
 WIPE_ARGS="factory"
 CUTOFF_ARGS=""
+SHOPFLOOR_URL=""
 
 # ======================================================================
 # Helper functions
@@ -85,6 +92,7 @@ parse_wipe_args() {
     fast_wipe="$(find_wipe_args FAST_WIPE)"
     [ "${fast_wipe}" = "true" ] && WIPE_ARGS="${WIPE_ARGS} fast"
     CUTOFF_ARGS="$(find_wipe_args CUTOFF_ARGS)"
+    SHOPFLOOR_URL="$(find_wipe_args SHOPFLOOR_URL)"
   fi
 }
 
@@ -194,7 +202,7 @@ chroot_tmpfs_to_wipe() {
   cd "${NEWROOT}"
   pivot_root . "$(basename "${oldroot}")"
   exec chroot . "${WIPE_INIT}" "${FACTORY_ROOT_DEV}" "${ROOT_DISK}" \
-    "${WIPE_ARGS}" "${CUTOFF_ARGS}"
+    "${WIPE_ARGS}" "${CUTOFF_ARGS}" "${SHOPFLOOR_URL}"
 }
 
 # ======================================================================

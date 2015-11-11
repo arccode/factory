@@ -680,14 +680,21 @@ _cutoff_args_cmd_arg = CmdArg(
          '[--max-battery-percent <maximum battery percentage>] '
          '[--min-battery-voltage <minimum battery voltage>] '
          '[--max-battery-voltage <maximum battery voltage>]')
+_shopfloor_url_args_cmd_arg = CmdArg(
+    '--shopfloor_url',
+    help='Shopfloor server url to be informed when in-place wipe is done. '
+         'After in-place wipe, a XML-RPC request will be sent to the '
+         'given url to indicate the completion of wipe.')
 @Command('wipe_in_place',
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
-         _cutoff_args_cmd_arg)
+         _cutoff_args_cmd_arg,
+         _shopfloor_url_args_cmd_arg)
 def WipeInPlace(options):
   """Start factory wipe directly without reboot."""
 
-  GetGooftool(options).WipeInPlace(options.fast, options.cutoff_args)
+  GetGooftool(options).WipeInPlace(options.fast, options.cutoff_args,
+                                   options.shopfloor_url)
 
 @Command('prepare_wipe',
          CmdArg('--fast', action='store_true',
@@ -880,6 +887,7 @@ def UploadReport(options):
          CmdArg('--wipe_in_place', action='store_true',
                 help='Start factory wiping in place without reboot.'),
          _cutoff_args_cmd_arg,
+         _shopfloor_url_args_cmd_arg,
          _hwid_version_cmd_arg,
          _hwdb_path_cmd_arg,
          _hwid_status_list_cmd_arg,

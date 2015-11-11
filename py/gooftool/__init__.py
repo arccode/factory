@@ -545,7 +545,7 @@ class Gooftool(object):
       else:
         raise ValueError('Unknown argument in cutoff_args: %s' % args[i])
 
-  def WipeInPlace(self, is_fast=None, cutoff_args=None):
+  def WipeInPlace(self, is_fast=None, cutoff_args=None, shopfloor_url=None):
     """Start transition to release state directly without reboot.
 
     Args:
@@ -559,7 +559,10 @@ class Gooftool(object):
 
     if cutoff_args:
       self._VerifyCutoffArgs(cutoff_args)
-      args += 'CUTOFF_ARGS=%s' % cutoff_args
+      args += 'CUTOFF_ARGS=%s\n' % cutoff_args
+
+    if shopfloor_url:
+      args += 'SHOPFLOOR_URL=%s\n' % shopfloor_url
 
     if args:
       file_utils.WriteFile('/tmp/factory_wipe_args', args)
