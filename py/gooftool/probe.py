@@ -592,9 +592,12 @@ def _InitialConfigProbe(probe_class, *arch_targets):
   return _ProbeFun(_INITIAL_CONFIG_PROBE_MAP, probe_class, *arch_targets)
 
 
-@_ComponentProbe('audio_codec', 'arm')
-def _ProbeAudioCodecArm():
-  """Looks for codec strings in /sys/kernel/debug/asoc/codecs.
+@_ComponentProbe('audio_codec')
+def _ProbeAudioCodec():
+  """Looks for codec strings.
+
+  Collect /sys/kernel/debug/asoc/codecs for ASOC (ALSA
+  SOC) drivers, /proc/asound for HDA codecs, then PCM details.
 
   There is a set of known invalid codec names that are not included in the
   return value.
@@ -605,20 +608,18 @@ def _ProbeAudioCodecArm():
       'dw-hdmi-audio'  # this is a virtual audio codec driver
       ])
   with open('/sys/kernel/debug/asoc/codecs') as f:
-    return [DictCompactProbeStr(codec) for codec in f.read().splitlines()
-            if codec not in KNOWN_INVALID_CODEC_NAMES]
+    results = [DictCompactProbeStr(codec) for codec in f.read().splitlines()
+               if codec not in KNOWN_INVALID_CODEC_NAMES]
 
-
-@_ComponentProbe('audio_codec', 'x86')
-def _ProbeAudioCodecX86():
-  """Looks for codec strings in /proc/asound then at PCM details."""
   grep_result = Shell('grep -R "Codec:" /proc/asound/*')
   match_set = set()
   for line in grep_result.stdout.splitlines():
     match_set |= set(re.findall(r'.*Codec:(.*)', line))
-  results = [DictCompactProbeStr(match) for match in sorted(match_set) if match]
+  results += [DictCompactProbeStr(match) for match in sorted(match_set) if
+              match]
   if results:
     return results
+
   # Formatted '00-00: WM??? PCM wm???-hifi-0: ...'
   pcm_data = open('/proc/asound/pcm').read().strip().split(' ')
   if len(pcm_data) > 2:
