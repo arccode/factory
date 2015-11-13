@@ -514,7 +514,7 @@ class FileLock(object):
 
     while True:
       try:
-        self._sys_lock(self._fd, is_exclusive=True, is_blocking=True)
+        self._sys_lock(self._fd, is_exclusive=True, is_blocking=False)
         self._locked = True
         logging.debug('%s locked by %s', self._lockfile, os.getpid())
         break

@@ -39,7 +39,7 @@ class MakePARTest(unittest.TestCase):
                                      (1, 'raise ValueError')):
       self.assertEquals(
           expected_retcode,
-          Spawn(command + ['execpython', '--args', 'dict(script=%r)' % script],
+          Spawn(command + ['execpython', '--args', repr({'script': script})],
                 log=True, call=True, env={}, cwd='/',
                 ignore_stdout=True, ignore_stderr=True).returncode)
 
@@ -86,8 +86,8 @@ class MakePARTest(unittest.TestCase):
                     read_stdout=True, read_stderr=True)
     self.assertEquals(0, process.returncode)
     self.assertTrue(modified_usage in process.stdout_data)
-    self.assertTrue('WARNING: factory.par has been unzipped',
-                    process.stderr_data)
+    self.assertTrue(
+        'WARNING: factory.par has been unzipped' in process.stderr_data)
     # Make sure template config files required by factory_flow tool are packed.
     self.assertTrue(os.path.exists(os.path.join(
         self.tmp, 'cros', 'factory', 'factory_flow', 'templates',

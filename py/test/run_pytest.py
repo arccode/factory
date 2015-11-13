@@ -197,9 +197,8 @@ def main():
                            args=args,
                            dut_options=dut_options,
                            use_goofy=cli_args.use_goofy)
-
   # Exit code and error message.
-  sys.exit(error_msg)  # uses exit code 0 when error_msg == None
+  sys.exit(error_msg or None)
 
 
 if __name__ == '__main__':

@@ -10,16 +10,20 @@ Spatial sensors are sensors with X, Y, Z values such as accelerometer or
 gyroscope.
 
 The step for calibration is as follows:
-1 - Put the device on a flat table, facing up.
-2 - Issue a command to calibrate them:
-  echo 1 > /sys/bus/iio/devices/iio:deviceX/calibrate
-  X being the ids of the accel and gyro.
-3 - Retrieve the calibration offsets
-  cat /sys/bus/iio/devices/iio:deviceX/in_(accel|gyro)_(x|y|z)_calibbias
-4 - Save them in VPD.
+1) Put the device on a flat table, facing up.
+
+2) Issue a command to calibrate them:
+
+  - echo 1 > /sys/bus/iio/devices/iio:deviceX/calibrate
+  - X being the ids of the accel and gyro.
+
+3) Retrieve the calibration offsets
+
+  - cat /sys/bus/iio/devices/iio:deviceX/in_(accel|gyro)_(x|y|z)_calibbias
+
+4) Save them in VPD.
 """
 
-import os
 import threading
 import time
 import unittest
@@ -131,12 +135,12 @@ class SpatialSensorCalibration(unittest.TestCase):
       if value <= _range[0] or value >= _range[1]:
         factory.console.error(
             'Device not in correct position: %s-axis value: %d. '
-             'Valid range (%d, %d)' % (axis, value, _range[0], _range[1]))
+            'Valid range (%d, %d)', axis, value, _range[0], _range[1])
         raise InvalidPositionError
 
   def EnableAutoCalibration(self, path):
     RETRIES = 5
-    for i in range(RETRIES):
+    for unused_i in range(RETRIES):
       try:
         self.dut.Write(self.dut.path.join(path, 'calibrate'), '1')
       except Exception:
@@ -145,7 +149,7 @@ class SpatialSensorCalibration(unittest.TestCase):
       else:
         break
     else:
-        raise RuntimeError('calibrate activation failed')
+      raise RuntimeError('calibrate activation failed')
     time.sleep(self.args.stabilize_time)
 
   def RetrieveCalibbiasAndWriteVPD(self):
