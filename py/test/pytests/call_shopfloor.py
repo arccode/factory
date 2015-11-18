@@ -18,13 +18,13 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.privacy import FilterDict
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.test.privacy import FilterDict
 from cros.factory.utils.process_utils import WaitEvent
 
 

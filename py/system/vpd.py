@@ -11,7 +11,7 @@ import re
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import privacy
+from cros.factory.test import privacy
 from cros.factory.utils.process_utils import Spawn
 
 

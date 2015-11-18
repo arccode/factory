@@ -45,10 +45,10 @@ from cros.factory.hwid import hwid_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.factory import FACTORY_LOG_PATH, DEVICE_STATEFUL_PATH
+from cros.factory.test.privacy import FilterDict
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Error
-from cros.factory.privacy import FilterDict
 
 
 # TODO(tammo): Replace calls to sys.exit with raise Exit, and maybe

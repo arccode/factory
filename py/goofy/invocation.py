@@ -30,7 +30,6 @@ from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
-from cros.factory.privacy import FilterDict
 from cros.factory.system.service_manager import ServiceManager
 from cros.factory.test import dut
 from cros.factory.test import factory
@@ -42,6 +41,7 @@ from cros.factory.test.args import Args
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
+from cros.factory.test.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test.test_lists.test_lists import OldStyleTestList
 from cros.factory.utils import file_utils
