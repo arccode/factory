@@ -179,7 +179,7 @@ def LoadRegionDatabaseFromSource():
   """
   # Try to load from source tree if available.
   src_root = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                          '..', '..', '..', '..')
+                          '..', '..', '..', '..', '..')
   generator = os.path.join(src_root, 'platform2', 'regions', 'regions.py')
   if not os.path.exists(generator):
     return {}

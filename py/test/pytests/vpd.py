@@ -31,7 +31,6 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.l10n.regions import REGIONS
 from cros.factory.test import branding
 from cros.factory.test import factory
 from cros.factory.test import registration_codes
@@ -39,6 +38,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.test.l10n.regions import REGIONS
 from cros.factory.test.ui_templates import OneSection, SelectBox
 from cros.factory.test.utils import Enum
 from cros.factory.tools.build_board import BuildBoard

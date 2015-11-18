@@ -11,7 +11,7 @@
 """Collection of valid VPD values for ChromeOS."""
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.l10n import regions
+from cros.factory.test.l10n import regions
 
 
 REGION_CODES = set(regions.REGIONS.iterkeys())

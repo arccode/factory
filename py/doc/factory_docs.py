@@ -10,7 +10,7 @@ from docutils import nodes
 from sphinx.util.compat import Directive
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.l10n import regions
+from cros.factory.test.l10n import regions
 
 
 class regionslist(nodes.General, nodes.Element):
@@ -41,7 +41,7 @@ class RegionsList(Directive):
 
     # Import the regions_overlay if available.
     try:
-      from cros.factory.l10n import regions_overlay  # pylint: disable=E0611
+      from cros.factory.test.l10n import regions_overlay  # pylint: disable=E0611
       overlay = regions_overlay
     except ImportError:
       overlay = None

@@ -56,8 +56,8 @@ Currently, the region code is used by CrOS to derive regional data, for example
 locales or Wi-Fi regulatory domain. The regional data can be updated, but the
 region code itself is locked in VPD RO area.
 
-The :py:class:`cros.factory.l10n.regions.Region` [#l10n]_ class encapsulates a
-single regional configuration.
+The :py:class:`cros.factory.test.l10n.regions.Region` [#l10n]_ class
+encapsulates a single regional configuration.
 
 .. _available-regions:
 
@@ -304,15 +304,15 @@ For example::
 Region API
 ----------
 
-.. py:module:: cros.factory.l10n.regions
+.. py:module:: cros.factory.test.l10n.regions
 
 .. autoclass:: Region
    :members:
 
-The :py:func:`cros.factory.l10n.regions.BuildRegionsDict` method is
+The :py:func:`cros.factory.test.l10n.regions.BuildRegionsDict` method is
 used to obtain a list of all confirmed regions.  In general, code
 should not invoke this directly but rather use
-:py:data:`cros.factory.l10n.regions.REGIONS`.
+:py:data:`cros.factory.test.l10n.regions.REGIONS`.
 
 .. autofunction:: BuildRegionsDict
 
@@ -325,15 +325,15 @@ Where regions are defined
 
 The complete set of confirmed regions (regions available for use in
 shipping products) is specified by
-:py:data:`cros.factory.l10n.regions.REGIONS_LIST`.
+:py:data:`cros.factory.test.l10n.regions.REGIONS_LIST`.
 
-.. autodata:: cros.factory.l10n.regions.REGIONS_LIST
+.. autodata:: cros.factory.test.l10n.regions.REGIONS_LIST
 
 In addition, there is a module-level attributes used to accumulate
 region configuration settings that are thought to be correct but have
 not been completely verified yet.
 
-.. autodata:: cros.factory.l10n.regions.UNCONFIRMED_REGIONS_LIST
+.. autodata:: cros.factory.test.l10n.regions.UNCONFIRMED_REGIONS_LIST
 
 If you cannot add a region to the public factory repository, you may
 add it to the private repository that overrides the REGION_LIST.

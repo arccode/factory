@@ -17,7 +17,7 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.l10n import regions
+from cros.factory.test.l10n import regions
 
 
 # pylint: disable=W0212

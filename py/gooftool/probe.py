@@ -41,11 +41,11 @@ from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
 # pylint: disable=E0611
 from cros.factory.hwdb.hwid_tool import ProbeResults, COMPACT_PROBE_STR
-from cros.factory.l10n import regions
 from cros.factory.system import board
 from cros.factory.system import service_manager
 from cros.factory.system import vpd
 from cros.factory.test import factory
+from cros.factory.test.l10n import regions
 from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Error
 

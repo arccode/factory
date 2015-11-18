@@ -9,7 +9,7 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import common
-from cros.factory.l10n.regions import REGIONS
+from cros.factory.test.l10n.regions import REGIONS
 from cros.factory.utils.process_utils import Spawn
 
 

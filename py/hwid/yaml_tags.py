@@ -5,7 +5,7 @@
 """YAML tags used in the HWID database."""
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.l10n import regions
+from cros.factory.test.l10n import regions
 from cros.factory.utils import yaml_utils
 
 
