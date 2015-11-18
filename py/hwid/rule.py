@@ -19,7 +19,7 @@ import threading
 import time
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import MakeList
+from cros.factory.utils import type_utils
 from cros.factory.utils import yaml_utils
 
 
@@ -221,9 +221,9 @@ class Rule(object):
   def __init__(self, name, when, evaluate, otherwise):
     self.name = name
     self.when = when
-    self.evaluate = MakeList(evaluate)
+    self.evaluate = type_utils.MakeList(evaluate)
     if otherwise:
-      self.otherwise = MakeList(otherwise)
+      self.otherwise = type_utils.MakeList(otherwise)
     else:
       self.otherwise = None
 
@@ -259,7 +259,8 @@ class Rule(object):
                 rule_dict.get('otherwise'))
 
   def Validate(self):
-    for expr in MakeList(self.when) + self.evaluate + MakeList(self.otherwise):
+    for expr in (type_utils.MakeList(self.when) + self.evaluate +
+                 type_utils.MakeList(self.otherwise)):
       try:
         eval(expr, _rule_functions, {})
       except KeyError:

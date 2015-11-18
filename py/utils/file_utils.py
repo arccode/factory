@@ -23,10 +23,11 @@ import tempfile
 import zipfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import CheckDictKeys, MakeList
 from cros.factory.utils import platform_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.type_utils import CheckDictKeys
+from cros.factory.utils.type_utils import MakeList
 
 
 def TryMakeDirs(path):

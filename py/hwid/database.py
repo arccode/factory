@@ -17,7 +17,6 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import schema
-from cros.factory.common import MakeList, MakeSet
 from cros.factory.hwid import common
 from cros.factory.hwid import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
@@ -25,6 +24,7 @@ from cros.factory.hwid import yaml_tags  # pylint: disable=W0611
 from cros.factory.hwid.base32 import Base32
 from cros.factory.hwid.base8192 import Base8192
 from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 
 def PatchYAMLMappingConstructor(yaml_loader=yaml.Loader,
@@ -297,9 +297,10 @@ class Database(object):
                     'initial_configs']:
         if comp_cls in probed_bom[field]:
           # We actually want to return a list of dict here.
-          return MakeList(probed_bom[field][comp_cls] if
-                          isinstance(probed_bom[field][comp_cls], list) else
-                          [probed_bom[field][comp_cls]])
+          return type_utils.MakeList(
+              probed_bom[field][comp_cls] if
+              isinstance(probed_bom[field][comp_cls], list) else
+              [probed_bom[field][comp_cls]])
       # comp_cls is in probed_bom['missing_component_classes'].
       return None
 
@@ -375,7 +376,7 @@ class Database(object):
         new_probed_result.append(common.ProbedComponentResult(
             None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
       else:
-        comp_name = MakeList(comp_name)
+        comp_name = type_utils.MakeList(comp_name)
         for name in comp_name:
           comp_attrs = self.components.GetComponentAttributes(comp_cls, name)
           new_probed_result.append(common.ProbedComponentResult(
@@ -578,8 +579,8 @@ class Database(object):
       raise common.HWIDException('Missing component classes: %r',
                                  ', '.join(sorted(missing_comp)))
 
-    bom_encoded_fields = MakeSet(bom.encoded_fields.keys())
-    db_encoded_fields = MakeSet(self.encoded_fields.keys())
+    bom_encoded_fields = type_utils.MakeSet(bom.encoded_fields.keys())
+    db_encoded_fields = type_utils.MakeSet(self.encoded_fields.keys())
     # Every encoded field defined in the database must present in BOM.
     if db_encoded_fields - bom_encoded_fields:
       raise common.HWIDException('Missing encoded fields in BOM: %r',
@@ -748,7 +749,7 @@ class EncodedFields(dict):
         for comp_cls in self[field][index]:
           comp_value = self[field][index][comp_cls]
           if isinstance(comp_value, str):
-            self[field][index][comp_cls] = MakeList(comp_value)
+            self[field][index][comp_cls] = type_utils.MakeList(comp_value)
 
 
 class Components(object):

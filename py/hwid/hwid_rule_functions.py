@@ -6,7 +6,6 @@
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import MakeList, MakeSet
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.common import HWIDException
 from cros.factory.hwid.encoder import (
@@ -15,6 +14,8 @@ from cros.factory.test import phase
 from cros.factory.test import registration_codes
 from cros.factory.test.registration_codes import RegistrationCode
 from cros.factory.hwid.rule import RuleFunction, Value, GetContext, GetLogger
+from cros.factory.utils.type_utils import MakeList
+from cros.factory.utils.type_utils import MakeSet
 
 
 def GetClassAttributesOnBOM(hwid, comp_cls):

@@ -12,8 +12,8 @@ import unittest
 import __builtin__  # Used for mocking raw_input().
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import Obj
 from cros.factory.utils.file_utils import TempDirectory, WriteFile
+from cros.factory.utils.type_utils import Obj
 from cros.factory.umpire.commands import init
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import umpire

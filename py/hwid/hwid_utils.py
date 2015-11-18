@@ -11,7 +11,6 @@ import re
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import common as factory_common_utils
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import probe
 from cros.factory.hwid import common
@@ -22,6 +21,7 @@ from cros.factory.hwid import rule
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 def _HWIDMode(rma_mode):
@@ -210,7 +210,7 @@ def ListComponents(db, comp_class=None):
   if not comp_class:
     comp_class_to_lookup = db.components.components_dict.keys()
   else:
-    comp_class_to_lookup = factory_common_utils.MakeList(comp_class)
+    comp_class_to_lookup = type_utils.MakeList(comp_class)
 
   output_components = collections.defaultdict(list)
   for comp_cls in comp_class_to_lookup:

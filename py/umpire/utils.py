@@ -12,10 +12,11 @@ import urllib
 from twisted.internet import defer
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import AttrDict, Singleton
 from cros.factory.umpire import common as umpire_common
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.type_utils import AttrDict
+from cros.factory.utils.type_utils import Singleton
 
 
 class Registry(AttrDict):

@@ -25,7 +25,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.common import MakeList
 from cros.factory.factory_flow import common
 from cros.factory.factory_flow import test_runner_common
 from cros.factory.hacked_argparse import CmdArg, ParseCmdline, verbosity_cmd_arg
@@ -36,6 +35,7 @@ from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 
 # Set default verbosity to INFO.
@@ -354,7 +354,7 @@ class FactoryFlowRunner(object):
     else:
       if not self.config['test_plans'].get(plan):
         raise FactoryFlowTestError('Unknow test plan %r' % plan)
-      test_plans_to_run = MakeList(plan)
+      test_plans_to_run = type_utils.MakeList(plan)
 
     if dut and dut not in self.config['dut_info']:
       raise FactoryFlowTestError('Unknown DUT %r' % dut)
@@ -367,7 +367,7 @@ class FactoryFlowRunner(object):
         if dut not in config['dut']:
           logging.info('DUT %r is not planned for %r', dut, plan)
           continue
-        dut_to_test = MakeList(dut)
+        dut_to_test = type_utils.MakeList(dut)
       else:
         dut_to_test = config['dut']
 

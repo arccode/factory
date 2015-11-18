@@ -20,10 +20,10 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import gooftool
-from cros.factory.common import Shell
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
+from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.probe import Probe, ReadRoVpd
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611

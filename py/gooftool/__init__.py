@@ -20,10 +20,10 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 import cros.factory.hwid.common as hwid3_common
-from cros.factory.common import Shell
 from cros.factory.hwdb import hwid_tool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
+from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.probe import Probe, ReadRoVpd, ReadRwVpd
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.database import Database

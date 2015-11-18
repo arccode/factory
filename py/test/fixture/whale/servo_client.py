@@ -35,13 +35,13 @@ import time
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import common
 from cros.factory.test.fixture.whale import servo_config
 from cros.factory.utils.net_utils import TimeoutXMLRPCServerProxy
+from cros.factory.utils.type_utils import AttrDict
 
 
 # Whale's buttons. Can get its value ('on'/'off').
-WHALE_BUTTON = common.AttrDict(dict(
+WHALE_BUTTON = AttrDict(dict(
     BUG_FILING='whale_bug_filing_btn',
     EC_FLASH='whale_ec_flash_btn',
     FIXTURE_START='whale_fixture_start_btn',
@@ -63,7 +63,7 @@ WHALE_BUTTONS = tuple(WHALE_BUTTON.values())
 FIXTURE_FEEDBACK = servo_config.FIXTURE_FEEDBACK
 
 # Plankton feedback 1 ~ 8. Can get its value ('on'/'off').
-PLANKTON_FEEDBACK = common.AttrDict(
+PLANKTON_FEEDBACK = AttrDict(
     dict(('FB%d' % i, 'plankton_fb%d' % i) for i in range(1, 9)))
 
 # Tuple of Whale's latchless feedback
@@ -74,7 +74,7 @@ WHALE_FEEDBACKS = tuple(set(FIXTURE_FEEDBACK.values() +
 WHALE_DEBUG_MODE_EN = 'whale_debug_mode_en'
 
 # Whale's control components. Can get/set its value ('on'/'off').
-WHALE_CONTROL = common.AttrDict(dict(
+WHALE_CONTROL = AttrDict(dict(
     ADC='whale_adc',
     AUDIO_PLUG='whale_audio_plug_det',
     BATTERY='whale_battery_on',

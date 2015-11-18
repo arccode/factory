@@ -35,10 +35,10 @@ from tempfile import NamedTemporaryFile
 import factory_common  # pylint: disable=W0611
 
 from cros.factory import system
-from cros.factory.common import CompactStr, Obj, ParseKeyValueData, Shell
 from cros.factory.gooftool import edid
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
+from cros.factory.gooftool.common import Shell
 # pylint: disable=E0611
 from cros.factory.hwdb.hwid_tool import ProbeResults, COMPACT_PROBE_STR
 from cros.factory.system import board
@@ -48,6 +48,7 @@ from cros.factory.test import factory
 from cros.factory.test.l10n import regions
 from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Error
+from cros.factory.utils.type_utils import Obj
 
 
 try:
@@ -80,8 +81,49 @@ PROBEABLE_COMPONENT_CLASSES = set()
 FAKE_PROBE_RESULTS_FILE = '/tmp/fake_probe_results.yaml'
 
 
+def CompactStr(data):
+  """Converts data to string with compressed white space.
+
+  Args:
+    data: Single string or a list/tuple of strings.
+
+  Returns:
+    If data is a string, compress all contained contiguous spaces to
+    single spaces.  If data is a list or tuple, space-join and then
+    treat like string input.
+  """
+  if isinstance(data, list) or isinstance(data, tuple):
+    data = ' '.join(x for x in data if x)
+  return re.sub(r'\s+', ' ', data).strip()
+
+
 def DictCompactProbeStr(content):
   return {COMPACT_PROBE_STR: CompactStr(content)}
+
+
+def ParseKeyValueData(pattern, data):
+  """Converts structured text into a {(key, value)} dict.
+
+  Args:
+    pattern: A regex pattern to decode key/value pairs
+    data: The text to be parsed.
+
+  Returns:
+    A { key: value, ... } dict.
+
+  Raises:
+    ValueError: When the input is invalid.
+  """
+  parsed_list = {}
+  for line in data.splitlines():
+    matched = re.match(pattern, line.strip())
+    if not matched:
+      raise ValueError('Invalid data: %s' % line)
+    (name, value) = (matched.group(1), matched.group(2))
+    if name in parsed_list:
+      raise ValueError('Duplicate key: %s' % name)
+    parsed_list[name] = value
+  return parsed_list
 
 
 def _LoadKernelModule(name, error_on_fail=True):

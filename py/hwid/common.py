@@ -13,12 +13,13 @@ import re
 import pprint
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import common, schema
+from cros.factory import schema
 from cros.factory.hwid import base32, base8192
 from cros.factory.hwid import rule
 from cros.factory.test import phase
 from cros.factory.test import utils
 from cros.factory.tools import build_board
+from cros.factory.utils.type_utils import MakeSet
 
 # The expected location of HWID data within a factory image or the
 # chroot.
@@ -253,8 +254,8 @@ class HWID(object):
     for comp_cls in self.database.components.GetRequiredComponents():
       if comp_cls not in self.database.components.probeable:
         continue
-      probed_components = common.MakeSet(PackProbedValues(probed_bom, comp_cls))
-      expected_components = common.MakeSet(PackProbedValues(self.bom, comp_cls))
+      probed_components = MakeSet(PackProbedValues(probed_bom, comp_cls))
+      expected_components = MakeSet(PackProbedValues(self.bom, comp_cls))
       extra_components = probed_components - expected_components
       missing_components = expected_components - probed_components
       if extra_components or missing_components:

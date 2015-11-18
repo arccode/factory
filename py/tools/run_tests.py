@@ -17,9 +17,9 @@ import tempfile
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import common
 from cros.factory.test import utils
 from cros.factory.utils import file_utils
+from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 TEST_PASSED_MARK = '.tests-passed'
@@ -365,7 +365,7 @@ def main():
   parser.add_argument('test', nargs='+', help='Unittest filename.')
   args = parser.parse_args()
 
-  common.SetupLogging()
+  SetupLogging()
 
   test, isolated = ((args.test, args.isolated)
                     if args.nofilter

@@ -128,6 +128,22 @@ def CatchException(name, enable=True):
   return _CatchExceptionDecorator
 
 
+def SetupLogging(level=logging.WARNING, log_file_name=None):
+  """Configure logging level, format, and target file/stream.
+
+  Args:
+    level: The logging.{DEBUG,INFO,etc} level of verbosity to show.
+    log_file_name: File for appending log data.
+  """
+  logging.basicConfig(
+      format='%(levelname)-8s %(asctime)-8s %(message)s',
+      datefmt='%H:%M:%S',
+      level=level,
+      **({'filename': log_file_name} if log_file_name else {}))
+  logging.Formatter.converter = time.gmtime
+  logging.info(time.strftime('%Y.%m.%d %Z', time.gmtime()))
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   StartDebugServer()

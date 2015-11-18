@@ -13,9 +13,9 @@ import yaml
 from collections import defaultdict
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import common
-import cros.factory.hwid.common
+from cros.factory.hwid import common
 from cros.factory.hwid import database
+from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -41,9 +41,9 @@ def main():
                             'scanned.'))
   args = parser.parse_args()
 
-  common.SetupLogging(level=logging.INFO)
+  SetupLogging(level=logging.INFO)
 
-  hwid_dir = os.path.dirname(cros.factory.hwid.common.DEFAULT_HWID_DATA_PATH)
+  hwid_dir = os.path.dirname(common.DEFAULT_HWID_DATA_PATH)
   boards_yaml_path = os.path.join(hwid_dir, 'boards.yaml')
   with open(boards_yaml_path) as f:
     boards_yaml = yaml.load(f)

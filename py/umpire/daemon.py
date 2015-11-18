@@ -18,7 +18,6 @@ from twisted.python.failure import Failure
 from twisted.web import server, wsgi, xmlrpc
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import AttrDict, Singleton
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.http_post_resource import HTTPPOSTResource
 from cros.factory.umpire.service.umpire_service import (
@@ -26,6 +25,8 @@ from cros.factory.umpire.service.umpire_service import (
 from cros.factory.umpire.utils import ConcentrateDeferreds
 from cros.factory.umpire.web.wsgi import WebAppDispatcher
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
+from cros.factory.utils.type_utils import AttrDict
+from cros.factory.utils.type_utils import Singleton
 
 
 LOCALHOST = '127.0.0.1'

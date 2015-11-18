@@ -17,7 +17,7 @@ import subprocess
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import common
+from cros.factory.utils import type_utils
 
 
 KEYBOARD_PATTERN = re.compile(r'^xkb:\w+:\w*:\w+$|'
@@ -112,9 +112,9 @@ class Region(object):
       raise RegionException("'uk' is not a valid region code (use 'gb')")
 
     self.region_code = region_code
-    self.keyboards = common.MakeList(keyboards)
+    self.keyboards = type_utils.MakeList(keyboards)
     self.time_zone = time_zone
-    self.language_codes = common.MakeList(language_codes)
+    self.language_codes = type_utils.MakeList(language_codes)
     self.keyboard_mechanical_layout = keyboard_mechanical_layout
     self.description = description or region_code
     self.notes = notes

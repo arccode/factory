@@ -20,7 +20,7 @@ from time import sleep
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwdb import hwid_tool
-from cros.factory.common import Shell
+from cros.factory.gooftool.common import Shell
 
 
 # Constants lifted from EDID documentation.

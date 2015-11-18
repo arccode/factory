@@ -9,12 +9,12 @@ import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import MakeList
 from cros.factory.hwid import common
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.e2e_test.common import AutomationMode, DEFAULT, CHROOT
+from cros.factory.utils.type_utils import MakeList
 
 
 AUTOMATION_FUNCTION_KWARGS_FILE = os.path.join(

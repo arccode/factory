@@ -28,10 +28,10 @@ from tempfile import gettempdir
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import SetupLogging, Shell
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
+from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
 from cros.factory.gooftool.probe import CalculateFirmwareHashes
@@ -47,6 +47,7 @@ from cros.factory.test import factory
 from cros.factory.test.factory import FACTORY_LOG_PATH, DEVICE_STATEFUL_PATH
 from cros.factory.test.privacy import FilterDict
 from cros.factory.utils import file_utils
+from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Error
 

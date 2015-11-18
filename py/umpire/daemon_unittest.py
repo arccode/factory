@@ -18,13 +18,13 @@ from twisted.web.http_headers import Headers
 from twisted.trial import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import AttrDict
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.daemon import UmpireDaemon
 from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.umpire.umpire_rpc import RPCCall
 from cros.factory.umpire.web.wsgi import WSGISession
 from cros.factory.utils import net_utils
+from cros.factory.utils import type_utils
 
 
 TESTDIR = os.path.abspath(os.path.join(os.path.split(__file__)[0], 'testdata'))
@@ -117,7 +117,7 @@ class DaemonTest(unittest.TestCase):
       Deferred object.
     """
     if session is None:
-      session = AttrDict()
+      session = type_utils.AttrDict()
     url = 'http://%s:%d%s' % (net_utils.LOCALHOST,
                               self.env.umpire_webapp_port, path)
     logging.debug('GET %s', url)

@@ -12,12 +12,12 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import Obj
 from cros.factory.test import shopfloor
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.factory_task import FactoryTask
 from cros.factory.test.pytests import vpd
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils.type_utils import Obj
 
 # Legacy unique/group codes for testing.
 LEGACY_UNIQUE_CODE = ('323232323232323232323232323232323232'

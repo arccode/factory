@@ -13,7 +13,7 @@ import logging
 from twisted.web import http
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import AttrDict
+from cros.factory.utils.type_utils import AttrDict
 
 
 class WSGISession(AttrDict):

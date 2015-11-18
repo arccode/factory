@@ -18,7 +18,6 @@ import subprocess
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import SetupLogging
 from cros.factory.hacked_argparse import (CmdArg, Command, ParseCmdline,
                                           verbosity_cmd_arg)
 from cros.factory.umpire.commands import init
@@ -28,6 +27,7 @@ from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.debug_utils import SetupLogging
 
 
 @Command('init',

@@ -22,7 +22,7 @@ from tempfile import NamedTemporaryFile
 import fmap
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import Shell
+from cros.factory.gooftool.common import Shell
 
 
 # Names to select target bus.

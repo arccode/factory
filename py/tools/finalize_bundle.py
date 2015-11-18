@@ -24,7 +24,6 @@ from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
 from chromite.lib import gs
-from cros.factory.common import CheckDictKeys
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.tools import build_board
@@ -36,6 +35,7 @@ from cros.factory.utils.file_utils import (
     WriteWithSudo)
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountPartition
+from cros.factory.utils.type_utils import CheckDictKeys
 
 
 REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32

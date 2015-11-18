@@ -12,7 +12,7 @@ import re
 import sys
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.common import CheckDictKeys
+from cros.factory.utils.type_utils import CheckDictKeys
 
 
 class HackedArgParser(argparse.ArgumentParser):

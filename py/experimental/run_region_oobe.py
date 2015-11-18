@@ -8,9 +8,9 @@ import argparse
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import common
 from cros.factory.test.l10n.regions import REGIONS
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.debug_utils import SetupLogging
 
 
 DESCRIPTION = """Re-runs OOBE on a remote device with the given region.
@@ -32,7 +32,7 @@ def main():
   parser.add_argument('host', metavar='HOST', help='Host to ssh to')
   parser.add_argument('region', metavar='CODE', help='Region code to use')
   args = parser.parse_args()
-  common.SetupLogging(level=logging.INFO)
+  SetupLogging(level=logging.INFO)
 
   vpd_command_args = ['-s region=%s' % (REGIONS[args.region].region_code)]
 

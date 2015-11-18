@@ -7,9 +7,9 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import Obj
 from cros.factory.gooftool import probe
 from cros.factory.system import vpd
+from cros.factory.utils.type_utils import Obj
 
 
 class ProbeRegionUnittest(unittest.TestCase):

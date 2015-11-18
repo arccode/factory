@@ -54,7 +54,7 @@ For example:
 import copy
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import MakeList
+from cros.factory.utils.type_utils import MakeList
 
 
 class SchemaException(Exception):
