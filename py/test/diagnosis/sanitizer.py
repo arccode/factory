@@ -10,10 +10,10 @@ import re
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.diagnosis.common import FormatError
-from cros.factory.diagnosis.common import INPUT_TYPE
-from cros.factory.diagnosis.common import OPTIONS
-from cros.factory.diagnosis.common import TOKEN
+from cros.factory.test.diagnosis.common import FormatError
+from cros.factory.test.diagnosis.common import INPUT_TYPE
+from cros.factory.test.diagnosis.common import OPTIONS
+from cros.factory.test.diagnosis.common import TOKEN
 from cros.factory.utils.process_utils import SpawnOutput
 
 _DEFAULT_INPUT_BOOL_VALUE = True

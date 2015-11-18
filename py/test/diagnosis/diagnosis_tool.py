@@ -24,12 +24,12 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.diagnosis.common import BACKEND_EVENTS
-from cros.factory.diagnosis.common import OPTIONS
-from cros.factory.diagnosis.common import TASK_STATE
-from cros.factory.diagnosis.common import TOKEN
-from cros.factory.diagnosis.sanitizer import SanitizeConfig
-from cros.factory.diagnosis.task import Task
+from cros.factory.test.diagnosis.common import BACKEND_EVENTS
+from cros.factory.test.diagnosis.common import OPTIONS
+from cros.factory.test.diagnosis.common import TASK_STATE
+from cros.factory.test.diagnosis.common import TOKEN
+from cros.factory.test.diagnosis.sanitizer import SanitizeConfig
+from cros.factory.test.diagnosis.task import Task
 from cros.factory.test.event import Event
 
 _BASE_PATH = os.path.dirname(os.path.abspath(__file__))

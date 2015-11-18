@@ -23,11 +23,11 @@ import threading
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.diagnosis.common import CreateRegExp
-from cros.factory.diagnosis.common import FormatError
-from cros.factory.diagnosis.common import INPUT_TYPE
-from cros.factory.diagnosis.common import TASK_STATE
-from cros.factory.diagnosis.common import TOKEN
+from cros.factory.test.diagnosis.common import CreateRegExp
+from cros.factory.test.diagnosis.common import FormatError
+from cros.factory.test.diagnosis.common import INPUT_TYPE
+from cros.factory.test.diagnosis.common import TASK_STATE
+from cros.factory.test.diagnosis.common import TOKEN
 from cros.factory.test.utils import StartDaemonThread
 
 _WAIT_TIMEOUT = 0.1
