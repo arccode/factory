@@ -19,12 +19,12 @@ import urllib2
 import urlparse
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.schema import Dict, Scalar, SchemaException
 from cros.factory.system import vpd
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils.schema import Dict, Scalar, SchemaException
 
 _MSG_VPD_INFO = test_ui.MakeLabel(
     'Please scan the panel serial number and press ENTER.',

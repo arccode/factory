@@ -10,8 +10,8 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import schema
 from cros.factory.umpire.service import umpire_service
+from cros.factory.utils import schema
 
 CONFIG_SCHEMA = {
     'optional_items': {

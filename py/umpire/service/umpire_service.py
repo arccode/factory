@@ -26,9 +26,9 @@ import uuid
 from twisted.internet import protocol, reactor, defer
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.schema import FixedDict, Scalar
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.utils import AttrDict, ConcentrateDeferreds
+from cros.factory.utils.schema import FixedDict, Scalar
 
 
 # Service package path

@@ -11,9 +11,9 @@ import sys
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.schema import Dict, FixedDict, Scalar
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.schema import Dict, FixedDict, Scalar
 
 
 """Installs symlinks to factory binaries, based on symlinks.yaml.

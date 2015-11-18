@@ -13,12 +13,12 @@ import re
 import pprint
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import schema
 from cros.factory.hwid import base32, base8192
 from cros.factory.hwid import rule
 from cros.factory.test import phase
 from cros.factory.test import utils
 from cros.factory.tools import build_board
+from cros.factory.utils import schema
 from cros.factory.utils.type_utils import MakeSet
 
 # The expected location of HWID data within a factory image or the

@@ -8,8 +8,8 @@
 import factory_common  # pylint: disable=W0611
 import unittest
 
-from cros.factory.schema import (AnyOf, Dict, FixedDict, List, Optional, Scalar,
-                                 SchemaException, Tuple)
+from cros.factory.utils.schema import (
+    AnyOf, Dict, FixedDict, List, Optional, Scalar, SchemaException, Tuple)
 
 
 class SchemaTest(unittest.TestCase):

@@ -23,9 +23,9 @@ import yaml
 from flup.server.fcgi import WSGIServer
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.schema import (AnyOf, Dict, FixedDict, List,
-                                 Scalar, SchemaException)
 from cros.factory.utils import time_utils
+from cros.factory.utils.schema import (AnyOf, Dict, FixedDict, List,
+                                       Scalar, SchemaException)
 
 
 # Directory setting

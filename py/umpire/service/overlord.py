@@ -7,9 +7,9 @@
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.schema import Scalar
 from cros.factory.test import factory
 from cros.factory.umpire.service import umpire_service
+from cros.factory.utils.schema import Scalar
 
 
 CONFIG_SCHEMA = {

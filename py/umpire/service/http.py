@@ -10,13 +10,13 @@ import os
 import shutil
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.schema import FixedDict, List, Scalar
 from cros.factory.umpire import common
 from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
 from cros.factory.umpire.config import NUMBER_SHOP_FLOOR_HANDLERS
 from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
+from cros.factory.utils.schema import FixedDict, List, Scalar
 
 
 _LOCALHOST = '127.0.0.1'

@@ -14,9 +14,9 @@ import pprint
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import schema
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
+from cros.factory.utils import schema
 
 _DATA_TYPES_SCHEMA = schema.FixedDict(
     'data type in details', items={},

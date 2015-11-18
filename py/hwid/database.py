@@ -16,7 +16,6 @@ import re
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import schema
 from cros.factory.hwid import common
 from cros.factory.hwid import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
@@ -24,6 +23,7 @@ from cros.factory.hwid import yaml_tags  # pylint: disable=W0611
 from cros.factory.hwid.base32 import Base32
 from cros.factory.hwid.base8192 import Base8192
 from cros.factory.utils import file_utils
+from cros.factory.utils import schema
 from cros.factory.utils import type_utils
 
 

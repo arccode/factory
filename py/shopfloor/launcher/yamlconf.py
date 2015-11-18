@@ -6,7 +6,7 @@
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.schema import AnyOf, Dict, FixedDict, List, Scalar
+from cros.factory.utils.schema import AnyOf, Dict, FixedDict, List, Scalar
 from cros.factory.shopfloor.launcher import constants
 
 
