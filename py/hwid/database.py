@@ -16,9 +16,10 @@ import re
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import rule, schema
+from cros.factory import schema
 from cros.factory.common import MakeList, MakeSet
 from cros.factory.hwid import common
+from cros.factory.hwid import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
 from cros.factory.hwid import yaml_tags  # pylint: disable=W0611
 from cros.factory.hwid.base32 import Base32
@@ -1176,7 +1177,7 @@ class Rules(object):
     # These imports are needed to make sure all the rule functions needed by
     # HWID-related operations are loaded and initialized.
     # pylint: disable = W0612
-    import cros.factory.common_rule_functions
+    import cros.factory.hwid.common_rule_functions
     import cros.factory.hwid.hwid_rule_functions
     self.initialized = True
 

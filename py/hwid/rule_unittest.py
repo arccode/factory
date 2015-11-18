@@ -9,7 +9,7 @@ import unittest
 import yaml
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.rule import (
+from cros.factory.hwid.rule import (
     RuleFunction, Rule, Value, Context, RuleException,
     SetContext, GetContext, GetLogger)
 

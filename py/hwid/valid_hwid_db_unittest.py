@@ -32,7 +32,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.hwid import common, database
 from cros.factory.hwid import hwid_utils
-from cros.factory.rule import Context
+from cros.factory.hwid.rule import Context
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 

@@ -14,7 +14,7 @@ from cros.factory.hwid.encoder import (
 from cros.factory.test import phase
 from cros.factory.test import registration_codes
 from cros.factory.test.registration_codes import RegistrationCode
-from cros.factory.rule import RuleFunction, Value, GetContext, GetLogger
+from cros.factory.hwid.rule import RuleFunction, Value, GetContext, GetLogger
 
 
 def GetClassAttributesOnBOM(hwid, comp_cls):

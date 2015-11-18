@@ -14,7 +14,7 @@ from cros.factory.hwid.common import HWIDException
 from cros.factory.hwid.database import Database
 from cros.factory.hwid.decoder import EncodedStringToBinaryString
 from cros.factory.hwid.decoder import BinaryStringToBOM, Decode
-from cros.factory.rule import Value
+from cros.factory.hwid.rule import Value
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
