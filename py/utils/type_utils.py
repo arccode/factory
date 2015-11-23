@@ -187,3 +187,26 @@ class Singleton(type):
     if cls not in cls._instances:
       cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
     return cls._instances[cls]
+
+
+def LazyProperty(prop):
+  """A decorator for lazy loading properties.
+
+  Example:
+    class C(object):
+      @LazyProperty
+      def m(self):
+        print 'init!'
+        return 3
+
+    c = C()
+    print c.m  # see 'init!' then 3
+    print c.m  # only see 3
+  """
+  attr_name = '_lazyprop_' + prop.__name__
+  @property
+  def _lazy_property(self):
+    if not hasattr(self, attr_name):
+      setattr(self, attr_name, prop(self))
+    return getattr(self, attr_name)
+  return _lazy_property
