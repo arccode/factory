@@ -18,9 +18,9 @@ import SocketServer
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import net_utils
-from cros.factory.rf.lan_scpi import Error
-from cros.factory.rf.lan_scpi import TimeoutError
-from cros.factory.rf.lan_scpi import LANSCPI
+from cros.factory.test.rf.lan_scpi import Error
+from cros.factory.test.rf.lan_scpi import TimeoutError
+from cros.factory.test.rf.lan_scpi import LANSCPI
 
 # pylint: disable=W0232
 

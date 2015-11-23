@@ -8,10 +8,10 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.rf.tools.csv_reader import ReadSingleCell
-from cros.factory.rf.tools.csv_reader import ReadCsv
-from cros.factory.rf.tools.csv_reader import ReadCsvAsDict
-from cros.factory.rf.tools.csv_reader import ReadCsvAsListOfDict
+from cros.factory.test.rf.tools.csv_reader import ReadSingleCell
+from cros.factory.test.rf.tools.csv_reader import ReadCsv
+from cros.factory.test.rf.tools.csv_reader import ReadCsvAsDict
+from cros.factory.test.rf.tools.csv_reader import ReadCsvAsListOfDict
 
 
 class CsvReaderTest(unittest.TestCase):

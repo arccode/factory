@@ -65,7 +65,7 @@ import yaml
 import factory_common  # pylint: disable=W0611
 
 from cros.factory import system
-from cros.factory.rf import n1914a
+from cros.factory.test.rf import n1914a
 from cros.factory.test.args import Arg
 from cros.factory.test import event_log
 from cros.factory.test import factory

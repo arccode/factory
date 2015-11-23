@@ -13,7 +13,7 @@ extend the test coverage as well.
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.rf.e5071c_scpi import CheckTraceValid, Interpolate
+from cros.factory.test.rf.e5071c_scpi import CheckTraceValid, Interpolate
 
 X_VALUES = [10, 10, 15, 18, 20, 20, 30, 30, 40]
 Y_VALUES = [0.5, 0.7, 0.9, 1.2, 0.6, 0.7, 0.1, 1.1, 9.1]

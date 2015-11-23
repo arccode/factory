@@ -6,13 +6,13 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.rf.cellular import GetIMEI
-from cros.factory.rf.modem import Modem
-from cros.factory.rf.utils import IsInRange
+from cros.factory.test.rf.cellular import GetIMEI
+from cros.factory.test.rf.modem import Modem
+from cros.factory.test.rf.utils import IsInRange
 from cros.factory.test import factory
 from cros.factory.test.pytests.rf_framework import RfFramework
 from cros.factory.utils.sync_utils import PollForCondition
-from cros.factory.rf.n1914a import N1914A
+from cros.factory.test.rf.n1914a import N1914A
 
 ENABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=5'
 DISABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=1'

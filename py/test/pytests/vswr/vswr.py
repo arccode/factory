@@ -44,8 +44,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 from cros.factory.goofy.connection_manager import PingHost
 from cros.factory.goofy.goofy import CACHES_DIR
-from cros.factory.rf.e5071c_scpi import ENASCPI
-from cros.factory.rf.utils import CheckPower, DownloadParameters
+from cros.factory.test.rf.e5071c_scpi import ENASCPI
+from cros.factory.test.rf.utils import CheckPower, DownloadParameters
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui

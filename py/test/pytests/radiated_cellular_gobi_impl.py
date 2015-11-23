@@ -7,13 +7,13 @@ import time
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.rf import cellular
-from cros.factory.rf.utils import CheckPower, FormattedPower
+from cros.factory.test.rf import cellular
+from cros.factory.test.rf.utils import CheckPower, FormattedPower
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.pytests.rf_framework import RfFramework
 from cros.factory.utils.sync_utils import PollForCondition
-from cros.factory.rf.n1914a import N1914A
+from cros.factory.test.rf.n1914a import N1914A
 
 ENABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=5'
 DISABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=1'

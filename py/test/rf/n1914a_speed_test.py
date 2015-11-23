@@ -14,7 +14,7 @@ import argparse
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.rf.n1914a import N1914A
+from cros.factory.test.rf.n1914a import N1914A
 
 
 if __name__ == '__main__':

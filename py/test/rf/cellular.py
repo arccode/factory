@@ -9,7 +9,7 @@ import re
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.rf.modem import Modem
+from cros.factory.test.rf.modem import Modem
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Error

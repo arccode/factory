@@ -7,7 +7,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.rf.tools.csv_writer import WriteCsv
+from cros.factory.test.rf.tools.csv_writer import WriteCsv
 from cros.factory.utils.file_utils import UnopenedTemporaryFile
 
 

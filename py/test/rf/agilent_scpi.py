@@ -4,8 +4,8 @@
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.rf import lan_scpi
-from cros.factory.rf.lan_scpi import Error
+from cros.factory.test.rf import lan_scpi
+from cros.factory.test.rf.lan_scpi import Error
 
 
 class AgilentSCPI(lan_scpi.LANSCPI):

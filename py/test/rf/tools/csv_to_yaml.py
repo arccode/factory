@@ -9,7 +9,7 @@ import argparse
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.rf.tools import csv_reader
+from cros.factory.test.rf.tools import csv_reader
 
 
 if __name__ == '__main__':
