@@ -14,6 +14,7 @@ import threading
 import factory_common  # pylint: disable=W0611
 from cros.factory import test
 from cros.factory.test.utils import ReadOneLine
+from cros.factory.utils import type_utils
 
 # pylint: disable=W0702
 # Disable checking of exception types, since we catch all exceptions
@@ -21,6 +22,99 @@ from cros.factory.test.utils import ReadOneLine
 
 _board = None
 _lock = threading.Lock()
+
+# Default system property - using lazy loaded property implementation.
+SystemProperty = type_utils.LazyProperty
+
+
+class SystemException(Exception):
+  """Exception for system modules."""
+  pass
+
+
+class SystemModule(object):
+  """A base class for all system modules for a board instance to use.
+
+  All modules under cros.factory.system should inherit SystemModule.
+  Example:
+
+  class MyComponent(SystemModule):
+
+    @SystemProperty
+    def controller(self):
+      return MyController(self)
+
+    def SomeFunction(self):
+      return self._do_something()
+
+  Attributes:
+    _board: A cros.factory.system.board instance for accessing DUT.
+    Error: Exception type for raising unexpected errors.
+  """
+
+  Error = SystemException
+
+  def __init__(self, board):
+    self._board = board
+
+  # DUT-friendly APIs
+  def _Call(self, *args, **kargs):
+    """Runs the command on DUT and return the exit code."""
+    return self._board.dut.Call(*args, **kargs)
+
+  def _CheckCall(self, *args, **kargs):
+    """Runs the command on DUT and raise exception if exit code is not zero."""
+    return self._board.dut.CheckCall(*args, **kargs)
+
+  def _CheckOutput(self, *args, **kargs):
+    """Runs the command on DUT and return data from standard output.
+
+    Raises exception if exit code is not zero.
+    """
+    return self._board.dut.CheckOutput(*args, **kargs)
+
+  def _CallOutput(self, *args, **kargs):
+    """Runs the command on DUT and return data from standard output.
+
+    Args:
+      default: Default value to return on execution failure.
+
+    Returns:
+      Standard output of command if the execution success, or the value
+      specified by 'default' argument (default to empty string).
+    """
+    try:
+      return self._board.dut.CheckOutput(*args, **kargs)
+    except:
+      return kargs.get('default', '')
+
+  def _Read(self, *args, **kargs):
+    """Reads file using dut.Read."""
+    return self._board.dut.Read(*args, **kargs)
+
+  def _Write(self, *args, **kargs):
+    """Writes file using dut.Write."""
+    return self._board.dut.Write(*args, **kargs)
+
+  def _Exists(self, path):
+    """Checks if a path exists on DUT.
+
+    Args:
+      path: A string of file path.
+    """
+    return self._Call(['test', '-e', path]) == 0
+
+  def _Glob(self, pattern):
+    """Finds files on DUT by pattern, similar to glob.glob.
+
+    Args:
+      pattern: A file path pattern (allows wild-card '*' and '?).
+
+    Returns:
+      A list of files matching pattern on DUT.
+    """
+    # TODO(hungte) Use glob.glob if DUT is a local target.
+    return self._CallOutput(['ls', pattern], default='').splitlines()
 
 
 def GetBoard():
@@ -42,7 +136,7 @@ def GetBoard():
       return _board
 
     board = os.environ.get('CROS_FACTORY_BOARD_CLASS',
-                           'cros.factory.board.chromeos_board.ChromeOSBoard')
+                           'cros.factory.system.board.Board')
     module, cls = board.rsplit('.', 1)
     _board = getattr(__import__(module, fromlist=[cls]), cls)()
     return _board

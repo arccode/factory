@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -7,11 +7,12 @@
 
 from __future__ import print_function
 
-# pylint: disable=R0922
-
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.power import Power
+from cros.factory.system import power
+from cros.factory.system import SystemProperty
+from cros.factory.test import dut as dut_module
 from cros.factory.test.utils import Enum
+from cros.factory.utils import type_utils
 
 
 class BoardException(Exception):
@@ -51,6 +52,9 @@ class Board(object):
   All methods may raise a :py:class:`BoardException` on failure, or a
   :py:class:`NotImplementedException` if not implemented for this board.
   """
+
+  Error = BoardException
+
   ChargeState = Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
   """An enumeration of possible charge states.
 
@@ -80,9 +84,19 @@ class Board(object):
 
   # Functions that are used in Goofy. Must be implemented.
 
-  def __init__(self):
-    # Overrides methods in Power using board-specific Power class
-    self.power = Power()
+  def __init__(self, dut=None):
+    """Constructor.
+
+    Arg:
+      dut: A cros.factory.test.dut instance for accessing device under test.
+    """
+    if dut is None:
+      dut = dut_module.Create()
+    self.dut = dut
+
+  @SystemProperty
+  def power(self):
+    return power.Power()
 
   def GetTemperatures(self):
     """Gets a list of temperatures for various sensors.
