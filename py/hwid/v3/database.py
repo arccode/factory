@@ -16,12 +16,12 @@ import re
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid import common
-from cros.factory.hwid import rule
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
-from cros.factory.hwid import yaml_tags  # pylint: disable=W0611
-from cros.factory.hwid.base32 import Base32
-from cros.factory.hwid.base8192 import Base8192
+from cros.factory.hwid.v3 import yaml_tags  # pylint: disable=W0611
+from cros.factory.hwid.v3.base32 import Base32
+from cros.factory.hwid.v3.base8192 import Base8192
 from cros.factory.utils import file_utils
 from cros.factory.utils import schema
 from cros.factory.utils import type_utils
@@ -1178,8 +1178,8 @@ class Rules(object):
     # These imports are needed to make sure all the rule functions needed by
     # HWID-related operations are loaded and initialized.
     # pylint: disable = W0612
-    import cros.factory.hwid.common_rule_functions
-    import cros.factory.hwid.hwid_rule_functions
+    import cros.factory.hwid.v3.common_rule_functions
+    import cros.factory.hwid.v3.hwid_rule_functions
     self.initialized = True
 
   def EvaluateRules(self, context, namespace=None):

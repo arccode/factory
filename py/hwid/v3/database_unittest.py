@@ -13,9 +13,9 @@ import unittest
 import yaml
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.hwid.common import HWIDException, ProbedComponentResult
-from cros.factory.hwid.database import Database, Components
-from cros.factory.hwid.rule import Value
+from cros.factory.hwid.v3.common import HWIDException, ProbedComponentResult
+from cros.factory.hwid.v3.database import Database, Components
+from cros.factory.hwid.v3.rule import Value
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 

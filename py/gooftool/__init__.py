@@ -19,17 +19,17 @@ from distutils.version import LooseVersion
 from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
-import cros.factory.hwid.common as hwid3_common
-from cros.factory.hwdb import hwid_tool
+import cros.factory.hwid.v3.common as hwid3_common
+from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.probe import Probe, ReadRoVpd, ReadRwVpd
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
-from cros.factory.hwid.database import Database
-from cros.factory.hwid.decoder import Decode
-from cros.factory.hwid.encoder import Encode, BOMToBinaryString
-from cros.factory.hwid.encoder import BinaryStringToEncodedString
+from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3.decoder import Decode
+from cros.factory.hwid.v3.encoder import Encode, BOMToBinaryString
+from cros.factory.hwid.v3.encoder import BinaryStringToEncodedString
 from cros.factory.system import vpd
 from cros.factory.system.state import SystemInfo
 from cros.factory.test import branding

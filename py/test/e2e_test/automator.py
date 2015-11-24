@@ -9,7 +9,7 @@ import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid import common
+from cros.factory.hwid.v3 import common
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.e2e_test import e2e_test

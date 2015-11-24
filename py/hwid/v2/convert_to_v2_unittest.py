@@ -9,10 +9,10 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.hwdb import convert_to_v2
+from cros.factory.hwid.v2 import convert_to_v2
 
 HWDB_DIR = os.path.join(os.environ["CROS_WORKON_SRCROOT"], "src", "platform",
-                        "factory", "py", "hwdb")
+                        "factory", "py", "hwid", "v2")
 V1_DIR = os.path.join(HWDB_DIR, "convert_to_v2_test_files")
 V15_FILE = os.path.join(HWDB_DIR, "convert_to_v2_test_files", "v15_TEST_FILE")
 OUTPUT_FILE = os.path.join(HWDB_DIR, "convert_to_v2_test_files", "output_file")

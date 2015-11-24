@@ -38,10 +38,10 @@ from cros.factory.gooftool.probe import CalculateFirmwareHashes
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
-from cros.factory.hwdb import hwid_tool
-from cros.factory.hwdb.yaml_datastore import YamlWrite
-from cros.factory.hwid import common
-from cros.factory.hwid import hwid_utils
+from cros.factory.hwid.v2 import hwid_tool
+from cros.factory.hwid.v2.yaml_datastore import YamlWrite
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.factory import FACTORY_LOG_PATH, DEVICE_STATEFUL_PATH

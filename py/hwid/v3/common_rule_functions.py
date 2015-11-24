@@ -4,7 +4,10 @@
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.hwid.rule import GetLogger, RuleFunction, Value, RuleException
+from cros.factory.hwid.v3.rule import GetLogger
+from cros.factory.hwid.v3.rule import RuleException
+from cros.factory.hwid.v3.rule import RuleFunction
+from cros.factory.hwid.v3.rule import Value
 
 
 @RuleFunction([])

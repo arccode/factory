@@ -22,9 +22,10 @@ import factory_common  # pylint: disable=W0611
 
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
-from cros.factory.hwdb.bom_names import BOM_NAME_SET
-from cros.factory.hwdb.yaml_datastore import InvalidDataError
-from cros.factory.hwdb.yaml_datastore import MakeDatastoreClass, YamlDatastore
+from cros.factory.hwid.v2.bom_names import BOM_NAME_SET
+from cros.factory.hwid.v2.yaml_datastore import InvalidDataError
+from cros.factory.hwid.v2.yaml_datastore import MakeDatastoreClass
+from cros.factory.hwid.v2.yaml_datastore import YamlDatastore
 from cros.factory.test import utils
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.type_utils import Error

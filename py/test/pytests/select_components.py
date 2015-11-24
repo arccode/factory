@@ -12,8 +12,8 @@ import factory_common  # pylint: disable=W0611
 import logging
 import unittest
 
-from cros.factory.hwid import database
-from cros.factory.hwid import hwid_utils
+from cros.factory.hwid.v3 import database
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import factory

@@ -10,9 +10,9 @@
 import collections
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.hwid import common
-from cros.factory.hwid.base32 import Base32
-from cros.factory.hwid.base8192 import Base8192
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3.base32 import Base32
+from cros.factory.hwid.v3.base8192 import Base8192
 
 _Decoder = {
     common.HWID.ENCODING_SCHEME.base32: Base32,

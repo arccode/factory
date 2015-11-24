@@ -14,7 +14,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros import factory
-from cros.factory.hwdb import hwid_tool
+from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.utils.process_utils import Spawn
 
 

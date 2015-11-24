@@ -29,10 +29,10 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
-from cros.factory.hwid import common, database
-from cros.factory.hwid import hwid_utils
-from cros.factory.hwid.rule import Context
+from cros.factory.hwid.v2.hwid_tool import ProbeResults  # pylint: disable=E0611
+from cros.factory.hwid.v3 import common, database
+from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.hwid.v3.rule import Context
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 

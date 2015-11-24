@@ -14,11 +14,11 @@ import unittest2
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwdb import hwid_tool
-from cros.factory.hwid import common
-from cros.factory.hwid import database
-from cros.factory.hwid import hwid_utils
-from cros.factory.hwid import rule
+from cros.factory.hwid.v2 import hwid_tool
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import database
+from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.hwid.v3 import rule
 from cros.factory.test import phase
 
 

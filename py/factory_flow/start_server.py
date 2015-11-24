@@ -17,7 +17,7 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, FactoryFlowCommand, GetFactoryParPath)
 from cros.factory.hacked_argparse import CmdArg
-from cros.factory.hwid import hwid_utils
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.umpire.common import LoadBundleManifest

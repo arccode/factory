@@ -13,8 +13,8 @@ import re
 import pprint
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid import base32, base8192
-from cros.factory.hwid import rule
+from cros.factory.hwid.v3 import base32, base8192
+from cros.factory.hwid.v3 import rule
 from cros.factory.test import phase
 from cros.factory.test import utils
 from cros.factory.tools import build_board
@@ -148,8 +148,8 @@ class HWID(object):
       HWIDException on verification error.
     """
     # pylint: disable=W0404
-    from cros.factory.hwid.decoder import BinaryStringToBOM
-    from cros.factory.hwid.decoder import EncodedStringToBinaryString
+    from cros.factory.hwid.v3.decoder import BinaryStringToBOM
+    from cros.factory.hwid.v3.decoder import EncodedStringToBinaryString
     self.database.VerifyBOM(self.bom)
     self.database.VerifyBinaryString(self.binary_string)
     self.database.VerifyEncodedString(self.encoded_string)

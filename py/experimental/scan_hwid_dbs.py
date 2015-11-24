@@ -13,8 +13,8 @@ import yaml
 from collections import defaultdict
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid import common
-from cros.factory.hwid import database
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import database
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.process_utils import Spawn
 

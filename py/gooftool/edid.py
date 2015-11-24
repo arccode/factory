@@ -19,7 +19,7 @@ from fcntl import ioctl
 from time import sleep
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwdb import hwid_tool
+from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.gooftool.common import Shell
 
 

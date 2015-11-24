@@ -19,7 +19,7 @@ import factory_common  # pylint: disable=W0611
 
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.probe import PROBEABLE_COMPONENT_CLASSES
-from cros.factory.hwdb import hwid_tool
+from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.type_utils import Error
 

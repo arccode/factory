@@ -19,7 +19,7 @@ import logging
 import re
 import unittest
 
-from cros.factory.hwdb.hwid_tool import HWID_RE
+from cros.factory.hwid.v2.hwid_tool import HWID_RE
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor

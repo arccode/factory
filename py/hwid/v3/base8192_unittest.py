@@ -8,7 +8,7 @@
 import factory_common  # pylint: disable=W0611
 import unittest
 
-from cros.factory.hwid.base8192 import Base8192
+from cros.factory.hwid.v3.base8192 import Base8192
 
 
 class Base8192Test(unittest.TestCase):

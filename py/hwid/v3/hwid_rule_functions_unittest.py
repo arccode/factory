@@ -13,15 +13,15 @@ import unittest
 import yaml
 
 import factory_common   # pylint: disable=W0611
-import cros.factory.hwid.common_rule_functions  # pylint: disable=W0611
-from cros.factory.hwid.common import HWIDException
-from cros.factory.hwid.database import Database
-from cros.factory.hwid.encoder import Encode
-from cros.factory.hwid.hwid_rule_functions import (
+import cros.factory.hwid.v3.common_rule_functions  # pylint: disable=W0611
+from cros.factory.hwid.v3.common import HWIDException
+from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3.encoder import Encode
+from cros.factory.hwid.v3.hwid_rule_functions import (
     GetClassAttributesOnBOM, ComponentEq, ComponentIn,
     SetComponent, SetImageId, GetDeviceInfo, GetVPDValue, ValidVPDValue,
     CheckRegistrationCode, GetPhase)
-from cros.factory.hwid.rule import (
+from cros.factory.hwid.v3.rule import (
     Rule, Context, RuleException, SetContext, GetLogger)
 from cros.factory.test import phase
 from cros.factory.test.registration_codes import RegistrationCodeException

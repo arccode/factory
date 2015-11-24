@@ -26,8 +26,8 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import process_utils
-from cros.factory.hwid import common
-from cros.factory.hwid import database
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import database
 from cros.factory.tools import build_board
 
 
