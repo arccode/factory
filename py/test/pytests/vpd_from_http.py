@@ -19,7 +19,6 @@ import urllib2
 import urlparse
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import vpd
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -143,7 +142,7 @@ class GetPanelVPDTest(unittest.TestCase):
     except SchemaException as e:
       self.SetFail('VPD format error: %r' % e)
     else:
-      vpd.ro.Update(vpd_setting)
+      self.vpd.vpd.ro.Update(vpd_setting)
 
   def SetFail(self, msg):
     self.ui.Fail(msg)

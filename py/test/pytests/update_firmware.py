@@ -13,7 +13,6 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import vpd
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.args import Arg
@@ -76,7 +75,7 @@ class UpdateFirmwareTest(unittest.TestCase):
       os.unlink(LOCK_FILE)
 
     if self.args.apply_customization_id:
-      customization_id = vpd.ro.get('customization_id')
+      customization_id = self.dut.vpd.ro.get('customization_id')
       if customization_id is None:
         self._ui.Fail('Customization_id not found in VPD.')
         return

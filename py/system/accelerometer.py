@@ -13,7 +13,7 @@ import time
 from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import vpd
+from cros.factory.test import dut
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 
@@ -228,7 +228,9 @@ class AccelerometerController(object):
       return value + calib_bias
 
     # Get calibration data from VPD first.
-    ro_vpd = vpd.ro.GetAll()
+    # TODO(hungte) Use self._dut when Accelerometer has been changed to
+    # DUTComponent.
+    ro_vpd = dut.Create().vpd.ro.GetAll()
     for calib_name in self._GenSignalNames('_' + self.location + '_calibbias'):
       if calib_name not in ro_vpd:
         raise AccelerometerControllerException(

@@ -30,9 +30,9 @@ from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.decoder import Decode
 from cros.factory.hwid.v3.encoder import Encode, BOMToBinaryString
 from cros.factory.hwid.v3.encoder import BinaryStringToEncodedString
-from cros.factory.system import vpd
 from cros.factory.system.state import SystemInfo
 from cros.factory.test import branding
+from cros.factory.test import dut
 from cros.factory.test import phase
 from cros.factory.test.l10n import regions
 from cros.factory.test.privacy import FilterDict
@@ -258,6 +258,9 @@ class Gooftool(object):
     self._unpack_bmpblock = unpack_bmpblock
     self._named_temporary_file = NamedTemporaryFile
     self._db = None
+    # TODO(hungte) Make gooftool able to support remote DUT.
+    # Currently it can only run locally.
+    self._dut = dut.Create()
 
   @property
   def db(self):
@@ -437,7 +440,7 @@ class Gooftool(object):
       A dictionary containing rlz_brand_code and customization_id fields,
       for testing.
     """
-    ro_vpd = vpd.ro.GetAll()
+    ro_vpd = self._dut.vpd.ro.GetAll()
 
     customization_id = ro_vpd.get('customization_id')
     logging.info('RO VPD customization_id: %r', customization_id)
@@ -753,10 +756,10 @@ class Gooftool(object):
     Returns:
       A dict of the removed entries.
     """
-    entries = dict((k, v) for k, v in vpd.rw.GetAll().items()
+    entries = dict((k, v) for k, v in self._dut.vpd.rw.GetAll().items()
                    if k.startswith('factory.'))
     logging.info('Removing VPD entries %s', FilterDict(entries))
-    vpd.rw.Delete(*entries.keys())
+    self._dut.vpd.rw.Delete(*entries.keys())
 
   def GenerateStableDeviceSecret(self):
     """Generates a fresh stable device secret and stores it in RO VPD.
@@ -829,5 +832,5 @@ class Gooftool(object):
         raise Error
 
     with scrub_exceptions('Error writing device secret to VPD'):
-      vpd.ro.Update(
+      self._dut.vpd.ro.Update(
           {'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')})

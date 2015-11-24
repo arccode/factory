@@ -37,7 +37,6 @@ import logging
 import unittest
 
 from cros.factory.gooftool import edid
-from cros.factory.system import vpd
 from cros.factory.test.args import Arg
 
 class BacklightMaxBrightnessVPDTest(unittest.TestCase):
@@ -83,7 +82,7 @@ class BacklightMaxBrightnessVPDTest(unittest.TestCase):
         break
     if max_backlight_nits is not None:
       logging.info('Setting max brightness to %d', max_backlight_nits)
-      vpd.ro.Update({self.args.vpd_key: str(max_backlight_nits)})
+      self.dut.vpd.ro.Update({self.args.vpd_key: str(max_backlight_nits)})
     else:
       logging.warning('Did not find the panel via EDID, not setting '
                       'a maximum backlight nits value.')

@@ -14,7 +14,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.system import vpd
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -185,7 +184,7 @@ class Scan(unittest.TestCase):
                    test_ui.SPINNER_HTML_16x16),
           id='scan-status')
       try:
-        vpd.rw.Update({self.args.rw_vpd_key: scan_value})
+        self.dut.vpd.rw.Update({self.args.rw_vpd_key: scan_value})
       except:  # pylint: disable=W0702
         logging.exception('Setting VPD failed')
         return SetError(utils.FormatExceptionOnly())

@@ -19,6 +19,7 @@ from cros.factory.test.dut import component
 from cros.factory.test.dut import ec
 from cros.factory.test.dut import link
 from cros.factory.test.dut import power
+from cros.factory.test.dut import vpd
 from cros.factory.utils import file_utils
 
 
@@ -91,6 +92,10 @@ class DUTBoard(object):
   @DUTProperty
   def power(self):
     return power.Power(self)
+
+  @DUTProperty
+  def vpd(self):
+    return vpd.VitalProductData(self)
 
   # Helper functions to access DUT via link.
 

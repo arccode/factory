@@ -8,7 +8,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import probe
-from cros.factory.system import vpd
+from cros.factory.test.dut import vpd
 from cros.factory.utils.type_utils import Obj
 
 
@@ -16,13 +16,13 @@ class ProbeRegionUnittest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.mox.StubOutWithMock(vpd.ro, 'get')
+    self.mox.StubOutWithMock(vpd.Partition, 'get')
 
   def tearDown(self):
     self.mox.UnsetStubs()
 
   def testProbeVPD(self):
-    vpd.ro.get('region').AndReturn('us')
+    vpd.Partition.get('region').AndReturn('us')
     self.mox.ReplayAll()
 
     result = probe._ProbeRegion()  # pylint: disable=W0212

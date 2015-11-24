@@ -17,7 +17,7 @@ import sys
 import factory_common  # pylint: disable=W0611
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.proto import reg_code_pb2
-from cros.factory.system import vpd
+from cros.factory.test import dut as dut_module
 from cros.factory.test import registration_codes
 from cros.factory.test import utils
 from cros.factory.test.registration_codes import RegistrationCode
@@ -102,6 +102,7 @@ def Check(options):
 
   rw_vpd = None
   success = True
+  dut = dut_module.Create()
 
   for code_type, vpd_attribute, code in (
       (RegistrationCode.Type.UNIQUE_CODE,
@@ -115,7 +116,7 @@ def Check(options):
           sys.stderr.write('error: cannot read VPD from chroot; use -u/-g\n')
           sys.exit(1)
 
-        rw_vpd = vpd.rw.GetAll()
+        rw_vpd = dut.vpd.rw.GetAll()
         code = rw_vpd.get(vpd_attribute)
       if not code:
         sys.stderr.write('error: %s is not present in RW VPD\n' %

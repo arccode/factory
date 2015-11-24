@@ -66,7 +66,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import vpd
 from cros.factory.system.accelerometer import AccelerometerController
 from cros.factory.system.accelerometer import AccelerometerControllerException
 from cros.factory.test import test_ui
@@ -164,7 +163,7 @@ class HorizontalCalibrationTask(FactoryTask):
           ideal_value - raw_data[signal_name])
     # Writes the calibration results into ro vpd.
     logging.info('Calibration results: %s.', self.vpd)
-    vpd.ro.Update(self.vpd)
+    sef.test.dut.vpd.ro.Update(self.vpd)
     self.template.SetState(' ' + _MSG_PASS + _BR, append=True)
     self.Pass()
 

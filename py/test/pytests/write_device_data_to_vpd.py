@@ -13,7 +13,6 @@ import unittest
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import vpd
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -54,5 +53,6 @@ class CallShopfloor(unittest.TestCase):
     if missing_keys:
       self.fail('Missing device data keys: %r' % sorted(missing_keys))
 
+    vpd = self.dut.vpd
     getattr(vpd, self.args.vpd_section).Update(
         dict((k, str(v)) for k, v in data_to_write.iteritems()))

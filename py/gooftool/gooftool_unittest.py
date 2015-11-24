@@ -29,7 +29,6 @@ from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v2.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
-from cros.factory.system import vpd
 from cros.factory.system.state import SystemInfo
 from cros.factory.test import branding
 from cros.factory.utils import file_utils
@@ -363,8 +362,9 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.shell(
         'tpm-manager get_random 32', log=False).AndReturn(
             StubStdout('00' * 32 + '\n'))
-    self.mox.StubOutWithMock(vpd.ro, 'Update')
-    vpd.ro.Update({'stable_device_secret_DO_NOT_SHARE': '00' * 32})
+    self.mox.StubOutWithMock(self._gooftool._dut.vpd.ro, 'Update')
+    self._gooftool._dut.vpd.ro.Update(
+        {'stable_device_secret_DO_NOT_SHARE': '00' * 32})
     self.mox.ReplayAll()
     self._gooftool.GenerateStableDeviceSecret()
 
@@ -402,8 +402,9 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.shell(
         'tpm-manager get_random 32', log=False).AndReturn(
             StubStdout('00' * 32 + '\n'))
-    self.mox.StubOutWithMock(vpd.ro, 'Update')
-    vpd.ro.Update({'stable_device_secret_DO_NOT_SHARE': '00' * 32}).AndRaise(
+    self.mox.StubOutWithMock(self._gooftool._dut.vpd.ro, 'Update')
+    self._gooftool._dut.vpd.ro.Update(
+        {'stable_device_secret_DO_NOT_SHARE': '00' * 32}).AndRaise(
         Error('VPD b0rked!'))
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error, 'Error writing device secret',
@@ -459,10 +460,10 @@ class GooftoolTest(unittest.TestCase):
     def MockPartition(path):
       yield path
 
-    self.mox.StubOutWithMock(vpd.ro, 'GetAll')
+    self.mox.StubOutWithMock(self._gooftool._dut.vpd.ro, 'GetAll')
     self.mox.StubOutWithMock(gooftool, 'MountPartition')
 
-    vpd.ro.GetAll().AndReturn(ro_vpd)
+    self._gooftool._dut.vpd.ro.GetAll().AndReturn(ro_vpd)
     if fake_rootfs_path:
       # Pretend that '/dev/rel' is the release rootfs path.
       self._gooftool._util.GetReleaseRootPartitionPath().AndReturn('/dev/rel')

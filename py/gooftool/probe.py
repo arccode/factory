@@ -43,7 +43,6 @@ from cros.factory.gooftool.common import Shell
 from cros.factory.hwid.v2.hwid_tool import ProbeResults, COMPACT_PROBE_STR
 from cros.factory.system import board
 from cros.factory.system import service_manager
-from cros.factory.system import vpd
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.l10n import regions
@@ -1152,7 +1151,7 @@ def _GetEMMC5FirmwareVersion(node_path):
 @_ComponentProbe('region')
 def _ProbeRegion():
   """Probes the region of the DUT based on the region field in RO VPD."""
-  region_code = vpd.ro.get('region')
+  region_code = dut.Create().vpd.ro.get('region')
   if region_code:
     region_obj = regions.REGIONS[region_code]
     ret = [{'region_code': region_obj.region_code,}]

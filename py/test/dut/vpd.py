@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # pylint: disable=W0212
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -9,10 +9,9 @@
 import logging
 import re
 
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import privacy
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.test.dut import component
 
 
 # One line in vpd -l output.
@@ -25,19 +24,25 @@ VPD_KEY_PATTERN = re.compile(r'^[a-zA-Z0-9_.]+')
 # double-quote.
 VPD_VALUE_PATTERN = re.compile(r'^[ !#-~]*$')
 
+# ChromeOS firmware VPD partition names.
+VPD_READONLY_PARTITION_NAME = 'RO_VPD'
+VPD_READWRITE_PARTITION_NAME = 'RW_VPD'
 
-class Partition(object):
+
+class Partition(component.DUTComponent):
   """A VPD partition.
 
   This should not be created by the caller; rather, the caller should use
   vpd.ro or vpd.rw."""
 
-  def __init__(self, name):
+  def __init__(self, dut, name):
     """Constructor.
 
     Args:
+      dut: Instance of cros.factory.test.dut.board.DUTBoard.
       name: The name of the partition (e.g., 'RO_VPD').
     """
+    super(Partition, self).__init__(dut)
     self.name = name
 
   def get(self, key, default=None):
@@ -46,7 +51,8 @@ class Partition(object):
     This invokes the 'vpd' command each time it is run; for efficiency,
     use GetAll if more than one value is desired.
     """
-    return self.GetAll().get(key, default)
+    result = self._dut.CallOutput(['vpd', '-i', self.name, '-g', key])
+    return default if result is None else result
 
   def Delete(self, *keys):
     """Deletes entries from the VPD.
@@ -59,14 +65,13 @@ class Partition(object):
       args = ['vpd', '-i', self.name]
       for k in keys:
         args += ['-d', k]
-      Spawn(args, check_call=True, log_stderr_on_error=True)
+      self._dut.CheckCall(args)
 
   def GetAll(self):
     """Returns the contents of the VPD as a dict."""
     ret = {}
-    for line in Spawn(
-        ['vpd', '-i', self.name, '-l'], check_output=True).stdout_lines(
-            strip=True):
+    for line in self._dut.CallOutput(
+        ['vpd', '-i', self.name, '-l']).splitlines():
       match = VPD_LIST_PATTERN.match(line)
       if not match:
         logging.error('Unexpected line in %s VPD: %r', self.name, line)
@@ -107,8 +112,21 @@ class Partition(object):
     if not items:
       return
 
-    Spawn(command, check_call=True)
+    self._dut.CheckCall(command)
 
 
-ro = Partition('RO_VPD')
-rw = Partition('RW_VPD')
+class VitalProductData(component.DUTComponent):
+  """System module for Vital Product Data (VPD).
+
+  Properties:
+    ro: Access to Read-Only partition.
+    rw: Access to Read-Write partition.
+  """
+
+  @component.DUTProperty
+  def ro(self):
+    return Partition(self._dut, VPD_READONLY_PARTITION_NAME)
+
+  @component.DUTProperty
+  def rw(self):
+    return Partition(self._dut, VPD_READWRITE_PARTITION_NAME)

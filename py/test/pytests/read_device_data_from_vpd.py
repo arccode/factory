@@ -13,7 +13,6 @@ import unittest
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import vpd
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -57,7 +56,7 @@ class CallShopfloor(unittest.TestCase):
     template = ui_templates.OneSection(ui)
     template.SetState(_MSG_READING_VPD(self.args.vpd_section))
 
-    vpd_data = getattr(vpd, self.args.vpd_section).GetAll()
+    vpd_data = getattr(self.dut.vpd, self.args.vpd_section).GetAll()
     device_data = {}
     for matcher in self.args.device_data_keys:
       for key in vpd_data:
