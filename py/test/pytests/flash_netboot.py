@@ -17,7 +17,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import Escape, MakeLabel, UI
 from cros.factory.test.ui_templates import OneScrollableSection
-from cros.factory.system.flash_netboot import FlashNetboot
+from cros.factory.tools.flash_netboot import FlashNetboot
 
 _TEST_TITLE = MakeLabel('Flash Netboot Firmware', u'烧录 netboot 韧体')
 _CSS = '#state {text-align:left;}'
