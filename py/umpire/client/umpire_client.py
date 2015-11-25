@@ -83,7 +83,7 @@ class UmpireClientInfo(object):
   def __init__(self):
     super(UmpireClientInfo, self).__init__()
     # serial_number, mlb_serial_number, firmware, ec and wireless mac address
-    # are detected in system.SystemInfo module.
+    # are detected in system.state.SystemInfo module.
     self.serial_number = None
     self.mlb_serial_number = None
     self.board = build_board.BuildBoard().full_name
@@ -102,7 +102,7 @@ class UmpireClientInfo(object):
       True if client info is changed.
     """
     # TODO(cychiang) Set fields from SystemInfo
-    system_info = system.SystemInfo()
+    system_info = system.state.SystemInfo()
     new_info = dict()
     new_info['serial_number'] = system_info.serial_number
     new_info['mlb_serial_number'] = system_info.mlb_serial_number
@@ -139,7 +139,7 @@ class UmpireClientInfo(object):
         ‘device_factory_toolkit’: md5sum_hash_string.
     """
     components = dict()
-    system_info = system.SystemInfo()
+    system_info = system.state.SystemInfo()
     components['rootfs_test'] = system_info.factory_image_version
     components['rootfs_release'] = system_info.release_image_version
     components['firmware_ec'] = system_info.ec_version

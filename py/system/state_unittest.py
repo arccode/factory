@@ -5,7 +5,7 @@
 # found in the LICENSE file.
 
 
-"""Unittest for system module."""
+"""Unittest for system state module."""
 
 
 import logging
@@ -13,9 +13,9 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.system.board import Board
 from cros.factory.system import partitions
+from cros.factory.system import state
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
                                   'CHROMEOS_RELEASE_TRACK=canary-channel\n')
@@ -34,17 +34,17 @@ class SystemStatusTest(unittest.TestCase):
 
     # Set up mocks for Board interface
     mock_board = self.mox.CreateMock(Board)
-    self.mox.StubOutWithMock(system, 'GetBoard')
+    self.mox.StubOutWithMock(state, 'GetBoard')
     # Set up mocks for netifaces.
-    netifaces = system.netifaces = self.mox.CreateMockAnything()
+    netifaces = state.netifaces = self.mox.CreateMockAnything()
     netifaces.AF_INET = 2
     netifaces.AF_INET6 = 10
 
-    system.GetBoard().AndReturn(mock_board)
+    state.GetBoard().AndReturn(mock_board)
     mock_board.GetFanRPM().AndReturn([2000])
-    system.GetBoard().AndReturn(mock_board)
+    state.GetBoard().AndReturn(mock_board)
     mock_board.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
-    system.GetBoard().AndReturn(mock_board)
+    state.GetBoard().AndReturn(mock_board)
     mock_board.GetMainTemperatureIndex().AndReturn(2)
     netifaces.interfaces().AndReturn(['lo', 'eth0', 'wlan0'])
     netifaces.ifaddresses('eth0').AndReturn(
@@ -58,7 +58,7 @@ class SystemStatusTest(unittest.TestCase):
 
     # Don't care about the values; just make sure there's something
     # there.
-    status = system.SystemStatus()
+    status = state.SystemStatus()
     # Don't check battery, since this system might not even have one.
     self.assertTrue(isinstance(status.battery, dict))
     self.assertEquals(3, len(status.load_avg))
@@ -82,17 +82,17 @@ class SystemInfoTest(unittest.TestCase):
   def runTest(self):
     self.mox.StubOutWithMock(partitions, 'GetRootDev')
     partitions.GetRootDev().AndReturn('/dev/sda')
-    self.mox.StubOutWithMock(system, 'MountDeviceAndReadFile')
-    system.MountDeviceAndReadFile('/dev/sda5', '/etc/lsb-release').AndReturn(
+    self.mox.StubOutWithMock(state, 'MountDeviceAndReadFile')
+    state.MountDeviceAndReadFile('/dev/sda5', '/etc/lsb-release').AndReturn(
         MOCK_RELEASE_IMAGE_LSB_RELEASE)
 
     self.mox.ReplayAll()
 
-    info = system.SystemInfo()
+    info = state.SystemInfo()
     self.assertEquals('5264.0.0', info.release_image_version)
     self.assertEquals('canary-channel', info.release_image_channel)
     # The cached release image version will be used in the second time.
-    info = system.SystemInfo()
+    info = state.SystemInfo()
     self.assertEquals('5264.0.0', info.release_image_version)
     self.assertEquals('canary-channel', info.release_image_channel)
 

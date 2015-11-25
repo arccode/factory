@@ -28,7 +28,8 @@ class CPUUsageMonitor(object):
     factory.init_logging()
 
   def _GetLoadString(self):
-    return ', '.join('%.1f' % load for load in system.SystemStatus().load_avg)
+    return ', '.join('%.1f' % load for load in
+                     system.state.SystemStatus().load_avg)
 
   def Check(self):
     """Checks the current CPU usage status.

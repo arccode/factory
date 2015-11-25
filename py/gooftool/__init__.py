@@ -30,7 +30,8 @@ from cros.factory.hwid.database import Database
 from cros.factory.hwid.decoder import Decode
 from cros.factory.hwid.encoder import Encode, BOMToBinaryString
 from cros.factory.hwid.encoder import BinaryStringToEncodedString
-from cros.factory.system import vpd, SystemInfo
+from cros.factory.system import vpd
+from cros.factory.system.state import SystemInfo
 from cros.factory.test import branding
 from cros.factory.test import phase
 from cros.factory.test.l10n import regions

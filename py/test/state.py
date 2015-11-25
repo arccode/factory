@@ -466,9 +466,9 @@ class FactoryState(object):
     '''Returns system status information.
 
     This may include system load, battery status, etc. See
-    system.SystemStatus().
+    system.state.SystemStatus().
     '''
-    return system.SystemStatus().__dict__
+    return system.state.SystemStatus().__dict__
 
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,

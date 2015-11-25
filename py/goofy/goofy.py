@@ -943,9 +943,9 @@ class Goofy(GoofyBase):
     def handle_check_for_update(reached_shopfloor, md5sum, needs_update):
       if reached_shopfloor:
         new_update_md5sum = md5sum if needs_update else None
-        if system.SystemInfo.update_md5sum != new_update_md5sum:
+        if system.state.SystemInfo.update_md5sum != new_update_md5sum:
           logging.info('Received new update MD5SUM: %s', new_update_md5sum)
-          system.SystemInfo.update_md5sum = new_update_md5sum
+          system.state.SystemInfo.update_md5sum = new_update_md5sum
           self.run_enqueue(self.update_system_info)
       else:
         if not self._suppress_periodic_update_messages:
@@ -1123,7 +1123,7 @@ class Goofy(GoofyBase):
 
   def update_system_info(self):
     """Updates system info."""
-    system_info = system.SystemInfo()
+    system_info = system.state.SystemInfo()
     self.state_instance.set_shared_data('system_info', system_info.__dict__)
     self.event_client.post_event(Event(Event.Type.SYSTEM_INFO,
                                        system_info=system_info.__dict__))
@@ -1448,8 +1448,8 @@ class Goofy(GoofyBase):
     phase.SetPersistentPhase(self.test_list.options.phase)
 
     # For netboot firmware, mainfw_type should be 'netboot'.
-    if (system.SystemInfo().mainfw_type != 'nonchrome' and
-        system.SystemInfo().firmware_version is None):
+    if (system.state.SystemInfo().mainfw_type != 'nonchrome' and
+        system.state.SystemInfo().firmware_version is None):
       self.state_instance.set_shared_data(
           'startup_error',
           'Netboot firmware detected\n'
@@ -1550,7 +1550,7 @@ class Goofy(GoofyBase):
           self.test_list.options.min_charge_pct is not None):
       self.charge_manager = ChargeManager(self.test_list.options.min_charge_pct,
                                           self.test_list.options.max_charge_pct)
-      system.SystemStatus.charge_manager = self.charge_manager
+      system.state.SystemStatus.charge_manager = self.charge_manager
     else:
       # Goofy should set charger state to charge if charge_manager is disabled.
       self.charge()

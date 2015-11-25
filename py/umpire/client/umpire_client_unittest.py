@@ -13,7 +13,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
+from cros.factory.system import state
 from cros.factory.tools import build_board
 from cros.factory.umpire.client.umpire_client import UmpireClientInfo
 
@@ -145,7 +145,7 @@ class UmpireClientInfoTest(unittest.TestCase):
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()
-    self.mox.StubOutWithMock(system, 'SystemInfo')
+    self.mox.StubOutWithMock(state, 'SystemInfo')
     self.mox.StubOutWithMock(build_board, 'BuildBoard')
     # pylint: disable=E1101
     build_board.BuildBoard().MultipleTimes().AndReturn(
@@ -157,7 +157,7 @@ class UmpireClientInfoTest(unittest.TestCase):
 
   def testGetXUmpireDUT(self):
     """Inits an UmpireClientInfo and checks GetXUmpireDUT."""
-    system.SystemInfo().AndReturn(
+    state.SystemInfo().AndReturn(
         mock_system_info_1)
 
     self.mox.ReplayAll()
@@ -173,9 +173,9 @@ class UmpireClientInfoTest(unittest.TestCase):
   def testGetDUTInfoComponents(self):
     """Inits an UmpireClientInfo and checks GetDUTInfoComponents."""
     self.maxDiff = 2048
-    system.SystemInfo().AndReturn(
+    state.SystemInfo().AndReturn(
         mock_system_info_1)
-    system.SystemInfo().AndReturn(
+    state.SystemInfo().AndReturn(
         mock_system_info_1)
 
     self.mox.ReplayAll()
@@ -190,19 +190,19 @@ class UmpireClientInfoTest(unittest.TestCase):
 
   def testUpdate(self):
     """Inits an UmpireClientInfo and checks Update."""
-    system.SystemInfo().AndReturn(
+    state.SystemInfo().AndReturn(
         mock_system_info_1)
     # There is update.
-    system.SystemInfo().AndReturn(
+    state.SystemInfo().AndReturn(
         mock_system_info_2)
     # There is no update.
-    system.SystemInfo().AndReturn(
+    state.SystemInfo().AndReturn(
         mock_system_info_2)
     # There is update.
-    system.SystemInfo().AndReturn(
+    state.SystemInfo().AndReturn(
         mock_system_info_3)
     # There is update in system info, but not for X-Umpire-DUT.
-    system.SystemInfo().AndReturn(
+    state.SystemInfo().AndReturn(
         mock_system_info_4)
 
     self.mox.ReplayAll()

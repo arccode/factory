@@ -24,7 +24,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.test.event_log import Log
 from cros.factory.gooftool import Gooftool
-from cros.factory.system import SystemInfo
+from cros.factory.system.state import SystemInfo
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import phase
