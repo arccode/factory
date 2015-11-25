@@ -4,24 +4,28 @@ The layout of /usr/local/factory, as installed on devices' stateful
 partitions, is as follows.  Most of these files are installed from
 this repository, and follow this repository's directory structure.
 
-  bin/              symlinks to executable scripts and Python modules.
-  board/            Board-specific files:
+  bin/              Symbolic links to executable scripts and Python modules.
+  build/            Folder to contain build output artifacts.
+  doc/              Document templates and resources.
+  go/               Programs written in Go language.
+  init/             Initialization of factory environment for Chrome OS.
+  misc/             Miscellaneous resources used outside of Goofy
+  proto/            Proto-buf schema definition.
+  setup/            Scripts and programs for partner to setup the environment.
+  sh/               Shell scripts.
+  py_pkg/           Symbolic link to enable importing Python packages
+
+  py/               Python source code in the cros.factory module and
+                     sub-modules. See py/README for more information.
+
+  board/            Board-specific files (in board-overlay):
     board_setup_factory.sh    A script to add board-specific arguments when
                                 starting the Goofy, the factory test harness.
     *                         Other files needed by board-specific tests.
-  misc/             miscellaneous resources used outside of Goofy
-  py/               Python source code in the cros.factory module and
-                      sub-modules
-  py_pkg/           symlinks to enable importing Python packages
-  sh/               shell scripts
-  test_lists/       test lists, which are searched for in the following order:
-    test_list       A board-specific test list.  This is not present in this
-                      repo, but rather provided in a board overlay.
-    test_list.generic         The default generic test list, used if test_list is
-                                not provided by the overlay.
 
-(Note that board/ and test_lists/test_list are optional and only
-provided by board overlays, not this repository.)
+
+(Note that board/ is optional and only provided by board overlays, not this
+ repository.)
 
 Within the build root (/build/$BOARD), /usr/local/factory/bundle is a
 "pseudo-directory" for the factory bundle: it is masked with
