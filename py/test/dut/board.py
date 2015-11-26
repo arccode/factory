@@ -15,6 +15,7 @@ import tempfile
 import posixpath
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.dut import accelerometer
 from cros.factory.test.dut import component
 from cros.factory.test.dut import ec
 from cros.factory.test.dut import link
@@ -76,6 +77,10 @@ class DUTBoard(object):
     self.link = dut_link
 
   # Board modules and properties
+
+  @DUTProperty
+  def accelerometer(self):
+    return accelerometer.Accelerometer(self)
 
   @DUTProperty
   def ec(self):

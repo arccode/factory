@@ -30,10 +30,9 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.accelerometer import AccelerometerController
-from cros.factory.system.accelerometer import AccelerometerControllerException
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
+from cros.factory.test.dut.accelerometer import AccelerometerException
 from cros.factory.test.ui_templates import OneSection
 
 
@@ -132,7 +131,7 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     self.accelerometers_locations = ['base', 'lid']
     self.accelerometers = {}
     for location in self.accelerometers_locations:
-      self.accelerometers[location] = AccelerometerController(
+      self.accelerometers[location] = self.dut.accelerometer.GetController(
           self.args.spec_offset,
           self.args.spec_ideal_values,
           self.args.sample_rate_hz,
@@ -160,7 +159,7 @@ class AccelerometersLidAngleTest(unittest.TestCase):
         cal_data[location] = (
             self.accelerometers[location].GetCalibratedDataAverage(
                 self.args.capture_count))
-      except AccelerometerControllerException as err:
+      except AccelerometerException as err:
         logging.info(
             'Read %s calibrated data failed: %r.', location, err.args[0])
         return None

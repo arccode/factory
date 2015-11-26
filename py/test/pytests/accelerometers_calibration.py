@@ -66,8 +66,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.accelerometer import AccelerometerController
-from cros.factory.system.accelerometer import AccelerometerControllerException
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -140,7 +138,7 @@ class HorizontalCalibrationTask(FactoryTask):
     self.template.SetState(_MSG_CALIBRATION_IN_PROGRESS)
     try:
       raw_data = self.accelerometer.GetRawDataAverage(self.capture_count)
-    except AccelerometerControllerException:
+    except AccelerometerException:
       self.Fail('Read raw data failed.')
       return
     # Checks accelerometer is normal or not before calibration.
@@ -256,7 +254,7 @@ class AccelerometersCalibration(unittest.TestCase):
     self.assertEquals(2, len(self.args.spec_offset))
     self.assertEquals(2, len(self.args.spec_ideal_values))
     # Initializes a accelerometer utility class.
-    self.accelerometer_controller = AccelerometerController(
+    self.accelerometer_controller = self.dut.accelerometer.GetController(
         self.args.spec_offset,
         self.args.spec_ideal_values,
         self.args.sample_rate_hz,

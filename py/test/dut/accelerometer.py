@@ -13,19 +13,18 @@ import time
 from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
-from cros.factory.utils.process_utils import Spawn, SpawnOutput
+from cros.factory.test.dut import component
 
 
 _IIO_DEVICES_PATH = '/sys/bus/iio/devices/'
 SYSFS_VALUE = namedtuple('sysfs_value', ['sysfs', 'value'])
 
 
-class AccelerometerControllerException(Exception):
+class AccelerometerException(Exception):
   pass
 
 
-class AccelerometerController(object):
+class AccelerometerController(component.DUTComponent):
   """Utility class for the two accelerometers.
 
   Attributes:
@@ -44,11 +43,11 @@ class AccelerometerController(object):
       output number.  For example: 12 or 16.
 
   Raises:
-    Raises AccelerometerControllerException if there is no accelerometer.
+    Raises AccelerometerException if there is no accelerometer.
   """
 
-  def __init__(self, spec_offset, spec_ideal_values,
-               sample_rate, location, resolution=12):
+  def __init__(self, board, spec_offset, spec_ideal_values,
+               sample_rate, location, resolution):
     """Cleans up previous calibration values and stores the scan order.
 
     We can get raw data from below sysfs:
@@ -61,6 +60,7 @@ class AccelerometerController(object):
 
     https://chromium-review.googlesource.com/#/c/190471/.
     """
+    super(AccelerometerController, self).__init__(board)
     self.trigger_number = '0'
     self.num_signals = 3  # (x, y, z).
     self.iio_bus_id = None
@@ -70,13 +70,13 @@ class AccelerometerController(object):
     self.location = location
     self.resolution = resolution
     for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'iio:device*')):
-      location = SpawnOutput(
-          ['cat', os.path.join(iio_path, 'location')], log=True).strip()
+      location = self._CallOutput(
+          ['cat', os.path.join(iio_path, 'location')]).strip()
       if self.location == location:
         self.iio_bus_id = os.path.basename(iio_path)
         break
     if self.iio_bus_id is None:
-      raise AccelerometerControllerException(
+      raise AccelerometerException(
           'Accelerometer at %r not found' % self.location)
     scan_elements_path = os.path.join(
         _IIO_DEVICES_PATH, self.iio_bus_id, 'scan_elements')
@@ -89,9 +89,8 @@ class AccelerometerController(object):
     # Stores the (scan order -> signal name) mapping for later use.
     self.index_to_signal_name = {}
     for signal_name in self._GenSignalNames(''):
-      index = int(SpawnOutput(
-          ['cat', os.path.join(scan_elements_path, signal_name + '_index')],
-          log=True))
+      index = int(self._CallOutput(
+          ['cat', os.path.join(scan_elements_path, signal_name + '_index')]))
       self.index_to_signal_name[index] = signal_name
 
   def _SetSysfsValues(self, sysfs_values, check_call=True):
@@ -102,8 +101,8 @@ class AccelerometerController(object):
         it's corresponding value.
     """
     for sysfs_value in sysfs_values:
-      Spawn('echo %s > %s' % (sysfs_value.value, sysfs_value.sysfs),
-            shell=True, sudo=True, log=True, check_call=check_call)
+      caller = self._CheckCall if check_call else self._Call
+      caller('echo %s > %s' % (sysfs_value.value, sysfs_value.sysfs))
 
   def _GenSignalNames(self, postfix=''):
     """Generator function for all signal names.
@@ -181,7 +180,7 @@ class AccelerometerController(object):
           retry_count_per_record += 1
           # To prevent indefinitely reading raw data if there is a real problem.
           if retry_count_per_record > max_retry_count_per_record:
-            raise AccelerometerControllerException(
+            raise AccelerometerException(
                 'GetRawDataAverage failed, exceeded maximum retry: %d)' %
                 max_retry_count_per_record)
           logging.warning('Failed to read raw data (length=%d), '
@@ -220,7 +219,7 @@ class AccelerometerController(object):
            'in_accel_z': 1019}
 
     Raises:
-      Raises AccelerometerControllerException if there is no calibration
+      Raises AccelerometerException if there is no calibration
       value in VPD.
     """
     def _CalculateCalibratedValue(signal_name, value):
@@ -228,12 +227,10 @@ class AccelerometerController(object):
       return value + calib_bias
 
     # Get calibration data from VPD first.
-    # TODO(hungte) Use self._dut when Accelerometer has been changed to
-    # DUTComponent.
-    ro_vpd = dut.Create().vpd.ro.GetAll()
+    ro_vpd = self._dut.vpd.ro.GetAll()
     for calib_name in self._GenSignalNames('_' + self.location + '_calibbias'):
       if calib_name not in ro_vpd:
-        raise AccelerometerControllerException(
+        raise AccelerometerException(
             'Calibration value: %r not found in RO_VPD.' % calib_name)
 
     # Get raw data and apply the calibration values on it.
@@ -301,3 +298,16 @@ class AccelerometerController(object):
         gravity_value > self.spec_ideal_values[1] + self.spec_offset[1]):
       return False
     return True
+
+
+class Accelerometer(component.DUTComponent):
+  """Accelerometer component module."""
+
+  def GetController(spec_offset, spec_ideal_values, sample_rate, location,
+                    resolution=12):
+    """Gets a controller with specified arguments.
+
+    See AccelerometerController for more information.
+    """
+    return AccelerometerController(self._dut, spec_offset, spec_ideal_values,
+                                   sample_rate, location, resolution)

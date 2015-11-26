@@ -59,7 +59,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.system.accelerometer import AccelerometerController
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -171,7 +170,7 @@ class TabletRotationTest(unittest.TestCase):
                   'and spec_ideal_values.')
         return
 
-      self.accel_controller = AccelerometerController(
+      self.accel_controller = self.dut.accelerometer.GetController(
           spec_offset=self.args.spec_offset,
           spec_ideal_values=self.args.spec_ideal_values,
           sample_rate=self.args.sample_rate_hz)
