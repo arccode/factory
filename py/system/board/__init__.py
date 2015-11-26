@@ -85,36 +85,6 @@ class Board(object):
       dut = dut_module.Create()
     self.dut = dut
 
-  def GetTemperatures(self):
-    """Gets a list of temperatures for various sensors.
-
-    Returns:
-      A list of int indicating the temperatures in Celsius.
-      For those sensors which don't have readings, fill None instead.
-    """
-    raise NotImplementedError
-
-  def GetMainTemperatureIndex(self):
-    """Gets the main index in temperatures list that should be logged.
-
-    This is typically the CPU temperature.
-
-    Returns:
-      A int indicating the main temperature index.
-    """
-    raise NotImplementedError
-
-  def GetFanRPM(self, fan_id=None):
-    """Gets the fan RPM.
-
-    Args:
-      fan_id: The id of the fan.
-
-    Returns:
-      A list of int indicating the RPM of each fan.
-    """
-    raise NotImplementedError
-
   def GetMainFWVersion(self):
     """Gets the main firmware version.
 
@@ -124,24 +94,6 @@ class Board(object):
     raise NotImplementedError
 
   # Optional functions. Implement them if you need them in your tests.
-  def GetTemperatureSensorNames(self):
-    """Gets a list of names for temperature sensors.
-
-    Returns:
-      A list of str containing the names of all temperature sensors.
-      The order must be the same as the returned list from GetTemperatures().
-    """
-    raise NotImplementedError
-
-  def SetFanRPM(self, rpm, fan_id=None):
-    """Sets the target fan RPM.
-
-    Args:
-      rpm: Target fan RPM, or Board.AUTO for auto fan control.
-      fan_id: The id of the fan.
-    """
-    raise NotImplementedError
-
   def SetLEDColor(self, color, led_name='battery', brightness=100):
     """Sets LED color.
 

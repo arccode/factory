@@ -30,8 +30,7 @@ import logging
 import time
 import unittest
 
-from cros.factory import system
-from cros.factory.system.board import BoardException
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel, UI
@@ -86,11 +85,11 @@ class FanSpeedTest(unittest.TestCase):
     self._template = OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
-    self._board = system.GetBoard(self.dut)
+    self._thermal = self.dut.thermal
 
   def tearDown(self):
     logging.info('Set auto fan speed control.')
-    self._board.SetFanRPM(self._board.AUTO)
+    self._thermal.SetFanRPM(self._thermal.AUTO)
 
   def SetAndGetFanSpeed(self, target_rpm):
     """Sets fan speed and observes readings for a while (blocking call).
@@ -102,7 +101,7 @@ class FanSpeedTest(unittest.TestCase):
       List of fan speed, each fan speed if the average of the latest
       #num_samples_to_use samples as stablized fan speed reading.
     """
-    observed_rpm = self._board.GetFanRPM()
+    observed_rpm = self._thermal.GetFanRPM()
     fan_count = len(observed_rpm)
     spin_up = target_rpm > _Average(observed_rpm)
 
@@ -115,16 +114,16 @@ class FanSpeedTest(unittest.TestCase):
     logging.info(status)
 
     if self.args.use_percentage:
-      self._board.SetFanRPM(int(target_rpm * 100 / self.args.max_rpm))
+      self._thermal.SetFanRPM(int(target_rpm * 100 / self.args.max_rpm))
     else:
-      self._board.SetFanRPM(int(target_rpm))
+      self._thermal.SetFanRPM(int(target_rpm))
     # Probe fan speed for duration_secs seconds with sampling interval
     # probe_interval_secs.
     end_time = time.time() + self.args.duration_secs
     # Samples of all fan speed with sample period: probe_interval_secs.
     ith_fan_samples = [[] for _ in xrange(fan_count)]
     while time.time() < end_time:
-      observed_rpm = self._board.GetFanRPM()
+      observed_rpm = self._thermal.GetFanRPM()
       for i, ith_fan_rpm in enumerate(observed_rpm):
         ith_fan_samples[i].append(ith_fan_rpm)
       self._ui.SetHTML(str(observed_rpm), id=_ID_RPM)
@@ -158,8 +157,8 @@ class FanSpeedTest(unittest.TestCase):
         target_rpm = self.args.target_rpm
 
       observed_rpm = self.SetAndGetFanSpeed(target_rpm)
-    except BoardException as e:
-      raise factory.FactoryTestFailure('Board command failed: %s' % e)
+    except dut.DUTException as e:
+      raise factory.FactoryTestFailure('DUT command failed: %s' % e)
 
     lower_bound = target_rpm - self.args.error_margin
     upper_bound = target_rpm + self.args.error_margin

@@ -17,8 +17,8 @@ This test list can also be used to verify the software stability of base image
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import GetBoard
 from cros.factory.system import partitions
+from cros.factory.test import dut
 from cros.factory.test import utils
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
@@ -96,7 +96,7 @@ class TestListArgs(object):
     if utils.in_chroot():  # For unittest
       return 0
     else:
-      return GetBoard().GetMainTemperatureIndex()
+      return dut.Create().thermal.GetMainTemperatureIndex()
 
   # List of temperature sensors to test.
   @property
@@ -104,7 +104,7 @@ class TestListArgs(object):
     if utils.in_chroot():  # For unittest
       return [0]
     else:
-      return range(len(GetBoard().GetTemperatureSensorNames()))
+      return range(len(dut.Create().thermal.GetTemperatureSensorNames()))
 
   #####
   #

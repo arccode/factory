@@ -14,7 +14,7 @@ import syslog
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
+from cros.factory.test import dut
 from cros.factory.test import factory
 
 
@@ -31,7 +31,7 @@ class TemperaturesMonitor(object):
     temperatures = []
     self._sensor_array_changed = False
     try:
-      temperatures = system.GetBoard().GetTemperatures()
+      temperatures = dut.Create().thermal.GetTemperatures()
       self._last_success = True
       # Looking at the len in case the any sensor is broken during the
       # monitoring. In such case, the monitor data should be showed.

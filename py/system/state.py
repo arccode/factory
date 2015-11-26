@@ -351,18 +351,18 @@ class SystemStatus(object):
 
     # Get fan speed
     try:
-      self.fan_rpm = GetBoard().GetFanRPM()
+      self.fan_rpm = self.dut.thermal.GetFanRPM()
     except:
       self.fan_rpm = None
 
     # Get temperatures from sensors
     try:
-      self.temperatures = GetBoard().GetTemperatures()
+      self.temperatures = self.dut.thermal.GetTemperatures()
     except:
       self.temperatures = []
 
     try:
-      self.main_temperature_index = GetBoard().GetMainTemperatureIndex()
+      self.main_temperature_index = self.dut.thermal.GetMainTemperatureIndex()
     except:
       self.main_temperature_index = None
 

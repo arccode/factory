@@ -37,7 +37,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.system.state import SystemStatus
 from cros.factory.system.msr import MSRSnapshot
 from cros.factory.test import factory
@@ -90,7 +89,6 @@ class ThermalSlopeTest(unittest.TestCase):
 
   def setUp(self):
     self.log = factory.console if self.args.console_log else logging
-    self.board = system.GetBoard(self.dut)
 
     # Process to terminate in tear-down.
     self.process = None
@@ -151,7 +149,7 @@ class ThermalSlopeTest(unittest.TestCase):
 
   def runTest(self):
     self._StartStage('cool_down')
-    self.board.SetFanRPM(self.args.cool_down_fan_rpm)
+    self.dut.thermal.SetFanRPM(self.args.cool_down_fan_rpm)
     for i in range(self.args.cool_down_max_duration_secs):
       self._Log()
       if (i >= self.args.cool_down_min_duration_secs and
@@ -165,7 +163,7 @@ class ThermalSlopeTest(unittest.TestCase):
         self.fail(u'Temperature never got down to %s°C' %
                   max_temperature_c)
 
-    self.board.SetFanRPM(self.args.target_fan_rpm)
+    self.dut.thermal.SetFanRPM(self.args.target_fan_rpm)
 
     def RunStage(stage, duration_secs):
       '''Runs a stage.
@@ -235,7 +233,7 @@ class ThermalSlopeTest(unittest.TestCase):
       self.fail(', '.join(errors))
 
   def tearDown(self):
-    self.board.SetFanRPM(self.board.AUTO)
+    self.dut.thermal.SetFanRPM(self.dut.thermal.AUTO)
     if self.process:
       self.process.terminate()
       self.process.wait()

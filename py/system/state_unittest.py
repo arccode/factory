@@ -16,6 +16,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.system.board import Board
 from cros.factory.system import partitions
 from cros.factory.system import state
+from cros.factory.test import dut as dut_module
+from cros.factory.test.dut import thermal
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
                                   'CHROMEOS_RELEASE_TRACK=canary-channel\n')
@@ -33,6 +35,8 @@ class SystemStatusTest(unittest.TestCase):
   def runTest(self):
 
     # Set up mocks for Board interface
+    dut = dut_module.Create()
+    dut.thermal = self.mox.CreateMock(thermal.Thermal)
     mock_board = self.mox.CreateMock(Board)
     self.mox.StubOutWithMock(state, 'GetBoard')
     # Set up mocks for netifaces.
@@ -40,12 +44,9 @@ class SystemStatusTest(unittest.TestCase):
     netifaces.AF_INET = 2
     netifaces.AF_INET6 = 10
 
-    state.GetBoard().AndReturn(mock_board)
-    mock_board.GetFanRPM().AndReturn([2000])
-    state.GetBoard().AndReturn(mock_board)
-    mock_board.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
-    state.GetBoard().AndReturn(mock_board)
-    mock_board.GetMainTemperatureIndex().AndReturn(2)
+    dut.thermal.GetFanRPM().AndReturn([2000])
+    dut.thermal.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
+    dut.thermal.GetMainTemperatureIndex().AndReturn(2)
     netifaces.interfaces().AndReturn(['lo', 'eth0', 'wlan0'])
     netifaces.ifaddresses('eth0').AndReturn(
         {netifaces.AF_INET6: [{'addr': 'aa:aa:aa:aa:aa:aa'}],
@@ -58,7 +59,7 @@ class SystemStatusTest(unittest.TestCase):
 
     # Don't care about the values; just make sure there's something
     # there.
-    status = state.SystemStatus()
+    status = state.SystemStatus(dut)
     # Don't check battery, since this system might not even have one.
     self.assertTrue(isinstance(status.battery, dict))
     self.assertEquals(3, len(status.load_avg))

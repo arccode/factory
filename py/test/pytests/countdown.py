@@ -14,7 +14,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test.event_log import Log
 from cros.factory.system.state import SystemStatus
 from cros.factory.test import factory, test_ui
@@ -188,9 +187,8 @@ class CountDownTest(unittest.TestCase):
     self._next_ui_update_time = 0
     last_status = SystemStatus()
 
-    board = system.GetBoard(self.dut)
     try:
-      self.UpdateLegend(board.GetTemperatureSensorNames())
+      self.UpdateLegend(self.dut.thermal.GetTemperatureSensorNames())
     except NotImplementedError:
       pass
 
