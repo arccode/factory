@@ -19,7 +19,6 @@ import xmlrpclib
 import factory_common  # pylint: disable=W0611
 
 from cros.factory import system
-from cros.factory.system import display
 from cros.factory.test import evdev_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -305,7 +304,7 @@ class RaidenDisplayTest(unittest.TestCase):
     Returns:
       True if connected; otherwise False.
     """
-    return display.GetPortInfo()[self._testing_display].connected
+    return self.dut.display.GetPortInfo()[self._testing_display].connected
 
   def runTest(self):
     """Runs display test."""

@@ -21,7 +21,6 @@ from PIL import ImageChops
 from PIL import ImageDraw
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import display
 from cros.factory.test import args
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -343,7 +342,7 @@ class ChameleonDisplayTest(unittest.TestCase):
                  chameleon_port)
     chameleon_image = self.chameleon.Capture(chameleon_port)
     logging.info('Capturing %s port framebuffer on DUT...', dut_port)
-    internal_image = display.CaptureFramebuffer(
+    internal_image = self.dut.display.CaptureFramebuffer(
         dut_port, downscale=self.args.downscale_to_tv_level)
     return internal_image, chameleon_image
 

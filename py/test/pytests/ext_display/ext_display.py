@@ -30,8 +30,6 @@ import unittest
 import uuid
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
-from cros.factory.system import display
 from cros.factory.test import evdev_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -188,7 +186,8 @@ class WaitDisplayThread(threading.Thread):
         if not self.VerifyUSBPD(self._usbpd_port):
           continue
 
-      if display.GetPortInfo()[self._display_id].connected == self._connect:
+      port_info = self._dut.display.GetPortInfo()
+      if port_info[self._display_id].connected == self._connect:
         display_info = factory.get_state_instance().DeviceGetDisplayInfo()
         # In the case of connecting an external display, make sure there
         # is an item in display_info with 'isInternal' False.

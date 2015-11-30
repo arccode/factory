@@ -47,7 +47,7 @@ WaitFor = sync_utils.WaitFor
 Timeout = sync_utils.Timeout
 
 
-def IsFreon():
+def IsFreon(dut=None):
   """Checks if the board is running freon.
 
   Returns:
@@ -55,7 +55,8 @@ def IsFreon():
   """
   # Currently we only enable frecon on freon boards. We might need to revisit
   # this in the future to find a more deterministic way to probe freon board.
-  return os.path.exists('/sbin/frecon')
+  return (os.path.exists('/sbin/frecon') if dut else
+          dut.Call('[ -e /sbin/frecon ]') == 0)
 
 
 def in_chroot():

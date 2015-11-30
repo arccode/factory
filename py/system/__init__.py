@@ -13,7 +13,6 @@ import threading
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import test
-from cros.factory.test.utils import ReadOneLine
 from cros.factory.utils import type_utils
 
 # pylint: disable=W0702
@@ -145,24 +144,3 @@ def GetBoard(dut=None):
     module, cls = board.rsplit('.', 1)
     _board = getattr(__import__(module, fromlist=[cls]), cls)(dut)
     return _board
-
-
-# TODO(hungte) Move this to a new display module when we have finished the new
-# system module migration.
-def SetBacklightBrightness(level):
-  """Sets the backlight brightness level.
-
-  Args:
-    level: A floating-point value in [0.0, 1.0] indicating the backlight
-        brightness level.
-
-  Raises:
-    ValueError if the specified value is invalid.
-  """
-  if not (level >= 0.0 and level <= 1.0):
-    raise ValueError('Invalid brightness level.')
-  interfaces = glob.glob('/sys/class/backlight/*')
-  for i in interfaces:
-    with open(os.path.join(i, 'brightness'), 'w') as f:
-      f.write('%d' % int(
-          level * float(ReadOneLine(os.path.join(i, 'max_brightness')))))

@@ -13,7 +13,6 @@ import unittest
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
@@ -57,7 +56,7 @@ class LCDBacklightTest(unittest.TestCase):
     StartDaemonThread(target=self.CountdownTimer)
 
   def tearDown(self):
-    system.SetBacklightBrightness(1.0)
+    self.dut.display.SetBacklightBrightness(1.0)
 
   def CountdownTimer(self):
     """Starts a countdown timer and fails the test if timer reaches zero."""
@@ -74,7 +73,7 @@ class LCDBacklightTest(unittest.TestCase):
     """
     while True:
       for level in [0.2, 0.4, 0.6, 0.8, 1.0]:
-        system.SetBacklightBrightness(level)
+        self.dut.display.SetBacklightBrightness(level)
         time.sleep(0.5)
 
   def runTest(self):
