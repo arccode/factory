@@ -20,6 +20,7 @@ from cros.factory.test.dut import component
 from cros.factory.test.dut import ec
 from cros.factory.test.dut.links import utils as link_utils
 from cros.factory.test.dut import power
+from cros.factory.test.dut import temp
 from cros.factory.test.dut import thermal
 from cros.factory.test.dut import vpd
 from cros.factory.utils import file_utils
@@ -98,6 +99,10 @@ class DUTBoard(object):
   @DUTProperty
   def power(self):
     return power.Power(self)
+
+  @DUTProperty
+  def temp(self):
+    return temp.TemporaryFiles(self)
 
   @DUTProperty
   def thermal(self):
