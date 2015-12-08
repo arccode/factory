@@ -20,14 +20,14 @@ import factory_common  # pylint: disable=W0611
 
 from cros.factory import system
 from cros.factory.system import display
-from cros.factory.test.args import Arg
 from cros.factory.test import evdev_utils
 from cros.factory.test import factory
-from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.fixture.dolphin import plankton_hdmi
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
+from cros.factory.test.args import Arg
+from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.fixture.dolphin import plankton_hdmi
 from cros.factory.utils import file_utils
 
 

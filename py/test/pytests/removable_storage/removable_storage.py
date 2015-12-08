@@ -24,12 +24,12 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import system
-from cros.factory.test.event_log import Log
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.event_log import Log
 from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
                                                    CreateBFTFixture,
                                                    TEST_ARG_HELP)
@@ -393,7 +393,7 @@ class RemovableStorageTest(unittest.TestCase):
         dev_fd = os.open(dev_path, os.O_RDWR)
       except Exception as e:  # pylint: disable=W0703
         ok = False
-        factory.console.error('Unable to open %s : %s' % (dev_path, e))
+        factory.console.error('Unable to open %s : %s', dev_path, e)
 
       if dev_fd is not None:
         blocks = dev_size / _SECTOR_SIZE
@@ -437,7 +437,7 @@ class RemovableStorageTest(unittest.TestCase):
             in_block = os.read(dev_fd, bytes_to_operate)
             read_finish = time.time()
           except Exception as e:  # pylint: disable=W0703
-            factory.console.error('Failed to read block %s' % e)
+            factory.console.error('Failed to read block %s', e)
             ok = False
             break
 
@@ -453,7 +453,7 @@ class RemovableStorageTest(unittest.TestCase):
             os.fsync(dev_fd)
             write_finish = time.time()
           except Exception as e:  # pylint: disable=W0703
-            factory.console.error('Failed to write block %s' % e)
+            factory.console.error('Failed to write block %s', e)
             ok = False
             break
 
@@ -492,9 +492,11 @@ class RemovableStorageTest(unittest.TestCase):
         update_bin = {}
 
         def _CheckThreshold(test_type, value, threshold):
+          # pylint: disable=W0640
           update_bin['%s_speed' % test_type] = value
           logging.info('%s_speed: %.3f MB/s', test_type, value)
           if threshold:
+            # pylint: disable=W0640
             update_bin['%s_threshold' % test_type] = threshold
             if value < threshold:
               self._ui.FailLater(_ERR_SPEED_CHECK_FAILED_FMT_STR(

@@ -156,7 +156,7 @@ class SimpleBatteryTest(unittest.TestCase):
       raise factory.FactoryTestFailure(
           'Cannot locate battery sysfs path. Missing battery?')
     cycle_count = self._board.power.GetBatteryAttribute('cycle_count').strip()
-    if (int(cycle_count) > self.args.max_cycle_count):
+    if int(cycle_count) > self.args.max_cycle_count:
       raise factory.FactoryTestFailure(
           'Battery cycle count %s exceeds max %d' %
           (cycle_count, self.args.max_cycle_count))

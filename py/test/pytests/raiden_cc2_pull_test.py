@@ -18,10 +18,10 @@ import unittest
 import factory_common  # pylint: disable=W0611
 
 from cros.factory import system
-from cros.factory.test.args import Arg
-from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.args import Arg
+from cros.factory.test.fixture import bft_fixture
 
 _TEST_TITLE = test_ui.MakeLabel('Raiden CC2 pull test', u'Raiden CC2 电压测试')
 _DISCONNECT = lambda d: test_ui.MakeLabel(
