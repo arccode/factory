@@ -3,17 +3,28 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Implementation of cros.factory.test.dut.SshTarget using ssh."""
+"""Implementation of cros.factory.test.dut.SSHTarget using ssh."""
 
 import logging
 import subprocess
+import threading
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import factory
 from cros.factory.test.dut import base
 from cros.factory.utils import file_utils
+from cros.factory.utils.dhcp_utils import DHCPManager
 
 
-class SshTarget(base.BaseTarget):
+_DEVICE_DATA_KEY = 'DYNAMIC_SSH_TARGET_IP'
+
+
+class ClientNotExistError(Exception):
+  def __str__(self):
+    return 'There is no DHCP client registered.'
+
+
+class SSHTarget(base.BaseTarget):
   """A DUT target that is connected via SSH interface.
 
   Properties:
@@ -23,11 +34,26 @@ class SshTarget(base.BaseTarget):
     identify: An identity file to specify credential.
   """
 
+  DYNAMIC_HOST = 'dynamic'
+
   def __init__(self, host, user='root', port=22, identity=None):
-    self.host = host
+    self._host = host
     self.user = user
     self.port = port
     self.identity = identity
+
+  @property
+  def host(self):
+    if self._host == SSHTarget.DYNAMIC_HOST:
+      if not factory.has_shared_data(_DEVICE_DATA_KEY):
+        raise ClientNotExistError()
+      return factory.get_shared_data(_DEVICE_DATA_KEY)
+    else:
+      return self._host
+
+  @host.setter
+  def host(self, value):
+    self._host = value
 
   def _signature(self, is_scp=False):
     """Generates the ssh command signature.
@@ -82,10 +108,50 @@ class SshTarget(base.BaseTarget):
       command = ['ssh'] + options + [remote_sig] + list(command)
       shell = False
 
-    logging.debug('SshTarget: Run [%r]', command)
+    logging.debug('SSHTarget: Run [%r]', command)
     return subprocess.call(command, stdin=stdin, stdout=stdout, stderr=stderr,
                            shell=shell)
 
   def IsReady(self):
     """See BaseTarget.IsReady"""
-    return subprocess.call(['ping', '-c', '1', self.host]) == 0
+    try:
+      return subprocess.call(['ping', '-c', '1', self.host]) == 0
+    except ClientNotExistError:
+      return False
+
+  _dhcp_manager = None
+  _dhcp_manager_lock = threading.Lock()
+
+  @classmethod
+  def DHCPConnected(cls, dut_ip, unused_mac):
+    """Event handler for adding new client or lease renewal
+
+    Save the IP address in device data.
+    """
+    factory.set_shared_data(_DEVICE_DATA_KEY, dut_ip)
+
+  @classmethod
+  def DHCPDisconnected(cls, unused_ip, unused_mac):
+    """Event handler for lease expired
+
+    Remove the IP address from device data.
+    """
+    if factory.has_shared_data(_DEVICE_DATA_KEY):
+      factory.del_shared_data(_DEVICE_DATA_KEY)
+
+  @classmethod
+  def PrepareConnection(cls, **dut_options):
+    host = dut_options['host']
+    if host == SSHTarget.DYNAMIC_HOST:
+      with cls._dhcp_manager_lock:
+        if cls._dhcp_manager:
+          return
+        # TODO(stimim): automatically find out which network interface should be
+        #               used.
+        cls._dhcp_manager = DHCPManager(
+            'eth1',
+            lease_time=5,
+            on_add=cls.DHCPConnected,
+            on_old=cls.DHCPConnected,
+            on_del=cls.DHCPDisconnected)
+        cls._dhcp_manager.StartDHCP()

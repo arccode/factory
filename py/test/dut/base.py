@@ -153,3 +153,13 @@ class BaseTarget(object):
       raise CalledProcessError(
           returncode=exit_code, cmd=command, output=output)
     return output
+
+  @classmethod
+  def PrepareConnection(cls):
+    """Setup prerequisites of DUT connections.
+
+    Some DUT types need to do some setup before we can connect to any DUT.
+    For example, we might need to start a DHCP server that assigns IP addresses
+    to DUTs.
+    """
+    pass

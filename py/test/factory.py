@@ -615,7 +615,7 @@ class Options(object):
   Valid options include:
      {'dut_class': 'LocalTarget'},  # To run tests locally.
      {'dut_class': 'AdbTarget'},  # To run tests via ADB.
-     {'dut_class': 'SshTarget', 'host': TARGET_IP},  # To run tests over SSH.
+     {'dut_class': 'SSHTarget', 'host': TARGET_IP},  # To run tests over SSH.
      See :py:attr:`cros.factory.test.dut.KNOWN_TARGETS` for more options."""
 
   def check_valid(self):
