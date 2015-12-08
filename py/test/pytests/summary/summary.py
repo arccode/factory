@@ -111,7 +111,7 @@ class Report(unittest.TestCase):
     all_pass = overall_status in (factory.TestState.PASSED,
                                   factory.TestState.FAILED_AND_WAIVED)
 
-    board = system.GetBoard()
+    board = system.GetBoard(self.dut)
     if all_pass:
       board.OnSummaryGood()
     else:

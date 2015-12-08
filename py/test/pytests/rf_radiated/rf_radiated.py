@@ -106,39 +106,13 @@ class RFRadiatedTest(unittest.TestCase):
           'Maximum number of tries for a single profile',
           default=1, optional=True)]
 
-  def __init__(self, *args, **kwargs):
-    super(RFRadiatedTest, self).__init__(*args, **kwargs)
-
+  def setUp(self):
     self.leds_blinker = None
     self.power_meter = None
     self.chip_controller = None
 
-    # Initialize the log dict, which will later be fed into event log and
-    # stored as an aux_log on shopfloor.
-    board = system.GetBoard()
-    self.log = {
-        'config': {
-            'file_path': None,
-            'content': None},
-        'dut': {
-            'antenna_model': None,
-            'device_id': event_log.GetDeviceId(),
-            'mac_address': net_utils.GetWLANMACAddress(),
-            'serial_number': board.GetSerialNumber(),
-            'mlb_serial_number': board.GetMlbSerialNumber(),
-            'nvidia_serial_number': board.GetNvidiaSerialNumber()},
-        'test': {
-            'start_time': None,
-            'end_time': None,
-            'fixture_id': None,
-            'path': os.environ.get('CROS_FACTORY_TEST_PATH'),
-            'invocation': os.environ.get('CROS_FACTORY_TEST_INVOCATION'),
-            'results': {},  # A dict of test profile name to measured power.
-            'failures': []},  # A list exceptions and tracebacks.
-        'power_meter': {
-            'mac_address': None}}
+    self._InitLog()
 
-  def setUp(self):
     # We're in the chamber without a monitor.  Start blinking keyboard LEDs to
     # inform the operator that we're still working.
     if self.args.blink_keyboard_lights:
@@ -195,6 +169,32 @@ class RFRadiatedTest(unittest.TestCase):
           ''.join(traceback.format_exception(*sys.exc_info())))
       self._EndTest()
       raise
+
+  def _InitLog(self):
+    # Initialize the log dict, which will later be fed into event log and
+    # stored as an aux_log on shopfloor.
+    board = system.GetBoard(self.dut)
+    self.log = {
+        'config': {
+            'file_path': None,
+            'content': None},
+        'dut': {
+            'antenna_model': None,
+            'device_id': event_log.GetDeviceId(),
+            'mac_address': net_utils.GetWLANMACAddress(),
+            'serial_number': board.GetSerialNumber(),
+            'mlb_serial_number': board.GetMlbSerialNumber(),
+            'nvidia_serial_number': board.GetNvidiaSerialNumber()},
+        'test': {
+            'start_time': None,
+            'end_time': None,
+            'fixture_id': None,
+            'path': os.environ.get('CROS_FACTORY_TEST_PATH'),
+            'invocation': os.environ.get('CROS_FACTORY_TEST_INVOCATION'),
+            'results': {},  # A dict of test profile name to measured power.
+            'failures': []},  # A list exceptions and tracebacks.
+        'power_meter': {
+            'mac_address': None}}
 
   def _SetUpNetwork(self, network_config):
     """Manually sets ethernet IP address and adds route to shopfloor."""

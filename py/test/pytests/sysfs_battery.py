@@ -47,7 +47,7 @@ class SysfsBatteryTest(unittest.TestCase):
     wearAllowedPct = self.args.percent_battery_wear_allowed
     wearPct = None
 
-    power = system.GetBoard().power
+    power = system.GetBoard(self.dut).power
     battery_present = power.CheckBatteryPresent()
     if not battery_present:
       msg = 'Cannot find battery path'

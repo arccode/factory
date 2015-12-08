@@ -172,7 +172,7 @@ class ExternalPowerTask(FactoryTask):
     return False
 
   def GetExternalPowerState(self):
-    if system.GetBoard().power.CheckACPresent():
+    if system.GetBoard(self._test.dut).power.CheckACPresent():
       return self.AC_CONNECTED
     else:
       return self.AC_DISCONNECTED

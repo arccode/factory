@@ -188,7 +188,7 @@ class CountDownTest(unittest.TestCase):
     self._next_ui_update_time = 0
     last_status = SystemStatus()
 
-    board = system.GetBoard()
+    board = system.GetBoard(self.dut)
     try:
       self.UpdateLegend(board.GetTemperatureSensorNames())
     except NotImplementedError:

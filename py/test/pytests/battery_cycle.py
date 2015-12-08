@@ -101,7 +101,7 @@ class BatteryCycleTest(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.template.SetState(HTML)
     self.ui.AppendCSS(CSS)
-    self.board = system.GetBoard()
+    self.board = system.GetBoard(self.dut)
     self.completed_cycles = 0
     self.mode = None
     self.start_time = time.time()

@@ -310,8 +310,7 @@ class LEDTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._task_manager = None
     self._fixture = None
-    self._board = None
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
     if self.args.bft_fixture:
       self._fixture = CreateBFTFixture(**self.args.bft_fixture)
 

@@ -126,7 +126,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
     self._power = self._board.power
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')

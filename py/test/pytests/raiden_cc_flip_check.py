@@ -77,7 +77,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
     self._template.SetTitle(_TEST_TITLE)
     if self.args.ask_flip_operation and self.args.timeout_secs == 0:
       self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')
     self._double_cc_quick_check = (

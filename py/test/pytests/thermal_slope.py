@@ -90,7 +90,7 @@ class ThermalSlopeTest(unittest.TestCase):
 
   def setUp(self):
     self.log = factory.console if self.args.console_log else logging
-    self.board = system.GetBoard()
+    self.board = system.GetBoard(self.dut)
 
     # Process to terminate in tear-down.
     self.process = None

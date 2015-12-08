@@ -11,6 +11,7 @@ import unittest
 import factory_common   # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.test import phase
+from cros.factory.test.dut.base import BaseTarget
 from cros.factory.test.pytests import mlb_version
 
 
@@ -37,6 +38,7 @@ class MLBVersionTestUnittest(unittest.TestCase):
       expected_version = None
 
     self.test = mlb_version.MLBVersionTest()
+    self.test.dut = self.mox.CreateMock(BaseTarget)
     self.test.args = FakeArgs()
 
   def tearDown(self):
@@ -46,19 +48,19 @@ class MLBVersionTestUnittest(unittest.TestCase):
     proto2b_board = MockBoard('Proto2B')
     pvt3_board = MockBoard('PVT3')
     # Proto2b board in phase PROTO.
-    system.GetBoard().AndReturn(proto2b_board)
+    system.GetBoard(self.test.dut).AndReturn(proto2b_board)
     phase.GetPhase().AndReturn(phase.PROTO)
     # Proto2b board in phase EVT.
-    system.GetBoard().AndReturn(proto2b_board)
+    system.GetBoard(self.test.dut).AndReturn(proto2b_board)
     phase.GetPhase().AndReturn(phase.EVT)
     # Proto2b board in phase PVT_DOGFOOD
-    system.GetBoard().AndReturn(proto2b_board)
+    system.GetBoard(self.test.dut).AndReturn(proto2b_board)
     phase.GetPhase().AndReturn(phase.PVT_DOGFOOD)
     # PVT3 board in phase PVT_DOGFOOD.
-    system.GetBoard().AndReturn(pvt3_board)
+    system.GetBoard(self.test.dut).AndReturn(pvt3_board)
     phase.GetPhase().AndReturn(phase.PVT_DOGFOOD)
     # PVT3 board in phase PVT.
-    system.GetBoard().AndReturn(pvt3_board)
+    system.GetBoard(self.test.dut).AndReturn(pvt3_board)
     phase.GetPhase().AndReturn(phase.PVT)
 
     self.mox.ReplayAll()
@@ -92,9 +94,9 @@ class MLBVersionTestUnittest(unittest.TestCase):
     # Expect to see board version 'Proto2B'.
     self.test.args.expected_version = 'Proto2B'
     # Test on Proto2b board.
-    system.GetBoard().AndReturn(proto2b_board)
+    system.GetBoard(self.test.dut).AndReturn(proto2b_board)
     # Test on PVT3 board.
-    system.GetBoard().AndReturn(pvt3_board)
+    system.GetBoard(self.test.dut).AndReturn(pvt3_board)
 
     self.mox.ReplayAll()
 

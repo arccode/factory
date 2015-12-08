@@ -61,7 +61,7 @@ class BatteryCurrentTest(unittest.TestCase):
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _board and _power."""
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
     self._power = self._board.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)

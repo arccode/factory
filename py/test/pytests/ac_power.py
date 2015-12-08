@@ -89,7 +89,7 @@ class ACPowerTest(unittest.TestCase):
 
     self._power_state = dict()
     self._done = threading.Event()
-    self._power = system.GetBoard().power
+    self._power = system.GetBoard(self.dut).power
     self._last_type = None
     self._last_ac_present = None
     self._skip_warning_remains = self.args.silent_warning

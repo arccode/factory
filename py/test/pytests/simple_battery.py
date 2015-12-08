@@ -66,7 +66,7 @@ class SimpleBatteryTest(unittest.TestCase):
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
 
   def VerifyArgs(self):
     if self.args.min_charge_current_mA:

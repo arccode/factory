@@ -52,7 +52,7 @@ class RaidenCC2PullTest(unittest.TestCase):
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
     self._raiden_index = self.args.raiden_index
     self._pull_gpio = 'C%d_CC2_DUT' % self._raiden_index
 

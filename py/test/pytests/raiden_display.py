@@ -98,7 +98,7 @@ class RaidenDisplayTest(unittest.TestCase):
     self._template = ui_templates.TwoSections(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendHTML(_HTML_DISPLAY)
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
 
     self._static_dir = self._ui.GetStaticDirectoryPath()
     self._display_image_path = os.path.join(self._static_dir, 'template.png')

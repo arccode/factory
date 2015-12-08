@@ -86,7 +86,7 @@ class FanSpeedTest(unittest.TestCase):
     self._template = OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
 
   def tearDown(self):
     logging.info('Set auto fan speed control.')

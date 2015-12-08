@@ -77,9 +77,6 @@ class ChromeOSBoard(Board):
   # Cached temperature sensor names.
   _temperature_sensor_names = None
 
-  def __init__(self):
-    super(ChromeOSBoard, self).__init__()
-
   def _CallECTool(self, cmd, check=True):
     """Invokes ectool.
 

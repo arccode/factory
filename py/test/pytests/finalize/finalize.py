@@ -227,7 +227,7 @@ class Finalize(unittest.TestCase):
         release_image_version=release_image_version)
 
   def RunPreflight(self):
-    power = system.GetBoard().power
+    power = system.GetBoard(self.dut).power
 
     def CheckRequiredTests():
       """Returns True if all tests (except waived tests) have passed."""

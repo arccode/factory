@@ -117,7 +117,7 @@ class SystemModule(object):
     return self._CallOutput(['ls', pattern], default='').splitlines()
 
 
-def GetBoard():
+def GetBoard(dut=None):
   """Returns a board instance for the device under test.
 
   By default, a
@@ -125,6 +125,11 @@ def GetBoard():
   is returned, but this may be overridden by setting the
   ``CROS_FACTORY_BOARD_CLASS`` environment variable in
   ``board_setup_factory.sh``.  See :ref:`board-api-extending`.
+
+  Parameters:
+    dut: A :py:class:`cros.factory.dut.base.BaseTarget` object or None.
+         When dut is given, it will set / replace dut in board object.
+         If dut is None, previous dut or default dut will be used.
 
   Returns:
     An instance of the specified Board class implementation.
@@ -138,7 +143,7 @@ def GetBoard():
     board = os.environ.get('CROS_FACTORY_BOARD_CLASS',
                            'cros.factory.system.board.Board')
     module, cls = board.rsplit('.', 1)
-    _board = getattr(__import__(module, fromlist=[cls]), cls)()
+    _board = getattr(__import__(module, fromlist=[cls]), cls)(dut)
     return _board
 
 

@@ -27,7 +27,7 @@ class MLBVersionTest(unittest.TestCase):
   ]
 
   def runTest(self):
-    board_version = system.GetBoard().GetBoardVersion()
+    board_version = system.GetBoard(self.dut).GetBoardVersion()
     if self.args.expected_version:
       self.assertEquals(
           self.args.expected_version, board_version,

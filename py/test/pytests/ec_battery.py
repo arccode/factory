@@ -26,7 +26,7 @@ class BoardBatteryTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
 
   def runTest(self):
     lower, upper = self.args.design_capacity_range

@@ -34,7 +34,7 @@ class BoardTempSensorsTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._board = system.GetBoard()
+    self._board = system.GetBoard(self.dut)
 
   def runTest(self):
     temp_sensor_to_test = self.args.temp_sensor_to_test
