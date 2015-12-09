@@ -4,19 +4,33 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Test external display with optional audio playback test."""
+"""Test external display with optional audio playback test.
+
+Here is a test list example for USB Port 0 Check, we can prompt operator to
+insert which port by display_label in display_info.
+         OperatorTest(
+              id='ExtDisplay',
+              label_zh=u'外接显示',
+              pytest_name='ext_display',
+              dargs={'display_info': [
+                        (test_ui.MakeLabel('Left HDMI External Display',
+                                            u'左边HDMI'),
+                         'HDMI-A-1', None, 0)],
+                     })
+"""
 
 from __future__ import print_function
+import evdev # pylint: disable=F0401
 import logging
 import random
+import textwrap
 import threading
 import time
 import unittest
 import uuid
 
-import evdev
-
 import factory_common  # pylint: disable=W0611
+from cros.factory import system
 from cros.factory.system import display
 from cros.factory.test import evdev_utils
 from cros.factory.test import factory
@@ -65,6 +79,15 @@ _MSG_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
 _MSG_PROMPT_PASS_KEY = lambda k: test_ui.MakeLabel(
     'Press <span id="pass_key">%d</span> to pass the test.' % k,
     u'通过请按 <span id="pass_key">%d</span> 键' % k)
+
+# USB PD status for Connection and Disconnection
+_USBPD_CONNECT_STATUS = {
+    'connected': True,
+    'role': 'SRC'
+}
+_USBPD_DISCONNECT_STATUS = {
+    'connected': False
+}
 
 
 class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
@@ -123,17 +146,24 @@ class WaitDisplayThread(threading.Thread):
     display_id: target display ID.
     connect: DetectDisplayTask.CONNECT or DetectDisplayTask.DISCONNECT
     on_success: callback for success.
+    usbpd_port: The USB PD Port number for status verification
   """
 
-  def __init__(self, display_id, connect, on_success):
+  def __init__(self, display_id, connect, on_success, usbpd_port):
     threading.Thread.__init__(self, name='WaitDisplayThread')
     self._display_id = display_id
     self._done = threading.Event()
     self._connect = connect == DetectDisplayTask.CONNECT
     self._on_success = on_success
+    self._usbpd_port = usbpd_port
 
   def run(self):
     while not self._done.is_set():
+      # Check USBPD status before display info
+      if self._usbpd_port is not None:
+        if not self.VerifyUSBPD(self._usbpd_port):
+          continue
+
       if display.GetPortInfo()[self._display_id].connected == self._connect:
         display_info = factory.get_state_instance().DeviceGetDisplayInfo()
         # In the case of connecting an external display, make sure there
@@ -153,6 +183,24 @@ class WaitDisplayThread(threading.Thread):
   def Stop(self):
     """Stops the thread."""
     self._done.set()
+
+  def VerifyUSBPD(self, port):
+    """ Verifies the USB PD port Status.
+    Returns:
+      True for verifying OK,
+      False for verifying Fail.
+    """
+    port_status = system.GetBoard().GetUSBPDStatus(port)
+    if self._connect:
+      check_status = _USBPD_CONNECT_STATUS
+    else:
+      check_status = _USBPD_DISCONNECT_STATUS
+
+    for key, value in check_status.iteritems():
+      if key not in port_status or port_status[key] != value:
+        return False
+
+    return True
 
 
 class DetectDisplayTask(ExtDisplayTask):
@@ -175,7 +223,8 @@ class DetectDisplayTask(ExtDisplayTask):
     super(DetectDisplayTask, self).__init__(args, title, instruction,
                                             pass_key=False)
     self._wait_display = WaitDisplayThread(args.display_id, connect,
-                                           self.PostSuccessEvent)
+                                           self.PostSuccessEvent,
+                                           args.usbpd_port)
     self._pass_event = str(uuid.uuid4())  # used to bind a post event.
     self._fixture = args.fixture
     self._connect = connect == self.CONNECT
@@ -432,6 +481,7 @@ class ExtDisplayTaskArg(object):
     self.ui = None
     self.template = None
     self.fixture = None
+    self.usbpd_port = None
 
     # This is for a reboot hack which tells DetectDisplayTask
     # whether to send a display plug command or not.
@@ -447,11 +497,11 @@ class ExtDisplayTaskArg(object):
       ValueError if parse error.
     """
     # Sanity check
-    if len(info) not in [2, 3]:
+    if len(info) not in [2, 3, 4]:
       raise ValueError('ERROR: invalid display_info item: ' + str(info))
 
     self.display_label, self.display_id = info[:2]
-    if len(info) == 3:
+    if len(info) >= 3 and info[2] is not None:
       if not isinstance(info[2], tuple):
         self.audio_port = info[2]
         logging.warning('Specifying audio info as a single str is deprecated.'
@@ -465,6 +515,11 @@ class ExtDisplayTaskArg(object):
         else:
           raise ValueError('Card ID should be an integer or a string')
 
+    if len(info) == 4:
+      if not isinstance(info[3], int):
+        raise ValueError('USB PD Port should be an integer')
+      self.usbpd_port = info[3]
+
 
 class ExtDisplayTest(unittest.TestCase):
   """Main class for external display test."""
@@ -474,20 +529,22 @@ class ExtDisplayTest(unittest.TestCase):
           'xrandr/modeprint ID for ChromeBook\'s main display.',
           optional=False),
       Arg(
-          'display_info', list,
-          ('A list of tuples: (display_label, display_id, audio_info)\n'
-           'Each tuple represents an external port:\n'
-           '- display_label: (str) display name seen by operator, e.g. VGA.\n'
-           '- display_id: (str) ID used to identify display in '
-           'xrandr/modeprint, e.g. VGA1.\n'
-           '- audio_info: a tuple of (audio_card, audio_port), or just a '
-           'single string indicating the audio_port (deprecated). '
-           "audio_card is either the card\'s name (str), or the card\'s "
-           "index (int). audio_port is the amixer port\'s name (str). If "
-           'you specify only the audio_port, the test assumes that the '
-           "card is at index 0 (deprecated, don\'t use it if possible). "
-           'This argument is optional. If set, the audio playback test is '
-           'added.'),
+          'display_info', list, textwrap.dedent("""
+           A list of tuples: (display_label, display_id, audio_info, usbpd_port)
+           Each tuple represents an external port:
+           - display_label: (str) display name seen by operator, e.g. VGA.
+           - display_id: (str) ID used to identify display in xrandr/modeprint,
+                         e.g. VGA1.
+           - audio_info: a tuple of (audio_card, audio_port), or just a single
+                         string indicating the audio_port (deprecated).
+             audio_card is either the card's name (str),
+                           or the card's index (int).
+             audio_port is the amixer port's name (str).
+             If you specify only the audio_port, the test assumes that the card
+             is at index 0 (deprecated, don't use it if possible). This argument
+             is optional. If set, the audio playback test is added.
+           - usbpd_port: (int) Verify the USB PD TypeC port status.
+           """),
           optional=False),
       Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
       Arg(
