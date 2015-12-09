@@ -52,6 +52,9 @@ class Scan(unittest.TestCase):
           'Key to use to store in scanned value in device data',
           optional=True),
       Arg(
+          'ro_vpd_key', str,
+          'Key to use to store in scanned value in RO VPD', optional=True),
+      Arg(
           'rw_vpd_key', str,
           'Key to use to store in scanned value in RW VPD', optional=True),
       Arg(
@@ -178,14 +181,17 @@ class Scan(unittest.TestCase):
                 u'<span class=test-engineering-mode-only>「%s」</span>。' % (
                     esc_scan_value, esc_expected_value)))
 
-    if self.args.rw_vpd_key:
+    if self.args.rw_vpd_key or self.args.ro_vpd_key:
       self.ui.SetHTML(
-          ' '.join(test_ui.MakeLabel('Writing to VPD. Please wait…',
-                                     u'正在写到 VPD，请稍等…'),
-                   test_ui.SPINNER_HTML_16x16),
+          ' '.join([test_ui.MakeLabel('Writing to VPD. Please wait...',
+                                      u'正在写到 VPD，请稍等...'),
+                    test_ui.SPINNER_HTML_16x16]),
           id='scan-status')
       try:
-        self.dut.vpd.rw.Update({self.args.rw_vpd_key: scan_value})
+        if self.args.rw_vpd_key:
+          self.dut.vpd.rw.Update({self.args.rw_vpd_key: scan_value})
+        if self.args.ro_vpd_key:
+          self.dut.vpd.ro.Update({self.args.ro_vpd_key: scan_value})
       except:  # pylint: disable=W0702
         logging.exception('Setting VPD failed')
         return SetError(utils.FormatExceptionOnly())
