@@ -117,7 +117,7 @@ class SSHLink(link.DUTLink):
   def IsReady(self):
     """See DUTLink.IsReady"""
     try:
-      return subprocess.call(['ping', '-c', '1', self.host]) == 0
+      return subprocess.call(['ping', '-w', '1', '-c', '1', self.host]) == 0
     except ClientNotExistError:
       return False
 

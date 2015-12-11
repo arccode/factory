@@ -36,6 +36,10 @@ _SHUTDOWN_COMMENCING_MSG = lambda operation, delay: test_ui.MakeLabel(
     'System is going to %s in %d seconds.' % (operation, delay),
     u'系统将在 %d 秒后%s.' %
     (delay, _DICT_OPERATION.get(operation, operation)))
+_REMOTE_SHUTDOWN_PROGRESS_MSG = lambda operation, delay: test_ui.MakeLabel(
+    'Remote DUT is performing %s, timeout in %d seconds.' % (operation, delay),
+    u'远端测试装置将于 %d 秒內%s.' % (
+        delay, _DICT_OPERATION.get(operation, operation)))
 _SHUTDOWN_COMPLETE_MSG = lambda operation: test_ui.MakeLabel(
     'Verifying system state after %s' % operation,
     u'%s后验证系统状态' % _DICT_OPERATION.get(operation, operation))
@@ -48,6 +52,21 @@ _CSS = 'body { font-size: 2em; }'
 class ShutdownError(Exception):
   """Shutdown operation error."""
   pass
+
+
+class Checkpoint(object):
+  def __init__(self, name, func):
+    self.name = name
+    self.func = func
+
+  def __call__(self):
+    return self.func()
+
+  def __str__(self):
+    return '<Checkpoint: %s>' % self.name
+
+  def __repr__(self):
+    return self.__str__()
 
 
 class ShutdownTest(unittest.TestCase):
@@ -93,6 +112,7 @@ class ShutdownTest(unittest.TestCase):
     self.goofy = factory.get_state_instance()
     self.test = self.test_info.ReadTestList().lookup_path(self.test_info.path)
     self.test_state = self.goofy.get_test_state(self.test_info.path)
+    self.remaining_time = 0
 
   def PromptCancelShutdown(self, iteration):
     """Shows prompt on Goofy UI for user to cancel shutdown.
@@ -244,7 +264,47 @@ class ShutdownTest(unittest.TestCase):
                   duration=(now - last_shutdown_time),
                   error_msg=None)
 
-  def runTest(self):
+  def RemoteShutdown(self):
+    DUT_READY_CHECKPOINT = Checkpoint(
+        'DUT has already booted up', self.dut.IsReady)
+    DUT_NOT_READY_CHECKPOINT = Checkpoint(
+        'DUT has already powered down', lambda: not self.dut.IsReady())
+    # We don't know the Remote DUT is really shutdown or not while the link is
+    # down, so wait the wait_shutdown_secs to ensure the DUT is completely halt.
+    DUT_WAIT_SHUTDOWN = Checkpoint(
+        'Wait for DUT shutdown', lambda: self.remaining_time < 1)
+    # In order to update the remaining time, we choose the period less than 1
+    # second
+    POLLING_PERIOD = 0.1
+
+    end_time = time.time() + self.args.wait_shutdown_secs
+    if self.args.operation in (factory.ShutdownStep.REBOOT,
+                               factory.ShutdownStep.FULL_REBOOT):
+      checkpoints = [DUT_NOT_READY_CHECKPOINT, DUT_READY_CHECKPOINT]
+    else:
+      checkpoints = [DUT_NOT_READY_CHECKPOINT, DUT_WAIT_SHUTDOWN]
+    # TODO(akahuang): Make shutdown command as system module
+    command_table = {
+        factory.ShutdownStep.REBOOT: ['shutdown -r now'],
+        factory.ShutdownStep.FULL_REBOOT: ['ectool reboot_ec cold at-shutdown',
+                                           'shutdown -r now'],
+        factory.ShutdownStep.HALT: ['shutdown -h now']}
+    for command in command_table[self.args.operation]:
+      self.dut.Call(command)
+    while checkpoints:
+      self.remaining_time = end_time - time.time()
+      if self.remaining_time < 0:
+        raise ShutdownError('%s are not completed in %s secs.' %
+                            (checkpoints, self.args.wait_shutdown_secs))
+      self.template.SetState(_REMOTE_SHUTDOWN_PROGRESS_MSG(
+          self.args.operation, self.remaining_time))
+      logging.debug('Checking %s...', checkpoints[0])
+      if checkpoints[0]():
+        logging.info('%s is passed.', checkpoints[0])
+        checkpoints.pop(0)
+      time.sleep(POLLING_PERIOD)
+
+  def LocalShutdown(self):
     post_shutdown_tag = state.POST_SHUTDOWN_TAG % self.test_info.path
     if self.goofy.get_shared_data(post_shutdown_tag, True):
       # Only do post shutdown verification once.
@@ -255,3 +315,9 @@ class ShutdownTest(unittest.TestCase):
       self.template.SetState(
           _SHUTDOWN_COMMENCING_MSG(self.args.operation, self.args.delay_secs))
       self.Shutdown()
+
+  def runTest(self):
+    if self.dut.link.IsLocal():
+      self.LocalShutdown()
+    else:
+      self.RemoteShutdown()
