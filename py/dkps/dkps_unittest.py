@@ -50,7 +50,8 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
 
     self.dkps = dkps.DRMKeysProvisioningServer(self.database_file_path,
                                                self.server_gnupg_homedir)
-    self.dkps.Initialize({'key_length': 1024})  # use shorter key to speed up
+    self.dkps.Initialize(
+        server_key_file_path=os.path.join(SCRIPT_DIR, 'testdata', 'server.key'))
 
     self.db_connection, self.db_cursor = dkps.GetSQLite3Connection(
         self.database_file_path)
@@ -79,14 +80,10 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     with open(self.passphrase_file_path, 'w') as f:
       f.write(self.passphrase)
 
-    # Generate uploader key.
-    uploader_key_input_data = self.uploader_gpg.gen_key_input(
-        name_real='DKPS Uploader',
-        name_email='chromeos-factory-dkps@google.com',
-        name_comment='DKPS uploader key for unit tests',
-        key_length=1024, passphrase=self.passphrase)
-    self.uploader_key_fingerprint = self.uploader_gpg.gen_key(
-        uploader_key_input_data).fingerprint
+    # Import uploader key.
+    with open(os.path.join(SCRIPT_DIR, 'testdata', 'uploader.key')) as f:
+      self.uploader_key_fingerprint = (
+          self.uploader_gpg.import_keys(f.read()).fingerprints[0])
     # Output uploader key to a file for DKPS.AddProject().
     self.uploader_public_key_file_path = os.path.join(self.temp_dir,
                                                       'uploader.pub')
@@ -98,14 +95,10 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
       f.write(self.uploader_gpg.export_keys(
           self.uploader_key_fingerprint, True))
 
-    # Generate requester key.
-    requester_key_input_data = self.requester_gpg.gen_key_input(
-        name_real='DKPS Requester',
-        name_email='chromeos-factory-dkps@google.com',
-        name_comment='DKPS requester key for unit tests',
-        key_length=1024, passphrase=self.passphrase)
-    self.requester_key_fingerprint = self.requester_gpg.gen_key(
-        requester_key_input_data).fingerprint
+    # Import requester key.
+    with open(os.path.join(SCRIPT_DIR, 'testdata', 'requester.key')) as f:
+      self.requester_key_fingerprint = (
+          self.requester_gpg.import_keys(f.read()).fingerprints[0])
     # Output requester key to a file for DKPS.AddProject().
     self.requester_public_key_file_path = os.path.join(self.temp_dir,
                                                        'requester.pub')
@@ -189,6 +182,9 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
       self.server_process.wait()
 
     self.db_connection.close()
+
+    if os.path.exists(dkps.LOG_FILE_PATH):
+      os.remove(dkps.LOG_FILE_PATH)
 
     if os.path.exists(self.temp_dir):
       shutil.rmtree(self.temp_dir)

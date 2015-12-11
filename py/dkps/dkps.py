@@ -110,44 +110,44 @@ class DRMKeysProvisioningServer(object):
       self.db_connection, self.db_cursor = GetSQLite3Connection(
           self.database_file_path)
 
-  def Initialize(self, gpg_gen_key_args_dict=None):
-    """Creates the SQLite3 database and GnuPG home, and generates a GPG key for
-    the server to use.
+  def Initialize(self, gpg_gen_key_args_dict=None, server_key_file_path=None):
+    """Creates the SQLite3 database and GnuPG home, and imports, or generates a
+    GPG key for the server to use.
 
     Args:
       gpg_gen_key_args_dict: will be passed directly as the keyword arguments to
-          python-gnupg's gen_key() function. Can be used to customize the key
-          generator process, such as key_type, key_length, etc. See
-          python-gnupg's doc for what can be customized. Note that name_real,
-          name_email, and name_comment can not be customized.
+          python-gnupg's gen_key() function if server_key_file_path is None.
+          Can be used to customize the key generator process, such as key_type,
+          key_length, etc. See python-gnupg's doc for what can be customized.
+      server_key_file_path: path to the server key to use. If not None, the
+          system will simply import this key and use it as the server key; if
+          None, the system will generate a new key.
 
     Raises:
       RuntimeError is the database and GnuPG home have already been initialized.
     """
-    # Fixed info for server GPG key.
-    SERVER_KEY_OWNER_NAME = 'DKPS Server'
-    SERVER_KEY_OWNER_EMAIL = 'chromeos-factory-dkps@google.com'
-    SERVER_KEY_OWNER_COMMENT = 'DRM Keys Provisioning Server'
-
     # Create GPG instance and database connection.
     self.gpg = gnupg.GPG(gnupghome=self.gnupg_homedir)
     self.db_connection, self.db_cursor = GetSQLite3Connection(
         self.database_file_path)
 
-    # If server key exists, the system has already been initialized.
-    search_string = '%s (%s) <%s>' % (  # this is how GPG shows the key UID
-        SERVER_KEY_OWNER_NAME, SERVER_KEY_OWNER_COMMENT, SERVER_KEY_OWNER_EMAIL)
-    for key in self.gpg.list_keys():
-      if search_string in key['uids']:
-        raise RuntimeError('Already initialized')
+    # If any key exists, the system has already been initialized.
+    if self.gpg.list_keys():
+      raise RuntimeError('Already initialized')
 
-    # Generate a GPG key for this server.
-    if gpg_gen_key_args_dict is None:
-      gpg_gen_key_args_dict = {}
-    key_input_data = self.gpg.gen_key_input(
-        name_real=SERVER_KEY_OWNER_NAME, name_email=SERVER_KEY_OWNER_EMAIL,
-        name_comment=SERVER_KEY_OWNER_COMMENT, **gpg_gen_key_args_dict)
-    server_key = self.gpg.gen_key(key_input_data)
+    if server_key_file_path:  # use existing key
+      server_key_fingerprint, _ = self._ImportGPGKey(server_key_file_path)
+    else:  # generate a new GPG key
+      if gpg_gen_key_args_dict is None:
+        gpg_gen_key_args_dict = {}
+      if 'name_real' not in gpg_gen_key_args_dict:
+        gpg_gen_key_args_dict['name_real'] = 'DKPS Server'
+      if 'name_email' not in gpg_gen_key_args_dict:
+        gpg_gen_key_args_dict['name_email'] = 'chromeos-factory-dkps@google.com'
+      if 'name_comment' not in gpg_gen_key_args_dict:
+        gpg_gen_key_args_dict['name_comment'] = 'DRM Keys Provisioning Server'
+      key_input_data = self.gpg.gen_key_input(**gpg_gen_key_args_dict)
+      server_key_fingerprint = self.gpg.gen_key(key_input_data).fingerprint
 
     # Create and set up the schema of the database.
     with open(CREATE_DATABASE_SQL_FILE_PATH) as f:
@@ -159,7 +159,7 @@ class DRMKeysProvisioningServer(object):
     with self.db_connection:
       self.db_cursor.execute(
           'INSERT INTO settings (key, value) VALUES (?, ?)',
-          ('server_key_fingerprint', server_key.fingerprint))
+          ('server_key_fingerprint', server_key_fingerprint))
 
   def Destroy(self):
     """Destroys the database and GnuPG home directory.
