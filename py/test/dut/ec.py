@@ -52,6 +52,19 @@ class EmbeddedController(component.DUTComponent):
               r'Polarity:(?P<polarity>CC1|CC2)'),
   }
 
+  # USB PD Power info.
+  # Known it from ectool source code(ectool.c print_pd_power_info function).
+  # According to the code, it won't have voltage information when role is 'SRC'
+  # or 'Disconnected'.
+  USB_PD_POWER_INFO_SKIP_ROLE_RE = re.compile(
+      r'Port (?P<port>\d+): (?P<role>Disconnected|SRC)')
+
+  USB_PD_POWER_INFO_RE = re.compile(
+      r'Port (?P<port>\d+): (?P<role>.*) (Charger|DRP) (?P<type>.*) '
+      r'(?P<millivolt>\d+)mV / (?P<milliampere>\d+)mA, '
+      r'max (?P<max_millivolt>\d+)mV / (?P<max_milliampere>\d+)mA / '
+      r'(?P<max_milliwatt>\d+)mW')
+
   def GetECVersion(self):
     """Gets the EC firmware version.
 
@@ -154,7 +167,6 @@ class EmbeddedController(component.DUTComponent):
     else:
       raise self.Error('Fail to get GPIO %s value' % gpio_name)
 
-
   def GetUSBPDStatus(self, port):
     """Gets the USB PD status.
 
@@ -191,3 +203,36 @@ class EmbeddedController(component.DUTComponent):
         return status
     raise self.Error('Unable to parse USB PD status from: %s' % response)
 
+  def GetUSBPDPowerStatus(self):
+    """Get USB PD Power Status
+    The function will call 'ectool usbpdpower' to get the status and transform
+    it to a dict.
+
+    Returns:
+      A dict for all ports' power status.
+      Key is port number(int). Value is also a dict that contains the port's
+      status.
+    """
+    status = {}
+    response = self._dut.CheckOutput(
+        ['ectool'] + self.ECTOOL_PD_ARGS + ['usbpdpower'])
+    for line in response.splitlines():
+      port_status = {}
+      match = self.USB_PD_POWER_INFO_SKIP_ROLE_RE.match(line)
+      if match:
+        port_status['role'] = match.group('role')
+        status[int(match.group('port'))] = port_status
+        continue
+      match = self.USB_PD_POWER_INFO_RE.match(line)
+      if not match:
+        raise self.error('Unable to parse USB Power status from: %s' % line)
+      status[int(match.group('port'))] = port_status
+      port_status['role'] = match.group('role')
+      port_status['type'] = match.group('type')
+      port_status['millivolt'] = int(match.group('millivolt'))
+      port_status['milliampere'] = int(match.group('milliampere'))
+      port_status['max_millivolt'] = int(match.group('max_millivolt'))
+      port_status['max_milliampere'] = int(match.group('max_milliampere'))
+      port_status['max_milliwatt'] = int(match.group('max_milliwatt'))
+
+    return status
