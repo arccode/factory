@@ -83,13 +83,13 @@ class FixtureEntry(unittest.TestCase):
 
     if self.args.start_fixture_tests:
       self._template.SetState(_MSG_INSERT)
-      sync_utils.WaitFor(self.dut.IsReady, None)
+      sync_utils.WaitFor(self.dut.link.IsReady, None)
     else:
       self._template.SetState(_MSG_SEND_RESULT)
       self.SendTestResult()
 
       self._template.SetState(_MSG_REMOVE_DUT)
-      sync_utils.WaitFor(lambda: not self.dut.IsReady(), None)
+      sync_utils.WaitFor(lambda: not self.dut.link.IsReady(), None)
 
       self._template.SetState(_MSG_RESTART_TESTS)
       self.RestartAllTests()

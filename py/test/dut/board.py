@@ -18,7 +18,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import accelerometer
 from cros.factory.test.dut import component
 from cros.factory.test.dut import ec
-from cros.factory.test.dut import link
+from cros.factory.test.dut.links import utils as link_utils
 from cros.factory.test.dut import power
 from cros.factory.test.dut import vpd
 from cros.factory.utils import file_utils
@@ -73,7 +73,7 @@ class DUTBoard(object):
                 device under test.
     """
     if dut_link is None:
-      dut_link = link.Create()
+      dut_link = link_utils.Create()
     self.link = dut_link
 
   # Board modules and properties

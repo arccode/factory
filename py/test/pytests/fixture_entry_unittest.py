@@ -16,11 +16,12 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 from cros.factory.goofy.goofy_rpc import GoofyRPC
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.pytests import fixture_entry
 from cros.factory.test.dut.link import DUTLink
+from cros.factory.test.pytests import fixture_entry
 from cros.factory.utils import sync_utils
 
 class FakeArgs(object):
@@ -87,19 +88,17 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testStartFixtureBasedTest(self):
-    # TODO(hungte) Replace dut with self.dut (Board) when we have finished
-    # migration. This dut now is in fact a link.
-    mock_dut = self.mox.CreateMock(DUTLink)
-    self.test.dut = mock_dut
+    mock_dut_link = self.mox.CreateMock(DUTLink)
+    self.test.dut = dut.Create()
+    self.test.dut.link = mock_dut_link
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
     self.test.args = FakeArgs({'start_fixture_tests': True})
-
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
 
     self.mock_ui.Run(blocking=False)
     self.mock_template.SetState(mox.IsA(basestring))
-    sync_utils.WaitFor(mock_dut.IsReady, mox.IsA(None))
+    sync_utils.WaitFor(mock_dut_link.IsReady, mox.IsA(None))
 
     self.mox.ReplayAll()
 
