@@ -17,8 +17,8 @@ class CalledProcessError(subprocess.CalledProcessError):
   pass
 
 
-class BaseTarget(object):
-  """An abstract class for DUT (Device Under Test) Targets."""
+class DUTLink(object):
+  """An abstract class for DUT (Device Under Test) Links."""
 
   """Path module that provides os.path equivelant on DUT."""
   path = posixpath

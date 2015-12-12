@@ -613,10 +613,11 @@ class Options(object):
   dut_options = {}
   """Options for DUT target.  Automatically inherits from parent node.
   Valid options include:
-     {'dut_class': 'LocalTarget'},  # To run tests locally.
-     {'dut_class': 'AdbTarget'},  # To run tests via ADB.
-     {'dut_class': 'SSHTarget', 'host': TARGET_IP},  # To run tests over SSH.
-     See :py:attr:`cros.factory.test.dut.KNOWN_TARGETS` for more options."""
+  {'link_class': 'LocalLink'},  # To run tests locally.
+  {'link_class': 'ADBLink'},  # To run tests via ADB.
+  {'link_class': 'SSHLink', 'host': TARGET_IP},  # To run tests over SSH.
+  See :py:attr:`cros.factory.test.dut.links.utils.KNOWN_LINKS` for more
+  options."""
 
   def check_valid(self):
     """Throws a TestListError if there are any invalid options."""

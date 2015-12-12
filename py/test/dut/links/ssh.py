@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Implementation of cros.factory.test.dut.SSHTarget using ssh."""
+"""Implementation of cros.factory.test.dut.DUTLink using SSH."""
 
 import logging
 import subprocess
@@ -11,7 +11,7 @@ import threading
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test.dut import base
+from cros.factory.test.dut import link
 from cros.factory.utils import file_utils
 from cros.factory.utils.dhcp_utils import DHCPManager
 
@@ -24,7 +24,7 @@ class ClientNotExistError(Exception):
     return 'There is no DHCP client registered.'
 
 
-class SSHTarget(base.BaseTarget):
+class SSHLink(link.DUTLink):
   """A DUT target that is connected via SSH interface.
 
   Properties:
@@ -44,7 +44,7 @@ class SSHTarget(base.BaseTarget):
 
   @property
   def host(self):
-    if self._host == SSHTarget.DYNAMIC_HOST:
+    if self._host == SSHLink.DYNAMIC_HOST:
       if not factory.has_shared_data(_DEVICE_DATA_KEY):
         raise ClientNotExistError()
       return factory.get_shared_data(_DEVICE_DATA_KEY)
@@ -80,13 +80,13 @@ class SSHTarget(base.BaseTarget):
     return sig, options
 
   def Push(self, local, remote):
-    """See BaseTarget.Push"""
+    """See DUTLink.Push"""
     remote_sig, options = self._signature(True)
     return subprocess.check_call(['scp'] + options +
                                  [local, '%s:%s' % (remote_sig, remote)])
 
   def Pull(self, remote, local=None):
-    """See BaseTarget.Pull"""
+    """See DUTLink.Pull"""
     if local is None:
       with file_utils.UnopenedTemporaryFile() as path:
         self.Pull(remote, path)
@@ -98,7 +98,7 @@ class SSHTarget(base.BaseTarget):
                           ['%s:%s' % (remote_sig, remote), local])
 
   def Shell(self, command, stdin=None, stdout=None, stderr=None):
-    """See BaseTarget.Shell"""
+    """See DUTLink.Shell"""
     remote_sig, options = self._signature(False)
 
     if isinstance(command, basestring):
@@ -108,12 +108,12 @@ class SSHTarget(base.BaseTarget):
       command = ['ssh'] + options + [remote_sig] + list(command)
       shell = False
 
-    logging.debug('SSHTarget: Run [%r]', command)
+    logging.debug('SSHLink: Run [%r]', command)
     return subprocess.call(command, stdin=stdin, stdout=stdout, stderr=stderr,
                            shell=shell)
 
   def IsReady(self):
-    """See BaseTarget.IsReady"""
+    """See DUTLink.IsReady"""
     try:
       return subprocess.call(['ping', '-c', '1', self.host]) == 0
     except ClientNotExistError:
@@ -142,7 +142,7 @@ class SSHTarget(base.BaseTarget):
   @classmethod
   def PrepareConnection(cls, **dut_options):
     host = dut_options['host']
-    if host == SSHTarget.DYNAMIC_HOST:
+    if host == SSHLink.DYNAMIC_HOST:
       with cls._dhcp_manager_lock:
         if cls._dhcp_manager:
           return

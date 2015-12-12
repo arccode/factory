@@ -11,7 +11,7 @@ import unittest
 import factory_common   # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.test import phase
-from cros.factory.test.dut.base import BaseTarget
+from cros.factory.test.dut.link import DUTLink
 from cros.factory.test.pytests import mlb_version
 
 
@@ -38,7 +38,9 @@ class MLBVersionTestUnittest(unittest.TestCase):
       expected_version = None
 
     self.test = mlb_version.MLBVersionTest()
-    self.test.dut = self.mox.CreateMock(BaseTarget)
+    # TODO(hungte) The dut is now actually a link. Replace the GetBoard(dut) to
+    # self.dut when we have finished to migration.
+    self.test.dut = self.mox.CreateMock(DUTLink)
     self.test.args = FakeArgs()
 
   def tearDown(self):

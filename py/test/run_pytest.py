@@ -171,7 +171,7 @@ def main():
       help='''Dictionary of arguments, e.g., "{'foo': 'bar'}"''')
   parser.add_argument(
       '--dut-options',
-      help='''Target DUT options, e.g., "{'dut_class': 'AdbTarget'}"''')
+      help='''DUT options, e.g., "{'link_class': 'ADBLink'}"''')
   parser.add_argument(
       '--verbose', '-v',
       action='store_true')

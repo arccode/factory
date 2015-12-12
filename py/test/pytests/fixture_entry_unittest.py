@@ -20,7 +20,7 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.pytests import fixture_entry
-from cros.factory.test.dut.base import BaseTarget
+from cros.factory.test.dut.link import DUTLink
 from cros.factory.utils import sync_utils
 
 class FakeArgs(object):
@@ -87,7 +87,9 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testStartFixtureBasedTest(self):
-    mock_dut = self.mox.CreateMock(BaseTarget)
+    # TODO(hungte) Replace dut with self.dut (Board) when we have finished
+    # migration. This dut now is in fact a link.
+    mock_dut = self.mox.CreateMock(DUTLink)
     self.test.dut = mock_dut
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
