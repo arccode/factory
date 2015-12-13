@@ -25,7 +25,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -172,7 +171,7 @@ class ExternalPowerTask(FactoryTask):
     return False
 
   def GetExternalPowerState(self):
-    if system.GetBoard(self._test.dut).power.CheckACPresent():
+    if self._test.dut.power.CheckACPresent():
       return self.AC_CONNECTED
     else:
       return self.AC_DISCONNECTED

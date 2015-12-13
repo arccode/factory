@@ -14,9 +14,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test.event_log import Log
-from cros.factory.system.board import Board
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -55,8 +53,7 @@ class ChargerTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._board = system.GetBoard(self.dut)
-    self._power = self._board.power
+    self._power = self.dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -74,7 +71,7 @@ class ChargerTest(unittest.TestCase):
       target_charge = min(target_charge + start_charge, 100)
     if start_charge >= target_charge:
       return
-    self._board.SetChargeState(Board.ChargeState.CHARGE)
+    self._power.SetChargeState(self._power.ChargeState.CHARGE)
     self._template.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
     logging.info('Charging starting at %d%%', start_charge)
 

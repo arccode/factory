@@ -17,9 +17,7 @@ import unittest
 from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test.event_log import Log
-from cros.factory.system.board import Board
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -81,7 +79,6 @@ class ChargerTest(unittest.TestCase):
   amount of change within certain time under certain load.
 
   Properties:
-    _board: The Board object to provide interface to battery and charger.
     _power: The Power object to get AC/Battery info and charge percentage.
     _ui: Test UI.
     _template: Test template.
@@ -121,8 +118,7 @@ class ChargerTest(unittest.TestCase):
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _board and _power."""
-    self._board = system.GetBoard(self.dut)
-    self._power = self._board.power
+    self._power = self.dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -158,7 +154,7 @@ class ChargerTest(unittest.TestCase):
   def _GetBatteryCurrent(self):
     """Gets battery current through board"""
     try:
-      battery_current = self._board.GetBatteryCurrent()
+      battery_current = self._power.GetBatteryCurrent()
     except Exception, e:
       self.fail('Cannot get battery current on this board. %s' % e)
     else:
@@ -167,7 +163,7 @@ class ChargerTest(unittest.TestCase):
   def _DumpBatteryRegisters(self):
     """Dumps battery registers through board"""
     try:
-      battery_registers = self._board.GetBatteryRegisters()
+      battery_registers = self._power.GetBatteryRegisters()
     except Exception, e:
       logging.exception('Can not get battery registers. %s', e)
     else:
@@ -178,7 +174,7 @@ class ChargerTest(unittest.TestCase):
   def _GetChargerCurrent(self):
     """Gets current that charger wants to drive through board"""
     try:
-      charger_current = self._board.GetChargerCurrent()
+      charger_current = self._power.GetChargerCurrent()
     except NotImplementedError:
       return None
     else:
@@ -187,7 +183,7 @@ class ChargerTest(unittest.TestCase):
   def _GetPowerInfo(self):
     """Gets power info on this board"""
     try:
-      power_info = self._board.GetPowerInfo()
+      power_info = self._power.GetPowerInfo()
     except NotImplementedError:
       return None
     else:
@@ -332,7 +328,7 @@ class ChargerTest(unittest.TestCase):
     if update_ui:
       self._template.SetState(_CHARGE_TEXT)
     try:
-      self._board.SetChargeState(Board.ChargeState.CHARGE)
+      self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
     except Exception, e:
       self.fail('Cannot set charger state to CHARGE on this board. %s' % e)
     else:
@@ -342,7 +338,7 @@ class ChargerTest(unittest.TestCase):
     """Sets charger state to DISCHARGE"""
     self._template.SetState(_DISCHARGE_TEXT)
     try:
-      self._board.SetChargeState(Board.ChargeState.DISCHARGE)
+      self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
     except Exception, e:
       self.fail('Cannot set charger state to DISCHARGE on this board. %s' % e)
     else:

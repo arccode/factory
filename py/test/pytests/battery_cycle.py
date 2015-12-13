@@ -22,9 +22,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test.event_log import Log
-from cros.factory.system.board import Board
 from cros.factory.system.state import SystemStatus
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -101,7 +99,6 @@ class BatteryCycleTest(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.template.SetState(HTML)
     self.ui.AppendCSS(CSS)
-    self.board = system.GetBoard(self.dut)
     self.completed_cycles = 0
     self.mode = None
     self.start_time = time.time()
@@ -198,9 +195,9 @@ class BatteryCycleTest(unittest.TestCase):
 
     try:
       if self.mode == Mode.CHARGE:
-        self.board.SetChargeState(Board.ChargeState.CHARGE)
+        self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
       else:
-        self.board.SetChargeState(Board.ChargeState.DISCHARGE)
+        self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
         # Start one process per core to spin the CPU to heat things up a
         # bit.
         for _ in xrange(multiprocessing.cpu_count()):

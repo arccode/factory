@@ -17,6 +17,7 @@ import posixpath
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
 from cros.factory.test.dut import link
+from cros.factory.test.dut import power
 from cros.factory.utils import file_utils
 
 
@@ -81,6 +82,10 @@ class DUTBoard(object):
     # for example join and split. Need to change this into a new module
     # providing functions that will access DUT, for example exists, isdir, ...
     return posixpath
+
+  @DUTProperty
+  def power(self):
+    return power.Power(self)
 
   # Helper functions to access DUT via link.
 

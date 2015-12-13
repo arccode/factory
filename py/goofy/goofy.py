@@ -41,15 +41,15 @@ from cros.factory.goofy import prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
-from cros.factory.system.board import Board, BoardException
 from cros.factory.system.charge_manager import ChargeManager
 from cros.factory.system.core_dump_manager import CoreDumpManager
 from cros.factory.system.cpufreq_manager import CpufreqManager
 from cros.factory.system import disk_space
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import phase
-from cros.factory.test import state
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import utils
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test.e2e_test.common import (
@@ -200,6 +200,9 @@ class Goofy(GoofyBase):
     self.ready_for_ui_connection = False
     self.link_manager = None
     self.is_restart_requested = False
+
+    # TODO(hungte) Support controlling remote DUT.
+    self.dut = dut.Create()
 
     def test_or_root(event, parent_or_group=True):
       """Returns the test affected by a particular event.
@@ -917,11 +920,11 @@ class Goofy(GoofyBase):
       if self.charge_manager:
         self.charge_manager.StartCharging()
       else:
-        system.GetBoard().SetChargeState(Board.ChargeState.CHARGE)
+        self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
     except NotImplementedError:
       logging.info('Charging is not supported')
       self._can_charge = False
-    except BoardException:
+    except dut.DUTException:
       logging.exception('Unable to set charge state on this board')
       self._can_charge = False
 
@@ -1745,7 +1748,7 @@ class Goofy(GoofyBase):
     message = ''
     log_level = logging.INFO
     try:
-      power = system.GetBoard().power
+      power = self.dut.power
       if not power.CheckBatteryPresent():
         message = 'Battery is not present'
       else:

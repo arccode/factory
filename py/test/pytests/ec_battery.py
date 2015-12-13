@@ -6,14 +6,13 @@
 
 """Test battery communication.
 
-The test uses factory.system.Board to get battery design capacity.
+The test uses cros.factory.test.dut.power to get battery design capacity.
 """
 
 import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test.args import Arg
 
 
@@ -25,12 +24,9 @@ class BoardBatteryTest(unittest.TestCase):
           default=(1000, 10000)),
   ]
 
-  def setUp(self):
-    self._board = system.GetBoard(self.dut)
-
   def runTest(self):
     lower, upper = self.args.design_capacity_range
-    capacity = self._board.GetBatteryDesignCapacity()
+    capacity = self.dut.power.GetBatteryDesignCapacity()
     logging.info('Get battery design capacity: %d', capacity)
     self.assertTrue(
         lower <= capacity <= upper,

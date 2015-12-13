@@ -42,5 +42,7 @@ class DUTComponent(object):
     Error: Exception type for raising unexpected errors.
   """
 
+  Error = DUTException
+
   def __init__(self, dut):
     self._dut = dut

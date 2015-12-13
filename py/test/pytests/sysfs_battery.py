@@ -13,7 +13,6 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test.test_ui import MakeLabel, UI
@@ -47,7 +46,7 @@ class SysfsBatteryTest(unittest.TestCase):
     wearAllowedPct = self.args.percent_battery_wear_allowed
     wearPct = None
 
-    power = system.GetBoard(self.dut).power
+    power = self.dut.power
     battery_present = power.CheckBatteryPresent()
     if not battery_present:
       msg = 'Cannot find battery path'

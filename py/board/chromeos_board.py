@@ -13,6 +13,7 @@ import logging
 import re
 
 from cros.factory.system.board import Board, BoardException
+from cros.factory.test.dut.power import Power
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -207,11 +208,11 @@ class ChromeOSBoard(Board):
 
   def SetChargeState(self, state):
     try:
-      if state == Board.ChargeState.CHARGE:
+      if state == Power.ChargeState.CHARGE:
         self._CallECTool(['chargecontrol', 'normal'])
-      elif state == Board.ChargeState.IDLE:
+      elif state == Power.ChargeState.IDLE:
         self._CallECTool(['chargecontrol', 'idle'])
-      elif state == Board.ChargeState.DISCHARGE:
+      elif state == Power.ChargeState.DISCHARGE:
         self._CallECTool(['chargecontrol', 'discharge'])
       else:
         raise BoardException('Unknown EC charge state: %s' % state)

@@ -21,7 +21,6 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.gooftool import Gooftool
 from cros.factory.system.state import SystemInfo
 from cros.factory.test import factory
@@ -227,7 +226,7 @@ class Finalize(unittest.TestCase):
         release_image_version=release_image_version)
 
   def RunPreflight(self):
-    power = system.GetBoard(self.dut).power
+    power = self.dut.power
 
     def CheckRequiredTests():
       """Returns True if all tests (except waived tests) have passed."""

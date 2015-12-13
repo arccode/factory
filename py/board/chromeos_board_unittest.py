@@ -16,6 +16,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.board.chromeos_board import ChromeOSBoard
 from cros.factory.system.board import Board, BoardException
+from cros.factory.test.dut.power import Power
 
 
 # pylint: disable=W0212
@@ -268,19 +269,19 @@ batt_state_of_charge = 52%
   def testCharge(self):
     self.board._CallECTool(['chargecontrol', 'normal'])
     self.mox.ReplayAll()
-    self.board.SetChargeState(Board.ChargeState.CHARGE)
+    self.board.SetChargeState(Power.ChargeState.CHARGE)
     self.mox.VerifyAll()
 
   def testDischarge(self):
     self.board._CallECTool(['chargecontrol', 'discharge'])
     self.mox.ReplayAll()
-    self.board.SetChargeState(Board.ChargeState.DISCHARGE)
+    self.board.SetChargeState(Power.ChargeState.DISCHARGE)
     self.mox.VerifyAll()
 
   def testStopCharge(self):
     self.board._CallECTool(['chargecontrol', 'idle'])
     self.mox.ReplayAll()
-    self.board.SetChargeState(Board.ChargeState.IDLE)
+    self.board.SetChargeState(Power.ChargeState.IDLE)
     self.mox.VerifyAll()
 
   def testProbeEC(self):

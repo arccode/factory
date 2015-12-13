@@ -16,10 +16,10 @@ import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import hwid
-from cros.factory.system.board import Board
 from cros.factory.system import GetBoard
 from cros.factory.system import partitions
 from cros.factory import test
+from cros.factory.test.dut import power
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
@@ -337,9 +337,9 @@ class SystemStatus(object):
     self.battery['force'] = False
     if self.charge_manager:
       force_status = {
-          Board.ChargeState.DISCHARGE: 'Discharging',
-          Board.ChargeState.CHARGE: 'Charging',
-          Board.ChargeState.IDLE: 'Idle'}.get(
+          power.Power.ChargeState.DISCHARGE: 'Discharging',
+          power.Power.ChargeState.CHARGE: 'Charging',
+          power.Power.ChargeState.IDLE: 'Idle'}.get(
               self.charge_manager.state)
       if force_status:
         self.battery['status'] = force_status

@@ -19,8 +19,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory import system
-from cros.factory.system.board import Board
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -126,8 +124,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._board = system.GetBoard(self.dut)
-    self._power = self._board.power
+    self._power = self.dut.power
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')
     if self._adb_remote_test:
@@ -198,7 +195,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
       # Skip sampling ADB target current while discharging since we lose ADB
       # connection during that time.
       if not (self._adb_remote_test and not charging):
-        sampled_battery_current.append(self._board.GetBatteryCurrent())
+        sampled_battery_current.append(self._power.GetBatteryCurrent())
       ina_values = self._bft_fixture.ReadINAValues()
       sampled_ina_current.append(ina_values['current'])
       sampled_ina_voltage.append(ina_values['voltage'])
@@ -430,14 +427,14 @@ class RaidenChargeBFTTest(unittest.TestCase):
 
     if self._adb_remote_test:
       # Get adb target battery capacity and warn if almost full
-      capacity = self._board.GetBatteryCapacity()
+      capacity = self._power.GetBatteryCapacity()
       factory.console.info('Current battery capacity = %d %%', capacity)
       if capacity > 95:
         factory.console.warning('Current battery capacity is almost full. '
                                 'It may cause charge failure!!')
     else:
       # Set charge state to 'charge'
-      self._board.SetChargeState(Board.ChargeState.CHARGE)
+      self._power.SetChargeState(self._power.ChargeState.CHARGE)
       logging.info('Set charge state: CHARGE')
 
     self.Check5VINACurrent()

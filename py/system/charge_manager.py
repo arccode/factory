@@ -5,8 +5,7 @@
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
-from cros.factory.system.board import Board
+from cros.factory.test import dut
 from cros.factory.test.utils import Enum
 
 
@@ -20,12 +19,10 @@ class ChargeManager(object):
     state: The current state (an element of either ErrorState or
       Board.ChargeState).
   '''
-  _board = system.GetBoard()
-  _power = _board.power
 
   ErrorState = Enum(['BATTERY_NOT_PRESENT', 'AC_UNPLUGGED', 'BATTERY_ERROR'])
 
-  def __init__(self, min_charge_pct, max_charge_pct):
+  def __init__(self, min_charge_pct, max_charge_pct, power=None):
     '''Constructor.
 
     Args:
@@ -35,6 +32,8 @@ class ChargeManager(object):
       max_charge_pct: The maximum level of charge. Battery discharges when
                       charge level is higher than this value. This value must be
                       between 0 and 100, and must be higher than min_charge_pct.
+      power:          A cros.factory.test.dut.power.Power instance that provides
+                      control to power. Default to a local one.
     '''
     assert min_charge_pct >= 0
     assert min_charge_pct <= 100
@@ -42,9 +41,10 @@ class ChargeManager(object):
     assert max_charge_pct <= 100
     assert max_charge_pct >= min_charge_pct
 
+    self.state = None
     self._min_charge_pct = min_charge_pct
     self._max_charge_pct = max_charge_pct
-    self.state = None
+    self._power = (dut.Create().power if power is None else power)
 
   def _SetState(self, new_state):
     if self.state != new_state:
@@ -52,16 +52,16 @@ class ChargeManager(object):
       logging.info('Charger state: %s', self.state)
 
   def StartCharging(self):
-    self._SetState(Board.ChargeState.CHARGE)
-    self._board.SetChargeState(Board.ChargeState.CHARGE)
+    self._SetState(self._power.ChargeState.CHARGE)
+    self._power.SetChargeState(self._power.ChargeState.CHARGE)
 
   def StopCharging(self):
-    self._SetState(Board.ChargeState.IDLE)
-    self._board.SetChargeState(Board.ChargeState.IDLE)
+    self._SetState(self._power.ChargeState.IDLE)
+    self._power.SetChargeState(self._power.ChargeState.IDLE)
 
   def ForceDischarge(self):
-    self._SetState(Board.ChargeState.DISCHARGE)
-    self._board.SetChargeState(Board.ChargeState.DISCHARGE)
+    self._SetState(self._power.ChargeState.DISCHARGE)
+    self._power.SetChargeState(self._power.ChargeState.DISCHARGE)
 
   def AdjustChargeState(self):
     """Adjust charge state according to battery level.

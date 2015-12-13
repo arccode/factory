@@ -17,8 +17,6 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
-from cros.factory.system.board import Board
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -61,8 +59,7 @@ class BatteryCurrentTest(unittest.TestCase):
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _board and _power."""
-    self._board = system.GetBoard(self.dut)
-    self._power = self._board.power
+    self._power = self.dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -74,14 +71,14 @@ class BatteryCurrentTest(unittest.TestCase):
       logging.info('Discharging current = %d mA', -current)
 
   def _CheckCharge(self):
-    current = self._board.GetBatteryCurrent()
+    current = self._power.GetBatteryCurrent()
     target = self.args.min_charging_current
     self._LogCurrent(current)
     self._template.SetState(_CHARGE_TEXT(current, target))
     return current >= target
 
   def _CheckDischarge(self):
-    current = self._board.GetBatteryCurrent()
+    current = self._power.GetBatteryCurrent()
     target = self.args.min_discharging_current
     self._LogCurrent(current)
     self._template.SetState(_DISCHARGE_TEXT(current, target))
@@ -96,16 +93,16 @@ class BatteryCurrentTest(unittest.TestCase):
                            'Starting battery level too high')
     self._ui.Run(blocking=False)
     if self.args.min_charging_current:
-      self._board.SetChargeState(Board.ChargeState.CHARGE)
+      self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
       PollForCondition(poll_method=self._CheckCharge, poll_interval_secs=0.5,
                        condition_name='ChargeCurrent',
                        timeout_secs=self.args.timeout_secs)
     if self.args.min_discharging_current:
-      self._board.SetChargeState(Board.ChargeState.DISCHARGE)
+      self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
       PollForCondition(poll_method=self._CheckDischarge, poll_interval_secs=0.5,
                        condition_name='DischargeCurrent',
                        timeout_secs=self.args.timeout_secs)
 
   def tearDown(self):
     # Must enable charger to charge or we will drain the battery!
-    self._board.SetChargeState(Board.ChargeState.CHARGE)
+    self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)

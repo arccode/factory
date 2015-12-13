@@ -8,7 +8,6 @@
 from __future__ import print_function
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import power
 from cros.factory.system import SystemProperty
 from cros.factory.test import dut as dut_module
 from cros.factory.test.utils import Enum
@@ -55,14 +54,6 @@ class Board(object):
 
   Error = BoardException
 
-  ChargeState = Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
-  """An enumeration of possible charge states.
-
-  - ``CHARGE``: Charge the device as usual.
-  - ``IDLE``: Do not charge the device, even if connected to mains.
-  - ``DISCHARGE``: Force the device to discharge.
-  """
-
   LEDColor = Enum(['AUTO', 'OFF', 'RED', 'GREEN', 'BLUE', 'YELLOW', 'WHITE'])
   """Charger LED colors.
 
@@ -93,10 +84,6 @@ class Board(object):
     if dut is None:
       dut = dut_module.Create()
     self.dut = dut
-
-  @SystemProperty
-  def power(self):
-    return power.Power()
 
   def GetTemperatures(self):
     """Gets a list of temperatures for various sensors.
@@ -168,14 +155,6 @@ class Board(object):
     """
     raise NotImplementedError
 
-  def SetChargeState(self, state):
-    """Sets the charge state.
-
-    Args:
-      state: One of the three states in ChargeState.
-    """
-    raise NotImplementedError
-
   # Optional functions. Implement them if you need them in your tests.
   def GetTemperatureSensorNames(self):
     """Gets a list of names for temperature sensors.
@@ -219,35 +198,10 @@ class Board(object):
     """
     raise NotImplementedError
 
-  def GetChargerCurrent(self):
-    """Gets the amount of current we ask from charger.
-
-    Returns:
-      Interger value in mA.
-    """
-    raise NotImplementedError
-
-  def GetBatteryCurrent(self):
-    """Gets the amount of current battery is charging/discharging at.
-
-    Returns:
-      Integer value in mA.
-    """
     raise NotImplementedError
 
   def ProbeEC(self):
     """Says hello to EC.
-    """
-    raise NotImplementedError
-
-  def GetBatteryDesignCapacity(self):
-    """Gets battery's design capacity.
-
-    Returns:
-      Battery's design capacity in mAh.
-
-    Raises:
-      BoardException if battery's design capacity cannot be obtained.
     """
     raise NotImplementedError
 
@@ -259,28 +213,6 @@ class Board(object):
       led_name: target LED name.
       brightness: LED brightness in percentage [0, 100].
           If color is 'auto' or 'off', brightness is ignored.
-    """
-    raise NotImplementedError
-
-  def GetPowerInfo(self):
-    """Gets power information.
-
-    Returns:
-      The output of ectool powerinfo, like::
-
-        AC Voltage: 5143 mV
-        System Voltage: 11753 mV
-        System Current: 1198 mA
-        System Power: 14080 mW
-        USB Device Type: 0x20010
-        USB Current Limit: 2958 mA
-
-      It can be further parsed by
-      :py:func:`cros.factory.utils.string_utils.ParseDict` into a
-      dict.
-
-    Raises:
-      BoardException if power information cannot be obtained.
     """
     raise NotImplementedError
 
