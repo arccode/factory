@@ -7,7 +7,7 @@
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test.test_lists.test_lists import (OperatorTest, TestList)
-from cros.factory.test import dut
+from cros.factory.test.dut.links import utils
 
 def StartFixtureTest(test_list_id, label_en, label_zh):
   OperatorTest(
@@ -48,7 +48,7 @@ def FixtureBased(test_list_id, label_en, label_zh, dut_options=None):
 
   def Wrap(CreateTestLists):
     def CreateFixtureTestList():
-      dut.PrepareConnection(**dut_options)
+      utils.PrepareConnection(**dut_options)
       with TestList(test_list_id, label_en) as test_list:
         test_list.dut_options = dut_options
         StartFixtureTest(test_list_id, label_en, label_zh)

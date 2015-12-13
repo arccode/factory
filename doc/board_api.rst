@@ -51,7 +51,7 @@ for your project. To do so:
    :samp:`private-overlays/overlay-{board}-private/chromeos-base/chromeos-factory-board/files/board/board_setup_factory.sh`,
    add a line like the following::
 
-     export CROS_FACTORY_BOARD_CLASS="cros.factory.board.xxx_board.XxxBoard"
+     export CROS_FACTORY_DUT_BOARD_CLASS="cros.factory.test.dut.board.xxx_board.XxxBoard"
 
 Adding new methods to the Board class
 -------------------------------------

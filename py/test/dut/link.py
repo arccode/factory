@@ -3,25 +3,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import subprocess
-import tempfile
-
-# Assume most DUTs will be running POSIX os.
-import posixpath
-
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import file_utils
-
-
-class CalledProcessError(subprocess.CalledProcessError):
-  pass
-
 
 class DUTLink(object):
   """An abstract class for DUT (Device Under Test) Links."""
-
-  """Path module that provides os.path equivelant on DUT."""
-  path = posixpath
 
   def Push(self, local, remote):
     """Uploads a local file to DUT.
@@ -71,88 +55,6 @@ class DUTLink(object):
       A boolean indicating if target DUT is ready.
     """
     raise NotImplementedError
-
-  def Read(self, path):
-    """Returns file content on DUT.
-
-    Args:
-      path: A string for file path on DUT.
-
-    Returns:
-      A string as file contents.
-    """
-    return self.Pull(path)
-
-  def Write(self, path, content):
-    """Writes some content into file on DUT.
-
-    Args:
-      path: A string for file path on DUT.
-      content: A string to be written into file.
-    """
-    with file_utils.UnopenedTemporaryFile() as temp_path:
-      with open(temp_path, 'w') as f:
-        f.write(content)
-      self.Push(temp_path, path)
-
-  def Call(self, command, stdin=None, stdout=None, stderr=None):
-    """Executes a command on DUT, using subprocess.call convention.
-
-    Args:
-      command: A string or a list of strings for command to execute.
-      stdin: A file object to override standard input.
-      stdout: A file object to override standard output.
-      stderr: A file object to override standard error.
-
-    Returns:
-      Exit code from executed command.
-    """
-    return self.Shell(command, stdin, stdout, stderr)
-
-  def CheckCall(self, command, stdin=None, stdout=None, stderr=None):
-    """Executes a command on DUT, using subprocess.check_call convention.
-
-    Args:
-      command: A string or a list of strings for command to execute.
-      stdin: A file object to override standard input.
-      stdout: A file object to override standard output.
-      stderr: A file object to override standard error.
-
-    Returns:
-      Exit code from executed command.
-
-    Raises:
-      CalledProcessError if the exit code is non-zero.
-    """
-    exit_code = self.Call(command, stdin, stdout, stderr)
-    if exit_code != 0:
-      raise CalledProcessError(returncode=exit_code, cmd=command)
-    return exit_code
-
-  def CheckOutput(self, command, stdin=None, stderr=None):
-    """Executes a command on DUT, using subprocess.check_output convention.
-
-    Args:
-      command: A string or a list of strings for command to execute.
-      stdin: A file object to override standard input.
-      stdout: A file object to override standard output.
-      stderr: A file object to override standard error.
-
-    Returns:
-      The output on STDOUT from executed command.
-
-    Raises:
-      CalledProcessError if the exit code is non-zero.
-    """
-    with tempfile.TemporaryFile() as stdout:
-      exit_code = self.Call(command, stdin, stdout, stderr)
-      stdout.flush()
-      stdout.seek(0)
-      output = stdout.read()
-    if exit_code != 0:
-      raise CalledProcessError(
-          returncode=exit_code, cmd=command, output=output)
-    return output
 
   @classmethod
   def PrepareConnection(cls):
