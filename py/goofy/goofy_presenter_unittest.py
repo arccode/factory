@@ -18,10 +18,10 @@ import threading
 import time
 import unittest
 
-from cros.factory.goofy import dhcp_manager
 from cros.factory.goofy.goofy_presenter import GoofyPresenter
 from cros.factory.goofy import link_manager
 from cros.factory.test import factory
+from cros.factory.utils import dhcp_utils
 
 _FAKE_MAC_ADDRESS = "FakeMacAddress"
 
@@ -29,7 +29,7 @@ class GoofyPresenterTest(unittest.TestCase):
   """Base class for GoofyPresenter test cases."""
 
   def setUp(self):
-    link_manager.dhcp_manager.DHCPManager = dhcp_manager.DummyDHCPManager
+    link_manager.dhcp_utils.DHCPManager = dhcp_utils.DummyDHCPManager
     link_manager.net_utils.GetUnmanagedEthernetInterfaces = lambda: ['eth0']
     link_manager.net_utils.StartNATService = lambda intf_in, intf_out: None
     self.goofy = GoofyPresenter()

@@ -17,16 +17,16 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import dhcp_manager
 from cros.factory.system import service_manager
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test import network
+from cros.factory.utils import dhcp_utils
+from cros.factory.utils import net_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
-from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils import sync_utils
 
 
 # Standard RPC ports.  These may be replaced by unit tests.
@@ -392,7 +392,7 @@ class DUTLinkManager(object):
     return []
 
   def _StartDHCPServers(self):
-    dhcp_manager.DHCPManager.CleanupStaleInstance()
+    dhcp_utils.DHCPManager.CleanupStaleInstance()
     if utils.in_cros_device():
       # Wait for shill to start
       sync_utils.WaitFor(lambda: service_manager.GetServiceStatus('shill') ==
@@ -418,7 +418,7 @@ class DUTLinkManager(object):
       # ip_end: the third from the last IP. since .255 is the broadcast address
       # and .254 is usually used by gateway, skip it to avoid unexpected
       # problems.
-      dhcp_server = dhcp_manager.DHCPManager(
+      dhcp_server = dhcp_utils.DHCPManager(
           interface=interface,
           my_ip=str(network_cidr.SelectIP(1)),
           netmask=str(network_cidr.Netmask()),

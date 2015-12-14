@@ -9,12 +9,12 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import dhcp_manager
 from cros.factory.goofy import link_manager
 from cros.factory.goofy.link_manager import DUTLinkManager
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.link_manager import LinkDownError
 from cros.factory.test import factory
+from cros.factory.utils import dhcp_utils
 from cros.factory.utils import net_utils
 
 _LOCALHOST = '127.0.0.1'
@@ -26,7 +26,7 @@ class LinkManagerTest(unittest.TestCase):
     self.dut_link = None
     self.presenter_link = None
     self.hook = mox.MockAnything()
-    link_manager.dhcp_manager.DHCPManager = dhcp_manager.DummyDHCPManager
+    link_manager.dhcp_utils.DHCPManager = dhcp_utils.DummyDHCPManager
     link_manager.net_utils.GetUnmanagedEthernetInterfaces = lambda: ['eth0']
 
     link_manager.PRESENTER_LINK_RPC_PORT = net_utils.FindUnusedTCPPort()
