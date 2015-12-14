@@ -6,6 +6,7 @@
 """Basic board specific interface."""
 
 from __future__ import print_function
+import glob
 import os
 import subprocess
 import tempfile
@@ -188,6 +189,8 @@ class DUTBoard(object):
     Args:
       path: A string of file path.
     """
+    if self.link.IsLocal():
+      return os.path.exists(path)
     return self.Call(['test', '-e', path]) == 0
 
   def Glob(self, pattern):
@@ -199,7 +202,8 @@ class DUTBoard(object):
     Returns:
       A list of files matching pattern on DUT.
     """
-    # TODO(hungte) Use glob.glob if DUT is a local target.
+    if self.link.IsLocal():
+      return glob.glob(pattern)
     results = self.CallOutput('ls -d %s' % pattern)
     return results.splitlines() if results else []
 

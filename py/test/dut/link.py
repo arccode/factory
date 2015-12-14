@@ -56,6 +56,14 @@ class DUTLink(object):
     """
     raise NotImplementedError
 
+  def IsLocal(self):
+    """Returns if the test is running locally on DUT.
+
+    This is helpful for tests to decide if they can use Python native modules or
+    need to invoke system commands.
+    """
+    return False
+
   @classmethod
   def PrepareConnection(cls):
     """Setup prerequisites of DUT connections.

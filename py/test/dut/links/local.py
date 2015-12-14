@@ -38,3 +38,7 @@ class LocalLink(link.DUTLink):
   def IsReady(self):
     """See DUTLink.IsReady"""
     return True
+
+  def IsLocal(self):
+    """See DUTLink.IsLocal"""
+    return True
