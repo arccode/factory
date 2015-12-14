@@ -115,43 +115,11 @@ class Board(object):
     """
     raise NotImplementedError
 
-  def GetECVersion(self):
-    """Gets the EC firmware version.
-
-    Returns:
-      A string of the EC firmware version.
-    """
-    raise NotImplementedError
-
-  def GetPDVersion(self):
-    """Gets the PD firmware version.
-
-    Returns:
-      A string of the PD firmware version.
-    """
-    raise NotImplementedError
-
   def GetMainFWVersion(self):
     """Gets the main firmware version.
 
     Returns:
       A string of the main firmware version.
-    """
-    raise NotImplementedError
-
-  def GetECConsoleLog(self):
-    """Gets the EC console log.
-
-    Returns:
-      A string containing EC console log.
-    """
-    raise NotImplementedError
-
-  def GetECPanicInfo(self):
-    """Gets the EC panic info.
-
-    Returns:
-      A string of EC panic info.
     """
     raise NotImplementedError
 
@@ -171,37 +139,6 @@ class Board(object):
     Args:
       rpm: Target fan RPM, or Board.AUTO for auto fan control.
       fan_id: The id of the fan.
-    """
-    raise NotImplementedError
-
-  def I2CRead(self, port, addr, reg):
-    """Reads 16-bit value from I2C bus.
-
-    Args:
-      port: I2C port ID.
-      addr: I2C slave address.
-      reg: Slave register address.
-
-    Returns:
-      Integer value read from slave.
-    """
-    raise NotImplementedError
-
-  def I2CWrite(self, port, addr, reg, value):
-    """Writes 16-bit value to I2C bus.
-
-    Args:
-      port: I2C port ID.
-      addr: I2C slave address.
-      reg: Slave register address.
-      value: 16-bit value to write.
-    """
-    raise NotImplementedError
-
-    raise NotImplementedError
-
-  def ProbeEC(self):
-    """Says hello to EC.
     """
     raise NotImplementedError
 
@@ -228,34 +165,6 @@ class Board(object):
 
     Raises:
       BoardException if board version cannot be obtained.
-    """
-    raise NotImplementedError
-
-  def GetUSBPDStatus(self, port):
-    """Gets the USB PD status.
-
-    Args:
-      port: The USB port number.
-
-    Returns:
-      A dict that contains the following fields:
-
-        'enabled': True or False
-        'role': 'SNK' or 'SRC'
-        'polarity': 'CC1' or 'CC2'
-        'state': <state>
-    """
-    raise NotImplementedError
-
-  def GetPDGPIOValue(self, gpio_name):
-    """Gets PD GPIO value.
-
-    Args:
-      gpio_name: GPIO name.
-
-    Returns:
-      Return 1 if GPIO is high; otherwise 0.
-
     """
     raise NotImplementedError
 

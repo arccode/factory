@@ -428,8 +428,7 @@ class Goofy(GoofyBase):
       EC console log string.
     """
     try:
-      board = system.GetBoard()
-      ec_console_log = board.GetECConsoleLog()
+      ec_console_log = dut.Create().ec.GetECConsoleLog()
       logging.info('EC console log after reboot:\n%s\n', ec_console_log)
       return ec_console_log
     except NotImplementedError:
@@ -449,8 +448,7 @@ class Goofy(GoofyBase):
       EC panic info string.
     """
     try:
-      board = system.GetBoard()
-      ec_panic_info = board.GetECPanicInfo()
+      ec_panic_info = dut.Create().ec.GetECPanicInfo()
       logging.info('EC panic info after reboot:\n%s\n', ec_panic_info)
       return ec_panic_info
     except NotImplementedError:

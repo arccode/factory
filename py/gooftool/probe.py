@@ -44,6 +44,7 @@ from cros.factory.hwid.v2.hwid_tool import ProbeResults, COMPACT_PROBE_STR
 from cros.factory.system import board
 from cros.factory.system import service_manager
 from cros.factory.system import vpd
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.l10n import regions
 from cros.factory.utils import process_utils
@@ -1532,10 +1533,11 @@ def Probe(target_comp_classes=None,
 
   initial_configs = {}
   volatiles = {}
+  dut_instance = dut.Create()
   if fast_fw_probe:
     logging.debug('fast_fw_probe enabled.')
-    volatiles['ro_ec_firmware'] = {'version': system.GetBoard().GetECVersion()}
-    volatiles['ro_pd_firmware'] = {'version': system.GetBoard().GetPDVersion()}
+    volatiles['ro_ec_firmware'] = {'version': dut_instance.ec.GetECVersion()}
+    volatiles['ro_pd_firmware'] = {'version': dut_instance.ec.GetPDVersion()}
     volatiles['ro_main_firmware'] = {
         'version': system.GetBoard().GetMainFWVersion()}
     probe_volatile = False

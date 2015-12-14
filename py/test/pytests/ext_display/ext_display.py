@@ -169,15 +169,17 @@ class WaitDisplayThread(threading.Thread):
     connect: DetectDisplayTask.CONNECT or DetectDisplayTask.DISCONNECT
     on_success: callback for success.
     usbpd_port: The USB PD Port number for status verification
+    dut: A DUT instance for accessing device under test.
   """
 
-  def __init__(self, display_id, connect, on_success, usbpd_port):
+  def __init__(self, display_id, connect, on_success, usbpd_port, dut):
     threading.Thread.__init__(self, name='WaitDisplayThread')
     self._display_id = display_id
     self._done = threading.Event()
     self._connect = connect == DetectDisplayTask.CONNECT
     self._on_success = on_success
     self._usbpd_port = usbpd_port
+    self._dut = dut
 
   def run(self):
     while not self._done.is_set():
@@ -212,7 +214,7 @@ class WaitDisplayThread(threading.Thread):
       True for verifying OK,
       False for verifying Fail.
     """
-    port_status = system.GetBoard().GetUSBPDStatus(port)
+    port_status = self._dut.ec.GetUSBPDStatus(port)
     if self._connect:
       check_status = _USBPD_CONNECT_STATUS
     else:
@@ -246,7 +248,8 @@ class DetectDisplayTask(ExtDisplayTask):
                                             pass_key=False)
     self._wait_display = WaitDisplayThread(args.display_id, connect,
                                            self.PostSuccessEvent,
-                                           args.usbpd_port)
+                                           args.usbpd_port,
+                                           args.dut)
     self._pass_event = str(uuid.uuid4())  # used to bind a post event.
     self._fixture = args.fixture
     self._connect = connect == self.CONNECT
@@ -504,6 +507,7 @@ class ExtDisplayTaskArg(object):
     self.template = None
     self.fixture = None
     self.usbpd_port = None
+    self.dut = None
 
     # This is for a reboot hack which tells DetectDisplayTask
     # whether to send a display plug command or not.
@@ -607,6 +611,7 @@ class ExtDisplayTest(unittest.TestCase):
       args.template = self._template
       args.fixture = self._fixture
       args.already_connect = self.args.already_connect
+      args.dut = self.dut
 
       if not self.args.stop_output_only:
         tasks.append(ConnectTask(args))

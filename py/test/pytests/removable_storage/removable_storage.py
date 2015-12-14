@@ -23,7 +23,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -589,7 +588,7 @@ class RemovableStorageTest(unittest.TestCase):
     if not self.args.usbpd_port_polarity:
       return
     port, polarity = self.args.usbpd_port_polarity
-    port_status = system.GetBoard(self.dut).GetUSBPDStatus(port)
+    port_status = self.dut.ec.GetUSBPDStatus(port)
     if port_status['polarity'] != 'CC%d' % polarity:
       self.Fail('USB CC polarity mismatch on port %d' % port)
 

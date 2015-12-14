@@ -19,6 +19,7 @@ from cros.factory import hwid
 from cros.factory.system import GetBoard
 from cros.factory.system import partitions
 from cros.factory import test
+from cros.factory.test import dut
 from cros.factory.test.dut import power
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import Spawn
@@ -39,7 +40,9 @@ class SystemInfo(object):
   release_image_channel = None
   allowed_release_channels = ['dev', 'beta', 'stable']
 
-  def __init__(self):
+  def __init__(self, dut_instance=None):
+    self.dut = dut.Create() if dut_instance is None else dut_instance
+
     self.mlb_serial_number = None
     try:
       self.mlb_serial_number = test.shopfloor.GetDeviceData()[
@@ -170,13 +173,13 @@ class SystemInfo(object):
 
     self.ec_version = None
     try:
-      self.ec_version = GetBoard().GetECVersion()
+      self.ec_version = self.dut.ec.GetECVersion()
     except:
       pass
 
     self.pd_version = None
     try:
-      self.pd_version = GetBoard().GetPDVersion()
+      self.pd_version = self.dut.ec.GetPDVersion()
     except:
       pass
 
@@ -299,7 +302,7 @@ class SystemStatus(object):
   # charge status.
   charge_manager = None
 
-  def __init__(self):
+  def __init__(self, dut_instance=None):
     def _CalculateBatteryFractionFull(battery):
       for t in ['charge', 'energy']:
         now = battery['%s_now' % t]
@@ -308,6 +311,7 @@ class SystemStatus(object):
           return float(now) / full
       return None
 
+    self.dut = dut.Create() if dut_instance is None else dut_instance
     self.battery = {}
     self.battery_sysfs_path = None
     path_list = glob.glob('/sys/class/power_supply/*/type')

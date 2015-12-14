@@ -23,7 +23,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory import system
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -77,7 +76,6 @@ class RaidenCCFlipCheck(unittest.TestCase):
     self._template.SetTitle(_TEST_TITLE)
     if self.args.ask_flip_operation and self.args.timeout_secs == 0:
       self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
-    self._board = system.GetBoard(self.dut)
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')
     self._double_cc_quick_check = (
@@ -105,7 +103,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
     if self._double_cc_quick_check:
       return self._bft_fixture.GetPDState()['polarity']
 
-    port_status = self._board.GetUSBPDStatus(self.args.raiden_index)
+    port_status = self.dut.ec.GetUSBPDStatus(self.args.raiden_index)
     # For newer version EC, port_status[state] will return string instead of
     # state number.
     if self._adb_remote_test or self._bft_fixture.IsParallelTest():
