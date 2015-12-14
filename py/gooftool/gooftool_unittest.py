@@ -591,15 +591,41 @@ class GooftoolTest(unittest.TestCase):
   def testSetFirmwareBitmapLocalePass(self):
     """Test for a normal process of setting firmware bitmap locale."""
 
-    # Stub data from VPD for en.
+    # Stub data from VPD for zh.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
     self._gooftool._read_ro_vpd('firmware').AndReturn(
         {'region': 'tw'})
-    self._gooftool._named_temporary_file().AndReturn(MockFile())
-    self._gooftool._util.shell('gbb_utility -g --bmpfv=filename firmware')
 
-    # Stub for multiple available locales in the firmware bitmap.
-    self._gooftool._unpack_bmpblock('read_results').AndReturn(
+    f = MockFile()
+    f.read = lambda: 'ja\nzh\nen'
+    image_file = 'firmware'
+    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._util.shell(
+        'cbfstool %s extract -n locales -f %s' % (image_file, f.name))
+
+    # Expect index = 1 for zh is matched.
+    self._gooftool._util.shell('crossystem loc_idx=1')
+
+    self.mox.ReplayAll()
+    self._gooftool.SetFirmwareBitmapLocale()
+
+  def testSetFirmwareBitmapLocaleNoCbfs(self):
+    """Test for legacy firmware, which stores locale in bmpblk."""
+
+    # Stub data from VPD for zh.
+    self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
+    self._gooftool._read_ro_vpd('firmware').AndReturn(
+        {'region': 'tw'})
+
+    f = MockFile()
+    f.read = lambda: ''
+    image_file = 'firmware'
+    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._util.shell(
+        'cbfstool %s extract -n locales -f %s' % (image_file, f.name))
+    self._gooftool._util.shell(
+        'gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
+    self._gooftool._unpack_bmpblock(f.read()).AndReturn(
         {'locales': ['ja', 'zh', 'en']})
 
     # Expect index = 1 for zh is matched.
@@ -616,13 +642,15 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
     self._gooftool._read_ro_vpd('firmware').AndReturn(
         {'region': 'us'})
-    self._gooftool._named_temporary_file().AndReturn(MockFile())
-    self._gooftool._util.shell('gbb_utility -g --bmpfv=filename firmware')
 
+    f = MockFile()
     # Stub for multiple available locales in the firmware bitmap, but missing
     # 'en'.
-    self._gooftool._unpack_bmpblock('read_results').AndReturn(
-        {'locales': ['ja', 'fr', 'zh']})
+    f.read = lambda: 'ja\nzh\nfr'
+    image_file = 'firmware'
+    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._util.shell(
+        'cbfstool %s extract -n locales -f %s' % (image_file, f.name))
 
     self.mox.ReplayAll()
     self.assertRaises(Error, self._gooftool.SetFirmwareBitmapLocale)

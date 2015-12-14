@@ -671,10 +671,10 @@ class Gooftool(object):
     with self._named_temporary_file() as f:
       self._util.shell(
           'cbfstool %s extract -n locales -f %s' % (image_file, f.name))
-      bitmap_locales = f.read().split('\n')
+      bitmap_locales = f.read()
       # We reach here even if cbfstool command fails
       if bitmap_locales:
-        return bitmap_locales
+        return bitmap_locales.split('\n')
       # Looks like image does not have locales file. Do the old-fashioned way
       self._util.shell('gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
       bmpblk_data = self._unpack_bmpblock(f.read())
