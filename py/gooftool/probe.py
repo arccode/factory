@@ -34,14 +34,12 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory import system
 from cros.factory.gooftool import edid
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
 from cros.factory.gooftool.common import Shell
 # pylint: disable=E0611
 from cros.factory.hwid.v2.hwid_tool import ProbeResults, COMPACT_PROBE_STR
-from cros.factory.system import board
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.l10n import regions
@@ -1269,9 +1267,9 @@ def _ProbePmic():
 
 @_ComponentProbe('board_version')
 def _ProbeBoardVersion():
-  try:
-    board_version = system.GetBoard().GetBoardVersion()
-  except board.BoardException:
+  # TODO(hungte) Support remote DUT.
+  board_version = dut.Create().info.board_version
+  if board_version is None:
     return []
   else:
     return [{COMPACT_PROBE_STR: board_version}]
@@ -1538,7 +1536,7 @@ def Probe(target_comp_classes=None,
     volatiles['ro_ec_firmware'] = {'version': dut_instance.ec.GetECVersion()}
     volatiles['ro_pd_firmware'] = {'version': dut_instance.ec.GetPDVersion()}
     volatiles['ro_main_firmware'] = {
-        'version': system.GetBoard().GetMainFWVersion()}
+        'version': dut_instance.info.ro_firmware_version}
     probe_volatile = False
     probe_initial_config = False
     probe_vpd = False

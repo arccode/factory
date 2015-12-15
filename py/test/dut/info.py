@@ -185,9 +185,18 @@ class SystemInfo(component.DUTComponent):
     return self._dut.CallOutput(['crossystem', 'fwid']).strip()
 
   @InfoProperty
+  def ro_firmware_version(self):
+    """Version of RO main firmware."""
+    return self._dut.CallOutput(['crossystem', 'ro_fwid']).strip()
+
+  @InfoProperty
   def mainfw_type(self):
     """Type of main firmware."""
     return self._dut.CallOutput(['crossystem', 'mainfw_type']).strip()
+
+  @InfoProperty
+  def board_version(self):
+    return self._dut.CallOutput(['mosys', 'platform', 'version']).strip()
 
   @InfoProperty
   def ec_version(self):

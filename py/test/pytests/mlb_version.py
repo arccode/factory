@@ -10,7 +10,6 @@ import re
 import unittest
 
 import factory_common   # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test import args
 from cros.factory.test import phase
 
@@ -27,7 +26,7 @@ class MLBVersionTest(unittest.TestCase):
   ]
 
   def runTest(self):
-    board_version = system.GetBoard(self.dut).GetBoardVersion()
+    board_version = self.dut.info.board_version
     if self.args.expected_version:
       self.assertEquals(
           self.args.expected_version, board_version,
