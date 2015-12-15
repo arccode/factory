@@ -944,9 +944,9 @@ class Goofy(GoofyBase):
     def handle_check_for_update(reached_shopfloor, md5sum, needs_update):
       if reached_shopfloor:
         new_update_md5sum = md5sum if needs_update else None
-        if system.state.SystemInfo.update_md5sum != new_update_md5sum:
+        if self.dut.info.update_md5sum != new_update_md5sum:
           logging.info('Received new update MD5SUM: %s', new_update_md5sum)
-          system.state.SystemInfo.update_md5sum = new_update_md5sum
+          self.dut.info.Overrides('update_md5sum', new_update_md5sum)
           self.run_enqueue(self.update_system_info)
       else:
         if not self._suppress_periodic_update_messages:
@@ -1124,11 +1124,11 @@ class Goofy(GoofyBase):
 
   def update_system_info(self):
     """Updates system info."""
-    system_info = system.state.SystemInfo()
-    self.state_instance.set_shared_data('system_info', system_info.__dict__)
+    info = self.dut.info.GetAll()
+    self.state_instance.set_shared_data('system_info', info)
     self.event_client.post_event(Event(Event.Type.SYSTEM_INFO,
-                                       system_info=system_info.__dict__))
-    logging.info('System info: %r', system_info.__dict__)
+                                       system_info=info))
+    logging.info('System info: %r', info)
 
   def update_factory(self, auto_run_on_restart=False, post_update_hook=None):
     """Commences updating factory software.
@@ -1449,8 +1449,8 @@ class Goofy(GoofyBase):
     phase.SetPersistentPhase(self.test_list.options.phase)
 
     # For netboot firmware, mainfw_type should be 'netboot'.
-    if (system.state.SystemInfo().mainfw_type != 'nonchrome' and
-        system.state.SystemInfo().firmware_version is None):
+    if (self.dut.info.mainfw_type != 'nonchrome' and
+        self.dut.info.firmware_version is None):
       self.state_instance.set_shared_data(
           'startup_error',
           'Netboot firmware detected\n'

@@ -22,7 +22,6 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import Gooftool
-from cros.factory.system.state import SystemInfo
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import phase
@@ -210,9 +209,8 @@ class Finalize(unittest.TestCase):
       self.ui.Fail('Exception during finalization: %s' % e)
 
   def LogImageVersion(self):
-    system_info = SystemInfo()
-    release_image_version = system_info.release_image_version
-    factory_image_version = system_info.factory_image_version
+    release_image_version = self.dut.info.release_image_version
+    factory_image_version = self.dut.info.factory_image_version
     if release_image_version:
       logging.info('release image version: %s', release_image_version)
     else:

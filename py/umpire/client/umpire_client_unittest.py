@@ -13,7 +13,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import state
+from cros.factory.test.dut import board
 from cros.factory.tools import build_board
 from cros.factory.umpire.client.umpire_client import UmpireClientInfo
 
@@ -145,11 +145,11 @@ class UmpireClientInfoTest(unittest.TestCase):
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()
-    self.mox.StubOutWithMock(state, 'SystemInfo')
     self.mox.StubOutWithMock(build_board, 'BuildBoard')
     # pylint: disable=E1101
     build_board.BuildBoard().MultipleTimes().AndReturn(
         mock_build_board)
+    self.dut = self.mox.CreateMock(board.DUTBoard)
 
   def tearDown(self):
     """Clean up for each test."""
@@ -157,12 +157,10 @@ class UmpireClientInfoTest(unittest.TestCase):
 
   def testGetXUmpireDUT(self):
     """Inits an UmpireClientInfo and checks GetXUmpireDUT."""
-    state.SystemInfo().AndReturn(
-        mock_system_info_1)
-
+    self.dut.info = mock_system_info_1
     self.mox.ReplayAll()
 
-    client_info = UmpireClientInfo()
+    client_info = UmpireClientInfo(self.dut)
     output_x_umpire_dut = client_info.GetXUmpireDUT()
     self.assertEqual(
         output_x_umpire_dut, OUTPUT_X_UMPIRE_DUT)
@@ -173,14 +171,11 @@ class UmpireClientInfoTest(unittest.TestCase):
   def testGetDUTInfoComponents(self):
     """Inits an UmpireClientInfo and checks GetDUTInfoComponents."""
     self.maxDiff = 2048
-    state.SystemInfo().AndReturn(
-        mock_system_info_1)
-    state.SystemInfo().AndReturn(
-        mock_system_info_1)
+    self.dut.info = mock_system_info_1
 
     self.mox.ReplayAll()
 
-    client_info = UmpireClientInfo()
+    client_info = UmpireClientInfo(self.dut)
     output_get_update_dut_info = client_info.GetDUTInfoComponents()
     self.assertEqual(
         output_get_update_dut_info, OUTPUT_GET_UPDATE_DUT_INFO)
@@ -190,26 +185,17 @@ class UmpireClientInfoTest(unittest.TestCase):
 
   def testUpdate(self):
     """Inits an UmpireClientInfo and checks Update."""
-    state.SystemInfo().AndReturn(
-        mock_system_info_1)
-    # There is update.
-    state.SystemInfo().AndReturn(
-        mock_system_info_2)
-    # There is no update.
-    state.SystemInfo().AndReturn(
-        mock_system_info_2)
-    # There is update.
-    state.SystemInfo().AndReturn(
-        mock_system_info_3)
-    # There is update in system info, but not for X-Umpire-DUT.
-    state.SystemInfo().AndReturn(
-        mock_system_info_4)
 
     self.mox.ReplayAll()
-    client_info = UmpireClientInfo()
+    self.dut.info = mock_system_info_1
+    client_info = UmpireClientInfo(self.dut)
+    self.dut.info = mock_system_info_2
     self.assertEqual(client_info.Update(), True)
+    self.dut.info = mock_system_info_2
     self.assertEqual(client_info.Update(), False)
+    self.dut.info = mock_system_info_3
     self.assertEqual(client_info.Update(), True)
+    self.dut.info = mock_system_info_4
     self.assertEqual(client_info.Update(), False)
 
     self.mox.VerifyAll()

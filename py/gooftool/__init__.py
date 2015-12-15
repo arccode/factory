@@ -30,7 +30,6 @@ from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.decoder import Decode
 from cros.factory.hwid.v3.encoder import Encode, BOMToBinaryString
 from cros.factory.hwid.v3.encoder import BinaryStringToEncodedString
-from cros.factory.system.state import SystemInfo
 from cros.factory.test import branding
 from cros.factory.test import dut
 from cros.factory.test import phase
@@ -493,8 +492,8 @@ class Gooftool(object):
           be different per board. It should be the subset or the same set
           of the allowed release channels.
     """
-    release_channel = SystemInfo().release_image_channel
-    allowed_channels = SystemInfo().allowed_release_channels
+    release_channel = self._dut.info.release_image_channel
+    allowed_channels = self._dut.info.allowed_release_channels
 
     if enforced_channels is None:
       enforced_channels = allowed_channels
@@ -798,7 +797,7 @@ class Gooftool(object):
     # device secret key in VPD. Version 6887.0.0 is the first one that has the
     # session_manager change to generate server-backed state keys for forced
     # re-enrollment from the stable device secret.
-    release_image_version = LooseVersion(SystemInfo().release_image_version)
+    release_image_version = LooseVersion(self._dut.info.release_image_version)
     if not release_image_version >= LooseVersion('6887.0.0'):
       raise Error, 'Release image version can\'t handle stable device secret!'
 

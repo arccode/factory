@@ -21,6 +21,7 @@ from cros.factory.test.dut import display
 from cros.factory.test.dut import ec
 from cros.factory.test.dut.links import utils as link_utils
 from cros.factory.test.dut import hooks
+from cros.factory.test.dut import info
 from cros.factory.test.dut import led
 from cros.factory.test.dut import power
 from cros.factory.test.dut import status
@@ -99,6 +100,10 @@ class DUTBoard(object):
   @DUTProperty
   def hooks(self):
     return hooks.DUTHooks(self)
+
+  @DUTProperty
+  def info(self):
+    return info.SystemInfo(self)
 
   @DUTProperty
   def led(self):

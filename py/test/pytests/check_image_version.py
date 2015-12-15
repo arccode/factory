@@ -16,7 +16,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.system.state import SystemInfo
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -131,9 +130,9 @@ class ImageCheckTask(FactoryTask):
 
   def CheckImageVersion(self):
     if self._test.args.check_release_image:
-      ver = SystemInfo().release_image_version
+      ver = self.dut.info.release_image_version
     else:
-      ver = SystemInfo().factory_image_version
+      ver = self.dut.info.factory_image_version
     Log('image_version', version=ver)
     version_format = (LooseVersion if self._test.args.loose_version
                       else StrictVersion)

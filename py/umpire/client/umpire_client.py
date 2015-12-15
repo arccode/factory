@@ -11,7 +11,7 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import DUT_INFO_KEYS, DUT_INFO_KEY_PREFIX
-from cros.factory import system
+from cros.factory.test import dut
 from cros.factory.tools import build_board
 
 # The component keys in the return value of GetUpdate RPC call.
@@ -80,10 +80,10 @@ class UmpireClientInfo(object):
       'serial_number', 'mlb_serial_number', 'firmware_version',
       'ec_version', 'pd_version', 'macs', 'stage']
 
-  def __init__(self):
+  def __init__(self, dut=None):
     super(UmpireClientInfo, self).__init__()
     # serial_number, mlb_serial_number, firmware, ec and wireless mac address
-    # are detected in system.state.SystemInfo module.
+    # are detected in dut.info.SystemInfo module.
     self.serial_number = None
     self.mlb_serial_number = None
     self.board = build_board.BuildBoard().full_name
@@ -92,6 +92,7 @@ class UmpireClientInfo(object):
     self.pd_version = None
     self.macs = dict()
     self.stage = None
+    self.dut = dut.Create() if dut is None else dut
 
     self.Update()
 
@@ -102,7 +103,7 @@ class UmpireClientInfo(object):
       True if client info is changed.
     """
     # TODO(cychiang) Set fields from SystemInfo
-    system_info = system.state.SystemInfo()
+    system_info = self.dut.info
     new_info = dict()
     new_info['serial_number'] = system_info.serial_number
     new_info['mlb_serial_number'] = system_info.mlb_serial_number
@@ -139,7 +140,7 @@ class UmpireClientInfo(object):
         ‘device_factory_toolkit’: md5sum_hash_string.
     """
     components = dict()
-    system_info = system.state.SystemInfo()
+    system_info = self.dut.info
     components['rootfs_test'] = system_info.factory_image_version
     components['rootfs_release'] = system_info.release_image_version
     components['firmware_ec'] = system_info.ec_version
