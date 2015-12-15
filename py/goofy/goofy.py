@@ -990,7 +990,7 @@ class Goofy(GoofyBase):
       status_filter: List of available test states. Only run the tests which
         states are in the list. Set to None if all test states are available.
     """
-    system.GetBoard().OnTestStart()
+    self.dut.hooks.OnTestStart()
 
     if type(subtrees) != list:
       subtrees = [subtrees]
@@ -1616,7 +1616,7 @@ class Goofy(GoofyBase):
     self.state_instance.set_shared_data('tests_after_shutdown', None)
     self.restore_active_run_state()
 
-    system.GetBoard().OnTestStart()
+    self.dut.hooks.OnTestStart()
 
     self.may_disable_cros_shortcut_keys()
 
@@ -2074,7 +2074,7 @@ class Goofy(GoofyBase):
       self.reap_completed_tests()
 
   def test_fail(self, test):
-    system.GetBoard().OnTestFailure(test)
+    self.dut.hooks.OnTestFailure(test)
     if self.link_manager:
       self.link_manager.UpdateStatus(False)
 

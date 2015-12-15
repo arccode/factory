@@ -35,7 +35,6 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -111,11 +110,10 @@ class Report(unittest.TestCase):
     all_pass = overall_status in (factory.TestState.PASSED,
                                   factory.TestState.FAILED_AND_WAIVED)
 
-    board = system.GetBoard(self.dut)
     if all_pass:
-      board.OnSummaryGood()
+      self.dut.hooks.OnSummaryGood()
     else:
-      board.OnSummaryBad()
+      self.dut.hooks.OnSummaryBad()
     """factory.get_state_instance().UpdateStatus(all_pass) will call
     UpdateStatus in goofy_rpc.py, and notify ui to update the color of
     dut's tab.
