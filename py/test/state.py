@@ -30,7 +30,7 @@ from uuid import uuid4
 from jsonrpclib import jsonclass
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
-from cros.factory import system
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test import unicode_to_string
@@ -165,6 +165,9 @@ class FactoryState(object):
     self._generated_data = {}
     self._generated_data_expiration = Queue.PriorityQueue()
     self._resolver = PathResolver()
+
+    # TODO(hungte) Support remote dynamic DUT.
+    self._dut = dut.Create()
 
     if TestState not in jsonclass.supported_types:
       jsonclass.supported_types.append(TestState)
@@ -466,9 +469,9 @@ class FactoryState(object):
     '''Returns system status information.
 
     This may include system load, battery status, etc. See
-    system.state.SystemStatus().
+    cros.factory.test.dut.status.SystemStatus.
     '''
-    return system.state.SystemStatus().__dict__
+    return self._dut.status.Snapshot().__dict__
 
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,

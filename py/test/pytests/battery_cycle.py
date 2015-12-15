@@ -23,7 +23,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.system.state import SystemStatus
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
@@ -95,7 +94,7 @@ class BatteryCycleTest(unittest.TestCase):
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.status = SystemStatus()
+    self.status = self.dut.status.Snapshot()
     self.template = ui_templates.OneSection(self.ui)
     self.template.SetState(HTML)
     self.ui.AppendCSS(CSS)
@@ -210,7 +209,7 @@ class BatteryCycleTest(unittest.TestCase):
       phase_start_time = time.time()
       last_log_time = None
       while True:
-        self.status = SystemStatus()
+        self.status = self.dut.status.Snapshot()
         now = time.time()
         if (last_log_time is None) or (
             now - last_log_time >= self.args.log_interval_secs):

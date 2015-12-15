@@ -15,59 +15,9 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.system import partitions
 from cros.factory.system import state
-from cros.factory.test import dut as dut_module
-from cros.factory.test.dut import thermal
-from cros.factory.test.dut.board import DUTProperty
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
                                   'CHROMEOS_RELEASE_TRACK=canary-channel\n')
-
-
-class SystemStatusTest(unittest.TestCase):
-  """Unittest for SystemStatus."""
-
-  def setUp(self):
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-
-  def runTest(self):
-
-    # Set up mocks for Board interface
-    dut = dut_module.Create()
-    DUTProperty.Override(dut, 'thermal', self.mox.CreateMock(thermal.Thermal))
-    self.mox.StubOutWithMock(state, 'GetBoard')
-    # Set up mocks for netifaces.
-    netifaces = state.netifaces = self.mox.CreateMockAnything()
-    netifaces.AF_INET = 2
-    netifaces.AF_INET6 = 10
-
-    dut.thermal.GetFanRPM().AndReturn([2000])
-    dut.thermal.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
-    dut.thermal.GetMainTemperatureIndex().AndReturn(2)
-    netifaces.interfaces().AndReturn(['lo', 'eth0', 'wlan0'])
-    netifaces.ifaddresses('eth0').AndReturn(
-        {netifaces.AF_INET6: [{'addr': 'aa:aa:aa:aa:aa:aa'}],
-         netifaces.AF_INET: [{'broadcast': '192.168.1.255',
-                              'addr': '192.168.1.100'}]})
-    netifaces.ifaddresses('wlan0').AndReturn(
-        {netifaces.AF_INET: [{'addr': '192.168.16.100'},
-                             {'addr': '192.168.16.101'}]})
-    self.mox.ReplayAll()
-
-    # Don't care about the values; just make sure there's something
-    # there.
-    status = state.SystemStatus(dut)
-    # Don't check battery, since this system might not even have one.
-    self.assertTrue(isinstance(status.battery, dict))
-    self.assertEquals(3, len(status.load_avg))
-    self.assertEquals(10, len(status.cpu))
-    self.assertEquals(
-        'eth0=192.168.1.100, wlan0=192.168.16.100+192.168.16.101',
-        status.ips)
-
-    self.mox.VerifyAll()
 
 
 class SystemInfoTest(unittest.TestCase):

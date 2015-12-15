@@ -20,7 +20,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.state import SystemStatus
 from cros.factory.test.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.utils import LoadManager
@@ -51,8 +50,9 @@ class ThermalLoadTest(unittest.TestCase):
   def GetTemperatures(self):
     """Gets the temperature reading from specified sensor."""
     temperatures = []
+    system_temperatures = self.dut.status.temperatures
     for sensor_index in self.args.sensor_index:
-      temperatures.append(SystemStatus().temperatures[sensor_index])
+      temperatures.append(system_temperatures[sensor_index])
     return temperatures
 
   def CheckTemperatures(self, temperatures, elapsed):

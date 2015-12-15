@@ -16,7 +16,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.system.state import SystemInfo, SystemStatus
+from cros.factory.system.state import SystemInfo
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -81,7 +81,7 @@ class ImageCheckTask(FactoryTask):
     self._test = test
 
   def CheckNetwork(self):
-    while not SystemStatus().eth_on:
+    while not self.dut.status.eth_on:
       time.sleep(0.5)
       self._test.template.SetState(_MSG_NETWORK)
 

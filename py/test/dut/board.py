@@ -23,6 +23,7 @@ from cros.factory.test.dut.links import utils as link_utils
 from cros.factory.test.dut import hooks
 from cros.factory.test.dut import led
 from cros.factory.test.dut import power
+from cros.factory.test.dut import status
 from cros.factory.test.dut import temp
 from cros.factory.test.dut import thermal
 from cros.factory.test.dut import vpd
@@ -126,6 +127,11 @@ class DUTBoard(object):
   @DUTProperty
   def vpd(self):
     return vpd.VitalProductData(self)
+
+  @DUTProperty
+  def status(self):
+    """Returns live system status (dynamic data like CPU loading)."""
+    return status.SystemStatus(self)
 
   # Helper functions to access DUT via link.
 

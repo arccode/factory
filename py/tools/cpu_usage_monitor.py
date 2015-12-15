@@ -8,7 +8,6 @@ import logging
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.utils import process_utils
 
@@ -23,13 +22,13 @@ class CPUUsageMonitor(object):
   # Only reports processes with CPU usage exceeding this threshold.
   CPU_THRESHOLD = 10
 
-  def __init__(self, period_secs):
+  def __init__(self, period_secs, dut):
     self._period_secs = period_secs
+    self.dut = dut
     factory.init_logging()
 
   def _GetLoadString(self):
-    return ', '.join('%.1f' % load for load in
-                     system.state.SystemStatus().load_avg)
+    return ', '.join('%.1f' % load for load in self.dut.status.load_avg)
 
   def Check(self):
     """Checks the current CPU usage status.
@@ -41,6 +40,8 @@ class CPUUsageMonitor(object):
     try:
       msg.append('Load average: %s' % self._GetLoadString())
 
+      # TODO(hungte) Change process_utils.CheckOutput to dut.CheckOutput so we
+      # can support getting remote system load.
       # Get column legend from 'top' and throw away summary header and legend
       top_output = process_utils.CheckOutput(
           ['top', '-b', '-c', '-n', '1']).split('\n')
@@ -75,7 +76,10 @@ def main():
                       type=int, required=False, default=120)
   args = parser.parse_args()
 
-  monitor = CPUUsageMonitor(args.period_secs)
+  # TODO(hungte) This currently only reads from local system. We need to expore
+  # DUT options and allow reading from remote in future.
+  from cros.factory.test import dut
+  monitor = CPUUsageMonitor(args.period_secs, dut.Create())
   monitor.CheckForever()
 
 if __name__ == '__main__':

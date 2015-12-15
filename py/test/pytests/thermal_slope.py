@@ -37,7 +37,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.state import SystemStatus
 from cros.factory.system.msr import MSRSnapshot
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
@@ -109,7 +108,7 @@ class ThermalSlopeTest(unittest.TestCase):
     is False).
     '''
     self.msr = MSRSnapshot(self.msr)
-    self.system_status = SystemStatus()
+    self.system_status = self.dut.status
     elapsed_time = time.time() - self.stage_start_time
     self.log.info(
         u'%s (%.1f s): fan_rpm=%d, temp=%d°C, pkg_power_w=%.3f W' % (
