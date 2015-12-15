@@ -1,8 +1,8 @@
-Board API
-=========
+DUT and Board API
+=================
 
 If you need to implement test behavior in a board-specific way, use or
-extend :py:class:`cros.factory.system.board.Board`.  This class
+extend :py:class:`cros.factory.test.dut.board.DUTBoard`.  This class
 provides board-specific functionality, e.g.:
 
 - forcing device charge state
@@ -12,23 +12,23 @@ provides board-specific functionality, e.g.:
 
 Obtaining a Board object
 ------------------------
-To obtain a :py:class:`cros.factory.system.board.Board` object for the
+To obtain a :py:class:`cros.factory.test.dut.board.DUTBoard` object for the
 device under test, use the following function:
 
-.. py:module:: cros.factory.system
+.. py:module:: cros.factory.test.dut
 
-.. autofunction:: GetBoard
+.. autofunction:: Create
 
 .. _board-api-extending:
 
 Extending the Board class
 -------------------------
 The :py:class:`cros.factory.board.chromeos_board.ChromeOSBoard` class
-is the default implementation of :py:class:`cros.factory.system.board.Board`,
+is the default implementation of :py:class:`cros.factory.test.dut.board.DUTBoard`,
 but you may find that you need to customize or override certain functionality
 for your project. To do so:
 
-#. Define a new subclass of :py:class:`cros.factory.system.board.Board`
+#. Define a new subclass of :py:class:`cros.factory.test.dut.board.DUTBoard`
    in the :py:mod:`cros.factory.board` package.  In general, for a board
    named :samp:`{xxx}`, you will add a
    file :samp:`private-overlays/overlay-{xxx}-private/chromeos-base/chromeos-factory-board/files/py/board/{xxx}_board.py`
@@ -45,7 +45,7 @@ for your project. To do so:
    Generally, your class should be derived from the
    :py:class:`cros.factory.board.chromeos_board.ChromeOSBoard` class, but if your
    device has no EC or a standard EC, you may wish to directly subclass
-   :py:class:`cros.factory.system.board.Board`.
+   :py:class:`cros.factory.test.dut.board.DUTBoard`.
 
 #. Specify that your implementation should be used.  To do this, in
    :samp:`private-overlays/overlay-{board}-private/chromeos-base/chromeos-factory-board/files/board/board_setup_factory.sh`,
@@ -57,7 +57,7 @@ Adding new methods to the Board class
 -------------------------------------
 If you need to perform some system operation in a highly CrOS-specific
 or board-specific way, you may need to add a new method to the
-:py:class:`cros.factory.system.board.Board` class.
+:py:class:`cros.factory.test.dut.board.DUTBoard` class.
 
 Let's say that you're working on a cool new CrOS device ("mintyfresh")
 with a built-in air freshener, and you need to write a test for this
@@ -70,7 +70,7 @@ game-changing new component.  Consider the following questions:
   user-level program ``airfreshenerctl enable``.)
 
   In this case there is no reason to add a method to
-  :py:class:`cros.factory.system.board.Board`, since no one will ever
+  :py:class:`cros.factory.test.dut.board.DUTBoard`, since no one will ever
   need to override it.  Simply add a new function
   ``SetAirFreshenerActive(active)`` to one of the utility modules in
   :py:mod:`cros.factory.util`; or if the component is better
@@ -84,7 +84,7 @@ game-changing new component.  Consider the following questions:
   may need to implement this differently.)
 
   In this case, add an abstract method to
-  :py:class:`cros.factory.system.board.Board` and a default
+  :py:class:`cros.factory.test.dut.board.DUTBoard` and a default
   implementation in
   :py:class:`cros.factory.board.chromeos_board.ChromeOSBoard`; it will
   work for "standard" devices but can be overridden as necessary.
@@ -93,7 +93,7 @@ game-changing new component.  Consider the following questions:
   you need to control the device via a hard-coded register on the I2C bus.)
 
   If so, add an abstract method to
-  :py:class:`cros.factory.system.board.Board` and provide the
+  :py:class:`cros.factory.test.dut.board.DUTBoard` and provide the
   implementation directly in your
   :py:class:`cros.factory.board.MintyFreshBoard` class.  Don't provide
   an implementation in
@@ -105,7 +105,7 @@ game-changing new component.  Consider the following questions:
   If so, simply implement your functionality in
   :py:class:`cros.factory.board.MintyFreshBoard`.  Once the device is
   launched, add a method to
-  :py:class:`cros.factory.system.board.Board` and move your
+  :py:class:`cros.factory.test.dut.board.DUTBoard` and move your
   implementation to
   :py:class:`cros.factory.board.chromeos_board.ChromeOSBoard` so it
   can be re-used for future devices.
@@ -114,11 +114,7 @@ game-changing new component.  Consider the following questions:
 API Documentation
 -----------------
 
-.. py:module:: cros.factory.system.board
+.. py:module:: cros.factory.test.dut.board
 
-.. autoclass:: Board
+.. autoclass:: DUTBoard
    :members:
-
-.. py:module:: cros.factory.board.chromeos_board
-
-.. autoclass:: ChromeOSBoard

@@ -14,8 +14,9 @@ import subprocess
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.board.chromeos_board import Board
+from cros.factory.board.chromeos_board import BoardException
 from cros.factory.board.chromeos_board import ChromeOSBoard
-from cros.factory.system.board import Board, BoardException
 from cros.factory.test.dut.power import Power
 
 

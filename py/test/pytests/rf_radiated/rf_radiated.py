@@ -64,7 +64,6 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory import system
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
@@ -173,7 +172,6 @@ class RFRadiatedTest(unittest.TestCase):
   def _InitLog(self):
     # Initialize the log dict, which will later be fed into event log and
     # stored as an aux_log on shopfloor.
-    board = system.GetBoard(self.dut)
     self.log = {
         'config': {
             'file_path': None,
@@ -182,9 +180,9 @@ class RFRadiatedTest(unittest.TestCase):
             'antenna_model': None,
             'device_id': event_log.GetDeviceId(),
             'mac_address': net_utils.GetWLANMACAddress(),
-            'serial_number': board.GetSerialNumber(),
-            'mlb_serial_number': board.GetMlbSerialNumber(),
-            'nvidia_serial_number': board.GetNvidiaSerialNumber()},
+            'serial_number': self.dut.GetSerialNumber(),
+            'mlb_serial_number': self.dut.GetMlbSerialNumber(),
+            'nvidia_serial_number': self.dut.GetNvidiaSerialNumber()},
         'test': {
             'start_time': None,
             'end_time': None,

@@ -18,7 +18,6 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -97,7 +96,6 @@ class RaidenDisplayTest(unittest.TestCase):
     self._template = ui_templates.TwoSections(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendHTML(_HTML_DISPLAY)
-    self._board = system.GetBoard(self.dut)
 
     self._static_dir = self._ui.GetStaticDirectoryPath()
     self._display_image_path = os.path.join(self._static_dir, 'template.png')
@@ -169,14 +167,14 @@ class RaidenDisplayTest(unittest.TestCase):
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=True)
       time.sleep(0.5)
       # DUT control for Raiden function: DP mode
-      self._board.ResetHPD(self.args.raiden_index)
+      self.dut.ResetHPD(self.args.raiden_index)
       time.sleep(1)  # Wait for reset HPD response
-      self._board.SetHPD(self.args.raiden_index)
-      self._board.SetRaiden(self.args.raiden_index, 'DP')
+      self.dut.SetHPD(self.args.raiden_index)
+      self.dut.SetRaiden(self.args.raiden_index, 'DP')
       utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
     else:
       self._template.SetInstruction(_DISCONNECT_STR(self._bft_media_device))
-      self._board.ResetHPD(self.args.raiden_index)
+      self.dut.ResetHPD(self.args.raiden_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
       utils.WaitFor(lambda: not self._PollDisplayConnected(), timeout_secs=10)
 
