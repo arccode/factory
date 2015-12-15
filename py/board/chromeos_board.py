@@ -15,7 +15,28 @@ import re
 from cros.factory.system.board import Board, BoardException
 from cros.factory.test.dut.power import Power
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.type_utils import Enum
 
+# Local hacks for running unit tests on legacy implementation.
+# TODO(hungte) Remove these once we have finished Board migration to DUT.
+Board.LEDColor = Enum(['AUTO', 'OFF', 'RED', 'GREEN', 'BLUE', 'YELLOW', 'WHITE'])
+"""Charger LED colors.
+
+- ``AUTO``: Use the default logic to select the LED color.
+- ``OFF``: Turn the LED off.
+- others: The respective colors.
+"""
+
+Board.LEDIndex = Enum(['POWER', 'BATTERY', 'ADAPTER'])
+"""LED names.
+
+- ``POWER``: Power LED.
+- ``BATTERY``: Battery LED.
+- ``ADAPTER``: Adapter LED.
+"""
+
+Board.AUTO = 'auto'
+"""Constant representing automatic fan speed."""
 
 class ChromeOSBoard(Board):
   """Default implementation of the :py:class:`cros.factory.system.board.Board`

@@ -54,24 +54,6 @@ class Board(object):
 
   Error = BoardException
 
-  LEDColor = Enum(['AUTO', 'OFF', 'RED', 'GREEN', 'BLUE', 'YELLOW', 'WHITE'])
-  """Charger LED colors.
-
-  - ``AUTO``: Use the default logic to select the LED color.
-  - ``OFF``: Turn the LED off.
-  - others: The respective colors.
-  """
-
-  LEDIndex = Enum(['POWER', 'BATTERY', 'ADAPTER'])
-  """LED names.
-
-  - ``POWER``: Power LED.
-  - ``BATTERY``: Battery LED.
-  - ``ADAPTER``: Adapter LED.
-  """
-
-  AUTO = 'auto'
-  """Constant representing automatic fan speed."""
 
   # Functions that are used in Goofy. Must be implemented.
 
@@ -94,16 +76,6 @@ class Board(object):
     raise NotImplementedError
 
   # Optional functions. Implement them if you need them in your tests.
-  def SetLEDColor(self, color, led_name='battery', brightness=100):
-    """Sets LED color.
-
-    Args:
-      color: LED color of type LEDColor enum.
-      led_name: target LED name.
-      brightness: LED brightness in percentage [0, 100].
-          If color is 'auto' or 'off', brightness is ignored.
-    """
-    raise NotImplementedError
 
   def GetBoardVersion(self):
     """Gets the version of the board (MLB).

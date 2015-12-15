@@ -20,6 +20,7 @@ from cros.factory.test.dut import component
 from cros.factory.test.dut import display
 from cros.factory.test.dut import ec
 from cros.factory.test.dut.links import utils as link_utils
+from cros.factory.test.dut import led
 from cros.factory.test.dut import power
 from cros.factory.test.dut import temp
 from cros.factory.test.dut import thermal
@@ -92,6 +93,10 @@ class DUTBoard(object):
   @DUTProperty
   def ec(self):
     return ec.EmbeddedController(self)
+
+  @DUTProperty
+  def led(self):
+    return led.LED(self)
 
   @DUTProperty
   def path(self):

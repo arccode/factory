@@ -66,7 +66,7 @@ class BFTFixture(object):
   SystemStatus = Enum(['BACKLIGHT'])
   Status = Enum(['OFF', 'ON', 'OPEN', 'CLOSING', 'CLOSED'])
 
-  # A subset of factory.system.board.Board.LEDColor.
+  # A subset of cros.factory.test.dut.led.LED.Color.
   LEDColor = Enum(['RED', 'GREEN', 'YELLOW', 'BLUE', 'OFF'])
 
   StatusColor = Enum(['RED', 'GREEN', 'OFF'])

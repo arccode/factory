@@ -14,8 +14,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
-from cros.factory.system.board import Board
+from cros.factory.test.dut import led as led_module
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -36,8 +35,8 @@ _FAIL_LATER = True
 _SHOW_RESULT_SECONDS = 0.5
 
 I18nLabel = namedtuple('I18nLabel', 'en zh')
-LEDColor = Board.LEDColor
-LEDIndex = Board.LEDIndex
+LEDColor = led_module.LED.Color
+LEDIndex = led_module.LED.Index
 _COLOR_LABEL = {
     LEDColor.YELLOW: I18nLabel('yellow', u'黃色'),
     LEDColor.GREEN: I18nLabel('green', u'绿色'),
@@ -129,7 +128,7 @@ class CheckLEDTask(InteractiveFactoryTask):
   Args:
     ui: test_ui.UI instance.
     template: ui_templates.OneSection instance.
-    board: Board instance to control LED.
+    led: dut.led.LED instance to control LED.
     nth: The number of task.
     color: LEDColor to inspect.
     color_label: I18nLabel for inspected color.
@@ -137,11 +136,11 @@ class CheckLEDTask(InteractiveFactoryTask):
     index_label: I18nLabel for inspected index.
   """
 
-  def __init__(self, ui, template, board, nth, color, color_label,
+  def __init__(self, ui, template, led, nth, color, color_label,
                index, index_label):
     super(CheckLEDTask, self).__init__(ui)
     self._template = template
-    self._board = board
+    self._led = led
     self._nth = nth
     self._color = color
     self._color_label = color_label
@@ -152,9 +151,9 @@ class CheckLEDTask(InteractiveFactoryTask):
     """Lights LED in color and asks operator to verify it."""
     self._InitUI()
     if self._index is None:
-      self._board.SetLEDColor(self._color)
+      self._led.SetColor(self._color)
     else:
-      self._board.SetLEDColor(self._color, led_name=self._index)
+      self._led.SetColor(self._color, led_name=self._index)
 
   def _InitUI(self):
     """Sets instructions and binds pass/fail key."""
@@ -163,18 +162,18 @@ class CheckLEDTask(InteractiveFactoryTask):
   def Cleanup(self):
     """Turns the light off after the test."""
     if self._index is None:
-      self._board.SetLEDColor(LEDColor.OFF)
+      self._led.SetColor(LEDColor.OFF)
     else:
-      self._board.SetLEDColor(LEDColor.OFF, led_name=self._index)
+      self._led.SetColor(LEDColor.OFF, led_name=self._index)
 
 
 class CheckLEDTaskNormal(CheckLEDTask):
   """Checks for LED colors by asking operator to push ENTER."""
 
-  def __init__(self, ui, template, board, nth, color, color_label,
+  def __init__(self, ui, template, led, nth, color, color_label,
                index, index_label):
     super(CheckLEDTaskNormal, self).__init__(
-        ui, template, board, nth, color, color_label, index, index_label)
+        ui, template, led, nth, color, color_label, index, index_label)
 
   def _InitUI(self):
     if self._color == LEDColor.OFF:
@@ -202,10 +201,10 @@ class CheckLEDTaskChallenge(CheckLEDTask):
     challenge_colors: The colors to propose for the challenge.
   """
 
-  def __init__(self, ui, template, board, nth, color, color_label,
+  def __init__(self, ui, template, led, nth, color, color_label,
                index, index_label, challenge_colors):
     super(CheckLEDTaskChallenge, self).__init__(
-        ui, template, board, nth, color, color_label, index, index_label)
+        ui, template, led, nth, color, color_label, index, index_label)
     self._challenge_colors = challenge_colors
 
   def _InitUI(self):
@@ -247,17 +246,17 @@ class FixtureCheckLEDTask(FactoryTask):
 
   Args:
     fixture: BFTFixture instance.
-    board: Board instance to control LED.
+    led: dut.led.LED instance to control LED.
     color: LEDColor to inspect.
     color_label: I18nLabel for inspected color.
     index: Target LED to inspect (unused yet).
     index_label: I18nLabel for inspected index (unused yet).
   """
 
-  def __init__(self, fixture, board, color, color_label, index, index_label):
+  def __init__(self, fixture, led, color, color_label, index, index_label):
     super(FixtureCheckLEDTask, self).__init__()
     self._fixture = fixture
-    self._board = board
+    self._led = led
     self._color = color
     self._color_label = color_label
     self._index = index
@@ -265,7 +264,7 @@ class FixtureCheckLEDTask(FactoryTask):
 
   def Run(self):
     """Lights LED in color and asks fixture to verify it."""
-    self._board.SetLEDColor(self._color)
+    self._led.SetColor(self._color)
     self._CheckFixture()
 
   def _CheckFixture(self):
@@ -293,8 +292,7 @@ class LEDTest(unittest.TestCase):
           'select LED number instead of pre-defined sequence.', default=False),
       Arg('colors', (list, tuple),
           'List of colors or (index, color) to test. color must be in '
-          'Board.LEDColor or OFF, and index, if specified, must be in '
-          'Board.LEDIndex.',
+          'LEDColor or OFF, and index, if specified, must be in LEDIndex.',
           default=[LEDColor.YELLOW, LEDColor.GREEN, LEDColor.RED,
                    LEDColor.OFF]),
       Arg('target_leds', (list, tuple),
@@ -310,7 +308,6 @@ class LEDTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._task_manager = None
     self._fixture = None
-    self._board = system.GetBoard(self.dut)
     if self.args.bft_fixture:
       self._fixture = CreateBFTFixture(**self.args.bft_fixture)
 
@@ -345,18 +342,18 @@ class LEDTest(unittest.TestCase):
       index_label = self._GetIndexLabel(index)
 
       if self._fixture:
-        tasks.append(FixtureCheckLEDTask(self._fixture, self._board,
+        tasks.append(FixtureCheckLEDTask(self._fixture, self.dut.led,
                                          color, color_label,
                                          index, index_label))
       elif self.args.challenge:
         tasks.append(CheckLEDTaskChallenge(self._ui, self._template,
-                                           self._board, i + 1,
+                                           self.dut.led, i + 1,
                                            color, color_label,
                                            index, index_label,
                                            challenge_colors))
       else:
         tasks.append(CheckLEDTaskNormal(self._ui, self._template,
-                                        self._board, i + 1,
+                                        self.dut.led, i + 1,
                                         color, color_label,
                                         index, index_label))
 
@@ -376,15 +373,15 @@ class LEDTest(unittest.TestCase):
 
     Args:
       leds: List of LED index. None for default LED.
-      color: One of Board.LEDColor.
+      color: One of LEDColor.
     """
-    if not self._board:
+    if not self.dut.led:
       # Sanity check. It should not happen.
       return
 
     if not leds:
-      self._board.SetLEDColor(color)
+      self.dut.led.SetColor(color)
       return
 
     for led in leds:
-      self._board.SetLEDColor(color, led_name=led)
+      self.dut.led.SetColor(color, led_name=led)
