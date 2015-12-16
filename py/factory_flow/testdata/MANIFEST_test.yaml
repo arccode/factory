@@ -60,9 +60,15 @@ delete_files_from_image:
 - !glob { include: dev_image/lib/python2.*/lib2to3 }
 - !glob { include: dev_image/lib/python2.*/test }
 
-# Wipe option must be one of 'shutdown', 'battery_cut_off', 'reboot'.
+# DEPRECATED
 wipe_option:
 - battery_cut_off
+
+cutoff_option:
+  method: battery_cutoff_at_shutdown
+  check_ac: remove_ac
+  min_battery_percent: 60
+  shopfloor: http://192.168.0.1:8082
 
 # Files that are expected in the bundle.  You can use ${BOARD} here to
 # refer to the simple board name (in uppercase).  Files in 'add_files' need

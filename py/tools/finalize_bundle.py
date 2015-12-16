@@ -50,6 +50,16 @@ DELETION_MARKER_SUFFIX = '_DELETED'
 # has_firmware: [EC, BIOS, PD]
 DEFAULT_FIRMWARES = ['BIOS', 'EC']
 
+# Table for translating options from MANIFEST.yaml to lsb-factory.
+CUTOFF_OPTION = {
+    'method': 'CUTOFF_METHOD',
+    'check_ac': 'CUTOFF_AC_STATE',
+    'min_battery_percent': 'CUTOFF_BATTERY_MIN_PERCENTAGE',
+    'max_battery_percent': 'CUTOFF_BATTERY_MAX_PERCENTAGE',
+    'min_battery_voltage': 'CUTOFF_BATTERY_MIN_VOLTAGE',
+    'max_battery_voltage': 'CUTOFF_BATTERY_MAX_VOLTAGE',
+    'shopfloor': 'SHOPFLOOR_URL'}
+
 # Special string to use a local file instead of downloading one
 # (see test_image_version).
 LOCAL = 'local'
@@ -199,7 +209,8 @@ class FinalizeBundle(object):
     self.Download()
     self.BuildFactoryImage()
     self.DeleteFiles()
-    self.UpdateMiniOmahaURL()
+    self.UpdateNetbootURL()
+    self.UpdateInstallShim()
     self.PatchImage()
     self.ModifyFactoryImage()
     self.SetWipeOption()
@@ -265,7 +276,7 @@ class FinalizeBundle(object):
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
                         'patch_image_args', 'use_factory_toolkit',
                         'test_image_version', 'complete_script',
-                        'has_firmware', 'external_presenter'])
+                        'has_firmware', 'external_presenter', 'cutoff_option'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -697,6 +708,7 @@ class FinalizeBundle(object):
       with MountPartition(self.factory_image_path, 1, rw=True) as mount:
         wipe_option_path = os.path.join(mount, 'factory_wipe_option')
         WriteWithSudo(wipe_option_path, option)
+      logging.warn('wipe_option is deprecated, use in-place wipe and cutoff_option instead.')
 
   def MakeUpdateBundle(self):
     # Make the factory update bundle
@@ -707,61 +719,15 @@ class FinalizeBundle(object):
       utils.TryMakeDirs(os.path.dirname(updater_path))
       MakeUpdateBundle(self.factory_image_path, updater_path)
 
-  def UpdateMiniOmahaURL(self):
+  def UpdateNetbootURL(self):
+    """Updates Omaha & TFTP servers' URL in netboot firmware.
+
+    It takes care of both uboot and depthcharge firmware, if presents.
+    """
+
     mini_omaha_url = self.manifest.get('mini_omaha_url')
     if not mini_omaha_url:
       return
-
-    def PatchLSBFactory(mount):
-      """Patches lsb-factory in an image.
-
-      Returns:
-        True if there were any changes.
-      """
-      lsb_factory_path = os.path.join(
-          mount, 'dev_image', 'etc', 'lsb-factory')
-      logging.info('Patching URLs in %s', lsb_factory_path)
-      orig_lsb_factory = open(lsb_factory_path).read()
-      lsb_factory, number_of_subs = re.subn(
-          '(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + mini_omaha_url,
-          orig_lsb_factory)
-      if number_of_subs != 2:
-        sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
-      if lsb_factory == orig_lsb_factory:
-        return False  # No changes
-      WriteWithSudo(lsb_factory_path, lsb_factory)
-      return True
-
-    def PatchInstallShim(shim):
-      """Updates mini_omaha_url in install shim.
-
-      It also updates self.install_shim_version.
-      """
-      def GetSigningKey(shim):
-        """Derives signing key from factory install shim's file name."""
-        if shim.endswith('factory_install_shim.bin'):
-          return 'unsigned'
-        key_match = re.search(r'channel_([\w\-]+)\.bin$', shim)
-        if key_match:
-          return key_match.group(1)
-        else:
-          # Error deriving signing key
-          return 'undefined'
-
-      with MountPartition(shim, 1, rw=True) as mount:
-        PatchLSBFactory(mount)
-
-      with MountPartition(shim, 3) as mount:
-        self.install_shim_version = '%s (%s)' % (_GetReleaseVersion(mount),
-                                                 GetSigningKey(shim))
-
-    def UpdateNetbootURL():
-      """Updates Omaha & TFTP servers' URL in netboot firmware.
-
-      It takes care of both uboot and depthcharge firmware, if presents.
-      """
-      UpdateUbootNetboot()
-      UpdateDepthchargeNetboot()
 
     def UpdateUbootNetboot():
       """Updates Omaha & TFTP servers' URL in uboot netboot firmware."""
@@ -827,6 +793,84 @@ class FinalizeBundle(object):
         renamed_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
                                             'netboot', target_bootfile)
         shutil.copy(target_netboot_shim, renamed_netboot_shim)
+    UpdateUbootNetboot()
+    UpdateDepthchargeNetboot()
+
+  def UpdateInstallShim(self):
+    mini_omaha_url = self.manifest.get('mini_omaha_url')
+    cutoff_option = self.manifest.get('cutoff_option', {})
+
+    if not mini_omaha_url and not cutoff_option:
+      return
+
+    def CheckCutoffOptions(cutoff_option):
+      CheckDictKeys(cutoff_option, CUTOFF_OPTION.keys())
+
+      if 'method' in cutoff_option:
+        assert cutoff_option['method'] in ['shutdown', 'reboot',
+                                           'battery_cutoff', 'battery_cutoff_at_shutdown']
+
+      if 'check_ac' in cutoff_option:
+        assert cutoff_option['check_ac'] in ['remove_ac', 'connect_ac']
+
+      m = re.compile(r'.*_battery_.*')
+      for key, value in cutoff_option.iteritems():
+        if m.match(key):
+          assert isinstance(value, int)
+
+    def PatchLSBFactory(mount):
+      """Patches lsb-factory in an image.
+
+      Returns:
+        True if there were any changes.
+      """
+      lsb_factory_path = os.path.join(
+          mount, 'dev_image', 'etc', 'lsb-factory')
+      logging.info('Patching lsb-factory in %s', lsb_factory_path)
+      orig_lsb_factory = open(lsb_factory_path).read()
+      lsb_factory = orig_lsb_factory
+
+      if mini_omaha_url:
+        lsb_factory, number_of_subs = re.subn(
+            r'(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + mini_omaha_url, lsb_factory)
+        if number_of_subs != 2:
+          sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
+
+      if cutoff_option:
+        for key, value in cutoff_option.iteritems():
+          arg = '%s=%s' % (CUTOFF_OPTION[key], str(value))
+          lsb_factory, number_of_subs = re.subn(r'(?m)^%s=.+$' % CUTOFF_OPTION[key],
+                                                arg, lsb_factory)
+          if number_of_subs == 0:
+            lsb_factory += '\n' + arg
+
+      if lsb_factory == orig_lsb_factory:
+        return False  # No changes
+      WriteWithSudo(lsb_factory_path, lsb_factory)
+      return True
+
+    def PatchInstallShim(shim):
+      """Patches lsb-factory and updates self.install_shim_version."""
+      def GetSigningKey(shim):
+        """Derives signing key from factory install shim's file name."""
+        if shim.endswith('factory_install_shim.bin'):
+          return 'unsigned'
+        key_match = re.search(r'channel_([\w\-]+)\.bin$', shim)
+        if key_match:
+          return key_match.group(1)
+        else:
+          # Error deriving signing key
+          return 'undefined'
+
+      with MountPartition(shim, 1, rw=True) as mount:
+        PatchLSBFactory(mount)
+
+      with MountPartition(shim, 3) as mount:
+        self.install_shim_version = '%s (%s)' % (_GetReleaseVersion(mount),
+                                                 GetSigningKey(shim))
+
+    if cutoff_option:
+      CheckCutoffOptions(cutoff_option)
 
     # Patch in the install shim, if present.
     has_install_shim = False
@@ -879,8 +923,6 @@ class FinalizeBundle(object):
                    '-C', 'gzip', '-d', rootfs_gz, new_netboot_image],
                   check_call=True, log=True)
             shutil.move(new_netboot_image, netboot_image)
-
-    UpdateNetbootURL()
 
   def MakeFactoryPackages(self):
     release_images = glob.glob(os.path.join(self.bundle_dir, 'release/*.bin'))
