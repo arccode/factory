@@ -379,7 +379,10 @@ class WirelessRadiotapTest(unittest.TestCase):
           'switch_antenna_sleep_secs', int,
           'The sleep time after switchingantenna and ifconfig up. Need to '
           'decide this value carefully since itdepends on the platform and '
-          'antenna config to test.', default=10)]
+          'antenna config to test.', default=10),
+      Arg(
+          'press_space_to_start', bool,
+          'Press space to start the test.', default=True)]
 
   def setUp(self):
     self._ui = test_ui.UI()
@@ -607,9 +610,10 @@ class WirelessRadiotapTest(unittest.TestCase):
     self._space_event.set()
 
   def runTest(self):
-    # Prompts a message to tell operator to press space key when ready.
-    self.PromptSpace()
-    self._space_event.wait()
+    if self.args.press_space_to_start:
+      # Prompts a message to tell operator to press space key when ready.
+      self.PromptSpace()
+      self._space_event.wait()
     if self._done.isSet():
       return
 
