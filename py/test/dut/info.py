@@ -13,7 +13,6 @@ import re
 import factory_common  # pylint: disable=W0611
 from cros.factory import hwid
 from cros.factory import test
-from cros.factory.system import partitions
 from cros.factory.test import factory
 from cros.factory.test.dut import component
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
@@ -224,7 +223,7 @@ class SystemInfo(component.DUTComponent):
   @InfoProperty
   def _release_lsb_data(self):
     """Returns the lsb-release data in dict from release image partition."""
-    release_rootfs = partitions.RELEASE_ROOTFS.path
+    release_rootfs = self._dut.partitions.RELEASE_ROOTFS.path
     # TODO(hungte) Change MountDeviceAndReadFile to DUT-aware.
     lsb_content = MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release')
     return dict(re.findall('^(.+)=(.+)$', lsb_content, re.MULTILINE))

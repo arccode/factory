@@ -13,9 +13,10 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+#from cros.factory.test import dut
+from cros.factory.test.dut import board
 from cros.factory.test.dut import info as info_module
-from cros.factory.system import partitions
+from cros.factory.test.dut import partitions
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
                                   'CHROMEOS_RELEASE_TRACK=canary-channel\n')
@@ -32,8 +33,11 @@ class SystemInfoTest(unittest.TestCase):
 
   def runTest(self):
 
-    self.mox.StubOutWithMock(partitions, 'GetRootDev')
-    partitions.GetRootDev().AndReturn('/dev/sda')
+    dut = self.mox.CreateMock(board.DUTBoard)
+    dut.partitions = self.mox.CreateMock(partitions.Partitions)
+    dut.partitions.RELEASE_ROOTFS = self.mox.CreateMock(
+        partitions.DiskPartition)
+    dut.partitions.RELEASE_ROOTFS.path = '/dev/sda5'
     self.mox.StubOutWithMock(info_module, 'MountDeviceAndReadFile')
     info_module.MountDeviceAndReadFile(
         '/dev/sda5', '/etc/lsb-release').AndReturn(
@@ -41,7 +45,7 @@ class SystemInfoTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    info = info_module.SystemInfo(dut.Create())
+    info = info_module.SystemInfo(dut)
     self.assertEquals('5264.0.0', info.release_image_version)
     self.assertEquals('canary-channel', info.release_image_channel)
     # The cached release image version will be used in the second time.

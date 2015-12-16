@@ -17,7 +17,6 @@ This test list can also be used to verify the software stability of base image
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import partitions
 from cros.factory.test import dut
 from cros.factory.test import utils
 from cros.factory.test.test_lists.test_lists import FactoryTest
@@ -29,7 +28,6 @@ from cros.factory.test.test_lists.test_lists import TestList
 from cros.factory.test.test_lists.test_lists import WLAN
 from cros.factory.utils import sys_utils
 from cros.factory.utils.net_utils import GetWLANInterface
-from cros.factory.utils.process_utils import SpawnOutput
 
 HOURS = 60 * 60
 MINUTES = 60
@@ -204,10 +202,11 @@ class TestListArgs(object):
     if env.GetDeviceData().get('resize_complete', False):
       return False
 
-    df_output_gb = SpawnOutput(
-        ['df', '-BG', partitions.STATEFUL.path], log=True)
+    dut_instance = dut.Create()
+    df_output_gb = dut_instance.CallOutput(
+        ['df', '-BG', dut_instance.partitions.STATEFUL.path])
     match = re.search(
-        r'^%s\s+(\d+)G' % partitions.STATEFUL.path,
+        r'^%s\s+(\d+)G' % dut_instance.partitions.STATEFUL.path,
         df_output_gb,
         re.MULTILINE)
     current_size_gb = int(match.group(1)) if match else None
@@ -343,7 +342,7 @@ def EnlargeStatefulPartition(args):
             title_zh=u'调整硬盘空间',
             items=[('ResizeFileSystem', u'调整硬盘空间',
                     'resize2fs %s %dG' % (
-                        partitions.STATEFUL.path,
+                        dut.Create().partitions.STATEFUL.path,
                         args.desired_stateful_size_gb),
                     False)]))
     # Writes 'resize_complete' into device_data to mark this DUT has finished

@@ -23,6 +23,7 @@ from cros.factory.test.dut.links import utils as link_utils
 from cros.factory.test.dut import hooks
 from cros.factory.test.dut import info
 from cros.factory.test.dut import led
+from cros.factory.test.dut import partitions
 from cros.factory.test.dut import power
 from cros.factory.test.dut import status
 from cros.factory.test.dut import temp
@@ -108,6 +109,11 @@ class DUTBoard(object):
   @DUTProperty
   def led(self):
     return led.LED(self)
+
+  @DUTProperty
+  def partitions(self):
+    """Returns the partition names of system boot disk."""
+    return partitions.Partitions(self)
 
   @DUTProperty
   def path(self):

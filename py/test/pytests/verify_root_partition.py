@@ -14,7 +14,6 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import partitions
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI
@@ -39,9 +38,9 @@ class VerifyRootPartitionTest(unittest.TestCase):
 
   def runTest(self):
     if not self.args.kern_a_device:
-      self.args.kern_a_device = partitions.RELEASE_KERNEL.path
+      self.args.kern_a_device = self.dut.partitions.RELEASE_KERNEL.path
     if not self.args.root_device:
-      self.args.root_device = partitions.RELEASE_ROOTFS.path
+      self.args.root_device = self.dut.partitions.RELEASE_ROOTFS.path
 
     # Prepend '/dev/' if the device path is not absolute. This is mainly for
     # backward-compatibility as many existing test list specifies only 'sda4' or
@@ -58,6 +57,7 @@ class VerifyRootPartitionTest(unittest.TestCase):
     # Copy out the KERN-A partition to a file, since vbutil_kernel
     # won't operate on a device, only a file
     # (http://crosbug.com/34176)
+    # TODO(hungte) This must be changed to support remote DUT.
     template.SetState('Verifying KERN-A (%s)...' % self.args.kern_a_device)
     with tempfile.NamedTemporaryFile() as kern_a_bin:
       with open(self.args.kern_a_device) as kern_a:
