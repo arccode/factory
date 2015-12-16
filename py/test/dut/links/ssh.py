@@ -6,6 +6,7 @@
 """Implementation of cros.factory.test.dut.DUTLink using SSH."""
 
 import logging
+import pipes
 import subprocess
 import threading
 
@@ -102,10 +103,11 @@ class SSHLink(link.DUTLink):
     remote_sig, options = self._signature(False)
 
     if isinstance(command, basestring):
-      command = 'ssh %s %s %s' % (' '.join(options), remote_sig, command)
+      command = 'ssh %s %s %s' % (' '.join(options), remote_sig,
+                                  pipes.quote(command))
       shell = True
     else:
-      command = ['ssh'] + options + [remote_sig] + list(command)
+      command = ['ssh'] + options + [remote_sig] + map(pipes.quote, command)
       shell = False
 
     logging.debug('SSHLink: Run [%r]', command)
