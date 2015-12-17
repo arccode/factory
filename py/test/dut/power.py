@@ -211,7 +211,7 @@ class Power(DUTComponent):
       Interger value in mA.
     """
     re_object = self.EC_CHARGER_RE.findall(
-        self._dut.CheckCall(['ectool', 'chargestate', 'show']))
+        self._dut.CheckOutput(['ectool', 'chargestate', 'show']))
     if re_object:
       return int(re_object[0])
     else:
@@ -223,7 +223,7 @@ class Power(DUTComponent):
     Returns:
       Integer value in mA.
     """
-    ectool_output = self._dut.CheckCal(['ectool', 'battery'])
+    ectool_output = self._dut.CheckOutput(['ectool', 'battery'])
 
     charging = bool(self.EC_BATTERY_CHARGING_RE.search(ectool_output))
     re_object = self.EC_BATTERY_RE.findall(ectool_output)
@@ -244,7 +244,7 @@ class Power(DUTComponent):
     """
     try:
       m = self.BATTERY_DESIGN_CAPACITY_RE.search(
-          self._dut.CheckCall(['ectool', 'battery']))
+          self._dut.CheckOutput(['ectool', 'battery']))
       if not m:
         raise self.Error('Design capacity not found.')
       return int(m.group(1))
