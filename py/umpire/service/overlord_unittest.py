@@ -15,14 +15,27 @@ from cros.factory.umpire.config import UmpireConfig
 from cros.factory.umpire.service import overlord
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
 
 class TestOverlordService(unittest.TestCase):
+  # since we are not sure if the user has emerge chromeos-factory-overlord
+  # or not, we use the overlordd in factory/go/bin instead
+  OVERLORDD_BIN = '/mnt/host/source/src/platform/factory/go/bin/overlordd'
+
   def setUp(self):
+    # override default path in overlord module
+    overlord.OVERLORDD_BIN = self.OVERLORDD_BIN
+
     self.env = UmpireEnv()
     self.temp_dir = tempfile.mkdtemp()
     self.env.base_dir = self.temp_dir
     os.makedirs(self.env.config_dir)
+
+    # build overlord
+    overlordd_dir = os.path.dirname(self.OVERLORDD_BIN)
+    source_dir = os.path.join(overlordd_dir, '..', 'src', 'overlord')
+    subprocess.call('make -C %s' % source_dir, shell=True)
 
   def tearDown(self):
     if os.path.isdir(self.temp_dir):
@@ -60,10 +73,17 @@ class TestOverlordService(unittest.TestCase):
 
     svc.Start(procs)
     try:
-      process_utils.CheckOutput(['pgrep', '-f', overlord.OVERLORDD_BIN])
+      def CheckOverlord():
+        try:
+          process_utils.CheckOutput(['pgrep', '-f', overlord.OVERLORDD_BIN])
+          return True
+        except:
+          return False
+      sync_utils.WaitFor(CheckOverlord, 5)
     except:  # pylint: disable=W0702
       self.fail('overlord process not started')
-    svc.Stop()
+    finally:
+      svc.Stop()
 
 
 if __name__ == '__main__':
