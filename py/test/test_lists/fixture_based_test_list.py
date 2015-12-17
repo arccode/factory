@@ -31,7 +31,9 @@ def FixtureBased(test_list_id, label_en, label_zh, dut_options=None):
 
       Example:
 
-      dut_options = {'dut_class': 'SSHTarget', 'host': 'dynamic'}
+      ::
+
+      dut_options = {'link_class': SSHLink, 'host': None}
       @FixtureBased('main', 'CoolProduct EVT', dut_options)
       def CreateTestLists(test_list):
         # dut_options is automatically set to test_list,

@@ -9,12 +9,14 @@ import logging
 import pipes
 import subprocess
 import threading
+import types
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.dut import link
 from cros.factory.utils import file_utils
-from cros.factory.utils.dhcp_utils import DHCPManager
+from cros.factory.utils import type_utils
+from cros.factory.utils import dhcp_utils
 
 
 _DEVICE_DATA_KEY = 'DYNAMIC_SSH_TARGET_IP'
@@ -29,15 +31,41 @@ class SSHLink(link.DUTLink):
   """A DUT target that is connected via SSH interface.
 
   Properties:
-    host: A string for SSH host.
+    host: A string for SSH host, if it's None, will get from shared data.
     user: A string for the user accont to login. Defaults to 'root'.
     port: An integer for the SSH port on remote host.
     identify: An identity file to specify credential.
+
+  dut_options example:
+    dut_options for fixed-IP:
+      {
+        'board_class': 'CoolBoard',
+        'link_class': 'SSHLink',
+        'host': '1.2.3.4',
+        'identity': '/path/to/identity/file'
+        'start_dhcp_server': False
+      }
+    dut_options for DHCP:
+      {
+        'board_class': 'CoolBoard',
+        'link_class': 'SSHLink',
+        'host': None,
+        'identity': '/path/to/identity/file',
+        'start_dhcp_server': True,
+        'dhcp_server_args': {
+          'lease_time': 3600,
+          'interface_blacklist_file': '/path/to/blacklist/file',
+          'exclude_ip_prefix': [('10.0.0.0', 24), ...],
+          # the following three properties can oly be set in python script,
+          # not in environment variable (CROS_FACTORY_DUT_OPTIONS)
+          'on_add': None,
+          'on_old': None,
+          'on_del': None,
+        }
+      }
   """
 
-  DYNAMIC_HOST = 'dynamic'
-
-  def __init__(self, host, user='root', port=22, identity=None):
+  def __init__(self, host=None, user='root', port=22, identity=None):
     self._host = host
     self.user = user
     self.port = port
@@ -45,7 +73,7 @@ class SSHLink(link.DUTLink):
 
   @property
   def host(self):
-    if self._host == SSHLink.DYNAMIC_HOST:
+    if self._host == None:
       if not factory.has_shared_data(_DEVICE_DATA_KEY):
         raise ClientNotExistError()
       return factory.get_shared_data(_DEVICE_DATA_KEY)
@@ -125,35 +153,122 @@ class SSHLink(link.DUTLink):
   _dhcp_manager_lock = threading.Lock()
 
   @classmethod
-  def DHCPConnected(cls, dut_ip, unused_mac):
-    """Event handler for adding new client or lease renewal
-
-    Save the IP address in device data.
-    """
-    factory.set_shared_data(_DEVICE_DATA_KEY, dut_ip)
+  def SetLinkIP(cls, ip):
+    factory.set_shared_data(_DEVICE_DATA_KEY, ip)
 
   @classmethod
-  def DHCPDisconnected(cls, unused_ip, unused_mac):
-    """Event handler for lease expired
-
-    Remove the IP address from device data.
-    """
+  def ResetLinkIP(cls):
     if factory.has_shared_data(_DEVICE_DATA_KEY):
       factory.del_shared_data(_DEVICE_DATA_KEY)
 
   @classmethod
-  def PrepareLink(cls, **dut_options):
-    host = dut_options['host']
-    if host == SSHLink.DYNAMIC_HOST:
-      with cls._dhcp_manager_lock:
-        if cls._dhcp_manager:
-          return
-        # TODO(stimim): automatically find out which network interface should be
-        #               used.
-        cls._dhcp_manager = DHCPManager(
-            'eth1',
-            lease_time=5,
-            on_add=cls.DHCPConnected,
-            on_old=cls.DHCPConnected,
-            on_del=cls.DHCPDisconnected)
-        cls._dhcp_manager.StartDHCP()
+  def PrepareLink(cls, start_dhcp_server=True, dhcp_server_args=None):
+    """Prepare for SSHLink connection
+
+    Arguments:
+      start_dhcp_server (default: False):
+        Start the default DHCP server or not
+      dhcp_server_args (default: None):
+        If ``start_dhcp_server`` is True, this will be passed to the default
+        DHCP server (ssh.LinkManager)
+    """
+    if not start_dhcp_server:
+      return
+    with cls._dhcp_manager_lock:
+      if cls._dhcp_manager:
+        return
+      options = dict(lease_time=5)
+      options.update(dhcp_server_args or {})
+
+      cls._dhcp_manager = cls.LinkManager(**options)
+      cls._dhcp_manager.Start()
+
+  class LinkManager(object):
+    def __init__(self,
+                 lease_time=3600,
+                 interface_blacklist_file=None,
+                 exclude_ip_prefix=None,
+                 on_add=None,
+                 on_old=None,
+                 on_del=None):
+      """
+        A LinkManager will automatically start a DHCP server for each availiable
+        network interfaces, if the interface is not default gateway or in the
+        blacklist.
+
+        This LinkManager will automatically save IP of the latest client in
+        system-wise shared data, make it availible to SSHLinks whose host is set
+        to None.
+
+        Options:
+          lease_time:
+            lease time of DHCP servers
+          interface_blacklist_file:
+            a path to the file of blacklist, each line represents an interface
+            (e.g. eth0, wlan1, ...)
+          exclude_ip_prefix:
+            some IP range cannot be used becase of system settings, this argument
+            should be a list of tuple of (ip, prefix_bits).
+          on_add, on_old, on_del:
+            callback functions for DHCP servers.
+      """
+      self._lease_time = lease_time
+      self._blacklist_file = interface_blacklist_file
+      self._on_add = on_add
+      self._on_old = on_old
+      self._on_del = on_del
+      self._dhcp_server = None
+      self._exclude_ip_prefix = exclude_ip_prefix
+
+      self._duts = type_utils.UniqueStack()
+
+    def _SetLastDUT(self):
+      last_dut = self._duts.Get()
+      if last_dut:
+        SSHLink.SetLinkIP(last_dut[0])
+      else:
+        SSHLink.ResetLinkIP()
+
+    def _OnDHCPAdd(self, ip, mac_address):
+      # update last device
+      self._duts.Add((ip, mac_address))
+      self._SetLastDUT()
+
+      # invoke callback function
+      if isinstance(self._on_add, types.FunctionType):
+        self._on_add(ip, mac_address)
+
+    def _OnDHCPOld(self, ip, mac_address):
+      # update last device
+      self._duts.Add((ip, mac_address))
+      self._SetLastDUT()
+
+      # invoke callback function
+      if isinstance(self._on_old, types.FunctionType):
+        self._on_old(ip, mac_address)
+
+    def _OnDHCPDel(self, ip, mac_address):
+      # remove the device
+      self._duts.Del((ip, mac_address))
+      self._SetLastDUT()
+
+      # invoke callback function
+      if isinstance(self._on_del, types.FunctionType):
+        self._on_del(ip, mac_address)
+
+    def _StartHDCPServer(self):
+      self._dhcp_server = dhcp_utils.StartDHCPManager(
+          blacklist_file=self._blacklist_file,
+          exclude_ip_prefix=self._exclude_ip_prefix,
+          lease_time=self._lease_time,
+          on_add=self._OnDHCPAdd,
+          on_old=self._OnDHCPOld,
+          on_del=self._OnDHCPDel)
+
+    def Start(self):
+      self._SetLastDUT()
+      self._StartHDCPServer()
+
+    def Stop(self):
+      if self._dhcp_server:
+        self._dhcp_server.StopDHCP()

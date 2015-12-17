@@ -26,8 +26,9 @@ class LinkManagerTest(unittest.TestCase):
     self.dut_link = None
     self.presenter_link = None
     self.hook = mox.MockAnything()
-    link_manager.dhcp_utils.DHCPManager = dhcp_utils.DummyDHCPManager
-    link_manager.net_utils.GetUnmanagedEthernetInterfaces = lambda: ['eth0']
+
+    dhcp_server = dhcp_utils.DummyDHCPManager()
+    link_manager.dhcp_utils.StartDHCPManager = lambda **kargs: dhcp_server
 
     link_manager.PRESENTER_LINK_RPC_PORT = net_utils.FindUnusedTCPPort()
     link_manager.PRESENTER_PING_PORT = net_utils.FindUnusedTCPPort()

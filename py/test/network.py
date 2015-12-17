@@ -284,3 +284,13 @@ def GetDHCPBootParameters(interface):
         return (ip, dhcp['file'].strip('\x00'), dhcp['sname'].strip('\x00'))
 
   return None
+
+
+def GetDHCPInterfaceBlacklist(blacklist_file=None):
+  if not blacklist_file:
+    blacklist_file = os.path.join(factory.FACTORY_PATH, 'board',
+                                  'dhcp_interface_blacklist')
+    if os.path.exists(blacklist_file):
+      with open(blacklist_file) as f:
+        return map(str.strip, f.readlines())
+    return []

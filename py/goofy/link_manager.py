@@ -18,12 +18,8 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.test import network
-from cros.factory.test.utils import service_manager
 from cros.factory.utils import dhcp_utils
-from cros.factory.utils import net_utils
-from cros.factory.utils import sync_utils
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
 from cros.factory.utils.process_utils import Spawn
@@ -331,7 +327,7 @@ class DUTLinkManager(object):
     self._ping_server = PingServer(PRESENTER_PING_PORT)
     self._thread = threading.Thread(target=self.MonitorLink)
 
-    self._dhcp_servers = []
+    self._dhcp_server = None
     self._dhcp_event_ip = None
     self._relay_process = None
 
@@ -378,69 +374,14 @@ class DUTLinkManager(object):
     except: # pylint: disable=W0702
       pass
 
-  def _GetDHCPInterfaceBlacklist(self):
-    """Returns the blacklist of DHCP interfaces.
-
-    This parses board/dhcp_interface_blacklist for a list of network
-    interfaces on which we don't want to run DHCP.
-    """
-    blacklist_file = os.path.join(factory.FACTORY_PATH, 'board',
-                                  'dhcp_interface_blacklist')
-    if os.path.exists(blacklist_file):
-      with open(blacklist_file) as f:
-        return [line.strip() for line in f.readlines()]
-    return []
-
-  def _StartDHCPServers(self):
-    dhcp_utils.DHCPManager.CleanupStaleInstance()
-    if utils.in_cros_device():
-      # Wait for shill to start
-      sync_utils.WaitFor(lambda: service_manager.GetServiceStatus('shill') ==
-                         service_manager.Status.START, 15)
-      # Give shill some time to run DHCP
-      time.sleep(3)
-
-    # Get bootp parameters from gateway DHCP server
-    default_iface = net_utils.GetDefaultGatewayInterface()
-    bootp_params = network.GetDHCPBootParameters(default_iface)
-
-    # OK, shill has done its job now. Let's see what interfaces are not managed.
-    interface_blacklist = self._GetDHCPInterfaceBlacklist()
-    interfaces = [interface
-                  for interface in network.GetUnmanagedEthernetInterfaces()
-                  if interface not in interface_blacklist]
-
-    for interface in interfaces:
-      network_cidr = net_utils.GetUnusedIPV4RangeCIDR()
-      # DHCP server IP assignment:
-      # my_ip: the first available IP. e.g.: 192.168.0.1
-      # ip_start: the second available IP. e.g.: 192.168.0.2
-      # ip_end: the third from the last IP. since .255 is the broadcast address
-      # and .254 is usually used by gateway, skip it to avoid unexpected
-      # problems.
-      dhcp_server = dhcp_utils.DHCPManager(
-          interface=interface,
-          my_ip=str(network_cidr.SelectIP(1)),
-          netmask=str(network_cidr.Netmask()),
-          ip_start=str(network_cidr.SelectIP(2)),
-          ip_end=str(network_cidr.SelectIP(-3)),
-          lease_time=3600,
-          bootp=bootp_params,
-          on_add=self.OnDHCPEvent,
-          on_old=self.OnDHCPEvent)
-      dhcp_server.StartDHCP()
-      self._dhcp_servers.append(dhcp_server)
-
-    # Start NAT service
-    managed_interfaces = [x for x in net_utils.GetEthernetInterfaces()
-                          if x not in interfaces]
-    if not managed_interfaces:
-      return
-    nat_out_interface = managed_interfaces[0]
-    net_utils.StartNATService(interfaces, nat_out_interface)
+  def _StartDHCPServer(self):
+    self._dhcp_server = dhcp_utils.StartDHCPManager(
+        lease_time=3600,
+        on_add=self.OnDHCPEvent,
+        on_old=self.OnDHCPEvent)
 
   def _StartOverlordRelay(self):
-    interface_blacklist = self._GetDHCPInterfaceBlacklist()
+    interface_blacklist = network.GetDHCPInterfaceBlacklist()
     interfaces = [interface
                   for interface in network.GetUnmanagedEthernetInterfaces()
                   if interface not in interface_blacklist]
@@ -462,13 +403,13 @@ class DUTLinkManager(object):
       self._dhcp_event_ip = LOCALHOST
       self._duts[LOCALHOST] = self.DUT(LOCALHOST, STANDALONE)
     else:
-      self._StartDHCPServers()
+      self._StartDHCPServer()
       self._StartOverlordRelay()
 
   def Stop(self):
     """Stops and destroys the link manager."""
-    for dhcp_server in self._dhcp_servers:
-      dhcp_server.StopDHCP()
+    if self._dhcp_server:
+      self._dhcp_server.StopDHCP()
     self._server.Destroy()
     self._abort_event.set()
     self._kick_event.set()

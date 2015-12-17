@@ -10,25 +10,44 @@ from __future__ import print_function
 import jsonrpclib
 import logging
 import os
+import random
 import signal
 import sys
+import time
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import network
+from cros.factory.test import utils
+from cros.factory.test.utils import service_manager
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
+
+
+class InterfaceProperty(object):  # pylint: disable=R0923
+  """
+  A data structure that stores configurations for an interface
+  Properties
+  """
+  def __init__(self, name, cidr=None):
+    assert isinstance(name, str)
+    assert cidr is None or isinstance(cidr, net_utils.CIDR)
+
+    self.name = name
+    self.cidr = cidr
 
 
 class DHCPManager(object):
   """The manager that provides DHCP service.
 
   Properties set from __init__ arguments:
-    interface: The name of the network interface for DHCP.
-    my_ip: The IP address for the DHCP server. The interface used will be
-      set to this IP address.
-    ip_start: The start of DHCP IP range.
-    ip_end: The end of DHCP IP range.
-    lease_time: How long in seconds before the DHCP lease expires.
+    interfaces:
+      A list of InterfaceProperty(s) to bind, or None to bind all available
+      interfaces
+    interface_blacklist:
+      A list of interfaces (str) that shouldn't be managed, note that the
+      default gateway interface is always excluded.
     bootp: A tuple (ip, filename, hostname) specifying the boot parameters.
     on_add: Optional callback function that's called when a client is issued
       a new IP address. The callback takes the IP address as the only argument.
@@ -49,27 +68,55 @@ class DHCPManager(object):
   # Lease file name prefix
   LEASE_PREFIX = 'dnsmasq_leases_'
 
-  def __init__(self, interface,
-               my_ip='192.168.0.1',
-               netmask='255.255.255.0',
-               ip_start='192.168.0.10',
-               ip_end='192.168.0.20',
+  def __init__(self,
+               interfaces=None,
+               interface_blacklist=None,
+               exclude_ip_prefix=None,
                lease_time=3600,
                bootp=None,
                on_add=None,
                on_old=None,
                on_del=None):
-    self._interface = interface
-    self._my_ip = my_ip
-    self._netmask = netmask
-    self._ip_start = ip_start
-    self._ip_end = ip_end
+    self._interfaces = interfaces
+    self._interface_blacklist = interface_blacklist or []
+    self._exclude_ip_prefix = exclude_ip_prefix or []
     self._lease_time = lease_time
     self._bootp = bootp
     self._rpc_server = None
     self._process = None
     self._dhcp_action = {'add': on_add, 'old': on_old, 'del': on_del}
     self._callback_port = None
+    self._handled_interfaces = []
+
+  def _GetAvailibleInterfaces(self):
+    return [InterfaceProperty(interface)
+            for interface in network.GetUnmanagedEthernetInterfaces()
+            if interface not in self._interface_blacklist]
+
+  def _CollectInterfaceAndIPRange(self):
+    interfaces = self._interfaces or self._GetAvailibleInterfaces()
+    dhcp_ranges = []
+
+    used_range = list(self._exclude_ip_prefix or []) # make a copy
+
+    for interface in interfaces:
+      cidr = interface.cidr
+      if not cidr:
+        cidr = net_utils.GetUnusedIPV4RangeCIDR(exclude_ip_prefix=used_range)
+      # Make sure the interface is up
+      net_utils.SetEthernetIp(str(cidr.SelectIP(1)), interface.name,
+                              str(cidr.Netmask()), force=True)
+
+      used_range.append((str(cidr.SelectIP(1)), str(cidr.Netmask())))
+      ip_start = cidr.SelectIP(2)
+      ip_end = cidr.SelectIP(-3)
+      dhcp_ranges.extend(['--dhcp-range',
+                          '%s,%s,%d' % (ip_start, ip_end, self._lease_time)])
+    interfaces = [interface.name for interface in interfaces]
+    return interfaces, dhcp_ranges
+
+  def GetHandledInterfaces(self):
+    return self._handled_interfaces
 
   def StartDHCP(self):
     """Starts DHCP service."""
@@ -85,32 +132,31 @@ class DHCPManager(object):
                                          '%s%d' % (self.CALLBACK_PREFIX,
                                                    self._callback_port))
     os.symlink(callback_file_target, callback_file_symlink)
-    dhcp_range = '%s,%s,%d' % (self._ip_start, self._ip_end, self._lease_time)
+
+    interfaces, dhcp_ranges = self._CollectInterfaceAndIPRange()
+    self._handled_interfaces = interfaces
+
     dns_port = net_utils.FindUnusedTCPPort()
+    uid = random.getrandbits(64)
     lease_file = os.path.join(self.VARRUN_DIR,
-                              '%s%s' % (self.LEASE_PREFIX, self._interface))
+                              '%s%016x' % (self.LEASE_PREFIX, uid))
     pid_file = os.path.join(self.VARRUN_DIR,
-                            '%s%s' % (self.PID_PREFIX, self._interface))
-    # Make sure the interface is up
-    net_utils.SetEthernetIp(self._my_ip, self._interface, self._netmask)
+                            '%s%016x' % (self.PID_PREFIX, uid))
     # Start dnsmasq and have it call back to us on any DHCP event.
 
     cmd = ['dnsmasq',
            '--no-daemon',
-           '--dhcp-range', dhcp_range,
-           '--interface', self._interface,
            '--port', str(dns_port),
            '--no-dhcp-interface=%s' % net_utils.GetDefaultGatewayInterface(),
            '--dhcp-leasefile=%s' % lease_file,
            '--pid-file=%s' % pid_file,
            '--dhcp-script', callback_file_symlink]
+    cmd += ['--interface=%s' % ','.join(interfaces)]
+    cmd += dhcp_ranges
     if self._bootp:
       cmd.append('--dhcp-boot=%s,%s,%s' %
                  (self._bootp[1], self._bootp[2], self._bootp[0]))
     self._process = process_utils.Spawn(cmd, sudo=True, log=True)
-    # Make sure the IP address is set on the interface
-    net_utils.SetEthernetIp(self._my_ip, self._interface, self._netmask,
-                            force=True)
     # Make sure DHCP packets are not blocked
     process_utils.Spawn(['iptables',
                          '--insert', 'INPUT',
@@ -126,7 +172,8 @@ class DHCPManager(object):
     self._process = None
     self._rpc_server.Destroy()
     self._rpc_server = None
-    net_utils.Ifconfig(self._interface, enable=False)
+    for interface in self._handled_interfaces:
+      net_utils.Ifconfig(interface, enable=False)
     callback_file_symlink = os.path.join(self.VARRUN_DIR,
                                          '%s%d' % (self.CALLBACK_PREFIX,
                                                    self._callback_port))
@@ -173,6 +220,58 @@ class DHCPManager(object):
         os.unlink(os.path.join(cls.VARRUN_DIR, run_file))
 
 
+def StartDHCPManager(interfaces=None,
+                     blacklist_file=None,
+                     exclude_ip_prefix=None,
+                     lease_time=None,
+                     on_add=None,
+                     on_old=None,
+                     on_del=None):
+
+  DHCPManager.CleanupStaleInstance()
+  if utils.in_cros_device():
+    # Wait for shill to start
+    sync_utils.WaitFor(lambda: service_manager.GetServiceStatus('shill') ==
+                       service_manager.Status.START, 15)
+
+  # Get bootp parameters from gateway DHCP server
+  def _GetDefaultGatewayInterface():
+    try:
+      return net_utils.GetDefaultGatewayInterface()
+    except RuntimeError:
+      return False
+  default_iface = sync_utils.WaitFor(_GetDefaultGatewayInterface, 10)
+  bootp_params = network.GetDHCPBootParameters(default_iface)
+
+  # arguments for DHCP manager
+  kargs = {
+      'interfaces': interfaces,
+      'interface_blacklist': network.GetDHCPInterfaceBlacklist(blacklist_file),
+      'exclude_ip_prefix': exclude_ip_prefix,
+      'lease_time': lease_time,
+      'bootp': bootp_params,
+      'on_add': on_add,
+      'on_old': on_old,
+      'on_del': on_del}
+
+  # remove None to use default value
+  kargs = {k: v for (k, v) in kargs.iteritems() if v is not None}
+
+  manager = DHCPManager(**kargs)
+  manager.StartDHCP()
+
+  # Start NAT service
+  interfaces = manager.GetHandledInterfaces()
+  managed_interfaces = [x for x in net_utils.GetEthernetInterfaces()
+                        if x not in interfaces]
+  if not managed_interfaces:
+    return manager
+  nat_out_interface = managed_interfaces[0]
+  net_utils.StartNATService(interfaces, nat_out_interface)
+
+  return manager
+
+
 class DummyDHCPManager(object):
   """A dummy DHCPManager.
 
@@ -187,6 +286,9 @@ class DummyDHCPManager(object):
 
   def StopDHCP(self):
     pass
+
+  def GetHandledInterfaces(self):
+    return []
 
   @classmethod
   def CleanupStaleInstance(cls):

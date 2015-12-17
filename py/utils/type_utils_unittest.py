@@ -88,5 +88,52 @@ class LazyPropertyTest(unittest.TestCase):
     self.assertEqual(obj.myclass, 123)
 
 
+class UniqueSetTest(unittest.TestCase):
+  def setUp(self):
+    self.container = type_utils.UniqueStack()
+
+  def testInsertThenGet(self):
+    for x in [5, 1, 2, 4, 3]:
+      self.container.Add(x)
+      self.assertEqual(self.container.Get(), x)
+
+  def testDeleteOlderObject(self):
+    data = [5, 1, 2, 4, 3]
+    for x in data:
+      self.container.Add(x)
+
+    last = data.pop()
+
+    self.assertEqual(self.container.Get(), last)
+    for x in data:
+      self.container.Del(x)
+      self.assertEqual(self.container.Get(), last)
+
+  def testInsertExistingObject(self):
+    data = [5, 4, 3, 2, 1, 0]
+    for x in data:
+      self.container.Add(x)
+
+    for x in data:
+      self.container.Add(x)
+      self.assertEqual(self.container.Get(), 0)
+
+  def testGetAfterDelete(self):
+    for x in xrange(5):
+      self.container.Add(x)
+
+    for x in xrange(4, 0, -1):
+      self.container.Del(x)
+      self.assertEqual(self.container.Get(), x - 1)
+
+  def testInsertAfterDelete(self):
+    self.container.Add(1)
+    self.container.Add(2)
+    self.container.Del(1)
+    self.assertEqual(self.container.Get(), 2)
+    self.container.Add(1)
+    self.assertEqual(self.container.Get(), 1)
+
+
 if __name__ == "__main__":
   unittest.main()

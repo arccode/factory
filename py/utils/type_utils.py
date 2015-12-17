@@ -228,3 +228,56 @@ class LazyProperty(object):
     if not isinstance(obj_props[prop_name].__get__(None, None), cls):
       raise AttributeError('%s is not a %s' % (prop_name, cls.__name__))
     setattr(obj, cls.PROP_NAME_PREFIX + prop_name, value)
+
+
+class UniqueStack(object):
+  """ A data structure very similar to a stack, but objects inside are unique.
+
+  - If an object is in the stack already, adding it again to the stack won't
+    change anything.
+
+  - One can remove any object from the stack, no matter where it is.
+
+  - One can always get the latest added object that haven't been removed.
+  """
+  def __init__(self):
+    import threading
+    self._lock = threading.Lock()
+    self._set = set([])
+    self._list = list([])
+
+  def Add(self, x):
+    """Add an object on the top of the stack.
+    If the object is already in the stack, nothing will happen.
+
+    This function should run in O(1)
+    """
+    if x not in self._set:
+      with self._lock:
+        if x not in self._set:
+          self._set.add(x)
+          self._list.append(x)
+
+  def Del(self, x):
+    """Remove @x from the stack, no matter where it is.
+    If @x is not in the stack, nothing will happen.
+
+    This function should run in O(1)
+    """
+    if x in self._set:
+      with self._lock:
+        if x in self._set:
+          self._set.remove(x)
+
+  def Get(self):
+    """Returns element at top of the stack.
+
+    This function should run in amortized O(1)
+    """
+    with self._lock:
+      while len(self._list) > 0:
+        if self._list[-1] in self._set:
+          return self._list[-1]
+        else:
+          self._list.pop()
+      return None

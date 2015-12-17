@@ -563,10 +563,10 @@ def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None):
   # currently on the machine interfaces.
   if not exclude_ip_prefix:
     exclude_ip_prefix = []
-    for iface in GetNetworkInterfaces():
-      ip_mask = GetEthernetIp(iface, True)
-      if ip_mask[0] and ip_mask[1]:
-        exclude_ip_prefix.append(ip_mask)
+  for iface in GetNetworkInterfaces():
+    ip_mask = GetEthernetIp(iface, True)
+    if ip_mask[0] and ip_mask[1]:
+      exclude_ip_prefix.append(ip_mask)
 
   # available_ranges_bits stores (ip_range, available_subnet_range_bits)
   # For example: available_ranges_bits = {0xc0a80000: 8}

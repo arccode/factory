@@ -29,9 +29,8 @@ class GoofyPresenterTest(unittest.TestCase):
   """Base class for GoofyPresenter test cases."""
 
   def setUp(self):
-    link_manager.dhcp_utils.DHCPManager = dhcp_utils.DummyDHCPManager
-    link_manager.net_utils.GetUnmanagedEthernetInterfaces = lambda: ['eth0']
-    link_manager.net_utils.StartNATService = lambda intf_in, intf_out: None
+    dummy_server = dhcp_utils.DummyDHCPManager()
+    link_manager.dhcp_utils.StartDHCPManager = lambda **kargs: dummy_server
     self.goofy = GoofyPresenter()
     self.goofy.link_manager.Start()
 
