@@ -7,7 +7,8 @@
 """Test external display with optional audio playback test.
 
 Here is a test list example for USB Port 0 Check, we can prompt operator to
-insert which port by display_label in display_info.
+insert which port by display_label in display_info::
+
          OperatorTest(
               id='ExtDisplay',
               label_zh=u'外接显示',
@@ -20,10 +21,9 @@ insert which port by display_label in display_info.
 """
 
 from __future__ import print_function
-import evdev # pylint: disable=F0401
+import evdev  # pylint: disable=F0401
 import logging
 import random
-import textwrap
 import threading
 import time
 import unittest
@@ -88,6 +88,28 @@ _USBPD_CONNECT_STATUS = {
 _USBPD_DISCONNECT_STATUS = {
     'connected': False
 }
+
+
+DISPLAY_INFO_ARG_HELP = """
+A list of tuples: (display_label, display_id, audio_info, usbpd_port)
+Each tuple represents an external port:
+
+  * ``display_label``: (str) display name seen by operator, e.g. VGA.
+  * ``display_id``: (str) ID used to identify display in xrandr or modeprint,
+    e.g. VGA1.
+
+  * ``audio_info``: a tuple of (audio_card, audio_port), or just a single
+    string indicating the audio_port (deprecated).
+
+    * ``audio_card`` is either the card's name (str), or the card's index (int).
+    * ``audio_port`` is the amixer port's name (str).
+
+    If you specify only the audio_port, the test assumes that the card
+    is at index 0 (deprecated, don't use it if possible). This argument
+    is optional. If set, the audio playback test is added.
+
+  * ``usbpd_port``: (int) Verify the USB PD TypeC port status.
+"""
 
 
 class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
@@ -528,24 +550,7 @@ class ExtDisplayTest(unittest.TestCase):
           'main_display', str,
           'xrandr/modeprint ID for ChromeBook\'s main display.',
           optional=False),
-      Arg(
-          'display_info', list, textwrap.dedent("""
-           A list of tuples: (display_label, display_id, audio_info, usbpd_port)
-           Each tuple represents an external port:
-           - display_label: (str) display name seen by operator, e.g. VGA.
-           - display_id: (str) ID used to identify display in xrandr/modeprint,
-                         e.g. VGA1.
-           - audio_info: a tuple of (audio_card, audio_port), or just a single
-                         string indicating the audio_port (deprecated).
-             audio_card is either the card's name (str),
-                           or the card's index (int).
-             audio_port is the amixer port's name (str).
-             If you specify only the audio_port, the test assumes that the card
-             is at index 0 (deprecated, don't use it if possible). This argument
-             is optional. If set, the audio playback test is added.
-           - usbpd_port: (int) Verify the USB PD TypeC port status.
-           """),
-          optional=False),
+      Arg('display_info', list, DISPLAY_INFO_ARG_HELP, optional=False),
       Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
       Arg(
           'connect_only', bool,
