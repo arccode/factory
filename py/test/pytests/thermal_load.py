@@ -20,9 +20,9 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
 from cros.factory.test.args import Arg
-from cros.factory.test.utils import LoadManager
+from cros.factory.test.event_log import Log
+from cros.factory.test.utils.stress_manager import StressManager
 
 
 class ThermalLoadTest(unittest.TestCase):
@@ -140,8 +140,8 @@ class ThermalLoadTest(unittest.TestCase):
     self.CheckTemperatures(start_temperatures, 0)
     logging.info('Stressing with %d threads...', self.load)
 
-    with LoadManager(duration_secs=self.args.duration_secs,
-                     num_threads=self.load):
+    with StressManager(self.dut).Run(duration_secs=self.args.duration_secs,
+                                     num_threads=self.load):
       for elapsed in xrange(1, self.args.duration_secs + 1):
         time.sleep(1)
         temperatures = self.GetTemperatures()

@@ -22,7 +22,7 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
-from cros.factory.test.utils import LoadManager
+from cros.factory.test.utils.stress_manager import StressManager
 
 _TEST_TITLE = test_ui.MakeLabel('Charger Test', u'充電放電測試')
 
@@ -246,8 +246,8 @@ class ChargerTest(unittest.TestCase):
     # charge should move up or down.
     self.assertTrue(moving_up is not None)
 
-    with LoadManager(duration_secs=spec.timeout_secs,
-                     num_threads=spec.load):
+    with StressManager(self.dut).Run(duration_secs=spec.timeout_secs,
+                                     num_threads=spec.load):
       start_time = time.time()
       last_verbose_log_time = None
       last_log_time = None

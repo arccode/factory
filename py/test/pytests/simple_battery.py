@@ -21,8 +21,8 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.test.utils.stress_manager import StressManager
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 
@@ -135,7 +135,7 @@ class SimpleBatteryTest(unittest.TestCase):
                        timeout_secs=10)
     self._template.SetState(_TESTING_DISCHARGE)
     # Discharge under high system load.
-    with utils.LoadManager(duration_secs):
+    with StressManager(self.dut).Run(duration_secs):
       sampled_current = self.SampleBatteryCurrent(duration_secs)
     if self.args.min_discharge_current_mA:
       if not any(

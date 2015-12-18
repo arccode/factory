@@ -22,9 +22,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.utils.stress_manager import StressManager
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
@@ -344,7 +344,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
                                        charging=False))
     else:
       # Discharge under high system load.
-      with utils.LoadManager(self.args.discharge_duration_secs):
+      with StressManager(self.dut).Run(self.args.discharge_duration_secs):
         (sampled_battery_current, sampled_ina_current, sampled_ina_voltage) = (
             self.SampleCurrentAndVoltage(self.args.discharge_duration_secs,
                                          charging=False))

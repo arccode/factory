@@ -8,7 +8,6 @@
 from __future__ import print_function
 
 import copy
-import logging
 import re
 
 import factory_common  # pylint: disable=W0611
@@ -93,6 +92,20 @@ class SystemInfo(component.DUTComponent):
       value: The value to return in future for given property.
     """
     self._overrides[name] = value
+
+  @InfoProperty
+  def cpu_count(self):
+    """Gets number of CPUs on the machine"""
+    output = self._dut.CallOutput('lscpu')
+    match = re.search(r'^CPU\(s\):\s*(\d+)', output, re.MULTILINE)
+    return int(match.group(1)) if match else None
+
+  @InfoProperty
+  def memory_total_kb(self):
+    """Gets total memory of system in kB"""
+    output = self._dut.CallOutput('cat /proc/meminfo')
+    match = re.search(r'^MemTotal:\s*(\d+)', output, re.MULTILINE)
+    return int(match.group(1)) if match else None
 
   @InfoProperty
   def release_image_version(self):

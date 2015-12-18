@@ -7,16 +7,9 @@
 
 """Utility functions that are useful to factory tests."""
 
-import logging
-import multiprocessing
 import os
-import pipes
 import re
-import subprocess
 import sys
-import tempfile
-import threading
-import time
 import traceback
 
 import factory_common  # pylint: disable=W0611
@@ -157,61 +150,3 @@ def ResetCommitTime():
       process_utils.Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
       for p in sorted(devices)]:
     process.wait()
-
-
-class LoadManager(object):
-  """A class to manage cpu load using stressapptest.
-  This manager runs stressapptest with 20% memory and specified num_threads
-  and duration.
-  Usage:
-    with LoadManager(num_threads, duration_secs):
-      do_something_under_load
-  Properties:
-    _process: The process to run stressapptest
-    _num_threads: The number of threads in running stressapptest.
-    _memory_ratio: The memory ratio in running stressapptest.
-  """
-
-  def __init__(self, duration_secs, num_threads=None, memory_ratio=0.2, ):
-    """Initialize LoadManager.
-
-    Args:
-      duration_secs: The duration of stressapptest.
-      num_threads: Number of threads for stressapptest. Default value
-        is number of cpus.
-        If set, this should be less than or equal to number of cpus.
-      memory_ratio: The ratio of memory used in stressapptest.
-        Default value is 0.2.
-        This should be less than or equal to 0.9.
-    """
-    self._process = None
-    self._memory_ratio = None
-    self._num_threads = None
-    if num_threads is None:
-      self._num_threads = multiprocessing.cpu_count()
-    elif num_threads == 0:
-      # No need to run stressapptest
-      return
-    else:
-      self._num_threads = min(num_threads, multiprocessing.cpu_count())
-    self._memory_ratio = min(0.9, memory_ratio)
-    mem = open('/proc/meminfo').readline().split()[1]
-    mem_usage = int(int(mem) * self._memory_ratio / 1024)
-    self._process = process_utils.Spawn(
-        ['stressapptest', '-m', '%d' % self._num_threads,
-         '-M', '%d' % mem_usage, '-s', '%d' % duration_secs])
-    logging.info('LoadManager: Start LoadManager with %d processes'
-                 ' %d M memory %d seconds.',
-                 self._num_threads, mem_usage, duration_secs)
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, *args, **kwargs):
-    self.Stop()
-
-  def Stop(self):
-    logging.info('LoadManager: Try to stop the process if there is one.')
-    if self._process and self._process.poll() is None:
-      logging.info('LoadManager: Terminating the process.')
-      self._process.terminate()
