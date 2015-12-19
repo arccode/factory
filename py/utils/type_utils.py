@@ -189,7 +189,7 @@ class Singleton(type):
     return cls._instances[cls]
 
 
-def LazyProperty(prop):
+class LazyProperty(object):
   """A decorator for lazy loading properties.
 
   Example:
@@ -203,10 +203,28 @@ def LazyProperty(prop):
     print c.m  # see 'init!' then 3
     print c.m  # only see 3
   """
-  attr_name = '_lazyprop_' + prop.__name__
-  @property
-  def _lazy_property(self):
-    if not hasattr(self, attr_name):
-      setattr(self, attr_name, prop(self))
-    return getattr(self, attr_name)
-  return _lazy_property
+  PROP_NAME_PREFIX = '_lazyprop_'
+
+  def __init__(self, prop):
+    self._init_func = prop
+    self._prop_name = self.PROP_NAME_PREFIX + prop.__name__
+
+  def __get__(self, obj, ignored_obj_type):
+    if obj is None:
+      return self
+    if not hasattr(obj, self._prop_name):
+      setattr(obj, self._prop_name, self._init_func(obj))
+    return getattr(obj, self._prop_name)
+
+  def __set__(self, obj, value):
+    raise AttributeError('cannot set attribute, use %s.Override instead' %
+                         type(self).__name__)
+
+  @classmethod
+  def Override(cls, obj, prop_name, value):
+    obj_props = type(obj).__dict__
+    if prop_name not in obj_props:
+      raise AttributeError('%s has no attribute named %s' % (obj, prop_name))
+    if not isinstance(obj_props[prop_name].__get__(None, None), cls):
+      raise AttributeError('%s is not a %s' % (prop_name, cls.__name__))
+    setattr(obj, cls.PROP_NAME_PREFIX + prop_name, value)

@@ -13,11 +13,11 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.board import Board
 from cros.factory.system import partitions
 from cros.factory.system import state
 from cros.factory.test import dut as dut_module
 from cros.factory.test.dut import thermal
+from cros.factory.test.dut.board import DUTProperty
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
                                   'CHROMEOS_RELEASE_TRACK=canary-channel\n')
@@ -36,8 +36,7 @@ class SystemStatusTest(unittest.TestCase):
 
     # Set up mocks for Board interface
     dut = dut_module.Create()
-    dut.thermal = self.mox.CreateMock(thermal.Thermal)
-    mock_board = self.mox.CreateMock(Board)
+    DUTProperty.Override(dut, 'thermal', self.mox.CreateMock(thermal.Thermal))
     self.mox.StubOutWithMock(state, 'GetBoard')
     # Set up mocks for netifaces.
     netifaces = state.netifaces = self.mox.CreateMockAnything()

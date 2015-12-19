@@ -41,5 +41,52 @@ class AttrDictTest(unittest.TestCase):
     self.assertEqual('blah', adict['somekey'])
 
 
+class LazyPropertyTest(unittest.TestCase):
+
+  class BaseClass(object):
+    def __init__(self):
+      self.prop_initialized = 0
+
+    @type_utils.LazyProperty
+    def myclass(self):
+      self.prop_initialized += 1
+      return LazyPropertyTest.BaseClass
+
+  class DerivedClass(BaseClass):
+    @type_utils.LazyProperty
+    def myclass(self):
+      self.prop_initialized += 1
+      return LazyPropertyTest.DerivedClass
+
+  def testGetterForBaseClass(self):
+    obj = self.BaseClass()
+    self.assertEqual(obj.myclass, self.BaseClass)
+    self.assertEqual(obj.prop_initialized, 1)
+    self.assertEqual(obj.myclass, self.BaseClass)
+    self.assertEqual(obj.prop_initialized, 1)
+
+  def testGetterForDerivedClass(self):
+    obj = self.DerivedClass()
+    self.assertEqual(obj.myclass, self.DerivedClass)
+    self.assertEqual(obj.prop_initialized, 1)
+    self.assertEqual(obj.myclass, self.DerivedClass)
+    self.assertEqual(obj.prop_initialized, 1)
+
+  def testSetByAssign(self):
+    obj = self.BaseClass()
+    with self.assertRaises(AttributeError):
+      obj.myclass = 123
+
+    obj = self.DerivedClass()
+    with self.assertRaises(AttributeError):
+      obj.myclass = 123
+
+  def testSetByOverride(self):
+    obj = self.BaseClass()
+    type_utils.LazyProperty.Override(obj, 'myclass', 123)
+    self.assertEqual(obj.prop_initialized, 0)
+    self.assertEqual(obj.myclass, 123)
+
+
 if __name__ == "__main__":
   unittest.main()
