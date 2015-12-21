@@ -6,8 +6,6 @@
 """A system module providing access of temprary files on remote DUT."""
 
 
-import tempfile
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
 from contextlib import contextmanager
@@ -28,14 +26,20 @@ class TemporaryFiles(component.DUTComponent):
 
   """
 
+  # pylint: disable=W0622
   def mktemp(self, is_dir, suffix='', prefix='cftmp', dir=None):
     """Creates a temporary file or directory on DUT."""
-    template = '%s.XXXXXXXX%s' % (prefix, suffix)
+    template = '%s.XXXXXX%s' % (prefix, suffix)
+    # http://unix.stackexchange.com/questions/30091/
+    # GNU mktemp takes TEMPLATE with 6X as full path unless DIR is not assigned.
+    # BSD mktemp takes arbitary X with -t (deprecated by GNU) for DIR. DIR can
+    # be only set by env TMPDIR.
+    # Android mktemp always assumes TEMPLATE does not include DIR.
+    # The implementation below is for GNU mktemp.
     args = ['mktemp']
     if is_dir:
       args += ['-d']
-    if dir is not None:
-      args += ['-p', dir]
+    args += ['--tmpdir' if dir is None else '--tmpdir=%s' % dir]
     args += [template]
     return self._dut.CheckOutput(args).strip()
 
@@ -58,7 +62,7 @@ class TemporaryFiles(component.DUTComponent):
 
 
   @contextmanager
-  def TempDirectory(**kargs):
+  def TempDirectory(self, **kargs):
     """Yields a temporary directory.
 
     The temp directory is deleted when the context manager is closed if it still
@@ -73,3 +77,19 @@ class TemporaryFiles(component.DUTComponent):
       yield path
     finally:
       self._dut.Call(['rm', '-rf', path])
+
+
+class AndroidTemporaryFiles(TemporaryFiles):
+  """Access to temporary objects on Android systems."""
+
+  # pylint: disable=W0622
+  def mktemp(self, is_dir, suffix='', prefix='cftmp', dir=None):
+    """Creates a temporary file or directory on DUT."""
+    template = '%s.XXXXXX%s' % (prefix, suffix)
+    args = ['mktemp']
+    if is_dir:
+      args += ['-d']
+    if dir is not None:
+      args += ['-p', dir]
+    args += [template]
+    return self._dut.CheckOutput(args).strip()
