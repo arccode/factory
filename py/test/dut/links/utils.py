@@ -5,6 +5,8 @@
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.test.args import Args
+
 # Register targets.
 from cros.factory.test.dut.links.adb import ADBLink
 from cros.factory.test.dut.links.local import LocalLink
@@ -55,10 +57,14 @@ def Create(link_class=None, **kargs):
   if link_class is None:
     assert not kargs, 'Arguments cannot be specified without link_class.'
   constructor = GetLinkClass(link_class)
-  return constructor(**kargs)
+  if len(constructor.LINK_ARGS) > 0:
+    args = Args(*constructor.LINK_ARGS).Parse(kargs)
+    return constructor(args)
+  else:
+    return constructor()
 
 
-def PrepareConnection(link_class=None, **kargs):
+def PrepareLink(link_class=None, **kargs):
   """Prepares a link connection before that kind of link is ready.
 
   This provides DUT Link to setup system environment for receiving connections,
@@ -72,4 +78,5 @@ def PrepareConnection(link_class=None, **kargs):
   if link_class is None:
     assert not kargs, 'Arguments cannot be specified without link_class.'
   class_object = GetLinkClass(link_class)
-  return class_object.PrepareConnection(**kargs)
+  args = Args(*class_object.PREPARE_LINK_ARGS).Parse(kargs)
+  return class_object.PrepareLink(args)

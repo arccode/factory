@@ -7,6 +7,9 @@
 class DUTLink(object):
   """An abstract class for DUT (Device Under Test) Links."""
 
+  LINK_ARGS = []
+  PREPARE_LINK_ARGS = []
+
   def Push(self, local, remote):
     """Uploads a local file to DUT.
 
@@ -65,7 +68,7 @@ class DUTLink(object):
     return False
 
   @classmethod
-  def PrepareConnection(cls):
+  def PrepareLink(cls, args):
     """Setup prerequisites of DUT connections.
 
     Some DUT types need to do some setup before we can connect to any DUT.

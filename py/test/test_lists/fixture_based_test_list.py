@@ -48,7 +48,7 @@ def FixtureBased(test_list_id, label_en, label_zh, dut_options=None):
 
   def Wrap(CreateTestLists):
     def CreateFixtureTestList():
-      utils.PrepareConnection(**dut_options)
+      utils.PrepareLink(**dut_options)
       with TestList(test_list_id, label_en) as test_list:
         test_list.dut_options = dut_options
         StartFixtureTest(test_list_id, label_en, label_zh)

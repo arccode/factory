@@ -12,6 +12,7 @@ import threading
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test.args import Arg
 from cros.factory.test.dut import link
 from cros.factory.utils import file_utils
 from cros.factory.utils.dhcp_utils import DHCPManager
@@ -26,22 +27,21 @@ class ClientNotExistError(Exception):
 
 
 class SSHLink(link.DUTLink):
-  """A DUT target that is connected via SSH interface.
+  """A DUT target that is connected via SSH interface."""
 
-  Properties:
-    host: A string for SSH host.
-    user: A string for the user accont to login. Defaults to 'root'.
-    port: An integer for the SSH port on remote host.
-    identify: An identity file to specify credential.
-  """
+  LINK_ARGS = [
+      Arg('host', str, 'A string for SSH host', optional=False),
+      Arg('user', str, 'A string for the usr account to login', default='root'),
+      Arg('port', int, 'An integer for SSH port on remote host', default=22),
+      Arg('identity', str, 'An identity file to specify credential')]
 
   DYNAMIC_HOST = 'dynamic'
 
-  def __init__(self, host, user='root', port=22, identity=None):
-    self._host = host
-    self.user = user
-    self.port = port
-    self.identity = identity
+  def __init__(self, args):
+    self._host = args.host
+    self.user = args.user
+    self.port = args.port
+    self.identity = args.identity
 
   @property
   def host(self):
@@ -141,10 +141,11 @@ class SSHLink(link.DUTLink):
     if factory.has_shared_data(_DEVICE_DATA_KEY):
       factory.del_shared_data(_DEVICE_DATA_KEY)
 
+  PREPARE_LINK_ARGS = LINK_ARGS
+
   @classmethod
-  def PrepareConnection(cls, **dut_options):
-    host = dut_options['host']
-    if host == SSHLink.DYNAMIC_HOST:
+  def PrepareLink(cls, args):
+    if args.host == SSHLink.DYNAMIC_HOST:
       with cls._dhcp_manager_lock:
         if cls._dhcp_manager:
           return
