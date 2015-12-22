@@ -41,9 +41,6 @@ from cros.factory.goofy import prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
-from cros.factory.system.charge_manager import ChargeManager
-from cros.factory.system.core_dump_manager import CoreDumpManager
-from cros.factory.system.cpufreq_manager import CpufreqManager
 from cros.factory.system import disk_space
 from cros.factory.test import dut
 from cros.factory.test import factory
@@ -59,11 +56,14 @@ from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
 from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test.factory import TestState
-from cros.factory.test.utils import Enum
+from cros.factory.test.utils.charge_manager import ChargeManager
+from cros.factory.test.utils.core_dump_manager import CoreDumpManager
+from cros.factory.test.utils.cpufreq_manager import CpufreqManager
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.type_utils import Enum
 
 
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'

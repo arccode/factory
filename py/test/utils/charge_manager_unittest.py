@@ -13,7 +13,7 @@ import mox
 import unittest
 
 from cros.factory.test.dut.power import Power
-from cros.factory.system.charge_manager import ChargeManager
+from cros.factory.test.utils.charge_manager import ChargeManager
 
 
 class ChargeManagerTest(unittest.TestCase):

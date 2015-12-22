@@ -8,8 +8,8 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import service_manager
-from cros.factory.system.service_manager import Status
+from cros.factory.test.utils import service_manager
+from cros.factory.test.utils.service_manager import Status
 
 
 class ServiceManagerTest(unittest.TestCase):

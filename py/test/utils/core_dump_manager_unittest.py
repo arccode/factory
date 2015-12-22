@@ -15,7 +15,7 @@ import shutil
 import tempfile
 import unittest
 
-from cros.factory.system import core_dump_manager
+from cros.factory.test.utils import core_dump_manager
 
 
 class CoreDumpManagerTest(unittest.TestCase):

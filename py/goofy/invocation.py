@@ -29,7 +29,6 @@ from optparse import OptionParser
 from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.service_manager import ServiceManager
 from cros.factory.test import dut
 from cros.factory.test import event_log
 from cros.factory.test import factory
@@ -44,6 +43,7 @@ from cros.factory.test.factory import TestState
 from cros.factory.test.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test.test_lists.test_lists import OldStyleTestList
+from cros.factory.test.utils.service_manager import ServiceManager
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.string_utils import DecodeUTF8

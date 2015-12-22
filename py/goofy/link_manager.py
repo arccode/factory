@@ -17,10 +17,10 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import service_manager
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test import network
+from cros.factory.test.utils import service_manager
 from cros.factory.utils import dhcp_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
