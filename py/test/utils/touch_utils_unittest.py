@@ -11,7 +11,7 @@ import sys
 import unittest
 
 import factory_common                             # pylint: disable=W0611
-import touch_utils
+from cros.factory.test.utils import touch_utils
 
 
 PY_UTILS_DIR = os.path.dirname(sys.modules[__name__].__file__)

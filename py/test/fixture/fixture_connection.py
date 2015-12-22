@@ -18,7 +18,7 @@ import serial
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.serial_utils import OpenSerial, FindTtyByDriver
+from cros.factory.test.utils.serial_utils import OpenSerial, FindTtyByDriver
 
 
 class FixtureConnectionError(Exception):

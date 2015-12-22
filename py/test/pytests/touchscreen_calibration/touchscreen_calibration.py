@@ -25,8 +25,8 @@ from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture.touchscreen_calibration.fixture import (
     FixtureException, FakeFixture, FixtureSerialDevice)
-from cros.factory.test.media_util import MountedMedia
 from cros.factory.test.test_ui import UI
+from cros.factory.test.utils.media_utils import MountedMedia
 from cros.factory.utils.process_utils import SpawnOutput
 from touchscreen_calibration_utils import (
     IsSuccessful, NetworkStatus, SimpleSystem)

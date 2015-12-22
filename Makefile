@@ -50,7 +50,6 @@ LINT_BLACKLIST=\
 	py/test/gooftools.py \
 	py/test/leds.py \
 	py/test/line_item_check.py \
-	py/test/media_util_unittest.py \
 	py/test/pytests/execpython.py \
 	py/test/state_machine.py \
 	py/test/state.py \
@@ -61,6 +60,7 @@ LINT_BLACKLIST=\
 	py/test/unicode_to_string_unittest.py \
 	py/test/utils.py \
 	py/test/utils_unittest.py \
+	py/test/utils/media_utils_unittest.py \
 	py/test/fixture/camera/grid_mapper.py \
 	py/minijack/apiclient/% \
 	py/minijack/gflags.py \
@@ -74,9 +74,9 @@ LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 
 UNITTESTS=$(shell find py go -name '*_unittest.py' | sort)
-# TODO(sheckylin): Get py/test/media_util_unittest.py working.
+# TODO(sheckylin): Get py/test/utils/media_utils_unittest.py working.
 UNITTESTS_BLACKLIST=\
-	py/test/media_util_unittest.py
+	py/test/utils/media_utils_unittest.py
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 # Tests need to run in isolate mode.
 

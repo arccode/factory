@@ -29,7 +29,6 @@ import unittest
 
 from cros.factory.system.bluetooth import BluetoothManager
 from cros.factory.system.bluetooth import BluetoothManagerException
-from cros.factory.test import bluetooth_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -40,6 +39,7 @@ from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.test_ui import (
     ENTER_KEY, ESCAPE_KEY, SPACE_KEY, MakeLabel)
 from cros.factory.test.utils import StartDaemonThread
+from cros.factory.test.utils import bluetooth_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils.sync_utils import Retry
 

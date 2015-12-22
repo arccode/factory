@@ -12,7 +12,7 @@ import time
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import serial_utils
+from cros.factory.test.utils import serial_utils
 
 
 class SerialServerError(Exception):

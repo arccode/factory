@@ -17,7 +17,7 @@ import threading
 from ws4py.websocket import WebSocket
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.web_socket_utils import WebSocketHandshake
+from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
 
 
 _SHELL = os.getenv('SHELL', '/bin/bash')

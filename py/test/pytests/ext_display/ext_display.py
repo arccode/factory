@@ -30,7 +30,6 @@ import unittest
 import uuid
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import evdev_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -44,6 +43,7 @@ from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    CreateBFTFixture,
                                                    TEST_ARG_HELP)
 from cros.factory.test.pytests import audio
+from cros.factory.test.utils import evdev_utils
 
 
 _TEST_TITLE = test_ui.MakeLabel('External Display Test',

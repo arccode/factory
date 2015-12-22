@@ -52,8 +52,9 @@ from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
-from cros.factory.test.media_util import MountedMedia, RemovableDiskMonitor
 from cros.factory.test.utils import TimeString, TryMakeDirs
+from cros.factory.test.utils.media_utils import MountedMedia
+from cros.factory.test.utils.media_utils import RemovableDiskMonitor
 from cros.factory.utils import file_utils
 from cros.factory.utils.net_utils import FindUsableEthDevice
 from cros.factory.utils.process_utils import Spawn

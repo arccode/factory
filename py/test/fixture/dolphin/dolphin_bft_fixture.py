@@ -12,7 +12,7 @@ import xmlrpclib
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test import serial_utils
+from cros.factory.test.utils import serial_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils

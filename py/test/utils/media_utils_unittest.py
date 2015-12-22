@@ -21,14 +21,14 @@ import pyudev
 import tempfile
 import unittest
 
-from cros.factory.test.media_util import MediaMonitor
-from cros.factory.test.media_util import MountedMedia
+from cros.factory.test.utils.media_utils import MediaMonitor
+from cros.factory.test.utils.media_utils import MountedMedia
 
 # udev constants
 _UDEV_ACTION_INSERT = 'add'
 _UDEV_ACTION_REMOVE = 'remove'
 
-_WRITING_TEST_FILENAME = 'media_util_unittest.test'
+_WRITING_TEST_FILENAME = 'media_utils_unittest.test'
 _WRITING_TEST_STR = 'Unittest writing test...'
 _VIRTUAL_PATITION_NUMBER = 3
 
@@ -38,7 +38,7 @@ class TestMountedMedia(unittest.TestCase):
   def setUp(self):
     """Creates a temp file to mock as a media device."""
     self._virtual_device = tempfile.NamedTemporaryFile(
-        prefix='media_util_unitttest')
+        prefix='media_utils_unitttest')
     exit_code, ret = commands.getstatusoutput(
         'truncate -s 1048576 %s && mkfs -F -t ext3 %s' %
         (self._virtual_device.name, self._virtual_device.name))
@@ -128,7 +128,7 @@ class TestMediaMonitor(unittest.TestCase):
   def setUp(self):
     """Creates a temp file to mock as a media device."""
     self._virtual_device = tempfile.NamedTemporaryFile(
-        prefix='media_util_unitttest')
+        prefix='media_utils_unitttest')
     exit_code, ret = commands.getstatusoutput(
         'truncate -s 1048576 %s' % self._virtual_device.name)
     self.assertEqual(0, exit_code)

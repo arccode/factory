@@ -5,7 +5,7 @@
 """Factory test automator for 'audio_loop' test."""
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import audio_utils
+from cros.factory.test.utils import audio_utils
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.e2e_test.automator import Automator, AutomationFunction
 

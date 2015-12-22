@@ -13,7 +13,6 @@ import unittest
 from jsonrpclib import ProtocolError
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import audio_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import state
@@ -23,6 +22,7 @@ from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event, EventClient
 from cros.factory.test.factory import TestState
+from cros.factory.test.utils import audio_utils
 
 
 # File that suppresses reboot if present (e.g., for development).

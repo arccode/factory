@@ -23,7 +23,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
-from cros.factory.test import serial_utils
+from cros.factory.test.utils import serial_utils
 
 _SERIAL_TIMEOUT = 3
 

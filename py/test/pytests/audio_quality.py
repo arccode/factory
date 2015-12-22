@@ -32,13 +32,13 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import utils
-from cros.factory.test import audio_utils
 from cros.factory.test import audio_control
 from cros.factory.test.audio_control import alsa
 from cros.factory.test.audio_control import tinyalsa
-from cros.factory.test.utils import Enum
+from cros.factory.test.utils import audio_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
+from cros.factory.utils.type_utils import Enum
 from cros.factory.goofy.goofy import CACHES_DIR
 
 # Host test machine crossover connected to DUT, fix local ip and port for

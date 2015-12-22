@@ -212,7 +212,6 @@ from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
-from cros.factory.test.camera_utils import EncodeCVImage
 from cros.factory.test.fixture.fixture_connection import (
     SerialFixtureConnection, MockFixtureConnection, FixtureConnectionError)
 from cros.factory.test.fixture.camera.als_light_chamber import (
@@ -221,10 +220,11 @@ from cros.factory.test.fixture.camera.light_chamber import (
     LightChamber, LightChamberError, LightChamberCameraError)
 import cros.factory.test.fixture.camera.perf_tester as camperf
 import cros.factory.test.fixture.camera.renderer as renderer
-from cros.factory.test.media_util import (
+from cros.factory.test.utils.camera_utils import EncodeCVImage
+from cros.factory.test.utils.media_utils import (
     MediaMonitor, MountedMedia, RemovableDiskMonitor)
-from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.type_utils import Enum
 
 
 # Delay between each frame during calibration.
