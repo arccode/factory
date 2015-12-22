@@ -26,20 +26,18 @@ import yaml
 import zipfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Arg
-from cros.factory.test.event_log import Log
+from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import utils
-from cros.factory.test import audio_control
-from cros.factory.test.audio_control import alsa
-from cros.factory.test.audio_control import tinyalsa
+from cros.factory.test.args import Arg
+from cros.factory.test.dut.audio import base as base_audio
+from cros.factory.test.event_log import Log
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 from cros.factory.utils.type_utils import Enum
-from cros.factory.goofy.goofy import CACHES_DIR
 
 # Host test machine crossover connected to DUT, fix local ip and port for
 # communication in between.
@@ -140,17 +138,14 @@ class AudioQualityTest(unittest.TestCase):
       Arg('network_setting', dict, 'Network setting to define *local_ip*, \n'
           '*port*, *gateway_ip*', {}, optional=True),
       Arg('audio_conf', str, 'Audio config file path',
-          audio_control.base.DEFAULT_CONFIG_PATH, optional=True),
+          base_audio.DEFAULT_CONFIG_PATH, optional=True),
   ]
 
   def setUpAudioDevice(self):
     logging.info('audio conf %s', self.args.audio_conf)
-    if self.args.use_tinyalsa:
-      self._audio_control = tinyalsa.TinyalsaAudioControl(self.dut,
-                                                          self.args.audio_conf)
-    else:
-      self._audio_control = alsa.AlsaAudioControl(self.dut,
-                                                  self.args.audio_conf)
+    self._audio_control = self.dut.audio
+    self._audio_control.ApplyConfig(self.args.audio_conf)
+
     # Devices Type check
     if self.args.use_tinyalsa:
       if not isinstance(self.args.input_dev, tuple):

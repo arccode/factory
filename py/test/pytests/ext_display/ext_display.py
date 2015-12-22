@@ -34,7 +34,6 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
-from cros.factory.test.audio_control import alsa
 from cros.factory.test.event import Event
 from cros.factory.test.factory_task import (FactoryTaskManager,
                                             InteractiveFactoryTask)
@@ -536,7 +535,7 @@ class ExtDisplayTaskArg(object):
         if isinstance(info[2][0], int):
           self.card_id = info[2][0]
         elif isinstance(info[2][0], (str, unicode)):
-          self.card_id = alsa.AlsaAudioControl.GetCardIndexByName(info[2][0])
+          self.card_id = self.dut.audio.GetCardIndexByName(info[2][0])
         else:
           raise ValueError('Card ID should be an integer or a string')
 

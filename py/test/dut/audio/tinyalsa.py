@@ -17,8 +17,7 @@ import re
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn
-from cros.factory.test.audio_control import base
+from cros.factory.test.dut.audio import base
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.
@@ -55,8 +54,8 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   def GetCardIndexByName(self, card_name):
     """See BaseAudioControl.GetCardIndexByName"""
-    output = self.CheckOutput(['cat', '/proc/asound/cards'])
-    for line in output.split('\n'):
+    output = self._dut.CallOutput(['cat', '/proc/asound/cards'])
+    for line in output.splitlines():
       m = self._RE_CARD_INDEX.match(line)
       if m and m.group(2) == card_name:
         return m.group(1)
@@ -95,7 +94,7 @@ class TinyalsaAudioControl(base.BaseAudioControl):
   def GetMixerControls(self, name, card='0'):
     """See BaseAudioControl.GetMixerControls """
     command = ['tinymix', '-D', card, name]
-    lines = self.CheckOutput(command)
+    lines = self._dut.CheckOutput(command)
     return self._GetMixerControlsByLines(name, lines)
 
   def _PushAndExecute(self, push_path, pull_path=None):
@@ -194,7 +193,7 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   def _GetAudioLoopPID(self):
     """Used to get audio loop process ID"""
-    lines = self.CheckOutput(['ps'])
+    lines = self._dut.CallOutput(['ps'])
     m = re.search(r'\w+\s+(\d+).*tinycap_stdout', lines, re.MULTILINE)
     if m:
       pid = m.group(1)
@@ -219,12 +218,10 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     self.DestroyAudioLoop()
 
     # TODO(mojahsu): try to figure out why CheckCall will be hang.
-    # Now we workaround it by Spawn with ['adb', 'shell'].
+    # We can workaround it by Spawn with ['adb', 'shell'].
     # It will have problem is the dut is not android device
-    command = ['adb', 'shell', 'loopback.sh']
-    # self.CheckCall(' '.join(command))
-    # self.CheckCall(command)
-    Spawn(command)
+    command = 'loopback.sh'
+    self._dut.CheckCall(command)
     pid = self._GetAudioLoopPID()
 
     logging.info('Create tinyloop pid %s for input %s,%s output %s,%s',
@@ -235,6 +232,6 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     if pid:
       logging.info('Destroy audio loop with pid %s', pid)
       command = ['kill', pid]
-      self.CheckCall(command)
+      self._dut.CheckCall(command)
     else:
       logging.info('Destroy audio loop - not found tinycap_stdout pid')

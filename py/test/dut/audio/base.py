@@ -11,9 +11,8 @@ import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from glob import glob
 from cros.factory.test.utils import Enum
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.test.dut import component
 
 DEFAULT_CONFIG_PATH = '/usr/local/factory/py/test/audio.conf'
 
@@ -37,14 +36,17 @@ MIC_JACK_TYPE_RETURN_LRMG = '2'
 script_card_index = '999'
 
 
-class BaseAudioControl(object):
+class BaseAudioControl(component.DUTComponent):
   """An abstract class for different target audio utils"""
 
-  def __init__(self, dut=None, config_path=DEFAULT_CONFIG_PATH):
+  def __init__(self, dut, config_path=DEFAULT_CONFIG_PATH):
+    super(BaseAudioControl, self).__init__(dut)
     # used for audio config logging.
     self._audio_config_sn = 0
     self._restore_mixer_control_stack = []
-    self._dut = dut
+    self.ApplyConfig(config_path)
+
+  def ApplyConfig(self, config_path):
     if os.path.exists(config_path):
       with open(config_path, 'r') as config_file:
         self.audio_config = yaml.load(config_file)
@@ -55,42 +57,6 @@ class BaseAudioControl(object):
     else:
       self.audio_config = {}
       logging.info('Cannot find configuration file.')
-
-  def CheckOutput(self, command):
-    """
-    Execute command by current dut status.
-    If we have dut instance, we will use dut to execute command.
-    Otherwise we use original way to execute command.
-    Args:
-      command: the command to be executed
-        It is a list of whole command.
-        e.g. ['cmd', 'option1', 'option2']
-    Returns:
-        standard output
-    """
-    if not self._dut:
-      query = Spawn(command, read_stdout=True, log=True)
-      return query.stdout_data
-    # Use dut wrapper to execute command
-    return self._dut.CheckOutput(command)
-
-  def CheckCall(self, command):
-    """
-    Execute command by current dut status.
-    If we have dut instance, we will use dut to execute command.
-    Otherwise we use original way to execute command.
-    Args:
-      command: the command to be executed
-        It is a list of whole command.
-        e.g. ['cmd', 'option1', 'option2']
-    Returns:
-        return code
-    """
-    if not self._dut:
-      query = Spawn(command, read_stdout=True, log=True)
-      return query.returncode
-    # Use dut wrapper to execute command
-    return self._dut.CheckCall(command)
 
   def GetCardIndexByName(self, card_name):
     """Get audio card index by card name.
@@ -152,12 +118,11 @@ class BaseAudioControl(object):
     Returns:
       The full name of the found event device of form /dev/input/event*
     """
-    for evdev in glob('/dev/input/event*'):
-      f = open(os.path.join('/sys/class/input/',
-                            os.path.basename(evdev),
-                            'device/name'),
-               'r')
-      evdev_name = f.read()
+    for evdev in self._dut.Glob('/dev/input/event*'):
+      evdev_name = self._dut.ReadFile(
+          self._dut.path.join('/sys/class/input/',
+                              self._dut.path.basename(evdev),
+                              'device/name'))
       if evdev_name.find(name) != -1:
         logging.info('Find %s Event Device %s', name, evdev)
         return evdev
@@ -177,8 +142,7 @@ class BaseAudioControl(object):
     if card in self.audio_config and HP_JACK_DETECT in self.audio_config[card]:
       command = self.audio_config[card][HP_JACK_DETECT]
       logging.info('Getting headphone jack status by %s', command)
-      stdout_data = self.CheckOutput(command)
-      jack_status = stdout_data.strip()
+      jack_status = self._dut.CallOutput(command).strip()
       status = True if jack_status == '1' else False
       logging.info('headphone jack status %s', status)
       return status
@@ -201,7 +165,7 @@ class BaseAudioControl(object):
       evdev = self.FindEventDeviceByName(hp_jack_name)
       if evdev:
         command = ['evtest', '--query', evdev, 'EV_SW', 'SW_HEADPHONE_INSERT']
-        returncode = self.CheckCall(command)
+        returncode = self._dut.Call(command)
         status = (returncode != 0)
         break
 
@@ -225,8 +189,7 @@ class BaseAudioControl(object):
     if card in self.audio_config and MIC_JACK_DETECT in self.audio_config[card]:
       command = self.audio_config[card][MIC_JACK_DETECT]
       logging.info('Getting microphone jack status by %s', command)
-      stdout_data = self.CheckOutput(command)
-      jack_status = stdout_data.strip()
+      jack_status = self._dut.CallOutput(command).strip()
       status = True if jack_status == '1' else False
       logging.info('microphone jack status %s', status)
       return status
@@ -248,7 +211,7 @@ class BaseAudioControl(object):
       evdev = self.FindEventDeviceByName(jack_name)
       if evdev:
         command = ['evtest', '--query', evdev, 'EV_SW', 'SW_MICROPHONE_INSERT']
-        returncode = self.CheckCall(command)
+        returncode = self._dut.Call(command)
         status = (returncode != 0)
         break
 
@@ -272,8 +235,7 @@ class BaseAudioControl(object):
         MIC_JACK_TYPE_DETECT in self.audio_config[card]):
       command = self.audio_config[card][MIC_JACK_TYPE_DETECT]
       logging.info('Getting mic jack type by %s', command)
-      stdout_data = self.CheckOutput(command)
-      type_status = stdout_data.strip()
+      type_status = self._dut.CallOutput(command).strip()
       if type_status == MIC_JACK_TYPE_RETURN_LRGM:
         mictype = MicJackType.lrgm
       elif type_status == MIC_JACK_TYPE_RETURN_LRMG:
@@ -307,7 +269,7 @@ class BaseAudioControl(object):
         if is_script:
           script = self.audio_config[card][action]
           logging.info('Execute \'%s\'', script)
-          self.CheckCall(script)
+          self._dut.CheckCall(script)
         else:
           logging.info('\nvvv-- Do(%d) \'%s\' on card %s Start --vvv',
                        self._audio_config_sn, action, card)

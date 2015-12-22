@@ -12,8 +12,7 @@ import logging
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.audio_control import base
-from cros.factory.utils.process_utils import Spawn, PIPE
+from cros.factory.test.dut.audio import base
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.
@@ -47,8 +46,8 @@ class AlsaAudioControl(base.BaseAudioControl):
 
   def GetCardIndexByName(self, card_name):
     """See BaseAudioControl.GetCardIndexByName"""
-    output = self.CheckOutput(['aplay', '-l'])
-    for line in output.split('\n'):
+    output = self._dut.CallOutput(['aplay', '-l'])
+    for line in output.splitlines():
       m = self._RE_CARD_INDEX.match(line)
       if m is not None and m.group(2) == card_name:
         return m.group(1)
@@ -68,11 +67,11 @@ class AlsaAudioControl(base.BaseAudioControl):
 
   def GetMixerControls(self, name, card='0'):
     """See BaseAudioControl.GetMixerControls"""
-    list_controls = Spawn(['amixer', '-c%d' % int(card), 'controls'],
-                          stdout=PIPE)
+    list_controls = self._dut.CallOutput(
+        ['amixer', '-c%d' % int(card), 'controls'])
     re_control = re.compile(self._CONTROL_RE_STR % name)
     numid = 0
-    for ctl in list_controls.stdout:
+    for ctl in list_controls.splitlines():
       m = re_control.match(ctl)
       if m:
         numid = int(m.group(1))
@@ -81,9 +80,8 @@ class AlsaAudioControl(base.BaseAudioControl):
       logging.info('Unable to find mixer control \'%s\'', name)
       return None
 
-    output = Spawn(['amixer', '-c%d' % int(card), 'cget', 'numid=%d' % numid],
-                   stdout=PIPE)
-    lines = output.stdout.read()
+    lines = self._dut.CallOutput(
+        ['amixer', '-c%d' % int(card), 'cget', 'numid=%d' % numid])
     logging.info('lines: %s', lines)
     m = re.search(r'^.*: values=(.*)$', lines, re.MULTILINE)
     if m:
@@ -112,6 +110,6 @@ class AlsaAudioControl(base.BaseAudioControl):
                      name, old_value, card)
       logging.info('Setting \'%s\' to %s on card %s', name, value, card)
       command = ['amixer', '-c', card, 'cset', 'name=%r' % name, value]
-      self.CheckCall(command)
+      self._dut.CheckCall(command)
     if store:
       self._restore_mixer_control_stack.append((restore_mixer_settings, card))
