@@ -65,7 +65,7 @@ class DUTLink(object):
     return False
 
   @classmethod
-  def PrepareConnection(cls):
+  def PrepareLink(cls):
     """Setup prerequisites of DUT connections.
 
     Some DUT types need to do some setup before we can connect to any DUT.

@@ -3,6 +3,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import inspect
+
 import factory_common  # pylint: disable=W0611
 
 # Register targets.
@@ -13,6 +15,14 @@ from cros.factory.test.dut.links.ssh import SSHLink
 
 KNOWN_LINKS = [ADBLink, LocalLink, SSHLink]
 DEFAULT_LINK = LocalLink
+
+def _ExtractArgs(func, kargs):
+  spec = inspect.getargspec(func)
+  if spec.keywords is None:
+    # if the function accepts ** arguments, we can just pass everything into it
+    # so we only need to filter kargs if spec.keywords is None
+    kargs = {k: v for (k, v) in kargs.iteritems() if k in spec.args}
+  return kargs
 
 
 class DUTLinkOptionsError(Exception):
@@ -55,10 +65,11 @@ def Create(link_class=None, **kargs):
   if link_class is None:
     assert not kargs, 'Arguments cannot be specified without link_class.'
   constructor = GetLinkClass(link_class)
+  kargs = _ExtractArgs(constructor.__init__, kargs)
   return constructor(**kargs)
 
 
-def PrepareConnection(link_class=None, **kargs):
+def PrepareLink(link_class=None, **kargs):
   """Prepares a link connection before that kind of link is ready.
 
   This provides DUT Link to setup system environment for receiving connections,
@@ -72,4 +83,5 @@ def PrepareConnection(link_class=None, **kargs):
   if link_class is None:
     assert not kargs, 'Arguments cannot be specified without link_class.'
   class_object = GetLinkClass(link_class)
-  return class_object.PrepareConnection(**kargs)
+  kargs = _ExtractArgs(class_object.PrepareLink, kargs)
+  return class_object.PrepareLink(**kargs)

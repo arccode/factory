@@ -142,7 +142,7 @@ class SSHLink(link.DUTLink):
       factory.del_shared_data(_DEVICE_DATA_KEY)
 
   @classmethod
-  def PrepareConnection(cls, **dut_options):
+  def PrepareLink(cls, **dut_options):
     host = dut_options['host']
     if host == SSHLink.DYNAMIC_HOST:
       with cls._dhcp_manager_lock:
