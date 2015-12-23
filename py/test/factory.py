@@ -26,9 +26,11 @@ import sys
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.test.unicode_to_string import UnicodeToString
+from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import sys_utils
+from cros.factory.utils import type_utils
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -61,7 +63,7 @@ ALL = 'all'
 
 
 # For compatibility; moved to utils.
-in_chroot = utils.in_chroot
+in_chroot = sys_utils.in_chroot
 
 
 def get_factory_root(subdir=None):
@@ -77,10 +79,10 @@ def get_factory_root(subdir=None):
   """
   ret = (os.environ.get('CROS_FACTORY_ROOT') or
          (('/tmp/factory.%s' % getpass.getuser())
-          if utils.in_chroot() else '/var/factory'))
+          if sys_utils.in_chroot() else '/var/factory'))
   if subdir:
     ret = os.path.join(ret, subdir)
-  utils.TryMakeDirs(ret)
+  file_utils.TryMakeDirs(ret)
   return ret
 
 
@@ -844,7 +846,7 @@ class FactoryTest(object):
                  'enable_services', 'disable_services', 'no_host']
 
   # Subsystems that the test may require exclusive access to.
-  EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING', 'CHARGER', 'CPUFREQ'])
+  EXCLUSIVE_OPTIONS = type_utils.Enum(['NETWORKING', 'CHARGER', 'CPUFREQ'])
 
   RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
 
@@ -941,7 +943,7 @@ class FactoryTest(object):
       self.run_if_table_name = match.group(2)
       self.run_if_col = match.group(3)
 
-    self.subtests = filter(None, utils.FlattenList(subtests or []))
+    self.subtests = filter(None, type_utils.FlattenList(subtests or []))
     self.path = ''
     self.parent = None
     self.root = None
@@ -1267,7 +1269,7 @@ class FactoryTestList(FactoryTest):
     """
     super(FactoryTestList, self).__init__(_root=True, subtests=subtests)
     self.state_instance = state_instance
-    self.subtests = filter(None, utils.FlattenList(subtests))
+    self.subtests = filter(None, type_utils.FlattenList(subtests))
     self.path_map = {}
     self.root = self
     self.test_list_id = test_list_id

@@ -16,6 +16,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
@@ -38,6 +39,7 @@ TimeoutError = type_utils.TimeoutError
 Retry = sync_utils.Retry
 WaitFor = sync_utils.WaitFor
 Timeout = sync_utils.Timeout
+in_chroot = sys_utils.in_chroot
 
 
 def IsFreon(dut=None):
@@ -50,11 +52,6 @@ def IsFreon(dut=None):
   # this in the future to find a more deterministic way to probe freon board.
   return (os.path.exists('/sbin/frecon') if dut else
           dut.Call('[ -e /sbin/frecon ]') == 0)
-
-
-def in_chroot():
-  """Returns True if currently in the chroot."""
-  return 'CROS_WORKON_SRCROOT' in os.environ
 
 
 def in_qemu():

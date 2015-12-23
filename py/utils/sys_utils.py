@@ -258,3 +258,8 @@ def HasEC():
     # The system might not have 'ectool' command if the platform has no EC chip.
     has_ec = False
   return has_ec
+
+
+def in_chroot():
+  """Returns True if currently in the chroot."""
+  return 'CROS_WORKON_SRCROOT' in os.environ
