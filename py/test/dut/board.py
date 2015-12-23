@@ -144,16 +144,20 @@ class DUTBoard(object):
     """Backward-compatible call for DUTLink.IsReady."""
     return self.link.IsReady()
 
-  def ReadFile(self, path):
-    """Returns file content on DUT.
+  def ReadFile(self, path, count=None):
+    """Returns file contents on DUT.
 
     Args:
       path: A string for file path on DUT.
+      count: Number of bytes to read. None to read whole file.
 
     Returns:
       A string as file contents.
     """
-    return self.link.Pull(path)
+    if count is None:
+      return self.link.Pull(path)
+
+    return self.CheckOutput(['head', '-c', str(count), path])
 
   def WriteFile(self, path, content):
     """Writes some content into file on DUT.
