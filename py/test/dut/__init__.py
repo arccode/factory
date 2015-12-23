@@ -5,17 +5,13 @@
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test.dut.links import utils as link_utils
-from cros.factory.test.dut import board
 from cros.factory.test.dut import component
+from cros.factory.test.dut import utils
 
 
 # Forward the exception for easy access to all DUT (board, component)
 # exceptions.
 DUTException = component.DUTException
 
-
-def Create(**kargs):
-  """Creates a DUT instance by given options."""
-  # TODO(hungte) Allow creating different board class in kargs.
-  return board.Create(link_utils.Create(**kargs))
+# Forward the correct DUT object factory.
+Create = utils.CreateBoard

@@ -9,7 +9,7 @@
 FACTORY_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
 BOARD_SETUP_SCRIPT="${FACTORY_DIR}/board/board_setup_factory.sh"
 
-# Load the board setup script to get CROS_FACTORY_DUT_BOARD_CLASS.
+# Load the board setup script to get CROS_FACTORY_DUT_OPTIONS.
 if [ -s "${BOARD_SETUP_SCRIPT}" ]; then
   echo "Loading board-specific parameters ${BOARD_SETUP_SCRIPT}..."
   . "${BOARD_SETUP_SCRIPT}"

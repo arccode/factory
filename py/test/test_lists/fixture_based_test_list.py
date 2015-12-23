@@ -7,7 +7,7 @@
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test.test_lists.test_lists import (OperatorTest, TestList)
-from cros.factory.test.dut.links import utils
+from cros.factory.test.dut import utils
 
 def StartFixtureTest(test_list_id, label_en, label_zh):
   OperatorTest(

@@ -618,8 +618,7 @@ class Options(object):
   {'link_class': 'LocalLink'},  # To run tests locally.
   {'link_class': 'ADBLink'},  # To run tests via ADB.
   {'link_class': 'SSHLink', 'host': TARGET_IP},  # To run tests over SSH.
-  See :py:attr:`cros.factory.test.dut.links.utils.KNOWN_LINKS` for more
-  options."""
+  See :py:attr:`cros.factory.test.dut.utils` for more information."""
 
   def check_valid(self):
     """Throws a TestListError if there are any invalid options."""

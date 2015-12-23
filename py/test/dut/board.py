@@ -20,7 +20,6 @@ from cros.factory.test.dut.audio import utils as audio_utils
 from cros.factory.test.dut import component
 from cros.factory.test.dut import display
 from cros.factory.test.dut import ec
-from cros.factory.test.dut.links import utils as link_utils
 from cros.factory.test.dut import hooks
 from cros.factory.test.dut import info
 from cros.factory.test.dut import led
@@ -29,6 +28,7 @@ from cros.factory.test.dut import power
 from cros.factory.test.dut import status
 from cros.factory.test.dut import temp
 from cros.factory.test.dut import thermal
+from cros.factory.test.dut import utils
 from cros.factory.test.dut import vpd
 from cros.factory.utils import file_utils
 
@@ -81,9 +81,7 @@ class DUTBoard(object):
       dut_link: A cros.factory.test.dut.link.DUTLink instance for accessing
                 device under test.
     """
-    if dut_link is None:
-      dut_link = link_utils.Create()
-    self.link = dut_link
+    self.link = utils.CreateLink() if dut_link is None else dut_link
 
   # Board modules and properties
 
@@ -279,25 +277,3 @@ class DUTBoard(object):
       return glob.glob(pattern)
     results = self.CallOutput('ls -d %s' % pattern)
     return results.splitlines() if results else []
-
-
-def Create(dut_link=None):
-  """Returns a board instance for the device under test.
-
-  By default, a
-  :py:class:`cros.factory.test.dut.board.DUTBoard` object
-  is returned, but this may be overridden by setting the
-  ``CROS_FACTORY_DUT_BOARD_CLASS`` environment variable in
-  ``board_setup_factory.sh``.  See :ref:`board-api-extending`.
-
-  Parameters:
-    dut_link: A :py:class:`cros.factory.test.dut.link.DUTLink` object or None.
-
-  Returns:
-    An instance of the specified DUTBoard class implementation.
-  """
-  board = os.environ.get('CROS_FACTORY_DUT_BOARD_CLASS',
-                         'cros.factory.test.dut.board.DUTBoard')
-  module, cls = board.rsplit('.', 1)
-  _board = getattr(__import__(module, fromlist=[cls]), cls)(dut_link)
-  return _board
