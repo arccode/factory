@@ -14,6 +14,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
+from cros.factory.test import dut
 
 
 class BoardBatteryTest(unittest.TestCase):
@@ -23,6 +24,9 @@ class BoardBatteryTest(unittest.TestCase):
           'Expected battery design capacity range in mAh.',
           default=(1000, 10000)),
   ]
+
+  def setUp(self):
+    self.dut = dut.Create()
 
   def runTest(self):
     lower, upper = self.args.design_capacity_range

@@ -49,10 +49,10 @@ import numpy
 import yaml
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.event_log import Log
 from cros.factory.test.args import Arg
-from cros.factory.test.dut.base import CalledProcessError
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
@@ -148,6 +148,8 @@ class GPS(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.dut = dut.Create()
+
     # Check arguments.
     if self.args.use_logparser and not (
         self.args.shopfloor_ip and self.args.shopfloor_port):
@@ -156,18 +158,9 @@ class GPS(unittest.TestCase):
 
     # Store the serial numbers for later use.
     factory_root = '/sdcard/factory'
-    try:
-      # Use / since the target is a posix path.
-      self._mlb_serial_number = self.dut.Pull(
-          '%s/%s' % (factory_root, 'mlb_serial_number')).strip()
-    except subprocess.CalledProcessError:
-      self._mlb_serial_number = SERIAL_NOT_AVAILABLE
-    try:
-      # Use / since the target is a posix path.
-      self._serial_number = self.dut.Pull(
-          '%s/%s' % (factory_root, 'serial_number')).strip()
-    except subprocess.CalledProcessError:
-      self._serial_number = SERIAL_NOT_AVAILABLE
+    self._mlb_serial_number = (self.dut.info.mlb_serial_number or
+                               SERIAL_NOT_AVAILABLE)
+    self._serial_number = (self.dut.info.serial_number or SERIAL_NOT_AVAILABLE)
     factory.console.info('Got MLB serial number: %s', self._mlb_serial_number)
     factory.console.info('Got serial number: %s', self._serial_number)
 
@@ -193,9 +186,9 @@ class GPS(unittest.TestCase):
           config_path = try_config_path
           break
     if not config_path:
-      self.fail('Config file %s could not be found')
-    self.dut.Push(config_path, '/data/gps')
-
+      self.fail('Config file %s could not be found' % self.args.gps_config_file)
+    with open(config_path) as f:
+      self.dut.WriteFile('/data/gps', f.read())
 
   def _ParseNMEAStream(self, file_stream):
     """Parse NMEA stream and return values.
@@ -337,14 +330,14 @@ class GPS(unittest.TestCase):
 
     # Stop gpsd if it's already running.
     factory.console.info('Stopping gpsd...')
-    self.dut.Shell('stop gpsd')
+    self.dut.Call('stop gpsd')
 
     # Run glgps for <args.timeout> seconds with <self.args.gps_config_job>.
     factory.console.info('Starting %s job...', self.args.gps_config_job)
     def StartGLGPS():
-      self.dut.Shell([GLGPS_BINARY,
-                      DEVICE_GPS_CONFIG_PATH,
-                      self.args.gps_config_job])
+      self.dut.Call([GLGPS_BINARY,
+                     DEVICE_GPS_CONFIG_PATH,
+                     self.args.gps_config_job])
     glgps_thread = threading.Thread(target=StartGLGPS)
     glgps_thread.daemon = True
     glgps_thread.start()
@@ -356,7 +349,7 @@ class GPS(unittest.TestCase):
         self.dut.CheckCall('[[ -n `timeout 1 cat %s` ]]'
                            % self.args.nmea_out_path)
         return True
-      except CalledProcessError:
+      except dut.CalledProcessError:
         return False
     if not sync_utils.PollForCondition(poll_method=CheckGLGPSRunning,
                                        timeout_secs=START_GLGPS_TIMEOUT,
@@ -409,14 +402,14 @@ class GPS(unittest.TestCase):
 
     # Restart normal gpsd operation.
     factory.console.info('Restarting normal gpsd...')
-    self.dut.Shell('start gpsd')
+    self.dut.Call('start gpsd')
 
 
   def _KillGLGPS(self):
     # Stop the glgps with Factory_Test_Track.
     try:
       ps_line = self.dut.CheckOutput('ps | grep %s' % GLGPS_BINARY)
-    except CalledProcessError:
+    except dut.CalledProcessError:
       # Process is not running.  Don't kill it!
       factory.console.info('%s already stopped', GLGPS_BINARY)
       return

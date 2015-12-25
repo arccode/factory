@@ -66,6 +66,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -247,6 +248,7 @@ class AccelerometersCalibration(unittest.TestCase):
           optional=True)]
 
   def setUp(self):
+    self.dut = dut.Create()
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     # Checks arguments.

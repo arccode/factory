@@ -30,6 +30,7 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.dut.accelerometer import AccelerometerException
@@ -116,6 +117,7 @@ class AccelerometersLidAngleTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.dut = dut.Create()
     self.lock = threading.Lock()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)

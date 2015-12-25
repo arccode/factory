@@ -14,6 +14,7 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI
@@ -35,6 +36,9 @@ class VerifyRootPartitionTest(unittest.TestCase):
           'Path to the device containing rootfs partition', optional=True),
       Arg('max_bytes', int, 'Maximum number of bytes to read', optional=True),
   ]
+
+  def setUp(self):
+    self.dut = dut.Create()
 
   def runTest(self):
     if not self.args.kern_a_device:

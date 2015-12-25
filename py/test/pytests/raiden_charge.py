@@ -19,6 +19,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -47,6 +48,8 @@ _CSS = 'body { font-size: 2em; }'
 class RaidenChargeBFTTest(unittest.TestCase):
   """Tests raiden port charge functionality."""
   ARGS = [
+      Arg('adb_remote_test', bool, 'Run test against remote ADB target.',
+          default=False),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
       Arg('charge_duration_secs', (int, float),
           'The duration in seconds to charge the battery', default=5),
@@ -120,13 +123,14 @@ class RaidenChargeBFTTest(unittest.TestCase):
   _DISCHARGE_VOLT = 5  # discharging voltage
 
   def setUp(self):
+    self._dut = dut.Create()
+    self._power = self._dut.power
     self.VerifyArgs()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._power = self.dut.power
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
-    self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')
+    self._adb_remote_test = self.args.adb_remote_test
     if self._adb_remote_test:
       self._template.SetState(_TESTING_ADB_CONNECTION)
       self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
@@ -344,7 +348,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
                                        charging=False))
     else:
       # Discharge under high system load.
-      with StressManager(self.dut).Run(self.args.discharge_duration_secs):
+      with StressManager(self._dut).Run(self.args.discharge_duration_secs):
         (sampled_battery_current, sampled_ina_current, sampled_ina_voltage) = (
             self.SampleCurrentAndVoltage(self.args.discharge_duration_secs,
                                          charging=False))

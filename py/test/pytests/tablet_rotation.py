@@ -59,6 +59,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -160,6 +161,7 @@ class TabletRotationTest(unittest.TestCase):
     #   degrees_to_orientations
     #   spec_offset
     #   spec_ideal_values
+    self.dut = dut.Create()
     self.accel_controller = None
     if self.args.check_accelerometer:
       if not all([self.args.degrees_to_orientations,

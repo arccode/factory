@@ -13,6 +13,7 @@ import unittest
 import time
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
@@ -45,6 +46,7 @@ class LCDBacklightTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.dut = dut.Create()
     self.ui = test_ui.UI()
     self.ui.AppendCSS(_BACKLIGHT_TEST_DEFAULT_CSS)
     self.ui.BindStandardKeys()

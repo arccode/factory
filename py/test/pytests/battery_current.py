@@ -17,6 +17,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -59,7 +60,7 @@ class BatteryCurrentTest(unittest.TestCase):
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _board and _power."""
-    self._power = self.dut.power
+    self._power = dut.Create().power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -93,16 +94,16 @@ class BatteryCurrentTest(unittest.TestCase):
                            'Starting battery level too high')
     self._ui.Run(blocking=False)
     if self.args.min_charging_current:
-      self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
+      self._power.SetChargeState(self._power.ChargeState.CHARGE)
       PollForCondition(poll_method=self._CheckCharge, poll_interval_secs=0.5,
                        condition_name='ChargeCurrent',
                        timeout_secs=self.args.timeout_secs)
     if self.args.min_discharging_current:
-      self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
+      self._power.SetChargeState(self._power.ChargeState.DISCHARGE)
       PollForCondition(poll_method=self._CheckDischarge, poll_interval_secs=0.5,
                        condition_name='DischargeCurrent',
                        timeout_secs=self.args.timeout_secs)
 
   def tearDown(self):
     # Must enable charger to charge or we will drain the battery!
-    self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
+    self._power.SetChargeState(self._power.ChargeState.CHARGE)

@@ -20,6 +20,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test.utils.stress_manager import StressManager
@@ -108,6 +109,7 @@ class ThermalLoadTest(unittest.TestCase):
             difference, self.args.temperatures_difference))
 
   def setUp(self):
+    self.dut = dut.Create()
     self.load = self.args.load or multiprocessing.cpu_count()
 
     self.assertTrue(self.args.heat_up_timeout_secs <= self.args.duration_secs,

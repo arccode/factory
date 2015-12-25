@@ -15,6 +15,7 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -64,6 +65,7 @@ class FixtureEntry(unittest.TestCase):
   ]
 
   def setUp(self):
+    self._dut = dut.Create()
     self._state = factory.get_state_instance()
     self._ui = test_ui.UI()
     self._ui.AppendCSS(_CSS)
@@ -83,13 +85,13 @@ class FixtureEntry(unittest.TestCase):
 
     if self.args.start_fixture_tests:
       self._template.SetState(_MSG_INSERT)
-      sync_utils.WaitFor(self.dut.link.IsReady, None)
+      sync_utils.WaitFor(self._dut.link.IsReady, None)
     else:
       self._template.SetState(_MSG_SEND_RESULT)
       self.SendTestResult()
 
       self._template.SetState(_MSG_REMOVE_DUT)
-      sync_utils.WaitFor(lambda: not self.dut.link.IsReady(), None)
+      sync_utils.WaitFor(lambda: not self._dut.link.IsReady(), None)
 
       self._template.SetState(_MSG_RESTART_TESTS)
       self.RestartAllTests()

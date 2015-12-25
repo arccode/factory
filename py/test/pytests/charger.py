@@ -18,6 +18,7 @@ from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -118,7 +119,8 @@ class ChargerTest(unittest.TestCase):
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _board and _power."""
-    self._power = self.dut.power
+    self._dut = dut.Create()
+    self._power = self._dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -246,7 +248,7 @@ class ChargerTest(unittest.TestCase):
     # charge should move up or down.
     self.assertTrue(moving_up is not None)
 
-    with StressManager(self.dut).Run(duration_secs=spec.timeout_secs,
+    with StressManager(self._dut).Run(duration_secs=spec.timeout_secs,
                                      num_threads=spec.load):
       start_time = time.time()
       last_verbose_log_time = None
@@ -328,7 +330,7 @@ class ChargerTest(unittest.TestCase):
     if update_ui:
       self._template.SetState(_CHARGE_TEXT)
     try:
-      self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
+      self._power.SetChargeState(self._power.ChargeState.CHARGE)
     except Exception, e:
       self.fail('Cannot set charger state to CHARGE on this board. %s' % e)
     else:
@@ -338,7 +340,7 @@ class ChargerTest(unittest.TestCase):
     """Sets charger state to DISCHARGE"""
     self._template.SetState(_DISCHARGE_TEXT)
     try:
-      self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
+      self._power.SetChargeState(self._power.ChargeState.DISCHARGE)
     except Exception, e:
       self.fail('Cannot set charger state to DISCHARGE on this board. %s' % e)
     else:

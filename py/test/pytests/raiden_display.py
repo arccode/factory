@@ -18,6 +18,7 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -92,6 +93,7 @@ class RaidenDisplayTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self._dut = dut.Create()
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -167,14 +169,14 @@ class RaidenDisplayTest(unittest.TestCase):
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=True)
       time.sleep(0.5)
       # DUT control for Raiden function: DP mode
-      self.dut.ResetHPD(self.args.raiden_index)
+      self._dut.ResetHPD(self.args.raiden_index)
       time.sleep(1)  # Wait for reset HPD response
-      self.dut.SetHPD(self.args.raiden_index)
-      self.dut.SetRaiden(self.args.raiden_index, 'DP')
+      self._dut.SetHPD(self.args.raiden_index)
+      self._dut.SetRaiden(self.args.raiden_index, 'DP')
       utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
     else:
       self._template.SetInstruction(_DISCONNECT_STR(self._bft_media_device))
-      self.dut.ResetHPD(self.args.raiden_index)
+      self._dut.ResetHPD(self.args.raiden_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
       utils.WaitFor(lambda: not self._PollDisplayConnected(), timeout_secs=10)
 
@@ -302,7 +304,7 @@ class RaidenDisplayTest(unittest.TestCase):
     Returns:
       True if connected; otherwise False.
     """
-    return self.dut.display.GetPortInfo()[self._testing_display].connected
+    return self._dut.display.GetPortInfo()[self._testing_display].connected
 
   def runTest(self):
     """Runs display test."""

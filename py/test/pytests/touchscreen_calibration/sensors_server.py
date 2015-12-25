@@ -436,7 +436,7 @@ class SensorServiceRyu(BaseSensorService):
 
   def _CheckFileExistence(self, filepath):
     """Check if the file exists in the DUT."""
-    return utils.IsSuccessful(self.dut.Shell(self.check_cmd % filepath))
+    return utils.IsSuccessful(self.dut.Call(self.check_cmd % filepath))
 
   def InstallFiles(self):
     """Install the tools and the data file on the remote machine."""
@@ -453,7 +453,9 @@ class SensorServiceRyu(BaseSensorService):
       return True
 
     src_filepath = os.path.join(self.src_dir, filename)
-    return utils.IsSuccessful(self.dut.Push(src_filepath, dst_filepath))
+    with open(src_filepath) as f:
+      self.dut.WriteFile(dst_filepath, f.read())
+    return True
 
   def CalibrateBaseline(self):
     """Do baseline calibration."""
@@ -476,7 +478,7 @@ class SensorServiceRyu(BaseSensorService):
     return (self.num_rows, self.num_cols)
 
   def _ReadRawData(self, category):
-    """Read the output from dut.Shell()."""
+    """Read the output from execution on DUT()."""
     read_cmd = self.read_cmd_prefix + str(self.REPORT_TYPE[category])
     return self.dut.CheckOutput(read_cmd)
 
@@ -603,7 +605,7 @@ class SensorServiceRyu(BaseSensorService):
         self._GetToolPath(self.fw_update_tool),
         self._GetDataPath(self.fw_file))
     self.log.info('flashing a new firmware %s:%s...' %(fw_version, fw_config))
-    return utils.IsSuccessful(self.dut.Shell(cmd_update))
+    return utils.IsSuccessful(self.dut.Call(cmd_update))
 
   def ReadFirmwareVersion(self):
     """Read whether the firmware version and config are correct."""

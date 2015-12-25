@@ -13,6 +13,7 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test.test_ui import MakeLabel, UI
@@ -36,6 +37,7 @@ class SysfsBatteryTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self._power = dut.Create().power
     self._ui = UI()
     self._template = OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -45,8 +47,8 @@ class SysfsBatteryTest(unittest.TestCase):
     success = False
     wearAllowedPct = self.args.percent_battery_wear_allowed
     wearPct = None
+    power = self._power
 
-    power = self.dut.power
     battery_present = power.CheckBatteryPresent()
     if not battery_present:
       msg = 'Cannot find battery path'

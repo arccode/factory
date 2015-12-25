@@ -24,6 +24,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test.args import Args
+from cros.factory.test.dut import utils
 
 
 # Copied from goofy/invocation.py to minimize dependencies.
@@ -134,11 +135,9 @@ def _RunPytestRaw(pytest, args, dut_options):
   else:
     test = pytest()
 
-  # Set self.dut of the test case.
-  try:
-    setattr(test, 'dut', dut.Create(**dut_options))
-  except Exception as e:
-    return (False, e.message)
+  # Setup DUT_OPTIONS environment.
+  if dut_options:
+    os.setenv(utils.ENV_DUT_OPTIONS, ast.dump(dut_options))
 
   # Set self.args of the test case.
   try:

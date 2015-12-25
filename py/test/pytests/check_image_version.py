@@ -16,6 +16,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -178,6 +179,7 @@ class CheckImageVersionTest(unittest.TestCase):
           default=False)]
 
   def setUp(self):
+    self.dut = dut.Create()
     self._task_list = [ImageCheckTask(self)]
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)

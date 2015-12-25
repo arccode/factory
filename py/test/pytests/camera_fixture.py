@@ -205,6 +205,7 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.system.i2cbus import I2CBus
+from cros.factory.test import dut
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
@@ -826,7 +827,7 @@ class _TestDelegate(object):
       # (7) Save ALS values to vpd for FATP test.
       update_progress(STAGE70_VPD)
       if (not self.mock_mode and
-          self.delegator.dut.Shell(conf['save_vpd'] % (slope, intercept))):
+          self.delegator.dut.Call(conf['save_vpd'] % (slope, intercept))):
         update_status(False)
         self._Log('Writing VPD data failed!')
         return False, FAIL_ALS_VPD
@@ -1323,6 +1324,7 @@ class CameraFixture(unittest.TestCase):
   }
 
   def setUp(self):
+    self.dut = dut.Create()
     self.internal_queue = Queue.Queue()
 
     os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %

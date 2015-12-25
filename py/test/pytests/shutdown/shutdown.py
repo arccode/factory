@@ -13,6 +13,7 @@ import unittest
 from jsonrpclib import ProtocolError
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import state
@@ -106,6 +107,7 @@ class ShutdownTest(unittest.TestCase):
     assert self.args.operation in (factory.ShutdownStep.REBOOT,
                                    factory.ShutdownStep.FULL_REBOOT,
                                    factory.ShutdownStep.HALT)
+    self.dut = dut.Create()
     self.ui = test_ui.UI(css=_CSS)
     self.template = ui_templates.OneSection(self.ui)
     self.template.SetTitle(_TEST_TITLE(self.args.operation))

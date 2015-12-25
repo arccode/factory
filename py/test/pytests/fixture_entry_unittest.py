@@ -89,8 +89,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
   def testStartFixtureBasedTest(self):
     mock_dut_link = self.mox.CreateMock(DUTLink)
-    self.test.dut = dut.Create()
-    self.test.dut.link = mock_dut_link
+    self.test._dut = dut.Create()
+    self.test._dut.link = mock_dut_link
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
     self.test.args = FakeArgs({'start_fixture_tests': True})

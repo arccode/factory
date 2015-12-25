@@ -24,6 +24,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import countdown_timer
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -207,6 +208,7 @@ class RemovableStorageTest(unittest.TestCase):
   # pylint: disable=E1101
 
   def setUp(self):
+    self._dut = dut.Create()
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._error = ''
@@ -588,7 +590,7 @@ class RemovableStorageTest(unittest.TestCase):
     if not self.args.usbpd_port_polarity:
       return
     port, polarity = self.args.usbpd_port_polarity
-    port_status = self.dut.ec.GetUSBPDStatus(port)
+    port_status = self._dut.ec.GetUSBPDStatus(port)
     if port_status['polarity'] != 'CC%d' % polarity:
       self.Fail('USB CC polarity mismatch on port %d' % port)
 

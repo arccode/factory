@@ -13,6 +13,7 @@ import unittest
 
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -34,6 +35,9 @@ class CallShopfloor(unittest.TestCase):
           'It should be rw or ro which means RW_VPD or RO_VPD to write.',
           default='rw', optional=True),
   ]
+
+  def setUp(self):
+    self.dut = dut.Create()
 
   def runTest(self):
     if self.args.vpd_section not in ['ro', 'rw']:

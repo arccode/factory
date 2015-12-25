@@ -37,6 +37,7 @@ import logging
 import unittest
 
 from cros.factory.gooftool import edid
+from cros.factory.test import dut
 from cros.factory.test.args import Arg
 
 class BacklightMaxBrightnessVPDTest(unittest.TestCase):
@@ -70,6 +71,9 @@ class BacklightMaxBrightnessVPDTest(unittest.TestCase):
       return None, None
     else:
       return parsed_edid['product_id'], parsed_edid['vendor']
+
+  def setUp(self):
+    self.dut = dut.Create()
 
   def runTest(self):
     """Run the test."""

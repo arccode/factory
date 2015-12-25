@@ -10,6 +10,7 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 
+from cros.factory.test import dut
 from cros.factory.test.args import Arg
 from cros.factory.test.utils.stress_manager import StressManager
 from cros.factory.test.utils.stress_manager import StressManagerError
@@ -29,6 +30,9 @@ class StressAppTest(unittest.TestCase):
           'stress disk using -f argument of stressapptest.',
           default=True),
   ]
+
+  def setUp(self):
+    self.dut = dut.Create()
 
   def runTest(self):
     # Wait other parallel tests memory usage to settle to a stable value, so

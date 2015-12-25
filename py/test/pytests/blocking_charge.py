@@ -14,10 +14,11 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 
 _TEST_TITLE = test_ui.MakeLabel('Charging', u'充电')
 
@@ -53,7 +54,7 @@ class ChargerTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._power = self.dut.power
+    self._power = dut.Create().power
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._template.SetTitle(_TEST_TITLE)

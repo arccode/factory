@@ -35,6 +35,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -83,6 +84,9 @@ class Report(unittest.TestCase):
       fixture.Disconnect()
     except bft_fixture.BFTFixtureException:
       logging.exception('Unable to set status color on BFT fixture')
+
+  def setUp(self):
+    self.dut = dut.Create()
 
   def runTest(self):
     test_list = self.test_info.ReadTestList()

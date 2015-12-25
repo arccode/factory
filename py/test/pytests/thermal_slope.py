@@ -38,6 +38,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.system.msr import MSRSnapshot
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
@@ -87,6 +88,7 @@ class ThermalSlopeTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.dut = dut.Create()
     self.log = factory.console if self.args.console_log else logging
 
     # Process to terminate in tear-down.

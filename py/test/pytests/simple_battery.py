@@ -18,6 +18,7 @@ import time
 import unittest
 
 import factory_common   # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -60,6 +61,7 @@ class SimpleBatteryTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self._dut = dut.Create()
     self.VerifyArgs()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
@@ -87,7 +89,7 @@ class SimpleBatteryTest(unittest.TestCase):
     sampled_current = []
     end_time = time_utils.MonotonicTime() + duration_secs
     while time_utils.MonotonicTime() < end_time:
-      sampled_current.append(self.dut.power.GetBatteryCurrent())
+      sampled_current.append(self._dut.power.GetBatteryCurrent())
       time.sleep(self.args.current_sampling_period_secs)
     logging.info('Sampled battery current: %s', str(sampled_current))
     return sampled_current
@@ -103,9 +105,9 @@ class SimpleBatteryTest(unittest.TestCase):
       the given threshold in dargs.
     """
     self._template.SetState(_PLUG_AC)
-    sync_utils.WaitFor(self.dut.power.CheckACPresent, timeout_secs=10)
+    sync_utils.WaitFor(self._dut.power.CheckACPresent, timeout_secs=10)
     self._template.SetState(_TESTING_CHARGE)
-    self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
+    self._dut.power.SetChargeState(self._dut.power.ChargeState.CHARGE)
     sampled_current = self.SampleBatteryCurrent(duration_secs)
     if self.args.min_charge_current_mA:
       if not any(
@@ -131,11 +133,11 @@ class SimpleBatteryTest(unittest.TestCase):
       the given threshold in dargs.
     """
     self._template.SetState(_UNPLUG_AC)
-    sync_utils.WaitFor(lambda: not self.dut.power.CheckACPresent(),
+    sync_utils.WaitFor(lambda: not self._dut.power.CheckACPresent(),
                        timeout_secs=10)
     self._template.SetState(_TESTING_DISCHARGE)
     # Discharge under high system load.
-    with StressManager(self.dut).Run(duration_secs):
+    with StressManager(self._dut).Run(duration_secs):
       sampled_current = self.SampleBatteryCurrent(duration_secs)
     if self.args.min_discharge_current_mA:
       if not any(
@@ -149,10 +151,10 @@ class SimpleBatteryTest(unittest.TestCase):
             'Battery was not discharging during charge test')
 
   def runTest(self):
-    if not self.dut.power.CheckBatteryPresent():
+    if not self._dut.power.CheckBatteryPresent():
       raise factory.FactoryTestFailure(
           'Cannot locate battery sysfs path. Missing battery?')
-    cycle_count = self.dut.power.GetBatteryAttribute('cycle_count').strip()
+    cycle_count = self._dut.power.GetBatteryAttribute('cycle_count').strip()
     if int(cycle_count) > self.args.max_cycle_count:
       raise factory.FactoryTestFailure(
           'Battery cycle count %s exceeds max %d' %

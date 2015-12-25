@@ -24,6 +24,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test import countdown_timer
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -48,6 +49,8 @@ class RaidenCCFlipCheck(unittest.TestCase):
   """Raiden CC line polarity check and operation flip test."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
+      Arg('adb_remote_test', bool, 'Run test against remote ADB target.',
+          default=False),
       Arg('raiden_index', int, 'Index of DUT raiden port'),
       Arg('original_enabled_cc', str, 'Original enabled CC line.',
           default='CC1'),
@@ -71,13 +74,14 @@ class RaidenCCFlipCheck(unittest.TestCase):
   ]
 
   def setUp(self):
+    self._dut = dut.Create()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     if self.args.ask_flip_operation and self.args.timeout_secs == 0:
       self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
-    self._adb_remote_test = (self.dut.__class__.__name__ == 'AdbTarget')
+    self._adb_remote_test = self.args.adb_remote_test
     self._double_cc_quick_check = (
         self._bft_fixture.IsDoubleCCCable() and self.args.double_cc_quick_check)
     if (not self._bft_fixture.IsParallelTest() and
@@ -103,7 +107,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
     if self._double_cc_quick_check:
       return self._bft_fixture.GetPDState()['polarity']
 
-    port_status = self.dut.ec.GetUSBPDStatus(self.args.raiden_index)
+    port_status = self._dut.ec.GetUSBPDStatus(self.args.raiden_index)
     # For newer version EC, port_status[state] will return string instead of
     # state number.
     if self._adb_remote_test or self._bft_fixture.IsParallelTest():

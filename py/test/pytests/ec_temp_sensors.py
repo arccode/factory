@@ -14,6 +14,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.tests import dut
 from cros.factory.test.args import Arg
 
 
@@ -31,6 +32,9 @@ class BoardTempSensorsTest(unittest.TestCase):
       Arg('temp_range', tuple, 'A tuple of (min_temp, max_temp) in Celsius.',
           default=(0, 100)),
   ]
+
+  def setUp(self):
+    self.dut = dut.Create()
 
   def runTest(self):
     temp_sensor_to_test = self.args.temp_sensor_to_test

@@ -23,6 +23,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
@@ -93,6 +94,7 @@ class BatteryCycleTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.dut = dut.Create()
     self.ui = test_ui.UI()
     self.status = self.dut.status.Snapshot()
     self.template = ui_templates.OneSection(self.ui)

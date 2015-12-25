@@ -19,6 +19,7 @@ import factory_common     # pylint: disable=W0611
 import sensors_server
 
 from cros.factory.test.event_log import Log
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
@@ -95,6 +96,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def setUp(self):
     """Sets up the object."""
+    self.dut = dut.Create()
     self._calibration_thread = None
     self.fixture = None
     self.dev_path = None

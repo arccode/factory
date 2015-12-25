@@ -15,6 +15,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import led as led_module
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -304,6 +305,7 @@ class LEDTest(unittest.TestCase):
           'name.', optional=True, default={})]
 
   def setUp(self):
+    self._dut = dut.Create()
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._task_manager = None
@@ -342,18 +344,18 @@ class LEDTest(unittest.TestCase):
       index_label = self._GetIndexLabel(index)
 
       if self._fixture:
-        tasks.append(FixtureCheckLEDTask(self._fixture, self.dut.led,
+        tasks.append(FixtureCheckLEDTask(self._fixture, self._dut.led,
                                          color, color_label,
                                          index, index_label))
       elif self.args.challenge:
         tasks.append(CheckLEDTaskChallenge(self._ui, self._template,
-                                           self.dut.led, i + 1,
+                                           self._dut.led, i + 1,
                                            color, color_label,
                                            index, index_label,
                                            challenge_colors))
       else:
         tasks.append(CheckLEDTaskNormal(self._ui, self._template,
-                                        self.dut.led, i + 1,
+                                        self._dut.led, i + 1,
                                         color, color_label,
                                         index, index_label))
 
@@ -375,13 +377,13 @@ class LEDTest(unittest.TestCase):
       leds: List of LED index. None for default LED.
       color: One of LEDColor.
     """
-    if not self.dut.led:
+    if not self._dut.led:
       # Sanity check. It should not happen.
       return
 
     if not leds:
-      self.dut.led.SetColor(color)
+      self._dut.led.SetColor(color)
       return
 
     for led in leds:
-      self.dut.led.SetColor(color, led_name=led)
+      self._dut.led.SetColor(color, led_name=led)

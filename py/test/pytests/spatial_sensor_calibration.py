@@ -29,6 +29,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -74,6 +75,7 @@ class SpatialSensorCalibration(unittest.TestCase):
   ]
 
   def setUp(self):
+    self._dut = dut.Create()
     self._ui = test_ui.UI(css=CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._start_event = threading.Event()
@@ -120,8 +122,8 @@ class SpatialSensorCalibration(unittest.TestCase):
   def WaitForDevice(self):
     self._template.SetState(test_ui.MakeLabel('Waiting for device...',
                                               u'正在等待装置...'))
-    sync_utils.WaitFor(self.dut.IsReady, self.args.timeout_secs)
-    if not self.dut.IsReady():
+    sync_utils.WaitFor(self._dut.IsReady, self.args.timeout_secs)
+    if not self._dut.IsReady():
       self.fail('failed to find deivce')
 
   def VerifyDevicePosition(self):
@@ -131,7 +133,8 @@ class SpatialSensorCalibration(unittest.TestCase):
         continue
 
       key = self.args.raw_entry_template % axis
-      value = int(self.dut.Read(self.dut.path.join(self.args.device_path, key)))
+      value = int(self._dut.Read(self._dut.path.join(self.args.device_path,
+                                                     key)))
       if value <= _range[0] or value >= _range[1]:
         factory.console.error(
             'Device not in correct position: %s-axis value: %d. '
@@ -142,7 +145,7 @@ class SpatialSensorCalibration(unittest.TestCase):
     RETRIES = 5
     for unused_i in range(RETRIES):
       try:
-        self.dut.Write(self.dut.path.join(path, 'calibrate'), '1')
+        self._dut.Write(self._dut.path.join(path, 'calibrate'), '1')
       except Exception:
         factory.console.info('calibrate activation failed, retrying')
         time.sleep(1)
@@ -159,7 +162,7 @@ class SpatialSensorCalibration(unittest.TestCase):
       self._template.SetState(test_ui.MakeLabel('Writing calibration data...',
                                                 u'正在写入校正结果...'))
       key = self.args.calibbias_entry_template % axis
-      value = self.dut.Read(self.dut.path.join(self.args.device_path, key))
+      value = self._dut.Read(self._dut.path.join(self.args.device_path, key))
       cmd.extend(['-s', '%s=%s' % (key, value.strip())])
 
-    self.dut.CheckCall(cmd)
+    self._dut.CheckCall(cmd)

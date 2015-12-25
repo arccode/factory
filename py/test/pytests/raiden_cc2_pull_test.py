@@ -17,6 +17,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -48,6 +49,7 @@ class RaidenCC2PullTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self._dut = dut.Create()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -71,7 +73,7 @@ class RaidenCC2PullTest(unittest.TestCase):
     Returns:
       'CC1' or 'CC2'.
     """
-    port_status = self.dut.ec.GetUSBPDStatus(self._raiden_index)
+    port_status = self._dut.ec.GetUSBPDStatus(self._raiden_index)
     logging.info('Get USBPD status = %s', str(port_status))
     return port_status['polarity']
 

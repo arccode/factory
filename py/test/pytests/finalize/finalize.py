@@ -22,6 +22,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import Gooftool
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import phase
@@ -133,6 +134,7 @@ class Finalize(unittest.TestCase):
       ]
 
   def setUp(self):
+    self.dut = dut.Create()
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     self.force = False

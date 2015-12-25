@@ -15,7 +15,9 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.test import factory, test_ui
+from cros.factory.test import dut
+from cros.factory.test import factory
+from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.utils import time_utils
 
@@ -163,6 +165,9 @@ class CountDownTest(unittest.TestCase):
         for w in warnings:
           factory.console.warn(w)
 
+  def setUp(self):
+    self._dut = dut.Create()
+
   def runTest(self):
     # Allow attributes to be defined outside __init__
     # pylint: disable=W0201
@@ -184,10 +189,10 @@ class CountDownTest(unittest.TestCase):
     self._remaining_secs = self.args.duration_secs
     self._next_log_time = 0
     self._next_ui_update_time = 0
-    last_status = self.dut.status.Snapshot()
+    last_status = self._dut.status.Snapshot()
 
     try:
-      self.UpdateLegend(self.dut.thermal.GetTemperatureSensorNames())
+      self.UpdateLegend(self._dut.thermal.GetTemperatureSensorNames())
     except NotImplementedError:
       pass
 
@@ -198,7 +203,7 @@ class CountDownTest(unittest.TestCase):
       current_time = time.time()
       if (current_time >= self._next_log_time or
           current_time >= self._next_ui_update_time):
-        sys_status = self.dut.status.Snapshot()
+        sys_status = self._dut.status.Snapshot()
 
       if current_time >= self._next_log_time:
         Log('system_status', elapsed_secs=self._elapsed_secs,
