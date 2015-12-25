@@ -211,7 +211,15 @@ def LoadRegionDatabase(path=CROS_REGIONS_DATABASE):
     with open(path) as f:
       db = json.load(f)
   else:
-    db = LoadRegionDatabaseFromSource()
+    # Find local file name. This is for PAR archives inside bundle.
+    local_path = os.path.join(
+        os.path.dirname(os.path.realpath(sys.argv[0])),
+        os.path.basename(CROS_REGIONS_DATABASE))
+    if os.path.exists(local_path):
+      with open(local_path) as f:
+        db = json.load(f)
+    else:
+      db = LoadRegionDatabaseFromSource()
 
   for r in db.values():
     encoded = Region(EncodeUnicode(r['region_code']),
