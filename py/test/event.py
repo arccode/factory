@@ -294,8 +294,6 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
 
 
 class EventClient(object):
-  EVENT_LOOP_GOBJECT_IDLE = 'EVENT_LOOP_GOBJECT_IDLE'
-  EVENT_LOOP_GOBJECT_IO = 'EVENT_LOOP_GOBJECT_IO'
   EVENT_LOOP_WAIT = 'EVENT_LOOP_WAIT'
 
   '''A client used to post and receive messages from an event server.
@@ -316,10 +314,6 @@ class EventClient(object):
 
       - A Queue object, in which case a lambda invoking the callback is
         written to the queue.
-      - EVENT_LOOP_GOBJECT_IDLE, in which case the callback will be
-        invoked in the gobject event loop using idle_add.
-      - EVENT_LOOP_GOBJECT_IO, in which case the callback will be
-        invoked from an async IO handler.
       - EVENT_LOOP_WAIT, in which case the caller must invoke wait() to
         handle incoming messages.
       - None, similar to a threaded verison of EVENT_LOOP_WAIT that may discard
@@ -330,9 +324,6 @@ class EventClient(object):
     self.callbacks = set()
     self.event_loop = event_loop
     logging.debug('Initializing event client')
-
-    should_start_thread = event_loop not in (
-        self.EVENT_LOOP_GOBJECT_IO, self.EVENT_LOOP_WAIT)
 
     path = path or os.environ[CROS_FACTORY_EVENT]
     self.socket.connect(path)
@@ -349,27 +340,14 @@ class EventClient(object):
         self.callbacks.add(
             lambda event: event_loop.put(
                 lambda: callback(event)))
-      elif event_loop == self.EVENT_LOOP_GOBJECT_IDLE:
-        import gobject
-        self.callbacks.add(
-            lambda event: gobject.idle_add(callback, event))
-      elif event_loop == self.EVENT_LOOP_GOBJECT_IO:
-        import gobject
-        gobject.io_add_watch(
-            self.socket, gobject.IO_IN,
-            lambda source, condition: self._read_one_message()[0])
-        self.callbacks.add(callback)
       else:
         self.callbacks.add(callback)
 
-    if should_start_thread:
-      self.recv_thread = threading.Thread(
-          target=self._run_recv_thread,
-          name='EventServerRecvThread-%s' % (name or get_unique_id()))
-      self.recv_thread.daemon = True
-      self.recv_thread.start()
-    else:
-      self.recv_thread = None
+    self.recv_thread = threading.Thread(
+        target=self._run_recv_thread,
+        name='EventServerRecvThread-%s' % (name or get_unique_id()))
+    self.recv_thread.daemon = True
+    self.recv_thread.start()
 
   def close(self):
     """Closes the client, waiting for any threads to terminate."""
