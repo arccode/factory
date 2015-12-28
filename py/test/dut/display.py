@@ -11,9 +11,9 @@ import re
 from PIL import Image
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import drm
 from cros.factory.test.dut import component
 from cros.factory.test import utils
+from cros.factory.test.utils import drm_utils
 
 
 class DisplayError(Exception):
@@ -69,7 +69,7 @@ class Display(component.DUTComponent):
         raise DisplayError('Cannot support Freon+DRM remotely.')
       d = None
       for p in sorted(self._dut.Glob('/dev/dri/*')):
-        d = drm.DRMFromPath(p)
+        d = drm_utils.DRMFromPath(p)
         if d.resources:
           break
       else:
