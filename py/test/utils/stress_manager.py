@@ -59,7 +59,7 @@ class StressManager(object):
     # memory.
     self._dut.CheckCall('mount -o remount,size=100% /dev/shm')
 
-    mem = self._system_info.mem_total or (100 * 1024)
+    mem = self._system_info.memory_total_kb or (100 * 1024)
     # we will use at least 32 MB of memory
     mem_usage = max(int(mem * memory_ratio / 1024), 32)
 
