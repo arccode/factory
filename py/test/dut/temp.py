@@ -93,3 +93,27 @@ class AndroidTemporaryFiles(TemporaryFiles):
       args += ['-p', dir]
     args += [template]
     return self._dut.CheckOutput(args).strip()
+
+
+class DummyTemporaryFiles(TemporaryFiles):
+  DUMMY_FILE_NAME = 'DUMMY_TEMP_FILE'
+
+  # pylint: disable=W0622
+  def mktemp(self, is_dir, suffix='', prefix='cftmp', dir=None):
+    return self.DUMMY_FILE_NAME
+
+  @contextmanager
+  def TempFile(self, **kargs):
+    path = self.mktemp(False, **kargs)
+    try:
+      yield path
+    finally:
+      pass
+
+  @contextmanager
+  def TempDirectory(self, **kargs):
+    path = self.mktemp(True, **kargs)
+    try:
+      yield path
+    finally:
+      pass
