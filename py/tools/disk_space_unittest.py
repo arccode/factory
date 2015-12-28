@@ -11,7 +11,7 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import disk_space
+from cros.factory.tools import disk_space
 
 
 FakeStatVFSResult = collections.namedtuple(

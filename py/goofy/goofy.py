@@ -41,7 +41,6 @@ from cros.factory.goofy import prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
-from cros.factory.system import disk_space
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import phase
@@ -60,6 +59,7 @@ from cros.factory.test.utils.charge_manager import ChargeManager
 from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
 from cros.factory.tools.key_filter import KeyFilter
+from cros.factory.tools import disk_space
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
