@@ -204,7 +204,6 @@ import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.i2cbus import I2CBus
 from cros.factory.test import dut
 from cros.factory.test import event_log
 from cros.factory.test import factory
@@ -1056,16 +1055,14 @@ class _TestDelegate(object):
 
   def _GetModuleSNI2C(self):
     i2c_param = self.params['cam_sn']['i2c_param']
-    data_addr = i2c_param['data_addr']
 
     try:
       # Power on camera so we can read from I2C
       fd = os.open(i2c_param['dev_node'], os.O_RDWR)
 
-      bus = I2CBus('/dev/i2c-%d' % i2c_param['bus'])
-      ret = bus.wr_rd(i2c_param['chip_addr'],
-                      [data_addr >> 8, data_addr & 0xff], i2c_param['length'])
-      return True, ''.join([chr(x) for x in reversed(ret)])
+      slave = self.delegator.dut.i2c.GetSlave(
+          i2c_param['bus'], i2c_param['chip_addr'], 16)
+      return True, slave.Read(i2c_param['data_addr'], i2c_param['length'])[::-1]
     finally:
       os.close(fd)
 

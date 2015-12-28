@@ -21,6 +21,7 @@ from cros.factory.test.dut import component
 from cros.factory.test.dut import display
 from cros.factory.test.dut import ec
 from cros.factory.test.dut import hooks
+from cros.factory.test.dut import i2c
 from cros.factory.test.dut import info
 from cros.factory.test.dut import led
 from cros.factory.test.dut import partitions
@@ -106,6 +107,10 @@ class DUTBoard(object):
   @DUTProperty
   def hooks(self):
     return hooks.DUTHooks(self)
+
+  @DUTProperty
+  def i2c(self):
+    return i2c.I2CBus(self)
 
   @DUTProperty
   def info(self):
