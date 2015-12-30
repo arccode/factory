@@ -27,8 +27,7 @@ import time
 import unittest
 
 
-from cros.factory.system.bluetooth import BluetoothManager
-from cros.factory.system.bluetooth import BluetoothManagerException
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -262,7 +261,7 @@ class DetectAdapterTask(FactoryTask):
 
   def Run(self):
     self._test.template.SetState(_MSG_DETECT_ADAPTER)
-    adapters = BluetoothManager().GetAdapters(
+    adapters = self._test.dut.bluetooth.GetAdapters(
         self._test.args.detect_adapters_retry_times,
         self._test.args.detect_adapters_interval_secs)
     if len(adapters) == self._expected_adapter_count:
@@ -382,8 +381,8 @@ class ScanDevicesTask(FactoryTask):
     logging.info('UpdateRssi: %s', devices_rssis)
 
   def Run(self):
-    bluetooth_manager = BluetoothManager(self._test.host_mac)
-    adapter = bluetooth_manager.GetFirstAdapter()
+    bluetooth_manager = self._test.dut.bluetooth
+    adapter = bluetooth_manager.GetFirstAdapter(self._test.host_mac)
 
     # Records RSSI of each scan and calculates average rssi.
     candidate_rssis = dict()
@@ -515,8 +514,8 @@ class DetectRSSIofTargetMACTask(FactoryTask):
       self.Fail(self.fail_msg)
       return
 
-    bluetooth_manager = BluetoothManager(self._test.host_mac)
-    adapter = bluetooth_manager.GetFirstAdapter()
+    bluetooth_manager = self._test.dut.bluetooth
+    adapter = bluetooth_manager.GetFirstAdapter(self._test.host_mac)
     logging.info('mac (%s): %s', self._test.host_mac, adapter)
 
     rssis = []
@@ -606,8 +605,8 @@ class UnpairTask(FactoryTask):
     self._test.ui.AppendCSS('.start-font-size {font-size: 2em;}')
 
     input_count_before_unpair = CheckInputCount()
-    bluetooth_manager = BluetoothManager(self._test.host_mac)
-    adapter = bluetooth_manager.GetFirstAdapter()
+    bluetooth_manager = self._test.dut.bluetooth
+    adapter = bluetooth_manager.GetFirstAdapter(self._test.host_mac)
     devices = bluetooth_manager.GetAllDevices(adapter).values()
     devices_to_unpair = filter(self._ShouldUnpairDevice, devices)
     logging.info('Unpairing %d device(s)', len(devices_to_unpair))
@@ -644,8 +643,8 @@ class CheckDisconnectionOfPairedDeviceTask(FactoryTask):
             int(device_props["Connected"]) >= 1)
 
   def _CheckDisconnection(self):
-    bluetooth_manager = BluetoothManager(self._test.host_mac)
-    adapter = bluetooth_manager.GetFirstAdapter()
+    bluetooth_manager = self._test.dut.bluetooth
+    adapter = bluetooth_manager.GetFirstAdapter(self._test.host_mac)
     devices = bluetooth_manager.GetAllDevices(adapter).values()
     connected_devices = filter(self._ConnectedDevice, devices)
     logging.info('Connected and paired %d device(s)', len(connected_devices))
@@ -942,13 +941,13 @@ class InputTestTask(FactoryTask):
       self._bt_manager.SetDeviceConnected(self._adapter, self._target_mac,
                                           False)
       logging.info('Turned off the connection')
-    except BluetoothManagerException:
+    except self._bt_manager.Error:
       logging.exception('Fail to turn off the connection.')
       return_value = False
     try:
       self._bt_manager.RemovePairedDevice(self._adapter, self._target_mac)
       logging.info('Remove the device')
-    except BluetoothManagerException:
+    except self._bt_manager.Error:
       logging.exception('Fail to remove the device.')
       return_value = False
     return return_value
@@ -990,8 +989,8 @@ class InputTestTask(FactoryTask):
       self.Fail(fail_reason)
 
     input_count_before_connection = CheckInputCount()
-    self._bt_manager = BluetoothManager(self._test.host_mac)
-    self._adapter = self._bt_manager.GetFirstAdapter()
+    self._bt_manager = self._test.dut.bluetooth
+    self._adapter = self._bt_manager.GetFirstAdapter(self._test.host_mac)
     self._target_mac = self._test.GetInputDeviceMac()
     if not self._target_mac:
       SaveLogAndFail('InputTestTask: No MAC with which to pair')
@@ -1139,6 +1138,7 @@ class BluetoothTest(unittest.TestCase):
       return self._strongest_rssi_mac
 
   def setUp(self):
+    self.dut = dut.Create()
     self.ui = test_ui.UI()
     self.ui.AppendCSS('.start-font-size {font-size: 2em;}')
     self.template = ui_templates.TwoSections(self.ui)

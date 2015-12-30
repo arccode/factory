@@ -5,20 +5,22 @@
 # found in the LICENSE file.
 
 import argparse
-import dbus
-import factory_common  # pylint: disable=W0611
-import gobject
 import logging
 import os
 import re
 import threading
 import uuid
-import yaml
 
-from cros.factory.utils.sync_utils import PollForCondition, Retry
+import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus import service  # pylint: disable=W0611
 from dbus import DBusException
+import gobject
+import yaml
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.test.dut import component
+from cros.factory.utils.sync_utils import PollForCondition, Retry
 
 
 BUS_NAME = 'org.bluez'
@@ -78,8 +80,9 @@ class AuthenticationAgent(dbus.service.Object):  # pylint: disable=R0923
     logging.info('Cancel')
     self._cancel_callback()
 
+
 # TODO(cychiang) Add unittest for this class.
-class BluetoothManager(object):
+class BluetoothManager(component.DUTComponent):
   """The class to handle bluetooth adapter and device through dbus interface.
 
   Properties:
@@ -94,8 +97,10 @@ class BluetoothManager(object):
     available through dbus interface.
   """
 
-  def __init__(self, host_mac=None):
-    self._host_mac = host_mac
+  Error = BluetoothManagerException
+
+  def __init__(self, dut):
+    super(BluetoothManager, self).__init__(dut)
     DBusGMainLoop(set_as_default=True)
     self._main_loop = gobject.MainLoop()
     self._manager = None
@@ -289,23 +294,29 @@ class BluetoothManager(object):
       raise BluetoothManagerException('Pair: reply_handler'
                                       ' did not get called.')
 
-  def GetFirstAdapter(self):
+  def GetFirstAdapter(self, mac_addr=None):
     """Returns the first adapter object found by bluetooth manager.
 
     An adapter is a proxy object which provides the interface of
     'org.bluez.Adapter1'.
 
+    Args:
+      mac_addr: The MAC address that adapter should match. None to match any.
+
     Raises:
       Raises BluetoothManagerException if fails to get any adapter.
     """
-    adapters = self.GetAdapters()
+    adapters = self.GetAdapters(mac_addr)
     if len(adapters) > 0:
       return adapters[0]
     else:
       raise BluetoothManagerException('Fail to find any adapter.')
 
-  def _GetAdapters(self):
+  def _GetAdapters(self, mac_addr=None):
     """Gets a list of available bluetooth adapters.
+
+    Args:
+      mac_addr: The MAC address that adapter should match. None to match any.
 
     Returns:
       Returns a list of adapters. An adapter is a proxy object which provides
@@ -321,13 +332,13 @@ class BluetoothManager(object):
       adapter = interfaces.get(ADAPTER_INTERFACE)
       if adapter is None:
         continue
-      if self._host_mac and adapter.get(u'Address') != self._host_mac:
+      if mac_addr and adapter.get(u'Address') != mac_addr:
         continue
       obj = bus.get_object(BUS_NAME, path)
       adapters.append(dbus.Interface(obj, ADAPTER_INTERFACE))
     return adapters
 
-  def GetAdapters(self, max_retry_times=10, interval=2):
+  def GetAdapters(self, max_retry_times=10, interval=2, mac_addr=None):
     """Gets a list of available bluetooth adapters.
 
     Args:
@@ -339,12 +350,13 @@ class BluetoothManager(object):
       the interface of 'org.bluez.Adapter1'. Returns None if there is no
       available adapter.
     """
-    adapters = Retry(max_retry_times, interval, None, self._GetAdapters)
+    adapters = Retry(max_retry_times, interval, None, self._GetAdapters,
+                     mac_addr=mac_addr)
     if adapters is None:
       logging.error('BluetoothManager: Fail to get any adapter.')
       return None
     else:
-      logging.info('GetAdapters (host_mac=%s): %s', self._host_mac, adapters)
+      logging.info('GetAdapters (mac_addr=%s): %s', mac_addr, adapters)
       return adapters
 
   def _SwitchAdapterPower(self, adapter, on):
@@ -634,7 +646,8 @@ class BluetoothTest(object):
 
   def Run(self):
     """Controls the adapter to scan remote devices."""
-    self.manager = BluetoothManager()
+    from cros.factory.test import dut
+    self.manager = dut.Create().bluetooth
     self.adapter = self.manager.GetFirstAdapter()
     logging.info('Using adapter: %s', self.adapter)
 

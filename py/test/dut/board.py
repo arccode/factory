@@ -16,6 +16,7 @@ import posixpath
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import accelerometer
 from cros.factory.test.dut.audio import utils as audio_utils
+from cros.factory.test.dut import bluetooth
 from cros.factory.test.dut import component
 from cros.factory.test.dut import display
 from cros.factory.test.dut import ec
@@ -91,6 +92,10 @@ class DUTBoard(object):
   @DUTProperty
   def accelerometer(self):
     return accelerometer.Accelerometer(self)
+
+  @DUTProperty
+  def bluetooth(self):
+    return bluetooth.BluetoothManager(self)
 
   @DUTProperty
   def audio(self):
