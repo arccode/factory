@@ -343,11 +343,14 @@ class EventClient(object):
       else:
         self.callbacks.add(callback)
 
-    self.recv_thread = threading.Thread(
-        target=self._run_recv_thread,
-        name='EventServerRecvThread-%s' % (name or get_unique_id()))
-    self.recv_thread.daemon = True
-    self.recv_thread.start()
+    if event_loop != self.EVENT_LOOP_WAIT:
+      self.recv_thread = threading.Thread(
+          target=self._run_recv_thread,
+          name='EventServerRecvThread-%s' % (name or get_unique_id()))
+      self.recv_thread.daemon = True
+      self.recv_thread.start()
+    else:
+      self.recv_thread = None
 
   def close(self):
     """Closes the client, waiting for any threads to terminate."""
@@ -404,7 +407,8 @@ class EventClient(object):
     self.socket.sendall(message)
 
   def request_response(self, request_event, check_response, timeout=None):
-    '''Starts a request-response communication: sends a request event and waits for an valid response event until timeout.
+    '''Starts a request-response communication: sends a request event and waits
+    for an valid response event until timeout.
 
     Args:
       request_event: An event to start protocol. None to send no events.
