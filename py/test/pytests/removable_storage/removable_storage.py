@@ -14,10 +14,7 @@ The following test functions are supported:
 
 from __future__ import print_function
 
-import glob
-import os
 import logging
-import pyudev
 import random
 import time
 import unittest
@@ -33,26 +30,13 @@ from cros.factory.test.event_log import Log
 from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
                                                    CreateBFTFixture,
                                                    TEST_ARG_HELP)
-from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils.process_utils import CheckOutput, SpawnOutput
-
 
 _STATE_RW_TEST_WAIT_INSERT = 1
 _STATE_RW_TEST_WAIT_REMOVE = 2
 _STATE_LOCKTEST_WAIT_INSERT = 3
 _STATE_LOCKTEST_WAIT_REMOVE = 4
 _STATE_ACCESSING = 5
-
-# udev constants
-_UDEV_ACTION_INSERT = 'add'
-_UDEV_ACTION_REMOVE = 'remove'
-_UDEV_ACTION_CHANGE = 'change'
-_UDEV_MMCBLK_PATH = '/dev/mmcblk'
-# USB card reader attributes and common text string in descriptors
-_CARD_READER_ATTRS = ['vendor', 'model', 'product', 'configuration',
-                      'manufacturer', 'driver']
-_CARD_READER_DESCS = ['sd', 'card', 'reader']
 
 # The GPT ( http://en.wikipedia.org/wiki/GUID_Partition_Table )
 # occupies the first 34 and the last 33 512-byte blocks.
@@ -61,8 +45,8 @@ _CARD_READER_DESCS = ['sd', 'card', 'reader']
 # Skip the first 34 and the last 33 512-byte blocks when doing
 # read/write tests.
 _SECTOR_SIZE = 512
-_SKIP_HEAD_BLOCK = 34
-_SKIP_TAIL_BLOCK = 33
+_SKIP_HEAD_SECTOR = 34
+_SKIP_TAIL_SECTOR = 33
 
 # Read/Write test modes
 _RW_TEST_MODE_RANDOM = 1
@@ -143,14 +127,10 @@ class RemovableStorageTest(unittest.TestCase):
   ARGS = [
       Arg('media', str, 'Media type'),
       Arg(
-          'vidpid', (str, list),
-          'Vendor ID and Product ID of the target testing device', None,
-          optional=True),
-      Arg(
           'sysfs_path', str,
-          'The expected sysfs path that udev events should'
+          'The expected sysfs path that udev events should '
           'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',
-          None, optional=True),
+          None),
       Arg(
           'block_size', int,
           'Size of each block in bytes used in read / write test', 1024),
@@ -220,7 +200,6 @@ class RemovableStorageTest(unittest.TestCase):
     self._locktest_insertion_image = None
     self._locktest_removal_image = None
     self._state = None
-    self._udev_observer = None
     self._total_tests = 0
     self._finished_tests = 0
     self._metrics = {}
@@ -228,8 +207,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._bft_media_device = None
 
   def tearDown(self):
-    if self._udev_observer:
-      self._udev_observer.stop()
+    self._dut.udev.StopMonitorPath(self.args.sysfs_path)
 
   def GetAttrs(self, device, key_set):
     """Gets attributes of a device.
@@ -250,49 +228,6 @@ class RemovableStorageTest(unittest.TestCase):
       attr_str = '/' + attr_str
     return self.GetAttrs(device.parent, key_set) + attr_str
 
-  def GetVidpid(self, device):
-    """Get idVendor and idProduct of a device.
-
-    Args:
-      device: A device object.
-
-    Returns:
-      A string consisting of idVendor and idProduct of the device.
-    """
-    if device is None:
-      return None
-    if device.device_type == 'usb_device':
-      attrs = device.attributes
-      if set(['idProduct', 'idVendor']) <= set(attrs.keys()):
-        vidpid = attrs['idVendor'] + ':' + attrs['idProduct']
-        return vidpid.strip()
-    return self.GetVidpid(device.parent)
-
-  def GetDeviceType(self, device):
-    """Gets device type.
-
-    Args:
-      device: A device object.
-
-    Returns:
-      'SD' or 'USB' as deivce type.
-    """
-    def IsSD():
-      """Checks whether the given device is SD.
-
-      Returns:
-        A bool indicating whether the device is SD device.
-      """
-      if device.device_node.find(_UDEV_MMCBLK_PATH) == 0:
-        return True
-      attr_str = self.GetAttrs(device, set(_CARD_READER_ATTRS)).lower()
-      for desc in _CARD_READER_DESCS:
-        if desc in attr_str:
-          return True
-      return False
-
-    return 'SD' if IsSD() else 'USB'
-
   def GetDeviceSize(self, dev_path):
     """Gets device size in bytes.
 
@@ -303,7 +238,7 @@ class RemovableStorageTest(unittest.TestCase):
       The device size in bytes.
     """
     try:
-      dev_size = CheckOutput(['blockdev', '--getsize64', dev_path])
+      dev_size = self._dut.CheckOutput(['blockdev', '--getsize64', dev_path])
     except:  # pylint: disable=W0702
       self.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
@@ -326,7 +261,7 @@ class RemovableStorageTest(unittest.TestCase):
       A bool indicating whether RO is enabled.
     """
     try:
-      ro = CheckOutput(['blockdev', '--getro', dev_path])
+      ro = self._dut.CheckOutput(['blockdev', '--getro', dev_path])
     except:  # pylint: disable=W0702
       self.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
 
@@ -345,17 +280,16 @@ class RemovableStorageTest(unittest.TestCase):
     Returns:
       Device node, ex: 'sdb'. Return None if no node matched.
     """
-    block_dirs = glob.glob('/sys/block/sd*')
+    block_dirs = self._dut.Glob('/sys/block/sd*')
     for block_dir in block_dirs:
-      if sys_path in os.path.realpath(block_dir):
-        return os.path.basename(block_dir)
+      if sys_path in self._dut.CheckOutput(['realpath', block_dir]):
+        return self._dut.path.basename(block_dir)
     return None
 
   def TestReadWrite(self):
     """Random and sequential read / write tests.
 
-    This method executes only random read / write test by default.
-    Sequential read / write test can be enabled through dargs.
+    This method executes random and / or sequential read / write test according to dargs.
     """
     self._state = _STATE_ACCESSING
 
@@ -364,7 +298,6 @@ class RemovableStorageTest(unittest.TestCase):
 
     dev_path = self._target_device
     dev_size = self._device_size
-    dev_fd = None
     ok = True
     total_time_read = 0.0
     total_time_write = 0.0
@@ -378,80 +311,61 @@ class RemovableStorageTest(unittest.TestCase):
     for m in mode:
       if m == _RW_TEST_MODE_RANDOM:
         # Read/Write one block each time
-        bytes_to_operate = self.args.block_size
+        block_count = 1
         loop = self.args.random_block_count
         self.SetState(
-            _TESTING_RANDOM_RW_FMT_STR(loop, bytes_to_operate), append=True)
+            _TESTING_RANDOM_RW_FMT_STR(loop, self.args.block_size), append=True)
       elif m == _RW_TEST_MODE_SEQUENTIAL:
         # Converts block counts into bytes
-        bytes_to_operate = (self.args.sequential_block_count *
-                            self.args.block_size)
+        block_count = self.args.sequential_block_count
         loop = 1
         self.SetState(
-            _TESTING_SEQUENTIAL_RW_FMT_STR(bytes_to_operate), append=True)
+            _TESTING_SEQUENTIAL_RW_FMT_STR(block_count * self.args.block_size), append=True)
 
-      try:
-        dev_fd = os.open(dev_path, os.O_RDWR)
-      except Exception as e:  # pylint: disable=W0703
-        ok = False
-        factory.console.error('Unable to open %s : %s', dev_path, e)
+      bytes_to_operate = block_count * self.args.block_size
+      # Determine the range in which the random block is selected
+      random_head = ((_SKIP_HEAD_SECTOR * _SECTOR_SIZE + self.args.block_size - 1) /
+                     self.args.block_size)
+      random_tail = ((dev_size - _SKIP_TAIL_SECTOR * _SECTOR_SIZE) /
+                     self.args.block_size - block_count)
 
-      if dev_fd is not None:
-        blocks = dev_size / _SECTOR_SIZE
-        # Determine the range in which the random block is selected
-        random_head = _SKIP_HEAD_BLOCK
-        random_tail = (blocks - _SKIP_TAIL_BLOCK -
-                       int(bytes_to_operate / _SECTOR_SIZE))
+      if random_tail < random_head:
+        self.Fail('Block size too large for r/w test.')
 
-        if dev_size > 0x7FFFFFFF:
-          # The following try...except section is for system that does
-          # not have large file support enabled for Python. This is
-          # typically observed on 32-bit machines. In some 32-bit
-          # machines, doing seek() with an offset larger than 0x7FFFFFFF
-          # (which is the largest possible value of singned int) will
-          # cause OverflowError, due to failed conversion from long int
-          # to int.
-          try:
-            # Test whether large file support is enabled or not.
-            os.lseek(dev_fd, 0x7FFFFFFF + 1, os.SEEK_SET)
-          except OverflowError:
-            # The system does not have large file support, so we
-            # restrict the range in which we perform the random r/w
-            # test.
-            random_tail = min(
-                random_tail,
-                int(0x7FFFFFFF / _SECTOR_SIZE) -
-                int(bytes_to_operate / _SECTOR_SIZE))
-            logging.info('No large file support')
-
-        if random_tail < random_head:
-          self.Fail('Block size too large for r/w test.')
-
+      with self._dut.temp.TempFile() as tmp_file:
         for x in range(loop):  # pylint: disable=W0612
           # Select one random block as starting point.
           random_block = random.randint(random_head, random_tail)
-          offset = random_block * _SECTOR_SIZE
 
+          dd_args = ['dd', 'if=%s' % dev_path, 'of=%s' % tmp_file,
+                     'bs=%d' % self.args.block_size,
+                     'count=%d' % block_count, 'skip=%d' % random_block]
           try:
-            os.lseek(dev_fd, offset, os.SEEK_SET)
             read_start = time.time()
-            in_block = os.read(dev_fd, bytes_to_operate)
+            self._dut.CheckCall(dd_args)
             read_finish = time.time()
           except Exception as e:  # pylint: disable=W0703
             factory.console.error('Failed to read block %s', e)
             ok = False
             break
 
+          in_block = self._dut.ReadFile(tmp_file)
           if m == _RW_TEST_MODE_RANDOM:
             # Modify the first byte and write the whole block back.
             out_block = chr(ord(in_block[0]) ^ 0xff) + in_block[1:]
+            self._dut.WriteFile(tmp_file, out_block)
+            dd_input = tmp_file
           elif m == _RW_TEST_MODE_SEQUENTIAL:
+            dd_input = '/dev/zero'
             out_block = chr(0x00) * bytes_to_operate
+
+          dd_args = ['dd', 'if=%s' % dd_input, 'of=%s' % dev_path,
+                     'bs=%d' % self.args.block_size,
+                     'count=%d' % block_count, 'seek=%d' % random_block,
+                     'conv=fdatasync']
           try:
-            os.lseek(dev_fd, offset, os.SEEK_SET)
             write_start = time.time()
-            os.write(dev_fd, out_block)
-            os.fsync(dev_fd)
+            self._dut.CheckCall(dd_args)
             write_finish = time.time()
           except Exception as e:  # pylint: disable=W0703
             factory.console.error('Failed to write block %s', e)
@@ -460,22 +374,28 @@ class RemovableStorageTest(unittest.TestCase):
 
           # Check if the block was actually written, and restore the
           # original content of the block.
-          os.lseek(dev_fd, offset, os.SEEK_SET)
-          b = os.read(dev_fd, bytes_to_operate)
+          dd_args = ['dd', 'if=%s' % dev_path,
+                     'bs=%d' % self.args.block_size,
+                     'count=%d' % block_count, 'skip=%d' % random_block]
+          b = self._dut.CheckOutput(dd_args)
           if b != out_block:
             factory.console.error('Failed to write block')
             ok = False
             break
-          os.lseek(dev_fd, offset, os.SEEK_SET)
-          os.write(dev_fd, in_block)
-          os.fsync(dev_fd)
+          self._dut.WriteFile(tmp_file, in_block)
+          dd_args = ['dd', 'if=%s' % tmp_file, 'of=%s' % dev_path,
+                     'bs=%d' % self.args.block_size,
+                     'count=%d' % block_count, 'seek=%d' % random_block,
+                     'conv=fdatasync']
+          try:
+            self._dut.CheckCall(dd_args)
+          except Exception as e:
+            factory.console.error('Failed to write back block %s', e)
+            ok = False
+            break
 
           total_time_read += read_finish - read_start
           total_time_write += write_finish - write_start
-
-        # Make sure we close() the device file so later tests won't
-        # fail.
-        os.close(dev_fd)
 
       self.AdvanceProgress()
       if ok is False:
@@ -565,9 +485,9 @@ class RemovableStorageTest(unittest.TestCase):
           self.args.media, dev_path, self._device_size))
     else:
       # clear partition table first and create one partition
-      SpawnOutput(['parted', '-s', dev_path, 'mklabel', 'gpt'])
-      SpawnOutput(['parted', '-s', dev_path, 'mkpart', 'primary',
-                   'ext4', '0', str(partition_size)])
+      self._dut.CheckCall(['parted', '-s', dev_path, 'mklabel', 'gpt'])
+      self._dut.CheckCall(['parted', '-s', dev_path, 'mkpart', 'primary',
+                           'ext4', '0', str(partition_size)])
 
   def VerifyPartition(self):
     """Verifies the partition on target device.
@@ -576,12 +496,13 @@ class RemovableStorageTest(unittest.TestCase):
     '/dev' directory for the device under test.
     """
     dev_path = self._target_device
+    logging.info('verifying partition %s', self._target_device)
     try:
-      # Just do a simple ls on the first partition file
+      # Just do a simple check on the first partition file
       # Auto detect parition prefix character
       if 'mmcblk' in dev_path:
         dev_path = dev_path + 'p'
-      CheckOutput(['ls', dev_path + '1'])
+      self._dut.FileExists(dev_path + '1')
     except:   # pylint: disable=W0702
       self.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
 
@@ -601,36 +522,10 @@ class RemovableStorageTest(unittest.TestCase):
       action: The udev action to handle.
       device: A device object.
     """
-    # Try to determine the change event is an insert or remove.
-    if action == _UDEV_ACTION_CHANGE:
-      node = os.path.basename(device.device_node)
-      if any(p.name == node for p in sys_utils.GetPartitions()):
-        action = _UDEV_ACTION_INSERT
-      else:
-        action = _UDEV_ACTION_REMOVE
-
-    if action == _UDEV_ACTION_INSERT:
-      logging.info('sys path from callback = %s', device.sys_path)
-
+    if action == self._dut.udev.Event.INSERT:
       if self._state == _STATE_RW_TEST_WAIT_INSERT:
-        # Check if the give device is what we are interested in.
-        # Simply returns to ignore unknown devices.
-        if self.args.vidpid:
-          device_vidpid = self.GetVidpid(device)
-          if device_vidpid not in self.args.vidpid:
-            return
-          logging.info('VID:PID == %s', self.args.vidpid)
-        elif self.args.sysfs_path:
-          if (not os.path.exists(self.args.sysfs_path) or
-              not self.args.sysfs_path in device.sys_path):
-            return
-          logging.info('sys path = %s', self.args.sysfs_path)
-        else:
-          if self.args.media != self.GetDeviceType(device):
-            return
-
-        logging.info('%s device inserted : %s',
-                     self.args.media, device.device_node)
+        logging.info('%s device inserted : %s', self.args.media,
+                     device.device_node)
         self._target_device = device.device_node
         self._device_size = self.GetDeviceSize(self._target_device)
         if self.args.media == 'SD':
@@ -646,7 +541,7 @@ class RemovableStorageTest(unittest.TestCase):
             self.VerifyPartition()
           self.TestLock()
 
-    elif action == _UDEV_ACTION_REMOVE:
+    elif action == self._dut.udev.Event.REMOVE:
       if self._target_device == device.device_node:
         logging.info('Device removed : %s', device.device_node)
         if self._state == _STATE_RW_TEST_WAIT_REMOVE:
@@ -699,10 +594,6 @@ class RemovableStorageTest(unittest.TestCase):
     """Main entrance of removable storage test."""
     random.seed(0)
 
-    if self.args.vidpid and type(self.args.vidpid) != type(list()):
-      # Convert vidpid to a list.
-      self.args.vidpid = [self.args.vidpid]
-
     logging.info('media = %s', self.args.media)
 
     self._template.SetTitle(_TEST_TITLE)
@@ -743,8 +634,6 @@ class RemovableStorageTest(unittest.TestCase):
         self._ui,
         _ID_COUNTDOWN_DIV)
 
-    # Start to monitor udev events.
-    context = pyudev.Context()
     if self.args.skip_insert_remove:
       device_node = None
       # Poll sysfs_path is present
@@ -754,15 +643,12 @@ class RemovableStorageTest(unittest.TestCase):
         if time_utils.MonotonicTime() > timeout_time:
           self.fail('Fail to find path: %s' % self.args.sysfs_path)
         time.sleep(0.2)
-      device_udev = pyudev.Device.from_name(context, 'block', device_node)
-      self.HandleUdevEvent(_UDEV_ACTION_INSERT, device_udev)
-      self.HandleUdevEvent(_UDEV_ACTION_REMOVE, device_udev)
+      device = self._dut.udev.Device(self._dut.path.join('/dev', device_node),
+                                     self.args.sysfs_path)
+      self.HandleUdevEvent(self._dut.udev.Event.INSERT, device)
+      self.HandleUdevEvent(self._dut.udev.Event.REMOVE, device)
     else:
-      monitor = pyudev.Monitor.from_netlink(context)
-      monitor.filter_by(subsystem='block', device_type='disk')
-      self._udev_observer = pyudev.MonitorObserver(monitor,
-                                                   self.HandleUdevEvent)
-      self._udev_observer.start()
+      self._dut.udev.StartMonitorPath(self.args.sysfs_path, self.HandleUdevEvent)
 
     # BFT engages device after udev observer start
     if not self.args.skip_insert_remove and self.args.bft_fixture:

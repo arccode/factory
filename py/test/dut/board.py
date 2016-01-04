@@ -30,6 +30,7 @@ from cros.factory.test.dut import status
 from cros.factory.test.dut import storage
 from cros.factory.test.dut import temp
 from cros.factory.test.dut import thermal
+from cros.factory.test.dut import udev
 from cros.factory.test.dut import utils
 from cros.factory.test.dut import vpd
 from cros.factory.utils import file_utils
@@ -172,6 +173,10 @@ class DUTBoard(object):
   def status(self):
     """Returns live system status (dynamic data like CPU loading)."""
     return status.SystemStatus(self)
+
+  @DUTProperty
+  def udev(self):
+    return udev.LocalUdevMonitor(self)
 
   # Helper functions to access DUT via link.
 
