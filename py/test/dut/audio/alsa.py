@@ -13,6 +13,7 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut.audio import base
+from cros.factory.test.utils import Enum
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.
@@ -34,7 +35,6 @@ from cros.factory.test.dut.audio import base
 # =========================================================
 
 
-
 class AlsaAudioControl(base.BaseAudioControl):
   """This class is used for setting audio related configuration.
   It reads audio.conf initially to decide how to enable/disable each
@@ -43,9 +43,13 @@ class AlsaAudioControl(base.BaseAudioControl):
   _RE_CARD_INDEX = re.compile(r'^card (\d+):.*?\[(.+?)\]')
   _RE_DEV_NAME = re.compile(r'.*?hw:([0-9]+),([0-9]+)')
   _CONTROL_RE_STR = r'numid=(\d+).*?name=\'%s\''
+  # Just list all supported options. But we only use wav and raw types.
+  RecordType = Enum(['voc', 'wav', 'raw', 'au'])
 
   def GetCardIndexByName(self, card_name):
     """See BaseAudioControl.GetCardIndexByName"""
+    if card_name.isdigit():
+      return card_name
     output = self._dut.CallOutput(['aplay', '-l'])
     for line in output.splitlines():
       m = self._RE_CARD_INDEX.match(line)
@@ -113,3 +117,59 @@ class AlsaAudioControl(base.BaseAudioControl):
       self._dut.CheckCall(command)
     if store:
       self._restore_mixer_control_stack.append((restore_mixer_settings, card))
+
+  def _GetPIDByName(self, name):
+    """Used to get process ID"""
+    lines = self._dut.CallOutput(['ps', '-C', name])
+    m = re.search(r'(\d+).*%s' % name, lines, re.MULTILINE)
+    if m:
+      pid = m.group(1)
+      return pid
+    else:
+      return None
+
+  def _PlaybackWavFile(self, path, card, device):
+    """See BaseAudioControl._PlaybackWavFile"""
+    self._dut.Call(['aplay', '-D', 'hw:%s,%s' % (card, device), path])
+
+  def _StopPlaybackWavFile(self):
+    """See BaseAudioControl._StopPlaybackWavFile"""
+    pid = self._GetPIDByName('aplay')
+    if pid:
+      self._dut.Call(['kill', pid])
+
+  def _GetRecordArgs(self, file_type, path, card, device, duration, channels,
+                     rate):
+    """Gets the command args for arecord to record audio
+
+    Args:
+      file_type: RecordType Enum value.
+      path: The record result file.
+      card: The index of audio card.
+      device: The index of the device.
+      duration: (seconds) Record duration.
+      channels: number of channels
+      rate: Sampling rate
+
+    Returns:
+      An array of the arecord command used by self._dut.Call.
+    """
+    file_type = {self.RecordType.voc: 'voc',
+                 self.RecordType.wav: 'wav',
+                 self.RecordType.raw: 'raw',
+                 self.RecordType.au: 'au',
+                }[file_type]
+    return ['arecord', '-D', 'hw:%s,%s' % (card, device), '-t', file_type,
+            '-d', str(duration), '-r', str(rate), '-c', str(channels),
+            '-f', 'S16_LE', path]
+
+  def RecordWavFile(self, path, card, device, duration, channels, rate):
+    """See BaseAudioControl.RecordWavFile"""
+
+    self._dut.Call(self._GetRecordArgs(self.RecordType.wav, path, card, device,
+                                       duration, channels, rate))
+
+  def RecordRawFile(self, path, card, device, duration, channels, rate):
+    """See BaseAudioControl.RecordRawFile"""
+    self._dut.Call(self._GetRecordArgs(self.RecordType.raw, path, card, device,
+                                       duration, channels, rate))

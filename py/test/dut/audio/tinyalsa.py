@@ -15,6 +15,8 @@ import logging
 import os
 import re
 import tempfile
+import time
+from multiprocessing import Process
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut.audio import base
@@ -54,6 +56,8 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   def GetCardIndexByName(self, card_name):
     """See BaseAudioControl.GetCardIndexByName"""
+    if card_name.isdigit():
+      return card_name
     output = self._dut.CallOutput(['cat', '/proc/asound/cards'])
     for line in output.splitlines():
       m = self._RE_CARD_INDEX.match(line)
@@ -108,15 +112,15 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     """
     filename = os.path.basename(push_path)
     remote_path = os.path.join(self._remote_directory, filename)
-    self._dut.Push(push_path, remote_path)
-    self._dut.Shell(['chmod', '777', remote_path])
-    self._dut.Shell(remote_path)
-    self._dut.Shell(['rm', '-f', remote_path])
+    self._dut.link.Push(push_path, remote_path)
+    self._dut.Call(['chmod', '777', remote_path])
+    self._dut.Call(remote_path)
+    self._dut.Call(['rm', '-f', remote_path])
     if pull_path:
       filename = os.path.basename(pull_path)
       remote_path = os.path.join(self._remote_directory, filename)
-      self._dut.Pull(remote_path, pull_path)
-      self._dut.Shell(['rm', '-f', remote_path])
+      self._dut.link.Pull(remote_path, pull_path)
+      self._dut.Call(['rm', '-f', remote_path])
 
   def _GenerateGetOldValueShellScript(self, open_file, output_file,
                                       mixer_settings, card):
@@ -191,10 +195,10 @@ class TinyalsaAudioControl(base.BaseAudioControl):
       set_sh_file.flush()
       self._PushAndExecute(set_sh_file.name)
 
-  def _GetAudioLoopPID(self):
-    """Used to get audio loop process ID"""
-    lines = self._dut.CallOutput(['ps'])
-    m = re.search(r'\w+\s+(\d+).*tinycap_stdout', lines, re.MULTILINE)
+  def _GetPIDByName(self, name):
+    """Used to get process ID"""
+    lines = self._dut.CallOutput(['ps', name])
+    m = re.search(r'\w+\s+(\d+).*%s' % name, lines, re.MULTILINE)
     if m:
       pid = m.group(1)
       return pid
@@ -222,16 +226,48 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     # It will have problem is the dut is not android device
     command = 'loopback.sh'
     self._dut.CheckCall(command)
-    pid = self._GetAudioLoopPID()
+    pid = self._GetPIDByName('tinycap_stdout')
 
     logging.info('Create tinyloop pid %s for input %s,%s output %s,%s',
                  pid, in_card, in_dev, out_card, out_dev)
 
   def DestroyAudioLoop(self):
-    pid = self._GetAudioLoopPID()
+    pid = self._GetPIDByName('tinycap_stdout')
     if pid:
       logging.info('Destroy audio loop with pid %s', pid)
       command = ['kill', pid]
       self._dut.CheckCall(command)
     else:
       logging.info('Destroy audio loop - not found tinycap_stdout pid')
+
+  def _PlaybackWavFile(self, path, card, device):
+    """See BaseAudioControl._PlaybackWavFile"""
+    self._dut.Call(['tinyplay', path, '-D', card, '-d', device])
+
+  def _StopPlaybackWavFile(self):
+    """See BaseAudioControl._StopPlaybackWavFile"""
+    pid = self._GetPIDByName('tinyplay')
+    if pid:
+      self._dut.Call(['kill', pid])
+
+  def RecordWavFile(self, path, card, device, duration, channels, rate):
+    """See BaseAudioControl.RecordWavFile
+    Since there is no duration parameter in the tinycap. We use a thread to
+    simulate it. We will use a thread to execute tinycap for recording and after
+    the specified duration, we will send a Ctrl-C singal to the tinycap process
+    to let it know it should stop recording and save to .wav file.
+    """
+    record_process = Process(target=lambda:
+                             self._dut.Call(['tinycap', path, '-D', card, '-d',
+                                             device, '-c', str(channels), '-r',
+                                             str(rate)]))
+    record_process.start()
+    pid = self._GetPIDByName('tinycap')
+    logging.info('tinycap pid %s, record duratrion %d seconds', pid, duration)
+    time.sleep(duration)
+    logging.info('Try to send Ctrl-C singnal to pid %s', pid)
+    if not pid:
+      raise RuntimeError('Can\'t find tinycap process!')
+
+    self._dut.Call(['kill', '-SIGINT', pid])
+    record_process.join()

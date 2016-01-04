@@ -96,14 +96,14 @@ import re
 import tempfile
 import textwrap
 import time
-import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Arg
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.args import Arg
 from cros.factory.test.dut.audio.base import MicJackType
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
@@ -111,6 +111,10 @@ from cros.factory.utils.type_utils import Enum
 
 # Default setting
 _DEFAULT_FREQ_HZ = 1000
+
+# the duration(secs) for sine tone to playback.
+# it must be long enough for record process.
+_DEFAULT_SINEWAV_DURATION = 10
 
 # Regular expressions to match audiofuntest message.
 _AUDIOFUNTEST_MIC_CHANNEL_RE = re.compile(r'.*Channels:\s*(.*)$')
@@ -158,33 +162,22 @@ _UI_HTML = """
 MicSource = Enum(['external', 'panel', 'mlb'])
 
 
-class PlaySineThread(threading.Thread):
-  """Wraps the execution of arecord in a thread."""
-
-  def __init__(self, channel, odev, freq, seconds):
-    threading.Thread.__init__(self)
-    self.cmdargs = audio_utils.GetPlaySineArgs(channel, odev, freq,
-                                               seconds)
-
-  def run(self):
-    Spawn(self.cmdargs.split(' '), log=True, check_call=True)
-
-
 class AudioLoopTest(unittest.TestCase):
   """Audio Loop test to test two kind of situations.
   1. Speaker to digital microphone.
   2. Headphone out to headphone in.
   """
   ARGS = [
+      Arg('audio_conf', str, 'Audio config file path', None, optional=True),
       Arg('initial_actions', list, 'List of tuple (card, actions)', []),
       Arg(
-          'input_dev', (str, tuple),
-          'Input ALSA device for string.  (card_name, sub_device) for tuple. '
-          'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
+          'input_dev', tuple,
+          'Input ALSA device. (card_name, sub_device).'
+          'For example: ("audio_card", "0").', ('0', '0')),
       Arg(
-          'output_dev', (str, tuple),
-          'Onput ALSA device for string.  (card_name, sub_device) for tuple. '
-          'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
+          'output_dev', tuple,
+          'Onput ALSA device. (card_name, sub_device).'
+          'For example: ("audio_card", "0").', ('0', '0')),
       Arg(
           'output_volume', (int, list),
           'An int of output volume or a list of'
@@ -206,8 +199,9 @@ class AudioLoopTest(unittest.TestCase):
           'For example: "LRGM Mic", "LRMG Mic"', ''),
       Arg('mic_jack_type', str, 'Microphone jack Type: nocheck, lrgm, lrmg',
           'nocheck'),
-      Arg('audiofuntest_run_delay', (int, float), 'Delay between consecutive calls to '
-          'audiofuntest', default=None, optional=True),
+      Arg('audiofuntest_run_delay', (int, float),
+          'Delay between consecutive calls to audiofuntest',
+          default=None, optional=True),
       Arg('tests_to_conduct', list, textwrap.dedent("""
           A list of dicts. A dict should contain at least one key named
           **type** indicating the test type, which can be **audiofun**,
@@ -247,25 +241,21 @@ class AudioLoopTest(unittest.TestCase):
                   None, which means no limit."""), optional=False)]
 
   def setUp(self):
-    self._audio_control = self.dut.audio
-    # Tansfer input and output device format
-    if type(self.args.input_dev) is tuple:
-      self._in_card = self._audio_control.GetCardIndexByName(
-          self.args.input_dev[0])
-      self._input_device = 'hw:%s,%s' % (
-          self._in_card, self.args.input_dev[1])
-    else:
-      self._input_device = self.args.input_dev
-      self._in_card = self.GetCardIndex(self._input_device)
+    self._dut = dut.Create()
+    if self.args.audio_conf:
+      self._dut.audio.ApplyConfig(self.args.audio_conf)
 
-    if type(self.args.output_dev) is tuple:
-      self._out_card = self._audio_control.GetCardIndexByName(
-          self.args.output_dev[0])
-      self._output_device = 'hw:%s,%s' % (
-          self._out_card, self.args.output_dev[1])
-    else:
-      self._output_device = self.args.output_dev
-      self._out_card = self.GetCardIndex(self._output_device)
+    # Tansfer input and output device format
+    self._in_card = self._dut.audio.GetCardIndexByName(self.args.input_dev[0])
+    self._in_device = self.args.input_dev[1]
+    self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
+    self._out_device = self.args.output_dev[1]
+
+    # Backward compitable for non-porting case, which use ALSA device name.
+    # only works on chromebook device
+    # TODO(mojahsu) Remove them later.
+    self._alsa_input_device = 'hw:%s,%s' % (self._in_card, self._in_device)
+    self._alsa_output_device = 'hw:%s,%s' % (self._out_card, self._out_device)
 
     self._output_volumes = self.args.output_volume
     if isinstance(self._output_volumes, int):
@@ -291,8 +281,8 @@ class AudioLoopTest(unittest.TestCase):
 
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
-        card = self._audio_control.GetCardIndexByName(card)
-      self._audio_control.ApplyAudioConfig(action, card)
+        card = self._dut.audio.GetCardIndexByName(card)
+      self._dut.audio.ApplyAudioConfig(action, card)
 
     self._current_test_args = None
 
@@ -312,9 +302,11 @@ class AudioLoopTest(unittest.TestCase):
                     'Please make sure that you have appropriate setting for '
                     '"disable_services=[\'cras\']" in the test item.' %
                     cras_status)
+    self._dut_temp_dir = self._dut.temp.mktemp(True, '', 'audio_loop')
 
   def tearDown(self):
-    self._audio_control.RestoreMixerControls()
+    self._dut.audio.RestoreMixerControls()
+    self._dut.CheckCall(['rm', '-rf', self._dut_temp_dir])
 
   def runTest(self):
     # If autostart, JS triggers start_run_test event.
@@ -331,19 +323,6 @@ class AudioLoopTest(unittest.TestCase):
             self._output_volume_index])
     self._test_message.append(error_message)
     factory.console.error(error_message)
-
-  def GetCardIndex(self, device):
-    """Gets the card index from given device names.
-
-    Args:
-      device: ALSA device name
-    """
-    dev_name_pattern = re.compile('.*?hw:([0-9]+),([0-9]+)')
-    match = dev_name_pattern.match(device)
-    if match:
-      return match.group(1)
-    else:
-      raise ValueError('device name %s is incorrect' % device)
 
   def _MatchPatternLines(self, in_stream, re_pattern, num_lines=None):
     """Try to match the re pattern in the given number of lines.
@@ -430,7 +409,7 @@ class AudioLoopTest(unittest.TestCase):
         'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
     process = Spawn(
         [audio_utils.AUDIOFUNTEST_PATH, '-r', '%d' % capture_rate, '-i',
-         self._input_device, '-o', self._output_device, '-l',
+         self._alsa_input_device, '-o', self._alsa_output_device, '-l',
          '%d' % duration, '-a', '%d' % output_channel], stderr=PIPE)
 
     m = self._MatchPatternLines(process.stderr, _AUDIOFUNTEST_MIC_CHANNEL_RE)
@@ -442,8 +421,8 @@ class AudioLoopTest(unittest.TestCase):
     num_mic = int(m.group(1))
 
     last_success_rate = None
-    while self._MatchPatternLines(
-        process.stderr, _AUDIOFUNTEST_RUN_START_RE) is not None:
+    while self._MatchPatternLines(process.stderr,
+                                  _AUDIOFUNTEST_RUN_START_RE) is not None:
       last_success_rate = self._ParseSingleRunOutput(process.stderr, num_mic)
       if last_success_rate is None:
         self.AppendErrorMessage('Failed to parse audiofuntest output')
@@ -466,7 +445,7 @@ class AudioLoopTest(unittest.TestCase):
     """Setup speaker and microphone test pairs and run audiofuntest program."""
 
     factory.console.info('Run audiofuntest from %r to %r',
-                         self._output_device, self._input_device)
+                         self._alsa_output_device, self._alsa_input_device)
 
     output_channels = self._current_test_args.get(
         'output_channels', _DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS)
@@ -477,30 +456,40 @@ class AudioLoopTest(unittest.TestCase):
       if self.args.audiofuntest_run_delay is not None:
         time.sleep(self.args.audiofuntest_run_delay)
 
-  def TestLoopbackChannel(self, output_device, num_channels):
+  def TestLoopbackChannel(self, num_channels):
     """Tests loopback on all channels.
 
     Args:
-      output_device: Output devices
       num_channels: Number of channels to test
     """
+    duration = self._current_test_args.get('duration',
+                                           _DEFAULT_SINEWAV_TEST_DURATION)
+
     for channel in xrange(num_channels):
+      # file path in host
       record_file_path = '/tmp/record-%d-%d-%s.raw' % (
           self._output_volumes[self._output_volume_index],
           channel, time.time())
+      sine_wav_path = '/tmp/%d_%d.wav' % (self._freq, channel)
+      dut_sine_wav_path = self._dut.path.join(self._dut_temp_dir,
+                                              'sine_%d.wav' % channel)
+      factory.console.info('DUT sine wav path %s', dut_sine_wav_path)
 
-      # Play thread has one more second to ensure record process can record
-      # entire sine tone
-      duration = self._current_test_args.get('duration',
-                                             _DEFAULT_SINEWAV_TEST_DURATION)
-      playsine_thread = PlaySineThread(channel, output_device, self._freq,
-                                       duration + 1)
-      playsine_thread.start()
-      time.sleep(0.5)
+      # Generate sine .wav file locally and push it to the DUT.
+      # It's hard to estimate the overhead in audio record thing of different
+      # platform, To make sure we can record the whole sine tone in the record
+      # duration, we will playback a long period sine tone, and stop the
+      # playback process after we finish recording.
+      cmd = audio_utils.GetGenerateSineWavArgs(sine_wav_path, channel,
+                                               self._freq,
+                                               _DEFAULT_SINEWAV_DURATION)
+      Spawn(cmd.split(' '), log=True, check_call=True)
+      self._dut.link.Push(sine_wav_path, dut_sine_wav_path)
 
+      self._dut.audio.PlaybackWavFile(dut_sine_wav_path, self._out_card,
+                                      self._out_device, False)
       self.RecordFile(duration, record_file_path)
-
-      playsine_thread.join()
+      self._dut.audio.StopPlaybackWavFile()
 
       sox_output = audio_utils.SoxStatOutput(record_file_path, channel)
       self.CheckRecordedAudio(sox_output)
@@ -511,8 +500,7 @@ class AudioLoopTest(unittest.TestCase):
     self._ui.CallJSFunction('testInProgress', None)
 
     # Playback sine tone and check the recorded audio frequency.
-    self.TestLoopbackChannel(
-        self._output_device, audio_utils.DEFAULT_NUM_CHANNELS)
+    self.TestLoopbackChannel(audio_utils.DEFAULT_NUM_CHANNELS)
 
   def NoiseTest(self):
     self._ui.CallJSFunction('testInProgress', None)
@@ -535,16 +523,16 @@ class AudioLoopTest(unittest.TestCase):
 
     Args:
       duration: Recording duration, in seconds.
-      file_path: The file path to recorded file.
+      file_path: The file path to recorded file in host.
       trim: If not None, the number of seconds in the beginning to trim.
     """
+    factory.console.info('RecordFile : %s.', file_path)
     record_path = (tempfile.NamedTemporaryFile(delete=False).name if trim
                    else file_path)
-
-    factory.console.info('RecordFile : %s.', file_path)
-    rec_cmd = ['arecord', '-D', self._input_device, '-f', 'dat', '-d',
-               str(duration), '-t', 'raw', record_path]
-    Spawn(rec_cmd, log=True, check_call=True)
+    with self._dut.temp.TempFile() as dut_record_path:
+      self._dut.audio.RecordRawFile(dut_record_path, self._in_card,
+                                    self._in_device, duration, 2, 48000)
+      self._dut.link.Pull(dut_record_path, record_path)
 
     if trim:
       audio_utils.TrimAudioFile(in_path=record_path, out_path=file_path,
@@ -613,13 +601,13 @@ class AudioLoopTest(unittest.TestCase):
                          zip(self._output_volumes, self._test_results))
     self._ui.Fail('; '.join(self._test_message))
 
-  def StartRunTest(self, event): # pylint: disable=W0613
-    mic_status = self._audio_control.GetMicJackStatus(self._in_card)
-    headphone_status = self._audio_control.GetHeadphoneJackStatus(self._out_card)
-    plug_status = mic_status or headphone_status
+  def CheckDongleStatus(self):
     # When audio jack detection feature is ready on a platform, we can
     # enable check_dongle option to check jack status matches we expected.
     if self.args.check_dongle:
+      mic_status = self._dut.audio.GetMicJackStatus(self._in_card)
+      headphone_status = self._dut.audio.GetHeadphoneJackStatus(self._out_card)
+      plug_status = mic_status or headphone_status
       # We've encountered false positive running audiofuntest tool against
       # audio fun-plug on a few platforms; so it is suggested not to run
       # audiofuntest with HP/MIC jack
@@ -636,46 +624,47 @@ class AudioLoopTest(unittest.TestCase):
       if self.args.require_dongle:
         if (mic_status and headphone_status) is False:
           factory.console.info('Dongle Status is wrong. mic %s, headphone %s',
-                               mic_status,
-                               headphone_status
-                              )
+                               mic_status, headphone_status)
           raise ValueError('Dongle Status is wrong.')
 
     if self._mic_jack_type:
-      mictype = self._audio_control.GetMicJackType(self._in_card)
+      mictype = self._dut.audio.GetMicJackType(self._in_card)
       if mictype != self._mic_jack_type:
         factory.console.info('Mic Jack Type is wrong. need %s, but %s',
                              self._mic_jack_type,
                              mictype)
         raise ValueError('Mic Jack Type is wrong.')
 
+  def SetupAudio(self):
     # Enable/disable devices according to require_dongle.
     # We don't use plug_status because plug_status may not be ready at early
     # stage.
     if self.args.require_dongle:
-      self._audio_control.DisableSpeaker(self._out_card)
-      self._audio_control.EnableHeadphone(self._out_card)
+      self._dut.audio.DisableSpeaker(self._out_card)
+      self._dut.audio.EnableHeadphone(self._out_card)
     else:
-      self._audio_control.DisableHeadphone(self._out_card)
-      self._audio_control.EnableSpeaker(self._out_card)
+      self._dut.audio.DisableHeadphone(self._out_card)
+      self._dut.audio.EnableSpeaker(self._out_card)
 
-    self._audio_control.DisableDmic(self._in_card)
-    self._audio_control.DisableMLBDmic(self._in_card)
-    self._audio_control.DisableExtmic(self._in_card)
+    self._dut.audio.DisableAllAudioInputs(self._in_card)
     if self._mic_source == MicSource.external:
-      self._audio_control.EnableExtmic(self._in_card)
+      self._dut.audio.EnableExtmic(self._in_card)
     elif self._mic_source == MicSource.panel:
-      self._audio_control.EnableDmic(self._in_card)
+      self._dut.audio.EnableDmic(self._in_card)
     elif self._mic_source == MicSource.mlb:
-      self._audio_control.EnableMLBDmic(self._in_card)
+      self._dut.audio.EnableMLBDmic(self._in_card)
+
+  def StartRunTest(self, event):  # pylint: disable=W0613
+    self.CheckDongleStatus()
+    self.SetupAudio()
 
     # Run each tests to conduct under each output volume candidate.
     for self._output_volume_index, output_volume in enumerate(
         self._output_volumes):
       if self.args.require_dongle:
-        self._audio_control.SetHeadphoneVolume(output_volume, self._out_card)
+        self._dut.audio.SetHeadphoneVolume(output_volume, self._out_card)
       else:
-        self._audio_control.SetSpeakerVolume(output_volume, self._out_card)
+        self._dut.audio.SetSpeakerVolume(output_volume, self._out_card)
 
       for test in self.args.tests_to_conduct:
         self._current_test_args = test

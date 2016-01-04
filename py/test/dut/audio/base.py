@@ -9,6 +9,7 @@
 import logging
 import os
 import yaml
+from multiprocessing import Process
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
@@ -35,6 +36,9 @@ MIC_JACK_TYPE_RETURN_LRMG = '2'
 # Virtual Card Index for script.
 script_card_index = '999'
 
+# The bytes of the WAV header
+WAV_HEADER_SIZE = 44
+
 
 class BaseAudioControl(component.DUTComponent):
   """An abstract class for different target audio utils"""
@@ -42,6 +46,7 @@ class BaseAudioControl(component.DUTComponent):
   def __init__(self, dut, config_path=DEFAULT_CONFIG_PATH):
     super(BaseAudioControl, self).__init__(dut)
     # used for audio config logging.
+    self._playback_process = None
     self._audio_config_sn = 0
     self._restore_mixer_control_stack = []
     self.ApplyConfig(config_path)
@@ -59,7 +64,8 @@ class BaseAudioControl(component.DUTComponent):
       logging.info('Cannot find configuration file.')
 
   def GetCardIndexByName(self, card_name):
-    """Get audio card index by card name.
+    """Get audio card index by card name. If the card_name is already an index,
+    the function will just return it.
 
     Args:
       card_name: Audio card name.
@@ -383,3 +389,94 @@ class BaseAudioControl(component.DUTComponent):
             self.SetMixerControls(
                 self.audio_config[card]['set_headphone_volume'], card)
             break
+
+  def DisableAllAudioInputs(self, card):
+    """Disable all audio inputs"""
+    self.DisableDmic(card)
+    self.DisableDmic2(card)
+    self.DisableMLBDmic(card)
+    self.DisableExtmic(card)
+
+  def DisableAllAudioOutputs(self, card):
+    """Disable all audio outputs"""
+    self.DisableHeadphone(card)
+    self.DisableSpeaker(card)
+
+  def _PlaybackWavFile(self, path, card, device):
+    """Playback .wav file.
+    The function is a protected method, user can't use it directly, user must
+    use PlaybackWavFile.
+
+    Args:
+      path: The .wav file path for playback
+      card: The index of audio card
+      device: The index of the device
+    """
+    raise NotImplementedError
+
+  def PlaybackWavFile(self, path, card, device, blocking=True):
+    """Playback .wav file.
+
+    Args:
+      path: The .wav file path for playback
+      card: The index of audio card
+      device: The index of the device
+      blocking: True if playback in the same thread.
+                False for creating a dedicated playback thread. For False case,
+                user need to call StopPlaybackWavFile
+    """
+    if blocking:
+      self._PlaybackWavFile(path, card, device)
+    else:
+      self._playback_process = Process(target=lambda:
+                                       self._PlaybackWavFile(path, card,
+                                                             device))
+      self._playback_process.start()
+
+  def _StopPlaybackWavFile(self):
+    """Stop Playback process if we have one in system
+    The function is a protected method, user can't use it directly, user must
+    use StopPlaybackWavFile.
+    """
+    raise NotImplementedError
+
+  def StopPlaybackWavFile(self):
+    """Stop Playback process if we have one in system"""
+    self._StopPlaybackWavFile()
+    if self._playback_process:
+      self._playback_process.join()
+      self._playback_process = None
+
+  def RecordWavFile(self, path, card, device, duration, channels, rate):
+    """Record audio to a .wav file.
+    It's a blocking Call. User can get their record result after this function
+    returns.
+    We use 16 bits little-endian as default sample format.
+
+    Args:
+      path: The record result file.
+      card: The index of audio card.
+      device: The index of the device.
+      duration: (seconds) Record duration.
+      channels: number of channels
+      rate: Sampling rate
+    """
+    raise NotImplementedError
+
+  def RecordRawFile(self, path, card, device, duration, channels, rate):
+    """Record audio to a raw format.
+    Just like RecordWavFile but we remove wav header for the raw format.
+    User can overwrite it with their fast implementation.
+
+    Args:
+      path: The record result file.
+      card: The index of audio card.
+      device: The index of the device.
+      duration: (seconds) Record duration.
+      channels: number of channels
+      rate: Sampling rate
+    """
+    with self._dut.temp.TempFile() as wav_path:
+      self.RecordWavFile(wav_path, card, device, duration, channels, rate)
+      self._dut.CheckCall(['dd', 'skip=%d' % WAV_HEADER_SIZE,
+                           'if=%s' % wav_path, 'of=%s' % path, 'bs=1'])

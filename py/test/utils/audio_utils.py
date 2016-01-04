@@ -71,6 +71,28 @@ def GetPlaySineArgs(channel, odev='default', freq=1000, duration_secs=10,
   return cmdargs
 
 
+def GetGenerateSineWavArgs(path, channel, freq=1000, duration_secs=10,
+                           sample_size=16):
+  """Gets the command args to generate a sine .wav file.
+
+  Args:
+    path: The generated path of the sine .wav file.
+    channel: 0 for left, 1 for right; otherwize, mono.
+    freq: Frequency of the generated sine tone.
+    duration_secs: Duration of the generated sine tone.
+    sample_size: Output audio sample size. Default to 16.
+  """
+  cmdargs = '%s -b %d -n %s synth %d' % (
+      SOX_PATH, sample_size, path, duration_secs)
+  if channel == 0:
+    cmdargs += ' sine %d sine 0' % freq
+  elif channel == 1:
+    cmdargs += ' sine 0 sine %d' % freq
+  else:
+    cmdargs += ' sine %d' % freq
+  return cmdargs
+
+
 def TrimAudioFile(in_path, out_path, start, end,
                   num_channel, sox_format=_DEFAULT_SOX_FORMAT):
   """Trims an audio file using sox command.

@@ -32,7 +32,6 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
-from cros.factory.test.dut.audio import base as base_audio
 from cros.factory.test.event_log import Log
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils import file_utils
@@ -119,15 +118,12 @@ class AudioQualityTest(unittest.TestCase):
   ARGS = [
       Arg('initial_actions', list, 'List of tuple (card, actions), and card '
           'can be card index number or card name', []),
-      Arg('input_dev', (str, tuple),
-          'Input ALSA device for string.  (card_name, sub_device) for tuple. '
-          'Tiny ALSA device only support tuple type'
-          'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
-      Arg('output_dev', (str, tuple),
-          'Output ALSA device for string.  (card_name, sub_device) for tuple. '
-          'Tiny ALSA device only support tuple type'
-          'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
-      Arg('use_tinyalsa', bool, 'Use Tiny ALSA tool', False, optional=True),
+      Arg('input_dev', tuple,
+          'Input ALSA device.  (card_name, sub_device).'
+          'For example: ("audio_card", "0").', ('0', '0')),
+      Arg('output_dev', tuple,
+          'Output ALSA device.  (card_name, sub_device).'
+          'For example: ("audio_card", "0").', ('0', '0')),
       Arg('loop_type', str, 'Audio loop type: sox, looptest, tinyloop, hwloop',
           'sox'),
       Arg('use_multitone', bool, 'Use multitone', False, optional=True),
@@ -138,42 +134,31 @@ class AudioQualityTest(unittest.TestCase):
       Arg('use_shopfloor', bool, 'Use shopfloor', True, optional=True),
       Arg('network_setting', dict, 'Network setting to define *local_ip*, \n'
           '*port*, *gateway_ip*', {}, optional=True),
-      Arg('audio_conf', str, 'Audio config file path',
-          base_audio.DEFAULT_CONFIG_PATH, optional=True),
+      Arg('audio_conf', str, 'Audio config file path', None, optional=True),
   ]
 
   def setUpAudioDevice(self):
     logging.info('audio conf %s', self.args.audio_conf)
-    self._audio_control = self._dut.audio
-    self._audio_control.ApplyConfig(self.args.audio_conf)
+    if self.args.audio_conf:
+      self._dut.audio.ApplyConfig(self.args.audio_conf)
 
     # Devices Type check
-    if self.args.use_tinyalsa:
-      if not isinstance(self.args.input_dev, tuple):
-        raise ValueError('input_dev type is incorrect, need tuple')
-      if not isinstance(self.args.output_dev, tuple):
-        raise ValueError('output_dev type is incorrect, need tuple')
+    if not isinstance(self.args.input_dev, tuple):
+      raise ValueError('input_dev type is incorrect, need tuple')
+    if not isinstance(self.args.output_dev, tuple):
+      raise ValueError('output_dev type is incorrect, need tuple')
 
     # Tansfer input and output device format
-    if isinstance(self.args.input_dev, tuple):
-      self._in_card = self._audio_control.GetCardIndexByName(
-          self.args.input_dev[0])
-      self._in_subdevice = self.args.input_dev[1]
-      self._input_device = 'hw:%s,%s' % (
-          self._in_card, self.args.input_dev[1])
-    else:
-      self._input_device = self.args.input_dev
-      self._in_card = self._audio_control.GetCardIndex(self._input_device)
+    self._in_card = self._dut.audio.GetCardIndexByName(self.args.input_dev[0])
+    self._in_device = self.args.input_dev[1]
+    self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
+    self._out_device = self.args.output_dev[1]
 
-    if isinstance(self.args.output_dev, tuple):
-      self._out_card = self._audio_control.GetCardIndexByName(
-          self.args.output_dev[0])
-      self._out_subdevice = self.args.output_dev[1]
-      self._output_device = 'hw:%s,%s' % (
-          self._out_card, self.args.output_dev[1])
-    else:
-      self._output_device = self.args.output_dev
-      self._out_card = self._audio_control.GetCardIndex(self._output_device)
+    # Backward compitable for non-porting case, which use ALSA device name.
+    # only works on chromebook device
+    # TODO(mojahsu) Remove them later.
+    self._alsa_input_device = 'hw:%s,%s' % (self._in_card, self._in_device)
+    self._alsa_output_device = 'hw:%s,%s' % (self._out_card, self._out_device)
 
   def setUpLoopHandler(self):
     # Register commands to corresponding handlers.
@@ -239,20 +224,29 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.Run()
 
   def tearDown(self):
-    self._audio_control.RestoreMixerControls()
+    self._dut.audio.RestoreMixerControls()
     net_utils.UnsetAliasEthernetIp(0, self._eth)
 
-  def DisableAllAudioInputs(self):
-    """Disable all audio inputs"""
-    self._audio_control.DisableDmic(self._in_card)
-    self._audio_control.DisableDmic2(self._in_card)
-    self._audio_control.DisableMLBDmic(self._in_card)
-    self._audio_control.DisableExtmic(self._in_card)
+  def _HandleCommands(self, conn, command_list):
+    """Handle commands"""
+    for command in command_list:
+      if not command:
+        continue
+      attr_list = command.split('\x05')
+      instruction = attr_list[0]
+      conn.send(instruction + '\x05' + 'Active' + '\x04\x03')
 
-  def DisableAllAudioOutputs(self):
-    """Disable all audio outputs"""
-    self._audio_control.DisableHeadphone(self._in_card)
-    self._audio_control.DisableSpeaker(self._out_card)
+      match_command = False
+      for key in self._handlers.iterkeys():
+        if key.match(instruction):
+          match_command = True
+          factory.console.info('match command %s', instruction)
+          self._handlers[key](conn, attr_list)
+          break
+      if not match_command:
+        factory.console.error('Command %s cannot find', instruction)
+        conn.send(instruction + '\x05' + 'Active_End' + '\x05' +
+                  'Fail' + '\x04\x03')
 
   def HandleConnection(self, conn):
     """Asynchronous handler for socket connection.
@@ -301,24 +295,7 @@ class AudioQualityTest(unittest.TestCase):
         break
 
       command_list = commands[0:-1].split('\x04')
-      for command in command_list:
-        if not command:
-          continue
-        attr_list = command.split('\x05')
-        instruction = attr_list[0]
-        conn.send(instruction + '\x05' + 'Active' + '\x04\x03')
-
-        match_command = False
-        for key in self._handlers.iterkeys():
-          if key.match(instruction):
-            match_command = True
-            factory.console.info('match command %s', instruction)
-            self._handlers[key](conn, attr_list)
-            break
-        if not match_command:
-          factory.console.error('Command %s cannot find', instruction)
-          conn.send(instruction + '\x05' + 'Active_End' + '\x05' +
-                    'Fail' + '\x04\x03')
+      self._HandleCommands(conn, command_list)
 
       if self._test_complete:
         factory.console.info('Test completed')
@@ -348,17 +325,17 @@ class AudioQualityTest(unittest.TestCase):
     #
     # The DestroyAudioLoop is also ok if there is no tinyloop process.
     if self._loop_type == LoopType.tinyloop:
-      self._audio_control.DestroyAudioLoop()
+      self._dut.audio.DestroyAudioLoop()
 
-    if self._audio_control.ApplyAudioConfig(_RESTORE_SCRIPT, 0, True):
+    if self._dut.audio.ApplyAudioConfig(_RESTORE_SCRIPT, 0, True):
       return
-    self._audio_control.RestoreMixerControls()
+    self._dut.audio.RestoreMixerControls()
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
-        card = self._audio_control.GetCardIndexByName(card)
-      self._audio_control.ApplyAudioConfig(action, card)
-    self.DisableAllAudioInputs()
-    self.DisableAllAudioOutputs()
+        card = self._dut.audio.GetCardIndexByName(card)
+      self._dut.audio.ApplyAudioConfig(action, card)
+    self._dut.audio.DisableAllAudioInputs(self._in_card)
+    self._dut.audio.DisableAllAudioOutputs(self._out_card)
 
   def SendResponse(self, response, args):
     """Sends response to DUT for each command.
@@ -592,16 +569,17 @@ class AudioQualityTest(unittest.TestCase):
 
     if self._loop_type == LoopType.sox:
       cmdargs = [audio_utils.SOX_PATH, '-t', 'alsa',
-                 self._input_device, '-t',
-                 'alsa', self._output_device]
+                 self._alsa_input_device, '-t',
+                 'alsa', self._alsa_output_device]
       self._loop_process = Spawn(cmdargs)
     elif self._loop_type == LoopType.looptest:
-      cmdargs = [audio_utils.AUDIOLOOP_PATH, '-i', self._input_device, '-o',
-                 self._output_device, '-c', str(self._loop_buffer_count)]
+      cmdargs = [audio_utils.AUDIOLOOP_PATH, '-i', self._alsa_input_device,
+                 '-o', self._alsa_output_device, '-c',
+                 str(self._loop_buffer_count)]
       self._loop_process = Spawn(cmdargs)
     elif self._loop_type == LoopType.tinyloop:
-      self._audio_control.CreateAudioLoop(self._in_card, self._in_subdevice,
-                                          self._out_card, self._out_subdevice)
+      self._dut.audio.CreateAudioLoop(self._in_card, self._in_subdevice,
+                                      self._out_card, self._out_subdevice)
     elif self._loop_type == LoopType.hwloop:
       pass
 
@@ -616,9 +594,9 @@ class AudioQualityTest(unittest.TestCase):
     """External mic loop to headphone."""
     factory.console.info('Audio Loop Mic Jack->Headphone')
     self.RestoreConfiguration()
-    if not self._audio_control.ApplyAudioConfig(_JACK_HP_SCRIPT, 0, True):
-      self._audio_control.EnableExtmic(self._in_card)
-      self._audio_control.EnableHeadphone(self._out_card)
+    if not self._dut.audio.ApplyAudioConfig(_JACK_HP_SCRIPT, 0, True):
+      self._dut.audio.EnableExtmic(self._in_card)
+      self._dut.audio.EnableHeadphone(self._out_card)
     if self._use_multitone:
       self.HandleMultitone()
     else:
@@ -631,9 +609,9 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Audio Loop DMIC->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
-    if not self._audio_control.ApplyAudioConfig(_DMIC_JACK_SCRIPT, 0, True):
-      self._audio_control.EnableHeadphone(self._out_card)
-      self._audio_control.EnableDmic(self._in_card)
+    if not self._dut.audio.ApplyAudioConfig(_DMIC_JACK_SCRIPT, 0, True):
+      self._dut.audio.EnableHeadphone(self._out_card)
+      self._dut.audio.EnableDmic(self._in_card)
     self.HandleLoop()
     self.SendResponse(None, args)
 
@@ -642,9 +620,9 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Audio Loop DMIC2->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
-    if not self._audio_control.ApplyAudioConfig(_DMIC2_JACK_SCRIPT, 0, True):
-      self._audio_control.EnableDmic2(self._in_card)
-      self._audio_control.EnableHeadphone(self._out_card)
+    if not self._dut.audio.ApplyAudioConfig(_DMIC2_JACK_SCRIPT, 0, True):
+      self._dut.audio.EnableDmic2(self._in_card)
+      self._dut.audio.EnableHeadphone(self._out_card)
     self.HandleLoop()
     self.SendResponse(None, args)
 
@@ -654,9 +632,9 @@ class AudioQualityTest(unittest.TestCase):
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP +
                             _LABEL_SPEAKER_MUTE_OFF)
-    if not self._audio_control.ApplyAudioConfig(_JACK_SPEAKER_SCRIPT, 0, True):
-      self._audio_control.EnableExtmic(self._in_card)
-      self._audio_control.EnableSpeaker(self._out_card)
+    if not self._dut.audio.ApplyAudioConfig(_JACK_SPEAKER_SCRIPT, 0, True):
+      self._dut.audio.EnableExtmic(self._in_card)
+      self._dut.audio.EnableSpeaker(self._out_card)
     if self._use_multitone:
       self.HandleMultitone()
     else:
@@ -668,9 +646,9 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Audio Loop MLB DMIC->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_MLBDMIC_ON)
-    if not self._audio_control.ApplyAudioConfig(_KDMIC_JACK_SCRIPT, 0, True):
-      self._audio_control.EnableMLBDmic(self._in_card)
-      self._audio_control.EnableHeadphone(self._out_card)
+    if not self._dut.audio.ApplyAudioConfig(_KDMIC_JACK_SCRIPT, 0, True):
+      self._dut.audio.EnableMLBDmic(self._in_card)
+      self._dut.audio.EnableHeadphone(self._out_card)
     self.HandleLoop()
     self.SendResponse(None, args)
 
@@ -678,8 +656,8 @@ class AudioQualityTest(unittest.TestCase):
     """Cross talk left."""
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_LEFT)
-    self._audio_control.MuteLeftHeadphone(self._out_card)
-    cmdargs = audio_utils.GetPlaySineArgs(1, self._output_device)
+    self._dut.audio.MuteLeftHeadphone(self._out_card)
+    cmdargs = audio_utils.GetPlaySineArgs(1, self._alsa_output_device)
     self._tone_process = Spawn(cmdargs)
     self.SendResponse(None, args)
 
@@ -687,21 +665,21 @@ class AudioQualityTest(unittest.TestCase):
     """Cross talk right."""
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_RIGHT)
-    self._audio_control.MuteRightHeadphone(self._out_card)
-    cmdargs = audio_utils.GetPlaySineArgs(0, self._output_device)
+    self._dut.audio.MuteRightHeadphone(self._out_card)
+    cmdargs = audio_utils.GetPlaySineArgs(0, self._alsa_output_device)
     self._tone_process = Spawn(cmdargs)
     self.SendResponse(None, args)
 
   def HandleMuteSpeakerLeft(self, *args):
     """Mute Left Speaker."""
     factory.console.info('Mute Speaker Left')
-    self._audio_control.MuteLeftSpeaker(self._out_card)
+    self._dut.audio.MuteLeftSpeaker(self._out_card)
     self.SendResponse(None, args)
 
   def HandleMuteSpeakerRight(self, *args):
     """Mute Left Speaker."""
     factory.console.info('Mute Speaker Right')
-    self._audio_control.MuteRightSpeaker(self._out_card)
+    self._dut.audio.MuteRightSpeaker(self._out_card)
     self.SendResponse(None, args)
 
   def ListenForever(self, sock):
