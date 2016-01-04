@@ -27,6 +27,7 @@ from cros.factory.test.dut import led
 from cros.factory.test.dut import partitions
 from cros.factory.test.dut import power
 from cros.factory.test.dut import status
+from cros.factory.test.dut import storage
 from cros.factory.test.dut import temp
 from cros.factory.test.dut import thermal
 from cros.factory.test.dut import utils
@@ -140,6 +141,10 @@ class DUTBoard(object):
   @DUTProperty
   def temp(self):
     return temp.TemporaryFiles(self)
+
+  @DUTProperty
+  def storage(self):
+    return storage.Storage(self)
 
   @DUTProperty
   def thermal(self):
