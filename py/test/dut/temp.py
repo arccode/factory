@@ -82,15 +82,21 @@ class TemporaryFiles(component.DUTComponent):
 class AndroidTemporaryFiles(TemporaryFiles):
   """Access to temporary objects on Android systems."""
 
+  # Default temp dir base for most Android systems.
+  TMPDIR = '/data/local/tmp'
+
   # pylint: disable=W0622
   def mktemp(self, is_dir, suffix='', prefix='cftmp', dir=None):
-    """Creates a temporary file or directory on DUT."""
+    """Creates a temporary file or directory on DUT.
+    """
     template = '%s.XXXXXX%s' % (prefix, suffix)
-    args = ['mktemp']
+    # On Android, TMPDIR environment variable is only specified when
+    # /system/etc/mkshrc was executed.  When we access to Android via "adb
+    # shell", ${TMPDIR} will be empty. So here we want to always provide a value
+    # for -p.
+    args = ['mktemp', '-p', self.TMPDIR if dir is None else dir]
     if is_dir:
       args += ['-d']
-    if dir is not None:
-      args += ['-p', dir]
     args += [template]
     return self._dut.CheckOutput(args).strip()
 
