@@ -69,7 +69,7 @@ class Power(DUTComponent):
           return self._dut.path.dirname(p)
     else:
       ac_path = self._dut.path.join(self._sys, 'class/power_supply/%s/online')
-      if self._dut.FileExists(ac_path % 'AC'):
+      if self._dut.path.exists(ac_path % 'AC'):
         return self._dut.path.dirname(ac_path % 'AC')
       p = self._dut.Glob(ac_path % '*')
       if len(p) > 1:
@@ -113,7 +113,7 @@ class Power(DUTComponent):
     '''
     try:
       return self.ReadOneLine(self._dut.path.join(self._battery_path,
-                                              attribute_name))
+                                                  attribute_name))
     except IOError:
       # Battery driver is not fully initialized
       return None

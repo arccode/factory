@@ -81,14 +81,6 @@ class BaseTargetTest(unittest.TestCase):
     self.dut.Call = mock.MagicMock(side_effect=fakeCallFailure)
     self.assertEquals(self.dut.CallOutput(['cmd']), None)
 
-  def testFileExists(self):
-    self.dut.Call = mock.MagicMock(return_value=0)
-    self.assertEquals(self.dut.FileExists('/exists'), True)
-    self.dut.Call.assert_called_with(['test', '-e', '/exists'])
-    self.dut.Call = mock.MagicMock(return_value=1)
-    self.assertEquals(self.dut.FileExists('/non-exist'), False)
-    self.dut.Call.assert_called_with(['test', '-e', '/non-exist'])
-
   def testGlob(self):
     self.dut.CallOutput = mock.MagicMock(return_value=None)
     self.assertEquals(self.dut.Glob('/non-exist'), [])

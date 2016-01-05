@@ -7,7 +7,6 @@
 
 from __future__ import print_function
 import glob
-import os
 import subprocess
 import tempfile
 
@@ -24,6 +23,7 @@ from cros.factory.test.dut import hooks
 from cros.factory.test.dut import i2c
 from cros.factory.test.dut import info
 from cros.factory.test.dut import led
+from cros.factory.test.dut import path as path_module
 from cros.factory.test.dut import partitions
 from cros.factory.test.dut import power
 from cros.factory.test.dut import status
@@ -128,11 +128,25 @@ class DUTBoard(object):
 
   @DUTProperty
   def path(self):
-    """Default 'path' that provides os.path functions."""
-    # TODO(hungte) Currently this is only safe for functions not accessing DUT,
-    # for example join and split. Need to change this into a new module
-    # providing functions that will access DUT, for example exists, isdir, ...
-    return posixpath
+    """Returns a module to handle path operations.
+
+    If self.link.IsLocal() == True, then module posixpath is returned,
+    otherwise, self._RemotePath is returned.
+    If you only need to change the implementation of remote DUT, try to override
+    _RemotePath.
+    """
+    if self.link.IsLocal():
+      return posixpath
+    return self._RemotePath
+
+  @DUTProperty
+  def _RemotePath(self):
+    """Returns a module to handle path operations on remote DUT.
+
+    self.path will return this object if DUT is not local. Override this to
+    change the implementation of remote DUT.
+    """
+    return path_module.Path(self)
 
   @DUTProperty
   def power(self):
@@ -263,16 +277,6 @@ class DUTBoard(object):
       return self.CheckOutput(*args, **kargs)
     except CalledProcessError:
       return None
-
-  def FileExists(self, path):
-    """Checks if a path exists on DUT.
-
-    Args:
-      path: A string of file path.
-    """
-    if self.link.IsLocal():
-      return os.path.exists(path)
-    return self.Call(['test', '-e', path]) == 0
 
   def Glob(self, pattern):
     """Finds files on DUT by pattern, similar to glob.glob.

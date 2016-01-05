@@ -144,7 +144,7 @@ class SystemInfo(component.DUTComponent):
     for wlan_interface in ['wlan0', 'mlan0']:
       address_path = self._dut.path.join('/sys/class/net/',
                                          wlan_interface, 'address')
-      if self._dut.FileExists(address_path):
+      if self._dut.path.exists(address_path):
         return self._dut.ReadFile(address_path).strip()
 
   @InfoProperty
@@ -154,7 +154,7 @@ class SystemInfo(component.DUTComponent):
     eth_paths = self._dut.Glob('/sys/class/net/eth*')
     for eth_path in eth_paths:
       address_path = self._dut.path.join(eth_path, 'address')
-      if self._dut.FileExists(address_path):
+      if self._dut.path.exists(address_path):
         macs[self._path.basename(eth_path)] = self._dut.ReadFile(
             address_path).strip()
     return macs
@@ -242,7 +242,7 @@ class SystemInfo(component.DUTComponent):
     """Uses checksum of hwid file as hwid database version."""
     hwid_file_path = self._dut.path.join(hwid.common.DEFAULT_HWID_DATA_PATH,
                                          hwid.common.ProbeBoard().upper())
-    if self._dut.FileExists(hwid_file_path):
+    if self._dut.path.exists(hwid_file_path):
       # TODO(hungte) Support remote DUT.
       return hwid.hwid_utils.ComputeDatabaseChecksum(hwid_file_path)
     return None
