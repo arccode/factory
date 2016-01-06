@@ -107,6 +107,12 @@ class AndroidPath(Path):
     #     /other/path/some/file
     #  And the final result is '/other/path/some/file'
 
+    # Since in many cases, the 'path' actually exists, we can reduce average
+    # cost by checking the entire path first.
+    output = self._dut.CallOutput(['realpath', path])
+    if output:
+      return output.strip()
+
     if self.isabs(path):
       bits = ['/'] + path.split('/')[1:]
     else:
@@ -114,11 +120,15 @@ class AndroidPath(Path):
 
     # This should never fail (we are asking realpath for '/' or './').
     output = self._dut.CheckOutput(['realpath', bits[0]])
-    current = output.splitlines()[0]
+    current = output.strip()
 
     # Try to append each subdirectory to current path.
     for i in xrange(1, len(bits)):
-      if not bits[i]: # it was a double slash
+      if bits[i] == '.' or not bits[i]:  # /./ or //
+        continue
+
+      if bits[i] == '..':
+        current = self.dirname(current)
         continue
 
       output = self._dut.CallOutput(['realpath', self.join(current, bits[i])])
@@ -128,6 +138,6 @@ class AndroidPath(Path):
         # so we just append everything left and normalize the path.
         return self.normpath(self.join(current, *bits[i:]))
       else:
-        current = output.splitlines()[0]
+        current = output.strip()
     return current
 

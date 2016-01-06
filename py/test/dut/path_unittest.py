@@ -47,29 +47,33 @@ class AndroidPathTest(unittest.TestCase):
     self.dut = mock.Mock(spec=board.DUTBoard)
     self.path = path.AndroidPath(self.dut)
 
+  def testQuickReturn(self):
+    self.dut.CallOutput = mock.MagicMock(return_value='/abc/')
+    self.assertEquals(self.path.realpath('/def/'), '/abc/')
+    self.dut.CallOutput.assert_called_with(['realpath', '/def/'])
+
   def testRealPathWithDoubleSlash(self):
+    self.dut.CallOutput = mock.MagicMock(return_value=None)
     self.dut.CheckOutput = mock.MagicMock(return_value='/')
     self.assertEquals(self.path.realpath('///'), '/')
     self.dut.CheckOutput.assert_called_with(
         ['realpath', '/'])
 
   def testRealPathWithDoubleDot(self):
+    self.dut.CallOutput = mock.MagicMock(side_effect=[None])
     self.dut.CheckOutput = mock.MagicMock(return_value='/')
-    self.dut.CallOutput = mock.MagicMock(return_value='/')
     self.assertEquals(self.path.realpath('/..'), '/')
-    self.dut.CheckOutput.assert_called_with(
-        ['realpath', '/'])
-    self.dut.CallOutput.assert_called_with(
-        ['realpath', '/..'])
+    self.dut.CheckOutput.assert_called_with(['realpath', '/'])
 
   def testRealPathWhenCannotResolveSymbolicLink(self):
     self.dut.CheckOutput = mock.MagicMock(return_value='/')
-    self.dut.CallOutput = mock.MagicMock(side_effect=['/a', None])
+    self.dut.CallOutput = mock.MagicMock(side_effect=[None, '/a', None])
     self.assertEquals(self.path.realpath('/a/xx/b/c/../d/e'), '/a/xx/b/d/e')
     self.dut.CheckOutput.assert_called_with(
         ['realpath', '/'])
     self.assertEquals(self.dut.CallOutput.mock_calls,
-                      [mock.call(['realpath', '/a']),
+                      [mock.call(['realpath', '/a/xx/b/c/../d/e']),
+                       mock.call(['realpath', '/a']),
                        mock.call(['realpath', '/a/xx'])])
 
 
