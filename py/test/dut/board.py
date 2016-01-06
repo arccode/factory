@@ -233,6 +233,15 @@ class DUTBoard(object):
         f.write(content)
       self.link.Push(temp_path, path)
 
+  def SendFile(self, local, remote):
+    """Copies a local file to DUT.
+
+    Args:
+      local: A string for file path in local.
+      remote: A string for file path on remote DUT.
+    """
+    return self.link.Push(local, remote)
+
   def Call(self, command, stdin=None, stdout=None, stderr=None):
     """Executes a command on DUT, using subprocess.call convention.
 
