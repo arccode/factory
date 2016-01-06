@@ -282,7 +282,7 @@ class RemovableStorageTest(unittest.TestCase):
     """
     block_dirs = self._dut.Glob('/sys/block/sd*')
     for block_dir in block_dirs:
-      if sys_path in self._dut.CheckOutput(['realpath', block_dir]):
+      if sys_path in self._dut.path.realpath(block_dir):
         return self._dut.path.basename(block_dir)
     return None
 
@@ -502,7 +502,7 @@ class RemovableStorageTest(unittest.TestCase):
       # Auto detect parition prefix character
       if 'mmcblk' in dev_path:
         dev_path = dev_path + 'p'
-      self._dut.FileExists(dev_path + '1')
+      self._dut.path.exists(dev_path + '1')
     except:   # pylint: disable=W0702
       self.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
 
@@ -643,7 +643,8 @@ class RemovableStorageTest(unittest.TestCase):
         if time_utils.MonotonicTime() > timeout_time:
           self.fail('Fail to find path: %s' % self.args.sysfs_path)
         time.sleep(0.2)
-      device = self._dut.udev.Device(self._dut.path.join('/dev', device_node),
+      device = self._dut.udev.Device(self._dut.path.join(self._dut.udev.GetDevBlockPath(),
+                                                         device_node),
                                      self.args.sysfs_path)
       self.HandleUdevEvent(self._dut.udev.Event.INSERT, device)
       self.HandleUdevEvent(self._dut.udev.Event.REMOVE, device)

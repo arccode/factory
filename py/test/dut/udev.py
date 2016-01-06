@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import threading
+
 import pyudev
 
 import factory_common  # pylint: disable=W0611
@@ -32,6 +34,8 @@ class UdevMonitorBase(component.DUTComponent):
   def __init__(self, dut):
     super(UdevMonitorBase, self).__init__(dut)
     self._handler = {}
+    self._SYS_BLOCK_PATH = self._dut.path.join('/sys', 'block')
+    self._DEV_BLOCK_PATH = '/dev'
 
   def StartMonitorPath(self, sys_path, handler):
     """Reqeust update of the given sysfs path.
@@ -78,7 +82,9 @@ class UdevMonitorBase(component.DUTComponent):
     """
     handler = self._handler[sys_path]
     if handler is not None:
-      handler(event, device)
+      # We don't want slow handler to block our event detecting. Run the handler in another
+      # worker thread.
+      threading.Thread(target=handler, args=(event, device)).start()
 
   def OnStartMonitor(self):
     """Callback function when system starts monitoring the udev device.
@@ -93,6 +99,22 @@ class UdevMonitorBase(component.DUTComponent):
     This function is called when all requests are removed.
     """
     raise NotImplementedError
+
+  def GetSysBlockPath(self):
+    """Get tye sysfs block device folder, e.g. /sys/block.
+
+    The default implementation returns /sys/block. Child can override this function to
+    provide different path.
+    """
+    return self._SYS_BLOCK_PATH
+
+  def GetDevBlockPath(self):
+    """The block dev folder, e.g. /dev, to find the block device to read / write.
+
+    The default implementation returns /dev. Child can override this function to
+    provide different path.
+    """
+    return self._DEV_BLOCK_PATH
 
   class Device(object):
     """The device object."""
@@ -147,7 +169,7 @@ class LocalUdevMonitor(UdevMonitorBase):
     """
     # Try to determine the change event is an insert or remove.
     if action == self._UDEV_ACTION_CHANGE:
-      if self._dut.FileExists(device.device_node):
+      if self._dut.path.exists(device.device_node):
         action = self._UDEV_ACTION_INSERT
       else:
         action = self._UDEV_ACTION_REMOVE
@@ -161,3 +183,73 @@ class LocalUdevMonitor(UdevMonitorBase):
       if device.sys_path.startswith(path):
         self.NotifyEvent(event, path, device)
 
+
+class PollingUdevMonitor(UdevMonitorBase):
+  """Implementation of :py:class:`cros.factory.test.dut.udev.UdevMonitorBase` by polling block
+  device under sysfs block folder, e.g. /sys/block, which can be used when there is no udevadm
+  on the dut.
+
+  When a new device is inserted, a new file will be created in sysfs block device folder, e.g.
+  /sys/block, and the file should be a symbolic link to the true sysfs path. This calss monitor
+  new events by polling the folder and examing the symbolic link.
+  """
+
+  _PERIOD = 1
+
+  def __init__(self, dut):
+    super(PollingUdevMonitor, self).__init__(dut)
+    self._running = False
+    self._devices = {}
+    self._timer = None
+    # Cache for realpath.
+    self._realpaths = {}
+
+  def OnStartMonitor(self):
+    # Clear the cache.
+    self._realpaths = {}
+    # Scan for the current devices.
+    self._devices = self._Scan()
+    self._running = True
+    self._timer = threading.Timer(self._PERIOD, self._Polling)
+    self._timer.start()
+
+  def OnStopMonitor(self):
+    if self._timer:
+      self._timer.cancel()
+    self._running = False
+
+  def _Scan(self):
+    device = {}
+    # We only scan for storage devices, e.g., sd* and mmc*.
+    block_devs = (self._dut.Glob(self._dut.path.join(self.GetSysBlockPath(), 'sd*')) +
+                  self._dut.Glob(self._dut.path.join(self.GetSysBlockPath(), 'mmc*')))
+
+    # New cache for realpath.
+    curr_realpaths = {}
+
+    for block_dev in block_devs:
+      real_path = self._realpaths.get(block_dev)
+      if not real_path:
+        real_path = self._dut.path.realpath(block_dev)
+      curr_realpaths[block_dev] = real_path
+      sys_paths = [path for path in self.GetPathUnderMonitor() if real_path.startswith(path)]
+      for sys_path in sys_paths:
+        node = self._dut.path.join(self.GetDevBlockPath(), self._dut.path.basename(block_dev))
+        device[sys_path] = self.Device(node, real_path)
+    self._realpaths = curr_realpaths
+    return device
+
+  def _Polling(self):
+    if not self._running:
+      return
+
+    curr_devices = self._Scan()
+    for sys_path in curr_devices.viewkeys() - self._devices.viewkeys():
+      self.NotifyEvent(self.Event.INSERT, sys_path, curr_devices[sys_path])
+
+    for sys_path in self._devices.viewkeys() - curr_devices.viewkeys():
+      self.NotifyEvent(self.Event.REMOVE, sys_path, self._devices[sys_path])
+
+    self._devices = curr_devices
+    self._timer = threading.Timer(self._PERIOD, self._Polling)
+    self._timer.start()
