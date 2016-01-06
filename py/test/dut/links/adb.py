@@ -51,7 +51,20 @@ class ADBLink(link.DUTLink):
     if not isinstance(command, basestring):
       command = ' '.join(pipes.quote(param) for param in command)
 
-    command = ['adb', 'shell', '( %s ) ; log -t %s $?' % (command, session_id)]
+    # ADB protocol currently mixes stderr and stdout in same channel (i.e., the
+    # stdout by adb command has both stderr and stdout from DUT) so we do want
+    # to make them different.
+    redirections = ''
+    if stderr is None:
+      redirections += '2>/dev/null'
+    else:
+      # TODO(hungte) Create a temp file remotely and store contents there, or
+      # figure out a way to return by logcat.
+      raise NotImplementedError('%s: stderr redirection is not supported yet.' %
+                                type(self).__name__)
+
+    command = ['adb', 'shell', '( %s ) %s; log -t %s $?' %
+               (command, redirections, session_id)]
     logging.debug('ADBLink: Run %r', command)
     exit_code = subprocess.call(command, stdin=stdin, stdout=stdout,
                                 stderr=stderr)
