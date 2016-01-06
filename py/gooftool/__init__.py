@@ -413,7 +413,11 @@ class Gooftool(object):
         'enabled': '1',
         'owned': '0'
     }
-    tpm_root = '/sys/class/misc/tpm0/device'
+    tpm_root = '/sys/class/tpm/tpm0/device'
+    legacy_tpm_root = '/sys/class/misc/tpm0/device'
+    # TPM device path has been changed in kernel 3.18.
+    if not os.path.exists(tpm_root):
+      tpm_root = legacy_tpm_root
     for key, value in expected_status.iteritems():
       if open(os.path.join(tpm_root, key)).read().strip() != value:
         raise Error, 'TPM is not cleared.'

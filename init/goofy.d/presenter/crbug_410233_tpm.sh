@@ -6,8 +6,14 @@
 # http://crbug.com/410233: If TPM is owned, UI may get freak.
 check_tpm() {
   echo "Checking if TPM is owned..."
+
+  # TPM path has been changed in kernel 3.18.
+  local tpm_path="/sys/class/tpm/tpm0"
+  local legacy_tpm_path="/sys/class/misc/tpm0"
+  [ -d "${tpm_path}" ] || tpm_path="${legacy_tpm_path}"
+
   if [ "$(crossystem mainfw_type 2>/dev/null)" = "nonchrome" ] ||
-     [ "$(cat /sys/class/misc/tpm0/device/owned 2>/dev/null)" != "1" ]; then
+     [ "$(cat ${tpm_path}/device/owned 2>/dev/null)" != "1" ]; then
     echo "TPM is not owned or not ChromeOS. Safe."
     return
   fi

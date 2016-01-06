@@ -382,7 +382,11 @@ class GoofyRPC(object):
 
     def GetTPMStatus():
       """Returns TPM status info."""
-      tpm_root = '/sys/class/misc/tpm0/device'
+      tpm_root = '/sys/class/tpm/tpm0/device'
+      legacy_tpm_root = '/sys/class/misc/tpm0/device'
+      # TPM device path has been changed in kernel 3.18.
+      if not os.path.exists(tpm_root):
+        tpm_root = legacy_tpm_root
       tpm_status = (open(os.path.join(tpm_root, 'enabled')).read(),
                     open(os.path.join(tpm_root, 'owned')).read())
       tpm_stat = (
