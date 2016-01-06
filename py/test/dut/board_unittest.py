@@ -30,7 +30,18 @@ class BaseTargetTest(unittest.TestCase):
 
     self.dut.CheckOutput = mock.MagicMock(return_value='TEST')
     self.assertEquals(self.dut.ReadFile('/non-exist', 4), 'TEST')
-    self.dut.CheckOutput.assert_called_with(['head', '-c', '4', '/non-exist'])
+    self.dut.CheckOutput.assert_called_with(['dd', 'bs=1', 'if=/non-exist',
+                                             'count=4'])
+
+    self.dut.CheckOutput = mock.MagicMock(return_value='TEST')
+    self.assertEquals(self.dut.ReadFile('/non-exist', 4, 4), 'TEST')
+    self.dut.CheckOutput.assert_called_with(['dd', 'bs=1', 'if=/non-exist',
+                                             'count=4', 'skip=4'])
+
+    self.dut.CheckOutput = mock.MagicMock(return_value='TEST')
+    self.assertEquals(self.dut.ReadFile('/non-exist', skip=4), 'TEST')
+    self.dut.CheckOutput.assert_called_with(['dd', 'bs=1', 'if=/non-exist',
+                                             'skip=4'])
 
   def testWriteFile(self):
     def fakePush(local, remote):

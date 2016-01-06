@@ -184,20 +184,38 @@ class DUTBoard(object):
     """Backward-compatible call for DUTLink.IsReady."""
     return self.link.IsReady()
 
-  def ReadFile(self, path, count=None):
+  def ReadFile(self, path, count=None, skip=None):
     """Returns file contents on DUT.
+
+    By default the "most-efficient" way of reading file will be used, but that
+    may not work for special files like device node or disk block file. You can
+    specify count or skip to read special files, for example:
+
+      kern_blob = dut.ReadFile('/dev/sda2', skip=0)
 
     Args:
       path: A string for file path on DUT.
       count: Number of bytes to read. None to read whole file.
+      skip: Number of bytes to skip before reading. None to read from beginning.
 
     Returns:
       A string as file contents.
     """
-    if count is None:
+    if count is None and skip is None:
       return self.link.Pull(path)
 
-    return self.CheckOutput(['head', '-c', str(count), path])
+    if self.link.IsLocal():
+      with open(path, 'rb') as f:
+        f.seek(skip or 0)
+        return f.read() if count is None else f.read(count)
+
+    args = ['dd', 'bs=1', 'if=%s' % path]
+    if count is not None:
+      args += ['count=%d' % count]
+    if skip is not None:
+      args += ['skip=%d' % skip]
+
+    return self.CheckOutput(args)
 
   def WriteFile(self, path, content):
     """Writes some content into file on DUT.
