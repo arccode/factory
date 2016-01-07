@@ -10,9 +10,7 @@ import logging
 import os
 import re
 import sys
-import traceback
 
-import collections
 from collections import namedtuple
 from contextlib import contextmanager
 from distutils.version import LooseVersion
@@ -29,19 +27,14 @@ from cros.factory.gooftool.probe import Probe
 from cros.factory.gooftool.probe import ReadRoVpd
 from cros.factory.gooftool.probe import ReadRwVpd
 from cros.factory.gooftool.probe import UpdateRoVpd
-from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.decoder import Decode
-from cros.factory.hwid.v3.encoder import Encode, BOMToBinaryString
-from cros.factory.hwid.v3.encoder import BinaryStringToEncodedString
 from cros.factory.test import branding
 from cros.factory.test import phase
 from cros.factory.test.l10n import regions
 from cros.factory.test.privacy import FilterDict
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
-from cros.factory.utils.process_utils import CheckOutput, GetLines
-from cros.factory.utils.string_utils import ParseDict
 from cros.factory.utils.type_utils import Error
 
 # A named tuple to store the probed component name and the error if any.
