@@ -33,11 +33,11 @@ u'''Determines how fast the processor heats/cools.
 '''
 
 import logging
+import struct
 import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.msr import MSRSnapshot
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
@@ -45,6 +45,45 @@ from cros.factory.test.event_log import Log
 from cros.factory.utils.process_utils import Spawn
 
 POWER_SAMPLES = 3
+
+
+class MSRSnapshot(object):
+  '''Snapshot of x86 model-specific registers (MSR).
+
+  Properties:
+    time: The time created.
+    pkg_energy_j: Joules used so far by the package.  RAPL (Running
+      Average Power Limit) is used to measure this.  'pkg' refers
+      to the whole CPU package.
+    pkg_power_w: Power used by the package since the last snapshot.
+  '''
+  # MSR location for energy status.  See <http://lwn.net/Articles/444887/>.
+  MSR_PKG_ENERGY_STATUS = 0x611
+
+  # Factor to use to convert energy readings to Joules.
+  ENERGY_UNIT_FACTOR = 1.53e-5
+
+  def __init__(self, dut, last=None):
+    '''Reads MSR values.
+
+    Args:
+      last: The last snapshot read.  Deltas will be available only
+        if a last snapshot is available.
+
+    Raises:
+      Exception if unable to read MSR values.
+    '''
+    self.time = time.time()
+    pkg_energy_status = dut.ReadFile('/dev/cpu/0/msr', count=8,
+                                     skip=MSR_PKG_ENERGY_STATUS)
+    self.pkg_energy_j = (struct.unpack('<Q', pkg_energy_status)[0] *
+                         self.ENERGY_UNIT_FACTOR)
+
+    if last:
+      time_delta = self.time - last.time
+      self.pkg_power_w = (self.pkg_energy_j - last.pkg_energy_j) / time_delta
+    else:
+      self.pkg_power_w = None
 
 
 class ThermalSlopeTest(unittest.TestCase):
@@ -109,7 +148,7 @@ class ThermalSlopeTest(unittest.TestCase):
     (if the console_log arg is True) or to the default log (if console_log
     is False).
     '''
-    self.msr = MSRSnapshot(self.msr)
+    self.msr = MSRSnapshot(self.dut, self.msr)
     self.system_status = self.dut.status
     elapsed_time = time.time() - self.stage_start_time
     self.log.info(
