@@ -40,10 +40,7 @@ from cros.factory.gooftool import vblock
 from cros.factory.gooftool.common import Shell
 # pylint: disable=E0611
 from cros.factory.hwid.v2.hwid_tool import ProbeResults, COMPACT_PROBE_STR
-from cros.factory.test import dut
-from cros.factory.test import factory
 from cros.factory.test.l10n import regions
-from cros.factory.test.utils import service_manager
 from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
@@ -831,41 +828,6 @@ def _ProbeCellular():
         full_fw_string.append(fw_string)
       data[0]['firmwares'] = ', '.join(full_fw_string)
       data[0]['active_firmware'] = str(_GobiDevices.ActiveFirmware())
-
-    modem_utils = os.path.join(factory.FACTORY_PATH, 'py', 'board',
-                               'modem_utils.py')
-    if os.path.exists(modem_utils):
-      try:
-        service_manager.SetServiceStatus(
-            'modemmanager', service_manager.Status.STOP)
-        # To prevent infinite loop, wait 1 second * 10 iterations at most.
-        start_time = time.time()
-        for _ in xrange(10):
-          time.sleep(1)
-          if (service_manager.GetServiceStatus('modemmanager') ==
-              service_manager.Status.STOP):
-            logging.debug('modemmanager is stopped, elapsed time: %.1f seconds',
-                          time.time() - start_time)
-            break
-
-        if (service_manager.GetServiceStatus('modemmanager') ==
-            service_manager.Status.START):
-          logging.warning(
-              'modemmanager is still running while probe modem version')
-
-        version_output = Shell(modem_utils + ' get_version')
-        if not version_output.status:
-          for (key, pattern) in (
-              ('mac_package_version', r'MAC Package Version: (\w+)'),
-              ('hlrd_revision', r'HLRD Revision: (\w+)')):
-            match = re.search(pattern, version_output.stdout)
-            if match:
-              data[0][key] = match.group(1)
-      finally:
-        if (service_manager.GetServiceStatus('modemmanager') !=
-            service_manager.Status.START):
-          service_manager.SetServiceStatus(
-              'modemmanager', service_manager.Status.START)
   return data
 
 
@@ -1149,7 +1111,7 @@ def _GetEMMC5FirmwareVersion(node_path):
 @_ComponentProbe('region')
 def _ProbeRegion():
   """Probes the region of the DUT based on the region field in RO VPD."""
-  region_code = dut.Create().vpd.ro.get('region')
+  region_code = ReadRoVpd().get('region', None)
   if region_code:
     region_obj = regions.REGIONS[region_code]
     ret = [{'region_code': region_obj.region_code,}]
@@ -1267,8 +1229,8 @@ def _ProbePmic():
 
 @_ComponentProbe('board_version')
 def _ProbeBoardVersion():
-  # TODO(hungte) Support remote DUT.
-  board_version = dut.Create().info.board_version
+  result = Shell('mosys platform version')
+  board_version = result.stdout.strip() if result.success else None
   if board_version is None:
     return []
   else:
@@ -1450,20 +1412,85 @@ def CalculateFirmwareHashes(fw_file_path):
   return hashes
 
 
-def ReadVpd(fw_image_file, kind):
+def ReadVpd(kind, fw_image_file=None):
+  """Reads data from VPD.
+
+  Args:
+    kind: VPD section name to read.
+    fw_image_file: A string for path to existing firmware image file. None to
+        use the crosfw.LoadMainFirmware().
+
+  Returns:
+    A dictionary for the key-value pairs stored in VPD.
+  """
   # Do not log command output since this will include private data such as
   # registration codes.
-  raw_vpd_data = Shell('vpd -i %s -l -f %s' % (
-      kind, fw_image_file), log=False).stdout
-  return ParseKeyValueData('"(.*)"="(.*)"$', raw_vpd_data)
+  if fw_image_file is None:
+    fw_image_file = crosfw.LoadMainFirmware().GetFileName()
+
+  raw_data = Shell('vpd -l -i %s -f %s' %
+                   (kind, fw_image_file), log=False).stdout
+  return ParseKeyValueData('"(.*)"="(.*)"$', raw_data)
 
 
-def ReadRoVpd(fw_image_file):
-  return ReadVpd(fw_image_file, 'RO_VPD')
+def ReadRoVpd(fw_image_file=None):
+  """Reads VPD data from RO section."""
+  return ReadVpd('RO_VPD', fw_image_file)
 
 
-def ReadRwVpd(fw_image_file):
-  return ReadVpd(fw_image_file, 'RW_VPD')
+def ReadRwVpd(fw_image_file=None):
+  """Reads VPD data from RW section."""
+  return ReadVpd('RW_VPD', fw_image_file)
+
+
+def DeleteVpd(kind, keys):
+  """Deletes VPD data by specified keys.
+
+  Args:
+    kind: The VPD section to select.
+    keys: A list of VPD key names to delete.
+
+  Returns:
+    True if updated successfully, otherwise False.
+  """
+  command = 'vpd -i %s %s' % (
+      kind, ' '.join('-d %s' % k for k in keys))
+  return Shell(command).success
+
+
+def UpdateVpd(kind, values):
+  """Updates VPD data by given values.
+
+  Args:
+    kind: The VPD section to select.
+    values: A dictionary containing VPD values to set.
+
+  Returns:
+    True if updated successfully,  otherwise False.
+  """
+  command = 'vpd -i %s %s' % (
+      kind, ' '.join(('-s "%s"="%s"' % (k, v) for k, v in values.iteritems())))
+  return Shell(command).success
+
+
+def DeleteRoVpd(keys):
+  """Deletes VPD data in read-only partition before write-protected."""
+  return DeleteVpd('RO_VPD', keys)
+
+
+def DeleteRwVpd(keys):
+  """Deletes VPD data in read-write partition."""
+  return DeleteVpd('RW_VPD', keys)
+
+
+def UpdateRoVpd(values):
+  """Changes VPD data in read-only partition before write-protected."""
+  return UpdateVpd('RO_VPD', values)
+
+
+def UpdateRwVpd(values):
+  """Changes VPD data in read-write partition."""
+  return UpdateVpd('RW_VPD', values)
 
 
 def Probe(target_comp_classes=None,
@@ -1530,13 +1557,21 @@ def Probe(target_comp_classes=None,
 
   initial_configs = {}
   volatiles = {}
-  dut_instance = dut.Create()
+
+  def CallOutput(command):
+    """Returns the command's output if succeeded, otherwise None.."""
+    result = Shell(command)
+    return result.stdout.strip() if result.success else None
+
+  board_version = CallOutput('mosys platform version')
   if fast_fw_probe:
     logging.debug('fast_fw_probe enabled.')
-    volatiles['ro_ec_firmware'] = {'version': dut_instance.ec.GetECVersion()}
-    volatiles['ro_pd_firmware'] = {'version': dut_instance.ec.GetPDVersion()}
+    volatiles['ro_ec_firmware'] = {
+        'version': CallOutput('mosys ec info -s fw_version')}
+    volatiles['ro_pd_firmware'] = {
+        'version': CallOutput('mosys pd info -s fw_version')}
     volatiles['ro_main_firmware'] = {
-        'version': dut_instance.info.ro_firmware_version}
+        'version': CallOutput('crossystem ro_fwid')}
     probe_volatile = False
     probe_initial_config = False
     probe_vpd = False
@@ -1581,9 +1616,8 @@ def Probe(target_comp_classes=None,
       volatiles.update({'ro_pd_firmware': hashes['ro_ec_firmware']})
 
   if probe_vpd:
-    image_file = crosfw.LoadMainFirmware().GetFileName()
-    for which, vpd_field in (('ro', ReadRoVpd(image_file)),
-                             ('rw', ReadRwVpd(image_file))):
+    for which, vpd_field in (('ro', ReadRoVpd()),
+                             ('rw', ReadRwVpd())):
       for k, v in sorted(vpd_field.items()):
         volatiles['vpd.%s.%s' % (which, k)] = v
   return ProbeResults(

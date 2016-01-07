@@ -221,15 +221,6 @@ class SystemInfo(component.DUTComponent):
     return None
 
   @InfoProperty
-  def allowed_release_channels(self):
-    """List of allowed channel name for release images.
-
-    This is for preventing people to finalize with canary builds which won't
-    receive auto updates.
-    """
-    return ['dev', 'beta', 'stable']
-
-  @InfoProperty
   def _release_lsb_data(self):
     """Returns the lsb-release data in dict from release image partition."""
     release_rootfs = self._dut.partitions.RELEASE_ROOTFS.path

@@ -19,8 +19,8 @@ from cros.factory.hwid.v3 import decoder
 from cros.factory.hwid.v3 import encoder
 from cros.factory.hwid.v3 import rule
 from cros.factory.test import shopfloor
-from cros.factory.test import utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
@@ -361,7 +361,7 @@ def GetProbedResults(infile=None, *args, **kwargs):
     with open(infile, 'r') as f:
       probed_results = yaml.load(f.read())
   else:
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       raise ValueError('Cannot probe components in chroot. Please specify '
                        'probed results with an input file. If you are running '
                        'with command-line, use --probed-results-file')
@@ -387,7 +387,7 @@ def GetDeviceInfo(infile=None):
     with open(infile, 'r') as f:
       device_info = yaml.load(f.read())
   else:
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       raise ValueError('Cannot get device info from shopfloor in chroot. '
                        'Please specify device info with an input file. If you '
                        'are running with command-line, use --device_info_file')
@@ -397,7 +397,7 @@ def GetDeviceInfo(infile=None):
 
 def GetHWIDString():
   """Get HWID string from GBB on a DUT."""
-  if utils.in_chroot():
+  if sys_utils.in_chroot():
     raise ValueError('Cannot read HWID from GBB in chroot')
   main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   gbb_result = process_utils.CheckOutput(

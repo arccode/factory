@@ -24,21 +24,24 @@ from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
-from cros.factory.gooftool.probe import Probe, ReadRoVpd, ReadRwVpd
+from cros.factory.gooftool.probe import DeleteRwVpd
+from cros.factory.gooftool.probe import Probe
+from cros.factory.gooftool.probe import ReadRoVpd
+from cros.factory.gooftool.probe import ReadRwVpd
+from cros.factory.gooftool.probe import UpdateRoVpd
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.decoder import Decode
 from cros.factory.hwid.v3.encoder import Encode, BOMToBinaryString
 from cros.factory.hwid.v3.encoder import BinaryStringToEncodedString
 from cros.factory.test import branding
-from cros.factory.test import dut
 from cros.factory.test import phase
 from cros.factory.test.l10n import regions
 from cros.factory.test.privacy import FilterDict
 from cros.factory.utils import file_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import CheckOutput, GetLines
 from cros.factory.utils.string_utils import ParseDict
-from cros.factory.utils.sys_utils import MountPartition
 from cros.factory.utils.type_utils import Error
 
 # A named tuple to store the probed component name and the error if any.
@@ -163,6 +166,28 @@ class Util(object):
 
     return self.GetPrimaryDevicePath(4)
 
+  def GetReleaseImageLsbData(self):
+    """Gets the /etc/lsb-release content from release image partition.
+
+    Returns:
+      A dictionary containing the key-value pairs in lsb-release.
+    """
+    lsb_content = sys_utils.MountDeviceAndReadFile(
+        self.GetReleaseRootPartitionPath(), 'etc/lsb-release')
+    return dict(re.findall('^(.+)=(.+)$', lsb_content, re.MULTILINE))
+
+  def GetAllowedReleaseImageChannels(self):
+    """Returns a list of channels allowed for release image."""
+    return ['dev', 'beta', 'stable']
+
+  def GetReleaseImageChannel(self):
+    """Returns the channel of current release image."""
+    return self.GetReleaseImageLsbData().get('CHROMEOS_RELEASE_TRACK')
+
+  def GetReleaseImageVersion(self):
+    """Returns the current release image version."""
+    return self.GetReleaseImageLsbData().get('GOOGLE_RELEASE')
+
   def GetVBSharedDataFlags(self):
     """Gets VbSharedData flags.
 
@@ -253,13 +278,12 @@ class Gooftool(object):
     self._crosfw = crosfw
     self._read_ro_vpd = ReadRoVpd
     self._read_rw_vpd = ReadRwVpd
+    self._delete_rw_vpd = DeleteRwVpd
+    self._update_ro_vpd = UpdateRoVpd
     self._hwid_decode = Decode
     self._unpack_bmpblock = unpack_bmpblock
     self._named_temporary_file = NamedTemporaryFile
     self._db = None
-    # TODO(hungte) Make gooftool able to support remote DUT.
-    # Currently it can only run locally.
-    self._dut = dut.Create()
 
   @property
   def db(self):
@@ -443,8 +467,7 @@ class Gooftool(object):
       A dictionary containing rlz_brand_code and customization_id fields,
       for testing.
     """
-    ro_vpd = self._dut.vpd.ro.GetAll()
-
+    ro_vpd = self._read_ro_vpd()
     customization_id = ro_vpd.get('customization_id')
     logging.info('RO VPD customization_id: %r', customization_id)
     if customization_id is not None:
@@ -459,7 +482,7 @@ class Gooftool(object):
     logging.info('RO VPD rlz_brand_code: %r', rlz_brand_code)
     if rlz_brand_code is None:
       # It must be present as BRAND_CODE_PATH in rootfs.
-      with MountPartition(
+      with sys_utils.MountPartition(
           self._util.GetReleaseRootPartitionPath()) as mount_path:
         path = os.path.join(mount_path, branding.BRAND_CODE_PATH.lstrip('/'))
         if not os.path.exists(path):
@@ -496,8 +519,8 @@ class Gooftool(object):
           be different per board. It should be the subset or the same set
           of the allowed release channels.
     """
-    release_channel = self._dut.info.release_image_channel
-    allowed_channels = self._dut.info.allowed_release_channels
+    release_channel = self._util.GetReleaseImageChannel()
+    allowed_channels = self._util.GetAllowedReleaseImageChannels()
 
     if enforced_channels is None:
       enforced_channels = allowed_channels
@@ -706,7 +729,7 @@ class Gooftool(object):
       not supported.
     """
     image_file = self._crosfw.LoadMainFirmware().GetFileName()
-    region = self._read_ro_vpd(image_file).get('region', None)
+    region = self._read_ro_vpd().get('region', None)
     if region is None:
       raise Error, 'Missing VPD "region".'
     # Use the primary initial locale for the firmware bitmap.
@@ -759,10 +782,13 @@ class Gooftool(object):
     Returns:
       A dict of the removed entries.
     """
-    entries = dict((k, v) for k, v in self._dut.vpd.rw.GetAll().items()
+    rw_vpd = self._read_rw_vpd()
+    entries = dict((k, v) for k, v in rw_vpd.items()
                    if k.startswith('factory.'))
     logging.info('Removing VPD entries %s', FilterDict(entries))
-    self._dut.vpd.rw.Delete(*entries.keys())
+    if entries:
+      if not self._delete_rw_vpd(entries):
+        raise Error('Failed to invoke VPD command: %s' % command)
 
   def GenerateStableDeviceSecret(self):
     """Generates a fresh stable device secret and stores it in RO VPD.
@@ -801,7 +827,7 @@ class Gooftool(object):
     # device secret key in VPD. Version 6887.0.0 is the first one that has the
     # session_manager change to generate server-backed state keys for forced
     # re-enrollment from the stable device secret.
-    release_image_version = LooseVersion(self._dut.info.release_image_version)
+    release_image_version = LooseVersion(self._util.GetReleaseImageVersion())
     if not release_image_version >= LooseVersion('6887.0.0'):
       raise Error, 'Release image version can\'t handle stable device secret!'
 
@@ -835,5 +861,6 @@ class Gooftool(object):
         raise Error
 
     with scrub_exceptions('Error writing device secret to VPD'):
-      self._dut.vpd.ro.Update(
-          {'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')})
+      if not self._update_ro_vpd({
+          'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')}):
+        raise Error

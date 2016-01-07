@@ -419,12 +419,10 @@ def VerifyHWIDv2(options):
     event_log.Log('vpd', ro_vpd=FilterDict(ro_vpd), rw_vpd=FilterDict(rw_vpd))
   map(hwid_tool.Validate.Status, options.status)
 
-  if not options.hwid or not options.probe_results:
-    main_fw_file = crosfw.LoadMainFirmware().GetFileName()
-
   if options.hwid:
     hwid_str = options.hwid
   else:
+    main_fw_file = crosfw.LoadMainFirmware().GetFileName()
     gbb_result = Shell('gbb_utility -g --hwid %s' % main_fw_file).stdout
     hwid_str = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
   hwid = hwid_tool.ParseHwid(hwid_str)
@@ -449,8 +447,8 @@ def VerifyHWIDv2(options):
         (ro_vpd if match.group(1) == 'ro' else rw_vpd)[match.group(2)] = v
   else:
     probe_results = Probe()
-    ro_vpd = ReadRoVpd(main_fw_file)
-    rw_vpd = ReadRwVpd(main_fw_file)
+    ro_vpd = ReadRoVpd()
+    rw_vpd = ReadRwVpd()
   cooked_components = hw_db.comp_db.MatchComponentProbeValues(
       probe_results.found_probe_value_map)
   cooked_volatiles = device.MatchVolatileValues(
@@ -857,7 +855,7 @@ _add_file_cmd_arg = CmdArg(
          _add_file_cmd_arg)
 def UploadReport(options):
   """Create a report containing key device details."""
-  ro_vpd = ReadRoVpd(crosfw.LoadMainFirmware().GetFileName())
+  ro_vpd = ReadRoVpd()
   device_sn = ro_vpd.get('serial_number', None)
   if device_sn is None:
     logging.warning('RO_VPD missing device serial number')

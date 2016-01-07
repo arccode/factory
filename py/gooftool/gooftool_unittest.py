@@ -22,9 +22,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import gooftool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import Gooftool
+from cros.factory.gooftool import probe
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
-from cros.factory.gooftool.probe import Probe, ReadRoVpd
+from cros.factory.gooftool.probe import Probe
+from cros.factory.gooftool.probe import ReadRoVpd
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v2.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.gooftool import Mismatch
@@ -169,6 +171,7 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool = Gooftool(probe=self._mock_probe, hardware_db=test_db)
     self._gooftool._util = self.mox.CreateMock(gooftool.Util)
     self._gooftool._util.shell = self.mox.CreateMock(Shell)
+    probe.Shell = self.mox.CreateMock(Shell)
 
     self._gooftool._crosfw = self.mox.CreateMock(crosfw)
     self._gooftool._unpack_bmpblock = self.mox.CreateMock(unpack_bmpblock)
@@ -357,18 +360,22 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.ClearGBBFlags()
 
   def testGenerateStableDeviceSecretSuccess(self):
-    self._gooftool._dut.info.Overrides('release_image_version', '6887.0.0')
+    self._gooftool._util.GetReleaseImageVersion().AndReturn('6887.0.0')
     self._gooftool._util.shell(
         'tpm-manager get_random 32', log=False).AndReturn(
             StubStdout('00' * 32 + '\n'))
-    self.mox.StubOutWithMock(self._gooftool._dut.vpd.ro, 'Update')
-    self._gooftool._dut.vpd.ro.Update(
-        {'stable_device_secret_DO_NOT_SHARE': '00' * 32})
+
+    stub_result = lambda: None
+    stub_result.success = True
+    self._gooftool._util
+    probe.Shell(
+        'vpd -i RO_VPD -s "stable_device_secret_DO_NOT_SHARE"="%s"' %
+        ('00' * 32)).AndReturn(stub_result)
     self.mox.ReplayAll()
     self._gooftool.GenerateStableDeviceSecret()
 
   def testGenerateStableDeviceSecretNoOutput(self):
-    self._gooftool._dut.info.Overrides('release_image_version', '6887.0.0')
+    self._gooftool._util.GetReleaseImageVersion().AndReturn('6887.0.0')
     self._gooftool._util.shell(
         'tpm-manager get_random 32', log=False).AndReturn(StubStdout(''))
     self.mox.ReplayAll()
@@ -376,7 +383,7 @@ class GooftoolTest(unittest.TestCase):
                             self._gooftool.GenerateStableDeviceSecret)
 
   def testGenerateStableDeviceSecretShortOutput(self):
-    self._gooftool._dut.info.Overrides('release_image_version', '6887.0.0')
+    self._gooftool._util.GetReleaseImageVersion().AndReturn('6887.0.0')
     self._gooftool._util.shell(
         'tpm-manager get_random 32', log=False).AndReturn(StubStdout('00' * 31))
     self.mox.ReplayAll()
@@ -384,7 +391,7 @@ class GooftoolTest(unittest.TestCase):
                             self._gooftool.GenerateStableDeviceSecret)
 
   def testGenerateStableDeviceSecretBadOutput(self):
-    self._gooftool._dut.info.Overrides('release_image_version', '6887.0.0')
+    self._gooftool._util.GetReleaseImageVersion().AndReturn('6887.0.0')
     self._gooftool._util.shell(
         'tpm-manager get_random 32', log=False).AndReturn(StubStdout('Err0r!'))
     self.mox.ReplayAll()
@@ -392,19 +399,21 @@ class GooftoolTest(unittest.TestCase):
                             self._gooftool.GenerateStableDeviceSecret)
 
   def testGenerateStableDeviceSecretBadReleaseImageVersion(self):
-    self._gooftool._dut.info.Overrides('release_image_version', '6886.0.0')
+    self._gooftool._util.GetReleaseImageVersion().AndReturn('6886.0.0')
+    self.mox.ReplayAll()
     self.assertRaisesRegexp(Error, 'Release image version',
                             self._gooftool.GenerateStableDeviceSecret)
 
   def testGenerateStableDeviceSecretVPDWriteFailed(self):
-    self._gooftool._dut.info.Overrides('release_image_version', '6887.0.0')
+    self._gooftool._util.GetReleaseImageVersion().AndReturn('6887.0.0')
     self._gooftool._util.shell(
         'tpm-manager get_random 32', log=False).AndReturn(
             StubStdout('00' * 32 + '\n'))
-    self.mox.StubOutWithMock(self._gooftool._dut.vpd.ro, 'Update')
-    self._gooftool._dut.vpd.ro.Update(
-        {'stable_device_secret_DO_NOT_SHARE': '00' * 32}).AndRaise(
-        Error('VPD b0rked!'))
+    stub_result = lambda: None
+    stub_result.success = False
+    probe.Shell(
+        'vpd -i RO_VPD -s "stable_device_secret_DO_NOT_SHARE"="%s"' %
+        ('00' * 32)).AndReturn(stub_result)
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error, 'Error writing device secret',
                             self._gooftool.GenerateStableDeviceSecret)
@@ -459,16 +468,15 @@ class GooftoolTest(unittest.TestCase):
     def MockPartition(path):
       yield path
 
-    self.mox.StubOutWithMock(self._gooftool._dut.vpd.ro, 'GetAll')
-    self.mox.StubOutWithMock(gooftool, 'MountPartition')
+    self.mox.StubOutWithMock(gooftool.sys_utils, 'MountPartition')
 
-    self._gooftool._dut.vpd.ro.GetAll().AndReturn(ro_vpd)
+    self._gooftool._read_ro_vpd().AndReturn(ro_vpd)
     if fake_rootfs_path:
       # Pretend that '/dev/rel' is the release rootfs path.
       self._gooftool._util.GetReleaseRootPartitionPath().AndReturn('/dev/rel')
       # When '/dev/rel' is mounted, return a context manager yielding
       # fake_rootfs_path.
-      gooftool.MountPartition('/dev/rel').AndReturn(
+      gooftool.sys_utils.MountPartition('/dev/rel').AndReturn(
           MockPartition(fake_rootfs_path))
 
   def testVerifyBranding_NoBrandCode(self):
@@ -520,53 +528,61 @@ class GooftoolTest(unittest.TestCase):
                             self._gooftool.VerifyBranding)
 
   def testVerifyReleaseChannel_CanaryChannel(self):
-    self._gooftool._dut.info.Overrides('release_image_channel',
-                                       'canary-channel')
+    self._gooftool._util.GetReleaseImageChannel().AndReturn('canary-channel')
+    self._gooftool._util.GetAllowedReleaseImageChannels().AndReturn(
+        ['dev', 'beta', 'stable'])
     self.mox.ReplayAll()
-    self.assertRaisesRegexp(Error,
-                            'Release image channel is incorrect: %s' % (
-                                self._gooftool._dut.info.release_image_channel),
-                            self._gooftool.VerifyReleaseChannel)
+    self.assertRaisesRegexp(
+        Error, 'Release image channel is incorrect: canary-channel',
+        self._gooftool.VerifyReleaseChannel)
 
   def testVerifyReleaseChannel_DevChannel(self):
-    self._gooftool._dut.info.Overrides('release_image_channel', 'dev-channel')
+    self._gooftool._util.GetReleaseImageChannel().AndReturn('dev-channel')
+    self._gooftool._util.GetAllowedReleaseImageChannels().AndReturn(
+        ['dev', 'beta', 'stable'])
     self.mox.ReplayAll()
     self._gooftool.VerifyReleaseChannel()
 
   def testVerifyReleaseChannel_DevChannelFailed(self):
-    self._gooftool._dut.info.Overrides('release_image_channel', 'dev-channel')
+    self._gooftool._util.GetReleaseImageChannel().AndReturn('dev-channel')
+    self._gooftool._util.GetAllowedReleaseImageChannels().AndReturn(
+        ['dev', 'beta', 'stable'])
     enforced_channels = ['stable', 'beta']
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error,
-                            'Release image channel is incorrect: %s' % (
-                                self._gooftool._dut.info.release_image_channel),
+                            'Release image channel is incorrect: dev-channel',
                             self._gooftool.VerifyReleaseChannel,
                             enforced_channels)
 
   def testVerifyReleaseChannel_BetaChannel(self):
-    self._gooftool._dut.info.Overrides('release_image_channel', 'beta-channel')
+    self._gooftool._util.GetReleaseImageChannel().AndReturn('beta-channel')
+    self._gooftool._util.GetAllowedReleaseImageChannels().AndReturn(
+        ['dev', 'beta', 'stable'])
     self.mox.ReplayAll()
     self._gooftool.VerifyReleaseChannel()
 
   def testVerifyReleaseChannel_BetaChannelFailed(self):
-    self._gooftool._dut.info.Overrides('release_image_channel', 'beta-channel')
+    self._gooftool._util.GetReleaseImageChannel().AndReturn('beta-channel')
+    self._gooftool._util.GetAllowedReleaseImageChannels().AndReturn(
+        ['dev', 'beta', 'stable'])
     enforced_channels = ['stable']
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error,
-                            'Release image channel is incorrect: %s' % (
-                                self._gooftool._dut.info.release_image_channel),
+                            'Release image channel is incorrect: beta-channel',
                             self._gooftool.VerifyReleaseChannel,
                             enforced_channels)
 
   def testVerifyReleaseChannel_StableChannel(self):
-    self._gooftool._dut.info.Overrides('release_image_channel',
-                                       'stable-channel')
+    self._gooftool._util.GetReleaseImageChannel().AndReturn('stable-channel')
+    self._gooftool._util.GetAllowedReleaseImageChannels().AndReturn(
+        ['dev', 'beta', 'stable'])
     self.mox.ReplayAll()
     self._gooftool.VerifyReleaseChannel()
 
   def testVerifyReleaseChannel_InvalidEnforcedChannels(self):
-    self._gooftool._dut.info.Overrides('release_image_channel',
-                                       'stable-channel')
+    self._gooftool._util.GetReleaseImageChannel().AndReturn('stable-channel')
+    self._gooftool._util.GetAllowedReleaseImageChannels().AndReturn(
+        ['dev', 'beta', 'stable'])
     enforced_channels = ['canary']
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error,
@@ -596,8 +612,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for zh.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._gooftool._read_ro_vpd('firmware').AndReturn(
-        {'region': 'tw'})
+    self._gooftool._read_ro_vpd().AndReturn({'region': 'tw'})
 
     f = MockFile()
     f.read = lambda: 'ja\nzh\nen'
@@ -617,8 +632,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for zh.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._gooftool._read_ro_vpd('firmware').AndReturn(
-        {'region': 'tw'})
+    self._gooftool._read_ro_vpd().AndReturn({'region': 'tw'})
 
     f = MockFile()
     f.read = lambda: ''
@@ -643,8 +657,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for en.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._gooftool._read_ro_vpd('firmware').AndReturn(
-        {'region': 'us'})
+    self._gooftool._read_ro_vpd().AndReturn({'region': 'us'})
 
     f = MockFile()
     # Stub for multiple available locales in the firmware bitmap, but missing
@@ -663,7 +676,7 @@ class GooftoolTest(unittest.TestCase):
 
     # VPD has no locale data.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._gooftool._read_ro_vpd('firmware').AndReturn({})
+    self._gooftool._read_ro_vpd().AndReturn({})
 
     self.mox.ReplayAll()
     self.assertRaises(Error, self._gooftool.SetFirmwareBitmapLocale)
