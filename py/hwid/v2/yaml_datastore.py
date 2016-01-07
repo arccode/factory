@@ -194,9 +194,8 @@ class _DatastoreBase(object):
         return
       raise InvalidDataError(
           '%r schema validation failed for element %r, expected type %r, found %r' %
-          (cls.__name__, top_level_tag, field_type.__name__,
-           type(field_data).__name__))
-    if (set(cls._schema) ^ set(field_dict)):
+          (cls.__name__, top_level_tag, field_type, type(field_data).__name__))
+    if set(cls._schema) ^ set(field_dict):
       raise InvalidDataError(
           '%r schema and data dict keys do not match, ' % cls.__name__ +
           'data is missing keys: %r, ' %
@@ -233,5 +232,5 @@ def MakeDatastoreClass(class_name, class_schema):
   cls = type(class_name, (_DatastoreBase,), {})
   caller_module = inspect.getmodule((inspect.stack()[1])[0])
   setattr(caller_module, class_name, cls)
-  cls._schema = class_schema
+  cls._schema = class_schema  # pylint: disable=W0212
   yaml.add_representer(cls, lambda yaml_repr, obj: obj.Yrepr(yaml_repr))

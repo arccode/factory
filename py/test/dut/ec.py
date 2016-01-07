@@ -65,14 +65,18 @@ class EmbeddedController(component.DUTComponent):
       r'max (?P<max_millivolt>\d+)mV / (?P<max_milliampere>\d+)mA / '
       r'(?P<max_milliwatt>\d+)mW')
 
+  def _GetOutput(self, command):
+    result = self._dut.CallOutput(command)
+    return result.strip() if result is not None else ''
+
+
   def GetECVersion(self):
     """Gets the EC firmware version.
 
     Returns:
       A string of the EC firmware version.
     """
-    return self._dut.CallOutput(
-        ['mosys', 'ec', 'info', '-s', 'fw_version']).strip()
+    return self._GetOutput(['mosys', 'ec', 'info', '-s', 'fw_version'])
 
   def GetPDVersion(self):
     """Gets the PD firmware version.
@@ -80,8 +84,7 @@ class EmbeddedController(component.DUTComponent):
     Returns:
       A string of the PD firmware version.
     """
-    return self._dut.CallOutput(
-        ['mosys', 'pd', 'info', '-s', 'fw_version']).strip()
+    return self._GetOutput(['mosys', 'pd', 'info', '-s', 'fw_version'])
 
   def GetECConsoleLog(self):
     """Gets the EC console log.
@@ -89,8 +92,7 @@ class EmbeddedController(component.DUTComponent):
     Returns:
       A string containing EC console log.
     """
-    return self._dut.CallOutput(
-        ['ectool', 'console']).strip()
+    return self._GetOutput(['ectool', 'console'])
 
   def GetECPanicInfo(self):
     """Gets the EC panic info.
@@ -98,8 +100,7 @@ class EmbeddedController(component.DUTComponent):
     Returns:
       A string of EC panic info.
     """
-    return self._dut.CallOutput(
-        ['ectool', 'panicinfo']).strip()
+    return self._GetOutput(['ectool', 'panicinfo'])
 
   def ProbeEC(self):
     """Says hello to EC.
