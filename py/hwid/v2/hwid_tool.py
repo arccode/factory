@@ -26,7 +26,7 @@ from cros.factory.hwid.v2.bom_names import BOM_NAME_SET
 from cros.factory.hwid.v2.yaml_datastore import InvalidDataError
 from cros.factory.hwid.v2.yaml_datastore import MakeDatastoreClass
 from cros.factory.hwid.v2.yaml_datastore import YamlDatastore
-from cros.factory.test import utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
@@ -37,7 +37,7 @@ from cros.factory.utils.type_utils import Obj
 DEFAULT_HWID_DATA_PATH = (
     os.path.join(os.environ['CROS_WORKON_SRCROOT'],
                  'src', 'platform', 'chromeos-hwid', 'v2')
-    if utils.in_chroot()
+    if sys_utils.in_chroot()
     else '/usr/local/factory/hwid')
 
 

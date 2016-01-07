@@ -18,7 +18,6 @@ from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import decoder
 from cros.factory.hwid.v3 import encoder
 from cros.factory.hwid.v3 import rule
-from cros.factory.test import shopfloor
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
@@ -370,8 +369,8 @@ def GetProbedResults(infile=None, *args, **kwargs):
   return probed_results
 
 
-def GetDeviceInfo(infile=None):
-  """Get device info either from the given file or shopfloor server.
+def GetDeviceInfo(infile):
+  """Get device info from the given file.
 
   Args:
     infile: A file containing the device info in YAML format. For example:
@@ -383,15 +382,8 @@ def GetDeviceInfo(infile=None):
   Returns:
     A dict of device info.
   """
-  if infile:
-    with open(infile, 'r') as f:
-      device_info = yaml.load(f.read())
-  else:
-    if sys_utils.in_chroot():
-      raise ValueError('Cannot get device info from shopfloor in chroot. '
-                       'Please specify device info with an input file. If you '
-                       'are running with command-line, use --device_info_file')
-    device_info = shopfloor.GetDeviceData()
+  with open(infile, 'r') as f:
+    device_info = yaml.load(f.read())
   return device_info
 
 

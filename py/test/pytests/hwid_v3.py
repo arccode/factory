@@ -84,7 +84,7 @@ class HWIDV3Test(unittest.TestCase):
     hwdb = database.Database.LoadFile(
         os.path.join(common.DEFAULT_HWID_DATA_PATH, board.upper()),
         verify_checksum=self.args.verify_checksum)
-    device_info = hwid_utils.GetDeviceInfo()
+    device_info = shopfloor.GetDeviceData()
     vpd = hwid_utils.GetVPD(probed_results)
 
     if self.args.generate:

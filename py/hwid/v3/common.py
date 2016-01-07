@@ -16,17 +16,17 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import base32, base8192
 from cros.factory.hwid.v3 import rule
 from cros.factory.test import phase
-from cros.factory.test import utils
 from cros.factory.tools import build_board
 from cros.factory.utils import schema
-from cros.factory.utils.type_utils import MakeSet
+from cros.factory.utils import sys_utils
+from cros.factory.utils import type_utils
 
 # The expected location of HWID data within a factory image or the
 # chroot.
 DEFAULT_HWID_DATA_PATH = (
     os.path.join(os.environ['CROS_WORKON_SRCROOT'],
                  'src', 'platform', 'chromeos-hwid', 'v3')
-    if utils.in_chroot()
+    if sys_utils.in_chroot()
     else '/usr/local/factory/hwid')
 
 PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')
@@ -123,10 +123,10 @@ class HWID(object):
     HWIDException if an invalid arg is found.
   """
   HEADER_BITS = 5
-  OPERATION_MODE = utils.Enum(['normal', 'rma', 'no_check'])
-  COMPONENT_STATUS = utils.Enum(['supported', 'deprecated',
+  OPERATION_MODE = type_utils.Enum(['normal', 'rma', 'no_check'])
+  COMPONENT_STATUS = type_utils.Enum(['supported', 'deprecated',
                                  'unsupported', 'unqualified'])
-  ENCODING_SCHEME = utils.Enum(['base32', 'base8192'])
+  ENCODING_SCHEME = type_utils.Enum(['base32', 'base8192'])
 
   def __init__(self, database, binary_string, encoded_string, bom,
                mode=OPERATION_MODE.normal, skip_check=False):
@@ -254,8 +254,10 @@ class HWID(object):
     for comp_cls in self.database.components.GetRequiredComponents():
       if comp_cls not in self.database.components.probeable:
         continue
-      probed_components = MakeSet(PackProbedValues(probed_bom, comp_cls))
-      expected_components = MakeSet(PackProbedValues(self.bom, comp_cls))
+      probed_components = type_utils.MakeSet(
+          PackProbedValues(probed_bom, comp_cls))
+      expected_components = type_utils.MakeSet(
+          PackProbedValues(self.bom, comp_cls))
       extra_components = probed_components - expected_components
       missing_components = expected_components - probed_components
       if extra_components or missing_components:

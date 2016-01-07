@@ -15,7 +15,9 @@ from cros.factory.hacked_argparse import Command, CmdArg, ParseCmdline
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.test import shopfloor
 from cros.factory.tools import build_board
+from cros.factory.utils import sys_utils
 
 
 _COMMON_ARGS = [
@@ -58,7 +60,17 @@ class Arg(object):
 def GenerateHWIDWrapper(options):
   """Generates HWID."""
   probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
-  device_info = hwid_utils.GetDeviceInfo(options.device_info_file)
+
+  # Select right device info (from file or shopfloor).
+  if options.device_info_file:
+    device_info = hwid_utils.GetDeviceInfo(options.device_info_file)
+  elif sys_utils.in_chroot():
+    raise ValueError('Cannot get device info from shopfloor in chroot. '
+                     'Please specify device info with an input file. If you '
+                     'are running with command-line, use --device_info_file')
+  else:
+    device_info = shopfloor.GetDeviceData()
+
   vpd = hwid_utils.GetVPD(probed_results)
 
   verbose_output = {
