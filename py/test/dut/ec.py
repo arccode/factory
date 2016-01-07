@@ -22,8 +22,9 @@ class EmbeddedController(component.DUTComponent):
   I2C_READ_RE = re.compile(r'I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
 
   # EC tool arguments for accessing PD. Subclass may override this to match the
-  # arguments used on the actual board.
-  ECTOOL_PD_ARGS = ['--interface=dev', '--dev=1']
+  # arguments used on the actual board. For example, boards with separate PD
+  # like samus=Pixel2015), this should be ['--interface=dev', '--dev=1'].
+  ECTOOL_PD_ARGS = []
 
   # USB PD info.
   USB_PD_INFO_RE_ALL = {
