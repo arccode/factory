@@ -26,7 +26,6 @@ from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
-from cros.factory import system
 from cros.factory.test.event_log import EventLog, FloatDigit, GetBootSequence
 from cros.factory.goofy import connection_manager
 from cros.factory.goofy import test_environment
