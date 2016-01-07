@@ -43,6 +43,7 @@ from cros.factory.test.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test.test_lists.test_lists import OldStyleTestList
 from cros.factory.test.utils.service_manager import ServiceManager
+from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils.string_utils import DecodeUTF8
@@ -814,43 +815,6 @@ def RunTestCase(suite, test_case_id):
   _RecursiveApply(_RunByID, suite)
   assert len(results) == 1, 'Should have exactly one test result'
   return results[0]
-
-
-def LoadPytestModule(pytest_name):
-  """Loads the given pytest module.
-
-  This function tries to load the module with
-
-      cros.factory.test.pytests.<pytest_base_name>.<pytest_name>
-
-  first and falls back to
-
-      cros.factory.test.pytests.<pytest_name>
-
-  for backward compatibility.
-
-  Args:
-    pytest_name: The name of the pytest module.
-
-  Returns:
-    The loaded pytest module object.
-  """
-  from cros.factory.test import pytests
-  base_pytest_name = pytest_name
-  for suffix in ('_e2etest', '_automator', '_automator_private'):
-    base_pytest_name = re.sub(suffix, '', base_pytest_name)
-
-  try:
-    __import__('cros.factory.test.pytests.%s.%s' %
-               (base_pytest_name, pytest_name))
-    return getattr(getattr(pytests, base_pytest_name), pytest_name)
-  except ImportError:
-    logging.info(
-        ('Cannot import cros.factory.test.pytests.%s.%s. '
-         'Fall back to cros.factory.test.pytests.%s'),
-        base_pytest_name, pytest_name, pytest_name)
-    __import__('cros.factory.test.pytests.%s' % pytest_name)
-    return getattr(pytests, pytest_name)
 
 
 def RunPytest(test_info):

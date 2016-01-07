@@ -16,58 +16,20 @@ import argparse
 import ast
 import inspect
 import logging
+import os
 import pickle
-import re
 import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
 from cros.factory.test.args import Args
 from cros.factory.test.dut import utils
-
-
-# Copied from goofy/invocation.py to minimize dependencies.
-def _LoadPytestModule(pytest_name):
-  """Loads the given pytest module.
-
-  This function tries to load the module with
-
-      cros.factory.test.pytests.<pytest_base_name>.<pytest_name>
-
-  first and falls back to
-
-      cros.factory.test.pytests.<pytest_name>
-
-  for backward compatibility.
-
-  Args:
-    pytest_name: The name of the pytest module.
-
-  Returns:
-    The loaded pytest module object.
-  """
-  from cros.factory.test import pytests
-  base_pytest_name = pytest_name
-  for suffix in ('_e2etest', '_automator', '_automator_private'):
-    base_pytest_name = re.sub(suffix, '', base_pytest_name)
-
-  try:
-    __import__('cros.factory.test.pytests.%s.%s' %
-               (base_pytest_name, pytest_name))
-    return getattr(getattr(pytests, base_pytest_name), pytest_name)
-  except ImportError:
-    logging.info(
-        ('Cannot import cros.factory.test.pytests.%s.%s. '
-         'Fall back to cros.factory.test.pytests.%s'),
-        base_pytest_name, pytest_name, pytest_name)
-    __import__('cros.factory.test.pytests.%s' % pytest_name)
-    return getattr(pytests, pytest_name)
+from cros.factory.test.utils.pytest_utils import LoadPytestModule
 
 
 def _GetTestCase(pytest):
   """Returns the first test case class found in a given pytest."""
-  module = _LoadPytestModule(pytest)
+  module = LoadPytestModule(pytest)
   _, test_case = inspect.getmembers(module, lambda obj: (
       inspect.isclass(obj) and issubclass(obj, unittest.TestCase)))[0]
   return test_case

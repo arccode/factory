@@ -36,10 +36,26 @@ Alternatively, if your test has accompanying files (such as HTML or
 JavaScript files), you may create a directory for it and put the code
 in
 
-  :samp:`py/test/pytests/{name}/{name}.py`.
+  :samp:`py/test/pytests/{name}/{name}.py`. [*]_
 
 Within this file, there should be a single subclass of `unittest.TestCase`.
-There can be only one test class per module.
+There can be only one test class per module, so if you need to have different
+test cases, you need to separate them into different modules. But you can create
+a directory for them, for example:
+
+  - :samp:`py/test/pytests/{dir_name}/{test1}.py`
+  - :samp:`py/test/pytests/{dir_name}/{test2}.py`
+  - :samp:`py/test/pytests/{dir_name}/{test3}.py`.
+
+In this case, the name of your tests are :samp:`{dir_name}.{test1}`,
+:samp:`{dir_name}.{test2}` and :samp:`{dir_name}.{test3}`.
+
+To know more about how we load a pytest from name, please refer to
+:py:func:`cros.factory.test.utils.pytest_utils.LoadPytestModule`.
+
+.. [*] Since the ``__init__.py`` of a package will be loaded whenever its
+       submodule is imported. We recommand keeping ``__init__.py`` empty to
+       prevent longer loading time if ``__init__.py`` is too large.
 
 Test implementation
 -------------------
@@ -144,3 +160,7 @@ to refer to the value of that argument.  For example::
     def runTest(self):
       logging.info('path=%s, max_bytes=%d',
                    self.args.path, self.args.max_bytes)
+
+.. py:module:: cros.factory.test.utils.pytest_utils
+
+.. autofunction:: LoadPytestModule
