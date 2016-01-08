@@ -9,8 +9,9 @@ RUN apt-get update
 RUN apt-get upgrade -y
 RUN apt-get install -y python-yaml python-netifaces python-pexpect \
 	python-numpy python-twisted python-twisted-web python-protobuf \
-	lighttpd python-flup unzip parallel pbzip2 pigz binutils sharutils \
-	rsync aptitude screen vim psmisc dbus ssh htop openssh-server
+	python-pyudev python-pil lighttpd python-flup unzip parallel \
+	pbzip2 pigz binutils sharutils rsync aptitude screen vim psmisc \
+	dbus ssh htop openssh-server
 
 # https://github.com/sequenceiq/docker-pam
 # Workaround pam issue for chpasswd
