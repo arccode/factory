@@ -45,7 +45,6 @@ from cros.factory.test import factory
 from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import state
-from cros.factory.test import utils
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test.e2e_test.common import (
     AutomationMode, AutomationModePrompt, ParseAutomationMode)
@@ -399,7 +398,7 @@ class Goofy(GoofyBase):
       return
 
     try:
-      var_log_messages = utils.var_log_messages_before_reboot()
+      var_log_messages = sys_utils.GetVarLogMessagesBeforeReboot()
       logging.info(
           'Tail of /var/log/messages before last reboot:\n'
           '%s', ('\n'.join(
@@ -556,7 +555,7 @@ class Goofy(GoofyBase):
         if var_log_messages is None:
           try:
             var_log_messages = (
-                utils.var_log_messages_before_reboot())
+                sys_utils.GetVarLogMessagesBeforeReboot())
             # Write it to the log, to make it easier to
             # correlate with /var/log/messages.
             logging.info(

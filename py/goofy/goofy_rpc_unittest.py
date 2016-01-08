@@ -13,8 +13,8 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import goofy_rpc
-from cros.factory.test import utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 
 
 @contextmanager
@@ -33,7 +33,7 @@ class GoofyRPCTest(unittest.TestCase):
     self.mox = mox.Mox()
     self.goofy_rpc = goofy_rpc.GoofyRPC(None)
 
-    self.mox.StubOutWithMock(utils, 'var_log_messages_before_reboot')
+    self.mox.StubOutWithMock(sys_utils, 'GetVarLogMessagesBeforeReboot')
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -54,14 +54,15 @@ class GoofyRPCTest(unittest.TestCase):
           self.goofy_rpc.GetVarLogMessages(max_length=(len(data) + 5)))
 
   def testGetVarLogMessagesBeforeReboot(self):
-    utils.var_log_messages_before_reboot(lines=2, max_length=100).AndReturn(
+    sys_utils.GetVarLogMessagesBeforeReboot(lines=2, max_length=100).AndReturn(
         ['foo\xFF', 'bar'])
     self.mox.ReplayAll()
     self.assertEquals(u'foo\ufffd\nbar\n',
                       self.goofy_rpc.GetVarLogMessagesBeforeReboot(2, 100))
 
   def testGetVarLogMessagesBeforeRebootEmpty(self):
-    utils.var_log_messages_before_reboot(lines=2, max_length=100).AndReturn([])
+    sys_utils.GetVarLogMessagesBeforeReboot(lines=2,
+                                            max_length=100).AndReturn([])
     self.mox.ReplayAll()
     self.assertEquals(None,
                       self.goofy_rpc.GetVarLogMessagesBeforeReboot(2, 100))

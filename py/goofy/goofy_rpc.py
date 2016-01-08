@@ -30,7 +30,6 @@ from cros.factory.goofy import goofy_remote
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.test import utils
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.test.event import Event, EventClient
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
@@ -232,13 +231,13 @@ class GoofyRPC(object):
 
   def GetVarLogMessagesBeforeReboot(
       self, lines=100, max_length=5 * 1024 * 1024):
-    """Returns the last few lines in /var/log/messages before the current boot.
+    """Returns the last few lines in /var/log/messages before current boot.
 
     Args:
-      See utils.var_log_messages_before_reboot.
+      See sys_utils.GetVarLogMessagesBeforeReboot.
     """
-    lines = utils.var_log_messages_before_reboot(lines=lines,
-                                                 max_length=max_length)
+    lines = sys_utils.GetVarLogMessagesBeforeReboot(lines=lines,
+                                                    max_length=max_length)
     if lines:
       return unicode('\n'.join(lines) + '\n',
                      encoding='utf-8', errors='replace')
