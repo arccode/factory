@@ -19,7 +19,7 @@ from Queue import Empty, Queue
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test.unicode_to_string import UnicodeToString
+from cros.factory.utils import type_utils
 
 
 # Environment variable storing the path to the endpoint.
@@ -150,7 +150,7 @@ class Event(object):
 
   @staticmethod
   def from_json(encoded_event):
-    kw = UnicodeToString(json.loads(encoded_event))
+    kw = type_utils.UnicodeToString(json.loads(encoded_event))
     type = kw.pop('type')
     return Event(type=type, **kw)
 

@@ -33,8 +33,8 @@ from jsonrpclib import SimpleJSONRPCServer
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
-from cros.factory.test import unicode_to_string
 from cros.factory.utils import net_utils
+from cros.factory.utils import type_utils
 from cros.factory.utils.shelve_utils import OpenShelfOrBackup
 from cros.factory.utils.string_utils import CleanUTF8
 
@@ -115,7 +115,7 @@ class PathResolver(object):
       return root_prefix + url_path
 
 
-@unicode_to_string.UnicodeToStringClass
+@type_utils.UnicodeToStringClass
 class FactoryState(object):
   '''The core implementation for factory state control.
 

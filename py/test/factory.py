@@ -26,7 +26,6 @@ import sys
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.unicode_to_string import UnicodeToString
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import sys_utils
@@ -1194,7 +1193,7 @@ class FactoryTest(object):
       node['count'] = state.count
       node['error_msg'] = state.error_msg or None
     # Convert to string, in case state_map has Unicode stuff from an RPC call
-    node = UnicodeToString(node)
+    node = type_utils.UnicodeToString(node)
     if self.subtests:
       node['subtests'] = [x.as_dict(state_map) for x in self.subtests]
     return node
