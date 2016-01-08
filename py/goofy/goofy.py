@@ -332,7 +332,7 @@ class Goofy(GoofyBase):
     # Before starting state server, remount stateful partitions with
     # no commit flag.  The default commit time (commit=600) makes corruption
     # too likely.
-    utils.ResetCommitTime()
+    sys_utils.ResetCommitTime()
 
     self.state_instance, self.state_server = (
         state.create_server(bind_address='0.0.0.0'))

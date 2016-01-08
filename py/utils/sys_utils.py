@@ -249,6 +249,32 @@ def GetPartitions():
   return results
 
 
+def ResetCommitTime():
+  """Remounts partitions with commit=0.
+
+  The standard value on CrOS (commit=600) is likely to result in
+  corruption during factory testing.  Using commit=0 reverts to the
+  default value (generally 5 s).
+  """
+  if InChroot():
+    return
+
+  devices = set()
+  with open('/etc/mtab', 'r') as f:
+    for line in f.readlines():
+      cols = line.split(' ')
+      device = cols[0]
+      options = cols[3]
+      if 'commit=' in options:
+        devices.add(device)
+
+  # Remount all devices in parallel, and wait.  Ignore errors.
+  for process in [
+      Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
+      for p in sorted(devices)]:
+    process.wait()
+
+
 def HasEC():
   """Return whether the platform has EC chip."""
   try:
