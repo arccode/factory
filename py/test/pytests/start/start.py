@@ -29,13 +29,12 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.event_log import Log
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.test.utils import Enum
-from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils import process_utils
+from cros.factory.utils.type_utils import Enum
 
 
 _TEST_TITLE = test_ui.MakeLabel('Start Factory Test', u'开始工厂测试')
@@ -190,7 +189,7 @@ class FactoryInstallCompleteTask(FactoryTask):
       return
 
     if self._test.args.has_ectool:
-      version_info = utils.CheckOutput(['ectool', 'version'])
+      version_info = process_utils.CheckOutput(['ectool', 'version'])
       ro_version_output = re.search(r'^RO version:\s*(\S+)$', version_info,
                                     re.MULTILINE)
       rw_version_output = re.search(r'^RW version:\s*(\S+)$', version_info,
@@ -278,7 +277,7 @@ class ReadVPDSerialTask(FactoryTask):
     serial_number = None
 
     def _ReadVPD(key):
-      return CheckOutput(['vpd', '-g', key])
+      return process_utils.CheckOutput(['vpd', '-g', key])
 
     if serial_number_vpd_keys:
       self._test.template.SetState(_MSG_READING_VPD_SERIAL)

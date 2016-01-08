@@ -19,9 +19,9 @@ from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.proto import reg_code_pb2
 from cros.factory.test import dut as dut_module
 from cros.factory.test import registration_codes
-from cros.factory.test import utils
 from cros.factory.test.registration_codes import RegistrationCode
 from cros.factory.tools.build_board import BuildBoard
+from cros.factory.utils import sys_utils
 
 
 @Command('decode',
@@ -112,7 +112,7 @@ def Check(options):
 
     if not code:
       if rw_vpd is None:
-        if utils.in_chroot():
+        if sys_utils.in_chroot():
           sys.stderr.write('error: cannot read VPD from chroot; use -u/-g\n')
           sys.exit(1)
 

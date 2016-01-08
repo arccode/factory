@@ -28,7 +28,7 @@ from cros.factory.test.diagnosis.common import FormatError
 from cros.factory.test.diagnosis.common import INPUT_TYPE
 from cros.factory.test.diagnosis.common import TASK_STATE
 from cros.factory.test.diagnosis.common import TOKEN
-from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 _WAIT_TIMEOUT = 0.1
 
@@ -142,8 +142,8 @@ class Task(object):
 
     with self._stopping_lock:
       if self._run_steps_thread is None:
-        self._run_steps_thread = StartDaemonThread(target=self._RunSteps,
-                                                   args=(checked_input_values,))
+        self._run_steps_thread = process_utils.StartDaemonThread(
+            target=self._RunSteps, args=(checked_input_values,))
 
   def Stop(self):
     """Stops the task."""
@@ -378,11 +378,10 @@ class _CommandStep(_Step):
     if self._expected_output is not None:
       self._stdout_text = ''
       output_list += [self._AppendStdout]
-    stdout_capturer = StartDaemonThread(target=_PipeCapturer,
-                                        args=(proc.stdout, output_list))
-    stderr_capturer = StartDaemonThread(target=_PipeCapturer,
-                                        args=(proc.stderr,
-                                              [self._ui_append_output]))
+    stdout_capturer = process_utils.StartDaemonThread(
+        target=_PipeCapturer, args=(proc.stdout, output_list))
+    stderr_capturer = process_utils.StartDaemonThread(
+        target=_PipeCapturer, args=(proc.stderr, [self._ui_append_output]))
     # Waits until the command is finished, timeout is triggered, or user
     # requests to stop it.
     time_sum = 0

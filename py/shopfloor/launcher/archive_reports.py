@@ -18,10 +18,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor import INCREMENTAL_EVENTS_DIR
 from cros.factory.shopfloor import REPORTS_DIR
 from cros.factory.test.shopfloor import get_instance
+from cros.factory.test.utils import FormatExceptionOnly
 from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
-from cros.factory.test.utils import FormatExceptionOnly, TryMakeDirs
 from cros.factory.utils import net_utils
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 ARCHIVE_DIR = 'archive'
@@ -53,14 +54,14 @@ def ArchiveLogs(options):
   shopfloor_data = os.path.join(env.runtime_dir, constants.SHOPFLOOR_DATA)
   archive_dir = os.path.join(shopfloor_data, ARCHIVE_DIR)
   recycle_dir = None
-  map(TryMakeDirs, [archive_dir, recycle_dir] +
+  map(file_utils.TryMakeDirs, [archive_dir, recycle_dir] +
       [os.path.join(shopfloor_data, folder) for folder in options.dirs] +
       [os.path.join(archive_dir, folder) for folder in options.dirs])
 
   if options.recycle:
     recycle_dir = os.path.join(shopfloor_data, RECYCLE_DIR)
-    map(TryMakeDirs, [os.path.join(recycle_dir, folder)
-                      for folder in options.dirs])
+    map(file_utils.TryMakeDirs, [os.path.join(recycle_dir, folder)
+                                 for folder in options.dirs])
 
   # Trigger to generate all log dirs. Empty directory will be recycled later.
   try:

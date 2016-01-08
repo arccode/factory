@@ -11,8 +11,8 @@ import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.utils import Enum
 from cros.factory.test.dut import component
+from cros.factory.utils.type_utils import Enum
 
 DEFAULT_CONFIG_PATH = '/usr/local/factory/py/test/audio.conf'
 

@@ -61,7 +61,9 @@ from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.tools import disk_space
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils.type_utils import Enum
 
 
@@ -269,7 +271,7 @@ class Goofy(GoofyBase):
       self.dummy_shopfloor.kill()
       self.dummy_shopfloor = None
     if self.ui_process:
-      utils.kill_process_tree(self.ui_process, 'ui')
+      process_utils.KillProcessTree(self.ui_process, 'ui')
       self.ui_process = None
     if self.web_socket_manager:
       logging.info('Stopping web sockets')
@@ -370,7 +372,7 @@ class Goofy(GoofyBase):
     if self.options.verbose:
       ui_proc_args.append('-v')
     logging.info('Starting ui %s', ui_proc_args)
-    self.ui_process = Spawn(ui_proc_args)
+    self.ui_process = process_utils.Spawn(ui_proc_args)
     logging.info('Waiting for UI to come up...')
     self.event_client.wait(
         lambda event: event.type == Event.Type.UI_READY)
@@ -392,7 +394,7 @@ class Goofy(GoofyBase):
     """Logs the tail of var/log/messages and mosys and EC console logs."""
     # TODO(jsalz): This is mostly a copy-and-paste of code in init_states,
     # for factory-3004.B only.  Consolidate and merge back to ToT.
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       return
 
     try:
@@ -405,7 +407,7 @@ class Goofy(GoofyBase):
       logging.exception('Unable to grok /var/log/messages')
 
     try:
-      mosys_log = Spawn(
+      mosys_log = process_utils.Spawn(
           ['mosys', 'eventlog', 'list'],
           read_stdout=True, log_stderr_on_error=True).stdout_data
       logging.info('System eventlog from mosys:\n%s\n', mosys_log)
@@ -565,9 +567,9 @@ class Goofy(GoofyBase):
             logging.exception('Unable to grok /var/log/messages')
             var_log_messages = []
 
-        if mosys_log is None and not utils.in_chroot():
+        if mosys_log is None and not sys_utils.in_chroot():
           try:
-            mosys_log = Spawn(
+            mosys_log = process_utils.Spawn(
                 ['mosys', 'eventlog', 'list'],
                 read_stdout=True, log_stderr_on_error=True).stdout_data
             # Write it to the log also.
@@ -897,7 +899,7 @@ class Goofy(GoofyBase):
 
     # Only adjust charge state if not excluded
     if (EXCL_OPT.CHARGER not in current_exclusive_items and
-        not utils.in_chroot()):
+        not sys_utils.in_chroot()):
       if self.charge_manager:
         self.charge_manager.AdjustChargeState()
       else:
@@ -1179,7 +1181,7 @@ class Goofy(GoofyBase):
         continue
       try:
         stat = os.stat(path)
-        mtime = utils.TimeString(stat.st_mtime)
+        mtime = time_utils.TimeString(stat.st_mtime)
         logging.info(
             'Found new crash file %s (%d bytes at %s)',
             path, stat.st_size, mtime)
@@ -1202,7 +1204,7 @@ class Goofy(GoofyBase):
 
             # Copy to /var/factory/kcrash for posterity
             kcrash_dir = factory.get_factory_root('kcrash')
-            utils.TryMakeDirs(kcrash_dir)
+            file_utils.TryMakeDirs(kcrash_dir)
             shutil.copy(path, kcrash_dir)
             logging.info('Copied to %s',
                          os.path.join(kcrash_dir, os.path.basename(path)))
@@ -1471,14 +1473,14 @@ class Goofy(GoofyBase):
       os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
           'http://%s:%d/' %
           (net_utils.LOCALHOST, shopfloor.DEFAULT_SERVER_PORT))
-      self.dummy_shopfloor = Spawn(
+      self.dummy_shopfloor = process_utils.Spawn(
           [os.path.join(factory.FACTORY_PATH, 'bin', 'shopfloor_server'),
            '--dummy'])
     elif self.test_list.options.shopfloor_server_url:
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
       shopfloor.set_enabled(True)
 
-    if self.test_list.options.time_sanitizer and not utils.in_chroot():
+    if self.test_list.options.time_sanitizer and not sys_utils.in_chroot():
       self.time_sanitizer = time_sanitizer.TimeSanitizer(
           base_time=time_sanitizer.GetBaseTimeFromFile(
               # lsb-factory is written by the factory install shim during
@@ -1492,14 +1494,14 @@ class Goofy(GoofyBase):
       self.time_sanitizer.RunOnce()
 
     if self.test_list.options.check_cpu_usage_period_secs:
-      self.cpu_usage_watcher = Spawn(
+      self.cpu_usage_watcher = process_utils.Spawn(
           ['py/tools/cpu_usage_monitor.py', '-p',
            str(self.test_list.options.check_cpu_usage_period_secs)],
           cwd=factory.FACTORY_PATH)
 
     # Enable thermal monitor
     if self.test_list.options.thermal_monitor_period_secs > 0:
-      self.cpu_usage_watcher = Spawn(
+      self.cpu_usage_watcher = process_utils.Spawn(
           ['py/tools/thermal_monitor.py',
            '-p', str(self.test_list.options.thermal_monitor_period_secs),
            '-d', str(self.test_list.options.thermal_monitor_delta)],
@@ -1544,7 +1546,7 @@ class Goofy(GoofyBase):
 
     assert ((self.test_list.options.min_charge_pct is None) ==
             (self.test_list.options.max_charge_pct is None))
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       logging.info('In chroot, ignoring charge manager and charge state')
     elif (self.test_list.options.enable_charge_manager and
           self.test_list.options.min_charge_pct is not None):
@@ -1562,7 +1564,7 @@ class Goofy(GoofyBase):
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
 
-    if not utils.in_chroot() and self.test_list.options.use_cpufreq_manager:
+    if not sys_utils.in_chroot() and self.test_list.options.use_cpufreq_manager:
       logging.info('Enabling CPU frequency manager')
       self.cpufreq_manager = CpufreqManager(event_log=self.event_log)
 
@@ -1580,8 +1582,8 @@ class Goofy(GoofyBase):
     # Create download path for autotest beforehand or autotests run at
     # the same time might fail due to race condition.
     if not factory.in_chroot():
-      utils.TryMakeDirs(os.path.join('/usr/local/autotest', 'tests',
-                                     'download'))
+      file_utils.TryMakeDirs(os.path.join('/usr/local/autotest', 'tests',
+                                          'download'))
 
     def state_change_callback(test, test_state):
       self.event_client.post_event(
@@ -1663,7 +1665,7 @@ class Goofy(GoofyBase):
     return self.time_synced
 
   def log_disk_space_stats(self):
-    if (utils.in_chroot() or
+    if (sys_utils.in_chroot() or
         not self.test_list.options.log_disk_space_period_secs):
       return
 
@@ -1710,10 +1712,11 @@ class Goofy(GoofyBase):
                                    'inodes_used_pct': FloatDigit(encrypted.inodes_used_pct, 2)}
                            })
         self.log_watcher.KickWatchThread()
-        if (not utils.in_chroot() and
+        if (not sys_utils.in_chroot() and
             self.test_list.options.stateful_usage_above_threshold_action):
-          Spawn(self.test_list.options.stateful_usage_above_threshold_action,
-                call=True)
+          process_utils.Spawn(
+              self.test_list.options.stateful_usage_above_threshold_action,
+              call=True)
 
       message = disk_space.FormatSpaceUsedAll(vfs_infos)
       if message != self.last_log_disk_space_message:
@@ -1823,7 +1826,7 @@ class Goofy(GoofyBase):
     autotest client will touch /var/lib/cleanup_logs_paused each time it runs
     an autotest.
     """
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       return
     try:
       if self.test_list.options.disable_log_rotation:

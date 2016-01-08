@@ -13,7 +13,7 @@ import itertools
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.rf.agilent_scpi import AgilentSCPI
 from cros.factory.test.rf.lan_scpi import Error, FLOATS
-from cros.factory.test.utils import Enum
+from cros.factory.utils.type_utils import Enum
 
 
 def CheckTraceValid(x_values, y_values):

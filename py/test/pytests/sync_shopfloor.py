@@ -17,6 +17,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils import process_utils
 
 _CSS = """
 #state {
@@ -124,5 +125,5 @@ class SyncShopfloor(unittest.TestCase):
 
         retry_secs = min(2 * retry_secs, self.args.retry_secs)
 
-    utils.StartDaemonThread(target=target)
+    process_utils.StartDaemonThread(target=target)
     ui.Run()

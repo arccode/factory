@@ -14,7 +14,7 @@ import numpy as np
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.utils import Enum
+from cros.factory.utils.type_utils import Enum
 
 
 # Reference test chart image file.

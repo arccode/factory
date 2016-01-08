@@ -13,7 +13,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils.process_utils import StartDaemonThread
 
 
 _HTML_WEBGL_AQUARIUM = (

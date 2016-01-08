@@ -66,7 +66,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.pytests.tablet_mode_ui import TabletModeUI
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils.process_utils import StartDaemonThread
 
 
 _DEFAULT_TIMEOUT = 30

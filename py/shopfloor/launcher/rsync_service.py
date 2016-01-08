@@ -19,7 +19,7 @@ from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher.service import ServiceBase
 from cros.factory.shopfloor.launcher.utils import Md5sum
-from cros.factory.test.utils import TryMakeDirs
+from cros.factory.utils.file_utils import TryMakeDirs
 
 RSYNCD_CONFIG_TEMPLATE = '''port = %(port)d
 pid file = %(pidfile)s

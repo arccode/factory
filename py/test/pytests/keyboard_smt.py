@@ -24,7 +24,7 @@ from cros.factory.test.fixture.bft_fixture import (CreateBFTFixture,
                                                    TEST_ARG_HELP)
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import evdev_utils
-from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils.process_utils import StartDaemonThread
 
 
 _ID_CONTAINER = 'keyboard-test-container'

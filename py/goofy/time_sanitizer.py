@@ -16,8 +16,7 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.test import utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
 
 def _FormatTime(t):
@@ -29,14 +28,15 @@ def _FormatTime(t):
 def CheckHwclock():
   """Check hwclock is working by a write(retry once if fail) and a read."""
   for _ in xrange(2):
-    if Spawn(['hwclock', '-w', '--utc', '--noadjfile'], log=True,
+    if process_utils.Spawn(['hwclock', '-w', '--utc', '--noadjfile'], log=True,
              log_stderr_on_error=True).returncode == 0:
       break
     else:
       logging.error('Unable to set hwclock time')
 
   logging.info('Current hwclock time: %s',
-               Spawn(['hwclock', '-r'], log=True, read_stdout=True).stdout_data)
+               process_utils.Spawn(['hwclock', '-r'], log=True,
+                                   read_stdout=True).stdout_data)
 
 librt_name = find_library('rt')
 librt = ctypes.cdll.LoadLibrary(librt_name)
@@ -60,7 +60,7 @@ class Time(object):
     librt.clock_settime(0, ctypes.pointer(value))
 
     # Set hwclock after we set time(in a background thread, since this is slow).
-    utils.StartDaemonThread(target=CheckHwclock)
+    process_utils.StartDaemonThread(target=CheckHwclock)
 
 SECONDS_PER_DAY = 86400
 
@@ -121,7 +121,7 @@ class TimeSanitizer(object):
 
     # Set hwclock (in a background thread, since this is slow).
     # Do this upon startup to ensure hwclock is working
-    utils.StartDaemonThread(target=CheckHwclock)
+    process_utils.StartDaemonThread(target=CheckHwclock)
 
   def Run(self):
     """Runs forever, immediately and then every monitor_interval_secs."""

@@ -15,7 +15,7 @@ import yaml
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import common
-from cros.factory.test import utils
+from cros.factory.utils import sys_utils
 
 
 class InfoParsingError(Exception):
@@ -109,7 +109,7 @@ class FactoryFlowCommandBuilder(object):
     self.factory_flow_path = self.GetFactoryFlowPath()
 
   def GetFactoryFlowPath(self):
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       # Running inside chroot.
       return os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform',
                           'factory', 'bin', 'factory_flow')

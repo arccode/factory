@@ -10,7 +10,7 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.test_ui import MakeLabel
-from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils.process_utils import StartDaemonThread
 
 _MSG_TIME_REMAINING = lambda t: MakeLabel('Time remaining: %d' % t,
                                           u'剩余时间：%d' % t)

@@ -26,7 +26,7 @@ use the args attribute to access the attribute values.
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.utils import Enum
+from cros.factory.utils.type_utils import Enum
 
 
 # Save the 'type' function (since we'll be overloading it in Arg.__init__).
@@ -54,7 +54,7 @@ class Arg(object):
         You can also use an ``Enum`` object as a type.  First import
         it::
 
-          from cros.factory.test.utils import Enum
+          from cros.factory.utils.type_utils import Enum
 
         Then in an ``Arg`` constructor, you can write::
 

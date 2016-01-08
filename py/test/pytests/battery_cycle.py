@@ -28,9 +28,11 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
-from cros.factory.test.utils import Enum
-from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
+from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils.process_utils import TerminateOrKillProcess
 from cros.factory.utils.time_utils import FormatElapsedTime
+from cros.factory.utils.type_utils import Enum
 
 
 Mode = Enum(['CHARGE', 'DISCHARGE'])
@@ -108,7 +110,7 @@ class BatteryCycleTest(unittest.TestCase):
     self._UpdateHistory()
 
   def runTest(self):
-    utils.StartDaemonThread(target=self._Run)
+    StartDaemonThread(target=self._Run)
     self.ui.Run()
 
   def _GetChargePct(self):

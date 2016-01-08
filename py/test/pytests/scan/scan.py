@@ -24,8 +24,8 @@ from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.fixture.bft_fixture import (CreateBFTFixture,
                                                    TEST_ARG_HELP)
-from cros.factory.test.utils import StartDaemonThread
 from cros.factory.tools import ghost
+from cros.factory.utils import process_utils
 
 
 class Scan(unittest.TestCase):
@@ -274,10 +274,10 @@ class Scan(unittest.TestCase):
           'window.test.sendTestEvent("scan_value", "%d")' % fixture_id)
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
-      StartDaemonThread(target=self.ScanBarcode)
+      process_utils.StartDaemonThread(target=self.ScanBarcode)
     elif self.args.bft_save_barcode:
       logging.info('Triggering barcode scanner...')
-      StartDaemonThread(target=self.BFTScanSaveBarcode)
+      process_utils.StartDaemonThread(target=self.BFTScanSaveBarcode)
     elif self.args.bft_get_barcode:
       logging.info('Getting barcode from BFT...')
       barcode = self.fixture.ScanBarcode()

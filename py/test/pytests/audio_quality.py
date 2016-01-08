@@ -31,11 +31,11 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.dut.audio import base as base_audio
 from cros.factory.test.event_log import Log
 from cros.factory.test.utils import audio_utils
+from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 from cros.factory.utils.type_utils import Enum
@@ -450,7 +450,7 @@ class AudioQualityTest(unittest.TestCase):
     real_data = binascii.a2b_hex(received_data)
 
     write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
-    utils.TryMakeDirs(os.path.dirname(write_path))
+    file_utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
       f.write(real_data)

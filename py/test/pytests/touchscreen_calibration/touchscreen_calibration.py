@@ -22,13 +22,12 @@ from cros.factory.test.event_log import Log
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture.touchscreen_calibration.fixture import (
     FixtureException, FakeFixture, FixtureSerialDevice)
 from cros.factory.test.test_ui import UI
 from cros.factory.test.utils.media_utils import MountedMedia
-from cros.factory.utils.process_utils import SpawnOutput
+from cros.factory.utils import process_utils
 from touchscreen_calibration_utils import (
     IsSuccessful, NetworkStatus, SimpleSystem)
 
@@ -429,7 +428,8 @@ class TouchscreenCalibration(unittest.TestCase):
   def _CommandOutputSearch(self, command_str, pattern_str, pattern_flags):
     """Execute the command and search the pattern from its output."""
     re_pattern = re.compile(pattern_str, pattern_flags)
-    for line in SpawnOutput(command_str.split(), log=True).splitlines():
+    for line in process_utils.SpawnOutput(command_str.split(),
+                                          log=True).splitlines():
       output = re_pattern.search(line)
       if output:
         return output.group(1)
@@ -839,7 +839,7 @@ class TouchscreenCalibration(unittest.TestCase):
     """Create a thread to monitor the native USB port."""
     if self.fixture and self.fixture.native_usb:
       try:
-        self._monitor_thread = utils.StartDaemonThread(
+        self._monitor_thread = process_utils.StartDaemonThread(
             target=self._MonitorNativeUsb, args=[self.fixture.native_usb])
       except threading.ThreadError:
         factory.console.warn('Cannot start thread for _MonitorNativeUsb()')

@@ -19,11 +19,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.test_lists import test_lists
-from cros.factory.test.utils import in_chroot
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.ssh_utils import SpawnSSHToDUT, SpawnRsyncToDUT
 from cros.factory.utils.sync_utils import Retry
+from cros.factory.utils.sys_utils import in_chroot
 
 
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')

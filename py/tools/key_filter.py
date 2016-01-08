@@ -38,8 +38,8 @@ except:  # pylint: disable=W0702
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import sys_utils
 
 Keystroke = collections.namedtuple('Keystroke', ['mod', 'key'])
 
@@ -220,7 +220,7 @@ class KeyFilter(object):
       cmd.extend(['--caps_lock_keycode', str(self._caps_lock_keycode)])
     logging.debug('Spawn: %s', ' '.join(cmd))
     try:
-      if not utils.in_chroot():
+      if not sys_utils.in_chroot():
         self._process = Spawn(cmd)
     except Exception as e:
       logging.error('Error running Spawn("%s"): %s', ' '.join(cmd), str(e))

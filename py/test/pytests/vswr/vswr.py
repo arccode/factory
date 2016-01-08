@@ -52,12 +52,12 @@ from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
-from cros.factory.test.utils import TimeString, TryMakeDirs
 from cros.factory.test.utils.media_utils import MountedMedia
 from cros.factory.test.utils.media_utils import RemovableDiskMonitor
 from cros.factory.utils import file_utils
 from cros.factory.utils.net_utils import FindUsableEthDevice
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import time_utils
 
 
 class VSWR(unittest.TestCase):
@@ -303,7 +303,8 @@ class VSWR(unittest.TestCase):
     """
     # Save a screenshot copy in ENA.
     filename = '%s[%s]' % (
-        filename_prefix, TimeString(time_separator='-', milliseconds=False))
+        filename_prefix, time_utils.TimeString(time_separator='-',
+                                               milliseconds=False))
     self._ena.SaveScreen(filename)
 
     # The SaveScreen above has saved a screenshot inside ENA, but it does not
@@ -328,7 +329,7 @@ class VSWR(unittest.TestCase):
       logging.info('Saving screenshot to USB under dates %s', formatted_date)
       with MountedMedia(self._usb_path, 1) as mount_dir:
         target_dir = os.path.join(mount_dir, formatted_date, 'screenshot')
-        TryMakeDirs(target_dir)
+        file_utils.TryMakeDirs(target_dir)
         filename_in_abspath = os.path.join(target_dir, filename)
         shutil.copyfile(temp_png_path, filename_in_abspath)
         logging.info('Screenshot %s saved in USB.', filename)
@@ -529,7 +530,7 @@ class VSWR(unittest.TestCase):
       with MountedMedia(self._usb_path, 1) as mount_dir:
         formatted_date = time.strftime('%Y%m%d', time.localtime())
         target_dir = os.path.join(mount_dir, formatted_date, 'usb')
-        TryMakeDirs(target_dir)
+        file_utils.TryMakeDirs(target_dir)
         full_path = os.path.join(target_dir, filename)
         shutil.copyfile(temp_log_path, full_path)
 

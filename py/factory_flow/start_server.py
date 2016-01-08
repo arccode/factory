@@ -225,7 +225,7 @@ class StartServer(FactoryFlowCommand):
                               log=True, check_call=True, sudo=True)
           # Wait at most 5 seconds for process to stop.
           try:
-            sync_utils.WaitFor(lambda: not utils.is_process_alive(pid), 5)
+            sync_utils.WaitFor(lambda: not process_utils.IsProcessAlive(pid), 5)
           except type_utils.TimeoutError:
             # Send SIGKILL to the process to kill it.
             process_utils.Spawn(['kill', '-SIGKILL', '%d' % pid],

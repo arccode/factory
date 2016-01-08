@@ -25,7 +25,6 @@ from pkg_resources import parse_version
 import factory_common  # pylint: disable=W0611
 from chromite.lib import gs
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.tools import build_board
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
@@ -33,6 +32,8 @@ from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.utils.file_utils import (
     UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile, Glob,
     WriteWithSudo)
+from cros.factory.utils import file_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountPartition
 from cros.factory.utils.type_utils import CheckDictKeys
@@ -201,7 +202,7 @@ class FinalizeBundle(object):
   has_firmware = DEFAULT_FIRMWARES
 
   def Main(self):
-    if not utils.in_chroot():
+    if not sys_utils.in_chroot():
       sys.exit('Please run this script from within the chroot.')
 
     self.ParseArgs()
@@ -305,7 +306,7 @@ class FinalizeBundle(object):
     if self.manifest.get('use_factory_toolkit'):
       # Try make directory here since 'factory_test' is removed due to
       # deprecation of factory test image.
-      utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
+      file_utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
 
       self.factory_toolkit_path = None
       for path in ('factory_toolkit', 'factory_test'):
@@ -428,7 +429,7 @@ class FinalizeBundle(object):
     for f in self.manifest['add_files']:
       CheckDictKeys(f, ['install_into', 'source', 'extract_files'])
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
-      utils.TryMakeDirs(dest_dir)
+      file_utils.TryMakeDirs(dest_dir)
 
       if self.args.tip_of_branch:
         f['source'] = self._SubstVars(f['source'])
@@ -716,7 +717,7 @@ class FinalizeBundle(object):
       updater_path = os.path.join(
           self.bundle_dir, 'shopfloor', 'shopfloor_data', 'update',
           'factory.tar.bz2')
-      utils.TryMakeDirs(os.path.dirname(updater_path))
+      file_utils.TryMakeDirs(os.path.dirname(updater_path))
       MakeUpdateBundle(self.factory_image_path, updater_path)
 
   def UpdateNetbootURL(self):

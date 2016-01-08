@@ -19,7 +19,6 @@ import logging
 import glob
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.test.test_lists import generic_control_run
 from cros.factory.test.test_lists import generic_diagnostic
 from cros.factory.test.test_lists import generic_experiment
@@ -31,6 +30,7 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import SamplingRate
 from cros.factory.test.test_lists.test_lists import TestList
 from cros.factory.test.test_lists.test_lists import WLAN
+from cros.factory.utils import sys_utils
 
 HOURS = 60 * 60
 MINUTES = 60
@@ -570,7 +570,7 @@ def SetWLANs(options):
   # Sets default network.
   options.wlans = [WLAN(ssid='crosfactory',
                         security='psk', passphrase='crosfactory')]
-  if utils.in_chroot():
+  if sys_utils.in_chroot():
     # That's good enough!
     return
 

@@ -19,9 +19,9 @@ import uuid
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.test.event import Event, EventClient
 from cros.factory.test.factory import TestState
+from cros.factory.utils import process_utils
 
 
 # For compatibility; moved to factory.
@@ -388,7 +388,7 @@ class UI(object):
         # Called in a thread. This can happen when running E2E tests, which runs
         # the UI in a child thread.
         pass
-      return utils.StartDaemonThread(
+      return process_utils.StartDaemonThread(
           target=lambda: _RunImpl(self, blocking=False, on_finish=on_finish))
     else:
       _RunImpl(self, blocking=True, on_finish=on_finish)

@@ -23,9 +23,9 @@ from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.l10n import regions
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import StartDaemonThread
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils.process_utils import StartDaemonThread
 
 
 _RE_EVTEST_EVENT = re.compile(

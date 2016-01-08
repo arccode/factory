@@ -13,7 +13,7 @@ import struct
 import factory_common  # pylint: disable=W0611
 from cros.factory.proto import reg_code_pb2
 from cros.factory.proto.reg_code_pb2 import RegCode
-from cros.factory.test.utils import Enum
+from cros.factory.utils import type_utils
 
 
 # Registration code length in characters.
@@ -40,7 +40,8 @@ class RegistrationCode(object):
     device: The device type, if known.
   """
 
-  Type = Enum(['UNIQUE_CODE', 'GROUP_CODE', 'ONE_TIME_CODE', 'LEGACY'])
+  Type = type_utils.Enum(['UNIQUE_CODE', 'GROUP_CODE', 'ONE_TIME_CODE',
+                          'LEGACY'])
   """Registration code type.
 
   - UNIQUE_CODE: A unique user code (ubind_attribute value).

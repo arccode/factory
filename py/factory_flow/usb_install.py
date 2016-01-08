@@ -17,18 +17,18 @@ from cros.factory.factory_flow import servo
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
-from cros.factory.test import utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils import type_utils
 
 # pylint: disable=W0612, F0401
 
 
-INSTALL_METHOD = utils.Enum(['install_shim', 'usb_image'])
+INSTALL_METHOD = type_utils.Enum(['install_shim', 'usb_image'])
 
 
 class USBInstallError(Exception):

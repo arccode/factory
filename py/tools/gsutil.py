@@ -14,8 +14,9 @@ from distutils import version
 import factory_common   # pylint: disable=W0611
 from chromite.lib import gs
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.tools import build_board
+from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 
 class GSUtilError(Exception):
@@ -25,8 +26,8 @@ class GSUtilError(Exception):
 
 class GSUtil(object):
   """A class that wraps gsutil."""
-  CHANNELS = utils.Enum(['beta', 'canary', 'dev', 'stable'])
-  IMAGE_TYPES = utils.Enum(['factory', 'firmware', 'recovery', 'test'])
+  CHANNELS = type_utils.Enum(['beta', 'canary', 'dev', 'stable'])
+  IMAGE_TYPES = type_utils.Enum(['factory', 'firmware', 'recovery', 'test'])
 
   def __init__(self, board):
     self.gs_context = gs.GSContext()
@@ -224,7 +225,7 @@ class GSUtil(object):
 
     if not cache_dir:
       cache_dir = GetDefaultGSUtilCacheDir()
-    utils.TryMakeDirs(cache_dir)
+    file_utils.TryMakeDirs(cache_dir)
 
     cached_path = os.path.join(cache_dir, uri.replace('/', '!'))
     if os.path.exists(cached_path):

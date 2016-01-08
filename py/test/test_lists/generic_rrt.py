@@ -18,7 +18,6 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
-from cros.factory.test import utils
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -91,7 +90,7 @@ class TestListArgs(object):
   # Main temperature sensor index.
   @property
   def main_temp_sensor_index(self):
-    if utils.in_chroot():  # For unittest
+    if sys_utils.in_chroot():  # For unittest
       return 0
     else:
       return dut.Create().thermal.GetMainTemperatureIndex()
@@ -99,7 +98,7 @@ class TestListArgs(object):
   # List of temperature sensors to test.
   @property
   def temp_sensors_to_test(self):
-    if utils.in_chroot():  # For unittest
+    if sys_utils.in_chroot():  # For unittest
       return [0]
     else:
       return range(len(dut.Create().thermal.GetTemperatureSensorNames()))

@@ -5,13 +5,13 @@
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 START_TEXT = 'start/running'
 STOP_TEXT = 'stop/waiting'
-Status = utils.Enum(['START', 'STOP', 'UNKNOWN'])
+Status = type_utils.Enum(['START', 'STOP', 'UNKNOWN'])
 
 
 def ParseServiceStatus(status_output):
@@ -30,8 +30,9 @@ def SetServiceStatus(service, status=None):
       None: 'status',
       Status.START: 'start',
       Status.STOP: 'stop'}[status]
-  stdout_data = Spawn([upstart_command, service], read_stdout=True,
-                      check_call=True, log=True).stdout_data
+  stdout_data = process_utils.Spawn([upstart_command, service],
+                                    read_stdout=True, check_call=True,
+                                    log=True).stdout_data
   new_status = ParseServiceStatus(stdout_data)
   if status is not None:
     if new_status == status:

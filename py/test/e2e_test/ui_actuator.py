@@ -12,7 +12,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
 from cros.factory.test import event
 from cros.factory.test import test_ui
-from cros.factory.test import utils
+from cros.factory.utils import process_utils
 
 
 class UIActuatorError(Exception):
@@ -48,7 +48,7 @@ class UIActuator(test_ui.UI):
            e.invocation == self.invocation and
            e.test == self.test))
 
-    utils.StartDaemonThread(target=_Run)
+    process_utils.StartDaemonThread(target=_Run)
 
   def Init(self):
     if not self.initialized:

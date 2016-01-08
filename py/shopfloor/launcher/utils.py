@@ -15,7 +15,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher import ShopFloorLauncherException
 from cros.factory.shopfloor.launcher.yamlconf import LauncherYAMLConfig
-from cros.factory.test.utils import TryMakeDirs
+from cros.factory.utils.file_utils import TryMakeDirs
 
 
 _IMAGE_VERSIONS = 'image_versions'

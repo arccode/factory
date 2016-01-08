@@ -9,8 +9,8 @@ import re
 import subprocess
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 
 
 class BuildBoardException(Exception):
@@ -58,7 +58,7 @@ class BuildBoard(object):
     Raises:
       BuildBoardException if unable to determine board or overlay name.
     """
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       # The following sanity checks are feasible only in chroot.
       src = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
       if board_name in [None, 'default']:
@@ -166,7 +166,7 @@ class BuildBoard(object):
     self.short_name = self.variant or self.base  # Ick
     self.gsutil_name = re.sub('_', '-', self.full_name)
 
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       # Only get overlay relative path in chroot.
       if self.variant:
         overlay = 'overlay-variant-%s-%s' % (self.base, self.variant)

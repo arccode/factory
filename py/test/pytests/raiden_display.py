@@ -22,12 +22,12 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import sync_utils
 
 
 _TEST_TITLE = test_ui.MakeLabel('Raiden Display Test', u'Raiden 显示测试')
@@ -173,12 +173,13 @@ class RaidenDisplayTest(unittest.TestCase):
       time.sleep(1)  # Wait for reset HPD response
       self._dut.SetHPD(self.args.raiden_index)
       self._dut.SetRaiden(self.args.raiden_index, 'DP')
-      utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
+      sync_utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
     else:
       self._template.SetInstruction(_DISCONNECT_STR(self._bft_media_device))
       self._dut.ResetHPD(self.args.raiden_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
-      utils.WaitFor(lambda: not self._PollDisplayConnected(), timeout_secs=10)
+      sync_utils.WaitFor(lambda: not self._PollDisplayConnected(),
+                         timeout_secs=10)
 
     if not self.args.verify_display_switch:
       self.AdvanceProgress()

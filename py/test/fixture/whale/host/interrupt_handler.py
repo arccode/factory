@@ -17,11 +17,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import serial_client
 from cros.factory.test.fixture.whale import servo_client
-from cros.factory.test.utils import Enum
 from cros.factory.utils import gpio_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
+from cros.factory.utils.type_utils import Enum
 
 ActionType = Enum(['CLOSE_COVER', 'HOOK_COVER', 'PUSH_NEEDLE',
                    'PLUG_LATERAL', 'FIXTURE_STARTED'])

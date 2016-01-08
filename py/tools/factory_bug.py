@@ -18,9 +18,9 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -138,12 +138,12 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
   filename = 'factory_bug.'
   if archive_id:
     filename += archive_id.replace('/', '') + '.'
-  filename += '%s.tar.bz2' % utils.TimeString(time_separator='_',
-                                              milliseconds=False)
+  filename += '%s.tar.bz2' % time_utils.TimeString(time_separator='_',
+                                                   milliseconds=False)
 
   output_file = os.path.join(output_dir, filename)
 
-  if utils.in_chroot():
+  if sys_utils.in_chroot():
     # Just save a dummy tarball.
     with file_utils.TempDirectory() as d:
       open(os.path.join(os.path.join(d, 'dummy-factory-bug')), 'w').close()
@@ -201,7 +201,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
     if not include_network_log:
       exclude_files += ['--exclude', os.path.join(var, 'log', 'net.log')]
 
-    utils.TryMakeDirs(os.path.dirname(output_file))
+    file_utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
     process = Spawn(['tar', 'cfj', output_file] + exclude_files + files,
                     cwd=tmp, call=True,
@@ -314,14 +314,14 @@ def main():
       dev = os.path.join('/dev', device)
       mount_point = mount_point or os.path.join('/tmp', device)
 
-      utils.TryMakeDirs(mount_point)
+      file_utils.TryMakeDirs(mount_point)
       Spawn(['mount'] + (options or []) + [dev, mount_point],
             log=True, check_call=True)
       return mount_point
 
     if not have_ssd_stateful:
       if not mounted_sda1:
-        utils.TryMakeDirs(SSD_STATEFUL_MOUNT_POINT)
+        file_utils.TryMakeDirs(SSD_STATEFUL_MOUNT_POINT)
         Mount('/dev/sda1', SSD_STATEFUL_MOUNT_POINT)
         mounted_sda1 = SSD_STATEFUL_MOUNT_POINT
       elif mounted_sda1 != SSD_STATEFUL_MOUNT_POINT:
@@ -331,7 +331,7 @@ def main():
       new_env = dict(os.environ)
       new_env['MOUNT_ENCRYPTED_ROOT'] = SSD_STATEFUL_ROOT
       for d in ['var', 'home/chronos']:
-        utils.TryMakeDirs(os.path.join(SSD_STATEFUL_ROOT, d))
+        file_utils.TryMakeDirs(os.path.join(SSD_STATEFUL_ROOT, d))
       Spawn(['mount-encrypted', 'factory'], env=new_env, log=True,
             check_call=True)
 

@@ -7,7 +7,7 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
+from cros.factory.utils import sys_utils
 
 DEFAULT_CRASH_PATH = '/var/factory/crash'
 
@@ -36,7 +36,7 @@ class CoreDumpManager(object):
 
   def _SetCoreDump(self):
     """Sets core dump files to be unlimited and set core_pattern."""
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       return
     if not os.path.exists(self._crash_dir):
       os.mkdir(self._crash_dir)

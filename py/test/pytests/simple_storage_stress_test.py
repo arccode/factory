@@ -26,8 +26,8 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils import process_utils
 
 BLOCK_SIZE = 4096
 
@@ -62,12 +62,12 @@ class StartTest(unittest.TestCase):
 
     # Drop cache to ensure the system do a real read.
     logging.debug('Memory usage before drop_caches = %s',
-                  utils.CheckOutput(['free', '-m']))
+                  process_utils.CheckOutput(['free', '-m']))
     # For the constant, please refer to 'man drop_caches'
     with open('/proc/sys/vm/drop_caches', 'w') as f:
       f.write('3')
     logging.debug('Memory usage after drop_caches = %s',
-                  utils.CheckOutput(['free', '-m']))
+                  process_utils.CheckOutput(['free', '-m']))
 
     # perform read operation.
     start_time = time.time()

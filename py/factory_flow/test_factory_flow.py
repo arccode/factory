@@ -28,12 +28,12 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import common
 from cros.factory.factory_flow import test_runner_common
 from cros.factory.hacked_argparse import CmdArg, ParseCmdline, verbosity_cmd_arg
-from cros.factory.test import utils
 from cros.factory.tools import build_board
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
@@ -48,7 +48,7 @@ CONFIG_FILE_PATH_IN_CHROOT = lambda board: os.path.join(
 CONFIG_FILE_PATH_OUTSIDE_CHROOT = lambda board: (
     '/var/factory/board_config-%s.yaml' % board)
 
-TestStatus = utils.Enum(['NOT_TESTED', 'PASSED', 'FAILED'])
+TestStatus = type_utils.Enum(['NOT_TESTED', 'PASSED', 'FAILED'])
 
 TEST_RUN_REPORT_FILE = 'REPORT'
 TEST_RUN_RUNNING_FILE = '.running'
@@ -563,7 +563,7 @@ def LoadConfig(board=None, filepath=None):
 
   if not filepath:
     board = build_board.BuildBoard(board)
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       filepath = CONFIG_FILE_PATH_IN_CHROOT(board.short_name)
     else:
       filepath = CONFIG_FILE_PATH_OUTSIDE_CHROOT(board.short_name)

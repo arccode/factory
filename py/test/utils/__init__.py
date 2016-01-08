@@ -17,29 +17,12 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
-from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
 # For backward compatibility. TODO(hungte) Remove or add wrapper functions.
-CheckOutput = process_utils.CheckOutput
-LogAndCheckCall = process_utils.LogAndCheckCall
-LogAndCheckOutput = process_utils.LogAndCheckOutput
-StartDaemonThread = process_utils.StartDaemonThread
-is_process_alive = process_utils.IsProcessAlive
-kill_process_tree = process_utils.KillProcessTree
 TryMakeDirs = file_utils.TryMakeDirs
-ReadOneLine = file_utils.ReadOneLine
-TimeString = time_utils.TimeString
-Enum = type_utils.Enum
 DrainQueue = type_utils.DrainQueue
-FlattenList = type_utils.FlattenList
-Error = type_utils.Error
-TimeoutError = type_utils.TimeoutError
-Retry = sync_utils.Retry
-WaitFor = sync_utils.WaitFor
-Timeout = sync_utils.Timeout
-in_chroot = sys_utils.in_chroot
 
 
 def IsFreon(dut=None):
@@ -130,7 +113,7 @@ def ResetCommitTime():
   corruption during factory testing.  Using commit=0 reverts to the
   default value (generally 5 s).
   """
-  if in_chroot():
+  if sys_utils.in_chroot():
     return
 
   devices = set()

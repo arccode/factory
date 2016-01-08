@@ -84,8 +84,8 @@ from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture.camera import barcode
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import StartDaemonThread
 from cros.factory.test.utils import camera_utils
+from cros.factory.utils.process_utils import StartDaemonThread
 from cros.factory.utils.type_utils import Enum
 
 

@@ -6,13 +6,13 @@
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
+from cros.factory.utils import type_utils
 
 
 DEFAULT = '__DEFAULT__'
 CHROOT = '__CHROOT__'
 
-AutomationMode = utils.Enum(['NONE', 'PARTIAL', 'FULL'])
+AutomationMode = type_utils.Enum(['NONE', 'PARTIAL', 'FULL'])
 AutomationModePrompt = {
     AutomationMode.NONE: None,
     AutomationMode.PARTIAL: 'Partial automation mode; manual tests are run.',

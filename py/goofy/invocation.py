@@ -35,7 +35,6 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import utils
 from cros.factory.test.args import Args
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.event import Event
@@ -45,7 +44,7 @@ from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test.test_lists.test_lists import OldStyleTestList
 from cros.factory.test.utils.service_manager import ServiceManager
 from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 from cros.factory.utils.string_utils import DecodeUTF8
 
 
@@ -219,7 +218,7 @@ class TestInvocation(object):
     self.output_dir = os.path.join(factory.get_test_data_root(),
                                    '%s-%s' % (self.test.path,
                                               self.uuid))
-    utils.TryMakeDirs(self.output_dir)
+    file_utils.TryMakeDirs(self.output_dir)
 
     # Create a symlink for the latest test run, so if we're looking at the
     # logs we don't need to enter the whole UUID.
@@ -277,7 +276,7 @@ class TestInvocation(object):
       self._aborted_reason = reason
       process = self._process
     if process:
-      utils.kill_process_tree(process, 'autotest')
+      process_utils.KillProcessTree(process, 'autotest')
     if self.thread:
       self.thread.join()
     with self._lock:
@@ -772,7 +771,7 @@ def InvokeTestCase(suite, test_case_id, test_info):
         this_file = re.sub(r'\.pyc$', '.py', this_file)
         args = [this_file, '--pytest', info_path]
 
-        process = Spawn(args)
+        process = process_utils.Spawn(args)
         process.wait()
         with open(results_path) as f:
           results.append(pickle.load(f))

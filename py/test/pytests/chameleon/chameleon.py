@@ -26,11 +26,11 @@ from cros.factory.test import dut
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
 
-PORTS = utils.Enum(['DP', 'HDMI'])
+PORTS = type_utils.Enum(['DP', 'HDMI'])
 EDIDS = {
     PORTS.DP: {
         ('2560x1600', '60Hz'): 'DP_2560x1600_60Hz',

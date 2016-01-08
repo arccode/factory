@@ -40,9 +40,9 @@ from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.l10n.regions import REGIONS
 from cros.factory.test.ui_templates import OneSection, SelectBox
-from cros.factory.test.utils import Enum
 from cros.factory.tools.build_board import BuildBoard
 from cros.factory.utils.process_utils import CheckOutput, Spawn
+from cros.factory.utils.type_utils import Enum
 
 _MSG_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
     'Fetching VPD from shop floor server...',

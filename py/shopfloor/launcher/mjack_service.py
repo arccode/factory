@@ -14,7 +14,7 @@ from cros.factory.shopfloor import EVENTS_DIR
 from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher.service import ServiceBase
-from cros.factory.test.utils import TryMakeDirs
+from cros.factory.utils.file_utils import TryMakeDirs
 
 
 MINIJACK_LOG = 'minijack.log'

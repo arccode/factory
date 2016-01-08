@@ -11,9 +11,9 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import common
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.e2e_test.common import AutomationMode, DEFAULT, CHROOT
+from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import MakeList
 
 
@@ -77,7 +77,7 @@ class Automator(e2e_test.E2ETest):
         4) If no automation function was found, start the factory test and wait
            for it to pass.
     """
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       board = CHROOT
     else:
       board = common.ProbeBoard()

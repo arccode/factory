@@ -27,9 +27,9 @@ from SimpleHTTPServer import SimpleHTTPRequestHandler
 from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.utils import kill_process_tree
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import net_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils.file_utils import ForceSymlink, Read
 from cros.factory.utils.net_utils import FindConsecutiveUnusedPorts
 
@@ -325,15 +325,20 @@ class UmpireServerProxyTest(unittest.TestCase):
   def StopAllServers(cls):
     """Terminates processes for servers if they are still alive."""
     if cls.umpire_http_server_process.is_alive():
-      kill_process_tree(cls.umpire_http_server_process, 'umpire_http_server')
+      process_utils.KillProcessTree(cls.umpire_http_server_process,
+                                    'umpire_http_server')
     if cls.umpire_handler_process.is_alive():
-      kill_process_tree(cls.umpire_handler_process, 'umpire_handler')
+      process_utils.KillProcessTree(cls.umpire_handler_process,
+                                    'umpire_handler')
     if cls.umpire_base_handler_process.is_alive():
-      kill_process_tree(cls.umpire_base_handler_process, 'base_handler')
+      process_utils.KillProcessTree(cls.umpire_base_handler_process,
+                                    'base_handler')
     if cls.shopfloor_handler_1_process.is_alive():
-      kill_process_tree(cls.shopfloor_handler_1_process, 'shopfloor_handler_1')
+      process_utils.KillProcessTree(cls.shopfloor_handler_1_process,
+                                    'shopfloor_handler_1')
     if cls.shopfloor_handler_2_process.is_alive():
-      kill_process_tree(cls.shopfloor_handler_2_process, 'shopfloor_handler_1')
+      process_utils.KillProcessTree(cls.shopfloor_handler_2_process,
+                                    'shopfloor_handler_1')
     cls.umpire_http_server_process.join()
     cls.umpire_handler_process.join()
     cls.umpire_base_handler_process.join()

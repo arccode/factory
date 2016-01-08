@@ -38,6 +38,8 @@ from cros.factory.tools import factory_bug
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
@@ -46,8 +48,8 @@ REBOOT_AFTER_UPDATE_DELAY_SECS = 5
 PING_SHOPFLOOR_TIMEOUT_SECS = 2
 UPLOAD_FACTORY_LOGS_TIMEOUT_SECS = 20
 VAR_LOG_MESSAGES = '/var/log/messages'
-RunState = utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN', 'RUNNING',
-                       'FINISHED'])
+RunState = type_utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN',
+                            'RUNNING', 'FINISHED'])
 
 
 class GoofyRPCException(Exception):
@@ -258,7 +260,7 @@ class GoofyRPC(object):
     boot_time = time.time() - uptime
 
     def FormatTime(match):
-      return (utils.TimeString(boot_time + float(match.group(1))) + ' ' +
+      return (time_utils.TimeString(boot_time + float(match.group(1))) + ' ' +
               match.group(0))
 
     # (?m) = multiline
@@ -1124,7 +1126,7 @@ class GoofyRPC(object):
     self.goofy.GetTestList(test_list_id)
     SetActiveTestList(test_list_id)
 
-    if utils.in_chroot():
+    if sys_utils.in_chroot():
       raise GoofyRPCException(
           'Cannot switch test in chroot; please manually restart Goofy')
     else:

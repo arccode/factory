@@ -16,8 +16,7 @@ import zipfile
 import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher.service import ServiceBase
-from cros.factory.test.utils import TryMakeDirs
-from cros.factory.utils.file_utils import TempDirectory
+from cros.factory.utils import file_utils
 
 
 FRONTEND_DIR = 'frontend'
@@ -69,14 +68,14 @@ class MinijackFrontendService(ServiceBase):
     frontend_dir = os.path.join(env.runtime_dir, FRONTEND_DIR)
     static_dir = os.path.join(frontend_dir, STATIC_DIR)
     templates_dir = os.path.join(frontend_dir, TEMPLATES_DIR)
-    TryMakeDirs(frontend_dir)
+    file_utils.TryMakeDirs(frontend_dir)
     if os.path.isdir(static_dir):
       shutil.rmtree(static_dir)
     if os.path.isdir(templates_dir):
       shutil.rmtree(templates_dir)
 
     # Extract frontend static files and rendering templates.
-    with TempDirectory() as temp_dir:
+    with file_utils.TempDirectory() as temp_dir:
       # zipfile extracts full pathname, the frontend dir inside temp folder is
       # [temp]/cros/factory/minijack/frontend
       extracted_frontend = os.path.join(temp_dir, 'cros', 'factory',
@@ -92,12 +91,12 @@ class MinijackFrontendService(ServiceBase):
           shutil.move(extracted_static, static_dir)
         else:
           logging.warning('MJFE: factory.par static folder not found.')
-          TryMakeDirs(static_dir)
+          file_utils.TryMakeDirs(static_dir)
         if os.path.isdir(extracted_templates):
           shutil.move(extracted_templates, templates_dir)
         else:
           logging.warning('MJFE: factory.par template folder not found.')
-          TryMakeDirs(templates_dir)
+          file_utils.TryMakeDirs(templates_dir)
 
 
 Service = MinijackFrontendService

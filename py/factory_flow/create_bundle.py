@@ -16,11 +16,11 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import board_cmd_arg, FactoryFlowCommand
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.tools.gsutil import GSUtil
 from cros.factory.umpire.common import LoadBundleManifest
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 class CreateBundleError(Exception):
@@ -102,9 +102,9 @@ class CreateBundle(FactoryFlowCommand):
           r'^(stable|beta|dev|canary)?/?(\d+(?:\.\d+){0,2})?$'),
   }
 
-  FILE_TYPE = utils.Enum(['factory', 'hwid_bundle', 'factory_shim',
-                          'release', 'test', 'netboot_firmware',
-                          'netboot_shim'])
+  FILE_TYPE = type_utils.Enum(['factory', 'hwid_bundle', 'factory_shim',
+                               'release', 'test', 'netboot_firmware',
+                               'netboot_shim'])
 
   # A dict of the file types we are using in this module to the associated
   # image types and their signed version (if applicable).

@@ -17,10 +17,9 @@ import tempfile
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
-from cros.factory.utils import file_utils
 from cros.factory.utils.debug_utils import SetupLogging
-from cros.factory.utils.process_utils import Spawn, CheckOutput
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 TEST_PASSED_MARK = '.tests-passed'
 KILL_OLD_TESTS_TIMEOUT_SECS = 2
@@ -48,7 +47,8 @@ def _MaybeRunPytestsOnly(tests, isolated_tests):
   if not os.path.exists(TEST_PASSED_MARK):
     return (tests, isolated_tests)
 
-  ls_tree = CheckOutput(['git', 'ls-tree', '-r', 'HEAD']).split('\n')
+  ls_tree = process_utils.CheckOutput(
+      ['git', 'ls-tree', '-r', 'HEAD']).split('\n')
   files = [line.split()[3] for line in ls_tree if line]
   last_test_time = os.path.getmtime(TEST_PASSED_MARK)
 
@@ -92,11 +92,11 @@ class _TestProc(object):
     # Set TEST_RUNNER_ENV_VAR so we know to kill it later if
     # re-running tests.
     child_env[TEST_RUNNER_ENV_VAR] = os.path.basename(__file__)
-    self.proc = Spawn(self.test_name, stdout=self.log_file, stderr=STDOUT,
-                      env=child_env)
+    self.proc = process_utils.Spawn(self.test_name, stdout=self.log_file,
+                                    stderr=STDOUT, env=child_env)
     self.pid = self.proc.pid
 
-    utils.StartDaemonThread(target=self._WatchTest)
+    process_utils.StartDaemonThread(target=self._WatchTest)
     self.returncode = None
 
   def _WatchTest(self):
@@ -310,7 +310,8 @@ def KillOldTests():
   env_signature = '%s=%s' % (TEST_RUNNER_ENV_VAR, os.path.basename(__file__))
 
   pids_to_kill = []
-  for pid in CheckOutput(['pgrep', '-U', os.environ['USER']]).splitlines():
+  for pid in process_utils.CheckOutput(
+      ['pgrep', '-U', os.environ['USER']]).splitlines():
     pid = int(pid)
     try:
       environ = file_utils.ReadFile('/proc/%d/environ' % pid)

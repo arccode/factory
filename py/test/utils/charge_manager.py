@@ -6,7 +6,7 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
-from cros.factory.test.utils import Enum
+from cros.factory.utils.type_utils import Enum
 
 
 class ChargeManagerException(Exception):

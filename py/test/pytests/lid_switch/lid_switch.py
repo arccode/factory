@@ -29,8 +29,8 @@ from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    TEST_ARG_HELP)
 
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import StartDaemonThread
 from cros.factory.utils import file_utils
+from cros.factory.utils.process_utils import StartDaemonThread
 
 _DEFAULT_TIMEOUT = 30
 _SERIAL_TIMEOUT = 1

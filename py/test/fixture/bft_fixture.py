@@ -34,7 +34,7 @@ import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.utils import Enum
+from cros.factory.utils.type_utils import Enum
 
 
 TEST_ARG_HELP = """A dictionary with the following items:

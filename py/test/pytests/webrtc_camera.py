@@ -17,7 +17,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
 from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils.process_utils import StartDaemonThread
 
 _MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
     'Time remaining: %d' % t, u'剩余时间：%d' % t, 'camera-test-info')

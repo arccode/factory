@@ -16,7 +16,7 @@ from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import evdev_utils
-from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils.process_utils import StartDaemonThread
 
 
 _ID_CONTAINER = 'touchscreen-test-container'

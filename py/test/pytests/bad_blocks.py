@@ -32,6 +32,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI, Escape, MakeLabel
+from cros.factory.utils import sys_utils
 from cros.factory.utils.file_utils import GetMainStorageDevice
 from cros.factory.utils.process_utils import Spawn
 
@@ -128,7 +129,7 @@ class BadBlocksTest(unittest.TestCase):
       self.ui.Pass()
 
   def _CheckBadBlocksImpl(self):
-    self.assertFalse(utils.in_chroot(),
+    self.assertFalse(sys_utils.in_chroot(),
                      'badblocks test may not be run within the chroot')
     first_block = 0
     sector_size = 1024

@@ -33,7 +33,7 @@ from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.event_log import Log
 
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 _DEFAULT_TIMEOUT = 30
@@ -159,7 +159,7 @@ class ButtonTest(unittest.TestCase):
       self.button = EvtestButton(self.args.event_id, self.args.button_key_name)
 
     # Create a thread to monitor button events.
-    StartDaemonThread(target=self.MonitorButtonEvent)
+    process_utils.StartDaemonThread(target=self.MonitorButtonEvent)
     # Create a thread to run countdown timer.
     StartCountdownTimer(
         self.args.timeout_secs,

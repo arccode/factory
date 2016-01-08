@@ -17,9 +17,10 @@ from uuid import uuid4
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import platform_utils
+from cros.factory.utils import sys_utils
+from cros.factory.utils import time_utils
 
 
 FileLock = platform_utils.GetProvider('FileLock')
@@ -46,7 +47,7 @@ REIMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".reimage_id")
 
 # The /var/run directory (or something writable by us if in the chroot).
 RUN_DIR = os.path.join(
-    factory.get_factory_root("run") if utils.in_chroot() else "/var/run",
+    factory.get_factory_root("run") if sys_utils.in_chroot() else "/var/run",
     "factory")
 
 # File containing the next sequence number to write.  This is in
@@ -120,7 +121,7 @@ SYNC_MARKER_SEARCH = "\n" + SYNC_MARKER + "---\n"
 SYNC_MARKER_REPLACE = "\n" + SYNC_MARKER_COMPLETE + "---\n"
 
 # Since gooftool uses this.
-TimeString = utils.TimeString
+TimeString = time_utils.TimeString
 
 device_id = None
 reimage_id = None
@@ -295,7 +296,7 @@ def GetDeviceId():
     logging.warning("No device_id available yet: generated %s", device_id)
 
   # Cache the device ID to DEVICE_ID_PATH for all future references.
-  utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
+  file_utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
   with open(DEVICE_ID_PATH, "w") as f:
     print >> f, device_id
     f.flush()
@@ -320,7 +321,7 @@ def GetReimageId():
       reimage_id = open(REIMAGE_ID_PATH).read().strip()
     if not reimage_id:
       reimage_id = str(TimedUuid())
-      utils.TryMakeDirs(os.path.dirname(REIMAGE_ID_PATH))
+      file_utils.TryMakeDirs(os.path.dirname(REIMAGE_ID_PATH))
       with open(REIMAGE_ID_PATH, "w") as f:
         print >> f, reimage_id
         f.flush()
@@ -346,7 +347,7 @@ def IncrementBootSequence():
 
   logging.info("Boot sequence: %d", boot_sequence)
 
-  utils.TryMakeDirs(os.path.dirname(BOOT_SEQUENCE_PATH))
+  file_utils.TryMakeDirs(os.path.dirname(BOOT_SEQUENCE_PATH))
   with open(BOOT_SEQUENCE_PATH, "w") as f:
     f.write("%d" % boot_sequence)
     f.flush()
@@ -376,7 +377,7 @@ class GlobalSeq(object):
     """Creates the file if it does not yet exist or is invalid."""
     # Need to use os.open, because Python's open does not support
     # O_RDWR | O_CREAT.
-    utils.TryMakeDirs(os.path.dirname(self.path))
+    file_utils.TryMakeDirs(os.path.dirname(self.path))
     fd = os.open(self.path, os.O_RDWR | os.O_CREAT)
     with os.fdopen(fd, "r+") as f:
       FileLock(fd, True)
@@ -612,7 +613,7 @@ class EventLog(object):
     data = {
         "EVENT": event_name,
         "SEQ": self.seq.Next(),
-        "TIME": utils.TimeString(),
+        "TIME": time_utils.TimeString(),
         "LOG_ID": self.log_id,
         "PREFIX": self.prefix,
     }

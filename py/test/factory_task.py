@@ -10,12 +10,12 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import test_ui
-from cros.factory.test import utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
-TaskState = utils.Enum(['NOT_STARTED', 'RUNNING', 'FINISHED'])
-FinishReason = utils.Enum(['PASSED', 'FAILED', 'STOPPED'])
+TaskState = type_utils.Enum(['NOT_STARTED', 'RUNNING', 'FINISHED'])
+FinishReason = type_utils.Enum(['PASSED', 'FAILED', 'STOPPED'])
 
 
 class FactoryTaskManager(object):
@@ -174,8 +174,8 @@ class FactoryTask(object):
     Returns:
       True if command executes successfully; otherwise, False.
     """
-    p = Spawn(command, call=True, ignore_stdout=True, read_stderr=True,
-              log=True)
+    p = process_utils.Spawn(command, call=True, ignore_stdout=True,
+                            read_stderr=True, log=True)
     if p.returncode != 0 and fail_message:
       self.Fail(
           '%s\nFailed running: %s\nSTDERR: %s' % (

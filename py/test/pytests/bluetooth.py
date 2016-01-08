@@ -37,9 +37,9 @@ from cros.factory.test.event_log import GetDeviceId, Log
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.test_ui import (
     ENTER_KEY, ESCAPE_KEY, SPACE_KEY, MakeLabel)
-from cros.factory.test.utils import StartDaemonThread
 from cros.factory.test.utils import bluetooth_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.process_utils import StartDaemonThread
 from cros.factory.utils.sync_utils import Retry
 
 
