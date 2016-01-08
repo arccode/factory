@@ -220,7 +220,7 @@ class KeyFilter(object):
       cmd.extend(['--caps_lock_keycode', str(self._caps_lock_keycode)])
     logging.debug('Spawn: %s', ' '.join(cmd))
     try:
-      if not sys_utils.in_chroot():
+      if not sys_utils.InChroot():
         self._process = Spawn(cmd)
     except Exception as e:
       logging.error('Error running Spawn("%s"): %s', ' '.join(cmd), str(e))

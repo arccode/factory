@@ -19,6 +19,7 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.umpire.client import get_update
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import sys_utils
 
 
 class UpdaterException(Exception):
@@ -173,7 +174,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
         'Unexpected MD5SUM in %s: expected %s but found %s' %
         new_md5sum_path, new_md5sum, new_md5sum_from_fs)
 
-  if factory.in_chroot():
+  if sys_utils.InChroot():
     raise UpdaterException('Aborting update: In chroot')
 
   # Alright, here we go!  This is the point of no return.

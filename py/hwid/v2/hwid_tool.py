@@ -37,7 +37,7 @@ from cros.factory.utils.type_utils import Obj
 DEFAULT_HWID_DATA_PATH = (
     os.path.join(os.environ['CROS_WORKON_SRCROOT'],
                  'src', 'platform', 'chromeos-hwid', 'v2')
-    if sys_utils.in_chroot()
+    if sys_utils.InChroot()
     else '/usr/local/factory/hwid')
 
 

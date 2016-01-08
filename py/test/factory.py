@@ -61,10 +61,6 @@ ID_REGEXP = re.compile(r'^\w+$')
 ALL = 'all'
 
 
-# For compatibility; moved to utils.
-in_chroot = sys_utils.in_chroot
-
-
 def get_factory_root(subdir=None):
   """Returns the root for logging and state.
 
@@ -78,7 +74,7 @@ def get_factory_root(subdir=None):
   """
   ret = (os.environ.get('CROS_FACTORY_ROOT') or
          (('/tmp/factory.%s' % getpass.getuser())
-          if sys_utils.in_chroot() else '/var/factory'))
+          if sys_utils.InChroot() else '/var/factory'))
   if subdir:
     ret = os.path.join(ret, subdir)
   file_utils.TryMakeDirs(ret)

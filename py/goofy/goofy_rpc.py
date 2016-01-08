@@ -1126,7 +1126,7 @@ class GoofyRPC(object):
     self.goofy.GetTestList(test_list_id)
     SetActiveTestList(test_list_id)
 
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       raise GoofyRPCException(
           'Cannot switch test in chroot; please manually restart Goofy')
     else:

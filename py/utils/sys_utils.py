@@ -260,6 +260,32 @@ def HasEC():
   return has_ec
 
 
-def in_chroot():
+def InChroot():
   """Returns True if currently in the chroot."""
   return 'CROS_WORKON_SRCROOT' in os.environ
+
+
+def InQEMU():
+  """Returns True if running within QEMU."""
+  return 'QEMU' in open('/proc/cpuinfo').read()
+
+
+def InCrOSDevice():
+  """Returns True if running on a Chrome OS device."""
+  if not os.path.exists('/etc/lsb-release'):
+    return False
+  with open('/etc/lsb-release') as f:
+    lsb_release = f.read()
+  return re.match(r'^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
+
+
+def IsFreon(dut=None):
+  """Checks if the board is running freon.
+
+  Returns:
+    True if the board is running freon; False otherwise.
+  """
+  # Currently we only enable frecon on freon boards. We might need to revisit
+  # this in the future to find a more deterministic way to probe freon board.
+  return (dut.Call('[ -e /sbin/frecon ]') == 0 if dut else
+          os.path.exists('/sbin/frecon'))

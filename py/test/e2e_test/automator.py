@@ -77,7 +77,7 @@ class Automator(e2e_test.E2ETest):
         4) If no automation function was found, start the factory test and wait
            for it to pass.
     """
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       board = CHROOT
     else:
       board = common.ProbeBoard()

@@ -570,7 +570,7 @@ def SetWLANs(options):
   # Sets default network.
   options.wlans = [WLAN(ssid='crosfactory',
                         security='psk', passphrase='crosfactory')]
-  if sys_utils.in_chroot():
+  if sys_utils.InChroot():
     # That's good enough!
     return
 

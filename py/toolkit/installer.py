@@ -22,11 +22,10 @@ import tempfile
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.tools import install_symlinks
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.sys_utils import MountPartition
+from cros.factory.utils import sys_utils
 
 
 INSTALLER_PATH = 'usr/local/factory/py/toolkit/installer.py'
@@ -82,10 +81,6 @@ this self-extracting archive.
 -----
 """
 
-# The method to determine whether running on Chrome OS device or not.
-# Override this for unit testing.
-_in_cros_device = utils.in_cros_device
-
 SERVER_FILE_MASK = [
     # Exclude Umpire server but keep Umpire client
     '--include', 'py/umpire/__init__.*',
@@ -123,10 +118,10 @@ class FactoryToolkitInstaller(object):
       self._var_dest = os.path.join(dest, 'var')
 
       # Make sure we're on a CrOS device.
-      if not non_cros and not _in_cros_device():
+      if not non_cros and not sys_utils.InCrOSDevice():
         sys.stderr.write(
             "ERROR: You're not on a CrOS device (for more details, please\n"
-            'check utils.py:in_cros_device), so you must specify a test\n'
+            'check sys_utils.py:InCrOSDevice), so you must specify a test\n'
             'image or a mounted stateful partition on which to install the\n'
             'factory toolkit.  Please run\n'
             '\n'
@@ -475,7 +470,7 @@ def main():
 
   patch_test_image = os.path.isfile(args.dest)
 
-  with (MountPartition(args.dest, 1, rw=True) if patch_test_image
+  with (sys_utils.MountPartition(args.dest, 1, rw=True) if patch_test_image
         else DummyContext(args.dest)) as dest:
     installer = FactoryToolkitInstaller(
         src=src_root, dest=dest, no_enable=args.no_enable,

@@ -143,7 +143,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
 
   output_file = os.path.join(output_dir, filename)
 
-  if sys_utils.in_chroot():
+  if sys_utils.InChroot():
     # Just save a dummy tarball.
     with file_utils.TempDirectory() as d:
       open(os.path.join(os.path.join(d, 'dummy-factory-bug')), 'w').close()

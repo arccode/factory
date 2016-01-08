@@ -47,7 +47,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     # True if we are pretending to be running inside CrOS.
     self._override_in_cros_device = False
     # pylint: disable=W0212
-    installer._in_cros_device = lambda: self._override_in_cros_device
+    installer.sys_utils.InCrOSDevice = lambda: self._override_in_cros_device
 
   def tearDown(self):
     shutil.rmtree(self.src)

@@ -202,7 +202,7 @@ class FinalizeBundle(object):
   has_firmware = DEFAULT_FIRMWARES
 
   def Main(self):
-    if not sys_utils.in_chroot():
+    if not sys_utils.InChroot():
       sys.exit('Please run this script from within the chroot.')
 
     self.ParseArgs()

@@ -15,9 +15,9 @@ import os
 import sys
 
 import factory_common   # pylint:disable=W0611
-from cros.factory.test import utils
+from cros.factory.utils import sys_utils
 
-if utils.in_cros_device():
+if sys_utils.InCrOSDevice():
   autotest_dir = '/usr/local/autotest'
 else:
   CROS_WORKON_SRCROOT = os.environ['CROS_WORKON_SRCROOT']

@@ -129,7 +129,7 @@ class BadBlocksTest(unittest.TestCase):
       self.ui.Pass()
 
   def _CheckBadBlocksImpl(self):
-    self.assertFalse(sys_utils.in_chroot(),
+    self.assertFalse(sys_utils.InChroot(),
                      'badblocks test may not be run within the chroot')
     first_block = 0
     sector_size = 1024

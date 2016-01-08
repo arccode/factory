@@ -17,12 +17,12 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import network
-from cros.factory.test import utils
 from cros.factory.test.utils import service_manager
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils import sys_utils
 
 
 class InterfaceProperty(object):  # pylint: disable=R0923
@@ -229,7 +229,7 @@ def StartDHCPManager(interfaces=None,
                      on_del=None):
 
   DHCPManager.CleanupStaleInstance()
-  if utils.in_cros_device():
+  if sys_utils.InCrOSDevice():
     # Wait for shill to start
     sync_utils.WaitFor(lambda: service_manager.GetServiceStatus('shill') ==
                        service_manager.Status.START, 15)

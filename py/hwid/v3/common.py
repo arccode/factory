@@ -26,7 +26,7 @@ from cros.factory.utils import type_utils
 DEFAULT_HWID_DATA_PATH = (
     os.path.join(os.environ['CROS_WORKON_SRCROOT'],
                  'src', 'platform', 'chromeos-hwid', 'v3')
-    if sys_utils.in_chroot()
+    if sys_utils.InChroot()
     else '/usr/local/factory/hwid')
 
 PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')

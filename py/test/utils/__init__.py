@@ -17,32 +17,7 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
-
-
-def IsFreon(dut=None):
-  """Checks if the board is running freon.
-
-  Returns:
-    True if the board is running freon; False otherwise.
-  """
-  # Currently we only enable frecon on freon boards. We might need to revisit
-  # this in the future to find a more deterministic way to probe freon board.
-  return (os.path.exists('/sbin/frecon') if dut else
-          dut.Call('[ -e /sbin/frecon ]') == 0)
-
-
-def in_qemu():
-  """Returns True if running within QEMU."""
-  return 'QEMU' in open('/proc/cpuinfo').read()
-
-
-def in_cros_device():
-  """Returns True if running on a Chrome OS device."""
-  if not os.path.exists('/etc/lsb-release'):
-    return False
-  with open('/etc/lsb-release') as f:
-    lsb_release = f.read()
-  return re.match(r'^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
+from cros.factory.utils import sys_utils
 
 
 def var_log_messages_before_reboot(lines=100,
@@ -107,7 +82,7 @@ def ResetCommitTime():
   corruption during factory testing.  Using commit=0 reverts to the
   default value (generally 5 s).
   """
-  if sys_utils.in_chroot():
+  if sys_utils.InChroot():
     return
 
   devices = set()

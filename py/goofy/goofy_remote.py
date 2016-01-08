@@ -23,7 +23,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.ssh_utils import SpawnSSHToDUT, SpawnRsyncToDUT
 from cros.factory.utils.sync_utils import Retry
-from cros.factory.utils.sys_utils import in_chroot
+from cros.factory.utils.sys_utils import InChroot
 
 
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
@@ -180,7 +180,7 @@ def main():
               ['rm', '--force', '/usr/local/factory/init/%s' % tag])
 
   if args.local:
-    if in_chroot():
+    if InChroot():
       sys.exit('--local must be used only on the target device')
     TweakTestLists(args)
     SetHostBasedRole()

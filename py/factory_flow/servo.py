@@ -12,9 +12,9 @@ import re
 import subprocess
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils import sys_utils
 
 
 FLASHROM_LOCK_FILE = '/tmp/factory_flow_flashrom'
@@ -55,7 +55,7 @@ class Servo(object):
 
       sync_utils.WaitFor(WaitForServod, 10)
 
-      if utils.in_cros_device():
+      if sys_utils.InCrOSDevice():
         # Do not try to auto-update if we are running servo host directly on a
         # CrOS factory server.
         hosts.ServoHost._update_image = lambda _: True
@@ -74,7 +74,7 @@ class Servo(object):
         serial)
 
   def _InstallRequiredPackages(self):
-    if utils.in_cros_device():
+    if sys_utils.InCrOSDevice():
       # CrOS factory server has all the required packages.
       return
 

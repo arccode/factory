@@ -36,7 +36,7 @@ class CoreDumpManager(object):
 
   def _SetCoreDump(self):
     """Sets core dump files to be unlimited and set core_pattern."""
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       return
     if not os.path.exists(self._crash_dir):
       os.mkdir(self._crash_dir)

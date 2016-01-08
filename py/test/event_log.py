@@ -47,7 +47,7 @@ REIMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".reimage_id")
 
 # The /var/run directory (or something writable by us if in the chroot).
 RUN_DIR = os.path.join(
-    factory.get_factory_root("run") if sys_utils.in_chroot() else "/var/run",
+    factory.get_factory_root("run") if sys_utils.InChroot() else "/var/run",
     "factory")
 
 # File containing the next sequence number to write.  This is in

@@ -19,11 +19,11 @@ from cros.factory.factory_flow.common import (
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.umpire.common import LoadBundleManifest
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
@@ -247,7 +247,7 @@ class StartServer(FactoryFlowCommand):
 
   def InstallRequiredPackages(self):
     """Installs required packages."""
-    if utils.in_cros_device():
+    if sys_utils.InCrOSDevice():
       # CrOS factory server has all the required packages.
       return
 

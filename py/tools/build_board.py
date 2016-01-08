@@ -58,7 +58,7 @@ class BuildBoard(object):
     Raises:
       BuildBoardException if unable to determine board or overlay name.
     """
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       # The following sanity checks are feasible only in chroot.
       src = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
       if board_name in [None, 'default']:
@@ -166,7 +166,7 @@ class BuildBoard(object):
     self.short_name = self.variant or self.base  # Ick
     self.gsutil_name = re.sub('_', '-', self.full_name)
 
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       # Only get overlay relative path in chroot.
       if self.variant:
         overlay = 'overlay-variant-%s-%s' % (self.base, self.variant)

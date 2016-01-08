@@ -563,7 +563,7 @@ def LoadConfig(board=None, filepath=None):
 
   if not filepath:
     board = build_board.BuildBoard(board)
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       filepath = CONFIG_FILE_PATH_IN_CHROOT(board.short_name)
     else:
       filepath = CONFIG_FILE_PATH_OUTSIDE_CHROOT(board.short_name)

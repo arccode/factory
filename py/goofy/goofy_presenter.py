@@ -17,8 +17,8 @@ from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.link_manager import DUTLinkManager
 from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.utils import jsonrpc_utils
+from cros.factory.utils import sys_utils
 
 
 class GoofyPresenter(GoofyBase):
@@ -46,7 +46,7 @@ class GoofyPresenter(GoofyBase):
     self.dut_ips = []
     self.dut_dongle_mac_address = {}
 
-    if utils.in_cros_device():
+    if sys_utils.InCrOSDevice():
       self.env = test_environment.DUTEnvironment()
       self.env.has_sockets = self.ui_app_controller.HasWebSockets
     else:

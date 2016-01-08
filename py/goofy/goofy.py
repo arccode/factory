@@ -394,7 +394,7 @@ class Goofy(GoofyBase):
     """Logs the tail of var/log/messages and mosys and EC console logs."""
     # TODO(jsalz): This is mostly a copy-and-paste of code in init_states,
     # for factory-3004.B only.  Consolidate and merge back to ToT.
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       return
 
     try:
@@ -567,7 +567,7 @@ class Goofy(GoofyBase):
             logging.exception('Unable to grok /var/log/messages')
             var_log_messages = []
 
-        if mosys_log is None and not sys_utils.in_chroot():
+        if mosys_log is None and not sys_utils.InChroot():
           try:
             mosys_log = process_utils.Spawn(
                 ['mosys', 'eventlog', 'list'],
@@ -899,7 +899,7 @@ class Goofy(GoofyBase):
 
     # Only adjust charge state if not excluded
     if (EXCL_OPT.CHARGER not in current_exclusive_items and
-        not sys_utils.in_chroot()):
+        not sys_utils.InChroot()):
       if self.charge_manager:
         self.charge_manager.AdjustChargeState()
       else:
@@ -1380,7 +1380,7 @@ class Goofy(GoofyBase):
 
     if env:
       self.env = env
-    elif factory.in_chroot():
+    elif sys_utils.InChroot():
       self.env = test_environment.FakeChrootEnvironment()
       logging.warn(
           'Using chroot environment: will not actually run autotests')
@@ -1394,7 +1394,7 @@ class Goofy(GoofyBase):
     if self.options.restart:
       state.clear_state()
 
-    if self.options.ui_scale_factor != 1 and utils.in_qemu():
+    if self.options.ui_scale_factor != 1 and sys_utils.InQEMU():
       logging.warn(
           'In QEMU; ignoring ui_scale_factor argument')
       self.options.ui_scale_factor = 1
@@ -1480,7 +1480,7 @@ class Goofy(GoofyBase):
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
       shopfloor.set_enabled(True)
 
-    if self.test_list.options.time_sanitizer and not sys_utils.in_chroot():
+    if self.test_list.options.time_sanitizer and not sys_utils.InChroot():
       self.time_sanitizer = time_sanitizer.TimeSanitizer(
           base_time=time_sanitizer.GetBaseTimeFromFile(
               # lsb-factory is written by the factory install shim during
@@ -1546,7 +1546,7 @@ class Goofy(GoofyBase):
 
     assert ((self.test_list.options.min_charge_pct is None) ==
             (self.test_list.options.max_charge_pct is None))
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       logging.info('In chroot, ignoring charge manager and charge state')
     elif (self.test_list.options.enable_charge_manager and
           self.test_list.options.min_charge_pct is not None):
@@ -1564,7 +1564,7 @@ class Goofy(GoofyBase):
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
 
-    if not sys_utils.in_chroot() and self.test_list.options.use_cpufreq_manager:
+    if not sys_utils.InChroot() and self.test_list.options.use_cpufreq_manager:
       logging.info('Enabling CPU frequency manager')
       self.cpufreq_manager = CpufreqManager(event_log=self.event_log)
 
@@ -1581,7 +1581,7 @@ class Goofy(GoofyBase):
 
     # Create download path for autotest beforehand or autotests run at
     # the same time might fail due to race condition.
-    if not factory.in_chroot():
+    if not sys_utils.InChroot():
       file_utils.TryMakeDirs(os.path.join('/usr/local/autotest', 'tests',
                                           'download'))
 
@@ -1642,7 +1642,7 @@ class Goofy(GoofyBase):
              self.test_list.options.sync_time_period_secs) and
             self.time_sanitizer and
             (not self.time_synced) and
-            (not factory.in_chroot()))
+            (not sys_utils.InChroot()))
 
   def sync_time_with_shopfloor_server(self, foreground=False):
     """Syncs time with shopfloor server, if not yet synced.
@@ -1665,7 +1665,7 @@ class Goofy(GoofyBase):
     return self.time_synced
 
   def log_disk_space_stats(self):
-    if (sys_utils.in_chroot() or
+    if (sys_utils.InChroot() or
         not self.test_list.options.log_disk_space_period_secs):
       return
 
@@ -1712,7 +1712,7 @@ class Goofy(GoofyBase):
                                    'inodes_used_pct': FloatDigit(encrypted.inodes_used_pct, 2)}
                            })
         self.log_watcher.KickWatchThread()
-        if (not sys_utils.in_chroot() and
+        if (not sys_utils.InChroot() and
             self.test_list.options.stateful_usage_above_threshold_action):
           process_utils.Spawn(
               self.test_list.options.stateful_usage_above_threshold_action,
@@ -1826,7 +1826,7 @@ class Goofy(GoofyBase):
     autotest client will touch /var/lib/cleanup_logs_paused each time it runs
     an autotest.
     """
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       return
     try:
       if self.test_list.options.disable_log_rotation:

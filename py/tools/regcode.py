@@ -112,7 +112,7 @@ def Check(options):
 
     if not code:
       if rw_vpd is None:
-        if sys_utils.in_chroot():
+        if sys_utils.InChroot():
           sys.stderr.write('error: cannot read VPD from chroot; use -u/-g\n')
           sys.exit(1)
 

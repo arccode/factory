@@ -12,8 +12,8 @@ from PIL import Image
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
-from cros.factory.test import utils
 from cros.factory.test.utils import drm_utils
+from cros.factory.utils import sys_utils
 
 
 class DisplayError(Exception):
@@ -62,7 +62,7 @@ class Display(component.DUTComponent):
     """
     ports = {}
 
-    if utils.IsFreon(self._dut):
+    if sys_utils.IsFreon(self._dut):
       # TODO(hungte) Currently Freon+DRM can't run remotely. We need a
       # DUT-based implementation.
       if not self._dut.link.IsLocal():
@@ -149,7 +149,7 @@ class Display(component.DUTComponent):
       raise DisplayError('Port %s is not connected')
 
     image = None
-    if utils.IsFreon(self._dut):
+    if sys_utils.IsFreon(self._dut):
       if not port_info.drm_fb:
         raise DisplayError(
             'Connector %s does not have an associated framebuffer' % port)

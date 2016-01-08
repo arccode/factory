@@ -109,7 +109,7 @@ class FactoryFlowCommandBuilder(object):
     self.factory_flow_path = self.GetFactoryFlowPath()
 
   def GetFactoryFlowPath(self):
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       # Running inside chroot.
       return os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform',
                           'factory', 'bin', 'factory_flow')

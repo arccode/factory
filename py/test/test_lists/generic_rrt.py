@@ -90,7 +90,7 @@ class TestListArgs(object):
   # Main temperature sensor index.
   @property
   def main_temp_sensor_index(self):
-    if sys_utils.in_chroot():  # For unittest
+    if sys_utils.InChroot():  # For unittest
       return 0
     else:
       return dut.Create().thermal.GetMainTemperatureIndex()
@@ -98,7 +98,7 @@ class TestListArgs(object):
   # List of temperature sensors to test.
   @property
   def temp_sensors_to_test(self):
-    if sys_utils.in_chroot():  # For unittest
+    if sys_utils.InChroot():  # For unittest
       return [0]
     else:
       return range(len(dut.Create().thermal.GetTemperatureSensorNames()))

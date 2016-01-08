@@ -64,7 +64,7 @@ def GenerateHWIDWrapper(options):
   # Select right device info (from file or shopfloor).
   if options.device_info_file:
     device_info = hwid_utils.GetDeviceInfo(options.device_info_file)
-  elif sys_utils.in_chroot():
+  elif sys_utils.InChroot():
     raise ValueError('Cannot get device info from shopfloor in chroot. '
                      'Please specify device info with an input file. If you '
                      'are running with command-line, use --device_info_file')

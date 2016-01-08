@@ -360,7 +360,7 @@ def GetProbedResults(infile=None, *args, **kwargs):
     with open(infile, 'r') as f:
       probed_results = yaml.load(f.read())
   else:
-    if sys_utils.in_chroot():
+    if sys_utils.InChroot():
       raise ValueError('Cannot probe components in chroot. Please specify '
                        'probed results with an input file. If you are running '
                        'with command-line, use --probed-results-file')
@@ -389,7 +389,7 @@ def GetDeviceInfo(infile):
 
 def GetHWIDString():
   """Get HWID string from GBB on a DUT."""
-  if sys_utils.in_chroot():
+  if sys_utils.InChroot():
     raise ValueError('Cannot read HWID from GBB in chroot')
   main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   gbb_result = process_utils.CheckOutput(
