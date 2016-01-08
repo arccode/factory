@@ -14,7 +14,7 @@ import sys
 from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountPartition
 
@@ -156,7 +156,7 @@ def main(argv=None, out=sys.stdout):
 
   mount_points = ['/tmp/diff_image_1', '/tmp/diff_image_2']
   for f in mount_points:
-    utils.TryMakeDirs(f)
+    file_utils.TryMakeDirs(f)
 
   def MountOrReuse(index):
     if os.path.isdir(args.images[index]):

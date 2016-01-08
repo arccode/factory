@@ -100,7 +100,7 @@ def WriteAndTruncateFd(fd, string):
 def TryMakeDirs(path, raise_exception=False):
   """Tries to create a directory and its parents."""
   # TODO(itspeter):
-  #   switch to cros.factory.test.utils.TryMakeDirs once migration to
+  #   switch to cros.factory.utils.file_utils.TryMakeDirs once migration to
   #   Umpire is fully rolled-out.
   try:
     if not os.path.exists(path):

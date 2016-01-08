@@ -15,8 +15,8 @@ import sys
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.tools.build_board import BuildBoard
+from cros.factory.utils import file_utils
 from cros.factory.utils.sys_utils import MountPartition
 from cros.factory.utils.process_utils import Spawn
 
@@ -271,7 +271,7 @@ def main():
 
   # Create the /usr/local/factory/custom symlink.
   factory_dir = os.path.join(staging_dir, 'usr', 'local', 'factory')
-  utils.TryMakeDirs(factory_dir)
+  file_utils.TryMakeDirs(factory_dir)
   os.symlink('../autotest/client/site_tests/suite_Factory',
              os.path.join(factory_dir, 'custom'))
 
@@ -312,7 +312,7 @@ def main():
                                       delete=False)
 
   # Find and remove identical files to avoid massive mtime changes.
-  utils.TryMakeDirs(OLD_IMAGE_MOUNT_POINT)
+  file_utils.TryMakeDirs(OLD_IMAGE_MOUNT_POINT)
   with MountPartition(args.input, 1, OLD_IMAGE_MOUNT_POINT):
     for root, dirs, files in os.walk(staging_dir):
       for is_dir in [False, True]:
@@ -411,7 +411,7 @@ def main():
     logging.info('Copying %s to %s', args.input, args.output)
     shutil.copyfile(args.input, args.output)
 
-  utils.TryMakeDirs(NEW_IMAGE_MOUNT_POINT)
+  file_utils.TryMakeDirs(NEW_IMAGE_MOUNT_POINT)
   with MountPartition(args.output, 1, NEW_IMAGE_MOUNT_POINT, rw=True):
     Spawn(['rsync', '-av', staging_dir + '/', NEW_IMAGE_MOUNT_POINT + '/'],
           sudo=True, log=True, check_output=True)

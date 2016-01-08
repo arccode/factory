@@ -24,8 +24,8 @@ import factory_common
 from cros.factory.shopfloor import factory_update_server, factory_log_server
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.test import utils
 from cros.factory.test.registration_codes import CheckRegistrationCode
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -111,7 +111,7 @@ class ShopFloorBase(object):
       # Dynamic test directory for holding updates is called "update" in
       # data_dir.
       self.update_dir = os.path.join(self.data_dir, UPDATE_DIR)
-      utils.TryMakeDirs(self.update_dir)
+      file_utils.TryMakeDirs(self.update_dir)
       self.update_dir = os.path.realpath(self.update_dir)
       self.update_server = factory_update_server.FactoryUpdateServer(
           self.update_dir,
@@ -120,7 +120,7 @@ class ShopFloorBase(object):
           on_idle=(self._AutoSaveLogs if self._auto_archive_logs else None))
       # Create factory log directory
       self.factory_log_dir = os.path.join(self.data_dir, FACTORY_LOG_DIR)
-      utils.TryMakeDirs(self.factory_log_dir)
+      file_utils.TryMakeDirs(self.factory_log_dir)
       self.factory_log_dir = os.path.realpath(self.factory_log_dir)
       self.log_server = factory_log_server.FactoryLogServer(
           self.factory_log_dir,
@@ -136,7 +136,7 @@ class ShopFloorBase(object):
       self.events_rotate_hourly = True
     # Create parameters directory
     self.parameters_dir = os.path.join(self.data_dir, PARAMETERS_DIR)
-    utils.TryMakeDirs(self.parameters_dir)
+    file_utils.TryMakeDirs(self.parameters_dir)
     self.parameters_dir = os.path.realpath(self.parameters_dir)
 
   def _StartBase(self):
@@ -289,10 +289,10 @@ class ShopFloorBase(object):
     ret = self.data_dir
     if subdir:
       ret = os.path.join(ret, subdir)
-      utils.TryMakeDirs(ret)
+      file_utils.TryMakeDirs(ret)
     if log_format:
       ret = os.path.join(ret, time.strftime(log_format))
-      utils.TryMakeDirs(ret)
+      file_utils.TryMakeDirs(ret)
     return ret
 
   def SetEventHourlyRotation(self, value):
@@ -479,7 +479,7 @@ class ShopFloorBase(object):
     assert '..' not in os.path.split(name)
 
     path = os.path.join(self.GetAuxLogsDir(), name)
-    utils.TryMakeDirs(os.path.dirname(path))
+    file_utils.TryMakeDirs(os.path.dirname(path))
     with open(path, 'wb') as f:
       f.write(contents)
 

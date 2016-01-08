@@ -22,8 +22,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 from cros.factory.shopfloor import factory_update_server
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.umpire.client import umpire_server_proxy
+from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -109,7 +109,7 @@ class ShopFloorServerTest(unittest.TestCase):
     self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001026')
 
   def _CreateFileAndContextAsFilename(self, filename):
-    utils.TryMakeDirs(os.path.dirname(filename))
+    file_utils.TryMakeDirs(os.path.dirname(filename))
     with open(filename, 'w') as fd:
       fd.write(os.path.basename(filename))
 
@@ -241,7 +241,7 @@ class ShopFloorServerTest(unittest.TestCase):
     try:
       factory_log_path = os.path.join(
           tmp, content_path.lstrip('/'))
-      utils.TryMakeDirs(os.path.dirname(factory_log_path))
+      file_utils.TryMakeDirs(os.path.dirname(factory_log_path))
       open(factory_log_path, 'w').close()
       return Spawn([
           'tar', '-c' + ('j' if compress else '') + 'f', '-', '-C', tmp,

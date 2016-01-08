@@ -37,6 +37,7 @@ from cros.factory.test import privacy
 from cros.factory.test.event import EventClient, Event
 from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_server_proxy
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -381,7 +382,7 @@ def update_local_hwid_data(target_dir='/usr/local/factory/hwid'):
         Spawn(['sync'], check_call=True)
         for root, _, files in os.walk(temp_dir):
           dst_dir = os.path.join(target_dir, os.path.relpath(root, temp_dir))
-          utils.TryMakeDirs(dst_dir)
+          file_utils.TryMakeDirs(dst_dir)
           for name in files:
             os.rename(os.path.join(root, name), os.path.join(dst_dir, name))
         Spawn(['sync'], check_call=True)

@@ -13,7 +13,6 @@ import sys
 import traceback
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
@@ -21,7 +20,6 @@ from cros.factory.utils import type_utils
 
 
 # For backward compatibility. TODO(hungte) Remove or add wrapper functions.
-TryMakeDirs = file_utils.TryMakeDirs
 DrainQueue = type_utils.DrainQueue
 
 

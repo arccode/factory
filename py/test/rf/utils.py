@@ -10,8 +10,8 @@ import os
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.test.shopfloor import GetShopfloorConnection
+from cros.factory.utils import file_utils
 
 
 def IsInRange(observed, threshold_min, threshold_max):
@@ -87,7 +87,7 @@ def DownloadParameters(parameters, local_cache_dir):
   assert len(download_list) > 0, 'No parameters found on shopfloor'
   # Download the list and saved to caches in state directory.
   for filepath in download_list:
-    utils.TryMakeDirs(os.path.join(
+    file_utils.TryMakeDirs(os.path.join(
         local_cache_dir, os.path.dirname(filepath)))
     binary_obj = shopfloor_client.GetParameter(filepath)
     with open(os.path.join(local_cache_dir, filepath), 'wb') as fd:

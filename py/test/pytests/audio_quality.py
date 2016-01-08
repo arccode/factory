@@ -476,7 +476,7 @@ class AudioQualityTest(unittest.TestCase):
     received_data = attr_list[3].replace('\x00', ' ')
 
     write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
-    utils.TryMakeDirs(os.path.dirname(write_path))
+    file_utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
       f.write(received_data)

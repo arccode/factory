@@ -27,9 +27,9 @@ from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg, Args
 from cros.factory.test.shopfloor import UploadAuxLogs
+from cros.factory.utils import file_utils
 
 
 # Common field name shared across CSV and EventLog.
@@ -413,7 +413,7 @@ class RfFramework(object):
         self._NormalizeAsFileName(device_sn),
         self._NormalizeAsFileName(self.args.test_name or path), postfix)
     csv_path = os.path.join(factory.get_log_root(), 'aux', csv_path)
-    utils.TryMakeDirs(os.path.dirname(csv_path))
+    file_utils.TryMakeDirs(os.path.dirname(csv_path))
     self.aux_logs.append(csv_path)
     WriteCsv(csv_path, [field_to_record],
              [LOG_TIME, MODULE_ID, DEVICE_SN, DEVICE_ID,

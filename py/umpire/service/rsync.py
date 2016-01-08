@@ -8,8 +8,8 @@
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.umpire.service import umpire_service
+from cros.factory.utils import file_utils
 
 RSYNC_BIN = '/usr/bin/rsync'
 # rsync daemon mode configuration file doesn't need hash in name.
@@ -67,7 +67,7 @@ class RsyncService(umpire_service.UmpireService):
         module=TOOLKIT_MODULE, path=env.device_toolkits_dir, readonly='yes')
     # Add deprecated auxiliary log support.
     system_logs_dir = os.path.join(env.log_dir, 'dut_upload')
-    utils.TryMakeDirs(system_logs_dir)
+    file_utils.TryMakeDirs(system_logs_dir)
     rsyncd_config += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % dict(
         module='system_logs', path=system_logs_dir, readonly='no')
     with open(config_path, 'w') as f:
