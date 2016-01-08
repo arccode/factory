@@ -16,7 +16,7 @@ import time
 import traceback
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
+from cros.factory.utils import type_utils
 
 RUN_QUEUE_TIMEOUT_SECS = 10
 
@@ -63,7 +63,7 @@ class GoofyBase(object):
     Returns:
       True to keep going or False to shut down.
     """
-    events = utils.DrainQueue(self.run_queue)
+    events = type_utils.DrainQueue(self.run_queue)
     while not events:
       # Nothing on the run queue.
       self._run_queue_idle()
@@ -77,7 +77,7 @@ class GoofyBase(object):
           continue
         # ...and grab anything else that showed up at the same
         # time.
-        events.extend(utils.DrainQueue(self.run_queue))
+        events.extend(type_utils.DrainQueue(self.run_queue))
       else:
         break
 

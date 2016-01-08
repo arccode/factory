@@ -19,10 +19,6 @@ from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
-# For backward compatibility. TODO(hungte) Remove or add wrapper functions.
-DrainQueue = type_utils.DrainQueue
-
-
 def IsFreon(dut=None):
   """Checks if the board is running freon.
 
