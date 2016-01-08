@@ -73,6 +73,9 @@ start_wipe() {
     FACTORY_RETURN_AFTER_WIPING="YES" clobber-state "${WIPE_ARGS}"
   mv -f "/tmp/clobber-state.log" "${STATE_PATH}/unencrypted/clobber-state.log"
 
+  # Remove developer flag, which is created by clobber-state after wiping.
+  rm -f "${STATE_PATH}/.developer_mode"
+
   "${ENABLE_RELEASE_PARTITION}" "${release_root_dev}"
 
   if [ -n "${SHOPFLOOR_URL}" ]; then
