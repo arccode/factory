@@ -27,7 +27,7 @@ KILL_OLD_TESTS_TIMEOUT_SECS = 2
 TEST_RUNNER_ENV_VAR = 'CROS_FACTORY_TEST_RUNNER'
 
 # Timeout for running any individual test program.
-TEST_TIMEOUT_SECS = 300
+TEST_TIMEOUT_SECS = 60
 
 
 def _MaybeRunPytestsOnly(tests, isolated_tests):
@@ -335,8 +335,8 @@ def KillOldTests():
 
   start_time = time.time()
   while True:
-    pids_to_kill = filter(lambda pid: os.path.exists('/proc/%d' % pid),
-                          pids_to_kill)
+    pids_to_kill = [pid for pid in pids_to_kill
+                    if os.path.exists('/proc/%d' % pid)]
     if not pids_to_kill:
       logging.warning('Killed all stale test processes')
       return
