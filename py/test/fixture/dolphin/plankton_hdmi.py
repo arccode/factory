@@ -153,7 +153,6 @@ class PlanktonHDMI(object):
       is high enough. If return_corr is True, return correlation values directly
       without comparing to threshold.
     """
-    captured_image = self.Capture()
     logging.debug('Comparing captured image w/ golden image: %s',
                   golden_image_path)
 
@@ -161,8 +160,20 @@ class PlanktonHDMI(object):
     golden_image = cv2.resize(golden_image, self._capture_resolution)
 
     # Compare two images.
-    return self.CompareImage(
-        captured_image, golden_image, threshold, return_corr)
+    # Retries are added to avoid false alarms when getting flaky images
+    # probably from USB-C DP stream in the bounce time of projecting to the
+    # external monitor.
+    for _ in xrange(8):
+      captured_image = self.Capture()
+      if self.CompareImage(captured_image, golden_image, threshold,
+                           return_corr):
+        logging.info('Comparing captured image w/ golden image passed')
+        return True
+      else:
+        logging.info('Comparing captured image w/ golden image failed')
+        time.sleep(0.25)
+
+    return False
 
   def CaptureCheckPixels(self, points):
     """Captures an image and grabs the values of some pixels.
