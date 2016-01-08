@@ -20,8 +20,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils import debug_utils
 from cros.factory.utils.process_utils import CheckOutput
 from cros.factory.utils.process_utils import WaitEvent
 
@@ -107,7 +107,7 @@ class MemorySize(unittest.TestCase):
         result = method(mlb_serial_number)
         logging.info('%s: %s', method_name, str(result))
       except:  # pylint: disable=W0702
-        exception_str = utils.FormatExceptionOnly()
+        exception_str = debug_utils.FormatExceptionOnly()
         logging.exception('Exception invoking shopfloor method\n' +
                           exception_str)
         HandleError(exception_str)

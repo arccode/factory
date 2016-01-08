@@ -59,12 +59,13 @@ from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.tools import disk_space
+from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import type_utils
 
 
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
@@ -82,7 +83,7 @@ MIN_BATTERY_LEVEL_FOR_DISK_SYNC = 1.0
 
 MAX_CRASH_FILE_SIZE = 64 * 1024
 
-Status = Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
+Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                'TERMINATING', 'TERMINATED'])
 
 
@@ -1838,7 +1839,7 @@ class Goofy(GoofyBase):
       logging.info(
           'Unable to %s %s: %s',
           'touch' if self.test_list.options.disable_log_rotation else 'delete',
-          CLEANUP_LOGS_PAUSED, utils.FormatExceptionOnly())
+          CLEANUP_LOGS_PAUSED, debug_utils.FormatExceptionOnly())
 
   def sync_time_in_background(self):
     """Writes out current time and tries to sync with shopfloor server."""
@@ -1866,7 +1867,7 @@ class Goofy(GoofyBase):
         # Oh well.  Log an error (but no trace)
         logging.info(
             'Unable to get time from shopfloor server: %s',
-            utils.FormatExceptionOnly())
+            debug_utils.FormatExceptionOnly())
 
     thread = threading.Thread(target=target)
     thread.daemon = True
@@ -1919,8 +1920,9 @@ class Goofy(GoofyBase):
             'Successfully synced %s in %.03f s',
             description, time.time() - start_time)
       except:  # pylint: disable=W0702
-        first_exception = (first_exception or (chunk.log_name + ': ' +
-                                               utils.FormatExceptionOnly()))
+        first_exception = (first_exception or
+                           (chunk.log_name + ': ' +
+                            debug_utils.FormatExceptionOnly()))
         exception_count += 1
 
     if exception_count:

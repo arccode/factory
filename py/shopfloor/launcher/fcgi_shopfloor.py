@@ -20,7 +20,7 @@ from flup.server.fcgi_fork import WSGIServer
 from SimpleXMLRPCServer import SimpleXMLRPCDispatcher
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
+from cros.factory.utils import debug_utils
 
 
 class WSGISession(dict):
@@ -112,7 +112,7 @@ class SessionMediator(object):
       self.session['xmlrpc_params'] = params
       return self.dispatcher._dispatch(method, params)  # pylint: disable=W0212
     except:  # pylint: disable=W0702
-      self.session['xmlrpc_exception'] = utils.FormatExceptionOnly()
+      self.session['xmlrpc_exception'] = debug_utils.FormatExceptionOnly()
       raise
 
 

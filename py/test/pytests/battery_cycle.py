@@ -26,11 +26,11 @@ from cros.factory.test.event_log import Log
 from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.process_utils import StartDaemonThread
 from cros.factory.utils.process_utils import TerminateOrKillProcess
+from cros.factory.utils.debug_utils import FormatExceptionOnly
 from cros.factory.utils.time_utils import FormatElapsedTime
 from cros.factory.utils.type_utils import Enum
 
@@ -301,6 +301,6 @@ class BatteryCycleTest(unittest.TestCase):
       self.ui.Pass()
     except:  # pylint: disable=W0702
       logging.exception('Test failed')
-      error_msg = utils.FormatExceptionOnly()
+      error_msg = FormatExceptionOnly()
       self._Log('fail', error_msg=error_msg)
       self.ui.Fail(error_msg)

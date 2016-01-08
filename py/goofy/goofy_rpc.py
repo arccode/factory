@@ -90,7 +90,7 @@ class GoofyRPC(object):
         result.put((None, e))
       except Exception:
         # Failure (but not an Exception); wrap whatever it is in an exception.
-        result.put((None, GoofyRPCException(utils.FormatExceptionOnly())))
+        result.put((None, GoofyRPCException(debug_utils.FormatExceptionOnly())))
 
     def _GetFuncString():
       func_string = func.__name__
@@ -190,7 +190,7 @@ class GoofyRPC(object):
       except:  # pylint: disable=W0702
         # There was an update available, but we couldn't get it.
         logging.exception('Update failed')
-        ret_value.put([False, False, None, utils.FormatExceptionOnly()])
+        ret_value.put([False, False, None, debug_utils.FormatExceptionOnly()])
 
     self.goofy.run_queue.put(Target)
     return ret_value.get()

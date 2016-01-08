@@ -22,9 +22,9 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.privacy import FilterDict
+from cros.factory.utils import debug_utils
 from cros.factory.utils.process_utils import WaitEvent
 
 
@@ -148,7 +148,7 @@ class CallShopfloor(unittest.TestCase):
       except:  # pylint: disable=W0702
         logging.exception('Exception invoking shop floor method')
 
-        exception_str = utils.FormatExceptionOnly()
+        exception_str = debug_utils.FormatExceptionOnly()
         Log('call_shopfloor',
             method=self.args.method, args=args_to_log, exception=exception_str)
         HandleError(exception_str)
@@ -164,5 +164,5 @@ class CallShopfloor(unittest.TestCase):
         break  # All done
       except:  # pylint: disable=W0702
         logging.exception('Exception in action handler')
-        HandleError(utils.FormatExceptionOnly())
+        HandleError(debug_utils.FormatExceptionOnly())
         # Fall through and retry

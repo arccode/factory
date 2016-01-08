@@ -15,8 +15,8 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
 
 _CSS = """
@@ -101,7 +101,7 @@ class SyncShopfloor(unittest.TestCase):
             ui.BindKeyJS(' ', 'window.test.updateFactory()')
             return
         except:  # pylint: disable=W0702
-          exception_string = utils.FormatExceptionOnly()
+          exception_string = debug_utils.FormatExceptionOnly()
           # Log only the exception string, not the entire exception,
           # since this may happen repeatedly.
           logging.error('Unable to sync with shopfloor server: %s',

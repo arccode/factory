@@ -14,7 +14,7 @@ import threading
 
 from cros.factory.test import event_log
 from cros.factory.test import factory
-from cros.factory.test import utils
+from cros.factory.utils import debug_utils
 from cros.factory.utils.shelve_utils import OpenShelfOrBackup
 
 EVENT_SEPARATOR = '\n---\n'
@@ -139,7 +139,7 @@ class EventLogWatcher(object):
       if suppress_error:
         logging.debug('Upload handler error')
       else:
-        raise ScanException(utils.FormatExceptionOnly())
+        raise ScanException(debug_utils.FormatExceptionOnly())
       return
 
     try:
@@ -154,7 +154,7 @@ class EventLogWatcher(object):
       if suppress_error:
         logging.debug('Upload handler error')
       else:
-        raise ScanException(utils.FormatExceptionOnly())
+        raise ScanException(debug_utils.FormatExceptionOnly())
 
   def ScanEventLogs(self, suppress_error=True, periodic=False):
     '''Scans event logs.
@@ -194,7 +194,7 @@ class EventLogWatcher(object):
             if chunk_info is not None:
               chunks.append(chunk_info)
           except:  # pylint: disable=W0702
-            msg = relative_path + ': ' + utils.FormatExceptionOnly()
+            msg = relative_path + ': ' + debug_utils.FormatExceptionOnly()
             if suppress_error:
               logging.info(msg)
             else:

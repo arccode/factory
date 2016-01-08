@@ -30,7 +30,7 @@ from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test.factory import TestState
 from cros.factory.test.test_lists import test_lists
-from cros.factory.test import utils
+from cros.factory.utils import debug_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -372,7 +372,7 @@ class TestListCommand(Subcommand):
             sys.exit('goofy failed to come up; status is %r',
                      status['status'])
         except:  # pylint: disable=W0702
-          status_summary = 'Exception: %s' % utils.FormatExceptionOnly()
+          status_summary = 'Exception: %s' % debug_utils.FormatExceptionOnly()
           if 'Connection refused' in status_summary:
             # Still waiting for goofy to open its RPC; print a friendly
             # error message

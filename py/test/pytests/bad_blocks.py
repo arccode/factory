@@ -29,9 +29,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI, Escape, MakeLabel
+from cros.factory.utils import debug_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.file_utils import GetMainStorageDevice
 from cros.factory.utils.process_utils import Spawn
@@ -123,7 +123,7 @@ class BadBlocksTest(unittest.TestCase):
     try:
       self._CheckBadBlocksImpl()
     except:
-      self.ui.Fail(utils.FormatExceptionOnly())
+      self.ui.Fail(debug_utils.FormatExceptionOnly())
       raise
     else:
       self.ui.Pass()

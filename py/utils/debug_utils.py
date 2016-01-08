@@ -57,6 +57,18 @@ def DumpStackTracebacks():
   return ''.join(results)
 
 
+def FormatExceptionOnly():
+  """Formats the current exception string.
+
+  Must only be called from inside an exception handler.
+
+  Returns:
+    A string.
+  """
+  return '\n'.join(
+      traceback.format_exception_only(*sys.exc_info()[:2])).strip()
+
+
 class DebugRequestHandler(SocketServer.StreamRequestHandler):
   """Prints all threads' stack traces."""
 

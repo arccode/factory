@@ -19,12 +19,12 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.fixture.bft_fixture import (CreateBFTFixture,
                                                    TEST_ARG_HELP)
 from cros.factory.tools import ghost
+from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
 
 
@@ -143,7 +143,7 @@ class Scan(unittest.TestCase):
             label_zh=u'連不到 shopfloor server: %s' % e)
       except:  # pylint: disable=W0702
         logging.exception('select_aux_data failed')
-        return SetError(utils.FormatExceptionOnly())
+        return SetError(debug_utils.FormatExceptionOnly())
       factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.event_log_key:
@@ -194,7 +194,7 @@ class Scan(unittest.TestCase):
           self.dut.vpd.ro.Update({self.args.ro_vpd_key: scan_value})
       except:  # pylint: disable=W0702
         logging.exception('Setting VPD failed')
-        return SetError(utils.FormatExceptionOnly())
+        return SetError(debug_utils.FormatExceptionOnly())
 
     self.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
     self.ui.Pass()

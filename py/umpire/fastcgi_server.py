@@ -204,7 +204,7 @@ class SessionMediator(object):
       return self.dispatcher._dispatch(method, params)  # pylint: disable=W0212
     except:  # pylint: disable=W0702
       # Formats the current exception string.
-      # Copied from py.test.utils.FormatExceptionOnly().
+      # Copied from py.utils.debug_utils.FormatExceptionOnly().
       self.session[self.XMLRPC_EXCEPTION] = '\n'.join(
           traceback.format_exception_only(*sys.exc_info()[:2])).strip()
       raise

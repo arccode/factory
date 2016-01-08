@@ -9,8 +9,6 @@
 
 import os
 import re
-import sys
-import traceback
 
 import factory_common  # pylint: disable=W0611
 
@@ -56,15 +54,3 @@ def var_log_messages_before_reboot(lines=100,
   # Done! Return the last few lines.
   return tail_lines[-lines:] + [
       '<after reboot, kernel came up at %s>' % match.group(1)]
-
-
-def FormatExceptionOnly():
-  """Formats the current exception string.
-
-  Must only be called from inside an exception handler.
-
-  Returns:
-    A string.
-  """
-  return '\n'.join(
-      traceback.format_exception_only(*sys.exc_info()[:2])).strip()

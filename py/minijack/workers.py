@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 
 import minijack_common  # pylint: disable=W0611
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.utils.shelve_utils import OpenShelfOrBackup
+from cros.factory.utils import debug_utils
 from datatypes import EventBlob, GenerateEventStreamsFromYaml
 
 EVENT_DELIMITER = '\n---\n'
@@ -112,7 +112,8 @@ class FileScanner(WorkerBase):
             try:
               chunk = self._ScanEventLog(short_path)
             except:  # pylint: disable=W0702
-              logging.info(short_path + ': ' + utils.FormatExceptionOnly())
+              logging.info(short_path + ': ' +
+                           debug_utils.FormatExceptionOnly())
             if chunk:
               logging.info('Get new event logs (%s, %d bytes)',
                            short_path, len(chunk))
@@ -214,7 +215,7 @@ class EventLoadingWorker(WorkerBase):
     except:  # pylint: disable=W0702
       logging.exception('Error on reading log file %s: %s',
                         file_path,
-                        utils.FormatExceptionOnly())
+                        debug_utils.FormatExceptionOnly())
       return None
 
     preamble_pos = text.rfind(PREAMBLE_PATTERN)

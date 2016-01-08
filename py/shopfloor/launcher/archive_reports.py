@@ -18,12 +18,12 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor import INCREMENTAL_EVENTS_DIR
 from cros.factory.shopfloor import REPORTS_DIR
 from cros.factory.test.shopfloor import get_instance
-from cros.factory.test.utils import FormatExceptionOnly
 from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.utils import net_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.debug_utils import FormatExceptionOnly
 
 ARCHIVE_DIR = 'archive'
 RECYCLE_DIR = 'recycle_bin'

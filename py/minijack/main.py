@@ -25,7 +25,7 @@ import time
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
+from cros.factory.utils import debug_utils
 
 import minijack_common  # pylint: disable=W0611
 import db
@@ -115,7 +115,7 @@ class EventSinker(object):
           invoker(packet)
         except:  # pylint: disable=W0702
           logging.exception('Error on invoking the exporter: %s',
-                            utils.FormatExceptionOnly())
+                            debug_utils.FormatExceptionOnly())
 
 
 class Minijack(object):

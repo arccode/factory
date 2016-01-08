@@ -10,10 +10,10 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.rf import cellular
 from cros.factory.test.rf.utils import CheckPower, FormattedPower
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.test.pytests.rf_framework import RfFramework
-from cros.factory.utils.sync_utils import PollForCondition
 from cros.factory.test.rf.n1914a import N1914A
+from cros.factory.utils import debug_utils
+from cros.factory.utils.sync_utils import PollForCondition
 
 ENABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=5'
 DISABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=1'
@@ -171,7 +171,7 @@ class RadiatedCellularGobiImpl(RfFramework):
         self.field_to_eventlog[measurement_name]['meet'] = meet
       except:  # pylint: disable=W0702
         # In order to collect more data, finish the whole test even if it fails.
-        exception_string = utils.FormatExceptionOnly()
+        exception_string = debug_utils.FormatExceptionOnly()
         failure = 'Unexpected failure on %s: %s' % (
             measurement_name, exception_string)
         factory.console.info(failure)

@@ -13,8 +13,8 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils import debug_utils
 
 
 class SelectAuxField(unittest.TestCase):
@@ -55,7 +55,7 @@ class SelectAuxField(unittest.TestCase):
           {self.args.col_name: self.args.choices.get(select_value)})
     except:  # pylint: disable=W0702
       logging.exception('save_aux_data failed')
-      return SetError(utils.FormatExceptionOnly())
+      return SetError(debug_utils.FormatExceptionOnly())
 
     # Update tests according to shopfloor aux_data and test run_if setting.
     factory.get_state_instance().UpdateSkippedTests()

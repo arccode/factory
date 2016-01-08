@@ -21,8 +21,8 @@ from cros.factory.test.event_log import Log
 from cros.factory.test.rf import cellular
 from cros.factory.test.rf.utils import CheckPower
 from cros.factory.test import factory
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils import debug_utils
 from cros.factory.utils import sync_utils
 
 RX_TEST_COMMAND = 'AT$QCAGC="%s",%d,"%s"'
@@ -68,7 +68,7 @@ class CellularGobiRSSI(unittest.TestCase):
       self.modem.ExpectLine('OK')
     except:  # pylint: disable=W0702
       # Modem might need retry to get a valid response, throw warning
-      exception_string = utils.FormatExceptionOnly()
+      exception_string = debug_utils.FormatExceptionOnly()
       factory.console.warning(exception_string)
       rssi = None
     return rssi

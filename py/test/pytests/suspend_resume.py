@@ -28,9 +28,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils.process_utils import Spawn
@@ -162,7 +162,7 @@ class SuspendResumeTest(unittest.TestCase):
         except IOError:
           # The write to wakealarm returns EINVAL (22) if no alarm is active
           logging.warn('Write to wakealarm failed, assuming we woke: %s',
-                       utils.FormatExceptionOnly())
+                       debug_utils.FormatExceptionOnly())
           break
         if (self._ReadSuspendCount() >= self.initial_suspend_count + self.run
             and self._ReadCurrentTime() < cur_time +
@@ -193,7 +193,7 @@ class SuspendResumeTest(unittest.TestCase):
       # This happens if wakeup_count does not match, typically this means
       # there was an unexpected early wake event.
       raise IOError('Failed to write to wakeup_count (early wake): %s' %
-                    utils.FormatExceptionOnly())
+                    debug_utils.FormatExceptionOnly())
     logging.info('Suspending at %d', self._ReadCurrentTime())
     try:
       with open('/sys/power/state', 'w') as f:
@@ -201,10 +201,10 @@ class SuspendResumeTest(unittest.TestCase):
     except IOError as err:
       if err.errno == errno.EBUSY:
         raise IOError('EBUSY: Early wake event when attempting suspend: %s' %
-                      utils.FormatExceptionOnly())
+                      debug_utils.FormatExceptionOnly())
       else:
         raise IOError('Failed to write to /sys/power/state: %s' %
-                      utils.FormatExceptionOnly())
+                      debug_utils.FormatExceptionOnly())
     logging.info('Returning from suspend at %d', self._ReadCurrentTime())
 
   def _ReadSuspendCount(self):

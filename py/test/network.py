@@ -20,7 +20,7 @@ import pexpect
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test.utils import FormatExceptionOnly
+from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
@@ -185,7 +185,7 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
       sync_utils.PollForCondition(poll_method=_obtain_IP,
                                   condition_name='Setup IP address')
   except:  # pylint: disable=W0702
-    exception_string = FormatExceptionOnly()
+    exception_string = debug_utils.FormatExceptionOnly()
     factory.console.error('Unable to setup network: %s', exception_string)
   factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
 

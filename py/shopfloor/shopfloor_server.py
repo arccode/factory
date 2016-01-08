@@ -29,7 +29,6 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
-from cros.factory.test import utils
 from cros.factory.utils import debug_utils
 
 
@@ -113,7 +112,7 @@ class MyXMLRPCServer(SocketServer.ThreadingMixIn,
       return SimpleXMLRPCServer._dispatch(self, method, params)
     except:
       logging.exception('Exception in method %s', method)
-      self.local.exception = utils.FormatExceptionOnly()
+      self.local.exception = debug_utils.FormatExceptionOnly()
       raise
 
 
