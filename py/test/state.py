@@ -469,9 +469,11 @@ class FactoryState(object):
     '''Returns system status information.
 
     This may include system load, battery status, etc. See
-    cros.factory.test.dut.status.SystemStatus.
+    cros.factory.test.dut.status.SystemStatus. Return None
+    when there is no DUT connected.
     '''
-    return self._dut.status.Snapshot().__dict__
+    if self._dut.IsReady():
+      return self._dut.status.Snapshot().__dict__
 
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,

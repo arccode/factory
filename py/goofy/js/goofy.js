@@ -2816,6 +2816,7 @@ cros.factory.Goofy.prototype.PERCENT_BATTERY_FORMAT = (
  */
 cros.factory.Goofy.prototype.updateStatus = function() {
     this.sendRpc('get_system_status', [], function(status) {
+        if (!status) status =[]
         this.systemInfo['ips'] = status['ips'];
         this.setSystemInfo(this.systemInfo);
 
@@ -2827,12 +2828,16 @@ cros.factory.Goofy.prototype.updateStatus = function() {
                                        ).innerHTML = value;
         }
 
+        function canCalculateCpuStatus(oldStatus, newStatus) {
+          return oldStatus && oldStatus['cpu'] && newStatus['cpu'];
+        }
+
         setValue('goofy-load-average',
                  status['load_avg'] ?
                  this.LOAD_AVERAGE_FORMAT.format(status['load_avg'][0]) :
                  null);
 
-        if (this.lastStatus) {
+        if (canCalculateCpuStatus(this.lastStatus, status)) {
             var lastCpu = goog.math.sum.apply(this, this.lastStatus['cpu']);
             var currentCpu = goog.math.sum.apply(this, status['cpu']);
             var lastIdle = this.lastStatus['cpu'][3];
