@@ -6,6 +6,7 @@
 """Base class for DUT system components."""
 
 from __future__ import print_function
+import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import type_utils
@@ -13,6 +14,9 @@ from cros.factory.utils import type_utils
 
 # Default component property - using lazy loaded property implementation.
 DUTProperty = type_utils.LazyProperty
+
+# Use subprocess.CalledProcessError for invocation exceptions.
+CalledProcessError = subprocess.CalledProcessError
 
 
 class DUTException(Exception):

@@ -5,7 +5,6 @@
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test.dut import board
 from cros.factory.test.dut import component
 from cros.factory.test.dut import utils
 
@@ -13,7 +12,7 @@ from cros.factory.test.dut import utils
 # Forward the exception for easy access to all DUT (board, component)
 # exceptions.
 DUTException = component.DUTException
-CalledProcessError = board.CalledProcessError
+CalledProcessError = component.CalledProcessError
 
 # Forward the correct DUT object factory.
 Create = utils.CreateBoard

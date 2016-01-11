@@ -7,7 +7,6 @@
 
 from __future__ import print_function
 import glob
-import subprocess
 import tempfile
 
 # Assume most DUTs will be running POSIX os.
@@ -39,7 +38,7 @@ from cros.factory.utils import file_utils
 
 DUTProperty = component.DUTProperty
 DUTException = component.DUTException
-CalledProcessError = subprocess.CalledProcessError
+CalledProcessError = component.CalledProcessError
 
 
 class DUTBoard(object):
