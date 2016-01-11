@@ -44,7 +44,7 @@ class Storage(component.DUTComponent):
       output = self._dut.CallOutput(['df', '--output=target', path])
       if not output:
         return None
-      match = re.search(r'^(/[/\w]+)$', output, re.MULTILINE)
+      match = re.search(r'^(/[/\w]*)$', output, re.MULTILINE)
       if not match:
         logging.warning('remount: The output of df is unexpected:\n%s', output)
         return None
