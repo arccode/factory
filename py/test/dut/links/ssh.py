@@ -139,8 +139,8 @@ class SSHLink(link.DUTLink):
       shell = False
 
     logging.debug('SSHLink: Run [%r]', command)
-    return subprocess.call(command, stdin=stdin, stdout=stdout, stderr=stderr,
-                           shell=shell)
+    return subprocess.Popen(command, shell=shell, close_fds=True, stdin=stdin,
+                            stdout=stdout, stderr=stderr)
 
   def IsReady(self):
     """See DUTLink.IsReady"""

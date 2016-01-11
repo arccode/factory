@@ -6,17 +6,31 @@
 """Tests for DUTBoard helper functions."""
 
 import mock
+import subprocess
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.dut.link import DUTLink
+from cros.factory.test.dut import link
 from cros.factory.test.dut.board import DUTBoard
 from cros.factory.test.dut.board import CalledProcessError
+
+
+class MockProcess(object):
+  def __init__(self, returncode):
+    self._returncode = returncode
+
+  def wait(self):
+    return
+
+  @property
+  def returncode(self):
+    return self._returncode
+
 
 class BaseTargetTest(unittest.TestCase):
 
   def setUp(self):
-    self.link = DUTLink()
+    self.link = link.DUTLink()
     self.dut = DUTBoard(self.link)
 
   def testPath(self):
@@ -52,26 +66,25 @@ class BaseTargetTest(unittest.TestCase):
     self.dut.WriteFile('/non-exist', 'TEST')
 
   def testCall(self):
-    self.link.Shell = mock.MagicMock(return_value=1)
+    self.link.Shell = mock.MagicMock(return_value=MockProcess(1))
     self.assertEquals(self.dut.Call(['ls']), 1)
     self.link.Shell.assert_called_with(['ls'], None, None, None)
 
   def testCheckCall(self):
-    self.link.Shell = mock.MagicMock(return_value=0)
+    self.link.Shell = mock.MagicMock(return_value=MockProcess(0))
     self.assertEquals(self.dut.CheckCall(['ls']), 0)
     self.link.Shell.assert_called_with(['ls'], None, None, None)
 
-    self.link.Shell = mock.MagicMock(side_effect=CalledProcessError(
-        returncode=1, cmd='ls'))
+    self.link.Shell = mock.MagicMock(return_value=MockProcess(1))
     with self.assertRaises(CalledProcessError):
       self.dut.CheckCall(['ls'])
     self.link.Shell.assert_called_with(['ls'], None, None, None)
 
   def testCheckOutput(self):
-    def fakeCallSuccess(command, stdin, stdout, stderr):
+    def fakeCallSuccess(command, stdin, stdout, stderr, log):
       stdout.write('fake data')
       return 0
-    def fakeCallFailure(command, stdin, stdout, stderr):
+    def fakeCallFailure(command, stdin, stdout, stderr, log):
       stdout.write('fake data')
       return 1
     self.dut.Call = mock.MagicMock(side_effect=fakeCallSuccess)
@@ -81,10 +94,10 @@ class BaseTargetTest(unittest.TestCase):
       self.dut.CheckOutput(['cmd'])
 
   def testCallOutput(self):
-    def fakeCallSuccess(command, stdin, stdout, stderr):
+    def fakeCallSuccess(command, stdin, stdout, stderr, log):
       stdout.write('fake data')
       return 0
-    def fakeCallFailure(command, stdin, stdout, stderr):
+    def fakeCallFailure(command, stdin, stdout, stderr, log):
       stdout.write('fake data')
       return 1
     self.dut.Call = mock.MagicMock(side_effect=fakeCallSuccess)

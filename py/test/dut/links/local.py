@@ -5,6 +5,7 @@
 
 """Implementation of cros.factory.test.dut.link.DUTLink on local system."""
 
+import pipes
 import shutil
 import subprocess
 
@@ -32,8 +33,14 @@ class LocalLink(link.DUTLink):
 
   def Shell(self, command, stdin=None, stdout=None, stderr=None):
     """See DUTLink.Shell"""
-    return subprocess.call(command, stdin=stdin, stdout=stdout, stderr=stderr,
-                           shell=isinstance(command, basestring))
+
+    # subprocess.Popen will call as (['sh', '-c'] + args) if we don't set
+    # shell=True. To get same code behavior between different links, we want to
+    # always do shell=True so here we have to quote explicitly.
+    if not isinstance(command, basestring):
+      command = ' '.join(pipes.quote(param) for param in command)
+    return subprocess.Popen(command, shell=True, close_fds=True, stdin=stdin,
+                            stdout=stdout, stderr=stderr)
 
   def IsReady(self):
     """See DUTLink.IsReady"""

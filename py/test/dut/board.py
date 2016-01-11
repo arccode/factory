@@ -7,6 +7,8 @@
 
 from __future__ import print_function
 import glob
+import logging
+import subprocess
 import tempfile
 
 # Assume most DUTs will be running POSIX os.
@@ -77,6 +79,10 @@ class DUTBoard(object):
   Attributes:
     link: A cros.factory.test.dut.link.DUTLink instance for accessing DUT.
   """
+
+  # Special values to make Popen work like subprocess.
+  PIPE = subprocess.PIPE
+  STDOUT = subprocess.STDOUT
 
   def __init__(self, dut_link=None):
     """Constructor.
@@ -247,21 +253,38 @@ class DUTBoard(object):
     """
     return self.link.Push(local, remote)
 
-  def Call(self, command, stdin=None, stdout=None, stderr=None):
-    """Executes a command on DUT, using subprocess.call convention.
+  def Popen(self, command, stdin=None, stdout=None, stderr=None, log=False):
+    """Executes a command on DUT using subprocess.Popen convention.
 
     Args:
       command: A string or a list of strings for command to execute.
       stdin: A file object to override standard input.
       stdout: A file object to override standard output.
       stderr: A file object to override standard error.
+      log: True (for logging.info) or a logger object to keep logs before
+          running the command.
+
+    Returns:
+      An object similiar to subprocess.Popen (see link.Shell).
+    """
+    if log:
+      logger = logging.info if log is True else log
+      logger('%s Running: %r', type(self), command)
+    return self.link.Shell(command, stdin, stdout, stderr)
+
+  def Call(self, *args, **kargs):
+    """Executes a command on DUT, using subprocess.call convention.
+
+    The arguments are explained in Popen.
 
     Returns:
       Exit code from executed command.
     """
-    return self.link.Shell(command, stdin, stdout, stderr)
+    process = self.Popen(*args, **kargs)
+    process.wait()
+    return process.returncode
 
-  def CheckCall(self, command, stdin=None, stdout=None, stderr=None):
+  def CheckCall(self, command, stdin=None, stdout=None, stderr=None, log=False):
     """Executes a command on DUT, using subprocess.check_call convention.
 
     Args:
@@ -276,12 +299,12 @@ class DUTBoard(object):
     Raises:
       CalledProcessError if the exit code is non-zero.
     """
-    exit_code = self.Call(command, stdin, stdout, stderr)
+    exit_code = self.Call(command, stdin, stdout, stderr, log)
     if exit_code != 0:
       raise CalledProcessError(returncode=exit_code, cmd=command)
     return exit_code
 
-  def CheckOutput(self, command, stdin=None, stderr=None):
+  def CheckOutput(self, command, stdin=None, stderr=None, log=False):
     """Executes a command on DUT, using subprocess.check_output convention.
 
     Args:
@@ -297,7 +320,7 @@ class DUTBoard(object):
       CalledProcessError if the exit code is non-zero.
     """
     with tempfile.TemporaryFile() as stdout:
-      exit_code = self.Call(command, stdin, stdout, stderr)
+      exit_code = self.Call(command, stdin, stdout, stderr, log)
       stdout.flush()
       stdout.seek(0)
       output = stdout.read()

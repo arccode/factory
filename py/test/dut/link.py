@@ -29,10 +29,10 @@ class DUTLink(object):
     """
     raise NotImplementedError
 
-  def Shell(self, command, stdin=None, stdout=None, stderr=None):
+  def Shell(command, stdin=None, stdout=None, stderr=None):
     """Executes a command on DUT.
 
-    The calling convention is similar to subprocess.call, but only a subset of
+    The calling convention is similar to subprocess.Popen, but only a subset of
     parameters are supported due to platform limitation.
 
     Args:
@@ -42,9 +42,7 @@ class DUTLink(object):
       stderr: A file object to override standard error.
 
     Returns:
-      Exit code from executed command.
-      If stdout, or stderr is not None, the output is stored in corresponding
-      object.
+      An object representing the process, similar to subprocess.Popen.
     """
     raise NotImplementedError
 
