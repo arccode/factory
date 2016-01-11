@@ -58,8 +58,8 @@ class SystemInfo(component.DUTComponent):
   You can also "override" some properties by using Overrides(name, value).
   """
 
-  def __init__(self, dut=None):
-    super(SystemInfo, self).__init__(dut)
+  def __init__(self, _dut=None):
+    super(SystemInfo, self).__init__(_dut)
     self._cached = {}
     self._overrides = {}
 
@@ -155,7 +155,7 @@ class SystemInfo(component.DUTComponent):
     for eth_path in eth_paths:
       address_path = self._dut.path.join(eth_path, 'address')
       if self._dut.path.exists(address_path):
-        macs[self._path.basename(eth_path)] = self._dut.ReadFile(
+        macs[self._dut.path.basename(eth_path)] = self._dut.ReadFile(
             address_path).strip()
     return macs
 

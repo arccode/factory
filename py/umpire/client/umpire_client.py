@@ -80,7 +80,7 @@ class UmpireClientInfo(object):
       'serial_number', 'mlb_serial_number', 'firmware_version',
       'ec_version', 'pd_version', 'macs', 'stage']
 
-  def __init__(self, dut=None):
+  def __init__(self, _dut=None):
     super(UmpireClientInfo, self).__init__()
     # serial_number, mlb_serial_number, firmware, ec and wireless mac address
     # are detected in dut.info.SystemInfo module.
@@ -92,7 +92,7 @@ class UmpireClientInfo(object):
     self.pd_version = None
     self.macs = dict()
     self.stage = None
-    self.dut = dut.Create() if dut is None else dut
+    self.dut = dut.Create() if _dut is None else _dut
 
     self.Update()
 
