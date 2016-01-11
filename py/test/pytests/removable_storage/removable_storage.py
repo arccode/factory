@@ -184,7 +184,12 @@ class RemovableStorageTest(unittest.TestCase):
           optional=True),
       Arg(
           'usbpd_port_polarity', tuple,
-          'A tuple of integers indicating (port, polarity)', optional=True)]
+          'A tuple of integers indicating (port, polarity)', optional=True),
+      Arg(
+          'create_partition', bool,
+          'Try to create a small partition on the media. This is to check if all the pins on the '
+          'sd card reader module are intact. If not specify, this test will be run for SD card.',
+          default=None, optional=True)]
   # pylint: disable=E1101
 
   def setUp(self):
@@ -291,6 +296,43 @@ class RemovableStorageTest(unittest.TestCase):
 
     This method executes random and / or sequential read / write test according to dargs.
     """
+
+    def PrepareDDCommand(ifile=None, ofile=None, seek=0, skip=0, bs=None, count=None, sync=False):
+      """Prepare the dd command for read / write test.
+
+      Args:
+        ifile: input file / device.
+        ofile: ouput file / device.
+        seek: number of blocks to be skipped from the start of the output.
+        skip: number of blocks to be skipped from the start of the input.
+        bs: block size in byte.
+        count: number of blocks to read / write.
+        sync: force sync or not.
+
+      Returns:
+        A string of command to be executed.
+      """
+      cmd = ['dd']
+      if ifile:
+        cmd.append('if=%s' % ifile)
+      if ofile:
+        cmd.append('of=%s' % ofile)
+      if seek:
+        cmd.append('seek=%d' % seek)
+      if skip:
+        cmd.append('skip=%d' % skip)
+      if bs:
+        cmd.append('bs=%d' % bs)
+      if count:
+        cmd.append('count=%d' % count)
+      cmd = ' '.join(cmd)
+
+      # Some board's dd tool do not support 'conv' argument to support fdatasync.
+      # Use sync instead.
+      if sync:
+        cmd += ' && sync'
+      return cmd
+
     self._state = _STATE_ACCESSING
 
     self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
@@ -337,12 +379,13 @@ class RemovableStorageTest(unittest.TestCase):
           # Select one random block as starting point.
           random_block = random.randint(random_head, random_tail)
 
-          dd_args = ['dd', 'if=%s' % dev_path, 'of=%s' % tmp_file,
-                     'bs=%d' % self.args.block_size,
-                     'count=%d' % block_count, 'skip=%d' % random_block]
+          dd_cmd = PrepareDDCommand(dev_path, tmp_file,
+                                    bs=self.args.block_size,
+                                    count=block_count,
+                                    skip=random_block)
           try:
             read_start = time.time()
-            self._dut.CheckCall(dd_args)
+            self._dut.CheckCall(dd_cmd)
             read_finish = time.time()
           except Exception as e:  # pylint: disable=W0703
             factory.console.error('Failed to read block %s', e)
@@ -359,13 +402,14 @@ class RemovableStorageTest(unittest.TestCase):
             dd_input = '/dev/zero'
             out_block = chr(0x00) * bytes_to_operate
 
-          dd_args = ['dd', 'if=%s' % dd_input, 'of=%s' % dev_path,
-                     'bs=%d' % self.args.block_size,
-                     'count=%d' % block_count, 'seek=%d' % random_block,
-                     'conv=fdatasync']
+          dd_cmd = PrepareDDCommand(dd_input, dev_path,
+                                    bs=self.args.block_size,
+                                    count=block_count,
+                                    seek=random_block,
+                                    sync=True)
           try:
             write_start = time.time()
-            self._dut.CheckCall(dd_args)
+            self._dut.CheckCall(dd_cmd)
             write_finish = time.time()
           except Exception as e:  # pylint: disable=W0703
             factory.console.error('Failed to write block %s', e)
@@ -373,22 +417,24 @@ class RemovableStorageTest(unittest.TestCase):
             break
 
           # Check if the block was actually written, and restore the
-          # original content of the block.
-          dd_args = ['dd', 'if=%s' % dev_path,
-                     'bs=%d' % self.args.block_size,
-                     'count=%d' % block_count, 'skip=%d' % random_block]
-          b = self._dut.CheckOutput(dd_args)
+          # original content of the block.%d' % random_block]
+          dd_cmd = PrepareDDCommand(ifile=dev_path,
+                                    bs=self.args.block_size,
+                                    count=block_count,
+                                    skip=random_block)
+          b = self._dut.CheckOutput(dd_cmd)
           if b != out_block:
             factory.console.error('Failed to write block')
             ok = False
             break
           self._dut.WriteFile(tmp_file, in_block)
-          dd_args = ['dd', 'if=%s' % tmp_file, 'of=%s' % dev_path,
-                     'bs=%d' % self.args.block_size,
-                     'count=%d' % block_count, 'seek=%d' % random_block,
-                     'conv=fdatasync']
+          dd_cmd = PrepareDDCommand(tmp_file, dev_path,
+                                    bs=self.args.block_size,
+                                    count=block_count,
+                                    seek=random_block,
+                                    sync=True)
           try:
-            self._dut.CheckCall(dd_args)
+            self._dut.CheckCall(dd_cmd)
           except Exception as e:
             factory.console.error('Failed to write back block %s', e)
             ok = False
@@ -528,7 +574,8 @@ class RemovableStorageTest(unittest.TestCase):
                      device.device_node)
         self._target_device = device.device_node
         self._device_size = self.GetDeviceSize(self._target_device)
-        if self.args.media == 'SD':
+        if (self.args.create_partition or
+            (self.args.media == 'SD' and self.args.create_partition is None)):
           self.CreatePartition()
         self.VerifyUSBPDPolarity()
         self.TestReadWrite()
