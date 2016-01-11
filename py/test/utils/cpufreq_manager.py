@@ -9,7 +9,7 @@ import subprocess
 import traceback
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.utils import service_manager
+from cros.factory.utils import service_utils
 from cros.factory.utils.file_utils import WriteFile
 
 
@@ -55,8 +55,8 @@ class CpufreqManager(object):
     # Retry several times, since as per tbroch, writing to scaling_*
     # may be flaky.
     for retry_count in range(RETRY_COUNT):
-      thermal_service_status = (service_manager.Status.START if enabled
-                                else service_manager.Status.STOP)
+      thermal_service_status = (service_utils.Status.START if enabled
+                                else service_utils.Status.STOP)
       governor = 'interactive' if enabled else 'userspace'
       cpu_speed_hz = None if enabled else self.cpu_speed_hz
 
@@ -66,14 +66,14 @@ class CpufreqManager(object):
 
       for service in THERMAL_SERVICES:
         try:
-          current_service_status = service_manager.GetServiceStatus(service)
+          current_service_status = service_utils.GetServiceStatus(service)
         except subprocess.CalledProcessError:
           # These thermal services are kernel and board dependent. Just let it
           # go if we can not find the service.
           pass
         else:
           if (current_service_status != thermal_service_status):
-            service_manager.SetServiceStatus(service, thermal_service_status)
+            service_utils.SetServiceStatus(service, thermal_service_status)
 
       success = True
       exception = None

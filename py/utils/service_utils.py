@@ -5,8 +5,8 @@
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
+from cros.factory.utils.process_utils import CheckOutput
 
 
 START_TEXT = 'start/running'
@@ -24,15 +24,19 @@ def ParseServiceStatus(status_output):
     return Status.UNKNOWN
 
 
-def SetServiceStatus(service, status=None):
+def SetServiceStatus(service, status=None, dut=None):
   """Sets service to the given status and returns the status"""
   upstart_command = {
       None: 'status',
       Status.START: 'start',
       Status.STOP: 'stop'}[status]
-  stdout_data = process_utils.Spawn([upstart_command, service],
-                                    read_stdout=True, check_call=True,
-                                    log=True).stdout_data
+
+  check_output = dut.CheckOutput if dut else CheckOutput
+  cmd = [upstart_command, service]
+
+  logging.info('SetServiceStatus: cmd=%r, function=%r', cmd, check_output)
+  stdout_data = check_output(cmd)
+
   new_status = ParseServiceStatus(stdout_data)
   if status is not None:
     if new_status == status:
@@ -43,7 +47,7 @@ def SetServiceStatus(service, status=None):
   return new_status
 
 
-def GetServiceStatus(service, ignore_failure=False):
+def GetServiceStatus(service, ignore_failure=False, dut=None):
   '''Returns service status.
 
     Args:
@@ -55,7 +59,7 @@ def GetServiceStatus(service, ignore_failure=False):
       when failing to get status.
   '''
   try:
-    return SetServiceStatus(service, None)
+    return SetServiceStatus(service, None, dut)
   except:  # pylint: disable=W0702
     if not ignore_failure:
       raise
@@ -71,8 +75,9 @@ class ServiceManager(object):
   restore services that was affected to their status before.
   '''
 
-  def __init__(self):
+  def __init__(self, dut=None):
     self.original_status_map = {}
+    self.dut = dut
 
   def SetupServices(self, enable_services=None, disable_services=None):
     '''Makes sure the services in enable_services are started and those in
@@ -87,14 +92,14 @@ class ServiceManager(object):
         (Status.STOP, disable_services)):
       if services:
         for service in services:
-          original_status = GetServiceStatus(service)
+          original_status = GetServiceStatus(service, dut=self.dut)
           if original_status != status:
             self.original_status_map[service] = original_status
-            SetServiceStatus(service, status)
+            SetServiceStatus(service, status, self.dut)
 
   def RestoreServices(self):
     '''Restores the services affected in SetupServices back to their original
     states.'''
     for service, status in self.original_status_map.iteritems():
-      SetServiceStatus(service, status)
+      SetServiceStatus(service, status, self.dut)
     self.original_status_map.clear()

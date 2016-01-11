@@ -82,9 +82,9 @@ from cros.factory.test import test_ui
 from cros.factory.test.args import Arg, Args
 from cros.factory.test.fixture import arduino
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import service_manager
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import service_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -825,9 +825,10 @@ class WiFiThroughput(unittest.TestCase):
 
     # Ensure all required services are enabled.
     for service in _SERVICE_LIST:
-      if (service_manager.GetServiceStatus(service) ==
-          service_manager.Status.STOP):
-        service_manager.SetServiceStatus(service, service_manager.Status.START)
+      if (service_utils.GetServiceStatus(service, dut=self.dut) ==
+          service_utils.Status.STOP):
+        service_utils.SetServiceStatus(
+            service, service_utils.Status.START, self.dut)
 
     # Disable ethernet interfaces if needed.
     if self.args.disable_eth:

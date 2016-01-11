@@ -19,11 +19,11 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import connection_manager
 from cros.factory.test import state
-from cros.factory.test.utils.service_manager import GetServiceStatus
-from cros.factory.test.utils.service_manager import SetServiceStatus
-from cros.factory.test.utils.service_manager import Status
 from cros.factory.tools import chrome_debugger
 from cros.factory.utils import sync_utils
+from cros.factory.utils.service_utils import GetServiceStatus
+from cros.factory.utils.service_utils import SetServiceStatus
+from cros.factory.utils.service_utils import Status
 
 
 class Environment(object):

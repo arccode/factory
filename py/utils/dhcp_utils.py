@@ -17,10 +17,10 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import network
-from cros.factory.test.utils import service_manager
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import service_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
@@ -231,8 +231,8 @@ def StartDHCPManager(interfaces=None,
   DHCPManager.CleanupStaleInstance()
   if sys_utils.InCrOSDevice():
     # Wait for shill to start
-    sync_utils.WaitFor(lambda: service_manager.GetServiceStatus('shill') ==
-                       service_manager.Status.START, 15)
+    sync_utils.WaitFor(lambda: service_utils.GetServiceStatus('shill') ==
+                       service_utils.Status.START, 15)
 
   # Get bootp parameters from gateway DHCP server
   def _GetDefaultGatewayInterface():

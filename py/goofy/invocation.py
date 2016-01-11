@@ -42,10 +42,10 @@ from cros.factory.test.factory import TestState
 from cros.factory.test.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test.test_lists.test_lists import OldStyleTestList
-from cros.factory.test.utils.service_manager import ServiceManager
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
 
 
