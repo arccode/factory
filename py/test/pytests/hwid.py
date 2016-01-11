@@ -20,6 +20,7 @@ import re
 import unittest
 
 from cros.factory.hwid.v2.hwid_tool import HWID_RE
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
@@ -103,7 +104,7 @@ class ShopFloorHWIDTask(FactoryTask):
     self.test = test
 
   def Run(self):
-    shopfloor.update_local_hwid_data()
+    shopfloor.update_local_hwid_data(self.test.dut)
     self.test.template.SetState(_MESSAGE_FETCH_FROM_SHOP_FLOOR)
     self.test.hwid = shopfloor.get_hwid()
     self.Stop()
@@ -118,7 +119,7 @@ class AutoProbeHWIDTask(FactoryTask):
 
   def Run(self):
     if shopfloor.is_enabled():
-      shopfloor.update_local_hwid_data()
+      shopfloor.update_local_hwid_data(self.test.dut)
     self.test.template.SetState(_MESSAGE_AUTO_PROBE_HWID)
     gooftool_cmd = 'gooftool best_match_hwids'
     if self.test.args.missing:
@@ -249,6 +250,7 @@ class HWIDTest(unittest.TestCase):
     self.hwid = None
     self.hwid_list = None
     self.task_list = []
+    self.dut = dut.Create()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_TEST_DEFAULT_CSS)

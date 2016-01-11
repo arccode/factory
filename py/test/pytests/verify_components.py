@@ -52,7 +52,8 @@ class VerifyComponentsTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.factory_par = deploy_utils.FactoryPythonArchive(dut.Create())
+    self._dut = dut.Create()
+    self.factory_par = deploy_utils.FactoryPythonArchive(self._dut)
     self._shopfloor = shopfloor
     self.probed_results = None
     self._allow_unqualified = None
@@ -68,7 +69,7 @@ class VerifyComponentsTest(unittest.TestCase):
       self._ui.Run(blocking=False)
 
     if not self.args.skip_shopfloor:
-      shopfloor.update_local_hwid_data()
+      shopfloor.update_local_hwid_data(self._dut)
 
     self._allow_unqualified = phase.GetPhase() in [
         phase.PROTO, phase.EVT, phase.DVT]

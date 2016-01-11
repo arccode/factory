@@ -16,6 +16,7 @@ from cros.factory.gooftool import probe
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -53,6 +54,9 @@ class HWIDV3Test(unittest.TestCase):
           'Enable database checksum verification.', default=True, optional=True)
   ]
 
+  def setUp(self):
+    self._dut = dut.Create()
+
   def runTest(self):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
@@ -63,7 +67,7 @@ class HWIDV3Test(unittest.TestCase):
         'HWID checksum must be verified')
 
     if not self.args.skip_shopfloor:
-      shopfloor.update_local_hwid_data()
+      shopfloor.update_local_hwid_data(self._dut)
 
     template.SetState(test_ui.MakeLabel(
         'Probing components...',

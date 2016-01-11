@@ -24,8 +24,6 @@ For the protocol details, check:
 import hashlib
 import logging
 import os
-import shutil
-import tempfile
 import time
 import urlparse
 import xmlrpclib
@@ -351,7 +349,7 @@ def get_firmware_updater():
   return True
 
 
-def update_local_hwid_data(target_dir='/usr/local/factory/hwid'):
+def update_local_hwid_data(dut, target_dir='/usr/local/factory/hwid'):
   """Updates HWID information from shopfloor server.
 
   Executes the HWID updater retrieved from the shopfloor server
@@ -362,35 +360,23 @@ def update_local_hwid_data(target_dir='/usr/local/factory/hwid'):
   """
   updater_data = get_hwid_updater()
   if updater_data:
-    hwid_updater_sh = tempfile.NamedTemporaryFile(
-        prefix='hwid_updater.', suffix='.sh', delete=False)
-    hwid_updater_sh.write(updater_data)
-    os.fchmod(hwid_updater_sh.fileno(), 0755)
-    hwid_updater_sh.close()
-    # pylint: disable=E1101
-    factory.console.info(
-        'Received HWID updater %s from shopfloor server (md5sum %s); '
-        'executing',
-        hwid_updater_sh.name,
-        hashlib.md5(open(hwid_updater_sh.name).read()).hexdigest())
+    with dut.temp.TempFile(
+        prefix='hwid_updater.', suffix='.sh') as hwid_updater_sh:
+      dut.WriteFile(hwid_updater_sh, updater_data)
+      dut.CheckCall(['chmod', '0755', hwid_updater_sh])
+      # pylint: disable=E1101
+      factory.console.info(
+          'Received HWID updater %s from shopfloor server (md5sum %s); '
+          'executing',
+          hwid_updater_sh,
+          hashlib.md5(updater_data).hexdigest())
 
-    with open(factory.CONSOLE_LOG_PATH, 'a') as log:
-      temp_dir = tempfile.mkdtemp(prefix='hwid_updater_',
-                                  dir=os.path.dirname(target_dir))
-      try:
-        Spawn([hwid_updater_sh.name, temp_dir],
-              stdout=log, stderr=log, log=True,
-              check_call=True)
-        Spawn(['sync'], check_call=True)
-        for root, _, files in os.walk(temp_dir):
-          dst_dir = os.path.join(target_dir, os.path.relpath(root, temp_dir))
-          file_utils.TryMakeDirs(dst_dir)
-          for name in files:
-            os.rename(os.path.join(root, name), os.path.join(dst_dir, name))
-        Spawn(['sync'], check_call=True)
-      finally:
-        shutil.rmtree(temp_dir)
-        Spawn(['sync'], check_call=True)
+      with open(factory.CONSOLE_LOG_PATH, 'a') as log:
+        if not dut.path.isdir(target_dir):
+          dut.CheckCall(['mkdir', '-p', target_dir])
+        dut.CheckCall([hwid_updater_sh, target_dir],
+                               stdout=log, stderr=log)
+        dut.CheckCall('sync')
     return True
   else:
     factory.log('No HWID update available from shopfloor server')

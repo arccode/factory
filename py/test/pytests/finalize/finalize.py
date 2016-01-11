@@ -165,7 +165,7 @@ class Finalize(unittest.TestCase):
 
     # Check for HWID bundle update from shopfloor.
     if self.args.enable_shopfloor:
-      shopfloor.update_local_hwid_data()
+      shopfloor.update_local_hwid_data(self.dut)
 
     # Preprocess waive_tests: turn it into a list of tuples where the
     # first element is the regular expression of test id and the second
