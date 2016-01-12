@@ -13,8 +13,8 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros import factory
 from cros.factory.hwid.v2 import hwid_tool
+from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -58,7 +58,7 @@ class VerifyHWIDv2Test(unittest.TestCase):
         yaml.dump(d, f)
         f.flush()
 
-        process = Spawn([os.path.join(factory.FACTORY_PATH, 'bin', 'gooftool'),
+        process = Spawn([os.path.join(paths.FACTORY_PATH, 'bin', 'gooftool'),
                          '--v=4',
                          'verify_hwid_v2',
                          '--hwid=%s' % hwid,

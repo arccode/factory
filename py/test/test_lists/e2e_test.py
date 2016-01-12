@@ -10,18 +10,16 @@ import glob
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
-from cros.factory.test.test_lists.test_lists import (
-    TestList,
-    OperatorTest
-)
+from cros.factory.test.env import paths
+from cros.factory.test.test_lists.test_lists import OperatorTest
+from cros.factory.test.test_lists.test_lists import TestList
 
 
 def CreateTestLists():
   test_module_paths = [
-      os.path.join(factory.FACTORY_PATH, 'py', 'test', 'pytests',
+      os.path.join(paths.FACTORY_PATH, 'py', 'test', 'pytests',
                    '*', '*_e2etest.py'),
-      os.path.join(factory.FACTORY_PATH, 'py', 'test', 'pytests',
+      os.path.join(paths.FACTORY_PATH, 'py', 'test', 'pytests',
                    '*_e2etest.py'),
   ]
   with TestList('e2e-test', 'End-to-end tests for factory tests'):

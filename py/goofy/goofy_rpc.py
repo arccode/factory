@@ -31,6 +31,7 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
+from cros.factory.test.env import paths
 from cros.factory.test.event import Event, EventClient
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.tools import factory_bug
@@ -156,9 +157,9 @@ class GoofyRPC(object):
     # Record the existence of the host-based tag files, so we can restore them
     # after the update.
     device_tag = os.path.join(
-        factory.FACTORY_PATH, 'init', goofy_remote.DEVICE_TAG)
+        paths.FACTORY_PATH, 'init', goofy_remote.DEVICE_TAG)
     presenter_tag = os.path.join(
-        factory.FACTORY_PATH, 'init', goofy_remote.PRESENTER_TAG)
+        paths.FACTORY_PATH, 'init', goofy_remote.PRESENTER_TAG)
     is_device = os.path.exists(device_tag)
     is_presenter = os.path.exists(presenter_tag)
 
@@ -1132,7 +1133,7 @@ class GoofyRPC(object):
       # Restart Goofy and clear state.
       process_utils.Spawn(
           ['nohup ' +
-           os.path.join(factory.FACTORY_PATH, 'bin', 'factory_restart') +
+           os.path.join(paths.FACTORY_PATH, 'bin', 'factory_restart') +
            ' --automation-mode %s -a &' % automation_mode],
           shell=True, check_call=True)
       # Wait for a while.  This process should be killed long before

@@ -44,7 +44,7 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import state
-from cros.factory.test.test_lists import test_lists
+from cros.factory.test.env import paths
 from cros.factory.test.e2e_test.common import (
     AutomationMode, AutomationModePrompt, ParseAutomationMode)
 from cros.factory.test.event import Event
@@ -53,6 +53,7 @@ from cros.factory.test.event import EventServer
 from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
+from cros.factory.test.test_lists import test_lists
 from cros.factory.test.utils.charge_manager import ChargeManager
 from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
@@ -83,7 +84,7 @@ MIN_BATTERY_LEVEL_FOR_DISK_SYNC = 1.0
 MAX_CRASH_FILE_SIZE = 64 * 1024
 
 Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
-               'TERMINATING', 'TERMINATED'])
+                          'TERMINATING', 'TERMINATED'])
 
 
 def get_hwid_cfg():
@@ -366,7 +367,7 @@ class Goofy(GoofyBase):
 
   def start_ui(self):
     ui_proc_args = [
-        os.path.join(factory.FACTORY_PACKAGE_PATH, 'test', 'ui.py'),
+        os.path.join(paths.FACTORY_PACKAGE_PATH, 'test', 'ui.py'),
         self.options.test_list
     ]
     if self.options.verbose:
@@ -1474,7 +1475,7 @@ class Goofy(GoofyBase):
           'http://%s:%d/' %
           (net_utils.LOCALHOST, shopfloor.DEFAULT_SERVER_PORT))
       self.dummy_shopfloor = process_utils.Spawn(
-          [os.path.join(factory.FACTORY_PATH, 'bin', 'shopfloor_server'),
+          [os.path.join(paths.FACTORY_PATH, 'bin', 'shopfloor_server'),
            '--dummy'])
     elif self.test_list.options.shopfloor_server_url:
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
@@ -1497,7 +1498,7 @@ class Goofy(GoofyBase):
       self.cpu_usage_watcher = process_utils.Spawn(
           ['py/tools/cpu_usage_monitor.py', '-p',
            str(self.test_list.options.check_cpu_usage_period_secs)],
-          cwd=factory.FACTORY_PATH)
+          cwd=paths.FACTORY_PATH)
 
     # Enable thermal monitor
     if self.test_list.options.thermal_monitor_period_secs > 0:
@@ -1505,7 +1506,7 @@ class Goofy(GoofyBase):
           ['py/tools/thermal_monitor.py',
            '-p', str(self.test_list.options.thermal_monitor_period_secs),
            '-d', str(self.test_list.options.thermal_monitor_delta)],
-          cwd=factory.FACTORY_PATH)
+          cwd=paths.FACTORY_PATH)
 
     self.init_states()
     self.start_event_server()

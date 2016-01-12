@@ -12,7 +12,7 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.tools import audit_source_hashes
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -48,7 +48,7 @@ class AuditSourceHashesTest(unittest.TestCase):
     out = StringIO()
     self.assertRaisesRegexp(
         SystemExit, '^0$', audit_source_hashes.main,
-        [os.path.join(factory.FACTORY_PATH, 'py')], out)
+        [os.path.join(paths.FACTORY_PATH, 'py')], out)
     self.assertEquals('PASSED (1/1 samples passed).\n', out.getvalue())
 
   def testGooftoolLogSourceHashes(self):
@@ -58,7 +58,7 @@ class AuditSourceHashesTest(unittest.TestCase):
     os.environ['CROS_FACTORY_ROOT'] = self.tmpdir
 
     # Log the source hashes for this source tree.
-    Spawn([os.path.join(factory.FACTORY_PATH, 'bin', 'gooftool'),
+    Spawn([os.path.join(paths.FACTORY_PATH, 'bin', 'gooftool'),
            'log_source_hashes'], log=True, check_call=True)
 
     # We should find the event in this log.  Check that it works.

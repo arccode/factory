@@ -23,7 +23,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountPartition
@@ -117,7 +117,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
     self.tmp_dir = (self.args.tmp_dir or
                     tempfile.mkdtemp(prefix='test_make_factory_package.'))
     self.make_factory_package = os.path.join(
-        factory.FACTORY_PATH, 'setup', 'make_factory_package.sh')
+        paths.FACTORY_PATH, 'setup', 'make_factory_package.sh')
     self.hwid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              'testdata', 'hwid_v3_bundle_X86-GENERIC.sh')
     self.firmware_updater = os.path.join(self.tmp_dir,

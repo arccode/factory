@@ -10,6 +10,7 @@ import os
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import test_ui
+from cros.factory.test.env import paths
 
 _UI_TEMPLATE_PATH = '/ui_templates'
 
@@ -137,7 +138,7 @@ class BaseTemplate(object):
   def __init__(self, ui, template_name):
     self._ui = ui
 
-    template_base = os.path.join(factory.FACTORY_PACKAGE_PATH,
+    template_base = os.path.join(paths.FACTORY_PACKAGE_PATH,
                                  'goofy/static/ui_templates')
     html_file = os.path.join(template_base, template_name + '.html')
     assert os.path.exists(html_file), \

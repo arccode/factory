@@ -33,6 +33,7 @@ from xmlrpclib import Binary
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.test.event import EventClient, Event
 from cros.factory.test.rules import privacy
 from cros.factory.umpire.client import get_update
@@ -341,12 +342,12 @@ def get_firmware_updater():
     logging.info('No firmware updater available on shopfloor')
     return False
 
-  with open(factory.FIRMWARE_UPDATER_PATH, 'wb') as f:
+  with open(paths.FIRMWARE_UPDATER_PATH, 'wb') as f:
     f.write(firmware_updater)
 
   logging.info('Writing firmware updater from shopfloor to %s',
-               factory.FIRMWARE_UPDATER_PATH)
-  os.chmod(factory.FIRMWARE_UPDATER_PATH, 0755)
+               paths.FIRMWARE_UPDATER_PATH)
+  os.chmod(paths.FIRMWARE_UPDATER_PATH, 0755)
   return True
 
 

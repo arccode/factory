@@ -7,9 +7,9 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test import factory
-from cros.factory.test.args import Arg
 from cros.factory.test import dut
+from cros.factory.test.args import Arg
+from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -44,7 +44,7 @@ class OfflineTest(unittest.TestCase):
       # DUT is current machine, so the factory environment is already here
       return
 
-    root = factory.FACTORY_PATH
+    root = paths.FACTORY_PATH
 
     # make tar (tar command should be available on chromebooks and android
     # devices)

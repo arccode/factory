@@ -13,7 +13,7 @@ import traceback
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -186,7 +186,7 @@ def main(argv=None, out=sys.stderr):
   logging.basicConfig(level=logging.WARNING)
 
   if args.golden is None:
-    args.golden = os.path.join(factory.FACTORY_PATH, 'py')
+    args.golden = os.path.join(paths.FACTORY_PATH, 'py')
 
   sys.exit(0 if AuditHashes(args.golden, args.samples, out) else 1)
 

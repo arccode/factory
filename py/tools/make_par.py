@@ -40,7 +40,7 @@ import tempfile
 from distutils.sysconfig import get_python_lib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 # Template for the header that will be placed before the ZIP file to
@@ -149,8 +149,8 @@ def main(argv=None):
     os.mkdir(src)
     Spawn(['rsync', '-a',
            '--exclude', 'testdata',
-           os.path.join(factory.FACTORY_PATH, 'py'),
-           os.path.join(factory.FACTORY_PATH, 'bin'),
+           os.path.join(paths.FACTORY_PATH, 'py'),
+           os.path.join(paths.FACTORY_PATH, 'bin'),
            src],
           log=True, check_call=True)
     # Add files from overlay.
@@ -158,8 +158,8 @@ def main(argv=None):
       Spawn(['unzip', '-oq', f, '-d', src],
             log=True, check_call=True)
 
-    cros = os.path.join(par_build, 'cros')
-    os.mkdir(cros)
+    cros_dir = os.path.join(par_build, 'cros')
+    os.mkdir(cros_dir)
 
     rsync_args = ['rsync', '-a',
                   '--exclude', '*_unittest.py',
@@ -191,7 +191,7 @@ def main(argv=None):
         '--include', '*/',
         '--exclude', '*',
         os.path.join(src, 'py/'),
-        os.path.join(cros, 'factory')])
+        os.path.join(cros_dir, 'factory')])
     Spawn(rsync_args, log=True, check_call=True)
 
     # Copy necessary third-party packages.
@@ -208,12 +208,13 @@ def main(argv=None):
                          os.path.join(python_lib, 'yaml')])
 
     rsync_args.append(par_build)
-    Spawn(rsync_args, log=True, check_call=True, cwd=factory.FACTORY_PATH)
+    Spawn(rsync_args, log=True, check_call=True,
+          cwd=paths.FACTORY_PATH)
 
     # Add empty __init__.py files so Python realizes these directories
     # are modules.
-    open(os.path.join(cros, '__init__.py'), 'w')
-    open(os.path.join(cros, 'factory', '__init__.py'), 'w')
+    open(os.path.join(cros_dir, '__init__.py'), 'w')
+    open(os.path.join(cros_dir, 'factory', '__init__.py'), 'w')
 
     # Add an empty factory_common file (since many scripts import
     # factory_common).

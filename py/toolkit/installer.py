@@ -21,11 +21,11 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.tools import install_symlinks
 from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
+from cros.factory.utils.process_utils import Spawn
 
 
 INSTALLER_PATH = 'usr/local/factory/py/toolkit/installer.py'
@@ -418,7 +418,7 @@ def main():
 
   args = parser.parse_args()
 
-  src_root = factory.FACTORY_PATH
+  src_root = paths.FACTORY_PATH
   for _ in xrange(3):
     src_root = os.path.dirname(src_root)
 

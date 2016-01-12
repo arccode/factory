@@ -32,6 +32,7 @@ from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
 from cros.factory.test import dut
 from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.test.factory import TestState
 from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
@@ -592,7 +593,7 @@ def create_server(state_file_path=None, bind_address=None, port=None):
   instance = FactoryState(state_file_path)
   instance._resolver.AddPath(
       '/',
-      os.path.join(factory.FACTORY_PACKAGE_PATH, 'goofy/static'))
+      os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static'))
 
   server = ThreadedJSONRPCServer(
       (bind_address, port),

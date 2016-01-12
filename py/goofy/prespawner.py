@@ -15,13 +15,13 @@ from Queue import Queue
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 
 
 NUM_PRESPAWNED_PROCESSES = 1
 AUTOTEST_PRESPAWNER_PATH = '/usr/local/autotest/bin/prespawner.py'
-PYTEST_PRESPAWNER_PATH = os.path.join(factory.FACTORY_PATH,
+PYTEST_PRESPAWNER_PATH = os.path.join(paths.FACTORY_PATH,
                                       'py/goofy/invocation.py')
 
 

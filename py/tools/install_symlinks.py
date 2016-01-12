@@ -11,7 +11,7 @@ import sys
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.schema import Dict, FixedDict, Scalar
 
@@ -54,7 +54,8 @@ def InstallSymlinks(target, dest, mode, sudo=False, symlinks=None):
   assert mode in [MODE_MINI, MODE_FULL]
 
   if not symlinks:
-    with open(os.path.join(factory.FACTORY_PATH, 'misc/symlinks.yaml')) as f:
+    with open(os.path.join(paths.FACTORY_PATH,
+                           'misc/symlinks.yaml')) as f:
       symlinks = yaml.load(f)
 
   SYMLINKS_SCHEMA.Validate(symlinks)

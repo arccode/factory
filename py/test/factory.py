@@ -26,31 +26,12 @@ import sys
 import yaml
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
-
-SCRIPT_PATH = os.path.realpath(__file__)
-CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
-FACTORY_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
-FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
-CLIENT_PATH = FACTORY_PATH
-FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
-FIRMWARE_UPDATER_PATH = os.path.join(
-    FACTORY_PATH, 'board', 'chromeos-firmwareupdate')
-
-# Path to stateful partition on device.
-DEVICE_STATEFUL_PATH = '/mnt/stateful_partition'
-
-# Path for old-style test lists.
-TEST_LISTS_PATH = os.path.join(FACTORY_PATH, 'test_lists')
-
-# Name of Chrome data directory within the state directory.
-CHROME_DATA_DIR_NAME = 'chrome-data-dir'
-
-FACTORY_STATE_VERSION = 2
 
 # Regexp that all IDs should match.  Currently we just warn if it doesn't
 # match, for backward compatibility.  Note that this allows leading digits
@@ -155,8 +136,8 @@ def get_current_md5sum():
   Returns None if there has been no update (i.e., unable to read
   the MD5SUM file).
   """
-  if os.path.exists(FACTORY_MD5SUM_PATH):
-    return open(FACTORY_MD5SUM_PATH, 'r').read().strip()
+  if os.path.exists(paths.FACTORY_MD5SUM_PATH):
+    return open(paths.FACTORY_MD5SUM_PATH, 'r').read().strip()
   else:
     return None
 
@@ -253,7 +234,7 @@ def read_test_list(path=None, state_instance=None, text=None):
 
   # Add "LoadTestList(x)" allowing evaluation of another test list.
   def LoadTestList(name):
-    path = os.path.join(FACTORY_PATH, 'test_lists', name)
+    path = os.path.join(paths.FACTORY_PATH, 'test_lists', name)
     logging.info('LoadTestList: loading %s', path)
     execfile(path, test_list_locals)
   test_list_locals['LoadTestList'] = LoadTestList

@@ -14,9 +14,9 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
-from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.args import Arg
+from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.test_ui import Escape, MakeLabel, UI
 from cros.factory.test.ui_templates import OneScrollableSection
@@ -45,7 +45,7 @@ class UpdateFirmwareTest(unittest.TestCase):
     self.just_pass = False
     if self.args.umpire:
       if shopfloor.get_firmware_updater():
-        self.args.firmware_updater = factory.FIRMWARE_UPDATER_PATH
+        self.args.firmware_updater = paths.FIRMWARE_UPDATER_PATH
       else:
         self.just_pass = True
     else:

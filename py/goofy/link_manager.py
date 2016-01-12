@@ -17,8 +17,8 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
 from cros.factory.test import network
+from cros.factory.test.env import paths
 from cros.factory.test.utils import dhcp_utils
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
@@ -387,7 +387,7 @@ class DUTLinkManager(object):
                   if interface not in interface_blacklist]
 
     for interface in interfaces:
-      path = os.path.join(factory.FACTORY_PATH, 'bin',
+      path = os.path.join(paths.FACTORY_PATH, 'bin',
                           'relay_overlord_discovery_packet')
       self._relay_process = Spawn([path, interface], log=True)
 

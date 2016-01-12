@@ -13,12 +13,12 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.test.dut.links import ssh
 from cros.factory.test.dut.links import local
 
 dut_options = dict(
-    identity=os.path.join(factory.FACTORY_PATH, 'setup', 'sshkeys',
+    identity=os.path.join(paths.FACTORY_PATH, 'setup', 'sshkeys',
                           'testing_rsa'))
 
 class SSHLinkUnittest(unittest.TestCase):

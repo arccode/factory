@@ -37,6 +37,7 @@ from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.args import Args
 from cros.factory.test.e2e_test.common import AutomationMode
+from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
@@ -344,7 +345,7 @@ class TestInvocation(object):
             "open('%s', 'w'), protocol=2)"
             % result_file, file=f)
 
-      args = [os.path.join(os.path.dirname(factory.FACTORY_PATH),
+      args = [os.path.join(os.path.dirname(paths.FACTORY_PATH),
                            'autotest/bin/autotest'),
               '--output_dir', self.output_dir,
               control_file]
@@ -431,12 +432,12 @@ class TestInvocation(object):
         if self.test.has_automator:
           logging.info('Enable factory test automator for %r', pytest_name)
           if os.path.exists(os.path.join(
-              factory.FACTORY_PATH, 'py', 'test', 'pytests', pytest_name,
-              pytest_name + '_automator_private.py')):
+              paths.FACTORY_PATH, 'py', 'test', 'pytests',
+              pytest_name, pytest_name + '_automator_private.py')):
             pytest_name += '_automator_private'
           elif os.path.exists(os.path.join(
-              factory.FACTORY_PATH, 'py', 'test', 'pytests', pytest_name,
-              pytest_name + '_automator.py')):
+              paths.FACTORY_PATH, 'py', 'test', 'pytests',
+              pytest_name, pytest_name + '_automator.py')):
             pytest_name += '_automator'
           else:
             raise InvocationError('Cannot find automator for %r' % pytest_name)

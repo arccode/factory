@@ -43,8 +43,8 @@ from cros.factory.hwid.v2.yaml_datastore import YamlWrite
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import event_log
-from cros.factory.test import factory
-from cros.factory.test.factory import FACTORY_LOG_PATH, DEVICE_STATEFUL_PATH
+from cros.factory.test.env import paths
+from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.utils import file_utils
 from cros.factory.utils.debug_utils import SetupLogging
@@ -753,9 +753,9 @@ def UntarStatefulFiles(unused_options):
   If that file does not exist (which should only be R30 and earlier),
   this is a no-op.
   """
-  tar_file = os.path.join(DEVICE_STATEFUL_PATH, 'stateful_files.tar.xz')
+  tar_file = os.path.join(paths.DEVICE_STATEFUL_PATH, 'stateful_files.tar.xz')
   if os.path.exists(tar_file):
-    Spawn(['tar', 'xf', tar_file], cwd=DEVICE_STATEFUL_PATH,
+    Spawn(['tar', 'xf', tar_file], cwd=paths.DEVICE_STATEFUL_PATH,
           log=True, check_call=True)
   else:
     logging.warning('No stateful files at %s', tar_file)
@@ -770,7 +770,7 @@ def LogSourceHashes(options):  # pylint: disable=W0613
   # 警告：此行会验证工厂软件的完整性，禁止删除或修改。
   event_log.Log(
       'source_hashes',
-      **file_utils.HashSourceTree(os.path.join(factory.FACTORY_PATH, 'py')))
+      **file_utils.HashSourceTree(os.path.join(paths.FACTORY_PATH, 'py')))
 
 
 @Command('log_system_details')

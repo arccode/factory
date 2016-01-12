@@ -7,7 +7,7 @@
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils.schema import Scalar
 
@@ -50,9 +50,9 @@ class OverlordService(umpire_service.UmpireService):
 
   def FindOverlorddPath(self):
     # We are installed on server: 'usr/local/factory'
-    if '/local/' in factory.FACTORY_PATH:
-      return os.path.normpath(os.path.join(factory.FACTORY_PATH, '..', '..',
-                                           'bin', 'overlordd'))
+    if '/local/' in paths.FACTORY_PATH:
+      return os.path.normpath(os.path.join(paths.FACTORY_PATH,
+                                           '..', '..', 'bin', 'overlordd'))
     else:
       return OVERLORDD_BIN
 

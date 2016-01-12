@@ -16,7 +16,7 @@ import re
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import file_utils
@@ -193,7 +193,7 @@ def main():
     sys.exit('--no-auto-run-on-start must be used only when factory test '
              'automation is enabled')
 
-  Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
+  Spawn(['make', '--quiet'], cwd=paths.FACTORY_PATH,
         check_call=True, log=True)
   board = args.board or GetBoard(args.host)
 
@@ -210,7 +210,7 @@ def main():
   # on DUT.
   SpawnRsyncToDUT(
       ['-azlKC', '--force', '--exclude', '*.pyc'] +
-      [os.path.join(factory.FACTORY_PATH, x)
+      [os.path.join(paths.FACTORY_PATH, x)
        for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party', 'init')] +
       ['%s:/usr/local/factory' % args.host],
       check_call=True, log=True)
@@ -252,7 +252,7 @@ def main():
       sys.exit('Cannot update hwid without board')
     hwid_board = board.split('_')[-1]
     chromeos_hwid_path = os.path.join(
-        os.path.dirname(factory.FACTORY_PATH), 'chromeos-hwid')
+        os.path.dirname(paths.FACTORY_PATH), 'chromeos-hwid')
     Spawn(['./create_bundle', '--version', '3', hwid_board.upper()],
           cwd=chromeos_hwid_path, check_call=True, log=True)
     SpawnSSHToDUT([args.host, 'bash'],

@@ -15,7 +15,7 @@ import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -45,7 +45,7 @@ class DocTest(unittest.TestCase):
 
   def testMakeDoc(self):
     stderr_lines = Spawn(
-        ['make', 'doc'], cwd=factory.FACTORY_PATH,
+        ['make', 'doc'], cwd=paths.FACTORY_PATH,
         check_output=True, read_stderr=True,
         log=True, log_stderr_on_error=True).stderr_lines()
 

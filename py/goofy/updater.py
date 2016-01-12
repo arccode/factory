@@ -17,6 +17,7 @@ import uuid
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test.env import paths
 from cros.factory.umpire.client import get_update
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
@@ -128,7 +129,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
         new_md5sum)
 
   # /usr/local on the device (parent to both factory and autotest)
-  parent_dir = os.path.dirname(factory.FACTORY_PATH)
+  parent_dir = os.path.dirname(paths.FACTORY_PATH)
 
   # For autotest, do not use hard links and new directory. Since the
   # files in autotests are too big. Also, they will be different
@@ -158,7 +159,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
       factory_src_path,
       '%s/' % new_path)
 
-  hwid_path = os.path.join(factory.FACTORY_PATH, 'hwid')
+  hwid_path = os.path.join(paths.FACTORY_PATH, 'hwid')
   new_hwid_path = os.path.join(new_path, 'factory', 'hwid')
   if os.path.exists(hwid_path) and not os.path.exists(new_hwid_path):
     RunRsync(

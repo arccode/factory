@@ -20,6 +20,7 @@ import pexpect
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -288,7 +289,7 @@ def GetDHCPBootParameters(interface):
 
 def GetDHCPInterfaceBlacklist(blacklist_file=None):
   if not blacklist_file:
-    blacklist_file = os.path.join(factory.FACTORY_PATH, 'board',
+    blacklist_file = os.path.join(paths.FACTORY_PATH, 'board',
                                   'dhcp_interface_blacklist')
     if os.path.exists(blacklist_file):
       with open(blacklist_file) as f:

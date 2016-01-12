@@ -14,7 +14,7 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -37,7 +37,7 @@ class ShopFloorStandaloneTest(unittest.TestCase):
 
   def runTest(self):
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    Spawn(['make', '-s', '-C', factory.FACTORY_PATH,
+    Spawn(['make', '-s', '-C', paths.FACTORY_PATH,
            'par', 'PAR_DEST_DIR=%s' % self.tmp,
            'PAR_BUILD_DIR=%s' % self.tmp_build_dir],
           log=True, check_call=True)

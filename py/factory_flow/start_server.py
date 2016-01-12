@@ -18,7 +18,7 @@ from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, FactoryFlowCommand, GetFactoryParPath)
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.umpire.common import LoadBundleManifest
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -484,7 +484,7 @@ class StartServer(FactoryFlowCommand):
             fake_hwid_db = f.read()
       else:
         template_fake_hwid_path = os.path.join(
-            factory.FACTORY_PATH, 'py', 'factory_flow', 'templates',
+            paths.FACTORY_PATH, 'py', 'factory_flow', 'templates',
             'FAKE_HWID')
         with open(template_fake_hwid_path) as f:
           fake_hwid_db = f.read()

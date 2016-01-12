@@ -13,7 +13,7 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros import factory
+from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -40,7 +40,7 @@ class ValidHWIDsTest(unittest.TestCase):
       shutil.copyfile(f, os.path.join(tmp, os.path.basename(f)))
 
     # List all hwids
-    Spawn([os.path.join(factory.FACTORY_PATH, 'bin', 'hwid_tool'),
+    Spawn([os.path.join(paths.FACTORY_PATH, 'bin', 'hwid_tool'),
            '-p', tmp,
            'hwid_list'],
           log=True, log_stderr_on_error=True, check_call=True, read_stdout=True)

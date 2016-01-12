@@ -24,7 +24,7 @@ from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
 from chromite.lib import gs
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.tools import build_board
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
@@ -610,7 +610,7 @@ class FinalizeBundle(object):
 
     factory_par_time_old = os.stat(factory_par_path).st_mtime
 
-    patch_command = ([os.path.join(factory.FACTORY_PATH, 'bin', 'patch_image'),
+    patch_command = ([os.path.join(paths.FACTORY_PATH, 'bin', 'patch_image'),
                       '--input', self.factory_image_path,
                       '--output', 'IN_PLACE'] +
                      patch_image_args.split(' ') +

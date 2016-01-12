@@ -22,13 +22,14 @@ from cros.factory.test import factory
 # Imports needed for test list modules.  Some may be unused by this
 # module (hence disable=W06110), but they are included here so that
 # they can be imported directly by test lists.
+from cros.factory.test.env import paths
 from cros.factory.test.factory import RequireRun
 from cros.factory.utils.net_utils import WLAN  # pylint: disable=W0611
 
 
 # Directory for new-style test lists.
 TEST_LISTS_PATH = os.path.join(
-    factory.FACTORY_PACKAGE_PATH, 'test', 'test_lists')
+    paths.FACTORY_PACKAGE_PATH, 'test', 'test_lists')
 
 # File identifying the active test list.
 ACTIVE_PATH = os.path.join(TEST_LISTS_PATH, 'ACTIVE')
@@ -38,7 +39,7 @@ MAIN_TEST_LIST_ID = 'main'
 
 # Old symlinked custom directory (which may contain test lists).
 # For backward compatibility only.
-CUSTOM_DIR = os.path.join(factory.FACTORY_PATH, 'custom')
+CUSTOM_DIR = os.path.join(paths.FACTORY_PATH, 'custom')
 
 # State used to build test lists.
 #
@@ -419,7 +420,8 @@ def BuildAllTestLists(force_generic=False):
   # the contents yet, since that might be very slow and have side
   # effects; rather, we create an placeholder OldStyleTestList object
   # (which can be Load()ed on demand).
-  for d in [CUSTOM_DIR, factory.TEST_LISTS_PATH]:
+  old_style_test_lists_path = os.path.join(paths.FACTORY_PATH, 'test_lists')
+  for d in [CUSTOM_DIR, old_style_test_lists_path]:
     # Do this in sorted order to make sure that it's deterministic,
     # and we see test_list before test_list.generic.
     for path in sorted(glob.glob(os.path.join(d, 'test_list*'))):

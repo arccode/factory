@@ -15,7 +15,7 @@ import yaml
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import board_cmd_arg, FactoryFlowCommand
 from cros.factory.hacked_argparse import CmdArg
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.tools.gsutil import GSUtil
 from cros.factory.umpire.common import LoadBundleManifest
 from cros.factory.utils import file_utils
@@ -308,7 +308,7 @@ class CreateBundle(FactoryFlowCommand):
     logging.info('Preparing MANIFEST.yaml')
     manifest = None
     template_manifest_path = os.path.join(
-        factory.FACTORY_PATH, 'py', 'factory_flow', 'templates',
+        paths.FACTORY_PATH, 'py', 'factory_flow', 'templates',
         'MANIFEST_template.yaml')
     manifest = LoadBundleManifest(template_manifest_path)
 
@@ -433,7 +433,7 @@ class CreateBundle(FactoryFlowCommand):
     Backs up the original README in the bundle if one is found.
     """
     input_readme_path = os.path.join(
-        factory.FACTORY_PATH, 'py', 'factory_flow', 'templates',
+        paths.FACTORY_PATH, 'py', 'factory_flow', 'templates',
         'README_template')
 
     readme = None
@@ -460,7 +460,7 @@ class CreateBundle(FactoryFlowCommand):
   def FinalizeBundle(self):
     """Calls finalize_bundle to create the testing factory bundle."""
     logging.info('Finalizing factory bundle %s', self.bundle_dir)
-    finalize_bundle_tool = os.path.join(factory.FACTORY_PATH, 'bin',
+    finalize_bundle_tool = os.path.join(paths.FACTORY_PATH, 'bin',
                                         'finalize_bundle')
     process_utils.Spawn([finalize_bundle_tool, '--no-check-files',
                          '--no-archive', self.bundle_dir],
