@@ -40,10 +40,8 @@ class BasicPhaseTest(unittest.TestCase):
 
   def testInvalidName(self):
     self.assertRaisesRegexp(
-        ValueError,
-        (r"'evt' is not a valid phase name \(valid names are "
-         r'\[PROTO,EVT,DVT,PVT_DOGFOOD,PVT\]\)',
-         Phase, 'evt'))
+        ValueError, (r"'evt' is not a valid phase name \(valid names are "
+                     r'\[PROTO,EVT,DVT,PVT_DOGFOOD,PVT\]\)'), Phase, 'evt')
 
 
 class PersistentPhaseTest(unittest.TestCase):
