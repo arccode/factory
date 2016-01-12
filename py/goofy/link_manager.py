@@ -19,7 +19,7 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import network
-from cros.factory.utils import dhcp_utils
+from cros.factory.test.utils import dhcp_utils
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
 from cros.factory.utils.process_utils import Spawn

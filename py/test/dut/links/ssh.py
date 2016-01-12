@@ -14,9 +14,9 @@ import types
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.dut import link
+from cros.factory.test.utils import dhcp_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils import dhcp_utils
 
 
 _DEVICE_DATA_KEY = 'DYNAMIC_SSH_TARGET_IP'

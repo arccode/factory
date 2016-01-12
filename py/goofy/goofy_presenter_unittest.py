@@ -21,7 +21,7 @@ import unittest
 from cros.factory.goofy.goofy_presenter import GoofyPresenter
 from cros.factory.goofy import link_manager
 from cros.factory.test import factory
-from cros.factory.utils import dhcp_utils
+from cros.factory.test.utils import dhcp_utils
 
 _FAKE_MAC_ADDRESS = "FakeMacAddress"
 

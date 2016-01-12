@@ -14,7 +14,7 @@ from cros.factory.goofy.link_manager import DUTLinkManager
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.link_manager import LinkDownError
 from cros.factory.test import factory
-from cros.factory.utils import dhcp_utils
+from cros.factory.test.utils import dhcp_utils
 from cros.factory.utils import net_utils
 
 _LOCALHOST = '127.0.0.1'
