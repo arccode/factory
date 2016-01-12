@@ -35,6 +35,7 @@ _RE_NODE_NAME = re.compile(r'<node name="(.*?)"/>')
 class BluetoothManagerException(Exception):
   pass
 
+
 # pylint is unhappy that we add extra arguments to the constructor beyond
 # what dbus.service.Object defines, but this is of course harmless since
 # we control instantiation. So disable the warning.
@@ -306,7 +307,7 @@ class BluetoothManager(component.DUTComponent):
     Raises:
       Raises BluetoothManagerException if fails to get any adapter.
     """
-    adapters = self.GetAdapters(mac_addr)
+    adapters = self.GetAdapters(mac_addr=mac_addr)
     if len(adapters) > 0:
       return adapters[0]
     else:
