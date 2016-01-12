@@ -195,28 +195,6 @@ def get_verbose_log_file():
   return open(log_path, 'a')
 
 
-def std_repr(obj, extra=None, excluded_keys=None, true_only=False):
-  """Returns the representation of an object including its properties.
-
-  Args:
-    obj: The object to get properties from.
-    extra: Extra items to include in the representation.
-    excluded_keys: Keys not to include in the representation.
-    true_only: Whether to include only values that evaluate to
-      true.
-  """
-  extra = extra or []
-  excluded_keys = excluded_keys or []
-  return (obj.__class__.__name__ + '('
-          + ', '.join(
-              extra +
-              ['%s=%s' % (k, repr(getattr(obj, k)))
-               for k in sorted(obj.__dict__.keys())
-               if k[0] != '_' and k not in excluded_keys and (
-                   not true_only or getattr(obj, k))])
-          + ')')
-
-
 def log(message):
   """Logs a message to the console.
 
@@ -674,7 +652,7 @@ class TestState(object):
     self.skip = skip
 
   def __repr__(self):
-    return std_repr(self)
+    return type_utils.StdRepr(self)
 
   def update(self, status=None, increment_count=0, error_msg=None,
              shutdown_count=None, increment_shutdown_count=0, visible=None,

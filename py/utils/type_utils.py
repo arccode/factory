@@ -320,3 +320,25 @@ def UnicodeToStringClass(cls):
     if type(v) == types.FunctionType:
       setattr(cls, k, UnicodeToStringArgs(v))
   return cls
+
+
+def StdRepr(obj, extra=None, excluded_keys=None, true_only=False):
+  """Returns the representation of an object including its properties.
+
+  Args:
+    obj: The object to get properties from.
+    extra: Extra items to include in the representation.
+    excluded_keys: Keys not to include in the representation.
+    true_only: Whether to include only values that evaluate to
+      true.
+  """
+  extra = extra or []
+  excluded_keys = excluded_keys or []
+  return (obj.__class__.__name__ + '('
+          + ', '.join(
+              extra +
+              ['%s=%s' % (k, repr(getattr(obj, k)))
+               for k in sorted(obj.__dict__.keys())
+               if k[0] != '_' and k not in excluded_keys and (
+                   not true_only or getattr(obj, k))])
+          + ')')

@@ -138,7 +138,7 @@ class Event(object):
       setattr(self, k, v)
 
   def __repr__(self):
-    return factory.std_repr(
+    return type_utils.StdRepr(
         self,
         extra=[
             'type=%s' % self.type,
