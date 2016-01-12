@@ -781,7 +781,7 @@ class Gooftool(object):
     logging.info('Removing VPD entries %s', FilterDict(entries))
     if entries:
       if not self._delete_rw_vpd(entries):
-        raise Error('Failed to invoke VPD command: %s' % command)
+        raise Error('Failed to remove VPD entries: %s' % entries.keys())
 
   def GenerateStableDeviceSecret(self):
     """Generates a fresh stable device secret and stores it in RO VPD.
