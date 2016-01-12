@@ -20,6 +20,7 @@ from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import shopfloor
 from cros.factory.tools import build_board
 from cros.factory.utils import sys_utils
+from cros.factory.utils import process_utils
 
 
 _COMMON_ARGS = [
@@ -135,23 +136,25 @@ def VerifyHWIDWrapper(options):
            default=True, help='probe only firmware and EC version strings'))
 def VerifyComponentsWrapper(options):
   """Verifies components."""
-  if not options.components:
-    probed_results = hwid_utils.GetProbedResults(
-        infile=options.probed_results_file,
-        fast_fw_probe=options.fast_fw_probe)
-  else:
-    options.components = [v.strip() for v in options.components.split(',')]
-    if set(['ro_ec_firmware', 'ro_main_firmware']) & set(options.components):
-      probe_volatile = True
+  redirect_stdout = process_utils.DummyFile() if options.json_output else None
+  with process_utils.RedirectStandardStreams(stdout=redirect_stdout):
+    if not options.components:
+      probed_results = hwid_utils.GetProbedResults(
+          infile=options.probed_results_file,
+          fast_fw_probe=options.fast_fw_probe)
     else:
-      probe_volatile = False
-    probed_results = hwid_utils.GetProbedResults(
-        infile=options.probed_results_file,
-        target_comp_classes=options.components,
-        fast_fw_probe=options.fast_fw_probe,
-        probe_volatile=probe_volatile, probe_initial_config=False)
-  result = hwid_utils.VerifyComponents(options.database, probed_results,
-                                       options.components)
+      options.components = [v.strip() for v in options.components.split(',')]
+      if set(['ro_ec_firmware', 'ro_main_firmware']) & set(options.components):
+        probe_volatile = True
+      else:
+        probe_volatile = False
+      probed_results = hwid_utils.GetProbedResults(
+          infile=options.probed_results_file,
+          target_comp_classes=options.components,
+          fast_fw_probe=options.fast_fw_probe,
+          probe_volatile=probe_volatile, probe_initial_config=False)
+    result = hwid_utils.VerifyComponents(options.database, probed_results,
+                                         options.components)
   if options.json_output:
     def _ConvertToDict(obj):
       if isinstance(obj, (common.ProbedComponentResult, rule.Value)):
