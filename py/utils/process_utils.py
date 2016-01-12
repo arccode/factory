@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 from __future__ import print_function
+import contextlib
 import copy
 import getpass
 import logging
@@ -396,7 +397,7 @@ def WaitEvent(event):
 def SpawnTee(args, **kwargs):
   """Spawns a process and emulates tee.
 
-  Starts a process with Spawn, redirects stderr of the process to its stdout,
+  Starts a process with Spawn, redirect_streams stderr of the process to its stdout,
   and writes stdout of the process to both sys.stdout and the specified file.
 
   Args:
@@ -465,3 +466,42 @@ def StartDaemonThread(*args, **kwargs):
   thread.daemon = True
   thread.start()
   return thread
+
+
+class DummyFile(object):
+  def write(self, x):  # pylint: disable=W0613
+    pass
+
+  def read(self, x):  # pylint: disable=W0613
+    return ''
+
+
+@contextlib.contextmanager
+def RedirectStandardStreams(stdin=None, stdout=None, stderr=None):
+  """Redirect standard stream.
+
+  Args:
+    stdin: A file object to override standard input.
+    stdout: A file object to override standard output.
+    stderr: A file object to override standard error.
+    If stdin, stdout, stderr is None, then the stream is not redirected.
+
+  Raises:
+    IOError: raise the exception if the standard streams is redirected again
+             within the context.
+  """
+  args = {'stdin': stdin, 'stdout': stdout, 'stderr': stderr}
+  redirect_streams = dict((k, v) for k, v in args.iteritems() if v is not None)
+  old_streams = dict((k, sys.__dict__[k]) for k in redirect_streams)
+
+  for k, v in redirect_streams.iteritems():
+    sys.__dict__[k] = v
+
+  yield
+
+  changed = dict((k, sys.__dict__[k]) for (k, v) in redirect_streams.iteritems()
+                 if v is not sys.__dict__[k])
+  if changed:
+    raise IOError('Unexpected stadard stream redirections: %r' % changed)
+  for k, v in old_streams.iteritems():
+    sys.__dict__[k] = v

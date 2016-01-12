@@ -5,10 +5,12 @@
 # found in the LICENSE file.
 
 
+import cStringIO
 import logging
 import mox
 import os
 import subprocess
+import sys
 import time
 import unittest
 from logging import handlers
@@ -230,6 +232,48 @@ class TestSpawnTee(unittest.TestCase):
         self.assertEquals('/bin/sh\n', f.read())
       with open(tee_file) as f:
         self.assertEquals('/bin/sh\n', f.read())
+
+
+class TestRedirectStdout(unittest.TestCase):
+  def setUp(self):
+    self.saved_stdout = sys.stdout
+    self.mock_stdout = cStringIO.StringIO()
+    sys.stdout = self.mock_stdout
+
+  def tearDown(self):
+    sys.stdout = self.saved_stdout
+
+  def testRedirectStdout(self):
+    print 'before'
+    dummy_file = process_utils.DummyFile()
+    with process_utils.RedirectStandardStreams(stdout=dummy_file):
+      print 'SHOULD_NOT_OUTPUT'
+    print 'after'
+    self.assertEquals('before\nafter\n', self.mock_stdout.getvalue())
+
+  def testNotRedirectStdout(self):
+    print 'before'
+    with process_utils.RedirectStandardStreams(stdout=None):
+      print 'SHOULD_OUTPUT'
+    print 'after'
+    self.assertEquals('before\nSHOULD_OUTPUT\nafter\n',
+                      self.mock_stdout.getvalue())
+
+  def testRedirectAgainStdoutWithinContext(self):
+    dummy_file = process_utils.DummyFile()
+    with self.assertRaises(IOError):
+      with process_utils.RedirectStandardStreams(stdout=dummy_file):
+        sys.stdout = process_utils.DummyFile()
+
+  def testRedirectStdoutWithinContext(self):
+    dummy_file = process_utils.DummyFile()
+    print 'before'
+    with process_utils.RedirectStandardStreams(stdout=None):
+      print 'SHOULD_OUTPUT'
+      sys.stdout = dummy_file
+      print 'SHOULD_NOT_OUTPUT'
+    print 'after'
+    self.assertEquals('before\nSHOULD_OUTPUT\n', self.mock_stdout.getvalue())
 
 
 if __name__ == '__main__':
