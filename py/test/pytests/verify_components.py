@@ -9,19 +9,20 @@
 # DUT.
 """Factory test to verify components."""
 
+import json
 import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v3 import database
-from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.test import dut
+from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test.factory import FactoryTestFailure
-from cros.factory.test.rules import phase
+from cros.factory.test.utils import deploy_utils
 
 _TEST_TITLE = test_ui.MakeLabel('Components Verification Test',
                                 u'元件验证测试')
@@ -46,12 +47,10 @@ class VerifyComponentsTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.factory_par = deploy_utils.FactoryPythonArchive(dut.Create())
     self._shopfloor = shopfloor
     self._ui = test_ui.UI()
     self._ui.AppendCSS('.progress-message {font-size: 2em;}')
-
-    # Don't initialize yet; let update_local_hwid_data run first.
-    self.hwid_db = None
 
     self.probed_results = None
     self._allow_unqualified = None
@@ -61,32 +60,47 @@ class VerifyComponentsTest(unittest.TestCase):
   def runTest(self):
     if not self.args.skip_shopfloor:
       shopfloor.update_local_hwid_data()
-    self.hwid_db = database.Database.Load()
 
     self._allow_unqualified = phase.GetPhase() in [
         phase.PROTO, phase.EVT, phase.DVT]
 
     self.template.SetState(_MESSAGE_CHECKING_COMPONENTS)
-    probed_results = hwid_utils.GetProbedResults(
-        fast_fw_probe=self.args.fast_fw_probe)
-    results = hwid_utils.VerifyComponents(
-        self.hwid_db, probed_results, self.args.component_list)
+    cmd = ['hwid', 'verify-components', '--json_output']
+    if not self.args.fast_fw_probe:
+      cmd += ['--no-fast-fw-probe']
+    cmd += ['--components', ','.join(self.args.component_list)]
+    results = json.loads(self.factory_par.CheckOutput(cmd))
 
     logging.info('Probed components: %s', results)
     Log('probed_components', results=results)
     self.probed_results = results
 
+    # The format of results is
+    # {
+    #   component: [
+    #     {
+    #       'component_name': component_name,
+    #       'probed_values': {
+    #         value1: {
+    #           'raw_value': probed string,
+    #           'is_re': bool value
+    #         }
+    #       },
+    #       'error': None or error string
+    #     }
+    #   ]
+    # }
     # extract all errors out
     error_msgs = []
     for class_result in results.values():
       for component_result in class_result:
-        if component_result.error:
-          # The format of component_result.error is
+        if component_result['error']:
+          # The format of component_result['error'] is
           # 'Component %r of %r is %s' % (comp_name, comp_cls, comp_status).
           if (self._allow_unqualified and
-              component_result.error.endswith('is unqualified')):
+              component_result['error'].endswith('is unqualified')):
             continue
-          error_msgs.append(component_result.error)
+          error_msgs.append(component_result['error'])
     if error_msgs:
       raise FactoryTestFailure('At least one component is invalid:\n%s' %
                                '\n'.join(error_msgs))
