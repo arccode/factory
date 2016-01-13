@@ -99,10 +99,10 @@ class EmbeddedControllerTest(unittest.TestCase):
 
   def testGetUSBPDStatusV0(self):
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+        ['ectool', 'usbpd', '0']).AndReturn(
             'Port C0 is enabled, Role:SRC Polarity:CC1 State:8')
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+        ['ectool', 'usbpd', '1']).AndReturn(
             'Port C1 is disabled, Role:SNK Polarity:CC2 State:11')
 
     self.mox.ReplayAll()
@@ -123,10 +123,10 @@ class EmbeddedControllerTest(unittest.TestCase):
 
   def testGetUSBPDStatusV1(self):
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+        ['ectool', 'usbpd', '0']).AndReturn(
             'Port C0 is enabled, Role:SRC UFP Polarity:CC1 State:SRC_READY')
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+        ['ectool', 'usbpd', '1']).AndReturn(
             'Port C1 is disabled, Role:SNK DFP Polarity:CC2 State:SNK_DISCOVERY')
 
     self.mox.ReplayAll()
@@ -149,11 +149,11 @@ class EmbeddedControllerTest(unittest.TestCase):
 
   def testGetUSBPDStatusV1_1(self):
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+        ['ectool', 'usbpd', '0']).AndReturn(
             'Port C0 is enabled,connected, Role:SRC UFP Polarity:CC1 '
             'State:SRC_READY')
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+        ['ectool', 'usbpd', '1']).AndReturn(
             'Port C1 is disabled,disconnected, Role:SNK DFP Polarity:CC2 '
             'State:SNK_DISCOVERY')
 
@@ -179,16 +179,16 @@ class EmbeddedControllerTest(unittest.TestCase):
 
   def testGetUSBPDStatusV1_2(self):
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+        ['ectool', 'usbpd', '0']).AndReturn(
             'Port C0: enabled, connected  State:SRC_READY\n'
             'Role:SRC UFP, '
             'Polarity:CC1')
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+        ['ectool', 'usbpd', '1']).AndReturn(
             'Port C1: enabled, connected  State:SNK_DISCOVERY\n'
             'Role:SRC DFP VCONN, Polarity:CC1')
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+        ['ectool', 'usbpd', '1']).AndReturn(
             'Port C1: disabled, disconnected  State:SNK_DISCONNECTED\n'
             'Role:SNK DFP, Polarity:CC2')
 
