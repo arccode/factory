@@ -24,7 +24,7 @@ import factory_common
 from cros.factory.shopfloor import factory_update_server, factory_log_server
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.test.registration_codes import CheckRegistrationCode
+from cros.factory.test.rules.registration_codes import CheckRegistrationCode
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 

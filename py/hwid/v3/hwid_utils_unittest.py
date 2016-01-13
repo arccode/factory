@@ -19,7 +19,7 @@ from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import rule
-from cros.factory.test import phase
+from cros.factory.test.rules import phase
 
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')

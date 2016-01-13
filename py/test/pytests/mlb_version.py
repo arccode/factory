@@ -12,7 +12,7 @@ import unittest
 import factory_common   # pylint: disable=W0611
 from cros.factory.test import args
 from cros.factory.test import dut
-from cros.factory.test import phase
+from cros.factory.test.rules import phase
 
 
 class MLBVersionTest(unittest.TestCase):

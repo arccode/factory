@@ -42,7 +42,6 @@ from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.test import dut
 from cros.factory.test import factory
-from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
@@ -53,6 +52,7 @@ from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
 from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test.factory import TestState
+from cros.factory.test.rules import phase
 from cros.factory.test.utils.charge_manager import ChargeManager
 from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager

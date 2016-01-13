@@ -39,7 +39,7 @@ from cros.factory.test.args import Args
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
-from cros.factory.test.privacy import FilterDict
+from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test.test_lists.test_lists import OldStyleTestList
 from cros.factory.test.utils.pytest_utils import LoadPytestModule

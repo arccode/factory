@@ -9,10 +9,11 @@ import binascii
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.registration_codes import RegistrationCode
-from cros.factory.test.registration_codes import CheckRegistrationCode
-from cros.factory.test.registration_codes import CheckLegacyRegistrationCode
-from cros.factory.test.registration_codes import RegistrationCodeException
+from cros.factory.test.rules.registration_codes import RegistrationCode
+from cros.factory.test.rules.registration_codes import CheckRegistrationCode
+from cros.factory.test.rules.registration_codes import (
+    CheckLegacyRegistrationCode)
+from cros.factory.test.rules.registration_codes import RegistrationCodeException
 from cros.factory.proto import reg_code_pb2
 
 

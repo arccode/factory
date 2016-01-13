@@ -25,12 +25,12 @@ from cros.factory.gooftool import Gooftool
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import gooftools
-from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
+from cros.factory.test.rules import phase
 from cros.factory.test.test_ui import MakeLabel
 
 

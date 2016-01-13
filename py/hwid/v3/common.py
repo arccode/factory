@@ -15,7 +15,7 @@ import pprint
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import base32, base8192
 from cros.factory.hwid.v3 import rule
-from cros.factory.test import phase
+from cros.factory.test.rules import phase
 from cros.factory.tools import build_board
 from cros.factory.utils import schema
 from cros.factory.utils import sys_utils

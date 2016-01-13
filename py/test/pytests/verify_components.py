@@ -15,13 +15,13 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test.factory import FactoryTestFailure
+from cros.factory.test.rules import phase
 
 _TEST_TITLE = test_ui.MakeLabel('Components Verification Test',
                                 u'元件验证测试')

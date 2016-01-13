@@ -10,8 +10,8 @@ import logging
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import privacy
 from cros.factory.test.dut import component
+from cros.factory.test.rules import privacy
 
 
 # One line in vpd -l output.

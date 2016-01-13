@@ -18,8 +18,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.proto import reg_code_pb2
 from cros.factory.test import dut as dut_module
-from cros.factory.test import registration_codes
-from cros.factory.test.registration_codes import RegistrationCode
+from cros.factory.test.rules import registration_codes
+from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.tools.build_board import BuildBoard
 from cros.factory.utils import sys_utils
 

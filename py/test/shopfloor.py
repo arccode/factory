@@ -33,8 +33,8 @@ from xmlrpclib import Binary
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import privacy
 from cros.factory.test.event import EventClient, Event
+from cros.factory.test.rules import privacy
 from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import debug_utils

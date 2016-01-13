@@ -8,7 +8,7 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import privacy
+from cros.factory.test.rules import privacy
 
 
 class PrivacyTest(unittest.TestCase):

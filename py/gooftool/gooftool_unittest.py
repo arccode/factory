@@ -31,7 +31,7 @@ from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v2.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
-from cros.factory.test import branding
+from cros.factory.test.rules import branding
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import CheckOutput
 from cros.factory.utils.type_utils import Error

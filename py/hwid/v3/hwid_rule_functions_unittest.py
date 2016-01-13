@@ -23,8 +23,8 @@ from cros.factory.hwid.v3.hwid_rule_functions import (
     CheckRegistrationCode, GetPhase)
 from cros.factory.hwid.v3.rule import (
     Rule, Context, RuleException, SetContext, GetLogger)
-from cros.factory.test import phase
-from cros.factory.test.registration_codes import RegistrationCodeException
+from cros.factory.test.rules import phase
+from cros.factory.test.rules.registration_codes import RegistrationCodeException
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
