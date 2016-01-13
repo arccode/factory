@@ -70,6 +70,7 @@ from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.dut import accelerometer
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 
 
@@ -139,7 +140,7 @@ class HorizontalCalibrationTask(FactoryTask):
     self.template.SetState(_MSG_CALIBRATION_IN_PROGRESS)
     try:
       raw_data = self.accelerometer.GetRawDataAverage(self.capture_count)
-    except AccelerometerException:
+    except accelerometer.AccelerometerException:
       self.Fail('Read raw data failed.')
       return
     # Checks accelerometer is normal or not before calibration.
@@ -162,7 +163,7 @@ class HorizontalCalibrationTask(FactoryTask):
           ideal_value - raw_data[signal_name])
     # Writes the calibration results into ro vpd.
     logging.info('Calibration results: %s.', self.vpd)
-    sef.test.dut.vpd.ro.Update(self.vpd)
+    self.accelerometer.UpdateCalibrationBias(self.vpd)
     self.template.SetState(' ' + _MSG_PASS + _BR, append=True)
     self.Pass()
 

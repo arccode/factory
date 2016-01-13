@@ -299,6 +299,17 @@ class AccelerometerController(component.DUTComponent):
       return False
     return True
 
+  def UpdateCalibrationBias(self, calib_bias):
+    """Update calibration bias to RO_VPD
+
+    Args:
+      A dict of calibration bias
+      Ex, {'in_accel_x_base_calibbias': 1,
+           'in_accel_y_base_calibbias': -1,
+           'in_accel_z_base_calibbias': 1019}
+    """
+    self._dut.vpd.ro.Update(calib_bias)
+
 
 class Accelerometer(component.DUTComponent):
   """Accelerometer component module."""
