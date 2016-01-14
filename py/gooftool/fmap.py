@@ -97,7 +97,7 @@ def _fmap_decode_area_flags(area_flags):
   return tuple([name for name in FMAP_FLAGS if area_flags & FMAP_FLAGS[name]])
 
 
-def fmap_decode(blob, offset=None):
+def fmap_decode(blob, offset=None, fmap_name=None):
   """ Decodes a blob to FMAP dictionary object.
 
   Arguments:
@@ -114,6 +114,8 @@ def fmap_decode(blob, offset=None):
         raise struct.error('No valid FMAP signatures.')
       try:
         (fmap, size) = _fmap_decode_header(blob, offset)
+        if fmap_name and fmap['name'] != fmap_name:
+          raise struct.error('Incorrect FMAP')
         break
       except struct.error:
         offset += 1

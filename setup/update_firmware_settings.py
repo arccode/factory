@@ -54,7 +54,7 @@ class Image(object):
         self: The instance of Image.
         data: The data contianed within the image.
     """
-    obj = fmap.fmap_decode(data)
+    obj = fmap.fmap_decode(data, fmap_name='FMAP')
     self.areas = {}
     for area in obj['areas']:
       self.areas[area['name']] = area
