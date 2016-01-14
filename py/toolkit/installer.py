@@ -246,10 +246,6 @@ class FactoryToolkitInstaller(object):
         install_symlinks.MODE_FULL,
         sudo=self._sudo)
 
-    print '*** Removing factory-mini...'
-    Spawn(['rm', '-rf', os.path.join(self._usr_local_dest, 'factory-mini')],
-          sudo=self._sudo, log=True, check_call=True)
-
     self._SetTagFile('factory', self._tag_file, not self._no_enable)
     self._SetTagFile('presenter', self._presenter_tag_file,
                      self._enable_presenter)
