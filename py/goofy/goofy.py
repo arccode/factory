@@ -45,6 +45,7 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test.env import paths
+from cros.factory.test.dut import utils as dut_utils
 from cros.factory.test.e2e_test.common import (
     AutomationMode, AutomationModePrompt, ParseAutomationMode)
 from cros.factory.test.event import Event
@@ -1256,6 +1257,11 @@ class Goofy(GoofyBase):
       # Actually load it in.  (See OldStyleTestList for an explanation
       # of why this is necessary.)
       self.test_list = self.test_list.Load()
+
+    if self.test_list.options.dut_options:
+      logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
+                   self.test_list.options.dut_options)
+    dut_utils.PrepareLink(**self.test_list.options.dut_options)
 
     self.test_list.state_instance = self.state_instance
 
