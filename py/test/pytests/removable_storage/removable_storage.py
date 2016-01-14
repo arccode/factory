@@ -557,7 +557,7 @@ class RemovableStorageTest(unittest.TestCase):
     if not self.args.usbpd_port_polarity:
       return
     port, polarity = self.args.usbpd_port_polarity
-    port_status = self._dut.ec.GetUSBPDStatus(port)
+    port_status = self._dut.usb_c.GetPDStatus(port)
     if port_status['polarity'] != 'CC%d' % polarity:
       self.Fail('USB CC polarity mismatch on port %d' % port)
 

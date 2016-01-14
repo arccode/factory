@@ -107,7 +107,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
     if self._double_cc_quick_check:
       return self._bft_fixture.GetPDState()['polarity']
 
-    port_status = self._dut.ec.GetUSBPDStatus(self.args.raiden_index)
+    port_status = self._dut.usb_c.GetPDStatus(self.args.raiden_index)
     # For newer version EC, port_status[state] will return string instead of
     # state number.
     if self._adb_remote_test or self._bft_fixture.IsParallelTest():

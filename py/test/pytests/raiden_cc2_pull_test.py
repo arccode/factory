@@ -73,7 +73,7 @@ class RaidenCC2PullTest(unittest.TestCase):
     Returns:
       'CC1' or 'CC2'.
     """
-    port_status = self._dut.ec.GetUSBPDStatus(self._raiden_index)
+    port_status = self._dut.usb_c.GetPDStatus(self._raiden_index)
     logging.info('Get USBPD status = %s', str(port_status))
     return port_status['polarity']
 

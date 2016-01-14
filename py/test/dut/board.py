@@ -31,6 +31,7 @@ from cros.factory.test.dut import storage
 from cros.factory.test.dut import temp
 from cros.factory.test.dut import thermal
 from cros.factory.test.dut import udev
+from cros.factory.test.dut import usb_c
 from cros.factory.test.dut import utils
 from cros.factory.test.dut import vpd
 from cros.factory.utils import file_utils
@@ -93,14 +94,14 @@ class DUTBoard(object):
     return accelerometer.Accelerometer(self)
 
   @DUTProperty
-  def bluetooth(self):
-    return bluetooth.BluetoothManager(self)
-
-  @DUTProperty
   def audio(self):
     # Override this property in sub-classed boards to specify different audio
     # config path if required.
     return audio_utils.CreateAudioControl(self)
+
+  @DUTProperty
+  def bluetooth(self):
+    return bluetooth.BluetoothManager(self)
 
   @DUTProperty
   def display(self):
@@ -158,29 +159,33 @@ class DUTBoard(object):
     return power.Power(self)
 
   @DUTProperty
-  def temp(self):
-    return temp.TemporaryFiles(self)
+  def status(self):
+    """Returns live system status (dynamic data like CPU loading)."""
+    return status.SystemStatus(self)
 
   @DUTProperty
   def storage(self):
     return storage.Storage(self)
 
   @DUTProperty
+  def temp(self):
+    return temp.TemporaryFiles(self)
+
+  @DUTProperty
   def thermal(self):
     return thermal.Thermal(self)
 
   @DUTProperty
-  def vpd(self):
-    return vpd.VitalProductData(self)
-
-  @DUTProperty
-  def status(self):
-    """Returns live system status (dynamic data like CPU loading)."""
-    return status.SystemStatus(self)
-
-  @DUTProperty
   def udev(self):
     return udev.LocalUdevMonitor(self)
+
+  @DUTProperty
+  def usb_c(self):
+    return usb_c.USBTypeC(self)
+
+  @DUTProperty
+  def vpd(self):
+    return vpd.VitalProductData(self)
 
   # Helper functions to access DUT via link.
 

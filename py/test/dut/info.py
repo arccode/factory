@@ -205,7 +205,7 @@ class SystemInfo(component.DUTComponent):
 
   @InfoProperty
   def pd_version(self):
-    return self._dut.ec.GetPDVersion().strip()
+    return self._dut.usb_c.GetPDVersion().strip()
 
   @InfoProperty
   def factory_md5sum(self):

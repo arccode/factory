@@ -77,10 +77,9 @@ class BatteryCurrentTest(unittest.TestCase):
 
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
-    _ec and _power."""
+    _power."""
     self._dut = dut.Create()
     self._power = self._dut.power
-    self._ec = self._dut.ec
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -108,7 +107,7 @@ class BatteryCurrentTest(unittest.TestCase):
       logging.info('Discharging current = %d mA', -current)
 
   def _CheckUSBPD(self):
-    status = self._ec.GetUSBPDPowerStatus()
+    status = self._dut.usb_c.GetPDPowerStatus()
     self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt_en,
                                               self._usbpd_prompt_zh, 0))
     if 'millivolt' not in status[self._usbpd_port]:

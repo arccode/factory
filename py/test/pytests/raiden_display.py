@@ -169,14 +169,14 @@ class RaidenDisplayTest(unittest.TestCase):
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=True)
       time.sleep(0.5)
       # DUT control for Raiden function: DP mode
-      self._dut.ResetHPD(self.args.raiden_index)
+      self._dut.usb_c.ResetHPD(self.args.raiden_index)
       time.sleep(1)  # Wait for reset HPD response
-      self._dut.SetHPD(self.args.raiden_index)
-      self._dut.SetRaiden(self.args.raiden_index, 'DP')
+      self._dut.usb_c.SetHPD(self.args.raiden_index)
+      self._dut.usb_c.SetPortFunction(self.args.raiden_index, 'dp')
       sync_utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
     else:
       self._template.SetInstruction(_DISCONNECT_STR(self._bft_media_device))
-      self._dut.ResetHPD(self.args.raiden_index)
+      self._dut.usb_c.ResetHPD(self.args.raiden_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
       sync_utils.WaitFor(lambda: not self._PollDisplayConnected(),
                          timeout_secs=10)

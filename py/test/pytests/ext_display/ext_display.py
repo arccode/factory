@@ -170,14 +170,14 @@ class WaitDisplayThread(threading.Thread):
     dut: A DUT instance for accessing device under test.
   """
 
-  def __init__(self, display_id, connect, on_success, usbpd_port, dut):
+  def __init__(self, display_id, connect, on_success, usbpd_port, dut_obj):
     threading.Thread.__init__(self, name='WaitDisplayThread')
     self._display_id = display_id
     self._done = threading.Event()
     self._connect = connect == DetectDisplayTask.CONNECT
     self._on_success = on_success
     self._usbpd_port = usbpd_port
-    self._dut = dut
+    self._dut = dut_obj
 
   def run(self):
     while not self._done.is_set():
@@ -213,7 +213,7 @@ class WaitDisplayThread(threading.Thread):
       True for verifying OK,
       False for verifying Fail.
     """
-    port_status = self._dut.ec.GetUSBPDStatus(port)
+    port_status = self._dut.usb_c.GetPDStatus(port)
     if self._connect:
       check_status = _USBPD_CONNECT_STATUS
     else:
