@@ -13,7 +13,7 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut.audio import base
-from cros.factory.test.utils import Enum
+from cros.factory.utils.type_utils import Enum
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.
