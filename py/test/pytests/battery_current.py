@@ -62,13 +62,15 @@ class BatteryCurrentTest(unittest.TestCase):
       Arg('usbpd_info', tuple, textwrap.dedent("""
           (usbpd_port, usbpd_port_prompt, min_millivolt) Used to select a
           particular port from a multi-port DUT.
-          usbpd_port: (int) usbpd_port number. Specify which port to insert
-                      power line.
-          usbpd_port_prompt_en: (str) prompt operator which port to insert in
-                                      English
-          usbpd_port_prompt_zh: (str) prompt operator which port to insert in
-                                      Chinese.
-          min_millivolt: (int) The minimum millivolt the power must provide
+
+          * ``usbpd_port``: (int) usbpd_port number. Specify which port to
+                            insert power line.
+          * ``usbpd_port_prompt_en``: (str) prompt operator which port to
+                                      insert in English
+          * ``usbpd_port_prompt_zh``: (str) prompt operator which port to
+                                      insert in Chinese.
+          * ``min_millivolt``: (int) The minimum millivolt the power must
+                               provide
           """),
           optional=True)
   ]
