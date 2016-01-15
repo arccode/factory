@@ -24,12 +24,12 @@ _INFO_PROP_LIST = []
 
 def InfoProperty(f):
   """Decoration function for SystemInfo properties."""
-  global _INFO_PROP_LIST
   name = f.__name__
   if not name.startswith('_'):
     _INFO_PROP_LIST.append(name)
   @property
   def prop(self):
+    # pylint: disable=protected-access
     if name in self._overrides:
       return self._overrides[name]
     if name in self._cached:
@@ -37,7 +37,7 @@ def InfoProperty(f):
     value = None
     try:
       value = f(self)
-    except:
+    except:  # pylint: disable=bare-except
       pass
     self._cached[name] = value
     return value
