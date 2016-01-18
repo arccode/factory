@@ -21,12 +21,12 @@
 
 import datetime
 import os
-import subprocess
 import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
@@ -58,6 +58,14 @@ _KEY_CROSSYSTEM = 'crossystem:'
 class GenericButton(object):
   """Base class for buttons."""
 
+  def __init__(self, dut):
+    """Constructor.
+
+    Args:
+      dut: the DUT which this button belongs to.
+    """
+    self._dut = dut
+
   def IsPressed(self):
     """Returns True the button is pressed, otherwise False."""
     raise NotImplementedError
@@ -66,65 +74,69 @@ class GenericButton(object):
 class EvtestButton(GenericButton):
   """Buttons can be probed by evtest using /dev/input/event*."""
 
-  def __init__(self, event_id, name):
+  def __init__(self, dut, event_id, name):
     """Constructor.
 
     Args:
+      dut: the DUT which this button belongs to.
       event_id: /dev/input/event ID.
       name: A string as key name to be captured by evtest.
     """
+    super(EvtestButton, self).__init__(dut)
     # TODO(hungte) Auto-probe if event_id is None.
     self._event_dev = '/dev/input/event%d' % event_id
     self._name = name
 
   def IsPressed(self):
-    return (subprocess.Popen(['evtest', '--query', self._event_dev, 'EV_KEY',
-                              self._name]).wait() != 0)
+    return (self._dut.Call(['evtest', '--query', self._event_dev, 'EV_KEY',
+                            self._name]) != 0)
 
 
 class GpioButton(GenericButton):
   """GPIO-based buttons."""
 
-  def __init__(self, number, is_active_high):
+  def __init__(self, dut, number, is_active_high):
     """Constructor.
 
     Args:
+      dut: the DUT which this button belongs to.
       number: An integer for GPIO number.
       is_active_high: Boolean flag for polarity of GPIO ("active" = "pressed").
     """
+    super(GpioButton, self).__init__(dut)
     gpio_base = '/sys/class/gpio'
     self._value_path = os.path.join(gpio_base, 'gpio%d' % number, 'value')
     if not os.path.exists(self._value_path):
-      with open(os.path.join(gpio_base, 'export'), 'w') as f:
-        f.write('%d' % number)
+      self._dut.WriteFile(os.path.join(gpio_base, 'export'), '%d' % number)
     # Exporting new GPIO may cause device busy for a while.
     for unused_counter in xrange(5):
       try:
-        with open(os.path.join(gpio_base, 'gpio%d' % number, 'active_low'),
-                  'w')as f:
-          f.write('%d' % (0 if is_active_high else 1))
+        self._dut.WriteFile(os.path.join(gpio_base, 'gpio%d' % number,
+                                         'active_low'),
+                            '%d' % (0 if is_active_high else 1))
         break
-      except IOError:
+      except Exception:
         time.sleep(0.1)
 
   def IsPressed(self):
-    with open(self._value_path) as f:
-      return int(f.read()) == 1
+    return int(self._dut.ReadFile(self._value_path)) == 1
 
 
 class CrossystemButton(GenericButton):
   """A crossystem value that can be mapped as virtual button."""
 
-  def __init__(self, name):
+  def __init__(self, dut, name):
     """Constructor.
 
     Args:
+      dut: the DUT which this button belongs to.
       name: A string as crossystem parameter that outputs 1 or 0.
     """
+    super(CrossystemButton, self).__init__(dut)
     self._name = name
 
   def IsPressed(self):
-    return subprocess.Popen(['crossystem', '%s?1' % self._name]).wait() == 0
+    return self._dut.Call(['crossystem', '%s?1' % self._name]) == 0
 
 
 class ButtonTest(unittest.TestCase):
@@ -142,6 +154,7 @@ class ButtonTest(unittest.TestCase):
           'The name of the button in Chinese.', optional=False)]
 
   def setUp(self):
+    self.dut = dut.Create()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_BUTTON_TEST_DEFAULT_CSS)
@@ -151,12 +164,14 @@ class ButtonTest(unittest.TestCase):
 
     if self.args.button_key_name.startswith(_KEY_GPIO):
       gpio_num = self.args.button_key_name[len(_KEY_GPIO):]
-      self.button = GpioButton(abs(int(gpio_num, 0)), gpio_num.startswith('-'))
+      self.button = GpioButton(self.dut, abs(int(gpio_num, 0)),
+                               gpio_num.startswith('-'))
     elif self.args.button_key_name.startswith(_KEY_CROSSYSTEM):
       self.button = CrossystemButton(
-          self.args.button_key_name[len(_KEY_CROSSYSTEM):])
+          self.dut, self.args.button_key_name[len(_KEY_CROSSYSTEM):])
     else:
-      self.button = EvtestButton(self.args.event_id, self.args.button_key_name)
+      self.button = EvtestButton(self.dut, self.args.event_id,
+                                 self.args.button_key_name)
 
     # Create a thread to monitor button events.
     process_utils.StartDaemonThread(target=self.MonitorButtonEvent)
