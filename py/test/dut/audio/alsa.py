@@ -130,7 +130,8 @@ class AlsaAudioControl(base.BaseAudioControl):
 
   def _PlaybackWavFile(self, path, card, device):
     """See BaseAudioControl._PlaybackWavFile"""
-    self._dut.Call(['aplay', '-D', 'hw:%s,%s' % (card, device), path])
+    self._dut.Call(['aplay', '-t', 'wav', '-D',
+                    'plughw:%s,%s' % (card, device), path])
 
   def _StopPlaybackWavFile(self):
     """See BaseAudioControl._StopPlaybackWavFile"""

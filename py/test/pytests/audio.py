@@ -8,21 +8,21 @@
 
 from __future__ import print_function
 
+import logging
 import os
 import random
-import threading
 import unittest
-import uuid
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
-from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.factory_task import InteractiveFactoryTask
 from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import SpawnOutput, Spawn
+from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.sync_utils import PollForCondition
 
 _TEST_TITLE = test_ui.MakeLabel('Audio Test',
                                 u'音讯测试')
@@ -48,41 +48,32 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
   correct digit. It also prevents key-swiping cheating.
 
   Args:
+    _dut: dut instance
     ui: cros.factory.test.test_ui object.
     port_label: Label name of audio port to output. It should be generated
         using test_ui.MakeLabel to have English/Chinese version.
-    port_id: ID of audio port to output (w/o "Playback Switch" postfix).
     title_id: HTML id for placing testing title.
     instruction_id: HTML id for placing instruction.
-    volume: Playback volume in [0,100]; default 100.
-    bypass_cras: Use ALSA utility (aplay) instead of cras to play audio.
+    card: audio card to output.
+    device: audio device to output.
     channel: target channel. Value of 'left', 'right', 'all'. Default 'all'.
-    card_id: ID of the audio card to output.
   """
 
-  def __init__(self, ui, port_label, port_id, title_id, instruction_id,
-               volume=100, bypass_cras=False, channel='all', card_id=0):
+  def __init__(self, _dut, ui, port_label, title_id, instruction_id, card,
+               device, channel='all'):
     super(AudioDigitPlaybackTask, self).__init__(ui)
+    self._dut = _dut
     self._pass_digit = random.randint(0, 9)
-    self._port_switch = ['amixer', '-c', str(card_id), 'cset',
-                         'name="%s Playback Switch"' % port_id]
-    self._port_volume = ['amixer', '-c', str(card_id), 'cset',
-                         'name="%s Playback Volume"' % port_id]
-    self._bypass_cras = bypass_cras
-    self._card_id = card_id
-    self._port_id = port_id
+    self._out_card = card
+    self._out_device = device
     self._port_label = port_label
     self._title_id = title_id
     self._instruction_id = instruction_id
     self._channel = channel
 
-    if channel == 'all':
-      self._port_volume.append('%d%%,%d%%' % (volume, volume))
-    elif channel == 'left':
-      self._port_volume.append('%d%%,%d%%' % (volume, 0))
+    if channel == 'left':
       self._port_label += test_ui.MakeLabel(' (Left Channel)', u'(左声道)')
     elif channel == 'right':
-      self._port_volume.append('%d%%,%d%%' % (0, volume))
       self._port_label += test_ui.MakeLabel(' (Right Channel)', u'(右声道)')
 
   def _InitUI(self):
@@ -94,21 +85,7 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     self.BindPassFailKeys(pass_key=False)
 
   def Run(self):
-    def _HasControl(control):
-      """Checks if an amixer control is supported for this port on this card.
-
-      Args:
-        control: The amixer control name without audio port prefix,
-          e.g. 'Playback Switch'.
-
-      Returns:
-        True if the amixer control is supported for this port on this card.
-      """
-      port_control = '%s %s' % (self._port_id, control)
-      return port_control in SpawnOutput(
-          ['amixer', '-c', str(self._card_id), 'controls'])
-
-    def _PlayDigit(num):
+    def _PlayDigit(num, channel):
       """Plays digit sound with language from UI.
 
       Args:
@@ -116,100 +93,61 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
       """
       lang = self._ui.GetUILanguage()
       base_name = '%d_%s.ogg' % (num, lang)
-      if self._bypass_cras:
-        with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
+      with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
+        # Prepare played .wav file
+        with file_utils.UnopenedTemporaryFile(suffix='.wav') as temp_wav_path:
+          # We genereate stereo sound by default. and mute one channel by sox
+          # if needed.
           Spawn(['sox', os.path.join(_SOUND_DIRECTORY, base_name), '-c2',
-                 wav_path], check_call=True)
-          Spawn(['aplay', '-D', 'plughw:0,0', wav_path], check_call=True)
-      else:
-        self._ui.PlayAudioFile(base_name)
+                 temp_wav_path], log=True, check_call=True)
+          if channel == 'left':
+            Spawn(['sox', temp_wav_path, wav_path, 'remix', '1', '0'],
+                  log=True, check_call=True)
+          elif channel == 'right':
+            Spawn(['sox', temp_wav_path, wav_path, 'remix', '0', '1'],
+                  log=True, check_call=True)
+          else:
+            Spawn(['mv', temp_wav_path, wav_path],
+                  log=True, check_call=True)
 
-    # It makes no sense to continue if it fails to enable audio port.
-    if _HasControl('Playback Switch'):
-      if not self.RunCommand(self._port_switch + ['on,on'],
-                             'Fail to enable audio port.'):
-        return
+        with self._dut.temp.TempFile() as dut_wav_path:
+          self._dut.link.Push(wav_path, dut_wav_path)
+          self._dut.audio.PlaybackWavFile(dut_wav_path, self._out_card,
+                                          self._out_device)
 
     self._InitUI()
 
-    if _HasControl('Playback Volume'):
-      self.RunCommand(self._port_volume)
-
     self.BindDigitKeys(self._pass_digit)
     for k in 'rR':
-      self._ui.BindKey(k, lambda _: _PlayDigit(self._pass_digit))
-    _PlayDigit(self._pass_digit)
+      self._ui.BindKey(k, lambda _: _PlayDigit(self._pass_digit,
+                                               self._channel))
+    _PlayDigit(self._pass_digit, self._channel)
 
   def Cleanup(self):
     self.UnbindDigitKeys()
-    self.RunCommand(self._port_switch + ['off,off'],
-                    'Fail to disable audio port.')
-
-
-# TODO(deanliao): abstract state detection thread/task to common utils.
-class WaitHeadphoneThread(threading.Thread):
-  """A thread to wait for headphone.
-
-  When headphone is plugged, it calls on_success and stop.
-  Or the calling thread can stop it using stop().
-
-  Args:
-    headphone_numid: headphone's numid in amixer.
-    wait_for_connect: True to wait for headphone connect. Otherwise,
-        wait for disconnect.
-    on_success: callback for success.
-    check_period: status checking period in seconds. Default 1.
-  """
-
-  def __init__(self, headphone_numid, wait_for_connect, on_success,
-               check_period=1.0):
-    super(WaitHeadphoneThread, self).__init__(name='WaitHeadphoneThread')
-    self._done = threading.Event()
-    self._numid = headphone_numid
-    self._wait_for_connect = wait_for_connect
-    self._on_success = on_success
-    self._check_period = check_period
-
-  def run(self):
-    cmd = ['amixer', '-c', '0', 'cget', 'numid=%s' % self._numid]
-    if self._wait_for_connect:
-      expect = 'values=on'
-    else:
-      expect = 'values=off'
-    while not self._done.is_set():
-      if expect in SpawnOutput(cmd):
-        self._on_success()
-        self.Stop()
-      else:
-        self._done.wait(self._check_period)
-
-  def Stop(self):
-    """Stops the thread.
-    """
-    self._done.set()
 
 
 class DetectHeadphoneTask(InteractiveFactoryTask):
   """Task to wait for headphone connect/disconnect.
 
   Args:
+    _dut: dut instance
+    card: output audio card
     ui: cros.factory.test.test_ui object.
-    headphone_numid: headphone's numid in amixer.
     wait_for_connect: True to wait for headphone connect. Otherwise,
         wait for disconnect.
     title_id: HTML id for placing testing title.
     instruction_id: HTML id for placing instruction.
   """
 
-  def __init__(self, ui, headphone_numid, wait_for_connect,
+  def __init__(self, _dut, card, ui, wait_for_connect,
                title_id, instruction_id):
     super(DetectHeadphoneTask, self).__init__(ui)
+    self._dut = _dut
+    self._out_card = card
     self._title_id = title_id
     self._instruction_id = instruction_id
-    self._wait_headphone = WaitHeadphoneThread(headphone_numid,
-                                               wait_for_connect,
-                                               self.PostSuccessEvent)
-    self._pass_event = str(uuid.uuid4())  # used to bind a post event.
+    self._wait_for_connect = wait_for_connect
     if wait_for_connect:
       self._title = test_ui.MakeLabel('Connect Headphone', u'连接耳机')
       self._instruction = test_ui.MakeLabel('Please plug headphone in.',
@@ -219,15 +157,6 @@ class DetectHeadphoneTask(InteractiveFactoryTask):
       self._instruction = test_ui.MakeLabel('Please unplug headphone.',
                                             u'请拔下耳机')
 
-  def PostSuccessEvent(self):
-    """Posts an event to trigger self.Pass().
-
-    It is called by another thread. It ensures that self.Pass() is called
-    via event queue to prevent race condition.
-    """
-    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
-                             subtype=self._pass_event))
-
   def _InitUI(self):
     self._ui.SetHTML(self._title, id=self._title_id)
     self._ui.SetHTML(
@@ -236,50 +165,55 @@ class DetectHeadphoneTask(InteractiveFactoryTask):
         id=self._instruction_id)
     self.BindPassFailKeys(pass_key=False, fail_later=False)
 
+  def _CheckHeadphone(self):
+    headphone_status = self._dut.audio.GetHeadphoneJackStatus(self._out_card)
+    logging.info('Headphone status %s, Requre Headphone %s', headphone_status,
+                 self._wait_for_connect)
+    return headphone_status == self._wait_for_connect
+
   def Run(self):
     self._InitUI()
-    self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
-    self._wait_headphone.start()
-
-  def Cleanup(self):
-    self._wait_headphone.Stop()
+    PollForCondition(poll_method=self._CheckHeadphone, poll_interval_secs=0.5,
+                     condition_name='CheckHeadphone', timeout_secs=10)
+    self.Pass()
 
 
 class AudioTest(unittest.TestCase):
-  """Tests audio playback via both internal and external devices.
+  """Tests audio playback
 
   It randomly picks a digit to play and checks if the operator presses the
   correct digit. It also prevents key-swiping cheating.
   """
   ARGS = [
-      Arg('internal_port_id', str,
-          ('amixer name for internal audio (w/o "Playback Switch" postfix).\n'
-           'Use empty string to skip internal audio test.'),
-          default='Speaker'),
-      Arg('internal_port_label', tuple, 'Label of internal audio (en, zh).',
+      Arg('audio_conf', str, 'Audio config file path', optional=True),
+      Arg('initial_actions', list, 'List of tuple (card_name, actions)', []),
+      Arg('output_dev', tuple,
+          'Onput ALSA device. (card_name, sub_device).'
+          'For example: ("audio_card", "0").', ('0', '0')),
+      Arg('port_label', tuple, 'Label of audio (en, zh).',
           default=('Internal Speaker', u'内建喇叭')),
-      Arg('internal_volume', int, 'Internal playback volume, default 100%.',
-          default=100),
-      Arg('external_port_id', str,
-          ('amixer name for external audio (w/o "Playback Switch" postfix).\n'
-           'Use empty string to skip external audio test.'),
-          default='Headphone'),
-      Arg('external_port_label', tuple, 'Label of external audio (en, zh).',
-          default=('External Headphone', u'外接耳机')),
-      Arg('external_volume', int, 'External playback volume, default 100%.',
-          default=100),
-      Arg('test_left_right', bool, 'Test left and right channel.', default=True),
-      Arg('headphone_numid', str,
-          'amixer numid for headphone. Skip connection check if empty.',
-          optional=True),
-      Arg('bypass_cras', bool, 'Use basic alsa utilities and bypass cras '
-          'to play audio.', default=False)
+      Arg('test_left_right', bool, 'Test left and right channel.',
+          default=True),
+      Arg('require_headphone', bool, 'Require headphone option', False),
+      Arg('check_headphone', bool,
+          'Check headphone status whether match require_headphone', False),
   ]
 
   def setUp(self):
+    self._dut = dut.Create()
+    if self.args.audio_conf:
+      self._dut.audio.ApplyConfig(self.args.audio_conf)
+    # Tansfer output device format
+    self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
+    self._out_device = self.args.output_dev[1]
+
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._task_manager = None
+
+    for card, action in self.args.initial_actions:
+      card = self._dut.audio.GetCardIndexByName(card)
+      self._dut.audio.ApplyAudioConfig(action, card)
 
   def InitUI(self):
     """Initializes UI.
@@ -308,25 +242,18 @@ class AudioTest(unittest.TestCase):
     _INSTRUCTION_ID = 'instruction-center'
 
     tasks = []
-    if self.args.internal_port_id:
-      if self.args.headphone_numid:
-        tasks.append(DetectHeadphoneTask(self._ui, self.args.headphone_numid,
-                                         False, _TITLE_ID, _INSTRUCTION_ID))
-      args = (self._ui, test_ui.MakeLabel(*self.args.internal_port_label),
-              self.args.internal_port_id, _TITLE_ID, _INSTRUCTION_ID,
-              self.args.internal_volume, self.args.bypass_cras)
-      _ComposeLeftRightTasks(tasks, args)
-
-    if self.args.external_port_id:
-      if self.args.headphone_numid:
-        tasks.append(DetectHeadphoneTask(self._ui, self.args.headphone_numid,
-                                         True, _TITLE_ID, _INSTRUCTION_ID))
-      args = (self._ui, test_ui.MakeLabel(*self.args.external_port_label),
-              self.args.external_port_id, _TITLE_ID, _INSTRUCTION_ID,
-              self.args.external_volume, self.args.bypass_cras)
-      _ComposeLeftRightTasks(tasks, args)
+    if self.args.check_headphone:
+      tasks.append(DetectHeadphoneTask(self._dut, self._out_card, self._ui,
+                                       self.args.require_headphone, _TITLE_ID,
+                                       _INSTRUCTION_ID))
+    args = (self._dut, self._ui, test_ui.MakeLabel(*self.args.port_label),
+            _TITLE_ID, _INSTRUCTION_ID, self._out_card, self._out_device)
+    _ComposeLeftRightTasks(tasks, args)
 
     return tasks
+
+  def tearDown(self):
+    self._dut.audio.RestoreMixerControls()
 
   def runTest(self):
     self.InitUI()
