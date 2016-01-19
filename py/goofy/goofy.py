@@ -176,6 +176,7 @@ class Goofy(GoofyBase):
     self.chrome = None
     self.hooks = None
     self.cpu_usage_watcher = None
+    self.thermal_watcher = None
 
     self.options = None
     self.args = None
@@ -322,6 +323,8 @@ class Goofy(GoofyBase):
       self.key_filter.Stop()
     if self.cpu_usage_watcher:
       self.cpu_usage_watcher.terminate()
+    if self.thermal_watcher:
+      self.thermal_watcher.terminate()
     if self.link_manager:
       self.link_manager.Stop()
       self.link_manager = None
@@ -1508,7 +1511,7 @@ class Goofy(GoofyBase):
 
     # Enable thermal monitor
     if self.test_list.options.thermal_monitor_period_secs > 0:
-      self.cpu_usage_watcher = process_utils.Spawn(
+      self.thermal_watcher = process_utils.Spawn(
           ['py/tools/thermal_monitor.py',
            '-p', str(self.test_list.options.thermal_monitor_period_secs),
            '-d', str(self.test_list.options.thermal_monitor_delta)],
