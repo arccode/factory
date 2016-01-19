@@ -13,7 +13,6 @@ import os
 import random
 import signal
 import sys
-import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import network
@@ -102,7 +101,8 @@ class DHCPManager(object):
     for interface in interfaces:
       cidr = interface.cidr
       if not cidr:
-        cidr = net_utils.GetUnusedIPV4RangeCIDR(exclude_ip_prefix=used_range)
+        cidr = net_utils.GetUnusedIPV4RangeCIDR(exclude_ip_prefix=used_range,
+                                                exclude_local_interface_ip=True)
       # Make sure the interface is up
       net_utils.SetEthernetIp(str(cidr.SelectIP(1)), interface.name,
                               str(cidr.Netmask()), force=True)

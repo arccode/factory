@@ -159,7 +159,9 @@ class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
     xmlrpclib.ServerProxy.__init__(self, uri, *args, **kwargs)
 
 
-def FindUsableEthDevice(raise_exception=False, name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
+def FindUsableEthDevice(raise_exception=False,
+                        name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
+  # pylint: disable=W0102
   """Find the real ethernet interface when the flimflam is unavailable.
 
   Some devices with 4G modules may bring up fake eth interfaces during
@@ -324,6 +326,7 @@ def GetWLANInterface():
 
 
 def GetEthernetInterfaces(name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
+  # pylint: disable=W0102
   """Returns the interfaces for Ethernet.
 
   Args:
@@ -335,11 +338,14 @@ def GetEthernetInterfaces(name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
   """
   interfaces = []
   for name in name_patterns:
-    interfaces += [os.path.basename(path) for path in glob.glob('/sys/class/net/' + name)]
+    interfaces += [os.path.basename(path) for path in
+                   glob.glob('/sys/class/net/' + name)]
   return interfaces
 
 
-def SwitchEthernetInterfaces(enable, name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
+def SwitchEthernetInterfaces(enable,
+                             name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
+  # pylint: disable=W0102
   """Switches on/off all Ethernet interfaces.
 
   Args:
@@ -543,12 +549,14 @@ def GetDefaultGatewayInterface():
     raise RuntimeError('no default gateway found')
 
 
-def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None):
+def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,
+                           exclude_local_interface_ip=False):
   """Find unused IP ranges in IPV4 private address space.
 
   Args:
-    preferred_prefix_bits: the preferred prefix length in bits
+    preferred_prefix_bits: The preferred prefix length in bits.
     exclude_ip_prefix: A list of tuple of (ip, prefix_bits) to exclude.
+    exclude_local_interface_ip: Also exclude IP used by the local interface.
 
   Returns:
     A CIDR object representing the network range.
@@ -559,14 +567,15 @@ def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None):
       CIDR('192.168.0.0', 16)
   ]
 
-  # If no exclude_ip_prefix is specified, populate it with all the ip/prefix
-  # currently on the machine interfaces.
-  if not exclude_ip_prefix:
-    exclude_ip_prefix = []
-  for iface in GetNetworkInterfaces():
-    ip_mask = GetEthernetIp(iface, True)
-    if ip_mask[0] and ip_mask[1]:
-      exclude_ip_prefix.append(ip_mask)
+  exclude_ip_prefix = exclude_ip_prefix or []
+
+  # Exclude local interface IP, populate it with all the ip/prefix currently on
+  # the machine interfaces.
+  if exclude_local_interface_ip:
+    for iface in GetNetworkInterfaces():
+      ip_mask = GetEthernetIp(iface, True)
+      if ip_mask[0] and ip_mask[1]:
+        exclude_ip_prefix.append(ip_mask)
 
   # available_ranges_bits stores (ip_range, available_subnet_range_bits)
   # For example: available_ranges_bits = {0xc0a80000: 8}
