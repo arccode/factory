@@ -6,4 +6,4 @@
 # Overlord LAN discovery port
 OVERLORD_LD_PORT=4456
 
-/sbin/iptables -A INPUT -p udp --dport ${OVERLORD_LD_PORT} -j ACCEPT
+iptables -I INPUT -p udp --dport ${OVERLORD_LD_PORT} -j ACCEPT
