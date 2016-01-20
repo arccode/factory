@@ -386,10 +386,9 @@ class DUTLinkManager(object):
                   for interface in network.GetUnmanagedEthernetInterfaces()
                   if interface not in interface_blacklist]
 
-    for interface in interfaces:
-      path = os.path.join(paths.FACTORY_PATH, 'bin',
-                          'relay_overlord_discovery_packet')
-      self._relay_process = Spawn([path, interface], log=True)
+    path = os.path.join(paths.FACTORY_PATH, 'bin',
+                        'relay_overlord_discovery_packet')
+    self._relay_process = Spawn([path] + interfaces, log=True)
 
   def _StopOverlordRelay(self):
     if self._relay_process is not None:
