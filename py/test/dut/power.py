@@ -72,9 +72,14 @@ class Power(DUTComponent):
       if self._dut.path.exists(ac_path % 'AC'):
         return self._dut.path.dirname(ac_path % 'AC')
       p = self._dut.Glob(ac_path % '*')
-      if len(p) > 1:
-        raise PowerException('Found multiple power with "online" property')
-      elif len(p) == 1:
+      if p:
+        # Systems with multiple USB-C ports may have multiple power sources.
+        # Since the end goal is to determine if the system is powered, let’s
+        # just return the first powered AC path if there’s any; otherwise
+        # return the first in the list.
+        for path in p:
+          if self.ReadOneLine(path) == '1':
+            return self._dut.path.dirname(path)
         return self._dut.path.dirname(p[0])
     raise PowerException('Cannot find %s' % power_source)
 
