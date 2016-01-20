@@ -23,6 +23,56 @@ class Storage(component.DUTComponent):
     """Returns the directory for persistent data."""
     return '/var/factory'
 
+  def GetMountPoint(self, path):
+    """Returns a pair (mount_point, device) where path is mounted.
+
+       We first try to use disk free (df) command to find the mount point of
+       path. If we can't get expected result, we will look into /proc/mounts
+       to find the most probable result.
+    """
+    def _GetMountPointByDiskFree(path):
+      # the output should look like:
+      # Mounted on    Filesystem
+      # /usr/local    /dev/...
+      output = self._dut.CallOutput(['df', '--output=target,source', path])
+      if not output:
+        return None, None
+      match = re.search(r'^(/[/\w]*)\s*(/[/\w]*)$', output, re.MULTILINE)
+      if not match:
+        logging.warning('remount: The output of df is unexpected:\n%s', output)
+        return None, None
+      return match.group(1), match.group(2)
+
+    def _GetMountPointFromProcMounts(path):
+      # resolve all symbolic links
+      realpath = self._dut.path.realpath(path)
+      logging.info('remount: %s is resolved to %s', path, realpath)
+
+      output = self._dut.ReadFile('/proc/mounts', skip=0)
+      if not output:
+        logging.error('remount: Cannot read /proc/mounts')
+        return None, None
+
+      # The format of /proc/mounts is documented in fstab(5),
+      # first field of each line is the device
+      # second field of each line is the mount point
+      mount_points = {x[1]: x[0] for x in map(str.split, output.splitlines())}
+
+      # '/' is always a mount point
+      best_match = '/'
+
+      for mount_point in mount_points.keys():
+        if (realpath.startswith(mount_point) and
+            len(mount_point) > len(best_match)):
+          best_match = mount_point
+      return best_match, mount_points[best_match]
+
+    result = _GetMountPointByDiskFree(path)
+    if not result:
+      logging.info('remount: Cannot get mount point by df, try /proc/mounts')
+      result = _GetMountPointFromProcMounts(path)
+    return result
+
   def Remount(self, path, options="rw"):
     """Remount the file system of path with given options.
 
@@ -37,46 +87,7 @@ class Storage(component.DUTComponent):
                defaults to 'rw').
     """
 
-    def _GetMountPointByDiskFree(path):
-      # the output should look like:
-      # Mounted on
-      # /usr/local
-      output = self._dut.CallOutput(['df', '--output=target', path])
-      if not output:
-        return None
-      match = re.search(r'^(/[/\w]*)$', output, re.MULTILINE)
-      if not match:
-        logging.warning('remount: The output of df is unexpected:\n%s', output)
-        return None
-      return match.group(1)
-
-    def _GetMountPointFromProcMounts(path):
-      # resolve all symbolic links
-      realpath = self._dut.path.realpath(path)
-      logging.info('remount: %s is resolved to %s', path, realpath)
-
-      output = self._dut.CallOutput('cat /proc/mounts')
-      if not output:
-        logging.error('remount: Cannot read /proc/mounts')
-        return None
-
-      # The format of /proc/mounts is documented in fstab(5),
-      # second field of each line is the mount point
-      mount_points = [x[1] for x in map(str.split, output.splitlines())]
-
-      # '/' is always a mount point
-      best_match = '/'
-      for mount_point in mount_points:
-        if (realpath.startswith(mount_point) and
-            len(mount_point) > len(best_match)):
-          best_match = mount_point
-      return best_match
-
-    mount_point = _GetMountPointByDiskFree(path)
-    if not mount_point:
-      logging.info('remount: Cannot get mount point by df, try /proc/mounts')
-      mount_point = _GetMountPointFromProcMounts(path)
-
+    mount_point, _ = self.GetMountPoint(path)
     if not mount_point:
       logging.error('remount: Cannot get mount point of %s', path)
       return False
@@ -88,3 +99,5 @@ class Storage(component.DUTComponent):
 
     return True
 
+  def GetMainStorageDevice(self):
+    return self._dut.CheckOutput(['rootdev', '-d', '/usr/local']).strip()

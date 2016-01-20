@@ -14,7 +14,6 @@ import hashlib
 import logging
 import os
 import pipes
-import re
 import shutil
 import stat
 import subprocess
@@ -316,18 +315,21 @@ def Sync(log=True):
   Spawn(['sync'], log=log, check_call=True)
 
 
-def GetMainStorageDevice():
-  """Returns the path to the main storage device."""
-  with open('/etc/mtab') as f:
-    for line in f.readlines():
-      fields = line.split()
-      if fields[1] == '/usr/local' and fields[0].startswith('/dev/'):
-        device = fields[0]
-        # Remove the partition number (including the letter 'p' if any)
-        # and return.
-        return re.sub(r'p?(\d+)$', '', device)
+def GetFileSizeInBytes(path, follow_link=False, dut=None):
+  if dut:
+    cmd = ['stat', '-c', '%F\n%s'] + (['-L'] if follow_link else []) + [path]
+    output = dut.CallOutput(cmd)
+    (file_type, size) = output.splitlines()
 
-  raise IOError('Unable to find main storage device in /etc/mtab')
+    if file_type == 'block special file':
+      return int(dut.CallOutput(['blockdev', '--getsize64', path]))
+    else:
+      # For other files, just returns what we got from stat
+      return int(size)
+  else:
+    with open(path, 'rb') as f:
+      f.seek(0, os.SEEK_END)
+      return f.tell()
 
 
 @contextmanager

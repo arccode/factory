@@ -27,14 +27,14 @@ from select import select
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test.event_log import Log
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI, Escape, MakeLabel
 from cros.factory.utils import debug_utils
+from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
-from cros.factory.utils.file_utils import GetMainStorageDevice
-from cros.factory.utils.process_utils import Spawn
 
 HTML = '''
 <div id="bb-phase" style="font-size: 200%"></div>
@@ -46,8 +46,6 @@ HTML = '''
 class BadBlocksTest(unittest.TestCase):
   # SATA link speed, or None if unknown.
   sata_link_speed_mbps = None
-  # /var/log/messages file.
-  var_log_messages = None
 
   ARGS = [
       Arg('mode', str, 'String to specify which operating mode to use, '
@@ -78,6 +76,7 @@ class BadBlocksTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.dut = dut.Create()
     self.ui = UI()
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetState(HTML)
@@ -88,7 +87,7 @@ class BadBlocksTest(unittest.TestCase):
     if self.args.device_path is None:
       if self.args.mode == 'raw':
         raise ValueError('In raw mode the device_path must be specified.')
-      self.args.device_path = GetMainStorageDevice()
+      self.args.device_path = self.dut.storage.GetMainStorageDevice()
     if self.args.mode == 'file':
       if self.args.device_path[0:5] == '/dev/':
         # In file mode we want to use the filesystem, not a device node,
@@ -104,7 +103,10 @@ class BadBlocksTest(unittest.TestCase):
     # If /dev/mmcblk0 exists assume we are eMMC, this means a unit with an
     # external SD card inserted will not use SATA specific utilities.
     # TODO(bhthompson): refactor this for a better device type detection.
-    self._is_mmc = os.path.exists('/dev/mmcblk0')
+    self._is_mmc = self.dut.path.exists('/dev/mmcblk0')
+
+    # A process that monitors /var/log/messages file.
+    self.message_monitor = None
 
   def runTest(self):
     thread = threading.Thread(target=self._CheckBadBlocks)
@@ -115,9 +117,12 @@ class BadBlocksTest(unittest.TestCase):
     # Sync, so that any problems (like writing outside of our partition)
     # will show up sooner rather than later.
     self._LogSmartctl()
-    Spawn(['sync'], call=True)
+    self.dut.Call(['sync'])
     if self.args.mode == 'file':
-      os.remove(self.args.device_path)
+      self.dut.Call(['rm', '-f', self.args.device_path])
+    if self.message_monitor:
+      self.message_monitor.kill()
+      self.message_monitor = None
 
   def _CheckBadBlocks(self):
     try:
@@ -141,9 +146,8 @@ class BadBlocksTest(unittest.TestCase):
     elif self.args.mode == 'raw':
       # For some files like dev nodes we cannot trust the stats provided by
       # the os, so we manually seek to the end of the file to determine size.
-      with open(self.args.device_path, 'rb') as f:
-        f.seek(0, 2)
-        raw_file_bytes = f.tell()
+      raw_file_bytes = file_utils.GetFileSizeInBytes(self.args.device_path,
+                                                     self.dut)
       if self.args.max_bytes is None or self.args.max_bytes > raw_file_bytes:
         logging.info('Setting max_bytes to the available size of %dB.',
                      raw_file_bytes)
@@ -160,8 +164,8 @@ class BadBlocksTest(unittest.TestCase):
       partition_path = '%s%s1' % (self.args.device_path, part_prefix)
 
       # Determine total length of the FS
-      dumpe2fs = Spawn(['dumpe2fs', '-h', partition_path],
-                       log=True, check_output=True).stdout_data
+      dumpe2fs = self.dut.CheckOutput(['dumpe2fs', '-h', partition_path],
+                                      log=True)
       logging.info('Filesystem info for  header:\n%s', dumpe2fs)
 
       fields = dict(re.findall(r'^(.+):\s+(.+)$', dumpe2fs, re.MULTILINE))
@@ -171,8 +175,8 @@ class BadBlocksTest(unittest.TestCase):
 
       # Grok cgpt data to find the partition size
       cgpt_start_sector, cgpt_sector_count = [
-          int(Spawn(['cgpt', 'show', self.args.device_path, '-i', '1', flag],
-                    log=True, check_output=True).stdout_data.strip())
+          int(self.dut.CheckOutput(['cgpt', 'show', self.args.device_path,
+                                    '-i', '1', flag], log=True).strip())
           for flag in ('-b', '-s')]
       sector_size = self._GetBlockSize(self.args.device_path)
 
@@ -215,18 +219,17 @@ class BadBlocksTest(unittest.TestCase):
                   '正在测试 %s 的 存储 空间' % test_size_mb))
 
     # Kill any badblocks processes currently running
-    Spawn(['killall', 'badblocks'], ignore_stderr=True, call=True)
+    self.dut.Call(['killall', 'badblocks'])
 
     # -f = force (since the device may be in use)
     # -s = show progress
     # -v = verbose (print error count)
     # -w = destructive write+read test
-    process = Spawn(['badblocks', '-fsvw', '-b', str(sector_size)] +
-                    (['-e', str(self.args.max_errors)]
-                     if self.args.max_errors else []) +
-                    [self.args.device_path, str(last_block), str(first_block)],
-                    log=True, bufsize=0,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = self.dut.Popen(
+        ['badblocks', '-fsvw', '-b', str(sector_size)] +
+        (['-e', str(self.args.max_errors)] if self.args.max_errors else []) +
+        [self.args.device_path, str(last_block), str(first_block)],
+        log=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     # The total number of phases there will be (8: read and write for each
     # of 4 different patterns).
@@ -255,7 +258,8 @@ class BadBlocksTest(unittest.TestCase):
     while True:
       # Assume no output in timeout_secs means hung on disk op.
       start_time = time.time()
-      rlist, _, _ = select([process.stdout], [], [], self.args.timeout_secs)
+      rlist, unused_wlist, unused_xlist = select(
+          [process.stdout], [], [], self.args.timeout_secs)
       end_time = time.time()
       self._UpdateSATALinkSpeed()
 
@@ -316,8 +320,7 @@ class BadBlocksTest(unittest.TestCase):
             (time.time() - last_drop_caches_time >
              self.args.drop_caches_interval_secs)):
           logging.info('Dropping caches')
-          with open('/proc/sys/vm/drop_caches', 'w') as f:
-            f.write('1')
+          self.dut.WriteFile('/proc/sys/vm/drop_caches', '1')
           last_drop_caches_time = time.time()
       else:
         buf.append(ch)
@@ -344,9 +347,12 @@ class BadBlocksTest(unittest.TestCase):
       Assertion if the containing folder does not exist.
       Assertion if the filesystem does not have adequate space.
     '''
-    folder = os.path.dirname(file_path)
-    self.assertTrue(os.path.isdir(folder), 'Folder does not exist.')
-    free_bytes = os.statvfs(folder).f_bavail * os.statvfs(folder).f_bsize
+    folder = self.dut.path.dirname(file_path)
+    self.assertTrue(self.dut.path.isdir(folder), 'Folder does not exist.')
+
+    stat = self.dut.CheckOutput(['stat', '-f', '-c', '%a|%s', folder])
+    (available_blocks, block_size) = map(int, stat.split('|'))
+    free_bytes = available_blocks * block_size
     logging.info('Detected %dB free space at %s', free_bytes, folder)
     # Assume we want at least 10MB free on the file system, so we make a pad.
     pad = 10 * 1024 * 1024
@@ -354,9 +360,7 @@ class BadBlocksTest(unittest.TestCase):
       logging.warn('The file size is too large for the file system, '
                    'clipping file to %dB.', free_bytes - pad)
       file_bytes = free_bytes - pad
-    with open(file_path, 'wb') as f:
-      f.seek(file_bytes - 1)
-      f.write('\0')
+    self.dut.Call(['truncate', '-s', str(file_bytes), file_path], log=True)
     return file_bytes
 
   def _GetBlockSize(self, dev_node_path):
@@ -368,8 +372,9 @@ class BadBlocksTest(unittest.TestCase):
     Returns:
       Int, number of bytes in a block.
     '''
-    return int(open('/sys/class/block/%s/queue/hw_sector_size'
-                    % os.path.basename(dev_node_path)).read().strip())
+    return int(self.dut.ReadFile('/sys/class/block/%s/queue/hw_sector_size'
+                                 % os.path.basename(dev_node_path),
+                                 skip=0).strip())
 
   def _LogSmartctl(self):
     # No smartctl on mmc.
@@ -378,19 +383,28 @@ class BadBlocksTest(unittest.TestCase):
     if self._is_mmc:
       return
     if self.args.extra_log_cmd:
-      process = Spawn(
-          self.args.extra_log_cmd, shell=True,
-          ignore_stdin=True, read_stdout=True, read_stderr=True,
-          call=True, log=True)
-      if process.stdout_data:
-        logging.info('stdout:\n%s', process.stdout_data)
-      if process.stderr_data:
-        logging.info('stderr:\n%s', process.stderr_data)
-      Log('log_command', command=self.args.extra_log_cmd,
-          stdout=process.stdout_data, stderr=process.stderr_data)
 
-    smartctl_output = Spawn(['smartctl', '-a', self.args.device_path],
-                            check_output=True).stdout_data
+      try:
+        process = self.dut.Popen(
+            self.args.extra_log_cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, log=True)
+      except NotImplementedError:
+        # ADBLink can't separate stderr and stdout to different PIPE
+        process = self.dut.Popen(
+            self.args.extra_log_cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, log=True)
+
+      stdout_data, stderr_data = process.communicate()
+
+      if stdout_data:
+        logging.info('stdout:\n%s', stdout_data)
+      if stderr_data:
+        logging.info('stderr:\n%s', stderr_data)
+      Log('log_command', command=self.args.extra_log_cmd,
+          stdout=stdout_data, stderr=stderr_data)
+
+    smartctl_output = self.dut.CheckOutput(
+        ['smartctl', '-a', self.args.device_path])
     Log('smartctl', stdout=smartctl_output)
     logging.info('smartctl output: %s', smartctl_output)
 
@@ -404,16 +418,31 @@ class BadBlocksTest(unittest.TestCase):
     # No SATA on mmc.
     if self._is_mmc:
       return
-    first_time = self.var_log_messages is None
+    first_time = self.message_monitor is None
+
     if first_time:
-      self.var_log_messages = open('/var/log/messages')
+      self.message_monitor = self.dut.Popen(['tail', '-f', '/var/log/messages'],
+                                            stdin=open('/dev/null'),
+                                            stdout=subprocess.PIPE)
 
     # List of dicts to log.
     link_info_events = []
 
+    if first_time:
+      rlist, unused_wlist, unused_xlist = select(
+          [self.message_monitor.stdout], [], [], self.args.timeout_secs)
+      if not rlist:
+        logging.warn('UpdateSATALinkSpeed: Cannot get any line from '
+                     '/var/log/messages after %d seconds',
+                     self.args.timeout_secs)
+
     while True:
+      rlist, unused_wlist, unused_xlist = select(
+          [self.message_monitor.stdout], [], [], 0)
+      if not rlist:
+        break
       log_line = self.var_log_messages.readline()
-      if not log_line:
+      if not log_line:  # this shouldn't happen
         break
       log_line = log_line.strip()
       match = re.match(r'(\S)+.+SATA link up ([0-9.]+) (G|M)bps', log_line)
