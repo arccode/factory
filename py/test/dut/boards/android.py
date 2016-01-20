@@ -9,6 +9,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import board
 from cros.factory.test.dut import component
 from cros.factory.test.dut import path
+from cros.factory.test.dut import storage
 from cros.factory.test.dut import temp
 
 
@@ -22,3 +23,7 @@ class AndroidBoard(board.DUTBoard):
   @component.DUTProperty
   def _RemotePath(self):
     return path.AndroidPath(self)
+
+  @component.DUTProperty
+  def storage(self):
+    return storage.AndroidStorage(self)

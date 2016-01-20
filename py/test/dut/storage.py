@@ -23,55 +23,38 @@ class Storage(component.DUTComponent):
     """Returns the directory for persistent data."""
     return '/var/factory'
 
+  def _GetMountPointByDiskFree(self, path):
+    """Returns a pair (mount_point, device) where path is mounted.
+
+    Unlike GetMountPoint, path is directly passed to df even if it doesn't
+    exist.
+    """
+    # the output should look like:
+    # Mounted on    Filesystem
+    # /usr/local    /dev/...
+    output = self._dut.CallOutput(['df', '--output=target,source', path])
+    if not output:
+      return None, None
+    match = re.search(r'^(/[/\w]*)\s*(/[/\w]*)$', output, re.MULTILINE)
+    if not match:
+      logging.warning('remount: The output of df is unexpected:\n%s', output)
+      return None, None
+    return match.group(1), match.group(2)
+
   def GetMountPoint(self, path):
     """Returns a pair (mount_point, device) where path is mounted.
 
-       We first try to use disk free (df) command to find the mount point of
-       path. If we can't get expected result, we will look into /proc/mounts
-       to find the most probable result.
+    Since _GetMountPointByDiskFree will fail if path doesn't exist. We will drop
+    each component in the path until new path exists. Then use
+    _GetMountPointByDiskFree to get the mount point and device of new path.
     """
-    def _GetMountPointByDiskFree(path):
-      # the output should look like:
-      # Mounted on    Filesystem
-      # /usr/local    /dev/...
-      output = self._dut.CallOutput(['df', '--output=target,source', path])
-      if not output:
-        return None, None
-      match = re.search(r'^(/[/\w]*)\s*(/[/\w]*)$', output, re.MULTILINE)
-      if not match:
-        logging.warning('remount: The output of df is unexpected:\n%s', output)
-        return None, None
-      return match.group(1), match.group(2)
+    while not self._dut.path.exists(path):
+      new_path = self._dut.path.dirname(path)
+      if new_path == path:
+        break
+      path = new_path
 
-    def _GetMountPointFromProcMounts(path):
-      # resolve all symbolic links
-      realpath = self._dut.path.realpath(path)
-      logging.info('remount: %s is resolved to %s', path, realpath)
-
-      output = self._dut.ReadFile('/proc/mounts', skip=0)
-      if not output:
-        logging.error('remount: Cannot read /proc/mounts')
-        return None, None
-
-      # The format of /proc/mounts is documented in fstab(5),
-      # first field of each line is the device
-      # second field of each line is the mount point
-      mount_points = {x[1]: x[0] for x in map(str.split, output.splitlines())}
-
-      # '/' is always a mount point
-      best_match = '/'
-
-      for mount_point in mount_points.keys():
-        if (realpath.startswith(mount_point) and
-            len(mount_point) > len(best_match)):
-          best_match = mount_point
-      return best_match, mount_points[best_match]
-
-    result = _GetMountPointByDiskFree(path)
-    if not result:
-      logging.info('remount: Cannot get mount point by df, try /proc/mounts')
-      result = _GetMountPointFromProcMounts(path)
-    return result
+    return self._GetMountPointByDiskFree(path)
 
   def Remount(self, path, options="rw"):
     """Remount the file system of path with given options.
@@ -101,3 +84,26 @@ class Storage(component.DUTComponent):
 
   def GetMainStorageDevice(self):
     return self._dut.CheckOutput(['rootdev', '-d', '/usr/local']).strip()
+
+
+class AndroidStorage(Storage):
+
+  def GetMainStorageDevice(self):
+    device = self.GetMountPoint('/data')[1]
+    if not device:
+      raise IOError('Unable to find main storage device (/usr/local)')
+    return re.sub(r'p?(\d+)$', '', device)
+
+  def _GetMountPointByDiskFree(self, path):
+    # the output should look like:
+    # Filesystem     1K-blocks   Used Available Use% Mounted on
+    # /dev/root         755920 110864    645056  15% /
+    output = self._dut.CallOutput(['toybox', 'df', path])
+    if not output:
+      return None, None
+    match = re.search(r'^(/[/\w]*)(?:\s+\d+){4}%\s+(/[/\w]*)$', output,
+                      re.MULTILINE)
+    if not match:
+      logging.warning('remount: The output of df is unexpected:\n%s', output)
+      return None, None
+    return match.group(2), match.group(1)
