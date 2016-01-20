@@ -9,9 +9,9 @@
 import logging
 import random
 import unittest
-from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -24,11 +24,9 @@ _ID_CONTAINER = 'backlight-test-container'
 _HTML_BACKLIGHT = """
    <link rel="stylesheet" type="text/css" href="backlight.css">
    <div id="%s">
-   </div>\n"""  % _ID_CONTAINER
-_ADJUST_STEP = 10
-
-BrightnessSetting = namedtuple('BrightnessSetting',
-                               ['lowest', 'normal', 'highest'])
+   </div>\n""" % _ID_CONTAINER
+_DEFAULT_ADJUST_LEVEL = 0.05
+_DEFAULT_RESET_LEVEL = 0.5
 
 
 class BacklightTest(unittest.TestCase):
@@ -42,50 +40,40 @@ class BacklightTest(unittest.TestCase):
   Attributes:
     self.ui: test ui.
     self.template: ui template handling html layout.
-    self.brightness_setting: The BrightnessSetting containing brightness value
-        for lowest, normal, highest.
     self.sequence: The testing sequence of 'high' and 'low'.
     self.index: The index of current testing.
-    self.current_brightness: The current brightness.
+    self.current_level: The current brightness level.
   """
   ARGS = [
-      Arg(
-          'brightness_path', str,
-          'The field under sysfs to control brightness', optional=False),
-      Arg(
-          'brightness', tuple, 'Brightness value (lowest, normal, highest)',
-          optional=True, default=(10, 100, 250)),
-      Arg(
-          'adjust_step', int,
-          'How much the brightness value should be adjusted', optional=True,
-          default=_ADJUST_STEP)]
+      Arg('adjust_level', float,
+          'How much the brightness level should be adjusted. Max: 1.0',
+          optional=True, default=_DEFAULT_ADJUST_LEVEL),
+      Arg('reset_level', float,
+          'The brightness level when do reset. Max: 1.0',
+          optional=True, default=_DEFAULT_RESET_LEVEL),
+  ]
 
-  def AdjustBrightness(self, value):
-    """Adjust the intensity by writing targeting value to sysfs.
-
-    Args:
-      value: The targeted brightness value.
-    """
-    with open(self.args.brightness_path, 'w') as f:
-      try:
-        f.write('%d' % value)
-      except IOError:
-        self.ui.Fail('Can not write %r into brightness. '
-                     'Maybe the limit is wrong' % value)
-    self.current_brightness = value
+  def AdjustBrightness(self, level):
+    """Adjust the intensity."""
+    if level > 1:
+      level = 1
+    if level < 0:
+      level = 0
+    logging.info('Adjust brightness level to %r', level)
+    self.dut.display.SetBacklightBrightness(level)
+    self.current_level = level
 
   def setUp(self):
     """Initializes frontend presentation and properties."""
+    self.dut = dut.Create()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendHTML(_HTML_BACKLIGHT)
-    self.brightness_setting = BrightnessSetting(*self.args.brightness)
-    self.CheckMaxBrightness()
     # Randomly sets the testing sequence.
     self.sequence = ['low', 'high'] if random.randint(0, 1) else ['high', 'low']
     logging.info('testing sequence: %r', self.sequence)
     self.index = 0
-    self.current_brightness = 0
+    self.current_level = 0
     self.ResetBrightness()
     self.ui.CallJSFunction('setupBacklightTest', _ID_CONTAINER)
 
@@ -116,41 +104,15 @@ class BacklightTest(unittest.TestCase):
     else:
       self.ui.Fail('Wrong answer: %r' % answer)
 
-  def CheckMaxBrightness(self):
-    """Checks maximum brightness value set from args.
-
-    Checks max_brightness under sysfs for maximum brightness.
-    If that value is lower than the value set from args, use that
-    value instead.
-    """
-    with open(self.args.brightness_path.replace(
-        'brightness', 'max_brightness')) as f:
-      max_brightness = int(f.read())
-      if self.brightness_setting.highest > max_brightness:
-        logging.warning(
-            'highest brightness %r is larger than'
-            'max_brightness %r under sysfs. Use sysfs value instead',
-            self.brightness_setting.highest, max_brightness)
-        # pylint: disable=W0212
-        self.brightness_setting = self.brightness_setting._replace(
-            highest=max_brightness)
-        logging.info('New brightness_setting: %r', self.brightness_setting)
-
   def OnAdjustBrightness(self):
-    """Adjusts the brightness value by self.args.adjust_step."""
-    target_brightness = self.current_brightness
-    if (self.sequence[self.index] == 'high' and
-        (self.current_brightness + self.args.adjust_step <
-         self.brightness_setting.highest)):
-      target_brightness = self.current_brightness + self.args.adjust_step
-    elif (self.sequence[self.index] == 'low' and
-          (self.current_brightness - self.args.adjust_step >
-           self.brightness_setting.lowest)):
-      target_brightness = self.current_brightness - self.args.adjust_step
-    self.AdjustBrightness(target_brightness)
-    logging.info('Adjust brightness to %r', target_brightness)
+    """Adjusts the brightness value by self.args.adjust_level."""
+    if self.sequence[self.index] == 'high':
+      target_level = self.current_level + self.args.adjust_level
+    elif self.sequence[self.index] == 'low':
+      target_level = self.current_level - self.args.adjust_level
+    self.AdjustBrightness(target_level)
 
   def ResetBrightness(self):
     """Resets brightness back to normal value."""
-    self.AdjustBrightness(self.brightness_setting.normal)
-    logging.info('Reset brightness to %r', self.brightness_setting.normal)
+    logging.info('Reset brightness to %r', self.args.reset_level)
+    self.AdjustBrightness(self.args.reset_level)
