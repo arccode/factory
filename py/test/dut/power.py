@@ -74,8 +74,8 @@ class Power(DUTComponent):
       p = self._dut.Glob(ac_path % '*')
       if p:
         # Systems with multiple USB-C ports may have multiple power sources.
-        # Since the end goal is to determine if the system is powered, let’s
-        # just return the first powered AC path if there’s any; otherwise
+        # Since the end goal is to determine if the system is powered, let's
+        # just return the first powered AC path if there's any; otherwise
         # return the first in the list.
         for path in p:
           if self.ReadOneLine(path) == '1':
