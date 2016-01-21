@@ -21,6 +21,10 @@ class EmbeddedController(component.DUTComponent):
   # Regular expression for parsing ectool output.
   I2C_READ_RE = re.compile(r'I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
 
+  def _GetOutput(self, command):
+    result = self._dut.CallOutput(command)
+    return result.strip() if result is not None else ''
+
   def GetECVersion(self):
     """Gets the EC firmware version.
 
