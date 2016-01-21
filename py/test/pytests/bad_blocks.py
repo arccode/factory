@@ -22,6 +22,7 @@ import subprocess
 import threading
 import time
 import unittest
+from collections import namedtuple
 from select import select
 
 import factory_common  # pylint: disable=W0611
@@ -81,32 +82,11 @@ class BadBlocksTest(unittest.TestCase):
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetState(HTML)
     self.template.DrawProgressBar()
-    if self.args.max_bytes:
-      # We don't want to try running bad blocks on <1kB
-      self.assertTrue(self.args.max_bytes >= 1024, 'max_bytes too small.')
-    if self.args.device_path is None:
-      if self.args.mode == 'raw':
-        raise ValueError('In raw mode the device_path must be specified.')
-      self.args.device_path = self.dut.storage.GetMainStorageDevice()
-    if self.args.mode == 'file':
-      if self.args.device_path[0:5] == '/dev/':
-        # In file mode we want to use the filesystem, not a device node,
-        # so we default to the stateful partition.
-        self.args.device_path = '/mnt/stateful_partition/temp_badblocks_file'
-      if self.args.max_bytes is None:
-        # Default to 100MB file size for testing.
-        self.args.max_bytes = 100 * 1024 * 1024
-      # Add in a file extension, to ensure we are only using our own file.
-      self.args.device_path = self.args.device_path + '.for_bad_blocks_test'
-      self.args.max_bytes = self._GenerateTestFile(self.args.device_path,
-                                                   self.args.max_bytes)
-    # If /dev/mmcblk0 exists assume we are eMMC, this means a unit with an
-    # external SD card inserted will not use SATA specific utilities.
-    # TODO(bhthompson): refactor this for a better device type detection.
-    self._is_mmc = self.dut.path.exists('/dev/mmcblk0')
 
     # A process that monitors /var/log/messages file.
     self.message_monitor = None
+
+    self.CheckArgs()
 
   def runTest(self):
     thread = threading.Thread(target=self._CheckBadBlocks)
@@ -133,9 +113,33 @@ class BadBlocksTest(unittest.TestCase):
     else:
       self.ui.Pass()
 
-  def _CheckBadBlocksImpl(self):
-    self.assertFalse(sys_utils.InChroot(),
-                     'badblocks test may not be run within the chroot')
+  def CheckArgs(self):
+    if self.args.max_bytes:
+      # We don't want to try running bad blocks on <1kB
+      self.assertTrue(self.args.max_bytes >= 1024, 'max_bytes too small.')
+    if self.args.device_path is None:
+      if self.args.mode == 'raw':
+        raise ValueError('In raw mode the device_path must be specified.')
+      self.args.device_path = self.dut.storage.GetMainStorageDevice()
+    if self.args.mode == 'file':
+      if self.args.device_path.startswith('/dev/'):
+        # In file mode we want to use the filesystem, not a device node,
+        # so we default to the stateful partition.
+        self.args.device_path = '/mnt/stateful_partition/temp_badblocks_file'
+      if self.args.max_bytes is None:
+        # Default to 100MB file size for testing.
+        self.args.max_bytes = 100 * 1024 * 1024
+      # Add in a file extension, to ensure we are only using our own file.
+      self.args.device_path = self.args.device_path + '.for_bad_blocks_test'
+      self.args.max_bytes = self._GenerateTestFile(self.args.device_path,
+                                                   self.args.max_bytes)
+
+  def DetermineParameters(self):
+    # If /dev/mmcblk0 exists assume we are eMMC, this means a unit with an
+    # external SD card inserted will not use SATA specific utilities.
+    # TODO(bhthompson): refactor this for a better device type detection.
+    self._is_mmc = self.dut.path.exists('/dev/mmcblk0') # pylint: disable=W0201
+
     first_block = 0
     sector_size = 1024
     if self.args.mode == 'file':
@@ -152,7 +156,7 @@ class BadBlocksTest(unittest.TestCase):
         logging.info('Setting max_bytes to the available size of %dB.',
                      raw_file_bytes)
         self.args.max_bytes = raw_file_bytes
-      if self.args.device_path[0:5] == '/dev/':
+      if self.args.device_path.startswith('/dev/'):
         sector_size = self._GetBlockSize(self.args.device_path)
       last_block = self.args.max_bytes / sector_size
       logging.info('Using an existing file at %s, size %dB, sector size %dB, '
@@ -211,8 +215,20 @@ class BadBlocksTest(unittest.TestCase):
     else:
       raise ValueError('Invalid mode selected, check test_list mode setting.')
 
+    Parameters = namedtuple('Parameters', ('first_block last_block sector_size '
+                                           'device_path max_errors'))
+    return Parameters(first_block, last_block, sector_size,
+                      self.args.device_path, self.args.max_errors)
+
+  def _CheckBadBlocksImpl(self):
+    self.assertFalse(sys_utils.InChroot(),
+                     'badblocks test may not be run within the chroot')
+
+    params = self.DetermineParameters()
+
     test_size_mb = '%.1f MiB' % (
-        (last_block - first_block + 1) * sector_size / 1024. ** 2)
+        (params.last_block - params.first_block + 1) *
+        params.sector_size / 1024. ** 2)
 
     self.template.SetInstruction(
         MakeLabel('Testing %s region of storage' % test_size_mb,
@@ -226,9 +242,9 @@ class BadBlocksTest(unittest.TestCase):
     # -v = verbose (print error count)
     # -w = destructive write+read test
     process = self.dut.Popen(
-        ['badblocks', '-fsvw', '-b', str(sector_size)] +
-        (['-e', str(self.args.max_errors)] if self.args.max_errors else []) +
-        [self.args.device_path, str(last_block), str(first_block)],
+        ['badblocks', '-fsvw', '-b', str(params.sector_size)] +
+        (['-e', str(params.max_errors)] if params.max_errors else []) +
+        [params.device_path, str(params.last_block), str(params.first_block)],
         log=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     # The total number of phases there will be (8: read and write for each
@@ -289,9 +305,9 @@ class BadBlocksTest(unittest.TestCase):
             # The percentage reported is actually the percentage until the last
             # block; convert it to an offset within the current phase.
             block_offset = (
-                float(match.group(1)) / 100) * (last_block + 1)
-            fraction_within_phase = (block_offset - first_block) / float(
-                last_block + 1 - first_block)
+                float(match.group(1)) / 100) * (params.last_block + 1)
+            fraction_within_phase = (block_offset - params.first_block) / float(
+                params.last_block + 1 - params.first_block)
             self.ui.SetHTML(line[match.end():], id='bb-progress')
             line = line[:match.start()].strip()  # Remove percentage from status
 

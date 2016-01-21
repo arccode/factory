@@ -8,6 +8,8 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import dut as dut_module
+from cros.factory.test.args import Args
+from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import type_utils
 
 
@@ -80,7 +82,23 @@ class ScriptBuilder(object):
   def TestThermalLoad(self):
     return self
 
-  def TestBadBlock(self):
+  def TestBadBlocks(self, **kargs):
+    """Generates the bad blocks test.
+
+    Args:
+      Please refer to `cros.factory.test.pytests.bad_blocks.BadBlocksTest.ARGS`
+      for the argument list.
+    """
+    module = pytest_utils.LoadPytestModule('bad_blocks')
+    test = module.BadBlocksTest()
+    test.dut = self.dut
+    test.args = Args(*test.ARGS).Parse(kargs)
+
+    test.CheckArgs()
+    params = test.DetermineParameters()
+    self._AddTask('bad_blocks.sh',
+                  is_file=('true' if test.args.mode == 'file' else 'false'),
+                  **params._asdict())
     return self
 
   def VerifyComponent(self):
