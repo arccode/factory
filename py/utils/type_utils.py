@@ -214,7 +214,9 @@ class LazyProperty(object):
     if obj is None:
       return self
     if not hasattr(obj, self._prop_name):
-      setattr(obj, self._prop_name, self._init_func(obj))
+      prop_value = self._init_func(obj)
+      setattr(obj, self._prop_name, prop_value)
+      return prop_value
     return getattr(obj, self._prop_name)
 
   def __set__(self, obj, value):
