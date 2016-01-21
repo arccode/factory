@@ -124,3 +124,8 @@ API Documentation
 
 .. autoclass:: DUTBoard
    :members:
+
+.. py:module:: cros.factory.test.dut.link
+
+.. autoclass:: DUTLink
+   :members:

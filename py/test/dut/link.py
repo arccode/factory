@@ -23,6 +23,7 @@ class DUTLink(object):
       remote: A string for file path on remote DUT.
       local: A string for local file path to receive downloaded content, or
              None to return the contents directly.
+
     Returns:
       If local is None, return a string as contents in remote file.
       Otherwise, do not return anything.

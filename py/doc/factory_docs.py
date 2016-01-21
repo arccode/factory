@@ -103,10 +103,16 @@ def ProcessDocstring(unused_app, what, unused_name, unused_obj,
       some_argument: This is a description of
         an argument.
 
+    Returns:
+      Description of return value.
+
   to::
 
     :param some_argument: This is a description of
         an argument.
+
+    :return:
+       Description of return value.
   """
   if what in ['function', 'method']:
     # Remember which section we're in (like "Args").
@@ -121,6 +127,9 @@ def ProcessDocstring(unused_app, what, unused_name, unused_obj,
         # Remove this line (we'll use the :param keyword for each
         # individual argument).
         line = ''
+
+      if line == 'Returns:':
+        line = ':return:'
 
       if in_section == 'Args':
         # Within the "Args" section, use the :param tag for each
