@@ -111,10 +111,12 @@ def CreateBoard(**options):
   ``board_setup_factory.sh``.  See :ref:`board-api-extending`.
 
   Args:
-    options: options to setup DUT link and board (see _ParseOptions).
+    options: options to setup DUT link and board (see ``_ParseOptions``).
 
   Returns:
     An instance of the sub-classed DUTBoard.
+
+  :rtype: cros.factory.test.dut.board.DUTBoard
   """
   link_name, board_name, args = _ParseOptions(options)
   link_class = _GetDUTClass('links', 'Link', link_name)
@@ -128,6 +130,11 @@ def CreateLink(**options):
 
   Args:
     options: Options to setup DUT link (see _ParseOptions).
+
+  Returns:
+    An instance of the sub-classede DUTLink.
+
+  :rtype: cros.factory.test.dut.link.DUTLink
   """
   link_name, board_name, args = _ParseOptions(options)
   link_class = _GetDUTClass('links', 'Link', link_name)

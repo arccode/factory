@@ -49,4 +49,8 @@ class DUTComponent(object):
   Error = DUTException
 
   def __init__(self, dut):
+    """Constructor of DUT Components.
+
+    :type dut: cros.factory.test.dut.board.DUTBoard
+    """
     self._dut = dut
