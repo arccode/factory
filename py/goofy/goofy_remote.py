@@ -227,6 +227,10 @@ def main():
 
   board_dash = board.replace('_', '-')
   private_paths = [os.path.join(SRCROOT, 'src', 'private-overlays',
+                                'project-%s-private' % board_dash,
+                                'chromeos-base', 'chromeos-factory-board',
+                                'files'),
+                   os.path.join(SRCROOT, 'src', 'private-overlays',
                                 'overlay-%s-private' % board_dash,
                                 'chromeos-base', 'chromeos-factory-board',
                                 'files'),
