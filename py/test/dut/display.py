@@ -202,3 +202,22 @@ class Display(component.DUTComponent):
       max_value = self._dut.ReadFile(self._dut.path.join(i, 'max_brightness'))
       new_value = int(level * float(max_value.strip()))
       self._dut.WriteFile(self._dut.path.join(i, 'brightness'), str(new_value))
+
+  def DisplayImage(self, image_path):
+    """Display image file on the screen.
+
+    Since there is no standard way to display image file. We may need to
+    implmenent it for each board if it wants to use this API.
+
+    Args:
+      image_path: Image file path on DUT.
+    """
+    raise NotImplementedError
+
+  def StopDisplayImage(self):
+    """Stop displaying Image on DUT.
+
+    It's a cleanup function. For some DUTs they may need display process running
+    during the display time. This function is used to clean the process.
+    """
+    pass
