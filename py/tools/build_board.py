@@ -13,6 +13,16 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 
 
+# List of all source path that could be used for overlay project.
+OVERLAY_PATH = [
+    'overlays/overlay-%s',
+    'overlays/overlay-variant-%s',
+    'overlays/project-%s',
+    'private-overlays/overlay-%s-private',
+    'private-overlays/overlay-variant-%s-private',
+    'private-overlays/project-%s-private']
+
+
 class BuildBoardException(Exception):
   """Build board exception."""
   pass
@@ -168,13 +178,9 @@ class BuildBoard(object):
 
     if sys_utils.InChroot():
       # Only get overlay relative path in chroot.
-      if self.variant:
-        overlay = 'overlay-variant-%s-%s' % (self.base, self.variant)
-      else:
-        overlay = 'overlay-%s' % self.base
+      overlay = self.base if not self.variant else '%s-%s' % (self.base, self.variant)
 
-      try_overlays = ['private-overlays/%s-private' % overlay,
-                      'overlays/%s' % overlay]
+      try_overlays = [path % overlay for path in OVERLAY_PATH]
       overlay_paths = [os.path.join(src, d) for d in try_overlays]
       existing_overlays = filter(os.path.exists, overlay_paths)
       if not existing_overlays:

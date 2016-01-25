@@ -179,6 +179,11 @@ lint:
 smartlint smart_lint:
 	bin/smart_lint
 
+# Target to lint only files that have changed, including files from
+# the given overlay.
+smart_lint-%:
+	bin/smart_lint --overlay $(@:smart_lint-%=%)
+
 # Substitute PRESUBMIT_FILES to relative path (similar to
 # GNU realpath "--relative-to=.", but works on non-GNU realpath).
 PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES), \
