@@ -43,28 +43,39 @@ class VerifyComponentsTest(unittest.TestCase):
       Arg('skip_shopfloor', bool,
           'Set this value to True to skip updating hwid data from shopfloor '
           'server.',
-          default=False, optional=True)
+          default=False, optional=True),
+      Arg('with_goofy', bool,
+          'Set this value to False if the test is not running with goofy. '
+          'Without goofy, test_ui and event_log will not work, thus will be '
+          'disabled',
+          default=True, optional=True)
   ]
 
   def setUp(self):
     self.factory_par = deploy_utils.FactoryPythonArchive(dut.Create())
     self._shopfloor = shopfloor
-    self._ui = test_ui.UI()
-    self._ui.AppendCSS('.progress-message {font-size: 2em;}')
-
     self.probed_results = None
     self._allow_unqualified = None
-    self.template = ui_templates.OneSection(self._ui)
-    self.template.SetTitle(_TEST_TITLE)
+
+    if self.args.with_goofy:
+      self._ui = test_ui.UI()
+      self._ui.AppendCSS('.progress-message {font-size: 2em;}')
+      self.template = ui_templates.OneSection(self._ui)
+      self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
+    if self.args.with_goofy:
+      self._ui.Run(blocking=False)
+
     if not self.args.skip_shopfloor:
       shopfloor.update_local_hwid_data()
 
     self._allow_unqualified = phase.GetPhase() in [
         phase.PROTO, phase.EVT, phase.DVT]
 
-    self.template.SetState(_MESSAGE_CHECKING_COMPONENTS)
+    if self.args.with_goofy:
+      self.template.SetState(_MESSAGE_CHECKING_COMPONENTS)
+
     cmd = ['hwid', 'verify-components', '--json_output']
     if not self.args.fast_fw_probe:
       cmd += ['--no-fast-fw-probe']
@@ -72,7 +83,8 @@ class VerifyComponentsTest(unittest.TestCase):
     results = json.loads(self.factory_par.CheckOutput(cmd))
 
     logging.info('Probed components: %s', results)
-    Log('probed_components', results=results)
+    if self.args.with_goofy:
+      Log('probed_components', results=results)
     self.probed_results = results
 
     # The format of results is
