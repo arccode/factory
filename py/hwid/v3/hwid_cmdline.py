@@ -215,8 +215,12 @@ def ListComponentsWrapper(options):
            help='the status of components to enumerate'))
 def EnumerateHWIDWrapper(options):
   """Enumerates possible HWIDs."""
-  for k, v in sorted(hwid_utils.EnumerateHWID(
-      options.database, options.image_id, options.status).items()):
+  # Enumerating may take a very long time so we want to verbosely make logs.
+  logging.debug('Enumerating all HWIDs...')
+  hwids = hwid_utils.EnumerateHWID(options.database, options.image_id,
+                                   options.status)
+  logging.debug('Printing %d sorted HWIDs...', len(hwids))
+  for k, v in sorted(hwids.iteritems()):
     print '%s: %s' % (k, v)
 
 
@@ -249,6 +253,8 @@ def InitializeDefaultOptions(options):
     board = board_variant
 
   # Create the Database object here since it's common to all functions.
+  logging.debug('Loading database file %s/%s...', options.hwid_db_path,
+                board.upper())
   options.database = database.Database.LoadFile(
       os.path.join(options.hwid_db_path, board.upper()),
       verify_checksum=(not options.no_verify_checksum))
@@ -264,6 +270,7 @@ def Main():
 
   InitializeDefaultOptions(options)
 
+  logging.debug('Perform command <%s>.. %r', options.command_name)
   options.command(options)
 
 

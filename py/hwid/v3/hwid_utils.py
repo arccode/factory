@@ -7,6 +7,7 @@
 """HWID v3 utility functions."""
 
 import collections
+import logging
 import re
 import yaml
 
@@ -246,6 +247,8 @@ def EnumerateHWID(db, image_id=None, status='supported'):
     pass_check = True
     components = collections.defaultdict(list)
     component_list = []
+    logging.debug('EnumerateHWID: Iterate encoded_fields %s',
+                  ','.join(map(str, encoded_fields.values())))
     for field, index in encoded_fields.iteritems():
       # pylint: disable=W0212
       attr_dict = db._GetAttributesByIndex(field, index)
@@ -262,11 +265,15 @@ def EnumerateHWID(db, image_id=None, status='supported'):
                 common.HWID.COMPONENT_STATUS.deprecated,
                 common.HWID.COMPONENT_STATUS.unqualified):
               pass_check = False
+              logging.debug('Ignore %s.%s: %r', comp_cls, attrs['name'],
+                            attrs['status'])
               break
             if status == 'released' and attrs.get('status') in (
                 common.HWID.COMPONENT_STATUS.unsupported,
                 common.HWID.COMPONENT_STATUS.unqualified):
               pass_check = False
+              logging.debug('Ignore %s.%s: %r', comp_cls, attrs['name'],
+                            attrs['status'])
               break
             comp_items.append(attrs['name'])
             components[comp_cls].append(common.ProbedComponentResult(
