@@ -619,7 +619,7 @@ class GooftoolTest(unittest.TestCase):
     image_file = 'firmware'
     self._gooftool._named_temporary_file().AndReturn(f)
     self._gooftool._util.shell(
-        'cbfstool %s extract -n locales -f %s' % (image_file, f.name))
+        'cbfstool %s extract -n locales -f %s -r BOOT_STUB' % (image_file, f.name))
 
     # Expect index = 1 for zh is matched.
     self._gooftool._util.shell('crossystem loc_idx=1')
