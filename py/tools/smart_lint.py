@@ -22,7 +22,8 @@ OVERLAY_FACTORY_FOLDER = 'chromeos-base/chromeos-factory-board/files/'
 
 def GetFileToLint(path=None):
   output = CheckOutput(
-      ['git', 'status', '--untracked-files=all', '--porcelain'], cwd=path, log=True)
+      ['git', 'status', '--untracked-files=all', '--porcelain'], cwd=path,
+      log=True)
 
   # Remove first three characters, and anything up to the -> for renames.
   uncommitted = [re.sub('^...(.+ -> )?', '', x)
@@ -55,7 +56,8 @@ def GetFileToLint(path=None):
   return all_files
 
 def HasFactoryFolder(overlay_path):
-  return os.path.exists(os.path.join('../..', overlay_path, OVERLAY_FACTORY_FOLDER))
+  return os.path.exists(
+      os.path.join('../..', overlay_path, OVERLAY_FACTORY_FOLDER))
 
 def main():
   parser = argparse.ArgumentParser(
@@ -78,8 +80,9 @@ def main():
 
   all_files_str = ' '.join(sorted(all_files))
   overlay_args = ['-C', 'overlay-%s' % args.overlay] if args.overlay else []
-  proc = Spawn(['make'] + overlay_args + ['lint', 'LINT_FILES=%s' % all_files_str], call=True,
-               log=True)
+  proc = Spawn(
+      ['make'] + overlay_args + ['lint', 'LINT_FILES=%s' % all_files_str],
+      call=True, log=True)
   sys.exit(proc.returncode)
 
 
