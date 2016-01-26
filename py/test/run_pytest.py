@@ -99,7 +99,7 @@ def _RunPytestRaw(pytest, args, dut_options):
 
   # Setup DUT_OPTIONS environment.
   if dut_options:
-    os.setenv(utils.ENV_DUT_OPTIONS, ast.dump(dut_options))
+    os.environ.update({utils.ENV_DUT_OPTIONS: str(dut_options)})
 
   # Set self.args of the test case.
   try:
