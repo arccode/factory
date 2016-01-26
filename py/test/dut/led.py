@@ -59,4 +59,4 @@ class LED(component.DUTComponent):
       self._dut.CheckCall(['ectool', 'led', led_name, color_brightness])
     except Exception as e:
       logging.exception('Unable to set LED color: %s', e)
-
+      raise

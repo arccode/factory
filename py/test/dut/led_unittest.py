@@ -74,10 +74,12 @@ class LEDTest(unittest.TestCase):
       self.led.SetColor(self.led.Color.RED, brightness=255)
 
   def testSetColorUnsupportedBoard(self):
+    msg = 'EC returned error 99'
     self.board.CheckCall(['ectool', 'led', 'battery', 'red']).AndRaise(
-        self.led.Error('EC returned error 99'))
+        self.led.Error(msg))
     self.mox.ReplayAll()
-    self.led.SetColor(self.led.Color.RED, brightness=None)
+    with self.assertRaisesRegexp(board.DUTException, msg):
+      self.led.SetColor(self.led.Color.RED, brightness=None)
     self.mox.VerifyAll()
 
 
