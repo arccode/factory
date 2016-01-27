@@ -7,15 +7,17 @@
 """A factory test to check a list of commands.
 """
 
+import subprocess
 import unittest
 from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
-from cros.factory.test.args import Arg
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.args import Arg
+from cros.factory.test.event_log import Log
 from cros.factory.utils import process_utils
 
 CheckItem = namedtuple('CheckItem', 'instruction_en instruction_zh'
@@ -43,10 +45,12 @@ class LineCheckItemTest(unittest.TestCase):
            '\n'
            '- instruction_en: (str or unicode) instruction in English.\n'
            '- instruction_zh: (str or unicode) instruction in Chinese.\n'
-           '- command: (list) commands to be passed to Spawn.\n'
+           '- command: (list or str) commands to be passed to Spawn.\n'
            '- judge_to_pass: (bool) require user to judge pass/fail\n'
            '  even if command is successful.'),
           optional=False),
+      Arg('run_locally', bool, 'Run the given commands locally instead of DUT '
+          '- for example doing configuration on Goofy host.', default=False),
       Arg('use_shell', bool, 'True to execute with shell=True.',
           default=True, optional=True),
   ]
@@ -57,6 +61,7 @@ class LineCheckItemTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._items = []
     self._current = 0
+    self._dut = None if self.args.run_locally else dut.Create()
 
   def NeedToJudgeSubTest(self):
     """Returns whether current subtest needs user to judege pass/fail or not."""
@@ -77,9 +82,16 @@ class LineCheckItemTest(unittest.TestCase):
       instruction = instruction + '<br>' + test_ui.MakePassFailKeyLabel()
     self._template.SetState(instruction)
 
-    process = process_utils.Spawn(command, read_stdout=True,
-                                  log_stderr_on_error=True,
-                                  shell=self.args.use_shell)
+    if self.args.run_locally:
+      process = process_utils.Spawn(command, read_stdout=True,
+                                    log_stderr_on_error=True,
+                                    shell=self.args.use_shell)
+    else:
+      assert self.args.use_shell, (
+          'DUT API does not support execution without shell')
+      process = self._dut.Popen(command,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     retcode = process.returncode
     Log('checked_item', command=command, retcode=retcode, stdout=stdout,
