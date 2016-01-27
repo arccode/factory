@@ -34,7 +34,15 @@ class FactoryPythonArchive(object):
       raise IOError('No such file: %s' % self.FACTORY_PAR_PATH)
     return process_utils.CheckOutput(self.CHECKSUM_COMMAND)
 
-  def _PushFactoryPar(self):
+  def PushFactoryPar(self):
+    """Push factory.par to DUT if DUT is not local machine.
+
+    First checks if DUT already has the same factory.par as us.
+    If not, pushs our factory.par to DUT, otherwise, does nothing.
+    """
+
+    if self._dut.link.IsLocal():
+      return
     try:
       if self.checksum == self._dut.CheckOutput(self.CHECKSUM_COMMAND):
         return
@@ -43,14 +51,17 @@ class FactoryPythonArchive(object):
       pass
     self._dut.link.Push(self.FACTORY_PAR_PATH, self.FACTORY_PAR_PATH)
 
-  def _Preprocess(self, command):
-    if not self._dut.link.IsLocal():
-      self._PushFactoryPar()
+  def DryRun(self, command):
+    """Returns the command that will be executed."""
     if isinstance(command, basestring):
       command = self.FACTORY_PAR_PATH + ' ' + command
     else:
       command = [self.FACTORY_PAR_PATH] + command
     return command
+
+  def _Preprocess(self, command):
+    self.PushFactoryPar()
+    return self.DryRun(command)
 
   # Delegate to dut API
   def Call(self, command, **kargs):
