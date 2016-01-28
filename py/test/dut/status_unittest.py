@@ -35,7 +35,7 @@ class SystemStatusTest(unittest.TestCase):
 
     # Set up mocks for Board interface
     board = self.mox.CreateMock(board_module.DUTBoard)
-    board.thermal = self.mox.CreateMock(thermal.Thermal)
+    board.thermal = self.mox.CreateMock(thermal.ECToolThermal)
     board.thermal.GetFanRPM().AndReturn([2000])
     board.thermal.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
     board.thermal.GetMainTemperatureIndex().AndReturn(2)

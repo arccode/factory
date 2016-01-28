@@ -185,7 +185,7 @@ class DUTBoard(object):
 
   @DUTProperty
   def thermal(self):
-    return thermal.Thermal(self)
+    return thermal.ECToolThermal(self)
 
   @DUTProperty
   def toybox(self):

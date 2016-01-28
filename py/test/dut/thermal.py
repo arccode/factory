@@ -10,14 +10,18 @@ This module provides reading and setting system thermal sensors and controllers.
 
 from __future__ import print_function
 
+import logging
 import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
 
 
-class Thermal(component.DUTComponent):
-  """System module for thermal control (temperature sensors, fans)."""
+class ECToolThermal(component.DUTComponent):
+  """System module for thermal control (temperature sensors, fans).
+
+  Implementation for systems with 'ectool' and able to control thermal with EC.
+  """
 
   # Regular expressions used by thermal component.
   GET_FAN_SPEED_RE = re.compile(r'Fan (\d+) RPM: (\d+)')
@@ -28,7 +32,7 @@ class Thermal(component.DUTComponent):
   """Constant representing automatic fan speed."""
 
   def __init__(self, dut):
-    super(Thermal, self).__init__(dut)
+    super(ECToolThermal, self).__init__(dut)
     self._temperature_sensor_names = None
     self._main_temperature_index = None
 
@@ -116,7 +120,7 @@ class Thermal(component.DUTComponent):
     """Sets the target fan RPM.
 
     Args:
-      rpm: Target fan RPM, or Thermal.AUTO for auto fan control.
+      rpm: Target fan RPM, or ECToolThermal.AUTO for auto fan control.
       fan_id: The id of the fan.
     """
     try:
@@ -135,6 +139,83 @@ class Thermal(component.DUTComponent):
       else:
         raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
+
+# For backward compatibility only.
+Thermal = ECToolThermal
+
+
+class SysFSThermal(ECToolThermal):
+  """System module for thermal control (temperature sensors, fans).
+
+  Implementation for systems which able to control thermal with sysfs api.
+  """
+
+  _SYSFS_THERMAL_PATH = '/sys/class/thermal/'
+
+  def __init__(self, dut, main_tempterature_sensor_name='tsens_tz_sensor0'):
+    """Constructor.
+
+    Args:
+      main_tempterature_sensor_name: The name of tempterature sensor used in
+          GetMainTemperatureIndex(). For example: 'tsens_tz_sensor0' or 'cpu'.
+    """
+    super(SysFSThermal, self).__init__(dut)
+    self._thermal_zones = None
+    self._main_tempterature_sensor_name = main_tempterature_sensor_name
+
+  def _GetThermalZones(self):
+    """Gets a list of thermal zones.
+
+    Returns:
+      A list of absolute path of thermal zones.
+    """
+    if self._thermal_zones is None:
+      self._thermal_zones = self._dut.Glob(self._dut.path.join(
+          self._SYSFS_THERMAL_PATH, 'thermal_zone*'))
+    return self._thermal_zones
+
+  def GetTemperatures(self):
+    """See ECToolThermal.GetTemperatures."""
+    try:
+      temperatures = []
+      for path in self._GetThermalZones():
+        try:
+          temp = self._dut.ReadFile(self._dut.path.join(path, 'temp'))
+          # Temperature values stored in sysfs are in milli-degree Celsius,
+          # convert it to Celsius for output.
+          temperatures.append(int(temp) / 1000)
+        except component.CalledProcessError:
+          temperatures.append(None)
+      logging.debug("GetTemperatures: %s", temperatures)
+      return temperatures
+    except component.CalledProcessError as e:
+      raise self.Error('Unable to get temperatures: %s' % e)
+
+  def GetMainTemperatureIndex(self):
+    """See ECToolThermal.GetMainTemperatureIndex."""
+    try:
+      names = self.GetTemperatureSensorNames()
+      try:
+        return names.index(self._main_tempterature_sensor_name)
+      except ValueError:
+        raise self.Error('The expected index of %s cannot be found',
+                         self._main_tempterature_sensor_name)
+    except Exception as e:  # pylint: disable=W0703
+      raise self.Error('Unable to get main temperature index: %s' % e)
+
+  def GetTemperatureSensorNames(self):
+    """See ECToolThermal.GetTemperatureSensorNames."""
+    if self._temperature_sensor_names is None:
+      try:
+        self._temperature_sensor_names = []
+        for path in self._GetThermalZones():
+          name = self._dut.ReadFile(self._dut.path.join(path, 'type'))
+          self._temperature_sensor_names.append(name.strip())
+        logging.debug("GetTemperatureSensorNames: %s",
+                      self._temperature_sensor_names)
+      except component.CalledProcessError as e:
+        raise self.Error('Unable to get temperature sensor names: %s' % e)
+    return self._temperature_sensor_names
 
 
 def main():

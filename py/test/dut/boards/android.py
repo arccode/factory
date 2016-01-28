@@ -11,6 +11,7 @@ from cros.factory.test.dut import component
 from cros.factory.test.dut import path
 from cros.factory.test.dut import storage
 from cros.factory.test.dut import temp
+from cros.factory.test.dut import thermal
 
 
 class AndroidBoard(board.DUTBoard):
@@ -27,3 +28,7 @@ class AndroidBoard(board.DUTBoard):
   @component.DUTProperty
   def storage(self):
     return storage.AndroidStorage(self)
+
+  @component.DUTProperty
+  def thermal(self):
+    return thermal.SysFSThermal(self)

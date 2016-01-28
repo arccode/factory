@@ -13,7 +13,7 @@ from cros.factory.test.dut import thermal
 from cros.factory.test.dut.boards import chromeos
 
 
-class PitThermal(thermal.Thermal):
+class PitThermal(thermal.ECToolThermal):
 
   def GetTemperatures(self):
     raw = self._dut.ReadFile('/sys/class/thermal/thermal_zone0/temp')
