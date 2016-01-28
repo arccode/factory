@@ -30,7 +30,7 @@ class DUTLink(object):
     """
     raise NotImplementedError
 
-  def Shell(command, stdin=None, stdout=None, stderr=None):
+  def Shell(self, command, stdin=None, stdout=None, stderr=None):
     """Executes a command on DUT.
 
     The calling convention is similar to subprocess.Popen, but only a subset of

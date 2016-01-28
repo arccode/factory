@@ -58,7 +58,8 @@ class ADBLink(link.DUTLink):
 
   def Push(self, local, remote):
     """See DUTLink.Push"""
-    return subprocess.check_call(['adb', 'push', local, remote])
+    subprocess.check_output(['adb', 'push', local, remote],
+                            stderr=subprocess.STDOUT)
 
   def Pull(self, remote, local=None):
     """See DUTLink.Pull"""
@@ -68,7 +69,8 @@ class ADBLink(link.DUTLink):
         with open(path) as f:
           return f.read()
 
-    subprocess.check_call(['adb', 'pull', remote, local])
+    subprocess.check_output(['adb', 'pull', remote, local],
+                            stderr=subprocess.STDOUT)
 
   def Shell(self, command, stdin=None, stdout=None, stderr=None):
     """See DUTLink.Shell"""
