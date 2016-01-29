@@ -10,11 +10,38 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import dut as dut_module
+from cros.factory.test.dut.boards import android
 from cros.factory.test.args import Arg
 from cros.factory.test.args import Args
+from cros.factory.test.pytests.offline_test.shell import common
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import type_utils
+
+
+def _FormatTemplate(template, *args, **kargs):
+  """Formats template file by replacing place holders by arguments.
+
+  Place holders in template file look like: {%name%}.
+
+  Args:
+    template: file path under py/test/pytests/offline_test/shell/
+    args, kargs: arguments for str.format.
+  """
+  path = os.path.join(common.CURRENT_DIR, template)
+
+  with open(path) as f:
+    template = f.read()
+
+    # escape all braces
+    template = template.replace("{", "{{")
+    template = template.replace("}", "}}")
+
+    # now {%...%} becomes {{%...%}}
+    template = template.replace("{{%", "{")
+    template = template.replace("%}}", "}")
+
+    return template.format(*args, **kargs)
 
 
 class FunctionMapper(object):
@@ -69,13 +96,19 @@ class ScriptBuilder(object):
 
   ShellTestCase = FunctionMapper()
 
-  def __init__(self, dut):
+  def __init__(self, dut, data_root):
     """Constructor of ScriptBuilder.
 
-    :type dut: cros.factory.test.dut.board.DUTBoard
+    Args:
+      :type dut: cros.factory.test.dut.board.DUTBoard
+      dut: used to get data from DUT.
+
+      :type data_root: str
+      data_root: where to store the state of offline testing.
     """
     self.tasks = []
     self.dut = dut
+    self.data_root = data_root
 
   @type_utils.LazyProperty
   def cpu_count(self):
@@ -90,33 +123,9 @@ class ScriptBuilder(object):
 
   def _AddTask(self, template_file, **kargs):
     next_task_id = len(self.tasks) + 1  # task index is 1 based.
-    self.tasks.append(self._FormatTemplate(template_file,
-                                           id=next_task_id,
-                                           **kargs))
-
-  def _FormatTemplate(self, template, *args, **kargs):
-    """Formats template file by replacing place holders by arguments.
-
-    Place holders in template file look like: {%name%}.
-
-    Args:
-      template: file path under py/test/pytests/offline_test/shell/
-      args, kargs: arguments for str.format.
-    """
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), template)
-
-    with open(path) as f:
-      template = f.read()
-
-      # escape all braces
-      template = template.replace("{", "{{")
-      template = template.replace("}", "}}")
-
-      # now {%...%} becomes {{%...%}}
-      template = template.replace("{{%", "{")
-      template = template.replace("%}}", "}")
-
-      return template.format(*args, **kargs)
+    self.tasks.append(_FormatTemplate(template_file,
+                                      id=next_task_id,
+                                      **kargs))
 
   def Build(self):
     """Generates the final script.
@@ -126,10 +135,10 @@ class ScriptBuilder(object):
 
     tasks = '\n'.join(self.tasks)
 
-    return self._FormatTemplate('main.sh',
-                                data_root=self.dut.storage.GetDataRoot(),
-                                total_tasks=len(self.tasks),
-                                tasks=tasks)
+    return _FormatTemplate('main.sh',
+                           data_root=self.data_root,
+                           total_tasks=len(self.tasks),
+                           tasks=tasks)
 
   def AddShellTestCase(self, test_name, **kargs):
     self.ShellTestCase.CallFunction(test_name, self, **kargs)
@@ -216,14 +225,10 @@ class ScriptBuilder(object):
     return self
 
 
-class OfflineTestError(Exception):
-  pass
-
-
 class DeployShellOfflineTest(unittest.TestCase):
-  SCRIPT_FILE_NAME = 'offline_test.sh'
+  """A factory test to deploy shell offline test."""
 
-  NEXT_ACTION = type_utils.Enum(['REBOOT', 'POWEROFF', 'START_TEST'])
+  NEXT_ACTION = type_utils.Enum(['REBOOT', 'POWEROFF', 'START_TEST', 'NOP'])
 
   ARGS = [
       Arg('test_spec', list,
@@ -235,13 +240,45 @@ class DeployShellOfflineTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = dut_module.Create()
-    self.builder = ScriptBuilder(self.dut)
+    self.data_root = common.DataRoot(self.dut)
+    self.test_script_path = common.TestScriptPath(self.dut)
+    self.builder = ScriptBuilder(self.dut, self.data_root)
+
+  def _MakeChromeOsStartUpApp(self, starter_path):
+    # Chrome OS images will execute '/usr/local/factory/init/startup' if
+    # file '/usr/local/factory/enabled' exists.
+    # so if we create the enabled file and make a symbolic link for our starter,
+    # our script will be executed on start up.
+    self.dut.CheckCall(['mkdir', '-p', '/usr/local/factory/init'])
+    self.dut.CheckCall(['touch', '/usr/local/factory/enabled'])
+    self.dut.CheckCall(['ln', '-sf', starter_path,
+                        '/usr/local/factory/init/startup'])
+
+  def _MakeStartUpApp(self, starter_path):
+    if isinstance(self.dut, android.AndroidBoard):
+      # TODO(stimim): support Android init
+      raise NotImplementedError
+    else:
+      self._MakeChromeOsStartUpApp(starter_path)
 
   def runTest(self):
-    factory_root = self.dut.storage.GetFactoryRoot()
-    # make sure factory_root is writable
-    if not self.dut.storage.Remount(factory_root):
-      raise OfflineTestError('failed to make dut:%s writable' % factory_root)
+    script_dir = common.ScriptRoot(self.dut)
+
+    # make sure script_dir is writable
+    if not self.dut.storage.Remount(script_dir):
+      raise common.OfflineTestError(
+          'failed to make dut:%s writable' % script_dir)
+    # create script_dir
+    self.dut.Call(['rm', '-rf', script_dir])
+    self.dut.CheckCall(['mkdir', '-p', script_dir])
+
+    # make sure data_root is writable
+    if not self.dut.storage.Remount(self.data_root):
+      raise common.OfflineTestError(
+          'failed to make dut:%s writable' % self.data_root)
+    # create data_root
+    self.dut.Call(['rm', '-rf', self.data_root])
+    self.dut.CheckCall(['mkdir', '-p', self.data_root])
 
     for spec in self.args.test_spec:
       dargs = spec.get('dargs', {})
@@ -253,14 +290,28 @@ class DeployShellOfflineTest(unittest.TestCase):
         raise ValueError('You must specify one of `shtest_name` and '
                          '`pytest_name`')
 
-    script_path = self.dut.path.join(factory_root, self.SCRIPT_FILE_NAME)
-    self.dut.WriteFile(script_path, self.builder.Build())
+    # push generated script
+    self.dut.WriteFile(self.test_script_path, self.builder.Build())
+    self.dut.Call(['chmod', '+x', self.test_script_path])
 
-    # TODO(stimim): make the script a start-up application
+    starter_path = self.dut.path.join(script_dir, 'starter.sh')
+    # push starter script
+    self.dut.WriteFile(starter_path,
+                       _FormatTemplate('starter.sh', data_root=self.data_root,
+                                       test_script_path=self.test_script_path))
+    self.dut.Call(['chmod', '+x', starter_path])
+
+    if self.args.start_up_service:
+      self._MakeStartUpApp(starter_path)
 
     if self.args.next_action == self.NEXT_ACTION.POWEROFF:
       self.dut.Call(['shutdown', 'now'])
     elif self.args.next_action == self.NEXT_ACTION.REBOOT:
       self.dut.Call(['shutdown', 'reboot'])
+    elif self.args.next_action == self.NEXT_ACTION.START_TEST:
+      self.dut.Call(['sh', self.test_script_path])
+    elif self.args.next_action == self.NEXT_ACTION.NOP:
+      pass
     else:
-      self.dut.Call(['sh', script_path])
+      raise ValueError('`next_action` must be one of %s (it is %s)' %
+                       (self.NEXT_ACTION, self.args.next_action))

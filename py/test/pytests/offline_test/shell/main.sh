@@ -45,11 +45,23 @@ check_time() {
   date '+%s' >"${DATA_DIR}/last_check_time"
 }
 
+all_test_passed() {
+  info "All tests passed!"
+  echo "$((${TOTAL_TASKS} + 1))" >"${DATA_DIR}/task_id"
+
+  # TODO(stimim): call hooked function on finished
+}
+
 main() {
   local next_task="$(cat ${DATA_DIR}/task_id || echo 1)"
   local state="$(cat ${DATA_DIR}/state || echo)"
 
   check_time
+
+  if [ "${next_task}" -gt "${TOTAL_TASKS}" ]; then
+    all_test_passed
+    return 0
+  fi
 
   if [ "${state}" = "running" ]; then
     if [ ! -e "${DATA_DIR}/should_reboot" ]; then
@@ -72,8 +84,8 @@ main() {
     fi
   done
 
-  info "All tests passed!"
-  # TODO(stimim): call hooked function on finished
+  all_test_passed
+  return 0
 }
 
 # tasks start here
