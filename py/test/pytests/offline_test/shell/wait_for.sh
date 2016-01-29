@@ -4,6 +4,6 @@
 # found in the LICENSE file.
 
 task_{%id%} () {
-  echo wait for {%seconds%} seconds
+  info "wait for {%seconds%} seconds"
   sleep {%seconds%}
 }
