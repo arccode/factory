@@ -367,7 +367,6 @@ class GooftoolTest(unittest.TestCase):
 
     stub_result = lambda: None
     stub_result.success = True
-    self._gooftool._util
     probe.Shell(
         'vpd -i RO_VPD -s "stable_device_secret_DO_NOT_SHARE"="%s"' %
         ('00' * 32)).AndReturn(stub_result)
@@ -619,7 +618,8 @@ class GooftoolTest(unittest.TestCase):
     image_file = 'firmware'
     self._gooftool._named_temporary_file().AndReturn(f)
     self._gooftool._util.shell(
-        'cbfstool %s extract -n locales -f %s -r BOOT_STUB' % (image_file, f.name))
+        'cbfstool %s extract -n locales -f %s -r BOOT_STUB' %
+        (image_file, f.name))
 
     # Expect index = 1 for zh is matched.
     self._gooftool._util.shell('crossystem loc_idx=1')
@@ -639,7 +639,8 @@ class GooftoolTest(unittest.TestCase):
     image_file = 'firmware'
     self._gooftool._named_temporary_file().AndReturn(f)
     self._gooftool._util.shell(
-        'cbfstool %s extract -n locales -f %s' % (image_file, f.name))
+        'cbfstool %s extract -n locales -f %s -r BOOT_STUB'
+        % (image_file, f.name))
     self._gooftool._util.shell(
         'gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
     self._gooftool._unpack_bmpblock(f.read()).AndReturn(
@@ -666,7 +667,8 @@ class GooftoolTest(unittest.TestCase):
     image_file = 'firmware'
     self._gooftool._named_temporary_file().AndReturn(f)
     self._gooftool._util.shell(
-        'cbfstool %s extract -n locales -f %s' % (image_file, f.name))
+        'cbfstool %s extract -n locales -f %s -r BOOT_STUB' %
+        (image_file, f.name))
 
     self.mox.ReplayAll()
     self.assertRaises(Error, self._gooftool.SetFirmwareBitmapLocale)
