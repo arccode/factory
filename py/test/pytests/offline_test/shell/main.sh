@@ -35,14 +35,18 @@ die() {
 
 check_time() {
   local current_time="$(date '+%s')"
-  local last_check_time="$(cat ${DATA_DIR}/last_check_time || echo 0)"
+  local last_check_time="$(head -n 1 "${DATA_DIR}/last_check_time" || echo 0)"
   if [ "${last_check_time}" -gt "${current_time}" ]; then
     local old_time="$(date)"
-    date "--date=@$((${last_check_time} + 1))"
+    local last_check_time="$(tail -n 1 "${DATA_DIR}/last_check_time")"
+    date "${last_check_time}"
     warn "go back in time, reset time to last checked time (was ${old_time})"
   fi
 
+  # 1. save current time in a comparable format: seconds since epoch.
   date '+%s' >"${DATA_DIR}/last_check_time"
+  # 2. save current time in the format used for setting date.
+  date '+%m%d%H%M%Y.%S' >>"${DATA_DIR}/last_check_time"
 }
 
 all_test_passed() {

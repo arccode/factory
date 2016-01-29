@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import datetime
 import logging
 import os
 import pipes
@@ -261,6 +262,14 @@ class DeployShellOfflineTest(unittest.TestCase):
     else:
       self._MakeChromeOsStartUpApp(starter_path)
 
+  def _SyncTime(self):
+    now = datetime.datetime.now()
+    # set DUT time
+    self.dut.Call("date {:%m%d%H%M%Y.%S}".format(now))
+    # save current time to a file, see check_time() in main.sh
+    self.dut.WriteFile(self.dut.path.join(self.data_root, 'last_check_time'),
+                       "{0:%s}\n{0:%m%d%H%M%Y.%S}\n".format(now))
+
   def runTest(self):
     script_dir = common.ScriptRoot(self.dut)
 
@@ -279,6 +288,8 @@ class DeployShellOfflineTest(unittest.TestCase):
     # create data_root
     self.dut.Call(['rm', '-rf', self.data_root])
     self.dut.CheckCall(['mkdir', '-p', self.data_root])
+
+    self._SyncTime()
 
     for spec in self.args.test_spec:
       dargs = spec.get('dargs', {})
