@@ -244,10 +244,11 @@ class DeployShellOfflineTest(unittest.TestCase):
       raise OfflineTestError('failed to make dut:%s writable' % factory_root)
 
     for spec in self.args.test_spec:
+      dargs = spec.get('dargs', {})
       if 'shtest_name' in spec:
-        self.builder.AddShellTestCase(spec['shtest_name'], **spec['dargs'])
+        self.builder.AddShellTestCase(spec['shtest_name'], **dargs)
       elif 'pytest_name' in spec:
-        self.builder.AddPythonTestCase(spec['pytest_name'], **spec['dargs'])
+        self.builder.AddPythonTestCase(spec['pytest_name'], **dargs)
       else:
         raise ValueError('You must specify one of `shtest_name` and '
                          '`pytest_name`')
