@@ -57,7 +57,7 @@ class StressManager(object):
     # Allow shmem access to all of memory. This is used for 32 bit access to >
     # 1.4G. Virtual address space limitation prevents directly mapping the
     # memory.
-    self._dut.CheckCall('mount -o remount,size=100% /dev/shm')
+    self._dut.memory.ResizeSharedMemory()
 
     mem = self._system_info.memory_total_kb or (100 * 1024)
     # we will use at least 32 MB of memory

@@ -26,6 +26,7 @@ from cros.factory.test.dut import hooks
 from cros.factory.test.dut import i2c
 from cros.factory.test.dut import info
 from cros.factory.test.dut import led
+from cros.factory.test.dut import memory
 from cros.factory.test.dut import path as path_module
 from cros.factory.test.dut import partitions
 from cros.factory.test.dut import power
@@ -138,6 +139,10 @@ class DUTBoard(object):
   @DUTProperty
   def led(self):
     return led.LED(self)
+
+  @DUTProperty
+  def memory(self):
+    return memory.LinuxMemory(self)
 
   @DUTProperty
   def partitions(self):
