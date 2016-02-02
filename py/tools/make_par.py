@@ -194,22 +194,19 @@ def main(argv=None):
         os.path.join(cros_dir, 'factory')])
     Spawn(rsync_args, log=True, check_call=True)
 
-    # Copy necessary third-party packages.
-    python_lib = get_python_lib()
-    standard_lib = get_python_lib(plat_specific=False, standard_lib=True)
-
-    rsync_args = ['rsync', '-a',
-                  os.path.join(standard_lib, 'argparse.py'),
-                  'third_party/jsonrpclib/jsonrpclib']
-    # No need for third-party deps in the mini version; they are already
-    # present in test images.
+    # Copy necessary third-party packages. They are already present in test
+    # images, so no need in mini version.
     if not args.mini:
-      rsync_args.extend([os.path.join(python_lib, 'google'),
-                         os.path.join(python_lib, 'yaml')])
+      python_lib = get_python_lib()
 
-    rsync_args.append(par_build)
-    Spawn(rsync_args, log=True, check_call=True,
-          cwd=paths.FACTORY_PATH)
+      rsync_args = ['rsync', '-a',
+                    os.path.join(python_lib, 'jsonrpclib'),
+                    os.path.join(python_lib, 'google'),
+                    os.path.join(python_lib, 'yaml')]
+
+      rsync_args.append(par_build)
+      Spawn(rsync_args, log=True, check_call=True,
+            cwd=paths.FACTORY_PATH)
 
     # Add empty __init__.py files so Python realizes these directories
     # are modules.
