@@ -31,6 +31,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
 _TEST_TITLE = test_ui.MakeLabel('Raiden CC Detect', u'Raiden CC 检查')
 _OPERATION = test_ui.MakeLabel('Flip Raiden cable and plug in again...',
@@ -70,7 +71,12 @@ class RaidenCCFlipCheck(unittest.TestCase):
           'key to finish operation.',
           default=0),
       Arg('state_src_ready', int, 'State number of pd state SRC_READY.',
-          default=22)
+          default=22),
+      Arg('wait_dut_reconnect_secs', int,
+          'Wait DUT to reconnect for n seconds after CC flip. This is required '
+          'if remote DUT might be disconnected a while after CC flip, e.g. DUT '
+          'has no battery and will reboot on CC flip. If n equals to 0, will '
+          'wait forever.', default=5)
   ]
 
   def setUp(self):
@@ -102,6 +108,11 @@ class RaidenCCFlipCheck(unittest.TestCase):
     Returns:
       'CC1' or 'CC2', or 'UNCONNECTED' if it doesn't detect SRC_READY.
     """
+    if not self._dut.IsReady():
+      factory.console.info(
+          'Lose connection to DUT, waiting for DUT to reconnect')
+      sync_utils.WaitFor(self._dut.IsReady, self.args.wait_dut_reconnect_secs)
+
     # For double CC cable, if we guarantee CC pair is not reversed, polarity in
     # Plankton side implies DUT side.
     if self._double_cc_quick_check:
@@ -172,5 +183,6 @@ class RaidenCCFlipCheck(unittest.TestCase):
         # For remote test, keep adb connection enabled.
         self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
       self._polarity = self.GetCCPolarity()
+      factory.console.info('polarity after flip: %s', self._polarity)
 
     logging.info('Detect polarity: %s', self._polarity)
