@@ -35,6 +35,10 @@ class SSHLink(link.DUTLink):
     user: A string for the user accont to login. Defaults to 'root'.
     port: An integer for the SSH port on remote host.
     identify: An identity file to specify credential.
+    use_ping: A bool, whether using ping(8) to check connection with DUT or not.
+              If it's False, will use ssh(1) instead. This is useful if DUT
+              drops incoming ICMP packets.
+    connect_timeout: An interger for ssh(1) connection timeout in seconds.
 
   dut_options example:
     dut_options for fixed-IP:
@@ -65,11 +69,14 @@ class SSHLink(link.DUTLink):
       }
   """
 
-  def __init__(self, host=None, user='root', port=22, identity=None):
+  def __init__(self, host=None, user='root', port=22, identity=None,
+               use_ping=True, connect_timeout=1):
     self._host = host
     self.user = user
     self.port = port
     self.identity = identity
+    self.use_ping = use_ping
+    self.connect_timeout = connect_timeout
 
   @property
   def host(self):
@@ -101,7 +108,8 @@ class SSHLink(link.DUTLink):
       sig = self.host
 
     options = ['-o', 'UserKnownHostsFile=/dev/null',
-               '-o', 'StrictHostKeyChecking=no']
+               '-o', 'StrictHostKeyChecking=no',
+               '-o', 'ConnectTimeout=%d' % self.connect_timeout]
     if self.port:
       options += ['-P' if is_scp else '-p', str(self.port)]
     if self.identity:
@@ -145,8 +153,13 @@ class SSHLink(link.DUTLink):
   def IsReady(self):
     """See DUTLink.IsReady"""
     try:
-      return subprocess.call(['ping', '-w', '1', '-c', '1', self.host]) == 0
-    except ClientNotExistError:
+      if self.use_ping:
+        cmd = ['ping', '-w', '1', '-c', '1', self.host]
+      else:
+        remote_sig, options = self._signature(False)
+        cmd = ['ssh'] + options + [remote_sig] + ['true']
+      return subprocess.call(cmd) == 0
+    except Exception:
       return False
 
   _dhcp_manager = None
@@ -161,6 +174,7 @@ class SSHLink(link.DUTLink):
     if factory.has_shared_data(_DEVICE_DATA_KEY):
       factory.del_shared_data(_DEVICE_DATA_KEY)
 
+  # pylint: disable=arguments-differ
   @classmethod
   def PrepareLink(cls, start_dhcp_server=True, dhcp_server_args=None):
     """Prepare for SSHLink connection
