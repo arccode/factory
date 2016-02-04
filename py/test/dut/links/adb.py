@@ -98,8 +98,9 @@ class ADBLink(link.DUTLink):
     else:
       # TODO(hungte) Create a temp file remotely and store contents there, or
       # figure out a way to return by logcat.
-      raise NotImplementedError('%s: stderr redirection is not supported yet.' %
-                                type(self).__name__)
+      redirections += '2>/dev/null'
+      logging.warn('%s: stderr redirection is not supported yet.',
+                   type(self).__name__)
 
     command = ['adb', 'shell', '( %s ) %s; log -t %s $?' %
                (command, redirections, session_id)]
