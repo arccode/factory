@@ -210,8 +210,9 @@ def main():
   # on DUT.
   SpawnRsyncToDUT(
       ['-azlKC', '--force', '--exclude', '*.pyc'] +
-      [os.path.join(paths.FACTORY_PATH, x)
-       for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party', 'init')] +
+      filter(os.path.exists,
+             [os.path.join(paths.FACTORY_PATH, x)
+              for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party', 'init')]) +
       ['%s:/usr/local/factory' % args.host],
       check_call=True, log=True)
 
