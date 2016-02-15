@@ -16,7 +16,6 @@ the test, or raw mode where a specific file/partition must be provided.
 '''
 
 import logging
-import os
 import re
 import subprocess
 import threading
@@ -74,6 +73,10 @@ class BadBlocksTest(unittest.TestCase):
       Arg('drop_caches_interval_secs', int,
           'The interval between dropping caches in seconds.',
           default=120),
+      Arg('non_destructive', bool,
+          'Do non desctructive read / write test, the data will be '
+          'preserved after testing. Slower testing time is expected.',
+          default=False),
   ]
 
   def setUp(self):
@@ -138,7 +141,9 @@ class BadBlocksTest(unittest.TestCase):
     # If /dev/mmcblk0 exists assume we are eMMC, this means a unit with an
     # external SD card inserted will not use SATA specific utilities.
     # TODO(bhthompson): refactor this for a better device type detection.
-    self._is_mmc = self.dut.path.exists('/dev/mmcblk0') # pylint: disable=W0201
+    # pylint: disable=W0201
+    self._is_mmc = (self.dut.path.exists('/dev/mmcblk0') or
+                    self.dut.path.exists('/dev/block/mmcblk0'))
 
     first_block = 0
     sector_size = 1024
@@ -151,7 +156,7 @@ class BadBlocksTest(unittest.TestCase):
       # For some files like dev nodes we cannot trust the stats provided by
       # the os, so we manually seek to the end of the file to determine size.
       raw_file_bytes = file_utils.GetFileSizeInBytes(self.args.device_path,
-                                                     self.dut)
+                                                     dut=self.dut)
       if self.args.max_bytes is None or self.args.max_bytes > raw_file_bytes:
         logging.info('Setting max_bytes to the available size of %dB.',
                      raw_file_bytes)
@@ -241,8 +246,11 @@ class BadBlocksTest(unittest.TestCase):
     # -s = show progress
     # -v = verbose (print error count)
     # -w = destructive write+read test
+    # -n = non-destructive write+read test
+    args = '-fsv'
+    args += 'n' if self.args.non_destructive else 'w'
     process = self.dut.Popen(
-        ['badblocks', '-fsvw', '-b', str(params.sector_size)] +
+        ['badblocks', args, '-b', str(params.sector_size)] +
         (['-e', str(params.max_errors)] if params.max_errors else []) +
         [params.device_path, str(params.last_block), str(params.first_block)],
         log=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -388,9 +396,7 @@ class BadBlocksTest(unittest.TestCase):
     Returns:
       Int, number of bytes in a block.
     '''
-    return int(self.dut.ReadFile('/sys/class/block/%s/queue/hw_sector_size'
-                                 % os.path.basename(dev_node_path),
-                                 skip=0).strip())
+    return int(self.dut.CheckOutput(['blockdev', '--getss', dev_node_path]))
 
   def _LogSmartctl(self):
     # No smartctl on mmc.
@@ -457,7 +463,7 @@ class BadBlocksTest(unittest.TestCase):
           [self.message_monitor.stdout], [], [], 0)
       if not rlist:
         break
-      log_line = self.var_log_messages.readline()
+      log_line = self.message_monitor.stdout.readline()
       if not log_line:  # this shouldn't happen
         break
       log_line = log_line.strip()
