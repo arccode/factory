@@ -275,9 +275,13 @@ overlay-%: .phony
 	if [ "$@" = overlay-private ]; then \
 	  rsync -aK --exclude Makefile ../factory-private/ $@/; \
 	else \
-	  rsync -aK ../../private-overlays/\
-overlay*-$(subst overlay-,,$@)-private/chromeos-base/chromeos-factory-board/\
-files/ $@/; \
+	  for prefix in "project" "overlay*"; \
+	  do \
+	    path="../../private-overlays/$${prefix}-$(subst overlay-,,$@)-private"; \
+	    if [ -e "$${path}" ]; then \
+	      rsync -aK "$${path}/chromeos-base/chromeos-factory-board/files/" $@/; \
+	    fi; \
+	  done \
 	fi
 
 # Tests the overlay of the given board.
