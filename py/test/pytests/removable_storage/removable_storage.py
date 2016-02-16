@@ -59,7 +59,8 @@ _MILLION = 1000000
 
 _RW_TEST_INSERT_FMT_STR = (
     lambda t, extra_en, extra_zh: test_ui.MakeLabel(
-        '<br/>'.join(['Insert %s drive for read/write test... %s' % (t, extra_en),
+        '<br/>'.join(['Insert %s drive for read/write test... %s' % (t,
+                                                                     extra_en),
                       'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!']),
         '<br/>'.join([u'插入 %s 存储以进行读写测试... %s' % (t, extra_zh),
                       u'注意: 插入装置上的资料将会被清除!'])))
@@ -112,7 +113,8 @@ _ERR_BFT_ACTION_STR = (
     'BFT fixture failed to %s %s device %s. Reason: %s' % (
         action, test_type, target_dev, reason))
 
-_TEST_TITLE = test_ui.MakeLabel('Removable Storage Test', u'可移除储存装置测试')
+_TEST_TITLE = test_ui.MakeLabel(
+    'Removable Storage Test', u'可移除储存装置测试')
 
 _ID_STATE_DIV = 'state_div'
 _ID_COUNTDOWN_DIV = 'countdown_div'
@@ -165,8 +167,8 @@ class RemovableStorageTest(unittest.TestCase):
       Arg('perform_locktest', bool, 'Whether to run lock test', False),
       Arg(
           'extra_prompt_en', (str, unicode),
-          'An extra prompt (in English), e.g., to specify which USB port to use',
-          optional=True),
+          'An extra prompt (in English), e.g., to specify which USB port to '
+          'use', optional=True),
       Arg(
           'extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
           optional=True),
@@ -187,8 +189,9 @@ class RemovableStorageTest(unittest.TestCase):
           'A tuple of integers indicating (port, polarity)', optional=True),
       Arg(
           'create_partition', bool,
-          'Try to create a small partition on the media. This is to check if all the pins on the '
-          'sd card reader module are intact. If not specify, this test will be run for SD card.',
+          'Try to create a small partition on the media. This is to check if '
+          'all the pins on the sd card reader module are intact. If not '
+          'specify, this test will be run for SD card.',
           default=None, optional=True)]
   # pylint: disable=E1101
 
@@ -294,7 +297,8 @@ class RemovableStorageTest(unittest.TestCase):
   def TestReadWrite(self):
     """Random and sequential read / write tests.
 
-    This method executes random and / or sequential read / write test according to dargs.
+    This method executes random and / or sequential read / write test
+    according to dargs.
     """
 
     def PrepareDDCommand(ifile=None, ofile=None, seek=0, skip=0, bs=None, count=None, sync=False):
@@ -356,18 +360,19 @@ class RemovableStorageTest(unittest.TestCase):
         block_count = 1
         loop = self.args.random_block_count
         self.SetState(
-            _TESTING_RANDOM_RW_FMT_STR(loop, self.args.block_size), append=True)
+            _TESTING_RANDOM_RW_FMT_STR(loop, self.args.block_size),
+            append=True)
       elif m == _RW_TEST_MODE_SEQUENTIAL:
         # Converts block counts into bytes
         block_count = self.args.sequential_block_count
         loop = 1
-        self.SetState(
-            _TESTING_SEQUENTIAL_RW_FMT_STR(block_count * self.args.block_size), append=True)
+        self.SetState(_TESTING_SEQUENTIAL_RW_FMT_STR(
+            block_count * self.args.block_size), append=True)
 
       bytes_to_operate = block_count * self.args.block_size
       # Determine the range in which the random block is selected
-      random_head = ((_SKIP_HEAD_SECTOR * _SECTOR_SIZE + self.args.block_size - 1) /
-                     self.args.block_size)
+      random_head = ((_SKIP_HEAD_SECTOR * _SECTOR_SIZE +
+                      self.args.block_size - 1) / self.args.block_size)
       random_tail = ((dev_size - _SKIP_TAIL_SECTOR * _SECTOR_SIZE) /
                      self.args.block_size - block_count)
 
@@ -690,13 +695,15 @@ class RemovableStorageTest(unittest.TestCase):
         if time_utils.MonotonicTime() > timeout_time:
           self.fail('Fail to find path: %s' % self.args.sysfs_path)
         time.sleep(0.2)
-      device = self._dut.udev.Device(self._dut.path.join(self._dut.udev.GetDevBlockPath(),
-                                                         device_node),
-                                     self.args.sysfs_path)
+      device = self._dut.udev.Device(
+          self._dut.path.join(self._dut.udev.GetDevBlockPath(),
+                              device_node),
+          self.args.sysfs_path)
       self.HandleUdevEvent(self._dut.udev.Event.INSERT, device)
       self.HandleUdevEvent(self._dut.udev.Event.REMOVE, device)
     else:
-      self._dut.udev.StartMonitorPath(self.args.sysfs_path, self.HandleUdevEvent)
+      self._dut.udev.StartMonitorPath(
+          self.args.sysfs_path, self.HandleUdevEvent)
 
     # BFT engages device after udev observer start
     if not self.args.skip_insert_remove and self.args.bft_fixture:
