@@ -101,10 +101,7 @@ class SystemInfo(component.DUTComponent):
 
   @InfoProperty
   def memory_total_kb(self):
-    """Gets total memory of system in kB"""
-    output = self._dut.CallOutput('cat /proc/meminfo')
-    match = re.search(r'^MemTotal:\s*(\d+)', output, re.MULTILINE)
-    return int(match.group(1)) if match else None
+    return self._dut.memory.GetTotalMemoryKB()
 
   @InfoProperty
   def release_image_version(self):

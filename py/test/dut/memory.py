@@ -41,8 +41,16 @@ class LinuxMemory(BaseMemory):
     """See BaseMemory.ResizeSharedMemory."""
     self._dut.CheckCall('mount -o remount,size=%s /dev/shm' % pipes.quote(size))
 
+  def GetTotalMemoryKB(self):
+    """Gets total memory of system in kB"""
+    return self._dut.toybox.free('k').mem_total
 
-class AndroidMemory(BaseMemory):
+  def GetFreeMemoryKB(self):
+    """Gets free memory of system in kB"""
+    return self._dut.toybox.free('k').mem_max_free
+
+
+class AndroidMemory(LinuxMemory):
   """Implementation of BaseMemory on Android system."""
 
   def __init__(self, dut):

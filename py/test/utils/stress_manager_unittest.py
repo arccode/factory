@@ -10,6 +10,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import board
+from cros.factory.test.dut import memory
 from cros.factory.test.dut import info
 from cros.factory.test.dut import temp
 from cros.factory.test.utils import stress_manager
@@ -18,11 +19,11 @@ from cros.factory.test.utils import stress_manager
 class StressManagerUnittest(unittest.TestCase):
   def setUp(self):
     self.dut = mock.Mock(spec=board.DUTBoard)
+    self.dut.memory = mock.Mock(spec=memory.LinuxMemory)
     self.dut.info = mock.Mock(spec=info.SystemInfo)
     self.dut.temp = temp.DummyTemporaryFiles(self.dut)
     self.dut.path = os.path
 
-    self.dut.info.memory_total_kb = 1024 * 1024
     self.dut.info.cpu_count = 8
 
     self.manager = stress_manager.StressManager(self.dut)
@@ -31,9 +32,10 @@ class StressManagerUnittest(unittest.TestCase):
     duration_secs = 10
     num_threads = 4
     memory_ratio = 0.5
-    mem_usage = int(memory_ratio * self.dut.info.memory_total_kb / 1024)
     disk_thread = False
+    total_memory = 1024 * 1024
 
+    self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=total_memory)
     self.manager._CallStressAppTest = mock.MagicMock(return_value=None)
     self.manager._CallStressAppTest.side_effect = self._CallStressAppTestSideEffect
 
@@ -41,8 +43,30 @@ class StressManagerUnittest(unittest.TestCase):
         duration_secs, num_threads, memory_ratio, disk_thread):
       pass
 
+    mem_usage = int(memory_ratio * total_memory / 1024)
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, num_threads, mem_usage, disk_thread)
+
+  def testRunFreeMemoryOnly(self):
+    duration_secs = 10
+    num_threads = 4
+    memory_ratio = 0.5
+    disk_thread = False
+    total_memory = 1024 * 1024
+    free_memory = 0.5 * total_memory
+
+    self.dut.memory.GetFreeMemoryKB = mock.Mock(return_value=free_memory)
+    self.manager._CallStressAppTest = mock.MagicMock(return_value=None)
+    self.manager._CallStressAppTest.side_effect = self._CallStressAppTestSideEffect
+
+    with self.manager.Run(
+        duration_secs, num_threads, memory_ratio, True, disk_thread):
+      pass
+
+    mem_usage = int(memory_ratio * free_memory / 1024)
+    self.manager._CallStressAppTest.assert_called_with(
+        duration_secs, num_threads, mem_usage, disk_thread)
+
 
   def _CallStressAppTestSideEffect(self, *unused_args):
     self.manager.output = 'Status: PASS'
@@ -51,9 +75,11 @@ class StressManagerUnittest(unittest.TestCase):
     duration_secs = 10
     num_threads = 1000
     memory_ratio = 0.5
-    mem_usage = int(memory_ratio * self.dut.info.memory_total_kb / 1024)
+    total_memory = 1024 * 1024
+    mem_usage = int(memory_ratio * total_memory / 1024)
     disk_thread = False
 
+    self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=total_memory)
     self.manager._CallStressAppTest = mock.MagicMock(return_value=None)
     self.manager._CallStressAppTest.side_effect = self._CallStressAppTestSideEffect
 
@@ -65,13 +91,13 @@ class StressManagerUnittest(unittest.TestCase):
         duration_secs, self.dut.info.cpu_count, mem_usage, disk_thread)
 
   def testRunNotEnoughMemory(self):
-    self.dut.info.memory_total_kb = 100 * 1024
     duration_secs = 10
     num_threads = 1
     memory_ratio = 0.1
     mem_usage = 32
     disk_thread = False
 
+    self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=100 * 1024)
     self.manager._CallStressAppTest = mock.MagicMock(return_value=None)
     self.manager._CallStressAppTest.side_effect = self._CallStressAppTestSideEffect
 

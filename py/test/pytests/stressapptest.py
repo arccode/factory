@@ -22,10 +22,16 @@ class StressAppTest(unittest.TestCase):
   ARGS = [
       Arg('seconds', int,
           'Time to execute the stressapptest.', default=60),
-      Arg('free_memory_fraction', float,
-          'Fraction of free memory', default=0.95),
+      Arg('memory_ratio', float,
+          'Radio of memory to be used by stressapptest.',
+          default=0.9),
+      Arg('free_memory_only', bool,
+          'Only use free memory for test. When set to True, only '
+          'memory_radio * free_memory are used for stressapptest.',
+          default=False),
       Arg('wait_secs', int,
-          'Time to wait in seconds before executing stressapptest.', default=0),
+          'Time to wait in seconds before executing stressapptest.',
+          default=0),
       Arg('disk_thread', bool,
           'stress disk using -f argument of stressapptest.',
           default=True),
@@ -43,7 +49,8 @@ class StressAppTest(unittest.TestCase):
     try:
       with StressManager(self.dut).Run(
           duration_secs=self.args.seconds,
-          memory_ratio=self.args.free_memory_fraction,
+          memory_ratio=self.args.memory_ratio,
+          free_memory_only=self.args.free_memory_only,
           disk_thread=self.args.disk_thread):
         pass
     except StressManagerError as e:

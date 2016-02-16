@@ -19,7 +19,7 @@ class StressManagerError(Exception):
 class StressManager(object):
   """Manage CPU and memory load of the system using stressapptest.
 
-  The manager runs stressapptest to occupy a specific amount of memry and
+  The manager runs stressapptest to occupy a specific amount of memory and
   threads for some duration.
 
   Usage:
@@ -39,11 +39,28 @@ class StressManager(object):
   #               until it's context is over.
   @contextlib.contextmanager
   def Run(self, duration_secs, num_threads=None, memory_ratio=0.2,
-          disk_thread=False):
+          free_memory_only=False, disk_thread=False):
+    """Runs stressapptest.
+
+    Runs stressapptest to occupy a specific amount of memory and threads for
+    some duration.
+
+    Args:
+      duration_secs: Number of seconds to execute stressapptest.
+      num_threads: Number of thread.
+      memory_ratio: Ratio of memory to be used for stressapptest.
+      free_memory_only: Only use free memory for test. If set to True, only
+          memory_ratio * free_memory is used for stressapptest.
+      disk_thread: stress disk using -f argument of stressapptest.
+
+    Raise:
+      StressManagerError when execution fails.
+    """
+
     assert duration_secs > 0
     assert num_threads != 0
     assert memory_ratio > 0
-    assert memory_ratio < 0.9
+    assert memory_ratio <= (1 if free_memory_only else 0.9)
 
     cpu_count = self._system_info.cpu_count or 1
     if num_threads is None:
@@ -59,7 +76,11 @@ class StressManager(object):
     # memory.
     self._dut.memory.ResizeSharedMemory()
 
-    mem = self._system_info.memory_total_kb or (100 * 1024)
+    if free_memory_only:
+      mem = self._dut.memory.GetFreeMemoryKB()
+    else:
+      mem = self._dut.memory.GetTotalMemoryKB()
+
     # we will use at least 32 MB of memory
     mem_usage = max(int(mem * memory_ratio / 1024), 32)
 
