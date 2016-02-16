@@ -73,10 +73,11 @@ class BadBlocksTest(unittest.TestCase):
       Arg('drop_caches_interval_secs', int,
           'The interval between dropping caches in seconds.',
           default=120),
-      Arg('non_destructive', bool,
-          'Do non desctructive read / write test, the data will be '
-          'preserved after testing. Slower testing time is expected.',
-          default=False),
+      Arg('destructive', bool,
+          'Do desctructive read / write test. If set to False, '
+          'the data will be kept after testing, but longer testing time is '
+          'expected.',
+          default=True),
   ]
 
   def setUp(self):
@@ -248,7 +249,7 @@ class BadBlocksTest(unittest.TestCase):
     # -w = destructive write+read test
     # -n = non-destructive write+read test
     args = '-fsv'
-    args += 'n' if self.args.non_destructive else 'w'
+    args += 'w' if self.args.destructive else 'n'
     process = self.dut.Popen(
         ['badblocks', args, '-b', str(params.sector_size)] +
         (['-e', str(params.max_errors)] if params.max_errors else []) +
