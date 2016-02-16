@@ -16,6 +16,8 @@ from __future__ import print_function
 
 import logging
 import random
+import re
+import subprocess
 import time
 import unittest
 
@@ -115,6 +117,10 @@ _ERR_BFT_ACTION_STR = (
 
 _TEST_TITLE = test_ui.MakeLabel(
     'Removable Storage Test', u'可移除储存装置测试')
+
+# Regex used for find execution time from dd output.
+_RE_DD_EXECUTION_TIME = re.compile(r'^.* copied, ([0-9]+\.[0-9]+) s, .*$',
+                                   re.MULTILINE)
 
 _ID_STATE_DIV = 'state_div'
 _ID_COUNTDOWN_DIV = 'countdown_div'
@@ -301,7 +307,8 @@ class RemovableStorageTest(unittest.TestCase):
     according to dargs.
     """
 
-    def PrepareDDCommand(ifile=None, ofile=None, seek=0, skip=0, bs=None, count=None, sync=False):
+    def _PrepareDDCommand(ifile=None, ofile=None, seek=0, skip=0, bs=None,
+                          count=None, conv=None):
       """Prepare the dd command for read / write test.
 
       Args:
@@ -311,12 +318,12 @@ class RemovableStorageTest(unittest.TestCase):
         skip: number of blocks to be skipped from the start of the input.
         bs: block size in byte.
         count: number of blocks to read / write.
-        sync: force sync or not.
+        conv: additional conv argument.
 
       Returns:
         A string of command to be executed.
       """
-      cmd = ['dd']
+      cmd = ['toybox', 'dd']
       if ifile:
         cmd.append('if=%s' % ifile)
       if ofile:
@@ -329,13 +336,18 @@ class RemovableStorageTest(unittest.TestCase):
         cmd.append('bs=%d' % bs)
       if count:
         cmd.append('count=%d' % count)
-      cmd = ' '.join(cmd)
+      if conv:
+        cmd.append('conv=%s' % conv)
 
-      # Some board's dd tool do not support 'conv' argument to support fdatasync.
-      # Use sync instead.
-      if sync:
-        cmd += ' && sync'
       return cmd
+
+    def _GetExecutionTime(dd_output):
+      """Return the execution time from the dd output."""
+
+      match = _RE_DD_EXECUTION_TIME.search(dd_output)
+      if not match:
+        raise ValueError('Invalid dd output %s' % dd_output)
+      return float(match.group(1))
 
     self._state = _STATE_ACCESSING
 
@@ -348,21 +360,21 @@ class RemovableStorageTest(unittest.TestCase):
     total_time_read = 0.0
     total_time_write = 0.0
 
-    mode = []
+    modes = []
     if self.args.perform_random_test is True:
-      mode.append(_RW_TEST_MODE_RANDOM)
+      modes.append(_RW_TEST_MODE_RANDOM)
     if self.args.perform_sequential_test is True:
-      mode.append(_RW_TEST_MODE_SEQUENTIAL)
+      modes.append(_RW_TEST_MODE_SEQUENTIAL)
 
-    for m in mode:
-      if m == _RW_TEST_MODE_RANDOM:
+    for mode in modes:
+      if mode == _RW_TEST_MODE_RANDOM:
         # Read/Write one block each time
         block_count = 1
         loop = self.args.random_block_count
         self.SetState(
             _TESTING_RANDOM_RW_FMT_STR(loop, self.args.block_size),
             append=True)
-      elif m == _RW_TEST_MODE_SEQUENTIAL:
+      elif mode == _RW_TEST_MODE_SEQUENTIAL:
         # Converts block counts into bytes
         block_count = self.args.sequential_block_count
         loop = 1
@@ -379,74 +391,96 @@ class RemovableStorageTest(unittest.TestCase):
       if random_tail < random_head:
         self.Fail('Block size too large for r/w test.')
 
-      with self._dut.temp.TempFile() as tmp_file:
-        for x in range(loop):  # pylint: disable=W0612
-          # Select one random block as starting point.
-          random_block = random.randint(random_head, random_tail)
+      with self._dut.temp.TempFile() as read_buf:
+        with self._dut.temp.TempFile() as write_buf:
+          for x in range(loop):  # pylint: disable=W0612
+            # Select one random block as starting point.
+            random_block = random.randint(random_head, random_tail)
+            factory.console.info(
+                'Perform %s read / write test from the %dth block.',
+                'random' if mode == _RW_TEST_MODE_RANDOM else 'sequential',
+                random_block)
 
-          dd_cmd = PrepareDDCommand(dev_path, tmp_file,
-                                    bs=self.args.block_size,
-                                    count=block_count,
-                                    skip=random_block)
-          try:
-            read_start = time.time()
-            self._dut.CheckCall(dd_cmd)
-            read_finish = time.time()
-          except Exception as e:  # pylint: disable=W0703
-            factory.console.error('Failed to read block %s', e)
-            ok = False
-            break
+            dd_cmd = _PrepareDDCommand(dev_path, read_buf,
+                                       bs=self.args.block_size,
+                                       count=block_count,
+                                       skip=random_block)
+            try:
+              factory.console.info('Reading %d %d-bytes block(s) from %s.',
+                                   block_count, self.args.block_size, dev_path)
+              output = self._dut.CheckOutput(dd_cmd, stderr=subprocess.STDOUT)
+              read_time = _GetExecutionTime(output)
+            except Exception as e:  # pylint: disable=W0703
+              factory.console.error('Failed to read block %s', e)
+              ok = False
+              break
 
-          in_block = self._dut.ReadFile(tmp_file)
-          if m == _RW_TEST_MODE_RANDOM:
-            # Modify the first byte and write the whole block back.
-            out_block = chr(ord(in_block[0]) ^ 0xff) + in_block[1:]
-            self._dut.WriteFile(tmp_file, out_block)
-            dd_input = tmp_file
-          elif m == _RW_TEST_MODE_SEQUENTIAL:
-            dd_input = '/dev/zero'
-            out_block = chr(0x00) * bytes_to_operate
+            # Prepare the data for writing.
+            if mode == _RW_TEST_MODE_RANDOM:
+              self._dut.CheckCall(['cp', read_buf, write_buf])
+              # Modify the first byte.
+              dd_cmd = _PrepareDDCommand(write_buf,
+                                         bs=1,
+                                         count=1)
+              first_byte = ord(self._dut.CheckOutput(dd_cmd, stderr=None))
+              first_byte ^= 0xff
+              with self._dut.temp.TempFile() as tmp_file:
+                self._dut.WriteFile(tmp_file, chr(first_byte))
+                dd_cmd = _PrepareDDCommand(tmp_file,
+                                           write_buf,
+                                           bs=1,
+                                           count=1,
+                                           conv='notrunc')
+                self._dut.CheckCall(dd_cmd)
+            elif mode == _RW_TEST_MODE_SEQUENTIAL:
+              dd_cmd = _PrepareDDCommand('/dev/zero', write_buf,
+                                         bs=self.args.block_size,
+                                         count=block_count)
+              self._dut.CheckCall(dd_cmd)
 
-          dd_cmd = PrepareDDCommand(dd_input, dev_path,
-                                    bs=self.args.block_size,
-                                    count=block_count,
-                                    seek=random_block,
-                                    sync=True)
-          try:
-            write_start = time.time()
-            self._dut.CheckCall(dd_cmd)
-            write_finish = time.time()
-          except Exception as e:  # pylint: disable=W0703
-            factory.console.error('Failed to write block %s', e)
-            ok = False
-            break
+            dd_cmd = _PrepareDDCommand(write_buf, dev_path,
+                                       bs=self.args.block_size,
+                                       count=block_count,
+                                       seek=random_block,
+                                       conv='fsync')
+            try:
+              factory.console.info('Writing %d %d-bytes block(s) to %s.',
+                                   block_count, self.args.block_size, dev_path)
+              output = self._dut.CheckOutput(dd_cmd, stderr=subprocess.STDOUT)
+              write_time = _GetExecutionTime(output)
+            except Exception as e:  # pylint: disable=W0703
+              factory.console.error('Failed to write block %s', e)
+              ok = False
+              break
 
-          # Check if the block was actually written, and restore the
-          # original content of the block.%d' % random_block]
-          dd_cmd = PrepareDDCommand(ifile=dev_path,
-                                    bs=self.args.block_size,
-                                    count=block_count,
-                                    skip=random_block)
-          b = self._dut.CheckOutput(dd_cmd)
-          if b != out_block:
-            factory.console.error('Failed to write block')
-            ok = False
-            break
-          self._dut.WriteFile(tmp_file, in_block)
-          dd_cmd = PrepareDDCommand(tmp_file, dev_path,
-                                    bs=self.args.block_size,
-                                    count=block_count,
-                                    seek=random_block,
-                                    sync=True)
-          try:
-            self._dut.CheckCall(dd_cmd)
-          except Exception as e:
-            factory.console.error('Failed to write back block %s', e)
-            ok = False
-            break
+            # Check if the block was actually written, and restore the
+            # original content of the block.
+            dd_cmd = _PrepareDDCommand(ifile=dev_path,
+                                       bs=self.args.block_size,
+                                       count=block_count,
+                                       skip=random_block)
+            try:
+              self._dut.CheckCall(
+                  ' '.join(dd_cmd) + ' | toybox cmp %s -' % write_buf)
+            except Exception as e:  # pylint: disable=W0703
+              factory.console.error('Failed to write block %s', e)
+              ok = False
+              break
 
-          total_time_read += read_finish - read_start
-          total_time_write += write_finish - write_start
+            dd_cmd = _PrepareDDCommand(read_buf, dev_path,
+                                       bs=self.args.block_size,
+                                       count=block_count,
+                                       seek=random_block,
+                                       conv='fsync')
+            try:
+              self._dut.CheckCall(dd_cmd)
+            except Exception as e:
+              factory.console.error('Failed to write back block %s', e)
+              ok = False
+              break
+
+            total_time_read += read_time
+            total_time_write += write_time
 
       self.AdvanceProgress()
       if ok is False:
@@ -454,9 +488,9 @@ class RemovableStorageTest(unittest.TestCase):
           factory.console.warn('Is write protection on?')
           self._ui.FailLater(_ERR_DEVICE_READ_ONLY_STR(dev_path))
         test_name = ''
-        if m == _RW_TEST_MODE_RANDOM:
+        if mode == _RW_TEST_MODE_RANDOM:
           test_name = 'random r/w'
-        elif m == _RW_TEST_MODE_SEQUENTIAL:
+        elif mode == _RW_TEST_MODE_SEQUENTIAL:
           test_name = 'sequential r/w'
         self._ui.FailLater(_ERR_TEST_FAILED_FMT_STR(test_name,
                                                     self._target_device))
@@ -474,7 +508,7 @@ class RemovableStorageTest(unittest.TestCase):
               self._ui.FailLater(_ERR_SPEED_CHECK_FAILED_FMT_STR(
                   test_type, self._target_device))
 
-        if m == _RW_TEST_MODE_RANDOM:
+        if mode == _RW_TEST_MODE_RANDOM:
           random_read_speed = (
               (self.args.block_size * loop) / total_time_read / _MILLION)
           random_write_speed = (
@@ -483,7 +517,7 @@ class RemovableStorageTest(unittest.TestCase):
                           self.args.random_read_threshold)
           _CheckThreshold('random_write', random_write_speed,
                           self.args.random_write_threshold)
-        elif m == _RW_TEST_MODE_SEQUENTIAL:
+        elif mode == _RW_TEST_MODE_SEQUENTIAL:
           sequential_read_speed = (
               bytes_to_operate / total_time_read / _MILLION)
           sequential_write_speed = (
