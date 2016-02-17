@@ -224,8 +224,8 @@ class SystemInfo(component.DUTComponent):
   def _release_lsb_data(self):
     """Returns the lsb-release data in dict from release image partition."""
     release_rootfs = self._dut.partitions.RELEASE_ROOTFS.path
-    # TODO(hungte) Change MountDeviceAndReadFile to DUT-aware.
-    lsb_content = MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release')
+    lsb_content = MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release',
+                                         dut=self._dut)
     return dict(re.findall('^(.+)=(.+)$', lsb_content, re.MULTILINE))
 
   @InfoProperty

@@ -10,11 +10,12 @@ import re
 import stat
 import struct
 import tempfile
-import time
 from contextlib import contextmanager
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.utils import file_utils
+from cros.factory.utils import sync_utils
+from cros.factory.utils.process_utils import CheckOutput
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -24,8 +25,8 @@ class MountPartitionException(Exception):
 
 
 def MountPartition(source_path, index=None, mount_point=None, rw=False,
-                   is_omaha_channel=False, options=None):
-  '''Mounts a partition in an image or a block device.
+                   is_omaha_channel=False, options=None, dut=None):
+  """Mounts a partition in an image or a block device.
 
   Args:
     source_path: The image file or a block device.
@@ -39,31 +40,45 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
       rootfs. rootfs offset bytes: 8 + BigEndian(first-8-bytes).
     options: A list of options to add to the -o argument when mounting, e.g.,
         ['offset=8192', 'sizelimit=1048576'].
+    dut: A board instance, None for local case.
 
   Raises:
     OSError: if image file or mount point doesn't exist.
     subprocess.CalledProcessError: if mount fails.
     MountPartitionException: if index is given while source_path is a block
       device.
-  '''
+  """
+  local_mode = dut is None
+  path = os.path if local_mode else dut.path
+
   if not mount_point:
-    mount_point = tempfile.mkdtemp(prefix='mount_partition.')
+    if local_mode:
+      mount_point = tempfile.mkdtemp(prefix='mount_partition.')
+    else:
+      mount_point = dut.temp.mktemp(is_dir=True, prefix='mount_partition.')
+
     remove_mount_point = True
   else:
     remove_mount_point = False
 
-  if not os.path.exists(source_path):
+  if not path.exists(source_path):
     raise OSError('Image file %s does not exist' % source_path)
-  if not os.path.isdir(mount_point):
+  if not path.isdir(mount_point):
     raise OSError('Mount point %s does not exist', mount_point)
 
-  for line in open('/etc/mtab').readlines():
+  for line in file_utils.ReadLines('/etc/mtab', dut):
     if line.split()[1] == mount_point:
       raise OSError('Mount point %s is already mounted' % mount_point)
 
   all_options = ['rw' if rw else 'ro']
   # source_path is a block device.
-  if stat.S_ISBLK(os.stat(source_path).st_mode):
+  if local_mode:
+    is_blk = stat.S_ISBLK(os.stat(source_path).st_mode)
+  else:
+    is_blk = dut.CheckOutput(
+        ['stat', '-c', '%F', source_path]) == 'block special file'
+
+  if is_blk:
     if index:
       raise MountPartitionException('index must be None for a block device.')
     if is_omaha_channel:
@@ -74,17 +89,19 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
     all_options.append('loop')
 
   if is_omaha_channel:
-    with open(source_path, 'rb') as f:
-      first_8_bytes = f.read(8)
-      offset = struct.unpack('>Q', first_8_bytes)[0] + 8
+    if local_mode:
+      with open(source_path, 'rb') as f:
+        first_8_bytes = f.read(8)
+    else:
+      first_8_bytes = dut.ReadFile(source_path, count=8)
+    offset = struct.unpack('>Q', first_8_bytes)[0] + 8
     all_options.append('offset=%d' % offset)
   elif index:
     def RunCGPT(option):
       """Runs cgpt and returns the integer result."""
+      check_output = CheckOutput if local_mode else dut.CheckOutput
       return int(
-          Spawn(['cgpt', 'show', '-i', str(index),
-                 option, source_path],
-                read_stdout=True, check_call=True).stdout_data)
+          check_output(['cgpt', 'show', '-i', str(index), option, source_path]))
     offset = RunCGPT('-b') * 512
     all_options.append('offset=%d' % offset)
     sizelimit = RunCGPT('-s') * 512
@@ -93,8 +110,12 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   if options:
     all_options.extend(options)
 
-  Spawn(['mount', '-o', ','.join(all_options), source_path, mount_point],
-        log=True, check_call=True, sudo=True)
+  if local_mode:
+    Spawn(['mount', '-o', ','.join(all_options), source_path, mount_point],
+          log=True, check_call=True, sudo=True)
+  else:
+    dut.CheckCall(['mount', '-o', ','.join(all_options), source_path,
+                   mount_point], log=True)
 
   @contextmanager
   def Unmounter():
@@ -102,30 +123,36 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
       yield mount_point
     finally:
       logging.info('Unmounting %s', mount_point)
-      for _ in range(5):
-        if Spawn(['umount', mount_point], call=True, sudo=True,
-                 ignore_stderr=True).returncode == 0:
-          break
-        time.sleep(1)  # And retry
+
+      if local_mode:
+        umount = lambda: Spawn(['umount', mount_point], call=True, sudo=True,
+                               ignore_stderr=True).returncode == 0
       else:
+        umount = lambda: dut.Call(['umount', mount_point]) == 0
+
+      if not sync_utils.Retry(5, 1, None, umount):
         logging.warn('Unable to umount %s', mount_point)
 
       if remove_mount_point:
-        try:
-          os.rmdir(mount_point)
-        except OSError:
-          pass
+        if local_mode:
+          try:
+            os.rmdir(mount_point)
+          except OSError:
+            pass
+        else:
+          dut.Call(['rm', '-rf', mount_point])
 
   return Unmounter()
 
 
-def MountDeviceAndReadFile(device, path):
+def MountDeviceAndReadFile(device, path, dut=None):
   """Mounts a device and reads a file on it.
 
   Args:
     device: The device like '/dev/mmcblk0p5'.
     path: The file path like '/etc/lsb-release'. The file to read is then
       'mount_point/etc/lsb-release'.
+    dut: a DUTBoard instance, None for local case.
 
   Returns:
     The content of the file.
@@ -136,10 +163,13 @@ def MountDeviceAndReadFile(device, path):
   """
   # Remove the starting / of the path.
   path = re.sub('^/', '', path)
-  with MountPartition(device) as mount_point:
+  with MountPartition(device, dut=dut) as mount_point:
     logging.debug('Mounted at %s.', mount_point)
-    content = open(
-        os.path.join(mount_point, path)).read()
+    if dut is None:
+      content = open(
+          os.path.join(mount_point, path)).read()
+    else:
+      content = dut.ReadFile(dut.path.join(mount_point, path), skip=0)
   return content
 
 

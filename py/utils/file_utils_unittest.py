@@ -19,6 +19,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.utils import file_utils
 
 
@@ -117,6 +118,36 @@ class ReadLinesTest(unittest.TestCase):
     os.unlink(tmp.name)
 
     lines = file_utils.ReadLines(tmp.name)
+    self.assertTrue(lines is None)
+
+  def testNormalFileWithDUT(self):
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp.write('line 1\nline 2\n')
+    tmp.close()
+    try:
+      lines = file_utils.ReadLines(tmp.name, dut.Create())
+      self.assertEquals(len(lines), 2)
+      self.assertEquals(lines[0], 'line 1\n')
+      self.assertEquals(lines[1], 'line 2\n')
+    finally:
+      os.unlink(tmp.name)
+
+  def testEmptyFileWithDUT(self):
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp.close()
+    try:
+      lines = file_utils.ReadLines(tmp.name, dut.Create())
+      self.assertTrue(isinstance(lines, list))
+      self.assertEquals(len(lines), 0)
+    finally:
+      os.unlink(tmp.name)
+
+  def testNonExistFileWithDUT(self):
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp.close()
+    os.unlink(tmp.name)
+
+    lines = file_utils.ReadLines(tmp.name, dut.Create())
     self.assertTrue(lines is None)
 
 

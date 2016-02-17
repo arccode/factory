@@ -40,7 +40,7 @@ class SystemInfoTest(unittest.TestCase):
     dut.partitions.RELEASE_ROOTFS.path = '/dev/sda5'
     self.mox.StubOutWithMock(info_module, 'MountDeviceAndReadFile')
     info_module.MountDeviceAndReadFile(
-        '/dev/sda5', '/etc/lsb-release').AndReturn(
+        '/dev/sda5', '/etc/lsb-release', dut=dut).AndReturn(
             MOCK_RELEASE_IMAGE_LSB_RELEASE)
 
     self.mox.ReplayAll()

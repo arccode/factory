@@ -172,7 +172,7 @@ def Read(filename):
     return None
 
 
-def ReadLines(filename):
+def ReadLines(filename, dut=None):
   """Returns a file as list of lines.
 
   It is used to facilitate unittest.
@@ -184,10 +184,13 @@ def ReadLines(filename):
     List of lines of the file content. None if IOError.
   """
   try:
-    with open(filename) as f:
-      return f.readlines()
-  except IOError as e:
-    logging.error('Cannot read file "%s": %s', filename, e)
+    if dut is None:
+      with open(filename) as f:
+        return f.readlines()
+    else:
+      return dut.ReadFile(filename, skip=0).splitlines(True)
+  except Exception:
+    logging.exception('Cannot read file "%s"', filename)
     return None
 
 

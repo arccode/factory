@@ -8,11 +8,13 @@
 
 import mox
 import os
+import subprocess
 import tempfile
 import textwrap
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
@@ -246,6 +248,22 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
     with open(os.path.join(mount_point, self.file_name), 'w') as f:
       f.write(self.content)
     Spawn(['umount', '-l', mount_point], sudo=True, check_call=True, log=True)
+    os.rmdir(mount_point)
+    self.dut = dut.Create()
+
+    # Since 'mount', 'umount' requires root privilege, make link.Shell function
+    # executes commands as root.
+    # The reason why we don't use 'sudo' in MountPartition() is to make our code
+    # more general. Because some Android devices don't have 'sudo'.
+    def _SudoShell(command, stdin=None, stdout=None, stderr=None):
+      if isinstance(command, basestring):
+        command = ['sudo', 'sh', '-c', command]
+      else:
+        command = ['sudo'] + command
+      return subprocess.Popen(command,
+                              close_fds=True, stdin=stdin,
+                              stdout=stdout, stderr=stderr)
+    self.dut.link.Shell = _SudoShell
 
   def tearDown(self):
     self.device.close()
@@ -263,6 +281,20 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
   def testMountDeviceAndReadFileWrongDevice(self):
     with self.assertRaises(Exception):
       sys_utils.MountDeviceAndReadFile('no_device', self.file_name)
+
+  def testMountDeviceAndReadFileWithDUT(self):
+    self.assertEqual(
+        self.content,
+        sys_utils.MountDeviceAndReadFile(
+            self.device.name, self.file_name, self.dut))
+
+  def testMountDeviceAndReadFileWrongFileWithDUT(self):
+    with self.assertRaises(IOError):
+      sys_utils.MountDeviceAndReadFile(self.device.name, 'no_file', self.dut)
+
+  def testMountDeviceAndReadFileWrongDeviceWithDUT(self):
+    with self.assertRaises(Exception):
+      sys_utils.MountDeviceAndReadFile('no_device', self.file_name, self.dut)
 
 
 class VarLogMessagesTest(unittest.TestCase):
