@@ -30,20 +30,26 @@ class StressManager(object):
   Note that the "with" block will wait until both StressManager.Run and block
   content are finished.
   """
+
   def __init__(self, dut):
+    """Constructor of StressManager
+
+    Args:
+      :type dut: cros.factory.test.dut.board.DUTBoard
+    """
     self._dut = dut
     self._system_info = dut.info
     self.output = None
+    self.stop = threading.Event()
 
-  # TODO(stimim): If duration_secs=None, then stresstestapp should keep running
-  #               until it's context is over.
   @contextlib.contextmanager
-  def Run(self, duration_secs, num_threads=None, memory_ratio=0.2,
+  def Run(self, duration_secs=None, num_threads=None, memory_ratio=0.2,
           free_memory_only=False, disk_thread=False):
     """Runs stressapptest.
 
     Runs stressapptest to occupy a specific amount of memory and threads for
-    some duration.
+    some duration. If duration_secs is None, it will run until the context is
+    over.
 
     Args:
       duration_secs: Number of seconds to execute stressapptest.
@@ -57,7 +63,7 @@ class StressManager(object):
       StressManagerError when execution fails.
     """
 
-    assert duration_secs > 0
+    assert duration_secs is None or duration_secs > 0
     assert num_threads != 0
     assert memory_ratio > 0
     assert memory_ratio <= (1 if free_memory_only else 0.9)
@@ -89,11 +95,14 @@ class StressManager(object):
                                     disk_thread))
     # clear output
     self.output = None
+    self.stop.clear()
 
     try:
       thread.start()
       yield
     finally:
+      if duration_secs is None:
+        self.stop.set()
       thread.join()
 
     if not re.search(r'Status: PASS', self.output, re.MULTILINE):
@@ -101,21 +110,24 @@ class StressManager(object):
 
   def _CallStressAppTest(self, duration_secs, num_threads, mem_usage,
                          disk_thread):
-    assert isinstance(duration_secs, int)
+    assert isinstance(duration_secs, int) or duration_secs is None
     assert isinstance(num_threads, int)
     assert isinstance(mem_usage, int)
     assert isinstance(disk_thread, bool)
 
     cmd = ['stressapptest', '-m', str(num_threads), '-M', str(mem_usage), '-s',
-           str(duration_secs)]
+           str(duration_secs if duration_secs is not None else 10 ** 8)]
     with tempfile.TemporaryFile() as output:
-      if disk_thread:
-        with self._dut.temp.TempDirectory() as tempdir:
+      with self._dut.temp.TempDirectory() as tempdir:
+        if disk_thread:
           for disk_file in ['sat.diskthread.a', 'sat.diskthread.b']:
             cmd += ['-f', self._dut.path.join(tempdir, disk_file)]
-          self._dut.Call(cmd, stdout=output)
-      else:
-        self._dut.Call(cmd, stdout=output)
+        process = self._dut.Popen(cmd, stdout=output)
+
+        if duration_secs is None:
+          self.stop.wait()
+          self._dut.Call(['killall', 'stressapptest'])
+        process.wait()
       output.seek(0)
       self.output = output.read()
 

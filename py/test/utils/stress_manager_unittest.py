@@ -26,7 +26,11 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.dut.info.cpu_count = 8
 
+    self.fake_process = mock.MagicMock()
+    self.dut.Popen = mock.MagicMock(return_value=self.fake_process)
+
     self.manager = stress_manager.StressManager(self.dut)
+    self.manager.stop = mock.MagicMock()
 
   def testRun(self):
     duration_secs = 10
@@ -114,16 +118,15 @@ class StressManagerUnittest(unittest.TestCase):
     mem_usage = 32
     disk_thread = False
 
-    self.dut.temp.TempDirectory = mock.NonCallableMock()
-
     with tempfile.NamedTemporaryFile() as output:
       stress_manager.tempfile.TemporaryFile = mock.MagicMock(
           return_value=output)
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
                                       disk_thread)
-      self.dut.Call.assert_called_with(
+      self.dut.Popen.assert_called_with(
           ['stressapptest', '-m', '1', '-M', '32', '-s', '10'],
           stdout=output)
+      self.fake_process.wait.assert_called_with()
 
   def testCallStressAppTestWithDiskThread(self):
     duration_secs = 10
@@ -136,10 +139,29 @@ class StressManagerUnittest(unittest.TestCase):
           return_value=output)
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
                                       disk_thread)
-      self.dut.Call.assert_called_with(
+      self.dut.Popen.assert_called_with(
           ['stressapptest', '-m', '1', '-M', '32', '-s', '10', '-f', mock.ANY,
            '-f', mock.ANY],
           stdout=output)
+      self.fake_process.wait.assert_called_with()
+
+  def testCallStressAppTestRunForever(self):
+    duration_secs = None
+    num_threads = 1
+    mem_usage = 32
+    disk_thread = False
+
+    with tempfile.NamedTemporaryFile() as output:
+      stress_manager.tempfile.TemporaryFile = mock.MagicMock(
+          return_value=output)
+      self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
+                                      disk_thread)
+      self.dut.Popen.assert_called_with(
+          ['stressapptest', '-m', '1', '-M', '32', '-s', mock.ANY],
+          stdout=output)
+      self.manager.stop.wait.assert_called_with()
+      self.dut.Call.assert_called_with(['killall', 'stressapptest'])
+      self.fake_process.wait.assert_called_with()
 
 
 if __name__ == '__main__':
