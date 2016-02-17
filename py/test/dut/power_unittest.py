@@ -13,6 +13,8 @@ import mox
 import textwrap
 import unittest
 
+from subprocess import CalledProcessError
+
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import board
 from cros.factory.test.dut import power
@@ -113,6 +115,73 @@ class PowerTest(unittest.TestCase):
     self.board.CheckOutput(['ectool', 'battery']).AndReturn(_BATTERY_INFO)
     self.mox.ReplayAll()
     self.assertRaises(self.power.Error, self.power.GetBatteryDesignCapacity)
+    self.mox.VerifyAll()
+
+  def testUSBPDPowerInfo(self):
+    _USB_PD_POWER_INFO = textwrap.dedent("""
+        Port 0: Disconnected
+        Port 1: SNK Charger PD 22mV / 33mA, max 44mV / 55mA / 66mW
+        Port 2: SRC
+        """)
+
+    self.board.CheckOutput(['ectool', '--name=cros_pd',
+                            'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
+    self.mox.ReplayAll()
+    self.assertEqual(
+        [(0, 'Disconnected', None, None),
+         (1, 'SNK', 22, 33),
+         (2, 'SRC', None, None)],
+        self.power.GetUSBPDPowerInfo())
+    self.mox.VerifyAll()
+
+  def testUSBPDPowerInfoCommandFailed(self):
+    exception = CalledProcessError(
+        returncode=1, cmd='cmd', output='output')
+    self.board.CheckOutput(['ectool', '--name=cros_pd',
+                            'usbpdpower']).AndRaise(exception)
+    self.mox.ReplayAll()
+
+    try:
+      self.power.GetUSBPDPowerInfo()
+    except CalledProcessError as e:
+      self.assertEqual(e, exception)
+    self.mox.VerifyAll()
+
+  def testUSBPDPowerInfoEmptyString(self):
+    _USB_PD_POWER_INFO = ""
+    self.board.CheckOutput(['ectool', '--name=cros_pd',
+                            'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
+    self.mox.ReplayAll()
+    self.assertEqual([], self.power.GetUSBPDPowerInfo())
+    self.mox.VerifyAll()
+
+  def testUSBPDPowerInfoUnexpectedPDState(self):
+    _USB_PD_POWER_INFO = textwrap.dedent("""
+        Port 0: Disconnected
+        Port 1: XXX
+        Port 2: SNK Charger PD 22mV / 33mA, max 44mV / 55mA / 66mW
+        Port 3: SRC
+        """)
+
+    self.board.CheckOutput(['ectool', '--name=cros_pd',
+                            'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(self.power.Error, 'unexpected PD state',
+                            self.power.GetUSBPDPowerInfo)
+    self.mox.VerifyAll()
+
+  def testUSBPDPowerInfoIncorrectSNKOutput(self):
+    _USB_PD_POWER_INFO = textwrap.dedent("""
+        Port 0: Disconnected
+        Port 1: SNK Charger XXXX
+        Port 2: SRC
+        """)
+
+    self.board.CheckOutput(['ectool', '--name=cros_pd',
+                            'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(self.power.Error, 'unexpected output for SNK',
+                            self.power.GetUSBPDPowerInfo)
     self.mox.VerifyAll()
 
 

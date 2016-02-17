@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
 import re
 import time
 
@@ -277,6 +278,41 @@ class Power(DUTComponent):
       DUTException if power information cannot be obtained.
     """
     return self._dut.CallOutput(['ectool', 'powerinfo'])
+
+  def GetUSBPDPowerInfo(self):
+    """Gets USB PD power information.
+
+    Returns:
+      The output of ectool usbpdpower, like::
+
+        Port 0: Disconnected
+        Port 1: SNK Charger PD 20714mV / 3000mA, max 20000mV / 3000mA / 60000mW
+        Port 2: SRC
+    """
+    output = self._dut.CheckOutput(['ectool', '--name=cros_pd', 'usbpdpower'])
+
+    USBPortInfo = collections.namedtuple('USBPortInfo',
+                                         'id state voltage current')
+    ports = []
+
+    for line in output.strip().splitlines():
+      match = re.match(r'Port\s+(\d+):\s+(\w+)', line)
+      if not match:
+        raise self.Error('unexpected output: %s' % output)
+      port_id, port_state = int(match.group(1)), match.group(2)
+      if port_state not in ['Disconnected', 'SNK', 'SRC']:
+        raise self.Error('unexpected PD state: %s\noutput="""%s"""' %
+                         (port_state, output))
+      voltage = None
+      current = None
+      if port_state == 'SNK':
+        match = re.search(r'SNK Charger PD (\d+)mV\s+/\s+(\d+)mA', line)
+        if not match:
+          raise self.Error('unexpected output for SNK state: %s' % output)
+        voltage, current = int(match.group(1)), int(match.group(2))
+
+      ports.append(USBPortInfo(port_id, port_state, voltage, current))
+    return ports
 
   def GetBatteryRegisters(self):
     """Gets battery registers on board.
