@@ -6,8 +6,10 @@
 """Implementation of cros.factory.test.dut.link.DUTLink using ADB."""
 
 import logging
+import os
 import pipes
 import subprocess
+import tempfile
 import uuid
 
 import factory_common  # pylint: disable=W0611
@@ -52,9 +54,8 @@ class ADBProcess(object):
 class ADBLink(link.DUTLink):
   """A DUT target that is connected via ADB interface."""
 
-  def __init__(self):
-    """Dummy constructor."""
-    pass
+  def __init__(self, temp_dir='/data/local/tmp'):
+    self._temp_dir = temp_dir
 
   def Push(self, local, remote):
     """See DUTLink.Push"""
@@ -80,6 +81,13 @@ class ADBLink(link.DUTLink):
     # execution results. To avoid problems in redirection, we do this slightly
     # different by using the log service and "logcat" ADB feature.
 
+    # ADB shell does not provide interactive shell, which means we are not
+    # able to send stdin data in an interactive way (
+    # https://code.google.com/p/android/issues/detail?id=74856). As described
+    # in the issue, this and the above exit code bugs will be fixed in the
+    # future build. Now we use a temp file and print warning message when use
+    # PIPE to avoid unexpected bug.
+
     session_id = str(uuid.uuid1())
 
     # Convert list-style commands to single string because we need to run
@@ -102,8 +110,31 @@ class ADBLink(link.DUTLink):
       logging.warn('%s: stderr redirection is not supported yet.',
                    type(self).__name__)
 
-    command = ['adb', 'shell', '( %s ) %s; log -t %s $?' %
-               (command, redirections, session_id)]
+    delete_tmps = ''
+    if stdin is not None:
+      if stdin == subprocess.PIPE:
+        logging.warn('%s: stdin PIPE is not supported yet.',
+                     type(self).__name__)
+      else:
+        with tempfile.NamedTemporaryFile() as tmp_file:
+          data = stdin.read()
+          tmp_file.write(data)
+          tmp_file.flush()
+
+          filename = os.path.basename(tmp_file.name)
+
+          # We don't know the correct way to create true tmp file on the DUT
+          # since it differs from board to board. Use session_id in the
+          # filename to avoid collision as much as possible.
+          target_tmp_file = os.path.join(
+              self._temp_dir, '%s.%s' % (session_id, filename))
+
+          self.Push(tmp_file.name, target_tmp_file)
+          redirections += ' <%s' % target_tmp_file
+          delete_tmps = 'rm -f %s' % target_tmp_file
+
+    command = ['adb', 'shell', '( %s ) %s; log -t %s $?; %s' %
+               (command, redirections, session_id, delete_tmps)]
     logging.debug('ADBLink: Run %r', command)
     return ADBProcess(subprocess.Popen(command, shell=False, close_fds=True,
                                        stdin=stdin, stdout=stdout,
