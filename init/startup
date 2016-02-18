@@ -10,48 +10,42 @@ export INIT_BASE GOOFY_ROLES
 
 execute_rules() {
   local init_folder="$1"
-  local rule_file=""
+  local rule_file="" rule_name="" enable_rule="" disable_rule=""
 
   for rule_file in "${INIT_BASE}/${init_folder}"/*.sh; do
     [ -e "${rule_file}" ] || continue  # Skip if no rules found.
+    rule_name="$(basename "${rule_file%.sh}")"
+    enable_rule="${INIT_BASE}/${init_folder}/enable-${rule_name}"
+    disable_rule="${INIT_BASE}/${init_folder}/disable-${rule_name}"
+    if [ -e "${disable_rule}" ]; then
+      echo "Skipping disabled ${rule_file}..."
+      continue
+    fi
+    if ! [ -x "${rule_file}" -o -e "${enable_rule}" ]; then
+      echo "Skipping default disabled ${rule_file}..."
+      continue
+    fi
     echo "Applying ${rule_file}..."
-    "${rule_file}"
-  done
-}
-
-execute_optional_rules() {
-  local init_folder="$1"
-  local prefix="$2"
-  local rule_file=""
-  local rule_name=""
-  for rule_name in ${INIT_BASE}/${prefix}_*; do
-    [ -e "${rule_name}" ] || continue  # Skip if no rules found.
-    # Strip the directory and prefix so we can get the real rule name.
-    # For example, init/run_whale_servo => whale_servo.
-    rule_name="${rule_name##*/${prefix}_}"
-    rule_file="${INIT_BASE}/${init_folder}/${rule_name}.sh"
     if [ -x "${rule_file}" ]; then
-      echo "Applying ${rule_file}..."
       "${rule_file}"
-    elif [ "${rule_name#goofy_}" != "${rule_name}" ]; then
-      # Skip rules with name started as "goofy_" because they will be invoked in
-      # a different way.
-      true
     else
-      echo "No rule files found for [${rule_name}]."
+      sh "${rule_file}"
     fi
   done
 }
 
-main() {
-  echo "Starting ChromeOS factory initialization..."
-  local rule_file
+factory_init() {
+  echo "[$(date)] Starting ChromeOS factory initialization..."
 
   execute_rules common.d
   execute_rules iptables.d
-  execute_optional_rules run.d run
 
-  # TODO(hungte) Stop here to support fixtures that don't run Goofy.
+  # See factory_main for the path of tag that may disable Goofy.
+  local disable_goofy="${INIT_BASE}/main.d/disable-goofy"
+  if [ -e "${disable_goofy}" ]; then
+    echo "[$(date)] Initialization finished (Goofy rules are disabled)."
+    return
+  fi
 
   # Determine Goofy roles (device or presenter).
   local tag_presenter="${INIT_BASE}/run_goofy_presenter"
@@ -66,7 +60,44 @@ main() {
   for role in ${GOOFY_ROLES}; do
     execute_rules goofy.d/${role}
   done
+  echo "[$(date)] All initialization finished."
 }
 
-mkdir -p /var/log
-main "$@" 2>&1 | tee /var/log/factory-init-startup.log
+factory_main() {
+  echo "[$(date)] Starting ChromeOS factory main program..."
+  execute_rules main.d
+  # Unlike factory_init, the main programs may need to run in parallel for a
+  # long time and occupy the session time of factory.conf so we have to wait
+  # until all children processes finished.
+  wait
+  echo "[$(date)] All main programs finished. Stopped."
+}
+
+main() {
+  exec 2>&1
+  mkdir -p /var/log
+  log_file=/var/log/factory-init.log
+  local mode="init"
+
+  if [ "$#" -gt 0 ]; then
+    mode="$1"
+  fi
+
+  case "${mode}" in
+    main )
+      # Developers may try to start factory main several times so we want to
+      # append the logs.
+      factory_main | tee -a "${log_file}"
+      ;;
+    init )
+      # Init should be invoked only one time so we want to re-create the logs.
+      factory_init | tee "${log_file}"
+      ;;
+    * )
+      echo "Unknown mode: ${mode}." | tee "${log_file}"
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

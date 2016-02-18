@@ -22,8 +22,8 @@ DOLPHIN_SERVER_BIN="${FACTORY_BASE}/py/test/fixture/whale/host/dolphin_server"
 start_servod() {
   . ${CONFIG_FILE}
   if [ -n "${BOARD}" ]; then
-    mkdir -p $SERVOD_DIR
-    echo "BOARD=${BOARD}" >$SERVOD_CONFIG
+    mkdir -p ${SERVOD_DIR}
+    echo "BOARD=${BOARD}" >${SERVOD_CONFIG}
     start servod
   else
     echo "Unable to resolve BOARD name"
@@ -32,17 +32,17 @@ start_servod() {
 
 start_network() {
   # Disable shill
-  mount --bind $DISABLED_BIN $SHILL_BIN
+  mount --bind ${DISABLED_BIN} ${SHILL_BIN}
   ifconfig lo 127.0.0.1 netmask 255.0.0.0 up
-  ifconfig eth0 $IP_ADDRESS netmask 255.255.255.0 up
+  ifconfig eth0 ${IP_ADDRESS} netmask 255.255.255.0 up
 }
 
 main() {
   start_servod
   start_network
   # TODO(deanliao): make interrupt_handler as a service.
-  $DOLPHIN_SERVER_BIN ${BOARD} &
-  $WHALE_SERVO_BIN &
+  ${DOLPHIN_SERVER_BIN} ${BOARD} &
+  ${WHALE_SERVO_BIN} &
 }
 
 main
