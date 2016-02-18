@@ -4,7 +4,10 @@
 # found in the LICENSE file.
 
 DATA_DIR={%data_root%}
+SCRIPT_DIR={%script_root%}
 TOTAL_TASKS={%total_tasks%}
+
+. "${SCRIPT_DIR}/callback.sh"
 
 log() {
   local prefix="$1"
@@ -28,8 +31,8 @@ error() {
 }
 
 die() {
-  # TODO(stimim): call hooked function on die
   error "$*"
+  on_test_failed
   exit 1
 }
 
@@ -53,7 +56,7 @@ all_test_passed() {
   info "All tests passed!"
   echo "$((${TOTAL_TASKS} + 1))" >"${DATA_DIR}/task_id"
 
-  # TODO(stimim): call hooked function on finished
+  on_all_test_passed
 }
 
 main() {
@@ -80,6 +83,8 @@ main() {
     echo "${i}" >"${DATA_DIR}/task_id"
     echo "running" >"${DATA_DIR}/state"
     rm -f "${DATA_DIR}/should_reboot"
+
+    on_start_test
 
     if "task_${i}" ; then
       info "task_${i}" PASSED

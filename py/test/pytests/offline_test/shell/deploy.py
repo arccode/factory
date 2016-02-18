@@ -10,6 +10,7 @@ import pipes
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.env import paths
 from cros.factory.test import dut as dut_module
 from cros.factory.test.dut.boards import android
 from cros.factory.test.args import Arg
@@ -97,7 +98,7 @@ class ScriptBuilder(object):
 
   ShellTestCase = FunctionMapper()
 
-  def __init__(self, dut, data_root):
+  def __init__(self, dut, data_root, script_root):
     """Constructor of ScriptBuilder.
 
     Args:
@@ -106,10 +107,14 @@ class ScriptBuilder(object):
 
       :type data_root: str
       data_root: where to store the state of offline testing.
+
+      :type script_root: str
+      script_root: where to store the scripts
     """
     self.tasks = []
     self.dut = dut
     self.data_root = data_root
+    self.script_root = script_root
 
   @type_utils.LazyProperty
   def cpu_count(self):
@@ -138,6 +143,7 @@ class ScriptBuilder(object):
 
     return _FormatTemplate('main.sh',
                            data_root=self.data_root,
+                           script_root=self.script_root,
                            total_tasks=len(self.tasks),
                            tasks=tasks)
 
@@ -237,13 +243,20 @@ class DeployShellOfflineTest(unittest.TestCase):
       Arg('next_action', NEXT_ACTION,
           ('What to do after tests are deployed (One of %s)' % NEXT_ACTION)),
       Arg('start_up_service', bool, 'Do you want to run the tests on start up?',
-          default=True, optional=True)]
+          default=True, optional=True),
+      Arg('callback_script_path', str,
+          'Path to a shell script which contains the callback functions. See '
+          'callback_example.sh for example. That file is also the default '
+          'implementation. The path should be absolute path or relative to '
+          'FACTORY_PATH.',
+          default='py/test/pytests/offline_test/shell/callback_example.sh')]
 
   def setUp(self):
     self.dut = dut_module.Create()
     self.data_root = common.DataRoot(self.dut)
     self.test_script_path = common.TestScriptPath(self.dut)
-    self.builder = ScriptBuilder(self.dut, self.data_root)
+    self.script_root = common.ScriptRoot(self.dut)
+    self.builder = ScriptBuilder(self.dut, self.data_root, self.script_root)
 
   def _MakeChromeOsStartUpApp(self, starter_path):
     # Chrome OS images will execute '/usr/local/factory/init/startup' if
@@ -271,15 +284,13 @@ class DeployShellOfflineTest(unittest.TestCase):
                        "{0:%s}\n{0:%m%d%H%M%Y.%S}\n".format(now))
 
   def runTest(self):
-    script_dir = common.ScriptRoot(self.dut)
-
-    # make sure script_dir is writable
-    if not self.dut.storage.Remount(script_dir):
+    # make sure script_root is writable
+    if not self.dut.storage.Remount(self.script_root):
       raise common.OfflineTestError(
-          'failed to make dut:%s writable' % script_dir)
-    # create script_dir
-    self.dut.Call(['rm', '-rf', script_dir])
-    self.dut.CheckCall(['mkdir', '-p', script_dir])
+          'failed to make dut:%s writable' % self.script_root)
+    # create script_root
+    self.dut.Call(['rm', '-rf', self.script_root])
+    self.dut.CheckCall(['mkdir', '-p', self.script_root])
 
     # make sure data_root is writable
     if not self.dut.storage.Remount(self.data_root):
@@ -305,11 +316,19 @@ class DeployShellOfflineTest(unittest.TestCase):
     self.dut.WriteFile(self.test_script_path, self.builder.Build())
     self.dut.Call(['chmod', '+x', self.test_script_path])
 
-    starter_path = self.dut.path.join(script_dir, 'starter.sh')
+    starter_path = self.dut.path.join(self.script_root, 'starter.sh')
     # push starter script
     self.dut.WriteFile(starter_path,
                        _FormatTemplate('starter.sh', data_root=self.data_root,
                                        test_script_path=self.test_script_path))
+    self.dut.Call(['chmod', '+x', starter_path])
+
+    # push callback script
+    callback_script_path = self.dut.path.join(self.script_root, 'callback.sh')
+    self.dut.SendFile(os.path.join(paths.FACTORY_PATH,
+                                   self.args.callback_script_path),
+                      callback_script_path)
+
     self.dut.Call(['chmod', '+x', starter_path])
 
     if self.args.start_up_service:
