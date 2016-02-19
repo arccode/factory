@@ -32,16 +32,6 @@ from cros.factory.utils import sync_utils
 
 _TEST_TITLE = test_ui.MakeLabel('Raiden Display Test', u'Raiden 显示测试')
 
-_CONNECT_STR = lambda d: test_ui.MakeLabel(
-    'Connecting BFT display: %s' % d,
-    u'正在连接 BFT 显示屏: %s' % d)
-_VIDEO_STR = lambda d: test_ui.MakeLabel(
-    'BFT display %s is connected. Sending image...' % d,
-    u'已连接 BFT 显示屏: %s, 正在传送画面' % d)
-_DISCONNECT_STR = lambda d: test_ui.MakeLabel(
-    'Disconnecting BFT display: %s' % d,
-    u'正在移除 BFT 显示屏: %s' % d)
-
 _BLACKSCREEN_STR = test_ui.MakeLabel(
     'Caution: monitor may turn black for a short time.',
     u'注意: 萤幕可能会有短暂黑屏')
@@ -56,6 +46,21 @@ _HTML_DISPLAY = (
 
 _WAIT_DISPLAY_SIGNAL_SECS = 3
 _WAIT_RETEST_SECS = 2
+
+
+def _GetConnectStr(d):
+  return test_ui.MakeLabel('Connecting BFT display: %s' % d,
+                           u'正在连接 BFT 显示屏: %s' % d)
+
+
+def _GetVideoStr(d):
+  return test_ui.MakeLabel('BFT display %s is connected. Sending image...' % d,
+                           u'已连接 BFT 显示屏: %s, 正在传送画面' % d)
+
+
+def _GetDisconnectStr(d):
+  return test_ui.MakeLabel('Disconnecting BFT display: %s' % d,
+                           u'正在移除 BFT 显示屏: %s' % d)
 
 
 class RaidenDisplayTest(unittest.TestCase):
@@ -89,7 +94,11 @@ class RaidenDisplayTest(unittest.TestCase):
       Arg('verify_display_switch', bool,
           'Set False to test without display switch, and compare default '
           'wallpaper only (can save more testing time).',
-          default=True)
+          default=True),
+      Arg('force_dp_renegotiated', bool,
+          'Force DP to renegotiate with dolphin by disconnecting TypeC port',
+          default=False),
+      Arg('fire_hpd_manually', bool, 'Fire HPD manually.', default=False)
   ]
 
   def setUp(self):
@@ -165,18 +174,21 @@ class RaidenDisplayTest(unittest.TestCase):
       connect: True if testing engagement, False if testing disengagement.
     """
     if connect:
-      self._template.SetInstruction(_CONNECT_STR(self._bft_media_device))
+      self._template.SetInstruction(_GetConnectStr(self._bft_media_device))
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=True)
-      time.sleep(0.5)
-      # DUT control for Raiden function: DP mode
-      self._dut.usb_c.ResetHPD(self.args.raiden_index)
-      time.sleep(1)  # Wait for reset HPD response
-      self._dut.usb_c.SetHPD(self.args.raiden_index)
-      self._dut.usb_c.SetPortFunction(self.args.raiden_index, 'dp')
+      if self.args.force_dp_renegotiated:
+        self._bft_fixture.SetFakeDisconnection(1)
+        time.sleep(1)  # diconnetion by software for re-negotiation.
+      else:
+        time.sleep(0.5)
+      if self.args.fire_hpd_manually:
+        self._dut.usb_c.SetHPD(self.args.raiden_index)
+        self._dut.usb_c.SetPortFunction(self.args.raiden_index, 'dp')
       sync_utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
     else:
-      self._template.SetInstruction(_DISCONNECT_STR(self._bft_media_device))
-      self._dut.usb_c.ResetHPD(self.args.raiden_index)
+      self._template.SetInstruction(_GetDisconnectStr(self._bft_media_device))
+      if self.args.fire_hpd_manually:
+        self._dut.usb_c.ResetHPD(self.args.raiden_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
       sync_utils.WaitFor(lambda: not self._PollDisplayConnected(),
                          timeout_secs=10)
@@ -187,13 +199,13 @@ class RaidenDisplayTest(unittest.TestCase):
 
     time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # need a delay for display_info
     display_info = factory.get_state_instance().DeviceGetDisplayInfo()
+    logging.info('Get display info %r', display_info)
     # In the case of connecting an external display, make sure there
     # is an item in display_info with 'isInternal' False.
     # On the other hand, in the case of disconnecting an external display,
     # we can not check display info has no display with 'isInternal' False
     # because any display for chromebox has 'isInternal' False.
-    if not connect or any(x['isInternal'] == False for x in display_info):
-      logging.info('Get display info %r', display_info)
+    if not connect or any(x['isInternal'] is False for x in display_info):
       self.AdvanceProgress()
     else:
       self.Fail('Get the wrong display info')
@@ -203,7 +215,7 @@ class RaidenDisplayTest(unittest.TestCase):
     image by JS function.
     """
     if self.args.verify_display_switch:
-      self._template.SetInstruction(_VIDEO_STR(self._bft_media_device))
+      self._template.SetInstruction(_GetVideoStr(self._bft_media_device))
       self._ui.CallJSFunction('switchDisplayOnOff')
       self.SetMainDisplay(recover_original=False)
 
