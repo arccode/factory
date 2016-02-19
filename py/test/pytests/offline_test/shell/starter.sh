@@ -9,9 +9,5 @@ DATA_DIR={%data_root%}
 TEST_SCRIPT_PATH={%test_script_path%}
 LOGFILE="${DATA_DIR}/logfile"
 
-main() {
-  echo "--- Start shell offline test ---" >>"${LOGFILE}"
-  exec "${TEST_SCRIPT_PATH}" >>"${LOGFILE}" 2>&1
-}
-
-main
+echo "--- Start shell offline test ---" >>"${LOGFILE}"
+exec "${TEST_SCRIPT_PATH}" >>"${LOGFILE}" 2>&1
