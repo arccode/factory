@@ -45,6 +45,8 @@ _ID_COUNTDOWN_DIV = 'countdown_div'
 _STATE_HTML = '<div id="%s"></div><div id="%s"></div>' % (
     _ID_OPERATION_DIV, _ID_COUNTDOWN_DIV)
 
+_CC_UNCONNECT = 'UNCONNECTED'
+
 
 class RaidenCCFlipCheck(unittest.TestCase):
   """Raiden CC line polarity check and operation flip test."""
@@ -76,7 +78,9 @@ class RaidenCCFlipCheck(unittest.TestCase):
           'Wait DUT to reconnect for n seconds after CC flip. This is required '
           'if remote DUT might be disconnected a while after CC flip, e.g. DUT '
           'has no battery and will reboot on CC flip. If n equals to 0, will '
-          'wait forever.', default=5)
+          'wait forever.', default=5),
+      Arg('init_cc_state_retry_times', int, 'Retry times for init CC state.',
+          default=3)
   ]
 
   def setUp(self):
@@ -98,15 +102,15 @@ class RaidenCCFlipCheck(unittest.TestCase):
         self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
       else:
         self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
-      time.sleep(1)  # Wait for PD negotiate and settle down
-    self._polarity = self.GetCCPolarity()
+    self._polarity = self.GetCCPolarityWithRetry(
+        self.args.init_cc_state_retry_times)
     logging.info('Initial polarity: %s', self._polarity)
 
   def GetCCPolarity(self):
     """Gets enabled CC line for raiden port arg.raiden_index.
 
     Returns:
-      'CC1' or 'CC2', or 'UNCONNECTED' if it doesn't detect SRC_READY.
+      'CC1' or 'CC2', or _CC_UNCONNECT if it doesn't detect SRC_READY.
     """
     if not self._dut.IsReady():
       factory.console.info(
@@ -127,10 +131,31 @@ class RaidenCCFlipCheck(unittest.TestCase):
     if (port_status['state'] == self.args.state_src_ready or
         port_status['state'] == 'SRC_READY'):
       return port_status['polarity']
-    logging.info('Detected port state is not state_src_ready (expect: %d, '
-                 'got: %d).',
+    logging.info('Detected port state is not state_src_ready (expect: %s '
+                 'or SRC_READY, got: %s).',
                  self.args.state_src_ready, port_status['state'])
-    return 'UNCONNECTED'
+    return _CC_UNCONNECT
+
+  def GetCCPolarityWithRetry(self, retry_times):
+    """Get the CC Polarity.
+
+    It will retry by retry_times argument to let PD do negotiate.
+
+    Args:
+      retry_times: retry times.
+
+    Returns:
+      'CC1' or 'CC2', or _CC_UNCONNECT
+    """
+    # We may need some time for PD negotiate and settle down
+    retry_times_left = retry_times
+    polarity = self.GetCCPolarity()
+    while retry_times_left != 0 and polarity == _CC_UNCONNECT:
+      time.sleep(1)
+      polarity = self.GetCCPolarity()
+      logging.info('[%d]Poll polarity %s', retry_times_left, polarity)
+      retry_times_left -= 1
+    return polarity
 
   def tearDown(self):
     self._bft_fixture.Disconnect()
@@ -139,13 +164,13 @@ class RaidenCCFlipCheck(unittest.TestCase):
     while True:
       time.sleep(0.5)
       polarity = self.GetCCPolarity()
-      if polarity != self._polarity and polarity != 'UNCONNECTED':
+      if polarity != self._polarity and polarity != _CC_UNCONNECT:
         self._polarity = polarity
         self._ui.Pass()
 
   def OnEnterPressed(self):
     polarity = self.GetCCPolarity()
-    if polarity != self._polarity and polarity != 'UNCONNECTED':
+    if polarity != self._polarity and polarity != _CC_UNCONNECT:
       self._polarity = polarity
       self._ui.Pass()
     else:
