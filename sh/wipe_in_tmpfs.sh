@@ -114,39 +114,41 @@ stop_running_upstart_jobs() {
   for i in $(seq 3); do
     for service in $(initctl list | awk '/start\/running/ {print $1}'); do
       # Stop all running services except ${SERVICES_NEEDS_RUNNING}
-      if ! echo "${SERVICES_NEEDS_RUNNING}" \
-          | egrep -q "(^| )${service}($| )"; then
+      if ! echo "${SERVICES_NEEDS_RUNNING}" |
+          egrep -q "(^| )${service}(\$| )"; then
         stop "${service}" || true
       fi
     done
   done
 }
 
-# Unmounts all mount points under the filesystem.
-unmount_mount_points_under_filesystem() {
-  # Gets all mount points from $(mount) first, then unmount all of them.
-  # For example, gets /etc/profile.d/cursor.sh and /etc/chrome_dev.conf for
-  # /dev/sda1 if $(mount) output is as below:
-  #   - /dev/sda1 on /etc/profile.d/cursor.sh type ext4 ...
-  #   - /dev/sda1 on /etc/chrome_dev.conf type ext4 ...
-  local fs_name="$1" mount_point=""
-  for mount_point in $(mount | awk '$1 == fs {print $3}' fs="$fs_name"); do
-    local unmounted=false
-    for i in $(seq 3); do
-      if umount "${mount_point}"; then
-        unmounted=true
-        break
+# Unmounts all mount points on stateful partition.
+unmount_mount_points_on_stateful() {
+  # Gets all mount points from $(mount) first, then unmount all.
+  local mount_point=""
+  for mount_point in $(mount "${STATE_PATH}" 2>&1 |
+      grep 'mounted on' | awk '{print $6}' | tac); do
+    if ! echo "${CHROMEOS_SHUTDOWN_UNMOUNT_POINTS}" |
+        egrep -q "(^| )${mount_point}(\$| )"; then
+      local unmounted=false
+      for i in $(seq 3); do
+        if umount "${mount_point}"; then
+          unmounted=true
+          break
+        fi
+        sleep .1
+      done
+      if ! ${unmounted}; then
+        die "Unable to unmount ${mount_point}."
       fi
-      sleep .1
-    done
-    if ! ${unmounted}; then
-      die "Unable to unmount ${mount_point}."
     fi
   done
 }
 
 # Unmount stateful partition.
 unmount_stateful() {
+  unmount_mount_points_on_stateful
+
   # Try a few times to unmount the stateful partition because sometimes
   # '/home/chronos' will be re-created again after being unmounted.
   # Umount it again can fix the problem.
@@ -164,12 +166,6 @@ unmount_stateful() {
       break
     fi
   done
-
-  # Unmount other special mount points under stateful partition
-  # that chromeos_shutdown won't unmount.
-  # For exmaple, /etc/chrome_dev.conf and /etc/profile.d/cursor.sh
-  # that only required by factory toolkit.
-  unmount_mount_points_under_filesystem "${STATE_DEV}"
 
   # Make sure all mounting points related to stateful partition are
   # successfully unmounted.
