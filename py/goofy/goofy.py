@@ -1239,34 +1239,74 @@ class Goofy(GoofyBase):
               test_list_id, ', '.join(sorted(self.test_lists.keys()))))
 
   def InitTestLists(self):
-    """Reads in all test lists and sets the active test list."""
-    self.test_lists = test_lists.BuildAllTestLists(
+    """Reads in all test lists and sets the active test list.
+
+    Returns:
+      True if the active test list could be set, False if failed.
+    """
+    startup_errors = []
+    self.test_lists, failed_files = test_lists.BuildAllTestLists(
         force_generic=(self.options.automation_mode is not None))
     logging.info('Loaded test lists: [%s]',
                  test_lists.DescribeTestLists(self.test_lists))
 
+    # Check for any syntax errors in test list files.
+    if failed_files:
+      logging.info('Failed test list files: [%s]',
+                   ' '.join(failed_files.keys()))
+      for f, exc_info in failed_files.iteritems():
+        logging.error('Error in test list file: %s', f,
+                      exc_info=exc_info)
+
+        # Limit the stack trace to the very last entry.
+        exc_type, exc_value, exc_traceback = exc_info
+        while exc_traceback and exc_traceback.tb_next:
+          exc_traceback = exc_traceback.tb_next
+
+        exc_string = ''.join(
+            traceback.format_exception(
+                exc_type, exc_value, exc_traceback)).rstrip()
+        startup_errors.append('Error in test list file (%s):\n%s'
+                              % (f, exc_string))
+
     if not self.options.test_list:
       self.options.test_list = test_lists.GetActiveTestListId()
 
-    if os.sep in self.options.test_list:
-      # It's a path pointing to an old-style test list; use it.
-      self.test_list = factory.read_test_list(self.options.test_list)
-    else:
-      self.test_list = self.GetTestList(self.options.test_list)
+    # Check for a non-existent test list ID.
+    try:
+      if os.sep in self.options.test_list:
+        # It's a path pointing to an old-style test list; use it.
+        self.test_list = factory.read_test_list(self.options.test_list)
+      else:
+        self.test_list = self.GetTestList(self.options.test_list)
+      logging.info('Active test list: %s', self.test_list.test_list_id)
+    except test_lists.TestListError as e:
+      logging.exception('Invalid active test list: %s',
+                        self.options.test_list)
+      startup_errors.append(e.message)
 
-    logging.info('Active test list: %s', self.test_list.test_list_id)
+    # We may have failed loading the active test list.
+    if self.test_list:
+      if isinstance(self.test_list, test_lists.OldStyleTestList):
+        # Actually load it in.  (See OldStyleTestList for an explanation
+        # of why this is necessary.)
+        self.test_list = self.test_list.Load()
 
-    if isinstance(self.test_list, test_lists.OldStyleTestList):
-      # Actually load it in.  (See OldStyleTestList for an explanation
-      # of why this is necessary.)
-      self.test_list = self.test_list.Load()
+      self.test_list.state_instance = self.state_instance
 
-    if self.test_list.options.dut_options:
-      logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
-                   self.test_list.options.dut_options)
-    dut_utils.PrepareLink(**self.test_list.options.dut_options)
+      # Prepare DUT link.
+      if self.test_list.options.dut_options:
+        logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
+                     self.test_list.options.dut_options)
+      dut_utils.PrepareLink(**self.test_list.options.dut_options)
 
-    self.test_list.state_instance = self.state_instance
+    # Show all startup errors.
+    if startup_errors:
+      self.state_instance.set_shared_data(
+          'startup_error', '\n\n'.join(startup_errors))
+
+    # Only return False if failed to load the active test list.
+    return bool(self.test_list)
 
   def init_hooks(self):
     """Initializes hooks.
@@ -1434,14 +1474,20 @@ class Goofy(GoofyBase):
         'automation_mode_prompt',
         AutomationModePrompt[self.options.automation_mode])
 
+    success = False
+    exc_info = None
     try:
-      self.InitTestLists()
+      success = self.InitTestLists()
     except:  # pylint: disable=W0702
-      logging.exception('Unable to initialize test lists')
-      self.state_instance.set_shared_data(
-          'startup_error',
-          'Unable to initialize test lists\n%s' % (
-              traceback.format_exc()))
+      exc_info = sys.exc_info()
+
+    if not success:
+      if exc_info:
+        logging.exception('Unable to initialize test lists')
+        self.state_instance.set_shared_data(
+            'startup_error',
+            'Unable to initialize test lists\n%s' % (
+                traceback.format_exc()))
       if self.options.ui == 'chrome':
         # Create an empty test list with default options so that the rest of
         # startup can proceed.

@@ -11,6 +11,7 @@ import importlib
 import logging
 import os
 import re
+import sys
 import threading
 import yaml
 from collections import namedtuple
@@ -373,11 +374,13 @@ def BuildAllTestLists(force_generic=False):
       list.
 
   Returns:
-    A dict mapping test list IDs to test list objects.  Values are either
-    OldStyleTestList objects (for old-style test lists), or TestList objects
-    (for new-style test lists).
+    A 2-element tuple, containing: (1) A dict mapping test list IDs to test list
+    objects.  Values are either OldStyleTestList objects (for old-style test
+    lists), or TestList objects (for new-style test lists).  (2) A dict mapping
+    files that failed to load to the output of sys.exc_info().
   """
   test_lists = {}
+  failed_files = {}
 
   def IsGenericTestList(f):
     return os.path.basename(f) == 'generic.py'
@@ -403,6 +406,7 @@ def BuildAllTestLists(force_generic=False):
       module = importlib.import_module(module_name)
     except:  # pylint: disable=W0702
       logging.exception('Unable to import %s', module_name)
+      failed_files[f] = sys.exc_info()
       continue
 
     method = getattr(module, 'CreateTestLists', None)
@@ -415,6 +419,7 @@ def BuildAllTestLists(force_generic=False):
         test_lists.update(new_test_lists)
       except:  # pylint: disable=W0702
         logging.exception('Unable to read test lists from %s', module_name)
+        failed_files[f] = sys.exc_info()
 
   # Also read in all old-style test lists.  We don't actually evaluate
   # the contents yet, since that might be very slow and have side
@@ -458,7 +463,7 @@ def BuildAllTestLists(force_generic=False):
       name = match.group(2) if match else test_list_id
       test_lists[test_list_id] = OldStyleTestList(test_list_id, name, path)
 
-  return test_lists
+  return test_lists, failed_files
 
 
 def DescribeTestLists(test_lists):
@@ -489,7 +494,7 @@ def BuildTestList(id):  # pylint: disable=W0622
   Raises:
     KeyError: If the test list cannot be found.
   """
-  test_lists = BuildAllTestLists()
+  test_lists, _ = BuildAllTestLists()
   test_list = test_lists.get(id)
   if not test_list:
     raise KeyError('Unknown test list %r; available test lists are: [%s]' % (

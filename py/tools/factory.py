@@ -301,7 +301,7 @@ class TestListCommand(Subcommand):
 
   def Run(self):
     if self.args.id:
-      all_test_lists = test_lists.BuildAllTestLists(force_generic=True)
+      all_test_lists, _ = test_lists.BuildAllTestLists(force_generic=True)
 
       if self.args.id not in all_test_lists:
         sys.exit('Unknown test list ID %r (use "factory test-list --list" to '
