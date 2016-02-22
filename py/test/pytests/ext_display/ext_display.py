@@ -55,37 +55,45 @@ _CSS = '#pass_key {font-size:36px; font-weight:bold;}'
 # Interval (seconds) of probing connection state.
 _CONNECTION_CHECK_PERIOD_SECS = 2
 
-# Messages for tasks
-_TITLE_CONNECT_TEST = lambda d: test_ui.MakeLabel(
-    '%s Connect' % d, u'%s 连接' % d)
-_TITLE_VIDEO_TEST = lambda d: test_ui.MakeLabel(
-    '%s Video' % d, u'%s 视讯' % d)
-_TITLE_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
-    '%s Disconnect' % d, u'%s 移除' % d)
-_MSG_CONNECT_TEST = lambda d: test_ui.MakeLabel(
-    'Connect external display: %s' % d,
-    u'请接上外接显示屏: %s' % d)
-_MSG_VIDEO_TEST = lambda d: test_ui.MakeLabel(
-    'Do you see video on %s?' % d,
-    u'外接显示屏 %s 是否有画面?' % d)
-_MSG_FIXTURE_VIDEO_TEST = lambda d: test_ui.MakeLabel(
-    'Fixture is checking if video is displayed on %s?' % d,
-    u'治具正在測試外接显示屏 %s 是否有画面?' % d)
-_MSG_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
-    'Disconnect external display: %s' % d,
-    u'移除外接显示屏: %s' % d)
-_MSG_PROMPT_PASS_KEY = lambda k: test_ui.MakeLabel(
-    'Press <span id="pass_key">%d</span> to pass the test.' % k,
-    u'通过请按 <span id="pass_key">%d</span> 键' % k)
 
-# USB PD status for Connection and Disconnection
-_USBPD_CONNECT_STATUS = {
-    'connected': True,
-    'role': 'SRC'
-}
-_USBPD_DISCONNECT_STATUS = {
-    'connected': False
-}
+# Messages for tasks
+def _GetTitleConnectTest(d):
+  return test_ui.MakeLabel('%s Connect' % d, u'%s 连接' % d)
+
+
+def _GetTitleVideoTest(d):
+  return test_ui.MakeLabel('%s Video' % d, u'%s 视讯' % d)
+
+
+def _GetTitleDisconnectTest(d):
+  return test_ui.MakeLabel('%s Disconnect' % d, u'%s 移除' % d)
+
+
+def _GetMsgConnectTest(d):
+  return test_ui.MakeLabel('Connect external display: %s' % d,
+                           u'请接上外接显示屏: %s' % d)
+
+
+def _GetMsgVideoTest(d):
+  return test_ui.MakeLabel('Do you see video on %s?' % d,
+                           u'外接显示屏 %s 是否有画面?' % d)
+
+
+def _GetMsgFixtureVideoTest(d):
+  return test_ui.MakeLabel(
+      'Fixture is checking if video is displayed on %s?' % d,
+      u'治具正在測試外接显示屏 %s 是否有画面?' % d)
+
+
+def _GetMsgDisconnectTest(d):
+  return test_ui.MakeLabel('Disconnect external display: %s' % d,
+                           u'移除外接显示屏: %s' % d)
+
+
+def _GetMsgPromptPassKey(k):
+  return test_ui.MakeLabel(
+      'Press <span id="pass_key">%d</span> to pass the test.' % k,
+      u'通过请按 <span id="pass_key">%d</span> 键' % k)
 
 
 DISPLAY_INFO_ARG_HELP = """
@@ -195,7 +203,7 @@ class WaitDisplayThread(threading.Thread):
         # we can not check display info has no display with 'isInternal' False
         # because any display for chromebox has 'isInternal' False.
         if ((self._connect and
-             any([x['isInternal'] == False for x in display_info])) or
+             any([x['isInternal'] is False for x in display_info])) or
             not self._connect):
           logging.info('Get display info %r', display_info)
           self._on_success()
@@ -214,16 +222,7 @@ class WaitDisplayThread(threading.Thread):
       False for verifying Fail.
     """
     port_status = self._dut.usb_c.GetPDStatus(port)
-    if self._connect:
-      check_status = _USBPD_CONNECT_STATUS
-    else:
-      check_status = _USBPD_DISCONNECT_STATUS
-
-    for key, value in check_status.iteritems():
-      if key not in port_status or port_status[key] != value:
-        return False
-
-    return True
+    return self._connect == port_status['connected']
 
 
 class DetectDisplayTask(ExtDisplayTask):
@@ -300,8 +299,8 @@ class ConnectTask(DetectDisplayTask):
   def __init__(self, args):
     super(ConnectTask, self).__init__(
         args,
-        _TITLE_CONNECT_TEST(args.display_label),
-        _MSG_CONNECT_TEST(args.display_label),
+        _GetTitleConnectTest(args.display_label),
+        _GetMsgConnectTest(args.display_label),
         DetectDisplayTask.CONNECT)
 
 
@@ -315,8 +314,8 @@ class DisconnectTask(DetectDisplayTask):
   def __init__(self, args):
     super(DisconnectTask, self).__init__(
         args,
-        _TITLE_DISCONNECT_TEST(args.display_label),
-        _MSG_DISCONNECT_TEST(args.display_label),
+        _GetTitleDisconnectTest(args.display_label),
+        _GetMsgDisconnectTest(args.display_label),
         DetectDisplayTask.DISCONNECT)
 
 
@@ -392,11 +391,11 @@ class VideoTask(ExtDisplayTask):
     if self._manual:
       self._pass_digit = random.randint(0, 9)
       instruction = '%s<br>%s' % (
-          _MSG_VIDEO_TEST(args.display_label),
-          _MSG_PROMPT_PASS_KEY(self._pass_digit))
+          _GetMsgVideoTest(args.display_label),
+          _GetMsgPromptPassKey(self._pass_digit))
 
     if self._fixture:
-      instruction = _MSG_FIXTURE_VIDEO_TEST(args.display_label)
+      instruction = _GetMsgFixtureVideoTest(args.display_label)
       self._check_display = FixtureCheckDisplayThread(self._fixture, 1, 10,
                                                       self.PostSuccessEvent,
                                                       self.PostFailureEvent)
@@ -408,7 +407,7 @@ class VideoTask(ExtDisplayTask):
           lambda _: self.Fail('Fail to check screen on external display'))
 
     super(VideoTask, self).__init__(args,
-                                    _TITLE_VIDEO_TEST(args.display_label),
+                                    _GetTitleVideoTest(args.display_label),
                                     instruction,
                                     pass_key=False)
 
@@ -620,9 +619,10 @@ class ExtDisplayTest(unittest.TestCase):
           if args.audio_port:
             audio_label = test_ui.MakeLabel('%s Audio' % args.display_label,
                                             u' %s 音讯' % args.display_label)
+            # TODO(mojahsu) Fix audio function test arguments
             tasks.append(audio.AudioDigitPlaybackTask(
-                self._ui, audio_label, args.audio_port,
-                'instruction', 'instruction-center', card_id=args.card_id))
+                self._dut, self._ui, audio_label, 'instruction',
+                'instruction-center', card=args.card_id, device=0))
           if not self.args.start_output_only:
             tasks.append(DisconnectTask(args))
       else:
