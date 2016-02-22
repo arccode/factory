@@ -36,7 +36,8 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
-from cros.factory.test.factory_task import (FactoryTaskManager,
+from cros.factory.test.factory_task import (FactoryTask,
+                                            FactoryTaskManager,
                                             InteractiveFactoryTask)
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    BFTFixtureException,
@@ -104,15 +105,16 @@ Each tuple represents an external port:
   * ``display_id``: (str) ID used to identify display in xrandr or modeprint,
     e.g. VGA1.
 
-  * ``audio_info``: a tuple of (audio_card, audio_port), or just a single
-    string indicating the audio_port (deprecated).
+  * ``audio_info``: a tuple of (audio_card, audio_device, init_actions)
 
     * ``audio_card`` is either the card's name (str), or the card's index (int).
-    * ``audio_port`` is the amixer port's name (str).
+    * ``audio_device`` is the device's index (int).
+    * ``init_actions`` is a list of tuple (card_name, action) (list).
+      action is a dict key defined in audio.conf (ref: audio.py) to be passed
+      into dut.audio.ApplyAudioConfig.
+      e.g.  [('rt5650', 'init_audio'), ('rt5650', 'enable_hdmi')]
 
-    If you specify only the audio_port, the test assumes that the card
-    is at index 0 (deprecated, don't use it if possible). This argument
-    is optional. If set, the audio playback test is added.
+    This argument is optional. If set, the audio playback test is added.
 
   * ``usbpd_port``: (int) Verify the USB PD TypeC port status.
 """
@@ -492,20 +494,41 @@ class VideoTask(ExtDisplayTask):
       self._check_display.Stop()
 
 
+class AudioSetupTask(FactoryTask):  # pylint: disable=W0223
+  """A task to setup audio initial configuration.
+
+  Args:
+    dut: A DUT instance for accessing device under test.
+    init_actions are list of tuple (card_name, actions) (list).
+  """
+
+  def __init__(self, _dut, init_actions):
+    super(AudioSetupTask, self).__init__()
+    self._dut = _dut
+    self._init_actions = init_actions
+
+  def Run(self):
+    for card, action in self._init_actions:
+      card = self._dut.audio.GetCardIndexByName(card)
+      self._dut.audio.ApplyAudioConfig(action, card)
+    self.Pass()
+
+
 class ExtDisplayTaskArg(object):
   """Contains args needed by ExtDisplayTask."""
 
-  def __init__(self):
+  def __init__(self, _dut):
     self.main_display_id = None
     self.display_label = None
     self.display_id = None
-    self.card_id = 0
-    self.audio_port = None
+    self.audio_card = None
+    self.audio_device = None
+    self.init_actions = None
     self.ui = None
     self.template = None
     self.fixture = None
     self.usbpd_port = None
-    self.dut = None
+    self.dut = _dut
 
     # This is for a reboot hack which tells DetectDisplayTask
     # whether to send a display plug command or not.
@@ -526,18 +549,11 @@ class ExtDisplayTaskArg(object):
 
     self.display_label, self.display_id = info[:2]
     if len(info) >= 3 and info[2] is not None:
-      if not isinstance(info[2], tuple):
-        self.audio_port = info[2]
-        logging.warning('Specifying audio info as a single str is deprecated.'
-                        'Please use tuple (card_name, audio_port) instead.')
-      else:
-        self.audio_port = info[2][1]
-        if isinstance(info[2][0], int):
-          self.card_id = info[2][0]
-        elif isinstance(info[2][0], (str, unicode)):
-          self.card_id = self.dut.audio.GetCardIndexByName(info[2][0])
-        else:
-          raise ValueError('Card ID should be an integer or a string')
+      if not isinstance(info[2], tuple) or not isinstance(info[2][2], list):
+        raise ValueError('ERROR: invalid display_info item: ' + str(info))
+      self.audio_card = self.dut.audio.GetCardIndexByName(info[2][0])
+      self.audio_device = info[2][1]
+      self.init_actions = info[2][2]
 
     if len(info) == 4:
       if not isinstance(info[3], int):
@@ -603,7 +619,7 @@ class ExtDisplayTest(unittest.TestCase):
     """
     tasks = []
     for info in self.args.display_info:
-      args = ExtDisplayTaskArg()
+      args = ExtDisplayTaskArg(self._dut)
       args.ParseDisplayInfo(info)
       args.main_display_id = self.args.main_display
       args.ui = self._ui
@@ -616,13 +632,14 @@ class ExtDisplayTest(unittest.TestCase):
         tasks.append(ConnectTask(args))
         if not self.args.connect_only:
           tasks.append(VideoTask(args))
-          if args.audio_port:
+          if args.audio_card:
+            tasks.append(AudioSetupTask(self._dut, args.init_actions))
             audio_label = test_ui.MakeLabel('%s Audio' % args.display_label,
                                             u' %s 音讯' % args.display_label)
-            # TODO(mojahsu) Fix audio function test arguments
             tasks.append(audio.AudioDigitPlaybackTask(
                 self._dut, self._ui, audio_label, 'instruction',
-                'instruction-center', card=args.card_id, device=0))
+                'instruction-center', card=args.audio_card,
+                device=args.audio_device))
           if not self.args.start_output_only:
             tasks.append(DisconnectTask(args))
       else:
