@@ -198,7 +198,11 @@ class RemovableStorageTest(unittest.TestCase):
           'Try to create a small partition on the media. This is to check if '
           'all the pins on the sd card reader module are intact. If not '
           'specify, this test will be run for SD card.',
-          default=None, optional=True)]
+          default=None, optional=True),
+      Arg(
+          'use_toybox_dd', bool,
+          'Use toybox dd. This option can be removed when toybox dd is ready.',
+          default=False)]
   # pylint: disable=E1101
 
   def setUp(self):
@@ -323,7 +327,11 @@ class RemovableStorageTest(unittest.TestCase):
       Returns:
         A string of command to be executed.
       """
-      cmd = ['toybox', 'dd']
+      if self.args.use_toybox_dd:
+        cmd = ['toybox', 'dd']
+      else:
+        cmd = ['dd']
+
       if ifile:
         cmd.append('if=%s' % ifile)
       if ofile:
