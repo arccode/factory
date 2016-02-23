@@ -21,6 +21,7 @@ from cros.factory.test.dut import bluetooth
 from cros.factory.test.dut import component
 from cros.factory.test.dut import display
 from cros.factory.test.dut import ec
+from cros.factory.test.dut import gyrometer
 from cros.factory.test.dut import hooks
 from cros.factory.test.dut import i2c
 from cros.factory.test.dut import info
@@ -117,6 +118,10 @@ class DUTBoard(object):
   @DUTProperty
   def ec(self):
     return ec.EmbeddedController(self)
+
+  @DUTProperty
+  def gyrometer(self):
+    return gyrometer.Gyrometer(self)
 
   @DUTProperty
   def hooks(self):
