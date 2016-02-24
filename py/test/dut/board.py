@@ -40,6 +40,7 @@ from cros.factory.test.dut import udev
 from cros.factory.test.dut import usb_c
 from cros.factory.test.dut import utils
 from cros.factory.test.dut import vpd
+from cros.factory.test.dut import wifi
 from cros.factory.utils import file_utils
 
 
@@ -153,6 +154,10 @@ class DUTBoard(object):
   def partitions(self):
     """Returns the partition names of system boot disk."""
     return partitions.Partitions(self)
+
+  @DUTProperty
+  def wifi(self):
+    return wifi.WiFi(self)
 
   @DUTProperty
   def path(self):
