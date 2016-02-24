@@ -35,6 +35,9 @@ TEST_LISTS_PATH = os.path.join(
 # File identifying the active test list.
 ACTIVE_PATH = os.path.join(TEST_LISTS_PATH, 'ACTIVE')
 
+# File listing test list modules to be ignored.
+IGNORE_PATH = os.path.join(TEST_LISTS_PATH, 'IGNORE')
+
 # Main test list name.
 MAIN_TEST_LIST_ID = 'main'
 
@@ -389,6 +392,8 @@ def BuildAllTestLists(force_generic=False):
     return ('main' in test_lists or
             os.path.exists(os.path.join(TEST_LISTS_PATH, 'main.py')))
 
+  ignored_test_list_modules = GetIgnoredTestListModules()
+
   test_list_files = glob.glob(os.path.join(TEST_LISTS_PATH, '*.py'))
   test_list_files.sort(key=lambda f: (IsGenericTestList(f), f))
   for f in test_list_files:
@@ -398,6 +403,9 @@ def BuildAllTestLists(force_generic=False):
     # and generic test list is not forced.
     if (IsGenericTestList(f) and MainTestListExists() and
         not force_generic):
+      continue
+    # Skip any test lists listed in the IGNORE file.
+    if os.path.splitext(os.path.basename(f))[0] in ignored_test_list_modules:
       continue
 
     module_name = ('cros.factory.test.test_lists.' +
@@ -540,6 +548,53 @@ def SetActiveTestList(id):  # pylint: disable=W0622
   """
   with open(ACTIVE_PATH, 'w') as f:
     f.write(id + '\n')
+    f.flush()
+    os.fdatasync(f)
+
+
+def GetIgnoredTestListModules():
+  """Returns module names of ignored test lists.
+
+  This is read from the py/test/test_lists/IGNORE file, if it exists.  Any
+  test list files can be listed in IGNORE, separated by spaces.  If there
+  is no IGNORE file, then an empty list is returned.
+  """
+  # Make sure it's a real file.
+  if os.path.islink(IGNORE_PATH):
+    raise TestListError(
+        '%s is a symlink (should be a file containing ignored '
+        'test list module names)' % IGNORE_PATH)
+
+  # Make sure "ignore" doesn't exist; it should be IGNORE.
+  wrong_caps_file = os.path.join(os.path.dirname(IGNORE_PATH),
+                                 os.path.basename(IGNORE_PATH).lower())
+  if os.path.lexists(wrong_caps_file):
+    raise TestListError('Wrong spelling (%s) for ignore test list file ('
+                        'should be %s)' % (wrong_caps_file, IGNORE_PATH))
+
+  if not os.path.exists(IGNORE_PATH):
+    return []
+
+  with open(IGNORE_PATH) as f:
+    test_list_modules = f.read().split()
+    for module in test_list_modules:
+      if re.search(r'\s', module):
+        raise TestListError('Invalid ignore test list module %s' %
+                            module)
+    return test_list_modules
+
+
+def SetIgnoredTestListModules(modules):
+  """Sets the active test list.
+
+  Args:
+    modules: Array of strings representing test list modules that should be
+      ignored.
+
+  This writes the list of ignored test list modules to IGNORE_PATH.
+  """
+  with open(IGNORE_PATH, 'w') as f:
+    f.write(' '.join(modules) + '\n')
     f.flush()
     os.fdatasync(f)
 

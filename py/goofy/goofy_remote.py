@@ -111,6 +111,11 @@ def TweakTestLists(args):
   else:
     file_utils.TryUnlink(test_lists.ACTIVE_PATH)
 
+  if args.ignore_test_lists:
+    test_lists.SetIgnoredTestListModules(args.ignore_test_lists.split(','))
+  else:
+    file_utils.TryUnlink(test_lists.IGNORE_PATH)
+
 
 def main():
   parser = argparse.ArgumentParser(
@@ -153,6 +158,9 @@ def main():
   parser.add_argument('--test_list',
                       help=('test list to activate (defaults to the main test '
                             'list)'))
+  parser.add_argument('--ignore_test_lists',
+                      help='Comma-separated list of test lists to ignore '
+                           '(defaults to empty)')
   parser.add_argument('--local', action='store_true',
                       help=('Rather than syncing the source tree, only '
                             'perform test list modifications locally. '
