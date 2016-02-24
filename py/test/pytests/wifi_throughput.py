@@ -75,6 +75,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import event_log
 from cros.factory.test import factory, leds
 from cros.factory.test import shopfloor
@@ -802,6 +803,7 @@ class WiFiThroughput(unittest.TestCase):
   def setUp(self):
     # Services should inherit from provided "test-level" arguments.
     self._ProcessArgs()
+    self.dut = dut.Create()
 
     # Initialize the log dict, which will later be fed into event log.
     self.log = {
@@ -825,7 +827,7 @@ class WiFiThroughput(unittest.TestCase):
 
     # Ensure all required services are enabled.
     for service in _SERVICE_LIST:
-      if (service_utils.GetServiceStatus(service, dut=self.dut) ==
+      if (service_utils.GetServiceStatus(service, self.dut) ==
           service_utils.Status.STOP):
         service_utils.SetServiceStatus(
             service, service_utils.Status.START, self.dut)
