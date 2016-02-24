@@ -43,7 +43,9 @@ clear_files() {
 kill_tree() {
   local pid="$1"
   local sig="${2:-TERM}"
-  if [ -z "${pid}" ]; then
+
+  # We don't kill ourself.
+  if [ -z "${pid}" -o "${pid}" -eq "$$" ]; then
     return
   fi
   kill -STOP ${pid}  # Stop parent from generating more children
