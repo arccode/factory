@@ -1,0 +1,21 @@
+gooftool, "Google Factory Tool", is a standalone program that was intended to
+provide and support all Google required ChromeOS specific manufacturing flow,
+including:
+
+ - Enable and check write protection.
+ - Leave and check developer mode.
+ - Wipe manufacturing data.
+ - Verify hardware configuration and setup right Hardware ID.
+ - Ensure ChromeOS image version, channel, and digital signing keys.
+ - Sanity check Vital Product Data (VPD).
+
+Since it's very specific to ChromeOS, may need to run on a pure test image
+without standard ChromeOS factory software environment, and should not allow
+arbitrary modification, it's carefully designed that
+
+  - Gootfool should not use Factory Test or DUT API.
+  - Gooftool may only import HWID, test environment and schema (rules), or
+             shared utils.
+
+For devices running station mode, gooftool is executed on DUT directly instead
+of using DUT API.

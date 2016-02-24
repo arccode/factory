@@ -21,7 +21,7 @@ This folder contains manufacturing software and related tools in Python.
  hwid/          The Hardware Identifier tools for ChromeOS.
  shopfloor/     The interface to serve between ChromeOS factory software and
                 partner shopfloor servers.
- system/        Modules to provide access to device system components.
  test/          Manufacturing tests, including:
-   test_lists/  Test lists read by Goofy to control test flow and options.
+   dut/         DUT API - modules to access per-device components.
    pytests/     Individual test items to be defined in test list.
+   test_lists/  Test lists read by Goofy to control test flow and options.
