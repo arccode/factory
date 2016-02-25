@@ -15,13 +15,13 @@ specified arguments to switch the machine to release image.
 import logging
 import os
 import re
+import subprocess
 import threading
 import time
 import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.gooftool.core import Gooftool
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import gooftools
@@ -32,7 +32,10 @@ from cros.factory.test.args import Arg
 from cros.factory.test.env import paths
 from cros.factory.test.event_log import Log
 from cros.factory.test.rules import phase
+from cros.factory.test.utils import deploy_utils
 from cros.factory.test.test_ui import MakeLabel
+from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
 
 MSG_CHECKING = MakeLabel('Checking system status for finalization...',
@@ -102,6 +105,12 @@ class Finalize(unittest.TestCase):
           'multiline match.  This is a Python re.match operation, so it will '
           'match from the beginning of the error string.',
           default=[]),
+      Arg('untested_tests', list,
+          'A list of tests that should not be tested at this point, e.g. test '
+          'cases which, by design, will be run AFTER finalization. To prevent '
+          'test being added to this list by accident, each element must be'
+          'a exact test path, rather than a regular expression.',
+          default=[]),
       Arg('hwid_version', int,
           'Version of HWID library to use in gooftool.', default=3,
           optional=True),
@@ -138,6 +147,9 @@ class Finalize(unittest.TestCase):
           'A list of string indicating the enforced release image channels. '
           'Each item should be one of "dev", "beta" or "stable".',
           default=None, optional=True),
+      Arg('use_local_gooftool', bool,
+          'If DUT is local, use factory.par or local gooftool? If DUT is not '
+          'local, factory.par is always used.', default=True)
       ]
 
   def setUp(self):
@@ -148,7 +160,7 @@ class Finalize(unittest.TestCase):
     self.go_cond = threading.Condition()
     self.test_states_path = os.path.join(paths.GetLogRoot(),
                                          'test_states')
-    self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
+    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
 
     # Set of waived tests.
     self.waived_tests = set()
@@ -236,6 +248,30 @@ class Finalize(unittest.TestCase):
         factory_image_version=factory_image_version,
         release_image_version=release_image_version)
 
+  def _CallGoofTool(self, command):
+    """Execute a gooftool command, `command`.
+
+    Args:
+      command: a string object which starts with 'gooftool '.
+    """
+    assert command.startswith('gooftool ')
+
+    if self.dut.link.IsLocal() and self.args.use_local_gooftool:
+      (out, unused_err, returncode) = gooftools.run(command)
+      # since STDERR is logged, we only need to log STDOUT
+      factory.console.info('========= STDOUT ========')
+      factory.console.info(out)
+    else:
+      factory.console.info('call factory.par: %s', command)
+      factory.console.info('=== STDOUT and STDERR ===')
+      # append STDOUT and STDERR to console log.
+      with open(factory.CONSOLE_LOG_PATH, 'a') as output:
+        returncode = self.factory_par.Call(command, stdout=output,
+                                           stderr=subprocess.STDOUT)
+    factory.console.info('=========================')
+    factory.console.info('return code: %d', returncode)
+    return returncode == 0
+
   def RunPreflight(self):
     power = self.dut.power
 
@@ -262,6 +298,10 @@ class Finalize(unittest.TestCase):
           continue
 
         if v.status == factory.TestState.UNTESTED:
+          if k in self.args.untested_tests:
+            # this is expected
+            continue
+
           # See if it's been waived. The regular expression of error messages
           # must be empty string.
           for regex_path, regex_error_msg in self.args.waive_tests:
@@ -286,11 +326,13 @@ class Finalize(unittest.TestCase):
 
       return True
 
+    def CheckDevSwitch():
+      return self._CallGoofTool('gooftool verify_switch_dev')
+
     items = [(CheckRequiredTests,
               MakeLabel('Verify all tests passed',
                         '确认测试项目都已成功了')),
-             (lambda: (
-                 self.gooftool.CheckDevSwitchForDisabling() in (True, False)),
+             (CheckDevSwitch,
               MakeLabel('Turn off Developer Switch',
                         '停用开发者开关(DevSwitch)'))]
 
@@ -344,7 +386,10 @@ class Finalize(unittest.TestCase):
                               '放电到%d%%' %
                               self.args.max_charge_pct)))
     if self.args.write_protection:
-      items += [(lambda: self.gooftool.VerifyWPSwitch() == None,
+      def CheckWriteProtect():
+        return self._CallGoofTool('gooftool verify_switch_wp')
+
+      items += [(CheckWriteProtect,
                  MakeLabel('Enable write protection pin',
                            '确认硬体写入保护已开启'))]
 
@@ -478,25 +523,32 @@ class Finalize(unittest.TestCase):
           ' '.join(self.args.enforced_release_channels))
       logging.info(
           'Enforced release channels: %s.', self.args.enforced_release_channels)
+    command += ' --phase "%s"' % phase.GetPhase()
 
-    gooftools.run(command)
+    self._CallGoofTool(command)
 
     # If using wipe_in_place in the above gooftool command,
-    # factory service should be stopped here.
+    # should lost DUT connection here.
     if self.args.wipe_in_place:
-      time.sleep(60)
-      # The following line should not be reached.
-      self.ui.Fail('Failed to wipe in place')
+      try:
+        sync_utils.WaitFor(lambda: not self.dut.IsReady(), 60)
+      except type_utils.TimeoutError:
+        raise factory.FactoryTestFailure('Failed to wipe in place')
       return
 
     # It will reach the following if not using wipe_in_place in the above
-    # gooftool command.
+    # gooftool command. (wipe_in_place will notify shopfloor by itself)
 
     if shopfloor.is_enabled():
       shopfloor.finalize()
 
     # TODO(hungte): Use Reboot in test list to replace this, or add a
     # key-press check in developer mode.
-    os.system('sync; sleep 3; shutdown -r now')
-    time.sleep(60)
-    self.ui.Fail('Unable to shutdown')
+    self.dut.CheckCall('sync; sleep 3; shutdown -r now')
+    try:
+      sync_utils.WaitFor(lambda: not self.dut.IsReady(), 60)
+    except type_utils.TimeoutError:
+      self.ui.Fail('Unable to shutdown')
+
+    # should only reach here when DUT is not local.
+    self.assertFalse(self.dut.link.IsLocal())
