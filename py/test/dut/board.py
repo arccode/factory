@@ -259,6 +259,25 @@ class DUTBoard(object):
         f.write(content)
       self.link.Push(temp_path, path)
 
+  def SendDirectory(self, local, remote):
+    """Copies a local file to DUT.
+
+    `local` should be a local directory, and `remote` should be a non-existing
+    file path on DUT.
+
+    Example::
+
+        dut.SendDirectory('/path/to/local/dir', '/remote/path/to/some_dir')
+
+      Will create directory `some_dir` under `/remote/path/to` and copy
+      files and directories under `/path/to/local/dir/` to `some_dir`.
+
+    Args:
+      local: A string for directory path in local.
+      remote: A string for directory path on remote DUT.
+    """
+    return self.link.PushDirectory(local, remote)
+
   def SendFile(self, local, remote):
     """Copies a local file to DUT.
 

@@ -16,6 +16,25 @@ class DUTLink(object):
     """
     raise NotImplementedError
 
+  def PushDirectory(self, local, remote):
+    """Copies a local file to DUT.
+
+    `local` should be a local directory, and `remote` should be a non-existing
+    file path on DUT.
+
+    Example::
+
+        link.PushDirectory('/path/to/local/dir', '/remote/path/to/some_dir')
+
+      Will create directory `some_dir` under `/remote/path/to` and copy
+      files and directories under `/path/to/local/dir/` to `some_dir`.
+
+    Args:
+      local: A string for directory path in local.
+      remote: A string for directory path on remote DUT.
+    """
+    raise NotImplementedError
+
   def Pull(self, remote, local=None):
     """Downloads a file from DUT to local.
 

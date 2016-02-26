@@ -62,6 +62,10 @@ class ADBLink(link.DUTLink):
     subprocess.check_output(['adb', 'push', local, remote],
                             stderr=subprocess.STDOUT)
 
+  def PushDirectory(self, local, remote):
+    """See DUTLink.PushDirectory"""
+    return self.Push(local, remote)
+
   def Pull(self, remote, local=None):
     """See DUTLink.Pull"""
     if local is None:

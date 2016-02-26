@@ -122,6 +122,13 @@ class SSHLink(link.DUTLink):
     return subprocess.check_call(['scp'] + options +
                                  [local, '%s:%s' % (remote_sig, remote)])
 
+  def PushDirectory(self, local, remote):
+    """See DUTLink.PushDirectory"""
+    remote_sig, options = self._signature(True)
+    options.append('-r')
+    return subprocess.check_call(['scp'] + options +
+                                 [local, '%s:%s' % (remote_sig, remote)])
+
   def Pull(self, remote, local=None):
     """See DUTLink.Pull"""
     if local is None:

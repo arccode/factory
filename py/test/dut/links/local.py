@@ -24,6 +24,10 @@ class LocalLink(link.DUTLink):
     """See DUTLink.Push"""
     shutil.copy(local, remote)
 
+  def PushDirectory(self, local, remote):
+    """See DUTLink.PushDirectory"""
+    shutil.copytree(local, remote)
+
   def Pull(self, remote, local=None):
     """See DUTLink.Pull"""
     if local is None:
