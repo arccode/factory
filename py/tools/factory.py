@@ -314,7 +314,7 @@ class TestListCommand(Subcommand):
       print test_lists.GetActiveTestListId()
 
     if self.args.list:
-      all_test_lists = test_lists.BuildAllTestLists(force_generic=True)
+      all_test_lists, _ = test_lists.BuildAllTestLists(force_generic=True)
       active_id = test_lists.GetActiveTestListId()
 
       line_format = '%-8s %-20s %s'
