@@ -54,6 +54,9 @@ class PortInfo(object):
 
 class Display(component.DUTComponent):
 
+  # syspath for backlight control
+  BACKLIGHT_SYSPATH_PATTERN = '/sys/class/backlight/*'
+
   def GetPortInfo(self):
     """Gets the port info of all the display ports.
 
@@ -132,15 +135,15 @@ class Display(component.DUTComponent):
 
     Args:
       port: The ID of the display port to capture.
-      box: A tuple (left, upper, right, lower) of the two coordinates to crop the
-          image from.
+      box: A tuple (left, upper, right, lower) of the two coordinates to crop
+          the image from.
       downscale: Whether to downscale the captured framebuffer to RGB 16-235
           TV-scale.
 
     Returns:
       A PIL.Image object of the captured RGB image.
     """
-    port_info_dict = GetPortInfo()
+    port_info_dict = self.GetPortInfo()
     if port not in port_info_dict:
       raise DisplayError('Unknown port %s; valid ports are: %r' %
                          (port, port_info_dict.keys()))
@@ -194,7 +197,7 @@ class Display(component.DUTComponent):
     """
     if not (level >= 0.0 and level <= 1.0):
       raise ValueError('Invalid brightness level.')
-    interfaces = self._dut.Glob('/sys/class/backlight/*')
+    interfaces = self._dut.Glob(self.BACKLIGHT_SYSPATH_PATTERN)
     for i in interfaces:
       max_value = self._dut.ReadFile(self._dut.path.join(i, 'max_brightness'))
       new_value = int(level * float(max_value.strip()))
