@@ -13,8 +13,13 @@ BUILDDIR=${SCRIPT_DIR}/umpire_docker
 KEYSDIR=${SCRIPT_DIR}/sshkeys
 KEYFILE=${KEYSDIR}/testing_rsa
 KEYFILE_PUB=${KEYSDIR}/testing_rsa.pub
-HOST_DIR=/shared
 SSH_OPTIONS='-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+
+# Let all containers can share the same directory with host
+HOST_DIR=/docker_shared
+# Separate umpire db for each container.
+HOST_DB_DIR=/docker_umpire/${UMPIRE_CONTAINER_NAME}
+CONTAINER_DB_DIR=/var/db/factory/umpire
 
 . ${BUILDDIR}/config.sh
 
@@ -86,6 +91,7 @@ do_start() {
 
   echo -n "Starting container ... "
   sudo mkdir -p ${HOST_DIR}
+  sudo mkdir -p ${HOST_DB_DIR}
 
   if [ -n "$(sudo docker ps -a | grep ${UMPIRE_CONTAINER_NAME})" ]; then
     sudo docker start "${UMPIRE_CONTAINER_NAME}"
@@ -105,6 +111,7 @@ do_start() {
       ${umpire_port_map} \
       -v /etc/localtime:/etc/localtime:ro \
       -v ${HOST_DIR}:/mnt \
+      -v ${HOST_DB_DIR}:${CONTAINER_DB_DIR} \
       --name "${UMPIRE_CONTAINER_NAME}" \
       "${UMPIRE_IMAGE_NAME}"
 
@@ -121,6 +128,7 @@ do_start() {
     echo
     echo '*** NOTE ***'
     echo "- Host directory ${HOST_DIR} is mounted under /mnt in the container."
+    echo "- Host directory ${HOST_DB_DIR} is mounted under ${CONTAINER_DB_DIR} in the container."
     echo '- Umpire service ports is mapped to the local machine.'
     echo '- Overlord service ports 4455, 9000 is mapped to the local machine.'
   fi

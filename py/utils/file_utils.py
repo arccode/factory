@@ -472,7 +472,13 @@ def AtomicCopy(source, dest):
   CheckPath(source, description='source')
   with UnopenedTemporaryFile() as temp_path:
     shutil.copy2(source, temp_path)
-    os.rename(temp_path, dest)
+    try:
+      os.rename(temp_path, dest)
+    except OSError as err:
+      # Use shutil to workaround Cross-device link error.
+      if err.errno != errno.EXDEV:
+        raise
+      shutil.move(temp_path, dest)
 
 
 def Md5sumInHex(filename):
