@@ -15,6 +15,7 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
+from cros.factory.utils.type_utils import Enum
 
 
 class ECToolThermal(component.DUTComponent):
@@ -152,16 +153,37 @@ class SysFSThermal(ECToolThermal):
 
   _SYSFS_THERMAL_PATH = '/sys/class/thermal/'
 
-  def __init__(self, dut, main_tempterature_sensor_name='tsens_tz_sensor0'):
+  Unit = Enum(['MILLI_CELSIUS', 'CELSIUS'])
+
+  def __init__(self, dut, main_temperature_sensor_name='tsens_tz_sensor0',
+               unit=Unit.MILLI_CELSIUS):
     """Constructor.
 
     Args:
-      main_tempterature_sensor_name: The name of tempterature sensor used in
+      main_temperature_sensor_name: The name of temperature sensor used in
           GetMainTemperatureIndex(). For example: 'tsens_tz_sensor0' or 'cpu'.
+      unit: The unit of the temperature reported in sysfs, in type
+          SysFSThermal.Unit.
     """
     super(SysFSThermal, self).__init__(dut)
     self._thermal_zones = None
-    self._main_tempterature_sensor_name = main_tempterature_sensor_name
+    self._main_temperature_sensor_name = main_temperature_sensor_name
+    self._unit = unit
+
+  def _ConvertTemperatureToCelsius(self, value):
+    """
+    Args:
+      value: Temperature value in self._unit.
+
+    Returns:
+      The value in degree Celsius.
+    """
+    conversion_map = {
+        self.Unit.MILLI_CELSIUS: lambda x: x / 1000,
+        self.Unit.CELSIUS: lambda x: x
+    }
+    return conversion_map[self._unit](value)
+
 
   def _GetThermalZones(self):
     """Gets a list of thermal zones.
@@ -181,9 +203,8 @@ class SysFSThermal(ECToolThermal):
       for path in self._GetThermalZones():
         try:
           temp = self._dut.ReadFile(self._dut.path.join(path, 'temp'))
-          # Temperature values stored in sysfs are in milli-degree Celsius,
-          # convert it to Celsius for output.
-          temperatures.append(int(temp) / 1000)
+          # Convert temperature values to Celsius for output.
+          temperatures.append(self._ConvertTemperatureToCelsius(int(temp)))
         except component.CalledProcessError:
           temperatures.append(None)
       logging.debug("GetTemperatures: %s", temperatures)
@@ -196,10 +217,10 @@ class SysFSThermal(ECToolThermal):
     try:
       names = self.GetTemperatureSensorNames()
       try:
-        return names.index(self._main_tempterature_sensor_name)
+        return names.index(self._main_temperature_sensor_name)
       except ValueError:
         raise self.Error('The expected index of %s cannot be found',
-                         self._main_tempterature_sensor_name)
+                         self._main_temperature_sensor_name)
     except Exception as e:  # pylint: disable=W0703
       raise self.Error('Unable to get main temperature index: %s' % e)
 
