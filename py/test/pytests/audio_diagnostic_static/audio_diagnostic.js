@@ -427,7 +427,7 @@ function showCrasNodes(dir, nodes_json) {
   for (var i = 0; i < nodes.length; i++) {
     var n = document.getElementById(nodes[i]['node_id']);
     n.className = 'cras-node';
-    if (nodes[i]['name'].indexOf('*') == -1) {
+    if (nodes[i]['is_active'] == false) {
       n.onclick = function() {
         selectCrasNode(this);
       }

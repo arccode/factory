@@ -53,13 +53,11 @@ class AudioDiagnosticTest(unittest.TestCase):
   def UpdateCrasNodes(self):
     factory.console.info('UpdateCrasNodes called! once')
     self._cras.UpdateIONodes()
-    plugged_nodes = [n for n in self._cras.output_nodes if n.plugged == 'yes']
     self._ui.CallJSFunction('showCrasNodes', 'output',
-                            json.dumps(plugged_nodes,
+                            json.dumps(self._cras.output_nodes,
                                        default=lambda o: o.__dict__))
-    plugged_nodes = [n for n in self._cras.input_nodes if n.plugged == 'yes']
     self._ui.CallJSFunction('showCrasNodes', 'input',
-                            json.dumps(plugged_nodes,
+                            json.dumps(self._cras.input_nodes,
                                        default=lambda o: o.__dict__))
 
   def Fail(self, event):  # pylint:disable=W0613
