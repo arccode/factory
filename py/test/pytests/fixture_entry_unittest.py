@@ -18,6 +18,7 @@ import factory_common # pylint: disable=W0611
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.test import dut
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.dut.link import DUTLink
@@ -57,26 +58,45 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    self.test.args = FakeArgs({'start_fixture_tests': True})
+    self.test.args = FakeArgs({'start_fixture_tests': True,
+                               'prompt_start': False,
+                               'clear_device_data': True})
     self.test.setUp()
     self.assertEqual(self.test._state, mock_state) # pylint: disable=W0212
 
     self.mox.VerifyAll()
 
-  def testEndFixtureBasedTest(self):
+  def testLocalEndFixtureBasedTest(self):
+    self._testEndFixtureBasedTest(is_local=True)
+
+  def testNonLocalEndFixtureBasedTest(self):
+    self._testEndFixtureBasedTest(is_local=False)
+
+  def _testEndFixtureBasedTest(self, is_local):
+    mock_dut_link = self.mox.CreateMock(DUTLink)
+    self.test._dut = dut.Create()
+    self.test._dut.link = mock_dut_link
     mock_state = self.mox.CreateMock(GoofyRPC)
     self.test._state = mock_state # pylint: disable=W0212
-    self.test.args = FakeArgs({'start_fixture_tests': False})
+    self.test.args = FakeArgs({'start_fixture_tests': False,
+                               'prompt_start': False,
+                               'clear_device_data': True})
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
 
+    self.mox.StubOutWithMock(shopfloor, 'DeleteDeviceData')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
 
     self.mock_ui.Run(blocking=False)
+    self.mock_ui.BindKey(' ', mox.Func(callable))
+    shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
+                               optional=True)
     self.mock_template.SetState(mox.IsA(basestring))
 
     self.mock_template.SetState(mox.IsA(basestring))
-    sync_utils.WaitFor(mox.IsA(type(lambda: None)), None)
+    mock_dut_link.IsLocal().AndReturn(is_local)
+    if not is_local:
+      sync_utils.WaitFor(mox.IsA(type(lambda: None)), None)
 
     self.mock_template.SetState(mox.IsA(basestring))
     mock_state.ScheduleRestart()
@@ -93,10 +113,17 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test._dut.link = mock_dut_link
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
-    self.test.args = FakeArgs({'start_fixture_tests': True})
+    self.test.args = FakeArgs({'start_fixture_tests': True,
+                               'prompt_start': False,
+                               'clear_device_data': True})
+
+    self.mox.StubOutWithMock(shopfloor, 'DeleteDeviceData')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
 
     self.mock_ui.Run(blocking=False)
+    self.mock_ui.BindKey(' ', mox.Func(callable))
+    shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
+                               optional=True)
     self.mock_template.SetState(mox.IsA(basestring))
     sync_utils.WaitFor(mock_dut_link.IsReady, mox.IsA(None))
 

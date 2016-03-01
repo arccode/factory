@@ -5,18 +5,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Starts or ends a fixture-based testing.
+"""Starts or ends a fixture-based test.
 
-This factory test invoke functions to setup or teardown a fixture-based
-testlist.
+This factory test invokes functions to setup or teardown a fixture-based
+test list.
 """
 
+import threading
 import unittest
 
 import factory_common # pylint: disable=W0611
 
 from cros.factory.test import dut
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -41,6 +43,11 @@ _MSG_INSERT = test_ui.MakeLabel(
     u'INSERT 请插入测试装置。',
     'prompt')
 
+_MSG_PRESS_SPACE = test_ui.MakeLabel(
+    'Press SPACE to start the test.',
+    u'请按空白键开始测试。',
+    'prompt')
+
 _MSG_SEND_RESULT = test_ui.MakeLabel(
     'Sending test results to shopfloor...',
     u'SENDING 传送测试结果给服务器...',
@@ -56,12 +63,19 @@ _MSG_RESTART_TESTS = test_ui.MakeLabel(
     u'RESTARTING 测试结束，正在重设测试列表...',
     'prompt')
 
+
 class FixtureEntry(unittest.TestCase):
   """The factory test to start fixture test process."""
   ARGS = [
       Arg('start_fixture_tests', bool,
-          'To start or stop the factory fixture tests.', default=True,
-          optional=True),
+          'To start or stop the factory fixture tests.',
+          default=True, optional=True),
+      Arg('prompt_start', bool,
+          'Prompt for spacebar before starting test.',
+          default=False, optional=True),
+      Arg('clear_device_data', bool,
+          'Clear device data (serial numbers).',
+          default=True, optional=True),
   ]
 
   def setUp(self):
@@ -72,6 +86,7 @@ class FixtureEntry(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TITLE_START if self.args.start_fixture_tests else
                             _TITLE_END)
+    self._space_event = threading.Event()
 
   def RestartAllTests(self):
     self._state.ScheduleRestart()
@@ -82,16 +97,34 @@ class FixtureEntry(unittest.TestCase):
 
   def runTest(self):
     self._ui.Run(blocking=False)
+    self._ui.BindKey(' ', lambda _: self._space_event.set())
+
+    # Clear serial numbers from DeviceData if requested.
+    if self.args.clear_device_data:
+      shopfloor.DeleteDeviceData(
+          ['serial_number', 'mlb_serial_number'], optional=True)
 
     if self.args.start_fixture_tests:
-      self._template.SetState(_MSG_INSERT)
-      sync_utils.WaitFor(self._dut.link.IsReady, None)
+      self.Start()
     else:
-      self._template.SetState(_MSG_SEND_RESULT)
-      self.SendTestResult()
+      self.End()
 
-      self._template.SetState(_MSG_REMOVE_DUT)
+  def Start(self):
+    self._template.SetState(_MSG_INSERT)
+    sync_utils.WaitFor(self._dut.link.IsReady, None)
+
+    if self.args.prompt_start:
+      self._template.SetState(_MSG_PRESS_SPACE)
+      sync_utils.WaitFor(self._space_event.isSet, None)
+      self._space_event.clear()
+
+  def End(self):
+    self._template.SetState(_MSG_SEND_RESULT)
+    self.SendTestResult()
+
+    self._template.SetState(_MSG_REMOVE_DUT)
+    if not self._dut.link.IsLocal():
       sync_utils.WaitFor(lambda: not self._dut.link.IsReady(), None)
 
-      self._template.SetState(_MSG_RESTART_TESTS)
-      self.RestartAllTests()
+    self._template.SetState(_MSG_RESTART_TESTS)
+    self.RestartAllTests()
