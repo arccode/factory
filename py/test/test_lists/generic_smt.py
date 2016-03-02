@@ -14,7 +14,7 @@ This file implements SMT method to create SMT test list.
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.gooftool import gooftool
+from cros.factory.gooftool import commands
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
@@ -248,7 +248,7 @@ def SMTShopFloor2(args):
                 # call_shopfloor will execute it.  We don't
                 # put it here since it may be megabytes long
                 # and we don't want it logged.
-                gooftool.CreateReportArchiveBlob,
+                commands.CreateReportArchiveBlob,
                 None,
                 'SMT',
             ]))

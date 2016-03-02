@@ -19,21 +19,18 @@ from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import gooftool
+from cros.factory.gooftool import core
 from cros.factory.gooftool import crosfw
-from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import probe
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
+from cros.factory.gooftool.core import ProbedComponentResult
 from cros.factory.gooftool.probe import Probe
 from cros.factory.gooftool.probe import ReadRoVpd
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v2.hwid_tool import ProbeResults  # pylint: disable=E0611
-from cros.factory.gooftool import Mismatch
-from cros.factory.gooftool import ProbedComponentResult
 from cros.factory.test.rules import branding
 from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import CheckOutput
 from cros.factory.utils.type_utils import Error
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -74,12 +71,12 @@ class MockFile(object):
 
 
 class UtilTest(unittest.TestCase):
-  """Unit test for Util."""
+  """Unit test for core.Util."""
 
   def setUp(self):
     self.mox = mox.Mox()
 
-    self._util = gooftool.Util()
+    self._util = core.Util()
 
     # Mock out small wrapper functions that do not need unittests.
     self._util.shell = self.mox.CreateMock(Shell)
@@ -168,8 +165,8 @@ class GooftoolTest(unittest.TestCase):
     self._mock_probe = self.mox.CreateMock(Probe)
     test_db = hwid_tool.HardwareDb(_TEST_DATA_PATH)
 
-    self._gooftool = Gooftool(probe=self._mock_probe, hardware_db=test_db)
-    self._gooftool._util = self.mox.CreateMock(gooftool.Util)
+    self._gooftool = core.Gooftool(probe=self._mock_probe, hardware_db=test_db)
+    self._gooftool._util = self.mox.CreateMock(core.Util)
     self._gooftool._util.shell = self.mox.CreateMock(Shell)
     probe.Shell = self.mox.CreateMock(Shell)
 
@@ -178,8 +175,6 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._read_ro_vpd = self.mox.CreateMock(ReadRoVpd)
     self._gooftool._named_temporary_file = self.mox.CreateMock(
         NamedTemporaryFile)
-
-    gooftool.CheckOutput = self.mox.CreateMock(CheckOutput)
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -244,9 +239,9 @@ class GooftoolTest(unittest.TestCase):
 
     # expect mismatch results
     self.assertEquals(
-        {'camera': Mismatch(
+        {'camera': core.Mismatch(
             expected=set(['camera_1']), actual=set(['camera_2'])),
-         'vga': Mismatch(
+         'vga': core.Mismatch(
              expected=set(['vga_1']), actual=set(['vga_2']))},
         self._gooftool.FindBOMMismatches(
             'BENDER',
@@ -273,10 +268,10 @@ class GooftoolTest(unittest.TestCase):
 
     # expect mismatch results
     self.assertEquals(
-        {'cellular': Mismatch(
+        {'cellular': core.Mismatch(
             expected=None,
             actual=[ProbedComponentResult('cellular_1', 'CELLULAR_1', None)]),
-         'dram': Mismatch(
+         'dram': core.Mismatch(
              expected=set(['dram_1']), actual=set([None]))},
         self._gooftool.FindBOMMismatches(
             'BENDER',
@@ -467,7 +462,7 @@ class GooftoolTest(unittest.TestCase):
     def MockPartition(path):
       yield path
 
-    self.mox.StubOutWithMock(gooftool.sys_utils, 'MountPartition')
+    self.mox.StubOutWithMock(core.sys_utils, 'MountPartition')
 
     self._gooftool._read_ro_vpd().AndReturn(ro_vpd)
     if fake_rootfs_path:
@@ -475,7 +470,7 @@ class GooftoolTest(unittest.TestCase):
       self._gooftool._util.GetReleaseRootPartitionPath().AndReturn('/dev/rel')
       # When '/dev/rel' is mounted, return a context manager yielding
       # fake_rootfs_path.
-      gooftool.sys_utils.MountPartition('/dev/rel').AndReturn(
+      core.sys_utils.MountPartition('/dev/rel').AndReturn(
           MockPartition(fake_rootfs_path))
 
   def testVerifyBranding_NoBrandCode(self):

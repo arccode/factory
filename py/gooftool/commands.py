@@ -28,9 +28,9 @@ from tempfile import gettempdir
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
+from cros.factory.gooftool.core import Gooftool
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
