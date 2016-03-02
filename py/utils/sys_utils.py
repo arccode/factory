@@ -325,6 +325,40 @@ def InChroot():
   return 'CROS_WORKON_SRCROOT' in os.environ
 
 
+def GetRunningFactoryPythonArchivePath():
+  """Returns path to the python archive that is running, or None.
+
+  If factory toolkit is currently run with a python archive, this function will
+  return path to the python archive, otherwise, return None.
+
+  Returns:
+    str or None
+  """
+  # If we are running a python archive, __file__ will be a pseudo path like
+  # '/path/to/factory.par/cros/factory/utils/sys_utils.py'
+
+  if os.path.exists(__file__):  # this script is a real file
+    return None
+
+  # file doesn't exist, check if a python archive is running
+  par_end_idx = __file__.find('/cros/factory/utils/')
+  if par_end_idx < 0:
+    logging.warning('cannot determine the path of python archive.')
+    return None
+
+  factory_par = os.path.realpath(__file__[:par_end_idx])
+  if not os.path.exists(factory_par):
+    logging.warning('file %s doesn\'t exist', factory_par)
+    return None
+
+  return factory_par
+
+
+def InFactoryPythonArchive():
+  """Returns True if factory toolkit is run with a python archive."""
+  return GetRunningFactoryPythonArchivePath() is not None
+
+
 def InQEMU():
   """Returns True if running within QEMU."""
   return 'QEMU' in open('/proc/cpuinfo').read()

@@ -348,5 +348,57 @@ class VarLogMessagesTest(unittest.TestCase):
     ], self._GetMessages(self.EARLIER_VAR_LOG_MESSAGES, 1))
 
 
+class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
+  def setUp(self):
+    self.mox = mox.Mox()
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+
+  def testNotInPythonArchive(self):
+    sys_utils.__file__ = '/path/to/factory/utils/sys_utils.py'
+    self.mox.StubOutWithMock(sys_utils.os.path, 'exists')
+    sys_utils.os.path.exists(sys_utils.__file__).AndReturn(True)
+
+    self.mox.ReplayAll()
+    self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(), None)
+
+    self.mox.VerifyAll()
+
+  def testInPythonFactoryArchive(self):
+    factory_par = '/path/to/factory.par'
+    sys_utils.__file__ = '/path/to/factory.par/cros/factory/utils/sys_utils.py'
+    self.mox.StubOutWithMock(sys_utils.os.path, 'exists')
+    sys_utils.os.path.exists(sys_utils.__file__).AndReturn(False)
+    sys_utils.os.path.exists(factory_par).AndReturn(True)
+
+    self.mox.ReplayAll()
+    self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(),
+                      factory_par)
+
+    self.mox.VerifyAll()
+
+  def testNonExistingFileWithoutCrosFactoryPrefix(self):
+    sys_utils.__file__ = '/path/to/nowhere/utils/sys_utils.py'
+    self.mox.StubOutWithMock(sys_utils.os.path, 'exists')
+    sys_utils.os.path.exists(sys_utils.__file__).AndReturn(False)
+
+    self.mox.ReplayAll()
+    self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(), None)
+
+    self.mox.VerifyAll()
+
+  def testNonExistingFactoryPythonArchive(self):
+    factory_par = '/path/to/factory.par'
+    sys_utils.__file__ = '/path/to/factory.par/cros/factory/utils/sys_utils.py'
+    self.mox.StubOutWithMock(sys_utils.os.path, 'exists')
+    sys_utils.os.path.exists(sys_utils.__file__).AndReturn(False)
+    sys_utils.os.path.exists(factory_par).AndReturn(False)
+
+    self.mox.ReplayAll()
+    self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(), None)
+
+    self.mox.VerifyAll()
+
 if __name__ == '__main__':
   unittest.main()
