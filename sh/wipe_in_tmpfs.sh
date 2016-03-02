@@ -15,6 +15,7 @@
 NEWROOT="/tmp/wipe_tmpfs"
 
 STATE_PATH="/mnt/stateful_partition"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 # Move the following mount points to tmpfs by mount --rbind
 REBIND_MOUNT_POINTS="/dev /proc /sys"
@@ -27,9 +28,9 @@ SERVICES_NEEDS_RUNNING="
   shill
   openssh-server"
 
-CREATE_TMPFS="/usr/local/factory/sh/create_wiping_tmpfs.sh"
-WIPE_INIT="/usr/local/factory/sh/wipe_init.sh"
-DISPLAY_MESSAGE="/usr/local/factory/sh/display_wipe_message.sh"
+CREATE_TMPFS="${SCRIPT_DIR}/create_wiping_tmpfs.sh"
+WIPE_INIT="${SCRIPT_DIR}/wipe_init.sh"
+DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
 
 WIPE_ARGS_FILE="/tmp/factory_wipe_args"
 

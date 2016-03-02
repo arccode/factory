@@ -16,7 +16,7 @@
 TMPFS_PATH="$1"
 TMPFS_SIZE=1024M
 
-FACTORY_DIR="/usr/local/factory"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 ASSETS_DIR="/usr/share/chromeos-assets"
 MISC_DIR="/usr/share/misc"
 
@@ -30,14 +30,13 @@ PANGO_MODULE="$(pango-querymodules --system |
 FILES_DIRS_COPIED_FROM_ROOTFS="
   ${ASSETS_DIR}/images
   ${ASSETS_DIR}/text/boot_messages
-  ${FACTORY_DIR}/bin/enable_release_partition
-  ${FACTORY_DIR}/sh/battery_cutoff.sh
-  ${FACTORY_DIR}/sh/common.sh
-  ${FACTORY_DIR}/sh/display_wipe_message.sh
-  ${FACTORY_DIR}/sh/enable_release_partition.sh
-  ${FACTORY_DIR}/sh/generate_finalize_request.sh
-  ${FACTORY_DIR}/sh/inform_shopfloor.sh
-  ${FACTORY_DIR}/sh/wipe_init.sh
+  ${SCRIPT_DIR}/battery_cutoff.sh
+  ${SCRIPT_DIR}/common.sh
+  ${SCRIPT_DIR}/display_wipe_message.sh
+  ${SCRIPT_DIR}/enable_release_partition.sh
+  ${SCRIPT_DIR}/generate_finalize_request.sh
+  ${SCRIPT_DIR}/inform_shopfloor.sh
+  ${SCRIPT_DIR}/wipe_init.sh
   ${PANGO_MODULE}
   ${MISC_DIR}/chromeos-common.sh
   /etc/fonts

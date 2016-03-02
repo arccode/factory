@@ -12,10 +12,12 @@
 
 STATE_PATH="/mnt/stateful_partition"
 
-BATTERY_CUTOFF="/usr/local/factory/sh/battery_cutoff.sh"
-DISPLAY_MESSAGE="/usr/local/factory/sh/display_wipe_message.sh"
-ENABLE_RELEASE_PARTITION="/usr/local/factory/bin/enable_release_partition"
-INFORM_SHOPFLOOR="/usr/local/factory/sh/inform_shopfloor.sh"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
+BATTERY_CUTOFF="${SCRIPT_DIR}/battery_cutoff.sh"
+DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
+ENABLE_RELEASE_PARTITION="${SCRIPT_DIR}/enable_release_partition.sh"
+INFORM_SHOPFLOOR="${SCRIPT_DIR}/inform_shopfloor.sh"
 
 LOG_FILE="/tmp/wipe_init.log"
 
