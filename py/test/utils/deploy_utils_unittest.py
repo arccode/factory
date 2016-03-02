@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 import mock
+import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -14,32 +15,115 @@ from cros.factory.test.utils import deploy_utils
 # pylint: disable=W0212
 class FactoryPythonArchiveUnittest(unittest.TestCase):
   def setUp(self):
-    self.dut = mock.Mock(spec=board.DUTBoard)
-    self.dut.link = mock.Mock(spec=link.DUTLink)
-    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
-    self.factory_par_path = deploy_utils.FactoryPythonArchive.FACTORY_PAR_PATH
+    self.link = mock.Mock(spec=link.DUTLink)
+    self.dut = board.DUTBoard(self.link)
+    self.remote_factory_root = '/remote/factory/root'
+    self.dut.storage.GetFactoryRoot = mock.MagicMock(
+        return_value=self.remote_factory_root)
+
+    self.remote_factory_par = '/remote/factory/root/factory.par'
+    self.local_factory_par = '/path/to/factory.par'
+
+    self.factory_par = deploy_utils.FactoryPythonArchive(
+        self.dut, self.local_factory_par)
+
+  def _testCallWithString(self, is_local):
+    self.link.IsLocal = mock.MagicMock(return_value=is_local)
+    command = 'fake_command arg1 arg2'
+    expected_call = (self.factory_par.remote_factory_par +
+                     ' fake_command arg1 arg2')
+    return_value = 'fake_return_value'
+    self.dut.Call = mock.MagicMock(return_value=return_value)
+    self.factory_par.PushFactoryPar = mock.MagicMock()
+
+    result = self.factory_par.Call(command)
+
+    self.dut.Call.assert_called_with(expected_call)
+    self.assertEquals(return_value, result)
+    self.factory_par.PushFactoryPar.assert_called_with()
 
   def testCallWithString(self):
-    command = 'fake_command arg1 arg2'
-    expected_call = self.factory_par_path + ' fake_command arg1 arg2'
+    self._testCallWithString(True)
+    self._testCallWithString(False)
+
+  def _testCallWithList(self, is_local):
+    self.link.IsLocal = mock.MagicMock(return_value=is_local)
+    command = ['fake_command', 'arg1', 'arg2']
+    expected_call = [self.factory_par.remote_factory_par, 'fake_command',
+                     'arg1', 'arg2']
     return_value = 'fake_return_value'
     self.dut.Call = mock.MagicMock(return_value=return_value)
+    self.factory_par.PushFactoryPar = mock.MagicMock()
 
     result = self.factory_par.Call(command)
 
     self.dut.Call.assert_called_with(expected_call)
     self.assertEquals(return_value, result)
+    self.factory_par.PushFactoryPar.assert_called_with()
 
   def testCallWithList(self):
-    command = ['fake_command', 'arg1', 'arg2']
-    expected_call = [self.factory_par_path, 'fake_command', 'arg1', 'arg2']
-    return_value = 'fake_return_value'
-    self.dut.Call = mock.MagicMock(return_value=return_value)
+    self._testCallWithList(True)
+    self._testCallWithList(False)
 
-    result = self.factory_par.Call(command)
+  def testPushFactoryParChecksumMatched(self):
+    self.link.IsLocal = mock.MagicMock(return_value=False)
+    board.DUTProperty.Override(self.factory_par, 'checksum', 'checksum_value')
+    self.dut.CheckCall = mock.MagicMock(return_value='checksum_value')
 
-    self.dut.Call.assert_called_with(expected_call)
-    self.assertEquals(return_value, result)
+    self.factory_par.PushFactoryPar()
+    self.dut.link.Push.assert_not_called()
+
+  def testPushFactoryParChecksumNotMatched(self):
+    self.link.IsLocal = mock.MagicMock(return_value=False)
+    board.DUTProperty.Override(self.factory_par, 'checksum', 'checksum_value')
+    self.dut.CheckCall = mock.MagicMock(return_value='checksum_value~')
+
+    self.factory_par.PushFactoryPar()
+
+    self.dut.link.Push.assert_called_with(self.local_factory_par,
+                                          self.remote_factory_par)
+
+  def testLocalFactoryPythonArchiveRegularParExists(self):
+    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
+    deploy_utils.os.path.exists = mock.MagicMock(
+        side_effect=lambda p: p.endswith('factory.par'))
+    expected = os.path.join(deploy_utils.paths.FACTORY_PATH, 'factory.par')
+
+    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
+    self.assertEqual(self.factory_par.local_factory_par, expected)
+
+  def testLocalFactoryPythonArchiveMiniParExists(self):
+    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
+    expected = os.path.join(deploy_utils.paths.FACTORY_PATH, 'factory-mini.par')
+    deploy_utils.os.path.exists = mock.MagicMock(
+        side_effect=lambda p: p == expected)
+
+    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
+    self.assertEqual(self.factory_par.local_factory_par, expected)
+
+  def testLocalFactoryPythonArchiveTestImageMiniParExists(self):
+    expected = '/usr/local/factory-mini/factory-mini.par'
+    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
+    deploy_utils.os.path.exists = mock.MagicMock(
+        side_effect=lambda p: p == expected)
+
+    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
+    self.assertEqual(self.factory_par.local_factory_par, expected)
+
+  def testLocalFactoryPythonArchiveParNotExists(self):
+    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
+    deploy_utils.os.path.exists = mock.MagicMock(return_value=False)
+
+    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
+    with self.assertRaisesRegexp(IOError, 'cannot find factory python archive'):
+      unused_var = self.factory_par.local_factory_par
+
+  def testLocalFactoryPythonArchiveRunningPar(self):
+    expected = '/path/to/running/factory/par'
+    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: expected
+
+    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
+    self.assertEqual(self.factory_par.local_factory_par, expected)
 
 
 if __name__ == '__main__':

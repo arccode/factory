@@ -8,7 +8,9 @@ import os
 import subprocess
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.env import paths
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import LazyProperty
 
 
@@ -22,17 +24,65 @@ class FactoryPythonArchive(object):
   remote system and simply invoke the commands.
   """
 
-  FACTORY_PAR_PATH = '/usr/local/factory/factory.par'
-  CHECKSUM_COMMAND = ['md5sum', FACTORY_PAR_PATH]
+  # since path to local factory.par and remote factory.par might be different,
+  # we just redirect the factory.par as md5sum(1)'s stdin, so that the filename
+  # column will always be '-'
+  CHECKSUM_COMMAND = 'md5sum <{0}'
 
-  def __init__(self, dut):
+  def __init__(self, dut, local_factory_par=None, remote_factory_par=None):
+    """Constructor of FactoryPythonArchive.
+
+    Args:
+      :type dut: cros.factory.test.dut.board.DUTBoard
+      local_factory_par: local path to factory.par, If this is None (default
+          value), the object will try to find factory.par at default location.
+          (see self.local_factory_par)
+      remote_factory_par: remote path to save factory.par. If this is None
+          (default value), the object will try to save it at default location.
+          (see self.remote_factory_par)
+    """
     self._dut = dut
+
+    if local_factory_par:
+      LazyProperty.Override(self, 'local_factory_par', local_factory_par)
+
+    if remote_factory_par:
+      LazyProperty.Override(self, 'remote_factory_par', remote_factory_par)
+
+  @LazyProperty
+  def local_factory_par(self):
+    factory_par = sys_utils.GetRunningFactoryPythonArchivePath()
+    if factory_par:
+      return factory_par
+
+    factory_par = os.path.join(paths.FACTORY_PATH, 'factory.par')
+    if os.path.exists(factory_par):
+      return factory_par
+
+    factory_par = os.path.join(paths.FACTORY_PATH, 'factory-mini.par')
+    if os.path.exists(factory_par):
+      return factory_par
+
+    test_image_factory_mini_par = '/usr/local/factory-mini/factory-mini.par'
+    if os.path.exists(test_image_factory_mini_par):
+      return test_image_factory_mini_par
+
+    raise IOError('cannot find factory python archive')
+
+  @LazyProperty
+  def remote_factory_par(self):
+    if self._dut.link.IsLocal():
+      return self.local_factory_par
+
+    return self._dut.path.join(
+        self._dut.storage.GetFactoryRoot(), 'factory.par')
 
   @LazyProperty
   def checksum(self):
-    if not os.path.exists(self.FACTORY_PAR_PATH):
-      raise IOError('No such file: %s' % self.FACTORY_PAR_PATH)
-    return process_utils.CheckOutput(self.CHECKSUM_COMMAND)
+    if not os.path.exists(self.local_factory_par):
+      raise IOError('No such file: %s' % self.local_factory_par)
+    return process_utils.CheckOutput(
+        self.CHECKSUM_COMMAND.format(self.local_factory_par), shell=True)
 
   def PushFactoryPar(self):
     """Push factory.par to DUT if DUT is not local machine.
@@ -40,23 +90,23 @@ class FactoryPythonArchive(object):
     First checks if DUT already has the same factory.par as us.
     If not, pushs our factory.par to DUT, otherwise, does nothing.
     """
-
     if self._dut.link.IsLocal():
       return
     try:
-      if self.checksum == self._dut.CheckOutput(self.CHECKSUM_COMMAND):
+      if self.checksum == self._dut.CheckOutput(
+          self.CHECKSUM_COMMAND.format(self.remote_factory_par)):
         return
     except subprocess.CalledProcessError:
       # DUT does not have the factory par file, continue.
       pass
-    self._dut.link.Push(self.FACTORY_PAR_PATH, self.FACTORY_PAR_PATH)
+    self._dut.link.Push(self.local_factory_par, self.remote_factory_par)
 
   def DryRun(self, command):
     """Returns the command that will be executed."""
     if isinstance(command, basestring):
-      command = self.FACTORY_PAR_PATH + ' ' + command
+      command = self.remote_factory_par + ' ' + command
     else:
-      command = [self.FACTORY_PAR_PATH] + command
+      command = [self.remote_factory_par] + command
     return command
 
   def _Preprocess(self, command):
