@@ -81,7 +81,7 @@ class CameraDeviceBase(object):
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def EnableCamera(self):
+  def EnableCamera(self, **kwargs):
     """Enables camera device.
 
     Raise:
@@ -123,32 +123,32 @@ class CameraDeviceBase(object):
 class CVCameraDevice(CameraDeviceBase):
   """Camera device via OpenCV V4L2 interface."""
 
-  def __init__(self, device_index, resolution):
-    """Constructor.
-
-    Args:
-      device_index: Index of video device (-1 for default).
-      resolution: Capture resolution.
-    """
+  def __init__(self, index=-1):
+    """Constructor."""
     super(CVCameraDevice, self).__init__()
-    self._device_index = device_index
-    self._resolution = resolution
+
+    self._device_index = index
+    if self._device_index < 0:
+      self._device_index = self._SearchDevice()
     self._device = None
 
-  def EnableCamera(self):
+  # pylint: disable=W0221
+  def EnableCamera(self, resolution=None):
+    """Enable camera device.
+
+    Args:
+      resolution: (width, height) tuple of capture resolution.
+    """
     if self._device:
+      logging.warning('Camera device is already enabled.')
       return
 
-    if self._device_index >= 0:
-      device_index = self._device_index
-    else:
-      device_index = self._SearchDevice()
-
-    self._device = cv2.VideoCapture(device_index)
+    self._device = cv2.VideoCapture(self._device_index)
     if not self._device.isOpened():
       raise CameraError('Unable to open video capture interface')
-    self._device.set(cv.CV_CAP_PROP_FRAME_WIDTH, self._resolution[0])
-    self._device.set(cv.CV_CAP_PROP_FRAME_HEIGHT, self._resolution[1])
+    if resolution:
+      self._device.set(cv.CV_CAP_PROP_FRAME_WIDTH, resolution[0])
+      self._device.set(cv.CV_CAP_PROP_FRAME_HEIGHT, resolution[1])
 
   def DisableCamera(self):
     if self._device:
@@ -229,31 +229,40 @@ class YavtaCameraDevice(CameraDeviceBase):
 
   _BRIGHTNESS_SCALE = 2.0
 
-  def __init__(self, device_index, resolution, controls, postprocess, skip=0):
+  def __init__(self, device_index):
     """Constructor.
 
     Args:
       device_index: Index of video device.
+    """
+    super(YavtaCameraDevice, self).__init__()
+    self._device_index = device_index
+    self._enabled = False
+    self._resolution = None
+    self._postprocess = False
+    self._skip = 0
+
+  # pylint: disable=W0221
+  def EnableCamera(self, resolution, controls=None, postprocess=False, skip=0):
+    """Enable camera device.
+
+    Args:
       resolution: (width, height) tuple of capture resolution.
       controls: v4l2 controls.
       postprocess: Whether to enhance image.
           (Do not use this for LSC/AWB calibration)
-      skip: number of frames to skip before taking the image
+      skip: number of frames to skip before taking the image.
     """
-    super(YavtaCameraDevice, self).__init__()
-    self._device_index = device_index
-    self._resolution = resolution
-    self._controls = controls
-    self._postprocess = postprocess
-    self._skip = skip
-    self._enabled = False
-
-  def EnableCamera(self):
     self._enabled = True
-    for ctl in self._controls:
+    if controls is None:
+      controls = []
+    for ctl in controls:
       command = ['yavta', '/dev/video%d' % self._device_index, '-w', ctl]
       logging.info(' '.join(command))
       Spawn(command, check_call=True)
+    self._resolution = resolution
+    self._postprocess = postprocess
+    self._skip = skip
 
   def DisableCamera(self):
     self._enabled = False

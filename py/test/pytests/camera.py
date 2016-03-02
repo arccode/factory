@@ -30,8 +30,8 @@ Usage examples::
       dargs={
           'do_capture_manual': True,
           'do_led_manual': True,
-          'capture_resolution': (1280, 720),
-          'resize_ratio': 0.4})
+          'resize_ratio': 0.4,
+          'camera_args':{'resolution': (1920, 1280)}})
 
   # Automatic QR scan test + manual capture test + manual LED test.
   OperatorTest(
@@ -41,8 +41,8 @@ Usage examples::
           'do_QR_scan': True,
           'do_capture_manual': True,
           'do_led_manual': True,
-          'capture_resolution': (1280, 720),
-          'resize_ratio': 0.4})
+          'resize_ratio': 0.4,
+          'camera_args':{'resolution': (1920, 1280)}})
 
   # Automatic facial recognition test + manual LED test.
   OperatorTest(
@@ -51,8 +51,8 @@ Usage examples::
       dargs={
           'do_facial_recognition': True,
           'do_led_manual': True,
-          'capture_resolution': (1280, 720),
-          'resize_ratio': 0.4})
+          'resize_ratio': 0.4,
+          'camera_args':{'resolution': (1920, 1280)}})
 
   # Stress camera capturing until timeout without UI.
   FactoryTest(
@@ -60,9 +60,9 @@ Usage examples::
       pytest_name='camera',
       dargs={
           'do_capture_timeout': True,
-          'capture_resolution': (1280, 720),
           'timeout_secs': 1000,
-          'show_image': False})
+          'show_image': False,
+          'camera_args':{'resolution': (1920, 1280)}})
 
 """
 
@@ -79,12 +79,12 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture.camera import barcode
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import camera_utils
 from cros.factory.utils.process_utils import StartDaemonThread
 from cros.factory.utils.type_utils import Enum
 
@@ -214,7 +214,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
             (self.task_type == CaptureTaskType.FACE and
              self.DetectFaces(cv_img))):
           detected_frame_count += 1
-        if detected_frame_count > self.args.num_frames_to_pass:
+        if detected_frame_count >= self.args.num_frames_to_pass:
           self.Pass()
           return
       cv_img = cv2.resize(cv_img, None, fx=resize_ratio, fy=resize_ratio,
@@ -246,7 +246,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
       self.BindPassFailKeys()
 
     self.camera_test.ui.CallJSFunction('hideImage', False)
-    self.camera_test.camera_device.EnableCamera()
+    self.camera_test.EnableDevice()
     self.capture_thread = StartDaemonThread(target=self.TestCapture,
                                             name=self._CAPTURE_THREAD_NAME)
 
@@ -281,12 +281,12 @@ class LEDTask(factory_task.InteractiveFactoryTask):
         if self.camera_test.camera_device.IsEnabled():
           self.camera_test.camera_device.DisableCamera()
         else:
-          self.camera_test.camera_device.EnableCamera()
+          self.camera_test.EnableDevice()
           self.camera_test.camera_device.ReadSingleFrame()
       else:
         # Constantly lights the LED
         if not self.camera_test.camera_device.IsEnabled():
-          self.camera_test.camera_device.EnableCamera()
+          self.camera_test.EnableDevice()
         self.camera_test.camera_device.ReadSingleFrame()
       time.sleep(0.5)
 
@@ -305,7 +305,6 @@ class LEDTask(factory_task.InteractiveFactoryTask):
 class CameraTest(unittest.TestCase):
   """Main class for camera test."""
   ARGS = [
-      Arg('mock_mode', bool, 'Whether to use mock mode.', default=False),
       Arg(
           'do_QR_scan', bool, 'Automates camera check by scanning QR Code.',
           default=False),
@@ -341,10 +340,6 @@ class CameraTest(unittest.TestCase):
           'Camera capture rate in frames per second.', default=30),
       Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
       Arg(
-          'capture_resolution', tuple,
-          'A tuple (x-res, y-res) indicating the '
-          'image capture resolution.', default=(1280, 720)),
-      Arg(
           'resize_ratio', float,
           'The resize ratio of captured image '
           'on screen.', default=0.4),
@@ -352,12 +347,11 @@ class CameraTest(unittest.TestCase):
           'show_image', bool,
           'Whether to actually show the image on screen.', default=True),
       Arg(
-          'device_index', int, 'Index of video device (-1 for default).',
-          default=- 1),
-      Arg('use_yavta', bool, 'Use yavta to capture image.', default=False),
-      Arg('yavta_postprocess', bool, 'Postprocess image.', default=False),
-      Arg('yavta_ctls', list, 'List of controls used in yavta.', default=[]),
-      Arg('yavta_skip', int, 'Skip first n frames.', default=0)]
+          'device_index', int, 'Index of video device (0 for default).',
+          default=0),
+      Arg(
+          'camera_args', dict, 'Dict of args used for enabling the camera '
+          'device.', optional=True)]
 
   def _CountdownTimer(self):
     """Starts countdown timer and fails the test if timer reaches zero,
@@ -377,9 +371,16 @@ class CameraTest(unittest.TestCase):
     else:
       self.ui.Fail('Camera test failed due to timeout.')
 
+  def EnableDevice(self):
+    if self.args.camera_args:
+      self.camera_device.EnableCamera(**self.args.camera_args)
+    else:
+      self.camera_device.EnableCamera()
+
   def setUp(self):
-    self.camera_device = None
-    self.CreateCameraDevice()
+    self.dut = dut.Create()
+    self.camera_device = self.dut.camera.GetCameraDevice(
+        self.args.device_index)
 
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
@@ -411,21 +412,3 @@ class CameraTest(unittest.TestCase):
 
   def runTest(self):
     self.task_manager.Run()
-
-  def CreateCameraDevice(self):
-    """Create a CameraDeviceBase-derived object."""
-    if self.args.mock_mode:
-      self.camera_device = camera_utils.MockCameraDevice(
-          self.args.capture_resolution,
-          self.args.do_QR_scan)
-    elif self.args.use_yavta:
-      self.camera_device = camera_utils.YavtaCameraDevice(
-          self.args.device_index,
-          self.args.capture_resolution,
-          self.args.yavta_ctls,
-          self.args.yavta_postprocess,
-          self.args.yavta_skip)
-    else:
-      self.camera_device = camera_utils.CVCameraDevice(
-          self.args.device_index,
-          self.args.capture_resolution)
