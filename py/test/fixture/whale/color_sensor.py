@@ -8,7 +8,7 @@ import ast
 import logging
 
 import factory_common  # pylint: disable=W0611
-import cros.factory.test.fixture.bft_fixture as bft
+from cros.factory.test.fixture import bft_fixture as bft
 
 # shortcut
 BFT = bft.BFTFixture

@@ -218,8 +218,8 @@ from cros.factory.test.fixture.camera.als_light_chamber import (
     ALSLightChamber)
 from cros.factory.test.fixture.camera.light_chamber import (
     LightChamber, LightChamberError, LightChamberCameraError)
-import cros.factory.test.fixture.camera.perf_tester as camperf
-import cros.factory.test.fixture.camera.renderer as renderer
+from cros.factory.test.fixture.camera import perf_tester as camperf
+from cros.factory.test.fixture.camera import renderer as renderer
 from cros.factory.test.utils.camera_utils import EncodeCVImage
 from cros.factory.test.utils.media_utils import (
     MediaMonitor, MountedMedia, RemovableDiskMonitor)

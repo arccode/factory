@@ -9,7 +9,7 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
-import cros.factory.test.fixture.bft_fixture as bft
+from cros.factory.test.fixture import bft_fixture as bft
 from cros.factory.test.fixture.whale import color_sensor
 from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import lcm2004

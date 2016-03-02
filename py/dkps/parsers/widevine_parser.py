@@ -4,7 +4,7 @@
 
 """Module to parse Widevine keybox XML file content."""
 
-import xml.etree.cElementTree as ET
+from xml.etree import cElementTree as ET
 
 
 def Parse(serialized_drm_key_list):

@@ -12,7 +12,7 @@ Scans given python modules and see their dependency. Usage:
 from __future__ import print_function
 
 import atexit
-import distutils.sysconfig as sysconfig
+from distutils import sysconfig
 import importlib
 import os
 import re
