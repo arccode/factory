@@ -166,7 +166,7 @@ interaction_cutoff_menu() {
   echo ""
   echo "Shopfloor URL (Keep empty if no need to inform shopfloor after reset):"
   echo "Default XML-RPC request will be sent via HTTP/POST with method"
-  echo "'FinalizeFQA' and SN as the parameter."
+  echo "'FinalizeFQC' and SN as the parameter."
   read ans
   if [ -z "$ans" ]; then
     remove_flag "$FLAG_SHOPFLOOR_URL" "$edit_file"
