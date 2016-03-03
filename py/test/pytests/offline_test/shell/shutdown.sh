@@ -10,7 +10,7 @@ task_{%id%} () {
     sync
     sleep 3  # for spinning disks to flush
 
-    shutdown -r now
+    reboot
 
     sleep 60
 

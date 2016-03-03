@@ -316,9 +316,16 @@ class DeployShellOfflineTest(unittest.TestCase):
       self._MakeStartUpApp(starter_path)
 
     if self.args.next_action == self.NEXT_ACTION.POWEROFF:
-      self.dut.Call(['shutdown', 'now'])
+      # Since Android doesn't have shutdown(8) command, we will use 'reboot -p'
+      # however, in Chrome OS, 'reboot -p' sometimes reboot the device rather
+      # than halt the device, so we will still use 'shutdown -h now'.
+      # TODO(stimim): when toybox supports 'shutdown', unifiy these commands.
+      if isinstance(self.dut, android.AndroidBoard):
+        self.dut.Call(['reboot', '-p'])
+      else:
+        self.dut.Call(['shutdown', '-h', 'now'])
     elif self.args.next_action == self.NEXT_ACTION.REBOOT:
-      self.dut.Call(['shutdown', 'reboot'])
+      self.dut.Call(['reboot'])
     elif self.args.next_action == self.NEXT_ACTION.START_TEST:
       self.dut.Call(['sh', self.test_script_path])
     elif self.args.next_action == self.NEXT_ACTION.NOP:
