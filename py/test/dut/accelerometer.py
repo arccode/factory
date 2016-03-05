@@ -70,7 +70,7 @@ class AccelerometerController(component.DUTComponent):
     self.location = location
     self.resolution = resolution
     for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'iio:device*')):
-      location = self._CallOutput(
+      location = self._dut.CallOutput(
           ['cat', os.path.join(iio_path, 'location')]).strip()
       if self.location == location:
         self.iio_bus_id = os.path.basename(iio_path)
@@ -89,7 +89,7 @@ class AccelerometerController(component.DUTComponent):
     # Stores the (scan order -> signal name) mapping for later use.
     self.index_to_signal_name = {}
     for signal_name in self._GenSignalNames(''):
-      index = int(self._CallOutput(
+      index = int(self._dut.CallOutput(
           ['cat', os.path.join(scan_elements_path, signal_name + '_index')]))
       self.index_to_signal_name[index] = signal_name
 
@@ -101,7 +101,7 @@ class AccelerometerController(component.DUTComponent):
         it's corresponding value.
     """
     for sysfs_value in sysfs_values:
-      caller = self._CheckCall if check_call else self._Call
+      caller = self._dut.CheckCall if check_call else self._dut.Call
       caller('echo %s > %s' % (sysfs_value.value, sysfs_value.sysfs))
 
   def _GenSignalNames(self, postfix=''):
@@ -314,7 +314,7 @@ class AccelerometerController(component.DUTComponent):
 class Accelerometer(component.DUTComponent):
   """Accelerometer component module."""
 
-  def GetController(spec_offset, spec_ideal_values, sample_rate, location,
+  def GetController(self, spec_offset, spec_ideal_values, sample_rate, location,
                     resolution=12):
     """Gets a controller with specified arguments.
 
