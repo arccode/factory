@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import os
+import pipes
 import subprocess
 
 import factory_common  # pylint: disable=unused-import
@@ -13,7 +14,28 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 
-class FactoryPythonArchive(object):
+class FactoryTools(object):
+  """An abstract class for factory tools.
+
+  For some standalone factory tools such as gooftool and hwid, we can either
+  execute them using scripts under factory/bin, or using factory python archive.
+  This class is an abstract class that unifies the interface of these two
+  approaches.
+  """
+  def Call(self, command, **kargs):
+    raise NotImplementedError
+
+  def CheckCall(self, command, **kargs):
+    raise NotImplementedError
+
+  def CallOutput(self, command, **kargs):
+    raise NotImplementedError
+
+  def CheckOutput(self, command, **kargs):
+    raise NotImplementedError
+
+
+class FactoryPythonArchive(FactoryTools):
   """Deploy and invoke the Factory Python Archive (.par) file.
 
   Some factory programs may need to run on restricted environments without full
@@ -114,3 +136,69 @@ class FactoryPythonArchive(object):
   def CallOutput(self, command, **kargs):
     command = self._Preprocess(command)
     return self._dut.CallOutput(command, **kargs)
+
+
+class FactoryBin(FactoryTools):
+  """An implementation of FactoryTools which uses scripts under factory/bin."""
+
+  def __init__(self, dut):
+    """Constructor of FactoryBin.
+
+    Args:
+      :type dut: cros.factory.device.board.DeviceBoard
+    """
+    assert dut.link.IsLocal()
+    self._dut = dut
+
+  def DryRun(self, command):
+    """Returns the command that will be executed."""
+    if not isinstance(command, basestring):
+      command = ' '.join(map(pipes.quote, command))
+
+    command = 'PATH=%s:$PATH %s' % (os.path.join(paths.FACTORY_PATH, 'bin'),
+                                    command)
+    return command
+
+  def _Preprocess(self, command):
+    return self.DryRun(command)
+
+  def Call(self, command, **kargs):
+    command = self._Preprocess(command)
+    return self._dut.Call(command, **kargs)
+
+  def CheckCall(self, command, **kargs):
+    command = self._Preprocess(command)
+    return self._dut.CheckCall(command, **kargs)
+
+  def CheckOutput(self, command, **kargs):
+    command = self._Preprocess(command)
+    return self._dut.CheckOutput(command, **kargs)
+
+  def CallOutput(self, command, **kargs):
+    command = self._Preprocess(command)
+    return self._dut.CallOutput(command, **kargs)
+
+
+def CreateFactoryTools(dut, factory_par_path=None):
+  """Get an implementation of FactoryTools depends on arguments.
+
+  If factory/bin exists on DUT, we assume that they are available and working,
+  so just returns a FactoryBin instance.
+
+  Otherwise, an instance of FactoryPythonArchive will be returned, and the path
+  to factory.par can be specified by `factory_par_path`.
+
+  Args:
+    :type dut: cros.factory.device.board.DeviceBoard
+    factory_par_path: path to factory python archive (on station), or None to
+        use the default one.
+
+  Returns:
+    an implementation of FactoryTools.
+    :rtype: FactoryTools
+  """
+  if dut.path.exists(dut.path.join(paths.FACTORY_PATH, 'bin')):
+    # factory/bin exists, let's use factory/bin
+    return FactoryBin(dut)
+  else:
+    return FactoryPythonArchive(dut, local_factory_par=factory_par_path)
