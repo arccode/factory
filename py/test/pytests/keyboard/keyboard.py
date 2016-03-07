@@ -80,7 +80,9 @@ class KeyboardTest(unittest.TestCase):
       Arg('skip_power_key', bool, 'Skip power button testing', default=False),
       Arg('skip_keycodes', list, 'Keycodes to skip', default=[]),
       Arg('replacement_keymap', dict, 'Dictionary mapping key codes to '
-          'replacement key codes', default={})
+          'replacement key codes', default={}),
+      Arg('detect_long_press', bool, 'Detect long press event. Usually for '
+          'detecting bluetooth keyboard disconnection.', default=False)
   ]
 
   def setUp(self):
@@ -196,7 +198,7 @@ class KeyboardTest(unittest.TestCase):
         self.MarkKeydown(event.code)
       elif event.value == 0:
         self.MarkKeyup(event.code)
-      elif event.value == 2:
+      elif self.args.detect_long_press and event.value == 2:
         fail_msg = 'Got events on keycode %d pressed too long.' % event.code
         factory.console.error(fail_msg)
         self.ui.CallJSFunction('failTest', fail_msg)
