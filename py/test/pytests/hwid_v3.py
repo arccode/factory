@@ -5,6 +5,7 @@
 
 """Uses HWID v3 to generate, encode, and verify the device's HWID."""
 
+import json
 import logging
 import os
 import unittest
@@ -12,10 +13,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.gooftool import probe
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3 import database
-from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -23,6 +21,8 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.rules import phase
+from cros.factory.test.utils import deploy_utils
+from cros.factory.utils import file_utils
 
 # If present,  these files will override the board and probe results
 # (for testing).
@@ -56,6 +56,11 @@ class HWIDV3Test(unittest.TestCase):
 
   def setUp(self):
     self._dut = dut.Create()
+    self.factory_tools = deploy_utils.FactoryPythonArchive(self._dut)
+    self.tmpdir = self._dut.temp.mktemp(is_dir=True, prefix='hwid_v3')
+
+  def tearDown(self):
+    self._dut.Call(['rm', '-rf', self.tmpdir])
 
   def runTest(self):
     ui = test_ui.UI()
@@ -72,56 +77,90 @@ class HWIDV3Test(unittest.TestCase):
     template.SetState(test_ui.MakeLabel(
         'Probing components...',
         '正在探索零件...'))
+    # check if we are overriding probed results.
+    probed_results_file = self._dut.path.join(self.tmpdir,
+                                              'probed_results_file')
     if os.path.exists(OVERRIDE_PROBED_RESULTS_PATH):
-      with open(OVERRIDE_PROBED_RESULTS_PATH) as f:
-        probed_results = yaml.load(f.read())
+      self._dut.SendFile(OVERRIDE_PROBED_RESULTS_PATH, probed_results_file)
+      Log('probe', probe_results=yaml.load(open(OVERRIDE_PROBED_RESULTS_PATH)))
     else:
-      probed_results = yaml.load(probe.Probe(probe_vpd=True).Encode())
-    Log('probe', probe_results=probed_results)
+      probed_results = self.factory_tools.CallOutput(
+          ['gooftool', 'probe', '--include_vpd'])
+      self._dut.WriteFile(probed_results_file, probed_results)
+      Log('probe', probe_results=probed_results)
 
+    # check if we are overriding the board name.
     if os.path.exists(OVERRIDE_BOARD_PATH):
       with open(OVERRIDE_BOARD_PATH) as f:
         board = f.read().strip()
+      logging.info('overrided board name: %s', board)
     else:
-      board = common.ProbeBoard()
+      board = None
 
-    hwdb = database.Database.LoadFile(
-        os.path.join(common.DEFAULT_HWID_DATA_PATH, board.upper()),
-        verify_checksum=self.args.verify_checksum)
+    # pass device info to DUT
+    device_info_file = self._dut.path.join(self.tmpdir, 'device_info')
     device_info = shopfloor.GetDeviceData()
-    vpd = hwid_utils.GetVPD(probed_results)
+    with file_utils.UnopenedTemporaryFile() as f:
+      yaml.dump(device_info, open(f, 'w'))
+      self._dut.SendFile(f, device_info_file)
 
     if self.args.generate:
       template.SetState(test_ui.MakeLabel(
           'Generating HWID (v3)...',
           '正在产生 HWID (v3)...'))
-      generated_hwid = hwid_utils.GenerateHWID(hwdb, probed_results,
-                                               device_info, vpd,
-                                               rma_mode=self.args.rma_mode)
+      generate_cmd = ['hwid', 'generate',
+                      '--probed-results-file', probed_results_file,
+                      '--device-info-file', device_info_file,
+                      '--json-output']
+      if board:
+        generate_cmd += ['-b', board.upper()]
+      if self.args.rma_mode:
+        generate_cmd += ['--rma-mode']
+      if not self.args.verify_checksum:
+        generate_cmd += ['--no-verify-checksum']
 
-      encoded_string = generated_hwid.encoded_string
+      output = self.factory_tools.CallOutput(generate_cmd)
+      hwid = json.loads(output)
+
+      encoded_string = hwid['encoded_string']
       factory.console.info('Generated HWID: %s', encoded_string)
-      decoded_hwid = hwid_utils.DecodeHWID(hwdb, encoded_string)
-      logging.info('HWDB checksum: %s', hwdb.checksum)
+
+      # try to decode HWID
+      decode_cmd = ['hwid', 'decode'] + (['-b', board] if board else [])
+      decode_cmd += [encoded_string]
+      output = self.factory_tools.CallOutput(decode_cmd)
+      decoded_hwid = yaml.load(output)
+
+      logging.info('HWDB checksum: %s', hwid['hwdb_checksum'])
       Log('hwid', hwid=encoded_string,
-          hwdb_checksum=hwdb.checksum,
-          components=hwid_utils.ParseDecodedHWID(decoded_hwid))
+          hwdb_checksum=hwid['hwdb_checksum'],
+          components=decoded_hwid)
       shopfloor.UpdateDeviceData({'hwid': encoded_string})
     else:
-      encoded_string = hwid_utils.GetHWIDString()
+      encoded_string = self.factory_tools.CheckOutput(['hwid', 'read']).strip()
 
     template.SetState(test_ui.MakeLabel(
         'Verifying HWID (v3): %s...' % (
             encoded_string or '(unchanged)'),
-        '正在验证 HWID (v3): %s...' % (
-            encoded_string or '（不变）')))
-    hwid_utils.VerifyHWID(hwdb, encoded_string, probed_results, vpd,
-                          rma_mode=self.args.rma_mode)
-    Log('hwid_verified', hwid=encoded_string,
-        hwdb_checksum=hwdb.checksum)
+        u'正在验证 HWID (v3): %s...' % (
+            encoded_string or u'（不变）')))
+
+    verify_cmd = ['hwid', 'verify',
+                  '--probed-results-file', probed_results_file]
+    if board:
+      verify_cmd += ['-b', board]
+    if self.args.rma_mode:
+      verify_cmd += ['--rma-mode']
+    if not self.args.verify_checksum:
+      verify_cmd += ['--no-verify-checksum']
+    verify_cmd += [encoded_string]
+
+    output = self.factory_tools.CheckOutput(verify_cmd)
+    self.assertTrue('Verification passed.' in output)
+    Log('hwid_verified', hwid=encoded_string)
 
     if self.args.generate:
       template.SetState(test_ui.MakeLabel(
           'Setting HWID (v3): %s...' % encoded_string,
-          '正在写入 HWID (v3): %s...' % encoded_string))
-      hwid_utils.WriteHWID(encoded_string)
+          u'正在写入 HWID (v3): %s...' % encoded_string))
+      self.factory_tools.CheckCall(['hwid', 'write', encoded_string])
