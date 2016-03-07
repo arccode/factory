@@ -59,7 +59,9 @@ class Arg(object):
                  '    component.has_cellular: True\n'
                  '    component.keyboard: US_API\n')),
     CmdArg('--rma-mode', default=False, action='store_true',
-           help='whether to enable RMA mode'))
+           help='whether to enable RMA mode'),
+    CmdArg('--json-output', default=False, action='store_true',
+           help='whether to dump result in JSON format'))
 def GenerateHWIDWrapper(options):
   """Generates HWID."""
   probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
@@ -84,8 +86,14 @@ def GenerateHWIDWrapper(options):
   logging.debug(yaml.dump(verbose_output, default_flow_style=False))
   hwid = hwid_utils.GenerateHWID(options.database, probed_results, device_info,
                                  vpd, options.rma_mode)
-  print 'Encoded HWID string: %s' % hwid.encoded_string
-  print 'Binary HWID string: %s' % hwid.binary_string
+  if options.json_output:
+    print json.dumps({
+        'encoded_string': hwid.encoded_string,
+        'binary_string': hwid.binary_string,
+        'hwdb_checksum': hwid.database.checksum})
+  else:
+    print 'Encoded HWID string: %s' % hwid.encoded_string
+    print 'Binary HWID string: %s' % hwid.binary_string
 
 
 @Command(
@@ -195,6 +203,12 @@ def WriteHWIDWrapper(options):
   print 'HWID %r written to firmware GBB.' % options.hwid
 
 
+@Command('read')
+def ReadHWIDWrapper(options):  # pylint: disable=unused-argument
+  """Reads HWID from firmware GBB."""
+  print hwid_utils.GetHWIDString()
+
+
 @Command(
     'list-components',
     CmdArg('comp_class', nargs='*', default=None,
@@ -270,7 +284,7 @@ def Main():
 
   InitializeDefaultOptions(options)
 
-  logging.debug('Perform command <%s>.. %r', options.command_name)
+  logging.debug('Perform command <%s>.. ', options.command_name)
   options.command(options)
 
 
