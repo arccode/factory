@@ -259,6 +259,12 @@ class DUTBoard(object):
       path: A string for file path on DUT.
       content: A string to be written into file.
     """
+    # If the link is local, we just open file and write content.
+    if self.link.IsLocal():
+      with open(path, 'w') as f:
+        f.write(content)
+      return
+
     with file_utils.UnopenedTemporaryFile() as temp_path:
       with open(temp_path, 'w') as f:
         f.write(content)
