@@ -7,6 +7,7 @@
 import os
 import pipes
 import subprocess
+import tempfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
@@ -33,6 +34,21 @@ class FactoryTools(object):
 
   def CheckOutput(self, command, **kargs):
     raise NotImplementedError
+
+  def Run(self, command):
+    """Run a factory tool command.
+
+    Args:
+      command: command to execute, e.g. ['hwid', 'generate'] or 'hwid generate'.
+
+    Returns:
+      (stdout, stderr, return_code) of the execution results
+    """
+    with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+      return_code = self.Call(command, stdout=stdout, stderr=stderr)
+      stdout.seek(0)
+      stderr.seek(0)
+      return (stdout.read(), stderr.read(), return_code)
 
 
 class FactoryPythonArchive(FactoryTools):
