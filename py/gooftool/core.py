@@ -692,7 +692,7 @@ class Gooftool(object):
     bitmap_locales = []
     with self._named_temporary_file() as f:
       self._util.shell(
-          'cbfstool %s extract -n locales -f %s -r BOOT_STUB' % (image_file, f.name))
+          'cbfstool %s extract -n locales -f %s -r COREBOOT' % (image_file, f.name))
       bitmap_locales = f.read()
       # We reach here even if cbfstool command fails
       if bitmap_locales:
