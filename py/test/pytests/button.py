@@ -19,7 +19,6 @@
     A /dev/input key matching KEYNAME.
 """
 
-import datetime
 import os
 import time
 import unittest
@@ -38,10 +37,9 @@ from cros.factory.utils import sync_utils
 
 _DEFAULT_TIMEOUT = 30
 
-_MSG_PROMPT_PRESS = lambda en, zh: test_ui.MakeLabel(
-    'Press the %s button' % en, u'按下%s按钮' % zh, 'button-test-info')
-_MSG_PROMPT_RELEASE = test_ui.MakeLabel(
-    'Release the button', u'松开按钮', 'button-test-info')
+_MSG_PROMPT_CSS_CLASS = 'button-test-info'
+_MSG_PROMPT_PRESS = ('Press the %s button%s', u'按下%s按钮%s')
+_MSG_PROMPT_RELEASE = ('Release the button', u'松开按钮')
 
 _ID_PROMPT = 'button-test-prompt'
 _ID_COUNTDOWN_TIMER = 'button-test-timer'
@@ -58,13 +56,13 @@ _KEY_CROSSYSTEM = 'crossystem:'
 class GenericButton(object):
   """Base class for buttons."""
 
-  def __init__(self, dut):
+  def __init__(self, dut_instance):
     """Constructor.
 
     Args:
-      dut: the DUT which this button belongs to.
+      dut_instance: the DUT which this button belongs to.
     """
-    self._dut = dut
+    self._dut = dut_instance
 
   def IsPressed(self):
     """Returns True the button is pressed, otherwise False."""
@@ -74,15 +72,15 @@ class GenericButton(object):
 class EvtestButton(GenericButton):
   """Buttons can be probed by evtest using /dev/input/event*."""
 
-  def __init__(self, dut, event_id, name):
+  def __init__(self, dut_instance, event_id, name):
     """Constructor.
 
     Args:
-      dut: the DUT which this button belongs to.
+      dut_instance: the DUT which this button belongs to.
       event_id: /dev/input/event ID.
       name: A string as key name to be captured by evtest.
     """
-    super(EvtestButton, self).__init__(dut)
+    super(EvtestButton, self).__init__(dut_instance)
     # TODO(hungte) Auto-probe if event_id is None.
     self._event_dev = '/dev/input/event%d' % event_id
     self._name = name
@@ -95,15 +93,15 @@ class EvtestButton(GenericButton):
 class GpioButton(GenericButton):
   """GPIO-based buttons."""
 
-  def __init__(self, dut, number, is_active_high):
+  def __init__(self, dut_instance, number, is_active_high):
     """Constructor.
 
     Args:
-      dut: the DUT which this button belongs to.
+      dut_instance: the DUT which this button belongs to.
       number: An integer for GPIO number.
       is_active_high: Boolean flag for polarity of GPIO ("active" = "pressed").
     """
-    super(GpioButton, self).__init__(dut)
+    super(GpioButton, self).__init__(dut_instance)
     gpio_base = '/sys/class/gpio'
     self._value_path = os.path.join(gpio_base, 'gpio%d' % number, 'value')
     if not os.path.exists(self._value_path):
@@ -125,14 +123,14 @@ class GpioButton(GenericButton):
 class CrossystemButton(GenericButton):
   """A crossystem value that can be mapped as virtual button."""
 
-  def __init__(self, dut, name):
+  def __init__(self, dut_instance, name):
     """Constructor.
 
     Args:
-      dut: the DUT which this button belongs to.
+      dut_instance: the DUT which this button belongs to.
       name: A string as crossystem parameter that outputs 1 or 0.
     """
-    super(CrossystemButton, self).__init__(dut)
+    super(CrossystemButton, self).__init__(dut_instance)
     self._name = name
 
   def IsPressed(self):
@@ -151,7 +149,9 @@ class ButtonTest(unittest.TestCase):
       Arg('button_name_en', (str, unicode),
           'The name of the button in English.', optional=False),
       Arg('button_name_zh', (str, unicode),
-          'The name of the button in Chinese.', optional=False)]
+          'The name of the button in Chinese.', optional=False),
+      Arg('repeat_times', int, 'Number of press/release cycles to test',
+          default=1)]
 
   def setUp(self):
     self.dut = dut.Create()
@@ -159,8 +159,6 @@ class ButtonTest(unittest.TestCase):
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_BUTTON_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_BUTTON_TEST)
-    self.ui.SetHTML(_MSG_PROMPT_PRESS(self.args.button_name_en,
-                                      self.args.button_name_zh), id=_ID_PROMPT)
 
     if self.args.button_key_name.startswith(_KEY_GPIO):
       gpio_num = self.args.button_key_name[len(_KEY_GPIO):]
@@ -173,8 +171,12 @@ class ButtonTest(unittest.TestCase):
       self.button = EvtestButton(self.dut, self.args.event_id,
                                  self.args.button_key_name)
 
+    # Timestamps of starting, pressing, and releasing
+    # [started, pressed, released, pressed, released, pressed, ...]
+    self._action_timestamps = [time.time()]
+
     # Create a thread to monitor button events.
-    process_utils.StartDaemonThread(target=self.MonitorButtonEvent)
+    process_utils.StartDaemonThread(target=self._MonitorButtonEvent)
     # Create a thread to run countdown timer.
     StartCountdownTimer(
         self.args.timeout_secs,
@@ -182,40 +184,42 @@ class ButtonTest(unittest.TestCase):
         self.ui,
         _ID_COUNTDOWN_TIMER)
 
-    # Variables to track the time it takes to press and release the button
-    self._start_waiting_sec = self.getCurrentEpochSec()
-    self._pressed_sec = 0
-    self._released_sec = 0
-
   def tearDown(self):
-    Log('button_wait_sec',
-        time_to_press_sec=(self._pressed_sec - self._start_waiting_sec),
-        time_to_release_sec=(self._released_sec - self._pressed_sec))
+    timestamps = self._action_timestamps + [float('inf')]
+    for release_index in xrange(2, len(timestamps), 2):
+      Log('button_wait_sec',
+          time_to_press_sec=(timestamps[release_index - 1] -
+                             timestamps[release_index - 2]),
+          time_to_release_sec=(timestamps[release_index] -
+                               timestamps[release_index - 1]))
 
-  def getCurrentEpochSec(self):
-    """Returns the time since epoch."""
-    return float(datetime.datetime.now().strftime('%s.%f'))
-
-  def ButtonIsPressed(self):
-    return self.button.IsPressed()
-
-  def MonitorButtonEvent(self):
+  def _PollForCondition(self, poll_method, condition_name):
+    elapsed_time = time.time() - self._action_timestamps[0]
     sync_utils.PollForCondition(
-        poll_method=self.ButtonIsPressed,
-        timeout_secs=self.args.timeout_secs,
-        condition_name='WaitForPress')
-    self._pressed_sec = self.getCurrentEpochSec()
-    self.AskForButtonRelease()
-    elapsed_time = self._pressed_sec - self._start_waiting_sec
-    sync_utils.PollForCondition(
-        poll_method=lambda: not self.ButtonIsPressed(),
+        poll_method=poll_method,
         timeout_secs=self.args.timeout_secs - elapsed_time,
-        condition_name='WaitForRelease')
-    self._released_sec = self.getCurrentEpochSec()
-    self.ui.Pass()
+        condition_name=condition_name)
+    self._action_timestamps.append(time.time())
 
-  def AskForButtonRelease(self):
-    self.ui.SetHTML(_MSG_PROMPT_RELEASE, id=_ID_PROMPT)
+  def _MonitorButtonEvent(self):
+    for done in xrange(self.args.repeat_times):
+      if self.args.repeat_times == 1:
+        progress = ''
+      else:
+        progress = ' (%d/%d)' % (done, self.args.repeat_times)
+      label = test_ui.MakeLabel(
+          _MSG_PROMPT_PRESS[0] % (self.args.button_name_en, progress),
+          _MSG_PROMPT_PRESS[1] % (self.args.button_name_zh, progress),
+          _MSG_PROMPT_CSS_CLASS)
+      self.ui.SetHTML(label, id=_ID_PROMPT)
+      self._PollForCondition(self.button.IsPressed, 'WaitForPress')
+      label = test_ui.MakeLabel(_MSG_PROMPT_RELEASE[0],
+                                _MSG_PROMPT_RELEASE[1],
+                                _MSG_PROMPT_CSS_CLASS)
+      self.ui.SetHTML(label, id=_ID_PROMPT)
+      self._PollForCondition(lambda: not self.button.IsPressed(),
+                             'WaitForRelease')
+    self.ui.Pass()
 
   def runTest(self):
     self.ui.Run()
