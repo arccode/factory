@@ -206,11 +206,12 @@ chroot_tmpfs_to_wipe() {
 # Main function
 
 main() {
+  invoke_self_under_tmp
+
   # Create the wiping tmpfs and it will copy some files from rootfs to tmpfs.
   # Therefore, we need to do this before unmount stateful partition.
   "${CREATE_TMPFS}" "${NEWROOT}"
 
-  invoke_self_under_tmp
   parse_wipe_args
   stop_running_upstart_jobs
   unmount_stateful
