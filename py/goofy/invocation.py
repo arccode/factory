@@ -210,6 +210,7 @@ class TestInvocation(object):
         target=self._run, name='TestInvocation-%s' % test.path)
     self.on_completion = on_completion
     self.on_test_failure = on_test_failure
+    self.resume_test = False
     post_shutdown_tag = state.POST_SHUTDOWN_TAG % test.path
     if factory.get_shared_data(post_shutdown_tag):
       # If this is going to be a post-shutdown run of an active shutdown test,
@@ -240,12 +241,23 @@ class TestInvocation(object):
     self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
                           'CROS_FACTORY_TEST_PARENT_INVOCATION': self.uuid,
                           'CROS_FACTORY_TEST_METADATA': self.metadata_file}
-    self.metadata = {}
-    self.update_metadata(path=test.path,
-                         init_time=time.time(),
-                         invocation=str(self.uuid),
-                         label_en=test.label_en,
-                         label_zh=test.label_zh)
+
+    # Resuming from an active shutdown test, try to restore its metadata file.
+    if factory.get_shared_data(post_shutdown_tag):
+      try:
+        self.load_metadata()
+      except:
+        logging.exception('Failed to load metadata from active shutdown test; '
+                          'will continue, but logs will be inaccurate')
+
+    if not self.resume_test:
+      self.metadata = {}
+      self.update_metadata(path=test.path,
+                           init_time=time.time(),
+                           invocation=str(self.uuid),
+                           label_en=test.label_en,
+                           label_zh=test.label_zh)
+
     self.count = None
     self.log_path = os.path.join(self.output_dir, 'log')
     self.update_state_on_completion = {}
@@ -260,6 +272,26 @@ class TestInvocation(object):
   def __repr__(self):
     return 'TestInvocation(_aborted=%s, _completed=%s)' % (
         self._aborted, self._completed)
+
+  def load_metadata(self):
+    def _ValidateMetadata(metadata):
+      REQUIRED_FIELDS = ['path', 'dargs', 'invocation',
+                         'label_en', 'label_zh',
+                         'init_time', 'start_time']
+      for field in REQUIRED_FIELDS:
+        if field not in metadata:
+          raise Exception('metadata missing field %s' % field)
+      if self.test.autotest_name and 'autotest_name' not in metadata:
+        raise Exception('metadata missing field autotest_name')
+      if self.test.pytest_name and 'pytest_name' not in metadata:
+        raise Exception('metadata missing field pytest_name')
+      return True
+
+    with open(self.metadata_file, 'r') as f:
+      metadata = yaml.load(f)
+    if _ValidateMetadata(metadata):
+      self.metadata = metadata
+      self.resume_test = True
 
   def update_metadata(self, **kwargs):
     self.metadata.update(kwargs)
@@ -582,24 +614,49 @@ class TestInvocation(object):
     service_manager.SetupServices(enable_services=self.test.enable_services,
                                   disable_services=self.test.disable_services)
 
-    log_args = dict(
-        path=self.test.path,
-        # Use Python representation for dargs, since some elements
-        # may not be representable in YAML.
-        dargs=repr(self.test.dargs),
-        invocation=self.uuid)
-    if self.test.autotest_name:
-      log_args['autotest_name'] = self.test.autotest_name
-    if self.test.pytest_name:
-      log_args['pytest_name'] = self.test.pytest_name
+    # Resume the previously-running test.
+    if self.resume_test:
+      self.start_time = self.metadata['start_time']
+      log_args = dict(
+          path=self.metadata['path'],
+          dargs=self.metadata['dargs'],
+          invocation=self.uuid)
+      if self.test.autotest_name:
+        log_args['autotest_name'] = self.metadata['autotest_name']
+      if self.test.pytest_name:
+        log_args['pytest_name'] = self.metadata['pytest_name']
 
-    self.goofy.event_log.Log('start_test', **log_args)
+      try:
+        self.goofy.event_log.Log('resume_test', **log_args)
+      except Exception:
+        logging.exception('Unable to log resume_test event')
 
-    self.update_metadata(start_time=time.time(), **log_args)
-    start_time = time.time()
+      syslog.syslog('Test %s (%s) resuming' % (
+          self.test.path, self.uuid))
 
-    syslog.syslog('Test %s (%s) starting' % (
-        self.test.path, self.uuid))
+    # Not resuming the previously-running test.
+    else:
+      log_args = dict(
+          path=self.test.path,
+          # Use Python representation for dargs, since some elements
+          # may not be representable in YAML.
+          dargs=repr(self.test.dargs),
+          invocation=self.uuid)
+      if self.test.autotest_name:
+        log_args['autotest_name'] = self.test.autotest_name
+      if self.test.pytest_name:
+        log_args['pytest_name'] = self.test.pytest_name
+
+      self.start_time = time.time()
+      self.update_metadata(start_time=self.start_time, **log_args)
+
+      try:
+        self.goofy.event_log.Log('start_test', **log_args)
+      except Exception:
+        logging.exception('Unable to log start_test event')
+
+      syslog.syslog('Test %s (%s) starting' % (
+          self.test.path, self.uuid))
 
     try:
       if self.test.prepare:
@@ -641,7 +698,7 @@ class TestInvocation(object):
         # things but will make it easier to grok the output.
         end_time = time.time()
         log_args.update(dict(status=status,
-                             duration=(end_time - start_time)))
+                             duration=(end_time - self.start_time)))
         if error_msg:
           log_args['error_msg'] = error_msg
         if (status != TestState.PASSED and
