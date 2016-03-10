@@ -30,10 +30,10 @@ Here's an example of input arguments::
           {
             "ssid": "ap_5g",
             "password": "pass2",
-            "min_signal_strength": 40,
+            "min_strength": -40,
           }
       ],
-      "min_signal_strength": 20,
+      "min_strength": -20,
       "iperf_host": "10.0.0.1",
       "min_tx_throughput": 100,
   }
@@ -47,7 +47,7 @@ looks like this::
           {
             "ssid": "ap",
             "password": "pass1",
-            "min_signal_strength": 20, # inherited from test-level arg
+            "min_strength": -20, # inherited from test-level arg
             "iperf_host": "10.0.0.1",  # inherited from test-level arg
             "min_tx_throughput": 100,  # inherited from test-level arg
             "min_rx_throughput": 80,
@@ -55,7 +55,7 @@ looks like this::
           {
             "ssid": "ap_5g",
             "password": "pass2",
-            "min_signal_strength": 40, # blocks test-level arg
+            "min_strength": -40, # blocks test-level arg
             "iperf_host": "10.0.0.1",  # inherited from test-level arg
             "min_tx_throughput": 100,  # inherited from test-level arg
           }
@@ -78,25 +78,16 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import event_log
 from cros.factory.test import factory, leds
-from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg, Args
+from cros.factory.test.dut import CalledProcessError
 from cros.factory.test.fixture import arduino
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils import net_utils
-from cros.factory.utils import process_utils
-from cros.factory.utils import service_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-# pylint: disable=W0611, F0401
-import cros.factory.test.autotest_common
-from autotest_lib.client.cros.networking import wifi_proxy
-# pylint: enable=W0611, F0401
-
-
-_SERVICE_LIST = ['shill', 'shill_respawn', 'wpasupplicant', 'modemmanager']
 _WIFI_TIMEOUT_SECS = 20
 _DEFAULT_POLL_INTERVAL_SECS = 1
 _IPERF_TIMEOUT_SECS = 5
@@ -114,7 +105,7 @@ _MSG_RUNNING = test_ui.MakeLabel(
 
 
 def _BitsToMbits(x):
-  return x / (10.0 ** 6)
+  return x / 1.e6
 
 
 def _BytesToMbits(x):
@@ -132,6 +123,9 @@ class Iperf3(object):
   DEFAULT_TRANSMIT_INTERVAL = 1
   # Wait (transmit_time + _TIMEOUT_KILL_BUFFER) before killing iperf3.
   _TIMEOUT_KILL_BUFFER = 5
+
+  def __init__(self, dut_object):
+    self._dut = dut_object
 
   def InvokeClient(
       self, server_host, bind_ip=None,
@@ -219,8 +213,7 @@ class Iperf3(object):
     # emulate this behaviour for the convenience of the caller in the
     # try/catch exception below.)
     timeout_cmd = [
-        'timeout',
-        '--signal', 'TERM',
+        'timeout',  # sends TERM signal after timeout
         # Add _TIMEOUT_KILL_BUFFER seconds to allow for process overhead and
         # connection time.
         str(transmit_time + self._TIMEOUT_KILL_BUFFER)] + iperf_cmd
@@ -230,8 +223,8 @@ class Iperf3(object):
         server_host, transmit_time)
 
     try:
-      output = process_utils.SpawnOutput(timeout_cmd, log=True)
-      logging.info(output)
+      output = self._dut.CallOutput(timeout_cmd, log=True)
+      logging.info('iperf3 output: %s', output)
       json_output = json.loads(output)
 
       # Basic sanity checks before return.
@@ -295,19 +288,22 @@ class _ServiceTest(object):
   _bind_wifi = None
 
   # State to be carried along from test to test.
+  _ap = None
+  _conn = None
   _ap_config = None
   _service = None
   _log = None
 
-  def __init__(self, wifi, iperf3, ui, bind_wifi):
+  def __init__(self, wifi, interface, iperf3, ui, bind_wifi):
     self._wifi = wifi
+    self._interface = interface
     self._iperf3 = iperf3
     self._ui = ui
     self._bind_wifi = bind_wifi
 
   def _Log(self, text, *args):
     f_name = sys._getframe(1).f_code.co_name  # pylint: disable=W0212
-    factory.console.info('[%s] INFO [%s] ' + text,
+    factory.console.info(u'[%s] INFO [%s] ' + text,
                          self._ap_config.ssid, f_name, *args)
 
   def Run(self, ap_config):
@@ -327,7 +323,7 @@ class _ServiceTest(object):
 
     Args:
       ap_config: The configuration dict for testing this particular service.
-          E.g. ssid, password, min_signal_strength, transmit_time
+          E.g. ssid, password, min_strength, transmit_time
 
     Returns:
       A log representing the result of testing this service.  The log's
@@ -340,7 +336,7 @@ class _ServiceTest(object):
         'ap': None,
         'iperf_tx': None,
         'iperf_rx': None,
-        'pass_signal_strength': None,
+        'pass_strength': None,
         'pass_iperf_tx': None,
         'pass_iperf_rx': None,
         'failures': []}
@@ -377,8 +373,8 @@ class _ServiceTest(object):
       DoTest(self._Find, abort=True,
              ssid=ap_config.ssid)
 
-      DoTest(self._CheckSignalStrength,
-             min_signal_strength=ap_config.min_signal_strength)
+      DoTest(self._CheckStrength,
+             min_strength=ap_config.min_strength)
 
       DoTest(self._Connect, abort=True,
              ssid=ap_config.ssid,
@@ -411,82 +407,67 @@ class _ServiceTest(object):
       except self._TestException:
         pass  # continue to next test (TX/RX)
 
+    # Attempt to disconnect from the WiFi network.
+    try:
+      DoTest(self._Disconnect,
+             ssid=ap_config.ssid)
+    except self._TestException:
+      pass
+
     # Need to return service's log state.
     return self._log
 
   def _Find(self, ssid):
-    # Manually request a scan of WiFi services.
-    self._wifi.manager.RequestScan('wifi')
-
     # Look for requested service.
-    self._Log('Trying to connect to service %s...', ssid)
+    self._Log(u'Trying to connect to service %s...', ssid)
     try:
-      self._service = sync_utils.PollForCondition(
-          poll_method=lambda: self._wifi.find_matching_service({
-              self._wifi.SERVICE_PROPERTY_TYPE: 'wifi',
-              self._wifi.SERVICE_PROPERTY_NAME: ssid}),
+      self._ap = sync_utils.PollForCondition(
+          poll_method=lambda: self._wifi.FindAccessPoint(
+              interface=self._interface,
+              ssid=ssid,
+              scan_timeout=_WIFI_TIMEOUT_SECS),
           timeout_secs=_WIFI_TIMEOUT_SECS,
           poll_interval_secs=_DEFAULT_POLL_INTERVAL_SECS,
           condition_name='Looking for service %s...' % ssid)
     except Exception:
-      raise self._TestException('Unable to find service %s' % ssid)
-    return 'Found service %s' % ssid
+      raise self._TestException(u'Unable to find service %s' % ssid)
+    return u'Found service %s' % ssid
 
-  def _CheckSignalStrength(self, min_signal_strength):
+  def _CheckStrength(self, min_strength):
     # Check signal strength.
-    if min_signal_strength is not None:
-      strength = self._wifi.get_dbus_property(self._service, 'Strength')
-      self._log['pass_signal_strength'] = (strength >= min_signal_strength)
-      if not self._log['pass_signal_strength']:
-        raise self._TestException(
-            'strength %d < %d [fail]' % (strength, min_signal_strength))
+    if min_strength is not None:
+      strength = self._ap.strength
+      self._log['pass_strength'] = strength >= min_strength
+      if not self._log['pass_strength']:
+        raise self._TestException('strength %d < %d [fail]'
+                                  % (strength, min_strength))
       else:
-        return 'strength %d >= %d [pass]' % (strength, min_signal_strength)
+        return 'strength %d >= %d [pass]' % (strength, min_strength)
 
   def _Connect(self, ssid, password):
-    # Manually request a scan of WiFi services.
-    self._wifi.manager.RequestScan('wifi')
-
-    # Check for connection state.
-    is_active = self._wifi.get_dbus_property(self._service, 'IsActive')
-    if is_active:
-      raise self._TestException('Unexpectedly already connected to %s' % ssid)
-
     # Try connecting.
     self._Log('Connecting to %s...', ssid)
-    security_dict = {
-        self._wifi.SERVICE_PROPERTY_PASSPHRASE: password}
-    (success, _, _, _, reason) = self._wifi.connect_to_wifi_network(
-        ssid=ssid,
-        security=('psk' if password else 'none'),
-        security_parameters=(security_dict if password else {}),
-        save_credentials=False,
-        autoconnect=False,
-        discovery_timeout_seconds=_WIFI_TIMEOUT_SECS,
-        association_timeout_seconds=_WIFI_TIMEOUT_SECS,
-        configuration_timeout_seconds=_WIFI_TIMEOUT_SECS)
-    if not success:
-      raise self._TestException('Unable to connect to %s: %s' % (ssid, reason))
+    try:
+      self._conn = self._wifi.Connect(
+          interface=self._interface,
+          ap=self._ap,
+          passkey=password,
+          connect_timeout=_WIFI_TIMEOUT_SECS,
+          dhcp_timeout=_WIFI_TIMEOUT_SECS)
+    except self._wifi.WiFiError as e:
+      raise self._TestException('Unable to connect to %s: %s'
+                                % (ssid, e.message))
     else:
       return 'Successfully connected to %s' % ssid
 
   def _LogConnection(self):
-    # Show ifconfig and iwconfig output.
-    self._log['ifconfig'] = process_utils.SpawnOutput(
-        ['ifconfig'], check_call=True, log=True)
-    logging.info(self._log['ifconfig'])
-    self._log['iwconfig'] = process_utils.SpawnOutput(
-        ['iwconfig'], check_call=True, log=True)
-    logging.info(self._log['iwconfig'])
-
     # Save network ssid details.
     self._log['ap'] = {
-        'ssid': self._wifi.get_dbus_property(self._service, 'Name'),
-        'security': self._wifi.get_dbus_property(self._service, 'Security'),
-        'strength': self._wifi.get_dbus_property(self._service, 'Strength'),
-        'bssid': self._wifi.get_dbus_property(self._service, 'WiFi.BSSID'),
-        'frequency': self._wifi.get_dbus_property(
-            self._service, 'WiFi.Frequency')}
+        'ssid': self._ap.ssid,
+        'bssid': self._ap.bssid,
+        'encryption': self._ap.encryption_type,
+        'strength': self._ap.strength,
+        'frequency': self._ap.frequency}
     return 'Saved connection information'
 
   def _RunIperf(
@@ -496,8 +477,8 @@ class _ServiceTest(object):
     # Determine the IP address to bind to (in order to prevent the test from
     # running on a wired device).
     if bind_wifi:
-      bind_dev = net_utils.GetWLANInterface()
-      bind_ip = net_utils.GetEthernetIp(bind_dev)
+      bind_dev = self._interface
+      bind_ip = self._conn.ip
       logging.info('%s binding to %s on device %s', tx_rx, bind_ip, bind_dev)
 
     # Invoke iperf3.  If another client is currently running a test, wait
@@ -594,6 +575,17 @@ class _ServiceTest(object):
                 _BitsToMbits(iperf_avg['bits_per_second']),
                 min_throughput))
 
+  def _Disconnect(self, ssid):
+    # Try disconnecting.
+    self._Log('Disconnecting from %s...', ssid)
+    try:
+      self._conn.Disconnect()
+    except self._wifi.WiFiError as e:
+      raise self._TestException('Unable to disconnect from %s: %s'
+                                % (ssid, e.message))
+    else:
+      return 'Successfully disconnected from %s' % ssid
+
 
 class _Ui(object):
   def __init__(self):
@@ -640,7 +632,7 @@ class WiFiThroughput(unittest.TestCase):
   # Arguments that can only be applied to each WiFi service connection.  These
   # will be checked as key-values in the test's "service" argument (see below).
   _SERVICE_ARGS = [
-      Arg('ssid', str,
+      Arg('ssid', (str, unicode),
           'SSID of WiFi service.',
           optional=False),
       Arg('password', str,
@@ -656,8 +648,8 @@ class WiFiThroughput(unittest.TestCase):
           'Host running iperf3 in server mode, used for testing data '
           'transmission speed.',
           optional=True, default=None),
-      Arg('min_signal_strength', int,
-          'Minimum signal strength required (range from 0 to 100).',
+      Arg('min_strength', int,
+          'Minimum signal strength required (measured in dBm).',
           optional=True),
       Arg('transmit_time', int,
           'Time in seconds for which to transmit data.',
@@ -683,14 +675,33 @@ class WiFiThroughput(unittest.TestCase):
   # want the option to provide arguments as global defaults (as in the example
   # above).
   ARGS = [
-      Arg('event_log_name', str, 'Name of the event_log.  We might want to '
-          're-run the conductive test at different points in the factory, so '
-          'this can be used to separate them.  '
-          'e.g. "wifi_throughput_in_chamber"',
+      Arg('event_log_name', str,
+          'Name of the event_log.  We might want to re-run the conductive '
+          'test at different points in the factory, so this can be used to '
+          'separate them.  e.g. "wifi_throughput_in_chamber"',
           optional=False),
+      Arg('pre_command', str,
+          'Command to be run before executing the test.  For example, this '
+          'could be used to run "insmod" to load a WiFi module on the DUT.  '
+          'Does not check output of the command.',
+          optional=True, default=None),
+      Arg('post_command', str,
+          'Command to be run after executing the test.  For example, this '
+          'could be used to run "rmmod" to unload a WiFi module on the DUT.  '
+          'Does not check output of the command.',
+          optional=True, default=None),
+      Arg('interface', str,
+          'WLAN interface being used.  e.g. wlan0.  If not specified, this '
+          'will default to the first wireless interface found.',
+          optional=True, default=None),
       Arg('arduino_high_pins', list,
           'A list of ints.  If not None, set arduino pins in the list to high.',
           optional=True, default=None),
+      Arg('blink_leds', bool,
+          'Whether or not to blink keyboard LEDs while running the test.  '
+          'Useful when running with DUT inside of a chamber, and using an '
+          'external keyboard to show test status.',
+          optional=True, default=False),
       Arg('bind_wifi', bool,
           'Whether we should restrict iperf3 to running on the WiFi interface.',
           optional=True, default=True),
@@ -711,7 +722,7 @@ class WiFiThroughput(unittest.TestCase):
           'field is also included.  (Omit or set to None or "" for an open '
           'network.)  Additionally, the following fields can be provided to '
           'override arguments passed to this test (refer to _SHARED_ARGS): '
-          'min_signal_strength, iperf_host, transmit_time, transmit_interval, '
+          'min_strength, iperf_host, transmit_time, transmit_interval, '
           'min_rx_throughput, min_tx_throughput.  If services are not '
           'specified, this test will simply list APs.  Also note that each '
           'service may only be specified once.',
@@ -727,10 +738,15 @@ class WiFiThroughput(unittest.TestCase):
 
   def _StartOperatorFeedback(self):
     # In case we're in a chamber without a monitor, store blinking keyboard LEDs
-    # object to inform the operator that we're still working.  We'll run this in
-    # runTest using a 'with' statement.
-    self._leds_blinker = leds.Blinker(
-        [(0, 0.5), (leds.LED_NUM | leds.LED_CAP | leds.LED_SCR, 0.5)])
+    # object to inform the operator that we're still working.
+    if self.args.blink_leds:
+      self._leds_blinker = leds.Blinker(
+          [(0, 0.5), (leds.LED_NUM | leds.LED_CAP | leds.LED_SCR, 0.5)])
+      # This starts a thread running in the background until
+      # self._leds_blinker.Stop is called in self._EndOperatorFeedback.
+      # We must ensure that Stop will always be called, otherwise the test will
+      # hang after completion.
+      self._leds_blinker.Start()
 
     # If arduino_high_pins is provided as an argument, then set the requested
     # pins in the list to high.
@@ -749,13 +765,10 @@ class WiFiThroughput(unittest.TestCase):
   def _RunBasicSSIDList(self):
     # Basic WiFi test -- returns available APs.
     try:
-      found_ssids = sync_utils.PollForCondition(
-          poll_method=self._wifi.get_active_wifi_SSIDs,
-          timeout_secs=_WIFI_TIMEOUT_SECS,
-          poll_interval_secs=_DEFAULT_POLL_INTERVAL_SECS,
-          condition_name='Looking for WiFi services...')
+      found_aps = self._wifi.FilterAccessPoints(interface=self.args.interface)
+      found_ssids = list(set([ap.ssid for ap in found_aps]))
       factory.console.info('Found services: %s', ', '.join(found_ssids))
-    except Exception:
+    except self._wifi.WiFiError:
       error_msg = 'Timed out while searching for WiFi services'
       self.log['failures'].append(error_msg)
       self._Log()
@@ -803,7 +816,17 @@ class WiFiThroughput(unittest.TestCase):
   def setUp(self):
     # Services should inherit from provided "test-level" arguments.
     self._ProcessArgs()
-    self.dut = dut.Create()
+    self._dut = dut.Create()
+
+    # Run our pre-command.
+    if self.args.pre_command:
+      factory.console.info('Running pre-command: %s', self.args.pre_command)
+      try:
+        output = self._dut.CheckOutput(self.args.pre_command)
+      except CalledProcessError as e:
+        factory.console.info('Exit code: %d', e.returncode)
+      else:
+        factory.console.info('Success. Output: %s', output)
 
     # Initialize the log dict, which will later be fed into event log.
     self.log = {
@@ -812,12 +835,7 @@ class WiFiThroughput(unittest.TestCase):
             'path': os.environ.get('CROS_FACTORY_TEST_PATH'),
             'invocation': os.environ.get('CROS_FACTORY_TEST_INVOCATION')},
         'dut': {
-            'device_id': event_log.GetDeviceId(),
-            'mac_address': net_utils.GetWLANMACAddress(),
-            'serial_number': shopfloor.GetDeviceData().get(
-                'serial_number', None),
-            'mlb_serial_number': shopfloor.GetDeviceData().get(
-                'mlb_serial_number', None)},
+            'device_id': event_log.GetDeviceId()},
         'ssid_list': {},
         'test': {},
         'failures': []}
@@ -825,21 +843,15 @@ class WiFiThroughput(unittest.TestCase):
     # Keyboard lights and arduino pins.
     self._StartOperatorFeedback()
 
-    # Ensure all required services are enabled.
-    for service in _SERVICE_LIST:
-      if (service_utils.GetServiceStatus(service, self.dut) ==
-          service_utils.Status.STOP):
-        service_utils.SetServiceStatus(
-            service, service_utils.Status.START, self.dut)
-
     # Disable ethernet interfaces if needed.
     if self.args.disable_eth:
       logging.info('Disabling ethernet interfaces')
       net_utils.SwitchEthernetInterfaces(False)
 
     # Initialize our WifiProxy library and Iperf3 library.
-    self._wifi = wifi_proxy.WifiProxy()
-    self._iperf3 = Iperf3()
+    self._interface = None
+    self._wifi = self._dut.wifi
+    self._iperf3 = Iperf3(self._dut)
 
     # If use_ui_retry and we are running the UI (will except when run on
     # command-line), then use a retry-loop in the goofy UI when an iperf3 server
@@ -855,72 +867,78 @@ class WiFiThroughput(unittest.TestCase):
     logging.info('Tear down...')
     self._EndOperatorFeedback()
 
+    # Run our post-command.
+    if self.args.post_command:
+      factory.console.info('Running post-command: %s', self.args.post_command)
+      try:
+        output = self._dut.CheckOutput(self.args.post_command)
+      except CalledProcessError as e:
+        factory.console.info('Exit code: %d', e.returncode)
+      else:
+        factory.console.info('Success. Output: %s', output)
+
     # Enable ethernet interfaces if needed.
     if self.args.disable_eth:
       logging.info('Enabling ethernet interfaces')
       net_utils.SwitchEthernetInterfaces(True)
 
-  def _RunTestChecks(self):
+  def _SelectInterface(self):
     # Check that we have an online WLAN interface.
-    dev = net_utils.GetWLANInterface()
-    if not dev:
-      error_str = 'No wireless interface available'
+    interfaces = self._wifi.GetInterfaces()
+
+    # Ensure there are WLAN interfaces available.
+    if not interfaces:
+      error_str = 'No WLAN interfaces available'
       self.log['failures'].append(error_str)
       self._Log()
       self.fail(error_str)
-    else:
-      logging.info('ifconfig %s up', dev)
-      process_utils.Spawn(['ifconfig', dev, 'up'], check_call=True, log=True)
 
-    # Ensure that WiFi is in a disconnected state.
-    service = self._wifi.find_matching_service({
-        self._wifi.SERVICE_PROPERTY_TYPE: 'wifi',
-        'IsActive': True})
-    if service:
-      logging.info('First disconnect from current WiFi service...')
-      if not self._wifi.disconnect_service_synchronous(
-          service, _WIFI_TIMEOUT_SECS):
-        error_str = 'Failed to disconnect from current WiFi service'
-        self.log['failures'].append(error_str)
-        self._Log()
-        self.fail(error_str)
-      else:
-        logging.info('Disconnected successfully from current WiFi service')
+    # If a specific interface is specified, check that it exists.
+    if self.args.interface and self.args.interface not in interfaces:
+      error_str = 'Specified interface %s not available' % self.args.interface
+      self.log['failures'].append(error_str)
+      self._Log()
+      self.fail(error_str)
+
+    # Return the selected interface if specified, or choose the first available
+    # one by default.
+    return self.args.interface or interfaces[0]
 
   def runTest(self):
-    # Ensure that our WiFi device is in a known disconnected state.
-    self._RunTestChecks()
+    # Choose the WLAN interface to use for this test, either from the test
+    # arguments, or by choosing the first one listed on the device.
+    self._interface = self._SelectInterface()
+    factory.console.info('Selected interface: %s', self._interface)
 
-    # Blink LEDs while test is running.
-    with self._leds_blinker:
-      # Run a basic SSID list test (if none found will fail).
-      found_ssids = self._RunBasicSSIDList()
-      # TODO(kitching): Remove this hack to take out Unicode characters, which
-      #                 works around crbug.com/443073.
-      found_ssids = [
-          [x for x in ssid if x in string.printable] for ssid in found_ssids]
-      self.log['ssid_list'] = found_ssids
+    # Run a basic SSID list test (if none found will fail).
+    found_ssids = self._RunBasicSSIDList()
+    # TODO(kitching): Remove this hack to take out Unicode characters, which
+    #                 works around crbug.com/443073.
+    found_ssids = [
+        ''.join([x for x in ssid if x in string.printable])
+        for ssid in found_ssids]
 
-      # Test WiFi signal strength for each service.
-      if self.args.services:
-        service_test = _ServiceTest(self._wifi, self._iperf3, self._ui,
-                                    self.args.bind_wifi)
-        for ap_config in self.args.services:
-          self.log['test'][ap_config.ssid] = service_test.Run(ap_config)
+    # Test WiFi signal strength for each service.
+    if self.args.services:
+      service_test = _ServiceTest(self._wifi, self._interface,
+                                  self._iperf3, self._ui,
+                                  self.args.bind_wifi)
+      for ap_config in self.args.services:
+        self.log['test'][ap_config.ssid] = service_test.Run(ap_config)
 
-      # Log this test run.
-      self._Log()
+    # Log this test run.
+    self._Log()
 
-      # Check for any failures and report an aggregation.
-      all_failures = []
-      for ssid, ap_log in self.log['test'].iteritems():
-        for error_msg in ap_log['failures']:
-          all_failures.append((ssid, error_msg))
-      if all_failures:
-        error_msg = ('Error in connecting and/or running iperf3 '
-                     'on one or more services')
-        factory.console.error(error_msg)
-        factory.console.error('Error summary:')
-        for (ssid, failure) in all_failures:
-          factory.console.error(failure)
-        self.fail(error_msg)
+    # Check for any failures and report an aggregation.
+    all_failures = []
+    for ssid, ap_log in self.log['test'].iteritems():
+      for error_msg in ap_log['failures']:
+        all_failures.append((ssid, error_msg))
+    if all_failures:
+      error_msg = ('Error in connecting and/or running iperf3 '
+                   'on one or more services')
+      factory.console.error(error_msg)
+      factory.console.error('Error summary:')
+      for (ssid, failure) in all_failures:
+        factory.console.error(failure)
+      self.fail(error_msg)
