@@ -76,6 +76,9 @@ class FixtureEntry(unittest.TestCase):
       Arg('clear_device_data', bool,
           'Clear device data (serial numbers).',
           default=True, optional=True),
+      Arg('timeout_secs', int,
+          'Timeout for waiting the device. Set to None for waiting forever.',
+          default=None, optional=True),
   ]
 
   def setUp(self):
@@ -111,7 +114,7 @@ class FixtureEntry(unittest.TestCase):
 
   def Start(self):
     self._template.SetState(_MSG_INSERT)
-    sync_utils.WaitFor(self._dut.link.IsReady, None)
+    sync_utils.WaitFor(self._dut.link.IsReady, self.args.timeout_secs)
 
     if self.args.prompt_start:
       self._template.SetState(_MSG_PRESS_SPACE)
@@ -124,7 +127,8 @@ class FixtureEntry(unittest.TestCase):
 
     self._template.SetState(_MSG_REMOVE_DUT)
     if not self._dut.link.IsLocal():
-      sync_utils.WaitFor(lambda: not self._dut.link.IsReady(), None)
+      sync_utils.WaitFor(lambda: not self._dut.link.IsReady(),
+                         self.args.timeout_secs)
 
     self._template.SetState(_MSG_RESTART_TESTS)
     self.RestartAllTests()
