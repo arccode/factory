@@ -26,6 +26,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test.args import Arg
+from cros.factory.test.utils.mount_utils import Mount
 
 BLOCK_SIZE = 4096
 
@@ -33,18 +34,22 @@ BLOCK_SIZE = 4096
 class SimpleStorageStressTest(unittest.TestCase):
 
   ARGS = [
-      Arg('dir', str, 'Directory for creating files for random access'),
+      Arg('dir', str, 'Directory for creating files for random access.'),
       Arg('file_size', int,
-          'The file size of generated file'),
+          'The file size of generated file.'),
       Arg('operations', int,
-          'The number of operations to perform')
+          'The number of operations to perform.'),
+      Arg('mount_device', str, 'If not None, we mount the given device first '
+          'to a temp directory, and perform reading / writing under the '
+          "directory. The arugment 'dir' will be used as the relative path "
+          'under the mount point.', default=None),
   ]
 
   def setUp(self):
     self._dut = dut.Create()
 
   def ReadWriteFile(self, test_file, file_size):
-    """Performs a read/write to a specific file descriptor."""
+    """Performs a read/write to a specific file."""
 
     with self._dut.temp.TempFile() as data_file:
       # Prepare a random content.
@@ -81,11 +86,19 @@ class SimpleStorageStressTest(unittest.TestCase):
       logging.info('Read time=%.3f secs', read_time)
       return True
 
-  def runTest(self):
+  def TestReadWriteIn(self, dirpath):
     file_size = self.args.file_size
     for iteration in xrange(self.args.operations):
-      with self._dut.temp.TempFile(dir=self.args.dir) as temp_file:
+      with self._dut.temp.TempFile(dir=dirpath) as temp_file:
         logging.info(
             '[%d/%d]: Tempfile[%s] created for %d bytes write/read test',
             iteration, self.args.operations, temp_file, file_size)
         self.ReadWriteFile(temp_file, file_size)
+
+  def runTest(self):
+    if self.args.mount_device:
+      with self._dut.temp.TempDirectory() as mount_path:
+        with Mount(self._dut, self.args.mount_device, mount_path):
+          self.TestReadWriteIn(self._dut.path.join(mount_path, self.args.dir))
+    else:
+      self.TestReadWriteIn(self.args.dir)
