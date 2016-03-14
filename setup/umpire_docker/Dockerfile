@@ -11,7 +11,7 @@ RUN apt-get install -y python-yaml python-netifaces python-pexpect \
 	python-numpy python-twisted python-twisted-web python-protobuf \
 	python-pyudev python-pil lighttpd python-flup unzip parallel \
 	pbzip2 pigz binutils sharutils rsync aptitude screen vim psmisc \
-	dbus ssh htop openssh-server
+	dbus ssh htop openssh-server cgpt
 
 # https://github.com/sequenceiq/docker-pam
 # Workaround pam issue for chpasswd

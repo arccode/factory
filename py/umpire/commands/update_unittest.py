@@ -4,14 +4,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import gzip
 import mox
 import os
+import subprocess
 import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
-from cros.factory.umpire.commands.update import ResourceUpdater
+from cros.factory.umpire.commands.update import (
+    ResourceUpdater, ConvertChromeOSImageToMiniOmahaFormat,
+    SECTOR_SIZE, MINI_OMAHA_FSI_EXPECTED_NAME,
+    MINI_OMAHA_KERNEL_PART_NUM, MINI_OMAHA_ROOTFS_PART_NUM)
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.config import UmpireConfig
 from cros.factory.umpire.umpire_env import UmpireEnvForTest
@@ -213,6 +218,73 @@ class ResourceUpdaterTest(unittest.TestCase):
 
     mox_obj.UnsetStubs()
     mox_obj.VerifyAll()
+
+  # TODO(littlecvr): remove this once mini-omaha changed its protocol.
+  def testUpdateFSIFromChromeOSImage(self):
+    MOCK_FSI_PARTITIONS = [
+        {'num': 1, 'label': 'STATE', 'type': 'data', 'sectors': 128},
+        {'num': 2, 'label': 'KERN-A', 'type': 'kernel', 'sectors': 16},
+        {'num': 3, 'label': 'ROOT-A', 'type': 'rootfs', 'sectors': 32},
+        {'num': 4, 'label': 'KERN-B', 'type': 'kernel', 'sectors': 16},
+        {'num': 5, 'label': 'ROOT-B', 'type': 'rootfs', 'sectors': 32}]
+    # CGPT structure (before creating any partitions):
+    #   [content]       [start]     [sectors]
+    #   PMBR            0           1
+    #   pri header      1           1
+    #   pri table       2           32
+    #   (empty)         34          ${TOTAL}-1-1-32-32-1
+    #   sec table       ${END}-33   32
+    #   sec header      $(END}-1    1
+    MOCK_FSI_IMAGE_SIZE = SECTOR_SIZE * (
+        1 + 1 + 32 + 32 + 1 +  # PMBR + CPGT headers
+        sum(p['sectors'] for p in MOCK_FSI_PARTITIONS))
+    CGPT_HEADER_SECTORS = 1 + 1 + 32
+
+    # mk_memento_images.sh is in setup
+    MK_MEMENTO_IMAGES_SH_PATH = os.path.realpath(TEST_DIR)
+    for _ in xrange(3):
+      MK_MEMENTO_IMAGES_SH_PATH = os.path.dirname(MK_MEMENTO_IMAGES_SH_PATH)
+    MK_MEMENTO_IMAGES_SH_PATH = os.path.join(
+        MK_MEMENTO_IMAGES_SH_PATH, 'setup', 'mk_memento_images.sh')
+
+    with file_utils.TempDirectory() as temp_dir:
+      # Create a fake FSI image.
+      input_path = os.path.join(temp_dir, 'input.bin')
+      with open(input_path, 'wb') as fin:
+        fin.write(os.urandom(MOCK_FSI_IMAGE_SIZE))
+
+      # cgpt will complain that the header's broken but that's fine
+      subprocess.check_call(['cgpt', 'create', input_path])
+
+      current_partition_start = CGPT_HEADER_SECTORS
+      for partition in MOCK_FSI_PARTITIONS:
+        subprocess.check_call([
+            'cgpt', 'add', '-i', str(partition['num']),
+            '-b', str(current_partition_start),
+            '-s', str(partition['sectors']),
+            '-t', partition['type'],
+            '-l', partition['label'],
+            input_path])
+        current_partition_start += partition['sectors']
+
+      output_memento_path = os.path.join(temp_dir, 'memento.gz')
+      subprocess.check_call([
+          MK_MEMENTO_IMAGES_SH_PATH,
+          '%s:%d' % (input_path, MINI_OMAHA_KERNEL_PART_NUM),
+          '%s:%d' % (input_path, MINI_OMAHA_ROOTFS_PART_NUM),
+          output_memento_path])
+
+      # Call ConvertChromeOSImageToMiniOmahaFormat() to generate the output.
+      output_path = os.path.join(temp_dir, MINI_OMAHA_FSI_EXPECTED_NAME)
+      ConvertChromeOSImageToMiniOmahaFormat(input_path, output_path)
+
+      # Compare the ground truth and the output.
+      with gzip.open(output_path) as fa:
+        with gzip.open(output_memento_path) as fb:
+          self.assertEqual(
+              fa.read(), fb.read(),
+              msg='Outputs of mk_momento_images.sh and '
+                  'ConvertChromeOSImageToMiniOmahaFormat are different')
 
 
 if __name__ == '__main__':
