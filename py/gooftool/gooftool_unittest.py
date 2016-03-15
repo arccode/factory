@@ -613,7 +613,7 @@ class GooftoolTest(unittest.TestCase):
     image_file = 'firmware'
     self._gooftool._named_temporary_file().AndReturn(f)
     self._gooftool._util.shell(
-        'cbfstool %s extract -n locales -f %s -r BOOT_STUB' %
+        'cbfstool %s extract -n locales -f %s -r COREBOOT' %
         (image_file, f.name))
 
     # Expect index = 1 for zh is matched.
@@ -634,7 +634,7 @@ class GooftoolTest(unittest.TestCase):
     image_file = 'firmware'
     self._gooftool._named_temporary_file().AndReturn(f)
     self._gooftool._util.shell(
-        'cbfstool %s extract -n locales -f %s -r BOOT_STUB'
+        'cbfstool %s extract -n locales -f %s -r COREBOOT'
         % (image_file, f.name))
     self._gooftool._util.shell(
         'gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
@@ -662,7 +662,7 @@ class GooftoolTest(unittest.TestCase):
     image_file = 'firmware'
     self._gooftool._named_temporary_file().AndReturn(f)
     self._gooftool._util.shell(
-        'cbfstool %s extract -n locales -f %s -r BOOT_STUB' %
+        'cbfstool %s extract -n locales -f %s -r COREBOOT' %
         (image_file, f.name))
 
     self.mox.ReplayAll()
