@@ -60,7 +60,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.test.args = FakeArgs({'start_fixture_tests': True,
                                'prompt_start': False,
-                               'clear_device_data': True})
+                               'clear_device_data': True,
+                               'timeout_secs': None})
     self.test.setUp()
     self.assertEqual(self.test._state, mock_state) # pylint: disable=W0212
 
@@ -78,9 +79,11 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test._dut.link = mock_dut_link
     mock_state = self.mox.CreateMock(GoofyRPC)
     self.test._state = mock_state # pylint: disable=W0212
+    timeout_secs = 123
     self.test.args = FakeArgs({'start_fixture_tests': False,
                                'prompt_start': False,
-                               'clear_device_data': True})
+                               'clear_device_data': True,
+                               'timeout_secs': timeout_secs})
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
 
@@ -96,7 +99,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mock_template.SetState(mox.IsA(basestring))
     mock_dut_link.IsLocal().AndReturn(is_local)
     if not is_local:
-      sync_utils.WaitFor(mox.IsA(type(lambda: None)), None)
+      sync_utils.WaitFor(mox.IsA(type(lambda: None)), timeout_secs)
 
     self.mock_template.SetState(mox.IsA(basestring))
     mock_state.ScheduleRestart()
@@ -113,9 +116,11 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test._dut.link = mock_dut_link
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
+    timeout_secs = 123
     self.test.args = FakeArgs({'start_fixture_tests': True,
                                'prompt_start': False,
-                               'clear_device_data': True})
+                               'clear_device_data': True,
+                               'timeout_secs': timeout_secs})
 
     self.mox.StubOutWithMock(shopfloor, 'DeleteDeviceData')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
@@ -125,7 +130,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
                                optional=True)
     self.mock_template.SetState(mox.IsA(basestring))
-    sync_utils.WaitFor(mock_dut_link.IsReady, mox.IsA(None))
+    sync_utils.WaitFor(mock_dut_link.IsReady, timeout_secs)
 
     self.mox.ReplayAll()
 
