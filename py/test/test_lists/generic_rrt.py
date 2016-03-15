@@ -653,5 +653,20 @@ def CreateTestLists():
   test list builder).  This function is required and its name cannot
   be changed.
   """
-  CreateRebootStressTestList()
-  CreateRunInStressTestList()
+
+  # This test list is created in a very dynamic way. However, error occurs if
+  # DUT is not local. Add a check here to generate test list only when link
+  # is local.
+  # TODO (shunhsingou): fixed this test list in the future.
+  if dut.Create().link.IsLocal():
+    CreateRebootStressTestList()
+    CreateRunInStressTestList()
+  else:
+    with TestList('generic_rrt', 'generic_rrt') as test_list:
+      OperatorTest(
+          id='MessageNotSupport',
+          label_zh=u'不支援',
+          pytest_name='message',
+          dargs={
+              'html_en': 'This test list does not support station mode.',
+              'html_zh': u'本测试清单不支援测站模式'})
