@@ -15,7 +15,6 @@ import urllib
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.rf.agilent_scpi import AgilentSCPI
 from cros.factory.test.rf.lan_scpi import Error, FLOATS
-from cros.factory.test.rf.utils import CheckPower
 from cros.factory.utils.type_utils import Enum
 
 
@@ -292,13 +291,10 @@ class ENASCPI(AgilentSCPI):
     for trace_name in TRACES_TO_CHECK:
       trace_data = traces.traces[trace_name]
       for index, freq in enumerate(traces.x_axis):
-        check_point = '%s-%15.2f' % (trace_name, freq)
-        power_check_passed = CheckPower(
-            check_point, trace_data[index], (min_threshold, max_threshold))
-        if not power_check_passed:
+        if not min_threshold <= trace_data[index] <= max_threshold:
           # Do not stop, continue to find all failing parts.
           logging.info(
-              'Calibration check failed at %s', check_point)
+              'Calibration check failed at %s-%15.2f', trace_name, freq)
           calibration_check_passed = False
 
     if calibration_check_passed:
