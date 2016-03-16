@@ -14,8 +14,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Args
 
 ENV_DUT_OPTIONS = 'CROS_FACTORY_DUT_OPTIONS'
+LINK_CLASS_LOCAL = 'LocalLink'
 DEFAULT_DUT_OPTIONS = '{}'
-DEFAULT_LINK_CLASS = 'LocalLink'
+DEFAULT_LINK_CLASS = LINK_CLASS_LOCAL
 DEFAULT_BOARD_CLASS = 'ChromeOSBoard'
 DUT_MODULE_BASE = 'cros.factory.test.dut'
 
@@ -123,6 +124,23 @@ def CreateBoard(**options):
   board_class = _GetDUTClass('boards', 'Board', board_name)
   link_args = _ExtractArgs(link_class.__init__, args)
   return board_class(link_class(**link_args))
+
+
+def CreateLocalBoard(**options):
+  """Returns a board instance for the local host.
+
+  Defaults to create the board using DEFAULT_BOARD_CLASS.
+
+  Args:
+    options: options to setup DUT board (see ``_ParseOptions``).
+
+  Returns:
+    An instance of the sub-classed DUTBoard.
+
+  :rtype: cros.factory.test.dut.board.DUTBoard
+  """
+  options.update('link_class', LOCAL_LINK_CLASS)
+  return CreateBoard(options)
 
 
 def CreateLink(**options):

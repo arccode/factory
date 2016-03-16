@@ -16,3 +16,4 @@ CalledProcessError = component.CalledProcessError
 
 # Forward the correct DUT object factory.
 Create = utils.CreateBoard
+CreateLocal = utils.CreateLocalBoard
