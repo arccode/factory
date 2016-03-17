@@ -32,7 +32,7 @@ class LED(component.DUTComponent):
   - ``ADAPTER``: Adapter LED.
   """
 
-  def SetColor(self, color, led_name='battery', brightness=100):
+  def SetColor(self, color, led_name='battery', brightness=None):
     """Sets LED color.
 
     Args:
