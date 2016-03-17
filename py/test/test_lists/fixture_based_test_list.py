@@ -6,9 +6,10 @@
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test.test_lists.test_lists import (AutomatedSequence,
-                                                     OperatorTest,
-                                                     TestList)
+from cros.factory.test.test_lists.test_lists import AutomatedSequence
+from cros.factory.test.test_lists.test_lists import OperatorTest
+from cros.factory.test.test_lists.test_lists import TestGroup
+from cros.factory.test.test_lists.test_lists import TestList
 
 def StartFixtureTest(test_list_id, label_en, label_zh, prompt_start):
   OperatorTest(
@@ -62,17 +63,18 @@ def FixtureBased(test_list_id, label_en, label_zh,
   def Wrap(CreateTestLists):
     def CreateFixtureTestList():
       with TestList(test_list_id, label_en) as test_list:
-        if automated_sequence:
-          auto_group = AutomatedSequence(
-              id=test_list_id, label_en=label_en, label_zh=label_zh)
-          auto_group.__enter__()
-
         test_list.dut_options = dut_options
-        StartFixtureTest(test_list_id, label_en, label_zh, prompt_start)
-        CreateTestLists(test_list)
-        EndFixtureTest(test_list_id, label_en, label_zh)
 
         if automated_sequence:
-          auto_group.__exit__(None, None, None)
+          group = AutomatedSequence(
+              id=test_list_id, label_en=label_en, label_zh=label_zh)
+        else:
+          group = TestGroup(
+              id=test_list_id, label_en=label_en, label_zh=label_zh)
+
+        with group:
+          StartFixtureTest(test_list_id, label_en, label_zh, prompt_start)
+          CreateTestLists(test_list)
+          EndFixtureTest(test_list_id, label_en, label_zh)
     return CreateFixtureTestList
   return Wrap
