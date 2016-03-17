@@ -6,7 +6,7 @@
 
 """A factory test for sensors.
 
-Usage examples:
+Usage examples::
 
     OperatorTest(
         id='AccelerometerMovement',
@@ -21,7 +21,8 @@ Usage examples:
             'tolerance': 1.0,
             })
 
-Another example, the value of y and z axis are ignored in this test:
+Another example, the value of y and z axis are ignored in this test::
+
     OperatorTest(
         id='GyrometerMovement',
         label_en='Gyrometer Movement',
