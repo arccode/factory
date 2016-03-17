@@ -9,14 +9,14 @@
 from __future__ import print_function
 
 import logging
-import os
 import re
 import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Arg
+from cros.factory.test import dut
 from cros.factory.test import factory
+from cros.factory.test.args import Arg
 from cros.factory.test.fixture.whale import whale_bft_fixture
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -77,20 +77,20 @@ class BarcodeScanToFileTest(unittest.TestCase):
             u'所扫描的编号「%s」格式不对。' % esc_scan_value)
         return
 
-    # create directory
-    dirname = os.path.dirname(self.args.save_path)
-    if not os.path.exists(dirname):
-      os.makedirs(dirname)
-
     # save scan value
-    factory.console.info('Save barcode at: ' + self.args.save_path)
-    with open(self.args.save_path, 'w') as f:
-      f.write(esc_scan_value)
+    factory.console.info('Save barcode %s at: %s', esc_scan_value,
+                         self.args.save_path)
+
+    dirname = self.dut.path.dirname(self.args.save_path)
+    if not self.dut.path.exists(dirname):
+      self.dut.CheckCall(['mkdir', '-p', dirname])
+    self.dut.WriteFile(self.args.save_path, esc_scan_value)
 
     self.ui.Pass()
 
   def setUp(self):
     self.ui = test_ui.UI()
+    self.dut = dut.Create()
     if self.args.bft_params is not None:
       self._bft = whale_bft_fixture.WhaleBFTFixture()
       self._bft.Init(**self.args.bft_params)
@@ -98,8 +98,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
       self._bft = None
 
     # clean barcode file first
-    if os.path.exists(self.args.save_path):
-      os.remove(self.args.save_path)
+    self.dut.CheckCall(['rm', '-f', self.args.save_path])
 
   def runTest(self):
     template = ui_templates.OneSection(self.ui)
@@ -129,7 +128,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
 
     if self._bft:
       self.ui.Run(blocking=False)
-      while not os.path.exists(self.args.save_path):
+      while not self.dut.path.exists(self.args.save_path):
         self._bft.TriggerScanner()
         time.sleep(_CHECK_BARCODE_SECS)
     else:
