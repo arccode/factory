@@ -3,8 +3,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A system module providing access to permanet storage on DUT"""
+"""A system module providing access to permanent storage on DUT"""
 
+import json
 import logging
 import re
 
@@ -15,6 +16,8 @@ from cros.factory.test.dut import component
 class Storage(component.DUTComponent):
   """Persistent storage on DUT."""
 
+  _DICT_FILENAME = 'DUT_SAVED_DICT.json'
+
   def GetFactoryRoot(self):
     """Returns the directory for factory environment (code and resources)."""
     return '/usr/local/factory'
@@ -22,6 +25,86 @@ class Storage(component.DUTComponent):
   def GetDataRoot(self):
     """Returns the directory for persistent data."""
     return '/var/factory'
+
+  def GetDictFilePath(self):
+    """Returns the path to saved key-value pairs file on DUT."""
+    return self._dut.path.join(self.GetDataRoot(), self._DICT_FILENAME)
+
+  def LoadDict(self):
+    """Returns a dictionary of key-value pairs stored in DUT."""
+    data = {}
+    if self._dut.path.exists(self.GetDictFilePath()):
+      try:
+        data = json.loads(self._dut.ReadFile(self.GetDictFilePath()))
+      except ValueError:
+        logging.exception('Failed to load key-value pairs from %s',
+                          self.GetDictFilePath())
+        data = {}
+      if not isinstance(data, dict):
+        logging.warn('%r is not a dict object, will reset to {}', data)
+        data = {}
+    else:
+      logging.info('Cannot find %s, will create new dict object',
+                   self.GetDictFilePath())
+    return data
+
+  def SaveDict(self, data):
+    """Replaces key-value pairs stored on DUT.
+
+    All existing key-value pairs will be deleted and replaced by `data`.
+    Keys must be strings and values must be JSON serializable.
+    All non-string keys will be removed before stringify key-value pairs.
+
+    Args:
+      data: a dict, new key-value pairs.
+    """
+    assert isinstance(data, dict), '%r is not a dict object' % data
+
+    invalid_keys = [k for k in data if not isinstance(k, basestring)]
+    if invalid_keys:
+      logging.warn('Invalid keys: %r (keys can only be string)', invalid_keys)
+      logging.warn('These keys will be removed')
+      data = {k: v for (k, v) in data.iteritems() if k not in invalid_keys}
+
+    device_data_file_path = self.GetDictFilePath()
+
+    self._dut.CheckCall(['mkdir', '-p',
+                         self._dut.path.dirname(device_data_file_path)])
+    # TODO(stimim): we might need to lock the file while writing.
+    self._dut.WriteFile(self.GetDictFilePath(),
+                        json.dumps(data, sort_keys=True))
+    return data
+
+  def UpdateDict(self, E, **F):
+    """Partially updates some key-value pairs stored in DUT.
+
+    If E present and has a .keys() method, does::
+
+      for k in E: data[k] = E[k]
+
+    If E present and lacks .keys() method, does::
+
+      for (k, v) in E: data[k] = v
+
+    In either case, this is followed by::
+
+      for k in F: data[k] = F[k]
+    """
+    data = self.LoadDict()
+    data.update(E, **F)
+    return self.SaveDict(data)
+
+  def DeleteDict(self, key):
+    """Remove key `key` from key-value pairs stored in DUT.
+
+    If `key` is in device data, the key-value pair of `key` will be removed.
+    Otherwise, does nothing.
+    """
+    data = self.LoadDict()
+    if key in data:
+      data.pop(key)
+      self.SaveDict(data)
+    return data
 
   def _GetMountPointByDiskFree(self, path):
     """Returns a pair (mount_point, device) where path is mounted.
@@ -51,7 +134,7 @@ class Storage(component.DUTComponent):
 
     return self._GetMountPointByDiskFree(path)
 
-  def Remount(self, path, options="rw"):
+  def Remount(self, path, options='rw'):
     """Remount the file system of path with given options.
 
     Finds the mount point of file system which the given path belongs to, and
@@ -64,7 +147,6 @@ class Storage(component.DUTComponent):
       options: A string for the option to remount (passed to mount(1),
                defaults to 'rw').
     """
-
     mount_point, _ = self.GetMountPoint(path)
     if not mount_point:
       logging.error('remount: Cannot get mount point of %s', path)
@@ -77,14 +159,19 @@ class Storage(component.DUTComponent):
 
     return True
 
+  def _GetMainStorageDeviceMountPoint(self):
+    """Path that is used to find main storage device."""
+    return '/usr/local'
+
   def GetMainStorageDevice(self):
-    return self._dut.CheckOutput(['rootdev', '-d', '/usr/local']).strip()
+    partition = self.GetMountPoint(self._GetMainStorageDeviceMountPoint())[1]
+    if not partition:
+      raise IOError('Unable to find main storage device (%s)',
+                    self._MAIN_STORAGE_DEVICE_MOUNT_POINT)
+    # remove partition suffix to get device path.
+    return re.sub(r'p?(\d+)$', '', partition)
 
 
 class AndroidStorage(Storage):
-
-  def GetMainStorageDevice(self):
-    device = self.GetMountPoint('/data')[1]
-    if not device:
-      raise IOError('Unable to find main storage device (/usr/local)')
-    return re.sub(r'p?(\d+)$', '', device)
+  def _GetMainStorageDeviceMountPoint(self):
+    return '/data'
