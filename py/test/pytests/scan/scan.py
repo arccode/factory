@@ -52,6 +52,10 @@ class Scan(unittest.TestCase):
           'Key to use to store in scanned value in device data',
           optional=True),
       Arg(
+          'dut_data_key', str,
+          'Key to use to store in scanned value in DUT.',
+          optional=True),
+      Arg(
           'ro_vpd_key', str,
           'Key to use to store in scanned value in RO VPD', optional=True),
       Arg(
@@ -156,6 +160,9 @@ class Scan(unittest.TestCase):
     if self.args.device_data_key:
       shopfloor.UpdateDeviceData({self.args.device_data_key: scan_value})
       factory.get_state_instance().UpdateSkippedTests()
+
+    if self.args.dut_data_key:
+      self.dut.storage.UpdateDict({self.args.dut_data_key: scan_value})
 
     if self.args.check_device_data_key:
       expected_value = shopfloor.GetDeviceData().get(
