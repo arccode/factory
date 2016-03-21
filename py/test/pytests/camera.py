@@ -89,30 +89,34 @@ from cros.factory.utils.process_utils import StartDaemonThread
 from cros.factory.utils.type_utils import Enum
 
 
+_MSG_CAMERA_MANUAL_CAPTURE = test_ui.MakeLabel(
+    'Capturing image...',
+    zh=u'拍照中...',
+    css_class='camera-test-info')
 _MSG_CAMERA_MANUAL_TEST = test_ui.MakeLabel(
     'Press ENTER to pass or ESC to fail.',
-    zh='摄像头运作正常请按 ENTER，不正常请按 ESC',
+    zh=u'摄像头运作正常请按 ENTER，不正常请按 ESC',
     css_class='camera-test-info')
 _MSG_CAMERA_TIMEOUT_TEST = test_ui.MakeLabel(
     'Running the camera until timeout.',
-    zh='运行相机直到超时',
+    zh=u'运行相机直到超时',
     css_class='camera-test-info')
 _MSG_CAMERA_QR_SCAN = test_ui.MakeLabel(
     'Scanning QR code...',
-    zh='侦测 QR 码中...',
+    zh=u'侦测 QR 码中...',
     css_class='camera-test-info')
 _MSG_CAMERA_QR_FOUND_STRING = lambda t: test_ui.MakeLabel(
     'Scanned QR code: "%s"' % t,
-    zh='已侦测 QR 码: "%s"' % t,
+    zh=u'已侦测 QR 码: "%s"' % t,
     css_class='camera-test-info')
 _MSG_CAMERA_FACIAL_RECOGNITION = test_ui.MakeLabel(
     'Detecting faces...',
-    zh='侦测人脸中...',
+    zh=u'侦测人脸中...',
     css_class='camera-test-info')
 _MSG_LED_TEST = test_ui.MakeLabel(
     'Press 0 if LED is flickering, 1 if LED is constantly lit,'
     '<br/>or ESC to fail.',
-    zh='LED 闪烁请按 0，一直亮着请按 1，没亮请按 ESC',
+    zh=u'LED 闪烁请按 0，一直亮着请按 1，没亮请按 ESC',
     css_class='camera-test-info')
 _MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
     'Time remaining: %d' % t, u'剩余时间：%d' % t, 'camera-test-info')
@@ -232,6 +236,9 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
         except AttributeError:
           # The websocket is closed because test has passed/failed.
           return
+      if self.task_type == CaptureTaskType.MANUAL:
+        self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_TEST, id=_ID_PROMPT)
+        self.BindPassFailKeys()
       time.sleep(tick)
 
   def Run(self):
@@ -242,8 +249,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
     elif self.task_type == CaptureTaskType.TIMEOUT:
       self.camera_test.ui.SetHTML(_MSG_CAMERA_TIMEOUT_TEST, id=_ID_PROMPT)
     else:
-      self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_TEST, id=_ID_PROMPT)
-      self.BindPassFailKeys()
+      self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_CAPTURE, id=_ID_PROMPT)
 
     self.camera_test.ui.CallJSFunction('hideImage', False)
     self.camera_test.EnableDevice()
