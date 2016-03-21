@@ -10,5 +10,9 @@
 # The "$1" = "" case is for DUT test image using the old /etc/init version,
 # which calls init/startup only once, without any argument.
 if [ "$1" = "main" -o "$1" = "" ]; then
-  "/usr/local/factory/init/main.d/offline-test.sh"
+  local test_script="/usr/local/factory/init/main.d/offline-test.sh"
+
+  if [ -x "${test_script}" ]; then
+    "${test_script}"
+  fi
 fi
