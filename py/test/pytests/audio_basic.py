@@ -33,11 +33,12 @@ _SOUND_DIRECTORY = os.path.join(
 
 
 _MSG_AUDIO_INFO = test_ui.MakeLabel(
+    'Press \'P\' to first play a sample for each channel to ensure audio '
+    'output works.<br>'
     'Press \'R\' to record %d seconds, Playback will follow<br>'
-    'Press \'P\' to play sample for each channel<br>'
     'Press space to mark pass' % _RECORD_SEC,
-    zh='按 \'R\' 键开始录音%d秒，之后会重播录到的声音<br>'
-    '按 \'P\' 键播放范例<br>'
+    zh='按 \'P\' 键播放范例<br>'
+    '按 \'R\' 键开始录音%d秒，之后会重播录到的声音<br>'
     '压下空白表示成功' % _RECORD_SEC,
     css_class='audio-test-info')
 _MSG_RECORD_INFO = test_ui.MakeLabel('Start recording', u'开始录音',
