@@ -248,6 +248,10 @@ def main():
 
   factory.init_logging('key_filter', verbose=args.verbose)
 
+  if not _has_Xlib:
+    logging.warning('Python Xlib module does not exist, probably on Freon.')
+    exit(1)
+
   key_filter_impl = KeyFilterImpl(Display(),
                                   unmap_caps_lock=args.unmap_caps_lock,
                                   caps_lock_keycode=args.caps_lock_keycode,
