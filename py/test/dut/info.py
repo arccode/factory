@@ -121,12 +121,18 @@ class SystemInfo(component.DUTComponent):
   @InfoProperty
   def mlb_serial_number(self):
     """Mother board serial number."""
+    if not test.shopfloor.GetDeviceData().get('mlb_serial_number'):
+      serial = self._dut.storage.LoadDict().get('mlb_serial_number')
+      test.shopfloor.UpdateDeviceData({'mlb_serial_number': serial})
     return test.shopfloor.GetDeviceData()['mlb_serial_number']
 
   @InfoProperty
   def serial_number(self):
     """Device serial number (usually printed on device package)."""
-    return test.shopfloor.get_serial_number()
+    if not test.shopfloor.GetDeviceData().get('serial_number'):
+      serial = self._dut.storage.LoadDict().get('serial_number')
+      test.shopfloor.UpdateDeviceData({'serial_number': serial})
+    return test.shopfloor.GetDeviceData()['serial_number']
 
   @InfoProperty
   def stage(self):
