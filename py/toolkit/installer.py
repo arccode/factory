@@ -133,7 +133,7 @@ class FactoryToolkitInstaller(object):
             'please run\n'
             '\n'
             '  install_factory_toolkit.run -- \\\n'
-            '      --non-cros --no-enable-device --enable-presenter\n'
+            '      --non-cros --enable-presenter\n'
             '\n')
         sys.exit(1)
       if os.getuid() != 0:
@@ -390,7 +390,7 @@ def main():
                       help='Run goofy in presenter mode on startup')
   parser.add_argument('--no-enable-presenter', dest='enable_presenter',
                       action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(enable_presenter=True)
+  parser.set_defaults(enable_presenter=False)
 
   parser.add_argument('--non-cros', dest='non_cros',
                       action='store_true',
@@ -401,7 +401,7 @@ def main():
                       help='Run goofy in device mode on startup')
   parser.add_argument('--no-enable-device', dest='enable_device',
                       action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(enable_device=True)
+  parser.set_defaults(enable_device=False)
 
   parser.add_argument('--device-id', dest='device_id', type=str, default=None,
                       help='Set device ID for this device')
