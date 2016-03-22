@@ -130,23 +130,24 @@ class Report(unittest.TestCase):
     if all_pass and self.args.pass_without_prompt:
       return
 
-    html = [
-        '<div class="test-vcenter-outer"><div class="test-vcenter-inner">',
-        test_ui.MakeLabel('Test Status for %s:' % test.parent.path,
-                          u'%s 测试结果列表：' % test.parent.path),
-        '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
-            overall_status, test_ui.MakeStatusLabel(overall_status)),
-        '<table>'] + table + ['</table>']
+    html = ['<div class="test-vcenter-outer"><div class="test-vcenter-inner">']
+
     if not self.args.disable_input_on_fail or all_pass:
       html = html + ['<a onclick="onclick:window.test.pass()" href="#">',
                      test_ui.MakeLabel('Click or press SPACE to continue',
                                        u'点击或按空白键继续'),
-                     '</a>']
+                     '</a><br>']
     else:
       html = html + [test_ui.MakeLabel(
           'Unable to proceed, since some previous tests have not passed.',
           u'之前所有的测试必须通过才能通过此项目')]
-    html = html + ['</div></div>']
+
+    html = html + [
+        test_ui.MakeLabel('Test Status for %s:' % test.parent.path,
+                          u'%s 测试结果列表：' % test.parent.path),
+        '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
+            overall_status, test_ui.MakeStatusLabel(overall_status)),
+        '<table>'] + table + ['</table>'] + ['</div></div>']
 
     if self.args.accessibility and not all_pass:
       html = ['<div class="test-vcenter-accessibility">'] + html + ['</div>']
