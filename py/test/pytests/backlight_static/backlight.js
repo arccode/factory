@@ -10,10 +10,13 @@
  */
 BacklightTest = function(container) {
   this.container = container;
-  this.enInstruct = "Press Space to change backlight;<br>"
-                  + "Press Esc to resume backlight;<br>"
-                  + "After checking, Enter H for high intensity backlight;<br>"
-                  + "L for low intensity backlight"
+  this.enInstruct = "Press Space to change backlight brightness;<br>"
+                  + "Press Esc to reset backlight brightness to original;<br>"
+                  + "After checking, Enter H if pressing Space changes the "
+                  + "backlight to be brighter;<br>"
+                  + "Enter L if pressing Space changes the backlight to be "
+                  + "dimmer.<br>"
+                  + "This test will be executed twice."
   this.zhInstruct = "按空格键调整亮度;<br>"
                   + "按Esc复原亮度;<br>"
                   + "检查后若为提高亮度输入H; 若为降低亮度输入L";
