@@ -37,6 +37,7 @@ FILES_DIRS_COPIED_FROM_ROOTFS="
   ${SCRIPT_DIR}/generate_finalize_request.sh
   ${SCRIPT_DIR}/inform_shopfloor.sh
   ${SCRIPT_DIR}/wipe_init.sh
+  ${SCRIPT_DIR}/wipe_in_tmpfs.sh
   ${PANGO_MODULE}
   ${MISC_DIR}/chromeos-common.sh
   /etc/fonts

@@ -29,8 +29,9 @@ SERVICES_NEEDS_RUNNING="
   openssh-server"
 
 CREATE_TMPFS="${SCRIPT_DIR}/create_wiping_tmpfs.sh"
-WIPE_INIT="${SCRIPT_DIR}/wipe_init.sh"
 DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
+
+WIPE_INIT_UNDER_NEWROOT="${SCRIPT_DIR#${NEWROOT}}/wipe_init.sh"
 
 WIPE_ARGS_FILE="/tmp/factory_wipe_args"
 
@@ -103,14 +104,6 @@ parse_wipe_args() {
   fi
 }
 
-invoke_self_under_tmp() {
-  local target_script="/tmp/wipe_in_tmpfs.sh"
-
-  if [ "$0" != "${target_script}" ]; then
-    cp "$0" "${target_script}"
-    exec "${target_script}"
-  fi
-}
 
 stop_running_upstart_jobs() {
   # Try a three times to stop running services because some service will
@@ -204,19 +197,19 @@ chroot_tmpfs_to_wipe() {
   oldroot=$(mktemp -d --tmpdir="${NEWROOT}")
   cd "${NEWROOT}"
   pivot_root . "$(basename "${oldroot}")"
-  exec chroot . "${WIPE_INIT}" "${FACTORY_ROOT_DEV}" "${ROOT_DISK}" \
-    "${WIPE_ARGS}" "${CUTOFF_ARGS}" "${SHOPFLOOR_URL}"
+  exec chroot . "${WIPE_INIT_UNDER_NEWROOT}" "${FACTORY_ROOT_DEV}" \
+    "${ROOT_DISK}" "${WIPE_ARGS}" "${CUTOFF_ARGS}" "${SHOPFLOOR_URL}"
 }
 
 # ======================================================================
 # Main function
 
 main() {
-  invoke_self_under_tmp
-
-  # Create the wiping tmpfs and it will copy some files from rootfs to tmpfs.
-  # Therefore, we need to do this before unmount stateful partition.
-  "${CREATE_TMPFS}" "${NEWROOT}"
+  if ! echo "${SCRIPT_DIR}" | grep -q "^${NEWROOT}" ; then
+    # Create a new tmp filesystem and exec the script under it.
+    "${CREATE_TMPFS}" "${NEWROOT}"
+    exec "${NEWROOT}/${SCRIPT_DIR}/wipe_in_tmpfs.sh"
+  fi
 
   parse_wipe_args
   stop_running_upstart_jobs
