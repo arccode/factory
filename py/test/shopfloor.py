@@ -37,8 +37,6 @@ from cros.factory.test.rules import privacy
 from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import debug_utils
-from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import Spawn
 
 
 # Name of the factory shared data key that maps to session info.
@@ -228,6 +226,17 @@ def get_instance(url=None, detect=False, timeout=None, quiet=False):
       url, quiet=quiet, allow_none=True, verbose=False, timeout=timeout)
 
 
+def get_shopfloor_handler_uri():
+  """Gets shop floor server XMLRPC handler URI."""
+  instance = get_instance()
+  if hasattr(instance, 'GetShopFloorHandlerUri'):
+    uri = instance.GetShopFloorHandlerUri()
+  else:
+    uri = get_server_url()
+  logging.info('Get shopfloor handler uri %s', uri)
+  return uri
+
+
 def save_aux_data(table_name, id, data):  # pylint: disable=W0622
   """Saves data from an auxiliary table."""
   logging.info('Setting aux data for table %r to ID %r, value %r',
@@ -375,7 +384,7 @@ def update_local_hwid_data(dut, target_dir='/usr/local/factory/hwid'):
         if not dut.path.isdir(target_dir):
           dut.CheckCall(['mkdir', '-p', target_dir])
         dut.CheckCall([hwid_updater_sh, target_dir],
-                               stdout=log, stderr=log)
+                      stdout=log, stderr=log)
         dut.CheckCall('sync')
     return True
   else:

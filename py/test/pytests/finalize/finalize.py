@@ -419,7 +419,8 @@ class Finalize(unittest.TestCase):
           cutoff_args += ' --%s %s' % (key.replace('_', '-'), str(value))
         command += ' --cutoff_args "%s"' % cutoff_args
       if shopfloor.is_enabled():
-        command += ' --shopfloor_url "%s"' % shopfloor.get_server_url()
+        command += ' --shopfloor_url "%s"' % (
+            shopfloor.get_shopfloor_handler_uri())
 
     command += ' --upload_method "%s"' % upload_method
     command += ' --add_file "%s"' % self.test_states_path

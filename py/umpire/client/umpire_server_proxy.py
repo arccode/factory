@@ -645,6 +645,9 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     # self._Request instead of  _request in the base class.
     return xmlrpclib._Method(self._Request, name)  # pylint: disable=W0212
 
+  def GetShopFloorHandlerUri(self):
+    return self._shop_floor_handler_uri
+
 
 class TimeoutUmpireServerProxy(UmpireServerProxy):
   """UmpireServerProxy supporting timeout."""
