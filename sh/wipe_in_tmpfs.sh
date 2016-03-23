@@ -36,6 +36,12 @@ WIPE_ARGS_FILE="/tmp/factory_wipe_args"
 
 LOG_FILE="/tmp/wipe_in_tmpfs.log"
 
+# Mount points that need chromeos_shutdown to umount.
+CHROMEOS_SHUTDOWN_UNMOUNT_POINTS="
+  /usr/local
+  /home
+  /mnt/stateful_partition"
+
 # ======================================================================
 # Set up logging
 
@@ -156,8 +162,8 @@ unmount_stateful() {
   local i=0
   for i in $(seq 5); do
     if mount | awk '{print $3}' | grep -q "^${STATE_PATH}$"; then
-      # Invoke chromeos_shutdown to unmount /home, /usr/local and
-      # /mnt/stateful_partition. chromeos_shutdown is the script called
+      # Invoke chromeos_shutdown to unmount path in
+      # CHROMEOS_SHUDOWN_UNMOUNT_POINTS. chromeos_shutdown is the script called
       # in restart.conf that performs all "on shutdown" tasks like
       # cleaning up mounted partitions, and can be invoked here without
       # really putting system into shutdown state.
