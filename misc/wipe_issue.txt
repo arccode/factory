@@ -1,0 +1,12 @@
+You are now in tmp file system created for in-place wiping.
+
+For debugging wiping fails, see log files under
+/tmp
+/mnt/stateful_partition/unencrypted
+
+The log file name should be
+- wipe_in_tmpfs.log
+- wipe_init.log
+
+You can also run scripts under /usr/local/factory/sh for wiping process.
+

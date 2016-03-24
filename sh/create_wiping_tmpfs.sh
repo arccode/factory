@@ -23,6 +23,8 @@ MISC_DIR="/usr/share/misc"
 PANGO_MODULE="$(pango-querymodules --system |
   awk '$2 == "ModulesPath" {print $NF}')"
 
+WIPE_TMPFS_ISSUE_FILE="${SCRIPT_DIR}/../misc/wipe_issue.txt"
+
 # A list of files or directories required to be copied to the wiping tmpfs
 # from factory rootfs. The format of each entry is "src_file:dst_file" or
 # "src_dir:dst_dir" meaning copy the src_file/src_dir in factory rootfs to
@@ -158,6 +160,9 @@ main() {
   create_tmpfs_layout
   copy_dependent_binary_files
   copy_rootfs_files_and_dirs
+
+  # Create an issue file for wipe tmpfs.
+  cp -f "${WIPE_TMPFS_ISSUE_FILE}" "${TMPFS_PATH}/etc/issue"
 }
 
 set -xe
