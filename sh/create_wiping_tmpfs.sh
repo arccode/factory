@@ -28,6 +28,15 @@ PANGO_MODULE="$(pango-querymodules --system |
 # "src_dir:dst_dir" meaning copy the src_file/src_dir in factory rootfs to
 # dst_file/dst_dir in the tmpfs.
 FILES_DIRS_COPIED_FROM_ROOTFS="
+  /bin
+  /etc
+  /lib
+  /lib64
+  /opt
+  /root
+  /sbin
+  /usr/share/fonts/notocjk
+  /usr/share/cache/fontconfig
   ${ASSETS_DIR}/images
   ${ASSETS_DIR}/text/boot_messages
   ${SCRIPT_DIR}/battery_cutoff.sh
@@ -40,11 +49,6 @@ FILES_DIRS_COPIED_FROM_ROOTFS="
   ${SCRIPT_DIR}/wipe_in_tmpfs.sh
   ${PANGO_MODULE}
   ${MISC_DIR}/chromeos-common.sh
-  /etc/fonts
-  /etc/pango
-  /lib/modules
-  /usr/share/fonts/notocjk
-  /usr/share/cache/fontconfig
 "
 
 # Layout of directories to be created in tmpfs
@@ -59,6 +63,7 @@ TMPFS_LAYOUT_DIRS="
   root
   sys
   tmp
+  var
 "
 
 # Dependency list of binary programs.
@@ -117,6 +122,8 @@ create_tmpfs_layout() {
   ln -s . "${TMPFS_PATH}/usr"
   ln -s . "${TMPFS_PATH}/local"
   ln -s bin "${TMPFS_PATH}/sbin"
+  ln -s /run "${TMPFS_PATH}/var/run"
+  ln -s /run/lock "${TMPFS_PATH}/var/lock"
 }
 
 copy_dependent_binary_files() {
