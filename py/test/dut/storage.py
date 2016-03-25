@@ -29,17 +29,12 @@ class Storage(component.DUTComponent):
     Unlike GetMountPoint, path is directly passed to df even if it doesn't
     exist.
     """
-    # the output should look like:
-    # Mounted on    Filesystem
-    # /usr/local    /dev/...
-    output = self._dut.CallOutput(['df', '--output=target,source', path])
-    if not output:
+    filesystems = self._dut.toybox.df(path)
+    if not filesystems:
+      logging.warn('cannot find mount point of %s', path)
       return None, None
-    match = re.search(r'^(/[/\w]*)\s*(/[/\w]*)$', output, re.MULTILINE)
-    if not match:
-      logging.warning('remount: The output of df is unexpected:\n%s', output)
-      return None, None
-    return match.group(1), match.group(2)
+    else:
+      return filesystems[0].mounted_on, filesystems[0].filesystem
 
   def GetMountPoint(self, path):
     """Returns a pair (mount_point, device) where path is mounted.
@@ -93,17 +88,3 @@ class AndroidStorage(Storage):
     if not device:
       raise IOError('Unable to find main storage device (/usr/local)')
     return re.sub(r'p?(\d+)$', '', device)
-
-  def _GetMountPointByDiskFree(self, path):
-    # the output should look like:
-    # Filesystem     1K-blocks   Used Available Use% Mounted on
-    # /dev/root         755920 110864    645056  15% /
-    output = self._dut.CallOutput(['toybox', 'df', path])
-    if not output:
-      return None, None
-    match = re.search(r'^(/[/\w]*)(?:\s+\d+){4}%\s+(/[/\w]*)$', output,
-                      re.MULTILINE)
-    if not match:
-      logging.warning('remount: The output of df is unexpected:\n%s', output)
-      return None, None
-    return match.group(2), match.group(1)
