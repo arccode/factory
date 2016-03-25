@@ -197,6 +197,10 @@ class Finalize(unittest.TestCase):
     self.ui.BindKey('F', lambda _: Go(True))
 
     thread = threading.Thread(target=self.Run)
+
+    # Set this thread as daemon thread so once in-place wipe kill factory
+    # service, finalize.py is terminated to release the resources.
+    thread.setDaemon(True)
     thread.start()
     self.ui.Run()
 
