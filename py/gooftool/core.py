@@ -457,12 +457,105 @@ class Gooftool(object):
 
     return mismatches
 
-  def VerifyKeys(self):
-    """Verify keys in firmware and SSD match."""
-    return self._util.FindAndRunScript(
-        'verify_keys.sh',
-        [self._util.GetReleaseKernelPartitionPath(),
-         self._crosfw.LoadMainFirmware().GetFileName()])
+  def VerifyKeys(self, kernel_dev=None, firmware_path=None, _tmpexec=None):
+    """Verify keys in firmware and SSD match.
+
+    Args:
+      kernel_dev: A string for kernel device path.
+      firmware_path: A string for firmware image file path.
+      _tmpexec: A function for overriding execution inside temp folder.
+    """
+
+    if kernel_dev is None:
+      kernel_dev = self._util.GetReleaseKernelPartitionPath()
+    if firmware_path is None:
+      firmware_path = self._crosfw.LoadMainFirmware().GetFileName()
+      firmware_image = self._crosfw.LoadMainFirmware().GetFirmwareImage()
+    else:
+      with open(firmware_path, 'rb') as f:
+        firmware_image = self._crosfw.FirmwareImage(f.read())
+
+    with file_utils.TempDirectory() as tmpdir:
+
+      def _DefaultTmpExec(message, command, fail_message=None, regex=None):
+        """Executes a command inside temp folder (tmpdir).
+
+        If regex is specified, return matched string from stdout.
+        """
+        logging.debug(message)
+        result = self._util.shell('( cd %s; %s )' % (tmpdir, command))
+        if not result.success:
+          raise Error(fail_message or
+                      ('Failed to %s: %s' % (message, result.stderr)))
+        if regex:
+          matched = re.findall(regex, result.stdout)
+          if matched:
+            return matched[0]
+
+      _TmpExec = _tmpexec if _tmpexec else _DefaultTmpExec
+
+      # define key names
+      key_normal = 'kernel_subkey.vbpubk'
+      key_normal_a = 'kernel_subkey_a.vbpubk'
+      key_normal_b = 'kernel_subkey_b.vbpubk'
+      key_root = 'rootkey.vbpubk'
+      key_recovery = 'recovery_key.vbpubk'
+      blob_kern = 'kern.blob'
+      dir_devkeys = '/usr/share/vboot/devkeys'
+
+      logging.debug('dump kernel from %s', kernel_dev)
+      with open(kernel_dev, 'rb') as f:
+        # The kernel is usually 8M or 16M, but let's read more.
+        file_utils.WriteFile(os.path.join(tmpdir, blob_kern),
+                             f.read(64 * 1048576))
+      logging.debug('extract firmware from %s', firmware_path)
+      for section in ('GBB', 'FW_MAIN_A', 'FW_MAIN_B', 'VBLOCK_A', 'VBLOCK_B'):
+        file_utils.WriteFile(os.path.join(tmpdir, section),
+                             firmware_image.get_section(section))
+
+      _TmpExec('get keys from firmware GBB',
+               'gbb_utility -g --rootkey %s  --recoverykey %s GBB' %
+               (key_root, key_recovery))
+      rootkey_hash = _TmpExec(
+          'unpack rootkey', 'vbutil_key --unpack %s' % key_root,
+          regex=r'(?<=Key sha1sum:).*').strip()
+      _TmpExec('unpack recoverykey', 'vbutil_key --unpack %s' % key_recovery)
+
+      # Pre-scan for well-known problems.
+      if rootkey_hash == 'b11d74edd286c144e1135b49e7f0bc20cf041f10':
+        raise Error('YOU ARE TRYING TO FINALIZE WITH DEV ROOTKEY.')
+
+      _TmpExec('verify firmware A with root key',
+               'vbutil_firmware --verify VBLOCK_A --signpubkey %s '
+               ' --fv FW_MAIN_A --kernelkey %s' % (key_root, key_normal_a))
+      _TmpExec('verify firmware B with root key',
+               'vbutil_firmware --verify VBLOCK_B --signpubkey %s '
+               ' --fv FW_MAIN_B --kernelkey %s' % (key_root, key_normal_b))
+
+      # Unpack keys and keyblocks
+      _TmpExec('unpack kernel keyblock',
+               'vbutil_keyblock --unpack %s' % blob_kern)
+      try:
+        for key in key_normal_a, key_normal_b:
+          _TmpExec('unpack %s' % key, 'vbutil_key --unpack %s' % key)
+          _TmpExec('verify kernel by %s' % key,
+                   'vbutil_kernel --verify %s --signpubkey %s' %
+                   (blob_kern, key))
+
+      except Error as e:
+        _TmpExec('check recovery key signed image',
+                 '! vbutil_kernel --verify %s --signpubkey %s' %
+                 (blob_kern, key_recovery),
+                 'YOU ARE USING A RECOVERY KEY SIGNED IMAGE.')
+
+        for key in key_normal, key_recovery:
+          _TmpExec('check dev-signed image <%s>' % key,
+                   '! vbutil_kernel --verify %s --signpubkey %s/%s' %
+                   (blob_kern, dir_devkeys, key),
+                   'YOU ARE FINALIZING WITH DEV-SIGNED iMAGE <%s>' %
+                   key)
+
+    logging.info('SUCCESS: Verification completed.')
 
   def VerifySystemTime(self, root_dev=None, system_time=None):
     """Verify system time is later than release filesystem creation time."""

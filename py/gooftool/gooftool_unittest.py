@@ -300,15 +300,16 @@ class GooftoolTest(unittest.TestCase):
         ValueError, self._gooftool.FindBOMMismatches, 'BENDER', 'LEELA', None)
 
   def testVerifyKey(self):
-    self._gooftool._util.GetReleaseKernelPartitionPath().AndReturn('kernel')
-
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-
-    self._gooftool._util.FindAndRunScript('verify_keys.sh',
-                                          ['kernel', 'firmware'])
+    self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware(
+        MockFirmwareImage({'GBB': 'GBB', 'FW_MAIN_A': 'MA', 'FW_MAIN_B': 'MB',
+                           'VBLOCK_A': 'VA', 'VBLOCK_B': 'VB'})))
+    # TODO(hungte) Improve unit test scope.
+    def fake_tmpexc(*args, **kargs):
+      return ''
 
     self.mox.ReplayAll()
-    self._gooftool.VerifyKeys()
+    self._gooftool.VerifyKeys('/dev/null', _tmpexec=fake_tmpexc)
 
   def testVerifySystemTime(self):
     self._gooftool._util.GetReleaseRootPartitionPath().AndReturn('root')
