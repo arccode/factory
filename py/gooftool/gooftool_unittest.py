@@ -361,9 +361,13 @@ class GooftoolTest(unittest.TestCase):
     self.assertRaises(Error, self._gooftool.VerifyManagementEngineLocked)
 
   def testClearGBBFlags(self):
-    self._gooftool._util.FindAndRunScript('clear_gbb_flags.sh')
+    command = '/usr/share/vboot/bin/set_gbb_flags.sh 0 2>&1'
+    self._gooftool._util.shell(command).AndReturn(Obj(success=True))
+    self._gooftool._util.shell(command).AndReturn(
+        Obj(stdout='Fail', success=False))
     self.mox.ReplayAll()
     self._gooftool.ClearGBBFlags()
+    self.assertRaises(Error, self._gooftool.ClearGBBFlags)
 
   def testGenerateStableDeviceSecretSuccess(self):
     self._gooftool._util.GetReleaseImageVersion().AndReturn('6887.0.0')

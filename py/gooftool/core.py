@@ -549,7 +549,9 @@ class Gooftool(object):
     for factory/development.  See "gbb_utility --flags" for details.
     """
 
-    self._util.FindAndRunScript('clear_gbb_flags.sh')
+    result = self._util.shell('/usr/share/vboot/bin/set_gbb_flags.sh 0 2>&1')
+    if not result.success:
+      raise Error('Failed setting GBB flags: %s' % result.stdout)
 
   def _VerifyCutoffArgs(self, cutoff_args):
     """Verify the cutoff args passed to battery_cutoff.sh.
