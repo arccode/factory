@@ -272,6 +272,55 @@ class Util(object):
         raise Error('chromeos-postinst on %s failed with error: code=%s. %s' %
                     (root_dev, result.status, result.stderr))
 
+  def EnableKernel(self, device, part_no):
+    """Enables the kernel partition from GPT."""
+    logging.info('Enabling kernel on %s#%s...', device, part_no)
+    r = self.shell('cgpt add -i %s -P 3 -S 1 -T 0 %s' % (part_no, device))
+    if not r.success:
+      raise Error('Failed to enable kernel on %s#%s' % (device, part_no))
+
+  def DisableKernel(self, device, part_no):
+    """Disables the kernel partition from GPT."""
+    logging.info('Disabling kernel on %s#%s...', device, part_no)
+    r = self.shell('cgpt add -i %s -P 0 -S 0 -T 0 %s' % (part_no, device))
+    if not r.success:
+      raise Error('Failed to disable kernel on %s#%s' % (device, part_no))
+
+  def IsChromeOSFirmware(self):
+    """Returns if the system is running ChromeOS firmware."""
+    r = self.shell('crossystem mainfw_type')
+    return r.success and r.stdout.strip() != 'nonchrome'
+
+  def EnableReleasePartition(self, root_dev):
+    """Enables a release image partition on disk."""
+    # TODO(hungte) replce sh/enable_release_partition.sh
+    release_no = int(root_dev[-1]) - 1
+    factory_map = {2: 4, 4: 2}
+    if release_no not in factory_map:
+      raise ValueError('EnableReleasePartition: Cannot identify kernel %s' %
+                       root_dev)
+
+    factory_no = factory_map[release_no]
+    device = self.GetPartitionDevice(root_dev)
+    curr_attrs = self.GetCgptAttributes(device)
+    try:
+      # When booting with legacy firmware, we need to update the legacy boot
+      # loaders to activate new kernel; on a real ChromeOS firmware, only CGPT
+      # header is used, and postinst is already performed in verify_rootfs.
+      if self.IsChromeOSFirmware():
+        self.InvokeChromeOSPostInstall(root_dev)
+      self.shell('crossystem disable_dev_request=1')
+      self.DisableKernel(device, factory_no)
+      self.EnableKernel(device, release_no)
+      # Enforce a sync and wait for underlying hardware to flush.
+      logging.info('Syncing disks...')
+      self.shell('sync; sleep 3')
+      logging.info('Enable release partition: Complete.')
+    except:
+      logging.error('FAIL: Failed to enable release partition.')
+      self.shell('crossystem disable_dev_request=0')
+      self.SetCgptAttributes(curr_attrs, device)
+
 
 class Gooftool(object):
   """A class to perform hardware probing and verification and to implement
