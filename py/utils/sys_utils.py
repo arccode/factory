@@ -25,7 +25,7 @@ class MountPartitionException(Exception):
 
 
 def MountPartition(source_path, index=None, mount_point=None, rw=False,
-                   is_omaha_channel=False, options=None, dut=None):
+                   is_omaha_channel=False, options=None, fstype=None, dut=None):
   """Mounts a partition in an image or a block device.
 
   Args:
@@ -40,6 +40,7 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
       rootfs. rootfs offset bytes: 8 + BigEndian(first-8-bytes).
     options: A list of options to add to the -o argument when mounting, e.g.,
         ['offset=8192', 'sizelimit=1048576'].
+    fstype: A string to specify file system type.
     dut: A board instance, None for local case.
 
   Raises:
@@ -110,12 +111,15 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   if options:
     all_options.extend(options)
 
+  command = ['mount', '-o', ','.join(all_options)]
+  if fstype is not None:
+    command += ['-t', fstype]
+  command += [source_path, mount_point]
+
   if local_mode:
-    Spawn(['mount', '-o', ','.join(all_options), source_path, mount_point],
-          log=True, check_call=True, sudo=True)
+    Spawn(command, log=True, check_call=True, sudo=True)
   else:
-    dut.CheckCall(['mount', '-o', ','.join(all_options), source_path,
-                   mount_point], log=True)
+    dut.CheckCall(command, log=True)
 
   @contextmanager
   def Unmounter():
