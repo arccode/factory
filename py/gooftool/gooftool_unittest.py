@@ -11,6 +11,7 @@ import __builtin__
 import logging
 import mox
 import os
+import time
 import unittest
 from StringIO import StringIO
 
@@ -32,6 +33,7 @@ from cros.factory.hwid.v2.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.test.rules import branding
 from cros.factory.utils import file_utils
 from cros.factory.utils.type_utils import Error
+from cros.factory.utils.type_utils import Obj
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -310,11 +312,20 @@ class GooftoolTest(unittest.TestCase):
 
   def testVerifySystemTime(self):
     self._gooftool._util.GetReleaseRootPartitionPath().AndReturn('root')
-
-    self._gooftool._util.FindAndRunScript('verify_system_time.sh', ['root'])
+    self._gooftool._util.shell('dumpe2fs -h root').AndReturn(
+        Obj(stdout='Filesystem created:     Mon Jan 25 16:13:18 2016\n',
+            success=True))
+    self._gooftool._util.shell('dumpe2fs -h root').AndReturn(
+        Obj(stdout='Filesystem created:     Mon Jan 25 16:13:18 2016\n',
+            success=True))
 
     self.mox.ReplayAll()
-    self._gooftool.VerifySystemTime()
+    bad_system_time = time.mktime(time.strptime('Sun Jan 24 15:00:00 2016'))
+    good_system_time = time.mktime(time.strptime('Tue Jan 26 15:00:00 2016'))
+
+    self._gooftool.VerifySystemTime(system_time=good_system_time)
+    self.assertRaises(Error, self._gooftool.VerifySystemTime,
+                      root_dev='root', system_time=bad_system_time)
 
   def testVerifyRootFs(self):
     self._gooftool._util.GetReleaseRootPartitionPath().AndReturn('root')

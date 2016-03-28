@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import sys
+import time
 
 from collections import namedtuple
 from contextlib import contextmanager
@@ -405,18 +406,32 @@ class Gooftool(object):
 
   def VerifyKeys(self):
     """Verify keys in firmware and SSD match."""
-
     return self._util.FindAndRunScript(
         'verify_keys.sh',
         [self._util.GetReleaseKernelPartitionPath(),
          self._crosfw.LoadMainFirmware().GetFileName()])
 
-  def VerifySystemTime(self):
+  def VerifySystemTime(self, root_dev=None, system_time=None):
     """Verify system time is later than release filesystem creation time."""
+    if root_dev is None:
+      root_dev = self._util.GetReleaseRootPartitionPath()
+    if system_time is None:
+      system_time = time.time()
 
-    return self._util.FindAndRunScript(
-        'verify_system_time.sh',
-        [self._util.GetReleaseRootPartitionPath()])
+    e2header = self._util.shell('dumpe2fs -h %s' % root_dev)
+    if not e2header.success:
+      raise Error('Failed to read file system: %s, %s' %
+                  (root_dev, e2header.stderr))
+    matched = re.findall(r'^Filesystem created: *(.*)', e2header.stdout,
+                         re.MULTILINE)
+    if not matched:
+      raise Error('Failed to find file system creation time: %s' % root_dev)
+    created_time = time.mktime(time.strptime(matched[0]))
+    logging.debug('Comparing system time <%s> and filesystem time <%s>',
+                  system_time, created_time)
+    if system_time < created_time:
+      raise Error('System time (%s) earlier than file system (%s) creation '
+                  'time (%s)' % (system_time, root_dev, created_time))
 
   def VerifyRootFs(self):
     """Verify rootfs on SSD is valid by checking hash."""
