@@ -99,6 +99,15 @@ class Util(object):
     fmt_str = '%sp%d' if matched_alnum else '%s%d'
     return fmt_str % (dev_path, partition)
 
+  def GetPartitionDevice(self, path):
+    """Returns a device path string from partition path.
+
+    /dev/sda1 => /dev/sda.
+    /dev/mmcblk0p2 => /dev/mmcblk0.
+    """
+    return ''.join(re.findall(
+        r'(.*[^0-9][0-9]+)p[0-9]+|(.*[^0-9])[0-9]+', path)[0])
+
   def FindScript(self, script_name):
     """Finds the script under /usr/local/factory/sh
 
@@ -218,6 +227,50 @@ class Util(object):
       output[key] = value.strip()
 
     return output
+
+  def GetCgptAttributes(self, device=None):
+    if device is None:
+      device = self.GetPrimaryDevicePath()
+
+    attrs = {}
+    for line in self.shell('cgpt show %s -q' % device).stdout.splitlines():
+      # format: offset size no name
+      part_no = line.split()[2]
+      attrs[part_no] = self.shell('cgpt show %s -i %s -A' %
+                                  (device, part_no)).stdout.strip()
+    return attrs
+
+  def SetCgptAttributes(self, attrs, device=None):
+    if device is None:
+      device = self.GetPrimaryDevicePath()
+
+    curr_attrs = self.GetCgptAttributes()
+    for k, v in attrs.iteritems():
+      if curr_attrs.get(k) == v:
+        continue
+      if not self.shell('cgpt add %s -i %s -A %s' % (device, k, v)).success:
+        raise Error('Failed to set device config: %s#%s=%s' % (device, k, v))
+
+  def InvokeChromeOSPostInstall(self, root_dev=None):
+    """Invokes the ChromeOS post-install script (/postinst)."""
+    if root_dev is None:
+      root_dev = self._util.GetReleaseRootPartitionPath()
+
+    logging.info('Running ChromeOS post-install on %s...' % root_dev)
+
+    # Some compatible and experimental fs (e.g., ext4) may be buggy and still
+    # try to write the file system even if we mount it with "ro" (ex, when
+    # seeing journaling error in ext3, or s_kbytes_written in ext4). It is
+    # safer to always mount the partition with legacy ext2. (ref:
+    # chrome-os-partner:3940)
+    with sys_utils.MountPartition(root_dev, fstype='ext2') as mount_path:
+      # IS_FACTORY_INSTALL is used to prevent postinst trying to update firmare.
+      command = ('IS_FACTORY_INSTALL=1 IS_INSTALL=1 "%s"/postinst %s' %
+                 (mount_path, root_dev))
+      result = self.shell(command)
+      if not result.success:
+        raise Error('chromeos-postinst on %s failed with error: code=%s. %s' %
+                    (root_dev, result.status, result.stderr))
 
 
 class Gooftool(object):
@@ -433,11 +486,23 @@ class Gooftool(object):
       raise Error('System time (%s) earlier than file system (%s) creation '
                   'time (%s)' % (system_time, root_dev, created_time))
 
-  def VerifyRootFs(self):
+  def VerifyRootFs(self, root_dev=None):
     """Verify rootfs on SSD is valid by checking hash."""
-    return self._util.FindAndRunScript(
-        'verify_rootfs.sh',
-        [self._util.GetReleaseRootPartitionPath()])
+    if root_dev is None:
+      root_dev = self._util.GetReleaseRootPartitionPath()
+    device = self._util.GetPartitionDevice(root_dev)
+
+    # TODO(hungte) Using chromeos_invoke_postinst here is leaving a window
+    # where unexpected reboot or test exit may cause the system to boot into
+    # the release image. Currently "cgpt" is very close to the last step of
+    # postinst so it may be OK, but we should seek for better method for this,
+    # for example adding a "--nochange_boot_partition" to chromeos-postinst.
+    try:
+      # Always rollback GPT changes.
+      curr_attrs = self._util.GetCgptAttributes(device)
+      self._util.InvokeChromeOSPostInstall(root_dev)
+    finally:
+      self._util.SetCgptAttributes(curr_attrs, device)
 
   def VerifyTPM(self):
     """Verify TPM is cleared."""

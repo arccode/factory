@@ -328,12 +328,14 @@ class GooftoolTest(unittest.TestCase):
                       root_dev='root', system_time=bad_system_time)
 
   def testVerifyRootFs(self):
-    self._gooftool._util.GetReleaseRootPartitionPath().AndReturn('root')
-
-    self._gooftool._util.FindAndRunScript('verify_rootfs.sh', ['root'])
+    fake_attrs = {'test': 'value'}
+    self._gooftool._util.GetPartitionDevice('root3').AndReturn('root')
+    self._gooftool._util.GetCgptAttributes('root').AndReturn(fake_attrs)
+    self._gooftool._util.InvokeChromeOSPostInstall('root3')
+    self._gooftool._util.SetCgptAttributes(fake_attrs, 'root').AndReturn(None)
 
     self.mox.ReplayAll()
-    self._gooftool.VerifyRootFs()
+    self._gooftool.VerifyRootFs('root3')
 
   def testVerifyTPM(self):
     self.mox.StubOutWithMock(__builtin__, 'open')
