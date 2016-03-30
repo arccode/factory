@@ -25,7 +25,6 @@ import string  # pylint: disable=W0402
 import struct
 import subprocess
 import sys
-import time
 
 from array import array
 from glob import glob
@@ -395,39 +394,88 @@ class _GobiDevices(object):
     return active_firmware
 
 
+class _InputDevices(object):
+  """Parses /proc/bus/input/devices and turns into a key-value dataset."""
+
+  def __init__(self, path='/proc/bus/input/devices'):
+    dataset = []
+    data = {}
+    entry = None
+    with open(path) as f:
+      for line in f:
+        prefix = line[0]
+        content = line[3:].strip()
+        # Format: PREFIX: Key=Value
+        #  I: Bus=HHHH Vendor=HHHH Product=HHHH Version=HHHH
+        #  N: Name="XXXX"
+        #  P: Phys=XXXX
+        #  S: Sysfs=XXXX
+        if prefix == 'I':
+          if data:
+            dataset.append(Obj(**data))
+          data = {}
+          for entry in content.split():
+            key, value = entry.split('=', 1)
+            data[key] = value
+        elif prefix in ['N', 'S']:
+          key, value = content.split('=', 1)
+          data[key] = value.strip('"')
+
+      # Flush output
+      if data:
+        dataset.append(Obj(**data))
+    self._dataset = dataset
+
+  def FindByNamePattern(self, regex):
+    """Finds devices by given regular expression."""
+    return [data for data in self._dataset if re.match(regex, data.Name)]
+
+
 class _TouchInputData(object):  # pylint: disable=W0232
   """Base class for collecting touchpad and touchscreen information."""
 
   @classmethod
-  def GenericInput(cls, name_pattern, sysfs_files):
+  def GenericInput(cls, name_pattern, sysfs_files=None, filter_rule=None):
     """A generic touch device resolver."""
-    # TODO(hungte) add more information from id/*
-    # format: N: Name="???_trackpad"
-    input_file = '/proc/bus/input/devices'
-    re_name = re.compile(r'^N: Name="(%s)"$' % name_pattern, re.MULTILINE)
-    re_sysfs = re.compile(r'^S: Sysfs=(.*)$', re.MULTILINE)
+    input_devices = _InputDevices()
+    data = input_devices.FindByNamePattern(name_pattern)
 
-    with open(input_file, 'r') as f:
-      for entry in f.read().split('\n\n'):
-        match = re_name.findall(entry)
-        if not match:
-          continue
+    if filter_rule:
+      data = [entry for entry in data if filter_rule(entry)]
 
-        name = match[0]
-        values = {'ident_str': name}
-        sysfs_path = os.path.join(
-            '/sys', re_sysfs.findall(entry)[0].lstrip('/'))
+    if not data:
+      return None
 
-        # Find out more information from sysfs.
-        for value_name in sysfs_files:
-          value_path = os.path.join(sysfs_path, '..', '..', value_name)
-          if not os.path.exists(value_path):
-            continue
-          with open(value_path) as value_file:
-            values[value_name] = value_file.read().strip()
+    # TODO(hungte) Should we support multiple components in future?
+    if len(data) > 1:
+      logging.warning('TouchInputData: multiple components matched for %s: %s',
+                      name_pattern, data)
 
-        return Obj(**values)
-    return Obj(ident_str=None)
+    entry = data[0]
+    result = {'ident_str': entry.Name}
+
+    # Ignore Linux dummy ID (0).
+    if int(entry.Vendor, 16):
+      result['vendor_id'] = entry.Vendor
+      result['product_id'] = entry.Product
+    if int(entry.Version, 16):
+      result['version'] = entry.Version
+
+    # Find out more information from sysfs.
+    for name in sysfs_files or []:
+      # entry.Sysfs starts with '/' and ends at input node, for example:
+      # /devices/pci0000:00/0000:00:02.0/i2c-2/2-004a/input/input7
+      path = os.path.join('/sys', entry.Sysfs.lstrip('/'), 'device', name)
+      if not os.path.exists(path):
+        continue
+      with open(path) as f:
+        result[name] = f.read().strip()
+
+    # Add fw_version if not available.
+    if 'fw_version' not in result:
+      result['fw_version'] = None
+
+    return Obj(**result)
 
 
 class _TouchpadData(_TouchInputData):
@@ -486,6 +534,7 @@ class _TouchpadData(_TouchInputData):
         fw_checksum = f.read().strip()
       return Obj(ident_str=name, product_id=product_id,
                  fw_version=firmware_version, fw_csum=fw_checksum)
+    return None
 
   @classmethod
   def Generic(cls):
@@ -499,27 +548,12 @@ class _TouchpadData(_TouchInputData):
     # so we use a list of tuple [("vendor id","product id"),...] to list
     # all known touchpad here so that we can report touchpad info correctly.
     # ("06cb","7a3b") is synaptics hid-over-i2c touchpad.
-    known_hid_tp = [('06cb', '7a3b')]
-    input_file = '/proc/bus/input/devices'
-    re_device_name = re.compile(r'^N: Name="(hid-over-i2c.*)"$', re.MULTILINE)
-    re_sysfs = re.compile(r'^S: Sysfs=(.*)$', re.MULTILINE)
-    with open(input_file, 'r') as f:
-      buf = f.read()
-    devices = buf.split('\n\n')
-    for d in devices:
-      match = re_device_name.findall(d)
-      if not match:
-        continue
-      device_name = match[0]
-      sysfs_path = os.path.join('/sys', re_sysfs.findall(d)[0].lstrip('/'))
-      with open(os.path.join(sysfs_path, 'id/vendor'), 'r') as f:
-        idVendor = f.read().strip()
-      with open(os.path.join(sysfs_path, 'id/product'), 'r') as f:
-        idProduct = f.read().strip()
-      for vendor, product in known_hid_tp:
-        if((vendor.lower() == idVendor.lower()) and
-           (product.lower() == idProduct.lower())):
-          return Obj(ident_str=device_name, fw_version=None)
+    known_list = [
+        '06cb:7a3b',  # Synaptics hid-over-i2c touchpad.
+    ]
+    def in_known_list(entry):
+      return '%s:%s' % (entry.Vendor, entry.Product) in known_list
+    return cls.GenericInput(r'hid-over-i2c.*', filter_rule=in_known_list)
 
   cached_data = None
 
@@ -557,7 +591,13 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
         fw_version = f.read().strip()
       return Obj(ident_str=device_name, hw_version=hw_version,
                  fw_version=fw_version)
+    return None
 
+  @classmethod
+  def Synaptics(cls):
+    return cls.GenericInput(r'SYTS.*',
+                            ['fw_version', 'hw_version', 'config_csum'],
+                            filter_rule=lambda e: e.Vendor == '06cb')
   @classmethod
   def Generic(cls):
     return cls.GenericInput(r'.*[Tt]ouch *[Ss]creen',
@@ -569,7 +609,7 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
   def Get(cls):
     if cls.cached_data is None:
       cls.cached_data = Obj(ident_str=None, fw_version=None)
-      for vendor_fun in [cls.Elan, cls.Generic]:
+      for vendor_fun in [cls.Elan, cls.Synaptics, cls.Generic]:
         data = vendor_fun()
         if data is not None:
           cls.cached_data = data
@@ -1138,7 +1178,8 @@ def _ProbeTouchpad():
 
   results = {'id': data.ident_str}
   results.update(DictCompactProbeStr(data.ident_str))
-  for key in ('product_id', 'fw_version', 'fw_csum', 'config_csum'):
+  for key in ('product_id', 'vendor_id', 'version', 'fw_version', 'hw_version',
+              'fw_csum', 'config_csum'):
     value = getattr(data, key, '')
     if value:
       results[key] = value
@@ -1153,7 +1194,8 @@ def _ProbeTouchscreen():
 
   results = {'id': data.ident_str}
   results.update(DictCompactProbeStr(data.ident_str))
-  for key in ('fw_version', 'hw_version', 'config_csum'):
+  for key in ('product_id', 'vendor_id', 'version', 'fw_version', 'hw_version',
+              'fw_csum', 'config_csum'):
     value = getattr(data, key, '')
     if value:
       results[key] = value
@@ -1545,7 +1587,6 @@ def Probe(target_comp_classes=None,
     result = Shell(command)
     return result.stdout.strip() if result.success else None
 
-  board_version = CallOutput('mosys platform version')
   if fast_fw_probe:
     logging.debug('fast_fw_probe enabled.')
     volatiles['ro_ec_firmware'] = {
