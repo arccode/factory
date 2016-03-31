@@ -54,7 +54,15 @@ class Image(object):
         self: The instance of Image.
         data: The data contianed within the image.
     """
-    obj = fmap.fmap_decode(data, fmap_name='FMAP')
+    try:
+      # FMAP identifier used by the cros_bundle_firmware family of utilities.
+      obj = fmap.fmap_decode(data, fmap_name='FMAP')
+    except struct.error:
+      # FMAP identifier used by coreboot's FMAP creation tools.
+      # The name signals that the FMAP covers the entire flash unlike, for
+      # example, the EC RW firmware's FMAP, which might also come as part of
+      # the image but covers a smaller section.
+      obj = fmap.fmap_decode(data, fmap_name='FLASH')
     self.areas = {}
     for area in obj['areas']:
       self.areas[area['name']] = area
