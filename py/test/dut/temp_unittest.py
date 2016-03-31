@@ -60,8 +60,7 @@ class TemporaryFilesTest(unittest.TestCase):
 
     self.dut.CheckOutput = mock.MagicMock(return_value=result)
     self.assertEquals(result, temp.mktemp(False))
-    self.dut.CheckOutput.assert_called_with(['mktemp', '-p', '/data/local/tmp',
-                                             template])
+    self.dut.CheckOutput.assert_called_with(['mktemp', template])
 
     # test dir
     self.dut.CheckOutput = mock.MagicMock(return_value=result)

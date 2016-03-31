@@ -35,6 +35,8 @@ class TemporaryFiles(component.DUTComponent):
     # BSD mktemp takes arbitary X with -t (deprecated by GNU) for DIR. DIR can
     # be only set by env TMPDIR.
     # Android mktemp always assumes TEMPLATE does not include DIR.
+    # toybox  mktemp works like Android but TEMPLATE is also limited to 6 char.
+    # mktemp.org also has a different working style.
     # The implementation below is for GNU mktemp.
     args = ['mktemp']
     if is_dir:
@@ -82,19 +84,14 @@ class TemporaryFiles(component.DUTComponent):
 class AndroidTemporaryFiles(TemporaryFiles):
   """Access to temporary objects on Android systems."""
 
-  # Default temp dir base for most Android systems.
-  TMPDIR = '/data/local/tmp'
-
   # pylint: disable=W0622
   def mktemp(self, is_dir, suffix='', prefix='cftmp', dir=None):
-    """Creates a temporary file or directory on DUT.
-    """
+    """Creates a temporary file or directory on DUT."""
+
     template = '%s.XXXXXX%s' % (prefix, suffix)
-    # On Android, TMPDIR environment variable is only specified when
-    # /system/etc/mkshrc was executed.  When we access to Android via "adb
-    # shell", ${TMPDIR} will be empty. So here we want to always provide a value
-    # for -p.
-    args = ['mktemp', '-p', self.TMPDIR if dir is None else dir]
+    args = ['mktemp']
+    if dir is None:
+      args += ['-p', dir]
     if is_dir:
       args += ['-d']
     args += [template]

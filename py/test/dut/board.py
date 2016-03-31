@@ -306,6 +306,10 @@ class DUTBoard(object):
   def Popen(self, command, stdin=None, stdout=None, stderr=None, log=False):
     """Executes a command on DUT using subprocess.Popen convention.
 
+    This function should be the single entry point for invoking link.Shell
+    because boards that need customization to shell execution (for example,
+    adding PATH or TMPDIR) will override this.
+
     Args:
       command: A string or a list of strings for command to execute.
       stdin: A file object to override standard input.
