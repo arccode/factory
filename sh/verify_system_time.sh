@@ -4,4 +4,4 @@
 # found in the LICENSE file.
 
 # Deprecated script.
-gooftool verify_system_time
+gooftool verify_system_time "$@"

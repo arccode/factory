@@ -508,11 +508,13 @@ def VerifyHWIDv2(options):
   print 'Verification SUCCESS!'
 
 
-@Command('verify_keys')
+@Command('verify_keys',
+         CmdArg('kernel_device', nargs='?', help='Kernel device to verify.'),
+         CmdArg('main_firmware', nargs='?', help='Main firmware image file.'))
 def VerifyKeys(options):  # pylint: disable=W0613
   """Verify keys in firmware and SSD match."""
-
-  return GetGooftool(options).VerifyKeys()
+  return GetGooftool(options).VerifyKeys(
+      options.kernel_device, options.main_firmware)
 
 
 @Command('set_fw_bitmap_locale')
@@ -524,18 +526,20 @@ def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
                index, locale)
 
 
-@Command('verify_system_time')
+@Command('verify_system_time',
+         CmdArg('root_dev', nargs='?', help='Root device to check.'))
 def VerifySystemTime(options):  # pylint: disable=W0613
   """Verify system time is later than release filesystem creation time."""
 
-  return GetGooftool(options).VerifySystemTime()
+  return GetGooftool(options).VerifySystemTime(options.root_dev)
 
 
-@Command('verify_rootfs')
+@Command('verify_rootfs',
+         CmdArg('release_rootfs', nargs='?', help='Release root file system.'))
 def VerifyRootFs(options):  # pylint: disable=W0613
   """Verify rootfs on SSD is valid by checking hash."""
 
-  return GetGooftool(options).VerifyRootFs()
+  return GetGooftool(options).VerifyRootFs(options.release_rootfs)
 
 
 @Command('verify_tpm')

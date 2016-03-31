@@ -7,4 +7,4 @@
 # the chromeos-postinst script.
 
 # Deprecated script.
-gooftool verify_rootfs
+gooftool verify_rootfs "$@"

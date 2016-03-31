@@ -10,4 +10,4 @@
 #
 
 # Deprecated script.
-gooftool verify_keys
+gooftool verify_keys "$@"
