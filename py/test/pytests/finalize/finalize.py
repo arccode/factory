@@ -53,7 +53,13 @@ MSG_FINALIZING = MakeLabel(
     '正在开始最终程序，请稍等.<br>'
     '不要重启机器或停止测试，<br>'
     '不然机器将无法开机。')
-
+MSG_CHANGE_TO_REBOOT = MakeLabel(
+    '<strong>Virtual dev mode is on, system will reboot '
+    'after wiping instead of battery cutoff.</strong><br>'
+    'Press SPACE to continue.',
+    u'<strong>虚拟开发模式已开启，系统清除后将重新开启，'
+    u'而不会切断电源(battery cutoff)。</strong><br>'
+    u'请按空白键开始')
 
 class Finalize(unittest.TestCase):
   """The main class for finalize pytest."""
@@ -126,7 +132,7 @@ class Finalize(unittest.TestCase):
           '- "max_battery_percent": Maximum battery percentage allowed\n'
           '- "min_battery_voltage": Minimum battery voltage allowed\n'
           '- "max_battery_voltage": Maximum battery voltage allowed',
-          optional=True),
+          default={'method':'shutdown'}),
       Arg('enforced_release_channels', list,
           'A list of string indicating the enforced release image channels. '
           'Each item should be one of "dev", "beta" or "stable".',
@@ -279,13 +285,45 @@ class Finalize(unittest.TestCase):
 
       return True
 
+
+    def VirtualDevSwitchOn():
+      return (self.dut.info.has_virtual_dev_switch and
+              self.dut.info.virtual_dev_mode_on)
+
     items = [(CheckRequiredTests,
               MakeLabel('Verify all tests passed',
-                        '确认测试项目都已成功了')),
-             (lambda: (
-                 self.gooftool.CheckDevSwitchForDisabling() in (True, False)),
-              MakeLabel('Turn off Developer Switch',
-                        '停用开发者开关(DevSwitch)'))]
+                        '确认测试项目都已成功了'))]
+
+    # TODO (shunhsingou): check image version before the flowing logic.
+    # For doing in-place wiping, we cut-off battery power immediately after
+    # wiping. However, "disable_dev_request" flag may get corrupted on some
+    # devices due to the cut-off without reboot, and the virtual dev mode bit is
+    # not cleared. Therefore, we want to make sure the virtual
+    # dev mode bit is not set before doing in-place wiping.
+    # For factory, we stop the finalize by showing the error, since we should
+    # use GBB flag for dev mode in factory.
+    # For RMA, the cut-off is replaced by reboot.
+    if self.args.wipe_in_place:
+      if (VirtualDevSwitchOn() and
+          self.args.cutoff_options.get('method') != 'reboot'):
+        if self.args.rma_mode:
+          self.args.cutoff_options['method'] = 'reboot'
+          with self.go_cond:
+            self.template.SetState(MSG_CHANGE_TO_REBOOT)
+            self.go_cond.wait()
+        else:
+          factory.console.warn('Virtual dev switch is on.')
+          items.append((lambda: False,
+                        MakeLabel(
+                            'Virtual DEV switch must be off for '
+                            'in-place wiping',
+                            '虚拟开发模式必须关闭。')))
+    else:
+      items.append((
+          self.gooftool.CheckDevSwitchForDisabling() in (True, False),
+          MakeLabel('Turn off Developer Switch',
+                    '停用开发者开关(DevSwitch)')))
+
     if self.args.min_charge_pct:
       items.append((lambda: (power.CheckBatteryPresent() and
                              power.GetChargePct() >= self.args.min_charge_pct),

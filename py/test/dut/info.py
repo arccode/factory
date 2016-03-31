@@ -58,6 +58,11 @@ class SystemInfo(component.DUTComponent):
   You can also "override" some properties by using Overrides(name, value).
   """
 
+  # Virtual dev switch flag.
+  _VBSD_HONOR_VIRT_DEV_SWITCH = 0x400
+  _FIRMWARE_NV_INDEX = 0x1007
+  _FLAG_VIRTUAL_DEV_MODE_ON = 0x02
+
   def __init__(self, _dut=None):
     super(SystemInfo, self).__init__(_dut)
     self._cached = {}
@@ -234,6 +239,28 @@ class SystemInfo(component.DUTComponent):
       # TODO(hungte) Support remote DUT.
       return hwid.hwid_utils.ComputeDatabaseChecksum(hwid_file_path)
     return None
+
+  @InfoProperty
+  def has_virtual_dev_switch(self):
+    """Returns true if the device has virtual dev switch."""
+    vdat_flags = int(self._dut.CheckOutput(['crossystem', 'vdat_flags']), 16)
+    return bool(vdat_flags & self._VBSD_HONOR_VIRT_DEV_SWITCH)
+
+  @InfoProperty
+  def virtual_dev_mode_on(self):
+    """Returns true if the virtual dev mode is on."""
+
+    # We use tpm_nvread to read the virtual dev mode flag stored in TPM.
+    # An example output of tpm_nvread looks like:
+    #
+    # 00000000  02 03 01 00 01 00 00 00 00 7a
+    #
+    # Where the second field is the version and the third field is flag we
+    # need.
+    nvdata = self._dut.CheckOutput(['tpm_nvread', '-i',
+                                    '%d' % self._FIRMWARE_NV_INDEX])
+    flag = int(nvdata.split()[2], 16)
+    return bool(flag & self._FLAG_VIRTUAL_DEV_MODE_ON)
 
 
 if __name__ == '__main__':
