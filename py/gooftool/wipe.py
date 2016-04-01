@@ -18,12 +18,16 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import chroot
+from cros.factory.gooftool.common import Util
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
 
 WIPE_ARGS_FILE = '/tmp/factory_wipe_args'
+
+"""Directory of scripts for battery cut-off"""
+SCRIPT_DIR = '/usr/local/factory/sh'
 
 
 def OnError(state_dev, logfile):
@@ -281,6 +285,56 @@ def _UnmountStatefulPartition(root):
   process_utils.Spawn(['sync'], call=True)
 
 
+def _StartWipe(factory_root_dev, root_disk, wipe_args, cutoff_args,
+               shopfloor_url):
+  stateful_partition_path = '/mnt/stateful_partition'
+
+  # partition 3 and 5 are root images, one is factory image, the other one is
+  # release image.
+  if factory_root_dev[-1] == '3':
+    release_root_dev = factory_root_dev[:-1] + '5'
+  else:
+    release_root_dev = factory_root_dev[:-1] + '3'
+
+  clobber_state_env = os.environ.copy()
+  clobber_state_env.update(ROOT_DEV=release_root_dev,
+                           ROOT_DISK=root_disk,
+                           FACTORY_RETURN_AFTER_WIPING='YES')
+  logging.debug('clobber-state: root_dev=%s, root_disk=%s',
+                release_root_dev, root_disk)
+  process_utils.Spawn(['clobber-state', wipe_args], env=clobber_state_env,
+                      call=True)
+
+  shutil.move('/tmp/clobber-state.log', os.path.join(stateful_partition_path,
+                                                     'unencrypted',
+                                                     'clobber-state.log'))
+  # remove developer flag, which is created by clobber-state after wiping.
+  try:
+    os.unlink(os.path.join(stateful_partition_path, '.developer'))
+  except OSError:
+    pass
+
+  logging.debug('enable release partition: %s', release_root_dev)
+  Util().EnableReleasePartition(release_root_dev)
+
+  if shopfloor_url:
+    logging.debug('inform shopfloor %s', shopfloor_url)
+    proc = process_utils.Spawn([os.path.join(SCRIPT_DIR,
+                                             'inform_shopfloor.sh'),
+                                shopfloor_url, 'factory_wipe'], check_call=True)
+    logging.debug('stdout: %s', proc.stdout_data)
+    logging.debug('stderr: %s', proc.stderr_data)
+
+  if cutoff_args is None:
+    cutoff_args = ''
+  logging.debug('battery_cutoff: args=%s', cutoff_args)
+  battery_cutoff_script = os.path.join(SCRIPT_DIR, 'battery_cutoff.sh')
+  process_utils.Spawn('%s %s' % (battery_cutoff_script, cutoff_args),
+                      shell=True, check_call=True)
+  # should not reach here
+  time.sleep(1e8)
+
+
 def WipeInit(args_file):
   logfile = '/tmp/wipe_init.log'
   ResetLog(logfile)
@@ -288,17 +342,18 @@ def WipeInit(args_file):
   args = json.load(open(args_file))
 
   logging.debug('args: %r', args)
-  logging.debug(
-      'lsof: %s',
-      process_utils.SpawnOutput('lsof -p %d' % os.getpid(), shell=True))
-
   try:
     _StopAllUpstartJobs(exclude_list=['boot-services', 'console-tty2', 'dbus',
                                       'factory-wipe', 'shill',
                                       'openssh-server'])
     _UnmountStatefulPartition(args['old_root'])
+
+    process_utils.Spawn([os.path.join(SCRIPT_DIR, 'display_wipe_message.sh'),
+                         'wipe'], call=True)
+
+    _StartWipe(args['factory_root_dev'], args['root_disk'], args['wipe_args'],
+               args['cutoff_args'], args['shopfloor_url'])
   except:  # pylint: disable=bare-except
     logging.exception('wipe_init failed')
     OnError(args['state_dev'], logfile)
     raise
-
