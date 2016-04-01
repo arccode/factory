@@ -142,7 +142,8 @@ copy_dependent_binary_files() {
 }
 
 copy_rootfs_files_and_dirs() {
-  tar -c ${FILES_DIRS_COPIED_FROM_ROOTFS} | tar -C "${TMPFS_PATH}" -x
+  tar -c ${FILES_DIRS_COPIED_FROM_ROOTFS} |
+      tar -C "${TMPFS_PATH}" -x --skip-old-files
 }
 
 # ======================================================================
