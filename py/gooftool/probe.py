@@ -477,31 +477,63 @@ class _TouchInputData(object):  # pylint: disable=W0232
 
     return Obj(**result)
 
+  @classmethod
+  def SynapticsInput(cls, name_pattern, sysfs_files=None):
+    data = cls.GenericInput(name_pattern, sysfs_files,
+                            filter_rule=lambda e: e.Vendor == '06cb')
+    if not data:
+      return None
+
+    rmi4update_program = '/usr/sbin/rmi4update'
+    if not os.path.exists(rmi4update_program):
+      return data
+
+    devs = glob(os.path.join('/sys/bus/hid/devices/', '*:%s:%s.*'
+                             % (data.vendor_id.upper(), data.product_id.upper()),
+                             'hidraw/hidraw*'))
+    if not devs:
+      return data
+
+    hidraw_dev = '/dev/' + devs[0].split('/')[-1]
+
+    result = Shell(rmi4update_program + ' -p -d ' + hidraw_dev)
+    if not result.success:
+      return data
+
+    data.fw_version = result.stdout.strip()
+    return data
 
 class _TouchpadData(_TouchInputData):
   """Return Obj with hw_ident and fw_ident string fields."""
 
   @classmethod
   def Synaptics(cls):
-    detect_program = '/opt/Synaptics/bin/syndetect'
-    if not os.path.exists(detect_program):
-      return None
-    lock_check = Shell('lsof /dev/serio_raw0 | grep -q "^X"')
-    if lock_check.success and not os.getenv('DISPLAY'):
-      logging.error('Synaptics touchpad detection with X in the '
-                    'foreground requires DISPLAY and XAUTHORITY '
-                    'to be set properly.')
-      return None
-    result = Shell(detect_program)
-    if not result.success:
-      return None
-    properties = dict(map(str.strip, line.split('=', 1))
-                      for line in result.stdout.splitlines() if '=' in line)
-    model = properties.get('Model String', 'Unknown Synaptics')
-    # Delete the " on xxx Port" substring, as we do not care about the port.
-    model = re.sub(' on [^ ]* [Pp]ort$', '', model)
-    firmware = properties.get('Firmware ID', None)
-    return Obj(ident_str=model, fw_version=firmware)
+
+    def SynapticsSyndetect():
+      detect_program = '/opt/Synaptics/bin/syndetect'
+      if not os.path.exists(detect_program):
+        return None
+      lock_check = Shell('lsof /dev/serio_raw0 | grep -q "^X"')
+      if lock_check.success and not os.getenv('DISPLAY'):
+        logging.error('Synaptics touchpad detection with X in the '
+                      'foreground requires DISPLAY and XAUTHORITY '
+                      'to be set properly.')
+        return None
+      result = Shell(detect_program)
+      if not result.success:
+        return None
+      properties = dict(map(str.strip, line.split('=', 1))
+                        for line in result.stdout.splitlines() if '=' in line)
+      model = properties.get('Model String', 'Unknown Synaptics')
+      # Delete the " on xxx Port" substring, as we do not care about the port.
+      model = re.sub(' on [^ ]* [Pp]ort$', '', model)
+      firmware = properties.get('Firmware ID', None)
+      return Obj(ident_str=model, fw_version=firmware)
+
+    def SynapticsByName():
+      return cls.SynapticsInput(r'^SYNA.*', ['fw_version'])
+
+    return SynapticsSyndetect() or SynapticsByName()
 
   @classmethod
   def Cypress(cls):
@@ -595,9 +627,7 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
 
   @classmethod
   def Synaptics(cls):
-    return cls.GenericInput(r'SYTS.*',
-                            ['fw_version', 'hw_version', 'config_csum'],
-                            filter_rule=lambda e: e.Vendor == '06cb')
+    return cls.SynapticsInput(r'SYTS.*', ['fw_version'])
   @classmethod
   def Generic(cls):
     return cls.GenericInput(r'.*[Tt]ouch *[Ss]creen',
