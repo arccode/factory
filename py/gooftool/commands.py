@@ -699,6 +699,11 @@ def WipeInPlace(options):
   GetGooftool(options).WipeInPlace(options.fast, options.cutoff_args,
                                    options.shopfloor_url)
 
+@Command('wipe_init',
+         CmdArg('--wipe_file', help='path to the wipe args file'))
+def WipeInit(options):
+  GetGooftool(options).WipeInit(options.args_file)
+
 @Command('prepare_wipe',
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'))

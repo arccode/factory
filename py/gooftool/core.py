@@ -23,6 +23,7 @@ from cros.factory.hwid.v3 import common as hwid3_common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.decoder import Decode
 from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import wipe
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
 from cros.factory.gooftool.probe import DeleteRwVpd
@@ -523,20 +524,13 @@ class Gooftool(object):
 
       cutoff_args: Args to be passed to battery_cutoff.sh after wiping.
     """
-    args = ''
-    if is_fast:
-      args += 'FAST_WIPE=true\n'
-
     if cutoff_args:
       self._VerifyCutoffArgs(cutoff_args)
-      args += 'CUTOFF_ARGS=%s\n' % cutoff_args
+    wipe.WipeInTmpFs(is_fast, cutoff_args, shopfloor_url)
 
-    if shopfloor_url:
-      args += 'SHOPFLOOR_URL=%s\n' % shopfloor_url
-
-    if args:
-      file_utils.WriteFile('/tmp/factory_wipe_args', args)
-    os.system('start factory-wipe')
+  def WipeInit(self, args_file):
+    """Start wiping test image."""
+    wipe.WipeInit(args_file)
 
   def PrepareWipe(self, is_fast=None):
     """Prepare system for transition to release state in next reboot.
