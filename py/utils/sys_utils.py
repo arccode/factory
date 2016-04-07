@@ -67,7 +67,7 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   if not path.isdir(mount_point):
     raise OSError('Mount point %s does not exist', mount_point)
 
-  for line in file_utils.ReadLines('/etc/mtab', dut):
+  for line in file_utils.ReadLines('/proc/mounts', dut):
     if line.split()[1] == mount_point:
       raise OSError('Mount point %s is already mounted' % mount_point)
 
@@ -111,7 +111,9 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   if options:
     all_options.extend(options)
 
-  command = ['mount', '-o', ','.join(all_options)]
+  command = ['toybox'] if (not local_mode and
+                           dut.Call(['type', 'toybox']) == 0) else []
+  command += ['mount', '-o', ','.join(all_options)]
   if fstype is not None:
     command += ['-t', fstype]
   command += [source_path, mount_point]

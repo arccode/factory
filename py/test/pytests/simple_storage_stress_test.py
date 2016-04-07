@@ -26,7 +26,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test.args import Arg
-from cros.factory.test.utils.mount_utils import Mount
+from cros.factory.utils.sys_utils import MountPartition
 
 BLOCK_SIZE = 4096
 
@@ -97,8 +97,8 @@ class SimpleStorageStressTest(unittest.TestCase):
 
   def runTest(self):
     if self.args.mount_device:
-      with self._dut.temp.TempDirectory() as mount_path:
-        with Mount(self._dut, self.args.mount_device, mount_path):
-          self.TestReadWriteIn(self._dut.path.join(mount_path, self.args.dir))
+      with MountPartition(
+          self.args.mount_device, rw=True, dut=self._dut) as mount_path:
+        self.TestReadWriteIn(self._dut.path.join(mount_path, self.args.dir))
     else:
       self.TestReadWriteIn(self.args.dir)
