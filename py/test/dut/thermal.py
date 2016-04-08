@@ -156,7 +156,7 @@ class SysFSThermal(ECToolThermal):
   Unit = Enum(['MILLI_CELSIUS', 'CELSIUS'])
 
   def __init__(self, dut, main_temperature_sensor_name='tsens_tz_sensor0',
-               unit=Unit.MILLI_CELSIUS):
+               unit=Unit.MILLI_CELSIUS, fans_info=None):
     """Constructor.
 
     Args:
@@ -164,11 +164,36 @@ class SysFSThermal(ECToolThermal):
           GetMainTemperatureIndex(). For example: 'tsens_tz_sensor0' or 'cpu'.
       unit: The unit of the temperature reported in sysfs, in type
           SysFSThermal.Unit.
+      fans_info: A sequence of dicts. Each dict contains information of a fan:
+      - "fan_id": The id used in SetFanRPM/GetFanRPM.
+      - "path": The path containing files for fan operations.
+      - "control_mode_filename": The file to switch auto/manual fan control
+            mode. default is "pwm1_enable".
+      - "get_speed_filename": The file to get fan speed information.
+            default is "fan1_input".
+      - "get_speed_map": A function (str -> int) that translates the content of
+            "get_speed_filename" file to RPM. default is int.
+      - "set_speed_filename": The file to set fan speed. default is "pwm1".
+      - "set_speed_map": A function (int -> str) that produces corresponding
+            content for "set_speed_filename" file with a given RPM. default is
+            str.
     """
     super(SysFSThermal, self).__init__(dut)
     self._thermal_zones = None
     self._main_temperature_sensor_name = main_temperature_sensor_name
     self._unit = unit
+    self._fans = []
+    if fans_info is not None:
+      for fan_info in fans_info:
+        complete_info = fan_info.copy()
+        assert 'fan_id' in complete_info, "'fan_id' is missing in fans_info"
+        assert 'path' in complete_info, "'path' is missing in fans_info"
+        complete_info.setdefault('control_mode_filename', 'pwm1_enable')
+        complete_info.setdefault('get_speed_filename', 'fan1_input')
+        complete_info.setdefault('get_speed_map', int)
+        complete_info.setdefault('set_speed_filename', 'pwm1')
+        complete_info.setdefault('set_speed_map', str)
+        self._fans.append(complete_info)
 
   def _ConvertTemperatureToCelsius(self, value):
     """
@@ -183,7 +208,6 @@ class SysFSThermal(ECToolThermal):
         self.Unit.CELSIUS: lambda x: x
     }
     return conversion_map[self._unit](value)
-
 
   def _GetThermalZones(self):
     """Gets a list of thermal zones.
@@ -237,6 +261,39 @@ class SysFSThermal(ECToolThermal):
       except component.CalledProcessError as e:
         raise self.Error('Unable to get temperature sensor names: %s' % e)
     return self._temperature_sensor_names
+
+  def GetFanRPM(self, fan_id=None):
+    """See ECToolThermal.GetFanRPM."""
+    try:
+      ret = []
+      for info in self._fans:
+        if fan_id is None or info['fan_id'] == fan_id:
+          buf = self._dut.ReadFile(self._dut.path.join(
+              info['path'], info['get_speed_filename']))
+          ret.append(info['get_speed_map'](buf))
+      return ret
+    except Exception as e:  # pylint: disable=W0703
+      raise self.Error('Unable to get fan speed: %s' % e)
+
+  def SetFanRPM(self, rpm, fan_id=None):
+    """See ECToolThermal.SetFanRPM."""
+    try:
+      for info in self._fans:
+        if fan_id is None or info['fan_id'] == fan_id:
+          if rpm == self.AUTO:
+            self._dut.WriteFile(self._dut.path.join(
+                info['path'], info['control_mode_filename']), '2')
+          else:
+            self._dut.WriteFile(self._dut.path.join(
+                info['path'], info['control_mode_filename']), '1')
+            buf = info['set_speed_map'](rpm)
+            self._dut.WriteFile(self._dut.path.join(
+                info['path'], info['set_speed_filename']), buf)
+    except Exception as e:  # pylint: disable=W0703
+      if rpm == self.AUTO:
+        raise self.Error('Unable to set auto fan control: %s' % e)
+      else:
+        raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
 
 def main():

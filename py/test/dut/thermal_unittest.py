@@ -136,6 +136,8 @@ class SysFSThermalTest(unittest.TestCase):
       '/sys/class/thermal/thermal_zone0',
       '/sys/class/thermal/thermal_zone1']
 
+  _FANS_INFO = [{'fan_id': None, 'path': '/sys/fan'}]
+
   def setUp(self):
     self.mox = mox.Mox()
     self.board = self.mox.CreateMock(board.DUTBoard)
@@ -213,6 +215,32 @@ class SysFSThermalTest(unittest.TestCase):
     self.mox.ReplayAll()
     self.assertEquals(thermal_obj.GetMainTemperatureIndex(), 0)
     self.mox.VerifyAll()
+
+  def testGetFanRPM(self):
+    thermal_obj = thermal.SysFSThermal(self.board, 'cpu',
+                                       fans_info=self._FANS_INFO)
+    self.board.ReadFile('/sys/fan/fan1_input').AndReturn('5566')
+    self.mox.ReplayAll()
+    self.assertEquals(thermal_obj.GetFanRPM(), [5566])
+    self.mox.VerifyAll()
+
+  def testSetFanRPMAuto(self):
+    thermal_obj = thermal.SysFSThermal(self.board, 'cpu',
+                                       fans_info=self._FANS_INFO)
+    self.board.WriteFile('/sys/fan/pwm1_enable', '2')
+    self.mox.ReplayAll()
+    thermal_obj.SetFanRPM(thermal_obj.AUTO)
+    self.mox.VerifyAll()
+
+  def testSetFanRPM(self):
+    thermal_obj = thermal.SysFSThermal(self.board, 'cpu',
+                                       fans_info=self._FANS_INFO)
+    self.board.WriteFile('/sys/fan/pwm1_enable', '1')
+    self.board.WriteFile('/sys/fan/pwm1', '5566')
+    self.mox.ReplayAll()
+    thermal_obj.SetFanRPM(5566)
+    self.mox.VerifyAll()
+
 
 if __name__ == '__main__':
   unittest.main()
