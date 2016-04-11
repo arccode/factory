@@ -201,6 +201,16 @@ chroot_tmpfs_to_wipe() {
     "${ROOT_DISK}" "${WIPE_ARGS}" "${CUTOFF_ARGS}" "${SHOPFLOOR_URL}"
 }
 
+# In wiping tmp filesystem, modprobe fails to load modules when new USB
+# ethernet dongle connected. Load all drivers for USB ethernet dongle here so
+# we can recognize and reconnect to ethernet in wiping tmp filesystem.
+load_usbnet_module() {
+  local module_path=""
+  for module_path in /lib/modules/$(uname -r)/kernel/drivers/net/usb/*.ko; do
+    modprobe "$(basename ${module_path} .ko)"
+  done
+}
+
 # ======================================================================
 # Main function
 
@@ -212,6 +222,7 @@ main() {
   fi
 
   parse_wipe_args
+  load_usbnet_module
   stop_running_upstart_jobs
   unmount_stateful
   rebind_mount_point
