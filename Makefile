@@ -229,8 +229,14 @@ test-presubmit:
 	    echo 'Unit tests have not passed.  Please run "make test".'; \
 	    exit 1; \
 	fi
-	changed=$$(find $(filter-out doc/%,$(PRESUBMIT_FILES)) \
-	    -newer .tests-passed); \
+	if [ -n "$(PRESUBMIT_FILES)" ]; then \
+	    changed=$$(find $(filter-out doc/%,$(PRESUBMIT_FILES)) \
+	        -newer .tests-passed); \
+	else \
+	    if [ "$$(git log -1 --format=%ct)" -gt "$$(stat -c %Y .tests-passed)" ]; then \
+	        changed="one or more deleted files"; \
+	    fi; \
+	fi; \
 	if [ -n "$$changed" ]; then \
 	    echo "Files have changed since last time unit tests passed:"; \
 	    echo "$$changed" | sed -e 's/^/  /'; \
