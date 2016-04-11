@@ -90,7 +90,7 @@ class AndroidTemporaryFiles(TemporaryFiles):
 
     template = '%s.XXXXXX%s' % (prefix, suffix)
     args = ['mktemp']
-    if dir is None:
+    if dir is not None:
       args += ['-p', dir]
     if is_dir:
       args += ['-d']
