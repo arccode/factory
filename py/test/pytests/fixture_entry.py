@@ -95,8 +95,7 @@ class FixtureEntry(unittest.TestCase):
     self._state.ScheduleRestart()
 
   def SendTestResult(self):
-    # TODO(stimim): send test result to shopfloor
-    pass
+    self._dut.hooks.SendTestResult(self._state.get_test_states())
 
   def runTest(self):
     self._ui.Run(blocking=False)
