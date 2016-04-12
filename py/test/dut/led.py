@@ -16,7 +16,8 @@ from cros.factory.utils.type_utils import Enum
 
 class LED(component.DUTComponent):
 
-  Color = Enum(['AUTO', 'OFF', 'RED', 'GREEN', 'BLUE', 'YELLOW', 'WHITE'])
+  Color = Enum(['AUTO', 'OFF', 'RED', 'GREEN', 'BLUE', 'YELLOW', 'WHITE',
+                'AMBER'])
   """Charger LED colors.
 
   - ``AUTO``: Use the default logic to select the LED color.

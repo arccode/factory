@@ -44,6 +44,7 @@ _COLOR_LABEL = {
     LEDColor.RED: I18nLabel('red', u'紅色'),
     LEDColor.WHITE: I18nLabel('white', u'白色'),
     LEDColor.BLUE: I18nLabel('blue', u'蓝色'),
+    LEDColor.AMBER: I18nLabel('amber', u'琥珀色'),
     LEDColor.OFF: I18nLabel('off', u'关闭')}
 _INDEX_LABEL = {
     None: I18nLabel('', ''),
@@ -58,6 +59,7 @@ _COLOR_CODE = {
     LEDColor.RED: ('#ff0000', 'black'),
     LEDColor.WHITE: ('#ffffff', 'black'),
     LEDColor.BLUE: ('#0000ff', 'white'),
+    LEDColor.AMBER: ('#ffbf00', 'black'),
     LEDColor.OFF: ('#000000', 'white')}
 
 _JS_OP_RESPONSE = """
