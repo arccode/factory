@@ -858,7 +858,13 @@ class WiFiThroughput(unittest.TestCase):
             'path': os.environ.get('CROS_FACTORY_TEST_PATH'),
             'invocation': os.environ.get('CROS_FACTORY_TEST_INVOCATION')},
         'dut': {
-            'device_id': event_log.GetDeviceId()},
+            'device_id': event_log.GetDeviceId(),
+            'serial_number': self._dut.storage.LoadDict().get(
+                'serial_number', None),
+            'sub_serial_number': self._dut.storage.LoadDict().get(
+                'sub_serial_number', None),
+            'mlb_serial_number': self._dut.storage.LoadDict().get(
+                'mlb_serial_number', None)},
         'ssid_list': {},
         'test': {},
         'failures': []}
