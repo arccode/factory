@@ -35,8 +35,8 @@ import textwrap
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
 from cros.factory.test.dut.component import CalledProcessError
-from cros.factory.test.env import paths
 from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
 
 class WiFiError(Exception):
@@ -46,8 +46,9 @@ class WiFiError(Exception):
 
 class WiFi(component.DUTComponent):
   """WiFi system component."""
-  _SCAN_TIMEOUT_SECS = 10
-  _ACCESS_POINT_RE = re.compile(r'BSS ([:\w]*)\(on \w*\)( -- associated)?\r?\n')
+  _SCAN_TIMEOUT_SECS = 20
+  _ACCESS_POINT_RE = re.compile(
+      r'BSS ([:\w]*)\W*\(on \w*\)( -- associated)?\r?\n')
   _WLAN_NAME_PATTERNS = ['wlan*', 'mlan*']
 
   # Shortcut to access exception object.
@@ -162,6 +163,9 @@ class WiFi(component.DUTComponent):
     ap = AccessPoint()
     ap.bssid = bssid
     ap.active = active
+    ap.ssid = ''  # Sometimes an AP doesn't have an SSID.
+    ap.strength = None
+    ap.quality = None
     encrypted = None
 
     for line in textwrap.dedent(output).splitlines():
@@ -172,7 +176,12 @@ class WiFi(component.DUTComponent):
           ap.ssid = value.decode('utf-8')
 
         elif key == 'signal':
-          ap.strength = float(value.partition(' dBm')[0])
+          if 'dBm' in value:
+            # Strength rating (dBm).
+            ap.strength = float(value.partition(' dBm')[0])
+          elif '/' in value:
+            # Quality rating (out of 100).
+            ap.quality = float(value.partition('/')[0])
 
         elif key == 'capability':
           encrypted = 'Privacy' in value
@@ -210,7 +219,7 @@ class WiFi(component.DUTComponent):
         scan_timeout=scan_timeout)
     if not matches:
       raise WiFiError('No matching access points found')
-    return matches[0] if matches else None
+    return matches[0]
 
   def FilterAccessPoints(
       self, ssid=None, active=None, encrypted=None, interface=None,
@@ -224,7 +233,8 @@ class WiFi(component.DUTComponent):
                 (encrypted is None or encrypted == ap.encrypted))]
 
   def Connect(self, ap, interface=None, passkey=None,
-              connect_timeout=None, dhcp_timeout=None):
+              connect_timeout=None, connect_attempt_timeout=None,
+              dhcp_timeout=None):
     """Connect to a given AccessPoint.
 
     Returns:
@@ -236,14 +246,16 @@ class WiFi(component.DUTComponent):
     conn = self._NewConnection(
         dut=self._dut, interface=interface,
         ap=ap, passkey=passkey,
-        connect_timeout=connect_timeout, dhcp_timeout=dhcp_timeout,
+        connect_timeout=connect_timeout,
+        connect_attempt_timeout=connect_attempt_timeout,
+        dhcp_timeout=dhcp_timeout,
         tmp_dir=self.tmp_dir)
     conn.Connect()
     return conn
 
   def FindAndConnectToAccessPoint(
-          self, ssid=None, interface=None, passkey=None, scan_timeout=None,
-          connect_timeout=None, dhcp_timeout=None, **kwargs):
+      self, ssid=None, interface=None, passkey=None, scan_timeout=None,
+      connect_timeout=None, dhcp_timeout=None, **kwargs):
     """Try to find the given AccessPoint and connect to it.
 
     Returns:
@@ -269,6 +281,7 @@ class AccessPoint(object):
     frequency: Frequency of the AP (MHz as integer).
     active: Whether or not this network is currently associated.
     strength: Signal strength in dBm.
+    quality: Link quality out of 100.
     encryption_type: Type of encryption used.  Can be one of:
       None, 'wep', 'wpa', 'wpa2'.
   """
@@ -280,6 +293,7 @@ class AccessPoint(object):
     self.frequency = None
     self.active = None
     self.strength = None
+    self.quality = None
     self.encryption_type = None
 
   @property
@@ -293,16 +307,21 @@ class AccessPoint(object):
   def __repr__(self):
     if not self.bssid:
       return 'AccessPoint()'
+    strength = '{:.2f} dBm, '.format(
+        self.strength) if self.strength is not None else ''
+    quality = '{:.2f}/100, '.format(
+        self.quality) if self.quality is not None else ''
     return (
         u'AccessPoint({ssid}, {bssid}, channel={channel}, '
         'frequency={frequency} MHz, {active}, '
-        '{strength:.2f} dBm, encryption={encryption})'.format(
+        '{strength}{quality}encryption={encryption})'.format(
             ssid=self.ssid,
             bssid=self.bssid,
             channel=self.channel,
             frequency=self.frequency,
             active='active' if self.active else 'inactive',
-            strength=self.strength,
+            strength=strength,
+            quality=quality,
             encryption=self.encryption_type or 'none')).encode('utf-8')
 
 
@@ -349,11 +368,13 @@ class Connection(object):
   """Represents a connection to a particular AccessPoint."""
   DHCP_DHCPCD = 'dhcpcd'
   DHCP_DHCLIENT = 'dhclient'
-  _CONNECT_TIMEOUT = 10
+  _CONNECT_TIMEOUT = 20
+  _CONNECT_ATTEMPT_TIMEOUT = 10
   _DHCP_TIMEOUT = 10
 
   def __init__(self, dut, interface, ap, passkey,
-               connect_timeout=None, dhcp_timeout=None,
+               connect_timeout=None, connect_attempt_timeout=None,
+               dhcp_timeout=None,
                tmp_dir=None, dhcp_method=DHCP_DHCLIENT,
                dhclient_script_path=None):
     self._dut = dut
@@ -367,9 +388,14 @@ class Connection(object):
     self._auth_process = None
     self._dhcp_process = None
     self._connect_timeout = (self._CONNECT_TIMEOUT if connect_timeout is None
-                            else connect_timeout)
+                             else connect_timeout)
+    self._connect_attempt_timeout = (
+        self._CONNECT_ATTEMPT_TIMEOUT if connect_attempt_timeout is None
+        else connect_attempt_timeout)
     self._dhcp_timeout = (self._DHCP_TIMEOUT if dhcp_timeout is None
-                         else dhcp_timeout)
+                          else dhcp_timeout)
+    self._tmp_dir = None
+    self._tmp_dir_handle = None
     self._user_tmp_dir = tmp_dir
     if dhcp_method == self.DHCP_DHCPCD:
       self._dhcp_fn = self._RunDHCPCD
@@ -386,15 +412,33 @@ class Connection(object):
     # This call may fail if we are not connected to any network.
     self._dut.Call(disconnect_command)
 
-  def _WaitConnectAP(self):
+  def _Connect(self, connect_fn=None):
+    """Retry the given function to connect to the AP."""
+    connect_fn = connect_fn or (lambda: True)
+    def AttemptConnect():
+      # Scan first, and then connect directly afterwards.  We do this because
+      # some buggy drivers require the scan and connect steps to be in rapid
+      # succession for a connect to work properly.
+      logging.info('Scanning...')
+      self._dut.Call(['iw', 'dev', self.interface, 'scan'])
+      logging.info('Running connect_fn...')
+      connect_fn()
+      logging.info('Checking for connection...')
+      return self._WaitConnect()
+    return sync_utils.WaitFor(AttemptConnect, self._connect_timeout)
+
+  def _WaitConnect(self):
     """Block until authenticated and connected to the AP."""
     CHECK_SUCCESS_PREFIX = 'Connected to'
     check_command = 'iw dev {interface} link'.format(interface=self.interface)
     logging.info('Waiting to connect to AP...')
-    def Connected():
+    def CheckConnected():
       return self._dut.CheckOutput(
           check_command).startswith(CHECK_SUCCESS_PREFIX)
-    return sync_utils.WaitFor(Connected, self._connect_timeout)
+    try:
+      return sync_utils.WaitFor(CheckConnected, self._connect_attempt_timeout)
+    except type_utils.TimeoutError:
+      return False
 
   def Connect(self):
     """Connect to the AP."""
@@ -550,11 +594,11 @@ class Connection(object):
         interface=self.interface,
         ssid=self.ap.ssid)
 
-    logging.info('Connecting to open network...')
-    self._dut.CheckCall(connect_command)
-
     # Pause until connected.  Throws exception if failed.
-    if not self._WaitConnectAP():
+    def ConnectOpen():
+      logging.info('Connecting to open network...')
+      self._dut.CheckCall(connect_command)
+    if not self._Connect(ConnectOpen):
       raise WiFiError('Connection to open network failed')
 
     yield  # We are connected; yield back to the caller.
@@ -573,11 +617,11 @@ class Connection(object):
             ssid=self.ap.ssid,
             passkey=self.passkey))
 
-    logging.info('Authenticating to WEP network...')
-    self._dut.CheckCall(connect_command)
-
     # Pause until connected.  Throws exception if failed.
-    if not self._WaitConnectAP():
+    def ConnectWEP():
+      logging.info('Connecting to WEP network...')
+      self._dut.CheckCall(connect_command)
+    if not self._Connect(ConnectWEP):
       raise WiFiError('Connection to WEP network failed')
 
     yield  # We are connected; yield back to the caller.
@@ -627,7 +671,7 @@ class Connection(object):
     self._dut.CheckCall(wpa_supplicant_command)
 
     # Pause until connected.  Throws exception if failed.
-    if not self._WaitConnectAP():
+    if not self._Connect():
       self._dut.Call(kill_command)
       raise WiFiError('Connection to WPA network failed')
 
