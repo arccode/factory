@@ -4,8 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Routines to modify keyboard LED state.
-'''
+"""Routines to modify keyboard LED state.
+"""
 
 import fcntl
 import logging
@@ -35,7 +35,7 @@ _tty_fds_lock = threading.Lock()
 
 
 def SetLeds(state):
-  '''Sets the current LEDs on VTs [0,MAX_VTS) to the given state.
+  """Sets the current LEDs on VTs [0,MAX_VTS) to the given state.
 
   Errors are ignored.
   (We set the LED on all VTs because /dev/console may not work reliably under
@@ -43,7 +43,10 @@ def SetLeds(state):
 
   Args:
       pattern: A bitwise OR of zero or more of LED_SCR, LED_NUM, and LED_CAP.
-  '''
+
+  Returns:
+      True if able to set at least one LED, and False otherwise.
+  """
   global _tty_fds
   with _tty_fds_lock:
     if _tty_fds is None:
@@ -55,15 +58,20 @@ def SetLeds(state):
         except:
           logging.exception('Unable to open %s', dev)
 
+  if not _tty_fds:
+    return False
+
   for fd in _tty_fds:
     try:
       fcntl.ioctl(fd, KDSETLED, state)
     except:
       pass
 
+  return True
+
 
 class Blinker(object):
-  '''Blinks LEDs asynchronously according to a particular pattern.
+  """Blinks LEDs asynchronously according to a particular pattern.
 
   Start() and Stop() are not thread-safe and must be invoked from the same
   thread.
@@ -72,11 +80,11 @@ class Blinker(object):
 
       with leds.Blinker(...):
           ...do something that will take a while...
-  '''
+  """
   thread = None
 
   def __init__(self, pattern):
-    '''Constructs the blinker (but does not start it).
+    """Constructs the blinker (but does not start it).
 
     Args:
         pattern: A list of tuples.  Each element is (state, duration),
@@ -88,22 +96,22 @@ class Blinker(object):
 
             would turn all LEDs on for .2 s, then all off for 0.05 s,
             ad infinitum.
-    '''
+    """
     self.pattern = pattern
     self.done = threading.Event()
 
   def Start(self):
-    '''Starts blinking in a separate thread until Stop is called.
+    """Starts blinking in a separate thread until Stop is called.
 
     May only be invoked once.
-    '''
+    """
     assert not self.thread
     self.thread = threading.Thread(target=self._Run)
     self.thread.start()
 
   def Stop(self):
-    '''Stops blinking.
-    '''
+    """Stops blinking.
+    """
     self.done.set()
     if self.thread:
       self.thread.join()
@@ -118,7 +126,8 @@ class Blinker(object):
   def _Run(self):
     while True:  # Repeat pattern forever
       for state, duration in self.pattern:
-        SetLeds(state)
+        if not SetLeds(state):
+          return  # Failure, end this thread
         self.done.wait(duration)
         if self.done.is_set():
           SetLeds(LED_RESET)
@@ -126,8 +135,9 @@ class Blinker(object):
 
 
 if __name__ == '__main__':
-  '''Blinks the pattern in sys.argv[1] if peresent, or the famous theme from William Tell otherwise.
-  '''
+  """Blinks the pattern in sys.argv[1] if present, or the famous theme from
+  William Tell otherwise.
+  """
   if len(sys.argv) > 1:
     blinker = Blinker(eval(sys.argv[1]))
   else:
