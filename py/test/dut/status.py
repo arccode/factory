@@ -88,9 +88,6 @@ def GetIPv4Addresses():
 _SysfsAttribute = collections.namedtuple('SysfsAttribute',
                                          ['name', 'type', 'optional'])
 _SysfsBatteryAttributes = [
-    _SysfsAttribute('charge_full', int, False),
-    _SysfsAttribute('charge_full_design', int, False),
-    _SysfsAttribute('charge_now', int, False),
     _SysfsAttribute('current_now', int, False),
     _SysfsAttribute('present', bool, False),
     _SysfsAttribute('status', str, False),
@@ -135,14 +132,6 @@ class SystemStatus(component.DUTComponent):
     """
     self._overrides[name] = value
 
-  def _CalculateBatteryFractionFull(self, battery):
-    for t in ['charge', 'energy']:
-      now = battery['%s_now' % t]
-      full = battery['%s_full' % t]
-      if (now is not None and full is not None and full > 0 and now >= 0):
-        return float(now) / full
-    return None
-
   @StatusProperty
   def charge_manager(self):
     """The charge_manager instance for checking force charge status.
@@ -178,8 +167,14 @@ class SystemStatus(component.DUTComponent):
           log_func = logging.debug
         log_func('sysfs path %s is unavailable',
                  self._dut.path.join(sysfs_path, k))
+    try:
+      result['charge_full'] = self._dut.power.GetChargeFull()
+      result['charge_now'] = self._dut.power.GetCharge()
+      result['charge_full_design'] = self._dut.power.GetBatteryDesignCapacity()
+      result['fraction_full'] = self._dut.power.GetChargePct(True) / 100
+    except Exception as e:
+      logging.error(e)
 
-    result['fraction_full'] = self._CalculateBatteryFractionFull(result)
     result['force'] = False
     if self.charge_manager:
       force_status = {

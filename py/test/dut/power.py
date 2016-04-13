@@ -32,12 +32,7 @@ class Power(DUTComponent):
   """
 
   # Regular expression for parsing output.
-  EC_BATTERY_RE = re.compile(r'^\s+Present current\s+(\d+)\s+mA$', re.MULTILINE)
-  EC_BATTERY_CHARGING_RE = re.compile(r'^\s+Flags\s+.*\s+CHARGING.*$',
-                                      re.MULTILINE)
   EC_CHARGER_RE = re.compile(r'^chg_current = (\d+)mA$', re.MULTILINE)
-  BATTERY_DESIGN_CAPACITY_RE = re.compile(
-      r'Design capacity:\s+([1-9]\d*)\s+mAh')
 
   _sys = '/sys'
 
@@ -229,15 +224,11 @@ class Power(DUTComponent):
     Returns:
       Integer value in mA.
     """
-    ectool_output = self._dut.CheckOutput(['ectool', 'battery'])
-
-    charging = bool(self.EC_BATTERY_CHARGING_RE.search(ectool_output))
-    re_object = self.EC_BATTERY_RE.findall(ectool_output)
-    if re_object:
-      current = int(re_object[0])
-    else:
+    charging = (self.GetBatteryAttribute('status') == 'Charging')
+    current = self.GetBatteryAttribute('current_now')
+    if current is None:
       raise self.Error('Cannot find current in ectool battery output')
-    return current if charging else -current
+    return int(current) if charging else -int(current)
 
   def GetBatteryDesignCapacity(self):
     """Gets battery's design capacity.
@@ -248,12 +239,11 @@ class Power(DUTComponent):
     Raises:
       DUTException if battery's design capacity cannot be obtained.
     """
+    design_capacity = self.GetBatteryAttribute('charge_full_design')
+    if design_capacity is None:
+      raise self.Error('Design capacity not found.')
     try:
-      m = self.BATTERY_DESIGN_CAPACITY_RE.search(
-          self._dut.CheckOutput(['ectool', 'battery']))
-      if not m:
-        raise self.Error('Design capacity not found.')
-      return int(m.group(1))
+      return int(design_capacity) / 1000
     except Exception as e:
       raise self.Error('Unable to get battery design capacity: %s' % e)
 
@@ -324,4 +314,76 @@ class Power(DUTComponent):
     Raises:
       DUTException if any register is not available.
     """
+    raise NotImplementedError
+
+
+class ECToolPower(Power):
+  # Regular expression for parsing output.
+  EC_BATTERY_CHARGING_RE = re.compile(r'^\s+Flags\s+.*\s+CHARGING.*$',
+                                      re.MULTILINE)
+  BATTERY_FLAGS_RE = re.compile(r'Flags\s+(.*)$')
+
+  def __init__(self, dut):
+    super(ECToolPower, self).__init__(dut)
+
+  def _GetECToolBatteryFlags(self):
+    re_object = self.BATTERY_FLAGS_RE.findall(
+        self._dut.CallOutput(['ectool', 'battery']))
+    if re_object:
+      return re_object[0].split()
+    else:
+      return []
+
+  def _GetECToolBatteryAttribute(self, key_name):
+    re_object = re.findall(r'%s\s+(\d+)' % key_name,
+                           self._dut.CallOutput(['ectool', 'battery']))
+    if re_object:
+      return int(re_object[0])
+    else:
+      raise self.Error('Cannot find key "%s" in ectool battery' % key_name)
+
+  def CheckACPresent(self):
+    """See Power.CheckACPresent"""
+    return 'AC_PRESENT' in self._GetECToolBatteryFlags()
+
+  def CheckBatteryPresent(self):
+    """See Power.CheckBatteryPresent"""
+    return 'BATT_PRESENT' in self._GetECToolBatteryFlags()
+
+  def GetCharge(self):
+    """See Power.GetCharge"""
+    return self._GetECToolBatteryAttribute('Remaining capacity')
+
+  def GetChargeFull(self):
+    """See Power.GetChargeFull"""
+    return self._GetECToolBatteryAttribute('Last full charge:')
+
+  def GetChargePct(self, get_float=False):
+    """See Power.GetChargePct"""
+    charge_pct = self.GetCharge() * 100.0 / self.GetChargeFull()
+    if get_float:
+      return charge_pct
+    else:
+      return round(charge_pct)
+
+  def GetWearPct(self):
+    """See Power.GetWearPct"""
+    capacity = self.GetChargeFull()
+    design_capacity = self.GetBatteryDesignCapacity()
+    if design_capacity <= 0:
+      return None  # Something wrong with the battery
+    return 100 - round(capacity * 100.0 / design_capacity)
+
+  def GetBatteryCurrent(self):
+    """See Power.GetBatteryCurrent"""
+    charging = 'CHARGING' in self._GetECToolBatteryFlags()
+    current = self._GetECToolBatteryAttribute('Present current')
+    return current if charging else -current
+
+  def GetBatteryDesignCapacity(self):
+    """See Power.GetBatteryDesignCapacity"""
+    return self._GetECToolBatteryAttribute('Design capacity:')
+
+  def GetBatteryRegisters(self):
+    """See Power.GetBatteryRegisters"""
     raise NotImplementedError
