@@ -6,9 +6,10 @@
 
 from __future__ import print_function
 
-import os
-import re
 import logging
+import os
+import pipes
+import re
 from subprocess import Popen, PIPE
 
 import factory_common  # pylint: disable=W0611
@@ -24,11 +25,13 @@ def Shell(cmd, stdin=None, log=True):
   The cmd stdout and stderr output is debug-logged.
 
   Args:
-    cmd: Full shell command line as a string, which can contain
-      redirection (popes, etc).
+    cmd: Full shell command line as a string or list, which can contain
+      redirection (pipes, etc).
     stdin: String that will be passed as stdin to the command.
     log: log command and result.
   """
+  if not isinstance(cmd, basestring):
+    cmd = ' '.join(pipes.quote(param) for param in cmd)
   process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
   stdout, stderr = process.communicate(input=stdin)  # pylint: disable=E1123
   if log:

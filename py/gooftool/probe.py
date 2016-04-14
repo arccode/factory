@@ -120,6 +120,20 @@ def ParseKeyValueData(pattern, data):
   return parsed_list
 
 
+def _ShellOutput(command, on_error=''):
+  """Returns shell command output.
+
+  When the execution failed, usually the caller would want either empty string
+  or None. However because most probe results expect empty string (for schema
+  validation), here we set default on_error to empty string ('').
+
+  command: A shell command passed to Shell().
+  on_error: What to return if execution failed, defaults to empty string.
+  """
+  result = Shell(command)
+  return result.stdout.strip() if result.success else on_error
+
+
 def _LoadKernelModule(name, error_on_fail=True):
   """Ensure kernel module is loaded.  If not already loaded, do the load."""
   # TODO(tammo): Maybe lift into shared data for performance reasons.
@@ -330,7 +344,7 @@ class _FlimflamDevices(object):
       if not wifi_devs:
         logging.info('No WiFi components found by shill. Use iwconfig.')
         shell_command = 'iwconfig | grep "IEEE 802.11" | cut -d " " -f 1'
-        nodes = Shell(shell_command).stdout.split()
+        nodes = _ShellOutput(shell_command).split()
         wifi_devs = [Obj(devtype='wifi', path='/sys/class/net/%s/device' % node)
                      for node in nodes]
         if wifi_devs:
@@ -375,7 +389,7 @@ class _GobiDevices(object):
     # gobi-fw utility 'Legend: A available I installed P pri M modem * active'
     # We separate out the * for active as it is an initial configuration,
     # modifiable by the user or tests to enable different carriers/regions.
-    for l in Shell('gobi-fw list').stdout.splitlines()[1:]:
+    for l in _ShellOutput('gobi-fw list').splitlines()[1:]:
       m = re.match(r'^([A ][I ][P ][M ])([* ]) (\S+)\s+(.+)$', l)
       if not m:
         raise ValueError('Unable to parse line %r in gobi-fw output' % l)
@@ -470,10 +484,6 @@ class _TouchInputData(object):  # pylint: disable=W0232
         continue
       with open(path) as f:
         result[name] = f.read().strip()
-
-    # Add fw_version if not available.
-    if 'fw_version' not in result:
-      result['fw_version'] = None
 
     return Obj(**result)
 
@@ -592,7 +602,7 @@ class _TouchpadData(_TouchInputData):
   @classmethod
   def Get(cls):
     if cls.cached_data is None:
-      cls.cached_data = Obj(ident_str=None, fw_version=None)
+      cls.cached_data = Obj(ident_str=None)
       for vendor_fun in [cls.Cypress, cls.Synaptics, cls.Elan,
                          cls.HidOverI2c, cls.Generic]:
         data = vendor_fun()
@@ -638,7 +648,7 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
   @classmethod
   def Get(cls):
     if cls.cached_data is None:
-      cls.cached_data = Obj(ident_str=None, fw_version=None)
+      cls.cached_data = Obj(ident_str=None)
       for vendor_fun in [cls.Elan, cls.Synaptics, cls.Generic]:
         data = vendor_fun()
         if data is not None:
@@ -696,13 +706,17 @@ def _ProbeAudioCodec():
       'ts3a227e.4-003b',  # autonomous audiojack switch, not an audio codec
       'dw-hdmi-audio'  # this is a virtual audio codec driver
       ])
-  with open('/sys/kernel/debug/asoc/codecs') as f:
-    results = [DictCompactProbeStr(codec) for codec in f.read().splitlines()
-               if codec not in KNOWN_INVALID_CODEC_NAMES]
+  asoc_path = '/sys/kernel/debug/asoc/codecs'
+  if os.path.exists(asoc_path):
+    with open(asoc_path) as f:
+      results = [DictCompactProbeStr(codec) for codec in f.read().splitlines()
+                 if codec not in KNOWN_INVALID_CODEC_NAMES]
+  else:
+    results = []
 
-  grep_result = Shell('grep -R "Codec:" /proc/asound/*')
+  grep_result = _ShellOutput('grep -R "Codec:" /proc/asound/*')
   match_set = set()
-  for line in grep_result.stdout.splitlines():
+  for line in grep_result.splitlines():
     match_set |= set(re.findall(r'.*Codec:(.*)', line))
   results += [DictCompactProbeStr(match) for match in sorted(match_set) if
               match]
@@ -866,7 +880,7 @@ def _ProbeVideo():
 def _ProbeCellular():
   data = _FlimflamDevices.ReadSysfsDeviceIds('cellular')
   if data:
-    modem_status = Shell('modem status').stdout
+    modem_status = _ShellOutput('modem status')
     for key in ['carrier', 'firmware_revision', 'Revision']:
       matches = re.findall(
           r'^\s*' + key + ': (.*)$', modem_status, re.M)
@@ -937,7 +951,7 @@ def _ProbeCpuX86():
   #   model name : Intel(R) Atom(TM) CPU ???
   #   model name : Intel(R) Atom(TM) CPU ???
   cmd = r'sed -nr "s/^model name\s*: (.*)/\1/p" /proc/cpuinfo'
-  stdout = Shell(cmd).stdout.splitlines()
+  stdout = _ShellOutput(cmd).splitlines()
   return [{'model': stdout[0], 'cores': str(len(stdout)),
            COMPACT_PROBE_STR: CompactStr(
                '%s [%d cores]' % (stdout[0], len(stdout)))}]
@@ -1003,9 +1017,9 @@ def _ProbeDram():
   """Combine mosys memory timing and geometry information."""
   # TODO(tammo): Document why mosys cannot load i2c_dev itself.
   _LoadKernelModule('i2c_dev')
-  part_data = Shell('mosys -k memory spd print id').stdout
-  timing_data = Shell('mosys -k memory spd print timings').stdout
-  size_data = Shell('mosys -k memory spd print geometry').stdout
+  part_data = _ShellOutput('mosys -k memory spd print id')
+  timing_data = _ShellOutput('mosys -k memory spd print timings')
+  size_data = _ShellOutput('mosys -k memory spd print geometry')
   parts = dict(re.findall('dimm="([^"]*)".*part_number="([^"]*)"', part_data))
   timings = dict(re.findall('dimm="([^"]*)".*speeds="([^"]*)"', timing_data))
   sizes = dict(re.findall('dimm="([^"]*)".*size_mb="([^"]*)"', size_data))
@@ -1045,8 +1059,7 @@ def _ProbeEmbeddedController():
   for name in ('ec', 'pd'):
     try:
       ec_info = dict(
-          (key, process_utils.CheckOutput(
-              ['mosys', name, 'info', '-s', key]).strip())
+          (key, _ShellOutput(['mosys', name, 'info', '-s', key]))
           for key in info_keys)
       ec_info[COMPACT_PROBE_STR] = CompactStr(
           [ec_info[key] for key in info_keys])
@@ -1062,7 +1075,7 @@ def _ProbeEmbeddedController():
 def _ProbePowerMgmtChip():
   tpschrome_ver = re.findall(
       r'Read from I2C port 0 at 0x90 offset 0x19 = (\w+)',
-      Shell('ectool i2cread 8 0 0x90 0x19').stdout)
+      _ShellOutput('ectool i2cread 8 0 0x90 0x19'))
   if not tpschrome_ver:
     return []
   return [{'tpschrome_ver': tpschrome_ver[0],
@@ -1236,7 +1249,7 @@ def _ProbeTouchscreen():
 def _ProbeTpm():
   """Return Manufacturer_info : Chip_Version string from tpm_version output."""
   tpm_data = [line.partition(':') for line in
-              Shell('tpm_version').stdout.splitlines()]
+              _ShellOutput('tpm_version').splitlines()]
   tpm_dict = dict((key.strip(), value.strip()) for
                   key, _, value in tpm_data)
   mfg = tpm_dict.get('Manufacturer Info', None)
@@ -1253,7 +1266,7 @@ def _ProbeUsbHosts():
   # On x86, USB hosts are PCI devices, located in parent of root USB.
   # On ARM and others, use the root device itself.
   # TODO(tammo): Think of a better way to do this, without arch.
-  arch = Shell('crossystem arch').stdout.strip()
+  arch = _ShellOutput('crossystem arch')
   relpath = '.' if arch == 'arm' else '..'
   usb_bus_list = glob('/sys/bus/usb/devices/usb*')
   usb_host_list = [os.path.join(os.path.realpath(path), relpath)
@@ -1314,7 +1327,7 @@ def _ProbeCellularFirmwareVersion():
       return CompactStr([dev_attrs[key] for key in version_format])
     # If nothing available, try 'modem status'.
     cmd = 'modem status | grep firmware_revision'
-    modem_status = Shell(cmd).stdout.strip()
+    modem_status = _ShellOutput(cmd)
     info = re.findall(r'^\s*firmware_revision:\s*(.*)', modem_status)
     if info and info[0]:
       return info[0]
@@ -1342,7 +1355,8 @@ def _ProbeRwFirmwareVersion():
 
 @_InitialConfigProbe('touchpad_fw_version')
 def _ProbeTouchpadFirmwareVersion():
-  return _TouchpadData.Get().fw_version
+  touchdata = _TouchpadData.Get()
+  return touchdata.__dict__.get('fw_version')
 
 
 @_InitialConfigProbe('storage_fw_version')
@@ -1432,7 +1446,7 @@ def _FwKeyHash(main_fw_file, key_name):
     if not Shell('gbb_utility -g --%s=%s %s' %
                  (key_name, f.name, main_fw_file)).success:
       raise Error('cannot get %s from GBB' % key_name)
-    key_info = Shell('vbutil_key --unpack %s' % f.name).stdout
+    key_info = _ShellOutput('vbutil_key --unpack %s' % f.name)
     sha1sum = re.findall(r'Key sha1sum:[\s]+([\w]+)', key_info)
     if len(sha1sum) != 1:
       logging.error('Failed calling vbutil_key for firmware key hash.')
@@ -1606,28 +1620,23 @@ def Probe(target_comp_classes=None,
                 if probe_class not in (
                     'ro_ec_firmware', 'ro_pd_firmware', 'ro_main_firmware',
                     'hash_gbb', 'key_recovery', 'key_root'))
-  arch = Shell('crossystem arch').stdout.strip()
+  arch = _ShellOutput('crossystem arch')
   comp_probes = FilterProbes(_COMPONENT_PROBE_MAP, arch, target_comp_classes)
 
   initial_configs = {}
   volatiles = {}
 
-  def CallOutput(command):
-    """Returns the command's output if succeeded, otherwise None.."""
-    result = Shell(command)
-    return result.stdout.strip() if result.success else None
-
   if fast_fw_probe:
     logging.debug('fast_fw_probe enabled.')
     optional_fields = {
-        'ro_ec_firmware': CallOutput('mosys ec info -s fw_version'),
-        'ro_pd_firmware': CallOutput('mosys pd info -s fw_version')
+        'ro_ec_firmware': _ShellOutput('mosys ec info -s fw_version'),
+        'ro_pd_firmware': _ShellOutput('mosys pd info -s fw_version')
     }
     for k, v in optional_fields.iteritems():
-      if v is not None:
+      if v:
         volatiles[k] = {'version': v}
     volatiles['ro_main_firmware'] = {
-        'version': CallOutput('crossystem ro_fwid')}
+        'version': _ShellOutput('crossystem ro_fwid')}
     probe_volatile = False
     probe_initial_config = False
     probe_vpd = False
@@ -1642,10 +1651,10 @@ def Probe(target_comp_classes=None,
   # probing methods.
   vpd_classes = ['region']
   for comp_class, probe_fun in comp_probes.items():
-    logging.info('probing [%s]...', comp_class)
     if comp_class in vpd_classes and not probe_vpd:
-      logging.warn('Ignored probing [%s]', comp_class)
+      logging.info('Ignored probing [%s]', comp_class)
       continue
+    logging.info('probing [%s]...', comp_class)
     probe_values = RunProbe(probe_fun)
     if not probe_values:
       missing_component_classes.append(comp_class)
