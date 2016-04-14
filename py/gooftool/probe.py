@@ -1619,10 +1619,13 @@ def Probe(target_comp_classes=None,
 
   if fast_fw_probe:
     logging.debug('fast_fw_probe enabled.')
-    volatiles['ro_ec_firmware'] = {
-        'version': CallOutput('mosys ec info -s fw_version')}
-    volatiles['ro_pd_firmware'] = {
-        'version': CallOutput('mosys pd info -s fw_version')}
+    optional_fields = {
+        'ro_ec_firmware': CallOutput('mosys ec info -s fw_version'),
+        'ro_pd_firmware': CallOutput('mosys pd info -s fw_version')
+    }
+    for k, v in optional_fields.iteritems():
+      if v is not None:
+        volatiles[k] = {'version': v}
     volatiles['ro_main_firmware'] = {
         'version': CallOutput('crossystem ro_fwid')}
     probe_volatile = False
