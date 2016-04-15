@@ -146,7 +146,8 @@ class HWIDV3Test(unittest.TestCase):
             encoded_string or u'（不变）')))
 
     verify_cmd = ['hwid', 'verify',
-                  '--probed-results-file', probed_results_file]
+                  '--probed-results-file', probed_results_file,
+                  '--phase', str(phase.GetPhase())]
     if board:
       verify_cmd += ['-b', board]
     if self.args.rma_mode:
