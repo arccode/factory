@@ -297,7 +297,7 @@ class Gooftool(object):
 
       # Pre-scan for well-known problems.
       if rootkey_hash == 'b11d74edd286c144e1135b49e7f0bc20cf041f10':
-        raise Error('YOU ARE TRYING TO FINALIZE WITH DEV ROOTKEY.')
+        logging.warn('YOU ARE TRYING TO FINALIZE WITH DEV ROOTKEY.')
 
       _TmpExec('verify firmware A with root key',
                'vbutil_firmware --verify VBLOCK_A --signpubkey %s '
