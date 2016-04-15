@@ -12,14 +12,13 @@ will fail but emit a reasonable error message (and it will pass on the
 next boot).
 """
 
-import distutils.spawn
 import logging
+import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test.args import Arg
-from cros.factory.utils.file_utils import Sync
-from cros.factory.utils.process_utils import Spawn, CheckOutput
 from cros.factory.utils.string_utils import ParseDict
 
 
@@ -29,6 +28,9 @@ class TPMVerifyEK(unittest.TestCase):
       Arg('is_cros_core', bool, 'Verify with ChromeOS Core endoresement',
           default=False)
   ]
+
+  def setUp(self):
+    self.dut = dut.Create()
 
   def VerifyByCryptoHome(self):
     """Verifies TPM endorsement by CryptoHome service."""
@@ -42,7 +44,8 @@ class TPMVerifyEK(unittest.TestCase):
              'TPM Enabled': 'true',
              'TPM Owned': 'true'}
       """
-      status_txt = CheckOutput(['cryptohome', '--action=tpm_status'])
+      status_txt = self.dut.CheckOutput(['cryptohome', '--action=tpm_status'],
+                                        log=True)
       status = ParseDict(status_txt.splitlines())
       logging.info('TPM status: %r', status)
       return status
@@ -60,45 +63,44 @@ class TPMVerifyEK(unittest.TestCase):
         'TPM is owned but password is not available. Reboot and re-run.')
 
     # Take ownership of the TPM (if not already taken).
-    Spawn(['cryptohome', '--action=tpm_take_ownership'],
-          log=True, check_call=True)
+    self.dut.CheckCall(['cryptohome', '--action=tpm_take_ownership'],
+                       log=True)
     # Wait for TPM ownership to complete.  No check_call=True since this
     # may fail if the TPM is already owned.
-    Spawn(['cryptohome', '--action=tpm_wait_ownership'],
-          log=True, call=True)
+    self.dut.Call(['cryptohome', '--action=tpm_wait_ownership'],
+                  log=True)
     # Sync, to make sure TPM password was written to disk.
-    Sync()
+    self.dut.CheckCall(['sync'], log=True)
 
     self.assertEquals('true', _TPMStatus()['TPM Owned'])
 
     # Verify the endorsement key.
-    process = Spawn(['cryptohome', '--action=tpm_verify_ek'] + (
-        ['--cros_core'] if self.args.is_cros_core else []),
-                    read_stderr=True,
-                    log=True, check_call=True)
-    # Make sure there's no stderr from tpm_verify_ek (since that, plus
-    # check_call=True, is the only reliable way to make sure it
-    # worked).
-    self.assertEquals('', process.stderr_data)
+    with tempfile.TemporaryFile() as stderr:
+      self.dut.CheckCall(['cryptohome', '--action=tpm_verify_ek'] + (
+          ['--cros_core'] if self.args.is_cros_core else []),
+                         log=True, stderr=stderr)
+      # Make sure there's no stderr from tpm_verify_ek (since that, plus
+      # check_call=True, is the only reliable way to make sure it
+      # worked).
+      stderr.seek(0)
+      self.assertEquals('', stderr.read())
 
   def VerifyByTpmManager(self):
     """Verifies TPM endorsement by tpm-manager (from CryptoHome package)."""
 
     # Take ownership of the TPM (if not already taken).
-    Spawn(['tpm-manager', 'initialize'], log=True, check_call=True)
+    self.dut.CheckCall(['tpm-manager', 'initialize'], log=True)
 
     # Verify TPM endorsement.
-    Spawn(['tpm-manager', 'verify_endorsement'] + (
-        ['--cros_core'] if self.args.is_cros_core else []),
-          log=True, check_call=True)
+    self.dut.CheckCall(['tpm-manager', 'verify_endorsement'] + (
+        ['--cros_core'] if self.args.is_cros_core else []), log=True)
 
   def runTest(self):
     # Always clear TPM on next boot, in case any problems arise.
-    Spawn(['crossystem', 'clear_tpm_owner_request=1'],
-          log=True, check_call=True)
+    self.dut.CheckCall(['crossystem', 'clear_tpm_owner_request=1'], log=True)
 
     # Check if we have tpm-manager in system.
-    if distutils.spawn.find_executable('tpm-manager'):
+    if self.dut.Call(['which', 'tpm-manager']) == 0:
       self.VerifyByTpmManager()
     else:
       self.VerifyByCryptoHome()
