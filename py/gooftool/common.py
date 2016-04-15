@@ -104,6 +104,15 @@ class Util(object):
     return ''.join(re.findall(
         r'(.*[^0-9][0-9]+)p[0-9]+|(.*[^0-9])[0-9]+', path)[0])
 
+  def GetDevicePartition(self, device, partition):
+    """Returns a partition path from device path string.
+
+    /dev/sda, 1 => /dev/sda1.
+    /dev/mmcblk0p, 2 => /dev/mmcblk0p2.
+    """
+    return ('%sp%s' if device[-1].isdigit() else '%s%s') % (device, partition)
+
+
   def FindScript(self, script_name):
     """Finds the script under /usr/local/factory/sh
 
@@ -164,6 +173,15 @@ class Util(object):
     """Gets the path for release kernel partition."""
 
     return self.GetPrimaryDevicePath(4)
+
+  def GetReleaseKernelPathFromRootPartition(self, rootfs_path):
+    """Gets the path for release kernel from given rootfs path.
+
+    This function assumes kernel partition is always located before rootfs.
+    """
+    device = self.GetPartitionDevice(rootfs_path)
+    kernel_index = int(rootfs_path[-1]) - 1
+    return self.GetDevicePartition(device, kernel_index)
 
   def GetReleaseImageLsbData(self):
     """Gets the /etc/lsb-release content from release image partition.

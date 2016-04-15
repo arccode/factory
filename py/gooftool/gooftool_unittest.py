@@ -300,6 +300,8 @@ class GooftoolTest(unittest.TestCase):
         ValueError, self._gooftool.FindBOMMismatches, 'BENDER', 'LEELA', None)
 
   def testVerifyKey(self):
+    self._gooftool._util.GetReleaseKernelPathFromRootPartition(
+        '/dev/null').AndReturn('/dev/zero')
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware(
         MockFirmwareImage({'GBB': 'GBB', 'FW_MAIN_A': 'MA', 'FW_MAIN_B': 'MB',
@@ -326,7 +328,7 @@ class GooftoolTest(unittest.TestCase):
 
     self._gooftool.VerifySystemTime(system_time=good_system_time)
     self.assertRaises(Error, self._gooftool.VerifySystemTime,
-                      root_dev='root', system_time=bad_system_time)
+                      release_rootfs='root', system_time=bad_system_time)
 
   def testVerifyRootFs(self):
     fake_attrs = {'test': 'value'}

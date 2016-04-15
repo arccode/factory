@@ -231,17 +231,24 @@ class Gooftool(object):
 
     return mismatches
 
-  def VerifyKeys(self, kernel_dev=None, firmware_path=None, _tmpexec=None):
+  def VerifyKeys(self, release_rootfs=None, firmware_path=None, _tmpexec=None):
     """Verify keys in firmware and SSD match.
 
+    The real partition needed is the kernel partition. However, in order to
+    share params with other commands, we use release_rootfs and calculate the
+    real kernel location from it.
+
     Args:
-      kernel_dev: A string for kernel device path.
+      release_rootfs: A string for release image rootfs path.
       firmware_path: A string for firmware image file path.
       _tmpexec: A function for overriding execution inside temp folder.
     """
+    if release_rootfs is None:
+      release_rootfs = self._util.GetReleaseRootPartitionPath()
 
-    if kernel_dev is None:
-      kernel_dev = self._util.GetReleaseKernelPartitionPath()
+    kernel_dev = self._util.GetReleaseKernelPathFromRootPartition(
+        release_rootfs)
+
     if firmware_path is None:
       firmware_path = self._crosfw.LoadMainFirmware().GetFileName()
       firmware_image = self._crosfw.LoadMainFirmware().GetFirmwareImage()
@@ -331,33 +338,34 @@ class Gooftool(object):
 
     logging.info('SUCCESS: Verification completed.')
 
-  def VerifySystemTime(self, root_dev=None, system_time=None):
+  def VerifySystemTime(self, release_rootfs=None, system_time=None):
     """Verify system time is later than release filesystem creation time."""
-    if root_dev is None:
-      root_dev = self._util.GetReleaseRootPartitionPath()
+    if release_rootfs is None:
+      release_rootfs = self._util.GetReleaseRootPartitionPath()
     if system_time is None:
       system_time = time.time()
 
-    e2header = self._util.shell('dumpe2fs -h %s' % root_dev)
+    e2header = self._util.shell('dumpe2fs -h %s' % release_rootfs)
     if not e2header.success:
       raise Error('Failed to read file system: %s, %s' %
-                  (root_dev, e2header.stderr))
+                  (release_rootfs, e2header.stderr))
     matched = re.findall(r'^Filesystem created: *(.*)', e2header.stdout,
                          re.MULTILINE)
     if not matched:
-      raise Error('Failed to find file system creation time: %s' % root_dev)
+      raise Error('Failed to find file system creation time: %s' %
+                  release_rootfs)
     created_time = time.mktime(time.strptime(matched[0]))
     logging.debug('Comparing system time <%s> and filesystem time <%s>',
                   system_time, created_time)
     if system_time < created_time:
       raise Error('System time (%s) earlier than file system (%s) creation '
-                  'time (%s)' % (system_time, root_dev, created_time))
+                  'time (%s)' % (system_time, release_rootfs, created_time))
 
-  def VerifyRootFs(self, root_dev=None):
+  def VerifyRootFs(self, release_rootfs=None):
     """Verify rootfs on SSD is valid by checking hash."""
-    if root_dev is None:
-      root_dev = self._util.GetReleaseRootPartitionPath()
-    device = self._util.GetPartitionDevice(root_dev)
+    if release_rootfs is None:
+      release_rootfs = self._util.GetReleaseRootPartitionPath()
+    device = self._util.GetPartitionDevice(release_rootfs)
 
     # TODO(hungte) Using chromeos_invoke_postinst here is leaving a window
     # where unexpected reboot or test exit may cause the system to boot into
@@ -367,7 +375,7 @@ class Gooftool(object):
     try:
       # Always rollback GPT changes.
       curr_attrs = self._util.GetCgptAttributes(device)
-      self._util.InvokeChromeOSPostInstall(root_dev)
+      self._util.InvokeChromeOSPostInstall(release_rootfs)
     finally:
       self._util.SetCgptAttributes(curr_attrs, device)
 

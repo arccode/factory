@@ -139,6 +139,11 @@ _enforced_release_channels_cmd_arg = CmdArg(
     '--enforced_release_channels', nargs='*', default=None,
     help='Enforced release image channels.')
 
+_release_rootfs_cmd_arg = CmdArg(
+    '--release_rootfs', help='Location of release image rootfs partition.')
+
+_firmware_path_cmd_arg = CmdArg(
+    '--firmware_path', help='Location of firmware image partition.')
 
 @Command('best_match_hwids',
          _hwdb_path_cmd_arg,
@@ -509,12 +514,12 @@ def VerifyHWIDv2(options):
 
 
 @Command('verify_keys',
-         CmdArg('kernel_device', nargs='?', help='Kernel device to verify.'),
-         CmdArg('main_firmware', nargs='?', help='Main firmware image file.'))
+         _release_rootfs_cmd_arg,
+         _firmware_path_cmd_arg)
 def VerifyKeys(options):  # pylint: disable=W0613
   """Verify keys in firmware and SSD match."""
   return GetGooftool(options).VerifyKeys(
-      options.kernel_device, options.main_firmware)
+      options.release_rootfs, options.firmware_path)
 
 
 @Command('set_fw_bitmap_locale')
@@ -527,15 +532,15 @@ def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
 
 
 @Command('verify_system_time',
-         CmdArg('root_dev', nargs='?', help='Root device to check.'))
+         _release_rootfs_cmd_arg)
 def VerifySystemTime(options):  # pylint: disable=W0613
   """Verify system time is later than release filesystem creation time."""
 
-  return GetGooftool(options).VerifySystemTime(options.root_dev)
+  return GetGooftool(options).VerifySystemTime(options.release_rootfs)
 
 
 @Command('verify_rootfs',
-         CmdArg('release_rootfs', nargs='?', help='Release root file system.'))
+         _release_rootfs_cmd_arg)
 def VerifyRootFs(options):  # pylint: disable=W0613
   """Verify rootfs on SSD is valid by checking hash."""
 
@@ -724,6 +729,8 @@ def PrepareWipe(options):
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
+         _release_rootfs_cmd_arg,
+         _firmware_path_cmd_arg,
          _enforced_release_channels_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
@@ -906,6 +913,8 @@ def UploadReport(options):
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
+         _release_rootfs_cmd_arg,
+         _firmware_path_cmd_arg,
          _enforced_release_channels_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
