@@ -18,7 +18,62 @@ from cros.factory.test.dut import component
 from cros.factory.utils.type_utils import Enum
 
 
-class ECToolThermal(component.DUTComponent):
+class Thermal(component.DUTComponent):
+  """System module for thermal control (temperature sensors, fans)."""
+
+  AUTO = 'auto'
+  """Constant representing automatic fan speed."""
+
+  def GetTemperatures(self):
+    """Gets a list of temperatures for various sensors.
+
+    Returns:
+      A list of int indicating the temperatures in Celsius.
+      For those sensors which don't have readings, fill None instead.
+    """
+    raise NotImplementedError
+
+  def GetMainTemperatureIndex(self):
+    """Gets the main index in temperatures list that should be logged.
+
+    This is typically the CPU temperature.
+
+    Returns:
+      An int indicating the main temperature index.
+    """
+    raise NotImplementedError
+
+  def GetFanRPM(self, fan_id=None):
+    """Gets the fan RPM.
+
+    Args:
+      fan_id: The id of the fan.
+
+    Returns:
+      A list of int indicating the RPM of each fan.
+    """
+    raise NotImplementedError
+
+  def GetTemperatureSensorNames(self):
+    """Gets a list of names for temperature sensors.
+
+    Returns:
+      A list of str containing the names of all temperature sensors.
+      The order must be the same as the returned list from GetTemperatures().
+    """
+    raise NotImplementedError
+
+  def SetFanRPM(self, rpm, fan_id=None):
+    """Sets the target fan RPM.
+
+    Args:
+      rpm: Target fan RPM, or ECToolThermal.AUTO for auto fan control.
+      fan_id: The id of the fan.
+    """
+    raise NotImplementedError
+
+
+class ECToolThermal(Thermal):
   """System module for thermal control (temperature sensors, fans).
 
   Implementation for systems with 'ectool' and able to control thermal with EC.
@@ -28,9 +83,6 @@ class ECToolThermal(component.DUTComponent):
   GET_FAN_SPEED_RE = re.compile(r'Fan (\d+) RPM: (\d+)')
   TEMPERATURE_RE = re.compile(r'^(\d+): (\d+)$', re.MULTILINE)
   TEMPERATURE_INFO_RE = re.compile(r'^(\d+): \d+ (.+)$', re.MULTILINE)
-
-  AUTO = 'auto'
-  """Constant representing automatic fan speed."""
 
   def __init__(self, dut):
     super(ECToolThermal, self).__init__(dut)
@@ -141,11 +193,7 @@ class ECToolThermal(component.DUTComponent):
         raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
 
-# For backward compatibility only.
-Thermal = ECToolThermal
-
-
-class SysFSThermal(ECToolThermal):
+class SysFSThermal(Thermal):
   """System module for thermal control (temperature sensors, fans).
 
   Implementation for systems which able to control thermal with sysfs api.
@@ -180,6 +228,7 @@ class SysFSThermal(ECToolThermal):
     """
     super(SysFSThermal, self).__init__(dut)
     self._thermal_zones = None
+    self._temperature_sensor_names = None
     self._main_temperature_sensor_name = main_temperature_sensor_name
     self._unit = unit
     self._fans = []
