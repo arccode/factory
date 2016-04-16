@@ -18,6 +18,7 @@ from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import shopfloor
+from cros.factory.test.rules import phase
 from cros.factory.tools import build_board
 from cros.factory.utils import sys_utils
 from cros.factory.utils import process_utils
@@ -32,7 +33,10 @@ _COMMON_ARGS = [
     CmdArg('-v', '--verbose', default=False, action='store_true',
            help='enable verbose output'),
     CmdArg('--no-verify-checksum', default=False, action='store_true',
-           help='do not check database checksum')
+           help='do not check database checksum'),
+    CmdArg('--phase', default=None,
+           help=('override phase for phase checking (defaults to the current '
+                 'as returned by the "factory phase" command)')),
 ]
 
 
@@ -116,10 +120,7 @@ def DecodeHWIDWrapper(options):
            help=('a file with probed results.\n'
                  '(required if not running on a DUT)')),
     CmdArg('--rma-mode', default=False, action='store_true',
-           help='whether to enable RMA mode.'),
-    CmdArg('--phase', default=None,
-           help=('override phase for phase checking (defaults to the current '
-                 'as returned by the "factory phase" command)')))
+           help='whether to enable RMA mode.'))
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
   encoded_string = options.hwid if options.hwid else hwid_utils.GetHWIDString()
@@ -272,6 +273,8 @@ def InitializeDefaultOptions(options):
   options.database = database.Database.LoadFile(
       os.path.join(options.hwid_db_path, board.upper()),
       verify_checksum=(not options.no_verify_checksum))
+
+  phase.OverridePhase(options.phase)
 
 
 def Main():

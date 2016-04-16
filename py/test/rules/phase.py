@@ -180,6 +180,24 @@ def SetPersistentPhase(phase):
   _current_phase = phase
 
 
+def OverridePhase(phase):
+  """Override current phase for this process.
+
+  This function overrides current phase of this python process. The phase is not
+  saved persistently.
+
+  Args:
+    phase: A Phase object, the name of a phase, or None.
+        If None, the phase is reset, next GetPhase() call will read from
+        persistent state again.
+  """
+  global _current_phase
+  if phase:
+    _current_phase = Phase(phase)  # Coerce to Phase object
+  else:
+    _current_phase = None
+
+
 # Definitions for globals.  We could automatically do this based on
 # PHASE_NAMES, but instead we define them manually to make lint happy.
 PROTO = Phase('PROTO')

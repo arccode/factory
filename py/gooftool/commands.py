@@ -45,6 +45,7 @@ from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import event_log
 from cros.factory.test.env import paths
 from cros.factory.test.factory import FACTORY_LOG_PATH
+from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.utils import file_utils
 from cros.factory.utils.debug_utils import SetupLogging
@@ -1031,11 +1032,16 @@ def Main():
              help='Write logs to this file.'),
       CmdArg('--suppress-event-logs', action='store_true',
              help='Suppress event logging.'),
+      CmdArg('--phase', default=None,
+             help=('override phase for phase checking (defaults to the current '
+                   'as returned by the "factory phase" command)')),
       verbosity_cmd_arg)
   SetupLogging(options.verbosity, options.log)
   event_log.SetGlobalLoggerDefaultPrefix('gooftool')
   event_log.GetGlobalLogger().suppress = options.suppress_event_logs
   logging.debug('gooftool options: %s', repr(options))
+
+  phase.OverridePhase(options.phase)
   try:
     logging.debug('GOOFTOOL command %r', options.command_name)
     options.command(options)
