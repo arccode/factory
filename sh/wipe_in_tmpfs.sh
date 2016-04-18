@@ -126,8 +126,7 @@ stop_running_upstart_jobs() {
 unmount_mount_points_on_stateful() {
   # Gets all mount points from $(mount) first, then unmount all.
   local mount_point=""
-  for mount_point in $(mount "${STATE_PATH}" 2>&1 |
-      grep 'mounted on' | awk '{print $6}' | tac); do
+  for mount_point in $(grep "${STATE_DEV}" /etc/mtab | cut -d' ' -f2 | tac); do
     if ! echo "${CHROMEOS_SHUTDOWN_UNMOUNT_POINTS}" |
         egrep -q "(^| )${mount_point}(\$| )"; then
       local unmounted=false
