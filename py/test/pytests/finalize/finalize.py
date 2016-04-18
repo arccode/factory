@@ -319,10 +319,10 @@ class Finalize(unittest.TestCase):
                             'in-place wiping',
                             '虚拟开发模式必须关闭。')))
     else:
-      items.append((
-          self.gooftool.CheckDevSwitchForDisabling() in (True, False),
-          MakeLabel('Turn off Developer Switch',
-                    '停用开发者开关(DevSwitch)')))
+      items.append((lambda: (self.gooftool.CheckDevSwitchForDisabling() in
+                             (True, False)),
+                    MakeLabel('Turn off Developer Switch',
+                              '停用开发者开关(DevSwitch)')))
 
     if self.args.min_charge_pct:
       items.append((lambda: (power.CheckBatteryPresent() and
