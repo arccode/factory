@@ -6,8 +6,8 @@
 
 """WiFi throughput test.
 
-Accepts a list of wireless services, checks for their signal strength,
-connects to them, and tests data throughput rate using iperf3.
+Accepts a list of wireless services, checks for their signal strength and
+quality, connects to them, and tests data throughput rate using iperf3.
 
 One notable difference about this test is how it processes arguments:
   1. Each service configuration must provide two required arguments "ssid"
@@ -323,7 +323,7 @@ class _ServiceTest(object):
 
     Args:
       ap_config: The configuration dict for testing this particular service.
-          E.g. ssid, password, min_strength, transmit_time
+          E.g. ssid, password, min_strength, min_quality, transmit_time
 
     Returns:
       A log representing the result of testing this service.  The log's
@@ -337,6 +337,7 @@ class _ServiceTest(object):
         'iperf_tx': None,
         'iperf_rx': None,
         'pass_strength': None,
+        'pass_quality': None,
         'pass_iperf_tx': None,
         'pass_iperf_rx': None,
         'failures': []}
@@ -375,6 +376,9 @@ class _ServiceTest(object):
 
       DoTest(self._CheckStrength,
              min_strength=ap_config.min_strength)
+
+      DoTest(self._CheckQuality,
+             min_quality=ap_config.min_quality)
 
       DoTest(self._Connect, abort=True,
              ssid=ap_config.ssid,
@@ -437,12 +441,25 @@ class _ServiceTest(object):
     # Check signal strength.
     if min_strength is not None:
       strength = self._ap.strength
-      self._log['pass_strength'] = strength >= min_strength
+      self._log['pass_strength'] = (
+          strength is not None and strength >= min_strength)
       if not self._log['pass_strength']:
-        raise self._TestException('strength %d < %d [fail]'
+        raise self._TestException('strength %s < %d [fail]'
                                   % (strength, min_strength))
       else:
-        return 'strength %d >= %d [pass]' % (strength, min_strength)
+        return 'strength %s >= %d [pass]' % (strength, min_strength)
+
+  def _CheckQuality(self, min_quality):
+    # Check signal quality.
+    if min_quality is not None:
+      quality = self._ap.quality
+      self._log['pass_quality'] = (
+          quality is not None and quality >= min_quality)
+      if not self._log['pass_quality']:
+        raise self._TestException('quality %s < %d [fail]'
+                                  % (quality, min_quality))
+      else:
+        return 'quality %s >= %d [pass]' % (quality, min_quality)
 
   def _Connect(self, ssid, password):
     # Try connecting.
@@ -467,6 +484,7 @@ class _ServiceTest(object):
         'bssid': self._ap.bssid,
         'encryption': self._ap.encryption_type,
         'strength': self._ap.strength,
+        'quality': self._ap.quality,
         'frequency': self._ap.frequency}
     return 'Saved connection information'
 
@@ -626,8 +644,8 @@ class _Ui(object):
 class WiFiThroughput(unittest.TestCase):
   """WiFi throughput test.
 
-  Accepts a list of wireless services, checks for their signal strength,
-  connects to them, and tests data throughput rate using iperf3.
+  Accepts a list of wireless services, checks for their signal strength and
+  quality, connects to them, and tests data throughput rate using iperf3.
   """
   # Arguments that can only be applied to each WiFi service connection.  These
   # will be checked as key-values in the test's "service" argument (see below).
@@ -649,7 +667,12 @@ class WiFiThroughput(unittest.TestCase):
           'transmission speed.',
           optional=True, default=None),
       Arg('min_strength', int,
-          'Minimum signal strength required (measured in dBm).',
+          'Minimum signal strength required (measured in dBm).  If the driver '
+          'does not report this value, setting a limit always fail.',
+          optional=True),
+      Arg('min_quality', int,
+          'Minimum link quality required (out of 100).  If the driver '
+          'does not report this value, setting a limit always fail.',
           optional=True),
       Arg('transmit_time', int,
           'Time in seconds for which to transmit data.',
@@ -722,10 +745,10 @@ class WiFiThroughput(unittest.TestCase):
           'field is also included.  (Omit or set to None or "" for an open '
           'network.)  Additionally, the following fields can be provided to '
           'override arguments passed to this test (refer to _SHARED_ARGS): '
-          'min_strength, iperf_host, transmit_time, transmit_interval, '
-          'min_rx_throughput, min_tx_throughput.  If services are not '
-          'specified, this test will simply list APs.  Also note that each '
-          'service may only be specified once.',
+          'min_strength, min_quality, iperf_host, transmit_time, '
+          'transmit_interval, min_rx_throughput, min_tx_throughput.  If '
+          'services are not specified, this test will simply list APs.  Also '
+          'note that each service may only be specified once.',
           optional=True, default=[]),
   ] + _SHARED_ARGS  # note the concatenation of "shared" arguments
 
@@ -918,7 +941,7 @@ class WiFiThroughput(unittest.TestCase):
         ''.join([x for x in ssid if x in string.printable])
         for ssid in found_ssids]
 
-    # Test WiFi signal strength for each service.
+    # Test WiFi signal and throughput speed for each service.
     if self.args.services:
       service_test = _ServiceTest(self._wifi, self._interface,
                                   self._iperf3, self._ui,
