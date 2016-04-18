@@ -878,7 +878,14 @@ def _ProbeVideo():
 
 @_ComponentProbe('cellular')
 def _ProbeCellular():
-  data = _FlimflamDevices.ReadSysfsDeviceIds('cellular')
+  # It is found that some cellular components may have their interface listed in
+  # shill but not available from /sys (for example, shill Interface=no_netdev_23
+  # but no /sys/class/net/no_netdev_23. Meanwhile, 'modem status' gives right
+  # Device info like 'Device: /sys/devices/ff500000.usb/usb1/1-1'.
+  # Unfortunately, information collected by shill, 'modem status', or the USB
+  # node under Device are not always synced.
+  data = (_FlimflamDevices.ReadSysfsDeviceIds('cellular') or
+          [dev.attributes for dev in _FlimflamDevices.GetDevices('cellular')])
   if data:
     modem_status = _ShellOutput('modem status')
     for key in ['carrier', 'firmware_revision', 'Revision']:
