@@ -275,7 +275,7 @@ overlay-%: .phony
 	if [ "$@" = overlay-private ]; then \
 	  rsync -aK --exclude Makefile ../factory-private/ $@/; \
 	else \
-	  for prefix in "project" "overlay*"; \
+	  for prefix in "project" "overlay" "overlay-variant"; \
 	  do \
 	    path="../../private-overlays/$${prefix}-$(subst overlay-,,$@)-private"; \
 	    if [ -e "$${path}" ]; then \
