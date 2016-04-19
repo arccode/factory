@@ -4,8 +4,6 @@
 # found in the LICENSE file.
 
 task_{%id%} () {
-  touch "${DATA_DIR}/should_reboot"
-
   local shared_memory_path="{%shared_memory_path%}"
   if [ -n "${shared_memory_path}" ]; then
     toybox mount -o remount,size=100% "${shared_memory_path}"

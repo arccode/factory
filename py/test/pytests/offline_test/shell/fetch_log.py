@@ -4,9 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import json
 import logging
 import os
-import re
 import shutil
 import tempfile
 import unittest
@@ -71,11 +71,10 @@ class OfflineTestFetchLog(unittest.TestCase):
         logging.exception('cannot fetch %s from DUT', remote_path)
         self.fail('cannot fetch %s from DUT' % remote_path)
 
-    # get total number of tasks
-    test_script = self.dut.ReadFile(common.TestScriptPath(self.dut))
-    match = re.search(r'^TOTAL_TASKS=(\d+)', test_script, re.MULTILINE)
-    self.assertTrue(match)
-    total_tasks = int(match.group(1))
+    # get test spec
+    test_spec = json.loads(self.dut.ReadFile(
+        self.dut.path.join(self.data_root, 'test_spec.json')))
+    total_tasks = len(test_spec)
 
     last_task_id = int(self.dut.ReadFile(
         self.dut.path.join(self.data_root, 'task_id')))
@@ -89,8 +88,17 @@ class OfflineTestFetchLog(unittest.TestCase):
 
     # if the test succeeded, last_task_id should be (total_tasks + 1)
     if last_task_id != total_tasks + 1:
-      fail_msg = 'offline test failed on test %d (total: %d)' % (
-          last_task_id, total_tasks)
+
+      failed_test = test_spec[last_task_id - 1]
+      if 'shtest_name' in failed_test:
+        failed_test_name = failed_test['shtest_name']
+      elif 'pytest_name' in failed_test:
+        failed_test_name = failed_test['pytest_name']
+      else:
+        raise ValueError('Cannot find shtest_name or pytest_name.')
+
+      fail_msg = 'offline test failed on test %s (%d/%d)' % (
+          failed_test_name, last_task_id, total_tasks)
       factory.console.error(fail_msg)
       # show content of logfile in factory.log
       if self.args.upload_to_shopfloor:

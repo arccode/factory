@@ -32,6 +32,7 @@ error() {
 
 die() {
   error "$*"
+  echo "FAILED" >"${DATA_DIR}/state"
   on_test_failed
   exit 1
 }
@@ -55,6 +56,7 @@ check_time() {
 all_test_passed() {
   info "All tests passed!"
   echo "$((${TOTAL_TASKS} + 1))" >"${DATA_DIR}/task_id"
+  echo "PASSED" >"${DATA_DIR}/state"
 
   on_all_test_passed
 }
@@ -74,6 +76,9 @@ main() {
     if [ ! -e "${DATA_DIR}/should_reboot" ]; then
       die unepected reboot
     fi
+  elif [ "${state}" = "FAILED" ]; then
+    on_test_failed
+    exit 1
   fi
 
   local i

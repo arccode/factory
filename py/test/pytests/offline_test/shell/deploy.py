@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 import datetime
+import json
 import logging
 import os
 import pipes
@@ -348,8 +349,11 @@ class DeployShellOfflineTest(unittest.TestCase):
     self.dut.SendFile(os.path.join(paths.FACTORY_PATH,
                                    self.args.callback_script_path),
                       callback_script_path)
+    self.dut.Call(['chmod', '+x', callback_script_path])
 
-    self.dut.Call(['chmod', '+x', starter_path])
+    # push test spec
+    test_spec_path = self.dut.path.join(self.data_root, 'test_spec.json')
+    self.dut.WriteFile(test_spec_path, json.dumps(self.args.test_spec))
 
     if self.args.start_up_service:
       self._MakeStartUpApp(starter_path)
