@@ -81,6 +81,7 @@ class VerifyComponentsTest(unittest.TestCase):
     if not self.args.fast_fw_probe:
       cmd += ['--no-fast-fw-probe']
     cmd += ['--components', ','.join(self.args.component_list)]
+    cmd += ['--phase', str(phase.GetPhase())]
     results = json.loads(self.factory_par.CheckOutput(cmd))
 
     logging.info('Probed components: %s', results)

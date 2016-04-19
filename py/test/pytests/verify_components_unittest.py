@@ -37,6 +37,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.template = self._mox.CreateMock(OneSection)
     self._mock_test._ui = self._mox.CreateMock(test_ui.UI)
     self._mox.StubOutWithMock(verify_components, 'Log')
+    self.fake_phase = 'EVT'
+    verify_components.phase.GetPhase = lambda: self.fake_phase
 
   def tearDown(self):
     self._mox.UnsetStubs()
@@ -48,7 +50,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'skip_shopfloor': True,
         'with_goofy': True})
     command = ['hwid', 'verify-components', '--json_output',
-               '--no-fast-fw-probe', '--components', 'camera,cpu']
+               '--no-fast-fw-probe', '--components', 'camera,cpu',
+               '--phase', self.fake_phase]
     # good probed results
     probed = {
         u'camera': [{
@@ -88,7 +91,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'skip_shopfloor': True,
         'with_goofy': True})
     command = ['hwid', 'verify-components', '--json_output',
-               '--no-fast-fw-probe', '--components', 'camera,cpu']
+               '--no-fast-fw-probe', '--components', 'camera,cpu',
+               '--phase', self.fake_phase]
     # bad probed results
     probed = {
         u'camera': [{
@@ -124,7 +128,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'skip_shopfloor': True,
         'with_goofy': True})
     command = ['hwid', 'verify-components', '--json_output',
-               '--no-fast-fw-probe', '--components', 'camera,cpu']
+               '--no-fast-fw-probe', '--components', 'camera,cpu',
+               '--phase', self.fake_phase]
 
     self._mock_test._ui.Run(blocking=False)
     self._mock_test.template.SetState(mox.IsA(unicode))
