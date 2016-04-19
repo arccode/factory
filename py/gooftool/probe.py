@@ -302,66 +302,6 @@ def _RecursiveProbe(path, read_method):
   return data_list
 
 
-class _FlimflamDevices(object):
-  """Wrapper around flimflam (connection manager) information.
-
-  This object is a wrapper around the data from the flimflam module,
-  providing dbus format post processing.
-
-  Wrapped data is a list of Objs corresponding to devices detected by
-  flimflam.  Each has devtype (flimflam type classification) and path
-  (location of related data in sysfs) fields.  For cellular devices,
-  there is also an attributes field which contains a dict of
-  attribute:value items.
-  """
-
-  cached_dev_list = None
-
-  @classmethod
-  def GetDevices(cls, devtype):
-    """Return device Obj list for devices with the specified type."""
-
-    def ProcessDevice(device):
-      properties = device.GetProperties()
-      get_prop = lambda p: flimflam.convert_dbus_value(properties[p])
-      result = Obj(
-          devtype=get_prop('Type'),
-          path='/sys/class/net/%s/device' % get_prop('Interface'))
-      if result.devtype == 'cellular':
-        result.attributes = dict(
-            (key, get_prop('Cellular.%s' % key))
-            for key in ['Carrier', 'FirmwareRevision', 'HardwareRevision',
-                        'ModelID', 'Manufacturer']
-            if 'Cellular.%s' % key in properties)
-      return result
-
-    if cls.cached_dev_list is None:
-      cls.cached_dev_list = [ProcessDevice(device) for device in
-                             flimflam.FlimFlam().GetObjectList('Device')]
-      # On some Brillo (AP-type) devices, WiFi interfaces are blacklisted by
-      # shill and needs to be discovered manually.
-      wifi_devs = [dev for dev in cls.cached_dev_list if dev.devtype == 'wifi']
-      if not wifi_devs:
-        logging.info('No WiFi components found by shill. Use iwconfig.')
-        shell_command = 'iwconfig | grep "IEEE 802.11" | cut -d " " -f 1'
-        nodes = _ShellOutput(shell_command).split()
-        wifi_devs = [Obj(devtype='wifi', path='/sys/class/net/%s/device' % node)
-                     for node in nodes]
-        if wifi_devs:
-          logging.info('iwconfig found: %s', wifi_devs)
-          cls.cached_dev_list += wifi_devs
-
-    return [dev for dev in cls.cached_dev_list if dev.devtype == devtype]
-
-  @classmethod
-  def ReadSysfsDeviceIds(cls, devtype, ignore_usb=False):
-    """Return _ReadSysfsDeviceId result for each device of specified type."""
-    ids = [_ReadSysfsDeviceId(dev.path, ignore_usb)
-           for dev in cls.GetDevices(devtype)]
-    # Filter out 'None' results
-    return sorted(device for device in ids if device is not None)
-
-
 class _GobiDevices(object):
   """Wrapper around Gobi specific utility information."""
   # TODO(bhthompson): This will need to be rewritten when gobi-fw is
@@ -406,6 +346,136 @@ class _GobiDevices(object):
     active_firmwares = [fw.build_id for fw in firmwares if fw.active]
     active_firmware = active_firmwares[0] if active_firmwares else None
     return active_firmware
+
+class _NetworkDevices(object):
+  """A general probing module for network devices."""
+
+  cached_dev_list = None
+
+  @classmethod
+  def _GetIwconfigDevices(cls, extension='IEEE 802.11'):
+    """Wrapper around iwconfig(8) information.
+
+    Example output:
+
+    eth0    no wireless extensions.
+
+    wlan0   IEEE 802.11abgn ESSID:off/any
+            Mod:Managed Access Point: Not-Associated Tx-Power=20 dBm
+            ...
+
+    Returns a list of network objects having WiFi extension.
+    """
+    return [Obj(devtype='wifi',
+                path='/sys/class/net/%s/device' % node.split()[0])
+            for node in _ShellOutput('iwconfig').splitlines()
+            if extension in node]
+
+  @classmethod
+  def _GetIwDevices(cls, iw_type='managed'):
+    """Wrapper around iw(8) information.
+
+    Command 'iw' explicitly said "Do NOT screenscrape this tool" but we have no
+    any better solutions. A typical output for 'iw dev' on mwifiex:
+
+    phy#0
+          Interface p2p0
+                  ifindex 4
+                  wdev 0x3
+                  addr 28:c2:dd:45:94:39
+                  type P2P-client
+          Interface uap0
+                  ifindex 3
+                  wdev 0x2
+                  addr 28:c2:dd:45:94:39
+                  type AP
+          Interface mlan0
+                  ifindex 2
+                  wdev 0x1
+                  addr 28:c2:dd:45:94:39
+                  type managed
+
+    p2p0 and uap0 are virtual nodes and what we really want is mlan0 (managed).
+
+    Returns:
+      A list of network objects with correct iw type.
+    """
+    data = [line.split()[1] for line in _ShellOutput('iw dev').splitlines()
+            if ' ' in line and line.split()[0] in ['Interface', 'type']]
+    i = iter(data)
+    return [Obj(devtype='wifi', path='/sys/class/net/%s/device' % name)
+            for name in i if i.next() == iw_type]
+
+  @classmethod
+  def _GetFlimflamDevices(cls):
+    """Wrapper around flimflam (shill), the ChromeOS connection manager.
+
+    This object is a wrapper around the data from the flimflam module, providing
+    dbus format post processing.
+
+    Returns:
+      A list of network objects in Obj, having:
+        devtype: A string in flimflam Type (wifi, cellular, ethernet).
+        path: A string for /sys node device path.
+        attributes: A dictionary for additional attributes.
+    """
+    def _ProcessDevice(device):
+      properties = device.GetProperties()
+      get_prop = lambda p: flimflam.convert_dbus_value(properties[p])
+      result = Obj(
+          devtype=get_prop('Type'),
+          path='/sys/class/net/%s/device' % get_prop('Interface'))
+      if result.devtype == 'cellular':
+        result.attributes = dict(
+            (key, get_prop('Cellular.%s' % key))
+            for key in ['Carrier', 'FirmwareRevision', 'HardwareRevision',
+                        'ModelID', 'Manufacturer']
+            if 'Cellular.%s' % key in properties)
+      return result
+
+    return [_ProcessDevice(device) for device in
+            flimflam.FlimFlam().GetObjectList('Device')]
+
+  @classmethod
+  def GetDevices(cls, devtype):
+    """Returns network device information by given type.
+
+    Returned data is a list of Objs corresponding to detected devices.
+    Each has devtype (in same way as flimflam type classification) and path
+    (location of related data in sysfs) fields.  For cellular devices, there is
+    also an attributes field which contains a dict of attribute:value items.
+    """
+    if cls.cached_dev_list is None:
+      dev_list = cls._GetFlimflamDevices()
+
+      # On some Brillo (AP-type) devices, WiFi interfaces are blacklisted by
+      # shill and needs to be discovered manually, so we have to try 'iw config'
+      # or 'iw dev' to get a more correct list.
+      # 'iwconfig' is easier to parse, but for some WiFi drivers, for example
+      # mwifiex, do not support wireless extensions and only provide the new
+      # CFG80211/NL80211. Also mwifiex will create two more virtual nodes 'uap0,
+      # p2p0' so we can't rely on globbing /sys/class/net/*/wireless. The only
+      # solution is to trust 'iw dev'.
+
+      existing_nodes = [dev.path for dev in dev_list]
+      dev_list += [dev for dev in cls._GetIwconfigDevices()
+                   if dev.path not in existing_nodes]
+
+      existing_nodes = [dev.path for dev in dev_list]
+      dev_list += [dev for dev in cls._GetIwDevices()
+                   if dev.path not in existing_nodes]
+
+      cls.cached_dev_list = dev_list
+
+    return [dev for dev in cls.cached_dev_list if dev.devtype == devtype]
+
+  @classmethod
+  def ReadSysfsDeviceIds(cls, devtype, ignore_usb=False):
+    """Return _ReadSysfsDeviceId result for each device of specified type."""
+    ids = [_ReadSysfsDeviceId(dev.path, ignore_usb)
+           for dev in cls.GetDevices(devtype)]
+    # Filter out 'None' results
+    return sorted(device for device in ids if device is not None)
 
 
 class _InputDevices(object):
@@ -884,8 +954,8 @@ def _ProbeCellular():
   # Device info like 'Device: /sys/devices/ff500000.usb/usb1/1-1'.
   # Unfortunately, information collected by shill, 'modem status', or the USB
   # node under Device are not always synced.
-  data = (_FlimflamDevices.ReadSysfsDeviceIds('cellular') or
-          [dev.attributes for dev in _FlimflamDevices.GetDevices('cellular')])
+  data = (_NetworkDevices.ReadSysfsDeviceIds('cellular') or
+          [dev.attributes for dev in _NetworkDevices.GetDevices('cellular')])
   if data:
     modem_status = _ShellOutput('modem status')
     for key in ['carrier', 'firmware_revision', 'Revision']:
@@ -906,7 +976,7 @@ def _ProbeCellular():
 
 @_ComponentProbe('wimax')
 def _ProbeWimax():
-  return _FlimflamDevices.ReadSysfsDeviceIds('wimax')
+  return _NetworkDevices.ReadSysfsDeviceIds('wimax')
 
 
 @_ComponentProbe('display_converter')
@@ -1093,7 +1163,7 @@ def _ProbePowerMgmtChip():
 def _ProbeEthernet():
   # Build-in ethernet devices should not be attached to USB. They are usually
   # either PCI or SOC.
-  return _FlimflamDevices.ReadSysfsDeviceIds('ethernet', ignore_usb=True)
+  return _NetworkDevices.ReadSysfsDeviceIds('ethernet', ignore_usb=True)
 
 
 @_ComponentProbe('flash_chip')
@@ -1291,7 +1361,7 @@ def _ProbeVga():
 
 @_ComponentProbe('wireless')
 def _ProbeWireless():
-  return _FlimflamDevices.ReadSysfsDeviceIds('wifi')
+  return _NetworkDevices.ReadSysfsDeviceIds('wifi')
 
 
 @_ComponentProbe('pmic')
@@ -1340,7 +1410,7 @@ def _ProbeCellularFirmwareVersion():
       return info[0]
     return None
   results = [GetVersionString(dev.attributes) for dev in
-             _FlimflamDevices.GetDevices('cellular')]
+             _NetworkDevices.GetDevices('cellular')]
   results = [x for x in results if x is not None]
   return ' ; '.join(results)
 
