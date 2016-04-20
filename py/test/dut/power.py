@@ -33,7 +33,7 @@ class Power(DUTComponent):
   """
 
   # Regular expression for parsing output.
-  EC_CHARGER_RE = re.compile(r'^chg_current = (\d+)mA$', re.MULTILINE)
+  EC_CHARGER_RE = re.compile(r'^chg_current = (\d+)mA', re.MULTILINE)
 
   _sys = '/sys'
 

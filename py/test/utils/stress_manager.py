@@ -105,6 +105,12 @@ class StressManager(object):
         self.stop.set()
       thread.join()
 
+    # If stressapptest get killed before its initialization fully done, it
+    # will not output the status lines. This case should consider as success.
+    if duration_secs is None and not re.search(r'Log: User exiting early',
+                                               self.output, re.MULTILINE):
+      return
+
     if not re.search(r'Status: PASS', self.output, re.MULTILINE):
       raise StressManagerError(self.output)
 
@@ -126,8 +132,17 @@ class StressManager(object):
 
         if duration_secs is None:
           self.stop.wait()
-          self._dut.Call(['killall', 'stressapptest'])
+          self._dut.toybox.pkill('stressapptest')
         process.wait()
       output.seek(0)
       self.output = output.read()
 
+
+class DummyStressManager(object):
+  """A stress manager with no load."""
+  def __init__(self, *args, **kwargs):
+    pass
+
+  @contextlib.contextmanager
+  def Run(self, *unused_args, **unused_kwargs):
+    yield

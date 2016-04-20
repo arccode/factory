@@ -6,6 +6,7 @@
 import mock
 import os
 import tempfile
+import textwrap
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -51,6 +52,73 @@ class StressManagerUnittest(unittest.TestCase):
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, num_threads, mem_usage, disk_thread)
 
+  def testRunForever(self):
+    duration_secs = None
+    num_threads = 1000
+    memory_ratio = 0.5
+    total_memory = 1024 * 1024
+    mem_usage = int(memory_ratio * total_memory / 1024)
+    disk_thread = False
+
+    self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=total_memory)
+    self.manager._CallStressAppTest = mock.MagicMock(
+        return_value=None,
+        side_effect=self._CallStressAppTestSideEffect)
+
+    with self.manager.Run(
+        duration_secs, num_threads, memory_ratio, disk_thread):
+      pass
+
+    self.manager._CallStressAppTest.assert_called_with(
+        duration_secs, self.dut.info.cpu_count, mem_usage, disk_thread)
+
+  def testRunForeverFail(self):
+    duration_secs = None
+    num_threads = 1000
+    memory_ratio = 0.5
+    total_memory = 1024 * 1024
+    mem_usage = int(memory_ratio * total_memory / 1024)
+    disk_thread = False
+
+    def SideEffect(*unused_args):
+      self.manager.output = 'Log: User exiting early'
+
+    self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=total_memory)
+    self.manager._CallStressAppTest = mock.MagicMock(
+        return_value=None,
+        side_effect=SideEffect)
+
+    with self.assertRaises(stress_manager.StressManagerError):
+      with self.manager.Run(
+          duration_secs, num_threads, memory_ratio, disk_thread):
+        pass
+
+    self.manager._CallStressAppTest.assert_called_with(
+        duration_secs, self.dut.info.cpu_count, mem_usage, disk_thread)
+
+  def testRunForeverNoStatusOutput(self):
+    duration_secs = None
+    num_threads = 1000
+    memory_ratio = 0.5
+    total_memory = 1024 * 1024
+    mem_usage = int(memory_ratio * total_memory / 1024)
+    disk_thread = False
+
+    def SideEffect(*unused_args):
+      self.manager.output = ''
+
+    self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=total_memory)
+    self.manager._CallStressAppTest = mock.MagicMock(
+        return_value=None,
+        side_effect=SideEffect)
+
+    with self.manager.Run(
+        duration_secs, num_threads, memory_ratio, disk_thread):
+      pass
+
+    self.manager._CallStressAppTest.assert_called_with(
+        duration_secs, self.dut.info.cpu_count, mem_usage, disk_thread)
+
   def testRunFreeMemoryOnly(self):
     duration_secs = 10
     num_threads = 4
@@ -71,9 +139,10 @@ class StressManagerUnittest(unittest.TestCase):
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, num_threads, mem_usage, disk_thread)
 
-
   def _CallStressAppTestSideEffect(self, *unused_args):
-    self.manager.output = 'Status: PASS'
+    self.manager.output = textwrap.dedent('''
+      Log: User exiting early (13 seconds remaining)
+      Status: PASS''')
 
   def testRunNotEnoughCPU(self):
     duration_secs = 10
@@ -154,13 +223,14 @@ class StressManagerUnittest(unittest.TestCase):
     with tempfile.NamedTemporaryFile() as output:
       stress_manager.tempfile.TemporaryFile = mock.MagicMock(
           return_value=output)
+      self.dut.toybox.pkill = mock.MagicMock(return_value=0)
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
                                       disk_thread)
       self.dut.Popen.assert_called_with(
           ['stressapptest', '-m', '1', '-M', '32', '-s', mock.ANY],
           stdout=output)
       self.manager.stop.wait.assert_called_with()
-      self.dut.Call.assert_called_with(['killall', 'stressapptest'])
+      self.dut.toybox.pkill.assert_called_with('stressapptest')
       self.fake_process.wait.assert_called_with()
 
 
