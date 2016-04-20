@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 from collections import namedtuple
+import pipes
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
@@ -497,11 +498,52 @@ class Toybox(component.DUTComponent):
   def patch(self, *args, **kargs):
     raise NotImplementedError
 
+  def pgrep(self):
+    raise NotImplementedError
+
   def pidof(self, *args, **kargs):
     raise NotImplementedError
 
   def pivot_root(self, *args, **kargs):
     raise NotImplementedError
+
+  def pkill(self, pattern, euid=None, exact=False, full=False, group=None,
+            newest=False, oldest=False, parent=None, pgroup=None, session=None,
+            signal=None, terminal=None, uid=None):
+    """Signal processes based on its name and other attributes.
+
+    Args:
+      pattern: Extended regular expression for matching against the process
+          names.
+      euid: Match effective user ID. Either the numerical or symbolical value
+          may be used.
+      exact: True to match processes whose names (or command line if `full`
+          is True) exactly match the pattern.
+      full: True to check full command line for the pattern.
+      group: Match real group ID. Either the numerical or symbolical value may
+          be used.
+      newest: Match only the newest process.
+      oldest: Match only the oldest process.
+      parent: Match parent process ID.
+      pgroup: Match process group ID (0 for current).
+      session: Match session ID (0 for current).
+      signal: The signal to send to each matched process.
+          Either the numeric or the symbolic signal name can be used.
+      terminal: Match terminal name.
+      uid: Match real user ID. Either the numerical or symbolical value may be
+          used.
+    """
+    args = (euid, exact, full, group, newest, oldest, parent, pgroup, session,
+            signal, terminal, uid, pattern)
+    arg_options = (['-u', str(euid)], '-x', '-f', ['-G', str(group)], '-n',
+                   '-o', ['-P', str(parent)], ['-g', str(pgroup)],
+                   ['-s', str(session)], ['-l', str(signal)],
+                   ['-t', str(terminal)], ['-U', uid], pipes.quote(pattern))
+
+    return self._dut.CheckCall(self._BuildCommand(
+        'pkill',
+        *(option for i, option in enumerate(arg_options)
+          if args[i] or (args[i] is 0))))
 
   def pmap(self, *args, **kargs):
     raise NotImplementedError

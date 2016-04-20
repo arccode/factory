@@ -122,6 +122,17 @@ class ToyboxTest(unittest.TestCase):
     self.dut.toybox.partprobe('/dev/sda')
     self.dut.CheckCall.assert_called_with(['toybox', 'partprobe', '/dev/sda'])
 
+  def testPkill(self):
+    self.dut.CheckCall = mock.MagicMock(return_value=0)
+    self.dut.toybox.pkill('stressapptest', signal=9)
+    self.dut.CheckCall.assert_called_with(['toybox', 'pkill', '-l', '9',
+                                           'stressapptest'])
+
+    self.dut.CheckCall = mock.MagicMock(return_value=0)
+    self.dut.toybox.pkill('ls -al', exact=True, full=True, pgroup=0)
+    self.dut.CheckCall.assert_called_with(['toybox', 'pkill', '-x', '-f',
+                                           '-g', '0', '\'ls -al\''])
+
   def testPwd(self):
     self.dut.CheckOutput = mock.MagicMock(return_value='/\n')
     self.assertEquals(self.dut.toybox.pwd(), '/')
