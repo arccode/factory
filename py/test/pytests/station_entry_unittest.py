@@ -8,7 +8,7 @@
 # We need to inject mock objects to protected members of FactoryEntry:
 # pylint: disable=W0212
 
-"""Unit tests for fixture_entry factory test."""
+"""Unit tests for station_entry factory test."""
 
 import logging
 import mox
@@ -22,7 +22,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.dut.link import DUTLink
-from cros.factory.test.pytests import fixture_entry
+from cros.factory.test.pytests import station_entry
 from cros.factory.utils import sync_utils
 
 class FakeArgs(object):
@@ -34,7 +34,7 @@ class FakeArgs(object):
 class FactoryEntryUnitTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
-    self.test = fixture_entry.FixtureEntry()
+    self.test = station_entry.StationEntry()
 
     self.mock_ui = self.mox.CreateMock(test_ui.UI)
     self.mock_template = self.mox.CreateMock(ui_templates.OneSection)
@@ -54,11 +54,11 @@ class FactoryEntryUnitTest(unittest.TestCase):
     test_ui.UI().AndReturn(self.mock_ui)
     self.mock_ui.AppendCSS(mox.IsA(str))
     ui_templates.OneSection(self.mock_ui).AndReturn(self.mock_template)
-    self.mock_template.SetTitle(fixture_entry._TITLE_START)
+    self.mock_template.SetTitle(station_entry._TITLE_START)
 
     self.mox.ReplayAll()
 
-    self.test.args = FakeArgs({'start_fixture_tests': True,
+    self.test.args = FakeArgs({'start_station_tests': True,
                                'prompt_start': False,
                                'clear_device_data': True,
                                'timeout_secs': None})
@@ -67,20 +67,20 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mox.VerifyAll()
 
-  def testLocalEndFixtureBasedTest(self):
-    self._testEndFixtureBasedTest(is_local=True)
+  def testLocalEndStationBasedTest(self):
+    self._testEndStationBasedTest(is_local=True)
 
-  def testNonLocalEndFixtureBasedTest(self):
-    self._testEndFixtureBasedTest(is_local=False)
+  def testNonLocalEndStationBasedTest(self):
+    self._testEndStationBasedTest(is_local=False)
 
-  def _testEndFixtureBasedTest(self, is_local):
+  def _testEndStationBasedTest(self, is_local):
     mock_dut_link = self.mox.CreateMock(DUTLink)
     self.test._dut = dut.Create()
     self.test._dut.link = mock_dut_link
     mock_state = self.mox.CreateMock(GoofyRPC)
     self.test._state = mock_state # pylint: disable=W0212
     timeout_secs = 123
-    self.test.args = FakeArgs({'start_fixture_tests': False,
+    self.test.args = FakeArgs({'start_station_tests': False,
                                'prompt_start': False,
                                'clear_device_data': True,
                                'timeout_secs': timeout_secs})
@@ -89,6 +89,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mox.StubOutWithMock(shopfloor, 'DeleteDeviceData')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
+    self.mox.StubOutWithMock(self.test, 'SendTestResult')
 
     self.mock_ui.Run(blocking=False)
     self.mock_ui.BindKey(' ', mox.Func(callable))
@@ -102,6 +103,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
       sync_utils.WaitFor(mox.IsA(type(lambda: None)), timeout_secs)
 
     self.mock_template.SetState(mox.IsA(basestring))
+    self.test.SendTestResult()
     mock_state.ScheduleRestart()
 
     self.mox.ReplayAll()
@@ -110,14 +112,14 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mox.VerifyAll()
 
-  def testStartFixtureBasedTest(self):
+  def testStartStationBasedTest(self):
     mock_dut_link = self.mox.CreateMock(DUTLink)
     self.test._dut = dut.Create()
     self.test._dut.link = mock_dut_link
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
     timeout_secs = 123
-    self.test.args = FakeArgs({'start_fixture_tests': True,
+    self.test.args = FakeArgs({'start_station_tests': True,
                                'prompt_start': False,
                                'clear_device_data': True,
                                'timeout_secs': timeout_secs})

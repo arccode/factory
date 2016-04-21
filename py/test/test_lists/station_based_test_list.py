@@ -11,29 +11,29 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestGroup
 from cros.factory.test.test_lists.test_lists import TestList
 
-def StartFixtureTest(test_list_id, label_en, label_zh, prompt_start):
+def StartStationTest(test_list_id, label_en, label_zh, prompt_start):
   OperatorTest(
-      id='StartFixtureTest_%s' % test_list_id,
+      id='StartStationTest_%s' % test_list_id,
       label_en=u'Start %s' % label_en,
       label_zh=u'开始 %s' % label_zh,
-      pytest_name='fixture_entry',
+      pytest_name='station_entry',
       dargs={'prompt_start': prompt_start})
 
 
-def EndFixtureTest(test_list_id, label_en, label_zh):
+def EndStationTest(test_list_id, label_en, label_zh):
   OperatorTest(
-      id='EndFixtureTest_%s' % test_list_id,
+      id='EndStationTest_%s' % test_list_id,
       label_en=u'End %s' % label_en,
       label_zh=u'结束 %s' % label_zh,
-      pytest_name='fixture_entry',
-      dargs={'start_fixture_tests': False})
+      pytest_name='station_entry',
+      dargs={'start_station_tests': False})
 
 
-def FixtureBased(test_list_id, label_en, label_zh,
+def StationBased(test_list_id, label_en, label_zh,
                  dut_options=None,
                  automated_sequence=True,
                  prompt_start=True):
-  """A decorator to add common test items for fixture-based tests.
+  """A decorator to add common test items for station-based tests.
 
   Args:
     automated_sequence: Wrap the test list in an AutomatedSequence test group,
@@ -46,7 +46,7 @@ def FixtureBased(test_list_id, label_en, label_zh,
   ::
 
     dut_options = {'link_class': SSHLink, 'host': None}
-    @FixtureBased('main', 'CoolProduct EVT', dut_options)
+    @StationBased('main', 'CoolProduct EVT', dut_options)
     def CreateTestLists(test_list):
       # dut_options is automatically set to test_list,
       # you can set other options for test_list here
@@ -61,7 +61,7 @@ def FixtureBased(test_list_id, label_en, label_zh,
     dut_options = {}
 
   def Wrap(CreateTestLists):
-    def CreateFixtureTestList():
+    def CreateStationTestList():
       with TestList(test_list_id, label_en) as test_list:
         test_list.dut_options = dut_options
 
@@ -73,8 +73,8 @@ def FixtureBased(test_list_id, label_en, label_zh,
               id=test_list_id, label_en=label_en, label_zh=label_zh)
 
         with group:
-          StartFixtureTest(test_list_id, label_en, label_zh, prompt_start)
+          StartStationTest(test_list_id, label_en, label_zh, prompt_start)
           CreateTestLists(test_list)
-          EndFixtureTest(test_list_id, label_en, label_zh)
-    return CreateFixtureTestList
+          EndStationTest(test_list_id, label_en, label_zh)
+    return CreateStationTestList
   return Wrap

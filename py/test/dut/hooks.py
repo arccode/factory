@@ -49,7 +49,7 @@ class DUTHooks(component.DUTComponent):
     pass
 
   def SendTestResult(self, test_states):
-    """Callback invoked on EndFixtureEntry test.
+    """Callback invoked on EndStationEntry test.
 
     Args:
       test_states: a dict object that maps test paths to test states.

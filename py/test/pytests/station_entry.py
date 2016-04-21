@@ -5,9 +5,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Starts or ends a fixture-based test.
+"""Starts or ends a station-based test.
 
-This factory test invokes functions to setup or teardown a fixture-based
+This factory test invokes functions to setup or teardown a station-based
 test list.
 """
 
@@ -35,8 +35,8 @@ _CSS = """
 }
 """
 
-_TITLE_START = test_ui.MakeLabel('Start Fixture Test', u'开始治具测试')
-_TITLE_END = test_ui.MakeLabel('End Fixture Test', u'结束治具测试')
+_TITLE_START = test_ui.MakeLabel('Start Station Test', u'开始测试')
+_TITLE_END = test_ui.MakeLabel('End Station Test', u'结束测试')
 
 _MSG_INSERT = test_ui.MakeLabel(
     'Please attach DUT.',
@@ -64,11 +64,11 @@ _MSG_RESTART_TESTS = test_ui.MakeLabel(
     'prompt')
 
 
-class FixtureEntry(unittest.TestCase):
-  """The factory test to start fixture test process."""
+class StationEntry(unittest.TestCase):
+  """The factory test to start station test process."""
   ARGS = [
-      Arg('start_fixture_tests', bool,
-          'To start or stop the factory fixture tests.',
+      Arg('start_station_tests', bool,
+          'To start or stop the factory station tests.',
           default=True, optional=True),
       Arg('prompt_start', bool,
           'Prompt for spacebar before starting test.',
@@ -87,7 +87,7 @@ class FixtureEntry(unittest.TestCase):
     self._ui = test_ui.UI()
     self._ui.AppendCSS(_CSS)
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TITLE_START if self.args.start_fixture_tests else
+    self._template.SetTitle(_TITLE_START if self.args.start_station_tests else
                             _TITLE_END)
     self._space_event = threading.Event()
 
@@ -106,7 +106,7 @@ class FixtureEntry(unittest.TestCase):
       shopfloor.DeleteDeviceData(
           ['serial_number', 'mlb_serial_number'], optional=True)
 
-    if self.args.start_fixture_tests:
+    if self.args.start_station_tests:
       self.Start()
     else:
       self.End()
