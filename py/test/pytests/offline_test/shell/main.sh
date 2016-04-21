@@ -11,7 +11,7 @@ TOTAL_TASKS={%total_tasks%}
 
 log() {
   local prefix="$1"
-  local date="$(date)"
+  local date="$(date -u)"
   shift
 
   # Use awk to ensure each line of $* will have correct prefix.
@@ -40,19 +40,19 @@ die() {
 }
 
 check_time() {
-  local current_time="$(date '+%s')"
+  local current_time="$(date -u '+%s')"
   local last_check_time="$(head -n 1 "${DATA_DIR}/last_check_time" || echo 0)"
   if [ "${last_check_time}" -gt "${current_time}" ]; then
-    local old_time="$(date)"
+    local old_time="$(date -u)"
     local last_check_time="$(tail -n 1 "${DATA_DIR}/last_check_time")"
-    date "${last_check_time}"
+    date -u "${last_check_time}"
     warn "go back in time, reset time to last checked time (was ${old_time})"
   fi
 
   # 1. save current time in a comparable format: seconds since epoch.
-  date '+%s' >"${DATA_DIR}/last_check_time"
+  date -u '+%s' >"${DATA_DIR}/last_check_time"
   # 2. save current time in the format used for setting date.
-  date '+%m%d%H%M%Y.%S' >>"${DATA_DIR}/last_check_time"
+  date -u '+%m%d%H%M%Y.%S' >>"${DATA_DIR}/last_check_time"
 }
 
 all_test_passed() {

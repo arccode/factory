@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import datetime
 import json
 import logging
 import os
@@ -19,6 +18,7 @@ from cros.factory.test.args import Args
 from cros.factory.test.pytests.offline_test.shell import common
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import pytest_utils
+from cros.factory.test.utils import time_utils
 from cros.factory.utils import type_utils
 
 
@@ -275,12 +275,11 @@ class DeployShellOfflineTest(unittest.TestCase):
     self.dut.init.AddFactoryStartUpApp(common.OFFLINE_JOB_NAME, starter_path)
 
   def _SyncTime(self):
-    now = datetime.datetime.now()
-    # set DUT time
-    self.dut.Call("date {:%m%d%H%M%Y.%S}".format(now))
+    time_utils.SyncDate(self.dut)
+
     # save current time to a file, see check_time() in main.sh
-    self.dut.WriteFile(self.dut.path.join(self.data_root, 'last_check_time'),
-                       "{0:%s}\n{0:%m%d%H%M%Y.%S}\n".format(now))
+    file_path = self.dut.path.join(self.data_root, 'last_check_time')
+    self.dut.CheckCall('date "+%s\n%m%d%H%M%Y.%S" >"{0}"'.format(file_path))
 
   def runTest(self):
     # make sure script_root is writable
