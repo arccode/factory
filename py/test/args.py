@@ -180,3 +180,27 @@ class Args(object):
       raise ValueError('; '.join(errors))
 
     return Dargs(**attributes)
+
+
+def MergeArgs(old_args, new_args):
+  """Merge two arg lists and overwrite with items from new_args when conflict
+  occurs.
+
+  Args:
+    old_args: the old arg list.
+    new_args: the new arg list.
+
+  Returns:
+    An merged arg list.
+  """
+  args = list(old_args)
+  for new_arg in new_args:
+    found = False
+    for i in xrange(len(args)):
+      if args[i].name == new_arg.name:
+        found = True
+        args[i] = new_arg
+        break
+    if not found:
+      args.append(new_arg)
+  return args
