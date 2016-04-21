@@ -99,10 +99,21 @@ class DHCPManager(object):
     used_range = list(self._exclude_ip_prefix or []) # make a copy
 
     for interface in interfaces:
-      cidr = interface.cidr
+      ip_mask = net_utils.GetEthernetIp(interface.name, netmask=True)
+      (ip, prefix) = ip_mask  # pylint: disable=unpacking-non-sequence
+      cidr = None
+      if ip and prefix:
+        cidr = net_utils.CIDR(ip, prefix)
+        logging.info('IFACE %s already assigned to %s',
+                     interface.name, cidr)
+        if int(cidr.IP) & ~int(cidr.Netmask()) != 1:
+          logging.warn('However, the host part is not 1, will assign new IP.')
+          cidr = None
       if not cidr:
         cidr = net_utils.GetUnusedIPV4RangeCIDR(exclude_ip_prefix=used_range,
                                                 exclude_local_interface_ip=True)
+        logging.info('DHCPManager: IFACE: %s will be assigned to %s',
+                     interface.name, cidr)
       # Make sure the interface is up
       net_utils.SetEthernetIp(str(cidr.SelectIP(1)), interface.name,
                               str(cidr.Netmask()), force=True)
