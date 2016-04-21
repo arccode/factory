@@ -26,6 +26,8 @@ from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
+from cros.factory.test import log_writer
+from cros.factory.test import testlog
 from cros.factory.test.event_log import EventLog, FloatDigit, GetBootSequence
 from cros.factory.goofy import connection_manager
 from cros.factory.goofy import test_environment
@@ -165,6 +167,7 @@ class Goofy(GoofyBase):
     self.system_log_manager = None
     self.core_dump_manager = None
     self.event_log = None
+    self.log_writer = None
     self.autotest_prespawner = None
     self.pytest_prespawner = None
     self.ui_process = None
@@ -197,7 +200,6 @@ class Goofy(GoofyBase):
     self.last_check_battery_message = None
     self.last_kick_sync_time = None
     self.exclusive_items = set()
-    self.event_log = None
     self.key_filter = None
     self.cpufreq_manager = None
     self.status = Status.UNINITIALIZED
@@ -319,6 +321,9 @@ class Goofy(GoofyBase):
     if self.event_log:
       self.event_log.Close()
       self.event_log = None
+    if self.log_writer:
+      self.log_writer.Close()
+      self.log_writer = None
     if self.key_filter:
       self.key_filter.Stop()
     if self.cpu_usage_watcher:
@@ -1113,19 +1118,30 @@ class Goofy(GoofyBase):
       self.init()
       self.event_log.Log('goofy_init',
                          success=True)
+      self.log_writer.Log(
+          testlog.StationInit({
+              'count': log_writer.GetInitCount(),
+              'success': True}))
     except:
-      if self.event_log:
-        try:
+      try:
+        if self.event_log:
           self.event_log.Log('goofy_init',
                              success=False,
                              trace=traceback.format_exc())
-        except:  # pylint: disable=W0702
-          pass
+        if self.log_writer:
+          self.log_writer.Log(
+              testlog.StationInit({
+                  'count': log_writer.GetInitCount(),
+                  'success': False,
+                  'failureMessage': traceback.format_exc()}))
+      except:  # pylint: disable=W0702
+        pass
       raise
 
     self.status = Status.RUNNING
     syslog.syslog('Goofy (factory test harness) starting')
     syslog.syslog('Boot sequence = %d' % GetBootSequence())
+    syslog.syslog('Goofy init count = %d' % log_writer.GetInitCount())
     self.run()
 
   def update_system_info(self):
@@ -1421,9 +1437,11 @@ class Goofy(GoofyBase):
       sys.exit(0)
 
     event_log.IncrementBootSequence()
+    log_writer.IncrementInitCount()
     # Don't defer logging the initial event, so we can make sure
     # that device_id, reimage_id, etc. are all set up.
     self.event_log = EventLog('goofy', defer=False)
+    self.log_writer = log_writer.GetGlobalLogWriter()
 
     if env:
       self.env = env

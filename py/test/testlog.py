@@ -256,7 +256,14 @@ class StationInit(_StationBase):
 
     Arguments:
       data: Dictionary that can contain:
-          - count: Number of times this station has been initialized so far.
+          - count (integer, required): Number of times that this station has
+            been initialized so far.
+          - success (boolean, required): Whether or not this station was
+            successfully initialized.
+          - failureMessage (string, optional): A failure string explaining why
+            the station could not initialize.
     """
     self.PopAndSet(data, 'count', None)
+    self.PopAndSet(data, 'success', None)
+    self.PopAndSet(data, 'failureMessage', None)
     super(StationInit, self).Populate(data)
