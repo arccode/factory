@@ -58,6 +58,8 @@ def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
     out.close()
     args.extend(['--test_list', out.name])
   logging.info('Running goofy with args %r', args)
+  new_goofy.dut.info.Overrides('mlb_serial_number', 'mlb_sn_123456789')
+  new_goofy.dut.info.Overrides('serial_number', 'sn_123456789')
   new_goofy.init(args, env or Environment())
   return new_goofy
 
