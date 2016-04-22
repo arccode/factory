@@ -6,6 +6,7 @@
 import os
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import sys_utils
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -21,3 +22,33 @@ DEVICE_STATEFUL_PATH = '/mnt/stateful_partition'
 
 # Name of Chrome data directory within the state directory.
 CHROME_DATA_DIR_NAME = 'chrome-data-dir'
+
+
+def GetFactoryPythonArchivePath():
+  """Returns path to a factory python archive.
+
+  This function trys to find a factory python archive.
+  If factory toolkit is currently run with a python archive, this function will
+  return path to that python archive, otherwise, this function will try to find
+  factory.par in default paths.
+
+  If we can't find any, an exception will be raised.
+  """
+
+  factory_par = sys_utils.GetRunningFactoryPythonArchivePath()
+  if factory_par:
+    return factory_par
+
+  factory_par = os.path.join(FACTORY_PATH, 'factory.par')
+  if os.path.exists(factory_par):
+    return factory_par
+
+  factory_par = os.path.join(FACTORY_PATH, 'factory-mini.par')
+  if os.path.exists(factory_par):
+    return factory_par
+
+  test_image_factory_mini_par = '/usr/local/factory-mini/factory-mini.par'
+  if os.path.exists(test_image_factory_mini_par):
+    return test_image_factory_mini_par
+
+  raise EnvironmentError('cannot find factory python archive')

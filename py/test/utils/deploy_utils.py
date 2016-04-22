@@ -10,7 +10,6 @@ import subprocess
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.env import paths
 from cros.factory.utils import process_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import LazyProperty
 
 
@@ -51,23 +50,7 @@ class FactoryPythonArchive(object):
 
   @LazyProperty
   def local_factory_par(self):
-    factory_par = sys_utils.GetRunningFactoryPythonArchivePath()
-    if factory_par:
-      return factory_par
-
-    factory_par = os.path.join(paths.FACTORY_PATH, 'factory.par')
-    if os.path.exists(factory_par):
-      return factory_par
-
-    factory_par = os.path.join(paths.FACTORY_PATH, 'factory-mini.par')
-    if os.path.exists(factory_par):
-      return factory_par
-
-    test_image_factory_mini_par = '/usr/local/factory-mini/factory-mini.par'
-    if os.path.exists(test_image_factory_mini_par):
-      return test_image_factory_mini_par
-
-    raise IOError('cannot find factory python archive')
+    return paths.GetFactoryPythonArchivePath()
 
   @LazyProperty
   def remote_factory_par(self):

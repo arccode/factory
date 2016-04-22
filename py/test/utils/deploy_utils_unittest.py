@@ -4,7 +4,6 @@
 # found in the LICENSE file.
 
 import mock
-import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -82,48 +81,6 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
 
     self.dut.link.Push.assert_called_with(self.local_factory_par,
                                           self.remote_factory_par)
-
-  def testLocalFactoryPythonArchiveRegularParExists(self):
-    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
-    deploy_utils.os.path.exists = mock.MagicMock(
-        side_effect=lambda p: p.endswith('factory.par'))
-    expected = os.path.join(deploy_utils.paths.FACTORY_PATH, 'factory.par')
-
-    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
-    self.assertEqual(self.factory_par.local_factory_par, expected)
-
-  def testLocalFactoryPythonArchiveMiniParExists(self):
-    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
-    expected = os.path.join(deploy_utils.paths.FACTORY_PATH, 'factory-mini.par')
-    deploy_utils.os.path.exists = mock.MagicMock(
-        side_effect=lambda p: p == expected)
-
-    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
-    self.assertEqual(self.factory_par.local_factory_par, expected)
-
-  def testLocalFactoryPythonArchiveTestImageMiniParExists(self):
-    expected = '/usr/local/factory-mini/factory-mini.par'
-    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
-    deploy_utils.os.path.exists = mock.MagicMock(
-        side_effect=lambda p: p == expected)
-
-    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
-    self.assertEqual(self.factory_par.local_factory_par, expected)
-
-  def testLocalFactoryPythonArchiveParNotExists(self):
-    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
-    deploy_utils.os.path.exists = mock.MagicMock(return_value=False)
-
-    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
-    with self.assertRaisesRegexp(IOError, 'cannot find factory python archive'):
-      unused_var = self.factory_par.local_factory_par
-
-  def testLocalFactoryPythonArchiveRunningPar(self):
-    expected = '/path/to/running/factory/par'
-    deploy_utils.sys_utils.GetRunningFactoryPythonArchivePath = lambda: expected
-
-    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
-    self.assertEqual(self.factory_par.local_factory_par, expected)
 
 
 if __name__ == '__main__':
