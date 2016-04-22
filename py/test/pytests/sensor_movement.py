@@ -19,16 +19,21 @@ Usage examples::
                 ('Y axis up', u'Y轴朝上', {'x': 0, 'y': 9.8, 'z': 0}),
                 ('Z axis up', u'Z轴朝上', {'x': 0, 'y': 0, 'z': 9.8}),],
             'tolerance': 1.0,
+            'controller_options': {
+                'spec_offset': (),
+                'spec_ideal_values': (),
+                'sample_rate': 60,
+                'location': 'base'}
             })
 
 Another example, the value of y and z axis are ignored in this test::
 
     OperatorTest(
-        id='GyrometerMovement',
-        label_en='Gyrometer Movement',
+        id='GyroscopeMovement',
+        label_en='Gyroscope Movement',
         pytest_name='sensor_movement',
         dargs={
-            'sensor_type': 'gyrometer',
+            'sensor_type': 'gyroscope',
             'sub_tests': [
                 ('Rotate x axis', u'旋转X轴', {'x': 3}),],
             'tolerance': 1.5,
@@ -76,10 +81,11 @@ class SensorMovementTask(FactoryTask):
     capture_count: Number of raw data to capture to calculate the average
         value.
     timeout_secs: Timeout in seconds for sensor to return expected value.
-    sensor: The sensor to test.
+    controller_options: Arguments pass to GetController() of the sensor.
   """
   def __init__(self, test, dut_instance, sensor_type, instruction_label,
-               expected_value, tolerance, capture_count, timeout_secs):
+               expected_value, tolerance, capture_count, timeout_secs,
+               controller_options):
     super(SensorMovementTask, self).__init__()
     self.test = test
     self.dut = dut_instance
@@ -90,9 +96,9 @@ class SensorMovementTask(FactoryTask):
     self.timeout_secs = timeout_secs
     self.template = test.template
     if sensor_type == 'accelerometer':
-      self.sensor = self.dut.accelerometer.GetController((), (), 20, 'base')
-    elif sensor_type == 'gyrometer':
-      self.sensor = self.dut.gyrometer
+      self.sensor = self.dut.accelerometer.GetController(**controller_options)
+    elif sensor_type == 'gyroscope':
+      self.sensor = self.dut.gyroscope.GetController(**controller_options)
     elif sensor_type == 'magnetometer':
       self.sensor = self.dut.magnetometer
     else:
@@ -118,7 +124,7 @@ class SensorMovement(unittest.TestCase):
 
   ARGS = [
       Arg('sensor_type', str,
-          'Type of the sensor, valid values are "accelerometer", "gyrometer" '
+          'Type of the sensor, valid values are "accelerometer", "gyroscope" '
           'and "magnetometer".',
           optional=False),
       Arg('sub_tests', list,
@@ -143,7 +149,10 @@ class SensorMovement(unittest.TestCase):
           default=1, optional=True),
       Arg('timeout_secs', int,
           'Timeout in seconds for sensor to return expected value.',
-          default=30, optional=True)]
+          default=30, optional=True),
+      Arg('controller_options', dict,
+          'Arguments pass to GetController() of the sensor.',
+          default={}, optional=True)]
 
   def setUp(self):
     self.dut = dut.Create()
@@ -162,7 +171,8 @@ class SensorMovement(unittest.TestCase):
                                     test[2],
                                     self.args.tolerance,
                                     self.args.capture_count,
-                                    self.args.timeout_secs)
+                                    self.args.timeout_secs,
+                                    self.args.controller_options)
                  for test in self.args.sub_tests]
     self._task_manager = FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()

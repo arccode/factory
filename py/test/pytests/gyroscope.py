@@ -4,14 +4,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test for gyrometers.
+"""A factory test for gyroscopes.
 
 Usage examples::
 
     OperatorTest(
-        id='Gyrometer',
+        id='Gyroscope',
         label_zh=u'陀螺仪',
-        pytest_name='gyrometer',
+        pytest_name='gyroscope',
         dargs={
             'rotation_threshold': 1,
             'stop_threshold': 0.1
@@ -62,12 +62,12 @@ _CSS = """
 """
 
 
-class ReadGyrometerTask(FactoryTask):
+class ReadGyroscopeTask(FactoryTask):
   """Horizontal calibration for accelerometers.
 
   Attributes:
-    test: The main Gyrometer TestCase object.
-    gyrometer: The gyrometer object.
+    test: The main Gyroscope TestCase object.
+    gyroscope: The gyroscope object.
     rotation_threshold: The expected value to read when dut start rotating.
     stop_threshold: The expected value to read when dut stop moving.
     timeout_secs: Maximum retry time for gyro to return expected value.
@@ -75,11 +75,11 @@ class ReadGyrometerTask(FactoryTask):
       start calibration.
   """
 
-  def __init__(self, test, gyrometer, rotation_threshold, stop_threshold,
+  def __init__(self, test, gyroscope, rotation_threshold, stop_threshold,
                timeout_secs, setup_time_secs):
-    super(ReadGyrometerTask, self).__init__()
+    super(ReadGyroscopeTask, self).__init__()
     self.test = test
-    self.gyrometer = gyrometer
+    self.gyroscope = gyroscope
     self.rotation_threshold = rotation_threshold
     self.stop_threshold = stop_threshold
     self.timeout_secs = timeout_secs
@@ -90,7 +90,7 @@ class ReadGyrometerTask(FactoryTask):
     """Wait until absolute value of all sensors less than stop_threshold."""
 
     def CheckSensorState():
-      raw_data = self.gyrometer.GetRawDataAverage()
+      raw_data = self.gyroscope.GetRawDataAverage()
       return all(abs(v) < self.stop_threshold for v in raw_data.values())
 
     sync_utils.WaitFor(CheckSensorState, self.timeout_secs)
@@ -100,7 +100,7 @@ class ReadGyrometerTask(FactoryTask):
 
     max_values = collections.defaultdict(float)
     def CheckSensorMaxValues():
-      raw_data = self.gyrometer.GetRawDataAverage()
+      raw_data = self.gyroscope.GetRawDataAverage()
       for sensor_name in raw_data:
         max_values[sensor_name] = max(max_values[sensor_name],
                                       abs(raw_data[sensor_name]))
@@ -133,7 +133,7 @@ class ReadGyrometerTask(FactoryTask):
     self.test.ui.BindKey(' ', lambda _: self.StartTask())
 
 
-class Gyrometer(unittest.TestCase):
+class Gyroscope(unittest.TestCase):
 
   ARGS = [
       Arg('rotation_threshold', float,
@@ -151,14 +151,14 @@ class Gyrometer(unittest.TestCase):
 
   def setUp(self):
     self.dut = dut.Create()
-    self.gyrometer = self.dut.gyrometer
+    self.gyroscope = self.dut.gyroscope.GetController()
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS)
     self._task_manager = None
 
   def runTest(self):
-    task_list = [ReadGyrometerTask(self, self.gyrometer,
+    task_list = [ReadGyroscopeTask(self, self.gyroscope,
                                    self.args.rotation_threshold,
                                    self.args.stop_threshold,
                                    self.args.timeout_secs,
