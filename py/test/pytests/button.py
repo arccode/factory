@@ -19,7 +19,6 @@
     A /dev/input key matching KEYNAME.
 """
 
-import os
 import time
 import unittest
 
@@ -98,26 +97,30 @@ class GpioButton(GenericButton):
 
     Args:
       dut_instance: the DUT which this button belongs to.
+      :type dut_instance: cros.factory.test.dut.board.DUTBoard
       number: An integer for GPIO number.
       is_active_high: Boolean flag for polarity of GPIO ("active" = "pressed").
     """
     super(GpioButton, self).__init__(dut_instance)
     gpio_base = '/sys/class/gpio'
-    self._value_path = os.path.join(gpio_base, 'gpio%d' % number, 'value')
-    if not os.path.exists(self._value_path):
-      self._dut.WriteFile(os.path.join(gpio_base, 'export'), '%d' % number)
+    self._value_path = self._dut.path.join(gpio_base, 'gpio%d' % number,
+                                           'value')
+    if not self._dut.path.exists(self._value_path):
+      self._dut.WriteFile(self._dut.path.join(gpio_base, 'export'),
+                          '%d' % number)
+
     # Exporting new GPIO may cause device busy for a while.
     for unused_counter in xrange(5):
       try:
-        self._dut.WriteFile(os.path.join(gpio_base, 'gpio%d' % number,
-                                         'active_low'),
+        self._dut.WriteFile(self._dut.path.join(gpio_base, 'gpio%d' % number,
+                                                'active_low'),
                             '%d' % (0 if is_active_high else 1))
         break
       except Exception:
         time.sleep(0.1)
 
   def IsPressed(self):
-    return int(self._dut.ReadFile(self._value_path)) == 1
+    return int(self._dut.ReadFile(self._value_path, skip=0)) == 1
 
 
 class CrossystemButton(GenericButton):
