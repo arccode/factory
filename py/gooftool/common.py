@@ -13,6 +13,7 @@ import re
 from subprocess import Popen, PIPE
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.env import paths
 from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
@@ -40,6 +41,27 @@ def Shell(cmd, stdin=None, log=True):
                   (', stderr: %s' % repr(stderr.strip()) if stderr else ''))
   status = process.poll()
   return Obj(stdout=stdout, stderr=stderr, status=status, success=(status == 0))
+
+
+def ExecFactoryPar(*args):
+  """Use os.execl to execute a command (given by args) provided by factory PAR.
+
+  This function will execute "/path/to/factory.par arg0 arg1 ..." using
+  os.exec. Current process will be replaced, therefore this function won't
+  return if there is no exception.
+
+  Example::
+
+    >>> ExecFactoryPar(['gooftool', 'wipe_in_place', ...])
+
+    will execute /path/to/factory.par gooftool wipe_in_place ...
+    current process will be replaced by new process.
+  """
+
+  factory_par = paths.GetFactoryPythonArchivePath()
+  # There are two factory_par in the argument because os.execl's function
+  # signature is: os.execl(exec_path, arg0, arg1, ...)
+  os.execl(factory_par, factory_par, *args)
 
 
 class Util(object):
