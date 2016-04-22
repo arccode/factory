@@ -535,9 +535,11 @@ class Gooftool(object):
       self._VerifyCutoffArgs(cutoff_args)
     wipe.WipeInTmpFs(is_fast, cutoff_args, shopfloor_url)
 
-  def WipeInit(self, args_file):
+  def WipeInit(self, wipe_args, cutoff_args, shopfloor_url, state_dev,
+               release_rootfs, root_disk, old_root):
     """Start wiping test image."""
-    wipe.WipeInit(args_file)
+    wipe.WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev,
+                  release_rootfs, root_disk, old_root)
 
   def PrepareWipe(self, is_fast=None):
     """Prepare system for transition to release state in next reboot.

@@ -7,7 +7,6 @@
 """Trainsition to release state directly without reboot."""
 
 import logging
-import json
 import os
 import resource
 import shutil
@@ -18,13 +17,13 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import chroot
+from cros.factory.gooftool.common import ExecFactoryPar
 from cros.factory.gooftool.common import Util
+from cros.factory.test.env import paths
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
-
-WIPE_ARGS_FILE = '/tmp/factory_wipe_args'
 
 """Directory of scripts for battery cut-off"""
 SCRIPT_DIR = '/usr/local/factory/sh'
@@ -113,15 +112,7 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
 
   ResetLog(logfile)
 
-  factory_par = sys_utils.GetRunningFactoryPythonArchivePath()
-  if not factory_par:
-    # try to find factory python archive at default location
-    if os.path.exists('/usr/local/factory/factory-mini.par'):
-      factory_par = '/usr/local/factory/factory-mini.par'
-    elif os.path.exists('/usr/local/factory/factory.par'):
-      factory_par = '/usr/local/factory/factory.par'
-    else:
-      raise RuntimeError('cannot find factory python archive')
+  factory_par = paths.GetFactoryPythonArchivePath()
 
   new_root = tempfile.mkdtemp(prefix='tmpfs.')
   binary_deps = [
@@ -150,12 +141,11 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
     You can also run scripts under /usr/local/factory/sh for wiping process.
     """)
 
-  root_disk = process_utils.SpawnOutput(['rootdev', '-s', '-d']).strip()
-  if root_disk[-1].isdigit():
-    state_dev = root_disk + 'p1'
-  else:
-    state_dev = root_disk + '1'
-  factory_root_dev = process_utils.SpawnOutput(['rootdev', '-s']).strip()
+  util = Util()
+
+  root_disk = util.GetPrimaryDevicePath()
+  release_rootfs = util.GetReleaseRootPartitionPath()
+  state_dev = util.GetPrimaryDevicePath(1)
   wipe_args = 'factory' + (' fast' if is_fast else '')
 
   logging.debug('state_dev: %s', state_dev)
@@ -180,15 +170,6 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
           'lsof: %s',
           process_utils.SpawnOutput('lsof -p %d' % os.getpid(), shell=True))
 
-      json.dump(dict(wipe_args=wipe_args,
-                     cutoff_args=cutoff_args,
-                     shopfloor_url=shopfloor_url,
-                     state_dev=state_dev,
-                     factory_root_dev=factory_root_dev,
-                     root_disk=root_disk,
-                     old_root=old_root),
-                open(WIPE_ARGS_FILE, 'w'))
-
       process_utils.Spawn(['sync'], call=True)
       time.sleep(3)
 
@@ -196,10 +177,14 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
       # some resource under stateful partition, restarting gooftool ensures that
       # everything new gooftool is using comes from tmpfs and we can safely
       # unmount stateful partition.
-      # There are two factory_par in the argument because os.execl's function
-      # signature is: os.execl(exec_path, arg0, arg1, ...)
-      os.execl(factory_par, factory_par,
-               'gooftool', 'wipe_init', '--args_file', WIPE_ARGS_FILE)
+      ExecFactoryPar('gooftool', 'wipe_init',
+                     '--wipe_args', wipe_args,
+                     '--cutoff_args', cutoff_args,
+                     '--shopfloor_url', shopfloor_url,
+                     '--state_dev', state_dev,
+                     '--release_rootfs', release_rootfs,
+                     '--root_disk', root_disk,
+                     '--old_root', old_root)
       raise RuntimeError('Should not reach here')
   except:  # pylint: disable=bare-except
     logging.exception('wipe_in_place failed')
@@ -240,8 +225,8 @@ def _UnmountStatefulPartition(root):
                       if 'mounted on' in line]
   # 2. find processes that are using stateful partitions
 
-  def _ListProcOpening(paths):
-    lsof_cmd = ['lsof', '-t'] + paths
+  def _ListProcOpening(path_list):
+    lsof_cmd = ['lsof', '-t'] + path_list
     return [int(line)
             for line in process_utils.SpawnOutput(lsof_cmd).splitlines()]
 
@@ -285,23 +270,16 @@ def _UnmountStatefulPartition(root):
   process_utils.Spawn(['sync'], call=True)
 
 
-def _StartWipe(factory_root_dev, root_disk, wipe_args, cutoff_args,
+def _StartWipe(release_rootfs, root_disk, wipe_args, cutoff_args,
                shopfloor_url):
   stateful_partition_path = '/mnt/stateful_partition'
 
-  # partition 3 and 5 are root images, one is factory image, the other one is
-  # release image.
-  if factory_root_dev[-1] == '3':
-    release_root_dev = factory_root_dev[:-1] + '5'
-  else:
-    release_root_dev = factory_root_dev[:-1] + '3'
-
   clobber_state_env = os.environ.copy()
-  clobber_state_env.update(ROOT_DEV=release_root_dev,
+  clobber_state_env.update(ROOT_DEV=release_rootfs,
                            ROOT_DISK=root_disk,
                            FACTORY_RETURN_AFTER_WIPING='YES')
   logging.debug('clobber-state: root_dev=%s, root_disk=%s',
-                release_root_dev, root_disk)
+                release_rootfs, root_disk)
   process_utils.Spawn(['clobber-state', wipe_args], env=clobber_state_env,
                       call=True)
 
@@ -314,8 +292,8 @@ def _StartWipe(factory_root_dev, root_disk, wipe_args, cutoff_args,
   except OSError:
     pass
 
-  logging.debug('enable release partition: %s', release_root_dev)
-  Util().EnableReleasePartition(release_root_dev)
+  logging.debug('enable release partition: %s', release_rootfs)
+  Util().EnableReleasePartition(release_rootfs)
 
   if shopfloor_url:
     logging.debug('inform shopfloor %s', shopfloor_url)
@@ -335,25 +313,30 @@ def _StartWipe(factory_root_dev, root_disk, wipe_args, cutoff_args,
   time.sleep(1e8)
 
 
-def WipeInit(args_file):
+def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
+             root_disk, old_root):
   logfile = '/tmp/wipe_init.log'
   ResetLog(logfile)
 
-  args = json.load(open(args_file))
+  logging.debug('wipe_args: %s', wipe_args)
+  logging.debug('cutoff_args: %s', cutoff_args)
+  logging.debug('shopfloor_url: %s', shopfloor_url)
+  logging.debug('state_dev: %s', state_dev)
+  logging.debug('release_rootfs: %s', release_rootfs)
+  logging.debug('root_disk: %s', root_disk)
+  logging.debug('old_root: %s', old_root)
 
-  logging.debug('args: %r', args)
   try:
     _StopAllUpstartJobs(exclude_list=['boot-services', 'console-tty2', 'dbus',
                                       'factory-wipe', 'shill',
                                       'openssh-server'])
-    _UnmountStatefulPartition(args['old_root'])
+    _UnmountStatefulPartition(old_root)
 
     process_utils.Spawn([os.path.join(SCRIPT_DIR, 'display_wipe_message.sh'),
                          'wipe'], call=True)
 
-    _StartWipe(args['factory_root_dev'], args['root_disk'], args['wipe_args'],
-               args['cutoff_args'], args['shopfloor_url'])
+    _StartWipe(release_rootfs, root_disk, wipe_args, cutoff_args, shopfloor_url)
   except:  # pylint: disable=bare-except
     logging.exception('wipe_init failed')
-    OnError(args['state_dev'], logfile)
+    OnError(state_dev, logfile)
     raise

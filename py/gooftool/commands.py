@@ -31,6 +31,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.core import Gooftool
+from cros.factory.gooftool.common import ExecFactoryPar
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
@@ -705,9 +706,21 @@ def WipeInPlace(options):
                                    options.shopfloor_url)
 
 @Command('wipe_init',
-         CmdArg('--wipe_file', help='path to the wipe args file'))
+         CmdArg('--wipe_args', help='arguments for clobber-state'),
+         CmdArg('--state_dev', help='path to stateful partition device'),
+         CmdArg('--root_disk', help='path to primary device'),
+         CmdArg('--old_root', help='path to old root'),
+         _cutoff_args_cmd_arg,
+         _shopfloor_url_args_cmd_arg,
+         _release_rootfs_cmd_arg)
 def WipeInit(options):
-  GetGooftool(options).WipeInit(options.args_file)
+  GetGooftool(options).WipeInit(options.wipe_args,
+                                options.cutoff_args,
+                                options.shopfloor_url,
+                                options.state_dev,
+                                options.release_rootfs,
+                                options.root_disk,
+                                options.old_root)
 
 @Command('prepare_wipe',
          CmdArg('--fast', action='store_true',
@@ -950,7 +963,13 @@ def Finalize(options):
   UploadReport(options)
   if options.wipe_in_place:
     event_log.Log('wipe_in_place')
-    WipeInPlace(options)
+    # WipeInPlace(options)
+    wipe_args = []
+    wipe_args += ['--cutoff_args', options.cutoff_args]
+    wipe_args += ['--shopfloor_url', options.shopfloor_url]
+    if options.fast:
+      wipe_args += ['--fast']
+    ExecFactoryPar('gooftool', 'wipe_in_place', *wipe_args)
   else:
     PrepareWipe(options)
 
