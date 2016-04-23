@@ -61,6 +61,7 @@ def ExecFactoryPar(*args):
   factory_par = paths.GetFactoryPythonArchivePath()
   # There are two factory_par in the argument because os.execl's function
   # signature is: os.execl(exec_path, arg0, arg1, ...)
+  logging.debug('exec: %s %s', factory_par, args)
   os.execl(factory_par, factory_par, *args)
 
 

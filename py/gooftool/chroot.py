@@ -101,7 +101,7 @@ class TmpChroot(object):
     process_utils.Spawn(('tar -c %s | '
                          'tar -C %s -x --skip-old-files 2>/dev/null' %
                          (' '.join(files_dirs), self.new_root)),
-                        shell=True, call=True)
+                        shell=True, call=True, log=True)
 
     self.logger.debug('copy necessary binaries')
     bin_deps = self.binary_list + ['python', 'busybox']
@@ -118,12 +118,12 @@ class TmpChroot(object):
         ('tar -ch $(lddtree -l %s 2>/dev/null | sort -u) | '
          'tar -C %s -x --skip-old-files' %
          (' '.join(bin_paths.values()), self.new_root)),
-        check_call=True, shell=True, ignore_stderr=True)
+        check_call=True, shell=True, ignore_stderr=True, log=True)
 
     # install busybox for common utilities
     process_utils.Spawn(
         [os.path.join(self.new_root, 'bin', 'busybox'), '--install',
-         os.path.join(self.new_root, 'bin')], check_call=True)
+         os.path.join(self.new_root, 'bin')], check_call=True, log=True)
 
     # create /etc/issue
     open(os.path.join(self.new_root, 'etc', 'issue'), 'w').write(self.etc_issue)

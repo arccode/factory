@@ -461,7 +461,7 @@ class Finalize(unittest.TestCase):
         for key, value in self.args.cutoff_options.iteritems():
           cutoff_args += ' --%s %s' % (key.replace('_', '-'), str(value))
         command += ' --cutoff_args "%s"' % cutoff_args
-      if shopfloor.is_enabled():
+      if shopfloor.is_enabled() and shopfloor.get_shopfloor_handler_uri():
         command += ' --shopfloor_url "%s"' % (
             shopfloor.get_shopfloor_handler_uri())
 

@@ -107,9 +107,9 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
     shopfloor_url: for inform_shopfloor.sh
   """
 
-  logfile = '/tmp/wipe_in_tmpfs.log'
   Daemonize()
 
+  logfile = '/tmp/wipe_in_tmpfs.log'
   ResetLog(logfile)
 
   factory_par = paths.GetFactoryPythonArchivePath()
@@ -173,18 +173,24 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
       process_utils.Spawn(['sync'], call=True)
       time.sleep(3)
 
+      args = []
+      if wipe_args is not None:
+        args += ['--wipe_args', wipe_args,]
+      if cutoff_args is not None:
+        args += ['--cutoff_args', cutoff_args,]
+      if shopfloor_url is not None:
+        args += ['--shopfloor_url', shopfloor_url,]
+
       # Restart gooftool under new root. Since current gooftool might be using
       # some resource under stateful partition, restarting gooftool ensures that
       # everything new gooftool is using comes from tmpfs and we can safely
       # unmount stateful partition.
       ExecFactoryPar('gooftool', 'wipe_init',
-                     '--wipe_args', wipe_args,
-                     '--cutoff_args', cutoff_args,
-                     '--shopfloor_url', shopfloor_url,
                      '--state_dev', state_dev,
                      '--release_rootfs', release_rootfs,
                      '--root_disk', root_disk,
-                     '--old_root', old_root)
+                     '--old_root', old_root,
+                     *args)
       raise RuntimeError('Should not reach here')
   except:  # pylint: disable=bare-except
     logging.exception('wipe_in_place failed')
@@ -207,22 +213,25 @@ def _StopAllUpstartJobs(exclude_list=None):
     service_list = [
         line.split()[0] for line in service_list if 'start/running' in line]
     for service in service_list:
-      if service in exclude_list:
+      if service in exclude_list or service.startswith('console-'):
         continue
-      process_utils.Spawn(['stop', service], call=True)
+      process_utils.Spawn(['stop', service], call=True, log=True)
 
 
-def _UnmountStatefulPartition(root):
+def _UnmountStatefulPartition(root, state_dev):
   logging.debug('unmount stateful partition')
-  stateful_partition_path = os.path.join(root, 'mnt/stateful_partition')
   # mount points that need chromeos_shutdown to umount
 
   # 1. find mount points on stateful partition
-  mount_point_list = process_utils.Spawn(
-      ['mount', stateful_partition_path], read_stderr=True).stderr_data
+  mount_output = process_utils.SpawnOutput(['mount'], log=True)
 
-  mount_point_list = [line.split()[5] for line in mount_point_list.splitlines()
-                      if 'mounted on' in line]
+  mount_point_list = []
+  for line in mount_output.splitlines():
+    fields = line.split()
+    if fields[0] == state_dev:
+      mount_point_list.append(fields[2])
+
+  logging.debug('stateful partitions mounted on: %s', mount_point_list)
   # 2. find processes that are using stateful partitions
 
   def _ListProcOpening(path_list):
@@ -232,7 +241,7 @@ def _UnmountStatefulPartition(root):
 
   proc_list = _ListProcOpening(mount_point_list)
 
-  if os.getpid in proc_list:
+  if os.getpid() in proc_list:
     logging.error('wipe_init itself is using stateful partition')
     logging.error(
         'lsof: %s',
@@ -244,7 +253,10 @@ def _UnmountStatefulPartition(root):
     if not proc_list:
       return True  # we are done
     for pid in proc_list:
-      os.kill(pid, sig)
+      try:
+        os.kill(pid, sig)
+      except:  # pylint: disable=bare-except
+        logging.exception('killing process %d failed', pid)
     return False  # need to check again
 
   sync_utils.Retry(10, 0.1, None, _KillOpeningBySignal, signal.SIGTERM)
@@ -315,6 +327,7 @@ def _StartWipe(release_rootfs, root_disk, wipe_args, cutoff_args,
 
 def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
              root_disk, old_root):
+  Daemonize()
   logfile = '/tmp/wipe_init.log'
   ResetLog(logfile)
 
@@ -327,10 +340,9 @@ def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
   logging.debug('old_root: %s', old_root)
 
   try:
-    _StopAllUpstartJobs(exclude_list=['boot-services', 'console-tty2', 'dbus',
-                                      'factory-wipe', 'shill',
-                                      'openssh-server'])
-    _UnmountStatefulPartition(old_root)
+    _StopAllUpstartJobs(exclude_list=['boot-services', 'dbus', 'factory-wipe',
+                                      'shill', 'openssh-server'])
+    _UnmountStatefulPartition(old_root, state_dev)
 
     process_utils.Spawn([os.path.join(SCRIPT_DIR, 'display_wipe_message.sh'),
                          'wipe'], call=True)
