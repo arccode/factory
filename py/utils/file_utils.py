@@ -684,3 +684,18 @@ def HashSourceTree(py_path):
       # Log hash function used, just in case we ever want to change it
       hash_function=SOURCE_HASH_FUNCTION_NAME,
       hashes=hashes)
+
+
+def HashPythonArchive(par_path):
+  hashes = HashFiles(
+      os.path.dirname(par_path),
+      lambda path: path == par_path,
+      # Use first 4 bytes of SHA1
+      hash_function=lambda data: hashlib.sha1(data).hexdigest()[0:8])
+  if not hashes:
+    raise RuntimeError('No sources found at %s' % par_path)
+
+  return dict(
+      # Log hash function used, just in case we ever want to change it
+      hash_function=SOURCE_HASH_FUNCTION_NAME,
+      hashes=hashes)

@@ -48,6 +48,7 @@ from cros.factory.test.env import paths
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.utils import file_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Error
@@ -797,9 +798,15 @@ def LogSourceHashes(options):  # pylint: disable=W0613
   # of the factory software.  Do not remove or modify it.
   #
   # 警告：此行会验证工厂软件的完整性，禁止删除或修改。
-  event_log.Log(
-      'source_hashes',
-      **file_utils.HashSourceTree(os.path.join(paths.FACTORY_PATH, 'py')))
+  factory_par = sys_utils.GetRunningFactoryPythonArchivePath()
+  if factory_par:
+    event_log.Log(
+        'source_hashes',
+        **file_utils.HashPythonArchive(factory_par))
+  else:
+    event_log.Log(
+        'source_hashes',
+        **file_utils.HashSourceTree(os.path.join(paths.FACTORY_PATH, 'py')))
 
 
 @Command('log_system_details')
