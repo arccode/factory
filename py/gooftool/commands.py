@@ -147,6 +147,35 @@ _release_rootfs_cmd_arg = CmdArg(
 _firmware_path_cmd_arg = CmdArg(
     '--firmware_path', help='Location of firmware image partition.')
 
+_cutoff_args_cmd_arg = CmdArg(
+    '--cutoff_args',
+    help='Battery cutoff arguments to be passed to battery_cutoff.sh '
+         'after wiping. Should be the following format: '
+         '[--method shutdown|reboot|battery_cutoff] '
+         '[--check-ac connect_ac|remove_ac] '
+         '[--min-battery-percent <minimum battery percentage>] '
+         '[--max-battery-percent <maximum battery percentage>] '
+         '[--min-battery-voltage <minimum battery voltage>] '
+         '[--max-battery-voltage <maximum battery voltage>]')
+
+_shopfloor_url_args_cmd_arg = CmdArg(
+    '--shopfloor_url',
+    help='Shopfloor server url to be informed when in-place wipe is done. '
+         'After in-place wipe, a XML-RPC request will be sent to the '
+         'given url to indicate the completion of wipe.')
+
+_station_ip_cmd_arg = CmdArg(
+    '--station_ip',
+    help='IP of remote station')
+
+_station_port_cmd_arg = CmdArg(
+    '--station_port',
+    help='Port on remote station')
+
+_wipe_finish_token_cmd_arg = CmdArg(
+    '--wipe_finish_token',
+    help='Required token when notifying station after wipe finished')
+
 @Command('best_match_hwids',
          _hwdb_path_cmd_arg,
          CmdArg('-b', '--board', metavar='BOARD',
@@ -680,31 +709,24 @@ def GenerateStableDeviceSecret(options):  # pylint: disable=W0613
   GetGooftool(options).GenerateStableDeviceSecret()
   event_log.Log('generate_stable_device_secret')
 
-_cutoff_args_cmd_arg = CmdArg(
-    '--cutoff_args',
-    help='Battery cutoff arguments to be passed to battery_cutoff.sh '
-         'after wiping. Should be the following format: '
-         '[--method shutdown|reboot|battery_cutoff] '
-         '[--check-ac connect_ac|remove_ac] '
-         '[--min-battery-percent <minimum battery percentage>] '
-         '[--max-battery-percent <maximum battery percentage>] '
-         '[--min-battery-voltage <minimum battery voltage>] '
-         '[--max-battery-voltage <maximum battery voltage>]')
-_shopfloor_url_args_cmd_arg = CmdArg(
-    '--shopfloor_url',
-    help='Shopfloor server url to be informed when in-place wipe is done. '
-         'After in-place wipe, a XML-RPC request will be sent to the '
-         'given url to indicate the completion of wipe.')
+
 @Command('wipe_in_place',
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
          _cutoff_args_cmd_arg,
-         _shopfloor_url_args_cmd_arg)
+         _shopfloor_url_args_cmd_arg,
+         _station_ip_cmd_arg,
+         _station_port_cmd_arg,
+         _wipe_finish_token_cmd_arg)
 def WipeInPlace(options):
   """Start factory wipe directly without reboot."""
 
-  GetGooftool(options).WipeInPlace(options.fast, options.cutoff_args,
-                                   options.shopfloor_url)
+  GetGooftool(options).WipeInPlace(options.fast,
+                                   options.cutoff_args,
+                                   options.shopfloor_url,
+                                   options.station_ip,
+                                   options.station_port,
+                                   options.wipe_finish_token)
 
 @Command('wipe_init',
          CmdArg('--wipe_args', help='arguments for clobber-state'),
@@ -713,7 +735,10 @@ def WipeInPlace(options):
          CmdArg('--old_root', help='path to old root'),
          _cutoff_args_cmd_arg,
          _shopfloor_url_args_cmd_arg,
-         _release_rootfs_cmd_arg)
+         _release_rootfs_cmd_arg,
+         _station_ip_cmd_arg,
+         _station_port_cmd_arg,
+         _wipe_finish_token_cmd_arg)
 def WipeInit(options):
   GetGooftool(options).WipeInit(options.wipe_args,
                                 options.cutoff_args,
@@ -721,7 +746,10 @@ def WipeInit(options):
                                 options.state_dev,
                                 options.release_rootfs,
                                 options.root_disk,
-                                options.old_root)
+                                options.old_root,
+                                options.station_ip,
+                                options.station_port,
+                                options.wipe_finish_token)
 
 @Command('prepare_wipe',
          CmdArg('--fast', action='store_true',
@@ -935,7 +963,10 @@ def UploadReport(options):
          _cros_core_cmd_arg,
          _release_rootfs_cmd_arg,
          _firmware_path_cmd_arg,
-         _enforced_release_channels_cmd_arg)
+         _enforced_release_channels_cmd_arg,
+         _station_ip_cmd_arg,
+         _station_port_cmd_arg,
+         _wipe_finish_token_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
@@ -976,6 +1007,12 @@ def Finalize(options):
     wipe_args += ['--shopfloor_url', options.shopfloor_url]
     if options.fast:
       wipe_args += ['--fast']
+    if options.station_ip:
+      wipe_args += ['--station_ip', options.station_ip]
+    if options.station_port:
+      wipe_args += ['--station_port', options.station_port]
+    if options.wipe_finish_token:
+      wipe_args += ['--wipe_finish_token', options.wipe_finish_token]
     ExecFactoryPar('gooftool', 'wipe_in_place', *wipe_args)
   else:
     PrepareWipe(options)

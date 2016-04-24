@@ -6,11 +6,13 @@
 
 """Trainsition to release state directly without reboot."""
 
+import json
 import logging
 import os
 import resource
 import shutil
 import signal
+import socket
 import tempfile
 import textwrap
 import time
@@ -28,13 +30,26 @@ from cros.factory.utils import sys_utils
 """Directory of scripts for battery cut-off"""
 SCRIPT_DIR = '/usr/local/factory/sh'
 
+WIPE_IN_TMPFS_LOG = 'wipe_in_tmpfs.log'
 
-def OnError(state_dev, logfile):
+def _CopyLogFileToStateDev(state_dev, logfile):
   with sys_utils.MountPartition(state_dev,
                                 rw=True,
                                 fstype='ext4') as mount_point:
     shutil.copyfile(logfile,
                     os.path.join(mount_point, os.path.basename(logfile)))
+
+
+def _OnError(ip, port, token, state_dev, wipe_in_tmpfs_log=None,
+             wipe_init_log=None):
+  if wipe_in_tmpfs_log:
+    _CopyLogFileToStateDev(state_dev, wipe_in_tmpfs_log)
+  if wipe_init_log:
+    _CopyLogFileToStateDev(state_dev, wipe_init_log)
+  _InformStation(ip, port, token,
+                 wipe_in_tmpfs_log=wipe_in_tmpfs_log,
+                 wipe_init_log=wipe_init_log,
+                 success=False)
 
 
 def Daemonize(logfile=None):
@@ -98,7 +113,8 @@ def ResetLog(logfile=None):
   logging.basicConfig(filename=logfile, level=logging.NOTSET)
 
 
-def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
+def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None,
+                station_ip=None, station_port=None, wipe_finish_token=None):
   """prepare to wipe by pivot root to tmpfs and unmount statefull partition.
 
   Args:
@@ -109,7 +125,7 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
 
   Daemonize()
 
-  logfile = '/tmp/wipe_in_tmpfs.log'
+  logfile = os.path.join('/tmp', WIPE_IN_TMPFS_LOG)
   ResetLog(logfile)
 
   factory_par = paths.GetFactoryPythonArchivePath()
@@ -173,28 +189,34 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None):
       process_utils.Spawn(['sync'], call=True)
       time.sleep(3)
 
-      args = []
-      if wipe_args is not None:
-        args += ['--wipe_args', wipe_args,]
-      if cutoff_args is not None:
-        args += ['--cutoff_args', cutoff_args,]
-      if shopfloor_url is not None:
-        args += ['--shopfloor_url', shopfloor_url,]
-
       # Restart gooftool under new root. Since current gooftool might be using
       # some resource under stateful partition, restarting gooftool ensures that
       # everything new gooftool is using comes from tmpfs and we can safely
       # unmount stateful partition.
-      ExecFactoryPar('gooftool', 'wipe_init',
-                     '--state_dev', state_dev,
-                     '--release_rootfs', release_rootfs,
-                     '--root_disk', root_disk,
-                     '--old_root', old_root,
-                     *args)
+      args = []
+      if wipe_args:
+        args += ['--wipe_args', wipe_args]
+      if cutoff_args:
+        args += ['--cutoff_args', cutoff_args]
+      if shopfloor_url:
+        args += ['--shopfloor_url', shopfloor_url]
+      if station_ip:
+        args += ['--station_ip', station_ip]
+      if station_port:
+        args += ['--station_port', station_port]
+      if wipe_finish_token:
+        args += ['--wipe_finish_token', wipe_finish_token]
+      args += ['--state_dev', state_dev]
+      args += ['--release_rootfs', release_rootfs]
+      args += ['--root_disk', root_disk]
+      args += ['--old_root', old_root]
+
+      ExecFactoryPar('gooftool', 'wipe_init', *args)
       raise RuntimeError('Should not reach here')
   except:  # pylint: disable=bare-except
     logging.exception('wipe_in_place failed')
-    OnError(state_dev, logfile)
+    _OnError(station_ip, station_port, wipe_finish_token, state_dev,
+             wipe_in_tmpfs_log=logfile, wipe_init_log=None)
     raise
 
 
@@ -282,8 +304,40 @@ def _UnmountStatefulPartition(root, state_dev):
   process_utils.Spawn(['sync'], call=True)
 
 
-def _StartWipe(release_rootfs, root_disk, wipe_args, cutoff_args,
-               shopfloor_url):
+def _InformStation(ip, port, token, wipe_init_log=None,
+                   wipe_in_tmpfs_log=None, success=True):
+  if not ip:
+    return
+  port = int(port)
+
+  logging.debug('inform station %s:%d', ip, port)
+
+  try:
+    sync_utils.WaitFor(
+        lambda: 0 == process_utils.Spawn(['ping', '-w1', '-c1', ip],
+                                         call=True).returncode,
+        timeout_secs=180, poll_interval=1)
+  except:  # pylint: disable=bare-except
+    logging.exception('cannot get network connection...')
+  else:
+    sock = socket.socket()
+    sock.connect((ip, port))
+
+    response = dict(token=token, success=success)
+
+    if wipe_init_log:
+      with open(wipe_init_log) as f:
+        response['wipe_init_log'] = f.read()
+
+    if wipe_in_tmpfs_log:
+      with open(wipe_in_tmpfs_log) as f:
+        response['wipe_in_tmpfs_log'] = f.read()
+
+    sock.sendall(json.dumps(response) + '\n')
+    sock.close()
+
+
+def _WipeStateDev(release_rootfs, root_disk, wipe_args):
   stateful_partition_path = '/mnt/stateful_partition'
 
   clobber_state_env = os.environ.copy()
@@ -304,9 +358,12 @@ def _StartWipe(release_rootfs, root_disk, wipe_args, cutoff_args,
   except OSError:
     pass
 
+def _EnableReleasePartition(release_rootfs):
   logging.debug('enable release partition: %s', release_rootfs)
   Util().EnableReleasePartition(release_rootfs)
 
+
+def _InformShopfloor(shopfloor_url):
   if shopfloor_url:
     logging.debug('inform shopfloor %s', shopfloor_url)
     proc = process_utils.Spawn([os.path.join(SCRIPT_DIR,
@@ -315,20 +372,21 @@ def _StartWipe(release_rootfs, root_disk, wipe_args, cutoff_args,
     logging.debug('stdout: %s', proc.stdout_data)
     logging.debug('stderr: %s', proc.stderr_data)
 
+
+def _BatteryCutoff(cutoff_args):
   if cutoff_args is None:
     cutoff_args = ''
   logging.debug('battery_cutoff: args=%s', cutoff_args)
   battery_cutoff_script = os.path.join(SCRIPT_DIR, 'battery_cutoff.sh')
   process_utils.Spawn('%s %s' % (battery_cutoff_script, cutoff_args),
                       shell=True, check_call=True)
-  # should not reach here
-  time.sleep(1e8)
 
 
 def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
-             root_disk, old_root):
+             root_disk, old_root, station_ip, station_port, finish_token):
   Daemonize()
   logfile = '/tmp/wipe_init.log'
+  wipe_in_tmpfs_log = os.path.join(old_root, 'tmp', WIPE_IN_TMPFS_LOG)
   ResetLog(logfile)
 
   logging.debug('wipe_args: %s', wipe_args)
@@ -347,8 +405,23 @@ def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
     process_utils.Spawn([os.path.join(SCRIPT_DIR, 'display_wipe_message.sh'),
                          'wipe'], call=True)
 
-    _StartWipe(release_rootfs, root_disk, wipe_args, cutoff_args, shopfloor_url)
+    _WipeStateDev(release_rootfs, root_disk, wipe_args)
+
+    _EnableReleasePartition(release_rootfs)
+
+    _InformShopfloor(shopfloor_url)
+
+    _InformStation(station_ip, station_port, finish_token,
+                   wipe_init_log=logfile,
+                   wipe_in_tmpfs_log=wipe_in_tmpfs_log,
+                   success=True)
+
+    _BatteryCutoff(cutoff_args)
+
+    # should not reach here
+    time.sleep(1e8)
   except:  # pylint: disable=bare-except
     logging.exception('wipe_init failed')
-    OnError(state_dev, logfile)
+    _OnError(station_ip, station_port, finish_token, state_dev,
+             wipe_in_tmpfs_log=wipe_in_tmpfs_log, wipe_init_log=logfile)
     raise

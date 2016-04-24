@@ -523,7 +523,8 @@ class Gooftool(object):
       else:
         raise ValueError('Unknown argument in cutoff_args: %s' % args[i])
 
-  def WipeInPlace(self, is_fast=None, cutoff_args=None, shopfloor_url=None):
+  def WipeInPlace(self, is_fast=None, cutoff_args=None, shopfloor_url=None,
+                  station_ip=None, station_port=None, wipe_finish_token=None):
     """Start transition to release state directly without reboot.
 
     Args:
@@ -533,13 +534,16 @@ class Gooftool(object):
     """
     if cutoff_args:
       self._VerifyCutoffArgs(cutoff_args)
-    wipe.WipeInTmpFs(is_fast, cutoff_args, shopfloor_url)
+    wipe.WipeInTmpFs(is_fast, cutoff_args, shopfloor_url,
+                     station_ip, station_port, wipe_finish_token)
 
   def WipeInit(self, wipe_args, cutoff_args, shopfloor_url, state_dev,
-               release_rootfs, root_disk, old_root):
+               release_rootfs, root_disk, old_root, station_ip, station_port,
+               wipe_finish_token):
     """Start wiping test image."""
     wipe.WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev,
-                  release_rootfs, root_disk, old_root)
+                  release_rootfs, root_disk, old_root, station_ip, station_port,
+                  wipe_finish_token)
 
   def PrepareWipe(self, is_fast=None):
     """Prepare system for transition to release state in next reboot.

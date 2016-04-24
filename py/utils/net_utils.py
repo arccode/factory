@@ -682,3 +682,25 @@ class WLAN(object):
     self.ssid = ssid
     self.security = security
     self.passphrase = passphrase
+
+
+class CallbackSocketServer(object):
+  @staticmethod
+  def RequestHandlerFactory(callback):
+    class _Handler(SocketServer.StreamRequestHandler):
+      def handle(self):
+        callback(self)
+    return _Handler
+
+  class _ThreadedTCPServer(SocketServer.TCPServer):
+    pass
+
+  def __init__(self, callback):
+    # bind on arbitrary unused port and all network interfaces
+    self._server = CallbackSocketServer._ThreadedTCPServer(
+        ('', 0), CallbackSocketServer.RequestHandlerFactory(callback))
+    unused_ip, port = self._server.server_address
+    EnablePort(port)
+
+  def __getattr__(self, name):
+    return getattr(self._server, name)

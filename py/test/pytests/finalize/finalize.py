@@ -12,8 +12,10 @@ specified arguments to switch the machine to release image.
 """
 
 
+import json
 import logging
 import os
+import random
 import re
 import subprocess
 import threading
@@ -29,11 +31,13 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.dut.links import ssh
 from cros.factory.test.env import paths
 from cros.factory.test.event_log import Log
 from cros.factory.test.rules import phase
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.test_ui import MakeLabel
+from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -64,6 +68,7 @@ MSG_CHANGE_TO_REBOOT = MakeLabel(
     u'<strong>虚拟开发模式已开启，系统清除后将重新开启，'
     u'而不会切断电源(battery cutoff)。</strong><br>'
     u'请按空白键开始')
+
 
 class Finalize(unittest.TestCase):
   """The main class for finalize pytest."""
@@ -149,8 +154,12 @@ class Finalize(unittest.TestCase):
           default=None, optional=True),
       Arg('use_local_gooftool', bool,
           'If DUT is local, use factory.par or local gooftool? If DUT is not '
-          'local, factory.par is always used.', default=True)
+          'local, factory.par is always used.', default=True, optional=True),
+      Arg('station_ip', str,
+          'IP address of this station.', default=None, optional=True),
       ]
+
+  FINALIZE_TIMEOUT = 180
 
   def setUp(self):
     self.dut = dut.Create()
@@ -162,6 +171,10 @@ class Finalize(unittest.TestCase):
                                          'test_states')
     self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
 
+    # variables for remote SSH DUT
+    self.dut_response = None
+    self.response_listener = None
+
     # Set of waived tests.
     self.waived_tests = set()
 
@@ -169,6 +182,12 @@ class Finalize(unittest.TestCase):
     # Condition.wait(timeout), treat 0 and None differently.
     if self.args.polling_seconds == 0:
       self.args.polling_seconds = None
+
+  def tearDown(self):
+    if self.response_listener:
+      self.response_listener.shutdown()
+      self.response_listener.server_close()
+      self.response_listener = None
 
   def runTest(self):
     # Check waived_tests argument.  (It must be empty at DVT and
@@ -229,7 +248,6 @@ class Finalize(unittest.TestCase):
       self.RunPreflight()
       self.template.SetState(MSG_FINALIZING)
       self.DoFinalize()
-      self.ui.Fail('Should never be reached')
     except Exception, e:  # pylint: disable=W0703
       self.ui.Fail('Exception during finalization: %s' % e)
 
@@ -525,30 +543,105 @@ class Finalize(unittest.TestCase):
           'Enforced release channels: %s.', self.args.enforced_release_channels)
     command += ' --phase "%s"' % phase.GetPhase()
 
-    self._CallGoofTool(command)
-
-    # If using wipe_in_place in the above gooftool command,
-    # should lost DUT connection here.
     if self.args.wipe_in_place:
-      try:
-        sync_utils.WaitFor(lambda: not self.dut.IsReady(), 60)
-      except type_utils.TimeoutError:
-        raise factory.FactoryTestFailure('Failed to wipe in place')
-      return
+      return self._FinalizeWipeInPlace(command)
 
-    # It will reach the following if not using wipe_in_place in the above
-    # gooftool command. (wipe_in_place will notify shopfloor by itself)
-
+    # not using wipe_in_place
+    self._CallGoofTool(command)
     if shopfloor.is_enabled():
-      shopfloor.finalize()
+      shopfloor.finalize()  # notify shopfloor
 
     # TODO(hungte): Use Reboot in test list to replace this, or add a
     # key-press check in developer mode.
     self.dut.CheckCall('sync; sleep 3; shutdown -r now')
-    try:
-      sync_utils.WaitFor(lambda: not self.dut.IsReady(), 60)
-    except type_utils.TimeoutError:
-      self.ui.Fail('Unable to shutdown')
 
-    # should only reach here when DUT is not local.
-    self.assertFalse(self.dut.link.IsLocal())
+    # DUT should reboot at this point.
+    # For local DUT, this test will be terminated at here.
+    # For remote DUT, we wait until losing connection to DUT.
+    try:
+      sync_utils.WaitFor(lambda: not self.dut.IsReady(),
+                         self.FINALIZE_TIMEOUT,
+                         poll_interval=1)
+    except type_utils.TimeoutError:
+      raise factory.FactoryTestFailure('Unable to shutdown')
+
+  def _FinalizeWipeInPlace(self, command):
+    if self.dut.link.IsLocal():
+      self._CallGoofTool(command)
+      # Wipe-in-place will terminate all processes that are using stateful
+      # partition, this test should be killed at here.
+      time.sleep(self.FINALIZE_TIMEOUT)
+      raise factory.FactoryTestFailure('DUT Failed to finalize in %d seconds' %
+                                       self.FINALIZE_TIMEOUT)
+    elif isinstance(self.dut.link, ssh.SSHLink):
+      # For remote SSH DUT, we ask DUT to send wipe log back.
+      return self._FinalizeRemoteSSHDUT(command)
+    else:
+      # For other remote links, we only checks if it has lost connection in
+      # @self.FINALIZE_TIMEOUT seconds
+      self._CallGoofTool(command)
+      try:
+        sync_utils.WaitFor(lambda: not self.dut.IsReady(),
+                           self.FINALIZE_TIMEOUT,
+                           poll_interval=1)
+      except type_utils.TimeoutError:
+        raise factory.FactoryTestFailure(
+            'Remote DUT failed to finalize in %d seconds' %
+            self.FINALIZE_TIMEOUT)
+      self.ui.Pass()
+
+  def _FinalizeRemoteSSHDUT(self, command):
+    # generate a random token, so the response is different for every DUT.
+    token = "{:016x}".format(random.getrandbits(64))
+
+    dut_finished = threading.Event()
+    self.dut_response = None
+
+    def _Callback(handler):
+      """Receive and verify DUT message.
+
+      Args:
+        :type handler: SocketServer.StreamRequestHandler
+      """
+      try:
+        dut_response = json.loads(handler.rfile.readline())
+        if dut_response['token'] == token:
+          self.dut_response = dut_response
+          dut_finished.set()
+        # otherwise, the reponse is invalid, just ignore it
+      except:  # pylint: disable=bare-except
+        pass
+
+    self.response_listener = net_utils.CallbackSocketServer(_Callback)
+
+    # If station IP is not given, we assume that this station is the first host
+    # in the subnet, and number of prefix bits in this subnet is 24.
+    station_ip = (self.args.station_ip or
+                  net_utils.CIDR(str(self.dut.link.host), 24).SelectIP(1))
+    command += ' --station_ip "%s"' % station_ip
+    command += ' --station_port %d' % self.response_listener.server_address[1]
+    command += ' --wipe_finish_token "%s"' % token
+
+    self._CallGoofTool(command)
+
+    server_thread = threading.Thread(
+        target=self.response_listener.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
+
+    factory.console.info("wait DUT to finish wiping")
+
+    if not dut_finished.wait(self.FINALIZE_TIMEOUT):
+      raise factory.FactoryTestFailure(
+          'Remote DUT not response in %d seconds' % self.FINALIZE_TIMEOUT)
+
+    # save log files in test data directory
+    output_dir = os.path.join(factory.get_test_data_root(),
+                              factory.get_current_test_path())
+    with open(os.path.join(output_dir, 'wipe_in_tmpfs.log'), 'w') as f:
+      f.write(self.dut_response.get('wipe_in_tmpfs_log', ''))
+    with open(os.path.join(output_dir, 'wipe_init.log'), 'w') as f:
+      f.write(self.dut_response.get('wipe_init_log', ''))
+
+    self.assertTrue(self.dut_response['success'])
+    self.ui.Pass()
