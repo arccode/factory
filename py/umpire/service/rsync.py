@@ -44,19 +44,17 @@ class RsyncService(umpire_service.UmpireService):
     self.properties['toolkit_update'] = True
     self.properties['update_scheme'] = 'rsync'
 
-  def CreateProcesses(self, umpire_config, env):
+  def CreateProcesses(self, unused_umpire_config, env):
     """Creates list of processes via config.
 
     Args:
-      dummy_umpire_config: Umpire config AttrDict.
+      unused_umpire_config: Umpire config AttrDict.
       env: UmpireEnv object.
 
     Returns:
       A list of ServiceProcesses.
 
     """
-    self.properties['update_url'] = RSYNC_URL_TEMPLATE % dict(
-        ip=umpire_config.ip, port=env.umpire_rsync_port, module=TOOLKIT_MODULE)
     config_path = os.path.join(env.config_dir, RSYNCD_CONFIG_FILENAME)
     log_path = os.path.join(env.log_dir, RSYNCD_LOG_FILENAME)
     pid_path = os.path.join(env.pid_dir, RSYNCD_PID_FILENAME)
@@ -81,3 +79,8 @@ class RsyncService(umpire_service.UmpireService):
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(proc_config)
     return [proc]
+
+  # TODO(crosbug.com/p/52705): not needed if the issue has been fixed.
+  def GetServiceURL(self, env):
+    return RSYNC_URL_TEMPLATE % dict(
+        ip=env.config['ip'], port=env.umpire_rsync_port, module=TOOLKIT_MODULE)

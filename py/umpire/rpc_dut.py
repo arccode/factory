@@ -12,6 +12,7 @@ import os
 import shutil
 import time
 import urllib
+import urlparse
 import xmlrpclib
 from twisted.internet import threads
 from twisted.web import xmlrpc
@@ -170,7 +171,8 @@ class UmpireDUTCommands(UmpireRPC):
              FACTORY_STAGES.index(range_end)))
 
   @RPCCall
-  def GetUpdate(self, device_info):
+  @xmlrpc.withRequest
+  def GetUpdate(self, request, device_info):
     """Gets factory toolkit update.
 
     Args:
@@ -245,13 +247,14 @@ class UmpireDUTCommands(UmpireRPC):
       # Calculate resource
       resource_scheme = None
       resource_url = None
+      # TODO(crosbug.com/p/52705): no special case should be allowed here.
       if component == 'device_factory_toolkit':
         # Select first service provides 'toolkit_update' property.
         iterable = FindServicesWithProperty(self.env.config, 'toolkit_update')
         instance = next(iterable, None)
-        if instance:
+        if instance and hasattr(instance, 'GetServiceURL'):
           resource_scheme = instance.properties.get('update_scheme', None)
-          resource_url = instance.properties.get('update_url', None)
+          resource_url = instance.GetServiceURL(self.env)
           if resource_url:
             resource_url = os.path.join(resource_url, resource_hash)
       else:
@@ -260,6 +263,20 @@ class UmpireDUTCommands(UmpireRPC):
             'ip': self.env.config['ip'],
             'port': self.env.config['port'],
             'filename': urllib.quote(resource_filename)}
+
+      if isinstance(resource_url, basestring):
+        WILD_HOST = '0.0.0.0'
+        parsed_url = urlparse.urlparse(resource_url)
+        if parsed_url.netloc.startswith(WILD_HOST):
+          server_ip = request.requestHeaders.getRawHeaders('host')[0]
+          server_ip = server_ip.split(':')[0]  # may contain port so split it
+          logging.debug('Translate IP %s to %s', WILD_HOST, server_ip)
+          new_parsed_url = urlparse.ParseResult(
+              parsed_url.scheme,
+              parsed_url.netloc.replace(WILD_HOST, server_ip, 1),
+              parsed_url.path, parsed_url.params, parsed_url.query,
+              parsed_url.fragment)
+          resource_url = urlparse.urlunparse(new_parsed_url)
 
       update_matrix[component] = {
           'needs_update': needs_update,

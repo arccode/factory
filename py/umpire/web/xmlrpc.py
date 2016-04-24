@@ -8,7 +8,7 @@ import logging
 import traceback
 import xmlrpclib
 from twisted.python import reflect
-from twisted.web.xmlrpc import Fault, NoSuchFunction, XMLRPC
+from twisted.web.xmlrpc import Fault, NoSuchFunction, withRequest, XMLRPC
 
 import factory_common  # pylint: disable=W0611
 
@@ -63,7 +63,8 @@ class XMLRPCContainer(XMLRPC):
     try:
       rpc_obj = self.handlers[procedure_path]
 
-      def _WrapProcedure(*args, **kwargs):
+      @withRequest
+      def _WrapProcedure(request, *args, **kwargs):
         """Catches exception when calling RPC function.
 
         Returns:
@@ -71,7 +72,10 @@ class XMLRPCContainer(XMLRPC):
         """
         try:
           method = getattr(rpc_obj, procedure_path)
-          return method(*args, **kwargs)
+          if getattr(method, 'withRequest', False):
+            return method(request, *args, **kwargs)
+          else:
+            return method(*args, **kwargs)
         except Exception:
           logging.exception('%s raises', procedure_path)
           return Fault(xmlrpclib.APPLICATION_ERROR, traceback.format_exc())
