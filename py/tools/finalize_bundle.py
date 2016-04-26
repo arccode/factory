@@ -809,7 +809,8 @@ class FinalizeBundle(object):
 
       if 'method' in cutoff_option:
         assert cutoff_option['method'] in ['shutdown', 'reboot',
-                                           'battery_cutoff', 'battery_cutoff_at_shutdown']
+                                           'battery_cutoff',
+                                           'battery_cutoff_at_shutdown']
 
       if 'check_ac' in cutoff_option:
         assert cutoff_option['check_ac'] in ['remove_ac', 'connect_ac']
@@ -833,17 +834,23 @@ class FinalizeBundle(object):
 
       if mini_omaha_url:
         lsb_factory, number_of_subs = re.subn(
-            r'(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + mini_omaha_url, lsb_factory)
+            r'(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + mini_omaha_url,
+            lsb_factory)
         if number_of_subs != 2:
           sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
 
       if cutoff_option:
         for key, value in cutoff_option.iteritems():
-          arg = '%s=%s' % (CUTOFF_OPTION[key], str(value))
-          lsb_factory, number_of_subs = re.subn(r'(?m)^%s=.+$' % CUTOFF_OPTION[key],
-                                                arg, lsb_factory)
-          if number_of_subs == 0:
-            lsb_factory += '\n' + arg
+          if value:
+            arg = '%s=%s\n' % (CUTOFF_OPTION[key], str(value))
+          else:
+            # Delete the argument if there is no value set.
+            arg = ''
+          lsb_factory, number_of_subs = re.subn(
+              r'(?m)^%s=.+\n' % CUTOFF_OPTION[key], arg, lsb_factory)
+
+          if number_of_subs == 0 and value:
+            lsb_factory += arg
 
       if lsb_factory == orig_lsb_factory:
         return False  # No changes
