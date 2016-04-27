@@ -38,7 +38,6 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test._ui = self._mox.CreateMock(test_ui.UI)
     self._mox.StubOutWithMock(verify_components, 'Log')
     self.fake_phase = 'EVT'
-    verify_components.phase.GetPhase = lambda: self.fake_phase
 
   def tearDown(self):
     self._mox.UnsetStubs()
@@ -48,7 +47,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
         'skip_shopfloor': True,
-        'with_goofy': True})
+        'with_goofy': True,
+        'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',
                '--no-fast-fw-probe', '--components', 'camera,cpu',
                '--phase', self.fake_phase]
@@ -89,7 +89,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
         'skip_shopfloor': True,
-        'with_goofy': True})
+        'with_goofy': True,
+        'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',
                '--no-fast-fw-probe', '--components', 'camera,cpu',
                '--phase', self.fake_phase]
@@ -126,7 +127,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
         'skip_shopfloor': True,
-        'with_goofy': True})
+        'with_goofy': True,
+        'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',
                '--no-fast-fw-probe', '--components', 'camera,cpu',
                '--phase', self.fake_phase]

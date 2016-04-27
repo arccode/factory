@@ -48,7 +48,10 @@ class VerifyComponentsTest(unittest.TestCase):
           'Set this value to False if the test is not running with goofy. '
           'Without goofy, test_ui and event_log will not work, thus will be '
           'disabled',
-          default=True, optional=True)
+          default=True, optional=True),
+      Arg('phase', str,
+          'Override current phase, this is for standalone testing.',
+          default=None, optional=True)
   ]
 
   def setUp(self):
@@ -64,12 +67,18 @@ class VerifyComponentsTest(unittest.TestCase):
       self.template = ui_templates.OneSection(self._ui)
       self.template.SetTitle(_TEST_TITLE)
 
+  def tearDown(self):
+    phase.OverridePhase(None)
+
   def runTest(self):
     if self.args.with_goofy:
       self._ui.Run(blocking=False)
 
     if not self.args.skip_shopfloor:
       shopfloor.update_local_hwid_data(self._dut)
+
+    if self.args.phase:
+      phase.OverridePhase(self.args.phase)
 
     self._allow_unqualified = phase.GetPhase() in [
         phase.PROTO, phase.EVT, phase.DVT]
