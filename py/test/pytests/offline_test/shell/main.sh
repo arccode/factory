@@ -34,6 +34,8 @@ die() {
   error "$*"
   echo "FAILED" >"${DATA_DIR}/state"
   on_test_failed
+
+  sync
   exit 1
 }
 
@@ -59,6 +61,8 @@ all_test_passed() {
   echo "PASSED" >"${DATA_DIR}/state"
 
   on_all_test_passed
+
+  sync
 }
 
 main() {

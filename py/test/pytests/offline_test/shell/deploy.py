@@ -358,6 +358,8 @@ class DeployShellOfflineTest(unittest.TestCase):
     if self.args.start_up_service:
       self._MakeStartUpApp(starter_path)
 
+    self.dut.Call(['sync'])
+
     if self.args.next_action == self.NEXT_ACTION.POWEROFF:
       # Since Android doesn't have shutdown(8) command, we will use 'reboot -p'
       # however, in Chrome OS, 'reboot -p' sometimes reboot the device rather
