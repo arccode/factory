@@ -47,7 +47,7 @@ class OfflineTestFetchLog(unittest.TestCase):
 
   def _DisableStartUpApp(self):
     if isinstance(self.dut, chromeos.ChromeOSBoard):
-      self._DisableChromeOsStartUpApp()
+      self._DisableChromeOSStartUpApp()
     elif isinstance(self.dut, android.AndroidBoard):
       # TODO(stimim): support Android init
       raise NotImplementedError
