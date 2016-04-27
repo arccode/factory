@@ -216,7 +216,13 @@ def GetUnmanagedEthernetInterfaces():
       properties = dev_intf.GetProperties()
       for config in properties['IPConfigs']:
         if 'dhcp' in config:
-          return True
+          if net_utils.GetEthernetIp(intf):
+            return True
+          else:
+            # this is strange...
+            logging.warning('shill found DHCP server on %s, but cannot get IP')
+            logging.warning('We consider it as UNMANAGED.')
+            return False
       return False
     else:
       # We can't talk to shill without DBus, so let's just check for IP
