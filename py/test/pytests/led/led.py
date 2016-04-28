@@ -201,14 +201,14 @@ class CheckLEDTaskChallenge(CheckLEDTask):
   """Checks for LED colors interactively.
 
   Args:
-    challenge_colors: The colors to propose for the challenge.
+    color_options: The color options for the operator to choose.
   """
 
   def __init__(self, ui, template, led, nth, color, color_label,
-               index, index_label, challenge_colors):
+               index, index_label, color_options):
     super(CheckLEDTaskChallenge, self).__init__(
         ui, template, led, nth, color, color_label, index, index_label)
-    self._challenge_colors = challenge_colors
+    self._color_options = color_options
 
   def _InitUI(self):
     desc = test_ui.MakeLabel(
@@ -220,7 +220,7 @@ class CheckLEDTaskChallenge(CheckLEDTask):
         % (self._nth, self._index_label.zh))
 
     btn_ui = ''.join([_HTML_KEY_TEMPLATE % (_COLOR_CODE[c] + (j + 1,))
-                      for j, c in enumerate(self._challenge_colors)])
+                      for j, c in enumerate(self._color_options)])
 
     ui = [desc, '<br /><br />', btn_ui, _HTML_RESULT]
 
@@ -234,9 +234,9 @@ class CheckLEDTaskChallenge(CheckLEDTask):
       time.sleep(_SHOW_RESULT_SECONDS)
       self.Fail('LED color incorrect or wrong button pressed')
 
-    target = self._challenge_colors.index(self._color)
+    target = self._color_options.index(self._color)
 
-    for i, _ in enumerate(self._challenge_colors):
+    for i, _ in enumerate(self._color_options):
       self._ui.BindKey(str(i + 1), _PassHook if i == target else _FailHook)
 
     self._ui.AppendCSS(_CSS)
@@ -327,15 +327,17 @@ class LEDTest(unittest.TestCase):
     self._template.SetTitle(_TEST_TITLE)
 
     tasks = []
+    colors = self.args.colors
 
     # Shuffle the colors for interactive challenge, so operators can't guess
     # the sequence.
     if self.args.challenge:
-      challenge_colors = list(set([x if isinstance(x, str) else x[1]
-                                   for x in self.args.colors]))
-      random.shuffle(challenge_colors)
+      color_options = list(set([x if isinstance(x, str) else x[1]
+                                for x in colors]))
+      colors = list(colors)
+      random.shuffle(colors)
 
-    for i, index_color in enumerate(self.args.colors):
+    for i, index_color in enumerate(colors):
       if isinstance(index_color, str):
         color = index_color
         index = None
@@ -354,7 +356,7 @@ class LEDTest(unittest.TestCase):
                                            self._dut.led, i + 1,
                                            color, color_label,
                                            index, index_label,
-                                           challenge_colors))
+                                           color_options))
       else:
         tasks.append(CheckLEDTaskNormal(self._ui, self._template,
                                         self._dut.led, i + 1,
