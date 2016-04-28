@@ -55,7 +55,7 @@ from evdev.ecodes import (ABS_MT_POSITION_X, ABS_MT_POSITION_Y,
                           ABS_MT_PRESSURE, ABS_MT_SLOT, ABS_MT_TRACKING_ID,
                           BTN_LEFT, BTN_TOOL_FINGER, BTN_TOOL_DOUBLETAP,
                           BTN_TOOL_TRIPLETAP, BTN_TOOL_QUADTAP,
-                          BTN_TOOL_QUINTTAP, BTN_TOUCH, EV_ABS, EV_KEY)
+                          BTN_TOOL_QUINTTAP, BTN_TOUCH, EV_ABS, EV_KEY, EV_SYN)
 
 
 # Define TidPacket to keep the point, pressure, and SYN_REPOT time of a packet.
@@ -207,8 +207,28 @@ class MtbEvent(object):                           # pylint: disable=W0232
   """Determine what an MTB event is.
 
   This class is just a bundle of a variety of classmethods about
-  MTB event classification.
+  MTB event.
   """
+
+  @classmethod
+  def ConvertFromInputEvent(cls, input_event):
+    """Convert an evdev.events.InputEvent to an MTB Event.
+
+    Args:
+      input_event: an evdev.events.InputEvent
+
+    Returns:
+      an MTB event
+    """
+    event = {MTB.EV_TIME: input_event.timestamp()}
+    if input_event.type == EV_SYN:
+      event[MTB.SYN_REPORT] = True
+    else:
+      event[MTB.EV_TYPE] = input_event.type
+      event[MTB.EV_CODE] = input_event.code
+      event[MTB.EV_VALUE] = input_event.value
+    return event
+
   @classmethod
   def IsAbsTypeWithCode(cls, event, ev_code):
     """Is this event with EV_ABS type and the specified event code?
@@ -344,7 +364,7 @@ class MtbEvent(object):                           # pylint: disable=W0232
     Returns:
       True if the value of BTN_LEFT is equal to the sepcified value
     """
-    return (cls.IsBtnLeft(event) and event[MTB.EV_VALUE] == value)
+    return cls.IsBtnLeft(event) and event[MTB.EV_VALUE] == value
 
   @classmethod
   def IsBtnToolFinger(cls, event):
@@ -530,8 +550,9 @@ class MtbStateMachine(object):
       #       E.g., for a point = (0, 300), it will return False
       #       which is not what we want. We want it to return False
       #       only when there are None values.
-      data_ready = all(map(lambda e: e is not None,
-                           list(point.Value()) + [pressure, self._syn_time]))
+      data_ready = all([e is not None
+                        for e in
+                        (list(point.Value()) + [pressure, self._syn_time])])
 
       if (not request_data_ready) or data_ready:
         tid_packet = TidPacket(self._syn_time, point, pressure)

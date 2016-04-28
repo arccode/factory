@@ -343,5 +343,9 @@ function markDoubleClickUp() {
  * Fails the test.
  */
 function failTest() {
-  window.touchpadTest.failTest();
+  if (window.touchpadTest === undefined) {
+    window.test.fail('Timeout while waiting for SPACE');
+  } else {
+    window.touchpadTest.failTest();
+  }
 }

@@ -7,25 +7,37 @@
 
 dargs:
   touchpad_event_id: Touchpad input event id. (default: None)
-  timeout_secs: Timeout for the test. (default: 30 seconds)
+  timeout_secs: Timeout for the test. (default: 20 seconds)
 """
 
+import array
 import asyncore
 import evdev
+import fcntl
 import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import test_ui
+from cros.factory.test import factory, test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import evdev_utils
+from cros.factory.test.utils.touch_utils import MtbEvent
 from cros.factory.utils import process_utils
 
 
 _ID_CONTAINER = 'touchpad-test-container'
 _ID_COUNTDOWN_TIMER = 'touchpad-test-timer'
+
+# The countdown timer will set the innerHTML later, so we should put some text
+# here to make the layout consistent.
+_HTML_TIMER = '<div id="%s">&nbsp;</div>' % _ID_COUNTDOWN_TIMER
+
+_HTML_PROMPT = test_ui.MakeLabel(
+    'Please take off your fingers and then press SPACE to start testing...',
+    u'请先将手指远离触控版後按 "空白键" 开始测试...',
+    'touchpad-test-prompt') + _HTML_TIMER
 
 # The layout contains one div for touchpad touch and scroll,
 # one table for left/right click, and one div for countdown timer.
@@ -91,8 +103,8 @@ _HTML_TOUCHPAD = """
     </tr>
   </tbody>
 </table>
-<div id="%s"></div>
-""" % (_ID_CONTAINER, _ID_COUNTDOWN_TIMER)
+%s
+""" % (_ID_CONTAINER, _HTML_TIMER)
 
 # The styles for each item on ui.
 # For sectors (moving and scrolling event):
@@ -103,6 +115,7 @@ _HTML_TOUCHPAD = """
 #   touchpad-test-circle-down: click down.
 #   touchpad-test-circle-tested: release click.
 _TOUCHPAD_TEST_DEFAULT_CSS = """
+    .touchpad-test-prompt { font-size: 2em; }
     #touchpad-test-timer { font-size: 2em; }
     .touchpad-test-sector-untested {
       background-color: gray;
@@ -180,13 +193,9 @@ class MoveEvent(object):
 
 
 class ClickEvent(object):
-  """The class to store touchpad click event.
-
-  Double tap event is also stored to catch double click event.
-  """
+  """The class to store touchpad click event."""
 
   def __init__(self):
-    self.double_tap = None
     self.btn_left = None
     self.btn_right = None
 
@@ -241,11 +250,7 @@ class TouchpadTest(unittest.TestCase):
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_TOUCHPAD_TEST_DEFAULT_CSS)
-    self.template.SetState(_HTML_TOUCHPAD)
-    self.ui.CallJSFunction(
-        'setupTouchpadTest', _ID_CONTAINER, self.args.x_segments,
-        self.args.y_segments, self.args.number_to_click,
-        self.args.number_to_quadrant)
+    self.template.SetState(_HTML_PROMPT)
 
     # Initialize properties
     self.x_max = None
@@ -263,10 +268,9 @@ class TouchpadTest(unittest.TestCase):
       self.touchpad_device = evdev.InputDevice(
           '/dev/input/event%d' % self.args.touchpad_event_id)
     self.dispatcher = None
+    self.number_fingers = 0
+    self.already_alerted = False
 
-    logging.info('start monitor daemon thread')
-    self.touchpad_device.grab()
-    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
     logging.info('start countdown timer daemon thread')
     StartCountdownTimer(self.args.timeout_secs,
                         lambda: self.ui.CallJSFunction('failTest'),
@@ -286,7 +290,7 @@ class TouchpadTest(unittest.TestCase):
       if not (evdev.ecodes.EV_KEY in event_type_code and
               evdev.ecodes.BTN_LEFT in event_type_code[evdev.ecodes.EV_KEY]):
         continue
-      if (evdev.ecodes.EV_ABS in event_type_code):
+      if evdev.ecodes.EV_ABS in event_type_code:
         codes = [x[0] for x in event_type_code[evdev.ecodes.EV_ABS]]
         if evdev.ecodes.ABS_MT_POSITION_X in codes:
           logging.info('Probed device path: %s; name %s', dev.fn, dev.name)
@@ -300,7 +304,8 @@ class TouchpadTest(unittest.TestCase):
 
     Enable the touchpad at X to enable touchpad function in test ui.
     """
-    self.dispatcher.close()
+    if self.dispatcher is not None:
+      self.dispatcher.close()
     self.touchpad_device.ungrab()
 
   def MonitorEvdevEvent(self):
@@ -325,8 +330,38 @@ class TouchpadTest(unittest.TestCase):
 
   def HandleEvent(self, event):
     """Handles evdev events."""
+    self.UpdateNumberFingers(event)
     self.ProcessMoveEvent(event)
     self.ProcessClickEvent(event)
+
+  def UpdateNumberFingers(self, event):
+    """Update number_fingers according to the given event. Will alert and fail
+    the test if number_fingers is out of range.
+
+    Args:
+      event: an InputEvent.
+    """
+    mtb_event = MtbEvent.ConvertFromInputEvent(event)
+    if MtbEvent.IsNewContact(mtb_event):
+      self.number_fingers += 1
+    elif MtbEvent.IsFingerLeaving(mtb_event):
+      self.number_fingers -= 1
+
+    if not (0 <= self.number_fingers <= 2) and not self.already_alerted:
+      self.already_alerted = True
+
+      msg = 'number_fingers = %d' % self.number_fingers
+      logging.error(msg)
+      factory.console.error(msg)
+
+      self.ui.RunJS('alert("%s")' % (
+          r"Please don't put your third finger on the touchpad.\n"
+          r"If you didn't do that,\n"
+          r"treat this touch panel as a problematic one!!\n\n"
+          ur"请勿将第三根手指放到触控板上。\n"
+          ur"如果你没有那麽做，\n"
+          ur"请将此触控板作为出问题的处理！！"))
+      self.ui.CallJSFunction('failTest')
 
   def ProcessLeftAndRightClickEvent(self):
     """Draws left click event or right click event."""
@@ -337,10 +372,10 @@ class TouchpadTest(unittest.TestCase):
 
   def ProcessSingleAndDoubleClickEvent(self):
     """Draws single click event or double click event."""
-    if self.click_event.double_tap == UpDown.Down:
+    if self.number_fingers == 2:
       self.DrawDoubleClick(self.click_event.btn_left)
       self.click_event.ClearBtnLeft()
-    else:
+    elif self.number_fingers == 1:
       self.DrawSingleClick(self.click_event.btn_left)
       self.click_event.ClearBtnLeft()
 
@@ -350,9 +385,7 @@ class TouchpadTest(unittest.TestCase):
     Args:
       event: the event to process.
     """
-    if event.code == evdev.ecodes.BTN_TOOL_DOUBLETAP:
-      self.click_event.double_tap = event.value
-    elif event.code == evdev.ecodes.BTN_LEFT:
+    if event.code == evdev.ecodes.BTN_LEFT:
       self.click_event.btn_left = event.value
     elif event.code == evdev.ecodes.BTN_RIGHT:
       self.click_event.btn_right = event.value
@@ -459,5 +492,66 @@ class TouchpadTest(unittest.TestCase):
     logging.info('mark x-%d y-%d sector tested', x_segment, y_segment)
     self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
 
+  def IsClear(self):
+    """Check if there is no finger on the touchpad now.
+
+    Returns:
+      True if there is no finger on the touchpad now. Otherwise, False.
+    """
+
+    def EVIOCGMTSLOTS(size):
+      # from linux/input.h
+      return (2 << 30) | (ord('E') << 8) | 0x0a | (size << 16)
+
+    cap = self.touchpad_device.capabilities()
+    ev_abs = dict(cap)[evdev.ecodes.EV_ABS]
+    abs_mt_slot = dict(ev_abs)[evdev.ecodes.ABS_MT_SLOT]
+    num_slots = abs_mt_slot.max - abs_mt_slot.min + 1
+    buf = array.array('i', [evdev.ecodes.ABS_MT_TRACKING_ID] + [0] * num_slots)
+    nbytes = buf.itemsize * len(buf)
+    return fcntl.ioctl(self.touchpad_device.fileno(), EVIOCGMTSLOTS(nbytes),
+                       buf) >= 0 and buf.count(-1) == num_slots
+
+  def StartTest(self, _):
+    """Start the test if the touchpad is clear.
+
+    This function is invoked when SPACE key is pressed. It will first check
+    whether the touchpad is clear or not. If not, it will notice the operator
+    and fail the test. Else, it will clear the event buffer and start the test.
+
+    Args:
+      _: a BindKey event object, not used.
+    """
+
+    self.ui.UnbindKey(test_ui.SPACE_KEY)
+
+    self.touchpad_device.grab()
+    if not self.IsClear():
+      logging.error('Ghost finger detected.')
+      self.ui.RunJS('alert("%s")' % (
+          r"Ghost finger detected!!\n"
+          r"Please treat this touch panel as a problematic one!!\n\n"
+          ur"侦测到幽灵手指！！\n"
+          ur"请将此触控板作为出问题的处理！！"))
+      self.ui.Fail('Ghost finger detected.')
+      return
+
+    # We have to clear the event buffer because we open the device before
+    # the operator presses SPACE key. If the operator puts his/her finger
+    # on the touchpad when setUp() and we don't clear the event buffer,
+    # we will receive a FingerLeaving event and set number_fingers to -1.
+    while len(tuple(self.touchpad_device.read())) != 0:
+      pass
+
+    self.template.SetState(_HTML_TOUCHPAD)
+    self.ui.CallJSFunction(
+        'setupTouchpadTest', _ID_CONTAINER, self.args.x_segments,
+        self.args.y_segments, self.args.number_to_click,
+        self.args.number_to_quadrant)
+
+    logging.info('start monitor daemon thread')
+    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
+
   def runTest(self):
+    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
     self.ui.Run()
