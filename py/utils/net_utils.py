@@ -94,7 +94,7 @@ class CIDR(object):
       raise RuntimeError('invalid ip argument in constructor')
     self.prefix = prefix
 
-  def __str__(self):
+  def __repr__(self):
     return '%s/%d' % (self.IP, self.prefix)
 
   def __eq__(self, obj):
@@ -121,6 +121,15 @@ class CIDR(object):
   def Netmask(self):
     full_mask = FULL_MASK if self.IP.family == socket.AF_INET else FULL_MASK6
     return IP(full_mask ^ (full_mask >> self.prefix))
+
+  def IsOverlapped(self, other):
+    my_start = int(self.SelectIP(0))
+    my_end = int(self.SelectIP(-1))
+    other_start = int(other.SelectIP(0))
+    other_end = int(other.SelectIP(-1))
+
+    return (my_start <= other_start <= my_end or
+            other_start <= my_start <= other_end)
 
 
 def Ifconfig(devname, enable, sleep_time_secs=1):
@@ -550,13 +559,15 @@ def GetDefaultGatewayInterface():
 
 
 def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,
-                           exclude_local_interface_ip=False):
+                           exclude_local_interface_ip=False,
+                           max_prefix_bits=30):
   """Find unused IP ranges in IPV4 private address space.
 
   Args:
     preferred_prefix_bits: The preferred prefix length in bits.
     exclude_ip_prefix: A list of tuple of (ip, prefix_bits) to exclude.
     exclude_local_interface_ip: Also exclude IP used by the local interface.
+    max_prefix_bits: the maximum prefix length in bits.
 
   Returns:
     A CIDR object representing the network range.
@@ -577,63 +588,46 @@ def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,
       if ip_mask[0] and ip_mask[1]:
         exclude_ip_prefix.append(ip_mask)
 
-  # available_ranges_bits stores (ip_range, available_subnet_range_bits)
-  # For example: available_ranges_bits = {0xc0a80000: 8}
-  # means we have 8 bits of subnet range 192.168.[0-255].0/24
-  available_ranges_bits = dict((int(x.IP), preferred_prefix_bits - x.prefix)
-                               for x in IPV4_PRIVATE_RANGE)
+  occupied_list = [CIDR(ip, prefix_bits)
+                   for (ip, prefix_bits) in exclude_ip_prefix]
+  occupied_list.sort(key=lambda cidr: int(cidr.SelectIP(0)))
 
-  # used_subnet_range stores (ip_range, used_subnet ranges)
-  # For example: if there are two interfaces with IP 192.168.0.1/24,
-  # 192.168.1.1/24, this means available_ranges_bits [0xc0a80000] = 8
-  # used_subnet_range = {0xc0a80000: [0, 1]}.
-  used_subnet_range = dict((int(x.IP), []) for x in IPV4_PRIVATE_RANGE)
+  # starting from preferred_prefix_bits, try to find an subnet that are
+  # available. If we can't, increase the prefix_bits, i.e., find a smaller
+  # subnet.
+  for prefix_bits in xrange(preferred_prefix_bits, max_prefix_bits + 1):
+    step = 2 ** (32 - prefix_bits)
+    for ip_range in IPV4_PRIVATE_RANGE:
+      # we split this private range into several subnets according to
+      # prefix_bits, and find a subnet is entirely available.
+      # since occupied_list is ordered in incremental order, so for each subnet,
+      # we don't need to check entire occpuied_list, we only need to start from
+      # previous failed item.
 
-  for ip_str, prefix_bits in exclude_ip_prefix:
-    # Select the min of (prefix_bits, preferred_prefix_bits). For example:
-    # if 192.168.0.0/16 (prefix_bits=16) is used, and preferred_prefix_bits=24.
-    # Since the entire /16 range is unavailable, we can't use any /24 ranges.
-    selected_prefix_bits = min(prefix_bits, preferred_prefix_bits)
-    excluded_ip = int(IP(ip_str))
+      # next subnet in occupied_list to check
+      occupied_list_idx = 0
 
-    for cidr in IPV4_PRIVATE_RANGE:
-      mask = int(cidr.Netmask())
-      ip = int(cidr.IP)
-      base_prefix_bits = cidr.prefix
-      range_bits = selected_prefix_bits - base_prefix_bits
+      start = int(ip_range.SelectIP(0))
+      while True:
+        cidr = CIDR(IP(start), prefix_bits)  # current subnet
+        if int(cidr.SelectIP(-1)) > int(ip_range.SelectIP(-1)):
+          # current subnet excceed ip_range
+          break
 
-      # If the IP is in the same range as the current IPV4_PRIVATE_RANGE.
-      if excluded_ip & mask == ip:
-        if range_bits < available_ranges_bits[ip]:
-          # Target target IP has range smaller then previous stored range bit,
-          # so previous record is invalid, create a new list.
-          #
-          # This happens when exclude_ip_prefix = [('10.0.0.1', 24),
-          # ('10.0.0.2', 16)]. At first range_bits = 24 - 8 = 16, means we have
-          # 16 bit for different subnet. Later when the second target comes in,
-          # range_bits = 16 - 8 = 8, means we only have 8 bit of subnet ranges
-          # left.
-          available_ranges_bits[ip] = range_bits
-          used_subnet_range[ip] = [(excluded_ip & (mask ^ FULL_MASK)) >>
-                                   (32 - selected_prefix_bits)]
-        elif range_bits == available_ranges_bits[ip]:
-          # The target IP has same range with the available_ranges_bits, append
-          # the used range to the used_subnet_range.
-          used_subnet_range[ip].append((excluded_ip & (mask ^ FULL_MASK)) >>
-                                       (32 - selected_prefix_bits))
-        break
-
-  for cidr in IPV4_PRIVATE_RANGE:
-    ip = int(cidr.IP)
-    subnet_range_bits = available_ranges_bits[ip]
-    # if subnet_range_bits == 0 means the entire range is used out.
-    if subnet_range_bits > 0:
-      # Iterate through all avaialble subnet range, pick one that is not used.
-      for i in range(0, 2 ** subnet_range_bits - 1):
-        if i not in used_subnet_range[ip]:
-          prefix_bits = cidr.prefix + subnet_range_bits
-          ip_base = ip | i << (32 - prefix_bits)
-          return CIDR(IP(ip_base), prefix_bits)
+        valid_range = True
+        while occupied_list_idx < len(occupied_list):
+          if cidr.IsOverlapped(occupied_list[occupied_list_idx]):
+            valid_range = False
+            break
+          else:
+            # check next subnet in occupied_list
+            occupied_list_idx += 1
+        if valid_range:
+          return cidr
+        start = max(start + step,
+                    int(occupied_list[occupied_list_idx].SelectIP(-1)) + 1)
+        if start % step != 0:
+          start = ((start / step) + 1) * step
 
   raise RuntimeError('can not find unused IP range')
 

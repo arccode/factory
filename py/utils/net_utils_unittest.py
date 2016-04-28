@@ -90,37 +90,53 @@ class UtilityFunctionTest(unittest.TestCase):
     network_cidr = net_utils.GetUnusedIPV4RangeCIDR(24, [
         ('10.0.0.1', 24),
         ('10.0.1.1', 24)])
-    assert network_cidr == net_utils.CIDR('10.0.2.0', 24)
+    self.assertEqual(network_cidr, net_utils.CIDR('10.0.2.0', 24))
 
     # Test 10.0.0.1/16 used out and another 10.0.1.1/24 subnet in use.
     network_cidr = net_utils.GetUnusedIPV4RangeCIDR(24, [
         ('10.0.1.1', 24),
         ('10.0.0.1', 16)])
-    assert network_cidr == net_utils.CIDR('10.1.0.0', 16)
+    self.assertEqual(network_cidr, net_utils.CIDR('10.1.0.0', 24))
 
     # Test 10.0.0.1/24 multiple
     network_cidr = net_utils.GetUnusedIPV4RangeCIDR(16, [
         ('10.0.0.1', 24),
         ('10.0.1.1', 24)])
-    assert network_cidr == net_utils.CIDR('10.1.0.0', 16)
+    self.assertEqual(network_cidr, net_utils.CIDR('10.1.0.0', 16))
 
     # Test 10.0.0.1/8 used out
     network_cidr = net_utils.GetUnusedIPV4RangeCIDR(24, [
         ('10.0.0.1', 8),
         ('172.16.0.1', 24)])
-    assert network_cidr == net_utils.CIDR('172.16.1.0', 24)
+    self.assertEqual(network_cidr, net_utils.CIDR('172.16.1.0', 24))
 
     # Test 10.0.0.1/8, 172.16.0.0/12 used out
     network_cidr = net_utils.GetUnusedIPV4RangeCIDR(24, [
         ('10.0.0.1', 8),
         ('172.16.0.0', 12)])
-    assert network_cidr == net_utils.CIDR('192.168.0.0', 24)
+    self.assertEqual(network_cidr, net_utils.CIDR('192.168.0.0', 24))
 
     # Test 192.168.0.0/16 172.168.0./12 used out, 192.168.0.0/22
     network_cidr = net_utils.GetUnusedIPV4RangeCIDR(22, [
         ('10.0.0.1', 22),
         ('10.0.4.1', 22)])
-    assert network_cidr == net_utils.CIDR('10.0.8.0', 22)
+    self.assertEqual(network_cidr, net_utils.CIDR('10.0.8.0', 22))
+
+    exclude_ip_list = [('10.0.0.1', 8), ('172.16.0.0', 12),]
+    ip = int(net_utils.IP('192.168.0.0'))
+    for prefix_bits in xrange(17, 31):
+      exclude_ip_list.append((str(net_utils.IP(ip)), prefix_bits))
+      ip += 2 ** (32 - prefix_bits)
+    network_cidr = net_utils.GetUnusedIPV4RangeCIDR(16, exclude_ip_list)
+    self.assertEqual(network_cidr, net_utils.CIDR('192.168.255.252', 30))
+
+    exclude_ip_list = [('10.0.0.1', 8), ('172.16.0.0', 12),]
+    ip = int(net_utils.IP('192.168.0.0'))
+    for prefix_bits in xrange(17, 33):
+      exclude_ip_list.append((str(net_utils.IP(ip)), prefix_bits))
+      ip += 2 ** (32 - prefix_bits)
+    with self.assertRaises(RuntimeError):
+      network_cidr = net_utils.GetUnusedIPV4RangeCIDR(16, exclude_ip_list)
 
 
 if __name__ == '__main__':
