@@ -18,7 +18,7 @@
 # 2) 8090, 8094
 
 # Number of boards to support for this container
-NUM_BOARDS=10
+NUM_BOARDS=3
 
 # Starting base port
 PORT_START=8080

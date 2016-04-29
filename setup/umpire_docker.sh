@@ -108,6 +108,7 @@ do_start() {
       --privileged \
       -p 4455:4455 \
       -p 9000:9000 \
+      -p 69:69/udp \
       ${umpire_port_map} \
       -v /etc/localtime:/etc/localtime:ro \
       -v ${HOST_DIR}:/mnt \
@@ -130,7 +131,8 @@ do_start() {
     echo "- Host directory ${HOST_DIR} is mounted under /mnt in the container."
     echo "- Host directory ${HOST_DB_DIR} is mounted under ${CONTAINER_DB_DIR} in the container."
     echo '- Umpire service ports is mapped to the local machine.'
-    echo '- Overlord service ports 4455, 9000 is mapped to the local machine.'
+    echo '- Overlord service ports 4455, 9000 are mapped to the local machine.'
+    echo '- TFTP Server UDP port 69 is mapped to the local machine.'
   fi
 }
 

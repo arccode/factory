@@ -7,11 +7,14 @@ MAINTAINER Wei-Ning Huang <wnhuang@google.com>
 
 RUN apt-get update
 RUN apt-get upgrade -y
+# python libraries
 RUN apt-get install -y python-yaml python-netifaces python-pexpect \
 	python-numpy python-twisted python-twisted-web python-protobuf \
-	python-pyudev python-pil lighttpd python-flup unzip parallel \
-	pbzip2 pigz binutils sharutils rsync aptitude screen vim psmisc \
-	dbus ssh htop openssh-server cgpt
+	python-pyudev python-pil python-pymssql python-flup python-mysqldb
+
+RUN apt-get install -y lighttpd unzip parallel pbzip2 pigz binutils \
+	sharutils rsync aptitude screen vim psmisc dbus ssh htop openssh-server \
+	cgpt tftpd-hpa
 
 # https://github.com/sequenceiq/docker-pam
 # Workaround pam issue for chpasswd
@@ -30,7 +33,7 @@ RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' \
 	/etc/ssh/sshd_config
 
 ENV NOTVISIBLE "in users profile"
-RUN echo "export VISIBLE=now" >> /etc/profile
+RUN echo "export VISIBLE=now" >>/etc/profile
 
 COPY authorized_keys /root/.ssh/authorized_keys
 
@@ -60,9 +63,16 @@ RUN /usr/sbin/update-rc.d -f ondemand remove; \
     ; do \
         dpkg-divert --local --rename --add "$f"; \
     done; \
-    echo '# /lib/init/fstab: cleared out for bare-bones Docker' > /lib/init/fstab
+    echo '# /lib/init/fstab: cleared out for bare-bones Docker' >/lib/init/fstab
 # Let Upstart know it's in a container
 ENV container docker
+
+# TFTP Setting
+RUN mkdir -p /root/tftpboot
+RUN echo 'TFTP_USERNAME="tftp"' >/etc/default/tftpd-hpa
+RUN echo 'TFTP_DIRECTORY="/root/tftpboot/"' >>/etc/default/tftpd-hpa
+RUN echo 'TFTP_ADDRESS="0.0.0.0:69"' >>/etc/default/tftpd-hpa
+RUN echo 'TFTP_OPTIONS="-v --secure"' >>/etc/default/tftpd-hpa
 
 EXPOSE 22
 # Pepare for takeoff
