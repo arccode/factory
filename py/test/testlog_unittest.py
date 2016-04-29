@@ -6,6 +6,7 @@
 
 
 import datetime
+import logging
 import sys
 import unittest
 
@@ -77,6 +78,17 @@ class TestlogTest(unittest.TestCase):
   def testPopulateReturnsSelf(self):
     event = testlog.StationInit()
     self.assertEquals(event.Populate({}), event)
+
+  def testDisallowRecursiveLogging(self):
+    """Check that calling 'logging' within log processing code is dropped."""
+    logged_events = []
+    def CheckMessage(event):
+      logged_events.append(event)
+      logging.info('testing 456')
+    testlog.CapturePythonLogging(CheckMessage)
+    logging.info('testing 123')
+    self.assertEquals(len(logged_events), 1)
+    self.assertEquals(logged_events[0]['message'], 'testing 123')
 
 
 if __name__ == '__main__':

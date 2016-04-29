@@ -25,6 +25,8 @@ import sys
 import yaml
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import testlog
+from cros.factory.test import log_writer
 from cros.factory.test.env import paths
 from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
@@ -250,11 +252,15 @@ def init_logging(prefix=None, verbose=False):
   assert not logging.getLogger().handlers, (
       'Logging has already been initialized')
 
+  level = logging.DEBUG if verbose else logging.INFO
   logging.basicConfig(
       format=('[%(levelname)s] ' + prefix +
               ' %(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
-      level=logging.DEBUG if verbose else logging.INFO,
+      level=level,
       datefmt='%Y-%m-%d %H:%M:%S')
+
+  testlog.CapturePythonLogging(
+      target=log_writer.GetGlobalLogWriter().Log, level=level)
 
   logging.debug('Initialized logging')
 

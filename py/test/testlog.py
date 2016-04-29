@@ -10,11 +10,22 @@ from __future__ import print_function
 import datetime
 import inspect
 import json
+import logging
+import threading
 import traceback
 import uuid
 
 
-TESTLOG_API_VERSION = '1.0'
+TESTLOG_API_VERSION = '0.1'
+
+
+_pylogger = None
+
+
+class TestlogError(Exception):
+  """Catch-all exception for testlog Python API."""
+
+  pass
 
 
 def _ToJSONDateTime(time_value):
@@ -28,6 +39,7 @@ def _ToJSONDateTime(time_value):
   """
   return time_value.isoformat()[:-3] + 'Z'
 
+
 def _FromJSONDateTime(string_value):
   """Returns a datetime object parsed from a string.
 
@@ -37,6 +49,7 @@ def _FromJSONDateTime(string_value):
   Reverses _ToJSONDateTime.
   """
   return datetime.datetime.strptime(string_value, '%Y-%m-%dT%H:%M:%S.%fZ')
+
 
 def _JSONHandler(obj):
   """Handler for serializing objects during conversion to JSON."""
@@ -53,9 +66,88 @@ def _JSONHandler(obj):
     return 'Exception: %s' % str(obj)
   return str(obj)
 
-class TestlogError(Exception):
-  """Catch-all exception for testlog Python API."""
-  pass
+
+def CapturePythonLogging(callback, level=logging.DEBUG):
+  """Starts capturing Python logging.
+
+  The output events will be sent to the specified callback function.
+  This function can only be used once to set up logging -- any subsequent
+  calls will return the existing Logger object.
+
+  Arguments:
+    callback: Function to be called when the Python logging library is called.
+              It accepts one argument, which will be the StationMessage object
+              as constructed by TestlogLogHandler.
+    level: Sets minimum verbosity of log messages that will be sent to the
+           callback.  Default: logging.DEBUG.
+  """
+  global _pylogger  # pylint: disable=W0603
+  if _pylogger:
+    # We are already capturing Python logging.
+    return _pylogger
+
+  log_handler = TestlogLogHandler(callback)
+  log_handler.setFormatter(LogFormatter())
+  _pylogger = logging.getLogger()
+  _pylogger.addHandler(log_handler)
+  _pylogger.setLevel(level)
+  return _pylogger
+
+
+class TestlogLogHandler(logging.Handler):
+  """Format records into events and send them to callback function.
+
+  Properties:
+    _callback: Function to be called when we have processed the logging message
+               and created a StationMessage object.  It accepts one argument,
+               which will be the constructed StationMessage object.
+    _thread_data: Storage for the local thread.  Used to track whether or not
+                  the thread is currently in an emit call.
+  """
+
+  def __init__(self, callback):
+    self._callback = callback
+    self._thread_data = threading.local()
+    super(TestlogLogHandler, self).__init__()
+
+  def emit(self, record):
+    """Formats and emits event record.
+
+    Warning: If this function or any code executed down the call stack makes
+    use of Python logging functions, they will be dropped from this log handler.
+    Otherwise, an infinite loop will result.
+    """
+    if getattr(self._thread_data, 'in_emit', False):
+      # We are already in an emit call.  Throw out any other subsequent emits
+      # until this call finishes.
+      return
+
+    self._thread_data.in_emit = True
+    event = self.format(record)
+    result = self._callback(event)
+    self._thread_data.in_emit = False
+    return result
+
+
+class LogFormatter(logging.Formatter):
+  """Format records into events."""
+
+  def format(self, record):
+    message = record.getMessage()
+    if record.exc_info:
+      message += '\n%s' % self.formatException(record.exc_info)
+    time = datetime.datetime.utcfromtimestamp(record.created)
+
+    data = {
+        'filePath': getattr(record, 'pathname', None),
+        'lineNumber': getattr(record, 'lineno', None),
+        'functionName': getattr(record, 'funcName', None),
+        'logLevel': getattr(record, 'levelname', None),
+        'time': time,
+        'message': message}
+
+    return StationMessage(data)
+
 
 class EventBase(object):
   """Base plumbing for Event class.
@@ -171,6 +263,7 @@ class EventBase(object):
     """Repr operator for string printing."""
     return '<{} data={}>'.format(self.__class__.__name__, repr(self._data))
 
+
 class Event(EventBase):
   """Main event class.
 
@@ -186,11 +279,15 @@ class Event(EventBase):
 
     Arguments:
       data: Dictionary that can contain:
-          - type: Type of the event (corresponds to GetEventType()).
-          - id: Unique UUID string of the event.
-          - apiVersion: Testlog API version.
-          - seq: Seq number (monotonically increasing ID) of the event.
-          - time: Date and time the event was recorded.
+          - id (string, required): Unique UUID of the event.
+          - type (string, required): Type of the event.  Its value determines
+            which fields are applicable to this event.
+          - apiVersion (string, required): Version of the testlog API being
+            used.
+          - seq (integer, optional): Sequence number of the event, to help in
+            cases where the station date is unreliable.  Should be monotonically
+            increasing.
+          - time (string, required): Date and time of the event.
 
     Returns:
       The event being modified (self).
@@ -225,6 +322,7 @@ class Event(EventBase):
     # Return self for convenience.
     return self
 
+
 class _StationBase(Event):
   """Fake event class for all "station" subtypes.
 
@@ -240,10 +338,14 @@ class _StationBase(Event):
 
     Arguments:
       data: Dictionary that can contain:
-          - stationName: Unique string identifying the station.
-          - stationDeviceId: Unique UUID identifying the station machine.
-          - stationReimageId: Unique UUID identifying the current reimage on
-                              the station.
+          - stationName (string, optional): Name of the station.
+          - stationDeviceId (string, optional): ID of the device being used as
+            the station.  This should be a value tied to the device (such as a
+            MAC address) that will not change in the case that the device is
+            reimaged.
+          - stationReimageId (string, optional): ID of the reimage of the
+            station.  Every time the station is reimaged, a new reimage ID
+            should be generated (unique UUID).
 
     Returns:
       The event being modified (self).
@@ -279,3 +381,40 @@ class StationInit(_StationBase):
     self.PopAndSet(data, 'success', None)
     self.PopAndSet(data, 'failureMessage', None)
     return super(StationInit, self).Populate(data)
+
+
+class StationMessage(_StationBase):
+  """Represents a Python message on the Station."""
+
+  @classmethod
+  def GetEventType(cls):
+    return 'station.message'
+
+  def Populate(self, data):
+    """Populates fields for station message class.
+
+    Arguments:
+      data: Dictionary that can contain:
+          - filePath (string, optional): Name or path of the program that
+            generated this message.
+          - lineNumber (integer, optional): Line number within the program that
+            generated this message.
+          - functionName (string, optional): Function name within the program
+            that generated this message.
+          - logLevel (string, optional): Log level of this message. Possible
+            values: DEBUG, INFO, WARNING, ERROR, CRITICAL
+          - message (string, required): Message text.  Can include stacktrace or
+            other debugging information if applicable.
+          - testRunId (string, optional): If this message was associated with a
+            particular test run, its ID should be specified here.
+
+    Returns:
+      The event being modified (self).
+    """
+    self.PopAndSet(data, 'filePath', None)
+    self.PopAndSet(data, 'lineNumber', None)
+    self.PopAndSet(data, 'functionName', None)
+    self.PopAndSet(data, 'logLevel', None)
+    self.PopAndSet(data, 'message', None)
+    self.PopAndSet(data, 'testRunId', None)
+    return super(StationMessage, self).Populate(data)
