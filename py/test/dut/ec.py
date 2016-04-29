@@ -20,18 +20,46 @@ class EmbeddedController(component.DUTComponent):
 
   # Regular expression for parsing ectool output.
   I2C_READ_RE = re.compile(r'I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
+  RO_VERSION_RE = re.compile(r'^RO version:\s*(\S+)\s*$', re.MULTILINE)
+  RW_VERSION_RE = re.compile(r'^RW version:\s*(\S+)\s*$', re.MULTILINE)
 
   def _GetOutput(self, command):
     result = self._dut.CallOutput(command)
     return result.strip() if result is not None else ''
 
   def GetECVersion(self):
-    """Gets the EC firmware version.
+    """Gets the active EC firmware version.
 
     Returns:
-      A string of the EC firmware version.
+      A string of the active EC firmware version.
     """
     return self._GetOutput(['mosys', 'ec', 'info', '-s', 'fw_version'])
+
+  def GetROVersion(self):
+    """Gets the EC RO firmware version.
+
+    Returns:
+      A string of the EC RO firmware version.
+    """
+    ec_version = self._GetOutput(['ectool', 'version'])
+    match = self.RO_VERSION_RE.search(ec_version)
+    if match:
+      return match.group(1)
+    else:
+      raise self.Error('Unexpected output from "ectool version": %s', ec_version)
+
+  def GetRWVersion(self):
+    """Gets the EC RW firmware version.
+
+    Returns:
+      A string of the EC RW firmware version.
+    """
+    ec_version = self._GetOutput(['ectool', 'version'])
+    match = self.RW_VERSION_RE.search(ec_version)
+    if match:
+      return match.group(1)
+    else:
+      raise self.Error('Unexpected output from "ectool version": %s', ec_version)
 
   def GetECConsoleLog(self):
     """Gets the EC console log.

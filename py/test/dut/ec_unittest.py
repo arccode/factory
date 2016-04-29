@@ -10,6 +10,7 @@
 from __future__ import print_function
 
 import mox
+import textwrap
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -19,6 +20,12 @@ from cros.factory.test.dut import board
 
 class EmbeddedControllerTest(unittest.TestCase):
   """Unittest for EmbeddedController."""
+
+  _EC_VERSION_OUTPUT = textwrap.dedent('''
+      RO version:    samus_v1.7.576-9648e39
+      RW version:    samus_v1.7.688-22cf733
+      Firmware copy: RW
+      Build info:    samus_v1.7.688-22cf733 2015-07-16 11:31:57 @build291-m2''')
 
   def setUp(self):
     self.mox = mox.Mox()
@@ -34,6 +41,20 @@ class EmbeddedControllerTest(unittest.TestCase):
             'link_v1.1.227-3b0e131')
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetECVersion(), 'link_v1.1.227-3b0e131')
+    self.mox.VerifyAll()
+
+  def testGetROVersion(self):
+    self.board.CallOutput(['ectool', 'version']).AndReturn(
+        self._EC_VERSION_OUTPUT)
+    self.mox.ReplayAll()
+    self.assertEquals(self.ec.GetROVersion(), 'samus_v1.7.576-9648e39')
+    self.mox.VerifyAll()
+
+  def testGetRWVersion(self):
+    self.board.CallOutput(['ectool', 'version']).AndReturn(
+        self._EC_VERSION_OUTPUT)
+    self.mox.ReplayAll()
+    self.assertEquals(self.ec.GetRWVersion(), 'samus_v1.7.688-22cf733')
     self.mox.VerifyAll()
 
   def testGetECConsoleLog(self):
