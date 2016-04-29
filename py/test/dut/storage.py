@@ -73,6 +73,7 @@ class Storage(component.DUTComponent):
     # TODO(stimim): we might need to lock the file while writing.
     self._dut.WriteFile(self.GetDictFilePath(),
                         json.dumps(data, sort_keys=True))
+    self._dut.Call(['sync'])
     return data
 
   def UpdateDict(self, E, **F):
