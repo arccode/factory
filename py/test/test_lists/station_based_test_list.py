@@ -21,20 +21,22 @@ def StartStationTest(test_list_id, label_en, label_zh, prompt_start):
              'clear_device_data': False})
 
 
-def EndStationTest(test_list_id, label_en, label_zh):
+def EndStationTest(test_list_id, label_en, label_zh, disconnect_dut):
   OperatorTest(
       id='EndStationTest_%s' % test_list_id,
       label_en=u'End %s' % label_en,
       label_zh=u'结束 %s' % label_zh,
       pytest_name='station_entry',
-      dargs={'start_station_tests': False})
+      dargs={'start_station_tests': False,
+             'disconnect_dut': disconnect_dut})
 
 
 def StationBased(test_list_id, label_en, label_zh,
                  dut_options=None,
                  automated_sequence=True,
                  prompt_start=True,
-                 prestart_steps=None):
+                 prestart_steps=None,
+                 disconnect_dut=True):
   """A decorator to add common test items for station-based tests.
 
   Args:
@@ -94,6 +96,6 @@ def StationBased(test_list_id, label_en, label_zh,
               step()
           StartStationTest(test_list_id, label_en, label_zh, prompt_start)
           CreateTestLists(test_list)
-          EndStationTest(test_list_id, label_en, label_zh)
+          EndStationTest(test_list_id, label_en, label_zh, disconnect_dut)
     return CreateStationTestList
   return Wrap

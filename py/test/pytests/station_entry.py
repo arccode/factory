@@ -88,6 +88,9 @@ class StationEntry(unittest.TestCase):
       Arg('timeout_secs', int,
           'Timeout for waiting the device. Set to None for waiting forever.',
           default=None, optional=True),
+      Arg('disconnect_dut', bool,
+          'Ask operator to disconnect DUT or not',
+          default=True, optional=True),
   ]
 
   def setUp(self):
@@ -158,9 +161,13 @@ class StationEntry(unittest.TestCase):
 
     self._ui.SetHTML(_MSG_REMOVE_DUT, id=_ID_MSG_DIV)
     if not self._dut.link.IsLocal():
-      sync_utils.WaitFor(lambda: not self._dut.link.IsReady(),
-                         self.args.timeout_secs,
-                         poll_interval=1)
+      if self.args.disconnect_dut:
+        sync_utils.WaitFor(lambda: not self._dut.link.IsReady(),
+                           self.args.timeout_secs,
+                           poll_interval=1)
+      else:
+        sync_utils.WaitFor(self._space_event.isSet, None)
+        self._space_event.clear()
 
     self._ui.SetHTML(_MSG_RESTART_TESTS, id=_ID_MSG_DIV)
     self.RestartAllTests()

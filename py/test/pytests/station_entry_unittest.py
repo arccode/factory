@@ -83,7 +83,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test.args = FakeArgs({'start_station_tests': False,
                                'prompt_start': False,
                                'clear_device_data': True,
-                               'timeout_secs': timeout_secs})
+                               'timeout_secs': timeout_secs,
+                               'disconnect_dut': True})
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
 
