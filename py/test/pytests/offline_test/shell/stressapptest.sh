@@ -9,14 +9,16 @@ task_{%id%} () {
     toybox mount -o remount,size=100% "${shared_memory_path}"
   fi
   local tmpdir="$(mktemp -d)"
-  local output="$(stressapptest -m {%cpu_count%} -M {%mem_usage%} \
-                  -s {%seconds%} {%disk_thread%})"
-  local return_value="$?"
-  rm -rf "${tmpdir}"
+  local output="$(mktemp)"
 
-  if ! echo "${output}" | grep -q "Status: PASS" ; then
-    die "${output}"
-  fi
+  stressapptest -m {%cpu_count%} -M {%mem_usage%} \
+      -s {%seconds%} {%disk_thread%} | tee "${output}"
+  local return_value="$?"
+
+  [ "${return_value}" = 0 ] && grep -q "Status: PASS" "${output}"
+  return_value="$?"
+
+  rm -rf "${tmpdir}" "${output}"
 
   return "${return_value}"
 }
