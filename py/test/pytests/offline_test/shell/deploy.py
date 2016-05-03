@@ -99,7 +99,7 @@ class ScriptBuilder(object):
 
   ShellTestCase = FunctionMapper()
 
-  def __init__(self, dut, data_root, script_root):
+  def __init__(self, dut, data_root, script_root, check_reboot):
     """Constructor of ScriptBuilder.
 
     Args:
@@ -116,6 +116,7 @@ class ScriptBuilder(object):
     self.dut = dut
     self.data_root = data_root
     self.script_root = script_root
+    self.check_reboot = check_reboot
 
   @type_utils.LazyProperty
   def cpu_count(self):
@@ -142,12 +143,14 @@ class ScriptBuilder(object):
 
     tasks = '\n'.join(self.tasks)
     sh = self.dut.CheckOutput(['which', 'sh']).strip()
+    check_reboot = "true" if self.check_reboot else "false"
 
     return _FormatTemplate('main.sh',
                            data_root=self.data_root,
                            script_root=self.script_root,
                            total_tasks=len(self.tasks),
                            sh=sh,
+                           check_reboot=check_reboot,
                            tasks=tasks)
 
   def AddShellTestCase(self, test_name, **kargs):
@@ -254,14 +257,19 @@ class DeployShellOfflineTest(unittest.TestCase):
           'callback_example.sh for example. That file is also the default '
           'implementation. The path should be absolute path or relative to '
           'FACTORY_PATH.',
-          default='py/test/pytests/offline_test/shell/callback_example.sh')]
+          default='py/test/pytests/offline_test/shell/callback_example.sh',
+          optional=True),
+      Arg('check_reboot', bool,
+          'detect unexpected reboot or not',
+          default=True, optional=True),]
 
   def setUp(self):
     self.dut = dut_module.Create()
     self.data_root = common.DataRoot(self.dut)
     self.test_script_path = common.TestScriptPath(self.dut)
     self.script_root = common.ScriptRoot(self.dut)
-    self.builder = ScriptBuilder(self.dut, self.data_root, self.script_root)
+    self.builder = ScriptBuilder(self.dut, self.data_root, self.script_root,
+                                 self.args.check_reboot)
 
   def _MakeStartUpApp(self, starter_path):
     self.dut.init.AddFactoryStartUpApp(common.OFFLINE_JOB_NAME, starter_path)

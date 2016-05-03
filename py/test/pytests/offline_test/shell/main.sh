@@ -78,7 +78,11 @@ main() {
 
   if [ "${state}" = "running" ]; then
     if [ ! -e "${DATA_DIR}/should_reboot" ]; then
-      die unepected reboot
+      if {%check_reboot%}; then
+        die unexpected reboot
+      else
+        info "continue last test"
+      fi
     fi
   elif [ "${state}" = "FAILED" ]; then
     on_test_failed
