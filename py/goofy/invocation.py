@@ -9,6 +9,7 @@
 from __future__ import print_function
 
 import copy
+import datetime
 import fnmatch
 import logging
 import os
@@ -32,9 +33,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test import log_writer
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
+from cros.factory.test import testlog
 from cros.factory.test.args import Args
 from cros.factory.test.dut import utils as dut_utils
 from cros.factory.test.e2e_test.common import AutomationMode
@@ -208,6 +211,7 @@ class TestInvocation(object):
     self.test = test
     self.thread = threading.Thread(
         target=self._run, name='TestInvocation-%s' % test.path)
+    self.log_writer = log_writer.GetGlobalLogWriter()
     self.start_time = None
     self.end_time = None
     self.on_completion = on_completion
@@ -592,6 +596,25 @@ class TestInvocation(object):
     logging.info('Preserved %d files matching %s and removed %d',
                  preserved_count, globs, deleted_count)
 
+  def _EmitTestRunEvent(self, status):
+    """Emit a testlog test_run event."""
+    kwargs = {}
+    kwargs['testName'] = self.test.path
+    kwargs['testClass'] = self.test.pytest_name
+    kwargs['testRunId'] = self.uuid
+    kwargs['status'] = status
+
+    # Start, end, and duration.
+    kwargs['startTime'] = datetime.datetime.fromtimestamp(self.start_time)
+    if self.end_time:
+      kwargs['endTime'] = datetime.datetime.fromtimestamp(self.end_time)
+      kwargs['duration'] = self.end_time - self.start_time
+    elif status is not testlog.StationTestRun.STARTING:
+      kwargs['duration'] = time.time() - self.start_time
+
+    event = testlog.StationTestRun(kwargs)
+    self.log_writer.Log(event)
+
   def _run(self):
     with self._lock:
       if self._aborted:
@@ -654,6 +677,7 @@ class TestInvocation(object):
 
       try:
         self.goofy.event_log.Log('start_test', **log_args)
+        self._EmitTestRunEvent(status=testlog.StationTestRun.STARTING)
       except Exception:
         logging.exception('Unable to log start_test event')
 
@@ -716,6 +740,12 @@ class TestInvocation(object):
             logging.exception('Unable to read log tail')
         self.goofy.event_log.Log('end_test', **log_args)
         self.update_metadata(end_time=self.end_time, **log_args)
+
+        if status == TestState.PASSED:
+          testlog_status = testlog.StationTestRun.PASSED
+        else:
+          testlog_status = testlog.StationTestRun.FAILED
+        self._EmitTestRunEvent(status=testlog_status)
       except:
         logging.exception('Unable to log end_test event')
 
