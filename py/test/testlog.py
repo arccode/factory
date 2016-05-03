@@ -191,6 +191,9 @@ class Event(EventBase):
           - apiVersion: Testlog API version.
           - seq: Seq number (monotonically increasing ID) of the event.
           - time: Date and time the event was recorded.
+
+    Returns:
+      The event being modified (self).
     """
     if not self.GetEventType():
       raise TestlogError('Must initialize directly from desired event class')
@@ -219,6 +222,9 @@ class Event(EventBase):
     d = d.replace(microsecond=(d.microsecond / 1000 * 1000))
     self._data['time'] = d
 
+    # Return self for convenience.
+    return self
+
 class _StationBase(Event):
   """Fake event class for all "station" subtypes.
 
@@ -238,11 +244,14 @@ class _StationBase(Event):
           - stationDeviceId: Unique UUID identifying the station machine.
           - stationReimageId: Unique UUID identifying the current reimage on
                               the station.
+
+    Returns:
+      The event being modified (self).
     """
     self.PopAndSet(data, 'stationName', None)
     self.PopAndSet(data, 'stationDeviceId', None)
     self.PopAndSet(data, 'stationReimageId', None)
-    super(_StationBase, self).Populate(data)
+    return super(_StationBase, self).Populate(data)
 
 class StationInit(_StationBase):
   """Represents the Station being brought up or initialized."""
@@ -262,8 +271,11 @@ class StationInit(_StationBase):
             successfully initialized.
           - failureMessage (string, optional): A failure string explaining why
             the station could not initialize.
+
+    Returns:
+      The event being modified (self).
     """
     self.PopAndSet(data, 'count', None)
     self.PopAndSet(data, 'success', None)
     self.PopAndSet(data, 'failureMessage', None)
-    super(StationInit, self).Populate(data)
+    return super(StationInit, self).Populate(data)

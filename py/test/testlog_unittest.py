@@ -74,6 +74,10 @@ class TestlogTest(unittest.TestCase):
     with self.assertRaises(testlog.TestlogError):
       event = testlog.StationInit({'time': None})
 
+  def testPopulateReturnsSelf(self):
+    event = testlog.StationInit()
+    self.assertEquals(event.Populate({}), event)
+
 
 if __name__ == '__main__':
   unittest.main()
