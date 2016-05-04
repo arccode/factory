@@ -28,6 +28,7 @@ import unittest
 import yaml
 from optparse import OptionParser
 from setproctitle import setproctitle
+from Queue import Empty, Queue
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
@@ -42,7 +43,8 @@ from cros.factory.test.args import Args
 from cros.factory.test.dut import utils as dut_utils
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
-from cros.factory.test.event import Event
+from cros.factory.test.event import (Event, EventClient,
+                                     CROS_FACTORY_EVENT)
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
@@ -50,6 +52,9 @@ from cros.factory.test.test_lists.test_lists import OldStyleTestList
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
+from cros.factory.utils import time_utils
+from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
 
@@ -62,6 +67,12 @@ ERROR_LOG_TAIL_LENGTH = 8 * 1024
 # A file that stores override test list dargs for factory test automation.
 OVERRIDE_TEST_LIST_DARGS_FILE = os.path.join(
     paths.GetStateRoot(), 'override_test_list_dargs.yaml')
+
+# How often to check for Testlog updated test state.
+TESTLOG_COLLECT_STATE_PERIOD_SECS = 0.1
+
+# How often to push Testlog test_run heartbeats.
+TESTLOG_HEARTBEAT_PERIOD_SECS = 20
 
 
 class InvocationError(Exception):
@@ -217,6 +228,17 @@ class TestInvocation(object):
     self.on_completion = on_completion
     self.on_test_failure = on_test_failure
     self.resume_test = False
+
+    self.event_queue = Queue()
+    self.event_client = EventClient(callback=self._HandleTestlogEvent,
+                                    event_loop=self.event_queue)
+    self.testlog_thread = threading.Thread(
+        target=self._CollectTestlogState,
+        name='TestInvocationTestlog-%s' % test.path)
+    self.testlog_data = None
+    self.testlog_has_final_state = threading.Event()
+    self.testlog_abort = threading.Event()
+
     post_shutdown_tag = state.POST_SHUTDOWN_TAG % test.path
     if factory.get_shared_data(post_shutdown_tag):
       # If this is going to be a post-shutdown run of an active shutdown test,
@@ -307,7 +329,9 @@ class TestInvocation(object):
     os.rename(tmp, self.metadata_file)
 
   def start(self):
-    """Starts the test thread."""
+    """Starts the test threads."""
+    self.testlog_thread.setDaemon(True)
+    self.testlog_thread.start()
     self.thread.start()
 
   def abort_and_join(self, reason=None):
@@ -596,8 +620,68 @@ class TestInvocation(object):
     logging.info('Preserved %d files matching %s and removed %d',
                  preserved_count, globs, deleted_count)
 
-  def _EmitTestRunEvent(self, status):
-    """Emit a testlog test_run event."""
+  def _CollectTestlogState(self):
+    """Collects Testlog state being pushed through Goofy events.
+
+    Trigger a Testlog test_run heartbeat every TESTLOG_HEARTBEAT_PERIOD_SECS.
+    """
+    last_update = time_utils.MonotonicTime()
+
+    while True:
+      # Should we abort state collection?
+      if self.testlog_abort.is_set():
+        return
+
+      # Get the next callback from Goofy event queue, and check to see
+      # if it is the final data packet.
+      callback = None
+      try:
+        callback = self.event_queue.get(False)
+      except Empty:
+        pass
+      if callback and callback():  # Callbacks run _HandleTestlogEvent.
+        self.testlog_has_final_state.set()
+        return
+
+      # Should we do a heartbeat?
+      now = time_utils.MonotonicTime()
+      if now - last_update > TESTLOG_HEARTBEAT_PERIOD_SECS:
+        try:
+          self._EmitTestRunEvent(
+              self.testlog_data,
+              testlog.StationTestRun.RUNNING)
+          last_update = now
+        except Exception:
+          logging.exception('Unable to log test_run RUNNING event')
+
+      # Avoid busy wait.
+      time.sleep(TESTLOG_COLLECT_STATE_PERIOD_SECS)
+
+  def _HandleTestlogEvent(self, event):
+    """Handles an Testlog Pytest state event sent by other invocation thread.
+
+    Args:
+      event: Goofy event
+
+    Returns:
+      True when the final Pytest state has been received.
+    """
+    if (event.type == Event.Type.PYTEST_TESTLOG_STATE and
+        event.test_path == self.test.path and
+        event.invocation == self.uuid):
+      self.testlog_data = event.data
+      if event.final:
+        return True
+
+  def _EmitTestRunEvent(self, testlog_data, status):
+    """Emit a testlog test_run event.
+
+    Args:
+      testlog_data: Testlog test run state saved so far by the running test.
+                    This is None when no state has yet been reported back.
+      status: Status of the test according to values in testlog.StationTestRun
+              (STARTING, RUNNING, FAILED, PASSED).
+    """
     kwargs = {}
     kwargs['testName'] = self.test.path
     kwargs['testClass'] = self.test.pytest_name
@@ -612,8 +696,13 @@ class TestInvocation(object):
     elif status is not testlog.StationTestRun.STARTING:
       kwargs['duration'] = time.time() - self.start_time
 
-    event = testlog.StationTestRun(kwargs)
-    self.log_writer.Log(event)
+    if testlog_data:
+      testlog_event = testlog.StationTestRun.FromTestRunState(testlog_data)
+    else:
+      testlog_event = testlog.StationTestRun()
+
+    testlog_event.Populate(kwargs)
+    self.log_writer.Log(testlog_event)
 
   def _run(self):
     with self._lock:
@@ -677,7 +766,7 @@ class TestInvocation(object):
 
       try:
         self.goofy.event_log.Log('start_test', **log_args)
-        self._EmitTestRunEvent(status=testlog.StationTestRun.STARTING)
+        self._EmitTestRunEvent(None, status=testlog.StationTestRun.STARTING)
       except Exception:
         logging.exception('Unable to log start_test event')
 
@@ -738,6 +827,25 @@ class TestInvocation(object):
               log_args['log_tail'] = DecodeUTF8(f.read())
           except:
             logging.exception('Unable to read log tail')
+
+        # Let's try to wait for the final Testlog state.
+        logging.info('Waiting for Testlog final state...')
+        if not self.testlog_has_final_state.wait(5):
+          self.testlog_abort.set()
+          logging.error('Could not get Testlog final state.  '
+                        'Continuing anyway...')
+        try:
+          sync_utils.PollForCondition(
+              poll_method=self.testlog_thread.is_alive,
+              condition_method=lambda ret: not ret,
+              timeout_secs=5,
+              condition_name='Waiting for %s to end...'
+                             % self.testlog_thread.name)
+        except time_utils.TimeoutError:
+          logging.error('Testlog state collection thread never ended.  '
+                        'Something is seriously wrong, but will continue '
+                        'anyway...')
+
         self.goofy.event_log.Log('end_test', **log_args)
         self.update_metadata(end_time=self.end_time, **log_args)
 
@@ -745,9 +853,9 @@ class TestInvocation(object):
           testlog_status = testlog.StationTestRun.PASSED
         else:
           testlog_status = testlog.StationTestRun.FAILED
-        self._EmitTestRunEvent(status=testlog_status)
-      except:
-        logging.exception('Unable to log end_test event')
+        self._EmitTestRunEvent(self.testlog_data, status=testlog_status)
+      except Exception:
+        logging.exception('Unable to log test_run FINISHED event')
 
     service_manager.RestoreServices()
 
@@ -980,9 +1088,40 @@ def RunPytest(test_info):
         elif isinstance(test, unittest.TestSuite):
           for x in test:
             SetTestInfo(x)
-
       SetTestInfo(suite)
+
+      # If the CROS_FACTORY_EVENT environment variable doesn't exist, assume
+      # that there is no EventServer running.  In this case, we have no way
+      # of sending Testlog data back to the parent process to output as
+      # test_run events.  This either means that:
+      #
+      # (a) Maybe invocation is being called by run_test.py.  In this case,
+      #     this is expected behaviour, since run_test.py doesn't save logs.
+      # (b) Something is wrong.
+      #
+      # Be explicit about this and note if there is no EventServer to relay
+      # Testlog data.
+      enable_testlog = True
+      if 'CROS_FACTORY_EVENT' not in os.environ:
+        logging.info('Logging for Testlog is disabled')
+        enable_testlog = False
+
+      if enable_testlog:
+        # Post Testlog test_run event when changed.
+        def PostTestlogState(testlog_data, final=False):
+            EventClient().post_event(Event(
+                Event.Type.PYTEST_TESTLOG_STATE,
+                data=testlog_data,
+                invocation=os.environ['CROS_FACTORY_TEST_PARENT_INVOCATION'],
+                test_path=os.environ['CROS_FACTORY_TEST_PATH'],
+                final=final))
+        testlog.RegisterTestRunStateChangeHandler(PostTestlogState)
+
       result = RunTestCase(suite, test_info.test_case_id)
+
+      if enable_testlog:
+        # Final test_run state post.
+        PostTestlogState(testlog.GetTestRunState(), final=True)
 
       def FormatErrorMessage(trace):
         """Formats a trace so that the actual error message is in the last

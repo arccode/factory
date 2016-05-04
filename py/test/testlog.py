@@ -439,6 +439,10 @@ class StationTestRun(_StationBase):
   def GetEventType(cls):
     return 'station.test_run'
 
+  @classmethod
+  def FromTestRunState(cls, testlog_data):
+    return Event.FromJSON(testlog_data)
+
   def Populate(self, data):
     """Populates fields for station test_run class.
 
@@ -477,3 +481,20 @@ class StationTestRun(_StationBase):
     self.PopAndSet(data, 'endTime', None)
     self.PopAndSet(data, 'duration', None)
     return super(StationTestRun, self).Populate(data)
+
+
+_test_run_state_change_handlers = []
+_current_test_run = StationTestRun()
+
+
+def RegisterTestRunStateChangeHandler(method):
+  _test_run_state_change_handlers.append(method)
+
+
+def GetTestRunState():
+  return _current_test_run.ToJSON()
+
+
+def TriggerTestRunStateChange():
+  for h in _test_run_state_change_handlers:
+    h(_current_test_run.ToJSON())
