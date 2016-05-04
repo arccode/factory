@@ -140,11 +140,13 @@ class ScriptBuilder(object):
     """
 
     tasks = '\n'.join(self.tasks)
+    sh = self.dut.CheckOutput(['which', 'sh']).strip()
 
     return _FormatTemplate('main.sh',
                            data_root=self.data_root,
                            script_root=self.script_root,
                            total_tasks=len(self.tasks),
+                           sh=sh,
                            tasks=tasks)
 
   def AddShellTestCase(self, test_name, **kargs):
@@ -331,9 +333,12 @@ class DeployShellOfflineTest(unittest.TestCase):
 
     starter_path = self.dut.path.join(self.script_root, 'starter.sh')
     # push starter script
+    sh = self.dut.CheckOutput(['which', 'sh']).strip()
     self.dut.WriteFile(starter_path,
-                       _FormatTemplate('starter.sh', data_root=self.data_root,
-                                       test_script_path=self.test_script_path))
+                       _FormatTemplate('starter.sh',
+                                       data_root=self.data_root,
+                                       test_script_path=self.test_script_path,
+                                       sh=sh))
     self.dut.Call(['chmod', '+x', starter_path])
 
     # push callback script
