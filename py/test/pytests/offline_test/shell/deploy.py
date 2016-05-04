@@ -186,7 +186,8 @@ class ScriptBuilder(object):
     return self
 
   @ShellTestCase.Register('stressapptest')
-  def TestStressApp(self, memory_ratio, seconds, disk_thread):
+  def TestStressApp(self, memory_ratio, seconds, disk_thread,
+                    shared_memory_path=''):
     """Generate stressapptest script by formatting `./stressapptest.sh`."""
 
     if disk_thread:
@@ -198,7 +199,8 @@ class ScriptBuilder(object):
     mem_usage = max(int(self.memory_total_kb * memory_ratio / 1024), 32)
 
     self._AddTask('stressapptest.sh', cpu_count=self.cpu_count,
-                  mem_usage=mem_usage, seconds=seconds, disk_thread=disk_thread)
+                  mem_usage=mem_usage, seconds=seconds, disk_thread=disk_thread,
+                  shared_memory_path=shared_memory_path)
 
     return self
 

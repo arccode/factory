@@ -5,7 +5,11 @@
 
 task_{%id%} () {
   touch "${DATA_DIR}/should_reboot"
-  mount -o remount,size=100% /dev/shm  # TODO(stimim): make /dev/shm a variable
+
+  local shared_memory_path="{%shared_memory_path%}"
+  if [ -n "${shared_memory_path}" ]; then
+    toybox mount -o remount,size=100% "${shared_memory_path}"
+  fi
   local tmpdir="$(mktemp -d)"
   local output="$(stressapptest -m {%cpu_count%} -M {%mem_usage%} \
                   -s {%seconds%} {%disk_thread%})"
