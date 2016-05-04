@@ -366,7 +366,9 @@ class DeployShellOfflineTest(unittest.TestCase):
     elif self.args.next_action == self.NEXT_ACTION.REBOOT:
       self.dut.Call(['reboot'])
     elif self.args.next_action == self.NEXT_ACTION.START_TEST:
-      self.dut.Call(['sh', self.test_script_path])
+      # Starts the scripts in background and deteches it from the terminal.
+      self.dut.Popen(['sh', '-c', 'nohup %s >%s &' % (
+          starter_path, self.dut.path.join(self.data_root, 'nohup.out'))])
     elif self.args.next_action == self.NEXT_ACTION.NOP:
       pass
     else:
