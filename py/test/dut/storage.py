@@ -173,12 +173,21 @@ class Storage(component.DUTComponent):
 
 
 class AndroidStorage(Storage):
+  """Persistent storage on Android.
+
+  On Android, partitions that have rw default enabled include /data and
+  /sdcard, but not every Android devices have /sdcard. On the oher
+  hand, most Android devices put tmp files in /data/local/tmp, so here we
+  choose /data/local/factory as the location to store persist factory data.
+  /data/local/factory/source is used for factory software, and
+  /data/local/factory/data is used for persist factory data.
+  """
+
+  def GetFactoryRoot(self):
+    return '/data/local/factory/source'
+
   def GetDataRoot(self):
-    # On Android, partitions that have rw default enabled include /data and
-    # /sdcard, but not every Android devices have /sdcard. On the oher
-    # hand, most Android devices put tmp files in /data/local/tmp, so here we
-    # choose /data/local/factory as the location to store persist factory data.
-    return '/data/local/factory'
+    return '/data/local/factory/data'
 
   def _GetMainStorageDeviceMountPoint(self):
     return '/data'
