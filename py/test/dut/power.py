@@ -12,6 +12,7 @@ import numpy
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut.component import DUTComponent
+from cros.factory.test.dut.component import DUTProperty
 from cros.factory.utils.type_utils import Enum
 
 
@@ -38,7 +39,6 @@ class Power(DUTComponent):
 
   def __init__(self, dut):
     super(Power, self).__init__(dut)
-    self._battery_path = None
     self._current_state = None
 
   def ReadOneLine(self, file_path):
@@ -95,13 +95,23 @@ class Power(DUTComponent):
     except (PowerException, IOError):
       return 'Unknown'
 
-  def CheckBatteryPresent(self):
-    """Check if battery is present and also set battery path."""
+  @DUTProperty
+  def _battery_path(self):
+    """Get battery path.
+
+    Use cached value if available.
+
+    Returns:
+      Battery path if available, False otherwise.
+    """
     try:
-      self._battery_path = self.FindPowerPath(self.PowerSource.BATTERY)
-      return True
+      return self.FindPowerPath(self.PowerSource.BATTERY)
     except PowerException:
-      return False
+      return None
+
+  def CheckBatteryPresent(self):
+    """Check if battery is present."""
+    return self._battery_path is not None
 
   def GetBatteryAttribute(self, attribute_name):
     '''Get a battery attribute.
