@@ -208,6 +208,8 @@ class TestInvocation(object):
     self.test = test
     self.thread = threading.Thread(
         target=self._run, name='TestInvocation-%s' % test.path)
+    self.start_time = None
+    self.end_time = None
     self.on_completion = on_completion
     self.on_test_failure = on_test_failure
     self.resume_test = False
@@ -696,9 +698,9 @@ class TestInvocation(object):
       try:
         # Leave all items in log_args; this duplicates
         # things but will make it easier to grok the output.
-        end_time = time.time()
+        self.end_time = time.time()
         log_args.update(dict(status=status,
-                             duration=(end_time - self.start_time)))
+                             duration=(self.end_time - self.start_time)))
         if error_msg:
           log_args['error_msg'] = error_msg
         if (status != TestState.PASSED and
@@ -713,7 +715,7 @@ class TestInvocation(object):
           except:
             logging.exception('Unable to read log tail')
         self.goofy.event_log.Log('end_test', **log_args)
-        self.update_metadata(end_time=end_time, **log_args)
+        self.update_metadata(end_time=self.end_time, **log_args)
       except:
         logging.exception('Unable to log end_test event')
 
