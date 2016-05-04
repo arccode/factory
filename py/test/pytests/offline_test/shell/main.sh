@@ -11,11 +11,11 @@ TOTAL_TASKS={%total_tasks%}
 
 log() {
   local prefix="$1"
-  local date="$(date)"  # it turns out that strftime is not supported by all awk
+  local date="$(date)"
   shift
 
   # Use awk to ensure each line of $* will have correct prefix.
-  echo "$*" | awk "{print \"[${date} ${prefix}]\", \$0}" >&2
+  echo "$*" | toybox sed "s/^/[${date} ${prefix}] /" >&2
 }
 
 info() {
