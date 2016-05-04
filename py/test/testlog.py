@@ -418,3 +418,56 @@ class StationMessage(_StationBase):
     self.PopAndSet(data, 'message', None)
     self.PopAndSet(data, 'testRunId', None)
     return super(StationMessage, self).Populate(data)
+
+
+class StationTestRun(_StationBase):
+  """Represents a test run on the Station."""
+
+  # Possible values for the `status` field.
+  STARTING = 'STARTING'
+  RUNNING = 'RUNNING'
+  FAILED = 'FAILED'
+  PASSED = 'PASSED'
+
+  @classmethod
+  def GetEventType(cls):
+    return 'station.test_run'
+
+  def Populate(self, data):
+    """Populates fields for station test_run class.
+
+    Arguments:
+      data: Dictionary that can contain:
+        - testRunId (string, required): Unique UUID of the test run.  Since one
+          test run may output multiple test_run events (showing the progress of
+          the test run), we use testRunId to identify them as the same test.
+        - testName (string, required): A name identifying this test with its
+          particular configuration.  Sometimes, a test might run multiple times
+          with different configurations in the same project.  This field is used
+          to separate these configurations.
+        - testClass (string, required): A name identifying this type of test.
+          If it runs multiple times with different configurations, use testName
+          to differentiate.
+        - status (string, required): The current status of the test run.
+          Possible values: STARTING, RUNNING, FAILED, PASSED PASSED
+        - startTime (string, required): Date and time when the test started.
+        - endTime (string, optional): Date and time when the test ended.
+        - duration (number, optional): How long the test took to complete.
+          Should be the same as endTime - startTime.  Included for convenience.
+          Measured in seconds.
+
+    Returns:
+      The event being modified (self).
+    """
+    if data.get('status') not in [
+        None, self.STARTING, self.RUNNING, self.FAILED, self.PASSED]:
+      raise TestlogError('Invalid `status` field: %s' % data['status'])
+
+    self.PopAndSet(data, 'testRunId', None)
+    self.PopAndSet(data, 'testName', None)
+    self.PopAndSet(data, 'testClass', None)
+    self.PopAndSet(data, 'status', None)
+    self.PopAndSet(data, 'startTime', None)
+    self.PopAndSet(data, 'endTime', None)
+    self.PopAndSet(data, 'duration', None)
+    return super(StationTestRun, self).Populate(data)

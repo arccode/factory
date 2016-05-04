@@ -90,6 +90,10 @@ class TestlogTest(unittest.TestCase):
     self.assertEquals(len(logged_events), 1)
     self.assertEquals(logged_events[0]['message'], 'testing 123')
 
+  def testInvalidStatusTestRun(self):
+    with self.assertRaises(testlog.TestlogError):
+      testlog.StationTestRun({'status': True})
+
 
 if __name__ == '__main__':
   unittest.main()
