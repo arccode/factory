@@ -188,7 +188,7 @@ def ReadLines(filename, dut=None):
       with open(filename) as f:
         return f.readlines()
     else:
-      return dut.ReadFile(filename, skip=0).splitlines(True)
+      return dut.ReadSpecialFile(filename).splitlines(True)
   except Exception:
     logging.exception('Cannot read file "%s"', filename)
     return None

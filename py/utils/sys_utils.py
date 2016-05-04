@@ -175,7 +175,7 @@ def MountDeviceAndReadFile(device, path, dut=None):
       content = open(
           os.path.join(mount_point, path)).read()
     else:
-      content = dut.ReadFile(dut.path.join(mount_point, path), skip=0)
+      content = dut.ReadSpecialFile(dut.path.join(mount_point, path))
   return content
 
 

@@ -120,7 +120,7 @@ class GpioButton(GenericButton):
         time.sleep(0.1)
 
   def IsPressed(self):
-    return int(self._dut.ReadFile(self._value_path, skip=0)) == 1
+    return int(self._dut.ReadSpecialFile(self._value_path)) == 1
 
 
 class CrossystemButton(GenericButton):

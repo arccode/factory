@@ -227,11 +227,12 @@ class DUTBoard(object):
   def ReadFile(self, path, count=None, skip=None):
     """Returns file contents on DUT.
 
-    By default the "most-efficient" way of reading file will be used, but that
-    may not work for special files like device node or disk block file. You can
-    specify count or skip to read special files, for example:
+    By default the "most-efficient" way of reading file will be used, which may
+    not work for special files like device node or disk block file. Use
+    ReadSpecialFile for those files instead.
 
-      kern_blob = dut.ReadFile('/dev/sda2', skip=0)
+    Meanwhile, if count or skip is specified, the file will also be fetched by
+    ReadSpecialFile.
 
     Args:
       path: A string for file path on DUT.
@@ -243,7 +244,22 @@ class DUTBoard(object):
     """
     if count is None and skip is None:
       return self.link.Pull(path)
+    return self.ReadSpecialFile(path, count=count, skip=skip)
 
+  def ReadSpecialFile(self, path, count=None, skip=None):
+    """Returns contents of special file on DUT.
+
+    Reads special files (device node, disk block, or sys driver files) on DUT
+    using the most portable approach.
+
+    Args:
+      path: A string for file path on DUT.
+      count: Number of bytes to read. None to read whole file.
+      skip: Number of bytes to skip before reading. None to read from beginning.
+
+    Returns:
+      A string as file contents.
+    """
     if self.link.IsLocal():
       with open(path, 'rb') as f:
         f.seek(skip or 0)
