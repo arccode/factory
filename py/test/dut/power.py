@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import collections
+import logging
 import re
 import time
 
@@ -51,7 +52,7 @@ class Power(DUTComponent):
       String for the first line of file contents.
     """
     # splitlines() does not work on empty string so we have to check.
-    contents = self._dut.ReadFile(file_path)
+    contents = self._dut.ReadSpecialFile(file_path)
     if contents:
       return contents.splitlines()[0].strip()
     return ''
@@ -114,14 +115,14 @@ class Power(DUTComponent):
     return self._battery_path is not None
 
   def GetBatteryAttribute(self, attribute_name):
-    '''Get a battery attribute.
+    """Get a battery attribute.
 
     Args:
       attribute_name: The name of attribute in sysfs.
 
     Returns:
       Content of the attribute in str.
-    '''
+    """
     try:
       return self.ReadOneLine(self._dut.path.join(self._battery_path,
                                                   attribute_name))
@@ -156,14 +157,14 @@ class Power(DUTComponent):
       return None
 
   def GetChargePct(self, get_float=False):
-    '''Get current charge level in percentage.
+    """Get current charge level in percentage.
 
     Args:
       get_float: Returns charge percentage in float.
 
     Returns:
       Charge percentage in int/float.
-    '''
+    """
     now = self.GetBatteryAttribute('charge_now')
     full = self.GetBatteryAttribute('charge_full')
     if now is None or full is None:
@@ -325,6 +326,56 @@ class Power(DUTComponent):
       DUTException if any register is not available.
     """
     raise NotImplementedError
+
+  def GetInfoDict(self):
+    """Returns a dict containing information about the battery.
+
+    TODO(kitching): Determine whether this function is necessary (who uses it?).
+    TODO(kitching): Use calls on the power object to get required information
+                    instead of manually reading the Sysfs files.
+    """
+    def GetChargePctFloat():
+      return self.GetChargePct(True) / 100
+
+    _SysfsAttribute = collections.namedtuple(
+        'SysfsAttribute',
+        ['name', 'type', 'optional', 'getter'])
+    _SysfsBatteryAttributes = [
+        _SysfsAttribute('current_now', int, False, None),
+        _SysfsAttribute('present', bool, False, None),
+        _SysfsAttribute('status', str, False, None),
+        _SysfsAttribute('voltage_now', int, False, None),
+        _SysfsAttribute('voltage_min_design', int, True, None),
+        _SysfsAttribute('energy_full', int, True, None),
+        _SysfsAttribute('energy_full_design', int, True, None),
+        _SysfsAttribute('energy_now', int, True, None),
+        _SysfsAttribute('charge_full', int, True, self.GetChargeFull),
+        _SysfsAttribute('charge_full_design', int, True,
+                        self.GetBatteryDesignCapacity),
+        _SysfsAttribute('charge_now', int, True, self.GetCharge),
+        _SysfsAttribute('fraction_full', int, True, GetChargePctFloat),
+    ]
+    result = {}
+    sysfs_path = self._battery_path
+    if not sysfs_path:
+      return result
+    for k, item_type, optional, getter in _SysfsBatteryAttributes:
+      result[k] = None
+      try:
+        value = (
+            getter() if getter else
+            self._dut.ReadSpecialFile(
+                self._dut.path.join(sysfs_path, k)).strip())
+        result[k] = item_type(value)
+      except Exception as e:
+        log_func = logging.debug if optional else logging.error
+        exc_str = '%s: %s' % (e.__class__.__name__, e)
+        if getter:
+          log_func('sysfs attribute %s is unavailable: %s', k, exc_str)
+        else:
+          log_func('sysfs path %s is unavailable: %s',
+                   self._dut.path.join(sysfs_path, k), exc_str)
+    return result
 
 
 class ECToolPower(Power):

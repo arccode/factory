@@ -7,7 +7,6 @@
 
 from __future__ import print_function
 
-import collections
 import copy
 import logging
 
@@ -84,20 +83,6 @@ def GetIPv4Addresses():
   return ', '.join(ret)
 
 
-_SysfsAttribute = collections.namedtuple('SysfsAttribute',
-                                         ['name', 'type', 'optional'])
-_SysfsBatteryAttributes = [
-    _SysfsAttribute('current_now', int, False),
-    _SysfsAttribute('present', bool, False),
-    _SysfsAttribute('status', str, False),
-    _SysfsAttribute('voltage_now', int, False),
-    _SysfsAttribute('voltage_min_design', int, True),
-    _SysfsAttribute('energy_full', int, True),
-    _SysfsAttribute('energy_full_design', int, True),
-    _SysfsAttribute('energy_now', int, True),
-]
-
-
 class SystemStatusSnapshot(object):
   """A snapshot object allows accessing pre-fetched data."""
   def __init__(self, status_):
@@ -140,40 +125,9 @@ class SystemStatus(component.DUTComponent):
     return None
 
   @StatusProperty
-  def battery_sysfs_path(self):
-    path_list = self._dut.Glob('/sys/class/power_supply/*/type')
-    for p in path_list:
-      try:
-        if self._dut.ReadFile(p).strip() == 'Battery':
-          return self._dut.path.dirname(p)
-      except Exception:
-        logging.warning('sysfs path %s is unavailable', p)
-    return None
-
-  @StatusProperty
   def battery(self):
-    result = {}
-    sysfs_path = self.battery_sysfs_path
-    for k, item_type, optional in _SysfsBatteryAttributes:
-      result[k] = None
-      try:
-        if sysfs_path:
-          result[k] = item_type(
-              self._dut.ReadFile(self._dut.path.join(sysfs_path, k)).strip())
-      except Exception:
-        log_func = logging.error
-        if optional:
-          log_func = logging.debug
-        log_func('sysfs path %s is unavailable',
-                 self._dut.path.join(sysfs_path, k))
-    try:
-      result['charge_full'] = self._dut.power.GetChargeFull()
-      result['charge_now'] = self._dut.power.GetCharge()
-      result['charge_full_design'] = self._dut.power.GetBatteryDesignCapacity()
-      result['fraction_full'] = self._dut.power.GetChargePct(True) / 100
-    except Exception as e:
-      logging.error(e)
-
+    """Returns a dict containing information about the battery."""
+    result = self._dut.power.GetInfoDict()
     result['force'] = False
     if self.charge_manager:
       force_status = {
