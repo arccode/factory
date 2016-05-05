@@ -10,7 +10,6 @@ of change within certain time under certain load.
 """
 
 import logging
-import multiprocessing
 import threading
 import time
 import unittest
@@ -249,7 +248,7 @@ class ChargerTest(unittest.TestCase):
     self.assertTrue(moving_up is not None)
 
     with StressManager(self._dut).Run(duration_secs=spec.timeout_secs,
-                                     num_threads=spec.load):
+                                      num_threads=spec.load):
       start_time = time.time()
       last_verbose_log_time = None
       last_log_time = None
@@ -349,7 +348,7 @@ class ChargerTest(unittest.TestCase):
   def _GetSpec(self, charge_change, timeout_secs, load=None):
     """Gets Spec with default load value set as number of cpus"""
     if load is None:
-      load = multiprocessing.cpu_count()
+      load = self._dut.info.cpu_count
     return Spec(charge_change, timeout_secs, load)
 
   def runTest(self):

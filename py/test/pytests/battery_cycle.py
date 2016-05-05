@@ -16,7 +16,6 @@ charge (e.g., 95%).  Cycle times are logged to event logs.
 
 import collections
 import logging
-import multiprocessing
 import operator
 import time
 import unittest
@@ -203,7 +202,7 @@ class BatteryCycleTest(unittest.TestCase):
         self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
         # Start one process per core to spin the CPU to heat things up a
         # bit.
-        for _ in xrange(multiprocessing.cpu_count()):
+        for _ in xrange(self.dut.info.cpu_count):
           processes.append(
               Spawn(['nice', 'python', '-c',
                      'import random\n'

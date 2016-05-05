@@ -15,7 +15,6 @@ Tests that under given load:
 """
 
 import logging
-import multiprocessing
 import time
 import unittest
 
@@ -110,7 +109,7 @@ class ThermalLoadTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = dut.Create()
-    self.load = self.args.load or multiprocessing.cpu_count()
+    self.load = self.args.load or self.dut.info.cpu_count
 
     self.assertTrue(self.args.heat_up_timeout_secs <= self.args.duration_secs,
                     'heat_up_timeout_secs must not be greater than '
