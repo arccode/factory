@@ -26,6 +26,7 @@ from cros.factory.test.dut import gyroscope
 from cros.factory.test.dut import hooks
 from cros.factory.test.dut import i2c
 from cros.factory.test.dut import info
+from cros.factory.test.dut import init
 from cros.factory.test.dut import led
 from cros.factory.test.dut import memory
 from cros.factory.test.dut import path as path_module
@@ -141,6 +142,10 @@ class DUTBoard(object):
   @DUTProperty
   def info(self):
     return info.SystemInfo(self)
+
+  @DUTProperty
+  def init(self):
+    return init.Init(self)
 
   @DUTProperty
   def led(self):

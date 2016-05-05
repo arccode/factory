@@ -16,8 +16,6 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.args import Arg
-from cros.factory.test.dut.boards import android
-from cros.factory.test.dut.boards import chromeos
 from cros.factory.test.pytests.offline_test.shell import common
 from cros.factory.utils import file_utils
 
@@ -41,18 +39,8 @@ class OfflineTestFetchLog(unittest.TestCase):
     if os.path.exists(self.temp_dir):
       shutil.rmtree(self.temp_dir)
 
-  def _DisableChromeOSStartUpApp(self):
-    self.dut.CheckCall(['chmod', '-x',
-                        '/usr/local/factory/init/main.d/offline-test.sh'])
-
   def _DisableStartUpApp(self):
-    if isinstance(self.dut, chromeos.ChromeOSBoard):
-      self._DisableChromeOSStartUpApp()
-    elif isinstance(self.dut, android.AndroidBoard):
-      # TODO(stimim): support Android init
-      raise NotImplementedError
-    else:
-      raise NotImplementedError
+    self.dut.init.RemoveFactoryStartUpApp(common.OFFLINE_JOB_NAME)
 
   def runTest(self):
     # disable test script

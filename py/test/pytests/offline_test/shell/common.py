@@ -15,6 +15,8 @@ DIRNAME = 'shell_offline_test'
 """Path to resource of shell offline test."""
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
+OFFLINE_JOB_NAME = 'offline-test'
+
 
 def ScriptRoot(dut):
   """Path to script directory for offline test."""

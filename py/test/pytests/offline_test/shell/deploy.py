@@ -263,35 +263,8 @@ class DeployShellOfflineTest(unittest.TestCase):
     self.script_root = common.ScriptRoot(self.dut)
     self.builder = ScriptBuilder(self.dut, self.data_root, self.script_root)
 
-  def _MakeChromeOsStartUpApp(self, starter_path):
-    # Chrome OS images will execute '/usr/local/factory/init/startup' if
-    # file '/usr/local/factory/enabled' exists.
-    # so if we create the 'enabled' file, '/usr/local/factory/init/startup'
-    # will be executed, which should start our test script.
-
-    self.dut.CheckCall(['touch', '/usr/local/factory/enabled'])
-
-    # we first assume that factory toolkit exists, so we can use its startup
-    # mechanism. (see init/main.d/README for more detail)
-    # `starter_path` is set to executable in runTest function.
-    self.dut.CheckCall(['mkdir', '-p', '/usr/local/factory/init/main.d'])
-    self.dut.CheckCall(['ln', '-sf', starter_path,
-                        '/usr/local/factory/init/main.d/offline-test.sh'])
-
-    if not self.dut.path.exists('/usr/local/factory/init/startup'):
-      # however, if the default startup script doesn't exists (e.g. factory
-      # toolkit is not installed), we will create a stub startup script.
-      self.dut.CheckCall(['mkdir', '-p', '/usr/local/factory/init'])
-      self.dut.WriteFile('/usr/local/factory/init/startup',
-                         _FormatTemplate('stub_startup.sh'))
-      self.dut.CheckCall(['chmod', '+x', '/usr/local/factory/init/startup'])
-
   def _MakeStartUpApp(self, starter_path):
-    if isinstance(self.dut, android.AndroidBoard):
-      # TODO(stimim): support Android init
-      raise NotImplementedError
-    else:
-      self._MakeChromeOsStartUpApp(starter_path)
+    self.dut.init.AddFactoryStartUpApp(common.OFFLINE_JOB_NAME, starter_path)
 
   def _SyncTime(self):
     now = datetime.datetime.now()
