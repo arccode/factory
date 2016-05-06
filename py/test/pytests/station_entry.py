@@ -16,6 +16,7 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 
+from cros.factory.test import countdown_timer
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -37,6 +38,14 @@ _CSS = """
 
 _TITLE_START = test_ui.MakeLabel('Start Station Test', u'开始测试')
 _TITLE_END = test_ui.MakeLabel('End Station Test', u'结束测试')
+
+_ID_MSG_DIV = 'msg'
+_ID_COUNTDOWN_DIV = 'countdown'
+
+_STATE_HTML = """
+<div id='%s'></div>
+<div id='%s'></div>
+""" % (_ID_MSG_DIV, _ID_COUNTDOWN_DIV)
 
 _MSG_INSERT = test_ui.MakeLabel(
     'Please attach DUT.',
@@ -98,6 +107,7 @@ class StationEntry(unittest.TestCase):
     self._dut.hooks.SendTestResult(self._state.get_test_states())
 
   def runTest(self):
+    self._template.SetState(_STATE_HTML)
     self._ui.Run(blocking=False)
     self._ui.BindKey(' ', lambda _: self._space_event.set())
 
@@ -112,22 +122,42 @@ class StationEntry(unittest.TestCase):
       self.End()
 
   def Start(self):
-    self._template.SetState(_MSG_INSERT)
-    sync_utils.WaitFor(self._dut.link.IsReady, self.args.timeout_secs)
+    self._ui.SetHTML(_MSG_INSERT, id=_ID_MSG_DIV)
+    disable_event = threading.Event()
+
+    if self.args.timeout_secs:
+      countdown_timer.StartCountdownTimer(
+          self.args.timeout_secs,
+          lambda: (self._ui.Fail('DUT is not connected in %d seconds' %
+                                 self.args.timeout_secs)),
+          self._ui,
+          _ID_COUNTDOWN_DIV,
+          disable_event=disable_event)
+
+    def _IsReady():
+      try:
+        self._dut.CheckCall(['true'])
+        return True
+      except:  # pylint: disable=bare-except
+        return False
+
+    sync_utils.WaitFor(_IsReady, self.args.timeout_secs, poll_interval=1)
+    disable_event.set()
 
     if self.args.prompt_start:
-      self._template.SetState(_MSG_PRESS_SPACE)
+      self._ui.SetHTML(_MSG_PRESS_SPACE, id=_ID_MSG_DIV)
       sync_utils.WaitFor(self._space_event.isSet, None)
       self._space_event.clear()
 
   def End(self):
-    self._template.SetState(_MSG_SEND_RESULT)
+    self._ui.SetHTML(_MSG_SEND_RESULT, id=_ID_MSG_DIV)
     self.SendTestResult()
 
-    self._template.SetState(_MSG_REMOVE_DUT)
+    self._ui.SetHTML(_MSG_REMOVE_DUT, id=_ID_MSG_DIV)
     if not self._dut.link.IsLocal():
       sync_utils.WaitFor(lambda: not self._dut.link.IsReady(),
-                         self.args.timeout_secs)
+                         self.args.timeout_secs,
+                         poll_interval=1)
 
-    self._template.SetState(_MSG_RESTART_TESTS)
+    self._ui.SetHTML(_MSG_RESTART_TESTS, id=_ID_MSG_DIV)
     self.RestartAllTests()

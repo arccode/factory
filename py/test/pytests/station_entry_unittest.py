@@ -95,12 +95,13 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mock_ui.BindKey(' ', mox.Func(callable))
     shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
                                optional=True)
-    self.mock_template.SetState(mox.IsA(basestring))
+    self.mock_ui.SetHTML(mox.IsA(basestring),
+                         id=mox.IsA(basestring)).MultipleTimes()
 
-    self.mock_template.SetState(mox.IsA(basestring))
     mock_dut_link.IsLocal().AndReturn(is_local)
     if not is_local:
-      sync_utils.WaitFor(mox.IsA(type(lambda: None)), timeout_secs)
+      sync_utils.WaitFor(mox.IsA(type(lambda: None)), timeout_secs,
+                         poll_interval=1)
 
     self.mock_template.SetState(mox.IsA(basestring))
     self.test.SendTestResult()
@@ -132,7 +133,10 @@ class FactoryEntryUnitTest(unittest.TestCase):
     shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
                                optional=True)
     self.mock_template.SetState(mox.IsA(basestring))
-    sync_utils.WaitFor(mock_dut_link.IsReady, timeout_secs)
+    self.mock_ui.SetHTML(mox.IsA(basestring),
+                         id=mox.IsA(basestring)).MultipleTimes()
+    sync_utils.WaitFor(mox.IsA(type(lambda: None)), timeout_secs,
+                       poll_interval=1)
 
     self.mox.ReplayAll()
 
