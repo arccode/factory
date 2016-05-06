@@ -18,6 +18,7 @@ double_cc_quick_check as True to accelerate the test.
 """
 
 import logging
+import threading
 import time
 import unittest
 
@@ -38,6 +39,8 @@ _OPERATION = test_ui.MakeLabel('Flip Raiden cable and plug in again...',
                                u'将 Raiden port 头反转后再次插入机器...')
 _NO_TIMER = test_ui.MakeLabel('And press Enter key to continue...',
                               u'并按 Enter 键继续...')
+_WAIT_CONNECTION = test_ui.MakeLabel('Wait DUT to reconnect',
+                                     u'等待 DUT 重新连接')
 _CSS = 'body { font-size: 2em; }'
 
 _ID_OPERATION_DIV = 'operation_div'
@@ -113,6 +116,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
       'CC1' or 'CC2', or _CC_UNCONNECT if it doesn't detect SRC_READY.
     """
     if not self._dut.IsReady():
+      self._ui.SetHTML(_WAIT_CONNECTION, id=_ID_OPERATION_DIV)
       factory.console.info(
           'Lose connection to DUT, waiting for DUT to reconnect')
       sync_utils.WaitFor(self._dut.IsReady, self.args.wait_dut_reconnect_secs)
@@ -183,8 +187,8 @@ class RaidenCCFlipCheck(unittest.TestCase):
                 'Does Raiden cable connect in correct direction?' %
                 (self.args.original_enabled_cc, self._polarity))
 
+    self._template.SetState(_STATE_HTML)
     if self.args.ask_flip_operation:
-      self._template.SetState(_STATE_HTML)
       self._ui.SetHTML(_OPERATION, id=_ID_OPERATION_DIV)
       if self.args.timeout_secs == 0:
         self._ui.SetHTML(_NO_TIMER, id=_ID_COUNTDOWN_DIV)
@@ -201,6 +205,18 @@ class RaidenCCFlipCheck(unittest.TestCase):
     elif (self._bft_fixture.IsDoubleCCCable() and
           (not self.args.double_cc_flip_target or
            self._polarity != self.args.double_cc_flip_target)):
+      disable_event = threading.Event()
+
+      self._ui.Run(blocking=False)
+
+      if self.args.timeout_secs:
+        countdown_timer.StartCountdownTimer(
+            self.args.timeout_secs,
+            lambda: self._ui.Fail('Timeout waiting for test to complete'),
+            self._ui,
+            _ID_COUNTDOWN_DIV,
+            disable_event=disable_event)
+
       factory.console.info('Double CC test, doing CC flip...')
       self._bft_fixture.SetMuxFlip(0)
       time.sleep(1)
@@ -209,5 +225,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
         self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
       self._polarity = self.GetCCPolarity()
       factory.console.info('polarity after flip: %s', self._polarity)
+      disable_event.set()
+      self._ui.Pass()
 
     logging.info('Detect polarity: %s', self._polarity)
