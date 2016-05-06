@@ -218,7 +218,7 @@ class GlobalSeqTest(unittest.TestCase):
 
   def testThreadsWithoutSleep(self):
     values = self._testThreads()
-    # There should be lots of values (I get over 35000 on my desktop); we'll
+    # There should be lots of values (I get over 10000 on my desktop); we'll
     # just make sure there are >1000.
     self.assertTrue(len(values) > 1000, values)
 

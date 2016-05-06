@@ -200,7 +200,7 @@ def IncrementInitCount():
   """
   init_count = GetInitCount() + 1
 
-  logging.info('Goofy init count: %d', init_count)
+  logging.info('Goofy init count = %d', init_count)
 
   file_utils.TryMakeDirs(os.path.dirname(INIT_COUNT_PATH))
   with open(INIT_COUNT_PATH, 'w') as f:
@@ -381,6 +381,7 @@ class GlobalSeq(object):
 
       value = self._FindNextSequenceNumber()
       f.write(str(value))
+      # Ensure the sequence file is flushed to disk.
       f.flush()
       os.fsync(fd)
 
@@ -397,8 +398,9 @@ class GlobalSeq(object):
       self._after_read()
       f.seek(0)
       f.write(str(value + 1))
-      f.flush()
-      os.fsync(f.fileno())
+      # Don't bother flushing to disk. If a reboot occurs before flushing, the
+      # sequence number will be increased by SEQ_INCREMENT_ON_BOOT, maintaining
+      # the monotonicity property.
     self._after_write()
     return value
 
