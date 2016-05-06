@@ -268,6 +268,12 @@ class SystemInfo(component.DUTComponent):
     flag = int(nvdata.split()[2], 16)
     return bool(flag & self._FLAG_VIRTUAL_DEV_MODE_ON)
 
+  @InfoProperty
+  def pci_device_number(self):
+    """Returns number of PCI devices."""
+    res = self._dut.CheckOutput(['busybox', 'lspci'])
+    return len(res.splitlines())
+
 
 if __name__ == '__main__':
   import yaml
