@@ -141,13 +141,13 @@ class ThermalLoadTest(unittest.TestCase):
     self.CheckTemperatures(start_temperatures, 0)
     logging.info('Stressing with %d threads...', self.load)
 
-    with StressManager(self.dut).Run(duration_secs=self.args.duration_secs,
-                                     num_threads=self.load):
-      for elapsed in xrange(1, self.args.duration_secs + 1):
+    with StressManager(self.dut).Run(num_threads=self.load):
+      start_time = time.time()
+      while time.time() - start_time < self.args.duration_secs:
         time.sleep(1)
         temperatures = self.GetTemperatures()
         self.temperatures_track.append(temperatures)
-        self.CheckTemperatures(temperatures, elapsed)
+        self.CheckTemperatures(temperatures, time.time() - start_time)
 
       logging.info('Passed. Maximum temperature seen is %s',
                    self.max_temperature)
