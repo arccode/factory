@@ -10,19 +10,20 @@
 #
 #####
 
-import factory_common  # pylint: disable=W0611
 
 import commands
-import glib
-import gtk
 import logging
 import os
-import pyudev
 import tempfile
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test.utils.media_utils import MediaMonitor
 from cros.factory.test.utils.media_utils import MountedMedia
+
+from cros.factory.external import glib
+from cros.factory.external import gtk
+from cros.factory.external import pyudev
 
 # udev constants
 _UDEV_ACTION_INSERT = 'add'

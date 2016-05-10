@@ -8,12 +8,12 @@ import collections
 import re
 import time
 
-import numpy
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut.component import DUTComponent
 from cros.factory.test.dut.component import DUTProperty
 from cros.factory.utils.type_utils import Enum
+
+from cros.factory.external import numpy
 
 
 class PowerException(Exception):

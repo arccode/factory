@@ -8,13 +8,14 @@
 
 from __future__ import print_function
 
-import dbus
 import os
 import re
 import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
+
+from cros.factory.external import dbus
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.

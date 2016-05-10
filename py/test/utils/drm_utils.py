@@ -15,7 +15,9 @@ import ctypes
 import mmap
 import os
 
-from PIL import Image
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.external import PIL
 
 
 class DRMError(Exception):
@@ -455,7 +457,7 @@ class DRMModeFB(DRMModeBaseStruct):
     if self.depth != 24:
       raise DRMError('Unable to convert depth %s' % self.depth)
 
-    return Image.fromstring(
+    return PIL.Image.fromstring(
         'RGB', (self.width, self.height), self.contents, 'raw', 'BGRX')
 
   def map(self):

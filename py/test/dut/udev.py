@@ -4,11 +4,11 @@
 
 import threading
 
-import pyudev
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
 from cros.factory.utils.type_utils import Enum
+
+from cros.factory.external import pyudev
 
 
 class UdevMonitorBase(component.DUTComponent):

@@ -8,12 +8,12 @@ from __future__ import print_function
 
 import re
 
-from PIL import Image
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
 from cros.factory.test.utils import drm_utils
 from cros.factory.utils import sys_utils
+
+from cros.factory.external import PIL
 
 
 class DisplayError(Exception):
@@ -164,7 +164,7 @@ class Display(component.DUTComponent):
         # ImageMagick installed so here we try to run convert remotely.  Can be
         # revised to run locally when needed.
         self._dut.CheckCall('xwd -d :0 -root | convert - "%s"' % temp)
-        image = Image.fromstring(
+        image = PIL.Image.fromstring(
             'RGB', (port_info.x_fb_width, port_info.x_fb_height),
             self._dut.ReadFile(temp))
         # The captured image contains the giant X framebuffer. We need to crop
@@ -181,7 +181,7 @@ class Display(component.DUTComponent):
         """Downscale the given pixel from PC-scale to TV-scale."""
         return (p - 128) * 110 / 128 + 126
 
-      image = Image.eval(image, Downscale)
+      image = PIL.Image.eval(image, Downscale)
 
     return image
 

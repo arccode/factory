@@ -5,10 +5,13 @@
 import commands
 import logging
 import os
-import pyudev
 import shutil
 import tempfile
 import threading
+
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.external import pyudev
 
 # udev constants
 _UDEV_ACTION_INSERT = 'add'

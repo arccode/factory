@@ -14,10 +14,6 @@ from multiprocessing import pool
 import tempfile
 import time
 
-import dpkt
-import netifaces
-import pexpect
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.env import paths
@@ -28,11 +24,10 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
-try:
-  import dbus
-  HAS_DBUS = True
-except ImportError:
-  HAS_DBUS = False
+from cros.factory.external import dbus
+from cros.factory.external import dpkt
+from cros.factory.external import netifaces
+from cros.factory.external import pexpect
 
 
 INSERT_ETHERNET_DONGLE_TIMEOUT = 30
@@ -214,7 +209,7 @@ def GetUnmanagedEthernetInterfaces():
       return False
 
   def IsShillUsingDHCP(intf):
-    if HAS_DBUS:
+    if dbus.MODULE_READY:
       bus = dbus.SystemBus()
       dev = bus.get_object("org.chromium.flimflam", "/device/%s" % intf)
       dev_intf = dbus.Interface(dev, "org.chromium.flimflam.Device")

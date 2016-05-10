@@ -11,16 +11,19 @@ import re
 import threading
 import uuid
 
-import dbus
-from dbus.mainloop.glib import DBusGMainLoop
-from dbus import service  # pylint: disable=W0611
-from dbus import DBusException
-import gobject
 import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
 from cros.factory.utils.sync_utils import PollForCondition, Retry
+
+from cros.factory.external import dbus
+# pylint: disable=no-name-in-module,F0401
+from cros.factory.external.dbus.mainloop.glib import DBusGMainLoop
+# pylint: disable=no-name-in-module,unused-import
+from cros.factory.external.dbus import service
+from cros.factory.external.dbus import DBusException # pylint: disable=E0611
+from cros.factory.external import gobject
 
 
 BUS_NAME = 'org.bluez'

@@ -5,10 +5,10 @@
 
 """A system module providing access of temprary files on remote DUT."""
 
+from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
-from contextlib import contextmanager
 
 
 class TemporaryFiles(component.DUTComponent):

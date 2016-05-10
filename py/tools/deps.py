@@ -60,6 +60,11 @@ def GetDependencyList(path, base, exclude, include):
     if (module_path.startswith(exclude) and
         not module_path.startswith(include)):
       continue
+    key_module_ready = 'MODULE_READY'
+    if key_module_ready in module.__dict__:
+      # Special variable defined in py/external/_wrapper.py
+      if not module.__dict__[key_module_ready]:
+        print('Warning: sub-module not loaded: %s' % module_path)
     dependency.append(module_path)
   # Delete references to new modules so we can build correct dependency list for
   # next file. Note this won't really unload modules.

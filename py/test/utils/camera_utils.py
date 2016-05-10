@@ -7,11 +7,6 @@
 from __future__ import print_function
 
 import abc
-try:
-  import cv   # pylint: disable=F0401
-  import cv2  # pylint: disable=F0401
-except ImportError:
-  pass
 import glob
 import logging
 import os
@@ -22,6 +17,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import TimedUuid
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
+
+from cros.factory.external import cv
+from cros.factory.external import cv2
 
 
 # Paths of mock images.

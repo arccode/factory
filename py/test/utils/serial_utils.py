@@ -19,9 +19,11 @@ import glob
 import logging
 import os
 import re
-# site-packages: dev-python/pyserial
-import serial
 import time
+
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.external import serial  # site-packages: dev-python/pyserial
 
 
 def OpenSerial(**params):

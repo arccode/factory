@@ -8,7 +8,10 @@ import base64
 import hashlib
 import httplib
 import logging
-import ws4py
+
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.external import ws4py
 
 
 def WebSocketHandshake(request):

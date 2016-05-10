@@ -51,11 +51,16 @@ import re
 
 from collections import namedtuple, OrderedDict
 
-from evdev.ecodes import (ABS_MT_POSITION_X, ABS_MT_POSITION_Y,
-                          ABS_MT_PRESSURE, ABS_MT_SLOT, ABS_MT_TRACKING_ID,
-                          BTN_LEFT, BTN_TOOL_FINGER, BTN_TOOL_DOUBLETAP,
-                          BTN_TOOL_TRIPLETAP, BTN_TOOL_QUADTAP,
-                          BTN_TOOL_QUINTTAP, BTN_TOUCH, EV_ABS, EV_KEY, EV_SYN)
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.external import evdev  # pylint: disable=W0611
+# pylint: disable=no-name-in-module,F0401
+from cros.factory.external.evdev.ecodes import (
+    ABS_MT_POSITION_X, ABS_MT_POSITION_Y,
+    ABS_MT_PRESSURE, ABS_MT_SLOT, ABS_MT_TRACKING_ID,
+    BTN_LEFT, BTN_TOOL_FINGER, BTN_TOOL_DOUBLETAP,
+    BTN_TOOL_TRIPLETAP, BTN_TOOL_QUADTAP,
+    BTN_TOOL_QUINTTAP, BTN_TOUCH, EV_ABS, EV_KEY, EV_SYN)
 
 
 # Define TidPacket to keep the point, pressure, and SYN_REPOT time of a packet.

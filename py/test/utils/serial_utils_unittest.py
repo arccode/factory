@@ -7,16 +7,17 @@
 """Unittest for serial_utils."""
 
 import glob
-import mox
 import os
-import serial
-from serial import SerialException, SerialTimeoutException
 import time
 import unittest
+
+import mox
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.utils import serial_utils
 from cros.factory.test.utils.serial_utils import SerialDevice
+
+from cros.factory.external import serial
 
 _DEFAULT_DRIVER = 'pl2303'
 _DEFAULT_INDEX = '1-1'
@@ -193,7 +194,7 @@ class SerialDeviceCtorTest(unittest.TestCase):
 
   def testConnectPortDriverMissing(self):
     device = SerialDevice()
-    self.assertRaises(SerialException, device.Connect)
+    self.assertRaises(serial.SerialException, device.Connect)
 
   def testConnectDriverLookupFailure(self):
     self.mox.StubOutWithMock(serial_utils, 'FindTtyByDriver')
@@ -201,7 +202,7 @@ class SerialDeviceCtorTest(unittest.TestCase):
 
     self.mox.ReplayAll()
     device = SerialDevice()
-    self.assertRaises(SerialException, device.Connect,
+    self.assertRaises(serial.SerialException, device.Connect,
                       driver='UnknownDriver')
 
   def testCtorNoPortLookupIfPortSpecified(self):
@@ -241,19 +242,19 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
     self.device.Send(_COMMAND)
 
   def testSendTimeout(self):
-    self.mock_serial.write(_COMMAND).AndRaise(SerialTimeoutException)
+    self.mock_serial.write(_COMMAND).AndRaise(serial.SerialTimeoutException)
     self.mock_serial.getWriteTimeout().AndReturn(0.5)
     self.mock_serial.close()
 
     self.mox.ReplayAll()
-    self.assertRaises(SerialTimeoutException, self.device.Send, _COMMAND)
+    self.assertRaises(serial.SerialTimeoutException, self.device.Send, _COMMAND)
 
   def testSendDisconnected(self):
-    self.mock_serial.write(_COMMAND).AndRaise(SerialException)
+    self.mock_serial.write(_COMMAND).AndRaise(serial.SerialException)
     self.mock_serial.close()
 
     self.mox.ReplayAll()
-    self.assertRaises(SerialException, self.device.Send, _COMMAND)
+    self.assertRaises(serial.SerialException, self.device.Send, _COMMAND)
 
   def testReceive(self):
     self.mock_serial.read(1).AndReturn('.')
@@ -268,7 +269,7 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
     self.mock_serial.close()
 
     self.mox.ReplayAll()
-    self.assertRaises(SerialTimeoutException, self.device.Receive)
+    self.assertRaises(serial.SerialTimeoutException, self.device.Receive)
 
   def testReceiveShortageTimeout(self):
     # Requested 5 bytes, got only 4 bytes.
@@ -277,7 +278,7 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
     self.mock_serial.close()
 
     self.mox.ReplayAll()
-    self.assertRaises(SerialTimeoutException, self.device.Receive, 5)
+    self.assertRaises(serial.SerialTimeoutException, self.device.Receive, 5)
 
   def testReceiveWhatsInBuffer(self):
     IN_BUFFER = 'InBuf'
@@ -329,7 +330,7 @@ class SerialDeviceSendReceiveTest(unittest.TestCase):
 
   def testSendReceiveWriteTimeoutRetrySuccess(self):
     # Send timeout & retry.
-    self.device.Send(_COMMAND).AndRaise(SerialTimeoutException)
+    self.device.Send(_COMMAND).AndRaise(serial.SerialTimeoutException)
     time.sleep(_RETRY_INTERVAL_SECS)
     # Retry okay.
     self.device.FlushBuffer()
@@ -345,7 +346,7 @@ class SerialDeviceSendReceiveTest(unittest.TestCase):
     self.device.Send(_COMMAND)
     time.sleep(_SEND_RECEIVE_INTERVAL_SECS)
     # Read timeout & retry.
-    self.device.Receive(_RECEIVE_SIZE).AndRaise(SerialTimeoutException)
+    self.device.Receive(_RECEIVE_SIZE).AndRaise(serial.SerialTimeoutException)
     time.sleep(_RETRY_INTERVAL_SECS)
     # Retry okay.
     self.device.FlushBuffer()
@@ -358,14 +359,14 @@ class SerialDeviceSendReceiveTest(unittest.TestCase):
 
   def testSendRequestWriteTimeoutRetryFailure(self):
     # Send timeout & retry.
-    self.device.Send(_COMMAND).AndRaise(SerialTimeoutException)
+    self.device.Send(_COMMAND).AndRaise(serial.SerialTimeoutException)
     time.sleep(_RETRY_INTERVAL_SECS)
     # Retry failed.
     self.device.FlushBuffer()
-    self.device.Send(_COMMAND).AndRaise(SerialTimeoutException)
+    self.device.Send(_COMMAND).AndRaise(serial.SerialTimeoutException)
 
     self.mox.ReplayAll()
-    self.assertRaises(SerialTimeoutException, self.device.SendReceive,
+    self.assertRaises(serial.SerialTimeoutException, self.device.SendReceive,
                       _COMMAND, retry=1)
 
 
@@ -402,7 +403,7 @@ class SerialDeviceSendExpectReceiveTest(unittest.TestCase):
   def testSendExpectReceiveTimeout(self):
     self.device.SendReceive(
         _COMMAND, _RECEIVE_SIZE, retry=0, interval_secs=None,
-        suppress_log=True).AndRaise(SerialTimeoutException)
+        suppress_log=True).AndRaise(serial.SerialTimeoutException)
 
     self.mox.ReplayAll()
     self.assertFalse(self.device.SendExpectReceive(_COMMAND, _RESPONSE))

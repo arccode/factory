@@ -5,7 +5,10 @@
 from __future__ import print_function
 
 import asyncore
-import evdev
+
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.external import evdev
 
 
 def GetDevices():

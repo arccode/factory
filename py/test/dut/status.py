@@ -11,11 +11,10 @@ import collections
 import copy
 import logging
 
-import netifaces
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
 
+from cros.factory.external import netifaces
 
 # Static list of known properties in SystemStatus.
 _PROP_LIST = []
