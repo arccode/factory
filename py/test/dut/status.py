@@ -29,11 +29,11 @@ def StatusProperty(f):
     _PROP_LIST.append(name)
   @property
   def prop(self):
-    if name in self._overrides:
-      return self._overrides[name]
+    if name in self._overrides:  # pylint: disable=protected-access
+      return self._overrides[name]  # pylint: disable=protected-access
     try:
       return f(self)
-    except:
+    except Exception:
       return None
   return prop
 
@@ -101,9 +101,9 @@ _SysfsBatteryAttributes = [
 
 class SystemStatusSnapshot(object):
   """A snapshot object allows accessing pre-fetched data."""
-  def __init__(self, status):
+  def __init__(self, status_):
     self.__dict__.update(copy.deepcopy(
-        dict((name, getattr(status, name)) for name in _PROP_LIST)))
+        dict((name, getattr(status_, name)) for name in _PROP_LIST)))
 
 
 class SystemStatus(component.DUTComponent):
@@ -147,7 +147,7 @@ class SystemStatus(component.DUTComponent):
       try:
         if self._dut.ReadFile(p).strip() == 'Battery':
           return self._dut.path.dirname(p)
-      except:
+      except Exception:
         logging.warning('sysfs path %s is unavailable', p)
     return None
 
@@ -161,7 +161,7 @@ class SystemStatus(component.DUTComponent):
         if sysfs_path:
           result[k] = item_type(
               self._dut.ReadFile(self._dut.path.join(sysfs_path, k)).strip())
-      except:
+      except Exception:
         log_func = logging.error
         if optional:
           log_func = logging.debug
@@ -225,7 +225,7 @@ class SystemStatus(component.DUTComponent):
 
 if __name__ == '__main__':
   import yaml
-  from cros.factory.test import dut
+  from cros.factory.test import dut as dut_module
   logging.basicConfig()
-  status = SystemStatus(dut.Create())
+  status = SystemStatus(dut_module.Create())
   print(yaml.dump(status.Snapshot().__dict__, default_flow_style=False))

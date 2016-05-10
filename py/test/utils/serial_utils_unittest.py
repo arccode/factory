@@ -225,7 +225,7 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
 
     # Mock Serial and inject it.
     self.mock_serial = self.mox.CreateMock(serial.Serial)
-    self.device._serial = self.mock_serial
+    self.device._serial = self.mock_serial  # pylint: disable=protected-access
 
   def tearDown(self):
     del self.device
