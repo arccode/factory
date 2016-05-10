@@ -29,25 +29,23 @@ class VerifyValueTest(unittest.TestCase):
           A list of tuples, each representing an item to check. Each tuple
           is of the format:
 
-             (name_en, name_zh, command/func_name, expected_value)
+            (name_en, name_zh, command/func_name, expected_value)
 
           The fields are:
-
-          - name_en: (str or unicode) name of the check in English.
-          - name_zh: (str or unicode) name of the check in Chinese.
-          - command/func_name: (str or list) Can be one of the following:
-             - A command (str or list) that returns a value.
-               E.g. 'cat /sys/class/xxx/xxx/xxx'
-             - A DUT fucntion (str) to be called, begin with 'dut.'.
-               E.g. 'dut.info.cpu_count'
-                    'dut.storage.GetDatRoot()'
-          - expected_value: (str, int, tuples of two number, or a list).
-             Can be one of the following:
-             - An expected str
-             - An expected int
-             - (min_value, max_value)
-             - A list of all possible values, each item can be one of the above
-               types.
+              - name_en: (str or unicode) name of the check in English.
+              - name_zh: (str or unicode) name of the check in Chinese.
+              - command/func_name: (str or list) Can be one of the following:
+                  - A command (str or list) that returns a value.
+                      E.g. 'cat /sys/class/xxx/xxx/xxx'
+                  - A DUT fucntion (str) to be called, begin with 'dut.'.
+                      E.g. 'dut.info.cpu_count', 'dut.storage.GetDatRoot()'
+              - expected_value: (str, int, tuples of two number, or a list).
+                  - Can be one of the following:
+                      - An expected str
+                      - An expected int
+                      - (min_value, max_value)
+                      - A list of all possible values, each item can be one
+                          of the above types.
           """))]
 
   def setUp(self):
