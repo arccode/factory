@@ -29,6 +29,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.env import paths
 from cros.factory.test.event_log import Log
 from cros.factory.test.rules import phase
 from cros.factory.test.test_ui import MakeLabel
@@ -145,7 +146,7 @@ class Finalize(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.force = False
     self.go_cond = threading.Condition()
-    self.test_states_path = os.path.join(factory.get_log_root(),
+    self.test_states_path = os.path.join(paths.get_log_root(),
                                          'test_states')
     self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
 

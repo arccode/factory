@@ -44,7 +44,6 @@ from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import event_log
 from cros.factory.test.env import paths
-from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.utils import file_utils
@@ -832,7 +831,7 @@ def CreateReportArchive(device_sn=None, add_file=None):
 
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
   tar_cmd = 'cd %s ; tar cJf %s *' % (event_log.EVENT_LOG_DIR, target_path)
-  tar_cmd += ' --add-file %s' % FACTORY_LOG_PATH
+  tar_cmd += ' --add-file %s' % paths.GetFactoryLogPath()
   if add_file:
     for f in add_file:
       # Require absolute paths since the tar command may change the

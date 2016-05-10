@@ -15,6 +15,7 @@ from ws4py.websocket import WebSocket
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
@@ -56,7 +57,7 @@ class WebSocketManager(object):
     self.event_client = EventClient(callback=self._handle_event,
                                     name='WebSocketManager')
     self.tail_process = Spawn(
-        ['tail', '-F', factory.CONSOLE_LOG_PATH],
+        ['tail', '-F', paths.GetConsoleLogPath()],
         ignore_stdin=True,
         stdout=subprocess.PIPE)
     self.tail_thread = threading.Thread(target=self._tail_console)

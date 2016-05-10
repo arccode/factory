@@ -22,8 +22,8 @@ from xmlrpclib import Binary
 
 import factory_common
 from cros.factory.shopfloor import factory_update_server, factory_log_server
-from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test.env import paths
 from cros.factory.test.rules.registration_codes import CheckRegistrationCode
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -246,10 +246,10 @@ class ShopFloorBase(object):
 
     if process.returncode:
       error = 'Corrupt report: tar failed'
-    elif (factory.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/') not in
+    elif (paths.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/') not in
           process.stdout_data.split('\n')):
       error = 'Corrupt report: %s missing' % (
-          factory.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/'))
+          paths.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/'))
     else:
       # OK!  Save the MD5SUM (removing the INPROGRESS suffix if any)
       # and return.

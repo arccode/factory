@@ -14,8 +14,8 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test.env import paths
 from cros.factory.utils import process_utils
 
 
@@ -68,7 +68,7 @@ SECONDS_PER_DAY = 86400
 class TimeSanitizer(object):
 
   def __init__(self,
-               state_file=os.path.join(factory.get_state_root(),
+               state_file=os.path.join(paths.get_state_root(),
                                        'time_sanitizer_base_time'),
                monitor_interval_secs=30,
                time_bump_secs=60,

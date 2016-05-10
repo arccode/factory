@@ -17,6 +17,7 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.test.test_ui import FactoryTestFailure
 
 
@@ -39,7 +40,7 @@ def run(command, ignore_status=False):
 
   factory.log('Running gooftool: ' + command)
 
-  # We want the stderr goes to CONSOLE_LOG_PATH immediately, but tee only
+  # We want the stderr goes to GetConsoleLogPath() immediately, but tee only
   # works with stdout; so here's a tiny trick to swap the handles.
   swap_stdout_stderr = '3>&1 1>&2 2>&3'
 
@@ -48,7 +49,7 @@ def run(command, ignore_status=False):
   return_code_file = tempfile.NamedTemporaryFile()
   system_cmd = ('(PATH=%s:$PATH %s %s || echo $? >"%s") | tee -a "%s"' %
                 (GOOFTOOL_HOME, command, swap_stdout_stderr,
-                 return_code_file.name, factory.CONSOLE_LOG_PATH))
+                 return_code_file.name, paths.GetConsoleLogPath()))
   proc = subprocess.Popen(system_cmd,
                           stderr=subprocess.PIPE,
                           stdout=subprocess.PIPE,

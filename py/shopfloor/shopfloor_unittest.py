@@ -21,7 +21,7 @@ import xmlrpclib
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 from cros.factory.shopfloor import factory_update_server
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -259,7 +259,7 @@ class ShopFloorServerTest(unittest.TestCase):
   def testUploadCorruptReport_MissingLog(self):
     self.assertRaisesRegexp(
         xmlrpclib.Fault,
-        factory.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/') + ' missing',
+        paths.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/') + ' missing',
         self.proxy.UploadReport, 'CR001020',
         shopfloor.Binary(self._MakeTarFile('foo')), 'foo')
 
@@ -275,7 +275,7 @@ class ShopFloorServerTest(unittest.TestCase):
   def testUploadReportWithHourlyRotation(self):
     # Other things should be well covered by the testUploadReport.
     # We only test if the hourly rotating directory created as expected.
-    blob = self._MakeTarFile(factory.FACTORY_LOG_PATH_ON_DEVICE)
+    blob = self._MakeTarFile(paths.FACTORY_LOG_PATH_ON_DEVICE)
 
     report_name = 'hourly_report_blob.rpt.bz2'
     # Test the SetReportHourlyRotation is working.
@@ -311,7 +311,7 @@ class ShopFloorServerTest(unittest.TestCase):
 
   def testUploadReport(self):
     # Upload simple blob
-    blob = self._MakeTarFile(factory.FACTORY_LOG_PATH_ON_DEVICE)
+    blob = self._MakeTarFile(paths.FACTORY_LOG_PATH_ON_DEVICE)
 
     report_name = 'simple_blob.rpt.bz2'
     report_path = os.path.join(self.reports_dir, report_name)

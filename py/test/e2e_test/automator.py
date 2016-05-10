@@ -10,15 +10,15 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import common
-from cros.factory.test import factory
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.e2e_test.common import AutomationMode, DEFAULT, CHROOT
+from cros.factory.test.env import paths
 from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import MakeList
 
 
 AUTOMATION_FUNCTION_KWARGS_FILE = os.path.join(
-    factory.get_state_root(), 'automation_function_kwargs.yaml')
+    paths.get_state_root(), 'automation_function_kwargs.yaml')
 
 
 class AutomationError(Exception):

@@ -13,13 +13,13 @@ import shelve
 import threading
 
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils import debug_utils
 from cros.factory.utils.shelve_utils import OpenShelfOrBackup
 
 EVENT_SEPARATOR = '\n---\n'
 KEY_OFFSET = 'offset'
-EVENT_LOG_DB_FILE = os.path.join(factory.get_state_root(), 'event_log_db')
+EVENT_LOG_DB_FILE = os.path.join(paths.get_state_root(), 'event_log_db')
 
 
 class ScanException(Exception):

@@ -380,7 +380,7 @@ def update_local_hwid_data(dut, target_dir='/usr/local/factory/hwid'):
           hwid_updater_sh,
           hashlib.md5(updater_data).hexdigest())
 
-      with open(factory.CONSOLE_LOG_PATH, 'a') as log:
+      with open(paths.GetConsoleLogPath(), 'a') as log:
         if not dut.path.isdir(target_dir):
           dut.CheckCall(['mkdir', '-p', target_dir])
         dut.CheckCall([hwid_updater_sh, target_dir],

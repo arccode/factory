@@ -18,7 +18,6 @@ from __future__ import print_function
 
 # pylint: disable=W0105
 
-import getpass
 import logging
 import os
 import re
@@ -27,11 +26,18 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.env import paths
-from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
+
+# Retain factory path functions and constants for backwards compatibility.
+get_factory_root = paths.get_factory_root
+get_log_root = paths.get_log_root
+get_state_root = paths.get_state_root
+get_test_data_root = paths.get_test_data_root
+CONSOLE_LOG_PATH = paths.GetConsoleLogPath()
+FACTORY_LOG_PATH = paths.GetFactoryLogPath()
+FACTORY_LOG_PATH_ON_DEVICE = paths.FACTORY_LOG_PATH_ON_DEVICE
 
 # Regexp that all IDs should match.  Currently we just warn if it doesn't
 # match, for backward compatibility.  Note that this allows leading digits
@@ -40,48 +46,6 @@ ID_REGEXP = re.compile(r'^\w+$')
 
 # Special value for require_run meaning "all tests".
 ALL = 'all'
-
-
-def get_factory_root(subdir=None):
-  """Returns the root for logging and state.
-
-  This is usually /var/log, or /tmp/factory.$USER if in the chroot, but may be
-  overridden by the CROS_FACTORY_ROOT environment variable.
-
-  Creates the directory it doesn't exist.
-
-  Args:
-   subdir: If not None, returns that subdirectory.
-  """
-  ret = (os.environ.get('CROS_FACTORY_ROOT') or
-         (('/tmp/factory.%s' % getpass.getuser())
-          if sys_utils.InChroot() else '/var/factory'))
-  if subdir:
-    ret = os.path.join(ret, subdir)
-  file_utils.TryMakeDirs(ret)
-  return ret
-
-
-def get_log_root():
-  """Returns the root for logs"""
-  return get_factory_root('log')
-
-
-def get_state_root():
-  """Returns the root for all factory state."""
-  return get_factory_root('state')
-
-
-def get_test_data_root():
-  """Returns the root for all test logs/state."""
-  return get_factory_root('tests')
-
-
-CONSOLE_LOG_PATH = os.path.join(get_log_root(), 'console.log')
-FACTORY_LOG_PATH = os.path.join(get_log_root(), 'factory.log')
-
-# Path to factory log on a "real" device.
-FACTORY_LOG_PATH_ON_DEVICE = '/var/factory/log/factory.log'
 
 _state_instance = None
 
@@ -143,7 +107,7 @@ def get_current_md5sum():
 
 
 def _init_console_log():
-  handler = logging.FileHandler(CONSOLE_LOG_PATH, 'a', delay=True)
+  handler = logging.FileHandler(paths.GetConsoleLogPath(), 'a', delay=True)
   log_format = '[%(levelname)s] %(message)s'
   test_path = get_current_test_path()
   if test_path:
@@ -171,7 +135,7 @@ def get_verbose_log_file():
   """
   invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
   log_name = '%s-log-%s' % (get_current_test_path(), invocation)
-  log_path = os.path.join(get_factory_root('log'), log_name)
+  log_path = os.path.join(paths.get_factory_root('log'), log_name)
   console.info('Raw log stored at %s', log_path)
   return open(log_path, 'a')
 

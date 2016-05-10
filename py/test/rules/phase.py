@@ -7,7 +7,7 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 
 
@@ -84,7 +84,7 @@ _state_root_for_testing = None
 
 def GetPhaseStatePath():
   """Returns the path used to save the current phase."""
-  return os.path.join((_state_root_for_testing or factory.get_state_root()),
+  return os.path.join((_state_root_for_testing or paths.get_state_root()),
                       'PHASE')
 
 

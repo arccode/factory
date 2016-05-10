@@ -32,6 +32,7 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
+from cros.factory.test.env import paths
 from cros.factory.test.event_log import Log
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils import file_utils
@@ -426,7 +427,7 @@ class AudioQualityTest(unittest.TestCase):
     logging.info('Received file %s with size %d', file_name, size)
     real_data = binascii.a2b_hex(received_data)
 
-    write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
+    write_path = os.path.join(paths.get_log_root(), 'aux', 'audio', file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
@@ -452,7 +453,7 @@ class AudioQualityTest(unittest.TestCase):
     size = int(attr_list[2])
     received_data = attr_list[3].replace('\x00', ' ')
 
-    write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
+    write_path = os.path.join(paths.get_log_root(), 'aux', 'audio', file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:

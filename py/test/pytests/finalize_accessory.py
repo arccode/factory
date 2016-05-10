@@ -17,6 +17,7 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.env import paths
 from cros.factory.test.test_ui import MakeLabel
 
 
@@ -48,7 +49,7 @@ class FinalizeAccessory(unittest.TestCase):
     self.ui = test_ui.UI()
     self._template = ui_templates.OneSection(self.ui)
     self._state = factory.get_state_instance()
-    self.test_states_path = os.path.join(factory.get_log_root(), 'test_states')
+    self.test_states_path = os.path.join(paths.get_log_root(), 'test_states')
 
   def _GetFinalTestResult(self):
     def _IsWaived(path):

@@ -3,9 +3,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import getpass
 import os
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 
 
@@ -22,6 +24,54 @@ DEVICE_STATEFUL_PATH = '/mnt/stateful_partition'
 
 # Name of Chrome data directory within the state directory.
 CHROME_DATA_DIR_NAME = 'chrome-data-dir'
+
+# Path to factory log on a "real" device.
+FACTORY_LOG_PATH_ON_DEVICE = '/var/factory/log/factory.log'
+
+
+def get_factory_root(subdir=None):
+  """Returns the root for logging and state.
+
+  This is usually /var/log, or /tmp/factory.$USER if in the chroot, but may be
+  overridden by the CROS_FACTORY_ROOT environment variable.
+
+  Creates the directory it doesn't exist.
+
+  Args:
+   subdir: If not None, returns that subdirectory.
+  """
+  ret = (os.environ.get('CROS_FACTORY_ROOT') or
+         (('/tmp/factory.%s' % getpass.getuser())
+          if sys_utils.InChroot() else '/var/factory'))
+  if subdir:
+    ret = os.path.join(ret, subdir)
+  file_utils.TryMakeDirs(ret)
+  return ret
+
+
+def get_log_root():
+  """Returns the root for logs"""
+  return get_factory_root('log')
+
+
+def get_state_root():
+  """Returns the root for all factory state."""
+  return get_factory_root('state')
+
+
+def get_test_data_root():
+  """Returns the root for all test logs/state."""
+  return get_factory_root('tests')
+
+
+def GetConsoleLogPath():
+  """Returns the path to console.log file."""
+  return os.path.join(get_log_root(), 'console.log')
+
+
+def GetFactoryLogPath():
+  """Returns the path to factory.log file."""
+  return os.path.join(get_log_root(), 'factory.log')
 
 
 def GetFactoryPythonArchivePath():

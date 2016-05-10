@@ -31,7 +31,6 @@ from jsonrpclib import jsonclass
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
 from cros.factory.test import dut
-from cros.factory.test import factory
 from cros.factory.test.env import paths
 from cros.factory.test.factory import TestState
 from cros.factory.utils import net_utils
@@ -43,7 +42,7 @@ from cros.factory.utils.string_utils import CleanUTF8
 DEFAULT_FACTORY_STATE_PORT = 0x0FAC
 DEFAULT_FACTORY_STATE_ADDRESS = net_utils.LOCALHOST
 DEFAULT_FACTORY_STATE_BIND_ADDRESS = net_utils.LOCALHOST
-DEFAULT_FACTORY_STATE_FILE_PATH = factory.get_state_root()
+DEFAULT_FACTORY_STATE_FILE_PATH = paths.get_state_root()
 
 POST_SHUTDOWN_TAG = '%s.post_shutdown'
 
@@ -385,7 +384,7 @@ class FactoryState(object):
     ret = []
 
     for path in test_paths:
-      for f in glob.glob(os.path.join(factory.get_test_data_root(),
+      for f in glob.glob(os.path.join(paths.get_test_data_root(),
                                       path + '-*',
                                       'metadata')):
         try:
@@ -398,7 +397,7 @@ class FactoryState(object):
 
   def get_test_history_entry(self, path, invocation):
     """Returns metadata and log for one test invocation."""
-    test_dir = os.path.join(factory.get_test_data_root(),
+    test_dir = os.path.join(paths.get_test_data_root(),
                             '%s-%s' % (path, invocation))
 
     log_file = os.path.join(test_dir, 'log')
