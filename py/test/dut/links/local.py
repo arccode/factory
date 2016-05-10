@@ -16,9 +16,13 @@ from cros.factory.test.dut import link
 class LocalLink(link.DUTLink):
   """Runs locally on a DUT."""
 
-  def __init__(self):
-    """Dummy constructor."""
-    pass
+  def __init__(self, shell_path=None):
+    """Link constructor.
+
+    Args:
+      shell_path: A string for the path of default shell.
+    """
+    self._shell_path = shell_path
 
   def Push(self, local, remote):
     """See DUTLink.Push"""
@@ -38,12 +42,27 @@ class LocalLink(link.DUTLink):
   def Shell(self, command, stdin=None, stdout=None, stderr=None):
     """See DUTLink.Shell"""
 
-    # subprocess.Popen will call as (['sh', '-c'] + args) if we don't set
-    # shell=True. To get same code behavior between different links, we want to
-    # always do shell=True so here we have to quote explicitly.
+    # On most remote links, we always need to execute the commands via shell. To
+    # unify the behavior we should always run the command using shell even on
+    # local links. Ideally python should find the right shell intepreter for us,
+    # however at least in Python 2.x, it was unfortunately hard-coded as
+    # (['/bin/sh', '-c'] + args) when shell=True. In other words, if your
+    # default shell is not sh or if it is in other location (for instance,
+    # Android only has /system/bin/sh) then calling Popen may give you 'No such
+    # file or directory' error.
+
     if not isinstance(command, basestring):
       command = ' '.join(pipes.quote(param) for param in command)
-    return subprocess.Popen(command, shell=True, close_fds=True, stdin=stdin,
+
+    if self._shell_path:
+      # Shell path is specified and we have to quote explicitly.
+      command = [self._shell_path, '-c', command]
+      shell = False
+    else:
+      # Trust default path specified by Python runtime. Useful for non-POSIX
+      # systems like Windows.
+      shell = True
+    return subprocess.Popen(command, shell=shell, close_fds=True, stdin=stdin,
                             stdout=stdout, stderr=stderr)
 
   def IsReady(self):
