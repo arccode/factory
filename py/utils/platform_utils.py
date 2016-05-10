@@ -7,8 +7,6 @@
 
 from __future__ import print_function
 
-import ctypes
-import ctypes.util
 import os
 import platform
 import time
@@ -87,6 +85,9 @@ def WindowsMonotonicTime():
   return time.time()
 
 
+_clock_gettime = None
+
+
 @Provider('MonotonicTime', [_SYSTEM_DEFAULT])
 def UnixMonotonicTime():
   """Gets the raw monotonic time.
@@ -101,23 +102,43 @@ def UnixMonotonicTime():
     The system monotonic time in seconds.
   """
   CLOCK_MONOTONIC_RAW = 4
+  global _clock_gettime
 
-  class TimeSpec(ctypes.Structure):
-    """A representation of struct timespec in C."""
-    _fields_ = [
-        ('tv_sec', ctypes.c_long),
-        ('tv_nsec', ctypes.c_long),
-    ]
+  if _clock_gettime:
+    return _clock_gettime()
 
-  librt_name = ctypes.util.find_library('rt')
-  librt = ctypes.cdll.LoadLibrary(librt_name)
-  clock_gettime = librt.clock_gettime
-  clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(TimeSpec)]
-  t = TimeSpec()
-  if clock_gettime(CLOCK_MONOTONIC_RAW, ctypes.pointer(t)) != 0:
-    errno = ctypes.get_errno()
-    raise OSError(errno, os.strerror(errno))
-  return t.tv_sec + 1e-9 * t.tv_nsec
+  # ctypes and ctypes.utils may be not availalbe, especially on Android which
+  # does not have librt so we have to do delay-loading here.
+  try:
+    import ctypes
+    import ctypes.util
+
+    class TimeSpec(ctypes.Structure):
+      """A representation of struct timespec in C."""
+      _fields_ = [
+          ('tv_sec', ctypes.c_long),
+          ('tv_nsec', ctypes.c_long),
+      ]
+
+    librt_name = ctypes.util.find_library('rt')
+    librt = ctypes.cdll.LoadLibrary(librt_name)
+    clock_gettime = librt.clock_gettime
+    clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(TimeSpec)]
+    t = TimeSpec()
+
+    def rt_clock_gettime():
+      if clock_gettime(CLOCK_MONOTONIC_RAW, ctypes.pointer(t)) != 0:
+        errno = ctypes.get_errno()
+        raise OSError(errno, os.strerror(errno))
+      return t.tv_sec + 1e-9 * t.tv_nsec
+
+    _clock_gettime = rt_clock_gettime
+
+  except:
+    # Either ctypes or librt failed. Try to provide system time if possible.
+    _clock_gettime = time.time
+
+  return _clock_gettime()
 
 
 @Provider('FileLock', [_SYSTEM_DEFAULT])
