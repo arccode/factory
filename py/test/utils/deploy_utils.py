@@ -87,9 +87,9 @@ class FactoryPythonArchive(object):
   def DryRun(self, command):
     """Returns the command that will be executed."""
     if isinstance(command, basestring):
-      command = self.remote_factory_par + ' ' + command
+      command = 'sh ' + self.remote_factory_par + ' ' + command
     else:
-      command = [self.remote_factory_par] + command
+      command = ['sh', self.remote_factory_par] + command
     return command
 
   def _Preprocess(self, command):

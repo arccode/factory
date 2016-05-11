@@ -29,7 +29,7 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
   def _testCallWithString(self, is_local):
     self.link.IsLocal = mock.MagicMock(return_value=is_local)
     command = 'fake_command arg1 arg2'
-    expected_call = (self.factory_par.remote_factory_par +
+    expected_call = ('sh ' + self.factory_par.remote_factory_par +
                      ' fake_command arg1 arg2')
     return_value = 'fake_return_value'
     self.dut.Call = mock.MagicMock(return_value=return_value)
@@ -48,7 +48,7 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
   def _testCallWithList(self, is_local):
     self.link.IsLocal = mock.MagicMock(return_value=is_local)
     command = ['fake_command', 'arg1', 'arg2']
-    expected_call = [self.factory_par.remote_factory_par, 'fake_command',
+    expected_call = ['sh', self.factory_par.remote_factory_par, 'fake_command',
                      'arg1', 'arg2']
     return_value = 'fake_return_value'
     self.dut.Call = mock.MagicMock(return_value=return_value)
