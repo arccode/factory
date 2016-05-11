@@ -60,6 +60,14 @@ class TestlogTest(unittest.TestCase):
       output = testlog._JSONHandler(ex)
       self.assertTrue(output.startswith('Exception: '))
 
+  def testDisallowInitializeFakeEventClasses(self):
+    with self.assertRaisesRegexp(testlog.TestlogError, 'initialize directly'):
+      testlog.EventBase()
+    with self.assertRaisesRegexp(testlog.TestlogError, 'initialize directly'):
+      testlog.Event()
+    with self.assertRaisesRegexp(testlog.TestlogError, 'initialize directly'):
+      testlog._StationBase()  # pylint: disable=W0212
+
   def testEventSerializeUnserialize(self):
     original = testlog.StationInit()
     output = testlog.Event.FromJSON(original.ToJSON())

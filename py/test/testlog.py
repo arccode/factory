@@ -172,8 +172,7 @@ class EventBase(object):
         return
     except NotImplementedError:
       pass
-    else:
-      raise TestlogError('Must initialize directly from desired event class.')
+    raise TestlogError('Must initialize directly from desired event class.')
 
   def __eq__(self, other):
     """Equals operator."""
