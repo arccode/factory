@@ -6,7 +6,6 @@
 """Tests for DUTBoard helper functions."""
 
 import mock
-import subprocess
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -32,10 +31,6 @@ class BaseTargetTest(unittest.TestCase):
   def setUp(self):
     self.link = link.DUTLink()
     self.dut = DUTBoard(self.link)
-
-  def testPath(self):
-    # path should be POSIX.
-    self.assertEquals('a/b', self.dut.path.join('a', 'b'))
 
   def testReadFile(self):
     self.link.Pull = mock.MagicMock(return_value='TEST')

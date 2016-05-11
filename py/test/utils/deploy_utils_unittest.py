@@ -7,15 +7,16 @@ import mock
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.dut import board
+from cros.factory.test.dut import component
 from cros.factory.test.dut import link
+from cros.factory.test.dut.boards import chromeos
 from cros.factory.test.utils import deploy_utils
 
 # pylint: disable=W0212
 class FactoryPythonArchiveUnittest(unittest.TestCase):
   def setUp(self):
     self.link = mock.Mock(spec=link.DUTLink)
-    self.dut = board.DUTBoard(self.link)
+    self.dut = chromeos.ChromeOSBoard(self.link)
     self.remote_factory_root = '/remote/factory/root'
     self.dut.storage.GetFactoryRoot = mock.MagicMock(
         return_value=self.remote_factory_root)
@@ -66,7 +67,8 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
 
   def testPushFactoryParChecksumMatched(self):
     self.link.IsLocal = mock.MagicMock(return_value=False)
-    board.DUTProperty.Override(self.factory_par, 'checksum', 'checksum_value')
+    component.DUTProperty.Override(
+        self.factory_par, 'checksum', 'checksum_value')
     self.dut.CheckCall = mock.MagicMock(return_value='checksum_value')
 
     self.factory_par.PushFactoryPar()
@@ -74,7 +76,8 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
 
   def testPushFactoryParChecksumNotMatched(self):
     self.link.IsLocal = mock.MagicMock(return_value=False)
-    board.DUTProperty.Override(self.factory_par, 'checksum', 'checksum_value')
+    component.DUTProperty.Override(
+        self.factory_par, 'checksum', 'checksum_value')
     self.dut.CheckCall = mock.MagicMock(return_value='checksum_value~')
 
     self.factory_par.PushFactoryPar()

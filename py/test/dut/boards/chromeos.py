@@ -6,9 +6,24 @@
 """ChromeOS family boards."""
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.dut import board
+from cros.factory.test.dut import component
+from cros.factory.test.dut import wifi
+from cros.factory.test.dut.boards import linux
+from cros.factory.test.dut.chromeos import bluetooth
+from cros.factory.test.dut.chromeos import display
 
 
-class ChromeOSBoard(board.DUTBoard):
+class ChromeOSBoard(linux.LinuxBoard):
   """Common interface for ChromeOS boards."""
-  pass
+
+  @component.DUTProperty
+  def bluetooth(self):
+    return bluetooth.ChromeOSBluetoothManager(self)
+
+  @component.DUTProperty
+  def display(self):
+    return display.ChromeOSDisplay(self)
+
+  @component.DUTProperty
+  def wifi(self):
+    return wifi.WiFiChromeOS(self)
