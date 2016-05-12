@@ -12,6 +12,7 @@ interval for each command.
 
 import argparse
 import json
+import logging
 import subprocess
 import sys
 import time
@@ -32,20 +33,28 @@ def main():
   with open(args.config) as f:
     properties = json.load(f)
     try:
-      lights = properties['ui']['lights']['items']
+      lights = properties['ui']['lights']
     except Exception:
-      print "[ERROR] Can't find ui > lights > items entry in ``%s''" % args.config
-      sys.exit(0)
+      lights = []
+      logging.warning("Can't find ui > lights entry in `%s'", args.config)
 
-    queue = PriorityQueue(len(lights))
+    try:
+      data = properties['ui']['display']['data']
+    except Exception:
+      data = []
+      logging.warning("Can't find ui > display > data entry in `%s'",
+                      args.config)
 
-    for light in lights:
-      if 'poll' in light:
-        poll = light['poll']
-        poll['interval'] = max(poll.get('interval', 0), 10000)
+    items = lights + data
+    queue = PriorityQueue(len(items))
+
+    for item in items:
+      if 'poll' in item:
+        poll = item['poll']
+        poll['interval'] = min(poll.get('interval', 0), 10000)
         queue.put((time.time(), poll))
-      if 'init_cmd' in light:
-        subprocess.call(light['init_cmd'], shell=True)
+      if 'init_cmd' in item:
+        subprocess.call(item['init_cmd'], shell=True)
 
     if queue.empty():
       sys.exit(0)
