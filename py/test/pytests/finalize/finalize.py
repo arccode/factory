@@ -126,7 +126,7 @@ class Finalize(unittest.TestCase):
           'Battery cutoff options after wiping. Only used when wipe_in_place'
           'is set to true. Should be a dict with following optional keys:\n'
           '- "method": The cutoff method after wiping. Value should be one of'
-          '    {shutdown, reboot, battery_cutoff, battery_cutoff_at_shutdown}\n'
+          '    {shutdown, reboot, battery_cutoff}\n'
           '- "check_ac": Allowed AC state when performing battery cutoff'
           '     Value should be one of {remove_ac, connect_ac}\n'
           '- "min_battery_percent": Minimum battery percentage allowed\n'
@@ -286,44 +286,48 @@ class Finalize(unittest.TestCase):
 
       return True
 
-
-    def VirtualDevSwitchOn():
-      return (self.dut.info.has_virtual_dev_switch and
-              self.dut.info.virtual_dev_mode_on)
-
     items = [(CheckRequiredTests,
               MakeLabel('Verify all tests passed',
-                        '确认测试项目都已成功了'))]
+                        '确认测试项目都已成功了')),
+             (lambda: (
+                 self.gooftool.CheckDevSwitchForDisabling() in (True, False)),
+              MakeLabel('Turn off Developer Switch',
+                        '停用开发者开关(DevSwitch)'))]
 
-    # TODO (shunhsingou): check image version before the flowing logic.
-    # For doing in-place wiping, we cut-off battery power immediately after
-    # wiping. However, "disable_dev_request" flag may get corrupted on some
-    # devices due to the cut-off without reboot, and the virtual dev mode bit is
-    # not cleared. Therefore, we want to make sure the virtual
-    # dev mode bit is not set before doing in-place wiping.
-    # For factory, we stop the finalize by showing the error, since we should
-    # use GBB flag for dev mode in factory.
-    # For RMA, the cut-off is replaced by reboot.
-    if self.args.wipe_in_place:
-      if (VirtualDevSwitchOn() and
-          self.args.cutoff_options.get('method') != 'reboot'):
-        if self.args.rma_mode:
-          self.args.cutoff_options['method'] = 'reboot'
-          with self.go_cond:
-            self.template.SetState(MSG_CHANGE_TO_REBOOT)
-            self.go_cond.wait()
-        else:
-          factory.console.warn('Virtual dev switch is on.')
-          items.append((lambda: False,
-                        MakeLabel(
-                            'Virtual DEV switch must be off for '
-                            'in-place wiping',
-                            '虚拟开发模式必须关闭。')))
-    else:
-      items.append((lambda: (self.gooftool.CheckDevSwitchForDisabling() in
-                             (True, False)),
-                    MakeLabel('Turn off Developer Switch',
-                              '停用开发者开关(DevSwitch)')))
+    def SupportFirmwareCutoff():
+      """Returns True if the firmware and image support battery cutoff.
+
+      In issue #601705, a new method for doing battery cutoff is introduced.
+      This requires both image (crossystem) and firmware to have CL:337602,
+      CL:337596, and CL:338193.
+
+      It should be fine for ToT, but for old factory branches, additional checks
+      are required.
+
+      Here we check if crossystem supports the new flag.
+
+      For factory branch, additional check on firmware version might be also
+      required.
+      """
+
+      def _CheckFirmwareVersion():
+        # Implement the firmware version check here in factory branch if
+        # required.
+        return True
+
+      if (self.dut.Call('crossystem | grep -q battery_cutoff_request') != 0
+          or not _CheckFirmwareVersion()):
+        factory.console.warn('The current image does not support battery '
+                             'cutoff after rebooting. Please change the image '
+                             'or the toolkit.')
+        return False
+      return True
+
+    if (self.args.wipe_in_place and
+        self.args.cutoff_options['method'] == 'battery_cutoff'):
+      items.append((SupportFirmwareCutoff,
+                    MakeLabel('Check battery cutoff support',
+                              '检查电池断电支援')))
 
     if self.args.min_charge_pct:
       items.append((lambda: (power.CheckBatteryPresent() and

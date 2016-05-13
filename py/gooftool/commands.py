@@ -682,7 +682,7 @@ _cutoff_args_cmd_arg = CmdArg(
     '--cutoff_args',
     help='Battery cutoff arguments to be passed to battery_cutoff.sh '
          'after wiping. Should be the following format: '
-         '[--method shutdown|reboot|battery_cutoff|battery_cutoff_at_shutdown] '
+         '[--method shutdown|reboot|battery_cutoff] '
          '[--check-ac connect_ac|remove_ac] '
          '[--min-battery-percent <minimum battery percentage>] '
          '[--max-battery-percent <maximum battery percentage>] '

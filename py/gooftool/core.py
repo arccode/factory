@@ -508,8 +508,7 @@ class Gooftool(object):
     for i in range(0, args_len, 2):
       if '--method' == args[i]:
         if args[i + 1] not in (
-            'shutdown', 'reboot', 'battery_cutoff',
-            'battery_cutoff_at_shutdown'):
+            'shutdown', 'reboot', 'battery_cutoff'):
           raise ValueError('Invalid value for %s: %s' % (args[i], args[i + 1]))
       elif '--check-ac' == args[i]:
         if args[i + 1] not in ('remove_ac', 'connect_ac'):
