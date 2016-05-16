@@ -83,7 +83,7 @@ class VerifyValueTest(unittest.TestCase):
         elif isinstance(expected_value, int):
           match = expected_value == int(value)
         else:
-          match = expected_value == value
+          match = expected_value == str(value).strip()
         if match:
           break
 
