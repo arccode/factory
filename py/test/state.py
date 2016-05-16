@@ -470,10 +470,11 @@ class FactoryState(object):
 
     This may include system load, battery status, etc. See
     cros.factory.test.dut.status.SystemStatus. Return None
-    when there is no DUT connected.
+    if DUT is not local (station-based).
     '''
-    if self._dut.IsReady():
+    if self._dut.link.IsLocal():
       return self._dut.status.Snapshot().__dict__
+    return None
 
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
