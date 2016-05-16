@@ -260,7 +260,7 @@ def init_logging(prefix=None, verbose=False):
       datefmt='%Y-%m-%d %H:%M:%S')
 
   testlog.CapturePythonLogging(
-      target=log_writer.GetGlobalLogWriter().Log, level=level)
+      callback=log_writer.GetGlobalLogWriter().Log, level=level)
 
   logging.debug('Initialized logging')
 

@@ -85,7 +85,7 @@ class TestlogTest(unittest.TestCase):
     def CheckMessage(event):
       logged_events.append(event)
       logging.info('testing 456')
-    testlog.CapturePythonLogging(CheckMessage)
+    testlog.CapturePythonLogging(callback=CheckMessage)
     logging.info('testing 123')
     self.assertEquals(len(logged_events), 1)
     self.assertEquals(logged_events[0]['message'], 'testing 123')
