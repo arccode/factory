@@ -20,6 +20,8 @@ HOST_DIR=/docker_shared
 # Separate umpire db for each container.
 HOST_DB_DIR=/docker_umpire/${UMPIRE_CONTAINER_NAME}
 CONTAINER_DB_DIR=/var/db/factory/umpire
+PREBUILT_IMAGE_SITE='https://storage.googleapis.com'
+PREBUILT_IMAGE_PRE_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
 
 . ${BUILDDIR}/config.sh
 
@@ -63,6 +65,27 @@ do_ssh() {
 
 do_build() {
   check_docker
+
+  # Use prebuilt image if we can.
+  # We use the md5sum of the Dockerfile to know if the prebuilt image of this
+  # Dockerfile is in server.
+  local image_name="docker_umpire_env-$(md5sum ${BUILDDIR}/Dockerfile |
+                                        cut -c1-5).tgz"
+  # check the file locally first if we run the script twice we don't need to
+  # download it again.
+  if [ ! -f ${image_name} ]; then
+    wget ${PREBUILT_IMAGE_PRE_URL}/${image_name} || rm -f ${image_name}
+  fi
+  if [ -f ${image_name} ]; then
+    echo "Found prebuilt image ${image_name}"
+    if sudo docker load <${image_name}; then
+      return
+    else
+      # the prebuilt image is corrupted, remove it.
+      rm -f ${image_name}
+      echo "Load prebuilt image fail! start building image."
+    fi
+  fi
 
   # docker build requires resource to be in the build directory, copy keyfile
   # for using as authorized_keys
