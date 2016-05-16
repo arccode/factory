@@ -229,9 +229,8 @@ def get_instance(url=None, detect=False, timeout=None, quiet=False):
 def get_shopfloor_handler_uri():
   """Gets shop floor server XMLRPC handler URI."""
   instance = get_instance()
-  if hasattr(instance, 'GetShopFloorHandlerUri'):
-    uri = instance.GetShopFloorHandlerUri()
-  else:
+  uri = instance.GetShopFloorHandlerUri()
+  if not uri:
     uri = get_server_url()
   logging.info('Get shopfloor handler uri %s', uri)
   return uri
