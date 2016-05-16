@@ -427,7 +427,7 @@ class AudioQualityTest(unittest.TestCase):
     logging.info('Received file %s with size %d', file_name, size)
     real_data = binascii.a2b_hex(received_data)
 
-    write_path = os.path.join(paths.get_log_root(), 'aux', 'audio', file_name)
+    write_path = os.path.join(paths.GetLogRoot(), 'aux', 'audio', file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
@@ -453,7 +453,7 @@ class AudioQualityTest(unittest.TestCase):
     size = int(attr_list[2])
     received_data = attr_list[3].replace('\x00', ' ')
 
-    write_path = os.path.join(paths.get_log_root(), 'aux', 'audio', file_name)
+    write_path = os.path.join(paths.GetLogRoot(), 'aux', 'audio', file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:

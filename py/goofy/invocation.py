@@ -58,7 +58,7 @@ ERROR_LOG_TAIL_LENGTH = 8 * 1024
 
 # A file that stores override test list dargs for factory test automation.
 OVERRIDE_TEST_LIST_DARGS_FILE = os.path.join(
-    paths.get_state_root(), 'override_test_list_dargs.yaml')
+    paths.GetStateRoot(), 'override_test_list_dargs.yaml')
 
 
 class InvocationError(Exception):
@@ -221,14 +221,14 @@ class TestInvocation(object):
       self.uuid = factory.get_shared_data(post_shutdown_tag)
     else:
       self.uuid = event_log.TimedUuid()
-    self.output_dir = os.path.join(paths.get_test_data_root(),
+    self.output_dir = os.path.join(paths.GetTestDataRoot(),
                                    '%s-%s' % (self.test.path,
                                               self.uuid))
     file_utils.TryMakeDirs(self.output_dir)
 
     # Create a symlink for the latest test run, so if we're looking at the
     # logs we don't need to enter the whole UUID.
-    latest_symlink = os.path.join(paths.get_test_data_root(),
+    latest_symlink = os.path.join(paths.GetTestDataRoot(),
                                   self.test.path)
     try:
       os.remove(latest_symlink)
@@ -445,7 +445,7 @@ class TestInvocation(object):
 
       results_path = make_tmp('results')
 
-      log_dir = os.path.join(paths.get_test_data_root())
+      log_dir = os.path.join(paths.GetTestDataRoot())
       if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 

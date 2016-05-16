@@ -24,14 +24,14 @@ FileLock = platform_utils.GetProvider('FileLock')
 
 # The location to store the device ID file should be a place that is
 # less likely to be deleted.
-DEVICE_ID_PATH = os.path.join(paths.get_factory_root(), 'testlog_device_id')
+DEVICE_ID_PATH = os.path.join(paths.GetFactoryRoot(), 'testlog_device_id')
 
 WLAN0_MAC_PATH = '/sys/class/net/wlan0/address'
 MLAN0_MAC_PATH = '/sys/class/net/mlan0/address'
 # TODO(kitching): Add CPUID for Intel devices?
 DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
 
-STATE_DIR = paths.get_state_root()
+STATE_DIR = paths.GetStateRoot()
 
 # Path to use to persist image ID.
 REIMAGE_ID_PATH = os.path.join(STATE_DIR, 'testlog_reimage_id')
@@ -40,14 +40,14 @@ REIMAGE_ID_PATH = os.path.join(STATE_DIR, 'testlog_reimage_id')
 INIT_COUNT_PATH = os.path.join(STATE_DIR, 'init_count')
 
 # The /var/factory/log directory (or equivalent if in the chroot).
-LOG_DIR = paths.get_log_root()
+LOG_DIR = paths.GetLogRoot()
 
 # The main JSON file. It will be ingested by a local Instalog instance.
 TESTLOG_PATH = os.path.join(LOG_DIR, 'testlog.json')
 
 # The /var/run directory (or something writable by us if in the chroot).
 RUN_DIR = os.path.join(
-    paths.get_factory_root('run') if sys_utils.InChroot() else '/var/run',
+    paths.GetFactoryRoot('run') if sys_utils.InChroot() else '/var/run',
     'factory')
 
 # File containing the next sequence number to write. This is in

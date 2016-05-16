@@ -73,7 +73,7 @@ from cros.factory.utils import type_utils
 
 
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
-CACHES_DIR = os.path.join(paths.get_state_root(), 'caches')
+CACHES_DIR = os.path.join(paths.GetStateRoot(), 'caches')
 
 CLEANUP_LOGS_PAUSED = '/var/lib/cleanup_logs_paused'
 
@@ -1225,7 +1225,7 @@ class Goofy(GoofyBase):
             extra_log_args['data'] = data
 
             # Copy to /var/factory/kcrash for posterity
-            kcrash_dir = paths.get_factory_root('kcrash')
+            kcrash_dir = paths.GetFactoryRoot('kcrash')
             file_utils.TryMakeDirs(kcrash_dir)
             shutil.copy(path, kcrash_dir)
             logging.info('Copied to %s',
@@ -1423,9 +1423,9 @@ class Goofy(GoofyBase):
     # be fixed.
 
     # Make sure factory directories exist.
-    paths.get_log_root()
-    paths.get_state_root()
-    paths.get_test_data_root()
+    paths.GetLogRoot()
+    paths.GetStateRoot()
+    paths.GetTestDataRoot()
 
     global _inited_logging  # pylint: disable=W0603
     if not _inited_logging:

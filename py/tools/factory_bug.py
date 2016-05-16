@@ -195,7 +195,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
 
     # Exclude various items from bug reports.
     exclude_files = list(chain.from_iterable(('--exclude', x) for x in [
-        os.path.join(cros_path.get_state_root(),
+        os.path.join(cros_path.GetStateRoot(),
                      cros_path.CHROME_DATA_DIR_NAME), 'Extensions',
     ]))
     if not include_network_log:

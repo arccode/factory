@@ -29,7 +29,7 @@ CHROME_DATA_DIR_NAME = 'chrome-data-dir'
 FACTORY_LOG_PATH_ON_DEVICE = '/var/factory/log/factory.log'
 
 
-def get_factory_root(subdir=None):
+def GetFactoryRoot(subdir=None):
   """Returns the root for logging and state.
 
   This is usually /var/log, or /tmp/factory.$USER if in the chroot, but may be
@@ -49,29 +49,29 @@ def get_factory_root(subdir=None):
   return ret
 
 
-def get_log_root():
+def GetLogRoot():
   """Returns the root for logs"""
-  return get_factory_root('log')
+  return GetFactoryRoot('log')
 
 
-def get_state_root():
+def GetStateRoot():
   """Returns the root for all factory state."""
-  return get_factory_root('state')
+  return GetFactoryRoot('state')
 
 
-def get_test_data_root():
+def GetTestDataRoot():
   """Returns the root for all test logs/state."""
-  return get_factory_root('tests')
+  return GetFactoryRoot('tests')
 
 
 def GetConsoleLogPath():
   """Returns the path to console.log file."""
-  return os.path.join(get_log_root(), 'console.log')
+  return os.path.join(GetLogRoot(), 'console.log')
 
 
 def GetFactoryLogPath():
   """Returns the path to factory.log file."""
-  return os.path.join(get_log_root(), 'factory.log')
+  return os.path.join(GetLogRoot(), 'factory.log')
 
 
 def GetFactoryPythonArchivePath():

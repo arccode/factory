@@ -19,7 +19,7 @@ from cros.factory.utils.shelve_utils import OpenShelfOrBackup
 
 EVENT_SEPARATOR = '\n---\n'
 KEY_OFFSET = 'offset'
-EVENT_LOG_DB_FILE = os.path.join(paths.get_state_root(), 'event_log_db')
+EVENT_LOG_DB_FILE = os.path.join(paths.GetStateRoot(), 'event_log_db')
 
 
 class ScanException(Exception):

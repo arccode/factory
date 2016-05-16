@@ -18,7 +18,7 @@ from cros.factory.utils.type_utils import MakeList
 
 
 AUTOMATION_FUNCTION_KWARGS_FILE = os.path.join(
-    paths.get_state_root(), 'automation_function_kwargs.yaml')
+    paths.GetStateRoot(), 'automation_function_kwargs.yaml')
 
 
 class AutomationError(Exception):

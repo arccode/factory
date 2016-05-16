@@ -84,7 +84,7 @@ _state_root_for_testing = None
 
 def GetPhaseStatePath():
   """Returns the path used to save the current phase."""
-  return os.path.join((_state_root_for_testing or paths.get_state_root()),
+  return os.path.join((_state_root_for_testing or paths.GetStateRoot()),
                       'PHASE')
 
 

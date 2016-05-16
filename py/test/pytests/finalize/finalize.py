@@ -146,7 +146,7 @@ class Finalize(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.force = False
     self.go_cond = threading.Condition()
-    self.test_states_path = os.path.join(paths.get_log_root(),
+    self.test_states_path = os.path.join(paths.GetLogRoot(),
                                          'test_states')
     self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
 

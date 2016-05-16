@@ -68,7 +68,7 @@ SECONDS_PER_DAY = 86400
 class TimeSanitizer(object):
 
   def __init__(self,
-               state_file=os.path.join(paths.get_state_root(),
+               state_file=os.path.join(paths.GetStateRoot(),
                                        'time_sanitizer_base_time'),
                monitor_interval_secs=30,
                time_bump_secs=60,

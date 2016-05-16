@@ -33,10 +33,10 @@ from cros.factory.utils import type_utils
 
 
 # Retain factory path functions and constants for backwards compatibility.
-get_factory_root = paths.get_factory_root
-get_log_root = paths.get_log_root
-get_state_root = paths.get_state_root
-get_test_data_root = paths.get_test_data_root
+get_factory_root = paths.GetFactoryRoot
+get_log_root = paths.GetLogRoot
+get_state_root = paths.GetStateRoot
+get_test_data_root = paths.GetTestDataRoot
 CONSOLE_LOG_PATH = paths.GetConsoleLogPath()
 FACTORY_LOG_PATH = paths.GetFactoryLogPath()
 FACTORY_LOG_PATH_ON_DEVICE = paths.FACTORY_LOG_PATH_ON_DEVICE
@@ -137,7 +137,7 @@ def get_verbose_log_file():
   """
   invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
   log_name = '%s-log-%s' % (get_current_test_path(), invocation)
-  log_path = os.path.join(paths.get_factory_root('log'), log_name)
+  log_path = os.path.join(paths.GetFactoryRoot('log'), log_name)
   console.info('Raw log stored at %s', log_path)
   return open(log_path, 'a')
 

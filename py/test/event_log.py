@@ -35,9 +35,9 @@ _default_event_logger_prefix = None
 
 # The location to store the device ID file should be a place that is
 # less likely to be deleted.
-DEVICE_ID_PATH = os.path.join(paths.get_factory_root(), ".device_id")
+DEVICE_ID_PATH = os.path.join(paths.GetFactoryRoot(), ".device_id")
 
-EVENT_LOG_DIR = os.path.join(paths.get_state_root(), "events")
+EVENT_LOG_DIR = os.path.join(paths.GetFactoryRoot(), "events")
 WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
 MLAN0_MAC_PATH = "/sys/class/net/mlan0/address"
 DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
@@ -48,7 +48,7 @@ REIMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".reimage_id")
 
 # The /var/run directory (or something writable by us if in the chroot).
 RUN_DIR = os.path.join(
-    paths.get_factory_root("run") if sys_utils.InChroot() else "/var/run",
+    paths.GetFactoryRoot("run") if sys_utils.InChroot() else "/var/run",
     "factory")
 
 # File containing the next sequence number to write.  This is in

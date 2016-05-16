@@ -70,7 +70,7 @@ def _SendDhclientCommand(arguments, interface,
 
   """
   DHCLIENT_SCRIPT = '/usr/local/sbin/dhclient-script'
-  DHCLIENT_LEASE = os.path.join(paths.get_state_root(), 'dhclient.leases')
+  DHCLIENT_LEASE = os.path.join(paths.GetStateRoot(), 'dhclient.leases')
   assert timeout > 0, 'Must have a timeout'
 
   logging.info('Starting dhclient')
