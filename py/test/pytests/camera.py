@@ -64,13 +64,19 @@ Usage examples::
           'show_image': False,
           'camera_args':{'resolution': (1920, 1280)}})
 
+  # Stress camera capturing until given number of frames captured.
+  FactoryTest(
+      id='CameraCount',
+      pytest_name='camera',
+      dargs={
+          'do_capture_frame_count': True,
+          'num_frames_to_pass': 100,
+          'timeout_secs': 1000,
+          'show_image': False,
+          'camera_args':{'resolution': (1920, 1280)}})
+
 """
 
-try:
-  import cv   # pylint: disable=F0401
-  import cv2  # pylint: disable=F0401
-except ImportError:
-  pass
 
 import random
 import time
@@ -88,6 +94,9 @@ from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils.process_utils import StartDaemonThread
 from cros.factory.utils.type_utils import Enum
 
+from cros.factory.external import cv
+from cros.factory.external import cv2
+
 
 _MSG_CAMERA_MANUAL_CAPTURE = test_ui.MakeLabel(
     'Capturing image...',
@@ -100,6 +109,10 @@ _MSG_CAMERA_MANUAL_TEST = test_ui.MakeLabel(
 _MSG_CAMERA_TIMEOUT_TEST = test_ui.MakeLabel(
     'Running the camera until timeout.',
     zh=u'运行相机直到超时',
+    css_class='camera-test-info')
+_MSG_CAMERA_FRAME_COUNT_TEST = test_ui.MakeLabel(
+    'Running the camera until expected number of frames captured.',
+    zh=u'运行相机直到给订数量',
     css_class='camera-test-info')
 _MSG_CAMERA_QR_SCAN = test_ui.MakeLabel(
     'Scanning QR code...',
@@ -152,7 +165,7 @@ _HAAR_CASCADE_PATH = (
     '/usr/local/share/opencv/haarcascades/haarcascade_frontalface_default.xml')
 
 # Test types of capture task.
-CaptureTaskType = Enum(['QR', 'FACE', 'TIMEOUT', 'MANUAL'])
+CaptureTaskType = Enum(['QR', 'FACE', 'TIMEOUT', 'MANUAL', 'FRAME_COUNT'])
 
 
 class CaptureTask(factory_task.InteractiveFactoryTask):
@@ -201,6 +214,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
     return scanned_text == self.args.QR_string
 
   def TestCapture(self):
+    frame_count = 0
     detected_frame_count = 0
     tick = 1.0 / float(self.args.capture_fps)
     tock = time.time()
@@ -208,6 +222,11 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
     resize_ratio = self.args.resize_ratio
     while not self.finished:
       cv_img = self.camera_test.camera_device.ReadSingleFrame()
+      if self.task_type == CaptureTaskType.FRAME_COUNT:
+        frame_count += 1
+        if frame_count >= self.args.num_frames_to_pass:
+          self.Pass()
+          return
       if (self.task_type in [CaptureTaskType.QR, CaptureTaskType.FACE] and
           time.time() - tock > process_interval):
         # Doing face recognition based on process_rate due to performance
@@ -248,6 +267,8 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
       self.camera_test.ui.SetHTML(_MSG_CAMERA_FACIAL_RECOGNITION, id=_ID_PROMPT)
     elif self.task_type == CaptureTaskType.TIMEOUT:
       self.camera_test.ui.SetHTML(_MSG_CAMERA_TIMEOUT_TEST, id=_ID_PROMPT)
+    elif self.task_type == CaptureTaskType.FRAME_COUNT:
+      self.camera_test.ui.SetHTML(_MSG_CAMERA_FRAME_COUNT_TEST, id=_ID_PROMPT)
     else:
       self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_CAPTURE, id=_ID_PROMPT)
 
@@ -328,12 +349,16 @@ class CameraTest(unittest.TestCase):
           'Manually checks if camera capturing is '
           'working.', default=False),
       Arg(
+          'do_capture_frame_count', bool,
+          'Just run camera capturing for a given number of frames.',
+          default=False),
+      Arg(
           'do_led_manual', bool, 'Manully tests LED on camera.',
           default=False),
       Arg(
           'num_frames_to_pass', int,
-          'The number of frames with faces or '
-          'QR code presented to pass the test.', default=10),
+          'The number of frames with faces, QR code presented or any frames '
+          'when do_capture_frame_count to pass the test.', default=10),
       Arg(
           'process_rate', (int, float),
           'The process rate of face recognition or '
@@ -403,13 +428,16 @@ class CameraTest(unittest.TestCase):
     if self.args.do_capture_timeout:
       self.task_list.append(CaptureTask(self, CaptureTaskType.TIMEOUT))
       exclusive_check = True
+    if self.args.do_capture_frame_count:
+      self.task_list.append(CaptureTask(self, CaptureTaskType.FRAME_COUNT))
+      exclusive_check = True
     if self.args.do_capture_manual:
       self.task_list.append(CaptureTask(self, CaptureTaskType.MANUAL))
     if self.args.do_led_manual:
       self.task_list.append(LEDTask(self))
     if exclusive_check and len(self.task_list) > 1:
-      raise ValueError(
-          'do_capture_timeout can not coexist with other test types')
+      raise ValueError('do_capture_timeout or do_capture_frame_count '
+                       'can not coexist with other test types')
     if not self.task_list:
       raise ValueError('must choose at least one test type')
 
