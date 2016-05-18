@@ -30,7 +30,7 @@ from uuid import uuid4
 from jsonrpclib import jsonclass
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test.factory import TestState
 from cros.factory.utils import net_utils
@@ -167,7 +167,7 @@ class FactoryState(object):
     self._resolver = PathResolver()
 
     # TODO(hungte) Support remote dynamic DUT.
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
 
     if TestState not in jsonclass.supported_types:
       jsonclass.supported_types.append(TestState)
@@ -469,7 +469,7 @@ class FactoryState(object):
     '''Returns system status information.
 
     This may include system load, battery status, etc. See
-    cros.factory.test.dut.status.SystemStatus. Return None
+    cros.factory.device.status.SystemStatus. Return None
     if DUT is not local (station-based).
     '''
     if self._dut.link.IsLocal():

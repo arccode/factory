@@ -32,7 +32,7 @@ class FactoryPythonArchive(object):
     """Constructor of FactoryPythonArchive.
 
     Args:
-      :type dut: cros.factory.test.dut.board.DUTBoard
+      :type dut: cros.factory.device.board.DeviceBoard
       local_factory_par: local path to factory.par, If this is None (default
           value), the object will try to find factory.par at default location.
           (see self.local_factory_par)

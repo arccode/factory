@@ -10,9 +10,9 @@ import pipes
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.device import device_utils
+from cros.factory.device.boards import android
 from cros.factory.test.env import paths
-from cros.factory.test import dut as dut_module
-from cros.factory.test.dut.boards import android
 from cros.factory.test.pytests.offline_test.shell import common
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import pytest_utils
@@ -88,7 +88,7 @@ class ScriptBuilder(object):
 
   Example::
 
-    builder = ScriptBuilder(dut.Create())
+    builder = ScriptBuilder(CreateDUTInterface())
     builder.TestStressApp(0.5, 20, True)
     builder.WaitFor(10)
     builder.TestShutdown()
@@ -103,7 +103,7 @@ class ScriptBuilder(object):
     """Constructor of ScriptBuilder.
 
     Args:
-      :type dut: cros.factory.test.dut.board.DUTBoard
+      :type dut: cros.factory.device.board.DeviceBoard
       dut: used to get data from DUT.
 
       :type data_root: str
@@ -264,7 +264,7 @@ class DeployShellOfflineTest(unittest.TestCase):
           default=True, optional=True),]
 
   def setUp(self):
-    self.dut = dut_module.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.data_root = common.DataRoot(self.dut)
     self.test_script_path = common.TestScriptPath(self.dut)
     self.script_root = common.ScriptRoot(self.dut)

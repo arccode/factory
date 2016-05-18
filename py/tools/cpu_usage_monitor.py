@@ -25,7 +25,6 @@ class CPUUsageMonitor(object):
   def __init__(self, period_secs, dut):
     self._period_secs = period_secs
     self.dut = dut
-    factory.init_logging()
 
   def _GetLoadString(self):
     return ', '.join('%.1f' % load for load in self.dut.status.load_avg)
@@ -75,11 +74,12 @@ def main():
   parser.add_argument('--period_secs', '-p', help='Interval between checks',
                       type=int, required=False, default=120)
   args = parser.parse_args()
+  factory.init_logging()
 
   # TODO(hungte) This currently only reads from local system. We need to expore
   # DUT options and allow reading from remote in future.
-  from cros.factory.test import dut
-  monitor = CPUUsageMonitor(args.period_secs, dut.Create())
+  from cros.factory.device import device_utils
+  monitor = CPUUsageMonitor(args.period_secs, device_utils.CreateDUTInterface())
   monitor.CheckForever()
 
 if __name__ == '__main__':

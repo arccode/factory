@@ -17,7 +17,7 @@ This test list can also be used to verify the software stability of base image
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -93,7 +93,7 @@ class TestListArgs(object):
     if sys_utils.InChroot():  # For unittest
       return 0
     else:
-      return dut.Create().thermal.GetMainTemperatureIndex()
+      return device_utils.CreateDUTInterface().thermal.GetMainTemperatureIndex()
 
   # List of temperature sensors to test.
   @property
@@ -101,7 +101,8 @@ class TestListArgs(object):
     if sys_utils.InChroot():  # For unittest
       return [0]
     else:
-      return range(len(dut.Create().thermal.GetTemperatureSensorNames()))
+      thermal = device_utils.CreateDUTInterface().thermal
+      return range(len(thermal.GetTemperatureSensorNames()))
 
   #####
   #
@@ -201,7 +202,7 @@ class TestListArgs(object):
     if env.GetDeviceData().get('resize_complete', False):
       return False
 
-    dut_instance = dut.Create()
+    dut_instance = device_utils.CreateDUTInterface()
     df_output_gb = dut_instance.CallOutput(
         ['df', '-BG', dut_instance.partitions.STATEFUL.path])
     match = re.search(
@@ -339,11 +340,13 @@ def EnlargeStatefulPartition(args):
         dargs=dict(
             title_en='ResizeFileSystem',
             title_zh=u'调整硬盘空间',
-            items=[('ResizeFileSystem', u'调整硬盘空间',
-                    'resize2fs %s %dG' % (
-                        dut.Create().partitions.STATEFUL.path,
-                        args.desired_stateful_size_gb),
-                    False)]))
+            items=[
+                ('ResizeFileSystem',
+                 u'调整硬盘空间',
+                 'resize2fs %s %dG' % (
+                     device_utils.CreateDUTInterface().partitions.STATEFUL.path,
+                     args.desired_stateful_size_gb),
+                 False)]))
     # Writes 'resize_complete' into device_data to mark this DUT has finished
     # EnlargeStatefulPartition.
     OperatorTest(
@@ -658,7 +661,7 @@ def CreateTestLists():
   # DUT is not local. Add a check here to generate test list only when link
   # is local.
   # TODO (shunhsingou): fixed this test list in the future.
-  if dut.Create().link.IsLocal():
+  if device_utils.CreateDUTInterface().link.IsLocal():
     CreateRebootStressTestList()
     CreateRunInStressTestList()
   else:

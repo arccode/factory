@@ -44,7 +44,7 @@ Another example, the value of y and z axis are ignored in this test::
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
@@ -155,7 +155,7 @@ class SensorMovement(unittest.TestCase):
           default={}, optional=True)]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS)

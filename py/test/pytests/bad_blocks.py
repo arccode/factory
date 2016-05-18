@@ -26,8 +26,8 @@ from select import select
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
-from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import ui_templates
 from cros.factory.test.test_ui import UI, Escape, MakeLabel
@@ -81,7 +81,7 @@ class BadBlocksTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = UI()
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetState(HTML)

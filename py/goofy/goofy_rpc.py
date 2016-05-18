@@ -26,8 +26,8 @@ import yaml
 from xml.sax import saxutils
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.goofy import goofy_remote
-from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
@@ -1162,7 +1162,7 @@ class GoofyRPC(object):
     else:
       output_filename = '%s-%%s%s' % os.path.splitext(output_file)
 
-    display = dut.Create().display
+    display = device_utils.CreateDUTInterface().display
     for port_id, port_info in display.GetPortInfo().iteritems():
       if port_info.connected:
         display.CaptureFramebuffer(port_id).save(output_filename % port_id)

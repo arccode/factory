@@ -16,8 +16,8 @@ import unittest
 from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
-from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -119,7 +119,7 @@ class ChargerTest(unittest.TestCase):
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _board and _power."""
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self._power = self._dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)

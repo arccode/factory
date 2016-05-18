@@ -19,7 +19,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.utils import file_utils
 
 
@@ -125,7 +125,7 @@ class ReadLinesTest(unittest.TestCase):
     tmp.write('line 1\nline 2\n')
     tmp.close()
     try:
-      lines = file_utils.ReadLines(tmp.name, dut.Create())
+      lines = file_utils.ReadLines(tmp.name, device_utils.CreateDUTInterface())
       self.assertEquals(len(lines), 2)
       self.assertEquals(lines[0], 'line 1\n')
       self.assertEquals(lines[1], 'line 2\n')
@@ -136,7 +136,7 @@ class ReadLinesTest(unittest.TestCase):
     tmp = tempfile.NamedTemporaryFile(delete=False)
     tmp.close()
     try:
-      lines = file_utils.ReadLines(tmp.name, dut.Create())
+      lines = file_utils.ReadLines(tmp.name, device_utils.CreateDUTInterface())
       self.assertTrue(isinstance(lines, list))
       self.assertEquals(len(lines), 0)
     finally:
@@ -147,7 +147,7 @@ class ReadLinesTest(unittest.TestCase):
     tmp.close()
     os.unlink(tmp.name)
 
-    lines = file_utils.ReadLines(tmp.name, dut.Create())
+    lines = file_utils.ReadLines(tmp.name, device_utils.CreateDUTInterface())
     self.assertTrue(lines is None)
 
 

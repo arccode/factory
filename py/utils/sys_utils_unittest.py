@@ -14,7 +14,7 @@ import textwrap
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
@@ -255,7 +255,7 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
       f.write(self.content)
     Spawn(['umount', '-l', mount_point], sudo=True, check_call=True, log=True)
     os.rmdir(mount_point)
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
     # Since 'mount', 'umount' requires root privilege, make link.Shell function
     # executes commands as root.

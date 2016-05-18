@@ -7,18 +7,18 @@
 import datetime
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import dut as dut_module
+from cros.factory.device import device_utils
 
 
 def SyncDate(dut=None):
   """Sync DUT datetime with station.
 
   Args:
-    :type dut: cros.factory.test.dut.board.DUTBoard
+    :type dut: cros.factory.device.board.DeviceBoard
   """
 
   if not dut:
-    dut = dut_module.Create()
+    dut = device_utils.CreateDUTInterface()
 
   if not dut.link.IsLocal():
     now = datetime.datetime.utcnow()

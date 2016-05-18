@@ -14,8 +14,8 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.dut import led as led_module
-from cros.factory.test import dut
+from cros.factory.device import device_utils
+from cros.factory.device import led as led_module
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.factory_task import (FactoryTask, FactoryTaskManager,
@@ -306,7 +306,7 @@ class LEDTest(unittest.TestCase):
           'name.', optional=True, default={})]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._task_manager = None

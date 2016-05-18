@@ -36,8 +36,8 @@ Usage examples::
 import logging
 import unittest
 
+from cros.factory.device import device_utils
 from cros.factory.gooftool import edid
-from cros.factory.test import dut
 from cros.factory.utils.arg_utils import Arg
 
 class BacklightMaxBrightnessVPDTest(unittest.TestCase):
@@ -73,7 +73,7 @@ class BacklightMaxBrightnessVPDTest(unittest.TestCase):
       return parsed_edid['product_id'], parsed_edid['vendor']
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
     """Run the test."""

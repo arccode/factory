@@ -26,8 +26,8 @@ import yaml
 import zipfile
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.goofy.goofy import CACHES_DIR
-from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -183,7 +183,7 @@ class AudioQualityTest(unittest.TestCase):
     self._handlers[_CONFIG_FILE_RE] = self.HandleConfigFile
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self.setUpAudioDevice()
     self.setUpLoopHandler()
 

@@ -59,7 +59,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.countdown_timer import StartCountdownTimer
@@ -161,7 +161,7 @@ class TabletRotationTest(unittest.TestCase):
     #   degrees_to_orientations
     #   spec_offset
     #   spec_ideal_values
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.accel_controller = None
     if self.args.check_accelerometer:
       if not all([self.args.degrees_to_orientations,

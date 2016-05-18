@@ -24,7 +24,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import test_ui
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.event_log import Log
@@ -97,7 +97,7 @@ class GpioButton(GenericButton):
 
     Args:
       dut_instance: the DUT which this button belongs to.
-      :type dut_instance: cros.factory.test.dut.board.DUTBoard
+      :type dut_instance: cros.factory.device.board.DeviceBoard
       number: An integer for GPIO number.
       is_active_high: Boolean flag for polarity of GPIO ("active" = "pressed").
     """
@@ -157,7 +157,7 @@ class ButtonTest(unittest.TestCase):
           default=1)]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_BUTTON_TEST_DEFAULT_CSS)

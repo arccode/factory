@@ -85,7 +85,7 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test.fixture.camera import barcode
@@ -411,7 +411,7 @@ class CameraTest(unittest.TestCase):
       self.camera_device.EnableCamera()
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.camera_device = self.dut.camera.GetCameraDevice(
         self.args.device_index)
 

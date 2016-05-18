@@ -31,6 +31,7 @@ from optparse import OptionParser
 from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import state
@@ -38,7 +39,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
 from cros.factory.test import testlog_utils
-from cros.factory.test.dut import utils as dut_utils
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
@@ -1019,7 +1019,8 @@ def RunPytest(test_info):
         if isinstance(test, unittest.TestCase):
           test.test_info = test_info
           if test_info.dut_options:
-            os.environ.update({dut_utils.ENV_DUT_OPTIONS: str(test_info.dut_options)})
+            os.environ.update({
+                device_utils.ENV_DUT_OPTIONS: str(test_info.dut_options)})
           arg_spec = getattr(test, 'ARGS', None)
           if arg_spec:
             try:

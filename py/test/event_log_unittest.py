@@ -10,8 +10,6 @@
 
 
 import collections
-import dbus
-import factory_common  # pylint: disable=W0611
 import logging
 import os
 import re
@@ -21,8 +19,11 @@ import threading
 import time
 import unittest
 import uuid
+
 import yaml
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.external import dbus
 from cros.factory.test import event_log
 from cros.factory.utils import file_utils
 from cros.factory.hwid.v3.common import ProbedComponentResult

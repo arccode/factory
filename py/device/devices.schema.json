@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "dut": {
+      "type": "object",
+      "properties": {
+        "link_class": {
+          "type": "string",
+          "description": "The class name under cros.factory.device.links to load for providing the connection to device."
+        },
+        "board_class": {
+          "type": "string",
+          "description": "The class name under cros.factory.device.boards to load for accessing device."
+        }
+      }
+    },
+    "station": {
+      "type": "object",
+      "properties": {
+        "link_class": {
+          "type": "string",
+          "description": "The class name under cros.factory.device.links to load for providing the connection to station host."
+        },
+        "board_class": {
+          "type": "string",
+          "description": "The class name under cros.factory.device.boards to load for accessing station host."
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

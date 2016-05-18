@@ -14,7 +14,7 @@ import random
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.factory_task import FactoryTaskManager
@@ -208,7 +208,7 @@ class AudioTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     if self.args.audio_conf:
       self._dut.audio.ApplyConfig(self.args.audio_conf)
     # Tansfer output device format

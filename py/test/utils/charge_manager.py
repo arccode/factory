@@ -5,7 +5,7 @@
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.utils.type_utils import Enum
 
 
@@ -32,7 +32,7 @@ class ChargeManager(object):
       max_charge_pct: The maximum level of charge. Battery discharges when
                       charge level is higher than this value. This value must be
                       between 0 and 100, and must be higher than min_charge_pct.
-      power:          A cros.factory.test.dut.power.Power instance that provides
+      power:          A cros.factory.device.power.Power instance that provides
                       control to power. Default to a local one.
     '''
     assert min_charge_pct >= 0
@@ -44,7 +44,8 @@ class ChargeManager(object):
     self.state = None
     self._min_charge_pct = min_charge_pct
     self._max_charge_pct = max_charge_pct
-    self._power = (dut.Create().power if power is None else power)
+    self._power = (device_utils.CreateDUTInterface().power if power is None
+                   else power)
 
   def _SetState(self, new_state):
     if self.state != new_state:

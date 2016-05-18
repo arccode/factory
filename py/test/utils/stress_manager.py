@@ -35,7 +35,7 @@ class StressManager(object):
     """Constructor of StressManager
 
     Args:
-      :type dut: cros.factory.test.dut.board.DUTBoard
+      :type dut: cros.factory.device.board.DeviceBoard
     """
     self._dut = dut
     self._system_info = dut.info

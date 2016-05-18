@@ -64,7 +64,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test import dut as dut_module
+from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
@@ -111,7 +111,7 @@ class RFRadiatedTest(unittest.TestCase):
     self.leds_blinker = None
     self.power_meter = None
     self.chip_controller = None
-    self.dut = dut_module.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
     self._InitLog()
 

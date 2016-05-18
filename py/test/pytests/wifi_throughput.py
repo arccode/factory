@@ -75,11 +75,11 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
+from cros.factory.device import CalledProcessError
 from cros.factory.test import event_log
 from cros.factory.test import factory, leds
 from cros.factory.test import test_ui
-from cros.factory.test.dut import CalledProcessError
 from cros.factory.test.fixture import arduino
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils import net_utils
@@ -839,7 +839,7 @@ class WiFiThroughput(unittest.TestCase):
   def setUp(self):
     # Services should inherit from provided "test-level" arguments.
     self._ProcessArgs()
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
 
     # Run our pre-command.
     if self.args.pre_command:

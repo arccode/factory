@@ -24,7 +24,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.sys_utils import MountPartition
 
@@ -46,7 +46,7 @@ class SimpleStorageStressTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
 
   def ReadWriteFile(self, test_file, file_size):
     """Performs a read/write to a specific file."""

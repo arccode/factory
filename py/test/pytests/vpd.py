@@ -31,7 +31,7 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -521,7 +521,7 @@ class VPDTest(unittest.TestCase):
     self.tasks = []
     self.registration_code_map = {}
     self.vpd = {'ro': {}, 'rw': {}}
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     if self.args.override_vpd:
       if self.ui.InEngineeringMode():
         self.vpd = self.args.override_vpd

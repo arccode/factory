@@ -29,7 +29,7 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import CheckOutput
 
@@ -47,7 +47,7 @@ class PartitionTableTest(unittest.TestCase):
   longMessage = True
 
   def runTest(self):
-    dev = dut.Create().storage.GetMainStorageDevice()
+    dev = device_utils.CreateDUTInterface().storage.GetMainStorageDevice()
     stateful = CheckOutput(['cgpt', 'find', '-l', 'STATE', dev], log=True)
 
     match = re.search(r'(\d+)$', stateful)

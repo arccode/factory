@@ -30,7 +30,8 @@ import logging
 import time
 import unittest
 
-from cros.factory.test import dut
+from cros.factory.device import device_utils
+from cros.factory.device import DeviceException
 from cros.factory.test import factory
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneSection
@@ -88,7 +89,7 @@ class FanSpeedTest(unittest.TestCase):
     self._template = OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
-    self._thermal = dut.Create().thermal
+    self._thermal = device_utils.CreateDUTInterface().thermal
     if isinstance(self.args.target_rpm, int):
       self.args.target_rpm = [self.args.target_rpm]
 

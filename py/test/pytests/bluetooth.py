@@ -27,7 +27,7 @@ import time
 import unittest
 
 
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -1138,7 +1138,7 @@ class BluetoothTest(unittest.TestCase):
       return self._strongest_rssi_mac
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.ui.AppendCSS('.start-font-size {font-size: 2em;}')
     self.template = ui_templates.TwoSections(self.ui)

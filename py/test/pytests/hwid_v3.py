@@ -12,9 +12,9 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
-from cros.factory.test import dut
+from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -55,7 +55,7 @@ class HWIDV3Test(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self.factory_tools = deploy_utils.FactoryPythonArchive(self._dut)
     self.tmpdir = self._dut.temp.mktemp(is_dir=True, prefix='hwid_v3')
 

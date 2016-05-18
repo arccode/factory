@@ -9,8 +9,8 @@ import mock
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device.board import DeviceBoard as dut
 from cros.factory.test import test_ui
-from cros.factory.test.dut.board import DUTBoard as dut
 from cros.factory.test.pytests import verify_value
 from cros.factory.test.ui_templates import OneSection
 

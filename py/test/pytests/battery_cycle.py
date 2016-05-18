@@ -20,8 +20,8 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
-from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils.stress_manager import DummyStressManager
@@ -102,7 +102,7 @@ class BatteryCycleTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     if self.args.has_ui:
       self.ui = test_ui.UI()
       self.template = ui_templates.OneSection(self.ui)

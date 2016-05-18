@@ -9,7 +9,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.tools.cpu_usage_monitor import CPUUsageMonitor
 from cros.factory.utils import process_utils
 
@@ -38,7 +38,7 @@ EXPECTED_OUTPUT = ('Load average: 1.2, 0.9, 0.8; ' +
 class TestCpuUsageMonitor(unittest.TestCase):
 
   def setUp(self):
-    self.monitor = CPUUsageMonitor(120, dut.Create())
+    self.monitor = CPUUsageMonitor(120, device_utils.CreateDUTInterface())
     self.monitor.COMMAND_LENGTH = 10
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(logging, 'info')

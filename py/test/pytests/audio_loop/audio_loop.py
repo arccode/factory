@@ -99,11 +99,11 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device.audio.base import MicJackType
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.dut.audio.base import MicJackType
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import (PIPE, Spawn)
@@ -243,7 +243,7 @@ class AudioLoopTest(unittest.TestCase):
                   None, which means no limit."""), optional=False)]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     if self.args.audio_conf:
       self._dut.audio.ApplyConfig(self.args.audio_conf)
 

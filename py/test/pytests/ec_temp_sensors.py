@@ -6,7 +6,7 @@
 
 """Test for temperature sensors control.
 
-The test uses cros.factory.test.dut.thermal to probe temperature sensors.
+The test uses cros.factory.device.thermal to probe temperature sensors.
 Ported from third_party/autotest/files/client/site_tests/hardware_EC.
 """
 
@@ -14,7 +14,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -34,7 +34,7 @@ class BoardTempSensorsTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
     temp_sensor_to_test = self.args.temp_sensor_to_test

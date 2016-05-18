@@ -15,8 +15,8 @@ import random
 import sys
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.proto import reg_code_pb2
-from cros.factory.test import dut as dut_module
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.tools.build_board import BuildBoard
@@ -104,7 +104,7 @@ def Check(options):
 
   rw_vpd = None
   success = True
-  dut = dut_module.Create()
+  dut = device_utils.CreateDUTInterface()
 
   for code_type, vpd_attribute, code in (
       (RegistrationCode.Type.UNIQUE_CODE,

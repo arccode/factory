@@ -13,7 +13,7 @@ import unittest
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -49,7 +49,7 @@ class CallShopfloor(unittest.TestCase):
       return vpd_key == prefix + key
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
     if self.args.vpd_section not in ['ro', 'rw']:

@@ -9,8 +9,8 @@ import mox
 import unittest
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.test.dut.board import DUTBoard
-from cros.factory.test.dut.info import SystemInfo
+from cros.factory.device.board import DeviceBoard
+from cros.factory.device.info import SystemInfo
 from cros.factory.test.pytests import mlb_version
 from cros.factory.test.rules import phase
 
@@ -27,7 +27,7 @@ class MLBVersionTestUnittest(unittest.TestCase):
       expected_version = None
 
     self.test = mlb_version.MLBVersionTest()
-    self.test.dut = self.mox.CreateMock(DUTBoard)
+    self.test.dut = self.mox.CreateMock(DeviceBoard)
     self.test.dut.info = self.mox.CreateMock(SystemInfo)
     self.test.args = FakeArgs()
 

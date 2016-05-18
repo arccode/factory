@@ -8,7 +8,7 @@ import datetime
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.utils import time_utils as test_time_utils
 from cros.factory.utils import time_utils
@@ -23,7 +23,7 @@ class SyncTime(unittest.TestCase):
           default=5.0, optional=True)]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
     factory.console.info('DUT time was: %s',

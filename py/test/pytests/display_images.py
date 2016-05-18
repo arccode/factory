@@ -26,7 +26,7 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils import file_utils
@@ -124,7 +124,7 @@ class DisplayImageTest(unittest.TestCase):
 
   def setUp(self):
     """Initializes frontend presentation and properties."""
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
     self._template = OneSection(self._ui)
 

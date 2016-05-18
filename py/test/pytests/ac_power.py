@@ -11,7 +11,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -72,7 +72,7 @@ class ACPowerTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._power = dut.Create().power
+    self._power = device_utils.CreateDUTInterface().power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE_PLUG if self.args.online

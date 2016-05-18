@@ -9,7 +9,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.fixture import bft_fixture
@@ -85,7 +85,7 @@ class PowerUnderStressTest(unittest.TestCase):
           self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
     else:
       self._bft_fixture = None
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetState(_HTML)

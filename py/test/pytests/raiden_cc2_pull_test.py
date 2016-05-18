@@ -17,7 +17,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.fixture import bft_fixture
@@ -49,7 +49,7 @@ class RaidenCC2PullTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)

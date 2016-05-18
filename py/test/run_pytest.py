@@ -22,7 +22,7 @@ import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.dut import utils
+from cros.factory.device import device_utils
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.utils.arg_utils import Args
 
@@ -99,7 +99,7 @@ def _RunPytestRaw(pytest, args, dut_options):
 
   # Setup DUT_OPTIONS environment.
   if dut_options:
-    os.environ.update({utils.ENV_DUT_OPTIONS: str(dut_options)})
+    os.environ.update({device_utils.ENV_DUT_OPTIONS: str(dut_options)})
 
   # Set self.args of the test case.
   try:

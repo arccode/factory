@@ -10,16 +10,16 @@ import textwrap
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.dut import board
-from cros.factory.test.dut import memory
-from cros.factory.test.dut import info
-from cros.factory.test.dut import temp
+from cros.factory.device import board
+from cros.factory.device import memory
+from cros.factory.device import info
+from cros.factory.device import temp
 from cros.factory.test.utils import stress_manager
 
 # pylint: disable=W0212
 class StressManagerUnittest(unittest.TestCase):
   def setUp(self):
-    self.dut = mock.Mock(spec=board.DUTBoard)
+    self.dut = mock.Mock(spec=board.DeviceBoard)
     self.dut.memory = mock.Mock(spec=memory.LinuxMemory)
     self.dut.info = mock.Mock(spec=info.SystemInfo)
     self.dut.temp = temp.DummyTemporaryFiles(self.dut)

@@ -22,7 +22,7 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -274,7 +274,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
           (see FACTORY_INSTALL_USB_OFFSET=2 in make_factory_package.sh)
           and 0 for regular disk images.
     """
-    partitions = dut.Create().partitions
+    partitions = device_utils.CreateDUTInterface().partitions
     return {'state': dict(
         source_path=image,
         index=partitions.STATEFUL.index),

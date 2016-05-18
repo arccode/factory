@@ -24,13 +24,13 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
+from cros.factory.device.links import ssh
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.dut.links import ssh
 from cros.factory.test.env import paths
 from cros.factory.test.event_log import Log
 from cros.factory.test.rules import phase
@@ -168,7 +168,7 @@ class Finalize(unittest.TestCase):
   FINALIZE_TIMEOUT = 180
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     self.force = False

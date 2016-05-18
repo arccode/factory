@@ -14,8 +14,8 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
-from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.utils import time_utils
@@ -166,7 +166,7 @@ class CountDownTest(unittest.TestCase):
           factory.console.warn(w)
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
     # Allow attributes to be defined outside __init__

@@ -14,7 +14,7 @@ import unittest
 import zipfile
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.pytests.offline_test.shell import common
@@ -46,7 +46,7 @@ class OfflineTestFetchLog(unittest.TestCase):
           default=True)]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.data_root = common.DataRoot(self.dut)
     self.temp_dir = tempfile.mkdtemp()
 

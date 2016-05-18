@@ -1,0 +1,10 @@
+{
+  "dut": {
+    "board_class": "ChromeOSBoard",
+    "link_class": "LocalLink"
+  },
+  "station": {
+    "board_class": "ChromeOSBoard",
+    "link_class": "LocalLink"
+  }
+}

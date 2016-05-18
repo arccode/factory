@@ -157,7 +157,7 @@ def MountDeviceAndReadFile(device, path, dut=None):
     device: The device like '/dev/mmcblk0p5'.
     path: The file path like '/etc/lsb-release'. The file to read is then
       'mount_point/etc/lsb-release'.
-    dut: a DUTBoard instance, None for local case.
+    dut: a cros.factory.device.board.Board instance, None for local case.
 
   Returns:
     The content of the file.

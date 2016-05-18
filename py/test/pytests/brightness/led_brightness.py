@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """This is a factory test to check the LED brightness."""
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.dut import led as led_module
+from cros.factory.device import led as led_module
 from cros.factory.test.pytests.brightness import brightness
 from cros.factory.utils.arg_utils import Arg, MergeArgs
 

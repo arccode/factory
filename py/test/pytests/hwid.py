@@ -20,7 +20,7 @@ import re
 import unittest
 
 from cros.factory.hwid.v2.hwid_tool import HWID_RE
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
@@ -250,7 +250,7 @@ class HWIDTest(unittest.TestCase):
     self.hwid = None
     self.hwid_list = None
     self.task_list = []
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_TEST_DEFAULT_CSS)

@@ -13,7 +13,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.dut import board
+from cros.factory.device import board
 from cros.factory.tools import build_board
 from cros.factory.umpire.client.umpire_client import UmpireClientInfo
 
@@ -149,7 +149,7 @@ class UmpireClientInfoTest(unittest.TestCase):
     # pylint: disable=E1101
     build_board.BuildBoard().MultipleTimes().AndReturn(
         mock_build_board)
-    self.dut = self.mox.CreateMock(board.DUTBoard)
+    self.dut = self.mox.CreateMock(board.DeviceBoard)
 
   def tearDown(self):
     """Clean up for each test."""

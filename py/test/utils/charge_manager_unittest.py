@@ -12,7 +12,7 @@ import logging
 import mox
 import unittest
 
-from cros.factory.test.dut.power import Power
+from cros.factory.device.power import Power
 from cros.factory.test.utils.charge_manager import ChargeManager
 
 

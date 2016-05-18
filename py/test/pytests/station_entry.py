@@ -16,8 +16,8 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 
+from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
-from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -108,7 +108,7 @@ class StationEntry(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self._state = factory.get_state_instance()
     self._ui = test_ui.UI()
     self._ui.AppendCSS(_CSS)

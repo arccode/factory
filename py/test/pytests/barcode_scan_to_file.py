@@ -14,7 +14,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture.whale import whale_bft_fixture
 from cros.factory.test import test_ui
@@ -90,7 +90,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     if self.args.bft_params is not None:
       self._bft = whale_bft_fixture.WhaleBFTFixture()
       self._bft.Init(**self.args.bft_params)

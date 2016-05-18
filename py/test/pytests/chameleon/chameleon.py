@@ -21,7 +21,7 @@ from PIL import ImageChops
 from PIL import ImageDraw
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -201,7 +201,7 @@ class ChameleonDisplayTest(unittest.TestCase):
   UI_IMAGE_RESIZE_RATIO = 0.4
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI(css=DEFAULT_CSS)
     self.ui_template = ui_templates.OneSection(self.ui)
     self.ui_template.SetTitle(test_ui.MakeLabel(

@@ -1,0 +1,18 @@
+This folder contains implementations for different boards.
+
+To add your own class, inherit from one board and override your Device
+properties:
+
+ from cros.factory.device import board
+ from cros.factory.device import component
+ from cros.factory.device import power
+
+ class MyPower(power.Power):
+   def CheckACPresent(self):
+     return False
+
+ class MyBoard(board.DeviceBoard):
+
+   @component.DeviceProperty
+   def power(self):
+     return MyPower(self)

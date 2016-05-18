@@ -204,7 +204,7 @@ import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
@@ -223,7 +223,6 @@ from cros.factory.test.utils.camera_utils import EncodeCVImage
 from cros.factory.test.utils.media_utils import (
     MediaMonitor, MountedMedia, RemovableDiskMonitor)
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Enum
 
 
@@ -816,8 +815,8 @@ class _TestDelegate(object):
       update_progress(STAGE60_ALS_CALCULATION)
       if ((slope < conf['slope_limit'][0] or
            slope > conf['slope_limit'][1]) or
-           intercept < conf['intercept_limit'][0] or
-           intercept > conf['intercept_limit'][1]):
+          intercept < conf['intercept_limit'][0] or
+          intercept > conf['intercept_limit'][1]):
         update_status(False)
         self._Log('The result line spec is not within limit.')
         return False, FAIL_ALS_LIMIT
@@ -1321,7 +1320,7 @@ class CameraFixture(unittest.TestCase):
   }
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.internal_queue = Queue.Queue()
 
     os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %

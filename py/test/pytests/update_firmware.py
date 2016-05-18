@@ -13,7 +13,7 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import shopfloor
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
@@ -41,7 +41,7 @@ class UpdateFirmwareTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.just_pass = False
     if self.args.umpire:
       if shopfloor.get_firmware_updater():

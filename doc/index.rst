@@ -19,7 +19,7 @@ APIs:
 
 .. toctree::
 
-   board_api
+   device_api
    test_api
    test_ui_api
    test_list_api

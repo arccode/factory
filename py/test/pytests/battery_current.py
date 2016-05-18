@@ -18,7 +18,7 @@ import textwrap
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -78,7 +78,7 @@ class BatteryCurrentTest(unittest.TestCase):
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _power."""
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self._power = self._dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)

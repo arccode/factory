@@ -14,7 +14,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -55,7 +55,7 @@ class VerifyComponentsTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self.factory_par = deploy_utils.FactoryPythonArchive(self._dut)
     self._shopfloor = shopfloor
     self.probed_results = None

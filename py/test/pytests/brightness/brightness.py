@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -10,7 +10,8 @@ import unittest
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut, test_ui
+from cros.factory.device import device_utils
+from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import StartDaemonThread
@@ -45,7 +46,7 @@ class BrightnessTest(unittest.TestCase):
           'Time for each brightness level in seconds.')]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.ui.AppendCSS(_BRIGHTNESS_TEST_DEFAULT_CSS)
     self.ui.BindStandardKeys()

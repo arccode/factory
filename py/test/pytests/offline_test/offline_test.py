@@ -7,7 +7,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -36,7 +36,7 @@ class OfflineTest(unittest.TestCase):
   ] + DEPLOY_ARGS
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
   def SetUpEnvironment(self):
     """Pack and send every thing under factory/py"""

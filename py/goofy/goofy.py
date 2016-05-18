@@ -25,11 +25,8 @@ from collections import deque
 from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import event_log
-from cros.factory.test import testlog
-from cros.factory.test import testlog_goofy
-from cros.factory.test.env import paths
-from cros.factory.test.event_log import EventLog, FloatDigit, GetBootSequence
+from cros.factory.device import device_utils
+from cros.factory.device import DeviceException
 from cros.factory.goofy import connection_manager
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
@@ -43,16 +40,22 @@ from cros.factory.goofy import prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
-from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import state
-from cros.factory.test.dut import utils as dut_utils
-from cros.factory.test.e2e_test.common import (
-    AutomationMode, AutomationModePrompt, ParseAutomationMode)
+from cros.factory.test import testlog
+from cros.factory.test import testlog_goofy
+from cros.factory.test.e2e_test.common import AutomationMode
+from cros.factory.test.e2e_test.common import AutomationModePrompt
+from cros.factory.test.e2e_test.common import ParseAutomationMode
+from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
+from cros.factory.test import event_log
+from cros.factory.test.event_log import EventLog
+from cros.factory.test.event_log import FloatDigit
+from cros.factory.test.event_log import GetBootSequence
 from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
@@ -60,8 +63,8 @@ from cros.factory.test.test_lists import test_lists
 from cros.factory.test.utils.charge_manager import ChargeManager
 from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
-from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.tools import disk_space
+from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -208,7 +211,7 @@ class Goofy(GoofyBase):
     self.is_restart_requested = False
 
     # TODO(hungte) Support controlling remote DUT.
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
     def test_or_root(event, parent_or_group=True):
       """Returns the test affected by a particular event.
@@ -439,7 +442,7 @@ class Goofy(GoofyBase):
       EC console log string.
     """
     try:
-      ec_console_log = dut.Create().ec.GetECConsoleLog()
+      ec_console_log = device_utils.CreateDUTInterface().ec.GetECConsoleLog()
       logging.info('EC console log after reboot:\n%s\n', ec_console_log)
       return ec_console_log
     except NotImplementedError:
@@ -459,7 +462,7 @@ class Goofy(GoofyBase):
       EC panic info string.
     """
     try:
-      ec_panic_info = dut.Create().ec.GetECPanicInfo()
+      ec_panic_info = device_utils.CreateDUTInterface().ec.GetECPanicInfo()
       logging.info('EC panic info after reboot:\n%s\n', ec_panic_info)
       return ec_panic_info
     except NotImplementedError:
@@ -932,7 +935,7 @@ class Goofy(GoofyBase):
     except NotImplementedError:
       logging.info('Charging is not supported')
       self._can_charge = False
-    except dut.DUTException:
+    except DeviceException:
       logging.exception('Unable to set charge state on this board')
       self._can_charge = False
 
@@ -1317,7 +1320,7 @@ class Goofy(GoofyBase):
       if self.test_list.options.dut_options:
         logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
                      self.test_list.options.dut_options)
-      dut_utils.PrepareLink(**self.test_list.options.dut_options)
+      device_utils.PrepareDUTLink(**self.test_list.options.dut_options)
 
     # Show all startup errors.
     if startup_errors:

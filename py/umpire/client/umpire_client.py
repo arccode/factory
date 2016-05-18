@@ -10,9 +10,9 @@
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import DUT_INFO_KEYS, DUT_INFO_KEY_PREFIX
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.tools import build_board
+from cros.factory.umpire.common import DUT_INFO_KEYS, DUT_INFO_KEY_PREFIX
 
 # The component keys in the return value of GetUpdate RPC call.
 COMPONENT_KEYS = {
@@ -92,7 +92,7 @@ class UmpireClientInfo(object):
     self.pd_version = None
     self.macs = dict()
     self.stage = None
-    self.dut = dut.Create() if _dut is None else _dut
+    self.dut = device_utils.CreateDUTInterface() if _dut is None else _dut
 
     self.Update()
 

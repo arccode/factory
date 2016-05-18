@@ -17,7 +17,7 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.string_utils import ParseDict
 
@@ -30,7 +30,7 @@ class TPMVerifyEK(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
   def VerifyByCryptoHome(self):
     """Verifies TPM endorsement by CryptoHome service."""

@@ -49,7 +49,8 @@ import numpy
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
+from cros.factory.device import CalledProcessError
 from cros.factory.test import factory
 from cros.factory.test.event_log import Log
 from cros.factory.utils import file_utils
@@ -148,7 +149,7 @@ class GPS(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.dut = dut.Create()
+    self.dut = device_utils.CreateDUTInterface()
 
     # Check arguments.
     if self.args.use_logparser and not (
@@ -157,7 +158,6 @@ class GPS(unittest.TestCase):
                 'and shopfloor_port arguments.')
 
     # Store the serial numbers for later use.
-    factory_root = '/sdcard/factory'
     self._mlb_serial_number = (self.dut.info.mlb_serial_number or
                                SERIAL_NOT_AVAILABLE)
     self._serial_number = (self.dut.info.serial_number or SERIAL_NOT_AVAILABLE)
@@ -349,7 +349,7 @@ class GPS(unittest.TestCase):
         self.dut.CheckCall('[[ -n `timeout 1 cat %s` ]]'
                            % self.args.nmea_out_path)
         return True
-      except dut.CalledProcessError:
+      except CalledProcessError:
         return False
     if not sync_utils.PollForCondition(poll_method=CheckGLGPSRunning,
                                        timeout_secs=START_GLGPS_TIMEOUT,
@@ -409,7 +409,7 @@ class GPS(unittest.TestCase):
     # Stop the glgps with Factory_Test_Track.
     try:
       ps_line = self.dut.CheckOutput('ps | grep %s' % GLGPS_BINARY)
-    except dut.CalledProcessError:
+    except CalledProcessError:
       # Process is not running.  Don't kill it!
       factory.console.info('%s already stopped', GLGPS_BINARY)
       return

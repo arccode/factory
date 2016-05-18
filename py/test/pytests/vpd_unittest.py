@@ -11,9 +11,8 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
-
-from cros.factory.test.dut.boards import chromeos
-from cros.factory.test.dut.vpd import Partition
+from cros.factory.device.boards import chromeos
+from cros.factory.device.vpd import Partition
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.factory_task import FactoryTask
 from cros.factory.test.pytests import vpd

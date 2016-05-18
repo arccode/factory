@@ -22,8 +22,8 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
-from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -206,7 +206,7 @@ class RemovableStorageTest(unittest.TestCase):
   # pylint: disable=E1101
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._error = ''
