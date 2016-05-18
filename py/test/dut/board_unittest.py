@@ -77,9 +77,11 @@ class BaseTargetTest(unittest.TestCase):
 
   def testCheckOutput(self):
     def fakeCallSuccess(command, stdin, stdout, stderr, log):
+      # pylint: disable=unused-argument
       stdout.write('fake data')
       return 0
     def fakeCallFailure(command, stdin, stdout, stderr, log):
+      # pylint: disable=unused-argument
       stdout.write('fake data')
       return 1
     self.dut.Call = mock.MagicMock(side_effect=fakeCallSuccess)
@@ -90,9 +92,11 @@ class BaseTargetTest(unittest.TestCase):
 
   def testCallOutput(self):
     def fakeCallSuccess(command, stdin, stdout, stderr, log):
+      # pylint: disable=unused-argument
       stdout.write('fake data')
       return 0
     def fakeCallFailure(command, stdin, stdout, stderr, log):
+      # pylint: disable=unused-argument
       stdout.write('fake data')
       return 1
     self.dut.Call = mock.MagicMock(side_effect=fakeCallSuccess)
