@@ -37,7 +37,7 @@ _default_event_logger_prefix = None
 # less likely to be deleted.
 DEVICE_ID_PATH = os.path.join(paths.GetFactoryRoot(), ".device_id")
 
-EVENT_LOG_DIR = os.path.join(paths.GetFactoryRoot(), "events")
+EVENT_LOG_DIR = os.path.join(paths.GetStateRoot(), "events")
 WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
 MLAN0_MAC_PATH = "/sys/class/net/mlan0/address"
 DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
