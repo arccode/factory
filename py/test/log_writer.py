@@ -216,6 +216,9 @@ class LogWriter(object):
     self.seq = seq or GlobalSeq(
         SEQUENCE_PATH, recovery_fn=self.json_log.RecoverSeq)
 
+  def Close(self):
+    self.json_log.Close()
+
   def Log(self, event):
     with self.json_log:
       self._LogUnlocked(event)

@@ -299,6 +299,10 @@ class GlobalLogWriterTest(unittest.TestCase):
     writer2 = log_writer.GetGlobalLogWriter()
     self.assertTrue(writer1 is writer2)
 
+  def testClose(self):
+    writer = log_writer.GetGlobalLogWriter()
+    writer.Close()
+
 
 if __name__ == '__main__':
   unittest.main()
