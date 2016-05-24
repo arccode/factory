@@ -15,6 +15,7 @@ from cros.factory.test.dut.audio import utils as audio_utils
 from cros.factory.test.dut import camera
 from cros.factory.test.dut import ec
 from cros.factory.test.dut import gyroscope
+from cros.factory.test.dut import hwmon
 from cros.factory.test.dut import i2c
 from cros.factory.test.dut import info
 from cros.factory.test.dut import init
@@ -60,6 +61,10 @@ class LinuxBoard(DUTBoard):
   @DUTProperty
   def gyroscope(self):
     return gyroscope.Gyroscope(self)
+
+  @DUTProperty
+  def hwmon(self):
+    return hwmon.HardwareMonitor(self)
 
   @DUTProperty
   def i2c(self):

@@ -115,6 +115,11 @@ class DUTBoard(object):
     return hooks.DUTHooks(self)
 
   @DUTProperty
+  def hwmon(self):
+    """Hardware monitor devices."""
+    raise NotImplementedError()
+
+  @DUTProperty
   def i2c(self):
     """Module for accessing to slave devices on I2C bus."""
     raise NotImplementedError()
