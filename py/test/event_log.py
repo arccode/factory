@@ -20,7 +20,6 @@ from cros.factory.test import factory
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils import platform_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
 
 
@@ -47,9 +46,7 @@ DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
 REIMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".reimage_id")
 
 # The /var/run directory (or something writable by us if in the chroot).
-RUN_DIR = os.path.join(
-    paths.GetFactoryRoot("run") if sys_utils.InChroot() else "/var/run",
-    "factory")
+RUN_DIR = os.path.join(paths.GetRuntimeVariableDataPath(), "factory")
 
 # File containing the next sequence number to write.  This is in
 # /var/run so it is cleared on each boot.
@@ -301,7 +298,7 @@ def GetDeviceId():
   with open(DEVICE_ID_PATH, "w") as f:
     print >> f, device_id
     f.flush()
-    os.fdatasync(f)
+    os.fsync(f)
 
   return device_id
 
@@ -326,7 +323,7 @@ def GetReimageId():
       with open(REIMAGE_ID_PATH, "w") as f:
         print >> f, reimage_id
         f.flush()
-        os.fdatasync(f)
+        os.fsync(f)
       logging.info("No reimage_id available yet: generated %s", reimage_id)
   return reimage_id
 
@@ -352,7 +349,7 @@ def IncrementBootSequence():
   with open(BOOT_SEQUENCE_PATH, "w") as f:
     f.write("%d" % boot_sequence)
     f.flush()
-    os.fdatasync(f.fileno())
+    os.fsync(f.fileno())
 
 
 class GlobalSeq(object):
@@ -395,7 +392,7 @@ class GlobalSeq(object):
       value = self._FindNextSequenceNumber()
       f.write(str(value))
       f.flush()
-      os.fdatasync(fd)
+      os.fsync(fd)
 
     logging.info("Created global sequence file %s with sequence number %d",
                  self.path, value)
@@ -626,4 +623,4 @@ class EventLog(object):
       self.file.flush()
     finally:
       FileLock(self.file.fileno(), False)
-    os.fdatasync(self.file.fileno())
+    os.fsync(self.file.fileno())

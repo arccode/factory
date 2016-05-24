@@ -6,6 +6,9 @@
 DATA_DIR={%data_root%}
 SCRIPT_DIR={%script_root%}
 TOTAL_TASKS={%total_tasks%}
+export CROS_FACTORY_ROOT="${DATA_DIR}/root"
+export LOGFILE="${DATA_DIR}/logfile"
+export CROS_FACTORY_RUN_PATH="${DATA_DIR}/run"
 
 . "${SCRIPT_DIR}/callback.sh"
 

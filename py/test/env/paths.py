@@ -74,6 +74,17 @@ def GetFactoryLogPath():
   return os.path.join(GetLogRoot(), 'factory.log')
 
 
+def GetRuntimeVariableDataPath():
+  """Returns the root for logging and state.
+
+  Returns:
+    /var/run, or GetFactoryRoot("run") if in the chroot, may be overridden
+    by the CROS_FACTORY_RUN_PATH environment variable.
+  """
+  return (os.environ.get('CROS_FACTORY_RUN_PATH') or
+          (GetFactoryRoot('run') if sys_utils.InChroot() else '/var/run'))
+
+
 def GetFactoryPythonArchivePath():
   """Returns path to a factory python archive.
 

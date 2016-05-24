@@ -180,7 +180,7 @@ class ScriptBuilder(object):
                           repr(dut_options), '--no-use-goofy', pytest_name])
     cmd = ' '.join(map(pipes.quote, cmd))
 
-    self._AddTask('call_factory_par.sh', cmd=cmd)
+    self._AddTask('call_factory_par.sh', cmd=cmd, pytest_name=pytest_name)
     return self
 
   @ShellTestCase.Register('wait_for')

@@ -7,7 +7,8 @@ task_{%id%} () {
   local tmp_stderr="$(mktemp)"
   local tmp_stdout="$(mktemp)"
 
-  {%cmd%} 2>"${tmp_stderr}" >"${tmp_stdout}"
+  CROS_FACTORY_TEST_PATH={%pytest_name%} \
+    {%cmd%} 2>"${tmp_stderr}" >"${tmp_stdout}"
 
   local return_value="$?"
 

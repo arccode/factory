@@ -16,7 +16,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.env import paths
 from cros.factory.utils import platform_utils
 from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
 
 
 FileLock = platform_utils.GetProvider('FileLock')
@@ -46,9 +45,7 @@ LOG_DIR = paths.GetLogRoot()
 TESTLOG_PATH = os.path.join(LOG_DIR, 'testlog.json')
 
 # The /var/run directory (or something writable by us if in the chroot).
-RUN_DIR = os.path.join(
-    paths.GetFactoryRoot('run') if sys_utils.InChroot() else '/var/run',
-    'factory')
+RUN_DIR = os.path.join(paths.GetRuntimeVariableDataPath(), 'factory')
 
 # File containing the next sequence number to write. This is in
 # /var/run so it is cleared on each boot.
