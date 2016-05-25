@@ -193,7 +193,7 @@ usage() {
 Usage: $0 COMMAND [arg ...]
 
 Commands:
-    build       build umipre container
+    build       build umpire container
     destroy     destroy umpire container
     start       start umpire container
     stop        stop umpire container
