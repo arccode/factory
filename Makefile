@@ -85,16 +85,8 @@ INSTALL_MASK=*.pyc \
 	     py/doc
 
 
-# TODO(jsalz): remove the hard-coded path once the icedtea6-bin
-# package is fixed and /usr/bin/java works
-# (https://bugs.gentoo.org/416341)
 default:
-	for goofy_path in py/goofy/static; do\
-	    env PATH=/opt/icedtea6-bin-1.6.2/bin:$(PATH) \
-	        $(MAKE) -C "$${goofy_path}" \
-	          $(if $(CLOSURE_LIB_DIR), \
-	                CLOSURE_LIB_DIR="$(CLOSURE_LIB_DIR)",) ; \
-	done
+	$(MAKE) -C py/goofy/static
 
 
 # Build par (Python archive) file containing all py and pyc files.
