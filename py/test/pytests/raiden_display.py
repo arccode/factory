@@ -190,6 +190,9 @@ class RaidenDisplayTest(unittest.TestCase):
       if self.args.fire_hpd_manually:
         self._dut.usb_c.ResetHPD(self.args.raiden_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
+      if self.args.force_dp_renegotiated:
+        self._bft_fixture.SetFakeDisconnection(1)
+        time.sleep(1)  # diconnetion by software for re-negotiation.
       sync_utils.WaitFor(lambda: not self._PollDisplayConnected(),
                          timeout_secs=10)
 
