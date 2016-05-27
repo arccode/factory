@@ -8,9 +8,11 @@
 import json
 import logging
 import re
+import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
+from cros.factory.utils import process_utils
 
 
 class Storage(component.DUTComponent):
@@ -192,3 +194,21 @@ class AndroidStorage(Storage):
 
   def _GetMainStorageDeviceMountPoint(self):
     return '/data'
+
+  def Remount(self, path, options='rw'):
+    mount_point, _ = self.GetMountPoint(path)
+
+    # 'mount -o remount' may fail on Android. The standard way is adb remount
+    # for '/system', '/vendor' to get read / write permission.
+    if options == 'rw':
+      if mount_point == '/data':
+        # /data is default rw, return directly.
+        return True
+      elif mount_point in ['/system', '/vendor', '/oem']:
+        try:
+          process_utils.CheckOutput(['adb', 'remount'])
+          return True
+        except subprocess.CalledProcessError:
+          logging.error('remount: failed to run adb remount.')
+          return False
+    return super(AndroidStorage, self).Remount(path, options)
