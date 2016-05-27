@@ -53,6 +53,14 @@ class BaseAudioControl(component.DUTComponent):
     self._restore_mixer_control_stack = []
     self.ApplyConfig(config_path)
 
+  def _GetPIDByName(self, name):
+    """Used to get process ID"""
+    pids = self._dut.CallOutput(['toybox', 'pidof', name]).strip().split()
+    # we sholud only have one PID.
+    if len(pids) > 1:
+      raise RuntimeError('Find more than one PID(%r) of %s!' % (pids, name))
+    return pids[0] if pids else None
+
   def ApplyConfig(self, config_path):
     if os.path.exists(config_path):
       with open(config_path, 'r') as config_file:

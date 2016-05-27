@@ -195,16 +195,6 @@ class TinyalsaAudioControl(base.BaseAudioControl):
       set_sh_file.flush()
       self._PushAndExecute(set_sh_file.name)
 
-  def _GetPIDByName(self, name):
-    """Used to get process ID"""
-    lines = self._dut.CallOutput(['ps', name])
-    m = re.search(r'\w+\s+(\d+).*%s' % name, lines, re.MULTILINE)
-    if m:
-      pid = m.group(1)
-      return pid
-    else:
-      return None
-
   def CreateAudioLoop(self, in_card, in_dev, out_card, out_dev):
     """Create an audio loop by tinyloop.
     Currently, we only support one audio loop a time

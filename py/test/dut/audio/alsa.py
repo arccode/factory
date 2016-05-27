@@ -118,16 +118,6 @@ class AlsaAudioControl(base.BaseAudioControl):
     if store:
       self._restore_mixer_control_stack.append((restore_mixer_settings, card))
 
-  def _GetPIDByName(self, name):
-    """Used to get process ID"""
-    lines = self._dut.CallOutput(['ps', '-C', name])
-    m = re.search(r'(\d+).*%s' % name, lines, re.MULTILINE)
-    if m:
-      pid = m.group(1)
-      return pid
-    else:
-      return None
-
   def _PlaybackWavFile(self, path, card, device):
     """See BaseAudioControl._PlaybackWavFile"""
     self._dut.Call(['aplay', '-t', 'wav', '-D',
