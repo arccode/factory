@@ -16,7 +16,6 @@ charge (e.g., 95%).  Cycle times are logged to event logs.
 
 import collections
 import logging
-import operator
 import time
 import unittest
 
@@ -25,16 +24,16 @@ from cros.factory.test.event_log import Log
 from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.utils.stress_manager import DummyStressManager
+from cros.factory.test.utils.stress_manager import StressManager
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.process_utils import StartDaemonThread
-from cros.factory.utils.process_utils import TerminateOrKillProcess
 from cros.factory.utils.debug_utils import FormatExceptionOnly
 from cros.factory.utils.time_utils import FormatElapsedTime
 from cros.factory.utils.type_utils import Enum
 
 
-Mode = Enum(['CHARGE', 'DISCHARGE'])
+Mode = Enum(['CHARGE', 'DISCHARGE', 'CUTOFF'])
 
 History = collections.namedtuple('History', ['cycle', 'charge', 'discharge'])
 
@@ -90,32 +89,39 @@ class BatteryCycleTest(unittest.TestCase):
           'specified threshold to have considered to have finished '
           'part of a cycle.', 30),
       Arg('idle_time_secs', int, 'Time to idle between battery checks.', 1),
-      Arg('log_interval_secs', int, 'Interval at which to log system status',
+      Arg('log_interval_secs', int, 'Interval at which to log system status.',
           30),
+      Arg('verify_cutoff', bool,
+          'True to verify battery stops charging when ~100%',
+          optional=True, default=False),
+      Arg('cutoff_charge_pct', (int, float),
+          'Minimum charge level in percent allowed in cutoff state.',
+          optional=True, default=98),
+      Arg('use_ui', bool, 'True if this test runs with goofy UI enabled.',
+          optional=True, default=False)
   ]
 
   def setUp(self):
     self.dut = dut.Create()
-    self.ui = test_ui.UI()
+    if self.args.use_ui:
+      self.ui = test_ui.UI()
+      self.template = ui_templates.OneSection(self.ui)
+      self.template.SetState(HTML)
+      self.ui.AppendCSS(CSS)
     self.status = self.dut.status.Snapshot()
-    self.template = ui_templates.OneSection(self.ui)
-    self.template.SetState(HTML)
-    self.ui.AppendCSS(CSS)
     self.completed_cycles = 0
     self.mode = None
     self.start_time = time.time()
     self.cycle_start_time = None
-    self.history = []  # Arry of History objects
+    self.history = []  # Array of History objects
     self._UpdateHistory()
 
   def runTest(self):
-    StartDaemonThread(target=self._Run)
-    self.ui.Run()
-
-  def _GetChargePct(self):
-    """Returns the current charge as a percentage."""
-    return (self.status.battery['charge_now'] * 100.0 /
-            self.status.battery['charge_full'])
+    if self.args.use_ui:
+      StartDaemonThread(target=self._Run)
+      self.ui.Run()
+    else:
+      self._Run()
 
   def _Log(self, event, **kwargs):
     """Logs an event to the event log.
@@ -128,7 +134,7 @@ class BatteryCycleTest(unittest.TestCase):
     log_args = dict(kwargs)
     log_args['mode'] = self.mode
     log_args['cycle'] = self.completed_cycles
-    log_args['status'] = self.status.__dict__
+    log_args['battery'] = self.status.battery
     Log(event, **log_args)
 
   def _UpdateHistory(self):
@@ -146,16 +152,22 @@ class BatteryCycleTest(unittest.TestCase):
       history_lines.append('(none)')
     while len(history_lines) < 5:
       history_lines.append('&nbsp')
-    self.ui.SetHTML('<br>'.join(history_lines), id='bc-history')
+    self._UpdateUI('<br>'.join(history_lines), id='bc-history')
+
+  def _UpdateUI(self, html, **kwargs):
+    if self.args.use_ui:
+      self.ui.SetHTML(html, **kwargs)
 
   def _RunPhase(self):
     """Runs the charge or discharge part of a cycle."""
+
     self._Log('phase_start')
     logging.info('Starting %s, cycle=%d', self.mode, self.completed_cycles)
-    target_charge_pct = (self.args.maximum_charge_pct
-                         if self.mode == Mode.CHARGE
-                         else self.args.minimum_charge_pct)
-    comparator = operator.ge if self.mode == Mode.CHARGE else operator.le
+
+    target_charge_map = {Mode.CHARGE: self.args.maximum_charge_pct,
+                         Mode.DISCHARGE: self.args.minimum_charge_pct,
+                         Mode.CUTOFF: 100}
+    target_charge_pct = target_charge_map[self.mode]
 
     for elt_id, content in (
         ('bc-phase', 'Charging' if self.mode == Mode.CHARGE else 'Discharging'),
@@ -164,11 +176,7 @@ class BatteryCycleTest(unittest.TestCase):
                                  if self.args.num_cycles
                                  else u'∞')),
         ('bc-target-charge', '%.2f%%' % target_charge_pct)):
-      self.ui.SetHTML(content, id=elt_id)
-
-    def IsDoneNow():
-      """Returns True if the cycle looks at this instant to be complete."""
-      return comparator(self._GetChargePct(), target_charge_pct)
+      self._UpdateUI(content, id=elt_id)
 
     first_done_time = [None]
 
@@ -178,7 +186,7 @@ class BatteryCycleTest(unittest.TestCase):
       This is True if IsDoneNow() has been continuously true for
       charge_threshold_secs.
       """
-      if IsDoneNow():
+      if is_done_now(self.dut.power.GetChargePct(True)):
         if not first_done_time[0]:
           logging.info('%s cycle appears to be done. '
                        'Will continue checking for %d seconds',
@@ -193,24 +201,22 @@ class BatteryCycleTest(unittest.TestCase):
           first_done_time[0] = None
         return False
 
-    processes = []
-
-    try:
+    if self.mode in (Mode.CHARGE, Mode.CUTOFF):
+      self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
+      stress_manager = DummyStressManager(self.dut)
       if self.mode == Mode.CHARGE:
-        self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
+        is_done_now = lambda x: x > target_charge_pct
       else:
-        self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
-        # Start one process per core to spin the CPU to heat things up a
-        # bit.
-        for _ in xrange(self.dut.info.cpu_count):
-          processes.append(
-              Spawn(['nice', 'python', '-c',
-                     'import random\n'
-                     'while True:\n'
-                     '  x = random.random()']))
+        is_done_now = lambda x: (self.dut.power.GetBatteryCurrent() == 0 and
+                                 x > self.args.cutoff_charge_pct)
+    else:
+      self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
+      stress_manager = StressManager(self.dut)
+      is_done_now = lambda x: x < target_charge_pct
 
-      phase_start_time = time.time()
-      last_log_time = None
+    phase_start_time = time.time()
+    last_log_time = None
+    with stress_manager.Run():
       while True:
         self.status = self.dut.status.Snapshot()
         now = time.time()
@@ -247,11 +253,12 @@ class BatteryCycleTest(unittest.TestCase):
                 self.args.max_duration_hours * 60 * 60 -
                 (now - phase_start_time)
                 if self.args.max_duration_hours else None))):
-          self.ui.SetHTML(FormatElapsedTime(elapsed_time)
-                          if elapsed_time else '∞',
-                          id=elt_id)
-        self.ui.SetHTML('%.2f%%' % self._GetChargePct(), id='bc-charge')
-        self.ui.SetHTML(
+          self._UpdateUI(FormatElapsedTime(elapsed_time)
+                         if elapsed_time else u'∞',
+                         id=elt_id)
+        self._UpdateUI('%.2f%%' % self.dut.power.GetChargePct(get_float=True),
+                       id='bc-charge')
+        self._UpdateUI(
             '(complete in %s s)' % (self.args.charge_threshold_secs -
                                     int(round(now - first_done_time[0])))
             if first_done_time[0]
@@ -259,18 +266,16 @@ class BatteryCycleTest(unittest.TestCase):
             id='bc-phase-complete')
 
         time.sleep(self.args.idle_time_secs)
-    finally:
-      # Terminate any processes we created (to help discharge along).
-      errors = []
-      for p in processes:
-        if p.poll() is None:
-          TerminateOrKillProcess(p)
-        else:
-          # It shouldn't have died yet!
-          errors.append('Process %d terminated with return code %d' %
-                        p.pid, p.returncode)
-      if errors:
-        self.fail('; '.join(errors))
+
+  def Pass(self):
+    if self.args.use_ui:
+      self.ui.Pass()
+
+  def Fail(self, msg):
+    if self.args.use_ui:
+      self.ui.Fail(msg)
+    else:
+      self.fail(msg)
 
   def _Run(self):
     try:
@@ -281,14 +286,14 @@ class BatteryCycleTest(unittest.TestCase):
             self.completed_cycles >= self.args.num_cycles):
           logging.info('Completed %s cycles (num_cycles).  Success.',
                        self.args.num_cycles)
-          self.ui.Pass()
+          self.Pass()
           break
 
         duration_hours = (time.time() - self.start_time) / (60. * 60.)
         if (self.args.max_duration_hours and
             duration_hours >= self.args.max_duration_hours):
           logging.info('Ran for %s hours.  Success.', duration_hours)
-          self.ui.Pass()
+          self.Pass()
           break
 
         for mode in (Mode.CHARGE, Mode.DISCHARGE):
@@ -296,10 +301,14 @@ class BatteryCycleTest(unittest.TestCase):
           self._RunPhase()
         self.completed_cycles += 1
 
+      if self.args.verify_cutoff:
+        self.mode = Mode.CUTOFF
+        self._RunPhase()
+
       self._Log('pass')
-      self.ui.Pass()
+      self.Pass()
     except:  # pylint: disable=W0702
       logging.exception('Test failed')
       error_msg = FormatExceptionOnly()
       self._Log('fail', error_msg=error_msg)
-      self.ui.Fail(error_msg)
+      self.Fail(error_msg)
