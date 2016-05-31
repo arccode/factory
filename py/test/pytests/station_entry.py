@@ -106,20 +106,23 @@ class StationEntry(unittest.TestCase):
   def SendTestResult(self):
     self._dut.hooks.SendTestResult(self._state.get_test_states())
 
+  def _ClearDeviceData(self):
+    """Clear serial numbers from DeviceData if requested."""
+    if self.args.clear_device_data:
+      shopfloor.DeleteDeviceData(
+          ['serial_number', 'mlb_serial_number'], optional=True)
+
   def runTest(self):
     self._template.SetState(_STATE_HTML)
     self._ui.Run(blocking=False)
     self._ui.BindKey(' ', lambda _: self._space_event.set())
 
-    # Clear serial numbers from DeviceData if requested.
-    if self.args.clear_device_data:
-      shopfloor.DeleteDeviceData(
-          ['serial_number', 'mlb_serial_number'], optional=True)
-
     if self.args.start_station_tests:
+      self._ClearDeviceData()
       self.Start()
     else:
       self.End()
+      self._ClearDeviceData()
 
   def Start(self):
     self._ui.SetHTML(_MSG_INSERT, id=_ID_MSG_DIV)
