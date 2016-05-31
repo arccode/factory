@@ -49,7 +49,7 @@ class FactoryInit(component.DUTComponent):
 
     # we first assume that factory toolkit exists, so we can use its startup
     # mechanism. (see init/main.d/README for more detail)
-    job_path = self._dut.path.join(self._init_script_dir, name)
+    job_path = self._dut.path.join(self._init_script_dir, name + '.sh')
     self._dut.CheckCall(['mkdir', '-p', self._init_script_dir])
     self._dut.CheckCall(['ln', '-sf', script_path, job_path])
     self._dut.CheckCall(['chmod', '+x', job_path])
@@ -69,5 +69,5 @@ class FactoryInit(component.DUTComponent):
     Args:
       name: the name of the job used when creating the job.
     """
-    job_path = self._dut.path.join(self._init_script_dir, name)
+    job_path = self._dut.path.join(self._init_script_dir, name + '.sh')
     self._dut.CheckCall(['rm', '-f', job_path])

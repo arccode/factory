@@ -34,7 +34,7 @@ class FactoryInitTest(unittest.TestCase):
   def testAddFactoryStartUpApp(self):
     name = 'offline-test'
     script = '/usr/local/factory/sh/offline-test.sh'
-    job_path = self._factory_root + '/init/main.d/' + name
+    job_path = self._factory_root + '/init/main.d/' + name + '.sh'
     dut_startup_script = self._factory_root + '/init/startup'
     station_startup_script = posixpath.join(paths.FACTORY_PATH, 'sh',
                                             'stub_startup.sh')
@@ -59,7 +59,7 @@ class FactoryInitTest(unittest.TestCase):
 
   def testRemoveFactoryStartUpApp(self):
     name = 'offline-test'
-    job_path = self._factory_root + '/init/main.d/' + name
+    job_path = self._factory_root + '/init/main.d/' + name + '.sh'
 
     self._init.RemoveFactoryStartUpApp(name)
 
