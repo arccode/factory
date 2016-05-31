@@ -223,8 +223,8 @@ main() {
   parse_wipe_args
   load_usbnet_module
   stop_running_upstart_jobs
-  unmount_stateful
   rebind_mount_point
+  unmount_stateful
   chroot_tmpfs_to_wipe
 }
 
