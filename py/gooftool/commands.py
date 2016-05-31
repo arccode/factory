@@ -1003,8 +1003,10 @@ def Finalize(options):
     event_log.Log('wipe_in_place')
     # WipeInPlace(options)
     wipe_args = []
-    wipe_args += ['--cutoff_args', options.cutoff_args]
-    wipe_args += ['--shopfloor_url', options.shopfloor_url]
+    if options.cutoff_args:
+      wipe_args += ['--cutoff_args', options.cutoff_args]
+    if options.shopfloor_url:
+      wipe_args += ['--shopfloor_url', options.shopfloor_url]
     if options.fast:
       wipe_args += ['--fast']
     if options.station_ip:
