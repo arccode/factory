@@ -12,6 +12,8 @@ from __future__ import print_function
 
 import logging
 import re
+import struct
+import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import component
@@ -72,6 +74,21 @@ class Thermal(component.DUTComponent):
     """
     raise NotImplementedError
 
+  def GetPowerUsage(self, last=None, sensor_id=None):
+    """Get current power usage.
+
+    Args:
+      last: The last snapshot read.
+      sensor_id: Platform specific ID to specify the power sensor.
+
+    Returns:
+      A dict contains following fields:
+        'time': Current timestamp.
+        'energy': Cumulative energy use in Joule, optional.
+        'power': Average power use in Watt, optional.
+    """
+    raise NotImplementedError
+
 
 class ECToolThermal(Thermal):
   """System module for thermal control (temperature sensors, fans).
@@ -83,6 +100,12 @@ class ECToolThermal(Thermal):
   GET_FAN_SPEED_RE = re.compile(r'Fan (\d+) RPM: (\d+)')
   TEMPERATURE_RE = re.compile(r'^(\d+): (\d+)$', re.MULTILINE)
   TEMPERATURE_INFO_RE = re.compile(r'^(\d+): \d+ (.+)$', re.MULTILINE)
+
+  # MSR location for energy status.  See <http://lwn.net/Articles/444887/>.
+  MSR_PKG_ENERGY_STATUS = 0x611
+
+  # Factor to use to convert energy readings to Joules.
+  ENERGY_UNIT_FACTOR = 1.53e-5
 
   def __init__(self, dut):
     super(ECToolThermal, self).__init__(dut)
@@ -191,6 +214,22 @@ class ECToolThermal(Thermal):
         raise self.Error('Unable to set auto fan control: %s' % e)
       else:
         raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
+
+  def GetPowerUsage(self, last=None, sensor_id=None):
+    """See Thermal.GetPowerUsage."""
+    pkg_energy_status = self._dut.ReadFile('/dev/cpu/0/msr', count=8,
+                                           skip=self.MSR_PKG_ENERGY_STATUS)
+    pkg_energy_j = (struct.unpack('<Q', pkg_energy_status)[0] *
+                    self.ENERGY_UNIT_FACTOR)
+
+    current_time = time.time()
+    if last is not None:
+      time_delta = current_time - last['time']
+      pkg_power_w = (pkg_energy_j - last['energy']) / time_delta
+    else:
+      pkg_power_w = None
+
+    return dict(time=current_time, energy=pkg_energy_j, power=pkg_power_w)
 
 
 class SysFSThermal(Thermal):
@@ -343,6 +382,12 @@ class SysFSThermal(Thermal):
         raise self.Error('Unable to set auto fan control: %s' % e)
       else:
         raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
+
+  def GetPowerUsage(self, last=None, sensor_id=''):
+    """See Thermal.GetPowerUsage."""
+    sensor = self._dut.hwmon.FindOneDevice('label', sensor_id)
+    power = int(sensor.GetAttribute('power1_input')) / 1000 # convert mW to W
+    return dict(time=time.time(), energy=None, power=power)
 
 
 def main():
