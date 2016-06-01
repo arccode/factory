@@ -81,7 +81,7 @@ def CapturePythonLogging(callback, level=logging.DEBUG):
   This function can only be used once to set up logging -- any subsequent
   calls will return the existing Logger object.
 
-  Arguments:
+  Args:
     callback: Function to be called when the Python logging library is called.
               It accepts one argument, which will be the StationMessage object
               as constructed by TestlogLogHandler.
@@ -283,7 +283,7 @@ class Event(EventBase):
   def Populate(self, data):
     """Populates fields for event base class.
 
-    Arguments:
+    Args:
       data: Dictionary that can contain:
           - id (string, required): Unique UUID of the event.
           - type (string, required): Type of the event.  Its value determines
@@ -342,7 +342,7 @@ class _StationBase(Event):
   def Populate(self, data):
     """Populates fields for station base class.
 
-    Arguments:
+    Args:
       data: Dictionary that can contain:
           - stationName (string, optional): Name of the station.
           - stationDeviceId (string, optional): ID of the device being used as
@@ -371,7 +371,7 @@ class StationInit(_StationBase):
   def Populate(self, data):
     """Populates fields for station init class.
 
-    Arguments:
+    Args:
       data: Dictionary that can contain:
           - count (integer, required): Number of times that this station has
             been initialized so far.
@@ -399,7 +399,7 @@ class StationMessage(_StationBase):
   def Populate(self, data):
     """Populates fields for station message class.
 
-    Arguments:
+    Args:
       data: Dictionary that can contain:
           - filePath (string, optional): Name or path of the program that
             generated this message.
@@ -442,7 +442,7 @@ class StationTestRun(_StationBase):
   def Populate(self, data):
     """Populates fields for station test_run class.
 
-    Arguments:
+    Args:
       data: Dictionary that can contain:
         - testRunId (string, required): Unique UUID of the test run.  Since one
           test run may output multiple test_run events (showing the progress of
