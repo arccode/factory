@@ -119,3 +119,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# Files
+# https://docs.djangoproject.com/en/1.9/topics/http/file-uploads/
+
+# Since bundles and bundle parts are normally large, we don't use
+# MemoryFileUploadHandler.
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]

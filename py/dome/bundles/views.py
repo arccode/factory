@@ -16,8 +16,14 @@ class BundleList(APIView):
 
   def get(self, request, board, format=None):
     """Override parent's method."""
-    raise NotImplementedError
+    bundle_list = Bundle.ListAll(board)
+    serializer = BundleSerializer(board, bundle_list, many=True)
+    return Response(serializer.data)
 
   def post(self, request, board, format=None):
     """Override parent's method."""
-    raise NotImplementedError
+    serializer = BundleSerializer(board, data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
