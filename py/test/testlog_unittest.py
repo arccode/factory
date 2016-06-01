@@ -64,6 +64,20 @@ class TestlogTest(unittest.TestCase):
       output = testlog._JSONHandler(ex)
       self.assertTrue(output.startswith('Exception: '))
 
+  def testDisallowRecursiveLogging(self):
+    """Check that calling 'logging' within log processing code is dropped."""
+    logged_events = []
+    def CheckMessage(event):
+      logged_events.append(event)
+      logging.info('testing 456')
+    testlog.CapturePythonLogging(callback=CheckMessage)
+    logging.info('testing 123')
+    self.assertEquals(len(logged_events), 1)
+    self.assertEquals(logged_events[0]['message'], 'testing 123')
+
+
+class TestlogEventTest(unittest.TestCase):
+
   def testDisallowInitializeFakeEventClasses(self):
     with self.assertRaisesRegexp(testlog.TestlogError, 'initialize directly'):
       testlog.EventBase()
@@ -90,17 +104,6 @@ class TestlogTest(unittest.TestCase):
   def testPopulateReturnsSelf(self):
     event = testlog.StationInit()
     self.assertEquals(event.Populate({}), event)
-
-  def testDisallowRecursiveLogging(self):
-    """Check that calling 'logging' within log processing code is dropped."""
-    logged_events = []
-    def CheckMessage(event):
-      logged_events.append(event)
-      logging.info('testing 456')
-    testlog.CapturePythonLogging(callback=CheckMessage)
-    logging.info('testing 123')
-    self.assertEquals(len(logged_events), 1)
-    self.assertEquals(logged_events[0]['message'], 'testing 123')
 
   def testInvalidStatusTestRun(self):
     with self.assertRaises(testlog.TestlogError):
