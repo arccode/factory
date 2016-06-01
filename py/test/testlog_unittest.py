@@ -15,8 +15,9 @@ from cros.factory.test import testlog
 
 
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
-SAMPLE_DATETIME_ROUNDED = datetime.datetime(1989, 8, 8, 8, 8, 8, 888000)
 SAMPLE_DATETIME_STRING = '1989-08-08T08:08:08.888Z'
+SAMPLE_DATETIME_ROUNDED_MIL = datetime.datetime(1989, 8, 8, 8, 8, 8, 888000)
+SAMPLE_DATETIME_ROUNDED_SEC = datetime.datetime(1989, 8, 8, 8, 8, 8, 000000)
 
 
 class TestlogTest(unittest.TestCase):
@@ -28,7 +29,10 @@ class TestlogTest(unittest.TestCase):
     # pylint: disable=W0212
     output = testlog._FromJSONDateTime(
         testlog._ToJSONDateTime(SAMPLE_DATETIME))
-    self.assertEquals(output, SAMPLE_DATETIME_ROUNDED)
+    self.assertEquals(output, SAMPLE_DATETIME_ROUNDED_MIL)
+
+    output = testlog._FromJSONDateTime(
+        testlog._ToJSONDateTime(SAMPLE_DATETIME_ROUNDED_SEC))
 
   def testJSONHandlerDateTime(self):
     obj = SAMPLE_DATETIME
@@ -75,11 +79,11 @@ class TestlogTest(unittest.TestCase):
 
   def testNewEventTime(self):
     event = testlog.StationInit({'time': SAMPLE_DATETIME})
-    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED)
-    event = testlog.StationInit({'time': SAMPLE_DATETIME_ROUNDED})
-    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED)
+    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED_MIL)
+    event = testlog.StationInit({'time': SAMPLE_DATETIME_ROUNDED_MIL})
+    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED_MIL)
     event = testlog.StationInit({'time': SAMPLE_DATETIME_STRING})
-    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED)
+    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED_MIL)
     with self.assertRaises(testlog.TestlogError):
       event = testlog.StationInit({'time': None})
 

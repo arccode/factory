@@ -36,8 +36,15 @@ def _ToJSONDateTime(time_value):
 
   The format is like ISO8601 but with milliseconds:
     2012-05-22T14:15:08.123Z
+
+  Note that isoformat() strips off milliseconds completely (including decimal)
+  when the value returned is at an even second.
   """
-  return time_value.isoformat()[:-3] + 'Z'
+  time_str = time_value.isoformat()
+  if '.' in time_str:
+    return time_str[:-3] + 'Z'
+  else:
+    return time_str + '.000Z'
 
 
 def _FromJSONDateTime(string_value):
