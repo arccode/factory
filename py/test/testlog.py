@@ -102,7 +102,7 @@ def CapturePythonLogging(callback, level=logging.DEBUG):
 
 
 class TestlogLogHandler(logging.Handler):
-  """Format records into events and send them to callback function.
+  """Formats records into events and send them to callback function.
 
   Properties:
     _callback: Function to be called when we have processed the logging message
@@ -137,7 +137,7 @@ class TestlogLogHandler(logging.Handler):
 
 
 class LogFormatter(logging.Formatter):
-  """Format records into events."""
+  """Formats records into events."""
 
   def format(self, record):
     message = record.getMessage()

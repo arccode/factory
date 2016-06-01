@@ -408,7 +408,7 @@ class GlobalSeq(object):
     return value
 
   def _FindNextSequenceNumber(self):
-    """Recover the sequence number using our recovery_fn."""
+    """Recovers the sequence number using our recovery_fn."""
     if self.recovery_fn is None:
       logging.info('No recovery function specified; resetting to 0')
       return 0

@@ -42,7 +42,7 @@ class MockEvent(object):
     self.seq = data.pop('seq', self.seq)
 
   def ToJSON(self):
-    """Format an ad-hoc string as a JSON event for testing."""
+    """Formats an ad-hoc string as a JSON event for testing."""
     return json.dumps(self.data)
 
 
@@ -53,7 +53,7 @@ class LogWriterTest(unittest.TestCase):
     Reset()
 
   def testRecoverSeq(self):
-    """Test seq recovery functionality."""
+    """Tests seq recovery functionality."""
     writer = log_writer.LogWriter()
     writer.Log(MockEvent('event0'))  # event 0
     writer.Log(MockEvent('event1'))  # event 1
@@ -74,7 +74,7 @@ class LogWriterTest(unittest.TestCase):
     self.assertEquals(seq, 3 + log_writer.SEQ_INCREMENT_ON_BOOT)
 
   def testIds(self):
-    """Test that IDs are properly getting set."""
+    """Tests that IDs are properly getting set."""
     test_run_id = 'bfa88756-ef2b-4e58-a4a2-eda1408bc93f'
     log_writer.GetDeviceID()
     log_writer.GetReimageID()
@@ -94,7 +94,7 @@ class JSONLogFileTest(unittest.TestCase):
     Reset()
 
   def testRecoverSeq(self):
-    """Test that RecoverSeq is returning the proper value."""
+    """Tests that RecoverSeq is returning the proper value."""
     json_log = log_writer.JSONLogFile()
     self.assertEquals(json_log.RecoverSeq(), 0)
     json_log.Log('corrupted_data\n')
@@ -103,7 +103,7 @@ class JSONLogFileTest(unittest.TestCase):
     self.assertEquals(json_log.RecoverSeq(), 3334)
 
   def testLock(self):
-    """Test reentrant file lock functionality."""
+    """Tests reentrant file lock functionality."""
     json1 = log_writer.JSONLogFile()
     # pylint: disable=W0212
     json1._OpenUnlocked()
@@ -223,7 +223,7 @@ class GlobalSeqTest(unittest.TestCase):
     self.assertTrue(len(values) > 1000, values)
 
   def testOutOfOrderThreads(self):
-    """Check that events are written down to the JSON log file in order."""
+    """Checks that events are written down to the JSON log file in order."""
     def LogThread(thread_name, sleep_time, iterations=10):
       seq = log_writer.GlobalSeq(_after_write=lambda: time.sleep(sleep_time))
       lw = log_writer.LogWriter(seq=seq)

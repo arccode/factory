@@ -23,7 +23,7 @@ SAMPLE_DATETIME_ROUNDED_SEC = datetime.datetime(1989, 8, 8, 8, 8, 8, 000000)
 class TestlogTest(unittest.TestCase):
 
   def testJSONTime(self):
-    """Test conversion to and from JSON date format.
+    """Tests conversion to and from JSON date format.
 
     Microseconds should be stripped to precision of 3 decimal points."""
     # pylint: disable=W0212
@@ -65,7 +65,7 @@ class TestlogTest(unittest.TestCase):
       self.assertTrue(output.startswith('Exception: '))
 
   def testDisallowRecursiveLogging(self):
-    """Check that calling 'logging' within log processing code is dropped."""
+    """Checks that calling 'logging' within log processing code is dropped."""
     logged_events = []
     def CheckMessage(event):
       logged_events.append(event)
