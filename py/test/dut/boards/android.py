@@ -14,6 +14,7 @@ from cros.factory.test.dut import path
 from cros.factory.test.dut import storage
 from cros.factory.test.dut import temp
 from cros.factory.test.dut import thermal
+from cros.factory.test.dut import vpd
 from cros.factory.test.dut.boards import linux
 
 # pylint: disable=abstract-method
@@ -57,3 +58,7 @@ class AndroidBoard(linux.LinuxBoard):
   @component.DUTProperty
   def thermal(self):
     return thermal.SysFSThermal(self)
+
+  @component.DUTProperty
+  def vpd(self):
+    return vpd.FileBasedVitalProductData(self, '/persist')

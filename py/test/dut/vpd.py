@@ -35,24 +35,13 @@ class Partition(component.DUTComponent):
   This should not be created by the caller; rather, the caller should use
   vpd.ro or vpd.rw."""
 
-  def __init__(self, dut, name):
-    """Constructor.
-
-    Args:
-      dut: Instance of cros.factory.test.dut.board.DUTBoard.
-      name: The name of the partition (e.g., 'RO_VPD').
-    """
-    super(Partition, self).__init__(dut)
-    self.name = name
-
   def get(self, key, default=None):
     """Returns a single item from the VPD, or default if not present.
 
     This invokes the 'vpd' command each time it is run; for efficiency,
     use GetAll if more than one value is desired.
     """
-    result = self._dut.CallOutput(['vpd', '-i', self.name, '-g', key])
-    return default if result is None else result
+    raise NotImplementedError
 
   def Delete(self, *keys):
     """Deletes entries from the VPD.
@@ -61,6 +50,47 @@ class Partition(component.DUTComponent):
       An error if any entries cannot be deleted.  In this case some or
       all other entries may have been deleted.
     """
+    raise NotImplementedError
+
+
+  def GetAll(self):
+    """Returns the contents of the VPD as a dict."""
+    raise NotImplementedError
+
+  def Update(self, items, log=True):
+    """Updates items in the VPD.
+
+    Args:
+      items: Items to set.  A value of "None" deletes the item.
+      log: Whether to log the action.  Keys in VPD_BLACKLIST_KEYS are replaced
+        with a redacted value.
+    """
+    raise NotImplementedError
+
+
+class ChromeOSPartition(Partition):
+  """A VPD partition that can be accessed by command 'vpd'.
+
+  The 'vpd' command is usually available on systems using ChromeOS firmware that
+  internally calls flashrom to read and set VPD data in firmware SPI flash.
+  """
+
+  def __init__(self, dut, name):
+    """Constructor.
+
+    Args:
+      name: The name of the partition (e.g., 'RO_VPD').
+    """
+    super(ChromeOSPartition, self).__init__(dut)
+    self.name = name
+
+  def get(self, key, default=None):
+    """See Partition.get."""
+    result = self._dut.CallOutput(['vpd', '-i', self.name, '-g', key])
+    return default if result is None else result
+
+  def Delete(self, *keys):
+    """See Partition.Delete."""
     if keys:
       args = ['vpd', '-i', self.name]
       for k in keys:
@@ -68,7 +98,7 @@ class Partition(component.DUTComponent):
       self._dut.CheckCall(args)
 
   def GetAll(self):
-    """Returns the contents of the VPD as a dict."""
+    """See Partition.GetAll."""
     ret = {}
     for line in self._dut.CallOutput(
         ['vpd', '-i', self.name, '-l']).splitlines():
@@ -81,14 +111,12 @@ class Partition(component.DUTComponent):
     return ret
 
   def Update(self, items, log=True):
-    """Updates items in the VPD.
+    """See Partition.Update.
 
     Args:
       items: Items to set.  A value of "None" deletes the item
         from the VPD (actually, it currently just sets the field to empty:
         http://crosbug.com/p/18159).
-      log: Whether to log the action.  Keys in VPD_BLACKLIST_KEYS are replaced
-        with a redacted value.
     """
     if log:
       logging.info('Updating %s: %s', self.name, privacy.FilterDict(items))
@@ -115,6 +143,54 @@ class Partition(component.DUTComponent):
     self._dut.CheckCall(command)
 
 
+class FileBasedPartition(Partition):
+  """A file-based VPD partition."""
+
+  def __init__(self, dut, path):
+    """Constructor.
+
+    Args:
+      dut: Instance of cros.factory.test.dut.board.DUTBoard.
+      path: The path of the partition (e.g., '/persist').
+    """
+    super(FileBasedPartition, self).__init__(dut)
+    self._path = path
+
+  def get(self, key, default=None):
+    """See Partition.get"""
+    file_path = self._dut.path.join(self._path, key)
+    if self._dut.path.exists(file_path):
+      return self._dut.ReadFile(file_path)
+    return None
+
+  def Delete(self, *keys):
+    """See Partition.Delete."""
+    for key in keys:
+      file_path = self._dut.path.join(self._path, key)
+      if self._dut.path.exists(file_path):
+        return self._dut.CheckCall(['rm', '-f', file_path])
+
+  def GetAll(self):
+    """See Partition.GetAll."""
+    ret = {}
+    for file_name in self._dut.CheckOutput(
+        ['find', self._path, '-type', 'f']).split('\n'):
+      name = file_name[len(self._path) + 1, :]
+      ret[name] = self._dut.ReadFile(file_name)
+    return ret
+
+  def Update(self, items, log=True):
+    """See Partition.Update."""
+    for k, v in items.items():
+      file_name = self._dut.path.join(self._path, k)
+      if v is not None:
+        dir_name = self._dut.path.dirname(file_name)
+        self._dut.CheckCall(['mkdir', '-p', dir_name])
+        self._dut.WriteFile(file_name, v)
+      else:
+        self._dut.CheckCall(['rm', '-f', file_name])
+
+
 class VitalProductData(component.DUTComponent):
   """System module for Vital Product Data (VPD).
 
@@ -125,8 +201,37 @@ class VitalProductData(component.DUTComponent):
 
   @component.DUTProperty
   def ro(self):
-    return Partition(self._dut, VPD_READONLY_PARTITION_NAME)
+    raise NotImplementedError
 
   @component.DUTProperty
   def rw(self):
-    return Partition(self._dut, VPD_READWRITE_PARTITION_NAME)
+    raise NotImplementedError
+
+
+class ChromeOSVitalProductData(component.DUTComponent):
+  """System module for Vital Product Data (VPD) on Chrome OS."""
+
+  @component.DUTProperty
+  def ro(self):
+    return ChromeOSPartition(self._dut, VPD_READONLY_PARTITION_NAME)
+
+  @component.DUTProperty
+  def rw(self):
+    return ChromeOSPartition(self._dut, VPD_READWRITE_PARTITION_NAME)
+
+
+class FileBasedVitalProductData(VitalProductData):
+  """System module for file-based Vital Product Data."""
+
+  def __init__(self, dut, path):
+    super(FileBasedVitalProductData, self).__init__(dut)
+    self._path = path
+    self._partition = FileBasedPartition(self._dut, self._path)
+
+  @component.DUTProperty
+  def ro(self):
+    return self._partition
+
+  @component.DUTProperty
+  def rw(self):
+    return self._partition

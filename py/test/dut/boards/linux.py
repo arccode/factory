@@ -31,7 +31,6 @@ from cros.factory.test.dut import thermal
 from cros.factory.test.dut import toybox
 from cros.factory.test.dut import udev
 from cros.factory.test.dut import usb_c
-from cros.factory.test.dut import vpd
 from cros.factory.test.dut import wifi
 from cros.factory.test.dut.board import (DUTBoard,
                                          DUTProperty)
@@ -149,7 +148,3 @@ class LinuxBoard(DUTBoard):
   @DUTProperty
   def usb_c(self):
     return usb_c.USBTypeC(self)
-
-  @DUTProperty
-  def vpd(self):
-    return vpd.VitalProductData(self)

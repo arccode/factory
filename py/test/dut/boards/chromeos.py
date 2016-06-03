@@ -11,6 +11,7 @@ from cros.factory.test.dut import wifi
 from cros.factory.test.dut.boards import linux
 from cros.factory.test.dut.chromeos import bluetooth
 from cros.factory.test.dut.chromeos import display
+from cros.factory.test.dut import vpd
 
 
 class ChromeOSBoard(linux.LinuxBoard):
@@ -27,3 +28,7 @@ class ChromeOSBoard(linux.LinuxBoard):
   @component.DUTProperty
   def wifi(self):
     return wifi.WiFiChromeOS(self)
+
+  @component.DUTProperty
+  def vpd(self):
+    return vpd.ChromeOSVitalProductData(self)
