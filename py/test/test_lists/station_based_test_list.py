@@ -81,7 +81,7 @@ def StationBased(test_list_id, label_en, label_zh,
   def Wrap(CreateTestLists):
     def CreateStationTestList():
       with TestList(test_list_id, label_en) as test_list:
-        test_list.dut_options = dut_options
+        test_list.options.dut_options = dut_options
 
         if automated_sequence:
           group = AutomatedSequence(
