@@ -1,0 +1,7 @@
+{
+  "sample_int": 1,
+  "sample_str": "test",
+  "sample_mapping": {
+    "contents": "abc"
+  }
+}
