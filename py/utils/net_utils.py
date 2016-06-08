@@ -17,10 +17,9 @@ import subprocess
 import time
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
-from cros.factory.utils.type_utils import Error
+from . import file_utils
+from . import process_utils
+from .type_utils import Error
 
 
 DEFAULT_TIMEOUT = 10

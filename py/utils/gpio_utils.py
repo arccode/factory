@@ -37,10 +37,9 @@ import socket
 import sys
 import time
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import net_utils
-from cros.factory.utils import sync_utils
-from cros.factory.utils import type_utils
+from . import net_utils
+from . import sync_utils
+from . import type_utils
 
 
 class GpioManagerError(Exception):

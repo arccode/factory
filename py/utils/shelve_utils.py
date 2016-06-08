@@ -8,9 +8,8 @@ import os
 import shelve
 import shutil
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
+from . import file_utils
+from . import process_utils
 
 
 BACKUP_DIRECTORY = 'backup'

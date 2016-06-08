@@ -15,9 +15,8 @@ import os
 import shutil
 import tempfile
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import net_utils
-from cros.factory.utils import process_utils
+from . import net_utils
+from . import process_utils
 
 
 # The path to the testing_rsa identity file.

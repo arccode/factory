@@ -7,8 +7,7 @@
 import datetime
 import time
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import platform_utils
+from . import platform_utils
 
 EPOCH_ZERO = datetime.datetime(1970, 1, 1)
 MonotonicTime = platform_utils.GetProvider('MonotonicTime')

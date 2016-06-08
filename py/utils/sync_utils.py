@@ -13,9 +13,8 @@ import time
 
 from contextlib import contextmanager
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import time_utils
-from cros.factory.utils import type_utils
+from . import time_utils
+from . import type_utils
 
 
 DEFAULT_TIMEOUT_SECS = 10

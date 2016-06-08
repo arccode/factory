@@ -13,9 +13,8 @@ import inspect
 import threading
 import uuid
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import net_utils
-from cros.factory.utils.net_utils import TimeoutXMLRPCTransport
+from . import net_utils
+from .net_utils import TimeoutXMLRPCTransport
 
 
 class TimeoutJSONRPCTransport(jsonrpclib.jsonrpc.TransportMixIn,

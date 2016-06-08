@@ -4,9 +4,8 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import type_utils
-from cros.factory.utils.process_utils import CheckOutput
+from . import type_utils
+from .process_utils import CheckOutput
 
 
 START_TEXT = 'start/running'
