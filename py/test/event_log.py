@@ -13,10 +13,9 @@ import threading
 import time
 import yaml
 
-from uuid import uuid4
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test import testlog_goofy
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils import platform_utils
@@ -37,9 +36,6 @@ _default_event_logger_prefix = None
 DEVICE_ID_PATH = os.path.join(paths.GetFactoryRoot(), ".device_id")
 
 EVENT_LOG_DIR = os.path.join(paths.GetStateRoot(), "events")
-WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
-MLAN0_MAC_PATH = "/sys/class/net/mlan0/address"
-DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
 
 # Path to use to generate an image ID in case none exists (i.e.,
 # this is the first time we're creating an event log).
@@ -121,9 +117,6 @@ SYNC_MARKER_REPLACE = "\n" + SYNC_MARKER_COMPLETE + "---\n"
 # Since gooftool uses this.
 TimeString = time_utils.TimeString
 
-device_id = None
-reimage_id = None
-
 
 class EventLogException(Exception):
   pass
@@ -178,19 +171,6 @@ def YamlDump(structured_data):
                    Dumper=CustomDumper)
 
 
-def TimedUuid():
-  """Returns a UUID that is roughly sorted by time.
-
-  The first 8 hexits are replaced by the current time in 100ths of a
-  second, mod 2**32.  This will roll over once every 490 days, but it
-  will cause UUIDs to be sorted by time in the vast majority of cases
-  (handy for ls'ing directories); and it still contains far more than
-  enough randomness to remain unique.
-  """
-  return ("%08x" % (int(time.time() * 100) & 0xFFFFFFFF) +
-          str(uuid4())[8:])
-
-
 def Log(event_name, **kwargs):
   """Logs the event using the global event logger.
 
@@ -225,7 +205,8 @@ def GetGlobalLogger():
           raise ValueError("CROS_FACTORY_TEST_PATH environment"
                            "variable is not set")
         uuid = (os.environ.get("CROS_FACTORY_TEST_PARENT_INVOCATION") or
-                os.environ.get("CROS_FACTORY_TEST_INVOCATION") or TimedUuid())
+                os.environ.get("CROS_FACTORY_TEST_INVOCATION") or
+                time_utils.TimedUUID())
         _global_event_logger = EventLog(path, uuid)
 
   return _global_event_logger
@@ -260,96 +241,23 @@ def SetGlobalLoggerDefaultPrefix(prefix):
 
 
 def GetDeviceId():
-  """Returns the device ID.
-
-  The device ID is created and stored when this function is first called
-  on a device after imaging/reimaging. The result is stored in
-  DEVICE_ID_PATH and is used for all future references. If DEVICE_ID_PATH
-  does not exist, it is obtained from the first successful read from
-  DEVICE_ID_SEARCH_PATHS. If none is available, the id is generated.
-
-  Note that ideally a device ID does not change for one "device". However,
-  in the case that the read result from DEVICE_ID_SEARCH_PATHS changed (e.g.
-  caused by firmware update, change of components) AND the device is reimaged,
-  the device ID will change.
-  """
-  global device_id  # pylint: disable=W0603
-  if device_id:
-    return device_id
-
-  # Always respect the device ID recorded in DEVICE_ID_PATH first.
-  if os.path.exists(DEVICE_ID_PATH):
-    device_id = open(DEVICE_ID_PATH).read().strip()
-    if device_id:
-      return device_id
-
-  # Find or generate device ID from the search path.
-  for path in DEVICE_ID_SEARCH_PATHS:
-    if os.path.exists(path):
-      device_id = open(path).read().strip()
-      if device_id:
-        break
-  else:
-    device_id = str(uuid4())
-    logging.warning("No device_id available yet: generated %s", device_id)
-
-  # Cache the device ID to DEVICE_ID_PATH for all future references.
-  file_utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
-  with open(DEVICE_ID_PATH, "w") as f:
-    print >> f, device_id
-    f.flush()
-    os.fsync(f)
-
-  return device_id
-
-
-def GetBootId():
-  """Returns the boot ID."""
-  return open("/proc/sys/kernel/random/boot_id", "r").read().strip()
+  return testlog_goofy.GetDeviceID(path=DEVICE_ID_PATH)
 
 
 def GetReimageId():
-  """Returns the image ID.
-
-  This is stored in REIMAGE_ID_PATH; one is generated if not available.
-  """
-  global reimage_id  # pylint: disable=W0603
-  if not reimage_id:
-    if os.path.exists(REIMAGE_ID_PATH):
-      reimage_id = open(REIMAGE_ID_PATH).read().strip()
-    if not reimage_id:
-      reimage_id = str(TimedUuid())
-      file_utils.TryMakeDirs(os.path.dirname(REIMAGE_ID_PATH))
-      with open(REIMAGE_ID_PATH, "w") as f:
-        print >> f, reimage_id
-        f.flush()
-        os.fsync(f)
-      logging.info("No reimage_id available yet: generated %s", reimage_id)
-  return reimage_id
+  return testlog_goofy.GetReimageID(path=REIMAGE_ID_PATH)
 
 
 def GetBootSequence():
-  """Returns the current boot sequence (or -1 if not available)."""
-  try:
-    return int(open(BOOT_SEQUENCE_PATH).read())
-  except (IOError, ValueError):
-    return -1
+  return testlog_goofy.GetInitCount(path=BOOT_SEQUENCE_PATH)
 
 
 def IncrementBootSequence():
-  '''Increments the boot sequence.
+  return testlog_goofy.IncrementInitCount(path=BOOT_SEQUENCE_PATH)
 
-  Creates the boot sequence file if it does not already exist.
-  '''
-  boot_sequence = GetBootSequence() + 1
 
-  logging.info("Boot sequence: %d", boot_sequence)
-
-  file_utils.TryMakeDirs(os.path.dirname(BOOT_SEQUENCE_PATH))
-  with open(BOOT_SEQUENCE_PATH, "w") as f:
-    f.write("%d" % boot_sequence)
-    f.flush()
-    os.fsync(f.fileno())
+def GetBootId():
+  return testlog_goofy.GetBootID()
 
 
 class GlobalSeq(object):
@@ -483,7 +391,8 @@ class EventLog(object):
     Creates an EventLog object for the running autotest."""
 
     path = os.environ.get("CROS_FACTORY_TEST_PATH", "autotest")
-    uuid = os.environ.get("CROS_FACTORY_TEST_INVOCATION") or TimedUuid()
+    uuid = (os.environ.get("CROS_FACTORY_TEST_INVOCATION") or
+            time_utils.TimedUUID())
     return EventLog(path, uuid)
 
   def __init__(self, prefix, log_id=None, defer=True, seq=None, suppress=False):
@@ -505,7 +414,7 @@ class EventLog(object):
         humans differentiate between event log files (since UUIDs all
         look the same).  If string is not alphanumeric with period and
         underscore punctuation, raises ValueError.
-      log_id: A UUID for the log (or None, in which case TimedUuid() is used)
+      log_id: A UUID for the log (or None, in which case TimedUUID() is used)
       defer: If True, then the file will not be written until the first
         event is logged (if ever).
       seq: The GlobalSeq object to use (creates a new one if None).
@@ -521,7 +430,7 @@ class EventLog(object):
     self.prefix = prefix
     self.lock = threading.Lock()
     self.seq = seq or GlobalSeq()
-    self.log_id = log_id or TimedUuid()
+    self.log_id = log_id or time_utils.TimedUUID()
     self.opened = False
 
     if not self.suppress and not defer:

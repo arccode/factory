@@ -9,10 +9,10 @@ import re
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import event_log
 from cros.factory.test import event
 from cros.factory.test import test_ui
 from cros.factory.utils import process_utils
+from cros.factory.utils import time_utils
 
 
 class UIActuatorError(Exception):
@@ -79,7 +79,7 @@ class UIActuator(test_ui.UI):
       raise UIActuatorError('"condition" must be a callable object')
 
     self.Init()
-    event_subtype = event_log.TimedUuid()
+    event_subtype = time_utils.TimedUUID()
 
     def _HandlePollUI(e):
       with self.lock:

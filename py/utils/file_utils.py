@@ -19,6 +19,7 @@ import stat
 import subprocess
 import time
 import tempfile
+import threading
 import zipfile
 
 from . import platform_utils
@@ -515,11 +516,12 @@ class FileLock(object):
   def __init__(self, lockfile, timeout_secs=None):
     self._lockfile = lockfile
     self._timeout_secs = timeout_secs
-    self._fd = os.open(lockfile, os.O_RDWR | os.O_CREAT)
+    self._fd = None
     self._locked = False
     self._sys_lock = platform_utils.GetProvider('FileLock')
 
   def Acquire(self):
+    self._fd = os.open(self._lockfile, os.O_RDWR | os.O_CREAT)
     if self._timeout_secs:
       end_time = time_utils.MonotonicTime() + self._timeout_secs
 
@@ -527,7 +529,8 @@ class FileLock(object):
       try:
         self._sys_lock(self._fd, is_exclusive=True, is_blocking=False)
         self._locked = True
-        logging.debug('%s locked by %s', self._lockfile, os.getpid())
+        logging.debug('%s (%d) locked by %s',
+                      self._lockfile, self._fd, os.getpid())
         break
       except IOError:
         if self._timeout_secs:
@@ -543,7 +546,11 @@ class FileLock(object):
     if self._locked:
       self._sys_lock(self._fd, do_lock=False)
       self._locked = False
-      logging.debug('%s unlocked by %s', self._lockfile, os.getpid())
+      logging.debug('%s (%d) unlocked by %s',
+                    self._lockfile, self._fd, os.getpid())
+    if self._fd:
+      os.close(self._fd)
+      self._fd = None
 
   def __enter__(self):
     return self.Acquire()
@@ -698,3 +705,64 @@ def HashPythonArchive(par_path):
       # Log hash function used, just in case we ever want to change it
       hash_function=SOURCE_HASH_FUNCTION_NAME,
       hashes=hashes)
+
+
+class FileLockContextManager(object):
+  """Represents a file lock in context manager's form
+
+  Provides two different levels of lock around the associated file.
+  - For accessing a file in the same process, please make sure all the access
+  goes through this class, the internal lock will guarantee no racing with that
+  file.
+  - For accessing a file across different process, this class will put an
+  exclusive advisory lock during "with" statement.
+
+  Args:
+    path: Path to the file.
+    mode: Mode used to open the file.
+  """
+
+  def __init__(self, path, mode):
+    self.path = path
+    self.mode = mode
+    self.opened = False
+    self.file = None
+    self._lock = threading.Lock()
+    self._filelock = platform_utils.GetProvider('FileLock')
+
+  def __enter__(self):
+    """Locks the associated file."""
+    with self._lock:
+      self._OpenUnlocked()
+      self._filelock(self.file.fileno(), True)
+      return self.file
+
+  def __exit__(self, ex_type, value, tb):
+    """Unlocks the associated file."""
+    del ex_type, value, tb
+    with self._lock:
+      self._filelock(self.file.fileno(), False)
+
+  def Close(self):
+    """Closes associated file."""
+    if self.file:
+      with self._lock:
+        self.opened = False
+        self.file.close()
+        self.file = None
+
+  def _OpenUnlocked(self):
+    parent_dir = os.path.dirname(self.path)
+    if not os.path.exists(parent_dir):
+      try:
+        os.makedirs(parent_dir)
+      except OSError:
+        # Maybe someone else tried to create it simultaneously
+        if not os.path.exists(parent_dir):
+          raise
+
+    if self.opened:
+      return
+
+    self.file = open(self.path, self.mode)
+    self.opened = True

@@ -195,45 +195,9 @@ class EventLogTest(unittest.TestCase):
     assert (MAC_RE.match(device_id) or
             UUID_RE.match(device_id)), device_id
 
-    # Remove device_id and make sure we get the same thing
-    # back again, re-reading it from disk or the wlan0 interface
-    event_log.device_id = None
-    self.assertEqual(device_id, event_log.GetDeviceId())
-
-    self.assertNotEqual(device_id, event_log.GetReimageId())
-
-  def testGetDeviceIdFromSearchPath(self):
-    mock_id = 'MOCK_ID'
-    device_id_search_path = os.path.join(self.tmp, '.device_id_search')
-    with open(device_id_search_path, 'w') as f:
-      print >> f, mock_id
-    event_log.DEVICE_ID_SEARCH_PATHS = [device_id_search_path]
-
-    # Device ID should be the same as mock_id every time it is called.
-    device_id = event_log.GetDeviceId()
-    self.assertEqual(mock_id, device_id)
-    self.assertEqual(mock_id, event_log.GetDeviceId())
-
-    # Ensure the mock ID remains the same even if search path is gone.
-    # i.e. obtains ID from the file
-    event_log.device_id = None
-    event_log.DEVICE_ID_SEARCH_PATHS = []
-    self.assertEqual(mock_id, event_log.GetDeviceId())
-
   def testGetReimageId(self):
     reimage_id = event_log.GetReimageId()
     assert UUID_RE.match(reimage_id), reimage_id
-
-    # Remove reimage_id and make sure we get the same thing
-    # back again, re-reading it from disk
-    event_log.reimage_id = None
-    self.assertEqual(reimage_id, event_log.GetReimageId())
-
-    # Remove the reimage_id file; now we should get something
-    # *different* back.
-    event_log.reimage_id = None
-    os.unlink(event_log.REIMAGE_ID_PATH)
-    self.assertNotEqual(reimage_id, event_log.GetReimageId())
 
   def testSuppress(self):
     for suppress in [False, True]:
@@ -335,18 +299,6 @@ class EventLogTest(unittest.TestCase):
     log = event_log.EventLog('test', defer=True)
     log.Close()
     self.assertFalse(os.path.exists(event_log.EVENTS_PATH))
-
-  def testBootSequence(self):
-    try:
-      os.unlink(event_log.BOOT_SEQUENCE_PATH)
-    except OSError:
-      pass
-
-    for i in xrange(-1, 5):
-      self.assertEqual(i, event_log.GetBootSequence())
-      event_log.IncrementBootSequence()
-      self.assertEqual(str(i + 1),
-                       open(event_log.BOOT_SEQUENCE_PATH).read())
 
 
 class GlobalEventLogTest(unittest.TestCase):

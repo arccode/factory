@@ -14,11 +14,9 @@ import tempfile
 import threading
 import time
 import traceback
-import types
 from Queue import Empty, Queue
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
 from cros.factory.utils import type_utils
 
 
@@ -129,8 +127,6 @@ class Event(object):
       'HIDE_TOOLTIPS': 'goofy:hide_tooltips',
       # Enable/disable key filtering
       'KEY_FILTER_MODE': 'goofy:key_filter_mode',
-      # Pytest testlog state.
-      'PYTEST_TESTLOG_STATE': 'goofy:pytest_testlog_state',
   })
 
   def __init__(self, type, **kw):  # pylint: disable=W0622
@@ -256,7 +252,7 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
       os.environ[CROS_FACTORY_EVENT] = path
       logging.info('Setting %s=%s', CROS_FACTORY_EVENT, path)
     SocketServer.UnixStreamServer.__init__(  # pylint: disable=W0233
-      self, path, EventServerRequestHandler)
+        self, path, EventServerRequestHandler)
 
   def _subscribe(self, queue):
     '''Subscribes a queue to receive events.

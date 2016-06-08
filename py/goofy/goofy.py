@@ -26,8 +26,8 @@ from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
-from cros.factory.test import log_writer
 from cros.factory.test import testlog
+from cros.factory.test import testlog_goofy
 from cros.factory.test.env import paths
 from cros.factory.test.event_log import EventLog, FloatDigit, GetBootSequence
 from cros.factory.goofy import connection_manager
@@ -47,7 +47,6 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import state
-from cros.factory.test.env import paths
 from cros.factory.test.dut import utils as dut_utils
 from cros.factory.test.e2e_test.common import (
     AutomationMode, AutomationModePrompt, ParseAutomationMode)
@@ -168,7 +167,7 @@ class Goofy(GoofyBase):
     self.system_log_manager = None
     self.core_dump_manager = None
     self.event_log = None
-    self.log_writer = None
+    self.testlog = None
     self.autotest_prespawner = None
     self.pytest_prespawner = None
     self.ui_process = None
@@ -322,9 +321,9 @@ class Goofy(GoofyBase):
     if self.event_log:
       self.event_log.Close()
       self.event_log = None
-    if self.log_writer:
-      self.log_writer.Close()
-      self.log_writer = None
+    if self.testlog:
+      self.testlog.Close()
+      self.testlog = None
     if self.key_filter:
       self.key_filter.Stop()
     if self.cpu_usage_watcher:
@@ -595,6 +594,7 @@ class Goofy(GoofyBase):
           ec_panic_info = self.log_ec_panic_info()
 
         error_msg = 'Unexpected shutdown while test was running'
+        # TODO(itspeter): Add testlog to collect expired session infos.
         self.event_log.Log('end_test',
                            path=test.path,
                            status=TestState.FAILED,
@@ -1119,9 +1119,11 @@ class Goofy(GoofyBase):
       self.init()
       self.event_log.Log('goofy_init',
                          success=True)
-      self.log_writer.Log(
+      testlog.Log(
           testlog.StationInit({
-              'count': log_writer.GetInitCount(),
+              'stationDeviceId': testlog_goofy.GetDeviceID(),
+              'stationReimageId': testlog_goofy.GetReimageID(),
+              'count': testlog_goofy.GetInitCount(),
               'success': True}))
     except:
       try:
@@ -1129,10 +1131,12 @@ class Goofy(GoofyBase):
           self.event_log.Log('goofy_init',
                              success=False,
                              trace=traceback.format_exc())
-        if self.log_writer:
-          self.log_writer.Log(
+        if self.testlog:
+          testlog.Log(
               testlog.StationInit({
-                  'count': log_writer.GetInitCount(),
+                  'stationDeviceId': testlog_goofy.GetDeviceID(),
+                  'stationReimageId': testlog_goofy.GetReimageID(),
+                  'count': testlog_goofy.GetInitCount(),
                   'success': False,
                   'failureMessage': traceback.format_exc()}))
       except:  # pylint: disable=W0702
@@ -1142,7 +1146,7 @@ class Goofy(GoofyBase):
     self.status = Status.RUNNING
     syslog.syslog('Goofy (factory test harness) starting')
     syslog.syslog('Boot sequence = %d' % GetBootSequence())
-    syslog.syslog('Goofy init count = %d' % log_writer.GetInitCount())
+    syslog.syslog('Goofy init count = %d' % testlog_goofy.GetInitCount())
     self.run()
 
   def update_system_info(self):
@@ -1438,11 +1442,17 @@ class Goofy(GoofyBase):
       sys.exit(0)
 
     event_log.IncrementBootSequence()
-    log_writer.IncrementInitCount()
+    testlog_goofy.IncrementInitCount()
+
     # Don't defer logging the initial event, so we can make sure
     # that device_id, reimage_id, etc. are all set up.
     self.event_log = EventLog('goofy', defer=False)
-    self.log_writer = log_writer.GetGlobalLogWriter()
+    self.testlog = testlog.Testlog(
+        log_root=paths.GetLogRoot(), uuid=self.uuid)
+    # Direct the logging calls to testlog as well.
+    testlog.CapturePythonLogging(
+        callback=self.testlog.primary_json.Log,
+        level=logging.getLogger().getEffectiveLevel())
 
     if env:
       self.env = env

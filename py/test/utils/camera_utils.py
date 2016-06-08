@@ -14,8 +14,8 @@ import re
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import TimedUuid
 from cros.factory.utils import file_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import Spawn
 
 from cros.factory.external import cv
@@ -47,7 +47,8 @@ def EncodeCVImage(img, file_ext):
   """
   # TODO (jchuang): newer version of OpenCV has better imencode()
   # Python method.
-  temp_fn = os.path.join(tempfile.gettempdir(), TimedUuid() + file_ext)
+  temp_fn = os.path.join(tempfile.gettempdir(),
+                         time_utils.TimedUUID() + file_ext)
   try:
     cv2.imwrite(temp_fn, img)
     with open(temp_fn, 'rb') as f:

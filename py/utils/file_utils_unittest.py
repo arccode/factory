@@ -530,6 +530,12 @@ class FileLockTest(unittest.TestCase):
         r'Could not acquire file lock of .* in 1 second\(s\)',
         file_utils.FileLock(self.temp_file, timeout_secs=1).Acquire)
 
+  def testLocksReleaseFileDescriptor(self):
+    for _ in xrange(3333):
+      c = file_utils.FileLock(self.temp_file)
+      c.Acquire()
+      c.Release()
+
 
 class ReadWriteFileTest(unittest.TestCase):
 

@@ -51,6 +51,7 @@ from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Error
@@ -925,7 +926,7 @@ def UploadReport(options):
   device_sn = ro_vpd.get('serial_number', None)
   if device_sn is None:
     logging.warning('RO_VPD missing device serial number')
-    device_sn = 'MISSING_SN_' + event_log.TimedUuid()
+    device_sn = 'MISSING_SN_' + time_utils.TimedUUID()
   target_path = CreateReportArchive(device_sn)
 
   if options.upload_method is None or options.upload_method == 'none':

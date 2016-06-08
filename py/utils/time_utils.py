@@ -6,6 +6,7 @@
 
 import datetime
 import time
+from uuid import uuid4
 
 from . import platform_utils
 
@@ -60,3 +61,16 @@ def TimeString(time_value=None, time_separator=':', milliseconds=True):
     ret += '.%03d' % int((t - int(t)) * 1000)
   ret += 'Z'
   return ret
+
+
+def TimedUUID():
+  """Returns a UUID that is roughly sorted by time.
+
+  The first 8 hexits are replaced by the current time in 100ths of a
+  second, mod 2**32.  This will roll over once every 490 days, but it
+  will cause UUIDs to be sorted by time in the vast majority of cases
+  (handy for ls'ing directories); and it still contains far more than
+  enough randomness to remain unique.
+  """
+  return ('%08x' % (int(time.time() * 100) & 0xFFFFFFFF) +
+          str(uuid4())[8:])
