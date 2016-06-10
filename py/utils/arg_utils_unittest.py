@@ -7,7 +7,7 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Arg, Args
+from cros.factory.utils.arg_utils import Arg, Args
 from cros.factory.utils.type_utils import Enum
 
 
