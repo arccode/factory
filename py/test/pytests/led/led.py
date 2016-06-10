@@ -18,15 +18,14 @@ from cros.factory.test.dut import led as led_module
 from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import (FactoryTask, FactoryTaskManager,
                                             InteractiveFactoryTask)
-
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See setUp() for more detail.
 from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
                                                    CreateBFTFixture,
                                                    TEST_ARG_HELP)
+from cros.factory.utils.arg_utils import Arg
 
 
 _TEST_TITLE = test_ui.MakeLabel('LED Test', u'LED 测试')

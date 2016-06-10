@@ -18,11 +18,11 @@ from cros.factory.test import dut
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.rules import phase
 from cros.factory.test.utils import deploy_utils
+from cros.factory.utils.arg_utils import Arg
 
 _TEST_TITLE = test_ui.MakeLabel('Components Verification Test',
                                 u'元件验证测试')

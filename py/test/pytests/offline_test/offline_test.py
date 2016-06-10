@@ -8,11 +8,11 @@ import unittest
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test import dut
-from cros.factory.test.args import Arg
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
+from cros.factory.utils.arg_utils import Arg
 
 class OfflineTestError(Exception):
   pass

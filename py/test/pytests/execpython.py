@@ -6,7 +6,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Arg
+from cros.factory.utils.arg_utils import Arg
 
 
 class ExecPythonTest(unittest.TestCase):

@@ -27,9 +27,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 _SIM_PRESENT_RE = r'IMSI: (\d{14,15})'

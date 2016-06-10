@@ -11,9 +11,9 @@ import unittest
 import factory_common # pylint: disable=W0611
 
 from cros.factory.test import dut
-from cros.factory.test.args import Arg
 from cros.factory.test.utils.stress_manager import StressManager
 from cros.factory.test.utils.stress_manager import StressManagerError
+from cros.factory.utils.arg_utils import Arg
 
 
 class StressAppTest(unittest.TestCase):

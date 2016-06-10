@@ -12,8 +12,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import invocation
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.args import Args
 from cros.factory.test.e2e_test import ui_actuator
+from cros.factory.utils.arg_utils import Args
 
 
 class E2ETestError(Exception):

@@ -32,9 +32,9 @@ import unittest
 
 from cros.factory.test import dut
 from cros.factory.test import factory
-from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils.arg_utils import Arg
 
 
 _TEST_TITLE = MakeLabel('Fan Speed Test', zh=u'风扇转速测试')

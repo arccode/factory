@@ -79,13 +79,13 @@ from cros.factory.test import dut
 from cros.factory.test import event_log
 from cros.factory.test import factory, leds
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg, Args
 from cros.factory.test.dut import CalledProcessError
 from cros.factory.test.fixture import arduino
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
+from cros.factory.utils.arg_utils import Arg, Args
 
 
 _WIFI_TIMEOUT_SECS = 20

@@ -103,9 +103,9 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.dut.audio.base import MicJackType
 from cros.factory.test.utils import audio_utils
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
 from cros.factory.utils.type_utils import Enum
 

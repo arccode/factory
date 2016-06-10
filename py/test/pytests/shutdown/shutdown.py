@@ -19,11 +19,11 @@ from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.event import Event, EventClient
 from cros.factory.test.factory import TestState
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 # File that suppresses reboot if present (e.g., for development).

@@ -15,11 +15,11 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import shopfloor
-from cros.factory.test.args import Arg
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.test_ui import Escape, MakeLabel, UI
 from cros.factory.test.ui_templates import OneScrollableSection
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import Spawn
 
 _TEST_TITLE = MakeLabel('Update Firmware', u'更新韧体')

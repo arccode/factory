@@ -16,7 +16,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.utils import audio_utils
 from cros.factory.test.utils import evdev_utils
@@ -30,6 +29,7 @@ from cros.factory.test.fixture.bft_fixture import (BFTFixture,
 
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils import file_utils
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import StartDaemonThread
 
 _DEFAULT_TIMEOUT = 30

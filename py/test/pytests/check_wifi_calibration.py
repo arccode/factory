@@ -21,7 +21,7 @@ from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
+from cros.factory.utils.arg_utils import Arg
 
 ANCHOR_FOR_LOW_BAND_CALIBRATION_DATA = 'calPierData2G'
 ANCHOR_FOR_HIGH_BAND_CALIBRATION_DATA = 'calPierData5G'

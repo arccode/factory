@@ -27,12 +27,12 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
                                                    CreateBFTFixture,
                                                    TEST_ARG_HELP)
 from cros.factory.utils import time_utils
+from cros.factory.utils.arg_utils import Arg
 
 _STATE_RW_TEST_WAIT_INSERT = 1
 _STATE_RW_TEST_WAIT_REMOVE = 2

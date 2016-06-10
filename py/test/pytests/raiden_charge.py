@@ -23,12 +23,12 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.utils.stress_manager import StressManager
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
+from cros.factory.utils.arg_utils import Arg
 
 _TEST_TITLE = test_ui.MakeLabel('Raiden Charging Test', u'Raiden 充电测试')
 _TESTING_ADB_CONNECTION = test_ui.MakeLabel(

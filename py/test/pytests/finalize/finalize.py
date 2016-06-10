@@ -30,7 +30,6 @@ from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.dut.links import ssh
 from cros.factory.test.env import paths
 from cros.factory.test.event_log import Log
@@ -40,6 +39,7 @@ from cros.factory.test.test_ui import MakeLabel
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 MSG_CHECKING = MakeLabel('Checking system status for finalization...',

@@ -15,8 +15,8 @@ import urllib2
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.file_utils import TryUnlink
 from cros.factory.utils.net_utils import GetEthernetInterfaces
 from cros.factory.utils.net_utils import GetEthernetIp

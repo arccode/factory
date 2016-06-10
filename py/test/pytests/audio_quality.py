@@ -31,12 +31,12 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.env import paths
 from cros.factory.test.event_log import Log
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 from cros.factory.utils.type_utils import Enum
 

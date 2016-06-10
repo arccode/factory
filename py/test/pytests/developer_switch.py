@@ -9,11 +9,11 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Arg
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils.arg_utils import Arg
 
 _MSG_TURN_ON = test_ui.MakeLabel(
     'Please turn <b class="on">ON</b> Developer Switch.',

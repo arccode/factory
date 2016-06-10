@@ -18,10 +18,10 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils.arg_utils import Arg
 
 
 CSS_TEMPLATE = """

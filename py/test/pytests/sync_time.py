@@ -10,9 +10,9 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import dut
 from cros.factory.test import factory
-from cros.factory.test.args import Arg
 from cros.factory.test.utils import time_utils as test_time_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 class SyncTime(unittest.TestCase):

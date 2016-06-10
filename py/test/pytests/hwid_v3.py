@@ -19,10 +19,10 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.rules import phase
 from cros.factory.test.utils import deploy_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils.arg_utils import Arg
 
 # If present,  these files will override the board and probe results
 # (for testing).

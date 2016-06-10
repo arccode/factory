@@ -16,9 +16,9 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.event_log import Log
 from cros.factory.utils import process_utils
+from cros.factory.utils.arg_utils import Arg
 
 CheckItem = namedtuple('CheckItem', 'instruction_en instruction_zh'
                        ' command judge_to_pass')

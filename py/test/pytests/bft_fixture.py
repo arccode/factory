@@ -9,9 +9,9 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Arg
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.bft_fixture import CreateBFTFixture
+from cros.factory.utils.arg_utils import Arg
 
 
 class BFTFixture(unittest.TestCase):

@@ -16,9 +16,9 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI
 from cros.factory.utils import sync_utils
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 

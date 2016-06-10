@@ -69,9 +69,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.dut import accelerometer
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.utils.arg_utils import Arg
 
 
 _MSG_NOT_SUPPORTED = test_ui.MakeLabel('ERROR: The function is not supported.',

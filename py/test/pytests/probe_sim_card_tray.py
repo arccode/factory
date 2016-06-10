@@ -24,10 +24,10 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.file_utils import WriteFile, ReadLines
 
 

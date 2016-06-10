@@ -10,16 +10,16 @@ import re
 import unittest
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.test import args
 from cros.factory.test import dut
 from cros.factory.test.rules import phase
+from cros.factory.utils import arg_utils
 
 
 class MLBVersionTest(unittest.TestCase):
   """A factory test to verify MLB board version."""
 
   ARGS = [
-      args.Arg(
+      arg_utils.Arg(
           'expected_version', (str, unicode),
           ('The expected version string. If not given, try to match the board '
            'version with current build phase'),

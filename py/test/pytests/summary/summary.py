@@ -38,8 +38,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.utils.arg_utils import Arg
 
 CSS = """
 table {

@@ -21,11 +21,11 @@ from PIL import ImageChops
 from PIL import ImageDraw
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import args
 from cros.factory.test import dut
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.utils import arg_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -167,27 +167,28 @@ class Chameleon(object):
 class ChameleonDisplayTest(unittest.TestCase):
   """A factory test that utilizes Chameleon to do automated display testing."""
   ARGS = [
-      args.Arg('chameleon_host', str,
-               'the hostname/IP address of the Chameleon server'),
-      args.Arg('chameleon_port', int,
-               'the port of the Chameleon server', default=9992),
-      args.Arg('test_info', tuple,
-               ('a tuple of (dut_port, chameleon_port, resolution_width, '
-                'resolution_height, refresh_rate); for example: '
-                '("DP1", "DP", 1920, 1080, 60) or '
-                '("DP1", "HDMI", 1920, 1080, 60)')),
-      args.Arg('load_test_image', bool,
-               ('whether to load the reference pattern image; True to load '
-                'the test image in a Chrome window on the external display, '
-                'which may have timing issue to the test caused by Chrome\'s '
-                'pop-up messages'), default=False),
-      args.Arg('ignore_regions', list,
-               ('a list of regions to ignore when comparing captured images; '
-                'each element of the list must be a (x, y, width, height) '
-                'tuple to specify the rectangle to ignore'), default=[]),
-      args.Arg('downscale_to_tv_level', bool,
-               ('whether to downscale the internal framebuffer to TV level for '
-                'comparison'), default=False),
+      arg_utils.Arg('chameleon_host', str,
+                    'the hostname/IP address of the Chameleon server'),
+      arg_utils.Arg('chameleon_port', int,
+                    'the port of the Chameleon server', default=9992),
+      arg_utils.Arg('test_info', tuple,
+                    ('a tuple of (dut_port, chameleon_port, resolution_width, '
+                     'resolution_height, refresh_rate); for example: '
+                     '("DP1", "DP", 1920, 1080, 60) or '
+                     '("DP1", "HDMI", 1920, 1080, 60)')),
+      arg_utils.Arg('load_test_image', bool,
+                    ('whether to load the reference pattern image; True to '
+                     'load the test image in a Chrome window on the external '
+                     'display, which may have timing issue to the test caused '
+                     'by Chrome\'s pop-up messages'), default=False),
+      arg_utils.Arg('ignore_regions', list,
+                    ('a list of regions to ignore when comparing captured '
+                     'images; each element of the list must be a (x, y, width, '
+                     'height) tuple to specify the rectangle to ignore'),
+                    default=[]),
+      arg_utils.Arg('downscale_to_tv_level', bool,
+                    ('whether to downscale the internal framebuffer to TV '
+                     'level for comparison'), default=False),
   ]
 
   IMAGE_TEMPLATE_WIDTH = 1680

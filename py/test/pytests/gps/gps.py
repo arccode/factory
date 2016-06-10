@@ -52,10 +52,10 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test.event_log import Log
-from cros.factory.test.args import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 START_GLGPS_TIMEOUT = 5

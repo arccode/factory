@@ -34,7 +34,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
+from cros.factory.utils.arg_utils import Arg
 
 
 class eMMCCheckFWVersionTest(unittest.TestCase):
@@ -71,7 +71,7 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
       AssertionErrror if prv length is not 2
 
     # Doctests
-    >>> from cros.factory.test.args import Args
+    >>> from cros.factory.utils.arg_utils import Args
     >>> test = eMMCCheckFWVersionTest()
     >>> test._ValidatePRVField("00", "PARTNM", "01", [("00", "PARTNM", r"..")])
     True

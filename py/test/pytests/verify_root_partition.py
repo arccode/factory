@@ -16,8 +16,8 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import Spawn
 
 

@@ -25,7 +25,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
-from cros.factory.test.args import Arg
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.sys_utils import MountPartition
 
 BLOCK_SIZE = 4096

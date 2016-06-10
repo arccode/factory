@@ -38,7 +38,7 @@ import unittest
 
 from cros.factory.gooftool import edid
 from cros.factory.test import dut
-from cros.factory.test.args import Arg
+from cros.factory.utils.arg_utils import Arg
 
 class BacklightMaxBrightnessVPDTest(unittest.TestCase):
   """Sets the maximum brighness value in nits to vpd."""

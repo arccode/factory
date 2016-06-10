@@ -30,11 +30,11 @@ from cros.factory.test.event_log import Log
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI, Escape, MakeLabel
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils.arg_utils import Arg
 
 HTML = '''
 <div id="bb-phase" style="font-size: 200%"></div>

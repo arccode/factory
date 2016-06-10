@@ -211,7 +211,6 @@ from cros.factory.test import leds
 from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.fixture.fixture_connection import (
     SerialFixtureConnection, MockFixtureConnection, FixtureConnectionError)
 from cros.factory.test.fixture.camera.als_light_chamber import (
@@ -223,6 +222,7 @@ from cros.factory.test.fixture.camera import renderer as renderer
 from cros.factory.test.utils.camera_utils import EncodeCVImage
 from cros.factory.test.utils.media_utils import (
     MediaMonitor, MountedMedia, RemovableDiskMonitor)
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Enum
 

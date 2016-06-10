@@ -11,7 +11,7 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Args
+from cros.factory.utils.arg_utils import Args
 
 ENV_DUT_OPTIONS = 'CROS_FACTORY_DUT_OPTIONS'
 LINK_CLASS_LOCAL = 'LocalLink'

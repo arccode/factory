@@ -39,7 +39,6 @@ from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
-from cros.factory.test.args import Args
 from cros.factory.test.dut import utils as dut_utils
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
@@ -54,6 +53,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils.arg_utils import Args
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8

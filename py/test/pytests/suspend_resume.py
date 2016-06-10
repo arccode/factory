@@ -28,11 +28,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.process_utils import Spawn
 
 _TEST_TITLE = test_ui.MakeLabel('Suspend/Resume Test', zh=u'暂停/恢复测试')

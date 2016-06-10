@@ -69,11 +69,11 @@ from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
 from cros.factory.test import shopfloor
-from cros.factory.test.args import Arg
 from cros.factory.test.env import paths
 from cros.factory.test.rf import n1914a
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 class RFRadiatedTest(unittest.TestCase):

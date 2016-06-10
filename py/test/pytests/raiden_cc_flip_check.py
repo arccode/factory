@@ -29,10 +29,10 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils.arg_utils import Arg
 
 _TEST_TITLE = test_ui.MakeLabel('Raiden CC Detect', u'Raiden CC 检查')
 _OPERATION = test_ui.MakeLabel('Flip Raiden cable and plug in again...',

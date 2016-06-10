@@ -22,10 +22,10 @@ from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.utils.stress_manager import StressManager
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 _TEST_TITLE = test_ui.MakeLabel('Simple Battery Test', u'简单电池测试')

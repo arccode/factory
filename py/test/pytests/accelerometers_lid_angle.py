@@ -32,9 +32,9 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.dut.accelerometer import AccelerometerException
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils.arg_utils import Arg
 
 
 _MSG_PROMPT_BUILDER = lambda a: test_ui.MakeLabel(

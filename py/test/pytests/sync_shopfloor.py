@@ -15,9 +15,9 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.arg_utils import Arg
 
 _CSS = """
 #state {

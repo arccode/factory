@@ -19,13 +19,13 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.fixture.bft_fixture import (CreateBFTFixture,
                                                    TEST_ARG_HELP)
 from cros.factory.tools import ghost
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 class Scan(unittest.TestCase):

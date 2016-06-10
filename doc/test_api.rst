@@ -144,7 +144,7 @@ The factory test runner will check that:
 * all the arguments are of the correct type (e.g., you don't say
   ``max_bytes='foo'``, since ``max_bytes`` must be an ``int``).
 
-.. py:module:: cros.factory.test.args
+.. py:module:: cros.factory.utils.arg_utils
 
 .. autoclass:: Arg
 

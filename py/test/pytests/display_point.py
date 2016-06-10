@@ -12,8 +12,8 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils.arg_utils import Arg
 
 _ID_CONTAINER = 'display-point-test-container'
 

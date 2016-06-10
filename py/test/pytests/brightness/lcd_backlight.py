@@ -8,8 +8,8 @@
 """
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Arg, MergeArgs
 from cros.factory.test.pytests.brightness import brightness
+from cros.factory.utils.arg_utils import Arg, MergeArgs
 
 
 class LCDBacklightTest(brightness.BrightnessTest):

@@ -13,13 +13,13 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import dut as dut_module
 from cros.factory.test.dut.boards import android
-from cros.factory.test.args import Arg
-from cros.factory.test.args import Args
 from cros.factory.test.pytests.offline_test.shell import common
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import pytest_utils
 from cros.factory.test.utils import time_utils
 from cros.factory.utils import type_utils
+from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils.arg_utils import Args
 
 
 def _FormatTemplate(template, *args, **kargs):

@@ -22,9 +22,9 @@ import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.args import Args
 from cros.factory.test.dut import utils
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
+from cros.factory.utils.arg_utils import Args
 
 
 def _GetTestCase(pytest):
