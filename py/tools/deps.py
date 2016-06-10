@@ -43,10 +43,19 @@ def GetDependencyList(path, base, exclude, include):
   Returns:
     A list of strings for files of module dependency.
   """
-  dir_path = os.path.dirname(path)
-  basename = os.path.basename(path)
+  # Use the module's parent directory in case it uses relative imports.
+  # Works for the case of relative imports in that particular package:
+  #   import .A
+  #   from . import A
+  # But does not work for imports from the parent of the package:
+  #   import ..B
+  #   from .. import B
+  dir_path = os.path.dirname(os.path.dirname(path))
+  parent_dir_name = os.path.basename(os.path.dirname(path))
+  basename = os.path.join(parent_dir_name, os.path.basename(path))
+  module_name = basename.replace(os.path.sep, '.').rpartition('.py')[0]
   sys.path.insert(0, dir_path)
-  target = importlib.import_module(basename.rpartition('.py')[0])
+  target = importlib.import_module(module_name)
   sys.path.pop(0)
   new_names = [name for name in sys.modules if name not in base]
   new_modules = [sys.modules[name] for name in new_names if sys.modules[name]]
