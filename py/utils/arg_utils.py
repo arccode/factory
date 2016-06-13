@@ -32,6 +32,11 @@ from .type_utils import Enum
 TYPE = type
 
 
+class ArgError(ValueError):
+  """Represents a problem with Arg specification or validation."""
+  pass
+
+
 class Arg(object):
   """The specification for a single test argument."""
   # pylint: disable=W0622
@@ -71,23 +76,23 @@ class Arg(object):
         is always optional and you need not set this to ``True``.
     """
     if not name:
-      raise ValueError('Argument is missing a name')
+      raise ArgError('Argument is missing a name')
     if not type:
-      raise ValueError('Argument %s is missing a type' % name)
+      raise ArgError('Argument %s is missing a type' % name)
 
     # Always make type a tuple.
     if not isinstance(type, tuple):
       type = (type,)
     if any(not isinstance(x, TYPE) and not isinstance(x, Enum)
            for x in type):
-      raise ValueError('Argument %s has invalid types %r' % (name, type))
+      raise ArgError('Argument %s has invalid types %r' % (name, type))
 
     # Allow None for all optional arguments without defaults.
     if optional and (default is None) and (None not in type):
       type += (TYPE(None),)
 
     if not help:
-      raise ValueError('Argument %s is missing a help string' % name)
+      raise ArgError('Argument %s is missing a help string' % name)
 
     if default is not None:
       optional = True
@@ -100,7 +105,7 @@ class Arg(object):
 
     # Check type of default.
     if default and not self.ValueMatchesType(default):
-      raise ValueError('Default value %s should have type %r, not %r' % (
+      raise ArgError('Default value %s should have type %r, not %r' % (
           default, type, TYPE(default)))
 
   def ValueMatchesType(self, value):
@@ -176,7 +181,7 @@ class Args(object):
       errors.append('Extra arguments %r' % extra_args)
 
     if errors:
-      raise ValueError('; '.join(errors))
+      raise ArgError('; '.join(errors))
 
     return Dargs(**attributes)
 
