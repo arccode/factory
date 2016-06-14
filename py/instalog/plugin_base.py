@@ -4,9 +4,12 @@
 
 """Instalog plugin base.
 
-Defines plugin classes (buffer, input, output), and a CoreAPI interface to
-interact with Instalog core.
+Defines plugin classes (buffer, input, output), and a PluginAPI interface for
+plugins to access.
 """
+
+import inspect
+import os
 
 import instalog_common  # pylint: disable=W0611
 from instalog.utils import arg_utils
@@ -17,23 +20,55 @@ class LoadPluginError(Exception):
   pass
 
 
-class CoreAPI(object):
-  """Defines the interface a plugin should use interact with Instalog core."""
+class WaitException(Exception):
+  """The plugin currently cannot perform the requested operation."""
+  pass
 
-  def GetStateDir(self):
+
+class UnexpectedAccess(Exception):
+  """The plugin is accessing data when it should be stopped."""
+  pass
+
+
+class StateCommandError(Exception):
+  """A state command on the plugin sandbox could not be run."""
+  pass
+
+
+class EventStreamExpired(Exception):
+  """The event stream in question is expired and can no longer be used."""
+  pass
+
+
+class PluginAPI(object):
+  """Defines an interface for plugins to call."""
+
+  def GetStateDir(self, plugin):
     """See Plugin.GetStateDir."""
     raise NotImplementedError
 
-  def IsStopping(self):
+  def IsStopping(self, plugin):
     """See Plugin.IsStopping."""
     raise NotImplementedError
 
-  def Emit(self, events):
+  def Emit(self, plugin, events):
     """See InputPlugin.Emit."""
     raise NotImplementedError
 
-  def NewStream(self):
+  def NewStream(self, plugin):
     """See OutputPlugin.NewStream."""
+    raise NotImplementedError
+
+  def EventStreamNext(self, plugin, plugin_stream):
+    """See PluginSandbox.EventStreamNext."""
+    raise NotImplementedError
+
+  def EventStreamCommit(self, plugin, plugin_stream):
+    """See PluginSandbox.EventStreamCommit."""
+    raise NotImplementedError
+
+  def EventStreamAbort(self, plugin, plugin_stream):
+    """See PluginSandbox.EventStreamAbort."""
     raise NotImplementedError
 
 
@@ -47,14 +82,14 @@ class Plugin(object):
   sets some shortcut functions to the logger.
   """
 
-  def __init__(self, config, logger, core_api):
+  def __init__(self, config, logger, plugin_api):
     """Plugin constructor.
 
     Args:
       config: A dictionary representing arguments for this plugin.  Will be
               validated against the specification in ARGS.
       logger: A reference to the logger for this plugin instance.
-      core_api: An instance of a class implementing CoreAPI.
+      plugin_api: An instance of a class implementing PluginAPI.
 
     Raises:
       arg_utils.ArgError if the arguments fail to validate.
@@ -64,7 +99,7 @@ class Plugin(object):
     setattr(self, 'args', arg_utils.Args(*arg_spec).Parse(config))
 
     # Save the core API to a private instance variable.
-    self._core_api = core_api
+    self._plugin_api = plugin_api
 
     # Save the logger and create some shortcut functions for convenience.
     self.logger = logger
@@ -74,23 +109,6 @@ class Plugin(object):
     self.error = logger.error
     self.critical = logger.critical
     self.exception = logger.exception
-
-  def GetStateDir(self):
-    """Returns the state directory of this plugin.
-
-    This directory is set aside by Instalog core for the plugin to store any
-    state.  Its value can be expected to be consistent across plugin restarts or
-    Instalog restarts.
-    """
-    return self._core_api.GetStateDir()
-
-  def IsStopping(self):
-    """Returns whether or not the plugin currently needs to shut down.
-
-    Should be checked regularly in the Main thread, as well as any other threads
-    started by the plugin.
-    """
-    return self._core_api.IsStopping()
 
   def Start(self):
     """Starts any connections or threads needed.
@@ -116,6 +134,31 @@ class Plugin(object):
     """
     return
 
+  def GetStateDir(self):
+    """Returns the state directory of this plugin.
+
+    This directory is set aside by Instalog core for the plugin to store any
+    state.  Its value can be expected to be consistent across plugin restarts or
+    Instalog restarts.
+
+    Raises:
+      UnexpectedAccess if the plugin instance is in some unexpected state and
+      is trying to access core functionality that it should not.
+    """
+    return self._plugin_api.GetStateDir(self)
+
+  def IsStopping(self):
+    """Returns whether or not the plugin currently needs to shut down.
+
+    Should be checked regularly in the Main thread, as well as any other threads
+    started by the plugin.
+
+    Raises:
+      UnexpectedAccess if the plugin instance is in some unexpected state and
+      is trying to access core functionality that it should not.
+    """
+    return self._plugin_api.IsStopping(self)
+
 
 class BufferPlugin(Plugin):
   """Base class for a buffer plugin in Instalog."""
@@ -139,6 +182,18 @@ class BufferPlugin(Plugin):
     raise NotImplementedError
 
 
+class BufferEventStream(object):
+
+  def Next(self):
+    raise NotImplementedError
+
+  def Commit(self):
+    raise NotImplementedError
+
+  def Abort(self):
+    raise NotImplementedError
+
+
 class InputPlugin(Plugin):
   """Base class for an input plugin in Instalog."""
 
@@ -152,8 +207,15 @@ class InputPlugin(Plugin):
       True on success, False on failure.  In either case, the plugin is
       expected to deal appropriately with retrying, or letting its source know
       that a failure occurred.
+
+    Raises:
+      UnexpectedAccess if the plugin instance is in some unexpected state and
+      is trying to access core functionality that it should not.
     """
-    return self._core_api.Emit(events)
+    try:
+      return self._plugin_api.Emit(self, events)
+    except WaitException:
+      return False
 
 
 class OutputPlugin(Plugin):
@@ -163,10 +225,28 @@ class OutputPlugin(Plugin):
     """Gets a new EventStream object to retrieve output events.
 
     Returns:
-      An EventStream object.
+      An EventStream object (see datatypes module).
 
     Raises:
       UnexpectedAccess if the plugin instance is in some unexpected state and
       is trying to access core functionality that it should not.
     """
-    return self._core_api.NewStream()
+    return self._plugin_api.NewStream(self)
+
+
+def main():
+  """Runs plugins as executables.
+
+  Forwards main to plugin_sandbox module.  Plugins can enable their executable
+  bit, and include the following __main__ snippet at the bottom in order to
+  provide self-running abilities for test purposes:
+
+    if __name__ == '__main__':
+      plugin_sandbox.main()
+
+  See plugin_sandbox.main for more details.
+  """
+  frame_info = inspect.stack()[1]
+  plugin_type = os.path.splitext(os.path.basename(frame_info[1]))[0]
+  from instalog import run_plugin
+  run_plugin.main(plugin_type)

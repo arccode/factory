@@ -1,9 +1,14 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 #
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Tests for Instalog plugin loader."""
+
+from __future__ import print_function
+
+import logging
 import os
 import shutil
 import sys
@@ -23,7 +28,7 @@ class TestPluginLoader(unittest.TestCase):
 
   def setUp(self):
     """Creates and injects our temporary plugin directory into sys.path."""
-    self._plugin_dir = tempfile.mkdtemp(prefix='plugin_base_unittest.')
+    self._plugin_dir = tempfile.mkdtemp(prefix='plugin_sandbox_unittest.')
     sys.path.insert(0, self._plugin_dir)
 
   def tearDown(self):
@@ -54,12 +59,12 @@ class TestPluginLoader(unittest.TestCase):
 
     # Should succeed with correct superclass=InputPlugin.
     pe = plugin_loader.PluginLoader(pname, pname, plugin_base.InputPlugin,
-                                    {}, core_api=None, _plugin_prefix='')
+                                    {}, plugin_api=None, _plugin_prefix='')
     self.assertIsInstance(pe.Create(), plugin_base.InputPlugin)
 
     # Should fail with incorrect superclass=InputPlugin.
     pe = plugin_loader.PluginLoader(pname, pname, plugin_base.OutputPlugin,
-                                    {}, core_api=None, _plugin_prefix='')
+                                    {}, plugin_api=None, _plugin_prefix='')
     with self.assertRaisesRegexp(
         plugin_base.LoadPluginError, r'contains 0 plugin classes'):
       pe.Create()
@@ -139,4 +144,8 @@ class TestPluginLoader(unittest.TestCase):
 
 
 if __name__ == '__main__':
+  LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
+  logging.basicConfig(
+      level=logging.DEBUG,
+      format=LOG_FORMAT)
   unittest.main()

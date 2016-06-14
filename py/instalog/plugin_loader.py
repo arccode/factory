@@ -28,37 +28,36 @@ class PluginLoader(object):
   """Factory to create instances of a particular plugin configuration."""
 
   def __init__(self, plugin_type, plugin_id=None, superclass=None, config=None,
-               core_api=None, _plugin_prefix=_DEFAULT_PLUGIN_PREFIX,
-               _module_ref=None):
+               plugin_api=None, _plugin_prefix=_DEFAULT_PLUGIN_PREFIX,
+               _plugin_class=None):
     """Initializes the PluginEntry.
 
     Args:
-      plugin_type: See plugin_instance.PluginInstance.
-      plugin_id: See plugin_instance.PluginInstance.
-      superclass: See plugin_instance.PluginInstance.
-      config: See plugin_instance.PluginInstance.
-      core_api: Reference to an object that implements plugin_base.CoreAPI.
-                Defaults to an instance of the CoreAPI interface, which will
-                throw NotImplementedError when any method is called.  This may
-                be acceptible for testing.
+      plugin_type: See plugin_sandbox.PluginSandbox.
+      plugin_id: See plugin_sandbox.PluginSandbox.
+      superclass: See plugin_sandbox.PluginSandbox.
+      config: See plugin_sandbox.PluginSandbox.
+      plugin_api: Reference to an object that implements plugin_base.PluginAPI.
+                   Defaults to an instance of the PluginAPI interface, which
+                   will throw NotImplementedError when any method is called.
+                   This may be acceptible for testing.
       _plugin_prefix: The prefix where the plugin module should be found.
                       Should include the final ".".  Defaults to
-                      _DEFAULT_PLUGIN_PREFIX.
-      _module_ref: A "pre-imported" module object for the plugin in question.
-                   If provided, the "loading" and "unloading" steps are skipped.
+                      _DEFAULT_PLUGIN_PREFIX.  For testing purposes.
+      _plugin_class: See plugin_sandbox.PluginSandbox.
     """
     self.plugin_type = plugin_type
     self.plugin_id = plugin_id or plugin_type
     self.superclass = superclass or plugin_base.Plugin
     self.config = config or {}
-    self._core_api = core_api or plugin_base.CoreAPI()
+    self._plugin_api = plugin_api or plugin_base.PluginAPI()
     self._plugin_prefix = _plugin_prefix
-    self._module_ref = _module_ref
+    self._plugin_class = _plugin_class
     self._possible_module_names = None
 
-    # Check that the provided core_api is valid.
-    if not isinstance(self._core_api, plugin_base.CoreAPI):
-      self._ReportException('Provided core_api object is invalid')
+    # Check that the provided plugin_api is valid.
+    if not isinstance(self._plugin_api, plugin_base.PluginAPI):
+      self._ReportException('Provided plugin_api object is invalid')
 
     # Create a logger for the plugin to use.
     self._logger = logging.getLogger('%s.plugin' % self.plugin_id)
@@ -96,8 +95,6 @@ class PluginLoader(object):
       LoadPluginError if the plugin could not be found, or if some other problem
       was encountered while loading (for example, a syntax error).
     """
-    if self._module_ref:
-      return self._module_ref
     for search_name in self._GetPossibleModuleNames():
       # Get a reference to the module.  This will raise ImportError if it
       # doesn't exist.
@@ -123,8 +120,6 @@ class PluginLoader(object):
     This ensures we catch the case where the file no longer exists when
     we re-import the module.
     """
-    if self._module_ref:
-      return
     for search_name in self._GetPossibleModuleNames():
       try:
         del sys.modules[search_name]
@@ -132,6 +127,11 @@ class PluginLoader(object):
         pass
 
   def GetClass(self):
+    """Returns the class of the plugin."""
+    # If _plugin_class was provided in __init__, directly return it.
+    if self._plugin_class:
+      return self._plugin_class
+
     # Unload any references to the module before and after loading.
     self._UnloadModule()
     module_ref = self._LoadModule()
@@ -162,7 +162,7 @@ class PluginLoader(object):
     # Instantiate the plugin with the requested configuration.
     plugin_class = self.GetClass()
     try:
-      return plugin_class(self.config, self._logger, self._core_api)
+      return plugin_class(self.config, self._logger, self._plugin_api)
     except arg_utils.ArgError as e:
       self._ReportException('Error parsing arguments: %s' % e.message)
     except Exception:
