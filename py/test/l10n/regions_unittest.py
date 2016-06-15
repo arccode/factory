@@ -6,9 +6,8 @@
 
 """Tests for regions.py.
 
-These tests ensure that all regions in regions.py (and
-regions_overlay.py, if present) are valid.  The tests use testdata
-pulled from the Chromium sources; use update_testdata.py to update.
+These tests ensure that if regions.py (reading region database) is working
+correctly.
 """
 
 import logging
@@ -25,41 +24,6 @@ from cros.factory.test.l10n import regions
 
 class RegionTest(unittest.TestCase):
   """Tests for the Region class."""
-  @classmethod
-  def _ReadTestData(cls, name):
-    """Reads a YAML-formatted test data file.
-
-    Args:
-      name: Name of file in the testdata directory.
-
-    Returns: The parsed value.
-    """
-    with open(os.path.join(os.path.dirname(__file__),
-                           'testdata', name + '.yaml')) as f:
-      return yaml.load(f)
-
-  @classmethod
-  def setUpClass(cls):
-    cls.languages = cls._ReadTestData('languages')
-    cls.time_zones = cls._ReadTestData('time_zones')
-    cls.migration_map = cls._ReadTestData('migration_map')
-    cls.input_methods = cls._ReadTestData('input_methods')
-
-  def _ResolveInputMethod(self, method):
-    """Resolves an input method using the migration map.
-
-    Args:
-      method: An input method ID that may contain prefixes from the
-          migration map.  (E.g., "m17n:ar", which contains the "m17n:" prefix.)
-
-    Returns:
-      The input method ID after mapping any prefixes.  (E.g., "m17n:ar" will
-      be mapped to "vkd_".)
-    """
-    for k, v in self.migration_map:
-      if method.startswith(k):
-        method = v + method[len(k):]
-    return method
 
   def testZoneInfo(self):
     all_regions = regions.BuildRegionsDict(include_all=False)
@@ -90,36 +54,6 @@ class RegionTest(unittest.TestCase):
     self.assertFalse(regions.KEYBOARD_PATTERN.match('m17n:'))
     self.assertFalse(regions.KEYBOARD_PATTERN.match('foo_bar'))
 
-  def testTimeZones(self):
-    for r in regions.BuildRegionsDict(include_all=False).values():
-      if r.time_zone not in self.time_zones:
-        self.fail(
-            'Missing time zone %r; does a new time zone need to be added '
-            'to CrOS, or does testdata need to be updated?' %
-            r.time_zone)
-
-  def testLanguages(self):
-    missing = []
-    for r in regions.BuildRegionsDict(include_all=False).values():
-      for l in r.language_codes:
-        if l not in self.languages:
-          missing.append(l)
-    self.assertFalse(
-        missing,
-        ('Missing languages; does testdata need to be updated?: %r' %
-         missing))
-
-  def testInputMethods(self):
-    # Verify that every region is present in the dict.
-    for r in regions.BuildRegionsDict(include_all=False).values():
-      for k in r.keyboards:
-        resolved_method = self._ResolveInputMethod(k)
-        # Make sure the keyboard method is present.
-        self.assertIn(
-            resolved_method, self.input_methods,
-            'Missing keyboard layout %r (resolved from %r)' % (
-                resolved_method, k))
-
   def testFirmwareLanguages(self):
     bmpblk_dir = os.path.join(
         os.environ.get('CROS_WORKON_SRCROOT'), 'src', 'platform', 'bmpblk')
@@ -137,32 +71,6 @@ class RegionTest(unittest.TestCase):
         if not any([os.path.exists(x) for x in paths]):
           self.fail(
               'For region %r, none of %r exists' % (r.region_code, paths))
-
-  def testLegacyVPDSettings(self):
-    # US has only a single VPD setting, so this should be the same
-    # regardless of allow_multiple.
-    for allow_multiple in [True, False]:
-      self.assertEquals(
-          {'initial_locale': 'en-US',
-           'initial_timezone': 'America/Los_Angeles',
-           'keyboard_layout': 'xkb:us::eng',
-           'region': 'us'},
-          regions.BuildRegionsDict()['us'].GetLegacyVPDSettings(allow_multiple))
-
-    region = regions.Region(
-        'a', ['xkb:b::b1', 'xkb:b::b2'], 'c', ['d1', 'd2'], 'e')
-    self.assertEquals(
-        {'initial_locale': 'd1',
-         'initial_timezone': 'c',
-         'keyboard_layout': 'xkb:b::b1',
-         'region': 'a'},
-        region.GetLegacyVPDSettings(False))
-    self.assertEquals(
-        {'initial_locale': 'd1,d2',
-         'initial_timezone': 'c',
-         'keyboard_layout': 'xkb:b::b1,xkb:b::b2',
-         'region': 'a'},
-        region.GetLegacyVPDSettings(True))
 
   def testFieldsDict(self):
     # 'description' and 'notes' should be missing.

@@ -337,9 +337,6 @@ class SelectRegionTask(FactoryTask):
     index = int(event.data)
     region = REGIONS[self.region_list[index]]
     self.test.vpd['ro']['region'] = region.region_code
-    if self.test.args.write_legacy_regional_vpd_values:
-      self.test.vpd['ro'].update(region.GetLegacyVPDSettings(
-          self.test.args.allow_multiple_l10n))
     self.Pass()
 
   def RenderPage(self):
@@ -473,11 +470,6 @@ class VPDTest(unittest.TestCase):
           'Otherwise a select box containing all the possible values will be '
           'used to let user select a value from it.', default=[], optional=True),
       Arg(
-          'allow_multiple_l10n', bool,
-          'True to allow multiple locales and '
-          'keyboards.  Fully supported only in M35+ FSIs, so this is disabled '
-          'by default', default=False, optional=True),
-      Arg(
           'rlz_brand_code', (str, dict),
           'RLZ brand code to write to RO VPD.  This may be any of:\n'
           '\n'
@@ -504,16 +496,7 @@ class VPDTest(unittest.TestCase):
           '  of the format: {"LOEM1 description": "LOEM1_customization_id",\n'
           '  "LOEM2_description": "LOEM2_customization_id"}. The description\n'
           '  is a helpful string and only the customization_id will be\n'
-          '  written into VPD.', default=None, optional=True),
-      Arg(
-          'write_legacy_regional_vpd_values', bool,
-          'Writes legacy VPD values for regional data. When set to True, fill '
-          'additional entries as:\n'
-          '- initial_locale\n'
-          '- initial_timezone\n'
-          '- keyboard_layout\n'
-          'And only set "region" if this argument is set to False.',
-          default=False, optional=True)]
+          '  written into VPD.', default=None, optional=True)]
 
   def _ReadShopFloorDeviceData(self):
     device_data = shopfloor.GetDeviceData()
@@ -529,9 +512,6 @@ class VPDTest(unittest.TestCase):
 
     region = REGIONS[device_data['region']]
     self.vpd['ro']['region'] = region.region_code
-    if self.args.write_legacy_regional_vpd_values:
-      self.vpd['ro'].update(region.GetLegacyVPDSettings(
-          self.args.allow_multiple_l10n))
 
     for ro_or_rw, key in self.args.extra_device_data_fields:
       self.vpd[ro_or_rw][key] = device_data[key]
