@@ -97,13 +97,13 @@ class BatteryCycleTest(unittest.TestCase):
       Arg('cutoff_charge_pct', (int, float),
           'Minimum charge level in percent allowed in cutoff state.',
           optional=True, default=98),
-      Arg('use_ui', bool, 'True if this test runs with goofy UI enabled.',
+      Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
           optional=True, default=False)
   ]
 
   def setUp(self):
     self.dut = dut.Create()
-    if self.args.use_ui:
+    if self.args.has_ui:
       self.ui = test_ui.UI()
       self.template = ui_templates.OneSection(self.ui)
       self.template.SetState(HTML)
@@ -117,7 +117,7 @@ class BatteryCycleTest(unittest.TestCase):
     self._UpdateHistory()
 
   def runTest(self):
-    if self.args.use_ui:
+    if self.args.has_ui:
       StartDaemonThread(target=self._Run)
       self.ui.Run()
     else:
@@ -155,7 +155,7 @@ class BatteryCycleTest(unittest.TestCase):
     self._UpdateUI('<br>'.join(history_lines), id='bc-history')
 
   def _UpdateUI(self, html, **kwargs):
-    if self.args.use_ui:
+    if self.args.has_ui:
       self.ui.SetHTML(html, **kwargs)
 
   def _RunPhase(self):
@@ -268,11 +268,11 @@ class BatteryCycleTest(unittest.TestCase):
         time.sleep(self.args.idle_time_secs)
 
   def Pass(self):
-    if self.args.use_ui:
+    if self.args.has_ui:
       self.ui.Pass()
 
   def Fail(self, msg):
-    if self.args.use_ui:
+    if self.args.has_ui:
       self.ui.Fail(msg)
     else:
       self.fail(msg)
