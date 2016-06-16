@@ -1,7 +1,6 @@
 This folder contains manufacturing software and related tools in Python.
 
  # Standalone Projects
- cast/          Chromecast tests.
  dkps/          Device Key Provisioning Server.
  lumberjack/    A log processing tool.
  minijack/      A console and dashboard for manufacturing status.
