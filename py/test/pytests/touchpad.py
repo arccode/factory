@@ -540,7 +540,13 @@ class TouchpadTest(unittest.TestCase):
     # the operator presses SPACE key. If the operator puts his/her finger
     # on the touchpad when setUp() and we don't clear the event buffer,
     # we will receive a FingerLeaving event and set number_fingers to -1.
-    while len(tuple(self.touchpad_device.read())) != 0:
+    try:
+      while len(tuple(self.touchpad_device.read())) != 0:
+        pass
+    except IOError:
+      # For new version of python-evdev, it raises an IOError if we try to
+      # read an event when the buffer is empty, instead of returning a
+      # generator of nothing.
       pass
 
     self.template.SetState(_HTML_TOUCHPAD)
