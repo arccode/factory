@@ -10,9 +10,9 @@ import os
 import sys
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.hacked_argparse import CmdArg
 from cros.factory.tools import build_board
 from cros.factory.umpire import common as umpire_common
+from cros.factory.utils.argparse_utils import CmdArg
 
 
 # Arguments that are commonly used in commands.

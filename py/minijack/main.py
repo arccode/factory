@@ -154,7 +154,8 @@ class Minijack(object):
           'src', 'platform', 'factory', 'shopfloor_data')
 
     # TODO(waihong): Add more options for customization.
-    # TODO(waihong): Use hacked_argparse.py which is helpful for args parsing.
+    # TODO(waihong): Use utils.argparse_utils.py which is helpful for args
+    # parsing.
     parser = optparse.OptionParser()
     parser.add_option('--event_log_dir', dest='event_log_dir', type='string',
                       metavar='PATH', default=event_log_dir,

@@ -24,9 +24,9 @@ from cros.factory.goofy import connection_manager
 from cros.factory.goofy import goofy_remote
 from cros.factory.goofy.goofy_rpc import RunState
 from cros.factory.goofy.invocation import OVERRIDE_TEST_LIST_DARGS_FILE
-from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import state
 from cros.factory.test.e2e_test.automator import AUTOMATION_FUNCTION_KWARGS_FILE
+from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils

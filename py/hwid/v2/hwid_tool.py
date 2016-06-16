@@ -20,14 +20,16 @@ from zlib import crc32
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
-from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwid.v2.bom_names import BOM_NAME_SET
 from cros.factory.hwid.v2.yaml_datastore import InvalidDataError
 from cros.factory.hwid.v2.yaml_datastore import MakeDatastoreClass
 from cros.factory.hwid.v2.yaml_datastore import YamlDatastore
-from cros.factory.utils import sys_utils
+from cros.factory.utils.argparse_utils import CmdArg
+from cros.factory.utils.argparse_utils import Command
+from cros.factory.utils.argparse_utils import ParseCmdline
+from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils.debug_utils import SetupLogging
+from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
 

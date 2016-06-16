@@ -37,8 +37,6 @@ from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
 from cros.factory.gooftool.probe import CalculateFirmwareHashes
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
-from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
-from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v2.yaml_datastore import YamlWrite
 from cros.factory.hwid.v3 import common
@@ -47,6 +45,10 @@ from cros.factory.test import event_log
 from cros.factory.test.env import paths
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
+from cros.factory.utils.argparse_utils import CmdArg
+from cros.factory.utils.argparse_utils import Command
+from cros.factory.utils.argparse_utils import ParseCmdline
+from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.debug_utils import SetupLogging

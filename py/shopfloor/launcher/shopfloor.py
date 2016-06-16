@@ -41,15 +41,15 @@ from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import ClientFactory
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hacked_argparse import CmdArg
-from cros.factory.hacked_argparse import Command
-from cros.factory.hacked_argparse import ParseCmdline
 from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher import importer
 from cros.factory.shopfloor.launcher import ShopFloorLauncherException
 from cros.factory.shopfloor.launcher import utils
 from cros.factory.shopfloor.launcher import yamlconf
+from cros.factory.utils.argparse_utils import CmdArg
+from cros.factory.utils.argparse_utils import Command
+from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import OpenDevNull

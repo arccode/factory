@@ -27,8 +27,10 @@ from email.mime.text import MIMEText
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import common
 from cros.factory.factory_flow import test_runner_common
-from cros.factory.hacked_argparse import CmdArg, ParseCmdline, verbosity_cmd_arg
 from cros.factory.tools import build_board
+from cros.factory.utils.argparse_utils import CmdArg
+from cros.factory.utils.argparse_utils import ParseCmdline
+from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils

@@ -14,10 +14,10 @@ import yaml
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import board_cmd_arg, FactoryFlowCommand
-from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test.env import paths
 from cros.factory.tools.gsutil import GSUtil
 from cros.factory.umpire.common import LoadBundleManifest
+from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils

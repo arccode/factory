@@ -16,8 +16,9 @@ from cros.factory.factory_flow import modify_bundle
 from cros.factory.factory_flow import run_host_command
 from cros.factory.factory_flow import start_server
 from cros.factory.factory_flow import usb_install
-from cros.factory.hacked_argparse import (Command, ParseCmdline,
-                                          verbosity_cmd_arg)
+from cros.factory.utils.argparse_utils import Command
+from cros.factory.utils.argparse_utils import ParseCmdline
+from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 
 
 # Set default verbosity to INFO.

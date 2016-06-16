@@ -7,9 +7,11 @@
 import unittest
 import sys
 
-import factory_common
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils.argparse_utils import CmdArg
+from cros.factory.utils.argparse_utils import Command
+from cros.factory.utils.argparse_utils import ParseCmdline
 
-from cros.factory.hacked_argparse import Command, ParseCmdline, CmdArg
 
 @Command('do_this',
          CmdArg('--foo'))
@@ -25,7 +27,7 @@ args = [CmdArg('--defarg', default='42'),
         CmdArg('--arg')]
 
 def Parse(argv):
-  sys.argv=['cmd'] + argv.split()
+  sys.argv = ['cmd'] + argv.split()
   result = vars(ParseCmdline('', *args))
   del result['command']
   return result

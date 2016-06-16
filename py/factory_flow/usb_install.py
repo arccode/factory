@@ -16,7 +16,7 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import servo
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
-from cros.factory.hacked_argparse import CmdArg
+from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils

@@ -12,7 +12,6 @@ import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hacked_argparse import Command, CmdArg, ParseCmdline
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import database
@@ -20,6 +19,9 @@ from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import shopfloor
 from cros.factory.test.rules import phase
 from cros.factory.tools import build_board
+from cros.factory.utils.argparse_utils import CmdArg
+from cros.factory.utils.argparse_utils import Command
+from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils import sys_utils
 from cros.factory.utils import process_utils
 

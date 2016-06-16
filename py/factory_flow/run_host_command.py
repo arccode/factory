@@ -8,7 +8,7 @@ import shlex
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import FactoryFlowCommand, board_cmd_arg
-from cros.factory.hacked_argparse import CmdArg
+from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils import process_utils
 
 

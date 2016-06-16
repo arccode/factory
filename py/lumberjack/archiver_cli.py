@@ -5,7 +5,7 @@
 
 """A long-lived command line interface (CLI) that wraps raw logs."""
 
-# TODO(itspeter): switch to cros.factory.hacked_argparse once migration to
+# TODO(itspeter): switch to cros.factory.utils.argparse_utils once migration to
 #                 Umpire is fully rolled-out.
 import argparse
 import logging
