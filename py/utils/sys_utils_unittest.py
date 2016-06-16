@@ -236,8 +236,14 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
     self.device = tempfile.NamedTemporaryFile(prefix='MountDeviceAndReadFile')
     Spawn(['truncate', '-s', '1M', self.device.name], log=True,
           check_call=True)
+
+    # In CrOS chroot, mkfs and mkfs.extX may live in different locations that
+    # normal user can't run without adding /sbin and /usr/sbin.
+    env = os.environ.copy()
+    env['PATH'] = '/sbin:/usr/sbin:' + env['PATH']
     Spawn(['/sbin/mkfs', '-E', 'root_owner=%d:%d' % (os.getuid(), os.getgid()),
-           '-F', '-t', 'ext3', self.device.name], log=True, check_call=True)
+           '-F', '-t', 'ext3', self.device.name], log=True, check_call=True,
+          env=env)
 
     # Creates a file with some content on the device.
     mount_point = tempfile.mkdtemp(prefix='MountDeviceAndReadFileSetup')
