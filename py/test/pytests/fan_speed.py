@@ -75,7 +75,9 @@ class FanSpeedTest(unittest.TestCase):
           'Number of lastest samples to count average as stablized speed.',
           default=5),
       Arg('use_percentage', bool, 'Use percentage to set fan speed',
-          default=False, optional=True)]
+          default=False, optional=True),
+      Arg('fan_id', int, 'The ID of fan to test, use None to test all fans.',
+          default=None, optional=True)]
 
   def setUp(self):
     self.assertTrue(
@@ -89,7 +91,7 @@ class FanSpeedTest(unittest.TestCase):
 
   def tearDown(self):
     logging.info('Set auto fan speed control.')
-    self._thermal.SetFanRPM(self._thermal.AUTO)
+    self._thermal.SetFanRPM(self._thermal.AUTO, self.args.fan_id)
 
   def SetAndGetFanSpeed(self, target_rpm):
     """Sets fan speed and observes readings for a while (blocking call).
@@ -101,7 +103,7 @@ class FanSpeedTest(unittest.TestCase):
       List of fan speed, each fan speed if the average of the latest
       #num_samples_to_use samples as stablized fan speed reading.
     """
-    observed_rpm = self._thermal.GetFanRPM()
+    observed_rpm = self._thermal.GetFanRPM(self.args.fan_id)
     fan_count = len(observed_rpm)
     spin_up = target_rpm > _Average(observed_rpm)
 
@@ -114,16 +116,18 @@ class FanSpeedTest(unittest.TestCase):
     logging.info(status)
 
     if self.args.use_percentage:
-      self._thermal.SetFanRPM(int(target_rpm * 100 / self.args.max_rpm))
+      self._thermal.SetFanRPM(int(target_rpm * 100 / self.args.max_rpm),
+                              self.args.fan_id)
     else:
-      self._thermal.SetFanRPM(int(target_rpm))
+      self._thermal.SetFanRPM(int(target_rpm),
+                              self.args.fan_id)
     # Probe fan speed for duration_secs seconds with sampling interval
     # probe_interval_secs.
     end_time = time.time() + self.args.duration_secs
     # Samples of all fan speed with sample period: probe_interval_secs.
     ith_fan_samples = [[] for _ in xrange(fan_count)]
     while time.time() < end_time:
-      observed_rpm = self._thermal.GetFanRPM()
+      observed_rpm = self._thermal.GetFanRPM(self.args.fan_id)
       for i, ith_fan_rpm in enumerate(observed_rpm):
         ith_fan_samples[i].append(ith_fan_rpm)
       self._ui.SetHTML(str(observed_rpm), id=_ID_RPM)
