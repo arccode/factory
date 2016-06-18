@@ -16,6 +16,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 import types
 from StringIO import StringIO
 
@@ -460,8 +461,26 @@ def StartDaemonThread(*args, **kwargs):
   """Creates, starts, and returns a daemon thread.
 
   Args:
-    See threading.Thread().
+    interrupt_when_crash: If true, the thread sends interrupt signal when
+        exception uncaught.
+    For other parameters see threading.Thread().
   """
+  if kwargs.get('interrupt_on_crash'):
+    # 'target' is the second parameter of threading.Thread()
+    target = args[1] if len(args) > 1 else kwargs.get('target')
+
+    def _target(*_args, **_kwargs):
+      try:
+        target(*_args, **_kwargs)
+      except Exception:
+        logging.error(traceback.format_exc())
+        os.kill(os.getpid(), signal.SIGINT)
+
+    if len(args) > 1:
+      args[1] = _target
+    else:
+      kwargs['target'] = _target
+
   thread = threading.Thread(*args, **kwargs)
   thread.daemon = True
   thread.start()

@@ -91,7 +91,7 @@ from cros.factory.test import test_ui
 from cros.factory.test.fixture.camera import barcode
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Enum
 
 from cros.factory.external import cv
@@ -274,8 +274,9 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
 
     self.camera_test.ui.CallJSFunction('hideImage', False)
     self.camera_test.EnableDevice()
-    self.capture_thread = StartDaemonThread(target=self.TestCapture,
-                                            name=self._CAPTURE_THREAD_NAME)
+    self.capture_thread = process_utils.StartDaemonThread(
+        target=self.TestCapture, name=self._CAPTURE_THREAD_NAME,
+        interrupt_on_crash=True)
 
   def Cleanup(self):
     self.finished = True
@@ -322,7 +323,8 @@ class LEDTask(factory_task.InteractiveFactoryTask):
     self.camera_test.ui.CallJSFunction('hideImage', True)
     self.BindPassFailKeys(pass_key=False)
     self.BindDigitKeys(self.pass_key)
-    StartDaemonThread(target=self.TestLED)
+    process_utils.StartDaemonThread(target=self.TestLED,
+                                    interrupt_on_crash=True)
 
   def Cleanup(self):
     self.finished = True
@@ -442,7 +444,8 @@ class CameraTest(unittest.TestCase):
       raise ValueError('must choose at least one test type')
 
     self.task_manager = factory_task.FactoryTaskManager(self.ui, self.task_list)
-    StartDaemonThread(target=self._CountdownTimer)
+    process_utils.StartDaemonThread(target=self._CountdownTimer,
+                                    interrupt_on_crash=True)
 
   def runTest(self):
     self.task_manager.Run()
