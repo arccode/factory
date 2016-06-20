@@ -150,6 +150,7 @@ class RobotMovement(unittest.TestCase):
     factory.console.info('Wait for operators to press SPACE.')
     self.WaitForSpace()
     factory.console.info('SPACE pressed by operator.')
+    self._template.SetState(_MSG_PREPARE_MOVEMENT)
     self._robot.LoadDevice(True)
 
   def StartMoving(self):
@@ -157,7 +158,6 @@ class RobotMovement(unittest.TestCase):
     self._template.SetState(_MSG_MOVING_TO_START_POSITION)
 
     factory.console.info('Start to move.')
-    self._template.SetState(_MSG_PREPARE_MOVEMENT)
     self._robot.SetLED(True)
     self._algorithm.OnStartMoving(self._dut)
 
