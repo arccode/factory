@@ -190,6 +190,11 @@ class DUTBoard(object):
     raise NotImplementedError()
 
   @DUTProperty
+  def touchscreen(self):
+    """Module for touchscreen."""
+    raise NotImplementedError()
+
+  @DUTProperty
   def udev(self):
     """Module for detecting udev event."""
     raise NotImplementedError()
