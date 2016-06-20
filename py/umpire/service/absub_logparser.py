@@ -15,7 +15,8 @@ TAR_FILE_DIR = 'tarfiles'
 RAW_DATA_DIR = 'rawdata'
 VPD_FILE = os.path.join(TAR_FILE_DIR, 'vpd')
 CAMERA_FILE = os.path.join(TAR_FILE_DIR, 'camera')
-LOGPARSER_PORT_OFFSET = 5
+# Check umpire_env.py to find a valid port.
+LOGPARSER_PORT_OFFSET = 7
 
 
 class LogParserService(umpire_service.UmpireService):
