@@ -86,10 +86,10 @@ class PluginSandbox(plugin_base.PluginAPI):
       PAUSING: _WAIT,
       PAUSED: _WAIT,
       UNPAUSING: _WAIT}
-  _GATEKEEPER_ALLOW_UP_PAUSING = {
+  _GATEKEEPER_ALLOW_UP_PAUSING_STOPPING = {
       STARTING: _WAIT,
       UP: _ALLOW,
-      STOPPING: _WAIT,
+      STOPPING: _ALLOW,
       DOWN: _ERROR,
       PAUSING: _ALLOW,
       PAUSED: _WAIT,
@@ -124,6 +124,8 @@ class PluginSandbox(plugin_base.PluginAPI):
     self.superclass = superclass or plugin_base.Plugin
     self.config = config or {}
     self._core_api = core_api or CoreAPI()
+    if not isinstance(self._core_api, CoreAPI):
+      raise TypeError('Invalid CoreAPI object provided')
 
     # Create a logger this class to use.
     self.logger = logging.getLogger('%s.plugin_sandbox' % self.plugin_id)
@@ -238,7 +240,7 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def IsLoaded(self):
     """Returns whether the plugin is currently loaded (not DOWN)."""
-    self.logger.debug('IsUp called: %s', self._state)
+    self.logger.debug('IsLoaded called: %s', self._state)
     return self._state is not DOWN
 
   def _Load(self):
@@ -369,7 +371,7 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def NewStream(self, plugin):
     """See PluginAPI.NewStream."""
-    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
+    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING_STOPPING)
     self.logger.debug('NewStream called with state=%s', self._state)
     buffer_stream = self._core_api.NewStream(self)
     plugin_stream = datatypes.EventStream(plugin, self)
@@ -387,7 +389,7 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def EventStreamCommit(self, plugin, plugin_stream):
     """See PluginAPI.EventStreamCommit."""
-    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING)
+    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING_STOPPING)
     self.logger.debug('EventStreamCommit called with state=%s', self._state)
     self._RecordUnexpectedAccess(plugin, 'EventStreamAbort', inspect.stack())
     if plugin_stream not in self._event_stream_map:
@@ -396,7 +398,7 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def EventStreamAbort(self, plugin, plugin_stream):
     """See PluginAPI.EventStreamAbort."""
-    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING)
+    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING_STOPPING)
     self.logger.debug('EventStreamAbort called with state=%s', self._state)
     self._RecordUnexpectedAccess(plugin, 'EventStreamAbort', inspect.stack())
     if plugin_stream not in self._event_stream_map:

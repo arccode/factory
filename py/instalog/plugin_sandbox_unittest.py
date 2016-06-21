@@ -33,11 +33,13 @@ class WellBehavedInput(plugin_base.InputPlugin):
 
 class WellBehavedInputNoMain(plugin_base.InputPlugin):
   """Basic well-behaved input plugin with no Main function."""
+
   pass
 
 
 class RunawayThreadInput(plugin_base.InputPlugin):
   """Starts a runaway thread which keeps accessing API functions."""
+
   def _RunawayEmit(self):
     while True:
       try:
@@ -55,7 +57,6 @@ class RunawayThreadInput(plugin_base.InputPlugin):
 
 
 class TestPluginSandbox(unittest.TestCase):
-  """Tests for the PluginSandbox class."""
 
   _plugin_objects = []
 
@@ -63,6 +64,8 @@ class TestPluginSandbox(unittest.TestCase):
     """Stops any runaway plugins."""
     for p in self._plugin_objects:
       if p.IsLoaded():
+        p._event_stream_map = {}  # pylint: disable=W0212
+        p.AdvanceState(True)
         p.Stop(True)
 
   def _CheckStateCommand(self, p, fail_fns, success_fn,
@@ -272,10 +275,9 @@ class TestPluginSandbox(unittest.TestCase):
     # Check during the PAUSED state.
     with self.assertRaises(NotImplementedError):
       p.GetStateDir(p._plugin)
-    self.assertFalse(p.IsStopping(p._plugin))
     with self.assertRaises(plugin_base.WaitException):
       p.Emit(p._plugin, None)
-    with self.assertRaises(NotImplementedError):
+    with self.assertRaises(plugin_base.WaitException):
       p.NewStream(p._plugin)
     with self.assertRaises(plugin_base.WaitException):
       p.EventStreamNext(p._plugin, None)
@@ -312,10 +314,13 @@ class TestPluginSandbox(unittest.TestCase):
 
     p.Stop(True)
 
+  def testInvalidCoreAPI(self):
+    """Tests that a sandbox passed an invalid CoreAPI object will complain."""
+    with self.assertRaisesRegexp(TypeError, 'Invalid CoreAPI object'):
+      plugin_sandbox.PluginSandbox('plugin_id', core_api=True)
+
 
 if __name__ == '__main__':
   LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
-  logging.basicConfig(
-      level=logging.DEBUG,
-      format=LOG_FORMAT)
+  logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
   unittest.main()

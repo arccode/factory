@@ -148,8 +148,10 @@ class Plugin(object):
     return self._plugin_api.GetStateDir(self)
 
   def IsStopping(self):
-    """Returns whether or not the plugin currently needs to shut down.
+    """Returns whether or not the plugin may continue running.
 
+    If True is returned, the plugin should continue running as usual.  If False
+    is returned, the plugin should shut down as soon as it finishes its work.
     Should be checked regularly in the Main thread, as well as any other threads
     started by the plugin.
 
@@ -225,13 +227,18 @@ class OutputPlugin(Plugin):
     """Gets a new EventStream object to retrieve output events.
 
     Returns:
-      An EventStream object (see datatypes module).
+      An EventStream object (see datatypes module).  None if we currently do not
+      have permission to create a new EventStream object (i.e. plugin is not in
+      one of the allowed states).
 
     Raises:
       UnexpectedAccess if the plugin instance is in some unexpected state and
       is trying to access core functionality that it should not.
     """
-    return self._plugin_api.NewStream(self)
+    try:
+      return self._plugin_api.NewStream(self)
+    except WaitException:
+      return None
 
 
 def main():

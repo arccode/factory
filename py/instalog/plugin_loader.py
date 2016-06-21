@@ -51,6 +51,8 @@ class PluginLoader(object):
     self.superclass = superclass or plugin_base.Plugin
     self.config = config or {}
     self._plugin_api = plugin_api or plugin_base.PluginAPI()
+    if not isinstance(self._plugin_api, plugin_base.PluginAPI):
+      raise TypeError('Invalid PluginAPI object provided')
     self._plugin_prefix = _plugin_prefix
     self._plugin_class = _plugin_class
     self._possible_module_names = None

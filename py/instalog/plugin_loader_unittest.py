@@ -22,7 +22,6 @@ from instalog import plugin_loader
 
 
 class TestPluginLoader(unittest.TestCase):
-  """Tests for the PluginLoader class."""
 
   _plugin_dir = None
 
@@ -46,6 +45,11 @@ class TestPluginLoader(unittest.TestCase):
     with os.fdopen(fd, 'w') as f:
       f.write(textwrap.dedent(content))
     return os.path.splitext(os.path.basename(fpath))[0]
+
+  def testInvalidPluginAPI(self):
+    """Tests that a loader passed an invalid PluginAPI object will complain."""
+    with self.assertRaisesRegexp(TypeError, 'Invalid PluginAPI object'):
+      plugin_loader.PluginLoader('plugin_id', plugin_api=True)
 
   def testLoad(self):
     """Tests getting an instance of a plugin from a module."""
@@ -145,7 +149,5 @@ class TestPluginLoader(unittest.TestCase):
 
 if __name__ == '__main__':
   LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
-  logging.basicConfig(
-      level=logging.DEBUG,
-      format=LOG_FORMAT)
+  logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
   unittest.main()
