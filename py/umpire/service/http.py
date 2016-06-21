@@ -177,6 +177,8 @@ class HTTPService(umpire_service.UmpireService):
         'server.follow-symlink': 'enable',
         'server.range-requests': 'enable',
         'server.document-root': os.path.join(env.base_dir, 'dashboard'),
+        # Required for POST requests.
+        'server.reject-expect-100-with-417': 'disable',
         # PID and logs
         'server.pid-file': os.path.join(env.pid_dir, 'httpd.pid'),
         'accesslog.filename': os.path.join(env.log_dir, 'httpd_access.log'),
