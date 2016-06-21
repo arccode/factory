@@ -78,10 +78,11 @@ class HTTPPOSTUploadResource(resource.Resource):
     else:
       func = post_handler.GetPostHandler(post_handler.EXTERNAL)
       try:
-        d = func(handler_name, **args)
+        d = func(handler_name, self.env, **args)
       except Exception as e:
         # post_handler.external() should have handled exceptions.
-        logging.error('POST Upload: external() raises %s', repr(e))
+        logging.error('POST Upload: external(%s) raises %s', handler_name,
+                      repr(e))
         err = e
 
     def _WriteResponse(result):

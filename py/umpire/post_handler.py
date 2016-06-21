@@ -39,7 +39,6 @@ from twisted.web import http
 
 import factory_common  # pylint: disable=W0611
 
-env = [{}]
 _post_handlers = {}
 EXTERNAL = 'RunExternalHandler'
 
@@ -56,10 +55,6 @@ def InternalHandler(func):
 
 def GetPostHandler(name):
   return _post_handlers.get(name, None)
-
-
-def SetEnv(environ):
-  env[0] = environ
 
 
 class HandlerError(Exception):
@@ -136,19 +131,39 @@ class ExternalProcessProtocol(protocol.ProcessProtocol):
 
 
 @InternalHandler
-def RunExternalHandler(handler, **kwargs):
+def RunExternalHandler(handler, env, **kwargs):
   """Spawn external handler to handle request.
 
   Note that we only guarantee argument order of same field, NOT between fields.
 
-  Returns a deferred object
+  External handler invokes a program from usr/local/factory/bin using POST
+  fields as command arguments. For example, sending a request like
+    curl http://localhost:8080/upload/some_command -F 'A=B'
+
+  will be invoked as
+   UMPIRE_SERVER_ROOT=/var/db/factory/umpire/$BOARD/toolkits/server/active
+   $UMPIRE_SERVER_ROOT/usr/local/factory/some_command A B
+
+  If you upload a file (curl -F "key=@/path_to_file") then the file will be
+  replaced by a temporary file on server, for example:
+   $UMPIRE_SERVER_ROOT/usr/local/factory/some_command key /tmp/tmp.RIY12345
+
+  The execution results (with stdout) will be reported in JSON object.
+
+  Args:
+    handler: A string or a list of handlers (last token of URL).
+    env: An UmpireEnv instance containing the environment settings.
+    kwargs: The parameters sent by HTTP form.
+
+  Returns:
+    A deferred object for HTTP request.
   """
 
   # Twisted default saved args using list, even if there's only 1 value
   # in that field.
   if isinstance(handler, list):
     handler = handler[0]
-  handler_path = str(_GetFullHandlerPath(handler))
+  handler_path = str(_GetFullHandlerPath(env, handler))
 
   # To prevent temp files to be recycled before Spawn(), keep references.
   files = {}
@@ -201,7 +216,7 @@ def _TranslateArgs(args, files):
   return ret
 
 
-def _GetFullHandlerPath(handler_name):
-  return os.path.join(env[0].server_toolkits_dir, 'usr/local/factory/bin',
+def _GetFullHandlerPath(env, handler_name):
+  return os.path.join(env.active_server_toolkit_dir, 'usr/local/factory/bin',
                       handler_name)
 
