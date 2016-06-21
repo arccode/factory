@@ -54,8 +54,9 @@ class FanSpeedTest(unittest.TestCase):
   """A factory test for testing system fan."""
 
   ARGS = [
-      Arg('target_rpm', int,
-          'Target RPM to set during test. Unused if spin_max_then_half is set.',
+      Arg('target_rpm', (int, list),
+          'A list of target RPM to set during test.'
+          'Unused if spin_max_then_half is set.',
           default=0, optional=True),
       Arg('error_margin', int,
           'Fail the test if actual fan speed is off the target by the margin.',
@@ -88,6 +89,8 @@ class FanSpeedTest(unittest.TestCase):
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
     self._thermal = dut.Create().thermal
+    if isinstance(self.args.target_rpm, int):
+      self.args.target_rpm = [self.args.target_rpm]
 
   def tearDown(self):
     logging.info('Set auto fan speed control.')
@@ -146,24 +149,17 @@ class FanSpeedTest(unittest.TestCase):
       average_fan_rpm.append(_Average(ith_fan_samples[i][-num_samples:]))
     return average_fan_rpm
 
-  def runTest(self):
-    """Main test function."""
-    try:
-      if self.args.spin_max_then_half:
-        logging.info('Spinning fan up to to get max fan speed...')
-        max_rpm = self.SetAndGetFanSpeed(self.args.max_rpm)
-        for i in xrange(len(max_rpm)):
-          if max_rpm[i] == 0:
-            raise factory.FactoryTestFailure(
-                'Fan %d is not reporting any RPM' % i)
-        target_rpm = _Average(max_rpm) / 2
-      else:
-        target_rpm = self.args.target_rpm
+  def VerifyResult(self, observed_rpm, target_rpm):
+    """Verify observed rpms are in the range
+      (target_rpm - error_margin, target_rpm + error_margin)
 
-      observed_rpm = self.SetAndGetFanSpeed(target_rpm)
-    except dut.DUTException as e:
-      raise factory.FactoryTestFailure('DUT command failed: %s' % e)
+    Args:
+      observed_rpm: a list of fan rpm readings.
+      target_rpm: target fan speed.
 
+    Raises:
+      FactoryTestFailure if any number is not within the desired range.
+    """
     lower_bound = target_rpm - self.args.error_margin
     upper_bound = target_rpm + self.args.error_margin
     error_messages = []
@@ -178,3 +174,20 @@ class FanSpeedTest(unittest.TestCase):
             (i, rpm, lower_bound, upper_bound))
     if error_messages:
       raise factory.FactoryTestFailure('\n'.join(error_messages))
+
+  def runTest(self):
+    """Main test function."""
+    if self.args.spin_max_then_half:
+      logging.info('Spinning fan up to to get max fan speed...')
+      max_rpm = self.SetAndGetFanSpeed(self.args.max_rpm)
+      for i in xrange(len(max_rpm)):
+        if max_rpm[i] == 0:
+          raise factory.FactoryTestFailure(
+              'Fan %d is not reporting any RPM' % i)
+      target_rpm = _Average(max_rpm) / 2
+      observed_rpm = self.SetAndGetFanSpeed(target_rpm)
+      self.VerifyResult(observed_rpm, target_rpm)
+    else:
+      for target_rpm in self.args.target_rpm:
+        observed_rpm = self.SetAndGetFanSpeed(target_rpm)
+        self.VerifyResult(observed_rpm, target_rpm)
