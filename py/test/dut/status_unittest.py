@@ -14,6 +14,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut import board as board_module
+from cros.factory.test.dut import power
 from cros.factory.test.dut import thermal
 from cros.factory.test.dut import status as status_module
 
@@ -35,6 +36,8 @@ class SystemStatusTest(unittest.TestCase):
 
     # Set up mocks for Board interface
     board = self.mox.CreateMock(board_module.DUTBoard)
+    board.power = self.mox.CreateMock(power.Power)
+    board.power.GetInfoDict().AndReturn({})
     board.thermal = self.mox.CreateMock(thermal.ECToolThermal)
     board.thermal.GetFanRPM().AndReturn([2000])
     board.thermal.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
