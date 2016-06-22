@@ -334,9 +334,13 @@ class DRMKeysProvisioningServer(object):
     for drm_key in drm_key_list:
       drm_key_hash_list.append(hashlib.sha1(json.dumps(drm_key)).hexdigest())
 
-    # Pass to the filter function.
-    filter_module = self._LoadFilterModule(project['filter_module_file_name'])
-    filtered_drm_key_list = filter_module.Filter(drm_key_list)
+    # Pass to the filter function if needed.
+    if project['filter_module_file_name']:  # filter module can be null
+      filter_module = self._LoadFilterModule(project['filter_module_file_name'])
+      filtered_drm_key_list = filter_module.Filter(drm_key_list)
+    else:
+      # filter module is optional
+      filtered_drm_key_list = drm_key_list
 
     # Fetch server key for signing.
     server_key_fingerprint = self._FetchServerKeyFingerprint()
@@ -673,7 +677,7 @@ def main():
   elif args.command == 'add':
     dkps.AddProject(
         args.name, args.uploader_key_file_path, args.requester_key_file_path,
-        args.filter_module_file_name)
+        args.parser_module_file_name, args.filter_module_file_name)
   elif args.command == 'update':
     dkps.UpdateProject(
         args.name, args.uploader_key_file_path, args.requester_key_file_path,
