@@ -624,6 +624,9 @@ def _ParseArguments():
   parser_init.add_argument(
       '-g', '--gpg_gen_key_args', action='append', nargs=2, default={},
       help='arguments to use when generating GPG key for server')
+  parser_init.add_argument(
+      '-s', '--server_key_file_path', default=None,
+      help="path to the server's private key file")
 
   subparsers.add_parser('list', help='lists all projects')
 
@@ -658,7 +661,7 @@ def main():
     gpg_gen_key_args_dict = {}
     for pair in args.gpg_gen_key_args:
       gpg_gen_key_args_dict[pair[0]] = pair[1]
-    dkps.Initialize(gpg_gen_key_args_dict)
+    dkps.Initialize(gpg_gen_key_args_dict, args.server_key_file_path)
   elif args.command == 'destroy':
     message = (
         'This action will remove all projects and keys information and is NOT '
