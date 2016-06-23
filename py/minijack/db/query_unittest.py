@@ -7,8 +7,8 @@ import copy
 import unittest
 
 import minijack_common  # pylint: disable=W0611
-import db
-from db import models
+from minijack import db
+from minijack.db import models
 
 
 # Example models for test.

@@ -7,8 +7,8 @@ import logging
 import unittest
 
 import minijack_common  # pylint: disable=W0611
-from datatypes import EventPacket
-from datatypes import GenerateEventStreamsFromYaml
+from minijack.datatypes import EventPacket
+from minijack.datatypes import GenerateEventStreamsFromYaml
 
 
 _YAML_STR = """EVENT: preamble

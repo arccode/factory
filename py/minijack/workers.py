@@ -13,7 +13,7 @@ import minijack_common  # pylint: disable=W0611
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.shelve_utils import OpenShelfOrBackup
 from cros.factory.utils import debug_utils
-from datatypes import EventBlob, GenerateEventStreamsFromYaml
+from minijack.datatypes import EventBlob, GenerateEventStreamsFromYaml
 
 EVENT_DELIMITER = '\n---\n'
 PREAMBLE_PATTERN = 'EVENT: preamble\n'

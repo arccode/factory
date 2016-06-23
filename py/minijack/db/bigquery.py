@@ -5,15 +5,13 @@
 import logging
 import httplib2
 
-from apiclient.discovery import build
-from apiclient.errors import HttpError
-
-from oauth2client.client import SignedJwtAssertionCredentials
-
-from db import models
-from db import DatabaseException, Table
-
-import db.base
+import minijack_common  # pylint: disable=W0611
+from minijack.db import models
+from minijack.db import DatabaseException, Table
+from minijack.db import base as db_base
+from minijack.external.apiclient.discovery import build
+from minijack.external.apiclient.errors import HttpError
+from minijack.external.oauth2client.client import SignedJwtAssertionCredentials
 
 
 def _EscapeArgument(arg):
@@ -62,7 +60,7 @@ def _BuildQuery(sql_cmd, args):
   return ret
 
 
-class Executor(db.base.BaseExecutor):
+class Executor(db_base.BaseExecutor):
   """A database executor.
 
   It abstracts the underlying database execution behaviors, like executing
@@ -215,7 +213,7 @@ class Executor(db.base.BaseExecutor):
     return iter(self.FetchAll(model))
 
 
-class ExecutorFactory(db.base.BaseExecutorFactory):
+class ExecutorFactory(db_base.BaseExecutorFactory):
   """A factory to generate Executor objects.
 
   Properties:
@@ -231,7 +229,7 @@ class ExecutorFactory(db.base.BaseExecutorFactory):
     return Executor(self._service)
 
 
-class Database(db.base.BaseDatabase):
+class Database(db_base.BaseDatabase):
   """A database to store Minijack results.
 
   It abstracts the underlying database.

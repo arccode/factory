@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 import minijack_common  # pylint: disable=W0611
-from db import models
+from minijack.db import models
 
 
 class Event(models.Model):

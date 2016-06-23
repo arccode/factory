@@ -11,9 +11,9 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 import minijack_common  # pylint: disable=W0611
-from db import Database
-from models import Event, Device, Attr, Test
-from models import Component, ComponentDetail
+from minijack.db import Database
+from minijack.models import Event, Device, Attr, Test
+from minijack.models import Component, ComponentDetail
 
 
 def BuildTableSchemaString(schema):

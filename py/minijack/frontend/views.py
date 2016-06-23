@@ -11,9 +11,9 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 import minijack_common  # pylint: disable=W0611
-from models import Device, Test, Component, Event, Attr
-from db import Database
-from frontend import test_renderers, data
+from minijack.models import Device, Test, Component, Event, Attr
+from minijack.db import Database
+from minijack.frontend import test_renderers, data
 
 import settings
 

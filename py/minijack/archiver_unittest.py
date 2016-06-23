@@ -9,9 +9,9 @@ import tempfile
 import unittest
 
 import minijack_common  # pylint: disable=W0611
-from archiver import Archiver, STATUS_ARCHIVED
-from db import Database
-from models import Event, Attr, Device
+from minijack.archiver import Archiver, STATUS_ARCHIVED
+from minijack.db import Database
+from minijack.models import Event, Attr, Device
 
 
 class ArchiverTest(unittest.TestCase):

@@ -7,16 +7,15 @@ import sqlite3
 import re
 
 import minijack_common  # pylint: disable=W0611
-from db import models
-from db import DatabaseException, Table
-
-import db.base
+from minijack.db import models
+from minijack.db import DatabaseException, Table
+from minijack.db import base as db_base
 
 
 IntegrityError = sqlite3.IntegrityError
 
 
-class Executor(db.base.BaseExecutor):
+class Executor(db_base.BaseExecutor):
   """A database executor.
 
   It abstracts the underlying database execution behaviors, like executing
@@ -115,7 +114,7 @@ class Executor(db.base.BaseExecutor):
     return iter(lambda: self.FetchOne(model), None)
 
 
-class ExecutorFactory(db.base.BaseExecutorFactory):
+class ExecutorFactory(db_base.BaseExecutorFactory):
   """A factory to generate Executor objects.
 
   Properties:
@@ -145,7 +144,7 @@ def _SqliteRegexp(pattern, val):
   return bool(re.search(pattern, val))
 
 
-class Database(db.base.BaseDatabase):
+class Database(db_base.BaseDatabase):
   """A database to store Minijack results.
 
   It abstracts the underlying database. It uses sqlite3 as an implementation.

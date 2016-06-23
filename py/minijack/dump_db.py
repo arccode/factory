@@ -13,10 +13,10 @@ import json
 import logging
 
 import minijack_common  # pylint: disable=W0611
-import db
-from models import ComponentDetail
-from models import Device, Test, Component
-from models import Event, Attr
+from minijack import db
+from minijack.models import ComponentDetail
+from minijack.models import Device, Test, Component
+from minijack.models import Event, Attr
 
 
 def Main():

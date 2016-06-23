@@ -8,8 +8,7 @@ import os
 import sys
 
 import minijack_common  # pylint: disable=W0611
-
-import models
+from minijack.db import models
 
 
 class DatabaseException(Exception):
@@ -610,14 +609,15 @@ class QuerySet(object):
         yield v
 
 
-import settings
+from minijack import settings
 if settings.IS_APPENGINE:
   if settings.BACKEND_DATABASE == 'bigquery':
-    from db.bigquery import Executor, ExecutorFactory, Database
+    from minijack.db.bigquery import Executor, ExecutorFactory, Database
   elif settings.BACKEND_DATABASE == 'cloud_sql':
-    from db.cloud_sql import Executor, ExecutorFactory, Database
+    from minijack.db.cloud_sql import Executor, ExecutorFactory, Database
   else:
     logging.exception('Unknown database %s', settings.BACKEND_DATABASE)
     sys.exit(os.EX_DATAERR)
 else:
-  from db.sqlite import Executor, ExecutorFactory, Database, IntegrityError
+  from minijack.db.sqlite import (Executor, ExecutorFactory, Database,
+                                  IntegrityError)

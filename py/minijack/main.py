@@ -28,9 +28,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.utils import debug_utils
 
 import minijack_common  # pylint: disable=W0611
-import db
-from datatypes import EventPacket
-from workers import FileScanner, IdentityWorker, EventLoadingWorker
+from minijack import db
+from minijack.datatypes import EventPacket
+from minijack.workers import FileScanner, IdentityWorker, EventLoadingWorker
 
 
 SHOPFLOOR_DATA_DIR = 'shopfloor_data'

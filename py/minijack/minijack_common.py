@@ -4,6 +4,12 @@
 
 import os
 import sys
-sys.path.append(
-    os.path.dirname(
-        os.path.realpath(__file__.replace('.pyc', '.py'))))
+
+
+MINIJACK_DIR = os.path.dirname(
+    os.path.realpath(__file__.replace('.pyc', '.py')))
+MINIJACK_PARENT_DIR = os.path.realpath(os.path.join(MINIJACK_DIR, '..'))
+MINIJACK_EXTERNAL_DIR = os.path.realpath(os.path.join(MINIJACK_DIR, 'external'))
+
+sys.path.append(MINIJACK_PARENT_DIR)
+sys.path.append(MINIJACK_EXTERNAL_DIR)

@@ -5,7 +5,7 @@
 import sys
 
 import minijack_common  # pylint: disable=W0611
-from db import QuerySet, Q
+from minijack.db import QuerySet, Q
 
 
 # TODO(pihsun): Unit test.

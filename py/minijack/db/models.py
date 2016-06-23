@@ -4,6 +4,8 @@
 
 import inspect
 
+import minijack_common  # pylint: disable=W0611
+
 
 class Field(object):
   """The base class of fields.
@@ -88,7 +90,7 @@ class FloatField(Field):
     return 0.0
 
   def GetDbType(self, database_type):
-    from db import bigquery
+    from minijack.db import bigquery
     if database_type == bigquery.Database:
       return 'FLOAT'
     else:
@@ -107,7 +109,7 @@ class TextField(Field):
     return ''
 
   def GetDbType(self, database_type):
-    from db import bigquery, cloud_sql
+    from minijack.db import bigquery, cloud_sql
     if database_type == bigquery.Database:
       return 'STRING'
     elif (database_type == cloud_sql.Database and

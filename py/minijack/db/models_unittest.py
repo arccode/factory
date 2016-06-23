@@ -6,8 +6,8 @@
 import unittest
 
 import minijack_common  # pylint: disable=W0611
-from db import models
-from db import sqlite, bigquery, cloud_sql
+from minijack.db import models
+from minijack.db import sqlite, bigquery, cloud_sql
 
 
 # Example models for test.

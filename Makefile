@@ -151,7 +151,7 @@ lint:
 	out=$$(mktemp); \
 	echo Linting $(shell echo $(LINT_WHITELIST) | wc -w) files...; \
 	if [ -n "$(LINT_WHITELIST)" ] && \
-			! env PYTHONPATH=py_pkg:py/minijack:setup \
+			! env PYTHONPATH=py_pkg:py:setup \
 			pylint $(PYLINT_OPTIONS) $(LINT_WHITELIST) \
 	    |& tee $$out; then \
 	  echo; \

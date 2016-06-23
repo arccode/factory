@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 import minijack_common  # pylint: disable=W0611
-from workers import EventLoadingWorker
+from minijack.workers import EventLoadingWorker
 
 
 MOCK_PREAMBLE = lambda x: 'EVENT: preamble\nSEQ: %d\n---\n' % x

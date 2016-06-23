@@ -3,8 +3,8 @@
 # found in the LICENSE file.
 
 import minijack_common  # pylint: disable=W0611
-from exporters.base import ExporterBase
-from models import Test
+from minijack.exporters.base import ExporterBase
+from minijack.models import Test
 
 
 class TestExporter(ExporterBase):

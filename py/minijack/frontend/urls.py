@@ -6,7 +6,7 @@ from django.conf.urls import patterns, url
 from django.views.generic import RedirectView
 
 import minijack_common  # pylint: disable=W0611
-from frontend import views, query_view
+from minijack.frontend import views, query_view
 
 
 urlpatterns = patterns(

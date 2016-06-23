@@ -3,9 +3,9 @@
 # found in the LICENSE file.
 
 import minijack_common  # pylint: disable=W0611
-from datatypes import EventPacket
-from exporters.base import ExporterBase
-from models import Component, ComponentDetail
+from minijack.datatypes import EventPacket
+from minijack.exporters.base import ExporterBase
+from minijack.models import Component, ComponentDetail
 
 
 COMPONENT_KEYWORD = 'cpu'
