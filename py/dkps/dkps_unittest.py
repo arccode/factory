@@ -149,14 +149,8 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     for i in xrange(len(MOCK_KEY_LIST)):
       # Check available key count.
       expected_available_key_count = len(MOCK_KEY_LIST) - i
-      available_key_count = int(subprocess.check_output(
-          ['python', os.path.join(SCRIPT_DIR, 'requester_helper.py'),
-           '--server_ip', 'localhost',
-           '--server_port', str(DRMKeysProvisioningServerTest.SERVER_PORT),
-           '--requester_key_file_path', self.requester_private_key_file_path,
-           '--server_key_file_path', self.server_key_file_path,
-           '--passphrase_file_path', self.passphrase_file_path,
-           'available']))
+      available_key_count = int(self._CallHelper(
+          self.requester_private_key_file_path, 'available'))
       self.assertEqual(expected_available_key_count, available_key_count)
 
       # Request.
@@ -190,25 +184,23 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
       shutil.rmtree(self.temp_dir)
 
   def _Upload(self, drm_keys_file_path):
-    return subprocess.check_output(
-        ['python', os.path.join(SCRIPT_DIR, 'uploader_helper.py'),
-         '--server_ip', 'localhost',
-         '--server_port', str(DRMKeysProvisioningServerTest.SERVER_PORT),
-         '--uploader_key_file_path', self.uploader_private_key_file_path,
-         '--server_key_file_path', self.server_key_file_path,
-         '--passphrase_file_path', self.passphrase_file_path,
-         'upload', drm_keys_file_path],
-        stderr=FNULL)
+    return self._CallHelper(
+        self.uploader_private_key_file_path, 'upload', [drm_keys_file_path])
 
   def _Request(self, device_serial_number):
+    return self._CallHelper(
+        self.requester_private_key_file_path, 'request', [device_serial_number])
+
+  def _CallHelper(self, client_key_file_path, command, extra_args=None):
+    extra_args = extra_args if extra_args else []
     return subprocess.check_output(
-        ['python', os.path.join(SCRIPT_DIR, 'requester_helper.py'),
+        ['python', os.path.join(SCRIPT_DIR, 'helpers.py'),
          '--server_ip', 'localhost',
          '--server_port', str(DRMKeysProvisioningServerTest.SERVER_PORT),
-         '--requester_key_file_path', self.requester_private_key_file_path,
+         '--client_key_file_path', client_key_file_path,
          '--server_key_file_path', self.server_key_file_path,
          '--passphrase_file_path', self.passphrase_file_path,
-         'request', device_serial_number],
+         command] + extra_args,
         stderr=FNULL)
 
 
