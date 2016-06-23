@@ -10,7 +10,8 @@ RUN apt-get upgrade -y
 # python libraries
 RUN apt-get install -y python-yaml python-netifaces python-pexpect \
 	python-numpy python-twisted python-twisted-web python-protobuf \
-	python-pyudev python-pil python-pymssql python-flup python-mysqldb
+	python-pyudev python-pil python-pymssql python-flup python-mysqldb \
+	python-gnupg
 
 RUN apt-get install -y lighttpd unzip parallel pbzip2 pigz binutils \
 	sharutils rsync aptitude screen vim psmisc dbus ssh htop openssh-server \
