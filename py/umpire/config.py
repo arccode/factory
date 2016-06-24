@@ -260,7 +260,8 @@ class ServicesOrderedDict(dict):
 
   """Used to output an UmpireConfig's services with desired key order."""
   _KEY_ORDER = ['archiver', 'http', 'shop_floor', 'minijack',
-                'mock_shop_floor_backend', 'rsync', 'dhcp', 'tftp', 'overlord']
+                'mock_shop_floor_backend', 'rsync', 'dhcp', 'tftp', 'overlord',
+                'dkps']
 
   def Omap(self):
     return DictToOrderedList(self, self._KEY_ORDER, 'ServicesOrderedDict')
