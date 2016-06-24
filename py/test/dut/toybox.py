@@ -174,6 +174,45 @@ class Toybox(component.DUTComponent):
   def date(self, *args, **kargs):
     raise NotImplementedError
 
+  def dd(self, if_=None, of=None, ibs=None, obs=None, bs=None, count=None,
+         skip=None, seek=None, conv=None):
+    """Copy a file, converting and formatting according to the operands.
+
+    Args:
+      if_: Read from FILE instead of stdin.
+      of: Write to FILE instead of stdout.
+      bs: Read and write N bytes at a time.
+      ibs: Read N bytes at a time.
+      obs: Write N bytes at a time.
+      count: Copy only N input blocks.
+      skip: Skip N input blocks.
+      seek: Skip N output blocks.
+      conv: A list (or a string seperated by comma) from following args:
+        notrunc: Don't truncate output file.
+        noerror: Continue after read errors.
+        sync: Pad blocks with zeros.
+        fsync: Physically write data out before finishing.
+
+    Returns:
+      The output (from stdout) data.
+    """
+    valid_conv = ['notrunc', 'noerror', 'sync', 'fsync']
+    if isinstance(conv, basestring):
+      conv = conv.split(',')
+    assert not conv or set(conv).issubset(valid_conv), (
+        'dd using toybox does not support "conf=%s"')
+    # TODO(hungte)
+    return self._dut.CheckOutput(self._BuildCommand(
+        'dd',
+        ['if=%s' % if_] if if_ else None,
+        ['of=%s' % of] if of else None,
+        ['obs=%s' % obs] if obs else None,
+        ['bs=%s' % bs] if bs else None,
+        ['count=%s' % count] if count else None,
+        ['skip=%s' % skip] if skip else None,
+        ['seek=%s' % seek] if seek else None,
+        ['conv=%s' % conv] if conv else None))
+
   def df(self, filesystems=None, fs_type=None):
     """The "disk free" command.
 

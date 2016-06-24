@@ -46,6 +46,12 @@ class ToyboxTest(unittest.TestCase):
     self.dut.toybox.clear()
     self.dut.CheckCall.assert_called_with(['toybox', 'clear'])
 
+  def testDd(self):
+    self.dut.CheckOutput = mock.MagicMock(return_value=' ')
+    self.assertEquals(self.dut.toybox.dd('/dev/null', bs=1, count=1), ' ')
+    self.dut.CheckOutput.assert_called_with(['toybox', 'dd', 'if=/dev/null',
+                                             'bs=1', 'count=1'])
+
   def testDf(self):
     output = textwrap.dedent('''
       Filesystem      1K-blocks       Used  Available Use% Mounted on
