@@ -38,11 +38,10 @@ encrypted_vpd_list = [
 
 class DRMKeysProvisioningServerTest(unittest.TestCase):
 
-  SERVER_PORT = 5438
-
   def setUp(self):
     # Create a temp folder for SQLite3 and GnuPG.
     self.temp_dir = tempfile.mkdtemp()
+    self.log_file_path = os.path.join(self.temp_dir, 'dkps.log')
     self.database_file_path = os.path.join(self.temp_dir, 'dkps.db')
     self.server_gnupg_homedir = os.path.join(self.temp_dir, 'gnupg', 'server')
     uploader_gnupg_homedir = os.path.join(self.temp_dir, 'gnupg', 'uploader')
@@ -130,9 +129,10 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     # Start the server.
     self.server_process = subprocess.Popen(
         ['python', os.path.join(SCRIPT_DIR, 'dkps.py'),
+         '--log_file_path', self.log_file_path,
          '--database_file_path', self.database_file_path,
          '--gnupg_homedir', self.server_gnupg_homedir,
-         'listen', '--port', str(DRMKeysProvisioningServerTest.SERVER_PORT)],
+         'listen', '--port', str(dkps.DEFAULT_BIND_PORT)],
         stdout=FNULL, stderr=FNULL)
 
     # Upload DRM keys.
@@ -177,9 +177,6 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
 
     self.db_connection.close()
 
-    if os.path.exists(dkps.LOG_FILE_PATH):
-      os.remove(dkps.LOG_FILE_PATH)
-
     if os.path.exists(self.temp_dir):
       shutil.rmtree(self.temp_dir)
 
@@ -196,7 +193,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     return subprocess.check_output(
         ['python', os.path.join(SCRIPT_DIR, 'helpers.py'),
          '--server_ip', 'localhost',
-         '--server_port', str(DRMKeysProvisioningServerTest.SERVER_PORT),
+         '--server_port', str(dkps.DEFAULT_BIND_PORT),
          '--client_key_file_path', client_key_file_path,
          '--server_key_file_path', self.server_key_file_path,
          '--passphrase_file_path', self.passphrase_file_path,

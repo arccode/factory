@@ -8,29 +8,56 @@
 #                  keys directly with ODM's public key, and the key server
 #                  merely stores them without knowing anything about them.
 
-# TODO(littlecvr): Allow using pre-generated server GPG key when initializing.
-
 import argparse
 import hashlib
 import imp
 import json
 import logging
+import logging.config
 import os
 import shutil
 import SimpleXMLRPCServer
 import sqlite3
-import sys
 import textwrap
 
 import gnupg
 
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-LOG_FILE_PATH = os.path.join(SCRIPT_DIR, 'dkps.log')
 FILTERS_DIR = os.path.join(SCRIPT_DIR, 'filters')
 PARSERS_DIR = os.path.join(SCRIPT_DIR, 'parsers')
 CREATE_DATABASE_SQL_FILE_PATH = os.path.join(
     SCRIPT_DIR, 'sql', 'create_database.sql')
+
+DEFAULT_BIND_ADDR = '0.0.0.0'  # all addresses
+DEFAULT_BIND_PORT = 5438
+
+DEFAULT_DATABASE_FILE_NAME = 'dkps.db'
+DEFAULT_GNUPG_DIR_NAME = 'gnupg'
+DEFAULT_LOG_FILE_NAME = 'dkps.log'
+
+DEFAULT_LOGGING_CONFIG = {
+    'version': 1,
+    'formatters': {
+        'default': {
+            'format': '%(asctime)s:%(levelname)s:%(funcName)s:'
+                      '%(lineno)d:%(message)s'}},
+    'handlers': {
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'default',
+            'filename': DEFAULT_LOG_FILE_NAME,
+            'maxBytes': 1024 * 1024,  # 1M
+            'backupCount': 3},
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'default',
+            'stream': 'ext://sys.stdout'}},
+    'root': {
+        'level': 'INFO',
+        # only log to file by default, but also log to console if invoked
+        # directly from the command line
+        'handlers': ['file'] + ['console'] if __name__ == '__main__' else []}}
 
 
 class ProjectNotFoundException(ValueError):
@@ -136,6 +163,7 @@ class DRMKeysProvisioningServer(object):
       raise RuntimeError('Already initialized')
 
     if server_key_file_path:  # use existing key
+      # TODO(littlecvr): make sure the server key doesn't have passphrase.
       server_key_fingerprint, _ = self._ImportGPGKey(server_key_file_path)
     else:  # generate a new GPG key
       if gpg_gen_key_args_dict is None:
@@ -447,17 +475,27 @@ class DRMKeysProvisioningServer(object):
       ip: IP to bind.
       port: port to bind.
     """
-    server = SimpleXMLRPCServer.SimpleXMLRPCServer((ip, port), allow_none=True)
+    class Server(SimpleXMLRPCServer.SimpleXMLRPCServer):
+      def _dispatch(self, method, params):
+        # Catch exceptions and log them. Without this, SimpleXMLRPCServer simply
+        # output the error message to stdout, and we won't be able to see what
+        # happened in the log file.
+        logging.info('%s called', method)
+        try:
+          result = SimpleXMLRPCServer.SimpleXMLRPCServer._dispatch(
+              self, method, params)
+          logging.warning('MAO %r', result)
+          return result
+        except BaseException as e:
+          logging.exception(e)
+          raise
+
+    server = Server((ip, port), allow_none=True)
 
     server.register_introspection_functions()
     server.register_function(self.AvailableKeyCount)
     server.register_function(self.Upload)
     server.register_function(self.Request)
-
-    # Redirect stdout and stderr to log file.
-    log_file = open(LOG_FILE_PATH, 'a')
-    sys.stdout = log_file
-    sys.stderr = log_file
 
     server.serve_forever()
 
@@ -586,13 +624,20 @@ class DRMKeysProvisioningServer(object):
 def _ParseArguments():
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '-d', '--database_file_path', default=os.path.join(SCRIPT_DIR, 'dkps.db'),
+      '-d', '--database_file_path',
+      default=os.path.join(SCRIPT_DIR, DEFAULT_DATABASE_FILE_NAME),
       help='path to the SQLite3 database file, default to "dkps.db" in the '
            'same directory of this script')
   parser.add_argument(
-      '-g', '--gnupg_homedir', default=os.path.join(SCRIPT_DIR, 'gnupg'),
+      '-g', '--gnupg_homedir',
+      default=os.path.join(SCRIPT_DIR, DEFAULT_GNUPG_DIR_NAME),
       help='path to the GnuGP home directory, default to "gnupg" in the same '
            'directory of this script')
+  parser.add_argument(
+      '-l', '--log_file_path',
+      default=os.path.join(SCRIPT_DIR, DEFAULT_LOG_FILE_NAME),
+      help='path to the log file, default to "dkps.log" in the same directory '
+           'of this script')
   subparsers = parser.add_subparsers(dest='command')
 
   parser_add = subparsers.add_parser('add', help='adds a new project')
@@ -633,9 +678,11 @@ def _ParseArguments():
   parser_listen = subparsers.add_parser(
       'listen', help='starts the server, waiting for upload or request keys')
   parser_listen.add_argument(
-      '--ip', default='0.0.0.0', help='IP to bind, default to 0.0.0.0')
+      '--ip', default=DEFAULT_BIND_ADDR,
+      help='IP to bind, default to %s' % DEFAULT_BIND_ADDR)
   parser_listen.add_argument(
-      '--port', type=int, default=5438, help='port to listen, default to 5438')
+      '--port', type=int, default=DEFAULT_BIND_PORT,
+      help='port to listen, default to %s' % DEFAULT_BIND_PORT)
 
   parser_rm = subparsers.add_parser('rm', help='removes an existing project')
   parser_rm.add_argument('-n', '--name', required=True,
@@ -647,13 +694,9 @@ def _ParseArguments():
 def main():
   args = _ParseArguments()
 
-  # TODO(littlecvr): Customizable logging level.
-  # TODO(littlecvr): Also print on stdout if it's not running in background.
-  logging.basicConfig(
-      filename=LOG_FILE_PATH,
-      format='%(asctime)s:%(levelname)s:%(funcName)s:%(lineno)d:%(message)s',
-      level=logging.DEBUG)
-  logging.debug('Parsed arguments: %r', args)
+  logging_config = DEFAULT_LOGGING_CONFIG
+  logging_config['handlers']['file']['filename'] = args.log_file_path
+  logging.config.dictConfig(logging_config)
 
   dkps = DRMKeysProvisioningServer(args.database_file_path, args.gnupg_homedir)
   if args.command == 'init':
