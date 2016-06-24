@@ -119,7 +119,7 @@ _TEST_TITLE = test_ui.MakeLabel(
     'Removable Storage Test', u'可移除储存装置测试')
 
 # Regex used for find execution time from dd output.
-_RE_DD_EXECUTION_TIME = re.compile(r'^.* copied, ([0-9]+\.[0-9]+) s, .*$',
+_RE_DD_EXECUTION_TIME = re.compile(r'^.* copied, ([0-9]+\.[0-9]+) seconds, .*$',
                                    re.MULTILINE)
 
 _ID_STATE_DIV = 'state_div'
@@ -200,8 +200,8 @@ class RemovableStorageTest(unittest.TestCase):
           'specify, this test will be run for SD card.',
           default=None, optional=True),
       Arg(
-          'use_toybox_dd', bool,
-          'Use toybox dd. This option can be removed when toybox dd is ready.',
+          'use_busybox_dd', bool,
+          'Use busybox dd. This option can be removed when toybox dd is ready.',
           default=False)]
   # pylint: disable=E1101
 
@@ -327,8 +327,8 @@ class RemovableStorageTest(unittest.TestCase):
       Returns:
         A string of command to be executed.
       """
-      if self.args.use_toybox_dd:
-        cmd = ['toybox', 'dd']
+      if self.args.use_busybox_dd:
+        cmd = ['busybox', 'dd']
       else:
         cmd = ['dd']
 
