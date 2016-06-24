@@ -465,7 +465,7 @@ def StartDaemonThread(*args, **kwargs):
         exception uncaught.
     For other parameters see threading.Thread().
   """
-  if kwargs.get('interrupt_on_crash'):
+  if kwargs.pop('interrupt_on_crash', False):
     # 'target' is the second parameter of threading.Thread()
     target = args[1] if len(args) > 1 else kwargs.get('target')
 
