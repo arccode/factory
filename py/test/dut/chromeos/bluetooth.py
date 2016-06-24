@@ -16,8 +16,6 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.dut.bluetooth import (BluetoothManager,
                                              BluetoothManagerException)
-from cros.factory.utils.sync_utils import PollForCondition, Retry
-
 from cros.factory.external import dbus
 # pylint: disable=E0611,F0401
 from cros.factory.external.dbus.mainloop.glib import DBusGMainLoop
@@ -25,6 +23,7 @@ from cros.factory.external.dbus.mainloop.glib import DBusGMainLoop
 from cros.factory.external.dbus import service
 from cros.factory.external.dbus import DBusException # pylint: disable=E0611
 from cros.factory.external import gobject
+from cros.factory.utils.sync_utils import PollForCondition, Retry
 
 
 BUS_NAME = 'org.bluez'

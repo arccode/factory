@@ -9,12 +9,11 @@ from __future__ import print_function
 import re
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.external import PIL
 from cros.factory.test.dut.display import (PortInfo,
                                            LinuxDisplay)
 from cros.factory.test.utils import drm_utils
 from cros.factory.utils import sys_utils
-
-from cros.factory.external import PIL
 
 
 class DisplayError(Exception):
