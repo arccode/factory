@@ -174,7 +174,7 @@ class FileBasedPartition(Partition):
     """See Partition.GetAll."""
     ret = {}
     for file_name in self._dut.CheckOutput(
-        ['find', self._path, '-type', 'f']).splitlines()
+        ['find', self._path, '-type', 'f']).splitlines():
       name = file_name[len(self._path) + 1:]
       ret[name] = self._dut.ReadFile(file_name)
     return ret
