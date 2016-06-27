@@ -63,7 +63,12 @@ class BaseHelper(object):
     self.passphrase = None
     if passphrase_file_path is not None:
       with open(passphrase_file_path) as f:
-        self.passphrase = f.read()
+        # Read only the first line and remove the newline character at the end.
+        # This complies with the behavior of GnuPG when reading passphrase from
+        # a file. If the newline character is not removed, encryption and
+        # decryption will still work, but the character will be prepended to the
+        # data, which is not desired.
+        self.passphrase = f.readline().strip('\n')
 
     # Create RPC server object.
     self.server_ip = server_ip
