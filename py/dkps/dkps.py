@@ -484,7 +484,6 @@ class DRMKeysProvisioningServer(object):
         try:
           result = SimpleXMLRPCServer.SimpleXMLRPCServer._dispatch(
               self, method, params)
-          logging.warning('MAO %r', result)
           return result
         except BaseException as e:
           logging.exception(e)
