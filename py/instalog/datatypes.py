@@ -10,6 +10,7 @@ iterating through it.
 
 from __future__ import print_function
 
+import copy
 import json
 import logging
 import time
@@ -35,7 +36,7 @@ class Event(object):
 
   def __init__(self, data, attachments=None):
     self.data = data
-    self.attachments = attachments or {}
+    self.attachments = {} if attachments is None else attachments
     if not isinstance(self.attachments, dict):
       raise TypeError('Provided attachments argument must be of type `dict`')
 
@@ -62,6 +63,9 @@ class Event(object):
   def DeserializeRaw(cls, json_data=None, json_attachments=None):
     """Deserialize an Event object with data and attachments separated.
 
+    TODO(kitching): Decide whether to allow both strings and dictionaries for
+                    these two arguments.
+
     Provided for testing applications or use in CLI programs.
 
     Args:
@@ -79,7 +83,7 @@ class Event(object):
 
   def __repr__(self):
     """Implements repr function for debugging."""
-    return str([self.data, self.attachments])
+    return 'Event(%s, %s)' % (self.data, self.attachments)
 
   def __eq__(self, other):
     """Implements == operator."""
@@ -89,9 +93,14 @@ class Event(object):
     """Implements != operator."""
     return not self == other
 
-  def __getitem__(self, name):
-    """Implements dict [] operator."""
-    return self.data[name]
+  def __getitem__(self, key):
+    """Implements dict [] get operator."""
+    return self.data[key]
+
+  def __setitem__(self, key, value):
+    """Implements dict [] set operator."""
+    # TODO(kitching): Test this method.
+    self.data[key] = value
 
   def __contains__(self, item):
     """Implements dict `in` operator."""
@@ -108,6 +117,22 @@ class Event(object):
   def iteritems(self):
     """Implements iteritems function."""
     return self.data.iteritems()
+
+  def __copy__(self):
+    """Implements __copy__ function."""
+    return Event(self.data, self.attachments)
+
+  def __deepcopy__(self, memo):
+    """Implements __deepcopy__ function."""
+    result = self.__class__(copy.deepcopy(self.data),
+                            copy.deepcopy(self.attachments))
+    # Avoid excess copying if the Event is referenced from within the Event.
+    memo[id(self)] = result
+    return result
+
+  def Copy(self):
+    """Uses __copy__ to return a shallow copy of this Event."""
+    return self.__copy__()
 
 
 class EventStream(object):

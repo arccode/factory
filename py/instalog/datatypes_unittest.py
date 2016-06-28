@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import copy
 import json
 import logging
 import mock
@@ -111,7 +112,7 @@ class TestEvent(unittest.TestCase):
 
   def testDict(self):
     """Checks that an event can be accessed just like a dictionary."""
-    data = {'a': 1, 'b': 2}
+    data = {'a': 1, 'b': 2, 'c': {}}
     event = datatypes.Event(data)
     self.assertEqual(event.data, data)
     self.assertEqual(event.keys(), data.keys())
@@ -131,10 +132,20 @@ class TestEvent(unittest.TestCase):
     self.assertEqual(event_a, event_b)
     self.assertFalse(event_a != event_b)
 
-    # Copying is not implemented.
-    # TODO(kitching): Implement copy, __copy__, and __deepcopy__ in Event.
-    with self.assertRaises(AttributeError):
-      event.copy()
+    # Test copy.
+    new_event = event.Copy()
+    self.assertTrue(event.data is new_event.data)
+    self.assertTrue(event.attachments is new_event.attachments)
+    new_event = copy.copy(event)
+    self.assertTrue(event.data is new_event.data)
+    self.assertTrue(event.attachments is new_event.attachments)
+
+    # Test deepcopy.
+    new_event = copy.deepcopy(event)
+    self.assertTrue(event == new_event)
+    self.assertTrue(event.data is not new_event.data)
+    self.assertTrue(event['c'] is not new_event['c'])
+    self.assertTrue(event.attachments is not new_event.attachments)
 
   def testAttachments(self):
     """Checks that attachments can be properly accessed on an event."""

@@ -48,7 +48,6 @@ class PluginLoader(object):
     """
     self.plugin_type = plugin_type
     self.plugin_id = plugin_id or plugin_type
-    self.superclass = superclass or plugin_base.Plugin
     self.config = config or {}
     self._plugin_api = plugin_api or plugin_base.PluginAPI()
     if not isinstance(self._plugin_api, plugin_base.PluginAPI):
@@ -56,6 +55,14 @@ class PluginLoader(object):
     self._plugin_prefix = _plugin_prefix
     self._plugin_class = _plugin_class
     self._possible_module_names = None
+
+    # If we have access to the superclass already, store it.
+    if superclass:
+      self.superclass = superclass
+    elif self._plugin_class:
+      self.superclass = self._GetSuperclass(self._plugin_class)
+    else:
+      self.superclass = plugin_base.Plugin
 
     # Check that the provided plugin_api is valid.
     if not isinstance(self._plugin_api, plugin_base.PluginAPI):
@@ -120,16 +127,24 @@ class PluginLoader(object):
 
     If we have already loaded the module previously, unload it first.
     This ensures we catch the case where the file no longer exists when
-    we re-import the module.
+    we re-import the module, and also solves import issues that occur
+    when the plugin is invoked as a standalone executable, and it imports
+    other dependency modules in its plugin directory.
     """
     for search_name in self._GetPossibleModuleNames():
-      try:
-        del sys.modules[search_name]
-      except KeyError:
-        pass
+      to_delete = [key for key in sys.modules.keys()
+                   if key.startswith(search_name)]
+      for module_name in to_delete:
+        del sys.modules[module_name]
 
   def GetClass(self):
-    """Returns the class of the plugin."""
+    """Returns the Python class object of the plugin.
+
+    Raises:
+      LoadPluginError if the plugin could not be found, if some other problem
+      was encountered while loading (for example, a syntax error), or if the
+      plugin file does not contain a subclass of the requested plugin type.
+    """
     # If _plugin_class was provided in __init__, directly return it.
     if self._plugin_class:
       return self._plugin_class
@@ -150,7 +165,37 @@ class PluginLoader(object):
           '%s contains %d plugin classes; only 1 is allowed per file'
           % (self.plugin_type, len(plugin_classes)))
     # getmembers returns a list of tuples: (binding_name, value).
-    return plugin_classes[0][1]
+    cls = plugin_classes[0][1]
+
+    # Store the superclass of the plugin for future reference.
+    # TODO(kitching): Test this in unittest.
+    if self.superclass is None:
+      self.superclass = self._GetSuperclass(cls)
+
+    # Return the plugin class.
+    return cls
+
+  def _GetSuperclass(self, cls):
+    """Returns the superclass for the given plugin class."""
+    # TODO(kitching): Test this in unittest.
+    for superclass in [plugin_base.BufferPlugin,
+                       plugin_base.InputPlugin,
+                       plugin_base.OutputPlugin]:
+      if issubclass(cls, superclass):
+        return superclass
+    raise TypeError('Plugin does not match plugin_base superclasses')
+
+  def GetSuperclass(self):
+    """Get the superclass of the plugin class.
+
+    Returns:
+      None if _plugin_class is not specified and GetClass() has not yet been
+      run.  Afterwards, one of BufferPlugin, InputPlugin, or OutputPlugin.
+    """
+    # TODO(kitching): Test this in unittest.
+    if self.superclass is plugin_base.Plugin:
+      return None
+    return self.superclass
 
   def Create(self):
     """Create an instance of the particular plugin class.

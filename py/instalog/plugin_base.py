@@ -40,6 +40,11 @@ class EventStreamExpired(Exception):
   pass
 
 
+class PluginCallError(Exception):
+  """An error occurred when calling a method on the plugin instance."""
+  pass
+
+
 class PluginAPI(object):
   """Defines an interface for plugins to call."""
 
@@ -165,34 +170,87 @@ class Plugin(object):
 class BufferPlugin(Plugin):
   """Base class for a buffer plugin in Instalog."""
 
-  def AddConsumer(self, cname):
+  def AddConsumer(self, consumer_id):
+    """Subscribes the specified consumer ID to the buffer.
+
+    Args:
+      consumer_id: Unique identifier of the consumer being added.
+    """
     raise NotImplementedError
 
-  def RemoveConsumer(self, cname):
+  def RemoveConsumer(self, consumer_id):
+    """Unsubscribes the specified consumer ID from the buffer.
+
+    Args:
+      consumer_id: Unique identifier of the consumer being removed.
+    """
     raise NotImplementedError
 
   def ListConsumers(self):
-    raise NotImplementedError
-
-  def ConsumerStatus(self, cname):
+    """Returns a list of consumers currently subscribed to the buffer."""
+    # TODO(kitching): Should we return the status of each consumer in this
+    #                 function, or should it be separated into ConsumerStatus()?
     raise NotImplementedError
 
   def Produce(self, events):
+    """Produces events to be stored into the buffer.
+
+    Args:
+      events: List of Event objects to be inserted into the buffer.
+
+    Returns:
+      True if successful, False otherwise.
+    """
     raise NotImplementedError
 
-  def Consume(self, cname):
+  def Consume(self, consumer_id):
+    """Returns a BufferEventStream to consume events from the buffer.
+
+    Args:
+      consumer_id: ID of the consumer for which to create a BufferEventStream.
+
+    Returns:
+      True if successful, False otherwise.
+    """
     raise NotImplementedError
 
 
 class BufferEventStream(object):
+  """Event stream interface that a buffer needs to implement.
+
+  Objects implementing BufferEventStream should be returned when the buffer
+  plugin's Consume method is called.
+  """
 
   def Next(self):
+    """Returns the next available Event."""
     raise NotImplementedError
 
   def Commit(self):
+    """Marks this batch of Events as successfully processed.
+
+    Marks this BufferEventStream as expired.
+
+    Returns:
+      True if successful, False otherwise.  If unsuccessful, this
+      BufferEventStream is considered expired, and its Events will be returned
+      on subsequent Next calls from other BufferEventStream objects.
+
+    Raises:
+      EventStreamExpired if this BufferEventStream is expired.
+    """
     raise NotImplementedError
 
   def Abort(self):
+    """Aborts processing this batch of Events.
+
+    Marks this BufferEventStream as expired.  This BufferEventStream's Events
+    will still be returned on subsequent Next calls from other BufferEventStream
+    objects.
+
+    Raises:
+      EventStreamExpired if this BufferEventStream is expired.
+    """
     raise NotImplementedError
 
 

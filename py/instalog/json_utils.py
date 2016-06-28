@@ -13,8 +13,6 @@ import inspect
 import json
 import traceback
 
-import instalog_common  # pylint: disable=W0611
-
 
 FORMAT_DATETIME = '%Y-%m-%dT%H:%M:%S.%fZ'
 FORMAT_DATE = '%Y-%m-%d'

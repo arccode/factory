@@ -12,6 +12,9 @@ A sample input plugin that produces N events every I seconds.
 from __future__ import print_function
 
 import datetime
+import os
+import shutil
+import tempfile
 import time
 
 import instalog_common  # pylint: disable=W0611
@@ -21,37 +24,71 @@ from instalog.utils.arg_utils import Arg
 
 
 _DEFAULT_INTERVAL = 1
-_DEFAULT_NUM_EVENTS = 1
+_DEFAULT_NUM_EVENTS = 2
+_DEFAULT_EVENT_NAME = 'instalog'
+_DEFAULT_NUM_ATTACHMENTS = 0
+_DEFAULT_ATTACHMENT_BYTES = 102400
 
 
 class InputTime(plugin_base.InputPlugin):
 
   ARGS = [
       Arg('interval', (int, float), 'Interval in between events.',
-          default=_DEFAULT_INTERVAL, optional=True),
+          optional=True, default=_DEFAULT_INTERVAL),
       Arg('num_events', int, 'Number of events to produce on every interval.',
-          default=_DEFAULT_NUM_EVENTS, optional=True),
+          optional=True, default=_DEFAULT_NUM_EVENTS),
       Arg('event_name', (str, unicode), 'Name of the event.',
-          optional=False),
+          optional=True, default=_DEFAULT_EVENT_NAME),
+      Arg('num_attachments', int, 'Number of files to attach to each event.',
+          optional=True, default=_DEFAULT_NUM_ATTACHMENTS),
+      Arg('attachment_bytes', int, 'Size in bytes of each attachment file.',
+          optional=True, default=_DEFAULT_ATTACHMENT_BYTES),
   ]
+
+  def Start(self):
+    """Creates our temporary directory."""
+    self._tmp_dir = tempfile.mkdtemp(prefix='input_time_')
+    self.info('Temporary directory for attachments: %s', self._tmp_dir)
+
+  def Stop(self):
+    """Removes our temporary directory."""
+    shutil.rmtree(self._tmp_dir)
 
   def Main(self):
     """Main thread of the plugin."""
+    batch_id = 0
     # Check to make sure plugin should still be running.
     while not self.IsStopping():
       # Try to emit an event.
       self.debug('Trying to emit %d events', self.args.num_events)
       events = []
       for i in range(self.args.num_events):
-        events.append(datatypes.Event({'name': self.args.event_name,
-                                       'id': i,
-                                       'timestamp': datetime.datetime.now()}))
+        # Create fake attachment files for the event.
+        attachments = {}
+        for j in range(self.args.num_attachments):
+          att_path = os.path.join(self._tmp_dir, '%d_%d_%d' % (batch_id, i, j))
+          with open(att_path, 'wb') as f:
+            f.write(os.urandom(self.args.attachment_bytes))
+          attachments[j] = att_path
+
+        # Data for the event.
+        data = {'name': self.args.event_name,
+                'batch_id': batch_id,
+                'id': i,
+                'timestamp': datetime.datetime.now()}
+
+        # Create the event.
+        events.append(datatypes.Event(data, attachments))
+
+      self.info('Emitting batch #%d with %d events',
+                batch_id, self.args.num_events)
       if not self.Emit(events):
         self.error('Failed to emit %d events, dropping', self.args.num_events)
 
       # Sleep until next emit interval.
       self.debug('Sleeping for %s', self.args.interval)
       time.sleep(self.args.interval)
+      batch_id += 1
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ from __future__ import print_function
 
 import inspect
 import logging
+import sys
 import threading
 import time
 
@@ -121,7 +122,6 @@ class PluginSandbox(plugin_base.PluginAPI):
     """
     self.plugin_type = plugin_type
     self.plugin_id = plugin_id or plugin_type
-    self.superclass = superclass or plugin_base.Plugin
     self.config = config or {}
     self._core_api = core_api or CoreAPI()
     if not isinstance(self._core_api, CoreAPI):
@@ -131,8 +131,9 @@ class PluginSandbox(plugin_base.PluginAPI):
     self.logger = logging.getLogger('%s.plugin_sandbox' % self.plugin_id)
 
     self._loader = plugin_loader.PluginLoader(
-        self.plugin_type, plugin_id=self.plugin_id, superclass=self.superclass,
-        config=self.config, plugin_api=self, _plugin_class=_plugin_class)
+        self.plugin_type, plugin_id=self.plugin_id,
+        superclass=superclass, config=self.config, plugin_api=self,
+        _plugin_class=_plugin_class)
     self._plugin = None
     self._state = DOWN
     self._event_stream_map = {}
@@ -144,6 +145,49 @@ class PluginSandbox(plugin_base.PluginAPI):
     self._start_thread = None
     self._main_thread = None
     self._stop_thread = None
+
+  def GetSuperclass(self):
+    """Get the superclass of the plugin class.
+
+    Returns:
+      None if _plugin_class is not specified and GetClass() has not yet been
+      run.  Afterwards, one of BufferPlugin, InputPlugin, or OutputPlugin.
+    """
+    return self._loader.GetSuperclass()
+
+  def CallPlugin(self, method_name, *args, **kwargs):
+    """Safely calls a method of the plugin instance.
+
+    Args:
+      method_name: Name of the method being called (string).
+      allowed_exceptions: A list of exceptions that the plugin is expected to
+                          raise.  These exceptions will be directly raised back
+                          to the caller unmodified.
+
+    Returns:
+      The value returned by the called plugin method.
+
+    Raises:
+      PluginCallError if the plugin raises any unexpected exceptions.
+      Any exception in allowed_exceptions may also be raised.
+    """
+    # TODO(kitching): Test this in unittest.
+    # TODO(kitching): Figure out what to do in the case when a
+    #                 BufferEventStream is returned.
+    allowed_exceptions = tuple(kwargs.pop('allowed_exceptions', ()))
+    try:
+      ret = getattr(self._plugin, method_name)(*args, **kwargs)
+    except allowed_exceptions:  # pylint: disable=E0712
+      raise
+    except Exception:
+      _, exc, tb = sys.exc_info()
+      exc_message = '%s: %s' % (exc.__class__.__name__, str(exc))
+      new_exc = plugin_base.PluginCallError(
+          'Plugin call for %s unexpectedly failed: %s'
+          % (self.plugin_id, exc_message))
+      raise new_exc.__class__, new_exc, tb
+    return ret
+
 
   def _RecordUnexpectedAccess(self, plugin_ref, caller_name, stack):
     """Record an unexpected access from the plugin (i.e. in a stopped state).
@@ -258,7 +302,7 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def Stop(self, sync=False):
     """Stops the plugin."""
-    self._CheckStateCommand([UP, PAUSED])
+    self._CheckStateCommand([UP, PAUSING, PAUSED, UNPAUSING])
     self._state = STOPPING
     if sync:
       self.AdvanceState(sync)

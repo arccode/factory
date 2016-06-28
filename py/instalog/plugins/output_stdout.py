@@ -24,15 +24,14 @@ class OutputStdout(plugin_base.OutputPlugin):
 
   ARGS = [
       Arg('stream_timeout', (int, float), 'Timeout for each EventStream.',
-          default=_DEFAULT_STREAM_TIMEOUT, optional=True),
+          optional=True, default=_DEFAULT_STREAM_TIMEOUT),
       Arg('stream_count', (int, float), 'Count for each EventStream.',
-          default=_DEFAULT_STREAM_COUNT, optional=True),
+          optional=True, default=_DEFAULT_STREAM_COUNT),
   ]
 
   def Main(self):
     """Main thread of the plugin."""
     while not self.IsStopping():
-      self.info('Create new EventStream')
       event_stream = self.NewStream()
       if not event_stream:
         continue
@@ -50,8 +49,8 @@ class OutputStdout(plugin_base.OutputPlugin):
         print(event.Serialize())
 
       # Commit these events.
-      event_stream.Commit()
-      self.info('Done committing!')
+      success_string = 'success' if event_stream.Commit() else 'failure'
+      self.info('Committed %d events: %s', len(events), success_string)
 
 
 if __name__ == '__main__':

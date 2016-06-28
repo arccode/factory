@@ -6,6 +6,17 @@
 
 """Tests for Instalog plugin loader."""
 
+# TODO(kitching): Currently we have no way of testing plugins that import
+#                 other modules from their own directory.  For example:
+#                 instalog/plugins/input_cool/input_cool.py
+#                 instalog/plugins/input_cool/coll_utils.py
+#                 Using the current testing method, this is not possible to
+#                 test.  input_cool will use a fully-qualified instalog.* path
+#                 to import its cool_utils, which will fail since _plugin_prefix
+#                 sets the plugins directory to a separate path from
+#                 py/instalog.  Come up with a better way of testing plugins
+#                 that fall under this case.
+
 from __future__ import print_function
 
 import logging
