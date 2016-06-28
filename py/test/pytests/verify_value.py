@@ -46,11 +46,16 @@ class VerifyValueTest(unittest.TestCase):
                       - (min_value, max_value)
                       - A list of all possible values, each item can be one
                           of the above types.
-          """))]
+          """)),
+      Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
+          optional=True, default=True)
+      ]
 
   def setUp(self):
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
+    self._ui = (test_ui.UI() if self.args.has_ui
+                else test_ui.DummyUI(self))
+    self._template = (ui_templates.OneSection(self._ui) if self.args.has_ui
+                      else ui_templates.DummyTemplate())
     self._dut = dut.Create()
 
   def runTest(self):

@@ -53,12 +53,16 @@ class LineCheckItemTest(unittest.TestCase):
           '- for example doing configuration on Goofy host.', default=False),
       Arg('use_shell', bool, 'True to execute with shell=True.',
           default=True, optional=True),
+      Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
+          optional=True, default=True)
   ]
 
   def setUp(self):
     """Initializes _ui, _template, _current, and _items"""
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
+    self._ui = (test_ui.UI() if self.args.has_ui
+                else test_ui.DummyUI(self))
+    self._template = (ui_templates.OneSection(self._ui) if self.args.has_ui
+                      else ui_templates.DummyTemplate())
     self._items = []
     self._current = 0
     self._dut = None if self.args.run_locally else dut.Create()

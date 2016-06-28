@@ -5,6 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import os
 
 import factory_common  # pylint: disable=W0611
@@ -287,3 +288,13 @@ class TwoSections(BaseTemplate):
       value: A value between 0 and 100 to indicate test progress.
     '''
     self._ui.CallJSFunction('SetProgressBarValue', value)
+
+
+class DummyTemplate(object):
+  """Dummy template for offline test."""
+
+  def SetState(self, msg):
+    logging.info('Set UI state: %s', msg)
+
+  def SetTitle(self, msg):
+    logging.info('Set UI title: %s', msg)
