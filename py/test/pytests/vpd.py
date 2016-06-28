@@ -31,6 +31,7 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -41,7 +42,6 @@ from cros.factory.test.rules import registration_codes
 from cros.factory.test.ui_templates import OneSection, SelectBox
 from cros.factory.tools.build_board import BuildBoard
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput, Spawn
 from cros.factory.utils.type_utils import Enum
 
 _MSG_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
@@ -98,7 +98,7 @@ _JS_SELECT_BOX = lambda ele_id, event_subtype: """
     window.test.sendTestEvent("%s", ele.options[idx].value);
 """ % (ele_id, event_subtype)
 
-_VPD_SECTIONS = {'ro': 'RO_VPD', 'rw': 'RW_VPD'}
+_VPD_SECTIONS = ['ro', 'rw']
 
 _REGEX_TYPE = type(re.compile(''))
 
@@ -117,15 +117,6 @@ class WriteVPDTask(FactoryTask):
     super(WriteVPDTask, self).__init__()
     self.test = vpd_test
 
-  def FormatVPDParameter(self, vpd_dict):
-    """Formats a key-value dictionary into command line VPD syntax."""
-    # Writes in sorted ordering so the VPD structure will be more
-    # deterministic.
-    ret = []
-    for key in sorted(vpd_dict):
-      ret += ['-s', '%s=%s' % (key, vpd_dict[key])]
-    return ret
-
   def Run(self):
     # Flatten key-values in VPD dictionary.
     vpd = self.test.vpd
@@ -141,11 +132,9 @@ class WriteVPDTask(FactoryTask):
     self.test.template.SetState('<div class="vpd-info">%s</div>' % (
         '</br>'.join(vpd_list)), append=True)
 
-    for (vpd_type, section) in _VPD_SECTIONS.items():
-      if not self.test.vpd.get(vpd_type, None):
-        continue
-      vpds = self.FormatVPDParameter(self.test.vpd[vpd_type])
-      Spawn(['vpd', '-i', '%s' % section] + vpds, log=True, check_call=True)
+    for vpd_type in self.test.vpd:
+      partition = self.test.dut.vpd.GetPartition(vpd_type)
+      partition.Update(self.test.vpd[vpd_type])
 
     if self.test.registration_code_map:
       # Check registration codes (fail test if invalid).
@@ -172,12 +161,11 @@ class WriteVPDTask(FactoryTask):
 
       # Add registration codes, being careful not to log the command.
       logging.info('Storing registration codes.')
-      Spawn(['vpd', '-i', 'RW_VPD'] + self.FormatVPDParameter(
-          # See <http://src.chromium.org/svn/trunk/src/chrome/
-          # browser/chromeos/extensions/echo_private_api.cc>.
-          {'ubind_attribute': self.test.registration_code_map['user'],
-           'gbind_attribute': self.test.registration_code_map['group']}),
-            log=False, check_call=True)
+      # See <http://src.chromium.org/svn/trunk/src/chrome/
+      # browser/chromeos/extensions/echo_private_api.cc>.
+      data = {'ubind_attribute': self.test.registration_code_map['user'],
+              'gbind_attribute': self.test.registration_code_map['group']}
+      self.test.dut.vpd.rw.Update(data)
     self.Pass()
 
 
@@ -269,8 +257,8 @@ class ManualInputTask(FactoryTask):
       self.OnComplete(vpd_value)
 
   def OnESCPressed(self):
-    vpd_value = CheckOutput(['vpd', '-i', _VPD_SECTIONS[self.vpd_info.region],
-                             '-g', self.vpd_info.key]).strip()
+    vpd_value = self.test.dut.vpd.GetPartition(
+        self.vpd_info.region).get(self.vpd_info.key).strip()
     if not vpd_value:
       self.test.ui.SetHTML(_ERR_NO_VALID_VPD(
           self.vpd_info.label_en, self.vpd_info.label_zh), id='errormsg')
@@ -533,6 +521,7 @@ class VPDTest(unittest.TestCase):
     self.tasks = []
     self.registration_code_map = {}
     self.vpd = {'ro': {}, 'rw': {}}
+    self.dut = dut.Create()
     if self.args.override_vpd:
       if self.ui.InEngineeringMode():
         self.vpd = self.args.override_vpd

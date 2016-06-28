@@ -207,6 +207,13 @@ class VitalProductData(component.DUTComponent):
   def rw(self):
     raise NotImplementedError
 
+  def GetPartition(self, partition):
+    if partition == 'rw':
+      return self.rw
+    elif partition == 'ro':
+      return self.ro
+    raise component.DUTException('No %s partition found.' % partition)
+
 
 class ChromeOSVitalProductData(component.DUTComponent):
   """System module for Vital Product Data (VPD) on Chrome OS."""
