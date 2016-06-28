@@ -201,4 +201,8 @@ class UmpireClientInfo(object):
     output = '; '.join(
         ['%s=%s' % (key, info_dict[key]) for key in sorted(info_dict)])
     logging.debug('Client X-Umpire-DUT : %r', output)
+    # This will be directly sent to HTTP header and we don't want to allow new
+    # line characters.
+    assert '\n' not in output, (
+        'UmpireClientInfo may not have multiple-line data.')
     return output
