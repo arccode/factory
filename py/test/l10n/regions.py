@@ -141,7 +141,13 @@ class Region(object):
               f, LANGUAGE_CODE_PATTERN.pattern))
 
   def __repr__(self):
-    return 'Region(%s)' % ([', '.join(getattr(self, x) for x in self.FIELDS)])
+    return 'Region(%s)' % ', '.join(
+        [repr(getattr(self, x)) for x in self.FIELDS])
+
+  def __str__(self):
+    return 'Region(%s)' % ', '.join([
+        ';'.join(v) if isinstance(v, list) else str(v)
+        for x in self.FIELDS for v in [getattr(self, x)]])
 
   def GetFieldsDict(self):
     """Returns a dict of all substantive fields.
