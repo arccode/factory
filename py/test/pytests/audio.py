@@ -61,7 +61,7 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
   """
 
   def __init__(self, _dut, ui, port_label, title_id, instruction_id, card,
-               device, channel='all'):
+               device, channel='all', sample_rate=None):
     super(AudioDigitPlaybackTask, self).__init__(ui)
     self._dut = _dut
     self._pass_digit = random.randint(0, 9)
@@ -71,6 +71,7 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     self._title_id = title_id
     self._instruction_id = instruction_id
     self._channel = channel
+    self._sample_rate = sample_rate
 
     if channel == 'left':
       self._port_label += test_ui.MakeLabel(' (Left Channel)', u'(左声道)')
@@ -99,8 +100,11 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
         with file_utils.UnopenedTemporaryFile(suffix='.wav') as temp_wav_path:
           # We genereate stereo sound by default. and mute one channel by sox
           # if needed.
-          Spawn(['sox', os.path.join(_SOUND_DIRECTORY, base_name), '-c2',
-                 temp_wav_path], log=True, check_call=True)
+          cmd = ['sox', os.path.join(_SOUND_DIRECTORY, base_name), '-c2']
+          if self._sample_rate is not None:
+            cmd += ['-r %d' % self._sample_rate]
+          cmd += [temp_wav_path]
+          Spawn(cmd, log=True, check_call=True)
           if channel == 'left':
             Spawn(['sox', temp_wav_path, wav_path, 'remix', '1', '0'],
                   log=True, check_call=True)
@@ -198,6 +202,9 @@ class AudioTest(unittest.TestCase):
       Arg('require_headphone', bool, 'Require headphone option', False),
       Arg('check_headphone', bool,
           'Check headphone status whether match require_headphone', False),
+      Arg('sample_rate', int,
+          'Required sample rate to be played by the device.',
+          default=None)
   ]
 
   def setUp(self):
@@ -233,11 +240,15 @@ class AudioTest(unittest.TestCase):
       A list of AudioDigitPlaybackTask.
     """
     def _ComposeLeftRightTasks(tasks, args):
+      kwargs = {}
+      if self.args.sample_rate is not None:
+        kwargs['sample_rate'] = self.args.sample_rate
       if self.args.test_left_right:
-        tasks.append(AudioDigitPlaybackTask(*args, **{'channel': 'left'}))
-        tasks.append(AudioDigitPlaybackTask(*args, **{'channel': 'right'}))
+        for c in ['left', 'right']:
+          kwargs['channel'] = c
+          tasks.append(AudioDigitPlaybackTask(*args, **kwargs))
       else:
-        tasks.append(AudioDigitPlaybackTask(*args))
+        tasks.append(AudioDigitPlaybackTask(*args, **kwargs))
 
     _TITLE_ID = 'instruction'
     _INSTRUCTION_ID = 'instruction-center'
