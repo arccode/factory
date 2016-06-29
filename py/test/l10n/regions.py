@@ -25,6 +25,32 @@ KEYBOARD_PATTERN = re.compile(r'^xkb:\w+:\w*:\w+$|'
 LANGUAGE_CODE_PATTERN = re.compile(r'^(\w+)(-[A-Z0-9]+)?$')
 CROS_REGIONS_DATABASE = os.getenv('CROS_REGIONS_DATABASE',
                                   '/usr/share/misc/cros-regions.json')
+# crbug.com/624257: Only regions defined below can use numeric_id for
+# auto-populating HWID field mappings in !region_field.
+LEGACY_REGIONS_LIST = [
+    'au', 'be', 'br', 'br.abnt', 'br.usintl', 'ca.ansi', 'ca.fr', 'ca.hybrid',
+    'ca.hybridansi', 'ca.multix', 'ch', 'de', 'es', 'fi', 'fr', 'gb', 'ie',
+    'in', 'it', 'latam-es-419', 'my', 'nl', 'nordic', 'nz', 'ph', 'ru', 'se',
+    'sg', 'us', 'jp', 'za', 'ng', 'hk', 'gcc', 'cz', 'th', 'id', 'tw', 'pl',
+    'gr', 'il', 'pt', 'ro', 'kr', 'ae', 'za.us', 'vn', 'at', 'sk', 'ch.usintl',
+    'bd', 'bf', 'bg', 'ba', 'bb', 'wf', 'bl', 'bm', 'bn', 'bo', 'bh', 'bi',
+    'bj', 'bt', 'jm', 'bw', 'ws', 'bq', 'bs', 'je', 'by', 'bz', 'rw', 'rs',
+    'tl', 're', 'tm', 'tj', 'tk', 'gw', 'gu', 'gt', 'gs', 'gq', 'gp', 'gy',
+    'gg', 'gf', 'ge', 'gd', 'ga', 'sv', 'gn', 'gm', 'gl', 'gi', 'gh', 'om',
+    'tn', 'jo', 'hr', 'ht', 'hu', 'hn', 've', 'pr', 'ps', 'pw', 'sj', 'py',
+    'iq', 'pa', 'pf', 'pg', 'pe', 'pk', 'pn', 'pm', 'zm', 'eh', 'ee', 'eg',
+    'ec', 'sb', 'et', 'so', 'zw', 'sa', 'er', 'me', 'md', 'mg', 'mf', 'ma',
+    'mc', 'uz', 'mm', 'ml', 'mo', 'mn', 'mh', 'mk', 'mu', 'mt', 'mw', 'mv',
+    'mq', 'mp', 'ms', 'mr', 'im', 'ug', 'tz', 'mx', 'io', 'sh', 'fj', 'fk',
+    'fm', 'fo', 'ni', 'no', 'na', 'vu', 'nc', 'ne', 'nf', 'np', 'nr', 'nu',
+    'ck', 'ci', 'co', 'cn', 'cm', 'cl', 'cc', 'cg', 'cf', 'cd', 'cy', 'cx',
+    'cr', 'cw', 'cv', 'cu', 'sz', 'sy', 'sx', 'kg', 'ke', 'ss', 'sr', 'ki',
+    'kh', 'kn', 'km', 'st', 'si', 'kp', 'kw', 'sn', 'sm', 'sl', 'sc', 'kz',
+    'ky', 'sd', 'do', 'dm', 'dj', 'dk', 'vg', 'ye', 'dz', 'uy', 'yt', 'um',
+    'lb', 'lc', 'la', 'tv', 'tt', 'tr', 'lk', 'li', 'lv', 'to', 'lt', 'lu',
+    'lr', 'ls', 'tf', 'tg', 'td', 'tc', 'ly', 'va', 'vc', 'ad', 'ag', 'af',
+    'ai', 'vi', 'is', 'ir', 'am', 'al', 'ao', 'as', 'ar', 'aw', 'ax', 'az'
+]
 
 
 class RegionException(Exception):

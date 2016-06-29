@@ -15,7 +15,7 @@ class RegionFieldMetaclass(yaml_utils.BaseYAMLTagMetaclass):
 
   @classmethod
   def YAMLConstructor(mcs, loader, node):
-    return RegionField()
+    return RegionField(node.value)
 
   @classmethod
   def YAMLRepresenter(mcs, dumper, data):
@@ -26,11 +26,20 @@ class RegionField(dict):
   """A class for holding the region field data in a HWID database."""
   __metaclass__ = RegionFieldMetaclass
 
-  def __init__(self):
+  def __init__(self, list_node=None):
     # The numeric ids of valid regions start from 1.
-    fields_dict = dict(
-        (r.numeric_id, {'region': r.region_code})
-        for r in regions.REGIONS.itervalues())
+    # crbug.com/624257: If no explicit regions defined, populate with only the
+    # legacy list.
+    if list_node:
+      fields_dict = dict(
+          (regions.REGIONS[n.value].numeric_id,
+           {'region': regions.REGIONS[n.value].region_code})
+          for i, n in enumerate(list_node))
+    else:
+      fields_dict = dict(
+          (r.numeric_id, {'region': r.region_code})
+          for r in regions.REGIONS_LIST
+          if r.region_code in regions.LEGACY_REGIONS_LIST)
     # 0 is a reserved field and is set to {region: None}, so that previous HWIDs
     # which do not have region encoded will not return a bogus region component
     # when being decoded.
