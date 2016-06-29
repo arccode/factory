@@ -6,6 +6,7 @@
 """ChromeOS family boards."""
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.dut.audio import utils as audio_utils
 from cros.factory.test.dut import component
 from cros.factory.test.dut import wifi
 from cros.factory.test.dut.boards import linux
@@ -16,6 +17,11 @@ from cros.factory.test.dut import vpd
 
 class ChromeOSBoard(linux.LinuxBoard):
   """Common interface for ChromeOS boards."""
+
+  @component.DUTProperty
+  def audio(self):
+    return audio_utils.CreateAudioControl(
+        self, controller=audio_utils.CONTROLLERS.ALSA)
 
   @component.DUTProperty
   def bluetooth(self):

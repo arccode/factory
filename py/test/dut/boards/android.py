@@ -8,6 +8,7 @@
 import pipes
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.dut.audio import utils as audio_utils
 from cros.factory.test.dut import component
 from cros.factory.test.dut import memory
 from cros.factory.test.dut import path
@@ -38,6 +39,11 @@ class AndroidBoard(linux.LinuxBoard):
 
     command = ['TMPDIR=%s' % self.TMPDIR, 'sh', '-c', command]
     return super(AndroidBoard, self).Popen(command, stdin, stdout, stderr, log)
+
+  @component.DUTProperty
+  def audio(self):
+    return audio_utils.CreateAudioControl(
+        self, controller=audio_utils.CONTROLLERS.TINYALSA)
 
   @component.DUTProperty
   def memory(self):
