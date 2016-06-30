@@ -110,7 +110,8 @@ class FactoryToolkitInstaller(object):
   _sudo = True
 
   def __init__(self, src, dest, no_enable, enable_presenter,
-               enable_device, non_cros=False, device_id=None, system_root='/'):
+               enable_device, non_cros=False, device_id=None, system_root='/',
+               apps=None):
     self._src = src
     self._system_root = system_root
     if dest == self._system_root:
@@ -161,6 +162,7 @@ class FactoryToolkitInstaller(object):
     self._device_tag_file = os.path.join(self._usr_local_dest, 'factory',
                                          'init', 'run_goofy_device')
     self._device_id = device_id
+    self._apps = apps
 
     if (not os.path.exists(self._usr_local_src) or
         not os.path.exists(self._var_src)):
@@ -211,6 +213,47 @@ class FactoryToolkitInstaller(object):
       with open(os.path.join(event_log.DEVICE_ID_PATH), 'w') as f:
         f.write(self._device_id)
 
+  def _EnableApp(self, app, enabled):
+    """Enable / disable @app.
+
+    In factory/init/startup, a main app is considered disabled if and only:
+      1. file "factory/init/main.d/disable-@app" exists OR
+      2. file "factory/init/main.d/enable-@app" doesn't exist AND
+        file "factory/init/main.d/@app.sh" is not executable.
+
+    Therefore, we enable an app by removing file "disable-@app" and creating
+    file "enable-@app", and vise versa.
+    """
+    app_enable = os.path.join(self._usr_local_dest,
+                              'factory', 'init', 'main.d', 'enable-' + app)
+    app_disable = os.path.join(self._usr_local_dest,
+                               'factory', 'init', 'main.d', 'disable-' + app)
+    if enabled:
+      print '*** Enabling {app} ***'.format(app=app)
+      Spawn(['rm', '-f', app_disable], sudo=True, log=True, check_call=True)
+      Spawn(['touch', app_enable], sudo=True, log=True, check_call=True)
+    else:
+      print '*** Disabling {app} ***'.format(app=app)
+      Spawn(['touch', app_disable], sudo=True, log=True, check_call=True)
+      Spawn(['rm', '-f', app_enable], sudo=True, log=True, check_call=True)
+
+  def _EnableApps(self):
+    if not self._apps:
+      return
+
+    app_list = []
+    for app in self._apps:
+      if app[0] == '+':
+        app_list.append((app[1:], True))
+      elif app[0] == '-':
+        app_list.append((app[1:], False))
+      else:
+        raise ValueError(
+            'Use +{app} to enable and -{app} to disable'.format(app=app))
+
+    for app, enabled in app_list:
+      self._EnableApp(app, enabled)
+
   def Install(self):
     print '*** Installing factory toolkit...'
     for src, dest in ((self._usr_local_src, self._usr_local_dest),
@@ -252,6 +295,7 @@ class FactoryToolkitInstaller(object):
     self._SetTagFile('device', self._device_tag_file, self._enable_device)
 
     self._SetDeviceID()
+    self._EnableApps()
 
     print '*** Installation completed.'
 
@@ -415,6 +459,11 @@ def main():
   parser.add_argument('--extract-overlord', dest='extract_overlord',
                       metavar='OUTPUT_DIR', type=str, default=None,
                       help='Extract overlord from the toolkit')
+  parser.add_argument('--apps', type=lambda s: s.split(','), default=None,
+                      help=('Enable or disable some apps under '
+                            'factory/init/main.d/. Use prefix "-" to disable, '
+                            'prefix "+" to enable, and use "," to seperate. '
+                            'For example: --apps="-goofy,+whale_servo"'))
 
   args = parser.parse_args()
 
@@ -472,7 +521,8 @@ def main():
         src=src_root, dest=dest, no_enable=args.no_enable,
         enable_presenter=args.enable_presenter,
         enable_device=args.enable_device, non_cros=args.non_cros,
-        device_id=args.device_id)
+        device_id=args.device_id,
+        apps=args.apps)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
 

@@ -29,11 +29,15 @@ class ToolkitInstallerTest(unittest.TestCase):
        'This goes to DUT, too!'),
       ('usr/local/factory/py/umpire/archiver.py',
        'I only run on Umpire server!'),
+      ('usr/local/factory/init/main.d/a.sh',
+       'This is a.sh'),
+      ('usr/local/factory/init/main.d/b.sh',
+       'This is b.sh'),
   ]
 
   def setUp(self):
     self.src = tempfile.mkdtemp(prefix='ToolkitInstallerTest.')
-    os.makedirs(os.path.join(self.src, 'usr/local/factory/init'))
+    os.makedirs(os.path.join(self.src, 'usr/local/factory/init/main.d'))
     os.makedirs(os.path.join(self.src, 'var/factory/state'))
     os.makedirs(os.path.join(self.src, 'usr/local/factory/py/umpire/client'))
 
@@ -63,11 +67,11 @@ class ToolkitInstallerTest(unittest.TestCase):
 
   def createInstaller(self, enabled_tag=True, system_root='/',
                       enable_presenter=True, enable_device=False,
-                      non_cros=False):
+                      non_cros=False, apps=None):
     self._installer = installer.FactoryToolkitInstaller(
         self.src, self.dest, not enabled_tag, enable_presenter,
         enable_device, non_cros=non_cros,
-        system_root=system_root)
+        system_root=system_root, apps=apps)
     self._installer._sudo = False # pylint: disable=W0212
 
   def testNonRoot(self):
@@ -158,6 +162,33 @@ class ToolkitInstallerTest(unittest.TestCase):
       self.assertEqual(f.read(), 'I am a log file!')
     self.assertFalse(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/enabled')))
+
+  def testEnableApp(self):
+    self.makeLiveDevice()
+    os.makedirs(os.path.join(self.dest, 'usr/local/factory/init/main.d'))
+    os.getuid = lambda: 0  # root
+    self._override_in_cros_device = True
+    self.createInstaller(system_root=self.dest, apps=['+a', '-b'])
+    self._installer.Install()
+
+    self.assertTrue(os.path.exists(os.path.join(
+        self.dest, 'usr/local/factory/init/main.d/enable-a')))
+    self.assertFalse(os.path.exists(os.path.join(
+        self.dest, 'usr/local/factory/init/main.d/disable-a')))
+    self.assertFalse(os.path.exists(os.path.join(
+        self.dest, 'usr/local/factory/init/main.d/enable-b')))
+    self.assertTrue(os.path.exists(os.path.join(
+        self.dest, 'usr/local/factory/init/main.d/disable-b')))
+
+  def testEnableAppWrongFormat(self):
+    self.makeLiveDevice()
+    os.makedirs(os.path.join(self.dest, 'usr/local/factory/init/main.d'))
+    os.getuid = lambda: 0  # root
+    self._override_in_cros_device = True
+    self.createInstaller(system_root=self.dest, apps=['a', '-b'])
+
+    with self.assertRaises(ValueError):
+      self._installer.Install()
 
 
 if __name__ == '__main__':
