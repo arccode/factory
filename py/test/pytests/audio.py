@@ -204,7 +204,7 @@ class AudioTest(unittest.TestCase):
           'Check headphone status whether match require_headphone', False),
       Arg('sample_rate', int,
           'Required sample rate to be played by the device.',
-          default=None)
+          optional=True)
   ]
 
   def setUp(self):
