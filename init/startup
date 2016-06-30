@@ -8,6 +8,31 @@ GOOFY_ROLES=""
 
 export INIT_BASE GOOFY_ROLES
 
+is_enabled() {
+  # Returns 0 if this rule is enabled.
+  # Returns 1 if this rule if disabled.
+  #
+  # A rule is disabled if and only if:
+  #   1. file "disable-${rule_name}" exists OR
+  #   2. file "enable-${rule_name}" doesn't exist AND "${rule_file}" is
+  #      not executable
+  #
+  # Parameters:
+  #   rule_file: path to the rule file: "/path/to/${rule_name}.sh"
+
+  local rule_file="$1"
+  local rule_dir="$(dirname "$rule_file")"
+  local rule_file_name="$(basename "${rule_file}")"
+  local rule_name="${rule_file_name%.sh}"
+  local enable_rule="${rule_dir}/enable-${rule_name}"
+  local disable_rule="${rule_dir}/disable-${rule_name}"
+
+  if [ -e "${disable_rule}" ]; then
+    return 1
+  fi
+  [ -e "${enable_rule}" -o -x "${rule_file}" ]
+}
+
 execute_rules() {
   local init_folder="$1"
   local rule_file="" rule_name="" enable_rule="" disable_rule=""
@@ -15,14 +40,9 @@ execute_rules() {
   for rule_file in "${INIT_BASE}/${init_folder}"/*.sh; do
     [ -e "${rule_file}" ] || continue  # Skip if no rules found.
     rule_name="$(basename "${rule_file%.sh}")"
-    enable_rule="${INIT_BASE}/${init_folder}/enable-${rule_name}"
-    disable_rule="${INIT_BASE}/${init_folder}/disable-${rule_name}"
-    if [ -e "${disable_rule}" ]; then
+
+    if ! is_enabled "${rule_file}"; then
       echo "Skipping disabled ${rule_file}..."
-      continue
-    fi
-    if ! [ -x "${rule_file}" -o -e "${enable_rule}" ]; then
-      echo "Skipping default disabled ${rule_file}..."
       continue
     fi
     echo "Applying ${rule_file}..."
@@ -41,8 +61,8 @@ factory_init() {
   execute_rules iptables.d
 
   # See factory_main for the path of tag that may disable Goofy.
-  local disable_goofy="${INIT_BASE}/main.d/disable-goofy"
-  if [ -e "${disable_goofy}" ]; then
+  local goofy_rule="${INIT_BASE}/main.d/goofy.sh"
+  if ! is_enabled "${goofy_rule}"; then
     echo "[$(date)] Initialization finished (Goofy rules are disabled)."
     return
   fi
