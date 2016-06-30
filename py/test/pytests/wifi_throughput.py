@@ -65,11 +65,13 @@ looks like this::
 
 from __future__ import print_function
 
+import contextlib
 import json
 import logging
 import os
 import string  # pylint: disable=W0402
 import sys
+import subprocess
 import threading
 import time
 import unittest
@@ -112,13 +114,31 @@ def _BytesToMbits(x):
   return _BitsToMbits(x * 8)
 
 
-class Iperf3(object):
+@contextlib.contextmanager
+def DummyContextManager():
+  yield
+
+
+@contextlib.contextmanager
+def Iperf3Server(port):
+  logging.info('Start iperf server at local side.')
+  net_utils.EnablePort(port)
+  process = subprocess.Popen(['iperf3', '--server', '--port', str(port)])
+
+  yield
+
+  logging.info('Stop iperf server at local side.')
+  process.kill()
+
+
+class Iperf3Client(object):
   """Wraps around spawning the iperf3 command.
 
   Allows running the iperf3 command and checks its resulting JSON dict for
   validity.
   """
   ERROR_MSG_BUSY = 'error - the server is busy running a test. try again later'
+  DEFAULT_PORT = 5201
   DEFAULT_TRANSMIT_TIME = 5
   DEFAULT_TRANSMIT_INTERVAL = 1
   # Wait (transmit_time + _TIMEOUT_KILL_BUFFER) before killing iperf3.
@@ -294,10 +314,12 @@ class _ServiceTest(object):
   _service = None
   _log = None
 
-  def __init__(self, wifi, interface, iperf3, ui, bind_wifi):
+  def __init__(self, wifi, interface, iperf3, enable_iperf_server, ui,
+               bind_wifi):
     self._wifi = wifi
     self._interface = interface
     self._iperf3 = iperf3
+    self._enable_iperf_server = enable_iperf_server
     self._ui = ui
     self._bind_wifi = bind_wifi
 
@@ -390,26 +412,28 @@ class _ServiceTest(object):
 
     # Try running iperf3 on this service, for both TX and RX.  If it succeeds,
     # check the throughput speed against its minimum threshold.
-    for reverse, tx_rx, min_throughput in [
-        (False, 'TX', ap_config.min_tx_throughput),
-        (True, 'RX', ap_config.min_rx_throughput)]:
-      try:
-        DoTest(self._RunIperf, abort=True,
-               iperf_host=ap_config.iperf_host,
-               bind_wifi=self._bind_wifi,
-               reverse=reverse,
-               tx_rx=tx_rx,
-               log_key=('iperf_%s' % tx_rx.lower()),
-               transmit_time=ap_config.transmit_time,
-               transmit_interval=ap_config.transmit_interval)
+    with (Iperf3Server(Iperf3Client.DEFAULT_PORT) if self._enable_iperf_server
+          else DummyContextManager()):
+      for reverse, tx_rx, min_throughput in [
+          (False, 'TX', ap_config.min_tx_throughput),
+          (True, 'RX', ap_config.min_rx_throughput)]:
+        try:
+          DoTest(self._RunIperf, abort=True,
+                 iperf_host=ap_config.iperf_host,
+                 bind_wifi=self._bind_wifi,
+                 reverse=reverse,
+                 tx_rx=tx_rx,
+                 log_key=('iperf_%s' % tx_rx.lower()),
+                 transmit_time=ap_config.transmit_time,
+                 transmit_interval=ap_config.transmit_interval)
 
-        DoTest(self._CheckIperfThroughput, abort=True,
-               tx_rx=tx_rx,
-               log_key=('iperf_%s' % tx_rx.lower()),
-               log_pass_key=('pass_iperf_%s' % tx_rx.lower()),
-               min_throughput=min_throughput)
-      except self._TestException:
-        pass  # continue to next test (TX/RX)
+          DoTest(self._CheckIperfThroughput, abort=True,
+                 tx_rx=tx_rx,
+                 log_key=('iperf_%s' % tx_rx.lower()),
+                 log_pass_key=('pass_iperf_%s' % tx_rx.lower()),
+                 min_throughput=min_throughput)
+        except self._TestException:
+          pass  # continue to next test (TX/RX)
 
     # Attempt to disconnect from the WiFi network.
     try:
@@ -491,7 +515,6 @@ class _ServiceTest(object):
   def _RunIperf(
       self, iperf_host, bind_wifi, reverse, tx_rx, log_key,
       transmit_time, transmit_interval):
-
     # Determine the IP address to bind to (in order to prevent the test from
     # running on a wired device).
     if bind_wifi:
@@ -518,14 +541,14 @@ class _ServiceTest(object):
             condition_method=lambda x: (
                 # Success if no error, or if non-busy error.
                 ('error' not in x) or
-                (x.get('error') == Iperf3.ERROR_MSG_BUSY)),
+                (x.get('error') == Iperf3Client.ERROR_MSG_BUSY)),
             timeout_secs=_IPERF_TIMEOUT_SECS,
             poll_interval_secs=_DEFAULT_POLL_INTERVAL_SECS,
             condition_name=log_msg)
       except type_utils.TimeoutError as e:
         iperf_output = e.output
 
-      if iperf_output.get('error') == Iperf3.ERROR_MSG_BUSY and self._ui:
+      if iperf_output.get('error') == Iperf3Client.ERROR_MSG_BUSY and self._ui:
         self._Log('%s iperf3 error: %s', tx_rx, iperf_output.get('error'))
         self._Log('iperf3 server is currently busy running a test, please wait '
                   'for it to finish and try again.')
@@ -666,6 +689,11 @@ class WiFiThroughput(unittest.TestCase):
           'Host running iperf3 in server mode, used for testing data '
           'transmission speed.',
           optional=True, default=None),
+      Arg('enable_iperf_server', bool,
+          'Start iperf server locally. In station-based testing we can run '
+          'iperf server at the test station directly, instead of preparing '
+          'another machine.',
+          optional=True, default=False),
       Arg('min_strength', int,
           'Minimum signal strength required (measured in dBm).  If the driver '
           'does not report this value, setting a limit always fail.',
@@ -676,14 +704,14 @@ class WiFiThroughput(unittest.TestCase):
           optional=True),
       Arg('transmit_time', int,
           'Time in seconds for which to transmit data.',
-          optional=True, default=Iperf3.DEFAULT_TRANSMIT_TIME),
+          optional=True, default=Iperf3Client.DEFAULT_TRANSMIT_TIME),
       Arg('transmit_interval', (int, float),
           'There will be an overall average of transmission speed.  But it may '
           'also be useful to check bandwidth within subintervals of this time. '
           'This argument can be used to check bandwidth for every interval of '
           'n seconds.  Assuming nothing goes wrong, there will be '
           'ceil(transmit_time / n) intervals reported.',
-          optional=True, default=Iperf3.DEFAULT_TRANSMIT_INTERVAL),
+          optional=True, default=Iperf3Client.DEFAULT_TRANSMIT_INTERVAL),
       Arg('min_tx_throughput', int,
           'Required DUT-to-host (TX) minimum throughput in Mbits/sec.  If the '
           'average throughput is lower than this, will report a failure.',
@@ -880,7 +908,7 @@ class WiFiThroughput(unittest.TestCase):
     # Initialize our WifiProxy library and Iperf3 library.
     self._interface = None
     self._wifi = self._dut.wifi
-    self._iperf3 = Iperf3(self._dut)
+    self._iperf3 = Iperf3Client(self._dut)
 
     # If use_ui_retry and we are running the UI (will except when run on
     # command-line), then use a retry-loop in the goofy UI when an iperf3 server
@@ -950,7 +978,8 @@ class WiFiThroughput(unittest.TestCase):
     # Test WiFi signal and throughput speed for each service.
     if self.args.services:
       service_test = _ServiceTest(self._wifi, self._interface,
-                                  self._iperf3, self._ui,
+                                  self._iperf3, self.args.enable_iperf_server,
+                                  self._ui,
                                   self.args.bind_wifi)
       for ap_config in self.args.services:
         self.log['test'][ap_config.ssid] = service_test.Run(ap_config)
