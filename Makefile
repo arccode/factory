@@ -4,7 +4,7 @@
 
 SHELL := bash
 
-BUILD_DIR=build
+BUILD_DIR=$(CURDIR)/build
 PAR_BUILD_DIR=$(BUILD_DIR)/par
 PAR_NAME=factory.par
 DESTDIR=$(BUILD_DIR)/image
@@ -316,3 +316,13 @@ doc: .phony
 	mkdir -p $(BUILD_DIR)/doc
 	rsync -a $(BUILD_DIR)/docsrc/_build/ $(BUILD_DIR)/doc/
 	cd $(BUILD_DIR) && tar cfj doc.tar.bz2 doc
+
+ovl-bin:
+	# Create virtualenv environment
+	rm -rf $(BUILD_DIR)/.env
+	virtualenv $(BUILD_DIR)/.env
+	# Build ovl binary with pyinstaller
+	cd $(BUILD_DIR); \
+	source $(BUILD_DIR)/.env/bin/activate; \
+	pip install jsonrpclib ws4py pyinstaller; \
+	pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
