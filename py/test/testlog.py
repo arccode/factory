@@ -41,13 +41,11 @@ TODO(itspeter): Move to Instalog folder and remove the dependency of
 from __future__ import print_function
 
 import datetime
-import inspect
 import json
 import logging
-import threading
-import traceback
 import os
 import shutil
+import threading
 from uuid import uuid4
 
 
@@ -55,6 +53,8 @@ from uuid import uuid4
 # be able to deploy without factory framework.
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import testlog_seq
+from cros.factory.test import testlog_validator
+from cros.factory.test import testlog_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
@@ -161,7 +161,7 @@ class Testlog(object):
     metadata = session_data.pop(self.FIELDS._METADATA, None)  # pylint: disable=W0212
     if metadata:
       # pylint: disable=W0212
-      self.last_test_run._data[self.FIELDS._METADATA] = metadata
+      self.last_test_run[self.FIELDS._METADATA] = metadata
     assert len(session_data.items()) == 0, 'Not all variable initialized.'
 
     # Initialize the sequence generator
@@ -255,10 +255,10 @@ def InitSubSession(log_root, uuid, station_test_run=None):
     station_test_run.FromDict({
         'status': StationTestRun.STATUS.STARTING,
         'testRunId': uuid,
-        'startTime': _ToJSONDateTime(datetime.datetime.utcnow())
+        'startTime': datetime.datetime.utcnow()
         })
   # pylint: disable=W0212
-  station_test_run._data[Testlog.FIELDS._METADATA] = {
+  station_test_run[Testlog.FIELDS._METADATA] = {
       Testlog.FIELDS.LOG_ROOT: log_root,
       Testlog.FIELDS.PRIMARY_JSON:
           os.path.join(log_root, _DEFAULT_PRIMARY_JSON_FILE),
@@ -365,10 +365,11 @@ def LogParam(*args, **kwargs):
   Please see the StationTestRun.LogParam() for more details.
   """
   if GetGlobalTestlog().last_test_run:
-    GetGlobalTestlog().last_test_run.LogParam(*args, **kwargs)
+    Log(GetGlobalTestlog().last_test_run.LogParam(*args, **kwargs))
   else:
-    raise TestlogError('In memory station.test_run does not set. '
-                       'Test harness need to set it manually.')
+    raise testlog_utils.TestlogError(
+        'In memory station.test_run does not set. '
+        'Test harness need to set it manually.')
 
 
 class JSONLogFile(file_utils.FileLockContextManager):
@@ -381,68 +382,20 @@ class JSONLogFile(file_utils.FileLockContextManager):
 
   def Log(self, event):
     """Converts event into JSON string and writes into disk."""
-    log_stamp = {  # Data that should be refresh at every write operation.
-        'id': str(uuid4()),
-        'seq': self.seq_generator.Next()}
-    event.PopAndSet(log_stamp, 'id', None)
-    event.PopAndSet(log_stamp, 'seq', None)
+    # Data that should be refresh at every write operation.
+    event['id'] = str(uuid4())
+    event['seq'] = self.seq_generator.Next()
+    if 'apiVersion' not in event:
+      event['apiVersion'] = TESTLOG_API_VERSION
+    if 'time' not in event:
+      event['time'] = datetime.datetime.utcnow()
+
     line = event.ToJSON() + '\n'
     with self:
       self.file.write(line)
       self.file.flush()
       os.fsync(self.file.fileno())
     return line
-
-
-class TestlogError(Exception):
-  """Catch-all exception for testlog Python API."""
-  pass
-
-
-def _ToJSONDateTime(time_value):
-  """Returns a time as a string.
-
-  Keep as a separate function in case client code would like to use it
-  in the future.
-
-  The format is like ISO8601 but with milliseconds:
-    2012-05-22T14:15:08.123Z
-
-  Note that isoformat() strips off milliseconds completely (including decimal)
-  when the value returned is at an even second.
-  """
-  time_str = time_value.isoformat()
-  if '.' in time_str:
-    return time_str[:-3] + 'Z'
-  else:
-    return time_str + '.000Z'
-
-
-def _FromJSONDateTime(string_value):
-  """Returns a datetime object parsed from a string.
-
-  Keep as a separate function in case client code would like to use it
-  in the future.
-
-  Reverses _ToJSONDateTime.
-  """
-  return datetime.datetime.strptime(string_value, '%Y-%m-%dT%H:%M:%S.%fZ')
-
-
-def _JSONHandler(obj):
-  """Handler for serializing objects during conversion to JSON."""
-  if isinstance(obj, datetime.datetime):
-    return _ToJSONDateTime(obj)
-  elif isinstance(obj, datetime.date):
-    return obj.isoformat()
-  elif isinstance(obj, datetime.time):
-    return obj.strftime('%H:%M')
-  elif inspect.istraceback(obj):
-    tb = ''.join(traceback.format_tb(obj))
-    return tb.strip()
-  elif isinstance(obj, Exception):
-    return 'Exception: %s' % str(obj)
-  return str(obj)
 
 
 def CapturePythonLogging(callback, level=logging.DEBUG):
@@ -539,18 +492,42 @@ class EventBase(object):
     _type_class_map_cache: (class variable) This is a cached dict that maps
         from event type to Python class.  Used by FromJSON and FromDict to
         know which class to initialize.
+
+  Properties in FIELDS:
+      - type (string, required): Type of the event.  Its value determines
+        which fields are applicable to this event.
+      - _METADATA (object, optional): Special field reserved for testlog
+        to exchange information between processes.
   """
+
+  # TODO(itspeter): Consider to create a class that wraps properties in
+  #                 dictionary FIELDS.
+
+  # The FIELDS list data expected in for this class in a form where name is
+  # the key and value is a tuple of (required, validation function).
+  # Details of each fields can be found on either the docstring of this class
+  # or the Testlog API Playbook.
+  FIELDS = {
+      'type': (True, testlog_validator.Validator.String),
+      # pylint: disable=W0212
+      Testlog.FIELDS._METADATA: (False, testlog_validator.Validator.Object)
+  }
 
   def __init__(self, data=None):
     """Only allow initialization for classes that declared GetEventType()."""
     try:
-      if self.GetEventType():
-        self._data = {}
-        self.Populate(data or {})
+      event_type = self.GetEventType()
+      if event_type:
+        default_data = self._data = {'type': event_type}
+        if isinstance(data, dict):
+          # Override the type in the data.
+          data.update(default_data)
+        self.Populate(data or default_data)
         return
     except NotImplementedError:
       pass
-    raise TestlogError('Must initialize directly from desired event class.')
+    raise testlog_utils.TestlogError(
+        'Must initialize directly from desired event class.')
 
   def __eq__(self, other):
     """Equals operator."""
@@ -567,9 +544,47 @@ class EventBase(object):
     """Dictionary operator."""
     return self._data[name]
 
+  def __setitem__(self, key, value):
+    """Simulates a dictionary operator.
+
+    Provides a dictionary-like operation to update the event. It will try to
+    get the corressponding validate function from FIELDS in current and all
+    superclass.
+
+    Raises:
+      ValueError if the value can not be converted.
+      TestlogError if the key is not whitelisted in the FIELD.
+    """
+    mro = self.__class__.__mro__
+    # Find the corressponding validate function.
+    for cls in mro:
+      if cls is object:
+        break  # Reach the root.
+      if not hasattr(cls, 'FIELDS'):
+        continue  # Continue search in the parents'
+      if key in cls.FIELDS:
+        cls.FIELDS[key][1](self, key, value)
+        return
+    raise testlog_utils.TestlogError('Cannot find key %r for event %s' % (
+        key, self.__class__.__name__))
+
   def __contains__(self, item):
     """Supports `in` operator."""
     return item in self._data
+
+  def CheckMissingFields(self):
+    """Returns a list of missing field."""
+    mro = self.__class__.__mro__
+    missing_fileds = []
+    # Find the corressponding requirement.
+    for cls in mro:
+      if cls is object:
+        break
+      for field_name, metadata in cls.FIELDS.iteritems():
+        if metadata[0] and field_name not in self._data:
+          missing_fileds.append(field_name)
+
+    return missing_fileds
 
   @classmethod
   def GetEventType(cls):
@@ -577,8 +592,25 @@ class EventBase(object):
     raise NotImplementedError
 
   def Populate(self, data):
-    """Populates this object using the provided data dict."""
-    raise NotImplementedError
+    """Populates values one by one in dictionary data.
+
+    We iterate the data instead of directly asssigning it to self._data in
+    order to make sure that validate function is called.
+
+    Returns:
+      The event being modified (self).
+    """
+    for key in data.iterkeys():
+      data_type = type(data[key])
+      if data_type == list:
+        for value in data[key]:
+          self[key] = value
+      elif data_type == dict:
+        for sub_key, value in data[key].iteritems():
+          self[key] = {'key' : sub_key, 'value': value}
+      else:
+        self[key] = data[key]
+    return self
 
   @classmethod
   def _AllSubclasses(cls):
@@ -602,8 +634,9 @@ class EventBase(object):
     """Determines the appropriate Event subclass for a particular dataset."""
     try:
       return cls._TypeClassMap()[data['type']]
-    except TestlogError:
-      raise TestlogError('Input event does not have a valid `type`.')
+    except testlog_utils.TestlogError:
+      raise testlog_utils.TestlogError(
+          'Input event does not have a valid `type`.')
 
   @classmethod
   def FromJSON(cls, json_string):
@@ -619,26 +652,11 @@ class EventBase(object):
 
   def ToJSON(self):
     """Returns a JSON string representing this event."""
-    return json.dumps(self.ToDict(), default=_JSONHandler)
+    return json.dumps(self.ToDict(), default=testlog_utils.JSONHandler)
 
   def ToDict(self):
     """Returns a Python dict representing this event."""
     return self._data
-
-  def PopAndSet(self, data, key, default):
-    """Pops a value out of the given dictionary, and set it on the event.
-
-    - If key exists in provided dictionary, pop the value from provided
-      dictionary, and set the value on internal dictionary.
-    - If key does not exist in provided dictionary and does not exist in
-      internal dictionary, set the default value on internal dictionary.
-    - If the key does not exist in provided dictionary and does exist in
-      internal dictionary, leave it alone.
-    """
-    if key in data:
-      self._data[key] = data.pop(key)
-    elif key not in self._data:
-      self._data[key] = default
 
   def __repr__(self):
     """Repr operator for string printing."""
@@ -648,159 +666,153 @@ class EventBase(object):
 class Event(EventBase):
   """Main event class.
 
-  Defines common fields of all events in Populate function.
+  Defines common fields of all events.
+
+  Properties in FIELDS:
+      - id (string, required): Unique UUID of the event.
+      - apiVersion (string, required): Version of the testlog API being
+        used.
+      - seq (integer, optional): Sequence number of the event, to help in
+        cases where the station date is unreliable.  Should be monotonically
+        increasing.
+      - time (datetime or string, required): Date and time of the event.
   """
+
+  FIELDS = {
+      'id': (True, testlog_validator.Validator.String),
+      'apiVersion': (True, testlog_validator.Validator.String),
+      'seq': (False, testlog_validator.Validator.Long),
+      'time': (True, testlog_validator.Validator.Time),
+  }
 
   @classmethod
   def GetEventType(cls):
     return None
-
-  def Populate(self, data):
-    """Populates fields for event base class.
-
-    Args:
-      data: Dictionary that can contain:
-          - id (string, required): Unique UUID of the event.
-          - type (string, required): Type of the event.  Its value determines
-            which fields are applicable to this event.
-          - apiVersion (string, required): Version of the testlog API being
-            used.
-          - seq (integer, optional): Sequence number of the event, to help in
-            cases where the station date is unreliable.  Should be monotonically
-            increasing.
-          - time (string, required): Date and time of the event.
-
-    Returns:
-      The event being modified (self).
-    """
-    if not self.GetEventType():
-      raise TestlogError('Must initialize directly from desired event class')
-
-    # Type field should already be consistent with the class type.
-    data.pop('type', '')  # Pop the type if it exists.
-    self.PopAndSet(data, 'type', self.GetEventType())
-
-    self.PopAndSet(data, 'apiVersion', TESTLOG_API_VERSION)
-
-    # Time field needs extra processing.
-    d = None
-    if 'time' in data:
-      if isinstance(data['time'], basestring):
-        d = _FromJSONDateTime(data.pop('time'))
-      elif isinstance(data['time'], datetime.datetime):
-        d = data.pop('time')
-      else:
-        raise TestlogError('Invalid `time` field')
-    else:
-      d = datetime.datetime.utcnow()
-    # Round precision of microseconds to ensure equivalence after converting
-    # to JSON and back again.
-    d = d.replace(microsecond=(d.microsecond / 1000 * 1000))
-    self._data['time'] = d
-
-    # Return self for convenience.
-    return self
 
 
 class _StationBase(Event):
-  """Fake event class for all "station" subtypes.
+  """Base class for all "station" subtypes.
 
   Cannot be initialized.
+
+  Properties in FIELDS:
+      - stationName (string, optional): Name of the station.
+      - stationDeviceId (string, optional): ID of the device being used as
+        the station.  This should be a value tied to the device (such as a
+        MAC address) that will not change in the case that the device is
+        reimaged.
+      - stationReimageId (string, optional): ID of the reimage of the
+        station.  Every time the station is reimaged, a new reimage ID
+        should be generated (unique UUID).
   """
+
+  FIELDS = {
+      'stationName': (False, testlog_validator.Validator.String),
+      'stationDeviceId': (False, testlog_validator.Validator.String),
+      'stationReimageId': (False, testlog_validator.Validator.String)
+  }
 
   @classmethod
   def GetEventType(cls):
     return None
 
-  def Populate(self, data):
-    """Populates fields for station base class.
-
-    Args:
-      data: Dictionary that can contain:
-          - stationName (string, optional): Name of the station.
-          - stationDeviceId (string, optional): ID of the device being used as
-            the station.  This should be a value tied to the device (such as a
-            MAC address) that will not change in the case that the device is
-            reimaged.
-          - stationReimageId (string, optional): ID of the reimage of the
-            station.  Every time the station is reimaged, a new reimage ID
-            should be generated (unique UUID).
-
-    Returns:
-      The event being modified (self).
-    """
-    self.PopAndSet(data, 'stationName', None)
-    self.PopAndSet(data, 'stationDeviceId', None)
-    self.PopAndSet(data, 'stationReimageId', None)
-    return super(_StationBase, self).Populate(data)
 
 class StationInit(_StationBase):
-  """Represents the Station being brought up or initialized."""
+  """Represents the Station being brought up or initialized.
+
+  Properties in FIELDS:
+      - count (integer, required): Number of times that this station has
+        been initialized so far.
+      - success (boolean, required): Whether or not this station was
+        successfully initialized.
+      - failureMessage (string, optional): A failure string explaining why
+        the station could not initialize.
+  """
+
+  FIELDS = {
+      'count': (True, testlog_validator.Validator.Long),
+      'success': (True, testlog_validator.Validator.Boolean),
+      'failureMessage': (False, testlog_validator.Validator.String)
+  }
 
   @classmethod
   def GetEventType(cls):
     return 'station.init'
 
-  def Populate(self, data):
-    """Populates fields for station init class.
-
-    Args:
-      data: Dictionary that can contain:
-          - count (integer, required): Number of times that this station has
-            been initialized so far.
-          - success (boolean, required): Whether or not this station was
-            successfully initialized.
-          - failureMessage (string, optional): A failure string explaining why
-            the station could not initialize.
-
-    Returns:
-      The event being modified (self).
-    """
-    self.PopAndSet(data, 'count', None)
-    self.PopAndSet(data, 'success', None)
-    self.PopAndSet(data, 'failureMessage', None)
-    return super(StationInit, self).Populate(data)
-
 
 class StationMessage(_StationBase):
-  """Represents a Python message on the Station."""
+  """Represents a Python message on the Station.
+
+  Properties in FIELDS:
+      - filePath (string, optional): Name or path of the program that
+        generated this message.
+      - lineNumber (integer, optional): Line number within the program that
+        generated this message.
+      - functionName (string, optional): Function name within the program
+        that generated this message.
+      - logLevel (string, optional): Log level of this message. Possible
+        values: DEBUG, INFO, WARNING, ERROR, CRITICAL
+      - message (string, required): Message text.  Can include stacktrace or
+        other debugging information if applicable.
+      - testRunId (string, optional): If this message was associated with a
+        particular test run, its ID should be specified here.
+  """
+
+  FIELDS = {
+      'filePath': (False, testlog_validator.Validator.String),
+      'lineNumber': (False, testlog_validator.Validator.Long),
+      'functionName': (False, testlog_validator.Validator.String),
+      'logLevel': (False, testlog_validator.Validator.String),
+      'message': (False, testlog_validator.Validator.String),
+      'testRunId': (False, testlog_validator.Validator.String)
+  }
 
   @classmethod
   def GetEventType(cls):
     return 'station.message'
 
-  def Populate(self, data):
-    """Populates fields for station message class.
-
-    Args:
-      data: Dictionary that can contain:
-          - filePath (string, optional): Name or path of the program that
-            generated this message.
-          - lineNumber (integer, optional): Line number within the program that
-            generated this message.
-          - functionName (string, optional): Function name within the program
-            that generated this message.
-          - logLevel (string, optional): Log level of this message. Possible
-            values: DEBUG, INFO, WARNING, ERROR, CRITICAL
-          - message (string, required): Message text.  Can include stacktrace or
-            other debugging information if applicable.
-          - testRunId (string, optional): If this message was associated with a
-            particular test run, its ID should be specified here.
-
-    Returns:
-      The event being modified (self).
-    """
-    self.PopAndSet(data, 'filePath', None)
-    self.PopAndSet(data, 'lineNumber', None)
-    self.PopAndSet(data, 'functionName', None)
-    self.PopAndSet(data, 'logLevel', None)
-    self.PopAndSet(data, 'message', None)
-    self.PopAndSet(data, 'testRunId', None)
-    return super(StationMessage, self).Populate(data)
-
 
 class StationTestRun(_StationBase):
-  """Represents a test run on the Station."""
+  """Represents a test run on the Station.
+
+  Properties in FIELDS:
+    - testRunId (string, required): Unique UUID of the test run.  Since one
+      test run may output multiple test_run events (showing the progress of
+      the test run), we use testRunId to identify them as the same test.
+    - testName (string, required): A name identifying this test with its
+      particular configuration.  Sometimes, a test might run multiple times
+      with different configurations in the same project.  This field is used
+      to separate these configurations.
+    - testType (string, required): A name identifying this type of test.
+      If it runs multiple times with different configurations, use testName
+      to differentiate.
+    - status (string, required): The current status of the test run.
+      Possible values: STARTING, RUNNING, FAILED, PASSED PASSED
+    - startTime (datetime, required): Date and time when the test started.
+    - endTime (datetime, optional): Date and time when the test ended.
+    - duration (number, optional): How long the test took to complete.
+      Should be the same as endTime - startTime.  Included for convenience.
+      Measured in seconds.
+  """
+
+  # TODO(itspeter): Document 'argument', 'operatorId', 'failures',
+  #                 'serialNumbers', 'parameters' and 'series'.
+  FIELDS = {
+      'testRunId': (True, testlog_validator.Validator.String),
+      'testName': (True, testlog_validator.Validator.String),
+      'testType': (True, testlog_validator.Validator.String),
+      'argument': (False, testlog_validator.Validator.Dict),
+      'status': (True, testlog_validator.Validator.Status),
+      'startTime': (True, testlog_validator.Validator.Time),
+      'endTime': (False, testlog_validator.Validator.Time),
+      'duration': (False, testlog_validator.Validator.Float),
+      'operatorId': (False, testlog_validator.Validator.String),
+      'attachments': (False, testlog_validator.Validator.Attachment),
+      'failures': (False, testlog_validator.Validator.List),
+      'serialNumbers': (False, testlog_validator.Validator.Dict),
+      'parameters': (False, testlog_validator.Validator.Dict),
+      'series': (False, testlog_validator.Validator.Dict),
+  }
 
   # Possible values for the `status` field.
   # TODO(itspeter): Check on log when will UNKNOWN emitted.
@@ -808,66 +820,16 @@ class StationTestRun(_StationBase):
       'STARTING', 'RUNNING', 'FAILED', 'PASSED',
       'UNKNOWN'])  # States that doesn't apply for StationTestRun
 
-
   @classmethod
   def GetEventType(cls):
     return 'station.test_run'
 
-  @classmethod
-  def FromTestRunState(cls, testlog_data):
-    return Event.FromJSON(testlog_data)
-
   def LogParam(self, name, value, description=None, valueUnit=None):
     """Logs parameters as specified in Testlog API."""
-    parameters = self['parameters'] if 'parameters' in self else dict()
-    assert name not in parameters, 'Duplicated parameters %r' % name
-    new_parameter = {'value': value}
+    value_dict = {'numericValue': value}
     if description:
-      new_parameter.update({'description': description})
+      value_dict.update({'description': description})
     if valueUnit:
-      new_parameter.update({'valueUnit': valueUnit})
-
-    parameters[name] = new_parameter
-    self.Populate(new_parameter)
-
-  def Populate(self, data):
-    """Populates fields for station test_run class.
-
-    Args:
-      data: Dictionary that can contain:
-        - testRunId (string, required): Unique UUID of the test run.  Since one
-          test run may output multiple test_run events (showing the progress of
-          the test run), we use testRunId to identify them as the same test.
-        - testName (string, required): A name identifying this test with its
-          particular configuration.  Sometimes, a test might run multiple times
-          with different configurations in the same project.  This field is used
-          to separate these configurations.
-        - testType (string, required): A name identifying this type of test.
-          If it runs multiple times with different configurations, use testName
-          to differentiate.
-        - status (string, required): The current status of the test run.
-          Possible values: STARTING, RUNNING, FAILED, PASSED PASSED
-        - startTime (string, required): Date and time when the test started.
-        - endTime (string, optional): Date and time when the test ended.
-        - duration (number, optional): How long the test took to complete.
-          Should be the same as endTime - startTime.  Included for convenience.
-          Measured in seconds.
-
-    Returns:
-      The event being modified (self).
-    """
-    if data.get('status') not in [
-        self.STATUS.STARTING, self.STATUS.RUNNING,
-        self.STATUS.FAILED, self.STATUS.PASSED, None]:
-      raise TestlogError('Invalid `status` field: %s' % data['status'])
-
-    self.PopAndSet(data, 'testRunId', None)
-    self.PopAndSet(data, 'testName', None)
-    self.PopAndSet(data, 'testType', None)
-    self.PopAndSet(data, 'status', None)
-    self.PopAndSet(data, 'startTime', None)
-    self.PopAndSet(data, 'endTime', None)
-    self.PopAndSet(data, 'duration', None)
-    self.PopAndSet(data, 'parameters', dict())
-
-    return super(StationTestRun, self).Populate(data)
+      value_dict.update({'valueUnit': valueUnit})
+    self['parameters'] = {'key': name, 'value': value_dict}
+    return self

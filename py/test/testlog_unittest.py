@@ -6,68 +6,27 @@
 
 import copy
 import datetime
+import json
 import logging
 import os
+import pprint
 import shutil
 import subprocess
-import sys
 import unittest
 from uuid import uuid4
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
+from cros.factory.test import testlog_utils
 from cros.factory.utils import file_utils
 
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
 SAMPLE_DATETIME_STRING = '1989-08-08T08:08:08.888Z'
 SAMPLE_DATETIME_ROUNDED_MIL = datetime.datetime(1989, 8, 8, 8, 8, 8, 888000)
-SAMPLE_DATETIME_ROUNDED_SEC = datetime.datetime(1989, 8, 8, 8, 8, 8, 000000)
 
 
 class TestlogTest(unittest.TestCase):
-
-  def testJSONTime(self):
-    """Tests conversion to and from JSON date format.
-
-    Microseconds should be stripped to precision of 3 decimal points."""
-    # pylint: disable=W0212
-    output = testlog._FromJSONDateTime(
-        testlog._ToJSONDateTime(SAMPLE_DATETIME))
-    self.assertEquals(output, SAMPLE_DATETIME_ROUNDED_MIL)
-
-    output = testlog._FromJSONDateTime(
-        testlog._ToJSONDateTime(SAMPLE_DATETIME_ROUNDED_SEC))
-
-  def testJSONHandlerDateTime(self):
-    obj = SAMPLE_DATETIME
-    # pylint: disable=W0212
-    output = testlog._JSONHandler(obj)
-    self.assertEquals(output, SAMPLE_DATETIME_STRING)
-    self.assertEquals(output, testlog._ToJSONDateTime(obj))
-
-  def testJSONHandlerDate(self):
-    obj = datetime.date(1989, 8, 8)
-    # pylint: disable=W0212
-    output = testlog._JSONHandler(obj)
-    self.assertEquals(output, '1989-08-08')
-
-  def testJSONHandlerTime(self):
-    obj = datetime.time(22, 10, 10)
-    # pylint: disable=W0212
-    output = testlog._JSONHandler(obj)
-    self.assertEquals(output, '22:10')
-
-  def testJSONHandlerExceptionAndTraceback(self):
-    try:
-      1 / 0
-    except Exception:
-      _, ex, tb = sys.exc_info()
-      # pylint: disable=W0212
-      output = testlog._JSONHandler(tb)
-      self.assertTrue('1 / 0' in output)
-      output = testlog._JSONHandler(ex)
-      self.assertTrue(output.startswith('Exception: '))
 
   def testDisallowRecursiveLogging(self):
     """Checks that calling 'logging' within log processing code is dropped."""
@@ -84,11 +43,14 @@ class TestlogTest(unittest.TestCase):
 class TestlogEventTest(unittest.TestCase):
 
   def testDisallowInitializeFakeEventClasses(self):
-    with self.assertRaisesRegexp(testlog.TestlogError, 'initialize directly'):
+    with self.assertRaisesRegexp(
+        testlog_utils.TestlogError, 'initialize directly'):
       testlog.EventBase()
-    with self.assertRaisesRegexp(testlog.TestlogError, 'initialize directly'):
+    with self.assertRaisesRegexp(
+        testlog_utils.TestlogError, 'initialize directly'):
       testlog.Event()
-    with self.assertRaisesRegexp(testlog.TestlogError, 'initialize directly'):
+    with self.assertRaisesRegexp(
+        testlog_utils.TestlogError, 'initialize directly'):
       testlog._StationBase()  # pylint: disable=W0212
 
   def testEventSerializeUnserialize(self):
@@ -103,7 +65,7 @@ class TestlogEventTest(unittest.TestCase):
     self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED_MIL)
     event = testlog.StationInit({'time': SAMPLE_DATETIME_STRING})
     self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED_MIL)
-    with self.assertRaises(testlog.TestlogError):
+    with self.assertRaises(ValueError):
       event = testlog.StationInit({'time': None})
 
   def testPopulateReturnsSelf(self):
@@ -111,9 +73,14 @@ class TestlogEventTest(unittest.TestCase):
     self.assertEquals(event.Populate({}), event)
 
   def testInvalidStatusTestRun(self):
-    with self.assertRaises(testlog.TestlogError):
+    with self.assertRaises(ValueError):
       testlog.StationTestRun({'status': True})
 
+  def testCheckMissingFields(self):
+    event = testlog.StationInit()
+    event['failureMessage'] = 'Missed fields'
+    self.assertItemsEqual(event.CheckMissingFields(),
+                          ['count', 'success', 'id', 'apiVersion', 'time'])
 
 class TestlogE2ETest(unittest.TestCase):
   @staticmethod
@@ -188,6 +155,8 @@ class TestlogE2ETest(unittest.TestCase):
          "TestlogE2ETest.testSimulatedTestInAnotherProcess"],
         env=env_additions)
     p.wait()
+    logging.info('Load back JSON:\n%s\n',
+                 pprint.pformat(json.loads(open(session_json_path).read())))
     # Collect the session log
     testlog.Collect(session_json_path)
 
