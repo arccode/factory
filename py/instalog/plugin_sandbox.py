@@ -302,7 +302,7 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def Stop(self, sync=False):
     """Stops the plugin."""
-    self._CheckStateCommand([UP, PAUSING, PAUSED, UNPAUSING])
+    self._CheckStateCommand([UP, PAUSED])
     self._state = STOPPING
     if sync:
       self.AdvanceState(sync)
@@ -354,6 +354,8 @@ class PluginSandbox(plugin_base.PluginAPI):
     # STOPPING state.
     # TODO(kitching): Come up with a better way of differentiating plugins which
     #                 Main, and those which do not.
+    # TODO(kitching): Come up with a way of capturing exceptions thrown by
+    #                 Start, Main and Stop.
     if (self._state in (UP, PAUSING, PAUSED) and
         'Main' in self._plugin.__class__.__dict__ and
         not self._main_thread.is_alive()):
@@ -410,8 +412,7 @@ class PluginSandbox(plugin_base.PluginAPI):
     """See PluginAPI.Emit."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP)
     self.logger.debug('Emit called with state=%s', self._state)
-    self._core_api.Emit(self, events)
-    return self._state is UP
+    return self._core_api.Emit(self, events)
 
   def NewStream(self, plugin):
     """See PluginAPI.NewStream."""
@@ -428,8 +429,7 @@ class PluginSandbox(plugin_base.PluginAPI):
     self.logger.debug('EventStreamNext called with state=%s', self._state)
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
-    buffer_stream = self._event_stream_map[plugin_stream]
-    return buffer_stream.Next()
+    return self._event_stream_map[plugin_stream].Next()
 
   def EventStreamCommit(self, plugin, plugin_stream):
     """See PluginAPI.EventStreamCommit."""
@@ -442,10 +442,10 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def EventStreamAbort(self, plugin, plugin_stream):
     """See PluginAPI.EventStreamAbort."""
+    # TODO(kitching): Test in unittest.
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING_STOPPING)
     self.logger.debug('EventStreamAbort called with state=%s', self._state)
     self._RecordUnexpectedAccess(plugin, 'EventStreamAbort', inspect.stack())
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
-    del self._event_stream_map[plugin_stream]
     return self._event_stream_map.pop(plugin_stream).Abort()

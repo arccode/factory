@@ -82,6 +82,8 @@ class TestPluginSandbox(unittest.TestCase):
     # Check that no state change commands work during transition.
     if not sync:
       for fail_fn in [p.Start, p.Stop, p.Pause, p.Unpause, p.TogglePause]:
+        logging.info('Calling %s while in state %s',
+                     fail_fn.__name__, p.GetState())
         with self.assertRaises(plugin_base.StateCommandError):
           fail_fn(sync)
       p.AdvanceState(True)

@@ -27,7 +27,7 @@ _DEFAULT_INTERVAL = 1
 _DEFAULT_NUM_EVENTS = 2
 _DEFAULT_EVENT_NAME = 'instalog'
 _DEFAULT_NUM_ATTACHMENTS = 0
-_DEFAULT_ATTACHMENT_BYTES = 102400
+_DEFAULT_ATTACHMENT_BYTES = 1 * 1024 * 1024  # 1mb
 
 
 class InputTime(plugin_base.InputPlugin):
@@ -46,12 +46,14 @@ class InputTime(plugin_base.InputPlugin):
   ]
 
   def Start(self):
-    """Creates our temporary directory."""
+    """Starts the plugin."""
+    # Create the temporary directory for attachments.
     self._tmp_dir = tempfile.mkdtemp(prefix='input_time_')
     self.info('Temporary directory for attachments: %s', self._tmp_dir)
 
   def Stop(self):
-    """Removes our temporary directory."""
+    """Stops the plugin."""
+    # Remove the temporary directory.
     shutil.rmtree(self._tmp_dir)
 
   def Main(self):
@@ -84,6 +86,9 @@ class InputTime(plugin_base.InputPlugin):
                 batch_id, self.args.num_events)
       if not self.Emit(events):
         self.error('Failed to emit %d events, dropping', self.args.num_events)
+        # TODO(kitching): Find a better way to block the plugin when we are in
+        #                 one of the PAUSING, PAUSED, or UNPAUSING states.
+        time.sleep(1)
 
       # Sleep until next emit interval.
       self.debug('Sleeping for %s', self.args.interval)

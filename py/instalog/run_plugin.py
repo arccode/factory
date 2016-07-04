@@ -50,7 +50,8 @@ class PluginRunnerBufferEventStream(plugin_base.BufferEventStream):
     try:
       ret = self._event_queue.get(False)
       self._retrieved_events.append(ret)
-      self.logger.info('BufferEventStream.Next: %s', ret)
+      self.logger.info('BufferEventStream.Next')
+      self.logger.debug('BufferEventStream.Next: %s', ret)
       return ret
     except Queue.Empty:
       self.logger.info('BufferEventStream.Next: (empty)')
@@ -59,14 +60,22 @@ class PluginRunnerBufferEventStream(plugin_base.BufferEventStream):
   def Commit(self):
     if self._expired:
       raise plugin_base.EventStreamExpired
-    self.logger.info('BufferEventStream.Commit: %s', self._retrieved_events)
+    self.logger.info('BufferEventStream.Commit %d events',
+                     len(self._retrieved_events))
+    self.logger.debug('BufferEventStream.Commit %d events: %s',
+                      len(self._retrieved_events), self._retrieved_events)
+    # TODO(kitching): Delete attachment files to simulate buffer.
     self._expired = True
     return True
 
   def Abort(self):
     if self._expired:
       raise plugin_base.EventStreamExpired
-    self.logger.info('BufferEventStream.Abort: %s', self._retrieved_events)
+    self.logger.info('BufferEventStream.Abort %d events',
+                     len(self._retrieved_events))
+    self.logger.debug('BufferEventStream.Abort %d events: %s',
+                      len(self._retrieved_events), self._retrieved_events)
+    # TODO(kitching): Maybe delete attachment files to simulate buffer.
     self._expired = True
 
 
@@ -77,7 +86,10 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     # State directory carries across PluginRunner runs.
     self._state_dir = os.path.join(tempfile.gettempdir(),
                                    'plugin_runner.%s' % plugin_type)
+    if not os.path.isdir(self._state_dir):
+      os.mkdir(self._state_dir)
     self.logger.info('Storing state to: %s', self._state_dir)
+
     self._event_queue = Queue.Queue()
     self._plugin = plugin_sandbox.PluginSandbox(
         plugin_type, config=config, core_api=self)
@@ -122,7 +134,8 @@ class PluginRunner(plugin_sandbox.CoreAPI):
       except Exception as e:
         self.logger.exception(e)
       if event:
-        self.logger.info('_GetStdinEvents: New event: %s', event)
+        self.logger.info('_GetStdinEvents: New event')
+        self.logger.debug('_GetStdinEvents: New event: %s', event)
         events.append(event)
       else:
         self.logger.info('_GetStdinEvents: Ignoring bogus input: "%s"',
@@ -237,11 +250,13 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   def Emit(self, plugin, events):
     """See Core.Emit."""
     del plugin
-    self.logger.info('Emit for events: %s', events)
+    self.logger.info('Emit %d events', len(events))
+    self.logger.debug('Emit %d events: %s', len(events), events)
     for event in events:
       # TODO(kitching): May result in `IOError: Broken pipe`.  Investigate
       #                 and fix.
       print(event.Serialize())
+    return True
 
   def NewStream(self, plugin):
     """See Core.NewStream."""

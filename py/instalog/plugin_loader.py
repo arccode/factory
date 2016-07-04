@@ -107,6 +107,11 @@ class PluginLoader(object):
     for search_name in self._GetPossibleModuleNames():
       # Get a reference to the module.  This will raise ImportError if it
       # doesn't exist.
+      #
+      # TODO(kitching): This is confusing when there is an error in the
+      #                 plugin_name/plugin_name.py, since the error reported
+      #                 back is that plugin_name/__init__.py doesn't contain any
+      #                 of the proper classes.  Improve this.
       try:
         __import__(search_name)
         return sys.modules[search_name]

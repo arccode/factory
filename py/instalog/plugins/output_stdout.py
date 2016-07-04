@@ -11,22 +11,24 @@ A sample output plugin that writes events to stdout.
 
 from __future__ import print_function
 
+import time
+
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 
 
-_DEFAULT_STREAM_TIMEOUT = 5
-_DEFAULT_STREAM_COUNT = 5
+_DEFAULT_BATCH_SIZE = 5
+_DEFAULT_TIMEOUT = 5
 
 
 class OutputStdout(plugin_base.OutputPlugin):
 
   ARGS = [
-      Arg('stream_timeout', (int, float), 'Timeout for each EventStream.',
-          optional=True, default=_DEFAULT_STREAM_TIMEOUT),
-      Arg('stream_count', (int, float), 'Count for each EventStream.',
-          optional=True, default=_DEFAULT_STREAM_COUNT),
+      Arg('batch_size', int, 'How many events to queue before printing.',
+          optional=True, default=_DEFAULT_BATCH_SIZE),
+      Arg('timeout', (int, float), 'Timeout to print without full batch.',
+          optional=True, default=_DEFAULT_TIMEOUT),
   ]
 
   def Main(self):
@@ -34,13 +36,15 @@ class OutputStdout(plugin_base.OutputPlugin):
     while not self.IsStopping():
       event_stream = self.NewStream()
       if not event_stream:
+        # TODO(kitching): Find a better way to block the plugin when we are in
+        #                 one of the PAUSING, PAUSED, or UNPAUSING states.
+        time.sleep(1)
         continue
 
       # Get all current events from the EventStream object.
       events = []
-      # TODO: Figure out bug when no timeout specified.
-      for event in event_stream.iter(timeout=self.args.stream_timeout,
-                                     count=self.args.stream_count):
+      for event in event_stream.iter(timeout=self.args.timeout,
+                                     count=self.args.batch_size):
         events.append(event)
         self.debug('len(events) = %d', len(events))
 
@@ -50,7 +54,7 @@ class OutputStdout(plugin_base.OutputPlugin):
 
       # Commit these events.
       success_string = 'success' if event_stream.Commit() else 'failure'
-      self.info('Committed %d events: %s', len(events), success_string)
+      self.info('Commit %d events: %s', len(events), success_string)
 
 
 if __name__ == '__main__':
