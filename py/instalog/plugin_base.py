@@ -45,6 +45,11 @@ class PluginCallError(Exception):
   pass
 
 
+class ConfigError(Exception):
+  """An error occurred when loading the config file."""
+  pass
+
+
 class PluginAPI(object):
   """Defines an interface for plugins to call."""
 

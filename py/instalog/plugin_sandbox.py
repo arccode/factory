@@ -146,6 +146,11 @@ class PluginSandbox(plugin_base.PluginAPI):
     self._main_thread = None
     self._stop_thread = None
 
+  def __repr__(self):
+    """Implements repr function for debugging."""
+    return ('PluginSandbox(%s, state=%s)'
+            % (self.plugin_id, self._state))
+
   def GetSuperclass(self):
     """Get the superclass of the plugin class.
 

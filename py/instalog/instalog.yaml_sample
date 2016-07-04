@@ -1,0 +1,18 @@
+instalog:
+  node_id: 'sample_node'
+  state_dir: '/tmp/instalog'
+  pid_file: '/tmp/instalog.pid'
+  log_file: '/tmp/instalog.log'
+  cli_hostname: 'localhost'
+  cli_port: 8880
+buffer:
+  plugin: 'buffer_file'
+input:
+  time:
+    plugin: 'input_time'
+    interval: 10
+    num_attachments: 1
+    attachment_bytes: 1024
+output:
+  stdout:
+    plugin: 'output_stdout'

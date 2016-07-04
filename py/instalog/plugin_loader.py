@@ -174,8 +174,7 @@ class PluginLoader(object):
 
     # Store the superclass of the plugin for future reference.
     # TODO(kitching): Test this in unittest.
-    if self.superclass is None:
-      self.superclass = self._GetSuperclass(cls)
+    self.superclass = self._GetSuperclass(cls)
 
     # Return the plugin class.
     return cls
