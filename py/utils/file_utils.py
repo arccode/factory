@@ -5,7 +5,7 @@
 """File-related utilities..."""
 
 import base64
-from contextlib import contextmanager
+import contextlib
 import errno
 import fnmatch
 import glob
@@ -114,7 +114,7 @@ class Glob(object):
         include=node.include, exclude=node.exclude))
 
 
-@contextmanager
+@contextlib.contextmanager
 def UnopenedTemporaryFile(**kwargs):
   """Yields an unopened temporary file.
 
@@ -134,7 +134,7 @@ def UnopenedTemporaryFile(**kwargs):
       os.unlink(path)
 
 
-@contextmanager
+@contextlib.contextmanager
 def TempDirectory(**kwargs):
   """Yields an temporary directory.
 
@@ -335,7 +335,7 @@ def GetFileSizeInBytes(path, follow_link=False, dut=None):
       return f.tell()
 
 
-@contextmanager
+@contextlib.contextmanager
 def GunzipSingleFile(gzip_path, output_path=None):
   """Extracts a gzip file which contains only one file.
 
@@ -766,3 +766,38 @@ class FileLockContextManager(object):
 
     self.file = open(self.path, self.mode)
     self.opened = True
+
+
+@contextlib.contextmanager
+def AtomicWrite(path, binary=False, fsync=True):
+  """Atomically writes to the given file.
+
+  Uses write-rename and fsync strategy to atomically write to the given file.
+
+  Args:
+    binary: Whether or not to use binary mode in the open() call.
+    fsync: Flushes and syncs data to disk after write if True.
+  """
+  # TODO(kitching): Write unittests for this function.
+  # TODO(kitching): Add Windows support.  On Windows, os.rename cannot be
+  #                 used as an atomic operation, since the rename fails when the
+  #                 target already exists.  Additionally, Windows does not
+  #                 support fsync on a directory as done below in the last
+  #                 conditional clause.  Some resources suggest using Win32
+  #                 API's MoveFileEx with MOVEFILE_REPLACE_EXISTING mode,
+  #                 although this relies on filesystem support and won't work
+  #                 with FAT32.
+  mode = 'wb' if binary else 'w'
+  with UnopenedTemporaryFile(prefix='%s_' % path) as tmp_path:
+    with open(tmp_path, mode) as f:
+      yield f
+      if fsync:
+        f.flush()
+        os.fdatasync(f.fileno())
+    # os.rename is an atomic operation as long as src and dst are on the
+    # same filesystem.
+    os.rename(tmp_path, path)
+    if fsync:
+      dirfd = os.open(os.path.dirname(path), os.O_DIRECTORY)
+      os.fsync(dirfd)
+      os.close(dirfd)
