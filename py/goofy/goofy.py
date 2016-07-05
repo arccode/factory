@@ -913,8 +913,6 @@ class Goofy(GoofyBase):
         not sys_utils.InChroot()):
       if self.charge_manager:
         self.charge_manager.AdjustChargeState()
-      else:
-        self.charge()
 
     self.exclusive_items = current_exclusive_items
 
