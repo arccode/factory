@@ -30,7 +30,6 @@ from optparse import OptionParser
 from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import state
@@ -40,6 +39,7 @@ from cros.factory.test import testlog_goofy
 from cros.factory.test.dut import utils as dut_utils
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
+from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
@@ -741,6 +741,13 @@ class TestInvocation(object):
     finally:
       if error_msg:
         error_msg = DecodeUTF8(error_msg)
+      try:
+        self.goofy.event_client.post_event(
+            Event(Event.Type.DESTROY_TEST,
+                  test=self.test.path,
+                  invocation=self.uuid))
+      except:
+        logging.exception('Unable to post DESTROY_TEST event')
 
       syslog.syslog('Test %s (%s) completed: %s%s' % (
           self.test.path, self.uuid, status,
