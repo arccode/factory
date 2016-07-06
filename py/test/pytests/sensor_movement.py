@@ -20,9 +20,6 @@ Usage examples::
                 ('Z axis up', u'Z轴朝上', {'x': 0, 'y': 0, 'z': 9.8}),],
             'tolerance': 1.0,
             'controller_options': {
-                'spec_offset': (),
-                'spec_ideal_values': (),
-                'sample_rate': 60,
                 'location': 'base'}
             })
 

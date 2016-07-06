@@ -8,6 +8,7 @@ import glob
 import logging
 import math
 import os
+import re
 import struct
 import time
 from collections import namedtuple
@@ -18,6 +19,31 @@ from cros.factory.device import component
 
 _IIO_DEVICES_PATH = '/sys/bus/iio/devices/'
 SYSFS_VALUE = namedtuple('sysfs_value', ['sysfs', 'value'])
+IIO_SCAN_TYPE = namedtuple('IIO_SCAN_TYPE', ['endianness', 'sign', 'realbits',
+                                             'storagebits', 'repeat', 'shift'])
+_IIO_SCAN_TYPE_RE = re.compile(r'^(be|le):(s|u)(\d+)/(\d+)(?:X(\d+))?>>(\d+)$')
+
+
+def _ParseIIOBufferScanType(type_str):
+  """Parse IIO buffer type from a string.
+  See https://www.kernel.org/doc/htmldocs/iio/iiobuffer.html for detailed spec.
+
+  Args:
+    type_str: A string describing channel spec, e.g. 'le:s12/16>>4'.
+
+  Returns:
+    Parsed result of type IIO_SCAN_TYPE.
+  """
+  match = _IIO_SCAN_TYPE_RE.match(type_str)
+  if not match:
+    raise ValueError('Invalid channel spec string: %s' % type_str)
+  endianness = match.group(1)
+  sign = match.group(2)
+  realbits = int(match.group(3))
+  storagebits = int(match.group(4))
+  repeat = int(match.group(5)) if match.group(5) else None
+  shift = int(match.group(6))
+  return IIO_SCAN_TYPE(endianness, sign, realbits, storagebits, repeat, shift)
 
 
 class AccelerometerException(Exception):
@@ -28,26 +54,16 @@ class AccelerometerController(component.DeviceComponent):
   """Utility class for the two accelerometers.
 
   Attributes:
-    spec_offset: A tuple of two integers, ex: (128, 230) indicating the
-      tolerance for the digital output of sensors under zero gravity and
-      one gravity, respectively.
-    spec_ideal_values: A tuple of two integers, ex (0, 1024) indicating
-      the ideal value of the digitial output corresponding to zero gravity
-      and one gravity, respectively.
-    sample_rate: Sample rate in Hz to get raw data from accelerometers.
     location: the location of the accelerometer, e.g., 'base' or 'lid'.
       This will be used to lookup a matched location in
       /sys/bus/iio/devices/iio:deviceX/location to get
       the corresponding iio:deviceX.
-    resolution: the number of bits in the accelerometer to store the
-      output number.  For example: 12 or 16.
 
   Raises:
     Raises AccelerometerException if there is no accelerometer.
   """
 
-  def __init__(self, board, spec_offset, spec_ideal_values,
-               sample_rate, location, resolution):
+  def __init__(self, board, location):
     """Cleans up previous calibration values and stores the scan order.
 
     We can get raw data from below sysfs:
@@ -64,11 +80,7 @@ class AccelerometerController(component.DeviceComponent):
     self.trigger_number = '0'
     self.num_signals = 3  # (x, y, z).
     self.iio_bus_id = None
-    self.spec_offset = spec_offset
-    self.spec_ideal_values = spec_ideal_values
-    self.sample_rate = sample_rate
     self.location = location
-    self.resolution = resolution
     for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'iio:device*')):
       location = self._dut.CallOutput(
           ['cat', os.path.join(iio_path, 'location')]).strip()
@@ -81,17 +93,18 @@ class AccelerometerController(component.DeviceComponent):
     scan_elements_path = os.path.join(
         _IIO_DEVICES_PATH, self.iio_bus_id, 'scan_elements')
 
-    self._CleanUpCalibrationValues()
-
     # 'in_accel_(x|y|z)_(base|lid)_index' contains a fixed value which
     # represents the so called scan order. After a capture is triggered,
     # the data will be dumped in a char file in the scan order.
     # Stores the (scan order -> signal name) mapping for later use.
-    self.index_to_signal_name = {}
+    self.index_to_signal = {}
     for signal_name in self._GenSignalNames(''):
-      index = int(self._dut.CallOutput(
-          ['cat', os.path.join(scan_elements_path, signal_name + '_index')]))
-      self.index_to_signal_name[index] = signal_name
+      index = int(self._dut.ReadFile(os.path.join(scan_elements_path,
+                                                  signal_name + '_index')))
+      scan_type = _ParseIIOBufferScanType(
+          self._dut.ReadFile(os.path.join(scan_elements_path,
+                                          signal_name + '_type')))
+      self.index_to_signal[index] = dict(name=signal_name, scan_type=scan_type)
 
   def _SetSysfsValues(self, sysfs_values, check_call=True):
     """Assigns corresponding values to a list of sysfs.
@@ -100,15 +113,18 @@ class AccelerometerController(component.DeviceComponent):
       A list of namedtuple SYSFS_VALUE containing the sysfs and
         it's corresponding value.
     """
-    for sysfs_value in sysfs_values:
-      caller = self._dut.CheckCall if check_call else self._dut.Call
-      caller('echo %s > %s' % (sysfs_value.value, sysfs_value.sysfs))
+    try:
+      for sysfs_value in sysfs_values:
+        self._dut.WriteFile(sysfs_value.sysfs, sysfs_value.value)
+    except Exception:
+      if check_call:
+        raise
 
   def _GenSignalNames(self, postfix=''):
     """Generator function for all signal names.
 
     Args:
-      postfix: a string that will be appended to each signale name.
+      postfix: a string that will be appended to each signal name.
 
     Returns:
       Strings: 'in_accel_(x|y|z)' + postfix.
@@ -116,7 +132,7 @@ class AccelerometerController(component.DeviceComponent):
     for axis in ['x', 'y', 'z']:
       yield 'in_accel_' + axis + postfix
 
-  def _CleanUpCalibrationValues(self):
+  def CleanUpCalibrationValues(self):
     """Clean up calibration values.
 
     The sysfs trigger only captures calibrated input values, so we reset
@@ -127,7 +143,7 @@ class AccelerometerController(component.DeviceComponent):
       self._SetSysfsValues(
           [SYSFS_VALUE(os.path.join(iio_bus_path, calibbias), '0')])
 
-  def GetRawDataAverage(self, capture_count=1):
+  def GetRawDataAverage(self, capture_count=1, sample_rate=20):
     """Reads several records of raw data and returns the average.
 
     First, trigger the capture:
@@ -137,6 +153,7 @@ class AccelerometerController(component.DeviceComponent):
 
     Args:
       capture_count: how many records to read to compute the average.
+      sample_rate: sample rate in Hz to get raw data from accelerometers.
 
     Returns:
       A dict of the format {'signal_name': average value}
@@ -151,6 +168,8 @@ class AccelerometerController(component.DeviceComponent):
     # +-+-+-+-+-+-+
     # | x | y | z |
     # +-+-+-+-+-+-+
+    # TODO(phoenixshen): generate the struct from scan_type instead of using
+    # hardcoded values
     buffer_length_per_record = 6
     FORMAT_RAW_DATA = '<3h'
     trigger_now_path = os.path.join(
@@ -168,7 +187,7 @@ class AccelerometerController(component.DeviceComponent):
       # To prevent obtaining repeated data, add delay between each capture.
       # In addition, need to wait some time after set trigger_now to get
       # the raw data.
-      time.sleep(1 / float(self.sample_rate))
+      time.sleep(1 / float(sample_rate))
       with open(file_path) as f:
         line = f.read(buffer_length_per_record)
         # Sometimes it fails to read a record of raw data (12 bytes) because
@@ -190,27 +209,27 @@ class AccelerometerController(component.DeviceComponent):
         raw_data_captured += 1
         retry_count_per_record = 0
         raw_data = struct.unpack_from(FORMAT_RAW_DATA, line)
-        # Starting from kernel 3.18, the raw data output will be normalized
-        # to 16 bits by shifting <<= (16 - resolution). However, the
-        # calibration offset is still unchanged. Here we reverse the raw data
-        # to its original value for calculating calibratio offset (_calibbias).
-        original_raw_data = [r >> (16 - self.resolution) for r in raw_data]
-        logging.info(
-            '(%d) Getting raw data: %s.', raw_data_captured, original_raw_data)
+        original_raw_data = {}
         # Accumulating raw data.
         for i in xrange(self.num_signals):
-          ret[self.index_to_signal_name[i]] += original_raw_data[i]
+          name = self.index_to_signal[i]['name']
+          scan_type = self.index_to_signal[i]['scan_type']
+          original_raw_data[name] = raw_data[i] >> scan_type.shift
+          ret[name] += original_raw_data[name]
+        logging.info(
+            '(%d) Getting raw data: %s.', raw_data_captured, original_raw_data)
     # Calculates the average
     for signal_name in ret:
       ret[signal_name] = int(round(ret[signal_name] / capture_count))
     logging.info('Average of %d raw data: %s', capture_count, ret)
     return ret
 
-  def GetCalibratedDataAverage(self, capture_count=1):
+  def GetCalibratedDataAverage(self, capture_count=1, sample_rate=20):
     """Returns average values of the calibrated data.
 
     Args:
       capture_count: how many records to read to compute the average.
+      sample_rate: sample rate in Hz to get raw data from accelerometers.
 
     Returns:
       A dict of the format {'signal_name': average value}
@@ -234,12 +253,13 @@ class AccelerometerController(component.DeviceComponent):
             'Calibration value: %r not found in RO_VPD.' % calib_name)
 
     # Get raw data and apply the calibration values on it.
-    raw_data = self.GetRawDataAverage(capture_count=capture_count)
+    raw_data = self.GetRawDataAverage(capture_count, sample_rate)
     return dict(
         (k, _CalculateCalibratedValue(k, v)) for k, v in raw_data.iteritems())
 
-
-  def IsWithinOffsetRange(self, raw_data, orientations):
+  @staticmethod
+  def IsWithinOffsetRange(raw_data, orientations, spec_ideal_values,
+                          spec_offset):
     """Checks whether the value of raw data is within the spec or not.
 
     It is used before calibration to filter out abnormal accelerometers.
@@ -255,12 +275,16 @@ class AccelerometerController(component.DeviceComponent):
         Ex, {'in_accel_x': 0,
              'in_accel_y': 0,
              'in_accel_z': 1}
+      spec_ideal_values: a tuple of two integers, ex (0, 1024) indicating
+        the ideal value of the digitial output corresponding to zero gravity
+        and one gravity, respectively.
+      spec_offset: a tuple of two integers, ex: (128, 230) indicating the
+        tolerance for the digital output of sensors under zero gravity and
+        one gravity, respectively.
+
     Returns:
       True if the raw data is within the tolerance of the spec.
     """
-    if set(raw_data) != set(orientations) or len(raw_data) != self.num_signals:
-      logging.error('The size of raw data or orientations is wrong.')
-      return False
     for signal_name in raw_data:
       value = raw_data[signal_name]
       orientation = orientations[signal_name]
@@ -270,13 +294,12 @@ class AccelerometerController(component.DeviceComponent):
         return False
       # Check the abs value is within the range of -/+ offset.
       index = abs(orientation)
-      if (abs(value) < self.spec_ideal_values[index] - self.spec_offset[index]
-          or
-          abs(value) > self.spec_ideal_values[index] + self.spec_offset[index]):
+      if abs(abs(value) - spec_ideal_values[index]) > spec_offset[index]:
         return False
     return True
 
-  def IsGravityValid(self, raw_data):
+  @staticmethod
+  def IsGravityValid(raw_data, spec_ideal_value, spec_offset):
     """Checks whether the gravity value is within the spec or not.
 
     It is used before calibration to filter out abnormal accelerometers.
@@ -286,18 +309,31 @@ class AccelerometerController(component.DeviceComponent):
         Ex, {'in_accel_x': 23,
              'in_accel_y': -19,
              'in_accel_z': 998}
+      spec_ideal_value: ideal sensor value for 1G.
+      spec_offset: tolerance for the digital output of sensors under 1G.
+
     Returns:
       True if the gravity is within the tolerance of the spec.
     """
-    (x, y, z) = (raw_data['in_accel_x'],
-                 raw_data['in_accel_y'],
-                 raw_data['in_accel_z'])
-    gravity_value = math.sqrt(x * x + y * y + z * z)
+    gravity_value = math.sqrt(sum(v * v for v in raw_data.viewvalues()))
     logging.info('Gravity value is: %d.', gravity_value)
-    if (gravity_value < self.spec_ideal_values[1] - self.spec_offset[1] or
-        gravity_value > self.spec_ideal_values[1] + self.spec_offset[1]):
-      return False
-    return True
+    return abs(gravity_value - spec_ideal_value) < spec_offset
+
+  def CalculateCalibrationBias(self, raw_data, orientation, spec_ideal_values):
+    # Calculating calibration data.
+    calib_bias = {}
+    for signal_name in raw_data:
+      index = abs(orientation[signal_name])
+      ideal_value = spec_ideal_values[index]
+      # For -1G, the ideal_value is -1024.
+      if orientation[signal_name] == -1:
+        ideal_value *= -1
+      # Calculate the difference between the ideal value and actual value
+      # then store it into _calibbias.  In release image, the raw data will
+      # be adjusted by _calibbias to generate the 'post-calibrated' values.
+      calib_bias[signal_name + '_' + self.location  + '_calibbias'] = str(
+          ideal_value - raw_data[signal_name])
+    return calib_bias
 
   def UpdateCalibrationBias(self, calib_bias):
     """Update calibration bias to RO_VPD
@@ -308,17 +344,17 @@ class AccelerometerController(component.DeviceComponent):
            'in_accel_y_base_calibbias': -1,
            'in_accel_z_base_calibbias': 1019}
     """
+    # Writes the calibration results into ro vpd.
+    logging.info('Calibration results: %s.', calib_bias)
     self._dut.vpd.ro.Update(calib_bias)
 
 
 class Accelerometer(component.DeviceComponent):
   """Accelerometer component module."""
 
-  def GetController(self, spec_offset, spec_ideal_values, sample_rate, location,
-                    resolution=12):
+  def GetController(self, location):
     """Gets a controller with specified arguments.
 
     See AccelerometerController for more information.
     """
-    return AccelerometerController(self._dut, spec_offset, spec_ideal_values,
-                                   sample_rate, location, resolution)
+    return AccelerometerController(self._dut, location)

@@ -61,7 +61,6 @@ Usage examples::
 
 """
 
-import logging
 import time
 import unittest
 
@@ -119,15 +118,18 @@ class HorizontalCalibrationTask(FactoryTask):
       start calibration.
   """
 
-  def __init__(self, test, orientation, capture_count, setup_time_secs):
+  def __init__(self, test, orientation, capture_count, setup_time_secs,
+               spec_ideal_values, spec_offset, sample_rate):
     super(HorizontalCalibrationTask, self).__init__()
     self.test = test
     self.orientation = orientation
     self.capture_count = capture_count
     self.setup_time_secs = setup_time_secs
+    self.spec_ideal_values = spec_ideal_values
+    self.spec_offset = spec_offset
+    self.sample_rate = sample_rate
     self.accelerometer = test.accelerometer_controller
     self.template = test.template
-    self.vpd = {}
 
   def StartCalibration(self):
     """Waits a period of time and then starts calibration."""
@@ -136,6 +138,10 @@ class HorizontalCalibrationTask(FactoryTask):
       self.template.SetState(
           _MSG_PREPARING_CALIBRATION(self.setup_time_secs - i))
       time.sleep(_MESSAGE_DELAY_SECS)
+
+    # Cleanup offsets before calibration
+    self.accelerometer.CleanUpCalibrationValues()
+
     # Starts calibration.
     self.template.SetState(_MSG_CALIBRATION_IN_PROGRESS)
     try:
@@ -144,26 +150,18 @@ class HorizontalCalibrationTask(FactoryTask):
       self.Fail('Read raw data failed.')
       return
     # Checks accelerometer is normal or not before calibration.
-    if (not self.accelerometer.IsWithinOffsetRange(raw_data, self.orientation)
-        or not self.accelerometer.IsGravityValid(raw_data)):
+    if (not self.accelerometer.IsWithinOffsetRange(raw_data, self.orientation,
+                                                   self.spec_ideal_values,
+                                                   self.spec_offset)
+        or not self.accelerometer.IsGravityValid(raw_data,
+                                                 self.spec_ideal_values[1],
+                                                 self.spec_offset[1])):
       self.template.SetState(' ' + _MSG_FAIL + _BR, append=True)
       self.Fail('Raw data out of range, the accelerometers may be damaged.')
       return
-    # Calculating calibration data.
-    for signal_name in raw_data:
-      index = abs(self.orientation[signal_name])
-      ideal_value = self.accelerometer.spec_ideal_values[index]
-      # For -1G, the ideal_value is -1024.
-      if self.orientation[signal_name] == -1:
-        ideal_value *= -1
-      # Calculate the difference between the ideal value and actual value
-      # then store it into _calibbias.  In release image, the raw data will
-      # be adjusted by _calibbias to generate the 'post-calibrated' values.
-      self.vpd[signal_name + '_' + self.test.args.location  + '_calibbias'] = str(
-          ideal_value - raw_data[signal_name])
-    # Writes the calibration results into ro vpd.
-    logging.info('Calibration results: %s.', self.vpd)
-    self.accelerometer.UpdateCalibrationBias(self.vpd)
+    calib_bias = self.accelerometer.CalculateCalibrationBias(
+        raw_data, self.orientation, self.spec_ideal_values)
+    self.accelerometer.UpdateCalibrationBias(calib_bias)
     self.template.SetState(' ' + _MSG_PASS + _BR, append=True)
     self.Pass()
 
@@ -258,10 +256,7 @@ class AccelerometersCalibration(unittest.TestCase):
     self.assertEquals(2, len(self.args.spec_ideal_values))
     # Initializes a accelerometer utility class.
     self.accelerometer_controller = self.dut.accelerometer.GetController(
-        self.args.spec_offset,
-        self.args.spec_ideal_values,
-        self.args.sample_rate_hz,
-        self.args.location,
+        self.args.location
     )
     self.ui.AppendCSS(_CSS)
     self._task_manager = None
@@ -272,7 +267,10 @@ class AccelerometersCalibration(unittest.TestCase):
           self,
           self.args.orientation,
           self.args.capture_count,
-          self.args.setup_time_secs)]
+          self.args.setup_time_secs,
+          self.args.spec_ideal_values,
+          self.args.spec_offset,
+          self.args.sample_rate_hz)]
     else:
       task_list = [SixSidedCalibrationTask(self.args.orientation)]
     self._task_manager = FactoryTaskManager(self.ui, task_list)

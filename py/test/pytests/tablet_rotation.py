@@ -172,10 +172,7 @@ class TabletRotationTest(unittest.TestCase):
                   'and spec_ideal_values.')
         return
 
-      self.accel_controller = self.dut.accelerometer.GetController(
-          spec_offset=self.args.spec_offset,
-          spec_ideal_values=self.args.spec_ideal_values,
-          sample_rate=self.args.sample_rate_hz)
+      self.accel_controller = self.dut.accelerometer.GetController()
 
     self.ui = test_ui.UI()
     self.state = factory.get_state_instance()
@@ -265,9 +262,11 @@ class TabletRotationTest(unittest.TestCase):
           self.accel_controller and
           degrees_target in self.args.degrees_to_orientations):
         orientations = self.args.degrees_to_orientations[degrees_target]
-        cal_data = self.accel_controller.GetCalibratedDataAverage()
+        cal_data = self.accel_controller.GetCalibratedDataAverage(
+            sample_rate=self.args.sample_rate_hz)
         if not self.accel_controller.IsWithinOffsetRange(
-            cal_data, orientations):
+            cal_data, orientations, self.args.spec_ideal_values,
+            self.args.spec_offset):
           success = False
 
       # Are we currently at our target?

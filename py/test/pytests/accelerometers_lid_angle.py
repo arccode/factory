@@ -93,9 +93,9 @@ window.onkeydown = function(event) {
 
 class AccelerometersLidAngleTest(unittest.TestCase):
   ARGS = [
-      Arg('angle', int, 'The target lid angle to test.',
+      Arg('angle', int, 'The target lid angle in degree to test.',
           default=180, optional=True),
-      Arg('tolerance', int, 'The tolerance ',
+      Arg('tolerance', int, 'The tolerance in degree.',
           default=5, optional=True),
       Arg('capture_count', int,
           'How many times to capture the raw data to '
@@ -134,9 +134,6 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     self.accelerometers = {}
     for location in self.accelerometers_locations:
       self.accelerometers[location] = self.dut.accelerometer.GetController(
-          self.args.spec_offset,
-          self.args.spec_ideal_values,
-          self.args.sample_rate_hz,
           location
       )
 
@@ -160,7 +157,8 @@ class AccelerometersLidAngleTest(unittest.TestCase):
       try:
         cal_data[location] = (
             self.accelerometers[location].GetCalibratedDataAverage(
-                self.args.capture_count))
+                self.args.capture_count,
+                self.args.sample_rate_hz))
       except AccelerometerException as err:
         logging.info(
             'Read %s calibrated data failed: %r.', location, err.args[0])
