@@ -4,18 +4,6 @@
 # found in the LICENSE file.
 
 task_{%id%} () {
-  local tmp_stderr="$(mktemp)"
-  local tmp_stdout="$(mktemp)"
-
-  CROS_FACTORY_TEST_PATH={%pytest_name%} \
-    {%cmd%} 2>"${tmp_stderr}" >"${tmp_stdout}"
-
-  local return_value="$?"
-
-  info "$(cat "${tmp_stdout}")"
-  error "$(cat "${tmp_stderr}")"
-
-  rm -f "${tmp_stdout}" "${tmp_stderr}"
-
-  return "${return_value}"
+  CROS_FACTORY_TEST_PATH={%pytest_name%} {%cmd%}
+  return "$?"
 }
