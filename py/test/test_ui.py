@@ -464,7 +464,10 @@ class UI(object):
         event.invocation == self.invocation):
       with self.lock:
         for handler in self.event_handlers.get(event.subtype, []):
-          handler(event)
+          try:
+            handler(event)
+          except Exception as e:
+            self.Fail(e)
 
   def GetUILanguage(self):
     """Returns current enabled language in UI."""
