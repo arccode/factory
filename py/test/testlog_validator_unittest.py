@@ -7,12 +7,17 @@
 import copy
 import datetime
 import logging
+import os
+import shutil
+import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import testlog
+from cros.factory.test import testlog_goofy
 from cros.factory.test import testlog_utils
 from cros.factory.test import testlog_validator
+from cros.factory.utils import time_utils
 
 class TestlogValidatorTest(unittest.TestCase):
   class TestEvent(testlog.EventBase):
@@ -103,10 +108,91 @@ class TestlogValidatorTest(unittest.TestCase):
     self.assertEquals(event['Time'], copy.copy(valid_datetime))
 
 
+class StationTestRunValidatorTest(unittest.TestCase):
+  """Validators primarily serve for StationTestRun."""
+  def setUp(self):
+    self.state_dir = testlog_goofy.LOG_ROOT
+    self.tmp_dir = tempfile.mkdtemp()
+    # Reset testlog if any
+    # pylint: disable=W0212
+    if testlog._global_testlog:
+      testlog._global_testlog.Close()
+
+  def tearDown(self):
+    shutil.rmtree(self.state_dir)
+    shutil.rmtree(self.tmp_dir)
+
+  def testAttachmentValidator(self):
+    # Prepare the attachments_folder by initializing testlog as a sub session
+    os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME] = testlog.InitSubSession(
+        log_root=self.state_dir,
+        station_test_run=testlog.StationTestRun(),
+        uuid=time_utils.TimedUUID())
+
+    TEST_STR = 'Life is a maze and love is a riddle'
+    TEST_FILENAME = 'TextFile.txt'
+    test_run = testlog.StationTestRun()
+    def CreateTextFile():
+      path = os.path.join(self.tmp_dir, TEST_FILENAME)
+      with open(path, 'w') as fd:
+        fd.write(TEST_STR)
+      return path
+
+    # Move a file normally.
+    file_to_attach = CreateTextFile()
+    test_run.AttachFile(
+        path=os.path.realpath(file_to_attach),
+        name='text1',
+        mime_type='text/plain')
+    # Missing mime_type
+    file_to_attach = CreateTextFile()
+    with self.assertRaisesRegexp(ValueError, 'mime'):
+      test_run.AttachFile(
+          path=os.path.realpath(file_to_attach),
+          name='text1',
+          mime_type=None)
+    # mime_type with incorrect format
+    with self.assertRaisesRegexp(ValueError, 'mime'):
+      test_run.AttachFile(
+          path=os.path.realpath(file_to_attach),
+          name='text1',
+          mime_type='wrong_mime_format')
+    # Incorret path
+    file_to_attach = CreateTextFile()
+    with self.assertRaisesRegexp(ValueError, 'find file'):
+      test_run.AttachFile(
+          path=os.path.realpath(file_to_attach) + 'abcd',
+          name='text1',
+          mime_type='text/plain')
+    # Duplicate name
+    file_to_attach = CreateTextFile()
+    with self.assertRaisesRegexp(ValueError, 'duplicated'):
+      test_run.AttachFile(
+          path=os.path.realpath(file_to_attach),
+          name='text1',
+          mime_type='text/plain')
+    # Name duplication on target folder
+    file_to_attach = CreateTextFile()
+    test_run.AttachFile(
+        path=os.path.realpath(file_to_attach),
+        name='text2',
+        mime_type='text/plain')
+    # Examine the result
+    paths = set()
+    for item in test_run['attachments'].itervalues():
+      path = item['path']
+      text = open(path, 'r').read()
+      self.assertEquals(TEST_STR, text)
+      self.assertTrue(TEST_FILENAME in path)
+      paths.add(path)
+    # Make sure the file names are distinguished
+    self.assertEquals(len(paths), 2)
+
+
 if __name__ == '__main__':
   logging.basicConfig(
       format=('[%(levelname)s] '
               ' %(threadName)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
-      level=logging.DEBUG,
+      level=logging.INFO,
       datefmt='%Y-%m-%d %H:%M:%S')
   unittest.main()

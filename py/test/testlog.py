@@ -522,7 +522,7 @@ class EventBase(object):
         if isinstance(data, dict):
           # Override the type in the data.
           data.update(default_data)
-        self.Populate(data or default_data)
+          self.Populate(data)
         return
     except NotImplementedError:
       pass
@@ -555,8 +555,10 @@ class EventBase(object):
       ValueError if the value can not be converted.
       TestlogError if the key is not whitelisted in the FIELD.
     """
+    # TODO(itspeter): Consider remove this handy function and make it
+    # explicitly to call other function to assign values.
     mro = self.__class__.__mro__
-    # Find the corressponding validate function.
+    # Find the corresponding validate function.
     for cls in mro:
       if cls is object:
         break  # Reach the root.
@@ -576,7 +578,7 @@ class EventBase(object):
     """Returns a list of missing field."""
     mro = self.__class__.__mro__
     missing_fileds = []
-    # Find the corressponding requirement.
+    # Find the corresponding requirement.
     for cls in mro:
       if cls is object:
         break
@@ -797,6 +799,14 @@ class StationTestRun(_StationBase):
 
   # TODO(itspeter): Document 'argument', 'operatorId', 'failures',
   #                 'serialNumbers', 'parameters' and 'series'.
+
+  def _ValidatorAttachmentWrapper(*args, **kwargs):
+    # Because the FIELDS map must be assigned at the time of loading the
+    # module. However, Testlog singleton is not ready yet, we pass the
+    # function that get the singleton instead.
+    kwargs['testlog_getter_fn'] = GetGlobalTestlog
+    return testlog_validator.Validator.Attachment(*args, **kwargs)
+
   FIELDS = {
       'testRunId': (True, testlog_validator.Validator.String),
       'testName': (True, testlog_validator.Validator.String),
@@ -807,7 +817,7 @@ class StationTestRun(_StationBase):
       'endTime': (False, testlog_validator.Validator.Time),
       'duration': (False, testlog_validator.Validator.Float),
       'operatorId': (False, testlog_validator.Validator.String),
-      'attachments': (False, testlog_validator.Validator.Attachment),
+      'attachments': (False, _ValidatorAttachmentWrapper),
       'failures': (False, testlog_validator.Validator.List),
       'serialNumbers': (False, testlog_validator.Validator.Dict),
       'parameters': (False, testlog_validator.Validator.Dict),
@@ -824,12 +834,21 @@ class StationTestRun(_StationBase):
   def GetEventType(cls):
     return 'station.test_run'
 
-  def LogParam(self, name, value, description=None, valueUnit=None):
+  def LogParam(self, name, value, description=None, value_unit=None):
     """Logs parameters as specified in Testlog API."""
     value_dict = {'numericValue': value}
     if description:
       value_dict.update({'description': description})
-    if valueUnit:
-      value_dict.update({'valueUnit': valueUnit})
+    if value_unit:
+      value_dict.update({'valueUnit': value_unit})
     self['parameters'] = {'key': name, 'value': value_dict}
+    return self
+
+  def AttachFile(self, path, mime_type, name, delete=True, description=None):
+    """Attaches a file as specified in Testlog API."""
+    value_dict = {'mimeType': mime_type,
+                  'path': path}
+    if description:
+      value_dict.update({'description': description})
+    self['attachments'] = {'key': name, 'value': value_dict, 'delete': delete}
     return self
