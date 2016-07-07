@@ -13,13 +13,13 @@ import pprint
 import shutil
 import subprocess
 import unittest
-from uuid import uuid4
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
 from cros.factory.test import testlog_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import time_utils
 
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
 SAMPLE_DATETIME_STRING = '1989-08-08T08:08:08.888Z'
@@ -124,7 +124,7 @@ class TestlogE2ETest(unittest.TestCase):
     TestlogE2ETest._reset()
     state_dir = testlog_goofy.LOG_ROOT
     # Assuming we are the harness.
-    my_uuid = uuid4()
+    my_uuid = time_utils.TimedUUID()
     testlog.Testlog(log_root=state_dir, uuid=my_uuid)
     logging.info("# Simulate the logging of goofy framework start-up.")
     testlog.Log(testlog.StationInit({
@@ -132,7 +132,7 @@ class TestlogE2ETest(unittest.TestCase):
         'success': True}))
 
     logging.info("# Prepare for another test session.")
-    session_uuid = uuid4()
+    session_uuid = time_utils.TimedUUID()
     session_test_run = testlog.StationTestRun()
     session_test_run.Populate({
         'stationDeviceId': testlog_goofy.GetDeviceID(),
