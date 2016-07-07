@@ -11,5 +11,5 @@ MINIJACK_DIR = os.path.dirname(
 MINIJACK_PARENT_DIR = os.path.realpath(os.path.join(MINIJACK_DIR, '..'))
 MINIJACK_EXTERNAL_DIR = os.path.realpath(os.path.join(MINIJACK_DIR, 'external'))
 
-sys.path.append(MINIJACK_PARENT_DIR)
-sys.path.append(MINIJACK_EXTERNAL_DIR)
+sys.path.insert(0, MINIJACK_PARENT_DIR)
+sys.path.insert(0, MINIJACK_EXTERNAL_DIR)
