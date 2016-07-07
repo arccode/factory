@@ -30,6 +30,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.env import paths
 
@@ -69,6 +71,8 @@ class RFGraphyteTest(unittest.TestCase):
       ]
 
   def setUp(self):
+    self._ui = test_ui.UI()
+    self._template = ui_templates.OneSection(self._ui)
     self._dut = dut.Create()
     if self.args.enable_shopfloor:
       self._shopfloor_proxy = shopfloor.GetShopfloorConnection()
@@ -89,6 +93,7 @@ class RFGraphyteTest(unittest.TestCase):
 
     # Execute Graphyte.
     # TODO(akahuang): output to UI.
+    self.SetLabel('Executing Graphyte.')
     cmd = ['python', '-m', 'graphyte.main', '--quiet',
            '--config-file', config_file_path,
            '--result-file', self.result_file_path,
@@ -124,6 +129,9 @@ class RFGraphyteTest(unittest.TestCase):
     # The log files are in the default log folder.
     return os.path.join(paths.GetLogRoot(), file_name)
 
+  def SetLabel(self, label):
+    self._template.SetState(test_ui.MakeLabel(label))
+
   def FetchConfigFromShopfloor(self):
     """Fetch all config files from shopfloor.
 
@@ -134,6 +142,7 @@ class RFGraphyteTest(unittest.TestCase):
     if not self.args.enable_shopfloor:
       return
 
+    self.SetLabel('Fetching config files from shopfloor.')
     config_file_paths = self._shopfloor_proxy.ListParameters(
         os.path.join(self.args.shopfloor_parameter_dir, '*'))
     for file_path in config_file_paths:
@@ -148,6 +157,7 @@ class RFGraphyteTest(unittest.TestCase):
     if not self.args.enable_shopfloor:
       return
 
+    self.SetLabel('Uploading result files to shopfloor.')
     output_files = [self.result_file_path, self.log_file_path]
     logging.info('Upload the result to shopfloor: %s', output_files)
     shopfloor.UploadAuxLogs(output_files, True,
