@@ -54,7 +54,8 @@ class OutputStdout(plugin_base.OutputPlugin):
 
       # Commit these events.
       success_string = 'success' if event_stream.Commit() else 'failure'
-      self.info('Commit %d events: %s', len(events), success_string)
+      if len(events) > 0:
+        self.info('Commit %d events: %s', len(events), success_string)
 
 
 if __name__ == '__main__':

@@ -14,6 +14,7 @@ from __future__ import print_function
 import base64
 import jsonrpclib
 import os
+import socket
 import time
 
 import instalog_common  # pylint: disable=W0611
@@ -21,7 +22,9 @@ from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 
 
-_DEFAULT_BATCH_SIZE = 5
+_SOCKET_TIMEOUT = 1
+_CONNECTION_FAILURE_WARN_THRESHOLD = 30
+_DEFAULT_BATCH_SIZE = 5000
 _DEFAULT_TIMEOUT = 5
 _DEFAULT_PORT = 8880
 _DEFAULT_THRESHOLD_BYTES = 4 * 1024 * 1024  # 4mb
@@ -49,12 +52,40 @@ class OutputRPC(plugin_base.OutputPlugin):
 
   def Start(self):
     """Stores handler to input RPC server."""
+    # TODO(kitching): Find a better way of doing this, since this timeout
+    #                 applies for the full duration of a request, even if it
+    #                 is working.
+    socket.setdefaulttimeout(_SOCKET_TIMEOUT)
     self.rpc_server = jsonrpclib.Server(
         'http://%s:%d' % (self.args.hostname, self.args.port))
 
   def Main(self):
     """Main thread of the plugin."""
+    # TODO(kitching): Refactor the main loop into several separate functions.
+    # Set connection_attempts to the threshold initially to trigger the warning
+    # message if failure is encountered on the first attempt.
+    connection_attempts = _CONNECTION_FAILURE_WARN_THRESHOLD
     while not self.IsStopping():
+      # Verify that we have a connection available before creating an
+      # EventStream object and retrieving events.
+      try:
+        connection_attempts += 1
+        assert self.rpc_server.Ping() == 'pong'
+      except Exception:
+        # Periodically print an error about the connection problem.
+        if connection_attempts >= _CONNECTION_FAILURE_WARN_THRESHOLD:
+          self.warning(
+              'No connection to target RPC server available (tried %d times)',
+              _CONNECTION_FAILURE_WARN_THRESHOLD)
+          connection_attempts = 0
+        # TODO(kitching): Find a better way to slow down the plugin in the case
+        #                 that it repeatedly fails to get a connection to RPC
+        #                 server.
+        time.sleep(1)
+        continue
+      connection_attempts = 0
+
+      # We have a connection to the RPC server.  Create an EventStream.
       event_stream = self.NewStream()
       if not event_stream:
         # TODO(kitching): Find a better way to block the plugin when we are in
@@ -121,7 +152,8 @@ class OutputRPC(plugin_base.OutputPlugin):
         commit_result_str = 'success' if event_stream.Commit() else 'failure'
         self.info('Commit %d events: %s', len(events), commit_result_str)
       else:
-        self.info('Abort %d events', len(events))
+        if len(events) > 0:
+          self.info('Abort %d events', len(events))
         event_stream.Abort()
         # TODO(kitching): Find a better way to slow down the plugin in the case
         #                 that it repeatedly aborts.

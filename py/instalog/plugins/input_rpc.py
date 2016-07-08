@@ -38,16 +38,25 @@ class InputRPC(plugin_base.InputPlugin):
           optional=True, default=_DEFAULT_PORT)
   ]
 
+  def __init__(self, *args, **kwargs):
+    # Store reference to the JSON RPC server.
+    self.server = None
+    super(InputRPC, self).__init__(*args, **kwargs)
+
   def Start(self):
     """Starts the plugin."""
     # Create the temporary directory for attachments.
     self._tmp_dir = tempfile.mkdtemp(prefix='input_rpc_')
     self.info('Temporary directory for attachments: %s', self._tmp_dir)
 
-    # Start the JSON RPC server.
+    # Start the JSON RPC server.  If the port is already used, an exception will
+    # be thrown, and plugin will be taken down.
+    # TODO(kitching): Writes log messages for every HTTP request.  Figure out
+    #                 how to suppress these messages.
     self.server = SimpleJSONRPCServer.SimpleJSONRPCServer(
         (self.args.hostname, self.args.port))
     self.server.register_function(self.RemoteEmit)
+    self.server.register_function(self.Ping)
     self.server_thread = threading.Thread(target=self.server.serve_forever)
     self.server_thread.start()
 
@@ -55,11 +64,18 @@ class InputRPC(plugin_base.InputPlugin):
     """Stops the plugin."""
     # Stop the JSON RPC server.
     # shutdown() waits until any executing requests finish.
-    self.server.shutdown()
-    self.server.server_close()
+    if self.server:
+      self.server.shutdown()
+      self.server.server_close()
+    else:
+      self.warning('Stop: RPC server was never started')
 
     # Remove the temporary directory.
     shutil.rmtree(self._tmp_dir)
+
+  def Ping(self):
+    """Returns 'pong' to verify the connection to this RPC server."""
+    return 'pong'
 
   def RemoteEmit(self, serialized_events):
     """Emits events remotely."""
