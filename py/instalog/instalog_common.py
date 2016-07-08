@@ -7,17 +7,20 @@
 import os
 import sys
 
-# instalog_common.py itself is usually a symlink that refers to the parent level
-# of instalog code. To find that, we need to get the source name (the compiled
-# binary *.pyc is usually not a symlink), derive the path to the parent folder,
-# and then append into Python path (sys.path) if it's not available yet.
-# For platforms without symlink (i.e., Windows), we need to derive the top level
-# by environment variable.
+# instalog_common.py itself is usually a symlink that recursively resolves to a
+# file in the root level of Instalog code.  To set up the proper Python path
+# (sys.path), we need to get the source name (the compiled binary *.pyc is
+# usually not a symlink) and derive the path to the root folder.  Then, we
+# insert both (1) the parent directory, and (2) the external packages directory
+# into Python path if they are not yet available.  For platforms without symlink
+# (i.e., Windows), we need to derive the top level by environment variable.
 
-py_dir = os.getenv(
-    'INSTALOG_PY_ROOT',
-    os.path.join(os.path.dirname(
-        os.path.realpath(__file__.replace('.pyc', '.py'))), '..'))
+INSTALOG_DIR = os.path.dirname(
+    os.path.realpath(__file__.replace('.pyc', '.py')))
+INSTALOG_PARENT_DIR = os.path.realpath(os.path.join(INSTALOG_DIR, '..'))
+INSTALOG_EXTERNAL_DIR = os.path.realpath(os.path.join(INSTALOG_DIR, 'external'))
 
-if py_dir not in sys.path:
-  sys.path.append(py_dir)
+if INSTALOG_PARENT_DIR not in sys.path:
+  sys.path.insert(0, INSTALOG_PARENT_DIR)
+if INSTALOG_EXTERNAL_DIR not in sys.path:
+  sys.path.insert(0, INSTALOG_EXTERNAL_DIR)
