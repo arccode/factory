@@ -80,14 +80,17 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.device import CalledProcessError
 from cros.factory.test import event_log
-from cros.factory.test import factory, leds
+from cros.factory.test import factory
+from cros.factory.test import leds
 from cros.factory.test import test_ui
+from cros.factory.test import testlog
 from cros.factory.test.fixture import arduino
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils.arg_utils import Arg, Args
+from cros.factory.utils import arg_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 _WIFI_TIMEOUT_SECS = 20
@@ -104,6 +107,10 @@ _MSG_SPACE = test_ui.MakeLabel(
 _MSG_RUNNING = test_ui.MakeLabel(
     'Running, please wait...',
     u'测试中，请稍後。', 'wireless-info')
+
+
+def _MbitsToBits(x):
+  return x * 1.e6
 
 
 def _BitsToMbits(x):
@@ -428,6 +435,7 @@ class _ServiceTest(object):
                  transmit_interval=ap_config.transmit_interval)
 
           DoTest(self._CheckIperfThroughput, abort=True,
+                 ssid=ap_config.ssid,
                  tx_rx=tx_rx,
                  log_key=('iperf_%s' % tx_rx.lower()),
                  log_pass_key=('pass_iperf_%s' % tx_rx.lower()),
@@ -597,9 +605,19 @@ class _ServiceTest(object):
               transmit_time,
               _BitsToMbits(iperf_avg['bits_per_second'])))
 
-  def _CheckIperfThroughput(self, tx_rx, log_key, log_pass_key, min_throughput):
+  def _CheckIperfThroughput(self, ssid, tx_rx, log_key, log_pass_key,
+                            min_throughput):
     iperf_avg = self._log[log_key]['end']['sum_sent']
+
     # Ensure the average throughput is over its minimum.
+    testlog.CheckParam(
+        name='%s_%s_avg_bits_per_second' % (ssid, tx_rx.lower()),
+        value=iperf_avg['bits_per_second'],
+        min=_MbitsToBits(min_throughput) if min_throughput else None,
+        description='Average speed of %s throughput test on AP %s'
+                     % (tx_rx.upper(), ssid),
+        value_unit='Bits/second')
+
     if min_throughput is not None:
       self._log[log_pass_key] = (
           _BitsToMbits(iperf_avg['bits_per_second']) > min_throughput)
@@ -856,7 +874,7 @@ class WiFiThroughput(unittest.TestCase):
           help=arg.help,
           default=args_dict.get(arg.name, arg.default),
           optional=arg.optional))
-    service_arg_parser = Args(*service_args)
+    service_arg_parser = arg_utils.Args(*service_args)
     if not isinstance(self.args.services, list):
       self.args.services = [self.args.services]
     new_services = []
@@ -982,9 +1000,25 @@ class WiFiThroughput(unittest.TestCase):
                                   self._ui,
                                   self.args.bind_wifi)
       for ap_config in self.args.services:
-        self.log['test'][ap_config.ssid] = service_test.Run(ap_config)
+        iperf_data = service_test.Run(ap_config)
+        self.log['test'][ap_config.ssid] = iperf_data
 
-    # Log this test run.
+        # Log throughput data via testlog.
+        for tx_rx in ('tx', 'rx'):
+          if 'intervals' in iperf_data['iperf_%s' % tx_rx]:
+            s = testlog.CreateSeries(
+                name='%s_%s' % (ap_config.ssid, tx_rx),
+                description='%s throughput test on AP %s over time'
+                             % (tx_rx.upper(), ap_config.ssid),
+                key_unit='seconds',
+                value_unit='Bits/second')
+            for interval in iperf_data['iperf_%s' % tx_rx]['intervals']:
+              # Actually this is over the range from ['start'] to ['end'], but we
+              # can only take one key, so we use ['end'].
+              s.LogValue(key=interval['sum']['end'],
+                         value=interval['sum']['bits_per_second'])
+
+    # Log this test run via event_log.
     self._Log()
 
     # Check for any failures and report an aggregation.
