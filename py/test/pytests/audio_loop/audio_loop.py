@@ -106,7 +106,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test.dut.audio.base import MicJackType
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
+from cros.factory.utils.process_utils import (PIPE, Spawn)
 from cros.factory.utils.type_utils import Enum
 
 # Default setting
@@ -187,6 +187,8 @@ class AudioLoopTest(unittest.TestCase):
       Arg(
           'check_dongle', bool,
           'Check dongle status whether match require_dongle', False),
+      Arg('check_cras', bool, 'Do we need to check if CRAS is running',
+          True),
       Arg(
           'cras_enabled', bool, 'Whether cras should be running or not',
           False),
@@ -292,16 +294,17 @@ class AudioLoopTest(unittest.TestCase):
     self._ui_template = ui_templates.OneSection(self._ui)
     self._ui_template.SetState(_UI_HTML)
 
-    # Check cras status
-    if self.args.cras_enabled:
-      cras_status = 'start/running'
-    else:
-      cras_status = 'stop/waiting'
-    if cras_status not in SpawnOutput(['status', 'cras']):
-      self._ui.Fail('cras status is wrong (expected status: %s). '
-                    'Please make sure that you have appropriate setting for '
-                    '"disable_services=[\'cras\']" in the test item.' %
-                    cras_status)
+    if self.args.check_cras:
+      # Check cras status
+      if self.args.cras_enabled:
+        cras_status = 'start/running'
+      else:
+        cras_status = 'stop/waiting'
+      if cras_status not in self._dut.CallOutput(['status', 'cras']):
+        self._ui.Fail('cras status is wrong (expected status: %s). '
+                      'Please make sure that you have appropriate setting for '
+                      '"disable_services=[\'cras\']" in the test item.' %
+                      cras_status)
     self._dut_temp_dir = self._dut.temp.mktemp(True, '', 'audio_loop')
 
   def tearDown(self):
@@ -407,7 +410,7 @@ class AudioLoopTest(unittest.TestCase):
 
     duration = self._current_test_args.get(
         'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
-    process = Spawn(
+    process = self._dut.Popen(
         [audio_utils.AUDIOFUNTEST_PATH, '-r', '%d' % capture_rate, '-i',
          self._alsa_input_device, '-o', self._alsa_output_device, '-l',
          '%d' % duration, '-a', '%d' % output_channel], stderr=PIPE)
