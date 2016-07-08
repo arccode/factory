@@ -632,7 +632,8 @@ class Finalize(unittest.TestCase):
     command += ' --station_port %d' % self.response_listener.server_address[1]
     command += ' --wipe_finish_token "%s"' % token
 
-    self._CallGoofTool(command)
+    if not self._CallGoofTool(command):
+      raise factory.FactoryTestFailure('finalize command failed')
 
     server_thread = threading.Thread(
         target=self.response_listener.serve_forever)
