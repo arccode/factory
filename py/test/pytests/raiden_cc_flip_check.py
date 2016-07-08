@@ -119,7 +119,9 @@ class RaidenCCFlipCheck(unittest.TestCase):
       self._ui.SetHTML(_WAIT_CONNECTION, id=_ID_OPERATION_DIV)
       factory.console.info(
           'Lose connection to DUT, waiting for DUT to reconnect')
-      sync_utils.WaitFor(self._dut.IsReady, self.args.wait_dut_reconnect_secs)
+      sync_utils.WaitFor(lambda: self._dut.Call(['true']) == 0,
+                         self.args.wait_dut_reconnect_secs,
+                         poll_interval=1)
 
     # For double CC cable, if we guarantee CC pair is not reversed, polarity in
     # Plankton side implies DUT side.
