@@ -34,7 +34,8 @@ class VerifyValueTest(unittest.TestCase):
              'cat /xxx/xxx/xxx/fw_version', ['5566', 'abcd5566']),
             ('command_compare_number', 'command_compare_number',
              ['cat', '/sys/class/xxx/xxx'], [4, '5566', (0, 100)]),
-            ('dut', 'dut', 'dut.info.cpu_count', 4)]
+            ('dut', 'dut', 'dut.info.cpu_count', 4),
+            ('dut', 'dut', 'dut.info.cpu_count', (3, 5))]
     self._test._dut.CheckOutput.side_effect = ['abcd5566', '25\n']
     self._test._dut.info.cpu_count = 4
     self._test.args = FakeArgs({'items': item})

@@ -67,14 +67,12 @@ class VerifyValueTest(unittest.TestCase):
 
       factory.console.info('Try to get value from: %s', command)
       logging.info('Get value from: %s', command)
-      value = None
       if isinstance(command, str) and command.startswith('dut.'):
         value = eval('self._dut.%s' % command[4:])  # pylint: disable=eval-used
       else:
         value = self._dut.CheckOutput(command)
-
-      factory.console.info('%s', str(value))
-      logging.info('%s', str(value))
+      value_str = str(value).strip()
+      factory.console.info('%s', value_str)
 
       expected_values = (item.expected_value
                          if isinstance(item.expected_value, list)
@@ -83,15 +81,14 @@ class VerifyValueTest(unittest.TestCase):
       match = False
       for expected_value in expected_values:
         if isinstance(expected_value, tuple):
-          v = float(value.strip())
+          v = float(value_str)
           match = expected_value[0] <= v <= expected_value[1]
         elif isinstance(expected_value, int):
-          match = expected_value == int(value)
+          match = expected_value == int(value_str)
         else:
-          match = expected_value == str(value).strip()
+          match = expected_value == value_str
         if match:
           break
 
       if not match:
-        self.fail('%s is not in %s' % (
-            str(value).strip(), str(item.expected_value)))
+        self.fail('%s is not in %s' % (value_str, str(item.expected_value)))
