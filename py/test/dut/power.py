@@ -353,7 +353,7 @@ class Power(DUTComponent):
         _SysfsAttribute('charge_full_design', int, True,
                         self.GetBatteryDesignCapacity),
         _SysfsAttribute('charge_now', int, True, self.GetCharge),
-        _SysfsAttribute('fraction_full', int, True, GetChargePctFloat),
+        _SysfsAttribute('fraction_full', float, True, GetChargePctFloat),
     ]
     result = {}
     sysfs_path = self._battery_path
