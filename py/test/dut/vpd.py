@@ -215,7 +215,7 @@ class VitalProductData(component.DUTComponent):
     raise component.DUTException('No %s partition found.' % partition)
 
 
-class ChromeOSVitalProductData(component.DUTComponent):
+class ChromeOSVitalProductData(VitalProductData):
   """System module for Vital Product Data (VPD) on Chrome OS."""
 
   @component.DUTProperty

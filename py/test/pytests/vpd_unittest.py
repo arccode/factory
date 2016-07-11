@@ -13,6 +13,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test import shopfloor
+from cros.factory.test.dut.boards import chromeos
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.factory_task import FactoryTask
 from cros.factory.test.pytests import vpd
@@ -88,6 +89,7 @@ class WriteVPDTaskTest(unittest.TestCase):
     self.test_case.vpd = dict(ro={}, rw={})
     self.write_vpd_task = vpd.WriteVPDTask(self.test_case)
     self.mox = mox.Mox()
+    self.test_case.dut = chromeos.ChromeOSBoard()
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -107,9 +109,7 @@ class WriteVPDTaskTest(unittest.TestCase):
     default_board_path = os.path.join(src, 'scripts', '.default_board')
     with open(default_board_path, 'w') as f:
       f.write('x86-generic')
-    # Stub out Spawn(['vpd', '-i', 'RW_VPD', self.FormatVPDParameter()]).
-    self.mox.StubOutWithMock(vpd, 'Spawn')
-    vpd.Spawn(mox.IsA(list), log=False, check_call=True).AndReturn(0)
+
     # Stub out self.Pass().
     self.mox.StubOutWithMock(FactoryTask, 'Pass')
     FactoryTask.Pass().AndReturn(0)  # pylint: disable=E1120
