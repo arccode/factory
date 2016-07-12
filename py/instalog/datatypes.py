@@ -97,6 +97,11 @@ class Event(object):
     """Implements dict [] get operator."""
     return self.data[key]
 
+  def get(self, key, default=None):
+    """Implements dict get function."""
+    # TODO(kitching): Test this method.
+    return self.data.get(key, default)
+
   def __setitem__(self, key, value):
     """Implements dict [] set operator."""
     # TODO(kitching): Test this method.
