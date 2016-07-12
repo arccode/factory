@@ -280,7 +280,7 @@ class ENASCPI(AgilentSCPI):
     """
     logging.info(
         'Checking calibration from %.2f to %.2f with threshold (%f, %f)...',
-        min_frequency, max_frequency, min_threshold, max_threshold)
+        min_frequency.Hzf(), max_frequency.Hzf(), min_threshold, max_threshold)
 
     self.SetSweepSegments([(
         min_frequency.Hzf(), max_frequency.Hzf(), sample_points)])

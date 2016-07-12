@@ -14,6 +14,10 @@ class Frequency(object):
     """Initialize a frequency instance. f must be convertable to float in Hz."""
     self._f = float(f)
 
+  def __repr__(self):
+    """Returns a string representation."""
+    return 'Frequency(%f Hz)' % self._f
+
   @staticmethod
   def FromHz(f):
     """Return an f Hz frequency instance."""
