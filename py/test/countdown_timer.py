@@ -45,7 +45,8 @@ def StartCountdownTimer(timeout_secs, timeout_handler, ui, element_id,
     thread.start()
   else:
     StartDaemonThread(target=CountdownTimer,
-                      args=(timeout_secs, timeout_handler, tick))
+                      args=(timeout_secs, timeout_handler, tick),
+                      interrupt_on_crash=True)
 
 
 def CountdownTimer(timeout_secs, timeout_handler, tick=None,
