@@ -81,7 +81,7 @@ class TestlogEventTest(unittest.TestCase):
     event = testlog.StationInit()
     event['failureMessage'] = 'Missed fields'
     self.assertItemsEqual(event.CheckMissingFields(),
-                          ['count', 'success', 'id', 'apiVersion', 'time'])
+                          ['count', 'success', 'uuid', 'apiVersion', 'time'])
 
 class TestlogE2ETest(unittest.TestCase):
   @staticmethod
@@ -158,7 +158,7 @@ class TestlogE2ETest(unittest.TestCase):
     session_test_run = testlog.StationTestRun()
     session_test_run.Populate({
         'stationDeviceId': testlog_goofy.GetDeviceID(),
-        'stationReimageId': testlog_goofy.GetReimageID(),
+        'stationInstallationId': testlog_goofy.GetInstallationID(),
         'testRunId': session_uuid,
         'testName': 'TestlogDemo',
         'status': testlog.StationTestRun.STATUS.STARTING,

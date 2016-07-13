@@ -245,7 +245,7 @@ def GetDeviceId():
 
 
 def GetReimageId():
-  return testlog_goofy.GetReimageID(path=REIMAGE_ID_PATH)
+  return testlog_goofy.GetInstallationID(path=REIMAGE_ID_PATH)
 
 
 def GetBootSequence():

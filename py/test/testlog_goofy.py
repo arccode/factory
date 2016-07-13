@@ -88,7 +88,7 @@ def GetDeviceID(path=DEVICE_ID_PATH):
     return _device_id
 
 
-def GetReimageID(path=REIMAGE_ID_PATH):
+def GetInstallationID(path=REIMAGE_ID_PATH):
   """Returns the reimage ID.
 
   This is stored in REIMAGE_ID_PATH; one is generated if not available.

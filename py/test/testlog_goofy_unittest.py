@@ -54,7 +54,7 @@ class TestlogGoofyTest(unittest.TestCase):
     testlog_goofy._device_id = None  # pylint: disable=W0212
     self.assertEqual(device_id, testlog_goofy.GetDeviceID())
 
-    self.assertNotEqual(device_id, testlog_goofy.GetReimageID())
+    self.assertNotEqual(device_id, testlog_goofy.GetInstallationID())
 
   def testGetDeviceIdFromSearchPath(self):
     testlog_goofy._device_id = None  # pylint: disable=W0212
@@ -76,20 +76,20 @@ class TestlogGoofyTest(unittest.TestCase):
     testlog_goofy.DEVICE_ID_SEARCH_PATHS = []
     self.assertEqual(mock_id, testlog_goofy.GetDeviceID())
 
-  def testGetReimageId(self):
-    reimage_id = testlog_goofy.GetReimageID()
+  def testGetInstallationID(self):
+    reimage_id = testlog_goofy.GetInstallationID()
     assert UUID_RE.match(reimage_id), reimage_id
 
     # Remove reimage_id and make sure we get the same thing
     # back again, re-reading it from disk
     testlog_goofy._reimage_id = None  # pylint: disable=W0212
-    self.assertEqual(reimage_id, testlog_goofy.GetReimageID())
+    self.assertEqual(reimage_id, testlog_goofy.GetInstallationID())
 
     # Remove the reimage_id file; now we should get something
     # *different* back.
     testlog_goofy._reimage_id = None  # pylint: disable=W0212
     os.unlink(testlog_goofy.REIMAGE_ID_PATH)
-    self.assertNotEqual(reimage_id, testlog_goofy.GetReimageID())
+    self.assertNotEqual(reimage_id, testlog_goofy.GetInstallationID())
 
   def testInitCount(self):
     for i in xrange(-1, 5):

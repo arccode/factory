@@ -629,7 +629,7 @@ class TestInvocation(object):
 
     kwargs = {
         'stationDeviceId': testlog_goofy.GetDeviceID(),
-        'stationReimageId': testlog_goofy.GetReimageID(),
+        'stationInstallationId': testlog_goofy.GetInstallationID(),
         'testRunId': self.uuid,
         'testName': test_name,
         'testType': test_type,

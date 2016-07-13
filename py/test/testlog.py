@@ -46,7 +46,6 @@ import logging
 import os
 import shutil
 import threading
-from uuid import uuid4
 
 
 # TODO(itspeter): Find a way to properly pack those as testlog should
@@ -57,6 +56,7 @@ from cros.factory.test import testlog_validator
 from cros.factory.test import testlog_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
@@ -409,8 +409,8 @@ class JSONLogFile(file_utils.FileLockContextManager):
       event: The event to output.
       override: Ture to make sure the JSON log file contains only one event.
     """
-    # Data that should be refresh at every write operation.
-    event['id'] = str(uuid4())
+    # Data that should be refreshed on every write operation.
+    event['uuid'] = time_utils.TimedUUID()
     event['seq'] = self.seq_generator.Next()
     if 'apiVersion' not in event:
       event['apiVersion'] = TESTLOG_API_VERSION
@@ -717,7 +717,7 @@ class Event(EventBase):
   """
 
   FIELDS = {
-      'id': (True, testlog_validator.Validator.String),
+      'uuid': (True, testlog_validator.Validator.String),
       'apiVersion': (True, testlog_validator.Validator.String),
       'seq': (False, testlog_validator.Validator.Long),
       'time': (True, testlog_validator.Validator.Time),
@@ -741,7 +741,7 @@ class _StationBase(Event):
         the station.  This should be a value tied to the device (such as a
         MAC address) that will not change in the case that the device is
         reimaged.
-      - stationReimageId (string, optional): ID of the reimage of the
+      - stationInstallationId (string, optional): ID of the reimage of the
         station.  Every time the station is reimaged, a new reimage ID
         should be generated (unique UUID).
   """
@@ -749,7 +749,7 @@ class _StationBase(Event):
   FIELDS = {
       'stationName': (False, testlog_validator.Validator.String),
       'stationDeviceId': (False, testlog_validator.Validator.String),
-      'stationReimageId': (False, testlog_validator.Validator.String)
+      'stationInstallationId': (False, testlog_validator.Validator.String)
   }
 
   @classmethod

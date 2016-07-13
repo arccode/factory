@@ -1120,7 +1120,7 @@ class Goofy(GoofyBase):
       testlog.Log(
           testlog.StationInit({
               'stationDeviceId': testlog_goofy.GetDeviceID(),
-              'stationReimageId': testlog_goofy.GetReimageID(),
+              'stationInstallationId': testlog_goofy.GetInstallationID(),
               'count': testlog_goofy.GetInitCount(),
               'success': True}))
     except:
@@ -1133,7 +1133,7 @@ class Goofy(GoofyBase):
           testlog.Log(
               testlog.StationInit({
                   'stationDeviceId': testlog_goofy.GetDeviceID(),
-                  'stationReimageId': testlog_goofy.GetReimageID(),
+                  'stationInstallationId': testlog_goofy.GetInstallationID(),
                   'count': testlog_goofy.GetInitCount(),
                   'success': False,
                   'failureMessage': traceback.format_exc()}))
