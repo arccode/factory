@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
+
 
 class AlgorithmException(Exception):
   pass
@@ -9,6 +11,12 @@ class AlgorithmException(Exception):
 
 class Algorithm(object):
   """Interface of the computation algorithm."""
+
+  def __init__(self):
+    self._logger = logging
+
+  def SetLogger(self, logger):
+    self._logger = logger
 
   def OnStartMoving(self, dut):
     """Callback when the robot is going to move the device.

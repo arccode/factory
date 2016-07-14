@@ -107,6 +107,7 @@ class RobotMovement(unittest.TestCase):
         self.args.robot_fixture, self.args.robot_fixture_args)
     self._algorithm = fixture_utils.CreateFixture(
         self.args.algorithm, self.args.algorithm_args)
+    self._algorithm.SetLogger(factory.console)
 
     self._ui.AppendCSS(_TEST_CSS)
     self._template = OneSection(self._ui)
