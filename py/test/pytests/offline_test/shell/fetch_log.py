@@ -22,10 +22,23 @@ from cros.factory.utils import file_utils
 from cros.factory.utils.arg_utils import Arg
 
 
+LOGS_ARG_HELP = """
+Set customized log files.
+A list of tuples: (local_fpath, remote_fpath, required).
+  * ``local_fpath``: (str) The file path stored in local. We can not use
+    absolute path of local_fpath.
+  * ``remote_fpath``: (str) The file path from remote which will be
+    os.path.join with self.data_root.
+  * ``required``: (bool) Check if it is required or not. If this log is
+    required but we do not get it, we will raise exception.
+"""
+
+
 class OfflineTestFetchLog(unittest.TestCase):
   """Fetch results of shell offline test."""
 
   ARGS = [
+      Arg('logs', list, LOGS_ARG_HELP, default=[]),
       Arg('shopfloor_dir_name', str,
           'Relative directory on shopfloor', default='offline_test'),
       Arg('upload_to_shopfloor', bool,
@@ -44,6 +57,19 @@ class OfflineTestFetchLog(unittest.TestCase):
   def _DisableStartUpApp(self):
     self.dut.init.RemoveFactoryStartUpApp(common.OFFLINE_JOB_NAME)
 
+  def _FetchFiles(self, local_fpath, remote_fpath, required):
+    local_path = os.path.join(self.temp_dir, local_fpath)
+    remote_path = self.dut.path.join(self.data_root, remote_fpath)
+    try:
+      self.dut.link.Pull(remote_path, local_path)
+    except Exception:
+      logging.exception('cannot fetch %s from DUT', remote_path)
+      if required:
+        self.fail('cannot fetch %s from DUT' % remote_path)
+      else:
+        return []
+    return [local_path]
+
   def _CompressLog(self, files):
     zipfile_name = '%s.zip' % time.strftime('%Y%m%d%H%M%S')
     zipfile_path = os.path.join(self.temp_dir, zipfile_name)
@@ -61,15 +87,13 @@ class OfflineTestFetchLog(unittest.TestCase):
     # fetch results
     upload_files = []
     for fname in ['logfile', 'task_id']:
-      local_path = os.path.join(self.temp_dir, fname)
-      remote_path = self.dut.path.join(self.data_root, fname)
-      upload_files.append(local_path)
+      local_path = self._FetchFiles(fname, fname, True)
+      upload_files += local_path
 
-      try:
-        self.dut.link.Pull(remote_path, local_path)
-      except Exception:
-        logging.exception('cannot fetch %s from DUT', remote_path)
-        self.fail('cannot fetch %s from DUT' % remote_path)
+    # fetch customized logs
+    for local, remote, required in self.args.logs:
+      local_path = self._FetchFiles(local, remote, required)
+      upload_files += local_path
 
     # get test spec
     test_spec = json.loads(self.dut.ReadFile(
