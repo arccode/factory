@@ -74,3 +74,53 @@ def IsInRange(observed, min_val, max_val):
   if max_val and observed > max_val:
     return False
   return True
+
+
+def FlattenAttrs(node, path=u'', force_repr=False, ignore_keys=None):
+  """Flatten a nested dict/list data structure into (key-path, value) pairs.
+
+  e.g. {'a': {'b': 'c'}} => [(u'a.b', 'c')]
+
+  Keys of list elements are taken to be their enumerated IDs.
+
+  e.g. {'a': [1, 2]} => [(u'a.0', 1), (u'a.1', 2)]
+
+  Empty lists/dicts are mapped to None.
+
+  e.g. {'a': []} => [(u'a', None)]
+
+  Returns:
+    A generator list of (key-path, value) tuples.  Key-paths are Unicode
+    strings, composed of all the keys required to walk to the particular node,
+    separated by periods.
+  """
+  ignore_keys = [] if ignore_keys is None else ignore_keys
+  if not hasattr(node, '__iter__'):
+    if force_repr:
+      yield (path, repr(node))
+    else:
+      yield (path, node)
+
+  else:
+    # Empty list/dict node.
+    if not node:
+      yield (path, None)
+
+    if path:
+      path += u'.'
+
+    # Dict node.
+    if isinstance(node, dict):
+      for key, value in node.iteritems():
+        if key in ignore_keys:
+          continue
+        for ret in FlattenAttrs(
+            value, path + unicode(key), force_repr, ignore_keys):
+          yield ret
+
+    # List-like node.
+    else:
+      for i, item in enumerate(node):
+        for ret in FlattenAttrs(
+            item, path + unicode(i), force_repr, ignore_keys):
+          yield ret

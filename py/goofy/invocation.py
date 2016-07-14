@@ -15,6 +15,7 @@ import logging
 import os
 import cPickle as pickle
 import pipes
+import pprint
 import re
 import signal
 import syslog
@@ -36,6 +37,7 @@ from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
+from cros.factory.test import testlog_utils
 from cros.factory.test.dut import utils as dut_utils
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
@@ -616,28 +618,48 @@ class TestInvocation(object):
         TestState.FAILED_AND_WAIVED: testlog.StationTestRun.STATUS.PASSED,
         TestState.SKIPPED_MSG: testlog.StationTestRun.STATUS.PASSED}
 
+    log_args = copy.deepcopy(log_args)  # Make sure it is intact
+    log_args.pop('status', None)  # Discard the status
+    log_args.pop('invocation')  # Discard the invocation
+    test_name = log_args.pop('path')
+    test_type = log_args.pop('pytest_name',
+                             log_args.pop('autotest_name', None))
+
     status = _status_conversion[status]
 
     kwargs = {
         'stationDeviceId': testlog_goofy.GetDeviceID(),
         'stationReimageId': testlog_goofy.GetReimageID(),
         'testRunId': self.uuid,
-        'testName': log_args['path'],
-        'testType': (log_args['pytest_name'] if log_args['pytest_name']
-                     else log_args['autotest_name']),
-        # TODO(itspeter): Convert the log_args['dargs'] into 'arguments'.
+        'testName': test_name,
+        'testType': test_type,
         'status': status,
         'startTime': datetime.datetime.fromtimestamp(self.start_time)
     }
 
+    dargs = log_args.pop('dargs', None)
+    if dargs:
+      dargs = dict(testlog_utils.FlattenAttrs(dargs, force_repr=True))
+      kwargs['arguments'] = dargs
     if 'duration' in log_args:
+      log_args.pop('duration')  # Discard the duration
       kwargs['endTime'] = datetime.datetime.fromtimestamp(self.end_time)
       kwargs['duration'] = self.end_time - self.start_time
+
     testlog_event = testlog.StationTestRun()
     testlog_event.Populate(kwargs)
     if status == testlog.StationTestRun.STATUS.FAILED:
-      # TODO(itspeter): Convert error_msg, log_tail
-      pass
+      for err_field, failure_code in [('error_msg', 'GoofyErrorMsg'),
+                                      ('log_tail', 'GoofyLogTail')]:
+        if err_field in log_args:
+          testlog_event.AddFailure(failure_code, log_args.pop(err_field))
+
+    if len(log_args) > 0:
+      logging.error('Unexpected fields in logs_args :%s',
+                    pprint.pformat(log_args))
+    for key, value in log_args.iteritems():
+      testlog_event.LogParam(name=key, value=repr(value),
+                             description='UnknownGoofyLogArgs')
     return testlog_event
 
   def _run(self):
@@ -689,9 +711,7 @@ class TestInvocation(object):
     else:
       log_args = dict(
           path=self.test.path,
-          # Use Python representation for dargs, since some elements
-          # may not be representable in YAML.
-          dargs=repr(self.test.dargs),
+          dargs=self.test.dargs,
           invocation=self.uuid)
       if self.test.autotest_name:
         log_args['autotest_name'] = self.test.autotest_name
@@ -776,6 +796,7 @@ class TestInvocation(object):
         self.goofy.event_log.Log('end_test', **log_args)
         self.update_metadata(end_time=self.end_time, **log_args)
 
+        log_args.pop('dargs', None)  # We need to avoid duplication
         testlog.Collect(self.session_json_path, self._convert_log_args(
             log_args, status))
         del self.env_additions[testlog.TESTLOG_ENV_VARIABLE_NAME]

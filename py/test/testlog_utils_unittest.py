@@ -78,6 +78,17 @@ class TestlogUtilsTest(unittest.TestCase):
       output = testlog_utils.JSONHandler(ex)
       self.assertTrue(output.startswith('Exception: '))
 
+  def testFlattenAttrs(self):
+    data = {'ignore': 1, 'level0': {'level1': ['item0', {'level2': ['item1']}]}}
+    flattened = dict(testlog_utils.FlattenAttrs(data, ignore_keys=['ignore']))
+    self.assertEqual(2, len(flattened))
+    self.assertIn('level0.level1.0', flattened)
+    self.assertEqual('item0', flattened['level0.level1.0'])
+    self.assertNotIn('level0.level1', flattened)
+    self.assertNotIn('level0.level1.1', flattened)
+    self.assertIn('level0.level1.1.level2.0', flattened)
+    self.assertEqual('item1', flattened['level0.level1.1.level2.0'])
+    self.assertEqual({'': None}, dict(testlog_utils.FlattenAttrs(None)))
 
 if __name__ == '__main__':
   logging.basicConfig(

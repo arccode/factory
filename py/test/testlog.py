@@ -348,41 +348,50 @@ def Log(event):
     testlog_singleton.session_json.Log(event, override=True)
 
 
-def LogParam(*args, **kwargs):
-  """Wrapper for StationTestRun.LogParam().
+def _StationTestRunWrapperInSession(*args, **kwargs):
+  """Wrapper for StationTestRun method function.
 
   We provide this wrapper as a handy interface that caller can use
-  testlog.LogParam() instead of GetGlobalTestlog().last_test_run.LogParam().
+  testlog.foo() instead of GetGlobalTestlog().last_test_run.foo().
   This function is expected to call only in test session but not test harness,
   because only test session expected to have GetGlobalTestlog().last_test_run.
 
-  Please see the StationTestRun.LogParam() for more details.
+  Please see the StationTestRun for more details.
   """
+  method_name = kwargs.pop('_method_name')
   if GetGlobalTestlog().last_test_run:
-    Log(GetGlobalTestlog().last_test_run.LogParam(*args, **kwargs))
-    return GetGlobalTestlog().last_test_run
+    ret = getattr(GetGlobalTestlog().last_test_run, method_name)(*args, **kwargs)
+    Log(GetGlobalTestlog().last_test_run)
+    return ret
   else:
     raise testlog_utils.TestlogError(
         'In memory station.test_run does not set. '
         'Test harness need to set it manually.')
 
 
+def LogParam(*args, **kwargs):
+  kwargs['_method_name'] = 'LogParam'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
+
+
 def AttachFile(*args, **kwargs):
-  """Wrapper for StationTestRun.AttachFile()."""
-  if GetGlobalTestlog().last_test_run:
-    Log(GetGlobalTestlog().last_test_run.AttachFile(*args, **kwargs))
-    return GetGlobalTestlog().last_test_run
+  kwargs['_method_name'] = 'AttachFile'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
 
 
 def CreateSeries(*args, **kwargs):
-  """Wrapper for StationTestRun.CreateSeries().
+  kwargs['_method_name'] = 'CreateSeries'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
 
-  We provide this wrapper as a handy interface that caller can use
-  testlog.CreateSeries() instead of
-  GetGlobalTestlog().last_test_run.CreateSeries().
-  """
-  if GetGlobalTestlog().last_test_run:
-    return GetGlobalTestlog().last_test_run.CreateSeries(*args, **kwargs)
+
+def AddArgument(*args, **kwargs):
+  kwargs['_method_name'] = 'AddArgument'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
+
+
+def AddFailure(*args, **kwargs):
+  kwargs['_method_name'] = 'AddFailure'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
 
 
 class JSONLogFile(file_utils.FileLockContextManager):
@@ -847,7 +856,7 @@ class StationTestRun(_StationBase):
       'testRunId': (True, testlog_validator.Validator.String),
       'testName': (True, testlog_validator.Validator.String),
       'testType': (True, testlog_validator.Validator.String),
-      'argument': (False, testlog_validator.Validator.Dict),
+      'arguments': (False, testlog_validator.Validator.Dict),
       'status': (True, testlog_validator.Validator.Status),
       'startTime': (True, testlog_validator.Validator.Time),
       'endTime': (False, testlog_validator.Validator.Time),
@@ -878,7 +887,15 @@ class StationTestRun(_StationBase):
 
   def LogParam(self, name, value, description=None, value_unit=None):
     """Logs parameters as specified in Testlog API."""
-    value_dict = {'numericValue': value}
+    value_dict = dict()
+    if isinstance(value, basestring):
+      value_dict['textValue'] = value
+    elif isinstance(value, (int, long, float)):
+      value_dict['numericValue'] = value
+    else:
+      raise ValueError(
+          'LogParam supports only numeric or text, not %r' % value)
+
     if description:
       value_dict.update({'description': description})
     if value_unit:
@@ -908,6 +925,7 @@ class StationTestRun(_StationBase):
     s = Series(__METADATA__=value_dict)
     self['series'] = {'key': name, 'value': s}
     return s
+
 
 class Series(dict):
   def __init__(*args, **kwargs):  # pylint: disable=E0211
