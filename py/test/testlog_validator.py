@@ -74,7 +74,7 @@ class Validator(object):
     sub_key = value['key']
     if sub_key in updated_dict:
       raise ValueError(
-          '%s is duplicated for field %s' % (sub_key, key))
+          '%r is duplicated for field %s' % (sub_key, key))
     updated_dict[sub_key] = value['value']
     # TODO(itspeter): Check if anything left in value.
     # pylint: disable=W0212
@@ -118,7 +118,10 @@ class Validator(object):
 
     # Verify required fields
     sub_key = value['key']
-    delete_after_move = value['delete']
+    # TODO(itspeter): Figure out a long-term approach to avoid attchments
+    #                 are processed twice (one on API call, one on
+    #                 testlog.Collect.
+    delete_after_move = value.get('delete', True)
     value = value['value']
 
     source_path = value.pop(PATH, None)
@@ -145,6 +148,7 @@ class Validator(object):
     folder = testlog_getter_fn().attachments_folder
 
     # First try with the same filename.
+    # TODO(itspeter): kitching@ suggest we use {testRunId}_{attachmentName}
     target_path = os.path.join(folder, os.path.basename(source_path))
     if os.path.exists(target_path):
       target_path = None

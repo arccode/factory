@@ -288,18 +288,12 @@ def Collect(session_json_path, station_test_run=None):
     content = fd.read()
     try:
       session_json = json.loads(content)
-      # TODO(itspeter): Fix the populate method
+      session_json.pop(Testlog.FIELDS._METADATA) # pylint: disable=W0212
       test_run = StationTestRun()
       test_run.Populate(session_json)
       # Merge the station_test_run information.
       if station_test_run:
-        data = {
-            'status': station_test_run['status'],
-            'endTime': station_test_run['endTime'],
-            'duration': station_test_run['duration']}
-        if 'failures' in station_test_run:
-          data['failures'] = station_test_run['failures']
-        test_run.Populate(data)
+        test_run.Populate(station_test_run.ToDict())
       Log(test_run)
     except Exception:  # pylint: disable=W0703
       # Not much we can do here.
@@ -351,7 +345,7 @@ def Log(event):
   if testlog_singleton.flush_mode:
     testlog_singleton.primary_json.Log(event)
   else:
-    testlog_singleton.session_json.Log(event)
+    testlog_singleton.session_json.Log(event, override=True)
 
 
 def LogParam(*args, **kwargs):
@@ -366,10 +360,29 @@ def LogParam(*args, **kwargs):
   """
   if GetGlobalTestlog().last_test_run:
     Log(GetGlobalTestlog().last_test_run.LogParam(*args, **kwargs))
+    return GetGlobalTestlog().last_test_run
   else:
     raise testlog_utils.TestlogError(
         'In memory station.test_run does not set. '
         'Test harness need to set it manually.')
+
+
+def AttachFile(*args, **kwargs):
+  """Wrapper for StationTestRun.AttachFile()."""
+  if GetGlobalTestlog().last_test_run:
+    Log(GetGlobalTestlog().last_test_run.AttachFile(*args, **kwargs))
+    return GetGlobalTestlog().last_test_run
+
+
+def CreateSeries(*args, **kwargs):
+  """Wrapper for StationTestRun.CreateSeries().
+
+  We provide this wrapper as a handy interface that caller can use
+  testlog.CreateSeries() instead of
+  GetGlobalTestlog().last_test_run.CreateSeries().
+  """
+  if GetGlobalTestlog().last_test_run:
+    return GetGlobalTestlog().last_test_run.CreateSeries(*args, **kwargs)
 
 
 class JSONLogFile(file_utils.FileLockContextManager):
@@ -380,8 +393,13 @@ class JSONLogFile(file_utils.FileLockContextManager):
     self.test_run_id = uuid
     self.seq_generator = seq_generator
 
-  def Log(self, event):
-    """Converts event into JSON string and writes into disk."""
+  def Log(self, event, override=False):
+    """Converts event into JSON string and writes into disk.
+
+    Args:
+      event: The event to output.
+      override: Ture to make sure the JSON log file contains only one event.
+    """
     # Data that should be refresh at every write operation.
     event['id'] = str(uuid4())
     event['seq'] = self.seq_generator.Next()
@@ -392,7 +410,11 @@ class JSONLogFile(file_utils.FileLockContextManager):
 
     line = event.ToJSON() + '\n'
     with self:
+      if override:
+        self.file.seek(0)
       self.file.write(line)
+      if override:
+        self.file.truncate()
       self.file.flush()
       os.fsync(self.file.fileno())
     return line
@@ -614,6 +636,10 @@ class EventBase(object):
         self[key] = data[key]
     return self
 
+  def CastFields(self):
+    """Casts fields to certain python types."""
+    pass
+
   @classmethod
   def _AllSubclasses(cls):
     """Returns all subclasses of this class recursively."""
@@ -650,6 +676,7 @@ class EventBase(object):
     """Converts Python dict data into an Event instance."""
     event = cls.DetermineClass(data)()
     event.Populate(data)
+    event.CastFields()
     return event
 
   def ToJSON(self):
@@ -691,6 +718,8 @@ class Event(EventBase):
   def GetEventType(cls):
     return None
 
+  def CastFields(self):
+    return super(Event, self).CastFields()
 
 class _StationBase(Event):
   """Base class for all "station" subtypes.
@@ -718,6 +747,9 @@ class _StationBase(Event):
   def GetEventType(cls):
     return None
 
+  def CastFields(self):
+    return super(_StationBase, self).CastFields()
+
 
 class StationInit(_StationBase):
   """Represents the Station being brought up or initialized.
@@ -741,6 +773,8 @@ class StationInit(_StationBase):
   def GetEventType(cls):
     return 'station.init'
 
+  def CastFields(self):
+    return super(StationInit, self).CastFields()
 
 class StationMessage(_StationBase):
   """Represents a Python message on the Station.
@@ -773,6 +807,8 @@ class StationMessage(_StationBase):
   def GetEventType(cls):
     return 'station.message'
 
+  def CastFields(self):
+    return super(StationMessage, self).CastFields()
 
 class StationTestRun(_StationBase):
   """Represents a test run on the Station.
@@ -800,7 +836,7 @@ class StationTestRun(_StationBase):
   # TODO(itspeter): Document 'argument', 'operatorId', 'failures',
   #                 'serialNumbers', 'parameters' and 'series'.
 
-  def _ValidatorAttachmentWrapper(*args, **kwargs):
+  def _ValidatorAttachmentWrapper(*args, **kwargs):  # pylint: disable=E0211
     # Because the FIELDS map must be assigned at the time of loading the
     # module. However, Testlog singleton is not ready yet, we pass the
     # function that get the singleton instead.
@@ -834,6 +870,12 @@ class StationTestRun(_StationBase):
   def GetEventType(cls):
     return 'station.test_run'
 
+  def CastFields(self):
+    if 'series' in self:
+      s = Series(__METADATA__=dict())
+      s.update(self['series'])
+      self['series'] = s
+
   def LogParam(self, name, value, description=None, value_unit=None):
     """Logs parameters as specified in Testlog API."""
     value_dict = {'numericValue': value}
@@ -852,3 +894,67 @@ class StationTestRun(_StationBase):
       value_dict.update({'description': description})
     self['attachments'] = {'key': name, 'value': value_dict, 'delete': delete}
     return self
+
+  def CreateSeries(self, name,
+                   description=None, key_unit=None, value_unit=None):
+    """Returns a Series object as specified in Testlog API."""
+    value_dict = dict()
+    if description:
+      value_dict['description'] = description
+    if key_unit:
+      value_dict['keyUnit'] = key_unit
+    if value_unit:
+      value_dict['valueUnit'] = value_unit
+    s = Series(__METADATA__=value_dict)
+    self['series'] = {'key': name, 'value': s}
+    return s
+
+class Series(dict):
+  def __init__(*args, **kwargs):  # pylint: disable=E0211
+    # Allowed only a specific form of initialization.
+    assert len(args) == 1  # Expecting only self
+    assert isinstance(kwargs['__METADATA__'], dict)
+    super(Series, args[0]).__init__(kwargs['__METADATA__'])
+
+  @staticmethod
+  def CheckIsNumeric(v):
+    return isinstance(v, (int, long, float))
+
+  @staticmethod
+  def _CheckArguments(key, value, min_val, max_val):
+    # Only accept numeric value.
+    for v in [key, value]:
+      if not Series.CheckIsNumeric(v):
+        raise ValueError('%r is not a numeric' % v)
+
+    # Only accept numeric value or None
+    for v in [min_val, max_val]:
+      if v is not None and not Series.CheckIsNumeric(v):
+        raise ValueError('%r is not a numeric or None' % v)
+
+  def _LogValue(self, key, value, status, min_val, max_val):
+    value_dict = {'key': key, 'numericValue': value}
+    if status:
+      value_dict['status'] = status
+    if min_val:
+      value_dict['expectedMinimum'] = min_val
+    if max_val:
+      value_dict['expectedMaximum'] = max_val
+
+    if 'data' not in self:
+      self['data'] = list()
+    self['data'].append(value_dict)
+    # Update the session JSON
+    if GetGlobalTestlog().last_test_run:
+      Log(GetGlobalTestlog().last_test_run)
+
+  def LogValue(self, key, value):
+    Series._CheckArguments(key, value, None, None)
+    self._LogValue(key, value, None, None, None)
+
+  def CheckValue(self, key, value, min=None, max=None):  # pylint: disable=W0622
+    Series._CheckArguments(key, value, min, max)
+    result = testlog_utils.IsInRange(value, min_val=min, max_val=max)
+    result = 'PASS' if result else 'FAIL'
+    self._LogValue(key, value, result, min, max)
+    return result

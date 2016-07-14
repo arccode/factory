@@ -6,8 +6,10 @@
 
 import copy
 import datetime
+import json
 import logging
 import os
+import pprint
 import shutil
 import tempfile
 import unittest
@@ -34,6 +36,9 @@ class TestlogValidatorTest(unittest.TestCase):
     @classmethod
     def GetEventType(cls):
       return 'unittest.Event'
+
+    def CastFields(self):
+      pass
 
   def testNonExistedField(self):
     event = self.TestEvent()
@@ -122,12 +127,46 @@ class StationTestRunValidatorTest(unittest.TestCase):
     shutil.rmtree(self.state_dir)
     shutil.rmtree(self.tmp_dir)
 
-  def testAttachmentValidator(self):
+  def _SimulateSubSession(self):
     # Prepare the attachments_folder by initializing testlog as a sub session
-    os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME] = testlog.InitSubSession(
+    session_json_path = testlog.InitSubSession(
         log_root=self.state_dir,
         station_test_run=testlog.StationTestRun(),
         uuid=time_utils.TimedUUID())
+    os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME] = session_json_path
+    return session_json_path
+
+  def testCreateSeries(self):
+    session_json_path = self._SimulateSubSession()
+    s1 = testlog.CreateSeries(name='s1')
+    s1.LogValue(key=1988, value=1234)
+
+    # Duplicate series name
+    with self.assertRaisesRegexp(ValueError, 'duplicated'):
+      s2 = testlog.CreateSeries(name='s1')
+    # Not a numeric
+    with self.assertRaisesRegexp(ValueError, 'numeric'):
+      s1.LogValue(key='1988', value=1234)
+    with self.assertRaisesRegexp(ValueError, 'numeric'):
+      s1.LogValue(key=1988, value='1234')
+
+    # Test float type
+    s1.LogValue(key=1987.5, value=5678.0)
+
+    s2 = testlog.CreateSeries(name='s2', description='withUnit',
+                              key_unit='MHz', value_unit='dBm')
+    s2.LogValue(key=2300, value=31.5)
+    # Give a range to fail.
+    s2.CheckValue(key=2305, value=31.5, min=None, max=30)
+    # The key is not checked for duplication as it is a list.
+    # Expect to see a FAIL and a PASS in the series of same key.
+    s2.CheckValue(key=2305, value=30.5, min=None, max=31)
+
+    logging.info('Load back JSON:\n%s\n',
+                 pprint.pformat(json.loads(open(session_json_path).read())))
+
+  def testAttachmentValidator(self):
+    self._SimulateSubSession()
 
     TEST_STR = 'Life is a maze and love is a riddle'
     TEST_FILENAME = 'TextFile.txt'

@@ -12,6 +12,7 @@ import os
 import pprint
 import shutil
 import subprocess
+import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -115,10 +116,31 @@ class TestlogE2ETest(unittest.TestCase):
       return
 
     logging.info("Running Oataku pytest")
+    # Snippet for attachment
+    tmp_dir = tempfile.mkdtemp()
+    def CreateTextFile():
+      TEST_STR = 'I\'m just a little bit caught in the middle'
+      TEST_FILENAME = 'TextFile.txt'
+      path = os.path.join(tmp_dir, TEST_FILENAME)
+      with open(path, 'w') as fd:
+        fd.write(TEST_STR)
+      return path
+
     # Additional steps that because multiprocessing.Process doesn't provide
     # an argument to set the env like subprocess.Popen.
     testlog.LogParam(name='Oataku', value=22000,
                      description='Obtained from http://i.imgur.com/hK0X8.jpg')
+
+    # Move a file normally.
+    file_to_attach = CreateTextFile()
+    logging.info("Attaching file:%s", file_to_attach)
+    testlog.AttachFile(
+        path=os.path.realpath(file_to_attach),
+        name='text1',
+        mime_type='text/plain')
+
+    # Clean up the tmp directory
+    shutil.rmtree(tmp_dir)
 
   def testE2E(self):
     TestlogE2ETest._reset()
@@ -155,10 +177,12 @@ class TestlogE2ETest(unittest.TestCase):
          "TestlogE2ETest.testSimulatedTestInAnotherProcess"],
         env=env_additions)
     p.wait()
-    logging.info('Load back JSON:\n%s\n',
+    logging.info('Load back session JSON:\n%s\n',
                  pprint.pformat(json.loads(open(session_json_path).read())))
     # Collect the session log
     testlog.Collect(session_json_path)
+    logging.info('Load back primary JSON:\n%s\n',
+                 open(os.path.join(state_dir, 'testlog.json')).read())
 
 
 if __name__ == '__main__':

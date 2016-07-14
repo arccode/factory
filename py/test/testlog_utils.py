@@ -61,3 +61,16 @@ def JSONHandler(obj):
   elif isinstance(obj, Exception):
     return 'Exception: %s' % str(obj)
   return str(obj)
+
+
+def IsInRange(observed, min_val, max_val):
+  '''Returns True if min_val <= observed <= max_val.
+
+  If any of min_val or max_val is missing, it means there is no lower or
+  upper bounds respectively.
+  '''
+  if min_val and observed < min_val:
+    return False
+  if max_val and observed > max_val:
+    return False
+  return True

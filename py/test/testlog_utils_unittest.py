@@ -19,6 +19,22 @@ SAMPLE_DATETIME_ROUNDED_SEC = datetime.datetime(1989, 8, 8, 8, 8, 8, 000000)
 
 class TestlogUtilsTest(unittest.TestCase):
 
+  def testIsInRange(self):
+    self.assertEquals(True,
+                      testlog_utils.IsInRange(30, min_val=None, max_val=30))
+    self.assertEquals(False,
+                      testlog_utils.IsInRange(30, min_val=None, max_val=29.99))
+    self.assertEquals(True,
+                      testlog_utils.IsInRange(30, min_val=30, max_val=None))
+    self.assertEquals(False,
+                      testlog_utils.IsInRange(30, min_val=30.01, max_val=None))
+    self.assertEquals(True,
+                      testlog_utils.IsInRange(30, min_val=None, max_val=None))
+    self.assertEquals(True,
+                      testlog_utils.IsInRange(30, min_val=29, max_val=31))
+    self.assertEquals(False,
+                      testlog_utils.IsInRange(31.1, min_val=29, max_val=31))
+
   def testJSONTime(self):
     """Tests conversion to and from JSON date format.
 
