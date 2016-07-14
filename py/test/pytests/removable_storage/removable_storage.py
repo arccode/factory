@@ -119,8 +119,8 @@ _TEST_TITLE = test_ui.MakeLabel(
     'Removable Storage Test', u'可移除储存装置测试')
 
 # Regex used for find execution time from dd output.
-_RE_DD_EXECUTION_TIME = re.compile(r'^.* copied, ([0-9]+\.[0-9]+) seconds, .*$',
-                                   re.MULTILINE)
+_RE_DD_EXECUTION_TIME = re.compile(
+    r'^.* copied, ([0-9]+\.[0-9]+) s(?:econds)?, .*$', re.MULTILINE)
 
 _ID_STATE_DIV = 'state_div'
 _ID_COUNTDOWN_DIV = 'countdown_div'
