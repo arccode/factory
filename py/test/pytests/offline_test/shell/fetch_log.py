@@ -9,7 +9,9 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 import unittest
+import zipfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import dut
@@ -42,6 +44,16 @@ class OfflineTestFetchLog(unittest.TestCase):
   def _DisableStartUpApp(self):
     self.dut.init.RemoveFactoryStartUpApp(common.OFFLINE_JOB_NAME)
 
+  def _CompressLog(self, files):
+    zipfile_name = '%s.zip' % time.strftime('%Y%m%d%H%M%S')
+    zipfile_path = os.path.join(self.temp_dir, zipfile_name)
+    with zipfile.ZipFile(zipfile_path, 'w') as myzip:
+      for f in files:
+        logging.info('zip file %r', f)
+        myzip.write(f)
+
+    return zipfile_path
+
   def runTest(self):
     # disable test script
     self._DisableStartUpApp()
@@ -68,9 +80,13 @@ class OfflineTestFetchLog(unittest.TestCase):
         self.dut.path.join(self.data_root, 'task_id')))
 
     if self.args.upload_to_shopfloor:
-      shopfloor.UploadAuxLogs(upload_files,
-                              self.args.shopfloor_dir_name)
+      dir_name = os.path.join(self.args.shopfloor_dir_name,
+                              self.dut.info.mlb_serial_number)
+      shopfloor.UploadAuxLogs([self._CompressLog(upload_files)],
+                              dir_name=dir_name)
     else:
+      logging.info('DUT mlb_serial_number: %s',
+                   self.dut.info.mlb_serial_number)
       logging.info('logfile: %s',
                    file_utils.ReadFile(os.path.join(self.temp_dir, 'logfile')))
 
