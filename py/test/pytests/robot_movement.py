@@ -14,6 +14,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import dut
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture import utils as fixture_utils
@@ -97,7 +98,10 @@ class RobotMovement(unittest.TestCase):
       Arg('period_after_movement', (float, int),
           'The pause period after the final movements.', default=0.0),
       Arg('positions', list,
-          'A list of position index for the robot to move.')
+          'A list of position index for the robot to move.'),
+      Arg('upload_to_shopfloor', bool,
+          'If true, upload log to shopfloor after running.',
+          default=False),
       ]
 
   def setUp(self):
@@ -205,5 +209,5 @@ class RobotMovement(unittest.TestCase):
     self.StartMoving()
     self.Compute()
     self.PushResult()
-    # TODO (shunhsingou): log the dataset and parameters to
-    # shopfloor.
+    if self.args.upload_to_shopfloor:
+      self._algorithm.UploadLog(self._dut, shopfloor)
