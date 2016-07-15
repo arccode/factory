@@ -34,6 +34,11 @@ _CSS = """
 .warning {
   color: red;
 }
+
+.pass {
+  color: green;
+  font-size: 6em;
+}
 """
 
 _TITLE_START = test_ui.MakeLabel('Start Station Test', u'开始测试')
@@ -41,11 +46,13 @@ _TITLE_END = test_ui.MakeLabel('End Station Test', u'结束测试')
 
 _ID_MSG_DIV = 'msg'
 _ID_COUNTDOWN_DIV = 'countdown'
+_ID_RESULT_DIV = 'result'
 
 _STATE_HTML = """
 <div id='%s'></div>
 <div id='%s'></div>
-""" % (_ID_MSG_DIV, _ID_COUNTDOWN_DIV)
+<div id='%s' class='h1'></div>
+""" % (_ID_MSG_DIV, _ID_COUNTDOWN_DIV, _ID_RESULT_DIV)
 
 _MSG_INSERT = test_ui.MakeLabel(
     'Please attach DUT.',
@@ -55,6 +62,11 @@ _MSG_INSERT = test_ui.MakeLabel(
 _MSG_PRESS_SPACE = test_ui.MakeLabel(
     'Press SPACE to start the test.',
     u'请按空白键开始测试。',
+    'prompt')
+
+_MSG_PRESS_SPACE_TO_END = test_ui.MakeLabel(
+    'Press SPACE to end the test.',
+    u'请按空白键结束测试。',
     'prompt')
 
 _MSG_SEND_RESULT = test_ui.MakeLabel(
@@ -71,6 +83,8 @@ _MSG_RESTART_TESTS = test_ui.MakeLabel(
     'Restarting all tests...',
     u'RESTARTING 测试结束，正在重设测试列表...',
     'prompt')
+
+_MSG_PASS = test_ui.MakeLabel('PASS', u'PASS', 'pass')
 
 
 class StationEntry(unittest.TestCase):
@@ -160,12 +174,14 @@ class StationEntry(unittest.TestCase):
     self.SendTestResult()
 
     self._ui.SetHTML(_MSG_REMOVE_DUT, id=_ID_MSG_DIV)
+    self._ui.SetHTML(_MSG_PASS, id=_ID_RESULT_DIV)
     if not self._dut.link.IsLocal():
       if self.args.disconnect_dut:
         sync_utils.WaitFor(lambda: not self._dut.link.IsReady(),
                            self.args.timeout_secs,
                            poll_interval=1)
       else:
+        self._ui.SetHTML(_MSG_PRESS_SPACE_TO_END, id=_ID_MSG_DIV)
         sync_utils.WaitFor(self._space_event.isSet, None)
         self._space_event.clear()
 
