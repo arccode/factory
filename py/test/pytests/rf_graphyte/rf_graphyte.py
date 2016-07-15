@@ -43,6 +43,38 @@ LOCAL_CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULT_FILENAME = 'graphyte_result.csv'
 LOG_FILENAME = 'graphyte.log'
 
+_ID_MSG_DIV = '_msg'
+_ID_DEBUG_DIV = '_debug'
+
+_CSS = """
+  #%s {
+    font-size: 2em;
+    color: blue;
+  }
+  #%s {
+    text-align: left;
+    height: 70%%;
+    overflow: auto;
+  }
+""" % (_ID_MSG_DIV, _ID_DEBUG_DIV)
+
+_STATE_HTML = """
+  <div id='%s'></div>
+  <div id='%s'></div>
+""" % (_ID_MSG_DIV, _ID_DEBUG_DIV)
+
+_MSG_FETCH_CONFIG = test_ui.MakeLabel(
+    'Fetching config files from shopfloor',
+    u'从 shopfloor 下载测试参数',
+    'message')
+_MSG_EXECUTE_GRAPHYTE = test_ui.MakeLabel(
+    'Executing Graphyte',
+    u'執行 Graphyte',
+    'message')
+_MSG_UPLOAD_RESULT = test_ui.MakeLabel(
+    'Uploading result files to shopfloor',
+    u'上傳测试纪录到 shopfloor',
+    'message')
 
 class RFGraphyteTest(unittest.TestCase):
 
@@ -72,7 +104,9 @@ class RFGraphyteTest(unittest.TestCase):
 
   def setUp(self):
     self._ui = test_ui.UI()
+    self._ui.AppendCSS(_CSS)
     self._template = ui_templates.OneSection(self._ui)
+    self._template.SetState(_STATE_HTML)
     self._dut = dut.Create()
     if self.args.enable_shopfloor:
       self._shopfloor_proxy = shopfloor.GetShopfloorConnection()
@@ -92,16 +126,25 @@ class RFGraphyteTest(unittest.TestCase):
       self.fail('Graphyte config file %s does not exist.' % config_file_path)
 
     # Execute Graphyte.
-    # TODO(akahuang): output to UI.
-    self.SetLabel('Executing Graphyte.')
-    cmd = ['python', '-m', 'graphyte.main', '--quiet',
+    self._ui.SetHTML(_MSG_EXECUTE_GRAPHYTE, id=_ID_MSG_DIV)
+    cmd = ['python', '-m', 'graphyte.main',
            '--config-file', config_file_path,
            '--result-file', self.result_file_path,
            '--log-file', self.log_file_path]
     if self.args.verbose:
       cmd.append('-v')
     factory.console.info('Call the Graphyte command: %s', ' '.join(cmd))
-    subprocess.call(cmd)
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+
+    # Output to UI
+    debug_str = ''
+    while True:
+      line = process.stdout.readline()
+      if not line:
+        break
+      # Keep 8Kb data.
+      debug_str = (test_ui.Escape(line) + debug_str)[:8 * 1024]
+      self._ui.SetHTML(debug_str, id=_ID_DEBUG_DIV)
 
     # Parse result file.
     # TODO(akahuang): Send result to testlog.
@@ -129,9 +172,6 @@ class RFGraphyteTest(unittest.TestCase):
     # The log files are in the default log folder.
     return os.path.join(paths.GetLogRoot(), file_name)
 
-  def SetLabel(self, label):
-    self._template.SetState(test_ui.MakeLabel(label))
-
   def FetchConfigFromShopfloor(self):
     """Fetch all config files from shopfloor.
 
@@ -142,7 +182,7 @@ class RFGraphyteTest(unittest.TestCase):
     if not self.args.enable_shopfloor:
       return
 
-    self.SetLabel('Fetching config files from shopfloor.')
+    self._ui.SetHTML(_MSG_FETCH_CONFIG, id=_ID_MSG_DIV)
     config_file_paths = self._shopfloor_proxy.ListParameters(
         os.path.join(self.args.shopfloor_parameter_dir, '*'))
     for file_path in config_file_paths:
@@ -157,8 +197,8 @@ class RFGraphyteTest(unittest.TestCase):
     if not self.args.enable_shopfloor:
       return
 
-    self.SetLabel('Uploading result files to shopfloor.')
+    self._ui.SetHTML(_MSG_UPLOAD_RESULT, id=_ID_MSG_DIV)
     output_files = [self.result_file_path, self.log_file_path]
-    logging.info('Upload the result to shopfloor: %s', output_files)
+    factory.console.info('Upload the result to shopfloor: %s', output_files)
     shopfloor.UploadAuxLogs(output_files, True,
                             dir_name=self.args.shopfloor_log_dir)
