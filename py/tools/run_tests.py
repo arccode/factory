@@ -310,8 +310,9 @@ def KillOldTests():
   env_signature = '%s=%s' % (TEST_RUNNER_ENV_VAR, os.path.basename(__file__))
 
   pids_to_kill = []
-  for pid in process_utils.CheckOutput(
-      ['pgrep', '-U', os.environ['USER']]).splitlines():
+  user_id = (os.environ.get('USER') or
+             process_utils.CheckOutput(['id', '-un']).strip())
+  for pid in process_utils.CheckOutput(['pgrep', '-U', user_id]).splitlines():
     pid = int(pid)
     try:
       environ = file_utils.ReadFile('/proc/%d/environ' % pid)
