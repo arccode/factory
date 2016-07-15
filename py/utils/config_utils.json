@@ -1,4 +1,5 @@
 {
   "BuildConfigDirectory": "../config",
-  "RuntimeConfigDirectory": "/var/factory/log"
+  "RuntimeConfigDirectory": "/var/factory/log",
+  "Logging": false
 }

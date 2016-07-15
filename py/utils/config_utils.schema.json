@@ -9,6 +9,10 @@
     "RuntimeConfigDirectory": {
       "description": "A directory for configurations generated or downloaded at runtime that overrides all (build config or default config) values.",
       "type": "string"
+    },
+    "Logging": {
+      "description": "A boolean flag to indicate if we should print log messages to help debugging.",
+      "type": "boolean"
     }
   },
   "additionalProperties": false,

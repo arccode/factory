@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -68,9 +69,15 @@ _CONFIG_BUILD_DIR = 'config'
 # Config names in config_utils.json
 _CONFIG_NAME_BUILD_DIR = 'BuildConfigDirectory'
 _CONFIG_NAME_RUNTIME_DIR = 'RuntimeConfigDirectory'
+_CONFIG_NAME_LOGGING = 'Logging'
 
 # Cache of configuration for config_utils itself.
 _CACHED_CONFIG_UTILS_CONFIG = None
+
+
+def _DummyLogger(*unused_arg, **unused_kargs):
+  """A dummy log function."""
+  pass
 
 
 def OverrideConfig(base, overrides):
@@ -106,7 +113,8 @@ def GetNamedTuple(mapping):
   return collections.namedtuple('Config', new_mapping.iterkeys())(**new_mapping)
 
 
-def _LoadRawConfig(config_dir, config_name, schema_name=None):
+def _LoadRawConfig(config_dir, config_name, schema_name=None,
+                   logger=_DummyLogger):
   """Internal function to load JSON config and schema from specified path."""
   config = None
   schema = None
@@ -114,13 +122,13 @@ def _LoadRawConfig(config_dir, config_name, schema_name=None):
     schema_name = config_name
   config_path = os.path.join(config_dir, config_name + _CONFIG_FILE_EXT)
   schema_path = os.path.join(config_dir, schema_name + _SCHEMA_FILE_EXT)
-  logging.debug('config_utils: Checking %s', config_path)
+  logger('config_utils: Checking %s', config_path)
   if os.path.exists(config_path):
-    logging.debug('config_utils: Loading config from %s', config_path)
+    logger('config_utils: Loading config from %s', config_path)
     with open(config_path) as f:
       config = json.load(f)
   if os.path.exists(schema_path):
-    logging.debug('config_utils: Loading schema from %s', schema_path)
+    logger('config_utils: Loading schema from %s', schema_path)
     with open(schema_path) as f:
       schema = json.load(f)
   return config, schema
@@ -191,6 +199,16 @@ def GetBuildConfigDirectory():
   return _LoadConfigUtilsConfig()[_CONFIG_NAME_BUILD_DIR]
 
 
+def _GetLogger():
+  """Returns a function for logging debug messages.
+
+  Returns logging.debug if the config_util's default config "Logging" is true,
+  otherwise _DummyLogger.
+  """
+  return (logging.debug if _LoadConfigUtilsConfig()[_CONFIG_NAME_LOGGING] else
+          _DummyLogger)
+
+
 def LoadConfig(config_name=None, schema_name=None, validate_schema=True):
   """Loads a configuration as mapping by given file name.
 
@@ -220,6 +238,7 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True):
       GetBuildConfigDirectory(),
       GetRuntimeConfigDirectory(),
   ]
+  logger = _GetLogger()
   if config_name is None:
     config_name = default_name
   assert config_name, 'LoadConfig() requires a config name.'
@@ -227,7 +246,7 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True):
   found_config = False
   for config_dir in config_dirs:
     new_config, new_schema = _LoadRawConfig(
-        config_dir, config_name, schema_name)
+        config_dir, config_name, schema_name, logger)
 
     if new_config is not None:
       found_config = True
@@ -248,8 +267,8 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True):
     if _CAN_VALIDATE_SCHEMA:
       jsonschema.validate(config, schema)
     else:
-      logging.warning('Configuration schema <%s> not validated because '
-                      'jsonschema Python library not installed.', config_name)
+      logger('Configuration schema <%s> not validated because jsonschema '
+             'Python library not installed.', config_name)
   else:
-    logging.debug('Skip validating schema for config <%s>.', config_name)
+    logger('Skip validating schema for config <%s>.', config_name)
   return config
