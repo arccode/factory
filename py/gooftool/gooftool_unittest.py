@@ -307,7 +307,7 @@ class GooftoolTest(unittest.TestCase):
         MockFirmwareImage({'GBB': 'GBB', 'FW_MAIN_A': 'MA', 'FW_MAIN_B': 'MB',
                            'VBLOCK_A': 'VA', 'VBLOCK_B': 'VB'})))
     # TODO(hungte) Improve unit test scope.
-    def fake_tmpexc(*args, **kargs):
+    def fake_tmpexc(*unused_args, **unused_kargs):
       return ''
 
     self.mox.ReplayAll()
