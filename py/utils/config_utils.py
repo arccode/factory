@@ -209,12 +209,13 @@ def _GetLogger():
           _DummyLogger)
 
 
-def LoadConfig(config_name=None, schema_name=None, validate_schema=True):
+def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
+               default_config_dir=None):
   """Loads a configuration as mapping by given file name.
 
   The config files are retrieved and overridden in order:
-   1. Default config directory: The directory of caller module (or current
-      folder if no caller module).
+   1. Default config directory: The arg 'default_config_dir' or the directory of
+      caller module (or current folder if no caller module).
    2. Build config directory: The 'BuildConfigDirectory' in config_utils.json,
       should be set to 'root of project files'. Defaults to
       /usr/local/factory/py/config.
@@ -234,7 +235,7 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True):
   default_name, default_dir = GetDefaultConfigInfo(
       inspect.getmodule((inspect.stack()[1])[0]))
   config_dirs = [
-      default_dir,
+      default_config_dir or default_dir,
       GetBuildConfigDirectory(),
       GetRuntimeConfigDirectory(),
   ]
