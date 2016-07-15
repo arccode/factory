@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- mode: python; coding: utf-8 -*-
 #
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -238,8 +239,9 @@ class Power(DUTComponent):
     charging = (self.GetBatteryAttribute('status') == 'Charging')
     current = self.GetBatteryAttribute('current_now')
     if current is None:
-      raise self.Error('Cannot find current in ectool battery output')
-    return int(current) if charging else -int(current)
+      raise self.Error('Cannot find %s/current_now' % self._battery_path)
+    current_ma = int(current) / 1000
+    return current_ma if charging else -current_ma
 
   def GetBatteryDesignCapacity(self):
     """Gets battery's design capacity.
