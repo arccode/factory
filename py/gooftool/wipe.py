@@ -173,7 +173,7 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None,
     with chroot.TmpChroot(
         new_root,
         file_dir_list=[
-            '/bin', '/etc', '/lib', '/lib64', '/opt', '/root', '/sbin',
+            '/bin', '/etc', '/lib', '/lib64', '/root', '/sbin',
             '/usr/share/fonts/notocjk',
             '/usr/share/cache/fontconfig',
             '/usr/share/chromeos-assets/images',
