@@ -76,7 +76,7 @@ def IsInRange(observed, min_val, max_val):
   return True
 
 
-def FlattenAttrs(node, path=u'', force_repr=False, ignore_keys=None):
+def FlattenAttrs(node, path=u'', allow_types=None, ignore_keys=None):
   """Flatten a nested dict/list data structure into (key-path, value) pairs.
 
   e.g. {'a': {'b': 'c'}} => [(u'a.b', 'c')]
@@ -89,6 +89,11 @@ def FlattenAttrs(node, path=u'', force_repr=False, ignore_keys=None):
 
   e.g. {'a': []} => [(u'a', None)]
 
+  Args:
+    allow_types: A list or tuple of allowed value types.  Any other types will
+      be converted to a string using __repr__.  If set to None, any value types
+      are allowed.
+
   Returns:
     A generator list of (key-path, value) tuples.  Key-paths are Unicode
     strings, composed of all the keys required to walk to the particular node,
@@ -96,15 +101,14 @@ def FlattenAttrs(node, path=u'', force_repr=False, ignore_keys=None):
   """
   ignore_keys = [] if ignore_keys is None else ignore_keys
   if not hasattr(node, '__iter__'):
-    if force_repr:
-      yield (path, repr(node))
+    if allow_types is not None and not isinstance(node, tuple(allow_types)):
+      yield path, repr(node)
     else:
-      yield (path, node)
-
+      yield path, node
   else:
     # Empty list/dict node.
     if not node:
-      yield (path, None)
+      yield path, None
 
     if path:
       path += u'.'
@@ -115,12 +119,12 @@ def FlattenAttrs(node, path=u'', force_repr=False, ignore_keys=None):
         if key in ignore_keys:
           continue
         for ret in FlattenAttrs(
-            value, path + unicode(key), force_repr, ignore_keys):
+            value, path + unicode(key), allow_types, ignore_keys):
           yield ret
 
     # List-like node.
     else:
       for i, item in enumerate(node):
         for ret in FlattenAttrs(
-            item, path + unicode(i), force_repr, ignore_keys):
+            item, path + unicode(i), allow_types, ignore_keys):
           yield ret

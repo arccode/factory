@@ -963,6 +963,28 @@ class StationTestRun(_StationBase):
     self['attachments'] = {'key': name, 'value': value_dict, 'delete': delete}
     return self
 
+  def AddArgument(self, key, value, description=None):
+    """Adds arguments."""
+    # TODO(itspeter): Unittest.
+    value_dict = {'key': key, 'value': value}
+    if description:
+      value_dict['description'] = description
+    self['arguments'] = value_dict
+    return self
+
+  def AddFailure(self, code, details):
+    """Adds failures."""
+    # TODO(itspeter): Unittest.
+    # Get the numeric code unified into hex format.
+    if isinstance(code, (int, long)):
+      code = '0x%x' % code
+    if not isinstance(code, basestring):
+      raise ValueError('code(%r) should be a string' % code)
+    if not isinstance(details, basestring):
+      raise ValueError('details(%r) should be a string' % details)
+    self['failures'] = {'code': code, 'details': details}
+    return self
+
   def CreateSeries(self, name,
                    description=None, key_unit=None, value_unit=None):
     """Returns a Series object as specified in Testlog API."""

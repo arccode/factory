@@ -634,7 +634,10 @@ class TestInvocation(object):
 
     dargs = log_args.pop('dargs', None)
     if dargs:
-      dargs = dict(testlog_utils.FlattenAttrs(dargs, force_repr=True))
+      # Only allow types that can be natively expressed in JSON.
+      flattened_dargs = testlog_utils.FlattenAttrs(
+          dargs, allow_types=(int, long, float, basestring, type(None)))
+      dargs = {k: {'value': v} for k, v in flattened_dargs.iteritems()}
       kwargs['arguments'] = dargs
     if 'duration' in log_args:
       log_args.pop('duration')  # Discard the duration

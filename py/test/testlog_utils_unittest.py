@@ -90,6 +90,17 @@ class TestlogUtilsTest(unittest.TestCase):
     self.assertEqual('item1', flattened['level0.level1.1.level2.0'])
     self.assertEqual({'': None}, dict(testlog_utils.FlattenAttrs(None)))
 
+  def testFlattenAttrsWithAllowTypes(self):
+    now = datetime.datetime.now()
+    data = {'a': 1, 'b': now}
+    flattened = dict(testlog_utils.FlattenAttrs(data))
+    self.assertEqual(1, flattened['a'])
+    self.assertEqual(now, flattened['b'])
+    flattened = dict(testlog_utils.FlattenAttrs(data, allow_types=[int]))
+    self.assertEqual(1, flattened['a'])
+    self.assertEqual(repr(now), flattened['b'])
+    self.assertIsInstance(flattened['b'], basestring)
+
 if __name__ == '__main__':
   logging.basicConfig(
       format=('[%(levelname)s] '
