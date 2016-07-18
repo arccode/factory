@@ -136,6 +136,48 @@ class StationTestRunValidatorTest(unittest.TestCase):
     os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME] = session_json_path
     return session_json_path
 
+  def testParam(self):
+    self._SimulateSubSession()
+    testlog.LogParam(name='text', value='unittest',
+                     description='None', value_unit='pcs')
+    last_test_run = testlog.GetGlobalTestlog().last_test_run
+    parameters = last_test_run['parameters']
+    self.assertIn('text', parameters)
+    self.assertEquals('unittest', parameters['text']['textValue'])
+    self.assertEquals('None', parameters['text']['description'])
+    self.assertEquals('pcs', parameters['text']['valueUnit'])
+
+    testlog.LogParam(name='num', value=3388)
+    self.assertIn('num', parameters)
+    self.assertEquals(3388, parameters['num']['numericValue'])
+
+    with self.assertRaisesRegexp(ValueError, 'numeric or text'):
+      testlog.LogParam(name='oops', value=[1, 2, 3])
+
+    with self.assertRaisesRegexp(ValueError, 'with numeric limits'):
+      testlog.CheckParam(name='oops', value='yoha', min=30)
+
+    with self.assertRaisesRegexp(ValueError, 'with regular expression'):
+      testlog.CheckParam(name='oops', value=30, regex='yoha')
+
+    self.assertTrue(
+        testlog.CheckParam(name='InRange0', value=30, min=30))
+    self.assertFalse(
+        testlog.CheckParam(name='InRange1', value=30, max=29))
+    self.assertTrue(
+        testlog.CheckParam(name='Regex0', value='oops', regex='o.*s'))
+    self.assertFalse(
+        testlog.CheckParam(name='Regex1', value='oops', regex='y.*a'))
+    self.assertTrue(
+        testlog.CheckParam(
+            name='Regex2', value='Hello world', regex='^H.*d$'))
+    self.assertFalse(
+        testlog.CheckParam(
+            name='Regex3', value='--Hello world--', regex='^H.*d$'))
+    self.assertTrue(
+        testlog.CheckParam(
+            name='Regex4', value='--Hello world--', regex='H.*d'))
+
   def testCreateSeries(self):
     session_json_path = self._SimulateSubSession()
     s1 = testlog.CreateSeries(name='s1')

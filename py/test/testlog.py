@@ -44,6 +44,7 @@ import datetime
 import json
 import logging
 import os
+import re
 import shutil
 import threading
 
@@ -371,6 +372,11 @@ def _StationTestRunWrapperInSession(*args, **kwargs):
 
 def LogParam(*args, **kwargs):
   kwargs['_method_name'] = 'LogParam'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
+
+
+def CheckParam(*args, **kwargs):
+  kwargs['_method_name'] = 'CheckParam'
   return _StationTestRunWrapperInSession(*args, **kwargs)
 
 
@@ -885,23 +891,68 @@ class StationTestRun(_StationBase):
       s.update(self['series'])
       self['series'] = s
 
-  def LogParam(self, name, value, description=None, value_unit=None):
-    """Logs parameters as specified in Testlog API."""
+  @staticmethod
+  def _CheckParamArguments(value, description, value_unit,
+                           min_val, max_val, regex):
+    """Checks types and returns a dict that aligns with Testlog Playbook."""
     value_dict = dict()
     if isinstance(value, basestring):
       value_dict['textValue'] = value
+      if min_val or max_val:
+        raise ValueError(
+            'Not expecting a text parameter(%r) with numeric limits' % value)
+      if regex:
+        value_dict['expectedRegex'] = regex
     elif isinstance(value, (int, long, float)):
       value_dict['numericValue'] = value
+      if regex:
+        raise ValueError(
+            'Not expecting a numeric parameter(%r) with regular expression' % (
+                value))
+      if min_val:
+        value_dict['expectedMinimum'] = min_val
+      if max_val:
+        value_dict['expectedMaximum'] = max_val
     else:
       raise ValueError(
-          'LogParam supports only numeric or text, not %r' % value)
+          'Parameter\'s value supports only numeric or text, not %r' % (
+              type(value)))
 
     if description:
       value_dict.update({'description': description})
     if value_unit:
       value_dict.update({'valueUnit': value_unit})
+    return value_dict
+
+  def LogParam(self, name, value, description=None, value_unit=None):
+    """Logs parameter as specified in Testlog API."""
+    value_dict = StationTestRun._CheckParamArguments(
+        value, description, value_unit, None, None, None)
+
     self['parameters'] = {'key': name, 'value': value_dict}
     return self
+
+  # pylint: disable=W0622
+  def CheckParam(self, name, value, min=None, max=None, regex=None,
+                 description=None, value_unit=None):
+    """Checks and logs parameter as specified in Testlog API.
+
+    We use testlog_utils.IsInRange and re.search to perform the check.
+    """
+    value_dict = StationTestRun._CheckParamArguments(
+        value, description, value_unit, min, max, regex)
+
+    # Check the result
+    result = True
+    if regex:
+      if not re.search(regex, value):
+        result = False
+    if min or max:
+      result = testlog_utils.IsInRange(value, min, max)
+    value_dict['status'] = 'PASS' if result else 'FAIL'
+
+    self['parameters'] = {'key': name, 'value': value_dict}
+    return result
 
   def AttachFile(self, path, mime_type, name, delete=True, description=None):
     """Attaches a file as specified in Testlog API."""
