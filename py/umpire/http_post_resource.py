@@ -6,7 +6,7 @@
 
 """Umpire HTTP POST resource of site.
 
-The class handles http://umpire_address:umpire_http_port/upload/
+The class handles http://umpire_address:umpire_http_port/post/
 """
 
 import json
@@ -20,9 +20,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import post_handler
 
 
-_PATH_INFO = '/upload'
-
-
 class HTTPPOSTResource(resource.Resource):
   """HTTP POST request handler.
 
@@ -33,7 +30,10 @@ class HTTPPOSTResource(resource.Resource):
   def __init__(self, env):
     resource.Resource.__init__(self)
     self.env = env
-    self.putChild('upload', HTTPPOSTUploadResource(self.env))
+    # Paths here must match service/http.py
+    self.putChild('post', HTTPPOSTGenericResource(self.env))
+    # Backward compatible.
+    self.putChild('upload', HTTPPOSTGenericResource(self.env))
 
   def render_POST(self, request):
     """Twisted HTTP POST request handler"""
@@ -41,12 +41,13 @@ class HTTPPOSTResource(resource.Resource):
     return server.NOT_DONE_YET
 
 
-class HTTPPOSTUploadResource(resource.Resource):
-  """HTTP POST upload request handler.
+class HTTPPOSTGenericResource(resource.Resource):
+  """HTTP POST generic request handler.
 
   Args:
     env: An UmpireEnv object.
   """
+
   def __init__(self, env):
     resource.Resource.__init__(self)
     self.env = env
@@ -54,7 +55,7 @@ class HTTPPOSTUploadResource(resource.Resource):
 
   def render_POST(self, request):
     if not request.postpath:
-      logging.error('POST Upload: no handler name found')
+      logging.error('POST: no handler name found')
       request.setResponseCode(http.BAD_REQUEST)
       request.finish()
       return resource.NoResource
@@ -64,25 +65,24 @@ class HTTPPOSTUploadResource(resource.Resource):
 
     # Try to find and call internal handler first, including call external
     # directly.
-    d = None
+    result = None
     err = None
     func = post_handler.GetPostHandler(handler_name)
     if func:
       try:
-        d = func(**args)
+        result = func(**args)
       except Exception as e:
-        logging.error('POST Upload: internal handler raises %s', repr(e))
+        logging.error('POST: internal handler raises %s', repr(e))
         err = e
 
     # If internal callable handler is not found, try external instead
     else:
       func = post_handler.GetPostHandler(post_handler.EXTERNAL)
       try:
-        d = func(handler_name, self.env, **args)
+        result = func(handler_name, self.env, **args)
       except Exception as e:
         # post_handler.external() should have handled exceptions.
-        logging.error('POST Upload: external(%s) raises %s', handler_name,
-                      repr(e))
+        logging.error('POST: external(%s) raises %s', handler_name, repr(e))
         err = e
 
     def _WriteResponse(result):
@@ -96,9 +96,9 @@ class HTTPPOSTUploadResource(resource.Resource):
     def _WriteErrorResponse(e):
       _WriteResponse((http.INTERNAL_SERVER_ERROR, {'exception': repr(e)}))
 
-    if d:
-      d.addCallback(_WriteResponse)
-      d.addErrback(_WriteErrorResponse)
+    if result:
+      result.addCallback(_WriteResponse)
+      result.addErrback(_WriteErrorResponse)
     else:
       _WriteErrorResponse(err)
 

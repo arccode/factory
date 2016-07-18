@@ -4,13 +4,13 @@
 #
 # pylint: disable=E1101
 
-"""Umpire HTTP POST upload handlers
+"""Umpire HTTP POST handlers
 
 Handlers should be static methods, returned a tuple
   (HTTP_STATUS, HTTP_CONTENT_DATA)
 where HTTP_CONTENT_DATA can be anything JSON-serializable
 URL:
-  http://umpire_server_address:umpire_webapp_port/upload/<handler_name>
+  http://umpire_server_address:umpire_webapp_port/post/<handler_name>
 
 Internal handlers accept every post fields as a list, even if there's only one
 value in that field. **kwargs cannot guarantee order of args on keys, but order
@@ -138,7 +138,7 @@ def RunExternalHandler(handler, env, **kwargs):
 
   External handler invokes a program from usr/local/factory/bin using POST
   fields as command arguments. For example, sending a request like
-    curl http://localhost:8080/upload/some_command -F 'A=B'
+    curl http://localhost:8080/post/some_command -F 'A=B'
 
   will be invoked as
    UMPIRE_SERVER_ROOT=/var/db/factory/umpire/$BOARD/toolkits/server/active

@@ -362,7 +362,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
       A tuple (http_code, response_json) where response_json is a JSON object
       decoded from POST response
     """
-    uri = '%s/upload/%s' % (self._umpire_http_server_uri, handler)
+    uri = '%s/post/%s' % (self._umpire_http_server_uri, handler)
     fields = {}
     files = {}
     for k, v in args.iteritems():
