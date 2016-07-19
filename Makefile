@@ -296,6 +296,10 @@ test-overlay-%: overlay-%
 lint-overlay-%: overlay-%
 	make -C $< lint
 
+# Create par of the given board.
+par-overlay-%: overlay-%
+	make -C $< par
+
 testall:
 	@make --no-print-directory test EXTRA_TEST_FLAGS=--nofilter
 
