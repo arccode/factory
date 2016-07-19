@@ -12,12 +12,14 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.test import shopfloor
 from cros.factory.test.dut.boards import chromeos
+from cros.factory.test.dut.vpd import Partition
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.factory_task import FactoryTask
 from cros.factory.test.pytests import vpd
+from cros.factory.test import shopfloor
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils.type_utils import LazyProperty
 from cros.factory.utils.type_utils import Obj
 
 # Legacy unique/group codes for testing.
@@ -90,6 +92,10 @@ class WriteVPDTaskTest(unittest.TestCase):
     self.write_vpd_task = vpd.WriteVPDTask(self.test_case)
     self.mox = mox.Mox()
     self.test_case.dut = chromeos.ChromeOSBoard()
+    self.vpd_ro = self.mox.CreateMock(Partition)
+    self.vpd_rw = self.mox.CreateMock(Partition)
+    LazyProperty.Override(self.test_case.dut.vpd, 'ro', self.vpd_ro)
+    LazyProperty.Override(self.test_case.dut.vpd, 'rw', self.vpd_rw)
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -110,6 +116,12 @@ class WriteVPDTaskTest(unittest.TestCase):
     with open(default_board_path, 'w') as f:
       f.write('x86-generic')
 
+    # Stub out vpd.Update()
+    self.vpd_ro.Update({}).AndReturn(0)
+    self.vpd_rw.Update({}).AndReturn(0)
+    self.vpd_rw.Update({'ubind_attribute': LEGACY_UNIQUE_CODE,
+                        'gbind_attribute': LEGACY_GROUP_CODE}).AndReturn(0)
+
     # Stub out self.Pass().
     self.mox.StubOutWithMock(FactoryTask, 'Pass')
     FactoryTask.Pass().AndReturn(0)  # pylint: disable=E1120
@@ -125,6 +137,10 @@ class WriteVPDTaskTest(unittest.TestCase):
     self.mox.StubOutWithMock(self.test_case.template, 'SetState')
     self.test_case.template.SetState(mox.IsA(unicode)).AndReturn(0)
     self.test_case.template.SetState(mox.IsA(str), append=True).AndReturn(0)
+
+    # Stub out vpd.Update()
+    self.vpd_ro.Update({}).AndReturn(0)
+    self.vpd_rw.Update({}).AndReturn(0)
 
     self.mox.ReplayAll()
     self.assertRaisesRegexp(FactoryTestFailure,
