@@ -5,8 +5,14 @@
 """Utilities for data types."""
 
 import collections
+import inspect
 import Queue
+import re
 import types
+
+
+# The regular expression used by Overrides.
+_OVERRIDES_CLASS_RE = re.compile(r'^\s*class[^#]+\(\s*([^\s#]+)\s*\)\s*\:')
 
 
 class Error(Exception):
@@ -188,6 +194,67 @@ class Singleton(type):
     if cls not in cls._instances:
       cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
     return cls._instances[cls]
+
+
+def Overrides(method):
+  """A decorator for checking if the parent has implementation for the method.
+
+  Inspired from http://stackoverflow.com/questions/1167617.
+  Current implementation does not support multiple inheritance.
+
+  Example:
+    class A(object):
+      def m(self):
+        return 1
+
+    class B(A):
+      @Overrides
+      def m(self):
+        return 2
+
+    class C(A):
+      @Overrides  # This will raise exception because A does not have k method.
+      def k(self):
+        return 3
+        print('child')
+
+  When being used with other decorators, Overrides should be put at last:
+
+  class B(A):
+   @property
+   @Overrides
+   def m(self):
+     return 2
+  """
+  stack = inspect.stack()
+  # stack: [overrides, ....[other decorators]..., inside-class, outside-class]
+  # The real class (inside-class) is not defined yet so we have to find its
+  # parent directly from source definition.
+  for i, frame_record in enumerate(stack[2:]):
+    source = frame_record[4] or ['']
+    matched = _OVERRIDES_CLASS_RE.match(source[0])
+    if matched:
+      # Find class name from previous frame record.
+      current_class = stack[i + 1][3]
+      base_class = matched.group(1)
+      frame = frame_record[0]
+      break
+  else:
+    raise ValueError('@Overrides failed to find base class from %r' % stack)
+
+  # Resolve base_class in context (look up both locals and globals)
+  context = frame.f_globals.copy()
+  context.update(frame.f_locals)
+  for name in base_class.split('.'):
+    if isinstance(context, dict):
+      context = context[name]
+    else:
+      context = getattr(context, name)
+
+  assert hasattr(context, method.__name__), (
+      'Method <%s> in class <%s> is not defined in base class <%s>.' %
+      (method.__name__, current_class, base_class))
+  return method
 
 
 class LazyProperty(object):
