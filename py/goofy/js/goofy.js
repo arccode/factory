@@ -123,6 +123,12 @@ cros.factory.EXTENSION_ID = 'pngocaclmlmihmhokaeejfiklacihcmb';
 cros.factory.ENABLE_DIAGNOSIS_TOOL = false;
 
 /**
+ * Maximum lines of console log to be shown in the UI.
+ * @type number
+ */
+cros.factory.MAX_LINE_CONSOLE_LOG = 1024;
+
+/**
  * Makes a label that displays English (or optionally Chinese).
  * @param {string} en
  * @param {string=} zh
@@ -2903,6 +2909,12 @@ cros.factory.Goofy.prototype.logToConsole = function(message, opt_attributes) {
     goog.dom.classes.add(div, 'goofy-log-line');
     div.appendChild(document.createTextNode(message));
     this.console.appendChild(div);
+
+    // Restrict the size of the log to avoid UI lag.
+    if (this.console.childNodes.length > cros.factory.MAX_LINE_CONSOLE_LOG) {
+      this.console.removeChild(this.console.firstChild)
+    }
+
     // Scroll to bottom.  TODO(jsalz): Scroll only if already at the bottom,
     // or add scroll lock.
     var scrollPane = goog.dom.getAncestorByClass(this.console,
