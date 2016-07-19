@@ -76,7 +76,13 @@ LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 UNITTESTS=$(shell find py go -name '*_unittest.py' | sort)
 # TODO(sheckylin): Get py/test/utils/media_utils_unittest.py working.
 UNITTESTS_BLACKLIST=\
-	py/test/utils/media_utils_unittest.py
+	py/test/utils/media_utils_unittest.py \
+	py/minijack/db/query_unittest.py \
+	py/minijack/db/models_unittest.py \
+	py/minijack/db/db_unittest.py \
+	py/minijack/workers_unittest.py \
+	py/minijack/archiver_unittest.py \
+	py/minijack/datatypes_unittest.py
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 # Tests need to run in isolate mode.
 
