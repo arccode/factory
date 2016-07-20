@@ -255,7 +255,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 test:
-        # Run tests with POSIX locale to avoid localized output.
+	# Run tests with POSIX locale to avoid localized output.
 	find . -name '*.pyc' -delete
 	@logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \

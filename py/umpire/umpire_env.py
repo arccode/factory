@@ -378,9 +378,14 @@ class UmpireEnv(object):
       return ''
 
     file_utils.CheckPath(file_name, 'source')
-    basename = os.path.basename(file_name)
+
+    # Remove version and hash (everything after the '#' character). Otherwise,
+    # if the source file contains them already, the destination file will
+    # contain multiple version/hash strings.
+    basename = os.path.basename(file_name).partition('#')[0]
     version = TryGetVersion()
     md5 = file_utils.Md5sumInHex(file_name)[:RESOURCE_HASH_DIGITS]
+
     res_file_name = os.path.join(
         self.resources_dir,
         '#'.join([basename, version, md5]))
