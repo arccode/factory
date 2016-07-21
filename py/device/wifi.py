@@ -511,7 +511,12 @@ class Connection(object):
     del kwargs
     clear_ifconfig_command = 'ifconfig {interface} 0.0.0.0'.format(
         interface=self.interface)
-    dhcp_command = ('dhcpcd -t {timeout} {interface}').format(
+    # -K: Don't receive link messages for carrier status.  You should
+    #     only have to use this with buggy device drivers or running
+    #     dhcpcd through a network manager.
+    # -c: Location to the hooks file.  If the default location happens to be
+    #     empty, dhcpcd will fail.  So we set the hooks file to /dev/null.
+    dhcp_command = ('dhcpcd -K -t {timeout} -c /dev/null {interface}').format(
         timeout=self._dhcp_timeout,
         interface=self.interface)
     dhcp_timeout_command = 'timeout {timeout} {cmd}'.format(
