@@ -68,15 +68,17 @@ class TmpChroot(object):
     self.logger.debug('InitializeNewRoot')
 
     # create tmpfs
-    process_utils.Spawn(['mount', '-n', '-t', 'tmpfs', '-o',
-                         'size=' + self.size, 'tmpfs', self.new_root],
+    process_utils.Spawn(['mount', '-n', '-t', 'tmpfs',
+                         '-o', 'size=' + self.size,
+                         '-o', 'mode=755',
+                         'tmpfs', self.new_root],
                         check_call=True)
 
     self.logger.debug('create tmpfs layout')
     tmpfs_layout_dirs = [os.path.join(self.new_root, subdir)
                          for subdir in ['bin', 'dev', 'etc', 'lib', 'log',
                                         'mnt/stateful_partition', 'proc',
-                                        'root', 'sys', 'tmp', 'var', ]]
+                                        'root', 'sys', 'tmp', 'var']]
     process_utils.Spawn(['mkdir', '-p'] + tmpfs_layout_dirs, check_call=True)
     # use symbolic links to make /usr/local/bin, /bin/, /usr/bin same as /sbin
     process_utils.Spawn(['ln', '-s', '.', os.path.join(self.new_root, 'usr')],
@@ -99,7 +101,7 @@ class TmpChroot(object):
         sysconfig.get_python_inc()]
     files_dirs = filter(os.path.exists, files_dirs)
     process_utils.Spawn(('tar -c %s | '
-                         'tar -C %s -x --skip-old-files 2>/dev/null' %
+                         'tar -C %s -x --skip-old-files' %
                          (' '.join(files_dirs), self.new_root)),
                         shell=True, call=True, log=True)
 
@@ -118,7 +120,7 @@ class TmpChroot(object):
         ('tar -ch $(lddtree -l %s 2>/dev/null | sort -u) | '
          'tar -C %s -x --skip-old-files' %
          (' '.join(bin_paths.values()), self.new_root)),
-        check_call=True, shell=True, ignore_stderr=True, log=True)
+        check_call=True, shell=True, log=True)
 
     # install busybox for common utilities
     process_utils.Spawn(

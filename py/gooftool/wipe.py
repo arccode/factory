@@ -9,6 +9,7 @@
 import json
 import logging
 import os
+import re
 import resource
 import shutil
 import signal
@@ -125,6 +126,9 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None,
 
   Daemonize()
 
+  # Set the defual umask.
+  os.umask(0022)
+
   logfile = os.path.join('/tmp', WIPE_IN_TMPFS_LOG)
   ResetLog(logfile)
 
@@ -137,7 +141,7 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None,
       'display_boot_message', 'dumpe2fs', 'ectool', 'flashrom', 'halt',
       'initctl', 'mkfs.ext4', 'mktemp', 'mosys', 'mount', 'mount-encrypted',
       'od', 'pango-view', 'pkill', 'pv', 'python', 'reboot', 'setterm', 'sh',
-      'shutdown', 'stop', 'umount', 'vpd', 'wget', 'lsof', ]
+      'shutdown', 'stop', 'umount', 'vpd', 'wget', 'lsof']
   if os.path.exists('/sbin/frecon'):
     binary_deps.append('/sbin/frecon')
   else:
@@ -170,17 +174,35 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None,
   old_root = 'old_root'
 
   try:
+    # pango load library module dynamically. Therefore we need to query it
+    # first.
+    pango_query_output = process_utils.SpawnOutput(
+        ['pango-querymodules', '--system'])
+    m = re.search(r'^# ModulesPath = (.+)$', pango_query_output, re.M)
+    assert m != None, 'Failed to find pango module path.'
+    pango_module = m.group(1)
+
     with chroot.TmpChroot(
         new_root,
         file_dir_list=[
+            # Basic rootfs.
             '/bin', '/etc', '/lib', '/lib64', '/root', '/sbin',
+            # Factory related scripts.
+            factory_par,
+            '/usr/local/factory/sh',
+            # Fonts and assets required for showing message.
+            pango_module,
             '/usr/share/fonts/notocjk',
             '/usr/share/cache/fontconfig',
             '/usr/share/chromeos-assets/images',
             '/usr/share/chromeos-assets/text/boot_messages',
             '/usr/share/misc/chromeos-common.sh',
-            '/usr/local/factory/sh',
-            factory_par],
+            # File required for enable ssh connection.
+            '/mnt/stateful_partition/etc/ssh',
+            '/root/.ssh',
+            '/usr/share/chromeos-ssh-config',
+            # /var/empty is required by openssh server.
+            '/var/empty'],
         binary_list=binary_deps, etc_issue=etc_issue).PivotRoot(old_root):
       logging.debug(
           'lsof: %s',
@@ -398,8 +420,20 @@ def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
   logging.debug('old_root: %s', old_root)
 
   try:
-    _StopAllUpstartJobs(exclude_list=['boot-services', 'dbus', 'factory-wipe',
-                                      'shill', 'openssh-server'])
+    _StopAllUpstartJobs(exclude_list=[
+        # Milestone marker that use to determine the running of other services.
+        'boot-services',
+        'system-services',
+        'failsafe',
+        # Keep dbus to make sure we can shutdown the device.
+        'dbus',
+        # Keep shill for connecting to shopfloor or stations.
+        'shill',
+        # Keep openssh-server for debugging purpose.
+        'openssh-server',
+        # sslh is a service in ARC++ for muxing between ssh and adb.
+        'sslh'
+        ])
     _UnmountStatefulPartition(old_root, state_dev)
 
     process_utils.Spawn([os.path.join(SCRIPT_DIR, 'display_wipe_message.sh'),
