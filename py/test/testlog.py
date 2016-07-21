@@ -274,8 +274,8 @@ def InitSubSession(log_root, uuid, station_test_run=None):
   return session_log_path
 
 
-def Collect(session_json_path, station_test_run=None):
-  """Merges the session JSON into the primary JSON.
+def LogTestRun(session_json_path, station_test_run=None):
+  """Merges the session JSON into the primary JSON and logs it.
 
   Args:
     session_json_path: Path to the session JSON.
@@ -301,6 +301,9 @@ def Collect(session_json_path, station_test_run=None):
       logging.exception('Not able to collect %s. Last read: %s',
                         session_json_path, content)
 
+
+def LogFinalTestRun(session_json_path, station_test_run=None):
+  LogTestRun(session_json_path, station_test_run)
   shutil.rmtree(os.path.dirname(session_json_path))
 
 

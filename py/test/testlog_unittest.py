@@ -180,7 +180,7 @@ class TestlogE2ETest(unittest.TestCase):
     logging.info('Load back session JSON:\n%s\n',
                  pprint.pformat(json.loads(open(session_json_path).read())))
     # Collect the session log
-    testlog.Collect(session_json_path)
+    testlog.LogFinalTestRun(session_json_path)
     logging.info('Load back primary JSON:\n%s\n',
                  open(os.path.join(state_dir, 'testlog.json')).read())
 

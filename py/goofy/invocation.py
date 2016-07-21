@@ -592,12 +592,13 @@ class TestInvocation(object):
     logging.info('Preserved %d files matching %s and removed %d',
                  preserved_count, globs, deleted_count)
 
-  def _convert_log_args(self, log_args, status=None):
+  def _convert_log_args(self, log_args, status):
     """Converts log_args dictionary into a station.test_run event object.
 
     Args:
       log_args: Legacy dictionary passed into event_log.Log.
-      status: The status defined in cros.factory.test.factory.TestState.
+      status: The status defined in either cros.factory.test.factory.TestState
+              or testlog.StationTestRun.STATUS.
 
     Returns:
       A testlog.StationTestRun.
@@ -620,7 +621,9 @@ class TestInvocation(object):
     test_type = log_args.pop('pytest_name',
                              log_args.pop('autotest_name', None))
 
-    status = _status_conversion[status]
+    # If the status is not in _status_conversion, assume it is already a Testlog
+    # StationTestRun status.
+    status = _status_conversion.get(status, status)
 
     kwargs = {
         'stationDeviceId': testlog_goofy.GetDeviceID(),
@@ -653,11 +656,11 @@ class TestInvocation(object):
           testlog_event.AddFailure(failure_code, log_args.pop(err_field))
 
     if len(log_args) > 0:
-      logging.error('Unexpected fields in logs_args :%s',
+      logging.error('Unexpected fields in logs_args: %s',
                     pprint.pformat(log_args))
-    for key, value in log_args.iteritems():
-      testlog_event.LogParam(name=key, value=repr(value),
-                             description='UnknownGoofyLogArgs')
+      for key, value in log_args.iteritems():
+        testlog_event.LogParam(name=key, value=repr(value),
+                               description='UnknownGoofyLogArgs')
     return testlog_event
 
   def _run(self):
@@ -753,8 +756,13 @@ class TestInvocation(object):
             station_test_run=self._convert_log_args(
                 log_args, TestState.ACTIVE),
             uuid=self.uuid)
+        log_args.pop('dargs', None)  # We need to avoid duplication
         self.env_additions.update(
             {testlog.TESTLOG_ENV_VARIABLE_NAME: self.session_json_path})
+
+        # Log a STARTING event.
+        testlog.LogTestRun(self.session_json_path, self._convert_log_args(
+            log_args, testlog.StationTestRun.STATUS.STARTING))
       except Exception:
         logging.exception('Unable to log start_test event')
 
@@ -811,8 +819,7 @@ class TestInvocation(object):
         self.goofy.event_log.Log('end_test', **log_args)
         self.update_metadata(end_time=self.end_time, **log_args)
 
-        log_args.pop('dargs', None)  # We need to avoid duplication
-        testlog.Collect(self.session_json_path, self._convert_log_args(
+        testlog.LogFinalTestRun(self.session_json_path, self._convert_log_args(
             log_args, status))
         del self.env_additions[testlog.TESTLOG_ENV_VARIABLE_NAME]
 
