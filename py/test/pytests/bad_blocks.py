@@ -139,12 +139,15 @@ class BadBlocksTest(unittest.TestCase):
                                                    self.args.max_bytes)
 
   def DetermineParameters(self):
-    # If /dev/mmcblk0 exists assume we are eMMC, this means a unit with an
-    # external SD card inserted will not use SATA specific utilities.
     # TODO(bhthompson): refactor this for a better device type detection.
     # pylint: disable=W0201
-    self._is_mmc = (self.dut.path.exists('/dev/mmcblk0') or
-                    self.dut.path.exists('/dev/block/mmcblk0'))
+    if self.args.mode == 'file':
+      unused_mount_on, self._filesystem = self.dut.storage.GetMountPoint(
+          self.args.device_path)
+    else:
+      self._filesystem = self.args.device_path
+    # If 'mmcblk' in self._filesystem assume we are eMMC.
+    self._is_mmc = 'mmcblk' in self._filesystem
 
     first_block = 0
     sector_size = 1024
@@ -169,7 +172,7 @@ class BadBlocksTest(unittest.TestCase):
                    'last block %d.', self.args.device_path, self.args.max_bytes,
                    sector_size, last_block)
     elif self.args.mode == 'stateful_partition_free_space':
-      part_prefix = 'p' if self._is_mmc else ''
+      part_prefix = 'p' if self.args.device_path[-1].isdigit() else ''
       # Always partition 1
       partition_path = '%s%s1' % (self.args.device_path, part_prefix)
 
@@ -427,7 +430,7 @@ class BadBlocksTest(unittest.TestCase):
           stdout=stdout_data, stderr=stderr_data)
 
     smartctl_output = self.dut.CheckOutput(
-        ['smartctl', '-a', self.args.device_path])
+        ['smartctl', '-a', self._filesystem])
     Log('smartctl', stdout=smartctl_output)
     logging.info('smartctl output: %s', smartctl_output)
 
