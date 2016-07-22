@@ -11,10 +11,10 @@ import copy
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import hwid
-from cros.factory import test
-from cros.factory.test import factory
 from cros.factory.device import component
+from cros.factory import hwid
+from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
 
 
@@ -81,6 +81,7 @@ class SystemInfo(component.DeviceComponent):
     Args:
       name: A string for the property to be refreshed.
     """
+    self.ClearSerialNumbers()
     if name is not None:
       self._cached.pop(name, None)
     else:
@@ -118,26 +119,46 @@ class SystemInfo(component.DeviceComponent):
     """Channel of the image on release partition."""
     return self._release_lsb_data['CHROMEOS_RELEASE_TRACK']
 
+  def ClearSerialNumbers(self):
+    """Clears any serial numbers from DeviceData."""
+    return shopfloor.DeleteDeviceData(
+        ['serial_number',
+         'mlb_serial_number'], optional=True)
+
   @InfoProperty
-  def mlb_serial_number(self):
-    """Mother board serial number."""
-    if not test.shopfloor.GetDeviceData().get('mlb_serial_number'):
-      serial = self._dut.storage.LoadDict().get('mlb_serial_number')
-      test.shopfloor.UpdateDeviceData({'mlb_serial_number': serial})
-    return test.shopfloor.GetDeviceData()['mlb_serial_number']
+  def all_serial_numbers(self):
+    """Returns all available serial numbers in a dict."""
+    if not shopfloor.GetDeviceData().get('all_serial_numbers'):
+      serials = {'device': self.serial_number,
+                 'mlb': self.mlb_serial_number}
+      shopfloor.UpdateDeviceData({'all_serial_numbers': serials})
+    return shopfloor.GetDeviceData()['all_serial_numbers']
+
+  def GetSerialNumber(self, name='serial_number'):
+    """Retrieves a serial number from device.
+
+    Tries to load the serial number from DeviceData.  If not found, loads
+    from DUT storage, and caches into DeviceData.
+    """
+    if not shopfloor.GetDeviceData().get(name):
+      serial = self._dut.storage.LoadDict().get(name)
+      shopfloor.UpdateDeviceData({name: serial})
+    return shopfloor.GetDeviceData()[name]
 
   @InfoProperty
   def serial_number(self):
     """Device serial number (usually printed on device package)."""
-    if not test.shopfloor.GetDeviceData().get('serial_number'):
-      serial = self._dut.storage.LoadDict().get('serial_number')
-      test.shopfloor.UpdateDeviceData({'serial_number': serial})
-    return test.shopfloor.GetDeviceData()['serial_number']
+    return self.GetSerialNumber()
+
+  @InfoProperty
+  def mlb_serial_number(self):
+    """Motherboard serial number."""
+    return self.GetSerialNumber('mlb_serial_number')
 
   @InfoProperty
   def stage(self):
     """Manufacturing build stage. Examples: PVT, EVT, DVT."""
-    return test.shopfloor.GetDeviceData()['stage']
+    return shopfloor.GetDeviceData()['stage']
 
   @InfoProperty
   def factory_image_version(self):

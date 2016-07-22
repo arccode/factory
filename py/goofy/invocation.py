@@ -647,6 +647,10 @@ class TestInvocation(object):
       kwargs['endTime'] = datetime.datetime.fromtimestamp(self.end_time)
       kwargs['duration'] = self.end_time - self.start_time
 
+    serial_numbers = log_args.pop('serial_numbers', None)
+    if serial_numbers:
+      kwargs['serialNumbers'] = serial_numbers
+
     testlog_event = testlog.StationTestRun()
     testlog_event.Populate(kwargs)
     if status == testlog.StationTestRun.STATUS.FAILED:
@@ -708,6 +712,7 @@ class TestInvocation(object):
       log_args = dict(
           path=self.metadata['path'],
           dargs=resolved_dargs,
+          serial_numbers=self.metadata['serial_numbers'],
           invocation=self.uuid)
       if self.test.autotest_name:
         log_args['autotest_name'] = self.metadata['autotest_name']
@@ -738,6 +743,8 @@ class TestInvocation(object):
       log_args = dict(
           path=self.test.path,
           dargs=resolved_dargs,
+          serial_numbers=shopfloor.GetDeviceData().get(
+              'all_serial_numbers', None),
           invocation=self.uuid)
       if self.test.autotest_name:
         log_args['autotest_name'] = self.test.autotest_name
@@ -758,6 +765,7 @@ class TestInvocation(object):
                 log_args, TestState.ACTIVE),
             uuid=self.uuid)
         log_args.pop('dargs', None)  # We need to avoid duplication
+        log_args.pop('serial_numbers', None)  # We need to avoid duplication
         self.env_additions.update(
             {testlog.TESTLOG_ENV_VARIABLE_NAME: self.session_json_path})
 

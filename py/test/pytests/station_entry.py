@@ -19,7 +19,6 @@ import factory_common # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils import sync_utils
@@ -87,9 +86,6 @@ class StationEntry(unittest.TestCase):
       Arg('prompt_start', bool,
           'Prompt for spacebar before starting test.',
           default=False, optional=True),
-      Arg('clear_device_data', bool,
-          'Clear device data (serial numbers).',
-          default=True, optional=True),
       Arg('timeout_secs', int,
           'Timeout for waiting the device. Set to None for waiting forever.',
           default=None, optional=True),
@@ -114,23 +110,24 @@ class StationEntry(unittest.TestCase):
   def SendTestResult(self):
     self._dut.hooks.SendTestResult(self._state.get_test_states())
 
-  def _ClearDeviceData(self):
-    """Clear serial numbers from DeviceData if requested."""
-    if self.args.clear_device_data:
-      shopfloor.DeleteDeviceData(
-          ['serial_number', 'mlb_serial_number'], optional=True)
-
   def runTest(self):
     self._template.SetState(_STATE_HTML)
     self._ui.Run(blocking=False)
     self._ui.BindKey(' ', lambda _: self._space_event.set())
 
     if self.args.start_station_tests:
-      self._ClearDeviceData()
+      # Clear dut.info data.
+      factory.console.info('Clearing dut.info data...')
+      self._dut.info.Reload()
       self.Start()
+      # Reload serial numbers by accessing the dut.info field.
+      factory.console.info('Loading serial numbers...')
+      self._dut.info.serial_numbers
     else:
       self.End()
-      self._ClearDeviceData()
+      # Clear dut.info data.
+      factory.console.info('Clearing dut.info data...')
+      self._dut.info.Reload()
 
   def Start(self):
     self._ui.SetHTML(_MSG_INSERT, id=_ID_MSG_DIV)
