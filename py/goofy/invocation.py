@@ -334,7 +334,7 @@ class TestInvocation(object):
     return 'Aborted' + (
         (': ' + self._aborted_reason) if self._aborted_reason else '')
 
-  def _invoke_autotest(self):
+  def _invoke_autotest(self, resolved_dargs):
     """Invokes an autotest test.
 
     This method encapsulates all the magic necessary to run a single
@@ -350,7 +350,7 @@ class TestInvocation(object):
     assert self.test.autotest_name
 
     test_tag = '%s_%s' % (self.test.path, self.count)
-    dargs = dict(self.test.dargs)
+    dargs = dict(resolved_dargs)
     dargs.update({
         'tag': test_tag,
         'test_list_path': self.goofy.options.test_list
@@ -436,7 +436,7 @@ class TestInvocation(object):
       self.clean_autotest_logs()
       return status, error_msg  # pylint: disable=W0150
 
-  def _invoke_pytest(self):
+  def _invoke_pytest(self, resolved_dargs):
     """Invokes a pyunittest-based test."""
     assert self.test.pytest_name
 
@@ -454,20 +454,15 @@ class TestInvocation(object):
       if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-      try:
-        args = ResolveTestArgs(self.test.dargs)
-      except Exception, e:
-        logging.exception('Unable to resolve test arguments')
-        return TestState.FAILED, 'Unable to resolve test arguments: %s' % e
-
       pytest_name = self.test.pytest_name
       if self.goofy.options.automation_mode != AutomationMode.NONE:
         # Load override test list dargs if OVERRIDE_TEST_LIST_DARGS_FILE exists.
         if os.path.exists(OVERRIDE_TEST_LIST_DARGS_FILE):
           with open(OVERRIDE_TEST_LIST_DARGS_FILE) as f:
             override_dargs_from_file = yaml.safe_load(f.read())
-          args.update(override_dargs_from_file.get(self.test.path, {}))
-        logging.warn(args)
+          resolved_dargs.update(
+              override_dargs_from_file.get(self.test.path, {}))
+        logging.warn(resolved_dargs)
 
         if self.test.has_automator:
           logging.info('Enable factory test automator for %r', pytest_name)
@@ -511,7 +506,7 @@ class TestInvocation(object):
               PytestInfo(test_list=self.goofy.options.test_list,
                          path=self.test.path,
                          pytest_name=pytest_name,
-                         args=args,
+                         args=resolved_dargs,
                          results_path=results_path,
                          automation_mode=self.goofy.options.automation_mode,
                          dut_options=dut_options),
@@ -686,6 +681,19 @@ class TestInvocation(object):
     service_manager.SetupServices(enable_services=self.test.enable_services,
                                   disable_services=self.test.disable_services)
 
+    try:
+      # *WARNING* test metadata is not initialized at this point, please don't
+      # use it in prepare function.
+      if self.test.prepare:
+        self.test.prepare()
+    except:
+      logging.exception('Exception while invoking prepare callback %s',
+                        traceback.format_exc())
+
+    # During the preparation, if a severe error occurs,
+    # you can set status to TestState.FAILED, then the test won't be invoked.
+    status, error_msg = None, None
+
     # Resume the previously-running test.
     # TODO(itspeter): Handle resume_test with testlog.
     if self.resume_test:
@@ -709,9 +717,20 @@ class TestInvocation(object):
 
     # Not resuming the previously-running test.
     else:
+      logging.debug('Resolving self.test.dargs...')
+      try:
+        resolved_dargs = ResolveTestArgs(self.test.dargs)
+      except Exception as e:
+        logging.exception('Unable to resolve test arguments')
+        # Although the test is considered failed already,
+        # let's still follow the normal path, so everything is logged properly.
+        status = TestState.FAILED
+        error_msg = 'Unable to resolve test arguments: %s' % e
+        resolved_dargs = None
+
       log_args = dict(
           path=self.test.path,
-          dargs=self.test.dargs,
+          dargs=resolved_dargs,
           invocation=self.uuid)
       if self.test.autotest_name:
         log_args['autotest_name'] = self.test.autotest_name
@@ -740,24 +759,17 @@ class TestInvocation(object):
           self.test.path, self.uuid))
 
     try:
-      if self.test.prepare:
-        self.test.prepare()
-    except:
-      logging.exception('Exception while invoking before_callback %s',
-                        traceback.format_exc())
-
-    try:
-      status, error_msg = None, None
-      if self.test.autotest_name:
-        status, error_msg = self._invoke_autotest()
-      elif self.test.pytest_name:
-        status, error_msg = self._invoke_pytest()
-      elif self.test.invocation_target:
-        status, error_msg = self._invoke_target()
-      else:
-        status = TestState.FAILED
-        error_msg = (
-            'No autotest_name, pytest_name, or invocation_target')
+      if status is None:  # dargs are successfully resolved
+        if self.test.autotest_name:
+          status, error_msg = self._invoke_autotest(resolved_dargs)
+        elif self.test.pytest_name:
+          status, error_msg = self._invoke_pytest(resolved_dargs)
+        elif self.test.invocation_target:
+          status, error_msg = self._invoke_target()
+        else:
+          status = TestState.FAILED
+          error_msg = (
+              'No autotest_name, pytest_name, or invocation_target')
     finally:
       if error_msg:
         error_msg = DecodeUTF8(error_msg)
