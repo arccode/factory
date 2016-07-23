@@ -126,20 +126,32 @@ def DummyContextManager():
   yield
 
 
-@contextlib.contextmanager
-def Iperf3Server(port):
-  logging.info('Start iperf server at local side.')
-  net_utils.EnablePort(port)
-  process = subprocess.Popen(['iperf3', '--server', '--port', str(port)])
+class Iperf3Server():
+  """Provides a context manager for running the iperf3 command as a server."""
 
-  yield
+  def __init__(self, port):
+    self._port = port
+    self._process = None
 
-  logging.info('Stop iperf server at local side.')
-  process.kill()
+  def __enter__(self):
+    factory.console('Start iperf3 server at local side')
+    net_utils.EnablePort(self._port)
+    self._process = subprocess.Popen(
+        ['iperf3', '--server', '--port', str(self._port)])
+    # Insert a short pause to ensure that the process is up and ready
+    # for testing.
+    time.sleep(1)
+
+  def __exit__(self, exc_type, exc_value, exc_tb):
+    del exc_type, exc_value, exc_tb
+    if self._process:
+      factory.console('Stop iperf3 server at local side')
+      self._process.kill()
+      self._process.wait()
 
 
 class Iperf3Client(object):
-  """Wraps around spawning the iperf3 command.
+  """Wraps around spawning the iperf3 command as a client.
 
   Allows running the iperf3 command and checks its resulting JSON dict for
   validity.
@@ -419,12 +431,13 @@ class _ServiceTest(object):
 
     # Try running iperf3 on this service, for both TX and RX.  If it succeeds,
     # check the throughput speed against its minimum threshold.
-    with (Iperf3Server(Iperf3Client.DEFAULT_PORT) if self._enable_iperf_server
-          else DummyContextManager()):
-      for reverse, tx_rx, min_throughput in [
-          (False, 'TX', ap_config.min_tx_throughput),
-          (True, 'RX', ap_config.min_rx_throughput)]:
-        try:
+    for reverse, tx_rx, min_throughput in [
+        (False, 'TX', ap_config.min_tx_throughput),
+        (True, 'RX', ap_config.min_rx_throughput)]:
+      try:
+        with (Iperf3Server(Iperf3Client.DEFAULT_PORT)
+              if self._enable_iperf_server
+              else DummyContextManager()):
           DoTest(self._RunIperf, abort=True,
                  iperf_host=ap_config.iperf_host,
                  bind_wifi=self._bind_wifi,
@@ -434,14 +447,14 @@ class _ServiceTest(object):
                  transmit_time=ap_config.transmit_time,
                  transmit_interval=ap_config.transmit_interval)
 
-          DoTest(self._CheckIperfThroughput, abort=True,
-                 ssid=ap_config.ssid,
-                 tx_rx=tx_rx,
-                 log_key=('iperf_%s' % tx_rx.lower()),
-                 log_pass_key=('pass_iperf_%s' % tx_rx.lower()),
-                 min_throughput=min_throughput)
-        except self._TestException:
-          pass  # continue to next test (TX/RX)
+        DoTest(self._CheckIperfThroughput, abort=True,
+               ssid=ap_config.ssid,
+               tx_rx=tx_rx,
+               log_key=('iperf_%s' % tx_rx.lower()),
+               log_pass_key=('pass_iperf_%s' % tx_rx.lower()),
+               min_throughput=min_throughput)
+      except self._TestException:
+        pass  # continue to next test (TX/RX)
 
     # Attempt to disconnect from the WiFi network.
     try:
