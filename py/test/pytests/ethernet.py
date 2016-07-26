@@ -6,22 +6,18 @@
 
 """A factory test for basic ethernet connectivity."""
 
+import re
 import logging
-import os
 import time
 import unittest
-import urllib2
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.file_utils import TryUnlink
-from cros.factory.utils.net_utils import GetEthernetInterfaces
-from cros.factory.utils.net_utils import GetEthernetIp
 from cros.factory.utils.net_utils import DEFAULT_ETHERNET_NAME_PATTERNS
-from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 _MSG_ETHERNET_INFO = test_ui.MakeLabel(
     'Please plug ethernet cable into built-in ethernet port<br>'
@@ -71,7 +67,7 @@ class EthernetTest(unittest.TestCase):
           default=1000),
       Arg('iface', str, 'Interface name for testing.', default=None,
           optional=True),
-      Arg('inteface_name_patterns', list, 'The ethernet interface name patterns',
+      Arg('interface_name_patterns', list, 'The ethernet interface name patterns',
           default=DEFAULT_ETHERNET_NAME_PATTERNS, optional=True),
       Arg('link_only', bool, 'Only test if link is up or not', default=False),
       Arg('use_swconfig', bool, 'Use swconfig for polling link status.',
@@ -82,6 +78,7 @@ class EthernetTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_CSS_ETHERNET)
@@ -102,7 +99,12 @@ class EthernetTest(unittest.TestCase):
       raise ValueError('Should assign iface if link_only is set.')
 
   def GetEthernetInterfaces(self):
-    return GetEthernetInterfaces(self.args.inteface_name_patterns)
+    interfaces = []
+    for pattern in self.args.interface_name_patterns:
+      interfaces += [
+          self.dut.path.basename(path) for path in
+          self.dut.Glob('/sys/class/net/' + pattern)]
+    return interfaces
 
   def GetInterface(self):
     devices = self.GetEthernetInterfaces()
@@ -118,36 +120,28 @@ class EthernetTest(unittest.TestCase):
       return None
     else:
       for dev in devices:
-        if 'usb' not in os.path.realpath('/sys/class/net/%s' % dev):
+        if 'usb' not in self.dut.path.realpath('/sys/class/net/%s' % dev):
           factory.console.info('Built-in ethernet device %s found.', dev)
-          Spawn(['ifconfig', dev, 'up'], check_call=True, log=True)
+          self.dut.CheckCall(['ifconfig', dev, 'up'], log=True)
           return dev
     return None
 
   def GetFile(self):
-    TryUnlink(_LOCAL_FILE_PATH)
+    self.dut.CheckCall(['rm', '-f', _LOCAL_FILE_PATH])
     logging.info('Try connecting to %s', self.args.test_url)
+
     try:
-      remote_file = urllib2.urlopen(self.args.test_url, timeout=2)
-    except urllib2.HTTPError as e:
-      factory.console.info(
-          'Connected to %s but got status code %d: %s.',
-          self.args.test_url, e.code, e.reason)
-    except urllib2.URLError as e:
-      factory.console.info(
-          'Failed to connect to %s: %s.', self.args.test_url, e.reason)
+      self.dut.CheckCall(['wget', '-O', _LOCAL_FILE_PATH, '-T', '2',
+                          self.args.test_url], log=True)
+    except Exception as e:
+      factory.console.info('Failed to get file: %s', e)
     else:
-      with open(_LOCAL_FILE_PATH, 'w') as local_file:
-        local_file.write(remote_file.read())
-        local_file.flush()
-        os.fdatasync(local_file)
-      md5sum_output = CheckOutput(['md5sum', _LOCAL_FILE_PATH],
-                                  log=True).strip().split()[0]
+      md5sum_output = self.dut.CheckOutput(
+          ['md5sum', _LOCAL_FILE_PATH], log=True).strip().split()[0]
       logging.info('Got local file md5sum %s', md5sum_output)
       logging.info('Golden file md5sum %s', self.args.md5sum)
       if md5sum_output == self.args.md5sum:
-        factory.console.info('Successfully connected to %s',
-                             self.args.test_url)
+        factory.console.info('Successfully connected to %s', self.args.test_url)
         return True
       else:
         factory.console.info('md5 checksum error')
@@ -155,8 +149,8 @@ class EthernetTest(unittest.TestCase):
 
   def CheckLinkSimple(self, dev):
     if dev:
-      with open('/sys/class/net/%s/carrier' % dev, 'r') as f:
-        status = f.read().strip()
+      status = self.dut.ReadSpecialFile(
+          '/sys/class/net/%s/carrier' % dev).strip()
       if int(status):
         self.ui.Pass()
         return True
@@ -164,13 +158,23 @@ class EthernetTest(unittest.TestCase):
         self.ui.Fail('Link is down on dev %s' % dev)
         return False
 
+  def GetEthernetIp(self, interface):
+    output = self.dut.CallOutput(
+        ['ip', 'addr', 'show', 'dev', interface], log=True)
+    match = re.search(r'^\s+inet ([.0-9]+)/([0-9]+)', output, re.MULTILINE)
+    if match:
+      return match.group(1)
+    else:
+      return None
+
   def CheckLinkSWconfig(self):
     if type(self.args.swconfig_ports) == int:
       self.args.swconfig_ports = [self.args.swconfig_ports]
 
     for i in self.args.swconfig_ports:
-      status = CheckOutput(['swconfig', 'dev', self.args.swconfig_switch,
-                            'port', str(i), 'get', 'link'])
+      status = self.dut.CheckOutput(
+          ['swconfig', 'dev', self.args.swconfig_switch,
+           'port', str(i), 'get', 'link'])
       if 'up' in status:
         factory.console.info('Link is up on switch %s port %d',
                              self.args.swconfig_switch, i)
@@ -196,7 +200,7 @@ class EthernetTest(unittest.TestCase):
       else:
         if eth:
           if self.args.test_url is None:
-            ethernet_ip = GetEthernetIp(eth)
+            ethernet_ip = self.GetEthernetIp(eth)
             if ethernet_ip:
               factory.console.info('Get ethernet IP %s for %s',
                                    ethernet_ip, eth)
