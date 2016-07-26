@@ -201,8 +201,9 @@ def main(argv=None):
       python_lib = get_python_lib()
 
       rsync_args = ['rsync', '-a',
-                    os.path.join(python_lib, 'jsonrpclib'),
+                    os.path.join(python_lib, 'enum'),
                     os.path.join(python_lib, 'google'),
+                    os.path.join(python_lib, 'jsonrpclib'),
                     os.path.join(python_lib, 'yaml')]
 
       rsync_args.append(par_build)
