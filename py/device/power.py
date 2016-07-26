@@ -13,8 +13,8 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.device.component import DeviceComponent
 from cros.factory.device.component import DeviceProperty
-from cros.factory.utils.type_utils import Enum
 
+from cros.factory.external import enum
 from cros.factory.external import numpy
 
 
@@ -23,16 +23,21 @@ class PowerException(Exception):
 
 
 class Power(DeviceComponent):
-  # Power source types
-  PowerSource = Enum(['BATTERY', 'AC'])
+  class PowerSource(enum.Enum):
+    """Power source types"""
+    BATTERY = 1
+    AC = 2
 
-  ChargeState = Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
-  """An enumeration of possible charge states.
+  class ChargeState(enum.Enum):
+    """An enumeration of possible charge states.
 
-  - ``CHARGE``: Charge the device as usual.
-  - ``IDLE``: Do not charge the device, even if connected to mains.
-  - ``DISCHARGE``: Force the device to discharge.
-  """
+    - ``CHARGE``: Charge the device as usual.
+    - ``IDLE``: Do not charge the device, even if connected to mains.
+    - ``DISCHARGE``: Force the device to discharge.
+    """
+    CHARGE = 'Charging'
+    IDLE = 'Idle'
+    DISCHARGE = 'Discharging'
 
   # Regular expression for parsing output.
   EC_CHARGER_RE = re.compile(r'^chg_current = (\d+)mA', re.MULTILINE)
@@ -198,6 +203,14 @@ class Power(DeviceComponent):
     if float(design_capacity) <= 0:
       return None  # Something wrong with the battery
     return 100 - (round(float(capacity) * 100 / float(design_capacity)))
+
+  def GetChargeState(self):
+    """Returns the charge state.
+
+    Returns:
+      One of the three states in ChargeState.
+    """
+    return self.ChargeState(self.GetBatteryAttribute('status')).value
 
   def SetChargeState(self, state):
     """Sets the charge state.

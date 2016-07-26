@@ -2860,20 +2860,20 @@ cros.factory.Goofy.prototype.updateStatus = function() {
         var chargeIndicator = document.getElementById(
             'goofy-battery-charge-indicator');
         var percent = null;
-        var batteryStatus = 'unknown';
+        var batteryChargeState = 'unknown';
         if (status.battery) {
-            if (status.battery.fraction_full != null) {
+            if (status.battery.charge_fraction != null) {
                 percent = this.PERCENT_BATTERY_FORMAT.format(
-                    status.battery.fraction_full);
+                    status.battery.charge_fraction);
             }
-            if (goog.array.contains(['Full', 'Charging', 'Discharging', 'Idle'],
-                                    status.battery.status)) {
-                batteryStatus = status.battery.status.toLowerCase();
+            if (goog.array.contains(['Full', 'Charging', 'Discharging'],
+                                    status.battery.charge_state)) {
+                batteryChargeState = status.battery.charge_state.toLowerCase();
             }
         }
         setValue('goofy-percent-battery', percent);
         goog.dom.classes.set(
-            chargeIndicator, 'goofy-battery-' + batteryStatus);
+            chargeIndicator, 'goofy-battery-' + batteryChargeState);
 
         var temperatures = status['temperatures'];
         var mainTemperatureIndex = status['main_temperature_index'];

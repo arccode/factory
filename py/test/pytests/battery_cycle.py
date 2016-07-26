@@ -134,7 +134,7 @@ class BatteryCycleTest(unittest.TestCase):
     log_args = dict(kwargs)
     log_args['mode'] = self.mode
     log_args['cycle'] = self.completed_cycles
-    log_args['battery'] = self.status.battery
+    log_args['battery'] = self.dut.power.GetInfoDict()
     Log(event, **log_args)
 
   def _UpdateHistory(self):

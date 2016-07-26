@@ -126,19 +126,11 @@ class SystemStatus(component.DeviceComponent):
 
   @StatusProperty
   def battery(self):
-    """Returns a dict containing information about the battery."""
-    result = self._dut.power.GetInfoDict()
-    result['force'] = False
-    if self.charge_manager:
-      force_status = {
-          self._dut.power.ChargeState.DISCHARGE: 'Discharging',
-          self._dut.power.ChargeState.CHARGE: 'Charging',
-          self._dut.power.ChargeState.IDLE: 'Idle'}.get(
-              self.charge_manager.state)
-      if force_status:
-        result['status'] = force_status
-        result['force'] = True
-    return result
+    """Returns a dict containing battery charge fraction and state."""
+    return {
+        'charge_fraction': self._dut.power.GetChargePct(get_float=True) / 100,
+        'charge_state': self._dut.power.GetChargeState()
+    }
 
   @StatusProperty
   def fan_rpm(self):
