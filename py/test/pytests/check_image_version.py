@@ -18,16 +18,16 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
+from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.test.utils import deploy_utils
 from cros.factory.tools import flash_netboot
 from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_server_proxy
-from cros.factory.utils import debug_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import debug_utils
 
 
 _TEST_TITLE = test_ui.MakeLabel('Check Image Version', u'检查映像版本')
@@ -79,6 +79,7 @@ class ImageCheckTask(FactoryTask):
 
   def __init__(self, test):  # pylint: disable=W0231
     self._test = test
+    self.dut = test.dut
 
   def CheckNetwork(self):
     while not self.dut.status.eth_on:
@@ -100,13 +101,25 @@ class ImageCheckTask(FactoryTask):
         with open(flash_netboot.DEFAULT_NETBOOT_FIRMWARE_PATH, 'wb') as f:
           f.write(netboot_firmware)
 
+    firmware_path = (self._test.args.netboot_fw or
+                     flash_netboot.DEFAULT_NETBOOT_FIRMWARE_PATH)
     self._test.template.SetState(_MSG_REIMAGING)
     try:
-      Spawn(['/usr/local/factory/bin/flash_netboot', '-y'] +
-            (['-i', self._test.args.netboot_fw]
-             if self._test.args.netboot_fw else []),
-            check_call=True, log=True, log_stderr_on_error=True)
-      Spawn(['reboot'])
+      if self.dut.link.IsLocal():
+        self.dut.CheckCall(
+            ['/usr/local/factory/bin/flash_netboot',
+             '-y', '-i', firmware_path, '--no-reboot'], log=True)
+      else:
+        with self.dut.temp.TempFile() as temp_file:
+          self.dut.link.Push(firmware_path, temp_file)
+          factory_par = deploy_utils.FactoryPythonArchive(self.dut)
+          factory_par.CheckCall(
+              ['flash_netboot', '-y', '-i', temp_file, '--no-reboot'],
+              log=True)
+
+      self.dut.CheckCall(['reboot'], log=True)
+
+      self.Fail('Incorrect image version, DUT is rebooting to reimage.')
     except:  # pylint: disable=W0702
       self._test.template.SetState(_MSG_FLASH_ERROR)
 

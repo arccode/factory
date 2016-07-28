@@ -130,6 +130,8 @@ def main():
                       required=False)
   parser.add_argument('--yes', '-y', action='store_true',
                       help="Don't ask for confirmation")
+  parser.add_argument('--no-reboot', dest='reboot', default=True,
+                      action='store_false', help="Don't reboot after flashrom")
   args = parser.parse_args()
 
   try:
@@ -147,10 +149,11 @@ def main():
 
   netboot_flasher.Run()
 
-  sys.stdout.write('Rebooting.  See you on the other side!\n')
-  Spawn(['reboot'], check_call=True)
-  time.sleep(60)
-  sys.exit('Unable to reboot.')  # Should never happen
+  if args.reboot:
+    sys.stdout.write('Rebooting.  See you on the other side!\n')
+    Spawn(['reboot'], check_call=True)
+    time.sleep(60)
+    sys.exit('Unable to reboot.')  # Should never happen
 
 
 if __name__ == '__main__':
