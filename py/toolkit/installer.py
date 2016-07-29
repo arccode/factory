@@ -14,6 +14,7 @@ is deployed and is responsible for installing files.
 
 import argparse
 from contextlib import contextmanager
+import glob
 import os
 import shutil
 import sys
@@ -311,6 +312,15 @@ class FactoryToolkitInstaller(object):
           myuser = os.environ.get('USER')
           Spawn(['chown', '-R', myuser, src],
                 sudo=True, log=True, check_call=True)
+
+    print '*** Ensure SSH keys file permission...'
+    sshkeys_dir = os.path.join(self._usr_local_dest, 'factory/misc/sshkeys')
+    sshkeys = glob.glob(os.path.join(sshkeys_dir, '*'))
+    ssh_public_keys = glob.glob(os.path.join(sshkeys_dir, '*.pub'))
+    ssh_private_keys = list(set(sshkeys) - set(ssh_public_keys))
+    if ssh_private_keys:
+      Spawn(['chmod', '600'] + ssh_private_keys, log=True, check_call=True,
+            sudo=self._sudo)
 
     print '*** Installing symlinks...'
     install_symlinks.InstallSymlinks(
