@@ -179,6 +179,7 @@ def main(argv=None):
                          '--include', '*.html',
                          '--include', '*.js',
                          '--include', '*.png',
+                         '--include', '*.json',
                          # Config file templates needed by the factory_flow
                          # tool.
                          '--include', 'factory_flow/templates/*',
