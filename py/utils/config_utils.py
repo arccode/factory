@@ -52,6 +52,7 @@ import inspect
 import json
 import logging
 import os
+import zipimport
 
 # To simplify portability issues, validating JSON schema is optional.
 try:
@@ -113,25 +114,53 @@ def GetNamedTuple(mapping):
   return collections.namedtuple('Config', new_mapping.iterkeys())(**new_mapping)
 
 
+def _LoadJsonFile(file_path, logger):
+  """Loads a JSON file from specified path.
+
+  Supports loading JSON file from real file system, or a virtual path inside
+  python archive (PAR).
+
+  Returns:
+    A parsed JSON object for contents in file_path argument, or None if file
+    can't be found.
+  """
+  if os.path.exists(file_path):
+    logger('config_utils: Loading from %s', file_path)
+    with open(file_path) as f:
+      return json.load(f)
+
+  # file_path does not exist, but it may be a PAR virtual path.
+  if '.par' in file_path.lower():
+    try:
+      file_dir = os.path.dirname(file_path)
+      file_name = os.path.basename(file_path)
+      importer = zipimport.zipimporter(file_dir)
+      zip_path = os.path.join(importer.prefix, file_name)
+      logger('config_utils: Loading from %s!%s', importer.archive, zip_path)
+      return json.loads(importer.get_data(zip_path))
+    except zipimport.ZipImportError:
+      logger('config_utils: No PAR/ZIP in %s. Ignore.', file_path)
+      pass
+    except IOError:
+      logger('config_utils: PAR path %s does not exist. Ignore.', file_path)
+      pass
+
+  return None
+
+
 def _LoadRawConfig(config_dir, config_name, schema_name=None,
                    logger=_DummyLogger):
-  """Internal function to load JSON config and schema from specified path."""
-  config = None
-  schema = None
+  """Internal function to load JSON config and schema from specified path.
+
+  Returns:
+    A pair (config, schema) of configuration and schema objects.
+  """
   if schema_name is None:
     schema_name = config_name
   config_path = os.path.join(config_dir, config_name + _CONFIG_FILE_EXT)
   schema_path = os.path.join(config_dir, schema_name + _SCHEMA_FILE_EXT)
   logger('config_utils: Checking %s', config_path)
-  if os.path.exists(config_path):
-    logger('config_utils: Loading config from %s', config_path)
-    with open(config_path) as f:
-      config = json.load(f)
-  if os.path.exists(schema_path):
-    logger('config_utils: Loading schema from %s', schema_path)
-    with open(schema_path) as f:
-      schema = json.load(f)
-  return config, schema
+  return _LoadJsonFile(config_path, logger), _LoadJsonFile(schema_path, logger)
 
 
 def _LoadConfigUtilsConfig():
