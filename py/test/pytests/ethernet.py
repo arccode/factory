@@ -74,7 +74,11 @@ class EthernetTest(unittest.TestCase):
           default=False),
       Arg('swconfig_switch', str, 'swconfig switch name.', default='switch0'),
       Arg('swconfig_ports', (int, list), 'swconfig port numbers. Either '
-          'a single int or a list of int.', default=None, optional=True)
+          'a single int or a list of int.', default=None, optional=True),
+      Arg('swconfig_expected_speed', (int, list),
+          ('expected link speed, if a list is given, each integer in the list '
+           'will be paired with each port in swconfig_ports.'),
+          default=None, optional=True)
   ]
 
   def setUp(self):
@@ -171,16 +175,30 @@ class EthernetTest(unittest.TestCase):
     if type(self.args.swconfig_ports) == int:
       self.args.swconfig_ports = [self.args.swconfig_ports]
 
-    for i in self.args.swconfig_ports:
+    if not isinstance(self.args.swconfig_expected_speed, list):
+      swconfig_expected_speed = (
+          [self.args.swconfig_expected_speed] * len(self.args.swconfig_ports))
+    else:
+      swconfig_expected_speed = self.args.swconfig_expected_speed
+
+    self.assertEqual(len(self.args.swconfig_ports),
+                     len(swconfig_expected_speed))
+
+    for port, speed in zip(self.args.swconfig_ports, swconfig_expected_speed):
       status = self.dut.CheckOutput(
           ['swconfig', 'dev', self.args.swconfig_switch,
-           'port', str(i), 'get', 'link'])
+           'port', str(port), 'get', 'link'])
       if 'up' in status:
         factory.console.info('Link is up on switch %s port %d',
-                             self.args.swconfig_switch, i)
+                             self.args.swconfig_switch, port)
+        if speed:
+          speed_str = '{0}baseT'.format(speed)
+          if speed_str not in status:
+            self.ui.Fail('The negociated speed is not expected (%r not in %r)' %
+                         (speed_str, status))
       else:
         self.ui.Fail('Link is down on switch %s port %d' %
-                     (self.args.swconfig_switch, i))
+                     (self.args.swconfig_switch, port))
         return False
 
     self.ui.Pass()
