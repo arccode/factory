@@ -235,10 +235,10 @@ def main():
   Spawn(['make', 'par-overlay-%s' % board], cwd=paths.FACTORY_PATH,
         check_call=True, log=True)
 
-  Spawn(['scp', 'overlay-%s/build/par/factory.par' % board,
-         '%s:/usr/local/factory/' % args.host],
-        cwd=paths.FACTORY_PATH, check_call=True, log=True)
-
+  SpawnRsyncToDUT(
+      ['-az', 'overlay-%s/build/par/factory.par' % board,
+       '%s:/usr/local/factory/' % args.host],
+      cwd=paths.FACTORY_PATH, check_call=True, log=True)
   SetHostBasedRole()
 
   board_dash = board.replace('_', '-')
