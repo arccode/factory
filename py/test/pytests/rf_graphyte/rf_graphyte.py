@@ -19,6 +19,7 @@ Usage example::
           'shopfloor_log_dir': 'rf_conductive'})
 """
 
+import csv
 import json
 import logging
 import os
@@ -32,6 +33,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
+from cros.factory.test import testlog
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.env import paths
@@ -136,6 +138,13 @@ class RFGraphyteTest(unittest.TestCase):
     if self.args.patch_dhcp_ssh_dut_ip:
       self.PatchSSHLinkConfig()
 
+    testlog.AttachFile(
+        path=self.config_file_path,
+        mime_type='application/json',
+        name='graphyte_config.json',
+        description=os.path.basename(self.config_file_path),
+        delete=False)
+
     # Execute Graphyte.
     self._ui.SetHTML(_MSG_EXECUTE_GRAPHYTE, id=_ID_MSG_DIV)
     cmd = ['python', '-m', 'graphyte.main',
@@ -157,19 +166,55 @@ class RFGraphyteTest(unittest.TestCase):
       debug_str = (test_ui.Escape(line) + debug_str)[:8 * 1024]
       self._ui.SetHTML(debug_str, id=_ID_DEBUG_DIV)
 
+    # Save the log file.
+    if os.path.exists(self.log_file_path):
+      testlog.AttachFile(
+          path=self.log_file_path,
+          mime_type='text/plain',
+          name='graphyte.log',
+          description=os.path.basename(self.log_file_path),
+          delete=False)
+
+    # Save the result file.
+    if os.path.exists(self.result_file_path):
+      testlog.AttachFile(
+          path=self.result_file_path,
+          mime_type='text/csv',
+          name='graphyte_result.csv',
+          description=os.path.basename(self.result_file_path),
+          delete=False)
+
     # Parse result file.
-    # TODO(akahuang): Send result to testlog.
     if not os.path.exists(self.result_file_path):
       self.fail('Result file is not found.')
     with open(self.result_file_path) as result_file:
       result_data = result_file.read()
       logging.debug('Graphyte result: %s', result_data)
 
+    # Upload the log to shopfloor and testlog.
+    try:
+      self.UploadResultToShopfloor()
+    except Exception as e:
+      logging.exception(e)
+      logging.error('Error uploading logs to shopfloor: %s: %s',
+                    e.__class__.__name__, e)
+    try:
+      self.SaveParamsToTestlog()
+    except Exception as e:
+      logging.exception(e)
+      logging.error('Error saving params to testlog: %s: %s',
+                    e.__class__.__name__, e)
+
     # Total test result is at the last column of the last row.
     result_lines = result_data.splitlines()
-    final_result = result_lines[-1].split(',')[-1]
-    # Upload the log to shopfloor.
-    self.UploadResultToShopfloor()
+    try:
+      final_result = result_lines[-1].split(',')[-1]
+    except Exception as e:
+      logging.exception(e)
+      self.fail('Corrupt or incomplete result file %s: %s: %s'
+                % (self.result_file_path, e.__class__.__name__, e))
+
+    # Pass or fail the pytest.
     self.assertEquals(final_result, 'PASS')
 
   def GetLogPath(self, timestamp, suffix):
@@ -239,5 +284,74 @@ class RFGraphyteTest(unittest.TestCase):
     self._ui.SetHTML(_MSG_UPLOAD_RESULT, id=_ID_MSG_DIV)
     output_files = [self.result_file_path, self.log_file_path]
     factory.console.info('Upload the result to shopfloor: %s', output_files)
-    shopfloor.UploadAuxLogs(output_files, True,
-                            dir_name=self.args.shopfloor_log_dir)
+    for output_file in output_files:
+      try:
+        shopfloor.UploadAuxLogs([output_file], True,
+                                dir_name=self.args.shopfloor_log_dir)
+      except Exception as e:
+        logging.exception(e)
+        logging.error('Could not upload %s: %s: %s',
+                      output_file, e.__class__.__name__, e)
+
+  def SaveParamsToTestlog(self):
+    def _ConvertToNumber(value):
+      """Convert the string to a number or None."""
+      try:
+        return float(value)
+      except ValueError:
+        return None
+
+    with open(self.result_file_path, 'r') as f:
+      for data in csv.DictReader(f):
+        if data['test_item'] == 'TOTAL RESULT':
+          continue
+
+        parameters = ParseGraphyteTestName(data['test_item'])
+        parameters['result_name'] = data['result_name']
+        parameters['power_level'] = _ConvertToNumber(data['power_level'])
+        test_name = json.dumps(parameters)
+        result_value = _ConvertToNumber(data['result'])
+        if result_value is None:
+          code = 'GraphyteResultMissing'
+          details = '%s result is missing.' % test_name
+          testlog.AddFailure(code=code, details=details)
+        else:
+          try:
+            testlog.CheckParam(name=test_name,
+                               value=result_value,
+                               min=_ConvertToNumber(data['lower_bound']),
+                               max=_ConvertToNumber(data['upper_bound']))
+          except Exception as e:
+            logging.exception(e)
+            logging.error('Could not run CheckParam for data=%r: %s: %s',
+                          data, e.__class__.__name__, e)
+
+
+def ParseGraphyteTestName(test_name):
+  """Parse the test arguments from the test name."""
+  def _ConvertDataType(value_str):
+    if value_str in ['', 'None', 'none']:
+      return None
+    try:
+      return int(value_str)
+    except ValueError:
+      pass
+    try:
+      return float(value_str)
+    except ValueError:
+      pass
+    return value_str
+
+  items = map(_ConvertDataType, test_name.split(' '))
+  if items[0] == 'WLAN':
+    fields = ['rf_type', 'component_name', 'test_type', 'center_freq',
+              'standard', 'data_rate', 'bandwidth', 'chain_mask']
+  elif items[0] == 'BLUETOOTH':
+    fields = ['rf_type', 'component_name', 'test_type', 'center_freq',
+              'packet_type']
+  elif items[0] == '802_15_4':
+    fields = ['rf_type', 'component_name', 'test_type', 'center_freq']
+  else:
+    logging.error('Should not be here. items: %s', items)
+  assert len(items) == len(fields), 'items %s, fields %s' % (items, fields)
+  return dict(zip(fields, items))
