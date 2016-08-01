@@ -19,6 +19,7 @@ Usage example::
           'shopfloor_log_dir': 'rf_conductive'})
 """
 
+import json
 import logging
 import os
 import subprocess
@@ -83,6 +84,11 @@ class RFGraphyteTest(unittest.TestCase):
           'Path to Graphyte config file. This is interpreted as the path '
           'relative to `test/pytests/rf_graphyte` folder.',
           optional=False),
+      Arg('patch_dhcp_ssh_dut_ip', bool,
+          'Set to True if Goofy uses SSH link with DHCP enabled to connect to '
+          'DUT. This will patch the IP from Goofy\'s link into Graphyte\'s '
+          'target DUT IP configuration.',
+          default=False, optional=True),
       Arg('verbose', bool, 'Enable Graphyte debug logging',
           default=True, optional=True),
       Arg('enable_shopfloor', bool,
@@ -112,6 +118,8 @@ class RFGraphyteTest(unittest.TestCase):
       self._shopfloor_proxy = shopfloor.GetShopfloorConnection()
 
     timestamp = time.strftime('%H%M%S')
+    self.config_file_path = os.path.join(
+        LOCAL_CONFIG_DIR, self.args.graphyte_config_file)
     self.result_file_path = self.GetLogPath(timestamp, RESULT_FILENAME)
     self.log_file_path = self.GetLogPath(timestamp, LOG_FILENAME)
 
@@ -120,15 +128,18 @@ class RFGraphyteTest(unittest.TestCase):
     self.FetchConfigFromShopfloor()
 
     # Check the config file exists.
-    config_file_path = os.path.join(
-        LOCAL_CONFIG_DIR, self.args.graphyte_config_file)
-    if not os.path.exists(config_file_path):
-      self.fail('Graphyte config file %s does not exist.' % config_file_path)
+    if not os.path.exists(self.config_file_path):
+      self.fail('Graphyte config file %s does not exist.' %
+                self.config_file_path)
+
+    # Patch the DUT config with DHCP IP.
+    if self.args.patch_dhcp_ssh_dut_ip:
+      self.PatchSSHLinkConfig()
 
     # Execute Graphyte.
     self._ui.SetHTML(_MSG_EXECUTE_GRAPHYTE, id=_ID_MSG_DIV)
     cmd = ['python', '-m', 'graphyte.main',
-           '--config-file', config_file_path,
+           '--config-file', self.config_file_path,
            '--result-file', self.result_file_path,
            '--log-file', self.log_file_path]
     if self.args.verbose:
@@ -171,6 +182,34 @@ class RFGraphyteTest(unittest.TestCase):
         self._dut.info.mlb_serial_number, timestamp, suffix)
     # The log files are in the default log folder.
     return os.path.join(paths.GetLogRoot(), file_name)
+
+  def PatchSSHLinkConfig(self):
+    """Patch the DHCP IP in the DUT config.
+
+    We update the DUT IP and write the DUT config into a new file. The global
+    config should update the DUT config file path, so need to be written in a
+    new file as well.
+    """
+    # Find the DUT config file.
+    with open(self.config_file_path, 'r') as f:
+      global_config = json.load(f)
+    dut_config_path = os.path.join(
+        LOCAL_CONFIG_DIR, global_config['dut_config'])
+
+    with open(dut_config_path, 'r') as f:
+      dut_config = json.load(f)
+    assert dut_config['link_options']['link_class'] == 'SSHLink', (
+        'dut config %s should be SSHLink.' % dut_config)
+    dut_config['link_options']['host'] = self._dut.link.host
+
+    # Write the patched config into new config file.
+    suffix = '.patched'
+    with open(dut_config_path + suffix, 'w') as f:
+      json.dump(dut_config, f)
+    global_config['dut_config'] += suffix
+    self.config_file_path += suffix
+    with open(self.config_file_path, 'w') as f:
+      json.dump(global_config, f)
 
   def FetchConfigFromShopfloor(self):
     """Fetch all config files from shopfloor.
