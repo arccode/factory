@@ -9,7 +9,7 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import dut
+from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.utils.arg_utils import Arg
 
@@ -26,7 +26,7 @@ class HwmonWriteTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._dut = dut.Create()
+    self._dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
     devices = self._dut.hwmon.FindDevices('name', self.args.name)
