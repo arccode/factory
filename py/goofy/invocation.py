@@ -376,12 +376,12 @@ class TestInvocation(object):
       with open(control_file, 'w') as f:
         print('import common, traceback, utils', file=f)
         print('import cPickle as pickle', file=f)
-        print("success = job.run_test('%s', **pickle.load(open('%s')))" % (
+        print("msg = job.run_test_detail('%s', **pickle.load(open('%s')))" % (
             self.test.autotest_name, args_file), file=f)
 
+        print('success = (msg == "GOOD")', file=f)
         print(
-            'pickle.dump((success, '
-            'str(job.last_error) if job.last_error else None), '
+            'pickle.dump((success, msg if not success else None), '
             "open('%s', 'w'), protocol=2)"
             % result_file, file=f)
 
