@@ -230,12 +230,14 @@ class FactoryToolkitInstaller(object):
                                'factory', 'init', 'main.d', 'disable-' + app)
     if enabled:
       print '*** Enabling {app} ***'.format(app=app)
-      Spawn(['rm', '-f', app_disable], sudo=True, log=True, check_call=True)
-      Spawn(['touch', app_enable], sudo=True, log=True, check_call=True)
+      Spawn(['rm', '-f', app_disable], sudo=self._sudo, log=True,
+            check_call=True)
+      Spawn(['touch', app_enable], sudo=self._sudo, log=True, check_call=True)
     else:
       print '*** Disabling {app} ***'.format(app=app)
-      Spawn(['touch', app_disable], sudo=True, log=True, check_call=True)
-      Spawn(['rm', '-f', app_enable], sudo=True, log=True, check_call=True)
+      Spawn(['touch', app_disable], sudo=self._sudo, log=True, check_call=True)
+      Spawn(['rm', '-f', app_enable], sudo=self._sudo, log=True,
+            check_call=True)
 
   def _EnableApps(self):
     if not self._apps:
@@ -253,6 +255,34 @@ class FactoryToolkitInstaller(object):
 
     for app, enabled in app_list:
       self._EnableApp(app, enabled)
+
+  def InstallFactorySubDir(self, sub_dirs):
+    """Install only the specified directories under factory folder."""
+
+    def _InstallOneSubDir(sub_dir_name):
+      sub_dir_dest = os.path.join(self._usr_local_dest, 'factory', sub_dir_name)
+      sub_dir_src = os.path.join(self._src, 'usr', 'local', 'factory',
+                                 sub_dir_name)
+      try:
+        Spawn(['mkdir', '-p', sub_dir_dest], sudo=True, log=True,
+              check_call=True)
+      except OSError as e:
+        print str(e)
+        return
+
+      Spawn(['rsync', '-a', '--force', '-v',
+             sub_dir_src + '/', sub_dir_dest],
+            sudo=self._sudo, log=True, check_call=True)
+      Spawn(['chown', '-R', 'root', sub_dir_dest],
+            sudo=self._sudo, log=True, check_call=True)
+      Spawn(['chmod', '-R', 'go+rX', sub_dir_dest],
+            sudo=self._sudo, log=True, check_call=True)
+
+    for sub_dir_name in sub_dirs:
+      _InstallOneSubDir(sub_dir_name)
+
+    self._SetTagFile('factory', self._tag_file, not self._no_enable)
+    self._EnableApps()
 
   def Install(self):
     print '*** Installing factory toolkit...'
@@ -459,6 +489,11 @@ def main():
   parser.add_argument('--extract-overlord', dest='extract_overlord',
                       metavar='OUTPUT_DIR', type=str, default=None,
                       help='Extract overlord from the toolkit')
+  parser.add_argument('--install-dirs', nargs='+', default=None,
+                      help=('Install only the specified directories under '
+                            'factory folder. Can be used with --apps to '
+                            'enable / disable some apps. Defaults to install '
+                            'all folders.'))
   parser.add_argument('--apps', type=lambda s: s.split(','), default=None,
                       help=('Enable or disable some apps under '
                             'factory/init/main.d/. Use prefix "-" to disable, '
@@ -517,6 +552,7 @@ def main():
 
   with (sys_utils.MountPartition(args.dest, 1, rw=True) if patch_test_image
         else DummyContext(args.dest)) as dest:
+
     installer = FactoryToolkitInstaller(
         src=src_root, dest=dest, no_enable=args.no_enable,
         enable_presenter=args.enable_presenter,
@@ -531,7 +567,10 @@ def main():
       if not answer or answer[0] not in 'yY':
         sys.exit('Aborting.')
 
-    installer.Install()
+    if args.install_dirs:
+      installer.InstallFactorySubDir(args.install_dirs)
+    else:
+      installer.Install()
 
 if __name__ == '__main__':
   main()
