@@ -84,6 +84,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
 
   def __init__(self, logger, plugin_type, config):
     self.logger = logger
+    self._plugin_type = plugin_type
     # State directory carries across PluginRunner runs.
     self._state_dir = os.path.join(tempfile.gettempdir(),
                                    'plugin_runner.%s' % plugin_type)
@@ -254,6 +255,9 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     self.logger.info('Emit %d events', len(events))
     self.logger.debug('Emit %d events: %s', len(events), events)
     for event in events:
+      if '__nodeId__' not in event:
+        # Use plugin_type as the node ID.
+        event['__nodeId__'] = self._plugin_type
       # TODO(kitching): May result in `IOError: Broken pipe`.  Investigate
       #                 and fix.
       print(event.Serialize())
