@@ -24,10 +24,10 @@ class Event(object):
   """Represents an Instalog event.
 
   Properties:
-    data: Event data.  If it is a dictionary, it can be accessed through normal
-          dictionary operators on the event itself (e.g. event['field']).
-          Otherwise, the `data` property can be directly accessed
-          (e.g.  event.data[0]).
+    data: A dictionary representing Event data.  It can be accessed either
+          through normal dictionary operators on the Event object itself
+          (e.g. event['field']), or through the `data` properly
+          (e.g. event.data[0]).
     attachments: Dictionary of attachments for this event.  Key is a string
                  identifying the file attachment; might match an ID within the
                  event data itself.  Value is where the file can be located on
@@ -37,6 +37,8 @@ class Event(object):
   def __init__(self, data, attachments=None):
     self.data = data
     self.attachments = {} if attachments is None else attachments
+    if not isinstance(self.data, dict):
+      raise TypeError('Provided data argument must be of type `dict`')
     if not isinstance(self.attachments, dict):
       raise TypeError('Provided attachments argument must be of type `dict`')
 

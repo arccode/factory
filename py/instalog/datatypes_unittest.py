@@ -147,6 +147,11 @@ class TestEvent(unittest.TestCase):
     self.assertTrue(event['c'] is not new_event['c'])
     self.assertTrue(event.attachments is not new_event.attachments)
 
+  def testData(self):
+    """Checks that invalid data arguments are refused."""
+    with self.assertRaises(TypeError):
+      datatypes.Event(1)
+
   def testAttachments(self):
     """Checks that attachments can be properly accessed on an event."""
     # Check that the attachments list is properly initialized when empty.
