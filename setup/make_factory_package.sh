@@ -664,6 +664,15 @@ generate_img() {
   fi
 
   image_umount_partition "$tmpesp"
+
+  echo "Updating files in Factory Stateful"
+  # Add /etc/lsb-factory into diskimg if not exists.
+  local tmp_factory_stateful="$(mktemp -d --tmpdir)"
+  image_add_temp "${tmp_factory_stateful}"
+  image_mount_partition "${outdev}" 1 "${tmp_factory_stateful}" "rw"
+  sudo touch "${tmp_factory_stateful}"/dev_image/etc/lsb-factory
+  image_umount_partition "$tmp_factory_stateful"
+
   echo "Generated Image at $outdev."
   echo "Done"
 }
