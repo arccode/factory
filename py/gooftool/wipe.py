@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Trainsition to release state directly without reboot."""
+"""Transition to release state directly without reboot."""
 
 import json
 import logging
@@ -32,6 +32,7 @@ from cros.factory.utils import sys_utils
 SCRIPT_DIR = '/usr/local/factory/sh'
 
 WIPE_IN_TMPFS_LOG = 'wipe_in_tmpfs.log'
+
 
 def _CopyLogFileToStateDev(state_dev, logfile):
   with sys_utils.MountPartition(state_dev,
@@ -379,6 +380,7 @@ def _WipeStateDev(release_rootfs, root_disk, wipe_args):
     os.unlink(os.path.join(stateful_partition_path, '.developer'))
   except OSError:
     pass
+
 
 def _EnableReleasePartition(release_rootfs):
   logging.debug('enable release partition: %s', release_rootfs)
