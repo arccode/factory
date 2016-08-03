@@ -28,6 +28,7 @@ import textwrap
 import unittest
 
 import instalog_common  # pylint: disable=W0611
+from instalog import log_utils
 from instalog import plugin_base
 from instalog import plugin_loader
 
@@ -159,6 +160,5 @@ class TestPluginLoader(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
-  logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+  logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
   unittest.main()

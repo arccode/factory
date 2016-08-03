@@ -19,6 +19,7 @@ import time
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
+from instalog import log_utils
 from instalog import plugin_base
 from instalog import plugin_sandbox
 
@@ -280,8 +281,7 @@ def main(plugin_type=None, config=None):
     plugin_type: Type of the plugin that should be started.
     config: Configuration dict of the plugin.  Defaults to an empty dict.
   """
-  LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
-  logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
 
   # If no plugin_type is provided, retrieve from command-line arguments.
   if plugin_type is None:

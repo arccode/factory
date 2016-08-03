@@ -19,6 +19,7 @@ import jsonrpclib
 import instalog_common  # pylint: disable=W0611
 from instalog import core
 from instalog import daemon_utils
+from instalog import log_utils
 from instalog.utils import sync_utils
 from instalog.utils import type_utils
 
@@ -49,8 +50,8 @@ class InstalogService(daemon_utils.Daemon):
 
   def _InitLogging(self):
     """Sets up logging."""
+    # TODO(kitching): Refactor (some of) this code to log_utils module.
     # Get logger.
-    LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
@@ -59,7 +60,7 @@ class InstalogService(daemon_utils.Daemon):
     logger.removeHandler(logger.handlers[0])
 
     # Create formatter.
-    formatter = logging.Formatter(LOG_FORMAT)
+    formatter = logging.Formatter(log_utils.LOG_FORMAT)
 
     # Save logging calls to log file.
     fh = logging.FileHandler(self._config['instalog']['log_file'])

@@ -12,6 +12,7 @@ import inspect
 import os
 
 import instalog_common  # pylint: disable=W0611
+from instalog import log_utils
 from instalog.utils import arg_utils
 
 
@@ -82,7 +83,7 @@ class PluginAPI(object):
     raise NotImplementedError
 
 
-class Plugin(object):
+class Plugin(log_utils.LoggerMixin, object):
   """Base class for a buffer plugin, input plugin, or output plugin in Instalog.
 
   This is a base class for BufferPlugin, InputPlugin and OutputPlugin.  Plugins
@@ -111,14 +112,8 @@ class Plugin(object):
     # Save the core API to a private instance variable.
     self._plugin_api = plugin_api
 
-    # Save the logger and create some shortcut functions for convenience.
+    # log_utils.LoggerMixin creates shortcut functions for convenience.
     self.logger = logger
-    self.debug = logger.debug
-    self.info = logger.info
-    self.warning = logger.warning
-    self.error = logger.error
-    self.critical = logger.critical
-    self.exception = logger.exception
 
   def Start(self):
     """Starts any connections or threads needed.

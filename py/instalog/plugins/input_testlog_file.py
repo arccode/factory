@@ -11,6 +11,7 @@ Subclasses InputLogFile to correctly parse a testlog.json file.
 
 from __future__ import print_function
 
+import datetime
 import json
 
 import instalog_common  # pylint: disable=W0611
@@ -21,19 +22,28 @@ from instalog.plugins import input_log_file
 
 class InputTestlogFile(input_log_file.InputLogFile):
 
-  def ParseLine(self, line):
-    """Parses the given line into an Instalog Event object."""
+  def ParseLine(self, path, line):
+    """Parses a line and returns an Instalog Event object."""
+    del path  # We don't use the path of the log file.
     data = json.loads(line)
-    # TODO(kitching): Create a testlog schema file and check against the JSON
-    #                 for validity.
+    data['__testlog__'] = True
+    if 'time' in data:
+      data['time'] = datetime.datetime.strptime(
+          data['time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+    if 'startTime' in data:
+      data['startTime'] = datetime.datetime.strptime(
+          data['startTime'], '%Y-%m-%dT%H:%M:%S.%fZ')
+    if 'endTime' in data:
+      data['endTime'] = datetime.datetime.strptime(
+          data['endTime'], '%Y-%m-%dT%H:%M:%S.%fZ')
+    # TODO(kitching): Figure out the proper way to validate the event:
+    #                 (a) Use a JSON schema.
+    #                 (b) Import testlog and use FromJSON directly.
     attachments = {}
-    # TODO(kitching): Ask itspeter how the path to an attachment should be
-    #                 determined.  If it's not contained within the JSON, we
-    #                 need to add another ARG called attachment_dir.
     if 'attachments' in data:
       for att_id, att_data in data['attachments'].iteritems():
         attachments[att_id] = att_data['path']
-    return datatypes.Event(data)
+    return datatypes.Event(data, attachments)
 
 
 if __name__ == '__main__':

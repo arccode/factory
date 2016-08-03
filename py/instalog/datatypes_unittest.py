@@ -19,6 +19,7 @@ import unittest
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
+from instalog import log_utils
 from instalog import plugin_base
 
 
@@ -345,6 +346,5 @@ class TestEventStreamIterator(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
-  logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
   unittest.main()
