@@ -18,6 +18,7 @@ import os
 import shutil
 import tempfile
 import threading
+import zlib
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
@@ -86,9 +87,13 @@ class InputRPC(plugin_base.InputPlugin):
       event = datatypes.Event.Deserialize(event)
       for att_id, att_data in event.attachments.iteritems():
         fd, tmp_path = tempfile.mkstemp(dir=self._tmp_dir)
-        with open(tmp_path, 'w') as f:
-          f.write(base64.b64decode(att_data['value']))
-        os.close(fd)
+        # If anything in the 'try' block raises an exception, make sure we
+        # close the file handle created by mkstemp.
+        try:
+          with open(tmp_path, 'w') as f:
+            f.write(zlib.decompress(base64.b64decode(att_data['value'])))
+        finally:
+          os.close(fd)
         event.attachments[att_id] = tmp_path
       events.append(event)
     self.info('Received %d events', len(events))

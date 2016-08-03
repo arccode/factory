@@ -13,22 +13,25 @@ from __future__ import print_function
 
 import base64
 import jsonrpclib
-import os
 import socket
 import time
+import zlib
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 
 
-_SOCKET_TIMEOUT = 1
+# TODO(kitching): Find a better way of doing this, since this timeout
+#                 applies for the full duration of a request, even if it
+#                 is working.
+_SOCKET_TIMEOUT = 120
 _CONNECTION_FAILURE_WARN_THRESHOLD = 30
 _DEFAULT_BATCH_SIZE = 5000
 _DEFAULT_TIMEOUT = 5
 _DEFAULT_PORT = 8880
-_DEFAULT_THRESHOLD_BYTES = 4 * 1024 * 1024  # 4mb
-_DEFAULT_MAX_BYTES = 16 * 1024 * 1024  # 16mb
+_DEFAULT_THRESHOLD_BYTES = 1 * 1024 * 1024  # 1mb
+_DEFAULT_MAX_BYTES = 4 * 1024 * 1024  # 4mb
 
 
 class OutputRPC(plugin_base.OutputPlugin):
@@ -94,17 +97,27 @@ class OutputRPC(plugin_base.OutputPlugin):
         continue
 
       # Get all current events from the EventStream object.
-      events = []
+      serialized_events = []
       total_size = 0
       for event in event_stream.iter(timeout=self.args.timeout,
                                      count=self.args.batch_size):
-        events.append(event)
-        self.debug('len(events) = %d', len(events))
+        # First let's read in the attachments, and create a serialized event.
         for att_id, att_path in event.attachments.iteritems():
-          total_size += os.path.getsize(att_path)
+          # Read in the attachment and replace the path with compressed
+          # file content.
+          with open(att_path) as f:
+            event.attachments[att_id] = {
+                '__filedata__': True,
+                'value': base64.b64encode(zlib.compress(f.read()))}
+        serialized_event = event.Serialize()
+        total_size += len(serialized_event)
+        serialized_events.append(serialized_event)
+        self.debug('len(serialized_events)=%d, total_size=%d',
+                   len(serialized_events), total_size)
+
         if total_size > self.args.threshold_bytes:
           # We have enough data to send.
-          self.info('Total attachment size %d > %d, transmit batch',
+          self.info('Total data size %d > %d, transmit batch',
                     total_size, self.args.threshold_bytes)
           break
         if total_size > self.args.max_bytes:
@@ -122,19 +135,8 @@ class OutputRPC(plugin_base.OutputPlugin):
 
       # Send to input RPC server.
       rpc_success = False
-      if events:
+      if serialized_events:
         start_time = time.time()
-        serialized_events = []
-        for event in events:
-          for att_id, att_path in event.attachments.iteritems():
-            # Read in the attachment and replace the path with file content.
-            # We are currently not doing any compression.
-            with open(att_path) as f:
-              event.attachments[att_id] = {
-                  '__filedata__': True,
-                  'value': base64.b64encode(f.read())}
-          serialized_events.append(event.Serialize())
-
         try:
           rpc_success = self.rpc_server.RemoteEmit(serialized_events)
           rpc_result_str = 'success' if rpc_success else 'failure'
@@ -144,16 +146,18 @@ class OutputRPC(plugin_base.OutputPlugin):
           else:
             rpc_result_str = 'unexpected exception'
             self.exception(e)
-        self.info('Pack and transmit %d events in %.2fs: %s',
-                  len(events), time.time() - start_time, rpc_result_str)
+        self.info('Pack and transmit %d events (%d KB) in %.2fs: %s',
+                  len(serialized_events), total_size / 1024,
+                  time.time() - start_time, rpc_result_str)
 
       if rpc_success:
         # Commit these events.
         commit_result_str = 'success' if event_stream.Commit() else 'failure'
-        self.info('Commit %d events: %s', len(events), commit_result_str)
+        self.info('Commit %d events: %s', len(serialized_events),
+                  commit_result_str)
       else:
-        if len(events) > 0:
-          self.info('Abort %d events', len(events))
+        if len(serialized_events) > 0:
+          self.info('Abort %d events', len(serialized_events))
         event_stream.Abort()
         # TODO(kitching): Find a better way to slow down the plugin in the case
         #                 that it repeatedly aborts.
