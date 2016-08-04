@@ -25,7 +25,8 @@ def CreateTestLists():
   test list builder).  This function is required and its name cannot
   be changed.
   """
-  with TestList('tsab_station', 'Touchscreen calibration on AB panel') as tlist:
+  with TestList('tsab_station',
+                'Generic touchscreen calibration on AB panel') as tlist:
     tlist.options.shopfloor_server_url = 'http://%s:%s' % (
         _SHOPFLOOR_IP, _SHOPFLOOR_PORT)
     with AutomatedSequence(id='TouchscreenCalibrationSequence',

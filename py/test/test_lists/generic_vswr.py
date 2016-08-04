@@ -41,7 +41,7 @@ def CreateTestLists():
   test list builder).  This function is required and its name cannot
   be changed.
   '''
-  with TestList('vswr_station', 'VSWR Station') as test_list:
+  with TestList('vswr_station', 'Generic VSWR Station') as test_list:
     test_list.options.auto_run_on_start = False
 
     # Override some shopfloor settings.

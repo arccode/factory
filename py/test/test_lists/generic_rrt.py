@@ -625,7 +625,7 @@ def CreateRebootStressTestList():
   """Creates a test list for long run reboot test."""
   args = TestListArgs()
   with TestList('generic_rrt_reboot',
-                'Rolling Reliability (Reboot)') as test_list:
+                'Generic Rolling Reliability (Reboot)') as test_list:
     SetOptions(test_list.options, args)
     PressToStart(id_suffix='RebootStress',
                  message_en=args.reboot_warning_en,
@@ -640,7 +640,7 @@ def CreateRunInStressTestList():
   """Creates a test list for long run stress test."""
   args = TestListArgs()
   with TestList('generic_rrt_stress',
-                'Rolling Reliability (Stress)') as test_list:
+                'Generic Rolling Reliability (Stress)') as test_list:
     SetOptions(test_list.options, args)
     PressToStart(id_suffix='RunInStress',
                  message_en=args.run_in_warning_en,
@@ -665,7 +665,7 @@ def CreateTestLists():
     CreateRebootStressTestList()
     CreateRunInStressTestList()
   else:
-    with TestList('generic_rrt', 'generic_rrt') as test_list:
+    with TestList('generic_rrt', 'Generic Rolling Reliability') as test_list:
       OperatorTest(
           id='MessageNotSupport',
           label_zh=u'不支援',
