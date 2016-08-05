@@ -27,17 +27,19 @@ class EctoolI2CDevIdTest(unittest.TestCase):
           'A list of tuples containing address/registers and expected '
           'values. Each tuple is in the following format:\n'
           '\n'
-          '  (addr, reg, expected_value)\n'
+          '  (addr, reg, expected_value, bits)\n'
           '\n'
           '- addr: The I2C address of the peripheral.\n'
           '- reg: The register containing device ID.\n'
           '- expected_value: The expected device ID.\n'
+          '- bits: The number of bits to read. Must be 8 (default) or 16.\n'
           '\n'
           'If the condition in any tuple matches, the test passes.'),
   ]
 
-  def CheckDevice(self, bus, addr, reg, expected_value):
-    cmd = 'ectool i2cread 8 %d %d %d' % (bus, addr, reg)
+  def CheckDevice(self, bus, addr, reg, expected_value, bits=8):
+    assert bits in (8, 16)
+    cmd = 'ectool i2cread %d %d %d %d' % (bits, bus, addr, reg)
     output = process_utils.SpawnOutput(cmd.split(), log=True)
     match = RE_I2C_RESULT.search(output)
     if not match:
