@@ -14,15 +14,64 @@ TODO(littlecvr): make umpire config complete such that it contains all the
 """
 
 import os
+import re
 import xmlrpclib
 
 import yaml
 
-# TODO(littlecvr): DRY
+
+# TODO(littlecvr): pull out the common parts between umpire and dome, and put
+#                  them into a config file (using the new config API).
 UMPIRE_BASE_DIR = os.path.join('/', 'var', 'db', 'factory', 'umpire')
+UMPIRE_ACTIVE_CONFIG_FILE_NAME = 'active_umpire.yaml'
+UMPIRE_STAGING_CONFIG_FILE_NAME = 'staging_umpire.yaml'
+UMPIRE_CLI_PORT_OFFSET = 2
+UMPIRE_RESOURCE_NAME_ALIAS = {
+    'device_factory_toolkit': 'factory_toolkit',
+    'server_factory_toolkit': 'factory_toolkit'}
+UMPIRE_UPDATABLE_RESOURCE = set(['device_factory_toolkit',
+                                 'server_factory_toolkit'])
+
+
+class Resource(object):
+
+  def __init__(self, type, version, hash, updatable):
+    self.type = type
+    self.version = version
+    self.hash = hash
+    self.updatable = updatable
 
 
 class Bundle(object):
+  """Represent a bundle in umpire."""
+
+  def __init__(self, name, note, active, resources):
+    self.name = name
+    self.note = note
+    self.active = active
+
+    # Parse resources. A resource in umpire config is a simple key-value
+    # mapping, with its value consists of {file_name}, {version}, and {hash}:
+    #   {resource_type}: {file_name}#{version}#{hash}
+    # We'll parse its value for the front-end:
+    #   {resource_type}: {
+    #       'version': {version},
+    #       'hash': {hash},
+    #       'updatable': whether or not the resource can be updated}
+    self.resources = {}
+    for type in resources:
+      match = re.match(r'^[^#]*#([^#]*)#([^#]*)$', resources[type])
+      if match and len(match.groups()) >= 2:
+        self.resources[type] = Resource(
+            type,  # type
+            match.group(1),  # version
+            match.group(2),  # hash
+            True if type in UMPIRE_UPDATABLE_RESOURCE else False)  # updatable
+
+    # TODO(littlecvr): add rulesets in umpire config.
+
+
+class BundleModel(object):
   """Provide functions to manipulate bundles in umpire.
 
   Umpire RPC calls aren't quite complete. For example, they do not provide any
@@ -32,51 +81,179 @@ class Bundle(object):
   TODO(littlecvr): complete the umpire RPC calls, decouple dome and umpire.
   """
 
-  def __init__(self, name, note, file_path=None):
-    self.name = name
-    self.note = note
-
-    self.file_path = file_path
-
-    # TODO(littlecvr): add rulesets in umpire config.
-    # TODO(littlecvr): add parts (toolkit, FSI, etc.)
-
-  @staticmethod
-  def _GetUmpireConfig(board):
-    # TODO(littlecvr): DRY
-    active_config_path = os.path.join(
-        UMPIRE_BASE_DIR, board, 'active_umpire.yaml')
-    with open(active_config_path) as f:
-      return yaml.load(f.read())
-
-  @staticmethod
-  def ListAll(board):
-    """Return all bundles as a list.
-
-    This function returns all bundles as a list, no matter if the bundle is
-    active or not. It is the front-end's responsibility to filter only bundles
-    the user wants to see.
+  def __init__(self, board):
+    """Constructor.
 
     Args:
       board: a string for name of the board.
+    """
+    self.board = board
+
+  def _GetConfig(self, config_path):
+    with open(config_path) as f:
+      return yaml.load(f.read())
+
+  def _GetActiveConfig(self):
+    return self._GetConfig(self._GetActiveConfigPath())
+
+  def _GetActiveConfigPath(self):
+    return os.path.join(
+        UMPIRE_BASE_DIR, self.board, UMPIRE_ACTIVE_CONFIG_FILE_NAME)
+
+  def _GetStagingConfig(self):
+    return self._GetConfig(self._GetStatingConfigPath())
+
+  def _GetStatingConfigPath(self):
+     return os.path.join(
+        UMPIRE_BASE_DIR, self.board, UMPIRE_STAGING_CONFIG_FILE_NAME)
+
+  def _GetActiveConfigAndXMLRPCServer(self):
+    umpire_active_config = self._GetActiveConfig()
+    port = umpire_active_config['port'] + UMPIRE_CLI_PORT_OFFSET
+    umpire_rpc_server = xmlrpclib.ServerProxy(
+        'http://localhost:%d' % port, allow_none=True)
+    return (umpire_active_config, umpire_rpc_server)
+
+  def Deploy(self):
+    """Deploy umpire.
+
+    This function should only be called when there is a staging config. See
+    umpire's doc for more info.
+    """
+    _, server = self._GetActiveConfigAndXMLRPCServer()
+
+    # validate and deploy
+    umpire_status = server.GetStatus()
+    config_to_deploy_text = umpire_status['staging_config']
+    config_to_deploy_res = umpire_status['staging_config_res']
+    server.ValidateConfig(config_to_deploy_text)
+    server.Deploy(config_to_deploy_res)
+
+  def ListOne(self, bundle_name):
+    """Return the bundle that matches the search criterion.
+
+    Args:
+      bundle_name: name of the bundle to find, this corresponds to the "id"
+          field in umpire config.
+    """
+    config = self._GetActiveConfig()
+
+    active = False
+    for b in config['rulesets']:
+      if bundle_name == b['bundle_id']:
+        active = b['active']
+        break
+
+    bundle = None
+    for b in config['bundles']:
+      if bundle_name == b['id']:
+        bundle = Bundle(
+            b['id'],  # name
+            b['note'],  # note
+            active,  # active
+            b['resources'])  # resources
+        break
+
+    return bundle
+
+  def ListAll(self):
+    """Return all bundles as a list.
+
+    This function lists bundles in the following order:
+    1. active bundles in the 'rulesets' section
+    2. inactive bundles in the 'rulesets' section
+    3. bundles in the 'bunedles' section that are not in the 'rulesets' section
 
     Return:
       A list of all bundles.
     """
-    umpire_config = Bundle._GetUmpireConfig(board)
+    config = self._GetActiveConfig()
 
-    bundle_list = []
-    for b in umpire_config.get('bundles'):
-      bundle_list.append(Bundle(b['id'], b.get('note')))
+    bundle_set = set()  # to fast determine if a bundle has been added
+    bundle_list = list()
+    for b in config['rulesets']:
+      if b['active']:
+        bundle_set.add(b['bundle_id'])
+        bundle_list.append(self.ListOne(b['bundle_id']))
+    for b in config['rulesets']:
+      if not b['active']:
+        bundle_set.add(b['bundle_id'])
+        bundle_list.append(self.ListOne(b['bundle_id']))
+    for b in config['bundles']:
+      if b['id'] not in bundle_set:
+        bundle_list.append(Bundle(
+            b['id'],  # name
+            b['note'],  # note
+            False,  # active
+            b['resources']))  # resources
 
     return bundle_list
 
-  @staticmethod
-  def UploadNew(board, name, note, file_path):
+  def UpdateResource(self, src_bundle_name, dst_bundle_name, note,
+                     resource_type, resource_file_path):
+    """Update resource in a bundle.
+
+    Args:
+      src_bundle_name: the bundle to update.
+      dst_bundle_name: if specified, make a copy of the original bundle and name
+          it as dst_bundle_name first. Otherwise, update-in-place. (See umpire's
+          Update function).
+      note: if dst bundle is specified, this will be note of the dst bundle;
+          otherwise, this will overwrite note of the src bundle.
+      resource_type: type of resource to update.
+      resource_file_path: path to the new resource file.
+    """
+    # Replace with the alias if needed.
+    resource_type = UMPIRE_RESOURCE_NAME_ALIAS.get(resource_type, resource_type)
+
+    _, server = self._GetActiveConfigAndXMLRPCServer()
+    staging_config_file = server.Update(
+        [(resource_type, resource_file_path)], src_bundle_name, dst_bundle_name)
+
+    # Umpire does not allow the user to add bundle note directly via update. So
+    # duplicate the source bundle first.
+    with open(staging_config_file) as f:
+      config = yaml.load(f.read())
+
+    # find source bundle
+    src_bundle = None
+    for b in config['rulesets']:
+      if src_bundle_name == b['bundle_id']:
+        src_bundle = b
+
+    if not dst_bundle_name:  # in-place update
+      src_bundle['note'] = str(note)
+
+      # also update note in the bundles section
+      for b in config['bundles']:
+        if src_bundle_name == b['id']:
+          b['note'] = str(note)
+    else:
+      # copy source bundle
+      dst_bundle = src_bundle.copy()
+      dst_bundle['bundle_id'] = str(dst_bundle_name)
+      dst_bundle['note'] = str(note)
+      config['rulesets'].insert(0, dst_bundle)
+
+      # also update note in the bundles section
+      for b in config['bundles']:
+        if dst_bundle_name == b['id']:
+          b['note'] = str(note)
+
+    # TODO(littlecvr): should respect umpire's default order
+    with open(staging_config_file, 'w') as f:
+      f.write(yaml.dump(config, default_flow_style=False))
+
+    self.Deploy()
+
+    return {'bundle_name': dst_bundle_name or src_bundle_name,
+            'resource_type': resource_type,
+            'updatable': True}
+
+  def UploadNew(self, name, note, file_path):
     """Upload a new bundle.
 
     Args:
-      board: the board name in string.
       name: name of the new bundle, in string. This corresponds to the "id"
           field in umpire config.
       note: commit message. This corresponds to the "note" field in umpire
@@ -87,15 +264,10 @@ class Bundle(object):
     Return:
       The newly created bundle.
     """
-    # create umpire RPC server object
-    umpire_config = Bundle._GetUmpireConfig(board)
-    # TODO(littlecvr): DRY
-    port = umpire_config['port'] + 2  # cli port offset
-    # TODO(littlecvr): DRY
-    umpire_rpc_server = xmlrpclib.ServerProxy('http://localhost:%d' % port)
+    _, server = self._GetActiveConfigAndXMLRPCServer()
 
     # import bundle
-    staging_config_path = umpire_rpc_server.ImportBundle(
+    staging_config_path = server.ImportBundle(
         os.path.realpath(file_path), name, note)
 
     # make the bundle active
@@ -108,15 +280,7 @@ class Bundle(object):
     with open(staging_config_path, 'w') as f:
       f.write(yaml.dump(config, default_flow_style=False))
 
-    # validate and deploy
-    umpire_status = umpire_rpc_server.GetStatus()
-    config_to_deploy_text = umpire_status['staging_config']
-    config_to_deploy_res = umpire_status['staging_config_res']
-    umpire_rpc_server.ValidateConfig(config_to_deploy_text)
-    umpire_rpc_server.Deploy(config_to_deploy_res)
+    self.Deploy()
 
-    bundle_list = Bundle.ListAll(board)
-    for b in bundle_list:
-      if b.name == name:
-        return b
-    return None
+    # find and return the new bundle
+    return self.ListOne(name)
