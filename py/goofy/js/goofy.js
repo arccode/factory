@@ -2265,8 +2265,12 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
                     // entire log.
                     return;
                 }
+                var value = entry.metadata[key];
+                if (goog.isObject(value)) {
+                    value = goog.json.serialize(value);
+                }
                 metadataTable.push('<tr><th>' + key + '</th><td>' +
-                                   goog.string.htmlEscape(entry.metadata[key]) +
+                                   goog.string.htmlEscape(value) +
                                    '</td></tr>');
                 }, this);
 
