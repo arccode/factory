@@ -640,7 +640,7 @@ class TestInvocation(object):
       # Only allow types that can be natively expressed in JSON.
       flattened_dargs = testlog_utils.FlattenAttrs(
           dargs, allow_types=(int, long, float, basestring, type(None)))
-      dargs = {k: {'value': v} for k, v in flattened_dargs.iteritems()}
+      dargs = {k: {'value': v} for k, v in flattened_dargs}
       kwargs['arguments'] = dargs
     if 'duration' in log_args:
       log_args.pop('duration')  # Discard the duration
@@ -704,9 +704,10 @@ class TestInvocation(object):
     # TODO(itspeter): Handle resume_test with testlog.
     if self.resume_test:
       self.start_time = self.metadata['start_time']
+      resolved_dargs = self.metadata['dargs']
       log_args = dict(
           path=self.metadata['path'],
-          dargs=self.metadata['dargs'],
+          dargs=resolved_dargs,
           invocation=self.uuid)
       if self.test.autotest_name:
         log_args['autotest_name'] = self.metadata['autotest_name']
