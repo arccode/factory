@@ -5,6 +5,7 @@
 import Immutable from 'immutable';
 
 import ActionTypes from '../constants/ActionTypes';
+import UploadingTaskStates from '../constants/UploadingTaskStates';
 
 const initialState = Immutable.fromJS({
   entries: [],
@@ -12,7 +13,8 @@ const initialState = Immutable.fromJS({
   formVisibility: {
   },
   formPayload: {
-  }
+  },
+  uploadingTasks: {}
 });
 
 export default function bundlesReducer(state = initialState, action) {
@@ -34,6 +36,21 @@ export default function bundlesReducer(state = initialState, action) {
 
     case ActionTypes.CLOSE_FORM:
       return state.setIn(['formVisibility', action.formName], false);
+
+    case ActionTypes.CREATE_UPLOADING_TASK:
+      return state.mergeIn(['uploadingTasks'], {
+        [action.taskID]: {
+          state: UploadingTaskStates.UPLOADING_TASK_STARTED,
+          description: action.description
+        }
+      });
+
+    case ActionTypes.CHANGE_UPLOADING_TASK_STATE:
+      return state.setIn(
+          ['uploadingTasks', action.taskID, 'state'], action.state);
+
+    case ActionTypes.REMOVE_UPLOADING_TASK:
+      return state.deleteIn(['uploadingTasks', action.taskID]);
 
     default:
       return state;

@@ -2,10 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 // form actions
 export const OPEN_FORM = 'OPEN_FORM';
 export const CLOSE_FORM = 'CLOSE_FORM';
+
+// uploading task actions
+export const CREATE_UPLOADING_TASK = 'CREATE_UPLOADING_TASK';
+export const CHANGE_UPLOADING_TASK_STATE = 'CHANGE_UPLOADING_TASK_STATE';
+export const REMOVE_UPLOADING_TASK = 'REMOVE_UPLOADING_TASK';
 
 // bundles actions
 export const REQUEST_BUNDLES = 'REQUEST_BUNDLES';
@@ -13,5 +17,6 @@ export const RECEIVE_BUNDLES = 'RECEIVE_BUNDLES';
 
 export default {
   OPEN_FORM, CLOSE_FORM,
+  CREATE_UPLOADING_TASK, CHANGE_UPLOADING_TASK_STATE, REMOVE_UPLOADING_TASK,
   REQUEST_BUNDLES, RECEIVE_BUNDLES
 };

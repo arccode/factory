@@ -20,6 +20,7 @@ var UpdatingResourceForm = React.createClass({
   propTypes: {
     show: React.PropTypes.bool.isRequired,
 
+    startUpdating: React.PropTypes.func.isRequired,
     cancelUpdating: React.PropTypes.func.isRequired,
 
     // name of the source bundle to update
@@ -45,8 +46,22 @@ var UpdatingResourceForm = React.createClass({
   },
 
   handleConfirm() {
-    // TODO(littlecvr): implement this.
-    alert('Not implemented!');
+    if (!this.state.isInPlaceUpdate && this.state.nameInputValue == '') {
+      // TODO: Chinese support
+      this.setState({nameInputErrorText: _NAME_INPUT_VALUE_ERROR_TEST});
+      return;
+    }
+
+    var formData = new FormData();
+    // TODO: implement this
+    formData.append('board', BOARD);
+    formData.append('is_inplace_update', this.state.isInPlaceUpdate);
+    formData.append('src_bundle_name', this.props.bundleName);
+    formData.append('dst_bundle_name', this.state.nameInputValue);
+    formData.append('note', this.state.noteInputValue);
+    formData.append('resource_type', this.props.resourceType);
+    formData.append('resource_file', this.fileInput.files[0]);
+    this.props.startUpdating(formData);
   },
 
   handleCancel() {
@@ -135,6 +150,8 @@ function mapStateToProps(state, ownProps) {
 
 function mapDispatchToProps(dispatch) {
   return {
+    startUpdating:
+        formData => dispatch(Actions.startUpdatingResource(formData)),
     cancelUpdating:
         () => dispatch(Actions.closeForm(FormNames.UPDATING_RESOURCE_FORM))
   };

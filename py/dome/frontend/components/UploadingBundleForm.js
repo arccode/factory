@@ -15,6 +15,7 @@ import FormNames from '../constants/FormNames';
 var UploadingBundleForm = React.createClass({
   propTypes: {
     show: React.PropTypes.bool.isRequired,
+    startUploading: React.PropTypes.func.isRequired,
     cancelUploading: React.PropTypes.func.isRequired
   },
 
@@ -23,8 +24,18 @@ var UploadingBundleForm = React.createClass({
   },
 
   handleConfirm() {
-    // TODO(littlecvr): implement this.
-    alert('Not implemented!');
+    if (this.state.nameInputValue == '') {
+      // TODO: Chinese support
+      this.setState({nameInputErrorText: 'This field is required'});
+      return;
+    }
+
+    var formData = new FormData();
+    formData.append('board', BOARD);
+    formData.append('name', this.state.nameInputValue);
+    formData.append('note', this.state.noteInputValue);
+    formData.append('bundle_file', this.fileInput.files[0]);
+    this.props.startUploading(formData);
   },
 
   handleCancel() {
@@ -100,6 +111,8 @@ function mapStateToProps(state, ownProps) {
 
 function mapDispatchToProps(dispatch) {
   return {
+    startUploading:
+        formData => dispatch(Actions.startUploadingBundle(formData)),
     cancelUploading:
         () => dispatch(Actions.closeForm(FormNames.UPLOADING_BUNDLE_FORM))
   };

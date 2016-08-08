@@ -13,14 +13,21 @@ import BundleList from './BundleList';
 import FormNames from '../constants/FormNames';
 import UpdatingResourceForm from './UpdatingResourceForm';
 import UploadingBundleForm from './UploadingBundleForm';
+import UploadingTask from './UploadingTask';
 
 var BundlesApp = React.createClass({
   propTypes: {
-    openUploadingNewBundleForm: React.PropTypes.func.isRequired
+    openUploadingNewBundleForm: React.PropTypes.func.isRequired,
+    dismissUploadingTask: React.PropTypes.func.isRequired,
+    uploadingTasks: React.PropTypes.instanceOf(Immutable.Map).isRequired
   },
 
   render: function() {
-    const {openUploadingNewBundleForm} = this.props;
+    const {
+      openUploadingNewBundleForm,
+      dismissUploadingTask,
+      uploadingTasks
+    } = this.props;
 
     return (
       <div>
@@ -29,11 +36,33 @@ var BundlesApp = React.createClass({
         <UploadingBundleForm />
         <UpdatingResourceForm />
 
+        {uploadingTasks.keySeq().toArray().map((taskID, index) => {
+          var task = uploadingTasks.get(taskID);
+          return (
+            <UploadingTask
+              key={taskID}
+              // state={task.state}
+              state={task.get('state')}
+              // description={task.description}
+              description={task.get('description')}
+              style={{
+                position: 'fixed',
+                padding: 5,
+                right: 24,
+                bottom: 50 * index + 24  // stack them
+              }}
+              cancel={() => console.log('not implemented')}
+              dismiss={() => dismissUploadingTask(taskID)}
+              retry={() => alert('not implemented yet')}
+            />
+          );
+        })}
+
         {/* upload button */}
         <FloatingActionButton
           style={{
             position: 'fixed',
-            bottom: 24,
+            bottom: 50 * uploadingTasks.size + 24, // above all uploading tasks
             right: 24
           }}
           onTouchTap={openUploadingNewBundleForm}
@@ -45,11 +74,19 @@ var BundlesApp = React.createClass({
   }
 });
 
-function mapDispatchToProps(dispatch) {
+function mapStateToProps(state) {
   return {
-    openUploadingNewBundleForm:
-        () => dispatch(Actions.openForm(FormNames.UPLOADING_BUNDLE_FORM))
+    uploadingTasks: state.getIn(['bundles', 'uploadingTasks'])
   };
 }
 
-export default connect(null, mapDispatchToProps)(BundlesApp);
+function mapDispatchToProps(dispatch) {
+  return {
+    openUploadingNewBundleForm:
+        () => dispatch(Actions.openForm(FormNames.UPLOADING_BUNDLE_FORM)),
+    dismissUploadingTask:
+        taskID => dispatch(Actions.dismissUploadingTask(taskID))
+  };
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(BundlesApp);
