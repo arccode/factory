@@ -36,6 +36,36 @@ const fetchBundles = () => dispatch => {
   });
 };
 
+const openForm = (formName, payload) => (dispatch, getState) => {
+  // The file input does not fire any event when canceled, if the user opened
+  // the file dialog and canceled, its onChange handler won't be called, the
+  // form won't actually be opened, but its "show" attribute has already been
+  // set to true.  Next time the user requests to open the form, the form won't
+  // notice the difference and won't open. Therefore, we need to detect such
+  // case -- close it first if it's already opened.
+  const visible = getState().getIn(['bundles', 'formVisibility', formName]);
+  const action = {
+    type: ActionTypes.OPEN_FORM,
+    formName,
+    payload
+  };
+  if (!visible) {
+    dispatch(action);
+  }
+  else {
+    Promise.resolve()
+        .then(() => dispatch(closeForm(formName)))
+        .then(() => dispatch(action));
+  }
+};
+
+const closeForm = formName => ({
+  type: ActionTypes.CLOSE_FORM,
+  formName
+});
+
 export default {
-  fetchBundles
+  fetchBundles,
+  openForm,
+  closeForm
 };

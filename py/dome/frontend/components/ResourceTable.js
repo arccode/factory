@@ -2,13 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
-import React from 'react';
+import {connect} from 'react-redux';
 import {Table, TableBody, TableHeader, TableHeaderColumn,
         TableRow, TableRowColumn} from 'material-ui/Table';
+import Immutable from 'immutable';
+import React from 'react';
+import RaisedButton from 'material-ui/RaisedButton';
+
+import Actions from '../actions/bundles';
+import FormNames from '../constants/FormNames';
 
 var ResourceTable = React.createClass({
   propTypes: {
+    handleUpdate: React.PropTypes.func.isRequired,
     bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired
   },
 
@@ -52,7 +58,13 @@ var ResourceTable = React.createClass({
                   {resource.get('hash')}
                 </TableRowColumn>
                 <TableRowColumn>
-                  {/* TODO(littlecvr): add update button */}
+                  {/* show update button for updatable resources only */}
+                  {resource.get('updatable') &&
+                    <RaisedButton
+                      label="update"
+                      onClick={() => handleUpdate(bundle.get('name'), type)}
+                    />
+                  }
                 </TableRowColumn>
               </TableRow>
             );
@@ -63,4 +75,11 @@ var ResourceTable = React.createClass({
   }
 });
 
-export default ResourceTable;
+function mapDispatchToProps(dispatch) {
+  return {
+    handleUpdate: (bundleName, resourceType) => dispatch(Actions.openForm(
+        FormNames.UPDATING_RESOURCE_FORM, {bundleName, resourceType}))
+  };
+}
+
+export default connect(null, mapDispatchToProps)(ResourceTable);

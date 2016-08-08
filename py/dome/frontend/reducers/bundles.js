@@ -8,7 +8,11 @@ import ActionTypes from '../constants/ActionTypes';
 
 const initialState = Immutable.fromJS({
   entries: [],
-  isFetchingEntries: false
+  isFetchingEntries: false,
+  formVisibility: {
+  },
+  formPayload: {
+  }
 });
 
 export default function bundlesReducer(state = initialState, action) {
@@ -21,6 +25,15 @@ export default function bundlesReducer(state = initialState, action) {
         s.set('isFetchingEntries', false);
         s.set('entries', Immutable.fromJS(action.bundles));
       });
+
+    case ActionTypes.OPEN_FORM:
+      return state.withMutations((s) => {
+        s.setIn(['formVisibility', action.formName], true);
+        s.mergeIn(['formPayload', action.formName], action.payload);
+      });
+
+    case ActionTypes.CLOSE_FORM:
+      return state.setIn(['formVisibility', action.formName], false);
 
     default:
       return state;
