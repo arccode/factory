@@ -6,6 +6,8 @@ import Immutable from 'immutable';
 import React from 'react';
 import {Card, CardTitle, CardText} from 'material-ui/Card';
 
+import ResourceTable from './ResourceTable';
+
 var Bundle = React.createClass({
   propTypes: {
     bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired
@@ -17,6 +19,9 @@ var Bundle = React.createClass({
     return (
       <Card className="bundle">
         <CardTitle title={bundle.get('name')} subtitle={bundle.get('note')} />
+        <CardText>
+          <ResourceTable bundle={bundle} />
+        </CardText>
       </Card>
     );
   }
