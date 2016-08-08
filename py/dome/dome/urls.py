@@ -24,6 +24,9 @@ from django.views.generic import TemplateView
 
 
 urlpatterns = [
-    url(r'^(?P<board>[_a-zA-Z]+)/bundles/', include('bundles.urls'))]
+    url(r'^(?P<board>[_a-zA-Z]+)/$',
+        TemplateView.as_view(template_name='index.html')),
+    url(r'^(?P<board>[_a-zA-Z]+)/bundles/',
+        include('bundles.urls'))]
 
 urlpatterns += staticfiles_urlpatterns()

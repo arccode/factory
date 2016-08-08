@@ -1,0 +1,35 @@
+{
+  "name": "dome",
+  "version": "1.0.0",
+  "description": "the factory server front end",
+  "dependencies": {
+    "immutable": "^3.8.1",
+    "isomorphic-fetch": "^2.2.1",
+    "material-ui": "~0.15.0",
+    "react": "~15.1.0",
+    "react-dom": "~15.1.0",
+    "react-redux": "^4.4.5",
+    "react-tap-event-plugin": "~1.0.0",
+    "redux": "^3.5.2",
+    "redux-immutable": "^3.0.6",
+    "redux-logger": "^2.6.1",
+    "redux-thunk": "^2.1.0",
+    "whatwg-fetch": "^1.0.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^6.1.2",
+    "babel-polyfill": "^6.9.1",
+    "babel-preset-es2015": "~6.9.0",
+    "babel-preset-react": "~6.5.0",
+    "babelify": "~7.3.0",
+    "browserify": "~13.0.1"
+  },
+  "scripts": {},
+  "babel": {
+    "presets": [
+      "react",
+      "es2015"
+    ]
+  },
+  "author": "Mao Huang <littlecvr@google.com>"
+}
