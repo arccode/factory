@@ -7,18 +7,24 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import injectTapEventPlugin from 'react-tap-event-plugin';
 import {createStore, applyMiddleware} from 'redux';
+import {combineReducers} from 'redux-immutable';
 import {Provider} from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import createLogger from 'redux-logger';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
+import BundlesApp from './components/BundlesApp';
+import bundlesReducer from './reducers/bundles';
+
 // Needed for onTouchTap, see:
 // http://www.material-ui.com/#/get-started/installation
 injectTapEventPlugin();
 
 const store = createStore(
-  state => state,  // dummy redudcer for now
+  combineReducers({
+    bundles: bundlesReducer
+  }),
   Immutable.Map(),  // initial state will be determined by each reducer
   applyMiddleware(
     thunkMiddleware,
@@ -29,7 +35,7 @@ const store = createStore(
   )
 );
 
-const DomeApp = () => <div>DomeApp</div>;
+const DomeApp = () => <BundlesApp />;
 
 const App = () => (
   <MuiThemeProvider muiTheme={getMuiTheme()}>
