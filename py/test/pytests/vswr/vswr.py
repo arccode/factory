@@ -35,7 +35,6 @@ import Queue
 import random
 import re
 import string
-import StringIO
 import time
 import unittest
 import uuid
@@ -44,6 +43,7 @@ import xmlrpclib
 import yaml
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.device import device_utils
 from cros.factory.goofy.connection_manager import PingHost
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
@@ -55,7 +55,6 @@ from cros.factory.test import test_ui
 from cros.factory.test.rf.e5071c_scpi import ENASCPI
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.net_utils import FindUsableEthDevice
-from cros.factory.utils.process_utils import Spawn
 
 
 # The root of the pytests vswr folder. The config path is relative to this when
@@ -64,17 +63,7 @@ LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class VSWR(unittest.TestCase):
-  """A test for antennas using Agilent E5017C Network Analyzer (ENA).
-
-  In general, a pytest runs on a DUT, and runs only once. However, this test
-  runs on a host Chromebook that controls the ENA, and runs forever because it
-  was designed to test many antennas.
-
-  Ideally, the test won't stop after it has been started. But practically, to
-  prevent operators from overusing some accessories. It will stop after reaching
-  self._config['test']['max_iterations']. This will remind the operator to
-  change those accessories.
-  """
+  """A test for antennas using Agilent E5017C Network Analyzer (ENA)."""
   ARGS = [
       Arg('event_log_name', str, 'Name of the event_log, like '
           '"vswr_prepressed" or "vswr_postpressed".', optional=False),
@@ -84,30 +73,34 @@ class VSWR(unittest.TestCase):
       Arg('config_path', str, 'Configuration path relative to the root of '
           'either (1) pytest vswr folder (if load_from_shopfloor is False) or '
           '(2) shopfloor parameters directory (if load_from_shopfloor is True).'
-          'E.g. path/to/config_file_name.',
+          ' E.g. path/to/config_file_name.',
           optional=True),
       Arg('timezone', str, 'Timezone of shopfloor.', default='Asia/Taipei'),
       Arg('load_from_shopfloor', bool, 'Whether to load parameters from '
           'shopfloor or not.', default=True),
+      Arg('serial_number_key', str, 'The key referring to the serial number in '
+          'question. This key will be used to retrieve the serial number from '
+          'the shared data. Default key is `serial_number`.',
+          default='serial_number')
   ]
 
-  def __init__(self, *args, **kwargs):
-    super(VSWR, self).__init__(*args, **kwargs)
-
-    self._config = None
-
+  def setUp(self):
+    self._station = device_utils.CreateStationInterface()
+    self._serial_number = factory.get_shared_data(self.args.serial_number_key)
+    if self._serial_number is None:
+      self.fail('Serial number does not exist.')
     self.log = {
         'config': {
             'file_path': None,
             'content': None},
         'dut': {
-            'serial_number': None},
+            'serial_number': self._serial_number},
         'network_analyzer': {
             'calibration_traces': None,
             'id': None,
             'ip': None},
         'test': {
-            'start_time': None,
+            'start_time': datetime.datetime.now(),
             'end_time': None,
             'fixture_id': None,
             # TODO(littlecvr): These 2 will always be the same everytime,
@@ -118,6 +111,28 @@ class VSWR(unittest.TestCase):
             'traces': {},  # wifi_main, wifi_aux, lte_main, lte_aux
             'results': {},  # wifi_main, wifi_aux, lte_main, lte_aux
             'failures': []}}
+
+    logging.info(
+        '(config_path: %s, timezone: %s, load_from_shopfloor: %s)',
+        self.args.config_path, self.args.timezone,
+        self.args.load_from_shopfloor)
+
+    # Set timezone.
+    os.environ['TZ'] = self.args.timezone
+    # The following attributes will be overridden when loading config.
+    self._config = {}
+    self._ena = None
+    # Serial specific config attributes.
+    self._sn_config = None
+    # Clear results.
+    self._vswr_detail_results = {}
+    self._results = {}
+
+    # Set up UI.
+    self._event_queue = Queue.Queue()
+    self._ui = test_ui.UI()
+    self._ui.AddEventHandler('keypress', self._event_queue.put)
+    self._ui.AddEventHandler('snenter', self._event_queue.put)
 
   def _ConnectToENA(self, network_analyzer_config):
     """Connnects to the ENA and initializes the SCPI object."""
@@ -156,18 +171,6 @@ class VSWR(unittest.TestCase):
     # Parse and load parameters.
     self._LoadConfig(config_content.data)
 
-  def _ResetDataForNextTest(self):
-    """Resets internal data for the next testing cycle."""
-    logging.info('Reset internal data.')
-    self.log['dut']['serial_number'] = None
-    self.log['test']['start_time'] = None
-    self.log['test']['end_time'] = None
-    self.log['test']['hash'] = str(uuid.uuid4())  # new hash for this iteration
-    self.log['test']['traces'] = {}  # wifi_main, wifi_aux, lte_main, lte_aux
-    self.log['test']['results'] = {}  # wifi_main, wifi_aux, lte_main, lte_aux
-    self.log['test']['failures'] = []
-    self.log['test']['start_time'] = datetime.datetime.now()
-
   def _SerializeTraces(self, traces):
     result = {}
     for parameter in traces.parameters:
@@ -192,63 +195,35 @@ class VSWR(unittest.TestCase):
     with open(config_path, 'r') as f:
       self._LoadConfig(f.read())
 
-  def _WaitForValidSN(self):
-    """Waits for the operator to enter/scan a valid serial number.
+  def _GetConfigForSerialNumber(self):
+    """Searches the suitable config for this serial number.
 
-    This function essentially does the following things:
-      1. Asks the operator to enter/scan a serial number.
-      2. Checks if the serial number is valid.
-      3. If yes, returns.
-      4. If not, shows an error message and goes to step 1.
+    TODO(littlecvr): Move the following description to the module level
+                     comment block, where it should state the structure of
+                     config file briefly.
 
-    After the function's called. self._serial_number would contain the serial
-    number entered/scaned by the operator. And self._sn_config would contain
-    the config corresponding to that serial number. See description of the
-    _GetConfigForSerialNumber() function for more info about 'corresponding
-    config.'
+    In order to utilize a single VSWR fixture as multiple stations, the
+    config file was designed to hold different configs at the same time.
+    Thus, this function searches through all the configs and returns the
+    first config that matches the serial number, or None if no match.
+
+    For example: the fixture can be configured such that if the serial number
+    is between 001 to 100, the threshold is -30 to 0.5; if the serial number
+    is between 101 to 200, the threshold is -40 to 0.5; and so forth.
+
+    Returns:
+      The first config that matches the serial number.
+    Raises:
+      ValueError if the serial number is not matched.
     """
-    def _GetConfigForSerialNumber(serial_number):
-      """Searches the suitable config for this serial number.
-
-      TODO(littlecvr): Move the following description to the module level
-                       comment block, where it should state the structure of
-                       config file briefly.
-
-      In order to utilize a single VSWR fixture as multiple stations, the
-      config file was designed to hold different configs at the same time.
-      Thus, this function searches through all the configs and returns the
-      first config that matches the serial number, or None if no match.
-
-      For example: the fixture can be configured such that if the serial number
-      is between 001 to 100, the threshold is -30 to 0.5; if the serial number
-      is between 101 to 200, the threshold is -40 to 0.5; and so forth.
-
-      Returns:
-        The first config that matches the serial number, or None if no match.
-      """
-      for sn_config in self._config['test']['device_models']:
-        if re.search(sn_config['serial_number_regex'], serial_number):
-          logging.info('SN matched config %s.', sn_config['name'])
-          return sn_config
-      return None
-
-    # Reset SN input box and hide error message.
-    self._ui.RunJS('resetSNField()')
-    self._ShowMessageBlock('enter-sn')
-    # Loop until the right serial number has been entered.
-    while True:
-      # Focus and select the text for convenience.
-      self._ui.RunJS('$("sn").select()')
-      self._WaitForKey(test_ui.ENTER_KEY)
-      serial_number = self._GetSN()
-      self._sn_config = _GetConfigForSerialNumber(serial_number)
-      if self._sn_config:
-        self.log['dut']['serial_number'] = serial_number
-        return
-      else:
-        self._ui.RunJS('$("sn-format-error-value").innerHTML = "%s"' %
-                       serial_number)
-        self._ui.RunJS('$("sn-format-error").style.display = ""')
+    device_models = self._config['test']['device_models']
+    for sn_config in device_models:
+      if re.search(sn_config['serial_number_regex'], self._serial_number):
+        logging.info('SN matched config %s.', sn_config['name'])
+        return sn_config
+    valid_patterns = [config['serial_number_regex'] for config in device_models]
+    raise ValueError('serial number %s is not matched. Valid patterns are: %s' %
+                     (self._serial_number, valid_patterns))
 
   def _CheckMeasurement(self, threshold, extracted_value,
                         print_on_failure=False, freq=None, title=None):
@@ -380,18 +355,18 @@ class VSWR(unittest.TestCase):
 
   def _SaveLog(self):
     """Saves the logs and writes event log."""
-    logging.info('Writing log with SN: %s.', self.log['dut']['serial_number'])
+    logging.info('Writing log with SN: %s.', self._serial_number)
 
     log_file_name = 'log_%s_%s.yaml' % (
         datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3],  # time
-        self.log['dut']['serial_number'])  # serial number
+        self._serial_number)
     log_content = yaml.dump(self.log, default_flow_style=False)
 
     # Feed into event log.
     logging.info('Feeding into event log.')
     event_log_fields = {
         'fixture_id': self.log['test']['fixture_id'],
-        'panel_serial': self.log['dut']['serial_number']}
+        'panel_serial': self._serial_number}
     event_log_fields.update(self.log)
     event_log.Log(self.args.event_log_name, **event_log_fields)
 
@@ -412,7 +387,7 @@ class VSWR(unittest.TestCase):
     network_config = host_config['network']
 
     # Flush route cache just in case.
-    Spawn(['ip', 'route', 'flush', 'cache'], check_call=True)
+    self._station.CheckCall(['ip', 'route', 'flush', 'cache'])
 
     # Use the default interface if local_ip is not given.
     interface = network_config['interface']
@@ -429,9 +404,9 @@ class VSWR(unittest.TestCase):
       netmask = network_config['netmask']
       logging.info(
           'Set interface %s as %s/%s.', interface, ip, netmask)
-      Spawn(['ifconfig', interface, ip, 'netmask', netmask], check_call=True)
+      self._station.CheckCall(['ifconfig', interface, ip, 'netmask', netmask])
       # Make sure the underlying interface is up.
-      Spawn(['ifconfig', interface.split(':')[0], 'up'], check_call=True)
+      self._station.CheckCall(['ifconfig', interface.split(':')[0], 'up'])
 
   def _ShowResults(self):
     """Displays the final result."""
@@ -471,12 +446,6 @@ class VSWR(unittest.TestCase):
     # Unbind the key and delete the event_name's handler.
     self._ui.UnbindKey(key)
 
-  def _GetSN(self):
-    """Gets serial number from HTML input box."""
-    self._ui.RunJS('emitSNEnterEvent()')
-    event = self._WaitForEvent('snenter')
-    return event.data
-
   def _ShowMessageBlock(self, html_id):
     """Helper function to display HTML message block.
 
@@ -484,42 +453,6 @@ class VSWR(unittest.TestCase):
     only block to display.
     """
     self._ui.RunJS('showMessageBlock("%s")' % html_id)
-
-  def setUp(self):
-    logging.info(
-        '(config_path: %s, timezone: %s, load_from_shopfloor: %s)',
-        self.args.config_path, self.args.timezone,
-        self.args.load_from_shopfloor)
-
-    # Set timezone.
-    os.environ['TZ'] = self.args.timezone
-    # The following attributes will be overridden when loading config.
-    self._config = {}
-    self._serial_number = ''
-    self._ena = None
-    self._ena_name = None
-    # Serial specific config attributes.
-    self._sn_config = None
-    self._sn_config_name = None
-    self._take_screenshot = False
-    self._reference_info = False
-    self._marker_info = None
-    self._sweep_restore = None
-    self._vswr_threshold = {}
-    # Clear results.
-    self._raw_traces = {}
-    self._log_to_file = StringIO.StringIO()
-    self._vswr_detail_results = {}
-    self._iteration_hash = str(uuid.uuid4())
-    self._results = {}
-    # Misc.
-    self._current_iteration = 0
-
-    # Set up UI.
-    self._event_queue = Queue.Queue()
-    self._ui = test_ui.UI()
-    self._ui.AddEventHandler('keypress', self._event_queue.put)
-    self._ui.AddEventHandler('snenter', self._event_queue.put)
 
   def runTest(self):
     """Runs the test forever or until max_iterations reached.
@@ -541,70 +474,70 @@ class VSWR(unittest.TestCase):
       self._ShowMessageBlock('load-parameters-from-local-disk')
       self._LoadParametersFromLocalDisk()
 
+    # Check the DUT serial number is valid.
+    self._sn_config = self._GetConfigForSerialNumber()
+
+    # Connect to the network analyzer.
     self._ShowMessageBlock('set-up-network')
     self._SetUpNetwork(self._config['host'])
-
     self._ShowMessageBlock('connect-to-ena')
     self._ConnectToENA(self._config['network_analyzer'])
 
-    while True:
-      self._ShowMessageBlock('check-calibration')
+    # Check the network analyzer is calibrated.
+    self._ShowMessageBlock('prepare-calibration')
+    self._WaitForKey(test_ui.ENTER_KEY)
+    self._ShowMessageBlock('check-calibration')
+    ena_config = self._config['network_analyzer']
+    calibration_passed, calibration_traces = self._ena.CheckCalibration(
+        rf.Frequency.FromHz(ena_config['measure_segment']['min_frequency']),
+        rf.Frequency.FromHz(ena_config['measure_segment']['max_frequency']),
+        ena_config['measure_segment']['sample_points'],
+        ena_config['calibration_check_thresholds']['min'],
+        ena_config['calibration_check_thresholds']['max'])
+    self.log['network_analyzer']['calibration_traces'] = calibration_traces
 
-      ena_config = self._config['network_analyzer']
-      calibration_passed, calibration_traces = self._ena.CheckCalibration(
-          rf.Frequency.FromHz(ena_config['measure_segment']['min_frequency']),
-          rf.Frequency.FromHz(ena_config['measure_segment']['max_frequency']),
-          ena_config['measure_segment']['sample_points'],
-          ena_config['calibration_check_thresholds']['min'],
-          ena_config['calibration_check_thresholds']['max'])
-      self.log['network_analyzer']['calibration_traces'] = calibration_traces
-
-      if not calibration_passed:
-        self._ShowMessageBlock('need-calibration')
-        while True:
-          time.sleep(0.5)
-
-      self._ShowMessageBlock('prepare-panel')
-      self._ResetDataForNextTest()
+    if not calibration_passed:
+      self._ShowMessageBlock('need-calibration')
       self._WaitForKey(test_ui.ENTER_KEY)
+      self.fail('The network analyzer needs calibration.')
 
-      self._WaitForValidSN()
+    self._ShowMessageBlock('prepare-panel')
+    self._WaitForKey(test_ui.ENTER_KEY)
 
-      for measurement_sequence in self._sn_config['measurement_sequence']:
-        # Pick a random letter to prevent the operator from pressing too fast.
-        letter = random.choice(string.ascii_uppercase)
-        factory.console.info('Press %s to continue', letter)
-        # TODO(littlecvr): Should not construct HTML string here.
-        html_string_en = ''
-        html_string_ch = ''
-        for port in measurement_sequence:
-          antenna_name = measurement_sequence[port]['name']
-          html_string_en += (
-              'Make sure the %s antennta is connected to port %s<br>' % (
-                  antenna_name, port))
-          html_string_ch += u'连接 %s 天线至 port %s<br>' % (antenna_name, port)
-        html_string_en += 'Then press key "%s" to next stage.' % letter
-        html_string_ch += u'完成后按 %s 键' % letter
-        html_string = test_ui.MakeLabel(html_string_en, html_string_ch)
-        self._ui.SetHTML(html_string, id='state-prepare-antennas')
-        self._ShowMessageBlock('prepare-antennas')
-        self._WaitForKey(letter)
+    for measurement_sequence in self._sn_config['measurement_sequence']:
+      # Pick a random letter to prevent the operator from pressing too fast.
+      letter = random.choice(string.ascii_uppercase)
+      factory.console.info('Press %s to continue', letter)
+      # TODO(littlecvr): Should not construct HTML string here.
+      html_string_en = ''
+      html_string_ch = ''
+      for port in measurement_sequence:
+        antenna_name = measurement_sequence[port]['name']
+        html_string_en += (
+            'Make sure the %s antennta is connected to port %s<br>' % (
+                antenna_name, port))
+        html_string_ch += u'连接 %s 天线至 port %s<br>' % (antenna_name, port)
+      html_string_en += 'Then press key "%s" to next stage.' % letter
+      html_string_ch += u'完成后按 %s 键' % letter
+      html_string = test_ui.MakeLabel(html_string_en, html_string_ch)
+      self._ui.SetHTML(html_string, id='state-prepare-antennas')
+      self._ShowMessageBlock('prepare-antennas')
+      self._WaitForKey(letter)
 
-        self._ShowMessageBlock('test-antennas')
-        # TODO(littlecvr): Get rid of _sn_config.
-        if 'default_thresholds' in self._sn_config:
-          default_thresholds = self._sn_config['default_thresholds']
-        elif 'default_thresholds' in self._config['test']:
-          default_thresholds = self._config['test']['default_thresholds']
-        else:
-          default_thresholds = (None, None)
-        self._TestAntennas(measurement_sequence, default_thresholds)
+      self._ShowMessageBlock('test-antennas')
+      # TODO(littlecvr): Get rid of _sn_config.
+      if 'default_thresholds' in self._sn_config:
+        default_thresholds = self._sn_config['default_thresholds']
+      elif 'default_thresholds' in self._config['test']:
+        default_thresholds = self._config['test']['default_thresholds']
+      else:
+        default_thresholds = (None, None)
+      self._TestAntennas(measurement_sequence, default_thresholds)
 
-      self._GenerateFinalResult()
-
-      self._ShowMessageBlock('save-log')
-      self._SaveLog()
-
-      self._ShowResults()
-      self._ShowMessageBlock('show-result')
-      self._WaitForKey(test_ui.ENTER_KEY)
+    # Save log and show the result.
+    self._GenerateFinalResult()
+    self._ShowMessageBlock('save-log')
+    self._SaveLog()
+    self._ShowResults()
+    self._ShowMessageBlock('show-result')
+    self._WaitForKey(test_ui.ENTER_KEY)
