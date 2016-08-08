@@ -34,17 +34,16 @@ import posixpath
 import Queue
 import random
 import re
-import shutil
 import string
 import StringIO
 import time
 import unittest
 import uuid
 import xmlrpclib
+
 import yaml
 
 import factory_common  # pylint: disable=W0611
-
 from cros.factory.goofy.connection_manager import PingHost
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
@@ -54,13 +53,14 @@ from cros.factory.test import rf
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.rf.e5071c_scpi import ENASCPI
-from cros.factory.test.utils.media_utils import MountedMedia
-from cros.factory.test.utils.media_utils import RemovableDiskMonitor
-from cros.factory.utils import file_utils
-from cros.factory.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.net_utils import FindUsableEthDevice
 from cros.factory.utils.process_utils import Spawn
+
+
+# The root of the pytests vswr folder. The config path is relative to this when
+# we load the config file locally.
+LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class VSWR(unittest.TestCase):
@@ -81,8 +81,10 @@ class VSWR(unittest.TestCase):
       Arg('shopfloor_log_dir', str, 'Directory in which to save logs on '
           'shopfloor.  For example: "vswr_prepressed" or "vswr_postpressed".',
           optional=False),
-      Arg('config_path', str, 'Configuration path relative to the root of USB '
-          'disk or shopfloor parameters. E.g. path/to/config_file_name.',
+      Arg('config_path', str, 'Configuration path relative to the root of '
+          'either (1) pytest vswr folder (if load_from_shopfloor is False) or '
+          '(2) shopfloor parameters directory (if load_from_shopfloor is True).'
+          'E.g. path/to/config_file_name.',
           optional=True),
       Arg('timezone', str, 'Timezone of shopfloor.', default='Asia/Taipei'),
       Arg('load_from_shopfloor', bool, 'Whether to load parameters from '
@@ -93,7 +95,6 @@ class VSWR(unittest.TestCase):
     super(VSWR, self).__init__(*args, **kwargs)
 
     self._config = None
-    self._usb_path = None
 
     self.log = {
         'config': {
@@ -185,21 +186,11 @@ class VSWR(unittest.TestCase):
     self.log['config']['file_path'] = self.args.config_path
     self.log['config']['content'] = self._config
 
-  def _SetUSBPath(self, usb_path):
-    """Updates the USB device path."""
-    self._usb_path = usb_path
-    logging.info('Found USB path %s', self._usb_path)
-
-  def _LoadParametersFromUSB(self):
-    """Loads parameters from USB."""
-    with MountedMedia(self._usb_path, 1) as config_root:
-      config_path = os.path.join(config_root, self.args.config_path)
-      with open(config_path, 'r') as f:
-        self._LoadConfig(f.read())
-
-  def _RaiseUSBRemovalException(self, unused_event):
-    """Prevents unexpected USB removal."""
-    raise Exception('USB removal is not allowed during test.')
+  def _LoadParametersFromLocalDisk(self):
+    """Loads parameters from local disk."""
+    config_path = os.path.join(LOCAL_DIR, self.args.config_path)
+    with open(config_path, 'r') as f:
+      self._LoadConfig(f.read())
 
   def _WaitForValidSN(self):
     """Waits for the operator to enter/scan a valid serial number.
@@ -258,50 +249,6 @@ class VSWR(unittest.TestCase):
         self._ui.RunJS('$("sn-format-error-value").innerHTML = "%s"' %
                        serial_number)
         self._ui.RunJS('$("sn-format-error").style.display = ""')
-
-  def _CaptureScreenshot(self, filename_prefix):
-    """Captures the screenshot based on the settings.
-
-    Screenshot will be saved in 3 places: ENA, USB disk, and shopfloor (if
-    shopfloor is enabled). Timestamp will be automatically added as postfix to
-    the output name.
-
-    Args:
-      filename_prefix: prefix for the image file name.
-    """
-    # Save a screenshot copy in ENA.
-    filename = '%s[%s]' % (filename_prefix, time_utils.TimeString(
-        time_separator='-', milliseconds=False))
-    png_content = self._ena.CaptureScreenshot()
-    event_log.Log('vswr_screenshot',
-                  ab_serial_number=self._serial_number,
-                  path=self._config['event_log_name'],
-                  filename=filename)
-
-    with file_utils.UnopenedTemporaryFile() as temp_png_path:
-      with open(temp_png_path, 'w') as f:
-        f.write(png_content)
-
-      # Save screenshot to USB disk.
-      formatted_date = time.strftime('%Y%m%d', time.localtime())
-      logging.info('Saving screenshot to USB under dates %s', formatted_date)
-      with MountedMedia(self._usb_path, 1) as mount_dir:
-        target_dir = os.path.join(mount_dir, formatted_date, 'screenshot')
-        file_utils.TryMakeDirs(target_dir)
-        filename_in_abspath = os.path.join(target_dir, filename)
-        shutil.copyfile(temp_png_path, filename_in_abspath)
-        logging.info('Screenshot %s saved in USB.', filename)
-
-      # Save screenshot to shopfloor if needed.
-      if self._config['shopfloor_enabled']:
-        logging.info('Sending screenshot to shopfloor')
-        log_name = os.path.join(self._config['shopfloor_log_dir'],
-                                'screenshot', filename)
-        self._UploadToShopfloor(
-            temp_png_path, log_name,
-            ignore_on_fail=self._config['shopfloor_ignore_on_fail'],
-            timeout=self._config['shopfloor_timeout'])
-        logging.info('Screenshot %s uploaded.', filename)
 
   def _CheckMeasurement(self, threshold, extracted_value,
                         print_on_failure=False, freq=None, title=None):
@@ -440,15 +387,6 @@ class VSWR(unittest.TestCase):
         self.log['dut']['serial_number'])  # serial number
     log_content = yaml.dump(self.log, default_flow_style=False)
 
-    # Write log file to USB.
-    with MountedMedia(self._usb_path, 1) as mount_dir:
-      target_dir = os.path.join(
-          mount_dir, self.args.shopfloor_log_dir)
-      file_utils.TryMakeDirs(target_dir)
-      full_path = os.path.join(target_dir, log_file_name)
-      with open(full_path, 'w') as f:
-        f.write(log_content)
-
     # Feed into event log.
     logging.info('Feeding into event log.')
     event_log_fields = {
@@ -555,10 +493,8 @@ class VSWR(unittest.TestCase):
 
     # Set timezone.
     os.environ['TZ'] = self.args.timezone
-    # The following attributes will be overridden when loading config or USB's
-    # been inserted.
+    # The following attributes will be overridden when loading config.
     self._config = {}
-    self._usb_path = ''
     self._serial_number = ''
     self._ena = None
     self._ena_name = None
@@ -584,16 +520,6 @@ class VSWR(unittest.TestCase):
     self._ui = test_ui.UI()
     self._ui.AddEventHandler('keypress', self._event_queue.put)
     self._ui.AddEventHandler('snenter', self._event_queue.put)
-    self._ui.AddEventHandler('usbinsert', self._event_queue.put)
-    self._ui.AddEventHandler('usbremove', self._event_queue.put)
-
-    # Set up USB monitor.
-    self._monitor = RemovableDiskMonitor()
-    self._monitor.Start(
-        on_insert=lambda usb_path: self._ui.PostEvent(Event(
-            Event.Type.TEST_UI_EVENT, subtype='usbinsert', usb_path=usb_path)),
-        on_remove=lambda usb_path: self._ui.PostEvent(Event(
-            Event.Type.TEST_UI_EVENT, subtype='usbremove', usb_path=usb_path)))
 
   def runTest(self):
     """Runs the test forever or until max_iterations reached.
@@ -607,23 +533,13 @@ class VSWR(unittest.TestCase):
     """
     self._ui.Run(blocking=False)
 
-    # Wait for USB.
-    if self.args.load_from_shopfloor:
-      self._ShowMessageBlock('wait-for-usb-to-save-log')
-    else:
-      self._ShowMessageBlock('wait-for-usb-to-load-parameters-and-save-log')
-    usb_insert_event = self._WaitForEvent('usbinsert')
-    self._SetUSBPath(usb_insert_event.usb_path)
-    # Prevent USB from being removed from now on.
-    self._ui.AddEventHandler('usbremove', self._RaiseUSBRemovalException)
-
     # Load config.
     if self.args.load_from_shopfloor:
       self._ShowMessageBlock('download-parameters-from-shopfloor')
       self._DownloadParametersFromShopfloor()
     else:
-      self._ShowMessageBlock('load-parameters-from-usb')
-      self._LoadParametersFromUSB()
+      self._ShowMessageBlock('load-parameters-from-local-disk')
+      self._LoadParametersFromLocalDisk()
 
     self._ShowMessageBlock('set-up-network')
     self._SetUpNetwork(self._config['host'])
