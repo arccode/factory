@@ -52,6 +52,7 @@ from cros.factory.test import factory
 from cros.factory.test import rf
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
+from cros.factory.test import testlog
 from cros.factory.test.rf.e5071c_scpi import ENASCPI
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.net_utils import FindUsableEthDevice
@@ -296,6 +297,9 @@ class VSWR(unittest.TestCase):
 
   def _TestAntennas(self, measurement_sequence, default_thresholds):
     """Tests either main or aux antenna for both cellular and wifi."""
+    def _PortName(port_number):
+      return 'S%s%s' % (port_number, port_number)
+
     # Make sure the segment is correct.
     self._ena.SetSweepSegments([(
         self._config['network_analyzer']['measure_segment']['min_frequency'],
@@ -304,19 +308,18 @@ class VSWR(unittest.TestCase):
 
     # TODO(littlecvr): Name is not right.
     ports = measurement_sequence.keys()
-    rf_ports = []
+    traces = self._ena.GetTraces(map(_PortName, ports))
+    trace = self._SerializeTraces(traces)
+
     for port in ports:
-      rf_ports.append('S%s%s' % (port, port))
-    traces = self._ena.GetTraces(rf_ports)
-    for port in ports:
-      rf_port = 'S%s%s' % (port, port)
+      rf_port = _PortName(port)
       antenna_name = measurement_sequence[port]['name']
       thresholds_list = measurement_sequence[port]['thresholds']
       if not thresholds_list:
         thresholds_list = {}
 
-      trace = self._SerializeTraces(traces)
       self.log['test']['traces'][antenna_name] = trace[rf_port]
+      self._LogTrace(trace[rf_port], 'result_trace_%s' %  antenna_name)
 
       # Check all sample points.
       results = {}
@@ -496,6 +499,11 @@ class VSWR(unittest.TestCase):
         ena_config['calibration_check_thresholds']['max'])
     self.log['network_analyzer']['calibration_traces'] = calibration_traces
 
+    for rf_port, trace in self._SerializeTraces(calibration_traces).items():
+      self._LogTrace(trace, 'calibration_trace_%s' % rf_port,
+                     ena_config['calibration_check_thresholds']['min'],
+                     ena_config['calibration_check_thresholds']['max'])
+
     if not calibration_passed:
       self._ShowMessageBlock('need-calibration')
       self._WaitForKey(test_ui.ENTER_KEY)
@@ -541,3 +549,19 @@ class VSWR(unittest.TestCase):
     self._ShowResults()
     self._ShowMessageBlock('show-result')
     self._WaitForKey(test_ui.ENTER_KEY)
+
+  def _LogTrace(self, trace, name, min=None, max=None):  # pylint: disable=W0622
+    """Uses testlog to log the trace data.
+
+    Args:
+      trace: the dict which key is frequency and value is the trace result.
+      name: the name of the trace data.
+      min: the minimum threshold of the trace.
+      max: the maximum threshold of the trace.
+    """
+    log_series = testlog.CreateSeries(name, key_unit='Hz', value_unit='dB')
+    for key, value in trace.iteritems():
+      if min is None and max is None:
+        log_series.LogValue(key, value)
+      else:
+        log_series.CheckValue(key, value, min=min, max=max)
