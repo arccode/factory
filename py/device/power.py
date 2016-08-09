@@ -109,7 +109,7 @@ class Power(DeviceComponent):
     Use cached value if available.
 
     Returns:
-      Battery path if available, False otherwise.
+      Battery path if available, None otherwise.
     """
     try:
       return self.FindPowerPath(self.PowerSource.BATTERY)
@@ -118,7 +118,7 @@ class Power(DeviceComponent):
 
   def CheckBatteryPresent(self):
     """Check if battery is present."""
-    return self._battery_path is not None
+    return bool(self._battery_path)
 
   def GetBatteryAttribute(self, attribute_name):
     """Get a battery attribute.

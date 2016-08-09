@@ -21,6 +21,8 @@ class ChargeManagerTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
     self._power = self.mox.CreateMock(Power)
+    # Patch in the ChargeState Enum.
+    self._power.ChargeState = Power.ChargeState
     self._charge_manager = ChargeManager(70, 80, self._power)
 
   def tearDown(self):

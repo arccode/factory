@@ -127,10 +127,20 @@ class SystemStatus(component.DeviceComponent):
   @StatusProperty
   def battery(self):
     """Returns a dict containing battery charge fraction and state."""
-    return {
-        'charge_fraction': self._dut.power.GetChargePct(get_float=True) / 100,
-        'charge_state': self._dut.power.GetChargeState()
-    }
+    # If the below calls raise PowerException, the machine probably doesn't
+    # have a battery.  Leave the values as `None` in this case.
+    try:
+      charge_fraction = self._dut.power.GetChargePct(get_float=True) / 100,
+    except Exception:
+      charge_fraction = None
+
+    try:
+      charge_state = self._dut.power.GetChargeState()
+    except Exception:
+      charge_state = None
+
+    return {'charge_fraction': charge_fraction,
+            'charge_state': charge_state}
 
   @StatusProperty
   def fan_rpm(self):
