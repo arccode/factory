@@ -88,11 +88,11 @@ class InputTime(plugin_base.InputPlugin):
         self.error('Failed to emit %d events, dropping', self.args.num_events)
         # TODO(kitching): Find a better way to block the plugin when we are in
         #                 one of the PAUSING, PAUSED, or UNPAUSING states.
-        time.sleep(1)
+        self.Sleep(1)
 
       # Sleep until next emit interval.
       self.debug('Sleeping for %s', self.args.interval)
-      time.sleep(self.args.interval)
+      self.Sleep(self.args.interval)
       batch_id += 1
 
 

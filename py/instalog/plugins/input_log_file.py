@@ -173,7 +173,7 @@ class InputLogFile(plugin_base.InputPlugin):
         # Remove the '[]' brackets from next_args list.
         self.debug('Need to wait %f sec before running task %s(%s)...',
                    wait_time, next_fn.__name__, str(next_args)[1:-1])
-      time.sleep(wait_time)
+      self.Sleep(wait_time)
 
   def ParseAndEmit(self, path, offset):
     """Parses lines starting at the given offset, and emits to Instalog.

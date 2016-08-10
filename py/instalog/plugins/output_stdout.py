@@ -11,8 +11,6 @@ A sample output plugin that writes events to stdout.
 
 from __future__ import print_function
 
-import time
-
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
@@ -38,7 +36,7 @@ class OutputStdout(plugin_base.OutputPlugin):
       if not event_stream:
         # TODO(kitching): Find a better way to block the plugin when we are in
         #                 one of the PAUSING, PAUSED, or UNPAUSING states.
-        time.sleep(1)
+        self.Sleep(1)
         continue
 
       # Get all current events from the EventStream object.

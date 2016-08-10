@@ -84,7 +84,7 @@ class OutputRPC(plugin_base.OutputPlugin):
         # TODO(kitching): Find a better way to slow down the plugin in the case
         #                 that it repeatedly fails to get a connection to RPC
         #                 server.
-        time.sleep(1)
+        self.Sleep(1)
         continue
       connection_attempts = 0
 
@@ -93,7 +93,7 @@ class OutputRPC(plugin_base.OutputPlugin):
       if not event_stream:
         # TODO(kitching): Find a better way to block the plugin when we are in
         #                 one of the PAUSING, PAUSED, or UNPAUSING states.
-        time.sleep(1)
+        self.Sleep(1)
         continue
 
       # Get all current events from the EventStream object.
@@ -130,7 +130,7 @@ class OutputRPC(plugin_base.OutputPlugin):
         event_stream.Abort()
         # TODO(kitching): Find a better way to slow down the plugin in the case
         #                 that it repeatedly aborts.
-        time.sleep(1)
+        self.Sleep(1)
         continue
 
       # Send to input RPC server.
@@ -161,7 +161,7 @@ class OutputRPC(plugin_base.OutputPlugin):
         event_stream.Abort()
         # TODO(kitching): Find a better way to slow down the plugin in the case
         #                 that it repeatedly aborts.
-        time.sleep(1)
+        self.Sleep(1)
 
 
 if __name__ == '__main__':

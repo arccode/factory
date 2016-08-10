@@ -10,6 +10,7 @@ plugins to access.
 
 import inspect
 import os
+import time
 
 import instalog_common  # pylint: disable=W0611
 from instalog import log_utils
@@ -165,6 +166,24 @@ class Plugin(log_utils.LoggerMixin, object):
       is trying to access core functionality that it should not.
     """
     return self._plugin_api.IsStopping(self)
+
+  def Sleep(self, secs):
+    """Suspends execution of the current thread for the given number of seconds.
+
+    When a plugin is requested to stop, it might be in the middle of a
+    time.sleep call.  This provides an alternative sleep function, which will
+    return immediately when a plugin changes to the STOPPING state.
+
+    Should typically be used at the end of an iteration of a plugin's Main
+    while loop.  For example:
+
+      while not self.IsStopping():
+        # ... do some work ...
+        self.Sleep(self.args.interval)
+    """
+    end_time = time.time() + secs
+    while time.time() < end_time and not self.IsStopping():
+      time.sleep(1)
 
 
 class BufferPlugin(Plugin):

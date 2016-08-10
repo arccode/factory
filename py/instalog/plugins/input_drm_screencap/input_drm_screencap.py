@@ -14,7 +14,6 @@ from __future__ import print_function
 import datetime
 import os
 import tempfile
-import time
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
@@ -72,17 +71,8 @@ class InputFramebuf(plugin_base.InputPlugin):
         self.exception('Exception encountered when creating screencap')
 
       # Sleep until next emit interval.
-      # TODO(kitching): Since this plugin typically sleeps for long periods of
-      #                 time, check for self.IsStopping every second to reduce
-      #                 the wait time needed for the plugin to stop.  Come up
-      #                 with a better way of doing this.
       self.debug('Sleeping for %s', self.args.interval)
-      time_left = self.args.interval
-      while time_left > 0:
-        time_left -= 1
-        time.sleep(1)
-        if self.IsStopping():
-          break
+      self.Sleep(self.args.interval)
 
 
 if __name__ == '__main__':

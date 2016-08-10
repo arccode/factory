@@ -13,7 +13,6 @@ from __future__ import print_function
 
 import datetime
 import os
-import time
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
@@ -62,11 +61,11 @@ class InputHealth(plugin_base.InputPlugin):
         self.error('Failed to emit health event, dropping')
         # TODO(kitching): Find a better way to block the plugin when we are in
         #                 one of the PAUSING, PAUSED, or UNPAUSING states.
-        time.sleep(1)
+        self.Sleep(1)
 
       # Sleep until next emit interval.
       self.debug('Sleeping for %s', self.args.interval)
-      time.sleep(self.args.interval)
+      self.Sleep(self.args.interval)
 
 
 if __name__ == '__main__':

@@ -70,7 +70,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       if not self.PrepareAndUploadBatch():
         # TODO(kitching): Find a better way to block the plugin when we are in
         #                 one of the PAUSING, PAUSED, or UNPAUSING states.
-        time.sleep(1)
+        self.Sleep(1)
 
   def BuildService(self):
     """Builds a BigQuery service object."""
