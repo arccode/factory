@@ -113,8 +113,15 @@ class PluginLoader(object):
       #                 back is that plugin_name/__init__.py doesn't contain any
       #                 of the proper classes.  Improve this.
       try:
-        __import__(search_name)
-        return sys.modules[search_name]
+        if search_name in sys.modules:
+          # If the module already exists, use reload instead of __import__.
+          # Why?  In the case that the file no longer exists on re-import,
+          # __import__ would silently ignore and pass a reference to the old
+          # module, but reload throws an ImportError.
+          return reload(sys.modules[search_name])
+        else:
+          __import__(search_name)
+          return sys.modules[search_name]
       except ImportError as e:
         if e.message.startswith('No module named'):
           continue
@@ -126,21 +133,6 @@ class PluginLoader(object):
     # Uses traceback from the last ImportError.
     self._ReportException('No module named %s'
                           % ' or '.join(self._GetPossibleModuleNames()))
-
-  def _UnloadModule(self):
-    """Unloads the module from Python.
-
-    If we have already loaded the module previously, unload it first.
-    This ensures we catch the case where the file no longer exists when
-    we re-import the module, and also solves import issues that occur
-    when the plugin is invoked as a standalone executable, and it imports
-    other dependency modules in its plugin directory.
-    """
-    for search_name in self._GetPossibleModuleNames():
-      to_delete = [key for key in sys.modules.keys()
-                   if key.startswith(search_name)]
-      for module_name in to_delete:
-        del sys.modules[module_name]
 
   def GetClass(self):
     """Returns the Python class object of the plugin.
@@ -154,12 +146,8 @@ class PluginLoader(object):
     if self._plugin_class:
       return self._plugin_class
 
-    # Unload any references to the module before and after loading.
-    self._UnloadModule()
-    module_ref = self._LoadModule()
-    self._UnloadModule()
-
     # Search for the correct class object within the module.
+    module_ref = self._LoadModule()
     def IsSubclass(cls):
       return (inspect.isclass(cls) and
               issubclass(cls, self.superclass) and
