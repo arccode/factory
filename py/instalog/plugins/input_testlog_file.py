@@ -13,6 +13,7 @@ from __future__ import print_function
 
 import datetime
 import json
+import os
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
@@ -42,7 +43,12 @@ class InputTestlogFile(input_log_file.InputLogFile):
     attachments = {}
     if 'attachments' in data:
       for att_id, att_data in data['attachments'].iteritems():
-        attachments[att_id] = att_data['path']
+        # Only add the attachment if the path exists.
+        if os.path.isfile(att_data['path']):
+          attachments[att_id] = att_data['path']
+        else:
+          self.warning('Testlog attachment not found on disk, '
+                       'silently dropping: %r', att_data)
     return datatypes.Event(data, attachments)
 
 
