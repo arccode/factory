@@ -7,5 +7,5 @@ from __future__ import unicode_literals
 from django.apps import AppConfig
 
 
-class BundlesConfig(AppConfig):
-  name = 'bundles'
+class BackendConfig(AppConfig):
+  name = 'backend'

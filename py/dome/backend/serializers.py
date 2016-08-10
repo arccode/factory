@@ -7,7 +7,7 @@ import stat
 
 from rest_framework import serializers
 
-from bundles.models import BundleModel
+from backend.models import BundleModel
 
 
 class ResourceSerializer(serializers.Serializer):

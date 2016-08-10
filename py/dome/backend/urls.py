@@ -21,12 +21,22 @@ Including another URLconf
 from django.conf.urls import include, url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic import TemplateView
+from rest_framework.urlpatterns import format_suffix_patterns
+
+from backend import views
+
+
+# TODO(littlecvr): move to common config with umpire.
+BOARD_URL_ARG = r'(?P<board>[_a-zA-Z]+)'
 
 
 urlpatterns = [
-    url(r'^(?P<board>[_a-zA-Z]+)/$',
+    url(r'^%s/$' % BOARD_URL_ARG,
         TemplateView.as_view(template_name='index.html')),
-    url(r'^(?P<board>[_a-zA-Z]+)/bundles/',
-        include('bundles.urls'))]
+    url(r'^%s/bundles/$' % BOARD_URL_ARG,
+        views.BundleCollectionView.as_view()),
+    url(r'^%s/resources/$' % BOARD_URL_ARG,
+        views.BundleResourceView.as_view())]
 
+urlpatterns = format_suffix_patterns(urlpatterns)
 urlpatterns += staticfiles_urlpatterns()

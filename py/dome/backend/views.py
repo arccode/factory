@@ -7,8 +7,8 @@ from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from bundles.models import BundleModel
-from bundles.serializers import BundleSerializer, ResourceSerializer
+from backend.models import BundleModel
+from backend.serializers import BundleSerializer, ResourceSerializer
 
 
 class BundleCollectionView(APIView):
@@ -32,12 +32,12 @@ class BundleCollectionView(APIView):
 class BundleResourceView(APIView):
   """Update resource in a particular bundle."""
 
-  def put(self, request, board, bundle_name, format=None):
+  def put(self, request, board, format=None):
     """Override parent's method."""
-    bundle = BundleModel(board).ListOne(bundle_name)
-
     serializer = ResourceSerializer(board, data=request.data)
     if serializer.is_valid():
+      bundle = BundleModel(board).ListOne(
+          serializer.validated_data['src_bundle_name'])
       serializer.save()
       return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

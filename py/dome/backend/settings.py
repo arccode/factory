@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'bundles.apps.BundlesConfig',
+    'backend.apps.BackendConfig',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -55,7 +55,7 @@ MIDDLEWARE_CLASSES = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'dome.urls'
+ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
     {
@@ -75,7 +75,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'dome.wsgi.application'
+WSGI_APPLICATION = 'backend.wsgi.application'
 
 
 # Database
@@ -133,7 +133,7 @@ STATIC_URL = '/static/'
 # Files
 # https://docs.djangoproject.com/en/1.9/topics/http/file-uploads/
 
-# Since bundles and bundle parts are normally large, we don't use
+# Since bundles and resources are normally large, we don't use
 # MemoryFileUploadHandler.
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
