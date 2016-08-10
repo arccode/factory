@@ -222,6 +222,11 @@ class InputLogFile(plugin_base.InputPlugin):
     Generator should generate None if any erroneous data was skipped.  This is
     to give ParseAndEmit a chance to check how many bytes have been processed in
     the current batch, and whether it exceeds self.args.batch_max_bytes.
+
+    Args:
+      path: Path to the log file in question.
+      lines: A generator which sequentially yields lines from the log file,
+             where each line includes trailing \r and \n characters.
     """
     for line in lines:
       try:
@@ -239,9 +244,6 @@ class InputLogFile(plugin_base.InputPlugin):
     Returns:
       A datatypes.Event object.
 
-    Returns:
-      A datatypes.Event object.
-
     Raises:
       Any exception if the line could not be correctly parsed.
     """
@@ -252,7 +254,8 @@ class InputLogFile(plugin_base.InputPlugin):
 class LineReader(log_utils.LoggerMixin, object):
   """Generates lines of data from the given file starting at the given offset.
 
-  Keeps track of the current offset and exposes it as self.offset.
+  Includes trailing characters \r and \n in yielded strings.  Keeps track of
+  the current offset and exposes it as self.offset.
   """
   def __init__(self, logger, path, offset):
     # log_utils.LoggerMixin creates shortcut functions for convenience.
@@ -278,6 +281,7 @@ class LineReader(log_utils.LoggerMixin, object):
 
 
 class LogFile(log_utils.LoggerMixin, object):
+  """Represents a log file on disk."""
 
   def __init__(self, logger, args, path, offset_path, parse_and_emit_fn):
     # log_utils.LoggerMixin creates shortcut functions for convenience.
