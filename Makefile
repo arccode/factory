@@ -43,6 +43,7 @@ LINT_BLACKLIST=\
 	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-CHARLIE_3333 \
 	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-DELTA_4444 \
 	py/hwdb/convert_to_v2_test_files/v15_TEST_FILE \
+	py/instalog/plugins/input_drm_screencap/drm.py \
 	py/shopfloor/shopfloor_standalone_unittest.py \
 	py/shopfloor/template.py \
 	py/system/charge_manager_unittest.py \
