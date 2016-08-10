@@ -142,6 +142,9 @@ class PluginSandbox(plugin_base.PluginAPI):
     # accesses.
     self._unexpected_accesses = []
 
+    # Store the last exception caused by Start, Main or Stop.
+    self._last_exception = None
+
     self._start_thread = None
     self._main_thread = None
     self._stop_thread = None
@@ -347,24 +350,54 @@ class PluginSandbox(plugin_base.PluginAPI):
             has been set to STOPPING, AdvanceState won't return until the plugin
             has been stopped.
     """
+    # TODO(kitching): Test SpawnFn and exception handling in unittest.
     def SpawnFn(fn, sync=False):
-      t = threading.Thread(target=fn)
+      """Spawns a function in a thread and captures any exceptions thrown.
+
+      If we just let an exception go by uncaptured, it would be displayed to
+      stdout, but would go uncaptured by logging (which means only running
+      Instalog in the foreground would show the exception).  Additionally, we
+      wouldn't have any way of when knowing the plugin encountered some failure.
+
+      Instead, we wrap calls to the plugin and capture exceptions, logging them
+      without re-raising.  The last exception is saved into self._last_exception
+      for further processing in the next call to AdvanceState.
+      """
+      def RunAndCaptureException(fn):
+        try:
+          fn()
+        except Exception as e:
+          self._last_exception = e
+          self.logger.exception('Exception caused by %s', fn.__name__)
+      t = threading.Thread(target=RunAndCaptureException, args=(fn,))
       t.start()
       if sync:
         t.join()
       return t
 
+    # Check for the existence of self._last_exception, which denotes that the
+    # plugin thread spawned by SpawnFn encountered an error.  Deal with the
+    # error appropriately.
+    if self._last_exception:
+      self.logger.debug('AdvanceState last_exception exists')
+      self._last_exception = None
+      if self._state is DOWN:
+        self.logger.error('Exception occurred, current state is DOWN')
+      else:
+        self.logger.error('Exception occurred, forcing state to STOPPING')
+        self._state = STOPPING
+
     # If we are in a stage where the main thread should be running, but it has
     # stopped, something must have gone wrong.  Force the plugin into a
     # STOPPING state.
     # TODO(kitching): Come up with a better way of differentiating plugins which
-    #                 Main, and those which do not.
-    # TODO(kitching): Come up with a way of capturing exceptions thrown by
-    #                 Start, Main and Stop.
+    #                 define Main, and those which do not.
     if (self._state in (UP, PAUSING, PAUSED) and
         'Main' in self._plugin.__class__.__dict__ and
         not self._main_thread.is_alive()):
       self.logger.debug('AdvanceState unexpected main thread dead')
+      self.logger.error('Main thread died unexpectedly, '
+                        'forcing state to STOPPING')
       self._state = STOPPING
 
     if self._state is STARTING:
