@@ -70,7 +70,7 @@ from cros.factory.utils.process_utils import StartDaemonThread
 
 
 _DEFAULT_TIMEOUT = 30
-_UNICODE_PICTURES = u'☃☹☎'
+_UNICODE_PICTURES = u'☃☺☎'
 _TEST_DEGREES = [90, 180, 270, 0]
 _POLL_ROTATION_INTERVAL = 0.1
 
