@@ -285,6 +285,13 @@ class FixtureCheckLEDTask(FactoryTask):
       logging.exception('Failed to send command to BFT fixture')
       self.Fail('Failed to send command to BFT fixture.')
 
+  def Cleanup(self):
+    """Turns the light off after the test."""
+    if self._index is None:
+      self._led.SetColor(LEDColor.OFF)
+    else:
+      self._led.SetColor(LEDColor.OFF, led_name=self._index)
+
 
 class LEDTest(unittest.TestCase):
   """Tests if the onboard LED can light up with specified colors."""
