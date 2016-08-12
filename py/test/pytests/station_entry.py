@@ -122,7 +122,7 @@ class StationEntry(unittest.TestCase):
       self.Start()
       # Reload serial numbers by accessing the dut.info field.
       factory.console.info('Loading serial numbers...')
-      self._dut.info.serial_numbers
+      self._dut.info.all_serial_numbers
     else:
       self.End()
       # Clear dut.info data.
