@@ -32,8 +32,7 @@ class RegionField(dict):
     # legacy list.
     if list_node:
       fields_dict = dict(
-          (regions.REGIONS[n.value].numeric_id,
-           {'region': regions.REGIONS[n.value].region_code})
+          (i + 1, {'region': regions.REGIONS[n.value].region_code})
           for i, n in enumerate(list_node))
     else:
       fields_dict = dict(
