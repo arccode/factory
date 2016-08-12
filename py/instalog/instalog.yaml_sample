@@ -6,7 +6,8 @@ instalog:
   cli_hostname: 'localhost'
   cli_port: 8880
 buffer:
-  plugin: 'buffer_file'
+  plugin: 'buffer_simple_file'
+  copy_attachments: False
 input:
   time:
     plugin: 'input_time'

@@ -1,0 +1,366 @@
+#!/usr/bin/python2
+#
+# Copyright 2016 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""Unittests for simple file-based buffer."""
+
+# TODO(kitching): Add tests that deal with "out of disk space" situations.
+# TODO(kitching): Add tests for reading data from corrupted databases.
+# TODO(kitching): Add tests for failure during Truncate operation.
+
+from __future__ import print_function
+
+import collections
+import logging
+import os
+import Queue
+import shutil
+import tempfile
+import threading
+import unittest
+
+import instalog_common  # pylint: disable=W0611
+from instalog import datatypes
+from instalog import log_utils
+from instalog import plugin_base
+from instalog.plugins.buffer_simple_file import buffer_simple_file
+from instalog.utils import file_utils
+
+
+def _WithBufferSize(buffer_size):
+  def ModifyFn(fn):
+    def Wrapper(*args, **kwargs):
+      old_buffer_size_bytes = buffer_simple_file._BUFFER_SIZE_BYTES
+      buffer_simple_file._BUFFER_SIZE_BYTES = buffer_size
+      try:
+        fn(*args, **kwargs)
+      finally:
+        buffer_simple_file._BUFFER_SIZE_BYTES = old_buffer_size_bytes
+    return Wrapper
+  return ModifyFn
+
+
+class TestBufferSimpleFile(unittest.TestCase):
+
+  def _CreateBuffer(self, config={}):
+    self.state_dir = tempfile.mkdtemp(prefix='simple_file.')
+    logging.info('Create state directory: %s', self.state_dir)
+    self.sf = buffer_simple_file.BufferSimpleFile(
+        config, logging.getLogger('simple_file'), None)
+    self.sf.GetStateDir = lambda: self.state_dir
+    self.sf.Start()
+    self.e1 = datatypes.Event({'test1': 'event'})
+    self.e2 = datatypes.Event({'test2': 'event'})
+    self.e3 = datatypes.Event({'test3': 'event'})
+
+  def setUp(self):
+    self._CreateBuffer()
+
+  def tearDown(self):
+    shutil.rmtree(self.state_dir)
+
+  def testAddRemoveConsumer(self):
+    """Tests adding and removing a Consumer."""
+    self.assertEqual([], self.sf.ListConsumers())
+    self.sf.AddConsumer('a')
+    self.assertEqual(['a'], self.sf.ListConsumers())
+    self.sf.RemoveConsumer('a')
+    self.assertEqual([], self.sf.ListConsumers())
+
+  def testWriteRead(self):
+    """Tests writing and reading back an Event."""
+    self.sf.Produce([self.e1])
+    self.sf.AddConsumer('a')
+    stream = self.sf.Consume('a')
+    self.assertEquals(self.e1, stream.Next())
+
+  def testTwoBufferEventStreams(self):
+    """Tries creating two BufferEventStream objects for one Consumer."""
+    self.sf.AddConsumer('a')
+    stream1 = self.sf.Consume('a')
+    stream2 = self.sf.Consume('a')
+    self.assertIsInstance(stream1, plugin_base.BufferEventStream)
+    self.assertEquals(stream2, None)
+
+  def testUseExpiredBufferEventStream(self):
+    """Tests continuing to use an expired BufferEventStream."""
+    self.sf.AddConsumer('a')
+    stream = self.sf.Consume('a')
+    stream.Commit()
+    with self.assertRaises(plugin_base.EventStreamExpired):
+      stream.Next()
+    with self.assertRaises(plugin_base.EventStreamExpired):
+      stream.Abort()
+    with self.assertRaises(plugin_base.EventStreamExpired):
+      stream.Commit()
+
+  def testFirstLastSeq(self):
+    """Checks the proper tracking of first_seq and last_seq."""
+    self.assertEqual(self.sf.first_seq, 1)
+    self.assertEqual(self.sf.last_seq, 0)
+
+    first_seq, _ = self.sf._GetFirstUnconsumedRecord()
+    self.assertEqual(first_seq, 1)
+
+    self.sf.Truncate()
+    self.assertEqual(self.sf.first_seq, 1)
+    self.assertEqual(self.sf.last_seq, 0)
+
+    first_seq, _ = self.sf._GetFirstUnconsumedRecord()
+    self.assertEqual(first_seq, 1)
+
+    self.sf.Produce([self.e1])
+    self.assertEqual(self.sf.first_seq, 1)
+    self.assertEqual(self.sf.last_seq, 1)
+
+    first_seq, _ = self.sf._GetFirstUnconsumedRecord()
+    self.assertEqual(first_seq, 2)
+
+    self.sf.Produce([self.e1])
+    self.assertEqual(self.sf.first_seq, 1)
+    self.assertEqual(self.sf.last_seq, 2)
+
+    first_seq, _ = self.sf._GetFirstUnconsumedRecord()
+    self.assertEqual(first_seq, 3)
+
+  def testTruncate(self):
+    """Checks that Truncate truncates up to the last unread event."""
+    self.sf.AddConsumer('a')
+    self.assertEqual(self.sf.first_seq, 1)
+    self.assertEqual(self.sf.last_seq, 0)
+
+    self.sf.Produce([self.e1, self.e2])
+    self.assertEqual(self.sf.first_seq, 1)
+    self.assertEqual(self.sf.last_seq, 2)
+
+    self.sf.Truncate()
+    self.assertEqual(self.sf.first_seq, 1)
+    self.assertEqual(self.sf.last_seq, 2)
+
+    stream = self.sf.Consume('a')
+    self.assertEquals(self.e1, stream.Next())
+    stream.Commit()
+
+    self.sf.Truncate()
+    self.assertEqual(self.sf.first_seq, 2)
+    self.assertEqual(self.sf.last_seq, 2)
+
+  def testSeqOrder(self):
+    """Checks that the order of sequence keys is consistent."""
+    self.sf.AddConsumer('a')
+
+    self.sf.Truncate()
+    self.sf.Produce([self.e1])
+    stream = self.sf.Consume('a')
+    seq, _ = stream._Next()
+    self.assertEquals(seq, 1)
+    stream.Commit()
+
+    self.sf.Truncate()
+    self.sf.Produce([self.e1, self.e1])
+    stream = self.sf.Consume('a')
+    seq, _ = stream._Next()
+    self.assertEquals(seq, 2)
+    seq, _ = stream._Next()
+    self.assertEquals(seq, 3)
+    stream.Commit()
+
+  @_WithBufferSize(0)  # Force only keeping one record in buffer.
+  def testReloadBufferAfterTruncate(self):
+    """Tests re-loading buffer of a BufferEventStream after Truncate."""
+    self.sf.AddConsumer('a')
+    self.sf.Produce([self.e1, self.e2, self.e3])
+    stream1 = self.sf.Consume('a')
+    self.assertEqual(self.e1, stream1.Next())
+    stream1.Commit()
+    stream2 = self.sf.Consume('a')
+    # Explicitly check that stream2's buffer only contains one item.  This
+    # means the buffer will need to be reloaded after the following sequence
+    # of Next and Truncate.
+    self.assertEqual(1, len(stream2._Buffer()))
+    self.assertEqual(self.e2, stream2.Next())
+    self.sf.Truncate()
+    self.assertEqual(self.e3, stream2.Next())
+    stream2.Commit()
+
+  def testRecreateConsumer(self):
+    """Tests for same position after removing and recreating Consumer."""
+    self.sf.Produce([self.e1, self.e2, self.e3])
+    self.sf.AddConsumer('a')
+    stream1 = self.sf.Consume('a')
+    self.assertEqual(self.e1, stream1.Next())
+    stream1.Commit()
+    self.sf.RemoveConsumer('a')
+    self.sf.AddConsumer('a')
+    stream2 = self.sf.Consume('a')
+    self.assertEqual(self.e2, stream2.Next())
+    stream2.Commit()
+
+  def testRecreateConsumerAfterTruncate(self):
+    """Tests that recreated Consumer updates position after truncate."""
+    self.sf.Produce([self.e1, self.e2, self.e3])
+
+    self.sf.AddConsumer('a')
+    stream1 = self.sf.Consume('a')
+    self.assertEqual(self.e1, stream1.Next())
+    stream1.Commit()
+    self.sf.RemoveConsumer('a')
+
+    self.sf.AddConsumer('b')
+    stream2 = self.sf.Consume('b')
+    self.assertEqual(self.e1, stream2.Next())
+    self.assertEqual(self.e2, stream2.Next())
+    stream2.Commit()
+
+    self.sf.Truncate()
+
+    self.sf.AddConsumer('a')
+    stream3 = self.sf.Consume('a')
+    # Skips self.e2, since Truncate occurred while Consumer 'a' did not exist.
+    self.assertEqual(self.e3, stream3.Next())
+    stream3.Commit()
+
+  def testMultiThreadProduce(self):
+    """Tests for correct output with multiple threads Producing events."""
+    def ProducerThread():
+      for i in xrange(10):
+        self.sf.Produce([self.e1, self.e2, self.e3])
+    threads = []
+    for i in xrange(10):
+      t = threading.Thread(target=ProducerThread)
+      threads.append(t)
+      t.start()
+    for t in threads:
+      t.join()
+
+    # 10 threads, 10 * 3 events each = expected 300 events, 100 of each type.
+    self.sf.AddConsumer('a')
+    stream = self.sf.Consume('a')
+    cur_seq = 1
+    record_count = collections.defaultdict(int)
+    while True:
+      ret = stream._Next()
+      if not ret:
+        break
+      seq, record = ret
+      # Make sure the sequence numbers are correct.
+      self.assertEqual(cur_seq, seq)
+      cur_seq += 1
+      record_count[record] += 1
+    self.assertEqual(3, len(record_count))
+    self.assertTrue(all([x == 100 for x in record_count.values()]))
+
+  @_WithBufferSize(80)  # Each line is around ~35 characters.
+  def testMultiThreadConsumeTruncate(self):
+    """Tests multiple Consumers reading simultaneously when Truncate occurs."""
+    record_count_queue = Queue.Queue()
+    def ConsumerThread(consumer_id):
+      stream = self.sf.Consume(consumer_id)
+      record_count = collections.defaultdict(int)
+      count = 0
+      while True:
+        # Commit and start a new BufferEventStream every 10 events.
+        if count % 10 == 0:
+          logging.info('Committing after 10 events...')
+          stream.Commit()
+          stream = self.sf.Consume(consumer_id)
+        event = stream.Next()
+        if not event:
+          break
+        record_count[repr(event.data)] += 1
+        count += 1
+      stream.Commit()
+      record_count_queue.put(record_count)
+
+    self.sf.Produce([self.e1, self.e2, self.e3] * 25)
+    for i in xrange(2):
+      self.sf.AddConsumer(str(i))
+
+    threads = []
+    for i in xrange(2):
+      t = threading.Thread(target=ConsumerThread, args=(str(i),))
+      threads.append(t)
+      t.start()
+
+    for t in threads:
+      while t.isAlive():
+        self.sf.Truncate()
+      t.join()
+    self.sf.Truncate()
+    self.assertEqual(25 * 3 + 1, self.sf.first_seq)
+
+    while not record_count_queue.empty():
+      record_count = record_count_queue.get()
+      self.assertEqual(3, len(record_count))
+      self.assertTrue(all([x == 25 for x in record_count.values()]))
+
+  def _CountAttachmentsInBuffer(self, sf):
+    return len(os.listdir(sf.attachments_dir))
+
+  def _TestAttachment(self, with_copy):
+    """Helper function to test basic attachment functionality."""
+    FILE_STRING = 'Hello World!'
+    self._CreateBuffer({'copy_attachments': with_copy})
+    with file_utils.UnopenedTemporaryFile() as path:
+      with open(path, 'w') as f:
+        f.write(FILE_STRING)
+      self.assertTrue(os.path.isfile(path))
+      event = datatypes.Event({}, {'a': path})
+      self.assertEqual(True, self.sf.Produce([event]))
+      self.assertTrue(os.path.isfile(path) == with_copy)
+
+      # Get the event out of buffer to verify that the internal
+      # attachment exists.
+      self.sf.AddConsumer('a')
+      stream = self.sf.Consume('a')
+      internal_event = stream.Next()
+      internal_path = os.path.join(self.sf.attachments_dir,
+                                   internal_event.attachments['a'])
+      self.assertEqual(FILE_STRING, file_utils.ReadFile(internal_path))
+      self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
+
+  def testCopyAttachment(self):
+    """Tests that an attachment is properly copied into the buffer state."""
+    self._TestAttachment(True)
+
+  def testMoveAttachment(self):
+    """Tests that an attachment is properly moved into the buffer state."""
+    self._TestAttachment(False)
+
+  def testNonExistentAttachment(self):
+    """Tests behaviour when a non-existent attachment is provided."""
+    event = datatypes.Event({}, {'a': '/tmp/non_existent_file'})
+    self.assertEqual(False, self.sf.Produce([event]))
+    self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))
+
+  def testPartFailMoveAttachmentTwoEvents(self):
+    """Tests moving two attachments in separate events (real and fake)."""
+    self._CreateBuffer({'copy_attachments': False})
+    with file_utils.UnopenedTemporaryFile() as path:
+      real_event = datatypes.Event({}, {'a': path})
+      fake_event = datatypes.Event({}, {'a': '/tmp/non_existent_file'})
+      self.assertEqual(False, self.sf.Produce([real_event, fake_event]))
+      # Make sure source file still exists since Produce failed.
+      self.assertTrue(os.path.isfile(path))
+      # Make sure attachments_dir is empty.
+      self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))
+
+  def testPartFailMoveAttachmentOneEvent(self):
+    """Tests moving two attachments in a single event (real and fake)."""
+    self._CreateBuffer({'copy_attachments': False})
+    with file_utils.UnopenedTemporaryFile() as path:
+      event = datatypes.Event({}, {
+        'a': path,
+        'b': '/tmp/non_existent_file'})
+      self.assertEqual(False, self.sf.Produce([event]))
+      # Make sure source file still exists since Produce failed.
+      self.assertTrue(os.path.isfile(path))
+      # Make sure attachments_dir is empty.
+      self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))
+
+
+if __name__ == '__main__':
+  logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
+  unittest.main()

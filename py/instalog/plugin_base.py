@@ -72,15 +72,15 @@ class PluginAPI(object):
     raise NotImplementedError
 
   def EventStreamNext(self, plugin, plugin_stream):
-    """See PluginSandbox.EventStreamNext."""
+    """See BufferEventStream.Next."""
     raise NotImplementedError
 
   def EventStreamCommit(self, plugin, plugin_stream):
-    """See PluginSandbox.EventStreamCommit."""
+    """See BufferEventStream.Commit."""
     raise NotImplementedError
 
   def EventStreamAbort(self, plugin, plugin_stream):
-    """See PluginSandbox.EventStreamAbort."""
+    """See BufferEventStream.Abort."""
     raise NotImplementedError
 
 
@@ -306,7 +306,8 @@ class OutputPlugin(Plugin):
     Returns:
       An EventStream object (see datatypes module).  None if we currently do not
       have permission to create a new EventStream object (i.e. plugin is not in
-      one of the allowed states).
+      one of the allowed states), or if the data the buffer would need to access
+      in the EventStream is currently unavailable.
 
     Raises:
       UnexpectedAccess if the plugin instance is in some unexpected state and
