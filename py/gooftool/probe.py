@@ -984,7 +984,7 @@ def _ProbeDisplayConverter():
   """Try brand-specific probes, return the first viable result."""
   def ProbeChrontel():
     """Search style borrowed from the /etc/init/chrontel.conf behavior."""
-    _LoadKernelModule('i2c-dev')
+    _LoadKernelModule('i2c_dev', error_on_fail=False)
     # i2c-i801 is not available on some devices (ex, ARM).
     _LoadKernelModule('i2c-i801', error_on_fail=False)
     dev_chrontel = '/dev/i2c-chrontel'
@@ -1081,7 +1081,7 @@ def _ProbeDisplayPanel():
       parsed_edid = edid.Parse(f.read())
       if parsed_edid:
         edid_list.append(parsed_edid)
-  _LoadKernelModule('i2c_dev')
+  _LoadKernelModule('i2c_dev', error_on_fail=False)
   for path in sorted(glob('/dev/i2c-[0-9]*')):
     parsed_edid = edid.LoadFromI2c(path)
     if parsed_edid:
@@ -1093,7 +1093,7 @@ def _ProbeDisplayPanel():
 def _ProbeDram():
   """Combine mosys memory timing and geometry information."""
   # TODO(tammo): Document why mosys cannot load i2c_dev itself.
-  _LoadKernelModule('i2c_dev')
+  _LoadKernelModule('i2c_dev', error_on_fail=False)
   part_data = _ShellOutput('mosys -k memory spd print id')
   timing_data = _ShellOutput('mosys -k memory spd print timings')
   size_data = _ShellOutput('mosys -k memory spd print geometry')
