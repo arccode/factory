@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Argument handling for pytests.
 
 To use this functionality, add the ARGS attribute to your pytest.  You can then
@@ -23,7 +22,6 @@ use the args attribute to access the attribute values.
       time.sleep(self.args.countdown_secs)
       self.assertEquals(self.args.explode, device.exploded)
 """
-
 
 from .type_utils import Enum
 
@@ -187,15 +185,14 @@ class Args(object):
 
 
 def MergeArgs(old_args, new_args):
-  """Merge two arg lists and overwrite with items from new_args when conflict
-  occurs.
+  """Merges two arg lists and overwrites with items from new_args on conflict.
 
   Args:
     old_args: the old arg list.
     new_args: the new arg list.
 
   Returns:
-    An merged arg list.
+    A merged arg list.
   """
   args = list(old_args)
   for new_arg in new_args:

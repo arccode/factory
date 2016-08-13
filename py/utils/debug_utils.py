@@ -2,9 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Debug utilities."""
-
 
 from __future__ import print_function
 
@@ -21,7 +19,7 @@ from . import process_utils
 
 
 def DumpStackTracebacks():
-  """Prints all threads' stack traces.
+  """Collects all threads' stack traces.
 
   Returns:
     The tracebacks of all threads.
@@ -62,7 +60,7 @@ def FormatExceptionOnly():
   Must only be called from inside an exception handler.
 
   Returns:
-    A string.
+    A string representing the exception.
   """
   return '\n'.join(
       traceback.format_exception_only(*sys.exc_info()[:2])).strip()
@@ -100,11 +98,11 @@ def MaybeStartDebugServer():
 
 
 def CatchException(name, enable=True):
-  """Returns a decorator who catches exception and print certain name.
+  """Returns a decorator that catches exceptions and logs them.
 
   This is useful in functions of goofy managers where we want to catch
-  the exception happened in managers and make sure the error will not
-  break its user(goofy).
+  the exception that occurred within the manager, and make sure the error
+  will not break its user (Goofy).
 
   Args:
     name: The name of function or class that should be printed in
@@ -118,7 +116,7 @@ def CatchException(name, enable=True):
     trace with name.
   """
   def _CatchExceptionDecorator(method):
-    """A decorator who catches exception from method.
+    """A decorator that catches exceptions from method.
 
     Args:
       method: The method that needs to be decorated.

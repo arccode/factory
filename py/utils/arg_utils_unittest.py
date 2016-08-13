@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -23,11 +23,11 @@ class ArgsTest(unittest.TestCase):
         Arg('enum_typed', Enum(['a', 'b']), 'X', optional=True))
 
   def Parse(self, dargs):
-    '''Parses dargs.
+    """Parses dargs.
 
     Returns:
       A dictionary of attributes from the resultant object.
-    '''
+    """
     values = self.parser.Parse(dargs)
     return dict((k, v) for k, v in values.__dict__.iteritems()
                 if not k.startswith('_'))

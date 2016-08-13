@@ -133,8 +133,18 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
 
 @contextmanager
 def Timeout(secs):
-  """Timeout context manager. It will raise TimeoutError after timeout.
-  It does not support nested "with Timeout" blocks.
+  """Timeout context manager.
+
+  It will raise TimeoutError after timeout is reached, interrupting execution
+  of the thread.  It does not support nested "with Timeout" blocks, and can only
+  be used in the main thread of Python.
+
+  Args:
+    secs: Number of seconds to wait before timeout.
+
+  Raises:
+    TimeoutError if timeout is reached before execution has completed.
+    ValueError if not run in the main thread.
   """
   def handler(signum, frame):  # pylint: disable=W0613
     raise type_utils.TimeoutError('Timeout')

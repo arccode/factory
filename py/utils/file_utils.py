@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""File-related utilities..."""
+"""File-related utilities."""
 
 import base64
 import contextlib
