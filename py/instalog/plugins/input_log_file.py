@@ -35,6 +35,7 @@ from instalog.utils import file_utils
 
 _DEFAULT_NEW_FILE_POLL_INTERVAL = 60
 _DEFAULT_POLL_INTERVAL = 2
+_DEFAULT_ERROR_PAUSE_TIME = 60
 _DEFAULT_BATCH_PAUSE_TIME = 0.1
 _DEFAULT_BATCH_MAX_COUNT = 500
 _DEFAULT_BATCH_MAX_BYTES = 1 * 1024 * 1024  # 1mb
@@ -53,6 +54,9 @@ class InputLogFile(plugin_base.InputPlugin):
       Arg('poll_interval', (int, float),
           'Interval in seconds when the log file is checked for updates.',
           optional=True, default=_DEFAULT_POLL_INTERVAL),
+      Arg('error_pause_time', (int, float),
+          'Time in seconds to wait when an error occurs reading a file.',
+          optional=True, default=_DEFAULT_ERROR_PAUSE_TIME),
       Arg('batch_pause_time', (int, float),
           'Time in seconds to wait when a batch has completed processing, but '
           'more data still remains.',
@@ -135,12 +139,18 @@ class InputLogFile(plugin_base.InputPlugin):
       the next ProcessLogFileTask for this LogFile.
     """
     self.debug('Processing log file %s...', log_file.path)
-    log_file.AttemptTruncate()
-    process_success = log_file.ProcessBatch()
-    # If we still have more data to process right away, only pause for
-    # batch_pause_time.  Otherwise, pause for poll_interval.
-    pause_time = (self.args.batch_pause_time if process_success
-                  else self.args.poll_interval)
+    try:
+      log_file.AttemptTruncate()
+      more_data_available = log_file.ProcessBatch()
+      # If we still have more data to process right away, only pause for
+      # batch_pause_time.  Otherwise, pause for poll_interval.
+      pause_time = (self.args.batch_pause_time if more_data_available
+                    else self.args.poll_interval)
+    except IOError:
+      # We might not have permission to access this file, or there could be
+      # some other IO problem.
+      self.exception('Exception while accessing file, check permissions')
+      pause_time = self.args.error_pause_time
     return [(time.time() + pause_time, self.ProcessLogFileTask, [log_file])]
 
   def Main(self):
@@ -326,8 +336,8 @@ class LogFile(log_utils.LoggerMixin, object):
     """If this log file has grown, process the next batch of its data.
 
     Returns:
-      True if more data exists to process.
-      False if more data exists to process.
+      True if more data is available for processing.
+      False if all current data has been processed.
     """
     size = self.GetSize()
     if size is None:
