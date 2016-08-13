@@ -772,23 +772,25 @@ class FileLockContextManager(object):
 def AtomicWrite(path, binary=False, fsync=True):
   """Atomically writes to the given file.
 
-  Uses write-rename and fsync strategy to atomically write to the given file.
+  Uses write-rename strategy with fsync to atomically write to the given file.
 
   Args:
     binary: Whether or not to use binary mode in the open() call.
     fsync: Flushes and syncs data to disk after write if True.
   """
-  # TODO(kitching): Write unittests for this function.
   # TODO(kitching): Add Windows support.  On Windows, os.rename cannot be
-  #                 used as an atomic operation, since the rename fails when the
-  #                 target already exists.  Additionally, Windows does not
+  #                 used as an atomic operation, since the rename fails when
+  #                 the target already exists.  Additionally, Windows does not
   #                 support fsync on a directory as done below in the last
   #                 conditional clause.  Some resources suggest using Win32
   #                 API's MoveFileEx with MOVEFILE_REPLACE_EXISTING mode,
   #                 although this relies on filesystem support and won't work
   #                 with FAT32.
   mode = 'wb' if binary else 'w'
-  with UnopenedTemporaryFile(prefix='%s_' % path) as tmp_path:
+  path_dir, path_file = os.path.split(path)
+  assert path_file != ''  # Make sure path contains a file.
+  with UnopenedTemporaryFile(prefix='%s_atomicwrite_' % path_file,
+                             dir=path_dir) as tmp_path:
     with open(tmp_path, mode) as f:
       yield f
       if fsync:
@@ -798,6 +800,6 @@ def AtomicWrite(path, binary=False, fsync=True):
     # same filesystem.
     os.rename(tmp_path, path)
     if fsync:
-      dirfd = os.open(os.path.dirname(path), os.O_DIRECTORY)
+      dirfd = os.open(path_dir, os.O_DIRECTORY)
       os.fsync(dirfd)
       os.close(dirfd)

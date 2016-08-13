@@ -614,6 +614,45 @@ class HashFilesTest(unittest.TestCase):
         self.tmpdir,
         path_filter=lambda path: path != os.path.join(self.tmpdir, 'c')))
 
+
+class AtomicWriteTest(unittest.TestCase):
+  """Unittests for AtomicWrite."""
+
+  def setUp(self):
+    self.tmp_dir = tempfile.mkdtemp(prefix='AtomicWriteTest.')
+    # Store the current working directory for restoring in tearDown.
+    self.orig_cwd = os.getcwd()
+    os.chdir(self.tmp_dir)
+
+  def tearDown(self):
+    os.chdir(self.orig_cwd)
+    shutil.rmtree(self.tmp_dir)
+
+  def testRelativePathWithDirectory(self):
+    """Tests using a relative path with a file contained in a subdirectory."""
+    SUBDIR_NAME = 'subdir'
+    WRITE_STRING = 'Hello World!'
+    os.mkdir(SUBDIR_NAME)
+    path = os.path.join(SUBDIR_NAME, 'atomic_write_file')
+    with file_utils.AtomicWrite(path) as f:
+      f.write(WRITE_STRING)
+    self.assertEqual(WRITE_STRING, file_utils.ReadOneLine(path))
+
+  def testNonExistentDirectoryPath(self):
+    """Tests using a path to a directory that doesn't exist."""
+    with self.assertRaises(AssertionError):
+      with file_utils.AtomicWrite('dir/'):
+        pass
+
+  def testExistingDirectoryPath(self):
+    """Tests using a path to a directory that does exist."""
+    SUBDIR_NAME = 'subdir'
+    os.mkdir(SUBDIR_NAME)
+    with self.assertRaises(OSError):
+      with file_utils.AtomicWrite(SUBDIR_NAME):
+        pass
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)
   unittest.main()
