@@ -83,7 +83,10 @@ class SuspendResumeTest(unittest.TestCase):
           default='/sys/class/rtc/rtc0/since_epoch'),
       Arg(
           'wakeup_count_path', str, 'Path to the wakeup_count file',
-          default='/sys/power/wakeup_count')]
+          default='/sys/power/wakeup_count'),
+      Arg(
+          'suspend_type', str, 'Suspend type',
+          default='mem')]
 
   def setUp(self):
     self.assertTrue(os.path.exists(self.args.wakealarm_path), 'wakealarm_path '
@@ -197,7 +200,7 @@ class SuspendResumeTest(unittest.TestCase):
     logging.info('Suspending at %d', self._ReadCurrentTime())
     try:
       with open('/sys/power/state', 'w') as f:
-        f.write('mem')
+        f.write(self.args.suspend_type)
     except IOError as err:
       if err.errno == errno.EBUSY:
         raise IOError('EBUSY: Early wake event when attempting suspend: %s' %
