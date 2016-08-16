@@ -17,8 +17,7 @@ def StartStationTest(test_list_id, label_en, label_zh, prompt_start):
       label_en=u'Start %s' % label_en,
       label_zh=u'开始 %s' % label_zh,
       pytest_name='station_entry',
-      dargs={'prompt_start': prompt_start,
-             'clear_device_data': False})
+      dargs={'prompt_start': prompt_start})
 
 
 def EndStationTest(test_list_id, label_en, label_zh, disconnect_dut):
