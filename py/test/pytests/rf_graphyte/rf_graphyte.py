@@ -190,6 +190,8 @@ class RFGraphyteTest(unittest.TestCase):
     with open(self.result_file_path) as result_file:
       result_data = result_file.read()
       logging.debug('Graphyte result: %s', result_data)
+      factory.console.info('Graphyte result:\n%s', result_data)
+      self._dut.AppendWNCReport(result_data)
 
     # Upload the log to shopfloor and testlog.
     try:
