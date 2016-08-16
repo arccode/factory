@@ -36,7 +36,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import testlog
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
-from cros.factory.test.env import paths
 
 
 # The Graphyte config files (pathloss, test plan, port config) should be placed
@@ -227,8 +226,10 @@ class RFGraphyteTest(unittest.TestCase):
     """
     file_name = '%s_%s_%s' % (
         self._dut.info.mlb_serial_number, timestamp, suffix)
-    # The log files are in the default log folder.
-    return os.path.join(paths.GetLogRoot(), file_name)
+    # save the log under /var/factory/tests/<TestID>-<UUID>/
+    current_test_dir = os.path.join(factory.get_test_data_root(),
+                                    factory.get_current_test_path())
+    return os.path.join(current_test_dir, file_name)
 
   def PatchSSHLinkConfig(self):
     """Patch the DHCP IP in the DUT config.
