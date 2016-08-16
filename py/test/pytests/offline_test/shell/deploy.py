@@ -99,7 +99,8 @@ class ScriptBuilder(object):
 
   ShellTestCase = FunctionMapper()
 
-  def __init__(self, dut, data_root, script_root, check_reboot):
+  def __init__(self, dut, data_root, script_root, check_reboot,
+               delay_after_reboot_secs):
     """Constructor of ScriptBuilder.
 
     Args:
@@ -117,6 +118,7 @@ class ScriptBuilder(object):
     self.data_root = data_root
     self.script_root = script_root
     self.check_reboot = check_reboot
+    self.delay_after_reboot = delay_after_reboot_secs
 
   @type_utils.LazyProperty
   def cpu_count(self):
@@ -151,7 +153,8 @@ class ScriptBuilder(object):
                            total_tasks=len(self.tasks),
                            sh=sh,
                            check_reboot=check_reboot,
-                           tasks=tasks)
+                           tasks=tasks,
+                           delay_after_reboot=self.delay_after_reboot)
 
   def AddShellTestCase(self, test_name, **kargs):
     self.ShellTestCase.CallFunction(test_name, self, **kargs)
@@ -261,7 +264,16 @@ class DeployShellOfflineTest(unittest.TestCase):
           optional=True),
       Arg('check_reboot', bool,
           'detect unexpected reboot or not',
-          default=True, optional=True),]
+          default=True, optional=True),
+      # TODO(shunhsingou): Remove this argument and write individual rules for
+      # each test.
+      # On some devices the test need to wait some dependency services to start.
+      # A better approach is to write individual rules for each test and execute
+      # it before invocation, but for now a simple workaround is to set a fixed
+      # delay.
+      Arg('delay_after_reboot_secs', int,
+          'Delay given seconds after each reboot before starting tests.',
+          default=0)]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
@@ -269,7 +281,8 @@ class DeployShellOfflineTest(unittest.TestCase):
     self.test_script_path = common.TestScriptPath(self.dut)
     self.script_root = common.ScriptRoot(self.dut)
     self.builder = ScriptBuilder(self.dut, self.data_root, self.script_root,
-                                 self.args.check_reboot)
+                                 self.args.check_reboot,
+                                 self.args.delay_after_reboot_secs)
 
   def _MakeStartUpApp(self, starter_path):
     self.dut.init.AddFactoryStartUpApp(common.OFFLINE_JOB_NAME, starter_path)

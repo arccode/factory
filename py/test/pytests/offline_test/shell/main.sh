@@ -6,6 +6,7 @@
 DATA_DIR={%data_root%}
 SCRIPT_DIR={%script_root%}
 TOTAL_TASKS={%total_tasks%}
+DELAY_AFTER_REBOOT={%delay_after_reboot%}
 export CROS_FACTORY_ROOT="${DATA_DIR}/root"
 export LOGFILE="${DATA_DIR}/logfile"
 export CROS_FACTORY_RUN_PATH="${DATA_DIR}/run"
@@ -42,6 +43,18 @@ die() {
   exit 1
 }
 
+delay_start() {
+  # Delay a given time after device booted.
+  local uptime=""
+  # Only keep the first integer part.
+  uptime="$(cat /proc/uptime | cut -f1 -d'.')"
+  if [ "${DELAY_AFTER_REBOOT}" -gt "${uptime}" ]; then
+    local diff="$((${DELAY_AFTER_REBOOT} - ${uptime}))"
+    info "Wait for ${diff} second(s) to start."
+    sleep "${diff}"
+  fi
+}
+
 check_time() {
   local current_time="$(date -u '+%s')"
   local last_check_time="$(head -n 1 "${DATA_DIR}/last_check_time" || echo 0)"
@@ -69,6 +82,7 @@ all_test_passed() {
 }
 
 main() {
+  delay_start
   local next_task="$(cat ${DATA_DIR}/task_id || echo 1)"
   local state="$(cat ${DATA_DIR}/state || echo)"
 
