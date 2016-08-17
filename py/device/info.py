@@ -8,6 +8,7 @@
 from __future__ import print_function
 
 import copy
+import logging
 import re
 
 import factory_common  # pylint: disable=W0611
@@ -123,7 +124,8 @@ class SystemInfo(component.DeviceComponent):
     """Clears any serial numbers from DeviceData."""
     return shopfloor.DeleteDeviceData(
         ['serial_number',
-         'mlb_serial_number'], optional=True)
+         'mlb_serial_number',
+         'all_serial_numbers'], optional=True)
 
   @InfoProperty
   def all_serial_numbers(self):
