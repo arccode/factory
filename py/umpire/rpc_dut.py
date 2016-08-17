@@ -339,6 +339,9 @@ class LogDUTCommands(UmpireRPC):
       # Do not use os.rename() to move file. os.rename() behavior is OS
       # depandent.
       shutil.move(temp_path, save_path)
+      # temp_path (created by tempfile.mkstemp) will always be mode 0600 for
+      # security reason, so we do want to change its permission to u+rw,go+r.
+      os.chmod(save_path, 0644)
 
   @RPCCall
   @Deprecate
