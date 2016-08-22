@@ -41,9 +41,7 @@ var BundlesApp = React.createClass({
           return (
             <UploadingTask
               key={taskID}
-              // state={task.state}
               state={task.get('state')}
-              // description={task.description}
               description={task.get('description')}
               style={{
                 position: 'fixed',

@@ -7,7 +7,7 @@ import Immutable from 'immutable';
 import ActionTypes from '../constants/ActionTypes';
 import UploadingTaskStates from '../constants/UploadingTaskStates';
 
-const initialState = Immutable.fromJS({
+const INITIAL_STATE = Immutable.fromJS({
   entries: [],
   isFetchingEntries: false,
   formVisibility: {
@@ -17,7 +17,7 @@ const initialState = Immutable.fromJS({
   uploadingTasks: {}
 });
 
-export default function bundlesReducer(state = initialState, action) {
+export default function bundlesReducer(state = INITIAL_STATE, action) {
   switch (action.type) {
     case ActionTypes.REQUEST_BUNDLES:
       return state.set('isFetchingEntries', true);
