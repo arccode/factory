@@ -189,6 +189,8 @@ class FileBasedPartition(Partition):
         self._dut.WriteFile(file_name, v)
       else:
         self._dut.CheckCall(['rm', '-f', file_name])
+    # Make sure files are synced to the disk.
+    self._dut.CheckCall(['sync'])
 
 
 class VitalProductData(component.DeviceComponent):
