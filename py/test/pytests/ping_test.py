@@ -81,6 +81,8 @@ class PingTest(unittest.TestCase):
           default=None, optional=True),
       Arg('verbose', bool, 'Dumps stdout of ping commands.',
           default=False),
+      Arg('package_size', int, 'Specifies the number of data bytes to be sent.',
+          default=None, optional=True),
   ]
 
   def setUp(self):
@@ -114,6 +116,8 @@ class PingTest(unittest.TestCase):
     ping_command = 'ping %s -c 1' % self.args.host
     if self.args.interface:
       ping_command += ' -I %s' % self.args.interface
+    if self.args.packet_size:
+      ping_command += ' -s %d' % self.args.packet_size
 
     end_time = MonotonicTime() + self.args.duration_secs
     while MonotonicTime() < end_time:
