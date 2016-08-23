@@ -33,9 +33,11 @@ BOARD_URL_ARG = r'(?P<board>[_a-zA-Z]+)'
 urlpatterns = [
     url(r'^%s/$' % BOARD_URL_ARG,
         TemplateView.as_view(template_name='index.html')),
-    url(r'^%s/bundles/$' % BOARD_URL_ARG,
+    url(r'^boards/$',
+        views.BoardCollectionView.as_view()),
+    url(r'^boards/%s/bundles/$' % BOARD_URL_ARG,
         views.BundleCollectionView.as_view()),
-    url(r'^%s/resources/$' % BOARD_URL_ARG,
+    url(r'^boards/%s/resources/$' % BOARD_URL_ARG,
         views.BundleResourceView.as_view())]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

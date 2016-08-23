@@ -32,7 +32,7 @@ function _createAndStartUploadingTask(dispatch, getState, taskDescription,
 
   dispatch(createUploadingTask(taskID, taskDescription));
 
-  return fetch(`${API_URL}${url}`, {
+  return fetch(`${API_URL}/${url}/`, {
     method: method,
     body: formData
   }).then(_checkHTTPStatus).then(function() {
@@ -56,7 +56,7 @@ const receiveBundles = bundles => ({
   bundles
 });
 
-const fetchBundles = () => dispatch => {
+const fetchBundles = () => (dispatch, getState) => {
   // annouce that we're currenty fetching
   dispatch(requestBundles());
 
@@ -125,7 +125,7 @@ const startUploadingBundle = formData => (dispatch, getState) => {
   var bundleName = formData.get('name');
   var taskDescription = `Uploading bundle ${bundleName}...`;
   _createAndStartUploadingTask(dispatch, getState, taskDescription,
-                               'POST', 'bundles/', formData)
+                               'POST', 'bundles', formData)
       .then(() => dispatch(fetchBundles()));
 };
 
@@ -134,7 +134,7 @@ const startUpdatingResource = formData => (dispatch, getState) => {
   var bundleName = formData.get('src_bundle_name');
   var taskDescription = `Updating bundle ${bundleName}...`;
   _createAndStartUploadingTask(dispatch, getState, taskDescription,
-                               'PUT', `bundles/${bundleName}/resources/`,
+                               'PUT', 'resources',
                                formData)
       .then(() => dispatch(fetchBundles()));
 };

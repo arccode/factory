@@ -7,8 +7,14 @@ from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from backend.models import BundleModel
-from backend.serializers import BundleSerializer, ResourceSerializer
+from backend.models import BoardModel, BundleModel
+from backend.serializers import (
+    BoardSerializer, BundleSerializer, ResourceSerializer)
+
+
+class BoardCollectionView(generics.ListCreateAPIView):
+  queryset = BoardModel.objects.all()
+  serializer_class = BoardSerializer
 
 
 class BundleCollectionView(APIView):

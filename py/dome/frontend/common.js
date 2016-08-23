@@ -21,4 +21,4 @@ function getCurrentBoard() {
 }
 
 export const BOARD = getCurrentBoard();
-export const API_URL = '/' + BOARD;
+export const API_URL = '/boards/' + BOARD;

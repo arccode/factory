@@ -18,6 +18,7 @@ import re
 import xmlrpclib
 
 import yaml
+from django.db import models
 
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put
@@ -31,6 +32,16 @@ UMPIRE_RESOURCE_NAME_ALIAS = {
     'server_factory_toolkit': 'factory_toolkit'}
 UMPIRE_UPDATABLE_RESOURCE = set(['device_factory_toolkit',
                                  'server_factory_toolkit'])
+
+
+class BoardModel(models.Model):
+  # TODO(littlecvr): pull max length to common config with Umpire
+  # TODO(littlecvr): need a validator, no spaces allowed
+  name = models.CharField(max_length=200, primary_key=True)
+  url = models.URLField()
+
+  class Meta:
+    ordering = ['name']
 
 
 class Resource(object):
