@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import Immutable from 'immutable';
+import {arrayMove} from 'react-sortable-hoc';
 
 import ActionTypes from '../constants/ActionTypes';
 import UploadingTaskStates from '../constants/UploadingTaskStates';
@@ -27,6 +28,11 @@ export default function bundlesReducer(state = INITIAL_STATE, action) {
         s.set('isFetchingEntries', false);
         s.set('entries', Immutable.fromJS(action.bundles));
       });
+
+    case ActionTypes.REORDER_BUNDLES:
+      return state.set('entries', Immutable.fromJS(arrayMove(
+          state.get('entries').toJS(), action.oldIndex, action.newIndex
+      )));
 
     case ActionTypes.OPEN_FORM:
       return state.withMutations((s) => {

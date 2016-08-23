@@ -5,9 +5,33 @@
 import Immutable from 'immutable';
 import React from 'react';
 import {connect} from 'react-redux';
+import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
 import Actions from '../actions/bundles';
 import Bundle from './Bundle';
+
+// The hierarchy of this component is complicated because of the design of
+// react-sortable-hoc. Explaination below:
+//
+//   BundleList
+//   - SortableBundleList (SortableContainer)
+//     - SortableBundle (SortableElement)
+//       - Bundle
+//     - SortableBundle (SortableElement)
+//       - Bundle
+//
+//  SortableBundle is a wrapper of Bundle, but SortableBundleList is not a
+//  wrapper of BundleList -- BundleList is the wrapper of SortableBundleList.
+
+var SortableBundle = SortableElement(({bundle}) => <Bundle bundle={bundle} />);
+
+var SortableBundleList = SortableContainer(({bundles}) => (
+  <div>
+    {bundles.map((bundle, index) => (
+      <SortableBundle key={bundle.get('name')} index={index} bundle={bundle} />
+    ))}
+  </div>
+));
 
 var BundleList = React.createClass({
   propTypes: {
@@ -20,14 +44,14 @@ var BundleList = React.createClass({
   },
 
   render() {
-    const {bundles} = this.props;
-
     return (
-      <div>
-        {bundles.map(bundle => {
-          return <Bundle key={bundle.get('name')} bundle={bundle} />;
-        }, this)}
-      </div>
+      <SortableBundleList
+        lockAxis='y'
+        useDragHandle={true}
+        useWindowAsScrollContainer={true}
+        onSortEnd={this.props.handleReorder}
+        bundles={this.props.bundles}
+      />
     );
   }
 });
@@ -40,7 +64,9 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    handleRefresh: () => dispatch(Actions.fetchBundles())
+    handleRefresh: () => dispatch(Actions.fetchBundles()),
+    handleReorder: ({oldIndex, newIndex}) =>
+        dispatch(Actions.reorderBundles(oldIndex, newIndex))
   };
 }
 

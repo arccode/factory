@@ -78,6 +78,13 @@ const fetchBundles = () => (dispatch, getState) => {
   });
 };
 
+// TODO(littlecvr): need to send request to the server to process.
+const reorderBundles = (oldIndex, newIndex) => ({
+  type: ActionTypes.REORDER_BUNDLES,
+  oldIndex,
+  newIndex
+});
+
 const openForm = (formName, payload) => (dispatch, getState) => {
   // The file input does not fire any event when canceled, if the user opened
   // the file dialog and canceled, its onChange handler won't be called, the
@@ -144,6 +151,7 @@ const startUpdatingResource = formData => (dispatch, getState) => {
 
 export default {
   fetchBundles,
+  reorderBundles,
   openForm,
   closeForm,
   dismissUploadingTask,
