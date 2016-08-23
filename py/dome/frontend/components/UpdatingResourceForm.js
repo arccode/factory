@@ -9,7 +9,6 @@ import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 import TextField from 'material-ui/TextField';
 
-import {BOARD} from '../common';
 import Actions from '../actions/bundles';
 import FormNames from '../constants/FormNames';
 
@@ -54,7 +53,7 @@ var UpdatingResourceForm = React.createClass({
 
     var formData = new FormData();
     // TODO: implement this
-    formData.append('board', BOARD);
+    formData.append('board', this.props.board);
     formData.append('is_inplace_update', this.state.isInPlaceUpdate);
     formData.append('src_bundle_name', this.props.bundleName);
     formData.append('dst_bundle_name', this.state.nameInputValue);
@@ -137,6 +136,7 @@ var UpdatingResourceForm = React.createClass({
 
 function mapStateToProps(state, ownProps) {
   return {
+    board: state.getIn(['dome', 'currentBoard']),
     show: state.getIn([
         'bundles', 'formVisibility', FormNames.UPDATING_RESOURCE_FORM], false),
     bundleName: state.getIn([

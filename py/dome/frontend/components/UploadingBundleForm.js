@@ -8,7 +8,6 @@ import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 import TextField from 'material-ui/TextField';
 
-import {BOARD} from '../common';
 import Actions from '../actions/bundles';
 import FormNames from '../constants/FormNames';
 
@@ -31,7 +30,7 @@ var UploadingBundleForm = React.createClass({
     }
 
     var formData = new FormData();
-    formData.append('board', BOARD);
+    formData.append('board', this.props.board);
     formData.append('name', this.state.nameInputValue);
     formData.append('note', this.state.noteInputValue);
     formData.append('bundle_file', this.fileInput.files[0]);
@@ -104,6 +103,7 @@ var UploadingBundleForm = React.createClass({
 
 function mapStateToProps(state, ownProps) {
   return {
+    board: state.getIn(['dome', 'currentBoard']),
     show: state.getIn([
         'bundles', 'formVisibility', FormNames.UPLOADING_BUNDLE_FORM], false)
   };

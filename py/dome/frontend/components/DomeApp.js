@@ -3,79 +3,22 @@
 // found in the LICENSE file.
 
 import {connect} from 'react-redux';
-import Drawer from 'material-ui/Drawer';
-import Immutable from 'immutable';
-import MenuItem from 'material-ui/MenuItem';
-import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 
-import AppNames from '../constants/AppNames';
-import BundlesApp from './BundlesApp';
-import DomeActions from '../actions/dome';
-import FixedAppBar from './FixedAppBar';
-import SettingsApp from './SettingsApp';
+import WelcomePage from './WelcomePage';
+import AppPage from './AppPage';
 
-const DomeApp = React.createClass({
-  toggleAppMenu() {
-    this.setState({appMenuOpened: !this.state.appMenuOpened});
-  },
-
-  handleClick(nextApp) {
-    // close the drawer
-    this.setState({appMenuOpened: false});
-    this.props.switchApp(nextApp);
-  },
-
-  getInitialState() {
-    return {
-      appMenuOpened: false
-    };
-  },
-
-  render() {
-    var currentApp = null;
-    if (this.props.currentApp == AppNames.BUNDLES_APP) {
-        currentApp = <BundlesApp />;
-    } else if (this.props.currentApp == AppNames.SETTINGS_APP) {
-        currentApp = <SettingsApp />;
-    } else {
-      console.log(`Unknown app ${this.props.currentApp}`);
-    }
-
-    return (
-      <div>
-        <FixedAppBar
-          title="Dome"
-          onLeftIconButtonTouchTap={this.toggleAppMenu}
-        />
-        <Drawer
-          docked={false}
-          open={this.state.appMenuOpened}
-          onRequestChange={open => this.setState({appMenuOpened: open})}
-        >
-          <MenuItem onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}>
-            Bundles
-          </MenuItem>
-          <MenuItem onTouchTap={() => this.handleClick(AppNames.SETTINGS_APP)}>
-            Settings
-          </MenuItem>
-        </Drawer>
-        {currentApp}
-      </div>
-    );
-  }
-});
+const DomeApp = props => (
+  <div>
+    {props.board === '' && <WelcomePage />}
+    {props.board !== '' && <AppPage />}
+  </div>
+);
 
 function mapStateToProps(state) {
   return {
-    currentApp: state.getIn(['dome', 'currentApp'])
+    board: state.getIn(['dome', 'currentBoard'])
   };
 }
 
-function mapDispatchToProps(dispatch) {
-  return {
-    switchApp: nextApp => dispatch(DomeActions.switchApp(nextApp))
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(DomeApp);
+export default connect(mapStateToProps, null)(DomeApp);

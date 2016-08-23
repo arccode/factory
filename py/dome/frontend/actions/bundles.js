@@ -5,10 +5,13 @@
 import 'babel-polyfill';
 import fetch from 'isomorphic-fetch';
 
-import {BOARD, API_URL} from '../common';
 import ActionTypes from '../constants/ActionTypes';
 import FormNames from '../constants/FormNames';
 import UploadingTaskStates from '../constants/UploadingTaskStates';
+
+function _apiURL(getState) {
+  return `/boards/${getState().getIn(['dome', 'currentBoard'])}`;
+}
 
 function _checkHTTPStatus(response) {
   if (response.status >= 200 && response.status < 300) {
@@ -23,7 +26,7 @@ function _checkHTTPStatus(response) {
 function _createAndStartUploadingTask(dispatch, getState, taskDescription,
                                       method, url, formData) {
   var uploadingTasks = getState().getIn(['bundles', 'uploadingTasks']);
-  var taskIDs = uploadingTasks.keySeq().toArray().map(x => parseInt(x));
+  var taskIDs = uploadingTasks.keySeq().toArray().map(parseInt);
 
   var taskID = 1;
   if (taskIDs.length > 0) {
@@ -32,7 +35,7 @@ function _createAndStartUploadingTask(dispatch, getState, taskDescription,
 
   dispatch(createUploadingTask(taskID, taskDescription));
 
-  return fetch(`${API_URL}/${url}/`, {
+  return fetch(`${_apiURL(getState)}/${url}/`, {
     method: method,
     body: formData
   }).then(_checkHTTPStatus).then(function() {
@@ -60,7 +63,7 @@ const fetchBundles = () => (dispatch, getState) => {
   // annouce that we're currenty fetching
   dispatch(requestBundles());
 
-  fetch(`${API_URL}/bundles.json`).then(response => {
+  fetch(`${_apiURL(getState)}/bundles.json`).then(response => {
     response.json().then(json => {
       dispatch(receiveBundles(json));
     }, error => {

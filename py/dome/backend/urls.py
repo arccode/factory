@@ -31,7 +31,7 @@ BOARD_URL_ARG = r'(?P<board>[_a-zA-Z]+)'
 
 
 urlpatterns = [
-    url(r'^%s/$' % BOARD_URL_ARG,
+    url(r'^$',
         TemplateView.as_view(template_name='index.html')),
     url(r'^boards/$',
         views.BoardCollectionView.as_view()),
