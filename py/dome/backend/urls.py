@@ -28,6 +28,7 @@ from backend import views
 
 # TODO(littlecvr): move to common config with umpire.
 BOARD_URL_ARG = r'(?P<board>[_a-zA-Z]+)'
+BUNDLE_URL_ARG = r'(?P<bundle>[^/]+)'  # anything but slash
 
 
 urlpatterns = [
@@ -37,6 +38,10 @@ urlpatterns = [
         views.BoardCollectionView.as_view()),
     url(r'^boards/%s/bundles/$' % BOARD_URL_ARG,
         views.BundleCollectionView.as_view()),
+    url(r'^boards/%s/bundles/%s/$' % (BOARD_URL_ARG, BUNDLE_URL_ARG),
+        views.BundleView.as_view()),
+    # TODO(littlecvr): to be RESTful, a resource should be uniquely identified
+    #                  by its type and hash
     url(r'^boards/%s/resources/$' % BOARD_URL_ARG,
         views.BundleResourceView.as_view())]
 

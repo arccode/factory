@@ -71,12 +71,13 @@ class BundleSerializer(serializers.Serializer):
   board = serializers.CharField(write_only=True)
   # TODO(littlecvr): define bundle name rules in a common place
   name = serializers.CharField()
-  note = serializers.CharField()
-  # TODO(littlecvr): implement active/inactive toggle in the future
-  active = serializers.BooleanField(read_only=True)
+  note = serializers.CharField(required=False)
+  active = serializers.NullBooleanField(required=False)
+
   resources = serializers.DictField(read_only=True, child=ResourceSerializer())
 
-  bundle_file = serializers.FileField(write_only=True, use_url=False)
+  bundle_file = serializers.FileField(write_only=True, use_url=False,
+                                      required=False)
 
   def create(self, validated_data):
     """Override parent's method."""
@@ -104,3 +105,9 @@ class BundleSerializer(serializers.Serializer):
       os.rename(new_path, old_path)
 
     return bundle
+
+  def update(self, instance, validated_data):
+    """Override parent's method."""
+    new_validated_data = validated_data.copy()
+    board = new_validated_data.pop('board')
+    return BundleModel(board).ModifyOne(**new_validated_data)

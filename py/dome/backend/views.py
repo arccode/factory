@@ -34,12 +34,27 @@ class BundleCollectionView(APIView):
       return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class BundleView(APIView):
+  """Update a bundle."""
+
+  def put(self, request, board, bundle, format=None):
+    """Override parent's method."""
+    bundle = BundleModel(board).ListOne(bundle)
+    data = request.data.copy()
+    data['board'] = board
+    serializer = BundleSerializer(bundle, data=data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class BundleResourceView(APIView):
   """Update resource in a particular bundle."""
 
   def put(self, request, board, format=None):
     """Override parent's method."""
+    # TODO(littlecvr): should create bundle instance before creating serializer
     serializer = ResourceSerializer(board, data=request.data)
     if serializer.is_valid():
       bundle = BundleModel(board).ListOne(

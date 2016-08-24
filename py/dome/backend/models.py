@@ -112,9 +112,9 @@ class BundleModel(object):
         UMPIRE_BASE_DIR, self.board, UMPIRE_ACTIVE_CONFIG_FILE_NAME)
 
   def _GetStagingConfig(self):
-    return self._GetConfig(self._GetStatingConfigPath())
+    return self._GetConfig(self._GetStagingConfigPath())
 
-  def _GetStatingConfigPath(self):
+  def _GetStagingConfigPath(self):
      return os.path.join(
         UMPIRE_BASE_DIR, self.board, UMPIRE_STAGING_CONFIG_FILE_NAME)
 
@@ -124,6 +124,40 @@ class BundleModel(object):
     umpire_rpc_server = xmlrpclib.ServerProxy(
         'http://localhost:%d' % port, allow_none=True)
     return (umpire_active_config, umpire_rpc_server)
+
+  def _NormalizeConfig(self, config):
+    # We do not allow multiple rulesets referring to the same bundle, so
+    # duplicate the bundle if we have found such cases.
+    bundle_set = set()
+    for b in config['rulesets']:
+      if b['bundle_id'] not in bundle_set:
+        bundle_set.add(b['bundle_id'])
+      else:  # need to duplicate
+        # generate a new name, may generate very long _copy_copy_copy... at the
+        # end if there are many conflicts
+        new_name = b['bundle_id']
+        while True:
+          new_name = '%s_copy' % new_name
+          if new_name not in bundle_set:
+            bundle_set.add(new_name)
+            break
+
+        # find the original bundle and duplicate it
+        src_bundle = next(
+            x for x in config['bundles'] if x['id'] == b['bundle_id'])
+        dst_bundle = src_bundle.copy()
+        dst_bundle['id'] = new_name
+        config['bundles'].append(dst_bundle)
+
+    # We do not allow bundles exist in 'bundles' section but not in 'ruleset'
+    # section.
+    for b in config['bundles']:
+      if b['id'] not in bundle_set:
+        config['rulesets'].append({'active': False,
+                                   'bundle_id': b['id'],
+                                   'note': b['note']})
+
+    return config
 
   def Deploy(self):
     """Deploy umpire.
@@ -139,6 +173,16 @@ class BundleModel(object):
     config_to_deploy_res = umpire_status['staging_config_res']
     server.ValidateConfig(config_to_deploy_text)
     server.Deploy(config_to_deploy_res)
+
+  def Stage(self):
+    """Stage a config file."""
+    _, server = self._GetActiveConfigAndXMLRPCServer()
+    server.StageConfigFile(None)
+
+  def Unstage(self):
+    """Unstage the config file."""
+    _, server = self._GetActiveConfigAndXMLRPCServer()
+    server.UnstageConfigFile()
 
   def ListOne(self, bundle_name):
     """Return the bundle that matches the search criterion.
@@ -171,9 +215,8 @@ class BundleModel(object):
     """Return all bundles as a list.
 
     This function lists bundles in the following order:
-    1. active bundles in the 'rulesets' section
-    2. inactive bundles in the 'rulesets' section
-    3. bundles in the 'bunedles' section that are not in the 'rulesets' section
+    1. bundles in the 'rulesets' section
+    2. bundles in the 'bunedles' section but not in the 'rulesets' section
 
     Return:
       A list of all bundles.
@@ -183,22 +226,33 @@ class BundleModel(object):
     bundle_set = set()  # to fast determine if a bundle has been added
     bundle_list = list()
     for b in config['rulesets']:
-      if b['active']:
-        bundle_set.add(b['bundle_id'])
-        bundle_list.append(self.ListOne(b['bundle_id']))
-    for b in config['rulesets']:
-      if not b['active']:
-        bundle_set.add(b['bundle_id'])
-        bundle_list.append(self.ListOne(b['bundle_id']))
+      bundle_set.add(b['bundle_id'])
+      bundle_list.append(self.ListOne(b['bundle_id']))
     for b in config['bundles']:
       if b['id'] not in bundle_set:
-        bundle_list.append(Bundle(
-            b['id'],  # name
-            b['note'],  # note
-            False,  # active
-            b['resources']))  # resources
+        bundle_list.append(self.ListOne(b['id']))
 
     return bundle_list
+
+  def ModifyOne(self, name, active=True):
+    """Activate a bundle.
+
+    Args:
+      name: name of the bundle.
+      active: True to make the bundle active, False to make the bundle inactive.
+    """
+    self.Stage()
+
+    config = self._NormalizeConfig(self._GetStagingConfig())
+    bundle = next(b for b in config['rulesets'] if b['bundle_id'] == name)
+    bundle['active'] = active
+
+    with open(self._GetStagingConfigPath(), 'w') as f:
+      f.write(yaml.dump(config, default_flow_style=False))
+
+    self.Deploy()
+
+    return self.ListOne(bundle['bundle_id'])
 
   def UpdateResource(self, src_bundle_name, dst_bundle_name, note,
                      resource_type, resource_file_path):
