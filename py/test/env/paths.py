@@ -19,11 +19,6 @@ FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
 FIRMWARE_UPDATER_PATH = os.path.join(
     FACTORY_PATH, 'board', 'chromeos-firmwareupdate')
 
-# Path to stateful partition on device.
-DEVICE_STATEFUL_PATH = '/mnt/stateful_partition'
-
-# Name of Chrome data directory within the state directory.
-CHROME_DATA_DIR_NAME = 'chrome-data-dir'
 
 # Path to factory log on a "real" device.
 FACTORY_LOG_PATH_ON_DEVICE = '/var/factory/log/factory.log'

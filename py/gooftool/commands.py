@@ -814,9 +814,11 @@ def UntarStatefulFiles(unused_options):
   If that file does not exist (which should only be R30 and earlier),
   this is a no-op.
   """
-  tar_file = os.path.join(paths.DEVICE_STATEFUL_PATH, 'stateful_files.tar.xz')
+  # Path to stateful partition on device.
+  device_stateful_path = '/mnt/stateful_partition'
+  tar_file = os.path.join(device_stateful_path, 'stateful_files.tar.xz')
   if os.path.exists(tar_file):
-    Spawn(['tar', 'xf', tar_file], cwd=paths.DEVICE_STATEFUL_PATH,
+    Spawn(['tar', 'xf', tar_file], cwd=device_stateful_path,
           log=True, check_call=True)
   else:
     logging.warning('No stateful files at %s', tar_file)

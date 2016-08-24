@@ -193,10 +193,13 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
             '/sys/firmware/log',
         ]], [])
 
+    # Name of Chrome data directory within the state directory.
+    chrome_data_dir_name = 'chrome-data-dir'
+
     # Exclude various items from bug reports.
     exclude_files = list(chain.from_iterable(('--exclude', x) for x in [
-        os.path.join(env_paths.GetStateRoot(),
-                     env_paths.CHROME_DATA_DIR_NAME), 'Extensions',
+        os.path.join(env_paths.GetStateRoot(), chrome_data_dir_name),
+        'Extensions',
     ]))
     if not include_network_log:
       exclude_files += ['--exclude', os.path.join(var, 'log', 'net.log')]
