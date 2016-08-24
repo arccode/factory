@@ -85,6 +85,19 @@ const reorderBundles = (oldIndex, newIndex) => ({
   newIndex
 });
 
+const activateBundle = (name, active) => (dispatch, getState) => {
+  var formData = new FormData();
+  formData.append('board', getState().getIn(['dome', 'currentBoard']));
+  formData.append('name', name);
+  formData.append('active', active);
+  var verb = active ? 'Activating' : 'Deactivating';
+  var taskDescription = `${verb} bundle ${name}...`;
+  // TODO(littlecvr): this function can do more than it looks like, rename it
+  _createAndStartUploadingTask(dispatch, getState, taskDescription,
+                               'PUT', `bundles/${name}`, formData)
+      .then(() => dispatch(fetchBundles()));
+};
+
 const openForm = (formName, payload) => (dispatch, getState) => {
   // The file input does not fire any event when canceled, if the user opened
   // the file dialog and canceled, its onChange handler won't be called, the
@@ -152,6 +165,7 @@ const startUpdatingResource = formData => (dispatch, getState) => {
 export default {
   fetchBundles,
   reorderBundles,
+  activateBundle,
   openForm,
   closeForm,
   dismissUploadingTask,

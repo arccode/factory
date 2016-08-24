@@ -32,7 +32,7 @@ var UpdatingResourceForm = React.createClass({
     this.setState({dialogOpened: true});
   },
 
-  handleCheck(evt, checked) {
+  handleCheck(event, checked) {
     this.setState({
       isInPlaceUpdate: checked,
 

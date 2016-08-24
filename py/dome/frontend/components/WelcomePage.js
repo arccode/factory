@@ -13,15 +13,15 @@ import TextField from 'material-ui/TextField';
 import DomeActions from '../actions/dome';
 
 var WelcomePage = React.createClass({
-  handleSelectChange(evt, index, value) {
+  handleSelectChange(event, index, value) {
     if (value === '') {
       return;
     }
     this.props.switchBoard(value);
   },
 
-  setShowAddBoardForm(show, evt) {
-    evt.preventDefault();
+  setShowAddBoardForm(show, event) {
+    event.preventDefault();
     this.setState({showAddBoardForm: show});
   },
 

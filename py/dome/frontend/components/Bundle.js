@@ -8,9 +8,12 @@ import DragHandleIcon from 'material-ui/svg-icons/editor/drag-handle';
 import IconButton from 'material-ui/IconButton';
 import Immutable from 'immutable';
 import React from 'react';
+import Toggle from 'material-ui/Toggle';
+import {connect} from 'react-redux';
 import {Card, CardTitle, CardText} from 'material-ui/Card';
 import {SortableHandle} from 'react-sortable-hoc';
 
+import BundlesActions from '../actions/bundles';
 import ResourceTable from './ResourceTable';
 
 var DragHandle = SortableHandle(() => (
@@ -28,15 +31,45 @@ var Bundle = React.createClass({
     bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired
   },
 
-  render: function() {
+  handleActivate(event) {
+    event.stopPropagation();
+    const {bundle} = this.props;
+    this.props.activateBundle(bundle.get('name'), !bundle.get('active'));
+  },
+
+  toggleExpand() {
+    this.setState({expanded: !this.state.expanded});
+  },
+
+  getInitialState() {
+    return {
+      expanded: false,
+    };
+  },
+
+  render() {
     const {bundle} = this.props;
 
+    const INACTIVE_STYLE = {
+      opacity: 0.3
+    };
+
     return (
-      <Card className="bundle">
+      <Card
+        className="bundle"
+        expanded={this.state.expanded}
+        containerStyle={bundle.get('active') ? {} : INACTIVE_STYLE}
+      >
         <CardTitle
           title={bundle.get('name')}
           subtitle={bundle.get('note')}
-          actAsExpander={true}
+          // Cannot use actAsExpander here, need to implement ourselves. The
+          // Toggle below from Material-UI somewhat would not capture the click
+          // event before CardTitle. If not using this way, when the user clicks
+          // on the Toggle (which should only change the state of the Toggle),
+          // the Card will also be affected (expanded or collapsed).
+          onClick={this.toggleExpand}
+          style={{cursor: 'pointer'}}
         >
           {/* TODO(littlecvr): top and right should be calculated */}
           <div style={{position: 'absolute', top: 18, right: 18}}>
@@ -76,4 +109,11 @@ var Bundle = React.createClass({
   }
 });
 
-export default Bundle;
+function mapDispatchToProps(dispatch) {
+  return {
+    activateBundle: (name, active) =>
+        dispatch(BundlesActions.activateBundle(name, active))
+  };
+}
+
+export default connect(null, mapDispatchToProps)(Bundle);
