@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom';
 import injectTapEventPlugin from 'react-tap-event-plugin';
 import {createStore, applyMiddleware} from 'redux';
 import {combineReducers} from 'redux-immutable';
+import {indigo500} from 'material-ui/styles/colors';
 import {Provider} from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import createLogger from 'redux-logger';
@@ -22,6 +23,12 @@ import domeReducer from './reducers/dome';
 // Needed for onTouchTap, see:
 // http://www.material-ui.com/#/get-started/installation
 injectTapEventPlugin();
+
+const THEME = {
+  palette: {
+    primary1Color: indigo500
+  }
+};
 
 const store = createStore(
   combineReducers({
@@ -39,7 +46,7 @@ const store = createStore(
 );
 
 const App = () => (
-  <MuiThemeProvider muiTheme={getMuiTheme()}>
+  <MuiThemeProvider muiTheme={getMuiTheme(THEME)}>
     <Provider store={store}>
       <DomeApp />
     </Provider>

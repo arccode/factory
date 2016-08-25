@@ -112,7 +112,7 @@ var UpdatingResourceForm = React.createClass({
           ]}
         >
           <Checkbox
-            label="inplace update"
+            label="in-place update"
             checked={this.state.isInPlaceUpdate}
             onCheck={this.handleCheck}
           />
