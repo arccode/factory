@@ -17,7 +17,8 @@ from cros.factory.device import link
 from cros.factory.utils import file_utils
 
 
-class ADBProcess(object):
+class LegacyADBProcess(object):
+  """Wrapper for devices and clients with version < Android N."""
 
   def __init__(self, proxy_object, session_id):
     self._proxy_object = proxy_object
@@ -51,11 +52,28 @@ class ADBProcess(object):
     return self._exit_code
 
 
-class ADBLink(link.DeviceLink):
-  """A device that is connected via ADB interface."""
+def RawADBProcess(proxy_object, session_id):
+  """A dummy wrapper to return first input (process) argument directly.
 
-  def __init__(self, temp_dir='/data/local/tmp'):
+  Similar to LegacyADBProcess. Can be used if both ADB client and DUT Android
+  devices are >= Android N.
+  """
+  return proxy_object
+
+
+class ADBLink(link.DeviceLink):
+  """A device that is connected via ADB interface.
+
+  Args:
+    temp_dir: A string for temp folder, usually /data/local/tmp on Android.
+    exit_code_hack: Boolean to indicate if we should enable the hack to get
+        command execution exit code. Set to True if either your ADB client or
+        Android device are using a version smaller than N release.
+  """
+
+  def __init__(self, temp_dir='/data/local/tmp', exit_code_hack=True):
     self._temp_dir = temp_dir
+    self._exit_code_hack = exit_code_hack
 
   def Push(self, local, remote):
     """See DeviceLink.Push"""
@@ -79,12 +97,6 @@ class ADBLink(link.DeviceLink):
 
   def Shell(self, command, stdin=None, stdout=None, stderr=None):
     """See DeviceLink.Shell"""
-    # ADB shell has a bug that exit code is not correctly returned (
-    #  https://code.google.com/p/android/issues/detail?id=3254 ). Many public
-    # implementations work around that by adding an echo and then parsing the
-    # execution results. To avoid problems in redirection, we do this slightly
-    # different by using the log service and "logcat" ADB feature.
-
     # ADB shell does not provide interactive shell, which means we are not
     # able to send stdin data in an interactive way (
     # https://code.google.com/p/android/issues/detail?id=74856). As described
@@ -137,12 +149,24 @@ class ADBLink(link.DeviceLink):
           redirections += ' <%s' % target_tmp_file
           delete_tmps = 'rm -f %s' % target_tmp_file
 
-    command = ['adb', 'shell', '( %s ) %s; log -t %s $?; %s' %
-               (command, redirections, session_id, delete_tmps)]
+    if self._exit_code_hack:
+      # ADB shell has a bug that exit code is not correctly returned (
+      #  https://code.google.com/p/android/issues/detail?id=3254 ). Many public
+      # implementations work around that by adding an echo and then parsing the
+      # execution results. To avoid problems in redirection, we do this slightly
+      # different by using the log service and "logcat" ADB feature.
+      command = ['adb', 'shell', '( %s ) %s; log -t %s $?; %s' %
+                 (command, redirections, session_id, delete_tmps)]
+      wrapper = LegacyADBProcess
+    else:
+      command = ['adb', 'shell', '( %s ) %s; %s' %
+                 (command, redirections, delete_tmps)]
+      wrapper = RawADBProcess
+
     logging.debug('ADBLink: Run %r', command)
-    return ADBProcess(subprocess.Popen(command, shell=False, close_fds=True,
-                                       stdin=stdin, stdout=stdout,
-                                       stderr=stderr), session_id)
+    return wrapper(subprocess.Popen(command, shell=False, close_fds=True,
+                                    stdin=stdin, stdout=stdout,
+                                    stderr=stderr), session_id)
 
   def IsReady(self):
     """See DeviceLink.IsReady"""
