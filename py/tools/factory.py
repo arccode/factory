@@ -22,7 +22,7 @@ import socket
 import sys
 import time
 import yaml
-from setproctitle import setproctitle
+from setproctitle import setproctitle  # pylint: disable=no-name-in-module
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
@@ -253,9 +253,6 @@ class DumpTestListCommand(Subcommand):
 
   def Run(self):
     test_list = test_lists.BuildTestList(self.args.id)
-    if isinstance(test_list, test_lists.OldStyleTestList):
-      test_list = test_list.Load()
-
     if self.args.format == 'csv':
       writer = csv.writer(sys.stdout)
       writer.writerow(('id', 'module'))
@@ -322,9 +319,7 @@ class TestListCommand(Subcommand):
 
       for k, v in sorted(all_test_lists.items()):
         is_active = '(active)' if k == active_id else ''
-        path = (v.path if isinstance(v, test_lists.OldStyleTestList)
-                else v.source_path)
-        print line_format % (is_active, k, path)
+        print line_format % (is_active, k, v.source_path)
 
     if self.args.restart:
       goofy = factory.get_state_instance()

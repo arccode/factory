@@ -45,7 +45,6 @@ from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
-from cros.factory.test.test_lists.test_lists import OldStyleTestList
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -171,17 +170,10 @@ class PytestInfo(object):
 
   def ReadTestList(self):
     """Reads and returns the test list."""
-    if os.sep in self.test_list:
-      # It's a path pointing to an old-style test list; use it.
-      return factory.read_test_list(self.test_list)
-    else:
-      all_test_lists, _ = BuildAllTestLists(
-          force_generic=(self.automation_mode is not None))
-      test_list = all_test_lists[self.test_list]
-      if isinstance(test_list, OldStyleTestList):
-        return test_list.Load()
-      else:
-        return test_list
+    all_test_lists, _ = BuildAllTestLists(
+        force_generic=(self.automation_mode is not None))
+    test_list = all_test_lists[self.test_list]
+    return test_list
 
 
 class TestInvocation(object):

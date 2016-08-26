@@ -29,7 +29,7 @@ from cros.factory.test.test_lists import generic_smt
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import SamplingRate
 from cros.factory.test.test_lists.test_lists import TestList
-from cros.factory.test.test_lists.test_lists import WLAN
+from cros.factory.utils.net_utils import WLAN
 from cros.factory.utils import sys_utils
 
 HOURS = 60 * 60

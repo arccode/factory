@@ -14,13 +14,12 @@ from __future__ import print_function
 
 import factory_common  # pylint: disable=W0611
 
+import imp
 import logging
 import math
 import mox
 import pickle
-import re
 import subprocess
-import tempfile
 import threading
 import time
 import unittest
@@ -39,8 +38,56 @@ from cros.factory.goofy.test_environment import Environment
 from cros.factory.test import shopfloor
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
+from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
+
+
+def _BuildTestList(test_items, options):
+  """Build a test list
+
+  Args:
+    test_items: the body of "with test_lists.TestList(...)" statement.  The
+      'test_lists' module is imported, so you can use test_lists.FactoryTest or
+      other functions to generate test items.  The top level should indent "4"
+      spaces.
+    options: set test list options, the "options" variable is imported.  Should
+      indent "4" spaces.
+  """
+
+  _TEST_LIST_TEMPLATE = """
+import factory_common
+from cros.factory.test.test_lists import test_lists
+from cros.factory.utils.net_utils import WLAN
+
+def CreateTestLists():
+  with test_lists.TestList(id='stub_test_list', label_en='label') as test_list:
+    options = test_list.options
+    {options}
+    {test_items}
+  """
+
+  source = _TEST_LIST_TEMPLATE.format(test_items=test_items, options=options)
+  module = imp.new_module('stub_test_list')
+  module.__file__ = '/dev/null'
+  exec source in module.__dict__
+
+  created_test_lists = test_lists.BuildTestLists(module)
+  assert len(created_test_lists) == 1
+  return created_test_lists.values()[0]
+
+
+def _MockGetTestList(goofy_instance, test_list):
+  """Mock "GetTestList" function in goofy.
+
+  Mock "GetTestList" function in goofy, so the active test list will always be
+  the given one.
+  """
+  def _GetTestList(test_list_id):
+    del test_list_id
+    return test_list
+
+  goofy_instance.GetTestList = _GetTestList
 
 
 def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
@@ -50,13 +97,9 @@ def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
   if restart:
     args.append('--restart')
   if test_list:
-    out = tempfile.NamedTemporaryFile(prefix='test_list', delete=False)
+    test_list = _BuildTestList(test_list, options)
+    _MockGetTestList(new_goofy, test_list)
 
-    # Remove whitespace at the beginning of each line of options.
-    options = re.sub(r'(?m)^\s+', '', options)
-    out.write('TEST_LIST = [' + test_list + ']\n' + options)
-    out.close()
-    args.extend(['--test_list', out.name])
   logging.info('Running goofy with args %r', args)
   new_goofy.dut.info.Overrides('mlb_serial_number', 'mlb_sn_123456789')
   new_goofy.dut.info.Overrides('serial_number', 'sn_123456789')
@@ -254,9 +297,9 @@ class GoofyUITest(GoofyTest):
 
 # A simple test list with three tests.
 ABC_TEST_LIST = """
-  OperatorTest(id='a', autotest_name='a_A'),
-  OperatorTest(id='b', autotest_name='b_B'),
-  OperatorTest(id='c', autotest_name='c_C'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A'),
+    test_lists.OperatorTest(id='b', autotest_name='b_B'),
+    test_lists.OperatorTest(id='c', autotest_name='c_C'),
 """
 
 
@@ -319,8 +362,8 @@ class WebSocketTest(GoofyUITest):
 class ShutdownTest(GoofyTest):
   """A test case that checks the behavior of shutdown."""
   test_list = """
-    RebootStep(id='shutdown', iterations=3),
-    OperatorTest(id='a', autotest_name='a_A')
+    test_lists.RebootStep(id='shutdown', iterations=3),
+    test_lists.OperatorTest(id='a', autotest_name='a_A')
   """
 
   def runTest(self):
@@ -383,7 +426,7 @@ class ShutdownTest(GoofyTest):
 class RebootFailureTest(GoofyTest):
   """A test case that checks the behavior of reboot failure."""
   test_list = """
-    RebootStep(id='shutdown'),
+    test_lists.RebootStep(id='shutdown'),
   """
 
   def runTest(self):
@@ -480,11 +523,13 @@ class PyTestTest(GoofyTest):
   Python driver run a 'real' test (execpython).
   """
   test_list = """
-    OperatorTest(id='a', pytest_name='execpython',
-           dargs={'script': 'assert "Tomato" == "Tomato"'}),
-    OperatorTest(id='b', pytest_name='execpython',
-           dargs={'script': ("assert 'Pa-TAY-to' == 'Pa-TAH-to', "
-                             "'Let\\\\\'s call the whole thing off'")})
+    test_lists.OperatorTest(
+        id='a', pytest_name='execpython',
+        dargs={'script': 'assert "Tomato" == "Tomato"'})
+    test_lists.OperatorTest(
+        id='b', pytest_name='execpython',
+        dargs={'script': ("assert 'Pa-TAY-to' == 'Pa-TAH-to', "
+                          "'Let\\\\\'s call the whole thing off'")})
   """
 
   def runTest(self):
@@ -510,8 +555,9 @@ class PyTestTest(GoofyTest):
 class PyLambdaTest(GoofyTest):
   """A test case that checks the behavior of execpython."""
   test_list = """
-    OperatorTest(id='a', pytest_name='execpython',
-           dargs={'script': lambda env: 'raise ValueError("It"+"Failed")'})
+    test_lists.OperatorTest(
+        id='a', pytest_name='execpython',
+        dargs={'script': lambda env: 'raise ValueError("It"+"Failed")'})
   """
 
   def runTest(self):
@@ -527,10 +573,10 @@ class PyLambdaTest(GoofyTest):
 class MultipleIterationsTest(GoofyTest):
   """Tests running a test multiple times."""
   test_list = """
-    OperatorTest(id='a', autotest_name='a_A'),
-    OperatorTest(id='b', autotest_name='b_B', iterations=3),
-    OperatorTest(id='c', autotest_name='c_C', iterations=3),
-    OperatorTest(id='d', autotest_name='d_D'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A'),
+    test_lists.OperatorTest(id='b', autotest_name='b_B', iterations=3),
+    test_lists.OperatorTest(id='c', autotest_name='c_C', iterations=3),
+    test_lists.OperatorTest(id='d', autotest_name='d_D'),
   """
 
   def runTest(self):
@@ -559,12 +605,11 @@ class ConnectionManagerTest(GoofyTest):
     options.wlans = [WLAN('foo', 'psk', 'bar')]
   """
   test_list = """
-    OperatorTest(id='a', autotest_name='a_A'),
-    TestGroup(id='b', exclusive='NETWORKING', subtests=[
-      OperatorTest(id='b1', autotest_name='b_B1'),
-      OperatorTest(id='b2', autotest_name='b_B2'),
-    ]),
-    OperatorTest(id='c', autotest_name='c_C'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A'),
+    with test_lists.TestGroup(id='b', exclusive='NETWORKING'):
+      test_lists.OperatorTest(id='b1', autotest_name='b_B1')
+      test_lists.OperatorTest(id='b2', autotest_name='b_B2')
+    test_lists.OperatorTest(id='c', autotest_name='c_C'),
   """
   expected_create_connection_manager_args = (
       mox.Func(lambda arg: (
@@ -591,8 +636,8 @@ class RequireRunTest(GoofyTest):
     options.auto_run_on_start = False
   """
   test_list = """
-    OperatorTest(id='a', autotest_name='a_A'),
-    OperatorTest(id='b', autotest_name='b_B', require_run='a'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A'),
+    test_lists.OperatorTest(id='b', autotest_name='b_B', require_run='a'),
   """
 
   def runTest(self):
@@ -613,8 +658,9 @@ class RequireRunPassedTest(GoofyTest):
     options.auto_run_on_start = True
   """
   test_list = """
-    OperatorTest(id='a', autotest_name='a_A'),
-    OperatorTest(id='b', autotest_name='b_B', require_run=Passed('a')),
+    test_lists.OperatorTest(id='a', autotest_name='a_A'),
+    test_lists.OperatorTest(id='b', autotest_name='b_B',
+                            require_run=test_lists.Passed('a')),
   """
 
   def runTest(self):
@@ -636,9 +682,9 @@ class RunIfTest(GoofyTest):
     options.auto_run_on_start = True
   """
   test_list = """
-    OperatorTest(id='a', autotest_name='a_A', run_if='foo.bar'),
-    OperatorTest(id='b', autotest_name='b_B', run_if='!foo.bar'),
-    OperatorTest(id='c', autotest_name='c_C'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A', run_if='foo.bar'),
+    test_lists.OperatorTest(id='b', autotest_name='b_B', run_if='!foo.bar'),
+    test_lists.OperatorTest(id='c', autotest_name='c_C'),
   """
 
   def runTest(self):
@@ -678,12 +724,11 @@ class GroupRunIfTest(GoofyTest):
     options.auto_run_on_start = True
   """
   test_list = """
-    TestGroup(id='G1', run_if='foo.g1', subtests=[
-      OperatorTest(id='T1', autotest_name='a_A', run_if='foo.t1'),
-      OperatorTest(id='T2', autotest_name='a_A', run_if='foo.t2'),
-      OperatorTest(id='T3', autotest_name='a_A', run_if='foo.t3'),
-      OperatorTest(id='T4', autotest_name='a_A'),
-    ])
+    with test_lists.TestGroup(id='G1', run_if='foo.g1'):
+      test_lists.OperatorTest(id='T1', autotest_name='a_A', run_if='foo.t1')
+      test_lists.OperatorTest(id='T2', autotest_name='a_A', run_if='foo.t2')
+      test_lists.OperatorTest(id='T3', autotest_name='a_A', run_if='foo.t3')
+      test_lists.OperatorTest(id='T4', autotest_name='a_A')
   """
 
   def runTest(self):
@@ -760,12 +805,11 @@ class GroupRunIfSkipTest(GoofyTest):
     options.auto_run_on_start = False
   """
   test_list = """
-    TestGroup(id='G1', run_if='foo.g1', subtests=[
-      OperatorTest(id='T1', autotest_name='a_A', run_if='foo.t1'),
-      OperatorTest(id='T2', autotest_name='a_A', run_if='foo.t2'),
-      OperatorTest(id='T3', autotest_name='a_A', run_if='foo.t3'),
-      OperatorTest(id='T4', autotest_name='a_A'),
-    ])
+    with test_lists.TestGroup(id='G1', run_if='foo.g1'):
+      test_lists.OperatorTest(id='T1', autotest_name='a_A', run_if='foo.t1')
+      test_lists.OperatorTest(id='T2', autotest_name='a_A', run_if='foo.t2')
+      test_lists.OperatorTest(id='T3', autotest_name='a_A', run_if='foo.t3')
+      test_lists.OperatorTest(id='T4', autotest_name='a_A')
   """
 
   def runTest(self):
@@ -882,13 +926,13 @@ class ForceBackgroundTest(GoofyTest):
     All the other combinations are allowed
   """
   test_list = """
-    FactoryTest(id='aA', pytest_name='a_A'),
-    FactoryTest(id='bB', pytest_name='b_B'),
-    FactoryTest(id='cC', pytest_name='c_C', backgroundable=True),
-    FactoryTest(id='dD', pytest_name='d_D', force_background=True),
-    FactoryTest(id='eE', pytest_name='e_E'),
-    FactoryTest(id='fF', pytest_name='f_F', force_background=True),
-    FactoryTest(id='gG', pytest_name='g_G', backgroundable=True),
+    test_lists.FactoryTest(id='aA', pytest_name='a_A')
+    test_lists.FactoryTest(id='bB', pytest_name='b_B')
+    test_lists.FactoryTest(id='cC', pytest_name='c_C', backgroundable=True)
+    test_lists.FactoryTest(id='dD', pytest_name='d_D', force_background=True)
+    test_lists.FactoryTest(id='eE', pytest_name='e_E')
+    test_lists.FactoryTest(id='fF', pytest_name='f_F', force_background=True)
+    test_lists.FactoryTest(id='gG', pytest_name='g_G', backgroundable=True)
   """
 
   def runTest(self):
@@ -941,8 +985,8 @@ class WaivedTestTest(GoofyTest):
     options.stop_on_failure = True
   """
   test_list = """
-    FactoryTest(id='waived', pytest_name='waived_test', waived=True),
-    FactoryTest(id='normal', pytest_name='normal_test')
+    test_lists.FactoryTest(id='waived', pytest_name='waived_test', waived=True)
+    test_lists.FactoryTest(id='normal', pytest_name='normal_test')
   """
 
   def runTest(self):
@@ -967,10 +1011,12 @@ class NoHostTest(GoofyUITest):
   """A test to verify that tests marked 'no_host' run without host UI."""
 
   test_list = """
-    OperatorTest(id='a', pytest_name='execpython', no_host=True,
-           dargs={'script': 'assert "Tomato" == "Tomato"'}),
-    OperatorTest(id='b', pytest_name='execpython', no_host=False,
-           dargs={'script': 'assert "Tomato" == "Tomato"'})
+    test_lists.OperatorTest(
+        id='a', pytest_name='execpython', no_host=True,
+        dargs={'script': 'assert "Tomato" == "Tomato"'})
+    test_lists.OperatorTest(
+        id='b', pytest_name='execpython', no_host=False,
+        dargs={'script': 'assert "Tomato" == "Tomato"'})
   """
 
   def runTest(self):

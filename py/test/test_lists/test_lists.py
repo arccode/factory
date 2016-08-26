@@ -18,14 +18,8 @@ from collections import namedtuple
 from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
-
-# Imports needed for test list modules.  Some may be unused by this
-# module (hence disable=W06110), but they are included here so that
-# they can be imported directly by test lists.
 from cros.factory.test.env import paths
-from cros.factory.test.factory import RequireRun
-from cros.factory.utils.net_utils import WLAN  # pylint: disable=W0611
+from cros.factory.test import factory
 
 
 # Directory for new-style test lists.
@@ -185,7 +179,7 @@ def AutomatedSequence(*args, **kwargs):
 
 
 def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False,
-              dut_options=None):
+              dut_options=None, exclusive=None):
   # pylint: disable=W0622
   """Adds a test group to the current test list.
 
@@ -212,7 +206,8 @@ def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False,
   """
   return Add(factory.TestGroup(id=id, label_en=label_en, label_zh=label_zh,
                                run_if=run_if, no_host=no_host,
-                               dut_options=(dut_options or {})))
+                               dut_options=(dut_options or {}),
+                               exclusive=exclusive))
 
 
 def OperatorTest(*args, **kwargs):
@@ -246,7 +241,7 @@ def FullRebootStep(*args, **kwargs):
 
 
 def Passed(name):
-  return RequireRun(name, passed=True)
+  return factory.RequireRun(name, passed=True)
 
 
 @contextmanager
@@ -338,34 +333,6 @@ def BuildTestLists(module):
     builder_state.__dict__.clear()
 
 
-class OldStyleTestList(object):
-  """A reference to an old-style test list.
-
-  This object contains the same id and label_en attributes as
-  FactoryTestList (e.g., to use to display a full test list menu) but
-  it does not contain the full contents of the test list, since
-  loading all test lists may be slow and have side effects.  Use Load
-  to actually load the list.
-  """
-
-  def __init__(self, test_list_id, label_en, path):
-    self.test_list_id = test_list_id
-    self.label_en = label_en
-    self.path = path
-
-  def Load(self, state_instance=None):
-    """Loads the test list referred to by this object.
-
-    Returns:
-      A FactoryTestList object.
-    """
-    logging.info('Loading old-style test list %s', self.path)
-    test_list = factory.read_test_list(self.path, state_instance)
-    # Set test_list_id: old-style test lists don't know their own ID.
-    test_list.test_list_id = self.test_list_id
-    return test_list
-
-
 def BuildAllTestLists(force_generic=False):
   """Builds all test lists in this package.
 
@@ -378,9 +345,8 @@ def BuildAllTestLists(force_generic=False):
 
   Returns:
     A 2-element tuple, containing: (1) A dict mapping test list IDs to test list
-    objects.  Values are either OldStyleTestList objects (for old-style test
-    lists), or TestList objects (for new-style test lists).  (2) A dict mapping
-    files that failed to load to the output of sys.exc_info().
+    objects.  Values are TestList objects.  (2) A dict mapping files that failed
+    to load to the output of sys.exc_info().
   """
   test_lists = {}
   failed_files = {}
@@ -429,48 +395,6 @@ def BuildAllTestLists(force_generic=False):
         logging.exception('Unable to read test lists from %s', module_name)
         failed_files[f] = sys.exc_info()
 
-  # Also read in all old-style test lists.  We don't actually evaluate
-  # the contents yet, since that might be very slow and have side
-  # effects; rather, we create an placeholder OldStyleTestList object
-  # (which can be Load()ed on demand).
-  old_style_test_lists_path = os.path.join(paths.FACTORY_PATH, 'test_lists')
-  for d in [CUSTOM_DIR, old_style_test_lists_path]:
-    # Do this in sorted order to make sure that it's deterministic,
-    # and we see test_list before test_list.generic.
-    for path in sorted(glob.glob(os.path.join(d, 'test_list*'))):
-      if path.endswith('~') or path.endswith('#'):
-        continue
-
-      match = re.match(
-          r'test_list'    # test_list prefix
-          r'(?:\.(.+))?'  # optional dot plus suffix
-          r'$',
-          os.path.basename(path))
-      if not match:
-        continue
-      test_list_id = match.group(1)
-
-      # Use MAIN_TEST_LIST_ID for either 'test_list' or
-      # 'test_list.generic'.
-      if test_list_id in [None, 'generic']:
-        test_list_id = MAIN_TEST_LIST_ID
-
-      # Never override a new-style test list; and never let
-      # test_list.generic override test_list.
-      if test_list_id in test_lists:
-        continue
-
-      with open(path) as f:
-        # Look for the test list name, if specified in the test list.
-        match = re.search(r'^\s*TEST_LIST_NAME\s*=\s*'
-                          r'u?'        # Optional u for unicode
-                          r"([\'\"])"  # Single or double quote
-                          r'(.+)'      # The actual name
-                          r'\1',       # The quotation mark
-                          f.read(), re.MULTILINE)
-      name = match.group(2) if match else test_list_id
-      test_lists[test_list_id] = OldStyleTestList(test_list_id, name, path)
-
   return test_lists, failed_files
 
 
@@ -485,11 +409,8 @@ def DescribeTestLists(test_lists):
     A string like "bar, foo (old-style), main".
   """
   ret = []
-  for k, v in sorted(test_lists.items()):
-    if isinstance(v, OldStyleTestList):
-      ret.append('%s (old-style)' % k)
-    else:
-      ret.append(k)
+  for k in sorted(test_lists.keys()):
+    ret.append(k)
   return ', '.join(ret)
 
 

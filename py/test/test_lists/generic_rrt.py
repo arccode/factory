@@ -24,9 +24,8 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
 from cros.factory.test.test_lists.test_lists import TestList
-from cros.factory.test.test_lists.test_lists import WLAN
 from cros.factory.utils import sys_utils
-from cros.factory.utils.net_utils import GetWLANInterface
+from cros.factory.utils.net_utils import GetWLANInterface, WLAN
 
 HOURS = 60 * 60
 MINUTES = 60
@@ -665,7 +664,7 @@ def CreateTestLists():
     CreateRebootStressTestList()
     CreateRunInStressTestList()
   else:
-    with TestList('generic_rrt', 'Generic Rolling Reliability') as test_list:
+    with TestList('generic_rrt', 'Generic Rolling Reliability'):
       OperatorTest(
           id='MessageNotSupport',
           label_zh=u'不支援',

@@ -26,7 +26,6 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.env import paths
-from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
 
 
@@ -173,58 +172,6 @@ def has_shared_data(key):
 
 def del_shared_data(key):
   return get_state_instance().del_shared_data(key)
-
-
-def read_test_list(path=None, state_instance=None, text=None):
-  if len([x for x in [path, text] if x]) != 1:
-    raise TestListError('Exactly one of path and text must be set')
-
-  test_list_locals = {}
-
-  # Import test classes into the evaluation namespace
-  for (k, v) in dict(globals()).iteritems():
-    if type(v) == type and issubclass(v, FactoryTest):
-      test_list_locals[k] = v
-
-  # Import types necessary to construct the test list.
-  test_list_locals['WLAN'] = net_utils.WLAN
-  test_list_locals['RequireRun'] = RequireRun
-  test_list_locals['ALL'] = ALL
-
-  # Add "Passed(x)" as an alias for "RequireRun(x, passed=True)", e.g.,
-  #
-  #   OperatorTest(..., require_run=Passed('a'))
-  test_list_locals['Passed'] = lambda name: RequireRun(name, passed=True)
-
-  # Add "LoadTestList(x)" allowing evaluation of another test list.
-  def LoadTestList(name):
-    path = os.path.join(paths.FACTORY_PATH, 'test_lists', name)
-    logging.info('LoadTestList: loading %s', path)
-    execfile(path, test_list_locals)
-  test_list_locals['LoadTestList'] = LoadTestList
-
-  options = Options()
-  test_list_locals['options'] = options
-
-  if path:
-    execfile(path, test_list_locals)
-  else:
-    exec text in test_list_locals
-  assert 'TEST_LIST' in test_list_locals, (
-      'Test list %s does not define TEST_LIST' % (path or '<text>'))
-
-  options.check_valid()
-
-  label_en = test_list_locals.get('TEST_LIST_NAME')
-  if not label_en and path:
-    label_en = os.path.basename(path)
-
-  return FactoryTestList(
-      test_list_locals['TEST_LIST'],
-      state_instance or get_state_instance(),
-      options,
-      None,
-      label_en)
 
 
 _inited_logging = False

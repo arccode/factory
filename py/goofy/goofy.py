@@ -1296,11 +1296,7 @@ class Goofy(GoofyBase):
 
     # Check for a non-existent test list ID.
     try:
-      if os.sep in self.options.test_list:
-        # It's a path pointing to an old-style test list; use it.
-        self.test_list = factory.read_test_list(self.options.test_list)
-      else:
-        self.test_list = self.GetTestList(self.options.test_list)
+      self.test_list = self.GetTestList(self.options.test_list)
       logging.info('Active test list: %s', self.test_list.test_list_id)
     except test_lists.TestListError as e:
       logging.exception('Invalid active test list: %s',
@@ -1309,11 +1305,6 @@ class Goofy(GoofyBase):
 
     # We may have failed loading the active test list.
     if self.test_list:
-      if isinstance(self.test_list, test_lists.OldStyleTestList):
-        # Actually load it in.  (See OldStyleTestList for an explanation
-        # of why this is necessary.)
-        self.test_list = self.test_list.Load()
-
       self.test_list.state_instance = self.state_instance
 
       # Prepare DUT link.
@@ -1382,8 +1373,8 @@ class Goofy(GoofyBase):
                       action='store_true',
                       help='Enable debug logging')
     parser.add_option('--print_test_list', dest='print_test_list',
-                      metavar='FILE',
-                      help='Read and print test list FILE, and exit')
+                      metavar='TEST_LIST_ID',
+                      help='Print the content of TEST_LIST_ID and exit')
     parser.add_option('--restart', dest='restart',
                       action='store_true',
                       help='Clear all test state')
@@ -1396,8 +1387,8 @@ class Goofy(GoofyBase):
                       help=('Factor by which to scale UI '
                             '(Chrome UI only)'))
     parser.add_option('--test_list', dest='test_list',
-                      metavar='FILE',
-                      help='Use FILE as test list')
+                      metavar='TEST_LIST_ID',
+                      help='Use test list whose id is TEST_LIST_ID')
     parser.add_option('--dummy_shopfloor', action='store_true',
                       help='Use a dummy shopfloor server')
     parser.add_option('--dummy_connection_manager', action='store_true',
@@ -1438,8 +1429,8 @@ class Goofy(GoofyBase):
       _inited_logging = True
 
     if self.options.print_test_list:
-      print(factory.read_test_list(
-          self.options.print_test_list).__repr__(recursive=True))
+      test_list = test_lists.BuildTestList(self.options.print_test_list)
+      print(test_list.__repr__(recursive=True))
       sys.exit(0)
 
     event_log.IncrementBootSequence()
