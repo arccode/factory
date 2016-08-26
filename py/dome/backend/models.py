@@ -40,16 +40,16 @@ class BoardModel(models.Model):
   name = models.CharField(max_length=200, primary_key=True)
   url = models.URLField()
 
-  class Meta:
+  class Meta(object):
     ordering = ['name']
 
 
 class Resource(object):
 
-  def __init__(self, type, version, hash, updatable):
-    self.type = type
-    self.version = version
-    self.hash = hash
+  def __init__(self, res_type, res_version, res_hash, updatable):
+    self.type = res_type
+    self.version = res_version
+    self.hash = res_hash
     self.updatable = updatable
 
 
@@ -70,14 +70,14 @@ class Bundle(object):
     #       'hash': {hash},
     #       'updatable': whether or not the resource can be updated}
     self.resources = {}
-    for type in resources:
-      match = re.match(r'^[^#]*#([^#]*)#([^#]*)$', resources[type])
+    for res_type in resources:
+      match = re.match(r'^[^#]*#([^#]*)#([^#]*)$', resources[res_type])
       if match and len(match.groups()) >= 2:
-        self.resources[type] = Resource(
-            type,  # type
+        self.resources[res_type] = Resource(
+            res_type,  # type
             match.group(1),  # version
             match.group(2),  # hash
-            True if type in UMPIRE_UPDATABLE_RESOURCE else False)  # updatable
+            res_type in UMPIRE_UPDATABLE_RESOURCE)  # updatable
 
     # TODO(littlecvr): add rulesets in umpire config.
 
@@ -115,7 +115,7 @@ class BundleModel(object):
     return self._GetConfig(self._GetStagingConfigPath())
 
   def _GetStagingConfigPath(self):
-     return os.path.join(
+    return os.path.join(
         UMPIRE_BASE_DIR, self.board, UMPIRE_STAGING_CONFIG_FILE_NAME)
 
   def _GetActiveConfigAndXMLRPCServer(self):

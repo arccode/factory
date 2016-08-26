@@ -138,3 +138,14 @@ STATIC_URL = '/static/'
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
+
+
+# django REST framework
+# http://www.django-rest-framework.org/api-guide/settings/
+
+REST_FRAMEWORK = {
+    # The default value "format" makes pylint complaining about "W0622:
+    # Redefining built-in 'format'", so we'll rename it to "request_format".
+    'FORMAT_SUFFIX_KWARG': 'request_format'
+}
+

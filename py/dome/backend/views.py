@@ -2,8 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from django.http import Http404
-from rest_framework import generics, mixins, status
+# TODO(littlecvr): return different format specified by "request_format"
+#                  variable.
+
+from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -20,13 +22,15 @@ class BoardCollectionView(generics.ListCreateAPIView):
 class BundleCollectionView(APIView):
   """List all bundles, or upload a new bundle."""
 
-  def get(self, request, board, format=None):
+  def get(self, unused_request, board,
+          request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
     bundle_list = BundleModel(board).ListAll()
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
-  def post(self, request, board, format=None):
+  def post(self, request, unused_board,
+           request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
     serializer = BundleSerializer(data=request.data)
     if serializer.is_valid():
@@ -34,10 +38,12 @@ class BundleCollectionView(APIView):
       return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class BundleView(APIView):
   """Update a bundle."""
 
-  def put(self, request, board, bundle, format=None):
+  def put(self, request, board, bundle,
+          request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
     bundle = BundleModel(board).ListOne(bundle)
     data = request.data.copy()
@@ -52,13 +58,13 @@ class BundleView(APIView):
 class BundleResourceView(APIView):
   """Update resource in a particular bundle."""
 
-  def put(self, request, board, format=None):
+  def put(self, request, board,
+          request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
     # TODO(littlecvr): should create bundle instance before creating serializer
     serializer = ResourceSerializer(board, data=request.data)
     if serializer.is_valid():
-      bundle = BundleModel(board).ListOne(
-          serializer.validated_data['src_bundle_name'])
+      BundleModel(board).ListOne(serializer.validated_data['src_bundle_name'])
       serializer.save()
       return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

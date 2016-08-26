@@ -11,7 +11,8 @@ from backend.models import BoardModel, BundleModel
 
 
 class BoardSerializer(serializers.ModelSerializer):
-  class Meta:
+
+  class Meta(object):
     model = BoardModel
     fields = ['name', 'url']
 
@@ -33,7 +34,12 @@ class ResourceSerializer(serializers.Serializer):
   resource_type = serializers.CharField(write_only=True)
   resource_file = serializers.FileField(write_only=True, use_url=False)
 
+  def create(self, validated_data):
+    """Override parent's method."""
+    raise NotImplementedError
+
   def update(self, instance, validated_data):
+    """Override parent's method."""
     old_path = validated_data['resource_file'].temporary_file_path()
     new_path = os.path.join(os.path.dirname(old_path),
                             validated_data['resource_file'].name)
@@ -68,6 +74,7 @@ class ResourceSerializer(serializers.Serializer):
 
 class BundleSerializer(serializers.Serializer):
   """Serialize or deserialize Bundle objects."""
+
   board = serializers.CharField(write_only=True)
   # TODO(littlecvr): define bundle name rules in a common place
   name = serializers.CharField()
@@ -91,11 +98,12 @@ class BundleSerializer(serializers.Serializer):
       os.chmod(new_path, os.stat(new_path)[stat.ST_MODE] | stat.S_IROTH)
 
       # We don't take advantage of django's FileField in model (which will
-      # automatically save the UploadedFile into file system and write information
-      # into the database), so we need to handle the file on our own.
+      # automatically save the UploadedFile into file system and write
+      # information into the database), so we need to handle the file on our
+      # own.
       new_validated_data = validated_data.copy()
       # convert 'bundle_file' to 'file_path'
-      new_validated_data.pop('bundle_file');
+      new_validated_data.pop('bundle_file')
       new_validated_data['file_path'] = new_path
 
       board = new_validated_data.pop('board')
