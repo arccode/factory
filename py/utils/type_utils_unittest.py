@@ -57,11 +57,19 @@ class LazyPropertyTest(unittest.TestCase):
       self.prop_initialized += 1
       return LazyPropertyTest.BaseClass
 
+    @type_utils.LazyProperty
+    def base_prop(self):
+      return 'base_prop'
+
   class DerivedClass(BaseClass):
     @type_utils.LazyProperty
     def myclass(self):
       self.prop_initialized += 1
       return LazyPropertyTest.DerivedClass
+
+    @type_utils.LazyProperty
+    def derived_prop(self):
+      return 'derived_prop'
 
   def testGetterForBaseClass(self):
     obj = self.BaseClass()
@@ -86,11 +94,26 @@ class LazyPropertyTest(unittest.TestCase):
     with self.assertRaises(AttributeError):
       obj.myclass = 123
 
-  def testSetByOverride(self):
+  def testSetByOverrideOnBaseClass(self):
     obj = self.BaseClass()
     type_utils.LazyProperty.Override(obj, 'myclass', 123)
     self.assertEqual(obj.prop_initialized, 0)
     self.assertEqual(obj.myclass, 123)
+
+    type_utils.LazyProperty.Override(obj, 'base_prop', 456)
+    self.assertEqual(obj.base_prop, 456)
+
+  def testSetByOverrideOnDerivedClass(self):
+    obj = self.DerivedClass()
+    type_utils.LazyProperty.Override(obj, 'myclass', 123)
+    self.assertEqual(obj.prop_initialized, 0)
+    self.assertEqual(obj.myclass, 123)
+
+    type_utils.LazyProperty.Override(obj, 'base_prop', 456)
+    self.assertEqual(obj.base_prop, 456)
+
+    type_utils.LazyProperty.Override(obj, 'derived_prop', 789)
+    self.assertEqual(obj.derived_prop, 789)
 
 
 class UniqueSetTest(unittest.TestCase):

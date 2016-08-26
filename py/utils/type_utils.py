@@ -292,10 +292,10 @@ class LazyProperty(object):
 
   @classmethod
   def Override(cls, obj, prop_name, value):
-    obj_props = type(obj).__dict__
-    if prop_name not in obj_props:
+    obj_class = type(obj)
+    if not hasattr(obj_class, prop_name):
       raise AttributeError('%s has no attribute named %s' % (obj, prop_name))
-    if not isinstance(obj_props[prop_name].__get__(None, None), cls):
+    if not isinstance(getattr(obj_class, prop_name), cls):
       raise AttributeError('%s is not a %s' % (prop_name, cls.__name__))
     setattr(obj, cls.PROP_NAME_PREFIX + prop_name, value)
 
