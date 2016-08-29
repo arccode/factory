@@ -92,6 +92,10 @@ class BundleModel(object):
   TODO(littlecvr): complete the umpire RPC calls, decouple dome and umpire.
   """
 
+  # TODO(littlecvr): ModifyOne, DeleteOne, and ReorderBundles are doing similar
+  #                  things (stage config, modify config, deploy), refactory
+  #                  them.
+
   def __init__(self, board):
     """Constructor.
 
@@ -272,6 +276,38 @@ class BundleModel(object):
     self.Deploy()
 
     return self.ListOne(bundle['bundle_id'])
+
+  def ReorderBundles(self, new_order):
+    """Reorder the bundles in Umpire config.
+
+    TODO(littlecvr): make sure this also works if multiple users are using at
+                     the same time.
+
+    Args:
+      new_order: a list of bundle names.
+    """
+    self.Stage()
+
+    old_config = self._NormalizeConfig(self._GetStagingConfig())
+
+    # make sure all names are in current config
+    old_bundle_set = set(b['id'] for b in old_config['bundles'])
+    new_bundle_set = set(new_order)
+    if old_bundle_set != new_bundle_set:
+      raise ValueError('When reordering, all bundles must be listed')
+
+    new_config = old_config.copy()
+    new_config['rulesets'] = []
+    for name in new_order:
+      new_config['rulesets'].append(
+          next(r for r in old_config['rulesets'] if r['bundle_id'] == name))
+
+    with open(self._GetStagingConfigPath(), 'w') as f:
+      yaml.dump(new_config, stream=f, default_flow_style=False)
+
+    self.Deploy()
+
+    return self.ListAll()
 
   def UpdateResource(self, src_bundle_name, dst_bundle_name, note,
                      resource_type, resource_file_path):
