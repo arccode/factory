@@ -184,6 +184,25 @@ class BundleModel(object):
     _, server = self._GetActiveConfigAndXMLRPCServer()
     server.UnstageConfigFile()
 
+  def DeleteOne(self, bundle_name):
+    """Delete a bundle in Umpire config.
+
+    Args:
+      bundle_name: the bundle to delete.
+    """
+    self.Stage()
+
+    config = self._NormalizeConfig(self._GetStagingConfig())
+    config['rulesets'] = [
+        r for r in config['rulesets'] if r['bundle_id'] != bundle_name]
+    config['bundles'] = [
+        b for b in config['bundles'] if b['id'] != bundle_name]
+
+    with open(self._GetStagingConfigPath(), 'w') as f:
+      yaml.dump(config, stream=f, default_flow_style=False)
+
+    self.Deploy()
+
   def ListOne(self, bundle_name):
     """Return the bundle that matches the search criterion.
 
@@ -248,7 +267,7 @@ class BundleModel(object):
     bundle['active'] = active
 
     with open(self._GetStagingConfigPath(), 'w') as f:
-      f.write(yaml.dump(config, default_flow_style=False))
+      yaml.dump(config, stream=f, default_flow_style=False)
 
     self.Deploy()
 
@@ -307,7 +326,7 @@ class BundleModel(object):
 
     # TODO(littlecvr): should respect umpire's default order
     with open(staging_config_file, 'w') as f:
-      f.write(yaml.dump(config, default_flow_style=False))
+      yaml.dump(config, stream=f, default_flow_style=False)
 
     self.Deploy()
 
@@ -343,7 +362,7 @@ class BundleModel(object):
         ruleset['active'] = True
         break
     with open(staging_config_path, 'w') as f:
-      f.write(yaml.dump(config, default_flow_style=False))
+      yaml.dump(config, stream=f, default_flow_style=False)
 
     self.Deploy()
 

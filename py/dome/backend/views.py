@@ -38,9 +38,14 @@ class BundleCollectionView(APIView):
       return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class BundleView(APIView):
-  """Update a bundle."""
+  """Delete or update a bundle."""
+
+  def delete(self, unused_request, board, bundle,
+             request_format=None):  # pylint: disable=unused-argument
+    """Override parent's method."""
+    BundleModel(board).DeleteOne(bundle)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
   def put(self, request, board, bundle,
           request_format=None):  # pylint: disable=unused-argument
