@@ -74,7 +74,7 @@ def IsDestinationPortEnabled(port):
 
 
 def EnableDestinationPort(port):
-  """Eanble the destination port in iptables."""
+  """Enable the destination port in iptables."""
   if not IsDestinationPortEnabled(port):
     cmd = ('iptables -A INPUT -p tcp -m conntrack --ctstate NEW --dport %d '
            '-j ACCEPT' % port)
