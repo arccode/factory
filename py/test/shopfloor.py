@@ -480,7 +480,8 @@ def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
   if post_update_event:
-    EventClient().post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
+    with EventClient() as event_client:
+      event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
   return data
 
 
@@ -505,7 +506,8 @@ def UpdateDeviceData(new_device_data, post_update_event=True):
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
   if post_update_event:
-    EventClient().post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
+    with EventClient() as event_client:
+      event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
   return data
 
 
