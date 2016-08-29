@@ -48,7 +48,7 @@ var Bundle = React.createClass({
   },
 
   render() {
-    const {bundle} = this.props;
+    const {bundle, deleteBundle} = this.props;
 
     const INACTIVE_STYLE = {
       opacity: 0.3
@@ -95,7 +95,7 @@ var Bundle = React.createClass({
             <IconButton
               tooltip="delete this bundle"
               onClick={e => e.stopPropagation()}
-              onTouchTap={() => console.log('not implemented')}
+              onTouchTap={() => deleteBundle(bundle.get('name'))}
             >
               <DeleteIcon />
             </IconButton>
@@ -112,7 +112,8 @@ var Bundle = React.createClass({
 function mapDispatchToProps(dispatch) {
   return {
     activateBundle: (name, active) =>
-        dispatch(BundlesActions.activateBundle(name, active))
+        dispatch(BundlesActions.activateBundle(name, active)),
+    deleteBundle: name => dispatch(BundlesActions.deleteBundle(name))
   };
 }
 

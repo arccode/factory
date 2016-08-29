@@ -98,6 +98,15 @@ const activateBundle = (name, active) => (dispatch, getState) => {
       .then(() => dispatch(fetchBundles()));
 };
 
+const deleteBundle = name => (dispatch, getState) => {
+  var formData = new FormData();
+  var taskDescription = `Deleting bundle ${name}...`;
+  // TODO(littlecvr): this function can do more than it looks like, rename it
+  _createAndStartUploadingTask(dispatch, getState, taskDescription,
+                               'DELETE', `bundles/${name}`, new FormData())
+      .then(() => dispatch(fetchBundles()));
+};
+
 const openForm = (formName, payload) => (dispatch, getState) => {
   // The file input does not fire any event when canceled, if the user opened
   // the file dialog and canceled, its onChange handler won't be called, the
@@ -166,6 +175,7 @@ export default {
   fetchBundles,
   reorderBundles,
   activateBundle,
+  deleteBundle,
   openForm,
   closeForm,
   dismissUploadingTask,
