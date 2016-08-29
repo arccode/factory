@@ -23,10 +23,7 @@ from django.db import models
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put
 #                  them into a config file (using the new config API).
-UMPIRE_BASE_DIR = os.path.join('/', 'var', 'db', 'factory', 'umpire')
-UMPIRE_ACTIVE_CONFIG_FILE_NAME = 'active_umpire.yaml'
-UMPIRE_STAGING_CONFIG_FILE_NAME = 'staging_umpire.yaml'
-UMPIRE_CLI_PORT_OFFSET = 2
+UMPIRE_CONFIG_BASENAME = 'umpire.yaml'
 UMPIRE_RESOURCE_NAME_ALIAS = {
     'device_factory_toolkit': 'factory_toolkit',
     'server_factory_toolkit': 'factory_toolkit'}
@@ -38,6 +35,12 @@ class BoardModel(models.Model):
   # TODO(littlecvr): pull max length to common config with Umpire
   # TODO(littlecvr): need a validator, no spaces allowed
   name = models.CharField(max_length=200, primary_key=True)
+
+  # TODO(littlecvr): consider whether to accept blank URL or not, accepting
+  #                  blank URL may be more convenient for local Umpire
+  #                  instances, we can get port from local config file, so the
+  #                  user only needs to input the board name to access the
+  #                  Umpire instance
   url = models.URLField()
 
   class Meta(object):
@@ -92,10 +95,6 @@ class BundleModel(object):
   TODO(littlecvr): complete the umpire RPC calls, decouple dome and umpire.
   """
 
-  # TODO(littlecvr): ModifyOne, DeleteOne, and ReorderBundles are doing similar
-  #                  things (stage config, modify config, deploy), refactory
-  #                  them.
-
   def __init__(self, board):
     """Constructor.
 
@@ -104,30 +103,37 @@ class BundleModel(object):
     """
     self.board = board
 
-  def _GetConfig(self, config_path):
-    with open(config_path) as f:
-      return yaml.load(f.read())
+    # get URL of the board
+    url = BoardModel.objects.get(pk=board).url
+    self.umpire_server = xmlrpclib.ServerProxy(url, allow_none=True)
+    self.umpire_status = self.umpire_server.GetStatus()
 
-  def _GetActiveConfig(self):
-    return self._GetConfig(self._GetActiveConfigPath())
+  def _GetNormalizedActiveConfig(self):
+    """Return the normalized version of Umpire active config."""
+    config = yaml.load(self.umpire_status['active_config'])
+    return self._NormalizeConfig(config)
 
-  def _GetActiveConfigPath(self):
-    return os.path.join(
-        UMPIRE_BASE_DIR, self.board, UMPIRE_ACTIVE_CONFIG_FILE_NAME)
+  def _UploadAndDeployConfig(self, config, force=False):
+    """Upload and deploy config atomically."""
+    staging_config_path = self.umpire_server.UploadConfig(
+        UMPIRE_CONFIG_BASENAME, yaml.dump(config, default_flow_style=False))
 
-  def _GetStagingConfig(self):
-    return self._GetConfig(self._GetStagingConfigPath())
+    try:
+      self.umpire_server.StageConfigFile(staging_config_path, force)
+    except Exception as e:
+      raise EnvironmentError('Cannot stage config file, make sure no one is '
+                             'editing Umpire config at the same time, and '
+                             'there is no staging config exists. Error '
+                             'message: %r' % e)
 
-  def _GetStagingConfigPath(self):
-    return os.path.join(
-        UMPIRE_BASE_DIR, self.board, UMPIRE_STAGING_CONFIG_FILE_NAME)
+    try:
+      self.umpire_server.Deploy(staging_config_path)
+    except Exception as e:
+      self.umpire_server.UnstageConfigFile()
+      raise RuntimeError('Cannot deploy Umpire config, error message: %r' % e)
 
-  def _GetActiveConfigAndXMLRPCServer(self):
-    umpire_active_config = self._GetActiveConfig()
-    port = umpire_active_config['port'] + UMPIRE_CLI_PORT_OFFSET
-    umpire_rpc_server = xmlrpclib.ServerProxy(
-        'http://localhost:%d' % port, allow_none=True)
-    return (umpire_active_config, umpire_rpc_server)
+    # refresh status
+    self.umpire_status = self.umpire_server.GetStatus()
 
   def _NormalizeConfig(self, config):
     # We do not allow multiple rulesets referring to the same bundle, so
@@ -163,49 +169,19 @@ class BundleModel(object):
 
     return config
 
-  def Deploy(self):
-    """Deploy umpire.
-
-    This function should only be called when there is a staging config. See
-    umpire's doc for more info.
-    """
-    _, server = self._GetActiveConfigAndXMLRPCServer()
-
-    # validate and deploy
-    umpire_status = server.GetStatus()
-    config_to_deploy_text = umpire_status['staging_config']
-    config_to_deploy_res = umpire_status['staging_config_res']
-    server.ValidateConfig(config_to_deploy_text)
-    server.Deploy(config_to_deploy_res)
-
-  def Stage(self):
-    """Stage a config file."""
-    _, server = self._GetActiveConfigAndXMLRPCServer()
-    server.StageConfigFile(None)
-
-  def Unstage(self):
-    """Unstage the config file."""
-    _, server = self._GetActiveConfigAndXMLRPCServer()
-    server.UnstageConfigFile()
-
   def DeleteOne(self, bundle_name):
     """Delete a bundle in Umpire config.
 
     Args:
       bundle_name: the bundle to delete.
     """
-    self.Stage()
-
-    config = self._NormalizeConfig(self._GetStagingConfig())
+    config = self._GetNormalizedActiveConfig()
     config['rulesets'] = [
         r for r in config['rulesets'] if r['bundle_id'] != bundle_name]
     config['bundles'] = [
         b for b in config['bundles'] if b['id'] != bundle_name]
 
-    with open(self._GetStagingConfigPath(), 'w') as f:
-      yaml.dump(config, stream=f, default_flow_style=False)
-
-    self.Deploy()
+    self._UploadAndDeployConfig(config)
 
   def ListOne(self, bundle_name):
     """Return the bundle that matches the search criterion.
@@ -214,7 +190,7 @@ class BundleModel(object):
       bundle_name: name of the bundle to find, this corresponds to the "id"
           field in umpire config.
     """
-    config = self._GetActiveConfig()
+    config = self._GetNormalizedActiveConfig()
 
     active = False
     for b in config['rulesets']:
@@ -244,7 +220,7 @@ class BundleModel(object):
     Return:
       A list of all bundles.
     """
-    config = self._GetActiveConfig()
+    config = self._GetNormalizedActiveConfig()
 
     bundle_set = set()  # to fast determine if a bundle has been added
     bundle_list = list()
@@ -264,16 +240,11 @@ class BundleModel(object):
       name: name of the bundle.
       active: True to make the bundle active, False to make the bundle inactive.
     """
-    self.Stage()
-
-    config = self._NormalizeConfig(self._GetStagingConfig())
+    config = self._GetNormalizedActiveConfig()
     bundle = next(b for b in config['rulesets'] if b['bundle_id'] == name)
     bundle['active'] = active
 
-    with open(self._GetStagingConfigPath(), 'w') as f:
-      yaml.dump(config, stream=f, default_flow_style=False)
-
-    self.Deploy()
+    self._UploadAndDeployConfig(config)
 
     return self.ListOne(bundle['bundle_id'])
 
@@ -286,9 +257,7 @@ class BundleModel(object):
     Args:
       new_order: a list of bundle names.
     """
-    self.Stage()
-
-    old_config = self._NormalizeConfig(self._GetStagingConfig())
+    old_config = self._GetNormalizedActiveConfig()
 
     # make sure all names are in current config
     old_bundle_set = set(b['id'] for b in old_config['bundles'])
@@ -302,10 +271,7 @@ class BundleModel(object):
       new_config['rulesets'].append(
           next(r for r in old_config['rulesets'] if r['bundle_id'] == name))
 
-    with open(self._GetStagingConfigPath(), 'w') as f:
-      yaml.dump(new_config, stream=f, default_flow_style=False)
-
-    self.Deploy()
+    self._UploadAndDeployConfig(new_config)
 
     return self.ListAll()
 
@@ -326,14 +292,13 @@ class BundleModel(object):
     # Replace with the alias if needed.
     resource_type = UMPIRE_RESOURCE_NAME_ALIAS.get(resource_type, resource_type)
 
-    _, server = self._GetActiveConfigAndXMLRPCServer()
-    staging_config_file = server.Update(
+    self.umpire_server.Update(
         [(resource_type, resource_file_path)], src_bundle_name, dst_bundle_name)
 
     # Umpire does not allow the user to add bundle note directly via update. So
     # duplicate the source bundle first.
-    with open(staging_config_file) as f:
-      config = yaml.load(f.read())
+    self.umpire_status = self.umpire_server.GetStatus()
+    config = yaml.load(self.umpire_status['staging_config'])
 
     # find source bundle
     src_bundle = None
@@ -360,11 +325,8 @@ class BundleModel(object):
         if dst_bundle_name == b['id']:
           b['note'] = str(note)
 
-    # TODO(littlecvr): should respect umpire's default order
-    with open(staging_config_file, 'w') as f:
-      yaml.dump(config, stream=f, default_flow_style=False)
-
-    self.Deploy()
+    # config staged before, need the force argument or Umpire will complain
+    self._UploadAndDeployConfig(config, force=True)
 
     return {'bundle_name': dst_bundle_name or src_bundle_name,
             'resource_type': resource_type,
@@ -384,23 +346,16 @@ class BundleModel(object):
     Return:
       The newly created bundle.
     """
-    _, server = self._GetActiveConfigAndXMLRPCServer()
+    self.umpire_server.ImportBundle(os.path.realpath(file_path), name, note)
 
-    # import bundle
-    staging_config_path = server.ImportBundle(
-        os.path.realpath(file_path), name, note)
-
-    # make the bundle active
-    with open(staging_config_path) as f:
-      config = yaml.load(f.read())
+    self.umpire_status = self.umpire_server.GetStatus()
+    config = yaml.load(self.umpire_status['staging_config'])
     for ruleset in config['rulesets']:
       if ruleset['bundle_id'] == name:
         ruleset['active'] = True
         break
-    with open(staging_config_path, 'w') as f:
-      yaml.dump(config, stream=f, default_flow_style=False)
 
-    self.Deploy()
+    self._UploadAndDeployConfig(config)
 
     # find and return the new bundle
     return self.ListOne(name)
