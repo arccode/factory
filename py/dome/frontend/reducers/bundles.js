@@ -29,11 +29,6 @@ export default function bundlesReducer(state = INITIAL_STATE, action) {
         s.set('entries', Immutable.fromJS(action.bundles));
       });
 
-    case ActionTypes.REORDER_BUNDLES:
-      return state.set('entries', Immutable.fromJS(arrayMove(
-          state.get('entries').toJS(), action.oldIndex, action.newIndex
-      )));
-
     case ActionTypes.OPEN_FORM:
       return state.withMutations((s) => {
         s.setIn(['formVisibility', action.formName], true);

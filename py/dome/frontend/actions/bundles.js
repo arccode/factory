@@ -4,6 +4,7 @@
 
 import 'babel-polyfill';
 import fetch from 'isomorphic-fetch';
+import {arrayMove} from 'react-sortable-hoc';
 
 import ActionTypes from '../constants/ActionTypes';
 import FormNames from '../constants/FormNames';
@@ -23,8 +24,9 @@ function _checkHTTPStatus(response) {
   }
 }
 
-function _createAndStartUploadingTask(dispatch, getState, taskDescription,
-                                      method, url, formData) {
+function _createAndStartUploadingTask(
+    dispatch, getState, taskDescription, method, url, body,
+    contentType = null) {
   var uploadingTasks = getState().getIn(['bundles', 'uploadingTasks']);
   var taskIDs = uploadingTasks.keySeq().toArray().map(parseInt);
 
@@ -35,10 +37,13 @@ function _createAndStartUploadingTask(dispatch, getState, taskDescription,
 
   dispatch(createUploadingTask(taskID, taskDescription));
 
-  return fetch(`${_apiURL(getState)}/${url}/`, {
-    method: method,
-    body: formData
-  }).then(_checkHTTPStatus).then(function() {
+  var request = {method, body};
+  if (contentType !== null) {
+    request['headers'] = {'Content-Type': contentType};
+  }
+  return fetch(`${_apiURL(getState)}/${url}/`, request).then(
+    _checkHTTPStatus
+  ).then(function() {
     dispatch(changeUploadingTaskState(
         taskID, UploadingTaskStates.UPLOADING_TASK_SUCCEEDED
     ));
@@ -78,12 +83,19 @@ const fetchBundles = () => (dispatch, getState) => {
   });
 };
 
-// TODO(littlecvr): need to send request to the server to process.
-const reorderBundles = (oldIndex, newIndex) => ({
-  type: ActionTypes.REORDER_BUNDLES,
-  oldIndex,
-  newIndex
-});
+const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
+  var new_bundle_list = getState().getIn(['bundles', 'entries']).map(bundle => (
+      bundle.get('name')
+  )).toArray();
+  new_bundle_list = arrayMove(new_bundle_list, oldIndex, newIndex);
+  var taskDescription = 'Reordering bundles...';
+
+  _createAndStartUploadingTask(dispatch, getState, taskDescription,
+                               'PUT', 'bundles',
+                               JSON.stringify(new_bundle_list),
+                               'application/json')
+      .then(() => dispatch(fetchBundles()));
+};
 
 const activateBundle = (name, active) => (dispatch, getState) => {
   var formData = new FormData();
