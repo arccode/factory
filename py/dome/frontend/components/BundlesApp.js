@@ -8,8 +8,8 @@ import FloatingActionButton from 'material-ui/FloatingActionButton';
 import Immutable from 'immutable';
 import React from 'react';
 
-import Actions from '../actions/bundles';
 import BundleList from './BundleList';
+import BundlesActions from '../actions/bundlesactions';
 import FormNames from '../constants/FormNames';
 import UpdatingResourceForm from './UpdatingResourceForm';
 import UploadingBundleForm from './UploadingBundleForm';
@@ -80,10 +80,10 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    openUploadingNewBundleForm:
-        () => dispatch(Actions.openForm(FormNames.UPLOADING_BUNDLE_FORM)),
+    openUploadingNewBundleForm: () =>
+        dispatch(BundlesActions.openForm(FormNames.UPLOADING_BUNDLE_FORM)),
     dismissUploadingTask:
-        taskID => dispatch(Actions.dismissUploadingTask(taskID))
+        taskID => dispatch(BundlesActions.dismissUploadingTask(taskID))
   };
 }
 

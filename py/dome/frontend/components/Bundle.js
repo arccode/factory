@@ -13,7 +13,7 @@ import {connect} from 'react-redux';
 import {Card, CardTitle, CardText} from 'material-ui/Card';
 import {SortableHandle} from 'react-sortable-hoc';
 
-import BundlesActions from '../actions/bundles';
+import BundlesActions from '../actions/bundlesactions';
 import ResourceTable from './ResourceTable';
 
 var DragHandle = SortableHandle(() => (

@@ -7,7 +7,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
-import Actions from '../actions/bundles';
+import BundlesActions from '../actions/bundlesactions';
 import Bundle from './Bundle';
 
 // The hierarchy of this component is complicated because of the design of
@@ -64,9 +64,9 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    handleRefresh: () => dispatch(Actions.fetchBundles()),
+    handleRefresh: () => dispatch(BundlesActions.fetchBundles()),
     handleReorder: ({oldIndex, newIndex}) =>
-        dispatch(Actions.reorderBundles(oldIndex, newIndex))
+        dispatch(BundlesActions.reorderBundles(oldIndex, newIndex))
   };
 }
 

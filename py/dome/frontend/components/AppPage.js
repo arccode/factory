@@ -11,7 +11,7 @@ import React from 'react';
 
 import AppNames from '../constants/AppNames';
 import BundlesApp from './BundlesApp';
-import DomeActions from '../actions/dome';
+import DomeActions from '../actions/domeactions';
 import FixedAppBar from './FixedAppBar';
 import SettingsApp from './SettingsApp';
 

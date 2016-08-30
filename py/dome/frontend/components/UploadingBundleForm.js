@@ -8,7 +8,7 @@ import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 import TextField from 'material-ui/TextField';
 
-import Actions from '../actions/bundles';
+import BundlesActions from '../actions/bundlesactions';
 import FormNames from '../constants/FormNames';
 
 var UploadingBundleForm = React.createClass({
@@ -112,9 +112,9 @@ function mapStateToProps(state, ownProps) {
 function mapDispatchToProps(dispatch) {
   return {
     startUploading:
-        formData => dispatch(Actions.startUploadingBundle(formData)),
-    cancelUploading:
-        () => dispatch(Actions.closeForm(FormNames.UPLOADING_BUNDLE_FORM))
+        formData => dispatch(BundlesActions.startUploadingBundle(formData)),
+    cancelUploading: () =>
+        dispatch(BundlesActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM))
   };
 }
 

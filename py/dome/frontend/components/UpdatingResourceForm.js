@@ -9,7 +9,7 @@ import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 import TextField from 'material-ui/TextField';
 
-import Actions from '../actions/bundles';
+import BundlesActions from '../actions/bundlesactions';
 import FormNames from '../constants/FormNames';
 
 var _NAME_INPUT_VALUE_ERROR_TEST =
@@ -151,9 +151,9 @@ function mapStateToProps(state, ownProps) {
 function mapDispatchToProps(dispatch) {
   return {
     startUpdating:
-        formData => dispatch(Actions.startUpdatingResource(formData)),
-    cancelUpdating:
-        () => dispatch(Actions.closeForm(FormNames.UPDATING_RESOURCE_FORM))
+        formData => dispatch(BundlesActions.startUpdatingResource(formData)),
+    cancelUpdating: () =>
+        dispatch(BundlesActions.closeForm(FormNames.UPDATING_RESOURCE_FORM))
   };
 }
 

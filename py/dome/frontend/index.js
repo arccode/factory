@@ -17,8 +17,8 @@ import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
 import BundlesApp from './components/BundlesApp';
 import DomeApp from './components/DomeApp';
-import bundlesReducer from './reducers/bundles';
-import domeReducer from './reducers/dome';
+import BundlesReducer from './reducers/bundlesreducer';
+import DomeReducer from './reducers/domereducer';
 
 // Needed for onTouchTap, see:
 // http://www.material-ui.com/#/get-started/installation
@@ -32,8 +32,8 @@ const THEME = {
 
 const store = createStore(
   combineReducers({
-    dome: domeReducer,
-    bundles: bundlesReducer
+    dome: DomeReducer,
+    bundles: BundlesReducer
   }),
   Immutable.Map(),  // initial state will be determined by each reducer
   applyMiddleware(

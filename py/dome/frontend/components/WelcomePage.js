@@ -10,7 +10,7 @@ import React from 'react';
 import SelectField from 'material-ui/SelectField';
 import TextField from 'material-ui/TextField';
 
-import DomeActions from '../actions/dome';
+import DomeActions from '../actions/domeactions';
 
 var WelcomePage = React.createClass({
   handleSelectChange(event, index, value) {
