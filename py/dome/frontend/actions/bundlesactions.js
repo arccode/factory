@@ -21,13 +21,13 @@ const fetchBundles = () => (dispatch, getState) => {
       dispatch(receiveBundles(json));
     }, error => {
       // TODO(littlecvr): better error handling
-      console.log('error parsing bundle list response');
-      console.log(error);
+      console.error('error parsing bundle list response');
+      console.error(error);
     });
   }, error => {
     // TODO(littlecvr): better error handling
-    console.log('error fetching bundle list');
-    console.log(error);
+    console.error('error fetching bundle list');
+    console.error(error);
   });
 };
 
@@ -41,7 +41,7 @@ const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
   DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'PUT',
                                  'bundles', JSON.stringify(new_bundle_list),
                                  'application/json')
-      .then(() => dispatch(fetchBundles()));
+    .then(() => dispatch(fetchBundles()));
 };
 
 const activateBundle = (name, active) => (dispatch, getState) => {
@@ -54,16 +54,15 @@ const activateBundle = (name, active) => (dispatch, getState) => {
   // TODO(littlecvr): this function can do more than it looks like, rename it
   DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'PUT',
                                  `bundles/${name}`, formData)
-      .then(() => dispatch(fetchBundles()));
+    .then(() => dispatch(fetchBundles()));
 };
 
 const deleteBundle = name => (dispatch, getState) => {
-  var formData = new FormData();
   var taskDescription = `Deleting bundle ${name}...`;
   // TODO(littlecvr): this function can do more than it looks like, rename it
   DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'DELETE',
                                  `bundles/${name}`, new FormData())
-      .then(() => dispatch(fetchBundles()));
+    .then(() => dispatch(fetchBundles()));
 };
 
 const startUploadingBundle = formData => (dispatch, getState) => {
@@ -72,7 +71,7 @@ const startUploadingBundle = formData => (dispatch, getState) => {
   var taskDescription = `Uploading bundle ${bundleName}...`;
   DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'POST',
                                  'bundles', formData)
-      .then(() => dispatch(fetchBundles()));
+    .then(() => dispatch(fetchBundles()));
 };
 
 const startUpdatingResource = formData => (dispatch, getState) => {
@@ -81,7 +80,7 @@ const startUpdatingResource = formData => (dispatch, getState) => {
   var taskDescription = `Updating bundle ${bundleName}...`;
   DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'PUT',
                                  'resources', formData)
-      .then(() => dispatch(fetchBundles()));
+    .then(() => dispatch(fetchBundles()));
 };
 
 export default {

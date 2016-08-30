@@ -5,7 +5,6 @@
 import React from 'react';
 import ActionDone from 'material-ui/svg-icons/action/done';
 import Paper from 'material-ui/Paper';
-import FlatButton from 'material-ui/FlatButton';
 
 import TaskStates from '../constants/TaskStates';
 
@@ -18,7 +17,8 @@ var Task = React.createClass({
     ]),
     description: React.PropTypes.string.isRequired,
     dismiss: React.PropTypes.func.isRequired,
-    retry: React.PropTypes.func.isRequired
+    retry: React.PropTypes.func.isRequired,
+    style: React.PropTypes.shape
   },
 
   render() {
@@ -28,6 +28,7 @@ var Task = React.createClass({
         {description}
         {state == TaskStates.TASK_SUCCEEDED &&
           <span
+            // TODO(littlecvr): should be a better way to set offset
             style={{cursor: 'pointer'}}
             onClick={dismiss}
           >

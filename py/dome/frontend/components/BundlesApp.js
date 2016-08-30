@@ -5,7 +5,6 @@
 import {connect} from 'react-redux';
 import ContentAdd from 'material-ui/svg-icons/content/add';
 import FloatingActionButton from 'material-ui/FloatingActionButton';
-import Immutable from 'immutable';
 import React from 'react';
 
 import BundleList from './BundleList';
@@ -16,6 +15,9 @@ import UploadingBundleForm from './UploadingBundleForm';
 
 var BundlesApp = React.createClass({
   propTypes: {
+    // TODO(littlecvr): there should be a better way to figure out the offset
+    //                  automatically such as using float
+    offset: React.PropTypes.number,
     openUploadingNewBundleForm: React.PropTypes.func.isRequired
   },
 

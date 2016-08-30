@@ -14,6 +14,7 @@ import FormNames from '../constants/FormNames';
 
 var UploadingBundleForm = React.createClass({
   propTypes: {
+    board: React.PropTypes.string.isRequired,
     show: React.PropTypes.bool.isRequired,
     startUploading: React.PropTypes.func.isRequired,
     cancelUploading: React.PropTypes.func.isRequired
@@ -102,11 +103,12 @@ var UploadingBundleForm = React.createClass({
   }
 });
 
-function mapStateToProps(state, ownProps) {
+function mapStateToProps(state) {
   return {
     board: state.getIn(['dome', 'currentBoard']),
     show: state.getIn([
-        'dome', 'formVisibility', FormNames.UPLOADING_BUNDLE_FORM], false)
+      'dome', 'formVisibility', FormNames.UPLOADING_BUNDLE_FORM
+    ], false)
   };
 }
 

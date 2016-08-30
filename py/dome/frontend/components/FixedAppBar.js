@@ -19,6 +19,7 @@ const FixedAppBar = React.createClass({
   },
 
   componentDidMount() {
+    // TODO(littlecvr): should not use setState() in componentDidMount()
     this.setState({height: this.appBar.context.muiTheme.appBar.height});
   },
 

@@ -36,7 +36,8 @@ var SortableBundleList = SortableContainer(({bundles}) => (
 var BundleList = React.createClass({
   propTypes: {
     bundles: React.PropTypes.instanceOf(Immutable.List).isRequired,
-    handleRefresh: React.PropTypes.func.isRequired
+    handleRefresh: React.PropTypes.func.isRequired,
+    handleReorder: React.PropTypes.func.isRequired
   },
 
   componentDidMount() {

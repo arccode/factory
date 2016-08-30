@@ -6,7 +6,6 @@ import {connect} from 'react-redux';
 import Drawer from 'material-ui/Drawer';
 import Immutable from 'immutable';
 import MenuItem from 'material-ui/MenuItem';
-import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 
 import AppNames from '../constants/AppNames';
@@ -18,7 +17,9 @@ import Task from './Task';
 
 const AppPage = React.createClass({
   propTypes: {
+    app: React.PropTypes.string.isRequired,
     dismissTask: React.PropTypes.func.isRequired,
+    switchApp: React.PropTypes.func.isRequired,
     tasks: React.PropTypes.instanceOf(Immutable.Map).isRequired
   },
 
@@ -47,7 +48,7 @@ const AppPage = React.createClass({
     } else if (this.props.app == AppNames.SETTINGS_APP) {
       app = <SettingsApp />;
     } else {
-      console.log(`Unknown app ${this.props.app}`);
+      console.error(`Unknown app ${this.props.app}`);
     }
 
     return (
@@ -83,7 +84,7 @@ const AppPage = React.createClass({
                 right: 24,
                 bottom: 50 * index + 24  // stack them
               }}
-              cancel={() => console.log('not implemented')}
+              cancel={() => console.warn('not implemented')}
               dismiss={() => this.props.dismissTask(taskID)}
               retry={() => alert('not implemented yet')}
             />

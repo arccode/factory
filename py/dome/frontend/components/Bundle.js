@@ -28,6 +28,8 @@ var DragHandle = SortableHandle(() => (
 
 var Bundle = React.createClass({
   propTypes: {
+    activateBundle: React.PropTypes.func.isRequired,
+    deleteBundle: React.PropTypes.func.isRequired,
     bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired
   },
 
@@ -88,7 +90,7 @@ var Bundle = React.createClass({
             <IconButton
               tooltip="copy this bundle"
               onClick={e => e.stopPropagation()}
-              onTouchTap={() => console.log('not implemented')}
+              onTouchTap={() => console.warn('not implemented')}
             >
               <ContentCopyIcon />
             </IconButton>

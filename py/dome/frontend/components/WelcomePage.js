@@ -13,6 +13,12 @@ import TextField from 'material-ui/TextField';
 import DomeActions from '../actions/domeactions';
 
 var WelcomePage = React.createClass({
+  propTypes: {
+    boards: React.PropTypes.string.isRequired,
+    fetchBoards: React.PropTypes.func.isRequired,
+    switchBoard: React.PropTypes.func.isRequired
+  },
+
   handleSelectChange(event, index, value) {
     if (value === '') {
       return;

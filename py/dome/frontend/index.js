@@ -15,7 +15,6 @@ import createLogger from 'redux-logger';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
-import BundlesApp from './components/BundlesApp';
 import DomeApp from './components/DomeApp';
 import BundlesReducer from './reducers/bundlesreducer';
 import DomeReducer from './reducers/domereducer';

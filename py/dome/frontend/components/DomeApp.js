@@ -8,12 +8,20 @@ import React from 'react';
 import WelcomePage from './WelcomePage';
 import AppPage from './AppPage';
 
-const DomeApp = props => (
-  <div>
-    {props.board === '' && <WelcomePage />}
-    {props.board !== '' && <AppPage />}
-  </div>
-);
+var DomeApp = React.createClass({
+  propTypes: {
+    board: React.PropTypes.string.isRequired
+  },
+
+  render() {
+    return (
+      <div>
+        {this.props.board === '' && <WelcomePage />}
+        {this.props.board !== '' && <AppPage />}
+      </div>
+    );
+  }
+});
 
 function mapStateToProps(state) {
   return {

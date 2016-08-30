@@ -18,6 +18,8 @@ var _NAME_INPUT_VALUE_ERROR_TEST =
 
 var UpdatingResourceForm = React.createClass({
   propTypes: {
+    board: React.PropTypes.string.isRequired,
+
     show: React.PropTypes.bool.isRequired,
 
     startUpdating: React.PropTypes.func.isRequired,
@@ -135,17 +137,18 @@ var UpdatingResourceForm = React.createClass({
   }
 });
 
-function mapStateToProps(state, ownProps) {
+function mapStateToProps(state) {
   return {
     board: state.getIn(['dome', 'currentBoard']),
     show: state.getIn([
-        'dome', 'formVisibility', FormNames.UPDATING_RESOURCE_FORM], false),
+      'dome', 'formVisibility', FormNames.UPDATING_RESOURCE_FORM
+    ], false),
     bundleName: state.getIn([
-        'dome', 'formPayload',
-        FormNames.UPDATING_RESOURCE_FORM, 'bundleName']),
+      'dome', 'formPayload', FormNames.UPDATING_RESOURCE_FORM, 'bundleName'
+    ]),
     resourceType: state.getIn([
-        'dome', 'formPayload',
-        FormNames.UPDATING_RESOURCE_FORM, 'resourceType'])
+      'dome', 'formPayload', FormNames.UPDATING_RESOURCE_FORM, 'resourceType'
+    ])
   };
 }
 

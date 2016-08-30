@@ -6,7 +6,6 @@ import 'babel-polyfill';
 import fetch from 'isomorphic-fetch';
 
 import ActionTypes from '../constants/ActionTypes';
-import FormNames from '../constants/FormNames';
 import TaskStates from '../constants/TaskStates';
 
 function apiURL(getState) {
@@ -41,15 +40,16 @@ function createAndStartTask(
     request['headers'] = {'Content-Type': contentType};
   }
 
-  return fetch(`${apiURL(getState)}/${url}/`, request).then(
-    checkHTTPStatus
-  ).then(function() {
-    dispatch(changeTaskState(taskID, TaskStates.TASK_SUCCEEDED));
-  }, function(err) {
-    // TODO: show an error message box
-    dispatch(changeTaskState(taskID, TaskStates.TASK_FAILED));
-  });
-};
+  return fetch(`${apiURL(getState)}/${url}/`, request)
+    .then(checkHTTPStatus)
+    .then(() => {
+      dispatch(changeTaskState(taskID, TaskStates.TASK_SUCCEEDED));
+    }, error => {
+      console.error(error);
+      // TODO: show an error message box
+      dispatch(changeTaskState(taskID, TaskStates.TASK_FAILED));
+    });
+}
 
 const receiveBoards = boards => ({
   type: ActionTypes.RECEIVE_BOARDS,
@@ -57,19 +57,19 @@ const receiveBoards = boards => ({
 });
 
 // TODO(littlecvr): similar to fetchBundles, refactor code if possible
-const fetchBoards = () => (dispatch, getState) => {
+const fetchBoards = () => dispatch => {
   fetch('/boards.json').then(response => {
     response.json().then(json => {
       dispatch(receiveBoards(json));
     }, error => {
       // TODO(littlecvr): better error handling
-      console.log('error parsing board list response');
-      console.log(error);
+      console.error('error parsing board list response');
+      console.error(error);
     });
   }, error => {
     // TODO(littlecvr): better error handling
-    console.log('error fetching board list');
-    console.log(error);
+    console.error('error fetching board list');
+    console.error(error);
   });
 };
 
@@ -103,8 +103,8 @@ const openForm = (formName, payload) => (dispatch, getState) => {
   }
   else {
     Promise.resolve()
-        .then(() => dispatch(closeForm(formName)))
-        .then(() => dispatch(action));
+      .then(() => dispatch(closeForm(formName)))
+      .then(() => dispatch(action));
   }
 };
 
