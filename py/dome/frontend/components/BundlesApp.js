@@ -13,20 +13,20 @@ import BundlesActions from '../actions/bundlesactions';
 import FormNames from '../constants/FormNames';
 import UpdatingResourceForm from './UpdatingResourceForm';
 import UploadingBundleForm from './UploadingBundleForm';
-import UploadingTask from './UploadingTask';
+import Task from './Task';
 
 var BundlesApp = React.createClass({
   propTypes: {
     openUploadingNewBundleForm: React.PropTypes.func.isRequired,
-    dismissUploadingTask: React.PropTypes.func.isRequired,
-    uploadingTasks: React.PropTypes.instanceOf(Immutable.Map).isRequired
+    dismissTask: React.PropTypes.func.isRequired,
+    tasks: React.PropTypes.instanceOf(Immutable.Map).isRequired
   },
 
   render: function() {
     const {
       openUploadingNewBundleForm,
-      dismissUploadingTask,
-      uploadingTasks
+      dismissTask,
+      tasks
     } = this.props;
 
     return (
@@ -36,10 +36,10 @@ var BundlesApp = React.createClass({
         <UploadingBundleForm />
         <UpdatingResourceForm />
 
-        {uploadingTasks.keySeq().toArray().map((taskID, index) => {
-          var task = uploadingTasks.get(taskID);
+        {tasks.keySeq().toArray().map((taskID, index) => {
+          var task = tasks.get(taskID);
           return (
-            <UploadingTask
+            <Task
               key={taskID}
               state={task.get('state')}
               description={task.get('description')}
@@ -50,7 +50,7 @@ var BundlesApp = React.createClass({
                 bottom: 50 * index + 24  // stack them
               }}
               cancel={() => console.log('not implemented')}
-              dismiss={() => dismissUploadingTask(taskID)}
+              dismiss={() => dismissTask(taskID)}
               retry={() => alert('not implemented yet')}
             />
           );
@@ -60,7 +60,7 @@ var BundlesApp = React.createClass({
         <FloatingActionButton
           style={{
             position: 'fixed',
-            bottom: 50 * uploadingTasks.size + 24, // above all uploading tasks
+            bottom: 50 * tasks.size + 24, // above all uploading tasks
             right: 24
           }}
           onTouchTap={openUploadingNewBundleForm}
@@ -74,7 +74,7 @@ var BundlesApp = React.createClass({
 
 function mapStateToProps(state) {
   return {
-    uploadingTasks: state.getIn(['bundles', 'uploadingTasks'])
+    tasks: state.getIn(['bundles', 'tasks'])
   };
 }
 
@@ -82,8 +82,8 @@ function mapDispatchToProps(dispatch) {
   return {
     openUploadingNewBundleForm: () =>
         dispatch(BundlesActions.openForm(FormNames.UPLOADING_BUNDLE_FORM)),
-    dismissUploadingTask:
-        taskID => dispatch(BundlesActions.dismissUploadingTask(taskID))
+    dismissTask:
+        taskID => dispatch(BundlesActions.dismissTask(taskID))
   };
 }
 

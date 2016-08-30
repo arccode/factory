@@ -6,7 +6,7 @@ import Immutable from 'immutable';
 import {arrayMove} from 'react-sortable-hoc';
 
 import ActionTypes from '../constants/ActionTypes';
-import UploadingTaskStates from '../constants/UploadingTaskStates';
+import TaskStates from '../constants/TaskStates';
 
 const INITIAL_STATE = Immutable.fromJS({
   entries: [],
@@ -15,7 +15,7 @@ const INITIAL_STATE = Immutable.fromJS({
   },
   formPayload: {
   },
-  uploadingTasks: {}
+  tasks: {}
 });
 
 export default function bundlesReducer(state = INITIAL_STATE, action) {
@@ -38,20 +38,20 @@ export default function bundlesReducer(state = INITIAL_STATE, action) {
     case ActionTypes.CLOSE_FORM:
       return state.setIn(['formVisibility', action.formName], false);
 
-    case ActionTypes.CREATE_UPLOADING_TASK:
-      return state.mergeIn(['uploadingTasks'], {
+    case ActionTypes.CREATE_TASK:
+      return state.mergeIn(['tasks'], {
         [action.taskID]: {
-          state: UploadingTaskStates.UPLOADING_TASK_STARTED,
+          state: TaskStates.TASK_STARTED,
           description: action.description
         }
       });
 
-    case ActionTypes.CHANGE_UPLOADING_TASK_STATE:
+    case ActionTypes.CHANGE_TASK_STATE:
       return state.setIn(
-          ['uploadingTasks', action.taskID, 'state'], action.state);
+          ['tasks', action.taskID, 'state'], action.state);
 
-    case ActionTypes.REMOVE_UPLOADING_TASK:
-      return state.deleteIn(['uploadingTasks', action.taskID]);
+    case ActionTypes.REMOVE_TASK:
+      return state.deleteIn(['tasks', action.taskID]);
 
     default:
       return state;

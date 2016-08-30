@@ -8,7 +8,7 @@ import {arrayMove} from 'react-sortable-hoc';
 
 import ActionTypes from '../constants/ActionTypes';
 import FormNames from '../constants/FormNames';
-import UploadingTaskStates from '../constants/UploadingTaskStates';
+import TaskStates from '../constants/TaskStates';
 
 function _apiURL(getState) {
   return `/boards/${getState().getIn(['dome', 'currentBoard'])}`;
@@ -24,18 +24,18 @@ function _checkHTTPStatus(response) {
   }
 }
 
-function _createAndStartUploadingTask(
+function _createAndStartTask(
     dispatch, getState, taskDescription, method, url, body,
     contentType = null) {
-  var uploadingTasks = getState().getIn(['bundles', 'uploadingTasks']);
-  var taskIDs = uploadingTasks.keySeq().toArray().map(parseInt);
+  var tasks = getState().getIn(['bundles', 'tasks']);
+  var taskIDs = tasks.keySeq().toArray().map(parseInt);
 
   var taskID = 1;
   if (taskIDs.length > 0) {
     taskID = 1 + Math.max(...taskIDs);
   }
 
-  dispatch(createUploadingTask(taskID, taskDescription));
+  dispatch(createTask(taskID, taskDescription));
 
   var request = {method, body};
   if (contentType !== null) {
@@ -44,13 +44,13 @@ function _createAndStartUploadingTask(
   return fetch(`${_apiURL(getState)}/${url}/`, request).then(
     _checkHTTPStatus
   ).then(function() {
-    dispatch(changeUploadingTaskState(
-        taskID, UploadingTaskStates.UPLOADING_TASK_SUCCEEDED
+    dispatch(changeTaskState(
+        taskID, TaskStates.TASK_SUCCEEDED
     ));
   }, function(err) {
     // TODO: show an error message box
-    dispatch(changeUploadingTaskState(
-        taskID, UploadingTaskStates.UPLOADING_TASK_FAILED
+    dispatch(changeTaskState(
+        taskID, TaskStates.TASK_FAILED
     ));
   });
 };
@@ -90,10 +90,8 @@ const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
   new_bundle_list = arrayMove(new_bundle_list, oldIndex, newIndex);
   var taskDescription = 'Reordering bundles...';
 
-  _createAndStartUploadingTask(dispatch, getState, taskDescription,
-                               'PUT', 'bundles',
-                               JSON.stringify(new_bundle_list),
-                               'application/json')
+  _createAndStartTask(dispatch, getState, taskDescription, 'PUT', 'bundles',
+                      JSON.stringify(new_bundle_list), 'application/json')
       .then(() => dispatch(fetchBundles()));
 };
 
@@ -105,8 +103,8 @@ const activateBundle = (name, active) => (dispatch, getState) => {
   var verb = active ? 'Activating' : 'Deactivating';
   var taskDescription = `${verb} bundle ${name}...`;
   // TODO(littlecvr): this function can do more than it looks like, rename it
-  _createAndStartUploadingTask(dispatch, getState, taskDescription,
-                               'PUT', `bundles/${name}`, formData)
+  _createAndStartTask(dispatch, getState, taskDescription, 'PUT',
+                      `bundles/${name}`, formData)
       .then(() => dispatch(fetchBundles()));
 };
 
@@ -114,8 +112,8 @@ const deleteBundle = name => (dispatch, getState) => {
   var formData = new FormData();
   var taskDescription = `Deleting bundle ${name}...`;
   // TODO(littlecvr): this function can do more than it looks like, rename it
-  _createAndStartUploadingTask(dispatch, getState, taskDescription,
-                               'DELETE', `bundles/${name}`, new FormData())
+  _createAndStartTask(dispatch, getState, taskDescription, 'DELETE',
+                      `bundles/${name}`, new FormData())
       .then(() => dispatch(fetchBundles()));
 };
 
@@ -147,20 +145,20 @@ const closeForm = formName => ({
   formName
 });
 
-const createUploadingTask = (taskID, description) => ({
-  type: ActionTypes.CREATE_UPLOADING_TASK,
+const createTask = (taskID, description) => ({
+  type: ActionTypes.CREATE_TASK,
   taskID: String(taskID),
   description
 });
 
-const changeUploadingTaskState = (taskID, state) => ({
-  type: ActionTypes.CHANGE_UPLOADING_TASK_STATE,
+const changeTaskState = (taskID, state) => ({
+  type: ActionTypes.CHANGE_TASK_STATE,
   taskID: String(taskID),
   state
 });
 
-const dismissUploadingTask = taskID => ({
-  type: ActionTypes.REMOVE_UPLOADING_TASK,
+const dismissTask = taskID => ({
+  type: ActionTypes.REMOVE_TASK,
   taskID: String(taskID)
 });
 
@@ -168,8 +166,8 @@ const startUploadingBundle = formData => (dispatch, getState) => {
   dispatch(closeForm(FormNames.UPLOADING_BUNDLE_FORM));
   var bundleName = formData.get('name');
   var taskDescription = `Uploading bundle ${bundleName}...`;
-  _createAndStartUploadingTask(dispatch, getState, taskDescription,
-                               'POST', 'bundles', formData)
+  _createAndStartTask(dispatch, getState, taskDescription, 'POST', 'bundles',
+                      formData)
       .then(() => dispatch(fetchBundles()));
 };
 
@@ -177,9 +175,8 @@ const startUpdatingResource = formData => (dispatch, getState) => {
   dispatch(closeForm(FormNames.UPDATING_RESOURCE_FORM));
   var bundleName = formData.get('src_bundle_name');
   var taskDescription = `Updating bundle ${bundleName}...`;
-  _createAndStartUploadingTask(dispatch, getState, taskDescription,
-                               'PUT', 'resources',
-                               formData)
+  _createAndStartTask(dispatch, getState, taskDescription, 'PUT', 'resources',
+                      formData)
       .then(() => dispatch(fetchBundles()));
 };
 
@@ -190,7 +187,7 @@ export default {
   deleteBundle,
   openForm,
   closeForm,
-  dismissUploadingTask,
+  dismissTask,
   startUploadingBundle,
   startUpdatingResource
 };

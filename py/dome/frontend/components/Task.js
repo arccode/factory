@@ -7,14 +7,14 @@ import ActionDone from 'material-ui/svg-icons/action/done';
 import Paper from 'material-ui/Paper';
 import FlatButton from 'material-ui/FlatButton';
 
-import UploadingTaskStates from '../constants/UploadingTaskStates';
+import TaskStates from '../constants/TaskStates';
 
-var UploadingTask = React.createClass({
+var Task = React.createClass({
   propTypes: {
     state: React.PropTypes.oneOf([
-      UploadingTaskStates.UPLOADING_TASK_STARTED,
-      UploadingTaskStates.UPLOADING_TASK_SUCCEEDED,
-      UploadingTaskStates.UPLOADING_TASK_FAILED
+      TaskStates.TASK_STARTED,
+      TaskStates.TASK_SUCCEEDED,
+      TaskStates.TASK_FAILED
     ]),
     description: React.PropTypes.string.isRequired,
     dismiss: React.PropTypes.func.isRequired,
@@ -26,7 +26,7 @@ var UploadingTask = React.createClass({
     return (
       <Paper zDepth={2} style={style}>
         {description}
-        {state == UploadingTaskStates.UPLOADING_TASK_SUCCEEDED &&
+        {state == TaskStates.TASK_SUCCEEDED &&
           <span
             style={{cursor: 'pointer'}}
             onClick={dismiss}
@@ -35,7 +35,7 @@ var UploadingTask = React.createClass({
             <ActionDone />
           </span>
         }
-        {state == UploadingTaskStates.UPLOADING_TASK_FAILED &&
+        {state == TaskStates.TASK_FAILED &&
           <span
             style={{cursor: 'pointer'}}
             onClick={retry}
@@ -49,4 +49,4 @@ var UploadingTask = React.createClass({
   }
 });
 
-export default UploadingTask;
+export default Task;
