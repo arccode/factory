@@ -9,7 +9,7 @@ import Immutable from 'immutable';
 import React from 'react';
 import RaisedButton from 'material-ui/RaisedButton';
 
-import BundlesActions from '../actions/bundlesactions';
+import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
 var ResourceTable = React.createClass({
@@ -77,11 +77,9 @@ var ResourceTable = React.createClass({
 
 function mapDispatchToProps(dispatch) {
   return {
-    handleUpdate: (bundleName, resourceType) => dispatch(
-        BundlesActions.openForm(
-            FormNames.UPDATING_RESOURCE_FORM, {bundleName, resourceType}
-        )
-    )
+    handleUpdate: (bundleName, resourceType) => dispatch(DomeActions.openForm(
+        FormNames.UPDATING_RESOURCE_FORM, {bundleName, resourceType}
+    ))
   };
 }
 

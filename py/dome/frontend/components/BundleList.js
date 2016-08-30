@@ -7,8 +7,8 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
-import BundlesActions from '../actions/bundlesactions';
 import Bundle from './Bundle';
+import BundlesActions from '../actions/bundlesactions';
 
 // The hierarchy of this component is complicated because of the design of
 // react-sortable-hoc. Explaination below:

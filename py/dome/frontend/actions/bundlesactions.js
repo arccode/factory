@@ -7,57 +7,8 @@ import fetch from 'isomorphic-fetch';
 import {arrayMove} from 'react-sortable-hoc';
 
 import ActionTypes from '../constants/ActionTypes';
+import DomeActions from './domeactions';
 import FormNames from '../constants/FormNames';
-import TaskStates from '../constants/TaskStates';
-
-function _apiURL(getState) {
-  return `/boards/${getState().getIn(['dome', 'currentBoard'])}`;
-}
-
-function _checkHTTPStatus(response) {
-  if (response.status >= 200 && response.status < 300) {
-    return response;
-  } else {
-    var error = new Error(response.statusText);
-    error.response = response;
-    throw error;
-  }
-}
-
-function _createAndStartTask(
-    dispatch, getState, taskDescription, method, url, body,
-    contentType = null) {
-  var tasks = getState().getIn(['bundles', 'tasks']);
-  var taskIDs = tasks.keySeq().toArray().map(parseInt);
-
-  var taskID = 1;
-  if (taskIDs.length > 0) {
-    taskID = 1 + Math.max(...taskIDs);
-  }
-
-  dispatch(createTask(taskID, taskDescription));
-
-  var request = {method, body};
-  if (contentType !== null) {
-    request['headers'] = {'Content-Type': contentType};
-  }
-  return fetch(`${_apiURL(getState)}/${url}/`, request).then(
-    _checkHTTPStatus
-  ).then(function() {
-    dispatch(changeTaskState(
-        taskID, TaskStates.TASK_SUCCEEDED
-    ));
-  }, function(err) {
-    // TODO: show an error message box
-    dispatch(changeTaskState(
-        taskID, TaskStates.TASK_FAILED
-    ));
-  });
-};
-
-const requestBundles = () => ({
-  type: ActionTypes.REQUEST_BUNDLES
-});
 
 const receiveBundles = bundles => ({
   type: ActionTypes.RECEIVE_BUNDLES,
@@ -65,10 +16,7 @@ const receiveBundles = bundles => ({
 });
 
 const fetchBundles = () => (dispatch, getState) => {
-  // annouce that we're currenty fetching
-  dispatch(requestBundles());
-
-  fetch(`${_apiURL(getState)}/bundles.json`).then(response => {
+  fetch(`${DomeActions.apiURL(getState)}/bundles.json`).then(response => {
     response.json().then(json => {
       dispatch(receiveBundles(json));
     }, error => {
@@ -90,8 +38,9 @@ const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
   new_bundle_list = arrayMove(new_bundle_list, oldIndex, newIndex);
   var taskDescription = 'Reordering bundles...';
 
-  _createAndStartTask(dispatch, getState, taskDescription, 'PUT', 'bundles',
-                      JSON.stringify(new_bundle_list), 'application/json')
+  DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'PUT',
+                                 'bundles', JSON.stringify(new_bundle_list),
+                                 'application/json')
       .then(() => dispatch(fetchBundles()));
 };
 
@@ -103,8 +52,8 @@ const activateBundle = (name, active) => (dispatch, getState) => {
   var verb = active ? 'Activating' : 'Deactivating';
   var taskDescription = `${verb} bundle ${name}...`;
   // TODO(littlecvr): this function can do more than it looks like, rename it
-  _createAndStartTask(dispatch, getState, taskDescription, 'PUT',
-                      `bundles/${name}`, formData)
+  DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'PUT',
+                                 `bundles/${name}`, formData)
       .then(() => dispatch(fetchBundles()));
 };
 
@@ -112,82 +61,30 @@ const deleteBundle = name => (dispatch, getState) => {
   var formData = new FormData();
   var taskDescription = `Deleting bundle ${name}...`;
   // TODO(littlecvr): this function can do more than it looks like, rename it
-  _createAndStartTask(dispatch, getState, taskDescription, 'DELETE',
-                      `bundles/${name}`, new FormData())
+  DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'DELETE',
+                                 `bundles/${name}`, new FormData())
       .then(() => dispatch(fetchBundles()));
 };
 
-const openForm = (formName, payload) => (dispatch, getState) => {
-  // The file input does not fire any event when canceled, if the user opened
-  // the file dialog and canceled, its onChange handler won't be called, the
-  // form won't actually be opened, but its "show" attribute has already been
-  // set to true.  Next time the user requests to open the form, the form won't
-  // notice the difference and won't open. Therefore, we need to detect such
-  // case -- close it first if it's already opened.
-  const visible = getState().getIn(['bundles', 'formVisibility', formName]);
-  const action = {
-    type: ActionTypes.OPEN_FORM,
-    formName,
-    payload
-  };
-  if (!visible) {
-    dispatch(action);
-  }
-  else {
-    Promise.resolve()
-        .then(() => dispatch(closeForm(formName)))
-        .then(() => dispatch(action));
-  }
-};
-
-const closeForm = formName => ({
-  type: ActionTypes.CLOSE_FORM,
-  formName
-});
-
-const createTask = (taskID, description) => ({
-  type: ActionTypes.CREATE_TASK,
-  taskID: String(taskID),
-  description
-});
-
-const changeTaskState = (taskID, state) => ({
-  type: ActionTypes.CHANGE_TASK_STATE,
-  taskID: String(taskID),
-  state
-});
-
-const dismissTask = taskID => ({
-  type: ActionTypes.REMOVE_TASK,
-  taskID: String(taskID)
-});
-
 const startUploadingBundle = formData => (dispatch, getState) => {
-  dispatch(closeForm(FormNames.UPLOADING_BUNDLE_FORM));
+  dispatch(DomeActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM));
   var bundleName = formData.get('name');
   var taskDescription = `Uploading bundle ${bundleName}...`;
-  _createAndStartTask(dispatch, getState, taskDescription, 'POST', 'bundles',
-                      formData)
+  DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'POST',
+                                 'bundles', formData)
       .then(() => dispatch(fetchBundles()));
 };
 
 const startUpdatingResource = formData => (dispatch, getState) => {
-  dispatch(closeForm(FormNames.UPDATING_RESOURCE_FORM));
+  dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM));
   var bundleName = formData.get('src_bundle_name');
   var taskDescription = `Updating bundle ${bundleName}...`;
-  _createAndStartTask(dispatch, getState, taskDescription, 'PUT', 'resources',
-                      formData)
+  DomeActions.createAndStartTask(dispatch, getState, taskDescription, 'PUT',
+                                 'resources', formData)
       .then(() => dispatch(fetchBundles()));
 };
 
 export default {
-  fetchBundles,
-  reorderBundles,
-  activateBundle,
-  deleteBundle,
-  openForm,
-  closeForm,
-  dismissTask,
-  startUploadingBundle,
-  startUpdatingResource
+  fetchBundles, reorderBundles, activateBundle, deleteBundle,
+  startUploadingBundle, startUpdatingResource
 };

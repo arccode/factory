@@ -9,6 +9,7 @@ import React from 'react';
 import TextField from 'material-ui/TextField';
 
 import BundlesActions from '../actions/bundlesactions';
+import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
 var UploadingBundleForm = React.createClass({
@@ -105,7 +106,7 @@ function mapStateToProps(state, ownProps) {
   return {
     board: state.getIn(['dome', 'currentBoard']),
     show: state.getIn([
-        'bundles', 'formVisibility', FormNames.UPLOADING_BUNDLE_FORM], false)
+        'dome', 'formVisibility', FormNames.UPLOADING_BUNDLE_FORM], false)
   };
 }
 
@@ -114,7 +115,7 @@ function mapDispatchToProps(dispatch) {
     startUploading:
         formData => dispatch(BundlesActions.startUploadingBundle(formData)),
     cancelUploading: () =>
-        dispatch(BundlesActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM))
+        dispatch(DomeActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM))
   };
 }
 

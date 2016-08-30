@@ -10,6 +10,7 @@ import React from 'react';
 import TextField from 'material-ui/TextField';
 
 import BundlesActions from '../actions/bundlesactions';
+import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
 var _NAME_INPUT_VALUE_ERROR_TEST =
@@ -138,12 +139,12 @@ function mapStateToProps(state, ownProps) {
   return {
     board: state.getIn(['dome', 'currentBoard']),
     show: state.getIn([
-        'bundles', 'formVisibility', FormNames.UPDATING_RESOURCE_FORM], false),
+        'dome', 'formVisibility', FormNames.UPDATING_RESOURCE_FORM], false),
     bundleName: state.getIn([
-        'bundles', 'formPayload',
+        'dome', 'formPayload',
         FormNames.UPDATING_RESOURCE_FORM, 'bundleName']),
     resourceType: state.getIn([
-        'bundles', 'formPayload',
+        'dome', 'formPayload',
         FormNames.UPDATING_RESOURCE_FORM, 'resourceType'])
   };
 }
@@ -153,7 +154,7 @@ function mapDispatchToProps(dispatch) {
     startUpdating:
         formData => dispatch(BundlesActions.startUpdatingResource(formData)),
     cancelUpdating: () =>
-        dispatch(BundlesActions.closeForm(FormNames.UPDATING_RESOURCE_FORM))
+        dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM))
   };
 }
 

@@ -14,8 +14,14 @@ import BundlesApp from './BundlesApp';
 import DomeActions from '../actions/domeactions';
 import FixedAppBar from './FixedAppBar';
 import SettingsApp from './SettingsApp';
+import Task from './Task';
 
 const AppPage = React.createClass({
+  propTypes: {
+    dismissTask: React.PropTypes.func.isRequired,
+    tasks: React.PropTypes.instanceOf(Immutable.Map).isRequired
+  },
+
   toggleAppMenu() {
     this.setState({appMenuOpened: !this.state.appMenuOpened});
   },
@@ -35,9 +41,11 @@ const AppPage = React.createClass({
   render() {
     var app = null;
     if (this.props.app == AppNames.BUNDLES_APP) {
-        app = <BundlesApp />;
+      // TODO(littlecvr): there should be a better way than passing an offset
+      //                  into the app
+      app = <BundlesApp offset={50 * this.props.tasks.size + 24} />;
     } else if (this.props.app == AppNames.SETTINGS_APP) {
-        app = <SettingsApp />;
+      app = <SettingsApp />;
     } else {
       console.log(`Unknown app ${this.props.app}`);
     }
@@ -61,6 +69,26 @@ const AppPage = React.createClass({
           </MenuItem>
         </Drawer>
         {app}
+
+        {this.props.tasks.keySeq().toArray().map((taskID, index) => {
+          var task = this.props.tasks.get(taskID);
+          return (
+            <Task
+              key={taskID}
+              state={task.get('state')}
+              description={task.get('description')}
+              style={{
+                position: 'fixed',
+                padding: 5,
+                right: 24,
+                bottom: 50 * index + 24  // stack them
+              }}
+              cancel={() => console.log('not implemented')}
+              dismiss={() => this.props.dismissTask(taskID)}
+              retry={() => alert('not implemented yet')}
+            />
+          );
+        })}
       </div>
     );
   }
@@ -68,13 +96,15 @@ const AppPage = React.createClass({
 
 function mapStateToProps(state) {
   return {
-    app: state.getIn(['dome', 'currentApp'])
+    app: state.getIn(['dome', 'currentApp']),
+    tasks: state.getIn(['dome', 'tasks'])
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    switchApp: nextApp => dispatch(DomeActions.switchApp(nextApp))
+    switchApp: nextApp => dispatch(DomeActions.switchApp(nextApp)),
+    dismissTask: taskID => dispatch(DomeActions.dismissTask(taskID))
   };
 }
 

@@ -6,11 +6,17 @@ import Immutable from 'immutable';
 
 import ActionTypes from '../constants/ActionTypes';
 import AppNames from '../constants/AppNames';
+import TaskStates from '../constants/TaskStates';
 
 const INITIAL_STATE = Immutable.fromJS({
   boards: [],
   currentBoard: '',
-  currentApp: AppNames.BUNDLES_APP  // default app is bundle manager
+  currentApp: AppNames.BUNDLES_APP,  // default app is bundle manager
+  formVisibility: {
+  },
+  formPayload: {
+  },
+  tasks: {}
 });
 
 export default function domeReducer(state = INITIAL_STATE, action) {
@@ -23,6 +29,30 @@ export default function domeReducer(state = INITIAL_STATE, action) {
 
     case ActionTypes.SWITCH_APP:
       return state.set('currentApp', action.nextApp);
+
+    case ActionTypes.OPEN_FORM:
+      return state.withMutations((s) => {
+        s.setIn(['formVisibility', action.formName], true);
+        s.mergeIn(['formPayload', action.formName], action.payload);
+      });
+
+    case ActionTypes.CLOSE_FORM:
+      return state.setIn(['formVisibility', action.formName], false);
+
+    case ActionTypes.CREATE_TASK:
+      return state.mergeIn(['tasks'], {
+        [action.taskID]: {
+          state: TaskStates.TASK_STARTED,
+          description: action.description
+        }
+      });
+
+    case ActionTypes.CHANGE_TASK_STATE:
+      return state.setIn(
+          ['tasks', action.taskID, 'state'], action.state);
+
+    case ActionTypes.REMOVE_TASK:
+      return state.deleteIn(['tasks', action.taskID]);
 
     default:
       return state;

@@ -3,55 +3,17 @@
 // found in the LICENSE file.
 
 import Immutable from 'immutable';
-import {arrayMove} from 'react-sortable-hoc';
 
 import ActionTypes from '../constants/ActionTypes';
-import TaskStates from '../constants/TaskStates';
 
 const INITIAL_STATE = Immutable.fromJS({
-  entries: [],
-  isFetchingEntries: false,
-  formVisibility: {
-  },
-  formPayload: {
-  },
-  tasks: {}
+  entries: []
 });
 
 export default function bundlesReducer(state = INITIAL_STATE, action) {
   switch (action.type) {
-    case ActionTypes.REQUEST_BUNDLES:
-      return state.set('isFetchingEntries', true);
-
     case ActionTypes.RECEIVE_BUNDLES:
-      return state.withMutations((s) => {
-        s.set('isFetchingEntries', false);
-        s.set('entries', Immutable.fromJS(action.bundles));
-      });
-
-    case ActionTypes.OPEN_FORM:
-      return state.withMutations((s) => {
-        s.setIn(['formVisibility', action.formName], true);
-        s.mergeIn(['formPayload', action.formName], action.payload);
-      });
-
-    case ActionTypes.CLOSE_FORM:
-      return state.setIn(['formVisibility', action.formName], false);
-
-    case ActionTypes.CREATE_TASK:
-      return state.mergeIn(['tasks'], {
-        [action.taskID]: {
-          state: TaskStates.TASK_STARTED,
-          description: action.description
-        }
-      });
-
-    case ActionTypes.CHANGE_TASK_STATE:
-      return state.setIn(
-          ['tasks', action.taskID, 'state'], action.state);
-
-    case ActionTypes.REMOVE_TASK:
-      return state.deleteIn(['tasks', action.taskID]);
+      return state.set('entries', Immutable.fromJS(action.bundles));
 
     default:
       return state;
