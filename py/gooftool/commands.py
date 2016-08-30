@@ -46,9 +46,9 @@ from cros.factory.test.env import paths
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.utils.argparse_utils import CmdArg
-from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
+from cros.factory.utils import argparse_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
@@ -86,6 +86,33 @@ def GetGooftool(options):
         raise Error, 'Invalid HWID version: %r' % options.hwid_version
 
   return _global_gooftool
+
+
+def Command(cmd_name, *args, **kwargs):
+  """ Decorator for commands in gooftool.
+
+  This is similar to argparse_utils.Command, but all gooftool commands
+  can be waived during `gooftool finalize` or `gooftool verify` using
+  --waive_list option.
+  """
+  def Decorate(fun):
+    def CommandWithWaiveCheck(options):
+      waive_list = vars(options).get('waive_list', [])
+      if phase.GetPhase() >= phase.PVT_DOGFOOD and waive_list != []:
+        raise Error(
+            'waive_list should be empty for phase %s' % phase.GetPhase())
+
+      try:
+        fun(options)
+      except Exception as e:
+        if cmd_name in waive_list:
+          logging.exception(e)
+        else:
+          raise
+
+    return argparse_utils.Command(cmd_name, *args, **kwargs)(
+        CommandWithWaiveCheck)
+  return Decorate
 
 
 @Command('write_hwid',
@@ -178,6 +205,12 @@ _station_port_cmd_arg = CmdArg(
 _wipe_finish_token_cmd_arg = CmdArg(
     '--wipe_finish_token',
     help='Required token when notifying station after wipe finished')
+
+_waive_list_cmd_arg = CmdArg(
+    '--waive_list', nargs='*', default=[], metavar='SUBCMD',
+    help='A list of waived checks, serperated by whitespace.'
+         'Each item should be a sub-command of gooftool.'
+         'e.g. "gooftool verify --waive_list verify_tpm clear_gbb_flags".')
 
 @Command('best_match_hwids',
          _hwdb_path_cmd_arg,
@@ -776,7 +809,8 @@ def PrepareWipe(options):
          _cros_core_cmd_arg,
          _release_rootfs_cmd_arg,
          _firmware_path_cmd_arg,
-         _enforced_release_channels_cmd_arg)
+         _enforced_release_channels_cmd_arg,
+         _waive_list_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
 
@@ -971,7 +1005,8 @@ def UploadReport(options):
          _enforced_release_channels_cmd_arg,
          _station_ip_cmd_arg,
          _station_port_cmd_arg,
-         _wipe_finish_token_cmd_arg)
+         _wipe_finish_token_cmd_arg,
+         _waive_list_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 

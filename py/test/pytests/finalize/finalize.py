@@ -163,6 +163,10 @@ class Finalize(unittest.TestCase):
           'local, factory.par is always used.', default=True, optional=True),
       Arg('station_ip', str,
           'IP address of this station.', default=None, optional=True),
+      Arg('gooftool_waive_list', list,
+          'A list of waived checks for "gooftool finalize", '
+          'see "gooftool finalize --help" for available items.',
+          default=[], optional=True)
       ]
 
   FINALIZE_TIMEOUT = 180
@@ -549,6 +553,8 @@ class Finalize(unittest.TestCase):
           ' '.join(self.args.enforced_release_channels))
       logging.info(
           'Enforced release channels: %s.', self.args.enforced_release_channels)
+    if self.args.gooftool_waive_list:
+      command += ' --waive_list ' + ' '.join(self.args.gooftool_waive_list)
     command += ' --phase "%s"' % phase.GetPhase()
 
     if self.args.wipe_in_place:
