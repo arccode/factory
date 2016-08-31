@@ -5,6 +5,12 @@
 FROM ubuntu:trusty
 MAINTAINER Wei-Ning Huang <wnhuang@google.com>
 
+# Setup Umpire Account.
+RUN useradd --system --user-group --shell /usr/sbin/nologin \
+	--home /var/db/factory/umpire -M --comment Umpire umpire
+RUN mkdir --mode=0755 -p /var/db/factory/umpire
+RUN chown umpire:umpire /var/db/factory/umpire
+
 RUN apt-get update
 RUN apt-get upgrade -y
 # python libraries
@@ -14,29 +20,10 @@ RUN apt-get install -y python-yaml python-netifaces python-pexpect \
 	python-gnupg
 
 RUN apt-get install -y lighttpd unzip parallel pbzip2 pigz binutils \
-	sharutils rsync aptitude screen vim psmisc dbus ssh htop openssh-server \
-	cgpt tftpd-hpa
-
-# https://github.com/sequenceiq/docker-pam
-# Workaround pam issue for chpasswd
-RUN apt-get -y build-dep pam
-# Rebuild and install libpam with --disable-audit option
-RUN mkdir /tmp/pam_build
-RUN export CONFIGURE_OPTS=--disable-audit && cd /tmp/pam_build && apt-get -b \
-    source pam && dpkg -i libpam-doc*.deb libpam-modules*.deb \
-    libpam-runtime*.deb libpam0g*.deb
-# Remove pam build modules
-RUN rm -rf /tmp/pam_build
-
-RUN mkdir /var/run/sshd
-RUN echo 'root:test0000' | chpasswd
-RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' \
-	/etc/ssh/sshd_config
+	sharutils rsync aptitude screen vim psmisc dbus htop cgpt tftpd-hpa
 
 ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >>/etc/profile
-
-COPY authorized_keys /root/.ssh/authorized_keys
 
 # From https://github.com/tianon/dockerfiles/tree/4d24a12b54b75b3e0904d8a285900d88d3326361/sbin-init/ubuntu/upstart/14.04
 # Setup upstart envorinment
@@ -75,6 +62,5 @@ RUN echo 'TFTP_DIRECTORY="/root/tftpboot/"' >>/etc/default/tftpd-hpa
 RUN echo 'TFTP_ADDRESS="0.0.0.0:69"' >>/etc/default/tftpd-hpa
 RUN echo 'TFTP_OPTIONS="-v --secure"' >>/etc/default/tftpd-hpa
 
-EXPOSE 22
 # Pepare for takeoff
 CMD ["/sbin/init"]

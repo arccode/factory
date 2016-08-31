@@ -10,10 +10,6 @@ UMPIRE_IMAGE_NAME="cros/umpire"
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 BUILDDIR=${SCRIPT_DIR}/umpire_docker
-KEYSDIR=${SCRIPT_DIR}/sshkeys
-KEYFILE=${KEYSDIR}/testing_rsa
-KEYFILE_PUB=${KEYSDIR}/testing_rsa.pub
-SSH_OPTIONS='-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 
 # Let all containers can share the same directory with host
 HOST_DIR=/docker_shared
@@ -45,22 +41,14 @@ check_status() {
   fi
 }
 
-get_container_IP() {
-  local container_name="$1"
-  check_status "${container_name}"
-
-  sudo docker inspect -f "{{ .NetworkSettings.IPAddress }}" "${container_name}"
-}
-
-do_ssh() {
+do_shell() {
   check_docker
 
   local container_name="$1"
   check_status "${container_name}"
   shift
 
-  local ip="$(get_container_IP ${container_name})"
-  ssh ${SSH_OPTIONS} -i ${KEYFILE} root@${ip} $@
+  sudo docker exec -it "${container_name}" bash
 }
 
 do_build() {
@@ -87,17 +75,10 @@ do_build() {
     fi
   fi
 
-  # docker build requires resource to be in the build directory, copy keyfile
-  # for using as authorized_keys
-  cp -f ${KEYFILE_PUB} ${BUILDDIR}/authorized_keys
-
   sudo docker build -t ${UMPIRE_IMAGE_NAME} ${BUILDDIR}
   if [ $? -eq 0 ]; then
     echo "${UMPIRE_CONTAINER_NAME} container successfully built."
   fi
-
-  # Cleanup
-  rm ${BUILDDIR}/authorized_keys
 }
 
 do_destroy() {
@@ -179,13 +160,12 @@ do_install() {
 
   check_docker
 
-  local ip=$(get_container_IP "${UMPIRE_CONTAINER_NAME}")
-  scp ${SSH_OPTIONS} -i ${KEYFILE} ${toolkit} root@${ip}:/tmp
-  ssh ${SSH_OPTIONS} -i ${KEYFILE} root@${ip} \
-    /tmp/${toolkit##*/} -- --init-umpire-board=${board}
-  ssh ${SSH_OPTIONS} -i ${KEYFILE} root@${ip} \
-    "echo export BOARD=${board} >> /root/.bashrc"
-  ssh ${SSH_OPTIONS} -i ${KEYFILE} root@${ip} restart umpire BOARD=${board}
+  sudo docker cp "${toolkit}" "${container_name}:/tmp"
+  sudo docker exec "${container_name}" /tmp/${toolkit##*/} -- \
+    --init-umpire-board=${board}
+  sudo docker exec "${container_name}" \
+    bash -c "echo export BOARD=${board} >> /root/.bashrc"
+  sudo docker exec "${container_name}" restart umpire BOARD=${board}
 }
 
 usage() {
@@ -197,26 +177,19 @@ Commands:
     destroy     destroy umpire container
     start       start umpire container
     stop        stop umpire container
-    ssh         ssh into umpire container
-    ip          get umpire container IP
+    shell (ssh) invoke a shell (bash) inside umpire container
     install     install factory toolkit
     help        Show this help message
 
 Sub-Command options:
     install     BOARD FACTORY_TOOLKIT_FILE
-    ssh         SSH_ARGS
 
 Options:
     -h, --help  Show this help message
 __EOF__
 }
 
-init() {
-  chmod 400 ${KEYFILE}
-}
-
 main() {
-  init
 
   case "$1" in
     build)
@@ -231,12 +204,9 @@ main() {
     stop)
       do_stop
       ;;
-    ssh)
+    ssh | shell)
       shift
-      do_ssh "${UMPIRE_CONTAINER_NAME}" "$@"
-      ;;
-    ip)
-      get_container_IP "${UMPIRE_CONTAINER_NAME}"
+      do_shell "${UMPIRE_CONTAINER_NAME}" "$@"
       ;;
     install)
       shift
