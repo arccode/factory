@@ -9,6 +9,7 @@
     "react": "~15.1.0",
     "react-dom": "~15.1.0",
     "react-redux": "^4.4.5",
+    "react-sortable-hoc": "0.0.7",
     "react-tap-event-plugin": "~1.0.0",
     "redux": "^3.5.2",
     "redux-immutable": "^3.0.6",
@@ -58,11 +59,11 @@
       "plugin:react/recommended"
     ],
     "rules": {
-        "indent": ["error", 2, {"SwitchCase": 1}],
-        "linebreak-style": ["error", "unix"],
-        "quotes": ["error", "single"],
-        "semi": ["error", "always"],
-        "no-console": ["error", {"allow": ["error", "warn"]}]
+      "indent": ["error", 2, {"SwitchCase": 1}],
+      "linebreak-style": ["error", "unix"],
+      "quotes": ["error", "single"],
+      "semi": ["error", "always"],
+      "no-console": ["error", {"allow": ["error", "warn"]}]
     }
   },
   "author": "Mao Huang <littlecvr@google.com>"
