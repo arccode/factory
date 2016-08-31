@@ -87,10 +87,6 @@ _caller_subcommands_map = {}
 def Command(cmd_name, *args, **kwargs):
   """Decorator to populate the per-module sub-command list.
 
-  If not already present, a SUB_CMD_LIST_ATTR attribute is created in
-  the caller module.  This attribute is then populated with the list
-  of subcommands.
-
   Function doc strings are extracted and shown to users as part of the
   help message for each command.
   """
@@ -110,11 +106,7 @@ def Command(cmd_name, *args, **kwargs):
 
 
 def ParseCmdline(top_level_description, *common_args, **kwargs):
-  """Return object containing all argparse-processed command line data.
-
-  The list of subcommands is taken from the SUB_CMD_LIST_ATTR
-  attribute of the caller module.
-  """
+  """Return object containing all argparse-processed command line data."""
   CheckDictKeys(kwargs, ['args_to_parse'])
 
   caller = inspect.getouterframes(inspect.currentframe())[1][1]
