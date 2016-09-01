@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import {connect} from 'react-redux';
+import Immutable from 'immutable';
 import MenuItem from 'material-ui/MenuItem';
 import Paper from 'material-ui/Paper';
 import RaisedButton from 'material-ui/RaisedButton';
@@ -14,7 +15,7 @@ import DomeActions from '../actions/domeactions';
 
 var WelcomePage = React.createClass({
   propTypes: {
-    boards: React.PropTypes.string.isRequired,
+    boards: React.PropTypes.instanceOf(Immutable.List).isRequired,
     fetchBoards: React.PropTypes.func.isRequired,
     switchBoard: React.PropTypes.func.isRequired
   },
