@@ -10,11 +10,34 @@ from rest_framework import serializers
 from backend.models import Board, BundleModel
 
 
-class BoardSerializer(serializers.ModelSerializer):
+class BoardSerializer(serializers.Serializer):
 
-  class Meta(object):
-    model = Board
-    fields = ['name', 'url']
+  name = serializers.ModelField(
+      model_field=Board._meta.get_field('name'))  # pylint: disable=W0212
+  host = serializers.ModelField(
+      model_field=Board._meta.get_field('host'),  # pylint: disable=W0212
+      default='localhost')
+  port = serializers.ModelField(
+      model_field=Board._meta.get_field('port'))  # pylint: disable=W0212
+
+  # True if the Umpire container already exists, False otherwise
+  is_existing = serializers.BooleanField(write_only=True, default=False)
+  factory_toolkit_file = serializers.FileField(write_only=True, required=False)
+
+  def create(self, validated_data):
+    """Override parent's method."""
+    if validated_data.pop('is_existing'):
+      return Board.AddExistingOne(**validated_data)
+    else:
+      validated_data.pop('host')
+      path = validated_data.pop('factory_toolkit_file').temporary_file_path()
+      validated_data['factory_toolkit_path'] = path
+      return Board.CreateOne(**validated_data)
+
+  def update(self, instance, validated_data):
+    """Override parent's method."""
+    # don't need this function but pylint would complain if not overridden
+    raise NotImplementedError
 
 
 class ResourceSerializer(serializers.Serializer):

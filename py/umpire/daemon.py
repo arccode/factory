@@ -154,9 +154,8 @@ class UmpireDaemon(object):
   def Run(self):
     """Starts the daemon and event loop."""
     self.BuildWebAppSite()
-    # Umpire CLI and DUT RPCs are called by web server, which is running on the
-    # same host. Hence keep interface=LOCALHOST default value.
-    self.BuildRPCSite(self.env.umpire_cli_port, self.methods_for_cli)
+
+    self.BuildRPCSite(self.env.umpire_cli_port, self.methods_for_cli, '0.0.0.0')
     self.BuildRPCSite(self.env.umpire_rpc_port, self.methods_for_dut)
 
     self.BuildHTTPPOSTSite(self.env.umpire_http_post_port)

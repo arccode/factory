@@ -15,8 +15,28 @@ from backend.serializers import (
 
 
 class BoardCollectionView(generics.ListCreateAPIView):
-  queryset = Board.objects.all()
+
   serializer_class = BoardSerializer
+
+  def get_queryset(self):
+    """Override parent's method."""
+    return Board.ListAll()
+
+
+class BoardElementView(APIView):
+
+  def get_queryset(self):
+    """Override parent's method."""
+    return Board.ListAll()
+
+  def delete(self, unused_request, board,
+             request_format=None):  # pylint: disable=unused-argument
+    """Override parent's method."""
+    try:
+      Board.DeleteOne(board)
+      return Response(status=status.HTTP_204_NO_CONTENT)
+    except Board.DoesNotExist:
+      return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 class BundleCollectionView(APIView):

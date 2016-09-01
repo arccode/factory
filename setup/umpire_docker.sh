@@ -104,8 +104,9 @@ do_start() {
     for base in $(seq ${PORT_START} ${PORT_STEP} \
         $(expr ${PORT_START} + \( ${NUM_BOARDS} - 1 \) \* ${PORT_STEP} )); do
       p1=${base}              # Imaging & Shopfloor
-      p2=$(expr ${base} + 4)  # Rsync
-      umpire_port_map="-p $p1:$p1 -p $p2:$p2 ${umpire_port_map}"
+      p2=$(expr ${base} + 2)  # CLI RPC
+      p3=$(expr ${base} + 4)  # Rsync
+      umpire_port_map="-p $p1:$p1 -p $p2:$p2 -p $p3:$p3 ${umpire_port_map}"
     done
 
     sudo docker run -d \

@@ -4,12 +4,14 @@
 # found in the LICENSE file.
 
 # TODO(littlecvr): functionize this file
+# TODO(littlecvr): probably should be merged with setup/umpire_docker.sh
 
 set -e
 
 SCRIPT_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 
 DOCKER_SHARED_DIR="/docker_shared/dome"
+DOCKER_UMPIRE_DIR="/docker_umpire"
 
 DB_FILE="db.sqlite3"
 BUILDER_WORKDIR="/usr/src/app"
@@ -38,7 +40,7 @@ docker rm "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
 
 # build the dome builder image
 docker build \
-  --file "${BUILDER_DOCKERFILE}" \
+  --file "${SCRIPT_DIR}/${BUILDER_DOCKERFILE}" \
   --tag "${BUILDER_IMAGE_NAME}" \
   --build-arg workdir="${BUILDER_WORKDIR}" \
   --build-arg output_file="${BUILDER_OUTPUT_FILE}" \
@@ -53,11 +55,13 @@ docker cp \
 docker rm "${BUILDER_CONTAINER_NAME}"
 
 # build the dome runner image
+# need to make sure we're using the same version of docker inside the container
 docker build \
-  --file "${DOME_DOCKERFILE}" \
+  --file "${SCRIPT_DIR}/${DOME_DOCKERFILE}" \
   --tag "${DOME_IMAGE_NAME}" \
   --build-arg dome_dir="${DOME_DIR}" \
   --build-arg builder_output_file="${BUILDER_OUTPUT_FILE}" \
+  --build-arg docker_version="$(docker version --format {{.Server.Version}})" \
   "${SCRIPT_DIR}"
 
 # make sure database file exists or mounting volume will fail
@@ -80,8 +84,10 @@ docker run \
   --detach \
   --restart unless-stopped \
   --name "${UWSGI_CONTAINER_NAME}" \
+  --volume /var/run/docker.sock:/var/run/docker.sock \
   --volume /run \
   --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${DOME_DIR}/${DB_FILE}" \
+  --volume "${DOCKER_UMPIRE_DIR}:/var/db/factory/umpire" \
   "${DOME_IMAGE_NAME}" \
   uwsgi --ini uwsgi.ini
 

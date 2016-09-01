@@ -15,6 +15,7 @@ TODO(littlecvr): make umpire config complete such that it contains all the
 
 import os
 import re
+import subprocess
 import xmlrpclib
 
 import yaml
@@ -23,6 +24,9 @@ from django.db import models
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put
 #                  them into a config file (using the new config API).
+UMPIRE_BASE_PORT = 8090
+UMPIRE_RPC_PORT_OFFSET = 2
+UMPIRE_RSYNC_PORT_OFFSET = 4
 UMPIRE_CONFIG_BASENAME = 'umpire.yaml'
 UMPIRE_RESOURCE_NAME_ALIAS = {
     'device_factory_toolkit': 'factory_toolkit',
@@ -30,21 +34,143 @@ UMPIRE_RESOURCE_NAME_ALIAS = {
 UMPIRE_UPDATABLE_RESOURCE = set(['device_factory_toolkit',
                                  'server_factory_toolkit'])
 
+# TODO(littlecvr): use volume container instead of absolute path.
+# TODO(littlecvr): these constants are shared between here and umpire_docker.sh,
+#                  should be pulled out to common config.
+UMPIRE_IMAGE_NAME = 'cros/umpire'
+DOCKER_SHARED_DIR = '/docker_shared'
+UMPIRE_DOCKER_DIR = '/docker_umpire'
+UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
+
+# Mount point of the Umpire data folder in Dome's container. Note: this is not
+# Umpire base directory in Umpire's container (which is also
+# '/var/db/factory/umpire', but they have nothing to do with each other). This
+# is also not Umpire's base directory on host (which is '/docker_umpire' for
+# now).
+# TODO(littlecvr): shared between here and dome.sh, should be pulled out to a
+#                  common config.
+UMPIRE_BASE_DIR = '/var/db/factory/umpire'
+
 
 class Board(models.Model):
   # TODO(littlecvr): pull max length to common config with Umpire
   # TODO(littlecvr): need a validator, no spaces allowed
   name = models.CharField(max_length=200, primary_key=True)
+  host = models.CharField(max_length=200, default='localhost')
+  port = models.PositiveIntegerField(default=8080)
 
-  # TODO(littlecvr): consider whether to accept blank URL or not, accepting
-  #                  blank URL may be more convenient for local Umpire
-  #                  instances, we can get port from local config file, so the
-  #                  user only needs to input the board name to access the
-  #                  Umpire instance
-  url = models.URLField()
+  # TODO(littlecvr): add TFTP and Overlord ports
 
   class Meta(object):
     ordering = ['name']
+
+  @staticmethod
+  def _GetHostIP():
+    # An easy way to get IP of the host. It's possible to install python
+    # packages such as netifaces or pynetinfo into the container, but that
+    # requires gcc to be installed and will thus increase the size of the
+    # container (which we don't want).
+    ip = subprocess.check_output(
+        'route | grep default | tr -s " " | cut -d " " -f 2', shell=True)
+    return ip.strip()  # remove the trailing newline
+
+  @staticmethod
+  def _GetContainerName(name):
+    return 'umpire_%s' % name
+
+  @staticmethod
+  def AddExistingOne(name, host, port):
+    """Add an existing Umpire container to the database."""
+    return Board.objects.create(name=name, host=host, port=port)
+
+  @staticmethod
+  def CreateOne(name, port, factory_toolkit_path):
+    """Create a local Umpire container from a factory toolkit."""
+    container_name = Board._GetContainerName(name)
+
+    # make sure the container does not exist
+    exists = subprocess.check_output([
+        'docker', 'ps', '--all', '--format={{.Names}}',
+        '--filter=name=%s' % container_name])
+    if exists:
+      raise EnvironmentError('Container %s already exists, Dome will not try '
+                             'to create a new one, please add the existing '
+                             'Umpire instance instead of create a new one ' %
+                             container_name)
+
+    port_mapping = [
+        '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
+        '--publish', '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,
+                                UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
+        '--publish', '%d:%d' % (port + UMPIRE_RSYNC_PORT_OFFSET,
+                                UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET)]
+
+    try:
+      # create and start a new container
+      # TODO(littlecvr): this is almost identical to umpire_docker.sh's
+      #                  do_start() function, when merging dome.sh and
+      #                  umpire_docker.sh, we should remove this function in
+      #                  that script because this job should be done by Dome
+      #                  only
+      subprocess.check_call(
+          ['docker', 'run', '--detach', '--privileged',
+           # TODO(littlecvr): remove hard-coded port mapping.
+           '--publish', '4455:4455',  # for Overlord
+           '--publish', '9000:9000',  # for Overlord
+           '--publish', '69:69/udp'] +  # for TFTP
+          port_mapping +
+          ['--volume', '/etc/localtime:/etc/localtime:ro',
+           '--volume', '%s:/mnt' % DOCKER_SHARED_DIR,
+           '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,
+                                     container_name,
+                                     UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
+           '--restart', 'unless-stopped',
+           '--name', container_name,
+           UMPIRE_IMAGE_NAME])
+
+      # install factory toolkit
+      # TODO(b/31281536): no need to install factory toolkit after the issue
+      #                   has been solved.
+      subprocess.check_call([
+          'docker', 'cp', factory_toolkit_path,
+          '%s:/tmp/install_factory_toolkit.run' % container_name])
+      subprocess.check_call([
+          'docker', 'exec', container_name,
+          'chmod', '755', '/tmp/install_factory_toolkit.run'])
+      subprocess.check_call([
+          'docker', 'exec', container_name,
+          '/tmp/install_factory_toolkit.run',
+          '--', '--init-umpire-board=%s' % name])
+    except Exception:
+      # remove container
+      subprocess.call(['docker', 'stop', container_name])
+      subprocess.call(['docker', 'rm', container_name])
+      raise
+
+    # push into the database
+    return Board.AddExistingOne(name, Board._GetHostIP(), port)
+
+  @staticmethod
+  def DeleteOne(name):
+    container_name = Board._GetContainerName(name)
+    subprocess.call(['docker', 'stop', container_name])
+    subprocess.call(['docker', 'rm', container_name])
+    return Board.objects.get(pk=name).delete()
+
+  @staticmethod
+  def ListAll():
+    board_list = Board.objects.all()
+    for board in board_list:
+      # Dome is inside a docker container. If host is 'localhost', it is not
+      # actually 'localhost', it is the 'host'. So we need to transform it to
+      # the host's IP.
+      if board.host == 'localhost' or board.host == '127.0.0.1':
+        board.host = Board._GetHostIP()
+    return board_list
+
+  @staticmethod
+  def ListOne(name):
+    return next(b for b in Board.ListAll() if b.name == name)
 
 
 class Resource(object):
@@ -104,7 +230,8 @@ class BundleModel(object):
     self.board = board
 
     # get URL of the board
-    url = Board.objects.get(pk=board).url
+    board = Board.ListOne(board)
+    url = 'http://%s:%d' % (board.host, board.port + UMPIRE_RPC_PORT_OFFSET)
     self.umpire_server = xmlrpclib.ServerProxy(url, allow_none=True)
     self.umpire_status = self.umpire_server.GetStatus()
 

@@ -36,6 +36,8 @@ urlpatterns = [
         TemplateView.as_view(template_name='index.html')),
     url(r'^boards/$',
         views.BoardCollectionView.as_view()),
+    url(r'^boards/%s/$' % BOARD_URL_ARG,
+        views.BoardElementView.as_view()),
     url(r'^boards/%s/bundles/$' % BOARD_URL_ARG,
         views.BundleCollectionView.as_view()),
     url(r'^boards/%s/bundles/%s/$' % (BOARD_URL_ARG, BUNDLE_URL_ARG),
