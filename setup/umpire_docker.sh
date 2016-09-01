@@ -117,6 +117,7 @@ do_start() {
       -v /etc/localtime:/etc/localtime:ro \
       -v ${HOST_DIR}:/mnt \
       -v ${HOST_DB_DIR}:${CONTAINER_DB_DIR} \
+      --restart unless-stopped \
       --name "${UMPIRE_CONTAINER_NAME}" \
       "${UMPIRE_IMAGE_NAME}"
 
