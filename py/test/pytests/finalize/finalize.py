@@ -116,9 +116,6 @@ class Finalize(unittest.TestCase):
           'test being added to this list by accident, each element must be'
           'a exact test path, rather than a regular expression.',
           default=[]),
-      Arg('hwid_version', int,
-          'Version of HWID library to use in gooftool.', default=3,
-          optional=True),
       Arg('enable_shopfloor', bool,
           'Perform shopfloor operations: update HWID data and flush event '
           'logs.', default=True),
@@ -513,7 +510,7 @@ class Finalize(unittest.TestCase):
   def DoFinalize(self):
     upload_method = self.NormalizeUploadMethod(self.args.upload_method)
 
-    command = 'gooftool -v 4 finalize -i %d' % self.args.hwid_version
+    command = 'gooftool -v 4 finalize'
     if self.waived_tests:
       self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
     Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))

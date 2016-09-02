@@ -274,7 +274,7 @@ def VerifyComponents(args):
           # We skipped ro_main_firmware and ro_ec_firmware here because
           # they will get updated in RunIn. Update firmware in SMT takes
           # too much time.
-          hwid_version=3))
+          ))
 
 
 def SMTCountdown(args):
