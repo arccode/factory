@@ -31,7 +31,7 @@ UMPIRE_UPDATABLE_RESOURCE = set(['device_factory_toolkit',
                                  'server_factory_toolkit'])
 
 
-class BoardModel(models.Model):
+class Board(models.Model):
   # TODO(littlecvr): pull max length to common config with Umpire
   # TODO(littlecvr): need a validator, no spaces allowed
   name = models.CharField(max_length=200, primary_key=True)
@@ -104,7 +104,7 @@ class BundleModel(object):
     self.board = board
 
     # get URL of the board
-    url = BoardModel.objects.get(pk=board).url
+    url = Board.objects.get(pk=board).url
     self.umpire_server = xmlrpclib.ServerProxy(url, allow_none=True)
     self.umpire_status = self.umpire_server.GetStatus()
 

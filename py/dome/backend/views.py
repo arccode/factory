@@ -9,13 +9,13 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from backend.models import BoardModel, BundleModel
+from backend.models import Board, BundleModel
 from backend.serializers import (
     BoardSerializer, BundleSerializer, ResourceSerializer)
 
 
 class BoardCollectionView(generics.ListCreateAPIView):
-  queryset = BoardModel.objects.all()
+  queryset = Board.objects.all()
   serializer_class = BoardSerializer
 
 

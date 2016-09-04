@@ -7,13 +7,13 @@ import stat
 
 from rest_framework import serializers
 
-from backend.models import BoardModel, BundleModel
+from backend.models import Board, BundleModel
 
 
 class BoardSerializer(serializers.ModelSerializer):
 
   class Meta(object):
-    model = BoardModel
+    model = Board
     fields = ['name', 'url']
 
 

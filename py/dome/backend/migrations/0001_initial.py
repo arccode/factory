@@ -7,20 +7,19 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    initial = True
+  initial = True
 
-    dependencies = [
-    ]
+  dependencies = []
 
-    operations = [
-        migrations.CreateModel(
-            name='BoardModel',
-            fields=[
-                ('name', models.CharField(max_length=200, primary_key=True, serialize=False)),
-                ('url', models.URLField()),
-            ],
-            options={
-                'ordering': ['name'],
-            },
-        ),
-    ]
+  operations = [
+      migrations.CreateModel(
+          name='BoardModel',
+          fields=[
+              ('name', models.CharField(
+                  max_length=200, primary_key=True, serialize=False)),
+              ('url', models.URLField()),
+          ],
+          options={
+              'ordering': ['name'],
+          },),
+  ]
