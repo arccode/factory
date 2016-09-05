@@ -51,6 +51,47 @@ function createAndStartTask(
     });
 }
 
+const addBoard = (name, host, port) => dispatch => {
+  var formData = new FormData();
+  formData.append('name', name);
+  formData.append('host', host);
+  formData.append('port', port);
+  formData.append('is_existing', true);
+
+  fetch('/boards/', {method: 'POST', body: formData}).then(response => {
+    dispatch(fetchBoards());
+  }, error => {
+    // TODO(littlecvr): better error handling
+    console.error('error adding board');
+    console.error(error);
+  });
+};
+
+const createBoard = (name, port, factoryToolkitFile) => dispatch => {
+  var formData = new FormData();
+  formData.append('name', name);
+  formData.append('port', port);
+  formData.append('factory_toolkit_file', factoryToolkitFile);
+
+  fetch('/boards/', {method: 'POST', body: formData}).then(response => {
+    dispatch(fetchBoards());
+  }, error => {
+    // TODO(littlecvr): better error handling
+    console.error('error creating board');
+    console.error(error);
+  });
+};
+
+const deleteBoard = board => dispatch => {
+  fetch(`/boards/${board}/`, {method: 'DELETE'}).then(response => {
+    dispatch(fetchBoards());
+  }, error => {
+    // TODO(littlecvr): better error handling
+    console.error('error deleting board');
+    console.error(error);
+  });
+};
+
 const receiveBoards = boards => ({
   type: ActionTypes.RECEIVE_BOARDS,
   boards
@@ -132,7 +173,7 @@ const dismissTask = taskID => ({
 
 export default {
   apiURL, createAndStartTask,
-  fetchBoards, switchBoard, switchApp,
+  addBoard, createBoard, deleteBoard, fetchBoards, switchBoard, switchApp,
   openForm, closeForm,
   dismissTask
 };
