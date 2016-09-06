@@ -94,7 +94,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mock_ui.Run(blocking=False)
     self.mock_ui.BindKey(' ', mox.Func(callable))
-    shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
+    shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number',
+                                'all_serial_numbers'],
                                optional=True)
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()
@@ -131,7 +132,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mock_ui.Run(blocking=False)
     self.mock_ui.BindKey(' ', mox.Func(callable))
-    shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
+    shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number',
+                                'all_serial_numbers'],
                                optional=True)
     self.mock_template.SetState(mox.IsA(basestring))
     self.mock_ui.SetHTML(mox.IsA(basestring),
