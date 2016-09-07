@@ -1065,6 +1065,13 @@ def _ProbeCpuArm():
                '%s [%d cores] %s' % (model, cores, hardware))}]
 
 
+@_ComponentProbe('customization_id')
+def _ProbeCustomizationId():
+  """Probes the customization_id of the DUT in RO VPD."""
+  customization_id = ReadRoVpd().get('customization_id', None)
+  return [{'id': customization_id}] if customization_id else []
+
+
 @_ComponentProbe('display_panel')
 def _ProbeDisplayPanel():
   """Combine all available edid data, from sysfs and directly from the i2c."""
@@ -1726,7 +1733,7 @@ def Probe(target_comp_classes=None,
   missing_component_classes = []
   # TODO(hungte) Extend _ComponentProbe to support filtering flashrom related
   # probing methods.
-  vpd_classes = ['region']
+  vpd_classes = ['region', 'customization_id']
   for comp_class, probe_fun in comp_probes.items():
     if comp_class in vpd_classes and not probe_vpd:
       logging.info('Ignored probing [%s]', comp_class)
