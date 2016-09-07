@@ -314,17 +314,21 @@ def _UnmountStatefulPartition(root, state_dev):
   os.unlink(os.path.join(root, 'var', 'lock'))
 
   if os.path.exists(os.path.join(root, 'dev', 'mapper', 'encstateful')):
-    def _UmountEncrypted():
-      try:
-        process_utils.Spawn(['mount-encrypted', 'umount'], check_call=True)
-        return True
-      except:  # pylint: disable=bare-except
-        return False
-    sync_utils.Retry(10, 0.1, None, _UmountEncrypted)
+    # Doing what 'mount-encrypted umount' should do.
+    for mount_point in mount_point_list:
+      process_utils.Spawn(['umount', '-n', '-R', mount_point], call=True)
+    process_utils.Spawn(['umount', '-nR', os.path.join(root, 'var')],
+                        check_call=True)
+    process_utils.Spawn(['dmsetup', 'remove', 'encstateful'], check_call=True)
+    process_utils.Spawn(['losetup', '-D'], check_call=True)
 
   for mount_point in mount_point_list:
     process_utils.Spawn(['umount', '-n', '-R', mount_point], call=True)
   process_utils.Spawn(['sync'], call=True)
+
+  # Check if the stateful partition is unmounted successfully.
+  process_utils.Spawn(r'mount | grep -c "^\S*stateful" | grep -q ^0$',
+                      shell=True, check_call=True)
 
 
 def _InformStation(ip, port, token, wipe_init_log=None,
