@@ -323,10 +323,10 @@ class Util(object):
     if not r.success:
       raise Error('Failed to disable kernel on %s#%s' % (device, part_no))
 
-  def IsChromeOSFirmware(self):
-    """Returns if the system is running ChromeOS firmware."""
+  def IsLegacyChromeOSFirmware(self):
+    """Returns if the system is running legacy ChromeOS firmware."""
     r = self.shell('crossystem mainfw_type')
-    return r.success and r.stdout.strip() != 'nonchrome'
+    return not r.success or r.stdout.strip() == 'nonchrome'
 
   def EnableReleasePartition(self, root_dev):
     """Enables a release image partition on disk."""
@@ -344,7 +344,7 @@ class Util(object):
       # When booting with legacy firmware, we need to update the legacy boot
       # loaders to activate new kernel; on a real ChromeOS firmware, only CGPT
       # header is used, and postinst is already performed in verify_rootfs.
-      if self.IsChromeOSFirmware():
+      if self.IsLegacyChromeOSFirmware():
         self.InvokeChromeOSPostInstall(root_dev)
       self.shell('crossystem disable_dev_request=1')
       self.DisableKernel(device, factory_no)
