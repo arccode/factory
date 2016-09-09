@@ -467,7 +467,7 @@ class UI(object):
           try:
             handler(event)
           except Exception as e:
-            self.Fail(e)
+            self.Fail(str(e))
 
   def GetUILanguage(self):
     """Returns current enabled language in UI."""
