@@ -545,18 +545,6 @@ class Gooftool(object):
                   release_rootfs, root_disk, old_root, station_ip, station_port,
                   wipe_finish_token)
 
-  def PrepareWipe(self, is_fast=None):
-    """Prepare system for transition to release state in next reboot.
-
-    Args:
-      is_fast: Whether or not to apply fast wipe.
-    """
-
-    self._util.FindAndRunScript(
-        'prepare_wipe.sh',
-        [self._util.GetReleaseRootPartitionPath()],
-        ['FACTORY_WIPE_TAGS=fast'] if is_fast else [])
-
   def Probe(self, target_comp_classes, fast_fw_probe=False, probe_volatile=True,
             probe_initial_config=True, probe_vpd=False):
     """Returns probed results for device components, hash, and initial config

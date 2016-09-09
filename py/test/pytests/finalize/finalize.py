@@ -128,11 +128,6 @@ class Finalize(unittest.TestCase):
           'For ChromeOS Core device, skip verifying branding and setting'
           'firmware bitmap locale.',
           default=False, optional=True),
-      Arg('wipe_in_place', bool,
-          'Wipe the stateful partition directly in a tmpfs without reboot. '
-          'False for legacy implementation to invoke wiping under '
-          'release image after reboot.',
-          default=True, optional=True),
       Arg('inform_shopfloor_after_wipe', bool,
           'Inform shopfloor server that the device is finalized after it gets'
           'wiped. For in-place wipe, it is recommended to set to True so'
@@ -140,8 +135,8 @@ class Finalize(unittest.TestCase):
           'For legacy wipe, shopfloor call is always made before wiping.',
           default=True),
       Arg('cutoff_options', dict,
-          'Battery cutoff options after wiping. Only used when wipe_in_place'
-          'is set to true. Should be a dict with following optional keys:\n'
+          'Battery cutoff options after wiping. Should be a dict with following'
+          'optional keys:\n'
           '- "method": The cutoff method after wiping. Value should be one of'
           '    {shutdown, reboot, battery_cutoff}\n'
           '- "check_ac": Allowed AC state when performing battery cutoff'
@@ -390,8 +385,7 @@ class Finalize(unittest.TestCase):
         return False
       return True
 
-    if (self.args.wipe_in_place and
-        self.args.cutoff_options['method'] == 'battery_cutoff'):
+    if self.args.cutoff_options['method'] == 'battery_cutoff':
       items.append((SupportFirmwareCutoff,
                     MakeLabel('Check battery cutoff support',
                               '检查电池断电支援')))
@@ -524,18 +518,16 @@ class Finalize(unittest.TestCase):
     if not self.args.secure_wipe:
       command += ' --fast'
 
-    if self.args.wipe_in_place:
-      command += ' --wipe_in_place'
-      if self.args.cutoff_options:
-        cutoff_args = ''
-        for key, value in self.args.cutoff_options.iteritems():
-          cutoff_args += ' --%s %s' % (key.replace('_', '-'), str(value))
-        command += ' --cutoff_args "%s"' % cutoff_args
-      if (self.args.inform_shopfloor_after_wipe and
-          shopfloor.is_enabled() and
-          shopfloor.get_shopfloor_handler_uri()):
-        command += ' --shopfloor_url "%s"' % (
-            shopfloor.get_shopfloor_handler_uri())
+    if self.args.cutoff_options:
+      cutoff_args = ''
+      for key, value in self.args.cutoff_options.iteritems():
+        cutoff_args += ' --%s %s' % (key.replace('_', '-'), str(value))
+      command += ' --cutoff_args "%s"' % cutoff_args
+    if (self.args.inform_shopfloor_after_wipe and
+        shopfloor.is_enabled() and
+        shopfloor.get_shopfloor_handler_uri()):
+      command += ' --shopfloor_url "%s"' % (
+          shopfloor.get_shopfloor_handler_uri())
 
     command += ' --upload_method "%s"' % upload_method
     command += ' --add_file "%s"' % self.test_states_path
@@ -554,29 +546,9 @@ class Finalize(unittest.TestCase):
       command += ' --waive_list ' + ' '.join(self.args.gooftool_waive_list)
     command += ' --phase "%s"' % phase.GetPhase()
 
-    if self.args.wipe_in_place:
-      if not self.args.inform_shopfloor_after_wipe and shopfloor.is_enabled():
-        shopfloor.finalize()  # notify shopfloor
-      return self._FinalizeWipeInPlace(command)
-
-    # not using wipe_in_place
-    self._CallGoofTool(command)
-    if shopfloor.is_enabled():
+    if not self.args.inform_shopfloor_after_wipe and shopfloor.is_enabled():
       shopfloor.finalize()  # notify shopfloor
-
-    # TODO(hungte): Use Reboot in test list to replace this, or add a
-    # key-press check in developer mode.
-    self.dut.CheckCall('sync; sleep 3; shutdown -r now')
-
-    # DUT should reboot at this point.
-    # For local DUT, this test will be terminated at here.
-    # For remote DUT, we wait until losing connection to DUT.
-    try:
-      sync_utils.WaitFor(lambda: not self.dut.IsReady(),
-                         self.FINALIZE_TIMEOUT,
-                         poll_interval=1)
-    except type_utils.TimeoutError:
-      raise factory.FactoryTestFailure('Unable to shutdown')
+    self._FinalizeWipeInPlace(command)
 
   def _FinalizeWipeInPlace(self, command):
     if self.dut.link.IsLocal():

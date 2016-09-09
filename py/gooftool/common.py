@@ -330,7 +330,6 @@ class Util(object):
 
   def EnableReleasePartition(self, root_dev):
     """Enables a release image partition on disk."""
-    # TODO(hungte) replce sh/enable_release_partition.sh
     release_no = int(root_dev[-1]) - 1
     factory_map = {2: 4, 4: 2}
     if release_no not in factory_map:

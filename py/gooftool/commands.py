@@ -173,9 +173,9 @@ _cutoff_args_cmd_arg = CmdArg(
 
 _shopfloor_url_args_cmd_arg = CmdArg(
     '--shopfloor_url',
-    help='Shopfloor server url to be informed when in-place wipe is done. '
-         'After in-place wipe, a XML-RPC request will be sent to the '
-         'given url to indicate the completion of wipe.')
+    help='Shopfloor server url to be informed when wiping is done. '
+         'After wiping, a XML-RPC request will be sent to the '
+         'given url to indicate the completion of wiping.')
 
 _station_ip_cmd_arg = CmdArg(
     '--station_ip',
@@ -471,15 +471,6 @@ def WipeInit(options):
                                 options.station_port,
                                 options.wipe_finish_token)
 
-@Command('prepare_wipe',
-         CmdArg('--fast', action='store_true',
-                help='use non-secure but faster wipe method.'))
-def PrepareWipe(options):
-  """Prepare system for transition to release state in next reboot."""
-
-  GetGooftool(options).PrepareWipe(options.fast)
-
-
 @Command('verify',
          CmdArg('--no_write_protect', action='store_true',
                 help='Do not check write protection switch state.'),
@@ -664,8 +655,6 @@ def UploadReport(options):
                 help='Do not enable firmware write protection.'),
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
-         CmdArg('--wipe_in_place', action='store_true',
-                help='Start factory wiping in place without reboot.'),
          _cutoff_args_cmd_arg,
          _shopfloor_url_args_cmd_arg,
          _hwdb_path_cmd_arg,
@@ -696,8 +685,7 @@ def Finalize(options):
   - Removes factory-specific entries from RW_VPD (factory.*)
   - Enables firmware write protection (cannot rollback after this)
   - Uploads system logs & reports
-  - Sets the necessary boot flags to cause wipe of the factory image on the
-    next boot.
+  - Wipes the testing kernel, rootfs, and stateful partition
   """
   Verify(options)
   LogSourceHashes(options)
@@ -716,25 +704,22 @@ def Finalize(options):
     EnableFwWp({})
   LogSystemDetails(options)
   UploadReport(options)
-  if options.wipe_in_place:
-    event_log.Log('wipe_in_place')
-    # WipeInPlace(options)
-    wipe_args = []
-    if options.cutoff_args:
-      wipe_args += ['--cutoff_args', options.cutoff_args]
-    if options.shopfloor_url:
-      wipe_args += ['--shopfloor_url', options.shopfloor_url]
-    if options.fast:
-      wipe_args += ['--fast']
-    if options.station_ip:
-      wipe_args += ['--station_ip', options.station_ip]
-    if options.station_port:
-      wipe_args += ['--station_port', options.station_port]
-    if options.wipe_finish_token:
-      wipe_args += ['--wipe_finish_token', options.wipe_finish_token]
-    ExecFactoryPar('gooftool', 'wipe_in_place', *wipe_args)
-  else:
-    PrepareWipe(options)
+
+  event_log.Log('wipe_in_place')
+  wipe_args = []
+  if options.cutoff_args:
+    wipe_args += ['--cutoff_args', options.cutoff_args]
+  if options.shopfloor_url:
+    wipe_args += ['--shopfloor_url', options.shopfloor_url]
+  if options.fast:
+    wipe_args += ['--fast']
+  if options.station_ip:
+    wipe_args += ['--station_ip', options.station_ip]
+  if options.station_port:
+    wipe_args += ['--station_port', options.station_port]
+  if options.wipe_finish_token:
+    wipe_args += ['--wipe_finish_token', options.wipe_finish_token]
+  ExecFactoryPar('gooftool', 'wipe_in_place', *wipe_args)
 
 
 @Command('verify_hwid',
