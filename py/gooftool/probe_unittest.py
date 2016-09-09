@@ -4,6 +4,9 @@
 # found in the LICENSE file.
 
 import mox
+import os
+import shutil
+import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -111,6 +114,48 @@ No Firmware version.
         '/sys/class/block/mmcblk0')
     self.assertTrue(result is None)
     self.mox.VerifyAll()
+
+
+# pylint: disable=protected-access
+class ProbePCIUnittest(unittest.TestCase):
+  """Test the probe._ReadSysfsPciFields function."""
+  def setUp(self):
+    self.mock_sysfs = tempfile.mkdtemp()
+
+  def tearDown(self):
+    if os.path.isdir(self.mock_sysfs):
+      shutil.rmtree(self.mock_sysfs)
+
+  def testPCI(self):
+    with open(os.path.join(self.mock_sysfs, 'vendor'), 'w') as f:
+      f.write('0x0123')
+    with open(os.path.join(self.mock_sysfs, 'device'), 'w') as f:
+      f.write('0xabcd')
+    with open(os.path.join(self.mock_sysfs, 'config'), 'wb') as f:
+      # Write revision id 'ef' in the 0x08 bit
+      f.write('\x00' * 0x08)
+      f.write('\xef')
+
+    expected_result = {
+        'vendor': '0x0123',
+        'device': '0xabcd',
+        'revision_id': '0xef',
+        'compact_str': '0123:abcd (rev ef)'}
+    result = probe._ReadSysfsPciFields(self.mock_sysfs)
+    self.assertEquals(result, expected_result)
+
+  def testPCIWithoutConfig(self):
+    with open(os.path.join(self.mock_sysfs, 'vendor'), 'w') as f:
+      f.write('0x0123')
+    with open(os.path.join(self.mock_sysfs, 'device'), 'w') as f:
+      f.write('0xabcd')
+
+    result = probe._ReadSysfsPciFields(self.mock_sysfs)
+    self.assertEquals(result, None)
+
+  def testPCIWithWrongSysfs(self):
+    result = probe._ReadSysfsPciFields(self.mock_sysfs)
+    self.assertEquals(result, None)
 
 
 if __name__ == '__main__':

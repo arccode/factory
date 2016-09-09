@@ -171,14 +171,33 @@ def _ReadSysfsFields(base_path, field_list, optional_field_list=None):
 
 
 def _ReadSysfsPciFields(path):
-  """Returns string containing PCI 'vendor:device' tuple."""
-  # TODO(hungte): Maybe add PCI 'rev' field.
+  """Returns dict that contains the values of PCI.
+
+  Args:
+    path: Path used to search for PCI sysfs data.
+
+  Returns:
+    A dict that contains at least the value of PCI 'vendor', 'device', and
+    'revision_id'. Returns None if the information cannot be found.
+  """
   field_data = _ReadSysfsFields(path, ['vendor', 'device'])
   if field_data is None:
     return None
+  # Add PCI 'revision_id' field
+  pci_revision_id_offset = 0x08
+  try:
+    with open(os.path.join(path, 'config'), 'rb') as f:
+      f.seek(pci_revision_id_offset)
+      rev_byte = f.read(1)
+    if len(rev_byte) == 1:
+      field_data['revision_id'] = hex(ord(rev_byte))
+  except IOError:
+    logging.exception('Cannot read config in the sysfs: %s', path)
+    return None
   field_data.update(DictCompactProbeStr([
-      '%s:%s' % (field_data['vendor'].replace('0x', ''),
-                 field_data['device'].replace('0x', ''))]))
+      '%s:%s (rev %s)' % (field_data['vendor'].replace('0x', ''),
+                          field_data['device'].replace('0x', ''),
+                          field_data['revision_id'].replace('0x', ''))]))
   return field_data
 
 
