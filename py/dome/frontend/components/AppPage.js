@@ -13,12 +13,11 @@ import BundlesApp from './BundlesApp';
 import DomeActions from '../actions/domeactions';
 import FixedAppBar from './FixedAppBar';
 import SettingsApp from './SettingsApp';
-import Task from './Task';
+import TaskList from './TaskList';
 
 const AppPage = React.createClass({
   propTypes: {
     app: React.PropTypes.string.isRequired,
-    dismissTask: React.PropTypes.func.isRequired,
     switchApp: React.PropTypes.func.isRequired,
     tasks: React.PropTypes.instanceOf(Immutable.Map).isRequired
   },
@@ -71,25 +70,7 @@ const AppPage = React.createClass({
         </Drawer>
         {app}
 
-        {this.props.tasks.keySeq().toArray().map((taskID, index) => {
-          var task = this.props.tasks.get(taskID);
-          return (
-            <Task
-              key={taskID}
-              state={task.get('state')}
-              description={task.get('description')}
-              style={{
-                position: 'fixed',
-                padding: 5,
-                right: 24,
-                bottom: 50 * index + 24  // stack them
-              }}
-              cancel={() => console.warn('not implemented')}
-              dismiss={() => this.props.dismissTask(taskID)}
-              retry={() => alert('not implemented yet')}
-            />
-          );
-        })}
+        <TaskList />
       </div>
     );
   }
@@ -104,8 +85,7 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    switchApp: nextApp => dispatch(DomeActions.switchApp(nextApp)),
-    dismissTask: taskID => dispatch(DomeActions.dismissTask(taskID))
+    switchApp: nextApp => dispatch(DomeActions.switchApp(nextApp))
   };
 }
 

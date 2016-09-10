@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import React from 'react';
 import ActionDone from 'material-ui/svg-icons/action/done';
-import Paper from 'material-ui/Paper';
+import {CardText} from 'material-ui/Card';
+import React from 'react';
 
 import TaskStates from '../constants/TaskStates';
 
@@ -17,35 +17,38 @@ var Task = React.createClass({
     ]),
     description: React.PropTypes.string.isRequired,
     dismiss: React.PropTypes.func.isRequired,
-    retry: React.PropTypes.func.isRequired,
-    style: React.PropTypes.shape
+    retry: React.PropTypes.func.isRequired
   },
 
   render() {
-    const {state, description, dismiss, retry, style} = this.props;
+    const {state, description, dismiss, retry} = this.props;
+
     return (
-      <Paper zDepth={2} style={style}>
-        {description}
-        {state == TaskStates.TASK_SUCCEEDED &&
-          <span
-            // TODO(littlecvr): should be a better way to set offset
-            style={{cursor: 'pointer'}}
-            onClick={dismiss}
-          >
-            finished.
-            <ActionDone />
-          </span>
-        }
-        {state == TaskStates.TASK_FAILED &&
-          <span
-            style={{cursor: 'pointer'}}
-            onClick={retry}
-          >
-            failed.
-            <ActionDone />
-          </span>
-        }
-      </Paper>
+      <CardText style={{display: 'table-row'}}>
+        <div style={{display: 'table-cell', verticalAlign: 'middle'}}>
+          {description}
+        </div>
+        <div style={{display: 'table-cell', verticalAlign: 'middle'}}>
+          {state == TaskStates.TASK_SUCCEEDED &&
+            <span
+              style={{cursor: 'pointer'}}
+              onClick={dismiss}
+            >
+              finished.
+              <ActionDone />
+            </span>
+          }
+          {state == TaskStates.TASK_FAILED &&
+            <span
+              style={{cursor: 'pointer'}}
+              onClick={retry}
+            >
+              failed.
+              <ActionDone />
+            </span>
+          }
+        </div>
+      </CardText>
     );
   }
 });
