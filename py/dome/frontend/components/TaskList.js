@@ -30,6 +30,7 @@ var TaskList = React.createClass({
               key={taskID}
               state={task.get('state')}
               description={task.get('description')}
+              cancel={() => this.props.cancelTask(taskID)}
               dismiss={() => this.props.dismissTask(taskID)}
               retry={() => this.props.retryTask(taskID)}
             />
@@ -48,6 +49,7 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
+    cancelTask: taskID => console.warn('not implemented yet'),
     dismissTask: taskID => dispatch(DomeActions.dismissTask(taskID)),
     retryTask: taskID => console.warn('not implemented yet')
   };

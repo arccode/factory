@@ -41,18 +41,21 @@ export default function domeReducer(state = INITIAL_STATE, action) {
 
     case ActionTypes.CREATE_TASK:
       return state.mergeIn(['tasks'], {
-        [action.taskID]: {
-          state: TaskStates.TASK_STARTED,
-          description: action.description
+        [String(action.taskID)]: {
+          state: TaskStates.TASK_WAITING,
+          description: action.description,
+          method: action.method,
+          url: action.url,
+          contentType: action.contentType
         }
       });
 
     case ActionTypes.CHANGE_TASK_STATE:
       return state.setIn(
-          ['tasks', action.taskID, 'state'], action.state);
+          ['tasks', String(action.taskID), 'state'], action.state);
 
     case ActionTypes.REMOVE_TASK:
-      return state.deleteIn(['tasks', action.taskID]);
+      return state.deleteIn(['tasks', String(action.taskID)]);
 
     default:
       return state;

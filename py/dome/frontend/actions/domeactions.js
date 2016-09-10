@@ -8,6 +8,11 @@ import fetch from 'isomorphic-fetch';
 import ActionTypes from '../constants/ActionTypes';
 import TaskStates from '../constants/TaskStates';
 
+// Task bodies cannot be put in the state because they may contain file objects
+// which are not serializable.
+var _taskBodies = {};
+var _taskOnFinishes = {};
+
 function apiURL(getState) {
   return `/boards/${getState().getIn(['dome', 'currentBoard'])}`;
 }
@@ -20,35 +25,6 @@ function checkHTTPStatus(response) {
     error.response = response;
     throw error;
   }
-}
-
-function createAndStartTask(
-    dispatch, getState, taskDescription, method, url, body,
-    contentType = null) {
-  var tasks = getState().getIn(['dome', 'tasks']);
-  var taskIDs = tasks.keySeq().toArray().map(parseInt);
-
-  var taskID = 1;
-  if (taskIDs.length > 0) {
-    taskID = 1 + Math.max(...taskIDs);
-  }
-
-  dispatch(createTask(taskID, taskDescription));
-
-  var request = {method, body};
-  if (contentType !== null) {
-    request['headers'] = {'Content-Type': contentType};
-  }
-
-  return fetch(`${apiURL(getState)}/${url}/`, request)
-    .then(checkHTTPStatus)
-    .then(() => {
-      dispatch(changeTaskState(taskID, TaskStates.TASK_SUCCEEDED));
-    }, error => {
-      console.error(error);
-      // TODO: show an error message box
-      dispatch(changeTaskState(taskID, TaskStates.TASK_FAILED));
-    });
 }
 
 const addBoard = (name, host, port) => dispatch => {
@@ -154,26 +130,99 @@ const closeForm = formName => ({
   formName
 });
 
-const createTask = (taskID, description) => ({
-  type: ActionTypes.CREATE_TASK,
-  taskID: String(taskID),
-  description
-});
-
 const changeTaskState = (taskID, state) => ({
   type: ActionTypes.CHANGE_TASK_STATE,
-  taskID: String(taskID),
+  taskID,
   state
 });
 
-const dismissTask = taskID => ({
-  type: ActionTypes.REMOVE_TASK,
-  taskID: String(taskID)
-});
+const createTask = (description, method, url, body, onFinish = null,
+                    contentType = null) => (
+  (dispatch, getState) => {
+    var tasks = getState().getIn(['dome', 'tasks']);
+    var taskIDs = tasks.keySeq().toArray();
+
+    var taskID = String(1);
+    if (taskIDs.length > 0) {
+      taskID = String(1 + Math.max(...taskIDs.map(x => parseInt(x))));
+    }
+
+    _taskBodies[taskID] = body;
+    _taskOnFinishes[taskID] = onFinish;
+    dispatch({
+      type: ActionTypes.CREATE_TASK,
+      taskID,
+      description,
+      method,
+      url,
+      contentType
+    });
+
+    // if all tasks except this one succeeded (or failed), start this task now
+    var startNow = true;
+    for (const id of taskIDs) {
+      let s = tasks.getIn([id, 'state']);
+      if (id != taskID &&
+          (s == TaskStates.TASK_RUNNING || s == TaskStates.TASK_WAITING)) {
+        startNow = false;
+        break;
+      }
+    }
+    if (startNow) {
+      dispatch(startTask(taskID));
+    }
+  }
+);
+
+const dismissTask = taskID => dispatch => {
+  taskID = String(taskID);  // make sure taskID is always a string
+  delete _taskBodies[taskID];
+  delete _taskOnFinishes[taskID];
+  dispatch({
+    type: ActionTypes.REMOVE_TASK,
+    taskID
+  });
+};
+
+const startTask = taskID => (dispatch, getState) => {
+  taskID = String(taskID);  // make sure taskID is always a string
+  var task = getState().getIn(['dome', 'tasks', taskID]);
+
+  dispatch(changeTaskState(taskID, TaskStates.TASK_RUNNING));
+
+  var request = {method: task.get('method'), body: _taskBodies[taskID]};
+  if (task.get('contentType') !== null) {
+    request['headers'] = {'Content-Type': task.get('contentType')};
+  }
+
+  return fetch(`${apiURL(getState)}/${task.get('url')}/`, request)
+    .then(checkHTTPStatus)
+    .then(_taskOnFinishes[taskID])
+    .then(
+      () => {
+        dispatch(changeTaskState(taskID, TaskStates.TASK_SUCCEEDED));
+
+        // find next queued task and start it
+        var tasks = getState().getIn(['dome', 'tasks']);
+        var taskIDs = tasks.keySeq().toArray();
+        var nextIndex = 1 + taskIDs.indexOf(taskID);
+        if (nextIndex > 0 && nextIndex < taskIDs.length) {
+          var nextID = taskIDs[nextIndex];
+          dispatch(startTask(nextID));
+        }
+      },
+      error => {
+        console.error(error);
+        // TODO: show an error message box
+        dispatch(changeTaskState(taskID, TaskStates.TASK_FAILED));
+      }
+    );
+};
 
 export default {
-  apiURL, createAndStartTask,
-  addBoard, createBoard, deleteBoard, fetchBoards, switchBoard, switchApp,
+  apiURL,
+  addBoard, createBoard, deleteBoard, fetchBoards, switchBoard,
+  switchApp,
   openForm, closeForm,
-  dismissTask
+  createTask, dismissTask
 };

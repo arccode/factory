@@ -43,7 +43,9 @@ const AppPage = React.createClass({
     if (this.props.app == AppNames.BUNDLES_APP) {
       // TODO(littlecvr): there should be a better way than passing an offset
       //                  into the app
-      app = <BundlesApp offset={50 * this.props.tasks.size + 24} />;
+      let offset = (this.props.tasks.size == 0 ? 0 : 24) +
+          48 * this.props.tasks.size + 24;
+      app = <BundlesApp offset={offset} />;
     } else if (this.props.app == AppNames.SETTINGS_APP) {
       app = <SettingsApp />;
     } else {
