@@ -2,12 +2,71 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import contextlib
+import errno
 import os
+import shutil
 import stat
+import tempfile
 
 from rest_framework import serializers
 
-from backend.models import Board, BundleModel
+from backend.models import Board, BundleModel, UMPIRE_BASE_DIR
+
+
+@contextlib.contextmanager
+def UmpireAccessibleFile(board, uploaded_file):
+  """Make a file uploaded from Dome accessible by a specific Umpire container.
+
+  This function:
+  1. creates a temp folder in UMPIRE_BASE_DIR
+  2. copies the uploaded file to the temp folder
+  3. runs chmod on the folder and file to make sure Umpire is readable
+  4. remove the temp folder at the end
+
+  Note that we need to rename the file to its original basename. Umpire copies
+  the file into its resources folder without renaming the incoming file (though
+  it appends version and hash). If we don't do this, the umpire resources folder
+  will soon be filled with many 'tmp.XXXXXX#{version}#{hash}', and it'll be hard
+  to tell what the files actually are. Also, due to the way Umpire Docker is
+  designed, it's not possible to move the file instead of copy now.
+
+  TODO(littlecvr): make Umpire support renaming when updating.
+  TODO(b/31417203): provide an argument to choose from moving file instead of
+                    copying (after the issue has been solved).
+
+  Args:
+    board: name of the board (used to construct Umpire container's name).
+    uploaded_file: TemporaryUploadedFile instance from django.
+  """
+  container_name = Board.GetContainerName(board)
+
+  try:
+    # TODO(b/31417203): use volume container or named volume instead of
+    #                   UMPIRE_BASE_DIR.
+    temp_dir = tempfile.mkdtemp(dir='%s/%s' % (UMPIRE_BASE_DIR, container_name))
+    new_path = os.path.join(temp_dir, uploaded_file.name)
+    shutil.copy(uploaded_file.temporary_file_path(), new_path)
+
+    # make sure they're readable to umpire
+    os.chmod(temp_dir, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
+    os.chmod(new_path, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
+
+    # The temp folder:
+    #   in Dome:   ${UMPIRE_BASE_DIR}/${container_name}/${temp_dir}
+    #   in Umpire: ${UMPIRE_BASE_DIR}/${temp_dir}
+    # so need to remove "${container_name}/"
+    yield new_path.replace('%s/' % container_name, '')
+  finally:
+    # TODO(b/31415816): should not need to close file ourselves here.
+    uploaded_file.close()
+
+    try:
+      shutil.rmtree(temp_dir)
+    except OSError as e:
+      # doesn't matter if the folder is removed already, otherwise, raise
+      if e.errno != errno.ENOENT:
+        raise
 
 
 class BoardSerializer(serializers.Serializer):
@@ -26,18 +85,24 @@ class BoardSerializer(serializers.Serializer):
 
   def create(self, validated_data):
     """Override parent's method."""
-    if validated_data.pop('is_existing'):
+    data = validated_data.copy()
+    if data.pop('is_existing'):  # add an existing local/remote instance
       return Board.AddExistingOne(**validated_data)
-    else:
-      validated_data.pop('host')
-      path = validated_data.pop('factory_toolkit_file').temporary_file_path()
-      validated_data['factory_toolkit_path'] = path
-      return Board.CreateOne(**validated_data)
+    else:  # create a new local instance
+      data.pop('host')
+      # get the path of factory toolkit
+      data['factory_toolkit_path'] = (
+          data.pop('factory_toolkit_file').temporary_file_path())
+      board = Board.CreateOne(**data)
+
+      # TODO(b/31415816): should not need to close file ourselves here.
+      validated_data['factory_toolkit_file'].close()
+
+      return board
 
   def update(self, instance, validated_data):
     """Override parent's method."""
-    # don't need this function but pylint would complain if not overridden
-    raise NotImplementedError
+    raise NotImplementedError('Updating a board is not allowed')
 
 
 class ResourceSerializer(serializers.Serializer):
@@ -59,40 +124,23 @@ class ResourceSerializer(serializers.Serializer):
 
   def create(self, validated_data):
     """Override parent's method."""
-    raise NotImplementedError
+    raise NotImplementedError('Creating a resource is not allowed')
 
   def update(self, instance, validated_data):
     """Override parent's method."""
-    old_path = validated_data['resource_file'].temporary_file_path()
-    new_path = os.path.join(os.path.dirname(old_path),
-                            validated_data['resource_file'].name)
+    data = validated_data.copy()
 
-    # Rename the file to its original file name before updating. Umpire copies
-    # the file into its resources folder without renaming the incoming file
-    # (though it appends version and hash). If we don't do this, the umpire
-    # resources folder will soon be filled with many
-    # 'tmp.XXXXXX#{version}#{hash}', and it'll be hard to tell what the files
-    # actually are. Also, making a copy is not acceptable, because resource
-    # files can be very large.
-    # TODO(littlecvr): make Umpire support renaming when updating.
-    try:
-      os.rename(old_path, new_path)
+    board = data.pop('board')
+    resource_file = data.pop('resource_file')
 
-      # make sure it's readable to umpire
-      os.chmod(new_path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
-      new_validated_data = validated_data.copy()
-      new_validated_data.pop('resource_file')
-      new_validated_data['resource_file_path'] = new_path
+    inplace_update = data.pop('is_inplace_update')
+    if inplace_update:
+      data['dst_bundle_name'] = None
 
-      board = new_validated_data.pop('board')
-      inplace_update = new_validated_data.pop('is_inplace_update')
-      if inplace_update:
-        new_validated_data['dst_bundle_name'] = None
-      resource = BundleModel(board).UpdateResource(**new_validated_data)
-    finally:
-      os.rename(new_path, old_path)
+    with UmpireAccessibleFile(board, resource_file) as path:
+      data['resource_file_path'] = path
+      return BundleModel(board).UpdateResource(**data)
 
-    return resource
 
 
 class BundleSerializer(serializers.Serializer):
@@ -111,34 +159,15 @@ class BundleSerializer(serializers.Serializer):
 
   def create(self, validated_data):
     """Override parent's method."""
-    # file_utils rely on file name suffix to determine how to decompress, so we
-    # need to rename the file correctly.
-    old_path = validated_data['bundle_file'].temporary_file_path()
-    new_path = old_path + '.tar.bz2'
-    try:
-      os.rename(old_path, new_path)
-      # Umpire service is run by other user, need to give it permission to read.
-      os.chmod(new_path, os.stat(new_path)[stat.ST_MODE] | stat.S_IROTH)
-
-      # We don't take advantage of django's FileField in model (which will
-      # automatically save the UploadedFile into file system and write
-      # information into the database), so we need to handle the file on our
-      # own.
-      new_validated_data = validated_data.copy()
-      # convert 'bundle_file' to 'file_path'
-      new_validated_data.pop('bundle_file')
-      new_validated_data['file_path'] = new_path
-
-      board = new_validated_data.pop('board')
-      bundle = BundleModel(board).UploadNew(**new_validated_data)
-    finally:
-      # Rename back so django will automatically remove the temporary file.
-      os.rename(new_path, old_path)
-
-    return bundle
+    data = validated_data.copy()
+    board = data.pop('board')
+    bundle_file = data.pop('bundle_file')
+    with UmpireAccessibleFile(board, bundle_file) as path:
+      data['file_path'] = path
+      return BundleModel(board).UploadNew(**data)
 
   def update(self, instance, validated_data):
     """Override parent's method."""
-    new_validated_data = validated_data.copy()
-    board = new_validated_data.pop('board')
-    return BundleModel(board).ModifyOne(**new_validated_data)
+    data = validated_data.copy()
+    board = data.pop('board')
+    return BundleModel(board).ModifyOne(**data)

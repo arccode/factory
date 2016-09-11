@@ -75,7 +75,7 @@ class Board(models.Model):
     return ip.strip()  # remove the trailing newline
 
   @staticmethod
-  def _GetContainerName(name):
+  def GetContainerName(name):
     return 'umpire_%s' % name
 
   @staticmethod
@@ -86,7 +86,7 @@ class Board(models.Model):
   @staticmethod
   def CreateOne(name, port, factory_toolkit_path):
     """Create a local Umpire container from a factory toolkit."""
-    container_name = Board._GetContainerName(name)
+    container_name = Board.GetContainerName(name)
 
     # make sure the container does not exist
     exists = subprocess.check_output([
@@ -141,6 +141,9 @@ class Board(models.Model):
           'docker', 'exec', container_name,
           '/tmp/install_factory_toolkit.run',
           '--', '--init-umpire-board=%s' % name])
+      subprocess.check_call([
+          'docker', 'exec', container_name,
+          'rm', '/tmp/install_factory_toolkit.run'])
     except Exception:
       # remove container
       subprocess.call(['docker', 'stop', container_name])
@@ -152,7 +155,7 @@ class Board(models.Model):
 
   @staticmethod
   def DeleteOne(name):
-    container_name = Board._GetContainerName(name)
+    container_name = Board.GetContainerName(name)
     subprocess.call(['docker', 'stop', container_name])
     subprocess.call(['docker', 'rm', container_name])
     return Board.objects.get(pk=name).delete()
@@ -482,7 +485,7 @@ class BundleModel(object):
         ruleset['active'] = True
         break
 
-    self._UploadAndDeployConfig(config)
+    self._UploadAndDeployConfig(config, force=True)
 
     # find and return the new bundle
     return self.ListOne(name)

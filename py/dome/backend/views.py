@@ -49,10 +49,12 @@ class BundleCollectionView(APIView):
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
-  def post(self, request, unused_board,
+  def post(self, request, board,
            request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
-    serializer = BundleSerializer(data=request.data)
+    data = request.data.copy()
+    data['board'] = board
+    serializer = BundleSerializer(data=data)
     if serializer.is_valid():
       serializer.save()
       return Response(serializer.data, status=status.HTTP_201_CREATED)
