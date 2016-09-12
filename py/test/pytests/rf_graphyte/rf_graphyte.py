@@ -233,28 +233,21 @@ class RFGraphyteTest(unittest.TestCase):
   def PatchSSHLinkConfig(self):
     """Patch the DHCP IP in the DUT config.
 
-    We update the DUT IP and write the DUT config into a new file. The global
-    config should update the DUT config file path, so need to be written in a
-    new file as well.
+    The DUT config might be in three places: device default config, overridden
+    config file, overridden config in the global config file. Since the last one
+    will override the previous config, we directly patch the DHCP IP in the
+    global config file. Please refer "Graphyte Use Manual" for detail.
     """
-    # Find the DUT config file.
     with open(self.config_file_path, 'r') as f:
       global_config = json.load(f)
-    dut_config_path = os.path.join(
-        LOCAL_CONFIG_DIR, global_config['dut_config'])
 
-    with open(dut_config_path, 'r') as f:
-      dut_config = json.load(f)
-    assert dut_config['link_options']['link_class'] == 'SSHLink', (
-        'dut config %s should be SSHLink.' % dut_config)
-    dut_config['link_options']['host'] = self._dut.link.host
+    # Override DUT link IP in the global config file.
+    global_config.setdefault('dut_config', {})
+    global_config['dut_config'].setdefault('link_options', {})
+    global_config['dut_config']['link_options']['host'] = self._dut.link.host
 
     # Write the patched config into new config file.
-    suffix = '.patched'
-    with open(dut_config_path + suffix, 'w') as f:
-      json.dump(dut_config, f)
-    global_config['dut_config'] += suffix
-    self.config_file_path += suffix
+    self.config_file_path += '.patched'
     with open(self.config_file_path, 'w') as f:
       json.dump(global_config, f)
 
