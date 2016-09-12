@@ -35,7 +35,7 @@ var ResourceTable = React.createClass({
           </TableRow>
         </TableHeader>
         <TableBody displayRowCheckbox={false}>
-          {resources.keySeq().toArray().map(type => {
+          {resources.keySeq().sort().toArray().map(type => {
             var resource = resources.get(type);
 
             // Version string often exceeds the width of the cell, and the

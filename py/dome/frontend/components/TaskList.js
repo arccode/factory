@@ -23,7 +23,7 @@ var TaskList = React.createClass({
         style={{position: 'fixed', right: 24, bottom: 24}}
         containerStyle={{display: 'table'}}
       >
-        {this.props.tasks.keySeq().toArray().map(taskID => {
+        {this.props.tasks.keySeq().sort().toArray().map(taskID => {
           var task = this.props.tasks.get(taskID);
           return (
             <Task

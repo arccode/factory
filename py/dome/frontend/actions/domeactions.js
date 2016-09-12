@@ -140,7 +140,7 @@ const createTask = (description, method, url, body, onFinish = null,
                     contentType = null) => (
   (dispatch, getState) => {
     var tasks = getState().getIn(['dome', 'tasks']);
-    var taskIDs = tasks.keySeq().toArray();
+    var taskIDs = tasks.keySeq().sort().toArray();
 
     var taskID = String(1);
     if (taskIDs.length > 0) {
@@ -204,7 +204,7 @@ const startTask = taskID => (dispatch, getState) => {
 
         // find next queued task and start it
         var tasks = getState().getIn(['dome', 'tasks']);
-        var taskIDs = tasks.keySeq().toArray();
+        var taskIDs = tasks.keySeq().sort().toArray();
         var nextIndex = 1 + taskIDs.indexOf(taskID);
         if (nextIndex > 0 && nextIndex < taskIDs.length) {
           var nextID = taskIDs[nextIndex];

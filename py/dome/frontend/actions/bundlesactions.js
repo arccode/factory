@@ -36,7 +36,7 @@ const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
       bundle.get('name')
   )).toArray();
   new_bundle_list = arrayMove(new_bundle_list, oldIndex, newIndex);
-  var taskDescription = 'Reordering bundles...';
+  var taskDescription = 'Reorder bundles';
 
   dispatch(DomeActions.createTask(
       taskDescription, 'PUT', 'bundles', JSON.stringify(new_bundle_list),
@@ -49,8 +49,8 @@ const activateBundle = (name, active) => (dispatch, getState) => {
   formData.append('board', getState().getIn(['dome', 'currentBoard']));
   formData.append('name', name);
   formData.append('active', active);
-  var verb = active ? 'Activating' : 'Deactivating';
-  var taskDescription = `${verb} bundle ${name}...`;
+  var verb = active ? 'Activate' : 'Deactivate';
+  var taskDescription = `${verb} bundle "${name}"`;
 
   dispatch(DomeActions.createTask(
       taskDescription, 'PUT', `bundles/${name}`, formData, () =>
@@ -59,7 +59,7 @@ const activateBundle = (name, active) => (dispatch, getState) => {
 };
 
 const deleteBundle = name => dispatch => {
-  var taskDescription = `Deleting bundle ${name}...`;
+  var taskDescription = `Delete bundle "${name}"`;
   dispatch(DomeActions.createTask(
       taskDescription, 'DELETE', `bundles/${name}`, new FormData(),
       () => dispatch(fetchBundles())
@@ -69,7 +69,7 @@ const deleteBundle = name => dispatch => {
 const startUploadingBundle = formData => dispatch => {
   dispatch(DomeActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM));
   var bundleName = formData.get('name');
-  var taskDescription = `Uploading bundle ${bundleName}...`;
+  var taskDescription = `Upload bundle "${bundleName}"`;
   dispatch(DomeActions.createTask(
       taskDescription, 'POST', 'bundles', formData,
       () => dispatch(fetchBundles())
@@ -78,8 +78,12 @@ const startUploadingBundle = formData => dispatch => {
 
 const startUpdatingResource = formData => dispatch => {
   dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM));
-  var bundleName = formData.get('src_bundle_name');
-  var taskDescription = `Updating bundle ${bundleName}...`;
+  var srcBundleName = formData.get('src_bundle_name');
+  var taskDescription = `Update bundle "${srcBundleName}"`;
+  var dstBundleName = formData.get('dst_bundle_name');
+  if (dstBundleName != '') {
+    taskDescription += ` to bundle "${dstBundleName}"`;
+  }
   dispatch(DomeActions.createTask(
       taskDescription, 'PUT', 'resources', formData,
       () => dispatch(fetchBundles())
