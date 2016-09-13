@@ -81,7 +81,7 @@ class PingTest(unittest.TestCase):
           default=None, optional=True),
       Arg('verbose', bool, 'Dumps stdout of ping commands.',
           default=False),
-      Arg('package_size', int, 'Specifies the number of data bytes to be sent.',
+      Arg('packet_size', int, 'Specifies the number of data bytes to be sent.',
           default=None, optional=True),
   ]
 
