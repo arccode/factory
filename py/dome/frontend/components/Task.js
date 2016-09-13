@@ -16,8 +16,16 @@ var Task = React.createClass({
   propTypes: {
     state: React.PropTypes.oneOf(Object.values(TaskStates)),
     description: React.PropTypes.string.isRequired,
+
     dismiss: React.PropTypes.func.isRequired,
-    retry: React.PropTypes.func.isRequired
+    retry: React.PropTypes.func.isRequired,
+    cancel: React.PropTypes.func.isRequired,
+
+    mouseEnterDeleteButton: React.PropTypes.func.isRequired,
+    mouseLeaveDeleteButton: React.PropTypes.func.isRequired,
+
+    // TODO(littlecvr): directly passing color attribute seems weird here
+    deleteIconColor: React.PropTypes.string.isRequired
   },
 
   render() {
@@ -39,18 +47,21 @@ var Task = React.createClass({
         <div style={{
           display: 'table-cell', textAlign: 'right', verticalAlign: 'middle'
         }}>
-          {state == TaskStates.WAITING &&
+          <span
+            onMouseEnter={this.props.mouseEnterDeleteButton}
+            onMouseLeave={this.props.mouseLeaveDeleteButton}
+          >
             <IconButton
               tooltip={'cancel'}
-              onTouchTap={e => {
-                e.stopPropagation();
-                console.warn('not implemented yet');
-              }}
-              style={{marginRight: 0}}
+              onTouchTap={cancel}
+              iconStyle={{fill: this.props.deleteIconColor}}
+              disabled={
+                state != TaskStates.WAITING && state != TaskStates.FAILED
+              }
             >
               <DeleteIcon />
             </IconButton>
-          }
+          </span>
           {state == TaskStates.WAITING &&
             <IconButton tooltip={'waiting'}>
               <RunningIcon />

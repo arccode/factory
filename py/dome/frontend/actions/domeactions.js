@@ -174,7 +174,7 @@ const createTask = (description, method, url, body, onFinish = null,
   }
 );
 
-const dismissTask = taskID => dispatch => {
+const removeTask = taskID => dispatch => {
   taskID = String(taskID);  // make sure taskID is always a string
   delete _taskBodies[taskID];
   delete _taskOnFinishes[taskID];
@@ -219,10 +219,30 @@ const startTask = taskID => (dispatch, getState) => {
     );
 };
 
+const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
+  // TODO(littlecvr): probably need a better action name or better description.
+  //                  This would likely to be confused with removeTask().
+  // This action tries to cancel all waiting tasks below and include taskID.
+  taskID = String(taskID);  // make sure taskID is always a string
+  var tasks = getState().getIn(['dome', 'tasks']);
+  var taskIDs = tasks.keySeq().sort().toArray();
+  var index = taskIDs.indexOf(taskID);
+
+  // cancel all tasks below and include the target task
+  if (index >= 0) {
+    for (let i = taskIDs.length - 1; i >= index; --i) {
+      let state = tasks.getIn([taskIDs[i], 'state']);
+      if (state == TaskStates.WAITING || state == TaskStates.FAILED) {
+        dispatch(removeTask(taskIDs[i]));
+      }
+    }
+  }
+};
+
 export default {
   apiURL,
   addBoard, createBoard, deleteBoard, fetchBoards, switchBoard,
   switchApp,
   openForm, closeForm,
-  createTask, dismissTask
+  createTask, removeTask, cancelTaskAndItsDependencies
 };

@@ -8,6 +8,7 @@ import {connect} from 'react-redux';
 import DeleteIcon from 'material-ui/svg-icons/action/delete';
 import DismissIcon from 'material-ui/svg-icons/action/check-circle';
 import ExpandIcon from 'material-ui/svg-icons/navigation/expand-more';
+import {black, grey700} from 'material-ui/styles/colors';
 import IconButton from 'material-ui/IconButton';
 import Immutable from 'immutable';
 import React from 'react';
@@ -22,8 +23,18 @@ var TaskList = React.createClass({
     setCollapsed: React.PropTypes.func.isRequired,
 
     tasks: React.PropTypes.instanceOf(Immutable.Map).isRequired,
+    cancelTask: React.PropTypes.func.isRequired,
     dismissTask: React.PropTypes.func.isRequired,
     retryTask: React.PropTypes.func.isRequired
+  },
+
+  cancelAllWaitingTasks(event) {
+    event.stopPropagation();
+    var minWaitingTaskIDs = this.props.tasks.filter(t => (
+        t.get('state') == TaskStates.WAITING ||
+        t.get('state') == TaskStates.FAILED
+    )).keySeq().min();
+    this.props.cancelTask(minWaitingTaskIDs);
   },
 
   dismissAllSucceededTasks(event) {
@@ -33,6 +44,24 @@ var TaskList = React.createClass({
         this.props.dismissTask(taskID);
       }
     });
+  },
+
+  mouseEnterDeleteButton(index) {
+    this.setState({mouseOnDeleteIconIndex: parseInt(index)});
+  },
+
+  mouseLeaveDeleteButton() {
+    this.setState({mouseOnDeleteIconIndex: -1});
+  },
+
+  getInitialState() {
+    return {
+      // If negative, the mouse is not on any delete button; otherwise, this
+      // value is the index of task in task list that holds the delete button
+      // the mouse is currently on, 0 means the mouse is on the title bar's
+      // delete button.
+      mouseOnDeleteIconIndex: -1
+    };
   },
 
   render() {
@@ -56,6 +85,28 @@ var TaskList = React.createClass({
         `${failedTaskCount} failed`;
 
     // TODO(littlecvr): refactor style attributes, use className if possible.
+    var titleBarDeleteIconColor = grey700;
+    var deleteIconsShouldChangeColor = false;
+
+    if (this.state.mouseOnDeleteIconIndex == 0) {
+      // if the mouse is on the delete icon on title bar, change the color of
+      // all delete icons
+      titleBarDeleteIconColor = black;
+      deleteIconsShouldChangeColor = true;
+    } else if (this.state.mouseOnDeleteIconIndex >= 1) {
+      // if the mouse is on one of the delete icon (except the one on title
+      // bar), determine whether to change color or not by the state of the task
+      var mouseOnDeleteIconTaskState = tasks.getIn([
+        tasks.keySeq().sort().get(this.state.mouseOnDeleteIconIndex - 1),
+        'state'
+      ]);
+      // change when state is WAITING or FAILED because only waiting or failed
+      // tasks can be deleted
+      if (mouseOnDeleteIconTaskState == TaskStates.WAITING ||
+          mouseOnDeleteIconTaskState == TaskStates.FAILED) {
+        deleteIconsShouldChangeColor = true;
+      }
+    }
 
     return (
       <Card
@@ -76,16 +127,19 @@ var TaskList = React.createClass({
               verticalAlign: 'middle', padding: 0
             }}>
               {!this.props.collapsed &&
-                <IconButton
-                  tooltip={'cancel all waiting tasks'}
-                  onTouchTap={e => {
-                    e.stopPropagation();
-                    console.warn('not implemented yet');
-                  }}
+                <span
+                  onMouseEnter={() => this.mouseEnterDeleteButton(0)}
+                  onMouseLeave={this.mouseLeaveDeleteButton}
                   style={{marginRight: 0}}
                 >
-                  <DeleteIcon />
-                </IconButton>
+                  <IconButton
+                    tooltip={'cancel all waiting tasks'}
+                    onTouchTap={this.cancelAllWaitingTasks}
+                    iconStyle={{fill: titleBarDeleteIconColor}}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </span>
               }
               {!this.props.collapsed &&
                 <IconButton
@@ -130,13 +184,25 @@ var TaskList = React.createClass({
 
         {/* task list */}
         {!this.props.collapsed &&
-          tasks.keySeq().sort().toArray().map(taskID => {
+          tasks.keySeq().sort().toArray().map((taskID, index) => {
+            // make this 1-based array since 0 is reserved for the title bar
+            index = index + 1;
             var task = tasks.get(taskID);
+            var deleteIconColor = grey700;
+            if (deleteIconsShouldChangeColor &&
+                index >= this.state.mouseOnDeleteIconIndex) {
+              deleteIconColor = black;
+            }
             return (
               <Task
                 key={taskID}
                 state={task.get('state')}
                 description={task.get('description')}
+                deleteIconColor={deleteIconColor}
+                mouseEnterDeleteButton={
+                  () => this.mouseEnterDeleteButton(index)
+                }
+                mouseLeaveDeleteButton={this.mouseLeaveDeleteButton}
                 cancel={() => cancelTask(taskID)}
                 dismiss={() => dismissTask(taskID)}
                 retry={() => retryTask(taskID)}
@@ -157,8 +223,9 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    cancelTask: taskID => console.warn('not implemented yet'),
-    dismissTask: taskID => dispatch(DomeActions.dismissTask(taskID)),
+    cancelTask: taskID =>
+        dispatch(DomeActions.cancelTaskAndItsDependencies(taskID)),
+    dismissTask: taskID => dispatch(DomeActions.removeTask(taskID)),
     retryTask: taskID => console.warn('not implemented yet')
   };
 }
