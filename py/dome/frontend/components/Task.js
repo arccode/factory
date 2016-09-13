@@ -2,12 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import ActionAutorenew from 'material-ui/svg-icons/action/autorenew';
-import ActionCheckCircle from 'material-ui/svg-icons/action/check-circle';
-import AlertError from 'material-ui/svg-icons/alert/error';
 import {CardText} from 'material-ui/Card';
+import DeleteIcon from 'material-ui/svg-icons/action/delete';
+import DismissIcon from 'material-ui/svg-icons/action/check-circle';
+import ErrorIcon from 'material-ui/svg-icons/alert/error';
 import IconButton from 'material-ui/IconButton';
 import React from 'react';
+import RunningIcon from 'material-ui/svg-icons/action/autorenew';
 
 import TaskStates from '../constants/TaskStates';
 
@@ -22,6 +23,8 @@ var Task = React.createClass({
   render() {
     const {state, description, cancel, dismiss, retry} = this.props;
 
+    // TODO(littlecvr): refactor style attributes, use className if possible.
+
     return (
       <CardText style={{display: 'table-row'}}>
         <div
@@ -33,15 +36,29 @@ var Task = React.createClass({
         >
           {description}
         </div>
-        <div style={{display: 'table-cell', verticalAlign: 'middle'}}>
+        <div style={{
+          display: 'table-cell', textAlign: 'right', verticalAlign: 'middle'
+        }}>
           {state == TaskStates.WAITING &&
-            <IconButton tooltip={'cancel all tasks below'} onTouchTap={cancel}>
-              <ActionAutorenew />
+            <IconButton
+              tooltip={'cancel'}
+              onTouchTap={e => {
+                e.stopPropagation();
+                console.warn('not implemented yet');
+              }}
+              style={{marginRight: 0}}
+            >
+              <DeleteIcon />
+            </IconButton>
+          }
+          {state == TaskStates.WAITING &&
+            <IconButton tooltip={'waiting'}>
+              <RunningIcon />
             </IconButton>
           }
           {state == TaskStates.RUNNING &&
             <IconButton className="spin">
-              <ActionAutorenew />
+              <RunningIcon />
             </IconButton>
           }
           {state == TaskStates.SUCCEEDED &&
@@ -50,7 +67,7 @@ var Task = React.createClass({
               onTouchTap={dismiss}
               iconStyle={{fill: 'green'}}
             >
-              <ActionCheckCircle />
+              <DismissIcon />
             </IconButton>
           }
           {state == TaskStates.FAILED &&
@@ -59,9 +76,12 @@ var Task = React.createClass({
               onTouchTap={retry}
               iconStyle={{fill: 'red'}}
             >
-              <AlertError />
+              <ErrorIcon />
             </IconButton>
           }
+          <div style={{
+            display: 'inline-block', width: 48, height: 1, marginRight: 0
+          }}></div>
         </div>
       </CardText>
     );

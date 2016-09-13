@@ -32,20 +32,34 @@ const AppPage = React.createClass({
     this.props.switchApp(nextApp);
   },
 
+  setTaskListCollapsed(collapsed) {
+    this.setState({taskListCollapsed: collapsed});
+  },
+
   getInitialState() {
     return {
-      appMenuOpened: false
+      appMenuOpened: false,
+      taskListCollapsed: false
     };
   },
 
   render() {
+    // must not let the task list cover the main content
+    // 82 = 24 + 58
+    //   24: space above the task list
+    //   58: height of the title bar of the task list
+    // 48: height of each task item
+    // 24: space below task list
+    // TODO(littlecvr): find a better way to get the dimension of TaskList
+    //                  instead of calculating our own
+    var paddingBottom = (this.props.tasks.size == 0 ? 0 : 82) +
+        48 * (this.state.taskListCollapsed ? 0 : this.props.tasks.size) + 24;
+
     var app = null;
     if (this.props.app == AppNames.BUNDLES_APP) {
-      // TODO(littlecvr): there should be a better way than passing an offset
-      //                  into the app
-      let offset = (this.props.tasks.size == 0 ? 0 : 24) +
-          48 * this.props.tasks.size + 24;
-      app = <BundlesApp offset={offset} />;
+      // TODO(littlecvr): standardize the floating button API so we don't need
+      //                  to pass offset like this
+      app = <BundlesApp offset={paddingBottom} />;
     } else if (this.props.app == AppNames.SETTINGS_APP) {
       app = <SettingsApp />;
     } else {
@@ -53,7 +67,7 @@ const AppPage = React.createClass({
     }
 
     return (
-      <div>
+      <div style={{paddingBottom}}>
         <FixedAppBar
           title="Dome"
           onLeftIconButtonTouchTap={this.toggleAppMenu}
@@ -72,7 +86,10 @@ const AppPage = React.createClass({
         </Drawer>
         {app}
 
-        <TaskList />
+        <TaskList
+          collapsed={this.state.taskListCollapsed}
+          setCollapsed={this.setTaskListCollapsed}
+        />
       </div>
     );
   }

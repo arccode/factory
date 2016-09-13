@@ -7,4 +7,4 @@ export default {
   RUNNING: 'RUNNING',
   SUCCEEDED: 'SUCCEEDED',
   FAILED: 'FAILED'
-}
+};
