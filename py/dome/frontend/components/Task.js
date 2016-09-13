@@ -34,17 +34,17 @@ var Task = React.createClass({
           {description}
         </div>
         <div style={{display: 'table-cell', verticalAlign: 'middle'}}>
-          {state == TaskStates.TASK_WAITING &&
+          {state == TaskStates.WAITING &&
             <IconButton tooltip={'cancel all tasks below'} onTouchTap={cancel}>
               <ActionAutorenew />
             </IconButton>
           }
-          {state == TaskStates.TASK_RUNNING &&
+          {state == TaskStates.RUNNING &&
             <IconButton className="spin">
               <ActionAutorenew />
             </IconButton>
           }
-          {state == TaskStates.TASK_SUCCEEDED &&
+          {state == TaskStates.SUCCEEDED &&
             <IconButton
               tooltip={'dismiss'}
               onTouchTap={dismiss}
@@ -53,7 +53,7 @@ var Task = React.createClass({
               <ActionCheckCircle />
             </IconButton>
           }
-          {state == TaskStates.TASK_FAILED &&
+          {state == TaskStates.FAILED &&
             <IconButton
               tooltip={'retry'}
               onTouchTap={retry}

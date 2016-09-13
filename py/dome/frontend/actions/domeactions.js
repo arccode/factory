@@ -163,7 +163,7 @@ const createTask = (description, method, url, body, onFinish = null,
     for (const id of taskIDs) {
       let s = tasks.getIn([id, 'state']);
       if (id != taskID &&
-          (s == TaskStates.TASK_RUNNING || s == TaskStates.TASK_WAITING)) {
+          (s == TaskStates.RUNNING || s == TaskStates.WAITING)) {
         startNow = false;
         break;
       }
@@ -188,7 +188,7 @@ const startTask = taskID => (dispatch, getState) => {
   taskID = String(taskID);  // make sure taskID is always a string
   var task = getState().getIn(['dome', 'tasks', taskID]);
 
-  dispatch(changeTaskState(taskID, TaskStates.TASK_RUNNING));
+  dispatch(changeTaskState(taskID, TaskStates.RUNNING));
 
   var request = {method: task.get('method'), body: _taskBodies[taskID]};
   if (task.get('contentType') !== null) {
@@ -200,7 +200,7 @@ const startTask = taskID => (dispatch, getState) => {
     .then(_taskOnFinishes[taskID])
     .then(
       () => {
-        dispatch(changeTaskState(taskID, TaskStates.TASK_SUCCEEDED));
+        dispatch(changeTaskState(taskID, TaskStates.SUCCEEDED));
 
         // find next queued task and start it
         var tasks = getState().getIn(['dome', 'tasks']);
@@ -214,7 +214,7 @@ const startTask = taskID => (dispatch, getState) => {
       error => {
         console.error(error);
         // TODO: show an error message box
-        dispatch(changeTaskState(taskID, TaskStates.TASK_FAILED));
+        dispatch(changeTaskState(taskID, TaskStates.FAILED));
       }
     );
 };

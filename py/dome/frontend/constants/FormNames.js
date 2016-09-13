@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-export const UPLOADING_BUNDLE_FORM = 'UPLOADING_BUNDLE_FORM';
-export const UPDATING_RESOURCE_FORM = 'UPDATING_RESOURCE_FORM';
-
 export default {
-  UPLOADING_BUNDLE_FORM, UPDATING_RESOURCE_FORM
+  UPLOADING_BUNDLE_FORM: 'UPLOADING_BUNDLE_FORM',
+  UPDATING_RESOURCE_FORM: 'UPDATING_RESOURCE_FORM'
 };

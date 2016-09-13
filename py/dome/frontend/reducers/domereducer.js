@@ -42,7 +42,7 @@ export default function domeReducer(state = INITIAL_STATE, action) {
     case ActionTypes.CREATE_TASK:
       return state.mergeIn(['tasks'], {
         [String(action.taskID)]: {
-          state: TaskStates.TASK_WAITING,
+          state: TaskStates.WAITING,
           description: action.description,
           method: action.method,
           url: action.url,
