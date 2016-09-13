@@ -227,7 +227,7 @@ class ConnectionManager(object):
     # Set the known wireless networks.
     for wlan in self.wlans:
       try:
-        base_manager.manager.ConfigureService(wlan)
+        base_manager.manager.ConfigureService(wlan, signature='a{sv}')
       except dbus.exceptions.DBusException:
         logging.exception('Unable to configure wireless network: %s',
                           wlan['SSID'])
