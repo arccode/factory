@@ -221,7 +221,21 @@ class BFTFixture(object):
     raise NotImplementedError
 
   def SimulateButtonPress(self, button, duration_secs):
-    """Simulates button press for a period of time."""
+    """Simulates button press for a period of time.
+
+    Args:
+      button: button to press
+      duration_secs: pressing length, in seconds.  If it is 0, will press
+        indefinitely until released by "SimulateButtonRelease".
+    """
+    raise NotImplementedError
+
+  def SimulateButtonRelease(self, button):
+    """Simulates button release.
+
+    This is used to release a button that is pressed by:
+      self.SimulateButtonPress(button, 0)
+    """
     raise NotImplementedError
 
   def SetLcmText(self, row, message):

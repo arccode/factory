@@ -19,12 +19,14 @@
     A /dev/input key matching KEYNAME.
 """
 
+import logging
 import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.device import device_utils
+from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_ui
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.event_log import Log
@@ -154,7 +156,12 @@ class ButtonTest(unittest.TestCase):
       Arg('button_name_zh', (str, unicode),
           'The name of the button in Chinese.', optional=False),
       Arg('repeat_times', int, 'Number of press/release cycles to test',
-          default=1)]
+          default=1),
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP,
+          default=None, optional=True),
+      Arg('bft_button_name', str, 'Button name for BFT fixture',
+          default=None, optional=True),
+      ]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
@@ -178,6 +185,11 @@ class ButtonTest(unittest.TestCase):
     # [started, pressed, released, pressed, released, pressed, ...]
     self._action_timestamps = [time.time()]
 
+    if self.args.bft_fixture:
+      self._fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
+    else:
+      self._fixture = None
+
     # Create a thread to monitor button events.
     process_utils.StartDaemonThread(target=self._MonitorButtonEvent)
     # Create a thread to run countdown timer.
@@ -195,6 +207,15 @@ class ButtonTest(unittest.TestCase):
                              timestamps[release_index - 2]),
           time_to_release_sec=(timestamps[release_index] -
                                timestamps[release_index - 1]))
+    if self._fixture:
+      try:
+        self._fixture.SimulateButtonRelease(self.args.bft_button_name)
+      except:  # pylint: disable=bare-except
+        logging.warning('failed to release button', exc_info=True)
+      try:
+        self._fixture.Disconnect()
+      except:  # pylint: disable=bare-except
+        logging.warning('disconnection failure', exc_info=True)
 
   def _PollForCondition(self, poll_method, condition_name):
     elapsed_time = time.time() - self._action_timestamps[0]
@@ -215,11 +236,19 @@ class ButtonTest(unittest.TestCase):
           _MSG_PROMPT_PRESS[1] % (self.args.button_name_zh, progress),
           _MSG_PROMPT_CSS_CLASS)
       self.ui.SetHTML(label, id=_ID_PROMPT)
+
+      if self._fixture:
+        self._fixture.SimulateButtonPress(self.args.bft_button_name, 0)
+
       self._PollForCondition(self.button.IsPressed, 'WaitForPress')
       label = test_ui.MakeLabel(_MSG_PROMPT_RELEASE[0],
                                 _MSG_PROMPT_RELEASE[1],
                                 _MSG_PROMPT_CSS_CLASS)
       self.ui.SetHTML(label, id=_ID_PROMPT)
+
+      if self._fixture:
+        self._fixture.SimulateButtonRelease(self.args.bft_button_name)
+
       self._PollForCondition(lambda: not self.button.IsPressed(),
                              'WaitForRelease')
     self.ui.Pass()
