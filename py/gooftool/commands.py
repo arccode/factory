@@ -561,8 +561,12 @@ def CreateReportArchiveBlob(*args, **kwargs):
   Returns:
     An xmlrpclib.Binary object containing a .tar.xz file.
   """
-  with open(CreateReportArchive(*args, **kwargs)) as f:
-    return xmlrpclib.Binary(f.read())
+  report_archive = CreateReportArchive(*args, **kwargs)
+  try:
+    with open(report_archive) as f:
+      return xmlrpclib.Binary(f.read())
+  finally:
+    os.unlink(report_archive)
 
 
 def CreateReportArchive(device_sn=None, add_file=None):
