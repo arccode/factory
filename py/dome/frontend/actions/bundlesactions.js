@@ -53,8 +53,22 @@ const activateBundle = (name, active) => (dispatch, getState) => {
   var taskDescription = `${verb} bundle "${name}"`;
 
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', `bundles/${name}`, formData, () =>
-      dispatch(fetchBundles())
+      taskDescription, 'PUT', `bundles/${name}`, formData,
+      () => dispatch(fetchBundles())
+  ));
+};
+
+const changeBundleRules = (name, rules) => (dispatch, getState) => {
+  var data = {
+    board: getState().getIn(['dome', 'currentBoard']),
+    name,
+    rules,
+  };
+  var taskDescription = `Change rules of bundle "${name}"`;
+
+  dispatch(DomeActions.createTask(
+      taskDescription, 'PUT', `bundles/${name}`, JSON.stringify(data),
+      () => dispatch(fetchBundles()), 'application/json'
   ));
 };
 
@@ -91,6 +105,6 @@ const startUpdatingResource = formData => dispatch => {
 };
 
 export default {
-  fetchBundles, reorderBundles, activateBundle, deleteBundle,
+  fetchBundles, reorderBundles, activateBundle, changeBundleRules, deleteBundle,
   startUploadingBundle, startUpdatingResource
 };

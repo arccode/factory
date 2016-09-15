@@ -151,6 +151,7 @@ class BundleSerializer(serializers.Serializer):
   name = serializers.CharField()
   note = serializers.CharField(required=False)
   active = serializers.NullBooleanField(required=False)
+  rules = serializers.DictField(required=False)
 
   resources = serializers.DictField(read_only=True, child=ResourceSerializer())
 
@@ -161,6 +162,7 @@ class BundleSerializer(serializers.Serializer):
     """Override parent's method."""
     data = validated_data.copy()
     board = data.pop('board')
+    data.pop('rules', None)
     bundle_file = data.pop('bundle_file')
     with UmpireAccessibleFile(board, bundle_file) as path:
       data['file_path'] = path

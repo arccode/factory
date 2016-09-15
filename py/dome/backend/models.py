@@ -33,6 +33,10 @@ UMPIRE_RESOURCE_NAME_ALIAS = {
     'server_factory_toolkit': 'factory_toolkit'}
 UMPIRE_UPDATABLE_RESOURCE = set(['device_factory_toolkit',
                                  'server_factory_toolkit'])
+UMPIRE_MATCH_KEY_MAP = {
+    'macs': 'mac',
+    'serial_numbers': 'sn',
+    'mlb_serial_numbers': 'mlb_sn'}
 
 # TODO(littlecvr): use volume container instead of absolute path.
 # TODO(littlecvr): these constants are shared between here and umpire_docker.sh,
@@ -188,7 +192,7 @@ class Resource(object):
 class Bundle(object):
   """Represent a bundle in umpire."""
 
-  def __init__(self, name, note, active, resources):
+  def __init__(self, name, note, active, resources, rules):
     self.name = name
     self.note = note
     self.active = active
@@ -211,7 +215,11 @@ class Bundle(object):
             match.group(2),  # hash
             res_type in UMPIRE_UPDATABLE_RESOURCE)  # updatable
 
-    # TODO(littlecvr): add rulesets in umpire config.
+    self.rules = {}
+    for umpire_key in rules:
+      key = next(
+          k for (k, v) in UMPIRE_MATCH_KEY_MAP.iteritems() if v == umpire_key)
+      self.rules[key] = rules[umpire_key]
 
 
 class BundleModel(object):
@@ -326,6 +334,7 @@ class BundleModel(object):
     for b in config['rulesets']:
       if bundle_name == b['bundle_id']:
         active = b['active']
+        rules = b.get('match', {})
         break
 
     bundle = None
@@ -335,7 +344,8 @@ class BundleModel(object):
             b['id'],  # name
             b['note'],  # note
             active,  # active
-            b['resources'])  # resources
+            b['resources'],  # resources
+            rules)  # matching rules
         break
 
     return bundle
@@ -356,23 +366,40 @@ class BundleModel(object):
     bundle_list = list()
     for b in config['rulesets']:
       bundle_set.add(b['bundle_id'])
+      # TODO(littlecvr): not an efficient way since ListOne() scans through all
+      #                  bundles
       bundle_list.append(self.ListOne(b['bundle_id']))
     for b in config['bundles']:
       if b['id'] not in bundle_set:
+        # TODO(littlecvr): not an efficient way since ListOne() scans through
+        #                  all bundles
         bundle_list.append(self.ListOne(b['id']))
 
     return bundle_list
 
-  def ModifyOne(self, name, active=True):
-    """Activate a bundle.
+  def ModifyOne(self, name, active=None, rules=None):
+    """Modify a bundle.
 
     Args:
       name: name of the bundle.
       active: True to make the bundle active, False to make the bundle inactive.
+          None means no change.
+      rules: rules to replace, this corresponds to Umpire's "match", see
+          Umpire's doc for more info, None means no change.
     """
     config = self._GetNormalizedActiveConfig()
     bundle = next(b for b in config['rulesets'] if b['bundle_id'] == name)
-    bundle['active'] = active
+
+    if active is not None:
+      bundle['active'] = active
+
+    if rules is not None:
+      bundle['match'] = {}
+      for key in rules:
+        if rules[key]:  # add non-empty key only
+          bundle['match'][UMPIRE_MATCH_KEY_MAP[key]] = map(str, rules[key])
+    else:
+      bundle.pop('match', None)
 
     self._UploadAndDeployConfig(config)
 

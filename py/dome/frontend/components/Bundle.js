@@ -10,11 +10,12 @@ import Immutable from 'immutable';
 import React from 'react';
 import Toggle from 'material-ui/Toggle';
 import {connect} from 'react-redux';
-import {Card, CardTitle, CardText} from 'material-ui/Card';
+import {Card, CardHeader, CardTitle, CardText} from 'material-ui/Card';
 import {SortableHandle} from 'react-sortable-hoc';
 
 import BundlesActions from '../actions/bundlesactions';
 import ResourceTable from './ResourceTable';
+import RuleTable from './RuleTable';
 
 var DragHandle = SortableHandle(() => (
   <IconButton
@@ -29,6 +30,7 @@ var DragHandle = SortableHandle(() => (
 var Bundle = React.createClass({
   propTypes: {
     activateBundle: React.PropTypes.func.isRequired,
+    changeBundleRules: React.PropTypes.func.isRequired,
     deleteBundle: React.PropTypes.func.isRequired,
     bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired
   },
@@ -103,8 +105,18 @@ var Bundle = React.createClass({
             </IconButton>
           </div>
         </CardTitle>
+        <CardHeader title="RESOURCES" expandable={true} />
         <CardText expandable={true}>
           <ResourceTable bundle={bundle} />
+        </CardText>
+        <CardHeader title="RULES" expandable={true} />
+        <CardText expandable={true}>
+          <RuleTable
+            rules={bundle.get('rules')}
+            changeRules={
+              rules => this.props.changeBundleRules(bundle.get('name'), rules)
+            }
+          />
         </CardText>
       </Card>
     );
@@ -115,6 +127,8 @@ function mapDispatchToProps(dispatch) {
   return {
     activateBundle: (name, active) =>
         dispatch(BundlesActions.activateBundle(name, active)),
+    changeBundleRules: (name, rules) =>
+        dispatch(BundlesActions.changeBundleRules(name, rules)),
     deleteBundle: name => dispatch(BundlesActions.deleteBundle(name))
   };
 }
