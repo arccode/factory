@@ -9,6 +9,7 @@ import TaskStates from '../constants/TaskStates';
 // which are not serializable.
 var _taskBodies = {};
 var _taskOnFinishes = {};
+var _taskOnCancels = {};
 
 function checkHTTPStatus(response) {
   if (response.status >= 200 && response.status < 300) {
@@ -121,8 +122,8 @@ const changeTaskState = (taskID, state) => ({
   state
 });
 
-const createTask = (description, method, url, body, onFinish = null,
-                    contentType = null) => (
+const createTask = (description, method, url, body,
+                    onFinish = null, onCancel = null, contentType = null) => (
   (dispatch, getState) => {
     var tasks = getState().getIn(['dome', 'tasks']);
     var taskIDs = tasks.keySeq().sort().toArray();
@@ -134,6 +135,7 @@ const createTask = (description, method, url, body, onFinish = null,
 
     _taskBodies[taskID] = body;
     _taskOnFinishes[taskID] = onFinish;
+    _taskOnCancels[taskID] = onCancel;
     dispatch({
       type: ActionTypes.CREATE_TASK,
       taskID,
@@ -163,6 +165,7 @@ const removeTask = taskID => dispatch => {
   taskID = String(taskID);  // make sure taskID is always a string
   delete _taskBodies[taskID];
   delete _taskOnFinishes[taskID];
+  delete _taskOnCancels[taskID];
   dispatch({
     type: ActionTypes.REMOVE_TASK,
     taskID
@@ -218,6 +221,9 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
     for (let i = taskIDs.length - 1; i >= index; --i) {
       let state = tasks.getIn([taskIDs[i], 'state']);
       if (state == TaskStates.WAITING || state == TaskStates.FAILED) {
+        if (_taskOnCancels[taskIDs[i]]) {
+          _taskOnCancels[taskIDs[i]]();
+        }
         dispatch(removeTask(taskIDs[i]));
       }
     }

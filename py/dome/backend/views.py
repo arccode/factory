@@ -98,7 +98,16 @@ class BundleResourceView(APIView):
     # TODO(littlecvr): should create bundle instance before creating serializer
     serializer = ResourceSerializer(board, data=request.data)
     if serializer.is_valid():
-      BundleModel(board).ListOne(serializer.validated_data['src_bundle_name'])
       serializer.save()
-      return Response(serializer.data)
+      # TODO(littlecvr): return only the resource updated. The front-end needs
+      #                  the full bundle data to do post processing now, say we
+      #                  updated device_factory_toolkit, but in fact
+      #                  server_factory_toolkit will also be affected. To solve
+      #                  this, we'll need an alias shared between Umpire, Dome
+      #                  back-end, and front-end specifying which resources are
+      #                  correlated.
+      bundle = BundleModel(board).ListOne(
+          serializer.validated_data['dst_bundle_name'] or
+          serializer.validated_data['src_bundle_name'])
+      return Response(BundleSerializer(bundle).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

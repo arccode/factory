@@ -12,6 +12,17 @@ function baseURL(getState) {
   return `/boards/${getState().getIn(['dome', 'currentBoard'])}`;
 }
 
+function buildOnCancel(dispatch, getState) {
+  var bundleListSnapshot = getState().getIn(['bundles', 'entries']).toJS();
+  return () => dispatch(receiveBundles(bundleListSnapshot));
+}
+
+function findBundle(name, getState) {
+  return getState().getIn(['bundles', 'entries']).find(
+      b => b.get('name') == name
+  ).toJS();
+}
+
 const receiveBundles = bundles => ({
   type: ActionTypes.RECEIVE_BUNDLES,
   bundles
@@ -39,76 +50,175 @@ const fetchBundles = () => (dispatch, getState) => {
 };
 
 const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
-  var new_bundle_list = getState().getIn(['bundles', 'entries']).map(bundle => (
-      bundle.get('name')
-  )).toArray();
-  new_bundle_list = arrayMove(new_bundle_list, oldIndex, newIndex);
-  var taskDescription = 'Reorder bundles';
+  var onCancel = buildOnCancel(dispatch, getState);
+  var newBundleList = arrayMove(
+      getState().getIn(['bundles', 'entries']).toJS(), oldIndex, newIndex);
 
+  // optimistic update
+  dispatch({
+    type: ActionTypes.REORDER_BUNDLES,
+    bundles: newBundleList
+  });
+
+  // send the request
+  var newBundleNameList = newBundleList.map(b => b['name']);
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', `${baseURL(getState)}/bundles`,
-      JSON.stringify(new_bundle_list), () => dispatch(fetchBundles()),
-      'application/json'
+      'Reorder bundles', 'PUT', `${baseURL(getState)}/bundles`,
+      JSON.stringify(newBundleNameList), null, onCancel, 'application/json'
   ));
 };
 
 const activateBundle = (name, active) => (dispatch, getState) => {
+  var onCancel = buildOnCancel(dispatch, getState);
+
+  // optimistic update
+  var bundle = findBundle(name, getState);
+  bundle['active'] = active;
+  dispatch({
+    type: ActionTypes.UPDATE_BUNDLE,
+    name,
+    bundle
+  });
+
+  // send the request
   var formData = new FormData();
   formData.append('board', getState().getIn(['dome', 'currentBoard']));
   formData.append('name', name);
   formData.append('active', active);
   var verb = active ? 'Activate' : 'Deactivate';
-  var taskDescription = `${verb} bundle "${name}"`;
-
+  var description = `${verb} bundle "${name}"`;
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', `${baseURL(getState)}/bundles/${name}`, formData,
-      () => dispatch(fetchBundles())
+      description, 'PUT', `${baseURL(getState)}/bundles/${name}`, formData,
+      null, onCancel
   ));
 };
 
 const changeBundleRules = (name, rules) => (dispatch, getState) => {
+  var onCancel = buildOnCancel(dispatch, getState);
+
+  // optimistic update
+  var bundle = findBundle(name, getState);
+  bundle['rules'] = rules;
+  dispatch({
+    type: ActionTypes.UPDATE_BUNDLE,
+    name,
+    bundle
+  });
+
+  // send the request
   var data = {
+    // TODO(littlecvr): refine the back-end API so we don't need board here, the
+    //                  URL already contains board
     board: getState().getIn(['dome', 'currentBoard']),
     name,
     rules,
   };
-  var taskDescription = `Change rules of bundle "${name}"`;
-
+  var description = `Change rules of bundle "${name}"`;
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', `${baseURL(getState)}/bundles/${name}`,
-      JSON.stringify(data), () => dispatch(fetchBundles()), 'application/json'
+      description, 'PUT', `${baseURL(getState)}/bundles/${name}`,
+      JSON.stringify(data), null, onCancel, 'application/json'
   ));
 };
 
 const deleteBundle = name => (dispatch, getState) => {
-  var taskDescription = `Delete bundle "${name}"`;
+  var onCancel = buildOnCancel(dispatch, getState);
+
+  // optimistic update
+  dispatch({
+    type: ActionTypes.DELETE_BUNDLE,
+    name
+  });
+
+  // send the request
+  var description = `Delete bundle "${name}"`;
   dispatch(DomeActions.createTask(
-      taskDescription, 'DELETE', `${baseURL(getState)}/bundles/${name}`,
-      new FormData(), () => dispatch(fetchBundles())
+      description, 'DELETE', `${baseURL(getState)}/bundles/${name}`,
+      new FormData(), null, onCancel
   ));
 };
 
 const startUploadingBundle = formData => (dispatch, getState) => {
   dispatch(DomeActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM));
-  var bundleName = formData.get('name');
-  var taskDescription = `Upload bundle "${bundleName}"`;
+
+  var onCancel = buildOnCancel(dispatch, getState);
+
+  // optimistic update
+  dispatch({
+    type: ActionTypes.ADD_BUNDLE,
+    // TODO(littlecvr): to improve user experience, we should have a variable
+    //                  indicating that the bundle is currently being uploaded,
+    //                  so we can for example append "(uploading)" to bundle
+    //                  name to make it more clear, or we can make the resource
+    //                  and rule table totally unexpandable (since there are
+    //                  nothing there for now, expanding them is useless)
+    bundle: {  // give it an empty bundle
+      name: formData.get('name'),
+      note: formData.get('note'),
+      active: true,
+      resources: {},
+      rules: {}
+    }
+  });
+
+  // need to fill in the real data after the request has finished
+  var onFinish = response => response.json().then(json => dispatch({
+    type: ActionTypes.UPDATE_BUNDLE,
+    name: formData.get('name'),
+    bundle: json
+  }));
+
+  // send the request
+  var description = `Upload bundle "${formData.get('name')}"`;
   dispatch(DomeActions.createTask(
-      taskDescription, 'POST', `${baseURL(getState)}/bundles`, formData,
-      () => dispatch(fetchBundles())
+      description, 'POST', `${baseURL(getState)}/bundles`, formData, onFinish,
+      onCancel
   ));
 };
 
 const startUpdatingResource = formData => (dispatch, getState) => {
   dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM));
+
+  var onCancel = buildOnCancel(dispatch, getState);
   var srcBundleName = formData.get('src_bundle_name');
-  var taskDescription = `Update bundle "${srcBundleName}"`;
   var dstBundleName = formData.get('dst_bundle_name');
+
+  // optimistic update
+  var bundle = findBundle(srcBundleName, getState);
+  bundle['note'] = formData.get('note');
+  // reset hash and version of the resource currently being update
+  var resourceType = formData.get('resource_type');
+  bundle['resources'][resourceType]['hash'] = '(waiting for update)';
+  bundle['resources'][resourceType]['version'] = '(waiting for update)';
   if (dstBundleName != '') {
-    taskDescription += ` to bundle "${dstBundleName}"`;
+    // duplicate the src bundle if it's not an in-place update
+    bundle['name'] = dstBundleName;
+    dispatch({
+      type: ActionTypes.ADD_BUNDLE,
+      bundle
+    });
+  } else {
+    dispatch({
+      type: ActionTypes.UPDATE_BUNDLE,
+      name: srcBundleName,
+      bundle
+    });
+  }
+
+  // need to fill in the real data after the request has finished
+  var onFinish = response => response.json().then(json => dispatch({
+    type: ActionTypes.UPDATE_BUNDLE,
+    name: dstBundleName == '' ? srcBundleName : dstBundleName,
+    bundle: json
+  }));
+
+  // send the request
+  var description = `Update bundle "${srcBundleName}"`;
+  if (dstBundleName != '') {
+    description += ` to bundle "${dstBundleName}"`;
   }
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', `${baseURL(getState)}/resources`, formData,
-      () => dispatch(fetchBundles())
+      description, 'PUT', `${baseURL(getState)}/resources`, formData, onFinish,
+      onCancel
   ));
 };
 

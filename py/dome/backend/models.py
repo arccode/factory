@@ -485,9 +485,7 @@ class BundleModel(object):
     # config staged before, need the force argument or Umpire will complain
     self._UploadAndDeployConfig(config, force=True)
 
-    return {'bundle_name': dst_bundle_name or src_bundle_name,
-            'resource_type': resource_type,
-            'updatable': True}
+    return self.ListOne(dst_bundle_name or src_bundle_name)
 
   def UploadNew(self, name, note, file_path):
     """Upload a new bundle.
