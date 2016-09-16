@@ -10,13 +10,22 @@ import ActionTypes from '../constants/ActionTypes';
 import DomeActions from './domeactions';
 import FormNames from '../constants/FormNames';
 
+function baseURL(getState) {
+  return `/boards/${getState().getIn(['dome', 'currentBoard'])}`;
+}
+
 const receiveBundles = bundles => ({
   type: ActionTypes.RECEIVE_BUNDLES,
   bundles
 });
 
 const fetchBundles = () => (dispatch, getState) => {
-  fetch(`${DomeActions.apiURL(getState)}/bundles.json`).then(response => {
+  // TODO(littlecvr): this is also a task but a hidden one, consider unify the
+  //                  task handling process. (If adding hidden task we can also
+  //                  get rid of _taskOnFinishes in DomeActions since we only
+  //                  have to add a hidden task after the main task as the
+  //                  onFinish callback.)
+  fetch(`${baseURL(getState)}/bundles.json`).then(response => {
     response.json().then(json => {
       dispatch(receiveBundles(json));
     }, error => {
@@ -39,8 +48,9 @@ const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
   var taskDescription = 'Reorder bundles';
 
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', 'bundles', JSON.stringify(new_bundle_list),
-      () => dispatch(fetchBundles()), 'application/json'
+      taskDescription, 'PUT', `${baseURL(getState)}/bundles`,
+      JSON.stringify(new_bundle_list), () => dispatch(fetchBundles()),
+      'application/json'
   ));
 };
 
@@ -53,7 +63,7 @@ const activateBundle = (name, active) => (dispatch, getState) => {
   var taskDescription = `${verb} bundle "${name}"`;
 
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', `bundles/${name}`, formData,
+      taskDescription, 'PUT', `${baseURL(getState)}/bundles/${name}`, formData,
       () => dispatch(fetchBundles())
   ));
 };
@@ -67,30 +77,30 @@ const changeBundleRules = (name, rules) => (dispatch, getState) => {
   var taskDescription = `Change rules of bundle "${name}"`;
 
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', `bundles/${name}`, JSON.stringify(data),
-      () => dispatch(fetchBundles()), 'application/json'
+      taskDescription, 'PUT', `${baseURL(getState)}/bundles/${name}`,
+      JSON.stringify(data), () => dispatch(fetchBundles()), 'application/json'
   ));
 };
 
-const deleteBundle = name => dispatch => {
+const deleteBundle = name => (dispatch, getState) => {
   var taskDescription = `Delete bundle "${name}"`;
   dispatch(DomeActions.createTask(
-      taskDescription, 'DELETE', `bundles/${name}`, new FormData(),
-      () => dispatch(fetchBundles())
+      taskDescription, 'DELETE', `${baseURL(getState)}/bundles/${name}`,
+      new FormData(), () => dispatch(fetchBundles())
   ));
 };
 
-const startUploadingBundle = formData => dispatch => {
+const startUploadingBundle = formData => (dispatch, getState) => {
   dispatch(DomeActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM));
   var bundleName = formData.get('name');
   var taskDescription = `Upload bundle "${bundleName}"`;
   dispatch(DomeActions.createTask(
-      taskDescription, 'POST', 'bundles', formData,
+      taskDescription, 'POST', `${baseURL(getState)}/bundles`, formData,
       () => dispatch(fetchBundles())
   ));
 };
 
-const startUpdatingResource = formData => dispatch => {
+const startUpdatingResource = formData => (dispatch, getState) => {
   dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM));
   var srcBundleName = formData.get('src_bundle_name');
   var taskDescription = `Update bundle "${srcBundleName}"`;
@@ -99,7 +109,7 @@ const startUpdatingResource = formData => dispatch => {
     taskDescription += ` to bundle "${dstBundleName}"`;
   }
   dispatch(DomeActions.createTask(
-      taskDescription, 'PUT', 'resources', formData,
+      taskDescription, 'PUT', `${baseURL(getState)}/resources`, formData,
       () => dispatch(fetchBundles())
   ));
 };

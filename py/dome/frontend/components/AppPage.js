@@ -13,7 +13,6 @@ import BundlesApp from './BundlesApp';
 import DomeActions from '../actions/domeactions';
 import FixedAppBar from './FixedAppBar';
 import SettingsApp from './SettingsApp';
-import TaskList from './TaskList';
 
 const AppPage = React.createClass({
   propTypes: {
@@ -32,14 +31,9 @@ const AppPage = React.createClass({
     this.props.switchApp(nextApp);
   },
 
-  setTaskListCollapsed(collapsed) {
-    this.setState({taskListCollapsed: collapsed});
-  },
-
   getInitialState() {
     return {
       appMenuOpened: false,
-      taskListCollapsed: false
     };
   },
 
@@ -85,11 +79,6 @@ const AppPage = React.createClass({
           </MenuItem>
         </Drawer>
         {app}
-
-        <TaskList
-          collapsed={this.state.taskListCollapsed}
-          setCollapsed={this.setTaskListCollapsed}
-        />
       </div>
     );
   }

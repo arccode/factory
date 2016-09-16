@@ -87,7 +87,7 @@ class BoardSerializer(serializers.Serializer):
     """Override parent's method."""
     data = validated_data.copy()
     if data.pop('is_existing'):  # add an existing local/remote instance
-      return Board.AddExistingOne(**validated_data)
+      return Board.AddExistingOne(**data)
     else:  # create a new local instance
       data.pop('host')
       # get the path of factory toolkit

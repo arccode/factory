@@ -13,10 +13,6 @@ import TaskStates from '../constants/TaskStates';
 var _taskBodies = {};
 var _taskOnFinishes = {};
 
-function apiURL(getState) {
-  return `/boards/${getState().getIn(['dome', 'currentBoard'])}`;
-}
-
 function checkHTTPStatus(response) {
   if (response.status >= 200 && response.status < 300) {
     return response;
@@ -34,13 +30,10 @@ const addBoard = (name, host, port) => dispatch => {
   formData.append('port', port);
   formData.append('is_existing', true);
 
-  fetch('/boards/', {method: 'POST', body: formData}).then(response => {
-    dispatch(fetchBoards());
-  }, error => {
-    // TODO(littlecvr): better error handling
-    console.error('error adding board');
-    console.error(error);
-  });
+  var description = `Add board "${name}"`;
+  dispatch(createTask(
+      description, 'POST', 'boards', formData, () => dispatch(fetchBoards()),
+  ));
 };
 
 const createBoard = (name, port, factoryToolkitFile) => dispatch => {
@@ -49,23 +42,18 @@ const createBoard = (name, port, factoryToolkitFile) => dispatch => {
   formData.append('port', port);
   formData.append('factory_toolkit_file', factoryToolkitFile);
 
-  fetch('/boards/', {method: 'POST', body: formData}).then(response => {
-    dispatch(fetchBoards());
-  }, error => {
-    // TODO(littlecvr): better error handling
-    console.error('error creating board');
-    console.error(error);
-  });
+  var description = `Create board "${name}"`;
+  dispatch(createTask(
+      description, 'POST', 'boards', formData, () => dispatch(fetchBoards()),
+  ));
 };
 
-const deleteBoard = board => dispatch => {
-  fetch(`/boards/${board}/`, {method: 'DELETE'}).then(response => {
-    dispatch(fetchBoards());
-  }, error => {
-    // TODO(littlecvr): better error handling
-    console.error('error deleting board');
-    console.error(error);
-  });
+const deleteBoard = name => dispatch => {
+  var description = `Delete board "${name}"`;
+  dispatch(createTask(
+      description, 'DELETE', `boards/${name}`, new FormData(),
+      () => dispatch(fetchBoards()),
+  ));
 };
 
 const receiveBoards = boards => ({
@@ -195,7 +183,7 @@ const startTask = taskID => (dispatch, getState) => {
     request['headers'] = {'Content-Type': task.get('contentType')};
   }
 
-  return fetch(`${apiURL(getState)}/${task.get('url')}/`, request)
+  return fetch(`${task.get('url')}/`, request)
     .then(checkHTTPStatus)
     .then(_taskOnFinishes[taskID])
     .then(
@@ -240,7 +228,6 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
 };
 
 export default {
-  apiURL,
   addBoard, createBoard, deleteBoard, fetchBoards, switchBoard,
   switchApp,
   openForm, closeForm,

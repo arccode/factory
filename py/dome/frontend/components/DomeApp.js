@@ -7,10 +7,21 @@ import React from 'react';
 
 import WelcomePage from './WelcomePage';
 import AppPage from './AppPage';
+import TaskList from './TaskList';
 
 var DomeApp = React.createClass({
   propTypes: {
     board: React.PropTypes.string.isRequired
+  },
+
+  setTaskListCollapsed(collapsed) {
+    this.setState({taskListCollapsed: collapsed});
+  },
+
+  getInitialState() {
+    return {
+      taskListCollapsed: false
+    };
   },
 
   render() {
@@ -18,6 +29,11 @@ var DomeApp = React.createClass({
       <div>
         {this.props.board === '' && <WelcomePage />}
         {this.props.board !== '' && <AppPage />}
+
+        <TaskList
+          collapsed={this.state.taskListCollapsed}
+          setCollapsed={this.setTaskListCollapsed}
+        />
       </div>
     );
   }

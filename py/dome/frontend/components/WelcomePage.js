@@ -19,6 +19,11 @@ import DomeActions from '../actions/domeactions';
 var WelcomePage = React.createClass({
   propTypes: {
     boards: React.PropTypes.instanceOf(Immutable.List).isRequired,
+
+    addBoard: React.PropTypes.func.isRequired,
+    createBoard: React.PropTypes.func.isRequired,
+    deleteBoard: React.PropTypes.func.isRequired,
+
     fetchBoards: React.PropTypes.func.isRequired,
     switchBoard: React.PropTypes.func.isRequired
   },
