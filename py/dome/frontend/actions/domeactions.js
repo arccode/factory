@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'babel-polyfill';
-import fetch from 'isomorphic-fetch';
-
 import ActionTypes from '../constants/ActionTypes';
 import TaskStates from '../constants/TaskStates';
 
