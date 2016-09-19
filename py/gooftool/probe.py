@@ -602,6 +602,30 @@ class _TouchInputData(object):  # pylint: disable=W0232
     data.fw_version = result.stdout.strip()
     return data
 
+  @classmethod
+  def HidOverI2c(cls, known_list):
+    # Since hid-over-i2c support many classes of devices, no good method to
+    # differentiate touchpad/touchscreen/stylus .. from others.
+    # so we use a list of tuple [("vendor id","product id"),...] to list
+    # all known devices here so that we can report device info correctly.
+    def in_known_list(entry):
+      return '%s:%s' % (entry.Vendor, entry.Product) in known_list
+    return cls.GenericInput(r'hid-over-i2c.*', filter_rule=in_known_list)
+
+  cached_data = None
+
+  @classmethod
+  def GetGeneric(cls, vendor_fun_list):
+    if cls.cached_data is None:
+      cls.cached_data = Obj(ident_str=None)
+      for vendor_fun in vendor_fun_list:
+        data = vendor_fun()
+        if data is not None:
+          cls.cached_data = data
+          break
+    return cls.cached_data
+
+
 class _TouchpadData(_TouchInputData):
   """Return Obj with hw_ident and fw_ident string fields."""
 
@@ -632,7 +656,10 @@ class _TouchpadData(_TouchInputData):
     def SynapticsByName():
       return cls.SynapticsInput(r'^SYNA.*', ['fw_version'])
 
-    return SynapticsSyndetect() or SynapticsByName()
+    def SynapticsI2c():
+      return cls.HidOverI2c(['06cb:7a3b'])
+
+    return SynapticsSyndetect() or SynapticsByName() or SynapticsI2c()
 
   @classmethod
   def Cypress(cls):
@@ -673,32 +700,9 @@ class _TouchpadData(_TouchInputData):
                             ['fw_version', 'hw_version', 'config_csum'])
 
   @classmethod
-  def HidOverI2c(cls):
-    # Since hid-over-i2c support many classes of devices,
-    # no good method to differentiate touchpad/touchscreen .. from others.
-    # so we use a list of tuple [("vendor id","product id"),...] to list
-    # all known touchpad here so that we can report touchpad info correctly.
-    # ("06cb","7a3b") is synaptics hid-over-i2c touchpad.
-    known_list = [
-        '06cb:7a3b',  # Synaptics hid-over-i2c touchpad.
-    ]
-    def in_known_list(entry):
-      return '%s:%s' % (entry.Vendor, entry.Product) in known_list
-    return cls.GenericInput(r'hid-over-i2c.*', filter_rule=in_known_list)
-
-  cached_data = None
-
-  @classmethod
   def Get(cls):
-    if cls.cached_data is None:
-      cls.cached_data = Obj(ident_str=None)
-      for vendor_fun in [cls.Cypress, cls.Synaptics, cls.Elan,
-                         cls.HidOverI2c, cls.Generic]:
-        data = vendor_fun()
-        if data is not None:
-          cls.cached_data = data
-          break
-    return cls.cached_data
+    return cls.GetGeneric([
+        cls.Cypress, cls.Synaptics, cls.Elan, cls.Generic])
 
 
 class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
@@ -727,23 +731,27 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
   @classmethod
   def Synaptics(cls):
     return cls.SynapticsInput(r'SYTS.*', ['fw_version'])
+
   @classmethod
   def Generic(cls):
     return cls.GenericInput(r'.*[Tt]ouch *[Ss]creen',
                             ['fw_version', 'hw_version', 'config_csum'])
 
-  cached_data = None
+  @classmethod
+  def Get(cls):
+    return cls.GetGeneric([cls.Elan, cls.Synaptics, cls.Generic])
+
+
+class _StylusData(_TouchInputData):
+  """Return Obj with hw_ident and fw_ident string fields."""
+
+  @classmethod
+  def Wacom(cls):
+    return cls.HidOverI2c(['2d1f:0163'])
 
   @classmethod
   def Get(cls):
-    if cls.cached_data is None:
-      cls.cached_data = Obj(ident_str=None)
-      for vendor_fun in [cls.Elan, cls.Synaptics, cls.Generic]:
-        data = vendor_fun()
-        if data is not None:
-          cls.cached_data = data
-          break
-    return cls.cached_data
+    return cls.GetGeneric([cls.Wacom])
 
 
 def _ProbeFun(probe_map, probe_class, *arch_targets):
@@ -1316,36 +1324,38 @@ def _ProbeStorage():
           if ident is not None]
 
 
-@_ComponentProbe('touchpad')
-def _ProbeTouchpad():
-  data = _TouchpadData.Get()
+def _ProbeGenericTouch(cls, key_list):
+  data = cls.Get()
   if data.ident_str is None:
     return []
 
   results = {'id': data.ident_str}
   results.update(DictCompactProbeStr(data.ident_str))
-  for key in ('product_id', 'vendor_id', 'version', 'fw_version', 'hw_version',
-              'fw_csum', 'config_csum'):
+  for key in key_list:
     value = getattr(data, key, '')
     if value:
       results[key] = value
   return [results]
+
+
+@_ComponentProbe('stylus')
+def _ProbeStylus():
+  return _ProbeGenericTouch(_StylusData, [
+      'product_id', 'vendor_id', 'version'])
+
+
+@_ComponentProbe('touchpad')
+def _ProbeTouchpad():
+  return _ProbeGenericTouch(_TouchpadData, [
+      'product_id', 'vendor_id', 'version', 'fw_version', 'hw_version',
+      'fw_csum', 'config_csum'])
 
 
 @_ComponentProbe('touchscreen')
 def _ProbeTouchscreen():
-  data = _TouchscreenData.Get()
-  if data.ident_str is None:
-    return []
-
-  results = {'id': data.ident_str}
-  results.update(DictCompactProbeStr(data.ident_str))
-  for key in ('product_id', 'vendor_id', 'version', 'fw_version', 'hw_version',
-              'fw_csum', 'config_csum'):
-    value = getattr(data, key, '')
-    if value:
-      results[key] = value
-  return [results]
+  return _ProbeGenericTouch(_TouchscreenData, [
+      'product_id', 'vendor_id', 'version', 'fw_version', 'hw_version',
+      'fw_csum', 'config_csum'])
 
 
 @_ComponentProbe('tpm')
