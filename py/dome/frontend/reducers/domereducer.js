@@ -11,7 +11,7 @@ import TaskStates from '../constants/TaskStates';
 const INITIAL_STATE = Immutable.fromJS({
   boards: [],
   currentBoard: '',
-  currentApp: AppNames.BUNDLES_APP,  // default app is bundle manager
+  currentApp: AppNames.BOARDS_APP,  // default app is the board selection page
   formVisibility: {
   },
   formPayload: {
@@ -25,7 +25,11 @@ export default function domeReducer(state = INITIAL_STATE, action) {
       return state.set('boards', Immutable.fromJS(action.boards));
 
     case ActionTypes.SWITCH_BOARD:
-      return state.set('currentBoard', action.nextBoard);
+      return state.withMutations(s => {
+        s.set('currentBoard', action.nextBoard);
+        // switch to bundle manager after switching board by default
+        s.set('currentApp', AppNames.BUNDLES_APP);
+      });
 
     case ActionTypes.SWITCH_APP:
       return state.set('currentApp', action.nextApp);

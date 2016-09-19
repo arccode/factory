@@ -16,7 +16,7 @@ import TextField from 'material-ui/TextField';
 
 import DomeActions from '../actions/domeactions';
 
-var WelcomePage = React.createClass({
+var BoardsApp = React.createClass({
   propTypes: {
     boards: React.PropTypes.instanceOf(Immutable.List).isRequired,
 
@@ -182,4 +182,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(WelcomePage);
+export default connect(mapStateToProps, mapDispatchToProps)(BoardsApp);
