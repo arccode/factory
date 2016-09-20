@@ -45,12 +45,8 @@ do_build() {
   check_docker
 
   # Use prebuilt image if we can.
-  # check the file locally first if we run the script twice we don't need to
-  # download it again.
-  if [ ! -f "${UMPIRE_IMAGE_FILENAME}" ]; then
-    wget "${PREBUILT_IMAGE_DIR_URL}/${UMPIRE_IMAGE_FILENAME}" || \
-      rm -f "${UMPIRE_IMAGE_FILENAME}"
-  fi
+  do_pull
+
   if [ -f "${UMPIRE_IMAGE_FILENAME}" ]; then
     echo "Found prebuilt image ${UMPIRE_IMAGE_FILENAME}"
     if sudo docker load <"${UMPIRE_IMAGE_FILENAME}"; then
@@ -65,6 +61,15 @@ do_build() {
   sudo docker build --tag "${UMPIRE_IMAGE_NAME}" "${UMPIRE_BUILD_DIR}"
   if [ $? -eq 0 ]; then
     echo "${UMPIRE_CONTAINER_NAME} container successfully built."
+  fi
+}
+
+do_pull() {
+  # check the file locally first if we run the script twice we don't need to
+  # download it again.
+  if [ ! -f "${UMPIRE_IMAGE_FILENAME}" ]; then
+    wget "${PREBUILT_IMAGE_DIR_URL}/${UMPIRE_IMAGE_FILENAME}" || \
+      rm -f "${UMPIRE_IMAGE_FILENAME}"
   fi
 }
 
@@ -163,6 +168,7 @@ Usage: $0 COMMAND [arg ...]
 
 Commands:
     build       build umpire container
+    pull        pull umpire image down
     destroy     destroy umpire container
     start       start umpire container
     stop        stop umpire container
@@ -183,6 +189,9 @@ main() {
   case "$1" in
     build)
       do_build
+      ;;
+    pull)
+      do_pull
       ;;
     destroy)
       do_destroy

@@ -8,14 +8,20 @@
 
 set -e
 
-SCRIPT_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
-HOST_DOME_DIR=$(realpath "${SCRIPT_DIR}/../py/dome")
+SCRIPT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
+
+. "${SCRIPT_DIR}/cros_docker.sh"
+
+HOST_DOME_DIR="$(realpath "${SCRIPT_DIR}/../py/dome")"
 HOST_BUILD_DIR="${HOST_DOME_DIR}/build"
 
-DOCKER_SHARED_DIR="/docker_shared/dome"
-DOCKER_UMPIRE_DIR="/docker_umpire"
+DOCKER_VERSION="1.9.1"
+DOME_VERSION="1.0.0"
+DOME_IMAGE_FILENAME="dome-${DOME_VERSION}-docker-${DOCKER_VERSION}.tbz"
 
-DB_FILE="db.sqlite3"
+DOCKER_SHARED_DOME_DIR="${DOCKER_SHARED_DIR}/dome"
+
+DB_FILENAME="db.sqlite3"
 BUILDER_WORKDIR="/usr/src/app"
 BUILDER_OUTPUT_FILE="frontend.tar"
 CONTAINER_DOME_DIR="/var/db/factory/dome"
@@ -30,7 +36,7 @@ BUILDER_CONTAINER_NAME="dome_builder"
 UWSGI_CONTAINER_NAME="dome_uwsgi"
 NGINX_CONTAINER_NAME="dome_nginx"
 
-DOME_PORT="8000"
+: ${PORT:="8000"}  # port to access Dome
 
 do_build() {
   # build the dome builder image
@@ -60,6 +66,38 @@ do_build() {
     "${HOST_DOME_DIR}"
 }
 
+do_install() {
+  docker load <"${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
+  docker load <"${SCRIPT_DIR}/${DOME_IMAGE_FILENAME}"
+}
+
+do_pull() {
+  echo "Pulling Dome Docker image ..."
+  if [[ ! -f "${SCRIPT_DIR}/${DOME_IMAGE_FILENAME}" ]]; then
+    wget "${PREBUILT_IMAGE_DIR_URL}/${DOME_IMAGE_FILENAME}" || \
+      (rm -f "${SCRIPT_DIR}/${DOME_IMAGE_FILENAME}" ; \
+       die "Failed to pull Dome Docker image")
+  fi
+  echo "Finished pulling Dome Docker image"
+
+  echo "Pulling Umpire Docker image..."
+  local umpire_image_path="${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
+  if [[ ! -f "${umpire_image_path}" ]]; then
+    local umpire_docker_script="${SCRIPT_DIR}/umpire_docker.sh"
+    "${umpire_docker_script}" pull || die "Failed to pull Umpire Docker image"
+  fi
+  echo "Finished pulling Umpire Docker image"
+
+  # TODO(littlecvr): make a single, self-executable file.
+  echo
+  echo "All finished, please copy: "
+  echo "  1. $(basename "$0") (this script)"
+  echo "  2. cros_docker.sh"
+  echo "  3. ${DOME_IMAGE_FILENAME}"
+  echo "  4. ${UMPIRE_IMAGE_FILENAME}"
+  echo "to the target computer."
+}
+
 do_run() {
   # stop and remove old containers
   docker stop "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
@@ -68,11 +106,11 @@ do_run() {
   docker rm "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
 
   # make sure database file exists or mounting volume will fail
-  if [[ ! -d "${DOCKER_SHARED_DIR}" ]]; then
-    echo "Creating docker shared folder (${DOCKER_SHARED_DIR}),"
+  if [[ ! -d "${DOCKER_SHARED_DOME_DIR}" ]]; then
+    echo "Creating docker shared folder (${DOCKER_SHARED_DOME_DIR}),"
     echo "you'll be asked for root permission..."
-    sudo mkdir -p "${DOCKER_SHARED_DIR}"
-    sudo touch "${DOCKER_SHARED_DIR}/${DB_FILE}"
+    sudo mkdir -p "${DOCKER_SHARED_DOME_DIR}"
+    sudo touch "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}"
   fi
 
   # Migrate the database if needed (won't remove any data if the database
@@ -82,7 +120,7 @@ do_run() {
     --rm \
     --interactive \
     --tty \
-    --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${CONTAINER_DOME_DIR}/${DB_FILE}" \
+    --volume "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}:${CONTAINER_DOME_DIR}/${DB_FILENAME}" \
     "${DOME_IMAGE_NAME}" \
     python manage.py migrate
 
@@ -93,7 +131,7 @@ do_run() {
     --name "${UWSGI_CONTAINER_NAME}" \
     --volume /var/run/docker.sock:/var/run/docker.sock \
     --volume /run \
-    --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${CONTAINER_DOME_DIR}/${DB_FILE}" \
+    --volume "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}:${CONTAINER_DOME_DIR}/${DB_FILENAME}" \
     --volume "${DOCKER_UMPIRE_DIR}:/var/db/factory/umpire" \
     "${DOME_IMAGE_NAME}" \
     uwsgi --ini uwsgi.ini
@@ -104,9 +142,13 @@ do_run() {
     --restart unless-stopped \
     --name "${NGINX_CONTAINER_NAME}" \
     --volumes-from "${UWSGI_CONTAINER_NAME}" \
-    --publish ${DOME_PORT}:80 \
+    --publish "${PORT}:80" \
     "${DOME_IMAGE_NAME}" \
     nginx -g 'daemon off;'
+
+  echo
+  echo "Dome is running!"
+  echo "Open the browser to http://localhost:${PORT}/ and enjoy!"
 }
 
 main() {
@@ -117,6 +159,12 @@ main() {
   case "$1" in
     build)
       do_build
+      ;;
+    pull)
+      do_pull
+      ;;
+    install)
+      do_install
       ;;
     run)
       do_run

@@ -18,7 +18,7 @@ UMPIRE_BUILD_DIR="${SCRIPT_DIR}/umpire_docker"
 # We use the md5sum of the Dockerfile to know if the prebuilt image of this
 # Dockerfile is in server.
 UMPIRE_IMAGE_HASH="$(md5sum "${UMPIRE_BUILD_DIR}/Dockerfile" | cut -c1-5)"
-UMPIRE_IMAGE_FILENAME="docker_umpire_env-${UMPIRE_IMAGE_HASH}.tgz"
+UMPIRE_IMAGE_FILENAME="docker_umpire_env-${UMPIRE_IMAGE_HASH}.tbz"
 
 die() {
   echo "ERROR: $@"
