@@ -5,26 +5,16 @@
 # found in the LICENSE file.
 #
 
-UMPIRE_CONTAINER_NAME="umpire"
-UMPIRE_IMAGE_NAME="cros/umpire"
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-BUILDDIR=${SCRIPT_DIR}/umpire_docker
 
-# Let all containers can share the same directory with host
-HOST_DIR=/docker_shared
+. "${SCRIPT_DIR}/cros_docker.sh"
+
 # Separate umpire db for each container.
-HOST_DB_DIR=/docker_umpire/${UMPIRE_CONTAINER_NAME}
-CONTAINER_DB_DIR=/var/db/factory/umpire
-PREBUILT_IMAGE_SITE='https://storage.googleapis.com'
-PREBUILT_IMAGE_PRE_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
+HOST_DB_DIR="/docker_umpire/${UMPIRE_CONTAINER_NAME}"
+CONTAINER_DB_DIR="/var/db/factory/umpire"
 
-. ${BUILDDIR}/config.sh
-
-die() {
-  echo "ERROR: $@"
-  exit 1
-}
+. ${UMPIRE_BUILD_DIR}/config.sh
 
 check_docker() {
   if ! type docker >/dev/null 2>&1; then
@@ -55,27 +45,24 @@ do_build() {
   check_docker
 
   # Use prebuilt image if we can.
-  # We use the md5sum of the Dockerfile to know if the prebuilt image of this
-  # Dockerfile is in server.
-  local image_name="docker_umpire_env-$(md5sum ${BUILDDIR}/Dockerfile |
-                                        cut -c1-5).tgz"
   # check the file locally first if we run the script twice we don't need to
   # download it again.
-  if [ ! -f ${image_name} ]; then
-    wget ${PREBUILT_IMAGE_PRE_URL}/${image_name} || rm -f ${image_name}
+  if [ ! -f "${UMPIRE_IMAGE_FILENAME}" ]; then
+    wget "${PREBUILT_IMAGE_DIR_URL}/${UMPIRE_IMAGE_FILENAME}" || \
+      rm -f "${UMPIRE_IMAGE_FILENAME}"
   fi
-  if [ -f ${image_name} ]; then
-    echo "Found prebuilt image ${image_name}"
-    if sudo docker load <${image_name}; then
+  if [ -f "${UMPIRE_IMAGE_FILENAME}" ]; then
+    echo "Found prebuilt image ${UMPIRE_IMAGE_FILENAME}"
+    if sudo docker load <"${UMPIRE_IMAGE_FILENAME}"; then
       return
     else
       # the prebuilt image is corrupted, remove it.
-      rm -f ${image_name}
+      rm -f "${UMPIRE_IMAGE_FILENAME}"
       echo "Load prebuilt image fail! start building image."
     fi
   fi
 
-  sudo docker build -t ${UMPIRE_IMAGE_NAME} ${BUILDDIR}
+  sudo docker build --tag "${UMPIRE_IMAGE_NAME}" "${UMPIRE_BUILD_DIR}"
   if [ $? -eq 0 ]; then
     echo "${UMPIRE_CONTAINER_NAME} container successfully built."
   fi
@@ -94,7 +81,7 @@ do_start() {
   check_docker
 
   echo -n "Starting container ... "
-  sudo mkdir -p ${HOST_DIR}
+  sudo mkdir -p ${DOCKER_SHARED_DIR}
   sudo mkdir -p ${HOST_DB_DIR}
 
   if [ -n "$(sudo docker ps -a | grep ${UMPIRE_CONTAINER_NAME})" ]; then
@@ -116,7 +103,7 @@ do_start() {
       -p 69:69/udp \
       ${umpire_port_map} \
       -v /etc/localtime:/etc/localtime:ro \
-      -v ${HOST_DIR}:/mnt \
+      -v ${DOCKER_SHARED_DIR}:/mnt \
       -v ${HOST_DB_DIR}:${CONTAINER_DB_DIR} \
       --restart unless-stopped \
       --name "${UMPIRE_CONTAINER_NAME}" \
@@ -134,7 +121,7 @@ do_start() {
     echo "done"
     echo
     echo '*** NOTE ***'
-    echo "- Host directory ${HOST_DIR} is mounted under /mnt in the container."
+    echo "- Host directory ${DOCKER_SHARED_DIR} is mounted under /mnt in the container."
     echo "- Host directory ${HOST_DB_DIR} is mounted under ${CONTAINER_DB_DIR} in the container."
     echo '- Umpire service ports is mapped to the local machine.'
     echo '- Overlord service ports 4455, 9000 are mapped to the local machine.'
