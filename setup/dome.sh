@@ -9,6 +9,7 @@
 set -e
 
 SCRIPT_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
+HOST_DOME_DIR=$(realpath "${SCRIPT_DIR}/../py/dome")
 
 DOCKER_SHARED_DIR="/docker_shared/dome"
 DOCKER_UMPIRE_DIR="/docker_umpire"
@@ -16,10 +17,10 @@ DOCKER_UMPIRE_DIR="/docker_umpire"
 DB_FILE="db.sqlite3"
 BUILDER_WORKDIR="/usr/src/app"
 BUILDER_OUTPUT_FILE="frontend.tar"
-DOME_DIR="/var/db/factory/dome"
+CONTAINER_DOME_DIR="/var/db/factory/dome"
 
-BUILDER_DOCKERFILE="docker/Dockerfile.builder"
-DOME_DOCKERFILE="docker/Dockerfile.dome"
+BUILDER_DOCKERFILE="${HOST_DOME_DIR}/docker/Dockerfile.builder"
+DOME_DOCKERFILE="${HOST_DOME_DIR}/docker/Dockerfile.dome"
 
 BUILDER_IMAGE_NAME="cros/dome-builder"
 DOME_IMAGE_NAME="cros/dome"
@@ -40,29 +41,29 @@ docker rm "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
 
 # build the dome builder image
 docker build \
-  --file "${SCRIPT_DIR}/${BUILDER_DOCKERFILE}" \
+  --file "${BUILDER_DOCKERFILE}" \
   --tag "${BUILDER_IMAGE_NAME}" \
   --build-arg workdir="${BUILDER_WORKDIR}" \
   --build-arg output_file="${BUILDER_OUTPUT_FILE}" \
-  "${SCRIPT_DIR}"
+  "${HOST_DOME_DIR}"
 
 # copy the builder's output from container to host
-mkdir -p "${SCRIPT_DIR}/build"
+mkdir -p "${HOST_DOME_DIR}/build"
 docker run --name "${BUILDER_CONTAINER_NAME}" "${BUILDER_IMAGE_NAME}"
 docker cp \
   "${BUILDER_CONTAINER_NAME}:${BUILDER_WORKDIR}/${BUILDER_OUTPUT_FILE}" \
-  "${SCRIPT_DIR}/build/"
+  "${HOST_DOME_DIR}/build/"
 docker rm "${BUILDER_CONTAINER_NAME}"
 
 # build the dome runner image
 # need to make sure we're using the same version of docker inside the container
 docker build \
-  --file "${SCRIPT_DIR}/${DOME_DOCKERFILE}" \
+  --file "${DOME_DOCKERFILE}" \
   --tag "${DOME_IMAGE_NAME}" \
-  --build-arg dome_dir="${DOME_DIR}" \
+  --build-arg dome_dir="${CONTAINER_DOME_DIR}" \
   --build-arg builder_output_file="${BUILDER_OUTPUT_FILE}" \
   --build-arg docker_version="$(docker version --format {{.Server.Version}})" \
-  "${SCRIPT_DIR}"
+  "${HOST_DOME_DIR}"
 
 # make sure database file exists or mounting volume will fail
 mkdir -p "${DOCKER_SHARED_DIR}"
@@ -75,7 +76,7 @@ docker run \
   --rm \
   --interactive \
   --tty \
-  --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${DOME_DIR}/${DB_FILE}" \
+  --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${CONTAINER_DOME_DIR}/${DB_FILE}" \
   "${DOME_IMAGE_NAME}" \
   python manage.py migrate
 
@@ -86,7 +87,7 @@ docker run \
   --name "${UWSGI_CONTAINER_NAME}" \
   --volume /var/run/docker.sock:/var/run/docker.sock \
   --volume /run \
-  --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${DOME_DIR}/${DB_FILE}" \
+  --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${CONTAINER_DOME_DIR}/${DB_FILE}" \
   --volume "${DOCKER_UMPIRE_DIR}:/var/db/factory/umpire" \
   "${DOME_IMAGE_NAME}" \
   uwsgi --ini uwsgi.ini
