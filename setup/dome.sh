@@ -10,6 +10,7 @@ set -e
 
 SCRIPT_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 HOST_DOME_DIR=$(realpath "${SCRIPT_DIR}/../py/dome")
+HOST_BUILD_DIR="${HOST_DOME_DIR}/build"
 
 DOCKER_SHARED_DIR="/docker_shared/dome"
 DOCKER_UMPIRE_DIR="/docker_umpire"
@@ -31,73 +32,100 @@ NGINX_CONTAINER_NAME="dome_nginx"
 
 DOME_PORT="8000"
 
-# stop existing containers if needed
-docker stop "${BUILDER_CONTAINER_NAME}" 2>/dev/null || true
-docker rm "${BUILDER_CONTAINER_NAME}" 2>/dev/null || true
-docker stop "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
-docker rm "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
-docker stop "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
-docker rm "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
+do_build() {
+  # build the dome builder image
+  docker build \
+    --file "${BUILDER_DOCKERFILE}" \
+    --tag "${BUILDER_IMAGE_NAME}" \
+    --build-arg workdir="${BUILDER_WORKDIR}" \
+    --build-arg output_file="${BUILDER_OUTPUT_FILE}" \
+    "${HOST_DOME_DIR}"
 
-# build the dome builder image
-docker build \
-  --file "${BUILDER_DOCKERFILE}" \
-  --tag "${BUILDER_IMAGE_NAME}" \
-  --build-arg workdir="${BUILDER_WORKDIR}" \
-  --build-arg output_file="${BUILDER_OUTPUT_FILE}" \
-  "${HOST_DOME_DIR}"
+  # copy the builder's output from container to host
+  mkdir -p "${HOST_BUILD_DIR}"
+  docker run --name "${BUILDER_CONTAINER_NAME}" "${BUILDER_IMAGE_NAME}"
+  docker cp \
+    "${BUILDER_CONTAINER_NAME}:${BUILDER_WORKDIR}/${BUILDER_OUTPUT_FILE}" \
+    "${HOST_BUILD_DIR}"
+  docker rm "${BUILDER_CONTAINER_NAME}"
 
-# copy the builder's output from container to host
-mkdir -p "${HOST_DOME_DIR}/build"
-docker run --name "${BUILDER_CONTAINER_NAME}" "${BUILDER_IMAGE_NAME}"
-docker cp \
-  "${BUILDER_CONTAINER_NAME}:${BUILDER_WORKDIR}/${BUILDER_OUTPUT_FILE}" \
-  "${HOST_DOME_DIR}/build/"
-docker rm "${BUILDER_CONTAINER_NAME}"
+  # build the dome runner image
+  # need to make sure we're using the same version of docker inside the container
+  docker build \
+    --file "${DOME_DOCKERFILE}" \
+    --tag "${DOME_IMAGE_NAME}" \
+    --build-arg dome_dir="${CONTAINER_DOME_DIR}" \
+    --build-arg builder_output_file="${BUILDER_OUTPUT_FILE}" \
+    --build-arg docker_version="$(docker version --format {{.Server.Version}})" \
+    "${HOST_DOME_DIR}"
+}
 
-# build the dome runner image
-# need to make sure we're using the same version of docker inside the container
-docker build \
-  --file "${DOME_DOCKERFILE}" \
-  --tag "${DOME_IMAGE_NAME}" \
-  --build-arg dome_dir="${CONTAINER_DOME_DIR}" \
-  --build-arg builder_output_file="${BUILDER_OUTPUT_FILE}" \
-  --build-arg docker_version="$(docker version --format {{.Server.Version}})" \
-  "${HOST_DOME_DIR}"
+do_run() {
+  # stop and remove old containers
+  docker stop "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
+  docker rm "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
+  docker stop "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
+  docker rm "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
 
-# make sure database file exists or mounting volume will fail
-mkdir -p "${DOCKER_SHARED_DIR}"
-touch "${DOCKER_SHARED_DIR}/${DB_FILE}"
+  # make sure database file exists or mounting volume will fail
+  if [[ ! -d "${DOCKER_SHARED_DIR}" ]]; then
+    echo "Creating docker shared folder (${DOCKER_SHARED_DIR}),"
+    echo "you'll be asked for root permission..."
+    sudo mkdir -p "${DOCKER_SHARED_DIR}"
+    sudo touch "${DOCKER_SHARED_DIR}/${DB_FILE}"
+  fi
 
-# Migrate the database if needed (won't remove any data if the database already
-# exists, but will apply the schema changes). This command may ask user
-# questions and need the user input, so make it interactive.
-docker run \
-  --rm \
-  --interactive \
-  --tty \
-  --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${CONTAINER_DOME_DIR}/${DB_FILE}" \
-  "${DOME_IMAGE_NAME}" \
-  python manage.py migrate
+  # Migrate the database if needed (won't remove any data if the database
+  # already exists, but will apply the schema changes). This command may ask
+  # user questions and need the user input, so make it interactive.
+  docker run \
+    --rm \
+    --interactive \
+    --tty \
+    --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${CONTAINER_DOME_DIR}/${DB_FILE}" \
+    "${DOME_IMAGE_NAME}" \
+    python manage.py migrate
 
-# start uwsgi, the bridge between django and nginx
-docker run \
-  --detach \
-  --restart unless-stopped \
-  --name "${UWSGI_CONTAINER_NAME}" \
-  --volume /var/run/docker.sock:/var/run/docker.sock \
-  --volume /run \
-  --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${CONTAINER_DOME_DIR}/${DB_FILE}" \
-  --volume "${DOCKER_UMPIRE_DIR}:/var/db/factory/umpire" \
-  "${DOME_IMAGE_NAME}" \
-  uwsgi --ini uwsgi.ini
+  # start uwsgi, the bridge between django and nginx
+  docker run \
+    --detach \
+    --restart unless-stopped \
+    --name "${UWSGI_CONTAINER_NAME}" \
+    --volume /var/run/docker.sock:/var/run/docker.sock \
+    --volume /run \
+    --volume "${DOCKER_SHARED_DIR}/${DB_FILE}:${CONTAINER_DOME_DIR}/${DB_FILE}" \
+    --volume "${DOCKER_UMPIRE_DIR}:/var/db/factory/umpire" \
+    "${DOME_IMAGE_NAME}" \
+    uwsgi --ini uwsgi.ini
 
-# start nginx
-docker run \
-  --detach \
-  --restart unless-stopped \
-  --name "${NGINX_CONTAINER_NAME}" \
-  --volumes-from "${UWSGI_CONTAINER_NAME}" \
-  --publish ${DOME_PORT}:80 \
-  "${DOME_IMAGE_NAME}" \
-  nginx -g 'daemon off;'
+  # start nginx
+  docker run \
+    --detach \
+    --restart unless-stopped \
+    --name "${NGINX_CONTAINER_NAME}" \
+    --volumes-from "${UWSGI_CONTAINER_NAME}" \
+    --publish ${DOME_PORT}:80 \
+    "${DOME_IMAGE_NAME}" \
+    nginx -g 'daemon off;'
+}
+
+main() {
+  # TODO(littlecvr): check /docker_shared
+  # TODO(littlecvr): check /docker_umpire
+  # TODO(littlecvr): acquire root permission if the user is not in docker group
+
+  case "$1" in
+    build)
+      do_build
+      ;;
+    run)
+      do_run
+      ;;
+    *)
+      # TODO(littlecvr): add usage
+      echo "Unrecognized command"
+      ;;
+  esac
+}
+
+main "$@"
