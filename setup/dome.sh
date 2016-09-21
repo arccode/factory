@@ -151,6 +151,42 @@ do_run() {
   echo "Open the browser to http://localhost:${PORT}/ and enjoy!"
 }
 
+usage() {
+  cat << __EOF__
+Dome: the Factory Server Management Console deployment script
+
+commands:
+  $0 help
+      Show this help message.
+
+  $0 install
+      Load Dome and Umpire docker images.
+
+  $0 pull
+      Pull Dome and Umpire docker images.
+
+  $0 run
+      Create and start Dome containers.
+
+      You can change the listening port (default ${PORT}) by assigning the PORT
+      environment variable. For example:
+
+        PORT=1234 $0 run
+
+      will bind port 1234 instead of ${PORT}.
+
+commands for developers:
+  $0 build
+      Build Dome docker images.
+
+common use case:
+  - Run "$0 pull" to download docker images, and copy files listed on screen
+    to the target computer.
+  - Run "$0 install" on the target computer to load docker images.
+  - Run "$0 run" to start Dome.
+__EOF__
+}
+
 main() {
   # TODO(littlecvr): check /docker_shared
   # TODO(littlecvr): check /docker_umpire
@@ -170,8 +206,8 @@ main() {
       do_run
       ;;
     *)
-      # TODO(littlecvr): add usage
-      echo "Unrecognized command"
+      usage
+      exit 1
       ;;
   esac
 }
