@@ -21,6 +21,21 @@ class RegionFieldUnittest(unittest.TestCase):
     decoded = yaml.load(YAML_DOC)
     self.assertEquals({'region': 'us'}, decoded['foo'][29])
 
+  def testDumpRegionField(self):
+    YAML_DOC = 'foo: !region_field [us, gb]'
+    obj = yaml.load(YAML_DOC)
+    self.assertIsInstance(obj['foo'], yaml_tags.RegionField)
+    self.assertEquals(obj['foo'], {0: {'region': None},
+                                   1: {'region': 'us'},
+                                   2: {'region': 'gb'}})
+    dump_str = yaml.dump(obj).strip()
+    self.assertEquals(YAML_DOC, dump_str)
+
+  def testUnsupportRegionField(self):
+    YAML_DOC = "foo: !region_field [us, NO_THIS_REGION]"
+    with self.assertRaises(KeyError):
+      yaml.load(YAML_DOC)
+
 
 class RegionComponentUnittest(unittest.TestCase):
 
@@ -31,6 +46,17 @@ class RegionComponentUnittest(unittest.TestCase):
             'region_code': 'us'}},
         regions_component['items']['us'])
 
+  def testDumpRegionComponent(self):
+    YAML_DOC = '!region_component'
+    obj = yaml.load(YAML_DOC)
+    self.assertIsInstance(obj, yaml_tags.RegionComponent)
+
+    # Because PyYaml cannot only output the tag, we only check the dump string
+    # is equivalent to the original one, which mean the loaded object is the
+    # same.
+    dump_str = yaml.dump(obj)
+    obj2 = yaml.load(dump_str)
+    self.assertEquals(obj, obj2)
 
 if __name__ == '__main__':
   unittest.main()

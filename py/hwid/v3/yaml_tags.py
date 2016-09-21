@@ -8,9 +8,22 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.l10n import regions
 from cros.factory.utils import yaml_utils
 
+# Because PyYaml can only represent scalar, sequence, mapping object, the
+# customized output format must be one of this:
+#   !custom_scalar_tag STRING
+#   !custom_sequence_tag [object1, object2]
+#   !custom_mapping_tag {key1: value1, key2: value2}
+# We cannot only output the tag without any data, such as !region_component.
+# Therefore we add a dummy string afterward, and remove it in post-processing.
+YAML_DUMMY_STRING = 'YAML_DUMMY_STRING'
+
 
 class RegionFieldMetaclass(yaml_utils.BaseYAMLTagMetaclass):
-  """Metaclass for registering the !region_field YAML tag."""
+  """Metaclass for registering the !region_field YAML tag.
+
+  The yaml format of RegionField should be:
+    !region_field [<region_code_1>, <region_code_2>,...]
+  """
   YAML_TAG = '!region_field'
 
   @classmethod
@@ -19,7 +32,17 @@ class RegionFieldMetaclass(yaml_utils.BaseYAMLTagMetaclass):
 
   @classmethod
   def YAMLRepresenter(mcs, dumper, data):
-    return dumper.represent_scalar(mcs.YAML_TAG)
+    """Represent the list style of RegionField.
+
+    When we dump the RegionField to yaml, it should output like:
+        !region_field [us, gb]
+    Note that we do not support legacy style. That is, we don't output:
+        !region_field
+    when the argument `list_node` of __init__ is None.
+    """
+    # 0 is a reserved field for {region: None}. Ignore it.
+    region_list = [node['region'] for node in data.values()[1:]]
+    return dumper.represent_sequence(mcs.YAML_TAG, region_list)
 
 
 class RegionField(dict):
@@ -56,7 +79,7 @@ class RegionComponentMetaclass(yaml_utils.BaseYAMLTagMetaclass):
 
   @classmethod
   def YAMLRepresenter(mcs, dumper, data):
-    return dumper.represent_scalar(mcs.YAML_TAG)
+    return dumper.represent_scalar(mcs.YAML_TAG, YAML_DUMMY_STRING)
 
 
 class RegionComponent(dict):
