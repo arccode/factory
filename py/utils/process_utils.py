@@ -55,11 +55,26 @@ def OpenDevNull():
   return dev_null
 
 
-def IsProcessAlive(pid):
-  """Returns true if the named process is alive and not a zombie."""
+def IsProcessAlive(pid, ppid=None):
+  """Returns true if the named process is alive and not a zombie.
+
+  A PPID (parent PID) can be provided to be more specific to which process you
+  are watching.  If there is a process with the same PID running but the PPID is
+  not the same, then this is unlikely to be the same process, but a newly
+  started one.  The function will return False in this case.
+
+  Args:
+    pid: process PID for checking
+    ppid: specified the PID of the parent of given process.  If the PPID does
+      not match, we assume that the named process is done, and we are looking at
+      another process, the function returns False in this case.
+  """
   try:
     with open('/proc/%d/stat' % pid) as f:
-      return f.readline().split()[2] != 'Z'
+      stat = f.readline().split()
+      if ppid is not None and int(stat[3]) != ppid:
+        return False
+      return stat[2] != 'Z'
   except IOError:
     return False
 
