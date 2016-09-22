@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
 import unittest
 import yaml
 
@@ -40,6 +41,32 @@ class BaseYAMLTagMetaclassUnittest(unittest.TestCase):
     result = yaml.dump(value)
     self.assertEquals("!foo 'foo_bar'\n", result)
 
+
+class ParseMappingAsOrderedDictUnittest(unittest.TestCase):
+  def setUp(self):
+    yaml_utils.ParseMappingAsOrderDict()
+
+  def testLoadAndDump(self):
+    YAML_DOC = '{foo: foo1, bar: 234}'
+    obj = yaml.load(YAML_DOC)
+    self.assertEquals(obj['foo'], 'foo1')
+    self.assertEquals(obj['bar'], 234)
+    self.assertEquals(obj.keys(), ['foo', 'bar'])
+    self.assertIsInstance(obj, collections.OrderedDict)
+
+    yaml_str = yaml.dump(obj).strip()
+    self.assertEquals(YAML_DOC, yaml_str)
+
+  def testModifyDict(self):
+    YAML_DOC = '{foo: foo1, bar: 234, buzz: null}'
+    EXPECT_YAML_DOC = '{foo: foo1, bar: bar, new_item: new}'
+    obj = yaml.load(YAML_DOC)
+    obj['bar'] = 'bar'
+    obj['new_item'] = 'new'
+    del obj['buzz']
+
+    yaml_str = yaml.dump(obj).strip()
+    self.assertEquals(EXPECT_YAML_DOC, yaml_str)
 
 if __name__ == '__main__':
   unittest.main()
