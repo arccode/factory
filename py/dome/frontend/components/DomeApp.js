@@ -3,10 +3,12 @@
 // found in the LICENSE file.
 
 import {connect} from 'react-redux';
+import Divider from 'material-ui/Divider';
 import Drawer from 'material-ui/Drawer';
 import Immutable from 'immutable';
 import MenuItem from 'material-ui/MenuItem';
 import React from 'react';
+import Subheader from 'material-ui/Subheader';
 
 import AppNames from '../constants/AppNames';
 import BoardsApp from './BoardsApp';
@@ -15,6 +17,8 @@ import DomeActions from '../actions/domeactions';
 import FixedAppBar from './FixedAppBar';
 import SettingsApp from './SettingsApp';
 import TaskList from './TaskList';
+
+const _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT = 36;
 
 var DomeApp = React.createClass({
   propTypes: {
@@ -85,17 +89,45 @@ var DomeApp = React.createClass({
           open={this.state.appMenuOpened}
           onRequestChange={open => this.setState({appMenuOpened: open})}
         >
-          <MenuItem onTouchTap={() => this.handleClick(AppNames.BOARDS_APP)}>
-            Boards
-          </MenuItem>
-          {/* TODO(b/31579770): leave this to the app itself to determine where
-                                and when to show
-          */}
+          {this.props.board != '' && <Subheader>{this.props.board}</Subheader>}
           {this.props.board != '' &&
-            <MenuItem onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}>
+            <MenuItem
+              onTouchTap={() => console.warn('not implemented yet')}
+              innerDivStyle={{paddingLeft: _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT}}
+            >
+              Dashboard
+            </MenuItem>
+          }
+          {this.props.board != '' &&
+            <MenuItem
+              onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
+              innerDivStyle={{paddingLeft: _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT}}
+            >
               Bundles
             </MenuItem>
           }
+          {this.props.board != '' &&
+            <MenuItem
+              onTouchTap={() => console.warn('not implemented yet')}
+              innerDivStyle={{paddingLeft: _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT}}
+            >
+              DRM keys
+            </MenuItem>
+          }
+          {this.props.board != '' &&
+            <MenuItem
+              onTouchTap={() => console.warn('not implemented yet')}
+              innerDivStyle={{paddingLeft: _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT}}
+            >
+              Logs
+            </MenuItem>
+          }
+
+          {this.props.board != '' && <Divider />}
+
+          <MenuItem onTouchTap={() => this.handleClick(AppNames.BOARDS_APP)}>
+            Change board
+          </MenuItem>
           <MenuItem onTouchTap={() => this.handleClick(AppNames.SETTINGS_APP)}>
             Settings
           </MenuItem>
