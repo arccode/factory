@@ -30,8 +30,12 @@ UMPIRE_RSYNC_PORT_OFFSET = 4
 UMPIRE_CONFIG_BASENAME = 'umpire.yaml'
 UMPIRE_RESOURCE_NAME_ALIAS = {
     'device_factory_toolkit': 'factory_toolkit',
+    'rootfs_release': 'fsi',
     'server_factory_toolkit': 'factory_toolkit'}
 UMPIRE_UPDATABLE_RESOURCE = set(['device_factory_toolkit',
+                                 'firmware',
+                                 'hwid',
+                                 'rootfs_release',
                                  'server_factory_toolkit'])
 UMPIRE_MATCH_KEY_MAP = {
     'macs': 'mac',
