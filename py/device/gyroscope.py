@@ -38,7 +38,7 @@ class GyroscopeController(component.DeviceComponent):
       try:
         iio_name = self._dut.ReadFile(os.path.join(iio_path, 'name'))
         iio_location = self._dut.ReadFile(os.path.join(iio_path, 'location'))
-      except component.CalledProcessError:
+      except Exception:
         continue
       if name == iio_name.strip() and location == iio_location.strip():
         self._iio_path = iio_path
