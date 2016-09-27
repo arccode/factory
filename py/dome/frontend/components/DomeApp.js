@@ -14,6 +14,7 @@ import Subheader from 'material-ui/Subheader';
 import AppNames from '../constants/AppNames';
 import BoardsApp from './BoardsApp';
 import BundlesApp from './BundlesApp';
+import DashboardApp from './DashboardApp';
 import DomeActions from '../actions/domeactions';
 import FixedAppBar from './FixedAppBar';
 import SettingsApp from './SettingsApp';
@@ -26,8 +27,8 @@ const _SPACE_AFTER_TASK_LIST = 24;
 
 var DomeApp = React.createClass({
   propTypes: {
-    app: React.PropTypes.string.isRequired,
-    board: React.PropTypes.string.isRequired,
+    appName: React.PropTypes.string.isRequired,
+    board: React.PropTypes.instanceOf(Immutable.Map).isRequired,
     switchApp: React.PropTypes.func.isRequired
   },
 
@@ -54,6 +55,8 @@ var DomeApp = React.createClass({
   },
 
   render() {
+    const {appName, board} = this.props;
+
     // must not let the task list cover the main content
     var paddingBottom = _SPACE_BEFORE_TASK_LIST +
         this.state.taskListHeight + _SPACE_AFTER_TASK_LIST;
@@ -63,17 +66,21 @@ var DomeApp = React.createClass({
     //                   corresponding app intead of writing a long if-elif-else
     //                   statement.
     var app = null;
-    if (this.props.app == AppNames.BOARDS_APP) {
+    if (appName == AppNames.BOARDS_APP) {
       app = <BoardsApp />;
-    } else if (this.props.app == AppNames.BUNDLES_APP) {
+    } else if (appName == AppNames.DASHBOARD_APP) {
+      app = <DashboardApp />;
+    } else if (appName == AppNames.BUNDLES_APP) {
       // TODO(littlecvr): standardize the floating button API so we don't need
       //                  to pass offset like this
       app = <BundlesApp offset={paddingBottom} />;
-    } else if (this.props.app == AppNames.SETTINGS_APP) {
+    } else if (appName == AppNames.SETTINGS_APP) {
       app = <SettingsApp />;
     } else {
-      console.error(`Unknown app ${this.props.app}`);
+      console.error(`Unknown app ${appName}`);
     }
+
+    const boardName = board.get('name', '');
 
     return (
       <div style={{paddingBottom}}>
@@ -95,24 +102,25 @@ var DomeApp = React.createClass({
           containerStyle={{top: this.state.appBarHeight, zIndex: 1000}}
           zDepth={1}  // below the AppBar
         >
-          {this.props.board != '' && <Subheader>{this.props.board}</Subheader>}
-          {this.props.board != '' &&
+          {boardName != '' && <Subheader>{boardName}</Subheader>}
+          {boardName != '' &&
             <MenuItem
-              onTouchTap={() => console.warn('not implemented yet')}
+              onTouchTap={() => this.handleClick(AppNames.DASHBOARD_APP)}
               innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
             >
               Dashboard
             </MenuItem>
           }
-          {this.props.board != '' &&
+          {boardName != '' && board.get('umpire_enabled') &&
             <MenuItem
               onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
               innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
+              disabled={!board.get('umpire_ready')}
             >
-              Bundles
+              Bundles{!board.get('umpire_ready') && ' (activating...)'}
             </MenuItem>
           }
-          {this.props.board != '' &&
+          {boardName != '' &&
             <MenuItem
               onTouchTap={() => console.warn('not implemented yet')}
               innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
@@ -120,7 +128,7 @@ var DomeApp = React.createClass({
               DRM keys
             </MenuItem>
           }
-          {this.props.board != '' &&
+          {boardName != '' &&
             <MenuItem
               onTouchTap={() => console.warn('not implemented yet')}
               innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
@@ -129,7 +137,7 @@ var DomeApp = React.createClass({
             </MenuItem>
           }
 
-          {this.props.board != '' && <Divider />}
+          {boardName != '' && <Divider />}
 
           <MenuItem onTouchTap={() => this.handleClick(AppNames.BOARDS_APP)}>
             Change board
@@ -156,8 +164,11 @@ var DomeApp = React.createClass({
 
 function mapStateToProps(state) {
   return {
-    app: state.getIn(['dome', 'currentApp']),
-    board: state.getIn(['dome', 'currentBoard'])
+    appName: state.getIn(['dome', 'currentApp']),
+    board: state.getIn(
+        ['dome', 'boards', state.getIn(['dome', 'currentBoard'])],
+        Immutable.Map()
+    )
   };
 }
 

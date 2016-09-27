@@ -2,27 +2,31 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-export default {
-  // generic dome actions
-  SWITCH_BOARD: 'SWITCH_BOARD',
-  SWITCH_APP: 'SWITCH_APP',
+import Enum from '../utils/enum';
+
+export default Enum([
+  'SWITCH_BOARD',
+  'SWITCH_APP',
 
   // boards action
-  RECEIVE_BOARDS: 'RECEIVE_BOARDS',
+  'ADD_BOARD',
+  'DELETE_BOARD',
+  'RECEIVE_BOARDS',
+  'UPDATE_BOARD',
 
   // form actions
-  OPEN_FORM: 'OPEN_FORM',
-  CLOSE_FORM: 'CLOSE_FORM',
+  'OPEN_FORM',
+  'CLOSE_FORM',
 
   // task actions
-  CREATE_TASK: 'CREATE_TASK',
-  CHANGE_TASK_STATE: 'CHANGE_TASK_STATE',
-  REMOVE_TASK: 'REMOVE_TASK',
+  'CREATE_TASK',
+  'CHANGE_TASK_STATE',
+  'REMOVE_TASK',
 
   // bundles action
-  ADD_BUNDLE: 'ADD_BUNDLE',
-  DELETE_BUNDLE: 'DELETE_BUNDLE',
-  RECEIVE_BUNDLES: 'RECEIVE_BUNDLES',
-  REORDER_BUNDLES: 'REORDER_BUNDLES',
-  UPDATE_BUNDLE: 'UPDATE_BUNDLE'
-};
+  'ADD_BUNDLE',
+  'DELETE_BUNDLE',
+  'RECEIVE_BUNDLES',
+  'REORDER_BUNDLES',
+  'UPDATE_BUNDLE'
+]);

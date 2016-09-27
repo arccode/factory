@@ -21,28 +21,62 @@ function checkHTTPStatus(response) {
   }
 }
 
-const addBoard = (name, host, port) => dispatch => {
+function buildOnCancel(dispatch, getState) {
+  var boardsSnapshot = getState().getIn(['dome', 'boards']).toList().toJS();
+  return () => dispatch(receiveBoards(boardsSnapshot));
+}
+
+const createBoard = name => dispatch => {
   var formData = new FormData();
   formData.append('name', name);
-  formData.append('host', host);
-  formData.append('port', port);
-  formData.append('is_existing', true);
 
-  var description = `Add board "${name}"`;
+  var description = `Create board "${name}"`;
   dispatch(createTask(
       description, 'POST', 'boards', formData, () => dispatch(fetchBoards()),
   ));
 };
 
-const createBoard = (name, port, factoryToolkitFile) => dispatch => {
-  var formData = new FormData();
+const updateBoard = (name, settings = {}) => (dispatch, getState) => {
+  let formData = new FormData();
   formData.append('name', name);
-  formData.append('port', port);
-  formData.append('factory_toolkit_file', factoryToolkitFile);
 
-  var description = `Create board "${name}"`;
+  [
+    // TODO(littlecvr): should be CamelCased
+    'umpire_enabled',
+    'umpire_add_existing_one',
+    'umpire_host',
+    'umpire_port',
+    'umpire_factory_toolkit_file'
+  ].forEach(key => {
+    if (key in settings) {
+      formData.append(key, settings[key]);
+    }
+  });
+
+  // taking snapshot must be earlier than optmistic update
+  let onCancel = buildOnCancel(dispatch, getState);
+
+  // optimistic update
+  dispatch({
+    type: ActionTypes.UPDATE_BOARD,
+    board: Object.assign({
+      name,
+      // TODO(littlecvr): should be CamelCased
+      umpire_ready: false,
+    }, settings)
+  });
+
+  let onFinish = () => dispatch({
+    type: ActionTypes.UPDATE_BOARD,
+    board: {
+      name,
+      umpire_ready: settings['umpire_enabled'] === true ? true : false
+    }
+  });
+
+  var description = `Update board "${name}"`;
   dispatch(createTask(
-      description, 'POST', 'boards', formData, () => dispatch(fetchBoards()),
+      description, 'PUT', `boards/${name}`, formData, onFinish, onCancel
   ));
 };
 
@@ -230,7 +264,7 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
 };
 
 export default {
-  addBoard, createBoard, deleteBoard, fetchBoards, switchBoard,
+  createBoard, updateBoard, deleteBoard, fetchBoards, switchBoard,
   switchApp,
   openForm, closeForm,
   createTask, removeTask, cancelTaskAndItsDependencies

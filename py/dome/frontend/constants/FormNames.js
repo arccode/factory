@@ -2,7 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-export default {
-  UPLOADING_BUNDLE_FORM: 'UPLOADING_BUNDLE_FORM',
-  UPDATING_RESOURCE_FORM: 'UPDATING_RESOURCE_FORM'
-};
+import Enum from '../utils/enum';
+
+export default Enum([
+  'ENABLING_UMPIRE_FORM',
+  'UPLOADING_BUNDLE_FORM',
+  'UPDATING_RESOURCE_FORM'
+]);

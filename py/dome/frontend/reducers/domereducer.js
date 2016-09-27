@@ -9,7 +9,7 @@ import AppNames from '../constants/AppNames';
 import TaskStates from '../constants/TaskStates';
 
 const INITIAL_STATE = Immutable.fromJS({
-  boards: [],
+  boards: {},
   currentBoard: '',
   currentApp: AppNames.BOARDS_APP,  // default app is the board selection page
   formVisibility: {
@@ -21,14 +21,29 @@ const INITIAL_STATE = Immutable.fromJS({
 
 export default function domeReducer(state = INITIAL_STATE, action) {
   switch (action.type) {
+    case ActionTypes.ADD_BOARD:
+      return state.setIn(['boards', action.board.name],
+          Immutable.fromJS(action.board));
+
+    case ActionTypes.DELETE_BOARD:
+      return state.deleteIn(['boards', action.boardName]);
+
     case ActionTypes.RECEIVE_BOARDS:
-      return state.set('boards', Immutable.fromJS(action.boards));
+      return state.set('boards', Immutable.Map(action.boards.map(
+          b => [b['name'], Immutable.fromJS(b).merge({
+            umpire_ready: b['umpire_enabled']
+          })]
+      )));
+
+    case ActionTypes.UPDATE_BOARD:
+      return state.mergeIn(['boards', action.board.name],
+          Immutable.fromJS(action.board));
 
     case ActionTypes.SWITCH_BOARD:
       return state.withMutations(s => {
         s.set('currentBoard', action.nextBoard);
-        // switch to bundle manager after switching board by default
-        s.set('currentApp', AppNames.BUNDLES_APP);
+        // switch to dashboard after switching board by default
+        s.set('currentApp', AppNames.DASHBOARD_APP);
       });
 
     case ActionTypes.SWITCH_APP:

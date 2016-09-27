@@ -2,11 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Enum from '../utils/enum';
-
-export default Enum([
-  'WAITING',
-  'RUNNING',
-  'SUCCEEDED',
-  'FAILED'
-]);
+export default function Enum(items) {
+  return items.reduce((object, item) => {
+    object[item] = item;
+    return object;
+  }, {});
+}
