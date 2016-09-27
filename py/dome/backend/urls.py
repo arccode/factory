@@ -27,8 +27,8 @@ from backend import views
 
 
 # TODO(littlecvr): move to common config with umpire.
-BOARD_URL_ARG = r'(?P<board>[_a-zA-Z]+)'
-BUNDLE_URL_ARG = r'(?P<bundle>[^/]+)'  # anything but slash
+BOARD_URL_ARG = r'(?P<board_name>[_a-zA-Z]+)'
+BUNDLE_URL_ARG = r'(?P<bundle_name>[^/]+)'  # anything but slash
 
 
 urlpatterns = [

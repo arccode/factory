@@ -19,6 +19,7 @@ import subprocess
 import xmlrpclib
 
 import yaml
+from django.core import validators
 from django.db import models
 
 
@@ -61,51 +62,50 @@ UMPIRE_BASE_DIR = '/var/db/factory/umpire'
 
 
 class Board(models.Model):
-  # TODO(littlecvr): pull max length to common config with Umpire
-  # TODO(littlecvr): need a validator, no spaces allowed
-  name = models.CharField(max_length=200, primary_key=True)
-  host = models.CharField(max_length=200, default='localhost')
-  port = models.PositiveIntegerField(default=8080)
+  # TODO(littlecvr): max_length and validator should be shared with Umpire
+  name = models.CharField(max_length=200, primary_key=True,
+                          validators=[validators.RegexValidator(
+                              regex=r'[^/]+',
+                              message='Slashes are not allowed in board name')])
+  umpire_enabled = models.BooleanField(default=False)
+  umpire_host = models.GenericIPAddressField(null=True)
+  umpire_port = models.PositiveIntegerField(null=True)
 
   # TODO(littlecvr): add TFTP and Overlord ports
 
   class Meta(object):
     ordering = ['name']
 
-  @staticmethod
-  def _GetHostIP():
-    # An easy way to get IP of the host. It's possible to install python
-    # packages such as netifaces or pynetinfo into the container, but that
-    # requires gcc to be installed and will thus increase the size of the
-    # container (which we don't want).
-    ip = subprocess.check_output(
-        'route | grep default | tr -s " " | cut -d " " -f 2', shell=True)
-    return ip.strip()  # remove the trailing newline
+  def ReplaceLocalhostWithDockerHostIP(self):
+    # Dome is inside a docker container. If umpire_host is 'localhost', it is
+    # not actually 'localhost', it is the docker host instead of docker
+    # container. So we need to transform it to the docker host's IP.
+    if self.umpire_host in ['localhost', '127.0.0.1']:
+      self.umpire_host = Board._GetHostIP()
+    return self
 
-  @staticmethod
-  def GetContainerName(name):
-    return 'umpire_%s' % name
-
-  @staticmethod
-  def AddExistingOne(name, host, port):
+  def AddExistingUmpireContainer(self, host, port):
     """Add an existing Umpire container to the database."""
-    return Board.objects.create(name=name, host=host, port=port)
+    self.umpire_enabled = True
+    self.umpire_host = host
+    self.umpire_port = port
+    self.save()
+    return self
 
-  @staticmethod
-  def CreateOne(name, port, factory_toolkit_path):
+  def CreateUmpireContainer(self, port, factory_toolkit_path):
     """Create a local Umpire container from a factory toolkit."""
-    container_name = Board.GetContainerName(name)
-
     # make sure the container does not exist
-    exists = subprocess.check_output([
+    container_name = Board.GetUmpireContainerName(self.name)
+    container_exists = subprocess.check_output([
         'docker', 'ps', '--all', '--format={{.Names}}',
         '--filter=name=%s' % container_name])
-    if exists:
+    if container_exists:
       raise EnvironmentError('Container %s already exists, Dome will not try '
                              'to create a new one, please add the existing '
                              'Umpire instance instead of create a new one ' %
                              container_name)
 
+    # Umpire port mapping
     port_mapping = [
         '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
         '--publish', '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,
@@ -148,7 +148,7 @@ class Board(models.Model):
       subprocess.check_call([
           'docker', 'exec', container_name,
           '/tmp/install_factory_toolkit.run',
-          '--', '--init-umpire-board=%s' % name])
+          '--', '--init-umpire-board=%s' % self.name])
       subprocess.check_call([
           'docker', 'exec', container_name,
           'rm', '/tmp/install_factory_toolkit.run'])
@@ -159,29 +159,58 @@ class Board(models.Model):
       raise
 
     # push into the database
-    return Board.AddExistingOne(name, Board._GetHostIP(), port)
+    return self.AddExistingUmpireContainer('localhost', port)
 
-  @staticmethod
-  def DeleteOne(name):
-    container_name = Board.GetContainerName(name)
+  def DeleteUmpireContainer(self):
+    container_name = Board.GetUmpireContainerName(self.name)
     subprocess.call(['docker', 'stop', container_name])
     subprocess.call(['docker', 'rm', container_name])
-    return Board.objects.get(pk=name).delete()
+    self.umpire_enabled = False
+    self.save()
+    return self
 
   @staticmethod
-  def ListAll():
-    board_list = Board.objects.all()
-    for board in board_list:
-      # Dome is inside a docker container. If host is 'localhost', it is not
-      # actually 'localhost', it is the 'host'. So we need to transform it to
-      # the host's IP.
-      if board.host == 'localhost' or board.host == '127.0.0.1':
-        board.host = Board._GetHostIP()
-    return board_list
+  def _GetHostIP():
+    # An easy way to get IP of the host. It's possible to install python
+    # packages such as netifaces or pynetinfo into the container, but that
+    # requires gcc to be installed and will thus increase the size of the
+    # container (which we don't want).
+    ip = subprocess.check_output(
+        'route | grep default | tr -s " " | cut -d " " -f 2', shell=True)
+    return ip.strip()  # remove the trailing newline
 
   @staticmethod
-  def ListOne(name):
-    return next(b for b in Board.ListAll() if b.name == name)
+  def GetUmpireContainerName(name):
+    return 'umpire_%s' % name
+
+  @staticmethod
+  def CreateOne(name, **kwargs):
+    board = Board.objects.create(name=name)
+    return Board.UpdateOne(board, **kwargs)
+
+  @staticmethod
+  def UpdateOne(board, **kwargs):
+    # enable or disable Umpire if necessary
+    if ('umpire_enabled' in kwargs and
+        board.umpire_enabled != kwargs['umpire_enabled']):
+      if not kwargs['umpire_enabled']:
+        board.DeleteUmpireContainer()
+      else:
+        if kwargs.get('umpire_add_existing_one', False):
+          board.AddExistingUmpireContainer(
+              kwargs['umpire_host'], kwargs['umpire_port'])
+        else:  # create a new local instance
+          board.CreateUmpireContainer(
+              kwargs['umpire_port'],
+              kwargs['umpire_factory_toolkit_file'].temporary_file_path())
+
+    # update attributes assigned in kwargs
+    for attr, value in kwargs.iteritems():
+      if hasattr(board, attr):
+        setattr(board, attr, value)
+    board.save()
+
+    return board
 
 
 class Resource(object):
@@ -245,8 +274,9 @@ class BundleModel(object):
     self.board = board
 
     # get URL of the board
-    board = Board.ListOne(board)
-    url = 'http://%s:%d' % (board.host, board.port + UMPIRE_RPC_PORT_OFFSET)
+    board = Board.objects.get(pk=board).ReplaceLocalhostWithDockerHostIP()
+    url = 'http://%s:%d' % (board.umpire_host,
+                            board.umpire_port + UMPIRE_RPC_PORT_OFFSET)
     self.umpire_server = xmlrpclib.ServerProxy(url, allow_none=True)
     self.umpire_status = self.umpire_server.GetStatus()
 

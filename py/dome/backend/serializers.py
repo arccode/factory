@@ -39,7 +39,7 @@ def UmpireAccessibleFile(board, uploaded_file):
     board: name of the board (used to construct Umpire container's name).
     uploaded_file: TemporaryUploadedFile instance from django.
   """
-  container_name = Board.GetContainerName(board)
+  container_name = Board.GetUmpireContainerName(board)
 
   try:
     # TODO(b/31417203): use volume container or named volume instead of
@@ -73,36 +73,33 @@ class BoardSerializer(serializers.Serializer):
 
   name = serializers.ModelField(
       model_field=Board._meta.get_field('name'))  # pylint: disable=W0212
-  host = serializers.ModelField(
-      model_field=Board._meta.get_field('host'),  # pylint: disable=W0212
-      default='localhost')
-  port = serializers.ModelField(
-      model_field=Board._meta.get_field('port'))  # pylint: disable=W0212
 
-  # True if the Umpire container already exists, False otherwise
-  is_existing = serializers.BooleanField(write_only=True, default=False)
-  factory_toolkit_file = serializers.FileField(write_only=True, required=False)
+  # cannot use ModelField here, django won't convert 'false' to boolean
+  umpire_enabled = serializers.BooleanField()
+  umpire_host = serializers.ModelField(
+      model_field=Board._meta.get_field('umpire_host'),  # pylint: disable=W0212
+      required=False)
+  umpire_port = serializers.ModelField(
+      model_field=Board._meta.get_field('umpire_port'),  # pylint: disable=W0212
+      required=False)
+
+  # True means the user is trying to add an existing Umpire container; False
+  # means the user asked to create a new one
+  umpire_add_existing_one = serializers.BooleanField(
+      write_only=True, required=False)
+
+  # TODO(b/31281536): remove this once the issue has been solved
+  umpire_factory_toolkit_file = serializers.FileField(
+      write_only=True, required=False)
 
   def create(self, validated_data):
     """Override parent's method."""
-    data = validated_data.copy()
-    if data.pop('is_existing'):  # add an existing local/remote instance
-      return Board.AddExistingOne(**data)
-    else:  # create a new local instance
-      data.pop('host')
-      # get the path of factory toolkit
-      data['factory_toolkit_path'] = (
-          data.pop('factory_toolkit_file').temporary_file_path())
-      board = Board.CreateOne(**data)
-
-      # TODO(b/31415816): should not need to close file ourselves here.
-      validated_data['factory_toolkit_file'].close()
-
-      return board
+    name = validated_data.pop('name')
+    return Board.CreateOne(name, **validated_data)
 
   def update(self, instance, validated_data):
     """Override parent's method."""
-    raise NotImplementedError('Updating a board is not allowed')
+    return Board.UpdateOne(instance, **validated_data)
 
 
 class ResourceSerializer(serializers.Serializer):

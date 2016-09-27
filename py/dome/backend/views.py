@@ -16,72 +16,79 @@ from backend.serializers import (
 
 class BoardCollectionView(generics.ListCreateAPIView):
 
+  queryset = Board.objects.all()
   serializer_class = BoardSerializer
-
-  def get_queryset(self):
-    """Override parent's method."""
-    return Board.ListAll()
 
 
 class BoardElementView(APIView):
 
-  def get_queryset(self):
-    """Override parent's method."""
-    return Board.ListAll()
+  queryset = Board.objects.all()
 
-  def delete(self, unused_request, board,
+  def delete(self, unused_request, board_name,
              request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
     try:
-      Board.DeleteOne(board)
+      # delete Umpire container first
+      Board.objects.get(pk=board_name).DeleteUmpireContainer().delete()
       return Response(status=status.HTTP_204_NO_CONTENT)
     except Board.DoesNotExist:
       return Response(status=status.HTTP_404_NOT_FOUND)
+
+  def put(self, request, board_name,
+          request_format=None):  # pylint: disable=unused-argument
+    """Override parent's method."""
+    # TODO(littlecvr): should be able to use default implementation
+    board = Board.objects.get(pk=board_name)
+    serializer = BoardSerializer(board, data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class BundleCollectionView(APIView):
   """List all bundles, or upload a new bundle."""
 
-  def get(self, unused_request, board,
+  def get(self, unused_request, board_name,
           request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
-    bundle_list = BundleModel(board).ListAll()
+    bundle_list = BundleModel(board_name).ListAll()
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
-  def post(self, request, board,
+  def post(self, request, board_name,
            request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
     data = request.data.copy()
-    data['board'] = board
+    data['board'] = board_name
     serializer = BundleSerializer(data=data)
     if serializer.is_valid():
       serializer.save()
       return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-  def put(self, request, board,
+  def put(self, request, board_name,
           request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
-    bundle_list = BundleModel(board).ReorderBundles(request.data)
+    bundle_list = BundleModel(board_name).ReorderBundles(request.data)
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
 class BundleView(APIView):
   """Delete or update a bundle."""
 
-  def delete(self, unused_request, board, bundle,
+  def delete(self, unused_request, board_name, bundle_name,
              request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
-    BundleModel(board).DeleteOne(bundle)
+    BundleModel(board_name).DeleteOne(bundle_name)
     return Response(status=status.HTTP_204_NO_CONTENT)
 
-  def put(self, request, board, bundle,
+  def put(self, request, board_name, bundle_name,
           request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
-    bundle = BundleModel(board).ListOne(bundle)
+    bundle = BundleModel(board_name).ListOne(bundle_name)
     data = request.data.copy()
-    data['board'] = board
+    data['board'] = board_name
     serializer = BundleSerializer(bundle, data=data)
     if serializer.is_valid():
       serializer.save()
@@ -92,11 +99,11 @@ class BundleView(APIView):
 class BundleResourceView(APIView):
   """Update resource in a particular bundle."""
 
-  def put(self, request, board,
+  def put(self, request, board_name,
           request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
     # TODO(littlecvr): should create bundle instance before creating serializer
-    serializer = ResourceSerializer(board, data=request.data)
+    serializer = ResourceSerializer(board_name, data=request.data)
     if serializer.is_valid():
       serializer.save()
       # TODO(littlecvr): return only the resource updated. The front-end needs
@@ -106,7 +113,7 @@ class BundleResourceView(APIView):
       #                  this, we'll need an alias shared between Umpire, Dome
       #                  back-end, and front-end specifying which resources are
       #                  correlated.
-      bundle = BundleModel(board).ListOne(
+      bundle = BundleModel(board_name).ListOne(
           serializer.validated_data['dst_bundle_name'] or
           serializer.validated_data['src_bundle_name'])
       return Response(BundleSerializer(bundle).data)
