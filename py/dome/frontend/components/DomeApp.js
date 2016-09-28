@@ -6,6 +6,7 @@ import {connect} from 'react-redux';
 import Divider from 'material-ui/Divider';
 import Drawer from 'material-ui/Drawer';
 import Immutable from 'immutable';
+import Measure from 'react-measure';
 import MenuItem from 'material-ui/MenuItem';
 import React from 'react';
 import Subheader from 'material-ui/Subheader';
@@ -18,19 +19,20 @@ import FixedAppBar from './FixedAppBar';
 import SettingsApp from './SettingsApp';
 import TaskList from './TaskList';
 
-const _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT = 36;
+const _APP_MENU_WIDTH = 250;
+const _BOARD_MENU_ITEM_PADDING_LEFT = 36;
+const _SPACE_BEFORE_TASK_LIST = 24;
+const _SPACE_AFTER_TASK_LIST = 24;
 
 var DomeApp = React.createClass({
   propTypes: {
     app: React.PropTypes.string.isRequired,
     board: React.PropTypes.string.isRequired,
-    switchApp: React.PropTypes.func.isRequired,
-    tasks: React.PropTypes.instanceOf(Immutable.Map).isRequired
+    switchApp: React.PropTypes.func.isRequired
   },
 
   handleClick(nextApp) {
     // close the drawer
-    this.setState({appMenuOpened: false});
     this.props.switchApp(nextApp);
   },
 
@@ -44,22 +46,17 @@ var DomeApp = React.createClass({
 
   getInitialState() {
     return {
-      appMenuOpened: false,
-      taskListCollapsed: false
+      appBarHeight: 0,
+      appMenuOpened: true,
+      taskListCollapsed: false,
+      taskListHeight: 0
     };
   },
 
   render() {
     // must not let the task list cover the main content
-    // 82 = 24 + 58
-    //   24: space above the task list
-    //   58: height of the title bar of the task list
-    // 48: height of each task item
-    // 24: space below task list
-    // TODO(littlecvr): find a better way to get the dimension of TaskList
-    //                  instead of calculating our own
-    var paddingBottom = (this.props.tasks.size == 0 ? 0 : 82) +
-        48 * (this.state.taskListCollapsed ? 0 : this.props.tasks.size) + 24;
+    var paddingBottom = _SPACE_BEFORE_TASK_LIST +
+        this.state.taskListHeight + _SPACE_AFTER_TASK_LIST;
 
     // TODO(b/31579770): should define a "app" system (like a dynamic module
     //                   system), which automatically import and display
@@ -83,17 +80,26 @@ var DomeApp = React.createClass({
         <FixedAppBar
           title="Dome"
           onLeftIconButtonTouchTap={this.toggleAppMenu}
+          onHeightChange={h => this.setState({appBarHeight: h})}
+          zDepth={2}  // above the drawer
         />
         <Drawer
-          docked={false}
+          docked={true}
+          width={_APP_MENU_WIDTH}
           open={this.state.appMenuOpened}
-          onRequestChange={open => this.setState({appMenuOpened: open})}
+          // Need to set "top" to avoid covering (or being covered by) the
+          // AppBar, see https://github.com/callemall/material-ui/issues/957.
+          // Setting zIndex is also needed because zDepth does not actually
+          // affect zIndex, and not setting it would make this drawer covers the
+          // shadow of AppBar.
+          containerStyle={{top: this.state.appBarHeight, zIndex: 1000}}
+          zDepth={1}  // below the AppBar
         >
           {this.props.board != '' && <Subheader>{this.props.board}</Subheader>}
           {this.props.board != '' &&
             <MenuItem
               onTouchTap={() => console.warn('not implemented yet')}
-              innerDivStyle={{paddingLeft: _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT}}
+              innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
             >
               Dashboard
             </MenuItem>
@@ -101,7 +107,7 @@ var DomeApp = React.createClass({
           {this.props.board != '' &&
             <MenuItem
               onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
-              innerDivStyle={{paddingLeft: _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT}}
+              innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
             >
               Bundles
             </MenuItem>
@@ -109,7 +115,7 @@ var DomeApp = React.createClass({
           {this.props.board != '' &&
             <MenuItem
               onTouchTap={() => console.warn('not implemented yet')}
-              innerDivStyle={{paddingLeft: _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT}}
+              innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
             >
               DRM keys
             </MenuItem>
@@ -117,7 +123,7 @@ var DomeApp = React.createClass({
           {this.props.board != '' &&
             <MenuItem
               onTouchTap={() => console.warn('not implemented yet')}
-              innerDivStyle={{paddingLeft: _PRODUCT_SUB_MENU_ITEM_PADDING_LEFT}}
+              innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
             >
               Logs
             </MenuItem>
@@ -132,11 +138,17 @@ var DomeApp = React.createClass({
             Settings
           </MenuItem>
         </Drawer>
-        {app}
-        <TaskList
-          collapsed={this.state.taskListCollapsed}
-          setCollapsed={this.setTaskListCollapsed}
-        />
+        <div
+          style={{paddingLeft: this.state.appMenuOpened ? _APP_MENU_WIDTH : 0}}
+        >
+          {app}
+        </div>
+        <Measure onMeasure={d => this.setState({taskListHeight: d.height})}>
+          <TaskList
+            collapsed={this.state.taskListCollapsed}
+            setCollapsed={this.setTaskListCollapsed}
+          />
+        </Measure>
       </div>
     );
   }
@@ -145,8 +157,7 @@ var DomeApp = React.createClass({
 function mapStateToProps(state) {
   return {
     app: state.getIn(['dome', 'currentApp']),
-    board: state.getIn(['dome', 'currentBoard']),
-    tasks: state.getIn(['dome', 'tasks'])
+    board: state.getIn(['dome', 'currentBoard'])
   };
 }
 

@@ -9,28 +9,39 @@
  */
 
 import AppBar from 'material-ui/AppBar';
+import Measure from 'react-measure';
 import React from 'react';
 
 const FixedAppBar = React.createClass({
+  propTypes: {
+    // callback when the height of the AppBar changes, signature: (height)
+    onHeightChange: React.PropTypes.func
+  },
+
+  handleHeightChange(height) {
+    this.setState({height});
+    if ('onHeightChange' in this.props) {
+      this.props.onHeightChange(height);
+    }
+  },
+
   getInitialState() {
     return {
       height: 0
     };
   },
 
-  componentDidMount() {
-    // TODO(littlecvr): should not use setState() in componentDidMount()
-    this.setState({height: this.appBar.context.muiTheme.appBar.height});
-  },
-
   render() {
+    const {onHeightChange: unused, ...other} = this.props;
+
     return (
       <div>
-        <AppBar
-          {...this.props}
-          ref={c => this.appBar = c}
-          style={{position: 'fixed', top: 0, left: 0}}
-        />
+        <Measure onMeasure={d => this.handleHeightChange(d.height)}>
+          <AppBar
+            {...other}
+            style={{position: 'fixed', top: 0, left: 0}}
+          />
+        </Measure>
         <div style={{height: this.state.height}}></div>
       </div>
     );
