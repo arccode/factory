@@ -26,6 +26,12 @@ var BoardsApp = React.createClass({
 
   handleCreate() {
     this.props.createBoard(this.state.nameInputValue);
+    this.setState({nameInputValue: ''});
+  },
+
+  handleSubmit(event) {
+    event.preventDefault();  // prevent the form from submitting itself
+    this.handleCreate();
   },
 
   getInitialState() {
@@ -79,7 +85,10 @@ var BoardsApp = React.createClass({
 
         <div style={style}>OR</div>
 
-        <form style={style}>
+        <form
+          style={style}
+          onSubmit={this.handleSubmit}  // called when enter key is pressed
+        >
           <TextField
             name="name"
             fullWidth={true}
