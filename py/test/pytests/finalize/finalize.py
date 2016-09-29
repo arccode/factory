@@ -597,7 +597,12 @@ class Finalize(unittest.TestCase):
       except:  # pylint: disable=bare-except
         pass
 
+    # Start response listener
     self.response_listener = net_utils.CallbackSocketServer(_Callback)
+    server_thread = threading.Thread(
+        target=self.response_listener.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
 
     # If station IP is not given, we assume that this station is the first host
     # in the subnet, and number of prefix bits in this subnet is 24.
@@ -609,11 +614,6 @@ class Finalize(unittest.TestCase):
 
     if not self._CallGoofTool(command):
       raise factory.FactoryTestFailure('finalize command failed')
-
-    server_thread = threading.Thread(
-        target=self.response_listener.serve_forever)
-    server_thread.daemon = True
-    server_thread.start()
 
     factory.console.info("wait DUT to finish wiping")
 
