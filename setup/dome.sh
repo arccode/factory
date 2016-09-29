@@ -106,9 +106,9 @@ do_run() {
   docker rm "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
 
   # make sure database file exists or mounting volume will fail
-  if [[ ! -d "${DOCKER_SHARED_DOME_DIR}" ]]; then
+  if [[ ! -f "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}" ]]; then
     echo "Creating docker shared folder (${DOCKER_SHARED_DOME_DIR}),"
-    echo "you'll be asked for root permission..."
+    echo "and database file, you'll be asked for root permission..."
     sudo mkdir -p "${DOCKER_SHARED_DOME_DIR}"
     sudo touch "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}"
   fi
