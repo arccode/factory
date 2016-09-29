@@ -145,12 +145,11 @@ const createTask = (description, method, url, body,
       contentType
     });
 
-    // if all tasks except this one succeeded (or failed), start this task now
+    // if all tasks except this one succeeded, start this task now
     var startNow = true;
     for (const id of taskIDs) {
       let s = tasks.getIn([id, 'state']);
-      if (id != taskID &&
-          (s == TaskStates.RUNNING || s == TaskStates.WAITING)) {
+      if (id != taskID && s != TaskStates.SUCCEEDED) {
         startNow = false;
         break;
       }
