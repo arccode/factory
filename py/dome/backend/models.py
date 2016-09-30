@@ -13,12 +13,18 @@ TODO(littlecvr): make umpire config complete such that it contains all the
                  information we need.
 """
 
+import contextlib
+import errno
 import os
 import re
+import shutil
+import stat
 import subprocess
+import tempfile
 import xmlrpclib
 
 import yaml
+import django
 from django.core import validators
 from django.db import models
 
@@ -59,6 +65,82 @@ UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 # TODO(littlecvr): shared between here and dome.sh, should be pulled out to a
 #                  common config.
 UMPIRE_BASE_DIR = '/var/db/factory/umpire'
+
+
+@contextlib.contextmanager
+def UploadedFile(temporary_uploaded_file_id):
+  f = TemporaryUploadedFile.objects.get(pk=temporary_uploaded_file_id).file
+  try:
+    yield f
+  finally:
+    f.close()
+    path = UploadedFilePath(f)
+    try:
+      os.unlink(path)  # once the file has been used it can be removed
+    except OSError as e:
+      if e.errno != errno.ENOENT:  # don't care if it's been removed already
+        raise
+    try:
+      os.rmdir(os.path.dirname(path))  # also try to remove empty directory
+    except OSError as e:
+      if e.errno != errno.ENOTEMPTY:  # but don't care if it's not empty
+        raise
+
+
+def UploadedFilePath(uploaded_file):
+  return os.path.join(django.conf.settings.MEDIA_ROOT, uploaded_file.name)
+
+
+@contextlib.contextmanager
+def UmpireAccessibleFile(board, uploaded_file):
+  """Make a file uploaded from Dome accessible by a specific Umpire container.
+
+  This function:
+  1. creates a temp folder in UMPIRE_BASE_DIR
+  2. copies the uploaded file to the temp folder
+  3. runs chmod on the folder and file to make sure Umpire is readable
+  4. remove the temp folder at the end
+
+  Note that we need to rename the file to its original basename. Umpire copies
+  the file into its resources folder without renaming the incoming file (though
+  it appends version and hash). If we don't do this, the umpire resources folder
+  will soon be filled with many 'tmp.XXXXXX#{version}#{hash}', and it'll be hard
+  to tell what the files actually are. Also, due to the way Umpire Docker is
+  designed, it's not possible to move the file instead of copy now.
+
+  TODO(littlecvr): make Umpire support renaming when updating.
+  TODO(b/31417203): provide an argument to choose from moving file instead of
+                    copying (after the issue has been solved).
+
+  Args:
+    board: name of the board (used to construct Umpire container's name).
+    uploaded_file: file field of TemporaryUploadedFile.
+  """
+  container_name = Board.GetUmpireContainerName(board)
+
+  try:
+    # TODO(b/31417203): use volume container or named volume instead of
+    #                   UMPIRE_BASE_DIR.
+    temp_dir = tempfile.mkdtemp(dir='%s/%s' % (UMPIRE_BASE_DIR, container_name))
+    new_path = os.path.join(temp_dir, os.path.basename(uploaded_file.name))
+    shutil.copy(UploadedFilePath(uploaded_file), new_path)
+
+    # make sure they're readable to umpire
+    os.chmod(temp_dir, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
+    os.chmod(new_path, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
+
+    # The temp folder:
+    #   in Dome:   ${UMPIRE_BASE_DIR}/${container_name}/${temp_dir}
+    #   in Umpire: ${UMPIRE_BASE_DIR}/${temp_dir}
+    # so need to remove "${container_name}/"
+    yield new_path.replace('%s/' % container_name, '')
+  finally:
+    try:
+      shutil.rmtree(temp_dir)
+    except OSError as e:
+      # doesn't matter if the folder is removed already, otherwise, raise
+      if e.errno != errno.ENOENT:
+        raise
 
 
 class TemporaryUploadedFile(models.Model):
@@ -223,7 +305,16 @@ class Board(models.Model):
   @staticmethod
   def CreateOne(name, **kwargs):
     board = Board.objects.create(name=name)
-    return Board.UpdateOne(board, **kwargs)
+    try:
+      return Board.UpdateOne(board, **kwargs)
+    except Exception:
+      # delete the entry if anything goes wrong
+      try:
+        Board.objects.get(pk=name).delete()
+      except django.core.exceptions.ObjectDoesNotExist:
+        pass
+      except Exception:
+        raise
 
   @staticmethod
   def UpdateOne(board, **kwargs):
@@ -234,12 +325,12 @@ class Board(models.Model):
         board.DeleteUmpireContainer()
       else:
         if kwargs.get('umpire_add_existing_one', False):
-          board.AddExistingUmpireContainer(
-              kwargs['umpire_host'], kwargs['umpire_port'])
+          board.AddExistingUmpireContainer(kwargs['umpire_host'],
+                                           kwargs['umpire_port'])
         else:  # create a new local instance
-          board.CreateUmpireContainer(
-              kwargs['umpire_port'],
-              kwargs['umpire_factory_toolkit_file'].temporary_file_path())
+          with UploadedFile(kwargs['umpire_factory_toolkit_file_id']) as f:
+            board.CreateUmpireContainer(kwargs['umpire_port'],
+                                        UploadedFilePath(f))
 
     # update attributes assigned in kwargs
     for attr, value in kwargs.iteritems():
@@ -506,7 +597,7 @@ class BundleModel(object):
     return self.ListAll()
 
   def UpdateResource(self, src_bundle_name, dst_bundle_name, note,
-                     resource_type, resource_file_path):
+                     resource_type, resource_file_id):
     """Update resource in a bundle.
 
     Args:
@@ -517,13 +608,16 @@ class BundleModel(object):
       note: if dst bundle is specified, this will be note of the dst bundle;
           otherwise, this will overwrite note of the src bundle.
       resource_type: type of resource to update.
-      resource_file_path: path to the new resource file.
+      resource_file_id: id of the resource file (id of TemporaryUploadedFile).
     """
     # Replace with the alias if needed.
     resource_type = UMPIRE_RESOURCE_NAME_ALIAS.get(resource_type, resource_type)
 
-    self.umpire_server.Update(
-        [(resource_type, resource_file_path)], src_bundle_name, dst_bundle_name)
+    with UploadedFile(resource_file_id) as f:
+      with UmpireAccessibleFile(self.board, f) as p:
+        self.umpire_server.Update([(resource_type, p)],
+                                  src_bundle_name,
+                                  dst_bundle_name)
 
     # Umpire does not allow the user to add bundle note directly via update. So
     # duplicate the source bundle first.
@@ -560,7 +654,7 @@ class BundleModel(object):
 
     return self.ListOne(dst_bundle_name or src_bundle_name)
 
-  def UploadNew(self, name, note, file_path):
+  def UploadNew(self, name, note, bundle_file_id):
     """Upload a new bundle.
 
     Args:
@@ -568,13 +662,14 @@ class BundleModel(object):
           field in umpire config.
       note: commit message. This corresponds to the "note" field in umpire
           config.
-      file_path: path to the bundle file. If the file is a temporary file, the
-          caller is responsible for removing it.
+      bundle_file_id: id of the bundle file (id of TemporaryUploadedFile).
 
     Return:
       The newly created bundle.
     """
-    self.umpire_server.ImportBundle(os.path.realpath(file_path), name, note)
+    with UploadedFile(bundle_file_id) as f:
+      with UmpireAccessibleFile(self.board, f) as p:
+        self.umpire_server.ImportBundle(p, name, note)
 
     self.umpire_status = self.umpire_server.GetStatus()
     config = yaml.load(self.umpire_status['staging_config'])
