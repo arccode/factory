@@ -61,6 +61,43 @@ UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 UMPIRE_BASE_DIR = '/var/db/factory/umpire'
 
 
+class TemporaryUploadedFile(models.Model):
+  """Model to hold temporary uploaded files from user.
+
+  The API of Dome is designed as: if a request contains N files, split it into
+  (N+1) requests, with first N request uploading each file (encoded in
+  multipart/form-data), and the last request sending other fields (encoded in
+  JSON). Each file uploading request gets a file ID, in the last request, we
+  refer to a file using its ID we got before.
+
+  For example, if we want to send a request:
+  {
+    "foo": "bar",
+    "hello": "world",
+    "file01": a file object,
+    "file02": another file object
+  }
+  We split it into 3 requests:
+  1. Send {"file": a file object} in multipart/form-data, suppose we got ID
+     1005.
+  2. Send {"file": another file object} in multipart/form-data, suppose we got
+     ID 1008.
+  3. Send
+     {
+       "foo": "bar",
+       "hello": "world",
+       "file01": 1005,
+       "file02": 1008
+     }
+     in JSON.
+  """
+
+  file = models.FileField(upload_to='%Y%m%d')
+  created = models.DateTimeField(auto_now_add=True)
+
+  # TODO(littlecvr): remove outdated files automatically
+
+
 class Board(models.Model):
   # TODO(littlecvr): max_length and validator should be shared with Umpire
   name = models.CharField(max_length=200, primary_key=True,
@@ -222,6 +259,7 @@ class Resource(object):
     self.updatable = updatable
 
 
+# TODO(littlecvr): should merge into BundleModel
 class Bundle(object):
   """Represent a bundle in umpire."""
 
@@ -255,6 +293,7 @@ class Bundle(object):
       self.rules[key] = rules[umpire_key]
 
 
+# TODO(littlecvr): rename this to Bundle
 class BundleModel(object):
   """Provide functions to manipulate bundles in umpire.
 

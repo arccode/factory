@@ -34,6 +34,8 @@ BUNDLE_URL_ARG = r'(?P<bundle_name>[^/]+)'  # anything but slash
 urlpatterns = [
     url(r'^$',
         TemplateView.as_view(template_name='index.html')),
+    url(r'^files/$',
+        views.FileCollectionView.as_view()),
     url(r'^boards/$',
         views.BoardCollectionView.as_view()),
     url(r'^boards/%s/$' % BOARD_URL_ARG,

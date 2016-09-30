@@ -9,9 +9,16 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from backend.models import Board, BundleModel
+from backend.models import Board, BundleModel, TemporaryUploadedFile
 from backend.serializers import (
-    BoardSerializer, BundleSerializer, ResourceSerializer)
+    BoardSerializer, BundleSerializer, ResourceSerializer,
+    UploadedFileSerializer)
+
+
+class FileCollectionView(generics.CreateAPIView):
+
+  queryset = TemporaryUploadedFile.objects.all()
+  serializer_class = UploadedFileSerializer
 
 
 class BoardCollectionView(generics.ListCreateAPIView):

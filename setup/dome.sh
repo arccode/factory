@@ -134,6 +134,16 @@ do_run() {
     "${DOME_IMAGE_NAME}" \
     python manage.py migrate
 
+  # Clear all temporary uploaded file records. These files were uploaded to
+  # container but not in a volume, so they will be gone once the container has
+  # been removed.
+  ${DOCKER} run \
+    --rm \
+    --volume "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}:${CONTAINER_DOME_DIR}/${DB_FILENAME}" \
+    "${DOME_IMAGE_NAME}" \
+    python manage.py shell --command \
+    'import backend; backend.models.TemporaryUploadedFile.objects.all().delete()'
+
   # start uwsgi, the bridge between django and nginx
   ${DOCKER} run \
     --detach \

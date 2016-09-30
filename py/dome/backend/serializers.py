@@ -11,7 +11,8 @@ import tempfile
 
 from rest_framework import serializers
 
-from backend.models import Board, BundleModel, UMPIRE_BASE_DIR
+from backend.models import (
+    Board, BundleModel, TemporaryUploadedFile, UMPIRE_BASE_DIR)
 
 
 @contextlib.contextmanager
@@ -67,6 +68,23 @@ def UmpireAccessibleFile(board, uploaded_file):
       # doesn't matter if the folder is removed already, otherwise, raise
       if e.errno != errno.ENOENT:
         raise
+
+
+class UploadedFileSerializer(serializers.ModelSerializer):
+
+  class Meta(object):
+
+    model = TemporaryUploadedFile
+
+  def create(self, validated_data):
+    """Override parent's method."""
+    try:
+      return super(UploadedFileSerializer, self).create(validated_data)
+    finally:
+      # TODO(b/31415816): should not close the file ourselves. This function can
+      #                   be entirely removed after the issue has been solved
+      #                   (just use the parent's version).
+      validated_data['file'].close()
 
 
 class BoardSerializer(serializers.Serializer):

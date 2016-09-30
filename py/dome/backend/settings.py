@@ -133,6 +133,8 @@ STATIC_URL = '/static/'
 # Files
 # https://docs.djangoproject.com/en/1.9/topics/http/file-uploads/
 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Since bundles and resources are normally large, we don't use
 # MemoryFileUploadHandler.
 FILE_UPLOAD_HANDLERS = [
