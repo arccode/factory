@@ -1105,40 +1105,6 @@ class Pattern(object):
           index += 1
     return ret
 
-  def GetBitMappingSpringEVT(self, image_id=None):
-    """Gets a map indicating the bit offset of certain encoded field a bit in a
-    encoded binary string corresponds to.
-
-    This is a hack for Spring EVT, which used the LSB first encoding pattern.
-
-    Args:
-      image_id: An integer of the image id to query. If not given, the latest
-          image id would be used.
-
-    Returns:
-      A list of BitEntry objects indexed by bit position in the encoded binary
-      string. Each BitEntry object has attributes (field, bit_offset) indicating
-      which bit_offset of field this particular bit corresponds to. For example,
-      if ret[6] has attributes (field='cpu', bit_offset=1), then it means that
-      bit position 6 of the encoded binary string corresponds to the bit offset
-      1 (which is the second least significant bit) of encoded field 'cpu'.
-    """
-    BitEntry = collections.namedtuple('BitEntry', ['field', 'bit_offset'])
-
-    if self.pattern is None:
-      raise common.HWIDException(
-          'Cannot construct bit mapping with uninitialized pattern')
-    ret = {}
-    index = common.HWID.HEADER_BITS   # Skips the 5-bit common header.
-    field_offset_map = collections.defaultdict(int)
-    for element in self.GetPatternByImageId(image_id)['fields']:
-      for field, length in element.iteritems():
-        for _ in xrange(length):
-          ret[index] = BitEntry(field, field_offset_map[field])
-          field_offset_map[field] += 1
-          index += 1
-    return ret
-
 
 class Rules(object):
   """A class for parsing and evaluating rules defined in the database.
