@@ -125,7 +125,7 @@ class ConnectionManagerTest(unittest.TestCase):
         'SSID': 'fake_server',
         'Security': 'psk',
         'Passphrase': 'test0000'
-    })
+    }, signature=mox.IgnoreArg())
 
   def testInitWithEnableNetworking(self):
     self.MockEnableNetworking(reset=False)
