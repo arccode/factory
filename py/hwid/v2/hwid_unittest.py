@@ -52,6 +52,7 @@ found_probe_value_map:
     compact_str: '05c6:9215 Qualcomm Incorporated Qualcomm Gobi2000 0002'
   chipset: { compact_str: '8086:a010' }
   cpu: { compact_str: 'Intel(R) Atom(TM) CPU N570 @ 1.66GHz [4 cores]' }
+  customization_id: { compact_str: 'custom' }
   display_converter: { compact_str: 'ch7036' }
   display_panel: { compact_str: 'AUO:5c20 [1366x768]' }
   dram: { compact_str: '0|2048|DDR3-800,DDR3-1066,DDR3-1333' }
@@ -63,6 +64,7 @@ found_probe_value_map:
   power_mgmt_chip: { compact_str: '0x7' }
   region: { compact_str: 'us' }
   storage: { compact_str: 'ATA SanDisk SSD P4 1 #31277232' }
+  stylus: { compact_str: 'stylus' }
   touchpad: { compact_str: 'SynPS/2 Synaptics TouchPad' }
   tpm: { compact_str: '49465800:1.2.3.18' }
   usb_hosts:
