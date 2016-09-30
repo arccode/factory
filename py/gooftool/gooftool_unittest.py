@@ -432,21 +432,6 @@ class GooftoolTest(unittest.TestCase):
     self.assertRaisesRegexp(Error, 'Error writing device secret',
                             self._gooftool.GenerateStableDeviceSecret)
 
-  def testPrepareWipe(self):
-    self._gooftool._util.GetReleaseRootPartitionPath(
-        ).AndReturn('root1')
-    self._gooftool._util.FindAndRunScript('prepare_wipe.sh', ['root1'], [])
-
-    self._gooftool._util.GetReleaseRootPartitionPath(
-        ).AndReturn('root2')
-    self._gooftool._util.FindAndRunScript('prepare_wipe.sh', ['root2'],
-                                          ['FACTORY_WIPE_TAGS=fast'])
-
-    self.mox.ReplayAll()
-
-    self._gooftool.PrepareWipe(False)
-    self._gooftool.PrepareWipe(True)
-
   def testWriteHWID(self):
     self._gooftool._crosfw.LoadMainFirmware().MultipleTimes().AndReturn(
         MockMainFirmware())
