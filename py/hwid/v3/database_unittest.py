@@ -19,6 +19,44 @@ from cros.factory.hwid.v3.rule import Value
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
+class NewDatabaseTest(unittest.TestCase):
+  """Test the new style of HWID database.
+
+  - Split key_root and key_recovery to a new component: firmware_keys
+  - Separate firmware field to let each field only has one component
+  """
+
+  def setUp(self):
+    self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
+                                                   'test_new_db.yaml'))
+    self.results = [
+        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
+            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
+
+  def testProbeResultToBOM(self):
+    result = self.results[0]
+    bom = self.database.ProbeResultToBOM(result)
+    self.assertEquals('CHROMEBOOK', bom.board)
+    self.assertEquals(0, bom.encoding_pattern_index)
+    self.assertEquals(0, bom.image_id)
+    self.assertEquals({
+        'firmware_keys': [(
+            'firmware_keys_0', {
+                'key_recovery': Value('kv3#key_recovery_0'),
+                'key_root': Value('kv3#key_root_0')},
+            None)],
+        'ro_ec_firmware': [(
+            'ro_ec_firmware_0', {'compact_str': Value('ev2#ro_ec_firmware_0')},
+            None)],
+        'ro_main_firmware': [(
+            'ro_main_firmware_0',
+            {'compact_str': Value('mv2#ro_main_firmware_0')}, None)]
+        }, bom.components)
+    self.assertEquals({
+        'ro_main_firmware_field': 0,
+        'firmware_keys_field': 0,
+        'ro_ec_firmware_field': 0}, bom.encoded_fields)
+
 
 class DatabaseTest(unittest.TestCase):
 

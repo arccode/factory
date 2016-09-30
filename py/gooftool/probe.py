@@ -1588,8 +1588,15 @@ def CalculateFirmwareHashes(fw_file_path):
   elif image.has_section('GBB') and image.has_section('RO_SECTION'):
     hashes['hash_gbb'] = _GbbHash(image)
     hashes['ro_main_firmware'] = _MainRoHash(image)
+    # Originally at HWID database we put all the information in firmware_field.
+    # Now we decide to split key_root and key_recovery out. For compatibility,
+    # we keep two copy in probed result. Should remove the old one after all of
+    # the project change to new HWID style.
     hashes['key_recovery'] = _FwKeyHash(fw_file_path, 'recoverykey')
     hashes['key_root'] = _FwKeyHash(fw_file_path, 'rootkey')
+    hashes['firmware_keys'] = {
+        'key_recovery': hashes['key_recovery'][COMPACT_PROBE_STR],
+        'key_root': hashes['key_root'][COMPACT_PROBE_STR]}
   return hashes
 
 

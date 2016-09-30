@@ -36,6 +36,9 @@ found_probe_value_map:
     idProduct: abcd
     type: webcam
 found_volatile_values:
+  firmware_keys:
+    key_recovery: kv3#key_recovery_0
+    key_root: kv3#key_root_0
   hash_gbb:
     compact_str: gv2#hash_gbb_0
   key_recovery:

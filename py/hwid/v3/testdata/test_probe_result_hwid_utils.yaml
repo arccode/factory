@@ -37,6 +37,9 @@ found_probe_value_map:
     region_code: us
 
 found_volatile_values:
+  firmware_keys:
+    key_recovery: kv3#key_recovery_mp
+    key_root: kv3#key_root_mp
   hash_gbb:
     compact_str: gv2#hash_gbb_0
   key_recovery:

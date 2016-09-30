@@ -1,0 +1,61 @@
+# Dummy line before checksum
+checksum: c83402d5afa4a70f16cba436b61c4e4ad52ff138
+# Dummy line after checksum
+board: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: DVT
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base32
+    fields:
+    - ro_main_firmware_field: 3
+    - firmware_keys_field: 2
+    - ro_ec_firmware_field: 3
+
+
+encoded_fields:
+  firmware_keys_field:
+    0: {firmware_keys: firmware_keys_0}
+    1: {firmware_keys: firmware_keys_1}
+  ro_main_firmware_field:
+    0: {ro_main_firmware: ro_main_firmware_0}
+    1: {ro_main_firmware: ro_main_firmware_1}
+  ro_ec_firmware_field:
+    0: {ro_ec_firmware: ro_ec_firmware_0}
+    1: {ro_ec_firmware: ro_ec_firmware_1}
+
+components:
+  firmware_keys:
+    items:
+      firmware_keys_0:
+        values:
+          key_root: kv3#key_root_0
+          key_recovery: kv3#key_recovery_0
+      firmware_keys_1:
+        values:
+          key_root: kv3#key_root_1
+          key_recovery: kv3#key_recovery_1
+  ro_main_firmware:
+    items:
+      ro_main_firmware_0:
+        values: { compact_str: mv2#ro_main_firmware_0 }
+      ro_main_firmware_1:
+        status: deprecated
+        values: { compact_str: mv2#ro_main_firmware_1 }
+  ro_ec_firmware:
+    items:
+      ro_ec_firmware_0:
+        values: { compact_str: ev2#ro_ec_firmware_0 }
+      ro_ec_firmware_1:
+        status: unsupported
+        values: { compact_str: ev2#ro_ec_firmware_1 }
+
+rules:
+- name: device_info.set_image_id
+  evaluate: SetImageId('EVT')
