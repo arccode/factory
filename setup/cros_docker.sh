@@ -24,3 +24,17 @@ die() {
   echo "ERROR: $@"
   exit 1
 }
+
+check_docker() {
+  if ! type docker >/dev/null 2>&1; then
+    die "Docker not installed, abort."
+  fi
+  DOCKER="docker"
+  if [ "${USER}" != "root" ]; then
+    if ! echo begin $(id -Gn) end | grep -q ' docker '; then
+      echo "You are neither root nor in the docker group,"
+      echo "so you'll be asked for root permission..."
+      DOCKER="sudo docker"
+    fi
+  fi
+}

@@ -39,8 +39,10 @@ NGINX_CONTAINER_NAME="dome_nginx"
 : ${PORT:="8000"}  # port to access Dome
 
 do_build() {
+  check_docker
+
   # build the dome builder image
-  docker build \
+  ${DOCKER} build \
     --file "${BUILDER_DOCKERFILE}" \
     --tag "${BUILDER_IMAGE_NAME}" \
     --build-arg workdir="${BUILDER_WORKDIR}" \
@@ -49,26 +51,29 @@ do_build() {
 
   # copy the builder's output from container to host
   mkdir -p "${HOST_BUILD_DIR}"
-  docker run --name "${BUILDER_CONTAINER_NAME}" "${BUILDER_IMAGE_NAME}"
-  docker cp \
+  ${DOCKER} run --name "${BUILDER_CONTAINER_NAME}" "${BUILDER_IMAGE_NAME}"
+  ${DOCKER} cp \
     "${BUILDER_CONTAINER_NAME}:${BUILDER_WORKDIR}/${BUILDER_OUTPUT_FILE}" \
     "${HOST_BUILD_DIR}"
-  docker rm "${BUILDER_CONTAINER_NAME}"
+  ${DOCKER} rm "${BUILDER_CONTAINER_NAME}"
 
   # build the dome runner image
   # need to make sure we're using the same version of docker inside the container
-  docker build \
+  ${DOCKER} build \
     --file "${DOME_DOCKERFILE}" \
     --tag "${DOME_IMAGE_NAME}" \
     --build-arg dome_dir="${CONTAINER_DOME_DIR}" \
     --build-arg builder_output_file="${BUILDER_OUTPUT_FILE}" \
-    --build-arg docker_version="$(docker version --format {{.Server.Version}})" \
+    --build-arg \
+      docker_version="$(${DOCKER} version --format {{.Server.Version}})" \
     "${HOST_DOME_DIR}"
 }
 
 do_install() {
-  docker load <"${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
-  docker load <"${SCRIPT_DIR}/${DOME_IMAGE_FILENAME}"
+  check_docker
+
+  ${DOCKER} load <"${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
+  ${DOCKER} load <"${SCRIPT_DIR}/${DOME_IMAGE_FILENAME}"
 }
 
 do_pull() {
@@ -100,11 +105,13 @@ do_pull() {
 }
 
 do_run() {
+  check_docker
+
   # stop and remove old containers
-  docker stop "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
-  docker rm "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
-  docker stop "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
-  docker rm "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
+  ${DOCKER} stop "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
+  ${DOCKER} rm "${UWSGI_CONTAINER_NAME}" 2>/dev/null || true
+  ${DOCKER} stop "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
+  ${DOCKER} rm "${NGINX_CONTAINER_NAME}" 2>/dev/null || true
 
   # make sure database file exists or mounting volume will fail
   if [[ ! -f "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}" ]]; then
@@ -117,7 +124,7 @@ do_run() {
   # Migrate the database if needed (won't remove any data if the database
   # already exists, but will apply the schema changes). This command may ask
   # user questions and need the user input, so make it interactive.
-  docker run \
+  ${DOCKER} run \
     --rm \
     --interactive \
     --tty \
@@ -126,7 +133,7 @@ do_run() {
     python manage.py migrate
 
   # start uwsgi, the bridge between django and nginx
-  docker run \
+  ${DOCKER} run \
     --detach \
     --restart unless-stopped \
     --name "${UWSGI_CONTAINER_NAME}" \
@@ -138,7 +145,7 @@ do_run() {
     uwsgi --ini uwsgi.ini
 
   # start nginx
-  docker run \
+  ${DOCKER} run \
     --detach \
     --restart unless-stopped \
     --name "${NGINX_CONTAINER_NAME}" \
@@ -191,7 +198,6 @@ __EOF__
 main() {
   # TODO(littlecvr): check /docker_shared
   # TODO(littlecvr): check /docker_umpire
-  # TODO(littlecvr): acquire root permission if the user is not in docker group
 
   case "$1" in
     build)

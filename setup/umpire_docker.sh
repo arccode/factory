@@ -18,15 +18,9 @@ CONTAINER_DB_DIR="/var/db/factory/umpire"
 
 . ${UMPIRE_BUILD_DIR}/config.sh
 
-check_docker() {
-  if ! type docker >/dev/null 2>&1; then
-    die "Docker not installed, abort."
-  fi
-}
-
 check_status() {
   local container_name="$1"
-  local status="$(sudo docker ps | grep ${container_name} | grep Up)"
+  local status="$(${DOCKER} ps | grep ${container_name} | grep Up)"
 
   if [ -z "${status}" ]; then
     die "${UMPIRE_CONTAINER_NAME} container is not running"
@@ -40,7 +34,7 @@ do_shell() {
   check_status "${container_name}"
   shift
 
-  sudo docker exec -it "${container_name}" bash
+  ${DOCKER} exec -it "${container_name}" bash
 }
 
 do_build() {
@@ -51,7 +45,7 @@ do_build() {
 
   if [ -f "${UMPIRE_IMAGE_FILEPATH}" ]; then
     echo "Found prebuilt image ${UMPIRE_IMAGE_FILEPATH}"
-    if sudo docker load <"${UMPIRE_IMAGE_FILEPATH}"; then
+    if ${DOCKER} load <"${UMPIRE_IMAGE_FILEPATH}"; then
       return
     else
       # the prebuilt image is corrupted, remove it.
@@ -60,7 +54,7 @@ do_build() {
     fi
   fi
 
-  sudo docker build --tag "${UMPIRE_IMAGE_NAME}" "${UMPIRE_BUILD_DIR}"
+  ${DOCKER} build --tag "${UMPIRE_IMAGE_NAME}" "${UMPIRE_BUILD_DIR}"
   if [ $? -eq 0 ]; then
     echo "${UMPIRE_CONTAINER_NAME} container successfully built."
   fi
@@ -80,8 +74,8 @@ do_destroy() {
   check_docker
 
   echo -n "Deleting ${UMPIRE_CONTAINER_NAME} container ... "
-  sudo docker stop "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
-  sudo docker rm "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
+  ${DOCKER} stop "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
+  ${DOCKER} rm "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
   echo "done"
 }
 
@@ -92,8 +86,8 @@ do_start() {
   sudo mkdir -p ${DOCKER_SHARED_DIR}
   sudo mkdir -p ${HOST_DB_DIR}
 
-  if [ -n "$(sudo docker ps -a | grep ${UMPIRE_CONTAINER_NAME})" ]; then
-    sudo docker start "${UMPIRE_CONTAINER_NAME}"
+  if [ -n "$(${DOCKER} ps -a | grep ${UMPIRE_CONTAINER_NAME})" ]; then
+    ${DOCKER} start "${UMPIRE_CONTAINER_NAME}"
   else
     local umpire_port_map=""
     for base in $(seq ${PORT_START} ${PORT_STEP} \
@@ -104,7 +98,7 @@ do_start() {
       umpire_port_map="-p $p1:$p1 -p $p2:$p2 -p $p3:$p3 ${umpire_port_map}"
     done
 
-    sudo docker run -d \
+    ${DOCKER} run -d \
       --privileged \
       -p 4455:4455 \
       -p 9000:9000 \
@@ -119,7 +113,7 @@ do_start() {
 
     if [ $? -ne 0 ]; then
       echo -n 'Removing stale container due to error ... '
-      sudo docker rm ${UMPIRE_CONTAINER_NAME}
+      ${DOCKER} rm ${UMPIRE_CONTAINER_NAME}
       echo 'Possibly wrong port binding? Please fix and retry.'
       return
     fi
@@ -141,7 +135,7 @@ do_stop() {
   check_docker
 
   echo -n "Stopping ${UMPIRE_CONTAINER_NAME} container ... "
-  sudo docker stop "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
+  ${DOCKER} stop "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1
   echo "done"
 }
 
@@ -149,20 +143,19 @@ do_install() {
   local container_name="$1"
   local board="$2"
   local toolkit="$3"
+  check_docker
   check_status "${container_name}"
 
   if [ ! -e "${toolkit}" ]; then
     die "Factory toolkit '${toolkit}' does not exist, abort."
   fi
 
-  check_docker
-
-  sudo docker cp "${toolkit}" "${container_name}:/tmp"
-  sudo docker exec "${container_name}" /tmp/${toolkit##*/} -- \
+  ${DOCKER} cp "${toolkit}" "${container_name}:/tmp"
+  ${DOCKER} exec "${container_name}" /tmp/${toolkit##*/} -- \
     --init-umpire-board=${board}
-  sudo docker exec "${container_name}" \
+  ${DOCKER} exec "${container_name}" \
     bash -c "echo export BOARD=${board} >> /root/.bashrc"
-  sudo docker exec "${container_name}" restart umpire BOARD=${board}
+  ${DOCKER} exec "${container_name}" restart umpire BOARD=${board}
 }
 
 usage() {
