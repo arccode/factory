@@ -74,7 +74,8 @@ do_install() {
 do_pull() {
   echo "Pulling Dome Docker image ..."
   if [[ ! -f "${SCRIPT_DIR}/${DOME_IMAGE_FILENAME}" ]]; then
-    wget "${PREBUILT_IMAGE_DIR_URL}/${DOME_IMAGE_FILENAME}" || \
+    wget -P "${SCRIPT_DIR}" \
+      "${PREBUILT_IMAGE_DIR_URL}/${DOME_IMAGE_FILENAME}" || \
       (rm -f "${SCRIPT_DIR}/${DOME_IMAGE_FILENAME}" ; \
        die "Failed to pull Dome Docker image")
   fi

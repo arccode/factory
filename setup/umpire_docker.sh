@@ -10,6 +10,8 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 . "${SCRIPT_DIR}/cros_docker.sh"
 
+UMPIRE_IMAGE_FILEPATH="${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
+
 # Separate umpire db for each container.
 HOST_DB_DIR="/docker_umpire/${UMPIRE_CONTAINER_NAME}"
 CONTAINER_DB_DIR="/var/db/factory/umpire"
@@ -47,13 +49,13 @@ do_build() {
   # Use prebuilt image if we can.
   do_pull
 
-  if [ -f "${UMPIRE_IMAGE_FILENAME}" ]; then
-    echo "Found prebuilt image ${UMPIRE_IMAGE_FILENAME}"
-    if sudo docker load <"${UMPIRE_IMAGE_FILENAME}"; then
+  if [ -f "${UMPIRE_IMAGE_FILEPATH}" ]; then
+    echo "Found prebuilt image ${UMPIRE_IMAGE_FILEPATH}"
+    if sudo docker load <"${UMPIRE_IMAGE_FILEPATH}"; then
       return
     else
       # the prebuilt image is corrupted, remove it.
-      rm -f "${UMPIRE_IMAGE_FILENAME}"
+      rm -f "${UMPIRE_IMAGE_FILEPATH}"
       echo "Load prebuilt image fail! start building image."
     fi
   fi
@@ -67,9 +69,10 @@ do_build() {
 do_pull() {
   # check the file locally first if we run the script twice we don't need to
   # download it again.
-  if [ ! -f "${UMPIRE_IMAGE_FILENAME}" ]; then
-    wget "${PREBUILT_IMAGE_DIR_URL}/${UMPIRE_IMAGE_FILENAME}" || \
-      rm -f "${UMPIRE_IMAGE_FILENAME}"
+  if [ ! -f "${UMPIRE_IMAGE_FILEPATH}" ]; then
+    wget -P "${SCRIPT_DIR}" \
+      "${PREBUILT_IMAGE_DIR_URL}/${UMPIRE_IMAGE_FILENAME}" || \
+      rm -f "${UMPIRE_IMAGE_FILEPATH}"
   fi
 }
 
