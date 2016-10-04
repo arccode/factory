@@ -14,10 +14,6 @@ PYTHON=python
 
 # The list of binaries to install has been moved to misc/symlinks.yaml.
 
-TEST_RUNNER=py/tools/run_tests.py
-# Maximum number of parallel tests to run.
-MAX_TESTS=$(shell grep -c ^processor /proc/cpuinfo)
-
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
 
@@ -30,10 +26,9 @@ LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 
 UNITTESTS=$(shell find py go -name '*_unittest.py' | sort)
-# TODO(sheckylin): Get py/test/utils/media_utils_unittest.py working.
 UNITTESTS_BLACKLIST=$(shell cat $(MK_DIR)/unittests.blacklist)
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
-# Tests need to run in isolate mode.
+TEST_EXTRA_FLAGS=
 
 INSTALL_MASK=*.pyc \
 	     *_unittest.py \
@@ -168,17 +163,8 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 test:
-	# Run tests with POSIX locale to avoid localized output.
-	find . -name '*.pyc' -delete
-	@logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
-	mkdir $$logdir; \
-	echo "Test logs will be written to $$logdir"; \
-	test -d "$(CURDIR)/../../private-overlays" \
-	    || echo "$$(tput setaf 1)Warning: Private components are missing."\
-	            "Some tests are likely to fail without them.$$(tput sgr0)";\
-	echo; \
-	LC_ALL="C" $(TEST_RUNNER) $(UNITTESTS_WHITELIST) -i $(UNITTESTS_ISOLATE_LIST) \
-            -j $(MAX_TESTS) -l $$logdir $(EXTRA_TEST_FLAGS)
+	@TEST_EXTRA_FLAGS=$(TEST_EXTRA_FLAGS) \
+		$(MK_DIR)/test.sh $(UNITTESTS_WHITELIST)
 
 # Trick to make sure that overlays are rebuilt every time overlay-xxx is run.
 .PHONY: .phony
@@ -209,7 +195,7 @@ par-overlay-%: overlay-%
 	$(MAKE) -C $< par
 
 testall:
-	@$(MAKE) --no-print-directory test EXTRA_TEST_FLAGS=--nofilter
+	@$(MAKE) --no-print-directory test TEST_EXTRA_FLAGS=--nofilter
 
 # Regenerates the reg code proto.  TODO(jsalz): Integrate this as a
 # "real" part of the build, rather than relying on regenerating it
