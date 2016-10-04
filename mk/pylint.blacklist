@@ -37,3 +37,4 @@ py/minijack/httplib2/%
 py/minijack/oauth2client/%
 py/minijack/uritemplate/%
 py/proto/%_pb2.py
+doc/conf.py

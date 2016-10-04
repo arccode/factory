@@ -17,7 +17,16 @@ import time
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../../py_pkg'))
+py_pkg = os.getenv('CROS_FACTORY_PY_ROOT')
+if py_pkg is None:
+  py_pkg = os.path.dirname(os.path.abspath(__file__))
+  while py_pkg != '/' and not os.path.exists(os.path.join(py_pkg, 'py_pkg')):
+    py_pkg = os.path.dirname(py_pkg)
+  py_pkg = os.path.join(py_pkg, 'py_pkg')
+
+assert os.path.exists(py_pkg), 'Failed to find py_pkg.'
+if py_pkg not in sys.path:
+  sys.path.insert(0, py_pkg)
 
 # -- General configuration -----------------------------------------------------
 
