@@ -280,13 +280,8 @@ overlay-%: .phony
 	if [ "$@" = overlay-private ]; then \
 	  rsync -aK --exclude Makefile ../factory-private/ $@/; \
 	else \
-	  for prefix in "project" "overlay" "overlay-variant"; \
-	  do \
-	    path="../../private-overlays/$${prefix}-$(subst overlay-,,$@)-private"; \
-	    if [ -e "$${path}" ]; then \
-	      rsync -aK "$${path}/chromeos-base/chromeos-factory-board/files/" $@/; \
-	    fi; \
-	  done \
+	  rsync -aK "$(shell dirname $(shell equery-$(subst overlay-,,$@) \
+	               which chromeos-factory-board))/files/" $@/; \
 	fi
 
 # Tests the overlay of the given board.
