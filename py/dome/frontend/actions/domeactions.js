@@ -32,7 +32,7 @@ const createBoard = name => dispatch => {
 
   var description = `Create board "${name}"`;
   dispatch(createTask(
-      description, 'POST', 'boards', formData, () => dispatch(fetchBoards()),
+      description, 'POST', '/boards', formData, () => dispatch(fetchBoards()),
   ));
 };
 
@@ -76,14 +76,14 @@ const updateBoard = (name, settings = {}) => (dispatch, getState) => {
 
   var description = `Update board "${name}"`;
   dispatch(createTask(
-      description, 'PUT', `boards/${name}`, formData, onFinish, onCancel
+      description, 'PUT', `/boards/${name}`, formData, onFinish, onCancel
   ));
 };
 
 const deleteBoard = name => dispatch => {
   var description = `Delete board "${name}"`;
   dispatch(createTask(
-      description, 'DELETE', `boards/${name}`, new FormData(),
+      description, 'DELETE', `/boards/${name}`, new FormData(),
       () => dispatch(fetchBoards()),
   ));
 };
