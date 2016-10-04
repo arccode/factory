@@ -21,15 +21,9 @@ MAX_TESTS=$(shell grep -c ^processor /proc/cpuinfo)
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
 
-PYLINTRC=$(MK_DIR)/pylint.rc
-
 # Extra arguments to give to the make_par command (e.g., to add
 # files from overlays).
 MAKE_PAR_ARGS=
-
-# TODO(shik): Re-enable R0801 once flash_firmware.py and
-# setup_netboot.py are fixed.
-PYLINT_OPTIONS=--rcfile=$(PYLINTRC) --msg-template='{path}:{line}: {msg_id}: {msg}'
 
 LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist)
 LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
@@ -108,24 +102,7 @@ bundle: par
 	cp /usr/bin/futility $(FACTORY_BUNDLE)/factory_setup/bin
 
 lint:
-	@set -e -o pipefail; \
-	out=$$(mktemp); \
-	echo Linting $(shell echo $(LINT_WHITELIST) | wc -w) files...; \
-	if [ -n "$(LINT_WHITELIST)" ] && \
-			! env PYTHONPATH=py_pkg:py:setup \
-			pylint $(PYLINT_OPTIONS) $(LINT_WHITELIST) \
-	    |& tee $$out; then \
-	  echo; \
-	  echo To re-lint failed files, run:; \
-	  echo make lint LINT_WHITELIST=\""$$( \
-	    grep '^\*' $$out | cut -c22- | tr . / | \
-	    sed 's/$$/.py/' | tr '\n' ' ' | sed -e 's/ $$//')"\"; \
-	  echo; \
-	  rm -f $$out; \
-	  exit 1; \
-	fi; \
-	echo ...no lint errors! You are awesome!; \
-	rm -f $$out
+	$(MK_DIR)/pylint.sh $(LINT_WHITELIST)
 
 # Target to lint only files that have changed.  (We allow either
 # "smartlint" or "smart_lint".)
@@ -150,9 +127,7 @@ chroot-presubmit:
 	$(MAKE) -s make-factory-package-presubmit
 
 lint-presubmit:
-	$(MAKE) lint \
-	    LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" \
-	    2>/dev/null
+	$(MAKE) lint LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" 2>/dev/null
 
 deps-presubmit:
 	@echo "Checking dependency..."

@@ -61,6 +61,8 @@
 # R0921: Abstract class not referenced.
 # R0922: Abstract class is only referenced N times.
 # R0801, W0105: Added for factory repo only.
+# TODO(shik): Re-enable R0801 once flash_firmware.py and
+# setup_netboot.py are fixed.
 disable=C0103,C0111,C0302,E1103,I0011,I0012,R0201,R0902,R0903,R0911,R0912,R0913,R0914,R0915,W0122,W0141,W0142,W0403,W0511,W0703,R0904,R0921,R0922,R0801,W0105
 
 
