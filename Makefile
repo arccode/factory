@@ -17,6 +17,8 @@ PYTHON=python
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
 
+CLOSURE_DIR = py/goofy/static
+
 # Extra arguments to give to the make_par command (e.g., to add
 # files from overlays).
 MAKE_PAR_ARGS=
@@ -30,14 +32,23 @@ UNITTESTS_BLACKLIST=$(shell cat $(MK_DIR)/unittests.blacklist)
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 TEST_EXTRA_FLAGS=
 
+# Virtual targets. The '.phony' is a special hack to allow making targets with
+# wildchar (for instance, overlay-%) to be treated as .PHONY.
+.PHONY: .phony default clean closure proto ovl-bin par bundle \
+	lint smartlint smart_lint chroot-presubmit lint-presubmit \
+	deps-presubmit make-factory-package-presubmit test-presubmit presubmit \
+	test testall
+
 INSTALL_MASK=*.pyc \
 	     *_unittest.py \
 	     py/doc
 
+# This must be the first rule.
+default: closure
 
-default:
-	$(MAKE) -C py/goofy/static
-
+# Currently the only programs using Closure is in Goofy.
+closure:
+	$(MAKE) -C $(CLOSURE_DIR)
 
 # Build par (Python archive) file containing all py and pyc files.
 par:
@@ -165,9 +176,6 @@ clean:
 test:
 	@TEST_EXTRA_FLAGS=$(TEST_EXTRA_FLAGS) \
 		$(MK_DIR)/test.sh $(UNITTESTS_WHITELIST)
-
-# Trick to make sure that overlays are rebuilt every time overlay-xxx is run.
-.PHONY: .phony
 
 # Builds an overlay of the given board.  Use "private" to overlay
 # factory-private (e.g., to build private API docs).
