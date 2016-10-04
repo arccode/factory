@@ -388,7 +388,7 @@ def InitUmpire(exe_path, src_root, target_board):
     parent_cmdline = open('/proc/%s/cmdline' % os.getppid(),
                           'r').read().rstrip('\0').split('\0')
 
-    if parent_cmdline > 1 and parent_cmdline[0] == MAKESELF_SHELL:
+    if len(parent_cmdline) > 1 and parent_cmdline[0] == MAKESELF_SHELL:
       # Get parent script name from parent process.
       exe_path = parent_cmdline[1]
     else:
@@ -401,8 +401,7 @@ def InitUmpire(exe_path, src_root, target_board):
   with file_utils.TempDirectory() as nano_bundle:
     bundle_toolkit_dir = os.path.join(nano_bundle, 'factory_toolkit')
     os.mkdir(bundle_toolkit_dir)
-    os.symlink(exe_path, os.path.join(bundle_toolkit_dir,
-                                      os.path.basename(exe_path)))
+    os.symlink(exe_path, os.path.join(bundle_toolkit_dir, TOOLKIT_NAME))
     umpire_bin = os.path.join(src_root, 'usr', 'local', 'factory', 'bin',
                               'umpire')
     Spawn([umpire_bin, 'init', '--board', target_board, nano_bundle],
