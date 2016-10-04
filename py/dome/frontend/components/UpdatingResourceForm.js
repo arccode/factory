@@ -54,16 +54,17 @@ var UpdatingResourceForm = React.createClass({
       return;
     }
 
-    var formData = new FormData();
-    // TODO: implement this
-    formData.append('board', this.props.board);
-    formData.append('is_inplace_update', this.state.isInPlaceUpdate);
-    formData.append('src_bundle_name', this.props.bundleName);
-    formData.append('dst_bundle_name', this.state.nameInputValue);
-    formData.append('note', this.state.noteInputValue);
-    formData.append('resource_type', this.props.resourceType);
-    formData.append('resource_file', this.fileInput.files[0]);
-    this.props.startUpdating(formData);
+    var data = {
+      // TODO(littlecvr): should use CamelCased
+      board:  this.props.board,
+      is_inplace_update:  this.state.isInPlaceUpdate,
+      src_bundle_name:  this.props.bundleName,
+      dst_bundle_name:  this.state.nameInputValue,
+      note:  this.state.noteInputValue,
+      resource_type:  this.props.resourceType,
+      resource_file:  this.fileInput.files[0]
+    };
+    this.props.startUpdating(data);
   },
 
   handleCancel() {
@@ -155,7 +156,7 @@ function mapStateToProps(state) {
 function mapDispatchToProps(dispatch) {
   return {
     startUpdating:
-        formData => dispatch(BundlesActions.startUpdatingResource(formData)),
+        data => dispatch(BundlesActions.startUpdatingResource(data)),
     cancelUpdating: () =>
         dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM))
   };

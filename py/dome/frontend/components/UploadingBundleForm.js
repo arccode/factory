@@ -31,12 +31,14 @@ var UploadingBundleForm = React.createClass({
       return;
     }
 
-    var formData = new FormData();
-    formData.append('board', this.props.board);
-    formData.append('name', this.state.nameInputValue);
-    formData.append('note', this.state.noteInputValue);
-    formData.append('bundle_file', this.fileInput.files[0]);
-    this.props.startUploading(formData);
+    var data = {
+      // TODO(littlecvr): should use CamelCased
+      board:  this.props.board,
+      name:  this.state.nameInputValue,
+      note:  this.state.noteInputValue,
+      bundle_file:  this.fileInput.files[0]
+    };
+    this.props.startUploading(data);
   },
 
   handleCancel() {
@@ -115,7 +117,7 @@ function mapStateToProps(state) {
 function mapDispatchToProps(dispatch) {
   return {
     startUploading:
-        formData => dispatch(BundlesActions.startUploadingBundle(formData)),
+        data => dispatch(BundlesActions.startUploadingBundle(data)),
     cancelUploading: () =>
         dispatch(DomeActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM))
   };

@@ -2,11 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import deepcopy from 'deepcopy';
+
 import ActionTypes from '../constants/ActionTypes';
 import TaskStates from '../constants/TaskStates';
 
-// Task bodies cannot be put in the state because they may contain file objects
-// which are not serializable.
+// Objects that cannot be serialized in the store.
+// TODO(littlecvr): probably should move this into a TaskQueue class.
+var _taskFiles = {};
 var _taskBodies = {};
 var _taskOnFinishes = {};
 var _taskOnCancels = {};
@@ -27,29 +30,34 @@ function buildOnCancel(dispatch, getState) {
 }
 
 const createBoard = name => dispatch => {
-  var formData = new FormData();
-  formData.append('name', name);
-
   var description = `Create board "${name}"`;
   dispatch(createTask(
-      description, 'POST', '/boards', formData, () => dispatch(fetchBoards()),
+      description, 'POST', '/boards', {name},
+      {onFinish: () => dispatch(fetchBoards())}
   ));
 };
 
 const updateBoard = (name, settings = {}) => (dispatch, getState) => {
-  let formData = new FormData();
-  formData.append('name', name);
-
+  let body = {name};
   [
     // TODO(littlecvr): should be CamelCased
     'umpire_enabled',
     'umpire_add_existing_one',
     'umpire_host',
-    'umpire_port',
+    'umpire_port'
+  ].forEach(key => {
+    if (key in settings) {
+      body[key] = settings[key];
+    }
+  });
+
+  let files = {};
+  [
+    // TODO(littlecvr): should be CamelCased
     'umpire_factory_toolkit_file'
   ].forEach(key => {
     if (key in settings) {
-      formData.append(key, settings[key]);
+      files[`${key}_id`] = settings[key];
     }
   });
 
@@ -70,21 +78,21 @@ const updateBoard = (name, settings = {}) => (dispatch, getState) => {
     type: ActionTypes.UPDATE_BOARD,
     board: {
       name,
+      // TODO(littlecvr): should be CamelCased
       umpire_ready: settings['umpire_enabled'] === true ? true : false
     }
   });
 
   var description = `Update board "${name}"`;
   dispatch(createTask(
-      description, 'PUT', `/boards/${name}`, formData, onFinish, onCancel
+      description, 'PUT', `/boards/${name}`, body, {onCancel, onFinish, files}
   ));
 };
 
 const deleteBoard = name => dispatch => {
-  var description = `Delete board "${name}"`;
   dispatch(createTask(
-      description, 'DELETE', `/boards/${name}`, new FormData(),
-      () => dispatch(fetchBoards()),
+      `Delete board "${name}"`, 'DELETE', `/boards/${name}`, {},
+      {onFinish: () => dispatch(fetchBoards())}
   ));
 };
 
@@ -156,8 +164,14 @@ const changeTaskState = (taskID, state) => ({
   state
 });
 
-const createTask = (description, method, url, body,
-                    onFinish = null, onCancel = null, contentType = null) => (
+// TODO(littlecvr): this action is growing bigger, we should probably
+//                  implement a task queue class instead of making this more
+//                  complicated
+const createTask = (description, method, url, body, {
+                      onCancel = function() {},
+                      onFinish = function() {},
+                      files = {}
+                    } = {}) => (
   (dispatch, getState) => {
     var tasks = getState().getIn(['dome', 'tasks']);
     var taskIDs = tasks.keySeq().sort().toArray();
@@ -167,6 +181,7 @@ const createTask = (description, method, url, body,
       taskID = String(1 + Math.max(...taskIDs.map(x => parseInt(x))));
     }
 
+    _taskFiles[taskID] = files;
     _taskBodies[taskID] = body;
     _taskOnFinishes[taskID] = onFinish;
     _taskOnCancels[taskID] = onCancel;
@@ -175,8 +190,7 @@ const createTask = (description, method, url, body,
       taskID,
       description,
       method,
-      url,
-      contentType
+      url
     });
 
     // if all tasks except this one succeeded, start this task now
@@ -196,6 +210,7 @@ const createTask = (description, method, url, body,
 
 const removeTask = taskID => dispatch => {
   taskID = String(taskID);  // make sure taskID is always a string
+  delete _taskFiles[taskID];
   delete _taskBodies[taskID];
   delete _taskOnFinishes[taskID];
   delete _taskOnCancels[taskID];
@@ -205,39 +220,61 @@ const removeTask = taskID => dispatch => {
   });
 };
 
+// TODO(littlecvr): this action is growing bigger, we should probably
+//                  implement a task queue class instead of making this more
+//                  complicated
 const startTask = taskID => (dispatch, getState) => {
   taskID = String(taskID);  // make sure taskID is always a string
-  var task = getState().getIn(['dome', 'tasks', taskID]);
-
   dispatch(changeTaskState(taskID, TaskStates.RUNNING));
 
-  var request = {method: task.get('method'), body: _taskBodies[taskID]};
-  if (task.get('contentType') !== null) {
-    request['headers'] = {'Content-Type': task.get('contentType')};
-  }
+  let task = getState().getIn(['dome', 'tasks', taskID]);
+  let body = deepcopy(_taskBodies[taskID]);  // make a copy
 
-  return fetch(`${task.get('url')}/`, request)
-    .then(checkHTTPStatus)
-    .then(_taskOnFinishes[taskID])
-    .then(
-      () => {
-        dispatch(changeTaskState(taskID, TaskStates.SUCCEEDED));
+  let queue = Promise.resolve();  // task queue powered by Promise
 
-        // find next queued task and start it
-        var tasks = getState().getIn(['dome', 'tasks']);
-        var taskIDs = tasks.keySeq().sort().toArray();
-        var nextIndex = 1 + taskIDs.indexOf(taskID);
-        if (nextIndex > 0 && nextIndex < taskIDs.length) {
-          var nextID = taskIDs[nextIndex];
-          dispatch(startTask(nextID));
-        }
-      },
-      error => {
-        console.error(error);
-        // TODO: show an error message box
-        dispatch(changeTaskState(taskID, TaskStates.FAILED));
-      }
-    );
+  // upload files first
+  Object.keys(_taskFiles[taskID]).forEach(key => {
+    let formData = new FormData();
+    formData.append('file', _taskFiles[taskID][key]);
+    queue = queue
+        .then(() => fetch('/files/', {method: 'POST', body: formData}))
+        .then(checkHTTPStatus)
+        .then(response => response.json())
+        .then(json => {
+          body[key] = json.id;  // push the uploaded file ID to the end request
+        });
+  });
+
+  // send the end request
+  queue = queue.then(() => {
+    let request = {
+      method: task.get('method'),
+      headers: {'Content-Type': 'application/json'},  // always send in JSON
+      body: JSON.stringify(body)
+    };
+    return fetch(`${task.get('url')}/`, request);
+  }).then(checkHTTPStatus).then(_taskOnFinishes[taskID]);
+
+  // if all sub-tasks succeeded, mark it as succeeded, and start the next task
+  queue = queue.then(() => {
+    dispatch(changeTaskState(taskID, TaskStates.SUCCEEDED));
+
+    // find the next task and start it
+    let tasks = getState().getIn(['dome', 'tasks']);
+    let taskIDs = tasks.keySeq().sort().toArray();
+    let nextIndex = 1 + taskIDs.indexOf(taskID);
+    if (nextIndex > 0 && nextIndex < taskIDs.length) {
+      let nextID = taskIDs[nextIndex];
+      dispatch(startTask(nextID));
+    }
+  });
+
+  // if any sub-task above failed, display the error message
+  queue = queue.catch(error => {
+    console.error(error);
+    // TODO: show an error message box
+    dispatch(changeTaskState(taskID, TaskStates.FAILED));
+  });
 };
 
 const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {

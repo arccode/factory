@@ -29,8 +29,10 @@ class BoardSerializer(serializers.Serializer):
   name = serializers.ModelField(
       model_field=Board._meta.get_field('name'))  # pylint: disable=W0212
 
-  # cannot use ModelField here, django won't convert 'false' to boolean
-  umpire_enabled = serializers.BooleanField()
+  umpire_enabled = serializers.ModelField(
+      model_field=(
+          Board._meta.get_field('umpire_enabled')),  # pylint: disable=W0212
+      required=False)
   umpire_host = serializers.ModelField(
       model_field=Board._meta.get_field('umpire_host'),  # pylint: disable=W0212
       required=False)
@@ -69,7 +71,9 @@ class ResourceSerializer(serializers.Serializer):
   board = serializers.CharField(write_only=True)
   is_inplace_update = serializers.BooleanField(write_only=True)
   src_bundle_name = serializers.CharField(write_only=True)
-  dst_bundle_name = serializers.CharField(write_only=True, allow_null=True)
+  dst_bundle_name = serializers.CharField(write_only=True,
+                                          allow_null=True,
+                                          allow_blank=True)
   note = serializers.CharField(write_only=True)
   resource_type = serializers.CharField(write_only=True)
   resource_file_id = serializers.IntegerField(write_only=True)

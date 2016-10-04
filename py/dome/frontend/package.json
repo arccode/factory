@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "the factory server front end",
   "dependencies": {
+    "deepcopy": "^0.6.3",
     "immutable": "^3.8.1",
     "isomorphic-fetch": "^2.2.1",
     "material-ui": "^0.15.4",
