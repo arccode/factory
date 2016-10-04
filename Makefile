@@ -4,6 +4,7 @@
 
 SHELL := bash
 
+MK_DIR=mk
 BUILD_DIR=$(CURDIR)/build
 PAR_BUILD_DIR=$(BUILD_DIR)/par
 PAR_NAME=factory.par
@@ -20,7 +21,7 @@ MAX_TESTS=$(shell grep -c ^processor /proc/cpuinfo)
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
 
-PYLINTRC=pylintrc
+PYLINTRC=$(MK_DIR)/pylint.rc
 
 # Extra arguments to give to the make_par command (e.g., to add
 # files from overlays).
@@ -30,60 +31,13 @@ MAKE_PAR_ARGS=
 # setup_netboot.py are fixed.
 PYLINT_OPTIONS=--rcfile=$(PYLINTRC) --msg-template='{path}:{line}: {msg_id}: {msg}'
 
-LINT_BLACKLIST=\
-	py/argparse.py \
-	py/gooftool/vblock.py \
-	py/goofy/invocation.py \
-	py/goofy/prespawner.py \
-	py/goofy/test_environment.py \
-	py/goofy/updater.py \
-	py/goofy/web_socket_manager.py \
-	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-ALFA_1111 \
-	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-BETA_2222 \
-	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-CHARLIE_3333 \
-	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-DELTA_4444 \
-	py/hwdb/convert_to_v2_test_files/v15_TEST_FILE \
-	py/instalog/plugins/input_drm_screencap/drm.py \
-	py/shopfloor/shopfloor_standalone_unittest.py \
-	py/shopfloor/template.py \
-	py/system/charge_manager_unittest.py \
-	py/test/event.py \
-	py/test/gooftools.py \
-	py/test/leds.py \
-	py/test/line_item_check.py \
-	py/test/pytests/execpython.py \
-	py/test/state_machine.py \
-	py/test/state.py \
-	py/test/state_unittest.py \
-	py/test/task.py \
-	py/test/ui.py \
-	py/test/unicode_to_string.py \
-	py/test/unicode_to_string_unittest.py \
-	py/test/utils.py \
-	py/test/utils_unittest.py \
-	py/test/utils/media_utils_unittest.py \
-	py/test/fixture/camera/grid_mapper.py \
-	py/minijack/apiclient/% \
-	py/minijack/gflags.py \
-	py/minijack/gflags_validators.py \
-	py/minijack/httplib2/% \
-	py/minijack/oauth2client/% \
-	py/minijack/uritemplate/% \
-	py/proto/%_pb2.py
-
+LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist)
 LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 
 UNITTESTS=$(shell find py go -name '*_unittest.py' | sort)
 # TODO(sheckylin): Get py/test/utils/media_utils_unittest.py working.
-UNITTESTS_BLACKLIST=\
-	py/test/utils/media_utils_unittest.py \
-	py/minijack/db/query_unittest.py \
-	py/minijack/db/models_unittest.py \
-	py/minijack/db/db_unittest.py \
-	py/minijack/workers_unittest.py \
-	py/minijack/archiver_unittest.py \
-	py/minijack/datatypes_unittest.py
+UNITTESTS_BLACKLIST=$(shell cat $(MK_DIR)/unittests.blacklist)
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 # Tests need to run in isolate mode.
 
