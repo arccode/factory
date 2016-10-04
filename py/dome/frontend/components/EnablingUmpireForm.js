@@ -18,15 +18,14 @@ var EnablingUmpireForm = React.createClass({
   },
 
   buildUmpireSettings(addExistingOne, host, port, factoryToolkitFile) {
-    // TODO(littlecvr): should use CamelCase
     // TODO(littlecvr): should not need to add 'umpire_' prefix
     let settings = {
-      'umpire_add_existing_one': addExistingOne,
-      'umpire_host': host,
-      'umpire_port': port
+      'umpireAddExistingOne': addExistingOne,
+      'umpireHost': host,
+      'umpirePort': port
     };
     if (!addExistingOne) {
-      settings['umpire_factory_toolkit_file'] = factoryToolkitFile;
+      settings['umpireFactoryToolkitFile'] = factoryToolkitFile;
     }
     return settings;
   },

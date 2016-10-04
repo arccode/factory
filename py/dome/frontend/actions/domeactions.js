@@ -40,11 +40,10 @@ const createBoard = name => dispatch => {
 const updateBoard = (name, settings = {}) => (dispatch, getState) => {
   let body = {name};
   [
-    // TODO(littlecvr): should be CamelCased
-    'umpire_enabled',
-    'umpire_add_existing_one',
-    'umpire_host',
-    'umpire_port'
+    'umpireEnabled',
+    'umpireAddExistingOne',
+    'umpireHost',
+    'umpirePort'
   ].forEach(key => {
     if (key in settings) {
       body[key] = settings[key];
@@ -53,8 +52,7 @@ const updateBoard = (name, settings = {}) => (dispatch, getState) => {
 
   let files = {};
   [
-    // TODO(littlecvr): should be CamelCased
-    'umpire_factory_toolkit_file'
+    'umpireFactoryToolkitFile'
   ].forEach(key => {
     if (key in settings) {
       files[`${key}_id`] = settings[key];
@@ -69,8 +67,7 @@ const updateBoard = (name, settings = {}) => (dispatch, getState) => {
     type: ActionTypes.UPDATE_BOARD,
     board: Object.assign({
       name,
-      // TODO(littlecvr): should be CamelCased
-      umpire_ready: false,
+      umpireReady: false,
     }, settings)
   });
 
@@ -78,8 +75,7 @@ const updateBoard = (name, settings = {}) => (dispatch, getState) => {
     type: ActionTypes.UPDATE_BOARD,
     board: {
       name,
-      // TODO(littlecvr): should be CamelCased
-      umpire_ready: settings['umpire_enabled'] === true ? true : false
+      umpireReady: settings['umpireEnabled'] === true ? true : false
     }
   });
 

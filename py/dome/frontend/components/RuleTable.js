@@ -36,8 +36,8 @@ var RuleTable = React.createClass({
     // make sure every key exists
     var rules = this.props.rules.mergeDeep(Immutable.fromJS({
       'macs': [],
-      'serial_numbers': [],
-      'mlb_serial_numbers': []
+      'serialNumbers': [],
+      'mlbSerialNumbers': []
     })).toJS();
 
     return (
@@ -57,9 +57,9 @@ var RuleTable = React.createClass({
             <TableHeaderColumn>SN</TableHeaderColumn>
             <TableRowColumn>
               <ChipInput
-                value={rules['serial_numbers']}
-                onRequestAdd={s => this.handleAdd('serial_numbers', s)}
-                onRequestDelete={s => this.handleDelete('serial_numbers', s)}
+                value={rules['serialNumbers']}
+                onRequestAdd={s => this.handleAdd('serialNumbers', s)}
+                onRequestDelete={s => this.handleDelete('serialNumbers', s)}
               />
             </TableRowColumn>
           </TableRow>
@@ -67,10 +67,10 @@ var RuleTable = React.createClass({
             <TableHeaderColumn>MLB SN</TableHeaderColumn>
             <TableRowColumn>
               <ChipInput
-                value={rules['mlb_serial_numbers']}
-                onRequestAdd={s => this.handleAdd('mlb_serial_numbers', s)}
+                value={rules['mlbSerialNumbers']}
+                onRequestAdd={s => this.handleAdd('mlbSerialNumbers', s)}
                 onRequestDelete={
-                  s => this.handleDelete('mlb_serial_numbers', s)
+                  s => this.handleDelete('mlbSerialNumbers', s)
                 }
               />
             </TableRowColumn>

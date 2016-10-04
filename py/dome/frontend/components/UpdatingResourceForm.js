@@ -27,7 +27,8 @@ var UpdatingResourceForm = React.createClass({
 
     // name of the source bundle to update
     bundleName: React.PropTypes.string,
-    // type of the resource in source bundle to update
+    // key and type of the resource in source bundle to update
+    resourceKey: React.PropTypes.string,
     resourceType: React.PropTypes.string
   },
 
@@ -55,16 +56,15 @@ var UpdatingResourceForm = React.createClass({
     }
 
     var data = {
-      // TODO(littlecvr): should use CamelCased
       board:  this.props.board,
-      is_inplace_update:  this.state.isInPlaceUpdate,
-      src_bundle_name:  this.props.bundleName,
-      dst_bundle_name:  this.state.nameInputValue,
+      isInplaceUpdate:  this.state.isInPlaceUpdate,
+      srcBundleName:  this.props.bundleName,
+      dstBundleName:  this.state.nameInputValue,
       note:  this.state.noteInputValue,
-      resource_type:  this.props.resourceType,
-      resource_file:  this.fileInput.files[0]
+      resourceType:  this.props.resourceType,
+      resourceFile:  this.fileInput.files[0]
     };
-    this.props.startUpdating(data);
+    this.props.startUpdating(this.props.resourceKey, data);
   },
 
   handleCancel() {
@@ -147,6 +147,9 @@ function mapStateToProps(state) {
     bundleName: state.getIn([
       'dome', 'formPayload', FormNames.UPDATING_RESOURCE_FORM, 'bundleName'
     ]),
+    resourceKey: state.getIn([
+      'dome', 'formPayload', FormNames.UPDATING_RESOURCE_FORM, 'resourceKey'
+    ]),
     resourceType: state.getIn([
       'dome', 'formPayload', FormNames.UPDATING_RESOURCE_FORM, 'resourceType'
     ])
@@ -155,8 +158,9 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    startUpdating:
-        data => dispatch(BundlesActions.startUpdatingResource(data)),
+    startUpdating: (resourceKey, data) => dispatch(
+        BundlesActions.startUpdatingResource(resourceKey, data)
+    ),
     cancelUpdating: () =>
         dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM))
   };

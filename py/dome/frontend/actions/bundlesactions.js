@@ -170,35 +170,32 @@ const startUploadingBundle = data => (dispatch, getState) => {
 
   // send the request
   var description = `Upload bundle "${data.name}"`;
-  // TODO(littlecvr): should use CamelCased
-  var bundle_file = data.bundle_file;
-  delete data.bundle_file;
+  var bundleFile = data.bundleFile;
+  delete data.bundleFile;
   dispatch(DomeActions.createTask(
       description, 'POST', `${baseURL(getState)}/bundles`, data, {
         onFinish,
         onCancel,
         files: {
-          'bundle_file_id': bundle_file
+          'bundleFileId': bundleFile
         }
       }
   ));
 };
 
-const startUpdatingResource = data => (dispatch, getState) => {
+const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
   dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM));
 
   var onCancel = buildOnCancel(dispatch, getState);
-  // TODO(littlecvr): should use CamelCased
-  var srcBundleName = data.src_bundle_name;
-  var dstBundleName = data.dst_bundle_name;
+  var srcBundleName = data.srcBundleName;
+  var dstBundleName = data.dstBundleName;
 
   // optimistic update
   var bundle = findBundle(srcBundleName, getState);
   bundle['note'] = data.note;
   // reset hash and version of the resource currently being update
-  var resourceType = data.resource_type;
-  bundle['resources'][resourceType]['hash'] = '(waiting for update)';
-  bundle['resources'][resourceType]['version'] = '(waiting for update)';
+  bundle['resources'][resourceKey]['hash'] = '(waiting for update)';
+  bundle['resources'][resourceKey]['version'] = '(waiting for update)';
   if (dstBundleName != '') {
     // duplicate the src bundle if it's not an in-place update
     bundle['name'] = dstBundleName;
@@ -226,14 +223,14 @@ const startUpdatingResource = data => (dispatch, getState) => {
   if (dstBundleName != '') {
     description += ` to bundle "${dstBundleName}"`;
   }
-  var resource_file = data.resource_file;
-  delete data.resource_file;
+  var resourceFile = data.resourceFile;
+  delete data.resourceFile;
   dispatch(DomeActions.createTask(
       description, 'PUT', `${baseURL(getState)}/resources`, data, {
         onFinish,
         onCancel,
         files: {
-          'resource_file_id': resource_file
+          'resourceFileId': resourceFile
         }
       }
   ));

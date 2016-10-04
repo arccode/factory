@@ -32,11 +32,10 @@ var UploadingBundleForm = React.createClass({
     }
 
     var data = {
-      // TODO(littlecvr): should use CamelCased
       board:  this.props.board,
       name:  this.state.nameInputValue,
       note:  this.state.noteInputValue,
-      bundle_file:  this.fileInput.files[0]
+      bundleFile:  this.fileInput.files[0]
     };
     this.props.startUploading(data);
   },

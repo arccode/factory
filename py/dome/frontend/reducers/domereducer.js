@@ -31,7 +31,7 @@ export default function domeReducer(state = INITIAL_STATE, action) {
     case ActionTypes.RECEIVE_BOARDS:
       return state.set('boards', Immutable.Map(action.boards.map(
           b => [b['name'], Immutable.fromJS(b).merge({
-            umpire_ready: b['umpire_enabled']
+            umpireReady: b['umpireEnabled']
           })]
       )));
 

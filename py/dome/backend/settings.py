@@ -148,6 +148,14 @@ FILE_UPLOAD_HANDLERS = [
 REST_FRAMEWORK = {
     # The default value "format" makes pylint complaining about "W0622:
     # Redefining built-in 'format'", so we'll rename it to "request_format".
-    'FORMAT_SUFFIX_KWARG': 'request_format'
+    'FORMAT_SUFFIX_KWARG': 'request_format',
+    'DEFAULT_RENDERER_CLASSES': [
+        'djangorestframework_camel_case.render.CamelCaseJSONRenderer'
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'djangorestframework_camel_case.parser.CamelCaseJSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser'
+    ]
 }
 

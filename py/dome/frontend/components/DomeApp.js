@@ -111,13 +111,13 @@ var DomeApp = React.createClass({
               Dashboard
             </MenuItem>
           }
-          {boardName != '' && board.get('umpire_enabled') &&
+          {boardName != '' && board.get('umpireEnabled') &&
             <MenuItem
               onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
               innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
-              disabled={!board.get('umpire_ready')}
+              disabled={!board.get('umpireReady')}
             >
-              Bundles{!board.get('umpire_ready') && ' (activating...)'}
+              Bundles{!board.get('umpireReady') && ' (activating...)'}
             </MenuItem>
           }
           {boardName != '' &&

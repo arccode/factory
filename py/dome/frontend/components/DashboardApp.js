@@ -54,21 +54,21 @@ var DashboardApp = React.createClass({
                 <TableRow>
                   <TableRowColumn>Umpire (bundle management)</TableRowColumn>
                   <TableRowColumn>
-                    {board.get('umpire_enabled') && 'enabled'}
-                    {!board.get('umpire_enabled') && 'disabled'}
+                    {board.get('umpireEnabled') && 'enabled'}
+                    {!board.get('umpireEnabled') && 'disabled'}
                   </TableRowColumn>
                   <TableRowColumn>
-                    {board.get('umpire_enabled') && <div>
-                      host: {board.get('umpire_host')}<br />
-                      port: {board.get('umpire_port')}
+                    {board.get('umpireEnabled') && <div>
+                      host: {board.get('umpireHost')}<br />
+                      port: {board.get('umpirePort')}
                     </div>}
                   </TableRowColumn>
                   <TableRowColumn>
-                    {board.get('umpire_enabled') && <RaisedButton
+                    {board.get('umpireEnabled') && <RaisedButton
                       label="DISABLE"
                       onClick={() => disableUmpire(board.get('name'))}
                     />}
-                    {!board.get('umpire_enabled') && <RaisedButton
+                    {!board.get('umpireEnabled') && <RaisedButton
                       label="ENABLE"
                       onClick={openEnablingUmpireForm}
                     />}
@@ -112,12 +112,11 @@ function mapDispatchToProps(dispatch) {
         DomeActions.closeForm(FormNames.ENABLING_UMPIRE_FORM)
     ),
     disableUmpire: boardName => (
-        dispatch(DomeActions.updateBoard(boardName, {'umpire_enabled': false}))
+        dispatch(DomeActions.updateBoard(boardName, {'umpireEnabled': false}))
     ),
     enableUmpire: (boardName, umpireSettings) => (
         dispatch(DomeActions.updateBoard(boardName, Object.assign({
-          // TODO(littlecvr): should use CamelCase
-          'umpire_enabled': true
+          'umpireEnabled': true
         }, umpireSettings)))
     ),
     openEnablingUmpireForm: () => (

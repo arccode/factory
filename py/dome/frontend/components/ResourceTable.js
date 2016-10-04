@@ -35,8 +35,8 @@ var ResourceTable = React.createClass({
           </TableRow>
         </TableHeader>
         <TableBody displayRowCheckbox={false}>
-          {resources.keySeq().sort().toArray().map(type => {
-            var resource = resources.get(type);
+          {resources.keySeq().sort().toArray().map(key => {
+            var resource = resources.get(key);
 
             // Version string often exceeds the width of the cell, and the
             // default behavior of TableRowColumn is to clip it. We need to make
@@ -47,9 +47,9 @@ var ResourceTable = React.createClass({
             };
 
             return (
-              <TableRow key={type}>
+              <TableRow key={resource.get('type')}>
                 <TableRowColumn style={style}>
-                  {type}
+                  {resource.get('type')}
                 </TableRowColumn>
                 <TableRowColumn style={style}>
                   {resource.get('version')}
@@ -62,7 +62,9 @@ var ResourceTable = React.createClass({
                   {resource.get('updatable') &&
                     <RaisedButton
                       label="update"
-                      onClick={() => handleUpdate(bundle.get('name'), type)}
+                      onClick={() => handleUpdate(
+                          bundle.get('name'), key, resource.get('type')
+                      )}
                     />
                   }
                 </TableRowColumn>
@@ -77,9 +79,18 @@ var ResourceTable = React.createClass({
 
 function mapDispatchToProps(dispatch) {
   return {
-    handleUpdate: (bundleName, resourceType) => dispatch(DomeActions.openForm(
-        FormNames.UPDATING_RESOURCE_FORM, {bundleName, resourceType}
-    ))
+    handleUpdate: (bundleName, resourceKey, resourceType) => dispatch(
+        DomeActions.openForm(
+            FormNames.UPDATING_RESOURCE_FORM,
+            // TODO(littlecvr): resourceKey are actually the same, but
+            //                  resourceKey is CamelCased, resourceType is
+            //                  lowercase_separated_by_underscores. We should
+            //                  probably normalize the data in store so we don't
+            //                  have to pass both resourceKey and resourceType
+            //                  into it.
+            {bundleName, resourceKey, resourceType}
+        )
+    )
   };
 }
 
