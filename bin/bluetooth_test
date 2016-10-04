@@ -1,1 +1,1 @@
-../py/test/dut/bluetooth.py
+../py/device/chromeos/bluetooth.py
