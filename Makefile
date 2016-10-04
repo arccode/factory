@@ -178,24 +178,7 @@ make-factory-package-presubmit:
 	fi
 
 test-presubmit:
-	if [ ! -e .tests-passed ]; then \
-	    echo 'Unit tests have not passed.  Please run "make test".'; \
-	    exit 1; \
-	fi
-	if [ -n "$(PRESUBMIT_FILES)" ]; then \
-	    changed=$$(find $(filter-out doc/%,$(PRESUBMIT_FILES)) \
-	        -newer .tests-passed); \
-	else \
-	    if [ "$$(git log -1 --format=%ct)" -gt "$$(stat -c %Y .tests-passed)" ]; then \
-	        changed="one or more deleted files"; \
-	    fi; \
-	fi; \
-	if [ -n "$$changed" ]; then \
-	    echo "Files have changed since last time unit tests passed:"; \
-	    echo "$$changed" | sed -e 's/^/  /'; \
-	    echo 'Please run "make test" inside chroot.'; \
-	    exit 1; \
-	fi
+	$(MK_DIR)/test-presubmit.sh $(PRESUBMIT_FILES)
 
 presubmit:
 	@if [ ! -e /etc/debian_chroot ]; then \
