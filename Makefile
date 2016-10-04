@@ -201,7 +201,7 @@ presubmit:
 	@if [ ! -e /etc/debian_chroot ]; then \
 		echo "Running presubmit checks inside chroot..."; \
 		cros_sdk PRESUBMIT_FILES="$(PRESUBMIT_FILES)" -- \
-		make -C ../platform/factory -s chroot-presubmit; \
+		$(MAKE) -C ../platform/factory -s chroot-presubmit; \
 	else \
 		$(MAKE) -s chroot-presubmit; \
 	fi
@@ -240,18 +240,18 @@ overlay-%: .phony
 
 # Tests the overlay of the given board.
 test-overlay-%: overlay-%
-	make -C $< test && touch .tests-passed
+	$(MAKE) -C $< test && touch .tests-passed
 
 # Lints the overlay of the given board.
 lint-overlay-%: overlay-%
-	make -C $< lint
+	$(MAKE) -C $< lint
 
 # Create par of the given board.
 par-overlay-%: overlay-%
-	make -C $< par
+	$(MAKE) -C $< par
 
 testall:
-	@make --no-print-directory test EXTRA_TEST_FLAGS=--nofilter
+	@$(MAKE) --no-print-directory test EXTRA_TEST_FLAGS=--nofilter
 
 # Regenerates the reg code proto.  TODO(jsalz): Integrate this as a
 # "real" part of the build, rather than relying on regenerating it
@@ -271,7 +271,7 @@ doc: .phony
 	# Generate rst sources for test cases
 	bin/generate_rsts -o $(BUILD_DIR)/docsrc
 
-	make -C $(BUILD_DIR)/docsrc html
+	$(MAKE) -C $(BUILD_DIR)/docsrc html
 	rm -rf $(BUILD_DIR)/doc
 	mkdir -p $(BUILD_DIR)/doc
 	rsync -a $(BUILD_DIR)/docsrc/_build/ $(BUILD_DIR)/doc/
