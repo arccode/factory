@@ -602,10 +602,7 @@ class ComponentsTest(unittest.TestCase):
           'probeable': False,
           'items': {
               'comp_2': {
-                  'values': None,
-                  'labels': {
-                      'label1': 'FOO',
-                      'label2': 'BAR'}}}}}
+                  'values': None}}}}
 
   def setUp(self):
     self.components = Components(ComponentsTest.MOCK_COMPONENTS_DICT)
@@ -620,7 +617,7 @@ class ComponentsTest(unittest.TestCase):
         {'values': {'field1': Value('foo'), 'field2': Value('bar')}},
         self.components.GetComponentAttributes('comp_cls_1', 'comp_1'))
     self.assertEquals(
-        {'values': None, 'labels': {'label1': 'FOO', 'label2': 'BAR'}},
+        {'values': None},
         self.components.GetComponentAttributes('comp_cls_2', 'comp_2'))
 
   def testMatchComponentsFromValues(self):
@@ -633,10 +630,7 @@ class ComponentsTest(unittest.TestCase):
                                                   {'field1': 'foo',
                                                    'field2': 'bar'}))
     self.assertEquals(
-        {'comp_2': {
-            'values': None,
-            'labels': {
-                'label1': 'FOO', 'label2': 'BAR'}}},
+        {'comp_2': {'values': None}},
         self.components.MatchComponentsFromValues('comp_cls_2', None))
     self.assertEquals(
         None,

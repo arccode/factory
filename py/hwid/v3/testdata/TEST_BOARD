@@ -279,13 +279,9 @@ components:
     items:
       keyboard_gb:
         values: NULL
-        labels:
-          layout: GB
 
       keyboard_us:
         values: NULL
-        labels:
-          layout: US
 
   storage:
     items:
@@ -294,27 +290,18 @@ components:
           type: SSD
           size: 16G
           serial: '#123456'
-        labels:
-          technology: SSD
-          size: 16G
 
       storage_1:
         values:
           type: SSD
           size: 32G
           serial: '#123456'
-        labels:
-          technology: SSD
-          size: 32G
 
       storage_2:
         values:
           type: HDD
           size: 500G
           serial: '#123456'
-        labels:
-          technology: HDD
-          size: 500G
 
   video:
     items:
@@ -410,18 +397,9 @@ rules:
 - name: verify.components.rule_4
   when: not ComponentEq('cpu', None)
   evaluate:
-  - Assert(ComponentEq('storage', ['SSD', '16G']))
   - Assert((not ComponentEq('battery', 'battery_small')) or
            (ComponentIn('cpu', ['cpu_1', 'cpu_2', 'cpu_3'])))
 
-- name: verify.components.rule_5
-  when: not ComponentEq('cpu', None)
-  evaluate: Assert(ComponentEq('storage', 'SSD') or
-                   ComponentEq('storage', '16G'))
-
-- name: verify.components.rule_6
-  evaluate: Assert(ComponentEq('storage', 'SSD') or
-                   ComponentEq('storage', '16G'))
 
 - name: verify.sku.us
   evaluate: >

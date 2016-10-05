@@ -316,37 +316,6 @@ class HWID(object):
         raise HWIDException('MP keys are required in %s, but %s' % (
             current_phase, ' and '.join(errors)))
 
-  def GetLabels(self):
-    """Gets from the database the labels of all the components encoded in this
-    HWID object.
-
-    Returns:
-      A dict of the form:
-      {
-        'component_class_1': {
-          'component_name_1': {
-            'label_key_1': 'LABEL_1_VALUE',
-            'label_key_2': 'LABEL_2_VALUE',
-            ...
-          },
-          ...
-        },
-        'component_class_2': {
-          'component_name_2': None  # No labels were defined on this component.
-        },
-        ...
-      }
-    """
-    results = collections.defaultdict(dict)
-    for comp_cls, comp_data in self.bom.components.iteritems():
-      for comp_value in comp_data:
-        if comp_value.component_name:
-          db_comp_attrs = self.database.components.GetComponentAttributes(
-              comp_cls, comp_value.component_name)
-          results[comp_cls][comp_value.component_name] = copy.deepcopy(
-              db_comp_attrs.get('labels', None))
-    return results
-
 
 class BOM(object):
   """A class that holds all the information regarding a BOM.

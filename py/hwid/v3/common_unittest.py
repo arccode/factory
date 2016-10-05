@@ -139,21 +139,6 @@ class HWIDTest(unittest.TestCase):
     fake_result = result.replace('xkb:us::eng', 'xkb:gb:extd:eng')
     self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
 
-  def testGetLabels(self):
-    result = self.results[0]
-    bom = self.database.ProbeResultToBOM(result)
-    bom = self.database.UpdateComponentsOfBOM(bom, {
-        'keyboard': 'keyboard_us', 'dram': 'dram_0',
-        'display_panel': 'display_panel_0'})
-    bom.image_id = 2
-    hwid = Encode(self.database, bom)
-    labels_dict = hwid.GetLabels()
-    self.assertEquals({'dram_0': {'size': '4G'}}, labels_dict['dram'])
-    self.assertEquals({'keyboard_us': {'layout': 'US'}},
-                      labels_dict['keyboard'])
-    self.assertEquals({'storage_0': {'size': '16G', 'technology': 'SSD'}},
-                      labels_dict['storage'])
-
 
 if __name__ == '__main__':
   unittest.main()
