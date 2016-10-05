@@ -24,9 +24,7 @@ binaries:
   hwid:            mini
   hwid_tool:       full
   make_par:        full
-  manage:          full
   merge_logs:      full
-  minijack:        full
   mount_partition: full
   regcode:         mini
   run_pytest:      full

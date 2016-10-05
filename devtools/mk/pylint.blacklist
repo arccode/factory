@@ -30,11 +30,6 @@ py/test/utils.py
 py/test/utils_unittest.py
 py/test/utils/media_utils_unittest.py
 py/test/fixture/camera/grid_mapper.py
-py/minijack/apiclient/%
-py/minijack/gflags.py
-py/minijack/gflags_validators.py
-py/minijack/httplib2/%
-py/minijack/oauth2client/%
-py/minijack/uritemplate/%
+py/minijack/%
 py/proto/%_pb2.py
 doc/conf.py

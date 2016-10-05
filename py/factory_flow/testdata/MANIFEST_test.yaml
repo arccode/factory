@@ -104,8 +104,6 @@ files:
 # Shopfloor files.
 - shopfloor/README
 - shopfloor/factory.par
-- shopfloor/manage
-- shopfloor/minijack
 - shopfloor/overlay.zip
 - shopfloor/shopfloor_data/mlbs.csv
 - shopfloor/shopfloor_data/update/factory.tar.bz2
