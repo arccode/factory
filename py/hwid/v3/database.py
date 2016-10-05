@@ -308,43 +308,44 @@ class Database(object):
     probed_components = collections.defaultdict(list)
     for comp_cls in self.components.GetRequiredComponents():
       probed_comp_values = LookupProbedValue(comp_cls)
-      if probed_comp_values is not None:
-        for probed_value in probed_comp_values:
-          if comp_cls not in self.components.probeable:
-            probed_components[comp_cls].append(
-                common.ProbedComponentResult(
-                    None, probed_value,
-                    common.UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
-            continue
-          matched_comps = self.components.MatchComponentsFromValues(
-              comp_cls, probed_value, loose_matching)
-          if matched_comps is None:
-            probed_components[comp_cls].append(common.ProbedComponentResult(
-                None, probed_value,
-                common.INVALID_COMPONENT_ERROR(comp_cls, probed_value)))
-          elif len(matched_comps) == 1:
-            comp_name, comp_data = matched_comps.items()[0]
-            comp_status = self.components.GetComponentStatus(
-                comp_cls, comp_name)
-            if comp_status == common.HWID.COMPONENT_STATUS.supported:
-              probed_components[comp_cls].append(
-                  common.ProbedComponentResult(
-                      comp_name, comp_data['values'], None))
-            else:
-              probed_components[comp_cls].append(
-                  common.ProbedComponentResult(
-                      comp_name, comp_data['values'],
-                      common.UNSUPPORTED_COMPONENT_ERROR(comp_cls, comp_name,
-                                                         comp_status)))
-          elif len(matched_comps) > 1:
-            probed_components[comp_cls].append(common.ProbedComponentResult(
-                None, probed_value,
-                common.AMBIGUOUS_COMPONENT_ERROR(
-                    comp_cls, probed_value, matched_comps)))
-      else:
+      if probed_comp_values is None:
         # No component of comp_cls is found in probe results.
         probed_components[comp_cls].append(common.ProbedComponentResult(
             None, probed_comp_values, common.MISSING_COMPONENT_ERROR(comp_cls)))
+        continue
+
+      for probed_value in probed_comp_values:
+        if comp_cls not in self.components.probeable:
+          probed_components[comp_cls].append(
+              common.ProbedComponentResult(
+                  None, probed_value,
+                  common.UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
+          continue
+        matched_comps = self.components.MatchComponentsFromValues(
+            comp_cls, probed_value, loose_matching)
+        if matched_comps is None:
+          probed_components[comp_cls].append(common.ProbedComponentResult(
+              None, probed_value,
+              common.INVALID_COMPONENT_ERROR(comp_cls, probed_value)))
+        elif len(matched_comps) == 1:
+          comp_name, comp_data = matched_comps.items()[0]
+          comp_status = self.components.GetComponentStatus(
+              comp_cls, comp_name)
+          if comp_status == common.HWID.COMPONENT_STATUS.supported:
+            probed_components[comp_cls].append(
+                common.ProbedComponentResult(
+                    comp_name, comp_data['values'], None))
+          else:
+            probed_components[comp_cls].append(
+                common.ProbedComponentResult(
+                    comp_name, comp_data['values'],
+                    common.UNSUPPORTED_COMPONENT_ERROR(comp_cls, comp_name,
+                                                       comp_status)))
+        elif len(matched_comps) > 1:
+          probed_components[comp_cls].append(common.ProbedComponentResult(
+              None, probed_value,
+              common.AMBIGUOUS_COMPONENT_ERROR(
+                  comp_cls, probed_value, matched_comps)))
 
     # Encode the components to a dict of encoded fields to encoded indices.
     encoded_fields = {}

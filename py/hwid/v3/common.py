@@ -251,6 +251,7 @@ class HWID(object):
         if matched_component:
           results.extend(matched_component.keys())
       return results
+
     for comp_cls in self.database.components.GetRequiredComponents():
       if comp_cls not in self.database.components.probeable:
         continue

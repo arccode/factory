@@ -324,14 +324,13 @@ def EnumerateHWID(db, image_id=None, status='supported'):
     if not isinstance(image_id, int):
       if image_id is None:
         image_id = max_image_id
+      elif image_id.isdigit():
+        image_id = int(image_id)
       else:
-        if image_id.isdigit():
-          image_id = int(image_id)
-        else:
-          for k, v in db.image_id.iteritems():
-            if image_id == v:
-              image_id = k
-              break
+        for k, v in db.image_id.iteritems():
+          if image_id == v:
+            image_id = k
+            break
     assert image_id in range(0, max_image_id + 1), 'Invalid Image ID'
     return image_id
 
@@ -343,9 +342,7 @@ def EnumerateHWID(db, image_id=None, status='supported'):
   for field in db.pattern.GetPatternByImageId(image_id)['fields']:
     comp, bit_width = field.items()[0]
     fields_bits[comp] += bit_width
-  fields_list = []
-  for comp_cls in db.encoded_fields.keys():
-    fields_list.append(comp_cls)
+  fields_list = db.encoded_fields.keys()
 
   # Recursively generate all combinations of HWID.
   _RecursivelyGenerate(0, encoded_fields)
