@@ -12,12 +12,18 @@ DESTDIR=$(BUILD_DIR)/image
 TARGET_DIR=/usr/local/factory
 PYTHON=python
 
+# Build config settings
+STATIC ?= false
+
 # The list of binaries to install has been moved to misc/symlinks.yaml.
 
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
 
 CLOSURE_DIR = py/goofy/static
+
+OVERLORD_DEPS_URL ?= \
+		gs://chromeos-localmirror/distfiles/overlord-deps-0.0.3.tar.gz
 
 # Extra arguments to give to the make_par command (e.g., to add
 # files from overlays).
@@ -34,7 +40,7 @@ TEST_EXTRA_FLAGS=
 
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
-.PHONY: .phony default clean closure proto ovl-bin par bundle \
+.PHONY: .phony default clean closure proto overlord ovl-bin par bundle \
 	lint smartlint smart_lint chroot-presubmit lint-presubmit \
 	deps-presubmit make-factory-package-presubmit test-presubmit presubmit \
 	test testall
@@ -49,6 +55,28 @@ default: closure
 # Currently the only programs using Closure is in Goofy.
 closure:
 	$(MAKE) -C $(CLOSURE_DIR)
+
+# Dependencies for overlord.
+$(BUILD_DIR)/go:
+	mkdir -p $(BUILD_DIR)
+	gsutil cp $(OVERLORD_DEPS_URL) $(BUILD_DIR)/.
+	tar -xf $(BUILD_DIR)/$(shell basename $(OVERLORD_DEPS_URL)) \
+		-C $(BUILD_DIR)
+
+# TODO(hungte) Change overlord to build out-of-tree.
+overlord: $(BUILD_DIR)/go
+	$(MAKE) -C go/src/overlord DEPS=false STATIC=$(STATIC)
+	# To install, get go/bin/{overlord,ghost}, and go/src/overlord/app.
+
+ovl-bin:
+	# Create virtualenv environment
+	rm -rf $(BUILD_DIR)/.env
+	virtualenv $(BUILD_DIR)/.env
+	# Build ovl binary with pyinstaller
+	cd $(BUILD_DIR); \
+	source $(BUILD_DIR)/.env/bin/activate; \
+	pip install jsonrpclib ws4py pyinstaller; \
+	pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
 
 # Build par (Python archive) file containing all py and pyc files.
 par:
@@ -228,13 +256,3 @@ doc: .phony
 	mkdir -p $(BUILD_DIR)/doc
 	rsync -a $(BUILD_DIR)/docsrc/_build/ $(BUILD_DIR)/doc/
 	cd $(BUILD_DIR) && tar cfj doc.tar.bz2 doc
-
-ovl-bin:
-	# Create virtualenv environment
-	rm -rf $(BUILD_DIR)/.env
-	virtualenv $(BUILD_DIR)/.env
-	# Build ovl binary with pyinstaller
-	cd $(BUILD_DIR); \
-	source $(BUILD_DIR)/.env/bin/activate; \
-	pip install jsonrpclib ws4py pyinstaller; \
-	pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
