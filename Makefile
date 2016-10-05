@@ -4,8 +4,10 @@
 
 SHELL := bash
 
+# Local environment settings
 MK_DIR=devtools/mk
 BUILD_DIR=$(CURDIR)/build
+TEMP_DIR ?= $(BUILD_DIR)/tmp
 PAR_BUILD_DIR=$(BUILD_DIR)/par
 PAR_NAME=factory.par
 DESTDIR=$(BUILD_DIR)/image
@@ -14,6 +16,10 @@ PYTHON=python
 
 # Build config settings
 STATIC ?= false
+
+DOC_TEMP_DIR = $(TEMP_DIR)/docsrc
+DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
+DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
 
 # The list of binaries to install has been moved to misc/symlinks.yaml.
 
@@ -40,7 +46,7 @@ TEST_EXTRA_FLAGS=
 
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
-.PHONY: .phony default clean closure proto overlord ovl-bin par bundle \
+.PHONY: .phony default clean closure proto overlord ovl-bin par bundle doc \
 	lint smartlint smart_lint chroot-presubmit lint-presubmit \
 	deps-presubmit make-factory-package-presubmit test-presubmit presubmit \
 	test testall
@@ -98,6 +104,21 @@ par:
 	  cp $(PAR_BUILD_DIR)/$(PAR_NAME) \
 	  $(PAR_DEST_DIR))
 
+# Creates build/doc and build/doc.zip, containing the factory SDK docs.
+doc:
+	rm -rf $(DOC_TEMP_DIR); mkdir -p $(DOC_TEMP_DIR)
+	# Do the actual build in the DOC_TEMP_DIR directory, since we need to
+	# munge the docs a bit.
+	rsync -a doc/ $(DOC_TEMP_DIR)
+	# Generate rst sources for test cases
+	bin/generate_rsts -o $(DOC_TEMP_DIR)
+	CROS_FACTORY_PY_ROOT=$(realpath py_pkg) $(MAKE) -C $(DOC_TEMP_DIR) html
+	mkdir -p $(dir $(DOC_ARCHIVE_PATH))
+	rm -rf $(DOC_OUTPUT_DIR)
+	cp -r $(DOC_TEMP_DIR)/_build/html $(DOC_OUTPUT_DIR)
+	(cd $(DOC_OUTPUT_DIR)/..; zip -qr9 - $(notdir $(DOC_OUTPUT_DIR))) \
+	  >$(DOC_ARCHIVE_PATH)
+
 install:
 	mkdir -p $(FACTORY)
 	rsync -a --chmod=go=rX $(addprefix --exclude ,$(INSTALL_MASK)) \
@@ -108,7 +129,7 @@ install:
 	ln -sf $(addprefix ../factory/log/,factory.log console.log) \
 	    ${DESTDIR}/var/log
 
-bundle: par
+bundle: par doc
 	# Make factory bundle overlay
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/
 	rsync -a --exclude testdata --exclude README.txt \
@@ -127,8 +148,7 @@ bundle: par
 	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/finalize_bundle
 	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/test_factory_flow
 	# Archive docs into bundle
-	$(MAKE) doc
-	cp build/doc.tar.bz2 $(FACTORY_BUNDLE)
+	cp $(DOC_ARCHIVE_PATH) $(FACTORY_BUNDLE)
 	# Install cgpt, used by factory_setup.
 	# TODO(jsalz/hungte): Find a better way to do this.
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
@@ -240,19 +260,3 @@ testall:
 proto:
 	protoc proto/reg_code.proto --python_out=py
 
-# Creates build/doc and build/doc.tar.bz2, containing the factory SDK
-# docs.
-doc: .phony
-	# Do the actual build in the "build/docsrc" directory, since we need to
-	# munge the docs a bit.
-	rm -rf $(BUILD_DIR)/docsrc
-	mkdir -p $(BUILD_DIR)/docsrc
-	rsync -av doc/ $(BUILD_DIR)/docsrc/
-	# Generate rst sources for test cases
-	bin/generate_rsts -o $(BUILD_DIR)/docsrc
-
-	$(MAKE) -C $(BUILD_DIR)/docsrc html
-	rm -rf $(BUILD_DIR)/doc
-	mkdir -p $(BUILD_DIR)/doc
-	rsync -a $(BUILD_DIR)/docsrc/_build/ $(BUILD_DIR)/doc/
-	cd $(BUILD_DIR) && tar cfj doc.tar.bz2 doc
