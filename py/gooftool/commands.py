@@ -430,6 +430,15 @@ def GenerateStableDeviceSecret(options):  # pylint: disable=W0613
   event_log.Log('generate_stable_device_secret')
 
 
+@Command('enable_release_partition',
+         CmdArg('--release_rootfs',
+                help=('path to the release rootfs device. If not specified, '
+                      'the default (5th) partition will be used.')))
+def EnableReleasePartition(options):
+  """Enables a release image partition on the disk."""
+  GetGooftool(options).EnableReleasePartition(options.release_rootfs)
+
+
 @Command('wipe_in_place',
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),

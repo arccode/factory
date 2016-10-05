@@ -523,6 +523,18 @@ class Gooftool(object):
       else:
         raise ValueError('Unknown argument in cutoff_args: %s' % args[i])
 
+  def EnableReleasePartition(self, release_rootfs=None):
+    """Enables a release image partition on the disk.
+
+    Args:
+      release_rootfs: path to the release rootfs device. If not specified,
+          the default (5th) partition will be used.
+    """
+    if not release_rootfs:
+      release_rootfs = Util().GetReleaseRootPartitionPath()
+    wipe.EnableReleasePartition(release_rootfs)
+
+
   def WipeInPlace(self, is_fast=None, cutoff_args=None, shopfloor_url=None,
                   station_ip=None, station_port=None, wipe_finish_token=None):
     """Start transition to release state directly without reboot.

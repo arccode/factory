@@ -386,9 +386,11 @@ def _WipeStateDev(release_rootfs, root_disk, wipe_args):
     pass
 
 
-def _EnableReleasePartition(release_rootfs):
+def EnableReleasePartition(release_rootfs):
+  """Enables a release image partition on disk."""
   logging.debug('enable release partition: %s', release_rootfs)
   Util().EnableReleasePartition(release_rootfs)
+  logging.debug('Device will boot from %s after reboot.', release_rootfs)
 
 
 def _InformShopfloor(shopfloor_url):
@@ -447,7 +449,7 @@ def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
 
     _WipeStateDev(release_rootfs, root_disk, wipe_args)
 
-    _EnableReleasePartition(release_rootfs)
+    EnableReleasePartition(release_rootfs)
 
     _InformShopfloor(shopfloor_url)
 
