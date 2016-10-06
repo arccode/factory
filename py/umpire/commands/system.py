@@ -69,7 +69,7 @@ class Upstart(object):
     if not conf_name:
       raise common.UmpireError('Invalid configuration name')
 
-    self.env = env if env else []
+    self.env = env or []
     self.conf_name = conf_name
 
   def _GetCommand(self, initctl_command):

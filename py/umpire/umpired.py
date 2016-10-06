@@ -13,7 +13,6 @@ import logging
 import optparse
 import os
 import re
-import sys
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import UmpireError
@@ -35,18 +34,16 @@ def StartServer(test_mode=False, config_file=None):
     config_file: If specified, uses it as config file.
   """
   # Instanciate environment and load default configuration file
-  daemon_path = sys.modules[__name__].__file__
   toolkit_hash = None
   # Get server toolkit from absolute daemon file path.
-  real_daemon_path = os.path.realpath(daemon_path)
+  real_daemon_path = os.path.realpath(__file__)
   match = re.search(SERVER_TOOLKIT_HASH_RE, real_daemon_path)
   if match:
     toolkit_hash = match.groups()[0]
   # Instanciate environment and load default configuration file.
   env = UmpireEnv(active_server_toolkit_hash=toolkit_hash)
   if test_mode:
-    test_base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 'testdata')
+    test_base_dir = os.path.join(os.path.dirname(real_daemon_path), 'testdata')
     if not os.path.isdir(test_base_dir):
       raise UmpireError('Test directory %s does not exist. Test mode failed.' %
                         test_base_dir)

@@ -163,7 +163,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     if os.path.exists(env.active_config_file):
       return
 
-    template_path = config_template if config_template else (
+    template_path = config_template or (
         os.path.join(toolkit_base, _UMPIRE_CONFIG_TEMPLATE_IN_TOOLKIT_PATH))
     with file_utils.TempDirectory() as temp_dir:
       config_path = os.path.join(temp_dir, 'umpire.yaml')

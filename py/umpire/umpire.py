@@ -78,7 +78,7 @@ def Init(args, root_dir='/'):
           'Unable to resolve board name from bundle manifest: ' +
           manifest_path)
 
-  board = args.board if args.board else GetBoard()
+  board = args.board or GetBoard()
 
   # Sanity check: make sure factory toolkit exists.
   factory_toolkit_path = os.path.join(args.bundle_path,
@@ -87,7 +87,7 @@ def Init(args, root_dir='/'):
 
   # This is an empty UmpireEnv object with base directory.
   env = UmpireEnv()
-  env.base_dir = (args.base_dir if args.base_dir else
+  env.base_dir = (args.base_dir or
                   os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
 
   init.Init(env, args.bundle_path, board, args.default, args.local, args.user,

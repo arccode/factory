@@ -222,7 +222,7 @@ class UmpireEnv(object):
     Returns:
       UmpireConfig object.
     """
-    config_path = custom_path if custom_path else self.active_config_file
+    config_path = custom_path or self.active_config_file
     return config.UmpireConfig(config_path)
 
   def LoadConfig(self, custom_path=None, init_shop_floor_manager=True,
@@ -254,7 +254,7 @@ class UmpireEnv(object):
             port_start, port_start + config.NUMBER_SHOP_FLOOR_HANDLERS)
 
     # Load active config & update config_path.
-    config_path = custom_path if custom_path else self.active_config_file
+    config_path = custom_path or self.active_config_file
     logging.debug('Load %sconfig: %s', 'active ' if not custom_path else '',
                   config_path)
     # Note that config won't be set if it fails to load/validate the new config.
@@ -359,23 +359,23 @@ class UmpireEnv(object):
 
       if res_type == ResourceType.FIRMWARE:
         bios, ec, pd = None, None, None
+        # pylint: disable=W0632
         if file_name.endswith('.gz'):
           bios, ec, pd = get_version.GetFirmwareVersionsFromOmahaChannelFile(
               file_name)
         else:
           bios, ec, pd = get_version.GetFirmwareVersions(file_name)
-        return '%s:%s:%s' % (bios if bios else '', ec if ec else '',
-                             pd if pd else '')
+        return '%s:%s:%s' % (bios or '', ec or '', pd or '')
 
       if (res_type == ResourceType.ROOTFS_RELEASE or
           res_type == ResourceType.ROOTFS_TEST):
         version = get_version.GetReleaseVersionFromOmahaChannelFile(
             file_name, no_root=True)
-        return version if version else ''
+        return version or ''
 
       if res_type == ResourceType.HWID:
         version = get_version.GetHWIDVersion(file_name)
-        return version if version else ''
+        return version or ''
 
       return ''
 

@@ -116,7 +116,7 @@ class IndentTextWriter(object):
     indent_first_line properties from the given object.
 
     Args:
-      writer: a IndexTextWriter object.
+      writer: a IndentTextWriter object.
     """
     # pylint: disable=W0212
     return IndentTextWriter(indent=writer._indent,

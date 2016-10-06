@@ -255,7 +255,7 @@ class BundleImporter(object):
     if not bundle_id:
       bundle_id = self._factory_bundle.manifest['bundle_name']
     self._bundle = {'id': bundle_id,
-                    'note': note if note else bundle_id}
+                    'note': note or bundle_id}
 
     bundles = self._config.setdefault('bundles', [])
     if any(bundle_id == b['id'] for b in bundles):
