@@ -18,21 +18,13 @@ RUN apk add --no-cache nginx uwsgi-python
 # these files are unlikely to change often, put them here to take advantage of
 # docker's cache
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY uwsgi.ini "${dome_dir}/"
-COPY manage.py "${dome_dir}/"
-COPY requirements.txt "${dome_dir}/"
+COPY uwsgi.ini manage.py requirements.txt "${dome_dir}/"
 RUN pip install --no-cache-dir -r requirements.txt
-
-# to ensure the versions between host and container are the same, this argument
-# is required, no default value should be given
-ARG docker_version
 
 # add docker client -- do not install docker via apk -- it will try to install
 # docker engine which takes a lot of space as well (we don't need it, we need
 # only the small client to communicate with the host's docker server)
-ADD "https://get.docker.com/builds/Linux/i386/docker-${docker_version}.tgz" /tmp
-RUN tar xzvf "/tmp/docker-${docker_version}.tgz" -C /
-RUN rm "/tmp/docker-${docker_version}.tgz"
+ADD build/docker.tgz /
 
 # these files are likely to change often, put them at the end
 COPY backend "${dome_dir}/backend/"

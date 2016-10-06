@@ -38,6 +38,7 @@ NGINX_CONTAINER_NAME="dome_nginx"
 
 : ${PORT:="8000"}  # port to access Dome
 
+# TODO(pihsun): this function should be in Makefile of dome.
 do_build() {
   check_docker
 
@@ -57,6 +58,9 @@ do_build() {
     "${HOST_BUILD_DIR}"
   ${DOCKER} rm "${BUILDER_CONTAINER_NAME}"
 
+  wget "https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz" \
+    -O "${HOST_BUILD_DIR}/docker.tgz"
+
   # build the dome runner image
   # need to make sure we're using the same version of docker inside the container
   ${DOCKER} build \
@@ -64,8 +68,6 @@ do_build() {
     --tag "${DOME_IMAGE_NAME}" \
     --build-arg dome_dir="${CONTAINER_DOME_DIR}" \
     --build-arg builder_output_file="${BUILDER_OUTPUT_FILE}" \
-    --build-arg \
-      docker_version="$(${DOCKER} version --format {{.Server.Version}})" \
     "${HOST_DOME_DIR}"
 }
 
