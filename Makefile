@@ -44,12 +44,20 @@ UNITTESTS_BLACKLIST=$(shell cat $(MK_DIR)/unittests.blacklist)
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 TEST_EXTRA_FLAGS=
 
+# Special variable (two blank lines) so we can invoke commands with $(foreach).
+define \n
+
+
+endef
+
+PRESUBMIT_TARGETS := \
+  presubmit-deps presubmit-lint presubmit-test presubmit-make_factory_package
+
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
 .PHONY: .phony default clean closure proto overlord ovl-bin par bundle doc \
-	lint smartlint smart_lint chroot-presubmit lint-presubmit \
-	deps-presubmit make-factory-package-presubmit test-presubmit presubmit \
-	test testall
+	presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
+	lint smartlint smart_lint  test testall
 
 INSTALL_MASK=*.pyc \
 	     *_unittest.py \
@@ -174,49 +182,44 @@ PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES), \
 	             $(shell realpath $$PRESUBMIT_FILES | \
 		       sed "s'^$$(realpath $$(pwd))/''g"))
 
-chroot-presubmit:
-	$(MAKE) -s deps-presubmit
-	$(MAKE) -s lint-presubmit
-	$(MAKE) -s test-presubmit
-	$(MAKE) -s make-factory-package-presubmit
+presubmit-chroot:
+	$(foreach target,$(PRESUBMIT_TARGETS),$(MAKE) -s $(target)${\n})
 
-lint-presubmit:
-	$(MAKE) lint LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" 2>/dev/null
+presubmit-lint:
+	@$(MAKE) lint LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" 2>/dev/null
 
-deps-presubmit:
-	@echo "Checking dependency..."
-	@if ! py/tools/deps.py $(PRESUBMIT_FILES) ; then \
-	    echo "Dependency check failed." ; \
-	    echo "Please read py/tools/deps.conf for more information." ; \
-	    exit 1; \
+presubmit-deps:
+	@if ! py/tools/deps.py $(PRESUBMIT_FILES); then \
+	  echo "Dependency check failed." ; \
+	  echo "Please read py/tools/deps.conf for more information." ; \
+	  exit 1; \
 	fi
 
 # Check that test_make_factory_package.py has been run, if
 # make_factory_package.sh has changed.
-make-factory-package-presubmit:
-	if [ "$(filter setup/make_factory_package.sh,$(PRESUBMIT_FILES))" ]; \
-	then \
-	  if [ ! setup/make_factory_package.sh -ot \
-	       py/tools/.test_make_factory_package.passed ]; then \
-	    echo setup/make_factory_package.sh has changed.; \
-	    echo Please run py/tools/test_make_factory_package.py; \
-	    echo \(use --help for more information on how to use it if; \
-	    echo you do not have access to release repositories\).; \
-	    exit 1; \
-	  fi; \
+presubmit-make-factory-package:
+ifneq ($(filter setup/make_factory_package.sh,$(PRESUBMIT_FILES)),)
+	@if [ ! setup/make_factory_package.sh -ot \
+	      py/tools/.test_make_factory_package.passed ]; then \
+	  echo "setup/make_factory_package.sh has changed."; \
+	  echo "Please run py/tools/test_make_factory_package.py" \
+	       "(use --help for more information on how to use it if" \
+	       "you do not have access to release repositories)."; \
+	  exit 1; \
 	fi
+endif
 
-test-presubmit:
-	$(MK_DIR)/test-presubmit.sh $(PRESUBMIT_FILES)
+presubmit-test:
+	@$(MK_DIR)/$@.sh $(PRESUBMIT_FILES)
 
 presubmit:
-	@if [ ! -e /etc/debian_chroot ]; then \
-		echo "Running presubmit checks inside chroot..."; \
-		cros_sdk PRESUBMIT_FILES="$(PRESUBMIT_FILES)" -- \
-		$(MAKE) -C ../platform/factory -s chroot-presubmit; \
-	else \
-		$(MAKE) -s chroot-presubmit; \
-	fi
+ifeq ($(wildcard /etc/debian_chroot),)
+	$(info Running presubmit checks inside chroot...)
+	@cros_sdk PRESUBMIT_FILES="$(PRESUBMIT_FILES)" -- \
+	  $(MAKE) -C ../platform/factory -s $@-chroot
+else
+	@$(MAKE) -s $@-chroot
+endif
 
 clean:
 	rm -rf $(BUILD_DIR)
