@@ -9,16 +9,14 @@
 import logging
 import os
 import re
-import shutil
 import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
-from cros.factory.test import ui_templates
 from cros.factory.test.test_ui import UI
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
 
 
 DM_DEVICE_NAME = 'verifyroot'
@@ -61,24 +59,23 @@ class VerifyRootPartitionTest(unittest.TestCase):
     # Copy out the KERN-A partition to a file, since vbutil_kernel
     # won't operate on a device, only a file
     # (http://crosbug.com/34176)
-    # TODO(hungte) This must be changed to support remote DUT.
     template.SetState('Verifying KERN-A (%s)...' % self.args.kern_a_device)
-    with tempfile.NamedTemporaryFile() as kern_a_bin:
-      with open(self.args.kern_a_device) as kern_a:
-        shutil.copyfileobj(kern_a, kern_a_bin)
-      kern_a_bin.flush()
-      vbutil_kernel = Spawn(
-          ['vbutil_kernel', '--verify', kern_a_bin.name, '--verbose'],
-          log=True, read_stdout=True)
-      self.assertEqual(
-          0, vbutil_kernel.returncode,
-          ('Unable to verify kernel in KERN-A; perhaps this device was imaged '
-           'with chromeos-install instead of mini-Omaha server?'))
+    with self.dut.temp.TempFile() as kern_a_bin:
+      self.dut.toybox.dd(if_=self.args.kern_a_device, of=kern_a_bin,
+                         conv='fsync')
+      try:
+        vbutil_kernel_output = self.dut.CheckOutput(
+            ['vbutil_kernel', '--verify', kern_a_bin, '--verbose'], log=True)
+      except Exception:
+        logging.exception(
+            'Unable to verify kernel in KERN-A; perhaps this device was imaged '
+            'with chromeos-install instead of mini-Omaha server?')
+        raise
 
-    logging.info('vbutil_kernel output is:\n%s', vbutil_kernel.stdout_data)
+    logging.info('vbutil_kernel output is:\n%s', vbutil_kernel_output)
 
     DM_REGEXP = re.compile(r'dm="(?:1 )?vroot none ro(?: 1)?,(0 (\d+) .+)"')
-    match = DM_REGEXP.search(vbutil_kernel.stdout_data)
+    match = DM_REGEXP.search(vbutil_kernel_output)
     assert match, 'Cannot find regexp %r in vbutil_kernel output' % (
         DM_REGEXP.pattern)
 
@@ -99,10 +96,10 @@ class VerifyRootPartitionTest(unittest.TestCase):
 
     # Remove device in case a previous test left it hanging
     self._RemoveDMDevice()
-    assert not os.path.exists(DM_DEVICE_PATH)
+    assert not self.dut.path.exists(DM_DEVICE_PATH)
     # Map the device
-    Spawn(['dmsetup', 'create', '-r', DM_DEVICE_NAME, '--table',
-           table], check_call=True, log=True, log_stderr_on_error=True)
+    self.dut.CheckCall(
+        ['dmsetup', 'create', '-r', DM_DEVICE_NAME, '--table', table], log=True)
 
     # Read data from the partition; there will be an I/O error on failure
     if self.args.max_bytes is None:
@@ -110,26 +107,53 @@ class VerifyRootPartitionTest(unittest.TestCase):
     else:
       bytes_to_read = min(partition_size, self.args.max_bytes)
 
-    with open(DM_DEVICE_PATH) as dm_device:
-      bytes_read = 0
-      while True:
-        bytes_left = bytes_to_read - bytes_read
-        if not bytes_left:
-          break
-        count = len(dm_device.read(min(BLOCK_SIZE, bytes_left)))
-        if not count:
-          break
-        bytes_read += count
-        pct_done = bytes_read * 100. / bytes_to_read
-        message = 'Read %.1f MiB (%.1f%%) of %s' % (
-            bytes_read / 1024. / 1024., pct_done, self.args.root_device)
-        logging.info(message)
-        template.SetState(message)
-        template.SetProgressBarValue(round(pct_done))
+    if self.dut.link.IsLocal():
+      # For local link, let's show progress bar for better UX
+      with open(DM_DEVICE_PATH) as dm_device:
+        bytes_read = 0
+        while True:
+          bytes_left = bytes_to_read - bytes_read
+          if not bytes_left:
+            break
+          count = len(dm_device.read(min(BLOCK_SIZE, bytes_left)))
+          if not count:
+            break
+          bytes_read += count
+          pct_done = bytes_read * 100. / bytes_to_read
+          message = 'Read %.1f MiB (%.1f%%) of %s' % (
+              bytes_read / 1024. / 1024., pct_done, self.args.root_device)
+          logging.info(message)
+          template.SetState(message)
+          template.SetProgressBarValue(round(pct_done))
+    else:
+      # for remote link, read out everything at once to save time.
+      with tempfile.TemporaryFile() as stderr:
+        try:
+          # since we need the output of stderr, use CheckCall rather than
+          # toybox.dd
+          self.dut.CheckCall(
+              ['dd', 'if=' + DM_DEVICE_PATH, 'of=/dev/null',
+               'bs=%d' % BLOCK_SIZE, 'count=%d' % bytes_to_read,
+               'iflag=count_bytes'],
+              log=True, stderr=stderr)
+          stderr.flush()
+          stderr.seek(0)
+          dd_output = stderr.read()
+        except Exception:
+          stderr.flush()
+          stderr.seek(0)
+          logging.error('verify rootfs failed: %s', stderr.read())
+          raise
+
+      DD_REGEXP = re.compile(r'^(\d+) bytes \(.*\) copied', re.MULTILINE)
+      match = DD_REGEXP.search(dd_output)
+      assert match, 'unexpected dd output: %s' % dd_output
+      bytes_read = int(match.group(1))
+
     self.assertEquals(bytes_to_read, bytes_read)
 
   def tearDown(self):
     self._RemoveDMDevice()
 
   def _RemoveDMDevice(self):
-    Spawn(['dmsetup', 'remove', DM_DEVICE_NAME], log=True, call=True)
+    self.dut.Call(['dmsetup', 'remove', DM_DEVICE_NAME], log=True)

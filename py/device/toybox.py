@@ -201,10 +201,11 @@ class Toybox(component.DeviceComponent):
       conv = conv.split(',')
     assert not conv or set(conv).issubset(valid_conv), (
         'dd using toybox does not support "conf=%s"')
-    # TODO(hungte)
+    conv = ','.join(conv)
     return self._dut.CheckOutput(self._BuildCommand(
         'dd',
         ['if=%s' % if_] if if_ else None,
+        ['ibs=%s' % ibs] if ibs else None,
         ['of=%s' % of] if of else None,
         ['obs=%s' % obs] if obs else None,
         ['bs=%s' % bs] if bs else None,
