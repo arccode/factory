@@ -6,7 +6,8 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "${SCRIPT_DIR}/common.sh" || exit 1
 
-: ${FACTORY_REPO:="$(dirname "${SCRIPT_DIR}")"}
+# Current script should be in ${FACTORY_REPO}/devtools/mk.
+: ${FACTORY_REPO:="$(dirname "$(dirname "${SCRIPT_DIR}")")"}
 # Common definitions
 : ${TEST_RUNNER:=py/tools/run_tests.py}
 : ${TEST_EXTRA_FLAGS:=}

@@ -4,7 +4,7 @@
 
 SHELL := bash
 
-MK_DIR=mk
+MK_DIR=devtools/mk
 BUILD_DIR=$(CURDIR)/build
 PAR_BUILD_DIR=$(BUILD_DIR)/par
 PAR_NAME=factory.par
