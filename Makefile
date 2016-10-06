@@ -1,39 +1,44 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-SHELL := bash
+# This Makefile provides different targets:
+# - closure: Build static resources in Closure (js, css)
+# - par: Archived python files, with minimal resources.
+# - overlord: Overlord the remote monitoring daemon.
+# - doc: HTML documentation.
+# - bundle: everything for deployment, including doc, setup, flow ... etc.
+
+# For debug and testing purposes, the Makefile also supports other virtual
+# targets like presubmit-*, lint, test, overlay-* ... etc.
 
 # Local environment settings
-MK_DIR=devtools/mk
-BUILD_DIR=$(CURDIR)/build
+MK_DIR := devtools/mk
+BUILD_DIR ?= build
 TEMP_DIR ?= $(BUILD_DIR)/tmp
-PAR_BUILD_DIR=$(BUILD_DIR)/par
-PAR_NAME=factory.par
-DESTDIR=$(BUILD_DIR)/image
-TARGET_DIR=/usr/local/factory
-PYTHON=python
+
+# Global environment settings
+SHELL := bash
+PYTHON ?= python
+TARGET_DIR = /usr/local/factory
 
 # Build config settings
 STATIC ?= false
+
+PAR_BUILD_DIR = $(BUILD_DIR)/par
+PAR_NAME = factory.par
+# Extra arguments to give to the make_par command (e.g., to add
+# files from overlays).
+MAKE_PAR_ARGS =
 
 DOC_TEMP_DIR = $(TEMP_DIR)/docsrc
 DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
 DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
 
-# The list of binaries to install has been moved to misc/symlinks.yaml.
-
-FACTORY=$(DESTDIR)/$(TARGET_DIR)
-FACTORY_BUNDLE=$(FACTORY)/bundle
-
 CLOSURE_DIR = py/goofy/static
 
 OVERLORD_DEPS_URL ?= \
-		gs://chromeos-localmirror/distfiles/overlord-deps-0.0.3.tar.gz
-
-# Extra arguments to give to the make_par command (e.g., to add
-# files from overlays).
-MAKE_PAR_ARGS=
+  gs://chromeos-localmirror/distfiles/overlord-deps-0.0.3.tar.gz
 
 LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist)
 LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
@@ -50,32 +55,45 @@ define \n
 
 endef
 
+# Substitute PRESUBMIT_FILES to relative path (similar to
+# GNU realpath "--relative-to=.", but works on non-GNU realpath).
+PRESUBMIT_FILES := \
+  $(if $(PRESUBMIT_FILES), \
+    $(shell realpath $$PRESUBMIT_FILES | sed "s'^$$(realpath $$(pwd))/''g"))
+
 PRESUBMIT_TARGETS := \
   presubmit-deps presubmit-lint presubmit-test presubmit-make_factory_package
 
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
-.PHONY: .phony default clean closure proto overlord ovl-bin par bundle doc \
-	presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
-	lint smartlint smart_lint  test testall
-
-INSTALL_MASK=*.pyc \
-	     *_unittest.py \
-	     py/doc
+.PHONY: \
+  .phony default clean closure proto overlord ovl-bin par bundle doc \
+  presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
+  lint smartlint smart_lint test testall
 
 # This must be the first rule.
 default: closure
 
+clean:
+	rm -rf $(BUILD_DIR)
+
 # Currently the only programs using Closure is in Goofy.
 closure:
 	$(MAKE) -C $(CLOSURE_DIR)
+
+# Regenerates the reg code proto.
+# TODO(jsalz): Integrate this as a "real" part of the build, rather than
+# relying on regenerating it only if/when it changes. This is OK for now since
+# this proto should change infrequently or never.
+proto:
+	protoc proto/reg_code.proto --python_out=py
 
 # Dependencies for overlord.
 $(BUILD_DIR)/go:
 	mkdir -p $(BUILD_DIR)
 	gsutil cp $(OVERLORD_DEPS_URL) $(BUILD_DIR)/.
 	tar -xf $(BUILD_DIR)/$(shell basename $(OVERLORD_DEPS_URL)) \
-		-C $(BUILD_DIR)
+	  -C $(BUILD_DIR)
 
 # TODO(hungte) Change overlord to build out-of-tree.
 overlord: $(BUILD_DIR)/go
@@ -88,9 +106,9 @@ ovl-bin:
 	virtualenv $(BUILD_DIR)/.env
 	# Build ovl binary with pyinstaller
 	cd $(BUILD_DIR); \
-	source $(BUILD_DIR)/.env/bin/activate; \
-	pip install jsonrpclib ws4py pyinstaller; \
-	pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
+	  source $(BUILD_DIR)/.env/bin/activate; \
+	  pip install jsonrpclib ws4py pyinstaller; \
+	  pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
 
 # Build par (Python archive) file containing all py and pyc files.
 par:
@@ -126,16 +144,6 @@ doc:
 	cp -r $(DOC_TEMP_DIR)/_build/html $(DOC_OUTPUT_DIR)
 	(cd $(DOC_OUTPUT_DIR)/..; zip -qr9 - $(notdir $(DOC_OUTPUT_DIR))) \
 	  >$(DOC_ARCHIVE_PATH)
-
-install:
-	mkdir -p $(FACTORY)
-	rsync -a --chmod=go=rX $(addprefix --exclude ,$(INSTALL_MASK)) \
-	  bin misc py py_pkg sh init $(FACTORY)
-	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
-	mkdir -m755 -p ${DESTDIR}/var/log
-	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
-	ln -sf $(addprefix ../factory/log/,factory.log console.log) \
-	    ${DESTDIR}/var/log
 
 bundle: par doc
 	# Make factory bundle overlay
@@ -173,14 +181,8 @@ smartlint smart_lint:
 
 # Target to lint only files that have changed, including files from
 # the given overlay.
-smart_lint-%:
+smart_lint-%: .phony
 	bin/smart_lint --overlay $(@:smart_lint-%=%)
-
-# Substitute PRESUBMIT_FILES to relative path (similar to
-# GNU realpath "--relative-to=.", but works on non-GNU realpath).
-PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES), \
-	             $(shell realpath $$PRESUBMIT_FILES | \
-		       sed "s'^$$(realpath $$(pwd))/''g"))
 
 presubmit-chroot:
 	$(foreach target,$(PRESUBMIT_TARGETS),$(MAKE) -s $(target)${\n})
@@ -221,12 +223,12 @@ else
 	@$(MAKE) -s $@-chroot
 endif
 
-clean:
-	rm -rf $(BUILD_DIR)
-
 test:
 	@TEST_EXTRA_FLAGS=$(TEST_EXTRA_FLAGS) \
-		$(MK_DIR)/test.sh $(UNITTESTS_WHITELIST)
+	  $(MK_DIR)/test.sh $(UNITTESTS_WHITELIST)
+
+testall:
+	@$(MAKE) --no-print-directory test TEST_EXTRA_FLAGS=--nofilter
 
 # Builds an overlay of the given board.  Use "private" to overlay
 # factory-private (e.g., to build private API docs).
@@ -253,13 +255,23 @@ lint-overlay-%: overlay-%
 par-overlay-%: overlay-%
 	$(MAKE) -C $< par
 
-testall:
-	@$(MAKE) --no-print-directory test TEST_EXTRA_FLAGS=--nofilter
+# Legacy installation
+# TODO(hungte) Move this target once we've done migration.
+INSTALL_MASK=\
+  *.pyc \
+  *_unittest.py \
+  py/doc
+FACTORY=$(DESTDIR)/$(TARGET_DIR)
+FACTORY_BUNDLE=$(FACTORY)/bundle
+DESTDIR=$(BUILD_DIR)/image
+INSTALL_ROOT=$(DESTDIR)/$(TARGET_DIR)
 
-# Regenerates the reg code proto.  TODO(jsalz): Integrate this as a
-# "real" part of the build, rather than relying on regenerating it
-# only if/when it changes.  This is OK for now since this proto should
-# change infrequently or never.
-proto:
-	protoc proto/reg_code.proto --python_out=py
-
+install:
+	mkdir -p $(FACTORY)
+	rsync -a --chmod=go=rX $(addprefix --exclude ,$(INSTALL_MASK)) \
+	  bin misc py py_pkg sh init $(FACTORY)
+	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
+	mkdir -m755 -p ${DESTDIR}/var/log
+	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
+	ln -sf $(addprefix ../factory/log/,factory.log console.log) \
+	  ${DESTDIR}/var/log
