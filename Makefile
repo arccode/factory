@@ -22,8 +22,11 @@ SHELL := bash
 PYTHON ?= python
 TARGET_DIR = /usr/local/factory
 
-# Build config settings
+# Build and board config settings
 STATIC ?= false
+BOARD ?=
+BOARD_FILES_DIR ?= $(if $(BOARD),$(shell dirname $(shell \
+		     equery-$(BOARD) which chromeos-factory-board))/files)
 
 PAR_BUILD_DIR = $(BUILD_DIR)/par
 PAR_NAME = factory.par
@@ -69,7 +72,7 @@ PRESUBMIT_TARGETS := \
 .PHONY: \
   .phony default clean closure proto overlord ovl-bin par bundle doc \
   presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
-  lint smartlint smart_lint test testall
+  lint smartlint smart_lint test testall overlay
 
 # This must be the first rule.
 default: closure
@@ -177,7 +180,7 @@ lint:
 # Target to lint only files that have changed.  (We allow either
 # "smartlint" or "smart_lint".)
 smartlint smart_lint:
-	bin/smart_lint
+	bin/smart_lint $(if $(BOARD),--overlay $(BOARD))
 
 # Target to lint only files that have changed, including files from
 # the given overlay.
@@ -232,16 +235,16 @@ testall:
 
 # Builds an overlay of the given board.  Use "private" to overlay
 # factory-private (e.g., to build private API docs).
+overlay:
+	rm -rf $@-$(BOARD)
+	mkdir -p $@-$(BOARD)
+	rsync -aK --exclude build --exclude overlay-\* ./ $@-$(BOARD)/
+	rsync -aK $(if $(filter $(BOARD),private), \
+			--exclude Makefile ../factory-private/ $@-$(BOARD)/, \
+			"$(BOARD_FILES_DIR)/" $@-$(BOARD)/)
+
 overlay-%: .phony
-	rm -rf $@
-	mkdir $@
-	rsync -aK --exclude build --exclude overlay-\* ./ $@/
-	if [ "$@" = overlay-private ]; then \
-	  rsync -aK --exclude Makefile ../factory-private/ $@/; \
-	else \
-	  rsync -aK "$(shell dirname $(shell equery-$(subst overlay-,,$@) \
-	               which chromeos-factory-board))/files/" $@/; \
-	fi
+	$(MAKE) overlay BOARD=$(subst overlay-,,$@)
 
 # Tests the overlay of the given board.
 test-overlay-%: overlay-%
