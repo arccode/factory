@@ -28,3 +28,5 @@ you can use `DOT_VIM=... VIMRC=... ./setup.sh` to change it.
     [davidhalter/jedi-vim](https://github.com/davidhalter/jedi-vim))
 * `devtools/vim/autoload/localrc.vim`
     - `.local.vimrc` loader
+* `devtools/vim/plugin/iconv.vim`
+    - convert selected traditional Chinese string into simplified Chinese.
