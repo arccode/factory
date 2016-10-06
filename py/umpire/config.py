@@ -16,10 +16,14 @@ import copy
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError, VerifyResource
+from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire.common import VerifyResource
 from cros.factory.umpire.service.umpire_service import GetServiceSchemata
 from cros.factory.umpire.service.umpire_service import LoadServiceModule
-from cros.factory.utils.schema import FixedDict, List, Optional, Scalar
+from cros.factory.utils.schema import FixedDict
+from cros.factory.utils.schema import List
+from cros.factory.utils.schema import Optional
+from cros.factory.utils.schema import Scalar
 
 
 NUMBER_SHOP_FLOOR_HANDLERS = 50

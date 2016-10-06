@@ -15,8 +15,8 @@ import unittest
 import urllib2
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire.client import get_update
+from cros.factory.umpire.client import umpire_client
 
 
 MOCK_COMPONENT_KEYS = set(['comp1', 'comp2', 'comp3'])

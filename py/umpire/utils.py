@@ -8,8 +8,8 @@
 import logging
 import os
 import shutil
-import urllib
 from twisted.internet import defer
+import urllib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common as umpire_common

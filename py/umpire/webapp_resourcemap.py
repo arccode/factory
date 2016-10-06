@@ -12,7 +12,8 @@ The class handles http://umpire_address:umpire_port/resourcemap' HTTP GET.
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.bundle_selector import ParseDUTHeader, GetResourceMap
+from cros.factory.umpire.bundle_selector import GetResourceMap
+from cros.factory.umpire.bundle_selector import ParseDUTHeader
 from cros.factory.umpire.web.wsgi import WSGISession
 
 

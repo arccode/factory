@@ -12,10 +12,13 @@ import copy
 import logging
 import os
 import shutil
-from twisted.internet import defer, reactor, protocol
-from twisted.web import client, xmlrpc
-from twisted.web.http_headers import Headers
+from twisted.internet import defer
+from twisted.internet import protocol
+from twisted.internet import reactor
 from twisted.trial import unittest
+from twisted.web import client
+from twisted.web.http_headers import Headers
+from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import UmpireError

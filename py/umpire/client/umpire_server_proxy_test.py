@@ -14,8 +14,8 @@ import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.umpire.client.umpire_client import UmpireClientInfoInterface
+from cros.factory.umpire.client import umpire_server_proxy
 
 
 DEFAULT_TEST_DATA = 'testdata/umpire_test_data.yaml'

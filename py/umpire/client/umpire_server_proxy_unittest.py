@@ -18,20 +18,22 @@ import os
 import re
 import shutil
 import signal
+from SimpleHTTPServer import SimpleHTTPRequestHandler
+from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
+from SimpleXMLRPCServer import SimpleXMLRPCServer
 import socket
 import SocketServer
 import tempfile
 import time
 import unittest
-from SimpleHTTPServer import SimpleHTTPRequestHandler
-from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.client import umpire_server_proxy
+from cros.factory.utils.file_utils import ForceSymlink
+from cros.factory.utils.file_utils import Read
 from cros.factory.utils import net_utils
-from cros.factory.utils import process_utils
-from cros.factory.utils.file_utils import ForceSymlink, Read
 from cros.factory.utils.net_utils import FindConsecutiveUnusedPorts
+from cros.factory.utils import process_utils
 
 MOCK_UMPIRE_ADDR = 'http://' + net_utils.LOCALHOST
 SEARCH_STARTING_PORT = 49998

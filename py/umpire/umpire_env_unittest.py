@@ -14,8 +14,10 @@ import factory_common  # pylint: disable=W0611
 
 from cros.factory.tools import get_version
 from cros.factory.umpire.commands.update import ResourceUpdater
-from cros.factory.umpire.common import (
-    GetHashFromResourceName, ResourceType, RESOURCE_HASH_DIGITS, UmpireError)
+from cros.factory.umpire.common import GetHashFromResourceName
+from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
+from cros.factory.umpire.common import ResourceType
+from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 

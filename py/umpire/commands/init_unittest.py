@@ -12,10 +12,10 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire import common as umpire_common
-from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.commands import init
 from cros.factory.umpire.commands import system
+from cros.factory.umpire import common as umpire_common
+from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils.file_utils import TouchFile
 

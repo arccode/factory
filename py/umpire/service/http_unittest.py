@@ -13,10 +13,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
 from cros.factory.umpire.config import UmpireConfig
 from cros.factory.umpire.service import http
-from cros.factory.umpire.service.http import (HTTPService,
-                                              LightyConditional,
-                                              LightyConfigWriter)
-
+from cros.factory.umpire.service.http import HTTPService
+from cros.factory.umpire.service.http import LightyConditional
+from cros.factory.umpire.service.http import LightyConfigWriter
 from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils

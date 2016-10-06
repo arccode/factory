@@ -6,9 +6,12 @@
 
 import logging
 import traceback
-import xmlrpclib
 from twisted.python import reflect
-from twisted.web.xmlrpc import Fault, NoSuchFunction, withRequest, XMLRPC
+from twisted.web.xmlrpc import Fault
+from twisted.web.xmlrpc import NoSuchFunction
+from twisted.web.xmlrpc import withRequest
+from twisted.web.xmlrpc import XMLRPC
+import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 

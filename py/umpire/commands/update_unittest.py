@@ -13,10 +13,12 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
-from cros.factory.umpire.commands.update import (
-    ResourceUpdater, ConvertChromeOSImageToMiniOmahaFormat,
-    SECTOR_SIZE, MINI_OMAHA_FSI_EXPECTED_NAME,
-    MINI_OMAHA_KERNEL_PART_NUM, MINI_OMAHA_ROOTFS_PART_NUM)
+from cros.factory.umpire.commands.update import ConvertChromeOSImageToMiniOmahaFormat
+from cros.factory.umpire.commands.update import MINI_OMAHA_FSI_EXPECTED_NAME
+from cros.factory.umpire.commands.update import MINI_OMAHA_KERNEL_PART_NUM
+from cros.factory.umpire.commands.update import MINI_OMAHA_ROOTFS_PART_NUM
+from cros.factory.umpire.commands.update import ResourceUpdater
+from cros.factory.umpire.commands.update import SECTOR_SIZE
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.config import UmpireConfig
 from cros.factory.umpire.umpire_env import UmpireEnvForTest

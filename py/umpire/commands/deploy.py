@@ -13,12 +13,11 @@ import datetime
 import errno
 import logging
 import os
-
 from twisted.python import failure as twisted_failure
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire import common
+from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire import daemon
 from cros.factory.umpire import utils
 from cros.factory.utils import file_utils

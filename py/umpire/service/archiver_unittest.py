@@ -12,8 +12,8 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.lumberjack import archiver_cli
 from cros.factory.umpire import config
-from cros.factory.umpire import umpire_env
 from cros.factory.umpire.service import archiver
+from cros.factory.umpire import umpire_env
 
 
 class TestArchiverService(unittest.TestCase):

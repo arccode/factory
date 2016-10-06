@@ -30,7 +30,6 @@ passing filename instead of file body.
 import logging
 import os
 import tempfile
-
 from twisted.internet import defer
 from twisted.internet import protocol
 from twisted.internet import reactor

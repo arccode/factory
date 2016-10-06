@@ -11,7 +11,6 @@ The class handles http://umpire_address:umpire_http_port/post/
 
 import json
 import logging
-
 from twisted.web import http
 from twisted.web import resource
 from twisted.web import server

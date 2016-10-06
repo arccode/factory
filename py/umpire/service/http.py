@@ -16,7 +16,9 @@ from cros.factory.umpire.config import NUMBER_SHOP_FLOOR_HANDLERS
 from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
-from cros.factory.utils.schema import FixedDict, List, Scalar
+from cros.factory.utils.schema import FixedDict
+from cros.factory.utils.schema import List
+from cros.factory.utils.schema import Scalar
 
 
 _LOCALHOST = '127.0.0.1'

@@ -13,8 +13,8 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
-from cros.factory.umpire.commands.import_bundle import (BundleImporter,
-                                                        FactoryBundle)
+from cros.factory.umpire.commands.import_bundle import BundleImporter
+from cros.factory.umpire.commands.import_bundle import FactoryBundle
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnvForTest

@@ -17,13 +17,15 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
-from cros.factory.umpire.common import (
-    GetHashFromResourceName, ResourceType, RESOURCE_HASH_DIGITS, UmpireError,
-    DEFAULT_BASE_DIR)
+from cros.factory.umpire.common import DEFAULT_BASE_DIR
+from cros.factory.umpire.common import GetHashFromResourceName
+from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
+from cros.factory.umpire.common import ResourceType
+from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import config
 from cros.factory.umpire.shop_floor_manager import ShopFloorManager
-from cros.factory.umpire.version import (UMPIRE_VERSION_MAJOR,
-                                         UMPIRE_VERSION_MINOR)
+from cros.factory.umpire.version import UMPIRE_VERSION_MAJOR
+from cros.factory.umpire.version import UMPIRE_VERSION_MINOR
 from cros.factory.utils import file_utils
 
 

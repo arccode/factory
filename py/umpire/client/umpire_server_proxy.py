@@ -22,8 +22,8 @@ from cros.factory.test import factory
 from cros.factory.umpire.client.umpire_client import UmpireClientInfo
 from cros.factory.umpire.common import REQUIRED_RESOURCE_MAP_FIELDS
 from cros.factory.umpire.common import UMPIRE_VERSION
-from cros.factory.utils.string_utils import ParseDict
 from cros.factory.utils import net_utils
+from cros.factory.utils.string_utils import ParseDict
 
 
 class UmpireServerError(object):

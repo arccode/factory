@@ -12,9 +12,12 @@ import Cookie
 import urllib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import (
-    DUT_INFO_KEYS, DUT_INFO_KEY_PREFIX, HANDLER_BASE, SCALAR_MATCHERS,
-    RANGE_MATCHERS, SCALAR_PREFIX_MATCHERS)
+from cros.factory.umpire.common import DUT_INFO_KEY_PREFIX
+from cros.factory.umpire.common import DUT_INFO_KEYS
+from cros.factory.umpire.common import HANDLER_BASE
+from cros.factory.umpire.common import RANGE_MATCHERS
+from cros.factory.umpire.common import SCALAR_MATCHERS
+from cros.factory.umpire.common import SCALAR_PREFIX_MATCHERS
 
 
 def ParseDUTHeader(header):

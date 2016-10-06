@@ -12,8 +12,8 @@ from twisted.trial import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.service.umpire_service import UmpireService
 from cros.factory.umpire.service.umpire_service import ServiceProcess
+from cros.factory.umpire.service.umpire_service import UmpireService
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.utils import ConcentrateDeferreds
 

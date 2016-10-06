@@ -14,9 +14,9 @@ import subprocess
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils import file_utils
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import config as umpire_config
+from cros.factory.utils import file_utils
 
 
 class ConfigEditor(object):

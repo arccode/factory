@@ -11,17 +11,19 @@ import logging
 import os
 import shutil
 import time
+from twisted.internet import threads
+from twisted.web import xmlrpc
 import urllib
 import urlparse
 import xmlrpclib
-from twisted.internet import threads
-from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.bundle_selector import SelectRuleset
-from cros.factory.umpire.common import ParseResourceName, UmpireError
+from cros.factory.umpire.common import ParseResourceName
+from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.service.umpire_service import FindServicesWithProperty
-from cros.factory.umpire.umpire_rpc import RPCCall, UmpireRPC
+from cros.factory.umpire.umpire_rpc import RPCCall
+from cros.factory.umpire.umpire_rpc import UmpireRPC
 from cros.factory.umpire.utils import Deprecate
 from cros.factory.utils import file_utils
 

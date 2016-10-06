@@ -12,16 +12,21 @@ updater.
 """
 
 import logging
-from signal import signal, SIGINT, SIGTERM
-from twisted.internet import defer, reactor
+from signal import SIGINT
+from signal import signal
+from signal import SIGTERM
+from twisted.internet import defer
+from twisted.internet import reactor
 from twisted.python.failure import Failure
-from twisted.web import server, wsgi, xmlrpc
+from twisted.web import server
+from twisted.web import wsgi
+from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.http_post_resource import HTTPPOSTResource
-from cros.factory.umpire.service.umpire_service import (
-    GetAllServiceNames, GetServiceInstance)
+from cros.factory.umpire.service.umpire_service import GetAllServiceNames
+from cros.factory.umpire.service.umpire_service import GetServiceInstance
 from cros.factory.umpire.utils import ConcentrateDeferreds
 from cros.factory.umpire.web.wsgi import WebAppDispatcher
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer

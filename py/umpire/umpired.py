@@ -16,10 +16,10 @@ import re
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire import rpc_dut
 from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.rpc_cli import CLICommand
 from cros.factory.umpire.daemon import UmpireDaemon
+from cros.factory.umpire.rpc_cli import CLICommand
+from cros.factory.umpire import rpc_dut
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.webapp_resourcemap import ResourceMapApp
 

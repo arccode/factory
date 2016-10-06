@@ -20,6 +20,7 @@ Example:
   FastCGIServer(address='127.0.0.1', port=9998, instance=service)
 """
 
+from flup.server import fcgi_fork
 import logging
 import multiprocessing
 import re
@@ -27,8 +28,6 @@ import SimpleXMLRPCServer
 import sys
 import time
 import traceback
-
-from flup.server import fcgi_fork
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import shop_floor_handler

@@ -11,11 +11,11 @@ from __future__ import print_function
 import logging
 import mox
 import os
-
 from twisted.internet import reactor
 from twisted.python import failure
 from twisted.trial import unittest
-from twisted.web import server, xmlrpc
+from twisted.web import server
+from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import import_bundle
@@ -23,7 +23,8 @@ from cros.factory.umpire.commands import update
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import config
 from cros.factory.umpire.rpc_cli import CLICommand
-from cros.factory.umpire.umpire_env import UmpireEnv, UmpireEnvForTest
+from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
 from cros.factory.utils import net_utils
 

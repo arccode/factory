@@ -12,7 +12,8 @@ import logging
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.tools import build_board
-from cros.factory.umpire.common import DUT_INFO_KEYS, DUT_INFO_KEY_PREFIX
+from cros.factory.umpire.common import DUT_INFO_KEY_PREFIX
+from cros.factory.umpire.common import DUT_INFO_KEYS
 
 # The component keys in the return value of GetUpdate RPC call.
 COMPONENT_KEYS = {

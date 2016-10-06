@@ -14,8 +14,8 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire import config
 from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire import config
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 

@@ -17,8 +17,9 @@ import subprocess
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import (
-    ResourceType, UmpireError, UPDATEABLE_RESOURCES)
+from cros.factory.umpire.common import ResourceType
+from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire.common import UPDATEABLE_RESOURCES
 from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire import utils as umpire_utils
 from cros.factory.utils import file_utils

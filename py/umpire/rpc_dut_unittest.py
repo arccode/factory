@@ -15,16 +15,16 @@ import shutil
 import time
 from twisted.internet import reactor
 from twisted.trial import unittest
-from twisted.web import server, xmlrpc
+from twisted.web import server
+from twisted.web import xmlrpc
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.bundle_selector import SelectRuleset
-from cros.factory.umpire.rpc_dut import (
-    LogDUTCommands,
-    RootDUTCommands,
-    UmpireDUTCommands,
-    FACTORY_STAGES)
+from cros.factory.umpire.rpc_dut import FACTORY_STAGES
+from cros.factory.umpire.rpc_dut import LogDUTCommands
+from cros.factory.umpire.rpc_dut import RootDUTCommands
+from cros.factory.umpire.rpc_dut import UmpireDUTCommands
 from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.umpire.utils import ConcentrateDeferreds
 from cros.factory.umpire.version import UMPIRE_VERSION_MAJOR

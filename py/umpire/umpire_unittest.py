@@ -4,19 +4,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import __builtin__  # Used for mocking raw_input().
 import mox
 import os
 import shutil
 import sys
 import unittest
-import __builtin__  # Used for mocking raw_input().
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.file_utils import TempDirectory, WriteFile
-from cros.factory.utils.type_utils import Obj
 from cros.factory.umpire.commands import init
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import umpire
+from cros.factory.utils.file_utils import TempDirectory
+from cros.factory.utils.file_utils import WriteFile
+from cros.factory.utils.type_utils import Obj
 
 
 TESTDATA_DIR = os.path.realpath(os.path.join(

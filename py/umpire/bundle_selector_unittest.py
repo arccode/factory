@@ -9,7 +9,8 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.bundle_selector import ParseDUTHeader, SelectBundle
+from cros.factory.umpire.bundle_selector import ParseDUTHeader
+from cros.factory.umpire.bundle_selector import SelectBundle
 
 
 def DutInfo(x_umpire_dut):

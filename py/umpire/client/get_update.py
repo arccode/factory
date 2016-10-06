@@ -8,8 +8,8 @@
 
 
 import collections
-import logging
 import gzip
+import logging
 import StringIO
 import urllib2
 
