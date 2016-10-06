@@ -12,6 +12,7 @@ import unittest
 import yaml
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.hwid.v3.common import HWID
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.common import IsMPKeyName
 from cros.factory.hwid.v3.database import Database
@@ -61,6 +62,13 @@ class HWIDTest(unittest.TestCase):
     self.assertEquals(set(['a', 'b']), MakeSet(('a', 'b')))
     self.assertEquals(set(['a', 'b']), MakeSet({'a': 'foo', 'b': 'bar'}))
 
+  def testIsEquivalentBinaryString(self):
+    self.assertTrue(HWID.IsEquivalentBinaryString('01001', '01001'))
+    self.assertTrue(HWID.IsEquivalentBinaryString('01011', '010100001'))
+    self.assertFalse(HWID.IsEquivalentBinaryString('01011', '010110001'))
+    with self.assertRaises(AssertionError):
+      HWID.IsEquivalentBinaryString('010110', '01011000')
+
   def testVerifySelf(self):
     bom = self.database.ProbeResultToBOM(self.results[0])
     bom = self.database.UpdateComponentsOfBOM(bom, {
@@ -70,41 +78,16 @@ class HWIDTest(unittest.TestCase):
     hwid = Encode(self.database, bom)
     self.assertEquals(None, hwid.VerifySelf())
 
-    # The correct binary string: '0000000000111010000011'
-    original_value = hwid.binary_string
-    hwid.binary_string = '000000000011101000001011'
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid bit string length', hwid.VerifySelf)
-    hwid.binary_string = '0000000001111010000011'
-    self.assertRaisesRegexp(
-        HWIDException,
-        r'Encoded string CHROMEBOOK C2H-I3Q-A6Q does not decode to binary '
-        r"string '0000000001111010000011'",
-        hwid.VerifySelf)
-    hwid.binary_string = original_value
+    with self.assertRaises(AttributeError):
+      hwid.binary_string = 'CANNOT SET binary_string'
 
-    original_value = hwid.encoded_string
-    hwid.encoded_string = 'ASDF CWER-TY'
-    self.assertRaisesRegexp(
-        HWIDException, r"Invalid HWID string format: 'ASDF CWER-TY",
-        hwid.VerifySelf)
-    hwid.encoded_string = original_value
-
-    original_value = hwid.encoded_string
-    hwid.encoded_string = 'ASDF C2W-E3R'
-    self.assertRaisesRegexp(
-        HWIDException, r"Invalid board name: 'ASDF'", hwid.VerifySelf)
-    hwid.encoded_string = original_value
+    with self.assertRaises(AttributeError):
+      hwid.encoded_string = 'CANNOT SET encoded_string'
 
     original_value = hwid.bom
     hwid.bom.encoded_fields['cpu'] = 10
     self.assertRaisesRegexp(
         HWIDException, r'Encoded fields .* have unknown indices',
-        hwid.VerifySelf)
-    hwid.bom.encoded_fields['cpu'] = 2
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Binary string '0001000000111010000011' does not decode to BOM",
         hwid.VerifySelf)
     hwid.bom = original_value
 

@@ -8,8 +8,6 @@ import factory_common  # pylint: disable=W0611
 
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.v3.common import HWIDException
-from cros.factory.hwid.v3.encoder import (
-    BOMToBinaryString, BinaryStringToEncodedString)
 from cros.factory.hwid.v3.rule import GetContext
 from cros.factory.hwid.v3.rule import GetLogger
 from cros.factory.hwid.v3.rule import RuleFunction
@@ -166,10 +164,6 @@ def SetComponent(comp_cls, name):
   context = GetContext()
   context.hwid.bom = context.hwid.database.UpdateComponentsOfBOM(
       context.hwid.bom, {comp_cls: name})
-  context.hwid.binary_string = BOMToBinaryString(context.hwid.database,
-                                                 context.hwid.bom)
-  context.hwid.encoded_string = BinaryStringToEncodedString(
-      context.hwid.database, context.hwid.binary_string)
 
 
 @RuleFunction(['hwid'])
@@ -191,10 +185,6 @@ def SetImageId(image_id):
   if image_id not in context.hwid.database.image_id:
     raise HWIDException('Invalid image id: %r' % image_id)
   context.hwid.bom.image_id = image_id
-  context.hwid.binary_string = BOMToBinaryString(context.hwid.database,
-                                                 context.hwid.bom)
-  context.hwid.encoded_string = BinaryStringToEncodedString(
-      context.hwid.database, context.hwid.binary_string)
 
 
 @RuleFunction(['hwid'])

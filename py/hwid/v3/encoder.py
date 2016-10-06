@@ -115,9 +115,7 @@ def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,
           err_msg += '  %r: %r\n' % (comp_cls, probed_comp.component_name)
       raise common.HWIDException(err_msg)
 
-  binary_string = BOMToBinaryString(database, updated_bom)
-  encoded_string = BinaryStringToEncodedString(database, binary_string)
-  hwid = common.HWID(database, binary_string, encoded_string, updated_bom,
+  hwid = common.HWID(database, updated_bom,
                      mode=mode, skip_check=skip_check)
   hwid.VerifyComponentStatus()
   return hwid

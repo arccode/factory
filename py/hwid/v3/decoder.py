@@ -114,4 +114,4 @@ def Decode(database, encoded_string, mode=common.HWID.OPERATION_MODE.normal):
   """
   binary_string = EncodedStringToBinaryString(database, encoded_string)
   bom = BinaryStringToBOM(database, binary_string)
-  return common.HWID(database, binary_string, encoded_string, bom, mode=mode)
+  return common.HWID(database, bom, binary_string, mode=mode)
