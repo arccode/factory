@@ -47,11 +47,9 @@ BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
 SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
 
-PAR_BUILD_DIR = $(BUILD_DIR)/par
+PAR_TEMP_DIR = $(TEMP_DIR)/par
+PAR_OUTPUT_DIR = $(BUILD_DIR)/par
 PAR_NAME = factory.par
-# Extra arguments to give to the make_par command (e.g., to add
-# files from overlays).
-MAKE_PAR_ARGS =
 
 DOC_TEMP_DIR = $(TEMP_DIR)/docsrc
 DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
@@ -169,25 +167,33 @@ resource: closure
 	  $(info - Found board resource file $(file)) \
 	  tar -Af $(RESOURCE_PATH) $(file)${\n})
 
-# Build par (Python archive) file containing all py and pyc files.
-par:
-	rm -rf $(PAR_BUILD_DIR)
-	mkdir -p $(PAR_BUILD_DIR)
-	# First build factory.par.
-	bin/make_par -v \
-	  -o $(PAR_BUILD_DIR)/$(PAR_NAME) \
-	  $(MAKE_PAR_ARGS)
-	# Sanity check: make sure we can import state using only
-	# factory.par.
-	PYTHONPATH=$(PAR_BUILD_DIR)/$(PAR_NAME) $(PYTHON) -c \
-	  'import cros.factory.test.state'; \
-	# Sanity check: make sure we can run "gooftool --help" using
-	# factory.par.
-	$(PAR_BUILD_DIR)/$(PAR_NAME) gooftool --help | \
-	  grep -q '^usage: gooftool'
-	$(if $(PAR_DEST_DIR), \
-	  cp $(PAR_BUILD_DIR)/$(PAR_NAME) \
-	  $(PAR_DEST_DIR))
+# Apply files from BOARD_RESOURCES_DIR to particular folder.
+# Usage: $(call func-apply-board-resources,RESOURCE_TYPE,OUTPUT_FOLDER)
+func-apply-board-resources = @\
+	$(foreach file,$(wildcard $(BOARD_RESOURCES_DIR)/$(1)-*.tar),\
+	  $(info - Found board resource file $(file)) \
+	  tar -xf $(file) -C $(2)${\n})
+
+# Make and test a PAR file. The PAR will be tested by importing state and run as
+# gooftool.
+# Usage: $(call func-make-par,OUTPUT.par,OPTIONS,INPUT_DIR)
+func-make-par = @\
+	@echo "Building PAR $(1)..." && \
+	  mkdir -p "$(dir $(1))" && \
+	  $(3)/bin/make_par $(2) -o $(1) && \
+	  echo -n "Checking PAR invocation..." && \
+	  PYTHONPATH=$(1) $(PYTHON) -c 'import cros.factory.test.state' && \
+	  $(1) gooftool --help | grep -q '^usage: gooftool' && \
+	  echo " Good."
+
+# Builds executable python archives.
+par: resource
+	rm -rf $(PAR_TEMP_DIR); mkdir -p $(PAR_TEMP_DIR)
+	tar -xf $(RESOURCE_PATH) -C $(PAR_TEMP_DIR)
+	$(call func-apply-board-resources,par,$(PAR_TEMP_DIR))
+	$(call func-make-par,$(PAR_OUTPUT_DIR)/$(PAR_NAME),,$(PAR_TEMP_DIR))
+	$(call func-make-par,$(PAR_OUTPUT_DIR)/factory-mini.par,--mini,\
+	  $(PAR_TEMP_DIR))
 
 # Creates build/doc and build/doc.zip, containing the factory SDK docs.
 doc:
@@ -210,7 +216,7 @@ bundle: par doc
 	rsync -a --exclude testdata --exclude README.txt \
 	  setup/ $(FACTORY_BUNDLE)/factory_setup/
 	mkdir -p $(FACTORY_BUNDLE)/shopfloor
-	cp -a $(PAR_BUILD_DIR)/$(PAR_NAME) \
+	cp -a $(PAR_OUTPUT_DIR)/$(PAR_NAME) \
 	  $(FACTORY_BUNDLE)/shopfloor
 	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
 	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/manage
@@ -218,7 +224,7 @@ bundle: par doc
 	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor
 	mkdir -p $(FACTORY_BUNDLE)/factory_flow
 	# Create a dedicated directory for factory flow tools.
-	cp -a $(PAR_BUILD_DIR)/$(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow
+	cp -a $(PAR_OUTPUT_DIR)/$(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow
 	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/factory_flow
 	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/finalize_bundle
 	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/test_factory_flow
