@@ -5,6 +5,7 @@
 # This Makefile provides different targets:
 # - closure: Build static resources in Closure (js, css)
 # - par: Archived python files, with minimal resources.
+# - toolkit: Installer for factory test DUT software.
 # - overlord: Overlord the remote monitoring daemon.
 # - doc: HTML documentation.
 # - bundle: everything for deployment, including doc, setup, flow ... etc.
@@ -51,6 +52,11 @@ PAR_TEMP_DIR = $(TEMP_DIR)/par
 PAR_OUTPUT_DIR = $(BUILD_DIR)/par
 PAR_NAME = factory.par
 
+TOOLKIT_VERSION ?= $(shell $(MK_DIR)/toolkit_version.sh)
+TOOLKIT_FILENAME ?= install_factory_toolkit.run
+TOOLKIT_TEMP_DIR = $(TEMP_DIR)/toolkit
+TOOLKIT_OUTPUT_DIR = $(BUILD_DIR)
+
 DOC_TEMP_DIR = $(TEMP_DIR)/docsrc
 DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
 DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
@@ -71,6 +77,9 @@ CUTOFF_SCRIPT_NAMES ?= \
 OVERLORD_DEPS_URL ?= \
   gs://chromeos-localmirror/distfiles/overlord-deps-0.0.3.tar.gz
 OVERLORD_DEPS_DIR ?= $(BUILD_DIR)/dist/go
+WEBGL_AQUARIUM_URI ?= \
+  gs://chromeos-localmirror/distfiles/webgl-aquarium-20130524.tar.bz2
+WEBGL_AQUARIUM_DIR ?= $(BUILD_DIR)/dist/webgl_aquarium_static
 
 LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist)
 LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
@@ -99,7 +108,7 @@ PRESUBMIT_TARGETS := \
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
 .PHONY: \
-  .phony default clean closure proto overlord ovl-bin par doc resource \
+  .phony default clean closure proto overlord ovl-bin par doc resource toolkit \
   bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
   lint smartlint smart_lint test testall overlay
 
@@ -128,6 +137,9 @@ func-extract-from-url = @\
 
 $(OVERLORD_DEPS_DIR):
 	$(call func-extract-from-url,$(dir $@),$(OVERLORD_DEPS_URL))
+
+$(WEBGL_AQUARIUM_DIR):
+	$(call func-extract-from-url,$(dir $@),$(WEBGL_AQUARIUM_URI))
 
 # TODO(hungte) Change overlord to build out-of-tree.
 overlord: $(OVERLORD_DEPS_DIR)
@@ -194,6 +206,30 @@ par: resource
 	$(call func-make-par,$(PAR_OUTPUT_DIR)/$(PAR_NAME),,$(PAR_TEMP_DIR))
 	$(call func-make-par,$(PAR_OUTPUT_DIR)/factory-mini.par,--mini,\
 	  $(PAR_TEMP_DIR))
+
+# Builds factory toolkit from resources.
+toolkit: $(WEBGL_AQUARIUM_DIR) resource par
+	rm -rf $(TOOLKIT_TEMP_DIR) $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)
+	mkdir -p $(TOOLKIT_TEMP_DIR)$(TARGET_DIR) $(TOOLKIT_OUTPUT_DIR)
+	tar -xf $(RESOURCE_PATH) -C $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)
+	cp -r $(WEBGL_AQUARIUM_DIR)/* \
+	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/test/pytests/webgl_aquarium_static
+	$(call func-apply-board-resources,toolkit,\
+	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR))
+	cp "$(PAR_OUTPUT_DIR)/factory.par" "$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/"
+	cp -L /usr/bin/makeself*.sh $(TOOLKIT_TEMP_DIR)/.
+	# TODO(hungte) Figure out a way to get repo status in OUTOFTREE_BUILD.
+	$(if $(OUTOFTREE_BUILD),,$(if $(BOARD),\
+	  py/toolkit/print_repo_status.py -b $(BOARD) \
+	    >$(TOOLKIT_TEMP_DIR)/REPO_STATUS))
+	echo "$(BOARD) Factory Toolkit $(TOOLKIT_VERSION)" \
+	  >$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/TOOLKIT_VERSION
+	ln -s .$(TARGET_DIR)/TOOLKIT_VERSION $(TOOLKIT_TEMP_DIR)/VERSION
+	# Install factory test enabled flag.
+	touch $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/enabled
+	chmod -R go=rX $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)
+	$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/toolkit/installer.py \
+	  --pack-into $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)
 
 # Creates build/doc and build/doc.zip, containing the factory SDK docs.
 doc:
