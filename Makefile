@@ -8,7 +8,7 @@
 # - toolkit: Installer for factory test DUT software.
 # - overlord: Overlord the remote monitoring daemon.
 # - doc: HTML documentation.
-# - bundle: everything for deployment, including doc, setup, flow ... etc.
+# - bundle: everything for deployment, including doc, toolkit, setup, ... etc.
 
 # Some targets, including 'par' and 'toolkit', are using a 'resource system'.
 # Source files from factory repo and chromeos-factory-board/files were collected
@@ -30,6 +30,9 @@ MK_DIR := devtools/mk
 BUILD_DIR ?= build
 RESOURCE_DIR ?= $(BUILD_DIR)/resource
 RESOURCE_PATH ?= $(RESOURCE_DIR)/factory.tar
+BUNDLE_DIR ?= \
+  $(if $(DESTDIR),$(DESTDIR)/$(TARGET_DIR)/bundle,$(BUILD_DIR)/bundle)
+BOARD_BUNDLE_RESOURCE_PATH ?= $(RESOURCE_DIR)/bundle-board.tar
 TEMP_DIR ?= $(BUILD_DIR)/tmp
 
 # Global environment settings
@@ -118,7 +121,7 @@ default: closure
 
 clean:
 	$(MAKE) -C $(CLOSURE_DIR) OUTPUT_DIR=$(CLOSURE_OUTPUT_DIR) $@
-	rm -rf $(RESOURCE_DIR) $(TEMP_DIR) $(BUILD_DIR)
+	rm -rf $(RESOURCE_DIR) $(TEMP_DIR) $(BUILD_DIR) $(BUNDLE_DIR)
 
 # Currently the only programs using Closure is in Goofy.
 closure:
@@ -165,6 +168,8 @@ resource: closure
 	tar -cf $(RESOURCE_PATH) -X $(MK_DIR)/resource_exclude.lst \
 	  bin misc py py_pkg sh init \
 	  $(if $(wildcard $(BOARD_FILES_DIR)),-C $(BOARD_FILES_DIR) .)
+	$(if $(wildcard $(BOARD_FILES_DIR)/bundle), \
+	  tar -cf $(BOARD_BUNDLE_RESOURCE_PATH) -C $(BOARD_FILES_DIR)/bundle .)
 	$(if $(OUTOFTREE_BUILD),\
 	  tar -rf $(RESOURCE_PATH) --transform 's"^"./py/goofy/static/"' \
 	    -C "$(CLOSURE_OUTPUT_DIR)" $(CLOSURE_OUTPUT_FILENAMES))
@@ -183,8 +188,9 @@ resource: closure
 # Apply files from BOARD_RESOURCES_DIR to particular folder.
 # Usage: $(call func-apply-board-resources,RESOURCE_TYPE,OUTPUT_FOLDER)
 func-apply-board-resources = @\
-	$(foreach file,$(wildcard $(BOARD_RESOURCES_DIR)/$(1)-*.tar),\
-	  $(info - Found board resource file $(file)) \
+	$(foreach file,$(wildcard \
+	  $(BOARD_RESOURCES_DIR)/$(1)-*.tar $(RESOURCE_DIR)/$(1)-*.tar),\
+	  $(info - Found board resource file $(file))${\n} \
 	  tar -xf $(file) -C $(2)${\n})
 
 # Make and test a PAR file. The PAR will be tested by importing state and run as
@@ -247,31 +253,19 @@ doc:
 	(cd $(DOC_OUTPUT_DIR)/..; zip -qr9 - $(notdir $(DOC_OUTPUT_DIR))) \
 	  >$(DOC_ARCHIVE_PATH)
 
-bundle: par doc
-	# Make factory bundle overlay
-	mkdir -p $(FACTORY_BUNDLE)/factory_setup/
-	rsync -a --exclude testdata --exclude README.txt \
-	  setup/ $(FACTORY_BUNDLE)/factory_setup/
-	mkdir -p $(FACTORY_BUNDLE)/shopfloor
-	cp -a $(PAR_OUTPUT_DIR)/$(PAR_NAME) \
-	  $(FACTORY_BUNDLE)/shopfloor
-	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
-	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/manage
-	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/minijack
-	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor
-	mkdir -p $(FACTORY_BUNDLE)/factory_flow
-	# Create a dedicated directory for factory flow tools.
-	cp -a $(PAR_OUTPUT_DIR)/$(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow
-	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/factory_flow
-	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/finalize_bundle
-	ln -sf $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/test_factory_flow
-	# Archive docs into bundle
-	cp $(DOC_ARCHIVE_PATH) $(FACTORY_BUNDLE)
-	# Install cgpt, used by factory_setup.
-	# TODO(jsalz/hungte): Find a better way to do this.
-	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
-	cp /usr/bin/cgpt $(FACTORY_BUNDLE)/factory_setup/bin
-	cp /usr/bin/futility $(FACTORY_BUNDLE)/factory_setup/bin
+# Builds everything needed and create the proper bundle folder.
+# Note there may be already few files like HWID, README, and MANIFEST.yaml
+# already installed into $(SYSROOT)/usr/local/factory/bundle.
+bundle: par doc toolkit
+	$(MK_DIR)/bundle.sh \
+	  "$(BUNDLE_DIR)" \
+	  "$(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)" \
+	  "$(PAR_OUTPUT_DIR)/$(PAR_NAME)" \
+	  "$(DOC_ARCHIVE_PATH)" \
+	  "setup" \
+	  "$(SYSROOT)"
+	$(call func-apply-board-resources,bundle,$(BUNDLE_DIR))
+	$(info Bundle is created in $(abspath $(BUNDLE_DIR)))
 
 lint:
 	$(MK_DIR)/pylint.sh $(LINT_WHITELIST)
@@ -363,17 +357,12 @@ INSTALL_MASK=\
   *.pyc \
   *_unittest.py \
   py/doc
-FACTORY=$(DESTDIR)/$(TARGET_DIR)
-FACTORY_BUNDLE=$(FACTORY)/bundle
-DESTDIR=$(BUILD_DIR)/image
+# Change DESTDIR to empty so both old and new ebuild will install to right
+# destination.
+DESTDIR=
 INSTALL_ROOT=$(DESTDIR)/$(TARGET_DIR)
 
-install:
-	mkdir -p $(FACTORY)
+install: closure
+	mkdir -p $(INSTALL_ROOT)
 	rsync -a --chmod=go=rX $(addprefix --exclude ,$(INSTALL_MASK)) \
-	  bin misc py py_pkg sh init $(FACTORY)
-	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
-	mkdir -m755 -p ${DESTDIR}/var/log
-	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
-	ln -sf $(addprefix ../factory/log/,factory.log console.log) \
-	  ${DESTDIR}/var/log
+	  bin misc py py_pkg sh init $(INSTALL_ROOT)
