@@ -690,6 +690,13 @@ class RunIfTest(GoofyTest):
   def runTest(self):
     state_instance = factory.get_state_instance()
 
+    # foo.bar is not set
+    self.goofy.update_skipped_tests()
+    a_state = state_instance.get_test_state('a')
+    self.assertEquals(True, a_state.skip)
+    b_state = state_instance.get_test_state('b')
+    self.assertEquals(False, b_state.skip)
+
     # Set foo.bar in the state server.
     shopfloor.save_aux_data('foo', 'MLB00001', {'bar': True})
     self.goofy.update_skipped_tests()

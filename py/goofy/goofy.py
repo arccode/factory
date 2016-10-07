@@ -628,12 +628,14 @@ class Goofy(GoofyBase):
     def _evaluate_skip_from_run_if(test):
       """Returns the run_if evaluation of the test.
 
+      Evaluates test's run_if argument to decide skipping the test or not.  If
+      run_if argument is not set, the test will never be skipped.
+
       Args:
         test: A FactoryTest object.
 
       Returns:
-        The run_if evaluation result. Returns False if the test has no
-        run_if argument.
+        True if this test should be skipped, otherwise False.
       """
       value = None
       if test.run_if_expr:
@@ -644,19 +646,18 @@ class Goofy(GoofyBase):
                             test.path)
           # But keep going; we have no choice.  This will end up
           # always activating the test.
+          return False
       elif test.run_if_table_name:
         try:
           aux = shopfloor.get_selected_aux_data(test.run_if_table_name)
           value = aux.get(test.run_if_col)
         except ValueError:
-          # Not available; assume it shouldn't be skipped
+          # Cannot find corresponding value, use default value (None)
           pass
+      else:  # run_if is not set
+        return False
 
-      if value is None:
-        skip = False
-      else:
-        skip = (not value) ^ t.run_if_not
-      return skip
+      return (not value) ^ t.run_if_not
 
     # Gets all run_if evaluation, and stores results in skip_map.
     skip_map = dict()
