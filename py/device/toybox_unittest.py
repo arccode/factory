@@ -51,6 +51,10 @@ class ToyboxTest(unittest.TestCase):
     self.assertEquals(self.dut.toybox.dd('/dev/null', bs=1, count=1), ' ')
     self.dut.CheckOutput.assert_called_with(['toybox', 'dd', 'if=/dev/null',
                                              'bs=1', 'count=1'])
+    self.assertEquals(self.dut.toybox.dd('/dev/null', bs=1, count=1, conv=[]),
+                                         ' ')
+    self.dut.CheckOutput.assert_called_with(['toybox', 'dd', 'if=/dev/null',
+                                             'bs=1', 'count=1'])
 
   def testDf(self):
     output = textwrap.dedent('''
