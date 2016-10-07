@@ -1,0 +1,6 @@
+*.pyc
+*_unittest.py
+bundle/*
+py/doc/*
+py/lumberjack/*
+py/minijack/*

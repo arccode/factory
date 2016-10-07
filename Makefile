@@ -9,12 +9,26 @@
 # - doc: HTML documentation.
 # - bundle: everything for deployment, including doc, setup, flow ... etc.
 
+# Some targets, including 'par' and 'toolkit', are using a 'resource system'.
+# Source files from factory repo and chromeos-factory-board/files were collected
+# when building the 'resource' target. Other portage packages can also put what
+# should be added into toolkit and par into BOARD_RESOURCES_DIR
+# (/build/$BOARD/var/lib/factory/resources) - for example files downloaded from
+# CPFE or localmirror.
+#
+# Resource files should be named as TARGET-NAME.tar. For example,
+# 'toolkit-webgl.tar' refers to a webgl resource only for toolkit (not par),
+# 'par-shopfloor.tar' refers to a shopfloor resource only for PAR (not toolkit),
+# 'resource-l10n.tar' refers to a resource that toolkit and PAR will all have.
+
 # For debug and testing purposes, the Makefile also supports other virtual
 # targets like presubmit-*, lint, test, overlay-* ... etc.
 
 # Local environment settings
 MK_DIR := devtools/mk
 BUILD_DIR ?= build
+RESOURCE_DIR ?= $(BUILD_DIR)/resource
+RESOURCE_PATH ?= $(RESOURCE_DIR)/factory.tar
 TEMP_DIR ?= $(BUILD_DIR)/tmp
 
 # Global environment settings
@@ -26,8 +40,12 @@ TARGET_DIR = /usr/local/factory
 # Build and board config settings
 STATIC ?= false
 BOARD ?=
-BOARD_FILES_DIR ?= $(if $(BOARD),$(shell dirname $(shell \
-		     equery-$(BOARD) which chromeos-factory-board))/files)
+BOARD_FILES_DIR ?= \
+  $(if $(BOARD),\
+    $(dir $(shell equery-$(BOARD) which chromeos-factory-board))/files)
+BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
+BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
+SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
 
 PAR_BUILD_DIR = $(BUILD_DIR)/par
 PAR_NAME = factory.par
@@ -40,8 +58,16 @@ DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
 DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
 
 CLOSURE_DIR = py/goofy/static
+CLOSURE_OUTPUT_FILENAMES = js/goofy.js css/closure.css
 CLOSURE_OUTPUT_DIR ?= \
   $(abspath $(if $(OUTOFTREE_BUILD),$(BUILD_DIR)/closure,$(CLOSURE_DIR)))
+
+CROS_REGIONS_DATABASE ?= $(SYSROOT)/usr/share/misc/cros-regions.json
+
+# Battery cutoff scripts from memento_softwareupdate.
+# TODO(hungte) Move these scripts to factory repo.
+CUTOFF_SCRIPT_NAMES ?= \
+  battery_cutoff display_wipe_message generate_finalize_request inform_shopfloor
 
 # External dependency.
 OVERLORD_DEPS_URL ?= \
@@ -75,8 +101,8 @@ PRESUBMIT_TARGETS := \
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
 .PHONY: \
-  .phony default clean closure proto overlord ovl-bin par bundle doc \
-  presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
+  .phony default clean closure proto overlord ovl-bin par doc resource \
+  bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
   lint smartlint smart_lint test testall overlay
 
 # This must be the first rule.
@@ -84,7 +110,7 @@ default: closure
 
 clean:
 	$(MAKE) -C $(CLOSURE_DIR) OUTPUT_DIR=$(CLOSURE_OUTPUT_DIR) $@
-	rm -rf $(BUILD_DIR)
+	rm -rf $(RESOURCE_DIR) $(TEMP_DIR) $(BUILD_DIR)
 
 # Currently the only programs using Closure is in Goofy.
 closure:
@@ -120,6 +146,28 @@ ovl-bin:
 	  source $(BUILD_DIR)/.env/bin/activate; \
 	  pip install jsonrpclib ws4py pyinstaller; \
 	  pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
+
+# Prepare files from source folder into resource folder.
+resource: closure
+	@$(info Create resource $(if $(BOARD),for [$(BOARD)],without board).)
+	mkdir -p $(RESOURCE_DIR)
+	tar -cf $(RESOURCE_PATH) -X $(MK_DIR)/resource_exclude.lst \
+	  bin misc py py_pkg sh init \
+	  $(if $(wildcard $(BOARD_FILES_DIR)),-C $(BOARD_FILES_DIR) .)
+	$(if $(OUTOFTREE_BUILD),\
+	  tar -rf $(RESOURCE_PATH) --transform 's"^"./py/goofy/static/"' \
+	    -C "$(CLOSURE_OUTPUT_DIR)" $(CLOSURE_OUTPUT_FILENAMES))
+	$(if $(wildcard $(CROS_REGIONS_DATABASE)),\
+	  tar -rf $(RESOURCE_PATH) --transform 's"^"./py/test/l10n/"' \
+	  -C $(dir $(CROS_REGIONS_DATABASE)) $(notdir $(CROS_REGIONS_DATABASE)))
+	$(foreach name,$(CUTOFF_SCRIPT_NAMES),\
+	  $(if $(wildcard $(BOARD_TARGET_DIR)/sh/$(name).sh),\
+	    tar -rf $(RESOURCE_PATH) -C $(BOARD_TARGET_DIR) sh/$(name).sh${\n}))
+	$(foreach file,\
+	  $(wildcard $(BOARD_RESOURCES_DIR)/$@-*.tar \
+	             $(BOARD_RESOURCES_DIR)/factory-*.tar),\
+	  $(info - Found board resource file $(file)) \
+	  tar -Af $(RESOURCE_PATH) $(file)${\n})
 
 # Build par (Python archive) file containing all py and pyc files.
 par:
