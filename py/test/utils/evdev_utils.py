@@ -62,42 +62,105 @@ def SendKeys(key_sequence):
   uinput.close()
 
 
+def IsTouchDevice(dev):
+  """Check if a device is a touch device.
+
+  Args:
+    dev: evdev.InputDevice
+
+  Returns:
+    True if dev is a touch device.
+  """
+  keycaps = dev.capabilities().get(evdev.ecodes.EV_KEY, [])
+  return evdev.ecodes.BTN_TOUCH in keycaps
+
+
+def IsStylusDevice(dev):
+  """Check if a device is a stylus device.
+
+  Args:
+    dev: evdev.InputDevice
+
+  Returns:
+    True if dev is a stylus device.
+  """
+  keycaps = dev.capabilities().get(evdev.ecodes.EV_KEY, [])
+  return bool(set(keycaps) & set([
+      evdev.ecodes.BTN_STYLUS,
+      evdev.ecodes.BTN_STYLUS2,
+      evdev.ecodes.BTN_TOOL_PEN]))
+
+
+def IsTouchpadDevice(dev):
+  """Check if a device is a touchpad device.
+
+  Args:
+    dev: evdev.InputDevice
+
+  Returns:
+    True if dev is a touchpad device.
+  """
+  keycaps = dev.capabilities().get(evdev.ecodes.EV_KEY, [])
+  return (evdev.ecodes.BTN_TOUCH in keycaps and
+          evdev.ecodes.BTN_MOUSE in keycaps)
+
+
+def IsTouchscreenDevice(dev):
+  """Check if a device is a touchscreen device.
+
+  Args:
+    dev: evdev.InputDevice
+
+  Returns:
+    True if dev is a touchscreen device.
+  """
+  return (IsTouchDevice(dev) and
+          not IsTouchpadDevice(dev) and
+          not IsStylusDevice(dev))
+
+
 def GetTouchDevices():
   """Gets the touch devices.
 
-  Looks for devices with EV_KEY capabilities and with a BTN_TOUCH.
+  Looks for touch devices.
 
   Returns:
     A list of evdev.InputDevice() instances of the touch devices.
   """
-  return [d for d in GetDevices()
-          if (evdev.ecodes.EV_KEY in d.capabilities().iterkeys() and
-              evdev.ecodes.BTN_TOUCH in d.capabilities()[evdev.ecodes.EV_KEY])]
+  return [d for d in GetDevices() if IsTouchDevice(d)]
+
+
+def GetStylusDevices():
+  """Gets the stylus devices.
+
+  Looks for stylus devices.
+
+  Returns:
+    A list of evdev.InputDevice() instances of the stylus devices.
+  """
+  return [d for d in GetDevices() if IsStylusDevice(d)]
 
 
 def GetTouchpadDevices():
   """Gets the touchpad devices.
 
-  Looks for touch devices with BTN_MOUSE.
+  Looks for touchpad devices.
 
   Returns:
     A list of evdev.InputDevice() instances of the touchpad devices.
   """
-  return [d for d in GetTouchDevices()
-          if evdev.ecodes.BTN_MOUSE in d.capabilities()[evdev.ecodes.EV_KEY]]
+  return [d for d in GetDevices() if IsTouchpadDevice(d)]
 
 
 def GetTouchscreenDevices():
   """Gets the touchscreen devices.
 
-  Looks for touch devices without BTN_MOUSE.
+  Looks for touchscreen devices.
 
   Returns:
     A list of evdev.InputDevice() instances of the touchscreen devices.
   """
-  return [d for d in GetTouchDevices()
-          if evdev.ecodes.BTN_MOUSE not in
-          d.capabilities()[evdev.ecodes.EV_KEY]]
+  return [d for d in GetDevices() if IsTouchscreenDevice(d)]
 
 
 class InputDeviceDispatcher(asyncore.file_dispatcher):

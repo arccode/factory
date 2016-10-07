@@ -33,6 +33,8 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.external import evdev
+
 from cros.factory.gooftool import edid
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
@@ -120,6 +122,12 @@ def ParseKeyValueData(pattern, data):
   return parsed_list
 
 
+def _StripRead(filepath):
+  """Return the stripped file content."""
+  with open(filepath) as f:
+    return f.read().strip()
+
+
 def _ShellOutput(command, on_error=''):
   """Returns shell command output.
 
@@ -160,7 +168,7 @@ def _ReadSysfsFields(base_path, field_list, optional_field_list=None):
   """
   all_fields_list = field_list + (optional_field_list or [])
   path_list = [os.path.join(base_path, field) for field in all_fields_list]
-  data = dict((field, open(path).read().strip())
+  data = dict((field, _StripRead(path))
               for field, path in zip(all_fields_list, path_list)
               if os.path.exists(path) and not os.path.isdir(path))
   if not set(data) >= set(field_list):
@@ -256,8 +264,7 @@ def _ReadSysfsNodeId(path):
 
   name_path = os.path.join(path, 'name')
   if os.path.exists(name_path):
-    with open(name_path) as f:
-      device_id = f.read().strip()
+    device_id = _StripRead(name_path)
     if device_id:
       return DictCompactProbeStr(device_id.strip(chr(0)).split(chr(0)))
 
@@ -500,11 +507,16 @@ class _NetworkDevices(object):
 class _InputDevices(object):
   """Parses /proc/bus/input/devices and turns into a key-value dataset."""
 
-  def __init__(self, path='/proc/bus/input/devices'):
+  _PATH = '/proc/bus/input/devices'
+
+  _dataset = None
+
+  @classmethod
+  def _InitDataset(cls):
     dataset = []
     data = {}
     entry = None
-    with open(path) as f:
+    with open(cls._PATH) as f:
       for line in f:
         prefix = line[0]
         content = line[3:].strip()
@@ -523,15 +535,66 @@ class _InputDevices(object):
         elif prefix in ['N', 'S']:
           key, value = content.split('=', 1)
           data[key] = value.strip('"')
+        elif prefix == 'H':
+          for handler in line[3:].split('=', 1)[1].split():
+            if re.match(r'event\d+', handler):
+              data['Event'] = handler
+              break
 
       # Flush output
       if data:
         dataset.append(Obj(**data))
-    self._dataset = dataset
+    cls._dataset = dataset
 
-  def FindByNamePattern(self, regex):
+  @classmethod
+  def FindByNamePattern(cls, regex):
     """Finds devices by given regular expression."""
-    return [data for data in self._dataset if re.match(regex, data.Name)]
+    if cls._dataset is None:
+      cls._InitDataset()
+    return [data for data in cls._dataset if re.match(regex, data.Name)]
+
+  @classmethod
+  def GetEvdevDevice(cls, data):
+    """Return the corresponding evdev device."""
+    return evdev.InputDevice(os.path.join('/dev/input', data.Event))
+
+  @classmethod
+  def IsStylusDevice(cls, dev):
+    """Check if a device is a stylus device.
+
+    Same logic from cros.factory.test.utils.evdev_utils.IsStylusDevice.
+    To prevent import hierarchy and dependency problems, we want Gooftool to
+    have its own implementation.
+
+    Args:
+      dev: evdev.InputDevice
+
+    Returns:
+      True if dev is a stylus device.
+    """
+    keycaps = dev.capabilities().get(evdev.ecodes.EV_KEY, [])
+    return bool(set(keycaps) & set([
+        evdev.ecodes.BTN_STYLUS,
+        evdev.ecodes.BTN_STYLUS2,
+        evdev.ecodes.BTN_TOOL_PEN]))
+
+  @classmethod
+  def IsTouchpadDevice(cls, dev):
+    """Check if a device is a touchpad device.
+
+    Same logic from cros.factory.test.utils.evdev_utils.IsTouchpadDevice.
+    To prevent import hierarchy and dependency problems, we want Gooftool to
+    have its own implementation.
+
+    Args:
+      dev: evdev.InputDevice
+
+    Returns:
+      True if dev is a touchpad device.
+    """
+    keycaps = dev.capabilities().get(evdev.ecodes.EV_KEY, [])
+    return (evdev.ecodes.BTN_TOUCH in keycaps and
+            evdev.ecodes.BTN_MOUSE in keycaps)
 
 
 class _TouchInputData(object):  # pylint: disable=W0232
@@ -540,8 +603,7 @@ class _TouchInputData(object):  # pylint: disable=W0232
   @classmethod
   def GenericInput(cls, name_pattern, sysfs_files=None, filter_rule=None):
     """A generic touch device resolver."""
-    input_devices = _InputDevices()
-    data = input_devices.FindByNamePattern(name_pattern)
+    data = _InputDevices.FindByNamePattern(name_pattern)
 
     if filter_rule:
       data = [entry for entry in data if filter_rule(entry)]
@@ -569,10 +631,8 @@ class _TouchInputData(object):  # pylint: disable=W0232
       # entry.Sysfs starts with '/' and ends at input node, for example:
       # /devices/pci0000:00/0000:00:02.0/i2c-2/2-004a/input/input7
       path = os.path.join('/sys', entry.Sysfs.lstrip('/'), 'device', name)
-      if not os.path.exists(path):
-        continue
-      with open(path) as f:
-        result[name] = f.read().strip()
+      if os.path.exists(path):
+        result[name] = _StripRead(path)
 
     return Obj(**result)
 
@@ -603,14 +663,8 @@ class _TouchInputData(object):  # pylint: disable=W0232
     return data
 
   @classmethod
-  def HidOverI2c(cls, known_list):
-    # Since hid-over-i2c support many classes of devices, no good method to
-    # differentiate touchpad/touchscreen/stylus .. from others.
-    # so we use a list of tuple [("vendor id","product id"),...] to list
-    # all known devices here so that we can report device info correctly.
-    def in_known_list(entry):
-      return '%s:%s' % (entry.Vendor, entry.Product) in known_list
-    return cls.GenericInput(r'hid-over-i2c.*', filter_rule=in_known_list)
+  def HidOverI2c(cls, filter_rule):
+    return cls.GenericInput(r'hid-over-i2c.*', filter_rule=filter_rule)
 
   cached_data = None
 
@@ -656,10 +710,7 @@ class _TouchpadData(_TouchInputData):
     def SynapticsByName():
       return cls.SynapticsInput(r'^SYNA.*', ['fw_version'])
 
-    def SynapticsI2c():
-      return cls.HidOverI2c(['06cb:7a3b'])
-
-    return SynapticsSyndetect() or SynapticsByName() or SynapticsI2c()
+    return SynapticsSyndetect() or SynapticsByName()
 
   @classmethod
   def Cypress(cls):
@@ -671,9 +722,8 @@ class _TouchpadData(_TouchInputData):
                  model_path_list + [firmware_path]):
         continue
       return Obj(
-          ident_str=CompactStr(
-              [open(path).read().strip() for path in model_path_list]),
-          fw_version=CompactStr(open(firmware_path).read().strip()))
+          ident_str=CompactStr([_StripRead(path) for path in model_path_list]),
+          fw_version=CompactStr(_StripRead(firmware_path)))
     return None
 
   @classmethod
@@ -681,18 +731,18 @@ class _TouchpadData(_TouchInputData):
     for driver_link in glob('/sys/bus/i2c/drivers/elan_i2c/*'):
       if not os.path.islink(driver_link):
         continue
-
-      with open(os.path.join(driver_link, 'name'), 'r') as f:
-        name = f.read().strip()
-      with open(os.path.join(driver_link, 'product_id'), 'r') as f:
-        product_id = f.read().strip()
-      with open(os.path.join(driver_link, 'firmware_version'), 'r') as f:
-        firmware_version = f.read().strip()
-      with open(os.path.join(driver_link, 'fw_checksum'), 'r') as f:
-        fw_checksum = f.read().strip()
-      return Obj(ident_str=name, product_id=product_id,
-                 fw_version=firmware_version, fw_csum=fw_checksum)
+      return Obj(
+          ident_str=_StripRead(os.path.join(driver_link, 'name')),
+          product_id=_StripRead(os.path.join(driver_link, 'product_id')),
+          fw_version=_StripRead(os.path.join(driver_link, 'firmware_version')),
+          fw_csum=_StripRead(os.path.join(driver_link, 'fw_checksum')))
     return None
+
+  @classmethod
+  def I2c(cls):
+    def is_touchpad(data):
+      return _InputDevices.IsTouchpadDevice(_InputDevices.GetEvdevDevice(data))
+    return cls.HidOverI2c(is_touchpad)
 
   @classmethod
   def Generic(cls):
@@ -702,7 +752,7 @@ class _TouchpadData(_TouchInputData):
   @classmethod
   def Get(cls):
     return cls.GetGeneric([
-        cls.Cypress, cls.Synaptics, cls.Elan, cls.Generic])
+        cls.Cypress, cls.Synaptics, cls.Elan, cls.I2c, cls.Generic])
 
 
 class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
@@ -712,20 +762,13 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
   def Elan(cls):
     for device_path in glob('/sys/bus/i2c/devices/*'):
       driver_link = os.path.join(device_path, 'driver')
-      if not os.path.islink(driver_link):
-        continue
-      driver_name = os.path.basename(os.readlink(driver_link))
-      if driver_name != 'elants_i2c':
-        continue
-
-      with open(os.path.join(device_path, 'name'), 'r') as f:
-        device_name = f.read().strip()
-      with open(os.path.join(device_path, 'hw_version'), 'r') as f:
-        hw_version = f.read().strip()
-      with open(os.path.join(device_path, 'fw_version'), 'r') as f:
-        fw_version = f.read().strip()
-      return Obj(ident_str=device_name, hw_version=hw_version,
-                 fw_version=fw_version)
+      if os.path.islink(driver_link):
+        driver_name = os.path.basename(os.readlink(driver_link))
+        if driver_name == 'elants_i2c':
+          return Obj(
+              ident_str=_StripRead(os.path.join(device_path, 'name')),
+              hw_version=_StripRead(os.path.join(device_path, 'hw_version')),
+              fw_version=_StripRead(os.path.join(device_path, 'fw_version')))
     return None
 
   @classmethod
@@ -746,12 +789,14 @@ class _StylusData(_TouchInputData):
   """Return Obj with hw_ident and fw_ident string fields."""
 
   @classmethod
-  def Wacom(cls):
-    return cls.HidOverI2c(['2d1f:0163'])
+  def Generic(cls):
+    def is_stylus(data):
+      return _InputDevices.IsStylusDevice(_InputDevices.GetEvdevDevice(data))
+    return cls.GenericInput(r'.*', filter_rule=is_stylus)
 
   @classmethod
   def Get(cls):
-    return cls.GetGeneric([cls.Wacom])
+    return cls.GetGeneric([cls.Generic])
 
 
 def _ProbeFun(probe_map, probe_class, *arch_targets):
@@ -821,7 +866,7 @@ def _ProbeAudioCodec():
     return results
 
   # Formatted '00-00: WM??? PCM wm???-hifi-0: ...'
-  pcm_data = open('/proc/asound/pcm').read().strip().split(' ')
+  pcm_data = _StripRead('/proc/asound/pcm').split(' ')
   if len(pcm_data) > 2:
     return [DictCompactProbeStr(pcm_data[1])]
   return []
@@ -1017,7 +1062,7 @@ def _ProbeDisplayConverter():
     dev_chrontel = '/dev/i2c-chrontel'
     if not os.path.exists(dev_chrontel):
       for dev_path in glob('/sys/class/i2c-adapter/*'):
-        adapter_name = open(os.path.join(dev_path, 'name')).read().strip()
+        adapter_name = _StripRead(os.path.join(dev_path, 'name'))
         if adapter_name.startswith('SMBus I801 adapter'):
           dev_chrontel = os.path.basename(dev_path)
           break
@@ -1043,7 +1088,7 @@ def _ProbeChipsetArm():
   fdt_compatible_file = '/proc/device-tree/compatible'
   if not os.path.exists(fdt_compatible_file):
     return []
-  compatible_list = open(fdt_compatible_file).read().strip()
+  compatible_list = _StripRead(fdt_compatible_file)
   return [DictCompactProbeStr(compatible_list.strip(chr(0)).split(chr(0)))]
 
 
@@ -1212,7 +1257,7 @@ def _GetFixedDevices():
 
   for node in sorted(glob('/sys/class/block/*')):
     path = os.path.join(node, 'removable')
-    if not os.path.exists(path) or open(path).read().strip() != '0':
+    if not os.path.exists(path) or _StripRead(path) != '0':
       continue
     if re.match(r'^loop|^dm-', os.path.basename(node)):
       # Loopback or dm-verity device; skip
@@ -1303,8 +1348,7 @@ def _ProbeStorage():
   def ProcessNode(node_path):
     dev_path = os.path.join(node_path, 'device')
     size_path = os.path.join(os.path.dirname(dev_path), 'size')
-    sectors = (open(size_path).read().strip()
-               if os.path.exists(size_path) else '')
+    sectors = (_StripRead(size_path) if os.path.exists(size_path) else '')
     ata_fields = ['vendor', 'model']
     emmc_fields = ['type', 'name', 'hwrev', 'oemid', 'manfid']
     optional_fields = ['cid', 'prv']
