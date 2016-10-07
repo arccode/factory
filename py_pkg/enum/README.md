@@ -1,4 +1,7 @@
-This is copied from enum34 1.1.6 ( https://pypi.python.org/pypi/enum34 ).
+External Python Package: enum34
+===============================
+
+This is copied from [enum34 1.1.6](https://pypi.python.org/pypi/enum34).
 
 The dependency to enum34 is recently added to factory toolkit dependency while
 most test images still do not have it yet.

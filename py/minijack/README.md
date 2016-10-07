@@ -1,50 +1,55 @@
+Minijack Deployment
+===================
+
 By default, when starting local server by `./manage.py runserver`, Minijack
 read datas from local sqlite3 database named minijack_db, search in current
-directory, frontend/, /var/db/factory/.
+directory, `frontend/`, `/var/db/factory/`.
 
-* Instructions for deploying on Google App Engine:
-
-Copy app.yaml.TEMPLATE to app.yaml, and change the application name to the
+Instructions for deploying on Google App Engine
+-----------------------------------------------
+Copy `app.yaml.TEMPLATE` to `app.yaml`, and change the application name to the
 real application name deploying to.
 
-- Using BigQuery as backend:
+### Using BigQuery as backend:
   We need a Google API Service Account's PEM key on GAE.
 
   Generate and download the PKCS12 format private key from API console, and
   execute `openssl pkcs12 -in privatekey.p12 -nodes -nocerts > privatekey.pem`
   to convert the key from PKCS12 to PEM. Then manually delete anything before
-  "-----BEGIN PRIVATE KEY-----" from privatekey.pem.
+  `-----BEGIN PRIVATE KEY-----` from `privatekey.pem`.
 
-  Use dump_db.py to dump all datas to json files, and upload them with schemas
-  in the directory schemas/ to Google BigQuery tables. The tables must be named
-  Device, Test, Event, Component (case sensitive)
+  Use `dump_db.py` to dump all datas to json files, and upload them with schemas
+  in the directory `schemas/` to Google BigQuery tables. The tables must be
+  named Device, Test, Event, Component (case sensitive)
 
   The script for progressive adding data is not available yet.
 
-  Copy settings_bigquery.py.TEMPLATE to settings_bigquery.py, and set the
+  Copy `settings_bigquery.py.TEMPLATE` to `settings_bigquery.py`, and set the
   settings accordingly.
 
-- Using Google Cloud SQL as backend:
+### Using Google Cloud SQL as backend:
   Google Cloud SQL is a MySQL server, which may run faster than BigQuery when
   the data size is small, but it can't be run as backend for local server.
 
   The script for dumping data to Google Cloud SQL is not available yet, but
   basically it is sqlite3 to MySQL. Some point to notice:
-  1. MySQL can only use VARCHAR rather than TEXT when the column is indexed or
-     used as primary key, so the CREATE TABLE command needs to be changed
+
+  1. MySQL can only use `VARCHAR` rather than `TEXT` when the column is indexed
+     or used as primary key, so the `CREATE TABLE` command needs to be changed
      accordingly.
   2. Sqlite3 doesn't escape \ in string, and use '' for ' in string, but MySQL
      use \\ for \, \' for ' in string. This can cause problems when the Event
      file contains serialized json. Replace all \'' to \\\' may solve the
      problem.
   3. By default, MySQL database seems to use case-insensitive compare for
-     primary key, which may cause duplicate key error. Adding "CHARACTER SET
-     utf8 COLLATE utf8_bin" to "CREATE DATABASE" solves the problem.
+     primary key, which may cause duplicate key error. Adding `CHARACTER SET
+     utf8 COLLATE utf8_bin` to `CREATE DATABASE` solves the problem.
+
 
   The commands that can be used to create database and tables are located in
-  schemas/cloud_sql.schema
+  `schemas/cloud_sql.schema`
 
   Set permission of Google Cloud SQL for the application deploying to.
 
-  Copy settings_cloud_sql.py.TEMPLATE to settings_cloud_sql.py, and set the
+  Copy `settings_cloud_sql.py.TEMPLATE` to `settings_cloud_sql.py`, and set the
   settings accordingly.
