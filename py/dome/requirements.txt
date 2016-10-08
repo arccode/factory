@@ -1,3 +1,4 @@
+coverage==4.2
 Django==1.10.1
 djangorestframework==3.4.6
 djangorestframework-camel-case==0.2.0

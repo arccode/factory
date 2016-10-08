@@ -15,6 +15,15 @@ Targets:
 endef
 export DOME_MAKE_HELP_MESSAGE
 
+# Command used to analyze test coverage in target 'test-backend'.
+TEST_COVERAGE_CMD = \
+	coverage run \
+		--source="." \
+		--omit="backend/migrations/*" \
+		manage.py test && \
+	coverage report && \
+	coverage html --directory="build/test_coverage_report"
+
 .PHONY: help lint-backend lint-frontend test-backend test-frontend
 
 all: help
@@ -36,7 +45,11 @@ test: test-backend test-frontend
 
 test-backend:
 	../../setup/dome.sh build
-	docker run cros/dome python manage.py test
+	docker run \
+		--rm \
+		--volume "$(CURDIR)/build:/var/db/factory/dome/build" \
+		cros/dome \
+		sh -c "$(TEST_COVERAGE_CMD)"
 
 test-frontend:
 	echo "not implemented yet"
