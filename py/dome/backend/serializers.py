@@ -9,6 +9,7 @@ from rest_framework import validators
 
 from backend.models import Board
 from backend.models import BundleModel
+from backend.models import Resource
 from backend.models import TemporaryUploadedFile
 
 
@@ -70,40 +71,24 @@ class BoardSerializer(serializers.Serializer):
 
 
 class ResourceSerializer(serializers.Serializer):
-  # read only fields
-  # TODO(littlecvr): should be choice
-  type = serializers.CharField(read_only=True)
+
+  type = serializers.CharField()
   version = serializers.CharField(read_only=True)
   hash = serializers.CharField(read_only=True)
   updatable = serializers.BooleanField(read_only=True)
-
-  # write only fields
-  board = serializers.CharField(write_only=True)
-  is_inplace_update = serializers.BooleanField(write_only=True)
-  src_bundle_name = serializers.CharField(write_only=True)
-  dst_bundle_name = serializers.CharField(write_only=True,
-                                          allow_null=True,
-                                          allow_blank=True)
-  note = serializers.CharField(write_only=True)
-  resource_type = serializers.CharField(write_only=True)
-  resource_file_id = serializers.IntegerField(write_only=True)
+  file_id = serializers.IntegerField(write_only=True)
 
   def create(self, validated_data):
-    """Override parent's method."""
-    raise NotImplementedError('Creating a resource is not allowed')
+    board_name = validated_data['board_name']
+    if not Board.objects.filter(pk=board_name).exists():
+      raise exceptions.ValidationError('Board %s does not exist' % board_name)
+    return Resource.CreateOne(board_name,
+                              validated_data['type'],
+                              validated_data['file_id'])
 
   def update(self, instance, validated_data):
     """Override parent's method."""
-    data = validated_data.copy()
-
-    board = data.pop('board')
-
-    inplace_update = data.pop('is_inplace_update')
-    if inplace_update:
-      data['dst_bundle_name'] = None
-
-    return BundleModel(board).UpdateResource(**data)
-
+    raise NotImplementedError('Updating a resource is not allowed')
 
 
 class BundleSerializer(serializers.Serializer):

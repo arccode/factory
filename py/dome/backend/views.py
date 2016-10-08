@@ -79,6 +79,7 @@ class BundleCollectionView(views.APIView):
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
+
 class BundleView(views.APIView):
   """Delete or update a bundle."""
 
@@ -101,25 +102,9 @@ class BundleView(views.APIView):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class BundleResourceView(views.APIView):
-  """Update resource in a particular bundle."""
+class ResourceCollectionView(generics.CreateAPIView):
 
-  def put(self, request, board_name,
-          request_format=None):  # pylint: disable=unused-argument
-    """Override parent's method."""
-    # TODO(littlecvr): should create bundle instance before creating serializer
-    serializer = ResourceSerializer(board_name, data=request.data)
-    if serializer.is_valid():
-      serializer.save()
-      # TODO(littlecvr): return only the resource updated. The front-end needs
-      #                  the full bundle data to do post processing now, say we
-      #                  updated device_factory_toolkit, but in fact
-      #                  server_factory_toolkit will also be affected. To solve
-      #                  this, we'll need an alias shared between Umpire, Dome
-      #                  back-end, and front-end specifying which resources are
-      #                  correlated.
-      bundle = BundleModel(board_name).ListOne(
-          serializer.validated_data['dst_bundle_name'] or
-          serializer.validated_data['src_bundle_name'])
-      return Response(BundleSerializer(bundle).data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  serializer_class = ResourceSerializer
+
+  def perform_create(self, serializer):
+    serializer.save(board_name=self.kwargs['board_name'])

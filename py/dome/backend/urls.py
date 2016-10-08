@@ -44,10 +44,8 @@ urlpatterns = [
         views.BundleCollectionView.as_view()),
     url(r'^boards/%s/bundles/%s/$' % (BOARD_URL_ARG, BUNDLE_URL_ARG),
         views.BundleView.as_view()),
-    # TODO(littlecvr): to be RESTful, a resource should be uniquely identified
-    #                  by its type and hash
     url(r'^boards/%s/resources/$' % BOARD_URL_ARG,
-        views.BundleResourceView.as_view())]
+        views.ResourceCollectionView.as_view())]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
 urlpatterns += staticfiles_urlpatterns()

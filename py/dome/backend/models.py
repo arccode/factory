@@ -132,10 +132,11 @@ def UmpireAccessibleFile(board, uploaded_file):
   """
   container_name = Board.GetUmpireContainerName(board)
 
+  # TODO(b/31417203): use volume container or named volume instead of
+  #                   UMPIRE_BASE_DIR.
+  temp_dir = tempfile.mkdtemp(dir='%s/%s' % (UMPIRE_BASE_DIR, container_name))
+
   try:
-    # TODO(b/31417203): use volume container or named volume instead of
-    #                   UMPIRE_BASE_DIR.
-    temp_dir = tempfile.mkdtemp(dir='%s/%s' % (UMPIRE_BASE_DIR, container_name))
     new_path = os.path.join(temp_dir, os.path.basename(uploaded_file.name))
     shutil.copy(UploadedFilePath(uploaded_file), new_path)
 
@@ -155,6 +156,14 @@ def UmpireAccessibleFile(board, uploaded_file):
       # doesn't matter if the folder is removed already, otherwise, raise
       if e.errno != errno.ENOENT:
         raise
+
+
+def GetUmpireServer(board_name):
+  # get URL of the board
+  board = Board.objects.get(pk=board_name).ReplaceLocalhostWithDockerHostIP()
+  url = 'http://%s:%d' % (board.umpire_host,
+                          board.umpire_port + UMPIRE_RPC_PORT_OFFSET)
+  return xmlrpclib.ServerProxy(url, allow_none=True)
 
 
 class TemporaryUploadedFile(django.db.models.Model):
@@ -345,6 +354,29 @@ class Resource(object):
     self.hash = res_hash
     self.updatable = updatable
 
+  # TODO(littlecvr): Umpire may have the same function already
+  @staticmethod
+  def ParseName(resource_filename):
+    """Parse a resource name and return its basename, version, and hash."""
+    match = re.match(r'^([^#]*)#([^#]*)#([^#]*)$', resource_filename)
+    return {
+        'basename': match.group(1),
+        'version': match.group(2),
+        'hash': match.group(3)
+    }
+
+  @staticmethod
+  def CreateOne(board_name, resource_type, resource_file_id):
+    umpire_server = GetUmpireServer(board_name)
+    with UploadedFile(resource_file_id) as f:
+      with UmpireAccessibleFile(board_name, f) as p:
+        resource_filename = umpire_server.AddResource(p, resource_type)
+    parsed = Resource.ParseName(resource_filename)
+    return Resource(resource_type,
+                    parsed['version'],
+                    parsed['hash'],
+                    resource_type in UMPIRE_UPDATABLE_RESOURCE)
+
 
 # TODO(littlecvr): should merge into BundleModel
 class Bundle(object):
@@ -399,11 +431,7 @@ class BundleModel(object):
     """
     self.board = board
 
-    # get URL of the board
-    board = Board.objects.get(pk=board).ReplaceLocalhostWithDockerHostIP()
-    url = 'http://%s:%d' % (board.umpire_host,
-                            board.umpire_port + UMPIRE_RPC_PORT_OFFSET)
-    self.umpire_server = xmlrpclib.ServerProxy(url, allow_none=True)
+    self.umpire_server = GetUmpireServer(board)
     self.umpire_status = self.umpire_server.GetStatus()
 
   def _GetNormalizedActiveConfig(self):

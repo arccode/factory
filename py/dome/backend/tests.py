@@ -87,6 +87,22 @@ class DomeAPITest(rest_framework.test.APITestCase):
       Delete a specific board.
   - PUT /boards/${BOARD_NAME}/
       Add/create/delete Umpire container of the board.
+
+  Bundle APIs: (not finished yet)
+  - GET /boards/${BOARD_NAME}/bundles/
+      List bundles.
+  - POST /boards/${BOARD_NAME/bundles/
+      Upload a new bundle.
+  - PUT /boards/${BOARD_NAME}/bundles/
+      Reorder the bundles.
+  - DELETE /boards/${BOARD_NAME}/bundles/${BUNDLE_NAME}/
+      Delete bundle.
+  - PUT /boards/${BOARD_NAME/bundles/${BUNDLE_NAME}/
+      Update bundle resources or rules
+
+  Resource APIs:
+  - POST /boards/${BOARD_NAME}/resources/
+     Add a resource to Umpire.
   """
 
   @classmethod
@@ -105,26 +121,31 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                 umpire_port=cls.BOARD_WITH_UMPIRE_PORT)
 
   def setUp(self):
-    self.subprocess_call_patcher = mock.patch('subprocess.call')
-    self.subprocess_call = self.subprocess_call_patcher.start()
+    ENTITIES_TO_MOCK = ['subprocess.call',
+                        'subprocess.check_call',
+                        'subprocess.check_output',
+                        'tempfile.mkdtemp',
+                        'shutil.copy',
+                        'shutil.rmtree',
+                        'os.chmod',
+                        'xmlrpclib.ServerProxy']
 
-    self.subprocess_check_call_patcher = mock.patch('subprocess.check_call')
-    self.subprocess_check_call = self.subprocess_check_call_patcher.start()
-
-    self.subprocess_check_output_patcher = mock.patch('subprocess.check_output')
-    self.subprocess_check_output = self.subprocess_check_output_patcher.start()
+    self.patchers = []
+    self.mocks = {}
+    for entity in ENTITIES_TO_MOCK:
+      self.patchers.append(mock.patch(entity))
+      self.mocks[entity] = self.patchers[-1].start()
 
   def tearDown(self):
-    self.subprocess_call_patcher.stop()
-    self.subprocess_check_call_patcher.stop()
-    self.subprocess_check_output_patcher.stop()
+    for patcher in self.patchers:
+      patcher.stop()
 
   def testAddExistingUmpire(self):
     UMPIRE_HOST = 'localhost'
     UMPIRE_PORT = 8090
 
     # pretend we have the container
-    self.subprocess_check_output.return_value = (
+    self.mocks['subprocess.check_output'].return_value = (
         models.Board.GetUmpireContainerName(self.BOARD_WITHOUT_UMPIRE_NAME))
 
     response = self._AddExistingUmpire(self.BOARD_WITHOUT_UMPIRE_NAME,
@@ -137,12 +158,12 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                        'umpirePort': UMPIRE_PORT})
 
     # no docker commands should be called
-    self.subprocess_call.assert_not_called()
-    self.subprocess_check_call.assert_not_called()
+    self.mocks['subprocess.call'].assert_not_called()
+    self.mocks['subprocess.check_call'].assert_not_called()
 
   def testAddExistingUmpireButUmpireContainerDoesNotExist(self):
     # pretend we don't have the container
-    self.subprocess_check_output.return_value = ''
+    self.mocks['subprocess.check_output'].return_value = ''
 
     response = self._AddExistingUmpire(self.BOARD_WITHOUT_UMPIRE_NAME,
                                        'localhost',
@@ -152,8 +173,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.assertTrue('does not exist' in response.json()['detail'])
 
     # no docker commands should be called
-    self.subprocess_call.assert_not_called()
-    self.subprocess_check_call.assert_not_called()
+    self.mocks['subprocess.call'].assert_not_called()
+    self.mocks['subprocess.check_call'].assert_not_called()
 
   def testCreateBoard(self):
     BOARD_NAME = 'testing_board'
@@ -167,9 +188,9 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                             'umpirePort': None})
 
     # no docker commands should be called
-    self.subprocess_call.assert_not_called()
-    self.subprocess_check_call.assert_not_called()
-    self.subprocess_check_output.assert_not_called()
+    self.mocks['subprocess.call'].assert_not_called()
+    self.mocks['subprocess.check_call'].assert_not_called()
+    self.mocks['subprocess.check_output'].assert_not_called()
 
   def testCreateBoardThatAlreadyExists(self):
     response = self._CreateBoard(self.BOARD_WITH_UMPIRE_NAME)
@@ -205,7 +226,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
                      rest_framework.status.HTTP_204_NO_CONTENT)
 
     # make sure the container has also been removed
-    self.subprocess_call.assert_called_with([
+    self.mocks['subprocess.call'].assert_called_with([
         'docker', 'rm',
         models.Board.GetUmpireContainerName(self.BOARD_WITH_UMPIRE_NAME)])
 
@@ -224,7 +245,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
                           'umpirePort': None})
 
     # make sure the container has also been removed
-    self.subprocess_call.assert_called_with([
+    self.mocks['subprocess.call'].assert_called_with([
         'docker', 'rm',
         models.Board.GetUmpireContainerName(self.BOARD_WITH_UMPIRE_NAME)])
 
@@ -238,15 +259,15 @@ class DomeAPITest(rest_framework.test.APITestCase):
                           'umpirePort': None})
 
     # nothing should be changed and nothing should be called
-    self.subprocess_call.assert_not_called()
-    self.subprocess_check_call.assert_not_called()
-    self.subprocess_check_output.assert_not_called()
+    self.mocks['subprocess.call'].assert_not_called()
+    self.mocks['subprocess.check_call'].assert_not_called()
+    self.mocks['subprocess.check_output'].assert_not_called()
 
   def testEnableUmpire(self):
     UMPIRE_PORT = 8090
 
     # pretend there is no containers
-    self.subprocess_check_output.side_effect = [
+    self.mocks['subprocess.check_output'].side_effect = [
         '',
         models.Board.GetUmpireContainerName(self.BOARD_WITHOUT_UMPIRE_NAME)]
 
@@ -262,7 +283,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     container_name = models.Board.GetUmpireContainerName(
         self.BOARD_WITHOUT_UMPIRE_NAME)
     docker_run_called = False
-    for call in self.subprocess_check_call.call_args_list:
+    for call in self.mocks['subprocess.check_call'].call_args_list:
       args, unused_kwargs = call
       if 'run' in args[0] and container_name in args[0]:
         docker_run_called = True
@@ -279,14 +300,14 @@ class DomeAPITest(rest_framework.test.APITestCase):
     UMPIRE_PORT = 8090
 
     # pretend there is no container
-    self.subprocess_check_output.return_value = ''
+    self.mocks['subprocess.check_output'].return_value = ''
 
     self._EnableUmpire(self.BOARD_WITH_UMPIRE_NAME, UMPIRE_PORT)
 
     # make sure no docker commands (except querying for container name) are
     # called
-    self.subprocess_call.assert_not_called()
-    self.subprocess_check_call.assert_not_called()
+    self.mocks['subprocess.call'].assert_not_called()
+    self.mocks['subprocess.check_call'].assert_not_called()
 
   def testEnableUmpireButUmpireAlreadyExists(self):
     """Test enabling Umpire on a board with Umpire disabled but the Umpire
@@ -298,13 +319,47 @@ class DomeAPITest(rest_framework.test.APITestCase):
     UMPIRE_PORT = 8090
 
     # pretend that we already have the container
-    self.subprocess_check_output.return_value = (
+    self.mocks['subprocess.check_output'].return_value = (
         models.Board.GetUmpireContainerName(self.BOARD_WITHOUT_UMPIRE_NAME))
 
     response = self._EnableUmpire(self.BOARD_WITHOUT_UMPIRE_NAME, UMPIRE_PORT)
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
     self.assertTrue('already exists' in response.json()['detail'])
+
+  def testUploadResource(self):
+    RESOURCE_TYPE = 'device_factory_toolkit'
+    RESOURCE_UPDATABLE = RESOURCE_TYPE in models.UMPIRE_UPDATABLE_RESOURCE
+    RESOURCE_BASENAME = 'install_factory_toolkit.run'
+    RESOURCE_VERSION = '1234.5678'
+    RESOURCE_HASH = '123abc'
+
+    # mock Umpire AddResource() call
+    self.mocks['xmlrpclib.ServerProxy']().AddResource = mock.MagicMock(
+        return_value='%s#%s#%s' % (RESOURCE_BASENAME,
+                                   RESOURCE_VERSION,
+                                   RESOURCE_HASH))
+
+    response = self._CreateResource(self.BOARD_WITH_UMPIRE_NAME, RESOURCE_TYPE)
+
+    self.assertEqual(response.status_code,
+                     rest_framework.status.HTTP_201_CREATED)
+    self.assertJSONEqual(response.content, {'type': RESOURCE_TYPE,
+                                            'hash': RESOURCE_HASH,
+                                            'version': RESOURCE_VERSION,
+                                            'updatable': RESOURCE_UPDATABLE})
+
+    # make sure AddResource() is called
+    self.mocks['xmlrpclib.ServerProxy']().AddResource.assert_called_with(
+        mock.ANY, RESOURCE_TYPE)
+
+  def testUploadResourceToNonExistingBoard(self):
+    RESOURCE_TYPE = 'device_factory_toolkit'
+
+    response = self._CreateResource('non_existing_board', RESOURCE_TYPE)
+
+    self.assertEqual(response.status_code,
+                     rest_framework.status.HTTP_400_BAD_REQUEST)
 
   def _AddExistingUmpire(self, board_name, umpire_host, umpire_port):
     return self.client.put('/boards/%s/' % board_name,
@@ -319,6 +374,12 @@ class DomeAPITest(rest_framework.test.APITestCase):
                             data={'name': board_name},
                             format='json')
 
+  def _CreateResource(self, board_name, resource_type):
+    return self.client.post('/boards/%s/resources/' % board_name,
+                            {'file_id': self._UploadFile()['id'],
+                             'type': resource_type},
+                            format='json')
+
   def _DeleteBoard(self, board_name):
     return self.client.delete('/boards/%s/' % board_name, format='json')
 
@@ -328,14 +389,14 @@ class DomeAPITest(rest_framework.test.APITestCase):
                            format='json')
 
   def _EnableUmpire(self, board_name, umpire_port):
-    # simulate uploading factory toolkit -- of course we don't need a real one
-    with open(__file__) as f:
-      response = self.client.post('/files/', data={'file': f})
-    file_id = response.json()['id']
-
     return self.client.put(
         '/boards/%s/' % board_name,
         data={'umpireEnabled': True,
               'umpirePort': umpire_port,
-              'umpireFactoryToolkitFileId': file_id},
+              'umpireFactoryToolkitFileId': self._UploadFile()['id']},
         format='json')
+
+  def _UploadFile(self):
+    with open(__file__) as f:
+      response = self.client.post('/files/', data={'file': f})
+    return response.json()
