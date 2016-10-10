@@ -5,3 +5,4 @@ py/minijack/db/db_unittest.py
 py/minijack/workers_unittest.py
 py/minijack/archiver_unittest.py
 py/minijack/datatypes_unittest.py
+py/lumberjack/archiver_unittest.py
