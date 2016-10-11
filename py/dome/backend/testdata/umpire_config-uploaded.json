@@ -1,0 +1,126 @@
+{
+  "board": "testing_board",
+  "bundles": [
+    {
+      "id": "empty_init_bundle",
+      "note": "n/a",
+      "resources": {
+        "complete_script": "none##d41d8cd9",
+        "device_factory_toolkit": "none##d41d8cd9"
+      },
+      "shop_floor": {
+        "handler": "cros.factory.umpire.dome_shop_floor_handler"
+      }
+    },
+    {
+      "id": "new_bundle",
+      "note": "climbing like a monkey",
+      "resources": {
+        "complete_script": "none#1234.5678#1234abcd",
+        "device_factory_toolkit": "install_factory_toolkit.run#5678.1234#abcd1234"
+      },
+      "shop_floor": {
+        "handler": "cros.factory.umpire.dome_shop_floor_handler"
+      }
+    },
+    {
+      "id": "testing_bundle_01",
+      "note": "flying like an eagle (should not list me)",
+      "resources": {
+        "complete_script": "none#1234.5678#1234abcd",
+        "device_factory_toolkit": "install_factory_toolkit.run#5678.1234#abcd1234"
+      },
+      "shop_floor": {
+        "handler": "cros.factory.umpire.dome_shop_floor_handler"
+      }
+    },
+    {
+      "id": "testing_bundle_01_copy",
+      "note": "flying like an eagle (should not list me)",
+      "resources": {
+        "complete_script": "none#1234.5678#1234abcd",
+        "device_factory_toolkit": "install_factory_toolkit.run#5678.1234#abcd1234"
+      },
+      "shop_floor": {
+        "handler": "cros.factory.umpire.dome_shop_floor_handler"
+      }
+    },
+    {
+      "id": "testing_bundle_02",
+      "note": "swimming like a whale (should not list me)",
+      "resources": {
+        "complete_script": "none#1.2.3#aabbccdd",
+        "device_factory_toolkit": "install_factory_toolkit.run#3.2.1#ddccbbaa"
+      },
+      "shop_floor": {
+        "handler": "cros.factory.umpire.dome_shop_floor_handler"
+      }
+    },
+    {
+      "id": "testing_bundle_03",
+      "note": "running like a leopard",
+      "resources": {
+        "complete_script": "none##11223344",
+        "device_factory_toolkit": "install_factory_toolkit.run##44332211"
+      },
+      "shop_floor": {
+        "handler": "cros.factory.umpire.dome_shop_floor_handler"
+      }
+    }
+  ],
+  "rulesets": [
+    {
+      "active": true,
+      "bundle_id": "new_bundle",
+      "note": "climbing like a monkey"
+    },
+    {
+      "active": true,
+      "bundle_id": "testing_bundle_01",
+      "match": {
+        "sn": [
+          "foo",
+          "bar"
+        ]
+      },
+      "note": "flying like an eagle"
+    },
+    {
+      "active": false,
+      "bundle_id": "testing_bundle_02",
+      "match": {
+        "mlb_sn": [
+          "foofoo",
+          "barbar"
+        ]
+      },
+      "note": "swimming like a whale"
+    },
+    {
+      "active": true,
+      "bundle_id": "testing_bundle_01_copy",
+      "match": {
+        "mac": [
+          "11:22:33:44:55:66",
+          "77:88:99:aa:bb:cc"
+        ]
+      },
+      "note": "flying like an eagle"
+    },
+    {
+      "active": true,
+      "bundle_id": "empty_init_bundle",
+      "note": "n/a"
+    },
+    {
+      "active": false,
+      "bundle_id": "testing_bundle_03",
+      "note": "running like a leopard"
+    }
+  ],
+  "services": {
+    "http": {},
+    "rsync": {},
+    "shop_floor": {}
+  }
+}

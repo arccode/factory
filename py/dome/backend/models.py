@@ -14,6 +14,7 @@ TODO(littlecvr): make umpire config complete such that it contains all the
 """
 
 import contextlib
+import copy
 import errno
 import logging
 import os
@@ -76,13 +77,21 @@ UMPIRED_FILEPATH = '/usr/local/factory/bin/umpired'
 logger = logging.getLogger('django.%s' % __name__)
 
 
-class DomeClientException(rest_framework.exceptions.APIException):
+class DomeException(rest_framework.exceptions.APIException):
+  """Virtual base class of all Dome exceptions."""
+
+  def __init__(self, detail=None, status_code=None):
+    self.status_code = status_code or self.status_code
+    super(DomeException, self).__init__(detail)
+
+
+class DomeClientException(DomeException):
   """Errors that can be fixed by the client."""
 
   status_code = rest_framework.status.HTTP_400_BAD_REQUEST
 
 
-class DomeServerException(rest_framework.exceptions.APIException):
+class DomeServerException(DomeException):
   """Errors that cannot be fixed by the client."""
 
   status_code = rest_framework.status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -171,6 +180,10 @@ def GetUmpireServer(board_name):
   url = 'http://%s:%d' % (board.umpire_host,
                           board.umpire_port + UMPIRE_RPC_PORT_OFFSET)
   return xmlrpclib.ServerProxy(url, allow_none=True)
+
+
+def GetUmpireStatus(board_name):
+  return GetUmpireServer(board_name).GetStatus()
 
 
 class TemporaryUploadedFile(django.db.models.Model):
@@ -441,41 +454,22 @@ class Bundle(object):
           k for (k, v) in UMPIRE_MATCH_KEY_MAP.iteritems() if v == umpire_key)
       self.rules[key] = rules[umpire_key]
 
-
-# TODO(littlecvr): rename this to Bundle
-class BundleModel(object):
-  """Provide functions to manipulate bundles in umpire.
-
-  Umpire RPC calls aren't quite complete. For example, they do not provide any
-  function to list bundles. So this class assumes that umpire runs on the same
-  machine and is stored at its default location.
-
-  TODO(littlecvr): complete the umpire RPC calls, decouple dome and umpire.
-  """
-
-  def __init__(self, board):
-    """Constructor.
-
-    Args:
-      board: a string for name of the board.
-    """
-    self.board = board
-
-    self.umpire_server = GetUmpireServer(board)
-    self.umpire_status = self.umpire_server.GetStatus()
-
-  def _GetNormalizedActiveConfig(self):
+  @staticmethod
+  def _GetNormalizedActiveConfig(board_name):
     """Return the normalized version of Umpire active config."""
-    config = yaml.load(self.umpire_status['active_config'])
-    return self._NormalizeConfig(config)
+    umpire_status = GetUmpireStatus(board_name)
+    config = yaml.load(umpire_status['active_config'])
+    return Bundle._NormalizeConfig(config)
 
-  def _UploadAndDeployConfig(self, config, force=False):
+  @staticmethod
+  def _UploadAndDeployConfig(board_name, config, force=False):
     """Upload and deploy config atomically."""
-    staging_config_path = self.umpire_server.UploadConfig(
+    umpire_server = GetUmpireServer(board_name)
+    staging_config_path = umpire_server.UploadConfig(
         UMPIRE_CONFIG_BASENAME, yaml.dump(config, default_flow_style=False))
 
     try:
-      self.umpire_server.StageConfigFile(staging_config_path, force)
+      umpire_server.StageConfigFile(staging_config_path, force)
     except Exception as e:
       raise EnvironmentError('Cannot stage config file, make sure no one is '
                              'editing Umpire config at the same time, and '
@@ -483,42 +477,53 @@ class BundleModel(object):
                              'message: %r' % e)
 
     try:
-      self.umpire_server.Deploy(staging_config_path)
+      umpire_server.Deploy(staging_config_path)
     except Exception as e:
-      self.umpire_server.UnstageConfigFile()
+      umpire_server.UnstageConfigFile()
       raise RuntimeError('Cannot deploy Umpire config, error message: %r' % e)
 
-    # refresh status
-    self.umpire_status = self.umpire_server.GetStatus()
+  @staticmethod
+  def _NormalizeConfig(config):
+    bundle_id_set = set(b['id'] for b in config['bundles'])
 
-  def _NormalizeConfig(self, config):
     # We do not allow multiple rulesets referring to the same bundle, so
     # duplicate the bundle if we have found such cases.
-    bundle_set = set()
-    for b in config['rulesets']:
-      if b['bundle_id'] not in bundle_set:
-        bundle_set.add(b['bundle_id'])
+    ruleset_id_set = set()
+    for r in config['rulesets']:
+      # TODO(littlecvr): how to deal with a ruleset that refers to a
+      #                  non-existing bundle?
+
+      if r['bundle_id'] not in ruleset_id_set:
+        ruleset_id_set.add(r['bundle_id'])
       else:  # need to duplicate
         # generate a new name, may generate very long _copy_copy_copy... at the
         # end if there are many conflicts
-        new_name = b['bundle_id']
+        new_name = r['bundle_id']
         while True:
           new_name = '%s_copy' % new_name
-          if new_name not in bundle_set:
-            bundle_set.add(new_name)
+          if new_name not in ruleset_id_set and new_name not in bundle_id_set:
+            ruleset_id_set.add(new_name)
+            bundle_id_set.add(new_name)
             break
 
         # find the original bundle and duplicate it
         src_bundle = next(
-            x for x in config['bundles'] if x['id'] == b['bundle_id'])
-        dst_bundle = src_bundle.copy()
+            b for b in config['bundles'] if b['id'] == r['bundle_id'])
+        dst_bundle = copy.deepcopy(src_bundle)
         dst_bundle['id'] = new_name
         config['bundles'].append(dst_bundle)
+
+        # update the ruleset
+        r['bundle_id'] = new_name
+
+    # sort 'bundles' section by their IDs
+    config['bundles'].sort(key=lambda b: b['id'])
 
     # We do not allow bundles exist in 'bundles' section but not in 'ruleset'
     # section.
     for b in config['bundles']:
-      if b['id'] not in bundle_set:
+      if b['id'] not in ruleset_id_set:
+        ruleset_id_set.add(b['id'])
         config['rulesets'].append({'active': False,
                                    'bundle_id': b['id'],
                                    'note': b['note']})
@@ -532,6 +537,7 @@ class BundleModel(object):
       bundle_name: the bundle to delete.
     """
     config = self._GetNormalizedActiveConfig()
+
     config['rulesets'] = [
         r for r in config['rulesets'] if r['bundle_id'] != bundle_name]
     config['bundles'] = [
@@ -539,59 +545,56 @@ class BundleModel(object):
 
     self._UploadAndDeployConfig(config)
 
-  def ListOne(self, bundle_name):
+  @staticmethod
+  def ListOne(board_name, bundle_name):
     """Return the bundle that matches the search criterion.
 
     Args:
+      board_name: name of the board.
       bundle_name: name of the bundle to find, this corresponds to the "id"
           field in umpire config.
     """
-    config = self._GetNormalizedActiveConfig()
+    config = Bundle._GetNormalizedActiveConfig(board_name)
 
-    active = False
-    for b in config['rulesets']:
-      if bundle_name == b['bundle_id']:
-        active = b['active']
-        rules = b.get('match', {})
-        break
+    ruleset = next(
+        r for r in config['rulesets'] if r['bundle_id'] == bundle_name)
+    active = ruleset['active']
+    rules = ruleset.get('match', {})
 
-    bundle = None
-    for b in config['bundles']:
-      if bundle_name == b['id']:
-        bundle = Bundle(
-            b['id'],  # name
-            b['note'],  # note
-            active,  # active
-            b['resources'],  # resources
-            rules)  # matching rules
-        break
+    bundle = next(b for b in config['bundles'] if b['id'] == bundle_name)
 
-    return bundle
+    return Bundle(bundle['id'],  # name
+                  bundle['note'],  # note
+                  active,  # active
+                  bundle['resources'],  # resources
+                  rules)  # matching rules
 
-  def ListAll(self):
+  @staticmethod
+  def ListAll(board_name):
     """Return all bundles as a list.
 
     This function lists bundles in the following order:
     1. bundles in the 'rulesets' section
     2. bundles in the 'bunedles' section but not in the 'rulesets' section
 
+    Args:
+      board_name: name of the board.
+
     Return:
       A list of all bundles.
     """
-    config = self._GetNormalizedActiveConfig()
+    config = Bundle._GetNormalizedActiveConfig(board_name)
 
-    bundle_set = set()  # to fast determine if a bundle has been added
+    bundle_dict = dict((b['id'], b) for b in config['bundles'])
+
     bundle_list = list()
-    for b in config['rulesets']:
-      bundle_set.add(b['bundle_id'])
-      # TODO(littlecvr): not an efficient way since ListOne() scans through all
-      #                  bundles
-      bundle_list.append(self.ListOne(b['bundle_id']))
-    for b in config['bundles']:
-      if b['id'] not in bundle_set:
-        # TODO(littlecvr): not an efficient way since ListOne() scans through
-        #                  all bundles
-        bundle_list.append(self.ListOne(b['id']))
+    for r in config['rulesets']:
+      b = bundle_dict[r['bundle_id']]
+      bundle_list.append(Bundle(b['id'],
+                                r['note'],
+                                r['active'],
+                                b['resources'],
+                                r.get('match', {})))
 
     return bundle_list
 
@@ -623,7 +626,8 @@ class BundleModel(object):
 
     return self.ListOne(bundle['bundle_id'])
 
-  def ReorderBundles(self, new_order):
+  @staticmethod
+  def ReorderBundles(board_name, new_order):
     """Reorder the bundles in Umpire config.
 
     TODO(littlecvr): make sure this also works if multiple users are using at
@@ -632,23 +636,24 @@ class BundleModel(object):
     Args:
       new_order: a list of bundle names.
     """
-    old_config = self._GetNormalizedActiveConfig()
+    old_config = Bundle._GetNormalizedActiveConfig(board_name)
 
     # make sure all names are in current config
     old_bundle_set = set(b['id'] for b in old_config['bundles'])
     new_bundle_set = set(new_order)
     if old_bundle_set != new_bundle_set:
-      raise ValueError('When reordering, all bundles must be listed')
+      raise DomeClientException('All bundles must be listed when reordering')
 
+    # build a map for fast query later
+    rulesets = dict((r['bundle_id'], r) for r in old_config['rulesets'])
+
+    # reorder bundles
     new_config = old_config.copy()
-    new_config['rulesets'] = []
-    for name in new_order:
-      new_config['rulesets'].append(
-          next(r for r in old_config['rulesets'] if r['bundle_id'] == name))
+    new_config['rulesets'] = [rulesets[n] for n in new_order]
 
-    self._UploadAndDeployConfig(new_config)
+    Bundle._UploadAndDeployConfig(board_name, new_config)
 
-    return self.ListAll()
+    return Bundle.ListAll(board_name)
 
   def UpdateResource(self, src_bundle_name, dst_bundle_name, note,
                      resource_type, resource_file_id):
@@ -708,31 +713,44 @@ class BundleModel(object):
 
     return self.ListOne(dst_bundle_name or src_bundle_name)
 
-  def UploadNew(self, name, note, bundle_file_id):
+  @staticmethod
+  def UploadNew(board_name, bundle_name, bundle_note, bundle_file_id):
     """Upload a new bundle.
 
     Args:
-      name: name of the new bundle, in string. This corresponds to the "id"
-          field in umpire config.
-      note: commit message. This corresponds to the "note" field in umpire
-          config.
+      board_name: name of the board.
+      bundle_name: name of the new bundle, in string. This corresponds to the
+          "id" field in umpire config.
+      bundle_note: commit message. This corresponds to the "note" field in
+          umpire config.
       bundle_file_id: id of the bundle file (id of TemporaryUploadedFile).
 
     Return:
       The newly created bundle.
     """
-    with UploadedFile(bundle_file_id) as f:
-      with UmpireAccessibleFile(self.board, f) as p:
-        self.umpire_server.ImportBundle(p, name, note)
+    umpire_server = GetUmpireServer(board_name)
 
-    self.umpire_status = self.umpire_server.GetStatus()
-    config = yaml.load(self.umpire_status['staging_config'])
+    with UploadedFile(bundle_file_id) as f:
+      with UmpireAccessibleFile(board_name, f) as p:
+        try:
+          umpire_server.ImportBundle(p, bundle_name, bundle_note)
+        except xmlrpclib.Fault as e:
+          if 'already in use' in e.faultString:
+            raise DomeClientException(
+                detail='Bundle "%s" already exists' % bundle_name,
+                status_code=rest_framework.status.HTTP_409_CONFLICT)
+          else:
+            raise DomeServerException(detail=e.faultString)
+
+    config = yaml.load(umpire_server.GetStatus()['staging_config'])
     for ruleset in config['rulesets']:
-      if ruleset['bundle_id'] == name:
+      if ruleset['bundle_id'] == bundle_name:
+        # TODO(b/34264367): support unicde.
+        ruleset['note'] = str(bundle_note)
         ruleset['active'] = True
         break
 
-    self._UploadAndDeployConfig(config, force=True)
+    Bundle._UploadAndDeployConfig(board_name, config, force=True)
 
     # find and return the new bundle
-    return self.ListOne(name)
+    return Bundle.ListOne(board_name, bundle_name)

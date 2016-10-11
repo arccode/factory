@@ -1,0 +1,117 @@
+[
+  {
+    "active": true,
+    "name": "testing_bundle_01",
+    "note": "flying like an eagle",
+    "resources": {
+      "completeScript": {
+        "hash": "1234abcd",
+        "type": "complete_script",
+        "updatable": false,
+        "version": "1234.5678"
+      },
+      "deviceFactoryToolkit": {
+        "hash": "abcd1234",
+        "type": "device_factory_toolkit",
+        "updatable": true,
+        "version": "5678.1234"
+      }
+    },
+    "rules": {
+      "serialNumbers": [
+        "foo",
+        "bar"
+      ]
+    }
+  },
+  {
+    "active": false,
+    "name": "testing_bundle_02",
+    "note": "swimming like a whale",
+    "resources": {
+      "completeScript": {
+        "hash": "aabbccdd",
+        "type": "complete_script",
+        "updatable": false,
+        "version": "1.2.3"
+      },
+      "deviceFactoryToolkit": {
+        "hash": "ddccbbaa",
+        "type": "device_factory_toolkit",
+        "updatable": true,
+        "version": "3.2.1"
+      }
+    },
+    "rules": {
+      "mlbSerialNumbers": [
+        "foofoo",
+        "barbar"
+      ]
+    }
+  },
+  {
+    "active": true,
+    "name": "testing_bundle_01_copy",
+    "note": "flying like an eagle",
+    "resources": {
+      "completeScript": {
+        "hash": "1234abcd",
+        "type": "complete_script",
+        "updatable": false,
+        "version": "1234.5678"
+      },
+      "deviceFactoryToolkit": {
+        "hash": "abcd1234",
+        "type": "device_factory_toolkit",
+        "updatable": true,
+        "version": "5678.1234"
+      }
+    },
+    "rules": {
+      "macs": [
+        "11:22:33:44:55:66",
+        "77:88:99:aa:bb:cc"
+      ]
+    }
+  },
+  {
+    "active": true,
+    "name": "empty_init_bundle",
+    "note": "n/a",
+    "resources": {
+      "completeScript": {
+        "hash": "d41d8cd9",
+        "type": "complete_script",
+        "updatable": false,
+        "version": ""
+      },
+      "deviceFactoryToolkit": {
+        "hash": "d41d8cd9",
+        "type": "device_factory_toolkit",
+        "updatable": true,
+        "version": ""
+      }
+    },
+    "rules": {}
+  },
+  {
+    "active": false,
+    "name": "testing_bundle_03",
+    "note": "running like a leopard",
+    "resources": {
+      "completeScript": {
+        "hash": "11223344",
+        "type": "complete_script",
+        "updatable": false,
+        "version": ""
+      },
+      "deviceFactoryToolkit": {
+        "hash": "44332211",
+        "type": "device_factory_toolkit",
+        "updatable": true,
+        "version": ""
+      }
+    },
+    "rules": {}
+  }
+]

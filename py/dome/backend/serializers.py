@@ -8,7 +8,7 @@ from rest_framework import serializers
 from rest_framework import validators
 
 from backend.models import Board
-from backend.models import BundleModel
+from backend.models import Bundle
 from backend.models import Resource
 from backend.models import TemporaryUploadedFile
 
@@ -94,7 +94,6 @@ class ResourceSerializer(serializers.Serializer):
 class BundleSerializer(serializers.Serializer):
   """Serialize or deserialize Bundle objects."""
 
-  board = serializers.CharField(write_only=True)
   # TODO(littlecvr): define bundle name rules in a common place
   name = serializers.CharField()
   note = serializers.CharField(required=False)
@@ -107,10 +106,9 @@ class BundleSerializer(serializers.Serializer):
 
   def create(self, validated_data):
     """Override parent's method."""
-    data = validated_data.copy()
-    board = data.pop('board')
-    data.pop('rules', None)
-    return BundleModel(board).UploadNew(**data)
+    validated_data['bundle_name'] = validated_data.pop('name')
+    validated_data['bundle_note'] = validated_data.pop('note')
+    return Bundle.UploadNew(**validated_data)
 
   def update(self, instance, validated_data):
     """Override parent's method."""

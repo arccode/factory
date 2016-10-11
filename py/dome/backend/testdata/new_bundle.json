@@ -1,0 +1,11 @@
+{
+  "id": "new_bundle",
+  "note": "climbing like a monkey",
+  "resources": {
+    "complete_script": "none#1234.5678#1234abcd",
+    "device_factory_toolkit": "install_factory_toolkit.run#5678.1234#abcd1234"
+  },
+  "shop_floor": {
+    "handler": "cros.factory.umpire.dome_shop_floor_handler"
+  }
+}

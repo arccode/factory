@@ -12,7 +12,7 @@ from rest_framework import status
 from rest_framework import views
 
 from backend.models import Board
-from backend.models import BundleModel
+from backend.models import Bundle
 from backend.models import TemporaryUploadedFile
 from backend.serializers import BoardSerializer
 from backend.serializers import BundleSerializer
@@ -51,31 +51,22 @@ class BoardElementView(mixins.DestroyModelMixin,
     instance.DeleteUmpireContainer().delete()
 
 
-class BundleCollectionView(views.APIView):
-  """List all bundles, or upload a new bundle."""
+class BundleCollectionView(generics.ListCreateAPIView):
+  """List all bundles, upload a new bundle, or reorder the bundles."""
 
-  def get(self, unused_request, board_name,
-          request_format=None):  # pylint: disable=unused-argument
-    """Override parent's method."""
-    bundle_list = BundleModel(board_name).ListAll()
-    serializer = BundleSerializer(bundle_list, many=True)
-    return Response(serializer.data)
+  serializer_class = BundleSerializer
 
-  def post(self, request, board_name,
-           request_format=None):  # pylint: disable=unused-argument
+  def get_queryset(self):
+    return Bundle.ListAll(self.kwargs['board_name'])
+
+  def perform_create(self, serializer):
     """Override parent's method."""
-    data = request.data.copy()
-    data['board'] = board_name
-    serializer = BundleSerializer(data=data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.save(board_name=self.kwargs['board_name'])
 
   def put(self, request, board_name,
           request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
-    bundle_list = BundleModel(board_name).ReorderBundles(request.data)
+    bundle_list = Bundle.ReorderBundles(board_name, request.data)
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
