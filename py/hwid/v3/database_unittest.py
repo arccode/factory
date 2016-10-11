@@ -498,6 +498,32 @@ class PatternTest(unittest.TestCase):
                                                    'test_db.yaml'))
     self.pattern = self.database.pattern
 
+  def testGetFieldNames(self):
+    self.assertEquals(
+        set(['audio_codec',
+             'battery',
+             'firmware',
+             'storage',
+             'bluetooth',
+             'display_panel',
+             'video',
+             'cellular',
+             'keyboard',
+             'dram',
+             'chipset',
+             'cpu']), self.pattern.GetFieldNames())
+
+    # Add a item in image_id [0, 1].
+    self.assertTrue('foo' not in self.pattern.GetFieldNames(0))
+    self.assertTrue('foo' not in self.pattern.GetFieldNames(1))
+    original_value = self.pattern.pattern
+    self.pattern.pattern[0]['fields'].append({'foo': 1})
+    self.assertTrue('foo' in self.pattern.GetFieldNames(0))
+    self.assertTrue('foo' in self.pattern.GetFieldNames(1))
+    self.assertTrue('foo' not in self.pattern.GetFieldNames(2))
+    self.assertTrue('foo' not in self.pattern.GetFieldNames())
+    self.pattern.pattern = original_value
+
   def testGetFieldsBitLength(self):
     length = self.pattern.GetFieldsBitLength()
     self.assertEquals(1, length['audio_codec'])

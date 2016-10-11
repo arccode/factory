@@ -1034,6 +1034,18 @@ class Pattern(object):
         ret[cls] += length
     return ret
 
+  def GetFieldNames(self, image_id=None):
+    """Get the set of the encoded fields defined by the pattern.
+
+    Args:
+      image_id: An integer of the image id to query. If not given, the latest
+          image id would be used.
+
+    Returns:
+      a set that contains the names of all the encoded_field in the pattern.
+    """
+    return set(self.GetFieldsBitLength(image_id).keys())
+
   def GetTotalBitLength(self, image_id=None):
     """Gets the total bit length defined by the pattern. Common header and
     stopper bit are included.
