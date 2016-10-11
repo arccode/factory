@@ -21,8 +21,8 @@ from zlib import crc32
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.v2.bom_names import BOM_NAME_SET
+from cros.factory.hwid.v2 import yaml_datastore
 from cros.factory.hwid.v2.yaml_datastore import InvalidDataError
-from cros.factory.hwid.v2.yaml_datastore import MakeDatastoreClass
 from cros.factory.hwid.v2.yaml_datastore import YamlDatastore
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
@@ -82,6 +82,21 @@ LIFE_CYCLE_STAGES = set([
     'qualified',
     'deprecated',
     'eol'])
+
+
+def MakeDatastoreClass(*args):
+  """Define storable object type with a schema and yaml representer.
+
+  This is a warpper for yaml_datastore.MakeDatastoreClass that will bind the new
+  class to current module.
+
+  When executed as compiled form (pyc) inside zip (zipimport, par),
+  MakeDatastoreClass cannot decode module from stack inspection so we need to
+  define the class explicitly here.
+  """
+  cls = yaml_datastore.MakeDatastoreClass(*args)
+  globals()[cls.__name__] = cls
+
 
 MakeDatastoreClass('StatusData', dict(
     (status_name, (list, str))

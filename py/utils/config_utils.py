@@ -197,11 +197,13 @@ def _LoadConfigUtilsConfig():
   return config
 
 
-def GetDefaultConfigInfo(module):
+def GetDefaultConfigInfo(module, module_file=None):
   """Gets the information of where is the default configuration data.
 
   Args:
     module: A module instance to find configuration name and path.
+    module_file: fallback for module file name if module.__file__ cannot be
+        retrieved.
 
   Returns:
     A pair of strings (name, directory) that name is the config name and
@@ -210,8 +212,10 @@ def GetDefaultConfigInfo(module):
   default_name = None
   default_dir = '.'
 
-  if module and getattr(module, '__file__'):
-    path = module.__file__
+  path = (module.__file__ if module and getattr(module, '__file__') else
+          module_file)
+
+  if path:
     default_dir = os.path.dirname(path)
     default_name = os.path.splitext(os.path.basename(path))[0]
   return default_name, default_dir
@@ -260,8 +264,10 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   """
   config = {}
   schema = {}
+  caller = inspect.stack()[1]
+  # When running as pyc inside ZIP(PAR), getmodule() will fail.
   default_name, default_dir = GetDefaultConfigInfo(
-      inspect.getmodule((inspect.stack()[1])[0]))
+      inspect.getmodule(caller[0]), caller[1])
   config_dirs = [
       default_config_dir or default_dir,
       GetBuildConfigDirectory(),

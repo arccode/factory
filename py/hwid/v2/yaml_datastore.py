@@ -4,7 +4,6 @@
 # found in the LICENSE file.
 
 import difflib
-import inspect
 import logging
 import os
 import yaml
@@ -209,10 +208,8 @@ class _DatastoreBase(object):
 def MakeDatastoreClass(class_name, class_schema):
   """Define storable object type with a schema and yaml representer.
 
-  The new object is defined in the module scope of the calling
-  function.  The yaml representer is added so that yaml calls the
-  appropriate Yrepr function for the object, instead of the generic
-  tagged python object format.
+  The yaml representer is added so that yaml calls the appropriate Yrepr
+  function for the object, instead of the generic tagged python object format.
 
   Args:
     class_name: Name of the class to be defined.
@@ -227,10 +224,9 @@ def MakeDatastoreClass(class_name, class_schema):
       field called 'name', which is used as an index by the backing
       store.
   Returns:
-    Nothing.
+    The new created class.
   """
   cls = type(class_name, (_DatastoreBase,), {})
-  caller_module = inspect.getmodule((inspect.stack()[1])[0])
-  setattr(caller_module, class_name, cls)
   cls._schema = class_schema  # pylint: disable=W0212
   yaml.add_representer(cls, lambda yaml_repr, obj: obj.Yrepr(yaml_repr))
+  return cls

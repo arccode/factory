@@ -135,6 +135,9 @@ def main(argv=None):
   parser.add_argument(
       '--mini', action='store_true',
       help='Build smaller version suitable for installation into test image')
+  parser.add_argument(
+      '--compiled', action='store_true',
+      help='Build with compiled python code (*.pyc).')
   args = parser.parse_args(argv)
   logging.basicConfig(level=logging.WARNING - 10 * (args.verbose or 0))
 
@@ -164,7 +167,10 @@ def main(argv=None):
     rsync_args = ['rsync', '-a',
                   '--exclude', '*_unittest.py',
                   '--exclude', 'factory_common.py*',
+                  '--exclude', '*.pyo',  # pyo will discard assert.
+                  '--include' if args.compiled else '--exclude', '*.pyc',
                   '--include', '*.py']
+
     if args.mini:
       # Exclude some piggy directories we'll never need for the mini
       # par, since we will not run these things in a test image.
@@ -218,6 +224,9 @@ def main(argv=None):
     # Add an empty factory_common file (since many scripts import
     # factory_common).
     open(os.path.join(par_build, 'factory_common.py'), 'w')
+
+    if args.compiled:
+      Spawn(['python', '-m', 'compileall', par_build], check_call=True)
 
     # Zip 'em up!
     factory_par = os.path.join(tmp, 'factory.par')
