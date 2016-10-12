@@ -369,57 +369,49 @@ class DatabaseTest(unittest.TestCase):
         self.database.VerifyEncodedString, 'CHROMEBOOK AW3L-M7IA-B')
 
   def testVerifyBOM(self):
+    # Before evaluating rule to update the unprobeable component, we only verify
+    # the probeable components.
     bom = self.database.ProbeResultToBOM(self.results[0])
-    self.assertEquals(
-        None, self.database.VerifyBOM(bom))
-
-    original_value = bom.components['ec_flash_chip']
-    bom.components.pop('ec_flash_chip')
-    self.assertRaisesRegexp(
-        HWIDException, r'Missing component classes: .*',
-        self.database.VerifyBOM, bom)
-    bom.components['ec_flash_chip'] = original_value
+    self.assertEquals(None, self.database.VerifyBOM(bom, True))
 
     original_value = bom.board
     bom.board = 'FOO'
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid board name. Expected .*, got .*',
-        self.database.VerifyBOM, bom)
+    with self.assertRaisesRegexp(HWIDException,
+                                 r'Invalid board name. Expected .*, got .*'):
+      self.database.VerifyBOM(bom, True)
     bom.board = original_value
 
     original_value = bom.encoding_pattern_index
     bom.encoding_pattern_index = 2
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid encoding pattern', self.database.VerifyBOM,
-        bom)
+    with self.assertRaisesRegexp(HWIDException, r'Invalid encoding pattern'):
+      self.database.VerifyBOM(bom, True)
     bom.encoding_pattern_index = original_value
 
     original_value = bom.image_id
     bom.image_id = 6
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid image id: .*', self.database.VerifyBOM, bom)
+    with self.assertRaisesRegexp(HWIDException, r'Invalid image id: .*'):
+      self.database.VerifyBOM(bom, True)
     bom.image_id = original_value
 
     original_value = bom.encoded_fields['cpu']
     bom.encoded_fields['cpu'] = 8
-    self.assertRaisesRegexp(
-        HWIDException, r'Encoded fields .* have unknown indices',
-        self.database.VerifyBOM, bom)
+    with self.assertRaisesRegexp(HWIDException,
+                                 r'Encoded fields .* have unknown indices'):
+      self.database.VerifyBOM(bom, True)
     bom.encoded_fields['cpu'] = original_value
 
     original_value = bom.components['cpu']
     bom.components['cpu'] = [ProbedComponentResult(
         'cpu', {'name': Value('foo'), 'cores': Value('4')}, None)]
-    self.assertRaisesRegexp(
-        HWIDException, r'Unknown component values: .*', self.database.VerifyBOM,
-        bom)
+    with self.assertRaisesRegexp(HWIDException, r'Unknown component values:.*'):
+      self.database.VerifyBOM(bom, True)
     bom.components['cpu'] = original_value
 
     original_value = bom.encoded_fields['cpu']
     bom.encoded_fields.pop('cpu')
-    self.assertRaisesRegexp(
-        HWIDException, r'Missing encoded fields in BOM: .*',
-        self.database.VerifyBOM, bom)
+    with self.assertRaisesRegexp(HWIDException,
+                                 r'Missing encoded fields in BOM: .*'):
+      self.database.VerifyBOM(bom, True)
     bom.encoded_fields['cpu'] = original_value
 
   def testVerifyComponents(self):

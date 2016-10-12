@@ -575,12 +575,22 @@ class Database(object):
       raise common.HWIDException('Checksum of %r mismatch (expected %r)' % (
           encoded_string, expected_checksum))
 
-  def VerifyBOM(self, bom):
+  def VerifyBOM(self, bom, probeable_only=False):
     """Verifies the data contained in the given BOM object matches the settings
     and definitions in the database.
 
+    Because the components for each image ID might be different, for example a
+    component might be removed in later build. We only verify the components in
+    the target image ID, not all components listed in the database.
+
+    When the BOM is decoded by HWID string, it would contain the information of
+    every component recorded in the pattern. But if the BOM object is created by
+    the probed result, it does not contain the unprobeable component before
+    evaluating the rule. We should verify the probeable components only.
+
     Args:
       bom: The BOM object to verify.
+      probeable_only: True to verify the probeable component only.
 
     Raises:
       HWIDException if verification fails.
@@ -596,17 +606,21 @@ class Database(object):
       raise common.HWIDException('Invalid image id: %r' % bom.image_id)
 
     # All the classes encoded in the pattern should exist in BOM.
+    # Ignore unprobeable component if probeable_only is True.
     missing_comp = []
-    for encoded_indices in self.encoded_fields.itervalues():
-      for index_content in encoded_indices.itervalues():
-        missing_comp.extend([comp_cls for comp_cls in index_content
-                             if comp_cls not in bom.components])
+    expected_encoded_fields = self.pattern.GetFieldNames(bom.image_id)
+    for encoded_field_name in expected_encoded_fields:
+      for index_content in self.encoded_fields[encoded_field_name].itervalues():
+        for comp_cls in index_content:
+          if (comp_cls not in bom.components and
+              (comp_cls in self.components.probeable or not probeable_only)):
+            missing_comp.append(comp_cls)
     if missing_comp:
       raise common.HWIDException('Missing component classes: %r',
                                  ', '.join(sorted(missing_comp)))
 
     bom_encoded_fields = type_utils.MakeSet(bom.encoded_fields.keys())
-    db_encoded_fields = type_utils.MakeSet(self.encoded_fields.keys())
+    db_encoded_fields = type_utils.MakeSet(expected_encoded_fields)
     # Every encoded field defined in the database must present in BOM.
     if db_encoded_fields - bom_encoded_fields:
       raise common.HWIDException('Missing encoded fields in BOM: %r',
@@ -634,9 +648,16 @@ class Database(object):
 
     # All the encoded index should exist in the database.
     invalid_fields = []
-    for field, index in bom.encoded_fields.iteritems():
-      if index is not None and index not in self.encoded_fields[field]:
-        invalid_fields.append(field)
+    for field_name in expected_encoded_fields:
+      # Ignore the field containing unprobeable component.
+      if probeable_only and not all(
+          [comp_cls in self.components.probeable
+           for comp_cls in self.encoded_fields[field_name][0].keys()]):
+        continue
+      index = bom.encoded_fields[field_name]
+      if index is None or index not in self.encoded_fields[field_name]:
+        invalid_fields.append(field_name)
+
     if invalid_fields:
       raise common.HWIDException('Encoded fields %r have unknown indices' %
                                  ', '.join(sorted(invalid_fields)))
