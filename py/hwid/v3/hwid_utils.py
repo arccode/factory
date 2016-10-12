@@ -56,10 +56,6 @@ def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):
   device_bom = db.ProbeResultToBOM(probed_results_yaml)
   hwid = encoder.Encode(db, device_bom, mode=hwid_mode, skip_check=True)
 
-  # Verify the probe result with the generated HWID to make sure nothing is
-  # mis-configured after setting default values to unprobeable encoded fields.
-  hwid.VerifyProbeResult(probed_results_yaml)
-
   # Update unprobeable components with rules defined in db before verification.
   context = rule.Context(hwid=hwid, device_info=device_info, vpd=vpd)
   db.rules.EvaluateRules(context, namespace='device_info.*')

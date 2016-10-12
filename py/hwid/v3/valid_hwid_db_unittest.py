@@ -206,7 +206,9 @@ class ValidHWIDDBsTest(unittest.TestCase):
     else:
       hwid = _Decode()
       self.assertEquals(binary_string, hwid.binary_string)
-      self.assertEquals(encoded_fields, hwid.bom.encoded_fields)
+      for field_name in db.pattern.GetFieldNames(hwid.bom.image_id):
+        self.assertEquals(encoded_fields[field_name],
+                          hwid.bom.encoded_fields[field_name])
 
 
 if __name__ == '__main__':

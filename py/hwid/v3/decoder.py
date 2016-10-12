@@ -40,19 +40,21 @@ def BinaryStringToBOM(database, binary_string):
 
   # Construct the encoded fields dict.
   encoded_fields = collections.defaultdict(int)
+  for field_name in database.pattern.GetFieldNames(image_id):
+    encoded_fields[field_name] = 0
   bit_mapping = database.pattern.GetBitMapping(
       image_id=image_id, binary_string_length=len(stripped_binary_string))
   for i, (field, bit_offset) in bit_mapping.iteritems():
     if i >= len(stripped_binary_string):
       break
     encoded_fields[field] += int(stripped_binary_string[i], 2) << bit_offset
-  for field in (set(database.encoded_fields.keys()) -
-                set(encoded_fields.keys())):
-    # If a field is not encoded in the binary string but is specified in
-    # the pattern of the given database, defaults its value to 0.
-    encoded_fields[field] = 0
 
   # Check that all the encoded field indices are valid.
+  expected_encoded_fields = database.pattern.GetFieldNames(image_id)
+  missing_fields = set(expected_encoded_fields) - set(encoded_fields.keys())
+  if missing_fields:
+    raise common.HWIDException('Index of the fields are missing: %r' %
+                               list(missing_fields))
   for field in encoded_fields:
     if encoded_fields[field] not in database.encoded_fields[field]:
       raise common.HWIDException('Invalid encoded field index: {%r: %r}' %

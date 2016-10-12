@@ -90,32 +90,5 @@ def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,
     A HWID object which contains the BOM, the binary string, and the encoded
     string derived from the given BOM object.
   """
-  # Convert all encoded fields with None value to the default index 0.
-  components_to_update = {}
-  for field, index in bom.encoded_fields.iteritems():
-    if index is None:
-      for comp_cls, comp_name in database.encoded_fields[field][0].iteritems():
-        # Check every component classes that this encoded field consists of.
-        for probed_comp in bom.components[comp_cls]:
-          if probed_comp.component_name is not None:
-            continue
-          if comp_cls not in database.components.probeable:
-            # Only convert unprobeable components.
-            components_to_update[comp_cls] = comp_name
-          else:
-            raise common.HWIDException(probed_comp.error)
-  updated_bom = database.UpdateComponentsOfBOM(bom, components_to_update)
-
-  for field, index in updated_bom.encoded_fields.iteritems():
-    if index is None:
-      err_msg = ('Unable to determine index for encoded field %r. Probed '
-                 'components are:\n') % field
-      for comp_cls in database.encoded_fields[field][0].iterkeys():
-        for probed_comp in bom.components[comp_cls]:
-          err_msg += '  %r: %r\n' % (comp_cls, probed_comp.component_name)
-      raise common.HWIDException(err_msg)
-
-  hwid = common.HWID(database, updated_bom,
-                     mode=mode, skip_check=skip_check)
-  hwid.VerifyComponentStatus()
+  hwid = common.HWID(database, bom, mode=mode, skip_check=skip_check)
   return hwid

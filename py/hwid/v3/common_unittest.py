@@ -17,8 +17,6 @@ from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.common import IsMPKeyName
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.encoder import Encode
-from cros.factory.utils.type_utils import MakeSet
-from cros.factory.utils.type_utils import MakeList
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -50,22 +48,24 @@ class HWIDTest(unittest.TestCase):
         yaml.dump(result) for result in yaml.load_all(open(os.path.join(
             _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
 
-  def testMakeList(self):
-    self.assertEquals(['a'], MakeList('a'))
-    self.assertEquals(['abc'], MakeList('abc'))
-    self.assertEquals(['a', 'b'], MakeList(['a', 'b']))
-    self.assertEquals(['a', 'b'], MakeList({'a': 'foo', 'b': 'bar'}))
-
-  def testMakeSet(self):
-    self.assertEquals(set(['ab']), MakeSet('ab'))
-    self.assertEquals(set(['a', 'b']), MakeSet(['a', 'b']))
-    self.assertEquals(set(['a', 'b']), MakeSet(('a', 'b')))
-    self.assertEquals(set(['a', 'b']), MakeSet({'a': 'foo', 'b': 'bar'}))
+  def testInvalidInitialize(self):
+    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'dram': 'dram_0',
+        'display_panel': 'display_panel_0'})
+    bom.image_id = 2
+    with self.assertRaisesRegexp(HWIDException,
+                                 'The last bit of binary_string must be 1.'):
+      HWID(self.database, bom, binary_string='00000')
+    with self.assertRaisesRegexp(HWIDException,
+                                 'Invalid operation mode'):
+      HWID(self.database, bom, mode='UNKNOWN')
 
   def testIsEquivalentBinaryString(self):
     self.assertTrue(HWID.IsEquivalentBinaryString('01001', '01001'))
     self.assertTrue(HWID.IsEquivalentBinaryString('01011', '010100001'))
     self.assertFalse(HWID.IsEquivalentBinaryString('01011', '010110001'))
+    self.assertFalse(HWID.IsEquivalentBinaryString('01011', '011110001'))
     with self.assertRaises(AssertionError):
       HWID.IsEquivalentBinaryString('010110', '01011000')
 
@@ -105,12 +105,11 @@ class HWIDTest(unittest.TestCase):
         r"\['hdmi_0'\] and is missing components: \['hdmi_1'\]. "
         r"Expected components are: \['codec_1', 'hdmi_1'\]",
         hwid.VerifyProbeResult, fake_result)
+    # We only verify the components listed in the pattern. Do not raise
+    # exception while the component which is not in the pattern is missing.
     fake_result = result.replace('EC Flash Chip', 'Foo chip')
-    self.assertRaisesRegexp(
-        HWIDException, r"Component class 'ec_flash_chip' is missing "
-        r"components: \['ec_flash_chip_0'\]. Expected components are: "
-        r"\['ec_flash_chip_0'\]",
-        hwid.VerifyProbeResult, fake_result)
+    self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
+
     fake_result = result.replace('name: CPU @ 2.80GHz',
                                  'name: CPU @ 2.40GHz')
     self.assertRaisesRegexp(

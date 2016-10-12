@@ -81,6 +81,25 @@ class DecoderTest(unittest.TestCase):
                     'type': Value('webcam')},
                    None)]}
 
+  def _CheckBOM(self, reference_bom, bom):
+    """Check the BOM decoded from HWID is equivalent to the reference BOM.
+
+    reference_bom (generated from probed result) has all information of
+    encoded_fields and component, but bom (generated from binary string) only
+    has the information of the pattern. Therefore we check bom is the subset
+    of the reference_bom.
+    """
+    self.assertEquals(reference_bom.board, bom.board)
+    self.assertEquals(reference_bom.encoding_pattern_index,
+                      bom.encoding_pattern_index)
+    self.assertEquals(reference_bom.image_id, bom.image_id)
+    for comp_cls in bom.encoded_fields:
+      self.assertEquals(reference_bom.encoded_fields[comp_cls],
+                        bom.encoded_fields[comp_cls])
+    for comp_cls in bom.components:
+      self.assertEquals(self.expected_components_from_db[comp_cls],
+                        bom.components[comp_cls])
+
   def testEncodedStringToBinaryString(self):
     self.assertEquals('0000000000111010000011',
                       EncodedStringToBinaryString(
@@ -98,12 +117,8 @@ class DecoderTest(unittest.TestCase):
         'keyboard': 'keyboard_us',
         'display_panel': 'display_panel_0'})
     bom = BinaryStringToBOM(self.database, '0000000000111010000011')
-    self.assertEquals(reference_bom.board, bom.board)
-    self.assertEquals(reference_bom.encoding_pattern_index,
-                      bom.encoding_pattern_index)
-    self.assertEquals(reference_bom.image_id, bom.image_id)
-    self.assertEquals(reference_bom.encoded_fields, bom.encoded_fields)
-    self.assertEquals(self.expected_components_from_db, bom.components)
+    self._CheckBOM(reference_bom, bom)
+
     bom = BinaryStringToBOM(self.database, '0000000001111010000011')
     self.assertEquals(1, bom.encoded_fields['firmware'])
     self.assertEquals(2, BinaryStringToBOM(
@@ -155,22 +170,13 @@ class DecoderTest(unittest.TestCase):
     hwid = Decode(self.database, 'CHROMEBOOK AA5A-Y6L')
     self.assertEquals('0000000000111010000011', hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA5A-Y6L', hwid.encoded_string)
-    self.assertEquals(reference_bom.board, hwid.bom.board)
-    self.assertEquals(reference_bom.encoding_pattern_index,
-                      hwid.bom.encoding_pattern_index)
-    self.assertEquals(reference_bom.image_id, hwid.bom.image_id)
-    self.assertEquals(reference_bom.encoded_fields, hwid.bom.encoded_fields)
-    self.assertEquals(self.expected_components_from_db, hwid.bom.components)
+    self._CheckBOM(reference_bom, hwid.bom)
 
     hwid = Decode(self.database, 'CHROMEBOOK C2H-I3Q-A6Q')
     self.assertEquals('0001000000111010000011', hwid.binary_string)
     self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', hwid.encoded_string)
-    self.assertEquals(reference_bom.board, hwid.bom.board)
-    self.assertEquals(reference_bom.encoding_pattern_index,
-                      hwid.bom.encoding_pattern_index)
-    self.assertEquals(2, hwid.bom.image_id)
-    self.assertEquals(reference_bom.encoded_fields, hwid.bom.encoded_fields)
-    self.assertEquals(self.expected_components_from_db, hwid.bom.components)
+    reference_bom.image_id = 2
+    self._CheckBOM(reference_bom, hwid.bom)
 
   def testPreviousVersionOfEncodedString(self):
     bom = BinaryStringToBOM(self.database, '000000000011101000001')

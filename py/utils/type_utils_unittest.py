@@ -25,6 +25,21 @@ class FlattenListTest(unittest.TestCase):
     self.assertEquals([1, 2, 3, 4, 5, 6],
                       type_utils.FlattenList([1, 2, [3, 4, []], 5, 6]))
 
+class MakeListTest(unittest.TestCase):
+  def runTest(self):
+    self.assertEquals(['a'], type_utils.MakeList('a'))
+    self.assertEquals(['abc'], type_utils.MakeList('abc'))
+    self.assertEquals(['a', 'b'], type_utils.MakeList(['a', 'b']))
+    self.assertEquals(['a', 'b'], type_utils.MakeList({'a': 'foo', 'b': 'bar'}))
+
+class MakeSetTest(unittest.TestCase):
+  def runTest(self):
+    self.assertEquals(set(['ab']), type_utils.MakeSet('ab'))
+    self.assertEquals(set(['a', 'b']), type_utils.MakeSet(['a', 'b']))
+    self.assertEquals(set(['a', 'b']), type_utils.MakeSet(('a', 'b')))
+    self.assertEquals(set(['a', 'b']),
+                      type_utils.MakeSet({'a': 'foo', 'b': 'bar'}))
+
 
 class AttrDictTest(unittest.TestCase):
 

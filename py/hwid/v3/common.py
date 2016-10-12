@@ -207,10 +207,16 @@ class HWID(object):
   def VerifySelf(self):
     """Verifies the HWID object itself.
 
+    This method is to verify the BOM object matches the database and the
+    generated HWID encoded string is valid. In HWID generation, the BOM object
+    is invalid before evaluating the rule to add the unprobeable components and
+    image ID. So this method should be called after that.
+
     Raises:
       HWIDException on verification error.
     """
     self.database.VerifyBOM(self.bom)
+    self.database.VerifyEncodedString(self.encoded_string)
 
   def VerifyComponentStatus(self, current_phase=None):
     """Verifies the status of all components.
@@ -283,7 +289,8 @@ class HWID(object):
           results.extend(matched_component.keys())
       return results
 
-    for comp_cls in self.database.components.GetRequiredComponents():
+    # We only verify the components listed in the pattern.
+    for comp_cls in self.database.pattern.GetFieldNames(self.bom.image_id):
       if comp_cls not in self.database.components.probeable:
         continue
       probed_components = type_utils.MakeSet(

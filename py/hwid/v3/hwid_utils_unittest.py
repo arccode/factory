@@ -19,12 +19,92 @@ from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import rule
+from cros.factory.hwid.v3.rule import Value
 from cros.factory.test.rules import phase
 
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
-# pylint: disable=E1101
+class HWIDv3UtilsTestWithNewDatabase(unittest2.TestCase):
+  """Test cases for HWID v3 utilities with the new database.
+
+  The new database adds a new image_id and a pattern, that removes display_panel
+  and cellular field, and add firmware_keys field. It also adds SKU that has no
+  audio_codec component.
+  """
+
+  def setUp(self):
+    self.db = database.Database.LoadFile(
+        os.path.join(TEST_DATA_PATH, 'NEW_TEST_BOARD'))
+    self.probed_results = list(yaml.load_all(open(os.path.join(
+        TEST_DATA_PATH, 'new_test_probe_result_hwid_utils.yaml')).read()))
+    self.vpd = {
+        'ro': {
+            'region': 'us',
+            'serial_number': 'foo'
+        },
+        'rw': {
+            'gbind_attribute': '333333333333333333333333333333333333'
+                               '33333333333333333333333333332dbecc73',
+            'ubind_attribute': '323232323232323232323232323232323232'
+                               '323232323232323232323232323256850612'
+        }
+    }
+
+  def testGenerateHWID(self):
+    device_info = {
+        'component.keyboard': 'us',
+    }
+    # Test new database with audio codec
+    self.assertEquals(
+        'CHROMEBOOK E35-A2Y-A7B',
+        hwid_utils.GenerateHWID(
+            self.db, self.probed_results[0],
+            device_info, self.vpd, False).encoded_string)
+    # Test new database without audio codec
+    self.assertEquals(
+        'CHROMEBOOK E45-A2Y-A2Z',
+        hwid_utils.GenerateHWID(
+            self.db, self.probed_results[1],
+            device_info, self.vpd, False).encoded_string)
+
+  def testDecodeHWID(self):
+    """Tests HWID decoding."""
+    # Decode old HWID string
+    hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
+    parsed_result = hwid_utils.ParseDecodedHWID(hwid)
+    self.assertNotIn('firmware_keys', parsed_result)
+    self.assertEquals(parsed_result['components']['cellular'], [{None: None}])
+    self.assertEquals(parsed_result['components']['audio_codec'],
+                      [{'codec_1': {'compact_str': Value('Codec 1')}},
+                       {'hdmi_1': {'compact_str': Value('HDMI 1')}}])
+    self.assertEquals(parsed_result['components']['display_panel'],
+                      [{'display_panel_0': None}])
+
+    # Decode new HWID string with audio_codec
+    hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK E35-A2Y-A7B')
+    parsed_result = hwid_utils.ParseDecodedHWID(hwid)
+    self.assertNotIn('display_panel', parsed_result)
+    self.assertNotIn('cellular', parsed_result)
+    self.assertEquals(parsed_result['components']['firmware_keys'],
+                      [{'firmware_keys_mp': {
+                          'key_recovery': Value('kv3#key_recovery_mp'),
+                          'key_root': Value('kv3#key_root_mp')}}])
+    self.assertEquals(parsed_result['components']['audio_codec'],
+                      [{'codec_1': {'compact_str': Value('Codec 1')}},
+                       {'hdmi_1': {'compact_str': Value('HDMI 1')}}])
+
+    # Decode new HWID string without audio_codec
+    hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK E45-A2Y-A2Z')
+    parsed_result = hwid_utils.ParseDecodedHWID(hwid)
+    self.assertNotIn('display_panel', parsed_result)
+    self.assertNotIn('cellular', parsed_result)
+    self.assertEquals(parsed_result['components']['firmware_keys'],
+                      [{'firmware_keys_mp': {
+                          'key_recovery': Value('kv3#key_recovery_mp'),
+                          'key_root': Value('kv3#key_root_mp')}}])
+    self.assertEquals(parsed_result['components']['audio_codec'],
+                      [{None: None}])
 
 
 class HWIDv3UtilsTest(unittest2.TestCase):
@@ -41,10 +121,10 @@ class HWIDv3UtilsTest(unittest2.TestCase):
             'serial_number': 'foo'
         },
         'rw': {
-            'gbind_attribute': '333333333333333333333'
-                               '33333333333333333333333333333333333333333332dbecc73',
-            'ubind_attribute': '323232323232323232323'
-                               '232323232323232323232323232323232323232323256850612'
+            'gbind_attribute': '333333333333333333333333333333333333'
+                               '33333333333333333333333333332dbecc73',
+            'ubind_attribute': '323232323232323232323232323232323232'
+                               '323232323232323232323232323256850612'
         }
     }
 
@@ -121,7 +201,6 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         'component.dram': 'foo',
         'component.audio_codec': 'set_1'
     }
-
     self.assertEquals(
         'CHROMEBOOK D9I-E4A-A2B',
         hwid_utils.GenerateHWID(
@@ -165,8 +244,8 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     # Check for mismatched phase.
     self.assertRaisesRegexp(
         common.HWIDException,
-        re.escape("In DVT phase, expected an image name beginning with 'DVT' "
-                  "(but 'CHROMEBOOK D9I-F9U' has image ID 'PVT2')"),
+        "In DVT phase, expected an image name beginning with 'DVT' "
+        "\(but .* has image ID 'PVT2'\)",
         hwid_utils.VerifyHWID,
         self.db, 'CHROMEBOOK D9I-F9U', self.probed_results, self.vpd, False,
         phase.DVT)
@@ -212,17 +291,6 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         common.HWIDException,
         (r"Component class 'audio_codec' is missing components: "
          r"\['hdmi_1'\]. Expected components are: \['codec_1', 'hdmi_1'\]"),
-        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U', probed_results,
-        self.vpd, False, phase.PVT)
-
-    probed_results = copy.deepcopy(self.probed_results)
-    probed_results['found_probe_value_map']['cellular'] = {
-        'idVendor': '89ab', 'idProduct': 'abcd', 'name': 'Cellular Card'}
-    probed_results['missing_component_classes'].remove('cellular')
-    self.assertRaisesRegexp(
-        common.HWIDException,
-        (r"Component class 'cellular' has extra components: "
-         r"\['cellular_0'\]. Expected components are: None"),
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U', probed_results,
         self.vpd, False, phase.PVT)
 
@@ -276,15 +344,70 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         self.db, 'CHROMEBOOK A5AT-PC', probed_results, self.vpd, False,
         phase.EVT))
 
-
   def testDecodeHWID(self):
     """Tests HWID decoding."""
+    hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
     self.assertEquals(
-        {'audio_codec': 1, 'battery': 3, 'ec_flash_chip': 0, 'firmware': 0,
-         'storage': 0, 'flash_chip': 0, 'bluetooth': 0,
-         'embedded_controller': 0, 'video': 0, 'display_panel': 0,
-         'cellular': 0, 'keyboard': 0, 'dram': 0, 'chipset': 0, 'cpu': 5},
-        hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U').bom.encoded_fields)
+        {'audio_codec': 1, 'battery': 3, 'firmware': 0, 'storage': 0,
+         'bluetooth': 0, 'video': 0, 'display_panel': 0, 'cellular': 0,
+         'keyboard': 0, 'dram': 0, 'chipset': 0, 'cpu': 5},
+        hwid.bom.encoded_fields)
+
+    parsed_result = hwid_utils.ParseDecodedHWID(hwid)
+    self.assertEquals(parsed_result['board'], 'CHROMEBOOK')
+    self.assertEquals(parsed_result['binary_string'], '000111110100000101')
+    self.assertEquals(parsed_result['image_id'], 'PVT2')
+    self.assertEquals(parsed_result['components'], {
+        'key_recovery': [{
+            'key_recovery_mp': {
+                'compact_str': Value('kv3#key_recovery_mp', is_re=False)}}],
+        'cellular': [{None: None}],
+        'ro_main_firmware': [{
+            'ro_main_firmware_0': {
+                'compact_str': Value('mv2#ro_main_firmware_0', is_re=False)}}],
+        'battery': [{
+            'battery_huge': {
+                'tech': Value('Battery Li-ion', is_re=False),
+                'size': Value('10000000', is_re=False)}}],
+        'hash_gbb': [{
+            'hash_gbb_0': {
+                'compact_str': Value('gv2#hash_gbb_0', is_re=False)}}],
+        'bluetooth': [{
+            'bluetooth_0': {
+                'bcd': Value('0001', is_re=False),
+                'idVendor': Value('0123', is_re=False),
+                'idProduct': Value('abcd', is_re=False)}}],
+        'key_root': [{
+            'key_root_mp': {
+                'compact_str': Value('kv3#key_root_mp', is_re=False)}}],
+        'video': [{
+            'camera_0': {
+                'idVendor': Value('4567', is_re=False),
+                'type': Value('webcam', is_re=False),
+                'idProduct': Value('abcd', is_re=False)}}],
+        'audio_codec': [
+            {'codec_1': {'compact_str': Value('Codec 1', is_re=False)}},
+            {'hdmi_1': {'compact_str': Value('HDMI 1', is_re=False)}}],
+        'keyboard': [{'keyboard_us': None}],
+        'dram': [{
+            'dram_0': {
+                'vendor': Value('DRAM 0', is_re=False),
+                'size': Value('4G', is_re=False)}}],
+        'storage': [{
+            'storage_0': {
+                'serial': Value('#123456', is_re=False),
+                'type': Value('SSD', is_re=False),
+                'size': Value('16G', is_re=False)}}],
+        'display_panel': [{'display_panel_0': None}],
+        'chipset': [{
+            'chipset_0': {'compact_str': Value('cdef:abcd', is_re=False)}}],
+        'ro_ec_firmware':[{
+            'ro_ec_firmware_0': {
+                'compact_str': Value('ev2#ro_ec_firmware_0', is_re=False)}}],
+        'cpu': [{
+            'cpu_5': {
+                'cores': Value('4', is_re=False),
+                'name': Value('CPU @ 2.80GHz', is_re=False)}}]})
 
 
 if __name__ == '__main__':

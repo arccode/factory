@@ -1,0 +1,135 @@
+---
+# Valid probed result for NEW_TEST_BOARD, has audio_codec
+found_probe_value_map:
+  audio_codec:
+  - compact_str: Codec 1
+  - compact_str: HDMI 1
+  battery:
+    tech: Battery Li-ion
+    size: '10000000'
+  bluetooth:
+    idVendor: '0123'
+    idProduct: abcd
+    bcd: '0001'
+  chipset:
+    compact_str: cdef:abcd
+  cpu:
+    name: CPU @ 2.80GHz
+    cores: '4'
+  dram:
+    vendor: DRAM 0
+    size: 4G
+  ec_flash_chip:
+    compact_str: EC Flash Chip
+  embedded_controller:
+    compact_str: Embedded Controller
+  flash_chip:
+    compact_str: Flash Chip
+  keyboard:
+    compact_str: xkb:us::eng
+  storage:
+    type: SSD
+    size: 16G
+    serial: '#123456'
+  video:
+    idVendor: '4567'
+    idProduct: abcd
+    type: webcam
+  region:
+    region_code: us
+
+found_volatile_values:
+  firmware_keys:
+    key_recovery: kv3#key_recovery_mp
+    key_root: kv3#key_root_mp
+  hash_gbb:
+    compact_str: gv2#hash_gbb_0
+  key_recovery:
+    compact_str: kv3#key_recovery_mp
+  key_root:
+    compact_str: kv3#key_root_mp
+  ro_ec_firmware:
+    compact_str: ev2#ro_ec_firmware_0
+  ro_main_firmware:
+    compact_str: mv2#ro_main_firmware_0
+  vpd.ro.region: us
+  vpd.ro.serial_number: foo
+  vpd.rw.gbind_attribute: '33333333333333333333333333333333333333333333333333333333333333332dbecc73'
+  vpd.rw.ubind_attribute: '323232323232323232323232323232323232323232323232323232323232323256850612'
+initial_configs:
+  cellular_fw_version: ''
+  rw_fw_key_version: '2'
+  storage_fw_version: 11.22.33
+missing_component_classes:
+- wimax
+- cellular
+- display_converter
+- display_panel
+- ethernet
+---
+# Valid probed result for NEW_TEST_BOARD, no audio_codec
+found_probe_value_map:
+  battery:
+    tech: Battery Li-ion
+    size: '10000000'
+  bluetooth:
+    idVendor: '0123'
+    idProduct: abcd
+    bcd: '0001'
+  chipset:
+    compact_str: cdef:abcd
+  cpu:
+    name: CPU @ 2.80GHz
+    cores: '4'
+  dram:
+    vendor: DRAM 0
+    size: 4G
+  ec_flash_chip:
+    compact_str: EC Flash Chip
+  embedded_controller:
+    compact_str: Embedded Controller
+  flash_chip:
+    compact_str: Flash Chip
+  keyboard:
+    compact_str: xkb:us::eng
+  storage:
+    type: SSD
+    size: 16G
+    serial: '#123456'
+  video:
+    idVendor: '4567'
+    idProduct: abcd
+    type: webcam
+  region:
+    region_code: us
+
+found_volatile_values:
+  firmware_keys:
+    key_recovery: kv3#key_recovery_mp
+    key_root: kv3#key_root_mp
+  hash_gbb:
+    compact_str: gv2#hash_gbb_0
+  key_recovery:
+    compact_str: kv3#key_recovery_mp
+  key_root:
+    compact_str: kv3#key_root_mp
+  ro_ec_firmware:
+    compact_str: ev2#ro_ec_firmware_0
+  ro_main_firmware:
+    compact_str: mv2#ro_main_firmware_0
+  vpd.ro.region: us
+  vpd.ro.serial_number: foo
+  vpd.rw.gbind_attribute: '33333333333333333333333333333333333333333333333333333333333333332dbecc73'
+  vpd.rw.ubind_attribute: '323232323232323232323232323232323232323232323232323232323232323256850612'
+initial_configs:
+  cellular_fw_version: ''
+  rw_fw_key_version: '2'
+  storage_fw_version: 11.22.33
+missing_component_classes:
+- audio_codec
+- wimax
+- cellular
+- display_converter
+- display_panel
+- ethernet
+---

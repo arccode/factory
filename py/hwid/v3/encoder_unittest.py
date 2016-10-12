@@ -81,7 +81,8 @@ class EncoderTest(unittest.TestCase):
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(
-        HWIDException, r"Missing 'dram' component", Encode, self.database, bom)
+        HWIDException, "Encoded fields 'dram' have unknown indices",
+        Encode, self.database, bom)
 
     # Unsupported probe values of component 'dram'.
     mock_results = yaml.load(self.results[0])
@@ -91,9 +92,9 @@ class EncoderTest(unittest.TestCase):
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(
-        HWIDException, r"Invalid 'dram' component found with probe result "
-        r"{ 'size': '4G', 'vendor': 'FOO'} \(no matching name in the component "
-        r'DB\)', Encode, self.database, bom)
+        HWIDException, "Unknown component values: "
+        "\"dram:{'size': '4G', 'vendor': 'FOO'}\"",
+        Encode, self.database, bom)
 
   def testEncodeRegion(self):
     db = Database.LoadFile(
