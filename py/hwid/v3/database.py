@@ -570,6 +570,16 @@ class Database(object):
     Raises:
       HWIDException if verification fails.
     """
+    if bom.board != self.board:
+      raise common.HWIDException('Invalid board name. Expected %r, got %r' %
+                                 (self.board, bom.board))
+
+    if bom.encoding_pattern_index not in self.encoding_patterns:
+      raise common.HWIDException('Invalid encoding pattern: %r' %
+                                 bom.encoding_pattern_index)
+    if bom.image_id not in self.image_id:
+      raise common.HWIDException('Invalid image id: %r' % bom.image_id)
+
     # All the classes encoded in the pattern should exist in BOM.
     missing_comp = []
     for encoded_indices in self.encoded_fields.itervalues():
@@ -593,26 +603,19 @@ class Database(object):
                                  ', '.join(sorted(bom_encoded_fields -
                                                   db_encoded_fields)))
 
-    if bom.board != self.board:
-      raise common.HWIDException('Invalid board name. Expected %r, got %r' %
-                                 (self.board, bom.board))
-
-    if bom.encoding_pattern_index not in self.encoding_patterns:
-      raise common.HWIDException('Invalid encoding pattern: %r' %
-                                 bom.encoding_pattern_index)
-    if bom.image_id not in self.image_id:
-      raise common.HWIDException('Invalid image id: %r' % bom.image_id)
 
     # All the probeable component values in the BOM should exist in the
     # database.
     unknown_values = []
     for comp_cls, probed_values in bom.components.iteritems():
+      if comp_cls not in self.components.probeable:
+        continue
       for element in probed_values:
         probed_values = element.probed_values
-        if probed_values is None or comp_cls not in self.components.probeable:
+        if probed_values is None:
           continue
-        found_comps = (
-            self.components.MatchComponentsFromValues(comp_cls, probed_values))
+        found_comps = self.components.MatchComponentsFromValues(
+            comp_cls, probed_values)
         if not found_comps:
           unknown_values.append('%s:%s' % (comp_cls, pprint.pformat(
               probed_values, indent=0, width=1024)))
