@@ -309,18 +309,33 @@ class Database(object):
     for comp_cls in self.components.GetRequiredComponents():
       probed_comp_values = LookupProbedValue(comp_cls)
       if probed_comp_values is None:
-        # No component of comp_cls is found in probe results.
-        probed_components[comp_cls].append(common.ProbedComponentResult(
-            None, probed_comp_values, common.MISSING_COMPONENT_ERROR(comp_cls)))
+        # Probeable comp_cls but no component is found in probe results.
+        if comp_cls in self.components.probeable:
+          probed_components[comp_cls].append(
+              common.ProbedComponentResult(
+                  None, probed_comp_values,
+                  common.MISSING_COMPONENT_ERROR(comp_cls)))
+        else:
+          # Unprobeable comp_cls and only has 1 component, treat as found.
+          comp_dict = self.components.components_dict[comp_cls]
+          if len(comp_dict['items']) == 1:
+            comp_name = comp_dict['items'].keys()[0]
+            comp_status = self.components.GetComponentStatus(
+                comp_cls, comp_name)
+            if comp_status == common.HWID.COMPONENT_STATUS.supported:
+              probed_components[comp_cls].append(
+                  common.ProbedComponentResult(comp_name, None, None))
         continue
 
       for probed_value in probed_comp_values:
+        # Unprobeable comp_cls but component is found in probe results.
         if comp_cls not in self.components.probeable:
           probed_components[comp_cls].append(
               common.ProbedComponentResult(
                   None, probed_value,
                   common.UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
           continue
+
         matched_comps = self.components.MatchComponentsFromValues(
             comp_cls, probed_value, loose_matching)
         if matched_comps is None:
@@ -597,12 +612,6 @@ class Database(object):
       raise common.HWIDException('Missing encoded fields in BOM: %r',
                                  ', '.join(sorted(db_encoded_fields -
                                                   bom_encoded_fields)))
-    # Every encoded field the BOM has must exist in the database.
-    if bom_encoded_fields - db_encoded_fields:
-      raise common.HWIDException('Extra encoded fields in BOM: %r',
-                                 ', '.join(sorted(bom_encoded_fields -
-                                                  db_encoded_fields)))
-
 
     # All the probeable component values in the BOM should exist in the
     # database.

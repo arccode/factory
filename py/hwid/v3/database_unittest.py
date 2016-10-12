@@ -169,7 +169,7 @@ class DatabaseTest(unittest.TestCase):
         'cpu': [('cpu_5',
                  {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
                  None)],
-        'display_panel': [(None, None, "Missing 'display_panel' component")],
+        'display_panel': [('display_panel_0', None, None)],
         'dram': [('dram_0',
                   {'vendor': Value('DRAM 0'), 'size': Value('4G')},
                   None)],
@@ -216,7 +216,7 @@ class DatabaseTest(unittest.TestCase):
         'cellular': 0,
         'chipset': 0,
         'cpu': 5,
-        'display_panel': None,
+        'display_panel': 0,
         'dram': 0,
         'ec_flash_chip': 0,
         'embedded_controller': 0,
@@ -236,7 +236,7 @@ class DatabaseTest(unittest.TestCase):
         'cellular': 0,
         'chipset': None,
         'cpu': 5,
-        'display_panel': None,
+        'display_panel': 0,
         'dram': 0,
         'ec_flash_chip': 0,
         'embedded_controller': 0,
@@ -406,12 +406,6 @@ class DatabaseTest(unittest.TestCase):
         HWIDException, r'Encoded fields .* have unknown indices',
         self.database.VerifyBOM, bom)
     bom.encoded_fields['cpu'] = original_value
-
-    bom.encoded_fields['foo'] = 1
-    self.assertRaisesRegexp(
-        HWIDException, r'Extra encoded fields in BOM: .*',
-        self.database.VerifyBOM, bom)
-    bom.encoded_fields.pop('foo')
 
     original_value = bom.components['cpu']
     bom.components['cpu'] = [ProbedComponentResult(
