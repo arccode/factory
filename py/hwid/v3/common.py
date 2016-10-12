@@ -129,7 +129,7 @@ class HWID(object):
   HEADER_BITS = 5
   OPERATION_MODE = type_utils.Enum(['normal', 'rma', 'no_check'])
   COMPONENT_STATUS = type_utils.Enum(['supported', 'deprecated',
-                                 'unsupported', 'unqualified'])
+                                      'unsupported', 'unqualified'])
   ENCODING_SCHEME = type_utils.Enum(['base32', 'base8192'])
 
   def __init__(self, database, bom, binary_string=None,

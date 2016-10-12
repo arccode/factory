@@ -9,7 +9,6 @@
 import copy
 import logging
 import os
-import re
 import unittest2
 import yaml
 
@@ -244,8 +243,8 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     # Check for mismatched phase.
     self.assertRaisesRegexp(
         common.HWIDException,
-        "In DVT phase, expected an image name beginning with 'DVT' "
-        "\(but .* has image ID 'PVT2'\)",
+        r"In DVT phase, expected an image name beginning with 'DVT' "
+        r"\(but .* has image ID 'PVT2'\)",
         hwid_utils.VerifyHWID,
         self.db, 'CHROMEBOOK D9I-F9U', self.probed_results, self.vpd, False,
         phase.DVT)

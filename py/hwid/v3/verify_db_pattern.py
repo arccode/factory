@@ -110,7 +110,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
       old_bit_mapping = old_db.pattern.GetBitMapping(image_id=dummy_image_id)
       new_bit_mapping = new_db.pattern.GetBitMapping(image_id=dummy_image_id)
       for index in old_bit_mapping.iterkeys():
-        if (new_bit_mapping[index] != old_bit_mapping[index]):
+        if new_bit_mapping[index] != old_bit_mapping[index]:
           raise common.HWIDException(
               'Bit pattern mismatch found at bit %d (encoded field=%r). '
               'If you are trying to append new bit(s), be sure to create a new '

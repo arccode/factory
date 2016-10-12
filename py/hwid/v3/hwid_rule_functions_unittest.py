@@ -286,9 +286,9 @@ class HWIDRuleTest(unittest.TestCase):
   def testGetPhase(self):
     # Should be 'PVT' when no build phase is set.
     self.assertEquals('PVT', GetPhase())
-    phase._current_phase = phase.PROTO
+    phase._current_phase = phase.PROTO  # pylint: disable=protected-access
     self.assertEquals('PROTO', GetPhase())
-    phase._current_phase = phase.PVT_DOGFOOD
+    phase._current_phase = phase.PVT_DOGFOOD  # pylint: disable=protected-access
     self.assertEquals('PVT_DOGFOOD', GetPhase())
 
 

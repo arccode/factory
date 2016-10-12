@@ -262,7 +262,7 @@ class Rule(object):
     for expr in (type_utils.MakeList(self.when) + self.evaluate +
                  type_utils.MakeList(self.otherwise)):
       try:
-        eval(expr, _rule_functions, {})
+        eval(expr, _rule_functions, {})  # pylint: disable=eval-used
       except KeyError:
         continue
 
@@ -281,7 +281,7 @@ class Rule(object):
       for function in function_list:
         try:
           logger.Info('%s' % function)
-          eval(function, _rule_functions, {})
+          eval(function, _rule_functions, {})  # pylint: disable=eval-used
         except Exception as e:
           raise RuleException(
               'Evaluation of %r in rule %r failed: %r' %
@@ -292,7 +292,7 @@ class Rule(object):
       if self.when is not None:
         logger.Info("Evaluating 'when':")
         logger.Info('%s' % self.when)
-        if eval(self.when, _rule_functions, {}):
+        if eval(self.when, _rule_functions, {}):  # pylint: disable=eval-used
           logger.Info("Evaluating 'evaluate':")
           EvaluateAllFunctions(self.evaluate)
         elif self.otherwise is not None:
@@ -322,7 +322,7 @@ class Rule(object):
     logger = GetLogger()
     try:
       SetContext(context)
-      return eval(expr, _rule_functions, {})
+      return eval(expr, _rule_functions, {})  # pylint: disable=eval-used
     finally:
       if logger.error:
         raise RuleException(logger.Dump())
@@ -399,7 +399,7 @@ class Value(object):
     return isinstance(operand, Value) and self.__dict__ == operand.__dict__
 
   def __ne__(self, operand):
-    return not (self == operand)
+    return not self == operand
 
   def __repr__(self):
     return '%s(%r, is_re=%r)' % (
