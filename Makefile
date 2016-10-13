@@ -19,6 +19,7 @@ TEMP_DIR ?= $(BUILD_DIR)/tmp
 
 # Global environment settings
 SHELL := bash
+OUTOFTREE_BUILD ?=
 PYTHON ?= python
 TARGET_DIR = /usr/local/factory
 
@@ -39,6 +40,8 @@ DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
 DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
 
 CLOSURE_DIR = py/goofy/static
+CLOSURE_OUTPUT_DIR ?= \
+  $(abspath $(if $(OUTOFTREE_BUILD),$(BUILD_DIR)/closure,$(CLOSURE_DIR)))
 
 OVERLORD_DEPS_URL ?= \
   gs://chromeos-localmirror/distfiles/overlord-deps-0.0.3.tar.gz
@@ -78,11 +81,12 @@ PRESUBMIT_TARGETS := \
 default: closure
 
 clean:
+	$(MAKE) -C $(CLOSURE_DIR) OUTPUT_DIR=$(CLOSURE_OUTPUT_DIR) $@
 	rm -rf $(BUILD_DIR)
 
 # Currently the only programs using Closure is in Goofy.
 closure:
-	$(MAKE) -C $(CLOSURE_DIR)
+	$(MAKE) -C $(CLOSURE_DIR) OUTPUT_DIR=$(CLOSURE_OUTPUT_DIR)
 
 # Regenerates the reg code proto.
 # TODO(jsalz): Integrate this as a "real" part of the build, rather than
