@@ -43,8 +43,10 @@ CLOSURE_DIR = py/goofy/static
 CLOSURE_OUTPUT_DIR ?= \
   $(abspath $(if $(OUTOFTREE_BUILD),$(BUILD_DIR)/closure,$(CLOSURE_DIR)))
 
+# External dependency.
 OVERLORD_DEPS_URL ?= \
   gs://chromeos-localmirror/distfiles/overlord-deps-0.0.3.tar.gz
+OVERLORD_DEPS_DIR ?= $(BUILD_DIR)/dist/go
 
 LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist)
 LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
@@ -95,16 +97,18 @@ closure:
 proto:
 	protoc proto/reg_code.proto --python_out=py
 
-# Dependencies for overlord.
-$(BUILD_DIR)/go:
-	mkdir -p $(BUILD_DIR)
-	gsutil cp $(OVERLORD_DEPS_URL) $(BUILD_DIR)/.
-	tar -xf $(BUILD_DIR)/$(shell basename $(OVERLORD_DEPS_URL)) \
-	  -C $(BUILD_DIR)
+func-extract-from-url = @\
+	mkdir -p $(1) ;\
+	gsutil cp $(2) $(1)/. ;\
+	tar -xf $(1)/$(notdir $(2)) -C $(1)
+
+$(OVERLORD_DEPS_DIR):
+	$(call func-extract-from-url,$(dir $@),$(OVERLORD_DEPS_URL))
 
 # TODO(hungte) Change overlord to build out-of-tree.
-overlord: $(BUILD_DIR)/go
-	$(MAKE) -C go/src/overlord DEPS=false STATIC=$(STATIC)
+overlord: $(OVERLORD_DEPS_DIR)
+	$(MAKE) -C go/src/overlord DEPS=false STATIC=$(STATIC) \
+	  GOPATH=$(realpath $(OVERLORD_DEPS_DIR)):$(realpath go)
 	# To install, get go/bin/{overlord,ghost}, and go/src/overlord/app.
 
 ovl-bin:
