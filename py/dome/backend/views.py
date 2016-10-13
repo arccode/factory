@@ -9,7 +9,6 @@ from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework import views
 
 from backend.models import Board
 from backend.models import Bundle
@@ -40,10 +39,9 @@ class BoardElementView(mixins.DestroyModelMixin,
   lookup_field = 'name'
   lookup_url_kwarg = 'board_name'
 
-  def delete(self, request,
-             board_name,  # pylint: disable=unused-argument
-             request_format=None):  # pylint: disable=unused-argument
+  def delete(self, request, board_name, request_format=None):
     """Override parent's method."""
+    del board_name, request_format  # unused
     return self.destroy(request)
 
   def perform_destroy(self, instance):
@@ -63,34 +61,38 @@ class BundleCollectionView(generics.ListCreateAPIView):
     """Override parent's method."""
     serializer.save(board_name=self.kwargs['board_name'])
 
-  def put(self, request, board_name,
-          request_format=None):  # pylint: disable=unused-argument
+  def put(self, request, board_name, request_format=None):
     """Override parent's method."""
+    del request_format  # unused
     bundle_list = Bundle.ReorderBundles(board_name, request.data)
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
 
-class BundleView(views.APIView):
+class BundleElementView(generics.GenericAPIView):
   """Delete or update a bundle."""
 
-  def delete(self, unused_request, board_name, bundle_name,
-             request_format=None):  # pylint: disable=unused-argument
+  serializer_class = BundleSerializer
+
+  def delete(self, request, board_name, bundle_name, request_format=None):
     """Override parent's method."""
-    BundleModel(board_name).DeleteOne(bundle_name)
+    del request, request_format  # unused
+    Bundle.DeleteOne(board_name, bundle_name)
     return Response(status=status.HTTP_204_NO_CONTENT)
 
-  def put(self, request, board_name, bundle_name,
-          request_format=None):  # pylint: disable=unused-argument
+  def put(self, request, board_name, bundle_name, request_format=None):
     """Override parent's method."""
-    bundle = BundleModel(board_name).ListOne(bundle_name)
+    del request_format  # unused
+    bundle = Bundle.ListOne(board_name, bundle_name)
+
     data = request.data.copy()
-    data['board'] = board_name
-    serializer = BundleSerializer(bundle, data=data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    data['name'] = bundle_name
+    serializer = self.get_serializer(bundle, data=data)
+
+    serializer.is_valid(raise_exception=True)
+    serializer.save(board_name=board_name)
+
+    return Response(serializer.data)
 
 
 class ResourceCollectionView(generics.CreateAPIView):

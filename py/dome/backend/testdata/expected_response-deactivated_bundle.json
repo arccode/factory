@@ -1,0 +1,25 @@
+{
+  "active": false,
+  "name": "testing_bundle_01",
+  "note": "flying like an eagle",
+  "resources": {
+    "completeScript": {
+      "hash": "1234abcd",
+      "type": "complete_script",
+      "updatable": false,
+      "version": "1234.5678"
+    },
+    "deviceFactoryToolkit": {
+      "hash": "abcd1234",
+      "type": "device_factory_toolkit",
+      "updatable": true,
+      "version": "5678.1234"
+    }
+  },
+  "rules": {
+    "serialNumbers": [
+      "foo",
+      "bar"
+    ]
+  }
+}

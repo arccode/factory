@@ -99,9 +99,9 @@ class BundleSerializer(serializers.Serializer):
   note = serializers.CharField(required=False)
   active = serializers.NullBooleanField(required=False)
   rules = serializers.DictField(required=False)
+  resources = serializers.DictField(required=False, child=ResourceSerializer())
 
-  resources = serializers.DictField(read_only=True, child=ResourceSerializer())
-
+  new_name = serializers.CharField(write_only=True, required=False)
   bundle_file_id = serializers.IntegerField(write_only=True, required=False)
 
   def create(self, validated_data):
@@ -112,6 +112,11 @@ class BundleSerializer(serializers.Serializer):
 
   def update(self, instance, validated_data):
     """Override parent's method."""
-    data = validated_data.copy()
-    board = data.pop('board')
-    return BundleModel(board).ModifyOne(**data)
+    board_name = validated_data.pop('board_name')
+    bundle_name = instance.name
+    data = {'dst_bundle_name': validated_data.pop('new_name', None),
+            'note': validated_data.pop('note', None),
+            'active': validated_data.pop('active', None),
+            'rules': validated_data.pop('rules', None),
+            'resources': validated_data.pop('resources', None)}
+    return Bundle.ModifyOne(board_name, bundle_name, **data)

@@ -421,7 +421,6 @@ class Resource(object):
                     resource_type in UMPIRE_UPDATABLE_RESOURCE)
 
 
-# TODO(littlecvr): should merge into BundleModel
 class Bundle(object):
   """Represent a bundle in umpire."""
 
@@ -471,16 +470,22 @@ class Bundle(object):
     try:
       umpire_server.StageConfigFile(staging_config_path, force)
     except Exception as e:
-      raise EnvironmentError('Cannot stage config file, make sure no one is '
-                             'editing Umpire config at the same time, and '
-                             'there is no staging config exists. Error '
-                             'message: %r' % e)
+      raise DomeServerException(
+          'Cannot stage config file, make sure no one is editing Umpire config '
+          'at the same time, and there is no staging config exists. Error '
+          'message: %r' % e)
 
     try:
       umpire_server.Deploy(staging_config_path)
-    except Exception as e:
-      umpire_server.UnstageConfigFile()
-      raise RuntimeError('Cannot deploy Umpire config, error message: %r' % e)
+    except xmlrpclib.Fault as e:
+      # TODO(littlecvr): we should probably refine Umpire's error message so
+      #                  Dome has to forward the message to the user only
+      #                  without knowing what's really happened
+      if 'Missing default bundle' in e.faultString:
+        raise DomeClientException(
+            detail='Cannot remove or deactivate default bundle')
+      else:
+        raise DomeServerException(detail=e.faultString)
 
   @staticmethod
   def _NormalizeConfig(config):
@@ -530,20 +535,41 @@ class Bundle(object):
 
     return config
 
-  def DeleteOne(self, bundle_name):
+  @staticmethod
+  def _FromUmpireBundleAndRuleset(bundle, ruleset):
+    """Take the target entry in the "bundles" and "rulesets" sections in Umpire
+    config, and turns them into the Bundle entity in Dome.
+
+    Args:
+      bundle: the target bundle in the "bundles" section in Umpire config.
+      ruleset: ruleset that refers the the target bundle in Umpire config.
+    """
+    return Bundle(bundle['id'],  # name
+                  ruleset['note'],  # note
+                  ruleset['active'],  # active
+                  bundle['resources'],  # resources
+                  ruleset.get('match', {}))  # matching rules
+
+  @staticmethod
+  def DeleteOne(board_name, bundle_name):
     """Delete a bundle in Umpire config.
 
     Args:
-      bundle_name: the bundle to delete.
+      board_name: name of the board.
+      bundle_name: name of the bundle to delete.
     """
-    config = self._GetNormalizedActiveConfig()
+    config = Bundle._GetNormalizedActiveConfig(board_name)
+    if not any(b['id'] == bundle_name for b in config['bundles']):
+      raise DomeClientException(
+          detail='Bundle %s not found' % bundle_name,
+          status_code=rest_framework.status.HTTP_404_NOT_FOUND)
 
     config['rulesets'] = [
         r for r in config['rulesets'] if r['bundle_id'] != bundle_name]
     config['bundles'] = [
         b for b in config['bundles'] if b['id'] != bundle_name]
 
-    self._UploadAndDeployConfig(config)
+    Bundle._UploadAndDeployConfig(board_name, config)
 
   @staticmethod
   def ListOne(board_name, bundle_name):
@@ -556,18 +582,18 @@ class Bundle(object):
     """
     config = Bundle._GetNormalizedActiveConfig(board_name)
 
-    ruleset = next(
-        r for r in config['rulesets'] if r['bundle_id'] == bundle_name)
-    active = ruleset['active']
-    rules = ruleset.get('match', {})
+    logger.info('Finding bundle %r in board %r', bundle_name, board_name)
+    try:
+      ruleset = next(
+          r for r in config['rulesets'] if r['bundle_id'] == bundle_name)
+      bundle = next(b for b in config['bundles'] if b['id'] == bundle_name)
+    except StopIteration:
+      logger.exception(traceback.format_exc())
+      error_message = 'Bundle %r does not exist' % bundle_name
+      logger.error(error_message)
+      raise DomeClientException(error_message)
 
-    bundle = next(b for b in config['bundles'] if b['id'] == bundle_name)
-
-    return Bundle(bundle['id'],  # name
-                  bundle['note'],  # note
-                  active,  # active
-                  bundle['resources'],  # resources
-                  rules)  # matching rules
+    return Bundle._FromUmpireBundleAndRuleset(bundle, ruleset)
 
   @staticmethod
   def ListAll(board_name):
@@ -587,44 +613,93 @@ class Bundle(object):
 
     bundle_dict = dict((b['id'], b) for b in config['bundles'])
 
-    bundle_list = list()
+    bundle_list = []
     for r in config['rulesets']:
       b = bundle_dict[r['bundle_id']]
-      bundle_list.append(Bundle(b['id'],
-                                r['note'],
-                                r['active'],
-                                b['resources'],
-                                r.get('match', {})))
+      bundle_list.append(Bundle._FromUmpireBundleAndRuleset(b, r))
 
     return bundle_list
 
-  def ModifyOne(self, name, active=None, rules=None):
+  @staticmethod
+  def ModifyOne(board_name, src_bundle_name, dst_bundle_name=None,
+                note=None, active=None, rules=None, resources=None):
     """Modify a bundle.
 
     Args:
-      name: name of the bundle.
+      board_name: name of the board.
+      src_bundle_name: name of the bundle to update.
+      dst_bundle_name: if None, do an in-place update; otherwise, duplicate the
+          bundle, name it dst_bundle_name, then update it.
+      note: note of the bundle.
       active: True to make the bundle active, False to make the bundle inactive.
           None means no change.
       rules: rules to replace, this corresponds to Umpire's "match", see
           Umpire's doc for more info, None means no change.
+      resources: a dict deserialized by ResourceSerializer, listing all
+          resources that should be updated. If a resource is not listed, nothing
+          would be changed to the particular resource, so the client can do
+          partial update without listing all resources.
     """
-    config = self._GetNormalizedActiveConfig()
-    bundle = next(b for b in config['rulesets'] if b['bundle_id'] == name)
+    config = Bundle._GetNormalizedActiveConfig(board_name)
+
+    try:
+      src_bundle = next(
+          b for b in config['bundles'] if b['id'] == src_bundle_name)
+      src_ruleset = next(
+          r for r in config['rulesets'] if r['bundle_id'] == src_bundle_name)
+    except StopIteration:
+      logger.exception(traceback.format_exc())
+      error_message = 'Bundle %r does not exist' % src_bundle_name
+      logger.error(error_message)
+      raise DomeClientException(error_message)
+
+    if not dst_bundle_name:
+      # in-place update
+      bundle = src_bundle
+      ruleset = src_ruleset
+    else:
+      # not in-place update, duplicate the source bundle
+      bundle = copy.deepcopy(src_bundle)
+      # TODO(b/34264367): support unicode.
+      bundle['id'] = str(dst_bundle_name)
+      config['bundles'].insert(0, bundle)
+      ruleset = copy.deepcopy(src_ruleset)
+      # TODO(b/34264367): support unicode.
+      ruleset['bundle_id'] = str(dst_bundle_name)
+      config['rulesets'].insert(0, ruleset)
+      config = Bundle._NormalizeConfig(config)
+
+    if note is not None:
+      # TODO(b/34264367): support unicode.
+      # TODO(littlecvr): unit tests for unicode.
+      bundle['note'] = str(note)
+      ruleset['note'] = str(note)
 
     if active is not None:
-      bundle['active'] = active
+      ruleset['active'] = active
 
     if rules is not None:
-      bundle['match'] = {}
-      for key in rules:
-        if rules[key]:  # add non-empty key only
-          bundle['match'][UMPIRE_MATCH_KEY_MAP[key]] = map(str, rules[key])
-    else:
-      bundle.pop('match', None)
+      # completely remove rules if it's not None but considered "False"
+      if not rules:
+        ruleset.pop('match', None)  # completely remove this key
+      else:
+        ruleset['match'] = {}
+        for key, rule in rules.iteritems():
+          if rule:  # add non-empty rule only
+            ruleset['match'][UMPIRE_MATCH_KEY_MAP[key]] = map(str, rule)
 
-    self._UploadAndDeployConfig(config)
+    # only deploy if at least one thing has changed
+    if (dst_bundle_name or note is not None or
+        active is not None or rules is not None):
+      Bundle._UploadAndDeployConfig(board_name, config)
 
-    return self.ListOne(bundle['bundle_id'])
+    # update resources
+    if resources is not None:
+      for resource_key, resource in resources.iteritems():
+        Bundle._UpdateResource(board_name, bundle['id'], resource_key,
+                               resource['file_id'])
+
+    return Bundle.ListOne(board_name, bundle['id'])
 
   @staticmethod
   def ReorderBundles(board_name, new_order):
@@ -648,70 +723,36 @@ class Bundle(object):
     rulesets = dict((r['bundle_id'], r) for r in old_config['rulesets'])
 
     # reorder bundles
-    new_config = old_config.copy()
+    new_config = copy.deepcopy(old_config)
     new_config['rulesets'] = [rulesets[n] for n in new_order]
 
     Bundle._UploadAndDeployConfig(board_name, new_config)
 
     return Bundle.ListAll(board_name)
 
-  def UpdateResource(self, src_bundle_name, dst_bundle_name, note,
-                     resource_type, resource_file_id):
+  @staticmethod
+  def _UpdateResource(board_name, bundle_name, resource_type, resource_file_id):
     """Update resource in a bundle.
 
     Args:
-      src_bundle_name: the bundle to update.
-      dst_bundle_name: if specified, make a copy of the original bundle and name
-          it as dst_bundle_name first. Otherwise, update-in-place. (See umpire's
-          Update function).
-      note: if dst bundle is specified, this will be note of the dst bundle;
-          otherwise, this will overwrite note of the src bundle.
+      board_name: name of the board.
+      bundle_name: the bundle to update.
       resource_type: type of resource to update.
       resource_file_id: id of the resource file (id of TemporaryUploadedFile).
     """
     # Replace with the alias if needed.
     resource_type = UMPIRE_RESOURCE_NAME_ALIAS.get(resource_type, resource_type)
 
+    umpire_server = GetUmpireServer(board_name)
     with UploadedFile(resource_file_id) as f:
-      with UmpireAccessibleFile(self.board, f) as p:
-        self.umpire_server.Update([(resource_type, p)],
-                                  src_bundle_name,
-                                  dst_bundle_name)
+      with UmpireAccessibleFile(board_name, f) as p:
+        umpire_server.Update([(resource_type, p)], bundle_name)
 
-    # Umpire does not allow the user to add bundle note directly via update. So
-    # duplicate the source bundle first.
-    self.umpire_status = self.umpire_server.GetStatus()
-    config = yaml.load(self.umpire_status['staging_config'])
-
-    # find source bundle
-    src_bundle = None
-    for b in config['rulesets']:
-      if src_bundle_name == b['bundle_id']:
-        src_bundle = b
-
-    if not dst_bundle_name:  # in-place update
-      src_bundle['note'] = str(note)
-
-      # also update note in the bundles section
-      for b in config['bundles']:
-        if src_bundle_name == b['id']:
-          b['note'] = str(note)
-    else:
-      # copy source bundle
-      dst_bundle = src_bundle.copy()
-      dst_bundle['bundle_id'] = str(dst_bundle_name)
-      dst_bundle['note'] = str(note)
-      config['rulesets'].insert(0, dst_bundle)
-
-      # also update note in the bundles section
-      for b in config['bundles']:
-        if dst_bundle_name == b['id']:
-          b['note'] = str(note)
+    config = yaml.load(umpire_server.GetStatus()['staging_config'])
 
     # config staged before, need the force argument or Umpire will complain
-    self._UploadAndDeployConfig(config, force=True)
-
-    return self.ListOne(dst_bundle_name or src_bundle_name)
+    # TODO(littlecvr): we can actually deploy directly here
+    Bundle._UploadAndDeployConfig(board_name, config, force=True)
 
   @staticmethod
   def UploadNew(board_name, bundle_name, bundle_note, bundle_file_id):
@@ -745,7 +786,7 @@ class Bundle(object):
     config = yaml.load(umpire_server.GetStatus()['staging_config'])
     for ruleset in config['rulesets']:
       if ruleset['bundle_id'] == bundle_name:
-        # TODO(b/34264367): support unicde.
+        # TODO(b/34264367): support unicode.
         ruleset['note'] = str(bundle_note)
         ruleset['active'] = True
         break

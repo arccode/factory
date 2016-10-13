@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "name": "testing_bundle_02",
+  "note": "swimming like a whale",
+  "resources": {
+    "completeScript": {
+      "hash": "aabbccdd",
+      "type": "complete_script",
+      "updatable": false,
+      "version": "1.2.3"
+    },
+    "deviceFactoryToolkit": {
+      "hash": "ddccbbaa",
+      "type": "device_factory_toolkit",
+      "updatable": true,
+      "version": "3.2.1"
+    }
+  },
+  "rules": {
+    "mlbSerialNumbers": [
+      "foofoo",
+      "barbar"
+    ]
+  }
+}

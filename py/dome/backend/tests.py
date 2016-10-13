@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import contextlib
 import errno
 import json
 import os
@@ -18,19 +19,11 @@ from backend import models
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
-class TestData(object):
-  """Load a file under the testdata folder using the with statement."""
-
-  def __init__(self, file_name):
-    self.file = None
-    self.file_name = file_name
-
-  def __enter__(self):
-    self.file = open(os.path.join(SCRIPT_DIR, 'testdata', self.file_name))
-    return self.file
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    self.file.close()
+@contextlib.contextmanager
+def TestData(file_name):
+  """Load a JSON file under the testdata folder using the with statement."""
+  with open(os.path.join(SCRIPT_DIR, 'testdata', file_name)) as f:
+    yield json.load(f)
 
 
 class UploadedFileTest(rest_framework.test.APITestCase):
@@ -99,6 +92,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
   below Dome back-end are mocked (such as docker commands, Umpire, etc.), but
   models, serializers, views, and urls modules are not tested separately.
 
+  TODO(littlecvr): we probably need real unit tests and integration tests.
+
   Board APIs:
   - GET /boards/
       List boards.
@@ -145,6 +140,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                 umpire_port=cls.BOARD_WITH_UMPIRE_PORT)
 
   def setUp(self):
+    self.maxDiff = None  # developer friendly setting
+
     ENTITIES_TO_MOCK = ['subprocess.call',
                         'subprocess.check_call',
                         'subprocess.check_output',
@@ -169,11 +166,13 @@ class DomeAPITest(rest_framework.test.APITestCase):
       # return the default config.
       if upload_config_mock.called:
         args, unused_kwargs = upload_config_mock.call_args
-        config = yaml.load(args[1])  # kwargs of UploadConfig()
+        config = yaml.load(args[1])  # config uploaded to Umpire
       else:
-        with TestData('umpire_config.json') as f:
-          config = json.load(f)
-      return {'active_config': yaml.dump(config)}
+        with TestData('umpire_config.json') as c:
+          config = c
+      config_str = yaml.dump(config)
+      return {'active_config': config_str,
+              'staging_config': config_str}
 
     self.mocks['xmlrpclib.ServerProxy']().GetStatus = (
         mock.MagicMock(side_effect=MockUmpireConfig))
@@ -403,6 +402,83 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
 
+  def testActivateBundle(self):
+    response = self._ActivateBundle(self.BOARD_WITH_UMPIRE_NAME,
+                                    'testing_bundle_02')
+
+    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
+    with TestData('umpire_config-activated.json') as c:
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+    with TestData('expected_response-activated_bundle.json') as r:
+      self.assertEqual(r, response.json())
+
+  def testActivateNonExistingBundle(self):
+    response = self._ActivateBundle(self.BOARD_WITH_UMPIRE_NAME,
+                                    'non_existing_bundle')
+
+    self.assertEqual(response.status_code,
+                     rest_framework.status.HTTP_400_BAD_REQUEST)
+    self.assertIn('does not exist', response.json()['detail'])
+
+  def testClearBundleRules(self):
+    response = self.client.put(
+        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
+                                    'testing_bundle_01'),
+        data={'rules': {}},
+        format='json')
+
+    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
+    with TestData('umpire_config-rules_cleared.json') as c:
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+    with TestData('expected_response-rules_cleared_bundle.json') as r:
+      self.assertEqual(r, response.json())
+
+  def testDeactivateBundle(self):
+    response = self._DeactivateBundle(self.BOARD_WITH_UMPIRE_NAME,
+                                      'testing_bundle_01')
+    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
+    with TestData('umpire_config-deactivated.json') as c:
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+    with TestData('expected_response-deactivated_bundle.json') as r:
+      self.assertEqual(r, response.json())
+
+  def testDeactivateDefaultBundle(self):
+    # Umpire does not allow deactivating the default bundle and will raise
+    # exception, mock this behavior
+    self.mocks['xmlrpclib.ServerProxy']().Deploy = mock.MagicMock(
+        side_effect=xmlrpclib.Fault(
+            -32500,  # application error, doesn't matter actually
+            'UmpireError: Missing default bundle'))
+
+    response = self.client.put(
+        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
+                                    'testing_bundle_03'),
+        data={'active': False},
+        format='json')
+
+    self.assertEqual(response.status_code,
+                     rest_framework.status.HTTP_400_BAD_REQUEST)
+    self.assertIn('Cannot remove or deactivate', response.json()['detail'])
+
+  def testDeleteBundle(self):
+    response = self.client.delete(
+        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
+                                    'testing_bundle_02'),
+        format='json')
+    self.assertEqual(response.status_code,
+                     rest_framework.status.HTTP_204_NO_CONTENT)
+    with TestData('umpire_config-deleted.json') as c:
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+
+  def testDeleteNonExistingBundle(self):
+    response = self.client.delete(
+        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
+                                    'non_existing_bundle'),
+        format='json')
+    self.assertEqual(response.status_code,
+                     rest_framework.status.HTTP_404_NOT_FOUND)
+    self.assertIn('not found', response.json()['detail'])
+
   def testListBundlesAndNormalizeUmpireConfig(self):
     response = self.client.get(
         '/boards/%s/bundles/' % self.BOARD_WITH_UMPIRE_NAME,
@@ -418,8 +494,21 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # - 'testing_bundle_03' appears in the 'bundles' section but not in the
     #   'rulesets' section, so it should be appended at the end of the
     #   'rulesets' section (but set to inactive)
-    with TestData('expected_response-get_bundle_list.json') as f:
-      self.assertEqual(json.load(f), bundle_list)
+    with TestData('expected_response-get_bundle_list.json') as r:
+      self.assertEqual(r, bundle_list)
+
+  def testModifyBundleRules(self):
+    response = self.client.put(
+        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
+                                    'testing_bundle_02'),
+        data={'rules': {'mlbSerialNumbers': ['foofoo123', 'barbar456']}},
+        format='json')
+
+    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
+    with TestData('umpire_config-rules_changed.json') as c:
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+    with TestData('expected_response-rules_changed_bundle.json') as r:
+      self.assertEqual(r, response.json())
 
   def testReorderBundles(self):
     response = self._ReorderBundles(self.BOARD_WITH_UMPIRE_NAME,
@@ -430,10 +519,10 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                      'empty_init_bundle'])
 
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    with TestData('umpire_config-reordered.json') as f:
-      self.assertEqual(json.load(f), self._GetLastestUploadedConfig())
-    with TestData('expected_response-reorder_bundles.json') as f:
-      self.assertEqual(json.load(f), response.json())
+    with TestData('umpire_config-reordered.json') as c:
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+    with TestData('expected_response-reorder_bundles.json') as r:
+      self.assertEqual(r, response.json())
 
   def testReorderBundlesWithoutListingAllBundleNames(self):
     response = self._ReorderBundles(self.BOARD_WITH_UMPIRE_NAME,
@@ -444,29 +533,28 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
-    self.assertTrue(
-        'all bundles must be listed' in response.json()['detail'].lower())
+    self.assertTrue('All bundles must be listed' in response.json()['detail'])
 
   def testUploadBundle(self):
     # Cannot use the default mock because UploadNew() probes the staging config.
     # We'll have to mock ourselves here.
-    with TestData('umpire_config-uploaded.json') as f:
-      config_str = yaml.dump(json.load(f))
+    with TestData('umpire_config-uploaded.json') as c:
+      config_str = yaml.dump(c)
       self.mocks['xmlrpclib.ServerProxy']().GetStatus = mock.MagicMock(
           return_value={'active_config': config_str,
                         'staging_config': config_str})
 
-    with TestData('new_bundle.json') as f:
-      bundle = json.load(f)
+    with TestData('new_bundle.json') as b:
+      bundle = b
     response = self._UploadNewBundle(self.BOARD_WITH_UMPIRE_NAME,
                                      bundle['id'], bundle['note'])
 
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_201_CREATED)
-    with TestData('umpire_config-uploaded.json') as f:
-      self.assertEqual(json.load(f), self._GetLastestUploadedConfig())
-    with TestData('expected_response-upload_new_bundle.json') as f:
-      self.assertEqual(json.load(f), response.json())
+    with TestData('umpire_config-uploaded.json') as c:
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+    with TestData('expected_response-upload_new_bundle.json') as r:
+      self.assertEqual(r, response.json())
 
   def testUploadBundleThatAlreadyExists(self):
     BUNDLE_NAME = 'existing_bundle'
@@ -500,6 +588,62 @@ class DomeAPITest(rest_framework.test.APITestCase):
                      rest_framework.status.HTTP_500_INTERNAL_SERVER_ERROR)
     self.assertIn('Unknown error', response.json()['detail'])
 
+  def testUpdateBundleResource(self):
+    response = self.client.put(
+        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
+                                    'testing_bundle_01'),
+        data={
+            'newName': 'testing_bundle_01_new',
+            'note': 'climbing like a monkey',
+            'resources': {
+                'device_factory_toolkit': {
+                    'type': 'device_factory_toolkit',
+                    'file_id': self._UploadFile()['id']
+                }
+            }
+        },
+        format='json'
+    )
+
+    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
+
+    # the first call to UploadConfig() should duplicate the source bundle with
+    # the new name
+    with TestData('umpire_config-resource_updated.json') as c:
+      self.assertEqual(c, self._GetUploadedConfig(0))
+
+    # just make sure Update() is called
+    self.assertTrue(self.mocks['xmlrpclib.ServerProxy']().Update.called)
+
+  def testUpdateBundleResourceInPlace(self):
+    response = self.client.put(
+        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
+                                    'testing_bundle_01'),
+        data={
+            'resources': {
+                'device_factory_toolkit': {
+                    'type': 'device_factory_toolkit',
+                    'file_id': self._UploadFile()['id']
+                }
+            }
+        },
+        format='json'
+    )
+
+    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
+
+    with TestData('umpire_config.json') as c:
+      # since we don't mock the Update() call, nothing should be changed
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+
+    # just make sure Update() is called
+    self.assertTrue(self.mocks['xmlrpclib.ServerProxy']().Update.called)
+
+  def _ActivateBundle(self, board_name, bundle_name):
+    return self.client.put('/boards/%s/bundles/%s/' % (board_name, bundle_name),
+                           data={'active': True},
+                           format='json')
+
   def _AddExistingUmpire(self, board_name, umpire_host, umpire_port):
     return self.client.put('/boards/%s/' % board_name,
                            data={'umpireEnabled': True,
@@ -518,6 +662,11 @@ class DomeAPITest(rest_framework.test.APITestCase):
                             {'file_id': self._UploadFile()['id'],
                              'type': resource_type},
                             format='json')
+
+  def _DeactivateBundle(self, board_name, bundle_name):
+    return self.client.put('/boards/%s/bundles/%s/' % (board_name, bundle_name),
+                           data={'active': False},
+                           format='json')
 
   def _DeleteBoard(self, board_name):
     return self.client.delete('/boards/%s/' % board_name, format='json')
@@ -551,7 +700,11 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                   'bundle_file_id': self._UploadFile()['id']},
                             format='json')
 
-  def _GetLastestUploadedConfig(self):
-    args, unused_kwargs = (
-        self.mocks['xmlrpclib.ServerProxy']().UploadConfig.call_args)
+  def _GetUploadedConfig(self, index):
+    call_args_list = (
+        self.mocks['xmlrpclib.ServerProxy']().UploadConfig.call_args_list)
+    args, unused_kwargs = call_args_list[index]
     return yaml.load(args[1])  # the 2nd argument of UploadConfig()
+
+  def _GetLastestUploadedConfig(self):
+    return self._GetUploadedConfig(-1)

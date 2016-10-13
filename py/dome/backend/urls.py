@@ -43,7 +43,7 @@ urlpatterns = [
     url(r'^boards/%s/bundles/$' % BOARD_URL_ARG,
         views.BundleCollectionView.as_view()),
     url(r'^boards/%s/bundles/%s/$' % (BOARD_URL_ARG, BUNDLE_URL_ARG),
-        views.BundleView.as_view()),
+        views.BundleElementView.as_view()),
     url(r'^boards/%s/resources/$' % BOARD_URL_ARG,
         views.ResourceCollectionView.as_view())]
 
