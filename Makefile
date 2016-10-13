@@ -47,6 +47,9 @@ BOARD ?=
 BOARD_PACKAGE_NAME ?= chromeos-factory-board
 BOARD_EBUILD ?= \
   $(if $(BOARD),$(shell equery-$(BOARD) which $(BOARD_PACKAGE_NAME)))
+BOARD_PACKAGE_FILE ?= \
+  $(if $(BOARD_EBUILD),$(SYSROOT)/packages/chromeos-base/$(basename $(notdir \
+    $(BOARD_EBUILD))).tbz2)
 BOARD_FILES_DIR ?= $(if $(BOARD_EBUILD),$(dir $(BOARD_EBUILD))/files)
 BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
@@ -114,7 +117,7 @@ PRESUBMIT_TARGETS := \
 .PHONY: \
   .phony default clean closure proto overlord ovl-bin par doc resource toolkit \
   bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
-  lint smartlint smart_lint test testall overlay
+  lint smartlint smart_lint test testall overlay check-board-resources
 
 # This must be the first rule.
 default: closure
@@ -161,8 +164,27 @@ ovl-bin:
 	  pip install jsonrpclib ws4py pyinstaller; \
 	  pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
 
+# Checks if a package is properly installed.
+# Usage: $(call func-check-package,PACKAGE,TEST_RULE)
+func-check-package = @\
+  if ! $(2); then \
+    $(MK_DIR)/die.sh "Need to run 'emerge-$(BOARD) $(1)' for rule '$(2)'." ; \
+  fi ${\n}
+
+check-board-resources:
+	$(if $(BOARD_EBUILD),\
+	   $(call func-check-package,$(BOARD_PACKAGE_NAME), \
+	     [ "$(BOARD_EBUILD)" -ot "$(BOARD_PACKAGE_FILE)" ] ) \
+	   $(call func-check-package,chromeos-installer, \
+	     [ -e "$(SYSROOT)/usr/share/misc/chromeos-common.sh" ] ) \
+	   $(call func-check-package,chromeos-regions, \
+	     [ -e "$(CROS_REGIONS_DATABASE)" ] ) \
+	   $(foreach name,$(CUTOFF_SCRIPT_NAMES),\
+	     $(call func-check-package,memento_softwareupdate, \
+	       [ -e "$(BOARD_TARGET_DIR)/sh/$(name).sh" ])))
+
 # Prepare files from source folder into resource folder.
-resource: closure
+resource: closure check-board-resources
 	@$(info Create resource $(if $(BOARD),for [$(BOARD)],without board).)
 	mkdir -p $(RESOURCE_DIR)
 	tar -cf $(RESOURCE_PATH) -X $(MK_DIR)/resource_exclude.lst \
