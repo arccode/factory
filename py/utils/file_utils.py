@@ -21,6 +21,7 @@ import time
 import tempfile
 import threading
 import zipfile
+import zipimport
 
 from . import platform_utils
 from . import time_utils
@@ -603,6 +604,33 @@ def ExtractFromPar(par_file, src, dest='.'):
   """
   par = zipfile.ZipFile(par_file)
   par.extract(src, dest)
+
+
+def LoadModuleResource(path):
+  """Loads a file that lives in same place with python modules.
+
+  This is very similar to ReadFile except that the path can be a real file or
+  virtual path inside Python ZIP (PAR).
+
+  Args:
+      path: The path to the file.
+
+  Returns:
+      Contents of resource in path, or None if the resource cannot be found.
+  """
+  if os.path.exists(path):
+    return ReadFile(path)
+
+  try:
+    file_dir = os.path.dirname(path)
+    file_name = os.path.basename(path)
+    importer = zipimport.zipimporter(file_dir)
+    zip_path = os.path.join(importer.prefix, file_name)
+    return importer.get_data(zip_path)
+  except Exception:
+    pass
+
+  return None
 
 
 def HashFiles(root, path_filter=None, hash_function=hashlib.sha1):

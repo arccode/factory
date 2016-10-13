@@ -17,14 +17,17 @@ import subprocess
 import sys
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
 KEYBOARD_PATTERN = re.compile(r'^xkb:\w+:\w*:\w+$|'
                               r'^(ime|m17n|t13n):[\w:-]+$')
 LANGUAGE_CODE_PATTERN = re.compile(r'^(\w+)(-[A-Z0-9]+)?$')
-CROS_REGIONS_DATABASE = os.getenv('CROS_REGIONS_DATABASE',
-                                  '/usr/share/misc/cros-regions.json')
+
+CROS_REGIONS_DATABASE_DEFAULT_PATH = '/usr/share/misc/cros-regions.json'
+CROS_REGIONS_DATABASE_ENV_NAME = 'CROS_REGIONS_DATABASE'
+
 # crbug.com/624257: Only regions defined below can use numeric_id for
 # auto-populating HWID field mappings in !region_field.
 LEGACY_REGIONS_LIST = [
@@ -227,8 +230,11 @@ def LoadRegionDatabaseFromSource():
   return json.loads(subprocess.check_output(command))
 
 
-def LoadRegionDatabase(path=CROS_REGIONS_DATABASE):
+def LoadRegionDatabase(path=None):
   """Loads ChromeOS region database.
+
+  Args:
+    path: A string for path to regions database, or None to search for defaults.
 
   Returns a list of Regions as [confirmed, unconfirmed] .
   """
@@ -236,20 +242,49 @@ def LoadRegionDatabase(path=CROS_REGIONS_DATABASE):
     return ([s.encode('utf-8') for s in value] if type(value) is list else
             value.encode('utf-8'))
 
+  def FindDatabaseContents():
+    """Finds database.
+
+    Precedence:
+     1. Path from environment variable (CROS_REGIONS_DATABASE_ENV_NAME).
+     2. File in same folder where current module lives.
+     3. File in sys.argv[0] (backward compatibility)
+     4. Default file path (CROS_REGIONS_DATABASE_DEFAULT_PATH).
+
+    Returns:
+     Contents of database file.
+    """
+    path = os.getenv(CROS_REGIONS_DATABASE_ENV_NAME, None)
+    if path:
+      return file_utils.ReadFile(path)
+
+    path = os.path.join(os.path.dirname(__file__),
+                        os.path.basename(CROS_REGIONS_DATABASE_DEFAULT_PATH))
+    data = file_utils.LoadModuleResource(path)
+    if data is not None:
+      return data
+
+    path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])),
+                        os.path.basename(CROS_REGIONS_DATABASE_DEFAULT_PATH))
+    if os.path.exists(path):
+      return file_utils.ReadFile(path)
+
+    path = CROS_REGIONS_DATABASE_DEFAULT_PATH
+    if os.path.exists(path):
+      return file_utils.ReadFile(path)
+
+    return None
+
   confirmed = []
   unconfirmed = []
 
-  if os.path.exists(path):
+  if path:
     with open(path) as f:
       db = json.load(f)
   else:
-    # Find local file name. This is for PAR archives inside bundle.
-    local_path = os.path.join(
-        os.path.dirname(os.path.realpath(sys.argv[0])),
-        os.path.basename(CROS_REGIONS_DATABASE))
-    if os.path.exists(local_path):
-      with open(local_path) as f:
-        db = json.load(f)
+    contents = FindDatabaseContents()
+    if contents:
+      db = json.loads(contents)
     else:
       db = LoadRegionDatabaseFromSource()
 
