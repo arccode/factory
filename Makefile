@@ -288,9 +288,8 @@ presubmit-lint:
 
 presubmit-deps:
 	@if ! py/tools/deps.py $(PRESUBMIT_FILES); then \
-	  echo "Dependency check failed." ; \
-	  echo "Please read py/tools/deps.conf for more information." ; \
-	  exit 1; \
+	  $(MK_DIR)/die.sh "Dependency check failed." \
+	    "Please read py/tools/deps.conf for more information." ; \
 	fi
 
 # Check that test_make_factory_package.py has been run, if
@@ -299,11 +298,10 @@ presubmit-make-factory-package:
 ifneq ($(filter setup/make_factory_package.sh,$(PRESUBMIT_FILES)),)
 	@if [ ! setup/make_factory_package.sh -ot \
 	      py/tools/.test_make_factory_package.passed ]; then \
-	  echo "setup/make_factory_package.sh has changed."; \
-	  echo "Please run py/tools/test_make_factory_package.py" \
-	       "(use --help for more information on how to use it if" \
-	       "you do not have access to release repositories)."; \
-	  exit 1; \
+	  $(MK_DIR)/die.sh "setup/make_factory_package.sh has changed." \
+	    "Please run py/tools/test_make_factory_package.py" \
+	    "(use --help for more information on how to use it if" \
+	    "you do not have access to release repositories)." ; \
 	fi
 endif
 
