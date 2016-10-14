@@ -28,8 +28,8 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
 
-"""Directory of scripts for battery cut-off"""
-SCRIPT_DIR = '/usr/local/factory/sh'
+"""Directory of scripts for device cut-off"""
+CUTOFF_SCRIPT_DIR = '/usr/local/factory/sh/cutoff'
 
 WIPE_IN_TMPFS_LOG = 'wipe_in_tmpfs.log'
 
@@ -121,7 +121,7 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None,
 
   Args:
     is_fast: whether or not to apply fast wipe.
-    cutoff_args: arguments to be passed to battery_cutoff.sh after wiping.
+    cutoff_args: arguments to be passed to cutoff.sh after wiping.
     shopfloor_url: for inform_shopfloor.sh
   """
 
@@ -400,19 +400,19 @@ def EnableReleasePartition(release_rootfs):
 def _InformShopfloor(shopfloor_url):
   if shopfloor_url:
     logging.debug('inform shopfloor %s', shopfloor_url)
-    proc = process_utils.Spawn([os.path.join(SCRIPT_DIR,
-                                             'inform_shopfloor.sh'),
-                                shopfloor_url, 'factory_wipe'], check_call=True)
+    proc = process_utils.Spawn(
+        [os.path.join(CUTOFF_SCRIPT_DIR, 'inform_shopfloor.sh'), shopfloor_url,
+         'factory_wipe'], check_call=True)
     logging.debug('stdout: %s', proc.stdout_data)
     logging.debug('stderr: %s', proc.stderr_data)
 
 
-def _BatteryCutoff(cutoff_args):
+def _Cutoff(cutoff_args):
   if cutoff_args is None:
     cutoff_args = ''
-  logging.debug('battery_cutoff: args=%s', cutoff_args)
-  battery_cutoff_script = os.path.join(SCRIPT_DIR, 'battery_cutoff.sh')
-  process_utils.Spawn('%s %s' % (battery_cutoff_script, cutoff_args),
+  logging.debug('cutoff: args=%s', cutoff_args)
+  cutoff_script = os.path.join(CUTOFF_SCRIPT_DIR, 'cutoff.sh')
+  process_utils.Spawn('%s %s' % (cutoff_script, cutoff_args),
                       shell=True, check_call=True)
 
 
@@ -448,8 +448,9 @@ def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
         ])
     _UnmountStatefulPartition(old_root, state_dev)
 
-    process_utils.Spawn([os.path.join(SCRIPT_DIR, 'display_wipe_message.sh'),
-                         'wipe'], call=True)
+    process_utils.Spawn(
+        [os.path.join(CUTOFF_SCRIPT_DIR, 'display_wipe_message.sh'), 'wipe'],
+        call=True)
 
     _WipeStateDev(release_rootfs, root_disk, wipe_args)
 
@@ -462,7 +463,7 @@ def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
                    wipe_in_tmpfs_log=wipe_in_tmpfs_log,
                    success=True)
 
-    _BatteryCutoff(cutoff_args)
+    _Cutoff(cutoff_args)
 
     # should not reach here
     time.sleep(1e8)

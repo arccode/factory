@@ -92,11 +92,6 @@ CLOSURE_OUTPUT_DIR ?= \
 
 CROS_REGIONS_DATABASE ?= $(SYSROOT)/usr/share/misc/cros-regions.json
 
-# Battery cutoff scripts from memento_softwareupdate.
-# TODO(hungte) Move these scripts to factory repo.
-CUTOFF_SCRIPT_NAMES ?= \
-  battery_cutoff display_wipe_message generate_finalize_request inform_shopfloor
-
 # External dependency.
 OVERLORD_DEPS_URL ?= \
   gs://chromeos-localmirror/distfiles/overlord-deps-0.0.3.tar.gz
@@ -202,10 +197,7 @@ check-board-resources:
 	     $(call func-check-package,$(BOARD_PACKAGE_NAME), \
 	       [ "$(realpath $(BOARD_EBUILD))" -ot "$(BOARD_PACKAGE_FILE)" ])) \
 	   $(call func-check-package,chromeos-regions, \
-	     [ -e "$(CROS_REGIONS_DATABASE)" ] ) \
-	   $(foreach name,$(CUTOFF_SCRIPT_NAMES),\
-	     $(call func-check-package,memento_softwareupdate, \
-	       [ -e "$(BOARD_TARGET_DIR)/sh/$(name).sh" ])))
+	     [ -e "$(CROS_REGIONS_DATABASE)" ] ))
 
 # Prepare files from source folder into resource folder.
 resource: closure check-board-resources
@@ -223,9 +215,6 @@ resource: closure check-board-resources
 	$(if $(wildcard $(CROS_REGIONS_DATABASE)),\
 	  tar -rf $(RESOURCE_PATH) --transform 's"^"./py/test/l10n/"' \
 	  -C $(dir $(CROS_REGIONS_DATABASE)) $(notdir $(CROS_REGIONS_DATABASE)))
-	$(foreach name,$(CUTOFF_SCRIPT_NAMES),\
-	  $(if $(wildcard $(BOARD_TARGET_DIR)/sh/$(name).sh),\
-	    tar -rf $(RESOURCE_PATH) -C $(BOARD_TARGET_DIR) sh/$(name).sh${\n}))
 	$(foreach file,\
 	  $(wildcard $(BOARD_RESOURCES_DIR)/$@-*.tar \
 	             $(BOARD_RESOURCES_DIR)/factory-*.tar),\
