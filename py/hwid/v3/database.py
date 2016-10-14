@@ -842,10 +842,6 @@ class Components(object):
                                             schema.Scalar('probe value regexp',
                                                           rule.Value)])))},
                         optional_items={
-                            'labels': schema.Dict(
-                                'dict of labels',
-                                key_type=schema.Scalar('label key', str),
-                                value_type=schema.Scalar('label value', str)),
                             'status': schema.Scalar('item status', str)}))
             },
             optional_items={
