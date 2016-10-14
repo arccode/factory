@@ -1,4 +1,5 @@
 Factory setup scripts
+---------------------
 
 This folder contains scripts for factory flow setup. All scripts here may be
 executed in different environments:
@@ -8,4 +9,4 @@ executed in different environments:
  - Inside a factory bundle running on arbitrary Linux device
 
 So all scripts must use only the libraries in same folder and not relying on any
-files in cros source tree (except chromeos-common.sh).
+files in cros source tree.
