@@ -48,7 +48,7 @@ main() {
   bundle_install "${bundle_dir}" "${par}" shopfloor \
     "shopfloor shopfloor_server"
 
-  rsync -a --exclude testdata "${setup}/" "${bundle_dir}/factory_setup/"
+  rsync -aL --exclude testdata "${setup}/" "${bundle_dir}/factory_setup/"
   mkdir -p "${bundle_dir}/factory_setup/bin"
   cp -f /usr/bin/cgpt "${bundle_dir}/factory_setup/bin"
   cp -f /usr/bin/futility "${bundle_dir}/factory_setup/bin"
@@ -57,12 +57,6 @@ main() {
   # reading region database from local folder inside PAR.
   cp -f "${sysroot}/usr/share/misc/cros-regions.json" \
     "${bundle_dir}/shopfloor/."
-
-  # TODO(hungte) Remove chromeos-command and change rsync to dereference.
-  cp -f --remove-destination "${sysroot}/usr/share/misc/chromeos-common.sh" \
-    "${bundle_dir}/factory_setup/lib/chromeos-common.sh"
-  cp -f --remove-destination py/gooftool/fmap.py \
-    "${bundle_dir}/factory_setup/."
 
   mk_success
 }

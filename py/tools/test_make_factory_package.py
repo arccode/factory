@@ -293,7 +293,7 @@ def main():
   parser.add_argument(
       '--artifacts', metavar='URL',
       help='URL of a directory containing build artifacts',
-      default='gs://chromeos-image-archive/daisy-release/R37-5978.7.0')
+      default='gs://chromeos-image-archive/daisy-release/R54-8743.65.0')
   parser.add_argument(
       '--no-release', action='store_false', dest='release',
       help=('Specify if not using release artifacts '

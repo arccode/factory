@@ -73,7 +73,6 @@ files:
 - factory_setup/extract_firmware_updater.sh
 - factory_setup/factory_common.sh
 - factory_setup/fmap.py
-- factory_setup/lib/chromeos-common.sh
 - factory_setup/lib/cros_image_common.sh
 - factory_setup/lib/shflags
 - factory_setup/make_factory_package.sh

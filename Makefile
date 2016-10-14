@@ -175,8 +175,6 @@ check-board-resources:
 	$(if $(BOARD_EBUILD),\
 	   $(call func-check-package,$(BOARD_PACKAGE_NAME), \
 	     [ "$(BOARD_EBUILD)" -ot "$(BOARD_PACKAGE_FILE)" ] ) \
-	   $(call func-check-package,chromeos-installer, \
-	     [ -e "$(SYSROOT)/usr/share/misc/chromeos-common.sh" ] ) \
 	   $(call func-check-package,chromeos-regions, \
 	     [ -e "$(CROS_REGIONS_DATABASE)" ] ) \
 	   $(foreach name,$(CUTOFF_SCRIPT_NAMES),\

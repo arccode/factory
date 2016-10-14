@@ -425,17 +425,18 @@ prepare_img() {
     echo "Reusing $outdev"
   fi
 
-  # Create GPT partition table.
-  locate_gpt
-
   local root_fs_dir="$(mktemp -d --tmpdir)"
   local write_gpt_path="${root_fs_dir}/usr/sbin/write_gpt.sh"
+  local chromeos_common_path="${root_fs_dir}/usr/share/misc/chromeos-common.sh"
 
   image_add_temp "${root_fs_dir}"
   image_mount_partition "${FLAGS_release}" "3" "${root_fs_dir}" "ro" "-t ext2"
 
   if [ ! -f "${write_gpt_path}" ]; then
     die "This script no longer works on legacy images without write_gpt.sh"
+  fi
+  if [ ! -f "${chromeos_common_path}" ]; then
+    die "Legacy images without ${chromeos_common_path} is not supported."
   fi
 
   # We need to patch up write_gpt.sh a bit to cope with the fact we're
@@ -444,14 +445,10 @@ prepare_img() {
   image_add_temp "${partition_script}"
 
   # write_gpt_path may be only readable by user 1001 (chronos).
-  sudo cat "${write_gpt_path}" > "${partition_script}"
+  sudo cat "${chromeos_common_path}" "${write_gpt_path}" > "${partition_script}"
   echo "write_base_table \$1 ${pmbrcode}" >> "${partition_script}"
-
-  # Fix path to chromeos-common.sh
-  sed -i 's"/usr/sbin/chromeos-common.sh"lib/chromeos-common.sh"g' \
-    "${partition_script}"
-  sed -i 's"/usr/share/misc/chromeos-common.sh"lib/chromeos-common.sh"g' \
-    "${partition_script}"
+  # Activate partition 2
+  echo "\${GPT} add -i 2 -S 1 -P 1 \$1" >> "${partition_script}"
 
   # Add local bin to PATH before running locate_gpt
   sed -i 's,locate_gpt,PATH="'"$PATH"'";locate_gpt,g' "${partition_script}"
@@ -465,9 +462,6 @@ prepare_img() {
   sudo losetup -d "${outdev_block}"
   image_umount_partition "${root_fs_dir}"
   [ "$ret" = $FLAGS_TRUE ] || die "Failed to setup partition (write_gpt.sh)."
-
-  # Activate the correct partition.
-  sudo "${GPT}" add -i 2 -S 1 -P 1 "${outdev}"
 }
 
 prepare_dir() {
