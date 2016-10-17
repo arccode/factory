@@ -17,6 +17,8 @@ pattern:
     - ro_main_firmware_field: 3
     - firmware_keys_field: 2
     - ro_ec_firmware_field: 3
+    - audio_codec_field: 1
+    - cellular_field: 2
 
 
 encoded_fields:
@@ -29,6 +31,12 @@ encoded_fields:
   ro_ec_firmware_field:
     0: {ro_ec_firmware: ro_ec_firmware_0}
     1: {ro_ec_firmware: ro_ec_firmware_1}
+  audio_codec_field:
+    0: {audio_codec: audio_codec_default}
+  cellular_field:
+    0: {cellular: cellular_default}
+    1: {cellular: NULL}
+    2: {cellular: cellular_a}
 
 components:
   firmware_keys:
@@ -55,6 +63,20 @@ components:
       ro_ec_firmware_1:
         status: unsupported
         values: { compact_str: ev2#ro_ec_firmware_1 }
+  audio_codec:
+    items:
+      audio_codec_default:
+        default: True
+        values: NULL
+  cellular:
+    items:
+      cellular_default:
+        default: True
+        status: unsupported
+        values: NULL
+      cellular_a:
+        values:
+          compact_str: cellular_a
 
 rules:
 - name: device_info.set_image_id

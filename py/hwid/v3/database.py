@@ -304,17 +304,34 @@ class Database(object):
       # comp_cls is in probed_bom['missing_component_classes'].
       return None
 
+    def TryAddDefaultItem(probed_components, comp_cls):
+      """Try to add the default component item.
+
+      If the default component exists and its status is not 'unsupported', then
+      add it into the probed_components and return True.
+      """
+      if comp_cls in self.components.default:
+        comp_name = self.components.default[comp_cls]
+        comp_status = self.components.GetComponentStatus(comp_cls, comp_name)
+        if comp_status != common.HWID.COMPONENT_STATUS.unsupported:
+          probed_components[comp_cls].append(
+              common.ProbedComponentResult(comp_name , None, None))
+          return True
+      return False
+
     # Construct a dict of component classes to list of ProbedComponentResult.
     probed_components = collections.defaultdict(list)
     for comp_cls in self.components.GetRequiredComponents():
       probed_comp_values = LookupProbedValue(comp_cls)
       if probed_comp_values is None:
+        # The component class has the default item.
+        if TryAddDefaultItem(probed_components, comp_cls):
+          continue
         # Probeable comp_cls but no component is found in probe results.
         if comp_cls in self.components.probeable:
           probed_components[comp_cls].append(
               common.ProbedComponentResult(
-                  None, probed_comp_values,
-                  common.MISSING_COMPONENT_ERROR(comp_cls)))
+                  None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
         else:
           # Unprobeable comp_cls and only has 1 component, treat as found.
           comp_dict = self.components.components_dict[comp_cls]
@@ -337,11 +354,13 @@ class Database(object):
           continue
 
         matched_comps = self.components.MatchComponentsFromValues(
-            comp_cls, probed_value, loose_matching)
+            comp_cls, probed_value, loose_matching, include_default=False)
         if matched_comps is None:
-          probed_components[comp_cls].append(common.ProbedComponentResult(
-              None, probed_value,
-              common.INVALID_COMPONENT_ERROR(comp_cls, probed_value)))
+          # If there is no default item, add invalid error.
+          if not TryAddDefaultItem(probed_components, comp_cls):
+            probed_components[comp_cls].append(common.ProbedComponentResult(
+                None, probed_value,
+                common.INVALID_COMPONENT_ERROR(comp_cls, probed_value)))
         elif len(matched_comps) == 1:
           comp_name, comp_data = matched_comps.items()[0]
           comp_status = self.components.GetComponentStatus(
@@ -606,7 +625,7 @@ class Database(object):
       raise common.HWIDException('Invalid image id: %r' % bom.image_id)
 
     # All the classes encoded in the pattern should exist in BOM.
-    # Ignore unprobeable component if probeable_only is True.
+    # Ignore unprobeable components if probeable_only is True.
     missing_comp = []
     expected_encoded_fields = self.pattern.GetFieldNames(bom.image_id)
     for encoded_field_name in expected_encoded_fields:
@@ -638,7 +657,7 @@ class Database(object):
         if probed_values is None:
           continue
         found_comps = self.components.MatchComponentsFromValues(
-            comp_cls, probed_values)
+            comp_cls, probed_values, include_default=True)
         if not found_comps:
           unknown_values.append('%s:%s' % (comp_cls, pprint.pformat(
               probed_values, indent=0, width=1024)))
@@ -842,12 +861,28 @@ class Components(object):
                                             schema.Scalar('probe value regexp',
                                                           rule.Value)])))},
                         optional_items={
+                            'default': schema.Scalar(
+                                'is default component item', bool),
                             'status': schema.Scalar('item status', str)}))
             },
             optional_items={
                 'probeable': schema.Scalar('is component probeable', bool)
             }))
     self.schema.Validate(components_dict)
+
+    # Check there is at most one default items for each component class.
+    self.default = {}
+    for comp_cls, comp_cls_data in components_dict.iteritems():
+      default_items = []
+      for comp_name, comp_attrs in comp_cls_data['items'].iteritems():
+        if comp_attrs.get('default', False):
+          default_items.append(comp_name)
+      if len(default_items) == 1:
+        self.default[comp_cls] = default_items[0]
+      elif len(default_items) > 1:
+        raise common.HWIDException(
+            'Component %s has more than one default items: %r' %
+            (comp_cls, default_items))
 
     # Classify components based on their attributes.
     self.probeable = set()
@@ -914,7 +949,7 @@ class Components(object):
         'status', common.HWID.COMPONENT_STATUS.supported)
 
   def MatchComponentsFromValues(self, comp_cls, values_dict,
-                                loose_matching=False):
+                                loose_matching=False, include_default=False):
     """Matches a list of components whose 'values' attributes match the given
     'values_dict'.
 
@@ -933,6 +968,7 @@ class Components(object):
           know if the firmware version is supported, then we can enable
           loose_matching to see if the firmware version is supported in the
           database.
+      include_default: If set to True, match the default item.
 
     Returns:
       A dict with keys being the matched component names and values being the
@@ -945,7 +981,10 @@ class Components(object):
     results = {}
     for comp_name, comp_attrs in (
         self.components_dict[comp_cls]['items'].iteritems()):
-      if comp_attrs['values'] is None and values_dict is None:
+      if comp_attrs.get('default', False):
+        if include_default:
+          results[comp_name] = copy.deepcopy(comp_attrs)
+      elif comp_attrs['values'] is None and values_dict is None:
         # Special handling for None values.
         results[comp_name] = copy.deepcopy(comp_attrs)
       elif comp_attrs['values'] is None:

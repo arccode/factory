@@ -13,6 +13,7 @@ import unittest
 import yaml
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.common import HWIDException, ProbedComponentResult
 from cros.factory.hwid.v3.database import Database, Components
 from cros.factory.hwid.v3.rule import Value
@@ -24,6 +25,7 @@ class NewDatabaseTest(unittest.TestCase):
 
   - Split key_root and key_recovery to a new component: firmware_keys
   - Separate firmware field to let each field only has one component
+  - Add default argument in audio_codec and cellular
   """
 
   def setUp(self):
@@ -39,23 +41,65 @@ class NewDatabaseTest(unittest.TestCase):
     self.assertEquals('CHROMEBOOK', bom.board)
     self.assertEquals(0, bom.encoding_pattern_index)
     self.assertEquals(0, bom.image_id)
-    self.assertEquals({
-        'firmware_keys': [(
-            'firmware_keys_0', {
-                'key_recovery': Value('kv3#key_recovery_0'),
-                'key_root': Value('kv3#key_root_0')},
-            None)],
-        'ro_ec_firmware': [(
-            'ro_ec_firmware_0', {'compact_str': Value('ev2#ro_ec_firmware_0')},
-            None)],
-        'ro_main_firmware': [(
-            'ro_main_firmware_0',
-            {'compact_str': Value('mv2#ro_main_firmware_0')}, None)]
-        }, bom.components)
-    self.assertEquals({
-        'ro_main_firmware_field': 0,
-        'firmware_keys_field': 0,
-        'ro_ec_firmware_field': 0}, bom.encoded_fields)
+    self.assertEquals(bom.components['firmware_keys'],
+                      [('firmware_keys_0',
+                        {'key_recovery': Value('kv3#key_recovery_0'),
+                         'key_root': Value('kv3#key_root_0')},
+                        None)])
+    self.assertEquals(bom.components['ro_ec_firmware'],
+                      [('ro_ec_firmware_0',
+                        {'compact_str': Value('ev2#ro_ec_firmware_0')},
+                        None)])
+    self.assertEquals(bom.components['ro_main_firmware'],
+                      [('ro_main_firmware_0',
+                        {'compact_str': Value('mv2#ro_main_firmware_0')},
+                        None)])
+    self.assertEquals(bom.encoded_fields['ro_main_firmware_field'], 0)
+    self.assertEquals(bom.encoded_fields['firmware_keys_field'], 0)
+    self.assertEquals(bom.encoded_fields['ro_ec_firmware_field'], 0)
+
+  def testProbeResultToBOMWithDefault(self):
+    """Test the behaviour of the default argument.
+
+    In this database, audio_codec has only one default item, and cellular has a
+    deprecated default item.
+    """
+    # No audio_codec and no cellular
+    result = self.results[6]
+    bom = self.database.ProbeResultToBOM(result)
+    self.assertEquals(bom.components['audio_codec'],
+                      [('audio_codec_default', None, None)])
+    self.assertEquals(bom.components['cellular'],
+                      [(None, None,
+                        common.MISSING_COMPONENT_ERROR('cellular'))])
+    self.assertEquals(bom.encoded_fields['audio_codec_field'], 0)
+    self.assertEquals(bom.encoded_fields['cellular_field'], 1)
+
+    # There is audio_codec and cellular_a
+    result = self.results[7]
+    bom = self.database.ProbeResultToBOM(result)
+    self.assertEquals(bom.components['audio_codec'],
+                      [('audio_codec_default', None, None)])
+    self.assertEquals(bom.components['cellular'],
+                      [('cellular_a',
+                        {'compact_str': Value('cellular_a')},
+                        None)])
+    self.assertEquals(bom.encoded_fields['audio_codec_field'], 0)
+    self.assertEquals(bom.encoded_fields['cellular_field'], 2)
+
+    # Invalid cellular probed result
+    result = self.results[8]
+    bom = self.database.ProbeResultToBOM(result)
+    probed_value = {'compact_str': 'invalid_value'}
+    self.assertEquals(bom.components['cellular'],
+                      [(None, probed_value,
+                        common.INVALID_COMPONENT_ERROR('cellular',
+                                                       probed_value))])
+    self.assertEquals(bom.encoded_fields['cellular_field'], None)
+
+  def testVerifyBOMWithDefault(self):
+    bom = self.database.ProbeResultToBOM(self.results[6])
+    self.assertEquals(None, self.database.VerifyBOM(bom, True))
 
 
 class DatabaseTest(unittest.TestCase):

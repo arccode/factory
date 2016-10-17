@@ -1,5 +1,5 @@
 ---
-# reference probe result
+# 0. reference probe result
 found_probe_value_map:
   audio_codec:
   - compact_str: Codec 1
@@ -60,7 +60,7 @@ missing_component_classes:
 - display_panel
 - ethernet
 ---
-# invalid audio codec 'HDMI 3'
+# 1. invalid audio codec 'HDMI 3'
 found_probe_value_map:
   audio_codec:
   - compact_str: Codec 1
@@ -69,7 +69,7 @@ found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []
 ---
-# invalid storage
+# 2. invalid storage
 found_probe_value_map:
   storage:
     type: SSD
@@ -79,7 +79,7 @@ found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []
 ---
-# test loose matching for storage
+# 3. test loose matching for storage
 found_probe_value_map:
   storage:
     size: 500G
@@ -87,7 +87,7 @@ found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []
 ---
-# test loose matching with invalid probe results
+# 4. test loose matching with invalid probe results
 found_probe_value_map:
   storage:
     foo: bar
@@ -95,10 +95,46 @@ found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []
 ---
-# test encode/decode region info
+# 5. test encode/decode region info
 found_probe_value_map:
   region:
     region_code: us
+found_volatile_values: {}
+initial_configs: {}
+missing_component_classes: []
+---
+# 6. full result with default argument: no audio_codec and no cellular
+found_probe_value_map:
+  foo: NULL
+found_volatile_values:
+  firmware_keys:
+    key_recovery: kv3#key_recovery_0
+    key_root: kv3#key_root_0
+  key_recovery:
+    compact_str: kv3#key_recovery_0
+  key_root:
+    compact_str: kv3#key_root_0
+  ro_ec_firmware:
+    compact_str: ev2#ro_ec_firmware_0
+  ro_main_firmware:
+    compact_str: mv2#ro_main_firmware_0
+initial_configs: {}
+missing_component_classes: []
+---
+# 7. default argument: there is audio_codec and cellular_a
+found_probe_value_map:
+  audio_codec:
+    compact_str: fake
+  cellular:
+    compact_str: cellular_a
+found_volatile_values: {}
+initial_configs: {}
+missing_component_classes: []
+---
+# 8. default argument: invalid cellular probed result
+found_probe_value_map:
+  cellular:
+    compact_str: invalid_value
 found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []
