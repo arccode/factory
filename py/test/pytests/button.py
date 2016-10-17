@@ -20,6 +20,7 @@
 """
 
 import logging
+import threading
 import time
 import unittest
 
@@ -190,6 +191,7 @@ class ButtonTest(unittest.TestCase):
     else:
       self._fixture = None
 
+    self._disable_timer = threading.Event()
     # Create a thread to monitor button events.
     process_utils.StartDaemonThread(target=self._MonitorButtonEvent)
     # Create a thread to run countdown timer.
@@ -197,7 +199,8 @@ class ButtonTest(unittest.TestCase):
         self.args.timeout_secs,
         lambda: self.ui.Fail('Button test failed due to timeout.'),
         self.ui,
-        _ID_COUNTDOWN_TIMER)
+        _ID_COUNTDOWN_TIMER,
+        disable_event=self._disable_timer)
 
   def tearDown(self):
     timestamps = self._action_timestamps + [float('inf')]
@@ -251,6 +254,7 @@ class ButtonTest(unittest.TestCase):
 
       self._PollForCondition(lambda: not self.button.IsPressed(),
                              'WaitForRelease')
+    self._disable_timer.set()
     self.ui.Pass()
 
   def runTest(self):
