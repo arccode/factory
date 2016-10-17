@@ -13,7 +13,7 @@ import re
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.tools.build_board import OVERLAY_PATH
+from cros.factory.tools import build_board
 from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 
@@ -55,10 +55,6 @@ def GetFileToLint(path=None):
 
   return all_files
 
-def HasFactoryFolder(overlay_path):
-  return os.path.exists(
-      os.path.join('../..', overlay_path, OVERLAY_FACTORY_FOLDER))
-
 def main():
   parser = argparse.ArgumentParser(
       description='Lints files that are new, changed, or in a pending CL.')
@@ -72,11 +68,10 @@ def main():
 
   all_files = GetFileToLint()
   if args.overlay:
-    try_path = [path % args.overlay for path in OVERLAY_PATH]
-    overlay_path = filter(HasFactoryFolder, try_path)
-    for path in overlay_path:
-      all_files |= GetFileToLint(os.path.join('../..', path))
-    CheckOutput(['make', 'overlay-%s' % args.overlay])
+    overlay_path = build_board.GetChromeOSFactoryBoardPath(args.overlay)
+    if overlay_path:
+      all_files |= GetFileToLint(os.path.join(overlay_path, '../..'))
+  CheckOutput(['make', 'overlay-%s' % args.overlay])
 
   all_files_str = ' '.join(sorted(all_files))
   overlay_args = ['-C', 'overlay-%s' % args.overlay] if args.overlay else []

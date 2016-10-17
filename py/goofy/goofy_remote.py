@@ -19,6 +19,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.env import paths
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.test_lists import test_lists
+from cros.factory.tools import build_board
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.ssh_utils import SpawnSSHToDUT, SpawnRsyncToDUT
@@ -241,26 +242,13 @@ def main():
       cwd=paths.FACTORY_PATH, check_call=True, log=True)
   SetHostBasedRole()
 
-  board_dash = board.replace('_', '-')
-  private_paths = [os.path.join(SRCROOT, 'src', 'private-overlays',
-                                'project-%s-private' % board_dash,
-                                'chromeos-base', 'chromeos-factory-board',
-                                'files'),
-                   os.path.join(SRCROOT, 'src', 'private-overlays',
-                                'overlay-%s-private' % board_dash,
-                                'chromeos-base', 'chromeos-factory-board',
-                                'files'),
-                   os.path.join(SRCROOT, 'src', 'private-overlays',
-                                'overlay-variant-%s-private' % board_dash,
-                                'chromeos-base', 'chromeos-factory-board',
-                                'files')]
-
-  for private_path in private_paths:
-    if os.path.isdir(private_path):
-      SpawnRsyncToDUT(
-          ['-azlKC', '--exclude', 'bundle'] +
-          [private_path + '/', '%s:/usr/local/factory/' % args.host],
-          check_call=True, log=True)
+  private_path = os.path.join(
+      build_board.GetChromeOSFactoryBoardPath(board), 'files')
+  if private_path:
+    SpawnRsyncToDUT(
+        ['-azlKC', '--exclude', 'bundle'] +
+        [private_path + '/', '%s:/usr/local/factory/' % args.host],
+        check_call=True, log=True)
 
   # Call goofy_remote on the remote host, allowing it to tweak test lists.
   SpawnSSHToDUT([args.host, 'goofy_remote', '--local'] +

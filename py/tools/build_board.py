@@ -4,6 +4,7 @@
 
 """Tools to get variaous representations of a board name."""
 
+import logging
 import os
 import re
 import subprocess
@@ -21,6 +22,18 @@ OVERLAY_PATH = [
     'private-overlays/overlay-%s-private',
     'private-overlays/overlay-variant-%s-private',
     'private-overlays/project-%s-private']
+
+
+def GetChromeOSFactoryBoardPath(board):
+  try:
+    ebuild_path = process_utils.CheckOutput(
+        ['equery-%s' % board, 'which', 'chromeos-factory-board'])
+  except process_utils.CalledProcessError as error:
+    logging.warn("Failed to find ebuild for chromeos-factory-board.")
+    logging.exception(error)
+    return None
+
+  return os.path.dirname(ebuild_path)
 
 
 class BuildBoardException(Exception):
