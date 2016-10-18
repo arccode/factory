@@ -115,13 +115,12 @@ def ResetLog(logfile=None):
   logging.basicConfig(filename=logfile, level=logging.NOTSET)
 
 
-def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None,
-                station_ip=None, station_port=None, wipe_finish_token=None):
+def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
+                station_port=None, wipe_finish_token=None):
   """prepare to wipe by pivot root to tmpfs and unmount statefull partition.
 
   Args:
     is_fast: whether or not to apply fast wipe.
-    cutoff_args: arguments to be passed to cutoff.sh after wiping.
     shopfloor_url: for inform_shopfloor.sh
   """
 
@@ -219,8 +218,6 @@ def WipeInTmpFs(is_fast=None, cutoff_args=None, shopfloor_url=None,
       args = []
       if wipe_args:
         args += ['--wipe_args', wipe_args]
-      if cutoff_args:
-        args += ['--cutoff_args', cutoff_args]
       if shopfloor_url:
         args += ['--shopfloor_url', shopfloor_url]
       if station_ip:
@@ -402,16 +399,13 @@ def _InformShopfloor(shopfloor_url):
     logging.debug('stderr: %s', proc.stderr_data)
 
 
-def _Cutoff(cutoff_args):
-  if cutoff_args is None:
-    cutoff_args = ''
-  logging.debug('cutoff: args=%s', cutoff_args)
+def _Cutoff():
+  logging.debug('cutoff')
   cutoff_script = os.path.join(CUTOFF_SCRIPT_DIR, 'cutoff.sh')
-  process_utils.Spawn('%s %s' % (cutoff_script, cutoff_args),
-                      shell=True, check_call=True)
+  process_utils.Spawn('%s' % (cutoff_script), shell=True, check_call=True)
 
 
-def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
+def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
              root_disk, old_root, station_ip, station_port, finish_token):
   Daemonize()
   logfile = '/tmp/wipe_init.log'
@@ -419,7 +413,6 @@ def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
   ResetLog(logfile)
 
   logging.debug('wipe_args: %s', wipe_args)
-  logging.debug('cutoff_args: %s', cutoff_args)
   logging.debug('shopfloor_url: %s', shopfloor_url)
   logging.debug('state_dev: %s', state_dev)
   logging.debug('release_rootfs: %s', release_rootfs)
@@ -458,7 +451,7 @@ def WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev, release_rootfs,
                    wipe_in_tmpfs_log=wipe_in_tmpfs_log,
                    success=True)
 
-    _Cutoff(cutoff_args)
+    _Cutoff()
 
     # should not reach here
     time.sleep(1e8)

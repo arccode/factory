@@ -10,10 +10,7 @@
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
-
-# After calling display_wipe_message.sh to draw image with frecon, we must
-# redirect text output to tty1 to display information on the screen.
-TTY="/dev/tty1"
+. "${SCRIPT_DIR}/options.sh"
 
 GENERATE_FINALIZE_REQUEST="${SCRIPT_DIR}/generate_finalize_request.sh"
 
@@ -67,8 +64,12 @@ main() {
     usage_help
     exit 1
   fi
+  export TTY  # for display_wipe_message to use same TTY settings.
 
   local shopfloor_url="$1"
+  if [ -z "${shopfloor_url}" ]; then
+    shopfloor_url="${SHOPFLOOR_URL}"
+  fi
 
   "${DISPLAY_MESSAGE}" "inform_shopfloor"
 

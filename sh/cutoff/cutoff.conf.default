@@ -1,0 +1,23 @@
+# ChromeOS Factory Cut-off Options
+# -----------------------------------
+# See README.md for more information.
+
+# Valid options: `shutdown`, `reboot`, `battery_cutoff`, and `ectool_cutoff`.
+CUTOFF_METHOD=shutdown
+
+# Valid options: empty or `connect_ac`, `remove_ac`.
+CUTOFF_AC_STATE=
+
+# Valid option: empty or 0~100.
+CUTOFF_BATTERY_MIN_PERCENTAGE=
+CUTOFF_BATTERY_MAX_PERCENTAGE=
+
+# Valid option: empty or a valid number.
+CUTOFF_BATTERY_MIN_VOLTAGE=
+CUTOFF_BATTERY_MAX_VOLTAGE=
+
+# Valid value: An URL to shopfloor.
+SHOPFLOOR_URL=
+
+# Valid value: Any valid terminal like /dev/tty1. This is rarely changed.
+# TTY=/dev/tty1

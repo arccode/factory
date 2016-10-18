@@ -493,36 +493,6 @@ class Gooftool(object):
     if not result.success:
       raise Error('Failed setting GBB flags: %s' % result.stdout)
 
-  def _VerifyCutoffArgs(self, cutoff_args):
-    """Verify the cutoff args passed to battery_cutoff.sh.
-
-    Raises:
-      Error when format is not correct.
-    """
-
-    args = cutoff_args.split()
-    args_len = len(args)
-    if args_len % 2 != 0:
-      raise ValueError('Invalid arguments number in cutoff_args')
-
-    for i in range(0, args_len, 2):
-      if '--method' == args[i]:
-        if args[i + 1] not in (
-            'shutdown', 'reboot', 'battery_cutoff'):
-          raise ValueError('Invalid value for %s: %s' % (args[i], args[i + 1]))
-      elif '--check-ac' == args[i]:
-        if args[i + 1] not in ('remove_ac', 'connect_ac'):
-          raise ValueError('Invalid value for %s: %s' % (args[i], args[i + 1]))
-      elif args[i] in (
-          '--min-battery-percent', '--max-battery-percent',
-          '--min-battery-voltage', '--max-battery-voltage'):
-        try:
-          int(args[i + 1])
-        except ValueError:
-          raise ValueError('Invalid value for %s: %s' % (args[i], args[i + 1]))
-      else:
-        raise ValueError('Unknown argument in cutoff_args: %s' % args[i])
-
   def EnableReleasePartition(self, release_rootfs=None):
     """Enables a release image partition on the disk.
 
@@ -535,25 +505,21 @@ class Gooftool(object):
     wipe.EnableReleasePartition(release_rootfs)
 
 
-  def WipeInPlace(self, is_fast=None, cutoff_args=None, shopfloor_url=None,
+  def WipeInPlace(self, is_fast=None, shopfloor_url=None,
                   station_ip=None, station_port=None, wipe_finish_token=None):
     """Start transition to release state directly without reboot.
 
     Args:
       is_fast: Whether or not to apply fast wipe.
-
-      cutoff_args: Args to be passed to battery_cutoff.sh after wiping.
     """
-    if cutoff_args:
-      self._VerifyCutoffArgs(cutoff_args)
-    wipe.WipeInTmpFs(is_fast, cutoff_args, shopfloor_url,
+    wipe.WipeInTmpFs(is_fast, shopfloor_url,
                      station_ip, station_port, wipe_finish_token)
 
-  def WipeInit(self, wipe_args, cutoff_args, shopfloor_url, state_dev,
+  def WipeInit(self, wipe_args, shopfloor_url, state_dev,
                release_rootfs, root_disk, old_root, station_ip, station_port,
                wipe_finish_token):
     """Start wiping test image."""
-    wipe.WipeInit(wipe_args, cutoff_args, shopfloor_url, state_dev,
+    wipe.WipeInit(wipe_args, shopfloor_url, state_dev,
                   release_rootfs, root_disk, old_root, station_ip, station_port,
                   wipe_finish_token)
 

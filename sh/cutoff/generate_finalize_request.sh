@@ -48,6 +48,7 @@ main() {
   local post_type="$1"
   case "${post_type}" in
     factory_reset )
+      # TODO(hungte) The method name for factory_reset should be more general.
       method="FinalizeFQC"
       ;;
     factory_wipe )

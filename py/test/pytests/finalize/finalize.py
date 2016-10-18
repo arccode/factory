@@ -61,13 +61,6 @@ MSG_FINALIZING = MakeLabel(
     '正在开始最终程序，请稍等.<br>'
     '不要重启机器或停止测试，<br>'
     '不然机器将无法开机。')
-MSG_CHANGE_TO_REBOOT = MakeLabel(
-    '<strong>Virtual dev mode is on, system will reboot '
-    'after wiping instead of battery cutoff.</strong><br>'
-    'Press SPACE to continue.',
-    u'<strong>虚拟开发模式已开启，系统清除后将重新开启，'
-    u'而不会切断电源(battery cutoff)。</strong><br>'
-    u'请按空白键开始')
 
 
 class Finalize(unittest.TestCase):
@@ -134,18 +127,6 @@ class Finalize(unittest.TestCase):
           'a shopfloor call can be made AFTER device gets wiped successfully.'
           'For legacy wipe, shopfloor call is always made before wiping.',
           default=True),
-      Arg('cutoff_options', dict,
-          'Battery cutoff options after wiping. Should be a dict with following'
-          'optional keys:\n'
-          '- "method": The cutoff method after wiping. Value should be one of'
-          '    {shutdown, reboot, battery_cutoff}\n'
-          '- "check_ac": Allowed AC state when performing battery cutoff'
-          '     Value should be one of {remove_ac, connect_ac}\n'
-          '- "min_battery_percent": Minimum battery percentage allowed\n'
-          '- "max_battery_percent": Maximum battery percentage allowed\n'
-          '- "min_battery_voltage": Minimum battery voltage allowed\n'
-          '- "max_battery_voltage": Maximum battery voltage allowed',
-          default={'method':'shutdown'}),
       Arg('enforced_release_channels', list,
           'A list of string indicating the enforced release image channels. '
           'Each item should be one of "dev", "beta" or "stable".',
@@ -356,54 +337,6 @@ class Finalize(unittest.TestCase):
               MakeLabel('Turn off Developer Switch',
                         '停用开发者开关(DevSwitch)'))]
 
-    def SupportFirmwareCutoff():
-      """Returns True if the firmware and image support battery cutoff.
-
-      In issue #601705, a new method for doing battery cutoff is introduced.
-      This requires both image (crossystem) and firmware to have CL:337602,
-      CL:337596, and CL:338193.
-
-      It should be fine for ToT, but for old factory branches, additional checks
-      are required.
-
-      Here we check if crossystem supports the new flag.
-
-      For factory branch, additional check on firmware version might be also
-      required.
-      """
-
-      def _CheckFirmwareVersion():
-        # Implement the firmware version check here in factory branch if
-        # required.
-        return True
-
-      if (self.dut.Call('crossystem | grep -q battery_cutoff_request') != 0
-          or not _CheckFirmwareVersion()):
-        factory.console.warn('The current image does not support battery '
-                             'cutoff after rebooting. Please change the image '
-                             'or the toolkit.')
-        return False
-      return True
-
-    if self.args.cutoff_options['method'] == 'battery_cutoff':
-      items.append((SupportFirmwareCutoff,
-                    MakeLabel('Check battery cutoff support',
-                              '检查电池断电支援')))
-
-    if self.args.min_charge_pct:
-      items.append((lambda: (power.CheckBatteryPresent() and
-                             power.GetChargePct() >= self.args.min_charge_pct),
-                    MakeLabel('Charge battery to %d%%' %
-                              self.args.min_charge_pct,
-                              '充电到%d%%' %
-                              self.args.min_charge_pct)))
-    if self.args.max_charge_pct:
-      items.append((lambda: (power.CheckBatteryPresent() and
-                             power.GetChargePct() <= self.args.max_charge_pct),
-                    MakeLabel('Discharge battery to %d%%' %
-                              self.args.max_charge_pct,
-                              '放电到%d%%' %
-                              self.args.max_charge_pct)))
     if self.args.write_protection:
       def CheckWriteProtect():
         return self._CallGoofTool('gooftool verify_switch_wp')
@@ -518,11 +451,6 @@ class Finalize(unittest.TestCase):
     if not self.args.secure_wipe:
       command += ' --fast'
 
-    if self.args.cutoff_options:
-      cutoff_args = ''
-      for key, value in self.args.cutoff_options.iteritems():
-        cutoff_args += ' --%s %s' % (key.replace('_', '-'), str(value))
-      command += ' --cutoff_args "%s"' % cutoff_args
     if (self.args.inform_shopfloor_after_wipe and
         shopfloor.is_enabled() and
         shopfloor.get_shopfloor_handler_uri()):

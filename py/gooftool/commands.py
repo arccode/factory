@@ -160,17 +160,6 @@ _release_rootfs_cmd_arg = CmdArg(
 _firmware_path_cmd_arg = CmdArg(
     '--firmware_path', help='Location of firmware image partition.')
 
-_cutoff_args_cmd_arg = CmdArg(
-    '--cutoff_args',
-    help='Battery cutoff arguments to be passed to battery_cutoff.sh '
-         'after wiping. Should be the following format: '
-         '[--method shutdown|reboot|battery_cutoff] '
-         '[--check-ac connect_ac|remove_ac] '
-         '[--min-battery-percent <minimum battery percentage>] '
-         '[--max-battery-percent <maximum battery percentage>] '
-         '[--min-battery-voltage <minimum battery voltage>] '
-         '[--max-battery-voltage <maximum battery voltage>]')
-
 _shopfloor_url_args_cmd_arg = CmdArg(
     '--shopfloor_url',
     help='Shopfloor server url to be informed when wiping is done. '
@@ -455,7 +444,6 @@ def EnableReleasePartition(options):
 @Command('wipe_in_place',
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
-         _cutoff_args_cmd_arg,
          _shopfloor_url_args_cmd_arg,
          _station_ip_cmd_arg,
          _station_port_cmd_arg,
@@ -464,7 +452,6 @@ def WipeInPlace(options):
   """Start factory wipe directly without reboot."""
 
   GetGooftool(options).WipeInPlace(options.fast,
-                                   options.cutoff_args,
                                    options.shopfloor_url,
                                    options.station_ip,
                                    options.station_port,
@@ -475,7 +462,6 @@ def WipeInPlace(options):
          CmdArg('--state_dev', help='path to stateful partition device'),
          CmdArg('--root_disk', help='path to primary device'),
          CmdArg('--old_root', help='path to old root'),
-         _cutoff_args_cmd_arg,
          _shopfloor_url_args_cmd_arg,
          _release_rootfs_cmd_arg,
          _station_ip_cmd_arg,
@@ -483,7 +469,6 @@ def WipeInPlace(options):
          _wipe_finish_token_cmd_arg)
 def WipeInit(options):
   GetGooftool(options).WipeInit(options.wipe_args,
-                                options.cutoff_args,
                                 options.shopfloor_url,
                                 options.state_dev,
                                 options.release_rootfs,
@@ -681,7 +666,6 @@ def UploadReport(options):
                 help='Do not enable firmware write protection.'),
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
-         _cutoff_args_cmd_arg,
          _shopfloor_url_args_cmd_arg,
          _hwdb_path_cmd_arg,
          _hwid_status_list_cmd_arg,
@@ -733,8 +717,6 @@ def Finalize(options):
 
   event_log.Log('wipe_in_place')
   wipe_args = []
-  if options.cutoff_args:
-    wipe_args += ['--cutoff_args', options.cutoff_args]
   if options.shopfloor_url:
     wipe_args += ['--shopfloor_url', options.shopfloor_url]
   if options.fast:

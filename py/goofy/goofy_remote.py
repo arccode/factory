@@ -225,14 +225,6 @@ def main():
       ['%s:/usr/local/factory' % args.host],
       check_call=True, log=True)
 
-  # Rsync battery cutoff scripts from memento_softwareupdate.
-  SpawnRsyncToDUT(
-      ['-azC'] +
-      [os.path.join(SRCROOT,
-                    'src/platform/memento_softwareupdate/battery_cutoff/'),
-       '%s:/usr/local/factory/sh/' % args.host],
-      check_call=True, log=True)
-
   Spawn(['make', 'par-overlay-%s' % board], cwd=paths.FACTORY_PATH,
         check_call=True, log=True)
 

@@ -214,7 +214,6 @@ class FinalizeBundle(object):
     self.UpdateInstallShim()
     self.PatchImage()
     self.ModifyFactoryImage()
-    self.SetWipeOption()
     self.MakeUpdateBundle()
     self.MakeFactoryPackages()
     self.FixFactoryPar()
@@ -277,7 +276,7 @@ class FinalizeBundle(object):
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
                         'patch_image_args', 'use_factory_toolkit',
                         'test_image_version', 'complete_script',
-                        'has_firmware', 'external_presenter', 'cutoff_option'])
+                        'has_firmware', 'external_presenter'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -696,20 +695,6 @@ class FinalizeBundle(object):
                                 'active')
           Spawn(['ln', '-sf', test_list, active], log=True, sudo=True,
                 check_call=True)
-
-  def SetWipeOption(self):
-    wipe_option = self.manifest.get('wipe_option', [])
-    if wipe_option:
-      assert len(wipe_option) == 1, 'There should be one wipe_option.'
-      option = wipe_option[0]
-      assert option in ['shutdown', 'battery_cut_off', 'reboot']
-      # No need to write option if option is reboot.
-      if option == 'reboot':
-        return
-      with MountPartition(self.factory_image_path, 1, rw=True) as mount:
-        wipe_option_path = os.path.join(mount, 'factory_wipe_option')
-        WriteWithSudo(wipe_option_path, option)
-      logging.warn('wipe_option is deprecated, use in-place wipe and cutoff_option instead.')
 
   def MakeUpdateBundle(self):
     # Make the factory update bundle

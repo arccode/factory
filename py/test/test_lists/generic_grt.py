@@ -133,9 +133,5 @@ def GRT(args):
               min_charge_pct=args.grt_finalize_battery_min_pct,
               sync_event_logs=args.enable_flush_event_logs,
               waive_tests=args.grt_waive_tests,
-              cutoff_options=dict(
-                  method='battery_cutoff',
-                  check_ac='remove_ac',
-                  min_battery_percent=args.grt_finalize_battery_min_pct),
               enforced_release_channels=args.grt_enforced_release_channels
           ))

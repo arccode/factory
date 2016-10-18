@@ -13,7 +13,7 @@ FONT_COLOR="Green"
 # Temp message file for display_boot_message.
 MESSAGE_FILE="$(mktemp --tmpdir)"
 
-TTY=/dev/tty1
+: ${TTY:=/dev/tty1}
 
 on_exit() {
   rm -f "${MESSAGE_FILE}"

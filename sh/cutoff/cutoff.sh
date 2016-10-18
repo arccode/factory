@@ -8,25 +8,11 @@
 # cutoff protection by sending commands to EC with ectool.
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-
 DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
-
-# After calling display_wipe_message.sh to draw image with frecon, we must
-# redirect text output to tty1 to display information on the screen.
-TTY=/dev/tty1
-
-usage_help() {
-  echo "Usage: $0
-    [--method shutdown|reboot|battery_cutoff]
-    [--check-ac connect_ac|remove_ac]
-    [--min-battery-percent <minimum battery percentage>]
-    [--max-battery-percent <maximum battery percentage>]
-    [--min-battery-voltage <minimum battery voltage>]
-    [--max-battery-voltage <maximum battery voltage>]"
-}
+. "${SCRIPT_DIR}/options.sh"
 
 reset_activate_date() {
-  /usr/sbin/activate_date --clean
+  activate_date --clean
 }
 
 has_battery() {
@@ -124,74 +110,42 @@ check_battery_value() {
 }
 
 check_ac_state() {
-  local cutoff_ac_state="$1"
-  if [ "$cutoff_ac_state" = "connect_ac" ]; then
+  local ac_state="$1"
+  if [ "$ac_state" = "connect_ac" ]; then
     require_ac
-  elif [ "$cutoff_ac_state" = "remove_ac" ]; then
+  elif [ "$ac_state" = "remove_ac" ]; then
     require_remove_ac
   fi
 }
 
 main() {
-  local cutoff_method=""
-  local cutoff_ac_state=""
-  local min_battery_percent="" max_battery_percent=""
-  local min_battery_voltage="" max_battery_voltage=""
-
   local key
-  while [ $# -ge 1 ]
-  do
-    key="$1"
-    case "$key" in
-      "--method" )
-        cutoff_method="$2"
-        shift 2
-        ;;
-      "--check-ac" )
-        cutoff_ac_state="$2"
-        shift 2
-        ;;
-      "--min-battery-percent" )
-        min_battery_percent="$2"
-        shift 2
-        ;;
-      "--max-battery-percent" )
-        max_battery_percent="$2"
-        shift 2
-        ;;
-      "--min-battery-voltage" )
-        min_battery_voltage="$2"
-        shift 2
-        ;;
-      "--max-battery-voltage" )
-        max_battery_voltage="$2"
-        shift 2
-        ;;
-      * )
-        usage_help
-        exit 1
-        ;;
-    esac
-  done
+  options_parse_command_line "$@"
+  options_check_values
+  export TTY  # for display_wipe_message to use same TTY settings.
 
   reset_activate_date
 
   if has_battery; then
     # Needed by 'ectool battery'.
     mkdir -p /var/lib/power_manager
-    modprobe i2c_dev
-    if [ -n "$min_battery_percent" ] || [ -n "$max_battery_percent" ]; then
-      check_battery_value "$min_battery_percent" "$max_battery_percent" \
+    modprobe i2c_dev || true
+    if [ -n "$CUTOFF_BATTERY_MIN_PERCENTAGE" ] || \
+       [ -n "$CUTOFF_BATTERY_MAX_PERCENTAGE" ]; then
+      check_battery_value \
+        "$CUTOFF_BATTERY_MIN_PERCENTAGE" "$CUTOFF_BATTERY_MAX_PERCENTAGE" \
         "get_battery_percentage"
     fi
-    if [ -n "$min_battery_voltage" ] || [ -n "$max_battery_voltage" ]; then
-      check_battery_value "$min_battery_voltage" "$max_battery_voltage" \
+    if [ -n "$CUTOFF_BATTERY_MIN_VOLTAGE" ] || \
+       [ -n "$CUTOFF_BATTERY_MAX_PERCENTAGE" ]; then
+      check_battery_value \
+        "$CUTOFF_BATTERY_MIN_VOLTAGE" "$CUTOFF_BATTERY_MAX_VOLTAGE" \
         "get_battery_voltage"
     fi
   fi
 
   # Ask operator to plug or unplug AC before doing cut off.
-  check_ac_state "$cutoff_ac_state"
+  check_ac_state "$CUTOFF_AC_STATE"
 
   $DISPLAY_MESSAGE "cutting_off"
 
@@ -202,17 +156,20 @@ main() {
   # solving this problem. Remove the retry when finding the root cause.
   for i in $(seq 5)
   do
-    case "$cutoff_method" in
-      "shutdown" )
-        shutdown -h now
-      ;;
-      "reboot" )
+    case "$CUTOFF_METHOD" in
+      reboot)
         reboot
       ;;
-      "battery_cutoff" )
+      ectool_cutoff)
+        # If virtual dev mode was enabled, ectool cutoff will leave the device
+        # in developer mode. Unfortunately we can't check that because TPM
+        # service was not running, and tpm_nvread won't work.
+        ectool batterycutoff at-shutdown && shutdown -h now
+      ;;
+      battery_cutoff)
         crossystem battery_cutoff_request=1 && sleep 3 && reboot
       ;;
-      * )
+      shutdown | *)
         # By default we shutdown the device without doing anything.
         shutdown -h now
     esac
