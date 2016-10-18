@@ -68,7 +68,7 @@ PRESUBMIT_FILES := \
     $(shell realpath $$PRESUBMIT_FILES | sed "s'^$$(realpath $$(pwd))/''g"))
 
 PRESUBMIT_TARGETS := \
-  presubmit-deps presubmit-lint presubmit-test presubmit-make_factory_package
+  presubmit-deps presubmit-lint presubmit-test presubmit-make-factory-package
 
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
