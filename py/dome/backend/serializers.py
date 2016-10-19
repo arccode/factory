@@ -2,9 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import django
+from rest_framework import exceptions
 from rest_framework import serializers
+from rest_framework import validators
 
-from backend.models import Board, BundleModel, TemporaryUploadedFile
+from backend.models import Board
+from backend.models import BundleModel
+from backend.models import TemporaryUploadedFile
 
 
 class UploadedFileSerializer(serializers.ModelSerializer):
@@ -27,7 +32,13 @@ class UploadedFileSerializer(serializers.ModelSerializer):
 class BoardSerializer(serializers.Serializer):
 
   name = serializers.ModelField(
-      model_field=Board._meta.get_field('name'))  # pylint: disable=W0212
+      model_field=Board._meta.get_field('name'),  # pylint: disable=W0212
+      required=False,
+      validators=[
+          validators.UniqueValidator(queryset=Board.objects.all()),
+          django.core.validators.RegexValidator(
+              regex=r'^[^/]+$',
+              message='Slashes are not allowed in board name')])
 
   umpire_enabled = serializers.ModelField(
       model_field=(
@@ -47,6 +58,9 @@ class BoardSerializer(serializers.Serializer):
 
   def create(self, validated_data):
     """Override parent's method."""
+    # make sure 'name' exists explicitly
+    if 'name' not in validated_data:
+      raise exceptions.ValidationError({'name': 'This field is required'})
     name = validated_data.pop('name')
     return Board.CreateOne(name, **validated_data)
 

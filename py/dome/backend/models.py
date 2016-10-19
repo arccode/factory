@@ -23,10 +23,10 @@ import subprocess
 import tempfile
 import xmlrpclib
 
-import yaml
 import django
-from django.core import validators
-from django.db import models
+import rest_framework.exceptions
+import rest_framework.status
+import yaml
 
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put
@@ -67,6 +67,18 @@ UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 UMPIRE_BASE_DIR = '/var/db/factory/umpire'
 
 UMPIRED_FILEPATH = '/usr/local/factory/bin/umpired'
+
+
+class DomeClientException(rest_framework.exceptions.APIException):
+  """Errors that can be fixed by the client."""
+
+  status_code = rest_framework.status.HTTP_400_BAD_REQUEST
+
+
+class DomeServerException(rest_framework.exceptions.APIException):
+  """Errors that cannot be fixed by the client."""
+
+  status_code = rest_framework.status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 @contextlib.contextmanager
@@ -145,7 +157,7 @@ def UmpireAccessibleFile(board, uploaded_file):
         raise
 
 
-class TemporaryUploadedFile(models.Model):
+class TemporaryUploadedFile(django.db.models.Model):
   """Model to hold temporary uploaded files from user.
 
   The API of Dome is designed as: if a request contains N files, split it into
@@ -176,21 +188,19 @@ class TemporaryUploadedFile(models.Model):
      in JSON.
   """
 
-  file = models.FileField(upload_to='%Y%m%d')
-  created = models.DateTimeField(auto_now_add=True)
+  file = django.db.models.FileField(upload_to='%Y%m%d')
+  created = django.db.models.DateTimeField(auto_now_add=True)
 
   # TODO(littlecvr): remove outdated files automatically
 
 
-class Board(models.Model):
-  # TODO(littlecvr): max_length and validator should be shared with Umpire
-  name = models.CharField(max_length=200, primary_key=True,
-                          validators=[validators.RegexValidator(
-                              regex=r'[^/]+',
-                              message='Slashes are not allowed in board name')])
-  umpire_enabled = models.BooleanField(default=False)
-  umpire_host = models.GenericIPAddressField(null=True)
-  umpire_port = models.PositiveIntegerField(null=True)
+class Board(django.db.models.Model):
+
+  # TODO(littlecvr): max_length should be shared with Umpire and serializer
+  name = django.db.models.CharField(max_length=200, primary_key=True)
+  umpire_enabled = django.db.models.BooleanField(default=False)
+  umpire_host = django.db.models.GenericIPAddressField(null=True)
+  umpire_port = django.db.models.PositiveIntegerField(null=True)
 
   # TODO(littlecvr): add TFTP and Overlord ports
 
@@ -207,6 +217,11 @@ class Board(models.Model):
 
   def AddExistingUmpireContainer(self, host, port):
     """Add an existing Umpire container to the database."""
+    if not Board.DoesUmpireContainerExist(self.name):
+      raise DomeClientException(
+          'Container %s does not exist, Dome will not add a non-existing '
+          'container into the database, please create a new one instead' %
+          Board.GetUmpireContainerName(self.name))
     self.umpire_enabled = True
     self.umpire_host = host
     self.umpire_port = port
@@ -217,13 +232,10 @@ class Board(models.Model):
     """Create a local Umpire container from a factory toolkit."""
     # make sure the container does not exist
     container_name = Board.GetUmpireContainerName(self.name)
-    container_list = subprocess.check_output([
-        'docker', 'ps', '--all', '--format', '{{.Names}}']).splitlines()
-    if container_name in container_list:
-      raise EnvironmentError('Container %s already exists, Dome will not try '
-                             'to create a new one, please add the existing '
-                             'Umpire instance instead of create a new one ' %
-                             container_name)
+    if Board.DoesUmpireContainerExist(self.name):
+      raise DomeClientException(
+          'Container %s already exists, Dome will not try to create a new one, '
+          'please add the existing one instead' % container_name)
 
     try:
       # create and start a new container
@@ -260,6 +272,8 @@ class Board(models.Model):
     subprocess.call(['docker', 'stop', container_name])
     subprocess.call(['docker', 'rm', container_name])
     self.umpire_enabled = False
+    self.umpire_host = None
+    self.umpire_port = None
     self.save()
     return self
 
@@ -272,6 +286,13 @@ class Board(models.Model):
     ip = subprocess.check_output(
         'route | grep default | tr -s " " | cut -d " " -f 2', shell=True)
     return ip.strip()  # remove the trailing newline
+
+  @staticmethod
+  def DoesUmpireContainerExist(name):
+    container_name = Board.GetUmpireContainerName(name)
+    container_list = subprocess.check_output([
+        'docker', 'ps', '--all', '--format', '{{.Names}}']).splitlines()
+    return container_name in container_list
 
   @staticmethod
   def GetUmpireContainerName(name):

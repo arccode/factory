@@ -5,14 +5,19 @@
 # TODO(littlecvr): return different format specified by "request_format"
 #                  variable.
 
-from rest_framework import generics, status
+from rest_framework import generics
+from rest_framework import mixins
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework import status
+from rest_framework import views
 
-from backend.models import Board, BundleModel, TemporaryUploadedFile
-from backend.serializers import (
-    BoardSerializer, BundleSerializer, ResourceSerializer,
-    UploadedFileSerializer)
+from backend.models import Board
+from backend.models import BundleModel
+from backend.models import TemporaryUploadedFile
+from backend.serializers import BoardSerializer
+from backend.serializers import BundleSerializer
+from backend.serializers import ResourceSerializer
+from backend.serializers import UploadedFileSerializer
 
 
 class FileCollectionView(generics.CreateAPIView):
@@ -27,33 +32,26 @@ class BoardCollectionView(generics.ListCreateAPIView):
   serializer_class = BoardSerializer
 
 
-class BoardElementView(APIView):
+class BoardElementView(mixins.DestroyModelMixin,
+                       generics.UpdateAPIView):
 
   queryset = Board.objects.all()
+  serializer_class = BoardSerializer
+  lookup_field = 'name'
+  lookup_url_kwarg = 'board_name'
 
-  def delete(self, unused_request, board_name,
+  def delete(self, request,
+             board_name,  # pylint: disable=unused-argument
              request_format=None):  # pylint: disable=unused-argument
     """Override parent's method."""
-    try:
-      # delete Umpire container first
-      Board.objects.get(pk=board_name).DeleteUmpireContainer().delete()
-      return Response(status=status.HTTP_204_NO_CONTENT)
-    except Board.DoesNotExist:
-      return Response(status=status.HTTP_404_NOT_FOUND)
+    return self.destroy(request)
 
-  def put(self, request, board_name,
-          request_format=None):  # pylint: disable=unused-argument
+  def perform_destroy(self, instance):
     """Override parent's method."""
-    # TODO(littlecvr): should be able to use default implementation
-    board = Board.objects.get(pk=board_name)
-    serializer = BoardSerializer(board, data=request.data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    instance.DeleteUmpireContainer().delete()
 
 
-class BundleCollectionView(APIView):
+class BundleCollectionView(views.APIView):
   """List all bundles, or upload a new bundle."""
 
   def get(self, unused_request, board_name,
@@ -81,7 +79,7 @@ class BundleCollectionView(APIView):
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
-class BundleView(APIView):
+class BundleView(views.APIView):
   """Delete or update a bundle."""
 
   def delete(self, unused_request, board_name, bundle_name,
@@ -103,7 +101,7 @@ class BundleView(APIView):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class BundleResourceView(APIView):
+class BundleResourceView(views.APIView):
   """Update resource in a particular bundle."""
 
   def put(self, request, board_name,
