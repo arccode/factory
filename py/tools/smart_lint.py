@@ -71,7 +71,7 @@ def main():
     overlay_path = build_board.GetChromeOSFactoryBoardPath(args.overlay)
     if overlay_path:
       all_files |= GetFileToLint(os.path.join(overlay_path, '../..'))
-  CheckOutput(['make', 'overlay-%s' % args.overlay])
+    CheckOutput(['make', 'overlay-%s' % args.overlay])
 
   all_files_str = ' '.join(sorted(all_files))
   overlay_args = ['-C', 'overlay-%s' % args.overlay] if args.overlay else []
