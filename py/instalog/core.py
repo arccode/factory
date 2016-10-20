@@ -6,6 +6,7 @@ from __future__ import print_function
 
 from jsonrpclib import SimpleJSONRPCServer
 
+import datetime
 import logging
 import os
 import threading
@@ -21,6 +22,11 @@ STARTING = 'STARTING'
 UP = 'UP'
 STOPPING = 'STOPPING'
 DOWN = 'DOWN'
+
+
+# Fix for bug b/30904731: Access datetime.datetime.strptime.  Otherwise,
+# threads may sometimes raise the exception `AttributeError: _strptime_time`.
+datetime.datetime.strptime
 
 
 class Instalog(plugin_sandbox.CoreAPI):
