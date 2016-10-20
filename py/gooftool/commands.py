@@ -368,13 +368,12 @@ def EnableFwWp(options):  # pylint: disable=W0613
     ro_offset = ro_a * ro_size
     return (ro_offset, ro_size)
 
-  def WriteProtect(fw_file_path, fw_type, legacy_section):
+  def WriteProtect(fw_file_path, fw_type, legacy_section=None):
     """Calculate protection size, then invoke flashrom.
 
     Our supported chips only allow write protecting half their total
     size, so we parition the flash chipset space accordingly.
     """
-
     raw_image = open(fw_file_path, 'rb').read()
     wp_section = 'WP_RO'
     image = crosfw.FirmwareImage(raw_image)
@@ -382,13 +381,13 @@ def EnableFwWp(options):  # pylint: disable=W0613
       section_data = image.get_section_area(wp_section)
       ro_offset = section_data[0]
       ro_size = section_data[1]
-    elif image.has_section(legacy_section):
+    elif legacy_section is not None and image.has_section(legacy_section):
       section_data = image.get_section_area(legacy_section)
       (ro_offset, ro_size) = CalculateLegacyRange(
           fw_type, len(raw_image), section_data, legacy_section)
     else:
-      raise Error('could not find %s firmware section %s or %s' %
-                  (fw_type, wp_section, legacy_section))
+      raise Error('Could not find %s firmware section: %s %s' %
+                  (fw_type, wp_section, legacy_section or ''))
 
     logging.debug('write protecting %s [off=%x size=%x]', fw_type,
                   ro_offset, ro_size)
@@ -396,12 +395,26 @@ def EnableFwWp(options):  # pylint: disable=W0613
 
   WriteProtect(crosfw.LoadMainFirmware().GetFileName(), 'main', 'RO_SECTION')
   event_log.Log('wp', fw='main')
-  ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
-  if ec_fw_file is not None:
-    WriteProtect(ec_fw_file, 'ec', 'EC_RO')
-    event_log.Log('wp', fw='ec')
-  else:
-    logging.warning('EC not write protected (seems there is no EC flash).')
+
+  # Some EC (mostly PD) does not support "RO NOW". Instead they will only set
+  # "RO_AT_BOOT" when you request to enable RO (These platforms consider
+  # --wp-range with right range identical to --wp-enable), and requires a
+  # 'ectool reboot_ec RO at-shutdown; reboot' to let the RO take effect.
+  # After reboot, "flashrom --wp-status" will return right protected range.
+  # If you don't reboot, returned range will be (0, 0), and running command
+  # "ectool flashprotect" will not have RO_NOW.
+
+  targets = [
+      ('EC', crosfw.TARGET_EC, crosfw.LoadEcFirmware, 'EC_RO'),
+      ('PD', crosfw.TARGET_PD, crosfw.LoadPDFirmware, None)]
+  for (name, fw_type, provider, legacy_section) in targets:
+    fw_file = provider().GetFileName()
+    if fw_file is None:
+      logging.warning('%s not write protected (seems there is no %s flash).',
+                      name, name)
+      continue
+    WriteProtect(fw_file, fw_type, legacy_section)
+    event_log.Log('wp', fw=fw_type)
 
 
 @Command('clear_gbb_flags')

@@ -42,7 +42,7 @@ class Flashrom(object):
   _TARGET_MAP = {
       TARGET_MAIN: '-p host',
       TARGET_EC: '-p ec',
-      TARGET_PD: '-p ec:dev=1',
+      TARGET_PD: '-p ec:type=pd',
   }
   _WRITE_FLAGS = '--fast-verify'
   _READ_FLAGS = ''
