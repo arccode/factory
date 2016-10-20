@@ -139,10 +139,8 @@ def _LoadJsonFile(file_path, logger):
       return json.loads(importer.get_data(zip_path))
     except zipimport.ZipImportError:
       logger('config_utils: No PAR/ZIP in %s. Ignore.', file_path)
-      pass
     except IOError:
       logger('config_utils: PAR path %s does not exist. Ignore.', file_path)
-      pass
 
   return None
 
@@ -247,7 +245,9 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
 
   The config files are retrieved and overridden in order:
    1. Default config directory: The arg 'default_config_dir' or the directory of
-      caller module (or current folder if no caller module).
+      caller module (or current folder if no caller module). If the caller
+      module is a symbolic link, we search its original path first, and
+      override it with the config beside the symbolic link if exists.
    2. Build config directory: The 'BuildConfigDirectory' in config_utils.json,
       should be set to 'root of project files'. Defaults to
       /usr/local/factory/py/config.
@@ -265,14 +265,20 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   config = {}
   schema = {}
   caller = inspect.stack()[1]
+  module_file = caller[1]
   # When running as pyc inside ZIP(PAR), getmodule() will fail.
   default_name, default_dir = GetDefaultConfigInfo(
-      inspect.getmodule(caller[0]), caller[1])
+      inspect.getmodule(caller[0]), module_file)
   config_dirs = [
       default_config_dir or default_dir,
       GetBuildConfigDirectory(),
       GetRuntimeConfigDirectory(),
   ]
+
+  # If the file is a symbolic link, we also search it's original path.
+  if not default_config_dir and os.path.islink(module_file):
+    config_dirs.insert(0, os.path.dirname(os.path.realpath(module_file)))
+
   logger = _GetLogger()
   if config_name is None:
     config_name = default_name
