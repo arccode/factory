@@ -41,9 +41,10 @@ TARGET_DIR = /usr/local/factory
 # Build and board config settings
 STATIC ?= false
 BOARD ?=
-BOARD_FILES_DIR ?= \
-  $(if $(BOARD),\
-    $(dir $(shell equery-$(BOARD) which chromeos-factory-board))/files)
+BOARD_PACKAGE_NAME ?= chromeos-factory-board
+BOARD_EBUILD ?= \
+  $(if $(BOARD),$(shell equery-$(BOARD) which $(BOARD_PACKAGE_NAME)))
+BOARD_FILES_DIR ?= $(if $(BOARD_EBUILD),$(dir $(BOARD_EBUILD))/files)
 BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
 SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
