@@ -117,7 +117,6 @@ class FactoryToolkitInstaller(object):
     self._system_root = system_root
     if dest == self._system_root:
       self._usr_local_dest = os.path.join(dest, 'usr', 'local')
-      self._var_dest = os.path.join(dest, 'var')
 
       # Make sure we're on a CrOS device.
       if not non_cros and not sys_utils.InCrOSDevice():
@@ -143,15 +142,12 @@ class FactoryToolkitInstaller(object):
                         'CrOS device.')
     else:
       self._usr_local_dest = os.path.join(dest, 'dev_image')
-      self._var_dest = os.path.join(dest, 'var_overlay')
-      if (not os.path.exists(self._usr_local_dest) or
-          not os.path.exists(self._var_dest)):
+      if not os.path.exists(self._usr_local_dest):
         raise Exception(
             'The destination path %s is not a stateful partition!' % dest)
 
     self._dest = dest
     self._usr_local_src = os.path.join(src, 'usr', 'local')
-    self._var_src = os.path.join(src, 'var')
     self._no_enable = no_enable
     self._tag_file = os.path.join(self._usr_local_dest, 'factory', 'enabled')
 
@@ -165,8 +161,7 @@ class FactoryToolkitInstaller(object):
     self._device_id = device_id
     self._apps = apps
 
-    if (not os.path.exists(self._usr_local_src) or
-        not os.path.exists(self._var_src)):
+    if not os.path.exists(self._usr_local_src):
       raise Exception(
           'This installer must be run from within the factory toolkit!')
 
@@ -287,8 +282,7 @@ class FactoryToolkitInstaller(object):
 
   def Install(self):
     print '*** Installing factory toolkit...'
-    for src, dest in ((self._usr_local_src, self._usr_local_dest),
-                      (self._var_src, self._var_dest)):
+    for src, dest in ((self._usr_local_src, self._usr_local_dest),):
       # Change the source directory to root, and add group/world read
       # permissions.  This is necessary because when the toolkit was
       # unpacked, the user may not have been root so the permessions
