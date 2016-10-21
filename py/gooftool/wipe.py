@@ -381,9 +381,13 @@ def _WipeStateDev(release_rootfs, root_disk, wipe_args):
                                                      'clobber-state.log'))
   # remove developer flag, which is created by clobber-state after wiping.
   try:
-    os.unlink(os.path.join(stateful_partition_path, '.developer'))
+    os.unlink(os.path.join(stateful_partition_path, '.developer_mode'))
   except OSError:
     pass
+  # make sure that everything is synced
+  for unused_i in xrange(3):
+    process_utils.Spawn(['sync'], call=True)
+    time.sleep(1)
 
 
 def EnableReleasePartition(release_rootfs):
