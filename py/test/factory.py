@@ -486,6 +486,11 @@ class Options(object):
   {'link_class': 'SSHLink', 'host': TARGET_IP},  # To run tests over SSH.
   See :py:attr:`cros.factory.device.device_utils` for more information."""
 
+  plugin_config_name = 'chromeos'
+  """Name of the config to be loaded for running Goofy plugins."""
+
+  _types['plugin_config_name'] = (type(None), str)
+
   def check_valid(self):
     """Throws a TestListError if there are any invalid options."""
     # Make sure no errant options, or options with weird types,
@@ -708,7 +713,8 @@ class FactoryTest(object):
 
   REPR_FIELDS = ['test_list_id', 'id', 'autotest_name', 'pytest_name', 'dargs',
                  'dut_options', 'backgroundable', 'exclusive', 'never_fails',
-                 'enable_services', 'disable_services', 'no_host']
+                 'enable_services', 'disable_services', 'no_host',
+                 'exclusive_resources']
 
   # Subsystems that the test may require exclusive access to.
   EXCLUSIVE_OPTIONS = type_utils.Enum(['NETWORKING', 'CHARGER', 'CPUFREQ'])
@@ -733,6 +739,7 @@ class FactoryTest(object):
                never_fails=None,
                disable_abort=None,
                exclusive=None,
+               exclusive_resources=None,
                enable_services=None,
                disable_services=None,
                require_run=None,
@@ -772,6 +779,10 @@ class FactoryTest(object):
       self.exclusive = [exclusive]
     else:
       self.exclusive = exclusive or []
+    if isinstance(exclusive_resources, str):
+      self.exclusive_resources = [exclusive_resources]
+    else:
+      self.exclusive_resources = exclusive_resources or []
     if isinstance(enable_services, str):
       self.enable_services = [enable_services]
     else:
@@ -1042,6 +1053,13 @@ class FactoryTest(object):
     assert option in self.EXCLUSIVE_OPTIONS
     return option in self.exclusive or (
         self.parent and self.parent.is_exclusive(option))
+
+  def get_exclusive_resources(self):
+    """Returns a set of resources to be exclusively used."""
+    res = set(self.exclusive_resources)
+    if self.parent:
+      res |= self.parent.get_exclusive_resources()
+    return res
 
   def is_no_host(self):
     """Returns true if the test or any parent is marked 'no_host'."""

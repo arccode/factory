@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "addtionalProperties": false,
+  "properties": {
+    "backends": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "addtionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "args": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  },
+  "required": [
+    "backends"
+  ]
+}

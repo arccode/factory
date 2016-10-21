@@ -28,23 +28,19 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.device import DeviceException
 from cros.factory.goofy import connection_manager
-from cros.factory.goofy import test_environment
-from cros.factory.goofy import time_sanitizer
-from cros.factory.goofy import updater
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy.invocation import TestArgEnv
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.link_manager import PresenterLinkManager
+from cros.factory.goofy.plugins import plugin_controller
 from cros.factory.goofy import prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.terminal_manager import TerminalManager
+from cros.factory.goofy import test_environment
+from cros.factory.goofy import time_sanitizer
+from cros.factory.goofy import updater
 from cros.factory.goofy.web_socket_manager import WebSocketManager
-from cros.factory.test import factory
-from cros.factory.test import shopfloor
-from cros.factory.test import state
-from cros.factory.test import testlog
-from cros.factory.test import testlog_goofy
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.e2e_test.common import AutomationModePrompt
 from cros.factory.test.e2e_test.common import ParseAutomationMode
@@ -57,9 +53,14 @@ from cros.factory.test.event_log import EventLog
 from cros.factory.test.event_log import FloatDigit
 from cros.factory.test.event_log import GetBootSequence
 from cros.factory.test.event_log_watcher import EventLogWatcher
+from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
+from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
+from cros.factory.test import testlog
+from cros.factory.test import testlog_goofy
 from cros.factory.test.utils.charge_manager import ChargeManager
 from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
@@ -126,6 +127,7 @@ class Goofy(GoofyBase):
     connection_manager: The connection_manager object.
     system_log_manager: The SystemLogManager object.
     core_dump_manager: The CoreDumpManager object.
+    plugin_controller: The PluginController object.
     ui_process: The factory ui process object.
     invocations: A map from FactoryTest objects to the corresponding
       TestInvocations objects representing active tests.
@@ -172,6 +174,7 @@ class Goofy(GoofyBase):
     self.event_log = None
     self.testlog = None
     self.autotest_prespawner = None
+    self.plugin_controller = None
     self.pytest_prespawner = None
     self.ui_process = None
     self._ui_initialized = False
@@ -330,6 +333,9 @@ class Goofy(GoofyBase):
     if self.link_manager:
       self.link_manager.Stop()
       self.link_manager = None
+    if self.plugin_controller:
+      self.plugin_controller.StopAndDestroyAllPlugins()
+      self.plugin_controller = None
 
     super(Goofy, self).destroy()
     logging.info('Done destroying Goofy')
@@ -857,6 +863,7 @@ class Goofy(GoofyBase):
     if self.visible_test is None and test.has_ui:
       self.set_visible_test(test)
     self.check_exclusive()
+    self.check_plugins()
     invoc.start()
 
   def check_exclusive(self):
@@ -896,6 +903,14 @@ class Goofy(GoofyBase):
         self.charge_manager.AdjustChargeState()
 
     self.exclusive_items = current_exclusive_items
+
+  def check_plugins(self):
+    """Check plugins to be paused or resumed."""
+    exclusive_resources = set()
+    for test in self.invocations:
+      exclusive_resources = exclusive_resources.union(
+          test.get_exclusive_resources())
+    self.plugin_controller.PauseAndResumePluginByResource(exclusive_resources)
 
   def charge(self):
     """Charges the board.
@@ -1563,6 +1578,11 @@ class Goofy(GoofyBase):
     self.start_event_server()
     self.start_terminal_server()
 
+    # Load and run Goofy plugins.
+    self.plugin_controller = plugin_controller.PluginController(
+        self.test_list.options.plugin_config_name, self)
+    self.plugin_controller.StartAllPlugins()
+
     if self.options.dummy_connection_manager:
       # Override network manager creation to dummy implmenetation.
       logging.info('Using dummy network manager (--dummy_connection_manager).')
@@ -1932,6 +1952,7 @@ class Goofy(GoofyBase):
     super(Goofy, self).perform_periodic_tasks()
 
     self.check_exclusive()
+    self.check_plugins()
     self.check_for_updates()
     self.sync_time_in_background()
     self.log_disk_space_stats()

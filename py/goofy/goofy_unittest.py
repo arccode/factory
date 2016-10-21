@@ -63,6 +63,9 @@ from cros.factory.utils.net_utils import WLAN
 def CreateTestLists():
   with test_lists.TestList(id='stub_test_list', label_en='label') as test_list:
     options = test_list.options
+
+    # Load dummy plugin config as default.
+    options.plugin_config_name = 'goofy_unittest'
     {options}
     {test_items}
   """
@@ -1047,7 +1050,7 @@ class NoHostTest(GoofyUITest):
 
 if __name__ == '__main__':
   factory.init_logging('goofy_unittest')
-  goofy._inited_logging = True
+  goofy._inited_logging = True  # pylint: disable=protected-access
   goofy.suppress_chroot_warning = True
 
   unittest.main()
