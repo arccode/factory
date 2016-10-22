@@ -24,27 +24,28 @@ class Event(object):
   """Represents an Instalog event.
 
   Properties:
-    data: A dictionary representing Event data.  It can be accessed either
-          through normal dictionary operators on the Event object itself
-          (e.g. event['field']), or through the `data` properly
-          (e.g. event.data[0]).
+    payload: A dictionary representing Event data.  It can be accessed either
+             through normal dictionary operators on the Event object itself
+             (e.g. event['field']), or through the `payload` properly
+             (e.g. event.payload[0]).
     attachments: Dictionary of attachments for this event.  Key is a string
                  identifying the file attachment; might match an ID within the
-                 event data itself.  Value is where the file can be located on
-                 the filesystem.  Assumed to have read permissions.
+                 event payload itself.  Value is where the file can be located
+                 on the filesystem.  Assumed to have read permissions.
   """
 
-  def __init__(self, data, attachments=None):
-    self.data = data
+  def __init__(self, payload, attachments=None):
+    self.payload = payload
     self.attachments = {} if attachments is None else attachments
-    if not isinstance(self.data, dict):
-      raise TypeError('Provided data argument must be of type `dict`')
+    if not isinstance(self.payload, dict):
+      raise TypeError('Provided payload argument must be of type `dict`')
     if not isinstance(self.attachments, dict):
       raise TypeError('Provided attachments argument must be of type `dict`')
 
   def Serialize(self):
     """Serialize an Event object."""
-    return json.dumps([self.data, self.attachments], cls=json_utils.JSONEncoder)
+    return json.dumps([self.payload, self.attachments],
+                      cls=json_utils.JSONEncoder)
 
   @classmethod
   def Deserialize(cls, json_string):
@@ -52,18 +53,18 @@ class Event(object):
 
     Args:
       json_string: JSON string of the event, as a two-element list:
-                   json_string == [data, attachments].
+                   json_string == [payload, attachments].
 
     Returns:
       An Event object.
     """
-    json_data = json.loads(json_string, cls=json_utils.JSONDecoder)
-    data, attachments = json_data
-    return cls(data, attachments)
+    json_dict = json.loads(json_string, cls=json_utils.JSONDecoder)
+    payload, attachments = json_dict
+    return cls(payload, attachments)
 
   @classmethod
-  def DeserializeRaw(cls, json_data=None, json_attachments=None):
-    """Deserialize an Event object with data and attachments separated.
+  def DeserializeRaw(cls, json_payload=None, json_attachments=None):
+    """Deserialize an Event object with payload and attachments separated.
 
     TODO(kitching): Decide whether to allow both strings and dictionaries for
                     these two arguments.
@@ -71,25 +72,26 @@ class Event(object):
     Provided for testing applications or use in CLI programs.
 
     Args:
-      json_data: JSON string of the event data.
+      json_payload: JSON string of the event payload.
       json_attachments: JSON string of the attachments.
 
     Returns:
       An Event object.
     """
-    data = (json.loads(json_data, cls=json_utils.JSONDecoder)
-            if json_data is not None else {})
+    payload = (json.loads(json_payload, cls=json_utils.JSONDecoder)
+               if json_payload is not None else {})
     attachments = (json.loads(json_attachments, cls=json_utils.JSONDecoder)
                    if json_attachments is not None else {})
-    return cls(data, attachments)
+    return cls(payload, attachments)
 
   def __repr__(self):
     """Implements repr function for debugging."""
-    return 'Event(%s, %s)' % (self.data, self.attachments)
+    return 'Event(%s, %s)' % (self.payload, self.attachments)
 
   def __eq__(self, other):
     """Implements == operator."""
-    return self.data == other.data and self.attachments == other.attachments
+    return (self.payload == other.payload and
+            self.attachments == other.attachments)
 
   def __ne__(self, other):
     """Implements != operator."""
@@ -97,41 +99,41 @@ class Event(object):
 
   def __getitem__(self, key):
     """Implements dict [] get operator."""
-    return self.data[key]
+    return self.payload[key]
 
   def get(self, key, default=None):
     """Implements dict get function."""
     # TODO(kitching): Test this method.
-    return self.data.get(key, default)
+    return self.payload.get(key, default)
 
   def __setitem__(self, key, value):
     """Implements dict [] set operator."""
     # TODO(kitching): Test this method.
-    self.data[key] = value
+    self.payload[key] = value
 
   def __contains__(self, item):
     """Implements dict `in` operator."""
-    return item in self.data
+    return item in self.payload
 
   def keys(self):
     """Implements dict keys function."""
-    return self.data.keys()
+    return self.payload.keys()
 
   def values(self):
     """Implements dict values function."""
-    return self.data.values()
+    return self.payload.values()
 
   def iteritems(self):
     """Implements iteritems function."""
-    return self.data.iteritems()
+    return self.payload.iteritems()
 
   def __copy__(self):
     """Implements __copy__ function."""
-    return Event(self.data, self.attachments)
+    return Event(self.payload, self.attachments)
 
   def __deepcopy__(self, memo):
     """Implements __deepcopy__ function."""
-    result = self.__class__(copy.deepcopy(self.data),
+    result = self.__class__(copy.deepcopy(self.payload),
                             copy.deepcopy(self.attachments))
     # Avoid excess copying if the Event is referenced from within the Event.
     memo[id(self)] = result

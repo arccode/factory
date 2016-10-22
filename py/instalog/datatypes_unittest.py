@@ -113,43 +113,43 @@ class TestEvent(unittest.TestCase):
 
   def testDict(self):
     """Checks that an event can be accessed just like a dictionary."""
-    data = {'a': 1, 'b': 2, 'c': {}}
-    event = datatypes.Event(data)
-    self.assertEqual(event.data, data)
-    self.assertEqual(event.keys(), data.keys())
-    self.assertEqual(event.values(), data.values())
-    self.assertEqual(event['a'], data['a'])
-    self.assertEqual(event['b'], data['b'])
-    self.assertTrue(repr(data) in repr(event))
+    payload = {'a': 1, 'b': 2, 'c': {}}
+    event = datatypes.Event(payload)
+    self.assertEqual(event.payload, payload)
+    self.assertEqual(event.keys(), payload.keys())
+    self.assertEqual(event.values(), payload.values())
+    self.assertEqual(event['a'], payload['a'])
+    self.assertEqual(event['b'], payload['b'])
+    self.assertTrue(repr(payload) in repr(event))
     self.assertEqual(('a', 1), event.iteritems().next())
 
     # Test equality operators.
-    data_a = data.copy()
-    data_b = data.copy()
+    payload_a = payload.copy()
+    payload_b = payload.copy()
     attachments_a = {'file_id': '/path/to/file'}
     attachments_b = attachments_a.copy()
-    event_a = datatypes.Event(data_a, attachments_a)
-    event_b = datatypes.Event(data_b, attachments_b)
+    event_a = datatypes.Event(payload_a, attachments_a)
+    event_b = datatypes.Event(payload_b, attachments_b)
     self.assertEqual(event_a, event_b)
     self.assertFalse(event_a != event_b)
 
     # Test copy.
     new_event = event.Copy()
-    self.assertTrue(event.data is new_event.data)
+    self.assertTrue(event.payload is new_event.payload)
     self.assertTrue(event.attachments is new_event.attachments)
     new_event = copy.copy(event)
-    self.assertTrue(event.data is new_event.data)
+    self.assertTrue(event.payload is new_event.payload)
     self.assertTrue(event.attachments is new_event.attachments)
 
     # Test deepcopy.
     new_event = copy.deepcopy(event)
     self.assertTrue(event == new_event)
-    self.assertTrue(event.data is not new_event.data)
+    self.assertTrue(event.payload is not new_event.payload)
     self.assertTrue(event['c'] is not new_event['c'])
     self.assertTrue(event.attachments is not new_event.attachments)
 
   def testData(self):
-    """Checks that invalid data arguments are refused."""
+    """Checks that invalid payload arguments are refused."""
     with self.assertRaises(TypeError):
       datatypes.Event(1)
 
@@ -170,17 +170,17 @@ class TestEvent(unittest.TestCase):
 
   def testRoundTrip(self):
     """Checks that an event can de serialized and deserialized."""
-    data = {'a': 1, 'b': 2}
+    payload = {'a': 1, 'b': 2}
 
     # Test without attachments.
-    event = datatypes.Event(data)
+    event = datatypes.Event(payload)
     json_string = event.Serialize()
     self.assertEqual(event, datatypes.Event.Deserialize(json_string))
     # Serialize returns the JSON string of the two-element list:
-    #   [data, attachments]
+    #   [payload, attachments]
     # Since in this case, we don't provide any attachments, the JSON string will
     # look like:
-    #   [{ ... data ... }, {}]
+    #   [{ ... payload ... }, {}]
     # Use a regex to manually remove the second element of the returned list
     # for DeserializeRaw.
     json_event = re.sub(r'^\[(.*), ?{}]', r'\1', json_string)
@@ -188,11 +188,11 @@ class TestEvent(unittest.TestCase):
 
     # Test with attachments.
     attachments = {'file_id': '/path/to/file'}
-    event2 = datatypes.Event(data, attachments)
+    event2 = datatypes.Event(payload, attachments)
     json_string = event2.Serialize()
     self.assertEqual(event2, datatypes.Event.Deserialize(json_string))
     self.assertEquals(event2, datatypes.Event.DeserializeRaw(
-        json.dumps(data), json.dumps(attachments)))
+        json.dumps(payload), json.dumps(attachments)))
 
 
 class TestEventStream(unittest.TestCase):

@@ -269,7 +269,7 @@ class TestBufferSimpleFile(unittest.TestCase):
         event = stream.Next()
         if not event:
           break
-        record_count[repr(event.data)] += 1
+        record_count[repr(event.payload)] += 1
         count += 1
       stream.Commit()
       record_count_queue.put(record_count)
