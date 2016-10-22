@@ -50,7 +50,7 @@ class RunawayThreadInput(plugin_base.InputPlugin):
         pass
       time.sleep(0.1)
 
-  def Start(self):
+  def SetUp(self):
     t = threading.Thread(target=self._RunawayEmit)
     # No need to set t.daemon = True, since the _RunawayEmit function will stop
     # executing once it receives the UnexpectedAccess exception.

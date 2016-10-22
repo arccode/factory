@@ -50,7 +50,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.sf = buffer_simple_file.BufferSimpleFile(
         config, logging.getLogger('simple_file'), None)
     self.sf.GetStateDir = lambda: self.state_dir
-    self.sf.Start()
+    self.sf.SetUp()
     self.e1 = datatypes.Event({'test1': 'event'})
     self.e2 = datatypes.Event({'test2': 'event'})
     self.e3 = datatypes.Event({'test3': 'event'})

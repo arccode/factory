@@ -44,8 +44,8 @@ class InputRPC(plugin_base.InputPlugin):
     self.server = None
     super(InputRPC, self).__init__(*args, **kwargs)
 
-  def Start(self):
-    """Starts the plugin."""
+  def SetUp(self):
+    """Sets up the plugin."""
     # Create the temporary directory for attachments.
     self._tmp_dir = tempfile.mkdtemp(prefix='input_rpc_')
     self.info('Temporary directory for attachments: %s', self._tmp_dir)
@@ -61,8 +61,8 @@ class InputRPC(plugin_base.InputPlugin):
     self.server_thread = threading.Thread(target=self.server.serve_forever)
     self.server_thread.start()
 
-  def Stop(self):
-    """Stops the plugin."""
+  def TearDown(self):
+    """Tears down the plugin."""
     # Stop the JSON RPC server.
     # shutdown() waits until any executing requests finish.
     if self.server:

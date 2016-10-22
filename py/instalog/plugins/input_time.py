@@ -45,14 +45,14 @@ class InputTime(plugin_base.InputPlugin):
           optional=True, default=_DEFAULT_ATTACHMENT_BYTES),
   ]
 
-  def Start(self):
-    """Starts the plugin."""
+  def SetUp(self):
+    """Sets up the plugin."""
     # Create the temporary directory for attachments.
     self._tmp_dir = tempfile.mkdtemp(prefix='input_time_')
     self.info('Temporary directory for attachments: %s', self._tmp_dir)
 
-  def Stop(self):
-    """Stops the plugin."""
+  def TearDown(self):
+    """Tears down the plugin."""
     # Remove the temporary directory.
     shutil.rmtree(self._tmp_dir)
 

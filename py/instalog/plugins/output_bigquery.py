@@ -60,7 +60,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
           optional=False)
   ]
 
-  def Start(self):
+  def SetUp(self):
     """Stores the service object to run BigQuery API calls."""
     self.service = self.BuildService()
 

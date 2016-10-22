@@ -142,12 +142,12 @@ class PluginSandbox(plugin_base.PluginAPI):
     # accesses.
     self._unexpected_accesses = []
 
-    # Store the last exception caused by Start, Main or Stop.
+    # Store the last exception caused by SetUp, Main or TearDown.
     self._last_exception = None
 
-    self._start_thread = None
+    self._setup_thread = None
     self._main_thread = None
-    self._stop_thread = None
+    self._teardown_thread = None
 
   def __repr__(self):
     """Implements repr function for debugging."""
@@ -402,10 +402,10 @@ class PluginSandbox(plugin_base.PluginAPI):
 
     if self._state is STARTING:
       self.logger.debug('AdvanceState on STARTING')
-      if not self._start_thread:
-        self._start_thread = SpawnFn(self._plugin.Start, sync)
-      if self._start_thread and not self._start_thread.is_alive():
-        self._start_thread = None
+      if not self._setup_thread:
+        self._setup_thread = SpawnFn(self._plugin.SetUp, sync)
+      if self._setup_thread and not self._setup_thread.is_alive():
+        self._setup_thread = None
         self._main_thread = SpawnFn(self._plugin.Main)
         self._state = UP
 
@@ -415,9 +415,9 @@ class PluginSandbox(plugin_base.PluginAPI):
         self._main_thread.join()
       if self._main_thread and not self._main_thread.is_alive():
         self._main_thread = None
-        self._stop_thread = SpawnFn(self._plugin.Stop, sync)
-      if self._stop_thread and not self._stop_thread.is_alive():
-        self._stop_thread = None
+        self._teardown_thread = SpawnFn(self._plugin.TearDown, sync)
+      if self._teardown_thread and not self._teardown_thread.is_alive():
+        self._teardown_thread = None
         self._plugin = None
         self._state = DOWN
 

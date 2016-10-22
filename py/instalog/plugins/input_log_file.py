@@ -73,8 +73,8 @@ class InputLogFile(plugin_base.InputPlugin):
           optional=True, default=_DEFAULT_MAX_BYTES)
   ]
 
-  def Start(self):
-    """Starts the plugin."""
+  def SetUp(self):
+    """Sets up the plugin."""
     self.log_files = {}
 
   def ScanLogFiles(self):

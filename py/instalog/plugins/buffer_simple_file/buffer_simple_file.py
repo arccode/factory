@@ -140,8 +140,8 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
           optional=True, default=_DEFAULT_COPY_ATTACHMENTS),
   ]
 
-  def Start(self):
-    """Starts the plugin."""
+  def SetUp(self):
+    """Sets up the plugin."""
     self.data_path = os.path.join(
         self.GetStateDir(), 'data.json')
     self.metadata_path = os.path.join(

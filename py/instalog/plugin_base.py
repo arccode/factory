@@ -116,8 +116,8 @@ class Plugin(log_utils.LoggerMixin, object):
     # log_utils.LoggerMixin creates shortcut functions for convenience.
     self.logger = logger
 
-  def Start(self):
-    """Starts any connections or threads needed.
+  def SetUp(self):
+    """Sets up any connections or threads needed.
 
     This function should return to the caller after the plugin has been
     initialized.
@@ -132,7 +132,7 @@ class Plugin(log_utils.LoggerMixin, object):
     """
     return
 
-  def Stop(self):
+  def TearDown(self):
     """Shuts down any extra threads and connections used by the plugin.
 
     This function should only return to the caller after all threads and
