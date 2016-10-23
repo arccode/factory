@@ -1,6 +1,6 @@
 instalog:
   node_id: 'sample_node'
-  state_dir: '/tmp/instalog'
+  data_dir: '/tmp/instalog'
   pid_file: '/tmp/instalog.pid'
   log_file: '/tmp/instalog.log'
   cli_hostname: 'localhost'

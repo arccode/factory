@@ -50,7 +50,7 @@ class InputHealth(plugin_base.InputPlugin):
       data = {
           '__health__': True,
           'systemTime': datetime.datetime.utcnow(),
-          'diskUsage': self.GetDiskUsage(self.GetStateDir())
+          'diskUsage': self.GetDiskUsage(self.GetDataDir())
       }
 
       # Create the event.

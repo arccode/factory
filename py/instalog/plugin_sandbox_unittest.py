@@ -44,7 +44,7 @@ class RunawayThreadInput(plugin_base.InputPlugin):
   def _RunawayEmit(self):
     while True:
       try:
-        self.GetStateDir()
+        self.GetDataDir()
       except NotImplementedError:
         # Ignore since we are not connected to a proper core.
         pass
@@ -197,7 +197,7 @@ class TestPluginSandbox(unittest.TestCase):
     # an UnexpectedAccess exception.
     time.sleep(2)
     self.assertEquals(1, len(p._unexpected_accesses))
-    self.assertEquals('GetStateDir', p._unexpected_accesses[0]['caller_name'])
+    self.assertEquals('GetDataDir', p._unexpected_accesses[0]['caller_name'])
 
   def testGatekeeper(self):
     """Tests plugin API calls across different plugin states."""
@@ -208,7 +208,7 @@ class TestPluginSandbox(unittest.TestCase):
 
     # Check during the STOPPED state.
     with self.assertRaises(plugin_base.UnexpectedAccess):
-      p.GetStateDir(p._plugin)
+      p.GetDataDir(p._plugin)
     with self.assertRaises(plugin_base.UnexpectedAccess):
       p.IsStopping(p._plugin)
     with self.assertRaises(plugin_base.UnexpectedAccess):
@@ -229,7 +229,7 @@ class TestPluginSandbox(unittest.TestCase):
 
     # Check during the UP state.
     with self.assertRaises(NotImplementedError):
-      p.GetStateDir(p._plugin)
+      p.GetDataDir(p._plugin)
     self.assertFalse(p.IsStopping(p._plugin))
     with self.assertRaises(NotImplementedError):
       p.Emit(p._plugin, [])
@@ -277,7 +277,7 @@ class TestPluginSandbox(unittest.TestCase):
 
     # Check during the PAUSED state.
     with self.assertRaises(NotImplementedError):
-      p.GetStateDir(p._plugin)
+      p.GetDataDir(p._plugin)
     with self.assertRaises(plugin_base.WaitException):
       p.Emit(p._plugin, None)
     with self.assertRaises(plugin_base.WaitException):

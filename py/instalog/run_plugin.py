@@ -86,11 +86,11 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     self.logger = logger
     self._plugin_type = plugin_type
     # State directory carries across PluginRunner runs.
-    self._state_dir = os.path.join(tempfile.gettempdir(),
+    self._data_dir = os.path.join(tempfile.gettempdir(),
                                    'plugin_runner.%s' % plugin_type)
-    if not os.path.isdir(self._state_dir):
-      os.mkdir(self._state_dir)
-    self.logger.info('Storing state to: %s', self._state_dir)
+    if not os.path.isdir(self._data_dir):
+      os.mkdir(self._data_dir)
+    self.logger.info('Storing plugin data to: %s', self._data_dir)
 
     self._event_queue = Queue.Queue()
     self._plugin = plugin_sandbox.PluginSandbox(
@@ -244,10 +244,10 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   # Functions below implement plugin_base.CoreAPI.
   ############################################################
 
-  def GetStateDir(self, plugin):
-    """See Core.GetStateDir."""
+  def GetDataDir(self, plugin):
+    """See Core.GetDataDir."""
     del plugin
-    return self._state_dir
+    return self._data_dir
 
   def Emit(self, plugin, events):
     """See Core.Emit."""

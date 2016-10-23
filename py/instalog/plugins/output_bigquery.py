@@ -266,7 +266,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       return False
 
     # Write the current import job to disk for debugging purposes.
-    with open(os.path.join(self.GetStateDir(), 'last_batch.json'), 'w') as f:
+    with open(os.path.join(self.GetDataDir(), 'last_batch.json'), 'w') as f:
       f.write(json_stream.getvalue())
 
     media = MediaIoBaseUpload(json_stream, mimetype=_JSON_MIMETYPE,

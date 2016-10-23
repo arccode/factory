@@ -83,7 +83,7 @@ class InstalogService(daemon_utils.Daemon):
 
     self._core = core.Instalog(
         node_id=self._config['instalog']['node_id'],
-        state_dir=self._config['instalog']['state_dir'],
+        data_dir=self._config['instalog']['data_dir'],
         cli_hostname=self._config['instalog']['cli_hostname'],
         cli_port=self._config['instalog']['cli_port'],
         buffer_plugin=self._config['buffer'],

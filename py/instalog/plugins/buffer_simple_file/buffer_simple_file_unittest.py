@@ -45,11 +45,11 @@ def _WithBufferSize(buffer_size):
 class TestBufferSimpleFile(unittest.TestCase):
 
   def _CreateBuffer(self, config={}):
-    self.state_dir = tempfile.mkdtemp(prefix='simple_file.')
-    logging.info('Create state directory: %s', self.state_dir)
+    self.data_dir = tempfile.mkdtemp(prefix='simple_file.')
+    logging.info('Create state directory: %s', self.data_dir)
     self.sf = buffer_simple_file.BufferSimpleFile(
         config, logging.getLogger('simple_file'), None)
-    self.sf.GetStateDir = lambda: self.state_dir
+    self.sf.GetDataDir = lambda: self.data_dir
     self.sf.SetUp()
     self.e1 = datatypes.Event({'test1': 'event'})
     self.e2 = datatypes.Event({'test2': 'event'})
@@ -59,7 +59,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     self._CreateBuffer()
 
   def tearDown(self):
-    shutil.rmtree(self.state_dir)
+    shutil.rmtree(self.data_dir)
 
   def testAddRemoveConsumer(self):
     """Tests adding and removing a Consumer."""

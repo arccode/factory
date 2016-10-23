@@ -143,15 +143,15 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
   def SetUp(self):
     """Sets up the plugin."""
     self.data_path = os.path.join(
-        self.GetStateDir(), 'data.json')
+        self.GetDataDir(), 'data.json')
     self.metadata_path = os.path.join(
-        self.GetStateDir(), 'metadata.json')
+        self.GetDataDir(), 'metadata.json')
     self.consumers_list_path = os.path.join(
-        self.GetStateDir(), 'consumers.json')
+        self.GetDataDir(), 'consumers.json')
     self.consumer_path_format = os.path.join(
-        self.GetStateDir(), 'consumer_%s.json')
+        self.GetDataDir(), 'consumer_%s.json')
     self.attachments_dir = os.path.join(
-        self.GetStateDir(), 'attachments')
+        self.GetDataDir(), 'attachments')
 
     if not os.path.exists(self.attachments_dir):
       os.makedirs(self.attachments_dir)

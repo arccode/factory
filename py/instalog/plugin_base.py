@@ -55,8 +55,8 @@ class ConfigError(Exception):
 class PluginAPI(object):
   """Defines an interface for plugins to call."""
 
-  def GetStateDir(self, plugin):
-    """See Plugin.GetStateDir."""
+  def GetDataDir(self, plugin):
+    """See Plugin.GetDataDir."""
     raise NotImplementedError
 
   def IsStopping(self, plugin):
@@ -140,7 +140,7 @@ class Plugin(log_utils.LoggerMixin, object):
     """
     return
 
-  def GetStateDir(self):
+  def GetDataDir(self):
     """Returns the state directory of this plugin.
 
     This directory is set aside by Instalog core for the plugin to store any
@@ -151,7 +151,7 @@ class Plugin(log_utils.LoggerMixin, object):
       UnexpectedAccess if the plugin instance is in some unexpected state and
       is trying to access core functionality that it should not.
     """
-    return self._plugin_api.GetStateDir(self)
+    return self._plugin_api.GetDataDir(self)
 
   def IsStopping(self):
     """Returns whether or not the plugin may continue running.

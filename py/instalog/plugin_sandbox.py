@@ -41,8 +41,8 @@ UNPAUSING = 'UNPAUSING'
 class CoreAPI(object):
   """Defines the API a sandbox should use interact with Instalog core."""
 
-  def GetStateDir(self, plugin):
-    """See Core.GetStateDir."""
+  def GetDataDir(self, plugin):
+    """See Core.GetDataDir."""
     raise NotImplementedError
 
   def Emit(self, plugin, events):
@@ -434,11 +434,11 @@ class PluginSandbox(plugin_base.PluginAPI):
   # Functions below implement plugin_base.PluginAPI.
   ############################################################
 
-  def GetStateDir(self, plugin):
-    """See PluginAPI.GetStateDir."""
+  def GetDataDir(self, plugin):
+    """See PluginAPI.GetDataDir."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
-    self.logger.debug('GetStateDir called with state=%s', self._state)
-    return self._core_api.GetStateDir(self)
+    self.logger.debug('GetDataDir called with state=%s', self._state)
+    return self._core_api.GetDataDir(self)
 
   def IsStopping(self, plugin):
     """See PluginAPI.IsStopping."""

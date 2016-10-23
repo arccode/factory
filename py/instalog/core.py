@@ -31,14 +31,14 @@ datetime.datetime.strptime
 
 class Instalog(plugin_sandbox.CoreAPI):
 
-  def __init__(self, node_id, state_dir, cli_hostname, cli_port, buffer_plugin,
+  def __init__(self, node_id, data_dir, cli_hostname, cli_port, buffer_plugin,
                input_plugins=None, output_plugins=None):
     """Constructor.
 
     Args:
       node_id: ID of this Instalog node.
-      state_dir: Path to Instalog's state directory.  Plugin state directories
-                 will be stored here.
+      data_dir: Path to Instalog's state directory.  Plugin state directories
+                will be stored here.
       cli_hostname: Hostname used for the CLI RPC server.
       cli_port: Port used for the CLI RPC server.
       buffer_plugin: Configuration dict for the buffer plugin.  The `plugin`
@@ -58,10 +58,10 @@ class Instalog(plugin_sandbox.CoreAPI):
     # Store the node ID.
     self._node_id = node_id
 
-    # Ensure we have a working state directory.
-    self._state_dir = state_dir
-    if not os.path.exists(self._state_dir):
-      os.makedirs(self._state_dir)
+    # Ensure we have a working data directory.
+    self._data_dir = data_dir
+    if not os.path.exists(self._data_dir):
+      os.makedirs(self._data_dir)
 
     # Create plugin sandboxes.
     self._buffer = self._ConfigEntryToSandbox(
@@ -206,19 +206,19 @@ class Instalog(plugin_sandbox.CoreAPI):
   # Functions below implement plugin_base.CoreAPI.
   ############################################################
 
-  def GetStateDir(self, plugin):
-    """Returns the directory used to store plugin state.
+  def GetDataDir(self, plugin):
+    """Returns the directory used to store plugin data.
 
     Args:
-      plugin: PluginSandbox object requesting plugin state.
+      plugin: PluginSandbox object requesting plugin data directory.
 
     Returns:
-      Path to state directory.
+      Path to plugin data directory.
     """
-    state_dir = os.path.join(self._state_dir, plugin.plugin_id)
-    if not os.path.exists(state_dir):
-      os.makedirs(state_dir)
-    return state_dir
+    data_dir = os.path.join(self._data_dir, plugin.plugin_id)
+    if not os.path.exists(data_dir):
+      os.makedirs(data_dir)
+    return data_dir
 
   def Emit(self, plugin, events):
     """Emits given events from the specified plugin.

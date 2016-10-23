@@ -106,7 +106,7 @@ class InputLogFile(plugin_base.InputPlugin):
             logger=self.logger,
             args=self.args,
             path=path,
-            offset_path=os.path.join(self.GetStateDir(), offset_file),
+            offset_path=os.path.join(self.GetDataDir(), offset_file),
             parse_and_emit_fn=self.ParseAndEmit)
         self.log_files[path] = log_file
         new_log_files.append(log_file)
