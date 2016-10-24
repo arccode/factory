@@ -237,8 +237,6 @@ class Goofy(GoofyBase):
 
     self.event_handlers = {
         Event.Type.SWITCH_TEST: self.handle_switch_test,
-        Event.Type.SHOW_NEXT_ACTIVE_TEST:
-            lambda event: self.show_next_active_test(),
         Event.Type.RESTART_TESTS:
             lambda event: self.restart_tests(root=test_or_root(event)),
         Event.Type.AUTO_RUN:
@@ -703,23 +701,6 @@ class Goofy(GoofyBase):
         t.update_state(skip=skip, status=TestState.UNTESTED, error_msg='')
       else:
         t.update_state(skip=skip)
-
-  def show_next_active_test(self):
-    """Rotates to the next visible active test."""
-    self.reap_completed_tests()
-    active_tests = [
-        t for t in self.test_list.walk()
-        if t.is_leaf() and t.get_state().status == TestState.ACTIVE]
-    if not active_tests:
-      return
-
-    try:
-      next_test = active_tests[
-          (active_tests.index(self.visible_test) + 1) % len(active_tests)]
-    except ValueError:  # visible_test not present in active_tests
-      next_test = active_tests[0]
-
-    self.set_visible_test(next_test)
 
   def handle_event(self, event):
     """Handles an event from the event server."""

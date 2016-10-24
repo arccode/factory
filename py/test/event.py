@@ -68,8 +68,6 @@ class Event(object):
       'UI_READY': 'goofy:ui_ready',
       # Tells goofy to switch to a new test.
       'SWITCH_TEST': 'goofy:switch_test',
-      # Tells goofy to rotate visibility to the next active test.
-      'SHOW_NEXT_ACTIVE_TEST': 'goofy:show_next_active_test',
       # Tells goofy to show a particular test.
       'SET_VISIBLE_TEST': 'goofy:set_visible_test',
       # Tells goofy to clear all state and restart testing.
