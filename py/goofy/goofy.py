@@ -245,8 +245,6 @@ class Goofy(GoofyBase):
             lambda event: self.run_tests_with_status(
                 event.status,
                 root=test_or_root(event)),
-        Event.Type.REVIEW:
-            lambda event: self.show_review_information(),
         Event.Type.UPDATE_SYSTEM_INFO:
             lambda event: self.update_system_info(),
         Event.Type.STOP:
@@ -2068,16 +2066,6 @@ class Goofy(GoofyBase):
     self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
                                starting_at=starting_at,
                                root=root)
-
-  def show_review_information(self):
-    """Event handler for showing review information screen.
-
-    The information screen is rendered by main UI program (ui.py), so in
-    goofy we only need to kill all active tests, set them as untested, and
-    clear remaining tests.
-    """
-    self.kill_active_tests(False)
-    self.cancel_pending_tests()
 
   def handle_switch_test(self, event):
     """Switches to a particular test.

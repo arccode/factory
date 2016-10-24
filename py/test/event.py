@@ -78,8 +78,6 @@ class Event(object):
       'RUN_TESTS_WITH_STATUS': 'goofy:run_tests_with_status',
       # Clears state of all tests underneath the given path.
       'CLEAR_STATE': 'goofy:clear_state',
-      # Tells goofy to go to the review screen.
-      'REVIEW': 'goofy:review',
       # Tells the UI about a single new line in the log.
       'LOG': 'goofy:log',
       # A hello message to a new WebSocket. Contains a 'uuid' parameter
