@@ -55,6 +55,14 @@ BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
 SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
 
+# Legacy board packge will install bundle files directly and will conflict with
+# the new build system when we're running as out-of-tree build.
+# TODO(hungte) Remove legacy board support when the migration of new build
+# system is completed.
+LEGACY_BOARD_IN_OUTOFTREE ?= \
+  $(if $(OUTOFTREE_BUILD),$(if \
+      $(filter $(BOARD_PACKAGE_NAME),chromeos-factory-board),1))
+
 PAR_TEMP_DIR = $(TEMP_DIR)/par
 PAR_OUTPUT_DIR = $(BUILD_DIR)/par
 PAR_NAME = factory.par
@@ -188,8 +196,9 @@ resource: closure check-board-resources
 	tar -cf $(RESOURCE_PATH) -X $(MK_DIR)/resource_exclude.lst \
 	  bin misc py py_pkg sh init \
 	  $(if $(wildcard $(BOARD_FILES_DIR)),-C $(BOARD_FILES_DIR) .)
-	$(if $(wildcard $(BOARD_FILES_DIR)/bundle), \
-	  tar -cf $(BOARD_BUNDLE_RESOURCE_PATH) -C $(BOARD_FILES_DIR)/bundle .)
+	$(if $(LEGACY_BOARD_IN_OUTOFTREE),,\
+	  $(if $(wildcard $(BOARD_FILES_DIR)/bundle), tar \
+	    -cf $(BOARD_BUNDLE_RESOURCE_PATH) -C $(BOARD_FILES_DIR)/bundle .))
 	$(if $(OUTOFTREE_BUILD),\
 	  tar -rf $(RESOURCE_PATH) --transform 's"^"./py/goofy/static/"' \
 	    -C "$(CLOSURE_OUTPUT_DIR)" $(CLOSURE_OUTPUT_FILENAMES))
