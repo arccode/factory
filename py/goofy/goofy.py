@@ -243,8 +243,6 @@ class Goofy(GoofyBase):
             lambda event: self.restart_tests(root=test_or_root(event)),
         Event.Type.AUTO_RUN:
             lambda event: self.auto_run(root=test_or_root(event)),
-        Event.Type.RE_RUN_FAILED:
-            lambda event: self.re_run_failed(root=test_or_root(event)),
         Event.Type.RUN_TESTS_WITH_STATUS:
             lambda event: self.run_tests_with_status(
                 event.status,
@@ -2089,11 +2087,6 @@ class Goofy(GoofyBase):
     self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
                                starting_at=starting_at,
                                root=root)
-
-  def re_run_failed(self, root=None):
-    """Re-runs failed tests."""
-    root = root or self.test_list
-    self.run_tests_with_status([TestState.FAILED], root=root)
 
   def show_review_information(self):
     """Event handler for showing review information screen.

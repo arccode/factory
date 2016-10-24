@@ -77,8 +77,6 @@ class Event(object):
       # Tells goofy to run all tests that haven't been run yet.
       'AUTO_RUN': 'goofy:auto_run',
       # Tells goofy to set all failed tests' state to untested and re-run.
-      'RE_RUN_FAILED': 'goofy:re_run_failed',
-      # Tells goofy to re-run all tests with particular statuses.
       'RUN_TESTS_WITH_STATUS': 'goofy:run_tests_with_status',
       # Clears state of all tests underneath the given path.
       'CLEAR_STATE': 'goofy:clear_state',
