@@ -1129,12 +1129,10 @@ def _ProbeCpuArm():
       hardware = 'unknown'
       logging.error("Unable to find 'Hardware' field in /proc/cpuinfo, "
                     "can't determine CPU hardware.")
-  cores = 0
-  while os.path.exists('/sys/devices/system/cpu/cpu%s' % cores):
-    cores += 1
-  return [{'model': model, 'cores': str(cores), 'hardware': hardware,
+  cores = _ShellOutput('nproc')
+  return [{'model': model, 'cores': cores, 'hardware': hardware,
            COMPACT_PROBE_STR: CompactStr(
-               '%s [%d cores] %s' % (model, cores, hardware))}]
+               '%s [%s cores] %s' % (model, cores, hardware))}]
 
 
 @_ComponentProbe('customization_id')
