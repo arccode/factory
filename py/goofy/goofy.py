@@ -26,7 +26,6 @@ from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
-from cros.factory.device import DeviceException
 from cros.factory.goofy import connection_manager
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
@@ -59,7 +58,6 @@ from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
-from cros.factory.test.utils.charge_manager import ChargeManager
 from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
 from cros.factory.tools.key_filter import KeyFilter
@@ -81,9 +79,6 @@ CLEANUP_LOGS_PAUSED = '/var/lib/cleanup_logs_paused'
 # a factory update, when the available set of tests might change).
 FORCE_AUTO_RUN = 'force_auto_run'
 
-# Sync disks when battery level is higher than this value.
-# Otherwise, power loss during disk sync operation may incur even worse outcome.
-MIN_BATTERY_LEVEL_FOR_DISK_SYNC = 1.0
 
 MAX_CRASH_FILE_SIZE = 64 * 1024
 
@@ -159,8 +154,6 @@ class Goofy(GoofyBase):
     self.event_server_thread = None
     self.event_client = None
     self.connection_manager = None
-    self.charge_manager = None
-    self._can_charge = True
     self.log_watcher = None
     self.system_log_manager = None
     self.core_dump_manager = None
@@ -193,8 +186,6 @@ class Goofy(GoofyBase):
     self._suppress_periodic_update_messages = False
     self._suppress_event_log_error_messages = False
     self.last_sync_time = None
-    self.last_check_battery_time = None
-    self.last_check_battery_message = None
     self.last_kick_sync_time = None
     self.exclusive_items = set()
     self.key_filter = None
@@ -869,15 +860,11 @@ class Goofy(GoofyBase):
     if EXCL_OPT.NETWORKING in new_exclusive_items:
       logging.info('Disabling network')
       self.connection_manager.DisableNetworking()
-    if EXCL_OPT.CHARGER in new_exclusive_items:
-      logging.info('Stop controlling charger')
 
     new_non_exclusive_items = self.exclusive_items - current_exclusive_items
     if EXCL_OPT.NETWORKING in new_non_exclusive_items:
       logging.info('Re-enabling network')
       self.connection_manager.EnableNetworking()
-    if EXCL_OPT.CHARGER in new_non_exclusive_items:
-      logging.info('Start controlling charger')
 
     if self.cpufreq_manager:
       enabled = EXCL_OPT.CPUFREQ not in current_exclusive_items
@@ -886,12 +873,6 @@ class Goofy(GoofyBase):
       except:  # pylint: disable=W0702
         logging.exception('Unable to %s cpufreq services',
                           'enable' if enabled else 'disable')
-
-    # Only adjust charge state if not excluded
-    if (EXCL_OPT.CHARGER not in current_exclusive_items and
-        not sys_utils.InChroot()):
-      if self.charge_manager:
-        self.charge_manager.AdjustChargeState()
 
     self.exclusive_items = current_exclusive_items
 
@@ -902,26 +883,6 @@ class Goofy(GoofyBase):
       exclusive_resources = exclusive_resources.union(
           test.get_exclusive_resources())
     self.plugin_controller.PauseAndResumePluginByResource(exclusive_resources)
-
-  def charge(self):
-    """Charges the board.
-
-    It won't try again if last time SetChargeState raised an exception.
-    """
-    if not self._can_charge:
-      return
-
-    try:
-      if self.charge_manager:
-        self.charge_manager.StartCharging()
-      else:
-        self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
-    except NotImplementedError:
-      logging.info('Charging is not supported')
-      self._can_charge = False
-    except DeviceException:
-      logging.exception('Unable to set charge state on this board')
-      self._can_charge = False
 
   def check_for_updates(self):
     """Schedules an asynchronous check for updates if necessary."""
@@ -1594,19 +1555,6 @@ class Goofy(GoofyBase):
 
     self.update_system_info()
 
-    assert ((self.test_list.options.min_charge_pct is None) ==
-            (self.test_list.options.max_charge_pct is None))
-    if sys_utils.InChroot():
-      logging.info('In chroot, ignoring charge manager and charge state')
-    elif (self.test_list.options.enable_charge_manager and
-          self.test_list.options.min_charge_pct is not None):
-      self.charge_manager = ChargeManager(self.test_list.options.min_charge_pct,
-                                          self.test_list.options.max_charge_pct)
-      self.dut.status.Overrides('charge_manager', self.charge_manager)
-    else:
-      # Goofy should set charger state to charge if charge_manager is disabled.
-      self.charge()
-
     if CoreDumpManager.CoreDumpEnabled():
       self.core_dump_manager = CoreDumpManager(
           self.test_list.options.core_dump_watchlist)
@@ -1680,70 +1628,6 @@ class Goofy(GoofyBase):
           caps_lock_keycode=test_options.caps_lock_keycode)
       self.key_filter.Start()
 
-  def check_battery(self):
-    """Checks the current battery status.
-
-    Logs current battery charging level and status to log. If the battery level
-    is lower below warning_low_battery_pct, send warning event to shopfloor.
-    If the battery level is lower below critical_low_battery_pct, flush disks.
-    """
-    if not self.test_list.options.check_battery_period_secs:
-      return
-
-    now = time.time()
-    if (self.last_check_battery_time and
-        now - self.last_check_battery_time <
-        self.test_list.options.check_battery_period_secs):
-      return
-    self.last_check_battery_time = now
-
-    message = ''
-    log_level = logging.INFO
-    try:
-      power = self.dut.power
-      if not power.CheckBatteryPresent():
-        message = 'Battery is not present'
-      else:
-        ac_present = power.CheckACPresent()
-        charge_pct = power.GetChargePct(get_float=True)
-        message = ('Current battery level %.1f%%, AC charger is %s' %
-                   (charge_pct, 'connected' if ac_present else 'disconnected'))
-
-        if charge_pct > self.test_list.options.critical_low_battery_pct:
-          critical_low_battery = False
-        else:
-          critical_low_battery = True
-          # Only sync disks when battery level is still above minimum
-          # value. This can be used for offline analysis when shopfloor cannot
-          # be connected.
-          if charge_pct > MIN_BATTERY_LEVEL_FOR_DISK_SYNC:
-            logging.warning('disk syncing for critical low battery situation')
-            os.system('sync; sync; sync')
-          else:
-            logging.warning('disk syncing is cancelled '
-                            'because battery level is lower than %.1f',
-                            MIN_BATTERY_LEVEL_FOR_DISK_SYNC)
-
-        # Notify shopfloor server
-        if (critical_low_battery or
-            (not ac_present and
-             charge_pct <= self.test_list.options.warning_low_battery_pct)):
-          log_level = logging.WARNING
-
-          self.event_log.Log('low_battery',
-                             battery_level=charge_pct,
-                             charger_connected=ac_present,
-                             critical=critical_low_battery)
-          self.log_watcher.KickWatchThread()
-          if self.test_list.options.enable_sync_log:
-            self.system_log_manager.KickToSync()
-    except:  # pylint: disable=W0702
-      logging.exception('Unable to check battery or notify shopfloor')
-    finally:
-      if message != self.last_check_battery_message:
-        logging.log(log_level, message)
-        self.last_check_battery_message = message
-
   def check_core_dump(self):
     """Checks if there is any core dumped file.
 
@@ -1802,7 +1686,6 @@ class Goofy(GoofyBase):
     self.check_exclusive()
     self.check_plugins()
     self.check_for_updates()
-    self.check_battery()
     self.check_core_dump()
     self.check_log_rotation()
 

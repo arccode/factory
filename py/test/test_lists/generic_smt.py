@@ -15,6 +15,7 @@ This file implements SMT method to create SMT test list.
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import commands
+from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
@@ -52,7 +53,7 @@ def SMTCharger(args, id_suffix='', backgroundable=False):
     charge_discharge_args = dict(
         id='ChargeDischargeCurrent',
         label_zh=u'充放电电流測試',
-        exclusive=['CHARGER'],
+        exclusive_resources=[plugin.RESOURCE.POWER],
         pytest_name='battery_current',
         backgroundable=backgroundable,
         retries=1,

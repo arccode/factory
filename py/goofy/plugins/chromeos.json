@@ -13,6 +13,22 @@
         "period_secs": 120,
         "stateful_usage_threshold": 90
       }
+    },
+    {
+      "name": "battery_monitor",
+      "args": {
+        "period_secs": 120,
+        "critical_low_battery_pct": 5,
+        "warning_log_battery_pct": 10
+      }
+    },
+    {
+      "name": "charge_manager",
+      "args": {
+        "period_secs": 120,
+        "min_charge_pct": 88,
+        "max_charge_pct": 89
+      }
     }
   ]
 }

@@ -13,6 +13,7 @@ This file implements RunIn method to create generic Run-In test list.
 from __future__ import print_function
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -613,7 +614,7 @@ def RunIn(args, group_suffix=''):
     OperatorTest(
         id='Charger',
         label_zh=u'充电器',
-        exclusive=['CHARGER'],
+        exclusive_resources=[plugin.RESOURCE.POWER],
         pytest_name='charger',
         dargs=dict(
             min_starting_charge_pct=args.min_charge_pct,
@@ -661,7 +662,7 @@ def RunIn(args, group_suffix=''):
         id='Charge',
         label_zh=u'充电',
         pytest_name='blocking_charge',
-        exclusive=['CHARGER'],
+        exclusive_resources=[plugin.RESOURCE.POWER],
         dargs=dict(
             timeout_secs=7200,
             target_charge_pct=args.run_in_blocking_charge_pct))
@@ -677,7 +678,7 @@ def RunIn(args, group_suffix=''):
           id='Finish',
           label_zh=u'结束',
           pytest_name='message',
-          exclusive=['CHARGER'],
+          exclusive_resources=[plugin.RESOURCE.POWER],
           require_run=(
               Passed(group_id + '.BarrierRunIn')
               if args.run_in_require_run_for_finish and args.enable_barriers

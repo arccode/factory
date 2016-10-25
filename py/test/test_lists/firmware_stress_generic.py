@@ -9,6 +9,7 @@
 
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -182,7 +183,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
         id='Charge',
         label_zh=u'充电',
         pytest_name='blocking_charge',
-        exclusive=['CHARGER'],
+        exclusive_resources=[plugin.RESOURCE.POWER],
         dargs=dict(
             timeout_secs=7200,
             target_charge_pct=args.run_in_blocking_charge_pct))
@@ -195,7 +196,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
           label_zh=u'结束',
           has_automator=True,
           pytest_name='message',
-          exclusive=['CHARGER'],
+          exclusive_resources=[plugin.RESOURCE.POWER],
           never_fails=True,
           dargs=dict(
               html_en='RunIn tests finished, press SPACE to continue.\n',

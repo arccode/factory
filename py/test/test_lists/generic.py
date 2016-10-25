@@ -19,6 +19,7 @@ import logging
 import glob
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists import generic_control_run
 from cros.factory.test.test_lists import generic_diagnostic
 from cros.factory.test.test_lists import generic_experiment
@@ -537,7 +538,8 @@ class TestListArgs(object):
           run_if=run_if,
           never_fails=True,
           disable_abort=True,
-          exclusive=None if charge_manager else ['CHARGER'],
+          exclusive_resources=None if charge_manager else [
+              plugin.RESOURCE.POWER],
           dargs=dict(
               disable_input_on_fail=True,
               pass_without_prompt=pass_without_prompt,
@@ -604,15 +606,11 @@ def SetOptions(options, args):
     options: The options attribute of the TestList object to be constructed.
       Note that it will be modified in-place in this method.
     args: A TestListArgs object which contains argument that are used commonly
-      by tests and options. Fox example min_charge_pct, max_charge_pct,
-      shopfloor_host.
+      by tests and options. Fox example shopfloor_host.
   """
 
   # Require explicit IDs for each test
   options.strict_ids = True
-
-  options.min_charge_pct = args.min_charge_pct
-  options.max_charge_pct = args.max_charge_pct
 
   options.phase = args.phase
 
@@ -644,9 +642,6 @@ def SetOptions(options, args):
     options.sync_log_period_secs = 10 * MINUTES
     options.scan_log_period_secs = 2 * MINUTES
     options.core_dump_watchlist = []
-    options.check_battery_period_secs = 2 * MINUTES
-    options.warning_low_battery_pct = 10
-    options.critical_low_battery_pct = 5
 
 
 def CreateGenericTestList():

@@ -275,16 +275,11 @@ def SetOptions(options, args):
     options.update_period_secs = None
     # - Enable clock syncing with shopfloor server
     options.sync_time_period_secs = None
-    options.min_charge_pct = args.min_charge_pct
-    options.max_charge_pct = args.max_charge_pct
     options.disable_cros_shortcut_keys = True
 
     options.enable_sync_log = args.enable_sync_log
     options.sync_log_period_secs = 5 * MINUTES
     options.core_dump_watchlist = []
-    options.check_battery_period_secs = 2 * MINUTES
-    options.warning_low_battery_pct = 10
-    options.critical_low_battery_pct = 5
 
 
 def Barrier(id_suffix='', pass_without_prompt=False,

@@ -325,29 +325,9 @@ class Options(object):
   """Timeout when talking to shopfloor server for background
   operations."""
 
-  check_battery_period_secs = 120
-  """Interval at which to check battery status."""
-  _types['check_battery_period_secs'] = (type(None), int)
-
   check_cpu_usage_period_secs = 120
   """Interval at which to check CPU usage."""
   _types['check_cpu_usage_period_secs'] = (type(None), int)
-
-  warning_low_battery_pct = 10
-  """Log warning event and try to sync with shopfloor server when
-  battery level is lower than this value and AC charger is
-  disconnected.  The option is effective only if
-  :py:attr:`cros.factory.test.factory.Options.check_battery_period_secs`
-  is not ``None``."""
-  _types['warning_low_battery_pct'] = (type(None), int)
-
-  critical_low_battery_pct = 5
-  """Do low-power emergency handling (such as flushing disks) when
-  battery level is lower than this value, regardless of AC charger
-  status.  (The option is effective only if
-  :py:attr:`cros.factory.test.factory.Options.check_battery_period_secs`
-  is not ``None``)."""
-  _types['critical_low_battery_pct'] = (type(None), int)
 
   scan_log_period_secs = 120
   """Time interval to scan system logs. A scan includes clearing logs
@@ -394,20 +374,6 @@ class Options(object):
   kick_sync_min_interval_secs = 120
   """The minimum interval between two kick syncs due to core dump files."""
   _types['kick_sync_min_interval_secs'] = int
-
-  enable_charge_manager = True
-  """Whether to enable the charge manager."""
-
-  min_charge_pct = None
-  """The target range for the device's charge level. If
-  :py:attr:`cros.factory.test.factory.Options.min_charge_pct` and
-  :py:attr:`cros.factory.test.factory.Options.max_charge_pct` are set,
-  Goofy will use ``ChargeManager`` to attempt to keep the battery
-  charge within these thresholds."""
-  _types['min_charge_pct'] = (type(None), int)
-  max_charge_pct = None
-  """See :py:attr:`cros.factory.test.factory.Options.min_charge_pct`."""
-  _types['max_charge_pct'] = (type(None), int)
 
   shopfloor_server_url = None
   """The shopfloor server URL."""
@@ -690,7 +656,7 @@ class FactoryTest(object):
                  'exclusive_resources']
 
   # Subsystems that the test may require exclusive access to.
-  EXCLUSIVE_OPTIONS = type_utils.Enum(['NETWORKING', 'CHARGER', 'CPUFREQ'])
+  EXCLUSIVE_OPTIONS = type_utils.Enum(['NETWORKING', 'CPUFREQ'])
 
   RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
 
