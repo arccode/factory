@@ -18,6 +18,7 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
+from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -215,7 +216,7 @@ class TestListArgs(object):
       return False
 
 
-def SetOptions(options, args):
+def SetOptions(test_list, args):
   """Sets test list options for goofy.
 
   The options in this function will be used by test harness(goofy).
@@ -228,18 +229,19 @@ def SetOptions(options, args):
   enable engineering mode in experiment test list.
 
   Args:
-    options: The options attribute of the TestList object to be constructed.
-      Note that it will be modified in-place in this method.
+    test_list: The test_list object to be constructed.
     args: A TestListArgs object which contains argument that are used commonly
       by tests and options. Fox example min_charge_pct, max_charge_pct,
       shopfloor_host.
   """
 
+  options = test_list
+
   # Require explicit IDs for each test
   options.strict_ids = True
 
-  # Disable CpufreqManager
-  options.use_cpufreq_manager = False
+  # Disable CPUFreqManager
+  test_list.exclusive_resources = [plugin.RESOURCE.CPU]
 
   if args.wlan_periodic_ping_test:
     # Sets default network.
@@ -618,7 +620,7 @@ def CreateRebootStressTestList():
   args = TestListArgs()
   with TestList('generic_rrt_reboot',
                 'Generic Rolling Reliability (Reboot)') as test_list:
-    SetOptions(test_list.options, args)
+    SetOptions(test_list, args)
     PressToStart(id_suffix='RebootStress',
                  message_en=args.reboot_warning_en,
                  message_zh=args.reboot_warning_zh)
@@ -633,7 +635,7 @@ def CreateRunInStressTestList():
   args = TestListArgs()
   with TestList('generic_rrt_stress',
                 'Generic Rolling Reliability (Stress)') as test_list:
-    SetOptions(test_list.options, args)
+    SetOptions(test_list, args)
     PressToStart(id_suffix='RunInStress',
                  message_en=args.run_in_warning_en,
                  message_zh=args.run_in_warning_zh)

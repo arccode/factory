@@ -307,7 +307,7 @@ def SMTStress(args):
       label_zh=u'压力测试',
       autotest_name='hardware_SAT',
       backgroundable=True,
-      exclusive=['CPUFREQ'],
+      exclusive_resources=[plugin.RESOURCE.CPU],
       dargs=dict(
           seconds=args.smt_stress_duration_secs,
           free_memory_fraction=0.9))

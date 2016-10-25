@@ -29,6 +29,15 @@
         "min_charge_pct": 88,
         "max_charge_pct": 89
       }
+    },
+    {
+      "name": "cpu_usage_monitor",
+      "args": {
+        "period_secs": 120
+      }
+    },
+    {
+      "name": "cpu_freq_manager"
     }
   ]
 }

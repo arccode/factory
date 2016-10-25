@@ -325,10 +325,6 @@ class Options(object):
   """Timeout when talking to shopfloor server for background
   operations."""
 
-  check_cpu_usage_period_secs = 120
-  """Interval at which to check CPU usage."""
-  _types['check_cpu_usage_period_secs'] = (type(None), int)
-
   scan_log_period_secs = 120
   """Time interval to scan system logs. A scan includes clearing logs
   in clear_log_paths and optionally syncing logs in sync_log_paths
@@ -405,9 +401,6 @@ class Options(object):
 
   strict_ids = False
   """Strictly require an ID for each test."""
-
-  use_cpufreq_manager = True
-  """Enable ``CpufreqManager`` to manage CPU frequency."""
 
   check_if_mlb_changed = False
   """Check if MLB has been changed, and reset all tests if so."""
@@ -656,7 +649,7 @@ class FactoryTest(object):
                  'exclusive_resources']
 
   # Subsystems that the test may require exclusive access to.
-  EXCLUSIVE_OPTIONS = type_utils.Enum(['NETWORKING', 'CPUFREQ'])
+  EXCLUSIVE_OPTIONS = type_utils.Enum(['NETWORKING'])
 
   RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
 

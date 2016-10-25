@@ -279,7 +279,7 @@ class LargeTestListArgs(TestListArgs):
   run_in_stress_duration_secs = 24 * HOURS
 
 
-def SetOptions(options, args):
+def SetOptions(test_list, args):
   """Sets test list options for goofy.
 
   The options in this function will be used by test harness(goofy).
@@ -292,12 +292,12 @@ def SetOptions(options, args):
   enable engineering mode in experiment test list.
 
   Args:
-    options: The options attribute of the TestList object to be constructed.
-      Note that it will be modified in-place in this method.
+    test_list: The test_list object to be constructed.
     args: A TestListArgs object which contains argument that are used commonly
       by tests and options. Fox example shopfloor_host.
   """
 
+  options = test_list.options
   # Require explicit IDs for each test
   options.strict_ids = True
 
@@ -322,9 +322,6 @@ def SetOptions(options, args):
     # - Disable ChromeOS keys.
     options.disable_cros_shortcut_keys = True
 
-    # - Disable CPU frequency manager.
-    options.use_cpufreq_manager = False
-
     # Enable/Disable system log syncing
     options.enable_sync_log = True
     options.sync_log_period_secs = 10 * MINUTES
@@ -334,13 +331,15 @@ def SetOptions(options, args):
         '/var/spool/crash/shill.*',
     ]
 
+    test_list.exclusive_resources = [plugin.RESOURCE.CPU]
+
 
 def CreateFirmwareStressSmallTestList():
   """Creates a test list for firmware stress small run."""
   args = TestListArgs()
   with TestList('firmware_stress_small',
                 'Firmware Stress Small') as test_list:
-    SetOptions(test_list.options, args)
+    SetOptions(test_list, args)
     firmware_stress_generic.RunIn(args)
 
 
@@ -349,7 +348,7 @@ def CreateFirmwareStressMediumTestList():
   args = MediumTestListArgs()
   with TestList('firmware_stress_medium',
                 'Firmware Stress Medium') as test_list:
-    SetOptions(test_list.options, args)
+    SetOptions(test_list, args)
     firmware_stress_generic.RunIn(args)
 
 
@@ -358,7 +357,7 @@ def CreateFirmwareStressLargeTestList():
   args = LargeTestListArgs()
   with TestList('firmware_stress_large',
                 'Firmware Stress Large') as test_list:
-    SetOptions(test_list.options, args)
+    SetOptions(test_list, args)
     firmware_stress_generic.RunIn(args)
 
 

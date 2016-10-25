@@ -9,7 +9,7 @@ from cros.factory.utils import type_utils
 
 
 # Type of resources that can be used by plugins.
-RESOURCE = type_utils.Enum(['POWER'])
+RESOURCE = type_utils.Enum(['CPU', 'POWER'])
 
 
 class Plugin(object):

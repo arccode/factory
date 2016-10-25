@@ -59,7 +59,6 @@ from cros.factory.test.test_lists import test_lists
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
 from cros.factory.test.utils.core_dump_manager import CoreDumpManager
-from cros.factory.test.utils.cpufreq_manager import CpufreqManager
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -170,7 +169,6 @@ class Goofy(GoofyBase):
     self.visible_test = None
     self.chrome = None
     self.hooks = None
-    self.cpu_usage_watcher = None
     self.thermal_watcher = None
 
     self.options = None
@@ -189,7 +187,6 @@ class Goofy(GoofyBase):
     self.last_kick_sync_time = None
     self.exclusive_items = set()
     self.key_filter = None
-    self.cpufreq_manager = None
     self.status = Status.UNINITIALIZED
     self.ready_for_ui_connection = False
     self.link_manager = None
@@ -298,8 +295,6 @@ class Goofy(GoofyBase):
       logging.info('Closing event client')
       self.event_client.close()
       self.event_client = None
-    if self.cpufreq_manager:
-      self.cpufreq_manager.Stop()
     if self.event_log:
       self.event_log.Close()
       self.event_log = None
@@ -308,8 +303,6 @@ class Goofy(GoofyBase):
       self.testlog = None
     if self.key_filter:
       self.key_filter.Stop()
-    if self.cpu_usage_watcher:
-      self.cpu_usage_watcher.terminate()
     if self.thermal_watcher:
       self.thermal_watcher.terminate()
     if self.link_manager:
@@ -865,14 +858,6 @@ class Goofy(GoofyBase):
     if EXCL_OPT.NETWORKING in new_non_exclusive_items:
       logging.info('Re-enabling network')
       self.connection_manager.EnableNetworking()
-
-    if self.cpufreq_manager:
-      enabled = EXCL_OPT.CPUFREQ not in current_exclusive_items
-      try:
-        self.cpufreq_manager.SetEnabled(enabled)
-      except:  # pylint: disable=W0702
-        logging.exception('Unable to %s cpufreq services',
-                          'enable' if enabled else 'disable')
 
     self.exclusive_items = current_exclusive_items
 
@@ -1499,12 +1484,6 @@ class Goofy(GoofyBase):
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
       shopfloor.set_enabled(True)
 
-    if self.test_list.options.check_cpu_usage_period_secs:
-      self.cpu_usage_watcher = process_utils.Spawn(
-          ['py/tools/cpu_usage_monitor.py', '-p',
-           str(self.test_list.options.check_cpu_usage_period_secs)],
-          cwd=paths.FACTORY_PATH)
-
     # Enable thermal monitor
     if self.test_list.options.thermal_monitor_period_secs > 0:
       self.thermal_watcher = process_utils.Spawn(
@@ -1561,10 +1540,6 @@ class Goofy(GoofyBase):
 
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
-
-    if not sys_utils.InChroot() and self.test_list.options.use_cpufreq_manager:
-      logging.info('Enabling CPU frequency manager')
-      self.cpufreq_manager = CpufreqManager(event_log=self.event_log)
 
     # Startup hooks may want to skip some tests.
     self.update_skipped_tests()
