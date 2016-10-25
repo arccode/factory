@@ -17,7 +17,6 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import connection_manager
 from cros.factory.test import state
 from cros.factory.tools import chrome_debugger
 from cros.factory.utils import sync_utils
@@ -73,11 +72,6 @@ class Environment(object):
     """
     raise NotImplementedError()
 
-  def create_connection_manager(self, wlans, scan_wifi_period_secs,
-                                override_blacklisted_devices=None):
-    """Creates a ConnectionManager."""
-    raise NotImplementedError()
-
   def terminate(self):
     """Terminates and cleans up environment."""
     pass
@@ -94,7 +88,6 @@ class DUTEnvironment(Environment):
   def shutdown(self, operation):
     def prepare_shutdown():
       """Prepares for a clean shutdown."""
-      self.goofy.connection_manager.DisableNetworking()
       respawn_services = ['syslog',
                           'tcsd',
                           'shill',
@@ -157,12 +150,6 @@ class DUTEnvironment(Environment):
     sync_utils.WaitFor(self.has_sockets, 90)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
 
-  def create_connection_manager(self, wlans, scan_wifi_period_secs,
-                                override_blacklisted_devices=None):
-    return connection_manager.ConnectionManager(
-        wlans, scan_wifi_period_secs,
-        override_blacklisted_devices=override_blacklisted_devices)
-
 
 class FakeChrootEnvironment(Environment):
   """A chroot environment that doesn't actually shutdown or run autotests."""
@@ -190,7 +177,3 @@ class FakeChrootEnvironment(Environment):
                  'Please open UI presenter app in Chrome or '
                  'open http://localhost:%d/ in Chrome.',
                  state.DEFAULT_FACTORY_STATE_PORT)
-
-  def create_connection_manager(self, wlans, scan_wifi_period_secs,
-                                override_blacklisted_devices=None):
-    return connection_manager.DummyConnectionManager()

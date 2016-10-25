@@ -14,10 +14,6 @@ The method SetOptions controls the test list options used by goofy.
 """
 
 
-import hashlib
-import logging
-import glob
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists import generic_control_run
@@ -30,8 +26,6 @@ from cros.factory.test.test_lists import generic_smt
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import SamplingRate
 from cros.factory.test.test_lists.test_lists import TestList
-from cros.factory.utils.net_utils import WLAN
-from cros.factory.utils import sys_utils
 
 HOURS = 60 * 60
 MINUTES = 60
@@ -546,50 +540,6 @@ class TestListArgs(object):
               accessibility=accessibility))
 
 
-def SetWLANs(options):
-  """Sets options.wlans based on hash of mac_address.
-
-  options.wlans sets the availabe wireless networks. User can set one default
-  network ssid, security scheme, and passphrase e.g.
-  ssid=crosfactory, security=psk, passphrase=crosfactory.
-  To ease the burden of single AP, this method will further add one of
-  crosfactory2[01] and one of crosfactory4[0123] to options.wlans list based on
-  the hash result of mac address. It is encouraged to set the same security
-  scheme and passphrase on different APs. Otherwise user has to set
-  options.wlans properly in this function.
-
-  Args:
-    options: The options attribute of the TestList object to be constructed.
-      Note that it will be modified in-place in this method.
-  """
-  # Sets default network.
-  options.wlans = [WLAN(ssid='crosfactory',
-                        security='psk', passphrase='crosfactory')]
-  if sys_utils.InChroot():
-    # That's good enough!
-    return
-
-  # Choose another access point as a contingency plan in case the main
-  # access point gets overloaded.
-  try:
-    mac_address_candidate = glob.glob('/sys/class/net/*lan0/address')
-    mac_address = open(mac_address_candidate[0]).read().strip()
-    # pylint: disable=E1101
-    mac_hash = int(hashlib.md5(mac_address).hexdigest(), 16)
-    for ap_count in [2, 4]:
-      # Choose based on a hash of the MAC address.  (Don't use the MAC
-      # address directly since it may have certain bit patterns.)
-      ap_number = mac_hash % ap_count
-      wlan = WLAN(ssid=('crosfactory%d%d' % (ap_count, ap_number + 1)),
-                  security='psk', passphrase='crosfactory')
-      options.wlans.append(wlan)
-      logging.info('Setting WLAN to ssid=%r,security=%r, passphrase=%r',
-                   wlan.ssid, wlan.security, wlan.passphrase)
-  except:  # pylint: disable=W0702
-    # This shouldn't happen, but let's not prevent Goofy from starting up.
-    logging.exception('Unable to choose random WLAN access point')
-
-
 def SetOptions(options, args):
   """Sets test list options for goofy.
 
@@ -623,8 +573,6 @@ def SetOptions(options, args):
 
     # - Default to Chinese language
     options.ui_lang = 'zh'
-
-    SetWLANs(options)
 
     # Enable/Disable background event log syncing
     # Set to None or 0 to disable it.

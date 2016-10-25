@@ -15,7 +15,7 @@ from cros.factory.utils.net_utils import WLAN  # pylint: disable=W0611
 
 try:
   # pylint: disable=W0611
-  from cros.factory.goofy import flimflam_test_path
+  from cros.factory.test.utils import flimflam_test_path
   import dbus  # pylint: disable=F0401
   import flimflam  # pylint: disable=F0401
 except ImportError:
@@ -71,8 +71,8 @@ class ConnectionManager(object):
                network_manager=_DEFAULT_MANAGER,
                process_name=_DEFAULT_PROC_NAME,
                start_enabled=True,
-               depservices=list(_DEPSERVICE_LIST),
-               subservices=list(_SUBSERVICE_LIST),
+               depservices=None,
+               subservices=None,
                profile_path=_PROFILE_LOCATION,
                override_blacklisted_devices=None):
     '''Constructor.
@@ -100,6 +100,10 @@ class ConnectionManager(object):
                                     empty string (block nothing), or None
                                     (don't override).
     '''
+    if depservices is None:
+      depservices = _DEPSERVICE_LIST
+    if subservices is None:
+      subservices = _SUBSERVICE_LIST
     # Black hole for those useless outputs.
     self.fnull = open(os.devnull, 'w')
 

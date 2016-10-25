@@ -293,15 +293,6 @@ class Options(object):
   """
   _types['engineering_password_sha1'] = (type(None), str)
 
-  wlans = []
-  """WLANs that the connection manager may connect to."""
-
-  override_blacklisted_network_devices = None
-  """Override blacklisted network devices in the system.  On some boards, some
-  specific devices may be blacklisted by default, but we need to test those
-  devices as well.  This should be a list of strings (like ['eth0', 'wlan0']),
-  an empty list or empty string (blocks nothing), or None (don't override)."""
-
   sync_event_log_period_secs = None
   """Send events to the shopfloor server when it is reachable at this
   interval.  Set to ``None`` to disable."""
@@ -311,9 +302,6 @@ class Options(object):
   """Automatically check for updates at the given interval.  Set to
   ``None`` to disable."""
   _types['update_period_secs'] = (type(None), int)
-
-  scan_wifi_period_secs = 10
-  """Scan wireless networks at the given interval."""
 
   thermal_monitor_period_secs = 120.0
   """Dump thermal data at the given interval. Negative to disable."""
@@ -644,12 +632,9 @@ class FactoryTest(object):
   has_ui = False
 
   REPR_FIELDS = ['test_list_id', 'id', 'autotest_name', 'pytest_name', 'dargs',
-                 'dut_options', 'backgroundable', 'exclusive', 'never_fails',
+                 'dut_options', 'backgroundable', 'never_fails',
                  'enable_services', 'disable_services', 'no_host',
                  'exclusive_resources']
-
-  # Subsystems that the test may require exclusive access to.
-  EXCLUSIVE_OPTIONS = type_utils.Enum(['NETWORKING'])
 
   RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
 
@@ -670,7 +655,6 @@ class FactoryTest(object):
                no_host=False,
                never_fails=None,
                disable_abort=None,
-               exclusive=None,
                exclusive_resources=None,
                enable_services=None,
                disable_services=None,
@@ -707,10 +691,6 @@ class FactoryTest(object):
     self.force_background = force_background
     self.no_host = no_host
     self.waived = waived
-    if isinstance(exclusive, str):
-      self.exclusive = [exclusive]
-    else:
-      self.exclusive = exclusive or []
     if isinstance(exclusive_resources, str):
       self.exclusive_resources = [exclusive_resources]
     else:
@@ -808,10 +788,6 @@ class FactoryTest(object):
         # autotest_name is type_NameInCamelCase.
         self.label_en = self.autotest_name.partition('_')[2]
 
-    bogus_exclusive_items = set(self.exclusive) - self.EXCLUSIVE_OPTIONS
-    assert not bogus_exclusive_items, (
-        'In test %s, invalid exclusive options: %s (should be in %s)' %
-        (self.id, bogus_exclusive_items, self.EXCLUSIVE_OPTIONS))
     assert not ((backgroundable or force_background) and (
         enable_services or disable_services)), (
             'Test %s may not be backgroundable with enable_services or '
@@ -975,16 +951,6 @@ class FactoryTest(object):
   def get_top_level_tests(self):
     """Returns a list of top-level tests."""
     return [node for node in self.walk() if node.is_top_level_test()]
-
-  def is_exclusive(self, option):
-    """Returns true if the test or any parent is exclusive w.r.t. option.
-
-    Args:
-     option: A member of EXCLUSIVE_OPTIONS.
-    """
-    assert option in self.EXCLUSIVE_OPTIONS
-    return option in self.exclusive or (
-        self.parent and self.parent.is_exclusive(option))
 
   def get_exclusive_resources(self):
     """Returns a set of resources to be exclusively used."""

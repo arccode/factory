@@ -9,7 +9,7 @@
 Usage example::
 
   FactoryTest(
-      exclusive=['NETWORKING'],
+      exclusive=[plugin.RESOURCE.NETWORKING],
       id='LTEVerifyConfig',
       label_zh=u'确认 LTE 参数',
       pytest_name='lte_verify_config',

@@ -26,7 +26,7 @@ from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
 from cros.factory.test.test_lists.test_lists import TestList
 from cros.factory.utils import sys_utils
-from cros.factory.utils.net_utils import GetWLANInterface, WLAN
+from cros.factory.utils.net_utils import GetWLANInterface
 
 HOURS = 60 * 60
 MINUTES = 60
@@ -70,9 +70,6 @@ class TestListArgs(object):
   # Enable periodic ping test over WLAN connection during stress test.
   wlan_periodic_ping_test = True
   wlan_ping_host = '192.168.0.1'
-  wlan_ssid = 'crosfactory'
-  wlan_security = 'psk'
-  wlan_passphrase = 'crosfactory'
   wlan_ping_interval_secs = 10
   # Checks that ping success percentage is > 60% within the moving 20 pings.
   wlan_ping_success_percent = 60
@@ -242,12 +239,6 @@ def SetOptions(test_list, args):
 
   # Disable CPUFreqManager
   test_list.exclusive_resources = [plugin.RESOURCE.CPU]
-
-  if args.wlan_periodic_ping_test:
-    # Sets default network.
-    options.wlans = [WLAN(ssid=args.wlan_ssid,
-                          security=args.wlan_security,
-                          passphrase=args.wlan_passphrase)]
 
   if args.factory_environment:
     # echo -n 'passwordgoeshere' | sha1sum

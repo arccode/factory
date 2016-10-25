@@ -31,7 +31,6 @@ from cros.factory.goofy import goofy
 from cros.factory.test import factory
 from cros.factory.test import state
 
-from cros.factory.goofy.connection_manager import ConnectionManager
 from cros.factory.goofy.goofy import Goofy
 from cros.factory.goofy.prespawner import PytestPrespawner
 from cros.factory.goofy.test_environment import Environment
@@ -153,8 +152,6 @@ class GoofyTest(unittest.TestCase):
   """Base class for Goofy test cases."""
   options = ''
   ui = 'none'
-  expected_create_connection_manager_args = (
-      [], factory.Options.scan_wifi_period_secs, None)
   test_list = None  # Overridden by subclasses
 
   def setUp(self):
@@ -170,10 +167,6 @@ class GoofyTest(unittest.TestCase):
     self.mocker = mox.Mox()
     self.env = self.mocker.CreateMock(Environment)
     self.state = state.get_instance()
-    self.connection_manager = self.mocker.CreateMock(ConnectionManager)
-    self.env.create_connection_manager(
-        *self.expected_create_connection_manager_args).AndReturn(
-            self.connection_manager)
     self.before_init_goofy()
     self.mocker.ReplayAll()
     self.goofy = init_goofy(self.env, self.test_list, self.options,
@@ -394,9 +387,6 @@ class ShutdownTest(GoofyTest):
     # Goofy should call for another shutdown.
     for _ in range(2):
       self.mocker.ResetAll()
-      self.env.create_connection_manager(
-          [], factory.Options.scan_wifi_period_secs, None).AndReturn(
-              self.connection_manager)
       # Goofy should invoke shutdown test to do post-shutdown verification.
       mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.PASSED, '')
       # Goofy should invoke shutdown again to start next iteration.
@@ -411,9 +401,6 @@ class ShutdownTest(GoofyTest):
 
     # The third shutdown iteration.
     self.mocker.ResetAll()
-    self.env.create_connection_manager(
-        [], factory.Options.scan_wifi_period_secs, None).AndReturn(
-            self.connection_manager)
     # Goofy should invoke shutdown test to do post-shutdown verification.
     mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.PASSED, '')
     self.mocker.ReplayAll()
@@ -460,9 +447,6 @@ class RebootFailureTest(GoofyTest):
     self.goofy.destroy()
 
     self.mocker.ResetAll()
-    self.env.create_connection_manager(
-        [], factory.Options.scan_wifi_period_secs, None).AndReturn(
-            self.connection_manager)
     # Mock a failed shutdown post-shutdown verification.
     mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.FAILED,
                 'Reboot failed.')
@@ -599,37 +583,6 @@ class MultipleIterationsTest(GoofyTest):
                         setup_mocks=False, expected_count=2)
 
     self.check_one_test('d', 'd_D', True, '')
-    self.mockAnything.VerifyAll()
-
-
-class ConnectionManagerTest(GoofyTest):
-  """Tests connection manager."""
-  options = """
-    options.wlans = [WLAN('foo', 'psk', 'bar')]
-  """
-  test_list = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A'),
-    with test_lists.TestGroup(id='b', exclusive='NETWORKING'):
-      test_lists.OperatorTest(id='b1', autotest_name='b_B1')
-      test_lists.OperatorTest(id='b2', autotest_name='b_B2')
-    test_lists.OperatorTest(id='c', autotest_name='c_C'),
-  """
-  expected_create_connection_manager_args = (
-      mox.Func(lambda arg: (
-          len(arg) == 1 and
-          arg[0].__dict__ == dict(ssid='foo', security='psk',
-                                  passphrase='bar'))),
-      factory.Options.scan_wifi_period_secs,
-      None)
-
-  def runTest(self):
-    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
-    self.check_one_test('a', 'a_A', True, '')
-    self.connection_manager.DisableNetworking()
-    self.check_one_test('b.b1', 'b_B1', False, 'Uh-oh')
-    self.check_one_test('b.b2', 'b_B2', False, 'Uh-oh')
-    self.connection_manager.EnableNetworking()
-    self.check_one_test('c', 'c_C', True, '')
     self.mockAnything.VerifyAll()
 
 

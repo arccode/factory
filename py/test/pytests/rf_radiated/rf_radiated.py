@@ -22,7 +22,7 @@ Usage example::
 
   FactoryTest(
       id='WiFiRadiated',
-      exclusive=['NETWORKING'],
+      exclusive_resources=[plugin.RESOURCE.NETWORK],
       label_en='WiFi Radiated',
       label_zh=u'WiFi 发送测试',
       pytest_name='wifi_radiated',
@@ -37,7 +37,7 @@ Usage example::
 
   FactoryTest(
       id='LTERadiated',
-      exclusive=['NETWORKING'],
+      exclusive_resources=[plugin.RESOURCE.NETWORK],
       label_en='LTE Radiated',
       label_zh=u'LTE 发送测试',
       run_if='device_data.component.has_lte',

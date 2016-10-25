@@ -14,6 +14,7 @@ This file implements FATP method to create FATP test list.
 
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -239,7 +240,7 @@ def FATP(args):
     # User should replace services in dargs with a list of available tuples
     # (ssid, password) if there is no 'line' in device_data.
     OperatorTest(
-        exclusive=['NETWORKING'],
+        exclusive_resources=[plugin.RESOURCE.NETWORK],
         id='WirelessConnection',
         label_zh=u'无线测试',
         pytest_name='wireless',
@@ -256,7 +257,7 @@ def FATP(args):
       # DUT will switch antenna and scan for different AP based on 'line'
       # in device_data.
       OperatorTest(
-          exclusive=['NETWORKING'],
+          exclusive_resources=[plugin.RESOURCE.NETWORK],
           id='WirelessRSSI',
           label_zh=u'天線',
           pytest_name='wireless_antenna',
@@ -294,7 +295,7 @@ def FATP(args):
       # For 3G model only. Checks Received signal strength indication (RSSI)
       # for cellular module.
       OperatorTest(
-          exclusive=['NETWORKING'],
+          exclusive_resources=[plugin.RESOURCE.NETWORK],
           id='CellularRSSI',
           label_zh=u'3G 信号接收强度',
           pytest_name='cellular_gobi_rssi',
@@ -308,7 +309,7 @@ def FATP(args):
       # For LTE model only. Checks Received signal strength indication (RSSI)
       # for LTE module.
       OperatorTest(
-          exclusive=['NETWORKING'],
+          exclusive_resources=[plugin.RESOURCE.NETWORK],
           id='LTERSSI',
           label_zh=u'LTE 信号接收强度',
           pytest_name='lte_rssi',
@@ -333,7 +334,7 @@ def FATP(args):
 
     # For LTE model only. Writes parameters to LTE module.
     OperatorTest(
-        exclusive=['NETWORKING'],
+        exclusive_resources=[plugin.RESOURCE.NETWORK],
         id='WriteLTEChromebookSpecificParameters',
         label_zh=u'写入 LTE Chromebook 特有参数',
         label_en='WriteLTEChromebookSpecificParameters',
@@ -450,7 +451,7 @@ def FATP(args):
         # WiFi model or LTE model.
         # Checks radiated signal strength for WiFi using RF fixture.
         OperatorTest(
-            exclusive=['NETWORKING'],
+            exclusive_resources=[plugin.RESOURCE.NETWORK],
             id='WifiRadiated',
             label_zh=u'WiFi 信号发送强度',
             pytest_name='radiated_wifi',
@@ -473,7 +474,7 @@ def FATP(args):
         # 3G model only. Checks radiated signal strength for WiFi and cellular
         # using RF fixture.
         OperatorTest(
-            exclusive=['NETWORKING'],
+            exclusive_resources=[plugin.RESOURCE.NETWORK],
             id='ComboRadiated',
             label_zh=u'WiFi 及 3G 信号发送强度',
             pytest_name='radiated_combo',
@@ -503,7 +504,7 @@ def FATP(args):
         # using RF fixture. Note that we call it lte_fixture but it is
         # actually using RF fixture to test LTE signal.
         OperatorTest(
-            exclusive=['NETWORKING'],
+            exclusive_resources=[plugin.RESOURCE.NETWORK],
             id='LTERadiated',
             label_en='LTERadiated',
             label_zh=u'LTE 信号发送强度',

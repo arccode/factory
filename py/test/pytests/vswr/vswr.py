@@ -44,16 +44,16 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
-from cros.factory.goofy.connection_manager import PingHost
 from cros.factory.test.event import Event
-from cros.factory.test.factory import TestState
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.factory import TestState
 from cros.factory.test import rf
+from cros.factory.test.rf.e5071c_scpi import ENASCPI
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
-from cros.factory.test.rf.e5071c_scpi import ENASCPI
+from cros.factory.test.utils.connection_manager import PingHost
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.net_utils import FindUsableEthDevice
 

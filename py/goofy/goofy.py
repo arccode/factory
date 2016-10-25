@@ -26,7 +26,6 @@ from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
-from cros.factory.goofy import connection_manager
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy.invocation import TestArgEnv
@@ -115,7 +114,6 @@ class Goofy(GoofyBase):
     event_server: The EventServer socket server.
     event_server_thread: A thread running event_server.
     event_client: A client to the event server.
-    connection_manager: The connection_manager object.
     system_log_manager: The SystemLogManager object.
     core_dump_manager: The CoreDumpManager object.
     plugin_controller: The PluginController object.
@@ -152,7 +150,6 @@ class Goofy(GoofyBase):
     self.event_server = None
     self.event_server_thread = None
     self.event_client = None
-    self.connection_manager = None
     self.log_watcher = None
     self.system_log_manager = None
     self.core_dump_manager = None
@@ -185,7 +182,6 @@ class Goofy(GoofyBase):
     self._suppress_event_log_error_messages = False
     self.last_sync_time = None
     self.last_kick_sync_time = None
-    self.exclusive_items = set()
     self.key_filter = None
     self.status = Status.UNINITIALIZED
     self.ready_for_ui_connection = False
@@ -837,29 +833,8 @@ class Goofy(GoofyBase):
     self.invocations[test] = invoc
     if self.visible_test is None and test.has_ui:
       self.set_visible_test(test)
-    self.check_exclusive()
     self.check_plugins()
     invoc.start()
-
-  def check_exclusive(self):
-    # alias since this is really long
-    EXCL_OPT = factory.FactoryTest.EXCLUSIVE_OPTIONS
-
-    current_exclusive_items = set([
-        item for item in EXCL_OPT
-        if any([test.is_exclusive(item) for test in self.invocations])])
-
-    new_exclusive_items = current_exclusive_items - self.exclusive_items
-    if EXCL_OPT.NETWORKING in new_exclusive_items:
-      logging.info('Disabling network')
-      self.connection_manager.DisableNetworking()
-
-    new_non_exclusive_items = self.exclusive_items - current_exclusive_items
-    if EXCL_OPT.NETWORKING in new_non_exclusive_items:
-      logging.info('Re-enabling network')
-      self.connection_manager.EnableNetworking()
-
-    self.exclusive_items = current_exclusive_items
 
   def check_plugins(self):
     """Check plugins to be paused or resumed."""
@@ -1321,8 +1296,6 @@ class Goofy(GoofyBase):
                       help='Use test list whose id is TEST_LIST_ID')
     parser.add_option('--dummy_shopfloor', action='store_true',
                       help='Use a dummy shopfloor server')
-    parser.add_option('--dummy_connection_manager', action='store_true',
-                      help='Use a dummy connection manager')
     parser.add_option('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
                       default='none', help='Factory test automation mode.')
@@ -1501,16 +1474,6 @@ class Goofy(GoofyBase):
         self.test_list.options.plugin_config_name, self)
     self.plugin_controller.StartAllPlugins()
 
-    if self.options.dummy_connection_manager:
-      # Override network manager creation to dummy implmenetation.
-      logging.info('Using dummy network manager (--dummy_connection_manager).')
-      self.connection_manager = connection_manager.DummyConnectionManager()
-    else:
-      self.connection_manager = self.env.create_connection_manager(
-          self.test_list.options.wlans,
-          self.test_list.options.scan_wifi_period_secs,
-          self.test_list.options.override_blacklisted_network_devices)
-
     # Note that we create a log watcher even if
     # sync_event_log_period_secs isn't set (no background
     # syncing), since we may use it to flush event logs as well.
@@ -1658,7 +1621,6 @@ class Goofy(GoofyBase):
     """
     super(Goofy, self).perform_periodic_tasks()
 
-    self.check_exclusive()
     self.check_plugins()
     self.check_for_updates()
     self.check_core_dump()

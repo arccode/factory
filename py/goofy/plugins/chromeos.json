@@ -38,6 +38,25 @@
     },
     {
       "name": "cpu_freq_manager"
+    },
+    {
+      "name": "connection_manager",
+      "args": {
+        "wlans": [
+          {
+            "ssid": "crosfactory20",
+            "security": "psk",
+            "passphrase": "crosfactory"
+          },
+          {
+            "ssid": "crosfactory21",
+            "security": "psk",
+            "passphrase": "crosfactory"
+          }
+        ],
+        "shuffle_wlans": true,
+        "scan_wifi_periods_secs": 10
+      }
     }
   ]
 }

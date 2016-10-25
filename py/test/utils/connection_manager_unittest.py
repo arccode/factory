@@ -12,7 +12,7 @@ import subprocess
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import connection_manager
+from cros.factory.test.utils import connection_manager
 from cros.factory.utils.net_utils import WLAN
 
 

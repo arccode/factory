@@ -121,9 +121,9 @@ def FactoryTest(*args, **kwargs):
       untested state.
     disable_abort: True if the test can not be aborted
       while it is running.
-    exclusive: Items that the test may require exclusive access to.
-      May be a list or a single string. Items must all be in
-      EXCLUSIVE_OPTIONS. Tests may not be backgroundable.
+    exclusive_resources: Resources that the test may require exclusive access
+      to. May be a list or a single string. Items must all be in
+      `cros.factory.goofy.plugins.plugin.RESOURCE`.
     enable_services: Services to enable for the test to run correctly.
     disable_services: Services to disable for the test to run correctly.
     _default_id: A default ID to use if no ID is specified.
@@ -179,7 +179,7 @@ def AutomatedSequence(*args, **kwargs):
 
 
 def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False,
-              dut_options=None, exclusive=None):
+              dut_options=None, exclusive_resources=None):
   # pylint: disable=W0622
   """Adds a test group to the current test list.
 
@@ -207,7 +207,7 @@ def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False,
   return Add(factory.TestGroup(id=id, label_en=label_en, label_zh=label_zh,
                                run_if=run_if, no_host=no_host,
                                dut_options=(dut_options or {}),
-                               exclusive=exclusive))
+                               exclusive_resources=exclusive_resources))
 
 
 def OperatorTest(*args, **kwargs):
