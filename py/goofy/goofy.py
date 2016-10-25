@@ -166,7 +166,6 @@ class Goofy(GoofyBase):
     self.visible_test = None
     self.chrome = None
     self.hooks = None
-    self.thermal_watcher = None
 
     self.options = None
     self.args = None
@@ -299,8 +298,6 @@ class Goofy(GoofyBase):
       self.testlog = None
     if self.key_filter:
       self.key_filter.Stop()
-    if self.thermal_watcher:
-      self.thermal_watcher.terminate()
     if self.link_manager:
       self.link_manager.Stop()
       self.link_manager = None
@@ -1456,14 +1453,6 @@ class Goofy(GoofyBase):
     elif self.test_list.options.shopfloor_server_url:
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
       shopfloor.set_enabled(True)
-
-    # Enable thermal monitor
-    if self.test_list.options.thermal_monitor_period_secs > 0:
-      self.thermal_watcher = process_utils.Spawn(
-          ['py/tools/thermal_monitor.py',
-           '-p', str(self.test_list.options.thermal_monitor_period_secs),
-           '-d', str(self.test_list.options.thermal_monitor_delta)],
-          cwd=paths.FACTORY_PATH)
 
     self.init_states()
     self.start_event_server()

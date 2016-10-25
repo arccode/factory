@@ -57,6 +57,13 @@
         "shuffle_wlans": true,
         "scan_wifi_periods_secs": 10
       }
+    },
+    {
+      "name": "thermal_monitor",
+      "args": {
+        "period_secs": 120,
+        "delta_threshold": 1.1
+      }
     }
   ]
 }
