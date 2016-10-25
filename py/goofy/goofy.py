@@ -49,7 +49,6 @@ from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
 from cros.factory.test import event_log
 from cros.factory.test.event_log import EventLog
-from cros.factory.test.event_log import FloatDigit
 from cros.factory.test.event_log import GetBootSequence
 from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test import factory
@@ -63,7 +62,6 @@ from cros.factory.test import testlog_goofy
 from cros.factory.test.utils.charge_manager import ChargeManager
 from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
-from cros.factory.tools import disk_space
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -141,8 +139,6 @@ class Goofy(GoofyBase):
     event_handlers: Map of Event.Type to the method used to handle that
       event.  If the method has an 'event' argument, the event is passed
       to the handler.
-    last_log_disk_space_message: The last message we logged about disk space
-      (to avoid duplication).
     last_kick_sync_time: The last time to kick system_log_manager to sync
       because of core dump files (to avoid kicking too soon then abort the
       sync.)
@@ -197,8 +193,6 @@ class Goofy(GoofyBase):
     self._suppress_periodic_update_messages = False
     self._suppress_event_log_error_messages = False
     self.last_sync_time = None
-    self.last_log_disk_space_time = None
-    self.last_log_disk_space_message = None
     self.last_check_battery_time = None
     self.last_check_battery_message = None
     self.last_kick_sync_time = None
@@ -1686,70 +1680,6 @@ class Goofy(GoofyBase):
           caps_lock_keycode=test_options.caps_lock_keycode)
       self.key_filter.Start()
 
-  def log_disk_space_stats(self):
-    if (sys_utils.InChroot() or
-        not self.test_list.options.log_disk_space_period_secs):
-      return
-
-    now = time.time()
-    if (self.last_log_disk_space_time and
-        now - self.last_log_disk_space_time <
-        self.test_list.options.log_disk_space_period_secs):
-      return
-    self.last_log_disk_space_time = now
-
-    # Upload event if stateful partition usage is above threshold.
-    # Stateful partition is mounted on /usr/local, while
-    # encrypted stateful partition is mounted on /var.
-    # If there are too much logs in the factory process,
-    # these two partitions might get full.
-    try:
-      vfs_infos = disk_space.GetAllVFSInfo()
-      stateful_info, encrypted_info = None, None
-      for vfs_info in vfs_infos.values():
-        if '/usr/local' in vfs_info.mount_points:
-          stateful_info = vfs_info
-        if '/var' in vfs_info.mount_points:
-          encrypted_info = vfs_info
-
-      stateful = disk_space.GetPartitionUsage(stateful_info)
-      encrypted = disk_space.GetPartitionUsage(encrypted_info)
-
-      above_threshold = (
-          self.test_list.options.stateful_usage_threshold and
-          max(stateful.bytes_used_pct,
-              stateful.inodes_used_pct,
-              encrypted.bytes_used_pct,
-              encrypted.inodes_used_pct) >
-          self.test_list.options.stateful_usage_threshold)
-
-      if above_threshold:
-        self.event_log.Log('stateful_partition_usage',
-                           partitions={
-                               'stateful': {
-                                   'bytes_used_pct': FloatDigit(stateful.bytes_used_pct, 2),
-                                   'inodes_used_pct': FloatDigit(stateful.inodes_used_pct, 2)},
-                               'encrypted_stateful': {
-                                   'bytes_used_pct': FloatDigit(encrypted.bytes_used_pct, 2),
-                                   'inodes_used_pct': FloatDigit(encrypted.inodes_used_pct, 2)}
-                           })
-        self.log_watcher.KickWatchThread()
-        if (not sys_utils.InChroot() and
-            self.test_list.options.stateful_usage_above_threshold_action):
-          process_utils.Spawn(
-              self.test_list.options.stateful_usage_above_threshold_action,
-              call=True)
-
-      message = disk_space.FormatSpaceUsedAll(vfs_infos)
-      if message != self.last_log_disk_space_message:
-        if above_threshold:
-          logging.warning(message)
-        else:
-          logging.info(message)
-        self.last_log_disk_space_message = message
-    except:  # pylint: disable=W0702
-      logging.exception('Unable to get disk space used')
-
   def check_battery(self):
     """Checks the current battery status.
 
@@ -1872,7 +1802,6 @@ class Goofy(GoofyBase):
     self.check_exclusive()
     self.check_plugins()
     self.check_for_updates()
-    self.log_disk_space_stats()
     self.check_battery()
     self.check_core_dump()
     self.check_log_rotation()

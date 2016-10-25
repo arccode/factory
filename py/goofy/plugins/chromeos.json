@@ -6,6 +6,13 @@
         "base_time_files": ["/usr/local/etc/lsb-factory",
                             "/etc/lsb-release"]
       }
+    },
+    {
+      "name": "disk_monitor",
+      "args": {
+        "period_secs": 120,
+        "stateful_usage_threshold": 90
+      }
     }
   ]
 }

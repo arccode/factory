@@ -644,11 +644,9 @@ def SetOptions(options, args):
     options.sync_log_period_secs = 10 * MINUTES
     options.scan_log_period_secs = 2 * MINUTES
     options.core_dump_watchlist = []
-    options.log_disk_space_period_secs = 2 * MINUTES
     options.check_battery_period_secs = 2 * MINUTES
     options.warning_low_battery_pct = 10
     options.critical_low_battery_pct = 5
-    options.stateful_usage_threshold = 90
 
 
 def CreateGenericTestList():

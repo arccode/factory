@@ -325,10 +325,6 @@ class Options(object):
   """Timeout when talking to shopfloor server for background
   operations."""
 
-  log_disk_space_period_secs = 120
-  """Interval at which to log disk usage stats."""
-  _types['log_disk_space_period_secs'] = (type(None), int)
-
   check_battery_period_secs = 120
   """Interval at which to check battery status."""
   _types['check_battery_period_secs'] = (type(None), int)
@@ -398,21 +394,6 @@ class Options(object):
   kick_sync_min_interval_secs = 120
   """The minimum interval between two kick syncs due to core dump files."""
   _types['kick_sync_min_interval_secs'] = int
-
-  stateful_usage_threshold = None
-  """Upload stateful partition disk usage stats to shopfloor server if
-  stateful partition disk usage is above threshold.  Checks bytes
-  usage and inodes usage of /dev/mmcblk0p1 (or /dev/sda1) and
-  /dev/mapper/encstateful.  The checking period is the same as
-  :py:attr:`cros.factory.test.factory.Options.log_disk_space_period_secs`."""
-  _types['stateful_usage_threshold'] = (type(None), int)
-
-  stateful_usage_above_threshold_action = None
-  """The action to perform when stateful partition disk usage is above
-  the threshold specified by
-  :py:attr:`cros.factory.test.factory.Options.stateful_usage_threshold`.
-  The list will be passed to ``Spawn()`` as the first argument."""
-  _types['stateful_usage_above_threshold_action'] = (type(None), list)
 
   enable_charge_manager = True
   """Whether to enable the charge manager."""

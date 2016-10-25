@@ -335,11 +335,9 @@ def SetOptions(options, args):
     options.clear_log_paths += [
         '/var/spool/crash/shill.*',
     ]
-    options.log_disk_space_period_secs = 2 * MINUTES
     options.check_battery_period_secs = 2 * MINUTES
     options.warning_low_battery_pct = 10
     options.critical_low_battery_pct = 5
-    options.stateful_usage_threshold = 90
 
 
 def CreateFirmwareStressSmallTestList():

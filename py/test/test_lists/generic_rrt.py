@@ -282,11 +282,9 @@ def SetOptions(options, args):
     options.enable_sync_log = args.enable_sync_log
     options.sync_log_period_secs = 5 * MINUTES
     options.core_dump_watchlist = []
-    options.log_disk_space_period_secs = 2 * MINUTES
     options.check_battery_period_secs = 2 * MINUTES
     options.warning_low_battery_pct = 10
     options.critical_low_battery_pct = 5
-    options.stateful_usage_threshold = 90
 
 
 def Barrier(id_suffix='', pass_without_prompt=False,
