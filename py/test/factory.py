@@ -307,52 +307,6 @@ class Options(object):
   """Timeout when talking to shopfloor server for background
   operations."""
 
-  scan_log_period_secs = 120
-  """Time interval to scan system logs. A scan includes clearing logs
-  in clear_log_paths and optionally syncing logs in sync_log_paths
-  to shopfloor server if enable_sync_log is True and the time difference
-  between this scan and last syncing event is greater than
-  sync_log_period_secs.
-  """
-  _types['scan_log_period_secs'] = (int)
-
-  clear_log_paths = [
-      '/var/log/connectivity.log',
-      '/var/log/connectivity.bak',
-      '/var/log/net.log',
-      '/var/log/net.*.log',
-      '/var/log/messages*']
-  """A list of log files to remove periodically."""
-
-  clear_log_excluded_paths = ['/var/log/messages', '/var/log/messages.[12]']
-  """A list of log files which will be excluded from clearing periodically."""
-
-  sync_log_period_secs = None
-  """Time interval to sync system logs in background. Set it to None to disable
-  log syncing in background.
-  """
-  _types['sync_log_period_secs'] = (type(None), int)
-
-  enable_sync_log = False
-  """Sync system logs to the shopfloor server in foreground."""
-
-  sync_log_paths = [
-      '/var/factory/log/',
-      '/var/log/messages',
-      '/var/log/Xorg.0.log',
-      '/var/log/bios_info.txt',
-      '/var/log/ec_info.txt']
-  """The list of log files to sync periodically."""
-  _types['sync_log_paths'] = list
-
-  core_dump_watchlist = None
-  """The list of core dump pattern to watch for."""
-  _types['core_dump_watchlist'] = (type(None), list)
-
-  kick_sync_min_interval_secs = 120
-  """The minimum interval between two kick syncs due to core dump files."""
-  _types['kick_sync_min_interval_secs'] = int
-
   shopfloor_server_url = None
   """The shopfloor server URL."""
   _types['shopfloor_server_url'] = (type(None), str)

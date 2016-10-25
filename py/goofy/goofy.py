@@ -33,7 +33,6 @@ from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.plugins import plugin_controller
 from cros.factory.goofy import prespawner
-from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import updater
@@ -57,7 +56,6 @@ from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
-from cros.factory.test.utils.core_dump_manager import CoreDumpManager
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -114,8 +112,6 @@ class Goofy(GoofyBase):
     event_server: The EventServer socket server.
     event_server_thread: A thread running event_server.
     event_client: A client to the event server.
-    system_log_manager: The SystemLogManager object.
-    core_dump_manager: The CoreDumpManager object.
     plugin_controller: The PluginController object.
     ui_process: The factory ui process object.
     invocations: A map from FactoryTest objects to the corresponding
@@ -131,9 +127,6 @@ class Goofy(GoofyBase):
     event_handlers: Map of Event.Type to the method used to handle that
       event.  If the method has an 'event' argument, the event is passed
       to the handler.
-    last_kick_sync_time: The last time to kick system_log_manager to sync
-      because of core dump files (to avoid kicking too soon then abort the
-      sync.)
     hooks: A Hooks object containing hooks for various Goofy actions.
     status: The current Goofy status (a member of the Status enum).
     link_manager: Instance of PresenterLinkManager for communicating
@@ -151,8 +144,6 @@ class Goofy(GoofyBase):
     self.event_server_thread = None
     self.event_client = None
     self.log_watcher = None
-    self.system_log_manager = None
-    self.core_dump_manager = None
     self.event_log = None
     self.testlog = None
     self.autotest_prespawner = None
@@ -179,8 +170,7 @@ class Goofy(GoofyBase):
     self.last_update_check = None
     self._suppress_periodic_update_messages = False
     self._suppress_event_log_error_messages = False
-    self.last_sync_time = None
-    self.last_kick_sync_time = None
+    self.exclusive_resources = set()
     self.key_filter = None
     self.status = Status.UNINITIALIZED
     self.ready_for_ui_connection = False
@@ -274,10 +264,6 @@ class Goofy(GoofyBase):
       if self.log_watcher.IsThreadStarted():
         self.log_watcher.StopWatchThread()
       self.log_watcher = None
-    if self.system_log_manager:
-      if self.system_log_manager.IsThreadRunning():
-        self.system_log_manager.Stop()
-      self.system_log_manager = None
     if self.autotest_prespawner:
       logging.info('Stopping autotest prespawner')
       self.autotest_prespawner.stop()
@@ -1440,22 +1426,7 @@ class Goofy(GoofyBase):
     if self.test_list.options.sync_event_log_period_secs:
       self.log_watcher.StartWatchThread()
 
-    # Creates a system log manager to scan logs periocially.
-    # A scan includes clearing logs and optionally syncing logs if
-    # enable_syng_log is True. We kick it to sync logs.
-    self.system_log_manager = SystemLogManager(
-        sync_log_paths=self.test_list.options.sync_log_paths,
-        sync_log_period_secs=self.test_list.options.sync_log_period_secs,
-        scan_log_period_secs=self.test_list.options.scan_log_period_secs,
-        clear_log_paths=self.test_list.options.clear_log_paths,
-        clear_log_excluded_paths=self.test_list.options.clear_log_excluded_paths)
-    self.system_log_manager.Start()
-
     self.update_system_info()
-
-    if CoreDumpManager.CoreDumpEnabled():
-      self.core_dump_manager = CoreDumpManager(
-          self.test_list.options.core_dump_watchlist)
 
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
@@ -1522,32 +1493,6 @@ class Goofy(GoofyBase):
           caps_lock_keycode=test_options.caps_lock_keycode)
       self.key_filter.Start()
 
-  def check_core_dump(self):
-    """Checks if there is any core dumped file.
-
-    Removes unwanted core dump files immediately.
-    Syncs those files matching watch list to server with a delay between
-    each sync. After the files have been synced to server, deletes the files.
-    """
-    if not self.core_dump_manager:
-      return
-    core_dump_files = self.core_dump_manager.ScanFiles()
-    if core_dump_files:
-      now = time.time()
-      if (self.last_kick_sync_time and now - self.last_kick_sync_time <
-          self.test_list.options.kick_sync_min_interval_secs):
-        return
-      self.last_kick_sync_time = now
-
-      # Sends event to server
-      self.event_log.Log('core_dumped', files=core_dump_files)
-      self.log_watcher.KickWatchThread()
-
-      # Syncs files to server
-      if self.test_list.options.enable_sync_log:
-        self.system_log_manager.KickToSync(
-            core_dump_files, self.core_dump_manager.ClearFiles)
-
   def check_log_rotation(self):
     """Checks log rotation file presence/absence according to test_list option.
 
@@ -1579,7 +1524,6 @@ class Goofy(GoofyBase):
 
     self.check_plugins()
     self.check_for_updates()
-    self.check_core_dump()
     self.check_log_rotation()
 
   def handle_event_logs(self, chunks, periodic=False):

@@ -73,10 +73,11 @@ class BatteryMonitor(periodic_plugin.PeriodicPlugin):
                                    charger_connected=ac_present,
                                    critical=critical_low_battery)
           self.goofy.log_watcher.KickWatchThread()
-          # TODO (shunhsingou): remove following code after moving
-          # system_log_manager into Goofy plugin.
-          if self.goofy.test_list.options.enable_sync_log:
-            self.goofy.system_log_manager.KickToSync()
+
+          system_log_manager = self.goofy.plugin_controller.GetPluginInstance(
+              'system_log_manager')
+          if system_log_manager:
+            system_log_manager.KickToSync()
     except Exception:
       logging.exception('Unable to check battery or notify shopfloor')
     finally:

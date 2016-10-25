@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -16,6 +16,7 @@ from collections import namedtuple
 from urlparse import urlparse
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy.plugins import plugin
 from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.utils.debug_utils import CatchException
@@ -33,7 +34,7 @@ class SystemLogManagerException(Exception):
   pass
 
 
-class SystemLogManager(object):
+class SystemLogManager(plugin.Plugin):
   """The manager that takes care of system log files.
 
   Properties set from __init__ arguments:
@@ -56,6 +57,8 @@ class SystemLogManager(object):
                      '/var/log/messages.2'], then SystemLogManager will
       preserve these files while they match '/var/log/messages*' in
       clear_log_paths.
+    enable_foreground_sync: A boolean flag to indicate if user can run
+      `KickToSync()` to request sync explicitly.
 
   Other properties:
     main_thread: The thread that scans logs periodically.
@@ -63,10 +66,11 @@ class SystemLogManager(object):
     queue: The queue to store all the sync requests.
   """
 
-  def __init__(self, sync_log_paths, sync_log_period_secs=300,
+  def __init__(self, goofy, sync_log_paths, sync_log_period_secs=300,
                scan_log_period_secs=120, shopfloor_timeout=5,
                rsync_io_timeout=20, polling_period=1, clear_log_paths=None,
-               clear_log_excluded_paths=None):
+               clear_log_excluded_paths=None, enable_foreground_sync=True):
+    super(SystemLogManager, self).__init__(goofy)
     self._sync_log_paths = sync_log_paths
     self._sync_log_period_secs = sync_log_period_secs
     self._scan_log_period_secs = scan_log_period_secs
@@ -76,6 +80,7 @@ class SystemLogManager(object):
     self._clear_log_paths = clear_log_paths if clear_log_paths else []
     self._clear_log_excluded_paths = (
         clear_log_excluded_paths if clear_log_excluded_paths else [])
+    self.enable_foreground_sync = enable_foreground_sync
 
     self._main_thread = None
     self._aborted = threading.Event()
@@ -140,6 +145,8 @@ class SystemLogManager(object):
     Raises:
       SystemLogManagerException: If thread is not running.
     """
+    if not self.enable_foreground_sync:
+      return
     if not self.IsThreadRunning():
       raise SystemLogManagerException('Thread is not running.')
     if extra_files is None:
@@ -147,7 +154,7 @@ class SystemLogManager(object):
     self._queue.put(KickRequest(extra_files, callback, False))
     logging.debug('Puts extra_files: %r.', extra_files)
 
-  def Start(self):
+  def OnStart(self):
     """Starts SystemLogManager _main_thread with _RunForever method."""
     logging.info('Start SystemLogManager thread.')
     self._ClearLogs()
@@ -155,14 +162,8 @@ class SystemLogManager(object):
                                          name='SystemLogManager')
     self._main_thread.start()
 
-  def Stop(self):
-    """Stops SystemLogManager _main_thread.
-
-    Raises:
-      SystemLogManagerException: If thread is not running.
-    """
-    if not self.IsThreadRunning():
-      raise SystemLogManagerException('Thread is not running.')
+  def OnStop(self):
+    """Stops SystemLogManager _main_thread."""
     logging.debug('Sets aborted event to SystemLogManager main thread.')
     self._aborted.set()
     # Puts a request to kick _main_thread.

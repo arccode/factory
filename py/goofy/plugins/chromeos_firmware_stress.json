@@ -81,7 +81,8 @@
           "/var/log/connectivity.bak",
           "/var/log/net.log",
           "/var/log/net.*.log",
-          "/var/log/messages*"],
+          "/var/log/messages*",
+          "/var/spool/crash/shill.*"],
         "clear_log_excluded_paths": [
           "/var/log/messages", "/var/log/messages.[12]"],
         "enable_foreground_sync": true

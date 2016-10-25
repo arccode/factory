@@ -586,9 +586,6 @@ def SetOptions(options, args):
     options.disable_cros_shortcut_keys = True
 
     # Enable/Disable system log syncing
-    options.enable_sync_log = True
-    options.sync_log_period_secs = 10 * MINUTES
-    options.scan_log_period_secs = 2 * MINUTES
     options.core_dump_watchlist = []
 
 

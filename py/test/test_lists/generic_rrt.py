@@ -47,9 +47,6 @@ class TestListArgs(object):
   # Enable options that apply only in a real factory environment.
   factory_environment = True
 
-  # Enable/Disable system log syncing
-  enable_sync_log = False
-
   # Password for engineering mode (only used if factory_environment is
   # true). This password is 'cros'.
   engineering_password_sha1 = '8c19cad459f97de3f8c836c794d9a0060a795d7b'
@@ -251,28 +248,16 @@ def SetOptions(test_list, args):
     # Enable system log rotation.
     options.disable_log_rotation = False
 
-    options.clear_log_paths = [
-        '/var/log/connectivity.log',
-        '/var/log/connectivity.bak',
-        '/var/log/net.log',
-        '/var/log/net.*.log',
-        '/var/log/messages*',
-        '/var/log/ui/*',
-        '/var/log/chrome/*']
-
     options.shopfloor_server_url = 'http://%s:%d/' % (
         args.shopfloor_host, args.shopfloor_port)
 
     # - Enable background event log syncing
     options.sync_event_log_period_secs = None
     options.update_period_secs = None
-    # - Enable clock syncing with shopfloor server
-    options.sync_time_period_secs = None
+
     options.disable_cros_shortcut_keys = True
 
-    options.enable_sync_log = args.enable_sync_log
-    options.sync_log_period_secs = 5 * MINUTES
-    options.core_dump_watchlist = []
+    options.plugin_config_name = 'chromeos_rrt'
 
 
 def Barrier(id_suffix='', pass_without_prompt=False,

@@ -315,23 +315,15 @@ def SetOptions(test_list, args):
     # Set to None or 0 to disable it.
     options.sync_event_log_period_secs = 0
     options.update_period_secs = 5 * MINUTES
-    # - Enable clock syncing with shopfloor server
-    options.sync_time_period_secs = None
+
     options.shopfloor_server_url = 'http://%s:%d/' % (
         args.shopfloor_host, args.shopfloor_port)
     # - Disable ChromeOS keys.
     options.disable_cros_shortcut_keys = True
 
-    # Enable/Disable system log syncing
-    options.enable_sync_log = True
-    options.sync_log_period_secs = 10 * MINUTES
-    options.scan_log_period_secs = 2 * MINUTES
-    options.core_dump_watchlist = []
-    options.clear_log_paths += [
-        '/var/spool/crash/shill.*',
-    ]
-
     test_list.exclusive_resources = [plugin.RESOURCE.CPU]
+
+    options.plugin_config_name = 'chromeos_firmware_stress'
 
 
 def CreateFirmwareStressSmallTestList():

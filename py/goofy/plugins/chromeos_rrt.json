@@ -69,7 +69,7 @@
       "name": "system_log_manager",
       "args": {
         "scan_log_period_secs": 120,
-        "sync_log_period_secs": 600,
+        "sync_log_period_secs": 300,
         "sync_log_paths": [
           "/var/factory/log/",
           "/var/log/messages",
@@ -81,10 +81,12 @@
           "/var/log/connectivity.bak",
           "/var/log/net.log",
           "/var/log/net.*.log",
-          "/var/log/messages*"],
+          "/var/log/messages*",
+          "/var/log/ui/*",
+          "/var/log/chrome/*"],
         "clear_log_excluded_paths": [
           "/var/log/messages", "/var/log/messages.[12]"],
-        "enable_foreground_sync": true
+        "enable_foreground_sync": false
       }
     },
     {
