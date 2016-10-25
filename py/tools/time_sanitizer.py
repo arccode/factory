@@ -29,7 +29,7 @@ def CheckHwclock():
   """Check hwclock is working by a write(retry once if fail) and a read."""
   for _ in xrange(2):
     if process_utils.Spawn(['hwclock', '-w', '--utc', '--noadjfile'], log=True,
-             log_stderr_on_error=True).returncode == 0:
+                           log_stderr_on_error=True).returncode == 0:
       break
     else:
       logging.error('Unable to set hwclock time')

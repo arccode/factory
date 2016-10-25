@@ -864,7 +864,12 @@ class GoofyRPC(object):
     done.wait()
 
   def SyncTimeWithShopfloorServer(self):
-    self.goofy.sync_time_with_shopfloor_server(True)
+    # TODO(shunhsingou): remove this function when we have unified RPC interface
+    # for goofy plugin.
+    time_sanitizer = self.goofy.plugin_controller.GetPluginInstance(
+        'time_sanitizer.TimeSanitizer')
+    if time_sanitizer:
+      time_sanitizer.SyncTimeWithShopfloorServer()
 
   def PostEvent(self, event):
     """Posts an event."""

@@ -325,14 +325,6 @@ class Options(object):
   """Timeout when talking to shopfloor server for background
   operations."""
 
-  time_sanitizer = True
-  """Whether to enable the time sanitizer."""
-
-  sync_time_period_secs = None
-  """Interval to use when syncing time with the shopfloor server.
-  Requires the time sanitizer."""
-  _types['sync_time_period_secs'] = (type(None), int)
-
   log_disk_space_period_secs = 120
   """Interval at which to log disk usage stats."""
   _types['log_disk_space_period_secs'] = (type(None), int)

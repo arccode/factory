@@ -38,7 +38,6 @@ from cros.factory.goofy import prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy import test_environment
-from cros.factory.goofy import time_sanitizer
 from cros.factory.goofy import updater
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.test.e2e_test.common import AutomationMode
@@ -166,8 +165,6 @@ class Goofy(GoofyBase):
     self.connection_manager = None
     self.charge_manager = None
     self._can_charge = True
-    self.time_sanitizer = None
-    self.time_synced = False
     self.log_watcher = None
     self.system_log_manager = None
     self.core_dump_manager = None
@@ -1547,19 +1544,6 @@ class Goofy(GoofyBase):
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
       shopfloor.set_enabled(True)
 
-    if self.test_list.options.time_sanitizer and not sys_utils.InChroot():
-      self.time_sanitizer = time_sanitizer.TimeSanitizer(
-          base_time=time_sanitizer.GetBaseTimeFromFile(
-              # lsb-factory is written by the factory install shim during
-              # installation, so it should have a good time obtained from
-              # the mini-Omaha server.  If it's not available, we'll use
-              # /etc/lsb-factory (which will be much older, but reasonably
-              # sane) and rely on a shopfloor sync to set a more accurate
-              # time.
-              '/usr/local/etc/lsb-factory',
-              '/etc/lsb-release'))
-      self.time_sanitizer.RunOnce()
-
     if self.test_list.options.check_cpu_usage_period_secs:
       self.cpu_usage_watcher = process_utils.Spawn(
           ['py/tools/cpu_usage_monitor.py', '-p',
@@ -1701,40 +1685,6 @@ class Goofy(GoofyBase):
           unmap_caps_lock=test_options.disable_caps_lock,
           caps_lock_keycode=test_options.caps_lock_keycode)
       self.key_filter.Start()
-
-  def _should_sync_time(self, foreground=False):
-    """Returns True if we should attempt syncing time with shopfloor.
-
-    Args:
-      foreground: If True, synchronizes even if background syncing
-        is disabled (e.g., in explicit sync requests from the
-        SyncShopfloor test).
-    """
-    return ((foreground or
-             self.test_list.options.sync_time_period_secs) and
-            self.time_sanitizer and
-            (not self.time_synced) and
-            (not sys_utils.InChroot()))
-
-  def sync_time_with_shopfloor_server(self, foreground=False):
-    """Syncs time with shopfloor server, if not yet synced.
-
-    Args:
-      foreground: If True, synchronizes even if background syncing
-        is disabled (e.g., in explicit sync requests from the
-        SyncShopfloor test).
-
-    Returns:
-      False if no time sanitizer is available, or True if this sync (or a
-      previous sync) succeeded.
-
-    Raises:
-      Exception if unable to contact the shopfloor server.
-    """
-    if self._should_sync_time(foreground):
-      self.time_sanitizer.SyncWithShopfloor()
-      self.time_synced = True
-    return self.time_synced
 
   def log_disk_space_stats(self):
     if (sys_utils.InChroot() or
@@ -1912,38 +1862,6 @@ class Goofy(GoofyBase):
           'touch' if self.test_list.options.disable_log_rotation else 'delete',
           CLEANUP_LOGS_PAUSED, debug_utils.FormatExceptionOnly())
 
-  def sync_time_in_background(self):
-    """Writes out current time and tries to sync with shopfloor server."""
-    if not self.time_sanitizer:
-      return
-
-    # Write out the current time.
-    self.time_sanitizer.SaveTime()
-
-    if not self._should_sync_time():
-      return
-
-    now = time.time()
-    if self.last_sync_time and (
-        now - self.last_sync_time <
-        self.test_list.options.sync_time_period_secs):
-      # Not yet time for another check.
-      return
-    self.last_sync_time = now
-
-    def target():
-      try:
-        self.sync_time_with_shopfloor_server()
-      except:  # pylint: disable=W0702
-        # Oh well.  Log an error (but no trace)
-        logging.info(
-            'Unable to get time from shopfloor server: %s',
-            debug_utils.FormatExceptionOnly())
-
-    thread = threading.Thread(target=target)
-    thread.daemon = True
-    thread.start()
-
   def perform_periodic_tasks(self):
     """Override of base method to perform periodic work.
 
@@ -1954,7 +1872,6 @@ class Goofy(GoofyBase):
     self.check_exclusive()
     self.check_plugins()
     self.check_for_updates()
-    self.sync_time_in_background()
     self.log_disk_space_stats()
     self.check_battery()
     self.check_core_dump()

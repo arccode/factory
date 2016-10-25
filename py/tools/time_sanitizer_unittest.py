@@ -15,7 +15,7 @@ import unittest
 from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import time_sanitizer
+from cros.factory.tools import time_sanitizer
 
 
 BASE_TIME = float(
@@ -24,6 +24,7 @@ BASE_TIME = float(
 SECONDS_PER_DAY = 86400
 
 
+# pylint: disable=protected-access
 class TimeSanitizerTestBase(unittest.TestCase):
 
   def setUp(self):
