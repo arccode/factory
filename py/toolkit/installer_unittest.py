@@ -23,7 +23,6 @@ class ToolkitInstallerTest(unittest.TestCase):
   """Test factory toolkit installer."""
   FILES = [
       ('usr/local/file1', 'install me!'),
-      ('var/log1', 'I am a log file!'),
       ('usr/local/factory/py/umpire/__init__.py', 'This goes to DUT!'),
       ('usr/local/factory/py/umpire/client/umpire_client.py',
        'This goes to DUT, too!'),
@@ -38,7 +37,6 @@ class ToolkitInstallerTest(unittest.TestCase):
   def setUp(self):
     self.src = tempfile.mkdtemp(prefix='ToolkitInstallerTest.')
     os.makedirs(os.path.join(self.src, 'usr/local/factory/init/main.d'))
-    os.makedirs(os.path.join(self.src, 'var/factory/state'))
     os.makedirs(os.path.join(self.src, 'usr/local/factory/py/umpire/client'))
 
     for install_file in self.FILES:
@@ -59,11 +57,9 @@ class ToolkitInstallerTest(unittest.TestCase):
 
   def makeStatefulPartition(self):
     os.makedirs(os.path.join(self.dest, 'dev_image'))
-    os.makedirs(os.path.join(self.dest, 'var_overlay'))
 
   def makeLiveDevice(self):
     os.makedirs(os.path.join(self.dest, 'usr/local'))
-    os.makedirs(os.path.join(self.dest, 'var'))
 
   def createInstaller(self, enabled_tag=True, system_root='/',
                       enable_presenter=True, enable_device=False,
@@ -89,8 +85,6 @@ class ToolkitInstallerTest(unittest.TestCase):
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:
       self.assertEqual(f.read(), 'install me!')
-    with open(os.path.join(self.dest, 'var', 'log1'), 'r') as f:
-      self.assertEqual(f.read(), 'I am a log file!')
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/enabled')))
     self.assertTrue(os.path.exists(
@@ -142,8 +136,6 @@ class ToolkitInstallerTest(unittest.TestCase):
     self._installer.Install()
     with open(os.path.join(self.dest, 'dev_image', 'file1'), 'r') as f:
       self.assertEqual(f.read(), 'install me!')
-    with open(os.path.join(self.dest, 'var_overlay', 'log1'), 'r') as f:
-      self.assertEqual(f.read(), 'I am a log file!')
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'dev_image/factory/enabled')))
 
@@ -158,8 +150,6 @@ class ToolkitInstallerTest(unittest.TestCase):
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:
       self.assertEqual(f.read(), 'install me!')
-    with open(os.path.join(self.dest, 'var', 'log1'), 'r') as f:
-      self.assertEqual(f.read(), 'I am a log file!')
     self.assertFalse(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/enabled')))
 
