@@ -215,10 +215,9 @@ class Board(models.Model):
     """Create a local Umpire container from a factory toolkit."""
     # make sure the container does not exist
     container_name = Board.GetUmpireContainerName(self.name)
-    container_exists = subprocess.check_output([
-        'docker', 'ps', '--all', '--format={{.Names}}',
-        '--filter=name=%s' % container_name])
-    if container_exists:
+    container_list = subprocess.check_output([
+        'docker', 'ps', '--all', '--format', '{{.Names}}']).splitlines()
+    if container_name in container_list:
       raise EnvironmentError('Container %s already exists, Dome will not try '
                              'to create a new one, please add the existing '
                              'Umpire instance instead of create a new one ' %
