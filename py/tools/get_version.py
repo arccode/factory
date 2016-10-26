@@ -84,7 +84,7 @@ def GetFirmwareVersionsFromOmahaChannelFile(path):
   """Gets firmware versions from Omaha channel file.
 
   Omaha channel file (gzipped) is often in
-  <bundle_dir>/factory_setup/static/firmware.gz
+  <bundle_dir>/setup/static/firmware.gz
 
   Args:
     path: Channel file path.
@@ -129,8 +129,8 @@ def GetReleaseVersionFromOmahaChannelFile(path, no_root=False):
   """Gets release image version from Omaha channel file.
 
   Omaha channel file (gzipped) is often in
-  <bundle_dir>/factory_setup/static/rootfs-test.gz
-  <bundle_dir>/factory_setup/static/rootfs-release.gz
+  <bundle_dir>/setup/static/rootfs-test.gz
+  <bundle_dir>/setup/static/rootfs-release.gz
 
   Args:
     path: Channel file path.

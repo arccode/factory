@@ -475,7 +475,7 @@ class FinalizeBundle(object):
     _GSGetLatestVersion for the detail of choosing the tip version on the
     branch.
     """
-    if add_file['install_into'] in ['factory_shim', 'release']:
+    if add_file['install_into'] in ['factory_shim', 'release_image', 'release']:
       latest_source = self._GSGetLatestVersion(add_file['source'])
       logging.info('Changing %s source from %s to %s for testing tip of branch',
                    add_file['install_into'], add_file['source'], latest_source)
@@ -737,7 +737,7 @@ class FinalizeBundle(object):
           'nv_image-%s.bin' % self.simple_board)
       if os.path.exists(netboot_firmware_image):
         update_firmware_vars = os.path.join(
-            self.bundle_dir, 'factory_setup', 'update_firmware_vars.py')
+            self.bundle_dir, 'setup', 'update_firmware_vars.py')
         new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
         Spawn([update_firmware_vars,
                '--force',
@@ -760,7 +760,7 @@ class FinalizeBundle(object):
       target_bootfile = 'vmlinux-%s.bin' % self.board
       if os.path.exists(netboot_firmware_image):
         update_firmware_settings = os.path.join(
-            self.bundle_dir, 'factory_setup', 'update_firmware_settings.py')
+            self.bundle_dir, 'setup', 'update_firmware_settings.py')
         new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
         Spawn([update_firmware_settings,
                '--bootfile', target_bootfile,
@@ -933,17 +933,19 @@ class FinalizeBundle(object):
             shutil.move(new_netboot_image, netboot_image)
 
   def MakeFactoryPackages(self):
-    release_images = glob.glob(os.path.join(self.bundle_dir, 'release/*.bin'))
+    # TODO(hungte) Remove 'release/' after we've finished migration.
+    release_images = (
+        glob.glob(os.path.join(self.bundle_dir, 'release_image/*.bin')) or
+        glob.glob(os.path.join(self.bundle_dir, 'release/*.bin')))
     if len(release_images) != 1:
       sys.exit('Expected one release image but found %d' % len(release_images))
     self.release_image_path = release_images[0]
 
-    factory_setup_dir = os.path.join(self.bundle_dir, 'factory_setup')
+    setup_dir = os.path.join(self.bundle_dir, 'setup')
     make_factory_package = [
         './make_factory_package.sh',
         '--board', self.board,
-        '--release', os.path.relpath(self.release_image_path,
-                                     factory_setup_dir),
+        '--release', os.path.relpath(self.release_image_path, setup_dir),
         '--factory', '../factory_test/chromiumos_factory_image.bin',
         '--hwid_updater', '../hwid/hwid_v3_bundle_%s.sh' %
         self.simple_board.upper()]
@@ -957,9 +959,9 @@ class FinalizeBundle(object):
         if not os.path.exists(complete_script):
           raise OSError('Complete script %s does not exist' % complete_script)
     else:
-      # Use factory_setup/complete_script_sample.sh, if it exists
+      # Use setup/complete_script_sample.sh, if it exists
       complete_script = os.path.join(
-          self.bundle_dir, 'factory_setup/complete_script_sample.sh')
+          self.bundle_dir, 'setup/complete_script_sample.sh')
       if not os.path.exists(complete_script):
         complete_script = None
 
@@ -971,10 +973,10 @@ class FinalizeBundle(object):
     if os.path.exists(firmware_updater):
       make_factory_package += [
           '--firmware_updater', os.path.relpath(
-              firmware_updater, factory_setup_dir)]
+              firmware_updater, setup_dir)]
 
     if self.args.make_factory_package:
-      Spawn(make_factory_package, cwd=factory_setup_dir,
+      Spawn(make_factory_package, cwd=setup_dir,
             check_call=True, log=True)
 
     # Build the mini-Omaha startup script.
@@ -986,7 +988,7 @@ class FinalizeBundle(object):
       f.write('\n'.join([
           '#!/bin/bash',
           'set -e',  # Fail on error
-          'cd $(dirname $(readlink -f "$0"))/factory_setup',
+          'cd $(dirname $(readlink -f "$0"))/setup',
           'cat static/miniomaha.conf',
           ('echo Miniomaha configuration MD5SUM: '
            '$(md5sum static/miniomaha.conf)'),

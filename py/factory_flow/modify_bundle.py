@@ -139,7 +139,7 @@ class ModifyBundle(FactoryFlowCommand):
         'nv_image-%s.bin' % self.options.board.short_name)
     if os.path.exists(netboot_firmware_image):
       update_firmware_vars = os.path.join(
-          self.options.bundle, 'factory_setup', 'update_firmware_vars.py')
+          self.options.bundle, 'setup', 'update_firmware_vars.py')
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
       process_utils.Spawn([
           update_firmware_vars,
@@ -163,8 +163,7 @@ class ModifyBundle(FactoryFlowCommand):
     if os.path.exists(netboot_firmware_image):
       update_firmware_settings = (
           os.path.join(
-              self.options.bundle, 'factory_setup',
-              'update_firmware_settings.py'))
+              self.options.bundle, 'setup', 'update_firmware_settings.py'))
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
       process_utils.Spawn([update_firmware_settings,
                            '--bootfile', 'vmlinux.bin',

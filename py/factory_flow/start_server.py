@@ -392,8 +392,8 @@ class StartServer(FactoryFlowCommand):
       return
 
     logging.info('Starting download server for testing')
-    factory_setup_path = os.path.join(self.options.bundle, 'factory_setup')
-    miniomaha_path = os.path.join(factory_setup_path, 'miniomaha.py')
+    setup_path = os.path.join(self.options.bundle, 'setup')
+    miniomaha_path = os.path.join(setup_path, 'miniomaha.py')
 
     port = 8080
     manifest = LoadBundleManifest(

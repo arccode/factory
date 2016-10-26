@@ -76,7 +76,7 @@ class FactoryBundle(object):
     netboot_firmware: path to netboot BIOS image.
   """
   _BUNDLE_MANIFEST = 'MANIFEST.yaml'
-  _DOWNLOAD_FILES_PATTERN = os.path.join('factory_setup', 'static', '*')
+  _DOWNLOAD_FILES_PATTERN = os.path.join('setup', 'static', '*')
   _FACTORY_TOOLKIT = os.path.join('factory_toolkit',
                                   'install_factory_toolkit.run')
   _NETBOOT_IMAGE = os.path.join('factory_shim', 'netboot', 'vmlinux.uimg')

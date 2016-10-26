@@ -30,12 +30,12 @@ then:
   GetAuxData('mlb', 'MLB001') == {'foo': 123, 'bar': 'baz'}
   GetAuxData('mlb', 'MLB002') == {'foo': 456, 'bar': 'qux'}
 
-To use this module, run following command in factory_setup folder:
+To use this module, run following command in setup folder:
   shopfloor_server.py -m shopfloor.simple.ShopFloor -c PATH_TO_CSV_FILE.csv
 
 You can find sample CSV files in:
-  factory_setup/test_data/shopfloor/simple.csv
-  factory_setup/test_data/shopfloor/aux_mlb.csv
+  setup/test_data/shopfloor/simple.csv
+  setup/test_data/shopfloor/aux_mlb.csv
 """
 
 import csv

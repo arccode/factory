@@ -18,7 +18,7 @@ The common flow is:
   - Finalize by shopfloor.finalize()
 
 For the protocol details, check:
- src/platform/factory-utils/factory_setup/shopfloor_server.
+ src/platform/factory/py/shopfloor/shopfloor_server.
 """
 
 import hashlib
@@ -293,7 +293,7 @@ def check_server_status(instance=None):
 
 # ----------------------------------------------------------------------------
 # Functions to access shop floor server by APIs defined by ChromeOS factory shop
-# floor system (see src/platform/factory-utils/factory_setup/shopfloor/*).
+# floor system (see src/platform/factory/py/shopfloor/*).
 
 
 @_server_api

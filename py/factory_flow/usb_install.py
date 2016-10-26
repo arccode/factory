@@ -132,8 +132,7 @@ class USBInstall(FactoryFlowCommand):
           self.options.bundle, 'usb_image.bin')
 
       make_factory_package = [
-          os.path.join(self.options.bundle, 'factory_setup',
-                       'make_factory_package.sh'),
+          os.path.join(self.options.bundle, 'setup', 'make_factory_package.sh'),
           '--board', self.options.board.full_name,
           '--install_shim', install_shim_path,
           '--release', release_image_path,
@@ -168,7 +167,7 @@ class USBInstall(FactoryFlowCommand):
         'release image',
         [os.path.join(self.options.bundle, 'release', '*.bin')])
     firmware_extractor = os.path.join(
-        self.options.bundle, 'factory_setup', 'extract_firmware_updater.sh')
+        self.options.bundle, 'setup', 'extract_firmware_updater.sh')
     logging.info('Extracting firmware and EC from release image %s',
                  release_image_path)
     with file_utils.TempDirectory(prefix='firmware_updater') as temp_dir:

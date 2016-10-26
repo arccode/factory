@@ -6,6 +6,8 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "${SCRIPT_DIR}/common.sh" || exit 1
 
+: ${BUNDLE_FACTORY_FLOW:=}
+
 bundle_install() {
   local bundle_dir="$1"
   local src="$2"
@@ -43,15 +45,17 @@ main() {
   # chromite. To prevent that, we'll name this 'toolkit' for a short time, until
   # the transition is complete.
   bundle_install "${bundle_dir}" "${toolkit}" toolkit
-  bundle_install "${bundle_dir}" "${par}" factory_flow \
-    "factory_flow finalize_bundle test_factory_flow"
   bundle_install "${bundle_dir}" "${par}" shopfloor \
     "shopfloor shopfloor_server"
+  if [ -n "${BUNDLE_FACTORY_FLOW}" ]; then
+    bundle_install "${bundle_dir}" "${par}" factory_flow \
+      "factory_flow finalize_bundle test_factory_flow"
+  fi
 
-  rsync -aL --exclude testdata "${setup}/" "${bundle_dir}/factory_setup/"
-  mkdir -p "${bundle_dir}/factory_setup/bin"
-  cp -f /usr/bin/cgpt "${bundle_dir}/factory_setup/bin"
-  cp -f /usr/bin/futility "${bundle_dir}/factory_setup/bin"
+  rsync -aL --exclude testdata "${setup}/" "${bundle_dir}/setup/"
+  mkdir -p "${bundle_dir}/setup/bin"
+  cp -f /usr/bin/cgpt "${bundle_dir}/setup/bin"
+  cp -f /usr/bin/futility "${bundle_dir}/setup/bin"
 
   # TODO(hungte) Remove the copied cros-regions.json when regions.py supports
   # reading region database from local folder inside PAR.
