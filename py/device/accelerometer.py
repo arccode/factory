@@ -54,16 +54,23 @@ class AccelerometerController(component.DeviceComponent):
   """Utility class for the two accelerometers.
 
   Attributes:
-    location: the location of the accelerometer, e.g., 'base' or 'lid'.
-      This will be used to lookup a matched location in
+    name: the name of the accelerometer, e.g., 'cros-ec-accel', or None.
+      This will be used to lookup a matched name in
       /sys/bus/iio/devices/iio:deviceX/location to get
       the corresponding iio:deviceX.
+      At least one of name or location must present.
+
+    location: the location of the accelerometer, e.g., 'base' or 'lid', or
+      None. This will be used to lookup a matched location in
+      /sys/bus/iio/devices/iio:deviceX/location to get
+      the corresponding iio:deviceX.
+      At least one of name or location must present.
 
   Raises:
     Raises AccelerometerException if there is no accelerometer.
   """
 
-  def __init__(self, board, location):
+  def __init__(self, board, name, location):
     """Cleans up previous calibration values and stores the scan order.
 
     We can get raw data from below sysfs:
@@ -81,15 +88,21 @@ class AccelerometerController(component.DeviceComponent):
     self.num_signals = 3  # (x, y, z).
     self.iio_bus_id = None
     self.location = location
+
+    assert name is not None or location is not None
     for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'iio:device*')):
-      location = self._dut.CallOutput(
-          ['cat', os.path.join(iio_path, 'location')]).strip()
-      if self.location == location:
-        self.iio_bus_id = os.path.basename(iio_path)
-        break
+      if (name is not None and
+          name != self._GetSysfsValue(os.path.join(iio_path, 'name'))):
+        continue
+      if (location is not None and
+          location != self._GetSysfsValue(os.path.join(iio_path, 'location'))):
+        continue
+
+      self.iio_bus_id = os.path.basename(iio_path)
+      break
     if self.iio_bus_id is None:
       raise AccelerometerException(
-          'Accelerometer at %r not found' % self.location)
+          'Accelerometer at (%r, %r) not found' % (self.name, self.location))
     scan_elements_path = os.path.join(
         _IIO_DEVICES_PATH, self.iio_bus_id, 'scan_elements')
 
@@ -105,6 +118,20 @@ class AccelerometerController(component.DeviceComponent):
           self._dut.ReadFile(os.path.join(scan_elements_path,
                                           signal_name + '_type')))
       self.index_to_signal[index] = dict(name=signal_name, scan_type=scan_type)
+
+  def _GetSysfsValue(self, path):
+    """Read the content of given path.
+
+    Args:
+      path: A string for file path to read.
+
+    Returns:
+      A string as stripped contents, or None if error.
+    """
+    try:
+      return self._dut.ReadFile(path).strip()
+    except Exception:
+      pass
 
   def _SetSysfsValues(self, sysfs_values, check_call=True):
     """Assigns corresponding values to a list of sysfs.
@@ -357,4 +384,4 @@ class Accelerometer(component.DeviceComponent):
 
     See AccelerometerController for more information.
     """
-    return AccelerometerController(self._dut, location)
+    return AccelerometerController(self._dut, 'cros-ec-accel', location)
