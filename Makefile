@@ -395,19 +395,3 @@ lint-overlay-%: overlay-%
 # Create par of the given board.
 par-overlay-%: overlay-%
 	$(MAKE) -C $< par
-
-# Legacy installation
-# TODO(hungte) Move this target once we've done migration.
-INSTALL_MASK=\
-  *.pyc \
-  *_unittest.py \
-  py/doc
-# Change DESTDIR to empty so both old and new ebuild will install to right
-# destination.
-DESTDIR=
-INSTALL_ROOT=$(DESTDIR)/$(TARGET_DIR)
-
-install: closure
-	mkdir -p $(INSTALL_ROOT)
-	rsync -a --chmod=go=rX $(addprefix --exclude ,$(INSTALL_MASK)) \
-	  bin misc py py_pkg sh init $(INSTALL_ROOT)
