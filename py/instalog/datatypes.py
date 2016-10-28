@@ -18,6 +18,7 @@ import time
 import instalog_common  # pylint: disable=W0611
 from instalog import json_utils
 from instalog import plugin_base
+from instalog.utils import time_utils
 
 
 class Event(object):
@@ -253,7 +254,7 @@ class EventStreamIterator(object):
     self.interval = interval
     self.count = count
     self._current_count = 0
-    self._start = time.time()
+    self._start = time_utils.MonotonicTime()
 
   def __iter__(self):
     """Returns self for special __iter__ function."""
@@ -273,7 +274,8 @@ class EventStreamIterator(object):
         raise StopIteration
 
       # Check to see if we have timed out.
-      if self.blocking and (time.time() - self._start) >= self.timeout:
+      if (self.blocking and
+          (time_utils.MonotonicTime() - self._start) >= self.timeout):
         logging.debug('Iterator timeout!')
         raise StopIteration
 

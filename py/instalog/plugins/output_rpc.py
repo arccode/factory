@@ -19,6 +19,7 @@ import zlib
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
+from instalog.utils import time_utils
 from instalog.utils.arg_utils import Arg
 
 
@@ -136,7 +137,7 @@ class OutputRPC(plugin_base.OutputPlugin):
       # Send to input RPC server.
       rpc_success = False
       if serialized_events:
-        start_time = time.time()
+        start_time = time_utils.MonotonicTime()
         try:
           rpc_success = self.rpc_server.RemoteEmit(serialized_events)
           rpc_result_str = 'success' if rpc_success else 'failure'
@@ -148,7 +149,7 @@ class OutputRPC(plugin_base.OutputPlugin):
             self.exception(e)
         self.info('Pack and transmit %d events (%d KB) in %.2fs: %s',
                   len(serialized_events), total_size / 1024,
-                  time.time() - start_time, rpc_result_str)
+                  time_utils.MonotonicTime() - start_time, rpc_result_str)
 
       if rpc_success:
         # Commit these events.

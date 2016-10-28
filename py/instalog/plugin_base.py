@@ -15,6 +15,7 @@ import time
 import instalog_common  # pylint: disable=W0611
 from instalog import log_utils
 from instalog.utils import arg_utils
+from instalog.utils import time_utils
 
 
 class LoadPluginError(Exception):
@@ -181,8 +182,8 @@ class Plugin(log_utils.LoggerMixin, object):
         # ... do some work ...
         self.Sleep(self.args.interval)
     """
-    end_time = time.time() + secs
-    while time.time() < end_time and not self.IsStopping():
+    end_time = time_utils.MonotonicTime() + secs
+    while time_utils.MonotonicTime() < end_time and not self.IsStopping():
       time.sleep(1)
 
 

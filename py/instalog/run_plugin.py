@@ -22,6 +22,7 @@ from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
 from instalog import plugin_sandbox
+from instalog.utils import time_utils
 
 
 # If Ctrl+C is hit two times in this time interval, a Stop signal will be sent
@@ -96,7 +97,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     self._plugin = plugin_sandbox.PluginSandbox(
         plugin_type, config=config, core_api=self)
     self._last_interrupt = 0
-    self._last_status_update = time.time()
+    self._last_status_update = time_utils.MonotonicTime()
     self._current_attachments = {}
 
   def _GetNextStdinLine(self):
@@ -182,25 +183,27 @@ class PluginRunner(plugin_sandbox.CoreAPI):
 
   def PrintStatusUpdate(self):
     # Should we print a plugin status update?
-    if time.time() - self._last_status_update >= _STATUS_UPDATE_INTERVAL:
+    if (time_utils.MonotonicTime() - self._last_status_update >=
+        _STATUS_UPDATE_INTERVAL):
       self.logger.info('Plugin state: %s', self._plugin.GetState())
-      self._last_status_update = time.time()
+      self._last_status_update = time_utils.MonotonicTime()
 
   def HandleKeyboardInterrupt(self, interrupt=False):
     # TODO(kitching): The logic in here is still not fully sound.  Try to fix
     #                 the kinks.
     if interrupt:
-      if time.time() - self._last_interrupt < _DOUBLE_SIGINT_INTERVAL:
+      if (time_utils.MonotonicTime() - self._last_interrupt <
+          _DOUBLE_SIGINT_INTERVAL):
         self.logger.info('Keyboard interrupt: stop')
         self._last_interrupt = 0
         if self._plugin.GetState() is not plugin_sandbox.STOPPING:
           return False
       else:
         self.logger.info('Keyboard interrupt: press Ctrl+C again to stop')
-        self._last_interrupt = time.time()
+        self._last_interrupt = time_utils.MonotonicTime()
 
-    elif (self._last_interrupt and
-          time.time() - self._last_interrupt >= _DOUBLE_SIGINT_INTERVAL and
+    elif (self._last_interrupt and time_utils.MonotonicTime() -
+          self._last_interrupt >= _DOUBLE_SIGINT_INTERVAL and
           self._plugin.GetState() is not plugin_sandbox.STOPPING):
       self.logger.info('Keyboard interrupt: pause/unpause')
       self._last_interrupt = 0

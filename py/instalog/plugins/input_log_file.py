@@ -31,6 +31,7 @@ from instalog import log_utils
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
+from instalog.utils import time_utils
 
 
 _DEFAULT_NEW_FILE_POLL_INTERVAL = 60
@@ -126,7 +127,7 @@ class InputLogFile(plugin_base.InputPlugin):
     if new_log_files:
       self.info('Scanned for log files, %d new files detected',
                 len(new_log_files))
-    next_scan = time.time() + self.args.new_file_poll_interval
+    next_scan = time_utils.MonotonicTime() + self.args.new_file_poll_interval
     new_process_tasks = [
         (0, self.ProcessLogFileTask, [log_file]) for log_file in new_log_files]
     return [(next_scan, self.ScanLogFilesTask, [])] + new_process_tasks
@@ -151,7 +152,8 @@ class InputLogFile(plugin_base.InputPlugin):
       # some other IO problem.
       self.exception('Exception while accessing file, check permissions')
       pause_time = self.args.error_pause_time
-    return [(time.time() + pause_time, self.ProcessLogFileTask, [log_file])]
+    return [(time_utils.MonotonicTime() + pause_time, self.ProcessLogFileTask,
+           [log_file])]
 
   def Main(self):
     """Main thread of the plugin.
@@ -178,7 +180,7 @@ class InputLogFile(plugin_base.InputPlugin):
       # Retrieve the scheduled time for the next task in the priority queue.
       # Sleep until that task is scheduled.
       next_time, next_fn, next_args = task_queue.queue[0]
-      wait_time = max(0, next_time - time.time())
+      wait_time = max(0, next_time - time_utils.MonotonicTime())
       if wait_time > 0:
         # Remove the '[]' brackets from next_args list.
         self.debug('Need to wait %f sec before running task %s(%s)...',
