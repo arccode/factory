@@ -979,6 +979,40 @@ class FactoryTest(object):
     """Returns this node and children in YAML format."""
     return yaml.dump(self.as_dict(state_map))
 
+  def evaluate_run_if(self, test_arg_env, get_data):
+    """Evaluate the run_if value of this test.
+
+    Evaluates run_if argument to decide skipping the test or not.  If run_if
+    argument is not set, the test will never be skipped.
+
+    Args:
+      test_arg_env: a cros.factory.goofy.invocation.TestArgEnv object
+      get_data: a function to select data by self.run_if_table_name, the
+        function should return a dict like object.
+
+    Returns:
+      True if this test should be run, otherwise False
+    """
+    if self.run_if_expr:
+      try:
+        return self.run_if_expr(test_arg_env)
+      except:  # pylint: disable=bare-except
+        logging.exception('Unable to evaluate run_if expression for %s',
+                          self.path)
+        # But keep going; we have no choice.  This will end up always activating
+        # the test.
+        return True
+    elif self.run_if_table_name:
+      try:
+        table = get_data(self.run_if_table_name)
+        value = table.get(self.run_if_col)
+      except ValueError:
+        # Cannot find corresponding value, use default value (False)
+        value = False
+      return bool(value) ^ self.run_if_not
+    else:  # run_if is not set
+      return True
+
   def disable_by_run_if(self):
     """Overwrites properties related to run_if to disable a test.
 

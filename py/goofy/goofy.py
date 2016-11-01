@@ -593,44 +593,11 @@ class Goofy(GoofyBase):
     """Updates skipped states based on run_if."""
     env = TestArgEnv()
 
-    def _evaluate_skip_from_run_if(test):
-      """Returns the run_if evaluation of the test.
-
-      Evaluates test's run_if argument to decide skipping the test or not.  If
-      run_if argument is not set, the test will never be skipped.
-
-      Args:
-        test: A FactoryTest object.
-
-      Returns:
-        True if this test should be skipped, otherwise False.
-      """
-      value = None
-      if test.run_if_expr:
-        try:
-          value = test.run_if_expr(env)
-        except:  # pylint: disable=W0702
-          logging.exception('Unable to evaluate run_if expression for %s',
-                            test.path)
-          # But keep going; we have no choice.  This will end up
-          # always activating the test.
-          return False
-      elif test.run_if_table_name:
-        try:
-          aux = shopfloor.get_selected_aux_data(test.run_if_table_name)
-          value = aux.get(test.run_if_col)
-        except ValueError:
-          # Cannot find corresponding value, use default value (None)
-          pass
-      else:  # run_if is not set
-        return False
-
-      return (not value) ^ t.run_if_not
-
     # Gets all run_if evaluation, and stores results in skip_map.
     skip_map = dict()
     for t in self.test_list.walk():
-      skip_map[t.path] = _evaluate_skip_from_run_if(t)
+      skip_map[t.path] = not t.evaluate_run_if(env,
+                                               shopfloor.get_selected_aux_data)
 
     # Propagates the skip value from root of tree and updates skip_map.
     def _update_skip_map_from_node(test, skip_from_parent):
