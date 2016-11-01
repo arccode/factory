@@ -182,6 +182,9 @@ class Plugin(log_utils.LoggerMixin, object):
         # ... do some work ...
         self.Sleep(self.args.interval)
     """
+    if secs < 1:
+      time.sleep(secs)
+      return
     end_time = time_utils.MonotonicTime() + secs
     while time_utils.MonotonicTime() < end_time and not self.IsStopping():
       time.sleep(1)
