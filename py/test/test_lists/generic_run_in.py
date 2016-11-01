@@ -63,19 +63,6 @@ def RunIn(args, group_suffix=''):
                  pass_without_prompt=True,
                  accessibility=True)
 
-    if args.clean_activate_date:
-      FactoryTest(
-          id='CleanActivateDate',
-          label_zh=u'清除激活日期',
-          pytest_name='line_check_item',
-          dargs={'title_en': 'CleanActivateDate',
-                 'title_zh': u'清除激活日期',
-                 'items': [
-                     ('CleanActivateDate',
-                      u'清除激活日期',
-                      'activate_date --clean',
-                      False)]})
-
     if args.factory_environment:
       # The image installed on DUT may be outdated since the time between SMT
       # and Run-In can be several monthgs. In this station we can let DUT do
