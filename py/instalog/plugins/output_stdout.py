@@ -51,9 +51,9 @@ class OutputStdout(plugin_base.OutputPlugin):
         print(event.Serialize())
 
       # Commit these events.
-      success_string = 'success' if event_stream.Commit() else 'failure'
       if len(events) > 0:
-        self.info('Commit %d events: %s', len(events), success_string)
+        self.info('Commit %d events', len(events))
+      event_stream.Commit()
 
 
 if __name__ == '__main__':

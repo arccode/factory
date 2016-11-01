@@ -255,9 +255,8 @@ class OutputBigQuery(plugin_base.OutputPlugin):
 
     # No processed events result in BigQuery table rows.
     if row_count == 0 and event_count > 0:
-      success_string = 'success' if event_stream.Commit() else 'failure'
-      self.info('Commit %d events (no BigQuery rows): %s',
-                event_count, success_string)
+      self.info('Commit %d events (no BigQuery rows)', event_count)
+      event_stream.Commit()
       return True
 
     if event_count == 0:
@@ -273,8 +272,8 @@ class OutputBigQuery(plugin_base.OutputPlugin):
                               chunksize=_UPLOAD_CHUNK_SIZE, resumable=False)
     self.info('Uploading BigQuery batch with %d events...', event_count)
     if self.UploadBatch(media):
-      success_string = 'success' if event_stream.Commit() else 'failure'
-      self.info('Commit %d events: %s', event_count, success_string)
+      self.info('Commit %d events', event_count)
+      event_stream.Commit()
       return True
     else:
       event_stream.Abort()

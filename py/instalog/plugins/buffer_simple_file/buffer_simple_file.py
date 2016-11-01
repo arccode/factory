@@ -647,8 +647,18 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     # Ensure that regardless of any errors, locks are released.
     try:
       self._SaveMetadata()
+    except Exception:
+      # TODO(kitching): Instalog core or PluginSandbox should catch this
+      #                 exception and attempt to safely shut down.
+      self.exception('Commit: Write exception occurred, Events may be '
+                     'processed by output plugin multiple times')
     finally:
-      self._lock.release()
+      try:
+        self._lock.release()
+      except Exception:
+        # TODO(kitching): Instalog core or PluginSandbox should catch this
+        #                 exception and attempt to safely shut down.
+        self.exception('Commit: Internal error occurred')
 
   def Abort(self):
     """See BufferEventStream.Abort."""
@@ -657,7 +667,12 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     self.new_seq = self.cur_seq
     self.new_pos = self.cur_pos
     self.read_buf = []
-    self._lock.release()
+    try:
+      self._lock.release()
+    except Exception:
+      # TODO(kitching): Instalog core or PluginSandbox should catch this
+      #                 exception and attempt to safely shut down.
+      self.exception('Abort: Internal error occurred')
 
 
 if __name__ == '__main__':

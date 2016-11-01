@@ -153,9 +153,8 @@ class OutputRPC(plugin_base.OutputPlugin):
 
       if rpc_success:
         # Commit these events.
-        commit_result_str = 'success' if event_stream.Commit() else 'failure'
-        self.info('Commit %d events: %s', len(serialized_events),
-                  commit_result_str)
+        self.info('Commit %d events', len(serialized_events))
+        event_stream.Commit()
       else:
         if len(serialized_events) > 0:
           self.info('Abort %d events', len(serialized_events))

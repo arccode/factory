@@ -254,11 +254,6 @@ class BufferEventStream(object):
 
     Marks this BufferEventStream as expired.
 
-    Returns:
-      True if successful, False otherwise.  If unsuccessful, this
-      BufferEventStream is considered expired, and its Events will be returned
-      on subsequent Next calls from other BufferEventStream objects.
-
     Raises:
       EventStreamExpired if this BufferEventStream is expired.
     """
