@@ -181,6 +181,9 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     self._RestoreMetadata()
     self._RestoreConsumers()
 
+    # Try truncating any attachments from any partial Truncate operations.
+    self._TruncateAttachments()
+
   def Main(self):
     """Main thread of the plugin."""
     while not self.IsStopping():
@@ -345,6 +348,19 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
       return False
     return source_paths, target_paths
 
+  def _TruncateAttachments(self):
+    """Deletes attachments of events no longer stored within data.json."""
+    for fname in os.listdir(self.attachments_dir):
+      fpath = os.path.join(self.attachments_dir, fname)
+      if not os.path.isfile(fpath):
+        continue
+      seq, _, _ = fname.partition('_')
+      if not seq.isdigit():
+        continue
+      if int(seq) < self.first_seq:
+        self.debug('Truncating attachment (<seq=%d): %s', self.first_seq, fname)
+        os.unlink(fpath)
+
   def Produce(self, events):
     """See BufferPlugin.Produce.
 
@@ -427,10 +443,14 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
       min_pos = min(min_pos, consumer.cur_pos)
     return min_seq, min_pos
 
-  def Truncate(self):
+  def Truncate(self, _truncate_attachments=True):
     """Truncates the main data file to only contain unprocessed records.
 
     See file-level docstring for more information about versions.
+
+    Args:
+      _truncate_attachments: Whether or not to truncate attachments.
+                             For testing.
     """
     with self._lock, self._consumer_lock:
       # Does the buffer already have data in it?
@@ -471,6 +491,11 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
           # the file_utils.AtomicWrite context ends), save metadata to disk in
           # case of disk failure.
           self._SaveMetadata()
+
+        # Now that we have written the new data and metadata to disk, remove any
+        # unused attachments.
+        if _truncate_attachments:
+          self._TruncateAttachments()
 
       except Exception:
         logging.exception('Exception occurred during Truncate operation')

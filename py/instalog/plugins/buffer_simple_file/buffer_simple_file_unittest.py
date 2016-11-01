@@ -368,6 +368,32 @@ class TestBufferSimpleFile(unittest.TestCase):
       # Make sure attachments_dir is empty.
       self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))
 
+  def testTruncateAttachments(self):
+    """Tests that truncate removes attachments of truncated events."""
+    FILE_STRING = 'Hello World!'
+    with file_utils.UnopenedTemporaryFile() as path:
+      with open(path, 'w') as f:
+        f.write(FILE_STRING)
+      event = datatypes.Event({}, {'a': path})
+      self.sf.Produce([event])
+    self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
+    self.sf.Truncate()
+    self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))
+
+  def testTruncateAttachmentsOnSetUp(self):
+    """Tests that SetUp removes attachments of truncated events."""
+    FILE_STRING = 'Hello World!'
+    with file_utils.UnopenedTemporaryFile() as path:
+      with open(path, 'w') as f:
+        f.write(FILE_STRING)
+      event = datatypes.Event({}, {'a': path})
+      self.sf.Produce([event])
+    self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
+    self.sf.Truncate(_truncate_attachments=False)
+    self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
+    self.sf.SetUp()
+    self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
