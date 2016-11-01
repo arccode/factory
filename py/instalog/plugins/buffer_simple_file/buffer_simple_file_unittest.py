@@ -61,6 +61,14 @@ class TestBufferSimpleFile(unittest.TestCase):
   def tearDown(self):
     shutil.rmtree(self.data_dir)
 
+  def testFormatParseRecord(self):
+    """Tests internal format and parse of data.json record."""
+    SEQ = 1989
+    RECORD = 'hello world'
+    seq, record = self.sf._ParseRecord(self.sf._FormatRecord(SEQ, RECORD))
+    self.assertEqual(SEQ, seq)
+    self.assertEqual(RECORD, record)
+
   def testAddRemoveConsumer(self):
     """Tests adding and removing a Consumer."""
     self.assertEqual([], self.sf.ListConsumers())

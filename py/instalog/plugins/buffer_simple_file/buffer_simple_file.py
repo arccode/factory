@@ -270,22 +270,25 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
 
   def _FormatRecord(self, seq, record):
     """Returns a record formatted as a line to be written to disk."""
-    data = '%d %s' % (seq, record)
+    data = '%d, %s' % (seq, record)
     checksum = GetChecksum(data)
-    return '%s %s\n' % (data, checksum)
+    return '[%s, %s]\n' % (data, checksum)
 
   def _ParseRecord(self, line):
     """Parses and returns a line from disk as a record.
 
     Returns:
-      A tuple of (seq_number, record).
+      A tuple of (seq_number, record), or None on failure.
     """
-    data, _, checksum = line.rstrip().rpartition(' ')
-    seq, _, record = data.partition(' ')
+    line_inner = line.rstrip()[1:-1]  # Strip [] and newline
+    data, _, checksum = line_inner.rpartition(', ')
+    seq, _, record = data.partition(', ')
     if not seq or not record:
       self.warning('Parsing error for record %s' % line)
+      return None
     if checksum != GetChecksum(data):
       self.warning('Checksum error for record %s' % line)
+      return None
     return int(seq), record
 
   def _CopyAttachments(self, cur_seq, event):
@@ -610,7 +613,11 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
           cur += size
           if cur > (self.simple_file.end_pos - self.simple_file.start_pos):
             break
-          seq, record = self.simple_file._ParseRecord(line)
+          ret = self.simple_file._ParseRecord(line)
+          if ret is None:
+            # Parsing of this line failed for some reason.
+            continue
+          seq, record = ret
           self.read_buf.append((seq, record, size))
     return self.read_buf
 
