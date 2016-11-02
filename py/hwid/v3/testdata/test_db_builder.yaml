@@ -1,0 +1,545 @@
+# 0. regular HWID database
+# Dummy line before checksum
+checksum: 95897c4070fc9729456fa930477d28a4a2f9921d
+# Dummy line after checksum
+board: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: DVT
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base32
+    fields:
+    - region_field: 8
+    - customization_id_field: 5
+    - ro_ec_firmware_field: 3
+    - ro_main_firmware_field: 3
+    - firmware_keys_field: 2
+
+    - audio_codec_field: 1
+    - battery_field: 2
+    - bluetooth_field: 0
+    - cellular_field: 1
+    - chipset_field: 0
+    - cpu_field: 1
+
+    - display_panel_field: 0
+    - dram_field: 1
+    - video_field: 0
+    - cpu_field: 1
+    - storage_field: 2
+
+    - cpu_field: 1
+
+encoded_fields:
+  audio_codec_field:
+    0:
+      audio_codec: [codec_0, hdmi_0]
+    1:
+      audio_codec: [codec_1, hdmi_1]
+  battery_field:
+    0:
+      battery: battery_small
+    1:
+      battery: battery_medium
+    2:
+      battery: battery_large
+    3:
+      battery: battery_huge
+  bluetooth_field:
+    0:
+      bluetooth: bluetooth_0
+  cellular_field:
+    0:
+      cellular: NULL
+    1:
+      cellular: cellular_0
+  chipset_field:
+    0:
+      chipset: chipset_0
+  cpu_field:
+    0:
+      cpu: cpu_0
+    1:
+      cpu: cpu_1
+    2:
+      cpu: cpu_2
+    3:
+      cpu: cpu_3
+    4:
+      cpu: cpu_4
+    5:
+      cpu: cpu_5
+  display_panel_field:
+    0:
+      display_panel: display_panel_0
+  dram_field:
+    0:
+      dram: dram_0
+    1:
+      dram: dram_1
+  ec_flash_chip_field:
+    0:
+      ec_flash_chip: ec_flash_chip_0
+  embedded_controller_field:
+    0:
+      embedded_controller: embedded_controller_0
+  flash_chip_field:
+    0:
+      flash_chip: flash_chip_0
+  storage_field:
+    0:
+      storage: storage_0
+    1:
+      storage: storage_1
+    2:
+      storage: storage_2
+  video_field:
+    0:
+      video: camera_0
+  firmware_keys_field:
+    0:
+      firmware_keys: firmware_keys_dev
+    1:
+      firmware_keys: firmware_keys_premp
+  ro_ec_firmware_field:
+    0:
+      ro_ec_firmware: ro_ec_firmware_0
+    1:
+      ro_ec_firmware: ro_ec_firmware_1
+  ro_main_firmware_field:
+    0:
+      ro_main_firmware: ro_main_firmware_0
+    1:
+      ro_main_firmware: ro_main_firmware_1
+  region_field: !region_field ['us', 'tw']
+  customization_id_field:
+    0:
+      customization_id: FOO
+    1:
+      customization_id: BAR
+
+components:
+  audio_codec:
+    items:
+      codec_0:
+        values: { compact_str: Codec 0 }
+
+      codec_1:
+        values: { compact_str: Codec 1 }
+
+      hdmi_0:
+        values: { compact_str: HDMI 0 }
+
+      hdmi_1:
+        values: { compact_str: HDMI 1 }
+
+  battery:
+    items:
+      battery_small:
+        values:
+          tech: Battery Li-ion
+          size: '2500000'
+
+      battery_medium:
+        values:
+          tech: Battery Li-ion
+          size: '5000000'
+
+      battery_large:
+        values:
+          tech: Battery Li-ion
+          size: '7500000'
+
+      battery_huge:
+        values:
+          tech: Battery Li-ion
+          size: '10000000'
+
+  bluetooth:
+    items:
+      bluetooth_0:
+        values:
+          idVendor: '0123'
+          idProduct: abcd
+          bcd: '0001'
+
+  cellular:
+    items:
+      cellular_0:
+        values:
+          idVendor: 89ab
+          idProduct: abcd
+          name: Cellular Card
+
+  chipset:
+    items:
+      chipset_0:
+        values: { compact_str: 'cdef:abcd' }
+
+  cpu:
+    items:
+      cpu_0:
+        values:
+          name: CPU @ 1.80GHz
+          cores: '4'
+
+      cpu_1:
+        values:
+          name: CPU @ 2.00GHz
+          cores: '4'
+
+      cpu_2:
+        values:
+          name: CPU @ 2.20GHz
+          cores: '4'
+
+      cpu_3:
+        values:
+          name: CPU @ 2.40GHz
+          cores: '4'
+
+      cpu_4:
+        values:
+          name: CPU @ 2.60GHz
+          cores: '4'
+
+      cpu_5:
+        values:
+          name: CPU @ 2.80GHz
+          cores: '4'
+
+  display_panel:
+    probeable: False
+    items:
+      display_panel_0:
+        values: NULL
+
+  dram:
+    items:
+      dram_0:
+        values:
+          vendor: DRAM 0
+          size: 4G
+
+      dram_1:
+        values:
+          vendor: DRAM 1
+          size: 4G
+
+  ec_flash_chip:
+    items:
+      ec_flash_chip_0:
+        values: { compact_str: EC Flash Chip }
+
+  embedded_controller:
+    items:
+      embedded_controller_0:
+        values: { compact_str: Embedded Controller }
+
+  flash_chip:
+    items:
+      flash_chip_0:
+        values: { compact_str: Flash Chip }
+
+  storage:
+    items:
+      storage_0:
+        values:
+          type: SSD
+          size: 16G
+          serial: !re '^#123\d+$'
+
+      storage_1:
+        values:
+          type: SSD
+          size: 32G
+          serial: !re '^#123\d+$'
+
+      storage_2:
+        values:
+          type: HDD
+          size: 500G
+          serial: !re '^#123\d+$'
+
+  video:
+    items:
+      camera_0:
+        values:
+          idVendor: '4567'
+          idProduct: abcd
+          type: webcam
+
+  firmware_keys:
+    items:
+      firmware_key_dev:
+        values:
+          key_root: kv3#key_root_dev
+          key_recovery: kv3#key_recovery_dev
+      firmware_key_premp:
+        values:
+          key_root: kv3#key_root_premp
+          key_recovery: kv3#key_recovery_premp
+
+  key_recovery:
+    items:
+      key_recovery_dev:
+        values: { compact_str : kv3#key_recovery_dev }
+      key_recovery_premp:
+        values: { compact_str : kv3#key_recovery_premp }
+
+  key_root:
+    items:
+      key_root_dev:
+        values: { compact_str: kv3#key_root_dev }
+      key_root_premp:
+        values: { compact_str: kv3#key_root_premp }
+
+  ro_ec_firmware:
+    items:
+      ro_ec_firmware_0:
+        values: { compact_str: ev2#ro_ec_firmware_0 }
+      ro_ec_firmware_1:
+        values: { compact_str: ev2#ro_ec_firmware_1 }
+
+  ro_main_firmware:
+    items:
+      ro_main_firmware_0:
+        values: { compact_str: mv2#ro_main_firmware_0 }
+      ro_main_firmware_1:
+        values: { compact_str: mv2#ro_main_firmware_1 }
+  region: !region_component
+  customization_id:
+    items:
+      FOO:
+        values:
+          id: FOO
+      BAR:
+        values:
+          id: BAR
+
+rules:
+- name: device_info.image_id
+  evaluate: SetImageId('DVT')
+---
+# 1. Legacy region and customization_id
+# Dummy line before checksum
+checksum: 95897c4070fc9729456fa930477d28a4a2f9921d
+# Dummy line after checksum
+board: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - region_field: 8
+    - customization_id_field: 5
+
+encoded_fields:
+  region_field: !region_field
+  customization_id_field:
+    0: { customization_id: FOO }
+    1: { customization_id: BAR }
+
+components:
+  region: !region_component
+  customization_id:
+    probeable: False
+    items:
+      FOO: { values: NULL }
+      BAR: { values: NULL }
+
+rules:
+- name: device_info.image_id
+  evaluate: SetImageId('EVT')
+
+- name: verify.regions
+  evaluate: >
+      Assert(GetVPDValue('ro', 'region') in [
+          'us', 'gb', 'ca.hybrid'
+          ])
+
+- name: device_info.customization_id
+  evaluate: >
+      SetComponent(
+          'customization_id',
+          LookupMap(GetVPDValue('ro', 'customization_id'), {
+              'foo': 'FOO',
+              'bar': 'BAR',
+          }))
+---
+# 2. Legacy region without rule. Should set "us" only after transfering.
+# Dummy line before checksum
+checksum: 95897c4070fc9729456fa930477d28a4a2f9921d
+# Dummy line after checksum
+board: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - region_field: 8
+
+encoded_fields:
+  region_field: !region_field
+
+components:
+  region: !region_component
+
+rules:
+- name: device_info.image_id
+  evaluate: SetImageId('EVT')
+---
+# 3. There is only one cpu_field.
+# Dummy line before checksum
+checksum: 95897c4070fc9729456fa930477d28a4a2f9921d
+# Dummy line after checksum
+board: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: DVT
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base8192
+    fields:
+    - cpu_field: 1
+    - cpu_field: 1
+
+encoded_fields:
+  cpu_field:
+    0:
+      cpu: cpu_0
+    1:
+      cpu: cpu_1
+    2:
+      cpu: cpu_2
+    3:
+      cpu: cpu_3
+
+components:
+  cpu:
+    items:
+      cpu_0:
+        values:
+          name: CPU @ 1.80GHz
+          cores: '4'
+
+      cpu_1:
+        values:
+          name: CPU @ 2.00GHz
+          cores: '4'
+
+      cpu_2:
+        values:
+          name: CPU @ 2.20GHz
+          cores: '4'
+
+      cpu_3:
+        values:
+          name: CPU @ 2.40GHz
+          cores: '4'
+
+rules:
+- name: device_info.image_id
+  evaluate: SetImageId('DVT')
+---
+# 4. firmware_field with multiple components.
+# Dummy line before checksum
+checksum: 95897c4070fc9729456fa930477d28a4a2f9921d
+# Dummy line after checksum
+board: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - firmware_field: 2
+
+encoded_fields:
+  firmware_field:
+    0:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_0
+      key_root: key_root_0
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_0
+    1:
+      hash_gbb: hash_gbb_1
+      key_recovery: key_recovery_1
+      key_root: key_root_1
+      ro_ec_firmware: ro_ec_firmware_1
+      ro_main_firmware: ro_main_firmware_1
+
+components:
+  hash_gbb:
+    items:
+      hash_gbb_0:
+        values:
+          compact_str: hash_gbb_0
+      hash_gbb_1:
+        values:
+          compact_str: hash_gbb_1
+  key_recovery:
+    items:
+      key_recovery_0:
+        values:
+          compact_str: key_recovery_0
+      key_recovery_1:
+        values:
+          compact_str: key_recovery_1
+  key_root:
+    items:
+      key_root_0:
+        values:
+          compact_str: key_root_0
+      key_root_1:
+        values:
+          compact_str: key_root_1
+  ro_ec_firmware:
+    items:
+      ro_ec_firmware_0:
+        values:
+          compact_str: ro_ec_firmware_0
+      ro_ec_firmware_1:
+        values:
+          compact_str: ro_ec_firmware_1
+  ro_main_firmware:
+    items:
+      ro_main_firmware_0:
+        values:
+          compact_str: ro_main_firmware_0
+      ro_main_firmware_1:
+        values:
+          compact_str: ro_main_firmware_1
+
+rules:
+- name: device_info.image_id
+  evaluate: SetImageId('EVT')
