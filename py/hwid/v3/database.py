@@ -315,7 +315,7 @@ class Database(object):
         comp_status = self.components.GetComponentStatus(comp_cls, comp_name)
         if comp_status != common.HWID.COMPONENT_STATUS.unsupported:
           probed_components[comp_cls].append(
-              common.ProbedComponentResult(comp_name , None, None))
+              common.ProbedComponentResult(comp_name, None, None))
           return True
       return False
 

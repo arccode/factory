@@ -9,6 +9,7 @@
 import json
 import logging
 import os
+import shutil
 import yaml
 
 import factory_common  # pylint: disable=W0611
@@ -23,6 +24,7 @@ from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils import sys_utils
+from cros.factory.utils import yaml_utils
 from cros.factory.utils import process_utils
 
 
@@ -50,6 +52,82 @@ class Arg(object):
   def __init__(self, *args, **kwargs):
     self.args = args
     self.kwargs = kwargs
+
+
+@Command(
+    'build-database',
+    CmdArg('--probed-results-file', default=None, required=True,
+           help='a file with probed results.\n'),
+    CmdArg('--image-id', default='EVT',
+           help="Name of image_id. Default is 'EVT'\n"),
+    CmdArg('--add-comp', default=None, nargs='+', metavar='COMP',
+           help='Component classese that add default item.\n'),
+    CmdArg('--del-comp', default=None, nargs='+', metavar='COMP',
+           help='Component classeds that delete from database.\n'),
+    CmdArg('--region', default=None, nargs='+',
+           help='Supported regions'),
+    CmdArg('--customization-id', default=None, nargs='+',
+           help='Supported customization-id'))
+def BuildDatabaseWrapper(options):
+  '''Build the HWID database from probed result.'''
+  if not os.path.isfile(options.probed_results_file):
+    raise IOError('File %s is not found.' % options.probed_results_file)
+  if not os.path.isdir(options.hwid_db_path):
+    raise IOError('%s is not is directory.' % options.hwid_db_path)
+  yaml_utils.ParseMappingAsOrderedDict()
+  probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
+  database_path = os.path.join(options.hwid_db_path, options.board.upper())
+  hwid_utils.BuildDatabase(
+      database_path, probed_results, options.board, options.image_id,
+      options.add_comp, options.del_comp,
+      options.region, options.customization_id)
+  logging.info('Output the database to %s', database_path)
+
+
+@Command(
+    'update-database',
+    CmdArg('--probed-results-file', default=None,
+           help='a file with probed results.\n'),
+    CmdArg('--output-database', default=None,
+           help='Write into different file.\n'),
+    CmdArg('--image-id', default=None,
+           help='Name of image_id.\n'),
+    CmdArg('--add-comp', default=None, nargs='+', metavar='COMP',
+           help='Component classese that add default item.\n'),
+    CmdArg('--del-comp', default=None, nargs='+', metavar='COMP',
+           help='Component classeds that delete from database.\n'),
+    CmdArg('--region', default=None, nargs='+',
+           help='Supported regions'),
+    CmdArg('--customization-id', default=None, nargs='+',
+           help='Supported customization-id'))
+def UpdateDatabaseWrapper(options):
+  '''Update the HWID database from probed result.'''
+  if options.probed_results_file is None:
+    probed_results = None
+  else:
+    if not os.path.isfile(options.probed_results_file):
+      raise IOError('File %s is not found.' % options.probed_results_file)
+    probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
+
+  old_db_path = os.path.join(options.hwid_db_path, options.board.upper())
+  if options.output_database is None:
+    # If the output path is not assigned, we update the database in place.
+    # We backup the original database before update.
+    bak_db_path = old_db_path + '.bak'
+    logging.info('In-place update, backup the database to %s', bak_db_path)
+    shutil.copyfile(old_db_path, bak_db_path)
+
+  # Load the original database as OrderedDict
+  yaml_utils.ParseMappingAsOrderedDict()
+  logging.info('Load the orignal database from %s', old_db_path)
+  with open(old_db_path, 'r') as f:
+    old_db = yaml.load(f)
+  database_path = options.output_database or old_db_path
+  hwid_utils.UpdateDatabase(
+      database_path, probed_results, old_db, options.image_id,
+      options.add_comp, options.del_comp,
+      options.region, options.customization_id)
+  logging.info('Output the updated database to %s.', database_path)
 
 
 @Command(
@@ -261,6 +339,10 @@ def InitializeDefaultOptions(options):
   if not options.board:
     options.board = common.ProbeBoard()
 
+  # Build database doesn't need to initialize the database.
+  if options.command_name in ['build-database']:
+    return
+
   board = build_board.BuildBoard(options.board).base
   board_variant = build_board.BuildBoard(options.board).variant
   # Use the variant specific HWID db if one exists, else reuse the one
@@ -268,6 +350,7 @@ def InitializeDefaultOptions(options):
   if board_variant and os.path.exists(
       os.path.join(options.hwid_db_path, board_variant.upper())):
     board = board_variant
+  options.board = board
 
   # Create the Database object here since it's common to all functions.
   logging.debug('Loading database file %s/%s...', options.hwid_db_path,

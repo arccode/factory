@@ -1,0 +1,79 @@
+# 0. Regular probed result.
+found_probe_value_map:
+  audio_codec:
+  - compact_str: AUDIO A
+  - compact_str: AUDIO B
+  bluetooth:
+    bcdDevice: '0000'
+    compact_str: 8888:7777 0000
+    idProduct: '7777'
+    idVendor: '8888'
+  cpu:
+    compact_str: SUPER CPU [64 cores]
+    cores: '64'
+    model: SUPER CPU
+  storage:
+    compact_str: 'GOOGLE GOOGLE DRIVE #65536'
+    model: GOOGLE DRIVE
+    sectors: '65536'
+    vendor: GOOGLE
+  flash_chip:
+    compact_str: GOOGLE Flash
+  display_panel:
+    compact_str: GOOGLE:0123 [192000x108000]
+    height: '108000'
+    product_id: '0123'
+    vendor: GOOGLE
+    width: '192000'
+  dram:
+  - compact_str: 0|ABCD |2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+    part: 'ABCD  '
+    size: '2048'
+    slot: '0'
+    timing: DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+  - compact_str: 1|ABCD |2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+    part: 'ABCD  '
+    size: '2048'
+    slot: '1'
+    timing: DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+  tpm:
+    compact_str: 65536:1.2.4.8
+    manufacturer_info: '65536'
+    version: 1.2.4.8
+  usb_hosts:
+  - compact_str: 8888:9999
+    device: '0x9cb1'
+    vendor: '0x8888'
+  - compact_str: 8888:9999
+    device: '0x9cb1'
+    vendor: '0x8888'
+  wireless:
+    compact_str: 6666:7777
+    device: '0x7777'
+    vendor: '0x6666'
+found_volatile_values:
+  hash_gbb:
+    compact_str: gv2#0000000000000000000000000000000000000000000000000000000000000000
+  firmware_keys:
+    key_recovery: kv3#c14bd720b70d97394257e3e826bd8f43de48d4ed
+    key_root: kv3#b11d74edd286c144e1135b49e7f0bc20cf041f10
+  key_recovery:
+    compact_str: kv3#c14bd720b70d97394257e3e826bd8f43de48d4ed
+  key_root:
+    compact_str: kv3#b11d74edd286c144e1135b49e7f0bc20cf041f10
+  ro_ec_firmware:
+    compact_str: ev2#0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef#chromebook_v1.1.2345-6789abc
+    hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    version: chromebook_v1.1.2345-6789abc
+  ro_main_firmware:
+    compact_str: ev2#0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef#chromebook_v1.1.2345-6789abc
+    hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    version: chromebook_v1.1.2345-6789abc
+  ro_pd_firmware:
+    compact_str: ev2#0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef#chromebook_v1.1.2345-6789abc
+    hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    version: chromebook_v1.1.2345-6789abc
+initial_configs:
+  cellular_fw_version: ''
+missing_component_classes:
+- cellular

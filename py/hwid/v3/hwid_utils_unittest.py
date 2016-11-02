@@ -9,8 +9,9 @@
 import copy
 import logging
 import os
-import unittest2
+import unittest
 import yaml
+import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v2 import hwid_tool
@@ -20,11 +21,13 @@ from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.test.rules import phase
+from cros.factory.utils import sys_utils
+from cros.factory.utils import yaml_utils
 
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
-class HWIDv3UtilsTestWithNewDatabase(unittest2.TestCase):
+class HWIDv3UtilsTestWithNewDatabase(unittest.TestCase):
   """Test cases for HWID v3 utilities with the new database.
 
   The new database adds a new image_id and a pattern, that removes display_panel
@@ -106,7 +109,7 @@ class HWIDv3UtilsTestWithNewDatabase(unittest2.TestCase):
                       [{None: None}])
 
 
-class HWIDv3UtilsTest(unittest2.TestCase):
+class HWIDv3UtilsTest(unittest.TestCase):
   """Test cases for HWID v3 utilities."""
 
   def setUp(self):
@@ -409,6 +412,98 @@ class HWIDv3UtilsTest(unittest2.TestCase):
                 'name': Value('CPU @ 2.80GHz', is_re=False)}}]})
 
 
+class DatabaseBuilderTest(unittest.TestCase):
+
+  def setUp(self):
+    yaml_utils.ParseMappingAsOrderedDict()
+    with open(os.path.join(TEST_DATA_PATH,
+                           'test_builder_probe_results.yaml'), 'r') as f:
+      self.probed_results = list(yaml.load_all(f.read()))
+    self.output_path = tempfile.mktemp()
+
+  def tearDown(self):
+    yaml_utils.ParseMappingAsOrderedDict(False)
+    if os.path.exists(self.output_path):
+      os.remove(self.output_path)
+
+  def testBuildDatabase(self):
+    # Build database by the probed result.
+    hwid_utils.BuildDatabase(
+        self.output_path, self.probed_results[0], 'CHROMEBOOK', 'EVT',
+        add_comp=['dram'], del_comp=None,
+        region=['tw', 'jp'], customization_id=['FOO', 'BAR'])
+    # If not in Chroot, the checksum is not updated.
+    verify_checksum = sys_utils.InChroot()
+    database.Database.LoadFile(self.output_path, verify_checksum)
+    # Check the value.
+    with open(self.output_path, 'r') as f:
+      db = yaml.load(f.read())
+    self.assertEquals(db['board'], 'CHROMEBOOK')
+    self.assertEquals(db['image_id'], {0: 'EVT'})
+    self.assertEquals(db['pattern'][0]['image_ids'], [0])
+    self.assertEquals(db['pattern'][0]['encoding_scheme'], 'base8192')
+    active_fields = [{'region_field': 8},
+                     {'customization_id_field': 5},
+                     {'ro_main_firmware_field': 3},
+                     {'firmware_keys_field': 3},
+                     {'ro_pd_firmware_field': 3},
+                     {'ro_ec_firmware_field': 3},
+                     {'storage_field': 1},
+                     {'cpu_field': 1},
+                     {'dram_field': 1},
+                     {'wireless_field': 0},
+                     {'display_panel_field': 0},
+                     {'tpm_field': 0},
+                     {'flash_chip_field': 0},
+                     {'audio_codec_field': 0},
+                     {'usb_hosts_field': 0},
+                     {'bluetooth_field': 0}]
+    for field in active_fields:
+      self.assertIn(field, db['pattern'][0]['fields'])
+    self.assertEquals(set(db['components'].keys()),
+                      set(['dram', 'ro_pd_firmware', 'ro_main_firmware', 'tpm',
+                           'storage', 'flash_chip', 'bluetooth', 'wireless',
+                           'display_panel', 'audio_codec', 'firmware_keys',
+                           'ro_ec_firmware', 'usb_hosts', 'cpu', 'region',
+                           'customization_id']))
+    self.assertEquals(db['rules'],
+                      [{'name': 'device_info.image_id',
+                        'evaluate': "SetImageId('EVT')"}])
+
+    # Delete bluetooth, and add region and customization_id.
+    hwid_utils.UpdateDatabase(
+        self.output_path, None, db, 'DVT',
+        add_comp=None, del_comp=['bluetooth'],
+        region=['us'], customization_id=['NEW'])
+    database.Database.LoadFile(self.output_path, verify_checksum)
+    # Check the value.
+    self.assertEquals(db['board'], 'CHROMEBOOK')
+    self.assertEquals(db['image_id'], {0: 'EVT', 1: 'DVT'})
+    active_fields = [{'region_field': 8},
+                     {'customization_id_field': 5},
+                     {'ro_main_firmware_field': 3},
+                     {'firmware_keys_field': 3},
+                     {'ro_pd_firmware_field': 3},
+                     {'ro_ec_firmware_field': 3},
+                     {'storage_field': 1},
+                     {'cpu_field': 1},
+                     {'dram_field': 1},
+                     {'wireless_field': 0},
+                     {'display_panel_field': 0},
+                     {'tpm_field': 0},
+                     {'flash_chip_field': 0},
+                     {'audio_codec_field': 0},
+                     {'usb_hosts_field': 0}]
+    for field in active_fields:
+      self.assertIn(field, db['pattern'][1]['fields'])
+    self.assertNotIn({'bluetooth_field': 0}, db['pattern'][1]['fields'])
+    self.assertIn({'region': 'us'},
+                  db['encoded_fields']['region_field'].values())
+    self.assertIn('NEW', db['components']['customization_id']['items'])
+    self.assertIn({'customization_id': 'NEW'},
+                  db['encoded_fields']['customization_id_field'].values())
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest2.main()
+  unittest.main()

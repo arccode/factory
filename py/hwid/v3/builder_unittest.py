@@ -55,10 +55,13 @@ class BuilderMethodTest(unittest.TestCase):
 class DatabaseBuilderTest(unittest.TestCase):
 
   def setUp(self):
-    yaml_utils.ParseMappingAsOrderDict()
+    yaml_utils.ParseMappingAsOrderedDict()
 
     with open(os.path.join(TEST_DATA_PATH, 'test_db_builder.yaml'), 'r') as f:
       self.test_dbs = list(yaml.load_all(f.read()))
+
+  def tearDown(self):
+    yaml_utils.ParseMappingAsOrderedDict(False)
 
   def testInit(self):
     with self.assertRaises(ValueError):

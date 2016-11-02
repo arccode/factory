@@ -14,6 +14,7 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import probe
+from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import decoder
@@ -28,6 +29,22 @@ def _HWIDMode(rma_mode):
   if rma_mode:
     return common.HWID.OPERATION_MODE.rma
   return common.HWID.OPERATION_MODE.normal
+
+
+def BuildDatabase(database_path, probed_results, board, image_id,
+                  add_comp, del_comp, region, customization_id):
+  db_builder = builder.DatabaseBuilder(board=board)
+  db_builder.Update(probed_results, image_id, add_comp,
+                    del_comp, region, customization_id)
+  db_builder.Render(database_path)
+
+
+def UpdateDatabase(database_path, probed_results, old_db, image_id,
+                   add_comp, del_comp, region, customization_id):
+  db_builder = builder.DatabaseBuilder(db=old_db)
+  db_builder.Update(probed_results, image_id, add_comp,
+                    del_comp, region, customization_id)
+  db_builder.Render(database_path)
 
 
 def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):

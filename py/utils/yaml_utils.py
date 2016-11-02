@@ -26,20 +26,37 @@ class BaseYAMLTagMetaclass(type):
     super(BaseYAMLTagMetaclass, cls).__init__(name, bases, attrs)
 
 
-def ParseMappingAsOrderDict():
-  """Treat OrderDict as the default mapping instance.
+def ParseMappingAsOrderedDict(enable=True):
+  """Treat OrderedDict as the default mapping instance.
 
   While we load a yaml file to a object, modify the object, and dump to a yaml
   file, we hope to keep the order of the mapping instance. Therefore, we should
   parse the mapping to the Python OrderedDict object, and dump the OrderedDict
   instance to yaml just like a dict object.
+
+  Args:
+    enable: if enable is True, load and dump yaml as OrderedDict.
   """
-  def OrderDictRepresenter(dumper, data):
+  def DictRepresenter(dumper, data):
     return dumper.represent_dict(data.iteritems())
 
-  def OrderDictConstructor(loader, node):
+  def OrderedDictRepresenter(dumper, data):
+    return dumper.represent_object(data)
+
+  def OrderedDictConstructor(loader, node):
     return collections.OrderedDict(loader.construct_pairs(node))
 
-  yaml.add_representer(collections.OrderedDict, OrderDictRepresenter)
-  yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-                       OrderDictConstructor)
+  def DictConstructor(loader, node):
+    return dict(loader.construct_pairs(node))
+
+  if enable:
+    # Represent OrderedDict object like a dict.
+    # Construct the yaml mapping string to OrderedDict.
+    yaml.add_representer(collections.OrderedDict, DictRepresenter)
+    yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+                         OrderedDictConstructor)
+  else:
+    # Set back to normal.
+    yaml.add_representer(collections.OrderedDict, OrderedDictRepresenter)
+    yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+                         DictConstructor)

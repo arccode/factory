@@ -44,7 +44,10 @@ class BaseYAMLTagMetaclassUnittest(unittest.TestCase):
 
 class ParseMappingAsOrderedDictUnittest(unittest.TestCase):
   def setUp(self):
-    yaml_utils.ParseMappingAsOrderDict()
+    yaml_utils.ParseMappingAsOrderedDict()
+
+  def tearDown(self):
+    yaml_utils.ParseMappingAsOrderedDict(False)
 
   def testLoadAndDump(self):
     YAML_DOC = '{foo: foo1, bar: 234}'
@@ -56,6 +59,16 @@ class ParseMappingAsOrderedDictUnittest(unittest.TestCase):
 
     yaml_str = yaml.dump(obj).strip()
     self.assertEquals(YAML_DOC, yaml_str)
+
+  def testDisable(self):
+    YAML_DOC = '{foo: foo1, bar: 234}'
+    obj = yaml.load(YAML_DOC)
+    self.assertIsInstance(obj, collections.OrderedDict)
+
+    yaml_utils.ParseMappingAsOrderedDict(False)
+    obj = yaml.load(YAML_DOC)
+    self.assertNotIsInstance(obj, collections.OrderedDict)
+    self.assertIsInstance(obj, dict)
 
   def testModifyDict(self):
     YAML_DOC = '{foo: foo1, bar: 234, buzz: null}'
