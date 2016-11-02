@@ -312,11 +312,9 @@ class Database(object):
       """
       if comp_cls in self.components.default:
         comp_name = self.components.default[comp_cls]
-        comp_status = self.components.GetComponentStatus(comp_cls, comp_name)
-        if comp_status != common.HWID.COMPONENT_STATUS.unsupported:
-          probed_components[comp_cls].append(
-              common.ProbedComponentResult(comp_name, None, None))
-          return True
+        probed_components[comp_cls].append(
+            common.ProbedComponentResult(comp_name, None, None))
+        return True
       return False
 
     # Construct a dict of component classes to list of ProbedComponentResult.
@@ -875,7 +873,9 @@ class Components(object):
     for comp_cls, comp_cls_data in components_dict.iteritems():
       default_items = []
       for comp_name, comp_attrs in comp_cls_data['items'].iteritems():
-        if comp_attrs.get('default', False):
+        if (comp_attrs.get('default', False) and
+            comp_attrs.get('status', common.HWID.COMPONENT_STATUS.supported) !=
+            common.HWID.COMPONENT_STATUS.unsupported):
           default_items.append(comp_name)
       if len(default_items) == 1:
         self.default[comp_cls] = default_items[0]
@@ -1012,6 +1012,10 @@ class Components(object):
         if match:
           results[comp_name] = copy.deepcopy(comp_attrs)
 
+    # Filter the unsupported component.
+    results = {key: value for key, value in results.items()
+               if value.get('status', common.HWID.COMPONENT_STATUS.supported) !=
+               common.HWID.COMPONENT_STATUS.unsupported}
     if results:
       return results
     return None
