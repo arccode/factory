@@ -15,26 +15,58 @@ class RegionFieldUnittest(unittest.TestCase):
   def testRegionFieldDict(self):
     regions_field = yaml_tags.RegionField()
     self.assertEquals({'region': 'us'}, regions_field[29])
+    self.assertTrue(regions_field.is_legacy_style)
+
+  def testYamlNode(self):
+    nodes = [yaml_tags.YamlNode('tw'), yaml_tags.YamlNode('jp')]
+    obj = yaml_tags.RegionField(nodes)
+    self.assertEquals(obj.GetRegions(), ['tw', 'jp'])
 
   def testDecodeYAMLTag(self):
     YAML_DOC = 'foo: !region_field'
     decoded = yaml.load(YAML_DOC)
     self.assertEquals({'region': 'us'}, decoded['foo'][29])
+    self.assertTrue(decoded['foo'].is_legacy_style)
 
   def testDumpRegionField(self):
     YAML_DOC = 'foo: !region_field [us, gb]'
-    obj = yaml.load(YAML_DOC)
-    self.assertIsInstance(obj['foo'], yaml_tags.RegionField)
-    self.assertEquals(obj['foo'], {0: {'region': None},
-                                   1: {'region': 'us'},
-                                   2: {'region': 'gb'}})
-    dump_str = yaml.dump(obj).strip()
+    decoded = yaml.load(YAML_DOC)
+    self.assertIsInstance(decoded['foo'], yaml_tags.RegionField)
+    self.assertFalse(decoded['foo'].is_legacy_style)
+    self.assertEquals(decoded['foo'], {
+        0: {'region': None},
+        1: {'region': 'us'},
+        2: {'region': 'gb'}})
+    dump_str = yaml.dump(decoded).strip()
     self.assertEquals(YAML_DOC, dump_str)
+
+  def testDumpLegacyRegionField(self):
+    YAML_DOC = 'foo: !region_field'
+    decoded = yaml.load(YAML_DOC)
+    dump_str = yaml.dump(decoded, default_flow_style=False).strip()
+    self.assertEquals(yaml_tags.RemoveDummyString(dump_str), YAML_DOC)
 
   def testUnsupportRegionField(self):
     YAML_DOC = "foo: !region_field [us, NO_THIS_REGION]"
     with self.assertRaises(KeyError):
       yaml.load(YAML_DOC)
+
+  def testAddRegions(self):
+    YAML_DOC = '!region_field [us, gb]'
+    decoded = yaml.load(YAML_DOC)
+    self.assertEquals(decoded.GetRegions(), ['us', 'gb'])
+    decoded.AddRegion('jp')
+    self.assertEquals(decoded.GetRegions(), ['us', 'gb', 'jp'])
+    self.assertFalse(decoded.is_legacy_style)
+
+    obj = yaml_tags.RegionField()
+    with self.assertRaises(ValueError):
+      obj.AddRegion('us')
+
+  def testIsLegacyStyleProperty(self):
+    regions_field = yaml_tags.RegionField()
+    with self.assertRaises(AttributeError):
+      regions_field.is_legacy_style = True
 
 
 class RegionComponentUnittest(unittest.TestCase):
