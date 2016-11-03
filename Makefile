@@ -63,15 +63,6 @@ LEGACY_BOARD_IN_OUTOFTREE ?= \
   $(if $(OUTOFTREE_BUILD),$(if \
       $(filter $(BOARD_PACKAGE_NAME),chromeos-factory-board),1))
 
-# Typically we should not make any difference between build_packages and
-# "emerge-$BOARD chromeos-factory". However, to improve development experience,
-# we do want to add some additional checks (that portage should solve for us)
-# for developers who manually invoked 'make' or 'emerge-$BOARD'.
-# The IS_BUILD_PACKAGES macro is using some undocumented environment variables
-# that build_packages has set, and should only be used by "developer-friendly
-# additional checks".
-IS_BUILD_PACKAGES = $(if $(CHROMEOS_VERSION_STRING),True)
-
 PAR_TEMP_DIR = $(TEMP_DIR)/par
 PAR_OUTPUT_DIR = $(BUILD_DIR)/par
 PAR_NAME = factory.par
@@ -188,12 +179,13 @@ func-check-package = @\
 # timestamp, but 'git checkout' does not keep file timestamps, and portage looks
 # at version instead of timestamp. So pre-built package may be older than ebuild
 # files, and this will be a problem for fresh checkout.
-# The solution is to ignore timestamp comparison when portage should have solved
-# all dependency (i.e., build_packages).
+# The solution is to do timestamp comparison only in an interactive quickfix
+# (modify, make, test) cycle, by checking if the build system allows interaction
+# (EPAUSE_IGNORE).
 check-board-resources:
 	$(if $(BOARD_EBUILD),\
-	   $(if $(IS_BUILD_PACKAGES),\
-	     $(info Ignore $(BOARD_PACKAGE_NAME) check in build_packages), \
+	   $(if $(EPAUSE_IGNORE),\
+	     $(info Ignore $(BOARD_PACKAGE_NAME) check.), \
 	     $(call func-check-package,$(BOARD_PACKAGE_NAME), \
 	       [ "$(realpath $(BOARD_EBUILD))" -ot "$(BOARD_PACKAGE_FILE)" ])) \
 	   $(call func-check-package,chromeos-regions, \
