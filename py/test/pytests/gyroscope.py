@@ -13,7 +13,7 @@ Usage examples::
         label_zh=u'陀螺仪',
         pytest_name='gyroscope',
         dargs={
-            'rotation_threshold': 1,
+            'rotation_threshold': 1.0,
             'stop_threshold': 0.1
             })
 

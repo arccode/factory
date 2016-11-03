@@ -31,7 +31,8 @@ class BarcodeScanToFileTest(unittest.TestCase):
       Arg(
           'label_zh', (str, unicode),
           'Chinese name of barcode being scanned '
-          '(defaults to the same as the English label)'),
+          '(defaults to the same as the English label)',
+          optional=True),
       Arg(
           'regexp', str, 'Regexp that the scanned value must match',
           optional=True),

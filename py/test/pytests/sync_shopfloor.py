@@ -95,7 +95,7 @@ class SyncShopfloor(unittest.TestCase):
                 'Press SPACE to update.',
 
                 u'有可用的更新。'
-                u'安空白键更新。'))
+                u'按空白键更新。'))
 
             # Note that updateFactory() will kill this test.
             ui.BindKeyJS(' ', 'window.test.updateFactory()')

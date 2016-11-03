@@ -29,6 +29,9 @@ from .type_utils import Enum
 # Save the 'type' function (since we'll be overloading it in Arg.__init__).
 TYPE = type
 
+# For unset default value, since we do want to specify None as default value.
+_DEFAULT_NOT_SET = object()
+
 
 class ArgError(ValueError):
   """Represents a problem with Arg specification or validation."""
@@ -39,7 +42,8 @@ class Arg(object):
   """The specification for a single test argument."""
   # pylint: disable=W0622
 
-  def __init__(self, name, type, help, default=None, optional=False):
+  def __init__(self, name, type, help,
+               default=_DEFAULT_NOT_SET, optional=False):
     """Constructs a test argument.
 
     Args:
@@ -70,8 +74,8 @@ class Arg(object):
       default: A default value for the argument. If there is no
         default value, this is omitted.
       optional: Whether the argument is optional. If a default value
-        is provided (i.e., ``default`` is not ``None``), the argument
-        is always optional and you need not set this to ``True``.
+        is provided, the argument is always optional and you need not set this
+        to ``True``.
     """
     if not name:
       raise ArgError('Argument is missing a name')
@@ -85,15 +89,18 @@ class Arg(object):
            for x in type):
       raise ArgError('Argument %s has invalid types %r' % (name, type))
 
-    # Allow None for all optional arguments without defaults.
-    if optional and (default is None) and (None not in type):
-      type += (TYPE(None),)
-
     if not help:
       raise ArgError('Argument %s is missing a help string' % name)
 
-    if default is not None:
+    if default is _DEFAULT_NOT_SET:
+      default = None
+    else:
+      # The argument is optional when default is given (even it's None)
       optional = True
+
+    # Allow None for all optional arguments with default None
+    if default is None and optional and (TYPE(None) not in type):
+      type += (TYPE(None),)
 
     self.name = name
     self.help = help
@@ -102,7 +109,7 @@ class Arg(object):
     self.optional = optional
 
     # Check type of default.
-    if default and not self.ValueMatchesType(default):
+    if optional and not self.ValueMatchesType(default):
       raise ArgError('Default value %s should have type %r, not %r' % (
           default, type, TYPE(default)))
 
@@ -125,8 +132,8 @@ class Dargs(object):
       setattr(self, key, value)
 
   def ToDict(self):
-    return dict(filter(lambda kv: not kv[0].startswith('__'),
-                       self.__dict__.items()))
+    return dict([kv for kv in self.__dict__.items()
+                 if not kv[0].startswith('__')])
 
 
 class Args(object):

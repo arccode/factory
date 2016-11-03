@@ -29,7 +29,8 @@ class SelectAuxField(unittest.TestCase):
       Arg(
           'label_zh', str,
           'Chinese name of the model being selected '
-          '(defaults to the same as the English label)'),
+          '(defaults to the same as the English label)',
+          optional=True),
       Arg('event_log_key', str, 'Key to use for event log', optional=True),
       Arg('aux_table_name', str, 'Name of the auxiliary table'),
       Arg('aux_id', str, 'Name of the auxiliary ID'),
