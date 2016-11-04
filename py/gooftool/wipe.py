@@ -369,16 +369,11 @@ def _WipeStateDev(release_rootfs, root_disk, wipe_args):
 
   clobber_state_env = os.environ.copy()
   clobber_state_env.update(ROOT_DEV=release_rootfs,
-                           ROOT_DISK=root_disk,
-                           FACTORY_RETURN_AFTER_WIPING='YES')
+                           ROOT_DISK=root_disk)
   logging.debug('clobber-state: root_dev=%s, root_disk=%s',
                 release_rootfs, root_disk)
   process_utils.Spawn(['clobber-state', wipe_args], env=clobber_state_env,
                       call=True)
-
-  shutil.move('/tmp/clobber-state.log', os.path.join(stateful_partition_path,
-                                                     'unencrypted',
-                                                     'clobber-state.log'))
   # remove developer flag, which is created by clobber-state after wiping.
   try:
     os.unlink(os.path.join(stateful_partition_path, '.developer_mode'))
