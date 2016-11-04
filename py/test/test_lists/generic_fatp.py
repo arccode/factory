@@ -258,21 +258,31 @@ def FATP(args):
       # in device_data.
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
-          id='WirelessRSSI',
-          label_zh=u'天線',
+          id='WirelessRSSI24G',
+          label_zh=u'天線 2.4G',
           pytest_name='wireless_antenna',
           dargs=dict(
               device_name='mlan0',
-              # This is for testing without device_data.line.
-              # spec_dict={(('antenna_test_5G_1', 5745),):
-              #                   {"main": -60, "all": -60},
-              #              (('antenna_test_1', 2412),):
-              #                   {"main": -50, "all": -50}},
-              spec_dict=lambda env: {
-                  (args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][0],):
-                      args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][1],
-                  (args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][0],):
-                      args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][1]},
+              services=lambda env: [
+                  args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][0]],
+              strength=(
+                  lambda env:
+                  args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][1]),
+              scan_count=10,
+              switch_antenna_sleep_secs=1))
+
+      OperatorTest(
+          exclusive_resources=[plugin.RESOURCE.NETWORK],
+          id='WirelessRSSI5G',
+          label_zh=u'天線 5G',
+          pytest_name='wireless_antenna',
+          dargs=dict(
+              device_name='mlan0',
+              services=lambda env: [
+                  args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][0]],
+              strength=(
+                  lambda env:
+                  args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][1]),
               scan_count=10,
               switch_antenna_sleep_secs=1))
 

@@ -346,8 +346,6 @@ class WirelessRadiotapTest(unittest.TestCase):
     _template: Test template.
     _antenna: current antenna config.
     _phy_name: wireless phy name to test.
-    _test_spec: the reduced version of spec_dict. The candidate services in
-        spec_dict.keys() are replaced by the services with the largest strength.
     _space_event: An event that space has been pressed. It will also be set
         if test has been done.
     _done: An event that test has been done.
@@ -355,26 +353,27 @@ class WirelessRadiotapTest(unittest.TestCase):
   ARGS = [
       Arg(
           'device_name', str,
-          'wireless device name to test.'
+          'Wireless device name to test. '
           'Set this correctly if check_antenna is True.', default='wlan0'),
       Arg(
-          'spec_dict', dict,
-          'Keys: a tuple of (service_ssid, freq, password) tuples like '
-          '((SSID_AP1, FREQ_AP1, PASS_AP1), (SSID_AP2, FREQ_AP2, PASS_AP2), '
-          '(SSID_AP3, FREQ_AP3, PASS_AP3)). The test will only check the '
-          'service whose antenna_all signal strength is the largest. If '
-          '(SSID_AP1, FREQ_AP1) has the largest signal among AP1, AP2, AP3, '
-          'then its result will be checked against the spec value. Values: a '
-          'dict of minimal signal strength. For example, a dict like {"main": '
-          'strength_1, "aux": strength_2, "all": strength_all}. The test will '
-          'check signal strength under different antenna config. Example of '
-          'spec_dict: {     ((SSID_AP1, FREQ_AP1, PASS_AP1), (SSID_AP2, '
-          'FREQ_AP2, PASS_AP2)):         {"all": 50, "main": 50, "aux": 50},'
-          '     ((SSID_AP3, FREQ_AP3, PASS_AP3)): {"all": 60}}.',
+          'services', list,
+          'A list of (service_ssid, freq, password) tuples like '
+          '``[(SSID1, FREQ1, PASS1), (SSID2, FREQ2, PASS2), '
+          '(SSID3, FREQ3, PASS3)]``. The test will only check the service '
+          'whose antenna_all signal strength is the largest. For example, if '
+          '(SSID1, FREQ1, PASS1) has the largest signal among the APs, '
+          'then only its results will be checked against the spec values.',
+          optional=False),
+      Arg(
+          'strength', dict,
+          'A dict of minimal signal strengths. For example, a dict like '
+          '``{"main": strength_1, "aux": strength_2, "all": strength_all}``. '
+          'The test will check signal strength according to the different '
+          'antenna configurations in this dict.',
           optional=False),
       Arg(
           'scan_count', int,
-          'number of scanning to get average signal strength', default=5),
+          'Number of scans to get average signal strength.', default=5),
       Arg(
           'switch_antenna_sleep_secs', int,
           'The sleep time after switchingantenna and ifconfig up. Need to '
@@ -391,7 +390,6 @@ class WirelessRadiotapTest(unittest.TestCase):
 
     self._phy_name = self.DetectPhyName()
     logging.info('phy name is %s.', self._phy_name)
-    self._test_spec = dict()
     self._space_event = threading.Event()
     self._done = threading.Event()
 
@@ -541,34 +539,35 @@ class WirelessRadiotapTest(unittest.TestCase):
           if len(antenna_info) else None)
     return average_results
 
-  def CheckSpec(self, average_signal):
+  def CheckSpec(self, service, spec_antenna_strength, average_signal):
     """Checks if the scan result of antenna config can meet test spec.
 
     Args:
+      service: (service_ssid, freq, password) tuple.
+      spec_antenna_strength: A dict of minimal signal strengths.
       average_signal: A dict of average signal strength of each service in
           service. {service: {antenna1: signal1, antenna2: signal2}}
     """
-    for test_service, spec_antenna_strength in self._test_spec.iteritems():
-      for antenna in _ANTENNA_CONFIG:
-        if spec_antenna_strength.get(antenna) is None:
-          continue
-        spec_strength = spec_antenna_strength[antenna]
-        scanned_strength = average_signal[test_service][antenna]
+    for antenna in _ANTENNA_CONFIG:
+      if spec_antenna_strength.get(antenna) is None:
+        continue
+      spec_strength = spec_antenna_strength[antenna]
+      scanned_strength = average_signal[service][antenna]
 
-        Log('antenna_%s' % antenna, freq=test_service[1], rssi=scanned_strength,
-            meet=(scanned_strength and scanned_strength > spec_strength))
-        if not scanned_strength:
-          self.fail(
-              'Antenna %s, service: %s: Can not scan signal strength.' %
-              (antenna, test_service))
-        if scanned_strength < spec_strength:
-          self.fail(
-              'Antenna %s, service: %s: The scanned strength %f < spec strength'
-              ' %f' % (antenna, test_service, scanned_strength, spec_strength))
-        else:
-          factory.console.info(
-              'Antenna %s, service: %s: The scanned strength %f > spec strength'
-              ' %f', antenna, test_service, scanned_strength, spec_strength)
+      Log('antenna_%s' % antenna, freq=service[1], rssi=scanned_strength,
+          meet=(scanned_strength and scanned_strength > spec_strength))
+      if not scanned_strength:
+        self.fail(
+            'Antenna %s, service: %s: Can not scan signal strength.' %
+            (antenna, service))
+      if scanned_strength < spec_strength:
+        self.fail(
+            'Antenna %s, service: %s: The scanned strength %f < spec strength'
+            ' %f' % (antenna, service, scanned_strength, spec_strength))
+      else:
+        factory.console.info(
+            'Antenna %s, service: %s: The scanned strength %f > spec strength'
+            ' %f', antenna, service, scanned_strength, spec_strength)
 
   def PreCheck(self, services):
     """Checks each service only has one frequency.
@@ -617,27 +616,19 @@ class WirelessRadiotapTest(unittest.TestCase):
     if self._done.isSet():
       return
 
-    # Gets all the candidate services and required antenna configs.
-    set_all_services = set()
-    for spec_services, _ in self.args.spec_dict.iteritems():
-      set_all_services = set_all_services.union(set(spec_services))
-    logging.info('All candidate services: %s', set_all_services)
-
-    self.PreCheck(set_all_services)
+    self.PreCheck(self.args.services)
 
     antenna_info = dict()
-    for service in set_all_services:
+    for service in self.args.services:
       antenna_info[service] = self.ScanSignal(service, self.args.scan_count)
     average_signal = dict()
     for service, signals in antenna_info.iteritems():
       average_signal[service] = self.AverageSignals(signals)
 
     # Gets the service with the largest strength to test for each spec.
-    for candidate_services, spec_strength in self.args.spec_dict.iteritems():
-      test_service = self.ChooseMaxStrengthService(candidate_services,
-                                                   average_signal)
-      if test_service is None:
-        self.fail('Services %s are not valid.' % candidate_services)
-      else:
-        self._test_spec[test_service] = spec_strength
-    self.CheckSpec(average_signal)
+    test_service = self.ChooseMaxStrengthService(self.args.services,
+                                                 average_signal)
+    if test_service is None:
+      self.fail('Services %s are not valid.' % self.args.services)
+    else:
+      self.CheckSpec(test_service, self.args.strength, average_signal)
