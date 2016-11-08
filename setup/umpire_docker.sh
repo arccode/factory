@@ -12,11 +12,17 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 UMPIRE_IMAGE_FILEPATH="${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
 
+# Temporary value for board argument to umpire, the argument would be removed
+# later.
+UMPIRE_BOARD=default
 # Separate umpire db for each container.
-HOST_DB_DIR="/docker_umpire/${UMPIRE_CONTAINER_NAME}"
-CONTAINER_DB_DIR="/var/db/factory/umpire"
+HOST_DB_DIR="/docker_umpire/${UMPIRE_CONTAINER_NAME}/umpire_data"
+CONTAINER_DB_DIR="/var/db/factory/umpire/${UMPIRE_BOARD}/umpire_data"
 
 . ${UMPIRE_BUILD_DIR}/config.sh
+
+UMPIRE_DOCKERFILE="${UMPIRE_BUILD_DIR}/Dockerfile"
+FACTORY_DIR="$(dirname "${SCRIPT_DIR}")"
 
 check_status() {
   local container_name="$1"
@@ -54,7 +60,10 @@ do_build() {
     fi
   fi
 
-  ${DOCKER} build --tag "${UMPIRE_IMAGE_NAME}" "${UMPIRE_BUILD_DIR}"
+  ${DOCKER} build \
+    --file "${UMPIRE_DOCKERFILE}" \
+    --tag "${UMPIRE_IMAGE_NAME}" \
+    "${FACTORY_DIR}"
   if [ $? -eq 0 ]; then
     echo "${UMPIRE_CONTAINER_NAME} container successfully built."
   fi
@@ -86,7 +95,7 @@ do_start() {
   sudo mkdir -p ${DOCKER_SHARED_DIR}
   sudo mkdir -p ${HOST_DB_DIR}
 
-  if [ -n "$(${DOCKER} ps -a | grep ${UMPIRE_CONTAINER_NAME})" ]; then
+  if [ -n "$(${DOCKER} ps --all --format={{.Names}} | grep ^${UMPIRE_CONTAINER_NAME}$)" ]; then
     ${DOCKER} start "${UMPIRE_CONTAINER_NAME}"
   else
     local umpire_port_map=""
@@ -139,25 +148,6 @@ do_stop() {
   echo "done"
 }
 
-do_install() {
-  local container_name="$1"
-  local board="$2"
-  local toolkit="$3"
-  check_docker
-  check_status "${container_name}"
-
-  if [ ! -e "${toolkit}" ]; then
-    die "Factory toolkit '${toolkit}' does not exist, abort."
-  fi
-
-  ${DOCKER} cp "${toolkit}" "${container_name}:/tmp"
-  ${DOCKER} exec "${container_name}" /tmp/${toolkit##*/} -- \
-    --init-umpire-board=${board}
-  ${DOCKER} exec "${container_name}" \
-    bash -c "echo export BOARD=${board} >> /root/.bashrc"
-  ${DOCKER} exec "${container_name}" restart umpire BOARD=${board}
-}
-
 usage() {
   cat << __EOF__
 Usage: $0 COMMAND [arg ...]
@@ -169,11 +159,7 @@ Commands:
     start       start umpire container
     stop        stop umpire container
     shell (ssh) invoke a shell (bash) inside umpire container
-    install     install factory toolkit
     help        Show this help message
-
-Sub-Command options:
-    install     BOARD FACTORY_TOOLKIT_FILE
 
 Options:
     -h, --help  Show this help message
@@ -201,10 +187,6 @@ main() {
     ssh | shell)
       shift
       do_shell "${UMPIRE_CONTAINER_NAME}" "$@"
-      ;;
-    install)
-      shift
-      do_install "${UMPIRE_CONTAINER_NAME}" "$@"
       ;;
     *|help|-h|--help)
       usage

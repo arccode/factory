@@ -24,7 +24,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
 from cros.factory.test.env import paths
 from cros.factory.tools import install_symlinks
-from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -376,40 +375,6 @@ def PackFactoryToolkit(src_root, output_path, enable_device, enable_presenter):
          '\n' % (output_path, output_path))
 
 
-def InitUmpire(exe_path, src_root, target_board):
-  """Inits Umpire server environment."""
-  if exe_path is None:
-    parent_cmdline = open('/proc/%s/cmdline' % os.getppid(),
-                          'r').read().rstrip('\0').split('\0')
-
-    if len(parent_cmdline) > 1 and parent_cmdline[0] == MAKESELF_SHELL:
-      # Get parent script name from parent process.
-      exe_path = parent_cmdline[1]
-    else:
-      # Set to default.
-      exe_path = TOOLKIT_NAME
-
-  if not exe_path.startswith('/'):
-    exe_path = os.path.join(os.environ.get('OLDPWD'), exe_path)
-
-  with file_utils.TempDirectory() as nano_bundle:
-    bundle_toolkit_dir = os.path.join(nano_bundle, 'factory_toolkit')
-    os.mkdir(bundle_toolkit_dir)
-    os.symlink(exe_path, os.path.join(bundle_toolkit_dir, TOOLKIT_NAME))
-    umpire_bin = os.path.join(src_root, 'usr', 'local', 'factory', 'bin',
-                              'umpire')
-    Spawn([umpire_bin, 'init', '--board', target_board, nano_bundle],
-          check_call=True, log=True)
-    print ('\n'
-           '  Umpire initialized successfully. Upstart service is running:\n'
-           '    umpire BOARD=%(board)s.\n'
-           '  For more information, please check umpire command line:\n'
-           '\n'
-           '    umpire-%(board)s --help  (if your id is in umpire group)\n'
-           '    or sudo umpire-%(board)s --help\n'
-           '\n' % {'board': target_board})
-
-
 def ExtractOverlord(src_root, output_dir):
   output_dir = os.path.join(output_dir, 'overlord')
   try:
@@ -483,9 +448,6 @@ def main():
   parser.add_argument('--device-id', dest='device_id', type=str, default=None,
                       help='Set device ID for this device')
 
-  parser.add_argument('--init-umpire-board', dest='umpire_board',
-                      nargs='?', default=None,
-                      help='Locally install Umpire server for specific board')
   parser.add_argument('--exe-path', dest='exe_path',
                       nargs='?', default=None,
                       help='Current self-extracting archive pathname')
@@ -508,12 +470,6 @@ def main():
   src_root = paths.FACTORY_PATH
   for _ in xrange(3):
     src_root = os.path.dirname(src_root)
-
-  # --init-umpire-board creates a nano bundle, then calls umpire command
-  # line utility to install the server code and upstart configurations.
-  if args.umpire_board:
-    InitUmpire(args.exe_path, src_root, args.umpire_board)
-    return
 
   if args.extract_overlord is not None:
     ExtractOverlord(src_root, args.extract_overlord)

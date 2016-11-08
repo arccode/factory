@@ -21,15 +21,10 @@ from cros.factory.utils.file_utils import TouchFile
 
 
 TEST_DIR = os.path.dirname(sys.modules[__name__].__file__)
-# Share ../testdata/init_bundle with ../umpire_unittest.
-TEST_BUNDLE_DIR = os.path.join(TEST_DIR, '..', 'testdata', 'init_bundle')
 
 UMPIRE_CONFIG_TEMPLATE_PATH = os.path.join(TEST_DIR, 'testdata',
                                            'umpired_template.yaml')
 UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##189d695c'
-
-# MD5SUM of install_factory_toolkit.run in TEST_BUNDLE_DIR
-TOOLKIT_MD5 = '43bc8d96'
 
 TEST_USER = 'umpire_user'
 TEST_GROUP = 'umpire_group'
@@ -69,6 +64,11 @@ class InitTest(unittest.TestCase):
     os.makedirs(self.env.base_dir)
     os.makedirs(self.env.resources_dir)
 
+    self.umpire_bin_path = os.path.join(
+        self.env.server_toolkits_dir, 'active', UMPIRE_RELATIVE_PATH)
+    self.umpired_bin_path = os.path.join(
+        self.env.server_toolkits_dir, 'active', UMPIRED_RELATIVE_PATH)
+
   def tearDown(self):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
@@ -91,17 +91,6 @@ class InitTest(unittest.TestCase):
     self.assertTrue(os.path.isfile(dummy_resource))
     self.assertEqual('', open(dummy_resource).read())
 
-  def VerifyToolkitInResource(self):
-    self.assertTrue(os.path.exists(os.path.join(
-        self.env.resources_dir,
-        'install_factory_toolkit.run##' + TOOLKIT_MD5)))
-
-  def VerifyToolkitExtracted(self):
-    self.assertTrue(os.path.exists(os.path.join(
-        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)))
-    self.assertTrue(os.path.exists(os.path.join(
-        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRED_RELATIVE_PATH)))
-
   def VerifyConfig(self):
     self.assertTrue(os.path.exists(os.path.join(
         self.root_dir, 'var', 'db', 'factory', 'umpire', TEST_BOARD,
@@ -109,41 +98,36 @@ class InitTest(unittest.TestCase):
     self.assertTrue(self.env.InResource(UMPIRE_CONFIG_RESOURCE))
 
   def VerifyLocalSymlink(self):
-    umpire_bin_path = os.path.join(
-        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)
     umpire_bin_symlink = os.path.join(self.env.bin_dir, 'umpire')
-    self.assertTrue(os.path.exists(umpire_bin_symlink))
-    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_bin_symlink))
+    self.assertTrue(os.path.lexists(umpire_bin_symlink))
+    self.assertEqual(self.umpire_bin_path, os.path.realpath(umpire_bin_symlink))
 
-    umpired_bin_path = os.path.join(
-        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRED_RELATIVE_PATH)
     umpired_bin_symlink = os.path.join(self.env.bin_dir, 'umpired')
-    self.assertTrue(os.path.exists(umpired_bin_symlink))
-    self.assertEqual(umpired_bin_path, os.path.realpath(umpired_bin_symlink))
+    self.assertTrue(os.path.lexists(umpired_bin_symlink))
+    self.assertEqual(self.umpired_bin_path,
+                     os.path.realpath(umpired_bin_symlink))
 
   def VerifyGlobalSymlink(self):
-    umpire_bin_path = os.path.join(
-        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)
     umpire_board_symlink = os.path.join(
         self.root_dir, 'usr', 'local', 'bin', 'umpire-testboard')
-    self.assertTrue(os.path.exists(umpire_board_symlink))
-    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_board_symlink))
+    self.assertTrue(os.path.lexists(umpire_board_symlink))
+    self.assertEqual(self.umpire_bin_path,
+                     os.path.realpath(umpire_board_symlink))
     umpire_default_symlink = os.path.join(
         self.root_dir, 'usr', 'local', 'bin', 'umpire')
-    self.assertTrue(os.path.exists(umpire_default_symlink))
-    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_default_symlink))
+    self.assertTrue(os.path.lexists(umpire_default_symlink))
+    self.assertEqual(self.umpire_bin_path,
+                     os.path.realpath(umpire_default_symlink))
 
   def testDefault(self):
     self.MockOsModule()
     self.mox.ReplayAll()
 
-    init.Init(self.env, TEST_BUNDLE_DIR, TEST_BOARD, False, False,
+    init.Init(self.env, TEST_BOARD, False, False,
               TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
 
     self.VerifyDirectories()
-    self.VerifyToolkitInResource()
-    self.VerifyToolkitExtracted()
     self.VerifyConfig()
     self.VerifyLocalSymlink()
     self.VerifyGlobalSymlink()
@@ -159,12 +143,10 @@ class InitTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    init.Init(self.env, TEST_BUNDLE_DIR, TEST_BOARD, False, False,
+    init.Init(self.env, TEST_BOARD, False, False,
               TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
 
-    self.VerifyToolkitInResource()
-    self.VerifyToolkitExtracted()
     self.VerifyConfig()
     self.VerifyLocalSymlink()
     self.VerifyGlobalSymlink()
@@ -177,12 +159,10 @@ class InitTest(unittest.TestCase):
     active_config.GetDefaultBundle()['note'] = 'modified active config'
     active_config.WriteFile(self.env.active_config_file)
 
-    init.Init(self.env, TEST_BUNDLE_DIR, TEST_BOARD, False, False,
+    init.Init(self.env, TEST_BOARD, False, False,
               TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
 
-    self.VerifyToolkitInResource()
-    self.VerifyToolkitExtracted()
     self.VerifyConfig()
     self.VerifyLocalSymlink()
     self.VerifyGlobalSymlink()
@@ -197,12 +177,10 @@ class InitTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     # local=True
-    init.Init(self.env, TEST_BUNDLE_DIR, TEST_BOARD, False, True, TEST_USER,
+    init.Init(self.env, TEST_BOARD, False, True, TEST_USER,
               TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
 
-    self.VerifyToolkitInResource()
-    self.VerifyToolkitExtracted()
     self.VerifyConfig()
     self.VerifyLocalSymlink()
 
@@ -225,12 +203,10 @@ class InitTest(unittest.TestCase):
     TouchFile(umpire_default_symlink)
 
     # make_default=True
-    init.Init(self.env, TEST_BUNDLE_DIR, TEST_BOARD, True, False, TEST_USER,
+    init.Init(self.env, TEST_BOARD, True, False, TEST_USER,
               TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
 
-    self.VerifyToolkitInResource()
-    self.VerifyToolkitExtracted()
     self.VerifyConfig()
     self.VerifyLocalSymlink()
     # /usr/local/bin/umpire is forced symlinked to umpire.
@@ -246,28 +222,25 @@ class InitTest(unittest.TestCase):
     TouchFile(umpire_default_symlink)
 
     # default=False
-    init.Init(self.env, TEST_BUNDLE_DIR, TEST_BOARD, False, False,
+    init.Init(self.env, TEST_BOARD, False, False,
               TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
 
-    self.VerifyToolkitInResource()
-    self.VerifyToolkitExtracted()
     self.VerifyConfig()
     self.VerifyLocalSymlink()
 
     # Verify symlinks.
-    umpire_bin_path = os.path.join(
-        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)
     umpire_board_symlink = os.path.join(
         self.root_dir, BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK)
-    self.assertTrue(os.path.exists(umpire_board_symlink))
-    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_board_symlink))
+    self.assertTrue(os.path.lexists(umpire_board_symlink))
+    self.assertEqual(self.umpire_bin_path,
+                     os.path.realpath(umpire_board_symlink))
     self.assertTrue(os.path.islink(os.path.join(
         self.root_dir, TFTPBOOT_UMPIRE_SYMLINK)))
 
     # /usr/local/bin/umpire is unchaged.
     self.assertTrue(os.path.exists(umpire_default_symlink))
-    self.assertNotEqual(umpire_bin_path,
+    self.assertNotEqual(self.umpire_bin_path,
                         os.path.realpath(umpire_default_symlink))
 
 

@@ -28,7 +28,6 @@ from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils.debug_utils import SetupLogging
-from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
@@ -43,12 +42,10 @@ from cros.factory.utils import process_utils
                 help='make umpire-<board> as default'),
          CmdArg('--local', action='store_true',
                 help='do not set up /usr/local/bin and umpired'),
-         CmdArg('--user', default='umpire',
+         CmdArg('--user', default='root',
                 help='the user to run Umpire daemon'),
-         CmdArg('--group', default='umpire',
-                help='the group to run Umpire daemon'),
-         CmdArg('bundle_path', default='.',
-                help='Bundle path. If not specified, use local path.'))
+         CmdArg('--group', default='root',
+                help='the group to run Umpire daemon'))
 def Init(args, root_dir='/'):
   """Initializes or updates an Umpire working environment.
 
@@ -64,34 +61,15 @@ def Init(args, root_dir='/'):
     args: Command line args.
     root_dir: Root directory. Used for testing purpose.
   """
-  def GetBoard():
-    """Gets board name.
-
-    It derives board name from bundle's MANIFEST.yaml.
-    """
-    manifest_path = os.path.join(args.bundle_path, common.BUNDLE_MANIFEST)
-    manifest = common.LoadBundleManifest(manifest_path)
-    try:
-      return manifest['board']
-    except:
-      raise common.UmpireError(
-          'Unable to resolve board name from bundle manifest: ' +
-          manifest_path)
-
-  board = args.board or GetBoard()
-
-  # Sanity check: make sure factory toolkit exists.
-  factory_toolkit_path = os.path.join(args.bundle_path,
-                                      common.BUNDLE_FACTORY_TOOLKIT_PATH)
-  file_utils.CheckPath(factory_toolkit_path, description='factory toolkit')
+  board = args.board
 
   # This is an empty UmpireEnv object with base directory.
   env = UmpireEnv()
   env.base_dir = (args.base_dir or
                   os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
 
-  init.Init(env, args.bundle_path, board, args.default, args.local, args.user,
-            args.group)
+  init.Init(env, board, args.default, args.local, args.user, args.group,
+            restart=False)
 
 
 @Command('import-bundle',

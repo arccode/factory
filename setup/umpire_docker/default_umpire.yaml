@@ -1,0 +1,26 @@
+board: default
+ip: 0.0.0.0
+port: 8080
+rulesets:
+- bundle_id: empty
+  note: n/a
+  active: true
+services:
+  http: {}
+bundles:
+- id: empty
+  note: n/a
+  shop_floor:
+    handler: n/a
+  resources:
+    complete_script: none##d41d8cd9
+    device_factory_toolkit: none##d41d8cd9
+    efi_partition: none##d41d8cd9
+    firmware: none##d41d8cd9
+    hwid: none##d41d8cd9
+    netboot_vmlinux: none##d41d8cd9
+    oem_partition: none##d41d8cd9
+    rootfs_release: none##d41d8cd9
+    rootfs_test: none##d41d8cd9
+    server_factory_toolkit: none##d41d8cd9
+    stateful_partition: none##d41d8cd9

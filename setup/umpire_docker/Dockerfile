@@ -5,11 +5,7 @@
 FROM ubuntu:trusty
 MAINTAINER Wei-Ning Huang <wnhuang@google.com>
 
-# Setup Umpire Account.
-RUN useradd --system --user-group --shell /usr/sbin/nologin \
-        --home /var/db/factory/umpire -M --comment Umpire umpire
-RUN mkdir --mode=0755 -p /var/db/factory/umpire
-RUN chown umpire:umpire /var/db/factory/umpire
+ARG umpire_dir="/var/db/factory/umpire"
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         python-yaml \
@@ -40,7 +36,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 
 # From https://github.com/tianon/dockerfiles/tree/4d24a12b54b75b3e0904d8a285900d88d3326361/sbin-init/ubuntu/upstart/14.04
 # Setup upstart envorinment
-ADD init-fake.conf /etc/init/fake-container-events.conf
+COPY setup/umpire_docker/init-fake.conf /etc/init/fake-container-events.conf
 # Undo some leet hax of the base image
 RUN rm /usr/sbin/policy-rc.d; \
         rm /sbin/initctl; dpkg-divert --rename --remove /sbin/initctl
@@ -74,6 +70,15 @@ RUN echo 'TFTP_USERNAME="tftp"' >/etc/default/tftpd-hpa
 RUN echo 'TFTP_DIRECTORY="/root/tftpboot/"' >>/etc/default/tftpd-hpa
 RUN echo 'TFTP_ADDRESS="0.0.0.0:69"' >>/etc/default/tftpd-hpa
 RUN echo 'TFTP_OPTIONS="-v --secure"' >>/etc/default/tftpd-hpa
+
+ARG board_default="default"
+ARG umpire_server_dir="${umpire_dir}/${board_default}/toolkits/server/active/usr/local/factory"
+
+COPY py "${umpire_server_dir}/py/"
+COPY py_pkg "${umpire_server_dir}/py_pkg/"
+COPY bin "${umpire_server_dir}/bin/"
+COPY setup/umpire_docker/default_umpire.yaml "${umpire_dir}/${board_default}/active_umpire.yaml"
+RUN "${umpire_server_dir}/bin/umpire" init --board="${board_default}"
 
 # Pepare for takeoff
 CMD ["/sbin/init"]

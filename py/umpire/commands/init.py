@@ -12,7 +12,6 @@ import subprocess
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import system
 from cros.factory.umpire import common
-from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
 
 
@@ -23,26 +22,22 @@ _UMPIRED_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
                                         'umpired')
 
 # Relative path of UmpireConfig template in toolkit directory.
-# Note that it shall be defined in board spedific overlay.
+# Note that it shall be defined in board specific overlay.
 _UMPIRE_CONFIG_TEMPLATE_IN_TOOLKIT_PATH = os.path.join(
     'usr', 'local', 'factory', 'py', 'umpire', 'umpired_template.yaml')
 
 _ACTIVE_SERVER_TOOLKIT = 'active'
 
 
-def Init(env, bundle_dir, board, make_default, local, user, group,
+def Init(env, board, make_default, local, user, group,
          root_dir='/', config_template=None, restart=True):
-  """Initializes/updates an Umpire working environment.
+  """Initializes an Umpire working environment.
 
-  It creates base directory (specified in env.base_dir, installs Umpire
-  executables and sets up daemon running environment.
-
-  If an Umpire environment is already set, running it again will only update
-  Umpire executables.
+  It creates base directory (specified in env.base_dir) and sets up daemon
+  running environment.
 
   Args:
     env: UmpireEnv object.
-    bundle_dir: factory bundle's base directory.
     board: board name the Umpire to serve.
     make_default: make umpire-<board> as default.
     local: do not set up /usr/local/bin and umpired.
@@ -73,32 +68,6 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     if not os.path.isfile(dummy_resource):
       open(dummy_resource, 'w')
 
-  def InstallUmpireExecutable(uid, gid):
-    """Extracts factory toolkit to toolkit directory.
-
-    Returns:
-      path to server toolkit directory (for bin symlink).
-    """
-    toolkit_path = os.path.join(bundle_dir, common.BUNDLE_FACTORY_TOOLKIT_PATH)
-    file_utils.CheckPath(toolkit_path, description='factory toolkit')
-
-    # If it fails to add resource, it raises an exception and not
-    # going forward.
-    toolkit_resource = env.AddResource(toolkit_path)
-    # Note that "umpire init" runs as root, so we need to chown the newly added
-    # resource.
-    os.chown(toolkit_resource, uid, gid)
-    unpack_dir = UnpackFactoryToolkit(
-        env, toolkit_resource, device_toolkit=False, run_as=(uid, gid),
-        mode=env.UMPIRE_DIR_MODE)
-    symlink_source = os.path.basename(unpack_dir)
-    symlink = os.path.join(os.path.dirname(unpack_dir), _ACTIVE_SERVER_TOOLKIT)
-    file_utils.TryUnlink(symlink)
-    os.symlink(symlink_source, symlink)
-    os.lchown(symlink, uid, gid)
-    logging.info('Factory toolkit extracted to %s', unpack_dir)
-    return unpack_dir
-
   def SymlinkBinary(toolkit_base):
     """Creates symlink to umpire/umpired executable and resources.
 
@@ -118,46 +87,39 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
 
     Note that root '/'  can be overridden by arg 'root_dir' for testing.
     """
+    def _TrySymlink(target, link_name):
+      file_utils.TryUnlink(link_name)
+      os.symlink(target, link_name)
+      logging.info('Symlink %r -> %r', link_name, target)
     umpire_binary = os.path.join(toolkit_base, _UMPIRE_CLI_IN_TOOLKIT_PATH)
     umpire_bin_symlink = os.path.join(env.bin_dir, 'umpire')
-    file_utils.CheckPath(umpire_binary, description='Umpire CLI')
-    file_utils.ForceSymlink(umpire_binary, umpire_bin_symlink)
-    logging.info('Symlink %r -> %r', umpire_bin_symlink, umpire_binary)
+    _TrySymlink(umpire_binary, umpire_bin_symlink)
 
     umpired_binary = os.path.join(toolkit_base, _UMPIRED_IN_TOOLKIT_PATH)
     umpired_bin_symlink = os.path.join(env.bin_dir, 'umpired')
-    file_utils.CheckPath(umpire_binary, description='Umpire daemon')
-    file_utils.ForceSymlink(umpired_binary, umpired_bin_symlink)
-    logging.info('Symlink %r -> %r', umpired_bin_symlink, umpired_binary)
+    _TrySymlink(umpired_binary, umpired_bin_symlink)
 
     if not local:
       global_board_symlink = os.path.join(root_dir, 'usr', 'local', 'bin',
                                           'umpire-%s' % board)
-      file_utils.ForceSymlink(umpire_bin_symlink, global_board_symlink)
-      logging.info('Symlink %r -> %r', global_board_symlink, umpire_bin_symlink)
+      _TrySymlink(umpire_bin_symlink, global_board_symlink)
 
       default_symlink = os.path.join(root_dir, 'usr', 'local', 'bin', 'umpire')
       if not os.path.exists(default_symlink) or make_default:
-        file_utils.ForceSymlink(global_board_symlink, default_symlink)
-        logging.info('Symlink %r -> %r', default_symlink, global_board_symlink)
+        _TrySymlink(global_board_symlink, default_symlink)
 
       tftpboot_path = os.path.join(root_dir, 'tftpboot')
       vmlinux_symlink = os.path.join(tftpboot_path, 'vmlinux-%s.bin' % board)
       resources_vmlinux_bin = os.path.join(env.resources_dir, 'vmlinux.bin')
-      logging.info('Symlink %r -> %r', vmlinux_symlink, resources_vmlinux_bin)
 
-      if os.path.islink(vmlinux_symlink):
-        os.remove(vmlinux_symlink)
       # Installation shouldn't fail even if /tftpboot doesn't exist
       file_utils.TryMakeDirs(tftpboot_path)
-      os.symlink(resources_vmlinux_bin, vmlinux_symlink)
+      _TrySymlink(resources_vmlinux_bin, vmlinux_symlink)
 
   def InitUmpireConfig(toolkit_base):
     """Prepares the very first UmpireConfig and marks it as active.
 
     An active config is necessary for the second step, import-bundle.
-    It must be run after InstallUmpireExecutable as the template is from
-    the toolkit.
     """
     # Do not override existing active config.
     if os.path.exists(env.active_config_file):
@@ -181,7 +143,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
                env.base_dir, board, user, group)
 
   SetUpDir(uid, gid)
-  toolkit_base = InstallUmpireExecutable(uid, gid)
+  toolkit_base = os.path.join(env.server_toolkits_dir, _ACTIVE_SERVER_TOOLKIT)
   InitUmpireConfig(toolkit_base)
   SymlinkBinary(toolkit_base)
   if restart:
