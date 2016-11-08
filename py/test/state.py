@@ -24,7 +24,6 @@ import threading
 import time
 import yaml
 
-from hashlib import sha1
 from uuid import uuid4
 
 from jsonrpclib import jsonclass
@@ -609,3 +608,28 @@ def create_server(state_file_path=None, bind_address=None, port=None):
   server.register_instance(instance)
   server.web_socket_handler = None
   return instance, server
+
+
+class StubFactoryState(FactoryState):
+  class InMemoryShelf(dict):
+    def sync(self):
+      pass
+
+    def close(self):
+      pass
+
+  def __init__(self):  # pylint: disable=super-init-not-called
+    self._tests_shelf = self.InMemoryShelf()
+    self._data_shelf = self.InMemoryShelf()
+
+    self._lock = threading.RLock()
+    self.test_list_struct = None
+
+    self._generated_files = {}
+    self._generated_data = {}
+    self._generated_data_expiration = Queue.PriorityQueue()
+    self._resolver = PathResolver()
+
+  def get_system_status(self):
+    # Mock this function if your unittest needs this.
+    raise NotImplementedError

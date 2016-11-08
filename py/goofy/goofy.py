@@ -1761,5 +1761,142 @@ class Goofy(GoofyBase):
     if self.link_manager:
       self.link_manager.UpdateStatus(False)
 
+class TestListIterator(object):
+  """An iterator of test list.
+
+  * The iterator will return next test to run when "next()" is called.
+  * A status filter can be applied to skip some tests according to their states.
+  * The iterator is loosely bind to FactoryTestList, that is you can change the
+    test list object of the iterator.  If the iterator can find the last test it
+    returned, the iterator will continue on next test in the new test list.
+  * This object should implement pickle protocol to be able to save and reload
+    by python shelve.
+    (https://docs.python.org/2/library/pickle.html#pickle-protocol)
+  """
+
+  def __init__(self, root, status_filter=None, test_list=None):
+    """Constructor of TestListIterator.
+
+    Args:
+      root: the root of the subtree to iterate.  The iterator will only iterates
+        tests that is in the subtree.  Use 'test_list' object as root will make
+        this iterator walks entire tree.
+      status_filter: if given, only tests with these statuses will be returned.
+        The filter only applies on leaf tests (tests without subtests) or
+        parallel tests, doesn't apply on test groups.
+      test_list: a FactoryTestList object this iterator should iterate.  Can be
+        updated by `set_test_list()` function.
+    """
+    if isinstance(root, factory.FactoryTest):
+      self.stack = [root.path]
+    else:
+      assert isinstance(root, str)
+      self.stack = [root]
+
+    self.status_filter = status_filter
+    self.test_list = test_list
+    self.inited = False
+
+  def __getstate__(self):
+    return dict(stack=self.stack,
+                status_filter=self.status_filter,
+                inited=self.inited)
+
+  def __setstate__(self, pickled_state):
+    self.stack = pickled_state['stack']
+    self.status_filter = pickled_state['status_filter']
+    self.inited = pickled_state['inited']
+    self.test_list = None  # we didn't serialize the test_list, set it to None
+
+  def set_test_list(self, test_list):
+    assert isinstance(test_list, factory.FactoryTestList)
+    self.test_list = test_list
+
+  def _find_first_leaf_or_parallel_test(self):
+    while True:
+      test = self.test_list.lookup_path(self.stack[-1])
+      if test.is_leaf():
+        break
+      # TODO(stimim): check if this test should be run in parallel
+      self.stack.append(test.subtests[0].path)
+
+  def get(self):
+    """Returns the current test item.
+
+    If self.next() is never called before (self.inited == False), this function
+    will return None.
+
+    If the last invocation of self.next() returned a test path, then this
+    function will return the same test path.
+
+    If the last invocation of self.next() raised `StopIteration` exception, this
+    function will return None.
+    """
+    if not self.inited:
+      return None
+    if not self.stack:
+      return None
+    return self.stack[-1]
+
+  def next(self):
+    """Returns path to the test that should start now.
+
+    The returned test could be a leaf factory test (factory test that does not
+    have any subtests), or a parallel test (a factory test that has subtests but
+    all of them will be run in parallel).
+
+    Returns:
+      a string the is the path of the test (use test_list.lookup_path(path) to
+      get the real test object).
+    """
+    assert isinstance(self.test_list, factory.FactoryTestList), (
+        'test_list is not set (call set_test_list() to set test list)')
+
+    if not self.stack:
+      raise StopIteration
+
+    if not self.inited:
+      self._find_first_leaf_or_parallel_test()
+      self.inited = True
+      return self.stack[-1]
+
+    path = self.stack.pop()
+    test = self.test_list.lookup_path(path)
+
+    if not test:
+      # cannot find the test we were running, maybe the test list is changed
+      # between serialization and deserialization, just stop
+      raise StopIteration
+
+    # TODO(stimim): check if previous test failed
+
+    # find the next object in parent
+    if not self.stack:
+      # oh, there is no parent
+      raise StopIteration
+
+    found_current_test = False
+    found_next_test = False
+    for subtest in test.parent.subtests:
+      if found_current_test:
+        self.stack.append(subtest.path)
+        found_next_test = True
+        break
+      if path == subtest.path:
+        # find current, the next one is what we want
+        found_current_test = True
+
+    if found_next_test:
+      self._find_first_leaf_or_parallel_test()
+      return self.stack[-1]
+
+    assert found_current_test
+    # next test is not found, it means that we just finished all subtests in
+    # parent.
+    # TODO(stimim): should run teardown here
+
+    return self.next()
+
+
 if __name__ == '__main__':
   Goofy.run_main_and_exit()

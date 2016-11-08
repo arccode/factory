@@ -1001,6 +1001,226 @@ class NoHostTest(GoofyUITest):
         factory.get_state_instance().get_test_state('b').status)
 
 
+class TestListIteratorTest(unittest.TestCase):
+  """Base class for TestListIterator unittests"""
+  OPTIONS = ''  # Overriden by subclasses
+  TEST_LIST = ''  # Overriden by subclasses
+
+  def setUp(self):
+    self.test_list = self._BuildTestList(self.TEST_LIST, self.OPTIONS)
+
+  def _BuildTestList(self, test_list_code, options_code):
+    return _BuildTestList(test_list_code, options_code)
+
+  def _SetStubStateInstance(self, test_list):
+    state_instance = state.StubFactoryState()
+    test_list.state_instance = state_instance
+    for test in test_list.get_all_tests():
+      test.update_state(update_parent=False, visible=False)
+    return test_list
+
+  def _testPickleSerializable(self, iterator):
+    """A TestListIterator object should be pickleable.
+
+    Call this function after some operations to check if the object persists
+    after `pickle.dump()` and `pickle.load()`.
+    """
+    pickled_string = pickle.dumps(iterator)
+    deserialized_object = pickle.loads(pickled_string)
+    self.assertTrue(isinstance(deserialized_object, goofy.TestListIterator))
+    self.assertListEqual(iterator.stack, deserialized_object.stack)
+    self.assertEqual(iterator.status_filter,
+                     deserialized_object.status_filter)
+    return deserialized_object
+
+  def _AssertTestSequence(self, test_list, expected_sequence,
+                          fail_tests=None, root=None, max_iteration=10,
+                          test_persistency=False):
+    if not root:
+      root = test_list
+    fail_tests = set(fail_tests or [])
+    test_list = self._SetStubStateInstance(test_list)
+    iterator = goofy.TestListIterator(root, test_list=test_list)
+    actual_sequence = []
+
+    with self.assertRaises(StopIteration):
+      for unused_i in xrange(max_iteration):
+        test_path = iterator.next()
+        actual_sequence.append(test_path)
+        test = test_list.lookup_path(test_path)
+        if test_path in fail_tests:
+          test.update_state(status=factory.TestState.FAILED)
+        else:
+          test.update_state(status=factory.TestState.PASSED)
+        if test_persistency:
+          iterator = self._testPickleSerializable(iterator)
+          # the persistency of state instance is provided by
+          # `cros.factory.goofy.goofy`
+          # and `cros.factory.test.state`.  We assume that it just works.
+          # So the test list itself won't be changed.
+          iterator.set_test_list(test_list)
+    self.assertListEqual(expected_sequence, actual_sequence)
+
+
+class TestListIteratorBaseTest(TestListIteratorTest):
+  """Test Goofy.TestListIterator.
+
+  http://go/cros-factory-test-list#heading=h.e6unooltup1a
+  """
+
+  OPTIONS = ''
+  TEST_LIST = """
+    test_lists.FactoryTest(id='a', autotest_name='t_a')
+    test_lists.FactoryTest(id='b', autotest_name='t_b')
+    with test_lists.FactoryTest(id='G'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga')
+      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+      with test_lists.TestGroup(id='G'):
+        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
+        test_lists.FactoryTest(id='b', autotest_name='t_GGb')
+    test_lists.FactoryTest(id='c', autotest_name='t_c')
+  """
+
+  def testInitFromRoot(self):
+    root_path = self.test_list.path
+    iterator = goofy.TestListIterator(root_path)
+
+    self._testPickleSerializable(iterator)
+    self.assertListEqual([root_path], iterator.stack)
+
+    iterator = goofy.TestListIterator(self.test_list)
+    self._testPickleSerializable(iterator)
+    self.assertListEqual([root_path], iterator.stack)
+
+  def testInitFromNonRoot(self):
+    # 1. specify starting test by path string
+    root_path = self.test_list.subtests[0].path
+    iterator = goofy.TestListIterator(root_path)
+    self._testPickleSerializable(iterator)
+    self.assertListEqual([root_path], iterator.stack)
+
+    # 2. specify starting test by test object
+    iterator = goofy.TestListIterator(self.test_list.subtests[0])
+    self._testPickleSerializable(iterator)
+    self.assertListEqual([root_path], iterator.stack)
+
+  def testInitWithStatusFilter(self):
+    for status_filter in ([], [TestState.FAILED],
+                          [TestState.FAILED, TestState.UNTESTED]):
+      iterator = goofy.TestListIterator(self.test_list, status_filter)
+      self.assertListEqual(status_filter, iterator.status_filter)
+      self._testPickleSerializable(iterator)
+
+  def testNext(self):
+    self._AssertTestSequence(
+        self.test_list,
+        ['a', 'b', 'G.a', 'G.b', 'G.G.a', 'G.G.b', 'c'],
+        test_persistency=False)
+    self._AssertTestSequence(
+        self.test_list,
+        ['a', 'b', 'G.a', 'G.b', 'G.G.a', 'G.G.b', 'c'],
+        test_persistency=True)
+
+  def testNextStartFromNonRoot(self):
+    self._AssertTestSequence(
+        self.test_list,
+        ['G.a', 'G.b', 'G.G.a', 'G.G.b'],
+        root='G',
+        test_persistency=True)
+    self._AssertTestSequence(
+        self.test_list,
+        ['G.a', 'G.b', 'G.G.a', 'G.G.b'],
+        root='G',
+        test_persistency=False)
+    self._AssertTestSequence(
+        self.test_list,
+        ['G.G.a', 'G.G.b'],
+        root='G.G',
+        test_persistency=False)
+    self._AssertTestSequence(
+        self.test_list,
+        ['a'],
+        root='a',
+        test_persistency=False)
+    self._AssertTestSequence(
+        self.test_list,
+        ['G.a'],
+        root='G.a',
+        test_persistency=False)
+
+  def testNextAndUpdateTestList(self):
+    test_list = self._SetStubStateInstance(self.test_list)
+    iterator = goofy.TestListIterator(test_list, test_list=test_list)
+    actual_sequence = []
+
+    for unused_i in xrange(3):
+      test_path = iterator.next()
+      actual_sequence.append(test_path)
+      test = test_list.lookup_path(test_path)
+      test.update_state(status=factory.TestState.PASSED)
+
+    self.assertListEqual(['a', 'b', 'G.a'], actual_sequence)
+
+    # switch to new test list
+    test_list = self._BuildTestList(
+        """
+    test_lists.FactoryTest(id='a', autotest_name='t_a')
+    test_lists.FactoryTest(id='b', autotest_name='t_b')
+    with test_lists.FactoryTest(id='G'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga')  # <- at here
+      # test_lists.FactoryTest(id='b', autotest_name='t_Gb')  # removed
+      with test_lists.TestGroup(id='G'):
+        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
+        test_lists.FactoryTest(id='b', autotest_name='t_GGb')
+        test_lists.FactoryTest(id='c', autotest_name='t_GGc')  # new
+    test_lists.FactoryTest(id='c', autotest_name='t_c')
+        """, self.OPTIONS)
+    test_list = self._SetStubStateInstance(test_list)
+    iterator.set_test_list(test_list)
+
+    with self.assertRaises(StopIteration):
+      for unused_i in xrange(10):
+        test_path = iterator.next()
+        actual_sequence.append(test_path)
+        test = test_list.lookup_path(test_path)
+        test.update_state(status=factory.TestState.PASSED)
+
+    self.assertListEqual(
+        ['a', 'b', 'G.a', 'G.G.a', 'G.G.b', 'G.G.c', 'c'], actual_sequence)
+
+  def testGet(self):
+    self._SetStubStateInstance(self.test_list)
+    iterator = goofy.TestListIterator(self.test_list, test_list=self.test_list)
+
+    # in the beginning, the iterator is not initialized, shall return None
+    self.assertIsNone(iterator.get())
+    with self.assertRaises(StopIteration):
+      for unused_i in xrange(10):
+        test_path = iterator.next()
+        # get() shall return the same value as previous next()
+        for unused_j in xrange(2):
+          self.assertEqual(test_path, iterator.get())
+    # get() shall return None when we reach the end (StopIteration).
+    self.assertIsNone(iterator.get())
+
+
+class TestListIteratorTestSuite(unittest.TestSuite):
+  """A test suite that collects all tests for TestListIterator.
+
+  Usage::
+      python goofy_unittest.py TestListIteratorTestSuite
+  """
+  def __init__(self):
+    super(TestListIteratorTestSuite, self).__init__(self)
+
+    loader = unittest.TestLoader()
+    for test_case_class in (c for c in globals().values()
+                            if isinstance(c, type)
+                            if issubclass(c, TestListIteratorTest)):
+      logging.info('adding %s to test suite', test_case_class.__name__)
+      self.addTests(loader.loadTestsFromTestCase(test_case_class))
+
+
 if __name__ == '__main__':
   factory.init_logging('goofy_unittest')
   goofy._inited_logging = True  # pylint: disable=protected-access
