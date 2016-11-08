@@ -293,9 +293,9 @@ class GoofyUITest(GoofyTest):
 
 # A simple test list with three tests.
 ABC_TEST_LIST = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A'),
-    test_lists.OperatorTest(id='b', autotest_name='b_B'),
-    test_lists.OperatorTest(id='c', autotest_name='c_C'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A')
+    test_lists.OperatorTest(id='b', autotest_name='b_B')
+    test_lists.OperatorTest(id='c', autotest_name='c_C')
 """
 
 
@@ -592,8 +592,8 @@ class RequireRunTest(GoofyTest):
     options.auto_run_on_start = False
   """
   test_list = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A'),
-    test_lists.OperatorTest(id='b', autotest_name='b_B', require_run='a'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A')
+    test_lists.OperatorTest(id='b', autotest_name='b_B', require_run='a')
   """
 
   def runTest(self):
@@ -614,9 +614,9 @@ class RequireRunPassedTest(GoofyTest):
     options.auto_run_on_start = True
   """
   test_list = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A')
     test_lists.OperatorTest(id='b', autotest_name='b_B',
-                            require_run=test_lists.Passed('a')),
+                            require_run=test_lists.Passed('a'))
   """
 
   def runTest(self):
@@ -638,9 +638,9 @@ class RunIfTest(GoofyTest):
     options.auto_run_on_start = True
   """
   test_list = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A', run_if='foo.bar'),
-    test_lists.OperatorTest(id='b', autotest_name='b_B', run_if='!foo.bar'),
-    test_lists.OperatorTest(id='c', autotest_name='c_C'),
+    test_lists.OperatorTest(id='a', autotest_name='a_A', run_if='foo.bar')
+    test_lists.OperatorTest(id='b', autotest_name='b_B', run_if='!foo.bar')
+    test_lists.OperatorTest(id='c', autotest_name='c_C')
   """
 
   def runTest(self):
