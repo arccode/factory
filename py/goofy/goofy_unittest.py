@@ -1034,24 +1034,55 @@ class TestListIteratorTest(unittest.TestCase):
     return deserialized_object
 
   def _AssertTestSequence(self, test_list, expected_sequence,
-                          fail_tests=None, root=None, max_iteration=10,
-                          test_persistency=False):
+                          root=None, max_iteration=10,
+                          test_persistency=False, aux_data=None,
+                          run_test=None):
+    """Helper function to check the test order.
+
+    Args:
+      test_list: the test_list to run
+      expected_sequence: the expected test order
+      root: starting from which test
+      max_iteration: a big enough number that should exhaust the iterator.
+      test_persistency: will serialize and deserialize the iterator between each
+          next call.
+      aux_data: initial stub aux_data
+      run_test: a function will be called for each test returned by the
+          iterator.  The signature is run_test(test_path, current_aux_data).
+          This function must return True if the test is considered passed, False
+          otherwise.  This function can modify current_aux_data or cause other
+          side effects to affect the next or following tests.
+    """
     if not root:
       root = test_list
-    fail_tests = set(fail_tests or [])
+    aux_data = aux_data or {}
     test_list = self._SetStubStateInstance(test_list)
     iterator = goofy.TestListIterator(root, test_list=test_list)
     actual_sequence = []
+    if not run_test:
+      run_test = lambda unused_path, unused_aux_data: True
+
+    # mock _check_run_if
+    # pylint: disable=protected-access
+    def _GetData(db_name):
+      return aux_data.get(db_name, {})
+    def _MockedCheckRunIf(path):
+      return goofy.TestListIterator._check_run_if(
+          iterator,
+          path,
+          test_arg_env={},
+          get_data=_GetData)
+    iterator._check_run_if = _MockedCheckRunIf
 
     with self.assertRaises(StopIteration):
       for unused_i in xrange(max_iteration):
         test_path = iterator.next()
         actual_sequence.append(test_path)
         test = test_list.lookup_path(test_path)
-        if test_path in fail_tests:
-          test.update_state(status=factory.TestState.FAILED)
-        else:
+        if run_test(test_path, aux_data):
           test.update_state(status=factory.TestState.PASSED)
+        else:
+          test.update_state(status=factory.TestState.FAILED)
         if test_persistency:
           iterator = self._testPickleSerializable(iterator)
           # the persistency of state instance is provided by
@@ -1202,6 +1233,149 @@ class TestListIteratorBaseTest(TestListIteratorTest):
           self.assertEqual(test_path, iterator.get())
     # get() shall return None when we reach the end (StopIteration).
     self.assertIsNone(iterator.get())
+
+  def testRunIf(self):
+    test_list = self._BuildTestList(
+        """
+    test_lists.FactoryTest(id='a', autotest_name='t_a')
+    with test_lists.FactoryTest(id='G', run_if='foo.a'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga')
+      with test_lists.TestGroup(id='G'):
+        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
+    test_lists.FactoryTest(id='c', autotest_name='t_c')
+        """, self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['a', 'c'],
+        aux_data={
+            'foo': {
+                'a': False,
+            },
+        })
+    self._AssertTestSequence(
+        test_list,
+        ['a', 'G.a', 'G.G.a', 'c'],
+        aux_data={
+            'foo': {
+                'a': True,
+            },
+        })
+
+    test_list = self._BuildTestList(
+        """
+    test_lists.FactoryTest(id='a', autotest_name='t_a')
+    with test_lists.FactoryTest(id='G'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga', run_if='foo.a')
+      with test_lists.TestGroup(id='G', run_if='!foo.a'):
+        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
+    test_lists.FactoryTest(id='c', autotest_name='t_c')
+        """, self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['a', 'G.G.a', 'c'],
+        aux_data={
+            'foo': {
+                'a': False,
+            },
+        })
+    self._AssertTestSequence(
+        test_list,
+        ['a', 'G.a', 'c'],
+        aux_data={
+            'foo': {
+                'a': True,
+            },
+        })
+
+  def testRunIfCannotSkipParent(self):
+    """Make sure we cannot skip a parent test.
+
+    If a test group starts running, changing to its run_if state won't make the
+    reset of its child stop running.
+    """
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G', run_if='foo.a'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga', run_if='foo.a')
+      with test_lists.TestGroup(id='G', run_if='foo.a'):
+        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
+        test_lists.FactoryTest(id='b', autotest_name='t_GGa')
+      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+        """, self.OPTIONS)
+
+    def run_test_1(path, aux_data):
+      if path == 'G.G.a':
+        aux_data['foo']['a'] = False
+      return True
+    self._AssertTestSequence(
+        test_list,
+        ['G.a', 'G.G.a', 'G.G.b', 'G.b'],
+        aux_data={
+            'foo': {
+                'a': True,
+            },
+        },
+        run_test=run_test_1)
+
+    def run_test_2(path, aux_data):
+      if path == 'G.a':
+        aux_data['foo']['a'] = False
+      return True
+    self._AssertTestSequence(
+        test_list,
+        ['G.a', 'G.b'],
+        aux_data={
+            'foo': {
+                'a': True,
+            },
+        },
+        run_test=run_test_2)
+
+  def testRunIfSetByOtherTest(self):
+    """Changing aux data also changes run_if result for other tests.
+
+    Test A that is prior to test B can change aux data and turn on / off test
+    B.
+    """
+    test_list = self._BuildTestList(
+        """
+    test_lists.FactoryTest(id='a', autotest_name='t_a')
+    test_lists.FactoryTest(id='b', autotest_name='t_b', run_if='foo.a')
+        """, self.OPTIONS)
+
+    # case 1: test 'a' set foo.a to True
+    def run_test_1(path, aux_data):
+      if path == 'a':
+        aux_data['foo'] = {
+            'a': True
+        }
+      return True
+    self._AssertTestSequence(
+        test_list,
+        ['a', 'b'],
+        run_test=run_test_1)
+
+    # case 2: normal case
+    self._AssertTestSequence(
+        test_list,
+        ['a'])
+
+    # case 3: foo.a was True, but test 'a' set it to False
+    def run_test_3(path, aux_data):
+      if path == 'a':
+        aux_data['foo'] = {
+            'a': False
+        }
+      return True
+    self._AssertTestSequence(
+        test_list,
+        ['a'],
+        aux_data={
+            'foo': {
+                'a': True
+            },
+        },
+        run_test=run_test_3)
 
 
 class TestListIteratorTestSuite(unittest.TestSuite):

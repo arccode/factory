@@ -1716,7 +1716,28 @@ class TestListIterator(object):
   * This object should implement pickle protocol to be able to save and reload
     by python shelve.
     (https://docs.python.org/2/library/pickle.html#pickle-protocol)
+
+  The iterator will go through each tests in the test list start from a given
+  node in depth first search order.
+  self.stack is the execution stack of the iterator.
+
+  For example, consider a test list like this:
+
+  root (path='')
+    A (path='a')
+    G (path='G')
+      B (path='G.b')
+      G (path='G.H')
+        C (path='G.H.c')
+
+  If we start at root, then `self.stack = ['']` initially, and will become
+  `self.stack = ['', 'G', 'G.H', 'G.H.c']` when we reach test C.
+
+  If we start at test G, then `self.stack = ['G']` initially, and will become
+  `self.stack = ['G', 'G.H', 'G.H.c']` when we reach test C.
   """
+
+  _SERIALIZE_FIELDS = ('stack', 'status_filter', 'inited')
 
   def __init__(self, root, status_filter=None, test_list=None):
     """Constructor of TestListIterator.
@@ -1742,27 +1763,41 @@ class TestListIterator(object):
     self.inited = False
 
   def __getstate__(self):
-    return dict(stack=self.stack,
-                status_filter=self.status_filter,
-                inited=self.inited)
+    return {key: self.__dict__[key] for key in self._SERIALIZE_FIELDS}
 
   def __setstate__(self, pickled_state):
-    self.stack = pickled_state['stack']
-    self.status_filter = pickled_state['status_filter']
-    self.inited = pickled_state['inited']
+    for key in self._SERIALIZE_FIELDS:
+      self.__dict__[key] = pickled_state[key]
     self.test_list = None  # we didn't serialize the test_list, set it to None
 
   def set_test_list(self, test_list):
     assert isinstance(test_list, factory.FactoryTestList)
     self.test_list = test_list
 
-  def _find_first_leaf_or_parallel_test(self):
-    while True:
-      test = self.test_list.lookup_path(self.stack[-1])
-      if test.is_leaf():
-        break
-      # TODO(stimim): check if this test should be run in parallel
-      self.stack.append(test.subtests[0].path)
+  def _skip(self, test):
+    if isinstance(test, str):
+      test = self.test_list.lookup_path(test)
+    if self.status_filter:
+      # status filter only applies to leaf tests
+      # TODO(stimim): should also apply to parallel tests
+      if test.is_leaf() and test.get_state().status not in self.status_filter:
+        logging.info('test %s is filtered (skipped) because its status',
+                     test.path)
+        logging.info('%s (skip list: %r)',
+                     test.get_state().status, self.status_filter)
+        return True
+    if not self._check_run_if(test):
+      logging.info('test %s is skipped because run_if evaluated to False',
+                   test.path)
+      return True
+    return False
+
+  def _check_run_if(self, test, test_arg_env=None, get_data=None):
+    if test_arg_env is None:
+      test_arg_env = TestArgEnv()
+    if get_data is None:
+      get_data = shopfloor.get_selected_aux_data
+    return test.evaluate_run_if(test_arg_env, get_data)
 
   def get(self):
     """Returns the current test item.
@@ -1782,6 +1817,84 @@ class TestListIterator(object):
       return None
     return self.stack[-1]
 
+  def _find_first_valid_test_in_subtree(self):
+    """Find first valid test in the subtree.
+
+    Assume that currently we have `self.stack = ['G', 'G.H', 'G.H.I']`.
+    This function will check if G.H.I is a valid test to run, if yes, just
+    return True.  If it's not valid because it contains subtests, this function
+    will recursively search the subtests.
+
+    Returns:
+      True if a valid test is found, `self.stack` will indicate the test it
+      found, e.g. `self.stack = ['G', 'G.H', 'G.H.I', 'G.H.I.J', 'G.H.I.J.x']`
+
+      False if no valid test found.  In this case, `self.stack` will not be
+      changed.
+    """
+    assert self.stack, "stack cannot be empty"
+
+    path = self.stack[-1]
+    test = self.test_list.lookup_path(path)
+    if test.is_leaf():
+      if not self._skip(test):
+        return True
+
+    for subtest in test.subtests:
+      if not self._skip(subtest):
+        self.stack.append(subtest.path)
+        if self._find_first_valid_test_in_subtree():
+          return True
+        # none of the test in the subtree is valid
+        self.stack.pop()
+    # cannot find anything
+    return False
+
+  def _continue_depth_first_search(self):
+    """Continue the depth first search starting from current node.
+
+    Assume that currently we have `self.stack = ['G', 'G.H', 'G.H.I']`.
+    This function will skip any subtests of G.H.I, and go to G.H.J (the next
+    subtest of G.H after G.H.I).
+
+    Returns:
+      True if we found next test to run.  `self.stack` will indicate the test it
+      found, e.g. `self.stack = ['G', 'G.H', 'G.H.J', 'G.H.J.K', 'G.H.J.K.x']`
+
+    Raises:
+      StopIteration if no next test found.
+    """
+    while self.stack:
+      path = self.stack.pop()
+      test = self.test_list.lookup_path(path)
+
+      if not test:
+        # cannot find the test we were running, maybe the test list is changed
+        # between serialization and deserialization, just stop
+        raise StopIteration
+
+      if not self.stack:
+        # oh, there is no parent
+        raise StopIteration
+
+      # find next test in parent
+      found_current_test = False
+      for subtest in test.parent.subtests:
+        if found_current_test:
+          if not self._skip(subtest.path):
+            self.stack.append(subtest.path)
+            if self._find_first_valid_test_in_subtree():
+              return True
+            self.stack.pop()
+        if path == subtest.path:
+          # find current, the next one is what we want
+          found_current_test = True
+      assert found_current_test
+
+      # next test is not found, it means that we just finished all subtests in
+      # parent.
+      # TODO(stimim): should run teardown here
+
   def next(self):
     """Returns path to the test that should start now.
 
@@ -1800,46 +1913,16 @@ class TestListIterator(object):
       raise StopIteration
 
     if not self.inited:
-      self._find_first_leaf_or_parallel_test()
+      # this is a special case, we try to find a test under current node first.
+      # if we failed to do so, find next test as normal.
       self.inited = True
-      return self.stack[-1]
-
-    path = self.stack.pop()
-    test = self.test_list.lookup_path(path)
-
-    if not test:
-      # cannot find the test we were running, maybe the test list is changed
-      # between serialization and deserialization, just stop
-      raise StopIteration
+      if self._find_first_valid_test_in_subtree():
+        return self.stack[-1]
 
     # TODO(stimim): check if previous test failed
 
-    # find the next object in parent
-    if not self.stack:
-      # oh, there is no parent
-      raise StopIteration
-
-    found_current_test = False
-    found_next_test = False
-    for subtest in test.parent.subtests:
-      if found_current_test:
-        self.stack.append(subtest.path)
-        found_next_test = True
-        break
-      if path == subtest.path:
-        # find current, the next one is what we want
-        found_current_test = True
-
-    if found_next_test:
-      self._find_first_leaf_or_parallel_test()
-      return self.stack[-1]
-
-    assert found_current_test
-    # next test is not found, it means that we just finished all subtests in
-    # parent.
-    # TODO(stimim): should run teardown here
-
-    return self.next()
+    self._continue_depth_first_search()
+    return self.stack[-1]
 
 
 if __name__ == '__main__':
