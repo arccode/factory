@@ -219,7 +219,7 @@ def GetI2CBus(device_names):
     I2C bus index. None if not found
   """
   blankline = re.compile(r'\n\n', flags=re.MULTILINE)
-  blocks = blankline.split(file_utils.Read('/proc/bus/input/devices'))
+  blocks = blankline.split(file_utils.ReadFile('/proc/bus/input/devices'))
   matched_blocks = [b for b in blocks if any(d in b for d in device_names)]
   if len(matched_blocks) == 0:
     logging.error('GetI2CBus(%r): Device is not found', device_names)

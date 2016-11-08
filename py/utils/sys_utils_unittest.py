@@ -159,27 +159,31 @@ class GetI2CBusTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def testTouchpad(self):
-    self.mox.StubOutWithMock(file_utils, 'Read')
-    file_utils.Read('/proc/bus/input/devices').AndReturn(SAMPLE_INPUT_DEVICES)
+    self.mox.StubOutWithMock(file_utils, 'ReadFile')
+    file_utils.ReadFile('/proc/bus/input/devices').AndReturn(
+        SAMPLE_INPUT_DEVICES)
     self.mox.ReplayAll()
     self.assertEqual(sys_utils.GetI2CBus(['Dummy device name',
                                           'Atmel maXTouch Touchpad']), 0)
 
   def testTouchscreen(self):
-    self.mox.StubOutWithMock(file_utils, 'Read')
-    file_utils.Read('/proc/bus/input/devices').AndReturn(SAMPLE_INPUT_DEVICES)
+    self.mox.StubOutWithMock(file_utils, 'ReadFile')
+    file_utils.ReadFile('/proc/bus/input/devices').AndReturn(
+        SAMPLE_INPUT_DEVICES)
     self.mox.ReplayAll()
     self.assertEqual(sys_utils.GetI2CBus(['Atmel maXTouch Touchscreen']), 3)
 
   def testNoMatch(self):
-    self.mox.StubOutWithMock(file_utils, 'Read')
-    file_utils.Read('/proc/bus/input/devices').AndReturn(SAMPLE_INPUT_DEVICES)
+    self.mox.StubOutWithMock(file_utils, 'ReadFile')
+    file_utils.ReadFile('/proc/bus/input/devices').AndReturn(
+        SAMPLE_INPUT_DEVICES)
     self.mox.ReplayAll()
     self.assertEqual(sys_utils.GetI2CBus(['Unknown Device']), None)
 
   def testNonI2CDevice(self):
-    self.mox.StubOutWithMock(file_utils, 'Read')
-    file_utils.Read('/proc/bus/input/devices').AndReturn(SAMPLE_INPUT_DEVICES)
+    self.mox.StubOutWithMock(file_utils, 'ReadFile')
+    file_utils.ReadFile('/proc/bus/input/devices').AndReturn(
+        SAMPLE_INPUT_DEVICES)
     self.mox.ReplayAll()
     self.assertEqual(sys_utils.GetI2CBus(['Lid Switch']), None)
 

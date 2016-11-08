@@ -105,7 +105,7 @@ class UmpireEnvTest(unittest.TestCase):
     self.env.StageConfigFile(config_to_stage, force=True)
     self.assertTrue(os.path.exists(self.env.staging_config_file))
     self.assertEqual('new stage file',
-                     file_utils.Read(self.env.staging_config_file))
+                     file_utils.ReadFile(self.env.staging_config_file))
 
   def testStageConfigFileSourceNotFound(self):
     config_to_stage = os.path.join(self.env.base_dir, 'to_stage.yaml')

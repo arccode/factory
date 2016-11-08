@@ -94,7 +94,7 @@ class TestLightyConfigWriter(unittest.TestCase):
           ')\n'
           'server.bind = "0.0.0.0"\n'
           'server.port = 8080\n',
-          file_utils.Read(temp_file))
+          file_utils.ReadFile(temp_file))
 
 
 class TestHTTPService(unittest.TestCase):

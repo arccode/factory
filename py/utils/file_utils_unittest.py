@@ -191,14 +191,14 @@ class PrependFileTest(unittest.TestCase):
 
     file_utils.PrependFile(test_file, 'header 1\nheader 2\n')
     self.assertEqual('header 1\nheader 2\nline 1\nline 2',
-                     file_utils.Read(test_file))
+                     file_utils.ReadFile(test_file))
 
   def testPrependEmptyFile(self):
     test_file = os.path.join(self.temp_dir, 'test')
 
     file_utils.PrependFile(test_file, 'header 1\nheader 2\n')
     self.assertEqual('header 1\nheader 2\n',
-                     file_utils.Read(test_file))
+                     file_utils.ReadFile(test_file))
 
 
 class CopyFileSkipBytesTest(unittest.TestCase):

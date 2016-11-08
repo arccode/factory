@@ -154,25 +154,6 @@ def TempDirectory(**kwargs):
       shutil.rmtree(path)
 
 
-def Read(filename):
-  """Returns the content of a file.
-
-  It is used to facilitate unittest.
-
-  Args:
-    filename: file name.
-
-  Returns:
-    File content. None if IOError.
-  """
-  try:
-    with open(filename) as f:
-      return f.read()
-  except IOError as e:
-    logging.error('Cannot read file "%s": %s', filename, e)
-    return None
-
-
 def ReadLines(filename, dut=None):
   """Returns a file as list of lines.
 
@@ -256,7 +237,7 @@ def PrependFile(path, data, log=False):
 
   original = None
   if os.path.isfile(path):
-    original = Read(path)
+    original = ReadFile(path)
 
   with open(path, 'w') as f:
     f.seek(0)

@@ -30,7 +30,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils.file_utils import ForceSymlink
-from cros.factory.utils.file_utils import Read
+from cros.factory.utils.file_utils import ReadFile
 from cros.factory.utils import net_utils
 from cros.factory.utils.net_utils import FindConsecutiveUnusedPorts
 from cros.factory.utils import process_utils
@@ -113,7 +113,7 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     os.chdir(TESTDATA_DIRECTORY)
     error_file = 'error_%s' % self.handler_name
     if os.path.exists(error_file):
-      error_code, error_message = Read(error_file).split(' ', 1)
+      error_code, error_message = ReadFile(error_file).split(' ', 1)
       logging.info('Generate an error %s, %s for handler %s',
                    error_code, error_message, self.handler_name)
       if int(error_code) == 410 and error_message == 'Gone':

@@ -79,7 +79,7 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
                                         'factory', 'MD5SUM')
     self.assertTrue(os.path.exists(expected_md5sum_path))
     self.assertTrue(0440, self.GetPermissionBits(expected_md5sum_path))
-    self.assertEqual(TOOLKIT_MD5, file_utils.Read(expected_md5sum_path))
+    self.assertEqual(TOOLKIT_MD5, file_utils.ReadFile(expected_md5sum_path))
 
   def testUnpackServerToolkit(self):
     expected_toolkit_dir = os.path.join(self.env.server_toolkits_dir,
@@ -103,7 +103,7 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
                                         'factory', 'MD5SUM')
     self.assertTrue(os.path.exists(expected_md5sum_path))
     self.assertTrue(0440, self.GetPermissionBits(expected_md5sum_path))
-    self.assertEqual(TOOLKIT_MD5, file_utils.Read(expected_md5sum_path))
+    self.assertEqual(TOOLKIT_MD5, file_utils.ReadFile(expected_md5sum_path))
 
   def testNoUnpackDestExist(self):
     expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,

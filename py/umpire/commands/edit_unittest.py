@@ -68,7 +68,7 @@ class ConfigEditorTest(unittest.TestCase):
     editor = ConfigEditor(self.umpire_cli)
     editor.Edit()
 
-    new_config = file_utils.Read(editor.config_file)
+    new_config = file_utils.ReadFile(editor.config_file)
     self.assertTrue(new_config.startswith(EDITOR_PREPEND))
     self.assertNotEqual(self.config_to_edit, new_config)
 
@@ -86,7 +86,7 @@ class ConfigEditorTest(unittest.TestCase):
     editor = ConfigEditor(self.umpire_cli)
     editor.Edit()
 
-    new_config = file_utils.Read(editor.config_file)
+    new_config = file_utils.ReadFile(editor.config_file)
     self.assertTrue(new_config.startswith(EDITOR_PREPEND))
     self.assertNotEqual(self.config_to_edit, new_config)
 
@@ -104,7 +104,7 @@ class ConfigEditorTest(unittest.TestCase):
     editor = ConfigEditor(self.umpire_cli, max_retry=2)
     editor.Edit()
 
-    new_config = file_utils.Read(editor.config_file)
+    new_config = file_utils.ReadFile(editor.config_file)
     self.assertTrue(new_config.startswith('# edit again'))
     self.assertIn('mock resource not found', new_config)
 
@@ -117,7 +117,7 @@ class ConfigEditorTest(unittest.TestCase):
 
     editor = ConfigEditor(self.umpire_cli)
     editor.Edit(config_file=MINIMAL_UMPIRE_CONFIG)
-    self.assertTrue(file_utils.Read(editor.config_file).startswith(
+    self.assertTrue(file_utils.ReadFile(editor.config_file).startswith(
         EDITOR_PREPEND))
 
   def testEditSpecifyTempDir(self):
@@ -130,7 +130,7 @@ class ConfigEditorTest(unittest.TestCase):
       editor = ConfigEditor(self.umpire_cli, temp_dir=temp_dir)
       editor.Edit()
       self.assertEqual(temp_dir, editor.temp_dir)
-      self.assertTrue(file_utils.Read(editor.config_file).startswith(
+      self.assertTrue(file_utils.ReadFile(editor.config_file).startswith(
           EDITOR_PREPEND))
 
   def testEditFailToEdit(self):
