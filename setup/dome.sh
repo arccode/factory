@@ -8,11 +8,11 @@
 
 set -e
 
-SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 . "${SCRIPT_DIR}/cros_docker.sh"
 
-HOST_DOME_DIR="$(realpath "${SCRIPT_DIR}/../py/dome")"
+HOST_DOME_DIR="$(readlink -f "${SCRIPT_DIR}/../py/dome")"
 HOST_BUILD_DIR="${HOST_DOME_DIR}/build"
 
 DOCKER_VERSION="1.9.1"

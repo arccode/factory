@@ -10,7 +10,7 @@
 # We currently support LINK and SPRING.
 TARGET_BOARD="SPRING"
 
-SCRIPT_DIR="$(dirname "$(readlink "$0")")"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 # Adjust these paths as appropriate for your flashing station
 DUT_CONTROL_CMD="dut-control"

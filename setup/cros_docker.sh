@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-SCRIPT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 PREBUILT_IMAGE_SITE='https://storage.googleapis.com'
 PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
