@@ -20,12 +20,12 @@ import yaml
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
-from cros.factory.goofy import connection_manager
 from cros.factory.goofy import goofy_remote
 from cros.factory.goofy.goofy_rpc import RunState
 from cros.factory.goofy.invocation import OVERRIDE_TEST_LIST_DARGS_FILE
 from cros.factory.test import state
 from cros.factory.test.e2e_test.automator import AUTOMATION_FUNCTION_KWARGS_FILE
+from cros.factory.test.utils import connection_manager
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
