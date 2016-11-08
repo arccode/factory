@@ -15,7 +15,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import board
 from cros.factory.tools import build_board
-from cros.factory.umpire.client.umpire_client import UmpireClientInfo
+from cros.factory.umpire.client import umpire_client
 
 
 class MockBuildBoard(object):
@@ -160,7 +160,7 @@ class UmpireClientInfoTest(unittest.TestCase):
     self.dut.info = mock_system_info_1
     self.mox.ReplayAll()
 
-    client_info = UmpireClientInfo(self.dut)
+    client_info = umpire_client.UmpireClientInfo(self.dut)
     output_x_umpire_dut = client_info.GetXUmpireDUT()
     self.assertEqual(
         output_x_umpire_dut, OUTPUT_X_UMPIRE_DUT)
@@ -175,7 +175,7 @@ class UmpireClientInfoTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    client_info = UmpireClientInfo(self.dut)
+    client_info = umpire_client.UmpireClientInfo(self.dut)
     output_get_update_dut_info = client_info.GetDUTInfoComponents()
     self.assertEqual(
         output_get_update_dut_info, OUTPUT_GET_UPDATE_DUT_INFO)
@@ -188,7 +188,7 @@ class UmpireClientInfoTest(unittest.TestCase):
 
     self.mox.ReplayAll()
     self.dut.info = mock_system_info_1
-    client_info = UmpireClientInfo(self.dut)
+    client_info = umpire_client.UmpireClientInfo(self.dut)
     self.dut.info = mock_system_info_2
     self.assertEqual(client_info.Update(), True)
     self.dut.info = mock_system_info_2

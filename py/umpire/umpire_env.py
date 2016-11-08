@@ -17,16 +17,10 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
-from cros.factory.umpire.common import DEFAULT_BASE_DIR
-from cros.factory.umpire.common import DEFAULT_SERVER_TOOLKIT_DIR
-from cros.factory.umpire.common import GetHashFromResourceName
-from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
-from cros.factory.umpire.common import ResourceType
-from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire import common
 from cros.factory.umpire import config
-from cros.factory.umpire.shop_floor_manager import ShopFloorManager
-from cros.factory.umpire.version import UMPIRE_VERSION_MAJOR
-from cros.factory.umpire.version import UMPIRE_VERSION_MINOR
+from cros.factory.umpire import shop_floor_manager
+from cros.factory.umpire import version
 from cros.factory.utils import file_utils
 
 
@@ -79,8 +73,8 @@ class UmpireEnv(object):
   UMPIRE_BIN_MODE = 0755
 
   def __init__(self):
-    self.base_dir = os.path.join(DEFAULT_BASE_DIR, 'default')
-    self.server_toolkit_dir = DEFAULT_SERVER_TOOLKIT_DIR
+    self.base_dir = os.path.join(common.DEFAULT_BASE_DIR, 'default')
+    self.server_toolkit_dir = common.DEFAULT_SERVER_TOOLKIT_DIR
     self.config_path = None
     self.config = None
     self.staging_config = None
@@ -125,10 +119,10 @@ class UmpireEnv(object):
   @property
   def umpire_base_port(self):
     if not self.config:
-      raise UmpireError('UmpireConfig not loaded yet.')
+      raise common.UmpireError('UmpireConfig not loaded yet.')
     if 'port' not in self.config:
-      raise UmpireError('port is not defined in UmpireConfig %s' %
-                        self.config_path)
+      raise common.UmpireError('port is not defined in UmpireConfig %s' %
+                               self.config_path)
     return self.config['port']
 
   @property
@@ -157,11 +151,11 @@ class UmpireEnv(object):
 
   @property
   def umpire_version_major(self):
-    return UMPIRE_VERSION_MAJOR
+    return version.UMPIRE_VERSION_MAJOR
 
   @property
   def umpire_version_minor(self):
-    return UMPIRE_VERSION_MINOR
+    return version.UMPIRE_VERSION_MINOR
 
   @property
   def umpire_data_dir(self):
@@ -207,7 +201,7 @@ class UmpireEnv(object):
       # Can be obtained after a valid config is loaded.
       port_start = self.fastcgi_start_port
       if port_start:
-        self.shop_floor_manager = ShopFloorManager(
+        self.shop_floor_manager = shop_floor_manager.ShopFloorManager(
             port_start, port_start + config.NUMBER_SHOP_FLOOR_HANDLERS)
 
     # Load active config & update config_path.
@@ -237,7 +231,7 @@ class UmpireEnv(object):
       force: True to stage the file even if it already has staging file.
     """
     if not force and self.HasStagingConfigFile():
-      raise UmpireError(
+      raise common.UmpireError(
           'Unable to stage a config file as another config is already staged. '
           'Check %r to decide if it should be deployed (use "umpire deploy"), '
           'edited again ("umpire edit") or discarded ("umpire unstage").' %
@@ -248,8 +242,8 @@ class UmpireEnv(object):
 
     source = os.path.realpath(config_path)
     if not os.path.isfile(source):
-      raise UmpireError("Unable to stage config %s as it doesn't exist." %
-                        source)
+      raise common.UmpireError(
+          "Unable to stage config %s as it doesn't exist." % source)
     if force and self.HasStagingConfigFile():
       logging.info('Force staging, unstage existing one first.')
       self.UnstageConfigFile()
@@ -263,7 +257,8 @@ class UmpireEnv(object):
       Real path of the staging file being unstaged.
     """
     if not self.HasStagingConfigFile():
-      raise UmpireError("Unable to unstage as there's no staging config file.")
+      raise common.UmpireError(
+          "Unable to unstage as there's no staging config file.")
     staging_real_path = os.path.realpath(self.staging_config_file)
     logging.info('Unstage config: ' + staging_real_path)
     os.unlink(self.staging_config_file)
@@ -279,7 +274,8 @@ class UmpireEnv(object):
       config_path = self.staging_config_file
 
     if not os.path.isfile(config_path):
-      raise UmpireError('Unable to activate missing config: ' + config_path)
+      raise common.UmpireError(
+          'Unable to activate missing config: ' + config_path)
 
     config_to_activate = os.path.realpath(config_path)
     if os.path.isfile(self.active_config_file):
@@ -314,7 +310,7 @@ class UmpireEnv(object):
       if res_type is None:
         return ''
 
-      if res_type == ResourceType.FIRMWARE:
+      if res_type == common.ResourceType.FIRMWARE:
         bios, ec, pd = None, None, None
         # pylint: disable=W0632
         if file_name.endswith('.gz'):
@@ -324,15 +320,15 @@ class UmpireEnv(object):
           bios, ec, pd = get_version.GetFirmwareVersions(file_name)
         return '%s:%s:%s' % (bios or '', ec or '', pd or '')
 
-      if (res_type == ResourceType.ROOTFS_RELEASE or
-          res_type == ResourceType.ROOTFS_TEST):
-        version = get_version.GetReleaseVersionFromOmahaChannelFile(
+      if (res_type == common.ResourceType.ROOTFS_RELEASE or
+          res_type == common.ResourceType.ROOTFS_TEST):
+        res_version = get_version.GetReleaseVersionFromOmahaChannelFile(
             file_name, no_root=True)
-        return version or ''
+        return res_version or ''
 
-      if res_type == ResourceType.HWID:
-        version = get_version.GetHWIDVersion(file_name)
-        return version or ''
+      if res_type == common.ResourceType.HWID:
+        res_version = get_version.GetHWIDVersion(file_name)
+        return res_version or ''
 
       return ''
 
@@ -342,19 +338,19 @@ class UmpireEnv(object):
     # if the source file contains them already, the destination file will
     # contain multiple version/hash strings.
     basename = os.path.basename(file_name).partition('#')[0]
-    version = TryGetVersion()
-    md5 = file_utils.Md5sumInHex(file_name)[:RESOURCE_HASH_DIGITS]
+    res_version = TryGetVersion()
+    md5 = file_utils.Md5sumInHex(file_name)[:common.RESOURCE_HASH_DIGITS]
 
     res_file_name = os.path.join(
         self.resources_dir,
-        '#'.join([basename, version, md5]))
+        '#'.join([basename, res_version, md5]))
 
     if os.path.isfile(res_file_name):
       if filecmp.cmp(file_name, res_file_name, shallow=False):
         logging.warning('Skip copying as file already exists: ' + res_file_name)
         return res_file_name
       else:
-        raise UmpireError(
+        raise common.UmpireError(
             'Hash collision: file %r != resource file %r' % (file_name,
                                                              res_file_name))
     else:
@@ -415,7 +411,7 @@ class UmpireEnv(object):
     toolkit_resource = resources.get('device_factory_toolkit')
     if not toolkit_resource:
       return None
-    toolkit_hash = GetHashFromResourceName(toolkit_resource)
+    toolkit_hash = common.GetHashFromResourceName(toolkit_resource)
     toolkit_path = os.path.join(self.device_toolkits_dir, toolkit_hash)
     if not os.path.isdir(toolkit_path):
       return None

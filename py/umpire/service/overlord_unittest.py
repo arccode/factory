@@ -11,9 +11,9 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.config import UmpireConfig
+from cros.factory.umpire import config
 from cros.factory.umpire.service import overlord
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire import umpire_env
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
@@ -27,7 +27,7 @@ class TestOverlordService(unittest.TestCase):
     # override default path in overlord module
     overlord.OVERLORDD_BIN = self.OVERLORDD_BIN
 
-    self.env = UmpireEnv()
+    self.env = umpire_env.UmpireEnv()
     self.temp_dir = tempfile.mkdtemp()
     self.env.base_dir = self.temp_dir
     os.makedirs(self.env.config_dir)
@@ -64,7 +64,7 @@ class TestOverlordService(unittest.TestCase):
             'active': True}]}
 
     svc = overlord.OverlordService()
-    self.env.config = UmpireConfig(umpire_config)
+    self.env.config = config.UmpireConfig(umpire_config)
     procs = svc.CreateProcesses(umpire_config, self.env)
 
     with self.assertRaises(subprocess.CalledProcessError):

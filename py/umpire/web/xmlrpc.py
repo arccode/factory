@@ -7,16 +7,12 @@
 import logging
 import traceback
 from twisted.python import reflect
-from twisted.web.xmlrpc import Fault
-from twisted.web.xmlrpc import NoSuchFunction
+from twisted.web import xmlrpc
 from twisted.web.xmlrpc import withRequest
-from twisted.web.xmlrpc import XMLRPC
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
 
-
-class XMLRPCContainer(XMLRPC):
+class XMLRPCContainer(xmlrpc.XMLRPC):
 
   """XMLRPC resource wrapper.
 
@@ -27,12 +23,12 @@ class XMLRPCContainer(XMLRPC):
   """
 
   def __init__(self):
-    """Constructs Twisted XMLRPC resource.
+    """Constructs Twisted xmlrpc.XMLRPC resource.
 
     Twisted XMLRPC is old-style class. The allowNone=True needs to be passed
     to parent ctor in old-style way.
     """
-    XMLRPC.__init__(self, allowNone=True)
+    xmlrpc.XMLRPC.__init__(self, allowNone=True)
     self.handlers = {}
 
   def listProcedures(self):
@@ -54,13 +50,13 @@ class XMLRPCContainer(XMLRPC):
 
     Returns:
       Callable when function name is in the map. Or
-      NoSuchFunction(xmlrpc_code, message) when procedure not found.
+      xmlrpc.NoSuchFunction(xmlrpc_code, message) when procedure not found.
     """
     # Let base class process sub-handlers.
     try:
-      # XMLRPC is old-style Python class. Cannot use super().
-      return XMLRPC.lookupProcedure(self, procedure_path)
-    except NoSuchFunction:
+      # xmlrpc.XMLRPC is old-style Python class. Cannot use super().
+      return xmlrpc.XMLRPC.lookupProcedure(self, procedure_path)
+    except xmlrpc.NoSuchFunction:
       pass
 
     try:
@@ -81,11 +77,12 @@ class XMLRPCContainer(XMLRPC):
             return method(*args, **kwargs)
         except Exception:
           logging.exception('%s raises', procedure_path)
-          return Fault(xmlrpclib.APPLICATION_ERROR, traceback.format_exc())
+          return xmlrpc.Fault(xmlrpclib.APPLICATION_ERROR,
+                              traceback.format_exc())
 
       return _WrapProcedure
     except KeyError:
-      raise NoSuchFunction(xmlrpclib.METHOD_NOT_FOUND, procedure_path)
+      raise xmlrpc.NoSuchFunction(xmlrpclib.METHOD_NOT_FOUND, procedure_path)
 
   def AddHandler(self, rpc_object):
     """Adds Umpire RPC object to this XMLRPC resource.

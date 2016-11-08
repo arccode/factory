@@ -13,10 +13,10 @@ import logging
 from twisted.web import http
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.type_utils import AttrDict
+from cros.factory.utils import type_utils
 
 
-class WSGISession(AttrDict):
+class WSGISession(type_utils.AttrDict):
 
   """WSGI session class.
 

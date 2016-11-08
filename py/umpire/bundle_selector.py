@@ -12,12 +12,7 @@ import Cookie
 import urllib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import DUT_INFO_KEY_PREFIX
-from cros.factory.umpire.common import DUT_INFO_KEYS
-from cros.factory.umpire.common import HANDLER_BASE
-from cros.factory.umpire.common import RANGE_MATCHERS
-from cros.factory.umpire.common import SCALAR_MATCHERS
-from cros.factory.umpire.common import SCALAR_PREFIX_MATCHERS
+from cros.factory.umpire import common
 
 
 def ParseDUTHeader(header):
@@ -36,9 +31,9 @@ def ParseDUTHeader(header):
     ValueError if header is ill-formed.
   """
   def ValidKey(key):
-    if key in DUT_INFO_KEYS:
+    if key in common.DUT_INFO_KEYS:
       return True
-    if any(key.startswith(prefix) for prefix in DUT_INFO_KEY_PREFIX):
+    if any(key.startswith(prefix) for prefix in common.DUT_INFO_KEY_PREFIX):
       return True
     return False
 
@@ -77,7 +72,7 @@ def SelectRuleset(config, dut_info):
       True if name is not a scalar matcher.
       Otherwise, True if the DUT matches the matcher.
     """
-    if name not in SCALAR_MATCHERS:
+    if name not in common.SCALAR_MATCHERS:
       return True
     return dut_info.get(name) in expect_values
 
@@ -95,7 +90,7 @@ def SelectRuleset(config, dut_info):
       True if name is not a scalar_prefix matcher.
       Otherwise, True if the DUT matches the matcher.
     """
-    if name not in SCALAR_PREFIX_MATCHERS:
+    if name not in common.SCALAR_PREFIX_MATCHERS:
       return True
     return any(dut_info[k] in expect_values for k in dut_info
                if k.startswith(name))
@@ -114,7 +109,7 @@ def SelectRuleset(config, dut_info):
       True if name is not a range matcher.
       Otherwise, True if the DUT matches the matcher.
     """
-    if name not in RANGE_MATCHERS:
+    if name not in common.RANGE_MATCHERS:
       return True
     dut_value = dut_info.get(name[:-6])  # remove '_range' postifix
     if not dut_value:
@@ -181,7 +176,7 @@ def GetResourceMap(dut_info, env):
   result = ['id: %s' % bundle['id'],
             'note: %s' % bundle['note'],
             '__token__: %s' % handler_token,
-            'shop_floor_handler: %s/%d' % (HANDLER_BASE, handler_port)]
+            'shop_floor_handler: %s/%d' % (common.HANDLER_BASE, handler_port)]
   result.extend('%s: %s' % (k, urllib.quote(v)) for k, v in
                 bundle['resources'].items())
 

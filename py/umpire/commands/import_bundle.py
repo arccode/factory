@@ -21,10 +21,9 @@ import tempfile
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import ResourceType
-from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
-from cros.factory.umpire import utils as umpire_utils
+from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
 
@@ -131,8 +130,8 @@ class FactoryBundle(object):
       self._path = path
     else:
       if not temp_dir:
-        raise UmpireError('Bundle path %r is a file but no temp_dir for '
-                          'extracting bundle.' % path)
+        raise common.UmpireError('Bundle path %r is a file but no temp_dir for '
+                                 'extracting bundle.' % path)
       new_bundle_path = os.path.join(temp_dir, 'bundle')
       os.makedirs(new_bundle_path)
       file_utils.ExtractFile(path, new_bundle_path)
@@ -160,7 +159,7 @@ class FactoryBundle(object):
         # for image_type in self._MANDATORY_IMAGES:
         #   GetImageVersionFromManifest(self._manifest, image_type)
     except Exception as e:
-      raise UmpireError('Failed to load MANIFEST.yaml: ' + str(e))
+      raise common.UmpireError('Failed to load MANIFEST.yaml: %s' % e)
 
 
 class BundleImporter(object):
@@ -187,7 +186,7 @@ class BundleImporter(object):
     self._temp_dir = None
 
     if env.HasStagingConfigFile():
-      raise UmpireError(
+      raise common.UmpireError(
           'Cannot import bundle as staging config exists. '
           'Please run "umpire unstage" to unstage or "umpire deploy" to '
           'deploy the staging config first.')
@@ -245,13 +244,13 @@ class BundleImporter(object):
 
     bundles = self._config.setdefault('bundles', [])
     if any(bundle_id == b['id'] for b in bundles):
-      raise UmpireError('bundle_id: %r already in use' % bundle_id)
+      raise common.UmpireError('bundle_id: %r already in use' % bundle_id)
 
   def _ImportResources(self):
     """Adds resources from the bundle & updates bundle config.
 
     Raises:
-      UmpireError if an hash collision is observed.
+      common.UmpireError if an hash collision is observed.
     """
     hash_collision_files = []
     resources = {}
@@ -263,7 +262,7 @@ class BundleImporter(object):
 
       Args:
         path: file to add.
-        res_type: (optional) resource type (enum of ResourceType.)
+        res_type: (optional) resource type (enum of common.ResourceType.)
 
       Result:
         Basename of just added resource file. None if path does not exist or
@@ -274,7 +273,7 @@ class BundleImporter(object):
       try:
         resource_path = self._env.AddResource(path, res_type=res_type)
         return os.path.basename(resource_path)
-      except UmpireError as e:
+      except common.UmpireError as e:
         if e.message.startswith('Hash collision'):
           hash_collision_files.append(path)
         return None
@@ -292,11 +291,12 @@ class BundleImporter(object):
       _RESOURCE_KEY_MAP = {
           'complete': ('complete_script', None),
           'efi': ('efi_partition', None),
-          'firmware': ('firmware', ResourceType.FIRMWARE),
-          'hwid': ('hwid', ResourceType.HWID),
+          'firmware': ('firmware', common.ResourceType.FIRMWARE),
+          'hwid': ('hwid', common.ResourceType.HWID),
           'oem': ('oem_partition', None),
-          'rootfs-release': ('rootfs_release', ResourceType.ROOTFS_RELEASE),
-          'rootfs-test': ('rootfs_test', ResourceType.ROOTFS_TEST),
+          'rootfs-release': ('rootfs_release',
+                             common.ResourceType.ROOTFS_RELEASE),
+          'rootfs-test': ('rootfs_test', common.ResourceType.ROOTFS_TEST),
           'state': ('stateful_partition', None)}
 
       download_files = []
@@ -328,7 +328,7 @@ class BundleImporter(object):
           self._timestamp,
           self._factory_bundle.manifest['bundle_name'])
 
-      body = umpire_utils.ComposeDownloadConfig(
+      body = utils.ComposeDownloadConfig(
           [self._env.GetResourcePath(r) for r in download_files])
 
       with open(self._download_config_path, 'w') as f:
@@ -338,26 +338,26 @@ class BundleImporter(object):
 
     # factory_toolkit is mandatory.
     if not os.path.isfile(self._factory_bundle.factory_toolkit):
-      raise UmpireError('Missing factory toolkit %r' %
-                        self._factory_bundle.factory_toolkit)
+      raise common.UmpireError('Missing factory toolkit %r' %
+                               self._factory_bundle.factory_toolkit)
     resources['device_factory_toolkit'] = AddResource(
         self._factory_bundle.factory_toolkit,
-        res_type=ResourceType.FACTORY_TOOLKIT)
+        res_type=common.ResourceType.FACTORY_TOOLKIT)
 
     # Unpack device_factory_toolkit.
-    umpire_utils.UnpackFactoryToolkit(self._env,
-                                      resources['device_factory_toolkit'])
+    utils.UnpackFactoryToolkit(self._env,
+                               resources['device_factory_toolkit'])
 
     resources['netboot_vmlinux'] = AddResource(
         self._factory_bundle.netboot_image,
-        res_type=ResourceType.NETBOOT_VMLINUX)
+        res_type=common.ResourceType.NETBOOT_VMLINUX)
     if not resources['netboot_vmlinux']:
       logging.warning('Missing netboot_vmlinux %r',
                       self._factory_bundle.netboot_image)
 
     resources['netboot_firmware'] = AddResource(
         self._factory_bundle.netboot_firmware,
-        res_type=ResourceType.NETBOOT_FIRMWARE)
+        res_type=common.ResourceType.NETBOOT_FIRMWARE)
     if not resources['netboot_firmware']:
       logging.warning('Missing netboot_firmware %r',
                       self._factory_bundle.netboot_firmware)
@@ -369,7 +369,7 @@ class BundleImporter(object):
                       self._factory_bundle.download_files_pattern)
 
     if hash_collision_files:
-      raise UmpireError('Found %d hash collision: %r' % (
+      raise common.UmpireError('Found %d hash collision: %r' % (
           len(hash_collision_files), hash_collision_files))
 
     WriteDownloadConfig(download_files)

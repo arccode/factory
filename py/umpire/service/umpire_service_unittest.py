@@ -11,19 +11,18 @@ import re
 from twisted.trial import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.service.umpire_service import ServiceProcess
-from cros.factory.umpire.service.umpire_service import UmpireService
-from cros.factory.umpire.umpire_env import UmpireEnv
-from cros.factory.umpire.utils import ConcentrateDeferreds
+from cros.factory.umpire import common
+from cros.factory.umpire.service import umpire_service
+from cros.factory.umpire import umpire_env
+from cros.factory.umpire import utils
 
 
-class SimpleService(UmpireService):
+class SimpleService(umpire_service.UmpireService):
 
   """Test service that launches /bin/sh ."""
 
   def CreateProcesses(self, unused_umpire_config, unused_env):
-    proc = ServiceProcess(self)
+    proc = umpire_service.ServiceProcess(self)
     proc.SetConfig({
         'executable': '/bin/sh',
         'name': 'P_bsh',
@@ -32,7 +31,7 @@ class SimpleService(UmpireService):
     return [proc]
 
 
-class MultiProcService(UmpireService):
+class MultiProcService(umpire_service.UmpireService):
 
   """Multiple process service."""
 
@@ -43,12 +42,12 @@ class MultiProcService(UmpireService):
           'name': 'P_%d' % p,
           'args': [],
           'path': '/tmp'}
-      proc = ServiceProcess(self)
+      proc = umpire_service.ServiceProcess(self)
       proc.SetConfig(config_dict)
       yield proc
 
 
-class RestartService(UmpireService):
+class RestartService(umpire_service.UmpireService):
 
   """A process that restarts fast."""
 
@@ -59,12 +58,12 @@ class RestartService(UmpireService):
         'args': ['-c', 'ls'],
         'path': '/tmp',
         'restart': True}
-    proc = ServiceProcess(self)
+    proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(config_dict)
     return [proc]
 
 
-class DupProcService(UmpireService):
+class DupProcService(umpire_service.UmpireService):
 
   """Service contains duplicate processes."""
 
@@ -74,8 +73,8 @@ class DupProcService(UmpireService):
         'name': 'P_dup',
         'args': [],
         'path': '/tmp'}
-    proc1 = ServiceProcess(self)
-    proc2 = ServiceProcess(self)
+    proc1 = umpire_service.ServiceProcess(self)
+    proc2 = umpire_service.ServiceProcess(self)
     proc1.SetConfig(config_dict)
     proc2.SetConfig(copy.deepcopy(config_dict))
     return [proc1, proc2]
@@ -86,14 +85,14 @@ class ServiceTest(unittest.TestCase):
   def setUp(self):
     self.umpire_config = {}
     self.services = []
-    self.env = UmpireEnv()
+    self.env = umpire_env.UmpireEnv()
 
   def tearDown(self):
     deferreds = []
     for svc in self.services:
       deferreds.append(svc.Stop())
     self.services = []
-    return ConcentrateDeferreds(deferreds)
+    return utils.ConcentrateDeferreds(deferreds)
 
   def testDuplicate(self):
     svc = DupProcService()
@@ -110,7 +109,7 @@ class ServiceTest(unittest.TestCase):
 
   def testSetConfig(self):
     svc = SimpleService()
-    proc = ServiceProcess(svc)
+    proc = umpire_service.ServiceProcess(svc)
     # Config dict is empty
     self.assertRaises(ValueError, proc.SetConfig, {})
     # Required fields are missing
@@ -136,10 +135,10 @@ class ServiceTest(unittest.TestCase):
     deferred = svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
 
     def HandleRestartResult(unused_result):
-      raise UmpireError('testRestart expects failure callback')
+      raise common.UmpireError('testRestart expects failure callback')
 
     def HandleRestartFailure(failure):
-      # failure.trap(UmpireError)
+      # failure.trap(common.UmpireError)
       message = failure.getErrorMessage()
       logging.debug('Restart Errback() got: %s', message)
       self.assertTrue(re.search(r'^.+restart.+failed.+$', message))

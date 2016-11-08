@@ -7,13 +7,13 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.shop_floor_manager import ShopFloorManager
+from cros.factory.umpire import shop_floor_manager
 
 
 class ShopFloorManagerTest(unittest.TestCase):
 
   def testOnlyOnePort(self):
-    m = ShopFloorManager(9001, 9001)
+    m = shop_floor_manager.ShopFloorManager(9001, 9001)
     port, token = m.Allocate('b1')
     self.assertEqual(9001, port)
     self.assertRegexpMatches(token, r'[0-9a-f]{8}')
@@ -26,7 +26,7 @@ class ShopFloorManagerTest(unittest.TestCase):
     self.assertTupleEqual((None, None), m.GetHandler('something_else'))
 
   def testAllocatePortUnavailable(self):
-    m = ShopFloorManager(9001, 9001)
+    m = shop_floor_manager.ShopFloorManager(9001, 9001)
     port, token = m.Allocate('b1')
     self.assertTupleEqual((port, token), m.GetHandler('b1'))
     self.assertEqual(9001, port)
@@ -38,7 +38,7 @@ class ShopFloorManagerTest(unittest.TestCase):
 
   def testAllocateTwice(self):
     # Give 3 free ports.
-    m = ShopFloorManager(9001, 9003)
+    m = shop_floor_manager.ShopFloorManager(9001, 9003)
     port_b1_1, token_b1_1 = m.Allocate('b1')
     port_b1_2, token_b1_2 = m.Allocate('b1')
 
@@ -66,7 +66,7 @@ class ShopFloorManagerTest(unittest.TestCase):
 
   def testAllocateRelease(self):
     # Give 2 free ports.
-    m = ShopFloorManager(9001, 9002)
+    m = shop_floor_manager.ShopFloorManager(9001, 9002)
     (port1, token1) = m.Allocate('b1')
     (port2, token2) = m.Allocate('b2')
 

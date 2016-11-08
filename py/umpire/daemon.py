@@ -12,26 +12,22 @@ updater.
 """
 
 import logging
-from signal import SIGINT
-from signal import signal
-from signal import SIGTERM
+import signal
 from twisted.internet import defer
 from twisted.internet import reactor
-from twisted.python.failure import Failure
+from twisted.python import failure as twisted_failure
 from twisted.web import server
 from twisted.web import wsgi
 from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.http_post_resource import HTTPPOSTResource
-from cros.factory.umpire.service.umpire_service import GetAllServiceNames
-from cros.factory.umpire.service.umpire_service import GetServiceInstance
-from cros.factory.umpire.utils import ConcentrateDeferreds
-from cros.factory.umpire.web.wsgi import WebAppDispatcher
-from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
-from cros.factory.utils.type_utils import AttrDict
-from cros.factory.utils.type_utils import Singleton
+from cros.factory.umpire import common
+from cros.factory.umpire import http_post_resource
+from cros.factory.umpire.service import umpire_service
+from cros.factory.umpire import utils
+from cros.factory.umpire.web import wsgi as umpire_wsgi
+from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
+from cros.factory.utils import type_utils
 
 
 LOCALHOST = '127.0.0.1'
@@ -57,7 +53,7 @@ class UmpireDaemon(object):
 
   Properties:
     env: UmpireEnv object.
-    deployed_config: latest Umpire configuration AttrDict.
+    deployed_config: latest Umpire configuration type_utils.AttrDict.
     methods_for_cli: list of command objects for Umpire CLI (Command Line
                      Interface) to access.
     methods_for_dut: list of RPC objects for DUT (Device Under Test) to access.
@@ -67,14 +63,14 @@ class UmpireDaemon(object):
     deploying: daemon is deploying a config and not finished yet.
     stopping: daemon is stopping.
   """
-  __metaclass__ = Singleton
+  __metaclass__ = type_utils.Singleton
 
   def __init__(self, env):
     self.env = env
     self.deployed_config = None
     self.methods_for_cli = []
     self.methods_for_dut = []
-    self.web_applications = WebAppDispatcher()
+    self.web_applications = umpire_wsgi.WebAppDispatcher()
     # Twisted port object is TCP server port, listening for connections.
     # port.stopListening() will be called on reactor.stop()
     # The ports are stored here for unittests to stopListening() them
@@ -101,7 +97,7 @@ class UmpireDaemon(object):
   def Stop(self):
     """Stops subprocesses and quits daemon loop."""
     self.stopping = True
-    service_names = GetAllServiceNames()
+    service_names = umpire_service.GetAllServiceNames()
     deferred = self.StopServices(service_names)
     deferred.addBoth(lambda _: reactor.stop())
     return deferred
@@ -121,7 +117,7 @@ class UmpireDaemon(object):
   def BuildWebAppSite(self, interface=LOCALHOST):
     """Builds web application resource and site."""
     if not self.web_applications:
-      raise UmpireError('Can not build web site without web application')
+      raise common.UmpireError('Can not build web site without web application')
     # Build wsgi site.
     web_resource = wsgi.WSGIResource(reactor, reactor.getThreadPool(),
                                      self.web_applications)
@@ -139,9 +135,9 @@ class UmpireDaemon(object):
       interface: network interface to bind, can be '0.0.0.0'.
     """
     if not rpc_objects:
-      raise UmpireError('Can not build RPC site without rpc object')
+      raise common.UmpireError('Can not build RPC site without rpc object')
     # Build command rpc site.
-    rpc_resource = XMLRPCContainer()
+    rpc_resource = umpire_xmlrpc.XMLRPCContainer()
     map(rpc_resource.AddHandler, rpc_objects)
     xmlrpc.addIntrospection(rpc_resource)
     rpc_site = server.Site(rpc_resource)
@@ -151,8 +147,8 @@ class UmpireDaemon(object):
 
   def BuildHTTPPOSTSite(self, port, interface=LOCALHOST):
     """Builds HTTP POST resource and site."""
-    http_post_resource = HTTPPOSTResource(self.env)
-    http_post_site = server.Site(http_post_resource)
+    resource = http_post_resource.HTTPPOSTResource(self.env)
+    http_post_site = server.Site(resource)
     self.twisted_ports.append(reactor.listenTCP(port, http_post_site,
                                                 interface=interface))
 
@@ -165,8 +161,8 @@ class UmpireDaemon(object):
 
     self.BuildHTTPPOSTSite(self.env.umpire_http_post_port)
     # Install signal handler.
-    signal(SIGTERM, self._HandleStopSignal)
-    signal(SIGINT, self._HandleStopSignal)
+    signal.signal(signal.SIGTERM, self._HandleStopSignal)
+    signal.signal(signal.SIGINT, self._HandleStopSignal)
     # Start services.
     reactor.callWhenRunning(self.OnStart)
     # And start reactor loop.
@@ -209,7 +205,7 @@ class UmpireDaemon(object):
       # Clear deploying state.
       self.deploying = False
       # Switch deployed_config to new one.
-      if not isinstance(result, Failure):
+      if not isinstance(result, twisted_failure.Failure):
         self.deployed_config = deploying_config
       return result
 
@@ -224,12 +220,12 @@ class UmpireDaemon(object):
 
       stopping = self.StopServices(starting_services)
       starting = self.StartServices(stopping_services)
-      deferred = ConcentrateDeferreds([stopping, starting])
+      deferred = utils.ConcentrateDeferreds([stopping, starting])
       deferred.addErrback(_HandleRollbackError)
       return result
 
     if self.deploying:
-      return defer.fail(UmpireError('Another deployment in progress'))
+      return defer.fail(common.UmpireError('Another deployment in progress'))
 
     # Switch to deploying state, this flag will be cleard in callback/errback.
     self.deploying = True
@@ -237,7 +233,7 @@ class UmpireDaemon(object):
     starting_services = None
     # Record both old and new configuration.
     current_config = self.deployed_config
-    deploying_config = AttrDict(self.env.config)
+    deploying_config = type_utils.AttrDict(self.env.config)
     current_services = set(_GetActiveServiceNames(current_config)
                            if current_config else [])
     deploying_services = set(_GetActiveServiceNames(deploying_config))
@@ -254,7 +250,8 @@ class UmpireDaemon(object):
     # Stop unused services and start new services.
     stopping_deferred = self.StopServices(stopping_services)
     starting_deferred = self.StartServices(starting_services)
-    deferred = ConcentrateDeferreds([stopping_deferred, starting_deferred])
+    deferred = utils.ConcentrateDeferreds([stopping_deferred,
+                                           starting_deferred])
     # Let _Deployed() to check result and switching config and flag.
     deferred.addBoth(lambda result: _Deployed(result, deploying_config))
     deferred.addErrback(lambda failure: _Rollback(failure,
@@ -273,12 +270,12 @@ class UmpireDaemon(object):
       services.
     """
     deferreds = []
-    umpire_config = AttrDict(self.env.config)
+    umpire_config = type_utils.AttrDict(self.env.config)
     for name in service_names:
-      service = GetServiceInstance(name)
+      service = umpire_service.GetServiceInstance(name)
       processes = service.CreateProcesses(umpire_config, self.env)
       deferreds.append(service.Start(processes))
-    return ConcentrateDeferreds(deferreds)
+    return utils.ConcentrateDeferreds(deferreds)
 
   def StopServices(self, service_names):
     """Stops services.
@@ -290,8 +287,9 @@ class UmpireDaemon(object):
       Deferred object that relays success or failure state of stopping
       services.
     """
-    return ConcentrateDeferreds(
-        [GetServiceInstance(name).Stop() for name in service_names])
+    return utils.ConcentrateDeferreds(
+        [umpire_service.GetServiceInstance(name).Stop()
+         for name in service_names])
 
   def AddMethodForDUT(self, dut_rpc_object):
     """Adds DUT RPC object to Umpire Daemon.

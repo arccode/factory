@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
 from cros.factory.utils import file_utils
 
@@ -80,8 +80,8 @@ class ConfigEditor(object):
         validated = True
         break
     if not validated:
-      raise UmpireError('Failed to validate config after %d retry.' %
-                        self._max_retry)
+      raise common.UmpireError('Failed to validate config after %d retry.' %
+                               self._max_retry)
 
     logging.info('Edited config validated. Staging it...')
     self._StageEditedConfig()
@@ -104,7 +104,8 @@ class ConfigEditor(object):
         config = self._umpire_cli.GetStagingConfig()
 
     if not config:
-      raise UmpireError('Unable to load config file %s for edit' % config_file)
+      raise common.UmpireError(
+          'Unable to load config file %s for edit' % config_file)
 
     self._config_file = os.path.join(self._temp_dir,
                                      os.path.basename(config_file))
@@ -132,7 +133,7 @@ class ConfigEditor(object):
     It is a blocking call.
 
     Raises:
-      UmpireError: failed to invoke editor.
+      common.UmpireError: failed to invoke editor.
     """
     edit_command = os.environ.get('EDITOR', 'vi').split()
     edit_command.append(self._config_file)
@@ -141,8 +142,8 @@ class ConfigEditor(object):
       # to pipe. vim needs stdin/stdout as terminal.
       subprocess.call(edit_command)
     except Exception as e:
-      raise UmpireError('Unable to invoke editor: %s\nReason: %s' %
-                        (' '.join(edit_command), str(e)))
+      raise common.UmpireError('Unable to invoke editor: %s\nReason: %s' %
+                               (' '.join(edit_command), e))
 
   def _Validate(self):
     """Validates a config file to edit.

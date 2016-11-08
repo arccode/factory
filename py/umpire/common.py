@@ -14,11 +14,8 @@ import re
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.file_utils import CheckPath
-from cros.factory.utils.file_utils import Glob
-from cros.factory.utils.file_utils import Md5sumInHex
-from cros.factory.utils.type_utils import Enum
-
+from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 UMPIRE_CLI = 'umpire'
 UMPIRE_DAEMON = 'umpired'
@@ -33,7 +30,7 @@ UMPIRE_VERSION = 3
 UPDATEABLE_RESOURCES = ['factory_toolkit', 'firmware', 'fsi', 'hwid']
 
 # Supported resource types.
-ResourceType = Enum([
+ResourceType = type_utils.Enum([
     'FACTORY_TOOLKIT', 'FIRMWARE', 'HWID', 'NETBOOT_FIRMWARE',
     'NETBOOT_VMLINUX', 'ROOTFS_RELEASE', 'ROOTFS_TEST'])
 
@@ -100,7 +97,7 @@ def VerifyResource(res_file):
   if not hashsum:
     logging.error('Ill-formed resource filename: ' + res_file)
     return False
-  calculated_hashsum = Md5sumInHex(res_file)
+  calculated_hashsum = file_utils.Md5sumInHex(res_file)
   return calculated_hashsum.startswith(hashsum)
 
 
@@ -169,7 +166,7 @@ class BundleManifestLoader(yaml.Loader):
     # TODO(deanliao): refactor out Glob from py/tools/finalize_bundle.py
     #     to py/utils/bundle_manifest.py and move the LoadBundleManifest
     #     related methods to that module.
-    self.add_constructor('!glob', Glob.Construct)
+    self.add_constructor('!glob', file_utils.Glob.Construct)
 
 
 def LoadBundleManifest(path, ignore_glob=False):
@@ -186,7 +183,7 @@ def LoadBundleManifest(path, ignore_glob=False):
     IOError if file not found.
     UmpireError if the manifest fail to load and parse.
   """
-  CheckPath(path, description='factory bundle manifest')
+  file_utils.CheckPath(path, description='factory bundle manifest')
   try:
     loader = (BundleManifestIgnoreGlobLoader if ignore_glob else
               BundleManifestLoader)

@@ -12,11 +12,10 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
-from cros.factory.umpire.commands.import_bundle import BundleImporter
-from cros.factory.umpire.commands.import_bundle import FactoryBundle
-from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire.commands import import_bundle
+from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
-from cros.factory.umpire.umpire_env import UmpireEnvForTest
+from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
 TESTDATA_DIR = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -36,7 +35,7 @@ UMPIRE_RELATIVE_PATH = os.path.join('usr', 'local', 'factory', 'bin', 'umpire')
 class LoadBundleManifestTest(unittest.TestCase):
 
   def setUp(self):
-    self.bundle = FactoryBundle()
+    self.bundle = import_bundle.FactoryBundle()
 
   def testLoadNormally(self):
     self.bundle.Load(TEST_BUNDLE_DIR)
@@ -66,14 +65,14 @@ class LoadBundleManifestTest(unittest.TestCase):
   # Temporary remove the check.
   # def testMissingRelease(self):
   #   self.assertRaisesRegexp(
-  #       UmpireError, 'Image type not found: release',
+  #       common.UmpireError, 'Image type not found: release',
   #       self.bundle.Load, TEST_BUNDLE_MISSING_RELEASE_DIR)
 
   def testYamlError(self):
     with file_utils.TempDirectory() as bundle_dir:
       file_utils.WriteFile(os.path.join(bundle_dir, 'MANIFEST.yaml'),
                            'illformed: yaml: file:')
-      self.assertRaisesRegexp(UmpireError, 'Failed to load MANIFEST.yaml',
+      self.assertRaisesRegexp(common.UmpireError, 'Failed to load MANIFEST.yaml',
                               self.bundle.Load, bundle_dir)
 
 
@@ -88,7 +87,7 @@ class testImportBundle(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.env = UmpireEnvForTest()
+    self.env = umpire_env.UmpireEnvForTest()
     self.temp_dir = self.env.base_dir
     self.env.LoadConfig(custom_path=MINIMAL_UMPIRE_CONFIG)
 
@@ -116,7 +115,7 @@ class testImportBundle(unittest.TestCase):
         no_root=True).MultipleTimes().AndReturn(TEST_IMAGE_VERSION)
 
   def testImport(self):
-    importer = BundleImporter(self.env)
+    importer = import_bundle.BundleImporter(self.env)
     # Inject timestamp so that download conf can be compared easily.
     # pylint: disable=W0212
     importer._timestamp = datetime.datetime(2014, 1, 1, 0, 0)
@@ -131,7 +130,7 @@ class testImportBundle(unittest.TestCase):
     config = umpire_config.UmpireConfig(self.env.staging_config_file)
 
     # Verify newly added ruleset.
-    # BundleImporter prepends newly added ruleset to config.
+    # import_bundle.BundleImporter prepends newly added ruleset to config.
     self.assertEqual(original_num_rulesets + 1, len(config['rulesets']))
     self.assertDictEqual(
         {'bundle_id': 'test_bundle',
@@ -140,7 +139,7 @@ class testImportBundle(unittest.TestCase):
         config['rulesets'][0])
 
     # Verify newly added bundle.
-    # BundleImporter appends newly added bundle.
+    # import_bundle.BundleImporter appends newly added bundle.
     self.assertEqual(original_num_bundles + 1, len(config['bundles']))
     bundle = config['bundles'][original_num_bundles]
     self.assertEqual('test_bundle', bundle['id'])
@@ -187,7 +186,7 @@ class testImportBundle(unittest.TestCase):
                          sorted(download_conf[2:]))
 
   def testImportSkipUnpackExistingToolkitDir(self):
-    importer = BundleImporter(self.env)
+    importer = import_bundle.BundleImporter(self.env)
 
     # Create unpacked device toolkit directory first.
     device_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
@@ -215,13 +214,13 @@ class testImportBundle(unittest.TestCase):
     self.MockOutGetVersion()
     self.mox.ReplayAll()
 
-    importer = BundleImporter(self.env)
-    self.assertRaisesRegexp(UmpireError, 'Found 2 hash collision',
+    importer = import_bundle.BundleImporter(self.env)
+    self.assertRaisesRegexp(common.UmpireError, 'Found 2 hash collision',
                             importer.Import, TEST_BUNDLE_DIR, 'test_bundle')
 
   def testImportBundleIdCollision(self):
-    importer = BundleImporter(self.env)
-    self.assertRaisesRegexp(UmpireError,
+    importer = import_bundle.BundleImporter(self.env)
+    self.assertRaisesRegexp(common.UmpireError,
                             "bundle_id: 'default_test' already in use",
                             importer.Import, TEST_BUNDLE_DIR, 'default_test')
 

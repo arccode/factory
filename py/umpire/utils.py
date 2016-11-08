@@ -12,14 +12,13 @@ from twisted.internet import defer
 import urllib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire import common as umpire_common
+from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils.type_utils import AttrDict
-from cros.factory.utils.type_utils import Singleton
+from cros.factory.utils import type_utils
 
 
-class Registry(AttrDict):
+class Registry(type_utils.AttrDict):
 
   """Registry is a singleton class that inherits from AttrDict.
 
@@ -31,7 +30,7 @@ class Registry(AttrDict):
     })
     assertEqual(Registry().abc, 123)
   """
-  __metaclass__ = Singleton
+  __metaclass__ = type_utils.Singleton
 
 
 def ConcentrateDeferreds(deferred_list):
@@ -86,7 +85,7 @@ def UnpackFactoryToolkit(env, toolkit_resource, run_as=None, mode=0750):
     return None
 
   toolkit_path = env.GetResourcePath(toolkit_resource)
-  toolkit_hash = umpire_common.GetHashFromResourceName(toolkit_resource)
+  toolkit_hash = common.GetHashFromResourceName(toolkit_resource)
   unpack_dir = os.path.join(env.device_toolkits_dir, toolkit_hash)
   if os.path.isdir(unpack_dir):
     logging.info('UnpackFactoryToolkit destination dir already exists: %s',
@@ -183,7 +182,7 @@ def ComposeDownloadConfig(download_files):
   for resource_path in download_files:
     resource_name = os.path.basename(resource_path)
     # Remove '.gz' suffix.
-    resource_base_name = umpire_common.ParseResourceName(resource_name)[0][:-3]
+    resource_base_name = common.ParseResourceName(resource_name)[0][:-3]
 
     channel = GetChannel(resource_base_name)
     url_name = urllib.quote(resource_name)

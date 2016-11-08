@@ -17,20 +17,18 @@ import subprocess
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import ResourceType
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.common import UPDATEABLE_RESOURCES
+from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
-from cros.factory.umpire import utils as umpire_utils
+from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
 
 # Mapping of updateable resource type (command string) to ResourceType enum.
 _RESOURCE_TYPE_MAP = {
-    'factory_toolkit': ResourceType.FACTORY_TOOLKIT,
-    'firmware': ResourceType.FIRMWARE,
-    'fsi': ResourceType.ROOTFS_RELEASE,
-    'hwid': ResourceType.HWID}
+    'factory_toolkit': common.ResourceType.FACTORY_TOOLKIT,
+    'firmware': common.ResourceType.FIRMWARE,
+    'fsi': common.ResourceType.ROOTFS_RELEASE,
+    'hwid': common.ResourceType.HWID}
 
 # TODO(crosbug.com/p/51534): remove this once mini-omaha changed its protocol.
 SECTOR_SIZE = 512
@@ -135,10 +133,10 @@ class ResourceUpdater(object):
       env: UmpireEnv object.
 
     Raises:
-      UmpireError if staging config exists.
+      common.UmpireError if staging config exists.
     """
     if env.HasStagingConfigFile():
-      raise UmpireError(
+      raise common.UmpireError(
           'Cannot update resources as staging config exists. '
           'Please run "umpire unstage" to unstage or "umpire deploy" to '
           'deploy the staging config first.')
@@ -175,11 +173,13 @@ class ResourceUpdater(object):
   def _PrepareTargetBundle(self, source_id, dest_id):
     target_bundle = self._config.GetBundle(source_id)
     if not target_bundle:
-      raise UmpireError('Source bundle ID does not exist: ' + source_id)
+      raise common.UmpireError(
+          'Source bundle ID does not exist: %s' % source_id)
 
     if dest_id:
       if self._config.GetBundle(dest_id):
-        raise UmpireError('Destination bundle ID already exists: ' + dest_id)
+        raise common.UmpireError(
+            'Destination bundle ID already exists: %s' % dest_id)
       target_bundle = copy.deepcopy(target_bundle)
       target_bundle['id'] = dest_id
       self._config['bundles'].insert(0, target_bundle)
@@ -188,10 +188,11 @@ class ResourceUpdater(object):
 
   def _SanityCheck(self, resources):
     for resource_type, resource_path in resources:
-      if resource_type not in UPDATEABLE_RESOURCES:
-        raise UmpireError('Unsupported resource type: ' + resource_type)
+      if resource_type not in common.UPDATEABLE_RESOURCES:
+        raise common.UmpireError(
+            'Unsupported resource type: %s' % resource_type)
       if not os.path.isfile(resource_path):
-        raise UmpireError('Resource not found: ' + resource_path)
+        raise common.UmpireError('Resource not found: %s' % resource_path)
 
   def _UpdateResourceMap(self, resources):
     resource_map = self._target_bundle['resources']
@@ -217,11 +218,11 @@ class ResourceUpdater(object):
           try:
             shutil.rmtree(temp_dir)
           except:  # pylint: disable=W0702
-            raise UmpireError('Cannot remove temp folder %s' % temp_dir)
+            raise common.UmpireError('Cannot remove temp folder %s' % temp_dir)
 
       if resource_type == 'factory_toolkit':
         resource_map['device_factory_toolkit'] = resource_name
-        umpire_utils.UnpackFactoryToolkit(self._env, resource_name)
+        utils.UnpackFactoryToolkit(self._env, resource_name)
 
       elif resource_type == 'fsi':
         resource_map['rootfs_release'] = resource_name

@@ -11,7 +11,7 @@ for all service module.
 """
 
 
-# The attributes of Twisted reactor and AttrDict object are changing
+# The attributes of Twisted reactor and type_utils.AttrDict object are changing
 # dynamically at run time. To supress warnings, pylint: disable=E1101
 
 
@@ -28,11 +28,11 @@ from twisted.internet import reactor
 import uuid
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.utils import AttrDict
-from cros.factory.umpire.utils import ConcentrateDeferreds
+from cros.factory.umpire import common
+from cros.factory.umpire import utils
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import Scalar
+from cros.factory.utils import type_utils
 
 
 # Service package path
@@ -91,7 +91,7 @@ class ServiceProcess(protocol.ProcessProtocol):
   """
 
   def __init__(self, service):
-    self.config = AttrDict({
+    self.config = type_utils.AttrDict({
         'executable': '',
         'name': str(uuid.uuid1()),
         'args': [],
@@ -310,7 +310,7 @@ class ServiceProcess(protocol.ProcessProtocol):
       cb: callback callable.
     """
     if not callable(cb):
-      raise UmpireError('Not a callable when adding callback: %s' % str(cb))
+      raise common.UmpireError('Not a callable when adding callback: %s' % cb)
     if not isinstance(states, list):
       states = [states]
     for state in states:
@@ -458,7 +458,7 @@ class ServiceProcess(protocol.ProcessProtocol):
     """
     logging.error('%s(%s) %s', self.process_name, self.pid, message)
     self._ChangeState(State.ERROR)
-    return UmpireError(message)
+    return common.UmpireError(message)
 
 
 class UmpireService(object):
@@ -548,7 +548,7 @@ class UmpireService(object):
                   [str(p) for p in self.processes])
 
     if deferreds:
-      deferred = ConcentrateDeferreds(deferreds)
+      deferred = utils.ConcentrateDeferreds(deferreds)
       deferred.addCallbacks(HandleStartResult, HandleStartFailure)
       return deferred
 
@@ -568,7 +568,7 @@ class UmpireService(object):
       return failure
 
     deferreds = [p.Stop() for p in self.processes]
-    deferred = ConcentrateDeferreds(deferreds)
+    deferred = utils.ConcentrateDeferreds(deferreds)
     deferred.addCallbacks(HandleStopResult, HandleStopFailure)
     return deferred
 

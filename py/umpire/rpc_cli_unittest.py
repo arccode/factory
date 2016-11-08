@@ -20,12 +20,11 @@ from twisted.web import xmlrpc
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import update
-from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire import common
 from cros.factory.umpire import config
-from cros.factory.umpire.rpc_cli import CLICommand
-from cros.factory.umpire.umpire_env import UmpireEnv
-from cros.factory.umpire.umpire_env import UmpireEnvForTest
-from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
+from cros.factory.umpire import rpc_cli
+from cros.factory.umpire import umpire_env
+from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
 from cros.factory.utils import net_utils
 
 
@@ -33,11 +32,11 @@ class CommandTest(unittest.TestCase):
 
   def setUp(self):
     test_port = net_utils.GetUnusedPort()
-    self.env = UmpireEnvForTest()
+    self.env = umpire_env.UmpireEnvForTest()
     self.mox = mox.Mox()
     self.proxy = xmlrpc.Proxy('http://%s:%d' % (net_utils.LOCALHOST, test_port))
-    xmlrpc_resource = XMLRPCContainer()
-    umpire_cli = CLICommand(self.env)
+    xmlrpc_resource = umpire_xmlrpc.XMLRPCContainer()
+    umpire_cli = rpc_cli.CLICommand(self.env)
     xmlrpc_resource.AddHandler(umpire_cli)
     self.port = reactor.listenTCP(test_port, server.Site(xmlrpc_resource))
 
@@ -54,7 +53,7 @@ class CommandTest(unittest.TestCase):
 
   def AssertFailure(self, deferred):
     def UnexpectedCallback(unused_result):
-      raise UmpireError('Expect failure')
+      raise common.UmpireError('Expect failure')
 
     def ExpectedErrback(result):
       self.assertTrue(result, failure.Failure)
@@ -71,7 +70,7 @@ class CommandTest(unittest.TestCase):
     updated_config = '/umpire/resources/config.yaml#12345678'
 
     self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
-    mock_updater = update.ResourceUpdater(mox.IsA(UmpireEnv))
+    mock_updater = update.ResourceUpdater(mox.IsA(umpire_env.UmpireEnv))
     mock_updater.Update(resource_to_update, 'sid', 'did').AndReturn(
         updated_config)
     self.mox.ReplayAll()
@@ -84,9 +83,9 @@ class CommandTest(unittest.TestCase):
     resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
 
     self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
-    mock_updater = update.ResourceUpdater(mox.IsA(UmpireEnv))
+    mock_updater = update.ResourceUpdater(mox.IsA(umpire_env.UmpireEnv))
     mock_updater.Update(resource_to_update, 'sid', 'did').AndRaise(
-        UmpireError('mock error'))
+        common.UmpireError('mock error'))
     self.mox.ReplayAll()
 
     return self.AssertFailure(self.Call('Update', resource_to_update, 'sid',
@@ -97,7 +96,7 @@ class CommandTest(unittest.TestCase):
     bundle_id = 'test'
     note = 'test note'
     self.mox.StubOutClassWithMocks(import_bundle, 'BundleImporter')
-    mock_importer = import_bundle.BundleImporter(mox.IsA(UmpireEnv))
+    mock_importer = import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv))
     mock_importer.Import(bundle_path, bundle_id, note)
     self.mox.ReplayAll()
 
@@ -109,9 +108,9 @@ class CommandTest(unittest.TestCase):
     bundle_id = 'test'
     note = 'test note'
     self.mox.StubOutClassWithMocks(import_bundle, 'BundleImporter')
-    mock_importer = import_bundle.BundleImporter(mox.IsA(UmpireEnv))
+    mock_importer = import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv))
     mock_importer.Import(bundle_path, bundle_id, note).AndRaise(
-        UmpireError('mock error'))
+        common.UmpireError('mock error'))
     self.mox.ReplayAll()
 
     return self.AssertFailure(self.Call('ImportBundle', bundle_path, bundle_id,
@@ -288,7 +287,7 @@ class CommandTest(unittest.TestCase):
     self.mox.StubOutWithMock(config, 'ValidateResources')
     mock_config = config.UmpireConfig(config_path)
     config.ValidateResources(mock_config, self.env).AndRaise(
-        UmpireError('mock error'))
+        common.UmpireError('mock error'))
     self.mox.ReplayAll()
 
     return self.AssertFailure(self.Call('ValidateConfig', config_path))

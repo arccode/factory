@@ -11,9 +11,8 @@ import shutil
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
-from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
-from cros.factory.umpire.config import NUMBER_SHOP_FLOOR_HANDLERS
-from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
+from cros.factory.umpire import config
+from cros.factory.umpire.service import indent_text_writer
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
 from cros.factory.utils.schema import FixedDict
@@ -136,7 +135,7 @@ class HTTPService(umpire_service.UmpireService):
       md5 = file_utils.Md5sumInHex(temp_path)
       config_path = os.path.join(
           env.config_dir,
-          LIGHTY_CONFIG_FILENAME % md5[:RESOURCE_HASH_DIGITS])
+          LIGHTY_CONFIG_FILENAME % md5[:common.RESOURCE_HASH_DIGITS])
       # Use shutil.move() instead of os.rename(). os.rename calls OS
       # rename() function. And under Linux-like OSes, this system call
       # creates and removes hardlink, that only works when source path and
@@ -212,7 +211,8 @@ class HTTPService(umpire_service.UmpireService):
           raise common.UmpireError('empty fastcgi handler in %s' %
                                    instance.modulename)
     # Shop floor handlers FastCGI bindings.
-    for port in xrange(fcgi_port, fcgi_port + NUMBER_SHOP_FLOOR_HANDLERS):
+    for port in xrange(fcgi_port,
+                       fcgi_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
       match_path = SHOP_FLOOR_HANDLER_PATH % port
       fastcgi_conf[match_path] = [{
           'host': _LOCALHOST,
@@ -279,7 +279,7 @@ class LightyConfigWriter(object):
       append: True to append the config.
     """
     self._file = open(path, 'a' if append else 'w')
-    self._writer = IndentTextWriter(indent_first_line=False)
+    self._writer = indent_text_writer.IndentTextWriter(indent_first_line=False)
 
   def __del__(self):
     self.Close()
@@ -320,7 +320,7 @@ class LightyConfigWriter(object):
       writer = parent_writer
       colon = ''
     else:
-      writer = IndentTextWriter.Factory(parent_writer)
+      writer = indent_text_writer.IndentTextWriter.Factory(parent_writer)
       colon = ','
       writer.EnterBlock('{}')
 
@@ -344,13 +344,13 @@ class LightyConfigWriter(object):
 
     Args:
       input_value: input value.
-      parent_writer: its parent's IndentTextWriter.
+      parent_writer: its parent's indent_text_writer.IndentTextWriter.
 
     Returns:
       A string in Lighty config format.
     """
     def LightyDict():
-      writer = IndentTextWriter.Factory(parent_writer)
+      writer = indent_text_writer.IndentTextWriter.Factory(parent_writer)
       writer.EnterBlock('()')
       # Sort key for determininistic output.
       for key in sorted(input_value):
@@ -361,7 +361,7 @@ class LightyConfigWriter(object):
       return writer.Flush()
 
     def LightyList():
-      writer = IndentTextWriter.Factory(parent_writer)
+      writer = indent_text_writer.IndentTextWriter.Factory(parent_writer)
       writer.EnterBlock('()')
       for v in input_value:
         writer.Write('%s,' % LightyConfigWriter.LightyAuto(v, writer))

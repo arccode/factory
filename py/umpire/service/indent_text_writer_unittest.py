@@ -7,13 +7,13 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
+from cros.factory.umpire.service import indent_text_writer
 
 
 class TestIndentTextWriter(unittest.TestCase):
 
   def testIndentDefault(self):
-    w = IndentTextWriter()
+    w = indent_text_writer.IndentTextWriter()
     self.assertEqual('', w.Flush())
     w.Write('line 1')
     self.assertEqual('line 1', w.Flush())
@@ -35,7 +35,7 @@ class TestIndentTextWriter(unittest.TestCase):
         w.Flush())
 
   def testCustomIndent(self):
-    w = IndentTextWriter(indent=2, indent_space=4)
+    w = indent_text_writer.IndentTextWriter(indent=2, indent_space=4)
     w.Write('line 1')
     self.assertEqual('  line 1', w.Flush())
     w.Write('line 1')
@@ -56,7 +56,7 @@ class TestIndentTextWriter(unittest.TestCase):
         w.Flush())
 
   def testNoIndentFirstLine(self):
-    w = IndentTextWriter(indent_first_line=False)
+    w = indent_text_writer.IndentTextWriter(indent_first_line=False)
     w.IncIndent()
     w.Write('first line')
     w.Write('second line')
@@ -65,7 +65,7 @@ class TestIndentTextWriter(unittest.TestCase):
         w.Flush())
 
   def testEnterBlock(self):
-    w = IndentTextWriter()
+    w = indent_text_writer.IndentTextWriter()
     w.Write('before block')
     w.EnterBlock('{}')
     w.Write('block 1')

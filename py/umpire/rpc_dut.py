@@ -18,13 +18,11 @@ import urlparse
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.bundle_selector import SelectRuleset
-from cros.factory.umpire.common import ParseResourceName
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.service.umpire_service import FindServicesWithProperty
-from cros.factory.umpire.umpire_rpc import RPCCall
-from cros.factory.umpire.umpire_rpc import UmpireRPC
-from cros.factory.umpire.utils import Deprecate
+from cros.factory.umpire import bundle_selector
+from cros.factory.umpire import common
+from cros.factory.umpire.service import umpire_service
+from cros.factory.umpire import umpire_rpc
+from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
 
@@ -43,10 +41,10 @@ def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
   xmlrpc.Fault() notifies the RPC client that remote function was terminated
   incorrectly.
   """
-  return xmlrpc.Fault(reason, UmpireError(message))
+  return xmlrpc.Fault(reason, common.UmpireError(message))
 
 
-class RootDUTCommands(UmpireRPC):
+class RootDUTCommands(umpire_rpc.UmpireRPC):
 
   """Root DUT (Device Under Test) remote procedures.
 
@@ -56,12 +54,12 @@ class RootDUTCommands(UmpireRPC):
     http://umpire_server_address:umpire_port/RPC2
   """
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def Ping(self):
     return {'version': self.env.umpire_version_major}
 
 
-class UmpireDUTCommands(UmpireRPC):
+class UmpireDUTCommands(umpire_rpc.UmpireRPC):
 
   """Umpire DUT remote procedures.
 
@@ -69,12 +67,12 @@ class UmpireDUTCommands(UmpireRPC):
     http://umpire_server_address:umpire_port/umpire
   """
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def GetTime(self):
     return time.time()
 
-  @RPCCall
-  @Deprecate
+  @umpire_rpc.RPCCall
+  @utils.Deprecate
   def ListParameters(self, pattern):
     """Lists files that match the pattern in parameters directory.
 
@@ -97,8 +95,8 @@ class UmpireDUTCommands(UmpireRPC):
     matched_file = filter(os.path.isfile, matched_file)
     return [os.path.relpath(x, parameters_dir) for x in matched_file]
 
-  @RPCCall
-  @Deprecate
+  @umpire_rpc.RPCCall
+  @utils.Deprecate
   def GetParameter(self, path):
     """Gets the assigned parameter file.
 
@@ -139,7 +137,8 @@ class UmpireDUTCommands(UmpireRPC):
       string or resource MD5SUM hexstring depends on component in VERSION_ or
       HASH_ list.
     """
-    _, resource_version, resource_hash = ParseResourceName(resource_filename)
+    _, resource_version, resource_hash = (
+        common.ParseResourceName(resource_filename))
     if component in HASH_COMPONENTS:
       return (resource_hash, resource_hash)
     else:
@@ -172,7 +171,7 @@ class UmpireDUTCommands(UmpireRPC):
             (range_end is None or FACTORY_STAGES.index(stage) <=
              FACTORY_STAGES.index(range_end)))
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   @xmlrpc.withRequest
   def GetUpdate(self, request, device_info):
     """Gets factory toolkit update.
@@ -207,7 +206,8 @@ class UmpireDUTCommands(UmpireRPC):
     """
     update_matrix = {}
     current_stage = device_info['x_umpire_dut']['stage']
-    ruleset = SelectRuleset(self.env.config, device_info['x_umpire_dut'])
+    ruleset = bundle_selector.SelectRuleset(
+        self.env.config, device_info['x_umpire_dut'])
     logging.debug('ruleset = %s', ruleset)
     bundle_id = ruleset['bundle_id']
     bundle = self.env.config.GetBundle(bundle_id)
@@ -252,7 +252,8 @@ class UmpireDUTCommands(UmpireRPC):
       # TODO(crosbug.com/p/52705): no special case should be allowed here.
       if component == 'device_factory_toolkit':
         # Select first service provides 'toolkit_update' property.
-        iterable = FindServicesWithProperty(self.env.config, 'toolkit_update')
+        iterable = umpire_service.FindServicesWithProperty(
+            self.env.config, 'toolkit_update')
         instance = next(iterable, None)
         if instance and hasattr(instance, 'GetServiceURL'):
           resource_scheme = instance.properties.get('update_scheme', None)
@@ -289,7 +290,7 @@ class UmpireDUTCommands(UmpireRPC):
     return update_matrix
 
 
-class LogDUTCommands(UmpireRPC):
+class LogDUTCommands(umpire_rpc.UmpireRPC):
 
   """DUT log upload procedures.
 
@@ -316,7 +317,7 @@ class LogDUTCommands(UmpireRPC):
     _SaveUpload() should be called in a separate thread context.
 
     Example:
-      @RPCCall
+      @umpire_rpc.RPCCall
       def DUTUpload(...)
         d = threads.deferToThread(lambda: self.SaveUpload(type, name, data))
         return d
@@ -345,8 +346,8 @@ class LogDUTCommands(UmpireRPC):
       # security reason, so we do want to change its permission to u+rw,go+r.
       os.chmod(save_path, 0644)
 
-  @RPCCall
-  @Deprecate
+  @umpire_rpc.RPCCall
+  @utils.Deprecate
   def UploadReport(self, serial, report_blob, report_name=None, stage='FA'):
     """Uploads a report file.
 
@@ -379,8 +380,8 @@ class LogDUTCommands(UmpireRPC):
     d.addCallback(self._ReturnTrue)
     return d
 
-  @RPCCall
-  @Deprecate
+  @umpire_rpc.RPCCall
+  @utils.Deprecate
   def UploadEvent(self, log_name, chunk):
     """Uploads a chunk of events.
 
@@ -408,7 +409,7 @@ class LogDUTCommands(UmpireRPC):
     d.addCallback(self._ReturnTrue)
     return d
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def SaveAuxLog(self, name, contents):
     """Saves an auxiliary log into the umpire_data/aux_logs directory.
 
@@ -433,7 +434,7 @@ class LogDUTCommands(UmpireRPC):
     d.addCallback(self._ReturnTrue)
     return d
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def GetFactoryLogPort(self):
     """Fetches system logs rsync port."""
     return self.env.umpire_rsync_port

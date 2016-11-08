@@ -13,15 +13,10 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
-from cros.factory.umpire.commands.update import ConvertChromeOSImageToMiniOmahaFormat
-from cros.factory.umpire.commands.update import MINI_OMAHA_FSI_EXPECTED_NAME
-from cros.factory.umpire.commands.update import MINI_OMAHA_KERNEL_PART_NUM
-from cros.factory.umpire.commands.update import MINI_OMAHA_ROOTFS_PART_NUM
-from cros.factory.umpire.commands.update import ResourceUpdater
-from cros.factory.umpire.commands.update import SECTOR_SIZE
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.config import UmpireConfig
-from cros.factory.umpire.umpire_env import UmpireEnvForTest
+from cros.factory.umpire.commands import update
+from cros.factory.umpire import common
+from cros.factory.umpire import config
+from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
 
@@ -39,18 +34,18 @@ FACTORY_TOOLKIT_RES = 'install_factory_toolkit.run##7509337e'
 class ResourceUpdaterTest(unittest.TestCase):
 
   def setUp(self):
-    self.env = UmpireEnvForTest()
+    self.env = umpire_env.UmpireEnvForTest()
     self.env.LoadConfig(custom_path=MINIMAL_UMPIRE_CONFIG)
 
   def testUpdateInPlace(self):
     num_bundles_before_update = len(self.env.config['bundles'])
 
-    updater = ResourceUpdater(self.env)
+    updater = update.ResourceUpdater(self.env)
     # No source_id: edit from default bundle.
     # No dest_id: in-place edit the source bundle.
     updated_config_path = updater.Update([('factory_toolkit',
                                            FACTORY_TOOLKIT_DIR)])
-    updated_bundles = UmpireConfig(updated_config_path)['bundles']
+    updated_bundles = config.UmpireConfig(updated_config_path)['bundles']
 
     # In-place bundle modification.
     self.assertEqual(num_bundles_before_update, len(updated_bundles))
@@ -63,13 +58,13 @@ class ResourceUpdaterTest(unittest.TestCase):
   def testUpdateDestId(self):
     num_bundles_before_update = len(self.env.config['bundles'])
 
-    updater = ResourceUpdater(self.env)
+    updater = update.ResourceUpdater(self.env)
     # No source_id: edit from default bundle.
     # dest_id: update source bundle and store in new bundle dest_id.
     updated_config_path = updater.Update(
         [('factory_toolkit', FACTORY_TOOLKIT_DIR)],
         dest_id='update_test')
-    updated_bundles = UmpireConfig(updated_config_path)['bundles']
+    updated_bundles = config.UmpireConfig(updated_config_path)['bundles']
 
     # Add a new bundle with updated component.
     self.assertEqual(num_bundles_before_update + 1, len(updated_bundles))
@@ -87,13 +82,13 @@ class ResourceUpdaterTest(unittest.TestCase):
   def testUpdateSourceId(self):
     num_bundles_before_update = len(self.env.config['bundles'])
 
-    updater = ResourceUpdater(self.env)
+    updater = update.ResourceUpdater(self.env)
     # source_id: edit from specified bundle.
     # No dest_id: in-place edit the source bundle.
     updated_config_path = updater.Update(
         [('factory_toolkit', FACTORY_TOOLKIT_DIR)],
         source_id='non_default_test')
-    updated_bundles = UmpireConfig(updated_config_path)['bundles']
+    updated_bundles = config.UmpireConfig(updated_config_path)['bundles']
 
     # In-place bundle modification.
     self.assertEqual(num_bundles_before_update, len(updated_bundles))
@@ -106,13 +101,13 @@ class ResourceUpdaterTest(unittest.TestCase):
   def testUpdateSourceIdDestId(self):
     num_bundles_before_update = len(self.env.config['bundles'])
 
-    updater = ResourceUpdater(self.env)
+    updater = update.ResourceUpdater(self.env)
     # source_id: edit from specified bundle.
     # dest_id: update source bundle and store in new bundle dest_id.
     updated_config_path = updater.Update(
         [('factory_toolkit', FACTORY_TOOLKIT_DIR)],
         source_id='non_default_test', dest_id='update_test')
-    updated_bundles = UmpireConfig(updated_config_path)['bundles']
+    updated_bundles = config.UmpireConfig(updated_config_path)['bundles']
 
     # Add a new bundle with updated component.
     self.assertEqual(num_bundles_before_update + 1, len(updated_bundles))
@@ -131,29 +126,29 @@ class ResourceUpdaterTest(unittest.TestCase):
   def testUpdateStagingFileExists(self):
     self.env.StageConfigFile(self.env.config_path)
     self.assertRaisesRegexp(
-        UmpireError, 'Cannot update resources as staging config exists.',
-        ResourceUpdater, self.env)
+        common.UmpireError, 'Cannot update resources as staging config exists.',
+        update.ResourceUpdater, self.env)
 
   def testUpdateBadSourceIdDestId(self):
-    updater = ResourceUpdater(self.env)
+    updater = update.ResourceUpdater(self.env)
     self.assertRaisesRegexp(
-        UmpireError, 'Source bundle ID does not exist', updater.Update,
-        [('factory_toolkit', FACTORY_TOOLKIT_DIR)],
+        common.UmpireError, 'Source bundle ID does not exist',
+        updater.Update, [('factory_toolkit', FACTORY_TOOLKIT_DIR)],
         source_id='not_exist')
 
     self.assertRaisesRegexp(
-        UmpireError, 'Destination bundle ID already exists', updater.Update,
-        [('factory_toolkit', FACTORY_TOOLKIT_DIR)],
+        common.UmpireError, 'Destination bundle ID already exists',
+        updater.Update, [('factory_toolkit', FACTORY_TOOLKIT_DIR)],
         dest_id='default_test')
 
   def testUpdateInvalidInput(self):
-    updater = ResourceUpdater(self.env)
+    updater = update.ResourceUpdater(self.env)
     self.assertRaisesRegexp(
-        UmpireError, 'Unsupported resource type', updater.Update,
+        common.UmpireError, 'Unsupported resource type', updater.Update,
         [('unsupported', FACTORY_TOOLKIT_DIR)])
 
     self.assertRaisesRegexp(
-        UmpireError, 'Resource not found', updater.Update,
+        common.UmpireError, 'Resource not found', updater.Update,
         [('factory_toolkit', os.path.join(self.env.base_dir, 'not_exist'))])
 
   def testAllUpdatableResource(self):
@@ -190,13 +185,13 @@ class ResourceUpdaterTest(unittest.TestCase):
         fsi_path, no_root=True).AndReturn(FSI_VERSION)
 
     mox_obj.ReplayAll()
-    updater = ResourceUpdater(self.env)
+    updater = update.ResourceUpdater(self.env)
     updated_config_path = updater.Update([
         ('factory_toolkit', FACTORY_TOOLKIT_DIR),
         ('firmware', firmware_path),
         ('fsi', fsi_path),
         ('hwid', hwid_path)])
-    updated_bundle = UmpireConfig(updated_config_path).GetDefaultBundle()
+    updated_bundle = config.UmpireConfig(updated_config_path).GetDefaultBundle()
 
     self.assertEqual('default_test', updated_bundle['id'])
     resources = updated_bundle['resources']
@@ -225,7 +220,7 @@ class ResourceUpdaterTest(unittest.TestCase):
     #   (empty)         34          ${TOTAL}-1-1-32-32-1
     #   sec table       ${END}-33   32
     #   sec header      $(END}-1    1
-    MOCK_FSI_IMAGE_SIZE = SECTOR_SIZE * (
+    MOCK_FSI_IMAGE_SIZE = update.SECTOR_SIZE * (
         1 + 1 + 32 + 32 + 1 +  # PMBR + CPGT headers
         sum(p['sectors'] for p in MOCK_FSI_PARTITIONS))
     CGPT_HEADER_SECTORS = 1 + 1 + 32
@@ -260,13 +255,13 @@ class ResourceUpdaterTest(unittest.TestCase):
       output_memento_path = os.path.join(temp_dir, 'memento.gz')
       subprocess.check_call([
           MK_MEMENTO_IMAGES_SH_PATH,
-          '%s:%d' % (input_path, MINI_OMAHA_KERNEL_PART_NUM),
-          '%s:%d' % (input_path, MINI_OMAHA_ROOTFS_PART_NUM),
+          '%s:%d' % (input_path, update.MINI_OMAHA_KERNEL_PART_NUM),
+          '%s:%d' % (input_path, update.MINI_OMAHA_ROOTFS_PART_NUM),
           output_memento_path])
 
       # Call ConvertChromeOSImageToMiniOmahaFormat() to generate the output.
-      output_path = os.path.join(temp_dir, MINI_OMAHA_FSI_EXPECTED_NAME)
-      ConvertChromeOSImageToMiniOmahaFormat(input_path, output_path)
+      output_path = os.path.join(temp_dir, update.MINI_OMAHA_FSI_EXPECTED_NAME)
+      update.ConvertChromeOSImageToMiniOmahaFormat(input_path, output_path)
 
       # Compare the ground truth and the output.
       with gzip.open(output_path) as fa:
@@ -274,7 +269,7 @@ class ResourceUpdaterTest(unittest.TestCase):
           self.assertEqual(
               fa.read(), fb.read(),
               msg='Outputs of mk_momento_images.sh and '
-                  'ConvertChromeOSImageToMiniOmahaFormat are different')
+                  'update.ConvertChromeOSImageToMiniOmahaFormat are different')
 
 
 if __name__ == '__main__':

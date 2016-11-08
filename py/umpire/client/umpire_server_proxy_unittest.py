@@ -18,9 +18,8 @@ import os
 import re
 import shutil
 import signal
-from SimpleHTTPServer import SimpleHTTPRequestHandler
-from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+import SimpleHTTPServer
+import SimpleXMLRPCServer
 import socket
 import SocketServer
 import tempfile
@@ -28,11 +27,10 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire.client import umpire_server_proxy
-from cros.factory.utils.file_utils import ForceSymlink
-from cros.factory.utils.file_utils import ReadFile
+from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils.net_utils import FindConsecutiveUnusedPorts
 from cros.factory.utils import process_utils
 
 MOCK_UMPIRE_ADDR = 'http://' + net_utils.LOCALHOST
@@ -56,18 +54,18 @@ class ResourceMapWrapper(object):
   def SetPath(self, path):
     os.chdir(TESTDATA_DIRECTORY)
     logging.debug('Setting resourcemap link to %s', path)
-    ForceSymlink(path, 'resourcemap')
+    file_utils.ForceSymlink(path, 'resourcemap')
     self.resourcemap_path = path
 
   def GetPath(self):
     return self.resourcemap_path
 
 
-class MockUmpireHTTPHandler(SimpleHTTPRequestHandler):
+class MockUmpireHTTPHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
   """Class to mock Umpire http handler."""
 
   def __init__(self, *args, **kwargs):
-    SimpleHTTPRequestHandler.__init__(self, *args, **kwargs)
+    SimpleHTTPServer.SimpleHTTPRequestHandler.__init__(self, *args, **kwargs)
 
   def do_GET(self):
     """extends do_GET to check request header and path."""
@@ -77,7 +75,7 @@ class MockUmpireHTTPHandler(SimpleHTTPRequestHandler):
     assert 'x-umpire-dut' in self.headers.keys()
     info = self.headers['x-umpire-dut']
     logging.debug('Header contains dut info %r', info)
-    SimpleHTTPRequestHandler.do_GET(self)
+    SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
 
 def RunServer(server):
@@ -104,7 +102,7 @@ signal.signal(signal.SIGINT, SignalHandler)
 signal.signal(signal.SIGTERM, SignalHandler)
 
 
-class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
+class MyXMLRPCRequestHandler(SimpleXMLRPCServer.SimpleXMLRPCRequestHandler):
   """Mock xmlrpc request handler."""
   handler_name = None
 
@@ -113,7 +111,7 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     os.chdir(TESTDATA_DIRECTORY)
     error_file = 'error_%s' % self.handler_name
     if os.path.exists(error_file):
-      error_code, error_message = ReadFile(error_file).split(' ', 1)
+      error_code, error_message = file_utils.ReadFile(error_file).split(' ', 1)
       logging.info('Generate an error %s, %s for handler %s',
                    error_code, error_message, self.handler_name)
       if int(error_code) == 410 and error_message == 'Gone':
@@ -126,7 +124,7 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
         raise Exception('Unknown error: %d, %s' % (
             int(error_code), error_message))
     else:
-      SimpleXMLRPCRequestHandler.do_POST(self)
+      SimpleXMLRPCServer.SimpleXMLRPCRequestHandler.do_POST(self)
 
   def report_410(self):
     """Responses with a 410 error."""
@@ -259,7 +257,8 @@ class UmpireServerProxyTest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     """Starts servers before running any test of this class."""
-    port = FindConsecutiveUnusedPorts(SEARCH_STARTING_PORT, cls.NUMBER_OF_PORTS)
+    port = net_utils.FindConsecutiveUnusedPorts(
+        SEARCH_STARTING_PORT, cls.NUMBER_OF_PORTS)
     logging.debug('Set starting testing port to %r', port)
     cls.SetTestingPort(port)
     cls.SetupServers()
@@ -363,7 +362,7 @@ class UmpireServerProxyTest(unittest.TestCase):
   @classmethod
   def SetupHandlers(cls):
     """Setups xmlrpc servers and handlers in their own processes."""
-    cls.umpire_base_handler = SimpleXMLRPCServer(
+    cls.umpire_base_handler = SimpleXMLRPCServer.SimpleXMLRPCServer(
         addr=('', cls.UMPIRE_BASE_HANDLER_PORT),
         requestHandler=MyXMLRPCRequestHandlerWrapper('base_handler'),
         allow_none=True,
@@ -374,7 +373,7 @@ class UmpireServerProxyTest(unittest.TestCase):
         target=RunServer, args=(cls.umpire_base_handler,))
     cls.umpire_base_handler_process.start()
 
-    cls.umpire_handler = SimpleXMLRPCServer(
+    cls.umpire_handler = SimpleXMLRPCServer.SimpleXMLRPCServer(
         ('', cls.UMPIRE_HANDLER_PORT),
         allow_none=True,
         logRequests=True)
@@ -386,7 +385,7 @@ class UmpireServerProxyTest(unittest.TestCase):
         target=RunServer, args=(cls.umpire_handler,))
     cls.umpire_handler_process.start()
 
-    cls.shopfloor_handler_1 = SimpleXMLRPCServer(
+    cls.shopfloor_handler_1 = SimpleXMLRPCServer.SimpleXMLRPCServer(
         addr=('', cls.SHOPFLOOR_1_PORT),
         requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler1'),
         allow_none=True,
@@ -401,7 +400,7 @@ class UmpireServerProxyTest(unittest.TestCase):
         target=RunServer, args=(cls.shopfloor_handler_1,))
     cls.shopfloor_handler_1_process.start()
 
-    cls.shopfloor_handler_2 = SimpleXMLRPCServer(
+    cls.shopfloor_handler_2 = SimpleXMLRPCServer.SimpleXMLRPCServer(
         ('', cls.SHOPFLOOR_2_PORT),
         requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler2'),
         allow_none=True,
@@ -417,7 +416,7 @@ class UmpireServerProxyTest(unittest.TestCase):
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()
-    self.mox.StubOutWithMock(umpire_server_proxy, 'UmpireClientInfo')
+    self.mox.StubOutWithMock(umpire_client, 'UmpireClientInfo')
     self.fake_umpire_client_info = self.mox.CreateMockAnything()
 
   def ClearErrorFiles(self):
@@ -433,8 +432,7 @@ class UmpireServerProxyTest(unittest.TestCase):
 
   def testGetResourceMapAndConnectToUmpireHandler(self):
     """Inits an UmpireServerProxy and connects to Umpire xmlrpc handler."""
-    umpire_server_proxy.UmpireClientInfo().AndReturn(
-        self.fake_umpire_client_info)
+    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 
@@ -457,8 +455,7 @@ class UmpireServerProxyTest(unittest.TestCase):
 
   def testGetResourceMapAndConnectToShopFloorHandler1(self):
     """Inits an UmpireServerProxy and connects to shopfloor handler 1."""
-    umpire_server_proxy.UmpireClientInfo().AndReturn(
-        self.fake_umpire_client_info)
+    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 
@@ -480,8 +477,7 @@ class UmpireServerProxyTest(unittest.TestCase):
 
   def testHandleClientInfoUpdate(self):
     """Proxy tries to make a call but client info is updated."""
-    umpire_server_proxy.UmpireClientInfo().AndReturn(
-        self.fake_umpire_client_info)
+    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO1')
     # When proxy tries to call method, Umpire_client_info.Update() returns
     # True, so proxy needs to request resourse map again.
@@ -513,7 +509,7 @@ class UmpireServerProxyTest(unittest.TestCase):
 
   def testHandleServerErrorMessageGone(self):
     """Proxy tries to make a call but server says token is invalid."""
-    umpire_server_proxy.UmpireClientInfo().AndReturn(
+    umpire_client.UmpireClientInfo().AndReturn(
         self.fake_umpire_client_info)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
@@ -543,8 +539,7 @@ class UmpireServerProxyTest(unittest.TestCase):
 
   def testHandleServerErrorMessageGoneRetriesFail(self):
     """Proxy tries to make a call but server always says token is invalid."""
-    umpire_server_proxy.UmpireClientInfo().AndReturn(
-        self.fake_umpire_client_info)
+    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
     for _ in xrange(5):
@@ -573,8 +568,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     Server version detection will be deferred to the time when method is
     invoked through proxy.
     """
-    umpire_server_proxy.UmpireClientInfo().AndReturn(
-        self.fake_umpire_client_info)
+    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 
@@ -629,8 +623,7 @@ class UmpireServerProxyTest(unittest.TestCase):
 
   def testTimeoutUmpireServerProxy(self):
     """Proxy is working with ordinary shopfloor handler."""
-    umpire_server_proxy.UmpireClientInfo().AndReturn(
-        self.fake_umpire_client_info)
+    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 

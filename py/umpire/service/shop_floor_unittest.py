@@ -13,9 +13,9 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.config import UmpireConfig
+from cros.factory.umpire import config
 from cros.factory.umpire.service import shop_floor
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire import umpire_env
 
 
 class MockShopFloorManager(object):
@@ -31,7 +31,7 @@ class MockShopFloorManager(object):
 class TestShopFloorService(unittest.TestCase):
 
   def setUp(self):
-    self.env = UmpireEnv()
+    self.env = umpire_env.UmpireEnv()
     self.temp_dir = tempfile.mkdtemp()
     self.env.base_dir = self.temp_dir
     os.makedirs(self.env.resources_dir)
@@ -68,7 +68,7 @@ class TestShopFloorService(unittest.TestCase):
              'resources': {'device_factory_toolkit':
                            'install_factory_toolkit.run#ftk_4#00000004'}}]}
     # Activate configuration.
-    self.env.config = UmpireConfig(umpire_config, validate=False)
+    self.env.config = config.UmpireConfig(umpire_config, validate=False)
     os.makedirs(self.env.device_toolkits_dir)
     for h in ['00000001', '00000002', '00000003', '00000004']:
       os.makedirs(os.path.join(self.env.device_toolkits_dir, h))

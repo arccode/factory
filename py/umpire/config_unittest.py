@@ -14,9 +14,9 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire import common
 from cros.factory.umpire import config
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
 TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
@@ -222,7 +222,7 @@ class TestUmpireConfig(unittest.TestCase):
 class TestValidateResources(unittest.TestCase):
 
   def setUp(self):
-    self.env = UmpireEnv()
+    self.env = umpire_env.UmpireEnv()
     self.temp_dir = tempfile.mkdtemp()
     self.env.base_dir = self.temp_dir
     os.makedirs(self.env.resources_dir)
@@ -248,7 +248,7 @@ class TestValidateResources(unittest.TestCase):
   def testFileNotFound(self):
     # Resources in the second ruleset's bundle are not presented.
     self.conf['rulesets'][1]['active'] = True
-    self.assertRaisesRegexp(UmpireError, 'NOT FOUND.+efi.gz##00000000',
+    self.assertRaisesRegexp(common.UmpireError, 'NOT FOUND.+efi.gz##00000000',
                             config.ValidateResources, self.conf, self.env)
 
   def testFileNotFound2(self):
@@ -256,7 +256,7 @@ class TestValidateResources(unittest.TestCase):
       filename = os.path.basename(resource_path)
       temp_path = os.path.join(self.temp_dir, filename)
       os.rename(resource_path, temp_path)
-      self.assertRaisesRegexp(UmpireError, 'NOT FOUND.+' + filename,
+      self.assertRaisesRegexp(common.UmpireError, 'NOT FOUND.+' + filename,
                               config.ValidateResources, self.conf, self.env)
       os.rename(temp_path, resource_path)
 
@@ -267,7 +267,7 @@ class TestValidateResources(unittest.TestCase):
   def testFileChechsumMismatch(self):
     file_utils.WriteFile(self.hwid1, 'content changed')
     self.assertRaisesRegexp(
-        UmpireError, 'CHECKSUM MISMATCH.+hwid.gz##9c7de5c7',
+        common.UmpireError, 'CHECKSUM MISMATCH.+hwid.gz##9c7de5c7',
         config.ValidateResources, self.conf, self.env)
 
 

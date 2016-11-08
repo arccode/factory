@@ -20,15 +20,12 @@ from twisted.web import xmlrpc
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.bundle_selector import SelectRuleset
-from cros.factory.umpire.rpc_dut import FACTORY_STAGES
-from cros.factory.umpire.rpc_dut import LogDUTCommands
-from cros.factory.umpire.rpc_dut import RootDUTCommands
-from cros.factory.umpire.rpc_dut import UmpireDUTCommands
-from cros.factory.umpire.umpire_env import UmpireEnvForTest
-from cros.factory.umpire.utils import ConcentrateDeferreds
-from cros.factory.umpire.version import UMPIRE_VERSION_MAJOR
-from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
+from cros.factory.umpire import bundle_selector
+from cros.factory.umpire import rpc_dut
+from cros.factory.umpire import umpire_env
+from cros.factory.umpire import utils
+from cros.factory.umpire import version
+from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 
@@ -40,7 +37,7 @@ TESTCONFIG = os.path.join(TESTDIR, 'enable_update.yaml')
 class DUTRPCTest(unittest.TestCase):
 
   def setUp(self):
-    self.env = UmpireEnvForTest()
+    self.env = umpire_env.UmpireEnvForTest()
     shutil.copy(TESTCONFIG, self.env.active_config_file)
 
     # Create empty files for resources.
@@ -62,10 +59,10 @@ class DUTRPCTest(unittest.TestCase):
     self.proxy = xmlrpc.Proxy(
         'http://%s:%d' % (net_utils.LOCALHOST, TEST_RPC_PORT),
         allowNone=True)
-    root_commands = RootDUTCommands(self.env)
-    umpire_dut_commands = UmpireDUTCommands(self.env)
-    log_dut_commands = LogDUTCommands(self.env)
-    xmlrpc_resource = XMLRPCContainer()
+    root_commands = rpc_dut.RootDUTCommands(self.env)
+    umpire_dut_commands = rpc_dut.UmpireDUTCommands(self.env)
+    log_dut_commands = rpc_dut.LogDUTCommands(self.env)
+    xmlrpc_resource = umpire_xmlrpc.XMLRPCContainer()
     xmlrpc_resource.AddHandler(root_commands)
     xmlrpc_resource.AddHandler(umpire_dut_commands)
     xmlrpc_resource.AddHandler(log_dut_commands)
@@ -96,7 +93,7 @@ class DUTRPCTest(unittest.TestCase):
 
   def testPing(self):
     def CheckResult(result):
-      self.assertEqual(result, {'version': UMPIRE_VERSION_MAJOR})
+      self.assertEqual(result, {'version': version.UMPIRE_VERSION_MAJOR})
       return result
 
     d = self.Call('Ping')
@@ -132,13 +129,13 @@ class DUTRPCTest(unittest.TestCase):
       return result
 
     deferreds = []
-    for stage in FACTORY_STAGES:
+    for stage in rpc_dut.FACTORY_STAGES:
       noupdate_info = copy.deepcopy(self.device_info)
       noupdate_info['x_umpire_dut']['stage'] = stage
       d = self.Call('GetUpdate', noupdate_info)
       d.addCallback(CheckNoUpdate)
       deferreds.append(d)
-    return ConcentrateDeferreds(deferreds)
+    return utils.ConcentrateDeferreds(deferreds)
 
   def testGetUpdate(self):
     def CheckSingleComponentUpdate(result):
@@ -148,7 +145,8 @@ class DUTRPCTest(unittest.TestCase):
       return result
 
     update_info = copy.deepcopy(self.device_info)
-    ruleset = SelectRuleset(self.env.config, update_info['x_umpire_dut'])
+    ruleset = bundle_selector.SelectRuleset(self.env.config,
+                                            update_info['x_umpire_dut'])
     logging.debug('selected ruleset: %s', str(ruleset))
     deferreds = []
     for component, stage_range in ruleset['enable_update'].iteritems():
@@ -160,7 +158,7 @@ class DUTRPCTest(unittest.TestCase):
       # There's only one component needs update.
       deferred.addCallback(CheckSingleComponentUpdate)
       deferreds.append(deferred)
-    return ConcentrateDeferreds(deferreds)
+    return utils.ConcentrateDeferreds(deferreds)
 
   def testUploadReport(self):
     def CheckTrue(result):

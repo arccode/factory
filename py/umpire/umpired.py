@@ -15,12 +15,12 @@ import os
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import init
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.daemon import UmpireDaemon
-from cros.factory.umpire.rpc_cli import CLICommand
+from cros.factory.umpire import common
+from cros.factory.umpire import daemon
+from cros.factory.umpire import rpc_cli
 from cros.factory.umpire import rpc_dut
-from cros.factory.umpire.umpire_env import UmpireEnv
-from cros.factory.umpire.webapp_resourcemap import ResourceMapApp
+from cros.factory.umpire import umpire_env
+from cros.factory.umpire import webapp_resourcemap
 
 
 def StartServer(test_mode=False, config_file=None):
@@ -32,12 +32,12 @@ def StartServer(test_mode=False, config_file=None):
   """
   real_daemon_path = os.path.realpath(__file__)
   # Instanciate environment and load default configuration file.
-  env = UmpireEnv()
+  env = umpire_env.UmpireEnv()
   if test_mode:
     test_base_dir = os.path.join(os.path.dirname(real_daemon_path), 'testdata')
     if not os.path.isdir(test_base_dir):
-      raise UmpireError('Test directory %s does not exist. Test mode failed.' %
-                        test_base_dir)
+      raise common.UmpireError(
+          'Test directory %s does not exist. Test mode failed.' % test_base_dir)
     env.base_dir = test_base_dir
 
   # Make sure that the environment for running the daemon is set.
@@ -46,7 +46,7 @@ def StartServer(test_mode=False, config_file=None):
   env.LoadConfig(custom_path=config_file)
 
   if env.config is None:
-    raise UmpireError('Umpire config was not loaded.')
+    raise common.UmpireError('Umpire config was not loaded.')
 
   # Remove runtime pid files before start the server
   logging.info('remove pid files under %s', env.pid_dir)
@@ -54,9 +54,9 @@ def StartServer(test_mode=False, config_file=None):
     logging.info('removing pid file: %s', pidfile)
     os.remove(pidfile)
   # Instanciate Umpire daemon and set command handlers and webapp handler.
-  umpired = UmpireDaemon(env)
+  umpired = daemon.UmpireDaemon(env)
   # Add command line handlers.
-  cli_commands = CLICommand(env)
+  cli_commands = rpc_cli.CLICommand(env)
   umpired.AddMethodForCLI(cli_commands)
   # Add root RPC handlers.
   root_dut_rpc = rpc_dut.RootDUTCommands(env)
@@ -68,7 +68,7 @@ def StartServer(test_mode=False, config_file=None):
   log_dut_rpc = rpc_dut.LogDUTCommands(env)
   umpired.AddMethodForDUT(log_dut_rpc)
   # Add web applications.
-  resourcemap_webapp = ResourceMapApp(env)
+  resourcemap_webapp = webapp_resourcemap.ResourceMapApp(env)
   umpired.AddWebApp(resourcemap_webapp.GetPathInfo(), resourcemap_webapp)
   # Start listening to command port and webapp port.
   umpired.Run()

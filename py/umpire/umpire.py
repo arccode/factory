@@ -19,13 +19,13 @@ import xmlrpclib
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import edit
 from cros.factory.umpire import common
-from cros.factory.umpire import config as umpire_config
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire import config
+from cros.factory.umpire import umpire_env
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
-from cros.factory.utils.debug_utils import SetupLogging
+from cros.factory.utils import debug_utils
 
 
 @Command('import-bundle',
@@ -133,11 +133,11 @@ def Deploy(unused_args, umpire_cli):
   # Then, double confirm the user to deploy the config.
   print 'Changes for this deploy: '
   active_config_text = umpire_status['active_config']
-  config_to_deploy = umpire_config.UmpireConfig(config_to_deploy_text,
-                                                validate=False)
-  active_config = umpire_config.UmpireConfig(active_config_text,
-                                             validate=False)
-  print '\n'.join(umpire_config.ShowDiff(active_config, config_to_deploy))
+  config_to_deploy = config.UmpireConfig(config_to_deploy_text,
+                                         validate=False)
+  active_config = config.UmpireConfig(active_config_text,
+                                      validate=False)
+  print '\n'.join(config.ShowDiff(active_config, config_to_deploy))
   if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
     print 'Abort by user.'
     return
@@ -169,10 +169,10 @@ def Status(args, umpire_cli):
   if status['staging_config']:
     print 'Staging config exists (%s)' % status['staging_config_res']
     if args.verbose:
-      active_config = umpire_config.UmpireConfig(status['active_config'])
-      staging_config = umpire_config.UmpireConfig(status['staging_config'])
+      active_config = config.UmpireConfig(status['active_config'])
+      staging_config = config.UmpireConfig(status['staging_config'])
       print 'Diff between active and staging config:'
-      print '\n'.join(umpire_config.ShowDiff(active_config, staging_config))
+      print '\n'.join(config.ShowDiff(active_config, staging_config))
   else:
     print 'No staging config'
 
@@ -253,7 +253,7 @@ def _UmpireCLI():
   Returns:
     (Umpire CLI XMLRPC server proxy, UmpireEnv object)
   """
-  env = UmpireEnv()
+  env = umpire_env.UmpireEnv()
   env.LoadConfig(init_shop_floor_manager=False, validate=False)
 
   umpire_cli_uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
@@ -267,7 +267,7 @@ def main():
       'Umpire CLI (command line interface)',
       CmdArg('--note', help='a note for this command'),
       verbosity_cmd_arg)
-  SetupLogging(level=args.verbosity)
+  debug_utils.SetupLogging(level=args.verbosity)
 
   if args.command_name == 'init':
     args.command(args)

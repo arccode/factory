@@ -17,15 +17,15 @@ from twisted.internet import protocol
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import client
-from twisted.web.http_headers import Headers
+from twisted.web import http_headers
 from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.daemon import UmpireDaemon
-from cros.factory.umpire.umpire_env import UmpireEnvForTest
-from cros.factory.umpire.umpire_rpc import RPCCall
-from cros.factory.umpire.web.wsgi import WSGISession
+from cros.factory.umpire import common
+from cros.factory.umpire import daemon
+from cros.factory.umpire import umpire_env
+from cros.factory.umpire import umpire_rpc
+from cros.factory.umpire.web import wsgi
 from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
 
@@ -47,7 +47,7 @@ class _ReadContentProtocol(protocol.Protocol):
     if reason.check(client.ResponseDone):
       self.deferred.callback(b''.join(self.buffers))
     elif reason.check(client.PotentialDataLost):
-      self.deferred.errback(UmpireError('Read content failed'))
+      self.deferred.errback(common.UmpireError('Read content failed'))
     else:
       self.deferred.errback(reason)
 
@@ -69,7 +69,7 @@ class TestWebApplication(object):
     return '/foobar'
 
   def __call__(self, environ, start_response):
-    session = WSGISession(environ, start_response)
+    session = wsgi.WSGISession(environ, start_response)
     self.session = session
     logging.debug('test webapp is called: %s', str(session))
     if callable(self.callback):
@@ -84,7 +84,7 @@ class TestWebApplication(object):
 
 class TestCommand(object):
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def Add(self, param1, param2):
     return param1 + param2
 
@@ -92,10 +92,10 @@ class TestCommand(object):
 class DaemonTest(unittest.TestCase):
 
   def setUp(self):
-    self.env = UmpireEnvForTest()
+    self.env = umpire_env.UmpireEnvForTest()
     shutil.copy(TESTCONFIG, self.env.active_config_file)
     self.env.LoadConfig()
-    self.daemon = UmpireDaemon(self.env)
+    self.daemon = daemon.UmpireDaemon(self.env)
     self.rpc_proxy = xmlrpc.Proxy(
         'http://%s:%d' %
         (net_utils.LOCALHOST, self.env.umpire_cli_port))
@@ -129,7 +129,7 @@ class DaemonTest(unittest.TestCase):
     else:
       headers = {}
     headers.update({'User-Agent': ['Trial unittest']})
-    headers = Headers(headers)
+    headers = http_headers.Headers(headers)
     d = self.agent.request(
         'GET', url, headers, None)
     d.addCallback(lambda response: self.OnResponse(session, response))

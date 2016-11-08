@@ -12,8 +12,7 @@ import logging
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.tools import build_board
-from cros.factory.umpire.common import DUT_INFO_KEY_PREFIX
-from cros.factory.umpire.common import DUT_INFO_KEYS
+from cros.factory.umpire import common
 
 # The component keys in the return value of GetUpdate RPC call.
 COMPONENT_KEYS = {
@@ -159,10 +158,10 @@ class UmpireClientInfo(object):
     """Gets X-Umpire-DUT dict by translating keys."""
     info_dict = dict()
     try:
-      for key in DUT_INFO_KEYS:
+      for key in common.DUT_INFO_KEYS:
         value = getattr(self, UmpireClientInfo.KEY_TRANSLATION[key])
         info_dict[key] = value
-      for key_prefix in DUT_INFO_KEY_PREFIX:
+      for key_prefix in common.DUT_INFO_KEY_PREFIX:
         # Dict of {subkey: value} for the prefix key group.
         # E.g. self.macs is a dict {'eth0': 'xxxx', 'wlan0': 'xxxx'}
         # With prefix 'mac', output should be

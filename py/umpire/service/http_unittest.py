@@ -10,37 +10,35 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
-from cros.factory.umpire.config import UmpireConfig
+from cros.factory.umpire import common
+from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.service import http
-from cros.factory.umpire.service.http import HTTPService
-from cros.factory.umpire.service.http import LightyConditional
-from cros.factory.umpire.service.http import LightyConfigWriter
-from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire.service import indent_text_writer
+from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
 
 class TestLightyConfigWriter(unittest.TestCase):
 
   def setUp(self):
-    self.writer = IndentTextWriter(indent_first_line=False)
+    self.writer = indent_text_writer.IndentTextWriter(indent_first_line=False)
 
   def testLightyAuto(self):
-    self.assertEqual('123', LightyConfigWriter.LightyAuto(123, self.writer))
+    self.assertEqual('123',
+                     http.LightyConfigWriter.LightyAuto(123, self.writer))
     self.assertEqual('"string"',
-                     LightyConfigWriter.LightyAuto('string', self.writer))
+                     http.LightyConfigWriter.LightyAuto('string', self.writer))
     self.assertEqual(
         '(\n'
         '  "k" => "v",\n'
         ')',
-        LightyConfigWriter.LightyAuto({'k': 'v'}, self.writer))
+        http.LightyConfigWriter.LightyAuto({'k': 'v'}, self.writer))
     self.assertEqual(
         '(\n'
         '  "item 1",\n'
         '  "item 2",\n'
         ')',
-        LightyConfigWriter.LightyAuto(['item 1', 'item 2'], self.writer))
+        http.LightyConfigWriter.LightyAuto(['item 1', 'item 2'], self.writer))
 
   def testLightyBlock(self):
     self.assertEqual(
@@ -49,41 +47,40 @@ class TestLightyConfigWriter(unittest.TestCase):
         '    "innerK" => "v",\n'
         '  ),\n'
         '}',
-        LightyConfigWriter.LightyBlock({'k': {'innerK': 'v'}},
-                                       self.writer))
+        http.LightyConfigWriter.LightyBlock({'k': {'innerK': 'v'}},
+                                            self.writer))
 
   def testLightyTopBlock(self):
     self.assertEqual(
         'k1 = 123\n'
         'k2 = "v2"',
-        LightyConfigWriter.LightyBlock({'k1': 123,
-                                        'k2': 'v2'},
-                                       self.writer, top_block=True))
+        http.LightyConfigWriter.LightyBlock({'k1': 123, 'k2': 'v2'},
+                                            self.writer, top_block=True))
     self.assertEqual(
         'k = (\n'
         '  "innerK" => "v",\n'
         ')',
-        LightyConfigWriter.LightyBlock({'k': {'innerK': 'v'}},
-                                       self.writer, top_block=True))
+        http.LightyConfigWriter.LightyBlock({'k': {'innerK': 'v'}},
+                                            self.writer, top_block=True))
 
     self.assertEqual(
         '$SERVER["socket"] == ":8080" {\n}',
-        LightyConfigWriter.LightyBlock(
-            {LightyConditional('$SERVER["socket"] == ":8080"'): {}},
+        http.LightyConfigWriter.LightyBlock(
+            {http.LightyConditional('$SERVER["socket"] == ":8080"'): {}},
             self.writer, top_block=True))
 
-    # After a LightyConditional is always a LightyBlock.
+    # After a http.LightyConditional is always a LightyBlock.
     self.assertEqual(
         'dummy_cond == True {\n'
         '  k = "v",\n'
         '}',
-        LightyConfigWriter.LightyBlock(
-            {LightyConditional('dummy_cond == True'): {'k': 'v'}},
+        http.LightyConfigWriter.LightyBlock(
+            {http.LightyConditional('dummy_cond == True'): {'k': 'v'}},
             self.writer, top_block=True))
 
   def testWrite(self):
     with file_utils.UnopenedTemporaryFile() as temp_file:
-      writer = LightyConfigWriter(temp_file)
+      writer = http.LightyConfigWriter(temp_file)
       writer.Write({'server.bind': '0.0.0.0',
                     'server.port': 8080,
                     'index-file.names': ['index.html']})
@@ -100,7 +97,7 @@ class TestLightyConfigWriter(unittest.TestCase):
 class TestHTTPService(unittest.TestCase):
 
   def setUp(self):
-    self.env = UmpireEnv()
+    self.env = umpire_env.UmpireEnv()
     self.temp_dir = tempfile.mkdtemp()
     self.env.base_dir = self.temp_dir
     os.makedirs(self.env.config_dir)
@@ -112,7 +109,7 @@ class TestHTTPService(unittest.TestCase):
   def testGenerateLightyConfig(self):
     umpire_ip = '10.0.0.1'
     umpire_port = 9001
-    umpire_config = {
+    umpire_config_dict = {
         'ip': umpire_ip,
         'port': umpire_port,
         'services': {'http': {
@@ -135,13 +132,15 @@ class TestHTTPService(unittest.TestCase):
             'bundle_id': 'default',
             'note': '',
             'active': True}]}
-    self.env.config = UmpireConfig(umpire_config)
-    config_path = HTTPService.GenerateLightyConfig(umpire_config, self.env)
+    self.env.config = umpire_config.UmpireConfig(umpire_config_dict)
+    config_path = http.HTTPService.GenerateLightyConfig(
+        umpire_config_dict, self.env)
 
     self.assertRegexpMatches(
         config_path,
-        os.path.join(self.env.config_dir,
-                     'lighttpd_#[0-9a-f]{%d}#.conf' % RESOURCE_HASH_DIGITS))
+        os.path.join(
+            self.env.config_dir,
+            'lighttpd_#[0-9a-f]{%d}#.conf' % common.RESOURCE_HASH_DIGITS))
 
     # Store the output lighttpd.conf file into config (list).
     # Also make a dict (line => line number) to speed up line and line block
@@ -176,7 +175,7 @@ class TestHTTPService(unittest.TestCase):
     expect_fastcgi_conf = ['fastcgi.server = (']
     fcgi_port = self.env.fastcgi_start_port
     for p in xrange(fcgi_port,
-                    fcgi_port + http.NUMBER_SHOP_FLOOR_HANDLERS):
+                    fcgi_port + umpire_config.NUMBER_SHOP_FLOOR_HANDLERS):
       expect_fastcgi_conf.extend([
           '  "/shop_floor/%d/" => (' % p,
           '    (',

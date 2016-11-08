@@ -16,10 +16,8 @@ import copy
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.common import VerifyResource
-from cros.factory.umpire.service.umpire_service import GetServiceSchemata
-from cros.factory.umpire.service.umpire_service import LoadServiceModule
+from cros.factory.umpire import common
+from cros.factory.umpire.service import umpire_service
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import List
 from cros.factory.utils.schema import Optional
@@ -126,12 +124,12 @@ def ValidateConfig(config):
     KeyError: when top level key 'services' not found.
     SchemaException: on schema validation failed.
   """
-  map(LoadServiceModule, config['services'].keys())
+  map(umpire_service.LoadServiceModule, config['services'].keys())
   schema = FixedDict(
       'Top level Umpire config fields',
       items={
           'rulesets': _RULESETS_SCHEMA,
-          'services': GetServiceSchemata(),
+          'services': umpire_service.GetServiceSchemata(),
           'bundles': List('Bundles', _BUNDLE_SCHEMA),
           'ip': Scalar('IP address to bind', str),
           'port': Scalar('Base port', int)})
@@ -168,11 +166,11 @@ def ValidateResources(config, env):
           error.append('[NOT FOUND] resource %s:%s for bundle %r' % (
               resource_name, e.filename, bundle['id']))
         else:
-          if not VerifyResource(resource_path):
+          if not common.VerifyResource(resource_path):
             error.append('[CHECKSUM MISMATCH] resource %s:%s for bundle %r' % (
                 resource_name, resource_path, bundle['id']))
   if error:
-    raise UmpireError('\n'.join(error))
+    raise common.UmpireError('\n'.join(error))
 
 
 def ShowDiff(original, new):
@@ -341,7 +339,7 @@ class UmpireConfig(dict):
     if validate:
       ValidateConfig(config)
       if not self.GetDefaultBundle():
-        raise UmpireError('Missing default bundle')
+        raise common.UmpireError('Missing default bundle')
 
   def BuildBundleMap(self):
     """Builds bundle_map attribute.

@@ -11,11 +11,10 @@ import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire import common
 from cros.factory.umpire import umpire
-from cros.factory.utils.file_utils import TempDirectory
-from cros.factory.utils.file_utils import WriteFile
-from cros.factory.utils.type_utils import Obj
+from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 
 TESTDATA_DIR = os.path.realpath(os.path.join(
@@ -40,7 +39,7 @@ class UpdateTest(unittest.TestCase):
   TOOLKIT_PATH = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
 
   def setUp(self):
-    self.args = Obj(source_id=None, dest_id=None, resources=list())
+    self.args = type_utils.Obj(source_id=None, dest_id=None, resources=list())
     self.mox = mox.Mox()
     self.mock_cli = self.mox.CreateMockAnything()
 
@@ -101,7 +100,7 @@ class UpdateTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.args.resources.append('wrong_res_type=%s' % self.TOOLKIT_PATH)
-    self.assertRaisesRegexp(UmpireError, 'Unsupported resource type',
+    self.assertRaisesRegexp(common.UmpireError, 'Unsupported resource type',
                             umpire.Update, self.args, self.mock_cli)
 
   def testUpdateInvalidResourceFile(self):
@@ -116,7 +115,7 @@ class ImportBundleTest(unittest.TestCase):
   BUNDLE_PATH = os.path.join(TESTDATA_DIR, 'init_bundle')
 
   def setUp(self):
-    self.args = Obj(id=None, bundle_path='.', note=None)
+    self.args = type_utils.Obj(id=None, bundle_path='.', note=None)
     self.mox = mox.Mox()
     self.mock_cli = self.mox.CreateMockAnything()
 
@@ -149,7 +148,7 @@ class ImportResourceTest(unittest.TestCase):
   BUNDLE_PATH = os.path.join(TESTDATA_DIR, 'init_bundle')
 
   def setUp(self):
-    self.args = Obj(resources=[])
+    self.args = type_utils.Obj(resources=[])
     self.mox = mox.Mox()
     self.mock_cli = self.mox.CreateMockAnything()
 
@@ -158,11 +157,11 @@ class ImportResourceTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testImportResource(self):
-    with TempDirectory() as temp_dir:
+    with file_utils.TempDirectory() as temp_dir:
       res_1 = os.path.join(temp_dir, 'res_1')
-      WriteFile(res_1, '1')
+      file_utils.WriteFile(res_1, '1')
       res_2 = os.path.join(temp_dir, 'res_1')
-      WriteFile(res_1, '2')
+      file_utils.WriteFile(res_1, '2')
 
       # Expect XMLRPC call.
       self.mock_cli.AddResource(res_1)
@@ -179,7 +178,7 @@ class DeployTest(unittest.TestCase):
   STAGING_CONFIG_PATH = os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')
 
   def setUp(self):
-    self.args = Obj()
+    self.args = type_utils.Obj()
     self.mox = mox.Mox()
     self.mock_cli = self.mox.CreateMockAnything()
 
@@ -191,7 +190,7 @@ class DeployTest(unittest.TestCase):
     self.mock_cli.GetStatus().AndReturn({'staging_config': ''})
     self.mox.ReplayAll()
 
-    self.assertRaisesRegexp(UmpireError, 'no staging file',
+    self.assertRaisesRegexp(common.UmpireError, 'no staging file',
                             umpire.Deploy, self.args, self.mock_cli)
 
   def testDeploy(self):

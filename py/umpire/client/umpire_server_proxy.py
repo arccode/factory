@@ -19,11 +19,10 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.umpire.client.umpire_client import UmpireClientInfo
-from cros.factory.umpire.common import REQUIRED_RESOURCE_MAP_FIELDS
-from cros.factory.umpire.common import UMPIRE_VERSION
+from cros.factory.umpire.client import umpire_client
+from cros.factory.umpire import common
 from cros.factory.utils import net_utils
-from cros.factory.utils.string_utils import ParseDict
+from cros.factory.utils import string_utils
 
 
 class UmpireServerError(object):
@@ -221,7 +220,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
           'Initializes Umpire proxies when not using Umpire.')
 
     if not self._umpire_client_info:
-      self._umpire_client_info = UmpireClientInfo()
+      self._umpire_client_info = umpire_client.UmpireClientInfo()
 
     # Sets Umpire Handler URI depending on test mode.
     self._SetUmpireUri()
@@ -293,7 +292,8 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
             '\n'.join(
                 traceback.format_exception_only(*sys.exc_info()[:2])).strip())
       return None
-    if isinstance(result, dict) and result.get('version') == UMPIRE_VERSION:
+    if isinstance(result, dict) and (
+        result.get('version') == common.UMPIRE_VERSION):
       logging.debug('Got Umpire server version %r', result.get('version'))
       return True
     else:
@@ -473,11 +473,11 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
 
     Raises:
       UmpireServerProxyException: If resource map is missing any
-        field in REQUIRED_RESOURCE_MAP_FIELDS.
+        field in common.REQUIRED_RESOURCE_MAP_FIELDS.
     """
-    result = ParseDict(lines=resource_map_content.splitlines(),
-                       delimeter=':')
-    missing_fields = REQUIRED_RESOURCE_MAP_FIELDS - set(result)
+    result = string_utils.ParseDict(lines=resource_map_content.splitlines(),
+                                    delimeter=':')
+    missing_fields = common.REQUIRED_RESOURCE_MAP_FIELDS - set(result)
     if missing_fields:
       logging.error('Missing fields in resource map: %r', missing_fields)
       raise UmpireServerProxyException(
