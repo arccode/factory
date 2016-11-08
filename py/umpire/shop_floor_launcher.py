@@ -24,7 +24,7 @@ from cros.factory.umpire import shop_floor_handler
 
 
 def _LoadShopFloorHandler(module_name):
-  """Loads a ShopFloorHandle module.
+  """Loads a ShopFloorHandler module.
 
   Args:
     module_name: Name of module containing a ShopFloorHandler class.
@@ -70,7 +70,7 @@ def _DisableDNSLookup():
 def _ShopFloorHandlerFactory(module):
   """Creates ShopFloorHandler instance.
 
-  It exists the program if either ShopFloorHandler module fails to load or
+  It exits the program if either ShopFloorHandler module fails to load or
   the module does not inherit from ShopFloorHandlerBase.
 
   Args:

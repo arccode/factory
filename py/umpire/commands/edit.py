@@ -23,7 +23,7 @@ class ConfigEditor(object):
   """Edits an Umpire config file.
 
   The steps to edit the active Umpire config are:
-  1. checks if a staging config exists, if not, staging active config.
+  1. checks if a staging config exists, if not, stages active config.
   2. copies the staging config file to temporary directory;
   3. opens the temporary config file with default editor;
   4. after the user edits the file and closes the editor, validates the
@@ -33,7 +33,7 @@ class ConfigEditor(object):
      staging;
   7. finally, prompts to run "umpire deploy".
 
-  Note that in step 3, it needs to call Umpire to validate and once pass
+  Note that in step 4, it needs to call Umpire to validate and once pass
   validation, Umpire needs to stage the config.
 
   Usage:

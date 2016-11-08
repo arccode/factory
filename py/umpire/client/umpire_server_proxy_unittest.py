@@ -117,7 +117,7 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCServer.SimpleXMLRPCRequestHandler):
       if int(error_code) == 410 and error_message == 'Gone':
         self.report_410()
         return
-      if int(error_code) == 111 and error_message == 'Connectin refused':
+      if int(error_code) == 111 and error_message == 'Connection refused':
         self.report_111()
         return
       else:

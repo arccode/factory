@@ -300,7 +300,7 @@ class UmpireEnv(object):
     def TryGetVersion():
       """Tries to get version of the given file with res_type.
 
-      Now it can retrive version only from file of FIRMWARE, ROOTFS_RELEASE
+      Now it can retrieve version only from file of FIRMWARE, ROOTFS_RELEASE
       and ROOTFS_TEST resource type.
 
       Returns:
@@ -421,7 +421,7 @@ class UmpireEnv(object):
 class UmpireEnvForTest(UmpireEnv):
   """An UmpireEnv for other unittests.
 
-  It creates a temp directory as its base directory and creates fundamenta
+  It creates a temp directory as its base directory and creates fundamental
   subdirectories (those which define property). The temp directory is removed
   once it is deleted.
   """

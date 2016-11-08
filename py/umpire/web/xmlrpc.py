@@ -42,7 +42,7 @@ class XMLRPCContainer(xmlrpc.XMLRPC):
   def lookupProcedure(self, procedure_path):
     """Searches RPC procedure by name.
 
-    Derived from xmlrpc.XMLROC resource class. Twisted translates the XMLRPC
+    Derived from xmlrpc.XMLRPC resource class. Twisted translates the XMLRPC
     to procedure call through this method.
 
     Args:
@@ -67,7 +67,7 @@ class XMLRPCContainer(xmlrpc.XMLRPC):
         """Catches exception when calling RPC function.
 
         Returns:
-          Procedure return value or xmlrpc.Fault when execption caught.
+          Procedure return value or xmlrpc.Fault when exception caught.
         """
         try:
           method = getattr(rpc_obj, procedure_path)

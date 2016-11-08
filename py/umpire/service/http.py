@@ -44,7 +44,7 @@ LIGHTY_CONFIG_FILENAME = 'lighttpd_#%s#.conf'
 
 SHOP_FLOOR_HANDLER_PATH = common.HANDLER_BASE + '/%d/'
 # It is used for lighttpd fastcgi module. With leading and trailing shash,
-# it is treated as prefix and reques URL's path is passing to FastCGI as
+# it is treated as prefix and request URL's path is passing to FastCGI as
 # SCRIPT_NAME.
 # See http://redmine.lighttpd.net/projects/1/wiki/Docs_ModFastCGI for
 # reference.
@@ -324,7 +324,7 @@ class LightyConfigWriter(object):
       colon = ','
       writer.EnterBlock('{}')
 
-    # Sort key for determininistic output.
+    # Sort key for deterministic output.
     for key in sorted(input_dict):
       if isinstance(key, LightyConditional):
         op = ' '
@@ -352,7 +352,7 @@ class LightyConfigWriter(object):
     def LightyDict():
       writer = indent_text_writer.IndentTextWriter.Factory(parent_writer)
       writer.EnterBlock('()')
-      # Sort key for determininistic output.
+      # Sort key for deterministic output.
       for key in sorted(input_value):
         writer.Write('"%s" => %s,' % (
             key,

@@ -83,7 +83,7 @@ class ServiceProcess(protocol.ProcessProtocol):
     restart_count: counts the service restarting within _STARTTIME_LIMIT.
     start_time: record external executable's start time.
     subprocess: twisted transport object to control spawned process.
-    deferred_stop: deferred object that notifiies on process end.
+    deferred_stop: deferred object that notifies on process end.
     state: process state text string defined in State class.
     process_name: process name shortcut.
     messages: stdout and stderr messages.
@@ -149,7 +149,7 @@ class ServiceProcess(protocol.ProcessProtocol):
         required fields:
           executable - pathname to external executable file
           name - printable name for logging
-          args - list of command line arguments, without executalbe pathname
+          args - list of command line arguments, without executable pathname
           path - process CWD
         optional fields:
           uid - process user id

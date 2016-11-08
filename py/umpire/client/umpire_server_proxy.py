@@ -641,7 +641,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
 
   def __getattr__(self, name):
     # Same magic dispatcher as that in xmpliclib.ServerProxybase but using
-    # self._Request instead of  _request in the base class.
+    # self._Request instead of _request in the base class.
     return xmlrpclib._Method(self._Request, name)  # pylint: disable=W0212
 
   def GetShopFloorHandlerUri(self):

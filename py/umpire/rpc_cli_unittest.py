@@ -265,7 +265,6 @@ class CommandTest(unittest.TestCase):
       f.write('staged...')
     self.env.StageConfigFile(staged_config)
 
-    # Force override current staging config file.
     self.assertTrue(self.env.HasStagingConfigFile())
     d = self.Call('UnstageConfigFile')
     d.addCallback(lambda _: self.assertFalse(self.env.HasStagingConfigFile()))

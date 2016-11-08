@@ -40,7 +40,7 @@ class WSGISession(type_utils.AttrDict):
   TEXT_XML = 'text/xml'
 
   def __init__(self, environ, start_response):
-    """Constructs WSGISession using WSIG environ and start_response.
+    """Constructs WSGISession using WSGI environ and start_response.
 
     The ctor converts WSGI environ into AttrDict. And copies values in 'wsgi.*'
     to 'wsgi_*' attributes.

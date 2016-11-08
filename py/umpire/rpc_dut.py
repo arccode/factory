@@ -329,7 +329,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       mode: open file mode. 'wb' to write binary file, 'a' to append file.
     """
     with file_utils.UnopenedTemporaryFile() as temp_path:
-      # To support pathes in file_name, the save_dir will be splitted after
+      # To support paths in file_name, the save_dir will be splitted after
       # concatenate to full save_path.
       save_path = os.path.join(self.env.umpire_data_dir, upload_type,
                                time.strftime('%Y%m%d', self._Now()),
@@ -340,7 +340,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
         shutil.copy2(save_path, temp_path)
       open(temp_path, mode).write(content)
       # Do not use os.rename() to move file. os.rename() behavior is OS
-      # depandent.
+      # dependent.
       shutil.move(temp_path, save_path)
       # temp_path (created by tempfile.mkstemp) will always be mode 0600 for
       # security reason, so we do want to change its permission to u+rw,go+r.
@@ -355,7 +355,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       serial: A string of device serial number.
       report_blob: Blob of compressed report to be stored (must be prepared by
           shopfloor.Binary)
-      report_name: (Optional) Suggested report file name. This is uslally
+      report_name: (Optional) Suggested report file name. This is usually
           assigned by factory test client programs (ex, gooftool); however
           server implementations still may use other names to store the report.
       stage: Current testing stage, SMT, RUNIN, FA, or GRT.
@@ -425,9 +425,9 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
 
     # Disallow absolute paths and paths with '..'.
     if os.path.isabs(name):
-      raise ValueError('Disallow absolute pathes')
+      raise ValueError('Disallow absolute paths')
     if '..' in os.path.split(name):
-      raise ValueError('Disallow ".." in pathes')
+      raise ValueError('Disallow ".." in paths')
 
     d = threads.deferToThread(lambda: self._SaveUpload(
         'aux_log', name, self._UnwrapBlob(contents)))
