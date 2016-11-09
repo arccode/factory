@@ -77,8 +77,7 @@ class FactoryBundle(object):
   """
   _BUNDLE_MANIFEST = 'MANIFEST.yaml'
   _DOWNLOAD_FILES_PATTERN = os.path.join('setup', 'static', '*')
-  _FACTORY_TOOLKIT = os.path.join('factory_toolkit',
-                                  'install_factory_toolkit.run')
+  _FACTORY_TOOLKIT = os.path.join('toolkit', 'install_factory_toolkit.run')
   _NETBOOT_IMAGE = os.path.join('factory_shim', 'netboot', 'vmlinux.uimg')
   _NETBOOT_FIRMWARE = os.path.join('netboot_firmware', 'image.net.bin')
   _MANDATORY_IMAGES = ['release', 'factory_shim']
