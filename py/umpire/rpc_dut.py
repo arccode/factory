@@ -263,8 +263,8 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       else:
         resource_scheme = 'http'
         resource_url = 'http://%(ip)s:%(port)d/res/%(filename)s' % {
-            'ip': self.env.config['ip'],
-            'port': self.env.config['port'],
+            'ip': self.env.umpire_ip,
+            'port': self.env.umpire_base_port,
             'filename': urllib.quote(resource_filename)}
 
       if isinstance(resource_url, basestring):

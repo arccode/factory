@@ -107,10 +107,8 @@ class TestHTTPService(unittest.TestCase):
       shutil.rmtree(self.temp_dir)
 
   def testGenerateLightyConfig(self):
-    umpire_ip = '10.0.0.1'
     umpire_port = 9001
     umpire_config_dict = {
-        'ip': umpire_ip,
         'port': umpire_port,
         'services': {'http': {
             'reverse_proxies': [

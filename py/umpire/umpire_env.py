@@ -105,6 +105,12 @@ class UmpireEnv(object):
     return os.path.join(self.base_dir, _STAGING_UMPIRE_CONFIG)
 
   @property
+  def umpire_ip(self):
+    if not self.config:
+      raise common.UmpireError('UmpireConfig not loaded yet.')
+    return self.config.get('ip', '0.0.0.0')
+
+  @property
   def umpire_base_port(self):
     if not self.config:
       raise common.UmpireError('UmpireConfig not loaded yet.')

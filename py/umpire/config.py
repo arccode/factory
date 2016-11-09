@@ -132,8 +132,9 @@ def ValidateConfig(config):
           'rulesets': _RULESETS_SCHEMA,
           'services': umpire_service.GetServiceSchemata(),
           'bundles': List('Bundles', _BUNDLE_SCHEMA),
-          'ip': Scalar('IP address to bind', str),
-          'port': Scalar('Base port', int)})
+          'port': Scalar('Base port', int)},
+      optional_items={
+          'ip': Scalar('IP address to bind', str)})
   schema.Validate(config)
 
 
@@ -217,7 +218,10 @@ class UmpireOrderedDict(dict):
   """Used to output UmpireConfig with desired key order."""
 
   def Omap(self):
-    result = [(k, self[k]) for k in ['ip', 'port']]
+    result = []
+    if 'ip' in self:
+      result.append(('ip', self['ip']))
+    result.append(('port', self['port']))
     result.append(('rulesets',
                    [RulesetOrderedDict(r) for r in self['rulesets']]))
     result.append(('services', ServicesOrderedDict(self['services'])))
