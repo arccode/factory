@@ -93,8 +93,7 @@ class ConfigEditor(object):
     in a temporary file for edit.
     """
     if config_file:
-      with open(config_file) as c:
-        config = c.read()
+      config = file_utils.ReadFile(config_file)
     else:
       config_file = 'umpire.yaml'
       config = self._umpire_cli.GetStagingConfig()
@@ -109,8 +108,7 @@ class ConfigEditor(object):
 
     self._config_file = os.path.join(self._temp_dir,
                                      os.path.basename(config_file))
-    with open(self._config_file, 'w') as f:
-      f.write(config)
+    file_utils.WriteFile(self._config_file, config)
 
     logging.info('Copied config to %s for edit', self._config_file)
 
@@ -119,7 +117,7 @@ class ConfigEditor(object):
     """
     res_name = self._umpire_cli.UploadConfig(
         os.path.basename(self._config_file),
-        open(self._config_file).read())
+        file_utils.ReadFile(self._config_file))
     # Force staging.
     self._umpire_cli.StageConfigFile(res_name, True)
     print ('Successful upload config to resource %r and mark it as staging.' %
@@ -168,7 +166,7 @@ class ConfigEditor(object):
 
     # Verify edited config on Umpire daemon (resource check).
     try:
-      config = open(self._config_file).read()
+      config = file_utils.ReadFile(self._config_file)
       self._umpire_cli.ValidateConfig(config)
     except Exception as e:
       header = ('Failed to validate Umpire config in Umpire daemon. '

@@ -25,6 +25,7 @@ from cros.factory.umpire import config
 from cros.factory.umpire import rpc_cli
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
+from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 
 
@@ -119,8 +120,8 @@ class CommandTest(unittest.TestCase):
 
   def testAddResource(self):
     file_to_add = os.path.join(self.env.base_dir, 'file_to_add')
-    with file(file_to_add, 'w') as f:
-      f.write('...')
+    file_utils.WriteFile(file_to_add, '...')
+
     expected_resource_name = 'file_to_add##2f43b42f'
 
     d = self.Call('AddResource', file_to_add)
@@ -133,8 +134,7 @@ class CommandTest(unittest.TestCase):
     res_hash = '1f78df50'
 
     file_to_add = os.path.join(self.env.base_dir, 'hwid')
-    with file(file_to_add, 'w') as f:
-      f.write('checksum: %s' % checksum_for_empty)
+    file_utils.WriteFile(file_to_add, 'checksum: %s' % checksum_for_empty)
 
     expected_resource_name = 'hwid#%s#%s' % (checksum_for_empty, res_hash)
 
@@ -152,8 +152,9 @@ class CommandTest(unittest.TestCase):
 
     def Verify(result):
       self.assertTrue(result.find(basename) != -1)
-      with open(os.path.join(self.env.resources_dir, result)) as f:
-        self.assertEqual(config_str, f.read())
+      self.assertEqual(
+          config_str,
+          file_utils.ReadFile(os.path.join(self.env.resources_dir, result)))
 
     d = self.Call('UploadConfig', basename, config_str)
     d.addCallback(Verify)
@@ -180,8 +181,8 @@ class CommandTest(unittest.TestCase):
   def testStageConfigFile(self):
     # Prepare a file in resource to stage.
     config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    with file(config_to_stage, 'w') as f:
-      f.write('...')
+    file_utils.WriteFile(config_to_stage, '...')
+
     config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
     config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
 
@@ -195,8 +196,8 @@ class CommandTest(unittest.TestCase):
   def testStageConfigFileDefaultActive(self):
     # Prepare active config.
     active_config_path = os.path.join(self.env.base_dir, 'active_config')
-    with file(active_config_path, 'w') as f:
-      f.write('config\nfile')
+    file_utils.WriteFile(active_config_path, 'config\nfile')
+
     self.env.ActivateConfigFile(self.env.AddResource(active_config_path))
 
     # '': to stage active config.
@@ -204,15 +205,14 @@ class CommandTest(unittest.TestCase):
     d.addCallback(
         lambda _: self.assertEqual(
             'config\nfile',
-            open(self.env.staging_config_file).read()))
+            file_utils.ReadFile(self.env.staging_config_file)))
     return self.AssertSuccess(d)
 
   def testStageConfigFileNotInResource(self):
     # Prepare a file not in resources to stage.
     res_basename = 'config_to_stage'
     config_to_stage = os.path.join(self.env.base_dir, res_basename)
-    with file(config_to_stage, 'w') as f:
-      f.write('...')
+    file_utils.WriteFile(config_to_stage, '...')
 
     d = self.Call('StageConfigFile', config_to_stage)
     d.addCallback(
@@ -223,15 +223,15 @@ class CommandTest(unittest.TestCase):
   def testStageConfigFileFailFileAlreadyExists(self):
     # Prepare a file in resource to stage.
     config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    with file(config_to_stage, 'w') as f:
-      f.write('...')
+    file_utils.WriteFile(config_to_stage, '...')
+
     config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
     config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
 
     # Set a stage config first.
     staged_config = os.path.join(self.env.base_dir, 'staged_config')
-    with file(staged_config, 'w') as f:
-      f.write('staged...')
+    file_utils.WriteFile(staged_config, 'staged...')
+
     self.env.StageConfigFile(staged_config)
 
     return self.AssertFailure(self.Call('StageConfigFile',
@@ -240,15 +240,15 @@ class CommandTest(unittest.TestCase):
   def testStageConfigFileForce(self):
     # Prepare a file in resource to stage.
     config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    with file(config_to_stage, 'w') as f:
-      f.write('...')
+    file_utils.WriteFile(config_to_stage, '...')
+
     config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
     config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
 
     # Set a stage config first.
     staged_config = os.path.join(self.env.base_dir, 'staged_config')
-    with file(staged_config, 'w') as f:
-      f.write('staged...')
+    file_utils.WriteFile(staged_config, 'staged...')
+
     self.env.StageConfigFile(staged_config)
 
     # Force override current staging config file.
@@ -262,8 +262,8 @@ class CommandTest(unittest.TestCase):
   def testUnstageConfigFile(self):
     # Prepare a file in resource and stage it.
     staged_config = os.path.join(self.env.base_dir, 'staged_config')
-    with file(staged_config, 'w') as f:
-      f.write('staged...')
+    file_utils.WriteFile(staged_config, 'staged...')
+
     self.env.StageConfigFile(staged_config)
 
     self.assertTrue(self.env.HasStagingConfigFile())

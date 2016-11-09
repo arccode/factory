@@ -7,6 +7,9 @@
 
 import os
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils import file_utils
+
 
 class StatusReporter(object):
   """Reports Umpire server status.
@@ -46,7 +49,7 @@ class StatusReporter(object):
     Returns:
       Active config file content (string).
     """
-    return open(self._env.active_config_file).read()
+    return file_utils.ReadFile(self._env.active_config_file)
 
   def GetStagingConfig(self):
     """Gets staging config file.
@@ -57,7 +60,7 @@ class StatusReporter(object):
     """
     if not self._env.HasStagingConfigFile():
       return ''
-    return open(self._env.staging_config_file).read()
+    return file_utils.ReadFile(self._env.staging_config_file)
 
   def GetShopFloorMapping(self):
     """Gets list of (bundle_id, handler) pairs.

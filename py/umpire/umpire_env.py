@@ -8,7 +8,6 @@
 This module provides constants and common Umpire classes.
 """
 
-import errno
 import filecmp
 import logging
 import os
@@ -358,8 +357,8 @@ class UmpireEnv(object):
       IOError if the resource does not exist.
     """
     path = os.path.join(self.resources_dir, resource_name)
-    if check and not os.path.exists(path):
-      raise IOError(errno.ENOENT, 'Resource does not exist', path)
+    if check:
+      file_utils.CheckPath(path, 'resource')
     return path
 
   def InResource(self, path):

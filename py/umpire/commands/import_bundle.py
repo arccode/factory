@@ -119,8 +119,7 @@ class FactoryBundle(object):
     Raises:
       UmpireError if the bundle manifest is invalid.
     """
-    if not os.path.exists(path):
-      raise IOError(errno.ENOENT, 'Bundle does not exist', path)
+    file_utils.CheckPath(path, 'bundle')
     if not os.access(path, os.R_OK):
       raise IOError(
           errno.EACCES,
@@ -148,8 +147,7 @@ class FactoryBundle(object):
         break
 
     manifest_path = os.path.join(self._path, self._BUNDLE_MANIFEST)
-    if not os.path.isfile(manifest_path):
-      raise IOError(errno.ENOENT, 'MANIFEST.yaml does not exist', path)
+    file_utils.CheckPath(manifest_path, 'MANIFEST.yaml')
 
     # Load MANIFEST.yaml and temporary uncheck mandatory images.
     # TODO(deanliao): figure out if the images are mandatory.

@@ -65,8 +65,7 @@ class TestUmpireConfig(unittest.TestCase):
     self.assertEqual('bundle for test', bundle['note'])
 
   def testLoadConfigString(self):
-    with open(EMPTY_SERVICES_CONFIG) as f:
-      config_str = f.read()
+    config_str = file_utils.ReadFile(EMPTY_SERVICES_CONFIG)
     conf = config.UmpireConfig(config_str)
     self.assertEqual(1, len(conf['rulesets']))
     ruleset = conf['rulesets'][0]

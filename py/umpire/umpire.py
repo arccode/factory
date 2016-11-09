@@ -10,7 +10,6 @@ It parses command line arguments, packs them and makes JSON RPC call to
 Umpire daemon (umpired).
 """
 
-import errno
 import logging
 import os
 import xmlrpclib
@@ -25,6 +24,7 @@ from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils import debug_utils
+from cros.factory.utils import file_utils
 
 
 @Command('import-bundle',
@@ -84,8 +84,7 @@ def Update(args, umpire_cli):
     resource_type, resource_path = resource.split('=', 1)
     if resource_type not in common.UPDATEABLE_RESOURCES:
       raise common.UmpireError('Unsupported resource type: ' + resource_type)
-    if not os.path.isfile(resource_path):
-      raise IOError(errno.ENOENT, 'Resource file not found', resource_path)
+    file_utils.CheckPath(resource_path, 'resource')
     resource_real_path = os.path.realpath(resource_path)
     print '  %s  %s' % (resource_type, resource_real_path)
     resources_to_update.append((resource_type, resource_real_path))
@@ -214,8 +213,7 @@ def ImportResource(args, umpire_cli):
   # Find out absolute path of resources and perform simple sanity check.
   for path in args.resources:
     resource_path = os.path.abspath(path)
-    if not os.path.isfile(resource_path):
-      raise IOError(errno.ENOENT, 'Resource file not found', resource_path)
+    file_utils.CheckPath(resource_path, 'resource')
 
     print 'Adding %r to resources' % resource_path
     resource_name = umpire_cli.AddResource(resource_path)

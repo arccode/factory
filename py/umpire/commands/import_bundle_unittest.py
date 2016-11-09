@@ -41,7 +41,7 @@ class LoadBundleManifestTest(unittest.TestCase):
     self.bundle.Load(TEST_BUNDLE_DIR)
 
   def testLoadInvalidPath(self):
-    self.assertRaisesRegexp(IOError, 'Bundle does not exist',
+    self.assertRaisesRegexp(IOError, 'Missing bundle',
                             self.bundle.Load, '/foo/bar/baz')
 
     with file_utils.TempDirectory() as temp_dir:

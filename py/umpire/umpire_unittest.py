@@ -107,7 +107,7 @@ class UpdateTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.args.resources.append('fsi=/path/to/nowhere')
-    self.assertRaisesRegexp(IOError, 'Resource file not found',
+    self.assertRaisesRegexp(IOError, 'Missing resource',
                             umpire.Update, self.args, self.mock_cli)
 
 
@@ -193,8 +193,8 @@ class DeployTest(unittest.TestCase):
                             umpire.Deploy, self.args, self.mock_cli)
 
   def testDeploy(self):
-    active_config = open(self.ACTIVE_CONFIG_PATH).read()
-    staging_config = open(self.STAGING_CONFIG_PATH).read()
+    active_config = file_utils.ReadFile(self.ACTIVE_CONFIG_PATH)
+    staging_config = file_utils.ReadFile(self.STAGING_CONFIG_PATH)
     self.mox.StubOutWithMock(__builtin__, 'raw_input')
 
     self.mock_cli.GetStatus().AndReturn(
@@ -216,8 +216,8 @@ class DeployTest(unittest.TestCase):
         GetStdout())
 
   def testDeployUserSayNo(self):
-    active_config = open(self.ACTIVE_CONFIG_PATH).read()
-    staging_config = open(self.STAGING_CONFIG_PATH).read()
+    active_config = file_utils.ReadFile(self.ACTIVE_CONFIG_PATH)
+    staging_config = file_utils.ReadFile(self.STAGING_CONFIG_PATH)
     self.mox.StubOutWithMock(__builtin__, 'raw_input')
 
     self.mock_cli.GetStatus().AndReturn(

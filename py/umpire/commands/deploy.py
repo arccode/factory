@@ -10,7 +10,6 @@ See ConfigDeployer for detail.
 from __future__ import print_function
 
 import datetime
-import errno
 import logging
 import os
 from twisted.python import failure as twisted_failure
@@ -57,9 +56,7 @@ class ConfigDeployer(object):
       Exception from umpire_config.ValidateResources() if validation failed.
       IOError if file not found.
     """
-    if not os.path.isfile(self._config_path_to_deploy):
-      raise IOError(errno.ENOENT, 'Config does not exist',
-                    self._config_path_to_deploy)
+    file_utils.CheckPath(self._config_path_to_deploy, 'config')
 
     config_to_validate = umpire_config.UmpireConfig(self._config_path_to_deploy)
     umpire_config.ValidateResources(config_to_validate, self._env)
@@ -111,8 +108,8 @@ class ConfigDeployer(object):
       resources = bundle['resources']
       new_conf = self._ComposeDownloadConf(resources)
       if 'download_conf' in resources:
-        original_conf = open(
-            self._env.GetResourcePath(resources['download_conf'])).read()
+        original_conf = file_utils.ReadFile(
+            self._env.GetResourcePath(resources['download_conf']))
       else:
         original_conf = None
 
@@ -183,9 +180,7 @@ class ConfigDeployer(object):
     resources = default_bundle.get('resources', [])
     if 'netboot_vmlinux' in resources:
       vmlinux_symlink = os.path.join(self._env.resources_dir, 'vmlinux.bin')
-      if os.path.islink(vmlinux_symlink) or os.path.exists(vmlinux_symlink):
-        os.remove(vmlinux_symlink)
-      os.symlink(resources['netboot_vmlinux'], vmlinux_symlink)
+      file_utils.ForceSymlink(resources['netboot_vmlinux'], vmlinux_symlink)
       logging.info('netboot kernel: %s updated.', resources['netboot_vmlinux'])
 
     return 'Deploy success'

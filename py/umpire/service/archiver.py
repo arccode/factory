@@ -128,11 +128,10 @@ class ArchiverService(umpire_service.UmpireService):
     config_path = os.path.join(
         env.config_dir, ARCHIVER_NAME + config_hash + '.yaml')
 
-    with open(config_path, 'w') as fd:
-      yaml_str = yaml.dump(archiver_config, default_flow_style=False)
-      fd.write(yaml_str)
-      logging.debug('Generated config at %r, content:\n%s\n',
-                    config_path, yaml_str)
+    yaml_str = yaml.dump(archiver_config, default_flow_style=False)
+    file_utils.WriteFile(config_path, yaml_str)
+    logging.debug('Generated config at %r, content:\n%s\n',
+                  config_path, yaml_str)
     return config_path
 
   def CreateProcesses(self, config, env):

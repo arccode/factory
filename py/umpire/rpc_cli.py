@@ -124,8 +124,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
     """
     with file_utils.TempDirectory() as temp_dir:
       config_file = os.path.join(temp_dir, basename)
-      with open(config_file, 'w') as f:
-        f.write(content)
+      file_utils.WriteFile(config_file, content)
       res_path = self.env.AddResource(config_file)
       return os.path.basename(res_path)
 

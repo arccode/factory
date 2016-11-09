@@ -167,8 +167,7 @@ class DUTRPCTest(unittest.TestCase):
       logging.debug('report files: %r', report_files)
       self.assertTrue(report_files)
       report_path = report_files[0]
-      with open(report_path, 'rb') as f:
-        self.assertEqual(f.read(), content)
+      self.assertEqual(file_utils.ReadFile(report_path), content)
       for name in namestrings:
         self.assertIn(name, report_path)
       return True
@@ -192,8 +191,7 @@ class DUTRPCTest(unittest.TestCase):
       logging.debug('event files: %r', event_files)
       self.assertTrue(event_files)
       event_path = event_files[0]
-      with open(event_path, 'r') as f:
-        self.assertEqual(f.read(), content)
+      self.assertEqual(file_utils.ReadFile(event_path), content)
       return True
 
     d = self.Call('UploadEvent', 'event_log_name', '123')

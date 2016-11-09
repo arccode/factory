@@ -119,7 +119,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     if not os.path.isfile(abspath):
       raise ValueError('File does not exist or it is not a file')
 
-    return xmlrpc.Binary(open(abspath).read())
+    return xmlrpc.Binary(file_utils.ReadFile(abspath))
 
   @staticmethod
   def _GetResourceTag(component, resource_filename):
