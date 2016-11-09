@@ -20,6 +20,7 @@ from cros.factory.tools import get_version
 from cros.factory.umpire import common
 from cros.factory.umpire import config
 from cros.factory.umpire import shop_floor_manager
+from cros.factory.umpire import utils
 from cros.factory.umpire import version
 from cros.factory.utils import file_utils
 
@@ -396,7 +397,7 @@ class UmpireEnv(object):
     toolkit_resource = resources.get('device_factory_toolkit')
     if not toolkit_resource:
       return None
-    toolkit_hash = common.GetHashFromResourceName(toolkit_resource)
+    toolkit_hash = utils.GetHashFromResourceName(toolkit_resource)
     toolkit_path = os.path.join(self.device_toolkits_dir, toolkit_hash)
     if not os.path.isdir(toolkit_path):
       return None

@@ -138,7 +138,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       HASH_ list.
     """
     unused_resource_basename, resource_version, resource_hash = (
-        common.ParseResourceName(resource_filename))
+        utils.ParseResourceName(resource_filename))
     if component in HASH_COMPONENTS:
       return (resource_hash, resource_hash)
     else:

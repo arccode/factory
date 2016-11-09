@@ -14,6 +14,7 @@ from cros.factory.tools import get_version
 from cros.factory.umpire.commands import update
 from cros.factory.umpire import common
 from cros.factory.umpire import umpire_env
+from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
 
@@ -321,7 +322,7 @@ class UmpireEnvTest(unittest.TestCase):
     # Get hash value to compose expected toolkit dir.
     bundle = self.env.config.GetDefaultBundle()
     toolkit_resource = bundle['resources']['device_factory_toolkit']
-    toolkit_hash = common.GetHashFromResourceName(toolkit_resource)
+    toolkit_hash = utils.GetHashFromResourceName(toolkit_resource)
     return os.path.join(self.env.device_toolkits_dir, toolkit_hash)
 
   def testGetBundleDeviceToolkit(self):

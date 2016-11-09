@@ -2,23 +2,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Common Umpire classes.
 
 This module provides constants and common Umpire classes.
 """
 
-import logging
 import os
 import re
-import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
-UMPIRE_CLI = 'umpire'
-UMPIRE_DAEMON = 'umpired'
 
 # Base serving path for ShopFloorHander.
 HANDLER_BASE = '/shop_floor'
@@ -71,118 +65,3 @@ class UmpireError(Exception):
 
   """General umpire exception class."""
   pass
-
-
-def VerifyResource(res_file):
-  """Verifies a resource file.
-
-  It verifies a file by calculating its md5sum and its leading N-digit
-  should be the same as the filename's hash section.
-
-  Args:
-    res_file: path to a resource file
-
-  Returns:
-    True if the file's checksum is verified.
-  """
-  if not os.path.isfile(res_file):
-    logging.error('VerifyResource: file missing: ' + res_file)
-    return False
-  hashsum = GetHashFromResourceName(res_file)
-  if not hashsum:
-    logging.error('Ill-formed resource filename: ' + res_file)
-    return False
-  calculated_hashsum = file_utils.Md5sumInHex(res_file)
-  return calculated_hashsum.startswith(hashsum)
-
-
-def ParseResourceName(res_file):
-  """Parses resource file name.
-
-  Args:
-    res_file: path to a resource file
-
-  Returns:
-    (base_name, version, hash).
-    None if res_file is ill-formed.
-  """
-  match = RESOURCE_FILE_PATTERN.match(res_file)
-  return match.groups() if match else None
-
-
-def GetHashFromResourceName(res_file):
-  """Gets hash from resource file name.
-
-  Args:
-    res_file: path to a resource file
-
-  Returns:
-    hash value in resource file name's tail.
-    None if res_file is ill-formed.
-  """
-  match = RESOURCE_FILE_PATTERN.match(res_file)
-  return match.group(3) if match else None
-
-
-def GetVersionFromResourceName(res_file):
-  """Gets version from resource file name.
-
-  Args:
-    res_file: path to a resource file
-
-  Returns:
-    Version in resource file name's second latest segment (# delimited).
-    None if res_file is ill-formed.
-  """
-  match = RESOURCE_FILE_PATTERN.match(res_file)
-  return match.group(2) if match else None
-
-
-# pylint: disable=R0901
-class BundleManifestIgnoreGlobLoader(yaml.Loader):
-
-  """A YAML loader that loads factory bundle manifest with !glob ignored."""
-
-  def __init__(self, *args, **kwargs):
-    def FakeGlobConstruct(unused_loader, unused_node):
-      return None
-
-    yaml.Loader.__init__(self, *args, **kwargs)
-    self.add_constructor('!glob', FakeGlobConstruct)
-
-
-# pylint: disable=R0901
-class BundleManifestLoader(yaml.Loader):
-
-  """A YAML loader that loads factory bundle manifest with !glob ignored."""
-
-  def __init__(self, *args, **kwargs):
-    yaml.Loader.__init__(self, *args, **kwargs)
-    # TODO(deanliao): refactor out Glob from py/tools/finalize_bundle.py
-    #     to py/utils/bundle_manifest.py and move the LoadBundleManifest
-    #     related methods to that module.
-    self.add_constructor('!glob', file_utils.Glob.Construct)
-
-
-def LoadBundleManifest(path, ignore_glob=False):
-  """Loads factory bundle's MANIFEST.yaml (with !glob ignored).
-
-  Args:
-    path: path to factory bundle's MANIFEST.yaml
-    ignore_glob: True to ignore glob.
-
-  Returns:
-    A Python object the manifest file represents.
-
-  Raises:
-    IOError if file not found.
-    UmpireError if the manifest fail to load and parse.
-  """
-  file_utils.CheckPath(path, description='factory bundle manifest')
-  try:
-    loader = (BundleManifestIgnoreGlobLoader if ignore_glob else
-              BundleManifestLoader)
-    with open(path) as f:
-      return yaml.load(f, Loader=loader)
-  except Exception as e:
-    raise UmpireError('Failed to load MANIFEST.yaml: ' + str(e))

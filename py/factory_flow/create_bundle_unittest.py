@@ -16,7 +16,7 @@ import unittest
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import create_bundle
 from cros.factory.tools import build_board
-from cros.factory.umpire.common import LoadBundleManifest
+from cros.factory.umpire.utils import LoadBundleManifest
 
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
