@@ -12,36 +12,103 @@ import glob
 import logging
 import optparse
 import os
+import shutil
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.commands import init
 from cros.factory.umpire import common
 from cros.factory.umpire import daemon
 from cros.factory.umpire import rpc_cli
 from cros.factory.umpire import rpc_dut
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire import webapp_resourcemap
+from cros.factory.utils import file_utils
 
 
-def StartServer(test_mode=False, config_file=None):
+# Relative path of Umpire CLI / Umpired in toolkit directory.
+_UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('bin', 'umpire')
+_DEFAULT_CONFIG_NAME = 'default_umpire.yaml'
+
+
+def InitDaemon(env, root_dir='/'):
+  """Initializes an Umpire working environment.
+
+  It creates base directory (specified in env.base_dir) and sets up daemon
+  running environment.
+
+  Args:
+    env: UmpireEnv object.
+    root_dir: Root directory. Used for testing purpose.
+  """
+  def SetUpDir():
+    """Sets up Umpire directory structure.
+
+    It figures out Umpire base dir, creates it and its sub directories.
+    """
+    def TryMkdir(path):
+      if not os.path.isdir(path):
+        os.makedirs(path)
+
+    TryMkdir(env.base_dir)
+    for sub_dir in env.SUB_DIRS:
+      TryMkdir(os.path.join(env.base_dir, sub_dir))
+    # Create the dummy resource file (empty).
+    dummy_resource = os.path.join(env.resources_dir, common.DUMMY_RESOURCE)
+    if not os.path.isfile(dummy_resource):
+      file_utils.TouchFile(dummy_resource)
+
+  def SymlinkBinary():
+    """Creates symlink to umpire executable.
+
+    It symlinks /usr/local/bin/umpire to $toolkit_base/bin/umpire.
+
+    Note that root '/'  can be overridden by arg 'root_dir' for testing.
+    """
+    umpire_binary = os.path.join(
+        env.server_toolkit_dir, _UMPIRE_CLI_IN_TOOLKIT_PATH)
+    default_symlink = os.path.join(root_dir, 'usr', 'local', 'bin', 'umpire')
+
+    if not os.path.lexists(default_symlink):
+      os.symlink(umpire_binary, default_symlink)
+      logging.info('Symlink %r -> %r', default_symlink, umpire_binary)
+
+  def InitUmpireConfig():
+    """Prepares the very first UmpireConfig and marks it as active.
+
+    An active config is necessary for the second step, import-bundle.
+    """
+    # Do not override existing active config.
+    if os.path.exists(env.active_config_file):
+      return
+
+    template_path = os.path.join(env.server_toolkit_dir, _DEFAULT_CONFIG_NAME)
+    with file_utils.TempDirectory() as temp_dir:
+      config_path = os.path.join(temp_dir, 'umpire.yaml')
+      shutil.copyfile(template_path, config_path)
+      config_in_resource = env.AddResource(config_path)
+
+      file_utils.ForceSymlink(config_in_resource, env.active_config_file)
+      logging.info('Init UmpireConfig %r and set it as active.',
+                   config_in_resource)
+
+  logging.info('Init umpire to %r', env.base_dir)
+
+  SetUpDir()
+  InitUmpireConfig()
+  SymlinkBinary()
+
+
+def StartServer(config_file=None):
   """Starts Umpire daemon.
 
   Args:
     test_mode: True to enable test mode.
     config_file: If specified, uses it as config file.
   """
-  real_daemon_path = os.path.realpath(__file__)
-  # Instanciate environment and load default configuration file.
+  # Instantiate environment and load default configuration file.
   env = umpire_env.UmpireEnv()
-  if test_mode:
-    test_base_dir = os.path.join(os.path.dirname(real_daemon_path), 'testdata')
-    if not os.path.isdir(test_base_dir):
-      raise common.UmpireError(
-          'Test directory %s does not exist. Test mode failed.' % test_base_dir)
-    env.base_dir = test_base_dir
 
   # Make sure that the environment for running the daemon is set.
-  init.Init(env, local=False, user='root', group='root')
+  InitDaemon(env)
 
   env.LoadConfig(custom_path=config_file)
 
@@ -53,7 +120,8 @@ def StartServer(test_mode=False, config_file=None):
   for pidfile in glob.glob(os.path.join(env.pid_dir, '*.pid')):
     logging.info('removing pid file: %s', pidfile)
     os.remove(pidfile)
-  # Instanciate Umpire daemon and set command handlers and webapp handler.
+
+  # Instantiate Umpire daemon and set command handlers and webapp handler.
   umpired = daemon.UmpireDaemon(env)
   # Add command line handlers.
   cli_commands = rpc_cli.CLICommand(env)
@@ -81,12 +149,9 @@ def main():
               '%(message)s'))
   parser = optparse.OptionParser()
   parser.add_option(
-      '-t', '--test', dest='test_mode', action='store_true', default=False,
-      help='test run testdata/umpired_test.yaml')
-  parser.add_option(
       '-c', '--config', dest='config_file', help='path to UmpireConfig file')
   (options, unused_args) = parser.parse_args()
-  StartServer(test_mode=options.test_mode, config_file=options.config_file)
+  StartServer(config_file=options.config_file)
 
 
 if __name__ == '__main__':

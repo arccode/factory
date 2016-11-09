@@ -64,10 +64,6 @@ class UmpireEnv(object):
   SUB_DIRS = ('bin', 'dashboard', 'log', 'resources', 'run', 'toolkits',
               'updates', 'conf', 'umpire_data')
 
-  # TODO(deanliao): figure out if it is too loose.
-  # Umpire directory permission 'rwxr-xr-x'.
-  UMPIRE_DIR_MODE = 0755
-
   def __init__(self, root_dir='/'):
     self.base_dir = os.path.join(root_dir, common.DEFAULT_BASE_DIR)
     self.server_toolkit_dir = os.path.join(root_dir, common.DEFAULT_SERVER_DIR)
