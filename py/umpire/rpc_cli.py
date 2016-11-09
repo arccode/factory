@@ -104,7 +104,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
 
     Returns:
       Staging config file's content.
-      '' if there's no staging config
+      None if there's no staging config
     """
     return status_reporter.StatusReporter(self.env).GetStagingConfig()
 
@@ -127,20 +127,20 @@ class CLICommand(umpire_rpc.UmpireRPC):
       return os.path.basename(res_path)
 
   @umpire_rpc.RPCCall
-  def StageConfigFile(self, config_path, force=False):
+  def StageConfigFile(self, config_path=None, force=False):
     """Stages a config file.
 
     If a config file is not in resources directory, it will first add it
     to resources.
 
     Args:
-      config_path: path to a config file to mark as staging. None or '' means
-          staging active config.
+      config_path: path to a config file to mark as staging. None means
+          stage active config.
       force: True to replace current staging config if exists.
     """
-    if not config_path:
+    if config_path is None:
       # Stage active config file.
-      self.env.StageConfigFile(None, force=force)
+      self.env.StageConfigFile(force=force)
       return
 
     res_name = (os.path.basename(config_path)

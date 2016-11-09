@@ -33,7 +33,7 @@ class StatusReporter(object):
     result['active_config'] = self.GetActiveConfig()
     result['active_config_res'] = os.path.basename(os.path.realpath(
         self._env.active_config_file))
-    result['staging_config'] = self.GetStagingConfig()
+    result['staging_config'] = self.GetStagingConfig() or ''
     if result['staging_config']:
       result['staging_config_res'] = os.path.basename(os.path.realpath(
           self._env.staging_config_file))
@@ -55,10 +55,10 @@ class StatusReporter(object):
 
     Returns:
       Staging config file content (string).
-      Empty string if file not found.
+      None if file not found.
     """
     if not self._env.HasStagingConfigFile():
-      return ''
+      return None
     return file_utils.ReadFile(self._env.staging_config_file)
 
   def GetShopFloorMapping(self):

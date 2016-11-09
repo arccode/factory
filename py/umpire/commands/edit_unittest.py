@@ -71,8 +71,8 @@ class ConfigEditorTest(unittest.TestCase):
 
   def testEditAutoStagingActive(self):
     # No staging config first.
-    self.umpire_cli.GetStagingConfig().AndReturn('')
-    self.umpire_cli.StageConfigFile('')
+    self.umpire_cli.GetStagingConfig().AndReturn(None)
+    self.umpire_cli.StageConfigFile()
     # After staging active config.
     self.umpire_cli.GetStagingConfig().AndReturn(self.config_to_edit)
 

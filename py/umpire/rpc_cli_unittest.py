@@ -188,7 +188,7 @@ class CommandTest(unittest.TestCase):
   def testGetStagingConfigNotFound(self):
     # No staging config prepared.
     d = self.Call('GetStagingConfig')
-    d.addCallback(lambda result: self.assertEqual('', result))
+    d.addCallback(self.assertIsNone)
     return self.AssertSuccess(d)
 
   def testStageConfigFile(self):
@@ -213,8 +213,7 @@ class CommandTest(unittest.TestCase):
 
     self.env.ActivateConfigFile(self.env.AddResource(active_config_path))
 
-    # '': to stage active config.
-    d = self.Call('StageConfigFile', '')
+    d = self.Call('StageConfigFile')
     d.addCallback(
         lambda _: self.assertEqual(
             'config\nfile',

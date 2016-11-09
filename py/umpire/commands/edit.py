@@ -106,7 +106,7 @@ class ConfigEditor(object):
       config = self._umpire_cli.GetStagingConfig()
       if not config:
         # Staging config does not exist. Stage active config instead.
-        self._umpire_cli.StageConfigFile('')
+        self._umpire_cli.StageConfigFile()
         config = self._umpire_cli.GetStagingConfig()
 
     if not config:
