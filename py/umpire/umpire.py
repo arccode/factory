@@ -151,23 +151,15 @@ def Deploy(unused_args, umpire_cli):
 @Command('status',
          CmdArg('--verbose', action='store_true',
                 help='Show detailed status.'))
-def Status(args, umpire_cli, board):
+def Status(args, umpire_cli):
   """Shows Umpire server status.
 
   Shows Umpire daemon running status, staging config status.
   In verbose mode, show active config content and diff it with statging.
   """
-  if not board:
-    raise common.UmpireError('Unable to get board from active config')
-
   status = umpire_cli.GetStatus()
   if not status:
     raise common.UmpireError('Unable to get status from Umpire server')
-
-  if status['board'] != board:
-    raise common.UmpireError(
-        'Board name from Umpire server %r is different from board name from '
-        'local Umpire CLI %r' % (status['board'], board))
 
   if args.verbose:
     print 'Active config (%s):' % status['active_config_res']
@@ -281,11 +273,8 @@ def main():
     args.command(args)
   else:
     try:
-      (umpire_cli, env) = _UmpireCLI()
-      if args.command_name == 'status':
-        args.command(args, umpire_cli, env.config.get('board'))
-      else:
-        args.command(args, umpire_cli)
+      (umpire_cli, unused_env) = _UmpireCLI()
+      args.command(args, umpire_cli)
     except xmlrpclib.Fault as e:
       if e.faultCode == xmlrpclib.APPLICATION_ERROR:
         print ('ERROR: Problem running %s due to umpired application error. '

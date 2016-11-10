@@ -21,8 +21,7 @@ _UMPIRED_IN_TOOLKIT_PATH = os.path.join('bin', 'umpired')
 _DEFAULT_CONFIG_NAME = 'default_umpire.yaml'
 
 
-def Init(env, board, make_default, local, user, group,
-         root_dir='/', config_template=None):
+def Init(env, local, user, group, root_dir='/', config_template=None):
   """Initializes an Umpire working environment.
 
   It creates base directory (specified in env.base_dir) and sets up daemon
@@ -30,8 +29,6 @@ def Init(env, board, make_default, local, user, group,
 
   Args:
     env: UmpireEnv object.
-    board: board name the Umpire to serve.
-    make_default: make umpire-<board> as default.
     local: do not set up /usr/local/bin and umpired.
     user: the user to run Umpire daemon.
     group: the group to run Umpire dameon.
@@ -62,14 +59,8 @@ def Init(env, board, make_default, local, user, group,
   def SymlinkBinary():
     """Creates symlink to umpire/umpired executable and resources.
 
-    If 'local' is False, it symlinks /usr/local/bin/umpire-$board to
+    If 'local' is False, it symlinks /usr/local/bin/umpire to
     $toolkit_base/bin/umpire.
-
-    For tftpboot, it creates a symlink /tftpboot/vmlinux-<BOARD>.bin to
-    /var/db/factory/umpire/<BOARD>/resources/vmlinux.bin.
-
-    For the first time, also creates /usr/local/bin/umpire symlink.
-    If --default is set, replaces /usr/local/bin/umpire.
 
     Note that root '/'  can be overridden by arg 'root_dir' for testing.
     """
@@ -82,21 +73,9 @@ def Init(env, board, make_default, local, user, group,
         env.server_toolkit_dir, _UMPIRE_CLI_IN_TOOLKIT_PATH)
 
     if not local:
-      global_board_symlink = os.path.join(root_dir, 'usr', 'local', 'bin',
-                                          'umpire-%s' % board)
-      _TrySymlink(umpire_binary, global_board_symlink)
-
       default_symlink = os.path.join(root_dir, 'usr', 'local', 'bin', 'umpire')
-      if not os.path.exists(default_symlink) or make_default:
-        _TrySymlink(global_board_symlink, default_symlink)
-
-      tftpboot_path = os.path.join(root_dir, 'tftpboot')
-      vmlinux_symlink = os.path.join(tftpboot_path, 'vmlinux-%s.bin' % board)
-      resources_vmlinux_bin = os.path.join(env.resources_dir, 'vmlinux.bin')
-
-      # Installation shouldn't fail even if /tftpboot doesn't exist
-      file_utils.TryMakeDirs(tftpboot_path)
-      _TrySymlink(resources_vmlinux_bin, vmlinux_symlink)
+      if not os.path.exists(default_symlink):
+        _TrySymlink(umpire_binary, default_symlink)
 
   def InitUmpireConfig():
     """Prepares the very first UmpireConfig and marks it as active.
@@ -121,8 +100,8 @@ def Init(env, board, make_default, local, user, group,
                    config_in_resource)
 
   (uid, gid) = GetUidGid(user, group)
-  logging.info('Init umpire to %r for board %r with user.group: %s.%s',
-               env.base_dir, board, user, group)
+  logging.info('Init umpire to %r with user.group: %s.%s',
+               env.base_dir, user, group)
 
   SetUpDir(uid, gid)
   InitUmpireConfig()

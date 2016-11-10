@@ -61,8 +61,7 @@ class TestOverlordService(unittest.TestCase):
         'rulesets': [{
             'bundle_id': 'default',
             'note': '',
-            'active': True}],
-        'board': 'test'}
+            'active': True}]}
 
     svc = overlord.OverlordService()
     self.env.config = UmpireConfig(umpire_config)
@@ -77,7 +76,7 @@ class TestOverlordService(unittest.TestCase):
         try:
           process_utils.CheckOutput(['pgrep', '-f', overlord.OVERLORDD_BIN])
           return True
-        except:
+        except subprocess.CalledProcessError:
           return False
       sync_utils.WaitFor(CheckOverlord, 5)
     except:  # pylint: disable=W0702

@@ -91,8 +91,6 @@ class testImportBundle(unittest.TestCase):
     self.env = UmpireEnvForTest()
     self.temp_dir = self.env.base_dir
     self.env.LoadConfig(custom_path=MINIMAL_UMPIRE_CONFIG)
-    # Modify config's board name to the one used in bundle to import.
-    self.env.config['board'] = 'daisy_spring'
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -147,15 +145,13 @@ class testImportBundle(unittest.TestCase):
     bundle = config['bundles'][original_num_bundles]
     self.assertEqual('test_bundle', bundle['id'])
     self.assertIn('shop_floor', bundle)
-    self.assertEqual('cros.factory.umpire.daisy_spring_shop_floor_handler',
+    self.assertEqual('cros.factory.umpire.board_shop_floor_handler',
                      bundle['shop_floor']['handler'])
 
     # Verify resources section using startswith().
     self.assertIn('resources', bundle)
     resources = bundle['resources']
 
-    # Note that download_conf's filename starts with "daisy_spring",
-    # which is board name specified in UmpireEnv.
     expect_resources = {
         'device_factory_toolkit': 'install_factory_toolkit.run##' + TOOLKIT_MD5,
         'netboot_vmlinux': 'vmlinux.uimg##d41d8cd9',
@@ -168,7 +164,7 @@ class testImportBundle(unittest.TestCase):
         'rootfs_release': 'rootfs-release.gz#%s#d41d8cd9' % FSI_VERSION,
         'rootfs_test': 'rootfs-test.gz#%s#d41d8cd9' % TEST_IMAGE_VERSION,
         'stateful_partition': 'state.gz##d41d8cd9',
-        'download_conf': 'daisy_spring.conf##'}
+        'download_conf': 'download.conf##'}
     self.assertSetEqual(set(expect_resources), set(resources))
     for key, value in expect_resources.items():
       self.assertTrue(resources[key].startswith(value))
@@ -228,14 +224,6 @@ class testImportBundle(unittest.TestCase):
     self.assertRaisesRegexp(UmpireError,
                             "bundle_id: 'default_test' already in use",
                             importer.Import, TEST_BUNDLE_DIR, 'default_test')
-
-  def testImportDifferentBoardName(self):
-    self.env.config['board'] = 'not_a_daisy_spring'
-
-    importer = BundleImporter(self.env)
-    self.assertRaisesRegexp(UmpireError,
-                            'Board mismatch',
-                            importer.Import, TEST_BUNDLE_DIR, 'test_bundle')
 
 
 if __name__ == '__main__':

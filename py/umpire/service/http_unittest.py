@@ -134,8 +134,7 @@ class TestHTTPService(unittest.TestCase):
         'rulesets': [{
             'bundle_id': 'default',
             'note': '',
-            'active': True}],
-        'board': 'test'}
+            'active': True}]}
     self.env.config = UmpireConfig(umpire_config)
     config_path = HTTPService.GenerateLightyConfig(umpire_config, self.env)
 

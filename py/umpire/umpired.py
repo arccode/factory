@@ -41,8 +41,7 @@ def StartServer(test_mode=False, config_file=None):
     env.base_dir = test_base_dir
 
   # Make sure that the environment for running the daemon is set.
-  init.Init(env, board='default', make_default=True, local=False,
-            user='root', group='root')
+  init.Init(env, local=False, user='root', group='root')
 
   env.LoadConfig(custom_path=config_file)
 

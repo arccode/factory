@@ -204,11 +204,8 @@ class BundleImporter(object):
     self._bundle = None
     self._shop_floor_handler = None
 
-    # Download config's filename should be <board name>.conf.
-    # Will set up in Import().
-    self._download_config_path = None
-
     self._temp_dir = tempfile.mkdtemp()
+    self._download_config_path = os.path.join(self._temp_dir, 'download.conf')
     self._timestamp = datetime.utcnow()
 
   def __del__(self):
@@ -228,16 +225,6 @@ class BundleImporter(object):
       Updated staging config path.
     """
     self._factory_bundle.Load(bundle_path, self._temp_dir)
-
-    # Sanity check: board must be the same.
-    if self._factory_bundle.manifest['board'] != self._config['board']:
-      raise UmpireError(
-          "Board mismatch: Umpire's board: %r != bundle's board: %r" %
-          (self._config['board'], self._factory_bundle.manifest['board']))
-
-    self._download_config_path = os.path.join(
-        self._temp_dir,
-        '%s.conf' % self._config['board'])
 
     # Composes self._bundle.
     self._InitBundle(bundle_id, note)
@@ -337,9 +324,8 @@ class BundleImporter(object):
         download_files: list of resource names of download files.
       """
       # Content of download config.
-      header = '# date:   %s\n# bundle: %s_%s\n' % (
+      header = '# date:   %s\n# bundle: %s\n' % (
           self._timestamp,
-          self._factory_bundle.manifest['board'],
           self._factory_bundle.manifest['bundle_name'])
 
       body = umpire_utils.ComposeDownloadConfig(
@@ -399,8 +385,8 @@ class BundleImporter(object):
     if self._shop_floor_handler:
       shop_floor['handler'] = self._shop_floor_handler
     else:
-      shop_floor['handler'] = ('cros.factory.umpire.%s_shop_floor_handler' %
-                               self._factory_bundle.manifest['board'])
+      # TODO(pihsun): Decide the default value for this.
+      shop_floor['handler'] = 'cros.factory.umpire.board_shop_floor_handler'
     # TODO(deanliao): add handler_config
     self._bundle['shop_floor'] = shop_floor
 

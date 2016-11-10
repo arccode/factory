@@ -15,7 +15,6 @@ from cros.factory.umpire.commands import init
 from cros.factory.umpire import common as umpire_common
 from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnv
-from cros.factory.utils.file_utils import TouchFile
 
 
 TEST_DIR = os.path.dirname(__file__)
@@ -23,20 +22,13 @@ TEST_DIR = os.path.dirname(__file__)
 UMPIRE_CONFIG_PATH = os.path.join(TEST_DIR, 'testdata', 'default_umpire.yaml')
 # The correct hash value of UMPIRE_CONFIG_RESOURCE can be obtained by:
 #   `md5sum testdata/default_umpire.yaml | cut -b -8`
-UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##cbbe7adc'
+UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##8db35cf5'
 
 TEST_USER = 'umpire_user'
 TEST_GROUP = 'umpire_group'
-TEST_BOARD = 'testboard'
 
 # Relative path of Umpire executable.
 UMPIRE_RELATIVE_PATH = os.path.join('bin', 'umpire')
-
-# Relative path of board specific Umpire bin symlink.
-BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK = os.path.join(
-    'usr', 'local', 'bin', 'umpire-' + TEST_BOARD)
-TFTPBOOT_UMPIRE_SYMLINK = os.path.join('tftpboot', 'vmlinux-%s.bin' %
-                                       TEST_BOARD)
 
 
 class InitTest(unittest.TestCase):
@@ -48,7 +40,7 @@ class InitTest(unittest.TestCase):
     self.temp_dir = tempfile.mkdtemp()
     self.root_dir = os.path.join(self.temp_dir, 'root')
     self.env.base_dir = os.path.join(self.root_dir, 'var', 'db', 'factory',
-                                     'umpire', TEST_BOARD)
+                                     'umpire')
     os.makedirs(self.root_dir)
     os.makedirs(os.path.join(self.root_dir, 'usr', 'local', 'bin'))
     os.makedirs(self.env.base_dir)
@@ -81,16 +73,10 @@ class InitTest(unittest.TestCase):
 
   def VerifyConfig(self):
     self.assertTrue(os.path.exists(os.path.join(
-        self.root_dir, 'var', 'db', 'factory', 'umpire', TEST_BOARD,
-        'active_umpire.yaml')))
+        self.root_dir, 'var', 'db', 'factory', 'umpire', 'active_umpire.yaml')))
     self.assertTrue(self.env.InResource(UMPIRE_CONFIG_RESOURCE))
 
   def VerifyGlobalSymlink(self):
-    umpire_board_symlink = os.path.join(
-        self.root_dir, BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK)
-    self.assertTrue(os.path.lexists(umpire_board_symlink))
-    self.assertEqual(self.umpire_bin_path,
-                     os.path.realpath(umpire_board_symlink))
     umpire_default_symlink = os.path.join(
         self.root_dir, 'usr', 'local', 'bin', 'umpire')
     self.assertTrue(os.path.lexists(umpire_default_symlink))
@@ -101,8 +87,7 @@ class InitTest(unittest.TestCase):
     self.MockOsModule()
     self.mox.ReplayAll()
 
-    init.Init(self.env, TEST_BOARD, False, False,
-              TEST_USER, TEST_GROUP, root_dir=self.root_dir,
+    init.Init(self.env, False, TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_PATH)
 
     self.VerifyDirectories()
@@ -117,8 +102,7 @@ class InitTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    init.Init(self.env, TEST_BOARD, False, False,
-              TEST_USER, TEST_GROUP, root_dir=self.root_dir,
+    init.Init(self.env, False, TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_PATH)
 
     self.VerifyConfig()
@@ -132,8 +116,7 @@ class InitTest(unittest.TestCase):
     active_config.GetDefaultBundle()['note'] = 'modified active config'
     active_config.WriteFile(self.env.active_config_file)
 
-    init.Init(self.env, TEST_BOARD, False, False,
-              TEST_USER, TEST_GROUP, root_dir=self.root_dir,
+    init.Init(self.env, False, TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_PATH)
 
     self.VerifyConfig()
@@ -149,68 +132,14 @@ class InitTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     # local=True
-    init.Init(self.env, TEST_BOARD, False, True,
-              TEST_USER, TEST_GROUP, root_dir=self.root_dir,
+    init.Init(self.env, True, TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_PATH)
 
     self.VerifyConfig()
 
     # Verify no symlink is created.
     self.assertFalse(os.path.exists(os.path.join(
-        self.root_dir, BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK)))
-    self.assertFalse(os.path.exists(os.path.join(
         self.root_dir, 'usr', 'local', 'bin', 'umpire')))
-    self.assertFalse(os.path.exists(os.path.join(
-        self.root_dir, TFTPBOOT_UMPIRE_SYMLINK)))
-
-  def testMakeDefault(self):
-    self.MockOsModule()
-    self.mox.ReplayAll()
-
-    # Touch /usr/local/bin/umpire first to verify that Init changes it
-    # to symlink to umpire bin.
-    umpire_default_symlink = os.path.join(
-        self.root_dir, 'usr', 'local', 'bin', 'umpire')
-    TouchFile(umpire_default_symlink)
-
-    # make_default=True
-    init.Init(self.env, TEST_BOARD, True, False,
-              TEST_USER, TEST_GROUP, root_dir=self.root_dir,
-              config_template=UMPIRE_CONFIG_PATH)
-
-    self.VerifyConfig()
-    # /usr/local/bin/umpire is forced symlinked to umpire.
-    self.VerifyGlobalSymlink()
-
-  def testNoMakeDefault(self):
-    self.MockOsModule()
-    self.mox.ReplayAll()
-
-    # Touch /usr/local/bin/umpire first to verify that Init doesn't change it.
-    umpire_default_symlink = os.path.join(
-        self.root_dir, 'usr', 'local', 'bin', 'umpire')
-    TouchFile(umpire_default_symlink)
-
-    # default=False
-    init.Init(self.env, TEST_BOARD, False, False,
-              TEST_USER, TEST_GROUP, root_dir=self.root_dir,
-              config_template=UMPIRE_CONFIG_PATH)
-
-    self.VerifyConfig()
-
-    # Verify symlinks.
-    umpire_board_symlink = os.path.join(
-        self.root_dir, BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK)
-    self.assertTrue(os.path.lexists(umpire_board_symlink))
-    self.assertEqual(self.umpire_bin_path,
-                     os.path.realpath(umpire_board_symlink))
-    self.assertTrue(os.path.islink(os.path.join(
-        self.root_dir, TFTPBOOT_UMPIRE_SYMLINK)))
-
-    # /usr/local/bin/umpire is unchaged.
-    self.assertTrue(os.path.exists(umpire_default_symlink))
-    self.assertNotEqual(self.umpire_bin_path,
-                        os.path.realpath(umpire_default_symlink))
 
 
 if __name__ == '__main__':

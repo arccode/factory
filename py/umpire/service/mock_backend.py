@@ -38,8 +38,8 @@ class MockBackendService(umpire_service.UmpireService):
       list of ServiceProcesses.
     """
     mock_backend = os.path.join(
-        env.server_toolkit_dir,
-        'py/shopfloor/%s_mock_shopfloor_backend.py' % config.board)
+        env.device_toolkit_dir,
+        'py/shopfloor/mock_shopfloor_backend.py')
     logging.info('Creating mock backend process: %s', mock_backend)
     mlbs_csv = config.services.mock_backend.get('mlbs_csv', 'mlbs.csv')
     if not os.path.isabs(mlbs_csv):

@@ -130,7 +130,6 @@ def ValidateConfig(config):
   schema = FixedDict(
       'Top level Umpire config fields',
       items={
-          'board': Scalar('Board name', str),
           'rulesets': _RULESETS_SCHEMA,
           'services': GetServiceSchemata(),
           'bundles': List('Bundles', _BUNDLE_SCHEMA),
@@ -219,7 +218,7 @@ class UmpireOrderedDict(dict):
   """Used to output UmpireConfig with desired key order."""
 
   def Omap(self):
-    result = [(k, self[k]) for k in ['board', 'ip', 'port']]
+    result = [(k, self[k]) for k in ['ip', 'port']]
     result.append(('rulesets',
                    [RulesetOrderedDict(r) for r in self['rulesets']]))
     result.append(('services', ServicesOrderedDict(self['services'])))
@@ -308,7 +307,7 @@ class UmpireConfig(dict):
 
   Example:
     umpire_config = UmpireConfig(config_file)
-    logging.info('Reads Umpire config for boards: %s', umpire_config['board']
+    logging.info('Reads Umpire config port = %d', umpire_config['port']
   """
 
   def __init__(self, config, validate=True):

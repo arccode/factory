@@ -1,4 +1,3 @@
-board: samus
 ip: 10.3.0.12
 port: 9090
 rulesets:

@@ -42,7 +42,6 @@ RUN echo 'TFTP_OPTIONS="-v --secure"' >>/etc/default/tftpd-hpa
 ARG umpire_dir="/var/db/factory/umpire"
 ARG umpire_server_dir="/usr/local/factory"
 ENV umpire_server_dir="${umpire_server_dir}"
-ARG board_default="default"
 
 COPY py "${umpire_server_dir}/py/"
 COPY py_pkg "${umpire_server_dir}/py_pkg/"

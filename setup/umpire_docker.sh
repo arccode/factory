@@ -12,12 +12,9 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 UMPIRE_IMAGE_FILEPATH="${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
 
-# Temporary value for board argument to umpire, the argument would be removed
-# later.
-UMPIRE_BOARD=default
 # Separate umpire db for each container.
 HOST_DB_DIR="/docker_umpire/${UMPIRE_CONTAINER_NAME}"
-CONTAINER_DB_DIR="/var/db/factory/umpire/${UMPIRE_BOARD}"
+CONTAINER_DB_DIR="/var/db/factory/umpire"
 
 . ${UMPIRE_BUILD_DIR}/config.sh
 
@@ -104,14 +101,10 @@ do_start() {
     fi
     ${DOCKER} start "${UMPIRE_CONTAINER_NAME}"
   else
-    local umpire_port_map=''
-    for base in $(seq ${PORT_START} ${PORT_STEP} \
-        $(expr ${PORT_START} + \( ${NUM_BOARDS} - 1 \) \* ${PORT_STEP} )); do
-      p1=${base}              # Imaging & Shopfloor
-      p2=$(expr ${base} + 2)  # CLI RPC
-      p3=$(expr ${base} + 4)  # Rsync
-      umpire_port_map="-p $p1:$p1 -p $p2:$p2 -p $p3:$p3 ${umpire_port_map}"
-    done
+    local p1=${UMPIRE_PORT}              # Imaging & Shopfloor
+    local p2=$(expr ${UMPIRE_PORT} + 2)  # CLI RPC
+    local p3=$(expr ${UMPIRE_PORT} + 4)  # Rsync
+    local umpire_port_map="-p $p1:$p1 -p $p2:$p2 -p $p3:$p3"
 
     ${DOCKER} run -d \
       --privileged \

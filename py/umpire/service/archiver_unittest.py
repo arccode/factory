@@ -39,7 +39,6 @@ class TestArchiverService(unittest.TestCase):
           os.path.join(self.env.server_toolkit_dir, subdir))
 
     self.umpire_config = {
-        'board': 'test_board',
         'ip': '10.0.0.1',
         'port': 9001,
         'services': {'archiver': {

@@ -106,7 +106,6 @@ class ConfigDeployer(object):
       raise common.UmpireError('Unable to get config_to_deploy. It should fail '
                                'in _ValidateConfigToDeploy')
     logging.debug('Refreshing download_conf')
-    board = self._config_to_deploy['board']
     need_update_config = False
 
     for bundle in self._config_to_deploy.GetActiveBundles():
@@ -137,10 +136,10 @@ class ConfigDeployer(object):
 
       if need_add_download_conf:
         logging.info('download-conf differ for bundle %s', bundle['id'])
-        header = '# date:   %s\n# bundle: %s_%s\n' % (
-            datetime.datetime.utcnow(), board, bundle['id'])
+        header = '# date:   %s\n# bundle: %s\n' % (
+            datetime.datetime.utcnow(), bundle['id'])
         with file_utils.TempDirectory() as temp_dir:
-          temp_conf_path = os.path.join(temp_dir, '%s.conf' % board)
+          temp_conf_path = os.path.join(temp_dir, 'download.conf')
           with open(temp_conf_path, 'w') as f:
             f.write(header)
             f.write(new_conf)
