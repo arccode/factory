@@ -10,6 +10,7 @@ This class provides shortcuts to HTTP request and response.
 """
 
 import logging
+import time
 from twisted.web import http
 
 import factory_common  # pylint: disable=W0611
@@ -55,6 +56,7 @@ class WSGISession(type_utils.AttrDict):
         key = 'wsgi_' + key[5:]
       self[key] = value
     self.start_response = start_response
+    self.time = time.time()
 
   @property
   def remote_address(self):
@@ -125,6 +127,9 @@ class WSGISession(type_utils.AttrDict):
 
   def MethodNotAllowed405(self):
     return self.Respond(code=http.NOT_ALLOWED)
+
+  def Gone410(self):
+    return self.Respond(code=http.GONE)
 
 
 class WebAppDispatcher(dict):

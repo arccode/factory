@@ -30,6 +30,7 @@ import time
 import traceback
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire.web import wsgi
 from cros.factory.umpire import shop_floor_handler
 
 
@@ -82,78 +83,6 @@ def FastCGIServer(address, port, instance, min_spare=2, max_spare=None,
                address, port, instance.__class__.__name__)
   logging.info('flup fork args: %r', fork_args)
   server.run()
-
-
-class WSGISession(dict):
-  """WSGI session class.
-
-  Provides shortcuts to access encapsulated WSGI environ dict and
-  start_response functor.
-
-  Args:
-    environ: WSGI env dictionary.
-    start_response: WSGI response functor for sending HTTP response headers.
-  """
-  TEXT_PLAIN = ('Content-Type', 'text/plain')
-  TEXT_XML = ('Content-Type', 'text/xml')
-
-  def __init__(self, environ, start_response, *args, **kwargs):
-    super(WSGISession, self).__init__(*args, **kwargs)
-    self.environ = environ
-    self.time = time.time()
-    self.start_response = start_response
-
-  def Method(self):
-    """Gets WSGI request method."""
-    return self.environ['REQUEST_METHOD']
-
-  def ContentLength(self):
-    """Gets numerical WSGI request content length."""
-    return int(self.environ['CONTENT_LENGTH'])
-
-  def RemoteAddress(self):
-    """Gets HTTP client IP address."""
-    try:
-      return self.environ['HTTP_X_FORWARDED_FOR'].split(',')[-1].strip()
-    except KeyError:
-      return self.environ['REMOTE_ADDR']
-
-  def Read(self, size):
-    """Reads from WSGI input stream file object."""
-    return self.environ['wsgi.input'].read(size)
-
-  def Respond(self, content_type, data):
-    """Generates WSGI '200 OK' HTTP response.
-
-    Args:
-      content_type: IANA media types.
-      data: the response body.
-
-    Returns:
-      WSGI return body list.
-    """
-    headers = [('Content-Type', content_type),
-               ('Content-Length', str(len(data)))]
-    self.start_response('200 OK', headers)
-    return [data]
-
-  def _RespondStatus(self, status):
-    """Generates HTTP response with empty WSGI body list.
-    """
-    self.start_response(status, [self.TEXT_PLAIN])
-    return ['']
-
-  def BadRequest(self):
-    """Generates '400 Bad Request' HTTP response."""
-    return self._RespondStatus('400 Bad Request')
-
-  def Gone(self):
-    """Generates '410 Gone' HTTP response."""
-    return self._RespondStatus('410 Gone')
-
-  def ServerError(self):
-    """Generates '500 Server Error' HTTP response."""
-    return self._RespondStatus('500 Server Error')
 
 
 class SessionMediator(object):
@@ -249,12 +178,12 @@ class MyXMLRPCApp(object):
       environ: WSGI environment dictionary.
       start_response: WSGI response functor for sending HTTP headers.
     """
-    session = WSGISession(environ, start_response)
-    if session.Method() != 'POST':
-      return session.BadRequest()
+    session = wsgi.WSGISession(environ, start_response)
+    if session.REQUEST_METHOD != 'POST':
+      return session.BadRequest400()
 
     if not self.MatchPath(environ):
-      return session.Gone()
+      return session.Gone410()
 
     return self._XMLRPCCall(session)
 
@@ -300,10 +229,10 @@ class MyXMLRPCApp(object):
       request = self._ReadRequest(session)
       response = mediator.MarshaledDispatch(request)
     except:  # pylint: disable=W0702
-      return session.ServerError()
+      return session.ServerError500()
     else:
       # Sending valid XML RPC response data
-      return session.Respond('text/xml', response)
+      return session.Respond(response, wsgi.WSGISession.TEXT_XML)
     finally:
       self._LogRPCCall(session, request, response)
 
@@ -317,7 +246,7 @@ class MyXMLRPCApp(object):
       request data.
     """
     # Read body in chunks to avoid straining (python bug #792570)
-    size_remaining = session.ContentLength()
+    size_remaining = session.content_length
     chunks = []
     while size_remaining > 0:
       chunk_size = min(self._MAX_CHUNK_SIZE, size_remaining)
@@ -341,7 +270,7 @@ class MyXMLRPCApp(object):
     duration = time.time() - session.time
     # pylint: disable=W1202
     logging.info(LOG_MESSAGE.format(
-        remote_address=session.RemoteAddress(),
+        remote_address=session.remote_address,
         method=session[SessionMediator.XMLRPC_METHOD],
         duration=duration,
         in_size=len(request),
