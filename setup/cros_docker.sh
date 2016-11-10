@@ -5,6 +5,8 @@
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
+DOCKER_VERSION="1.9.1"
+
 PREBUILT_IMAGE_SITE='https://storage.googleapis.com'
 PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
 
@@ -37,4 +39,19 @@ check_docker() {
       DOCKER="sudo docker"
     fi
   fi
+
+  # check Docker version
+  local docker_version="$(${DOCKER} version --format={{.Server.Version}})"
+  local error_message="Require Docker version >= ${DOCKER_VERSION} but you have ${docker_version}"
+  local required_version=(${DOCKER_VERSION//./ })
+  local current_version=(${docker_version//./ })
+  for ((i = 0; i < ${#required_version[@]}; ++i)); do
+    if (( ${#current_version[@]} <= $i )); then
+      die "${error_message}"  # the current version array is not long enough
+    elif (( ${required_version[$i]} < ${current_version[$i]} )); then
+      break
+    elif (( ${required_version[$i]} > ${current_version[$i]} )); then
+      die "${error_message}"
+    fi
+  done
 }

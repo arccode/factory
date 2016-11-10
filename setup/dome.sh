@@ -15,7 +15,6 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 HOST_DOME_DIR="$(readlink -f "${SCRIPT_DIR}/../py/dome")"
 HOST_BUILD_DIR="${HOST_DOME_DIR}/build"
 
-DOCKER_VERSION="1.9.1"
 DOME_VERSION="1.1.0"
 DOME_IMAGE_FILENAME="dome-${DOME_VERSION}-docker-${DOCKER_VERSION}.tbz"
 
