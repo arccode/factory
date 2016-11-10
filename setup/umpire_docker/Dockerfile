@@ -29,15 +29,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         psmisc \
         rsync \
         sharutils \
-        tftpd-hpa \
         unzip
-
-# TFTP Setting
-RUN mkdir -p /root/tftpboot
-RUN echo 'TFTP_USERNAME="tftp"' >/etc/default/tftpd-hpa
-RUN echo 'TFTP_DIRECTORY="/root/tftpboot/"' >>/etc/default/tftpd-hpa
-RUN echo 'TFTP_ADDRESS="0.0.0.0:69"' >>/etc/default/tftpd-hpa
-RUN echo 'TFTP_OPTIONS="-v --secure"' >>/etc/default/tftpd-hpa
 
 ARG umpire_dir="/var/db/factory/umpire"
 ARG umpire_server_dir="/usr/local/factory"
