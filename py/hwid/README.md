@@ -107,9 +107,10 @@ $ hwid build-database \
     --board <board name> \
     --output-database-path <output folder> \
     --probed-results-file <probed result file> \
-    --image-id <IMAGE_ID> \  # Name of the image_id
-    [--add-comp COMPS [COMPS ...]] \  # Add the default item
-    [--del-comp COMPS [COMPS ...]] \  # Delete the component
+    [--image-id <IMAGE_ID>] \  # Name of the image_id, default is 'EVT'.
+    [--add-default-component COMP [COMP ...]] \  # Add the default item
+    [--add-null-component COMP [COMP ...]] \  # Add the null item
+    [--del-component COMP [COMP ...]] \  # Delete the component
     [--region REGION [REGION ...]] \  # Add supported regions
     [--customization-id ID1 [ID2 ...]] \  # Add supported customization_id
 
@@ -120,8 +121,9 @@ $ hwid update-database \
     [--probed-results-file <probed result file>] \
     [--output-database <output file>] \  # Write into different file
     [--image-id <IMAGE_ID>] \  # Name of the image_id
-    [--add-comp COMPS [COMPS ...]] \  # Add the default item
-    [--del-comp COMPS [COMPS ...]] \  # Delete the component
+    [--add-default-component COMP [COMP ...]] \  # Add the default item
+    [--add-null-component COMP [COMP ...]] \  # Add the null item
+    [--del-component COMP [COMP ...]] \  # Delete the component
     [--region REGION [REGION ...]] \  # Add supported regions
     [--customization-id ID1 [ID2 ...]] \  # Add supported customization_id
 ```

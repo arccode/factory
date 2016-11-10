@@ -1,5 +1,9 @@
 # 0. Regular probed result.
 found_probe_value_map:
+  region:
+    region_code: us
+  customization_id:
+    id: FOO
   audio_codec:
   - compact_str: AUDIO A
   - compact_str: AUDIO B

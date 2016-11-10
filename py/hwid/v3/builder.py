@@ -107,8 +107,11 @@ def PromptAndAsk(question_str, default_answer=True):
   hint_str = ' [Y/n] ' if default_answer else ' [y/N] '
   input_str = raw_input(question_str + hint_str)
   if input_str and input_str[0].lower() in ['y', 'n']:
-    return input_str[0].lower() == 'y'
-  return default_answer
+    ret = input_str[0].lower() == 'y'
+  else:
+    ret = default_answer
+  logging.info('You chose: %s', 'Yes' if ret else 'No')
+  return ret
 
 
 def ChecksumUpdater():
@@ -361,6 +364,7 @@ class DatabaseBuilder(object):
     return ret
 
   def AddDefaultComponent(self, comp_cls):
+    logging.info('Component %s: add a default item.', comp_cls)
     if comp_cls in self.db[DB_KEY.components]:
       raise ValueError('The component %s already existed. '
                        'It cannot add default item' % comp_cls)
@@ -378,16 +382,23 @@ class DatabaseBuilder(object):
     self.AddEncodedField(comp_cls, comp_name)
     return comp_name
 
+  def AddNullComponent(self, comp_cls):
+    logging.info('Component %s: add a null item.', comp_cls)
+    self.AddComponent(comp_cls, None)
+    self.AddEncodedField(comp_cls, None)
+
   def AddComponent(self, comp_cls, comp_value, comp_name=None):
     """Try to add a item in the component, and return the name.
 
     If the item already exists, then return the name. Otherwise, add the item
-    with the assigned name and return it.
+    with the assigned name and return it. If the component value is None, then
+    we only create the component class.
 
     Args:
-      comp_cls:
-      comp_name:
-      comp_value:
+      comp_cls: the component class.
+      comp_value: the probed value of the component item,
+        or None if adding NULL component.
+      comp_name: the name of the component item.
 
     Returns:
       the component name.
@@ -403,9 +414,12 @@ class DatabaseBuilder(object):
           return False
       return True
 
+    # Create the component class.
     if comp_cls not in self.db[DB_KEY.components]:
       self.db[DB_KEY.components][comp_cls] = OrderedDict({
           'items': OrderedDict()})
+    if comp_value is None:
+      return None
 
     # Find the component already exists or not.
     db_comp_items = self.db[DB_KEY.components][comp_cls]['items']
@@ -432,6 +446,7 @@ class DatabaseBuilder(object):
     # To prevent name collision, add "_" if the name already exists.
     while comp_name in db_comp_items:
       comp_name += '_'
+    logging.info('Component %s: add an item "%s".', comp_cls, comp_name)
     db_comp_items[comp_name] = OrderedDict({
         'status': 'unqualified',
         'values': comp_value})
@@ -460,8 +475,8 @@ class DatabaseBuilder(object):
 
     Args:
       comp_cls: the component class.
-      comp_nane: string or a list of string. Each name should already exist in
-          components.
+      comp_name: None or string or a list of string. Each name should already
+          exist in components.
 
     Returns:
       the index of the inserted item.
@@ -484,7 +499,8 @@ class DatabaseBuilder(object):
     # Check the item exists in component.
     comp_names = comp_name if isinstance(comp_name, list) else [comp_name]
     for name in comp_names:
-      if name not in self.db[DB_KEY.components][comp_cls]['items']:
+      if (name is not None and
+          name not in self.db[DB_KEY.components][comp_cls]['items']):
         raise ValueError('Component %s does not exist in %s.' %
                          (name, comp_cls))
 
@@ -541,12 +557,12 @@ class DatabaseBuilder(object):
       return self.active_fields != latest_fields
     else:
       if not self.db[DB_KEY.pattern]:
-        raise ValueError()
+        raise ValueError('No pattern exists. %s' % _NEED_IMAGE_ID_MSG)
       # If any fields is deleted, then we must need a new pattern.
       deleted_fields = latest_fields - self.active_fields
       if deleted_fields:
-        raise ValueError('The fields "%s" are deleted. %s',
-                         ', '.join(deleted_fields), _NEED_IMAGE_ID_MSG)
+        raise ValueError('The fields "%s" are deleted. %s' %
+                         (', '.join(deleted_fields), _NEED_IMAGE_ID_MSG))
       extra_fields = self.active_fields - latest_fields
       if extra_fields:
         if PromptAndAsk(
@@ -633,7 +649,7 @@ class DatabaseBuilder(object):
     if image_id is None:
       return None
     if image_id in self.db[DB_KEY.image_id].values():
-      raise ValueError('%s is already in the database.')
+      raise ValueError('image_id [%s] is already in the database.' % image_id)
     # TODO(akahuang): Determine the build order. Disallow EVT after DVT
 
     # Add the new item in image_id field.
@@ -653,6 +669,23 @@ class DatabaseBuilder(object):
     self.db[DB_KEY.rules].append(image_id_rule)
     return idx
 
+  def MayOmitProbeResult(self, comp_cls):
+    """Checks if the component class can be missing or not.
+
+    If the component class has the default item or the null item, or the
+    probeable is False, then the result can be missing.
+    """
+    if self.db[DB_KEY.components][comp_cls].get('probeable', True) is False:
+      return True
+    field_cls = self.GetFieldClass(comp_cls)
+    for field_item in self.db[DB_KEY.encoded_fields][field_cls].values():
+      if field_item[comp_cls] is None:  # Null item.
+        return True
+    for comp_item in self.db[DB_KEY.components][comp_cls]['items'].values():
+      if comp_item.get('default', False) is True:  # Default item.
+        return True
+    return False
+
   def _UpdateProbedResult(self, probed_results, ignore_comps):
     ignore_comps |= self.IGNORED_COMPONENT_SET
 
@@ -669,11 +702,31 @@ class DatabaseBuilder(object):
       if comp_cls not in probed_results:
         # Ask user to skip or add a default item.
         add_default = PromptAndAsk(
-            'The component "%s" is missing in the probed result. '
-            'Do you want to add a default item?' % comp_cls, False)
+            'Component %s: The probe result is missing. '
+            'Do you want to add a default item?\n'
+            'If the probed code is not ready yet, please enter "Y".\n'
+            'If the device does not have the component, please enter "N".'
+            % comp_cls, False)
         if add_default:
           self.AddDefaultComponent(comp_cls)
 
+    # Check the missing components at the active component list.
+    # The active fields might be changed during the loop, so iterate the copy.
+    active_fields = self.active_fields.copy()
+    for field_cls in active_fields:
+      comp_cls = self.GetComponentClass(field_cls)
+      if (comp_cls not in probed_results and
+          not self.MayOmitProbeResult(comp_cls)):
+        add_null = PromptAndAsk(
+            'Component %s: The probed result is missing. '
+            'Do you want to add a NULL item or delete the component class ?\n'
+            'If the device has a SKU without the component, please enter "Y".\n'
+            'If the device does not have the component, please enter "N".\n'
+            % comp_cls, default_answer=True)
+        if add_null:
+          self.AddNullComponent(comp_cls)
+        else:
+          self.DeleteComponentClass(comp_cls)
     # Add components value into the database
     for comp_cls, comp_value in probed_results.iteritems():
       if comp_cls in ignore_comps:
@@ -690,7 +743,7 @@ class DatabaseBuilder(object):
           comp_names.append(self.AddComponent(comp_cls, comp_value))
         self.AddEncodedField(comp_cls, comp_names)
 
-  def Update(self, probed_results, image_id, add_comp,
+  def Update(self, probed_results, image_id, add_default_comp, add_null_comp,
              del_comp, region, customization_id):
     """Update the database by the probed result and arguments.
 
@@ -705,18 +758,22 @@ class DatabaseBuilder(object):
           database.
     """
     probed_results = ExtractProbedResult(probed_results)
-    add_comp = set() if add_comp is None else set(add_comp)
+    add_default_comp = (set() if add_default_comp is None
+                        else set(add_default_comp))
+    add_null_comp = set() if add_null_comp is None else set(add_null_comp)
     del_comp = set() if del_comp is None else set(del_comp)
 
     # Add default items for assigned components.
-    for comp_cls in add_comp:
+    for comp_cls in add_default_comp:
       self.AddDefaultComponent(comp_cls)
+    for comp_cls in add_null_comp:
+      self.AddNullComponent(comp_cls)
     for comp_cls in del_comp:
       self.DeleteComponentClass(comp_cls)
 
     # Update the value in the probed result.
     if probed_results:
-      self._UpdateProbedResult(probed_results, add_comp | del_comp)
+      self._UpdateProbedResult(probed_results, add_default_comp | del_comp)
 
     # Handle region and customization_id
     region_set = set()

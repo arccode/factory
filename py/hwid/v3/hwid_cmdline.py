@@ -43,6 +43,22 @@ _COMMON_ARGS = [
                  'as returned by the "factory phase" command)')),
 ]
 
+_DATABASE_BUILDER_COMMON_ARGS = [
+    CmdArg('--add-default-component', default=None,
+           nargs='+', metavar='COMP', dest='add_default_comp',
+           help='Component classes that add a default item.\n'),
+    CmdArg('--add-null-component', default=None,
+           nargs='+', metavar='COMP', dest='add_null_comp',
+           help='Component classes that add a null item.\n'),
+    CmdArg('--del-component', default=None,
+           nargs='+', metavar='COMP', dest='del_comp',
+           help='Component classes that is deleted from database.\n'),
+    CmdArg('--region', default=None, nargs='+',
+           help='Supported regions'),
+    CmdArg('--customization-id', default=None, nargs='+',
+           help='Supported customization-id')
+]
+
 
 class Arg(object):
   """A simple class to store arguments passed to the add_argument method of
@@ -60,14 +76,7 @@ class Arg(object):
            help='a file with probed results.\n'),
     CmdArg('--image-id', default='EVT',
            help="Name of image_id. Default is 'EVT'\n"),
-    CmdArg('--add-comp', default=None, nargs='+', metavar='COMP',
-           help='Component classese that add default item.\n'),
-    CmdArg('--del-comp', default=None, nargs='+', metavar='COMP',
-           help='Component classeds that delete from database.\n'),
-    CmdArg('--region', default=None, nargs='+',
-           help='Supported regions'),
-    CmdArg('--customization-id', default=None, nargs='+',
-           help='Supported customization-id'))
+    *_DATABASE_BUILDER_COMMON_ARGS)
 def BuildDatabaseWrapper(options):
   '''Build the HWID database from probed result.'''
   if not os.path.isfile(options.probed_results_file):
@@ -79,7 +88,7 @@ def BuildDatabaseWrapper(options):
   database_path = os.path.join(options.hwid_db_path, options.board.upper())
   hwid_utils.BuildDatabase(
       database_path, probed_results, options.board, options.image_id,
-      options.add_comp, options.del_comp,
+      options.add_default_comp, options.add_null_comp, options.del_comp,
       options.region, options.customization_id)
   logging.info('Output the database to %s', database_path)
 
@@ -88,18 +97,11 @@ def BuildDatabaseWrapper(options):
     'update-database',
     CmdArg('--probed-results-file', default=None,
            help='a file with probed results.\n'),
+    CmdArg('--image-id', default=None,
+           help="Name of image_id.\n"),
     CmdArg('--output-database', default=None,
            help='Write into different file.\n'),
-    CmdArg('--image-id', default=None,
-           help='Name of image_id.\n'),
-    CmdArg('--add-comp', default=None, nargs='+', metavar='COMP',
-           help='Component classese that add default item.\n'),
-    CmdArg('--del-comp', default=None, nargs='+', metavar='COMP',
-           help='Component classeds that delete from database.\n'),
-    CmdArg('--region', default=None, nargs='+',
-           help='Supported regions'),
-    CmdArg('--customization-id', default=None, nargs='+',
-           help='Supported customization-id'))
+    *_DATABASE_BUILDER_COMMON_ARGS)
 def UpdateDatabaseWrapper(options):
   '''Update the HWID database from probed result.'''
   if options.probed_results_file is None:
@@ -125,7 +127,7 @@ def UpdateDatabaseWrapper(options):
   database_path = options.output_database or old_db_path
   hwid_utils.UpdateDatabase(
       database_path, probed_results, old_db, options.image_id,
-      options.add_comp, options.del_comp,
+      options.add_default_comp, options.add_null_comp, options.del_comp,
       options.region, options.customization_id)
   logging.info('Output the updated database to %s.', database_path)
 

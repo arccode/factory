@@ -429,7 +429,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     # Build database by the probed result.
     hwid_utils.BuildDatabase(
         self.output_path, self.probed_results[0], 'CHROMEBOOK', 'EVT',
-        add_comp=['dram'], del_comp=None,
+        add_default_comp=['dram'], del_comp=None,
         region=['tw', 'jp'], customization_id=['FOO', 'BAR'])
     # If not in Chroot, the checksum is not updated.
     verify_checksum = sys_utils.InChroot()
@@ -469,6 +469,18 @@ class DatabaseBuilderTest(unittest.TestCase):
                       [{'name': 'device_info.image_id',
                         'evaluate': "SetImageId('EVT')"}])
 
+    # Add a null component.
+    new_db = copy.deepcopy(db)
+    # Choose to add the touchpad without a new image_id.
+    with mock.patch('__builtin__.raw_input', return_value='y'):
+      hwid_utils.UpdateDatabase(self.output_path, None, new_db,
+                                add_null_comp=['touchpad', 'customization_id'])
+    database.Database.LoadFile(self.output_path, verify_checksum)
+    self.assertIn({'touchpad': None},
+                  new_db['encoded_fields']['touchpad_field'].values())
+    self.assertIn({'customization_id': None},
+                  new_db['encoded_fields']['customization_id_field'].values())
+
     # Add a component without a new image_id.
     probed_result = self.probed_results[0].copy()
     probed_result['found_probe_value_map']['touchpad'] = {'name': 'G_touchpad'}
@@ -486,7 +498,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     new_db = copy.deepcopy(db)
     hwid_utils.UpdateDatabase(
         self.output_path, None, new_db, 'DVT',
-        add_comp=None, del_comp=['bluetooth'],
+        add_default_comp=None, del_comp=['bluetooth'],
         region=['us'], customization_id=['NEW'])
     database.Database.LoadFile(self.output_path, verify_checksum)
     # Check the value.

@@ -49,6 +49,7 @@ class BuilderMethodTest(unittest.TestCase):
       self.assertFalse(function('This is the question.', default_answer=False))
 
   def testChecksumUpdater(self):
+    # TODO(akahuang): Fix it in non-chroot.
     self.assertIsNotNone(builder.ChecksumUpdater())
 
 
