@@ -55,7 +55,7 @@ class InitTest(unittest.TestCase):
 
     self.mox.StubOutWithMock(init, 'Init')
     init.Init(mox.Func(EnvBaseDirMatcher), BOARD_ARG, False,
-              False, 'user', 'group', restart=False)
+              False, 'user', 'group')
     self.mox.ReplayAll()
 
     self.args.board = BOARD_ARG
@@ -69,7 +69,7 @@ class InitTest(unittest.TestCase):
 
     self.mox.StubOutWithMock(init, 'Init')
     init.Init(mox.Func(EnvBaseDirMatcher), 'test_board', False,
-              False, 'user', 'group', restart=False)
+              False, 'user', 'group')
     self.mox.ReplayAll()
 
     self.args.base_dir = BASE_DIR

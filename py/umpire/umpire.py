@@ -14,7 +14,6 @@ running at that time.
 import errno
 import logging
 import os
-import subprocess
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
@@ -28,7 +27,6 @@ from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils.debug_utils import SetupLogging
-from cros.factory.utils import process_utils
 
 
 @Command('init',
@@ -68,8 +66,7 @@ def Init(args, root_dir='/'):
   env.base_dir = (args.base_dir or
                   os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
 
-  init.Init(env, board, args.default, args.local, args.user, args.group,
-            restart=False)
+  init.Init(env, board, args.default, args.local, args.user, args.group)
 
 
 @Command('import-bundle',
@@ -203,9 +200,6 @@ def Status(args, umpire_cli, board):
   """
   if not board:
     raise common.UmpireError('Unable to get board from active config')
-  umpired_status = process_utils.CheckOutput(
-      ['initctl', 'status', 'umpire', 'BOARD=%s' % board])
-  print 'Umpire dameon status: ', umpired_status
 
   status = umpire_cli.GetStatus()
   if not status:
@@ -242,21 +236,6 @@ def Status(args, umpire_cli, board):
 def List(unused_args, unused_umpire_cli):
   """Lists all Umpire config files."""
   raise NotImplementedError
-
-
-@Command('start')
-def Start(unused_args, unused_umpire_cli):
-  """Starts Umpire service."""
-  env = UmpireEnv()
-  env.LoadConfig(init_shop_floor_manager=False, validate=False)
-  subprocess.check_call([
-      'sudo', 'start', 'umpire', 'BOARD=%s' % env.config.get('board')])
-
-
-@Command('stop')
-def Stop(unused_args, umpire_cli):
-  """Stops Umpire service."""
-  umpire_cli.StopUmpired()
 
 
 @Command('stage',

@@ -13,7 +13,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import init
-from cros.factory.umpire.commands import system
 from cros.factory.umpire import common as umpire_common
 from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnv
@@ -47,13 +46,6 @@ class InitTest(unittest.TestCase):
   def setUp(self):
     self.env = UmpireEnv()
     self.mox = mox.Mox()
-    # Stub out system related calls.
-    self.mox.StubOutWithMock(system, 'CreateUmpireUpstart')
-    self.mox.StubOutWithMock(system, 'StartUmpire')
-    self.mox.StubOutWithMock(system, 'StopUmpire')
-    system.CreateUmpireUpstart()
-    system.StartUmpire(TEST_BOARD)
-    system.StopUmpire(TEST_BOARD)
 
     self.temp_dir = tempfile.mkdtemp()
     self.root_dir = os.path.join(self.temp_dir, 'root')
@@ -76,8 +68,8 @@ class InitTest(unittest.TestCase):
 
   def MockOsModule(self):
     # Mock out user.group id to current uid.gid.
-    self.mox.StubOutWithMock(system, 'GetUidGid')
-    system.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
+    self.mox.StubOutWithMock(init, 'GetUidGid')
+    init.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
         (os.getuid(), os.getgid()))
 
   def VerifyDirectories(self):
@@ -134,11 +126,8 @@ class InitTest(unittest.TestCase):
 
   def testReInit(self):
     self.MockOsModule()
-    # Expect mock call ne more time.
-    system.CreateUmpireUpstart()
-    system.StartUmpire(TEST_BOARD)
-    system.StopUmpire(TEST_BOARD)
-    system.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
+    # Expect mock call one more time.
+    init.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
         (os.getuid(), os.getgid()))
 
     self.mox.ReplayAll()

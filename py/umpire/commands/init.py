@@ -4,13 +4,13 @@
 
 """Implementation of umpire init."""
 
+import grp
 import logging
 import os
+import pwd
 import shutil
-import subprocess
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.commands import system
 from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 
@@ -30,7 +30,7 @@ _ACTIVE_SERVER_TOOLKIT = 'active'
 
 
 def Init(env, board, make_default, local, user, group,
-         root_dir='/', config_template=None, restart=True):
+         root_dir='/', config_template=None):
   """Initializes an Umpire working environment.
 
   It creates base directory (specified in env.base_dir) and sets up daemon
@@ -45,7 +45,6 @@ def Init(env, board, make_default, local, user, group,
     group: the group to run Umpire dameon.
     root_dir: Root directory. Used for testing purpose.
     config_template: If specified, use it as UmpireConfig's template.
-    restart: When true, Init() restarts Umpire daemon.
   """
   def SetUpDir(uid, gid):
     """Sets up Umpire directory structure.
@@ -138,7 +137,7 @@ def Init(env, board, make_default, local, user, group,
       logging.info('Init UmpireConfig %r and set it as active.',
                    config_in_resource)
 
-  (uid, gid) = system.SetupDaemon(user, group)
+  (uid, gid) = GetUidGid(user, group)
   logging.info('Init umpire to %r for board %r with user.group: %s.%s',
                env.base_dir, board, user, group)
 
@@ -146,9 +145,26 @@ def Init(env, board, make_default, local, user, group,
   toolkit_base = os.path.join(env.server_toolkits_dir, _ACTIVE_SERVER_TOOLKIT)
   InitUmpireConfig(toolkit_base)
   SymlinkBinary(toolkit_base)
-  if restart:
-    try:
-      system.StopUmpire(board)
-    except subprocess.CalledProcessError:
-      pass
-    system.StartUmpire(board)
+
+def GetUidGid(user, group):
+  """Gets user ID and group ID.
+
+  Args:
+    user: user name.
+    group: group name.
+
+  Returns:
+    (uid, gid)
+
+  Raises:
+    KeyError if user or group is not found.
+  """
+  try:
+    uid = pwd.getpwnam(user).pw_uid
+  except KeyError:
+    raise KeyError('User %r not found. Please create it.' % user)
+  try:
+    gid = grp.getgrnam(group).gr_gid
+  except KeyError:
+    raise KeyError('Group %r not found. Please create it.' % group)
+  return (uid, gid)
