@@ -576,4 +576,9 @@ def main():
       installer.Install()
 
 if __name__ == '__main__':
+  # makself inteprets "LICENSE" environment variable string as license text and
+  # will prompt user to accept before installation. For factory toolkit, we
+  # don't want any user interaction in installation and the license is already
+  # covered by ebuild or download platform like CPFE.
+  os.putenv('LICENSE', '')
   main()
