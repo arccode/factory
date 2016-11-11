@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""FastCGIServer: Starts a FastCGI service that handles XML RPC.
+"""XMLRPCServer: Starts a XMLRPC service that handles XML RPC.
 
-FastCGIServer accepts a class instance and registers methods with @RPCCall
+XMLRPCServer accepts a class instance and registers methods with @RPCCall
 decorated as XMLRPC methods.
 
 Example:
@@ -17,12 +17,13 @@ Example:
 
   service = DummyService()
   # Run forever.
-  FastCGIServer(address='127.0.0.1', port=9998, instance=service)
+  XMLRPCServer(address='127.0.0.1', port=9998, instance=service)
 """
 
-from flup.server import fcgi_fork
+from twisted.internet import reactor
+from twisted.web import server
+from twisted.web import wsgi
 import logging
-import multiprocessing
 import re
 import SimpleXMLRPCServer
 import sys
@@ -30,17 +31,15 @@ import time
 import traceback
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.web import wsgi
+from cros.factory.umpire.web import wsgi as umpire_wsgi
 from cros.factory.umpire import shop_floor_handler
 
 
-def FastCGIServer(address, port, instance, min_spare=2, max_spare=None,
-                  max_children=None, max_requests=16, script_name=None,
-                  path_info=None):
-  """Starts an FastCGI service that handles XML-RPC at given address:port.
+def XMLRPCServer(address, port, instance, script_name=None, path_info=None):
+  """Starts an XMLRPC service that handles XML-RPC at given address:port.
 
   It scans methods in the given instance and registers the ones with
-  @RPCCall decorated as XMLRPC methods. It uses flup WSGIServer as FastCGI
+  @RPCCall decorated as XMLRPC methods. It uses flup WSGIServer as XMLRPC
   server with wrapped application based on the instance.
 
   It runs forever.
@@ -49,13 +48,6 @@ def FastCGIServer(address, port, instance, min_spare=2, max_spare=None,
     address: IP address to bind.
     port: Port for server to listen.
     instance: Server instance to handle XML RPC requests.
-    min_spare: Minimum number of spare processes to prefork.
-    max_spare: Maximum number of spare processes to keep running. If not
-        specified, use cpu_count * 2. Should be at least min_spare.
-    max_children: Hard limit number of processes in prefork mode. If not
-        specified, use cpu_count * 100.
-    max_requests: How many requests does a child server before being killed
-        and a new one forked.
     script_name: If specified, only accept requests in which their
         SCRIPT_NAME environ matches the regular expression.
     path_info: If specified, only accept requests in which their
@@ -63,26 +55,16 @@ def FastCGIServer(address, port, instance, min_spare=2, max_spare=None,
   """
   application = MyXMLRPCApp(instance, script_name=script_name,
                             path_info=path_info)
-  bind_address = (address, port)
-  cpu_count = multiprocessing.cpu_count()
-  if not max_spare:
-    max_spare = cpu_count * 2
-  max_spare = max(min_spare, max_spare)
-  if not max_children:
-    max_children = cpu_count * 100
+  rpc_resource = wsgi.WSGIResource(reactor, reactor.getThreadPool(),
+                                   application)
 
-  fork_args = {
-      'minSpare': min_spare,
-      'maxSpare': max_spare,
-      'maxChildren': max_children,
-      'maxRequests': max_requests}
-
-  server = fcgi_fork.WSGIServer(application, bindAddress=bind_address,
-                                **fork_args)
-  logging.info('Running FastCGI service at %s:%d for class %s',
+  logging.info('Running XMLRPC service at %s:%d for class %s',
                address, port, instance.__class__.__name__)
-  logging.info('flup fork args: %r', fork_args)
-  server.run()
+  rpc_site = server.Site(rpc_resource)
+  # Listen to rpc server port.
+  reactor.listenTCP(port, rpc_site, interface=address)
+  reactor.run()
+
 
 
 class SessionMediator(object):
@@ -178,7 +160,7 @@ class MyXMLRPCApp(object):
       environ: WSGI environment dictionary.
       start_response: WSGI response functor for sending HTTP headers.
     """
-    session = wsgi.WSGISession(environ, start_response)
+    session = umpire_wsgi.WSGISession(environ, start_response)
     if session.REQUEST_METHOD != 'POST':
       return session.BadRequest400()
 
@@ -232,7 +214,7 @@ class MyXMLRPCApp(object):
       return session.ServerError500()
     else:
       # Sending valid XML RPC response data
-      return session.Respond(response, wsgi.WSGISession.TEXT_XML)
+      return session.Respond(response, umpire_wsgi.WSGISession.TEXT_XML)
     finally:
       self._LogRPCCall(session, request, response)
 

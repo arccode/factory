@@ -170,20 +170,19 @@ class TestHTTPService(unittest.TestCase):
     ExpectLine('server.errorlog = "%s/log/httpd_error.log"' % base_dir)
     ExpectLine('server.pid-file = "%s/run/httpd.pid"' % base_dir)
 
-    expect_fastcgi_conf = ['fastcgi.server = (']
-    fcgi_port = self.env.fastcgi_start_port
-    for p in xrange(fcgi_port,
-                    fcgi_port + umpire_config.NUMBER_SHOP_FLOOR_HANDLERS):
-      expect_fastcgi_conf.extend([
+    ExpectLine('proxy.server = (')
+    expect_proxy_conf = []
+    shopfloor_port = self.env.shopfloor_start_port
+    for p in xrange(shopfloor_port,
+                    shopfloor_port + umpire_config.NUMBER_SHOP_FLOOR_HANDLERS):
+      expect_proxy_conf.extend([
           '  "/shop_floor/%d/" => (' % p,
           '    (',
-          '      "check-local" => "disable",',
           '      "host" => "127.0.0.1",',
           '      "port" => %d,' % p,
           '    ),',
           '  ),'])
-    expect_fastcgi_conf.append(')')
-    ExpectLines(expect_fastcgi_conf)
+    ExpectLines(expect_proxy_conf)
 
     ExpectLines([
         '$HTTP["remoteip"] == "192.168.51.0/24" {',

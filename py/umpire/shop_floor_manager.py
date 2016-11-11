@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Manages ShopFloorHandler FastCGI port binding.
+"""Manages ShopFloorHandler XMLRPC port binding.
 
 See ShopFloorManager for details."""
 
@@ -14,7 +14,7 @@ from cros.factory.umpire import common
 
 
 class ShopFloorManager(object):
-  """Manages ShopFloorHandler FastCGI port binding.
+  """Manages ShopFloorHandler XMLRPC port binding.
 
   For each bundle, it has a ShopFloorHandler process to handle its DUTs'
   ShopFloor requests. For Umpire server, it has a pool of local ports for

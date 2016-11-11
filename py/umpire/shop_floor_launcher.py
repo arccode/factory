@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Loads ShopFloorHandler module and wraps it as a FastCGI server.
+"""Loads ShopFloorHandler module and wraps it as a XMLRPC server.
 
 Note that it only accepts requests with path "/shop_floor/<port>/<token>".
 
@@ -19,7 +19,7 @@ import socket
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
-from cros.factory.umpire import fastcgi_server
+from cros.factory.umpire import xmlrpc_server
 from cros.factory.umpire import shop_floor_handler
 
 
@@ -95,7 +95,7 @@ def _ShopFloorHandlerFactory(module):
 
 def main():
   description = (
-      'It wraps the ShopFloorHandler module as an FastCGI service which '
+      'It wraps the ShopFloorHandler module as an XMLRPC service which '
       'handles XMLRPC requests. Note that it only handles POST requests with '
       'path "/shop_floor/<port>/<token>".')
 
@@ -128,15 +128,15 @@ def main():
   _DisableDNSLookup()
   instance = _ShopFloorHandlerFactory(options.module)
 
-  # WSGI environ's SCRIPT_NAME to accept.
-  script_name = '%s/%d/%s' % (common.HANDLER_BASE, options.port, options.token)
+  # WSGI environ's PATH_INFO to accept.
+  path_info = '%s/%d/%s' % (common.HANDLER_BASE, options.port, options.token)
 
   logging.info(
-      'Starting FastCGI server (module:%s) on http://%s:%d%s',
-      options.module, options.address, options.port, script_name)
-  # FastCGI server runs forever.
-  fastcgi_server.FastCGIServer(
-      options.address, options.port, instance, script_name=script_name)
+      'Starting XMLRPC server (module:%s) on http://%s:%d%s',
+      options.module, options.address, options.port, path_info)
+  # XMLRPC server runs forever.
+  xmlrpc_server.XMLRPCServer(
+      options.address, options.port, instance, path_info=path_info)
 
 
 if __name__ == '__main__':

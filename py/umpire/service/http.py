@@ -38,15 +38,9 @@ LIGHTY_MODULES = ['mod_access', 'mod_accesslog', 'mod_alias', 'mod_fastcgi',
 LIGHTY_CONFIG_FILENAME = 'lighttpd_#%s#.conf'
 
 # String template for handlers.
-# %d is the binding port of its corresponding shop floor handler FastCGI
+# %d is the binding port of its corresponding shop floor handler XMLRPC
 # running locally.
-
 SHOP_FLOOR_HANDLER_PATH = common.HANDLER_BASE + '/%d/'
-# It is used for lighttpd fastcgi module. With leading and trailing shash,
-# it is treated as prefix and request URL's path is passing to FastCGI as
-# SCRIPT_NAME.
-# See http://redmine.lighttpd.net/projects/1/wiki/Docs_ModFastCGI for
-# reference.
 
 # Prefixes use in lighty proxy config:
 # Handles RPC requests to / and /RPC2.
@@ -158,7 +152,7 @@ class HTTPService(umpire_service.UmpireService):
     http_config = umpire_config['services']['http']
     httpd_bind_address = '0.0.0.0'
     httpd_port = int(umpire_config['port'])
-    fcgi_port = env.fastcgi_start_port
+    shopfloor_port = env.shopfloor_start_port
     cpu_count = multiprocessing.cpu_count()
 
     # A minimal lighty config
@@ -209,14 +203,6 @@ class HTTPService(umpire_service.UmpireService):
         else:
           raise common.UmpireError('empty fastcgi handler in %s' %
                                    instance.modulename)
-    # Shop floor handlers FastCGI bindings.
-    for port in xrange(fcgi_port,
-                       fcgi_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
-      match_path = SHOP_FLOOR_HANDLER_PATH % port
-      fastcgi_conf[match_path] = [{
-          'host': net_utils.LOCALHOST,
-          'port': port,
-          'check-local': 'disable'}]
     config_writer.Write({'fastcgi.server': fastcgi_conf})
     # Umpire common RPCs
     umpire_proxy_handlers = {}
@@ -238,6 +224,13 @@ class HTTPService(umpire_service.UmpireService):
     umpire_proxy_handlers[LEGACY_POST_PREFIX] = [{
         'host': net_utils.LOCALHOST,
         'port': env.umpire_http_post_port}]
+    # Shop floor handlers XMLRPC proxy bindings.
+    for port in xrange(shopfloor_port,
+                       shopfloor_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
+      match_path = SHOP_FLOOR_HANDLER_PATH % port
+      umpire_proxy_handlers[match_path] = [{
+          'host': net_utils.LOCALHOST,
+          'port': port}]
     config_writer.Write({'proxy.server': umpire_proxy_handlers})
 
     # Generate conditional HTTP accelerator blocks.

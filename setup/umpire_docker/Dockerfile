@@ -16,7 +16,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         python-pyudev \
         python-pil \
         python-pymssql \
-        python-flup \
         python-mysqldb \
         python-gnupg \
         binutils \

@@ -40,8 +40,8 @@ _CLI_PORT_OFFSET = 2
 _RPC_PORT_OFFSET = 3
 _RSYNC_PORT_OFFSET = 4
 _HTTP_POST_PORT_OFFSET = 5
-# FastCGI port ranges starts at base_port + FCGI_PORTS_OFFSET.
-_FCGI_PORTS_OFFSET = 10
+# shopfloor XMLRPC port ranges starts at base_port + _SHOPFLOOR_PORTS_OFFSET.
+_SHOPFLOOR_PORTS_OFFSET = 10
 
 
 class UmpireEnv(object):
@@ -140,8 +140,8 @@ class UmpireEnv(object):
     return self.umpire_base_port + _HTTP_POST_PORT_OFFSET
 
   @property
-  def fastcgi_start_port(self):
-    return self.umpire_base_port + _FCGI_PORTS_OFFSET
+  def shopfloor_start_port(self):
+    return self.umpire_base_port + _SHOPFLOOR_PORTS_OFFSET
 
   @property
   def umpire_version_major(self):
@@ -189,7 +189,7 @@ class UmpireEnv(object):
 
     def _InitShopFloorManager():
       # Can be obtained after a valid config is loaded.
-      port_start = self.fastcgi_start_port
+      port_start = self.shopfloor_start_port
       if port_start:
         self.shop_floor_manager = shop_floor_manager.ShopFloorManager(
             port_start, port_start + config.NUMBER_SHOP_FLOOR_HANDLERS)
