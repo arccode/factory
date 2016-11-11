@@ -60,7 +60,7 @@ class XMLRPCContainer(xmlrpc.XMLRPC):
       pass
 
     try:
-      rpc_obj = self.handlers[procedure_path]
+      method = self.handlers[procedure_path]
 
       @withRequest
       def _WrapProcedure(request, *args, **kwargs):
@@ -70,7 +70,6 @@ class XMLRPCContainer(xmlrpc.XMLRPC):
           Procedure return value or xmlrpc.Fault when exception caught.
         """
         try:
-          method = getattr(rpc_obj, procedure_path)
           if getattr(method, 'withRequest', False):
             return method(request, *args, **kwargs)
           else:
@@ -97,7 +96,5 @@ class XMLRPCContainer(xmlrpc.XMLRPC):
         continue
       if procedure.is_rpc_method:
         procedure_path = procedure.__name__
-        # TODO: need to figure out why store bound method in self.handlers got
-        # wrong lookupProcedure return value.
-        self.handlers[procedure_path] = rpc_object
+        self.handlers[procedure_path] = procedure
         logging.debug('Add command handler %s', procedure_path)
