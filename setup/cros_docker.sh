@@ -27,6 +27,10 @@ die() {
   exit 1
 }
 
+warn() {
+  echo "WARNING: $@"
+}
+
 check_docker() {
   if ! type docker >/dev/null 2>&1; then
     die "Docker not installed, abort."

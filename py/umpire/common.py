@@ -69,6 +69,7 @@ BUNDLE_MANIFEST = 'MANIFEST.yaml'
 
 # Default Umpire base directory relative to root dir.
 DEFAULT_BASE_DIR = os.path.join('/', 'var', 'db', 'factory', 'umpire')
+DEFAULT_SERVER_TOOLKIT_DIR = os.path.join('/', 'usr', 'local', 'factory')
 
 EMPTY_FILE_HASH = 'd41d8cd9'
 DUMMY_RESOURCE = 'none##' + EMPTY_FILE_HASH

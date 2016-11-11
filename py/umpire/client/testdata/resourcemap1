@@ -2,7 +2,6 @@ id: 'foo_bundle_1'
 note: 'Bundle 1'
 __token__: 00000001
 shop_floor_handler: /shop_floor/50001
-server_factory_toolkit: factory.tar.bz2#[version]#[hash]
 device_factory_toolkit: factory.tar.bz2#[version]#[hash]
 netboot_vmlinux: 'vmlinux#[version]#[hash]'
 complete_script: 'complete.gz##[hash]'

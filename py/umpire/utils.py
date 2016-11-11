@@ -53,8 +53,7 @@ def ConcentrateDeferreds(deferred_list):
   return defer.gatherResults(deferred_list, consumeErrors=True)
 
 
-def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
-                         run_as=None, mode=0750):
+def UnpackFactoryToolkit(env, toolkit_resource, run_as=None, mode=0750):
   """Unpacks factory toolkit in resources to toolkits/hash directory.
 
   Note that if the destination directory already exists, it doesn't unpack.
@@ -62,8 +61,6 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
   Args:
     env: UmpireEnv object.
     toolkit_resource: Path to factory toolkit resources.
-    device_toolkit: True to unpack to env.device_toolkits_dir; otherwise,
-      env.server_toolkits_dir.
     run_as: (uid, gid) unpacks using specified user/group. Default None means
       no uid, gid changes.
     mode: Directory permission (numerical, refer os.chmod) for newly unpacked
@@ -90,9 +87,7 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
 
   toolkit_path = env.GetResourcePath(toolkit_resource)
   toolkit_hash = umpire_common.GetHashFromResourceName(toolkit_resource)
-  unpack_dir = os.path.join(
-      env.device_toolkits_dir if device_toolkit else env.server_toolkits_dir,
-      toolkit_hash)
+  unpack_dir = os.path.join(env.device_toolkits_dir, toolkit_hash)
   if os.path.isdir(unpack_dir):
     logging.info('UnpackFactoryToolkit destination dir already exists: %s',
                  unpack_dir)

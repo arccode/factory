@@ -8,13 +8,11 @@
 
 
 import os
-import shutil
 import sys
-import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire import umpire_env
 from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
@@ -43,22 +41,15 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
   FILE_MODE_INSIDE_TOOLKIT = 0750
 
   def setUp(self):
-    self.temp_dir = tempfile.mkdtemp()
-
-    self.env = UmpireEnv()
-    self.env.base_dir = self.temp_dir
-    os.makedirs(self.env.resources_dir)
+    self.env = umpire_env.UmpireEnvForTest()
 
     self.toolkit_resource = self.env.AddResource(TOOLKIT_PATH)
-
-  def tearDown(self):
-    shutil.rmtree(self.temp_dir)
 
   def GetPermissionBits(self, path):
     FILE_PERMISSION_MASK = 0777
     return os.stat(path).st_mode & FILE_PERMISSION_MASK
 
-  def testUnpackDeviceToolkit(self):
+  def testUnpackToolkit(self):
     expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
                                         TOOLKIT_MD5)
     self.assertEqual(
@@ -78,31 +69,7 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
     expected_md5sum_path = os.path.join(expected_toolkit_dir, 'usr', 'local',
                                         'factory', 'MD5SUM')
     self.assertTrue(os.path.exists(expected_md5sum_path))
-    self.assertTrue(0440, self.GetPermissionBits(expected_md5sum_path))
-    self.assertEqual(TOOLKIT_MD5, file_utils.ReadFile(expected_md5sum_path))
-
-  def testUnpackServerToolkit(self):
-    expected_toolkit_dir = os.path.join(self.env.server_toolkits_dir,
-                                        TOOLKIT_MD5)
-    self.assertEqual(
-        expected_toolkit_dir,
-        utils.UnpackFactoryToolkit(self.env, self.toolkit_resource,
-                                   device_toolkit=False, mode=self.DIR_MODE))
-
-    umpire_path = os.path.join(expected_toolkit_dir, UMPIRE_RELATIVE_PATH)
-    self.assertTrue(os.path.exists(umpire_path))
-
-    # Exam file/directory permission.
-    self.assertEqual(self.DIR_MODE,
-                     self.GetPermissionBits(self.env.server_toolkits_dir))
-    self.assertEqual(self.DIR_MODE,
-                     self.GetPermissionBits(expected_toolkit_dir))
-
-    # Exam MD5SUM file.
-    expected_md5sum_path = os.path.join(expected_toolkit_dir, 'usr', 'local',
-                                        'factory', 'MD5SUM')
-    self.assertTrue(os.path.exists(expected_md5sum_path))
-    self.assertTrue(0440, self.GetPermissionBits(expected_md5sum_path))
+    self.assertEqual(0440, self.GetPermissionBits(expected_md5sum_path))
     self.assertEqual(TOOLKIT_MD5, file_utils.ReadFile(expected_md5sum_path))
 
   def testNoUnpackDestExist(self):

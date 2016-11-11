@@ -10,7 +10,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.service import umpire_service
 
 
-LOGPARSER_BIN = 'usr/local/factory/py/tools/logparser.py'
+LOGPARSER_BIN = 'py/tools/logparser.py'
 TAR_FILE_DIR = 'tarfiles'
 RAW_DATA_DIR = 'rawdata'
 VPD_FILE = os.path.join(TAR_FILE_DIR, 'vpd')
@@ -46,8 +46,7 @@ class LogParserService(umpire_service.UmpireService):
       A list of ServiceProcess objects.
     """
     proc_config = {
-        'executable': os.path.join(env.active_server_toolkit_dir,
-                                   LOGPARSER_BIN),
+        'executable': os.path.join(env.server_toolkit_dir, LOGPARSER_BIN),
         'name': 'absubline_logparser',
         'args': [
             '--tar-file-dir', os.path.join(env.umpire_data_dir, TAR_FILE_DIR),

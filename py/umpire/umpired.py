@@ -12,18 +12,15 @@ import glob
 import logging
 import optparse
 import os
-import re
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire.commands import init
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.daemon import UmpireDaemon
 from cros.factory.umpire.rpc_cli import CLICommand
 from cros.factory.umpire import rpc_dut
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.webapp_resourcemap import ResourceMapApp
-
-
-SERVER_TOOLKIT_HASH_RE = r'/toolkits/server/([0-9a-f]{8,32})/usr/local/factory/'
 
 
 def StartServer(test_mode=False, config_file=None):
@@ -33,21 +30,20 @@ def StartServer(test_mode=False, config_file=None):
     test_mode: True to enable test mode.
     config_file: If specified, uses it as config file.
   """
-  # Instanciate environment and load default configuration file
-  toolkit_hash = None
-  # Get server toolkit from absolute daemon file path.
   real_daemon_path = os.path.realpath(__file__)
-  match = re.search(SERVER_TOOLKIT_HASH_RE, real_daemon_path)
-  if match:
-    toolkit_hash = match.groups()[0]
   # Instanciate environment and load default configuration file.
-  env = UmpireEnv(active_server_toolkit_hash=toolkit_hash)
+  env = UmpireEnv()
   if test_mode:
     test_base_dir = os.path.join(os.path.dirname(real_daemon_path), 'testdata')
     if not os.path.isdir(test_base_dir):
       raise UmpireError('Test directory %s does not exist. Test mode failed.' %
                         test_base_dir)
     env.base_dir = test_base_dir
+
+  # Make sure that the environment for running the daemon is set.
+  init.Init(env, board='default', make_default=True, local=False,
+            user='root', group='root')
+
   env.LoadConfig(custom_path=config_file)
 
   if env.config is None:

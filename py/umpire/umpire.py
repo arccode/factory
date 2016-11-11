@@ -18,7 +18,6 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import edit
-from cros.factory.umpire.commands import init
 from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnv
@@ -27,46 +26,6 @@ from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils.debug_utils import SetupLogging
-
-
-@Command('init',
-         CmdArg('--base-dir',
-                help=('the Umpire base directory. If not specified, use '
-                      '%s/<board>' % common.DEFAULT_BASE_DIR)),
-         CmdArg('--board',
-                help=('board name the Umpire to serve. If not specified, use '
-                      'board in bundle\'s MANIFEST.yaml')),
-         CmdArg('--default', action='store_true',
-                help='make umpire-<board> as default'),
-         CmdArg('--local', action='store_true',
-                help='do not set up /usr/local/bin and umpired'),
-         CmdArg('--user', default='root',
-                help='the user to run Umpire daemon'),
-         CmdArg('--group', default='root',
-                help='the group to run Umpire daemon'))
-def Init(args, root_dir='/'):
-  """Initializes or updates an Umpire working environment.
-
-  It creates base directory, installs Umpire executables and sets up daemon
-  running environment. Base directory is specified by --base-dir or use
-  common.DEFAULT_BASE_DIR/<board>, where board is specified by --board or
-  derived from bundle's MANIFEST.
-
-  If an Umpire environment is already set, running it again will only update
-  Umpire executables.
-
-  Args:
-    args: Command line args.
-    root_dir: Root directory. Used for testing purpose.
-  """
-  board = args.board
-
-  # This is an empty UmpireEnv object with base directory.
-  env = UmpireEnv()
-  env.base_dir = (args.base_dir or
-                  os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
-
-  init.Init(env, board, args.default, args.local, args.user, args.group)
 
 
 @Command('import-bundle',

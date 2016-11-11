@@ -31,11 +31,12 @@ class TestArchiverService(unittest.TestCase):
     os.makedirs(self.reports_dir)
     os.makedirs(self.regcode_dir)
     # Prepare server toolkit.
-    os.makedirs(os.path.join(self.env.server_toolkits_dir, 'usr', 'local'))
-    os.symlink(
-        os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '..', '..', '..')),
-        os.path.join(self.env.server_toolkits_dir, 'usr', 'local', 'factory'))
+    factory_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    for subdir in ['py', 'py_pkg', 'bin']:
+      os.symlink(
+          os.path.join(factory_dir, subdir),
+          os.path.join(self.env.server_toolkit_dir, subdir))
 
     self.umpire_config = {
         'board': 'test_board',

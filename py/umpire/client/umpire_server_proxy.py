@@ -461,7 +461,6 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     note: 'Bundle for Spring LTE with firmware 1.44.31'
     __token__: fe8082c1
     shop_floor_handler: /shop_floor/9001
-    server_factory_toolkit: factory.tar.bz2#[version]#[hash]
     device_factory_toolkit: factory.tar.bz2#[version]#[hash]
     netboot_vmlinux: 'vmlinux#[version]#[hash]'
     complete_script: 'complete.gz##[hash]'

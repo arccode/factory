@@ -11,7 +11,6 @@ import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.commands import init
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import umpire
 from cros.factory.utils.file_utils import TempDirectory
@@ -34,46 +33,6 @@ def GetStdout():
   output = sys.stdout.getvalue()
   # pylint: enable=E1101
   return output.split('\n')
-
-
-class InitTest(unittest.TestCase):
-
-  def setUp(self):
-    self.args = Obj(base_dir=None, board='test_board',
-                    default=False, local=False, user='user', group='group')
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
-
-  def testSpecifyBoard(self):
-    BOARD_ARG = 'board_from_args'
-
-    def EnvBaseDirMatcher(env):
-      return env.base_dir == '/var/db/factory/umpire/' + BOARD_ARG
-
-    self.mox.StubOutWithMock(init, 'Init')
-    init.Init(mox.Func(EnvBaseDirMatcher), BOARD_ARG, False,
-              False, 'user', 'group')
-    self.mox.ReplayAll()
-
-    self.args.board = BOARD_ARG
-    umpire.Init(self.args)
-
-  def testSpecifyBaseDir(self):
-    BASE_DIR = '/tmp/base_dir'
-
-    def EnvBaseDirMatcher(env):
-      return env.base_dir == BASE_DIR
-
-    self.mox.StubOutWithMock(init, 'Init')
-    init.Init(mox.Func(EnvBaseDirMatcher), 'test_board', False,
-              False, 'user', 'group')
-    self.mox.ReplayAll()
-
-    self.args.base_dir = BASE_DIR
-    umpire.Init(self.args)
 
 
 class UpdateTest(unittest.TestCase):

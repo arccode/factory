@@ -16,8 +16,8 @@ UMPIRE_IMAGE_FILEPATH="${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
 # later.
 UMPIRE_BOARD=default
 # Separate umpire db for each container.
-HOST_DB_DIR="/docker_umpire/${UMPIRE_CONTAINER_NAME}/umpire_data"
-CONTAINER_DB_DIR="/var/db/factory/umpire/${UMPIRE_BOARD}/umpire_data"
+HOST_DB_DIR="/docker_umpire/${UMPIRE_CONTAINER_NAME}"
+CONTAINER_DB_DIR="/var/db/factory/umpire/${UMPIRE_BOARD}"
 
 . ${UMPIRE_BUILD_DIR}/config.sh
 
@@ -91,14 +91,20 @@ do_destroy() {
 do_start() {
   check_docker
 
-  echo -n "Starting container ... "
+  echo -n 'Starting container ... '
   sudo mkdir -p ${DOCKER_SHARED_DIR}
   sudo mkdir -p ${HOST_DB_DIR}
 
-  if [ -n "$(${DOCKER} ps --all --format={{.Names}} | grep ^${UMPIRE_CONTAINER_NAME}$)" ]; then
+  if [ -n "$(${DOCKER} ps --all --format {{.Names}} | \
+      grep ^${UMPIRE_CONTAINER_NAME}$)" ]; then
+    if [ -z "$(${DOCKER} ps --all --format '{{.Names}} {{.Image}}' | \
+        grep ^${UMPIRE_CONTAINER_NAME}\ ${UMPIRE_IMAGE_NAME}$)" ]; then
+      warn "A container with name ${UMPIRE_CONTAINER_NAME} exists," \
+           'but is using an old image.'
+    fi
     ${DOCKER} start "${UMPIRE_CONTAINER_NAME}"
   else
-    local umpire_port_map=""
+    local umpire_port_map=''
     for base in $(seq ${PORT_START} ${PORT_STEP} \
         $(expr ${PORT_START} + \( ${NUM_BOARDS} - 1 \) \* ${PORT_STEP} )); do
       p1=${base}              # Imaging & Shopfloor
@@ -129,11 +135,13 @@ do_start() {
   fi
 
   if [ $? -eq 0 ]; then
-    echo "done"
+    echo 'done'
     echo
     echo '*** NOTE ***'
-    echo "- Host directory ${DOCKER_SHARED_DIR} is mounted under /mnt in the container."
-    echo "- Host directory ${HOST_DB_DIR} is mounted under ${CONTAINER_DB_DIR} in the container."
+    echo "- Host directory ${DOCKER_SHARED_DIR} is mounted" \
+         'under /mnt in the container.'
+    echo "- Host directory ${HOST_DB_DIR} is mounted" \
+         "under ${CONTAINER_DB_DIR} in the container."
     echo '- Umpire service ports is mapped to the local machine.'
     echo '- Overlord service ports 4455, 9000 are mapped to the local machine.'
     echo '- TFTP Server UDP port 69 is mapped to the local machine.'

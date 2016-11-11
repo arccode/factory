@@ -39,24 +39,6 @@ class UmpireEnvTest(unittest.TestCase):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
 
-  def testGetUmpireBaseDir(self):
-    # pylint: disable=W0212
-    umpire_env.DEFAULT_BASE_DIR = '/foo/bar/umpire'
-    base_dir = '/foo/bar/umpire/board'
-    self.mox.StubOutWithMock(os.path, 'exists')
-    os.path.exists(base_dir).MultipleTimes().AndReturn(True)
-    self.mox.ReplayAll()
-    self.assertEqual(None, umpire_env.UmpireEnv._GetUmpireBaseDir('/foo/bar'))
-    self.assertEqual('/foo/bar/umpire/board',
-                     umpire_env.UmpireEnv._GetUmpireBaseDir(
-                         '/foo/bar/umpire/board'))
-    self.assertEqual('/foo/bar/umpire/board',
-                     umpire_env.UmpireEnv._GetUmpireBaseDir(
-                         '/foo/bar/umpire/board/'))
-    self.assertEqual('/foo/bar/umpire/board',
-                     umpire_env.UmpireEnv._GetUmpireBaseDir(
-                         '/foo/bar/umpire/board/bin'))
-
   def testLoadConfigDefault(self):
     default_path = os.path.join(self.env.base_dir, 'active_umpire.yaml')
     shutil.copy(TEST_CONFIG, default_path)

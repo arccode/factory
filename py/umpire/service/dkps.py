@@ -36,8 +36,7 @@ class DKPSService(umpire_service.UmpireService):
     gnupg_dir = os.path.join(dkps_data_dir, 'gnupg')
     database_path = os.path.join(dkps_data_dir, 'dkps.db')
     dkps_file_path = os.path.join(
-        env.active_server_toolkit_dir, 'usr', 'local',
-        'factory', 'py', 'dkps', 'dkps.py')
+        env.server_toolkit_dir, 'py', 'dkps', 'dkps.py')
 
     # create folders (recursively) if necessary
     if not os.path.isdir(dkps_data_dir):

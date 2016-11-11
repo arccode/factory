@@ -5,8 +5,6 @@
 FROM ubuntu:trusty
 MAINTAINER Wei-Ning Huang <wnhuang@google.com>
 
-ARG umpire_dir="/var/db/factory/umpire"
-
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         python-yaml \
         python-netifaces \
@@ -41,15 +39,16 @@ RUN echo 'TFTP_DIRECTORY="/root/tftpboot/"' >>/etc/default/tftpd-hpa
 RUN echo 'TFTP_ADDRESS="0.0.0.0:69"' >>/etc/default/tftpd-hpa
 RUN echo 'TFTP_OPTIONS="-v --secure"' >>/etc/default/tftpd-hpa
 
-ARG board_default="default"
-ARG umpire_server_dir="${umpire_dir}/${board_default}/toolkits/server/active/usr/local/factory"
+ARG umpire_dir="/var/db/factory/umpire"
+ARG umpire_server_dir="/usr/local/factory"
 ENV umpire_server_dir="${umpire_server_dir}"
+ARG board_default="default"
 
 COPY py "${umpire_server_dir}/py/"
 COPY py_pkg "${umpire_server_dir}/py_pkg/"
 COPY bin "${umpire_server_dir}/bin/"
-COPY setup/umpire_docker/default_umpire.yaml "${umpire_dir}/${board_default}/active_umpire.yaml"
-RUN "${umpire_server_dir}/bin/umpire" init --board="${board_default}"
+COPY setup/umpire_docker/default_umpire.yaml \
+  "${umpire_server_dir}/default_umpire.yaml"
 
 # Pepare for takeoff
 CMD "${umpire_server_dir}/bin/umpired"

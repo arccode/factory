@@ -13,7 +13,7 @@ from cros.factory.umpire.service import umpire_service
 
 MINIJACK_NAME = 'minijack'
 MINIJACK_LOG = 'minijack.log'
-MINIJACK_EXEC = 'usr/local/factory/py/minijack/main.py'
+MINIJACK_EXEC = 'py/minijack/main.py'
 
 
 class MinijackService(umpire_service.UmpireService):
@@ -22,7 +22,7 @@ class MinijackService(umpire_service.UmpireService):
   def __init__(self):
     super(MinijackService, self).__init__()
 
-  def CreateProcesses(self, unused_config, env):
+  def CreateProcesses(self, config, env):
     """Creates a list of processes via config.
 
     Args:
@@ -32,10 +32,10 @@ class MinijackService(umpire_service.UmpireService):
     Returns:
       List of ServiceProcesses.
     """
+    del config  # Unused.
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig({
-        'executable': os.path.join(env.active_server_toolkit_dir,
-                                   MINIJACK_EXEC),
+        'executable': os.path.join(env.server_toolkit_dir, MINIJACK_EXEC),
         'name': MINIJACK_NAME,
         'args': ['--event_log_dir',
                  os.path.join(env.umpire_data_dir, 'eventlog'),

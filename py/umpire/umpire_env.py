@@ -18,6 +18,7 @@ import tempfile
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
 from cros.factory.umpire.common import DEFAULT_BASE_DIR
+from cros.factory.umpire.common import DEFAULT_SERVER_TOOLKIT_DIR
 from cros.factory.umpire.common import GetHashFromResourceName
 from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
 from cros.factory.umpire.common import ResourceType
@@ -36,7 +37,6 @@ _STAGING_UMPIRE_CONFIG = 'staging_umpire.yaml'
 _UMPIRED_PID_FILE = 'umpired.pid'
 _UMPIRED_LOG_FILE = 'umpired.log'
 _DEVICE_TOOLKITS_DIR = os.path.join('toolkits', 'device')
-_SERVER_TOOLKITS_DIR = os.path.join('toolkits', 'server')
 _UMPIRE_DATA_DIR = 'umpire_data'
 _RESOURCES_DIR = 'resources'
 _CONFIG_DIR = 'conf'
@@ -61,8 +61,6 @@ class UmpireEnv(object):
   directory and the accessors will reflect the change.
 
   Properties:
-    active_server_toolkit_hash: The server toolkit hash Umpire Daemon isi
-                                running.
     base_dir: Umpire base directory
     config_path: Path of the Umpire Config file
     config: Active UmpireConfig object
@@ -80,54 +78,17 @@ class UmpireEnv(object):
   # Umpire exetuable permission 'rwxr-xr-x'.
   UMPIRE_BIN_MODE = 0755
 
-  def __init__(self, active_server_toolkit_hash=None):
-    self.active_server_toolkit_hash = active_server_toolkit_hash
-    self.base_dir = self._GetUmpireBaseDir(os.path.realpath(__file__))
-    if not self.base_dir:
-      logging.info('Umpire base dir not found, use current directory.')
-      self.base_dir = os.getcwd()
+  def __init__(self):
+    self.base_dir = os.path.join(DEFAULT_BASE_DIR, 'default')
+    self.server_toolkit_dir = DEFAULT_SERVER_TOOLKIT_DIR
     self.config_path = None
     self.config = None
     self.staging_config = None
     self.shop_floor_manager = None
 
-  @staticmethod
-  def _GetUmpireBaseDir(path):
-    """Gets Umpire base directory.
-
-    It resolves Umpire base directory based on the given path.
-    e.g. DEFAULT_BASE_DIR = '/var/db/factory/umpire',
-    path = ('/var/db/factory/umpire/<board>/toolkits/server/03443c8e/'
-            'usr/local/factory/py/umpire/umpire_env.py')
-    Umpire base directory should be '/var/db/factory/umpire/<board>'.
-
-    Args:
-      path: a path rooted at Umpire base dir.
-
-    Returns:
-      Umpire base directory; None if DEFAULT_BASE_DIR/<board> is
-      not found in path.
-    """
-    if path.startswith(DEFAULT_BASE_DIR + '/'):
-      sub_default_base_dir_path = path[len(DEFAULT_BASE_DIR) + 1:]
-      board_name = sub_default_base_dir_path.split('/')[0]
-      base_directory = os.path.join(DEFAULT_BASE_DIR, board_name)
-      if os.path.exists(base_directory):
-        return base_directory
-    return None
-
-  @property
-  def server_toolkits_dir(self):
-    return os.path.join(self.base_dir, _SERVER_TOOLKITS_DIR)
-
   @property
   def device_toolkits_dir(self):
     return os.path.join(self.base_dir, _DEVICE_TOOLKITS_DIR)
-
-  @property
-  def active_server_toolkit_dir(self):
-    return os.path.join(self.server_toolkits_dir,
-                        self.active_server_toolkit_hash)
 
   @property
   def resources_dir(self):
@@ -144,10 +105,6 @@ class UmpireEnv(object):
   @property
   def pid_dir(self):
     return os.path.join(self.base_dir, _PID_DIR)
-
-  @property
-  def bin_dir(self):
-    return os.path.join(self.base_dir, _BIN_DIR)
 
   @property
   def umpired_pid_file(self):
@@ -476,30 +433,31 @@ class UmpireEnvForTest(UmpireEnv):
   def __init__(self):
     super(UmpireEnvForTest, self).__init__()
     self.base_dir = tempfile.mkdtemp()
+    self.server_toolkit_dir = tempfile.mkdtemp()
     for fundamental_subdir in (
         self.config_dir,
         self.device_toolkits_dir,
         self.log_dir,
         self.pid_dir,
         self.resources_dir,
-        self.server_toolkits_dir,
         self.umpire_data_dir):
       os.makedirs(fundamental_subdir)
 
     # Create dummy resource files.
     for res in ['complete.gz##d41d8cd9',
-                'install_factory_toolkit.run##d41d8cd9',
                 'efi.gz##d41d8cd9',
                 'firmware.gz##d41d8cd9',
                 'hwid.gz##d41d8cd9',
-                'vmlinux##d41d8cd9',
                 'oem.gz##d41d8cd9',
                 'rootfs-release.gz##d41d8cd9',
                 'rootfs-test.gz##d41d8cd9',
                 'install_factory_toolkit.run##d41d8cd9',
-                'state.gz##d41d8cd9']:
+                'state.gz##d41d8cd9',
+                'vmlinux##d41d8cd9']:
       file_utils.TouchFile(os.path.join(self.resources_dir, res))
 
   def __del__(self):
     if os.path.isdir(self.base_dir):
       shutil.rmtree(self.base_dir)
+    if os.path.isdir(self.server_toolkit_dir):
+      shutil.rmtree(self.server_toolkit_dir)

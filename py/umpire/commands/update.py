@@ -221,7 +221,6 @@ class ResourceUpdater(object):
 
       if resource_type == 'factory_toolkit':
         resource_map['device_factory_toolkit'] = resource_name
-        resource_map['server_factory_toolkit'] = resource_name
         umpire_utils.UnpackFactoryToolkit(self._env, resource_name)
 
       elif resource_type == 'fsi':

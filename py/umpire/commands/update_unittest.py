@@ -59,8 +59,6 @@ class ResourceUpdaterTest(unittest.TestCase):
     self.assertEqual('default_test', default_bundle['id'])
     self.assertEqual(FACTORY_TOOLKIT_RES,
                      default_bundle['resources']['device_factory_toolkit'])
-    self.assertEqual(FACTORY_TOOLKIT_RES,
-                     default_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateDestId(self):
     num_bundles_before_update = len(self.env.config['bundles'])
@@ -80,15 +78,11 @@ class ResourceUpdaterTest(unittest.TestCase):
     self.assertEqual('update_test', new_bundle['id'])
     self.assertEqual(FACTORY_TOOLKIT_RES,
                      new_bundle['resources']['device_factory_toolkit'])
-    self.assertEqual(FACTORY_TOOLKIT_RES,
-                     new_bundle['resources']['server_factory_toolkit'])
 
     default_bundle = updated_bundles[2]
     self.assertEqual('default_test', default_bundle['id'])
     self.assertEqual('install_factory_toolkit.run##d41d8cd9',
                      default_bundle['resources']['device_factory_toolkit'])
-    self.assertEqual('install_factory_toolkit.run##d41d8cd9',
-                     default_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateSourceId(self):
     num_bundles_before_update = len(self.env.config['bundles'])
@@ -108,8 +102,6 @@ class ResourceUpdaterTest(unittest.TestCase):
     self.assertEqual('non_default_test', target_bundle['id'])
     self.assertEqual(FACTORY_TOOLKIT_RES,
                      target_bundle['resources']['device_factory_toolkit'])
-    self.assertEqual(FACTORY_TOOLKIT_RES,
-                     target_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateSourceIdDestId(self):
     num_bundles_before_update = len(self.env.config['bundles'])
@@ -129,8 +121,6 @@ class ResourceUpdaterTest(unittest.TestCase):
     self.assertEqual('update_test', update_bundle['id'])
     self.assertEqual(FACTORY_TOOLKIT_RES,
                      update_bundle['resources']['device_factory_toolkit'])
-    self.assertEqual(FACTORY_TOOLKIT_RES,
-                     update_bundle['resources']['server_factory_toolkit'])
 
     source_bundle = updated_bundles[1]
     self.assertEqual('non_default_test', source_bundle['id'])
@@ -212,8 +202,6 @@ class ResourceUpdaterTest(unittest.TestCase):
     resources = updated_bundle['resources']
     self.assertEqual(FACTORY_TOOLKIT_RES,
                      resources['device_factory_toolkit'])
-    self.assertEqual(FACTORY_TOOLKIT_RES,
-                     resources['server_factory_toolkit'])
     self.assertEqual(new_firmware_resource, resources['firmware'])
     self.assertEqual(new_fsi_resource, resources['rootfs_release'])
     self.assertEqual(new_hwid_resource, resources['hwid'])

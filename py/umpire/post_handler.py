@@ -135,17 +135,16 @@ def RunExternalHandler(handler, env, **kwargs):
 
   Note that we only guarantee argument order of same field, NOT between fields.
 
-  External handler invokes a program from usr/local/factory/bin using POST
+  External handler invokes a program from /usr/local/factory/bin using POST
   fields as command arguments. For example, sending a request like
     curl http://localhost:8080/post/some_command -F 'A=B'
 
   will be invoked as
-   UMPIRE_SERVER_ROOT=/var/db/factory/umpire/$BOARD/toolkits/server/active
-   $UMPIRE_SERVER_ROOT/usr/local/factory/some_command A B
+   /usr/local/factory/bin/some_command A B
 
   If you upload a file (curl -F "key=@/path_to_file") then the file will be
   replaced by a temporary file on server, for example:
-   $UMPIRE_SERVER_ROOT/usr/local/factory/some_command key /tmp/tmp.RIY12345
+   /usr/local/factory/bin/some_command key /tmp/tmp.RIY12345
 
   The execution results (with stdout) will be reported in JSON object.
 
@@ -216,6 +215,5 @@ def _TranslateArgs(args, files):
 
 
 def _GetFullHandlerPath(env, handler_name):
-  return os.path.join(env.active_server_toolkit_dir, 'usr/local/factory/bin',
-                      handler_name)
+  return os.path.join(env.server_toolkit_dir, 'bin', handler_name)
 

@@ -22,5 +22,4 @@ bundles:
     oem_partition: none##d41d8cd9
     rootfs_release: none##d41d8cd9
     rootfs_test: none##d41d8cd9
-    server_factory_toolkit: none##d41d8cd9
     stateful_partition: none##d41d8cd9

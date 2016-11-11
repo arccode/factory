@@ -21,5 +21,4 @@ bundles:
     oem_partition: oem.gz##d41d8cd9
     rootfs_release: rootfs-release.gz##d41d8cd9
     rootfs_test: rootfs-test.gz##d41d8cd9
-    server_factory_toolkit: install_factory_toolkit.run##d41d8cd9
     stateful_partition: state.gz##d41d8cd9

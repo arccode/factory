@@ -8,7 +8,6 @@ import datetime
 import mox
 import os
 import shutil
-import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -20,8 +19,7 @@ from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.utils import file_utils
 
-TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
-                            'testdata')
+TESTDATA_DIR = os.path.join(os.path.dirname(__file__), 'testdata')
 MINIMAL_UMPIRE_CONFIG = os.path.join(TESTDATA_DIR,
                                      'minimal_empty_services_umpire.yaml')
 TEST_BUNDLE_DIR = os.path.join(TESTDATA_DIR, 'bundle_for_import')
@@ -159,7 +157,6 @@ class testImportBundle(unittest.TestCase):
     # Note that download_conf's filename starts with "daisy_spring",
     # which is board name specified in UmpireEnv.
     expect_resources = {
-        'server_factory_toolkit': 'install_factory_toolkit.run##' + TOOLKIT_MD5,
         'device_factory_toolkit': 'install_factory_toolkit.run##' + TOOLKIT_MD5,
         'netboot_vmlinux': 'vmlinux.uimg##d41d8cd9',
         'complete_script': 'complete.gz##d41d8cd9',

@@ -354,10 +354,9 @@ class BundleImporter(object):
     if not os.path.isfile(self._factory_bundle.factory_toolkit):
       raise UmpireError('Missing factory toolkit %r' %
                         self._factory_bundle.factory_toolkit)
-    resources['server_factory_toolkit'] = AddResource(
+    resources['device_factory_toolkit'] = AddResource(
         self._factory_bundle.factory_toolkit,
         res_type=ResourceType.FACTORY_TOOLKIT)
-    resources['device_factory_toolkit'] = resources['server_factory_toolkit']
 
     # Unpack device_factory_toolkit.
     umpire_utils.UnpackFactoryToolkit(self._env,

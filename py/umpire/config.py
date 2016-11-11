@@ -83,7 +83,6 @@ _RESOURCES_SCHEMA = FixedDict(
         'rootfs_test': Scalar('TEST channel', str),
         'stateful_partition': Scalar('STATE channel', str)},
     optional_items={
-        'server_factory_toolkit': Scalar('Server package', str),
         'netboot_firmware': Scalar('Netboot BIOS image.net.bin', str),
         'netboot_vmlinux': Scalar('Netboot install vmlinux', str),
         'complete_script': Scalar('COMPLETE channel', str),

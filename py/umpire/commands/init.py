@@ -16,17 +16,9 @@ from cros.factory.utils import file_utils
 
 
 # Relative path of Umpire CLI / Umpired in toolkit directory.
-_UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
-                                           'umpire')
-_UMPIRED_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
-                                        'umpired')
-
-# Relative path of UmpireConfig template in toolkit directory.
-# Note that it shall be defined in board specific overlay.
-_UMPIRE_CONFIG_TEMPLATE_IN_TOOLKIT_PATH = os.path.join(
-    'usr', 'local', 'factory', 'py', 'umpire', 'umpired_template.yaml')
-
-_ACTIVE_SERVER_TOOLKIT = 'active'
+_UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('bin', 'umpire')
+_UMPIRED_IN_TOOLKIT_PATH = os.path.join('bin', 'umpired')
+_DEFAULT_CONFIG_NAME = 'default_umpire.yaml'
 
 
 def Init(env, board, make_default, local, user, group,
@@ -67,16 +59,11 @@ def Init(env, board, make_default, local, user, group,
     if not os.path.isfile(dummy_resource):
       open(dummy_resource, 'w')
 
-  def SymlinkBinary(toolkit_base):
+  def SymlinkBinary():
     """Creates symlink to umpire/umpired executable and resources.
 
-    It first creates a symlink $base_dir/bin/umpire to umpire executable in
-    extracted toolkit '$toolkit_base/usr/local/factory/bin/umpire'.
-    And if 'local' is True, symlinks /usr/local/bin/umpire-$board to
-    $base_dir/bin/umpire.
-
-    For umpired, it only creates a symlink $base_dir/bin/umpired to umpired
-    executable in extracted toolkit. (No symlink in /usr/local/bin)
+    If 'local' is False, it symlinks /usr/local/bin/umpire-$board to
+    $toolkit_base/bin/umpire.
 
     For tftpboot, it creates a symlink /tftpboot/vmlinux-<BOARD>.bin to
     /var/db/factory/umpire/<BOARD>/resources/vmlinux.bin.
@@ -90,18 +77,14 @@ def Init(env, board, make_default, local, user, group,
       file_utils.TryUnlink(link_name)
       os.symlink(target, link_name)
       logging.info('Symlink %r -> %r', link_name, target)
-    umpire_binary = os.path.join(toolkit_base, _UMPIRE_CLI_IN_TOOLKIT_PATH)
-    umpire_bin_symlink = os.path.join(env.bin_dir, 'umpire')
-    _TrySymlink(umpire_binary, umpire_bin_symlink)
 
-    umpired_binary = os.path.join(toolkit_base, _UMPIRED_IN_TOOLKIT_PATH)
-    umpired_bin_symlink = os.path.join(env.bin_dir, 'umpired')
-    _TrySymlink(umpired_binary, umpired_bin_symlink)
+    umpire_binary = os.path.join(
+        env.server_toolkit_dir, _UMPIRE_CLI_IN_TOOLKIT_PATH)
 
     if not local:
       global_board_symlink = os.path.join(root_dir, 'usr', 'local', 'bin',
                                           'umpire-%s' % board)
-      _TrySymlink(umpire_bin_symlink, global_board_symlink)
+      _TrySymlink(umpire_binary, global_board_symlink)
 
       default_symlink = os.path.join(root_dir, 'usr', 'local', 'bin', 'umpire')
       if not os.path.exists(default_symlink) or make_default:
@@ -115,7 +98,7 @@ def Init(env, board, make_default, local, user, group,
       file_utils.TryMakeDirs(tftpboot_path)
       _TrySymlink(resources_vmlinux_bin, vmlinux_symlink)
 
-  def InitUmpireConfig(toolkit_base):
+  def InitUmpireConfig():
     """Prepares the very first UmpireConfig and marks it as active.
 
     An active config is necessary for the second step, import-bundle.
@@ -125,7 +108,7 @@ def Init(env, board, make_default, local, user, group,
       return
 
     template_path = config_template or (
-        os.path.join(toolkit_base, _UMPIRE_CONFIG_TEMPLATE_IN_TOOLKIT_PATH))
+        os.path.join(env.server_toolkit_dir, _DEFAULT_CONFIG_NAME))
     with file_utils.TempDirectory() as temp_dir:
       config_path = os.path.join(temp_dir, 'umpire.yaml')
       shutil.copyfile(template_path, config_path)
@@ -142,9 +125,8 @@ def Init(env, board, make_default, local, user, group,
                env.base_dir, board, user, group)
 
   SetUpDir(uid, gid)
-  toolkit_base = os.path.join(env.server_toolkits_dir, _ACTIVE_SERVER_TOOLKIT)
-  InitUmpireConfig(toolkit_base)
-  SymlinkBinary(toolkit_base)
+  InitUmpireConfig()
+  SymlinkBinary()
 
 def GetUidGid(user, group):
   """Gets user ID and group ID.
