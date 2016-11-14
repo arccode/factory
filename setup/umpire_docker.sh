@@ -108,8 +108,6 @@ do_start() {
 
     ${DOCKER} run -d \
       --privileged \
-      -p 4455:4455 \
-      -p 9000:9000 \
       ${umpire_port_map} \
       -v /etc/localtime:/etc/localtime:ro \
       -v ${DOCKER_SHARED_DIR}:/mnt \
@@ -135,7 +133,6 @@ do_start() {
     echo "- Host directory ${HOST_DB_DIR} is mounted" \
          "under ${CONTAINER_DB_DIR} in the container."
     echo '- Umpire service ports is mapped to the local machine.'
-    echo '- Overlord service ports 4455, 9000 are mapped to the local machine.'
   fi
 }
 
