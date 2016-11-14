@@ -55,7 +55,6 @@ Here are some test list examples for different test cases::
                'input_dev': ('Audio Card', '0'),
                'output_dev': ('Audio Card', '0'),
                'tests_to_conduct': [{'type': 'audiofun',
-                                     'duration': 4,
                                      'capture_rate': 16000,
                                      'output_channels': [0],
                                      'threshold': 80}]})
@@ -117,15 +116,15 @@ _DEFAULT_FREQ_HZ = 1000
 _DEFAULT_SINEWAV_DURATION = 10
 
 # Regular expressions to match audiofuntest message.
-_AUDIOFUNTEST_MIC_CHANNEL_RE = re.compile(r'.*Channels:\s*(.*)$')
+_AUDIOFUNTEST_MIC_CHANNEL_RE = re.compile(r'.*Microphone channels:\s*(.*)$')
 _AUDIOFUNTEST_SUCCESS_RATE_RE = re.compile(
     r'.*channel\s*=\s*([0-9]*),.*rate\s*=\s*(.*)$')
 _AUDIOFUNTEST_RUN_START_RE = re.compile('^carrier')
 
 # Default minimum success rate of audiofun test to pass.
 _DEFAULT_AUDIOFUN_TEST_THRESHOLD = 50
-# Default duration to do the audiofun test, in seconds.
-_DEFAULT_AUDIOFUN_TEST_DURATION = 10
+# Default iterations to do the audiofun test.
+_DEFAULT_AUDIOFUN_TEST_ITERATION = 10
 # Default duration to do the sinewav test, in seconds.
 _DEFAULT_SINEWAV_TEST_DURATION = 2
 # Default frequency tolerance, in Hz.
@@ -210,7 +209,7 @@ class AudioLoopTest(unittest.TestCase):
           **sinewav**, or **noise**.
 
           If type is **audiofun**, the dict can optionally contain:
-            - **duration**: The test duration, in seconds.
+            - **iteration*: Iterations to run the test.
             - **threshold**: The minimum success rate to pass the test.
             - **output_channels**: A list of output channels to be tested.
             - **capture_rate**: The capturing sample rate use for testing.
@@ -380,27 +379,28 @@ class AudioLoopTest(unittest.TestCase):
     immediately according to speaker and microphone setting.
 
     Sample audiofuntest message:
-    Config Values:
-            Capture Alsa Device: default
-            Playback Alsa Device: default
-            Format: s16
-            Tone Length (sec): 3.00
-            Sample Rate (HZ): 48000
-            Start Volume (0-1.0): 1.00
-            End Volume (0-1.0): 1.00
-            Channels: 2
-            FFTsize: 1024
-            Active Channels: 0 1
-    Start play tone
-    Start capturing data
-    carrier = 119, delay = 15
+    Config values.
+            Player parameter: aplay -r 48000 -f s16 -t raw -c 2 -B 0 -
+            Recorder parameter: arecord -r 48000 -f s16 -t raw -c 2 -B 0 -
+            Player FIFO name:
+            Recorder FIFO name:
+            Number of test rounds: 20
+            Pass threshold: 3
+            Allowed delay: 1200(ms)
+            Sample rate: 48000
+            FFT size: 2048
+            Microphone channels: 2
+            Speaker channels: 2
+            Microphone active channels: 0, 1,
+            Speaker active channels: 0, 1,
+            Tone length (in second): 3.00
+            Volume range: 1.00 ~ 1.00
+    carrier = 119
     O: channel =  0, success =   1, fail =   0, rate = 100.0
     X: channel =  1, success =   0, fail =   1, rate = 0.0
-    carrier = 89, delay = 15
+    carrier = 89
     O: channel =  0, success =   2, fail =   0, rate = 100.0
     X: channel =  1, success =   1, fail =   1, rate = 50.0
-    Stop play tone
-    Stop capturing data
 
     Args:
       output_channel: output device channel used for testing
@@ -408,41 +408,54 @@ class AudioLoopTest(unittest.TestCase):
 
     factory.console.info('Test output channel %d', output_channel)
 
-    duration = self._current_test_args.get(
-        'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
-    process = self._dut.Popen(
-        [audio_utils.AUDIOFUNTEST_PATH, '-r', '%d' % capture_rate, '-i',
-         self._alsa_input_device, '-o', self._alsa_output_device, '-l',
-         '%d' % duration, '-a', '%d' % output_channel], stderr=PIPE)
+    iteration = self._current_test_args.get(
+        'iteration', _DEFAULT_AUDIOFUN_TEST_ITERATION)
 
-    m = self._MatchPatternLines(process.stderr, _AUDIOFUNTEST_MIC_CHANNEL_RE)
+    with self._dut.temp.TempFile() as config_file:
+      config_str = (
+          'player-proc=aplay -D %s -r %d -f s16 -t raw -c 2 -B 0 -\n'
+          'recorder-proc=arecord -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
+              self._alsa_output_device, capture_rate,
+              self._alsa_input_device, capture_rate))
 
-    if m is None:
-      self.AppendErrorMessage('Number of channels not found from audiofuntest')
-      return
+      self._dut.WriteFile(config_file, config_str)
 
-    num_mic = int(m.group(1))
+      process = self._dut.Popen(
+          [audio_utils.AUDIOFUNTEST_PATH, '-r', '%d' % capture_rate,
+           '-z', config_file, '-T', '%d' % iteration,
+           '-A', '%d' % output_channel],
+          stdout=PIPE, stderr=PIPE)
 
-    last_success_rate = None
-    while self._MatchPatternLines(process.stderr,
-                                  _AUDIOFUNTEST_RUN_START_RE) is not None:
-      last_success_rate = self._ParseSingleRunOutput(process.stderr, num_mic)
-      if last_success_rate is None:
-        self.AppendErrorMessage('Failed to parse audiofuntest output')
+      m = self._MatchPatternLines(process.stdout, _AUDIOFUNTEST_MIC_CHANNEL_RE)
+
+      if m is None:
+        self.AppendErrorMessage(
+            'Number of channels not found from audiofuntest')
+        process.terminate()
         return
-      rate_msg = ', '.join(
-          'Mic %d: %.1f%%' %
-          (channel, rate) for channel, rate in enumerate(last_success_rate))
-      self._ui.CallJSFunction('testInProgress', rate_msg)
 
-    threshold = self._current_test_args.get(
-        'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
-    if any(x < threshold for x in last_success_rate):
-      self.AppendErrorMessage(
-          'For output device channel %s, the success rate is "'
-          '%s", too low!' % (output_channel, rate_msg))
-      self._ui.CallJSFunction('testFailResult', rate_msg)
-    time.sleep(1)
+      num_mic = int(m.group(1))
+
+      last_success_rate = None
+      while self._MatchPatternLines(process.stdout,
+                                    _AUDIOFUNTEST_RUN_START_RE) is not None:
+        last_success_rate = self._ParseSingleRunOutput(process.stdout, num_mic)
+        if last_success_rate is None:
+          self.AppendErrorMessage('Failed to parse audiofuntest output')
+          return
+        rate_msg = ', '.join(
+            'Mic %d: %.1f%%' %
+            (channel, rate) for channel, rate in enumerate(last_success_rate))
+        self._ui.CallJSFunction('testInProgress', rate_msg)
+
+      threshold = self._current_test_args.get(
+          'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
+      if any(x < threshold for x in last_success_rate):
+        self.AppendErrorMessage(
+            'For output device channel %s, the success rate is "'
+            '%s", too low!' % (output_channel, rate_msg))
+        self._ui.CallJSFunction('testFailResult', rate_msg)
+      time.sleep(1)
 
   def AudioFunTest(self):
     """Setup speaker and microphone test pairs and run audiofuntest program."""
