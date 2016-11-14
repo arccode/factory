@@ -74,7 +74,7 @@ class TestWebApplication(object):
     logging.debug('test webapp is called: %s', session)
     if callable(self.callback):
       return self.callback(self.session)  # pylint: disable=E1102
-    return session.Response(
+    return session.Respond(
         '\n  - REQUEST_METHOD=%s\n  - remote_address=%s\n  - PATH_INFO=%s' %
         (session.REQUEST_METHOD, session.remote_address, session.PATH_INFO))
 
@@ -95,6 +95,7 @@ class DaemonTest(unittest.TestCase):
     self.env = umpire_env.UmpireEnvForTest()
     shutil.copy(TESTCONFIG, self.env.active_config_file)
     self.env.LoadConfig()
+    self.env.config['port'] = net_utils.FindConsecutiveUnusedPorts(10000, 5)
     self.daemon = daemon.UmpireDaemon(self.env)
     self.rpc_proxy = xmlrpc.Proxy(
         'http://%s:%d' % (net_utils.LOCALHOST, self.env.umpire_cli_port))
@@ -153,14 +154,15 @@ class DaemonTest(unittest.TestCase):
 
   def testWebAppSite(self):
     def _Callback(result):
-      logging.debug('test callback: %s', str(result))
+      logging.debug('test callback: %s', result)
+      self.assertIn('REQUEST_METHOD=GET', result['body'])
       return result
 
     web_application = TestWebApplication()
     self.daemon.AddWebApp(web_application.GetPathInfo(), web_application)
     self.daemon.BuildWebAppSite()
     d = self.GET(web_application.GetPathInfo())
-    d.addBoth(_Callback)
+    d.addCallback(_Callback)
     return d
 
   def testRPCSite(self):

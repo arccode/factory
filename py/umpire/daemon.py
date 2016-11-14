@@ -61,7 +61,6 @@ class UmpireDaemon(object):
     deploying: daemon is deploying a config and not finished yet.
     stopping: daemon is stopping.
   """
-  __metaclass__ = type_utils.Singleton
 
   def __init__(self, env):
     self.env = env
