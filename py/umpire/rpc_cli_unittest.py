@@ -11,8 +11,8 @@ from __future__ import print_function
 import logging
 import mox
 import os
+import re
 from twisted.internet import reactor
-from twisted.python import failure
 from twisted.trial import unittest
 from twisted.web import server
 from twisted.web import xmlrpc
@@ -53,13 +53,13 @@ class CommandTest(unittest.TestCase):
   def AssertSuccess(self, deferred):
     return deferred
 
-  def AssertFailure(self, deferred):
+  def AssertFailure(self, deferred, error_msg_re):
     def UnexpectedCallback(result):
       del result  # Unused.
       raise common.UmpireError('Expect failure')
 
     def ExpectedErrback(result):
-      self.assertTrue(result, failure.Failure)
+      self.assertTrue(re.search(error_msg_re, result.getErrorMessage()))
       return 'OK'
 
     deferred.addCallbacks(UnexpectedCallback, ExpectedErrback)
@@ -92,7 +92,8 @@ class CommandTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     return self.AssertFailure(
-        self.Call('Update', resource_to_update, 'sid', 'did'))
+        self.Call('Update', resource_to_update, 'sid', 'did'),
+        'UmpireError: mock error')
 
   def testImportBundle(self):
     bundle_path = '/path/to/bundle'
@@ -125,7 +126,8 @@ class CommandTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     return self.AssertFailure(
-        self.Call('ImportBundle', bundle_path, bundle_id, note))
+        self.Call('ImportBundle', bundle_path, bundle_id, note),
+        'UmpireError: mock error')
 
   def testAddResource(self):
     file_to_add = os.path.join(self.env.base_dir, 'file_to_add')
@@ -153,7 +155,8 @@ class CommandTest(unittest.TestCase):
     return self.AssertSuccess(d)
 
   def testAddResourceFail(self):
-    return self.AssertFailure(self.Call('AddResource', '/path/to/nowhere'))
+    return self.AssertFailure(self.Call('AddResource', '/path/to/nowhere'),
+                              'IOError:.*/path/to/nowhere')
 
   def testUploadConfig(self):
     basename = 'umpire.yaml'
@@ -244,7 +247,8 @@ class CommandTest(unittest.TestCase):
     self.env.StageConfigFile(staged_config)
 
     return self.AssertFailure(self.Call('StageConfigFile',
-                                        config_to_stage_res_name))
+                                        config_to_stage_res_name),
+                              'UmpireError:.*another config is already staged')
 
   def testStageConfigFileForce(self):
     # Prepare a file in resource to stage.
@@ -299,7 +303,8 @@ class CommandTest(unittest.TestCase):
         common.UmpireError('mock error'))
     self.mox.ReplayAll()
 
-    return self.AssertFailure(self.Call('ValidateConfig', config_path))
+    return self.AssertFailure(self.Call('ValidateConfig', config_path),
+                              'UmpireError: mock error')
 
 
 if os.environ.get('LOG_LEVEL'):
