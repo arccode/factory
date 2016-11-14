@@ -445,6 +445,6 @@ class UmpireEnvForTest(UmpireEnv):
       file_utils.TouchFile(os.path.join(
           self.resources_dir, '%s##%s' % (res, common.EMPTY_FILE_HASH)))
 
-  def __del__(self):
+  def Close(self):
     if os.path.isdir(self.root_dir):
       shutil.rmtree(self.root_dir)

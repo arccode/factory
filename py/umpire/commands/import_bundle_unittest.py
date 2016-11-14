@@ -94,6 +94,7 @@ class ImportBundleTest(unittest.TestCase):
   def tearDown(self):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
+    self.env.Close()
 
   def MockOutGetVersion(self):
     # TODO(deanliao): use real firmware.gz/rootfs-release.gz in which
@@ -115,19 +116,18 @@ class ImportBundleTest(unittest.TestCase):
         no_root=True).MultipleTimes().AndReturn(TEST_IMAGE_VERSION)
 
   def testImport(self):
-    importer = import_bundle.BundleImporter(self.env)
-    # Inject timestamp so that download conf can be compared easily.
-    # pylint: disable=W0212
-    importer._timestamp = datetime.datetime(2014, 1, 1, 0, 0)
-
     self.MockOutGetVersion()
     self.mox.ReplayAll()
 
     original_num_rulesets = len(self.env.config['rulesets'])
     original_num_bundles = len(self.env.config['bundles'])
 
-    importer.Import(TEST_BUNDLE_DIR, 'test_bundle')
-    config = umpire_config.UmpireConfig(self.env.staging_config_file)
+    with import_bundle.BundleImporter(self.env) as importer:
+      # Inject timestamp so that download conf can be compared easily.
+      # pylint: disable=W0212
+      importer._timestamp = datetime.datetime(2014, 1, 1, 0, 0)
+      importer.Import(TEST_BUNDLE_DIR, 'test_bundle')
+      config = umpire_config.UmpireConfig(self.env.staging_config_file)
 
     # Verify newly added ruleset.
     # import_bundle.BundleImporter prepends newly added ruleset to config.
@@ -186,8 +186,6 @@ class ImportBundleTest(unittest.TestCase):
                          sorted(download_conf[2:]))
 
   def testImportSkipUnpackExistingToolkitDir(self):
-    importer = import_bundle.BundleImporter(self.env)
-
     # Create unpacked device toolkit directory first.
     device_toolkit_dir = os.path.join(self.env.device_toolkits_dir, TOOLKIT_MD5)
     os.makedirs(device_toolkit_dir)
@@ -195,7 +193,8 @@ class ImportBundleTest(unittest.TestCase):
     self.MockOutGetVersion()
     self.mox.ReplayAll()
 
-    importer.Import(TEST_BUNDLE_DIR, 'test_bundle')
+    with import_bundle.BundleImporter(self.env) as importer:
+      importer.Import(TEST_BUNDLE_DIR, 'test_bundle')
 
     # Verify that toolkit is not unpacked.
     self.assertFalse(os.path.exists(os.path.join(device_toolkit_dir,
@@ -213,15 +212,15 @@ class ImportBundleTest(unittest.TestCase):
     self.MockOutGetVersion()
     self.mox.ReplayAll()
 
-    importer = import_bundle.BundleImporter(self.env)
-    self.assertRaisesRegexp(common.UmpireError, 'Found 2 hash collision',
-                            importer.Import, TEST_BUNDLE_DIR, 'test_bundle')
+    with import_bundle.BundleImporter(self.env) as importer:
+      self.assertRaisesRegexp(common.UmpireError, 'Found 2 hash collision',
+                              importer.Import, TEST_BUNDLE_DIR, 'test_bundle')
 
   def testImportBundleIdCollision(self):
-    importer = import_bundle.BundleImporter(self.env)
-    self.assertRaisesRegexp(common.UmpireError,
-                            "bundle_id: 'default_test' already in use",
-                            importer.Import, TEST_BUNDLE_DIR, 'default_test')
+    with import_bundle.BundleImporter(self.env) as importer:
+      self.assertRaisesRegexp(common.UmpireError,
+                              "bundle_id: 'default_test' already in use",
+                              importer.Import, TEST_BUNDLE_DIR, 'default_test')
 
 
 if __name__ == '__main__':

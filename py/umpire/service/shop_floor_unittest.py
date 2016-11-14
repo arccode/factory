@@ -33,7 +33,7 @@ class ShopFloorServiceTest(unittest.TestCase):
     self.env.shop_floor_manager = MockShopFloorManager()
 
   def tearDown(self):
-    del self.env
+    self.env.Close()
 
   def testGenerateProcesses(self):
     umpire_config = {

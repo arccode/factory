@@ -44,6 +44,9 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
 
     self.toolkit_resource = self.env.AddResource(TOOLKIT_PATH)
 
+  def tearDown(self):
+    self.env.Close()
+
   def testUnpackToolkit(self):
     expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
                                         TOOLKIT_MD5)

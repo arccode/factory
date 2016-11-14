@@ -106,8 +106,8 @@ def Edit(args, umpire_cli):
   It calls user's default EDITOR to edit the config file and verifies the
   modified result afterward.
   """
-  editor = edit.ConfigEditor(umpire_cli, max_retry=3)
-  editor.Edit(config_file=args.config)
+  with edit.ConfigEditor(umpire_cli, max_retry=3) as editor:
+    editor.Edit(config_file=args.config)
 
 
 @Command('deploy')

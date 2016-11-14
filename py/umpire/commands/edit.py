@@ -37,8 +37,8 @@ class ConfigEditor(object):
   validation, Umpire needs to stage the config.
 
   Usage:
-    config_editor = ConfigEditor(umpire_cli)
-    config_editor.Edit(config_file="/path/to/config_file")
+    with ConfigEditor(umpire_cli) as config_editor:
+      config_editor.Edit(config_file="/path/to/config_file")
   """
 
   def __init__(self, umpire_cli, temp_dir=None, max_retry=1):
@@ -60,8 +60,15 @@ class ConfigEditor(object):
     # Config file to edit (in temporary directory).
     self._config_file = None
 
-  def __del__(self):
-    if self._should_rm_temp_dir:
+  def __enter__(self):
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type, exc_value, traceback  # Unused.
+    self.Close()
+
+  def Close(self):
+    if self._should_rm_temp_dir and os.path.isdir(self._temp_dir):
       shutil.rmtree(self._temp_dir)
 
   def Edit(self, config_file=None):

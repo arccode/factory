@@ -62,6 +62,9 @@ class ArchiverServiceTest(unittest.TestCase):
             'note': '',
             'active': True}]}
 
+  def tearDown(self):
+    self.env.Close()
+
   def testGenerateConfig(self):
     self.env.config = config.UmpireConfig(self.umpire_config)
     config_path = archiver.ArchiverService.GenerateConfig(

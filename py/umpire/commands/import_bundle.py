@@ -170,8 +170,8 @@ class BundleImporter(object):
   staging config alreay exists, it refuses to import the bundle.
 
   Usage:
-    bundle_importer = BundleImporter(env)
-    bundle_importer.Import('/path/to/bundle', 'bundle_id')
+    with BundleImporter(env) as bundle_importer:
+      bundle_importer.Import('/path/to/bundle', 'bundle_id')
   """
 
   def __init__(self, env):
@@ -180,8 +180,8 @@ class BundleImporter(object):
     Args:
       env: UmpireEnv object.
     """
-    # Define _temp_dire before checking staging file. Otherwise, undefiend
-    # _temp_dir will fail __del__, too.
+    # Define _temp_dir before checking staging file. Otherwise, undefiend
+    # _temp_dir will fail Close, too.
     self._temp_dir = None
 
     if env.HasStagingConfigFile():
@@ -206,7 +206,14 @@ class BundleImporter(object):
     self._download_config_path = os.path.join(self._temp_dir, 'download.conf')
     self._timestamp = datetime.utcnow()
 
-  def __del__(self):
+  def __enter__(self):
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type, exc_value, traceback  # Unused.
+    self.Close()
+
+  def Close(self):
     if self._temp_dir and os.path.isdir(self._temp_dir):
       shutil.rmtree(self._temp_dir)
 

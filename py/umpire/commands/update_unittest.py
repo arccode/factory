@@ -36,6 +36,9 @@ class ResourceUpdaterTest(unittest.TestCase):
     self.env = umpire_env.UmpireEnvForTest()
     self.env.LoadConfig(custom_path=MINIMAL_UMPIRE_CONFIG)
 
+  def tearDown(self):
+    self.env.Close()
+
   def testUpdateInPlace(self):
     num_bundles_before_update = len(self.env.config['bundles'])
 

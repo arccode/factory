@@ -45,6 +45,7 @@ class CommandTest(unittest.TestCase):
     self.port.stopListening()
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
+    self.env.Close()
 
   def Call(self, function, *args):
     return self.proxy.callRemote(function, *args)
@@ -97,9 +98,13 @@ class CommandTest(unittest.TestCase):
     bundle_path = '/path/to/bundle'
     bundle_id = 'test'
     note = 'test note'
-    self.mox.StubOutClassWithMocks(import_bundle, 'BundleImporter')
-    mock_importer = import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv))
+    self.mox.StubOutWithMock(import_bundle, 'BundleImporter')
+    mock_importer = self.mox.CreateMockAnything()
+    import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv)).AndReturn(
+        mock_importer)
+    mock_importer.__enter__().AndReturn(mock_importer)
     mock_importer.Import(bundle_path, bundle_id, note)
+    mock_importer.__exit__(mox.IgnoreArg(), mox.IgnoreArg(), mox.IgnoreArg())
     self.mox.ReplayAll()
 
     return self.AssertSuccess(
@@ -109,10 +114,14 @@ class CommandTest(unittest.TestCase):
     bundle_path = '/path/to/bundle'
     bundle_id = 'test'
     note = 'test note'
-    self.mox.StubOutClassWithMocks(import_bundle, 'BundleImporter')
-    mock_importer = import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv))
+    self.mox.StubOutWithMock(import_bundle, 'BundleImporter')
+    mock_importer = self.mox.CreateMockAnything()
+    import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv)).AndReturn(
+        mock_importer)
+    mock_importer.__enter__().AndReturn(mock_importer)
     mock_importer.Import(bundle_path, bundle_id, note).AndRaise(
         common.UmpireError('mock error'))
+    mock_importer.__exit__(mox.IgnoreArg(), mox.IgnoreArg(), mox.IgnoreArg())
     self.mox.ReplayAll()
 
     return self.AssertFailure(

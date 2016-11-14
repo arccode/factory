@@ -33,6 +33,7 @@ class UmpireEnvTest(unittest.TestCase):
   def tearDown(self):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
+    self.env.Close()
 
   def testLoadConfigDefault(self):
     default_path = os.path.join(self.env.base_dir, 'active_umpire.yaml')

@@ -62,10 +62,10 @@ class ConfigEditorTest(unittest.TestCase):
     self.MockUmpireCLIValidate()
     self.mox.ReplayAll()
 
-    editor = edit.ConfigEditor(self.umpire_cli)
-    editor.Edit()
+    with edit.ConfigEditor(self.umpire_cli) as editor:
+      editor.Edit()
+      new_config = file_utils.ReadFile(editor.config_file)
 
-    new_config = file_utils.ReadFile(editor.config_file)
     self.assertTrue(new_config.startswith(EDITOR_PREPEND))
     self.assertNotEqual(self.config_to_edit, new_config)
 
@@ -80,10 +80,10 @@ class ConfigEditorTest(unittest.TestCase):
     self.MockUmpireCLIValidate()
     self.mox.ReplayAll()
 
-    editor = edit.ConfigEditor(self.umpire_cli)
-    editor.Edit()
+    with edit.ConfigEditor(self.umpire_cli) as editor:
+      editor.Edit()
+      new_config = file_utils.ReadFile(editor.config_file)
 
-    new_config = file_utils.ReadFile(editor.config_file)
     self.assertTrue(new_config.startswith(EDITOR_PREPEND))
     self.assertNotEqual(self.config_to_edit, new_config)
 
@@ -98,10 +98,10 @@ class ConfigEditorTest(unittest.TestCase):
     self.MockUmpireCLIValidate()
     self.mox.ReplayAll()
 
-    editor = edit.ConfigEditor(self.umpire_cli, max_retry=2)
-    editor.Edit()
+    with edit.ConfigEditor(self.umpire_cli, max_retry=2) as editor:
+      editor.Edit()
+      new_config = file_utils.ReadFile(editor.config_file)
 
-    new_config = file_utils.ReadFile(editor.config_file)
     self.assertTrue(new_config.startswith('# edit again'))
     self.assertIn('mock resource not found', new_config)
 
@@ -112,10 +112,10 @@ class ConfigEditorTest(unittest.TestCase):
         config_basename=os.path.basename(MINIMAL_UMPIRE_CONFIG))
     self.mox.ReplayAll()
 
-    editor = edit.ConfigEditor(self.umpire_cli)
-    editor.Edit(config_file=MINIMAL_UMPIRE_CONFIG)
-    self.assertTrue(file_utils.ReadFile(editor.config_file).startswith(
-        EDITOR_PREPEND))
+    with edit.ConfigEditor(self.umpire_cli) as editor:
+      editor.Edit(config_file=MINIMAL_UMPIRE_CONFIG)
+      self.assertTrue(file_utils.ReadFile(editor.config_file).startswith(
+          EDITOR_PREPEND))
 
   def testEditSpecifyTempDir(self):
     self.MockUmpireCLIGetStagingConfig()
@@ -124,11 +124,11 @@ class ConfigEditorTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     with file_utils.TempDirectory() as temp_dir:
-      editor = edit.ConfigEditor(self.umpire_cli, temp_dir=temp_dir)
-      editor.Edit()
-      self.assertEqual(temp_dir, editor.temp_dir)
-      self.assertTrue(file_utils.ReadFile(editor.config_file).startswith(
-          EDITOR_PREPEND))
+      with edit.ConfigEditor(self.umpire_cli, temp_dir=temp_dir) as editor:
+        editor.Edit()
+        self.assertEqual(temp_dir, editor.temp_dir)
+        self.assertTrue(file_utils.ReadFile(editor.config_file).startswith(
+            EDITOR_PREPEND))
 
   def testEditFailToEdit(self):
     self.MockUmpireCLIGetStagingConfig()
@@ -136,9 +136,9 @@ class ConfigEditorTest(unittest.TestCase):
     subprocess.call(mox.In(self.editor)).AndRaise(IOError)
     self.mox.ReplayAll()
 
-    editor = edit.ConfigEditor(self.umpire_cli)
-    self.assertRaisesRegexp(common.UmpireError, 'Unable to invoke editor',
-                            editor.Edit)
+    with edit.ConfigEditor(self.umpire_cli) as editor:
+      self.assertRaisesRegexp(common.UmpireError, 'Unable to invoke editor',
+                              editor.Edit)
 
   def testEditFailToValidateLocally(self):
     self.MockUmpireCLIGetStagingConfig()
@@ -148,10 +148,11 @@ class ConfigEditorTest(unittest.TestCase):
         lambda args: file_utils.PrependFile(args[-1], '- - -'))
     self.mox.ReplayAll()
 
-    editor = edit.ConfigEditor(self.umpire_cli)
-    self.assertRaisesRegexp(common.UmpireError, 'Failed to validate config',
-                            editor.Edit)
-    config_lines = file_utils.ReadLines(editor.config_file)
+    with edit.ConfigEditor(self.umpire_cli) as editor:
+      self.assertRaisesRegexp(common.UmpireError, 'Failed to validate config',
+                              editor.Edit)
+      config_lines = file_utils.ReadLines(editor.config_file)
+
     self.assertTrue(config_lines[0].startswith(
         '# Failed to load Umpire config'))
 
@@ -163,10 +164,11 @@ class ConfigEditorTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    editor = edit.ConfigEditor(self.umpire_cli)
-    self.assertRaisesRegexp(common.UmpireError, 'Failed to validate config',
-                            editor.Edit)
-    config_lines = file_utils.ReadLines(editor.config_file)
+    with edit.ConfigEditor(self.umpire_cli) as editor:
+      self.assertRaisesRegexp(common.UmpireError, 'Failed to validate config',
+                              editor.Edit)
+      config_lines = file_utils.ReadLines(editor.config_file)
+
     self.assertTrue(config_lines[0].startswith(
         '# Failed to validate Umpire config'))
     self.assertRegexpMatches(config_lines[1], 'resource not found')

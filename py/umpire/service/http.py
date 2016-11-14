@@ -147,104 +147,101 @@ class HTTPService(umpire_service.UmpireService):
       env: UmpireEnv object.
       config_path: path to config file to write.
     """
-    config_writer = LightyConfigWriter(config_path)
-
     http_config = umpire_config['services']['http']
     httpd_bind_address = '0.0.0.0'
     httpd_port = int(umpire_config['port'])
     shopfloor_port = env.shopfloor_start_port
     cpu_count = multiprocessing.cpu_count()
 
-    # A minimal lighty config
-    lighty_conf = {
-        # Network binding.
-        'server.bind': httpd_bind_address,
-        'server.port': httpd_port,
-        # Aliases.
-        'alias.url': {'/res': env.resources_dir},
-        # Server tag and modules.
-        'server.tag': 'usf-httpd',
-        'server.modules': LIGHTY_MODULES,
-        # Document root, files and dirs.
-        # TODO(deanliao): check if the document-root is still valid.
-        'index-file.names': ['index.html'],
-        'dir-listing.activate': 'enable',
-        'server.follow-symlink': 'enable',
-        'server.range-requests': 'enable',
-        'server.document-root': os.path.join(env.base_dir, 'dashboard'),
-        # Required for POST requests.
-        'server.reject-expect-100-with-417': 'disable',
-        # PID and logs
-        'server.pid-file': os.path.join(env.pid_dir, 'httpd.pid'),
-        'accesslog.filename': os.path.join(env.log_dir, 'httpd_access.log'),
-        'server.errorlog': os.path.join(env.log_dir, 'httpd_error.log'),
-        # Performance options
-        'server.max-worker': cpu_count * 2,
-        'server.max-fds': HTTPD_MAX_FDS,
-        'server.max-connections': HTTPD_MAX_CONN,
-        'connection.kbytes-per-second': 0,
-        'server.kbytes-per-second': 0,
-    }
+    with LightyConfigWriter(config_path) as config_writer:
+      # A minimal lighty config
+      lighty_conf = {
+          # Network binding.
+          'server.bind': httpd_bind_address,
+          'server.port': httpd_port,
+          # Aliases.
+          'alias.url': {'/res': env.resources_dir},
+          # Server tag and modules.
+          'server.tag': 'usf-httpd',
+          'server.modules': LIGHTY_MODULES,
+          # Document root, files and dirs.
+          # TODO(deanliao): check if the document-root is still valid.
+          'index-file.names': ['index.html'],
+          'dir-listing.activate': 'enable',
+          'server.follow-symlink': 'enable',
+          'server.range-requests': 'enable',
+          'server.document-root': os.path.join(env.base_dir, 'dashboard'),
+          # Required for POST requests.
+          'server.reject-expect-100-with-417': 'disable',
+          # PID and logs
+          'server.pid-file': os.path.join(env.pid_dir, 'httpd.pid'),
+          'accesslog.filename': os.path.join(env.log_dir, 'httpd_access.log'),
+          'server.errorlog': os.path.join(env.log_dir, 'httpd_error.log'),
+          # Performance options
+          'server.max-worker': cpu_count * 2,
+          'server.max-fds': HTTPD_MAX_FDS,
+          'server.max-connections': HTTPD_MAX_CONN,
+          'connection.kbytes-per-second': 0,
+          'server.kbytes-per-second': 0,
+      }
 
-    config_writer.Write(lighty_conf)
+      config_writer.Write(lighty_conf)
 
-    # Service FastCGI bindings.
-    fastcgi_conf = {}
-    for instance in umpire_service.FindServicesWithProperty(
-        env.config, 'fastcgi_handlers'):
-      for handler in instance.properties['fastcgi_handlers']:
-        match_path = handler.get('path', None)
-        port_offset = handler.get('port_offset', None)
-        if match_path and port_offset:
-          fastcgi_conf[match_path] = [{
-              'host': net_utils.LOCALHOST,
-              'port': port_offset + env.config['port'],
-              'check-local': 'disable'}]
-        else:
-          raise common.UmpireError('empty fastcgi handler in %s' %
-                                   instance.modulename)
-    config_writer.Write({'fastcgi.server': fastcgi_conf})
-    # Umpire common RPCs
-    umpire_proxy_handlers = {}
-    umpire_proxy_handlers[ROOT_RPC_PREFIX] = [{
-        'host': net_utils.LOCALHOST,
-        'port': env.umpire_rpc_port}]
-    umpire_proxy_handlers[UMPIRE_RPC_PREFIX] = [{
-        'host': net_utils.LOCALHOST,
-        'port': env.umpire_rpc_port}]
-    # Web applications
-    umpire_proxy_handlers[RESOURCEMAP_APP_PREFIX] = [{
-        'host': net_utils.LOCALHOST,
-        'port': env.umpire_webapp_port}]
-    # POSTrequests
-    umpire_proxy_handlers[POST_PREFIX] = [{
-        'host': net_utils.LOCALHOST,
-        'port': env.umpire_http_post_port}]
-    # POST (legacy URL)
-    umpire_proxy_handlers[LEGACY_POST_PREFIX] = [{
-        'host': net_utils.LOCALHOST,
-        'port': env.umpire_http_post_port}]
-    # Shop floor handlers XMLRPC proxy bindings.
-    for port in xrange(shopfloor_port,
-                       shopfloor_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
-      match_path = SHOP_FLOOR_HANDLER_PATH % port
-      umpire_proxy_handlers[match_path] = [{
+      # Service FastCGI bindings.
+      fastcgi_conf = {}
+      for instance in umpire_service.FindServicesWithProperty(
+          env.config, 'fastcgi_handlers'):
+        for handler in instance.properties['fastcgi_handlers']:
+          match_path = handler.get('path', None)
+          port_offset = handler.get('port_offset', None)
+          if match_path and port_offset:
+            fastcgi_conf[match_path] = [{
+                'host': net_utils.LOCALHOST,
+                'port': port_offset + env.config['port'],
+                'check-local': 'disable'}]
+          else:
+            raise common.UmpireError('empty fastcgi handler in %s' %
+                                     instance.modulename)
+      config_writer.Write({'fastcgi.server': fastcgi_conf})
+      # Umpire common RPCs
+      umpire_proxy_handlers = {}
+      umpire_proxy_handlers[ROOT_RPC_PREFIX] = [{
           'host': net_utils.LOCALHOST,
-          'port': port}]
-    config_writer.Write({'proxy.server': umpire_proxy_handlers})
+          'port': env.umpire_rpc_port}]
+      umpire_proxy_handlers[UMPIRE_RPC_PREFIX] = [{
+          'host': net_utils.LOCALHOST,
+          'port': env.umpire_rpc_port}]
+      # Web applications
+      umpire_proxy_handlers[RESOURCEMAP_APP_PREFIX] = [{
+          'host': net_utils.LOCALHOST,
+          'port': env.umpire_webapp_port}]
+      # POSTrequests
+      umpire_proxy_handlers[POST_PREFIX] = [{
+          'host': net_utils.LOCALHOST,
+          'port': env.umpire_http_post_port}]
+      # POST (legacy URL)
+      umpire_proxy_handlers[LEGACY_POST_PREFIX] = [{
+          'host': net_utils.LOCALHOST,
+          'port': env.umpire_http_post_port}]
+      # Shop floor handlers XMLRPC proxy bindings.
+      for port in xrange(shopfloor_port,
+                         shopfloor_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
+        match_path = SHOP_FLOOR_HANDLER_PATH % port
+        umpire_proxy_handlers[match_path] = [{
+            'host': net_utils.LOCALHOST,
+            'port': port}]
+      config_writer.Write({'proxy.server': umpire_proxy_handlers})
 
-    # Generate conditional HTTP accelerator blocks.
-    if 'reverse_proxies' in http_config:
-      reverse_proxy_conf = {}
-      for proxy in http_config['reverse_proxies']:
-        cond = LightyConditional(
-            '$HTTP["remoteip"] == "%s"' % proxy['remoteip'])
-        redirect = {'url.redirect': {
-            '^/res/(.*)': 'http://%s/res/$1' % proxy['proxy_addr']}}
-        reverse_proxy_conf[cond] = redirect
-      config_writer.Write(reverse_proxy_conf)
-
-    config_writer.Close()
+      # Generate conditional HTTP accelerator blocks.
+      if 'reverse_proxies' in http_config:
+        reverse_proxy_conf = {}
+        for proxy in http_config['reverse_proxies']:
+          cond = LightyConditional(
+              '$HTTP["remoteip"] == "%s"' % proxy['remoteip'])
+          redirect = {'url.redirect': {
+              '^/res/(.*)': 'http://%s/res/$1' % proxy['proxy_addr']}}
+          reverse_proxy_conf[cond] = redirect
+        config_writer.Write(reverse_proxy_conf)
 
 
 class LightyConfigWriter(object):
@@ -273,7 +270,11 @@ class LightyConfigWriter(object):
     self._file = open(path, 'a' if append else 'w')
     self._writer = indent_text_writer.IndentTextWriter(indent_first_line=False)
 
-  def __del__(self):
+  def __enter__(self):
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type, exc_value, traceback  # Unused.
     self.Close()
 
   def Close(self):

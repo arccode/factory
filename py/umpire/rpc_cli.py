@@ -70,8 +70,8 @@ class CLICommand(umpire_rpc.UmpireRPC):
     Returns:
       Path to staging config.
     """
-    importer = import_bundle.BundleImporter(self.env)
-    return importer.Import(bundle_path, bundle_id, note)
+    with import_bundle.BundleImporter(self.env) as importer:
+      return importer.Import(bundle_path, bundle_id, note)
 
   @umpire_rpc.RPCCall
   def AddResource(self, file_name, res_type=None):

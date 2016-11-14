@@ -81,6 +81,7 @@ class DUTRPCTest(unittest.TestCase):
     self.twisted_port.stopListening()
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
+    self.env.Close()
 
   def Call(self, function, *args):
     return self.proxy.callRemote(function, *args)

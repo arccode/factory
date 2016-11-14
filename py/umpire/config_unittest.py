@@ -226,7 +226,7 @@ class ValidateResourcesTest(unittest.TestCase):
     self.MakeResourceFile('efi.gz', 'efi2')
 
   def tearDown(self):
-    del self.env
+    self.env.Close()
 
   def MakeResourceFile(self, filename, content):
     path = os.path.join(self.env.root_dir, filename)

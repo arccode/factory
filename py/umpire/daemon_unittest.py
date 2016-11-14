@@ -108,6 +108,7 @@ class DaemonTest(unittest.TestCase):
     self.daemon = None
     self.rpc_proxy = None
     self.agent = None
+    self.env.Close()
 
   def GET(self, path, session=None, headers=None):
     """Issues HTTP GET request.
