@@ -16,11 +16,16 @@ Example:
 import logging
 import optparse
 import socket
+from twisted.internet import reactor
+from twisted.web import http
+from twisted.web import resource
+from twisted.web import server
+from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
-from cros.factory.umpire import xmlrpc_server
 from cros.factory.umpire import shop_floor_handler
+from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
 
 
 def _LoadShopFloorHandler(module_name):
@@ -93,6 +98,68 @@ def _ShopFloorHandlerFactory(module):
   return instance
 
 
+class _ShopFloorRootResource(resource.Resource):
+  """Twisted resource that handles POST of a sub-resource on a given path.
+
+  It responds 410 Gone if the request have wrong path.
+
+  Args:
+    sub_resource: Resource that should be used on the path.
+    path: path that the resource is on.
+  """
+
+  isLeaf = True
+  allowedMethods = (b'POST',)
+
+  def __init__(self, sub_resource, path):
+    # resource.Resource is an old style class, can't use super().
+    resource.Resource.__init__(self)
+    self.sub_resource = sub_resource
+    self.path = path
+
+  def MatchPath(self, path):
+    """Test if a given path does match"""
+    return self.path == path
+
+  def render_POST(self, request):
+    if self.MatchPath('/'.join(request.postpath)):
+      return self.sub_resource.render_POST(request)
+    else:
+      request.setResponseCode(http.GONE)
+      return ''
+
+
+def _StartShopFloorProxyServer(address, port, instance, path=None):
+  """Starts an XMLRPC service that handles XML-RPC at given address:port.
+
+  It scans methods in the given instance and registers the ones with
+  @RPCCall decorated as XMLRPC methods. It uses twisted server as XMLRPC
+  server with wrapped application based on the instance.
+
+  It runs forever.
+
+  Args:
+    address: IP address to bind.
+    port: Port for server to listen.
+    instance: Server instance to handle XML RPC requests.
+    path: If specified, only accept requests in which their
+        request.postpath matches the path array.
+  """
+  # Resource that actually handle XMLRPC Call
+  rpc_resource = umpire_xmlrpc.XMLRPCContainer()
+  rpc_resource.AddHandler(instance)
+  xmlrpc.addIntrospection(rpc_resource)
+
+  # Resource to dispatch request depends on the path
+  root_resource = _ShopFloorRootResource(rpc_resource, path)
+
+  rpc_site = server.Site(root_resource)
+
+  # Listen to rpc server port.
+  reactor.listenTCP(port, rpc_site, interface=address)
+  reactor.run()
+
+
 def main():
   description = (
       'It wraps the ShopFloorHandler module as an XMLRPC service which '
@@ -128,15 +195,15 @@ def main():
   _DisableDNSLookup()
   instance = _ShopFloorHandlerFactory(options.module)
 
-  # WSGI environ's PATH_INFO to accept.
-  path_info = '%s/%d/%s' % (common.HANDLER_BASE, options.port, options.token)
+  # remove starting / from HANDLER_BASE.
+  path = '%s/%d/%s' % (
+      common.HANDLER_BASE[1:], options.port, options.token)
 
   logging.info(
-      'Starting XMLRPC server (module:%s) on http://%s:%d%s',
-      options.module, options.address, options.port, path_info)
+      'Starting ShopFloor XMLRPC server (module:%s) on http://%s:%d/%s',
+      options.module, options.address, options.port, path)
   # XMLRPC server runs forever.
-  xmlrpc_server.XMLRPCServer(
-      options.address, options.port, instance, path_info=path_info)
+  _StartShopFloorProxyServer(options.address, options.port, instance, path=path)
 
 
 if __name__ == '__main__':

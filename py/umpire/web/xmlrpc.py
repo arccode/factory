@@ -5,10 +5,11 @@
 # Python twisted's module creates definition dynamically, pylint: disable=E1101
 
 import logging
+import sys
+import time
 import traceback
 from twisted.python import reflect
 from twisted.web import xmlrpc
-from twisted.web.xmlrpc import withRequest
 import xmlrpclib
 
 
@@ -62,22 +63,44 @@ class XMLRPCContainer(xmlrpc.XMLRPC):
     try:
       method = self.handlers[procedure_path]
 
-      @withRequest
+      def _LogRPCCall(request, error_message, start_time):
+        """Logs RPC request
+
+        Args:
+          request: Twisted request object.
+          error_message: Formatted exception string when calling the method.
+          start_time: Time the method started.
+        """
+        error_message = ': %s' % error_message if error_message else ''
+        class_name = method.__self__.__class__.__name__
+        method_name = method.__name__
+        duration = time.time() - start_time
+        logging.info('%s %s.%s [%.3f s]%s', request.getClientIP(),
+                     class_name, method_name, duration, error_message)
+
+      @xmlrpc.withRequest
       def _WrapProcedure(request, *args, **kwargs):
-        """Catches exception when calling RPC function.
+        """Catches and logs exception when calling RPC method.
 
         Returns:
           Procedure return value or xmlrpc.Fault when exception caught.
         """
+        error_message = ''
+        start_time = time.time()
         try:
           if getattr(method, 'withRequest', False):
             return method(request, *args, **kwargs)
           else:
             return method(*args, **kwargs)
         except Exception:
-          logging.exception('%s raises', procedure_path)
+          # Formats the current exception string.
+          # Copied from py.utils.debug_utils.FormatExceptionOnly().
+          error_message = '\n'.join(
+              traceback.format_exception_only(*sys.exc_info()[:2])).strip()
           return xmlrpc.Fault(xmlrpclib.APPLICATION_ERROR,
                               traceback.format_exc())
+        finally:
+          _LogRPCCall(request, error_message, start_time)
 
       return _WrapProcedure
     except KeyError:
