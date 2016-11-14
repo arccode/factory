@@ -56,8 +56,7 @@ class HTTPPOSTGenericResource(resource.Resource):
     if not request.postpath:
       logging.error('POST: no handler name found')
       request.setResponseCode(http.BAD_REQUEST)
-      request.finish()
-      return resource.NoResource
+      return ''
 
     handler_name = request.postpath[-1]
     args = request.args
