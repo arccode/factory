@@ -44,32 +44,34 @@ class RsyncService(umpire_service.UmpireService):
     self.properties['toolkit_update'] = True
     self.properties['update_scheme'] = 'rsync'
 
-  def CreateProcesses(self, unused_umpire_config, env):
+  def CreateProcesses(self, umpire_config, env):
     """Creates list of processes via config.
 
     Args:
-      unused_umpire_config: Umpire config AttrDict.
+      umpire_config: Umpire config AttrDict.
       env: UmpireEnv object.
 
     Returns:
       A list of ServiceProcesses.
 
     """
+    del umpire_config  # Unused.
     config_path = os.path.join(env.config_dir, RSYNCD_CONFIG_FILENAME)
     log_path = os.path.join(env.log_dir, RSYNCD_LOG_FILENAME)
     pid_path = os.path.join(env.pid_dir, RSYNCD_PID_FILENAME)
-    rsyncd_config = RSYNCD_CONFIG_TEMPLATE % dict(
-        port=env.umpire_rsync_port, pidfile=pid_path, logfile=log_path)
+    rsyncd_config = RSYNCD_CONFIG_TEMPLATE % {
+        'port': env.umpire_rsync_port, 'pidfile': pid_path, 'logfile': log_path}
     # Add toolkit modules.
-    rsyncd_config += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % dict(
-        module=TOOLKIT_MODULE, path=env.device_toolkits_dir, readonly='yes')
+    rsyncd_config += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % {
+        'module': TOOLKIT_MODULE,
+        'path': env.device_toolkits_dir,
+        'readonly': 'yes'}
     # Add deprecated auxiliary log support.
     system_logs_dir = os.path.join(env.log_dir, 'dut_upload')
     file_utils.TryMakeDirs(system_logs_dir)
-    rsyncd_config += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % dict(
-        module='system_logs', path=system_logs_dir, readonly='no')
-    with open(config_path, 'w') as f:
-      f.write(rsyncd_config)
+    rsyncd_config += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % {
+        'module': 'system_logs', 'path': system_logs_dir, 'readonly': 'no'}
+    file_utils.WriteFile(config_path, rsyncd_config)
 
     proc_config = {
         'executable': RSYNC_BIN,
@@ -82,5 +84,7 @@ class RsyncService(umpire_service.UmpireService):
 
   # TODO(crosbug.com/p/52705): not needed if the issue has been fixed.
   def GetServiceURL(self, env):
-    return RSYNC_URL_TEMPLATE % dict(
-        ip=env.config['ip'], port=env.umpire_rsync_port, module=TOOLKIT_MODULE)
+    return RSYNC_URL_TEMPLATE % {
+        'ip': env.umpire_ip,
+        'port': env.umpire_rsync_port,
+        'module': TOOLKIT_MODULE}

@@ -52,7 +52,8 @@ class CommandTest(unittest.TestCase):
     return deferred
 
   def AssertFailure(self, deferred):
-    def UnexpectedCallback(unused_result):
+    def UnexpectedCallback(result):
+      del result  # Unused.
       raise common.UmpireError('Expect failure')
 
     def ExpectedErrback(result):
@@ -88,8 +89,8 @@ class CommandTest(unittest.TestCase):
         common.UmpireError('mock error'))
     self.mox.ReplayAll()
 
-    return self.AssertFailure(self.Call('Update', resource_to_update, 'sid',
-                                        'did'))
+    return self.AssertFailure(
+        self.Call('Update', resource_to_update, 'sid', 'did'))
 
   def testImportBundle(self):
     bundle_path = '/path/to/bundle'
@@ -100,8 +101,8 @@ class CommandTest(unittest.TestCase):
     mock_importer.Import(bundle_path, bundle_id, note)
     self.mox.ReplayAll()
 
-    return self.AssertSuccess(self.Call('ImportBundle', bundle_path, bundle_id,
-                                        note))
+    return self.AssertSuccess(
+        self.Call('ImportBundle', bundle_path, bundle_id, note))
 
   def testImportBundleFailure(self):
     bundle_path = '/path/to/bundle'
@@ -113,8 +114,8 @@ class CommandTest(unittest.TestCase):
         common.UmpireError('mock error'))
     self.mox.ReplayAll()
 
-    return self.AssertFailure(self.Call('ImportBundle', bundle_path, bundle_id,
-                                        note))
+    return self.AssertFailure(
+        self.Call('ImportBundle', bundle_path, bundle_id, note))
 
   def testAddResource(self):
     file_to_add = os.path.join(self.env.base_dir, 'file_to_add')

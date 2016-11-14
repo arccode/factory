@@ -96,8 +96,7 @@ class WSGISession(type_utils.AttrDict):
     """
     return '%d %s' % (code, http.RESPONSES.get(code, 'Unknown Status'))
 
-  def Respond(self, data='', content_type=TEXT_PLAIN,
-              code=http.OK):
+  def Respond(self, data='', content_type=TEXT_PLAIN, code=http.OK):
     """Sends response header then returns body.
 
     Args:
@@ -146,7 +145,7 @@ class WebAppDispatcher(dict):
         return self[session.PATH_INFO](environ, start_response)
       else:
         logging.error('request path does not exist: %s', session.PATH_INFO)
-        logging.error('  : keys = %s', str(self.keys()))
+        logging.error('  : keys = %s', self.keys())
         return session.MethodNotAllowed405()
     except Exception:
       logging.exception('web app exception')

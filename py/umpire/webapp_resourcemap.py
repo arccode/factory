@@ -33,7 +33,7 @@ class ResourceMapApp(object):
   def __call__(self, environ, start_response):
     """Gets resource map from DUT info and return text/plain result."""
     session = wsgi.WSGISession(environ, start_response)
-    logging.debug('resourcemap app: %s', str(session))
+    logging.debug('resourcemap app: %s', session)
     if session.REQUEST_METHOD == 'GET':
       dut_info = bundle_selector.ParseDUTHeader(session.HTTP_X_UMPIRE_DUT)
       return session.Respond(bundle_selector.GetResourceMap(dut_info, self.env))

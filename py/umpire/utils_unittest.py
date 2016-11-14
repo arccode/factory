@@ -8,7 +8,6 @@
 
 
 import os
-import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -17,7 +16,7 @@ from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
 
-TEST_DIR = os.path.dirname(sys.modules[__name__].__file__)
+TEST_DIR = os.path.dirname(__file__)
 TOOLKIT_PATH = os.path.join(TEST_DIR, 'testdata', 'install_factory_toolkit.run')
 # MD5 and unpacked content of TOOLKIT
 TOOLKIT_MD5 = '7509337e'

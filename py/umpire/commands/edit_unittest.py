@@ -7,7 +7,6 @@
 import mox
 import os
 import subprocess
-import sys
 import unittest
 import xmlrpclib
 
@@ -17,7 +16,7 @@ from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 
 
-TEST_DIR = os.path.dirname(sys.modules[__name__].__file__)
+TEST_DIR = os.path.dirname(__file__)
 MINIMAL_UMPIRE_CONFIG = os.path.join(TEST_DIR, 'testdata',
                                      'minimal_empty_services_umpire.yaml')
 EDITOR_PREPEND = '# edited'

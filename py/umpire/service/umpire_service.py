@@ -536,16 +536,16 @@ class UmpireService(object):
     processes = set(processes)
     starting_processes = processes - self.processes
     stopping_processes = self.processes - processes
-    logging.debug('starting processes %s',
-                  [str(p) for p in starting_processes])
+
+    logging.debug('starting processes %s', [str(p) for p in starting_processes])
     deferreds = [p.Start() for p in starting_processes]
-    logging.debug('stopping processes %s',
-                  [str(p) for p in stopping_processes])
+
+    logging.debug('stopping processes %s', [str(p) for p in stopping_processes])
     deferreds.extend([p.Stop() for p in stopping_processes])
+
     # Ignore duplicate process and add new processes into set.
     self.processes = self.processes & processes | starting_processes
-    logging.debug('running processes %s',
-                  [str(p) for p in self.processes])
+    logging.debug('running processes %s', [str(p) for p in self.processes])
 
     if deferreds:
       deferred = utils.ConcentrateDeferreds(deferreds)
@@ -563,8 +563,7 @@ class UmpireService(object):
     def HandleStopFailure(failure):
       if isinstance(failure.value, defer.FirstError):
         failure = failure.value.subFailure
-      logging.error('Service %s failed to stop: %s',
-                    self.name, failure.value)
+      logging.error('Service %s failed to stop: %s', self.name, failure.value)
       return failure
 
     deferreds = [p.Stop() for p in self.processes]
@@ -613,7 +612,7 @@ def LoadServiceModule(module_name):
     ImportError: when fails to find a name.
   """
   module = importlib.import_module('.' + module_name, _SERVICE_PACKAGE)
-  for _, obj in inspect.getmembers(module):
+  for unused_obj_name, obj in inspect.getmembers(module):
     if inspect.isclass(obj) and issubclass(obj, UmpireService):
       _SERVICE_MAP[module_name] = module
       if module_name not in _INSTANCE_MAP:

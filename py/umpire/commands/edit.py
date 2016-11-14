@@ -74,7 +74,7 @@ class ConfigEditor(object):
     self._PrepareConfigToEdit(config_file)
 
     validated = False
-    for _ in xrange(self._max_retry):
+    for unused_retry_times in xrange(self._max_retry):
       self._InvokeEditor()
       if self._Validate():
         validated = True
@@ -161,8 +161,8 @@ class ConfigEditor(object):
       umpire_config.UmpireConfig(self._config_file)
     except Exception as e:
       header = ('Failed to load Umpire config. Reason:\n%s\nPlease fix it.'
-                % str(e))
-      header = ''.join('# %s\n' % line for line in header.split('\n'))
+                % e)
+      header = ''.join('# %s\n' % line for line in header.splitlines())
       file_utils.PrependFile(self._config_file, header)
       return False
 
@@ -172,8 +172,8 @@ class ConfigEditor(object):
       self._umpire_cli.ValidateConfig(config)
     except Exception as e:
       header = ('Failed to validate Umpire config in Umpire daemon. '
-                'Reason:\n%s\nPlease fix it.' % str(e))
-      header = ''.join('# %s\n' % line for line in header.split('\n'))
+                'Reason:\n%s\nPlease fix it.' % e)
+      header = ''.join('# %s\n' % line for line in header.splitlines())
       file_utils.PrependFile(self._config_file, header)
       return False
 

@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Umpire YAML config validator.
 
 To validate a YAML file 'abc.yaml':
@@ -124,7 +123,8 @@ def ValidateConfig(config):
     KeyError: when top level key 'services' not found.
     SchemaException: on schema validation failed.
   """
-  map(umpire_service.LoadServiceModule, config['services'].keys())
+  for service in config['services']:
+    umpire_service.LoadServiceModule(service)
   schema = FixedDict(
       'Top level Umpire config fields',
       items={
@@ -157,7 +157,7 @@ def ValidateResources(config, env):
   for bundle in config['bundles']:
     if bundle['id'] not in active_bundles:
       continue
-    for resource_name, resource_filename in bundle['resources'].items():
+    for resource_name, resource_filename in bundle['resources'].iteritems():
       if resource_filename not in resource_verified:
         resource_verified.add(resource_filename)
         try:
@@ -190,7 +190,7 @@ def ShowDiff(original, new):
     INDENT_SPACE = '  '
     for r in rulesets:
       rule_yaml = yaml.dump(RulesetOrderedDict(r), default_flow_style=False)
-      result.extend((INDENT_SPACE + line) for line in rule_yaml.split('\n'))
+      result.extend((INDENT_SPACE + line) for line in rule_yaml.splitlines())
 
   result = []
   original_active_rulesets = [r for r in original['rulesets'] if r['active']]

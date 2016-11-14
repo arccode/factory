@@ -137,7 +137,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       string or resource MD5SUM hexstring depends on component in VERSION_ or
       HASH_ list.
     """
-    _, resource_version, resource_hash = (
+    unused_resource_basename, resource_version, resource_hash = (
         common.ParseResourceName(resource_filename))
     if component in HASH_COMPONENTS:
       return (resource_hash, resource_hash)
@@ -217,7 +217,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     for component, component_tag in device_info['components'].iteritems():
       if component not in ALL_COMPONENTS:
         return Fault('%s is not in update component list %s' %
-                     (component, str(ALL_COMPONENTS)))
+                     (component, ALL_COMPONENTS))
 
       resource_type = (component if not component.startswith('firmware_') else
                        'firmware')
@@ -298,8 +298,9 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     http://umpire_server_address:umpire_port/umpire
   """
 
-  def _ReturnTrue(self, unused_result):
+  def _ReturnTrue(self, result):
     """Returns true."""
+    del result  # Unused.
     return True
 
   def _UnwrapBlob(self, blob):

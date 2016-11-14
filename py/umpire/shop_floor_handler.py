@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """ShopFloorHandlerBase: The base class of per board ShopFloorHandler.
 
 See ShopFloorHandlerBase class comments for detail.
@@ -55,9 +54,6 @@ class ShopFloorHandlerBase(object):
   ShopFloorHandlerException instead, like: ShopFloorHandlerException(
      'Unable to communicate with the shop floor server').
   """
-
-  def __init__(self):
-    super(ShopFloorHandlerBase, self).__init__()
 
   @RPCCall
   def GetMLBInfo(self, mlb_sn, operator_id):

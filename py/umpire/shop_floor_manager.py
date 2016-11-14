@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Manages ShopFloorHandler FastCGI port binding.
 
 See ShopFloorManager for details."""
@@ -29,10 +28,10 @@ class ShopFloorManager(object):
 
   def __init__(self, port_begin, port_end):
     # Bundle ID to (port, token) mapping.
-    self._bundle_port = dict()
+    self._bundle_port = {}
 
     # Port to bundle ID mapping.
-    self._port_bundle = dict()
+    self._port_bundle = {}
 
     # Handler port range, inclusive.
     if port_begin > port_end:

@@ -81,7 +81,6 @@ class UmpireClientInfo(object):
       'ec_version', 'pd_version', 'macs', 'stage']
 
   def __init__(self, _dut=None):
-    super(UmpireClientInfo, self).__init__()
     # serial_number, mlb_serial_number, firmware, ec and wireless mac address
     # are detected in dut.info.SystemInfo module.
     self.serial_number = None
@@ -90,9 +89,9 @@ class UmpireClientInfo(object):
     self.firmware_version = None
     self.ec_version = None
     self.pd_version = None
-    self.macs = dict()
+    self.macs = {}
     self.stage = None
-    self.dut = device_utils.CreateDUTInterface() if _dut is None else _dut
+    self.dut = _dut or device_utils.CreateDUTInterface()
 
     self.Update()
 
@@ -104,7 +103,7 @@ class UmpireClientInfo(object):
     """
     # TODO(cychiang) Set fields from SystemInfo
     system_info = self.dut.info
-    new_info = dict()
+    new_info = {}
     new_info['serial_number'] = system_info.serial_number
     new_info['mlb_serial_number'] = system_info.mlb_serial_number
     new_info['firmware_version'] = system_info.firmware_version
@@ -139,7 +138,7 @@ class UmpireClientInfo(object):
         ‘hwid’: version_string (checksum in hwid db)
         ‘device_factory_toolkit’: md5sum_hash_string.
     """
-    components = dict()
+    components = {}
     system_info = self.dut.info
     components['rootfs_test'] = system_info.factory_image_version
     components['rootfs_release'] = system_info.release_image_version
@@ -156,7 +155,7 @@ class UmpireClientInfo(object):
 
   def _GetXUmpireDUTDict(self):
     """Gets X-Umpire-DUT dict by translating keys."""
-    info_dict = dict()
+    info_dict = {}
     try:
       for key in common.DUT_INFO_KEYS:
         value = getattr(self, UmpireClientInfo.KEY_TRANSLATION[key])
@@ -186,7 +185,7 @@ class UmpireClientInfo(object):
       {'x_umpire_dut': X-Umpire-DUT header in dict form,
        'components': components' version/hash for update lookup.}
     """
-    dut_info = dict()
+    dut_info = {}
     dut_info['x_umpire_dut'] = self._GetXUmpireDUTDict()
     dut_info['components'] = self._GetComponentsDict()
     return dut_info
@@ -199,7 +198,7 @@ class UmpireClientInfo(object):
     """
     info_dict = self._GetXUmpireDUTDict()
     output = '; '.join(
-        ['%s=%s' % (key, info_dict[key]) for key in sorted(info_dict)])
+        '%s=%s' % (key, info_dict[key]) for key in sorted(info_dict))
     logging.debug('Client X-Umpire-DUT : %r', output)
     # This will be directly sent to HTTP header and we don't want to allow new
     # line characters.

@@ -21,7 +21,7 @@ information.
 
 Note that only functions decorated by @internal_handler are treated as handler.
 
-External handlers are located in {server_toolkit}/usr/local/factory/bin/.
+External handlers are located in /usr/local/factory/bin/.
 Args will be flatten into a list of string, field name follows values.
 Fields named 'file' or with prefix 'file-' will be saved as named temp file,
 passing filename instead of file body.
@@ -35,8 +35,6 @@ from twisted.internet import protocol
 from twisted.internet import reactor
 from twisted.internet import threads
 from twisted.web import http
-
-import factory_common  # pylint: disable=W0611
 
 _post_handlers = {}
 EXTERNAL = 'RunExternalHandler'
@@ -179,7 +177,8 @@ def RunExternalHandler(handler, env, **kwargs):
     # errback cannot catch it. Maybe need other ways to recognize them, or
     # just ignore this problem, treats it as execution error?
     logging.info('POST Handler: SpawnProcess() causes error %s', fail)
-    proto.deferred.errback((http.INTERNAL_SERVER_ERROR, {'exception': repr(fail)}))
+    proto.deferred.errback((http.INTERNAL_SERVER_ERROR,
+                            {'exception': repr(fail)}))
 
   # Defer function that contains file IO, then spawn process, but don't return.
   d = threads.deferToThread(_TranslateArgs, kwargs, files)
@@ -196,7 +195,7 @@ def _TranslateArgs(args, files):
   and replaces them with name of tempfile.
   """
   ret = []
-  for k in args.keys():
+  for k in args:
     # Check if it's file. We received file body as string from Twisted,
     # unable to recognize with other field, so we recognize field name.
     ret.append(k)

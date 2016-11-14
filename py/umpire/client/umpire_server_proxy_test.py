@@ -42,7 +42,6 @@ class FakeClientInfo(object):
     Properties:
       dut: The same as dut in Args.
     """
-    super(FakeClientInfo, self).__init__()
     logging.debug('Initializing a FakeClientInfo with dut = %r', dut)
     self.dut = dut
 
@@ -107,8 +106,8 @@ class UmpireServerProxyCLI(object):
 
   def ParseArgs(self):
     parser = argparse.ArgumentParser(
-        description='Using UmpireServerProxy to connect to an Umpire server for '
-        'testing. Fake client info and method arguments can be specified '
+        description='Using UmpireServerProxy to connect to an Umpire server '
+        'for testing. Fake client info and method arguments can be specified '
         'in test data yaml file.')
     parser.add_argument(
         '--test-data', '-t', default=None,
@@ -118,8 +117,8 @@ class UmpireServerProxyCLI(object):
         '--dut', '-d', default=None,
         help='Name of the testing dut specified in test data yaml file.')
     parser.add_argument(
-        '--server-uri', '-s', default=DEFAULT_SERVER_URI, help='Umpire server '
-        'URI')
+        '--server-uri', '-s', default=DEFAULT_SERVER_URI,
+        help='Umpire server URI')
     parser.add_argument(
         '--verbose', '-v', default=None, action='store_true',
         help='Set logging level to DEBUG.')
@@ -141,11 +140,10 @@ class UmpireServerProxyCLI(object):
     """
     if not self.args.test_data:
       self.args.test_data = os.path.join(
-          os.path.dirname(__file__), 'testdata', 'umpire_test_data.yaml')
+          os.path.dirname(__file__), DEFAULT_TEST_DATA)
     logging.debug('Using test data %r', self.args.test_data)
     with open(self.args.test_data) as f:
-      content = f.read()
-      self.data = yaml.load(content)
+      self.data = yaml.load(f)
 
   def SetActiveDUT(self):
     """Sets active DUT.

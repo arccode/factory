@@ -7,9 +7,6 @@
 import copy
 import os
 import re
-import shutil
-import sys
-import tempfile
 import unittest
 import yaml
 
@@ -19,8 +16,7 @@ from cros.factory.umpire import config
 from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
-TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
-                            'testdata')
+TESTDATA_DIR = os.path.join(os.path.dirname(__file__), 'testdata')
 MINIMAL_CONFIG = os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')
 EMPTY_SERVICES_CONFIG = os.path.join(TESTDATA_DIR,
                                      'minimal_empty_services_umpire.yaml')
@@ -222,10 +218,7 @@ class TestUmpireConfig(unittest.TestCase):
 class TestValidateResources(unittest.TestCase):
 
   def setUp(self):
-    self.env = umpire_env.UmpireEnv()
-    self.temp_dir = tempfile.mkdtemp()
-    self.env.base_dir = self.temp_dir
-    os.makedirs(self.env.resources_dir)
+    self.env = umpire_env.UmpireEnvForTest()
     self.conf = config.UmpireConfig(RESOURCE_CHECK_CONFIG, validate=False)
 
     self.hwid1 = self.MakeResourceFile('hwid.gz', 'hwid1')
@@ -234,11 +227,10 @@ class TestValidateResources(unittest.TestCase):
     self.MakeResourceFile('efi.gz', 'efi2')
 
   def tearDown(self):
-    if os.path.isdir(self.temp_dir):
-      shutil.rmtree(self.temp_dir)
+    del self.env
 
   def MakeResourceFile(self, filename, content):
-    path = os.path.join(self.temp_dir, filename)
+    path = os.path.join(self.env.root_dir, filename)
     file_utils.WriteFile(path, content)
     return self.env.AddResource(path)
 
@@ -254,7 +246,7 @@ class TestValidateResources(unittest.TestCase):
   def testFileNotFound2(self):
     def RenameResourceThenTest(resource_path):
       filename = os.path.basename(resource_path)
-      temp_path = os.path.join(self.temp_dir, filename)
+      temp_path = os.path.join(self.env.root_dir, filename)
       os.rename(resource_path, temp_path)
       self.assertRaisesRegexp(common.UmpireError, 'NOT FOUND.+' + filename,
                               config.ValidateResources, self.conf, self.env)
@@ -289,12 +281,10 @@ class testShowDiff(unittest.TestCase):
          '  bundle_id: new_bundle',
          '  note: ruleset 1',
          '  active: true',
-         '  ',
          'Deleted rulesets:',
          '  bundle_id: original_bundle',
          '  note: ruleset 1',
-         '  active: true',
-         '  '],
+         '  active: true'],
         config.ShowDiff(original, new))
 
   def testInactive(self):
@@ -319,8 +309,7 @@ class testShowDiff(unittest.TestCase):
         ['Deleted rulesets:',
          '  bundle_id: bundle_1',
          '  note: ruleset 1',
-         '  active: true',
-         '  '],
+         '  active: true'],
         config.ShowDiff(original, new))
 
   def testActive(self):
@@ -345,8 +334,7 @@ class testShowDiff(unittest.TestCase):
         ['Newly added rulesets:',
          '  bundle_id: bundle_1',
          '  note: ruleset 1 active',
-         '  active: true',
-         '  '],
+         '  active: true'],
         config.ShowDiff(original, new))
 
 

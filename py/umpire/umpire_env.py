@@ -25,7 +25,6 @@ from cros.factory.utils import file_utils
 
 
 # File name under base_dir
-_UMPIRE_CONFIG = 'umpire.yaml'
 _ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'
 _STAGING_UMPIRE_CONFIG = 'staging_umpire.yaml'
 _UMPIRED_PID_FILE = 'umpired.pid'
@@ -36,7 +35,6 @@ _RESOURCES_DIR = 'resources'
 _CONFIG_DIR = 'conf'
 _LOG_DIR = 'log'
 _PID_DIR = 'run'
-_BIN_DIR = 'bin'
 _WEBAPP_PORT_OFFSET = 1
 _CLI_PORT_OFFSET = 2
 _RPC_PORT_OFFSET = 3
@@ -69,12 +67,10 @@ class UmpireEnv(object):
   # TODO(deanliao): figure out if it is too loose.
   # Umpire directory permission 'rwxr-xr-x'.
   UMPIRE_DIR_MODE = 0755
-  # Umpire exetuable permission 'rwxr-xr-x'.
-  UMPIRE_BIN_MODE = 0755
 
-  def __init__(self):
-    self.base_dir = os.path.join(common.DEFAULT_BASE_DIR, 'default')
-    self.server_toolkit_dir = common.DEFAULT_SERVER_TOOLKIT_DIR
+  def __init__(self, root_dir='/'):
+    self.base_dir = os.path.join(root_dir, common.DEFAULT_BASE_DIR)
+    self.server_toolkit_dir = os.path.join(root_dir, common.DEFAULT_SERVER_DIR)
     self.config_path = None
     self.config = None
     self.staging_config = None
@@ -101,12 +97,8 @@ class UmpireEnv(object):
     return os.path.join(self.base_dir, _PID_DIR)
 
   @property
-  def umpired_pid_file(self):
-    return os.path.join(self.pid_dir, _UMPIRED_PID_FILE)
-
-  @property
-  def umpired_log_file(self):
-    return os.path.join(self.log_dir, _UMPIRED_LOG_FILE)
+  def umpire_data_dir(self):
+    return os.path.join(self.base_dir, _UMPIRE_DATA_DIR)
 
   @property
   def active_config_file(self):
@@ -156,10 +148,6 @@ class UmpireEnv(object):
   @property
   def umpire_version_minor(self):
     return version.UMPIRE_VERSION_MINOR
-
-  @property
-  def umpire_data_dir(self):
-    return os.path.join(self.base_dir, _UMPIRE_DATA_DIR)
 
   def ReadConfig(self, custom_path=None):
     """Reads Umpire config.
@@ -347,7 +335,8 @@ class UmpireEnv(object):
 
     if os.path.isfile(res_file_name):
       if filecmp.cmp(file_name, res_file_name, shallow=False):
-        logging.warning('Skip copying as file already exists: ' + res_file_name)
+        logging.warning('Skip copying as file already exists: %s',
+                        res_file_name)
         return res_file_name
       else:
         raise common.UmpireError(
@@ -355,7 +344,7 @@ class UmpireEnv(object):
                                                              res_file_name))
     else:
       file_utils.AtomicCopy(file_name, res_file_name)
-      logging.info('Resource added: ' + res_file_name)
+      logging.info('Resource added: %s', res_file_name)
       return res_file_name
 
   def GetResourcePath(self, resource_name, check=True):
@@ -427,12 +416,11 @@ class UmpireEnvForTest(UmpireEnv):
   """
 
   def __init__(self):
-    super(UmpireEnvForTest, self).__init__()
-    self.base_dir = tempfile.mkdtemp()
-    self.server_toolkit_dir = tempfile.mkdtemp()
+    self.root_dir = tempfile.mkdtemp()
+    super(UmpireEnvForTest, self).__init__(self.root_dir)
+    os.makedirs(self.server_toolkit_dir)
     for fundamental_subdir in (
         self.config_dir,
-        self.device_toolkits_dir,
         self.log_dir,
         self.pid_dir,
         self.resources_dir,
@@ -440,20 +428,19 @@ class UmpireEnvForTest(UmpireEnv):
       os.makedirs(fundamental_subdir)
 
     # Create dummy resource files.
-    for res in ['complete.gz##d41d8cd9',
-                'efi.gz##d41d8cd9',
-                'firmware.gz##d41d8cd9',
-                'hwid.gz##d41d8cd9',
-                'oem.gz##d41d8cd9',
-                'rootfs-release.gz##d41d8cd9',
-                'rootfs-test.gz##d41d8cd9',
-                'install_factory_toolkit.run##d41d8cd9',
-                'state.gz##d41d8cd9',
-                'vmlinux##d41d8cd9']:
-      file_utils.TouchFile(os.path.join(self.resources_dir, res))
+    for res in ('complete.gz',
+                'efi.gz',
+                'firmware.gz',
+                'hwid.gz',
+                'oem.gz',
+                'rootfs-release.gz',
+                'rootfs-test.gz',
+                'install_factory_toolkit.run',
+                'state.gz',
+                'vmlinux'):
+      file_utils.TouchFile(os.path.join(
+          self.resources_dir, '%s##%s' % (res, common.EMPTY_FILE_HASH)))
 
   def __del__(self):
-    if os.path.isdir(self.base_dir):
-      shutil.rmtree(self.base_dir)
-    if os.path.isdir(self.server_toolkit_dir):
-      shutil.rmtree(self.server_toolkit_dir)
+    if os.path.isdir(self.root_dir):
+      shutil.rmtree(self.root_dir)

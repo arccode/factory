@@ -57,12 +57,11 @@ def GetUpdateForComponents(proxy, components):
   update_dict = proxy.GetUpdate(
       umpire_client.UmpireClientInfo().GetDUTInfoComponents())
   logging.info('update_dict: %r', update_dict)
-  ret = dict([key,
-              UpdateInfo(needs_update=update_dict[key]['needs_update'],
+  ret = {key: UpdateInfo(needs_update=update_dict[key]['needs_update'],
                          md5sum=update_dict[key]['md5sum'],
                          url=update_dict[key]['url'],
-                         scheme=update_dict[key]['scheme'])]
-             for key in components)
+                         scheme=update_dict[key]['scheme'])
+         for key in components}
   return ret
 
 
@@ -109,8 +108,7 @@ def GetUpdateForHWID(proxy):
     None if there is no HWID update. Otherwise, return unzipped HWID update
     bundle file content.
   """
-  update_info = GetUpdateForComponents(
-      proxy, ['hwid'])['hwid']
+  update_info = GetUpdateForComponents(proxy, ['hwid'])['hwid']
   if not update_info.needs_update:
     return None
   if update_info.scheme != 'http':

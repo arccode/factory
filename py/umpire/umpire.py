@@ -7,8 +7,7 @@
 """Umpire CLI (command line interface).
 
 It parses command line arguments, packs them and makes JSON RPC call to
-Umpire daemon (umpired). "init" command is an exception as umpired is not
-running at that time.
+Umpire daemon (umpired).
 """
 
 import errno
@@ -32,6 +31,7 @@ from cros.factory.utils import debug_utils
          CmdArg('--id',
                 help=('the target bundle id. If not specified, use '
                       'bundle_name in bundle\'s MANIFEST.yaml')),
+         CmdArg('--note', help='a note for the bundle'),
          CmdArg('bundle_path', default='.',
                 help='Bundle path. If not specified, use local path.'))
 def ImportBundle(args, umpire_cli):
@@ -49,8 +49,7 @@ def ImportBundle(args, umpire_cli):
 
   staging_config_path = umpire_cli.ImportBundle(
       os.path.realpath(args.bundle_path), args.id, args.note)
-  print 'Import bundle successfully. Staging config %r' % (
-      staging_config_path)
+  print 'Import bundle successfully. Staging config %r' % staging_config_path
 
 
 @Command('update',
@@ -113,12 +112,13 @@ def Edit(args, umpire_cli):
 
 
 @Command('deploy')
-def Deploy(unused_args, umpire_cli):
+def Deploy(args, umpire_cli):
   """Deploys an Umpire service.
 
   It deploys current staging config to Umpire service.
-  If users want to run a specific config, staging it first.
+  If users want to run a specific config, stage it first.
   """
+  del args  # Unused.
   print 'Getting status...'
   umpire_status = umpire_cli.GetStatus()
   if not umpire_status['staging_config']:
@@ -154,8 +154,8 @@ def Deploy(unused_args, umpire_cli):
 def Status(args, umpire_cli):
   """Shows Umpire server status.
 
-  Shows Umpire daemon running status, staging config status.
-  In verbose mode, show active config content and diff it with statging.
+  Shows staging config status.
+  In verbose mode, show active config content and diff it with staging.
   """
   status = umpire_cli.GetStatus()
   if not status:
@@ -183,12 +183,6 @@ def Status(args, umpire_cli):
   print
 
 
-@Command('list')
-def List(unused_args, unused_umpire_cli):
-  """Lists all Umpire config files."""
-  raise NotImplementedError
-
-
 @Command('stage',
          CmdArg('--config',
                 help=('Path to Umpire config file. Default uses current active '
@@ -206,8 +200,9 @@ def Stage(args, umpire_cli):
 
 
 @Command('unstage')
-def Unstage(unused_args, umpire_cli):
+def Unstage(args, umpire_cli):
   """Unstages staging Umpire config file."""
+  del args  # Unused.
   print 'Unstage config %r successfully.' % umpire_cli.UnstageConfigFile()
 
 
@@ -251,7 +246,7 @@ def _UmpireCLI():
   Server port is obtained from active Umpire config.
 
   Returns:
-    (Umpire CLI XMLRPC server proxy, UmpireEnv object)
+    Umpire CLI XMLRPC server proxy
   """
   env = umpire_env.UmpireEnv()
   env.LoadConfig(init_shop_floor_manager=False, validate=False)
@@ -259,31 +254,27 @@ def _UmpireCLI():
   umpire_cli_uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
   logging.debug('Umpire CLI server URI: %s', umpire_cli_uri)
   server_proxy = xmlrpclib.ServerProxy(umpire_cli_uri, allow_none=True)
-  return (server_proxy, env)
+  return server_proxy
 
 
 def main():
   args = ParseCmdline(
       'Umpire CLI (command line interface)',
-      CmdArg('--note', help='a note for this command'),
       verbosity_cmd_arg)
   debug_utils.SetupLogging(level=args.verbosity)
 
-  if args.command_name == 'init':
-    args.command(args)
-  else:
-    try:
-      (umpire_cli, unused_env) = _UmpireCLI()
-      args.command(args, umpire_cli)
-    except xmlrpclib.Fault as e:
-      if e.faultCode == xmlrpclib.APPLICATION_ERROR:
-        print ('ERROR: Problem running %s due to umpired application error. '
-               'Server traceback:\n%s' % (args.command_name, e.faultString))
-      else:
-        print 'ERROR: Problem running %s due to XMLRPC Fault: %s' % (
-            args.command_name, e)
-    except Exception as e:
-      print 'ERROR: Problem running %s. Exception %s' % (args.command_name, e)
+  try:
+    umpire_cli = _UmpireCLI()
+    args.command(args, umpire_cli)
+  except xmlrpclib.Fault as e:
+    if e.faultCode == xmlrpclib.APPLICATION_ERROR:
+      print ('ERROR: Problem running %s due to umpired application error. '
+             'Server traceback:\n%s' % (args.command_name, e.faultString))
+    else:
+      print 'ERROR: Problem running %s due to XMLRPC Fault: %s' % (
+          args.command_name, e)
+  except Exception as e:
+    print 'ERROR: Problem running %s. Exception %s' % (args.command_name, e)
 
 
 if __name__ == '__main__':

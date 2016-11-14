@@ -71,7 +71,7 @@ class TestWebApplication(object):
   def __call__(self, environ, start_response):
     session = wsgi.WSGISession(environ, start_response)
     self.session = session
-    logging.debug('test webapp is called: %s', str(session))
+    logging.debug('test webapp is called: %s', session)
     if callable(self.callback):
       return self.callback(self.session)  # pylint: disable=E1102
     return session.Response(
@@ -97,8 +97,7 @@ class DaemonTest(unittest.TestCase):
     self.env.LoadConfig()
     self.daemon = daemon.UmpireDaemon(self.env)
     self.rpc_proxy = xmlrpc.Proxy(
-        'http://%s:%d' %
-        (net_utils.LOCALHOST, self.env.umpire_cli_port))
+        'http://%s:%d' % (net_utils.LOCALHOST, self.env.umpire_cli_port))
     self.agent = client.Agent(reactor)
 
   def tearDown(self):
@@ -130,8 +129,7 @@ class DaemonTest(unittest.TestCase):
       headers = {}
     headers.update({'User-Agent': ['Trial unittest']})
     headers = http_headers.Headers(headers)
-    d = self.agent.request(
-        'GET', url, headers, None)
+    d = self.agent.request('GET', url, headers, None)
     d.addCallback(lambda response: self.OnResponse(session, response))
     return d
 

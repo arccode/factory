@@ -7,11 +7,9 @@
 import mox
 import os
 import shutil
-import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
-
 from cros.factory.tools import get_version
 from cros.factory.umpire.commands import update
 from cros.factory.umpire import common
@@ -19,8 +17,7 @@ from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
 
-TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
-                            'testdata')
+TESTDATA_DIR = os.path.join(os.path.dirname(__file__), 'testdata')
 TEST_CONFIG = os.path.join(TESTDATA_DIR,
                            'minimal_empty_services_umpire.yaml')
 TOOLKIT_DIR = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
@@ -130,7 +127,7 @@ class UmpireEnvTest(unittest.TestCase):
 
     resource_path = self.env.AddResource(resource_to_add)
     self.assertTrue(resource_path.endswith(
-        'resources/%s##%.8s' % ('some_resource', resource_md5)))
+        '/resources/%s##%s' % ('some_resource', resource_md5)))
     self.assertTrue(os.path.exists(resource_path))
 
   def testAddResourceSourceNotFound(self):
@@ -180,8 +177,7 @@ class UmpireEnvTest(unittest.TestCase):
                                          res_type=common.ResourceType.FIRMWARE)
     expected_version = ':'.join([BIOS_VERSION, EC_VERSION, PD_VERSION])
     self.assertTrue(resource_path.endswith(
-        'resources/%s#%s#%.8s' % (file_name, expected_version,
-                                  resource_md5)))
+        '/resources/%s#%s#%s' % (file_name, expected_version, resource_md5)))
     self.assertTrue(os.path.exists(resource_path))
 
   def testAddResourceFirmware(self):
@@ -205,8 +201,7 @@ class UmpireEnvTest(unittest.TestCase):
                                          res_type=common.ResourceType.FIRMWARE)
     expected_version = ':'.join([BIOS_VERSION, EC_VERSION, PD_VERSION])
     self.assertTrue(resource_path.endswith(
-        'resources/%s#%s#%.8s' % (file_name, expected_version,
-                                  resource_md5)))
+        '/resources/%s#%s#%s' % (file_name, expected_version, resource_md5)))
     self.assertTrue(os.path.exists(resource_path))
 
   def testAddResourceRootfsRelease(self):
@@ -228,8 +223,7 @@ class UmpireEnvTest(unittest.TestCase):
     resource_path = self.env.AddResource(
         resource_to_add, res_type=common.ResourceType.ROOTFS_TEST)
     self.assertTrue(resource_path.endswith(
-        'resources/%s#%s#%.8s' % (file_name, TEST_IMAGE_VERSION,
-                                  resource_md5)))
+        '/resources/%s#%s#%s' % (file_name, TEST_IMAGE_VERSION, resource_md5)))
     self.assertTrue(os.path.exists(resource_path))
 
   def testAddResourceHWID(self):
@@ -244,7 +238,7 @@ class UmpireEnvTest(unittest.TestCase):
                                          res_type=common.ResourceType.HWID)
 
     self.assertTrue(resource_path.endswith(
-        'resources/%s#%s#%.8s' % (file_name, hwid_version, resource_md5)))
+        '/resources/%s#%s#%s' % (file_name, hwid_version, resource_md5)))
     self.assertTrue(os.path.exists(resource_path))
 
   def testAddResourceHWIDGzipped(self):
@@ -259,7 +253,7 @@ class UmpireEnvTest(unittest.TestCase):
     resource_path = self.env.AddResource(resource_to_add,
                                          res_type=common.ResourceType.HWID)
     self.assertTrue(resource_path.endswith(
-        'resources/%s#%s#%.8s' % (file_name, hwid_version, resource_md5)))
+        '/resources/%s#%s#%s' % (file_name, hwid_version, resource_md5)))
     self.assertTrue(os.path.exists(resource_path))
 
   def testAddResourceToolkitNoVersion(self):
@@ -274,8 +268,7 @@ class UmpireEnvTest(unittest.TestCase):
 
     expected_version = ''
     self.assertTrue(resource_path.endswith(
-        'resources/%s#%s#%.8s' % (file_name, expected_version,
-                                  resource_md5)))
+        '/resources/%s#%s#%s' % (file_name, expected_version, resource_md5)))
     self.assertTrue(os.path.exists(resource_path))
 
   def testGetResourcePath(self):

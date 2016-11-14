@@ -156,7 +156,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     self._umpire_http_server_uri = None
     self._use_umpire = None
     self._umpire_client_info = None
-    self._resources = dict()
+    self._resources = {}
     self._token = None
     self._umpire_handler_uri = None
     self._umpire_methods = set()
@@ -178,8 +178,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     # Connect to server URI first. If the server is not an Umpire server,
     # keep the connection. Otherwise, reconnect it to Umpire handler URI.
     logging.debug('Connecting to %r', self._server_uri)
-    xmlrpclib.ServerProxy.__init__(self, self._server_uri,
-                                   *args, **kwargs)
+    xmlrpclib.ServerProxy.__init__(self, self._server_uri, *args, **kwargs)
 
     self._Init(raise_exception=False)
 
@@ -200,8 +199,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     self._use_umpire = self._CheckUsingUmpire()
     logging.debug('Using Umpire: %r', self._use_umpire)
     if self._use_umpire is None and raise_exception:
-      raise UmpireServerProxyException(
-          'Can not decide using Umpire or not.')
+      raise UmpireServerProxyException('Can not decide using Umpire or not.')
 
     if self._use_umpire:
       self._InitForUmpireProxy()
@@ -439,7 +437,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
         from parsed resource map like '/shop_floor/1234'.
     """
     if self._test_mode:
-      umpire_scheme_host, _ = urllib2.splitport(self._server_uri)
+      umpire_scheme_host, unused_port = urllib2.splitport(self._server_uri)
       search_port = re.search(r'/shop_floor/(\d+)', shop_floor_handler)
       if not search_port:
         raise UmpireServerProxyException(
@@ -524,8 +522,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     logging.debug('Init a server proxy to shopfloor handler at %s',
                   self._shop_floor_handler_uri)
     self._shop_floor_handler_server_proxy = xmlrpclib.ServerProxy(
-        self._shop_floor_handler_uri,
-        *self._args, **self._kwargs)
+        self._shop_floor_handler_uri, *self._args, **self._kwargs)
 
   def _CallHandler(self, methodname, params):
     """Calls XMLRPC handler through server proxy.
@@ -608,8 +605,8 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
         # Token is invalid. Gets a new resource map and a new shopfloor handler.
         if CheckProtocolError(e, ERROR_TOKEN_INVALID):
           logging.warning(
-              'Got ERROR_TOKEN_INVALID. Request handler from Umpire server'
-              ' again')
+              'Got ERROR_TOKEN_INVALID. '
+              'Request handler from Umpire server again')
           invalid_token = True
           num_tries += 1
           self._RequestUmpireForResourceMapAndSetHandler()
@@ -667,6 +664,5 @@ class TimeoutUmpireServerProxy(UmpireServerProxy):
     if timeout:
       logging.debug('Using TimeoutUmpireServerProxy with timeout %r seconds',
                     timeout)
-      kwargs['transport'] = net_utils.TimeoutXMLRPCTransport(
-          timeout=timeout)
+      kwargs['transport'] = net_utils.TimeoutXMLRPCTransport(timeout=timeout)
     UmpireServerProxy.__init__(self, server_uri, *args, **kwargs)

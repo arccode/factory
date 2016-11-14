@@ -43,12 +43,12 @@ def GetImageVersionFromManifest(manifest, image_type):
   # The image version in source URL contains:
   #   .../MAJOR.MINOR.BUILD/...
   # Where MAJOR, MINOR and BUILD are decimal digits.
-  BUNDLE_IMAGE_VERSION_RE = re.compile(r'''.*/(\d+\.\d+\.\d+)/.*''')
+  BUNDLE_IMAGE_VERSION_RE = re.compile(r'/(\d+\.\d+\.\d+)/')
 
   for f in manifest['add_files']:
     if image_type != f['install_into']:
       continue
-    m = BUNDLE_IMAGE_VERSION_RE.match(f['source'])
+    m = BUNDLE_IMAGE_VERSION_RE.search(f['source'])
     if m:
       return m.group(1)
     else:
@@ -56,8 +56,9 @@ def GetImageVersionFromManifest(manifest, image_type):
   raise Exception('Image type not found: ' + image_type)
 
 
-def FakeGlobConstruct(unused_loader, unused_node):
+def FakeGlobConstruct(loader, node):
   """Fake YAML constructor."""
+  del loader, node  # Unused.
   return None
 
 
@@ -139,7 +140,7 @@ class FactoryBundle(object):
 
     # Find the top-most directory in self._path which _BUNDLE_MANIFEST resides
     # as the modified self._path
-    for subdir, _, files in os.walk(self._path):
+    for subdir, unused_subdir_name, files in os.walk(self._path):
       if self._BUNDLE_MANIFEST in files:
         if self._path != subdir:
           logging.info('Correct bundle base directory to %r', subdir)
@@ -239,8 +240,7 @@ class BundleImporter(object):
   def _InitBundle(self, bundle_id, note):
     if not bundle_id:
       bundle_id = self._factory_bundle.manifest['bundle_name']
-    self._bundle = {'id': bundle_id,
-                    'note': note or bundle_id}
+    self._bundle = {'id': bundle_id, 'note': note or bundle_id}
 
     bundles = self._config.setdefault('bundles', [])
     if any(bundle_id == b['id'] for b in bundles):
@@ -376,8 +376,8 @@ class BundleImporter(object):
     if not resources['download_conf']:
       logging.warning('Missing download_conf %r', self._download_config_path)
 
-    self._bundle['resources'] = dict((k, v) for k, v in resources.items()
-                                     if v is not None)
+    self._bundle['resources'] = {
+        k: v for k, v in resources.iteritems() if v is not None}
 
   def _AddShopFloorConfig(self):
     """Composes shop_floor section in bundle config."""

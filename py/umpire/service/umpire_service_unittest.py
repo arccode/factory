@@ -21,7 +21,8 @@ class SimpleService(umpire_service.UmpireService):
 
   """Test service that launches /bin/sh ."""
 
-  def CreateProcesses(self, unused_umpire_config, unused_env):
+  def CreateProcesses(self, umpire_config, env):
+    del umpire_config, env  # Unused.
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig({
         'executable': '/bin/sh',
@@ -35,7 +36,8 @@ class MultiProcService(umpire_service.UmpireService):
 
   """Multiple process service."""
 
-  def CreateProcesses(self, unused_umpire_config, unused_env):
+  def CreateProcesses(self, umpire_config, env):
+    del umpire_config, env  # Unused.
     for p in xrange(0, 7):
       config_dict = {
           'executable': '/bin/sh',
@@ -51,7 +53,8 @@ class RestartService(umpire_service.UmpireService):
 
   """A process that restarts fast."""
 
-  def CreateProcesses(self, unused_umpire_config, unused_env):
+  def CreateProcesses(self, umpire_config, env):
+    del umpire_config, env  # Unused.
     config_dict = {
         'executable': '/bin/sh',
         'name': 'P_restart',
@@ -67,7 +70,8 @@ class DupProcService(umpire_service.UmpireService):
 
   """Service contains duplicate processes."""
 
-  def CreateProcesses(self, unused_umpire_config, unused_env):
+  def CreateProcesses(self, umpire_config, env):
+    del umpire_config, env  # Unused.
     config_dict = {
         'executable': '/bin/sh',
         'name': 'P_dup',
@@ -118,6 +122,10 @@ class ServiceTest(unittest.TestCase):
     self.assertRaises(ValueError, proc.SetConfig,
                       {'executable': 'foo', 'name': 'bar', 'args': [],
                        'path': '/', 'not_a_config_field': 'some_value'})
+    # Config contains fields of wrong type.
+    self.assertRaises(ValueError, proc.SetConfig,
+                      {'executable': 'foo', 'name': 'bar', 'args': 'not-a-list',
+                       'path': '/'})
 
   def testServiceStart(self):
     svc = SimpleService()
@@ -134,7 +142,8 @@ class ServiceTest(unittest.TestCase):
     self.services.append(svc)
     deferred = svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
 
-    def HandleRestartResult(unused_result):
+    def HandleRestartResult(result):
+      del result  # Unused.
       raise common.UmpireError('testRestart expects failure callback')
 
     def HandleRestartFailure(failure):

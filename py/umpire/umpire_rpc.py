@@ -36,7 +36,6 @@ class UmpireRPC(object):
   """
 
   def __init__(self, env):
-    super(UmpireRPC, self).__init__()
     self.env = env
 
   @RPCCall

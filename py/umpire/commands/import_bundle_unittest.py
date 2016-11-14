@@ -141,7 +141,7 @@ class testImportBundle(unittest.TestCase):
     # Verify newly added bundle.
     # import_bundle.BundleImporter appends newly added bundle.
     self.assertEqual(original_num_bundles + 1, len(config['bundles']))
-    bundle = config['bundles'][original_num_bundles]
+    bundle = config['bundles'][-1]
     self.assertEqual('test_bundle', bundle['id'])
     self.assertIn('shop_floor', bundle)
     self.assertEqual('cros.factory.umpire.board_shop_floor_handler',
@@ -189,8 +189,7 @@ class testImportBundle(unittest.TestCase):
     importer = import_bundle.BundleImporter(self.env)
 
     # Create unpacked device toolkit directory first.
-    device_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
-                                      TOOLKIT_MD5)
+    device_toolkit_dir = os.path.join(self.env.device_toolkits_dir, TOOLKIT_MD5)
     os.makedirs(device_toolkit_dir)
 
     self.MockOutGetVersion()

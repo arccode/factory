@@ -147,8 +147,7 @@ class UmpireClientInfoTest(unittest.TestCase):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(build_board, 'BuildBoard')
     # pylint: disable=E1101
-    build_board.BuildBoard().MultipleTimes().AndReturn(
-        mock_build_board)
+    build_board.BuildBoard().MultipleTimes().AndReturn(mock_build_board)
     self.dut = self.mox.CreateMock(board.DeviceBoard)
 
   def tearDown(self):
@@ -162,8 +161,7 @@ class UmpireClientInfoTest(unittest.TestCase):
 
     client_info = umpire_client.UmpireClientInfo(self.dut)
     output_x_umpire_dut = client_info.GetXUmpireDUT()
-    self.assertEqual(
-        output_x_umpire_dut, OUTPUT_X_UMPIRE_DUT)
+    self.assertEqual(output_x_umpire_dut, OUTPUT_X_UMPIRE_DUT)
 
     self.mox.VerifyAll()
     logging.debug('Done')
@@ -177,8 +175,7 @@ class UmpireClientInfoTest(unittest.TestCase):
 
     client_info = umpire_client.UmpireClientInfo(self.dut)
     output_get_update_dut_info = client_info.GetDUTInfoComponents()
-    self.assertEqual(
-        output_get_update_dut_info, OUTPUT_GET_UPDATE_DUT_INFO)
+    self.assertEqual(output_get_update_dut_info, OUTPUT_GET_UPDATE_DUT_INFO)
 
     self.mox.VerifyAll()
     logging.debug('Done')

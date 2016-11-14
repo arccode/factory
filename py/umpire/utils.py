@@ -174,15 +174,16 @@ def ComposeDownloadConfig(download_files):
       return base_name.upper()
 
   if not download_files:
-    return
+    return ''
 
   # Content of download config.
   result = []
 
   for resource_path in download_files:
     resource_name = os.path.basename(resource_path)
-    # Remove '.gz' suffix.
-    resource_base_name = common.ParseResourceName(resource_name)[0][:-3]
+    resource_base_name = common.ParseResourceName(resource_name)[0]
+    # Remove file extension (.gz).
+    resource_base_name = os.path.splitext(resource_base_name)[0]
 
     channel = GetChannel(resource_base_name)
     url_name = urllib.quote(resource_name)

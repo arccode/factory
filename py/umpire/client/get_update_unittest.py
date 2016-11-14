@@ -183,8 +183,7 @@ class GetUpdateForComponentsTest(unittest.TestCase):
   def testGetUpdateForInvalidComponents(self):
     """Tests GetUpdateForComponents for invalid components."""
     with self.assertRaises(get_update.UmpireClientGetUpdateException):
-      get_update.GetUpdateForComponents(
-          self.proxy, ['comp1', 'compX'])
+      get_update.GetUpdateForComponents(self.proxy, ['comp1', 'compX'])
 
 
 class GetUpdateTests(unittest.TestCase):
@@ -250,7 +249,7 @@ class GetUpdateTests(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(None, get_update.GetUpdateForHWID(self.proxy))
+    self.assertIsNone(get_update.GetUpdateForHWID(self.proxy))
 
     self.mox.VerifyAll()
 

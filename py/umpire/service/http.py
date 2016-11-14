@@ -15,12 +15,11 @@ from cros.factory.umpire import config
 from cros.factory.umpire.service import indent_text_writer
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import List
 from cros.factory.utils.schema import Scalar
 
-
-_LOCALHOST = '127.0.0.1'
 
 CONFIG_SCHEMA = {
     'optional_items': {
@@ -204,7 +203,7 @@ class HTTPService(umpire_service.UmpireService):
         port_offset = handler.get('port_offset', None)
         if match_path and port_offset:
           fastcgi_conf[match_path] = [{
-              'host': _LOCALHOST,
+              'host': net_utils.LOCALHOST,
               'port': port_offset + env.config['port'],
               'check-local': 'disable'}]
         else:
@@ -215,29 +214,29 @@ class HTTPService(umpire_service.UmpireService):
                        fcgi_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
       match_path = SHOP_FLOOR_HANDLER_PATH % port
       fastcgi_conf[match_path] = [{
-          'host': _LOCALHOST,
+          'host': net_utils.LOCALHOST,
           'port': port,
           'check-local': 'disable'}]
     config_writer.Write({'fastcgi.server': fastcgi_conf})
     # Umpire common RPCs
     umpire_proxy_handlers = {}
     umpire_proxy_handlers[ROOT_RPC_PREFIX] = [{
-        'host': _LOCALHOST,
+        'host': net_utils.LOCALHOST,
         'port': env.umpire_rpc_port}]
     umpire_proxy_handlers[UMPIRE_RPC_PREFIX] = [{
-        'host': _LOCALHOST,
+        'host': net_utils.LOCALHOST,
         'port': env.umpire_rpc_port}]
     # Web applications
     umpire_proxy_handlers[RESOURCEMAP_APP_PREFIX] = [{
-        'host': _LOCALHOST,
+        'host': net_utils.LOCALHOST,
         'port': env.umpire_webapp_port}]
     # POSTrequests
     umpire_proxy_handlers[POST_PREFIX] = [{
-        'host': _LOCALHOST,
+        'host': net_utils.LOCALHOST,
         'port': env.umpire_http_post_port}]
     # POST (legacy URL)
     umpire_proxy_handlers[LEGACY_POST_PREFIX] = [{
-        'host': _LOCALHOST,
+        'host': net_utils.LOCALHOST,
         'port': env.umpire_http_post_port}]
     config_writer.Write({'proxy.server': umpire_proxy_handlers})
 
@@ -295,8 +294,7 @@ class LightyConfigWriter(object):
     Args:
       conf: a top-level Lighty config in key-value pairs.
     """
-    self._file.write(
-        self.LightyBlock(conf, self._writer, top_block=True))
+    self._file.write(self.LightyBlock(conf, self._writer, top_block=True))
     self._file.write('\n')
 
   @staticmethod

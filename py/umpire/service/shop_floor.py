@@ -22,7 +22,6 @@ class ExistingLogWriter(object):
   """ExistingLogWriter writes data to existing file only."""
 
   def __init__(self, path):
-    super(ExistingLogWriter, self).__init__()
     self._path = path
 
   def write(self, data):
@@ -66,11 +65,11 @@ class ShopFloorService(umpire_service.UmpireService):
       if not (toolkit_dir and handler):
         continue
       # Prepare handler configuration.
-      handler_config = bundle['shop_floor'].get('handler_config', dict())
+      handler_config = bundle['shop_floor'].get('handler_config', {})
       # Convert {'mount_point': '/path/to/dir'} to process parameters:
       #   ['--mount_point', '/path/to/dir']
       process_parameters = sum([['--%s' % key, value] for key, value in
-                                handler_config.iteritems()], list())
+                                handler_config.iteritems()], [])
       # Set process configuration.
       proc_config = {
           'executable': os.path.join(toolkit_dir, SHOP_FLOOR_FCGI),

@@ -30,7 +30,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 
 TEST_RPC_PORT = net_utils.GetUnusedPort()
-TESTDIR = os.path.abspath(os.path.join(os.path.split(__file__)[0], 'testdata'))
+TESTDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'testdata'))
 TESTCONFIG = os.path.join(TESTDIR, 'enable_update.yaml')
 
 
@@ -40,18 +40,12 @@ class DUTRPCTest(unittest.TestCase):
     self.env = umpire_env.UmpireEnvForTest()
     shutil.copy(TESTCONFIG, self.env.active_config_file)
 
-    # Create empty files for resources.
-    for res in ['complete.gz##d41d8cd9',
-                'install_factory_toolkit.run#ftk_v0.1#d41d8cd9',
-                'efi.gz##d41d8cd9',
+    # Create empty files with version for resources.
+    for res in ['install_factory_toolkit.run#ftk_v0.1#d41d8cd9',
                 'firmware.gz#bios_v0.3:ec_v0.2:pd_v0.1#d41d8cd9',
-                'hwid.gz##d41d8cd9',
-                'vmlinux##d41d8cd9',
-                'oem.gz##d41d8cd9',
                 'rootfs-release.gz#release_v9876.0.0#d41d8cd9',
                 'rootfs-test.gz#test_v5432.0.0#d41d8cd9',
-                'install_factory_toolkit.run#ftk_v0.4#d41d8cd9',
-                'state.gz##d41d8cd9']:
+                'install_factory_toolkit.run#ftk_v0.4#d41d8cd9']:
       file_utils.TouchFile(os.path.join(self.env.resources_dir, res))
 
     self.env.LoadConfig()
@@ -124,7 +118,7 @@ class DUTRPCTest(unittest.TestCase):
   def testGetUpdateNoUpdate(self):
     def CheckNoUpdate(result):
       logging.debug('no update result: %s', str(result))
-      for unused_component, update_info in result.iteritems():
+      for unused_component_name, update_info in result.iteritems():
         self.assertFalse(update_info['needs_update'])
       return result
 
@@ -140,14 +134,14 @@ class DUTRPCTest(unittest.TestCase):
   def testGetUpdate(self):
     def CheckSingleComponentUpdate(result):
       logging.debug('update result:\n\t%r', result)
-      self.assertEqual(1, sum(result[component]['needs_update'] for component in
-                              result))
+      self.assertEqual(1, sum(result[component]['needs_update']
+                              for component in result))
       return result
 
     update_info = copy.deepcopy(self.device_info)
     ruleset = bundle_selector.SelectRuleset(self.env.config,
                                             update_info['x_umpire_dut'])
-    logging.debug('selected ruleset: %s', str(ruleset))
+    logging.debug('selected ruleset: %s', ruleset)
     deferreds = []
     for component, stage_range in ruleset['enable_update'].iteritems():
       # Make a new copy.

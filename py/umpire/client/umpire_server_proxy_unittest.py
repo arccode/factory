@@ -29,6 +29,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire.client import umpire_server_proxy
+from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
@@ -72,7 +73,7 @@ class MockUmpireHTTPHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     logging.debug('MockUmpireHTTPHandler receive do_GET for %s', self.path)
     assert self.path == '/resourcemap'
     logging.debug('Headers contains %r', self.headers.keys())
-    assert 'x-umpire-dut' in self.headers.keys()
+    assert 'x-umpire-dut' in self.headers
     info = self.headers['x-umpire-dut']
     logging.debug('Header contains dut info %r', info)
     SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
@@ -91,8 +92,9 @@ def RunServer(server):
 master_pid = os.getpid()
 
 
-def SignalHandler(signum, unused_frame):
+def SignalHandler(signum, frame):
   """Signal handler for master process."""
+  del frame  # Unused.
   logging.debug('got signal %d on pid %d', signum, os.getpid())
   if os.getpid() != master_pid:
     return
@@ -170,7 +172,7 @@ def HandlerFunctionWrapper(handler_name, use_umpire=False):
 
 def PingOfUmpire():
   """Ping method served on Umpire base XMLRPC handler."""
-  return {'version': 3}
+  return {'version': common.UMPIRE_VERSION}
 
 
 def PingOfShopFloor():
@@ -199,8 +201,7 @@ def SetHandlerError(handler_name, code, message):
     code:
     message:
   """
-  logging.debug('Setting handler %s error: %d, %s',
-                handler_name, code, message)
+  logging.debug('Setting handler %s error: %d, %s', handler_name, code, message)
   os.chdir(TESTDATA_DIRECTORY)
   error_file = 'error_%s' % handler_name
   with open(error_file, 'w') as f:
@@ -281,7 +282,8 @@ class UmpireServerProxyTest(unittest.TestCase):
           'shop_floor_handler: /shop_floor/%d' % port,
           line)
       lines_to_write.append(line)
-    _, temp_path = tempfile.mkstemp(prefix='umpire_server_proxy', dir='/tmp')
+    fd, temp_path = tempfile.mkstemp(prefix='umpire_server_proxy', dir='/tmp')
+    os.close(fd)
     with open(temp_path, 'w') as f:
       f.write(''.join(lines_to_write))
     shutil.move(temp_path, file_path)
@@ -367,8 +369,7 @@ class UmpireServerProxyTest(unittest.TestCase):
         requestHandler=MyXMLRPCRequestHandlerWrapper('base_handler'),
         allow_none=True,
         logRequests=True)
-    cls.umpire_base_handler.register_function(
-        PingOfUmpire, 'Ping')
+    cls.umpire_base_handler.register_function(PingOfUmpire, 'Ping')
     cls.umpire_base_handler_process = multiprocessing.Process(
         target=RunServer, args=(cls.umpire_base_handler,))
     cls.umpire_base_handler_process.start()
@@ -392,10 +393,8 @@ class UmpireServerProxyTest(unittest.TestCase):
         logRequests=True)
     cls.shopfloor_handler_1.register_function(
         HandlerFunctionWrapper('shopfloor_handler1'), SHOPFLOOR_HANDLER_METHOD)
-    cls.shopfloor_handler_1.register_function(
-        PingOfShopFloor, 'Ping')
-    cls.shopfloor_handler_1.register_function(
-        LongBusyMethod, 'LongBusyMethod')
+    cls.shopfloor_handler_1.register_function(PingOfShopFloor, 'Ping')
+    cls.shopfloor_handler_1.register_function(LongBusyMethod, 'LongBusyMethod')
     cls.shopfloor_handler_1_process = multiprocessing.Process(
         target=RunServer, args=(cls.shopfloor_handler_1,))
     cls.shopfloor_handler_1_process.start()
@@ -405,8 +404,7 @@ class UmpireServerProxyTest(unittest.TestCase):
         requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler2'),
         allow_none=True,
         logRequests=True)
-    cls.shopfloor_handler_2.register_function(
-        PingOfShopFloor, 'Ping')
+    cls.shopfloor_handler_2.register_function(PingOfShopFloor, 'Ping')
     cls.shopfloor_handler_2.register_function(
         HandlerFunctionWrapper('shopfloor_handler2'), SHOPFLOOR_HANDLER_METHOD)
     cls.shopfloor_handler_2_process = multiprocessing.Process(
@@ -663,7 +661,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     # It is not OK if server is not available when user wants to check
     # use_umpire property.
     with self.assertRaises(umpire_server_proxy.UmpireServerProxyException):
-      _ = proxy.use_umpire
+      unused_use_umpire = proxy.use_umpire
 
     # Clear error files so base handler will not return 111 error.
     self.ClearErrorFiles()

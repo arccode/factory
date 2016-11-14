@@ -4,12 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 import logging
 import os
 import pprint
-import shutil
-import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -20,7 +17,8 @@ from cros.factory.umpire import umpire_env
 
 class MockShopFloorManager(object):
 
-  def Allocate(self, *unused_args, **unused_kwargs):
+  def Allocate(self, *args, **kwargs):
+    del args, kwargs  # Unused.
     return (9876, 'dummy_token')
 
   def Release(self, port):
@@ -31,15 +29,11 @@ class MockShopFloorManager(object):
 class TestShopFloorService(unittest.TestCase):
 
   def setUp(self):
-    self.env = umpire_env.UmpireEnv()
-    self.temp_dir = tempfile.mkdtemp()
-    self.env.base_dir = self.temp_dir
-    os.makedirs(self.env.resources_dir)
+    self.env = umpire_env.UmpireEnvForTest()
     self.env.shop_floor_manager = MockShopFloorManager()
 
   def tearDown(self):
-    if os.path.isdir(self.temp_dir):
-      shutil.rmtree(self.temp_dir)
+    del self.env
 
   def testGenerateProcesses(self):
     umpire_config = {
@@ -79,7 +73,7 @@ class TestShopFloorService(unittest.TestCase):
     num_actives = sum([b['active'] for b in umpire_config['rulesets']])
     logging.debug('process config:\n%s',
                   pprint.pformat(sum([[p.config, p.nonhash_args]
-                                      for p in processes], list()),
+                                      for p in processes], []),
                                  indent=2))
     self.assertEqual(num_actives, len(processes))
 

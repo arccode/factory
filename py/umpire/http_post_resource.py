@@ -71,7 +71,7 @@ class HTTPPOSTGenericResource(resource.Resource):
       try:
         result = func(**args)
       except Exception as e:
-        logging.error('POST: internal handler raises %s', repr(e))
+        logging.error('POST: internal handler raises %r', e)
         err = e
 
     # If internal callable handler is not found, try external instead
@@ -81,7 +81,7 @@ class HTTPPOSTGenericResource(resource.Resource):
         result = func(handler_name, self.env, **args)
       except Exception as e:
         # post_handler.external() should have handled exceptions.
-        logging.error('POST: external(%s) raises %s', handler_name, repr(e))
+        logging.error('POST: external(%s) raises %r', handler_name, e)
         err = e
 
     def _WriteResponse(result):

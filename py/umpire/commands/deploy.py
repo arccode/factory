@@ -22,7 +22,7 @@ from cros.factory.umpire import daemon
 from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
-NONE_FILENAME = 'none##d41d8cd9'
+NONE_FILENAME = 'none##' + common.EMPTY_FILE_HASH
 
 
 class ConfigDeployer(object):
@@ -61,8 +61,7 @@ class ConfigDeployer(object):
       raise IOError(errno.ENOENT, 'Config does not exist',
                     self._config_path_to_deploy)
 
-    config_to_validate = umpire_config.UmpireConfig(
-        self._config_path_to_deploy)
+    config_to_validate = umpire_config.UmpireConfig(self._config_path_to_deploy)
     umpire_config.ValidateResources(config_to_validate, self._env)
     self._config_to_deploy = config_to_validate
 
@@ -103,8 +102,8 @@ class ConfigDeployer(object):
     change.
     """
     if not self._config_to_deploy:
-      raise common.UmpireError('Unable to get config_to_deploy. It should fail '
-                               'in _ValidateConfigToDeploy')
+      raise common.UmpireError('Unable to get config_to_deploy. '
+                               'It should fail in _ValidateConfigToDeploy')
     logging.debug('Refreshing download_conf')
     need_update_config = False
 
@@ -164,7 +163,7 @@ class ConfigDeployer(object):
     else:
       logging.debug('download_conf unchanged, nothing to refresh.')
 
-  def _HandleDeploySuccess(self, unused_result):
+  def _HandleDeploySuccess(self, result):
     """Handles deploy success.
 
     Activates the new config and unstage staging file. Makes netboot image
@@ -173,6 +172,8 @@ class ConfigDeployer(object):
     Returns:
       A string indicating deploy success.
     """
+    del result  # Unused.
+
     self._env.ActivateConfigFile(self._config_path_to_deploy)
     self._env.UnstageConfigFile()
     logging.info('Config %r deployed. Set it as activate config.',
@@ -185,8 +186,7 @@ class ConfigDeployer(object):
       if os.path.islink(vmlinux_symlink) or os.path.exists(vmlinux_symlink):
         os.remove(vmlinux_symlink)
       os.symlink(resources['netboot_vmlinux'], vmlinux_symlink)
-      logging.info('netboot kernel: %s updated.',
-                   resources['netboot_vmlinux'])
+      logging.info('netboot kernel: %s updated.', resources['netboot_vmlinux'])
 
     return 'Deploy success'
 
@@ -197,7 +197,7 @@ class ConfigDeployer(object):
       Twisted deferred object Deploy() returns.
     """
     logging.error('Failed to deploy config %r. Reason: %s. Rollbacking...',
-                  self._config_path_to_deploy, str(failure))
+                  self._config_path_to_deploy, failure)
     self._env.LoadConfig(custom_path=self._original_config_path,
                          init_shop_floor_manager=False)
     deferred = daemon.UmpireDaemon(self._env).Deploy()
@@ -205,12 +205,14 @@ class ConfigDeployer(object):
                           self._HandleRollbackError)
     return deferred
 
-  def _HandleRollbackSuccess(self, unused_result):
+  def _HandleRollbackSuccess(self, result):
     """On rollback success.
 
     Returns:
       Failure object that indicates deploy failed but rollback success.
     """
+    del result  # Unused.
+
     error = ('Deploy failed. Successfully rollbacked to config %r' %
              self._env.config_path)
     logging.error(error)
@@ -223,7 +225,7 @@ class ConfigDeployer(object):
       UmpireError to its caller (CLI) as Umpire is in an unrecoverable state.
     """
     error = 'Rollback to config %r failed: %s. Stopping Umpire daemon' % (
-        self._original_config_path, str(failure))
+        self._original_config_path, failure)
     logging.error(error)
     daemon.UmpireDaemon(self._env).Stop()
     raise common.UmpireError(error)

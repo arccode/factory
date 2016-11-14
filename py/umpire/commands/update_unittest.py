@@ -8,7 +8,6 @@ import gzip
 import mox
 import os
 import subprocess
-import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -20,7 +19,7 @@ from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
 
-TEST_DIR = os.path.dirname(sys.modules[__name__].__file__)
+TEST_DIR = os.path.dirname(__file__)
 TESTDATA_DIR = os.path.join(TEST_DIR, 'testdata')
 MINIMAL_UMPIRE_CONFIG = os.path.join(TESTDATA_DIR,
                                      'minimal_empty_services_umpire.yaml')
@@ -227,10 +226,9 @@ class ResourceUpdaterTest(unittest.TestCase):
 
     # mk_memento_images.sh is in setup
     MK_MEMENTO_IMAGES_SH_PATH = os.path.realpath(TEST_DIR)
-    for _ in xrange(3):
-      MK_MEMENTO_IMAGES_SH_PATH = os.path.dirname(MK_MEMENTO_IMAGES_SH_PATH)
     MK_MEMENTO_IMAGES_SH_PATH = os.path.join(
-        MK_MEMENTO_IMAGES_SH_PATH, 'setup', 'mk_memento_images.sh')
+        MK_MEMENTO_IMAGES_SH_PATH,
+        '..', '..', '..', 'setup', 'mk_memento_images.sh')
 
     with file_utils.TempDirectory() as temp_dir:
       # Create a fake FSI image.

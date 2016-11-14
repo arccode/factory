@@ -26,7 +26,7 @@ class MinijackService(umpire_service.UmpireService):
     """Creates a list of processes via config.
 
     Args:
-      unused_config: Umpire config AttrDict.
+      config: Umpire config AttrDict.
       env: UmpireEnv object.
 
     Returns:

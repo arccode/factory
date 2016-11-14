@@ -27,7 +27,7 @@ class StatusReporter(object):
     Returns:
       Umpire status in a dict.
     """
-    result = dict()
+    result = {}
     result['active_config'] = self.GetActiveConfig()
     result['active_config_res'] = os.path.basename(os.path.realpath(
         self._env.active_config_file))

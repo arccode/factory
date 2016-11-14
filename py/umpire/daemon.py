@@ -27,10 +27,8 @@ from cros.factory.umpire.service import umpire_service
 from cros.factory.umpire import utils
 from cros.factory.umpire.web import wsgi as umpire_wsgi
 from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
+from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
-
-
-LOCALHOST = '127.0.0.1'
 
 
 class UmpireDaemon(object):
@@ -79,13 +77,14 @@ class UmpireDaemon(object):
     self.deploying = False
     self.stopping = False
 
-  def _HandleStopSignal(self, sig, unused_frame):
+  def _HandleStopSignal(self, sig, frame):
     """Handles signals that stops event loop.
 
     Umpire daemon prevents twisted event loop to handle SIGINT and
     SIGTERM. This signal handler stops the daemon and Twisted event
     loop nicely.
     """
+    del frame  # Unused.
     logging.info('Received signal %d', sig)
     if self.stopping:
       reactor.callLater(3, reactor.stop)
@@ -105,7 +104,7 @@ class UmpireDaemon(object):
   def OnStart(self):
     """Daemon start handler."""
     def HandleStartError(failure):
-      logging.debug('Failed to start Umpire daemon: %s', str(failure))
+      logging.debug('Failed to start Umpire daemon: %s', failure)
       self.Stop()
       # Reactor is stopping, no need to propagate this failure.
       return True
@@ -114,7 +113,7 @@ class UmpireDaemon(object):
     d = self.Deploy()
     d.addErrback(HandleStartError)
 
-  def BuildWebAppSite(self, interface=LOCALHOST):
+  def BuildWebAppSite(self, interface=net_utils.LOCALHOST):
     """Builds web application resource and site."""
     if not self.web_applications:
       raise common.UmpireError('Can not build web site without web application')
@@ -126,7 +125,7 @@ class UmpireDaemon(object):
     self.twisted_ports.append(reactor.listenTCP(self.env.umpire_webapp_port,
                                                 web_site, interface=interface))
 
-  def BuildRPCSite(self, port, rpc_objects, interface=LOCALHOST):
+  def BuildRPCSite(self, port, rpc_objects, interface=net_utils.LOCALHOST):
     """Builds RPC resource and site.
 
     Args:
@@ -138,14 +137,15 @@ class UmpireDaemon(object):
       raise common.UmpireError('Can not build RPC site without rpc object')
     # Build command rpc site.
     rpc_resource = umpire_xmlrpc.XMLRPCContainer()
-    map(rpc_resource.AddHandler, rpc_objects)
+    for rpc_object in rpc_objects:
+      rpc_resource.AddHandler(rpc_object)
     xmlrpc.addIntrospection(rpc_resource)
     rpc_site = server.Site(rpc_resource)
     # Listen to rpc server port.
     self.twisted_ports.append(reactor.listenTCP(port, rpc_site,
                                                 interface=interface))
 
-  def BuildHTTPPOSTSite(self, port, interface=LOCALHOST):
+  def BuildHTTPPOSTSite(self, port, interface=net_utils.LOCALHOST):
     """Builds HTTP POST resource and site."""
     resource = http_post_resource.HTTPPOSTResource(self.env)
     http_post_site = server.Site(resource)

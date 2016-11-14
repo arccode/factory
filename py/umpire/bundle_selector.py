@@ -43,7 +43,7 @@ def ParseDUTHeader(header):
   if invalid_keys:
     raise ValueError('Invalid key(s): %r' % invalid_keys)
 
-  return dict((k, v.value) for k, v in dut_info.iteritems())
+  return {k: v.value for k, v in dut_info.iteritems()}
 
 
 def SelectRuleset(config, dut_info):
@@ -112,7 +112,7 @@ def SelectRuleset(config, dut_info):
     if name not in common.RANGE_MATCHERS:
       return True
     dut_value = dut_info.get(name[:-6])  # remove '_range' postifix
-    if not dut_value:
+    if dut_value is None:
       return False
     (start, end) = value_range
     return ((start == '-' or start <= dut_value) and
@@ -178,6 +178,6 @@ def GetResourceMap(dut_info, env):
             '__token__: %s' % handler_token,
             'shop_floor_handler: %s/%d' % (common.HANDLER_BASE, handler_port)]
   result.extend('%s: %s' % (k, urllib.quote(v)) for k, v in
-                bundle['resources'].items())
+                bundle['resources'].iteritems())
 
   return '\n'.join(result)

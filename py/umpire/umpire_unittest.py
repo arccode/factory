@@ -18,7 +18,7 @@ from cros.factory.utils import type_utils
 
 
 TESTDATA_DIR = os.path.realpath(os.path.join(
-    os.path.dirname(sys.modules[__name__].__file__), 'testdata'))
+    os.path.dirname(__file__), 'testdata'))
 DEFAULT_BUNDLE = os.path.join(TESTDATA_DIR, 'init_bundle')
 
 
@@ -31,7 +31,7 @@ def GetStdout():
   # getvalue is set when unittest.main has buffer=True arg.
   output = sys.stdout.getvalue()
   # pylint: enable=E1101
-  return output.split('\n')
+  return output.splitlines()
 
 
 class UpdateTest(unittest.TestCase):
@@ -39,7 +39,7 @@ class UpdateTest(unittest.TestCase):
   TOOLKIT_PATH = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
 
   def setUp(self):
-    self.args = type_utils.Obj(source_id=None, dest_id=None, resources=list())
+    self.args = type_utils.Obj(source_id=None, dest_id=None, resources=[])
     self.mox = mox.Mox()
     self.mock_cli = self.mox.CreateMockAnything()
 
@@ -58,7 +58,7 @@ class UpdateTest(unittest.TestCase):
         ['Updating resources of default bundle in place',
          'Updating resources:',
          '  factory_toolkit  %s' % self.TOOLKIT_PATH,
-         'Update successfully.', ''],
+         'Update successfully.'],
         GetStdout())
 
   def testUpdateSingleResourceWithSourceDestId(self):
@@ -76,7 +76,7 @@ class UpdateTest(unittest.TestCase):
          'resources',
          'Updating resources:',
          '  factory_toolkit  %s' % self.TOOLKIT_PATH,
-         'Update successfully.', ''],
+         'Update successfully.'],
         GetStdout())
 
   def testUpdateMultipleResources(self):
@@ -93,7 +93,7 @@ class UpdateTest(unittest.TestCase):
          'Updating resources:',
          '  factory_toolkit  %s' % self.TOOLKIT_PATH,
          '  firmware  %s' % self.FIRMWARE_PATH,
-         'Update successfully.', ''],
+         'Update successfully.'],
         GetStdout())
 
   def testUpdateInvalidResourceType(self):
@@ -139,8 +139,7 @@ class ImportBundleTest(unittest.TestCase):
     self.assertListEqual(
         ['Importing bundle %r with specified bundle ID %r' % (
             self.BUNDLE_PATH, 'new_bundle'),
-         "Import bundle successfully. Staging config 'umpire.yaml##00000000'",
-         ''],
+         "Import bundle successfully. Staging config 'umpire.yaml##00000000'"],
         GetStdout())
 
 
@@ -213,7 +212,7 @@ class DeployTest(unittest.TestCase):
          'Validating staging config for deployment...',
          'Changes for this deploy: ', '',
          "Deploying config 'mock_staging##00000000'",
-         'Deploy successfully.', ''],
+         'Deploy successfully.'],
         GetStdout())
 
   def testDeployUserSayNo(self):
@@ -234,7 +233,7 @@ class DeployTest(unittest.TestCase):
     self.assertListEqual(['Getting status...',
                           'Validating staging config for deployment...',
                           'Changes for this deploy: ', '',
-                          'Abort by user.', ''],
+                          'Abort by user.'],
                          GetStdout())
 
 
