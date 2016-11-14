@@ -26,7 +26,7 @@ class MockShopFloorManager(object):
       raise ValueError('Release without Allocate')
 
 
-class TestShopFloorService(unittest.TestCase):
+class ShopFloorServiceTest(unittest.TestCase):
 
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()

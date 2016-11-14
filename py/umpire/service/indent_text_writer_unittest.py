@@ -10,7 +10,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.service import indent_text_writer
 
 
-class TestIndentTextWriter(unittest.TestCase):
+class IndentTextWriterTest(unittest.TestCase):
 
   def testIndentDefault(self):
     w = indent_text_writer.IndentTextWriter()

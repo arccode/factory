@@ -27,7 +27,7 @@ RULESET_CONFIG = os.path.join(TESTDATA_DIR, 'rulesets_umpire.yaml')
 _RE_COMMENT = re.compile(r'\s*# .+')
 
 
-class TestUmpireConfig(unittest.TestCase):
+class UmpireConfigTest(unittest.TestCase):
 
   def testLoadConfig(self):
     conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
@@ -214,7 +214,7 @@ class TestUmpireConfig(unittest.TestCase):
       self.assertTrue(bundle['test_pass'])
 
 
-class TestValidateResources(unittest.TestCase):
+class ValidateResourcesTest(unittest.TestCase):
 
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()
@@ -262,7 +262,7 @@ class TestValidateResources(unittest.TestCase):
         config.ValidateResources, self.conf, self.env)
 
 
-class testShowDiff(unittest.TestCase):
+class ShowDiffTest(unittest.TestCase):
 
   def testChangeBundle(self):
     original = {

@@ -18,7 +18,7 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
-class TestOverlordService(unittest.TestCase):
+class OverlordServiceTest(unittest.TestCase):
   # since we are not sure if the user has emerge chromeos-factory-overlord
   # or not, we use the overlordd in factory/go/bin instead
   OVERLORDD_BIN = '/mnt/host/source/src/platform/factory/go/bin/overlordd'

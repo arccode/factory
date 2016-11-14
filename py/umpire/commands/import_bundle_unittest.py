@@ -83,7 +83,7 @@ FSI_VERSION = '0.0.3'
 TEST_IMAGE_VERSION = '0.0.4'
 
 
-class testImportBundle(unittest.TestCase):
+class ImportBundleTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()

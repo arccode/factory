@@ -18,7 +18,7 @@ from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
 
-class TestLightyConfigWriter(unittest.TestCase):
+class LightyConfigWriterTest(unittest.TestCase):
 
   def setUp(self):
     self.writer = indent_text_writer.IndentTextWriter(indent_first_line=False)
@@ -94,7 +94,7 @@ class TestLightyConfigWriter(unittest.TestCase):
           file_utils.ReadFile(temp_file))
 
 
-class TestHTTPService(unittest.TestCase):
+class HTTPServiceTest(unittest.TestCase):
 
   def setUp(self):
     self.env = umpire_env.UmpireEnv()

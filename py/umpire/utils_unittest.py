@@ -76,7 +76,7 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
     self.assertIsNone(utils.UnpackFactoryToolkit(self.env, None))
 
 
-class TestGetHashFromResourceName(unittest.TestCase):
+class GetHashFromResourceNameTest(unittest.TestCase):
 
   def testNormal(self):
     self.assertEqual(
@@ -89,7 +89,7 @@ class TestGetHashFromResourceName(unittest.TestCase):
         utils.GetHashFromResourceName('/foo/bar/resources/buz#12345678'))
 
 
-class TestGetVersionFromResourceName(unittest.TestCase):
+class GetVersionFromResourceNameTest(unittest.TestCase):
 
   def testNormal(self):
     self.assertEqual(
@@ -108,7 +108,7 @@ class TestGetVersionFromResourceName(unittest.TestCase):
         utils.GetVersionFromResourceName('/foo/bar/resources/buz#12345678'))
 
 
-class TestVerifyResource(unittest.TestCase):
+class VerifyResourceTest(unittest.TestCase):
 
   def testNormal(self):
     with file_utils.TempDirectory() as temp_dir:
@@ -132,7 +132,7 @@ class TestVerifyResource(unittest.TestCase):
       self.assertFalse(utils.VerifyResource(test_file))
 
 
-class TestLoadBundleManifest(unittest.TestCase):
+class LoadBundleManifestTest(unittest.TestCase):
 
   def testNormal(self):
     manifest_path = os.path.join(TESTDATA_DIR, 'sample_MANIFEST.yaml')
@@ -153,7 +153,7 @@ class TestLoadBundleManifest(unittest.TestCase):
       self.assertRaises(common.UmpireError, utils.LoadBundleManifest, f)
 
 
-class TestParseResourceName(unittest.TestCase):
+class ParseResourceNameTest(unittest.TestCase):
 
   def testNormal(self):
     self.assertTupleEqual(

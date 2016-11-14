@@ -16,7 +16,7 @@ from cros.factory.umpire.service import archiver
 from cros.factory.umpire import umpire_env
 
 
-class TestArchiverService(unittest.TestCase):
+class ArchiverServiceTest(unittest.TestCase):
 
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()
