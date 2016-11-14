@@ -2,9 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Shop floor service for launching shop floor XMLRPC in bundles."""
-
 
 import logging
 import os
@@ -31,7 +29,6 @@ class ExistingLogWriter(object):
 
 
 class ShopFloorService(umpire_service.UmpireService):
-
   """Shop floor service.
 
   Example:

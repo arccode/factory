@@ -14,7 +14,6 @@ import xmlrpclib
 
 
 class XMLRPCContainer(xmlrpc.XMLRPC, object):
-
   """XMLRPC resource wrapper.
 
   This class binds RPC objects' methods to XML RPC call.

@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """HTTP service for static image and shopfloor frontend."""
 
 import multiprocessing
@@ -60,7 +59,6 @@ HTTPD_MAX_CONN = HTTPD_MAX_FDS / 2
 
 
 class LightyConditional(str):
-
   """A str wrapper to tag the string as a Lighty conditional.
 
   For ordinary (key, value), its output is "key = value".
@@ -72,7 +70,6 @@ class LightyConditional(str):
 
 
 class HTTPService(umpire_service.UmpireService):
-
   """HTTP service.
 
   Example:
@@ -245,7 +242,6 @@ class HTTPService(umpire_service.UmpireService):
 
 
 class LightyConfigWriter(object):
-
   """Writer for Lighty httpd config.
 
   It opens a file for write (or append) in constructor, and uses Write() to

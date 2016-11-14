@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Umpire service base class.
 
 Umpire service is an external application with a python class wrapper that
@@ -10,10 +9,8 @@ provides twisted process protocol. This is the base class and a global registry
 for all service module.
 """
 
-
 # The attributes of Twisted reactor and type_utils.AttrDict object are changing
 # dynamically at run time. To supress warnings, pylint: disable=E1101
-
 
 import collections
 import copy
@@ -65,7 +62,6 @@ class State(object):  # pylint: disable=W0232
 
 
 class ServiceProcess(protocol.ProcessProtocol):
-
   """Service process holds one twisted process protocol.
 
   Twisted process protocol is a controller class of external process. It
@@ -462,7 +458,6 @@ class ServiceProcess(protocol.ProcessProtocol):
 
 
 class UmpireService(object):
-
   """Umpire service base class.
 
   Umpire service can configure and launch external executables. The derived

@@ -62,6 +62,5 @@ DUMMY_RESOURCE = 'none##' + EMPTY_FILE_HASH
 
 
 class UmpireError(Exception):
-
   """General umpire exception class."""
   pass

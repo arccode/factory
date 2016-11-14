@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Common Umpire classes.
 
 This module provides constants and common Umpire classes.
@@ -45,7 +44,6 @@ _SHOPFLOOR_PORTS_OFFSET = 10
 
 
 class UmpireEnv(object):
-
   """Provides accessors of Umpire resources.
 
   The base directory is obtained in constructor. If a user wants to run

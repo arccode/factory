@@ -4,7 +4,6 @@
 
 """Umpire RPC base class."""
 
-
 import factory_common  # pylint: disable=W0611
 
 
@@ -28,7 +27,6 @@ def RPCCall(method):
 
 
 class UmpireRPC(object):
-
   """RPC base class.
 
   Properties:

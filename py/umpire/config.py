@@ -214,7 +214,6 @@ def ShowDiff(original, new):
 
 
 class UmpireOrderedDict(dict):
-
   """Used to output UmpireConfig with desired key order."""
 
   def Omap(self):
@@ -253,7 +252,6 @@ def DictToOrderedList(d, key_order, d_name):
 
 
 class RulesetOrderedDict(dict):
-
   """Used to output an UmpireConfig's ruleset with desired key order."""
   _KEY_ORDER = ['bundle_id', 'note', 'active', 'enable_update', 'match']
 
@@ -262,7 +260,6 @@ class RulesetOrderedDict(dict):
 
 
 class ServicesOrderedDict(dict):
-
   """Used to output an UmpireConfig's services with desired key order."""
   _KEY_ORDER = ['archiver', 'http', 'shop_floor', 'minijack',
                 'mock_shop_floor_backend', 'rsync', 'dhcp', 'tftp', 'overlord',
@@ -273,7 +270,6 @@ class ServicesOrderedDict(dict):
 
 
 class BundleOrderedDict(dict):
-
   """Used to output an UmpireConfig's bundle with desired key order."""
   _KEY_ORDER = ['id', 'note', 'shop_floor', 'auto_update', 'resources']
 
@@ -293,7 +289,6 @@ yaml.add_representer(BundleOrderedDict, RepresentOmap)
 
 
 class UmpireConfig(dict):
-
   """Container of Umpire configuration.
 
   It reads an Umpire config file in YAML format or a dict. Then validates it.

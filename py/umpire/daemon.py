@@ -32,7 +32,6 @@ from cros.factory.utils import type_utils
 
 
 class UmpireDaemon(object):
-
   """Umpire daemon class.
 
   Umpire daemon is a singleton. It builds XMLRPC sites that serves command line

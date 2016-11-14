@@ -45,7 +45,6 @@ def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
 
 
 class RootDUTCommands(umpire_rpc.UmpireRPC):
-
   """Root DUT (Device Under Test) remote procedures.
 
   Root commands for v1 and v2 compatiblilities.
@@ -60,7 +59,6 @@ class RootDUTCommands(umpire_rpc.UmpireRPC):
 
 
 class UmpireDUTCommands(umpire_rpc.UmpireRPC):
-
   """Umpire DUT remote procedures.
 
   RPC URL:
@@ -291,7 +289,6 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
 
 
 class LogDUTCommands(umpire_rpc.UmpireRPC):
-
   """DUT log upload procedures.
 
   RPC URL:

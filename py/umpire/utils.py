@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Umpire utility classes."""
 
 import logging
@@ -20,7 +19,6 @@ from cros.factory.utils import type_utils
 
 
 class Registry(type_utils.AttrDict):
-
   """Registry is a singleton class that inherits from AttrDict.
 
   Example:
@@ -134,7 +132,6 @@ def GetVersionFromResourceName(res_file):
 
 # pylint: disable=R0901
 class BundleManifestIgnoreGlobLoader(yaml.Loader):
-
   """A YAML loader that loads factory bundle manifest with !glob ignored."""
 
   def __init__(self, *args, **kwargs):
@@ -148,7 +145,6 @@ class BundleManifestIgnoreGlobLoader(yaml.Loader):
 
 # pylint: disable=R0901
 class BundleManifestLoader(yaml.Loader):
-
   """A YAML loader that loads factory bundle manifest with !glob ignored."""
 
   def __init__(self, *args, **kwargs):

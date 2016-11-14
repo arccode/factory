@@ -18,7 +18,6 @@ from cros.factory.utils import type_utils
 
 
 class WSGISession(type_utils.AttrDict):
-
   """WSGI session class.
 
   This class converts WSGI environ to an AttrDict.
@@ -133,7 +132,6 @@ class WSGISession(type_utils.AttrDict):
 
 
 class WebAppDispatcher(dict):
-
   """Web application path dispatcher.
 
   The dispatcher is a WSGI web application that dispatches HTTP requests

@@ -20,7 +20,6 @@ from cros.factory.utils import file_utils
 
 
 class CLICommand(umpire_rpc.UmpireRPC):
-
   """Container of Umpire RPC commands.
 
   Umpire CLI commands are decorated with '@RPCCall'. Requests are translated

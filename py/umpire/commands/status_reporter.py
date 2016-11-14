@@ -4,7 +4,6 @@
 
 """Reports Umpire server status."""
 
-
 import os
 
 import factory_common  # pylint: disable=W0611

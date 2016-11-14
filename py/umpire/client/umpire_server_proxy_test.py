@@ -4,9 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """A command line tool using UmpireServerProxy to connect to Umpire server."""
-
 
 import argparse
 import logging

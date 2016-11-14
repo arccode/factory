@@ -20,7 +20,6 @@ _PATH_INFO = '/resourcemap'
 
 
 class ResourceMapApp(object):
-
   """Web application callable class.
 
   Args:
