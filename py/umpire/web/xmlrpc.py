@@ -13,7 +13,7 @@ from twisted.web import xmlrpc
 import xmlrpclib
 
 
-class XMLRPCContainer(xmlrpc.XMLRPC):
+class XMLRPCContainer(xmlrpc.XMLRPC, object):
 
   """XMLRPC resource wrapper.
 
@@ -24,12 +24,8 @@ class XMLRPCContainer(xmlrpc.XMLRPC):
   """
 
   def __init__(self):
-    """Constructs Twisted xmlrpc.XMLRPC resource.
-
-    Twisted XMLRPC is old-style class. The allowNone=True needs to be passed
-    to parent ctor in old-style way.
-    """
-    xmlrpc.XMLRPC.__init__(self, allowNone=True)
+    """Constructs Twisted xmlrpc.XMLRPC resource."""
+    super(XMLRPCContainer, self).__init__(allowNone=True)
     self.handlers = {}
 
   def listProcedures(self):
@@ -55,8 +51,7 @@ class XMLRPCContainer(xmlrpc.XMLRPC):
     """
     # Let base class process sub-handlers.
     try:
-      # xmlrpc.XMLRPC is old-style Python class. Cannot use super().
-      return xmlrpc.XMLRPC.lookupProcedure(self, procedure_path)
+      return super(XMLRPCContainer, self).lookupProcedure(procedure_path)
     except xmlrpc.NoSuchFunction:
       pass
 

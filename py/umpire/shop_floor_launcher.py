@@ -98,7 +98,7 @@ def _ShopFloorHandlerFactory(module):
   return instance
 
 
-class _ShopFloorRootResource(resource.Resource):
+class _ShopFloorRootResource(resource.Resource, object):
   """Twisted resource that handles POST of a sub-resource on a given path.
 
   It responds 410 Gone if the request have wrong path.
@@ -112,8 +112,7 @@ class _ShopFloorRootResource(resource.Resource):
   allowedMethods = (b'POST',)
 
   def __init__(self, sub_resource, path):
-    # resource.Resource is an old style class, can't use super().
-    resource.Resource.__init__(self)
+    super(_ShopFloorRootResource, self).__init__()
     self.sub_resource = sub_resource
     self.path = path
 
