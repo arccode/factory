@@ -144,6 +144,36 @@ do_stop() {
   echo "done"
 }
 
+do_publish() {
+  # TODO(b/32229544): almost identical to do_publish in dome.sh, but we should
+  #                   be able to merge them once we have merged the docker image
+  #                   for all factory services.
+  check_gsutil
+
+  local umpire_image_url="${GSUTIL_BUCKET}/${UMPIRE_IMAGE_FILENAME}"
+  if gsutil stat "${umpire_image_url}" >/dev/null 2>&1; then
+    die "${UMPIRE_IMAGE_FILENAME} is already on chromeos-localmirror"
+  fi
+
+  do_build  # make sure we have the newest image
+
+  local temp_dir="$(mktemp -d)"
+  TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
+
+  pushd "${temp_dir}"
+  do_save
+  echo "Uploading to chromeos-localmirror ..."
+  upload_to_localmirror "${UMPIRE_IMAGE_FILENAME}" "${umpire_image_url}"
+  popd
+}
+
+do_save() {
+  check_docker
+  echo "Saving Umpire docker image to ${PWD}/${UMPIRE_IMAGE_FILENAME} ..."
+  ${DOCKER} save "${UMPIRE_IMAGE_NAME}" | xz >"${UMPIRE_IMAGE_FILENAME}"
+  echo "Umpire docker image saved to ${PWD}/${UMPIRE_IMAGE_FILENAME}"
+}
+
 usage() {
   cat << __EOF__
 Usage: $0 COMMAND [arg ...]
@@ -152,6 +182,7 @@ Commands:
     build       build umpire container
     pull        pull umpire image down
     destroy     destroy umpire container
+    publish     build and publish docker image to chromeos-localmirror
     start       start umpire container
     stop        stop umpire container
     shell (ssh) invoke a shell (bash) inside umpire container
@@ -173,6 +204,12 @@ main() {
       ;;
     destroy)
       do_destroy
+      ;;
+    publish)
+      do_publish
+      ;;
+    save)
+      do_save
       ;;
     start)
       do_start

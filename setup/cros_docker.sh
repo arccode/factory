@@ -7,8 +7,10 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 DOCKER_VERSION="1.9.1"
 
-PREBUILT_IMAGE_SITE='https://storage.googleapis.com'
+PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
 PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
+
+GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
 
 DOCKER_SHARED_DIR="/docker_shared"
 DOCKER_UMPIRE_DIR="/docker_umpire"
@@ -17,10 +19,20 @@ UMPIRE_CONTAINER_NAME="umpire"
 UMPIRE_IMAGE_NAME="cros/umpire"
 UMPIRE_BUILD_DIR="${SCRIPT_DIR}/umpire_docker"
 
-# We use the md5sum of the Dockerfile to know if the prebuilt image of this
-# Dockerfile is in server.
-UMPIRE_IMAGE_HASH="$(md5sum "${UMPIRE_BUILD_DIR}/Dockerfile" | cut -c1-5)"
-UMPIRE_IMAGE_FILENAME="docker_umpire_env-${UMPIRE_IMAGE_HASH}.tbz"
+UMPIRE_IMAGE_VERSION="20161115151711"  # timestamp
+UMPIRE_IMAGE_FILENAME="umpire-${UMPIRE_IMAGE_VERSION}-docker-${DOCKER_VERSION}.txz"
+
+TEMP_OBJECTS=()
+
+on_exit() {
+  # clear all temp objects
+  for t in "${TEMP_OBJECTS[@]}"; do
+    echo "Removing temp object ${t}"
+    rm -rf "${t}"
+  done
+  TEMP_OBJECTS=()
+}
+trap on_exit EXIT
 
 die() {
   echo "ERROR: $@"
@@ -58,4 +70,19 @@ check_docker() {
       die "${error_message}"
     fi
   done
+}
+
+check_gsutil() {
+  if ! type gsutil >/dev/null 2>&1; then
+    die "Cannot find gsutil, please install gsutil first"
+  fi
+}
+
+upload_to_localmirror() {
+  local local_file_path="$1"
+  local remote_file_url="$2"
+
+  echo "Uploading to chromeos-localmirror"
+  gsutil cp "${local_file_path}" "${remote_file_url}"
+  gsutil acl ch -u AllUsers:R "${remote_file_url}"
 }

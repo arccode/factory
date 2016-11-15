@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# TODO(littlecvr): functionize this file
 # TODO(littlecvr): probably should be merged with setup/umpire_docker.sh
 
 set -e
@@ -15,8 +14,8 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 HOST_DOME_DIR="$(readlink -f "${SCRIPT_DIR}/../py/dome")"
 HOST_BUILD_DIR="${HOST_DOME_DIR}/build"
 
-DOME_VERSION="1.1.0"
-DOME_IMAGE_FILENAME="dome-${DOME_VERSION}-docker-${DOCKER_VERSION}.tbz"
+DOME_VERSION="1.2.1"
+DOME_IMAGE_FILENAME="dome-${DOME_VERSION}-docker-${DOCKER_VERSION}.txz"
 
 DOCKER_SHARED_DOME_DIR="${DOCKER_SHARED_DIR}/dome"
 
@@ -87,7 +86,7 @@ do_pull() {
   fi
   echo "Finished pulling Dome Docker image"
 
-  echo "Pulling Umpire Docker image..."
+  echo "Pulling Umpire Docker image ..."
   local umpire_image_path="${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
   if [[ ! -f "${umpire_image_path}" ]]; then
     local umpire_docker_script="${SCRIPT_DIR}/umpire_docker.sh"
@@ -105,6 +104,29 @@ do_pull() {
   echo "to the target computer."
 }
 
+do_publish() {
+  # TODO(b/32229544): almost identical to do_publish in umpire_docker.sh, but we
+  #                   should be able to merge them once we have merged the
+  #                   docker image for all factory services.
+  check_gsutil
+
+  local dome_image_url="${GSUTIL_BUCKET}/${DOME_IMAGE_FILENAME}"
+  if gsutil stat "${dome_image_url}" >/dev/null 2>&1; then
+    die "${DOME_IMAGE_FILENAME} is already on chromeos-localmirror"
+  fi
+
+  do_build  # make sure we have the newest image
+
+  local temp_dir="$(mktemp -d)"
+  TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
+
+  pushd "${temp_dir}"
+  do_save
+  echo "Uploading to chromeos-localmirror ..."
+  upload_to_localmirror "${DOME_IMAGE_FILENAME}" "${dome_image_url}"
+  popd
+}
+
 do_run() {
   check_docker
 
@@ -117,7 +139,7 @@ do_run() {
   # make sure database file exists or mounting volume will fail
   if [[ ! -f "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}" ]]; then
     echo "Creating docker shared folder (${DOCKER_SHARED_DOME_DIR}),"
-    echo "and database file, you'll be asked for root permission..."
+    echo "and database file, you'll be asked for root permission ..."
     sudo mkdir -p "${DOCKER_SHARED_DOME_DIR}"
     sudo touch "${DOCKER_SHARED_DOME_DIR}/${DB_FILENAME}"
   fi
@@ -170,6 +192,13 @@ do_run() {
   echo "Open the browser to http://localhost:${PORT}/ and enjoy!"
 }
 
+do_save() {
+  check_docker
+  echo "Saving Dome docker image to ${PWD}/${DOME_IMAGE_FILENAME} ..."
+  ${DOCKER} save "${DOME_IMAGE_NAME}" | xz >"${DOME_IMAGE_FILENAME}"
+  echo "Dome docker image saved to ${PWD}/${DOME_IMAGE_FILENAME}"
+}
+
 usage() {
   cat << __EOF__
 Dome: the Factory Server Management Console deployment script
@@ -198,6 +227,12 @@ commands for developers:
   $0 build
       Build Dome docker images.
 
+  $0 publish
+      Build and publish Dome docker image to chromeos-localmirror.
+
+  $0 save
+      Save Dome docker image to the current working directory.
+
 common use case:
   - Run "$0 pull" to download docker images, and copy files listed on screen
     to the target computer.
@@ -220,8 +255,14 @@ main() {
     install)
       do_install
       ;;
+    publish)
+      do_publish
+      ;;
     run)
       do_run
+      ;;
+    save)
+      do_save
       ;;
     *)
       usage
