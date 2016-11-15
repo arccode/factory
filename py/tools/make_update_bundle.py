@@ -36,11 +36,13 @@ def MakeUpdateBundle(factory_image, output):
   Spawn(['mkdir', '-p', BUNDLE_MOUNT_POINT], sudo=True, check_call=True)
   with MountPartition(factory_image, 1, BUNDLE_MOUNT_POINT,
                       rw=True):
+    # factory/misc/sshkeys/testing_rsa has permission 600 required by ssh,
+    # so we need sudo here.
     Spawn(['tar', 'cf', output, '-I', 'pbzip2',
            '-C', os.path.join(BUNDLE_MOUNT_POINT, 'dev_image'),
            '--exclude', 'factory/MD5SUM',
            'factory', 'autotest'],
-          check_call=True, log=True)
+          sudo=True, check_call=True, log=True)
     md5sum = (Spawn(['md5sum', output], check_output=True).
               stdout_data.split()[0])
     logging.info('MD5SUM is %s', md5sum)
