@@ -4,7 +4,7 @@
 
 """Handles /resourcemap requests.
 
-Acooridng to DUT (device under test) info embedded in request header, it
+According to DUT (device under test) info embedded in request header, it
 chooses the right bundle for the DUT and returns the resource map of the bundle.
 """
 

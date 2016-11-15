@@ -56,7 +56,7 @@ class UmpireDaemon(object):
     methods_for_dut: list of RPC objects for DUT (Device Under Test) to access.
     web_applications: web application dispatcher that maps request path info
                       to application object.
-    twisted_ports: binded twisted ports.
+    twisted_ports: bound twisted ports.
     deploying: daemon is deploying a config and not finished yet.
     stopping: daemon is stopping.
   """

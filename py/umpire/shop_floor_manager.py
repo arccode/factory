@@ -22,7 +22,7 @@ class ShopFloorManager(object):
   gives each active bundle's ShopFloorHandler instance a token. The token
   is used to identify a specific deploy version. A DUT gets resource map once
   and caches shop_floor_handler path to use. When a DUT sends a ShopFloorHandler
-  requests and gets 405 response, it means the path is invalid and the DUT needs
+  requests and gets 410 response, it means the path is invalid and the DUT needs
   to refresh resource map again.
   """
 
