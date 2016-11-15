@@ -19,7 +19,6 @@ from cros.factory.umpire import common
 from cros.factory.umpire import config
 from cros.factory.umpire import shop_floor_manager
 from cros.factory.umpire import utils
-from cros.factory.umpire import version
 from cros.factory.utils import file_utils
 
 
@@ -140,14 +139,6 @@ class UmpireEnv(object):
   @property
   def shopfloor_start_port(self):
     return self.umpire_base_port + _SHOPFLOOR_PORTS_OFFSET
-
-  @property
-  def umpire_version_major(self):
-    return version.UMPIRE_VERSION_MAJOR
-
-  @property
-  def umpire_version_minor(self):
-    return version.UMPIRE_VERSION_MINOR
 
   def ReadConfig(self, custom_path=None):
     """Reads Umpire config.

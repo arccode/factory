@@ -21,11 +21,11 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import bundle_selector
+from cros.factory.umpire import common
 from cros.factory.umpire import daemon
 from cros.factory.umpire import rpc_dut
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire import utils
-from cros.factory.umpire import version
 from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -90,7 +90,7 @@ class DUTRPCTest(unittest.TestCase):
 
   def testPing(self):
     def CheckResult(result):
-      self.assertEqual(result, {'version': version.UMPIRE_VERSION_MAJOR})
+      self.assertEqual(result, {'version': common.UMPIRE_VERSION})
       return result
 
     d = self.Call('Ping')

@@ -55,7 +55,7 @@ class RootDUTCommands(umpire_rpc.UmpireRPC):
 
   @umpire_rpc.RPCCall
   def Ping(self):
-    return {'version': self.env.umpire_version_major}
+    return {'version': common.UMPIRE_VERSION}
 
 
 class UmpireDUTCommands(umpire_rpc.UmpireRPC):
