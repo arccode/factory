@@ -31,7 +31,7 @@ from django.db import models
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put
 #                  them into a config file (using the new config API).
-UMPIRE_BASE_PORT = 8090
+UMPIRE_BASE_PORT = 8080
 UMPIRE_RPC_PORT_OFFSET = 2
 UMPIRE_RSYNC_PORT_OFFSET = 4
 UMPIRE_CONFIG_BASENAME = 'umpire.yaml'
@@ -211,7 +211,7 @@ class Board(models.Model):
     self.save()
     return self
 
-  def CreateUmpireContainer(self, port, factory_toolkit_path):
+  def CreateUmpireContainer(self, port):
     """Create a local Umpire container from a factory toolkit."""
     # make sure the container does not exist
     container_name = Board.GetUmpireContainerName(self.name)
@@ -223,14 +223,6 @@ class Board(models.Model):
                              'Umpire instance instead of create a new one ' %
                              container_name)
 
-    # Umpire port mapping
-    port_mapping = [
-        '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
-        '--publish', '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,
-                                UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
-        '--publish', '%d:%d' % (port + UMPIRE_RSYNC_PORT_OFFSET,
-                                UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET)]
-
     try:
       # create and start a new container
       # TODO(littlecvr): this is almost identical to umpire_docker.sh's
@@ -240,36 +232,19 @@ class Board(models.Model):
       #                  only
       subprocess.check_call(
           ['docker', 'run', '--detach', '--privileged',
-           # TODO(littlecvr): remove hard-coded port mapping.
-           '--publish', '4455:4455',  # for Overlord
-           '--publish', '9000:9000',  # for Overlord
-           '--publish', '69:69/udp'] +  # for TFTP
-          port_mapping +
-          ['--volume', '/etc/localtime:/etc/localtime:ro',
+           '--volume', '/etc/localtime:/etc/localtime:ro',
            '--volume', '%s:/mnt' % DOCKER_SHARED_DIR,
            '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,
                                      container_name,
                                      UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
+           '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
+           '--publish', '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,
+                                   UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
+           '--publish', '%d:%d' % (port + UMPIRE_RSYNC_PORT_OFFSET,
+                                   UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET),
            '--restart', 'unless-stopped',
            '--name', container_name,
            UMPIRE_IMAGE_NAME])
-
-      # install factory toolkit
-      # TODO(b/31281536): no need to install factory toolkit after the issue
-      #                   has been solved.
-      subprocess.check_call([
-          'docker', 'cp', factory_toolkit_path,
-          '%s:/tmp/install_factory_toolkit.run' % container_name])
-      subprocess.check_call([
-          'docker', 'exec', container_name,
-          'chmod', '755', '/tmp/install_factory_toolkit.run'])
-      subprocess.check_call([
-          'docker', 'exec', container_name,
-          '/tmp/install_factory_toolkit.run',
-          '--', '--init-umpire-board=%s' % self.name])
-      subprocess.check_call([
-          'docker', 'exec', container_name,
-          'rm', '/tmp/install_factory_toolkit.run'])
     except Exception:
       # remove container
       subprocess.call(['docker', 'stop', container_name])
@@ -327,9 +302,7 @@ class Board(models.Model):
           board.AddExistingUmpireContainer(kwargs['umpire_host'],
                                            kwargs['umpire_port'])
         else:  # create a new local instance
-          with UploadedFile(kwargs['umpire_factory_toolkit_file_id']) as f:
-            board.CreateUmpireContainer(kwargs['umpire_port'],
-                                        UploadedFilePath(f))
+          board.CreateUmpireContainer(kwargs['umpire_port'])
 
     # update attributes assigned in kwargs
     for attr, value in kwargs.iteritems():

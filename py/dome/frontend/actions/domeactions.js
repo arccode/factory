@@ -50,15 +50,6 @@ const updateBoard = (name, settings = {}) => (dispatch, getState) => {
     }
   });
 
-  let files = {};
-  [
-    'umpireFactoryToolkitFile'
-  ].forEach(key => {
-    if (key in settings) {
-      files[`${key}_id`] = settings[key];
-    }
-  });
-
   // taking snapshot must be earlier than optmistic update
   let onCancel = buildOnCancel(dispatch, getState);
 
@@ -81,7 +72,7 @@ const updateBoard = (name, settings = {}) => (dispatch, getState) => {
 
   var description = `Update board "${name}"`;
   dispatch(createTask(
-      description, 'PUT', `/boards/${name}`, body, {onCancel, onFinish, files}
+      description, 'PUT', `/boards/${name}`, body, {onCancel, onFinish}
   ));
 };
 

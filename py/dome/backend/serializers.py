@@ -45,10 +45,6 @@ class BoardSerializer(serializers.Serializer):
   umpire_add_existing_one = serializers.BooleanField(
       write_only=True, required=False)
 
-  # TODO(b/31281536): remove this once the issue has been solved
-  umpire_factory_toolkit_file_id = serializers.IntegerField(
-      write_only=True, required=False)
-
   def create(self, validated_data):
     """Override parent's method."""
     name = validated_data.pop('name')

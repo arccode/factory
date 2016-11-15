@@ -17,28 +17,25 @@ var EnablingUmpireForm = React.createClass({
     opened: React.PropTypes.bool.isRequired
   },
 
-  buildUmpireSettings(addExistingOne, host, port, factoryToolkitFile) {
+  buildUmpireSettings(addExistingOne, host, port) {
     // TODO(littlecvr): should not need to add 'umpire_' prefix
     let settings = {
       'umpireAddExistingOne': addExistingOne,
       'umpireHost': host,
       'umpirePort': port
     };
-    if (!addExistingOne) {
-      settings['umpireFactoryToolkitFile'] = factoryToolkitFile;
-    }
     return settings;
   },
 
   handleAdd() {
     this.props.onConfirm(this.props.boardName, this.buildUmpireSettings(
-        true, this.state.hostInputValue, this.state.portInputValue, null
+        true, this.state.hostInputValue, this.state.portInputValue
     ));
   },
 
   handleCreate() {
     this.props.onConfirm(this.props.boardName, this.buildUmpireSettings(
-        false, 'localhost', this.state.portInputValue, this.fileInput.files[0]
+        false, 'localhost', this.state.portInputValue
     ));
   },
 
@@ -109,12 +106,6 @@ var EnablingUmpireForm = React.createClass({
             value={this.state.portInputValue}
             onChange={e => this.setState({portInputValue: e.target.value})}
           />
-          <input type="file" className="hidden" ref={c => this.fileInput = c} />
-          {!this.state.showAddForm && <RaisedButton
-            label="SELECT THE FACTORY TOOLKIT FILE"
-            fullWidth={true}
-            onTouchTap={() => this.fileInput.click()}
-          />}
           <div style={{
             textAlign: 'center', marginTop: _SPACE_BETWEEN_COMPONENTS
           }}>
