@@ -12,14 +12,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import bundle_selector
 
 
-def DutInfo(x_umpire_dut):
-  """Converts X-Umpire-DUT header to DUT info dict.
-  """
-  dut_info = Cookie.SimpleCookie()
-  dut_info.load(x_umpire_dut)
-  return {k: v.value for k, v in dut_info.iteritems()}
-
-
 class ParseDUTHeaderTest(unittest.TestCase):
 
   def testSingleKeyValue(self):
@@ -154,8 +146,8 @@ class SelectBundleTest(unittest.TestCase):
     self.assertEqual(
         'wireless_mac_matcher',
         bundle_selector.SelectBundle(config,
-                                     DutInfo('mac.eth0=aa:bb:cc:dd:ee:00; '
-                                             'mac.wlan0=00:11:22:33:44:55')))
+                                     {'mac.eth0': 'aa:bb:cc:dd:ee:00',
+                                      'mac.wlan0': '00:11:22:33:44:55'}))
 
   def testInactiveMatcher(self):
     config = yaml.load(
