@@ -92,6 +92,9 @@ class _TestProc(object):
     # Set TEST_RUNNER_ENV_VAR so we know to kill it later if
     # re-running tests.
     child_env[TEST_RUNNER_ENV_VAR] = os.path.basename(__file__)
+    # Set SPT_NOENV so that setproctitle doesn't mess up with /proc/PID/environ,
+    # and we can kill old tests correctly.
+    child_env['SPT_NOENV'] = '1'
     self.proc = process_utils.Spawn(self.test_name, stdout=self.log_file,
                                     stderr=STDOUT, env=child_env)
     self.pid = self.proc.pid
