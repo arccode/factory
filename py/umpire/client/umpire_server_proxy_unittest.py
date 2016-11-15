@@ -94,14 +94,14 @@ master_pid = os.getpid()
 
 def SignalHandler(signum, frame):
   """Signal handler for master process."""
-  del frame  # Unused.
   logging.debug('got signal %d on pid %d', signum, os.getpid())
-  if os.getpid() != master_pid:
-    return
-  UmpireServerProxyTest.StopAllServers()
+  if os.getpid() == master_pid:
+    UmpireServerProxyTest.StopAllServers()
+  return original_handler[signum](signum, frame)
 
-signal.signal(signal.SIGINT, SignalHandler)
-signal.signal(signal.SIGTERM, SignalHandler)
+original_handler = {}
+original_handler[signal.SIGINT] = signal.signal(signal.SIGINT, SignalHandler)
+original_handler[signal.SIGTERM] = signal.signal(signal.SIGTERM, SignalHandler)
 
 
 class MyXMLRPCRequestHandler(SimpleXMLRPCServer.SimpleXMLRPCRequestHandler):
