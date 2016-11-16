@@ -41,21 +41,6 @@ Currently the recommended approach is using Umpire inside Docker.
        - Host directory /docker_shared is mounted under /mnt in the container.
        - Host directory /docker_umpire/umpire is mounted under /var/db/factory/umpire in the container.
        - Umpire service ports is mapped to the local machine.
-       - Overlord service ports 4455, 9000 are mapped to the local machine.
-       - TFTP Server UDP port 69 is mapped to the local machine.
-
-3. Feed an existing toolkit from factory bundle for it.
-
-       setup/umpire_docker.sh install BOARD PATH_TO_TOOLKIT
-
-   For example,
-
-       setup/umpire_docker.sh install glados toolkit/install_factory_toolkit.run
-
-   If you see failure like `No such file or directory:
-   '/var/db/factory/umpire/BOARD/toolkits/server/057061ae/usr/local/factory/py/umpire/umpired_template.yaml'`
-   that means your toolkit was not designed for Umpire and needs some further
-   processing. There's some ongoing effort to eliminate this. Stay tuned.
 
 Check if Umpire is running properly
 ----------------------------------
@@ -66,11 +51,8 @@ Enter docker shell and do `umpire status`.
 
 A typical output:
 
-    umpire dameon status:  umpire (lucid) start/running, process 405
-
     no staging config
     Mapping of bundle_id => shop floor handler path:
-
 
 Deploying a factory bundle
 -------------------------
@@ -81,6 +63,7 @@ with the `finalize_bundle` command. When a bundle ZIP file is available, do:
     sudo cp factory_bundle.zip /docker_shared
     setup/umpire_docker.sh shell
      umpire import-bundle /mnt/factory_bundle.zip
+     umpire edit  # and mark the bundle in rulesets as active.
      umpire deploy
      exit
 
@@ -89,7 +72,6 @@ Updating resources
 You have to first copy the new file into /docker_shared (which can be found as
 /mnt inside docker) then notify Umpire to use them using `umpire update`
 command. Example:
-
 
     # Update toolkit/hwid in bundle
     ./setup/umpire_docker.sh shell
@@ -112,9 +94,8 @@ There are also resources:
 Restarting Umpire
 -----------------
 The docker containers were configured to auto-restart if your machine was
-rebooted unexpectedly. If you want to fully restart umpire, enter docker shell
-and try `sudo stop umpire BOARD=<board>`, `sudo stop umpire BOARD=<board>`,
-or `sudo restart umpire BOARD=<board>`
+rebooted unexpectedly. If you want to fully restart umpire, try
+`./setup/umpire_docker.sh stop`, `./setup/umpire_docker.sh start`.
 
 Changing Umpire configuration
 -----------------------------
@@ -123,7 +104,6 @@ enter docker and execute `umpire edit` to get additional commands.
 
 A sample config looks like:
 
-    ip: 0.0.0.0
     port: 8080
     rulesets:
     - bundle_id: empty_init_bundle
@@ -133,7 +113,6 @@ A sample config looks like:
       http: {}
       shop_floor: {}
       rsync: {}
-      overlord: {}
     bundles:
     - id: empty_init_bundle
       note: n/a
@@ -174,15 +153,14 @@ Troubleshooting
 There are two places for logs of Umpire.
 
 1. Services hosted by Umpire, especially shopfloor proxy. The logs are
-   accessible outside Docker. Find them in `/docker_umpire/umpire/BOARD/log`.
+   accessible outside Docker. Find them in `/docker_umpire/umpire/log`.
 
-   For example, shopfloor logs are in:
+   For example, lighttpd logs are in:
 
-       cd /docker_umpire/umpire/BOARD/log
-       less shop_floor.log
+       cd /docker_umpire/umpire/log
+       less httpd_access.log
+       less httpd_error.log
 
-2. Umpire itself. You need to enter Docker environment first:
+2. Umpire itself. Logs are handled by docker.
 
-       ./setup/umpire_docker.sh shell
-       cd /var/log/upstart
-       less umpire*.log
+       docker logs umpire
