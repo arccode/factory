@@ -86,7 +86,8 @@ def InitDaemon(env, root_dir='/'):
       shutil.copyfile(template_path, config_path)
       config_in_resource = env.AddResource(config_path)
 
-      file_utils.ForceSymlink(config_in_resource, env.active_config_file)
+      file_utils.SymlinkRelative(config_in_resource, env.active_config_file,
+                                 base=env.base_dir)
       logging.info('Init UmpireConfig %r and set it as active.',
                    config_in_resource)
 

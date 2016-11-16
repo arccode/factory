@@ -238,7 +238,8 @@ class UmpireEnv(object):
       logging.info('Force staging, unstage existing one first.')
       self.UnstageConfigFile()
     logging.info('Stage config: ' + source)
-    os.symlink(source, self.staging_config_file)
+    file_utils.SymlinkRelative(source, self.staging_config_file,
+                               base=self.base_dir)
 
   def UnstageConfigFile(self):
     """Unstage the current staging config file.
@@ -273,7 +274,8 @@ class UmpireEnv(object):
                    os.path.realpath(self.active_config_file))
       os.unlink(self.active_config_file)
     logging.info('Activate config: ' + config_to_activate)
-    os.symlink(config_to_activate, self.active_config_file)
+    file_utils.SymlinkRelative(config_to_activate, self.active_config_file,
+                               base=self.base_dir)
 
   def AddResource(self, file_name, res_type=None):
     """Adds a file into base_dir/resources.

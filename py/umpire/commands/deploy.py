@@ -180,7 +180,10 @@ class ConfigDeployer(object):
     resources = default_bundle.get('resources', [])
     if 'netboot_vmlinux' in resources:
       vmlinux_symlink = os.path.join(self._env.resources_dir, 'vmlinux.bin')
-      file_utils.ForceSymlink(resources['netboot_vmlinux'], vmlinux_symlink)
+      file_utils.SymlinkRelative(resources['netboot_vmlinux'],
+                                 vmlinux_symlink,
+                                 base=self._env.base_dir,
+                                 force=True)
       logging.info('netboot kernel: %s updated.', resources['netboot_vmlinux'])
 
     return 'Deploy success'

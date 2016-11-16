@@ -653,6 +653,67 @@ class AtomicWriteTest(unittest.TestCase):
         pass
 
 
+class SymlinkRelativeTest(unittest.TestCase):
+  """Unittests for SymlinkRelative."""
+
+  def setUp(self):
+    self.temp_dir = tempfile.mkdtemp()
+    self.target = os.path.join(self.temp_dir, 'foo', 'target')
+    self.link_path = None
+    file_utils.TryMakeDirs(os.path.dirname(self.target))
+    file_utils.TouchFile(self.target)
+
+  def tearDown(self):
+    if os.path.isdir(self.temp_dir):
+      shutil.rmtree(self.temp_dir)
+
+  def SymlinkRelativeAndVerify(self, **kwargs):
+    file_utils.TryMakeDirs(os.path.dirname(self.link_path))
+    file_utils.SymlinkRelative(self.target, self.link_path, **kwargs)
+    self.assertEqual(os.path.realpath(self.link_path), self.target)
+
+  def testNormal(self):
+    self.link_path = os.path.join(self.temp_dir, 'bar', 'link')
+    self.SymlinkRelativeAndVerify()
+    self.assertFalse(os.path.isabs(os.readlink(self.link_path)))
+
+  def testForce(self):
+    self.link_path = os.path.join(self.temp_dir, 'link')
+    file_utils.TouchFile(self.link_path)
+
+    with self.assertRaises(OSError):
+      self.SymlinkRelativeAndVerify()
+
+    self.SymlinkRelativeAndVerify(force=True)
+
+  def testBaseBothInside(self):
+    self.link_path = os.path.join(self.temp_dir, 'bar', 'link')
+    self.SymlinkRelativeAndVerify(base=self.temp_dir)
+    self.assertFalse(os.path.isabs(os.readlink(self.link_path)))
+
+  def testBaseLinkNotInside(self):
+    self.link_path = os.path.join(self.temp_dir, 'bar', 'link')
+    self.SymlinkRelativeAndVerify(base=os.path.join(self.temp_dir, 'foo'))
+    self.assertTrue(os.path.isabs(os.readlink(self.link_path)))
+
+  def testBaseTargetNotInside(self):
+    self.link_path = os.path.join(self.temp_dir, 'bar', 'link')
+    self.SymlinkRelativeAndVerify(base=os.path.join(self.temp_dir, 'bar'))
+    self.assertTrue(os.path.isabs(os.readlink(self.link_path)))
+
+  def testBaseBothNotInside(self):
+    self.link_path = os.path.join(self.temp_dir, 'fux', 'link')
+    self.SymlinkRelativeAndVerify(base=os.path.join(self.temp_dir, 'f'))
+    self.assertTrue(os.path.isabs(os.readlink(self.link_path)))
+
+  def testTargetAlreadyRelative(self):
+    self.link_path = os.path.join(self.temp_dir, 'bar', 'link')
+    file_utils.TryMakeDirs(os.path.dirname(self.link_path))
+    file_utils.SymlinkRelative('../foo/target', self.link_path)
+    self.assertEqual(os.path.realpath(self.link_path), self.target)
+    self.assertFalse(os.path.isabs(os.readlink(self.link_path)))
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)
   unittest.main()

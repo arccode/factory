@@ -812,3 +812,42 @@ def AtomicWrite(path, binary=False, fsync=True):
       dirfd = os.open(path_dir, os.O_DIRECTORY)
       os.fsync(dirfd)
       os.close(dirfd)
+
+
+def SymlinkRelative(target, link_path, base=None, force=False):
+  """Makes a relative symlink to target
+
+  If base is not None, only make symlink relative if both link_path and target
+  are under the absolute path given by base.
+
+  If force is True, try to unlink link_path before doing symlink.
+
+  If target is a relative path, it would be directly used as argument of
+  os.symlink, and base argument is ignored.
+
+  This function does not check the existence of target.
+
+  Args:
+    target: target file path.
+    link_path: symlink path, can be absolute or relative to current dir.
+    base: only make symlink relative if both target and link_path are under this
+          path.
+    force: whether to force symlink even if link_path exists.
+
+  Raises:
+    OSError: failed to make symlink
+  """
+  link_path = os.path.abspath(link_path)
+
+  if os.path.isabs(target):
+    if base is not None and base[-1] != '/':
+      # Make sure base ends with a /
+      base += '/'
+    if base is None or os.path.commonprefix([base, target, link_path]) == base:
+      target = os.path.relpath(target, os.path.dirname(link_path))
+
+  if force:
+    TryUnlink(link_path)
+
+  os.symlink(target, link_path)
+
