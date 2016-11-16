@@ -38,7 +38,7 @@ ENV umpire_server_dir="${umpire_server_dir}"
 COPY py "${umpire_server_dir}/py/"
 COPY py_pkg "${umpire_server_dir}/py_pkg/"
 COPY bin "${umpire_server_dir}/bin/"
-COPY setup/umpire_docker/default_umpire.yaml \
+COPY py/umpire/docker/default_umpire.yaml \
   "${umpire_server_dir}/default_umpire.yaml"
 
 # Pepare for takeoff

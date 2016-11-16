@@ -16,10 +16,11 @@ UMPIRE_IMAGE_FILEPATH="${SCRIPT_DIR}/${UMPIRE_IMAGE_FILENAME}"
 HOST_DB_DIR="/docker_umpire/${UMPIRE_CONTAINER_NAME}"
 CONTAINER_DB_DIR="/var/db/factory/umpire"
 
-. ${UMPIRE_BUILD_DIR}/config.sh
-
-UMPIRE_DOCKERFILE="${UMPIRE_BUILD_DIR}/Dockerfile"
 FACTORY_DIR="$(dirname "${SCRIPT_DIR}")"
+HOST_UMPIRE_DIR="${FACTORY_DIR}/py/umpire"
+UMPIRE_DOCKERFILE="${HOST_UMPIRE_DIR}/docker/Dockerfile"
+
+: ${UMPIRE_PORT:="8080"}  # base port for Umpire
 
 check_status() {
   local container_name="$1"
