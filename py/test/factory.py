@@ -584,6 +584,8 @@ class FactoryTest(object):
                  'enable_services', 'disable_services', 'no_host',
                  'exclusive_resources']
 
+  ACTION_ON_FAILURE = type_utils.Enum(['STOP', 'NEXT', 'PARENT'])
+
   RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
 
   def __init__(self,
@@ -615,6 +617,7 @@ class FactoryTest(object):
                force_background=False,
                waived=False,
                parallel=False,
+               action_on_failure=None,
                _root=None,
                _default_id=None):
     """Constructor.
@@ -645,6 +648,7 @@ class FactoryTest(object):
     else:
       self.exclusive_resources = exclusive_resources or []
     self._parallel = parallel
+    self.action_on_failure = action_on_failure or self.ACTION_ON_FAILURE.NEXT
     if isinstance(enable_services, str):
       self.enable_services = [enable_services]
     else:
@@ -805,6 +809,10 @@ class FactoryTest(object):
     1. Only leaf node tests can be group into a parallel test.
     2. Teardown tests cannot have its own teardown tests.
     """
+    if self.action_on_failure not in self.ACTION_ON_FAILURE:
+      raise TestListError(
+          'action_on_failure must be one of "NEXT", "PARENT", "STOP"')
+
     if self.is_parallel():
       for subtest in self.subtests:
         if not subtest.is_leaf():

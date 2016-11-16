@@ -185,6 +185,19 @@ class TestListIterator(object):
         # oh, there is no parent
         raise StopIteration
 
+      success = test.get_state().status != factory.TestState.FAILED
+      if not success:
+        # create an alias
+        ACTION_ON_FAILURE = factory.FactoryTest.ACTION_ON_FAILURE
+        if test.action_on_failure == ACTION_ON_FAILURE.NEXT:
+          pass  # does nothing, just find the next test
+        elif test.action_on_failure == ACTION_ON_FAILURE.PARENT:
+          # TODO(stimim): should run teardown before go back to parent
+          continue
+        elif test.action_on_failure == ACTION_ON_FAILURE.STOP:
+          # TODO(stimim): should run teardown before stopping
+          raise StopIteration
+
       # find next test in parent
       found_current_test = False
       for subtest in test.parent.subtests:
@@ -226,8 +239,6 @@ class TestListIterator(object):
       self.inited = True
       if self._find_first_valid_test_in_subtree():
         return self.stack[-1]
-
-    # TODO(stimim): check if previous test failed
 
     self._continue_depth_first_search()
     return self.stack[-1]

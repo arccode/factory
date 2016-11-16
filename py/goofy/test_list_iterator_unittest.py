@@ -516,5 +516,82 @@ class TestListIteratorParallelTest(TestListIteratorTest):
         ['a', 'b', 'G.a', 'G.b', 'G.G', 'G.H.a', 'G.H.b', 'c'])
 
 
+class TestListIteratorActionOnFailureTest(TestListIteratorTest):
+  """Test behavior of action_on_failure attribute.
+
+  http://go/cros-factory-test-list#heading=h.v9olk46b1eh4
+  """
+  def testActionOnFailureNext(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+                             action_on_failure='NEXT')
+      test_lists.FactoryTest(id='b', autotest_name='t_Gb',
+                             action_on_failure='NEXT')
+    test_lists.FactoryTest(id='c', autotest_name='t_Gc',
+                           action_on_failure='NEXT')
+        """,
+        self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['G.a', 'G.b', 'c'],
+        run_test=lambda path, unused_aux_data: path not in set(['G.a']))
+
+  def testActionOnFailureParentOneLayer(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+                             action_on_failure='PARENT')
+      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+    test_lists.FactoryTest(id='c', autotest_name='t_Gc')
+        """,
+        self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['G.a', 'c'],
+        run_test=lambda path, unused_aux_data: path not in set(['G.a']))
+
+  def testActionOnFailureParentTwoLayer(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G'):
+      with test_lists.FactoryTest(id='G', action_on_failure='PARENT'):
+        test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+                               action_on_failure='PARENT')
+        test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+      test_lists.FactoryTest(id='c', autotest_name='t_Gc')
+    test_lists.FactoryTest(id='d', autotest_name='t_Gd')
+        """,
+        self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'd'],
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+
+  def testActionOnFailureStop(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G'):
+      with test_lists.FactoryTest(id='G', action_on_failure='STOP'):
+        test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+                               action_on_failure='STOP')
+        test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+      test_lists.FactoryTest(id='c', autotest_name='t_Gc')
+    test_lists.FactoryTest(id='d', autotest_name='t_Gd')
+        """,
+        self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a'],
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.b'],
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.b']))
+
+
 if __name__ == '__main__':
   unittest.main()
