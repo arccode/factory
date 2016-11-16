@@ -436,5 +436,30 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         run_test=run_test_3)
 
 
+class TestListIteratorParallelTest(TestListIteratorTest):
+  TEST_LIST = """
+    test_lists.FactoryTest(id='a', autotest_name='t_a')
+    test_lists.FactoryTest(id='b', autotest_name='t_b')
+    with test_lists.FactoryTest(id='G'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga')
+      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+      with test_lists.FactoryTest(id='G', parallel=True):
+        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
+        test_lists.FactoryTest(id='b', autotest_name='t_GGb')
+      with test_lists.FactoryTest(id='H'):
+        test_lists.FactoryTest(id='a', autotest_name='t_GHa')
+        test_lists.FactoryTest(id='b', autotest_name='t_GHb')
+    test_lists.FactoryTest(id='c', autotest_name='t_c')
+  """
+  def testParallel(self):
+    """Test cases for FactoryTest.parallel option.
+
+    http://go/cros-factory-test-list#heading=h.eo2v0nfktyij
+    """
+    self._AssertTestSequence(
+        self.test_list,
+        ['a', 'b', 'G.a', 'G.b', 'G.G', 'G.H.a', 'G.H.b', 'c'])
+
+
 if __name__ == '__main__':
   unittest.main()

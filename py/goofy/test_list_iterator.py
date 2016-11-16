@@ -87,8 +87,8 @@ class TestListIterator(object):
       test = self.test_list.lookup_path(test)
     if self.status_filter:
       # status filter only applies to leaf tests
-      # TODO(stimim): should also apply to parallel tests
-      if test.is_leaf() and test.get_state().status not in self.status_filter:
+      if ((test.is_leaf() or test.is_parallel()) and
+          test.get_state().status not in self.status_filter):
         logging.info('test %s is filtered (skipped) because its status',
                      test.path)
         logging.info('%s (skip list: %r)',
@@ -144,7 +144,7 @@ class TestListIterator(object):
 
     path = self.stack[-1]
     test = self.test_list.lookup_path(path)
-    if test.is_leaf():
+    if test.is_leaf() or test.is_parallel():
       if not self._skip(test):
         return True
 

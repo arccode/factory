@@ -614,6 +614,7 @@ class FactoryTest(object):
                finish=None,
                force_background=False,
                waived=False,
+               parallel=False,
                _root=None,
                _default_id=None):
     """Constructor.
@@ -643,6 +644,7 @@ class FactoryTest(object):
       self.exclusive_resources = [exclusive_resources]
     else:
       self.exclusive_resources = exclusive_resources or []
+    self._parallel = parallel
     if isinstance(enable_services, str):
       self.enable_services = [enable_services]
     else:
@@ -797,6 +799,22 @@ class FactoryTest(object):
       # pylint: disable=W0212
       subtest._init((self.path + '.' if len(self.path) else ''), path_map)
 
+  def _check(self):
+    """recursively checks if each test are valid.
+
+    1. Only leaf node tests can be group into a parallel test.
+    2. Teardown tests cannot have its own teardown tests.
+    """
+    if self.is_parallel():
+      for subtest in self.subtests:
+        if not subtest.is_leaf():
+          raise TestListError(
+              'all subtests in a parallel test should be leaf nodes')
+
+    if self.subtests:
+      for subtest in self.subtests:
+        subtest._check()  # pylint: disable=protected-access
+
   def depth(self):
     """Returns the depth of the node (0 for the root)."""
     return self.path.count('.') + (self.parent is not None)
@@ -804,6 +822,9 @@ class FactoryTest(object):
   def is_leaf(self):
     """Returns true if this is a leaf node."""
     return not self.subtests
+
+  def is_parallel(self):
+    return self._parallel
 
   def has_ancestor(self, other):
     """Returns True if other is an ancestor of this test (or is that test
@@ -1079,6 +1100,7 @@ class FactoryTestList(FactoryTest):
       if bad_implicit_ids:
         raise TestListError('options.strict_ids is set, but tests %s lack '
                             'explicitly specified IDs' % bad_implicit_ids)
+    self._check()
 
   def get_all_tests(self):
     """Returns all FactoryTest objects."""
@@ -1102,7 +1124,7 @@ class FactoryTestList(FactoryTest):
     Internal-only; clients should call update_state directly on the
     appropriate TestState object.
     """
-    ret, changed = self.state_instance.update_test_state(path, **kwargs)
+    ret, changed = self.state_instance.update_test_state(path=path, **kwargs)
     if changed and self.state_change_callback:
       self.state_change_callback(  # pylint: disable=E1102
           self.lookup_path(path), ret)
