@@ -160,3 +160,31 @@ be when this test fails.  There are three possible values:
 * `PARENT`: stop running other tests under current parent, let parent to decide
     what the next test should be.
 * `STOP`: stop running other tests.
+
+## Teardown
+Sometimes, you want a test be run after some tests are finished, no matter
+those tests success or not.  For example, a test item that uploads log files to
+shopfloor server should always be run despite the status of previous tests.
+
+```python
+  with test_lists.FactoryTest(id='TestGroupID'):
+    # add subtests here
+    ...
+    with test_lists.Teardowns():
+      # add teardown test items here
+      ...
+
+  # or, if you care about symmetry
+  with test_lists.FactoryTest(id='TestGroupID'):
+    with test_lists.Subtests():
+      # add subtests here
+      ...
+    with test_lists.Teardowns():
+      # add teardown test items here
+      ...
+```
+
+Tests in teardowns can have their subtests as well.  Those tests will become
+teardown tests as well.  We assume that teardowns will never fail, if a teardown
+test fails, Goofy will ignore the failure, and continue on next teardown test.
+Therefore, for teardown tests, `action_on_failure` will always be set to `NEXT`.

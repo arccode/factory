@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 
+import itertools
 import logging
 
 import factory_common  # pylint: disable=unused-import
@@ -47,7 +48,7 @@ class TestListIterator(object):
   `self.stack = ['G', 'G.H', 'G.H.c']` when we reach test C.
   """
 
-  _SERIALIZE_FIELDS = ('stack', 'status_filter', 'inited')
+  _SERIALIZE_FIELDS = ('stack', 'status_filter', 'inited', 'teardown_only')
 
   def __init__(self, root=None, status_filter=None, test_list=None):
     """Constructor of TestListIterator.
@@ -74,6 +75,7 @@ class TestListIterator(object):
     self.status_filter = status_filter
     self.test_list = test_list
     self.inited = False
+    self.teardown_only = False
 
   def __getstate__(self):
     return {key: self.__dict__[key] for key in self._SERIALIZE_FIELDS}
@@ -195,6 +197,7 @@ class TestListIterator(object):
     while self.stack:
       path = self.stack.pop()
       test = self.test_list.lookup_path(path)
+      jump_to_teardown = False
 
       if not test:
         # cannot find the test we were running, maybe the test list is changed
@@ -212,15 +215,23 @@ class TestListIterator(object):
         if test.action_on_failure == ACTION_ON_FAILURE.NEXT:
           pass  # does nothing, just find the next test
         elif test.action_on_failure == ACTION_ON_FAILURE.PARENT:
-          # TODO(stimim): should run teardown before go back to parent
-          continue
+          jump_to_teardown = True
         elif test.action_on_failure == ACTION_ON_FAILURE.STOP:
-          # TODO(stimim): should run teardown before stopping
-          raise StopIteration
+          jump_to_teardown = True
+          self.teardown_only = True
+
+      subtests = iter(test.parent.subtests)
+      if jump_to_teardown or self.teardown_only:
+        # we only want to run teardown tests, filter out normal tests,
+        # however, to make the checking code easier to implement, current test
+        # is not filtered.
+        subtests = itertools.ifilter(
+            lambda subtest: subtest.path == path or subtest.is_teardown(),
+            subtests)
 
       # find next test in parent
       found_current_test = False
-      for subtest in test.parent.subtests:
+      for subtest in subtests:
         if found_current_test:
           if not self.check_skip(subtest.path):
             self.stack.append(subtest.path)
@@ -228,13 +239,9 @@ class TestListIterator(object):
               return True
             self.stack.pop()
         if path == subtest.path:
-          # find current, the next one is what we want
+          # find current test, the next one is what we want
           found_current_test = True
       assert found_current_test
-
-      # next test is not found, it means that we just finished all subtests in
-      # parent.
-      # TODO(stimim): should run teardown here
 
   def next(self):
     """Returns path to the test that should start now.

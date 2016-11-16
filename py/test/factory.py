@@ -16,6 +16,7 @@ To log to the factory console, use:
 
 from __future__ import print_function
 
+import itertools
 import logging
 import os
 import re
@@ -574,9 +575,9 @@ class FactoryTest(object):
   has_ui = False
 
   REPR_FIELDS = ['test_list_id', 'id', 'autotest_name', 'pytest_name', 'dargs',
-                 'dut_options', 'never_fails', '_parallel',
+                 'dut_options', 'never_fails', '_parallel', '_teardown',
                  'enable_services', 'disable_services', 'no_host',
-                 'exclusive_resources']
+                 'exclusive_resources', 'action_on_failure']
 
   ACTION_ON_FAILURE = type_utils.Enum(['STOP', 'NEXT', 'PARENT'])
 
@@ -593,6 +594,7 @@ class FactoryTest(object):
                dargs=None,
                dut_options=None,
                subtests=None,
+               teardown=False,
                id=None,  # pylint: disable=redefined-builtin
                has_ui=None,
                no_host=False,
@@ -676,6 +678,7 @@ class FactoryTest(object):
       self.run_if_col = match.group(3)
 
     self.subtests = filter(None, type_utils.FlattenList(subtests or []))
+    self._teardown = teardown
     self.path = ''
     self.parent = None
     self.root = None
@@ -778,6 +781,15 @@ class FactoryTest(object):
     assert self.path not in path_map, 'Duplicate test path %s' % (self.path)
     path_map[self.path] = self
 
+    # subtests of a teardown test should be part of teardown as well
+    if self.is_teardown():
+      if self.action_on_failure != self.ACTION_ON_FAILURE.NEXT:
+        logging.warning('`action_on_failure` of a teardown test must be `NEXT`')
+        logging.warning('The value will be overwritten.')
+        self.action_on_failure = self.ACTION_ON_FAILURE.NEXT
+      for subtest in self.subtests:
+        subtest.set_teardown()
+
     for subtest in self.subtests:
       subtest.parent = self
       # pylint: disable=protected-access
@@ -787,7 +799,10 @@ class FactoryTest(object):
     """recursively checks if each test are valid.
 
     1. Only leaf node tests can be group into a parallel test.
-    2. Teardown tests cannot have its own teardown tests.
+    2. Subtests of teardown tests should be marked as teardown as well.
+
+    We assume that _init is called before _check, so properties are properly
+    setup and propagated to child nodes.
     """
     if self.action_on_failure not in self.ACTION_ON_FAILURE:
       raise TestListError(
@@ -807,9 +822,18 @@ class FactoryTest(object):
               'Test %s cannot be parallel with enable_services or '
               'disable_services specified.' % subtest.id)
 
-    if self.subtests:
-      for subtest in self.subtests:
-        subtest._check()  # pylint: disable=protected-access
+    # all subtests should come before teardown tests
+    it = iter(self.subtests)
+    if not self.is_teardown():
+      # find first teardown test
+      it = itertools.dropwhile(lambda subtest: not subtest.is_teardown(), it)
+    for subtest in it:
+      if not subtest.is_teardown():
+        raise TestListError(
+            '%s: all subtests should come before teardown tests' % self.id)
+
+    for subtest in self.subtests:
+      subtest._check()  # pylint: disable=protected-access
 
   def depth(self):
     """Returns the depth of the node (0 for the root)."""
@@ -821,6 +845,12 @@ class FactoryTest(object):
 
   def is_parallel(self):
     return self._parallel
+
+  def is_teardown(self):
+    return self._teardown
+
+  def set_teardown(self, value=True):
+    self._teardown = bool(value)
 
   def has_ancestor(self, other):
     """Returns True if other is an ancestor of this test (or is that test

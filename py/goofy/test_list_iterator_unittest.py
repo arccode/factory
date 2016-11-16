@@ -7,6 +7,7 @@
 
 import cPickle as pickle
 import imp
+import logging
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -130,22 +131,26 @@ class TestListIteratorTest(unittest.TestCase):
           get_data=_GetData)
     iterator._check_run_if = _MockedCheckRunIf
 
-    with self.assertRaises(StopIteration):
-      for unused_i in xrange(max_iteration):
-        test_path = iterator.next()
-        actual_sequence.append(test_path)
-        test = test_list.lookup_path(test_path)
-        if run_test(test_path, aux_data):
-          test.update_state(status=factory.TestState.PASSED)
-        else:
-          test.update_state(status=factory.TestState.FAILED)
-        if test_persistency:
-          iterator = self._testPickleSerializable(iterator)
-          # the persistency of state instance is provided by
-          # `cros.factory.goofy.goofy`
-          # and `cros.factory.test.state`.  We assume that it just works.
-          # So the test list itself won't be changed.
-          iterator.set_test_list(test_list)
+    try:
+      with self.assertRaises(StopIteration):
+        for unused_i in xrange(max_iteration):
+          test_path = iterator.next()
+          actual_sequence.append(test_path)
+          test = test_list.lookup_path(test_path)
+          if run_test(test_path, aux_data):
+            test.update_state(status=factory.TestState.PASSED)
+          else:
+            test.update_state(status=factory.TestState.FAILED)
+          if test_persistency:
+            iterator = self._testPickleSerializable(iterator)
+            # the persistency of state instance is provided by
+            # `cros.factory.goofy.goofy`
+            # and `cros.factory.test.state`.  We assume that it just works.
+            # So the test list itself won't be changed.
+            iterator.set_test_list(test_list)
+    except Exception:
+      logging.error('actual_sequence: %r', actual_sequence)
+      raise
     self.assertListEqual(expected_sequence, actual_sequence)
 
 
@@ -591,6 +596,68 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
         test_list,
         ['G.G.a', 'G.G.b'],
         run_test=lambda path, unused_aux_data: path not in set(['G.G.b']))
+
+
+class TestListIteratorTeardownTest(TestListIteratorTest):
+  """Test handling teardown processes.
+
+  https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md#Teardown
+  """
+  def testTeardown(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G'):
+      with test_lists.FactoryTest(id='G'):
+        with test_lists.Subtests():
+          test_lists.FactoryTest(id='a', autotest_name='t_Ga')
+          test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+        with test_lists.Teardowns():
+          test_lists.FactoryTest(id='w', autotest_name='t_W')
+          test_lists.FactoryTest(id='x', autotest_name='t_X')
+          with test_lists.FactoryTest(id='TG'):
+            # the subtests of teardown test are teardown tests as well
+            test_lists.FactoryTest(id='y', autotest_name='t_Y')
+            test_lists.FactoryTest(id='z', autotest_name='t_Z')
+      test_lists.FactoryTest(id='c', autotest_name='t_Gc')
+      with test_lists.Teardowns():
+        test_lists.FactoryTest(id='T', autotest_name='t_T')
+    test_lists.FactoryTest(id='d', autotest_name='t_Gd')
+        """,
+        self.OPTIONS)
+
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.b', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.c',
+         'G.T', 'd'],
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+
+  def testTeardownAfterStop(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G'):
+      with test_lists.FactoryTest(id='G'):
+        with test_lists.Subtests():
+          test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+                                 action_on_failure='STOP')
+          test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+        with test_lists.Teardowns():
+          test_lists.FactoryTest(id='w', autotest_name='t_W')
+          test_lists.FactoryTest(id='x', autotest_name='t_X')
+          with test_lists.FactoryTest(id='TG'):
+            # the subtests of teardown test are teardown tests as well
+            test_lists.FactoryTest(id='y', autotest_name='t_Y')
+            test_lists.FactoryTest(id='z', autotest_name='t_Z')
+      test_lists.FactoryTest(id='c', autotest_name='t_Gc')
+      with test_lists.Teardowns():
+        test_lists.FactoryTest(id='T', autotest_name='t_T')
+    test_lists.FactoryTest(id='d', autotest_name='t_Gd')
+        """,
+        self.OPTIONS)
+
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.T'],
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
 
 
 if __name__ == '__main__':

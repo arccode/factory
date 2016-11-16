@@ -46,6 +46,7 @@ CUSTOM_DIR = os.path.join(paths.FACTORY_PATH, 'custom')
 #       (if one is currently being built).
 #   test_lists: A dictionary (id, test_list_object) of all test lists
 #       that have been built or are being built.
+#   in_teardown: A boolean, we are in a subtree of teardown tests.
 builder_state = threading.local()
 
 # Sampling is the helper class to control sampling of tests in test list.
@@ -83,8 +84,39 @@ def Add(test):
   """
   if not builder_state.stack:
     raise TestListError('Cannot add test %r: not within a test list' % test.id)
+  if builder_state.in_teardown:
+    test.set_teardown()
   builder_state.stack[-1].subtests.append(test)
   return Context(test)
+
+
+@contextmanager
+def Subtests():
+  """New tests added in this context will be appended as subtests.
+
+  By default, tests are always appended to 'subtests', this function is just for
+  making APIs symmetric.
+  """
+  if not builder_state.stack:
+    raise TestListError('Cannot switch to subtests: not within a test list')
+  if builder_state.in_teardown:
+    raise TestListError('Subtests of teardown tests must be teardown tests')
+  yield
+
+
+@contextmanager
+def Teardowns():
+  """New tests added in this context will be appended as teardown tests.
+
+  Tests added with in this context will be marked as teardown.
+  """
+  if not builder_state.stack:
+    raise TestListError('Cannot switch to teardowns: not within a test list')
+  if builder_state.in_teardown:
+    raise TestListError('You don\'t need to switch to teardown test again')
+  builder_state.in_teardown = True
+  yield
+  builder_state.in_teardown = False
 
 
 #####
@@ -314,6 +346,7 @@ def BuildTestLists(module):
   """
   builder_state.stack = []
   builder_state.test_lists = {}
+  builder_state.in_teardown = False
 
   try:
     if isinstance(module, str):
