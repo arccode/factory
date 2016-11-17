@@ -6,18 +6,19 @@ FROM ubuntu:trusty
 MAINTAINER Wei-Ning Huang <wnhuang@google.com>
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
-        python-yaml \
+        python-flup \
+        python-gnupg \
+        python-mysqldb \
         python-netifaces \
-        python-pexpect \
         python-numpy \
+        python-pexpect \
+        python-pil \
+        python-protobuf \
+        python-pymssql \
+        python-pyudev \
         python-twisted \
         python-twisted-web \
-        python-protobuf \
-        python-pyudev \
-        python-pil \
-        python-pymssql \
-        python-mysqldb \
-        python-gnupg \
+        python-yaml \
         binutils \
         cgpt \
         dbus \
