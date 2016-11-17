@@ -20,6 +20,8 @@ RSYNCD_CONFIG_TEMPLATE = """port = %(port)d
 pid file = %(pidfile)s
 log file = %(logfile)s
 use chroot = no
+uid = 0
+gid = 0
 """
 RSYNCD_CONFIG_MODULE_PATH_TEMPLATE = """[%(module)s]
   path = %(path)s
