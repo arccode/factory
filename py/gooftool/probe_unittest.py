@@ -158,5 +158,26 @@ class ProbePCIUnittest(unittest.TestCase):
     self.assertEquals(result, None)
 
 
+class UtilFunctionsTest(unittest.TestCase):
+  def testRemoveAutoSuffix(self):
+    probe_value_map = {
+        'audio_codec': {
+            'COMPACT_STR': 'hdmi-audio-codec.1.auto'}}
+    expected_result = {
+        'audio_codec': {
+            'COMPACT_STR': 'hdmi-audio-codec'}}
+    self.assertEquals(probe.RemoveAutoSuffix(probe_value_map), expected_result)
+
+    probe_value_map = {
+        'audio_codec': [
+            {'COMPACT_STR': 'hdmi-audio-codec.1.auto'},
+            {'COMPACT_STR': 'foo.20.auto'}]}
+    expected_result = {
+        'audio_codec': [
+            {'COMPACT_STR': 'hdmi-audio-codec'},
+            {'COMPACT_STR': 'foo'}]}
+    self.assertEquals(probe.RemoveAutoSuffix(probe_value_map), expected_result)
+
+
 if __name__ == '__main__':
   unittest.main()

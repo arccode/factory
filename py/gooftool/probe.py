@@ -1723,6 +1723,27 @@ def UpdateRwVpd(values):
   return UpdateVpd('RW_VPD', values)
 
 
+def RemoveAutoSuffix(probe_value_map):
+  """Remove the '.*.auto' suffix in the probe result.
+
+  When the platform add the device, it would add the .*.auto suffix to the
+  device name. It causes the probe module gets the different value form the same
+  component. Therefore we remove the auto-generated suffix.
+  Please see https://bugs.chromium.org/p/chromium/issues/detail?id=659921
+  """
+  def _RemoveSuffix(probe_value):
+    pattern = re.compile(r'\.[0-9]+\.auto$')
+    return {key: pattern.sub('', value) for key, value in probe_value.items()}
+
+  ret = {}
+  for comp_cls, probe_value in probe_value_map.items():
+    if isinstance(probe_value, list):
+      ret[comp_cls] = [_RemoveSuffix(item) for item in probe_value]
+    else:
+      ret[comp_cls] = _RemoveSuffix(probe_value)
+  return ret
+
+
 def Probe(target_comp_classes=None,
           fast_fw_probe=False,
           probe_volatile=True,
@@ -1847,6 +1868,9 @@ def Probe(target_comp_classes=None,
                              ('rw', ReadRwVpd())):
       for k, v in sorted(vpd_field.items()):
         volatiles['vpd.%s.%s' % (which, k)] = v
+
+  # Filter the ".*.auto" suffix
+  found_probe_value_map = RemoveAutoSuffix(found_probe_value_map)
   return ProbeResults(
       found_probe_value_map=found_probe_value_map,
       missing_component_classes=missing_component_classes,
