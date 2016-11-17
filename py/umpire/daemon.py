@@ -207,7 +207,7 @@ class UmpireDaemon(object):
         self.deployed_config = deploying_config
       return result
 
-    def _Rollback(result, stopping_services, starting_services):
+    def _Rollback(failure, stopping_services, starting_services):
       """Stops starting_services and starts stopping_services."""
       def _HandleRollbackError(failure):
         """Ignores rollback error."""
@@ -216,11 +216,12 @@ class UmpireDaemon(object):
                       exc_info=exc_info)
         return True
 
-      stopping = self.StopServices(starting_services)
-      starting = self.StartServices(stopping_services)
-      deferred = utils.ConcentrateDeferreds([stopping, starting])
+      deferred = self.StopServices(starting_services)
+      deferred.addCallback(lambda _: self.StartServices(stopping_services))
       deferred.addErrback(_HandleRollbackError)
-      return result
+      # Ignore result for rollback, and return the deploy failure.
+      deferred.addBoth(lambda _: failure)
+      return deferred
 
     if self.deploying:
       return defer.fail(common.UmpireError('Another deployment in progress'))
@@ -245,11 +246,11 @@ class UmpireDaemon(object):
     # Need to restart shop_floor service.
     if 'shop_floor' in deploying_services:
       starting_services.add('shop_floor')
+
     # Stop unused services and start new services.
-    stopping_deferred = self.StopServices(stopping_services)
-    starting_deferred = self.StartServices(starting_services)
-    deferred = utils.ConcentrateDeferreds([stopping_deferred,
-                                           starting_deferred])
+    deferred = self.StopServices(stopping_services)
+    deferred.addCallback(lambda _: self.StartServices(starting_services))
+
     # Let _Deployed() to check result and switching config and flag.
     deferred.addBoth(lambda result: _Deployed(result, deploying_config))
     deferred.addErrback(lambda failure: _Rollback(failure,
