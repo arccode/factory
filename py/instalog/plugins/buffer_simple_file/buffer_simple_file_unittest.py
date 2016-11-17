@@ -324,9 +324,10 @@ class TestBufferSimpleFile(unittest.TestCase):
       self.sf.AddConsumer('a')
       stream = self.sf.Consume('a')
       internal_event = stream.Next()
-      internal_path = os.path.join(self.sf.attachments_dir,
-                                   internal_event.attachments['a'])
+      internal_path = internal_event.attachments['a']
       self.assertEqual(FILE_STRING, file_utils.ReadFile(internal_path))
+      # Ensure that an absolute path is returned.
+      self.assertTrue(internal_path.startswith('/'))
       self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
 
   def testCopyAttachment(self):

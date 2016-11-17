@@ -16,7 +16,7 @@ There are three files maintained, plus one for each consumer created:
     Stores actual data.  Each line corresponds to one event.  As events are
     written to disk, each one is given a sequence number.  Format of each line:
 
-        SEQ_NUM {EVENT_DATA} CRC_SUM
+        [SEQ_NUM, {EVENT_DATA}, CRC_SUM]
 
     Writing SEQ_NUM to data.json is not strictly necessary since we keep track
     of sequence numbers in metadata, but it is useful for debugging, and could
@@ -361,6 +361,14 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         self.debug('Truncating attachment (<seq=%d): %s', self.first_seq, fname)
         os.unlink(fpath)
 
+  def _ExternalizeEvent(self, event):
+    """Modifies attachment paths of given event to be absolute."""
+    for att_id in event.attachments.keys():
+      # Reconstruct the full path to the attachment on disk.
+      event.attachments[att_id] = os.path.abspath(os.path.join(
+          self.attachments_dir, event.attachments[att_id]))
+    return event
+
   def Produce(self, events):
     """See BufferPlugin.Produce.
 
@@ -668,7 +676,8 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     if not data:
       return None
     _, record = data
-    return datatypes.Event.Deserialize(record)
+    event = datatypes.Event.Deserialize(record)
+    return self.simple_file._ExternalizeEvent(event)
 
   def Commit(self):
     """See BufferEventStream.Commit."""
