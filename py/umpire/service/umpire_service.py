@@ -252,7 +252,8 @@ class ServiceProcess(protocol.ProcessProtocol):
         self.config.executable,  # Full program pathname.
         args,                    # Args list, including executable.
         {},                      # Env vars.
-        self.config.path)        # Process CWD.
+        self.config.path,        # Process CWD.
+        usePTY=True)
     if not (self.subprocess and self.subprocess.pid):
       if restart:
         return None

@@ -107,6 +107,10 @@ class UmpireDaemon(object):
       # Reactor is stopping, no need to propagate this failure.
       return True
 
+    # Install signal handler.
+    signal.signal(signal.SIGTERM, self._HandleStopSignal)
+    signal.signal(signal.SIGINT, self._HandleStopSignal)
+
     # Deploy the loaded configuration.
     d = self.Deploy()
     d.addErrback(HandleStartError)
@@ -158,13 +162,10 @@ class UmpireDaemon(object):
     self.BuildRPCSite(self.env.umpire_rpc_port, self.methods_for_dut)
 
     self.BuildHTTPPOSTSite(self.env.umpire_http_post_port)
-    # Install signal handler.
-    signal.signal(signal.SIGTERM, self._HandleStopSignal)
-    signal.signal(signal.SIGINT, self._HandleStopSignal)
     # Start services.
     reactor.callWhenRunning(self.OnStart)
     # And start reactor loop.
-    reactor.run(installSignalHandlers=0)
+    reactor.run()
 
   def Deploy(self, restart_all=False):
     """Starts the loaded configuration.
