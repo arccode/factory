@@ -29,7 +29,8 @@ Currently the recommended approach is using Umpire inside Docker.
 2. Extract the copy of ChromeOS factory software - probably from factory bundle
    (factory.zip) or from source. Then execute:
 
-       setup/umpire_docker.sh build
+       setup/umpire_docker.sh pull
+       setup/umpire_docker.sh install
        setup/umpire_docker.sh start
 
    You should see messages like

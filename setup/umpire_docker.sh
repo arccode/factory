@@ -43,20 +43,6 @@ do_shell() {
 do_build() {
   check_docker
 
-  # Use prebuilt image if we can.
-  do_pull
-
-  if [ -f "${UMPIRE_IMAGE_FILEPATH}" ]; then
-    echo "Found prebuilt image ${UMPIRE_IMAGE_FILEPATH}"
-    if ${DOCKER} load <"${UMPIRE_IMAGE_FILEPATH}"; then
-      return
-    else
-      # the prebuilt image is corrupted, remove it.
-      rm -f "${UMPIRE_IMAGE_FILEPATH}"
-      echo "Load prebuilt image fail! start building image."
-    fi
-  fi
-
   ${DOCKER} build \
     --file "${UMPIRE_DOCKERFILE}" \
     --tag "${UMPIRE_IMAGE_NAME}" \
@@ -64,6 +50,12 @@ do_build() {
   if [ $? -eq 0 ]; then
     echo "${UMPIRE_CONTAINER_NAME} container successfully built."
   fi
+}
+
+do_install() {
+  check_docker
+
+  ${DOCKER} load <"${UMPIRE_IMAGE_FILEPATH}"
 }
 
 do_pull() {
@@ -181,6 +173,7 @@ Usage: $0 COMMAND [arg ...]
 Commands:
     build       build umpire container
     pull        pull umpire image down
+    install     load umpire docker image
     destroy     destroy umpire container
     publish     build and publish docker image to chromeos-localmirror
     start       start umpire container
@@ -194,13 +187,15 @@ __EOF__
 }
 
 main() {
-
   case "$1" in
     build)
       do_build
       ;;
     pull)
       do_pull
+      ;;
+    install)
+      do_install
       ;;
     destroy)
       do_destroy
