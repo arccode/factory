@@ -89,7 +89,7 @@ class TestListIteratorTest(unittest.TestCase):
   def _AssertTestSequence(self, test_list, expected_sequence,
                           root=None, max_iteration=10,
                           test_persistency=False, aux_data=None,
-                          run_test=None):
+                          run_test=None, set_state=True, status_filter=None):
     """Helper function to check the test order.
 
     Args:
@@ -105,12 +105,15 @@ class TestListIteratorTest(unittest.TestCase):
           This function must return True if the test is considered passed, False
           otherwise.  This function can modify current_aux_data or cause other
           side effects to affect the next or following tests.
+      set_state: override current state of test_list
     """
     if not root:
       root = test_list
     aux_data = aux_data or {}
-    test_list = self._SetStubStateInstance(test_list)
-    iterator = test_list_iterator.TestListIterator(root, test_list=test_list)
+    if set_state:
+      test_list = self._SetStubStateInstance(test_list)
+    iterator = test_list_iterator.TestListIterator(
+        root, test_list=test_list, status_filter=status_filter)
     actual_sequence = []
     if not run_test:
       run_test = lambda unused_path, unused_aux_data: True
@@ -344,6 +347,58 @@ class TestListIteratorBaseTest(TestListIteratorTest):
                 'a': True,
             },
         })
+
+  def testStatusFilter(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G'):
+      test_lists.FactoryTest(id='a', autotest_name='t_Ga')
+      with test_lists.FactoryTest(id='G'):
+        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
+        test_lists.FactoryTest(id='b', autotest_name='t_GGa')
+      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+        """, self.OPTIONS)
+
+    # no filter, all tests should be run
+    test_list = self._SetStubStateInstance(test_list)
+    test_list.lookup_path('G.a').update_state(status=factory.TestState.PASSED)
+    test_list.lookup_path('G.G.a').update_state(status=factory.TestState.FAILED)
+    self._AssertTestSequence(
+        test_list,
+        ['G.a', 'G.G.a', 'G.G.b', 'G.b'],
+        set_state=False,
+        status_filter=None)
+
+    # only UNTESTED tests will be run
+    test_list = self._SetStubStateInstance(test_list)
+    test_list.lookup_path('G.a').update_state(status=factory.TestState.PASSED)
+    test_list.lookup_path('G.G.a').update_state(status=factory.TestState.FAILED)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.b', 'G.b'],
+        set_state=False,
+        status_filter=[factory.TestState.UNTESTED])
+
+    # UNTESTED or FAILED
+    test_list = self._SetStubStateInstance(test_list)
+    test_list.lookup_path('G.a').update_state(status=factory.TestState.PASSED)
+    test_list.lookup_path('G.G.a').update_state(status=factory.TestState.FAILED)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.b', 'G.b'],
+        set_state=False,
+        status_filter=[factory.TestState.UNTESTED, factory.TestState.FAILED])
+
+    # filter doesn't apply on non-leaf tests
+    test_list = self._SetStubStateInstance(test_list)
+    test_list.lookup_path('G.a').update_state(status=factory.TestState.PASSED)
+    test_list.lookup_path('G.G.a').update_state(status=factory.TestState.FAILED)
+    test_list.lookup_path('G').update_state(status=factory.TestState.FAILED)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.b', 'G.b'],
+        set_state=False,
+        status_filter=[factory.TestState.UNTESTED, factory.TestState.FAILED])
 
   def testRunIfCannotSkipParent(self):
     """Make sure we cannot skip a parent test.
