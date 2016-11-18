@@ -28,8 +28,8 @@ class PluginLoader(object):
   """Factory to create instances of a particular plugin configuration."""
 
   def __init__(self, plugin_type, plugin_id=None, superclass=None, config=None,
-               plugin_api=None, _plugin_prefix=_DEFAULT_PLUGIN_PREFIX,
-               _plugin_class=None):
+               store=None, plugin_api=None,
+               _plugin_prefix=_DEFAULT_PLUGIN_PREFIX, _plugin_class=None):
     """Initializes the PluginEntry.
 
     Args:
@@ -49,6 +49,9 @@ class PluginLoader(object):
     self.plugin_type = plugin_type
     self.plugin_id = plugin_id or plugin_type
     self.config = config or {}
+    self._store = store
+    if self._store is None:
+      self._store = {}
     self._plugin_api = plugin_api or plugin_base.PluginAPI()
     if not isinstance(self._plugin_api, plugin_base.PluginAPI):
       raise TypeError('Invalid PluginAPI object provided')
@@ -201,7 +204,8 @@ class PluginLoader(object):
     # Instantiate the plugin with the requested configuration.
     plugin_class = self.GetClass()
     try:
-      return plugin_class(self.config, self._logger, self._plugin_api)
+      return plugin_class(self.config, self._logger, self._store,
+                          self._plugin_api)
     except arg_utils.ArgError as e:
       self._ReportException('Error parsing arguments: %s' % e.message)
     except Exception:

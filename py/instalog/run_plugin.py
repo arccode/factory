@@ -86,16 +86,19 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   def __init__(self, logger, plugin_type, config):
     self.logger = logger
     self._plugin_type = plugin_type
-    # State directory carries across PluginRunner runs.
+    # Data directory and JSON store carry across PluginRunner runs.
     self._data_dir = os.path.join(tempfile.gettempdir(),
                                    'plugin_runner.%s' % plugin_type)
     if not os.path.isdir(self._data_dir):
       os.mkdir(self._data_dir)
-    self.logger.info('Storing plugin data to: %s', self._data_dir)
+    self._store_path = os.path.join(self._data_dir, 'store.json')
+    self.logger.info('Saving plugin data to: %s', self._data_dir)
+    self.logger.info('Saving plugin store to: %s', self._store_path)
 
     self._event_queue = Queue.Queue()
     self._plugin = plugin_sandbox.PluginSandbox(
-        plugin_type, config=config, core_api=self)
+        plugin_type, config=config, store_path=self._store_path,
+        data_dir=self._data_dir, core_api=self)
     self._last_interrupt = 0
     self._last_status_update = time_utils.MonotonicTime()
     self._current_attachments = {}
@@ -186,6 +189,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     if (time_utils.MonotonicTime() - self._last_status_update >=
         _STATUS_UPDATE_INTERVAL):
       self.logger.info('Plugin state: %s', self._plugin.GetState())
+      self.logger.info('Plugin data store: %s', self._plugin._plugin.store)
       self._last_status_update = time_utils.MonotonicTime()
 
   def HandleKeyboardInterrupt(self, interrupt=False):
@@ -246,11 +250,6 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   ############################################################
   # Functions below implement plugin_base.CoreAPI.
   ############################################################
-
-  def GetDataDir(self, plugin):
-    """See Core.GetDataDir."""
-    del plugin
-    return self._data_dir
 
   def Emit(self, plugin, events):
     """See Core.Emit."""

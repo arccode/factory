@@ -32,6 +32,26 @@ class TestJSONUtils(unittest.TestCase):
     self.assertEquals(dec.decode(enc.encode(orig)), orig)
 
 
+class TestWalkJSONPath(unittest.TestCase):
+
+  def testEdgeCases(self):
+    self.assertEqual({}, json_utils.WalkJSONPath('....', {}))
+    self.assertEqual({}, json_utils.WalkJSONPath('', {}))
+    self.assertEqual([], json_utils.WalkJSONPath('....', []))
+    self.assertEqual(1, json_utils.WalkJSONPath('....[0]', [1]))
+
+  def testExamples(self):
+    data = {'hello': {'world': [100, 200]}}
+
+    self.assertEqual(100,
+                     json_utils.WalkJSONPath('.hello.world[0]', data))
+    self.assertEqual([100, 200],
+                     json_utils.WalkJSONPath('.hello.world', data))
+    self.assertEqual({'hello': {'world': [100, 200]}},
+                     json_utils.WalkJSONPath('.', data))
+
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
   unittest.main()

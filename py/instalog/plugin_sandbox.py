@@ -11,7 +11,9 @@ state, and implements PluginAPI functions for the plugin.
 from __future__ import print_function
 
 import inspect
+import json_utils
 import logging
+import os
 import sys
 import threading
 import time
@@ -20,6 +22,7 @@ import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import plugin_base
 from instalog import plugin_loader
+from instalog.utils import file_utils
 
 
 # The maximum number of unexpected accesses to store for debugging purposes.
@@ -40,10 +43,6 @@ UNPAUSING = 'UNPAUSING'
 # TODO(kitching): Find a better home for this class definition.
 class CoreAPI(object):
   """Defines the API a sandbox should use interact with Instalog core."""
-
-  def GetDataDir(self, plugin):
-    """See Core.GetDataDir."""
-    raise NotImplementedError
 
   def Emit(self, plugin, events):
     """See Core.Emit."""
@@ -97,7 +96,8 @@ class PluginSandbox(plugin_base.PluginAPI):
       UNPAUSING: _WAIT}
 
   def __init__(self, plugin_type, plugin_id=None, superclass=None, config=None,
-               core_api=None, _plugin_class=None):
+               store_path=None, data_dir=None, core_api=None,
+               _plugin_class=None):
     """Initializes the PluginSandbox.
 
     Args:
@@ -111,6 +111,8 @@ class PluginSandbox(plugin_base.PluginAPI):
                   will allow any of the three types to be created.
       config: Configuration dict of the plugin entry.  Defaults to an empty
               dict.
+      store_path: Path to this plugin's data store file.
+      data_dir: Path to the the data directory of this plugin.
       core_api: Reference to an object that implements CoreAPI, usually Core.
                 Defaults to an instance of the CoreAPI interface, which will
                 throw NotImplementedError when any method is called.  This may
@@ -123,6 +125,12 @@ class PluginSandbox(plugin_base.PluginAPI):
     self.plugin_type = plugin_type
     self.plugin_id = plugin_id or plugin_type
     self.config = config or {}
+    self._store_path = store_path
+    if self._store_path:
+      self.store = self._LoadStore(self._store_path)
+    else:
+      self.store = {}
+    self._data_dir = data_dir
     self._core_api = core_api or CoreAPI()
     if not isinstance(self._core_api, CoreAPI):
       raise TypeError('Invalid CoreAPI object provided')
@@ -132,8 +140,8 @@ class PluginSandbox(plugin_base.PluginAPI):
 
     self._loader = plugin_loader.PluginLoader(
         self.plugin_type, plugin_id=self.plugin_id,
-        superclass=superclass, config=self.config, plugin_api=self,
-        _plugin_class=_plugin_class)
+        superclass=superclass, config=self.config, store=self.store,
+        plugin_api=self, _plugin_class=_plugin_class)
     self._plugin = None
     self._state = DOWN
     self._event_stream_map = {}
@@ -153,6 +161,16 @@ class PluginSandbox(plugin_base.PluginAPI):
     """Implements repr function for debugging."""
     return ('PluginSandbox(%s, state=%s)'
             % (self.plugin_id, self._state))
+
+  def _LoadStore(self, store_path):
+    """Loads the data store dictionary from disk.
+
+    Only used when the plugin is first initialized.
+    """
+    if not os.path.isfile(store_path):
+      return {}
+    with open(store_path) as f:
+      return json_utils.JSONDecoder().decode(f.read())
 
   def GetSuperclass(self):
     """Get the superclass of the plugin class.
@@ -434,11 +452,18 @@ class PluginSandbox(plugin_base.PluginAPI):
   # Functions below implement plugin_base.PluginAPI.
   ############################################################
 
+  def SaveStore(self, plugin):
+    """See PluginAPI.SaveStore."""
+    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
+    self.logger.debug('SaveStore called with state=%s', self._state)
+    with file_utils.AtomicWrite(self._store_path) as f:
+      f.write(json_utils.JSONEncoder().encode(self.store))
+
   def GetDataDir(self, plugin):
     """See PluginAPI.GetDataDir."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
     self.logger.debug('GetDataDir called with state=%s', self._state)
-    return self._core_api.GetDataDir(self)
+    return self._data_dir
 
   def IsStopping(self, plugin):
     """See PluginAPI.IsStopping."""

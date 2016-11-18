@@ -71,3 +71,44 @@ class JSONDecoder(json.JSONDecoder):
     if '__time__' in dct:
       return datetime.datetime.strptime(dct['value'], FORMAT_TIME).time()
     return dct
+
+
+def WalkJSONPath(json_path, data):
+  """Retrieves part of a Python dictionary by walking a JSONPath-like pattern.
+
+  Uses a simplified version of jq's JSON querying language to select
+  to select information out of the dictionary.  The supported operators
+  are "." and "[]".
+
+  Example:
+    {'hello': {'world': [100, 200]}}
+
+    ".hello.world[0]" ==> 100
+    ".hello.world"    ==> [100, 200]
+    "."               ==> {'hello': {'world': [100, 200]}}
+  """
+  def ChompNextPart(json_path):
+    """Splits the JSON path into the next operator, and everything else."""
+    dict_operator_pos = json_path.find('.', 1)
+    list_operator_pos = json_path.find('[', 1)
+    if dict_operator_pos == -1:
+      dict_operator_pos = len(json_path)
+    if list_operator_pos == -1:
+      list_operator_pos = len(json_path)
+    cut = min(dict_operator_pos, list_operator_pos)
+    return json_path[:cut], json_path[cut:]
+
+  if not json_path:
+    return data
+  current, left = ChompNextPart(json_path)
+  try:
+    if current == '.':
+      return WalkJSONPath(left, data)
+    if current.startswith('.'):
+      return WalkJSONPath(left, data[current[1:]])
+    if current.startswith('['):
+      return WalkJSONPath(left, data[int(current[1:-1])])
+  except (KeyError, TypeError):
+    raise ValueError('Could not access %s' % json_path)
+  else:
+    raise ValueError('Invalid syntax found at %s' % json_path)

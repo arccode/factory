@@ -119,6 +119,9 @@ class InstalogCLI(object):
       self.Restart()
     elif args.cmd == 'status':
       self.Status()
+    elif args.cmd == 'inspect':
+      self.Inspect(args.plugin_id, args.json_path)
+
 
   def _LocateConfigFile(self, user_path):
     """Locates the config file that should be used by Instalog."""
@@ -182,6 +185,13 @@ class InstalogCLI(object):
     running = self._service.IsRunning()
     print('UP' if running else 'DOWN')
 
+  def Inspect(self, plugin_id, json_path):
+    """Inspects the store of a given plugin."""
+    success, value = self._core.Inspect(plugin_id, json_path)
+    print(value)
+    if not success:
+      sys.exit(1)
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -213,6 +223,14 @@ if __name__ == '__main__':
 
   status_parser = subparsers.add_parser('status', help='print Instalog status')
   status_parser.set_defaults(cmd='status')
+
+  inspect_parser = subparsers.add_parser('inspect', help='inspect plugin store')
+  inspect_parser.set_defaults(cmd='inspect')
+  inspect_parser.add_argument(
+      'plugin_id', type=str, help='ID of plugin to inspect')
+  inspect_parser.add_argument(
+      'json_path', type=str, nargs='?', default='.',
+      help='path of store JSON to print')
 
   args = parser.parse_args()
 

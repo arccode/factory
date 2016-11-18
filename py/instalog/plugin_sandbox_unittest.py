@@ -43,11 +43,7 @@ class RunawayThreadInput(plugin_base.InputPlugin):
 
   def _RunawayEmit(self):
     while True:
-      try:
-        self.GetDataDir()
-      except NotImplementedError:
-        # Ignore since we are not connected to a proper core.
-        pass
+      self.GetDataDir()
       time.sleep(0.1)
 
   def SetUp(self):
@@ -228,8 +224,7 @@ class TestPluginSandbox(unittest.TestCase):
     p.Start(True)
 
     # Check during the UP state.
-    with self.assertRaises(NotImplementedError):
-      p.GetDataDir(p._plugin)
+    p.GetDataDir(p._plugin)
     self.assertFalse(p.IsStopping(p._plugin))
     with self.assertRaises(NotImplementedError):
       p.Emit(p._plugin, [])
@@ -276,8 +271,7 @@ class TestPluginSandbox(unittest.TestCase):
     p.AdvanceState(True)
 
     # Check during the PAUSED state.
-    with self.assertRaises(NotImplementedError):
-      p.GetDataDir(p._plugin)
+    p.GetDataDir(p._plugin)
     with self.assertRaises(plugin_base.WaitException):
       p.Emit(p._plugin, None)
     with self.assertRaises(plugin_base.WaitException):

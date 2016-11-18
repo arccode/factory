@@ -50,6 +50,8 @@ class InputTime(plugin_base.InputPlugin):
     # Create the temporary directory for attachments.
     self._tmp_dir = tempfile.mkdtemp(prefix='input_time_')
     self.info('Temporary directory for attachments: %s', self._tmp_dir)
+    self.store.setdefault('total_events', 0)
+    self.store.setdefault('total_attachments', 0)
 
   def TearDown(self):
     """Tears down the plugin."""
@@ -72,6 +74,7 @@ class InputTime(plugin_base.InputPlugin):
           with open(att_path, 'wb') as f:
             f.write(os.urandom(self.args.attachment_bytes))
           attachments[j] = att_path
+          self.store['total_attachments'] += 1
 
         # Data for the event.
         data = {'name': self.args.event_name,
@@ -81,9 +84,11 @@ class InputTime(plugin_base.InputPlugin):
 
         # Create the event.
         events.append(datatypes.Event(data, attachments))
+        self.store['total_events'] += 1
 
       self.info('Emitting batch #%d with %d events',
                 batch_id, self.args.num_events)
+      self.SaveStore()
       if not self.Emit(events):
         self.error('Failed to emit %d events, dropping', self.args.num_events)
         # TODO(kitching): Find a better way to block the plugin when we are in

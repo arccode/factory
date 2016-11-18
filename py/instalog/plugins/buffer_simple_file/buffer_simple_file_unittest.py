@@ -48,7 +48,10 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.data_dir = tempfile.mkdtemp(prefix='simple_file.')
     logging.info('Create state directory: %s', self.data_dir)
     self.sf = buffer_simple_file.BufferSimpleFile(
-        config, logging.getLogger('simple_file'), None)
+        config=config,
+        logger=logging.getLogger('simple_file'),
+        store={},
+        plugin_api=None)
     self.sf.GetDataDir = lambda: self.data_dir
     self.sf.SetUp()
     self.e1 = datatypes.Event({'test1': 'event'})

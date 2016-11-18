@@ -13,8 +13,10 @@ import os
 import time
 
 import instalog_common  # pylint: disable=W0611
+from instalog import json_utils
 from instalog import log_utils
 from instalog.utils import arg_utils
+from instalog.utils import file_utils
 from instalog.utils import time_utils
 
 
@@ -56,6 +58,10 @@ class ConfigError(Exception):
 class PluginAPI(object):
   """Defines an interface for plugins to call."""
 
+  def SaveStore(self, plugin):
+    """See Plugin.SaveStore."""
+    raise NotImplementedError
+
   def GetDataDir(self, plugin):
     """See Plugin.GetDataDir."""
     raise NotImplementedError
@@ -95,13 +101,14 @@ class Plugin(log_utils.LoggerMixin, object):
   sets some shortcut functions to the logger.
   """
 
-  def __init__(self, config, logger, plugin_api):
+  def __init__(self, config, logger, store, plugin_api):
     """Plugin constructor.
 
     Args:
       config: A dictionary representing arguments for this plugin.  Will be
               validated against the specification in ARGS.
       logger: A reference to the logger for this plugin instance.
+      store: A reference to the plugin's store dictionary.
       plugin_api: An instance of a class implementing PluginAPI.
 
     Raises:
@@ -111,11 +118,14 @@ class Plugin(log_utils.LoggerMixin, object):
     arg_spec = getattr(self, 'ARGS', [])
     setattr(self, 'args', arg_utils.Args(*arg_spec).Parse(config))
 
-    # Save the core API to a private instance variable.
-    self._plugin_api = plugin_api
-
     # log_utils.LoggerMixin creates shortcut functions for convenience.
     self.logger = logger
+
+    # Plugin data store dictionary.
+    self.store = store
+
+    # Save the core API to a private instance variable.
+    self._plugin_api = plugin_api
 
   def SetUp(self):
     """Sets up any connections or threads needed.
@@ -141,11 +151,21 @@ class Plugin(log_utils.LoggerMixin, object):
     """
     return
 
+  def SaveStore(self):
+    """Saves the data store dictionary to disk.
+
+    Plugins may make many updates to the store (inefficient to write on every
+    change), or might only want to write it to disk in certain situations to
+    ensure atomicity.  Thus the action of saving the store is exposed for the
+    plugin to handle.
+    """
+    return self._plugin_api.SaveStore(self)
+
   def GetDataDir(self):
-    """Returns the state directory of this plugin.
+    """Returns the data directory of this plugin.
 
     This directory is set aside by Instalog core for the plugin to store any
-    state.  Its value can be expected to be consistent across plugin restarts or
+    data.  Its value can be expected to be consistent across plugin restarts or
     Instalog restarts.
 
     Raises:

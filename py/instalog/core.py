@@ -13,6 +13,7 @@ import threading
 import time
 
 import instalog_common  # pylint: disable=W0611
+from instalog import json_utils
 from instalog import plugin_sandbox
 from instalog import plugin_base
 
@@ -77,6 +78,7 @@ class Instalog(plugin_sandbox.CoreAPI):
         (cli_hostname, cli_port))
     self._rpc_server.register_function(self.IsRunning)
     self._rpc_server.register_function(self.Stop)
+    self._rpc_server.register_function(self.Inspect)
     self._rpc_thread = threading.Thread(target=self._rpc_server.serve_forever)
     self._rpc_thread.start()
 
@@ -103,11 +105,19 @@ class Instalog(plugin_sandbox.CoreAPI):
           '`plugin` to specify which plugin module to load' % plugin_id)
     plugin_type = config.pop('plugin')
 
+    # Make sure we have a store_path and data_dir for the plugin.
+    store_path = os.path.join(self._data_dir, '%s.json' % plugin_id)
+    data_dir = os.path.join(self._data_dir, plugin_id)
+    if not os.path.exists(data_dir):
+      os.makedirs(data_dir)
+
     return plugin_sandbox.PluginSandbox(
         plugin_type=plugin_type,
         plugin_id=plugin_id,
         superclass=superclass,
         config=config,
+        store_path=store_path,
+        data_dir=data_dir,
         core_api=self)
 
   def _ConfigEntriesToSandboxes(self, superclass, entries):
@@ -202,23 +212,21 @@ class Instalog(plugin_sandbox.CoreAPI):
       logging.info('Stopped buffer')
       self._state = DOWN
 
+  def Inspect(self, plugin_id, json_path):
+    with self._rpc_lock:
+      if plugin_id not in self._plugins:
+        return False, 'Plugin `%s\' not found' % plugin_id
+      try:
+        store_data = self._plugins[plugin_id].store
+        return True, json_utils.JSONEncoder().encode(
+            json_utils.WalkJSONPath(json_path, store_data))
+      except Exception as e:
+        return False, ('Error on inspect with JSON path `%s\': %s'
+                       % (json_path, e.message))
+
   ############################################################
   # Functions below implement plugin_base.CoreAPI.
   ############################################################
-
-  def GetDataDir(self, plugin):
-    """Returns the directory used to store plugin data.
-
-    Args:
-      plugin: PluginSandbox object requesting plugin data directory.
-
-    Returns:
-      Path to plugin data directory.
-    """
-    data_dir = os.path.join(self._data_dir, plugin.plugin_id)
-    if not os.path.exists(data_dir):
-      os.makedirs(data_dir)
-    return data_dir
 
   def Emit(self, plugin, events):
     """Emits given events from the specified plugin.
