@@ -25,6 +25,13 @@ var BoardsApp = React.createClass({
   },
 
   handleCreate() {
+    // first, make sure the name field is not empty
+    this.setState({nameInputErrorText: ''});
+    if (this.state.nameInputValue == '') {
+      this.setState({nameInputErrorText: 'This field cannot be empty'});
+      return;
+    }
+
     this.props.createBoard(this.state.nameInputValue);
     this.setState({nameInputValue: ''});
   },
@@ -36,7 +43,8 @@ var BoardsApp = React.createClass({
 
   getInitialState() {
     return {
-      nameInputValue: ''
+      nameInputValue: '',
+      nameInputErrorText: ''
     };
   },
 
@@ -95,6 +103,7 @@ var BoardsApp = React.createClass({
             floatingLabelText="New board name"
             value={this.state.nameInputValue}
             onChange={e => this.setState({nameInputValue: e.target.value})}
+            errorText={this.state.nameInputErrorText}
           />
           <RaisedButton
             label="CREATE A NEW BOARD"
