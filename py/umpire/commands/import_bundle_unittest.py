@@ -153,7 +153,7 @@ class ImportBundleTest(unittest.TestCase):
 
     expect_resources = {
         'device_factory_toolkit': 'install_factory_toolkit.run##' + TOOLKIT_MD5,
-        'netboot_vmlinux': 'vmlinux.uimg##d41d8cd9',
+        'netboot_kernel': 'vmlinuz##d41d8cd9',
         'complete_script': 'complete.gz##d41d8cd9',
         'efi_partition': 'efi.gz##d41d8cd9',
         'firmware': 'firmware.gz#%s:%s:%s#d41d8cd9' % (BIOS_VERSION, EC_VERSION,
@@ -205,7 +205,7 @@ class ImportBundleTest(unittest.TestCase):
     dup_factory_toolkit = self.env.GetResourcePath(
         'install_factory_toolkit.run##7509337e', check=False)
     file_utils.WriteFile(dup_factory_toolkit, 'not a factory toolkit')
-    dup_netboot_image = self.env.GetResourcePath('vmlinux.uimg##d41d8cd9',
+    dup_netboot_image = self.env.GetResourcePath('vmlinuz##d41d8cd9',
                                                  check=False)
     file_utils.WriteFile(dup_netboot_image, 'not a netboot image')
 

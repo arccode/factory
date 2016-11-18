@@ -430,7 +430,7 @@ class UmpireEnvForTest(UmpireEnv):
                 'rootfs-test.gz',
                 'install_factory_toolkit.run',
                 'state.gz',
-                'vmlinux'):
+                'vmlinuz'):
       file_utils.TouchFile(os.path.join(
           self.resources_dir, '%s##%s' % (res, common.EMPTY_FILE_HASH)))
 

@@ -13,7 +13,7 @@ add_files:
   extract_files: [ec.bin, nv_image-spring.bin]
   source: 'gs://chromeos-releases/canary-channel/daisy-spring/3824.42.0/ChromeOS-firmware-R27-3824.42.0-daisy-spring.tar.bz2'
 - install_into: .
-  extract_files: [factory_shim/netboot/vmlinux.uimg]
+  extract_files: [factory_shim/netboot/vmlinuz]
   source: 'gs://chromeos-releases/canary-channel/daisy-spring/4131.73.0/ChromeOS-factory-R29-4131.73.0-daisy-spring.zip'
 
 # install_into is the relative path under /mnt/dev_image/
@@ -83,9 +83,8 @@ files:
 - setup/mk_memento_images.sh
 - setup/modify_netboot_ip.sh
 - setup/mount_partition.sh
-- setup/update_firmware_vars.py
-- setup/update_firmware_settings.py
-- factory_shim/netboot/vmlinux.uimg
+- setup/netboot_firmware_settings.py
+- factory_shim/netboot/vmlinuz
 - factory_shim/pack_partitions.sh
 - factory_shim/unpack_partitions.sh
 - factory_test/chromiumos_factory_image.bin

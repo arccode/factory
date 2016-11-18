@@ -3,5 +3,5 @@ note: 'Bundle 1'
 __token__: 00000001
 shop_floor_handler: /shop_floor/50001
 device_factory_toolkit: factory.tar.bz2#[version]#[hash]
-netboot_vmlinux: 'vmlinux#[version]#[hash]'
+netboot_kernel: 'vmlinuz#[version]#[hash]'
 complete_script: 'complete.gz##[hash]'

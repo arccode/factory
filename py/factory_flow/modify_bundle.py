@@ -128,30 +128,6 @@ class ModifyBundle(FactoryFlowCommand):
     if not has_install_shim:
       logging.warning('There is no install shim in the bundle.')
 
-  def UpdateUbootNetboot(self, mini_omaha_url):
-    """Updates Omaha & TFTP servers' URL in uboot netboot firmware.
-
-    Args:
-      mini_omaha_url: The mini-omaha URL to patch.
-    """
-    netboot_firmware_image = os.path.join(
-        self.options.bundle, 'netboot_firmware',
-        'nv_image-%s.bin' % self.options.board.short_name)
-    if os.path.exists(netboot_firmware_image):
-      update_firmware_vars = os.path.join(
-          self.options.bundle, 'setup', 'update_firmware_vars.py')
-      new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
-      process_utils.Spawn([
-          update_firmware_vars,
-          '--force',
-          '-i', netboot_firmware_image,
-          '-o', new_netboot_firmware_image,
-          '--omahaserver=%s' % mini_omaha_url,
-          '--tftpserverip=%s' %
-          urlparse.urlparse(mini_omaha_url).hostname],
-                          check_call=True, log=True)
-      shutil.move(new_netboot_firmware_image, netboot_firmware_image)
-
   def UpdateDepthchargeNetboot(self, mini_omaha_url):
     """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware.
 
@@ -163,10 +139,10 @@ class ModifyBundle(FactoryFlowCommand):
     if os.path.exists(netboot_firmware_image):
       update_firmware_settings = (
           os.path.join(
-              self.options.bundle, 'setup', 'update_firmware_settings.py'))
+              self.options.bundle, 'setup', 'netboot_firmware_settings.py'))
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
       process_utils.Spawn([update_firmware_settings,
-                           '--bootfile', 'vmlinux.bin',
+                           '--bootfile', 'vmlinuz',
                            '--input', netboot_firmware_image,
                            '--output', new_netboot_firmware_image,
                            '--omahaserver=%s' % mini_omaha_url,
@@ -180,5 +156,4 @@ class ModifyBundle(FactoryFlowCommand):
                                               self.options.mini_omaha_port)
     self.UpdateManifest(mini_omaha_url)
     self.UpdateInstallShim(mini_omaha_url)
-    self.UpdateUbootNetboot(mini_omaha_url)
     self.UpdateDepthchargeNetboot(mini_omaha_url)

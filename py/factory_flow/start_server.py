@@ -86,13 +86,12 @@ class StartServer(FactoryFlowCommand):
 
         <bundle_dir>/factory_shim/netboot/
 
-    If either vmlinux.bin (for depthcharge) or vmlinux.uimg (for u-boot) is
+    If either vmlinux.bin (legacy name) or vmlinuz is
     found, the command will set up a temporary directory serving as the root
     directory of the TFTP server and start the TFTP server. The kernel binary is
     copied to the temporary root directory according to its type:
 
-      - For depthcharge: <TFTP root dir>/vmlinux.bin
-      - For u-boot: <TFTP root dir>/tftpboot/vmlinux.uimg
+      - For depthcharge: <TFTP root dir>/vmlinuz
 
   - Download server
 
@@ -346,12 +345,7 @@ class StartServer(FactoryFlowCommand):
         self.options.bundle, 'netboot_firmware', 'image.net.bin')):
       netboot_kernel_path = os.path.join(
           self.options.bundle, 'factory_shim', 'netboot',
-          'vmlinux-%s.bin' % self.options.board.full_name)
-    elif os.path.exists(os.path.join(
-        self.options.bundle, 'netboot_firmware',
-        'nv_image-%s.bin' % self.options.board.short_name)):
-      netboot_kernel_path = os.path.join(self.options.bundle, 'factory_shim',
-                                         'netboot', 'vmlinux.uimg')
+          'vmlinuz-%s' % self.options.board.full_name)
     else:
       logging.info('No netboot firmware found; skip netboot kernel checks')
       logging.info('TFTP server is not started')
@@ -363,12 +357,7 @@ class StartServer(FactoryFlowCommand):
 
     tftpd_dir = tempfile.mkdtemp(prefix='tftp_', dir=self.files_dir)
     os.chmod(tftpd_dir, stat.S_IRWXU | stat.S_IXOTH)
-    if netboot_kernel_path.endswith('.bin'):
-      tftpboot = tftpd_dir
-    else:
-      tftpboot = os.path.join(tftpd_dir, 'tftpboot')
-      file_utils.TryMakeDirs(tftpboot)
-      os.chmod(tftpboot, stat.S_IRWXU | stat.S_IXOTH)
+    tftpboot = tftpd_dir
     vmlinux_dest = os.path.join(tftpboot, os.path.basename(netboot_kernel_path))
     shutil.copy(netboot_kernel_path, vmlinux_dest)
     os.chmod(vmlinux_dest,

@@ -19,8 +19,10 @@ from cros.factory.utils import file_utils
 
 TEST_DIR = os.path.dirname(__file__)
 
+# If anything in UMPIRE_CONFIG_PATH file changed, update UMPIRE_CONFIG_RESOURCE
+# by md5sum.
 UMPIRE_CONFIG_PATH = os.path.join(TEST_DIR, 'testdata', 'default_umpire.yaml')
-UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##8db35cf5'
+UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##ae97911b'
 
 # Relative path of Umpire / Umpired executable.
 UMPIRE_RELATIVE_PATH = os.path.join('bin', 'umpire')

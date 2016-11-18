@@ -234,8 +234,8 @@ class CreateBundle(FactoryFlowCommand):
                    source=r'^.*\.zip$'),
               extra_check=lambda file_spec: (
                   any(shim in file_spec.get('extract_files', []) for shim in
-                      ('factory_shim/netboot/vmlinux.uimg',
-                       'factory_shim/netboot/vmlinux.bin'))))
+                      ('factory_shim/netboot/vmlinux.bin',
+                       'factory_shim/netboot/vmlinuz'))))
         elif file_type == self.FILE_TYPE.hwid_bundle:
           url = GetSourceFromMatchedDict(
               manifest.get('add_files', []),
@@ -371,7 +371,7 @@ class CreateBundle(FactoryFlowCommand):
     self.manifest_urls['netboot_shim'] = netboot_shim_url
     manifest['add_files'].append(
         dict(install_into='.',
-             extract_files=['factory_shim/netboot/vmlinux.uimg'],
+             extract_files=['factory_shim/netboot/vmlinuz'],
              source=netboot_shim_url))
 
     # Add factory install shim.

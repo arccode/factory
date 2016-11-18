@@ -175,17 +175,6 @@ class ConfigDeployer(object):
     self._env.UnstageConfigFile()
     logging.info('Config %r deployed. Set it as activate config.',
                  self._config_path_to_deploy)
-
-    default_bundle = self._env.config.GetDefaultBundle()
-    resources = default_bundle.get('resources', [])
-    if 'netboot_vmlinux' in resources:
-      vmlinux_symlink = os.path.join(self._env.resources_dir, 'vmlinux.bin')
-      file_utils.SymlinkRelative(resources['netboot_vmlinux'],
-                                 vmlinux_symlink,
-                                 base=self._env.base_dir,
-                                 force=True)
-      logging.info('netboot kernel: %s updated.', resources['netboot_vmlinux'])
-
     return 'Deploy success'
 
   def _HandleDeployError(self, failure):

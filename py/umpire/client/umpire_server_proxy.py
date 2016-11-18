@@ -458,7 +458,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     __token__: fe8082c1
     shop_floor_handler: /shop_floor/9001
     device_factory_toolkit: factory.tar.bz2#[version]#[hash]
-    netboot_vmlinux: 'vmlinux#[version]#[hash]'
+    netboot_kernel: 'vmlinuz#[version]#[hash]'
     complete_script: 'complete.gz##[hash]'
 
     Args:

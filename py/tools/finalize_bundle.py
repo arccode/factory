@@ -66,7 +66,7 @@ CUTOFF_OPTION = {
 LOCAL = 'local'
 
 # Netboot install shims that we are using at the moment.
-NETBOOT_SHIMS = ('vmlinux.uimg', 'vmlinux.bin')
+NETBOOT_SHIMS = ('vmlinuz', 'vmlinux.bin')
 
 
 def _GetReleaseVersion(mount_point):
@@ -448,9 +448,9 @@ class FinalizeBundle(object):
         if shims_to_extract:
           self.netboot_install_shim_version = str(LooseVersion(
               os.path.basename(os.path.dirname(source))))
-          # Delete any existing vmlinux.uimg or vmlinux.bin to make sure we will
+          # Delete any existing vmlinuz or vmlinux.bin to make sure we will
           # not put any wrong file into the bundle, i.e. if we extract only
-          # vmlinux.uimg we should delete existing vmlinux.bin, and vice versa.
+          # vmlinuz we should delete existing vmlinux.bin, and vice versa.
           for path in shims_to_extract:
             for shim in NETBOOT_SHIMS:
               TryUnlink(os.path.join(install_into, os.path.dirname(path), shim))
@@ -469,7 +469,7 @@ class FinalizeBundle(object):
   def _ChangeTipVersion(self, add_file):
     """Changes image to the latest version for testing tip of branch.
 
-    Changes install shim, release image, netboot install shim (vmlinux.uimg or
+    Changes install shim, release image, netboot install shim (vmlinuz or
     vmlinux.bin) to the latest version of original branch for testing. Check
     _GSGetLatestVersion for the detail of choosing the tip version on the
     branch.
@@ -706,48 +706,24 @@ class FinalizeBundle(object):
       MakeUpdateBundle(self.factory_image_path, updater_path)
 
   def UpdateNetbootURL(self):
-    """Updates Omaha & TFTP servers' URL in netboot firmware.
-
-    It takes care of both uboot and depthcharge firmware, if presents.
-    """
+    """Updates Omaha & TFTP servers' URL in netboot firmware."""
 
     mini_omaha_url = self.manifest.get('mini_omaha_url')
     if not mini_omaha_url:
       return
 
-    def UpdateUbootNetboot():
-      """Updates Omaha & TFTP servers' URL in uboot netboot firmware."""
-      netboot_firmware_image = os.path.join(
-          self.bundle_dir, 'netboot_firmware',
-          'nv_image-%s.bin' % self.simple_board)
-      if os.path.exists(netboot_firmware_image):
-        update_firmware_vars = os.path.join(
-            self.bundle_dir, 'setup', 'update_firmware_vars.py')
-        new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
-        Spawn([update_firmware_vars,
-               '--force',
-               '-i', netboot_firmware_image,
-               '-o', new_netboot_firmware_image,
-               '--omahaserver=%s' % mini_omaha_url,
-               '--tftpserverip=%s' %
-               urlparse.urlparse(mini_omaha_url).hostname],
-              check_call=True, log=True)
-        shutil.move(new_netboot_firmware_image, netboot_firmware_image)
-
     def UpdateDepthchargeNetboot():
-      """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware.
-
-      Also copy 'vmlinux.uimg', skips the first 64 bytes and stored it
-      as 'vmlinux.bin' if there's no existing 'vmlinux.bin' found.
-      """
+      """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware."""
       netboot_firmware_image = os.path.join(
           self.bundle_dir, 'netboot_firmware', 'image.net.bin')
-      target_bootfile = 'vmlinux-%s.bin' % self.board
+      target_bootfile = 'vmlinuz-%s' % self.board
+      target_argsfile = 'cmdline-%s' % self.board
       if os.path.exists(netboot_firmware_image):
         update_firmware_settings = os.path.join(
-            self.bundle_dir, 'setup', 'update_firmware_settings.py')
+            self.bundle_dir, 'setup', 'netboot_firmware_settings.py')
         new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
         Spawn([update_firmware_settings,
+               '--argsfile', target_argsfile,
                '--bootfile', target_bootfile,
                '--input', netboot_firmware_image,
                '--output', new_netboot_firmware_image,
@@ -756,26 +732,15 @@ class FinalizeBundle(object):
                urlparse.urlparse(mini_omaha_url).hostname],
               check_call=True, log=True)
         shutil.move(new_netboot_firmware_image, netboot_firmware_image)
-
-        target_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
+        # support both 'vmlinux.bin' and 'vmlinuz'.
+        legacy_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
                                            'netboot', 'vmlinux.bin')
+        target_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
+                                           'netboot', 'vmlinuz')
         if not os.path.exists(target_netboot_shim):
-          # Only generate 'vmlinux.bin' manually if it does not exist. If
-          # 'vmlinux.bin' is present (as changed by CL:195554), we will simply
-          # use it since it is already processed by make_netboot.sh.
-          netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
-                                      'netboot', 'vmlinux.uimg')
-          if self.build_board.arch == 'arm':
-            # No special process needed for ARM-based boards; simply copy the
-            # file.
-            shutil.copyfile(netboot_shim, target_netboot_shim)
-          else:
-            # If the board is not ARM-based, we need to copy 'vmlinux.uimg' to
-            # 'vmlinux.bin' and skip the first 64 bytes to strip uboot header.
-            # Keep both of the files so everyone can be aware of the difference.
-            CopyFileSkipBytes(netboot_shim, target_netboot_shim, 64)
+          target_netboot_shim = legacy_netboot_shim
 
-        # Finally, copy 'vmlinux.bin' to 'vmlinux-<board>.bin'.
+        # Finally, copy to 'vmlinuz-<board>'.
         renamed_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
                                             'netboot', target_bootfile)
         shutil.copy(target_netboot_shim, renamed_netboot_shim)
@@ -1128,7 +1093,7 @@ class FinalizeBundle(object):
     if self.install_shim_version:
       vitals.append(('Factory install shim', self.install_shim_version))
     if self.netboot_install_shim_version:
-      vitals.append(('Netboot install shim (vmlinux.uimg/vmlinux.bin)',
+      vitals.append(('Netboot install shim (vmlinuz/vmlinux.bin)',
                      self.netboot_install_shim_version))
     with MountPartition(self.release_image_path, 3) as f:
       vitals.append(('Release (FSI)', _GetReleaseVersion(f)))

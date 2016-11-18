@@ -78,7 +78,7 @@ class FactoryBundle(object):
   _BUNDLE_MANIFEST = 'MANIFEST.yaml'
   _DOWNLOAD_FILES_PATTERN = os.path.join('setup', 'static', '*')
   _FACTORY_TOOLKIT = os.path.join('toolkit', 'install_factory_toolkit.run')
-  _NETBOOT_IMAGE = os.path.join('factory_shim', 'netboot', 'vmlinux.uimg')
+  _NETBOOT_IMAGE = os.path.join('factory_shim', 'netboot', 'vmlinuz')
   _NETBOOT_FIRMWARE = os.path.join('netboot_firmware', 'image.net.bin')
   _MANDATORY_IMAGES = ['release', 'factory_shim']
 
@@ -353,11 +353,11 @@ class BundleImporter(object):
     utils.UnpackFactoryToolkit(self._env,
                                resources['device_factory_toolkit'])
 
-    resources['netboot_vmlinux'] = AddResource(
+    resources['netboot_kernel'] = AddResource(
         self._factory_bundle.netboot_image,
-        res_type=common.ResourceType.NETBOOT_VMLINUX)
-    if not resources['netboot_vmlinux']:
-      logging.warning('Missing netboot_vmlinux %r',
+        res_type=common.ResourceType.NETBOOT_KERNEL)
+    if not resources['netboot_kernel']:
+      logging.warning('Missing netboot_kernel %r',
                       self._factory_bundle.netboot_image)
 
     resources['netboot_firmware'] = AddResource(

@@ -125,7 +125,7 @@ A sample config looks like:
       efi_partition: none##00000000
       firmware: none##00000000
       hwid: none##00000000
-      netboot_vmlinux: none##00000000
+      netboot_kernel: none##00000000
       oem_partition: none##00000000
       rootfs_release: none##00000000
       rootfs_test: none##00000000

@@ -18,7 +18,7 @@ bundles:
     efi_partition: none##d41d8cd9
     firmware: none##d41d8cd9
     hwid: none##d41d8cd9
-    netboot_vmlinux: none##d41d8cd9
+    netboot_kernel: none##d41d8cd9
     oem_partition: none##d41d8cd9
     rootfs_release: none##d41d8cd9
     rootfs_test: none##d41d8cd9
