@@ -25,6 +25,8 @@ import logging
 import os
 import re
 import subprocess
+import sys
+import traceback
 import unittest
 import yaml
 
@@ -63,6 +65,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
       # boards.yaml.
       files = [b['path'] for b in boards_info.itervalues() if b['version'] == 3]
 
+    exception_list = []
     for f in files:
       board_name = os.path.basename(f)
       if board_name not in boards_info:
@@ -83,8 +86,8 @@ class ValidHWIDDBsTest(unittest.TestCase):
       db_path = board_info['path']
       test_path = os.path.join(os.path.dirname(db_path), 'testdata',
                                board_name + '_test.yaml')
-
-      logging.info('Checking %s: %s:%s', board_name, commit, db_path)
+      title = '%s %s:%s' % (board_name, commit, db_path)
+      logging.info('Checking %s', title)
       try:
         db_raw = process_utils.CheckOutput(
             ['git', 'show', '%s:%s' % (commit, db_path)],
@@ -94,26 +97,32 @@ class ValidHWIDDBsTest(unittest.TestCase):
           logging.info('Database %s is removed. Skip test for %s.',
                        db_path, board_name)
           continue
-        raise
+        exception_list.append((title, sys.exc_info()))
+        continue
 
       # Load databases and verify checksum. For old factory branches that do not
       # have database checksum, the checksum verification will be skipped.
-      db_yaml = yaml.load(db_raw)
-      if 'checksum' in db_yaml:
-        with file_utils.UnopenedTemporaryFile() as temp_db:
-          with open(temp_db, 'w') as f:
-            f.write(db_raw)
-          expected_checksum = database.Database.Checksum(temp_db)
-      else:
-        expected_checksum = None
+      try:
+        db_yaml = yaml.load(db_raw)
+        if 'checksum' in db_yaml:
+          with file_utils.UnopenedTemporaryFile() as temp_db:
+            with open(temp_db, 'w') as f:
+              f.write(db_raw)
+            expected_checksum = database.Database.Checksum(temp_db)
+        else:
+          expected_checksum = None
 
-      if expected_checksum is None:
-        logging.warn(
-            'Database %s:%s does not have checksum field. Will skip checksum '
-            'verification.', commit, db_path)
-      db = database.Database.LoadData(
-          db_yaml, expected_checksum=expected_checksum,
-          strict=bool(expected_checksum))
+        if expected_checksum is None:
+          logging.warn(
+              'Database %s:%s does not have checksum field. Will skip checksum '
+              'verification.', commit, db_path)
+        db = database.Database.LoadData(
+            db_yaml, expected_checksum=expected_checksum,
+            strict=bool(expected_checksum))
+      except Exception:
+        logging.error('%s: Load database failed.', board_name)
+        exception_list.append((title, sys.exc_info()))
+        continue
 
       try:
         test_samples = yaml.load_all(process_utils.CheckOutput(
@@ -124,15 +133,31 @@ class ValidHWIDDBsTest(unittest.TestCase):
           logging.info('Cannot find %s. Skip encoding / decoding test for %s.',
                        test_path, board_name)
           continue
-        raise
+        logging.error('%s: Load testdata failed.', board_name)
+        exception_list.append((title, sys.exc_info()))
+        continue
 
       for sample in test_samples:
-        if sample['test'] == 'encode':
-          self.TestEncode(db, sample)
-        elif sample['test'] == 'decode':
-          self.TestDecode(db, sample)
-        else:
-          raise ValueError('Invalid test type: %r' % sample['test'])
+        try:
+          if sample['test'] == 'encode':
+            self.TestEncode(db, sample)
+          elif sample['test'] == 'decode':
+            self.TestDecode(db, sample)
+          else:
+            raise ValueError('Invalid test type: %r' % sample['test'])
+        except Exception as e:
+          if 'error' in sample:
+            idx = sample['error']
+          else:
+            idx = sample['encoded_string']
+          logging.error('Error occurs in %s: %s', board_name, idx)
+          exception_list.append((title, sys.exc_info()))
+    if exception_list:
+      error_msg = []
+      for title, info in exception_list:
+        error_msg.append('Error occurs in %s\n' % title +
+                         ''.join(traceback.format_exception(*info)))
+      raise Exception('\n'.join(error_msg))
 
   def TestEncode(self, db, sample_dict):
     # Set up test variables.
