@@ -70,6 +70,10 @@ class PluginAPI(object):
     """See Plugin.IsStopping."""
     raise NotImplementedError
 
+  def IsFlushing(self, plugin):
+    """See Plugin.IsStopping."""
+    raise NotImplementedError
+
   def Emit(self, plugin, events):
     """See InputPlugin.Emit."""
     raise NotImplementedError
@@ -188,6 +192,19 @@ class Plugin(log_utils.LoggerMixin, object):
     """
     return self._plugin_api.IsStopping(self)
 
+  def IsFlushing(self):
+    """Returns whether or not the plugin is flushing.
+
+    If True is returned, the plugin should continue running as usual.  If False
+    is returned, the plugin should process any remaining data, and not wait for
+    further data to be included in the current "batch".
+
+    Raises:
+      UnexpectedAccess if the plugin instance is in some unexpected state and
+      is trying to access core functionality that it should not.
+    """
+    return self._plugin_api.IsFlushing(self)
+
   def Sleep(self, secs):
     """Suspends execution of the current thread for the given number of seconds.
 
@@ -202,12 +219,10 @@ class Plugin(log_utils.LoggerMixin, object):
         # ... do some work ...
         self.Sleep(self.args.interval)
     """
-    if secs < 1:
-      time.sleep(secs)
-      return
     end_time = time_utils.MonotonicTime() + secs
-    while time_utils.MonotonicTime() < end_time and not self.IsStopping():
-      time.sleep(1)
+    while (time_utils.MonotonicTime() < end_time and
+           (not self.IsStopping() and not self.IsFlushing())):
+      time.sleep(min(1, secs))
 
 
 class BufferPlugin(Plugin):
@@ -230,9 +245,13 @@ class BufferPlugin(Plugin):
     raise NotImplementedError
 
   def ListConsumers(self):
-    """Returns a list of consumers currently subscribed to the buffer."""
-    # TODO(kitching): Should we return the status of each consumer in this
-    #                 function, or should it be separated into ConsumerStatus()?
+    """Returns information about consumers subscribed to the buffer.
+
+    Returns:
+      A dictionary, where keys are consumer IDs, and values are tuples
+      of (completed_count, total_count) representing progress through
+      Event processing.
+    """
     raise NotImplementedError
 
   def Produce(self, events):

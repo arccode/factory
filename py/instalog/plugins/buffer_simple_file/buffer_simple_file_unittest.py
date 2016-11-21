@@ -74,11 +74,11 @@ class TestBufferSimpleFile(unittest.TestCase):
 
   def testAddRemoveConsumer(self):
     """Tests adding and removing a Consumer."""
-    self.assertEqual([], self.sf.ListConsumers())
+    self.assertEqual({}, self.sf.ListConsumers())
     self.sf.AddConsumer('a')
-    self.assertEqual(['a'], self.sf.ListConsumers())
+    self.assertEqual(['a'], self.sf.ListConsumers().keys())
     self.sf.RemoveConsumer('a')
-    self.assertEqual([], self.sf.ListConsumers())
+    self.assertEqual({}, self.sf.ListConsumers())
 
   def testWriteRead(self):
     """Tests writing and reading back an Event."""

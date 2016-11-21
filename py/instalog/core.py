@@ -79,6 +79,7 @@ class Instalog(plugin_sandbox.CoreAPI):
     self._rpc_server.register_function(self.IsRunning)
     self._rpc_server.register_function(self.Stop)
     self._rpc_server.register_function(self.Inspect)
+    self._rpc_server.register_function(self.Flush)
     self._rpc_thread = threading.Thread(target=self._rpc_server.serve_forever)
     self._rpc_thread.start()
 
@@ -141,7 +142,7 @@ class Instalog(plugin_sandbox.CoreAPI):
     consumers = [plugin.plugin_id for plugin in self._plugins.values()
                  if plugin.GetSuperclass() is plugin_base.OutputPlugin]
     consumers.append('__instalog__')
-    buffer_consumers = self._buffer.CallPlugin('ListConsumers')
+    buffer_consumers = self._buffer.CallPlugin('ListConsumers').keys()
     logging.info('Syncing consumer lists')
     logging.debug('Our consumer list: %s', consumers)
     logging.debug('Buffer consumer list: %s', buffer_consumers)
@@ -224,6 +225,24 @@ class Instalog(plugin_sandbox.CoreAPI):
         return False, ('Error on inspect with JSON path `%s\': %s'
                        % (json_path, e.message))
 
+  def Flush(self, plugin_id, timeout):
+    with self._rpc_lock:
+      if plugin_id not in self._plugins:
+        return False, 'Plugin `%s\' not found' % plugin_id
+      plugin = self._plugins[plugin_id]
+      if plugin.GetSuperclass() is not plugin_base.OutputPlugin:
+        return False, ('Only output plugins can be flushed (tried: `%s\')'
+                       % plugin_id)
+      if plugin.Flush(timeout, True):
+        progress = plugin.GetProgress()
+        return True, ('Flushed `%s\' successfully (%d / %d events)'
+                      % (plugin_id, progress[0], progress[1]))
+      else:
+        progress = plugin.GetProgress()
+        return False, ('Flush for `%s\' failed within the specified timeout '
+                       '(%d / %d events)'
+                       % (plugin_id, progress[0], progress[1]))
+
   ############################################################
   # Functions below implement plugin_base.CoreAPI.
   ############################################################
@@ -249,6 +268,7 @@ class Instalog(plugin_sandbox.CoreAPI):
 
   def NewStream(self, plugin):
     """Creates a new BufferEventStream for the specified plugin.
+
     Args:
       plugin: PluginSandbox object requesting BufferEventStream.
 
@@ -259,3 +279,18 @@ class Instalog(plugin_sandbox.CoreAPI):
       PluginCallError if Buffer fails unexpectedly.
     """
     return self._buffer.CallPlugin('Consume', plugin.plugin_id)
+
+  def GetProgress(self, plugin):
+    """Returns the current progress through buffer for the specified plugin.
+
+    Args:
+      plugin: PluginSandbox object requesting BufferEventStream.
+
+    Returns:
+      A tuple (completed_count, total_count) representing how many Events have
+      been processed so far, and how many exist in total.
+
+    Raises:
+      PluginCallError if Buffer fails unexpectedly.
+    """
+    return self._buffer.CallPlugin('ListConsumers')[plugin.plugin_id]

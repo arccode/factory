@@ -544,7 +544,17 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
 
   def ListConsumers(self):
     """See BufferPlugin.ListConsumers."""
-    return self.consumers.keys()
+    with self._consumer_lock:
+      # cur_seq represents the sequence ID of the consumer's next event.  If
+      # that event doesn't exist yet, it will be set to the next (non-existent)
+      # sequence ID.  We must subtract 1 to get the "last completed" event.
+      cur_seqs = {key: consumer.cur_seq - 1
+                  for key, consumer in self.consumers.iteritems()}
+      # Grab last_seq at the end, in order to guarantee that for any consumer,
+      # last_seq >= cur_seq, and that all last_seq are equal.
+      last_seq = self.last_seq
+      return {key: (cur_seq, last_seq)
+              for key, cur_seq in cur_seqs.iteritems()}
 
   def Consume(self, name):
     """See BufferPlugin.Consume."""

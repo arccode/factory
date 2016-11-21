@@ -63,9 +63,9 @@ class RuntimeBound(object):
 class FakePluginAPI(plugin_base.PluginAPI):
   """Implements a fake PluginAPI.
 
-  Implements EventStreamNext, EventStreamCommit, and EventStreamAbort from
-  PluginAPI.  Ignores the `plugin` and `event_stream` arguments, essentially
-  acting as a BufferEventStream itself.
+  Implements IsFlushing, EventStreamNext, EventStreamCommit, and
+  EventStreamAbort from PluginAPI.  Ignores the `plugin` and `event_stream`
+  arguments, essentially acting as a BufferEventStream itself.
   """
 
   def __init__(self, buffer_queue, fail_on_commit=False):
@@ -79,6 +79,10 @@ class FakePluginAPI(plugin_base.PluginAPI):
     self._buffer_queue = buffer_queue
     self._expired = False
     self._fail_on_commit = fail_on_commit
+
+  def IsFlushing(self, plugin):
+    del plugin
+    return False
 
   def EventStreamNext(self, plugin, event_stream):
     del plugin, event_stream

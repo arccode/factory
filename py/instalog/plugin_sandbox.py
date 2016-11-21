@@ -23,6 +23,9 @@ from instalog import datatypes
 from instalog import plugin_base
 from instalog import plugin_loader
 from instalog.utils import file_utils
+from instalog.utils import sync_utils
+from instalog.utils import time_utils
+from instalog.utils import type_utils
 
 
 # The maximum number of unexpected accesses to store for debugging purposes.
@@ -34,6 +37,7 @@ _UNEXPECTED_ACCESSES_MAX = 5
 STARTING = 'STARTING'
 UP = 'UP'
 STOPPING = 'STOPPING'
+FLUSHING = 'FLUSHING'
 DOWN = 'DOWN'
 PAUSING = 'PAUSING'
 PAUSED = 'PAUSED'
@@ -50,6 +54,10 @@ class CoreAPI(object):
 
   def NewStream(self, plugin):
     """See Core.NewStream."""
+    raise NotImplementedError
+
+  def GetProgress(self, plugin):
+    """See Core.GetProgress."""
     raise NotImplementedError
 
 
@@ -74,6 +82,7 @@ class PluginSandbox(plugin_base.PluginAPI):
       STARTING: _ALLOW,
       UP: _ALLOW,
       STOPPING: _ALLOW,
+      FLUSHING: _ALLOW,
       DOWN: _ERROR,
       PAUSING: _ALLOW,
       PAUSED: _ALLOW,
@@ -82,6 +91,7 @@ class PluginSandbox(plugin_base.PluginAPI):
       STARTING: _WAIT,
       UP: _ALLOW,
       STOPPING: _WAIT,
+      FLUSHING: _ALLOW,
       DOWN: _ERROR,
       PAUSING: _WAIT,
       PAUSED: _WAIT,
@@ -90,6 +100,7 @@ class PluginSandbox(plugin_base.PluginAPI):
       STARTING: _WAIT,
       UP: _ALLOW,
       STOPPING: _ALLOW,
+      FLUSHING: _ALLOW,
       DOWN: _ERROR,
       PAUSING: _ALLOW,
       PAUSED: _WAIT,
@@ -145,6 +156,10 @@ class PluginSandbox(plugin_base.PluginAPI):
     self._plugin = None
     self._state = DOWN
     self._event_stream_map = {}
+
+    # Store the target processed event count and timeout for FLUSHING state.
+    self._flushing_target = None
+    self._flushing_timeout = None
 
     # Store information about the last _UNEXPECTED_ACCESSES_MAX unexpected
     # accesses.
@@ -308,6 +323,18 @@ class PluginSandbox(plugin_base.PluginAPI):
     self.logger.debug('GetState called: %s', self._state)
     return self._state
 
+  def GetProgress(self):
+    """Returns the current progress through buffer for the specified plugin.
+
+    Args:
+      plugin: PluginSandbox object requesting BufferEventStream.
+
+    Returns:
+      A tuple (completed_count, total_count) representing how many Events have
+      been processed so far, and how many exist in total.
+    """
+    return self._core_api.GetProgress(self)
+
   def IsLoaded(self):
     """Returns whether the plugin is currently loaded (not DOWN)."""
     self.logger.debug('IsLoaded called: %s', self._state)
@@ -332,6 +359,29 @@ class PluginSandbox(plugin_base.PluginAPI):
     self._state = STOPPING
     if sync:
       self.AdvanceState(sync)
+
+  def Flush(self, timeout, sync=False):
+    """Flushes the plugin.
+
+    Returns:
+      If the sync argument is True, Flush will run asynchronously.  True or
+      False will be returned depending on whether the sync succeeded within the
+      specified timeout.
+    """
+    self._CheckStateCommand([UP, PAUSED])
+
+    # Prepare flushing_timeout and flushing_target for AdvanceState.
+    self._flushing_timeout = time_utils.MonotonicTime() + timeout
+    unused_completed_count, flushing_target = self.GetProgress()
+    self._flushing_target = flushing_target
+    self._state = FLUSHING
+
+    if sync:
+      self.AdvanceState(sync)
+
+      # Check to see if the flushing target has been surpassed.
+      current_count, unused_total_count = self.GetProgress()
+      return current_count >= flushing_target
 
   def Pause(self, sync=False):
     """Pauses the plugin."""
@@ -439,6 +489,35 @@ class PluginSandbox(plugin_base.PluginAPI):
         self._plugin = None
         self._state = DOWN
 
+    elif self._state is FLUSHING:
+      self.logger.debug('AdvanceState on FLUSHING')
+      if not self._flushing_target or not self._flushing_timeout:
+        self._flushing_target = None
+        self._flushing_timeout = None
+        self._state = UP
+
+      flushing_target = self._flushing_target
+      flushing_timeout = self._flushing_timeout
+
+      def FlushingTargetReached():
+        current_count, unused_completed_count = self.GetProgress()
+        return current_count >= flushing_target
+
+      if sync:
+        try:
+          sync_utils.WaitFor(
+              condition=FlushingTargetReached,
+              timeout_secs=flushing_timeout - time_utils.MonotonicTime() + 0.5,
+              poll_interval=0.5)
+        except type_utils.TimeoutError:
+          pass
+
+      if (FlushingTargetReached() or
+          time_utils.MonotonicTime() >= flushing_timeout):
+        self._flushing_target = None
+        self._flushing_timeout = None
+        self._state = UP
+
     elif self._state is PAUSING:
       self.logger.debug('AdvanceState on PAUSING')
       if not self._event_stream_map:
@@ -470,6 +549,21 @@ class PluginSandbox(plugin_base.PluginAPI):
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
     self.logger.debug('IsStopping called with state=%s', self._state)
     return self._state is STOPPING
+
+  def IsFlushing(self, plugin):
+    """See PluginAPI.IsFlushing."""
+    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
+    self.logger.debug('IsFlushing called with state=%s', self._state)
+    if self._state is not FLUSHING:
+      return False
+    # Flushing may have already completed, despite the state not having left
+    # FLUSHING yet.  Check on the flushing target manually.
+    flushing_target = self._flushing_target
+    if flushing_target:
+      completed_count, unused_total_count = self.GetProgress()
+      if completed_count >= flushing_target:
+        return False
+    return True
 
   def Emit(self, plugin, events):
     """See PluginAPI.Emit."""

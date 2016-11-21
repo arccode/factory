@@ -24,6 +24,10 @@ from instalog.utils import sync_utils
 from instalog.utils import type_utils
 
 
+# The default number of seconds to wait before giving up on a flush.
+_FLUSH_DEFAULT_TIMEOUT = 30
+
+
 class InstalogService(daemon_utils.Daemon):
   """Represents the Instalog daemon service."""
 
@@ -121,6 +125,8 @@ class InstalogCLI(object):
       self.Status()
     elif args.cmd == 'inspect':
       self.Inspect(args.plugin_id, args.json_path)
+    elif args.cmd == 'flush':
+      self.Flush(args.plugin_id, args.timeout)
 
 
   def _LocateConfigFile(self, user_path):
@@ -192,6 +198,13 @@ class InstalogCLI(object):
     if not success:
       sys.exit(1)
 
+  def Flush(self, plugin_id, timeout):
+    """Flushes the given plugin with given timeout."""
+    success, value = self._core.Flush(plugin_id, timeout)
+    print(value)
+    if not success:
+      sys.exit(1)
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -231,6 +244,16 @@ if __name__ == '__main__':
   inspect_parser.add_argument(
       'json_path', type=str, nargs='?', default='.',
       help='path of store JSON to print')
+
+  flush_parser = subparsers.add_parser('flush', help='flush plugin')
+  flush_parser.set_defaults(cmd='flush')
+  flush_parser.add_argument(
+      '--timeout', '-w', type=float,
+      required=False, default=_FLUSH_DEFAULT_TIMEOUT,
+      help='time to wait before giving up')
+  flush_parser.add_argument(
+      'plugin_id', type=str, nargs='?', default=None,
+      help='ID of plugin to flush')
 
   args = parser.parse_args()
 

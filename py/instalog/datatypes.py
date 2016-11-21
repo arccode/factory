@@ -290,6 +290,12 @@ class EventStreamIterator(object):
       if ret is not None:
         break
 
+      # If the current plugin is flushing, we should raise StopIteration
+      # regardless of whether self.blocking is set.
+      if self.event_stream._plugin_api.IsFlushing(self.event_stream._plugin):
+        logging.debug('Flushing!')
+        raise StopIteration
+
       # No new events available, take appropriate action.
       if self.blocking:
         time.sleep(self.interval)
