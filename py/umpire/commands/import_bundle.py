@@ -134,7 +134,7 @@ class FactoryBundle(object):
                                  'extracting bundle.' % path)
       new_bundle_path = os.path.join(temp_dir, 'bundle')
       os.makedirs(new_bundle_path)
-      file_utils.ExtractFile(path, new_bundle_path)
+      file_utils.ExtractFile(path, new_bundle_path, use_parallel=True)
       self._path = new_bundle_path
 
     # Find the top-most directory in self._path which _BUNDLE_MANIFEST resides
