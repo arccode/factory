@@ -309,10 +309,10 @@ class FinalizeBundle(object):
       file_utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
 
       self.factory_toolkit_path = None
-      for path in ('factory_toolkit', 'factory_test'):
+      for path in ('toolkit', 'factory_toolkit', 'factory_test'):
         # On older factory branches factory toolkit is put in factory_test/
-        # directory. On ToT, we deprecated factory test image and factory
-        # toolkit is moved to factory_toolkit/.
+        # or factory_toolkit/ directory. On ToT, we deprecated factory test
+        # image and factory toolkit is moved to toolkit/.
         self.factory_toolkit_path = os.path.join(
             self.bundle_dir, path, 'install_factory_toolkit.run')
         if os.path.isfile(self.factory_toolkit_path):
