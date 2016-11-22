@@ -24,10 +24,9 @@ import zipfile
 import zipimport
 
 from . import platform_utils
+from . import process_utils
 from . import time_utils
-from .process_utils import Spawn
-from .type_utils import CheckDictKeys
-from .type_utils import MakeList
+from . import type_utils
 
 
 def TryMakeDirs(path):
@@ -105,7 +104,7 @@ class Glob(object):
   def Construct(loader, node):
     """YAML constructor."""
     value = loader.construct_mapping(node)
-    CheckDictKeys(value, ['include', 'exclude'])
+    type_utils.CheckDictKeys(value, ['include', 'exclude'])
     return Glob(value['include'], value.get('exclude', None))
 
   @staticmethod
@@ -297,7 +296,7 @@ def CopyFileSkipBytes(in_file_name, out_file_name, skip_size):
 
 def Sync(log=True):
   """Calls 'sync'."""
-  Spawn(['sync'], log=log, check_call=True)
+  process_utils.Spawn(['sync'], log=log, check_call=True)
 
 
 def GetFileSizeInBytes(path, follow_link=False, dut=None):
@@ -357,7 +356,7 @@ class ExtractFileError(Exception):
 
 
 def ExtractFile(compressed_file, output_dir, only_extracts=None,
-                overwrite=True, quiet=False):
+                overwrite=True, quiet=False, use_parallel=False):
   """Extracts compressed file to output folder.
 
   Args:
@@ -368,10 +367,20 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
     overwrite: Whether to overwrite existing files without prompt.  Defaults to
       True.
     quiet: Whether to suppress output.
+    use_parallel: Use pigz/pbzip2/pixz to shorten decompression time.
 
   Raises:
     ExtractFileError if the method fails to extract the file.
   """
+
+  def has_command(command):
+    try:
+      process_utils.Spawn('type %s' % command, shell=True, check_call=True,
+                          log=True, ignore_stdout=True, ignore_stderr=True)
+    except subprocess.CalledProcessError:
+      return False
+    return True
+
   if not os.path.exists(compressed_file):
     raise ExtractFileError('Missing compressed file %r' % compressed_file)
   if not os.access(compressed_file, os.R_OK):
@@ -379,7 +388,7 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
                            compressed_file)
   TryMakeDirs(output_dir)
   logging.info('Extracting %s to %s', compressed_file, output_dir)
-  only_extracts = MakeList(only_extracts) if only_extracts else []
+  only_extracts = type_utils.MakeList(only_extracts) if only_extracts else []
   if only_extracts:
     logging.info('Extracts only file(s): %s', only_extracts)
 
@@ -389,17 +398,31 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
     cmd = (['unzip'] + overwrite_opt + quiet_opt + [compressed_file] +
            ['-d', output_dir] +
            only_extracts)
-  elif (any(compressed_file.endswith(suffix) for suffix in
-            ('.tar.bz2', '.tbz2', '.tar.gz', '.tgz', 'tar.xz', '.txz'))):
-    overwrite_opt = [] if overwrite else ['--keep-old-files']
-    verbose_opt = [] if quiet else ['-vv']
-    cmd = (['tar', '-xf'] +
-           overwrite_opt + [compressed_file] + verbose_opt +
-           ['-C', output_dir] + only_extracts)
   else:
-    raise ExtractFileError('Unsupported compressed file: %s' % compressed_file)
+    formats = (
+        (['.tar'], None),
+        (['.tar.gz', '.tgz'], 'pigz'),
+        (['.tar.bz2', '.tbz2'], 'pbzip2'),
+        (['.tar.xz', '.txz'], 'pixz'))
+    unsupported = True
+    for suffixes, parallel_compressor in formats:
+      if any(compressed_file.endswith(suffix) for suffix in suffixes):
+        unsupported = False
+        cmd = ['tar', '-xf', compressed_file, '-C', output_dir]
+        if not overwrite:
+          cmd += ['--keep-old-files']
+        if not quiet:
+          cmd += ['-vv']
+        if (use_parallel and parallel_compressor and
+            has_command(parallel_compressor)):
+          cmd += ['-I', parallel_compressor]
+        cmd += only_extracts
+        break
+    if unsupported:
+      raise ExtractFileError('Unsupported compressed file: %s' %
+                             compressed_file)
 
-  return Spawn(cmd, log=True, check_call=True)
+  return process_utils.Spawn(cmd, log=True, check_call=True)
 
 
 def ForceSymlink(target, link_name):
@@ -549,7 +572,7 @@ def WriteWithSudo(file_path, content):
     content: The content to write.
   """
   # Write with sudo, since only root can write this.
-  process = Spawn(
+  process = process_utils.Spawn(
       'cat > %s' % pipes.quote(file_path), sudo=True,
       stdin=subprocess.PIPE, shell=True)
   process.stdin.write(content)
