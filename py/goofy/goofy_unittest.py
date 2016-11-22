@@ -14,11 +14,11 @@ from __future__ import print_function
 
 import factory_common  # pylint: disable=W0611
 
+import cPickle as pickle
 import imp
 import logging
 import math
 import mox
-import pickle
 import subprocess
 import threading
 import time
@@ -34,7 +34,6 @@ from cros.factory.test import state
 from cros.factory.goofy.goofy import Goofy
 from cros.factory.goofy.prespawner import PytestPrespawner
 from cros.factory.goofy.test_environment import Environment
-from cros.factory.test import shopfloor
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test.test_lists import test_lists
@@ -379,8 +378,9 @@ class ShutdownTest(GoofyTest):
     self.assertFalse(self.goofy.run_once())
 
     # There should be a list of tests to run on wake-up.
-    self.assertEqual(
-        ['a'], self.state.get_shared_data('tests_after_shutdown'))
+    test_list_iterator = self.state.get_shared_data(
+        goofy.TESTS_AFTER_SHUTDOWN, True)
+    self.assertEqual('shutdown', test_list_iterator.stack[-1])
     self._wait()
 
     # Kill and restart Goofy to simulate the first two shutdown iterations.
@@ -487,20 +487,6 @@ class NoAutoRunTest(GoofyTest):
     self.mocker.ReplayAll()
     self.goofy.run_once()
     self.assertEqual({}, self.goofy.invocations)
-
-
-class AutoRunKeypressTest(NoAutoRunTest):
-  """A test case that checks the behavior of auto_run_on_keypress."""
-  test_list = ABC_TEST_LIST
-  options = """
-    options.auto_run_on_start = False
-    options.auto_run_on_keypress = True
-  """
-
-  def runTest(self):
-    self._runTestB()
-    # Unlike in NoAutoRunTest, C should now be run.
-    self.check_one_test('c', 'c_C', True, '')
 
 
 class PyTestTest(GoofyTest):
@@ -632,216 +618,6 @@ class RequireRunPassedTest(GoofyTest):
     self.mockAnything.VerifyAll()
 
 
-class RunIfTest(GoofyTest):
-  """Tests FactoryTest run_if argument."""
-  options = """
-    options.auto_run_on_start = True
-  """
-  test_list = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A', run_if='foo.bar')
-    test_lists.OperatorTest(id='b', autotest_name='b_B', run_if='!foo.bar')
-    test_lists.OperatorTest(id='c', autotest_name='c_C')
-  """
-
-  def runTest(self):
-    state_instance = factory.get_state_instance()
-
-    # foo.bar is not set
-    self.goofy.update_skipped_tests()
-    a_state = state_instance.get_test_state('a')
-    self.assertEquals(True, a_state.skip)
-    b_state = state_instance.get_test_state('b')
-    self.assertEquals(False, b_state.skip)
-
-    # Set foo.bar in the state server.
-    shopfloor.save_aux_data('foo', 'MLB00001', {'bar': True})
-    self.goofy.update_skipped_tests()
-    a_state = state_instance.get_test_state('a')
-    self.assertEquals(False, a_state.skip)
-    b_state = state_instance.get_test_state('b')
-    self.assertEquals(True, b_state.skip)
-
-    self.check_one_test('a', 'a_A', True, '')
-    self.check_one_test('c', 'c_C', True, '')
-    a_state = state_instance.get_test_state('a')
-    self.assertEquals(TestState.PASSED, a_state.status)
-    self.assertEquals('', a_state.error_msg)
-    b_state = state_instance.get_test_state('b')
-    self.assertEquals(TestState.PASSED, b_state.status)
-    self.assertEquals(TestState.SKIPPED_MSG, b_state.error_msg)
-
-    # Set foo.bar=False.  The state of b_B should switch to untested.
-    shopfloor.save_aux_data('foo', 'MLB00001', {'bar': False})
-    self.goofy.update_skipped_tests()
-    a_state = state_instance.get_test_state('a')
-    self.assertEquals(TestState.PASSED, a_state.status)
-    self.assertEquals('', a_state.error_msg)
-    b_state = state_instance.get_test_state('b')
-    self.assertEquals(TestState.UNTESTED, b_state.status)
-    self.assertEquals('', b_state.error_msg)
-
-
-class GroupRunIfTest(GoofyTest):
-  """Tests TestGroup run_if argument."""
-  options = """
-    options.auto_run_on_start = True
-  """
-  test_list = """
-    with test_lists.TestGroup(id='G1', run_if='foo.g1'):
-      test_lists.OperatorTest(id='T1', autotest_name='a_A', run_if='foo.t1')
-      test_lists.OperatorTest(id='T2', autotest_name='a_A', run_if='foo.t2')
-      test_lists.OperatorTest(id='T3', autotest_name='a_A', run_if='foo.t3')
-      test_lists.OperatorTest(id='T4', autotest_name='a_A')
-  """
-
-  def runTest(self):
-    state_instance = factory.get_state_instance()
-
-    def _check_state(id_state_dict):
-      for test_id, skip_status_msg in id_state_dict.iteritems():
-        test_state = state_instance.get_test_state(test_id)
-        skip, status, msg = skip_status_msg
-        self.assertEquals(skip, test_state.skip)
-        self.assertEquals(status, test_state.status)
-        self.assertEquals(msg, test_state.error_msg)
-
-    # Keeps group G1 but skips G1.T1.
-    # G1.T1 should be the only test to skip.
-    shopfloor.save_aux_data('foo', 'MLB00001',
-                            {'g1': True,
-                             't1': False,
-                             't2': True,
-                             't3': True})
-    self.goofy.update_skipped_tests()
-    _check_state(
-        {'G1': (False, TestState.UNTESTED, None),
-         'G1.T1': (True, TestState.UNTESTED, None),
-         'G1.T2': (False, TestState.UNTESTED, None),
-         'G1.T3': (False, TestState.UNTESTED, None),
-         'G1.T4': (False, TestState.UNTESTED, None)})
-
-    # Disables group G1. All tests are skipped.
-    shopfloor.save_aux_data('foo', 'MLB00001',
-                            {'g1': False,
-                             't1': False,
-                             't2': True,
-                             't3': True})
-    self.goofy.update_skipped_tests()
-    _check_state(
-        {'G1': (True, TestState.UNTESTED, None),
-         'G1.T1': (True, TestState.UNTESTED, None),
-         'G1.T2': (True, TestState.UNTESTED, None),
-         'G1.T3': (True, TestState.UNTESTED, None),
-         'G1.T4': (True, TestState.UNTESTED, None)})
-
-    # Runs group G1. All tests are skipped and passed.
-    for _ in range(4):
-      self.assertTrue(self.goofy.run_once())
-      self.goofy.wait()
-    _check_state(
-        {'G1': (True, TestState.PASSED, None),
-         'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T4': (True, TestState.PASSED, TestState.SKIPPED_MSG)})
-
-    # Re-enable group G1, but skips G1.T1.
-    # G1, G1.T2, G1.T3, G1.T4 should not be skipped now. Also, they
-    # should be untested.
-    shopfloor.save_aux_data('foo', 'MLB00001',
-                            {'g1': True,
-                             't1': False,
-                             't2': True,
-                             't3': True})
-    self.goofy.update_skipped_tests()
-    _check_state(
-        {'G1': (False, TestState.UNTESTED, None),
-         'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T2': (False, TestState.UNTESTED, ''),
-         'G1.T3': (False, TestState.UNTESTED, ''),
-         'G1.T4': (False, TestState.UNTESTED, '')})
-
-
-class GroupRunIfSkipTest(GoofyTest):
-  """Tests TestGroup run_if argument and skip method."""
-  options = """
-    options.auto_run_on_start = False
-  """
-  test_list = """
-    with test_lists.TestGroup(id='G1', run_if='foo.g1'):
-      test_lists.OperatorTest(id='T1', autotest_name='a_A', run_if='foo.t1')
-      test_lists.OperatorTest(id='T2', autotest_name='a_A', run_if='foo.t2')
-      test_lists.OperatorTest(id='T3', autotest_name='a_A', run_if='foo.t3')
-      test_lists.OperatorTest(id='T4', autotest_name='a_A')
-  """
-
-  def runTest(self):
-    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
-    state_instance = factory.get_state_instance()
-
-    def _check_state(id_state_dict):
-      for test_id, skip_status_msg in id_state_dict.iteritems():
-        test_state = state_instance.get_test_state(test_id)
-        skip, status, msg = skip_status_msg
-        self.assertEquals(skip, test_state.skip)
-        self.assertEquals(status, test_state.status)
-        self.assertEquals(msg, test_state.error_msg)
-
-    # Enables group G1, but skips G1.T1.
-    # G1, G1.T2, G1.T3, G1.T4 should not be skipped. Also, they
-    # should be untested.
-    shopfloor.save_aux_data('foo', 'MLB00001',
-                            {'g1': True,
-                             't1': False,
-                             't2': True,
-                             't3': True})
-    self.goofy.update_skipped_tests()
-    _check_state(
-        {'G1': (False, TestState.UNTESTED, None),
-         'G1.T1': (True, TestState.UNTESTED, None),
-         'G1.T2': (False, TestState.UNTESTED, None),
-         'G1.T3': (False, TestState.UNTESTED, None),
-         'G1.T4': (False, TestState.UNTESTED, None)})
-
-    # Runs and Fails G1.T3 test.
-    self.check_one_test('G1.T3', 'a_A', False, 'Uh-oh',
-                        trigger=lambda: self.goofy.handle_switch_test(
-                            Event(Event.Type.SWITCH_TEST, path='G1.T3')))
-    # Runs and Passes G1.T4 test.
-    self.check_one_test('G1.T4', 'a_A', True, '',
-                        trigger=lambda: self.goofy.handle_switch_test(
-                            Event(Event.Type.SWITCH_TEST, path='G1.T4')))
-    # Now G1.T3 status is FAILED, and G1.T4 status is PASSED.
-    # Now G1 status is FAILED because G1.T3 status is FAILED.
-    _check_state(
-        {'G1': (False, TestState.FAILED, None),
-         'G1.T1': (True, TestState.UNTESTED, None),
-         'G1.T2': (False, TestState.UNTESTED, None),
-         'G1.T3': (False, TestState.FAILED, 'Uh-oh'),
-         'G1.T4': (False, TestState.PASSED, '')})
-
-    # Skips G1 on purpose. Then all tests should be skipped.
-    # G1.T4 has already passed, so its error_msg should not be modified.
-    self.goofy.test_list.lookup_path('G1').skip()
-    _check_state(
-        {'G1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T4': (False, TestState.PASSED, '')})
-
-    # update_skipped_tests should not re-enable G1 test group.
-    # It only modifies the skip status of G1.T4 from False to True.
-    self.goofy.update_skipped_tests()
-    _check_state(
-        {'G1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
-         'G1.T4': (True, TestState.PASSED, '')})
-    self.mockAnything.VerifyAll()
-
-
 class StopOnFailureTest(GoofyTest):
   """A unittest that checks if the goofy will stop after a test fails."""
   test_list = ABC_TEST_LIST
@@ -868,72 +644,26 @@ class StopOnFailureTest(GoofyTest):
     self.mockAnything.VerifyAll()
 
 
-class ForceBackgroundTest(GoofyTest):
-  """Tests force_background parameter in test list.
+class ParallelTest(GoofyTest):
+  """A test for parallel tests, goofy should run them in parallel."""
 
-  We have three kinds of the next eligible test:
-    1. normal
-    2. backgroundable
-    3. force_background
-
-  And we have four situations of the ongoing invocations:
-    a. only a running normal test
-    b. all running tests are backgroundable
-    c. all running tests are force_background
-    d. all running tests are any combination of backgroundable and
-       force_background
-
-  When a test would like to be run, it must follow the rules:
-    [1] cannot run with [abd]
-    [2] cannot run with [a]
-    All the other combinations are allowed
-  """
   test_list = """
-    test_lists.FactoryTest(id='aA', pytest_name='a_A')
-    test_lists.FactoryTest(id='bB', pytest_name='b_B')
-    test_lists.FactoryTest(id='cC', pytest_name='c_C', backgroundable=True)
-    test_lists.FactoryTest(id='dD', pytest_name='d_D', force_background=True)
-    test_lists.FactoryTest(id='eE', pytest_name='e_E')
-    test_lists.FactoryTest(id='fF', pytest_name='f_F', force_background=True)
-    test_lists.FactoryTest(id='gG', pytest_name='g_G', backgroundable=True)
+    with test_lists.FactoryTest(id='parallel', parallel=True):
+      test_lists.OperatorTest(id='a', pytest_name='a_A')
+      test_lists.OperatorTest(id='b', pytest_name='b_B')
+      test_lists.OperatorTest(id='c', pytest_name='c_C')
   """
 
   def runTest(self):
-    # Stub out PytestPrespawner.spawn to mock pytest invocation.
     PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
     mock_pytest(PytestPrespawner.spawn, 'a_A', TestState.PASSED, '')
     mock_pytest(PytestPrespawner.spawn, 'b_B', TestState.PASSED, '')
     mock_pytest(PytestPrespawner.spawn, 'c_C', TestState.PASSED, '')
-    mock_pytest(PytestPrespawner.spawn, 'd_D', TestState.PASSED, '')
-    mock_pytest(PytestPrespawner.spawn, 'e_E', TestState.PASSED, '')
-    mock_pytest(PytestPrespawner.spawn, 'f_F', TestState.PASSED, '')
-    mock_pytest(PytestPrespawner.spawn, 'g_G', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
-    # [1] cannot run with [abd].
-    # Normal test 'aA' cannot run with normal test 'bB'.
     self.goofy.run_once()
-    self.assertEquals(['aA'], [test.id for test in self.goofy.invocations])
-    self.goofy.wait()
-    # Normal test 'bB' cannot run with backgroundable test 'cC'.
-    self.goofy.run_once()
-    self.assertEquals(['bB'], [test.id for test in self.goofy.invocations])
-    self.goofy.wait()
-    # Normal test 'eE' cannot run with the combination of backgroundable
-    # test 'cC' and force_background test 'dD'.
-    self.goofy.run_once()
-    self.assertEquals(
-        set(['cC', 'dD']), set([test.id for test in self.goofy.invocations]))
-    self.goofy.wait()
-
-    # [2] cannot run with [a]
-    # Backgroundable test 'gG' cannot run with the normal test 'eE'.
-    self.goofy.run_once()
-    self.assertEquals(
-        set(['eE', 'fF']), set([test.id for test in self.goofy.invocations]))
-    self.goofy.wait()
-    self.goofy.run_once()
-    self.assertEquals(['gG'], [test.id for test in self.goofy.invocations])
+    self.assertSetEqual({'a', 'b', 'c'},
+                        {test.id for test in self.goofy.invocations})
     self.goofy.wait()
 
     self.mocker.VerifyAll()

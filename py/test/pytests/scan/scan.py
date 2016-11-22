@@ -148,7 +148,6 @@ class Scan(unittest.TestCase):
       except:  # pylint: disable=W0702
         logging.exception('select_aux_data failed')
         return SetError(debug_utils.FormatExceptionOnly())
-      factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.event_log_key:
       Log('scan', key=self.args.event_log_key, value=scan_value)
@@ -159,7 +158,6 @@ class Scan(unittest.TestCase):
 
     if self.args.device_data_key:
       shopfloor.UpdateDeviceData({self.args.device_data_key: scan_value})
-      factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.dut_data_key:
       self.dut.storage.UpdateDict({self.args.dut_data_key: scan_value})

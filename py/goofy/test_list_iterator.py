@@ -47,7 +47,7 @@ class TestListIterator(object):
 
   _SERIALIZE_FIELDS = ('stack', 'status_filter', 'inited')
 
-  def __init__(self, root, status_filter=None, test_list=None):
+  def __init__(self, root=None, status_filter=None, test_list=None):
     """Constructor of TestListIterator.
 
     Args:
@@ -62,9 +62,12 @@ class TestListIterator(object):
     """
     if isinstance(root, factory.FactoryTest):
       self.stack = [root.path]
-    else:
-      assert isinstance(root, str)
+    elif isinstance(root, str):
       self.stack = [root]
+    elif root is None:
+      self.stack = []
+    else:
+      raise ValueError('root must be one of FactoryTest, string or None')
 
     self.status_filter = status_filter
     self.test_list = test_list
@@ -82,13 +85,13 @@ class TestListIterator(object):
     assert isinstance(test_list, factory.FactoryTestList)
     self.test_list = test_list
 
-  def _skip(self, test):
+  def check_skip(self, test):
     if isinstance(test, str):
       test = self.test_list.lookup_path(test)
     if self.status_filter:
       # status filter only applies to leaf tests
       if ((test.is_leaf() or test.is_parallel()) and
-          test.get_state().status not in self.status_filter):
+          not self._check_status_filter(test)):
         logging.info('test %s is filtered (skipped) because its status',
                      test.path)
         logging.info('%s (skip list: %r)',
@@ -97,15 +100,30 @@ class TestListIterator(object):
     if not self._check_run_if(test):
       logging.info('test %s is skipped because run_if evaluated to False',
                    test.path)
+      test.update_state(skip=True)
       return True
+    elif test.is_skipped():
+      # this test was skipped before, but now we might need to run it
+      test.update_state(status=factory.TestState.UNTESTED, error_msg='')
+      # check again (for status filter)
+      return self.check_skip(test)
     return False
 
+  # pylint: disable=method-hidden
+  # This function will be mocked in `self.get_pending_tests`.
   def _check_run_if(self, test, test_arg_env=None, get_data=None):
     if test_arg_env is None:
       test_arg_env = invocation.TestArgEnv()
     if get_data is None:
       get_data = shopfloor.get_selected_aux_data
     return test.evaluate_run_if(test_arg_env, get_data)
+
+  def _check_status_filter(self, test):
+    if not self.status_filter:
+      return True
+    status = test.get_state().status
+    # an active test should always pass the filter (to resume a previous test)
+    return status == factory.TestState.ACTIVE or status in self.status_filter
 
   def get(self):
     """Returns the current test item.
@@ -145,11 +163,11 @@ class TestListIterator(object):
     path = self.stack[-1]
     test = self.test_list.lookup_path(path)
     if test.is_leaf() or test.is_parallel():
-      if not self._skip(test):
+      if not self.check_skip(test):
         return True
 
     for subtest in test.subtests:
-      if not self._skip(subtest):
+      if not self.check_skip(subtest):
         self.stack.append(subtest.path)
         if self._find_first_valid_test_in_subtree():
           return True
@@ -202,7 +220,7 @@ class TestListIterator(object):
       found_current_test = False
       for subtest in test.parent.subtests:
         if found_current_test:
-          if not self._skip(subtest.path):
+          if not self.check_skip(subtest.path):
             self.stack.append(subtest.path)
             if self._find_first_valid_test_in_subtree():
               return True
@@ -242,3 +260,36 @@ class TestListIterator(object):
 
     self._continue_depth_first_search()
     return self.stack[-1]
+
+  def stop(self):
+    self.stack = []
+
+  def copy(self):
+    # make a copy of myself
+    it = TestListIterator(None, self.status_filter, self.test_list)
+    it.stack = list(self.stack)
+    return it
+
+  def __iter__(self):
+    return self
+
+  def __repr__(self):
+    return repr(self.__getstate__())
+
+  def get_pending_tests(self):
+    """List all tests that *might* be run.
+
+    This function will return a list of test paths that are the tests that
+    will be run if their run_if functions return True.
+
+    That is, the status filter will apply correctly, but we assume that run_if
+    function will return True.  So the returned list is a super set of the tests
+    that are actually going to be run.
+
+    Returns:
+      list of str, which are test paths.
+    """
+    it = self.copy()
+    # pylint: disable=protected-access
+    it._check_run_if = lambda *args, **kwargs: True
+    return list(it)

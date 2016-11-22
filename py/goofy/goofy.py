@@ -10,7 +10,9 @@
 from __future__ import print_function
 
 import glob
+import itertools
 import logging
+from optparse import OptionParser
 import os
 import shutil
 import signal
@@ -21,20 +23,18 @@ import time
 import traceback
 import uuid
 from xmlrpclib import Binary
-from collections import deque
-from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
-from cros.factory.goofy.invocation import TestArgEnv
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.plugins import plugin_controller
 from cros.factory.goofy import prespawner
 from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy import test_environment
+from cros.factory.goofy.test_list_iterator import TestListIterator
 from cros.factory.goofy import updater
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.test.e2e_test.common import AutomationMode
@@ -74,6 +74,9 @@ CLEANUP_LOGS_PAUSED = '/var/lib/cleanup_logs_paused'
 # Value for tests_after_shutdown that forces auto-run (e.g., after
 # a factory update, when the available set of tests might change).
 FORCE_AUTO_RUN = 'force_auto_run'
+
+# Key to load the test list iterator after shutdown test
+TESTS_AFTER_SHUTDOWN = 'tests_after_shutdown'
 
 
 MAX_CRASH_FILE_SIZE = 64 * 1024
@@ -116,8 +119,6 @@ class Goofy(GoofyBase):
     ui_process: The factory ui process object.
     invocations: A map from FactoryTest objects to the corresponding
       TestInvocations objects representing active tests.
-    tests_to_run: A deque of tests that should be run when the current
-      test(s) complete.
     options: Command-line options.
     args: Command-line args.
     test_list: The test list.
@@ -153,7 +154,6 @@ class Goofy(GoofyBase):
     self._ui_initialized = False
     self.dummy_shopfloor = None
     self.invocations = {}
-    self.tests_to_run = deque()
     self.visible_test = None
     self.chrome = None
     self.hooks = None
@@ -176,6 +176,7 @@ class Goofy(GoofyBase):
     self.ready_for_ui_connection = False
     self.link_manager = None
     self.is_restart_requested = False
+    self.test_list_iterator = None
 
     # TODO(hungte) Support controlling remote DUT.
     self.dut = device_utils.CreateDUTInterface()
@@ -448,8 +449,7 @@ class Goofy(GoofyBase):
     logging.info('Start Goofy shutdown (%s)', operation)
     # Save pending test list in the state server
     self.state_instance.set_shared_data(
-        'tests_after_shutdown',
-        [t.path for t in self.tests_to_run])
+        TESTS_AFTER_SHUTDOWN, self.test_list_iterator)
     # Save shutdown time
     self.state_instance.set_shared_data('shutdown_time', time.time())
 
@@ -461,7 +461,7 @@ class Goofy(GoofyBase):
       self.run_enqueue(None)
     else:
       # Just pass (e.g., in the chroot).
-      self.state_instance.set_shared_data('tests_after_shutdown', None)
+      self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, None)
       # Send event with no fields to indicate that there is no
       # longer a pending shutdown.
       self.event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
@@ -476,16 +476,19 @@ class Goofy(GoofyBase):
     logging.info('Detected shutdown (%d of %d)',
                  test_state.shutdown_count, test.iterations)
 
-    # Insert current shutdown test at the front of the list of tests to run
-    # after shutdown.  This is to continue on post-shutdown verification in the
-    # shutdown step.
     tests_after_shutdown = self.state_instance.get_shared_data(
-        'tests_after_shutdown', optional=True)
+        TESTS_AFTER_SHUTDOWN, optional=True)
+
+    # Make this shutdown test the next test to run.  This is to continue on
+    # post-shutdown verification in the shutdown step.
     if not tests_after_shutdown:
-      self.state_instance.set_shared_data('tests_after_shutdown', [test.path])
-    elif isinstance(tests_after_shutdown, list):
       self.state_instance.set_shared_data(
-          'tests_after_shutdown', [test.path] + tests_after_shutdown)
+          TESTS_AFTER_SHUTDOWN, TestListIterator(test))
+    else:
+      # unset inited, so we will start from the reboot test.
+      tests_after_shutdown.inited = False
+      self.state_instance.set_shared_data(
+          TESTS_AFTER_SHUTDOWN, tests_after_shutdown)
 
     # Set 'post_shutdown' to inform shutdown test that a shutdown just occurred.
     self.state_instance.set_shared_data(
@@ -521,8 +524,7 @@ class Goofy(GoofyBase):
         # Unexpected shutdown.  Grab /var/log/messages for context.
         if var_log_messages is None:
           try:
-            var_log_messages = (
-                sys_utils.GetVarLogMessagesBeforeReboot())
+            var_log_messages = sys_utils.GetVarLogMessagesBeforeReboot()
             # Write it to the log, to make it easier to
             # correlate with /var/log/messages.
             logging.info(
@@ -571,61 +573,10 @@ class Goofy(GoofyBase):
           factory.console.info('Unexpected shutdown while test %s '
                                'running; cancelling any pending tests',
                                test.path)
-          self.state_instance.set_shared_data('tests_after_shutdown', [])
-
-    self.update_skipped_tests()
-
-  def update_skipped_tests(self):
-    """Updates skipped states based on run_if."""
-    env = TestArgEnv()
-
-    # Gets all run_if evaluation, and stores results in skip_map.
-    skip_map = dict()
-    for t in self.test_list.walk():
-      skip_map[t.path] = not t.evaluate_run_if(env,
-                                               shopfloor.get_selected_aux_data)
-
-    # Propagates the skip value from root of tree and updates skip_map.
-    def _update_skip_map_from_node(test, skip_from_parent):
-      """Updates skip_map from a given node.
-
-      Given a FactoryTest node and the skip value from parent, updates the
-      skip value of current node in the skip_map if skip value from parent is
-      True. If this node has children, recursively propagate this value to all
-      its children, that is, all its subtests.
-      Note that this function only updates value in skip_map, not the actual
-      test_list tree.
-
-      Args:
-        test: The given FactoryTest object. It is a node in the test_list tree.
-        skip_from_parent: The skip value which propagates from the parent of
-          input node.
-      """
-      skip_this_tree = skip_from_parent or skip_map[test.path]
-      if skip_this_tree:
-        logging.info('Skip from node %r', test.path)
-        skip_map[test.path] = True
-      if test.is_leaf():
-        return
-      # Propagates skip value to its subtests
-      for subtest in test.subtests:
-        _update_skip_map_from_node(subtest, skip_this_tree)
-
-    _update_skip_map_from_node(self.test_list, False)
-
-    # Updates the skip value from skip_map to test_list tree. Also, updates test
-    # status if needed.
-    for t in self.test_list.walk():
-      skip = skip_map[t.path]
-      test_state = t.get_state()
-      if ((not skip) and
-          (test_state.status == TestState.PASSED) and
-          (test_state.error_msg == TestState.SKIPPED_MSG)):
-        # It was marked as skipped before, but now we need to run it.
-        # Mark as untested.
-        t.update_state(skip=skip, status=TestState.UNTESTED, error_msg='')
-      else:
-        t.update_state(skip=skip)
+          # cancel pending tests by replace the iterator with an empty one
+          self.state_instance.set_shared_data(
+              TESTS_AFTER_SHUTDOWN,
+              TestListIterator(None))
 
   def handle_event(self, event):
     """Handles an event from the event server."""
@@ -656,72 +607,31 @@ class Goofy(GoofyBase):
       self.run_next_test()
 
   def run_next_test(self):
-    """Runs the next eligible test (or tests) in self.tests_to_run.
+    """Runs the next eligible test.
 
-    We have three kinds of the next eligible test:
-      1. normal
-      2. backgroundable
-      3. force_background
-
-    And we have four situations of the ongoing invocations:
-      a. only a running normal test
-      b. all running tests are backgroundable
-      c. all running tests are force_background
-      d. all running tests are any combination of backgroundable and
-         force_background
-
-    When a test would like to be run, it must follow the rules:
-      [1] cannot run with [abd]
-      [2] cannot run with [a]
-      All the other combinations are allowed
+    self.test_list_iterator (a TestListIterator object) will determine which
+    test should be run.
     """
     self.reap_completed_tests()
-    if self.tests_to_run and self.check_critical_factory_note():
-      self.tests_to_run.clear()
+
+    if self.invocations:
+      # there are tests still running, we cannot start new tests
       return
-    while self.tests_to_run:
-      logging.debug('Tests to run: %s', [x.path for x in self.tests_to_run])
 
-      test = self.tests_to_run[0]
+    if self.check_critical_factory_note():
+      logging.info('has critical factory note, stop running')
+      self.test_list_iterator.stop()
+      return
 
-      if test in self.invocations:
-        logging.info('Next test %s is already running', test.path)
-        self.tests_to_run.popleft()
+    while True:
+      try:
+        path = self.test_list_iterator.next()
+        test = self.test_list.lookup_path(path)
+      except StopIteration:
+        logging.info('no next test, stop running')
         return
 
-      for requirement in test.require_run:
-        for i in requirement.test.walk():
-          if i.get_state().status == TestState.ACTIVE:
-            logging.info('Waiting for active test %s to complete '
-                         'before running %s', i.path, test.path)
-            return
-
-      def is_normal_test(test):
-        return not (test.backgroundable or test.force_background)
-
-      # [1] cannot run with [abd].
-      if self.invocations and is_normal_test(test) and any(
-          [not x.force_background for x in self.invocations]):
-        logging.info('Waiting for non-force_background tests to '
-                     'complete before running %s', test.path)
-        return
-
-      # [2] cannot run with [a].
-      if self.invocations and test.backgroundable and any(
-          [is_normal_test(x) for x in self.invocations]):
-        logging.info('Waiting for normal tests to '
-                     'complete before running %s', test.path)
-        return
-
-      if test.get_state().skip:
-        factory.console.info('Skipping test %s', test.path)
-        test.update_state(status=TestState.PASSED,
-                          error_msg=TestState.SKIPPED_MSG)
-        self.tests_to_run.popleft()
-        continue
-
-      self.tests_to_run.popleft()
-
+      # check if we have run all required tests
       untested = set()
       for requirement in test.require_run:
         for i in requirement.test.walk():
@@ -755,6 +665,7 @@ class Goofy(GoofyBase):
                             error_msg=error_msg)
           continue
 
+      # okay, let's run the test
       if (isinstance(test, factory.ShutdownStep) and
           self.state_instance.get_shared_data(
               state.POST_SHUTDOWN_TAG % test.path, optional=True)):
@@ -766,25 +677,41 @@ class Goofy(GoofyBase):
       else:
         # Starts a new test run; reset iterations and retries.
         self._run_test(test, test.iterations, test.retries)
+      return  # to leave while
 
   def _run_test(self, test, iterations_left=None, retries_left=None):
+    """Invokes the test.
+
+    The argument `test` should be either a leaf test (no subtests) or a parallel
+    test (all subtests should be run in parallel).
+    """
     if not self._ui_initialized and not test.is_no_host():
       self.init_ui()
-    invoc = TestInvocation(
-        self, test, on_completion=self.invocation_completion,
-        on_test_failure=lambda: self.test_fail(test))
-    new_state = test.update_state(
-        status=TestState.ACTIVE, increment_count=1, error_msg='',
-        invocation=invoc.uuid, iterations_left=iterations_left,
-        retries_left=retries_left,
-        visible=(self.visible_test == test))
-    invoc.count = new_state.count
 
-    self.invocations[test] = invoc
-    if self.visible_test is None and test.has_ui:
-      self.set_visible_test(test)
-    self.check_plugins()
-    invoc.start()
+    if test.is_leaf():
+      invoc = TestInvocation(
+          self, test, on_completion=self.invocation_completion,
+          on_test_failure=lambda: self.test_fail(test))
+      new_state = test.update_state(
+          status=TestState.ACTIVE, increment_count=1, error_msg='',
+          invocation=invoc.uuid, iterations_left=iterations_left,
+          retries_left=retries_left,
+          visible=(self.visible_test == test))
+      invoc.count = new_state.count
+      self.invocations[test] = invoc
+      if self.visible_test is None and test.has_ui:
+        self.set_visible_test(test)
+      self.check_plugins()
+      invoc.start()
+    else:
+      assert test.is_parallel()
+      for subtest in test.subtests:
+        # TODO(stimim): what if the subtests *must* be run in parallel?
+        # for example, stressapptest and countdown test.
+
+        # Make sure we don't need to skip it:
+        if not self.test_list_iterator.check_skip(subtest):
+          self._run_test(subtest, subtest.iterations, subtest.retries)
 
   def check_plugins(self):
     """Check plugins to be paused or resumed."""
@@ -829,7 +756,7 @@ class Goofy(GoofyBase):
 
   def cancel_pending_tests(self):
     """Cancels any tests in the run queue."""
-    self.run_tests([])
+    self.run_tests(None)
 
   def restore_active_run_state(self):
     """Restores active run id and the list of scheduled tests."""
@@ -840,46 +767,26 @@ class Goofy(GoofyBase):
   def set_active_run_state(self):
     """Sets active run id and the list of scheduled tests."""
     self.run_id = str(uuid.uuid4())
-    self.scheduled_run_tests = [test.path for test in self.tests_to_run]
+    # try our best to predict which tests will be run.
+    self.scheduled_run_tests = self.test_list_iterator.get_pending_tests()
     self.state_instance.set_shared_data('run_id', self.run_id)
     self.state_instance.set_shared_data('scheduled_run_tests',
                                         self.scheduled_run_tests)
 
-  def run_tests(self, subtrees, status_filter=None):
+  def run_tests(self, subtree, status_filter=None):
     """Runs tests under subtree.
 
-    The tests are run in order unless one fails (then stops).
-    Backgroundable tests are run simultaneously; when a foreground test is
-    encountered, we wait for all active tests to finish before continuing.
+    Run tests under a given subtree.
 
     Args:
-      subtrees: Node or nodes containing tests to run (may either be
-        a single test or a list).  Duplicates will be ignored.
+      subtree: root of subtree to run or None to run nothing.
       status_filter: List of available test states. Only run the tests which
         states are in the list. Set to None if all test states are available.
     """
     self.dut.hooks.OnTestStart()
-
-    if type(subtrees) != list:
-      subtrees = [subtrees]
-
-    # Nodes we've seen so far, to avoid duplicates.
-    seen = set()
-
-    self.tests_to_run = deque()
-    for subtree in subtrees:
-      for test in subtree.walk():
-        if test in seen:
-          continue
-        seen.add(test)
-
-        if not test.is_leaf():
-          continue
-        if (status_filter is not None and
-            test.get_state().status not in status_filter):
-          continue
-        self.tests_to_run.append(test)
-    if subtrees:
+    self.test_list_iterator = TestListIterator(
+        subtree, status_filter, self.test_list)
+    if subtree is not None:
       self.set_active_run_state()
     self.run_next_test()
 
@@ -900,8 +807,8 @@ class Goofy(GoofyBase):
             new_state.retries_left < 0 and
             new_state.status == TestState.FAILED):
           # Clean all the tests to cause goofy to stop.
-          self.tests_to_run = []
           factory.console.info('Stop on failure triggered. Empty the queue.')
+          self.cancel_pending_tests()
 
         if new_state.iterations_left and new_state.status == TestState.PASSED:
           # Play it again, Sam!
@@ -935,7 +842,8 @@ class Goofy(GoofyBase):
       reason: If set, the abort reason.
     """
     self.reap_completed_tests()
-    for test, invoc in self.invocations.items():
+    # since we remove objects while iterating, make a copy
+    for test, invoc in dict(self.invocations).iteritems():
       if root and not test.has_ancestor(root):
         continue
 
@@ -951,9 +859,14 @@ class Goofy(GoofyBase):
 
   def stop(self, root=None, fail=False, reason=None):
     self.kill_active_tests(fail, root, reason)
-    # Remove any tests in the run queue under the root.
-    self.tests_to_run = deque([x for x in self.tests_to_run
-                               if root and not x.has_ancestor(root)])
+
+    if not root:
+      self.test_list_iterator.stop()
+    else:
+      # only skip tests under `root`
+      self.test_list_iterator = itertools.dropwhile(
+          lambda path: self.test_list.lookup_path(path).has_ancestor(root),
+          self.test_list_iterator)
     self.run_next_test()
 
   def clear_state(self, root=None):
@@ -1030,7 +943,7 @@ class Goofy(GoofyBase):
 
     def pre_update_hook():
       if auto_run_on_restart:
-        self.state_instance.set_shared_data('tests_after_shutdown',
+        self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN,
                                             FORCE_AUTO_RUN)
       self.state_instance.close()
 
@@ -1431,9 +1344,6 @@ class Goofy(GoofyBase):
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
 
-    # Startup hooks may want to skip some tests.
-    self.update_skipped_tests()
-
     self.find_kcrashes()
 
     # Should not move earlier.
@@ -1460,24 +1370,23 @@ class Goofy(GoofyBase):
     self.pytest_prespawner.start()
 
     tests_after_shutdown = self.state_instance.get_shared_data(
-        'tests_after_shutdown', optional=True)
-
+        TESTS_AFTER_SHUTDOWN, optional=True)
     force_auto_run = (tests_after_shutdown == FORCE_AUTO_RUN)
+
     if not force_auto_run and tests_after_shutdown is not None:
-      logging.info('Resuming tests after shutdown: %s', tests_after_shutdown)
-      self.tests_to_run.extend(
-          self.test_list.lookup_path(t) for t in tests_after_shutdown)
+      logging.info('Resuming tests after shutdown: %r', tests_after_shutdown)
+      self.test_list_iterator = tests_after_shutdown
+      self.test_list_iterator.set_test_list(self.test_list)
       self.run_enqueue(self.run_next_test)
-    else:
-      if force_auto_run or self.test_list.options.auto_run_on_start:
-        # If automation mode is enabled, allow suppress auto_run_on_start.
-        if (self.options.automation_mode == 'NONE' or
-            self.options.auto_run_on_start):
-          status_filter = [TestState.UNTESTED]
-          if self.test_list.options.retry_failed_on_start:
-            status_filter.append(TestState.FAILED)
-          self.run_enqueue(lambda: self.run_tests(self.test_list, status_filter))
-    self.state_instance.set_shared_data('tests_after_shutdown', None)
+    elif force_auto_run or self.test_list.options.auto_run_on_start:
+      # If automation mode is enabled, allow suppress auto_run_on_start.
+      if (self.options.automation_mode == 'NONE' or
+          self.options.auto_run_on_start):
+        status_filter = [TestState.UNTESTED]
+        if self.test_list.options.retry_failed_on_start:
+          status_filter.append(TestState.FAILED)
+        self.run_enqueue(lambda: self.run_tests(self.test_list, status_filter))
+    self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, None)
     self.restore_active_run_state()
 
     self.dut.hooks.OnTestStart()
@@ -1580,7 +1489,7 @@ class Goofy(GoofyBase):
       else:
         raise Exception(msg)
 
-  def run_tests_with_status(self, statuses_to_run, starting_at=None, root=None):
+  def run_tests_with_status(self, statuses_to_run, root=None):
     """Runs all top-level tests with a particular status.
 
     All active tests, plus any tests to re-run, are reset.
@@ -1593,43 +1502,8 @@ class Goofy(GoofyBase):
         the root of all tests.
     """
     root = root or self.test_list
-
-    if starting_at:
-      # Make sure they passed a test, not a string.
-      assert isinstance(starting_at, factory.FactoryTest)
-
-    tests_to_reset = []
-    tests_to_run = []
-
-    found_starting_at = False
-
-    for test in root.get_top_level_tests():
-      if starting_at:
-        if test == starting_at:
-          # We've found starting_at; do auto-run on all
-          # subsequent tests.
-          found_starting_at = True
-        if not found_starting_at:
-          # Don't start this guy yet
-          continue
-
-      status = test.get_state().status
-      if status == TestState.ACTIVE or status in statuses_to_run:
-        # Reset the test (later; we will need to abort
-        # all active tests first).
-        tests_to_reset.append(test)
-      if status in statuses_to_run:
-        tests_to_run.append(test)
-
     self.abort_active_tests('Operator requested run/re-run of certain tests')
-
-    # Reset all statuses of the tests to run (in case any tests were active;
-    # we want them to be run again).
-    for test_to_reset in tests_to_reset:
-      for test in test_to_reset.walk():
-        test.update_state(status=TestState.UNTESTED)
-
-    self.run_tests(tests_to_run, [TestState.UNTESTED])
+    self.run_tests(root, status_filter=statuses_to_run)
 
   def restart_tests(self, root=None):
     """Restarts all tests."""
@@ -1640,7 +1514,7 @@ class Goofy(GoofyBase):
       test.update_state(status=TestState.UNTESTED)
     self.run_tests(root)
 
-  def auto_run(self, starting_at=None, root=None):
+  def auto_run(self, root=None):
     """"Auto-runs" tests that have not been run yet.
 
     Args:
@@ -1651,7 +1525,6 @@ class Goofy(GoofyBase):
     """
     root = root or self.test_list
     self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
-                               starting_at=starting_at,
                                root=root)
 
   def handle_switch_test(self, event):
@@ -1666,7 +1539,7 @@ class Goofy(GoofyBase):
       return
 
     invoc = self.invocations.get(test)
-    if invoc and test.backgroundable:
+    if invoc:
       # Already running: just bring to the front if it
       # has a UI.
       logging.info('Setting visible test to %s', test.path)
@@ -1677,10 +1550,7 @@ class Goofy(GoofyBase):
     for t in test.walk():
       t.update_state(status=TestState.UNTESTED)
 
-    if self.test_list.options.auto_run_on_keypress:
-      self.auto_run(starting_at=test)
-    else:
-      self.run_tests(test)
+    self.run_tests(test)
 
   def handle_key_filter_mode(self, event):
     if self.key_filter:

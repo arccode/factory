@@ -429,11 +429,9 @@ class DeviceDataCommand(Subcommand):
 
         update[key] = value
       shopfloor.UpdateDeviceData(update, post_update_event=False)
-      factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.delete:
       shopfloor.DeleteDeviceData(self.args.delete, post_update_event=False)
-      factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.set_yaml:
       if self.args.set_yaml == '-':
@@ -444,7 +442,6 @@ class DeviceDataCommand(Subcommand):
       if type(update) != dict:
         sys.exit('Expected a dict but got a %r' % type(update))
       shopfloor.UpdateDeviceData(update, post_update_event=False)
-      factory.get_state_instance().UpdateSkippedTests()
 
     sys.stdout.write(
         yaml.safe_dump(shopfloor.GetDeviceData(),

@@ -16,7 +16,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.net_utils import GetWLANMACAddress
@@ -54,4 +53,3 @@ class SelectForSamplingTest(unittest.TestCase):
         fraction=fraction, rate=self.args.rate, selected=selected)
 
     shopfloor.UpdateDeviceData({self.args.device_data_key: selected})
-    factory.get_state_instance().UpdateSkippedTests()

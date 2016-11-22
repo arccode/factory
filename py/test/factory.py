@@ -1029,6 +1029,12 @@ class FactoryTest(object):
         self.update_state(status=TestState.PASSED, skip=True,
                           error_msg=TestState.SKIPPED_MSG)
 
+  def is_skipped(self):
+    """Returns True if this test was skipped."""
+    state = self.get_state()
+    return (state.status == TestState.PASSED and
+            state.error_msg == TestState.SKIPPED_MSG)
+
 
 class FactoryTestList(FactoryTest):
   """The root node for factory tests.

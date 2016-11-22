@@ -14,7 +14,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
-from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -72,5 +71,3 @@ class CallShopfloor(unittest.TestCase):
           else:
             device_data[device_data_key] = vpd_data[key]
     shopfloor.UpdateDeviceData(device_data)
-
-    factory.get_state_instance().UpdateSkippedTests()

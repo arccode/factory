@@ -30,7 +30,6 @@ from cros.factory.utils.process_utils import WaitEvent
 
 def UpdateDeviceData(data):
   shopfloor.UpdateDeviceData(data)
-  factory.get_state_instance().UpdateSkippedTests()
   Log('update_device_data', data=FilterDict(data))
 
 

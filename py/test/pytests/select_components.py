@@ -82,9 +82,8 @@ class SelectComponentTest(unittest.TestCase):
       key_name = self.component_device_data[self.fields[comp[0]]]
       value = ParseString(comp[1])
       self.device_data[key_name] = value
-      factory.console.info('Update device data %r: %r' % (key_name, value))
+      factory.console.info('Update device data %r: %r', key_name, value)
     shopfloor.UpdateDeviceData(self.device_data)
-    factory.get_state_instance().UpdateSkippedTests()
 
   def runTest(self):
     table = Table(element_id=None, rows=2, cols=len(self.fields))

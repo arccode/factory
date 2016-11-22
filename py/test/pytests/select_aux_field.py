@@ -9,7 +9,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.event_log import Log
-from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -57,9 +56,6 @@ class SelectAuxField(unittest.TestCase):
     except:  # pylint: disable=W0702
       logging.exception('save_aux_data failed')
       return SetError(debug_utils.FormatExceptionOnly())
-
-    # Update tests according to shopfloor aux_data and test run_if setting.
-    factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.event_log_key:
       Log('select', key=self.args.event_log_key, value=select_value)
