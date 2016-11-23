@@ -260,7 +260,7 @@ class TabletRotationTest(unittest.TestCase):
           self.accel_controller and
           degrees_target in self.args.degrees_to_orientations):
         orientations = self.args.degrees_to_orientations[degrees_target]
-        cal_data = self.accel_controller.GetCalibratedDataAverage(
+        cal_data = self.accel_controller.GetData(
             sample_rate=self.args.sample_rate_hz)
         if not self.accel_controller.IsWithinOffsetRange(
             cal_data, orientations, self.args.spec_ideal_values,

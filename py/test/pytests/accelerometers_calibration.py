@@ -39,11 +39,8 @@ Below is an example of test list. There are some mandatory arguments:
   indicates which signal is under 0G and which signal is under -/+1G
   during calibration.
 
-- spec_offset: A tuple of two integers, ex: (128, 230) indicating the
-  tolerance for the digital output of sensors under 0G and -/+1G.
-
-- spec_ideal_values: A tuple of two integers, ex: (0, 1024) indicating the
-  ideal value of digital output corresponding to 0G and 1G, respectively.
+- spec_offset: A tuple of two numbers, ex: (0.5, 0.5) indicating the
+  tolerance in m/s^2 for the digital output of sensors under 0G and -/+1G.
 
 Usage examples::
 
@@ -55,8 +52,7 @@ Usage examples::
                    'in_accel_x': 0,
                    'in_accel_y': 0,
                    'in_accel_z': 1},
-               'spec_offset': (128, 230),
-               'spec_ideal_values': (0, 1024),
+               'spec_offset': (0.5, 0.5),
                'location': 'base'})
 
 """
@@ -119,13 +115,12 @@ class HorizontalCalibrationTask(factory_task.FactoryTask):
   """
 
   def __init__(self, test, orientation, capture_count, setup_time_secs,
-               spec_ideal_values, spec_offset, sample_rate):
+               spec_offset, sample_rate):
     super(HorizontalCalibrationTask, self).__init__()
     self.test = test
     self.orientation = orientation
     self.capture_count = capture_count
     self.setup_time_secs = setup_time_secs
-    self.spec_ideal_values = spec_ideal_values
     self.spec_offset = spec_offset
     self.sample_rate = sample_rate
     self.accelerometer = test.accelerometer_controller
@@ -145,22 +140,18 @@ class HorizontalCalibrationTask(factory_task.FactoryTask):
     # Starts calibration.
     self.template.SetState(_MSG_CALIBRATION_IN_PROGRESS)
     try:
-      raw_data = self.accelerometer.GetRawDataAverage(self.capture_count)
+      raw_data = self.accelerometer.GetData(self.capture_count)
     except accelerometer.AccelerometerException:
       self.Fail('Read raw data failed.')
       return
     # Checks accelerometer is normal or not before calibration.
-    if (not self.accelerometer.IsWithinOffsetRange(raw_data, self.orientation,
-                                                   self.spec_ideal_values,
-                                                   self.spec_offset)
-        or not self.accelerometer.IsGravityValid(raw_data,
-                                                 self.spec_ideal_values[1],
-                                                 self.spec_offset[1])):
+    if not self.accelerometer.IsWithinOffsetRange(raw_data, self.orientation,
+                                                  self.spec_offset):
       self.template.SetState(' ' + _MSG_FAIL + _BR, append=True)
       self.Fail('Raw data out of range, the accelerometers may be damaged.')
       return
     calib_bias = self.accelerometer.CalculateCalibrationBias(
-        raw_data, self.orientation, self.spec_ideal_values)
+        raw_data, self.orientation)
     self.accelerometer.UpdateCalibrationBias(calib_bias)
     self.template.SetState(' ' + _MSG_PASS + _BR, append=True)
     self.Pass()
@@ -230,17 +221,9 @@ class AccelerometersCalibration(unittest.TestCase):
           'to calibration.', default=2, optional=True),
       Arg(
           'spec_offset', tuple,
-          'A tuple of two integers, ex: (128, 230) '
-          'indicating the tolerance for the digital output of sensors under '
-          'zero gravity and one gravity. Those values are vendor-specific '
-          'and should be provided by the vendor.', optional=False),
-      Arg(
-          'spec_ideal_values', tuple,
-          'A tuple of two integers, ex: (0, 1024) indicating the ideal value '
-          'of digital output corresponding to 0G and 1G, respectively. For '
-          'example, if a sensor has a 12-bit digital output and -/+ 2G '
-          'detection range so the sensitivity is 1024 count/G. The value '
-          'should be provided by the vendor.', optional=False),
+          'A tuple of two numbers, ex: (0.5, 0.5) '
+          'indicating the tolerance in m/s^2 for the digital output of '
+          'sensors under 0 and 1G.', optional=False),
       Arg(
           'location', str,
           'The location for the accelerometer', default='base',
@@ -253,7 +236,6 @@ class AccelerometersCalibration(unittest.TestCase):
     # Checks arguments.
     self.assertIn(self.args.calibration_method, ['horizontal', 'sixsided'])
     self.assertEquals(2, len(self.args.spec_offset))
-    self.assertEquals(2, len(self.args.spec_ideal_values))
     # Initializes a accelerometer utility class.
     self.accelerometer_controller = (
         self.dut.accelerometer.GetController(self.args.location))
@@ -267,7 +249,6 @@ class AccelerometersCalibration(unittest.TestCase):
           self.args.orientation,
           self.args.capture_count,
           self.args.setup_time_secs,
-          self.args.spec_ideal_values,
           self.args.spec_offset,
           self.args.sample_rate_hz)]
     else:

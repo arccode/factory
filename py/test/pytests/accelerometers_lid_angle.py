@@ -19,8 +19,7 @@ Usage examples::
         pytest_name='accelerometers_lid_angle',
         dargs={'angle': 180,
                'tolerance': 5,
-               'spec_offset': (128, 230),
-               'spec_ideal_values': (0, 1024)})
+               'spec_offset': (0.5, 0.5)})
 """
 
 import logging
@@ -93,16 +92,9 @@ class AccelerometersLidAngleTest(unittest.TestCase):
           'How many times to capture the raw data to '
           'calculate the lid angle.', default=20, optional=True),
       Arg('spec_offset', tuple,
-          'A tuple of two integers, ex: (128, 230) '
-          'indicating the tolerance for the digital output of sensors under '
-          'zero gravity and one gravity. Those values are vendor-specific '
-          'and should be provided by the vendor.', optional=False),
-      Arg('spec_ideal_values', tuple,
-          'A tuple of two integers, ex: (0, 1024) indicating the ideal value '
-          'of digital output corresponding to 0G and 1G, respectively. For '
-          'example, if a sensor has a 12-bit digital output and -/+ 2G '
-          'detection range so the sensitivity is 1024 count/G. The value '
-          'should be provided by the vendor.', optional=False),
+          'A tuple of two numbers, ex: (0.5, 0.5) '
+          'indicating the tolerance in m/s^2 for the digital output of '
+          'sensors under 0 and 1G.', optional=False),
       Arg('sample_rate_hz', int,
           'The sample rate in Hz to get raw data from '
           'accelerometers.', default=20, optional=True),
@@ -147,7 +139,7 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     for location in self.accelerometers_locations:
       try:
         cal_data[location] = (
-            self.accelerometers[location].GetCalibratedDataAverage(
+            self.accelerometers[location].GetData(
                 self.args.capture_count,
                 self.args.sample_rate_hz))
       except accelerometer.AccelerometerException as err:
@@ -156,10 +148,10 @@ class AccelerometersLidAngleTest(unittest.TestCase):
         return None
 
     # +X axis is aligned with the hinge.
-    hinge_vec = [float(self.args.spec_ideal_values[1]), 0.0, 0.0]
+    hinge_vec = [9.8, 0.0, 0.0]
     # The calulation requires hinge in a horizontal position.
-    min_value = self.args.spec_ideal_values[0] - self.args.spec_offset[0]
-    max_value = self.args.spec_ideal_values[0] + self.args.spec_offset[0]
+    min_value = -self.args.spec_offset[0]
+    max_value = self.args.spec_offset[0]
     for location in self.accelerometers_locations:
       if not min_value <= cal_data[location]['in_accel_x'] <= max_value:
         self.ui.Fail('The hinge is not in a horizontal plane.')

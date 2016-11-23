@@ -6,7 +6,6 @@
 
 import glob
 import logging
-import math
 import os
 import re
 import struct
@@ -23,6 +22,7 @@ IIO_SCAN_TYPE = namedtuple('IIO_SCAN_TYPE', ['endianness', 'sign', 'realbits',
                                              'storagebits', 'repeat', 'shift'])
 _IIO_SCAN_TYPE_RE = re.compile(r'^(be|le):(s|u)(\d+)/(\d+)(?:X(\d+))?>>(\d+)$')
 
+_GRAVITY = 9.80665
 
 def _ParseIIOBufferScanType(type_str):
   """Parse IIO buffer type from a string.
@@ -84,25 +84,36 @@ class AccelerometerController(component.DeviceComponent):
     https://chromium-review.googlesource.com/#/c/190471/.
     """
     super(AccelerometerController, self).__init__(board)
-    self.trigger_number = '0'
     self.num_signals = 3  # (x, y, z).
     self.iio_bus_id = None
+    self.iio_bus_path = None
     self.location = location
+    self.trigger_path = None
 
     assert name is not None or location is not None
     for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'iio:device*')):
       if (name is not None and
-          name != self._GetSysfsValue(os.path.join(iio_path, 'name'))):
+          name != self._GetSysfsValue('name', path=iio_path)):
         continue
       if (location is not None and
-          location != self._GetSysfsValue(os.path.join(iio_path, 'location'))):
+          location != self._GetSysfsValue('location', path=iio_path)):
         continue
 
       self.iio_bus_id = os.path.basename(iio_path)
+      self.iio_bus_path = os.path.join(_IIO_DEVICES_PATH, self.iio_bus_id)
       break
     if self.iio_bus_id is None:
       raise AccelerometerException(
           'Accelerometer at (%r, %r) not found' % (self.name, self.location))
+
+    trigger_name = self._GetSysfsValue('trigger/current_trigger')
+    for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'trigger*')):
+      if trigger_name == self._GetSysfsValue('name', path=iio_path):
+        self.trigger_path = iio_path
+        break
+    if self.trigger_path is None:
+      raise AccelerometerException('Trigger not found')
+
     scan_elements_path = os.path.join(
         _IIO_DEVICES_PATH, self.iio_bus_id, 'scan_elements')
 
@@ -119,17 +130,21 @@ class AccelerometerController(component.DeviceComponent):
                                           signal_name + '_type')))
       self.index_to_signal[index] = dict(name=signal_name, scan_type=scan_type)
 
-  def _GetSysfsValue(self, path):
+  def _GetSysfsValue(self, filename, path=None):
     """Read the content of given path.
 
     Args:
-      path: A string for file path to read.
+      filename: name of the file to read.
+      path: Path to read the given filename, default to the path of
+        current iio device.
 
     Returns:
       A string as stripped contents, or None if error.
     """
+    if path is None:
+      path = self.iio_bus_path
     try:
-      return self._dut.ReadFile(path).strip()
+      return self._dut.ReadFile(os.path.join(path, filename)).strip()
     except Exception:
       pass
 
@@ -165,30 +180,34 @@ class AccelerometerController(component.DeviceComponent):
     The sysfs trigger only captures calibrated input values, so we reset
     the calibration to allow reading raw data from a trigger.
     """
-    iio_bus_path = os.path.join(_IIO_DEVICES_PATH, self.iio_bus_id)
     for calibbias in self._GenSignalNames('_calibbias'):
       self._SetSysfsValues(
-          [SYSFS_VALUE(os.path.join(iio_bus_path, calibbias), '0')])
+          [SYSFS_VALUE(os.path.join(self.iio_bus_path, calibbias), '0')])
 
-  def GetRawDataAverage(self, capture_count=1, sample_rate=20):
-    """Reads several records of raw data and returns the average.
+  def GetData(self, capture_count=1, sample_rate=20):
+    """Returns average values of the sensor data.
 
     First, trigger the capture:
       echo 1 > /sys/bus/iio/devices/trigger0/trigger_now
 
-    Then get the captured raw data from /dev/iio:deviceX.
+    Then get the captured data from /dev/iio:deviceX.
 
     Args:
       capture_count: how many records to read to compute the average.
-      sample_rate: sample rate in Hz to get raw data from accelerometers.
+      sample_rate: sample rate in Hz to read data from accelerometers.
 
     Returns:
       A dict of the format {'signal_name': average value}
-      Ex, {'in_accel_x': 4,
-           'in_accel_y': 1,
-           'in_accel_z': 1001}
+      The output data is in m/s^2.
+      Ex, {'in_accel_x': 0,
+           'in_accel_y': 0,
+           'in_accel_z': 9.8}
+
+    Raises:
+      Raises AccelerometerException if there is no calibration
+      value in VPD.
     """
-    # Each accelerometer raw data is 2 bytes and there are
+    # Each accelerometer data is 2 bytes and there are
     # 3 signals, so the buffer lenght of one record is 6 bytes.
     # The default order is in_accel_(x|y|z).
     #  0 1 2 3 4 5
@@ -197,19 +216,19 @@ class AccelerometerController(component.DeviceComponent):
     # +-+-+-+-+-+-+
     # TODO(phoenixshen): generate the struct from scan_type instead of using
     # hardcoded values
+
     buffer_length_per_record = 6
     FORMAT_RAW_DATA = '<3h'
-    trigger_now_path = os.path.join(
-        _IIO_DEVICES_PATH, 'trigger' + self.trigger_number, 'trigger_now')
+    trigger_now_path = os.path.join(self.trigger_path, 'trigger_now')
 
     # Initializes the returned dict.
     ret = dict((signal_name, 0.0) for signal_name in self._GenSignalNames())
-    # Reads the captured raw data.
+    # Reads the captured data.
     file_path = os.path.join('/dev/', self.iio_bus_id)
-    raw_data_captured = 0
+    data_captured = 0
     retry_count_per_record = 0
     max_retry_count_per_record = 3
-    while raw_data_captured < capture_count:
+    while data_captured < capture_count:
       self._SetSysfsValues([SYSFS_VALUE(trigger_now_path, '1')])
       # To prevent obtaining repeated data, add delay between each capture.
       # In addition, need to wait some time after set trigger_now to get
@@ -227,153 +246,99 @@ class AccelerometerController(component.DeviceComponent):
           # To prevent indefinitely reading raw data if there is a real problem.
           if retry_count_per_record > max_retry_count_per_record:
             raise AccelerometerException(
-                'GetRawDataAverage failed, exceeded maximum retry: %d)' %
+                'GetData failed, exceeded maximum retry: %d)' %
                 max_retry_count_per_record)
-          logging.warning('Failed to read raw data (length=%d), '
+          logging.warning('Failed to read data (length=%d), '
                           'retry again (retry_count=%d).',
                           len(line), retry_count_per_record)
           continue
-        raw_data_captured += 1
+        data_captured += 1
         retry_count_per_record = 0
         raw_data = struct.unpack_from(FORMAT_RAW_DATA, line)
         original_raw_data = {}
-        # Accumulating raw data.
+        # Accumulating.
         for i in xrange(self.num_signals):
           name = self.index_to_signal[i]['name']
           scan_type = self.index_to_signal[i]['scan_type']
           original_raw_data[name] = raw_data[i] >> scan_type.shift
           ret[name] += original_raw_data[name]
         logging.info(
-            '(%d) Getting raw data: %s.', raw_data_captured, original_raw_data)
-    # Calculates the average
+            '(%d) Getting data: %s.', data_captured, original_raw_data)
+    # Calculates average value and convert to SI unit.
+    scale = float(self._GetSysfsValue('scale'))
     for signal_name in ret:
-      ret[signal_name] = int(round(ret[signal_name] / capture_count))
-    logging.info('Average of %d raw data: %s', capture_count, ret)
+      ret[signal_name] = int(round(ret[signal_name] / capture_count)) * scale
+    logging.info('Average of %d data: %s', capture_count, ret)
     return ret
 
-  def GetCalibratedDataAverage(self, capture_count=1, sample_rate=20):
-    """Returns average values of the calibrated data.
-
-    Args:
-      capture_count: how many records to read to compute the average.
-      sample_rate: sample rate in Hz to get raw data from accelerometers.
-
-    Returns:
-      A dict of the format {'signal_name': average value}
-      Ex, {'in_accel_x': 1,
-           'in_accel_y': -1,
-           'in_accel_z': 1019}
-
-    Raises:
-      Raises AccelerometerException if there is no calibration
-      value in VPD.
-    """
-    def _CalculateCalibratedValue(signal_name, value):
-      calib_bias = int(ro_vpd[signal_name + '_' + self.location + '_calibbias'])
-      return value + calib_bias
-
-    # Get calibration data from VPD first.
-    ro_vpd = self._dut.vpd.ro.GetAll()
-    for calib_name in self._GenSignalNames('_' + self.location + '_calibbias'):
-      if calib_name not in ro_vpd:
-        raise AccelerometerException(
-            'Calibration value: %r not found in RO_VPD.' % calib_name)
-
-    # Get raw data and apply the calibration values on it.
-    raw_data = self.GetRawDataAverage(capture_count, sample_rate)
-    return dict(
-        (k, _CalculateCalibratedValue(k, v)) for k, v in raw_data.iteritems())
-
   @staticmethod
-  def IsWithinOffsetRange(raw_data, orientations, spec_ideal_values,
-                          spec_offset):
-    """Checks whether the value of raw data is within the spec or not.
+  def IsWithinOffsetRange(data, orientations, spec_offset):
+    """Checks whether the value of sensor data is within the spec or not.
 
     It is used before calibration to filter out abnormal accelerometers.
 
     Args:
-      raw_data: a dict containing digital output for each signal.
-        Ex, {'in_accel_x': 5,
-             'in_accel_y': 21,
-             'in_accel_z': 1004}
+      data: a dict containing digital output for each signal, in m/s^2.
+        Ex, {'in_accel_x': 0,
+             'in_accel_y': 0,
+             'in_accel_z': 9.8}
 
       orientations: a dict indicating the orentation in gravity
         (either 0 or -/+1) of the signal.
         Ex, {'in_accel_x': 0,
              'in_accel_y': 0,
              'in_accel_z': 1}
-      spec_ideal_values: a tuple of two integers, ex (0, 1024) indicating
-        the ideal value of the digitial output corresponding to zero gravity
-        and one gravity, respectively.
-      spec_offset: a tuple of two integers, ex: (128, 230) indicating the
+      spec_offset: a tuple of two integers, ex: (0.5, 0.5) indicating the
         tolerance for the digital output of sensors under zero gravity and
         one gravity, respectively.
 
     Returns:
-      True if the raw data is within the tolerance of the spec.
+      True if the data is within the tolerance of the spec.
     """
-    for signal_name in raw_data:
-      value = raw_data[signal_name]
+    for signal_name in data:
+      value = data[signal_name]
       orientation = orientations[signal_name]
       # Check the sign of the value for -/+1G orientation.
       if orientation and orientation * value < 0:
-        logging.error('The orientation %d is wrong.', orientation)
+        logging.error('The orientation of %s is wrong.', signal_name)
         return False
       # Check the abs value is within the range of -/+ offset.
       index = abs(orientation)
-      if abs(abs(value) - spec_ideal_values[index]) > spec_offset[index]:
+      ideal_value = _GRAVITY * orientation
+      if abs(value - ideal_value) > spec_offset[index]:
+        logging.error('Signal %s out of range: %f', signal_name, value)
         return False
     return True
 
-  @staticmethod
-  def IsGravityValid(raw_data, spec_ideal_value, spec_offset):
-    """Checks whether the gravity value is within the spec or not.
-
-    It is used before calibration to filter out abnormal accelerometers.
-
-    Args:
-      raw_data: a dict containing digital output for each signal.
-        Ex, {'in_accel_x': 23,
-             'in_accel_y': -19,
-             'in_accel_z': 998}
-      spec_ideal_value: ideal sensor value for 1G.
-      spec_offset: tolerance for the digital output of sensors under 1G.
-
-    Returns:
-      True if the gravity is within the tolerance of the spec.
-    """
-    gravity_value = math.sqrt(sum(v * v for v in raw_data.viewvalues()))
-    logging.info('Gravity value is: %d.', gravity_value)
-    return abs(gravity_value - spec_ideal_value) < spec_offset
-
-  def CalculateCalibrationBias(self, raw_data, orientation, spec_ideal_values):
+  def CalculateCalibrationBias(self, data, orientations):
     # Calculating calibration data.
     calib_bias = {}
-    for signal_name in raw_data:
-      index = abs(orientation[signal_name])
-      ideal_value = spec_ideal_values[index]
-      # For -1G, the ideal_value is -1024.
-      if orientation[signal_name] == -1:
-        ideal_value *= -1
+    for signal_name in data:
+      ideal_value = _GRAVITY * orientations[signal_name]
+      current_calib_bias = int(self._GetSysfsValue(
+          '%s_calibbias' % signal_name))
       # Calculate the difference between the ideal value and actual value
       # then store it into _calibbias.  In release image, the raw data will
       # be adjusted by _calibbias to generate the 'post-calibrated' values.
-      calib_bias[signal_name + '_' + self.location  + '_calibbias'] = str(
-          ideal_value - raw_data[signal_name])
+      calib_bias[signal_name + '_' + self.location  + '_calibbias'] = (
+          ideal_value - data[signal_name] + current_calib_bias)
     return calib_bias
 
   def UpdateCalibrationBias(self, calib_bias):
     """Update calibration bias to RO_VPD
 
     Args:
-      A dict of calibration bias
-      Ex, {'in_accel_x_base_calibbias': 1,
-           'in_accel_y_base_calibbias': -1,
-           'in_accel_z_base_calibbias': 1019}
+      A dict of calibration bias, in m/s^2.
+      Ex, {'in_accel_x_base_calibbias': 0.1,
+           'in_accel_y_base_calibbias': -0.2,
+           'in_accel_z_base_calibbias': 0.3}
     """
     # Writes the calibration results into ro vpd.
+    # The data is converted to 1/1024G unit before writing.
     logging.info('Calibration results: %s.', calib_bias)
-    self._dut.vpd.ro.Update(calib_bias)
+    scaled = dict((k, str(int(v * 1024 / _GRAVITY)))
+                  for k, v in calib_bias.viewitems())
+    self._dut.vpd.ro.Update(scaled)
 
 
 class Accelerometer(component.DeviceComponent):
