@@ -125,16 +125,16 @@ def StartServer(config_file=None):
   # Instantiate Umpire daemon and set command handlers and webapp handler.
   umpired = daemon.UmpireDaemon(env)
   # Add command line handlers.
-  cli_commands = rpc_cli.CLICommand(env)
+  cli_commands = rpc_cli.CLICommand(umpired)
   umpired.AddMethodForCLI(cli_commands)
   # Add root RPC handlers.
-  root_dut_rpc = rpc_dut.RootDUTCommands(env)
+  root_dut_rpc = rpc_dut.RootDUTCommands(umpired)
   umpired.AddMethodForDUT(root_dut_rpc)
   # Add Umpire RPC handlers.
-  umpire_dut_rpc = rpc_dut.UmpireDUTCommands(env)
+  umpire_dut_rpc = rpc_dut.UmpireDUTCommands(umpired)
   umpired.AddMethodForDUT(umpire_dut_rpc)
   # Add log RPC handlers.
-  log_dut_rpc = rpc_dut.LogDUTCommands(env)
+  log_dut_rpc = rpc_dut.LogDUTCommands(umpired)
   umpired.AddMethodForDUT(log_dut_rpc)
   # Add web applications.
   resourcemap_webapp = webapp_resourcemap.ResourceMapApp(env)

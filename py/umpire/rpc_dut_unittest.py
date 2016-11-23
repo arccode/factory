@@ -21,6 +21,7 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import bundle_selector
+from cros.factory.umpire import daemon
 from cros.factory.umpire import rpc_dut
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire import utils
@@ -53,9 +54,10 @@ class DUTRPCTest(unittest.TestCase):
     self.proxy = xmlrpc.Proxy(
         'http://%s:%d' % (net_utils.LOCALHOST, TEST_RPC_PORT),
         allowNone=True)
-    root_commands = rpc_dut.RootDUTCommands(self.env)
-    umpire_dut_commands = rpc_dut.UmpireDUTCommands(self.env)
-    log_dut_commands = rpc_dut.LogDUTCommands(self.env)
+    self.daemon = daemon.UmpireDaemon(self.env)
+    root_commands = rpc_dut.RootDUTCommands(self.daemon)
+    umpire_dut_commands = rpc_dut.UmpireDUTCommands(self.daemon)
+    log_dut_commands = rpc_dut.LogDUTCommands(self.daemon)
     xmlrpc_resource = umpire_xmlrpc.XMLRPCContainer()
     xmlrpc_resource.AddHandler(root_commands)
     xmlrpc_resource.AddHandler(umpire_dut_commands)

@@ -14,7 +14,6 @@ from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import status_reporter
 from cros.factory.umpire.commands import update
 from cros.factory.umpire import config
-from cros.factory.umpire import daemon
 from cros.factory.umpire import umpire_rpc
 from cros.factory.utils import file_utils
 
@@ -192,13 +191,13 @@ class CLICommand(umpire_rpc.UmpireRPC):
       Exceptions when config fails to validate. See ValidateConfig() for
       exception type.
     """
-    deployer = deploy.ConfigDeployer(self.env)
+    deployer = deploy.ConfigDeployer(self.daemon)
     return deployer.Deploy(config_res)
 
   @umpire_rpc.RPCCall
   def StopUmpired(self):
     """Stops Umpire daemon."""
-    daemon.UmpireDaemon(self.env).Stop()
+    self.daemon.Stop()
 
   @umpire_rpc.RPCCall
   def GetStatus(self):
@@ -209,9 +208,9 @@ class CLICommand(umpire_rpc.UmpireRPC):
   @umpire_rpc.RPCCall
   def StartServices(self, services):
     """Starts a list of services."""
-    return daemon.UmpireDaemon(self.env).StartServices(services)
+    return self.daemon.StartServices(services)
 
   @umpire_rpc.RPCCall
   def StopServices(self, services):
     """Stops a list of services."""
-    return daemon.UmpireDaemon(self.env).StopServices(services)
+    return self.daemon.StopServices(services)

@@ -17,7 +17,6 @@ from twisted.python import failure as twisted_failure
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
-from cros.factory.umpire import daemon
 from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
@@ -36,13 +35,14 @@ class ConfigDeployer(object):
       ('firmware', 'firmware.gz'),              # FIRMWARE
       ('rootfs_test', 'rootfs-test.gz'))        # FACTORY
 
-  def __init__(self, env):
+  def __init__(self, daemon):
     """Constructor.
 
     Args:
-      env: UmpireEnv object.
+      daemon: UmpireDaemon object.
     """
-    self._env = env
+    self._daemon = daemon
+    self._env = daemon.env
     self._original_config_path = self._env.config_path
     self._config_path_to_deploy = None
     self._config_to_deploy = None
@@ -198,7 +198,7 @@ class ConfigDeployer(object):
                   self._config_path_to_deploy, failure)
     self._env.LoadConfig(custom_path=self._original_config_path,
                          init_shop_floor_manager=False)
-    deferred = daemon.UmpireDaemon(self._env).Deploy()
+    deferred = self._daemon.Deploy()
     deferred.addCallbacks(self._HandleRollbackSuccess,
                           self._HandleRollbackError)
     return deferred
@@ -225,7 +225,7 @@ class ConfigDeployer(object):
     error = 'Rollback to config %r failed: %s. Stopping Umpire daemon' % (
         self._original_config_path, failure)
     logging.error(error)
-    daemon.UmpireDaemon(self._env).Stop()
+    self._daemon.Stop()
     raise common.UmpireError(error)
 
   def Deploy(self, config_res):
@@ -259,6 +259,6 @@ class ConfigDeployer(object):
                          init_shop_floor_manager=False)
     logging.info('Config %r validated. Try deploying...',
                  self._config_path_to_deploy)
-    deferred = daemon.UmpireDaemon(self._env).Deploy()
+    deferred = self._daemon.Deploy()
     deferred.addCallbacks(self._HandleDeploySuccess, self._HandleDeployError)
     return deferred

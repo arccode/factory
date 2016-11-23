@@ -22,6 +22,7 @@ from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import update
 from cros.factory.umpire import common
 from cros.factory.umpire import config
+from cros.factory.umpire import daemon
 from cros.factory.umpire import rpc_cli
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
@@ -37,7 +38,7 @@ class CommandTest(unittest.TestCase):
     self.mox = mox.Mox()
     self.proxy = xmlrpc.Proxy('http://%s:%d' % (net_utils.LOCALHOST, test_port))
     xmlrpc_resource = umpire_xmlrpc.XMLRPCContainer()
-    umpire_cli = rpc_cli.CLICommand(self.env)
+    umpire_cli = rpc_cli.CLICommand(daemon.UmpireDaemon(self.env))
     xmlrpc_resource.AddHandler(umpire_cli)
     self.port = reactor.listenTCP(test_port, server.Site(xmlrpc_resource))
 

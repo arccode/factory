@@ -34,19 +34,19 @@ from cros.factory.utils import type_utils
 class UmpireDaemon(object):
   """Umpire daemon class.
 
-  Umpire daemon is a singleton. It builds XMLRPC sites that serves command line
-  utility and DUT requests related to umpire configuration. It also builds web
-  application sites that provides interfaces for simple HTTP GET and POST.
+  Umpire daemon builds XMLRPC sites that serves command line utility and
+  DUT requests related to umpire configuration. It also builds web application
+  sites that provides interfaces for simple HTTP GET and POST.
 
   The daemon also has functional interfaces to restart service processes on
   configuration change.
 
   Examples:
     Restart service process after deployed new configuration:
-        UmpireDaemon().Deploy()
+        daemon.Deploy()
 
     Stop Umpire daemon:
-        UmpireDaemon().Stop()
+        daemon.Stop()
 
   Properties:
     env: UmpireEnv object.

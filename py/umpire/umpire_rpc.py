@@ -30,11 +30,13 @@ class UmpireRPC(object):
   """RPC base class.
 
   Properties:
+    daemon: UmpireDaemon object.
     env: UmpireEnv object.
   """
 
-  def __init__(self, env):
-    self.env = env
+  def __init__(self, daemon):
+    self.daemon = daemon
+    self.env = daemon.env
 
   @RPCCall
   def __nonzero__(self):
