@@ -5,10 +5,10 @@
 # Python twisted's module creates definition dynamically, pylint: disable=E1101
 
 import logging
-import sys
 import time
-import traceback
+from twisted.internet import defer
 from twisted.python import reflect
+from twisted.python import failure
 from twisted.web import xmlrpc
 import xmlrpclib
 
@@ -58,20 +58,23 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
     try:
       method = self.handlers[procedure_path]
 
-      def _LogRPCCall(request, error_message, start_time):
+      def _LogRPCCall(request, result, start_time):
         """Logs RPC request
 
         Args:
           request: Twisted request object.
-          error_message: Formatted exception string when calling the method.
+          result: Returned value when calling the method.
           start_time: Time the method started.
         """
-        error_message = ': %s' % error_message if error_message else ''
+        error_message = ''
+        if isinstance(result, failure.Failure):
+          error_message = ': %s' % result.getTraceback()
         class_name = method.__self__.__class__.__name__
         method_name = method.__name__
         duration = time.time() - start_time
         logging.info('%s %s.%s [%.3f s]%s', request.getClientIP(),
                      class_name, method_name, duration, error_message)
+        return result
 
       @xmlrpc.withRequest
       def _WrapProcedure(request, *args, **kwargs):
@@ -80,22 +83,16 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
         Returns:
           Procedure return value or xmlrpc.Fault when exception caught.
         """
-        error_message = ''
         start_time = time.time()
-        try:
-          if getattr(method, 'withRequest', False):
-            return method(request, *args, **kwargs)
-          else:
-            return method(*args, **kwargs)
-        except Exception:
-          # Formats the current exception string.
-          # Copied from py.utils.debug_utils.FormatExceptionOnly().
-          error_message = '\n'.join(
-              traceback.format_exception_only(*sys.exc_info()[:2])).strip()
-          return xmlrpc.Fault(xmlrpclib.APPLICATION_ERROR,
-                              traceback.format_exc())
-        finally:
-          _LogRPCCall(request, error_message, start_time)
+        result = None
+        if getattr(method, 'withRequest', False):
+          result = defer.maybeDeferred(method, request, *args, **kwargs)
+        else:
+          result = defer.maybeDeferred(method, *args, **kwargs)
+        result.addBoth(lambda result: _LogRPCCall(request, result, start_time))
+        result.addErrback(lambda failure: xmlrpc.Fault(
+            xmlrpclib.APPLICATION_ERROR, failure.getTraceback()))
+        return result
 
       return _WrapProcedure
     except KeyError:
