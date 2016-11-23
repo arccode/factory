@@ -42,4 +42,5 @@ COPY setup/umpire_docker/default_umpire.yaml \
   "${umpire_server_dir}/default_umpire.yaml"
 
 # Pepare for takeoff
-CMD "${umpire_server_dir}/bin/umpired"
+# Use exec so that signals are passed to umpired.
+CMD exec ${umpire_server_dir}/bin/umpired
