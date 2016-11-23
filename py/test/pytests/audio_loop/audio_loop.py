@@ -209,7 +209,7 @@ class AudioLoopTest(unittest.TestCase):
           **sinewav**, or **noise**.
 
           If type is **audiofun**, the dict can optionally contain:
-            - **iteration*: Iterations to run the test.
+            - **iteration**: Iterations to run the test.
             - **threshold**: The minimum success rate to pass the test.
             - **output_channels**: A list of output channels to be tested.
             - **capture_rate**: The capturing sample rate use for testing.
