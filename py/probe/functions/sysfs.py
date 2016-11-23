@@ -8,7 +8,31 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.functions import file as file_module
 from cros.factory.utils.arg_utils import Arg
+
+
+def ReadSysfs(dir_path, keys):
+  """Reads the required files in the folder.
+
+  Args:
+    dir_path: the path of the target folder.
+
+  Returns:
+    a dict mapping from the file name to the content of the file.
+    Return None if none of the required files are found.
+  """
+  if not os.path.isdir(dir_path):
+    return None
+  logging.debug('Read sysfs path: %s', dir_path)
+  ret = {}
+  for key in keys:
+    file_path = os.path.join(dir_path, key)
+    content = file_module.ReadFile(file_path)
+    if content is None:
+      return None
+    ret[key] = content
+  return ret
 
 
 class SysfsFunction(function.ProbeFunction):
@@ -25,30 +49,8 @@ class SysfsFunction(function.ProbeFunction):
   def Probe(self):
     ret = []
     for path in glob.glob(self.args.dir_path):
-      result = self._ReadSysfs(path)
+      result = ReadSysfs(path, self.args.keys)
       if result is not None:
         ret.append(result)
     return ret
 
-  def _ReadSysfs(self, dir_path):
-    """Read the required files in the folder.
-
-    Args:
-      dir_path: the path of the target folder.
-
-    Returns:
-      a dict mapping from the file name to the content ot the file.
-      Return None if any required file is not found.
-    """
-    if not os.path.isdir(dir_path):
-      return None
-    logging.debug('Read path: %s', dir_path)
-    ret = {}
-    for key in self.args.keys:
-      file_path = os.path.join(dir_path, key)
-      if not os.path.isfile(file_path):
-        return None
-      with open(file_path, 'r') as f:
-        content = f.read().strip()
-      ret[key] = content
-    return ret

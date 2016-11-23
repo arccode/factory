@@ -14,6 +14,24 @@ from cros.factory.utils.arg_utils import Arg
 DEFAULT_FILE_KEY = 'file_raw'
 
 
+def ReadFile(path, binary_mode=False, skip=0, size=-1):
+  logging.debug('Read file: %s', path)
+  if not os.path.isfile(path):
+    return None
+  mode = 'rb' if binary_mode else 'r'
+  with open(path, mode) as f:
+    f.seek(skip)
+    data = f.read(size)
+  if not binary_mode:
+    ret = data.strip()
+  else:
+    binary_data = ['0x%02x' % ord(char) for char in data]
+    ret = ' '.join(binary_data)
+  if not ret:
+    return None
+  return ret
+
+
 class FileFunction(function.ProbeFunction):
   """Read the content of a file.
 
@@ -33,13 +51,11 @@ class FileFunction(function.ProbeFunction):
     ret = []
     for path in glob.glob(self.args.file_path):
       if os.path.isfile(path):
-        ret += self._ReadFile(path)
+        data = ReadFile(path)
+        if data is None:
+          continue
+        contents = data.splitlines() if self.args.split_line else [data]
+        ret += [{self.args.key: content.strip()}
+                for content in contents if content.strip()]
     return ret
 
-  def _ReadFile(self, path):
-    logging.info('Read file: %s', path)
-    with open(path, 'r') as f:
-      data = f.read()
-    results = data.splitlines() if self.args.split_line else [data]
-    return [{self.args.key: result.strip()}
-            for result in results if result.strip()]
