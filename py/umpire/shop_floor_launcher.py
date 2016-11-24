@@ -16,6 +16,7 @@ Example:
 import logging
 import optparse
 import socket
+import sys
 from twisted.internet import reactor
 from twisted.web import http
 from twisted.web import resource
@@ -28,15 +29,28 @@ from cros.factory.umpire import shop_floor_handler
 from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
 
 
-def _LoadShopFloorHandler(module_name):
+def _LoadShopFloorHandler(module_name, directory):
   """Loads a ShopFloorHandler module.
 
   Args:
     module_name: Name of module containing a ShopFloorHandler class.
+    directory: Path of the directory where the module lives in.
 
   Returns:
     Module reference.
   """
+  sys.path.insert(0, directory)
+  module_path = module_name.split('.')
+  # Reload modules on the module path to make sure that they're using the
+  # updated sys.path.
+  try:
+    module = sys.modules[module_path[0]]
+    reload(module)
+    for name in module_path[1:]:
+      module = getattr(module, name)
+      reload(module)
+  except (KeyError, AttributeError):
+    pass
   logging.debug('_LoadShopFloorHandler: %s', module_name)
   return __import__(module_name, fromlist=['ShopFloorHandler']).ShopFloorHandler
 
@@ -72,7 +86,7 @@ def _DisableDNSLookup():
   socket.getfqdn = FakeGetFQDN
 
 
-def _ShopFloorHandlerFactory(module):
+def _ShopFloorHandlerFactory(module, directory):
   """Creates ShopFloorHandler instance.
 
   It exits the program if either ShopFloorHandler module fails to load or
@@ -85,8 +99,9 @@ def _ShopFloorHandlerFactory(module):
     A ShopFloorHandler instance.
   """
   try:
-    logging.debug('Loading ShopFloorHandler module: %s', module)
-    instance = _LoadShopFloorHandler(module)()
+    logging.debug('Loading ShopFloorHandler module from %s: %s',
+                  directory, module)
+    instance = _LoadShopFloorHandler(module, directory)()
 
     if not isinstance(instance, shop_floor_handler.ShopFloorHandlerBase):
       logging.critical('Module does not inherit ShopFloorHandlerBase: %s',
@@ -175,6 +190,9 @@ def main():
       '-m', '--module', dest='module', metavar='MODULE',
       help=('ShopFloorHandler module to load, in PACKAGE.MODULE format. '
             'e.g. cros.factory.umpire.<board>_shop_floor_handler'))
+  parser.add_option(
+      '-d', '--directory', dest='directory', metavar='TOOLKIT_DIR',
+      help="Location of device toolkit's py_pkg")
   parser.add_option('-t', '--token', dest='token', metavar='TOKEN',
                     help='a unique token for the handler process')
   parser.add_option('-v', '--verbose', action='count', dest='verbose',
@@ -190,9 +208,12 @@ def main():
   if not options.module:
     parser.error('You need to assign the module to be loaded (-m).')
 
+  if not options.directory:
+    parser.error('You need to assign the root directory to be loaded (-d).')
+
   _SetLogging(options.verbose, options.quiet)
   _DisableDNSLookup()
-  instance = _ShopFloorHandlerFactory(options.module)
+  instance = _ShopFloorHandlerFactory(options.module, options.directory)
 
   # remove starting / from HANDLER_BASE.
   path = '%s/%d/%s' % (

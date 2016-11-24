@@ -12,7 +12,8 @@ from cros.factory.umpire.service import umpire_service
 
 
 # TODO(rongchang): Check why symlink doesn't work.
-SHOP_FLOOR_FCGI = 'usr/local/factory/py/umpire/shop_floor_launcher.py'
+SHOP_FLOOR_FCGI = 'py/umpire/shop_floor_launcher.py'
+DEVICE_PACKAGE_ROOT = 'usr/local/factory/py_pkg'
 LOG_FILE_NAME = 'shop_floor.log'
 
 
@@ -69,9 +70,11 @@ class ShopFloorService(umpire_service.UmpireService):
                                 handler_config.iteritems()], [])
       # Set process configuration.
       proc_config = {
-          'executable': os.path.join(toolkit_dir, SHOP_FLOOR_FCGI),
+          'executable': os.path.join(env.server_toolkit_dir, SHOP_FLOOR_FCGI),
           'name': bundle['id'],
-          'args': ['--module', handler] + process_parameters,
+          'args': ['--module', handler, '--directory',
+                   os.path.join(toolkit_dir, DEVICE_PACKAGE_ROOT)
+                  ] + process_parameters,
           'path': env.umpire_data_dir}
       proc = umpire_service.ServiceProcess(self)
       proc.SetConfig(proc_config)
