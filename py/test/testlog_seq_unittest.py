@@ -20,14 +20,13 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import testlog_seq
+from cros.factory.utils import file_utils
 
 
 class BootSequenceTest(unittest.TestCase):
   """Unittests for SeqGenerator."""
 
   def setUp(self):
-    self.first_seq = 1986
-    self.last_seq = 1105
     self.tmp = tempfile.mkdtemp(prefix='BootSeqTest.')
     self.seq_path = os.path.join(self.tmp, 'seq_test')
     self.json_path = os.path.join(self.tmp, 'json_test')
@@ -37,15 +36,27 @@ class BootSequenceTest(unittest.TestCase):
 
   def testSimulateReboot(self):
     """Tests seq recovery functionality."""
+    first_seq = 1986
+    last_seq = 1105
     with open(self.json_path, 'w') as fd:
-      fd.write(json.dumps({'seq': self.first_seq}) + '\n')
-      fd.write(json.dumps({'seq': self.last_seq}) + '\n')
+      fd.write(json.dumps({'seq': first_seq}) + '\n')
+      fd.write(json.dumps({'seq': last_seq}) + '\n')
 
     seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)
     next_seq = seq.Next()
+    current_seq = seq.Current()
+    self.assertEquals(next_seq, current_seq)
     # pylint: disable=W0212
     self.assertEquals(
-        next_seq, 1 + self.last_seq + testlog_seq._SEQ_INCREMENT_ON_BOOT)
+        next_seq, 1 + last_seq + testlog_seq._SEQ_INCREMENT_ON_BOOT)
+
+  def testFailsWhenLocked(self):
+    seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)
+    with file_utils.FileLock(self.seq_path):
+      with self.assertRaises(file_utils.FileLockTimeoutError):
+        seq.Next()
+      with self.assertRaises(file_utils.FileLockTimeoutError):
+        seq.Current()
 
   def testBasic(self):
     with open(self.json_path, 'w') as fd:
@@ -61,11 +72,11 @@ class BootSequenceTest(unittest.TestCase):
         self.assertEquals(i, seq.Next())
 
   def _testThreads(self, after_read=lambda: True, filelock_waitsecs=1.0):
-    '''Tests atomicity by doing operations in 10 threads for 1 sec.
+    """Tests atomicity by doing operations in 10 threads for 1 sec.
 
     Args:
       after_read: See GlobalSeq._after_read.
-    '''
+    """
     values = []
 
     start_time = time.time()

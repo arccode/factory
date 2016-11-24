@@ -145,6 +145,18 @@ class SeqGenerator(object):
       # maintaining the monotonicity property.
     return value
 
+  def Current(self):
+    """Returns the last-used sequence number, or None on failure."""
+    try:
+      with file_utils.FileLock(self.path, self._filelock_waitsecs):
+        with open(self.path, 'r') as f:
+          value = int(f.read()) - 1
+      return value
+    except (IOError, OSError, ValueError):
+      logging.exception('Unable to read global sequence number from %s; ',
+                        self.path)
+      return None
+
   def Next(self):
     """Returns the next sequence number.
 
