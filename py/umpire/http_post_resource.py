@@ -68,16 +68,15 @@ class HTTPPOSTGenericResource(resource.Resource):
     func = post_handler.GetPostHandler(handler_name)
     if func:
       try:
-        result = func(**args)
+        result = func(self.env, **args)
       except Exception as e:
         logging.error('POST: internal handler raises %r', e)
         err = e
 
     # If internal callable handler is not found, try external instead
     else:
-      func = post_handler.GetPostHandler(post_handler.EXTERNAL)
       try:
-        result = func(handler_name, self.env, **args)
+        result = post_handler.RunExternalHandler(self.env, handler_name, **args)
       except Exception as e:
         # post_handler.external() should have handled exceptions.
         logging.error('POST: external(%s) raises %r', handler_name, e)

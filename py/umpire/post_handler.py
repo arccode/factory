@@ -37,7 +37,6 @@ from twisted.internet import threads
 from twisted.web import http
 
 _post_handlers = {}
-EXTERNAL = 'RunExternalHandler'
 
 
 def InternalHandler(func):
@@ -59,12 +58,16 @@ class HandlerError(Exception):
 
 
 @InternalHandler
-def Echo(**kwargs):
+def Echo(env, **kwargs):
   """Echo received args.
+
+  Args:
+    env: An UmpireEnv object.
 
   Raise:
     HandlerError if args contains 'exception'.
   """
+  del env  # Unused.
   if 'exception' in kwargs:
     raise HandlerError()
   ret = {}
@@ -84,7 +87,8 @@ class ExternalProcessProtocol(protocol.ProcessProtocol):
   """
 
   def __init__(self, handler, files=None):
-    """Initializes an process event handler.
+    """Initializes a process event handler.
+
     Args:
       handler: Path of executable.
       files: Reference of temporary files.
@@ -128,7 +132,7 @@ class ExternalProcessProtocol(protocol.ProcessProtocol):
 
 
 @InternalHandler
-def RunExternalHandler(handler, env, **kwargs):
+def RunExternalHandler(env, handler, **kwargs):
   """Spawn external handler to handle request.
 
   Note that we only guarantee argument order of same field, NOT between fields.
@@ -147,8 +151,8 @@ def RunExternalHandler(handler, env, **kwargs):
   The execution results (with stdout) will be reported in JSON object.
 
   Args:
-    handler: A string or a list of handlers (last token of URL).
     env: An UmpireEnv instance containing the environment settings.
+    handler: A string or a list of handlers (last token of URL).
     kwargs: The parameters sent by HTTP form.
 
   Returns:
