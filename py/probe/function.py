@@ -5,9 +5,10 @@
 import copy
 import inspect
 import logging
+import os
 import pkgutil
 
-import factory_common  # pylint: disable=unused-import
+import factory_common
 from cros.factory.utils import arg_utils
 from cros.factory.utils.arg_utils import Arg
 
@@ -20,6 +21,7 @@ INITIAL_DATA = [{}]
 
 # The registered function table mapping from the name to the function class.
 _function_map = {}
+_function_loaded = False  # Only load the function classes in 'functions/' once.
 
 
 def RegisterFunction(name, cls, force=False):
@@ -35,6 +37,27 @@ def RegisterFunction(name, cls, force=False):
   if name in _function_map and not force:
     raise FunctionException('Function "%s" is already registered.' % name)
   _function_map[name] = cls
+
+
+def LoadFunctions():
+  """Load every function class in `py/probe/functions/` directory."""
+  global _function_loaded
+  if _function_loaded:
+    return
+  _function_loaded = True
+
+  def IsFunctionClass(obj):
+    return isinstance(obj, type) and issubclass(obj, Function)
+
+  module_path = os.path.join(factory_common.py_pkg,
+                             'cros', 'factory', 'probe', 'functions')
+  for loader, module_name, unused_is_pkg in pkgutil.iter_modules([module_path]):
+    module = loader.find_module(module_name).load_module(module_name)
+    func_classes = inspect.getmembers(module, IsFunctionClass)
+    assert len(func_classes) <= 1
+    if func_classes:
+      logging.info('Load function: %s', module_name)
+      RegisterFunction(module_name, func_classes[0][1])
 
 
 def InterpretFunction(func_expression):
@@ -60,6 +83,9 @@ def InterpretFunction(func_expression):
   Returns:
     a Function instance.
   """
+  if not _function_loaded:
+    LoadFunctions()
+
   if isinstance(func_expression, list):
     # It's syntax sugar for sequence function.
     expression = {'sequence': {'functions': func_expression}}
@@ -82,20 +108,6 @@ def InterpretFunction(func_expression):
   else:
     instance = _function_map[func_name](**kwargs)
   return instance
-
-
-def LoadFunctions():
-  """Load every function class in this folder."""
-  def IsFunctionClass(obj):
-    return isinstance(obj, type) and issubclass(obj, Function)
-
-  for loader, module_name, unused_is_pkg in pkgutil.iter_modules(['functions']):
-    module = loader.find_module(module_name).load_module(module_name)
-    func_classes = inspect.getmembers(module, IsFunctionClass)
-    assert len(func_classes) <= 1
-    if func_classes:
-      logging.info('Load function: %s', module_name)
-      RegisterFunction(module_name, func_classes[0][1])
 
 
 class FunctionException(Exception):

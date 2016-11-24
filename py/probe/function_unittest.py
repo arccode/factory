@@ -234,9 +234,10 @@ class InterpretCombinationFunctionTest(unittest.TestCase):
 class UtilTest(unittest.TestCase):
   # pylint: disable=protected-access
   def testLoadFunctions(self):
-    self.assertNotIn('file', function._function_map)
     function.LoadFunctions()
     self.assertIn('file', function._function_map)
+    # Should not raise exception while loading twice.
+    self.assertIsNone(function.LoadFunctions())
 
   def testRegisterFunction(self):
     with self.assertRaisesRegexp(function.FunctionException, ''):
