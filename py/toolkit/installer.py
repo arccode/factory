@@ -281,30 +281,18 @@ class FactoryToolkitInstaller(object):
 
   def Install(self):
     print '*** Installing factory toolkit...'
-    for src, dest in ((self._usr_local_src, self._usr_local_dest),):
-      # Change the source directory to root, and add group/world read
-      # permissions.  This is necessary because when the toolkit was
-      # unpacked, the user may not have been root so the permessions
-      # may be hosed.  This is skipped for testing.
-      # --force is necessary to allow goofy directory from prior
-      # toolkit installations to be overwritten by the goofy symlink.
-      try:
-        if self._sudo:
-          Spawn(['chown', '-R', 'root', src],
-                sudo=True, log=True, check_call=True)
-          Spawn(['chmod', '-R', 'go+rX', src],
-                sudo=True, log=True, check_call=True)
-        print '***   %s -> %s' % (src, dest)
-        Spawn(['rsync', '-a', '--force'] + SERVER_FILE_MASK +
-              [src + '/', dest], sudo=self._sudo, log=True,
-              check_output=True, cwd=src)
-      finally:
-        # Need to change the source directory back to the original user, or the
-        # script in makeself will fail to remove the temporary source directory.
-        if self._sudo:
-          myuser = os.environ.get('USER')
-          Spawn(['chown', '-R', myuser, src],
-                sudo=True, log=True, check_call=True)
+
+    # --no-owner and --no-group will set owner/group to the current user/group
+    # running the command. This is important if we're running with sudo, so
+    # the destination will be changed to root/root instead of the user/group
+    # before sudo (doesn't matter if sudo is not present). --force is also
+    # necessary to allow goofy directory from prior toolkit installations to
+    # be overwritten by the goofy symlink.
+    print '***   %s -> %s' % (self._usr_local_src, self._usr_local_dest)
+    Spawn(['rsync', '-a', '--no-owner', '--no-group', '--chmod=ugo+rX',
+           '--force'] + SERVER_FILE_MASK + [self._usr_local_src + '/',
+                                            self._usr_local_dest],
+          sudo=self._sudo, log=True, check_output=True, cwd=self._usr_local_src)
 
     print '*** Ensure SSH keys file permission...'
     sshkeys_dir = os.path.join(self._usr_local_dest, 'factory/misc/sshkeys')
