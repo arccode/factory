@@ -25,15 +25,36 @@ die() {
   exit 1
 }
 
+# Usage: lsbval path-to-lsb-file key default
+# Returns the value for the given lsb-release file variable.
+lsbval() {
+  local lsbfile="$1"
+  local key="$2"
+  local default="$3"
+  local value="$(sed -n "s/^\s*${key}\s*=\s*\(.*\)\s*$/=\1/p" "${lsbfile}")"
+  if [ -n "${value}" ]; then
+    echo "${value#=}"
+  else
+    echo "${default}"
+  fi
+}
+
 # Try to read from config file. This file should be using same format that
 # /etc/lsb-release is using and friendly for sh to process.
 # TODO(hungte) Load options in a safer way.
 # Usage: load_options_file <FILE>
 options_load_file() {
   local file="$1"
+  local key value
   if [ -f "${file}" ]; then
     echo "Loading options from file ${file}..."
-    . "${file}"
+    for key in CUTOFF_METHOD CUTOFF_AC_STATE \
+        CUTOFF_BATTERY_MIN_PERCENTAGE CUTOFF_BATTERY_MAX_PERCENTAGE \
+        CUTOFF_BATTERY_MIN_VOLTAGE CUTOFF_BATTERY_MAX_VOLTAGE \
+        SHOPFLOOR_URL TTY; do
+      value="$(lsbval "${file}" ${key} "$(eval echo "\${${key}}")")"
+      eval ${key}='${value}'
+    done
   fi
 }
 
@@ -164,3 +185,8 @@ options_parse_command_line() {
 # Always load default config file.
 options_load_file "$(dirname $(readlink -f "$0"))/cutoff.conf"
 options_load_file "/mnt/stateful_partition/dev_image/etc/lsb-factory"
+
+# Allow debugging options quickly.
+if [ "$(basename $0)" = "options.sh" ]; then
+  options_check_values
+fi
