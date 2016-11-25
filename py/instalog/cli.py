@@ -59,9 +59,11 @@ class InstalogService(daemon_utils.Daemon):
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
-    # A StreamHandler to stdout is created implicitly.  Since we want to create
-    # our own, we need to remove the default one.
-    logger.removeHandler(logger.handlers[0])
+    # In certain situations, a StreamHandler to stdout is created implicitly.
+    # Since we want to create our own, we need to remove the default one if it
+    # exists.
+    if logger.handlers:
+      logger.removeHandler(logger.handlers[0])
 
     # Create formatter.
     formatter = logging.Formatter(log_utils.LOG_FORMAT)
@@ -138,7 +140,8 @@ class InstalogCLI(object):
         os.path.join(os.path.dirname(os.path.realpath(__file__)),
                      'instalog.yaml'),
         os.path.join(os.path.expanduser('~'), '.instalog.yaml'),
-        os.path.join(os.sep, 'etc', 'instalog.yaml')]
+        os.path.join(os.sep, 'etc', 'instalog.yaml'),
+        os.path.join(os.sep, 'var', 'run', 'instalog.yaml')]
     for path in paths:
       logging.debug('Checking %s for config file...', path)
       if os.path.exists(path):
@@ -212,7 +215,7 @@ if __name__ == '__main__':
       '--config', '-c',
       help='config file path; by default, searches: \n'
            '$PWD/instalog.yaml py/instalog/instalog.yaml '
-           '~/.instalog.yaml /etc/instalog.yaml')
+           '~/.instalog.yaml /etc/instalog.yaml /var/run/instalog.yaml')
   parser.add_argument(
       '--verbose', '-v', action='count', default=0,
       help='increase verbosity')

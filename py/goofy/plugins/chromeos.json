@@ -92,6 +92,14 @@
       "args": {
         "period_secs": 120
       }
+    },
+    {
+      "name": "instalog",
+      "args": {
+        "uplink_hostname": "localhost",
+        "uplink_port": 7500,
+        "uplink_use_shopfloor": false
+      }
     }
   ]
 }
