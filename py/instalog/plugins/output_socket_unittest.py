@@ -53,7 +53,7 @@ class TestInputSocket(unittest.TestCase):
     return data
 
   def testPing(self):
-    time.sleep(2)
+    time.sleep(1)
     self.assertEqual(
         '0\0',  # ping
         self._GetSentData())
@@ -64,8 +64,7 @@ class TestInputSocket(unittest.TestCase):
 
   def testOneEvent(self):
     self.core.GetStream(0).Queue([datatypes.Event({})])
-    # TODO(kitching): Change sleep to sandbox.Flush() when it is implemented.
-    time.sleep(2)
+    self.sandbox.Flush(2, True)
     self.assertEqual('0\0'  # ping
                      '1\0'
                      '8\0'
@@ -80,8 +79,7 @@ class TestInputSocket(unittest.TestCase):
       f.flush()
       event = datatypes.Event({}, {'my_attachment': f.name})
       self.core.GetStream(0).Queue([event])
-      # TODO(kitching): Change sleep to sandbox.Flush() when it is implemented.
-      time.sleep(2)
+      self.sandbox.Flush(2, True)
       self.assertEqual('0\0'  # ping
                        '1\0'
                        '8\0[{}, {}]'

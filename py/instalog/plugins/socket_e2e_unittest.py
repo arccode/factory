@@ -61,7 +61,7 @@ class TestBufferSimpleFile(unittest.TestCase):
 
   def testOneEvent(self):
     self.stream.Queue([datatypes.Event({})])
-    time.sleep(2)
+    self.output_sandbox.Flush(2, True)
     self.assertEquals(self.core.emit_calls, [[datatypes.Event({})]])
 
   def testOneEventOneAttachment(self):
@@ -70,7 +70,7 @@ class TestBufferSimpleFile(unittest.TestCase):
       f.flush()
       event = datatypes.Event({}, {'my_attachment': f.name})
       self.stream.Queue([event])
-      time.sleep(2)
+      self.output_sandbox.Flush(2, True)
       self.assertEqual(1, len(self.core.emit_calls))
       event_list = self.core.emit_calls[0]
       self.assertEqual(1, len(event_list))

@@ -5,13 +5,10 @@
 """A collection of mock classes for plugin unittests."""
 
 # TODO(kitching): Add locks to ensure multi-threading support.
-# TODO(kitching): Add proper Abort support to MockBufferEventStream (events
-#                 should be pushed back into Queue).
 
 from __future__ import print_function
 
 import logging
-import Queue
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
@@ -65,7 +62,7 @@ class MockCore(plugin_sandbox.CoreAPI):
     ret_stream = None
     # First, look for an expired stream with events in it.
     for stream in self.streams:
-      if stream.expired and not stream.queue.empty():
+      if stream.expired and not stream.Empty():
         ret_stream = stream
 
     # Next, fall back to an expired stream without events.
@@ -83,39 +80,61 @@ class MockCore(plugin_sandbox.CoreAPI):
     logging.debug('NewStream returns: %s', ret_stream)
     return ret_stream
 
+  def GetProgress(self, plugin):
+    """Returns the progress of the plugin through available events.
+
+    Normally returns a tuple (completed_count, total_count), but for testing we
+    don't require such a fine granularity of information.  Thus, we will simply
+    return (0, 1) for incomplete, and (1, 1) for complete.  Completion is
+    defined by all streams being empty.
+    """
+    del plugin
+    for stream in self.streams:
+      if not stream.Empty():
+        return 0, 1
+    return 1, 1
+
 
 class MockBufferEventStream(plugin_base.BufferEventStream):
   """Implements a mock BufferEventStream class."""
 
   def __init__(self):
     self.expired = True
-    self.queue = Queue.Queue()
+    self.queue = []
+    self.consumed = []
 
   def Queue(self, events):
-    """Queue the supplied events."""
-    for event in events:
-      logging.debug('%s: Pushing %s...', self, event)
-      self.queue.put(event)
+    """Queues the supplied events."""
+    logging.debug('%s: Pushing %d events...', self, len(events))
+    self.queue.extend(events)
+
+  def Empty(self):
+    """Returns whether or not there are events in this EventStream."""
+    return len(self.queue) == 0 and len(self.consumed) == 0
 
   def Next(self):
-    """Pop the next available event or return None if not available."""
+    """Pops the next available Event or returns None if not available."""
     if self.expired:
       raise plugin_base.EventStreamExpired
-    if self.queue.empty():
+    if len(self.queue) == 0:
       logging.debug('%s: Nothing to pop', self)
       return None
-    ret = self.queue.get(False)
+    ret = self.queue.pop(0)
+    self.consumed.append(ret)
     logging.debug('%s: Popping %s...', self, ret)
     return ret
 
   def Commit(self):
-    """Mark the EventStream as committed and expired."""
+    """Marks the EventStream as committed and expired."""
     if self.expired:
       raise plugin_base.EventStreamExpired
+    self.consumed = []
     self.expired = True
 
   def Abort(self):
-    """Mark the EventStream as aborted and expired."""
+    """Marks the EventStream as aborted and expired."""
     if self.expired:
       raise plugin_base.EventStreamExpired
+    self.queue = self.consumed + self.queue
+    self.consumed = []
     self.expired = True
