@@ -4,9 +4,21 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Output archiver plugin.
+"""Output archive plugin.
 
-An archiver plugin to backup all events and their attachments to a tar.gz file.
+An archive plugin to backup all events and their attachments to a tar.gz file.
+
+The archive name:
+  'InstalogEvents_' + year + month + day + hour + minute + second
+
+The archive structure:
+  InstalogEvents_YYYYmmddHHMMSS.tar.gz
+    InstalogEvents_YYYYmmddHHMMSS/
+      events.json
+      attachments/  # Will not have this dir if no attachment.
+        000/${ATTACHMENT000_NAME}
+        001/${ATTACHMENT001_NAME}
+        ...
 """
 
 from __future__ import print_function
@@ -28,7 +40,7 @@ _DEFAULT_INTERVAL = 1 * 60 * 60  # 1hr
 _DEFAULT_MAX_SIZE = 200 * 1024 * 1024  # 200mb
 
 
-class OutputArchiver(plugin_base.OutputPlugin):
+class OutputArchive(plugin_base.OutputPlugin):
 
   ARGS = [
       Arg('interval', int,
