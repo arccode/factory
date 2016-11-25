@@ -223,6 +223,9 @@ class InputLogFile(plugin_base.InputPlugin):
                   self.args.batch_max_count)
         break
     self.info('Parsed %d events', len(events))
+    if events:
+      self.store['last_event'] = events[-1].payload
+      self.SaveStore()
     return line_reader.offset, self.Emit(events)
 
   def ParseEvents(self, path, lines):

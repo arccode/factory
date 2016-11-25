@@ -13,6 +13,11 @@ from cros.factory.test.env import paths
 from cros.factory.test import shopfloor
 from cros.factory.test import testlog_goofy
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
+
+
+_DEFAULT_FLUSH_TIMEOUT = 5  # 5sec
 
 
 class Instalog(plugin.Plugin):
@@ -92,19 +97,78 @@ class Instalog(plugin.Plugin):
     with open(self._config_path, 'w') as f:
       yaml.dump(config, f, default_flow_style=False)
 
-  def RunCommand(self, args, blocking=False):
-    if isinstance(args, basestring):
-      args = [args]
-    base_args = ['py/instalog/cli.py', '--config', self._config_path]
-    logging.info('Instalog: Running command: %s' % ' '.join(base_args + args))
-    p = process_utils.Spawn(base_args + args, cwd=paths.FACTORY_PATH)
-    if blocking:
-      p.communicate()
-    return p
+  def _GetLastSeqProcessed(self):
+    """Retrieves the last sequence number processed by Testlog input plugin.
+
+    Returns:
+      A tuple of (success, last_seq_processed, result_string).
+    """
+    p = self._RunCommand(
+        ['inspect', 'testlog_json', '.last_event.seq'], read_stdout=True)
+    out = p.stdout_data.rstrip()
+    if p.returncode == 1:
+      return False, None, out
+    else:
+      try:
+        return True, int(out), None
+      except Exception:
+        return False, None, 'Could not parse output: %s' % out
+
+  def FlushInput(self, last_seq_output, timeout=_DEFAULT_FLUSH_TIMEOUT):
+    """Flushes Instalog's Testlog input plugin.
+
+    Args:
+      last_seq_output: The Testlog sequence number up to which flushing should
+                       occur.
+      timeout: Time to wait before returning with failure.
+
+    Returns:
+      A tuple of (success, result_string).
+    """
+    def CheckLastSeqProcessed():
+      success, last_seq_processed, unused_msg = self._GetLastSeqProcessed()
+      return success and last_seq_processed >= last_seq_output
+
+    try:
+      sync_utils.WaitFor(condition=CheckLastSeqProcessed,
+                         timeout_secs=timeout,
+                         poll_interval=0.5)
+    except type_utils.TimeoutError:
+      pass
+
+    success, last_seq_processed, msg = self._GetLastSeqProcessed()
+    if not success:
+      logging.error('FlushInput: Error encountered: %s', msg)
+      return False, msg
+    return (last_seq_processed >= last_seq_output,
+            'Processed %d / %d events' % (last_seq_processed, last_seq_output))
+
+  def FlushOutput(self, timeout=_DEFAULT_FLUSH_TIMEOUT):
+    """Flushes Instalog's upstream output plugin.
+
+    Args:
+      timeout: Time to wait before returning with failure.
+
+    Returns:
+      A tuple of (success, result_string).
+    """
+    p = self._RunCommand(
+        ['flush', 'output_uplink', '--timeout', str(timeout)],
+        read_stdout=True)
+    return p.returncode == 0, p.stdout_data.rstrip()
+
+  def _RunCommand(self, args, verbose=False, **kwargs):
+    """Runs an Instalog command using its CLI."""
+    cmd_args = ['py/instalog/cli.py', '--config', self._config_path]
+    cmd_args.extend(args)
+    log_fn = logging.info if verbose else logging.debug
+    log_fn('Instalog: Running command: %s', ' '.join(cmd_args))
+    return process_utils.Spawn(cmd_args, cwd=paths.FACTORY_PATH, **kwargs)
 
   def OnStart(self):
-    self._instalog_process = self.RunCommand('start')
+    """Called when the plugin starts."""
+    self._RunCommand(['start'], check_output=True, verbose=True)
 
   def OnStop(self):
-    self.RunCommand('stop', blocking=True)
-    self._instalog_process.terminate()
+    """Called when the plugin stops."""
+    self._RunCommand(['stop'], check_output=True, verbose=True)

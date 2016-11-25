@@ -1329,6 +1329,10 @@ class Goofy(GoofyBase):
         self.test_list.options.plugin_config_name, self)
     self.plugin_controller.StartAllPlugins()
 
+    # Set reference to the Instalog plugin.
+    self.testlog.SetInstalogPlugin(
+        self.plugin_controller.GetPluginInstance('instalog'))
+
     # Note that we create a log watcher even if
     # sync_event_log_period_secs isn't set (no background
     # syncing), since we may use it to flush event logs as well.

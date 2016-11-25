@@ -97,6 +97,12 @@ _pylogger = None
 _pylogger_handler = None
 
 
+class FlushException(Exception):
+  """Represents an exception when flushing to Instalog."""
+
+  pass
+
+
 class Testlog(object):
   """Primarily a wrapper for variables that should exist in a singleton.
 
@@ -133,6 +139,7 @@ class Testlog(object):
         '_global_testlog should be initialized only once before Close().')
     with _log_related_lock:
       _global_testlog = self
+    self.instalog_plugin = None
     if log_root and uuid:
       # Indicate it initialized from a harness that no one will collect its
       # session JSON file (so set to None)
@@ -227,6 +234,33 @@ class Testlog(object):
   def _CreateFolders(self):
     for x in [self.log_root, self.attachments_folder]:
       file_utils.TryMakeDirs(x)
+
+  def SetInstalogPlugin(self, instalog_plugin):
+    """Sets a reference to the Goofy Instalog plugin."""
+    self.instalog_plugin = instalog_plugin
+
+  def Flush(self, timeout=None):
+    """Flushes testlog logs through Instalog.
+
+    Returns:
+      If successful, returns a string describing the flushing result.
+
+    Raises:
+      FlushException if flush was not successful.
+    """
+    if self.instalog_plugin is None:
+      raise FlushException('Flush: No Instalog plugin available')
+    last_seq_output = self.seq_generator.Current()
+    input_success, input_msg = self.instalog_plugin.FlushInput(
+        last_seq_output, timeout)
+    if not input_success:
+      raise FlushException('Flush: Failed to flush Instalog input plugin: %s'
+                           % input_msg)
+    output_success, output_msg = self.instalog_plugin.FlushOutput(timeout)
+    if not output_success:
+      raise FlushException('Flush: Failed to flush Instalog output plugin: %s'
+                           % output_msg)
+    return 'Success; %s; %s' % (input_msg, output_msg)
 
 
 def InitSubSession(log_root, uuid, station_test_run=None):
