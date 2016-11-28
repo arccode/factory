@@ -123,6 +123,38 @@ class Arg(object):
 
     return False
 
+  def AddToParser(self, parser):
+    """Add itself to argparse.ArgumentParser.
+
+    Args:
+      parser: argparse.ArgumentParser object
+    """
+    if len(self.type) >= 1 and self.type[0] not in [str, list, bool, int]:
+      raise ValueError('Arg %s cannot be transfered. %s' %
+                       (self.name, self.type))
+
+    if self.optional:
+      args = ['--' + self.name.replace('_', '-')]
+    else:
+      args = [self.name]
+
+    kwargs = {
+        'help': self.help,
+        'default': self.default}
+    if self.type[0] == bool:
+      if self.default is True:
+        args = ['--no-%s' % self.name.replace('_', '-')]
+        kwargs['default'] = True
+        kwargs['action'] = 'store_false'
+      else:
+        kwargs['default'] = False
+        kwargs['action'] = 'store_true'
+    elif self.type[0] == int:
+      kwargs['type'] = int
+    elif self.type[0] == list:
+      kwargs['nargs'] = '*'
+    parser.add_argument(*args, **kwargs)
+
 
 class Dargs(object):
   """A class to hold all the parsed arguments for a factory test."""

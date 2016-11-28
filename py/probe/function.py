@@ -8,7 +8,7 @@ import logging
 import os
 import pkgutil
 
-import factory_common
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import arg_utils
 from cros.factory.utils.arg_utils import Arg
 
@@ -22,6 +22,14 @@ INITIAL_DATA = [{}]
 # The registered function table mapping from the name to the function class.
 _function_map = {}
 _function_loaded = False  # Only load the function classes in 'functions/' once.
+
+
+def GetRegisteredFunctions():
+  return _function_map.keys()
+
+
+def GetFunctionClass(func_name):
+  return _function_map.get(func_name)
 
 
 def RegisterFunction(name, cls, force=False):
@@ -41,7 +49,7 @@ def RegisterFunction(name, cls, force=False):
 
 def LoadFunctions():
   """Load every function class in `py/probe/functions/` directory."""
-  global _function_loaded
+  global _function_loaded  # pylint: disable=global-statement
   if _function_loaded:
     return
   _function_loaded = True
@@ -49,8 +57,8 @@ def LoadFunctions():
   def IsFunctionClass(obj):
     return isinstance(obj, type) and issubclass(obj, Function)
 
-  module_path = os.path.join(factory_common.py_pkg,
-                             'cros', 'factory', 'probe', 'functions')
+  from cros.factory.probe import functions
+  module_path = os.path.dirname(functions.__file__)
   for loader, module_name, unused_is_pkg in pkgutil.iter_modules([module_path]):
     module = loader.find_module(module_name).load_module(module_name)
     func_classes = inspect.getmembers(module, IsFunctionClass)
