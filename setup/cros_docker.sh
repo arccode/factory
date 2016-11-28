@@ -77,6 +77,15 @@ check_gsutil() {
   fi
 }
 
+check_xz() {
+  XZ="pixz"
+  if ! type pixz >/dev/null 2>&1; then
+    warn "pixz is not installed, fall back to xz, compression will be slow!!!"
+    warn "Install pixz if you don't want to wait for too long"
+    XZ="xz"
+  fi
+}
+
 upload_to_localmirror() {
   local local_file_path="$1"
   local remote_file_url="$2"

@@ -14,7 +14,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 HOST_DOME_DIR="$(readlink -f "${SCRIPT_DIR}/../py/dome")"
 HOST_BUILD_DIR="${HOST_DOME_DIR}/build"
 
-DOME_VERSION="1.2.1"
+DOME_VERSION="1.2.2"
 DOME_IMAGE_FILENAME="dome-${DOME_VERSION}-docker-${DOCKER_VERSION}.txz"
 
 DOCKER_SHARED_DOME_DIR="${DOCKER_SHARED_DIR}/dome"
@@ -120,11 +120,9 @@ do_publish() {
   local temp_dir="$(mktemp -d)"
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
 
-  pushd "${temp_dir}"
-  do_save
+  (cd "${temp_dir}"; do_save)
   echo "Uploading to chromeos-localmirror ..."
-  upload_to_localmirror "${DOME_IMAGE_FILENAME}" "${dome_image_url}"
-  popd
+  upload_to_localmirror "${temp_dir}/${DOME_IMAGE_FILENAME}" "${dome_image_url}"
 }
 
 do_run() {
@@ -194,8 +192,10 @@ do_run() {
 
 do_save() {
   check_docker
+  check_xz
+
   echo "Saving Dome docker image to ${PWD}/${DOME_IMAGE_FILENAME} ..."
-  ${DOCKER} save "${DOME_IMAGE_NAME}" | xz >"${DOME_IMAGE_FILENAME}"
+  ${DOCKER} save "${DOME_IMAGE_NAME}" | ${XZ} >"${DOME_IMAGE_FILENAME}"
   echo "Dome docker image saved to ${PWD}/${DOME_IMAGE_FILENAME}"
 }
 

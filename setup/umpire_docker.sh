@@ -153,17 +153,19 @@ do_publish() {
   local temp_dir="$(mktemp -d)"
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
 
-  pushd "${temp_dir}"
-  do_save
+  (cd "${temp_dir}"; do_save)
   echo "Uploading to chromeos-localmirror ..."
-  upload_to_localmirror "${UMPIRE_IMAGE_FILENAME}" "${umpire_image_url}"
-  popd
+  upload_to_localmirror \
+    "${temp_dir}/${UMPIRE_IMAGE_FILENAME}" \
+    "${umpire_image_url}"
 }
 
 do_save() {
   check_docker
+  check_xz
+
   echo "Saving Umpire docker image to ${PWD}/${UMPIRE_IMAGE_FILENAME} ..."
-  ${DOCKER} save "${UMPIRE_IMAGE_NAME}" | xz >"${UMPIRE_IMAGE_FILENAME}"
+  ${DOCKER} save "${UMPIRE_IMAGE_NAME}" | ${XZ} >"${UMPIRE_IMAGE_FILENAME}"
   echo "Umpire docker image saved to ${PWD}/${UMPIRE_IMAGE_FILENAME}"
 }
 
