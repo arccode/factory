@@ -14,31 +14,20 @@ MAINTAINER Wei-Ning Huang <wnhuang@google.com>
 
 # Others: Dependencies that are used by some board's shop_floor
 # TODO(pihsun): These should not be needed once b/32959954 is resolved.
-RUN apk add --no-cache \
-  dbus \
+RUN apk upgrade --no-cache && apk add --no-cache \
   gnupg \
   lighttpd \
-  parallel \
   pigz \
   py-flup \
-  py-mysqldb \
-  py-pillow \
   py-pip \
   py-twisted \
-  py-udev \
   py-yaml \
   python \
   rsync \
   unzip \
   && apk add --no-cache \
   --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ \
-  py-netifaces \
   py-protobuf \
-  && apk add --no-cache \
-  --repository http://dl-3.alpinelinux.org/alpine/edge/community/ \
-  psmisc \
-  py-numpy \
-  py-pexpect \
   && pip install \
   python-gnupg
 
