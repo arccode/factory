@@ -225,6 +225,11 @@ class ServiceProcess(protocol.ProcessProtocol):
       elif self.state == State.STOPPED:
         # When starting a daemon, the process double forks itself and exit.
         deferred.callback(self.pid)
+      elif self.state == State.STOPPING:
+        # Someone else is stopping the process, don't change the state to error.
+        message = '%s failed to start: is stopping' % self.process_name
+        self._Info(message)
+        deferred.errback(common.UmpireError(message))
       else:
         # The process is in unexpected state, call error handler.
         deferred.errback(self._Error(
@@ -284,6 +289,11 @@ class ServiceProcess(protocol.ProcessProtocol):
     def HandleStopFailure(failure):
       self._Error(repr(failure))
       return failure
+
+    if self.state not in [State.STARTING, State.STARTED, State.RESTARTING]:
+      self._Info('Ignored stop process %s in state %s' %
+                 (self.process_name, self.state))
+      return defer.succeed(-1)
 
     self._Info('stopping')
     self._ChangeState(State.STOPPING)
@@ -532,18 +542,26 @@ class UmpireService(object):
     Returns:
       Deferred object.
     """
-    def HandleStartResult(results):
-      # Ignore duplicate process and add new processes into set.
-      self.processes = self.processes & processes | starting_processes
-      logging.info('Service %s started: %s', self.name, results)
-      return results
-
-    def HandleStartFailure(failure):
+    def HandleFailure(failure):
       if isinstance(failure.value, defer.FirstError):
         failure = failure.value.subFailure
       logging.error('Service %s failed to start: %s',
                     self.name, failure.value)
       return failure
+
+    def HandleStartResult(results):
+      # Ignore duplicate process and add new processes into set.
+      logging.info('Service %s started: %s', self.name, results)
+      return results
+
+    def HandleStopResult(result):
+      del result  # Unused.
+      logging.debug('starting processes %s',
+                    [str(p) for p in starting_processes])
+      self.processes |= starting_processes
+      starting_deferreds = [p.Start() for p in starting_processes]
+      starting_deferred = utils.ConcentrateDeferreds(starting_deferreds)
+      return starting_deferred
 
     # Use set() to remove duplicate processes.
     processes = set(processes)
@@ -551,19 +569,12 @@ class UmpireService(object):
     stopping_processes = self.processes - processes
 
     logging.debug('stopping processes %s', [str(p) for p in stopping_processes])
+    self.processes -= stopping_processes
     stopping_deferreds = [p.Stop() for p in stopping_processes]
     stopping_deferred = utils.ConcentrateDeferreds(stopping_deferreds)
 
-    def CallbackStopDone(result):
-      del result  # Unused.
-      logging.debug('starting processes %s',
-                    [str(p) for p in starting_processes])
-      starting_deferreds = [p.Start() for p in starting_processes]
-      starting_deferred = utils.ConcentrateDeferreds(starting_deferreds)
-      return starting_deferred
-
-    stopping_deferred.addCallback(CallbackStopDone)
-    stopping_deferred.addCallbacks(HandleStartResult, HandleStartFailure)
+    stopping_deferred.addCallback(HandleStopResult)
+    stopping_deferred.addCallbacks(HandleStartResult, HandleFailure)
     return stopping_deferred
 
   def Stop(self):
