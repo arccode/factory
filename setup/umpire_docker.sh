@@ -18,7 +18,6 @@ CONTAINER_DB_DIR="/var/db/factory/umpire"
 
 FACTORY_DIR="$(dirname "${SCRIPT_DIR}")"
 HOST_UMPIRE_DIR="${FACTORY_DIR}/py/umpire"
-UMPIRE_DOCKERFILE="${HOST_UMPIRE_DIR}/docker/Dockerfile"
 
 : ${UMPIRE_PORT:="8080"}  # base port for Umpire
 
@@ -41,11 +40,47 @@ do_shell() {
   ${DOCKER} exec -it "${container_name}" bash
 }
 
+do_build_cgpt() {
+  check_docker
+
+  local host_build_dir="${HOST_UMPIRE_DIR}/build"
+  local static_cgpt_filepath="${host_build_dir}/cgpt"
+
+  local cgpt_builder_dockerfile="${HOST_UMPIRE_DIR}/docker/Dockerfile.cgpt"
+  local cgpt_builder_image_name="cros/umpire_cgpt_builder"
+  local cgpt_builder_container_name="umpire_cgpt_builder"
+
+  local host_vboot_dir="$(readlink -f "${FACTORY_DIR}/../vboot_reference")"
+
+  local temp_dir="$(mktemp -d)"
+  TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
+
+  cp -r "${host_vboot_dir}" "${temp_dir}"
+  cp "${cgpt_builder_dockerfile}" "${temp_dir}/Dockerfile"
+
+  ${DOCKER} build \
+    --tag "${cgpt_builder_image_name}" \
+    "${temp_dir}"
+
+  # copy the builder's output from container to host
+  mkdir -p "${host_build_dir}"
+  ${DOCKER} run --name "${cgpt_builder_container_name}" \
+    "${cgpt_builder_image_name}"
+  ${DOCKER} cp \
+    "${cgpt_builder_container_name}:/tmp/build/cgpt" \
+    "${static_cgpt_filepath}"
+  ${DOCKER} rm "${cgpt_builder_container_name}"
+}
+
 do_build() {
   check_docker
 
+  do_build_cgpt
+
+  local umpire_dockerfile="${HOST_UMPIRE_DIR}/docker/Dockerfile.umpire"
+
   ${DOCKER} build \
-    --file "${UMPIRE_DOCKERFILE}" \
+    --file "${umpire_dockerfile}" \
     --tag "${UMPIRE_IMAGE_NAME}" \
     "${FACTORY_DIR}"
   if [ $? -eq 0 ]; then
@@ -215,7 +250,7 @@ main() {
     stop)
       do_stop
       ;;
-    ssh | shell)
+    ssh|shell)
       shift
       do_shell "${UMPIRE_CONTAINER_NAME}" "$@"
       ;;

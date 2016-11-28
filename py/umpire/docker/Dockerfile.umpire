@@ -1,0 +1,62 @@
+# Copyright 2015 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+FROM alpine:3.4
+MAINTAINER Wei-Ning Huang <wnhuang@google.com>
+
+# pigz, py-pip, py-twisted, py-yaml, python, lighttpd: Used by umpire itself
+# TODO(pihsun): Add pbzip2 when there's alpine package for it.
+
+# gnupg, python-gnupg: Used by service/archiver
+# py-flup: Used by service/absub_logparser
+# rsync: Used by service/rsync
+
+# Others: Dependencies that are used by some board's shop_floor
+# TODO(pihsun): These should not be needed once b/32959954 is resolved.
+RUN apk add --no-cache \
+  dbus \
+  gnupg \
+  lighttpd \
+  parallel \
+  pigz \
+  py-flup \
+  py-mysqldb \
+  py-pillow \
+  py-pip \
+  py-twisted \
+  py-udev \
+  py-yaml \
+  python \
+  rsync \
+  unzip \
+  && apk add --no-cache \
+  --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ \
+  py-netifaces \
+  py-protobuf \
+  && apk add --no-cache \
+  --repository http://dl-3.alpinelinux.org/alpine/edge/community/ \
+  psmisc \
+  py-numpy \
+  py-pexpect \
+  && pip install \
+  python-gnupg
+
+ARG umpire_dir="/var/db/factory/umpire"
+ARG umpire_server_dir="/usr/local/factory"
+ENV umpire_server_dir="${umpire_server_dir}"
+
+# Use pre-built static cgpt, since there's no cgpt package in alpine.
+ARG static_cgpt_path="py/umpire/build/cgpt"
+COPY "${static_cgpt_path}" /usr/local/bin/cgpt
+RUN chmod 755 /usr/local/bin/cgpt
+
+COPY py "${umpire_server_dir}/py/"
+COPY py_pkg "${umpire_server_dir}/py_pkg/"
+COPY bin "${umpire_server_dir}/bin/"
+COPY py/umpire/docker/default_umpire.yaml \
+  "${umpire_server_dir}/default_umpire.yaml"
+
+# Pepare for takeoff
+# Use exec so that signals are passed to umpired.
+CMD exec ${umpire_server_dir}/bin/umpired

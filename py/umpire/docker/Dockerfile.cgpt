@@ -1,0 +1,30 @@
+# Copyright 2015 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+FROM alpine:3.4
+MAINTAINER Pi-Hsun Shih <pihsun@google.com>
+
+RUN apk add --no-cache \
+  build-base \
+  linux-headers \
+  musl-dev \
+  openssl-dev \
+  util-linux-dev \
+  xz-dev \
+  yaml-dev
+
+ARG workdir="/tmp/build"
+ENV workdir="${workdir}"
+
+WORKDIR "${workdir}"
+
+COPY vboot_reference "${workdir}/vboot_reference"
+
+RUN cd vboot_reference && \
+  make clean && \
+  make cgpt STATIC=1 && \
+  cp build/cgpt/cgpt "${workdir}"
+
+# Nothing to do here
+CMD ["echo"]
