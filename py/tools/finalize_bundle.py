@@ -706,46 +706,42 @@ class FinalizeBundle(object):
       MakeUpdateBundle(self.factory_image_path, updater_path)
 
   def UpdateNetbootURL(self):
-    """Updates Omaha & TFTP servers' URL in netboot firmware."""
+    """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware."""
 
     mini_omaha_url = self.manifest.get('mini_omaha_url')
     if not mini_omaha_url:
       return
 
-    def UpdateDepthchargeNetboot():
-      """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware."""
-      netboot_firmware_image = os.path.join(
-          self.bundle_dir, 'netboot_firmware', 'image.net.bin')
-      target_bootfile = 'vmlinuz-%s' % self.board
-      target_argsfile = 'cmdline-%s' % self.board
-      if os.path.exists(netboot_firmware_image):
-        update_firmware_settings = os.path.join(
-            self.bundle_dir, 'setup', 'netboot_firmware_settings.py')
-        new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
-        Spawn([update_firmware_settings,
-               '--argsfile', target_argsfile,
-               '--bootfile', target_bootfile,
-               '--input', netboot_firmware_image,
-               '--output', new_netboot_firmware_image,
-               '--omahaserver=%s' % mini_omaha_url,
-               '--tftpserverip=%s' %
-               urlparse.urlparse(mini_omaha_url).hostname],
-              check_call=True, log=True)
-        shutil.move(new_netboot_firmware_image, netboot_firmware_image)
-        # support both 'vmlinux.bin' and 'vmlinuz'.
-        legacy_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
-                                           'netboot', 'vmlinux.bin')
-        target_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
-                                           'netboot', 'vmlinuz')
-        if not os.path.exists(target_netboot_shim):
-          target_netboot_shim = legacy_netboot_shim
+    netboot_firmware_image = os.path.join(
+        self.bundle_dir, 'netboot_firmware', 'image.net.bin')
+    target_bootfile = 'vmlinuz-%s' % self.board
+    target_argsfile = 'cmdline-%s' % self.board
+    if os.path.exists(netboot_firmware_image):
+      update_firmware_settings = os.path.join(
+          self.bundle_dir, 'setup', 'netboot_firmware_settings.py')
+      new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
+      Spawn([update_firmware_settings,
+             '--argsfile', target_argsfile,
+             '--bootfile', target_bootfile,
+             '--input', netboot_firmware_image,
+             '--output', new_netboot_firmware_image,
+             '--omahaserver=%s' % mini_omaha_url,
+             '--tftpserverip=%s' %
+             urlparse.urlparse(mini_omaha_url).hostname],
+            check_call=True, log=True)
+      shutil.move(new_netboot_firmware_image, netboot_firmware_image)
+      # support both 'vmlinux.bin' and 'vmlinuz'.
+      legacy_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
+                                         'netboot', 'vmlinux.bin')
+      target_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
+                                         'netboot', 'vmlinuz')
+      if not os.path.exists(target_netboot_shim):
+        target_netboot_shim = legacy_netboot_shim
 
-        # Finally, copy to 'vmlinuz-<board>'.
-        renamed_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
-                                            'netboot', target_bootfile)
-        shutil.copy(target_netboot_shim, renamed_netboot_shim)
-    UpdateUbootNetboot()
-    UpdateDepthchargeNetboot()
+      # Finally, copy to 'vmlinuz-<board>'.
+      renamed_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
+                                          'netboot', target_bootfile)
+      shutil.copy(target_netboot_shim, renamed_netboot_shim)
 
   def UpdateInstallShim(self):
     mini_omaha_url = self.manifest.get('mini_omaha_url')
