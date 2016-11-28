@@ -1,0 +1,23 @@
+{
+  "audio": {
+    "foo_audio": {
+      "eval": {"file": "/tmp/foo"},
+      "expect": "FOO"
+    },
+    "bar_audio": {
+      "eval": {"file": "/tmp/bar"},
+      "expect": "BAR"
+    }
+  },
+
+  "storage": {
+    "foo_storage": {
+      "eval": {"shell": "storage_probe"},
+      "expect": "FOO"
+    },
+    "bar_storage": {
+      "eval": {"shell": "storage_probe"},
+      "expect": "BAR"
+    }
+  }
+}
