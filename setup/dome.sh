@@ -11,8 +11,6 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 . "${SCRIPT_DIR}/cros_docker.sh"
 
-HOST_DOME_DIR="$(readlink -f "${SCRIPT_DIR}/../py/dome")"
-HOST_BUILD_DIR="${HOST_DOME_DIR}/build"
 
 DOME_VERSION="1.2.2"
 DOME_IMAGE_FILENAME="dome-${DOME_VERSION}-docker-${DOCKER_VERSION}.txz"
@@ -23,9 +21,6 @@ DB_FILENAME="db.sqlite3"
 BUILDER_WORKDIR="/usr/src/app"
 BUILDER_OUTPUT_FILE="frontend.tar"
 CONTAINER_DOME_DIR="/var/db/factory/dome"
-
-BUILDER_DOCKERFILE="${HOST_DOME_DIR}/docker/Dockerfile.builder"
-DOME_DOCKERFILE="${HOST_DOME_DIR}/docker/Dockerfile.dome"
 
 BUILDER_IMAGE_NAME="cros/dome-builder"
 DOME_IMAGE_NAME="cros/dome"
@@ -40,33 +35,38 @@ NGINX_CONTAINER_NAME="dome_nginx"
 do_build() {
   check_docker
 
+  local host_dome_dir="$(readlink -f "$(dirname "${SCRIPT_DIR}")/py/dome")"
+  local host_build_dir="${host_dome_dir}/build"
+  local builder_dockerfile="${host_dome_dir}/docker/Dockerfile.builder"
+  local dome_dockerfile="${host_dome_dir}/docker/Dockerfile.dome"
+
   # build the dome builder image
   ${DOCKER} build \
-    --file "${BUILDER_DOCKERFILE}" \
+    --file "${builder_dockerfile}" \
     --tag "${BUILDER_IMAGE_NAME}" \
     --build-arg workdir="${BUILDER_WORKDIR}" \
     --build-arg output_file="${BUILDER_OUTPUT_FILE}" \
-    "${HOST_DOME_DIR}"
+    "${host_dome_dir}"
 
   # copy the builder's output from container to host
-  mkdir -p "${HOST_BUILD_DIR}"
+  mkdir -p "${host_build_dir}"
   ${DOCKER} run --name "${BUILDER_CONTAINER_NAME}" "${BUILDER_IMAGE_NAME}"
   ${DOCKER} cp \
     "${BUILDER_CONTAINER_NAME}:${BUILDER_WORKDIR}/${BUILDER_OUTPUT_FILE}" \
-    "${HOST_BUILD_DIR}"
+    "${host_build_dir}"
   ${DOCKER} rm "${BUILDER_CONTAINER_NAME}"
 
   wget "https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz" \
-    -O "${HOST_BUILD_DIR}/docker.tgz"
+    -O "${host_build_dir}/docker.tgz"
 
   # build the dome runner image
   # need to make sure we're using the same version of docker inside the container
   ${DOCKER} build \
-    --file "${DOME_DOCKERFILE}" \
+    --file "${dome_dockerfile}" \
     --tag "${DOME_IMAGE_NAME}" \
     --build-arg dome_dir="${CONTAINER_DOME_DIR}" \
     --build-arg builder_output_file="${BUILDER_OUTPUT_FILE}" \
-    "${HOST_DOME_DIR}"
+    "${host_dome_dir}"
 }
 
 do_install() {
