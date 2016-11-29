@@ -277,8 +277,8 @@ class ServiceProcess(protocol.ProcessProtocol):
       not.
     """
     def HandleStopResult(result):
-      self._Info(str(result))
       self._ChangeState(State.STOPPED)
+      self.pid = None
       return result
 
     def HandleStopFailure(failure):
@@ -320,14 +320,14 @@ class ServiceProcess(protocol.ProcessProtocol):
 
   def outReceived(self, data):
     """On stdout receive."""
-    self._Log(data)
+    self._LogData(data)
     self.messages.append(data)
     if len(self.messages) > _MESSAGE_LINES:
       self.messages.pop(0)
 
   def errReceived(self, data):
     """On stderr receive."""
-    self._Log(data)
+    self._LogData(data)
     self.messages.append(data)
     if len(self.messages) > _MESSAGE_LINES:
       self.messages.pop(0)
@@ -427,10 +427,10 @@ class ServiceProcess(protocol.ProcessProtocol):
     for (cb, args, kwargs) in self.callbacks[state]:
       cb(*args, **kwargs)
 
-  def _Log(self, msg):
+  def _LogData(self, msg):
     """Writes log messages to service handler.
 
-    _Log() calls parent_service.log.write(). The child processes' stdout
+    _LogData() calls parent_service.log.write(). The child processes' stdout
     and stderr will be redirected to here.
 
     Args:
@@ -439,13 +439,28 @@ class ServiceProcess(protocol.ProcessProtocol):
     if self.service.log:
       self.service.log.write(msg)
 
+  def _Log(self, level, message):
+    """Shortcut to logging.log, with correct function name and line info"""
+    frame = logging.currentframe()
+    while frame.f_code.co_name in ['_Log', '_Debug', '_Info', '_Error']:
+      frame = frame.f_back
+
+    lineno = frame.f_lineno
+    func = frame.f_code.co_name
+    message = '%s(%s) %s' % (self.process_name, self.pid, message)
+
+    logger = logging.getLogger()
+    record = logger.makeRecord(
+        __name__, level, __file__, lineno, message, [], None, func)
+    logger.handle(record)
+
   def _Debug(self, message):
     """Shortcut to logging.debug."""
-    logging.debug('%s(%s) %s', self.process_name, self.pid, message)
+    self._Log(logging.DEBUG, message)
 
   def _Info(self, message):
     """Shortcut to logging.info."""
-    logging.info('%s(%s) %s', self.process_name, self.pid, message)
+    self._Log(logging.INFO, message)
 
   def _Error(self, message):
     """Shortcut to logging.error.
@@ -453,7 +468,7 @@ class ServiceProcess(protocol.ProcessProtocol):
     Returns:
       UmpireError object.
     """
-    logging.error('%s(%s) %s', self.process_name, self.pid, message)
+    self._Log(logging.ERROR, message)
     self._ChangeState(State.ERROR)
     return common.UmpireError(message)
 

@@ -114,7 +114,6 @@ class ExternalProcessProtocol(protocol.ProcessProtocol):
     self.stderr.append(data)
 
   def processEnded(self, status):
-    logging.info('.. process end with %s', status)
     self.exit_code = status.value.exitCode
 
     content = {}
