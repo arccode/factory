@@ -15,6 +15,8 @@ Targets:
 endef
 export DOME_MAKE_HELP_MESSAGE
 
+DOME_DIR=/var/db/factory/dome
+
 # Command used to analyze test coverage in target 'test-backend'.
 TEST_COVERAGE_CMD = \
 	coverage run \
@@ -38,17 +40,18 @@ lint-backend:
 		LINT_FILES="py/dome/backend/*.py py/dome/backend/migrations/*.py"
 
 lint-frontend:
-	../../setup/dome.sh build
+	../../setup/cros_docker.sh build
 	docker run --rm cros/dome-builder npm run lint
 
 test: test-backend test-frontend
 
 test-backend:
-	../../setup/dome.sh build
+	../../setup/cros_docker.sh build
 	docker run \
 		--rm \
-		--volume "$(CURDIR)/build:/var/db/factory/dome/build" \
-		cros/dome \
+		--volume "$(CURDIR)/../../build/docker:/var/db/factory/dome/build" \
+		--workdir "${DOME_DIR}" \
+		cros/factory_server \
 		sh -c "$(TEST_COVERAGE_CMD)"
 
 test-frontend:

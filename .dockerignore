@@ -1,6 +1,5 @@
 *
-!setup/umpire_docker
 !py
 !py_pkg
 !bin
-py/dome/build
+!build/docker

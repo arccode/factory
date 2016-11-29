@@ -48,11 +48,11 @@ To deploy Dome:
 
 1.  Download the factory bundle from
     [CPFE](https://www.google.com/chromeos/partner/fe/#home), extract it.
-2.  Find the Dome setup script (`dome.sh`) in the `setup` folder.
-3.  Run `./dome.sh pull` to download the docker images.
-4.  Copy `dome.sh` and files listed on the screen to the target computer.
-5.  Run `./dome.sh install` to load docker images.
-6.  Run `./dome.sh run` to start Dome containers.
+2.  Find the Dome setup script (`cros_docker.sh`) in the `setup` folder.
+3.  Run `./cros_docker.sh pull` to download the docker images.
+4.  Copy `cros_docker.sh` and files listed on the screen to the target computer.
+5.  Run `./cros_docker.sh install` to load docker images.
+6.  Run `./cros_docker.sh run` to start Dome containers.
 
 Open your browser to port 8000 of the Dome server, and you should see the
 welcome page. For example, if you're using the same machine and had the desktop

@@ -50,9 +50,9 @@ UMPIRE_MATCH_KEY_MAP = {
     'mlb_serial_numbers': 'mlb_sn'}
 
 # TODO(littlecvr): use volume container instead of absolute path.
-# TODO(littlecvr): these constants are shared between here and umpire_docker.sh,
+# TODO(littlecvr): these constants are shared between here and cros_docker.sh,
 #                  should be pulled out to common config.
-UMPIRE_IMAGE_NAME = 'cros/umpire'
+FACTORY_SERVER_IMAGE_NAME = 'cros/factory_server'
 DOCKER_SHARED_DIR = '/docker_shared'
 UMPIRE_DOCKER_DIR = '/docker_umpire'
 UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
@@ -62,9 +62,11 @@ UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 # '/var/db/factory/umpire', but they have nothing to do with each other). This
 # is also not Umpire's base directory on host (which is '/docker_umpire' for
 # now).
-# TODO(littlecvr): shared between here and dome.sh, should be pulled out to a
-#                  common config.
+# TODO(littlecvr): shared between here and cros_docker.sh, should be pulled out
+#                  to a common config.
 UMPIRE_BASE_DIR = '/var/db/factory/umpire'
+
+UMPIRED_FILEPATH = '/usr/local/factory/bin/umpired'
 
 
 @contextlib.contextmanager
@@ -225,11 +227,10 @@ class Board(models.Model):
 
     try:
       # create and start a new container
-      # TODO(littlecvr): this is almost identical to umpire_docker.sh's
-      #                  do_start() function, when merging dome.sh and
-      #                  umpire_docker.sh, we should remove this function in
-      #                  that script because this job should be done by Dome
-      #                  only
+      # TODO(littlecvr): this is almost identical to cros_docker.sh's
+      #                  do_umpire_run() function, we should remove this
+      #                  function in that script because this job should be
+      #                  done by Dome only
       subprocess.check_call(
           ['docker', 'run', '--detach', '--privileged',
            '--volume', '/etc/localtime:/etc/localtime:ro',
@@ -244,7 +245,7 @@ class Board(models.Model):
                                    UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET),
            '--restart', 'unless-stopped',
            '--name', container_name,
-           UMPIRE_IMAGE_NAME])
+           FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH])
     except Exception:
       # remove container
       subprocess.call(['docker', 'stop', container_name])

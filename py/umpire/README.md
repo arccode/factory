@@ -29,13 +29,14 @@ Currently the recommended approach is using Umpire inside Docker.
 2. Extract the copy of ChromeOS factory software - probably from factory bundle
    (factory.zip) or from source. Then execute:
 
-       setup/umpire_docker.sh pull
-       setup/umpire_docker.sh install
-       setup/umpire_docker.sh start
+       setup/cros_docker.sh pull
+       setup/cros_docker.sh install
+       setup/cros_docker.sh umpire run
 
    You should see messages like
 
-       Starting container ... 9f37a0c111f2d77e8923ebf403f9ba571e106d584e62621857846abda051d340
+       Starting container ...
+       9f37a0c111f2d77e8923ebf403f9ba571e106d584e62621857846abda051d340
        done
 
        *** NOTE ***
@@ -47,8 +48,8 @@ Check if Umpire is running properly
 ----------------------------------
 Enter docker shell and do `umpire status`.
 
-    ./setup/umpire_docker.sh shell
-    umpire status
+    setup/cros_docker.sh umpire shell
+     umpire status
 
 A typical output:
 
@@ -62,11 +63,10 @@ release image, toolkit, firmware, hwid, ... etc) you have to first prepare it
 with the `finalize_bundle` command. When a bundle ZIP file is available, do:
 
     sudo cp factory_bundle.zip /docker_shared
-    setup/umpire_docker.sh shell
+    setup/cros_docker.sh umpire shell
      umpire import-bundle /mnt/factory_bundle.zip
      umpire edit  # and mark the bundle in rulesets as active.
      umpire deploy
-     exit
 
 Updating resources
 ------------------
@@ -75,7 +75,7 @@ You have to first copy the new file into /docker_shared (which can be found as
 command. Example:
 
     # Update toolkit/hwid in bundle
-    ./setup/umpire_docker.sh shell
+    setup/cros_docker.sh umpire shell
      umpire update --from 20150702_rev3 --to 20150702_rev3_newtoolkit \
        factory_toolkit=/mnt/install_factory_toolkit.run
      umpire edit
@@ -96,7 +96,7 @@ Restarting Umpire
 -----------------
 The docker containers were configured to auto-restart if your machine was
 rebooted unexpectedly. If you want to fully restart umpire, try
-`./setup/umpire_docker.sh stop`, `./setup/umpire_docker.sh start`.
+`setup/cros_docker.sh umpire stop`, `setup/cros_docker.sh umpire run`.
 
 Changing Umpire configuration
 -----------------------------
