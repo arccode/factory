@@ -355,6 +355,9 @@ testall:
 # Builds an overlay of the given board.  Use "private" to overlay
 # factory-private (e.g., to build private API docs).
 overlay:
+	$(if $(BOARD),,$(error "You must specify a board to build overlay."))
+	$(if $(BOARD_FILES_DIR),, \
+	  $(error "You have to first run: setup_board --board $(BOARD)"))
 	rm -rf $@-$(BOARD)
 	mkdir -p $@-$(BOARD)
 	rsync -aK --exclude build --exclude overlay-\* ./ $@-$(BOARD)/
