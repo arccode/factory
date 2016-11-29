@@ -19,6 +19,7 @@ from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import Passed
+from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
 
 
@@ -587,6 +588,26 @@ def FATP(args):
             perform_random_test=False,
             perform_sequential_test=True,
             sequential_block_count=args.fatp_usb_performance_sequential_block_count))
+
+    # This takes a long time (~30s) to execute, can be moved to run-in if
+    # necessary.
+    with AutomatedSequence(id='MRCCache', label_zh=u'MRC Cache'):
+      FactoryTest(
+          id='Create',
+          label_zh=u'产生 Cache',
+          pytest_name='mrc_cache',
+          dargs={'mode': 'create'})
+
+      RebootStep(
+          id='Reboot',
+          label_zh=u'重新开机',
+          iterations=1)
+
+      FactoryTest(
+          id='Verify',
+          label_zh=u'验证',
+          pytest_name='mrc_cache',
+          dargs={'mode': 'verify'})
 
     args.Barrier('FATP')
 
