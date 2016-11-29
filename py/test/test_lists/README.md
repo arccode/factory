@@ -7,7 +7,8 @@
 ChromeOS Factory Test Lists
 ===========================
 This package contains factory test lists.
-See: http://goto/cros-factory-test-lists
+See: [http://goto/cros-factory-test-list](http://goto/cros-factory-test-list)
+or [TEST_LIST.md](./TEST_LIST.md)
 
 TEST LISTS
 ----------
@@ -18,9 +19,6 @@ invoked in each module that has one.
 `generic.py` is loaded *last*, and only if no other module has created
 a test list called `main` (i.e., there is no board-specific test list
 in the overlay).
-
-Old-style test lists are also loaded from
-`/usr/local/factory/test_lists`.
 
 THE ACTIVE TEST LIST
 --------------------

@@ -16,6 +16,8 @@ from cros.factory.test import shopfloor
 class TestListIterator(object):
   """An iterator of test list.
 
+  https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md
+
   * The iterator will return next test to run when "next()" is called.
   * A status filter can be applied to skip some tests according to their states.
   * The iterator is loosely bind to FactoryTestList, that is you can change the
