@@ -42,9 +42,7 @@ class OverlordServiceTest(unittest.TestCase):
       shutil.rmtree(self.temp_dir)
 
   def testLaunchOverlord(self):
-    umpire_port = 9001
     umpire_config = {
-        'port': umpire_port,
         'services': {'overlord': {'noauth': True}},
         'bundles': [{
             'id': 'default',

@@ -107,9 +107,7 @@ class HTTPServiceTest(unittest.TestCase):
       shutil.rmtree(self.temp_dir)
 
   def testGenerateLightyConfig(self):
-    umpire_port = 9001
     umpire_config_dict = {
-        'port': umpire_port,
         'services': {'http': {
             'reverse_proxies': [
                 {'remoteip': '192.168.51.0/24',
@@ -163,7 +161,7 @@ class HTTPServiceTest(unittest.TestCase):
         line_num += 1
 
     ExpectLine('server.bind = "%s"' % '0.0.0.0')
-    ExpectLine('server.port = %d' % umpire_port)
+    ExpectLine('server.port = %d' % self.env.umpire_base_port)
 
     base_dir = self.env.base_dir
     ExpectLine('accesslog.filename = "%s/log/httpd_access.log"' % base_dir)

@@ -60,6 +60,8 @@ DEFAULT_SERVER_DIR = os.path.join('usr', 'local', 'factory')
 EMPTY_FILE_HASH = 'd41d8cd9'
 DUMMY_RESOURCE = 'none##' + EMPTY_FILE_HASH
 
+UMPIRE_DEFAULT_PORT = 8080
+
 
 class UmpireError(Exception):
   """General umpire exception class."""

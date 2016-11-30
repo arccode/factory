@@ -38,7 +38,6 @@ class ArchiverServiceTest(unittest.TestCase):
           os.path.join(self.env.server_toolkit_dir, subdir))
 
     self.umpire_config = {
-        'port': 9001,
         'services': {'archiver': {
             'common': {'archived_dir': self.archived_dir},
             'data_types': {

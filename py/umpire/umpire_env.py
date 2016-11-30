@@ -111,10 +111,7 @@ class UmpireEnv(object):
   def umpire_base_port(self):
     if not self.config:
       raise common.UmpireError('UmpireConfig not loaded yet.')
-    if 'port' not in self.config:
-      raise common.UmpireError('port is not defined in UmpireConfig %s' %
-                               self.config_path)
-    return self.config['port']
+    return self.config.get('port', common.UMPIRE_DEFAULT_PORT)
 
   @property
   def umpire_webapp_port(self):

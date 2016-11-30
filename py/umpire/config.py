@@ -131,10 +131,10 @@ def ValidateConfig(config):
       items={
           'rulesets': _RULESETS_SCHEMA,
           'services': umpire_service.GetServiceSchemata(),
-          'bundles': List('Bundles', _BUNDLE_SCHEMA),
-          'port': Scalar('Base port', int)},
+          'bundles': List('Bundles', _BUNDLE_SCHEMA)},
       optional_items={
-          'ip': Scalar('IP address to bind', str)})
+          'ip': Scalar('IP address to bind', str),
+          'port': Scalar('Base port', int)})
   schema.Validate(config)
 
 
@@ -218,9 +218,9 @@ class UmpireOrderedDict(dict):
 
   def Omap(self):
     result = []
-    if 'ip' in self:
-      result.append(('ip', self['ip']))
-    result.append(('port', self['port']))
+    for optional_key in ['ip', 'port']:
+      if optional_key in self:
+        result.append((optional_key, self[optional_key]))
     result.append(('rulesets',
                    [RulesetOrderedDict(r) for r in self['rulesets']]))
     result.append(('services', ServicesOrderedDict(self['services'])))
@@ -305,7 +305,7 @@ class UmpireConfig(dict):
 
   Example:
     umpire_config = UmpireConfig(config_file)
-    logging.info('Reads Umpire config port = %d', umpire_config['port']
+    logging.info('Reads Umpire config ip = %s', umpire_config.get('ip'))
   """
 
   def __init__(self, config, validate=True):

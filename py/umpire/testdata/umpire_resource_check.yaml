@@ -1,5 +1,3 @@
-ip: 10.0.0.1
-port: 8080
 rulesets:
 - bundle_id: test1
   note: ruleset for test 1

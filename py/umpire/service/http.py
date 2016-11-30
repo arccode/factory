@@ -146,7 +146,7 @@ class HTTPService(umpire_service.UmpireService):
     """
     http_config = umpire_config['services']['http']
     httpd_bind_address = '0.0.0.0'
-    httpd_port = int(umpire_config['port'])
+    httpd_port = int(env.umpire_base_port)
     shopfloor_port = env.shopfloor_start_port
     cpu_count = multiprocessing.cpu_count()
 
@@ -194,7 +194,7 @@ class HTTPService(umpire_service.UmpireService):
           if match_path and port_offset:
             fastcgi_conf[match_path] = [{
                 'host': net_utils.LOCALHOST,
-                'port': port_offset + env.config['port'],
+                'port': port_offset + env.umpire_base_port,
                 'check-local': 'disable'}]
           else:
             raise common.UmpireError('empty fastcgi handler in %s' %

@@ -1,5 +1,3 @@
-ip: 10.3.0.12
-port: 9090
 rulesets:
 - bundle_id: empty_init_bundle
   note: n/a
