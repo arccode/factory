@@ -103,7 +103,7 @@ DOCKER_BASE_DIR="/usr/local/factory"
 DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
 
 DOCKER_IMAGE_NAME="cros/factory_server"
-DOCKER_IMAGE_VERSION="20161129171514"  # timestamp
+DOCKER_IMAGE_VERSION="20161201123217"  # timestamp
 DOCKER_IMAGE_FILENAME="factory-server-${DOCKER_IMAGE_VERSION}-docker-${DOCKER_VERSION}.txz"
 DOCKER_IMAGE_FILEPATH="${SCRIPT_DIR}/${DOCKER_IMAGE_FILENAME}"
 
@@ -357,36 +357,47 @@ do_run() {
   echo "Open the browser to http://localhost:${DOME_PORT}/ and enjoy!"
 }
 
-do_build_cgpt() {
+do_build_umpire_deps() {
   check_docker
 
-  local static_cgpt_filepath="${BUILD_DIR}/cgpt"
+  local builder_output_file="$1"
+  local builder_workdir="/tmp/build"
+  local static_bins_filepath="${BUILD_DIR}/${builder_output_file}"
 
-  local cgpt_builder_dockerfile="${UMPIRE_DIR}/docker/Dockerfile.cgpt"
-  local cgpt_builder_image_name="cros/umpire_cgpt_builder"
-  local cgpt_builder_container_name="umpire_cgpt_builder"
+  local deps_builder_dockerfile="${UMPIRE_DIR}/docker/Dockerfile.deps"
+  local deps_builder_image_name="cros/umpire_deps_builder"
+  local deps_builder_container_name="umpire_deps_builder"
 
   local host_vboot_dir="$(readlink -f "${FACTORY_DIR}/../vboot_reference")"
 
   local temp_dir="$(mktemp -d)"
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
 
+  if [[ ! -f "${BUILD_DIR}/pbzip2.tgz" ]]; then
+    wget "https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz" \
+      -O "${BUILD_DIR}/pbzip2.tgz"
+  fi
+  cp "${BUILD_DIR}/pbzip2.tgz" "${temp_dir}"
   cp -r "${host_vboot_dir}" "${temp_dir}"
-  cp "${cgpt_builder_dockerfile}" "${temp_dir}/Dockerfile"
+  cp "${deps_builder_dockerfile}" "${temp_dir}/Dockerfile"
 
-  ${DOCKER} build --tag "${cgpt_builder_image_name}" "${temp_dir}"
+  ${DOCKER} build \
+    --tag "${deps_builder_image_name}" \
+    --build-arg workdir="${builder_workdir}" \
+    --build-arg output_file="${builder_output_file}" \
+    "${temp_dir}"
 
   # copy the builder's output from container to host
   mkdir -p "${BUILD_DIR}"
-  ${DOCKER} run --name "${cgpt_builder_container_name}" \
-    "${cgpt_builder_image_name}"
+  ${DOCKER} run --name "${deps_builder_container_name}" \
+    "${deps_builder_image_name}"
   ${DOCKER} cp \
-    "${cgpt_builder_container_name}:/tmp/build/cgpt" \
-    "${static_cgpt_filepath}"
-  ${DOCKER} rm "${cgpt_builder_container_name}"
+    "${deps_builder_container_name}:${builder_workdir}/${builder_output_file}" \
+    "${static_bins_filepath}"
+  ${DOCKER} rm "${deps_builder_container_name}"
 }
 
-do_build_dome() {
+do_build_dome_deps() {
   check_docker
 
   local builder_output_file="$1"
@@ -415,10 +426,11 @@ do_build_dome() {
 do_build() {
   check_docker
 
+  local umpire_builder_output_file="bins.tar"
   local dome_builder_output_file="frontend.tar"
 
-  do_build_cgpt
-  do_build_dome "${dome_builder_output_file}"
+  do_build_umpire_deps "${umpire_builder_output_file}"
+  do_build_dome_deps "${dome_builder_output_file}"
 
   local dockerfile="${SCRIPT_DIR}/Dockerfile"
 
@@ -431,7 +443,8 @@ do_build() {
     --tag "${DOCKER_IMAGE_NAME}" \
     --build-arg dome_dir="${DOCKER_DOME_DIR}" \
     --build-arg server_dir="${DOCKER_BASE_DIR}" \
-    --build-arg builder_output_file="${dome_builder_output_file}" \
+    --build-arg umpire_builder_output_file="${umpire_builder_output_file}" \
+    --build-arg dome_builder_output_file="${dome_builder_output_file}" \
     "${FACTORY_DIR}"
 
   echo "${DOCKER_IMAGE_NAME} image successfully built."

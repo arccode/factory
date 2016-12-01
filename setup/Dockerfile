@@ -11,7 +11,8 @@ ENV PYTHONPATH="/usr/local/lib/python2.7/site-packages"
 ARG server_dir="/usr/local/factory"
 ARG dome_dir="${server_dir}/py/dome"
 
-# pigz, py-pip, py-twisted, py-yaml, python, lighttpd: Used by Umpire
+# pigz, py-pip, py-twisted, py-yaml, python, lighttpd, tar: Used by Umpire
+# (buzybox tar doesn't support -I, which is used in file_utils.ExtractFile)
 # gnupg, python-gnupg: Used by umpire/service/archiver
 # py-flup: Used by umpire/service/absub_logparser
 # rsync: Used by umpire/service/rsync
@@ -21,9 +22,10 @@ ARG dome_dir="${server_dir}/py/dome"
 # nginx, uwsgi-python: Used by Dome
 # cannot install uwsgi using pip since we don't have compiler
 
-# TODO(pihsun): Add pbzip2 when there's alpine package for it.
+# libstdc++: Dependency of pbzip2 (static binary)
 RUN apk upgrade --no-cache && apk add --no-cache \
   gnupg \
+  libstdc++ \
   lighttpd \
   nginx \
   pigz \
@@ -33,6 +35,7 @@ RUN apk upgrade --no-cache && apk add --no-cache \
   py-yaml \
   python \
   rsync \
+  tar \
   unzip \
   uwsgi-python \
   && apk add --no-cache \
@@ -49,10 +52,10 @@ COPY bin "${server_dir}/bin/"
 # only the small client to communicate with the host's docker server)
 ADD build/docker/docker.tgz /
 
-# Use pre-built static cgpt, since there's no cgpt package in alpine.
-ARG static_cgpt_path="build/docker/cgpt"
-COPY "${static_cgpt_path}" /usr/local/bin/cgpt
-RUN chmod 755 /usr/local/bin/cgpt
+# Use pre-built static binaries (cgpt, pbzip2), since there's no package for
+# those in alpine.
+ARG umpire_builder_output_file="bins.tar"
+ADD "build/docker/${umpire_builder_output_file}" /usr/local/bin/
 
 # these files are unlikely to change often, put them here to take advantage of
 # docker's cache
@@ -61,8 +64,8 @@ COPY py/dome/uwsgi.ini py/dome/manage.py py/dome/requirements.txt "${dome_dir}/"
 RUN pip install --no-cache-dir -r "${dome_dir}/requirements.txt"
 
 # these files are likely to change often, put them at the end
-ARG builder_output_file="frontend.tar"
-ADD "build/docker/${builder_output_file}" "${dome_dir}/static/"
+ARG dome_builder_output_file="frontend.tar"
+ADD "build/docker/${dome_builder_output_file}" "${dome_dir}/static/"
 
 COPY py/umpire/docker/default_umpire.yaml \
   "${server_dir}/default_umpire.yaml"

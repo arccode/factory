@@ -7,6 +7,7 @@ MAINTAINER Pi-Hsun Shih <pihsun@google.com>
 
 RUN apk add --no-cache \
   build-base \
+  bzip2-dev \
   linux-headers \
   musl-dev \
   openssl-dev \
@@ -18,13 +19,22 @@ ARG workdir="/tmp/build"
 ENV workdir="${workdir}"
 
 WORKDIR "${workdir}"
+RUN mkdir "${workdir}/build"
 
 COPY vboot_reference "${workdir}/vboot_reference"
-
 RUN cd vboot_reference && \
   make clean && \
   make cgpt STATIC=1 && \
-  cp build/cgpt/cgpt "${workdir}"
+  cp build/cgpt/cgpt "${workdir}/build"
+
+ADD pbzip2.tgz "${workdir}/"
+RUN cd pbzip2-* && \
+  cp /usr/lib/libbz2.a . && \
+  make pbzip2-static && \
+  cp pbzip2 "${workdir}/build"
+
+ARG output_file="bins.tar"
+RUN cd build && tar cvf "${workdir}/${output_file}" cgpt pbzip2
 
 # Nothing to do here
 CMD ["echo"]
