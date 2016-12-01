@@ -100,7 +100,7 @@ HOST_UMPIRE_DIR="/docker_umpire"
 
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
-DOCKER_DOME_DIR="/var/db/factory/dome"
+DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
 
 DOCKER_IMAGE_NAME="cros/factory_server"
 DOCKER_IMAGE_VERSION="20161129171514"  # timestamp
@@ -286,6 +286,7 @@ do_install() {
 do_run() {
   check_docker
 
+  local docker_db_dir="/var/db/factory/dome"
   local db_filename="db.sqlite3"
   local uwsgi_container_name="dome_uwsgi"
   local nginx_container_name="dome_nginx"
@@ -311,7 +312,7 @@ do_run() {
     --rm \
     --interactive \
     --tty \
-    --volume "${HOST_DOME_DIR}/${db_filename}:${DOCKER_DOME_DIR}/${db_filename}" \
+    --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     python manage.py migrate
@@ -321,7 +322,7 @@ do_run() {
   # been removed.
   ${DOCKER} run \
     --rm \
-    --volume "${HOST_DOME_DIR}/${db_filename}:${DOCKER_DOME_DIR}/${db_filename}" \
+    --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     python manage.py shell --command \
@@ -334,7 +335,7 @@ do_run() {
     --name "${uwsgi_container_name}" \
     --volume /var/run/docker.sock:/var/run/docker.sock \
     --volume /run \
-    --volume "${HOST_DOME_DIR}/${db_filename}:${DOCKER_DOME_DIR}/${db_filename}" \
+    --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
     --volume "${HOST_UMPIRE_DIR}:/var/db/factory/umpire" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
@@ -429,7 +430,7 @@ do_build() {
     --file "${dockerfile}" \
     --tag "${DOCKER_IMAGE_NAME}" \
     --build-arg dome_dir="${DOCKER_DOME_DIR}" \
-    --build-arg umpire_server_dir="${DOCKER_BASE_DIR}" \
+    --build-arg server_dir="${DOCKER_BASE_DIR}" \
     --build-arg builder_output_file="${dome_builder_output_file}" \
     "${FACTORY_DIR}"
 

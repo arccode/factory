@@ -8,8 +8,8 @@ MAINTAINER Mao Huang <littlecvr@google.com>
 # need to explicitly assign PYTHONPATH for uwsgi
 ENV PYTHONPATH="/usr/local/lib/python2.7/site-packages"
 
-ARG dome_dir="/var/db/factory/dome"
-ARG umpire_server_dir="/usr/local/factory"
+ARG server_dir="/usr/local/factory"
+ARG dome_dir="${server_dir}/py/dome"
 
 # pigz, py-pip, py-twisted, py-yaml, python, lighttpd: Used by Umpire
 # gnupg, python-gnupg: Used by umpire/service/archiver
@@ -41,8 +41,8 @@ RUN apk upgrade --no-cache && apk add --no-cache \
   && pip install \
   python-gnupg
 
-COPY py_pkg "${umpire_server_dir}/py_pkg/"
-COPY bin "${umpire_server_dir}/bin/"
+COPY py_pkg "${server_dir}/py_pkg/"
+COPY bin "${server_dir}/bin/"
 
 # add docker client -- do not install docker via apk -- it will try to install
 # docker engine which takes a lot of space as well (we don't need it, we need
@@ -61,15 +61,12 @@ COPY py/dome/uwsgi.ini py/dome/manage.py py/dome/requirements.txt "${dome_dir}/"
 RUN pip install --no-cache-dir -r "${dome_dir}/requirements.txt"
 
 # these files are likely to change often, put them at the end
-# TODO(pihsun): Move dome to the same location with umpire server, so we don't
-#               need two duplicates of dome.
-COPY py/dome/backend "${dome_dir}/backend/"
 ARG builder_output_file="frontend.tar"
-ADD "build/docker/${builder_output_file}" "${dome_dir}/frontend/"
+ADD "build/docker/${builder_output_file}" "${dome_dir}/static/"
 
 COPY py/umpire/docker/default_umpire.yaml \
-  "${umpire_server_dir}/default_umpire.yaml"
-COPY py "${umpire_server_dir}/py/"
+  "${server_dir}/default_umpire.yaml"
+COPY py "${server_dir}/py/"
 
 CMD ["echo", "-e", \
      "\\n", \

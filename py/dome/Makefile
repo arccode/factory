@@ -15,7 +15,7 @@ Targets:
 endef
 export DOME_MAKE_HELP_MESSAGE
 
-DOME_DIR=/var/db/factory/dome
+DOME_DIR=/usr/local/factory/py/dome
 
 # Command used to analyze test coverage in target 'test-backend'.
 TEST_COVERAGE_CMD = \
