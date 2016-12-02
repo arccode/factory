@@ -151,7 +151,13 @@ class Function(object):
       data = INITIAL_DATA
     if not data:
       return NOTHING
-    return self.Apply(data)
+
+    try:
+      return self.Apply(data)
+    except Exception:
+      logging.exception('Error occurred while applying function "%s.%s"',
+                        self.__class__.__module__, self.__class__.__name__)
+      return NOTHING
 
   def Apply(self, data):
     raise NotImplementedError
