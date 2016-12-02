@@ -1321,9 +1321,11 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
         '<p>' + verbEn + ' in <span class="goofy-shutdown-secs"></span> ' +
         'second<span class="goofy-shutdown-secs-plural"></span> (' + timesEn +
         ').<br>' +
-        'To cancel, press the Escape key.</p>' +
+        'To cancel, press the Escape key or ' +
+        '<a href="#" onclick="window.cancelShutdown()">HERE</a>.</p>' +
         '<p>将会在<span class="goofy-shutdown-secs"></span>秒内' + verbZh +
-        '（' + timesZh + '）.<br>按ESC键取消.</p>');
+        '（' + timesZh + '）.<br>按ESC键或' +
+        '<a href="#" onclick="window.cancelShutdown()">这裡</a>取消.</p>');
 
     var progressBar = new goog.ui.ProgressBar();
     progressBar.render(this.shutdownDialog.getContentElement());
@@ -1371,8 +1373,7 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
 
     function onKey(e) {
         if (e.keyCode == goog.events.KeyCodes.ESC) {
-            this.sendEvent('goofy:cancel_shutdown', {});
-            // Wait for Goofy to reset the pending_shutdown data.
+            window.goofy.cancelShutdown();
         }
     }
     goog.events.listen(this.shutdownDialog.getElement(),
@@ -1393,6 +1394,14 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
                                           this.shutdownDialog));
         }, false, this);
 };
+
+/**
+ * Cancels a pending shutdown.
+ */
+cros.factory.Goofy.prototype.cancelPendingShutdown = function() {
+    this.sendEvent('goofy:cancel_shutdown', {});
+    // Wait for Goofy to reset the pending_shutdown data.
+}
 
 /**
  * Handles a keyboard shortcut.
