@@ -2486,6 +2486,9 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                                      this.pingShopFloorServer(
                                          this.showUploadFactoryLogsDialog);
                                  });
+                    addExtraItem('Toggle engineering mode',
+                                 '切换工程模式',
+                                 this.promptEngineeringPassword);
 
                     this.showTestPopup(
                         '', document.getElementById('goofy-logo-text'),
