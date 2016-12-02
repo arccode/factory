@@ -26,14 +26,14 @@ class TestlogGoofyTest(unittest.TestCase):
   """Unittest for testlog_goofy.py."""
 
   def setUp(self):
-    for _ in [testlog_goofy.REIMAGE_ID_PATH,
+    for _ in [testlog_goofy.INSTALLATION_ID_PATH,
               testlog_goofy.DEVICE_ID_PATH,
               testlog_goofy.INIT_COUNT_PATH]:
       try:
         os.unlink(_)
       except OSError:
         pass
-    testlog_goofy._reimage_id = None  # pylint: disable=W0212
+    testlog_goofy._installation_id = None  # pylint: disable=W0212
     testlog_goofy._device_id = None  # pylint: disable=W0212
 
     self.tmp = tempfile.mkdtemp()
@@ -77,19 +77,19 @@ class TestlogGoofyTest(unittest.TestCase):
     self.assertEqual(mock_id, testlog_goofy.GetDeviceID())
 
   def testGetInstallationID(self):
-    reimage_id = testlog_goofy.GetInstallationID()
-    assert UUID_RE.match(reimage_id), reimage_id
+    installation_id = testlog_goofy.GetInstallationID()
+    assert UUID_RE.match(installation_id), installation_id
 
-    # Remove reimage_id and make sure we get the same thing
+    # Remove installation_id and make sure we get the same thing
     # back again, re-reading it from disk
-    testlog_goofy._reimage_id = None  # pylint: disable=W0212
-    self.assertEqual(reimage_id, testlog_goofy.GetInstallationID())
+    testlog_goofy._installation_id = None  # pylint: disable=W0212
+    self.assertEqual(installation_id, testlog_goofy.GetInstallationID())
 
-    # Remove the reimage_id file; now we should get something
+    # Remove the installation_id file; now we should get something
     # *different* back.
-    testlog_goofy._reimage_id = None  # pylint: disable=W0212
-    os.unlink(testlog_goofy.REIMAGE_ID_PATH)
-    self.assertNotEqual(reimage_id, testlog_goofy.GetInstallationID())
+    testlog_goofy._installation_id = None  # pylint: disable=W0212
+    os.unlink(testlog_goofy.INSTALLATION_ID_PATH)
+    self.assertNotEqual(installation_id, testlog_goofy.GetInstallationID())
 
   def testInitCount(self):
     for i in xrange(-1, 5):

@@ -88,12 +88,12 @@ class TestlogE2ETest(unittest.TestCase):
   def _reset():
     """Deletes state files and resets global variables."""
     # pylint: disable=W0212
-    testlog_goofy._device_id = testlog_goofy._reimage_id = None
+    testlog_goofy._device_id = testlog_goofy._installation_id = None
     if testlog._global_testlog:
       testlog._global_testlog.Close()
     state_dir = testlog_goofy.LOG_ROOT
     for f in [testlog_goofy.DEVICE_ID_PATH,
-              testlog_goofy.REIMAGE_ID_PATH,
+              testlog_goofy.INSTALLATION_ID_PATH,
               testlog_goofy.INIT_COUNT_PATH,
               testlog._SEQUENCE_PATH,
               os.path.join(state_dir, testlog._DEFAULT_PRIMARY_JSON_FILE)]:

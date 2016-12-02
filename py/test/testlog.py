@@ -19,13 +19,13 @@ TODO(itspeter): Move to Instalog folder and remove the dependency of
 [LOG_ROOT]─┬─ testlog.json
            ├─ device_id
            ├─ init_count
-           ├─ reimage_id
+           ├─ installation_id
            ├─ events/ ─┬─ .boot_sequence
-           │   (Legacy │    (legacy file, replaced by [LOG_ROOT]/init_count)
+           │   (Legacy │   (legacy file, replaced by [LOG_ROOT]/init_count)
            │           ├─ .reimage_id
-           │           │    (legacy file, replaced by [LOG_ROOT]/reimage_id)
+           │           │   (legacy file, replaced by [LOG_ROOT]/installation_id)
            │           └─ events
-           │                (legacy file, replaced by [LOG_ROOT]/testlog.json)
+           │               (legacy file, replaced by [LOG_ROOT]/testlog.json)
            │
            ├─ running/ ─┬─ [UUID]-session.json
            │            ├─ [UUID]-session.json
@@ -750,8 +750,8 @@ class _StationBase(Event):
         the station.  This should be a value tied to the device (such as a
         MAC address) that will not change in the case that the device is
         reimaged.
-      - stationInstallationId (string, optional): ID of the reimage of the
-        station.  Every time the station is reimaged, a new reimage ID
+      - stationInstallationId (string, optional): ID of the installation of the
+        station.  Every time the station is reimaged, a new installation ID
         should be generated (unique UUID).
   """
 

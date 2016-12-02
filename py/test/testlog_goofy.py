@@ -27,7 +27,7 @@ DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
 
 # Path to use to generate an image ID in case none exists (i.e.,
 # this is the first time we're creating an event log).
-REIMAGE_ID_PATH = os.path.join(LOG_ROOT, 'reimage_id')
+INSTALLATION_ID_PATH = os.path.join(LOG_ROOT, 'installation_id')
 
 # itspeter # File containing the number of times Goofy has been initialized.
 INIT_COUNT_PATH = os.path.join(LOG_ROOT, 'init_count')
@@ -35,14 +35,14 @@ INIT_COUNT_PATH = os.path.join(LOG_ROOT, 'init_count')
 # The /var/factory/log directory (or equivalent if in the chroot).
 LOG_DIR = paths.GetLogRoot()
 
-# Cache the DEVICE_ID and REIMAGE_ID after being read from disk or
+# Cache the DEVICE_ID and INSTALLATION_ID after being read from disk or
 # after being generated (if they do not yet exist).
 _device_id = None
-_reimage_id = None
+_installation_id = None
 
 _testlog_goofy_lock = threading.Lock()
 
-def GetDeviceID(path=DEVICE_ID_PATH):
+def GetDeviceID():
   """Returns the device ID.
 
   The device ID is created and stored when this function is first called
@@ -56,15 +56,14 @@ def GetDeviceID(path=DEVICE_ID_PATH):
   caused by firmware update, change of components) AND the device is reimaged,
   the device ID will change.
   """
-  # TODO(itspeter): Remove the path argument once event_log.py is phased out.
   with _testlog_goofy_lock:
     global _device_id  # pylint: disable=W0603
     if _device_id:
       return _device_id
 
     # Always respect the device ID recorded in DEVICE_ID_PATH first.
-    if os.path.exists(path):
-      _device_id = open(path).read().strip()
+    if os.path.exists(DEVICE_ID_PATH):
+      _device_id = open(DEVICE_ID_PATH).read().strip()
       if _device_id:
         return _device_id
 
@@ -79,8 +78,8 @@ def GetDeviceID(path=DEVICE_ID_PATH):
       logging.warning('No device_id available yet: generated %s', _device_id)
 
     # Save the device ID to DEVICE_ID_PATH for future reloading.
-    file_utils.TryMakeDirs(os.path.dirname(path))
-    with open(path, 'w') as f:
+    file_utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
+    with open(DEVICE_ID_PATH, 'w') as f:
       f.write(_device_id)
       f.flush()
       os.fsync(f)
@@ -88,28 +87,28 @@ def GetDeviceID(path=DEVICE_ID_PATH):
     return _device_id
 
 
-def GetInstallationID(path=REIMAGE_ID_PATH):
-  """Returns the reimage ID.
+def GetInstallationID():
+  """Returns the installation ID.
 
-  This is stored in REIMAGE_ID_PATH; one is generated if not available.
+  This is stored in INSTALLATION_ID_PATH; one is generated if not available.
   """
-  # TODO(itspeter): Remove the path argument once event_log.py is phased out.
   with _testlog_goofy_lock:
-    global _reimage_id  # pylint: disable=W0603
-    if not _reimage_id:
-      if os.path.exists(path):
-        _reimage_id = open(path).read().strip()
-      if not _reimage_id:
-        _reimage_id = str(uuid4())
-        logging.info('No reimage_id available yet: generated %s', _reimage_id)
+    global _installation_id  # pylint: disable=W0603
+    if not _installation_id:
+      if os.path.exists(INSTALLATION_ID_PATH):
+        _installation_id = open(INSTALLATION_ID_PATH).read().strip()
+      if not _installation_id:
+        _installation_id = str(uuid4())
+        logging.info('No installation_id available yet: generated %s',
+                     _installation_id)
 
-        # Save the reimage ID to REIMAGE_ID_PATH for future reloading.
-        file_utils.TryMakeDirs(os.path.dirname(path))
-        with open(path, 'w') as f:
-          f.write(_reimage_id)
+        # Save the installation ID to INSTALLATION_ID_PATH for future reloading.
+        file_utils.TryMakeDirs(os.path.dirname(INSTALLATION_ID_PATH))
+        with open(INSTALLATION_ID_PATH, 'w') as f:
+          f.write(_installation_id)
           f.flush()
           os.fsync(f)
-    return _reimage_id
+    return _installation_id
 
 
 def GetInitCount(path=INIT_COUNT_PATH):

@@ -12,6 +12,7 @@ import os
 import threading
 import time
 import yaml
+from uuid import uuid4
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
@@ -53,6 +54,16 @@ SEQUENCE_PATH = os.path.join(RUN_DIR, "event_log_seq")
 EVENTS_PATH = os.path.join(EVENT_LOG_DIR, "events")
 
 BOOT_SEQUENCE_PATH = os.path.join(EVENT_LOG_DIR, ".boot_sequence")
+
+WLAN0_MAC_PATH = '/sys/class/net/wlan0/address'
+MLAN0_MAC_PATH = '/sys/class/net/mlan0/address'
+# TODO(kitching): Add CPUID for Intel devices?
+DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
+
+# Cache the DEVICE_ID and REIMAGE_ID after being read from disk or
+# after being generated (if they do not yet exist).
+_device_id = None
+_reimage_id = None
 
 # Each boot, the sequence number increases by this amount, to try to
 # help ensure monotonicity.
@@ -241,11 +252,71 @@ def SetGlobalLoggerDefaultPrefix(prefix):
 
 
 def GetDeviceId():
-  return testlog_goofy.GetDeviceID(path=DEVICE_ID_PATH)
+  """Returns the device ID.
+
+  The device ID is created and stored when this function is first called
+  on a device after imaging/reimaging. The result is stored in
+  DEVICE_ID_PATH and is used for all future references. If DEVICE_ID_PATH
+  does not exist, it is obtained from the first successful read from
+  DEVICE_ID_SEARCH_PATHS. If none is available, the ID is generated.
+
+  Note that ideally a device ID does not change for one "device". However,
+  in the case that the read result from DEVICE_ID_SEARCH_PATHS changed (e.g.
+  caused by firmware update, change of components) AND the device is reimaged,
+  the device ID will change.
+  """
+  with _event_logger_lock:
+    global _device_id  # pylint: disable=W0603
+    if _device_id:
+      return _device_id
+
+    # Always respect the device ID recorded in DEVICE_ID_PATH first.
+    if os.path.exists(DEVICE_ID_PATH):
+      _device_id = open(DEVICE_ID_PATH).read().strip()
+      if _device_id:
+        return _device_id
+
+    # Find or generate device ID from the search path.
+    for p in DEVICE_ID_SEARCH_PATHS:
+      if os.path.exists(p):
+        _device_id = open(p).read().strip()
+        if _device_id:
+          break
+    else:
+      _device_id = str(uuid4())
+      logging.warning('No device_id available yet: generated %s', _device_id)
+
+    # Save the device ID to DEVICE_ID_PATH for future reloading.
+    file_utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
+    with open(DEVICE_ID_PATH, 'w') as f:
+      f.write(_device_id)
+      f.flush()
+      os.fsync(f)
+
+    return _device_id
 
 
 def GetReimageId():
-  return testlog_goofy.GetInstallationID(path=REIMAGE_ID_PATH)
+  """Returns the reimage ID.
+
+  This is stored in REIMAGE_ID_PATH; one is generated if not available.
+  """
+  with _event_logger_lock:
+    global _reimage_id  # pylint: disable=W0603
+    if not _reimage_id:
+      if os.path.exists(REIMAGE_ID_PATH):
+        _reimage_id = open(REIMAGE_ID_PATH).read().strip()
+      if not _reimage_id:
+        _reimage_id = str(uuid4())
+        logging.info('No reimage_id available yet: generated %s', _reimage_id)
+
+        # Save the reimage ID to REIMAGE_ID_PATH for future reloading.
+        file_utils.TryMakeDirs(os.path.dirname(REIMAGE_ID_PATH))
+        with open(REIMAGE_ID_PATH, 'w') as f:
+          f.write(_reimage_id)
+          f.flush()
+          os.fsync(f)
+    return _reimage_id
 
 
 def GetBootSequence():
