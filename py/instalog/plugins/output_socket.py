@@ -21,6 +21,7 @@ import time
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
+from instalog.utils import time_utils
 
 
 _DEFAULT_BATCH_SIZE = 5000
@@ -49,11 +50,15 @@ class OutputSocket(plugin_base.OutputPlugin):
     """Main thread of the plugin."""
     # Boolean flag to indicate whether or not the target is currently available.
     target_available = False
+    last_unavailable_time = float('-inf')
 
     while not self.IsStopping():
       # Should we verify the connection first?
       if not target_available and not self.Ping():
-        self.info('Connection to target unavailable')
+        if ((last_unavailable_time + _FAILED_CONNECTION_INTERVAL) >
+            time_utils.MonotonicTime()):
+          last_unavailable_time = time_utils.MonotonicTime()
+          self.info('Connection to target unavailable')
         self.Sleep(_FAILED_CONNECTION_INTERVAL)
         continue
       target_available = True
@@ -62,6 +67,12 @@ class OutputSocket(plugin_base.OutputPlugin):
       # the transmission, cache events in memory before making the connection.
       events = []
       event_stream = self.NewStream()
+      if not event_stream:
+        # TODO(kitching): Find a better way to block the plugin when we are in
+        #                 one of the PAUSING, PAUSED, or UNPAUSING states.
+        self.Sleep(1)
+        continue
+
       for event in event_stream.iter(timeout=self.args.timeout,
                                      count=self.args.batch_size):
         events.append(event)
