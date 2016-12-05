@@ -253,7 +253,7 @@ class Power(DeviceComponent):
     current = self.GetBatteryAttribute('current_now')
     if current is None:
       raise self.Error('Cannot find %s/current_now' % self._battery_path)
-    current_ma = int(current) / 1000
+    current_ma = abs(int(current)) / 1000
     return current_ma if charging else -current_ma
 
   def GetBatteryDesignCapacity(self):
