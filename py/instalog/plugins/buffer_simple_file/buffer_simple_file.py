@@ -93,7 +93,7 @@ from instalog.utils import file_utils
 # The number of bytes to buffer when retrieving events from a file.
 _BUFFER_SIZE_BYTES = 2000
 _DEFAULT_TRUNCATE_INTERVAL = 0  # truncating disabled
-_DEFAULT_COPY_ATTACHMENTS = True  # use copy instead of move by default
+_DEFAULT_COPY_ATTACHMENTS = False  # use move instead of copy by default
 
 
 class SimpleFileException(Exception):
