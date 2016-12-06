@@ -44,9 +44,12 @@ TARGET_DIR = /usr/local/factory
 # Build and board config settings
 STATIC ?= false
 BOARD ?=
-BOARD_PACKAGE_NAME ?= chromeos-factory-board
+# The package names (chromeos-factory-board, factory-board) must be same as
+# RDEPEND listed in virtual/chromeos-bsp-factory.
 BOARD_EBUILD ?= \
-  $(if $(BOARD),$(shell equery-$(BOARD) which $(BOARD_PACKAGE_NAME)))
+  $(if $(BOARD),$(shell equery-$(BOARD) which factory-board 2>/dev/null || \
+                        equery-$(BOARD) which chromeos-factory-board))
+BOARD_PACKAGE_NAME ?= $(notdir $(realpath $(dir $(BOARD_EBUILD))))
 BOARD_PACKAGE_FILE ?= \
   $(if $(BOARD_EBUILD),$(SYSROOT)/packages/chromeos-base/$(basename $(notdir \
     $(BOARD_EBUILD))).tbz2)
