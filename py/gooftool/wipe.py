@@ -310,17 +310,30 @@ def _UnmountStatefulPartition(root, state_dev):
   os.unlink(os.path.join(root, 'var', 'run'))
   os.unlink(os.path.join(root, 'var', 'lock'))
 
+  def _Unmount(mount_point, critical):
+    logging.info('try to unmount %s' % mount_point)
+    for unused_i in xrange(10):
+      output = process_utils.Spawn(['umount', '-n', '-R', mount_point],
+                                   read_stderr=True, log=True).stderr_data
+      # some mount points need to be unmounted multiple times.
+      if (output.endswith(': not mounted\n') or
+          output.endswith(': not found\n')):
+        return
+      time.sleep(0.5)
+    logging.error('failed to unmount %s' % mount_point)
+    if critical:
+      raise RuntimeError('Unmounting %s is critical. Stop.')
+
   if os.path.exists(os.path.join(root, 'dev', 'mapper', 'encstateful')):
     # Doing what 'mount-encrypted umount' should do.
     for mount_point in mount_point_list:
-      process_utils.Spawn(['umount', '-n', '-R', mount_point], call=True)
-    process_utils.Spawn(['umount', '-nR', os.path.join(root, 'var')],
-                        check_call=True)
+      _Unmount(mount_point, False)
+    _Unmount(os.path.join(root, 'var'), True)
     process_utils.Spawn(['dmsetup', 'remove', 'encstateful'], check_call=True)
     process_utils.Spawn(['losetup', '-D'], check_call=True)
 
   for mount_point in mount_point_list:
-    process_utils.Spawn(['umount', '-n', '-R', mount_point], call=True)
+    _Unmount(mount_point, True)
   process_utils.Spawn(['sync'], call=True)
 
   # Check if the stateful partition is unmounted successfully.
