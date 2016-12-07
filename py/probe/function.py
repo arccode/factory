@@ -60,6 +60,8 @@ def LoadFunctions():
   from cros.factory.probe import functions
   module_path = os.path.dirname(functions.__file__)
   for loader, module_name, unused_is_pkg in pkgutil.iter_modules([module_path]):
+    if module_name.endswith('unittest'):
+      continue
     module = loader.find_module(module_name).load_module(module_name)
     func_classes = inspect.getmembers(module, IsFunctionClass)
     assert len(func_classes) <= 1
