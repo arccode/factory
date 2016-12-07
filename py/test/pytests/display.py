@@ -93,9 +93,10 @@ class DisplayTest(unittest.TestCase):
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self.ui.BindKey(' ', lambda _: self.OnSpacePressed())
-    self.ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
-    self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
+    self.ui.BindKey(' ', self.OnSpacePressed)
+    self.ui.BindKey(test_ui.ENTER_KEY, self.OnEnterPressed)
+    self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
+    self.ui.AddEventHandler('OnSpacePressed', self.OnSpacePressed)
     self.ui.Run()
 
   def FindFileStaticDirectory(self):
@@ -120,22 +121,25 @@ class DisplayTest(unittest.TestCase):
     for image in self.args.images:
       file_utils.TryUnlink(os.path.join(self.static_dir, image))
 
-  def OnSpacePressed(self):
+  def OnSpacePressed(self, event):
     """Sets self.checked to True.Calls JS function to switch display on/off."""
+    del event  # Unused.
     self.checked = True
     self.ui.CallJSFunction('switchDisplayOnOff')
     self.fullscreen = not self.fullscreen
     self.ui.HideTooltips()
 
-  def OnEnterPressed(self):
+  def OnEnterPressed(self, event):
     """Passes the subtest only if self.checked is True."""
+    del event  # Unused.
     if self.checked:
       self.ui.CallJSFunction('passSubTest')
       # If the next subtest will be in fullscreen mode, checked should be True
       self.checked = self.fullscreen
 
-  def OnFailPressed(self):
+  def OnFailPressed(self, event):
     """Fails the subtest only if self.checked is True."""
+    del event  # Unused.
     if self.checked:
       self.ui.CallJSFunction('failSubTest')
       # If the next subtest will be in fullscreen mode, checked should be True

@@ -67,6 +67,7 @@ class DisplayIdleTest(unittest.TestCase):
     self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
     if self.args.start_without_prompt:
       self.OnSpacePressed()
+    self.ui.AddEventHandler('OnSpacePressed', self.OnSpacePressed)
     self.ui.Run()
 
   def OnSpacePressed(self):

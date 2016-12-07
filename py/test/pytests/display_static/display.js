@@ -205,6 +205,9 @@ DisplayTest.prototype.setupDisplayDiv = function() {
   this.displayDiv = document.createElement("div");
   this.displayDiv.id = "display-div";
   this.fullScreenElement.appendChild(this.displayDiv);
+  this.displayDiv.addEventListener("click", function(event) {
+    window.test.sendTestEvent('OnSpacePressed', {});
+  }.bind(this));
 };
 
 /**

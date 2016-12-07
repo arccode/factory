@@ -58,14 +58,16 @@ class DisplayPointTest(unittest.TestCase):
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self.ui.BindKey(' ', lambda _: self.OnSpacePressed())
-    self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
+    self.ui.BindKey(' ', self.OnSpacePressed)
+    self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
     self.ui.Run()
 
-  def OnSpacePressed(self):
+  def OnSpacePressed(self, event):
     """Calls JS function to switch display on/off."""
+    del event  # Unused.
     self.ui.CallJSFunction('switchDisplayOnOff')
 
-  def OnFailPressed(self):
+  def OnFailPressed(self, event):
     """Fails the test."""
+    del event  # Unused.
     self.ui.CallJSFunction('failTest')

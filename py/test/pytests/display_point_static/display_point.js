@@ -90,12 +90,16 @@ DisplayPointTest.prototype.drawDisplayPoint = function(display) {
 };
 
 /**
- * Setups display div element. Cleans up its content and sets the style.
+ * Setups display div element. Cleans up its content, sets the style, and set
+ * click handler.
  */
 DisplayPointTest.prototype.setupDisplayDiv = function() {
   //cleans up display div
   this.displayDiv.innerHTML = "";
   this.displayDiv.className = this.backgroundStyleList[this.focusItem];
+  this.displayDiv.addEventListener("click", function(event) {
+    this.switchDisplayOff();
+  }.bind(this));
 };
 
 /**
