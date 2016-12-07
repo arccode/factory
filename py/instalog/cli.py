@@ -163,12 +163,29 @@ class InstalogCLI(object):
     self._service.Start(foreground)
     if foreground:
       return
+
+    # First, wait for the daemon process to start.
     try:
       sync_utils.WaitFor(self._service.IsRunning, 10)
     except type_utils.TimeoutError:
-      print('Could not connect to daemon, check the logs')
-    else:
-      print('DONE')
+      print('Daemon could not be brought up, check the logs')
+      sys.exit(1)
+
+    def TryIsUp():
+      try:
+        # Perform the real check to see if Instalog is up internally.
+        return self._core.IsUp()
+      except Exception:
+        raise type_utils.TimeoutError('Could not call core IsUp')
+
+    try:
+      if sync_utils.WaitFor(TryIsUp, 10):
+        print('DONE')
+        return
+    except type_utils.TimeoutError:
+      pass
+    print('Daemon could not be brought up, check the logs')
+    sys.exit(1)
 
   def Stop(self):
     """Stops the daemon."""

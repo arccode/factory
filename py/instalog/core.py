@@ -76,7 +76,7 @@ class Instalog(plugin_sandbox.CoreAPI):
     # Start the RPC server.
     self._rpc_server = SimpleJSONRPCServer.SimpleJSONRPCServer(
         (cli_hostname, cli_port))
-    self._rpc_server.register_function(self.IsRunning)
+    self._rpc_server.register_function(self.IsUp)
     self._rpc_server.register_function(self.Stop)
     self._rpc_server.register_function(self.Inspect)
     self._rpc_server.register_function(self.Flush)
@@ -161,6 +161,13 @@ class Instalog(plugin_sandbox.CoreAPI):
       for plugin in self._plugins.values():
         plugin_states[plugin] = plugin.GetState()
       while self._state not in (STOPPING, DOWN):
+        # If Instalog is just starting, check to see that all plugins have left
+        # the STARTING state.  When this occurs, Instalog's state should change
+        # to UP.
+        if (self._state is STARTING and
+            all([state is not plugin_sandbox.STARTING
+                 for state in plugin_states.values()])):
+          self._state = UP
         for plugin in self._plugins.values():
           plugin.AdvanceState()
           if plugin_states[plugin] != plugin.GetState():
@@ -189,9 +196,9 @@ class Instalog(plugin_sandbox.CoreAPI):
       plugin.AdvanceState(True)
       logging.info('Started %s', plugin.plugin_id)
 
-  def IsRunning(self):
+  def IsUp(self):
     with self._rpc_lock:
-      return self._state in (UP, STOPPING)
+      return self._state is UP
 
   def Stop(self):
     if self._state in (STOPPING, DOWN):

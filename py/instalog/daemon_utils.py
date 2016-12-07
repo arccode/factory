@@ -168,7 +168,6 @@ class Daemon(object):
 
     print('Running at PID %d' % pid)
 
-
   def Restart(self):
     """Restarts the daemon."""
     self.Stop()
