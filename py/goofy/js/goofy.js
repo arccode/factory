@@ -245,6 +245,12 @@ cros.factory.Test = function(invocation) {
    * @type {?Object.<number, function()>}
    */
   this.keyHandlers = null;
+
+  /**
+   * Map of char codes to virtualkey buttons.
+   * @type {!Object.<number, !Element>}
+   */
+  this.keyButtons = new Object();
 };
 
 /**
@@ -321,6 +327,45 @@ cros.factory.Test.prototype.bindKey = function(keyCode, handler) {
 cros.factory.Test.prototype.unbindKey = function(keyCode) {
   if (this.keyHandlers && keyCode in this.keyHandlers) {
     delete this.keyHandlers[keyCode];
+  }
+};
+
+/**
+ * Add a virtualkey button.
+ * @param {number} keyCode the keycode which handler should be triggered when
+ *     clicking the button.
+ * @param {string} en English label of the button.
+ * @param {?string} zh Chinese label of the button, would use en if omitted.
+ * @export
+ */
+cros.factory.Test.prototype.addVirtualkey = function(keyCode, en, zh) {
+  var container = this.invocation.iframe.contentDocument.getElementById(
+      'virtualkey-button-container');
+  // container may not exist if test is using non-standard template.
+  if (container) {
+    var button = goog.dom.createDom('button', 'virtualkey-button',
+        goog.dom.createDom('span', 'goofy-label-en', en),
+        goog.dom.createDom('span', 'goofy-label-zh', zh || en));
+    this.keyButtons[keyCode] = button;
+    goog.events.listen(button, goog.events.EventType.CLICK, function(event) {
+      var handler = this.keyHandlers[keyCode];
+      if (handler) {
+        handler();
+      }
+    }, false, this);
+    container.appendChild(button);
+  }
+};
+
+/**
+ * Remove a virtualkey button.
+ * @param {number} keyCode the keycode which button should be removed.
+ * @export
+ */
+cros.factory.Test.prototype.removeVirtualkey = function(keyCode) {
+  if (keyCode in this.keyButtons) {
+    goog.dom.removeNode(this.keyButtons[keyCode]);
+    delete this.keyButtons[keyCode];
   }
 };
 

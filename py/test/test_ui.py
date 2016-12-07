@@ -33,6 +33,12 @@ ENTER_KEY = 13
 ESCAPE_KEY = 27
 SPACE_KEY = 32
 
+_KEY_NAME_MAP = {
+    ENTER_KEY: ('Enter', 'ENTER'),
+    ESCAPE_KEY: ('ESC', 'ESC'),
+    SPACE_KEY: ('Space', '空白')
+}
+
 
 # A list of tuple (exception-source, exception-desc):
 #   exception-source: Source of exception. For example, 'ui-thread' if the
@@ -399,17 +405,29 @@ class UI(object):
 
     Args:
       bind_pass_keys: True if binding pass keys, including enter, space,
-        'p', and 'P'.
-      bind_fail_keys: True if binding fail keys, including ESC, 'f', and 'F'.
+        and 'P'.
+      bind_fail_keys: True if binding fail keys, including ESC and 'F'.
     """
     items = []
+    virtual_key_items = []
     if bind_pass_keys:
-      items.extend([(key, 'window.test.pass()') for key in '\r pP'])
+      items.extend([(key, 'window.test.pass()') for key in [SPACE_KEY, 'P']])
+      virtual_key_items.extend([(ENTER_KEY, 'window.test.pass()')])
     if bind_fail_keys:
-      items.extend([(key, 'window.test.fail()') for key in 'fF\x1b'])
-    self.BindKeysJS(items)
+      items.extend([('F', 'window.test.fail()')])
+      virtual_key_items.extend([(ESCAPE_KEY, 'window.test.fail()')])
+    self.BindKeysJS(items, virtual_key=False)
+    self.BindKeysJS(virtual_key_items, virtual_key=True)
 
-  def BindKeysJS(self, items, once=False):
+  def _GetKeyName(self, key_code):
+    """Get English and Chinese names to be displayed for key_code.
+
+    Args:
+      key: An integer character code.
+    """
+    return _KEY_NAME_MAP.get(key_code, (chr(key_code), chr(key_code)))
+
+  def BindKeysJS(self, items, once=False, virtual_key=True):
     """Binds keys to JavaScript code.
 
     Args:
@@ -417,27 +435,35 @@ class UI(object):
         key: The key to bind (if a string), or an integer character code.
         js: The JavaScript to execute when pressed.
       once: If true, the keys would be unbinded after first key press.
+      virtual_key: If true, also show a button on screen.
     """
     js_list = []
     for key, js in items:
       key_code = key if isinstance(key, int) else ord(key)
       if once:
         js = 'window.test.unbindKey(%d);' % key_code + js
+        if virtual_key:
+          js = 'window.test.removeVirtualkey(%d);' % key_code + js
       js_list.append('window.test.bindKey(%d, function(event) { %s });' %
                      (key_code, js))
+      if virtual_key:
+        en_key, zh_key = self._GetKeyName(key_code)
+        js_list.append('window.test.addVirtualkey(%d, "%s", "%s");' %
+                       (key_code, en_key, zh_key))
     self.RunJS(''.join(js_list))
 
-  def BindKeyJS(self, key, js, once=False):
+  def BindKeyJS(self, key, js, once=False, virtual_key=True):
     """Sets a JavaScript function to invoke if a key is pressed.
 
     Args:
       key: The key to bind (if a string), or an integer character code.
       js: The JavaScript to execute when pressed.
       once: If true, the key would be unbinded after first key press.
+      virtual_key: If true, also show a button on screen.
     """
-    self.BindKeysJS([(key, js)], once=once)
+    self.BindKeysJS([(key, js)], once=once, virtual_key=virtual_key)
 
-  def BindKey(self, key, handler, args=None, once=False):
+  def BindKey(self, key, handler, args=None, once=False, virtual_key=True):
     """Sets a key binding to invoke the handler if the key is pressed.
 
     Args:
@@ -447,12 +473,13 @@ class UI(object):
       args: The arguments to be passed to the handler in javascript,
           which would be json-serialized.
       once: If true, the key would be unbinded after first key press.
+      virtual_key: If true, also show a button on screen.
     """
     uuid_str = str(uuid.uuid4())
     args = json.dumps(args) if args is not None else '{}'
     self.AddEventHandler(uuid_str, handler)
     self.BindKeyJS(key, 'test.sendTestEvent("%s", %s);' % (uuid_str, args),
-                   once=once)
+                   once=once, virtual_key=virtual_key)
 
   def UnbindKey(self, key):
     """Removes a key binding in frontend Javascript.
@@ -461,7 +488,8 @@ class UI(object):
       key: The key to unbind.
     """
     key_code = key if isinstance(key, int) else ord(key)
-    self.RunJS('window.test.unbindKey(%d);' % key_code)
+    self.RunJS('window.test.unbindKey(%d); window.test.removeVirtualkey(%d);' %
+               (key_code, key_code))
 
   def InEngineeringMode(self):
     """Returns True if in engineering mode."""
