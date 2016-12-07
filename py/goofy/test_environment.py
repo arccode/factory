@@ -148,7 +148,11 @@ class DUTEnvironment(Environment):
     # Set the timeout to a value reasonably long enough such that UI should be
     # ready on all kinds of devices.
     sync_utils.WaitFor(self.has_sockets, 90)
-    subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
+    # This dbus command should trigger 'initctl emit login-prompt-visible'.
+    subprocess.check_call(
+        ['dbus-send', '--system', '--dest=org.chromium.SessionManager',
+         '--print-reply', '/org/chromium/SessionManager',
+         'org.chromium.SessionManagerInterface.EmitLoginPromptVisible'])
 
 
 class FakeChrootEnvironment(Environment):
