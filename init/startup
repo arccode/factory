@@ -6,7 +6,16 @@
 INIT_BASE="$(dirname $(readlink -f $0))"
 GOOFY_ROLES=""
 
+# The request file contains the path to the factory toolkit. If this file
+# exists, and the path it points to also exists, the script will try to install
+# factory toolkit from that path.
+INSTALL_REQUEST_FILE="${INIT_BASE}/install"
+
 export INIT_BASE GOOFY_ROLES
+
+log() {
+  echo "[$(date)] $*"
+}
 
 is_enabled() {
   # Returns 0 if this rule is enabled.
@@ -42,10 +51,10 @@ execute_rules() {
     rule_name="$(basename "${rule_file%.sh}")"
 
     if ! is_enabled "${rule_file}"; then
-      echo "Skipping disabled ${rule_file}..."
+      log "Skipping disabled ${rule_file}..."
       continue
     fi
-    echo "Applying ${rule_file}..."
+    log "Applying ${rule_file}..."
     if [ -x "${rule_file}" ]; then
       "${rule_file}"
     else
@@ -54,8 +63,42 @@ execute_rules() {
   done
 }
 
+factory_install() {
+  log "Probing install request file..."
+  if [ ! -e "${INSTALL_REQUEST_FILE}" ]; then
+    log "Install request file '${INSTALL_REQUEST_FILE}' not found, " \
+      "will not install factory toolkit"
+    return
+  fi
+  log "${INSTALL_REQUEST_FILE} found"
+
+  local factory_toolkit_path="$(cat "${INSTALL_REQUEST_FILE}")"
+  log "Probing factory toolkit file at '${factory_toolkit_path}'..."
+  if [ ! -x "${factory_toolkit_path}" ]; then
+    log "'${factory_toolkit_path}' not found or not executable, " \
+      "will not install factory toolkit"
+    return
+  fi
+  log "'${factory_toolkit_path}' found and is executable"
+
+  log "Installing factory toolkit from '${factory_toolkit_path}'..."
+  if ! "${factory_toolkit_path}" -- --yes; then
+    log "Failed to install factory toolkit, abort"
+    return 1
+  fi
+  log "Factory toolkit installed, removing install request file..."
+  rm -f "${INSTALL_REQUEST_FILE}"
+
+  # Hand this over to the new startup script.
+  log "Executing the new startup script..."
+  exec "${INIT_BASE}/startup" init
+}
+
 factory_init() {
-  echo "[$(date)] Starting ChromeOS factory initialization..."
+  log "Starting ChromeOS factory initialization..."
+
+  # Probe the install request file to see if we need to install toolkit first.
+  factory_install
 
   execute_rules common.d
   execute_rules iptables.d
@@ -63,7 +106,7 @@ factory_init() {
   # See factory_main for the path of tag that may disable Goofy.
   local goofy_rule="${INIT_BASE}/main.d/goofy.sh"
   if ! is_enabled "${goofy_rule}"; then
-    echo "[$(date)] Initialization finished (Goofy rules are disabled)."
+    log "Initialization finished (Goofy rules are disabled)."
     return
   fi
 
@@ -75,22 +118,22 @@ factory_init() {
   [ -f "${tag_device}" ] && GOOFY_ROLES="${GOOFY_ROLES} device"
   [ -f "${tag_presenter}" ] && GOOFY_ROLES="${GOOFY_ROLES} presenter"
   [ -z "${GOOFY_ROLES}" ] && GOOFY_ROLES="${GOOFY_ROLES} device monolithic"
-  echo "Goofy roles: ${GOOFY_ROLES}"
+  log "Goofy roles: ${GOOFY_ROLES}"
 
   for role in ${GOOFY_ROLES}; do
     execute_rules goofy.d/${role}
   done
-  echo "[$(date)] All initialization finished."
+  log "All initialization finished."
 }
 
 factory_main() {
-  echo "[$(date)] Starting ChromeOS factory main program..."
+  log "Starting ChromeOS factory main program..."
   execute_rules main.d
   # Unlike factory_init, the main programs may need to run in parallel for a
   # long time and occupy the session time of factory.conf so we have to wait
   # until all children processes finished.
   wait
-  echo "[$(date)] All main programs finished. Stopped."
+  log "All main programs finished. Stopped."
 }
 
 main() {
@@ -114,7 +157,7 @@ main() {
       factory_init | tee "${log_file}"
       ;;
     * )
-      echo "Unknown mode: ${mode}." | tee "${log_file}"
+      log "Unknown mode: ${mode}." | tee "${log_file}"
       exit 1
       ;;
   esac
