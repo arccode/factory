@@ -43,6 +43,7 @@ from cros.factory.gooftool.common import Shell
 from cros.factory.hwid.v2.hwid_tool import ProbeResults, COMPACT_PROBE_STR
 from cros.factory.test.l10n import regions
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
 
@@ -140,17 +141,6 @@ def _ShellOutput(command, on_error=''):
   """
   result = Shell(command)
   return result.stdout.strip() if result.success else on_error
-
-
-def _LoadKernelModule(name, error_on_fail=True):
-  """Ensure kernel module is loaded.  If not already loaded, do the load."""
-  # TODO(tammo): Maybe lift into shared data for performance reasons.
-  loaded = Shell('lsmod | grep -q %s' % name).success
-  if not loaded:
-    loaded = Shell('modprobe %s' % name).success
-    if (not loaded) and error_on_fail:
-      raise Error('Cannot load kernel module: %s' % name)
-  return loaded
 
 
 def _ReadSysfsFields(base_path, field_list, optional_field_list=None):
@@ -1056,9 +1046,9 @@ def _ProbeDisplayConverter():
   """Try brand-specific probes, return the first viable result."""
   def ProbeChrontel():
     """Search style borrowed from the /etc/init/chrontel.conf behavior."""
-    _LoadKernelModule('i2c_dev', error_on_fail=False)
+    sys_utils.LoadKernelModule('i2c_dev', error_on_fail=False)
     # i2c-i801 is not available on some devices (ex, ARM).
-    _LoadKernelModule('i2c-i801', error_on_fail=False)
+    sys_utils.LoadKernelModule('i2c-i801', error_on_fail=False)
     dev_chrontel = '/dev/i2c-chrontel'
     if not os.path.exists(dev_chrontel):
       for dev_path in glob('/sys/class/i2c-adapter/*'):
@@ -1158,7 +1148,7 @@ def _ProbeDisplayPanel():
       parsed_edid = edid.Parse(f.read())
       if parsed_edid:
         edid_list.append(parsed_edid)
-  _LoadKernelModule('i2c_dev', error_on_fail=False)
+  sys_utils.LoadKernelModule('i2c_dev', error_on_fail=False)
   for path in sorted(glob('/dev/i2c-[0-9]*')):
     parsed_edid = edid.LoadFromI2c(path)
     if parsed_edid:
@@ -1170,7 +1160,7 @@ def _ProbeDisplayPanel():
 def _ProbeDram():
   """Combine mosys memory timing and geometry information."""
   # TODO(tammo): Document why mosys cannot load i2c_dev itself.
-  _LoadKernelModule('i2c_dev', error_on_fail=False)
+  sys_utils.LoadKernelModule('i2c_dev', error_on_fail=False)
   part_data = _ShellOutput('mosys -k memory spd print id')
   timing_data = _ShellOutput('mosys -k memory spd print timings')
   size_data = _ShellOutput('mosys -k memory spd print geometry')

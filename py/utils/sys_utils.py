@@ -14,8 +14,7 @@ from contextlib import contextmanager
 
 from . import file_utils
 from . import sync_utils
-from .process_utils import CheckOutput
-from .process_utils import Spawn
+from . import process_utils
 
 
 class MountPartitionException(Exception):
@@ -99,7 +98,8 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   elif index:
     def RunCGPT(option):
       """Runs cgpt and returns the integer result."""
-      check_output = CheckOutput if local_mode else dut.CheckOutput
+      check_output = (process_utils.CheckOutput if local_mode
+                      else dut.CheckOutput)
       return int(
           check_output(['cgpt', 'show', '-i', str(index), option, source_path]))
     offset = RunCGPT('-b') * 512
@@ -118,7 +118,7 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   command += [source_path, mount_point]
 
   if local_mode:
-    Spawn(command, log=True, check_call=True, sudo=True)
+    process_utils.Spawn(command, log=True, check_call=True, sudo=True)
   else:
     dut.CheckCall(command, log=True)
 
@@ -130,8 +130,9 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
       logging.info('Unmounting %s', mount_point)
 
       if local_mode:
-        umount = lambda: Spawn(['umount', mount_point], call=True, sudo=True,
-                               ignore_stderr=True).returncode == 0
+        umount = lambda: process_utils.Spawn(
+            ['umount', mount_point], call=True,
+            sudo=True, ignore_stderr=True).returncode == 0
       else:
         umount = lambda: dut.Call(['umount', mount_point]) == 0
 
@@ -176,6 +177,18 @@ def MountDeviceAndReadFile(device, path, dut=None):
     else:
       content = dut.ReadSpecialFile(dut.path.join(mount_point, path))
   return content
+
+
+def LoadKernelModule(name, error_on_fail=True):
+  """Ensures kernel module is loaded.  If not already loaded, do the load."""
+  loaded = process_utils.Spawn('lsmod | grep -q %s' % name,
+                               call=True, shell=True).returncode == 0
+  if not loaded:
+    loaded = process_utils.Spawn('modprobe %s' % name,
+                                 call=True, shell=True).returncode == 0
+    if not loaded and error_on_fail:
+      raise OSError('Cannot load kernel module: %s' % name)
+  return loaded
 
 
 def GetInterrupts():
@@ -305,7 +318,7 @@ def ResetCommitTime():
 
   # Remount all devices in parallel, and wait.  Ignore errors.
   for process in [
-      Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
+      process_utils.Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
       for p in sorted(devices)]:
     process.wait()
 
@@ -313,8 +326,8 @@ def ResetCommitTime():
 def HasEC():
   """Return whether the platform has EC chip."""
   try:
-    has_ec = Spawn(['ectool', 'version'], read_stdout=True,
-                   ignore_stderr=True).returncode == 0
+    has_ec = process_utils.Spawn(['ectool', 'version'], read_stdout=True,
+                                 ignore_stderr=True).returncode == 0
   except OSError:
     # The system might not have 'ectool' command if the platform has no EC chip.
     has_ec = False
