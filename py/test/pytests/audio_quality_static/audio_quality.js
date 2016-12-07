@@ -4,19 +4,6 @@
 
 var active = 'loop_0';
 var display_fa_utility = false;
-var start_run = false;
-
-window.onkeydown = function(event) {
-  if (event.keyCode == 32 && start_run == false) {
-    test.sendTestEvent("start_run",{});
-    document.getElementById('msg-utility').style.display = 'none';
-    start_run = true;
-  }
-}
-
-//window.onload = function(event) {
-//  test.sendTestEvent("start_run",{});
-//}
 
 function setMessage(msg) {
   document.getElementById("message").innerHTML = msg;

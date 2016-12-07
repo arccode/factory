@@ -57,18 +57,6 @@ _MSG_FLASH_ERROR = test_ui.MakeLabel(
     u'烧录网路开机固件失败',
     'start-font-size test-error')
 
-# Javascripts and HTML for tasks
-_JS_SPACE = '''
-    function enableSpaceKeyPressListener() {
-      window.addEventListener(
-          "keypress",
-          function(event) {
-            if (event.keyCode == " ".charCodeAt(0)) {
-              window.test.sendTestEvent("space_pressed", {});
-            }
-          });
-      window.focus();
-    }'''
 _LSB_RELEASE_PATH = '/etc/lsb-release'
 
 _SHOPFLOOR_TIMEOUT_SECS = 10
@@ -88,9 +76,7 @@ class ImageCheckTask(FactoryTask):
 
   def PromptReimage(self):
     self._test.template.SetState(_MSG_NETBOOT)
-    self._test.ui.RunJS(_JS_SPACE)
-    self._test.ui.CallJSFunction('enableSpaceKeyPressListener')
-    self._test.ui.AddEventHandler('space_pressed', lambda _: self.Reimage())
+    self._test.ui.BindKey(test_ui.SPACE_KEY, self.Reimage)
 
   def Reimage(self):
     if self._test.args.umpire:

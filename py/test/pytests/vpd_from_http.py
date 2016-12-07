@@ -47,14 +47,6 @@ window.onload = function(event) {
   document.getElementById('scan-value').focus();
 }
 
-window.onkeydown = function(event) {
-  if (event.keyCode == 13) {  // 'enter'
-    scan_obj = document.getElementById('scan-value');
-    test.sendTestEvent("scan_value", scan_obj.value);
-    scan_obj.disabled = true;
-  }
-}
-
 function setClear() {
   scan_obj = document.getElementById('scan-value');
   scan_obj.disabled = false;
@@ -84,6 +76,10 @@ class GetPanelVPDTest(unittest.TestCase):
     self.ui.AppendCSS(_CSS_VPD)
     self.template.SetState(_HTML_VPD)
     self.ui.RunJS(_JS_VPD)
+    self.ui.BindKeyJS(test_ui.ENTER_KEY,
+                      'scan_obj = document.getElementById("scan-value");' +
+                      'test.sendTestEvent("scan_value", scan_obj.value);' +
+                      'scan_obj.disabled = true;')
     self.ui.SetHTML(_MSG_VPD_INFO, id='vpd_title')
     self.ui.AddEventHandler('scan_value', self.HandleScanValue)
     self.url = None

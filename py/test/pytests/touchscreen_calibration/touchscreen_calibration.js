@@ -3,33 +3,32 @@
 // found in the LICENSE file.
 
 window.onload = init();
-window.onkeydown = function(event){
-  switch(event.keyCode) {
-    case 68: // Hotkey d
-      var debugPanel = document.getElementById("debug-panel");
-      var v = debugPanel.style.visibility;
-      if (v.toLowerCase() == "visible" || v == "") {
-        debugPanel.style.visibility = "hidden";
-      } else {
-        debugPanel.style.visibility = "visible";
-      }
-      break;
-    default:
-      break;
+
+function toggleDebugPanel() {
+  var debugPanel = document.getElementById("debug-panel");
+  var v = debugPanel.style.visibility;
+  if (v.toLowerCase() == "visible" || v == "") {
+    debugPanel.style.visibility = "hidden";
+  } else {
+    debugPanel.style.visibility = "visible";
   }
 }
 
-function snEntered(event) {
+function snKeyDown(event) {
   if (event.keyCode == 13) {
-    var sn = document.getElementById('sn').value;
-    if (sn.length > 0) {
-      test.sendTestEvent('StartCalibration',
-          {'sn': document.getElementById('sn').value});
-      document.getElementById('sn').value = "";
-      document.getElementById('display-area').innerHTML = "";
-    } else {
-      alert("Please enter SN 请输入序号");
-    }
+    snEntered();
+  }
+}
+
+function snEntered() {
+  var sn = document.getElementById('sn').value;
+  if (sn.length > 0) {
+    test.sendTestEvent('StartCalibration',
+        {'sn': document.getElementById('sn').value});
+    document.getElementById('sn').value = "";
+    document.getElementById('display-area').innerHTML = "";
+  } else {
+    alert("Please enter SN 请输入序号");
   }
 }
 

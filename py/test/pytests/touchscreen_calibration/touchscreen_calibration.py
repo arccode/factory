@@ -871,5 +871,6 @@ class TouchscreenCalibration(unittest.TestCase):
         # Events that are emitted from other callback functions.
         'StartCalibration', 'FinishTest',
     ])
+    self.ui.BindKeyJS('D', 'toggleDebugPanel();')
 
     self.ui.Run()

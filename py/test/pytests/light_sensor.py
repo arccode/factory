@@ -59,15 +59,6 @@ _CSS_LIGHT_SENSOR_TEST = """
   .light-sensor-desc {font-size: 1.5em; color: green; }
 """
 
-_JS_LIGHT_SENSOR_TEST = """
-window.onkeydown = function(event) {
-  if (event.keyCode == 32) {
-    test.sendTestEvent("StartCountDown",{});
-    window.onkeydown = null;
-  }
-}
-"""
-
 
 class iio_generic(object):
   """Object to interface to ambient light sensor over iio.
@@ -197,7 +188,7 @@ class LightSensorTest(unittest.TestCase):
       return
 
     self.ui.AppendCSS(_CSS_LIGHT_SENSOR_TEST)
-    self.ui.RunJS(_JS_LIGHT_SENSOR_TEST)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.StartCountDown, once=True)
     self.ui.SetHTML(_MSG_PROMPT_FMT, id=_ID_CONTAINER)
 
     # Initialize variables
@@ -322,5 +313,4 @@ class LightSensorTest(unittest.TestCase):
       time.sleep(0.6)
 
   def runTest(self):
-    self.ui.AddEventHandler('StartCountDown', self.StartCountDown)
     self.ui.Run()

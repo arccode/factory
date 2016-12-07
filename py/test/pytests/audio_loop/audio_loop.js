@@ -2,21 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-init = function(autostart, require_dongle, test_title) {
+init = function(require_dongle, test_title) {
   if (!require_dongle)
     document.getElementById("require_dongle").style.display = "None";
   document.getElementById("test_title").innerHTML = test_title;
-  if (autostart) {
-    document.getElementById("message").innerHTML = "";
-    test.sendTestEvent("start_run_test", {});
-  } else {
-    window.onkeydown = function(event) {
-      if (event.keyCode == 83) { // 's'
-        test.sendTestEvent("start_run_test", {});
-        window.onkeydown = null;
-      }
-    }
-  }
 }
 
 createLabel = function(enMsg, zhMsg) {

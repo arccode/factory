@@ -44,16 +44,6 @@ _CSS_BUZZER = """
   .buzzer-test-info { font-size: 2em; }
 """
 
-_JS_BUZZER = """
-window.onkeydown = function(event) {
-  if (event.keyCode == 32 || event.keyCode == 82) { // space and 'R'
-    test.sendTestEvent("StartTest", '');
-  } else if (event.keyCode >= 48 && event.keyCode <= 57) { // 0 ~ 9
-    test.sendTestEvent("CheckResult", event.keyCode - 48)
-  }
-}
-"""
-
 
 class BuzzerTest(unittest.TestCase):
   """Tests buzzer."""
@@ -72,12 +62,13 @@ class BuzzerTest(unittest.TestCase):
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_CSS_BUZZER)
     self.template.SetState(_HTML_BUZZER)
-    self.ui.RunJS(_JS_BUZZER)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
+    self.ui.BindKey('R', self.StartTest)
+    for num in xrange(10):
+      self.ui.BindKey(ord('0') + num, self.CheckResult, num)
     self.ui.SetHTML(_MSG_BUZZER_INFO, id='buzzer_title')
     if self.args.init_commands:
       self.InitialBuzzer(self.args.init_commands)
-    self.ui.AddEventHandler('StartTest', self.StartTest)
-    self.ui.AddEventHandler('CheckResult', self.CheckResult)
 
   def InitialBuzzer(self, commands):
     for command in commands:

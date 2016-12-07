@@ -487,10 +487,15 @@ class _TestDelegate(object):
     self._Log('Parameter version: %s\n' % self.params['version'])
     self._CalculateTiming()
 
+    bind_keys = [test_ui.SPACE_KEY]
+    if not self.params['ui']['ignore_enter_key']:
+      bind_keys.append(test_ui.ENTER_KEY)
+    for key in bind_keys:
+      self.delegator.ui.BindKeyJS(
+          key, 'event.preventDefault();OnButtonStartTestClick();')
     self.delegator.ui.CallJSFunction('ShowMainTestScreen',
                                      not self.params['cam_sn']['auto_read'],
-                                     self.params['cam_sn']['format'],
-                                     self.params['ui']['ignore_enter_key'])
+                                     self.params['cam_sn']['format'])
 
   def _LoadParamsFromUSB(self):
     """Loads parameters from USB drive."""

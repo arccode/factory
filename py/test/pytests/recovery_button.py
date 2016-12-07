@@ -38,13 +38,6 @@ _CSS_RECOVERY_BUTTON = """
   .recovery-button-info { font-size: 2em; }
 """
 
-_JS_SPACE = """
-window.onkeydown = function(event) {
-  if (event.keyCode == " ".charCodeAt(0))
-    test.sendTestEvent("StartTest", '');
-}
-"""
-
 
 class RecoveryButtonTest(unittest.TestCase):
   """Tests Recovery Button."""
@@ -62,14 +55,14 @@ class RecoveryButtonTest(unittest.TestCase):
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_CSS_RECOVERY_BUTTON)
     self.template.SetState(_HTML_RECOVERY_BUTTON)
-    self.ui.RunJS(_JS_SPACE)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
     self.ui.SetHTML(_MSG_PRESS_SPACE, id='recovery_button_title')
-    self.ui.AddEventHandler('StartTest', self.StartTest)
     if self.args.polling_interval_secs not in (0.2, 0.5, 1.0):
       raise ValueError('The value of polling_interval_secs is invalid: %f' %
                        self.args.polling_interval_secs)
 
-  def StartTest(self, _):
+  def StartTest(self, event):
+    del event  # Unused.
     polling_iterations_per_second = int(1 / self.args.polling_interval_secs)
     for i in xrange(self.args.timeout_secs):
       self.ui.SetHTML(_MSG_RECOVERY_BUTTON_TEST(

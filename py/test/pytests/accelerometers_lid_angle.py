@@ -82,14 +82,6 @@ _CSS = """
 }
 """
 
-_JS = """
-window.onkeydown = function(event) {
-  if (event.keyCode == 32) {  // space
-    test.sendTestEvent('%s');
-  }
-}
-""" % _EVENT_CONFIRM
-
 
 class AccelerometersLidAngleTest(unittest.TestCase):
   ARGS = [
@@ -123,7 +115,7 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_CSS)
     self.template.SetState(_HTML_PROMPT)
-    self.ui.RunJS(_JS)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
     self.ui.SetHTML(_MSG_PROMPT_BUILDER(self.args.angle), id=_ID_PROMPT)
     self.ui.SetHTML(_MSG_CONFIRM_BUILDER(self.args.angle),
                     id=_ID_CONFIRM_BUTTON)

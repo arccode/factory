@@ -217,6 +217,11 @@ class AudioQualityTest(unittest.TestCase):
     self._ui = test_ui.UI()
     self._ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
     self._ui.AddEventHandler('start_run', self.StartRun)
+    self._ui.BindKeyJS(
+        test_ui.SPACE_KEY,
+        'test.sendTestEvent("start_run",{});' +
+        'document.getElementById("msg-utility").style.display="none";',
+        once=True)
     self._ui.AddEventHandler('mock_command', self.MockCommand)
     Spawn(['iptables', '-A', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
            '-j', 'ACCEPT'], check_call=True)

@@ -13,6 +13,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
+from cros.factory.test import event as test_event
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
@@ -36,19 +37,6 @@ _HTML_ETHERNET = """
 
 _CSS_ETHERNET = """
   .ethernet-test-info { font-size: 2em; }
-"""
-
-_JS_ETHERNET = """
-init = function(autostart) {
-  if (autostart) {
-    test.sendTestEvent("StartTest", '');
-  }
-}
-window.onkeydown = function(event) {
-  if (event.keyCode == 32) { // space
-    test.sendTestEvent("StartTest", '');
-  }
-}
 """
 
 _LOCAL_FILE_PATH = '/tmp/test'
@@ -87,10 +75,14 @@ class EthernetTest(unittest.TestCase):
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_CSS_ETHERNET)
     self.template.SetState(_HTML_ETHERNET)
-    self.ui.RunJS(_JS_ETHERNET)
+
+    if self.args.auto_start:
+      self.ui.AddEventHandler('StartTest', self.StartTest)
+      self.ui.PostEvent(test_event.Event(test_event.Event.Type.TEST_UI_EVENT,
+                                         subtype='StartTest'))
+    else:
+      self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
     self.ui.SetHTML(_MSG_ETHERNET_INFO, id='ethernet_title')
-    self.ui.AddEventHandler('StartTest', self.StartTest)
-    self.ui.CallJSFunction('init', self.args.auto_start)
     if bool(self.args.test_url) != bool(self.args.md5sum):
       raise ValueError('Should both assign test_url and md5sum.')
     if self.args.use_swconfig:
@@ -204,9 +196,10 @@ class EthernetTest(unittest.TestCase):
     self.ui.Pass()
     return True
 
-  def StartTest(self, event):  # pylint: disable=W0613
+  def StartTest(self, event):
+    del event  # Unused.
     # Only retry 5 times
-    for i in xrange(5):  # pylint: disable=W0612
+    for unused_i in xrange(5):
       eth = self.GetInterface()
       if self.args.link_only:
         if not self.args.use_swconfig:

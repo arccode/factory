@@ -65,18 +65,6 @@ _CSS_AUDIO = """
   .audio-test-info { font-size: 2em; }
 """
 
-_JS_AUDIO = """
-window.onkeydown = function(event) {
-  if (event.keyCode == 82) { // 'R'
-    test.sendTestEvent("HandleRecordEvent", 'start');
-  } else if (event.keyCode == 80) { // 'P'
-    test.sendTestEvent("HandleSampleEvent", 'start');
-  } else if (event.keyCode == 32) { // space
-    test.sendTestEvent("MarkPass", '');
-  }
-}
-"""
-
 PLAY_SAMPLE_VALUE = (1 << 0)
 RECORD_VALUE = (1 << 1)
 PASS_VALUE = (PLAY_SAMPLE_VALUE | RECORD_VALUE)
@@ -133,7 +121,10 @@ class AudioBasicTest(unittest.TestCase):
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_CSS_AUDIO)
     self.template.SetState(_HTML_AUDIO)
-    self.ui.RunJS(_JS_AUDIO)
+    self.ui.BindKey('R', self.HandleRecordEvent)
+    self.ui.BindKey('P', self.HandleSampleEvent)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.MarkPass)
+
     msg_audio_title = test_ui.MakeLabel(
         self.args.audio_title[0], self.args.audio_title[1],
         css_class='audio-test-info')
@@ -145,12 +136,9 @@ class AudioBasicTest(unittest.TestCase):
     # make sure he presses P and R.
     self.event_value = 0
 
-    self.ui.AddEventHandler('HandleRecordEvent', self.HandleRecordEvent)
-    self.ui.AddEventHandler('HandleSampleEvent', self.HandleSampleEvent)
-    self.ui.AddEventHandler('MarkPass', self.MarkPass)
-
   def HandleRecordEvent(self, event):
-    if event.data == 'start' and not self.key_press:
+    del event  # Unused.
+    if not self.key_press:
       self.key_press = 'R'
       logging.info('start record')
       self.ui.SetHTML(_MSG_RECORD_INFO, id='audio_info')
@@ -179,7 +167,8 @@ class AudioBasicTest(unittest.TestCase):
       self.event_value |= RECORD_VALUE
 
   def HandleSampleEvent(self, event):
-    if event.data == 'start' and not self.key_press:
+    del event  # Unused.
+    if not self.key_press:
       self.key_press = 'P'
       logging.info('start play sample')
       lang = self.ui.GetUILanguage()
@@ -206,7 +195,8 @@ class AudioBasicTest(unittest.TestCase):
       self.key_press = None
       self.event_value |= PLAY_SAMPLE_VALUE
 
-  def MarkPass(self, event):  # pylint: disable=W0613
+  def MarkPass(self, event):
+    del event  # Unused.
     if self.event_value == PASS_VALUE:
       self.ui.Pass()
 

@@ -100,6 +100,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.device.audio.base import MicJackType
 from cros.factory.device import device_utils
+from cros.factory.test import event as test_event
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -287,9 +288,8 @@ class AudioLoopTest(unittest.TestCase):
 
     self._current_test_args = None
 
-    # Setup HTML UI, and event handler
+    # Setup HTML UI
     self._ui = test_ui.UI()
-    self._ui.AddEventHandler('start_run_test', self.StartRunTest)
     self._ui_template = ui_templates.OneSection(self._ui)
     self._ui_template.SetState(_UI_HTML)
 
@@ -313,8 +313,15 @@ class AudioLoopTest(unittest.TestCase):
   def runTest(self):
     # If autostart, JS triggers start_run_test event.
     # Otherwise, it binds start_run_test with 's' key pressed.
-    self._ui.CallJSFunction('init', self.args.autostart,
+    self._ui.CallJSFunction('init',
                             self.args.require_dongle, self.args.test_title)
+    if self.args.autostart:
+      self._ui.RunJS('document.getElementById("message").innerHTML = "";')
+      self._ui.AddEventHandler('start_run_test', self.StartRunTest)
+      self._ui.PostEvent(test_event.Event(test_event.Event.Type.TEST_UI_EVENT,
+                                          subtype='start_run_test'))
+    else:
+      self._ui.BindKey('S', self.StartRunTest, once=True)
     self._ui.Run()
 
   def AppendErrorMessage(self, error_message):

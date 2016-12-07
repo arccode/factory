@@ -101,17 +101,6 @@ _MSG_INIT_SHARED_DATA = test_ui.MakeLabel(
     'start-font-size')
 
 # Javascripts and HTML for tasks
-_JS_SPACE = """
-    function enableSpaceKeyPressListener() {
-      window.addEventListener(
-          "keypress",
-          function(event) {
-            if (event.keyCode == " ".charCodeAt(0)) {
-              window.test.pass();
-            }
-          });
-      window.focus();
-    }"""
 _EVENT_SUBTYPE_SHOP_FLOOR = 'Start-Serial'
 _HTML_SHOP_FLOOR = """
     <input type="text" id="serial" style="height: 2.5em; width: 20em"/>
@@ -143,8 +132,7 @@ class PressSpaceTask(FactoryTask):
 
   def Run(self):
     self._test.template.SetState(_MSG_TASK_SPACE)
-    self._test.ui.RunJS(_JS_SPACE)
-    self._test.ui.CallJSFunction('enableSpaceKeyPressListener')
+    self._test.ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.pass();')
 
 
 class ExternalPowerTask(FactoryTask):

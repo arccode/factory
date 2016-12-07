@@ -5,7 +5,11 @@
   <div>
     <span class="goofy-label-en">Serial number</span>
     <span class="goofy-label-zh">面板序号</span>
-    <input id="sn" type="text" autofocus onkeydown="snEntered(event)">
+    <input id="sn" type="text" autofocus onkeydown="snKeyDown(event)">
+    <button onClick="snEntered()">
+      <span class="goofy-label-en">Submit</span>
+      <span class="goofy-label-zh">提交</span>
+    </button>
   </div>
   <div id='display-area'>Display Area</div>
 </div>

@@ -11,9 +11,6 @@ var g_use_usb = false;
 // Whether the DUT should control fixture
 var g_use_fxt = false;
 
-// Whether to use Enter key to start the test.
-var g_use_enter_key = false;
-
 // Whether the USB drive is loaded.
 var g_is_usb_loaded = false;
 
@@ -110,14 +107,12 @@ function InitForTest(data_method, control_chamber) {
  *
  * @param {bool} manual_sn_input Whether to input serial number manually.
  * @param {string} sn_format Regexp format of serial number.
- * @param {bool} ignore_enter_key Block enter key.
  */
-function ShowMainTestScreen(manual_sn_input, sn_format, ignore_enter_key) {
+function ShowMainTestScreen(manual_sn_input, sn_format) {
   var sn_status_panel = document.getElementById("sn_status_panel");
   var sn_input_box = GetSnInputBox();
 
   g_use_sn_input = manual_sn_input;
-  g_use_enter_key = !ignore_enter_key;
 
   if (manual_sn_input) {
     sn_status_panel.hidden = false;
@@ -254,16 +249,6 @@ function UpdateFixtureStatus(is_loaded) {
 ////////////////////////////////////////////////////////////
 // Event handlers
 ////////////////////////////////////////////////////////////
-
-
-/* Run test when user presses Enter or Space. */
-window.onkeydown = function(event) {
-  if ((g_use_enter_key && event.keyCode == 13) ||
-      (event.keyCode == 32)) {
-    event.preventDefault(); // Do not alter SN input box.
-    OnButtonStartTestClick();
-  }
-}
 
 
 /**

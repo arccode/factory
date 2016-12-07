@@ -10,6 +10,7 @@
 from __future__ import print_function
 
 import cgi
+import json
 import logging
 import os
 import signal
@@ -408,41 +409,50 @@ class UI(object):
       items.extend([(key, 'window.test.fail()') for key in 'fF\x1b'])
     self.BindKeysJS(items)
 
-  def BindKeysJS(self, items):
+  def BindKeysJS(self, items, once=False):
     """Binds keys to JavaScript code.
 
     Args:
       items: A list of tuples (key, js), where
         key: The key to bind (if a string), or an integer character code.
         js: The JavaScript to execute when pressed.
+      once: If true, the keys would be unbinded after first key press.
     """
     js_list = []
     for key, js in items:
       key_code = key if isinstance(key, int) else ord(key)
-      js_list.append('window.test.bindKey(%d, function() { %s });' %
+      if once:
+        js = 'window.test.unbindKey(%d);' % key_code + js
+      js_list.append('window.test.bindKey(%d, function(event) { %s });' %
                      (key_code, js))
     self.RunJS(''.join(js_list))
 
-  def BindKeyJS(self, key, js):
+  def BindKeyJS(self, key, js, once=False):
     """Sets a JavaScript function to invoke if a key is pressed.
 
     Args:
       key: The key to bind (if a string), or an integer character code.
       js: The JavaScript to execute when pressed.
+      once: If true, the key would be unbinded after first key press.
     """
-    self.BindKeysJS([(key, js)])
+    self.BindKeysJS([(key, js)], once=once)
 
-  def BindKey(self, key, handler):
+  def BindKey(self, key, handler, args=None, once=False):
     """Sets a key binding to invoke the handler if the key is pressed.
 
     Args:
       key: The key to bind.
       handler: The handler to invoke with a single argument (the event
           object).
+      args: The arguments to be passed to the handler in javascript,
+          which would be json-serialized.
+      once: If true, the key would be unbinded after first key press.
     """
     uuid_str = str(uuid.uuid4())
-    self.BindKeyJS(key, 'test.sendTestEvent("%s", {});' % uuid_str)
+    args = json.dumps(args) if args is not None else '{}'
     self.AddEventHandler(uuid_str, handler)
+    self.BindKeyJS(key, 'test.sendTestEvent("%s", %s);' % (uuid_str, args),
+                   once=once)
 
   def UnbindKey(self, key):
     """Removes a key binding in frontend Javascript.
