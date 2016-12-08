@@ -333,11 +333,10 @@ class CRAS(object):
   def UpdateIONodes(self):
     """Updates the input and output nodes of CRAS"""
     nodes = self._GetControlInterface().GetNodes()
-    for n in nodes:
-      if n['IsInput']:
-        self.input_nodes.append(self.Node(n['Id'], n['Name'], n['Active']))
-      else:
-        self.output_nodes.append(self.Node(n['Id'], n['Name'], n['Active']))
+    self.input_nodes = [self.Node(n['Id'], n['Name'], n['Active'])
+                        for n in nodes if n['IsInput']]
+    self.output_nodes = [self.Node(n['Id'], n['Name'], n['Active'])
+                        for n in nodes if not n['IsInput']]
 
   def SelectNodeById(self, node_id):
     """Selects node by given id.
