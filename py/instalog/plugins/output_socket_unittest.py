@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import hashlib
 import logging
 import mock
 import socket
@@ -74,33 +75,37 @@ class TestInputSocket(unittest.TestCase):
     self.assertFalse(self.plugin.Ping())
 
   def testOneEvent(self):
-    self.core.GetStream(0).Queue([datatypes.Event({})])
-    self.sandbox.Flush(2, True)
-    self.assertEqual('0\0'  # ping
-                     '1\0'
-                     '8\0'
-                     '[{}, {}]'
-                     '50005107138f95db8dfc3f44a84d607a5fc75669\0'
-                     '0\0',
-                     self._GetSentData())
+    event = datatypes.Event({})
+    with mock.patch.object(event, 'Serialize', return_value='EVENT'):
+      self.core.GetStream(0).Queue([event])
+      self.sandbox.Flush(2, True)
+      self.assertEqual('0\0'  # ping
+                       '1\0'
+                       '5\0'
+                       'EVENT'
+                       '7c90977a1d83c431f761e4bae201bddd4a6f31d6\0'
+                       '0\0',
+                       self._GetSentData())
 
   def testOneEventOneAttachment(self):
     with tempfile.NamedTemporaryFile() as f:
       f.write('XXXXXXXXXX')
       f.flush()
       event = datatypes.Event({}, {'my_attachment': f.name})
-      self.core.GetStream(0).Queue([event])
-      self.sandbox.Flush(2, True)
-      self.assertEqual('0\0'  # ping
-                       '1\0'
-                       '8\0[{}, {}]'
-                       '50005107138f95db8dfc3f44a84d607a5fc75669\0'
-                       '1\0'
-                       '13\0my_attachment'
-                       '8c18ccf21585d969762e4da67bc890da8672ba5c\0'
-                       '10\0XXXXXXXXXX'
-                       '1c17e556736c4d23933f99d199e7c2c572895fd2\0',
-                       self._GetSentData())
+      with mock.patch.object(event, 'Serialize', return_value='EVENT'):
+        self.core.GetStream(0).Queue([event])
+        self.sandbox.Flush(2, True)
+        self.assertEqual('0\0'  # ping
+                         '1\0'
+                         '5\0'
+                         'EVENT'
+                         '7c90977a1d83c431f761e4bae201bddd4a6f31d6\0'
+                         '1\0'
+                         '13\0my_attachment'
+                         '8c18ccf21585d969762e4da67bc890da8672ba5c\0'
+                         '10\0XXXXXXXXXX'
+                         '1c17e556736c4d23933f99d199e7c2c572895fd2\0',
+                         self._GetSentData())
 
 
 if __name__ == '__main__':

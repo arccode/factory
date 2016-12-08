@@ -22,6 +22,32 @@ _SAMPLE_DATE = _SAMPLE_DATETIME.date()
 _SAMPLE_TIME = _SAMPLE_DATETIME.time()
 
 
+class A(json_utils.Serializable):
+
+  def __init__(self, data):
+    self.data = data
+
+  def ToDict(self):
+    return {'data': self.data}
+
+  @classmethod
+  def FromDict(self, dct):
+    return A(dct['data'])
+
+
+class B(json_utils.Serializable):
+
+  def __init__(self, data):
+    self.data = data
+
+  def ToDict(self):
+    return {'data': self.data}
+
+  @classmethod
+  def FromDict(self, dct):
+    return B(dct['data'])
+
+
 class TestJSONUtils(unittest.TestCase):
 
   def testRoundTrip(self):
@@ -30,6 +56,27 @@ class TestJSONUtils(unittest.TestCase):
     dec = json_utils.JSONDecoder()
     orig = [_SAMPLE_DATETIME, _SAMPLE_DATE, _SAMPLE_TIME, 'test_string']
     self.assertEquals(dec.decode(enc.encode(orig)), orig)
+
+  def testSerializable(self):
+    orig = A('test')
+    self.assertEquals(orig.data, A.Deserialize(orig.Serialize()).data)
+    self.assertEquals(orig.data, json_utils.Deserialize(orig.Serialize()).data)
+
+  def testRecursiveSerialize(self):
+    orig = A(B('test'))
+    self.assertTrue(isinstance(A.Deserialize(orig.Serialize()), A))
+    self.assertTrue(isinstance(A.Deserialize(orig.Serialize()).data, B))
+    self.assertTrue(isinstance(json_utils.Deserialize(orig.Serialize()), A))
+    self.assertTrue(
+        isinstance(json_utils.Deserialize(orig.Serialize()).data, B))
+    with self.assertRaises(ValueError):
+      B.Deserialize(orig.Serialize())
+
+  def testDuplicateClassName(self):
+    with self.assertRaises(RuntimeError):
+      class A(json_utils.Serializable):
+
+        pass
 
 
 class TestWalkJSONPath(unittest.TestCase):
@@ -49,7 +96,6 @@ class TestWalkJSONPath(unittest.TestCase):
                      json_utils.WalkJSONPath('.hello.world', data))
     self.assertEqual({'hello': {'world': [100, 200]}},
                      json_utils.WalkJSONPath('.', data))
-
 
 
 if __name__ == '__main__':

@@ -180,23 +180,16 @@ class TestEvent(unittest.TestCase):
     event = datatypes.Event(payload)
     json_string = event.Serialize()
     self.assertEqual(event, datatypes.Event.Deserialize(json_string))
-    # Serialize returns the JSON string of the two-element list:
-    #   [payload, attachments]
-    # Since in this case, we don't provide any attachments, the JSON string will
-    # look like:
-    #   [{ ... payload ... }, {}]
-    # Use a regex to manually remove the second element of the returned list
-    # for DeserializeRaw.
-    json_event = re.sub(r'^\[(.*), ?{}]', r'\1', json_string)
-    self.assertEqual(event, datatypes.Event.DeserializeRaw(json_event))
+    dct = event.ToDict()
+    self.assertEqual(event, datatypes.Event.FromDict(dct))
 
     # Test with attachments.
     attachments = {'file_id': '/path/to/file'}
-    event2 = datatypes.Event(payload, attachments)
-    json_string = event2.Serialize()
-    self.assertEqual(event2, datatypes.Event.Deserialize(json_string))
-    self.assertEquals(event2, datatypes.Event.DeserializeRaw(
-        json.dumps(payload), json.dumps(attachments)))
+    event = datatypes.Event(payload, attachments)
+    json_string = event.Serialize()
+    self.assertEqual(event, datatypes.Event.Deserialize(json_string))
+    dct = event.ToDict()
+    self.assertEqual(event, datatypes.Event.FromDict(dct))
 
 
 class TestEventStream(unittest.TestCase):

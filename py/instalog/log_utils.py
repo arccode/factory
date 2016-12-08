@@ -18,6 +18,7 @@ class LoggerMixin(object):
   Usage (note order of the classes in the inheritance list):
 
     class MyClass(log_utils.LoggerMixin, MyBaseClass):
+
       def __init__(self, logger):
         # log_utils.LoggerMixin creates shortcut functions for convenience.
         self.logger = logger

@@ -133,10 +133,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
         break
       event = None
       try:
-        if input_line.startswith('{'):
-          event = datatypes.Event.DeserializeRaw(input_line, '{}')
-        elif input_line.startswith('['):
-          event = datatypes.Event.Deserialize(input_line)
+        event = datatypes.Event.Deserialize(input_line)
       except Exception as e:
         self.logger.exception(e)
       if event:

@@ -11,7 +11,6 @@ iterating through it.
 from __future__ import print_function
 
 import copy
-import json
 import logging
 import time
 
@@ -21,7 +20,7 @@ from instalog import plugin_base
 from instalog.utils import time_utils
 
 
-class Event(object):
+class Event(json_utils.Serializable):
   """Represents an Instalog event.
 
   Properties:
@@ -43,51 +42,42 @@ class Event(object):
     if not isinstance(self.attachments, dict):
       raise TypeError('Provided attachments argument must be of type `dict`')
 
-  def Serialize(self):
-    """Serialize an Event object."""
-    return json.dumps([self.payload, self.attachments],
-                      cls=json_utils.JSONEncoder)
-
   @classmethod
   def Deserialize(cls, json_string):
-    """Deserialize an Event object.
+    """Deserializes an Event object given as a JSON string."""
+    # Legacy object serialization.
+    if json_string.startswith('['):
+      dct = json_utils.JSONDecoder().decode(json_string)
+      return cls(
+          payload=dct[0],
+          attachments=dct[1])
 
-    Args:
-      json_string: JSON string of the event, as a two-element list:
-                   json_string == [payload, attachments].
+    # Case of only 'payload' being provided (run_plugin.py).
+    if '__type__' not in json_string:
+      dct = json_utils.JSONDecoder().decode(json_string)
+      return cls(payload=dct)
 
-    Returns:
-      An Event object.
-    """
-    json_dict = json.loads(json_string, cls=json_utils.JSONDecoder)
-    payload, attachments = json_dict
-    return cls(payload, attachments)
+    # Use Serializable's default method.
+    return super(Event, cls).Deserialize(json_string)
+
+  def ToDict(self):
+    """Returns the dictionary equivalent of the Event object."""
+    return {
+        'payload': self.payload,
+        'attachments': self.attachments,
+    }
 
   @classmethod
-  def DeserializeRaw(cls, json_payload=None, json_attachments=None):
-    """Deserialize an Event object with payload and attachments separated.
-
-    TODO(kitching): Decide whether to allow both strings and dictionaries for
-                    these two arguments.
-
-    Provided for testing applications or use in CLI programs.
-
-    Args:
-      json_payload: JSON string of the event payload.
-      json_attachments: JSON string of the attachments.
-
-    Returns:
-      An Event object.
-    """
-    payload = (json.loads(json_payload, cls=json_utils.JSONDecoder)
-               if json_payload is not None else {})
-    attachments = (json.loads(json_attachments, cls=json_utils.JSONDecoder)
-                   if json_attachments is not None else {})
-    return cls(payload, attachments)
+  def FromDict(cls, dct):
+    """Returns an Event object from its dictionary equivalent."""
+    return cls(
+        payload=dct['payload'],
+        attachments=dct['attachments'])
 
   def __repr__(self):
     """Implements repr function for debugging."""
-    return 'Event(%s, %s)' % (self.payload, self.attachments)
+    return ('Event(payload=%s, attachments=%s)'
+            % (self.payload, self.attachments))
 
   def __eq__(self, other):
     """Implements == operator."""
