@@ -52,8 +52,8 @@ def PollForCondition(poll_method, condition_method=None,
   end_time = time_utils.MonotonicTime() + timeout_secs if timeout_secs else None
   while True:
     if condition_name and end_time is not None:
-      logging.info('[%ds left] %s', end_time - time_utils.MonotonicTime(),
-                   condition_name)
+      logging.debug('[%ds left] %s', end_time - time_utils.MonotonicTime(),
+                    condition_name)
     ret = poll_method()
     if condition_method(ret):
       return ret
