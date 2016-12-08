@@ -46,6 +46,8 @@ class DisplayPointTest(unittest.TestCase):
 
   def setUp(self):
     """Initializes frontend presentation and properties."""
+    if self.args.max_point_count >= 10:
+      raise ValueError('>= 10 points is not supported')
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
@@ -60,6 +62,8 @@ class DisplayPointTest(unittest.TestCase):
     """Sets the callback function of keys and run the test."""
     self.ui.BindKey(' ', self.OnSpacePressed)
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
+    for num in range(1, self.args.max_point_count + 1):
+      self.ui.BindKeyJS(ord('0') + num, 'judgeSubTest(%d);' % num)
     self.ui.Run()
 
   def OnSpacePressed(self, event):

@@ -20,7 +20,7 @@ var DisplayPointTest = function(container, arrayNumberPoint, pointSize) {
   this.enInstruct = 'Press Space to display;<br>' +
       'After checking, Enter number of points to pass.';
   this.zhInstruct = '按空格键显示;<br>' +
-      '检查后输入正确的点数通过。';
+      '检查后按下正确的点数按键通过。';
   this.itemNumber = 2;
   this.backgroundStyleList = [
     'display-point-background-white',
@@ -28,6 +28,7 @@ var DisplayPointTest = function(container, arrayNumberPoint, pointSize) {
   this.pointStyleList = [
     'display-point-black',
     'display-point-white'];
+  this.checked = false;
 };
 
 /**
@@ -40,23 +41,6 @@ DisplayPointTest.prototype.init = function() {
   caption.className = 'display-point-caption';
   appendSpanEnZh(caption, this.enInstruct, this.zhInstruct);
   $(this.container).appendChild(caption);
-
-  var inputElement = document.createElement('input');
-  inputElement.type = 'text';
-  inputElement.id = 'input_point_number';
-  inputElement.className = 'display-point-input-number';
-  inputElement.addEventListener('keypress', function(event) {
-    //checks the value when user inputs enter key
-    if (event.keyCode == 13) {
-      judgeSubTest();
-    }
-    //ignores the value when user inputs spacebar key
-    else if (event.keyCode == 32) {
-      this.value = '';
-    }
-  });
-  $(this.container).appendChild(inputElement);
-  inputElement.focus();
 };
 
 /**
@@ -134,15 +118,18 @@ DisplayPointTest.prototype.setupPoint = function() {
  * @param {number} number
  */
 DisplayPointTest.prototype.judgePoint = function(number) {
-  if (number == this.arrayNumberPoint[this.focusItem]) {
-    this.focusItem = this.focusItem + 1;
-    if (this.focusItem < this.itemNumber) {
-      this.drawDisplayPoint(true);
+  if (this.checked) {
+    if (number == this.arrayNumberPoint[this.focusItem]) {
+      this.focusItem = this.focusItem + 1;
+      if (this.focusItem < this.itemNumber) {
+        this.drawDisplayPoint(true);
+        // We always show next subtest, so we dont need to reset this.checked.
+      } else {
+        window.test.pass();
+      }
     } else {
-      window.test.pass();
+      window.displayPointTest.failTest(number);
     }
-  } else {
-    window.displayPointTest.failTest(number);
   }
 };
 
@@ -165,6 +152,7 @@ DisplayPointTest.prototype.switchDisplayOnOff = function() {
  */
 DisplayPointTest.prototype.switchDisplayOn = function() {
   this.display = true;
+  this.checked = true;
   this.fullScreenElement.className = 'display-full-screen-show';
   window.test.setFullScreen(true);
 };
@@ -207,14 +195,10 @@ function setupDisplayPointTest(container, arrayNumberPoint, pointSize) {
 
 /**
  * Judges the subtest answer.
+ * @param {number} number
  */
-function judgeSubTest() {
-  var text = document.getElementById('input_point_number');
-  // Only judge input we can parseInt properly
-  if (/^[0-9].*/.test(text.value.trim())) {
-    window.displayPointTest.judgePoint(parseInt(text.value, 10));
-  }
-  text.value = '';
+function judgeSubTest(number) {
+  window.displayPointTest.judgePoint(number);
 }
 
 /**
