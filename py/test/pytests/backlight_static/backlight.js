@@ -2,24 +2,23 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 /**
  * API for backlight test.
  * @constructor
  * @param {string} container
  */
-BacklightTest = function(container) {
+var BacklightTest = function(container) {
   this.container = container;
-  this.enInstruct = "Press Space to change backlight brightness;<br>"
-                  + "Press Esc to reset backlight brightness to original;<br>"
-                  + "After checking, Enter H if pressing Space changes the "
-                  + "backlight to be brighter;<br>"
-                  + "Enter L if pressing Space changes the backlight to be "
-                  + "dimmer.<br>"
-                  + "This test will be executed twice."
-  this.zhInstruct = "按空格键调整亮度;<br>"
-                  + "按Esc复原亮度;<br>"
-                  + "检查后若为提高亮度输入H; 若为降低亮度输入L";
+  this.enInstruct = 'Press Space to change backlight brightness;<br>' +
+      'Press Esc to reset backlight brightness to original;<br>' +
+      'After checking, Enter H if pressing Space changes the ' +
+      'backlight to be brighter;<br>' +
+      'Enter L if pressing Space changes the backlight to be ' +
+      'dimmer.<br>' +
+      'This test will be executed twice.';
+  this.zhInstruct = '按空格键调整亮度;<br>' +
+      '按Esc复原亮度;<br>' +
+      '检查后若为提高亮度输入H; 若为降低亮度输入L';
 };
 
 
@@ -29,7 +28,7 @@ BacklightTest = function(container) {
  */
 BacklightTest.prototype.init = function() {
   appendSpanEnZh($(this.container), this.enInstruct, this.zhInstruct);
-  $(this.container).className = "backlight-caption";
+  $(this.container).className = 'backlight-caption';
 };
 
 
@@ -48,14 +47,13 @@ function setupBacklightTest(container) {
  * @param {Element} div the element we to which we want to append spans.
  * @param {string} en the English text to append.
  * @param {string} zh the Simplified-Chinese text to append.
- * @return Array
  */
 function appendSpanEnZh(div, en, zh) {
-  var en_span = document.createElement("span");
-  var zh_span = document.createElement("span");
-  en_span.className = "goofy-label-en";
+  var en_span = document.createElement('span');
+  var zh_span = document.createElement('span');
+  en_span.className = 'goofy-label-en';
   en_span.innerHTML = en;
-  zh_span.className = "goofy-label-zh";
+  zh_span.className = 'goofy-label-zh';
   zh_span.innerHTML = zh;
   div.appendChild(en_span);
   div.appendChild(zh_span);

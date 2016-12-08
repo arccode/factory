@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-window.onload = init();
+window.addEventListener('load', init);
 
 function toggleDebugPanel() {
-  var debugPanel = document.getElementById("debug-panel");
+  var debugPanel = document.getElementById('debug-panel');
   var v = debugPanel.style.visibility;
-  if (v.toLowerCase() == "visible" || v == "") {
-    debugPanel.style.visibility = "hidden";
+  if (v.toLowerCase() == 'visible' || v == '') {
+    debugPanel.style.visibility = 'hidden';
   } else {
-    debugPanel.style.visibility = "visible";
+    debugPanel.style.visibility = 'visible';
   }
 }
 
@@ -23,12 +23,12 @@ function snKeyDown(event) {
 function snEntered() {
   var sn = document.getElementById('sn').value;
   if (sn.length > 0) {
-    test.sendTestEvent('StartCalibration',
-        {'sn': document.getElementById('sn').value});
-    document.getElementById('sn').value = "";
-    document.getElementById('display-area').innerHTML = "";
+    window.test.sendTestEvent(
+        'StartCalibration', {'sn': document.getElementById('sn').value});
+    document.getElementById('sn').value = '';
+    document.getElementById('display-area').innerHTML = '';
   } else {
-    alert("Please enter SN 请输入序号");
+    alert('Please enter SN 请输入序号');
   }
 }
 
@@ -39,14 +39,14 @@ function fillInSerialNumber(sn) {
 }
 
 function init() {
-  test.sendTestEvent('RefreshFixture', {});
-  test.sendTestEvent('RefreshTouchscreen', {});
+  window.test.sendTestEvent('RefreshFixture', {});
+  window.test.sendTestEvent('RefreshTouchscreen', {});
 }
 
 function displayDebugData(data) {
-  var data = eval(data)
+  data = eval(data);
   var displayArea = document.getElementById('display-area');
-  displayArea.innerHTML = "";
+  displayArea.innerHTML = '';
   var max = -1;
   var min = -1;
 
@@ -67,9 +67,9 @@ function displayDebugData(data) {
       var cell = document.createElement('span');
       var value = data[i][j];
       value = Math.floor(255 * (value - min) / (max - min));
-      cell.innerHTML = "__";
+      cell.innerHTML = '__';
       cell.style.backgroundColor = heatMap(value);
-      cell.style.fontSize = "0.7em";
+      cell.style.fontSize = '0.7em';
       row.appendChild(cell);
     }
     displayArea.insertBefore(row, displayArea.childNodes[0]);
@@ -77,9 +77,9 @@ function displayDebugData(data) {
 }
 
 function heatMap(val) {
-  r = 0;
-  g = 0;
-  b = 0;
+  var r = 0;
+  var g = 0;
+  var b = 0;
   if (val <= 255 && val >= 235) {
     r = val;
     g = (255 - val) * 12;
@@ -95,7 +95,7 @@ function heatMap(val) {
   } else {
     b = 255;
   }
-  return "rgb(" + r + "," + g + "," + b + ")";
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
 function showMessage(data) {
@@ -104,11 +104,11 @@ function showMessage(data) {
 
 function showMessageAndCallback(data) {
   alert(data);
-  test.sendTestEvent('FinishTest', {});
+  window.test.sendTestEvent('FinishTest', {});
 }
 
 function setControllerStatus(status) {
-  var elm = document.getElementById('controller-status')
+  var elm = document.getElementById('controller-status');
   elm.innerText = status ? 'Detected' : 'Undetected';
   elm.style.backgroundColor = status ? '#5F5' : '#F55';
 }

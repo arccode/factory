@@ -5,21 +5,21 @@
 /**
  * API for keyboard SMT test.
  * @constructor
- * @param {Array} keycodeSequence
- * @param {bool} debug
+ * @param {Array.<number>} keycodeSequence
+ * @param {boolean} debug
  */
-keyboardSmtTest = function(keycodeSequence, debug) {
+var keyboardSmtTest = function(keycodeSequence, debug) {
   this.expectedKeycodeSequence = keycodeSequence;
   this.receivedKeycodeSequence = [];
-  this.debug = debug
+  this.debug = debug;
 };
 
 /**
  * Initializes keyboard SMT test UI.
  */
 keyboardSmtTest.prototype.init = function() {
-  document.getElementById("expected-sequence").innerHTML =
-      this.expectedKeycodeSequence.join(" ");
+  document.getElementById('expected-sequence').innerHTML =
+      this.expectedKeycodeSequence.join(' ');
 };
 
 /**
@@ -28,16 +28,16 @@ keyboardSmtTest.prototype.init = function() {
  * If keycode mismatches, fails the test. If all expected keycodes are matched,
  * passes it.
  *
- * @param {int} keycode
+ * @param {number} keycode
  */
 keyboardSmtTest.prototype.markKeyup = function(keycode) {
   this.receivedKeycodeSequence.push(keycode);
   if (this.debug) {
     // Update UI.
-    document.getElementById("matched-sequence").innerHTML =
-        this.receivedKeycodeSequence.join(" ") + " ";
-    document.getElementById("expected-sequence").innerHtml =
-        this.expectedKeycodeSequence.join(" ");
+    document.getElementById('matched-sequence').innerHTML =
+        this.receivedKeycodeSequence.join(' ') + ' ';
+    document.getElementById('expected-sequence').innerHtml =
+        this.expectedKeycodeSequence.join(' ');
   } else {
     var numReceivedKeycode = this.receivedKeycodeSequence.length;
     var numExpectedKeycode = this.expectedKeycodeSequence.length;
@@ -47,12 +47,12 @@ keyboardSmtTest.prototype.markKeyup = function(keycode) {
     }
 
     // Update UI.
-    document.getElementById("matched-sequence").innerHTML =
-        this.expectedKeycodeSequence.slice(0, numReceivedKeycode).join(" ")
-        + " ";
-    document.getElementById("expected-sequence").innerHTML =
-        this.expectedKeycodeSequence.slice(numReceivedKeycode,
-                                           numExpectedKeycode).join(" ");
+    document.getElementById('matched-sequence').innerHTML =
+        this.expectedKeycodeSequence.slice(
+            0, numReceivedKeycode).join(' ') + ' ';
+    document.getElementById('expected-sequence').innerHTML =
+        this.expectedKeycodeSequence.slice(
+            numReceivedKeycode, numExpectedKeycode).join(' ');
 
     // All keycodes are matched. Pass the test.
     if (numReceivedKeycode == numExpectedKeycode) {
@@ -64,18 +64,18 @@ keyboardSmtTest.prototype.markKeyup = function(keycode) {
 
 /**
  * Fails the test and prints out all the failed keys.
- * @param {str} reason
+ * @param {string} reason
  */
 keyboardSmtTest.prototype.failTest = function(reason) {
   window.test.fail(
-      [reason, "expect:", this.expectedKeycodeSequence.join(","),
-       "actual:", this.receivedKeycodeSequence.join(",")].join(" "));
+      [reason, 'expect:', this.expectedKeycodeSequence.join(','),
+       'actual:', this.receivedKeycodeSequence.join(',')].join(' '));
 };
 
 /**
  * Creates a keyboard test and runs it.
- * @param {Array} keycodeSequence
- * @param {bool} debug
+ * @param {Array.<number>} keycodeSequence
+ * @param {boolean} debug
  */
 function setUpKeyboardTest(keycodeSequence, debug) {
   window.keyboardSmtTest = new keyboardSmtTest(keycodeSequence, debug);
@@ -84,7 +84,7 @@ function setUpKeyboardTest(keycodeSequence, debug) {
 
 /**
  * Marks a key as keyup.
- * @param {int} keycode
+ * @param {number} keycode
  */
 function markKeyup(keycode) {
   window.keyboardSmtTest.markKeyup(keycode);
@@ -92,7 +92,7 @@ function markKeyup(keycode) {
 
 /**
  * Fails the test.
- * @param {str} reason
+ * @param {string} reason
  */
 function failTest(reason) {
   window.keyboardSmtTest.failTest(reason);

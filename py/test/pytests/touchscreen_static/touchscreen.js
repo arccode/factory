@@ -6,24 +6,24 @@
  * API for touchscreen test.
  * @constructor
  * @param {string} container
- * @param {int} xSegments
- * @param {int} ySegments
+ * @param {number} xSegments
+ * @param {number} ySegments
  */
-TouchscreenTest = function(container, xSegments, ySegments) {
+var TouchscreenTest = function(container, xSegments, ySegments) {
   this.container = container;
   this.xSegments = xSegments;
   this.ySegments = ySegments;
   this.display = false;
-  this.enInstruct = "Press Space to display and use one finger to " +
-                    "touch each sector; Esc to fail.";
-  this.zhInstruct = "按空格键显示并用一个手指触摸每区; 按Esc键失败。";
+  this.enInstruct = 'Press Space to display and use one finger to ' +
+      'touch each sector; Esc to fail.';
+  this.zhInstruct = '按空格键显示并用一个手指触摸每区; 按Esc键失败。';
 };
 
 /**
  * Creates a touchscreen test and runs it.
  * @param {string} container
- * @param {int} xSegments
- * @param {int} ySegments
+ * @param {number} xSegments
+ * @param {number} ySegments
  */
 function setupTouchscreenTest(container, xSegments, ySegments) {
   window.touchscreenTest = new TouchscreenTest(container, xSegments, ySegments);
@@ -35,8 +35,8 @@ function setupTouchscreenTest(container, xSegments, ySegments) {
  * Initializes touchscreen caption div elements.
  */
 TouchscreenTest.prototype.init = function() {
-  var caption = document.createElement("div");
-  caption.className = "touchscreen-caption";
+  var caption = document.createElement('div');
+  caption.className = 'touchscreen-caption';
   appendSpanEnZh(caption, this.enInstruct, this.zhInstruct);
   $(this.container).appendChild(caption);
 };
@@ -46,10 +46,10 @@ TouchscreenTest.prototype.init = function() {
  * The touch table contains xSegment by ySegment divs
  */
 TouchscreenTest.prototype.setupFullScreenElement = function() {
-  this.fullScreenElement = document.createElement("div");
-  this.fullScreenElement.className = "touchscreen-full-screen-hide";
-  var touchscreenTable = createTable(this.ySegments, this.xSegments, "touch",
-                                     "touchscreen-test-sector-untested");
+  this.fullScreenElement = document.createElement('div');
+  this.fullScreenElement.className = 'touchscreen-full-screen-hide';
+  var touchscreenTable = createTable(this.ySegments, this.xSegments, 'touch',
+      'touchscreen-test-sector-untested');
   this.fullScreenElement.appendChild(touchscreenTable);
   $(this.container).appendChild(this.fullScreenElement);
 };
@@ -72,7 +72,7 @@ TouchscreenTest.prototype.switchDisplayOnOff = function() {
  */
 TouchscreenTest.prototype.switchDisplayOn = function() {
   this.display = true;
-  this.fullScreenElement.className = "touchscreen-full-screen-show";
+  this.fullScreenElement.className = 'touchscreen-full-screen-show';
   window.test.setFullScreen(true);
 };
 
@@ -82,20 +82,20 @@ TouchscreenTest.prototype.switchDisplayOn = function() {
  */
 TouchscreenTest.prototype.switchDisplayOff = function() {
   this.display = false;
-  this.fullScreenElement.className = "touchscreen-full-screen-hide";
+  this.fullScreenElement.className = 'touchscreen-full-screen-hide';
   window.test.setFullScreen(false);
 };
 
 /**
  * Marks the given (x,y) sector as "tested" on the test ui.
- * @param {int} x
- * @param {int} y
+ * @param {number} x
+ * @param {number} y
  */
 TouchscreenTest.prototype.markSectorTested = function(x, y) {
-  var id = "touch-x-" + x + "-y-" + y;
+  var id = 'touch-x-' + x + '-y-' + y;
   var element = document.getElementById(id);
   if (element) {
-    element.className = "touchscreen-test-sector-tested";
+    element.className = 'touchscreen-test-sector-tested';
   }
   this.checkTestComplete();
 };
@@ -105,7 +105,7 @@ TouchscreenTest.prototype.markSectorTested = function(x, y) {
  * haven't passed the test.
  * */
 TouchscreenTest.prototype.checkTestComplete = function() {
-  if (this.getClassArray("touchscreen-test-sector-untested").length == 0)  {
+  if (this.getClassArray('touchscreen-test-sector-untested').length == 0) {
     window.test.pass();
   }
 };
@@ -116,17 +116,17 @@ TouchscreenTest.prototype.checkTestComplete = function() {
 TouchscreenTest.prototype.failTest = function() {
   var failedSectors = new Array();
 
-  this.getClassArray("touchscreen-test-sector-untested").forEach(
+  this.getClassArray('touchscreen-test-sector-untested').forEach(
     function(element) {
       failedSectors.push((element.id));
     }
   );
 
-  this.failMsg = "Touchscreen test failed. Malfunction sectors:";
+  this.failMsg = 'Touchscreen test failed. Malfunction sectors:';
   failedSectors.forEach(function(element, index, array) {
-    this.failMsg += " " + element;
-    if (index != array.length -1) {
-      this.failMsg += ",";
+    this.failMsg += ' ' + element;
+    if (index != array.length - 1) {
+      this.failMsg += ',';
     }
   }, this);
   window.test.fail(this.failMsg);
@@ -148,11 +148,11 @@ TouchscreenTest.prototype.getClassArray = function(className) {
  * @param {string} zh the Simplified-Chinese text to be appended.
  */
 function appendSpanEnZh(div, en, zh) {
-  var en_span = document.createElement("span");
-  var zh_span = document.createElement("span");
-  en_span.className = "goofy-label-en";
+  var en_span = document.createElement('span');
+  var zh_span = document.createElement('span');
+  en_span.className = 'goofy-label-en';
   en_span.innerHTML = en;
-  zh_span.className = "goofy-label-zh";
+  zh_span.className = 'goofy-label-zh';
   zh_span.innerHTML = zh;
   div.appendChild(en_span);
   div.appendChild(zh_span);
@@ -162,23 +162,23 @@ function appendSpanEnZh(div, en, zh) {
  * Creates a table element with specified row number and column number.
  * Each td in the table contains one div with id prefix-x-x_number-y-y_number
  * and the specified CSS class.
- * @param {int} rowNumber
- * @param {int} colNumber
- * @param {String} prefix
- * @param {String} className
- * @return {table}
+ * @param {number} rowNumber
+ * @param {number} colNumber
+ * @param {string} prefix
+ * @param {string} className
+ * @return {Element}
  */
 function createTable(rowNumber, colNumber, prefix, className) {
-  var table = document.createElement("table");
-  table.style.width = "100%";
-  table.style.height = "100%";
-  var tableBody = document.createElement("tbody");
+  var table = document.createElement('table');
+  table.style.width = '100%';
+  table.style.height = '100%';
+  var tableBody = document.createElement('tbody');
   for (var y = 0; y < rowNumber; ++y) {
-    var row = document.createElement("tr");
+    var row = document.createElement('tr');
     for (var x = 0; x < colNumber; ++x) {
-      var cell = document.createElement("td");
-      var div = document.createElement("div");
-      div.id = prefix + "-x-" + x + "-" + "y-" + y;
+      var cell = document.createElement('td');
+      var div = document.createElement('div');
+      div.id = prefix + '-x-' + x + '-' + 'y-' + y;
       div.innerHTML = div.id;
       div.className = className;
       cell.appendChild(div);
@@ -199,8 +199,8 @@ function switchDisplayOnOff() {
 
 /**
  * Marks a sector as tested.
- * @param {int} x
- * @param {int} y
+ * @param {number} x
+ * @param {number} y
  */
 function markSectorTested(x, y) {
   window.touchscreenTest.markSectorTested(x, y);

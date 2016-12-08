@@ -12,8 +12,8 @@
  * @param {number} demoIntervalMsecs Interval (ms) to show drawing pattern.
  *     Negative value means no demo.
  */
-TouchscreenTest = function(container, numColumns, numRows,
-                           maxRetries, demoIntervalMsecs) {
+var TouchscreenTest = function(
+    container, numColumns, numRows, maxRetries, demoIntervalMsecs) {
   this.container = container;
   this.numColumns = numColumns;
   this.numRows = numRows;
@@ -63,8 +63,8 @@ TouchscreenTest = function(container, numColumns, numRows,
  * @param {number} demoIntervalMsecs Interval (ms) to show drawing pattern.
  *     Negative value means no demo.
  */
-function setupTouchscreenTest(container, numColumns, numRows,
-                              maxRetries, demoIntervalMsecs) {
+function setupTouchscreenTest(
+    container, numColumns, numRows, maxRetries, demoIntervalMsecs) {
   window.touchscreenTest = new TouchscreenTest(
       container, numColumns, numRows, maxRetries, demoIntervalMsecs);
   window.touchscreenTest.init();
@@ -98,17 +98,17 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
   this.fullScreenElement = document.createElement('div');
   var fullScreen = this.fullScreenElement;
   fullScreen.className = 'touchscreen-full-screen';
-  fullScreen.addEventListener('touchstart',
-                              this.touchStartHandler.bind(this), false);
-  fullScreen.addEventListener('touchmove',
-                              this.touchMoveHandler.bind(this), false);
-  fullScreen.addEventListener('touchend',
-                              this.touchEndHandler.bind(this), false);
+  fullScreen.addEventListener(
+      'touchstart', this.touchStartHandler.bind(this), false);
+  fullScreen.addEventListener(
+      'touchmove', this.touchMoveHandler.bind(this), false);
+  fullScreen.addEventListener(
+      'touchend', this.touchEndHandler.bind(this), false);
 
   fullScreen.appendChild(createPrompt(this.MSG_INSTRUCTION));
 
   var touchscreenTable = createTable(this.numRows, this.numColumns, 'touch',
-                                     'touchscreen-test-block-untested');
+      'touchscreen-test-block-untested');
   fullScreen.appendChild(touchscreenTable);
   $(this.container).appendChild(fullScreen);
 
@@ -122,7 +122,8 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
  * left, up directions; then draws inner blocks till the center block is
  * reached.
  *
- * @returns {Array<number>} Array of touchscreen block test sequence.
+ * @return {Array<{blockIndex: number, directionX: number, directionY: number}>}
+ *     Array of touchscreen block test sequence.
  */
 TouchscreenTest.prototype.generateTouchSequence = function() {
   var xyToIndex = this.xyToIndex.bind(this);
@@ -136,9 +137,11 @@ TouchscreenTest.prototype.generateTouchSequence = function() {
 
     // Go right.
     for (; x < startX + sizeX; x++) {
-      result.push({blockIndex: xyToIndex(x, y),
-                   directionX: 1,
-                   directionY: (x == startX + sizeX - 1) ? 1 : 0});
+      result.push({
+        blockIndex: xyToIndex(x, y),
+        directionX: 1,
+        directionY: (x == startX + sizeX - 1) ? 1 : 0
+      });
     }
 
     if (sizeY == 1) {
@@ -147,9 +150,11 @@ TouchscreenTest.prototype.generateTouchSequence = function() {
 
     // Go down. Skips the duplicate first point (same below).
     for (x--, y++; y < startY + sizeY; y++) {
-      result.push({blockIndex: xyToIndex(x, y),
-                   directionX: (y == startY + sizeY - 1) ? -1 : 0,
-                   directionY: 1});
+      result.push({
+        blockIndex: xyToIndex(x, y),
+        directionX: (y == startY + sizeY - 1) ? -1 : 0,
+        directionY: 1
+      });
     }
 
     if (sizeX == 1) {
@@ -158,16 +163,20 @@ TouchscreenTest.prototype.generateTouchSequence = function() {
 
     // Go left.
     for (y--, x--; x >= startX; x--) {
-      result.push({blockIndex: xyToIndex(x, y),
-                   directionX: -1,
-                   directionY: (x == startX) ? -1 : 0});
+      result.push({
+        blockIndex: xyToIndex(x, y),
+        directionX: -1,
+        directionY: (x == startX) ? -1 : 0
+      });
     }
 
     // Go up.
     for (x++, y--; y > startY; y--) {
-      result.push({blockIndex: xyToIndex(x, y),
-                   directionX: (y == startY + 1) ? 1 : 0,
-                   directionY: -1});
+      result.push({
+        blockIndex: xyToIndex(x, y),
+        directionX: (y == startY + 1) ? 1 : 0,
+        directionY: -1
+      });
     }
 
     return result.concat(impl(startX + 1, startY + 1, sizeX - 2, sizeY - 2));
@@ -187,8 +196,8 @@ TouchscreenTest.prototype.xyToIndex = function(x, y) {
 
 /**
  * Gets block index of the touch event.
- * @param {touch event} touch Touch event.
- * @returns {number} Block ID.
+ * @param {Event} touch Touch event.
+ * @return {number} Block ID.
  */
 TouchscreenTest.prototype.getBlockIndex = function(touch) {
   var col = Math.floor(touch.screenX / screen.width * this.numColumns);
@@ -198,12 +207,12 @@ TouchscreenTest.prototype.getBlockIndex = function(touch) {
 
 /**
  * Update previous x, y coordinates.
- * @param {touch event} touch Touch event.
+ * @param {Event} touch Touch event.
  */
-TouchscreenTest.prototype.updatePreviousXY= function(touch) {
+TouchscreenTest.prototype.updatePreviousXY = function(touch) {
   this.previousX = touch.screenX;
   this.previousY = touch.screenY;
-}
+};
 
 /**
  * Checks if the moving direction conforms to expectSequence.
@@ -221,32 +230,34 @@ TouchscreenTest.prototype.updatePreviousXY= function(touch) {
  * The rules apply to directionY in a similar way.
  * MOVE_TOLERANCE is used to allow a little deviation.
  *
- * @param {touch event} touch Touch event.
- * @returns false if the moving direction is not correct.
+ * @param {Event} touch Touch event.
+ * @return {boolean} false if the moving direction is not correct.
  */
 TouchscreenTest.prototype.checkDirection = function(touch) {
   var diffX = touch.screenX - this.previousX;
   var diffY = touch.screenY - this.previousY;
+  var checkX = false;
+  var checkY = false;
   switch (this.expectSequence[this.expectBlockIndex].directionX) {
     case 1:
-      var checkX = diffX + this.MOVE_TOLERANCE > 0;
+      checkX = diffX + this.MOVE_TOLERANCE > 0;
       break;
     case 0:
-      var checkX = Math.abs(diffX) < this.MOVE_TOLERANCE;
+      checkX = Math.abs(diffX) < this.MOVE_TOLERANCE;
       break;
     case -1:
-      var checkX = diffX < this.MOVE_TOLERANCE;
+      checkX = diffX < this.MOVE_TOLERANCE;
       break;
   }
   switch (this.expectSequence[this.expectBlockIndex].directionY) {
     case 1:
-      var checkY = diffY + this.MOVE_TOLERANCE > 0;
+      checkY = diffY + this.MOVE_TOLERANCE > 0;
       break;
     case 0:
-      var checkY = Math.abs(diffY) < this.MOVE_TOLERANCE;
+      checkY = Math.abs(diffY) < this.MOVE_TOLERANCE;
       break;
     case -1:
-      var checkY = diffY < this.MOVE_TOLERANCE;
+      checkY = diffY < this.MOVE_TOLERANCE;
       break;
   }
   this.updatePreviousXY(touch);
@@ -273,7 +284,7 @@ TouchscreenTest.prototype.failThisTry = function() {
  * It checks if the touch starts from block (0, 0).
  * If not, prompt operator to do so.
  *
- * @param {event} event.
+ * @param {Event} event
  */
 TouchscreenTest.prototype.touchStartHandler = function(event) {
   var touch = event.changedTouches[0];
@@ -302,7 +313,7 @@ TouchscreenTest.prototype.touchStartHandler = function(event) {
  * It'll check if the current block is the expected one.
  * If not, it'll prompt operator to restart from upper-left block.
  *
- * @param {event} event.
+ * @param {Event} event
  */
 TouchscreenTest.prototype.touchMoveHandler = function(event) {
   var touch = event.changedTouches[0];
@@ -333,8 +344,9 @@ TouchscreenTest.prototype.touchMoveHandler = function(event) {
   } else {
     // Failed case. Either out-of-sequence touch or early finger leaving.
     // Show stronger prompt for drawing multiple unexpected blocks.
-    this.prompt(this.tryFailed ? this.MSG_OUT_OF_SEQUENCE_MULTIPLE :
-                this.MSG_OUT_OF_SEQUENCE);
+    this.prompt(
+        this.tryFailed ? this.MSG_OUT_OF_SEQUENCE_MULTIPLE :
+        this.MSG_OUT_OF_SEQUENCE);
     this.markBlock(touchBlockIndex, false);
     this.failThisTry();
     this.previousBlockIndex = touchBlockIndex;
@@ -343,7 +355,7 @@ TouchscreenTest.prototype.touchMoveHandler = function(event) {
 
 /**
  * Handles touchend event.
- * @param {event} event.
+ * @param {Event} event
  */
 TouchscreenTest.prototype.touchEndHandler = function(event) {
   var touch = event.changedTouches[0];
@@ -414,25 +426,25 @@ TouchscreenTest.prototype.showDemoIndicator = function() {
   }
   var cleanupIndex = this.indicatorHead - this.indicatorLength;
   if (cleanupIndex >= this.expectBlockIndex) {
-    var untestedBlock = $('touch-' +
-                          this.expectSequence[cleanupIndex].blockIndex);
+    var untestedBlock =
+        $('touch-' + this.expectSequence[cleanupIndex].blockIndex);
     untestedBlock.className = 'touchscreen-test-block-untested';
   }
 
   this.indicatorHead++;
-  this.demoTimer = setTimeout(this.showDemoIndicator.bind(this),
-                              this.demoIntervalMsecs);
+  this.demoTimer = setTimeout(
+      this.showDemoIndicator.bind(this), this.demoIntervalMsecs);
 };
 
 /**
  * Sets a block's test state
  * @param {number} blockIndex
- * @param {bool} passed false if the block is touched unexpectedly or the
+ * @param {boolean} passed false if the block is touched unexpectedly or the
  *     finger left too early.
  */
 TouchscreenTest.prototype.markBlock = function(blockIndex, passed) {
   $('touch-' + blockIndex).className =
-      'touchscreen-test-block-' + (passed ? 'tested': 'failed');
+      'touchscreen-test-block-' + (passed ? 'tested' : 'failed');
 };
 
 /**
@@ -469,17 +481,17 @@ TouchscreenTest.prototype.failTest = function() {
 
   this.failMessage = 'Touchscreen test failed.';
   if (failedBlocks.length) {
-    this.failMessage +=  '  Failed blocks: ' + failedBlocks.join();
+    this.failMessage += '  Failed blocks: ' + failedBlocks.join();
   }
   if (untestedBlocks.length) {
-    this.failMessage +=  '  Untested blocks: ' + untestedBlocks.join();
+    this.failMessage += '  Untested blocks: ' + untestedBlocks.join();
   }
   window.test.fail(this.failMessage);
 };
 
 /**
  * Sets prompt message
- * @param {object} message A message object containing en and zh messages.
+ * @param {Object} message A message object containing en and zh messages.
  */
 TouchscreenTest.prototype.prompt = function(message) {
   $('prompt_en').innerHTML = message.en;
@@ -493,8 +505,9 @@ TouchscreenTest.prototype.prompt = function(message) {
  * goofy-label-zh, respectively so that Goofy can switch the language of
  * prompt.
  *
- * @param {object} message A message object containing en and zh messages.
- * @return {object} prompt div.
+ * @param {{en: string, zh: string}} message A message object containing en and
+ *     zh messages.
+ * @return {Element} prompt div.
  */
 function createPrompt(message) {
   var prompt = document.createElement('div');
@@ -521,9 +534,9 @@ function createPrompt(message) {
  * and the specified CSS class.
  * @param {number} rowNumber
  * @param {number} colNumber
- * @param {String} prefix
- * @param {String} className
- * @return {table}
+ * @param {string} prefix
+ * @param {string} className
+ * @return {Element}
  */
 function createTable(rowNumber, colNumber, prefix, className) {
   var table = document.createElement('table');

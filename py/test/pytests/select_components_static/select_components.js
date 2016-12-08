@@ -9,11 +9,12 @@ function addComponentField(f) {
 }
 
 function SelectComponents() {
-  length = componentFields.length;
-  eventData = [];
+  var length = componentFields.length;
+  var eventData = [];
   for (var i = 0; i < length; ++i) {
-    componentSelector = document.getElementById("Select-" + componentFields[i]);
-    selectedIndex = componentSelector.selectedIndex;
+    var componentSelector =
+        document.getElementById('Select-' + componentFields[i]);
+    var selectedIndex = componentSelector.selectedIndex;
     eventData.push([i, componentSelector.options[selectedIndex].value]);
   }
   window.test.sendTestEvent('Select-Components', eventData);

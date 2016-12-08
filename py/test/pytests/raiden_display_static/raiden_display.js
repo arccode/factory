@@ -6,9 +6,8 @@
  * API for display test.
  * @constructor
  * @param {string} container
- * @param {Array.<string>} colors
  */
-DisplayTest = function(container) {
+var DisplayTest = function(container) {
   this.container = container;
   this.display = false;
   this.styleDiv = null;
@@ -18,7 +17,6 @@ DisplayTest = function(container) {
 /**
  * Creates a display test and runs it.
  * @param {string} container
- * @param {Array.<string>} colors
  */
 function setupDisplayTest(container) {
   window.displayTest = new DisplayTest(container);
@@ -31,8 +29,8 @@ function setupDisplayTest(container) {
  * Initializes fullscreen elements.
  */
 DisplayTest.prototype.setupFullScreenElement = function() {
-  this.fullScreenElement = document.createElement("div");
-  this.fullScreenElement.className = "display-full-screen-hide";
+  this.fullScreenElement = document.createElement('div');
+  this.fullScreenElement.className = 'display-full-screen-hide';
   $(this.container).appendChild(this.fullScreenElement);
 };
 
@@ -40,8 +38,8 @@ DisplayTest.prototype.setupFullScreenElement = function() {
  * Initializes display div in fullscreen element.
  */
 DisplayTest.prototype.setupDisplayDiv = function() {
-  this.displayDiv = document.createElement("div");
-  this.displayDiv.id = "display-div";
+  this.displayDiv = document.createElement('div');
+  this.displayDiv.id = 'display-div';
   this.fullScreenElement.appendChild(this.displayDiv);
 };
 
@@ -51,8 +49,8 @@ DisplayTest.prototype.setupDisplayDiv = function() {
 DisplayTest.prototype.setDisplayDivClass = function() {
   var displayBeforeSetting = this.display;
   //cleans up display div
-  this.displayDiv.innerHTML = "";
-  this.displayDiv.className = "display-subtest-image";
+  this.displayDiv.innerHTML = '';
+  this.displayDiv.className = 'display-subtest-image';
 };
 
 /**
@@ -74,7 +72,7 @@ DisplayTest.prototype.switchDisplayOnOff = function() {
  */
 DisplayTest.prototype.switchDisplayOn = function() {
   this.display = true;
-  this.fullScreenElement.className = "display-full-screen-show";
+  this.fullScreenElement.className = 'display-full-screen-show';
   window.test.setFullScreen(true);
 };
 
@@ -84,7 +82,7 @@ DisplayTest.prototype.switchDisplayOn = function() {
  */
 DisplayTest.prototype.switchDisplayOff = function() {
   this.display = false;
-  this.fullScreenElement.className = "display-full-screen-hide";
+  this.fullScreenElement.className = 'display-full-screen-hide';
   window.test.setFullScreen(false);
 };
 

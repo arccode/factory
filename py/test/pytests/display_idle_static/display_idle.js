@@ -7,7 +7,7 @@
  * @constructor
  * @param {string} container
  */
-DisplayTest = function(container) {
+var DisplayTest = function(container) {
   this.container = container;
   this.display = false;
   this.focusItem = 0;
@@ -15,78 +15,78 @@ DisplayTest = function(container) {
   this.styleDiv = null;
   this.fullScreenElement = null;
   this.styleList = [
-    "display-subtest-solid-white",
-    /*"display-subtest-solid-gray-170",
-    "display-subtest-solid-gray-127",
-    "display-subtest-solid-gray-63",
-    "display-subtest-solid-red",
-    "display-subtest-solid-green",
-    "display-subtest-solid-blue",
-    "display-subtest-solid-white",
-    "display-subtest-solid-gray",
-    "display-subtest-solid-black",
-    "display-subtest-grid",
-    "display-subtest-rectangle",
-    "display-subtest-gradient-red",
-    "display-subtest-gradient-green",
-    "display-subtest-gradient-blue",
-    "display-subtest-gradient-white",*/
+    'display-subtest-solid-white'
+    /*'display-subtest-solid-gray-170',
+    'display-subtest-solid-gray-127',
+    'display-subtest-solid-gray-63',
+    'display-subtest-solid-red',
+    'display-subtest-solid-green',
+    'display-subtest-solid-blue',
+    'display-subtest-solid-white',
+    'display-subtest-solid-gray',
+    'display-subtest-solid-black',
+    'display-subtest-grid',
+    'display-subtest-rectangle',
+    'display-subtest-gradient-red',
+    'display-subtest-gradient-green',
+    'display-subtest-gradient-blue',
+    'display-subtest-gradient-white',*/
   ];
   this.enItemList = [
-    "solid-white",
-    /*"solid-gray-170",
-    "solid-gray-127",
-    "solid-gray-63",
-    "solid-red",
-    "solid-green",
-    "solid-blue",
-    "solid-white",
-    "solid-gray",
-    "solid-black",
-    "grid",
-    "rectangle",
-    "gradient-red",
-    "gradient-green",
-    "gradient-blue",
-    "gradient-white",*/
+    'solid-white'
+    /*'solid-gray-170',
+    'solid-gray-127',
+    'solid-gray-63',
+    'solid-red',
+    'solid-green',
+    'solid-blue',
+    'solid-white',
+    'solid-gray',
+    'solid-black',
+    'grid',
+    'rectangle',
+    'gradient-red',
+    'gradient-green',
+    'gradient-blue',
+    'gradient-white',*/
   ];
   this.zhItemList = [
-    "白色",
-    /*"灰色170",
-    "灰色127",
-    "灰色63",
-    "红色",
-    "绿色",
-    "蓝色",
-    "白色",
-    "灰色",
-    "黑色",
-    "格框",
-    "矩形",
-    "渐红",
-    "渐绿",
-    "渐蓝",
-    "渐白",*/
+    '白色'
+    /*'灰色170',
+    '灰色127',
+    '灰色63',
+    '红色',
+    '绿色',
+    '蓝色',
+    '白色',
+    '灰色',
+    '黑色',
+    '格框',
+    '矩形',
+    '渐红',
+    '渐绿',
+    '渐蓝',
+    '渐白',*/
   ];
-  this.enPassed = "Passed";
-  this.zhPassed = "通过";
-  this.enFailed = "Failed";
-  this.zhFailed = "失败";
-  this.enUntested = "Untested";
-  this.zhUntested = "未经测试";
-  this.enInstruct = "Press Space to display;<br>"
-                  + "Esc to fail. Test will pass itself after timeout.";
-  this.zhInstruct = "按空格键显示;<br>"
-                  + "按Esc键失败。时间到测试会自行结束";
+  this.enPassed = 'Passed';
+  this.zhPassed = '通过';
+  this.enFailed = 'Failed';
+  this.zhFailed = '失败';
+  this.enUntested = 'Untested';
+  this.zhUntested = '未经测试';
+  this.enInstruct = 'Press Space to display;<br>' +
+      'Esc to fail. Test will pass itself after timeout.';
+  this.zhInstruct = '按空格键显示;<br>' +
+      '按Esc键失败。时间到测试会自行结束';
   this.gridWidth = 10;
   this.gridHeight = 10;
-  this.gridStyleCSS = ""
-    + ".display-subtest-grid"
-    + "{background-color: white; width: 100%; height: 100%; }"
-    + ".display-subtest-grid-div"
-    + "{background-color: black; width: " + this.gridWidth + ";"
-    + " height: " + this.gridHeight +";"
-    + " border: 5px solid; }";
+  this.gridStyleCSS = '' +
+      '.display-subtest-grid' +
+      '{background-color: white; width: 100%; height: 100%; }' +
+      '.display-subtest-grid-div' +
+      '{background-color: black; width: ' + this.gridWidth + ';' +
+      ' height: ' + this.gridHeight + ';' +
+      ' border: 5px solid; }';
 };
 
 /**
@@ -109,27 +109,27 @@ function setupDisplayTest(container) {
 DisplayTest.prototype.init = function() {
   this.itemNumber = this.enItemList.length;
 
-  var caption = document.createElement("div");
-  caption.className = "display-caption";
+  var caption = document.createElement('div');
+  caption.className = 'display-caption';
   appendSpanEnZh(caption, this.enInstruct, this.zhInstruct);
   $(this.container).appendChild(caption);
 
-  var table = document.createElement("table");
-  table.className = "display-table";
-  var tableBody = document.createElement("tbody");
+  var table = document.createElement('table');
+  table.className = 'display-table';
+  var tableBody = document.createElement('tbody');
   for (var item = 0; item < this.itemNumber; ++item) {
-    var row = document.createElement("tr");
+    var row = document.createElement('tr');
 
-    var itemName = document.createElement("td");
-    itemName.className = "display-subtest-td";
-    itemName.style.width = "50%";
+    var itemName = document.createElement('td');
+    itemName.className = 'display-subtest-td';
+    itemName.style.width = '50%';
     appendSpanEnZh(itemName, this.enItemList[item], this.zhItemList[item]);
     row.appendChild(itemName);
 
-    var itemStatus = document.createElement("td");
-    itemStatus.id = "item-" + item + "-status";
+    var itemStatus = document.createElement('td');
+    itemStatus.id = 'item-' + item + '-status';
     itemStatus.itemName = this.enItemList[item];
-    itemStatus.className = "display-subtest-untested";
+    itemStatus.className = 'display-subtest-untested';
     appendSpanEnZh(itemStatus, this.enUntested, this.zhUntested);
 
     row.appendChild(itemStatus);
@@ -143,8 +143,8 @@ DisplayTest.prototype.init = function() {
  * Initializes fullscreen elements.
  */
 DisplayTest.prototype.setupFullScreenElement = function() {
-  this.fullScreenElement = document.createElement("div");
-  this.fullScreenElement.className = "display-full-screen-hide";
+  this.fullScreenElement = document.createElement('div');
+  this.fullScreenElement.className = 'display-full-screen-hide';
   $(this.container).appendChild(this.fullScreenElement);
 };
 
@@ -153,7 +153,7 @@ DisplayTest.prototype.setupFullScreenElement = function() {
  * Other display styles are set in display.css
  */
 DisplayTest.prototype.setupGridStyle = function() {
-  this.styleElement = document.createElement("style");
+  this.styleElement = document.createElement('style');
   this.styleElement.innerHTML = this.gridStyleCSS;
   this.fullScreenElement.appendChild(this.styleElement);
 
@@ -163,8 +163,8 @@ DisplayTest.prototype.setupGridStyle = function() {
  * Initializes display div in fullscreen element.
  */
 DisplayTest.prototype.setupDisplayDiv = function() {
-  this.displayDiv = document.createElement("div");
-  this.displayDiv.id = "display-div";
+  this.displayDiv = document.createElement('div');
+  this.displayDiv.id = 'display-div';
   this.fullScreenElement.appendChild(this.displayDiv);
   this.displayDiv.addEventListener('click', function(event) {
     window.test.sendTestEvent('OnSpacePressed', {});
@@ -176,13 +176,13 @@ DisplayTest.prototype.setupDisplayDiv = function() {
  */
 DisplayTest.prototype.setDisplayDivClass = function() {
   var displayBeforeSetting = this.display;
-  //cleans up display div
-  this.displayDiv.innerHTML = "";
+  // cleans up display div
+  this.displayDiv.innerHTML = '';
   this.displayDiv.className = this.styleList[this.focusItem];
-  if (this.displayDiv.className == "display-subtest-grid") {
-    //Switches display on here so we can create grid
-    //using correct width/height of display div when it is
-    //in fullscreen. Uses displayBeforeSetting to restore display.
+  if (this.displayDiv.className == 'display-subtest-grid') {
+    // Switches display on here so we can create grid
+    // using correct width/height of display div when it is
+    // in fullscreen. Uses displayBeforeSetting to restore display.
     this.switchDisplayOn();
     this.drawGrids();
     if (!displayBeforeSetting) {
@@ -199,17 +199,17 @@ DisplayTest.prototype.drawGrids = function() {
   var totalHeight = this.displayDiv.offsetHeight;
   var ySegments = Math.floor(totalHeight / this.gridHeight);
   var xSegments = Math.floor(totalWidth / this.gridWidth);
-  var gridTable = document.createElement("table");
-  gridTable.style.width = "100%";
-  gridTable.style.height = "100%";
-  var gridTableBody = document.createElement("tbody");
+  var gridTable = document.createElement('table');
+  gridTable.style.width = '100%';
+  gridTable.style.height = '100%';
+  var gridTableBody = document.createElement('tbody');
   for (var y = 0; y < ySegments; ++y) {
-    var row = document.createElement("tr");
+    var row = document.createElement('tr');
     for (var x = 0; x < xSegments; ++x) {
-      var cell = document.createElement("td");
-      var div = document.createElement("div");
-      div.id = "x-" + x + "-" + "y-" + y;
-      div.className = "display-subtest-grid-div";
+      var cell = document.createElement('td');
+      var div = document.createElement('div');
+      div.id = 'x-' + x + '-' + 'y-' + y;
+      div.className = 'display-subtest-grid-div';
       cell.appendChild(div);
       row.appendChild(cell);
     }
@@ -223,7 +223,7 @@ DisplayTest.prototype.drawGrids = function() {
  * Toggles the fullscreen display visibility.
  */
 DisplayTest.prototype.switchDisplayOnOff = function() {
-  //If current display is on, turns it off
+  // If current display is on, turns it off
   if (this.display) {
     this.switchDisplayOff();
   } else {
@@ -238,7 +238,7 @@ DisplayTest.prototype.switchDisplayOnOff = function() {
  */
 DisplayTest.prototype.switchDisplayOn = function() {
   this.display = true;
-  this.fullScreenElement.className = "display-full-screen-show";
+  this.fullScreenElement.className = 'display-full-screen-show';
   window.test.setFullScreen(true);
 };
 
@@ -248,7 +248,7 @@ DisplayTest.prototype.switchDisplayOn = function() {
  */
 DisplayTest.prototype.switchDisplayOff = function() {
   this.display = false;
-  this.fullScreenElement.className = "display-full-screen-hide";
+  this.fullScreenElement.className = 'display-full-screen-hide';
   window.test.setFullScreen(false);
 };
 
@@ -257,18 +257,18 @@ DisplayTest.prototype.switchDisplayOff = function() {
  * Changes the status in test table based success or not.
  * Setups the display style for the next subtest.
  * Judges the whole test if there is no more subtests.
- * @param {boolean} success.
+ * @param {boolean} success
  */
 DisplayTest.prototype.judgeSubTest = function(success) {
-  var id = "item-" + this.focusItem + "-status";
+  var id = 'item-' + this.focusItem + '-status';
   var element = document.getElementById(id);
   if (element) {
-    element.innerHTML="";
+    element.innerHTML = '';
     if (success) {
-      element.className = "display-subtest-passed";
+      element.className = 'display-subtest-passed';
       appendSpanEnZh(element, this.enPassed, this.zhPassed);
     } else {
-      element.className = "display-subtest-failed";
+      element.className = 'display-subtest-failed';
       appendSpanEnZh(element, this.enFailed, this.zhFailed);
     }
     this.focusItem = this.focusItem + 1;
@@ -285,7 +285,7 @@ DisplayTest.prototype.judgeSubTest = function(success) {
  * Checks if test is passed by checking the number of items that have passed.
  */
 DisplayTest.prototype.judgeTest = function() {
-  if (this.getClassArray("display-subtest-passed").length == this.itemNumber) {
+  if (this.getClassArray('display-subtest-passed').length == this.itemNumber) {
     window.test.pass();
   } else {
     window.displayTest.failTest();
@@ -298,17 +298,17 @@ DisplayTest.prototype.judgeTest = function() {
 DisplayTest.prototype.failTest = function() {
   var failedItems = new Array();
 
-  this.getClassArray("display-subtest-failed").forEach(
+  this.getClassArray('display-subtest-failed').forEach(
     function(element) {
       failedItems.push((element.itemName));
     }
   );
 
-  this.failMsg = "Display test failed. Malfunction items:";
+  this.failMsg = 'Display test failed. Malfunction items:';
   failedItems.forEach(function(element, index, array) {
-    this.failMsg += " " + element;
-    if (index != array.length -1) {
-      this.failMsg += ",";
+    this.failMsg += ' ' + element;
+    if (index != array.length - 1) {
+      this.failMsg += ',';
     }
   }, this);
   window.test.fail(this.failMsg);
@@ -317,7 +317,7 @@ DisplayTest.prototype.failTest = function() {
 /**
  * Returns an Array coverted from the NodeList of the given class.
  * @param {string} className
- * @return Array
+ * @return {Array.<Element>}
  */
 DisplayTest.prototype.getClassArray = function(className) {
   return Array.prototype.slice.call(document.getElementsByClassName(className));
@@ -356,14 +356,13 @@ function failTest() {
  * @param {Element} div the element we to which we want to append spans.
  * @param {string} en the English text to append.
  * @param {string} zh the Simplified-Chinese text to append.
- * @return Array
  */
 function appendSpanEnZh(div, en, zh) {
-  var en_span = document.createElement("span");
-  var zh_span = document.createElement("span");
-  en_span.className = "goofy-label-en";
+  var en_span = document.createElement('span');
+  var zh_span = document.createElement('span');
+  en_span.className = 'goofy-label-en';
   en_span.innerHTML = en;
-  zh_span.className = "goofy-label-zh";
+  zh_span.className = 'goofy-label-zh';
   zh_span.innerHTML = zh;
   div.appendChild(en_span);
   div.appendChild(zh_span);

@@ -45,9 +45,9 @@ var label_fxt_unloaded = '<span class="goofy-label-en">UNAVAILABLE</span>' +
  * Init layout for calibration of camera test fixture.
  */
 function InitForCalibration() {
-  document.getElementById("main_screen").hidden = false;
-  button_style = GetStartTestButton().style.visibility = 'hidden';
-  document.getElementById("preview_image").hidden = false;
+  document.getElementById('main_screen').hidden = false;
+  GetStartTestButton().style.visibility = 'hidden';
+  document.getElementById('preview_image').hidden = false;
 }
 
 
@@ -55,9 +55,9 @@ function InitForCalibration() {
  * Init layout for standalone camera lens shading test.
  */
 function InitForLensShadingTest() {
-  document.getElementById("main_screen").hidden = false;
-  button_style = GetStartTestButton().style.visibility = 'hidden';
-  document.getElementById("preview_image").hidden = false;
+  document.getElementById('main_screen').hidden = false;
+  GetStartTestButton().style.visibility = 'hidden';
+  document.getElementById('preview_image').hidden = false;
 }
 
 
@@ -65,9 +65,9 @@ function InitForLensShadingTest() {
  * Init layout for standalone QR Code test.
  */
 function InitForQRCodeTest() {
-  document.getElementById("main_screen").hidden = false;
-  button_style = GetStartTestButton().style.visibility = 'hidden';
-  document.getElementById("preview_image").hidden = false;
+  document.getElementById('main_screen').hidden = false;
+  GetStartTestButton().style.visibility = 'hidden';
+  document.getElementById('preview_image').hidden = false;
 }
 
 
@@ -75,29 +75,29 @@ function InitForQRCodeTest() {
  * Init layout for IQ test on light chamber.
  *
  * @param {string} data_method Data method defined in CameraFixture.ARGS[]
- * @param {bool} control_chamber Whether or not DUT controls the chamber
+ * @param {boolean} control_chamber Whether or not DUT controls the chamber
  */
 function InitForTest(data_method, control_chamber) {
   // Hide main test screen, and show prompt screen for USB drive or ethernet
   // dongle.
 
   if (control_chamber) {
-    document.getElementById("fixture_status_panel").hidden = false;
+    document.getElementById('fixture_status_panel').hidden = false;
     g_use_fxt = true;
   }
 
-  if (data_method == "Simple") {
+  if (data_method == 'Simple') {
     // do nothing
-  } else if (data_method == "USB") {
-    document.getElementById("main_screen").hidden = true;
-    document.getElementById("usb_status_panel").hidden = false;
-    document.getElementById("prompt_usb").hidden = false;
+  } else if (data_method == 'USB') {
+    document.getElementById('main_screen').hidden = true;
+    document.getElementById('usb_status_panel').hidden = false;
+    document.getElementById('prompt_usb').hidden = false;
     g_use_usb = true;
-  } else if (data_method == "Shopfloor") {
-    document.getElementById("main_screen").hidden = true;
-    document.getElementById("prompt_ethernet").hidden = false;
+  } else if (data_method == 'Shopfloor') {
+    document.getElementById('main_screen').hidden = true;
+    document.getElementById('prompt_ethernet').hidden = false;
   } else {
-    alert("Invalid data_method");
+    alert('Invalid data_method');
   }
 }
 
@@ -105,11 +105,11 @@ function InitForTest(data_method, control_chamber) {
 /**
  * Shows main test screen for IQ test.
  *
- * @param {bool} manual_sn_input Whether to input serial number manually.
+ * @param {boolean} manual_sn_input Whether to input serial number manually.
  * @param {string} sn_format Regexp format of serial number.
  */
 function ShowMainTestScreen(manual_sn_input, sn_format) {
-  var sn_status_panel = document.getElementById("sn_status_panel");
+  var sn_status_panel = document.getElementById('sn_status_panel');
   var sn_input_box = GetSnInputBox();
 
   g_use_sn_input = manual_sn_input;
@@ -124,9 +124,9 @@ function ShowMainTestScreen(manual_sn_input, sn_format) {
 
   OnCheckButtonState();
 
-  document.getElementById("main_screen").hidden = false;
-  document.getElementById("prompt_usb").hidden = true;
-  document.getElementById("prompt_ethernet").hidden = true;
+  document.getElementById('main_screen').hidden = false;
+  document.getElementById('prompt_usb').hidden = true;
+  document.getElementById('prompt_ethernet').hidden = true;
 }
 
 
@@ -134,7 +134,7 @@ function ShowMainTestScreen(manual_sn_input, sn_format) {
  * Clears image data.
  */
 function ClearImageData() {
-  g_image_data = "";
+  g_image_data = '';
 }
 
 
@@ -150,11 +150,11 @@ function AddImageData(data) {
 
 /**
  * Updates the image data after AddImageData() and show it.
- * @param {string} image_id The HTML id of the image to show.
+ * @param {string} html_id The HTML id of the image to show.
  */
 function UpdateAndShowImage(html_id) {
   var element = document.getElementById(html_id);
-  element.src = "data:image/jpeg;base64," + g_image_data;
+  element.src = 'data:image/jpeg;base64,' + g_image_data;
 
   /*
    * camera_image and analyzed_image both have 'position' = 'absolute' so that
@@ -163,9 +163,9 @@ function UpdateAndShowImage(html_id) {
    * Align them to the center manually. This may show translation animation due
    * to -webkit-transition style, but it's okay.
    */
-  if (html_id == "camera_image" || html_id == "analyzed_image") {
-    element.style.marginTop = "-" + (element.height / 2) + "px";
-    element.style.marginLeft = "-" + (element.width / 2) + "px";
+  if (html_id == 'camera_image' || html_id == 'analyzed_image') {
+    element.style.marginTop = '-' + (element.height / 2) + 'px';
+    element.style.marginLeft = '-' + (element.width / 2) + 'px';
   }
 
   element.hidden = false;
@@ -174,7 +174,7 @@ function UpdateAndShowImage(html_id) {
 
 /**
  * Hides an image.
- * @param {string} image_id The HTML id of the image to hide.
+ * @param {string} html_id The HTML id of the image to hide.
  */
 function HideImage(html_id) {
   document.getElementById(html_id).hidden = true;
@@ -184,7 +184,7 @@ function HideImage(html_id) {
 /**
  * Updates a text label.
  * @param {string} msg Text.
- * @param {string} image_id The HTML id of the text label (usually a div block).
+ * @param {string} html_id The HTML id of the text label (usually a div block).
  */
 function UpdateTextLabel(msg, html_id) {
   var element = document.getElementById(html_id);
@@ -197,27 +197,27 @@ function UpdateTextLabel(msg, html_id) {
  * @param {string} progress Completion percentage.
  */
 function UpdateProgressBar(progress) {
-    var pBar = document.getElementById("progress_bar");
-    pBar.style.width = progress;
+  var pBar = document.getElementById('progress_bar');
+  pBar.style.width = progress;
 }
 
 
 /**
  * Updates USB load status.
- * @param {bool} is_loaded Whether USB drive is loaded.
+ * @param {boolean} is_loaded Whether USB drive is loaded.
  */
 function UpdateUSBStatus(is_loaded) {
   g_is_usb_loaded = is_loaded;
 
-  usb_status = document.getElementById("usb_status");
-  usb_status_text = document.getElementById("usb_status_text");
+  var usb_status = document.getElementById('usb_status');
+  var usb_status_text = document.getElementById('usb_status_text');
 
   if (is_loaded) {
     usb_status_text.innerHTML = label_usb_loaded;
-    usb_status.className = "panel_good";
+    usb_status.className = 'panel_good';
   } else {
     usb_status_text.innerHTML = label_usb_unloaded;
-    usb_status.className = "panel_bad";
+    usb_status.className = 'panel_bad';
   }
 
   OnCheckButtonState();
@@ -226,20 +226,20 @@ function UpdateUSBStatus(is_loaded) {
 
 /**
  * Updates Fixture load status.
- * @param {bool} is_loaded Whether Fixture is loaded.
+ * @param {boolean} is_loaded Whether Fixture is loaded.
  */
 function UpdateFixtureStatus(is_loaded) {
   g_is_fxt_loaded = is_loaded;
 
-  fxt_status = document.getElementById("fixture_status");
-  fxt_status_text = document.getElementById("fixture_status_text");
+  var fxt_status = document.getElementById('fixture_status');
+  var fxt_status_text = document.getElementById('fixture_status_text');
 
   if (is_loaded) {
     fxt_status_text.innerHTML = label_fxt_loaded;
-    fxt_status.className = "panel_good";
+    fxt_status.className = 'panel_good';
   } else {
     fxt_status_text.innerHTML = label_fxt_unloaded;
-    fxt_status.className = "panel_bad";
+    fxt_status.className = 'panel_bad';
   }
 
   OnCheckButtonState();
@@ -255,7 +255,7 @@ function UpdateFixtureStatus(is_loaded) {
  * When "Exit Test" button is clicked.
  */
 function OnButtonExitTestClick() {
-  test.sendTestEvent("exit_test_button_clicked", {});
+  window.test.sendTestEvent('exit_test_button_clicked', {});
 }
 
 
@@ -267,8 +267,8 @@ function OnButtonStartTestClick() {
     g_is_test_running = true;
     OnCheckButtonState();
 
-    test.sendTestEvent("start_test_button_clicked",
-                       {"input_sn": GetSnInputBox().value});
+    window.test.sendTestEvent(
+        'start_test_button_clicked', {'input_sn': GetSnInputBox().value});
   }
 }
 
@@ -279,7 +279,7 @@ function OnButtonStartTestClick() {
 function OnSnInputBoxClick() {
   if (g_use_sn_input) {
     var sn_input_box = GetSnInputBox();
-    sn_input_box.value = "";
+    sn_input_box.value = '';
     sn_input_box.focus();
     OnCheckButtonState();
   }
@@ -325,13 +325,11 @@ function OnCheckButtonState() {
 ////////////////////////////////////////////////////////////
 
 
-function GetSnInputBox()
-{
-  return document.getElementById("sn_input_box");
+function GetSnInputBox() {
+  return document.getElementById('sn_input_box');
 }
 
 
-function GetStartTestButton()
-{
-  return document.getElementById("button_start_test");
+function GetStartTestButton() {
+  return document.getElementById('button_start_test');
 }

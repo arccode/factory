@@ -8,9 +8,10 @@
  * @param {Object} canvas
  * @param {number} x
  * @param {number} y
+ * @return {number}
  */
 function getT(canvas, x, y) {
-  var dd = canvas.width ** 2 + canvas.height ** 2;
+  var dd = Math.pow(canvas.width, 2) + Math.pow(canvas.height, 2);
   return (canvas.width * x + canvas.height * (canvas.height - y)) / dd;
 }
 
@@ -19,9 +20,10 @@ function getT(canvas, x, y) {
  * @param {Object} canvas
  * @param {number} t
  * @param {number} offset
+ * @return {Array.<number>}
  */
 function getXY(canvas, t, offset) {
-  var d = Math.sqrt(canvas.width ** 2 + canvas.height ** 2);
+  var d = Math.hypot(canvas.width, canvas.height, 2);
   var x = canvas.width * t + canvas.height / d * offset;
   var y = canvas.height * (1 - t) + canvas.width / d * offset;
   return [x, y];
@@ -39,7 +41,7 @@ function drawBoundaryLine(canvas, ctx, offset) {
   ctx.moveTo(xy[0], xy[1]);
   xy = getXY(canvas, 1, offset);
   ctx.lineTo(xy[0], xy[1]);
-  ctx.strokeStyle = "red";
+  ctx.strokeStyle = 'red';
   ctx.stroke();
 }
 
@@ -54,23 +56,24 @@ function drawProgressLine(canvas, ctx, t) {
   ctx.beginPath();
   ctx.moveTo(0, canvas.height);
   ctx.lineTo(xy[0], xy[1]);
-  ctx.strokeStyle = "green";
+  ctx.strokeStyle = 'green';
   ctx.stroke();
 }
 
 /**
  * StylusTest constructor.
  * @param {Object} canvas
- * @param {int} error_margin
+ * @param {number} error_margin
  * @param {number} begin_position
  * @param {number} end_position
  * @param {number} step_size
+ * @constructor
  */
 function StylusTest(canvas, error_margin,
                     begin_position, end_position, step_size) {
   this.canvas = canvas;
-  canvas.style["background-color"] = "white";
-  this.ctx = canvas.getContext("2d");
+  canvas.style['background-color'] = 'white';
+  this.ctx = canvas.getContext('2d');
   this.error_margin = error_margin;
   drawBoundaryLine(canvas, this.ctx, -error_margin);
   drawBoundaryLine(canvas, this.ctx, +error_margin);
@@ -84,7 +87,7 @@ function StylusTest(canvas, error_margin,
  * Unhide the canvas.
  */
 StylusTest.prototype.showCanvas = function() {
-  this.canvas.style["display"] = "";
+  this.canvas.style['display'] = '';
 };
 
 /**
@@ -98,35 +101,37 @@ StylusTest.prototype.handler = function(x_ratio, y_ratio) {
   var t = getT(this.canvas, x, y);
   var xyt = getXY(this.canvas, t, 0);
   var xt = xyt[0], yt = xyt[1];
-  var d = Math.sqrt((x - xt) ** 2 + (y - yt) ** 2);
-  if(d > this.error_margin) {
+  var d = Math.hypot(x - xt, y - yt);
+  if (d > this.error_margin) {
     window.test.fail(
-        "Distance " + d + " larger than error margin " + this.error_margin);
+        'Distance ' + d + ' larger than error margin ' + this.error_margin);
   }
-  if(t <= this.last_position || t > this.last_position + this.step_size) {
+  if (t <= this.last_position || t > this.last_position + this.step_size) {
     return;
   }
   this.ctx.beginPath();
   this.ctx.moveTo(x, y);
   this.ctx.lineTo(xt, yt);
-  this.ctx.strokeStyle = "blue";
+  this.ctx.strokeStyle = 'blue';
   this.ctx.stroke();
   this.last_position = t;
   drawProgressLine(this.canvas, this.ctx, this.last_position);
-  if(t >= this.end_position) window.test.pass();
+  if (t >= this.end_position) {
+    window.test.pass();
+  }
 };
 
 /**
  * Fail the test.
  */
 function failTest() {
-  window.test.fail("Operator marked fail.");
+  window.test.fail('Operator marked fail.');
 }
 
 /**
  * Set up a stylus test.
  * @param {string} canvasId
- * @param {int} error_margin
+ * @param {number} error_margin
  * @param {number} begin_position
  * @param {number} end_position
  * @param {number} step_size
@@ -136,8 +141,8 @@ function setupStylusTest(canvasId, error_margin,
   var canvas = document.getElementById(canvasId);
   canvas.width = screen.width;
   canvas.height = screen.height;
-  window.stylusTest = new StylusTest(canvas, error_margin,
-                                     begin_position, end_position, step_size);
+  window.stylusTest = new StylusTest(
+      canvas, error_margin, begin_position, end_position, step_size);
 }
 
 /**

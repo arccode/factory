@@ -63,26 +63,28 @@ class DisplayIdleTest(unittest.TestCase):
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self.ui.BindKey(' ', lambda _: self.OnSpacePressed())
-    self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
+    self.ui.BindKey(' ', self.OnSpacePressed)
+    self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
     if self.args.start_without_prompt:
-      self.OnSpacePressed()
+      self.OnSpacePressed(None)
     self.ui.AddEventHandler('OnSpacePressed', self.OnSpacePressed)
     self.ui.Run()
 
-  def OnSpacePressed(self):
+  def OnSpacePressed(self, event):
     '''Sets self.checked to True.Calls JS function to switch display on/off.
 
     Also, set countdown timer once operator press space for the first time.
     '''
+    del event  # Unused.
     if not self.checked:
       self.checked = True
       StartDaemonThread(target=self.CountdownTimer)
     self.ui.CallJSFunction('switchDisplayOnOff')
     self.fullscreen = not self.fullscreen
 
-  def OnFailPressed(self):
+  def OnFailPressed(self, event):
     """Fails the subtest only if self.checked is True."""
+    del event  # Unused.
     if self.checked:
       self.ui.CallJSFunction('failSubTest')
       # If the next subtest will be in fullscreen mode, checked should be True
