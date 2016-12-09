@@ -81,7 +81,7 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
   def _InitUI(self):
     self._ui.SetHTML(self._port_label, id=self._title_id)
     self._ui.SetHTML(
-        '%s<br>%s' % (_INSTRUCTION_AUDIO_RANDOM_TEST(self._port_label, 'r'),
+        '%s<br>%s' % (_INSTRUCTION_AUDIO_RANDOM_TEST(self._port_label, 'R'),
                       test_ui.MakePassFailKeyLabel(pass_key=False)),
         id=self._instruction_id)
     self.BindPassFailKeys(pass_key=False)
@@ -122,10 +122,8 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
 
     self._InitUI()
 
+    self._ui.BindKey('R', lambda _: _PlayDigit(self._pass_digit, self._channel))
     self.BindDigitKeys(self._pass_digit)
-    for k in 'rR':
-      self._ui.BindKey(k, lambda _: _PlayDigit(self._pass_digit,
-                                               self._channel))
     _PlayDigit(self._pass_digit, self._channel)
 
   def Cleanup(self):

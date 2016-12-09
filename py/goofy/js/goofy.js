@@ -331,6 +331,16 @@ cros.factory.Test.prototype.unbindKey = function(keyCode) {
 };
 
 /**
+ * Unbinds all keys.
+ * @export
+ */
+cros.factory.Test.prototype.unbindAllKeys = function() {
+  // We don't actually remove the handler, just let it does nothing should be
+  // good enough.
+  this.keyHandlers = null;
+};
+
+/**
  * Add a virtualkey button.
  * @param {number} keyCode the keycode which handler should be triggered when
  *     clicking the button.
@@ -364,6 +374,17 @@ cros.factory.Test.prototype.addVirtualkey = function(keyCode, en, zh) {
  */
 cros.factory.Test.prototype.removeVirtualkey = function(keyCode) {
   if (keyCode in this.keyButtons) {
+    goog.dom.removeNode(this.keyButtons[keyCode]);
+    delete this.keyButtons[keyCode];
+  }
+};
+
+/**
+ * Remove all virtualkey buttons.
+ * @export
+ */
+cros.factory.Test.prototype.removeAllVirtualkeys = function() {
+  for (var keyCode in this.keyButtons) {
     goog.dom.removeNode(this.keyButtons[keyCode]);
     delete this.keyButtons[keyCode];
   }

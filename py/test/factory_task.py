@@ -122,6 +122,8 @@ class FactoryTask(object):
         'Trying to finish %s which is not running.' % (self.__class__.__name__))
     self._execution_status = TaskState.FINISHED
     self._ui.task_hook = None
+    self._ui.RunJS('window.test.unbindAllKeys();'
+                   'window.test.removeAllVirtualkeys();');
     self.Cleanup()
 
   def _IsRunning(self):
@@ -208,8 +210,8 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
       pass_key: True to bind Enter key to pass the task.
       fail_later: True to fail later when Esc is pressed.
     """
-    self._ui.BindKey(test_ui.ENTER_KEY,
-                     lambda _: self.Pass() if pass_key else None)
+    if pass_key:
+      self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.Pass())
 
     self._ui.BindKey(test_ui.ESCAPE_KEY,
                      lambda _: self.Fail(

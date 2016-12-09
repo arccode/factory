@@ -440,6 +440,12 @@ class UI(object):
     js_list = []
     for key, js in items:
       key_code = key if isinstance(key, int) else ord(key)
+      if chr(key_code).islower():
+        logging.warn('Got BindKey with lowercase character key %r, but '
+                     "javascript's keycode is always uppercase. Please "
+                     'fix it.', chr(key_code))
+        key_code = ord(chr(key_code).upper())
+
       if once:
         js = 'window.test.unbindKey(%d);' % key_code + js
         if virtual_key:
