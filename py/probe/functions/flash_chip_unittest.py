@@ -9,7 +9,7 @@ import subprocess
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe.functions import flashchip
+from cros.factory.probe.functions import flash_chip
 
 
 class FlashChipFunctionTest(unittest.TestCase):
@@ -18,7 +18,7 @@ class FlashChipFunctionTest(unittest.TestCase):
               return_value='vendor="Google" name="Chip"')
   def testNormal(self, MockCheckOutput):
     expected = {'vendor': 'Google', 'name': 'Chip'}
-    results = flashchip.FlashChipFunction(chip='main')()
+    results = flash_chip.FlashChipFunction(chip='main')()
     self.assertEquals(results, [expected])
     MockCheckOutput.assert_called_with(
         ['flashrom', '-p', 'host', '--flash-name'])
@@ -26,7 +26,7 @@ class FlashChipFunctionTest(unittest.TestCase):
   @mock.patch('cros.factory.utils.process_utils.CheckOutput',
               side_effect=subprocess.CalledProcessError(1, 'command'))
   def testNoOutput(self, MockCheckOutput):
-    results = flashchip.FlashChipFunction(chip='ec')()
+    results = flash_chip.FlashChipFunction(chip='ec')()
     self.assertEquals(results, [])
     MockCheckOutput.assert_called_with(['flashrom', '-p', 'ec', '--flash-name'])
 
