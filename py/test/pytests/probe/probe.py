@@ -8,7 +8,7 @@
 This pytest uses probe module to probe the components, and verifies the
 component count of each category. The default rule is the count should be equal
 to 1. If the required count is not 1, we can set the rule in "overridden_rules"
-argument. For example:
+argument. For example::
 
   FactoryTest(
       id='Probe',
@@ -20,7 +20,7 @@ argument. For example:
               ('usb', '==', 2),         # There shoule be 2 USB components.
               ('lte', 'in', [1, 2])]})  # There should be 1 or 2 LTE components.
 
-The format of the config file:
+The format of the config file::
 
   {
     <Component category> : {
