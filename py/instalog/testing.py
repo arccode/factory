@@ -98,6 +98,10 @@ class MockCore(plugin_sandbox.CoreAPI):
         return 0, 1
     return 1, 1
 
+  def GetNodeID(self):
+    """Returns a fake node ID."""
+    return 'testing'
+
 
 class MockBufferEventStream(plugin_base.BufferEventStream):
   """Implements a mock BufferEventStream class."""

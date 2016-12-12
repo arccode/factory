@@ -240,7 +240,8 @@ class TestPluginSandbox(unittest.TestCase):
     buffer_stream = plugin_base.BufferEventStream()
     m = mock.Mock(return_value=buffer_stream)
     with mock.patch.object(p._core_api, 'NewStream', m):
-      plugin_stream = p.NewStream(p._plugin)
+      with mock.patch.object(p._core_api, 'GetNodeID', return_value='testing'):
+        plugin_stream = p.NewStream(p._plugin)
     self.assertEquals(p._event_stream_map, {plugin_stream: buffer_stream})
 
     with self.assertRaises(NotImplementedError):
@@ -257,7 +258,8 @@ class TestPluginSandbox(unittest.TestCase):
     buffer_stream = plugin_base.BufferEventStream()
     m = mock.Mock(return_value=buffer_stream)
     with mock.patch.object(p._core_api, 'NewStream', m):
-      plugin_stream = p.NewStream(p._plugin)
+      with mock.patch.object(p._core_api, 'GetNodeID', return_value='testing'):
+        plugin_stream = p.NewStream(p._plugin)
     self.assertEquals(p._event_stream_map, {plugin_stream: buffer_stream})
 
     with self.assertRaises(plugin_base.WaitException):
@@ -297,7 +299,8 @@ class TestPluginSandbox(unittest.TestCase):
     buffer_stream = plugin_base.BufferEventStream()
     m = mock.Mock(return_value=buffer_stream)
     with mock.patch.object(p._core_api, 'NewStream', m):
-      plugin_stream = p.NewStream(p._plugin)
+      with mock.patch.object(p._core_api, 'GetNodeID', return_value='testing'):
+        plugin_stream = p.NewStream(p._plugin)
 
     p.Pause(False)
     p.AdvanceState(False)

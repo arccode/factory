@@ -268,6 +268,10 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     self.logger.info('NewStream')
     return PluginRunnerBufferEventStream(self.logger, self._event_queue)
 
+  def GetNodeID(self):
+    """See Core.GetNodeID."""
+    return 'run_plugin'
+
 
 def main(plugin_type=None, config=None):
   """Executes a plugin as a command-line utility for testing purposes.
