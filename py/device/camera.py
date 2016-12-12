@@ -25,7 +25,7 @@ class Camera(component.DeviceComponent):
 
   def __init__(self, dut):
     super(Camera, self).__init__(dut)
-    self._CAMERA_DEVICE_LIST = [CVCameraDevice()]
+    self._devices = {}
 
   def GetCameraDevice(self, index):
     """Get the camera device of the given index.
@@ -37,4 +37,4 @@ class Camera(component.DeviceComponent):
       Camera device object that implements
       cros.factory.test.utils.camera_utils.CameraDeviceBase.
     """
-    return self._CAMERA_DEVICE_LIST[index]
+    return self._devices.setdefault(index, CVCameraDevice(index))
