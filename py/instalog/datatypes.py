@@ -20,6 +20,46 @@ from instalog import plugin_base
 from instalog.utils import time_utils
 
 
+class ProcessStage(json_utils.Serializable):
+  """Represents a processing stage in the Event's history."""
+
+  BUFFER = 'BUFFER'
+  EXTERNAL = 'EXTERNAL'
+
+  def __init__(self, node_id, orig_time, time, plugin_id, plugin_type, target):
+    self.node_id = node_id
+    self.orig_time = orig_time
+    self.time = time
+    self.plugin_id = plugin_id
+    self.plugin_type = plugin_type
+    self.target = target
+
+  def ToDict(self):
+    """Returns the dictionary equivalent of the ProcessStage object."""
+    return {
+        'node_id': self.node_id,
+        'orig_time': self.orig_time,
+        'time': self.time,
+        'plugin_id': self.plugin_id,
+        'plugin_type': self.plugin_type,
+        'target': self.target,
+    }
+
+  @classmethod
+  def FromDict(cls, dct):
+    """Returns a ProcessStage object from its dictionary equivalent."""
+    return cls(
+        dct['node_id'], dct['orig_time'], dct['time'], dct['plugin_id'],
+        dct['plugin_type'], dct['target'])
+
+  def __repr__(self):
+    """Implements repr function for debugging."""
+    return ('ProcessStage(node_id=%r, orig_time=%r, time=%r, plugin_id=%r, '
+            'plugin_type=%r, target=%r)'
+            % (self.node_id, self.orig_time, self.time, self.plugin_id,
+               self.plugin_type, self.target))
+
+
 class Event(json_utils.Serializable):
   """Represents an Instalog event.
 
@@ -32,15 +72,25 @@ class Event(json_utils.Serializable):
                  identifying the file attachment; might match an ID within the
                  event payload itself.  Value is where the file can be located
                  on the filesystem.  Assumed to have read permissions.
+    history: A list representing the processing history of this Event.  A list
+             of ProcessStage objects.  The first ProcessStage object represents
+             the InputPlugin from which the Event originates.
   """
 
-  def __init__(self, payload, attachments=None):
+  def __init__(self, payload, attachments=None, history=None):
     self.payload = payload
     self.attachments = {} if attachments is None else attachments
+    self.history = [] if history is None else history
     if not isinstance(self.payload, dict):
       raise TypeError('Provided payload argument must be of type `dict`')
     if not isinstance(self.attachments, dict):
       raise TypeError('Provided attachments argument must be of type `dict`')
+    if not isinstance(self.history, list):
+      raise TypeError('Provided history argument must be of type `list`')
+
+  def AppendStage(self, process_stage):
+    """Records the next processing stage in this Event's history."""
+    self.history.append(process_stage)
 
   @classmethod
   def Deserialize(cls, json_string):
@@ -65,6 +115,7 @@ class Event(json_utils.Serializable):
     return {
         'payload': self.payload,
         'attachments': self.attachments,
+        'history': self.history,
     }
 
   @classmethod
@@ -72,12 +123,13 @@ class Event(json_utils.Serializable):
     """Returns an Event object from its dictionary equivalent."""
     return cls(
         payload=dct['payload'],
-        attachments=dct['attachments'])
+        attachments=dct['attachments'],
+        history=dct['history'])
 
   def __repr__(self):
     """Implements repr function for debugging."""
-    return ('Event(payload=%s, attachments=%s)'
-            % (self.payload, self.attachments))
+    return ('Event(payload=%s, attachments=%s, history=%s)'
+            % (self.payload, self.attachments, self.history))
 
   def __eq__(self, other):
     """Implements == operator."""
@@ -120,12 +172,13 @@ class Event(json_utils.Serializable):
 
   def __copy__(self):
     """Implements __copy__ function."""
-    return Event(self.payload, self.attachments)
+    return Event(self.payload, self.attachments, self.history)
 
   def __deepcopy__(self, memo):
     """Implements __deepcopy__ function."""
     result = self.__class__(copy.deepcopy(self.payload),
-                            copy.deepcopy(self.attachments))
+                            copy.deepcopy(self.attachments),
+                            copy.deepcopy(self.history))
     # Avoid excess copying if the Event is referenced from within the Event.
     memo[id(self)] = result
     return result

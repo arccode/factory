@@ -267,10 +267,6 @@ class Instalog(plugin_sandbox.CoreAPI):
     Raises:
       PluginCallError if Buffer fails unexpectedly.
     """
-    for event in events:
-      # For events that originate from this node, add our node ID.
-      if '__nodeId__' not in event:
-        event['__nodeId__'] = self._node_id
     return self._buffer.CallPlugin('Produce', events)
 
   def NewStream(self, plugin):
@@ -301,3 +297,11 @@ class Instalog(plugin_sandbox.CoreAPI):
       PluginCallError if Buffer fails unexpectedly.
     """
     return self._buffer.CallPlugin('ListConsumers')[plugin.plugin_id]
+
+  def GetNodeID(self):
+    """Returns the ID of this Instalog node.
+
+    Returns:
+      A string representing the ID of this Instalog node.
+    """
+    return self._node_id
