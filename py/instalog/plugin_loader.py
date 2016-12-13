@@ -62,8 +62,12 @@ class PluginLoader(object):
     # If we have access to the superclass already, store it.
     if superclass:
       self.superclass = superclass
+    # Since _plugin_class is for testing, it does not check against
+    # given superclass argument.
     elif self._plugin_class:
       self.superclass = self._GetSuperclass(self._plugin_class)
+      if not self.superclass:
+        raise TypeError('Provided _plugin_class is not a plugin class')
     else:
       self.superclass = plugin_base.Plugin
 
@@ -154,6 +158,12 @@ class PluginLoader(object):
     def IsSubclass(cls):
       return (inspect.isclass(cls) and
               issubclass(cls, self.superclass) and
+              # If we are not allowing any type of plugin class
+              # (plugin_base.Plugin), then make sure to check that the classes
+              # match exactly.  This is needed since OutputPlugin is a subclass
+              # of InputPlugin.
+              (self.superclass is plugin_base.Plugin or
+               self.superclass is self._GetSuperclass(cls)) and
               cls.__module__ in self._GetPossibleModuleNames())
     plugin_classes = inspect.getmembers(module_ref, IsSubclass)
     if len(plugin_classes) != 1:
@@ -164,21 +174,22 @@ class PluginLoader(object):
     cls = plugin_classes[0][1]
 
     # Store the superclass of the plugin for future reference.
-    # TODO(kitching): Test this in unittest.
     self.superclass = self._GetSuperclass(cls)
 
     # Return the plugin class.
     return cls
 
-  def _GetSuperclass(self, cls):
-    """Returns the superclass for the given plugin class."""
-    # TODO(kitching): Test this in unittest.
+  @classmethod
+  def _GetSuperclass(cls, target_class):
+    """Returns the superclass for the given plugin class, or None otherwise."""
+    # Since OutputPlugin is a subclass of InputPlugin, OutputPlugin must be
+    # checked before InputPlugin.
     for superclass in [plugin_base.BufferPlugin,
-                       plugin_base.InputPlugin,
-                       plugin_base.OutputPlugin]:
-      if issubclass(cls, superclass):
+                       plugin_base.OutputPlugin,
+                       plugin_base.InputPlugin]:
+      if issubclass(target_class, superclass):
         return superclass
-    raise TypeError('Plugin does not match plugin_base superclasses')
+    return None
 
   def GetSuperclass(self):
     """Get the superclass of the plugin class.
@@ -187,7 +198,6 @@ class PluginLoader(object):
       None if _plugin_class is not specified and GetClass() has not yet been
       run.  Afterwards, one of BufferPlugin, InputPlugin, or OutputPlugin.
     """
-    # TODO(kitching): Test this in unittest.
     if self.superclass is plugin_base.Plugin:
       return None
     return self.superclass

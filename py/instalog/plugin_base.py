@@ -335,8 +335,12 @@ class InputPlugin(Plugin):
       return False
 
 
-class OutputPlugin(Plugin):
-  """Base class for an output plugin in Instalog."""
+class OutputPlugin(InputPlugin):
+  """Base class for an output plugin in Instalog.
+
+  An output plugin may also Emit events, thus OutputPlugin inherits from
+  InputPlugin as its parent class.
+  """
 
   def NewStream(self):
     """Gets a new EventStream object to retrieve output events.

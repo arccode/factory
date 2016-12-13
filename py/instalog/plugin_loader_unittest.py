@@ -63,8 +63,40 @@ class TestPluginLoader(unittest.TestCase):
     with self.assertRaisesRegexp(TypeError, 'Invalid PluginAPI object'):
       plugin_loader.PluginLoader('plugin_id', plugin_api=True)
 
-  def testLoad(self):
-    """Tests getting an instance of a plugin from a module."""
+  def testGetSuperclass(self):
+    """Tests that GetSuperclass returns correctly."""
+    self.assertEqual(
+        plugin_loader.PluginLoader._GetSuperclass(plugin_base.BufferPlugin),
+        plugin_base.BufferPlugin)
+    self.assertEqual(
+        plugin_loader.PluginLoader._GetSuperclass(plugin_base.InputPlugin),
+        plugin_base.InputPlugin)
+    self.assertEqual(
+        plugin_loader.PluginLoader._GetSuperclass(plugin_base.OutputPlugin),
+        plugin_base.OutputPlugin)
+    self.assertEqual(
+        plugin_loader.PluginLoader._GetSuperclass(bool),
+        None)
+    # Should only accept classes, not objects.
+    with self.assertRaises(TypeError):
+      plugin_loader.PluginLoader._GetSuperclass(self)
+
+  def testPrePostGetSuperclass(self):
+    """Tests that self.superclass gets set correctly after Create()."""
+    pname = self._createPluginFile(
+        '''\
+        import instalog_common  # pylint: disable=W0611
+        from instalog import plugin_base
+        class OutputTest(plugin_base.OutputPlugin):
+          pass
+        ''')
+    pl = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
+    self.assertEqual(None, pl.GetSuperclass())
+    pl.Create()
+    self.assertEqual(plugin_base.OutputPlugin, pl.GetSuperclass())
+
+  def testLoadInput(self):
+    """Tests getting an instance of an InputPlugin from a module."""
     pname = self._createPluginFile(
         '''\
         import instalog_common  # pylint: disable=W0611
@@ -74,24 +106,49 @@ class TestPluginLoader(unittest.TestCase):
         ''')
 
     # Should succeed with correct superclass=InputPlugin.
-    pe = plugin_loader.PluginLoader(pname, pname, plugin_base.InputPlugin,
+    pl = plugin_loader.PluginLoader(pname, pname, plugin_base.InputPlugin,
                                     {}, plugin_api=None, _plugin_prefix='')
-    self.assertIsInstance(pe.Create(), plugin_base.InputPlugin)
+    plugin = pl.Create()
+    self.assertIsInstance(plugin, plugin_base.InputPlugin)
+    self.assertNotIsInstance(plugin, plugin_base.OutputPlugin)
 
-    # Should fail with incorrect superclass=InputPlugin.
-    pe = plugin_loader.PluginLoader(pname, pname, plugin_base.OutputPlugin,
+    # Should fail with incorrect superclass=OutputPlugin.
+    pl = plugin_loader.PluginLoader(pname, pname, plugin_base.OutputPlugin,
                                     {}, plugin_api=None, _plugin_prefix='')
     with self.assertRaisesRegexp(
         plugin_base.LoadPluginError, r'contains 0 plugin classes'):
-      pe.Create()
+      pl.Create()
+
+  def testLoadOutput(self):
+    """Tests getting an instance of an OutputPlugin from a module."""
+    pname = self._createPluginFile(
+        '''\
+        import instalog_common  # pylint: disable=W0611
+        from instalog import plugin_base
+        class OutputTest(plugin_base.OutputPlugin):
+          pass
+        ''')
+    # Should succeed with correct superclass=OutputPlugin.
+    pl = plugin_loader.PluginLoader(pname, pname, plugin_base.OutputPlugin,
+                                    {}, plugin_api=None, _plugin_prefix='')
+    plugin = pl.Create()
+    self.assertIsInstance(plugin, plugin_base.InputPlugin)
+    self.assertIsInstance(plugin, plugin_base.OutputPlugin)
+
+    # Should fail with incorrect superclass=InputPlugin.
+    pl = plugin_loader.PluginLoader(pname, pname, plugin_base.InputPlugin,
+                                    {}, plugin_api=None, _plugin_prefix='')
+    with self.assertRaisesRegexp(
+        plugin_base.LoadPluginError, r'contains 0 plugin classes'):
+      pl.Create()
 
   def testSyntaxError(self):
     """Tests loading a plugin with a syntax error."""
     pname = self._createPluginFile('/')
-    pe = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
+    pl = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
     with self.assertRaisesRegexp(
         plugin_base.LoadPluginError, r'SyntaxError: invalid syntax'):
-      pe.Create()
+      pl.Create()
 
   def testRuntimeInitArgsError(self):
     """Tests loading a plugin with a runtime error: __init__ args."""
@@ -103,10 +160,10 @@ class TestPluginLoader(unittest.TestCase):
           def __init__(self):
             pass
         ''')
-    pe = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
+    pl = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
     with self.assertRaisesRegexp(
         plugin_base.LoadPluginError, r'TypeError: __init__\(\) takes'):
-      pe.Create()
+      pl.Create()
 
   def testRuntimeInitMethodError(self):
     """Tests loading a plugin with a runtime error: within __init__."""
@@ -118,10 +175,10 @@ class TestPluginLoader(unittest.TestCase):
           def __init__(self, *args, **kwargs):
             1 / 0
         ''')
-    pe = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
+    pl = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
     with self.assertRaisesRegexp(
         plugin_base.LoadPluginError, r'ZeroDivisionError: integer division'):
-      pe.Create()
+      pl.Create()
 
   def testArgsInvalidError(self):
     """Tests providing invalid arguments to a plugin."""
@@ -136,11 +193,11 @@ class TestPluginLoader(unittest.TestCase):
           ]
         ''')
     # Invalid, since `explode` is a required argument.
-    pe = plugin_loader.PluginLoader(pname, _plugin_prefix='')
+    pl = plugin_loader.PluginLoader(pname, _plugin_prefix='')
     with self.assertRaisesRegexp(
         plugin_base.LoadPluginError,
         r'Error parsing arguments: Required argument explode'):
-      pe.Create()
+      pl.Create()
 
   def testArgs(self):
     """Tests providing valid arguments to a plugin."""
@@ -154,9 +211,9 @@ class TestPluginLoader(unittest.TestCase):
             Arg('explode', bool, 'True if device is expected to explode'),
           ]
         ''')
-    pe = plugin_loader.PluginLoader(
+    pl = plugin_loader.PluginLoader(
         pname, config={'explode': True}, _plugin_prefix='')
-    self.assertIsInstance(pe.Create(), plugin_base.InputPlugin)
+    self.assertIsInstance(pl.Create(), plugin_base.InputPlugin)
 
 
 if __name__ == '__main__':
