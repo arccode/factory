@@ -53,7 +53,7 @@ class RecoveryButtonTest(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_RECOVERY_BUTTON)
     self.template.SetState(_HTML_RECOVERY_BUTTON)
-    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest, once=True)
     self.ui.SetHTML(_MSG_PRESS_SPACE, id='recovery_button_title')
     if self.args.polling_interval_secs not in (0.2, 0.5, 1.0):
       raise ValueError('The value of polling_interval_secs is invalid: %f' %
