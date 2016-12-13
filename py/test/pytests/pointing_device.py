@@ -11,14 +11,14 @@ The built-in touchpad is disabled during the test for verifying other
 pointing device's functionality.
 """
 
-from string import Template  # pylint: disable=W0402
+import string
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn, SpawnOutput
+from cros.factory.utils import process_utils
 
 
 _MSG_TEST_TITLE = test_ui.MakeLabel('Non-touchpad Pointing Device Test',
@@ -58,13 +58,12 @@ def _QuarterHTML(nth_quarter):
   Args:
     nth_quarter: quarter of [1, 4].
   """
-  return Template("""
-<div id='$quarter_id' class='pd-quarter'
-     onmouseover='pd.quarterMouseOver("$quarter_id");'>
-  <div class='test-vcenter-inner'>$caption</div>
-</div>
-""").substitute(quarter_id='pd-quarter-%d' % nth_quarter,
-                caption=_MSG_MOVE_HERE)
+  return string.Template(
+      "<div id='$quarter_id' class='pd-quarter'\n"
+      "     onmouseover='pd.quarterMouseOver(\"$quarter_id\");'>\n"
+      "  <div class='test-vcenter-inner'>$caption</div>\n"
+      "</div>").substitute(quarter_id='pd-quarter-%d' % nth_quarter,
+                           caption=_MSG_MOVE_HERE)
 
 
 def _GenerateJS(scroll, scroll_threshold):
@@ -77,73 +76,68 @@ def _GenerateJS(scroll, scroll_threshold):
   Returns:
     JS code.
   """
-  setup = """
-var pd = {};
-pd.setInstruction = function(instruction) {
-  document.getElementById('pd-instruction').innerHTML = instruction;
-};
-// Prevent right click from popping up menu.
-document.oncontextmenu = function() { return false; }
-"""
-  mouseover_test = """
-pd.quarterTouched = {};
-pd.remainingQuarters = 4;
-pd.quarterMouseOver = function(id) {
-  if (id in pd.quarterTouched) {
-    return;
-  }
-  document.getElementById(id).onmouseover = '';
-  document.getElementById(id).style.display = 'none';
-  pd.quarterTouched[id] = true;
-  pd.remainingQuarters -= 1;
-  if (pd.remainingQuarters == 0) {
-    pd.startClickTest();
-  }
-};
-"""
-  click_test = """
-pd.startClickTest = function() {
-  pd.setInstruction('%s');
-  document.getElementById('state').onclick = function(event) {
-    event.target.onclick = '';
-    pd.startRightClickTest();
-  };
-};
-""" % _MSG_INSTRUCTION_CLICK
-  right_click_test = """
-pd.startRightClickTest = function() {
-  pd.setInstruction('%s');
-  document.getElementById('state').oncontextmenu = function(event) {
-    if (event.which == 3) {
-      event.target.oncontextmenu = '';
-      %s
-    }
-    return false;
-  };
-};
-""" % (_MSG_INSTRUCTION_RIGHT_CLICK,
-       'pd.startUpScrollTest();' if scroll else 'window.test.pass();')
+  setup = (
+      "var pd = {};\n"
+      "pd.setInstruction = function(instruction) {\n"
+      "  document.getElementById('pd-instruction').innerHTML = instruction;\n"
+      "};\n"
+      "// Prevent right click from popping up menu.\n"
+      "document.oncontextmenu = function() { return false; }")
+  mouseover_test = (
+      "pd.quarterTouched = {};\n"
+      "pd.remainingQuarters = 4;\n"
+      "pd.quarterMouseOver = function(id) {\n"
+      "  if (id in pd.quarterTouched) {\n"
+      "    return;\n"
+      "  }\n"
+      "  document.getElementById(id).onmouseover = '';\n"
+      "  document.getElementById(id).style.display = 'none';\n"
+      "  pd.quarterTouched[id] = true;\n"
+      "  pd.remainingQuarters -= 1;\n"
+      "  if (pd.remainingQuarters == 0) {\n"
+      "    pd.startClickTest();\n"
+      "  }\n"
+      "};")
+  click_test = (
+      "pd.startClickTest = function() {\n"
+      "  pd.setInstruction('%s');\n"
+      "  document.getElementById('state').onclick = function(event) {\n"
+      "    event.target.onclick = '';\n"
+      "    pd.startRightClickTest();\n"
+      "  };\n"
+      "};") % _MSG_INSTRUCTION_CLICK
+  right_click_test = (
+      "pd.startRightClickTest = function() {\n"
+      "  pd.setInstruction('%s');\n"
+      "  document.getElementById('state').oncontextmenu = function(event) {\n"
+      "    if (event.which == 3) {\n"
+      "      event.target.oncontextmenu = '';\n"
+      "      %s\n"
+      "    }\n"
+      "    return false;\n"
+      "  };\n"
+      "};") % (_MSG_INSTRUCTION_RIGHT_CLICK,
+               'pd.startUpScrollTest();' if scroll else 'window.test.pass();')
 
   js = [setup, mouseover_test, click_test, right_click_test]
   if scroll:
-    js.append(Template("""
-pd.startUpScrollTest = function() {
-  pd.setInstruction('$up_inst');
-  document.addEventListener('mousewheel', function(e) {
-    if (e.wheelDelta >= $delta) {
-      pd.startDownScrollTest();
-    }});
-};
-pd.startDownScrollTest = function() {
-  pd.setInstruction('$down_inst');
-  document.addEventListener('mousewheel', function(e) {
-    if (e.wheelDelta <= -$delta) {
-      window.test.pass();
-    }});
-};
-""").substitute(up_inst=_MSG_INSTRUCTION_SCROLL_UP,
-                down_inst=_MSG_INSTRUCTION_SCROLL_DOWN,
-                delta=scroll_threshold))
+    js.append(string.Template(
+        "pd.startUpScrollTest = function() {\n"
+        "  pd.setInstruction('$up_inst');\n"
+        "  document.addEventListener('mousewheel', function(e) {\n"
+        "    if (e.wheelDelta >= $delta) {\n"
+        "      pd.startDownScrollTest();\n"
+        "    }});\n"
+        "};\n"
+        "pd.startDownScrollTest = function() {\n"
+        "  pd.setInstruction('$down_inst');\n"
+        "  document.addEventListener('mousewheel', function(e) {\n"
+        "    if (e.wheelDelta <= -$delta) {\n"
+        "      window.test.pass();\n"
+        "    }});\n"
+        "};").substitute(up_inst=_MSG_INSTRUCTION_SCROLL_UP,
+                         down_inst=_MSG_INSTRUCTION_SCROLL_DOWN,
+                         delta=scroll_threshold))
   return '\n'.join(js)
 
 
@@ -185,7 +179,7 @@ class PointingDeviceTest(unittest.TestCase):
   """
   ARGS = [
       Arg('touchpad', str, 'TouchPad device name in xinput.', optional=False),
-      Arg('test_scroll', bool, 'Test device\'s scroll feature.', default=False),
+      Arg('test_scroll', bool, "Test device's scroll feature.", default=False),
       Arg('scroll_threshold', int, 'Threshold for recognizing scroll event.',
           default=50)
   ]
@@ -218,10 +212,10 @@ class PointingDeviceTest(unittest.TestCase):
     Returns:
       False if failed.
     """
-    if 'Device Enabled' not in SpawnOutput(['xinput', 'list-props', device],
-                                           log_stderr_on_error=True):
+    if 'Device Enabled' not in process_utils.SpawnOutput(
+        ['xinput', 'list-props', device], log_stderr_on_error=True):
       return False
 
-    return Spawn(
+    return process_utils.Spawn(
         ['xinput', 'set-prop', device, 'Device Enabled', str(int(enabled))],
         log_stderr_on_error=True).returncode == 0

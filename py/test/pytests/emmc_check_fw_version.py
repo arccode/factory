@@ -4,7 +4,7 @@
 # found in the LICENSE file.
 
 
-'''Checks eMMC firmware version using the CID register values from sysfs.
+"""Checks eMMC firmware version using the CID register values from sysfs.
 
 This depends on the kernel exposing the CID fields directly in sysfs, this
 enables future proofing by leaving the CID parsing to the kernel. The CID
@@ -22,7 +22,7 @@ PNM: Product name, 48 bit wide field in CID register, a 6 ASCII character
      string providing the name of a eMMC device.
 PRV: Product revision, 8 bit field in CID register, a vendor specific value
      typically representing a firmware version.
-'''
+"""
 
 
 import logging
@@ -30,8 +30,8 @@ import re
 import os
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -117,7 +117,7 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
     prv = open(self.args.prv_path).read().strip()[-2:]
     logging.info('Raw CID value: %s', cid)
     logging.info('MID: %s, PNM: %s, PRV: %s', mid, pnm, prv)
-    Log('emmc_obtained', cid=cid, mid=mid, pnm=pnm, prv=prv)
+    event_log.Log('emmc_obtained', cid=cid, mid=mid, pnm=pnm, prv=prv)
     if self._ValidatePRVField(mid, pnm, prv, self.args.valid_versions):
       return  # Pass the test
 

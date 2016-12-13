@@ -10,9 +10,9 @@ import logging
 import random
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 _ID_CONTAINER = 'display-point-test-container'
@@ -26,17 +26,18 @@ _HTML_DISPLAY = """
 
 
 class DisplayPointTest(unittest.TestCase):
-  '''Tests the function of display panel using some points.
+  """Tests the function of display panel using some points.
 
   There are two subtests in this test. The first one is black points on white
   background. The second one is white points on black background.
   There will be random number of points(1 to 3) in random places in
   each subtest.
+
   Attributes:
-    self.ui: test ui.
-    self.template: ui template handling html layout.
-    self.list_number_point: a list of the number of points in each subtest.
-  '''
+    ui: test ui.
+    template: ui template handling html layout.
+    list_number_point: a list of the number of points in each subtest.
+  """
   ARGS = [
       Arg('point_size', (float, int), 'width and height of testing point in px',
           optional=True, default=3.0),
@@ -48,8 +49,9 @@ class DisplayPointTest(unittest.TestCase):
     """Initializes frontend presentation and properties."""
     if self.args.max_point_count >= 10:
       raise ValueError('>= 10 points is not supported')
+
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
     self.list_number_point = [
         random.randint(1, self.args.max_point_count) for _ in xrange(2)]
@@ -60,7 +62,7 @@ class DisplayPointTest(unittest.TestCase):
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self.ui.BindKey(' ', self.OnSpacePressed)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
     for num in range(1, self.args.max_point_count + 1):
       self.ui.BindKeyJS(ord('0') + num, 'judgeSubTest(%d);' % num)

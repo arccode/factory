@@ -13,9 +13,8 @@ import unittest
 
 import mox
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import serial_utils
-from cros.factory.test.utils.serial_utils import SerialDevice
 
 from cros.factory.external import serial
 
@@ -172,7 +171,7 @@ class SerialDeviceCtorTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testCtor(self):
-    device = SerialDevice()
+    device = serial_utils.SerialDevice()
     self.assertEqual(0.2, device.send_receive_interval_secs)
     self.assertEqual(0.5, device.retry_interval_secs)
     self.assertFalse(device.log)
@@ -189,11 +188,11 @@ class SerialDeviceCtorTest(unittest.TestCase):
     mock_serial.close()
 
     self.mox.ReplayAll()
-    device = SerialDevice()
+    device = serial_utils.SerialDevice()
     device.Connect(driver=_DEFAULT_DRIVER)
 
   def testConnectPortDriverMissing(self):
-    device = SerialDevice()
+    device = serial_utils.SerialDevice()
     self.assertRaises(serial.SerialException, device.Connect)
 
   def testConnectDriverLookupFailure(self):
@@ -201,7 +200,7 @@ class SerialDeviceCtorTest(unittest.TestCase):
     serial_utils.FindTtyByDriver('UnknownDriver').AndReturn('')
 
     self.mox.ReplayAll()
-    device = SerialDevice()
+    device = serial_utils.SerialDevice()
     self.assertRaises(serial.SerialException, device.Connect,
                       driver='UnknownDriver')
 
@@ -214,7 +213,7 @@ class SerialDeviceCtorTest(unittest.TestCase):
         timeout=0.5, writeTimeout=0.5).AndReturn(None)
 
     self.mox.ReplayAll()
-    device = SerialDevice()
+    device = serial_utils.SerialDevice()
     device.Connect(driver='UnknownDriver', port=_DEFAULT_PORT)
 
 
@@ -222,7 +221,7 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.device = SerialDevice()
+    self.device = serial_utils.SerialDevice()
 
     # Mock Serial and inject it.
     self.mock_serial = self.mox.CreateMock(serial.Serial)
@@ -294,7 +293,7 @@ class SerialDeviceSendReceiveTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.device = SerialDevice()
+    self.device = serial_utils.SerialDevice()
 
     # Mock methods to facilitate SendReceive testing.
     self.mox.StubOutWithMock(time, 'sleep')
@@ -374,7 +373,7 @@ class SerialDeviceSendExpectReceiveTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.device = SerialDevice()
+    self.device = serial_utils.SerialDevice()
 
     # Mock methods to facilitate SendExpectReceive testing.
     self.mox.StubOutWithMock(self.device, 'SendReceive')

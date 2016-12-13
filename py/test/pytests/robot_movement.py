@@ -11,14 +11,14 @@ import time
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.args import Arg
 from cros.factory.test import factory
+from cros.factory.test.fixture import utils as fixture_utils
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test.args import Arg
-from cros.factory.test.fixture import utils as fixture_utils
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 
 
 _TEST_CSS = ('.info {font-size: 2em;}'
@@ -30,8 +30,8 @@ _MSG_INIT = test_ui.MakeLabel(
     'info')
 
 _MSG_LOAD = test_ui.MakeLabel(
-    ('Please load DUT onto the robot, connect all cables, '
-     'and press <b>SPACE</b> to continue.'),
+    'Please load DUT onto the robot, connect all cables, '
+    'and press <b>SPACE</b> to continue.',
     u'将DUT放上机器手臂并接上线路后按下<b>空白键</b>开始。',
     'info')
 
@@ -114,7 +114,7 @@ class RobotMovement(unittest.TestCase):
     self._algorithm.SetLogger(factory.console)
 
     self._ui.AppendCSS(_TEST_CSS)
-    self._template = OneSection(self._ui)
+    self._template = ui_templates.OneSection(self._ui)
 
   def tearDown(self):
     try:
@@ -132,10 +132,10 @@ class RobotMovement(unittest.TestCase):
 
     def _Go():
       _event.set()
-      self._ui.UnbindKey(' ')
+      self._ui.UnbindKey(test_ui.SPACE_KEY)
 
     _event.clear()
-    self._ui.BindKey(' ', lambda _unused_arg: _Go())
+    self._ui.BindKey(test_ui.SPACE_KEY, lambda _unused_arg: _Go())
     _event.wait()
 
   def Initialize(self):

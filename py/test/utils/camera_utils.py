@@ -13,10 +13,10 @@ import os
 import re
 import tempfile
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils.process_utils import Spawn
 
 from cros.factory.external import cv
 from cros.factory.external import cv2
@@ -131,7 +131,7 @@ class CVCameraDevice(CameraDeviceBase):
       self._device_index = self._SearchDevice()
     self._device = None
 
-  # pylint: disable=W0221
+  # pylint: disable=arguments-differ
   def EnableCamera(self, resolution=None):
     """Enable camera device.
 
@@ -241,7 +241,7 @@ class YavtaCameraDevice(CameraDeviceBase):
     self._postprocess = False
     self._skip = 0
 
-  # pylint: disable=W0221
+  # pylint: disable=arguments-differ
   def EnableCamera(self, resolution, controls=None, postprocess=False, skip=0):
     """Enable camera device.
 
@@ -258,7 +258,7 @@ class YavtaCameraDevice(CameraDeviceBase):
     for ctl in controls:
       command = ['yavta', '/dev/video%d' % self._device_index, '-w', ctl]
       logging.info(' '.join(command))
-      Spawn(command, check_call=True)
+      process_utils.Spawn(command, check_call=True)
     self._resolution = resolution
     self._postprocess = postprocess
     self._skip = skip
@@ -274,7 +274,7 @@ class YavtaCameraDevice(CameraDeviceBase):
                '-c%d' % (self._skip + 1), '--skip', str(self._skip), '-n1',
                '-s%dx%d' % self._resolution, '-fSRGGB10', '-F%s' % filename]
     logging.info(' '.join(command))
-    Spawn(command, check_call=True)
+    process_utils.Spawn(command, check_call=True)
 
   def ReadSingleFrame(self):
     # TODO(wnhuang): implement convertion with numpy

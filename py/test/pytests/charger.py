@@ -9,20 +9,19 @@
 of change within certain time under certain load.
 """
 
+from collections import namedtuple
 import logging
 import threading
 import time
 import unittest
-from collections import namedtuple
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.event_log import Log
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.utils.stress_manager import (StressManager,
-                                                    DummyStressManager)
+from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
 _TEST_TITLE = test_ui.MakeLabel('Charger Test', u'充電放電測試')
@@ -31,6 +30,7 @@ _TEST_TITLE = test_ui.MakeLabel('Charger Test', u'充電放電測試')
 def _REGULATE_CHARGE_TEXT(charge, target, timeout, load,
                           battery_current, use_percentage):
   """Makes label to show subtest information
+
   Args:
     charge: current battery charge percentage.
     target: target battery charge percentage.
@@ -56,6 +56,7 @@ def _REGULATE_CHARGE_TEXT(charge, target, timeout, load,
 
 def _MEET_TEXT(target, use_percentage):
   """Makes label to show subtest completes.
+
   Args:
     target: target battery charge percentage of this subtest.
     use_percentage: Whether to use percentage or mAh.
@@ -214,6 +215,7 @@ class ChargerTest(unittest.TestCase):
 
   def _RegulateCharge(self, spec):
     """Checks if the charger can meet the spec.
+
     Checks if charge percentage and battery current are available.
     Decides whether to charge or discharge battery based on
     spec.charge_change.
@@ -231,7 +233,7 @@ class ChargerTest(unittest.TestCase):
                       ' They are too close so there is no need to'
                       'charge/discharge.', charge, self._unit,
                       target, self._unit)
-      Log('target_too_close', charge=charge, target=target)
+      event_log.Log('target_too_close', charge=charge, target=target)
       return
 
     elif charge > target:
@@ -249,11 +251,11 @@ class ChargerTest(unittest.TestCase):
     self.assertTrue(moving_up is not None)
 
     if spec.load > 0:
-      stress_manager = StressManager(self._dut)
+      stress_manager_instance = stress_manager.StressManager(self._dut)
     else:
-      stress_manager = DummyStressManager()
+      stress_manager_instance = stress_manager.DummyStressManager()
 
-    with stress_manager.Run(num_threads=spec.load):
+    with stress_manager_instance.Run(num_threads=spec.load):
       start_time = time.time()
       last_verbose_log_time = None
       last_log_time = None
@@ -273,8 +275,8 @@ class ChargerTest(unittest.TestCase):
                        target - spec.charge_change, self._unit,
                        target, self._unit,
                        elapsed, spec.load)
-          Log('meet', elapsed=elapsed, load=spec.load, target=target,
-              charge=charge)
+          event_log.Log('meet', elapsed=elapsed, load=spec.load, target=target,
+                        charge=charge)
           self._template.SetState(_MEET_TEXT(target, self.args.use_percentage))
           time.sleep(1)
           return
@@ -295,7 +297,7 @@ class ChargerTest(unittest.TestCase):
           else:
             self._CheckDischarge(battery_current)
 
-      Log('not_meet', load=spec.load, target=target, charge=charge)
+      event_log.Log('not_meet', load=spec.load, target=target, charge=charge)
       self._DumpBatteryRegisters()
       self.fail('Cannot regulate battery to %.2f%s in %d seconds.' %
                 (target, self._unit, spec.timeout_secs))

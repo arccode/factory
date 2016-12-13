@@ -12,13 +12,13 @@ import subprocess
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_ui import Escape, MakeLabel, UI
-from cros.factory.test.ui_templates import OneScrollableSection
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
-_TEST_TITLE = MakeLabel('TPM Self-diagnosis', u'TPM 自我诊断')
+_TEST_TITLE = test_ui.MakeLabel('TPM Self-diagnosis', u'TPM 自我诊断')
 _CSS = '#state {text-align:left;}'
 
 
@@ -35,8 +35,8 @@ class TpmDiagnosisTest(unittest.TestCase):
   def setUp(self):
     self.assertTrue(os.path.isfile(self.args.tpm_selftest),
                     msg='%s is missing.' % self.args.tpm_selftest)
-    self._ui = UI()
-    self._template = OneScrollableSection(self._ui)
+    self._ui = test_ui.UI()
+    self._template = ui_templates.OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendCSS(_CSS)
 
@@ -45,12 +45,13 @@ class TpmDiagnosisTest(unittest.TestCase):
 
     It shows diagnosis result on factory UI.
     """
-    p = Spawn([self.args.tpm_selftest] + self.args.tpm_args,
-              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
+    p = process_utils.Spawn([self.args.tpm_selftest] + self.args.tpm_args,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            log=True)
     success = False
     for line in iter(p.stdout.readline, ''):
       logging.info(line.strip())
-      self._template.SetState(Escape(line), append=True)
+      self._template.SetState(test_ui.Escape(line), append=True)
       if line.find(self.args.success_pattern) != -1:
         success = True
 

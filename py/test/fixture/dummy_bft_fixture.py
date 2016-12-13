@@ -4,13 +4,12 @@
 
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
-from cros.factory.test.fixture.bft_fixture import (BFTFixture,
-                                                   BFTFixtureException)
+from cros.factory.test.fixture import bft_fixture
 
 
-class DummyBFTFixture(BFTFixture):
+class DummyBFTFixture(bft_fixture.BFTFixture):
   """A dummy class for BFT fixture.
 
   It is used when we want to verify a BFT test case without BFT fixture.
@@ -18,14 +17,17 @@ class DummyBFTFixture(BFTFixture):
   tester to act like the fixture.
   For methods getting status, like GetFixtureId, we returns a default value.
   """
+  # pylint: disable=abstract-method
   # For EngageDevice/DisengageDevice, it sleeps _delay_secs for user to mimic
   # fixture's action.
   _delay_secs = 3
 
-  def GetSystemStatus(self, unused_probe):
-    return BFTFixture.Status.ON
+  def GetSystemStatus(self, probe):
+    del probe  # Unused.
+    return bft_fixture.BFTFixture.Status.ON
 
   def Init(self, **kwargs):
+    del kwargs  # Unused.
     self._Log('connected.')
 
   def Disconnect(self):
@@ -90,19 +92,20 @@ class SpringDummyBFTFixture(DummyBFTFixture):
   It mimics Spring specific fixture, like
   GetSystemStatus(BFTFixture.SystemStatus.BACKLIGHT).
   """
+  # pylint: disable=abstract-method
   # Will be set when the first GetSystemStatus(SystemStatus.BACKLIGHT) is
   # called. And the value would be: now + _backlight_waiting_off_secs seconds.
   _backlight_off_time = None
   _backlight_waiting_off_secs = 10
 
   def GetSystemStatus(self, probe):
-    if probe == BFTFixture.SystemStatus.BACKLIGHT:
+    if probe == bft_fixture.BFTFixture.SystemStatus.BACKLIGHT:
       now = time.time()
-      status = BFTFixture.Status.ON
+      status = bft_fixture.BFTFixture.Status.ON
       if not self._backlight_off_time:
         self._backlight_off_time = now + self._backlight_waiting_off_secs
       elif self._backlight_off_time < now:
-        status = BFTFixture.Status.OFF
+        status = bft_fixture.BFTFixture.Status.OFF
         self._Log('Backlight status: %s' % status)
         return status
 
@@ -110,4 +113,5 @@ class SpringDummyBFTFixture(DummyBFTFixture):
                 (status, self._backlight_off_time - now))
       return status
     else:
-      raise BFTFixtureException('Fixture does not support %s' % probe)
+      raise bft_fixture.BFTFixtureException(
+          'Fixture does not support %s' % probe)

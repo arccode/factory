@@ -28,13 +28,13 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.utils import sync_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import sync_utils
 
 
 DEFAULT_NAME = ('Accelerometer', u'加速度计')
@@ -70,8 +70,8 @@ class SpatialSensorCalibration(unittest.TestCase):
       Arg('prompt', bool, 'Prompt user to put the device in correct facing',
           default=True),
       Arg('placement_range', list, 'A list of tuple asserting the range of '
-          'X, Y, Z. Each element is a tuple (min, max) or None if it\'s a '
-          'don\'t care.', default=[None, None, None])
+          "X, Y, Z. Each element is a tuple (min, max) or None if it's a "
+          "don't care.", default=[None, None, None])
   ]
 
   def setUp(self):

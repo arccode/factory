@@ -24,7 +24,7 @@ import sys
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -127,7 +127,7 @@ _LSB_FACTORY_PATH = '/usr/local/etc/lsb-factory'
 class PressSpaceTask(FactoryTask):
   """A factory task to wait for space press event."""
 
-  def __init__(self, test):  # pylint: disable=W0231
+  def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
 
   def Run(self):
@@ -141,7 +141,7 @@ class ExternalPowerTask(FactoryTask):
   AC_DISCONNECTED = 2
   AC_CHECK_PERIOD = 0.5
 
-  def __init__(self, test):  # pylint: disable=W0231
+  def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
 
   def Run(self):
@@ -168,7 +168,7 @@ class ExternalPowerTask(FactoryTask):
 class FactoryInstallCompleteTask(FactoryTask):
   """A factory task to check if factory install is complete."""
 
-  def __init__(self, test):  # pylint: disable=W0231
+  def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
 
   def Run(self):
@@ -199,7 +199,7 @@ class FactoryInstallCompleteTask(FactoryTask):
 class ShopFloorTask(FactoryTask):
   """A factory task to connect to shopfloor server."""
 
-  def __init__(self, test):  # pylint: disable=W0231
+  def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
 
   def Run(self):
@@ -258,7 +258,7 @@ class ShopFloorTask(FactoryTask):
 class ReadVPDSerialTask(FactoryTask):
   """If the serial number is already stored in VPD, we can just read it."""
 
-  def __init__(self, test):  # pylint: disable=W0231
+  def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
 
   def Run(self):
@@ -279,7 +279,7 @@ class ReadVPDSerialTask(FactoryTask):
         else:
           serial_number = vpd_value
       else:  # If we need multiple VPD entries as the serial number...
-        serial_number = dict()
+        serial_number = {}
         for v in serial_number_vpd_keys:
           vpd_value = _ReadVPD(v)
           if not vpd_value:
@@ -297,7 +297,7 @@ class ReadVPDSerialTask(FactoryTask):
 class InitializeSharedData(FactoryTask):
   """Initialize shared data."""
 
-  def __init__(self, test):  # pylint: disable=W0231
+  def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
 
   def Run(self):

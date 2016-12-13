@@ -10,11 +10,11 @@ import random
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
 _MSG_BUZZER_INFO = test_ui.MakeLabel(
     'How many beeps do you hear? <br>'
@@ -59,31 +59,32 @@ class BuzzerTest(unittest.TestCase):
   def setUp(self):
     self._pass_digit = random.randint(1, 5)
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_BUZZER)
     self.template.SetState(_HTML_BUZZER)
     self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
     self.ui.BindKey('R', self.StartTest)
     for num in xrange(10):
-      self.ui.BindKey(ord('0') + num, self.CheckResult, num)
+      self.ui.BindKey(str(num), self.CheckResult, num)
     self.ui.SetHTML(_MSG_BUZZER_INFO, id='buzzer_title')
     if self.args.init_commands:
       self.InitialBuzzer(self.args.init_commands)
 
   def InitialBuzzer(self, commands):
     for command in commands:
-      Spawn(command, check_call=True)
+      process_utils.Spawn(command, check_call=True)
 
   def BeepOne(self, start_cmd, stop_cmd):
     if start_cmd:
-      Spawn(start_cmd, check_call=True)
+      process_utils.Spawn(start_cmd, check_call=True)
     time.sleep(self.args.beep_duration_secs)
     if stop_cmd:
-      Spawn(stop_cmd, check_call=True)
+      process_utils.Spawn(stop_cmd, check_call=True)
 
-  def StartTest(self, event):  # pylint: disable=W0613
+  def StartTest(self, event):
+    del event  # Unused.
     self.ui.SetHTML(_MSG_BUZZER_TEST, id='buzzer_title')
-    for i in xrange(self._pass_digit):  # pylint: disable=W0612
+    for unused_i in xrange(self._pass_digit):
       self.BeepOne(self.args.start_command, self.args.stop_command)
       time.sleep(self.args.mute_duration_secs)
 

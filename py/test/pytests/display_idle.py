@@ -3,6 +3,7 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
 """A factory test to test the function of display.
 """
 
@@ -10,11 +11,11 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 _ID_CONTAINER = 'display-test-container'
 
@@ -26,14 +27,14 @@ _HTML_DISPLAY = (
 
 
 class DisplayIdleTest(unittest.TestCase):
-  '''Tests the function of display.
+  """Tests the function of display.
 
   Properties:
-    self.ui: test ui.
-    self.template: ui template handling html layout.
-    self.checked: user has check the display of current subtest.
-    self.fullscreen: the test ui is in fullscreen or not.
-  '''
+    ui: test ui.
+    template: ui template handling html layout.
+    checked: user has check the display of current subtest.
+    fullscreen: the test ui is in fullscreen or not.
+  """
 
   ARGS = [
       Arg('timeout_secs', int, 'Timeout for the test.', default=20),
@@ -44,7 +45,7 @@ class DisplayIdleTest(unittest.TestCase):
   def setUp(self):
     """Initializes frontend presentation and properties."""
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
     self.ui.CallJSFunction('setupDisplayTest', _ID_CONTAINER)
     self.checked = False
@@ -63,7 +64,7 @@ class DisplayIdleTest(unittest.TestCase):
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self.ui.BindKey(' ', self.OnSpacePressed)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
     if self.args.start_without_prompt:
       self.OnSpacePressed(None)
@@ -71,14 +72,14 @@ class DisplayIdleTest(unittest.TestCase):
     self.ui.Run()
 
   def OnSpacePressed(self, event):
-    '''Sets self.checked to True.Calls JS function to switch display on/off.
+    """Sets self.checked to True.Calls JS function to switch display on/off.
 
     Also, set countdown timer once operator press space for the first time.
-    '''
+    """
     del event  # Unused.
     if not self.checked:
       self.checked = True
-      StartDaemonThread(target=self.CountdownTimer)
+      process_utils.StartDaemonThread(target=self.CountdownTimer)
     self.ui.CallJSFunction('switchDisplayOnOff')
     self.fullscreen = not self.fullscreen
 

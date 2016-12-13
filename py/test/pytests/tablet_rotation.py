@@ -57,16 +57,15 @@ import random
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import countdown_timer
 from cros.factory.test import factory
+from cros.factory.test.pytests import tablet_mode_ui
 from cros.factory.test import test_ui
-from cros.factory.test.countdown_timer import StartCountdownTimer
-from cros.factory.test.pytests.tablet_mode_ui import TabletModeUI
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 
 _DEFAULT_TIMEOUT = 30
@@ -176,12 +175,12 @@ class TabletRotationTest(unittest.TestCase):
 
     self.ui = test_ui.UI()
     self.state = factory.get_state_instance()
-    self.tablet_mode_ui = TabletModeUI(self.ui,
-                                       _HTML_COUNTDOWN_TIMER,
-                                       _CSS_COUNTDOWN_TIMER)
+    self.tablet_mode_ui = tablet_mode_ui.TabletModeUI(self.ui,
+                                                      _HTML_COUNTDOWN_TIMER,
+                                                      _CSS_COUNTDOWN_TIMER)
 
     # Create a thread to run countdown timer.
-    StartCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self.args.timeout_secs,
         lambda: self.ui.Fail('Tablet rotation test failed due to timeout.'),
         self.ui,
@@ -194,7 +193,7 @@ class TabletRotationTest(unittest.TestCase):
             lambda _: self.TestRotationUIFlow())
       else:
         self.TestRotationUIFlow()
-    StartDaemonThread(target=_UIFlow)
+    process_utils.StartDaemonThread(target=_UIFlow)
 
   def TestRotationUIFlow(self, degrees_targets=None):
     if degrees_targets is None:
@@ -202,7 +201,7 @@ class TabletRotationTest(unittest.TestCase):
 
     for degrees_target in degrees_targets:
       # Initialize UI template, HTML and CSS.
-      template = OneSection(self.ui)
+      template = ui_templates.OneSection(self.ui)
       template.SetState(_HTML + _HTML_COUNTDOWN_TIMER)
       self.ui.AppendCSS(_CSS + _CSS_COUNTDOWN_TIMER)
 
@@ -215,8 +214,7 @@ class TabletRotationTest(unittest.TestCase):
       self.tablet_mode_ui.FlashSuccess()
 
     if self.args.prompt_flip_notebook:
-      self.tablet_mode_ui.AskForNotebookMode(
-          lambda _: self.ui.Pass())
+      self.tablet_mode_ui.AskForNotebookMode(lambda _: self.ui.Pass())
     else:
       self.ui.Pass()
 

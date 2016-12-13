@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-u'''Determines how fast the processor heats/cools.
+u"""Determines how fast the processor heats/cools.
 
 1. 'cool_down' stage: Runs the fan at <cool_down_fan_rpm> until it
    reaches <cool_down_temperature_c> (at least
@@ -30,18 +30,18 @@ u'''Determines how fast the processor heats/cools.
 
    If the thermal slope is not between min_slope and max_slope, the test
    fails.
-'''
+"""
 
 import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import event_log
 from cros.factory.test import factory
-from cros.factory.test.event_log import Log
+from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.test.utils.stress_manager import StressManager
 
 
 POWER_SAMPLES = 3
@@ -107,12 +107,12 @@ class ThermalSlopeTest(unittest.TestCase):
         self.dut.thermal.GetMainTemperatureIndex())
 
   def _Log(self):
-    '''Logs the current stage and status.
+    """Logs the current stage and status.
 
     Writes an entry to the event log, and either to the factory console
     (if the console_log arg is True) or to the default log (if console_log
     is False).
-    '''
+    """
     self.snapshot = self.dut.thermal.GetPowerUsage(
         last=self.snapshot,
         sensor_id=self.args.sensor_id)
@@ -124,12 +124,12 @@ class ThermalSlopeTest(unittest.TestCase):
             fan_rpm, self._MainTemperature(),
             (float('nan') if self.snapshot['power'] is None
              else self.snapshot['power'])))
-    Log('sample',
-        stage=self.stage,
-        fan_rpm=fan_rpm,
-        temperature=self.dut.thermal.GetTemperatures(),
-        energy_j=self.snapshot['energy'],
-        power_w=self.snapshot['power'])
+    event_log.Log('sample',
+                  stage=self.stage,
+                  fan_rpm=fan_rpm,
+                  temperature=self.dut.thermal.GetTemperatures(),
+                  energy_j=self.snapshot['energy'],
+                  power_w=self.snapshot['power'])
 
   def _StartStage(self, stage):
     """Begins a new stage."""
@@ -139,11 +139,10 @@ class ThermalSlopeTest(unittest.TestCase):
 
   def _MainTemperature(self):
     """Returns the main temperature."""
-    return self.dut.thermal.GetTemperatures()[
-        self.main_temperature_index]
+    return self.dut.thermal.GetTemperatures()[self.main_temperature_index]
 
   def _Sleep(self):
-    '''Sleeps one second since the last sleep.
+    """Sleeps one second since the last sleep.
 
     The time at which the last sleep should have ended is stored
     in last_sleep; we sleep until one second after that.  This
@@ -151,7 +150,7 @@ class ThermalSlopeTest(unittest.TestCase):
     the stage, even if past sleeps were slightly more or less
     than a second and/or there was any processing time in between
     sleeps.
-    '''
+    """
     time.sleep(max(0, self.last_sleep + 1 - time.time()))
     self.last_sleep += 1
 
@@ -174,7 +173,7 @@ class ThermalSlopeTest(unittest.TestCase):
     self.dut.fan.SetFanRPM(self.args.target_fan_rpm)
 
     def RunStage(stage, duration_secs):
-      '''Runs a stage.
+      """Runs a stage.
 
       Args:
         stage: The stage name.
@@ -188,7 +187,7 @@ class ThermalSlopeTest(unittest.TestCase):
           power_w: The power used by the CPU package, as determined by
             the last POWER_SAMPLES readings.
           duration_secs: The actual duration of the stage.
-      '''
+      """
       duration_secs = max(duration_secs, POWER_SAMPLES)
 
       self._StartStage(stage)
@@ -203,13 +202,14 @@ class ThermalSlopeTest(unittest.TestCase):
       power_w = sum(power_w[-POWER_SAMPLES:]) / POWER_SAMPLES
       self.log.info(u'%s: temp=%d°C, power: %.3f W',
                     stage, temp, power_w)
-      Log('stage_result', stage=self.stage, temp=temp, power_w=power_w)
+      event_log.Log('stage_result',
+                    stage=self.stage, temp=temp, power_w=power_w)
       return temp, power_w, duration_secs
 
     base_temp, base_power_w, _ = RunStage(
         'spin_down', self.args.fan_spin_down_secs)
 
-    with StressManager(self.dut).Run():
+    with stress_manager.StressManager(self.dut).Run():
       one_core_temp, one_core_power_w, one_core_duration_secs = RunStage(
           'one_core', self.args.duration_secs)
 
@@ -223,7 +223,7 @@ class ThermalSlopeTest(unittest.TestCase):
                          one_core_power_w - base_power_w,
                          one_core_duration_secs)
     factory.console.info(u'slope=%.5f°C/J', slope)
-    Log('result', slope=slope)
+    event_log.Log('result', slope=slope)
 
     errors = []
     if self.args.min_slope is not None and slope < self.args.min_slope:

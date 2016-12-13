@@ -8,11 +8,9 @@ import logging
 import time
 import unittest
 
-import factory_common # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.utils.stress_manager import StressManager
-from cros.factory.test.utils.stress_manager import StressManagerError
+from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -47,12 +45,12 @@ class StressAppTest(unittest.TestCase):
       time.sleep(self.args.wait_secs)
 
     try:
-      with StressManager(self.dut).Run(
+      with stress_manager.StressManager(self.dut).Run(
           duration_secs=self.args.seconds,
           memory_ratio=self.args.memory_ratio,
           free_memory_only=self.args.free_memory_only,
           disk_thread=self.args.disk_thread):
         pass
-    except StressManagerError as e:
+    except stress_manager.StressManagerError as e:
       logging.error('StressAppTest failed: %s', e)
       raise e

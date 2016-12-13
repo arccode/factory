@@ -16,14 +16,13 @@ import re
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.utils import debug_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput
-from cros.factory.utils.process_utils import WaitEvent
+from cros.factory.utils import debug_utils
+from cros.factory.utils import process_utils
 
 
 _SHOPFLOOR_METHOD_NAME = 'GetMemSize'
@@ -58,7 +57,8 @@ class MemorySize(unittest.TestCase):
                                         u'正在检查内存大小...'))
 
     # Get memory info using mosys.
-    ret = CheckOutput(['mosys', '-k', 'memory', 'spd', 'print', 'geometry'])
+    ret = process_utils.CheckOutput(
+        ['mosys', '-k', 'memory', 'spd', 'print', 'geometry'])
     mosys_mem_mb = sum([int(x) for x in re.findall('size_mb="([^"]*)"', ret)])
     mosys_mem_gb = round(mosys_mem_mb / 1024.0, 1)
 
@@ -100,13 +100,13 @@ class MemorySize(unittest.TestCase):
             test_ui.MakeLabel('Retry', '重试') +
             '</button>'
             )
-        WaitEvent(self._event)
+        process_utils.WaitEvent(self._event)
         self._event.clear()
 
       try:
         result = method(mlb_serial_number)
         logging.info('%s: %s', method_name, str(result))
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         exception_str = debug_utils.FormatExceptionOnly()
         logging.exception('Exception invoking shopfloor method\n' +
                           exception_str)

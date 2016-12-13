@@ -18,12 +18,12 @@ import urllib
 import urllib2
 import urlparse
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.schema import Dict, Scalar, SchemaException
+from cros.factory.utils import schema
 
 _MSG_VPD_INFO = test_ui.MakeLabel(
     'Please scan the panel serial number and press ENTER.',
@@ -68,17 +68,18 @@ class GetPanelVPDTest(unittest.TestCase):
       Arg('port', int, 'HTTP Request port', default=80),
       Arg('service_path', str, 'HTTP Request service path', default='getvpd'),
   ]
-  SCHEMA = Dict('VPD', Scalar('key', str), Scalar('Value', str))
+  SCHEMA = schema.Dict('VPD',
+                       schema.Scalar('key', str), schema.Scalar('Value', str))
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_VPD)
     self.template.SetState(_HTML_VPD)
     self.ui.RunJS(_JS_VPD)
     self.ui.BindKeyJS(test_ui.ENTER_KEY,
-                      'scan_obj = document.getElementById("scan-value");' +
-                      'test.sendTestEvent("scan_value", scan_obj.value);' +
+                      'scan_obj = document.getElementById("scan-value");'
+                      'test.sendTestEvent("scan_value", scan_obj.value);'
                       'scan_obj.disabled = true;')
     self.ui.SetHTML(_MSG_VPD_INFO, id='vpd_title')
     self.ui.AddEventHandler('scan_value', self.HandleScanValue)
@@ -105,8 +106,7 @@ class GetPanelVPDTest(unittest.TestCase):
     """Handles scaned value."""
     scan_value = str(event.data).strip()
     if not scan_value:
-      self.SetStatus('The scanned value is empty.',
-                     '扫描编号是空的。')
+      self.SetStatus('The scanned value is empty.', '扫描编号是空的。')
       self.ui.CallJSFunction('setClear')
       return
 
@@ -135,7 +135,7 @@ class GetPanelVPDTest(unittest.TestCase):
                    '正在写到 VPD，请稍等…')
     try:
       self.SCHEMA.Validate(vpd_setting)
-    except SchemaException as e:
+    except schema.SchemaException as e:
       self.SetFail('VPD format error: %r' % e)
     else:
       self.vpd.vpd.ro.Update(vpd_setting)

@@ -13,7 +13,8 @@ will be started.
 
 import logging
 
-from scpi_mock import MockServerHandler, MockTestServer
+from scpi_mock import MockServerHandler
+from scpi_mock import MockTestServer
 
 
 def SetupLookupTable():
@@ -64,5 +65,4 @@ if __name__ == '__main__':
   SetupLookupTable()
   # Starts the server
   SERVER_PORT = 5025
-  # pylint: disable=E1101
   MockTestServer(('0.0.0.0', SERVER_PORT), MockServerHandler).serve_forever()

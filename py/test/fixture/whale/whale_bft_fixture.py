@@ -8,7 +8,7 @@ import ast
 import logging
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture as bft
 from cros.factory.test.fixture.whale import color_sensor
 from cros.factory.test.fixture.whale import keyboard_emulator
@@ -24,7 +24,6 @@ class WhaleBFTFixture(bft.BFTFixture):
   POWER_KEY = '0x2000'
 
   # Shortcuts
-  # pylint: disable=E1101
   _WHALE_CONTROL = servo_client.WHALE_CONTROL
   _WHALE_BUTTON = servo_client.WHALE_BUTTON
   _FIXTURE_FEEDBACK = servo_client.FIXTURE_FEEDBACK

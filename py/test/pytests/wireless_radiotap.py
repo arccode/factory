@@ -20,8 +20,8 @@ Be sure to set AP correctly.
 This test case can be used for Intel WP2 7260 chip.
 """
 
-import dbus
 import collections
+import dbus
 import logging
 import re
 import struct
@@ -30,19 +30,19 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput, Spawn, PIPE
-from cros.factory.utils.net_utils import Ifconfig
+from cros.factory.utils import net_utils
+from cros.factory.utils import process_utils
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
-  import flimflam  # pylint: disable=F0401
-except:  # pylint: disable=W0702
+  import flimflam
+except ImportError:
   pass
 
 _DEFAULT_WIRELESS_TEST_CSS = '.wireless-info {font-size: 2em;}'
@@ -144,11 +144,11 @@ def IwScan(devname, sleep_retry_time_secs=2, max_retries=10):
   try_count = 0
   scan_result = []
   while try_count < max_retries:
-    process = Spawn(cmd, read_stdout=True, log_stderr_on_error=True,
-                    log=True, shell=True)
+    process = process_utils.Spawn(
+        cmd, read_stdout=True, log_stderr_on_error=True, log=True, shell=True)
     stdout, stderr = process.communicate()
     retcode = process.returncode
-    Log('iw_scaned', retcode=retcode, stderr=stderr)
+    event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
     if retcode == 0:
       for line in stdout.splitlines():
         m = _RE_IWSCAN.search(line)
@@ -275,13 +275,13 @@ class Capture(object):
 
   def create_device(self, monitor_device='antmon0'):
     """Creates a monitor device to monitor beacon."""
-    Spawn(['iw', self.parent_device, 'interface', 'add',
-           monitor_device, 'type', 'monitor'], check_call=True)
+    process_utils.Spawn(['iw', self.parent_device, 'interface', 'add',
+                         monitor_device, 'type', 'monitor'], check_call=True)
     self.created_device = monitor_device
 
   def remove_device(self, device_name):
     """Removes monitor device."""
-    Spawn(['iw', device_name, 'del'], check_call=True)
+    process_utils.Spawn(['iw', device_name, 'del'], check_call=True)
 
   def get_signal(self):
     """Gets signal from tcpdump."""
@@ -321,14 +321,14 @@ class Capture(object):
   def __enter__(self):
     if not self.created_device:
       self.create_device()
-    Spawn(['ip', 'link', 'set', self.created_device, 'up'], check_call=True)
-    Spawn(['iw', self.parent_device, 'set', 'power_save', 'off'],
-          check_call=True)
+    process_utils.Spawn(
+        ['ip', 'link', 'set', self.created_device, 'up'], check_call=True)
+    process_utils.Spawn(
+        ['iw', self.parent_device, 'set', 'power_save', 'off'], check_call=True)
     self.set_beacon_filter(0)
-    self.monitor_process = (
-        Spawn(
-            ['tcpdump', '-nUxxi', self.created_device, 'type', 'mgt',
-             'subtype', 'beacon'], stdout=PIPE))
+    self.monitor_process = process_utils.Spawn(
+        ['tcpdump', '-nUxxi', self.created_device, 'type', 'mgt',
+         'subtype', 'beacon'], stdout=process_utils.PIPE)
     return self
 
   def __exit__(self, exception, value, traceback):
@@ -351,12 +351,10 @@ class WirelessRadiotapTest(unittest.TestCase):
     _done: An event that test has been done.
   """
   ARGS = [
-      Arg(
-          'device_name', str,
+      Arg('device_name', str,
           'Wireless device name to test. '
           'Set this correctly if check_antenna is True.', default='wlan0'),
-      Arg(
-          'services', list,
+      Arg('services', list,
           'A list of (service_ssid, freq, password) tuples like '
           '``[(SSID1, FREQ1, PASS1), (SSID2, FREQ2, PASS2), '
           '(SSID3, FREQ3, PASS3)]``. The test will only check the service '
@@ -364,28 +362,24 @@ class WirelessRadiotapTest(unittest.TestCase):
           '(SSID1, FREQ1, PASS1) has the largest signal among the APs, '
           'then only its results will be checked against the spec values.',
           optional=False),
-      Arg(
-          'strength', dict,
+      Arg('strength', dict,
           'A dict of minimal signal strengths. For example, a dict like '
           '``{"main": strength_1, "aux": strength_2, "all": strength_all}``. '
           'The test will check signal strength according to the different '
           'antenna configurations in this dict.',
           optional=False),
-      Arg(
-          'scan_count', int,
+      Arg('scan_count', int,
           'Number of scans to get average signal strength.', default=5),
-      Arg(
-          'switch_antenna_sleep_secs', int,
+      Arg('switch_antenna_sleep_secs', int,
           'The sleep time after switchingantenna and ifconfig up. Need to '
           'decide this value carefully since itdepends on the platform and '
           'antenna config to test.', default=10),
-      Arg(
-          'press_space_to_start', bool,
+      Arg('press_space_to_start', bool,
           'Press space to start the test.', default=True)]
 
   def setUp(self):
     self._ui = test_ui.UI()
-    self._template = OneSection(self._ui)
+    self._template = ui_templates.OneSection(self._ui)
     self._ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
 
     self._phy_name = self.DetectPhyName()
@@ -393,7 +387,7 @@ class WirelessRadiotapTest(unittest.TestCase):
     self._space_event = threading.Event()
     self._done = threading.Event()
 
-    Ifconfig(self.args.device_name, True)
+    net_utils.Ifconfig(self.args.device_name, True)
     self._flim = flimflam.FlimFlam(dbus.SystemBus())
     self._connect_service = None
 
@@ -440,7 +434,8 @@ class WirelessRadiotapTest(unittest.TestCase):
     Returns:
       The phy name for device_name device.
     """
-    output = CheckOutput(['iw', 'dev', self.args.device_name, 'info'])
+    output = process_utils.CheckOutput(
+        ['iw', 'dev', self.args.device_name, 'info'])
     logging.info('info output: %s', output)
     m = _RE_WIPHY.search(output)
     return ('phy' + m.group(1)) if m else None
@@ -461,7 +456,7 @@ class WirelessRadiotapTest(unittest.TestCase):
       if strength:
         factory.console.info('Service %s signal strength %f.', service,
                              strength)
-        Log('service_signal', service=service, strength=strength)
+        event_log.Log('service_signal', service=service, strength=strength)
         if strength > max_strength:
           max_strength_service, max_strength = service, strength
       else:
@@ -525,7 +520,7 @@ class WirelessRadiotapTest(unittest.TestCase):
       {antenna1: signal1, antenna2: signal2}
     """
     # keys are services and values are averages
-    average_results = dict()
+    average_results = {}
     # Averages the scanned strengths
     for antenna in _ANTENNA_CONFIG:
       average_results[antenna] = 0
@@ -554,7 +549,8 @@ class WirelessRadiotapTest(unittest.TestCase):
       spec_strength = spec_antenna_strength[antenna]
       scanned_strength = average_signal[service][antenna]
 
-      Log('antenna_%s' % antenna, freq=service[1], rssi=scanned_strength,
+      event_log.Log(
+          'antenna_%s' % antenna, freq=service[1], rssi=scanned_strength,
           meet=(scanned_strength and scanned_strength > spec_strength))
       if not scanned_strength:
         self.fail(
@@ -575,7 +571,7 @@ class WirelessRadiotapTest(unittest.TestCase):
     Args:
       services: A list of (service_ssid, freq) tuples to scan.
     """
-    wireless_services = dict()
+    wireless_services = {}
     self._template.SetState(_MSG_PRECHECK)
     scan_result = IwScan(self.args.device_name)
     set_all_ssids = set([service[0] for service in services])
@@ -585,13 +581,12 @@ class WirelessRadiotapTest(unittest.TestCase):
         if ssid not in wireless_services:
           wireless_services[ssid] = freq
         elif freq != wireless_services[ssid]:
-          self.fail(
-              'There are more than one frequencies for ssid %s.' % ssid)
+          self.fail('There are more than one frequencies for ssid %s.' % ssid)
 
   def PromptSpace(self):
     """Prompts a message to ask operator to press space."""
     self._template.SetState(_MSG_SPACE)
-    self._ui.BindKey(' ', lambda _: self.OnSpacePressed())
+    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
     self._ui.Run(blocking=False, on_finish=self.Done)
 
   def Done(self):
@@ -618,10 +613,10 @@ class WirelessRadiotapTest(unittest.TestCase):
 
     self.PreCheck(self.args.services)
 
-    antenna_info = dict()
+    antenna_info = {}
     for service in self.args.services:
       antenna_info[service] = self.ScanSignal(service, self.args.scan_count)
-    average_signal = dict()
+    average_signal = {}
     for service, signals in antenna_info.iteritems():
       average_signal[service] = self.AverageSignals(signals)
 

@@ -17,18 +17,17 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.utils.stress_manager import StressManager
+from cros.factory.test.utils import stress_manager
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils.arg_utils import Arg
 
 _TEST_TITLE = test_ui.MakeLabel('Raiden Charging Test', u'Raiden 充电测试')
 _TESTING_ADB_CONNECTION = test_ui.MakeLabel(
@@ -348,10 +347,11 @@ class RaidenChargeBFTTest(unittest.TestCase):
                                        charging=False))
     else:
       # Discharge under high system load.
-      with StressManager(self._dut).Run(self.args.discharge_duration_secs):
+      with stress_manager.StressManager(self._dut).Run(
+          self.args.discharge_duration_secs):
         (sampled_battery_current, sampled_ina_current, sampled_ina_voltage) = (
-            self.SampleCurrentAndVoltage(self.args.discharge_duration_secs,
-                                         charging=False))
+            self.SampleCurrentAndVoltage(
+                self.args.discharge_duration_secs, charging=False))
       # Fail if all samples are over threshold.
       if not any(c < current_min_threshold for c in sampled_battery_current):
         raise factory.FactoryTestFailure(
@@ -378,8 +378,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
     """
     tolerance = testing_volt * 1000 * self.args.ina_voltage_tolerance
     # Fail if error ratios of all voltage samples are higher than tolerance
-    if not any(abs(
-        v - testing_volt * 1000.0) <= tolerance for v in ina_sample):
+    if not any(abs(v - testing_volt * 1000.0) <= tolerance for v in ina_sample):
       raise factory.FactoryTestFailure(
           'Plankton INA voltage did not meet expected %s %dV, sampled voltage '
           '= %s' % ('charge' if charging else 'discharge',

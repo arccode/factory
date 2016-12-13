@@ -27,15 +27,14 @@ import subprocess
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.args import Arg
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
 from cros.factory.test import ui_templates
-from cros.factory.test.args import Arg
 
 
 # The Graphyte config files (pathloss, test plan, port config) should be placed
@@ -87,7 +86,7 @@ class RFGraphyteTest(unittest.TestCase):
           optional=False),
       Arg('patch_dhcp_ssh_dut_ip', bool,
           'Set to True if Goofy uses SSH link with DHCP enabled to connect to '
-          'DUT. This will patch the IP from Goofy\'s link into Graphyte\'s '
+          "DUT. This will patch the IP from Goofy's link into Graphyte's "
           'target DUT IP configuration.',
           default=False, optional=True),
       Arg('verbose', bool, 'Enable Graphyte debug logging',

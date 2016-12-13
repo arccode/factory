@@ -6,17 +6,18 @@
 
 """This is a factory test to check the LED brightness."""
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import led as led_module
 from cros.factory.test.pytests.brightness import brightness
-from cros.factory.utils.arg_utils import Arg, MergeArgs
+from cros.factory.utils import arg_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 LEDColor = led_module.LED.Color
 
 
 class LEDBrightnessTest(brightness.BrightnessTest):
-  ARGS = MergeArgs(brightness.BrightnessTest.ARGS, [
+  ARGS = arg_utils.MergeArgs(brightness.BrightnessTest.ARGS, [
       Arg('led_name', str, 'The name of the LED to test.', default='battery'),
       Arg('color', str, 'The color to test.', default=LEDColor.WHITE)])
 

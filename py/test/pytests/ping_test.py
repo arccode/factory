@@ -46,16 +46,14 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_ui import Escape
-from cros.factory.test.test_ui import MakeLabel
-from cros.factory.test.test_ui import UI
-from cros.factory.test.ui_templates import OneScrollableSection
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.time_utils import MonotonicTime
+from cros.factory.utils import process_utils
+from cros.factory.utils import time_utils
 
-_TEST_TITLE = MakeLabel('Ping test', u'连线测试')
+_TEST_TITLE = test_ui.MakeLabel('Ping test', u'连线测试')
 _CSS = '#state {text-align:left;}'
 
 
@@ -86,8 +84,8 @@ class PingTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._ui = UI()
-    self._template = OneScrollableSection(self._ui)
+    self._ui = test_ui.UI()
+    self._template = ui_templates.OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendCSS(_CSS)
 
@@ -119,16 +117,18 @@ class PingTest(unittest.TestCase):
     if self.args.packet_size:
       ping_command += ' -s %d' % self.args.packet_size
 
-    end_time = MonotonicTime() + self.args.duration_secs
-    while MonotonicTime() < end_time:
+    end_time = time_utils.MonotonicTime() + self.args.duration_secs
+    while time_utils.MonotonicTime() < end_time:
       if self.args.verbose:
-        p = Spawn(ping_command, shell=True, log=True, read_stdout=True)
+        p = process_utils.Spawn(ping_command,
+                                shell=True, log=True, read_stdout=True)
         logging.info(p.stdout_data)
         self._template.SetState(
-            Escape(p.stdout_data), append=True if total_count % 10 else False)
+            test_ui.Escape(p.stdout_data),
+            append=(True if total_count % 10 else False))
       else:
-        p = Spawn(ping_command, shell=True, call=True,
-                  ignore_stdout=True, ignore_stderr=True)
+        p = process_utils.Spawn(ping_command, shell=True, call=True,
+                                ignore_stdout=True, ignore_stderr=True)
       result = int(p.returncode == 0)
 
       if window_size is not None:

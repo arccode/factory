@@ -8,7 +8,7 @@
 """A test_list for TSAB (TouchScreen calibration on AB panel) station."""
 
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestList

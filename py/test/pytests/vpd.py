@@ -30,19 +30,19 @@ import logging
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
-from cros.factory.test import test_ui
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.test.l10n.regions import REGIONS
+from cros.factory.test import factory_task
+from cros.factory.test.l10n import regions
 from cros.factory.test.rules import branding
 from cros.factory.test.rules import registration_codes
-from cros.factory.test.ui_templates import OneSection, SelectBox
-from cros.factory.tools.build_board import BuildBoard
+from cros.factory.test import shopfloor
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
+from cros.factory.tools import build_board
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import type_utils
 
 _MSG_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
     'Fetching VPD from shop floor server...',
@@ -107,11 +107,12 @@ _REGEX_TYPE = type(re.compile(''))
 FROM_DEVICE_DATA = 'FROM_DEVICE_DATA'
 
 
-class WriteVPDTask(FactoryTask):
+class WriteVPDTask(factory_task.FactoryTask):
   """A task to write VPD.
 
   Args:
-    vpd_test: The main VPD TestCase object."""
+    vpd_test: The main VPD TestCase object.
+  """
 
   def __init__(self, vpd_test):
     super(WriteVPDTask, self).__init__()
@@ -147,7 +148,7 @@ class WriteVPDTask(FactoryTask):
               'group': registration_codes.RegistrationCode.Type.GROUP_CODE}[k]
           registration_codes.CheckRegistrationCode(
               self.test.registration_code_map[k],
-              code_type, BuildBoard().short_name)
+              code_type, build_board.BuildBoard().short_name)
         except ValueError as e:
           self.Fail(str(e))
 
@@ -169,7 +170,7 @@ class WriteVPDTask(FactoryTask):
     self.Pass()
 
 
-class ShopFloorVPDTask(FactoryTask):
+class ShopFloorVPDTask(factory_task.FactoryTask):
   """A task to fetch VPD from shop floor server.
 
   Args:
@@ -218,7 +219,7 @@ class VPDInfo(object):
       self.value_check = value_check
 
 
-class ManualInputTask(FactoryTask):
+class ManualInputTask(factory_task.FactoryTask):
   """Factory task to let user manually enter value for the given VPD.
 
   Partners should fill this in with the correct serial number
@@ -279,8 +280,8 @@ class ManualInputTask(FactoryTask):
     vpd_event_subtype = _EVENT_SUBTYPE_VPD_PREFIX + self.vpd_info.key
     self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(
         self.vpd_info.label_en, self.vpd_info.label_zh))
-    select_box = SelectBox(self.vpd_info.key, _SELECTION_PER_PAGE,
-                           _SELECT_BOX_STYLE)
+    select_box = ui_templates.SelectBox(self.vpd_info.key, _SELECTION_PER_PAGE,
+                                        _SELECT_BOX_STYLE)
     for index, value in enumerate(self.vpd_info.value_check):
       select_box.InsertOption(value, '%s - %s' % (index, value))
     select_box.SetSelectedIndex(0)
@@ -309,7 +310,7 @@ class ManualInputTask(FactoryTask):
     self.test.ui.UnbindKey(test_ui.ESCAPE_KEY)
 
 
-class SelectRegionTask(FactoryTask):
+class SelectRegionTask(factory_task.FactoryTask):
   """Factory task to select region info (locale, keyboard layout, timezone).
 
   Args:
@@ -318,12 +319,12 @@ class SelectRegionTask(FactoryTask):
 
   def __init__(self, vpd_test):
     super(SelectRegionTask, self).__init__()
-    self.region_list = sorted(REGIONS)
+    self.region_list = sorted(regions.REGIONS)
     self.test = vpd_test
 
   def SaveVPD(self, event):
     index = int(event.data)
-    region = REGIONS[self.region_list[index]]
+    region = regions.REGIONS[self.region_list[index]]
     self.test.vpd['ro']['region'] = region.region_code
     self.Pass()
 
@@ -335,10 +336,10 @@ class SelectRegionTask(FactoryTask):
       return text
 
     self.test.template.SetState(_MSG_SELECT_REGION)
-    select_box = SelectBox(_REGION_SELECT_BOX_ID, _SELECTION_PER_PAGE,
-                           _SELECT_BOX_STYLE)
+    select_box = ui_templates.SelectBox(
+        _REGION_SELECT_BOX_ID, _SELECTION_PER_PAGE, _SELECT_BOX_STYLE)
     for index, region in enumerate(self.region_list):
-      region = REGIONS[region]
+      region = regions.REGIONS[region]
       select_box.InsertOption(index, '%s - [%s], [%s], [%s], [%s]' % (
           short_label(region.description),
           region.region_code,
@@ -357,7 +358,7 @@ class SelectRegionTask(FactoryTask):
     self.RenderPage()
 
 
-class SelectBrandingTask(FactoryTask):
+class SelectBrandingTask(factory_task.FactoryTask):
   """Factory task to select the value for a branding field.
 
   Args:
@@ -395,7 +396,8 @@ class SelectBrandingTask(FactoryTask):
     vpd_event_subtype = _EVENT_SUBTYPE_VPD_PREFIX + self.key
     self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(
         self.key, self.key))
-    select_box = SelectBox(self.key, _SELECTION_PER_PAGE, _SELECT_BOX_STYLE)
+    select_box = ui_templates.SelectBox(
+        self.key, _SELECTION_PER_PAGE, _SELECT_BOX_STYLE)
     for index, description in enumerate(self.branding_list):
       select_box.InsertOption(index, '%s: %s' % (
           description, self.desc_value_dict[description]))
@@ -412,43 +414,37 @@ class SelectBrandingTask(FactoryTask):
 
 
 class VPDTest(unittest.TestCase):
-  VPDTasks = Enum(['serial', 'region'])
+  VPDTasks = type_utils.Enum(['serial', 'region'])
 
   ARGS = [
-      Arg(
-          'override_vpd', dict,
+      Arg('override_vpd', dict,
           'A dict of override VPDs. This is for development purpose and is '
           'useable only in engineering mode. The dict should be of the format: '
-          '{"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value pairs }}',
+          '{"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value pairs '
+          '}}',
           default=None, optional=True),
-      Arg(
-          'override_vpd_entries', dict,
+      Arg('override_vpd_entries', dict,
           'A dict of override VPD entries. Unlike override_vpd, it only '
           'overrides some key-value pairs instead of the whole VPD section.'
           'It does not require engineering mode. The dict should be of the '
           'format: {"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value '
           'pairs }}', default=None, optional=True),
-      Arg(
-          'store_registration_codes', bool,
+      Arg('store_registration_codes', bool,
           'Whether to store registration codes onto the machine.',
           default=False),
-      Arg(
-          'task_list', list, 'A list of tasks to execute.',
+      Arg('task_list', list, 'A list of tasks to execute.',
           default=[VPDTasks.serial, VPDTasks.region]),
-      Arg(
-          'use_shopfloor_device_data', bool,
+      Arg('use_shopfloor_device_data', bool,
           'If shopfloor is enabled, use accumulated data in shopfloor device '
           'data dictionary instead of contacting shopfloor server again. '
           'See file-level docs in vpd.py for more information.',
           default=False),
-      Arg(
-          'extra_device_data_fields', list,
+      Arg('extra_device_data_fields', list,
           'Extra fields to write to VPD from shopfloor device_data.  Each item '
           'is a tuple of the form ("ro", key) or ("rw", key) meaning that the '
           'value from key should be added to the ro or rw VPD.  This option '
           'only applies if use_shopfloor_device_data is True.', default=[]),
-      Arg(
-          'manual_input_fields', list,
+      Arg('manual_input_fields', list,
           'A list of tuples (vpd_region, key, en_display_name, '
           'zh_display_name, VALUE_CHECK) indicating the VPD fields that need '
           'to be manually entered.\nVALUE_CHECK can be a list of strings, a '
@@ -456,9 +452,9 @@ class VPDTest(unittest.TestCase):
           'then a text input box will show up to let user input value. The '
           'entered value will be validated if VALUE_CHECK is a regexp string. '
           'Otherwise a select box containing all the possible values will be '
-          'used to let user select a value from it.', default=[], optional=True),
-      Arg(
-          'rlz_brand_code', (str, dict),
+          'used to let user select a value from it.',
+          default=[], optional=True),
+      Arg('rlz_brand_code', (str, dict),
           'RLZ brand code to write to RO VPD.  This may be any of:\n'
           '\n'
           '- A fixed string\n'
@@ -471,8 +467,7 @@ class VPDTest(unittest.TestCase):
           '  "LOEM2_description": "LOEM2_brand_code"}. The description is a\n'
           '  helpful string and only the brand_code will be written into VPD.',
           default=None, optional=True),
-      Arg(
-          'customization_id', (str, dict),
+      Arg('customization_id', (str, dict),
           'Customization ID to write to RO VPD.  This may be any of:\n'
           '\n'
           '- A fixed string\n'
@@ -498,7 +493,7 @@ class VPDTest(unittest.TestCase):
 
     self.vpd['ro']['serial_number'] = device_data['serial_number']
 
-    region = REGIONS[device_data['region']]
+    region = regions.REGIONS[device_data['region']]
     self.vpd['ro']['region'] = region.region_code
 
     for ro_or_rw, key in self.args.extra_device_data_fields:
@@ -516,7 +511,7 @@ class VPDTest(unittest.TestCase):
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_DEFAULT_VPD_TEST_CSS)
     self.tasks = []
     self.registration_code_map = {}
@@ -604,4 +599,4 @@ class VPDTest(unittest.TestCase):
       self.vpd['ro'][attr] = value
 
   def runTest(self):
-    FactoryTaskManager(self.ui, self.tasks).Run()
+    factory_task.FactoryTaskManager(self.ui, self.tasks).Run()

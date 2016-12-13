@@ -4,9 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# Python twisted's module creates definition dynamically  7
-# pylint: disable=E1101
-
 
 """Simple TCP proxy.
 
@@ -69,6 +66,7 @@ class ClientProtocol(Protocol):
     logging.info("%s: Connected to %s", self.uuid, self.transport.getPeer())
 
   def connectionLost(self, reason=connectionDone):
+    del reason  # Unused.
     logging.info("%s: lost connection with remote", self.uuid)
     self.factory.active_client = None
 
@@ -137,6 +135,7 @@ class ServerProtocol(Protocol):
       self.transport.loseConnection()
 
   def connectionLost(self, reason=connectionDone):
+    del reason  # Unused.
     logging.info(
         "%s: lost connection with dut %s", self.uuid, self.transport.getPeer())
     # Marked as closed in ClientFactory
@@ -161,6 +160,7 @@ class ServerFactory(Factory):
         "%s initialized and got ClientFactory %r", self.uuid, client_factory)
 
   def buildProtocol(self, addr):
+    del addr  # Unused.
     return ServerProtocol(self.client_factory)
 
   def __del__(self):

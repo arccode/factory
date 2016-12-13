@@ -4,16 +4,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Requests that the firmware clear the TPM owner on the next reboot.
+"""Requests that the firmware clear the TPM owner on the next reboot.
 
 This should generally be followed by a reboot step.
-'''
+"""
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn, CheckOutput
+from cros.factory.utils import process_utils
 
 
 class ClearTPMOwnerRequest(unittest.TestCase):
@@ -23,8 +23,9 @@ class ClearTPMOwnerRequest(unittest.TestCase):
 
   def runTest(self):
     if self.args.only_check_clear_done:
-      self.assertEquals(CheckOutput(['crossystem', 'clear_tpm_owner_done']),
-                        '1')
+      self.assertEquals(
+          process_utils.CheckOutput(['crossystem', 'clear_tpm_owner_done']),
+          '1')
     else:
-      Spawn(['crossystem', 'clear_tpm_owner_request=1'],
-            check_call=True)
+      process_utils.Spawn(['crossystem', 'clear_tpm_owner_request=1'],
+                          check_call=True)

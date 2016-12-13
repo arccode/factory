@@ -9,19 +9,20 @@
 Here is a test list example for USB Port 0 Check, we can prompt operator to
 insert which port by display_label in display_info::
 
-         OperatorTest(
-              id='ExtDisplay',
-              label_zh=u'外接显示',
-              pytest_name='ext_display',
-              dargs={'display_info': [
-                        (test_ui.MakeLabel('Left HDMI External Display',
-                                            u'左边HDMI'),
-                         'HDMI-A-1', None, 0)],
-                     })
+    OperatorTest(
+        id='ExtDisplay',
+        label_zh=u'外接显示',
+        pytest_name='ext_display',
+        dargs={
+            'display_info': [
+                (test_ui.MakeLabel('Left HDMI External Display',
+                                   u'左边HDMI'),
+                 'HDMI-A-1', None, 0)],
+        })
 """
 
 from __future__ import print_function
-import evdev  # pylint: disable=F0401
+import evdev  # pylint: disable=import-error
 import logging
 import random
 import threading
@@ -29,20 +30,15 @@ import time
 import unittest
 import uuid
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import event
 from cros.factory.test import factory
+from cros.factory.test import factory_task
+from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.pytests import audio
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.event import Event
-from cros.factory.test.factory_task import (FactoryTask,
-                                            FactoryTaskManager,
-                                            InteractiveFactoryTask)
-from cros.factory.test.fixture.bft_fixture import (BFTFixture,
-                                                   BFTFixtureException,
-                                                   CreateBFTFixture,
-                                                   TEST_ARG_HELP)
-from cros.factory.test.pytests import audio
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
@@ -120,7 +116,7 @@ Each tuple represents an external port:
 """
 
 
-class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
+class ExtDisplayTask(factory_task.InteractiveFactoryTask):
   """Base class of tasks for external display test.
 
   Args:
@@ -129,9 +125,9 @@ class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
     instruction: task instruction showed on the center of the test area.
     pass_key: True to bind Enter key to pass the task.
   """
+  # pylint: disable=abstract-method
 
-  def __init__(self, args, title, instruction,  # pylint: disable=W0231
-               pass_key=True):
+  def __init__(self, args, title, instruction, pass_key=True):
     super(ExtDisplayTask, self).__init__(args.ui)
     self._args = args
     self._ui = args.ui
@@ -205,7 +201,7 @@ class WaitDisplayThread(threading.Thread):
         # we can not check display info has no display with 'isInternal' False
         # because any display for chromebox has 'isInternal' False.
         if ((self._connect and
-             any([x['isInternal'] is False for x in display_info])) or
+             any(x['isInternal'] is False for x in display_info)) or
             not self._connect):
           logging.info('Get display info %r', display_info)
           self._on_success()
@@ -219,6 +215,7 @@ class WaitDisplayThread(threading.Thread):
 
   def VerifyUSBPD(self, port):
     """ Verifies the USB PD port Status.
+
     Returns:
       True for verifying OK,
       False for verifying Fail.
@@ -265,8 +262,8 @@ class DetectDisplayTask(ExtDisplayTask):
     It is called by another thread. It ensures that self.Pass() is called
     via event queue to prevent race condition.
     """
-    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
-                             subtype=self._pass_event))
+    self._ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
+                                   subtype=self._pass_event))
 
   def Prepare(self):
     """Called before running display detection loop."""
@@ -282,9 +279,9 @@ class DetectDisplayTask(ExtDisplayTask):
 
     if self._bft_command:
       try:
-        self._fixture.SetDeviceEngaged(BFTFixture.Device.EXT_DISPLAY,
-                                       self._connect)
-      except BFTFixtureException as e:
+        self._fixture.SetDeviceEngaged(
+            bft_fixture.BFTFixture.Device.EXT_DISPLAY, self._connect)
+      except bft_fixture.BFTFixtureException as e:
         self.Fail('Detect display failed: %s' % e)
 
   def Cleanup(self):
@@ -354,7 +351,7 @@ class FixtureCheckDisplayThread(threading.Thread):
         self._on_success()
         self.Stop()
         return
-      except BFTFixtureException:
+      except bft_fixture.BFTFixtureException:
         num_tries += 1
         if num_tries < self._retry_times:
           logging.info(
@@ -459,8 +456,8 @@ class VideoTask(ExtDisplayTask):
     It is called by another thread. It ensures that self.Pass() is called
     via event queue to prevent race condition.
     """
-    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
-                             subtype=self._pass_event))
+    self._ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
+                                   subtype=self._pass_event))
 
   def PostFailureEvent(self):
     """Posts an event to trigger self.Fail().
@@ -468,8 +465,8 @@ class VideoTask(ExtDisplayTask):
     It is called by another thread. It ensures that self.Fail() is called
     via event queue to prevent race condition.
     """
-    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
-                             subtype=self._fail_event))
+    self._ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
+                                   subtype=self._fail_event))
 
   def Run(self):
     self.SetMainDisplay(recover_original=False)
@@ -494,7 +491,7 @@ class VideoTask(ExtDisplayTask):
       self._check_display.Stop()
 
 
-class AudioSetupTask(FactoryTask):  # pylint: disable=W0223
+class AudioSetupTask(factory_task.FactoryTask):
   """A task to setup audio initial configuration.
 
   Args:
@@ -564,28 +561,24 @@ class ExtDisplayTaskArg(object):
 class ExtDisplayTest(unittest.TestCase):
   """Main class for external display test."""
   ARGS = [
-      Arg(
-          'main_display', str,
+      Arg('main_display', str,
           'xrandr/modeprint ID for ChromeBook\'s main display.',
           optional=False),
       Arg('display_info', list, DISPLAY_INFO_ARG_HELP, optional=False),
-      Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
-      Arg(
-          'connect_only', bool,
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None,
+          optional=True),
+      Arg('connect_only', bool,
           'Just detect ext display connection. This is for a hack that DUT '
           'needs reboot after connect to prevent X crash.', default=False),
-      Arg(
-          'start_output_only', bool,
+      Arg('start_output_only', bool,
           'Only start output of external display. This is for bringing up '
           'the external display for other tests that need it.',
           default=False),
-      Arg(
-          'stop_output_only', bool,
+      Arg('stop_output_only', bool,
           'Only stop output of external display. This is for bringing down '
           'the external display that other tests have finished using.',
           default=False),
-      Arg(
-          'already_connect', bool,
+      Arg('already_connect', bool,
           'Also for the reboot hack with fixture. With it set to True, DUT '
           'does not issue plug ext display command.', default=False)]
 
@@ -596,7 +589,7 @@ class ExtDisplayTest(unittest.TestCase):
     self._task_manager = None
     self._fixture = None
     if self.args.bft_fixture:
-      self._fixture = CreateBFTFixture(**self.args.bft_fixture)
+      self._fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
 
   def InitUI(self):
     """Initializes UI.
@@ -649,7 +642,7 @@ class ExtDisplayTest(unittest.TestCase):
 
   def runTest(self):
     self.InitUI()
-    self._task_manager = FactoryTaskManager(
+    self._task_manager = factory_task.FactoryTaskManager(
         self._ui, self.ComposeTasks(),
         update_progress=self._template.SetProgressBarValue)
     self._task_manager.Run()

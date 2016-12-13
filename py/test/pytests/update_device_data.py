@@ -9,16 +9,14 @@
 
 import unittest
 
-
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import shopfloor
 from cros.factory.utils.arg_utils import Arg
 
 
 class CallShopfloor(unittest.TestCase):
   ARGS = [
-      Arg('data', dict,
-          'Items to update in device data dict.'),
+      Arg('data', dict, 'Items to update in device data dict.'),
   ]
 
   def runTest(self):

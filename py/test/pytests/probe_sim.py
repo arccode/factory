@@ -23,14 +23,14 @@ import time
 import unittest
 import uuid
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event
+from cros.factory.test import event_log
+from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.event import Event
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn, SpawnOutput
+from cros.factory.utils import process_utils
 
 _SIM_PRESENT_RE = r'IMSI: (\d{14,15})'
 _SIM_NOT_PRESENT_RE = r'SIM: /$'
@@ -54,10 +54,10 @@ def ResetModem(reset_commands):
     reset_commands: a list of commands to reset modem
   """
   if not reset_commands:
-    Spawn(['modem', 'reset'], call=True, log=True)
+    process_utils.Spawn(['modem', 'reset'], call=True, log=True)
   else:
     for command in reset_commands:
-      Spawn(command, call=True, log=True)
+      process_utils.Spawn(command, call=True, log=True)
     time.sleep(_INSERT_CHECK_PERIOD_SECS)
 
 
@@ -90,7 +90,7 @@ class WaitSIMCardThread(threading.Thread):
       if self._simcard_event == ProbeSIMCardTask.INSERT_SIM_CARD:
         if self._args.enable_modem_reset:
           ResetModem(self._args.modem_reset_commands)
-      output = SpawnOutput(['modem', 'status'], log=True)
+      output = process_utils.SpawnOutput(['modem', 'status'], log=True)
       logging.info(output)
       present = self._re_present.search(output)
       if present:
@@ -101,7 +101,7 @@ class WaitSIMCardThread(threading.Thread):
 
       if self._simcard_event == ProbeSIMCardTask.INSERT_SIM_CARD and present:
         logging.info('ICCID: %s', present.group(1))
-        Log('SIM_CARD_DETECTION', ICCID=present.group(1))
+        event_log.Log('SIM_CARD_DETECTION', ICCID=present.group(1))
         self.Detected()
       elif (self._simcard_event == ProbeSIMCardTask.REMOVE_SIM_CARD
             and not_present):
@@ -123,7 +123,7 @@ class WaitSIMCardThread(threading.Thread):
     self._done.set()
 
 
-class ProbeSIMCardTask(FactoryTask):
+class ProbeSIMCardTask(factory_task.FactoryTask):
   """Probe SIM card task."""
   INSERT_SIM_CARD = 'Insertion'
   REMOVE_SIM_CARD = 'Removal'
@@ -134,16 +134,14 @@ class ProbeSIMCardTask(FactoryTask):
     self._template = test.template
     self._force_stop = test.force_stop
     self._instruction = instruction
-    self._wait_sim = (
-        WaitSIMCardThread(
-            simcard_event, self.PostSuccessEvent,
-            self._force_stop, test))
+    self._wait_sim = WaitSIMCardThread(
+        simcard_event, self.PostSuccessEvent, self._force_stop, test)
     self._pass_event = str(uuid.uuid4())
 
   def PostSuccessEvent(self):
     """Posts an event to trigger self.Pass()"""
-    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
-                             subtype=self._pass_event))
+    self._ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
+                                   subtype=self._pass_event))
 
   def Run(self):
     self._template.SetState(self._instruction)
@@ -170,7 +168,7 @@ class RemoveSIMTask(ProbeSIMCardTask):
                                         ProbeSIMCardTask.REMOVE_SIM_CARD)
 
 
-class CheckSIMTask(FactoryTask):
+class CheckSIMTask(factory_task.FactoryTask):
   """Task to check SIM card state"""
 
   def __init__(self, test):
@@ -182,12 +180,12 @@ class CheckSIMTask(FactoryTask):
     self._template.SetState(_CHECK_SIM_INSTRUCTION)
     if self._args.enable_modem_reset:
       ResetModem(self._args.modem_reset_commands)
-    output = SpawnOutput(['modem', 'status'], log=True)
+    output = process_utils.SpawnOutput(['modem', 'status'], log=True)
     if self._args.poll_modem_status:
       total_delay = 0
       while not output:
         time.sleep(_INSERT_CHECK_PERIOD_SECS)
-        output = SpawnOutput(['modem', 'status'], log=True)
+        output = process_utils.SpawnOutput(['modem', 'status'], log=True)
         total_delay += _INSERT_CHECK_PERIOD_SECS
         if total_delay >= _INSERT_CHECK_MAX_WAIT:
           self.Fail('Failed to detect sim in ' +
@@ -240,7 +238,7 @@ class ProbeSIMCardTest(unittest.TestCase):
     else:
       task_list = [InsertSIMTask(self), RemoveSIMTask(self)]
 
-    self._task_manager = FactoryTaskManager(
+    self._task_manager = factory_task.FactoryTaskManager(
         self.ui, task_list, on_finish=Done)
 
     self._task_manager.Run()

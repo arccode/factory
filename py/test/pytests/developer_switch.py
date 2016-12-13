@@ -8,12 +8,12 @@
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
-from cros.factory.utils.arg_utils import Arg
 
 _MSG_TURN_ON = test_ui.MakeLabel(
     'Please turn <b class="on">ON</b> Developer Switch.',
@@ -32,13 +32,13 @@ _MSG_SW_OFF = test_ui.MakeLabel(
     u'DEV SW 开发者开关目前为<b class="off">关闭</b>状态')
 
 _TEST_PAGE_CSS = """
-  .on {
-    color: green;
-  }
-  .off {
-    color: red;
-  }
-  """
+.on {
+  color: green;
+}
+.off {
+  color: red;
+}
+"""
 
 
 class DeveloperSwitchTest(unittest.TestCase):

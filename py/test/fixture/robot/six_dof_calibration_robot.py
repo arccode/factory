@@ -4,12 +4,12 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.external import serial
-from cros.factory.test.fixture.robot.robot import (Robot, RobotException)
+from cros.factory.test.fixture.robot import robot
 
 
-class SixDoFCalibrationRobot(Robot):
+class SixDoFCalibrationRobot(robot.Robot):
   """Communication object for 6 DoF calibration robot.
 
   The robot is connected with a TCP/IP socket. With command as the following
@@ -89,11 +89,11 @@ class SixDoFCalibrationRobot(Robot):
       logging.info('Sending data %s to robot.', data)
 
     if self._serial.write(data) != len(data):
-      raise RobotException('Failed to send command.')
+      raise robot.RobotException('Failed to send command.')
 
     res = self._serial.readline()
     if -1 == res.find('OK'):
-      raise RobotException('Unexpected data %s received from robot.', res)
+      raise robot.RobotException('Unexpected data %s received from robot.', res)
 
     if self._log:
       logging.info('Received from robot: %s', res)

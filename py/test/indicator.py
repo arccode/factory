@@ -11,8 +11,8 @@ import os
 import threading
 import yaml
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import process_utils
 
 # Use configuration file to define different state.
 # Configuration file is using YAML nested collections format.
@@ -56,7 +56,7 @@ _indicator_instance = None
 
 
 def get_indicator_instance():
-  global _indicator_instance  # pylint: disable=W0603
+  global _indicator_instance  # pylint: disable=global-statement
   if _indicator_instance is None:
     _indicator_instance = Indicator()
   return _indicator_instance
@@ -96,6 +96,6 @@ class Indicator(object):
         return
       if state in self.config:
         command = self.config[state]
-        Spawn(command)
+        process_utils.Spawn(command)
       else:
         logging.error('No matched state: %s', state)

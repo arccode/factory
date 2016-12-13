@@ -13,7 +13,7 @@ configuration/ sensor combination.
 import argparse
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf.n1914a import N1914A
 
 
@@ -43,8 +43,8 @@ if __name__ == '__main__':
   n1914a.SetTriggerToFreeRun(port=args.port)
   n1914a.SetContinuousTrigger(port=args.port)
 
-  time_elapsed = dict()
-  last_measurment = dict()
+  time_elapsed = {}
+  last_measurment = {}
   for mode_name, mode_func in modes:
     mode_func(port=args.port)
     print 'Profiling mode %s ...' % mode_name

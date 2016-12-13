@@ -8,11 +8,11 @@ import logging
 import serial
 import time
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.utils.serial_utils import SerialDevice
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.utils import serial_utils
 
 
-class ArduinoController(SerialDevice):
+class ArduinoController(serial_utils.SerialDevice):
   """Used to communicate with fixture with Arduino microcontroller.
 
   An optional ready_delay_secs is used that Arduino Uno is reset for

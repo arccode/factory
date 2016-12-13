@@ -10,9 +10,11 @@ $ sudo USE='jpeg python' emerge zbar
 Otherwise the unittest will be skipped automatically.
 """
 
+from __future__ import print_function
+
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test.fixture.camera.light_chamber import LightChamber
 from cros.factory.test.fixture.camera import perf_tester as camperf
@@ -101,10 +103,11 @@ class CameraFixtureTest(unittest.TestCase):
 
   def runTest(self):
     try:
-      import cv      # pylint: disable=W0612,F0401
-      import cv2     # pylint: disable=W0612,F0401
-      import numpy   # pylint: disable=W0612,F0401
-      import zbar    # pylint: disable=W0612,F0401
+      # pylint: disable=unused-variable
+      import cv
+      import cv2
+      import numpy
+      import zbar
     except ImportError:
       print('Camera fixture unit test is skipped for missing OpenCV/numpy.')
       return

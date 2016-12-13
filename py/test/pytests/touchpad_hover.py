@@ -9,7 +9,7 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
@@ -38,10 +38,10 @@ _MSG_FP_CHECK = test_ui.MakeLabel(
 _ID_PROMPT = 'touchpad-hover-test-prompt'
 _ID_TIMER = 'touchpad-hover-test-timer'
 
-_HTML = '''
+_HTML = """
 <div id="%s"></div>
 <div id="%s"></div>
-''' % (_ID_PROMPT, _ID_TIMER)
+""" % (_ID_PROMPT, _ID_TIMER)
 
 
 class TouchpadHoverTest(unittest.TestCase):

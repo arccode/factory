@@ -8,7 +8,7 @@
 
 import mock
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.pytests.interrupt import interrupt
 

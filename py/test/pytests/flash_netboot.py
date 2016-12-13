@@ -13,13 +13,13 @@ step after it.
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_ui import Escape, MakeLabel, UI
-from cros.factory.test.ui_templates import OneScrollableSection
-from cros.factory.tools.flash_netboot import FlashNetboot
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
+from cros.factory.tools import flash_netboot
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = MakeLabel('Flash Netboot Firmware', u'烧录 netboot 韧体')
+_TEST_TITLE = test_ui.MakeLabel('Flash Netboot Firmware', u'烧录 netboot 韧体')
 _CSS = '#state {text-align:left;}'
 
 
@@ -32,19 +32,20 @@ class FlashNetbootTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._ui = UI()
-    self._template = OneScrollableSection(self._ui)
+    self._ui = test_ui.UI()
+    self._template = ui_templates.OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendCSS(_CSS)
 
   def ShowResult(self, message):
     logging.info(message.strip())
-    self._template.SetState(Escape(message), append=True, scroll_down=True)
+    self._template.SetState(test_ui.Escape(message),
+                            append=True, scroll_down=True)
 
   def runTest(self):
     self._ui.Run(blocking=False)
 
-    netboot_flasher = FlashNetboot(self.args.image,
-                                   on_output=self.ShowResult)
+    netboot_flasher = flash_netboot.FlashNetboot(self.args.image,
+                                                 on_output=self.ShowResult)
     self.ShowResult(netboot_flasher.WarningMessage())
     netboot_flasher.Run()

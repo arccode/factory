@@ -24,7 +24,7 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -76,41 +76,43 @@ _CMD_PING = '/bin/ping -q -i 0.1 -s 1000 -c120 192.168.%c.254'
 # NB: The two keys contained here are meant to be used with the
 # particular WAP device built into the RF Test Chamber at the
 # RMA factory. Key for doing ssh access to WAP control computer
-_TESTING_RSA = '-----BEGIN RSA PRIVATE KEY-----\n\
-MIIEoAIBAAKCAQEAvsNpFdK5lb0GfKx+FgsrsM/2+aZVFYXHMPdvGtTz63ciRhq0\n\
-Jnw7nln1SOcHraSz3/imECBg8NHIKV6rA+B9zbf7pZXEv20x5Ul0vrcPqYWC44PT\n\
-tgsgvi8s0KZUZN93YlcjZ+Q7BjQ/tuwGSaLWLqJ7hnHALMJ3dbEM9fKBHQBCrG5H\n\
-OaWD2gtXj7jp04M/WUnDDdemq/KMg6E9jcrJOiQ39IuTpas4hLQzVkKAKSrpl6MY\n\
-2etHyoNarlWhcOwitArEDwf3WgnctwKstI/MTKB5BTpO2WXUNUv4kXzA+g8/l1al\n\
-jIG13vtd9A/IV3KFVx/sLkkjuZ7z2rQXyNKuJwIBIwKCAQA79EWZJPh/hI0CnJyn\n\
-16AEXp4T8nKDG2p9GpCiCGnq6u2Dvz/u1pZk97N9T+x4Zva0GvJc1vnlST7objW/\n\
-Y8/ET8QeGSCT7x5PYDqiVspoemr3DCyYTKPkADKn+cLAngDzBXGHDTcfNP4U6xfr\n\
-Qc5JK8BsFR8kApqSs/zCU4eqBtp2FVvPbgUOv3uUrFnjEuGs9rb1QZ0K6o08L4Cq\n\
-N+e2nTysjp78blakZfqlurqTY6iJb0ImU2W3T8sV6w5GP1NT7eicXLO3WdIRB15a\n\
-evogPeqtMo8GcO62wU/D4UCvq4GNEjvYOvFmPzXHvhTxsiWv5KEACtleBIEYmWHA\n\
-POwrAoGBAOKgNRgxHL7r4bOmpLQcYK7xgA49OpikmrebXCQnZ/kZ3QsLVv1QdNMH\n\
-Rx/ex7721g8R0oWslM14otZSMITCDCMWTYVBNM1bqYnUeEu5HagFwxjQ2tLuSs8E\n\
-SBzEr96JLfhwuBhDH10sQqn+OQG1yj5acs4Pt3L4wlYwMx0vs1BxAoGBANd9Owro\n\
-5ONiJXfKNaNY/cJYuLR+bzGeyp8oxToxgmM4UuA4hhDU7peg4sdoKJ4XjB9cKMCz\n\
-ZGU5KHKKxNf95/Z7aywiIJEUE/xPRGNP6tngRunevp2QyvZf4pgvACvk1tl9B3HH\n\
-7J5tY/GRkT4sQuZYpx3YnbdP5Y6Kx33BF7QXAoGAVCzghVQR/cVT1QNhvz29gs66\n\
-iPIrtQnwUtNOHA6i9h+MnbPBOYRIpidGTaqEtKTTKisw79JjJ78X6TR4a9ML0oSg\n\
-c1K71z9NmZgPbJU25qMN80ZCph3+h2f9hwc6AjLz0U5wQ4alP909VRVIX7iM8paf\n\
-q59wBiHhyD3J16QAxhsCgYBu0rCmhmcV2rQu+kd4lCq7uJmBZZhFZ5tny9MlPgiK\n\
-zIJkr1rkFbyIfqCDzyrU9irOTKc+iCUA25Ek9ujkHC4m/aTU3lnkNjYp/OFXpXF3\n\
-XWZMY+0Ak5uUpldG85mwLIvATu3ivpbyZCTFYM5afSm4StmaUiU5tA+oZKEcGily\n\
-jwKBgBdFLg+kTm877lcybQ04G1kIRMf5vAXcConzBt8ry9J+2iX1ddlu2K2vMroD\n\
-1cP/U/EmvoCXSOGuetaI4UNQwE/rGCtkpvNj5y4twVLh5QufSOl49V0Ut0mwjPXw\n\
-HfN/2MoO07vQrjgsFylvrw9A79xItABaqKndlmqlwMZWc9Ne\n\
------END RSA PRIVATE KEY-----\n'
+_TESTING_RSA = (
+    '-----BEGIN RSA PRIVATE KEY-----\n'
+    'MIIEoAIBAAKCAQEAvsNpFdK5lb0GfKx+FgsrsM/2+aZVFYXHMPdvGtTz63ciRhq0\n'
+    'Jnw7nln1SOcHraSz3/imECBg8NHIKV6rA+B9zbf7pZXEv20x5Ul0vrcPqYWC44PT\n'
+    'tgsgvi8s0KZUZN93YlcjZ+Q7BjQ/tuwGSaLWLqJ7hnHALMJ3dbEM9fKBHQBCrG5H\n'
+    'OaWD2gtXj7jp04M/WUnDDdemq/KMg6E9jcrJOiQ39IuTpas4hLQzVkKAKSrpl6MY\n'
+    '2etHyoNarlWhcOwitArEDwf3WgnctwKstI/MTKB5BTpO2WXUNUv4kXzA+g8/l1al\n'
+    'jIG13vtd9A/IV3KFVx/sLkkjuZ7z2rQXyNKuJwIBIwKCAQA79EWZJPh/hI0CnJyn\n'
+    '16AEXp4T8nKDG2p9GpCiCGnq6u2Dvz/u1pZk97N9T+x4Zva0GvJc1vnlST7objW/\n'
+    'Y8/ET8QeGSCT7x5PYDqiVspoemr3DCyYTKPkADKn+cLAngDzBXGHDTcfNP4U6xfr\n'
+    'Qc5JK8BsFR8kApqSs/zCU4eqBtp2FVvPbgUOv3uUrFnjEuGs9rb1QZ0K6o08L4Cq\n'
+    'N+e2nTysjp78blakZfqlurqTY6iJb0ImU2W3T8sV6w5GP1NT7eicXLO3WdIRB15a\n'
+    'evogPeqtMo8GcO62wU/D4UCvq4GNEjvYOvFmPzXHvhTxsiWv5KEACtleBIEYmWHA\n'
+    'POwrAoGBAOKgNRgxHL7r4bOmpLQcYK7xgA49OpikmrebXCQnZ/kZ3QsLVv1QdNMH\n'
+    'Rx/ex7721g8R0oWslM14otZSMITCDCMWTYVBNM1bqYnUeEu5HagFwxjQ2tLuSs8E\n'
+    'SBzEr96JLfhwuBhDH10sQqn+OQG1yj5acs4Pt3L4wlYwMx0vs1BxAoGBANd9Owro\n'
+    '5ONiJXfKNaNY/cJYuLR+bzGeyp8oxToxgmM4UuA4hhDU7peg4sdoKJ4XjB9cKMCz\n'
+    'ZGU5KHKKxNf95/Z7aywiIJEUE/xPRGNP6tngRunevp2QyvZf4pgvACvk1tl9B3HH\n'
+    '7J5tY/GRkT4sQuZYpx3YnbdP5Y6Kx33BF7QXAoGAVCzghVQR/cVT1QNhvz29gs66\n'
+    'iPIrtQnwUtNOHA6i9h+MnbPBOYRIpidGTaqEtKTTKisw79JjJ78X6TR4a9ML0oSg\n'
+    'c1K71z9NmZgPbJU25qMN80ZCph3+h2f9hwc6AjLz0U5wQ4alP909VRVIX7iM8paf\n'
+    'q59wBiHhyD3J16QAxhsCgYBu0rCmhmcV2rQu+kd4lCq7uJmBZZhFZ5tny9MlPgiK\n'
+    'zIJkr1rkFbyIfqCDzyrU9irOTKc+iCUA25Ek9ujkHC4m/aTU3lnkNjYp/OFXpXF3\n'
+    'XWZMY+0Ak5uUpldG85mwLIvATu3ivpbyZCTFYM5afSm4StmaUiU5tA+oZKEcGily\n'
+    'jwKBgBdFLg+kTm877lcybQ04G1kIRMf5vAXcConzBt8ry9J+2iX1ddlu2K2vMroD\n'
+    '1cP/U/EmvoCXSOGuetaI4UNQwE/rGCtkpvNj5y4twVLh5QufSOl49V0Ut0mwjPXw\n'
+    'HfN/2MoO07vQrjgsFylvrw9A79xItABaqKndlmqlwMZWc9Ne\n'
+    '-----END RSA PRIVATE KEY-----\n')
 
-_SSH_KNOWN_HOSTS = 'accesspointwired,192.168.10.1 ssh-rsa \
-AAAAB3NzaC1yc2EAAAABIwAAAQEA4EXuGUeYdiKt4P4foYDouAqAnHV+wyLDwLZu1X\
-TQDTSeegq1KdNtn2pQrlepFqSjw+oUTUdG0WTp9U51GKBXWn/srnnxtmOgLnaRV7+O\
-dxS85RUBiFVL7Z/hdLZ3AhHNUA/HY7G7qZx0GQ65xwKHBWEvqYqWmCD0PyiniZueOD\
-954iJj0sAhp+z4OWURO1Wg3LOmL6toUI3sDy/17ORGOrb1YmylARttnVPR/5KXitv5\
-gKfKFmI4G7uV3L6G0PfVx57Ex2y8wEu5d8Dmo2CQkTymoY41Zagho0GvyCteuxC9wW\
-kK0yAPBZ9yHOAKZbgJNTn3Tylt2w60spSFKW14QQ==\n'
+_SSH_KNOWN_HOSTS = (
+    'accesspointwired,192.168.10.1 ssh-rsa '
+    'AAAAB3NzaC1yc2EAAAABIwAAAQEA4EXuGUeYdiKt4P4foYDouAqAnHV+wyLDwLZu1X'
+    'TQDTSeegq1KdNtn2pQrlepFqSjw+oUTUdG0WTp9U51GKBXWn/srnnxtmOgLnaRV7+O'
+    'dxS85RUBiFVL7Z/hdLZ3AhHNUA/HY7G7qZx0GQ65xwKHBWEvqYqWmCD0PyiniZueOD'
+    '954iJj0sAhp+z4OWURO1Wg3LOmL6toUI3sDy/17ORGOrb1YmylARttnVPR/5KXitv5'
+    'gKfKFmI4G7uV3L6G0PfVx57Ex2y8wEu5d8Dmo2CQkTymoY41Zagho0GvyCteuxC9wW'
+    'kK0yAPBZ9yHOAKZbgJNTn3Tylt2w60spSFKW14QQ==\n')
 
 
 class LEDflasher(threading.Thread):
@@ -142,6 +144,7 @@ class LEDflasher(threading.Thread):
 
   def SetRedLED(self, state):
     """Sets Red LED.
+
     Args:
       state: True|False for On|Off.
     """
@@ -149,6 +152,7 @@ class LEDflasher(threading.Thread):
 
   def SetGreenLED(self, state):
     """Sets Green LED.
+
     Args:
       state: True|False for On|Off.
     """
@@ -156,7 +160,7 @@ class LEDflasher(threading.Thread):
 
   def run(self):
     timeout = time.time() + self._duration
-    while ((time.time() < timeout) and not self._done.is_set()):
+    while time.time() < timeout and not self._done.is_set():
       self.pinmap[self._color](True)
       time.sleep(self._on)
       self.pinmap[self._color](False)
@@ -168,14 +172,15 @@ class LEDflasher(threading.Thread):
 
 class Wifi_RF(unittest.TestCase):
   """Factory test for Wifi.
-    Tests both 2.5 and 5.5 GHz bands. Uses modified WAP with attenuated
-    antennas that simulate distance from base station. This test qualifies
-    the antennas and antenna connections in a Chromebook. Of course, it
-    also tests basic Chromebook WiFi functionality.
-    Requires operation in a Faraday cage where the captive WAP
-    is the only one. If run where other WAPs are seen by the DUT, the
-    average signal strength measurements won't be as accurate and
-    could fail incorrectly.
+
+  Tests both 2.5 and 5.5 GHz bands. Uses modified WAP with attenuated
+  antennas that simulate distance from base station. This test qualifies
+  the antennas and antenna connections in a Chromebook. Of course, it
+  also tests basic Chromebook WiFi functionality.
+  Requires operation in a Faraday cage where the captive WAP
+  is the only one. If run where other WAPs are seen by the DUT, the
+  average signal strength measurements won't be as accurate and
+  could fail incorrectly.
   """
   ARGS = [
       Arg('led_serial_port', str,
@@ -210,9 +215,6 @@ class Wifi_RF(unittest.TestCase):
 
     Give operator time to close chamber door after hitting key.
     Connect to LED control serial port.
-
-    Args:
-      None.
     """
     # Delay to let operator close RF Chamber door after hitting SPACE key.
     for i in range(5, 0, -1):
@@ -244,9 +246,6 @@ class Wifi_RF(unittest.TestCase):
     Change LED flash pattern to Pass or Fail.
     Give operator a chance to remove DUT from chamber, bring back to a test
     station and re-connect to network.
-
-    Args:
-      None.
     """
     self._led_testing.Stop()
 
@@ -258,16 +257,13 @@ class Wifi_RF(unittest.TestCase):
     # RF Chamber testing is finished. Bring back to test station.
 
     self._template.SetState(_MSG_CHAMBER_REMOVE)
-    self._ui.BindKey(' ', self.TestEnd)
+    self._ui.BindKey(test_ui.SPACE_KEY, self.TestEnd)
 
-  def TestEnd(self, unused_event):
-    """Test is Done.
-
-    Args:
-      None.
-    """
+  def TestEnd(self, event):
+    """Test is Done."""
+    del event  # Unused.
     self._led_flasher.Stop()
-    if (self._fail == True):
+    if self._fail == True:
       self._ui.Fail('Problem with WiFi signal testing')
     else:
       self._ui.Pass()
@@ -307,12 +303,9 @@ class Wifi_RF(unittest.TestCase):
     results.avg = db_avg
     return results
 
-  def RunSubtests(self, unused_event):
-    """Iterate to next test.
-
-    Args:
-      unused_event: ignored.
-    """
+  def RunSubtests(self, event):
+    """Iterate to next test."""
+    del event  # Unused.
     for test in _SUBTESTS:
       self.Subtest(test)
 
@@ -326,7 +319,7 @@ class Wifi_RF(unittest.TestCase):
           each antenna.
     """
     # Start of WiFi test sequence
-    if (self._initflag == True):
+    if self._initflag == True:
       self.TestInit()
       self._initflag = False
 
@@ -373,10 +366,10 @@ class Wifi_RF(unittest.TestCase):
       factory.console.info('%sGHz. Antenna %s. Signal strength inconsistent, '
                            'did the door open ?', test.freq, test.antenna)
 
-    if (db_result.avg == 0):
+    if db_result.avg == 0:
       factory.console.info('Possible problem with test equipment.')
 
-    if ((db_result.avg < test.db) or (abs(db_result.max - db_result.min) > 10)):
+    if db_result.avg < test.db or abs(db_result.max - db_result.min) > 10:
       logging.info('%sGHz. Antenna %s. Signal problems.',
                    test.freq, test.antenna)
       self._fail = True
@@ -428,5 +421,5 @@ class Wifi_RF(unittest.TestCase):
 
     self._initflag = True
     self._template.SetState(_MSG_READY_CLOSE)
-    self._ui.BindKey(' ', self.RunSubtests)
+    self._ui.BindKey(test_ui.SPACE_KEY, self.RunSubtests)
     self._ui.Run()

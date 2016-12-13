@@ -7,14 +7,14 @@
 import os
 import subprocess
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import process_utils
-from cros.factory.utils.type_utils import LazyProperty
+from cros.factory.utils import type_utils
 
 
 class FactoryPythonArchive(object):
-  """ Deploy and invoke the Factory Python Archive (.par) file.
+  """Deploy and invoke the Factory Python Archive (.par) file.
 
   Some factory programs may need to run on restricted environments without full
   Goofy configuration (for example, gooftool and hwid both highly depends on
@@ -43,16 +43,18 @@ class FactoryPythonArchive(object):
     self._dut = dut
 
     if local_factory_par:
-      LazyProperty.Override(self, 'local_factory_par', local_factory_par)
+      type_utils.LazyProperty.Override(
+          self, 'local_factory_par', local_factory_par)
 
     if remote_factory_par:
-      LazyProperty.Override(self, 'remote_factory_par', remote_factory_par)
+      type_utils.LazyProperty.Override(
+          self, 'remote_factory_par', remote_factory_par)
 
-  @LazyProperty
+  @type_utils.LazyProperty
   def local_factory_par(self):
     return paths.GetFactoryPythonArchivePath()
 
-  @LazyProperty
+  @type_utils.LazyProperty
   def remote_factory_par(self):
     if self._dut.link.IsLocal():
       return self.local_factory_par
@@ -60,7 +62,7 @@ class FactoryPythonArchive(object):
     return self._dut.path.join(
         self._dut.storage.GetFactoryRoot(), 'factory.par')
 
-  @LazyProperty
+  @type_utils.LazyProperty
   def checksum(self):
     if not os.path.exists(self.local_factory_par):
       raise IOError('No such file: %s' % self.local_factory_par)

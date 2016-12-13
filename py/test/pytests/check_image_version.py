@@ -9,16 +9,16 @@
 # match what's provided in the test argument, flash netboot firmware if it is
 # provided.
 
-from distutils.version import StrictVersion, LooseVersion
+from distutils import version
 import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.test import factory_task
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -63,9 +63,10 @@ _SHOPFLOOR_TIMEOUT_SECS = 10
 _RETRY_INTERVAL_SECS = 3
 
 
-class ImageCheckTask(FactoryTask):
+class ImageCheckTask(factory_task.FactoryTask):
 
-  def __init__(self, test):  # pylint: disable=W0231
+  def __init__(self, test):
+    super(ImageCheckTask, self).__init__()
     self._test = test
     self.dut = test.dut
 
@@ -106,7 +107,7 @@ class ImageCheckTask(FactoryTask):
       self.dut.CheckCall(['reboot'], log=True)
 
       self.Fail('Incorrect image version, DUT is rebooting to reimage.')
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       self._test.template.SetState(_MSG_FLASH_ERROR)
 
   def CheckImageFromUmpire(self):
@@ -134,8 +135,8 @@ class ImageCheckTask(FactoryTask):
     else:
       ver = self.dut.info.factory_image_version
     Log('image_version', version=ver)
-    version_format = (LooseVersion if self._test.args.loose_version
-                      else StrictVersion)
+    version_format = (version.LooseVersion if self._test.args.loose_version
+                      else version.StrictVersion)
     logging.info('Using version format: %r', version_format.__name__)
     logging.info('current version: %r', ver)
     logging.info('expected version: %r', self._test.args.min_version)
@@ -186,4 +187,4 @@ class CheckImageVersionTest(unittest.TestCase):
     self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
-    FactoryTaskManager(self.ui, self._task_list).Run()
+    factory_task.FactoryTaskManager(self.ui, self._task_list).Run()

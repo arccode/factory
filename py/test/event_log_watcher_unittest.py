@@ -11,10 +11,11 @@ import tempfile
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import event_log_watcher
-from cros.factory.test.event_log_watcher import Chunk, EventLogWatcher
+from cros.factory.test.event_log_watcher import Chunk
+from cros.factory.test.event_log_watcher import EventLogWatcher
 
 MOCK_LOG_NAME = lambda x: 'mylog12345%d' % x
 
@@ -56,14 +57,14 @@ class EventLogWatcherTest(unittest.TestCase):
     shutil.rmtree(self.temp_dir)
 
   def WriteLog(self, content, file_name=None):
-    '''Writes text content into a log file.
+    """Writes text content into a log file.
 
     If the given log file exists, new content will be appended.
 
     Args:
       content: the text content to write
       file_name: the name of the log file we're written to
-    '''
+    """
     file_path = ''
     if file_name is None:
       file_path = tempfile.NamedTemporaryFile(dir=self.events_dir,

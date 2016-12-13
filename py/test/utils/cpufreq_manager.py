@@ -8,9 +8,9 @@ import os
 import subprocess
 import traceback
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import file_utils
 from cros.factory.utils import service_utils
-from cros.factory.utils.file_utils import WriteFile
 
 
 THERMAL_SERVICES = ('thermal', 'dptf')
@@ -72,18 +72,19 @@ class CpufreqManager(object):
           # go if we can not find the service.
           pass
         else:
-          if (current_service_status != thermal_service_status):
+          if current_service_status != thermal_service_status:
             service_utils.SetServiceStatus(service, thermal_service_status)
 
       success = True
       exception = None
       for path in glob.glob(self.cpufreq_path_glob):
         try:
-          WriteFile(os.path.join(path, 'scaling_governor'), governor, log=True)
+          file_utils.WriteFile(os.path.join(path, 'scaling_governor'),
+                               governor, log=True)
           if not enabled:
-            WriteFile(os.path.join(path, 'scaling_setspeed'),
-                      self.cpu_speed_hz, log=True)
-        except:  # pylint: disable=W0702
+            file_utils.WriteFile(os.path.join(path, 'scaling_setspeed'),
+                                 self.cpu_speed_hz, log=True)
+        except:  # pylint: disable=bare-except
           success = False
           logging.exception('Unable to set CPU scaling parameters')
           exception = traceback.format_exc()

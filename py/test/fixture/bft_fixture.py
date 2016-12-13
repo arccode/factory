@@ -33,8 +33,8 @@ import logging
 import os
 import yaml
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.type_utils import Enum
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import type_utils
 
 
 TEST_ARG_HELP = """A dictionary with the following items:
@@ -63,24 +63,26 @@ class BFTFixture(object):
 
   Methods for this class will raise BFTFixtureException if a failure occurs.
   """
-  SystemStatus = Enum(['BACKLIGHT'])
-  Status = Enum(['OFF', 'ON', 'OPEN', 'CLOSING', 'CLOSED'])
+  SystemStatus = type_utils.Enum(['BACKLIGHT'])
+  Status = type_utils.Enum(['OFF', 'ON', 'OPEN', 'CLOSING', 'CLOSED'])
 
   # A subset of cros.factory.device.led.LED.Color.
-  LEDColor = Enum(['RED', 'GREEN', 'YELLOW', 'BLUE', 'OFF'])
+  LEDColor = type_utils.Enum(['RED', 'GREEN', 'YELLOW', 'BLUE', 'OFF'])
 
-  StatusColor = Enum(['RED', 'GREEN', 'OFF'])
-  Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
-                 'USB_0', 'USB_1', 'USB_2', 'BATTERY',
-                 'C0_CC2_DUT', 'C1_CC2_DUT', 'PWR_BUTTON',
-                 'LID_HALL_MAGNET', 'BASE_HALL_MAGNET', 'BASE_CHARGER',
-                 # Dolphin mini fixture devices.
-                 'CHARGE_5V', 'CHARGE_12V', 'CHARGE_20V',
-                 'USB2', 'USB3', 'DP', 'ADB_HOST', 'DEFAULT'])
+  StatusColor = type_utils.Enum(['RED', 'GREEN', 'OFF'])
+  Device = type_utils.Enum([
+      'AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
+      'USB_0', 'USB_1', 'USB_2', 'BATTERY',
+      'C0_CC2_DUT', 'C1_CC2_DUT', 'PWR_BUTTON',
+      'LID_HALL_MAGNET', 'BASE_HALL_MAGNET', 'BASE_CHARGER',
+      # Dolphin mini fixture devices.
+      'CHARGE_5V', 'CHARGE_12V', 'CHARGE_20V',
+      'USB2', 'USB3', 'DP', 'ADB_HOST', 'DEFAULT'])
 
   # LCM enumeration.
-  LcmCommand = Enum(['BACKLIGHT_OFF', 'BACKLIGHT_ON', 'CLEAR', 'HOME'])
-  LcmRow = Enum(['ROW0', 'ROW1', 'ROW2', 'ROW3'])
+  LcmCommand = type_utils.Enum([
+      'BACKLIGHT_OFF', 'BACKLIGHT_ON', 'CLEAR', 'HOME'])
+  LcmRow = type_utils.Enum(['ROW0', 'ROW1', 'ROW2', 'ROW3'])
 
   def Init(self, **kwargs):
     """Initializes connection with fixture."""

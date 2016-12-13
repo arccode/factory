@@ -12,17 +12,13 @@ It starts a local server to mock the test equipment.
 from __future__ import print_function
 
 import logging
+import SocketServer
 import threading
 import unittest
-import SocketServer
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.rf import lan_scpi
 from cros.factory.utils import net_utils
-from cros.factory.test.rf.lan_scpi import Error
-from cros.factory.test.rf.lan_scpi import TimeoutError
-from cros.factory.test.rf.lan_scpi import LANSCPI
-
-# pylint: disable=W0232
 
 
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -37,7 +33,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   Exceptions will be raised if recieves unexpected message from client.
   """
-  responses_lookup = list()
+  responses_lookup = []
 
   @classmethod
   def AddLookup(cls, input_line, response):
@@ -45,7 +41,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   @classmethod
   def ResetLookup(cls):
-    cls.responses_lookup = list()
+    cls.responses_lookup = []
 
   def __init__(self, *args, **kwargs):
     self.lookup = list(self.responses_lookup)
@@ -84,7 +80,6 @@ class LanScpiTest(unittest.TestCase):
     server_port = net_utils.FindUnusedTCPPort()
     mock_server = MockTestServer(
         (net_utils.LOCALHOST, server_port), MockServerHandler)
-    # pylint: disable=E1101
     server_thread = threading.Thread(target=mock_server.serve_forever)
     server_thread.daemon = True
     server_thread.start()
@@ -94,7 +89,8 @@ class LanScpiTest(unittest.TestCase):
 
   def _StartTest(self):
     self.mock_server, self.server_port = self._StartMockServer()
-    self.lan_scpi = LANSCPI(host=net_utils.LOCALHOST, port=self.server_port)
+    self.lan_scpi = lan_scpi.LANSCPI(
+        host=net_utils.LOCALHOST, port=self.server_port)
 
   def testBasicConnect(self):
     self._StartTest()
@@ -121,7 +117,7 @@ class LanScpiTest(unittest.TestCase):
     MockServerHandler.AddLookup('*OPC?', self.NORMAL_OPC_RESPONSE)
 
     self._StartTest()
-    self.assertRaisesRegexp(Error, 'Undefined header',
+    self.assertRaisesRegexp(lan_scpi.Error, 'Undefined header',
                             self.lan_scpi.Send, TEST_COMMAND)
 
   def testQuery(self):
@@ -145,7 +141,7 @@ class LanScpiTest(unittest.TestCase):
     MockServerHandler.AddLookup('SYST:ERR?', None)
 
     self._StartTest()
-    self.assertRaisesRegexp(TimeoutError, 'Timeout',
+    self.assertRaisesRegexp(lan_scpi.TimeoutError, 'Timeout',
                             self.lan_scpi.Query, TEST_COMMAND)
 
   def setUp(self):
@@ -156,7 +152,7 @@ class LanScpiTest(unittest.TestCase):
 
   def tearDown(self):
     self.lan_scpi.Close()
-    self.mock_server.shutdown()  # pylint: disable=E1101
+    self.mock_server.shutdown()
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

@@ -11,9 +11,9 @@ so here we have to create a 'dut' module that forwards all APIs
 for old tests to run.
 """
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory import device
-from cros.factory.device import board
+from cros.factory.device import board  # pylint: disable=unused-import
 from cros.factory.device import component
 from cros.factory.device import device_utils
 

@@ -6,17 +6,16 @@
 import mock
 import os
 import tempfile
-import textwrap
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import board
 from cros.factory.device import memory
 from cros.factory.device import info
 from cros.factory.device import temp
 from cros.factory.test.utils import stress_manager
 
-# pylint: disable=W0212
+# pylint: disable=protected-access
 class StressManagerUnittest(unittest.TestCase):
   def setUp(self):
     self.dut = mock.Mock(spec=board.DeviceBoard)
@@ -129,7 +128,8 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.dut.memory.GetFreeMemoryKB = mock.Mock(return_value=free_memory)
     self.manager._CallStressAppTest = mock.MagicMock(return_value=None)
-    self.manager._CallStressAppTest.side_effect = self._CallStressAppTestSideEffect
+    self.manager._CallStressAppTest.side_effect = (
+        self._CallStressAppTestSideEffect)
 
     with self.manager.Run(
         duration_secs, num_threads, memory_ratio, True, disk_thread):
@@ -139,10 +139,10 @@ class StressManagerUnittest(unittest.TestCase):
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, num_threads, mem_usage, disk_thread)
 
-  def _CallStressAppTestSideEffect(self, *unused_args):
-    self.manager.output = textwrap.dedent('''
-      Log: User exiting early (13 seconds remaining)
-      Status: PASS''')
+  def _CallStressAppTestSideEffect(self, *args):
+    del args  # Unused.
+    self.manager.output = ('Log: User exiting early (13 seconds remaining)\n'
+                           'Status: PASS')
 
   def testRunNotEnoughCPU(self):
     duration_secs = 10
@@ -154,7 +154,8 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=total_memory)
     self.manager._CallStressAppTest = mock.MagicMock(return_value=None)
-    self.manager._CallStressAppTest.side_effect = self._CallStressAppTestSideEffect
+    self.manager._CallStressAppTest.side_effect = (
+        self._CallStressAppTestSideEffect)
 
     with self.manager.Run(
         duration_secs, num_threads, memory_ratio, disk_thread):
@@ -172,7 +173,8 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=100 * 1024)
     self.manager._CallStressAppTest = mock.MagicMock(return_value=None)
-    self.manager._CallStressAppTest.side_effect = self._CallStressAppTestSideEffect
+    self.manager._CallStressAppTest.side_effect = (
+        self._CallStressAppTestSideEffect)
 
     with self.manager.Run(
         duration_secs, num_threads, memory_ratio, disk_thread):

@@ -4,17 +4,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import argparse
 import collections
 import itertools
 import math
+import multiprocessing
 import os
-from multiprocessing import Pool
 
 # Import guard for OpenCV.
 try:
-  import cv   # pylint: disable=F0401
-  import cv2  # pylint: disable=F0401
+  import cv
+  import cv2
 except ImportError:
   pass
 
@@ -48,7 +50,7 @@ _TEST_CHART_FILE = os.path.join('static', 'test_chart_%s.png')
 _DEFAULT_PARAM_PATH = os.path.join('static', 'iq.params')
 
 
-# pylint: disable=W0201
+# pylint: disable=attribute-defined-outside-init
 class ReturnValue(utils.Pod):
   pass
 
@@ -279,10 +281,10 @@ def CheckLensShading(sample, max_shading_ratio, check_low_freq,
   Args:
     sample: The test target image. It needs to be single-channel.
     max_shading_ratio: Maximum acceptable shading ratio value of boundary
-                       pixels.
+        pixels.
     check_low_freq: Check low frequency variation or not. The low frequency
-                    is very sensitive to uneven illumination so one may want
-                    to turn it off when a fixture is not available.
+        is very sensitive to uneven illumination so one may want to turn it
+        off when a fixture is not available.
     max_response: Maximum acceptable response of low frequency variation.
 
   Returns:
@@ -361,19 +363,19 @@ def CheckVisualCorrectness(
   Args:
     sample: The test target image. It needs to be single-channel.
     ref_data: A struct that contains information extracted from the
-              reference pattern using PrepareTest.
+        reference pattern using PrepareTest.
     max_image_shift: Maximum allowed image center shift in relative to the
-                     image diagonal length.
+        image diagonal length.
     max_image_tilt: Maximum allowed image tilt amount in degrees.
     register_grid: Check if the point grid can be matched to the reference
-                   one, i.e. whether they are of the same type.
+        one, i.e. whether they are of the same type.
     corner_only: Check only the corners (skip the edges).
     min_corner_quality_ratio: Minimum acceptable relative corner quality
-                              difference.
+        difference.
     min_square_size_ratio: Minimum allowed square edge length in relative
-                           to the image diagonal length.
+        to the image diagonal length.
     min_corner_distance_ratio: Minimum allowed corner distance in relative
-                               to the image diagonal length.
+        to the image diagonal length.
 
   Returns:
     1: Pass or Fail.
@@ -481,19 +483,18 @@ def CheckSharpness(sample, edges, min_pass_mtf, min_pass_lowest_mtf,
   Args:
     sample: The test target image. It needs to be single-channel.
     edges: A list of edges on the test image. Should be extracted with
-           CheckVisualCorrectness().
+        CheckVisualCorrectness().
     min_pass_mtf: Minimum acceptable (median) MTF value.
     min_pass_lowest_mtf: Minimum acceptable lowest MTF value.
     use_50p: Compute whether the MTF50P value or the MTF50 value.
     mtf_sample_count: How many edges we are going to compute MTF values.
     mtf_patch_width: The desired margin on the both side of an edge. Larger
-                     margins provides more precise MTF values.
-                     (But too large margins may overlap with other edges.
-                      This value depends on image resolution and pattern
-                      size.)
+        margins provides more precise MTF values.
+        (But too large margins may overlap with other edges.  This value depends
+        on image resolution and pattern size.)
     mtf_crop_ratio: How much we want to truncate at the beginning and the
-                    end of the edge. Lower value (less truncation) better
-                    reduces the MTF value variations between each test.
+        end of the edge. Lower value (less truncation) better reduces the MTF
+        value variations between each test.
     n_thread: Number of threads to use to compute MTF values.
 
   Returns:
@@ -521,7 +522,7 @@ def CheckSharpness(sample, edges, min_pass_mtf, min_pass_lowest_mtf,
 
   # Multi-threading to speed up the computation.
   if n_thread > 1:
-    pool = Pool(processes=min(n_thread, n_check))
+    pool = multiprocessing.Pool(processes=min(n_thread, n_check))
     mtfs = pool.map(_MTFComputeWrapper, itertools.izip(
         itertools.repeat(sample), line_start[perm], line_end[perm],
         itertools.repeat(mtf_patch_width), itertools.repeat(mtf_crop_ratio),
@@ -635,7 +636,7 @@ def main():
   args = parser.parse_args()
 
   with open(args.params, 'r') as f:
-    params = eval(f.read())
+    params = eval(f.read())  # pylint: disable=eval-used
 
   try:
     results = CalculateIQ(params, args.sfr, args.white, args.vc, args.mtf)

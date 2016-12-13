@@ -4,9 +4,9 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import type_utils
 
 
 class ChargeManagerException(Exception):
@@ -14,27 +14,27 @@ class ChargeManagerException(Exception):
 
 
 class ChargeManager(object):
-  '''Properties:
+  """Properties:
 
     state: The current state (an element of either ErrorState or
       Board.ChargeState).
-  '''
+  """
 
-  ErrorState = Enum(['BATTERY_NOT_PRESENT', 'AC_UNPLUGGED', 'BATTERY_ERROR'])
+  ErrorState = type_utils.Enum(
+      ['BATTERY_NOT_PRESENT', 'AC_UNPLUGGED', 'BATTERY_ERROR'])
 
   def __init__(self, min_charge_pct, max_charge_pct, power=None):
-    '''Constructor.
+    """Constructor.
 
     Args:
       min_charge_pct: The minimum level of charge. Battery charges when charge
-                      level is lower than this value. This value must be between
-                      0 and 100.
+          level is lower than this value. This value must be between 0 and 100.
       max_charge_pct: The maximum level of charge. Battery discharges when
-                      charge level is higher than this value. This value must be
-                      between 0 and 100, and must be higher than min_charge_pct.
-      power:          A cros.factory.device.power.Power instance that provides
-                      control to power. Default to a local one.
-    '''
+          charge level is higher than this value. This value must be between 0
+          and 100, and must be higher than min_charge_pct.
+      power: A cros.factory.device.power.Power instance that provides control
+          to power. Default to a local one.
+    """
     assert min_charge_pct >= 0
     assert min_charge_pct <= 100
     assert max_charge_pct >= 0
@@ -91,5 +91,5 @@ class ChargeManager(object):
         self.ForceDischarge()
       else:
         self.StopCharging()
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:
       logging.error('Unable to set charge state: %s', e)

@@ -12,17 +12,17 @@ import subprocess
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import shopfloor
 from cros.factory.test.env import paths
-from cros.factory.test.event import Event
-from cros.factory.test.test_ui import Escape, MakeLabel, UI
-from cros.factory.test.ui_templates import OneScrollableSection
+from cros.factory.test import event
+from cros.factory.test import shopfloor
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
-_TEST_TITLE = MakeLabel('Update Firmware', u'更新韧体')
+_TEST_TITLE = test_ui.MakeLabel('Update Firmware', u'更新韧体')
 _CSS = '#state {text-align:left;}'
 
 
@@ -52,8 +52,8 @@ class UpdateFirmwareTest(unittest.TestCase):
     else:
       self.assertTrue(os.path.isfile(self.args.firmware_updater),
                       msg='%s is missing.' % self.args.firmware_updater)
-    self._ui = UI()
-    self._template = OneScrollableSection(self._ui)
+    self._ui = test_ui.UI()
+    self._template = ui_templates.OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendCSS(_CSS)
 
@@ -66,8 +66,8 @@ class UpdateFirmwareTest(unittest.TestCase):
     # doesn't seem to be alive anymore.  (http://crosbug.com/p/15642)
     LOCK_FILE = '/tmp/chromeos-firmwareupdate-running'
     if os.path.exists(LOCK_FILE):
-      process = Spawn(['pgrep', '-f', 'chromeos-firmwareupdate'],
-                      call=True, log=True, read_stdout=True)
+      process = process_utils.Spawn(['pgrep', '-f', 'chromeos-firmwareupdate'],
+                                    call=True, log=True, read_stdout=True)
       if process.returncode == 0:
         # Found a chromeos-firmwareupdate alive.
         self._ui.Fail('Lock file %s is present and firmware update already '
@@ -97,15 +97,16 @@ class UpdateFirmwareTest(unittest.TestCase):
         return
       command += ['--customization_id', customization_id]
 
-    p = Spawn(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-              log=True)
+    p = process_utils.Spawn(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
     for line in iter(p.stdout.readline, ''):
       logging.info(line.strip())
-      self._template.SetState(Escape(line), append=True)
+      self._template.SetState(test_ui.Escape(line), append=True)
 
     # Updates system info so EC and Firmware version in system info box
     # are correct.
-    self._ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
+    self._ui.event_client.post_event(
+        event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
 
     if p.poll() != 0:
       self._ui.Fail('Firmware update failed: %d.' % p.returncode)

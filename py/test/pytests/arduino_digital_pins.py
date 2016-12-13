@@ -28,7 +28,7 @@ The following example sets pin 3 and 5 to HIGH:
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test.fixture import arduino
 from cros.factory.utils.arg_utils import Arg

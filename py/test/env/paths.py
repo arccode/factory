@@ -6,14 +6,15 @@
 import getpass
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
 # Path to factory envrionment (code and resources)
-FACTORY_PATH = os.path.realpath(os.path.join(SCRIPT_PATH, '..', '..', '..', '..'))
+FACTORY_PATH = os.path.realpath(
+    os.path.join(SCRIPT_PATH, '..', '..', '..', '..'))
 FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
 FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
 FIRMWARE_UPDATER_PATH = os.path.join(

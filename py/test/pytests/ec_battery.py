@@ -12,7 +12,7 @@ The test uses cros.factory.device.power to get battery design capacity.
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 

@@ -9,12 +9,10 @@ located."""
 
 from __future__ import print_function
 
-# pylint: disable=F0401
-
 import os
 import sys
 
-import factory_common   # pylint:disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import sys_utils
 
 if sys_utils.InCrOSDevice():
@@ -31,7 +29,7 @@ if _cros:
   del sys.modules['cros']
 
 sys.path.insert(0, autotest_dir)
-import setup_modules
+import setup_modules  # pylint: disable=import-error
 sys.path.pop(0)
 setup_modules.setup(base_path=autotest_dir,
                     root_module_name='autotest_lib.client')

@@ -14,7 +14,7 @@ from multiprocessing import pool
 import tempfile
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.test.env import paths
 from cros.factory.utils import debug_utils
@@ -38,9 +38,8 @@ def GetAllIPs(iface_filter=None):
 
   Args:
     iface_filter: A filter to filter out unwanted network interfaces. It takes
-                  the name of the interface and returns True for interfaces we
-                  want and False for unwanted interfaces. Set this to None to
-                  use all interfaces.
+        the name of the interface and returns True for interfaces we want and
+        False for unwanted interfaces. Set this to None to use all interfaces.
 
   Returns:
     A list of IP addresses.
@@ -67,7 +66,6 @@ def _SendDhclientCommand(arguments, interface,
 
   Because the read-only filesystem, using dhclient in ChromeOS needs a
   little tweaks on few paths.
-
   """
   DHCLIENT_SCRIPT = '/usr/local/sbin/dhclient-script'
   DHCLIENT_LEASE = os.path.join(paths.GetStateRoot(), 'dhclient.leases')
@@ -94,7 +92,7 @@ def SendDhcpRequest(interface=None):
 
   Args:
     interface: None to use FindUsableEthDevice, otherwise, operation on a
-    specific interface.
+        specific interface.
   """
   interface = interface or net_utils.FindUsableEthDevice(raise_exception=True)
   net_utils.Ifconfig(interface, True)
@@ -107,7 +105,7 @@ def ReleaseDhcp(interface=None):
 
   Args:
     interface: None to use FindUsableEthDevice, otherwise, operation on a
-    specific interface.
+        specific interface.
   """
   interface = interface or net_utils.FindUsableEthDevice(raise_exception=True)
   net_utils.Ifconfig(interface, True)
@@ -180,7 +178,7 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
       factory.console.info('Setting up IP address...')
       sync_utils.PollForCondition(poll_method=_obtain_IP,
                                   condition_name='Setup IP address')
-  except:  # pylint: disable=W0702
+  except:  # pylint: disable=bare-except
     exception_string = debug_utils.FormatExceptionOnly()
     factory.console.error('Unable to setup network: %s', exception_string)
   factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())

@@ -12,10 +12,10 @@ import logging
 import os
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
 FIRMWARE_UPDATER = '/opt/google/touch/scripts/chromeos-touch-firmware-update.sh'
 CONFIG_UPDATER = '/opt/google/touch/scripts/chromeos-touch-config-update.sh'
@@ -30,8 +30,9 @@ class UpdateTouchDeviceFWTest(unittest.TestCase):
   ]
 
   def run_updater_command(self, command):
-    factory.console.info('Running: %s' % command)
-    updater = Spawn(command, log=True, read_stdout=True, shell=True)
+    factory.console.info('Running: %s', command)
+    updater = process_utils.Spawn(command,
+                                  log=True, read_stdout=True, shell=True)
     updater.wait()
     if updater.returncode != 0:
       error_message = 'Touch device %s update failed.' % self.args.device_name

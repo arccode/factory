@@ -6,7 +6,7 @@
 
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.whale import servo_client
 
 
@@ -18,7 +18,6 @@ class KeyboardEmulator(object):
   multiple key(s) for a specified period.
   """
   # Shortcuts to Whale's control.
-  # pylint: disable=E1101
   _CONTROL = servo_client.WHALE_CONTROL
 
   def __init__(self, servo):

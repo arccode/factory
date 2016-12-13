@@ -42,20 +42,19 @@ import xmlrpclib
 
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.event import Event
+from cros.factory.test import event as test_event
 from cros.factory.test import event_log
 from cros.factory.test import factory
-from cros.factory.test.factory import TestState
 from cros.factory.test import rf
-from cros.factory.test.rf.e5071c_scpi import ENASCPI
+from cros.factory.test.rf import e5071c_scpi
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
-from cros.factory.test.utils.connection_manager import PingHost
+from cros.factory.test.utils import connection_manager
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.net_utils import FindUsableEthDevice
+from cros.factory.utils import net_utils
 
 
 # The root of the pytests vswr folder. The config path is relative to this when
@@ -141,7 +140,7 @@ class VSWR(unittest.TestCase):
     for ena_ip in network_analyzer_config['possible_ips']:
       # Ping the host
       logging.info('Searching for ENA at %s...', ena_ip)
-      if PingHost(ena_ip, 2) != 0:
+      if connection_manager.PingHost(ena_ip, 2) != 0:
         logging.info('Not found at %s.', ena_ip)
       else:
         logging.info('Found ENA at %s.', ena_ip)
@@ -156,7 +155,7 @@ class VSWR(unittest.TestCase):
     # Set up the ENA host.
     logging.info('Connecting to ENA...')
     # TODO(littlecvr): Don't acquire ENA's IP via self.log.
-    self._ena = ENASCPI(self.log['network_analyzer']['ip'])
+    self._ena = e5071c_scpi.ENASCPI(self.log['network_analyzer']['ip'])
     # Check if this is an expected ENA.
     self.log['network_analyzer']['id'] = self._ena.GetSerialNumber()
     logging.info('Connected to ENA %s.', self.log['network_analyzer']['id'])
@@ -350,7 +349,7 @@ class VSWR(unittest.TestCase):
       self.log['test']['results'][antenna_name] = results
 
       self._results[antenna_name] = (
-          TestState.PASSED if all_passed else TestState.FAILED)
+          factory.TestState.PASSED if all_passed else factory.TestState.FAILED)
 
   def _GenerateFinalResult(self):
     """Generates the final result."""
@@ -399,7 +398,7 @@ class VSWR(unittest.TestCase):
     else:
       # Replace 'default' with real interface name if necessary.
       if 'default' in interface:
-        default_interface = FindUsableEthDevice(raise_exception=True)
+        default_interface = net_utils.FindUsableEthDevice(raise_exception=True)
         logging.info('Default interface is %s.', default_interface)
         interface = str.replace(interface, 'default', default_interface)
 
@@ -421,7 +420,7 @@ class VSWR(unittest.TestCase):
     for measurement_sequence in self._sn_config['measurement_sequence']:
       for port in measurement_sequence:
         antenna_name = measurement_sequence[port]['name']
-        if self._results[antenna_name] == TestState.PASSED:
+        if self._results[antenna_name] == factory.TestState.PASSED:
           result_html_string += (
               '<tr><td>%s</td><td>%s</td><td>%s</td></tr>' % (
                   row_count, antenna_name, self._results[antenna_name]))
@@ -444,7 +443,8 @@ class VSWR(unittest.TestCase):
     # Create a unique event_name for the key and bind it.
     event_name = uuid.uuid4()
     self._ui.BindKey(key, lambda _: self._event_queue.put(
-        Event(Event.Type.TEST_UI_EVENT, subtype=event_name)))
+        test_event.Event(
+            test_event.Event.Type.TEST_UI_EVENT, subtype=event_name)))
     self._WaitForEvent(event_name)
     # Unbind the key and delete the event_name's handler.
     self._ui.UnbindKey(key)
@@ -550,7 +550,7 @@ class VSWR(unittest.TestCase):
     self._ShowMessageBlock('show-result')
     self._WaitForKey(test_ui.ENTER_KEY)
 
-  def _LogTrace(self, trace, name, min=None, max=None):  # pylint: disable=W0622
+  def _LogTrace(self, trace, name, min=None, max=None):
     """Uses testlog to log the trace data.
 
     Args:
@@ -559,6 +559,7 @@ class VSWR(unittest.TestCase):
       min: the minimum threshold of the trace.
       max: the maximum threshold of the trace.
     """
+    # pylint: disable=redefined-builtin
     log_series = testlog.CreateSeries(name, key_unit='Hz', value_unit='dB')
     for key, value in trace.iteritems():
       if min is None and max is None:

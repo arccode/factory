@@ -8,7 +8,7 @@ import base64
 import binascii
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.test.rules.registration_codes import CheckRegistrationCode
 from cros.factory.test.rules.registration_codes import (

@@ -16,16 +16,15 @@ import os
 import re
 import unittest
 
-import factory_common   # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
 from cros.factory.test import factory
-from cros.factory.test import test_ui
-from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.l10n import regions
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 
 _RE_EVTEST_EVENT = re.compile(
@@ -62,8 +61,8 @@ class KeyboardTest(unittest.TestCase):
           'simultaneously. (Less strictly checking '
           'with shorter cycle time)', default=False),
       Arg('layout', (str, unicode),
-          ('Use specified layout other than derived from VPD. '
-           'If None, the layout from the VPD is used.'),
+          'Use specified layout other than derived from VPD. '
+          'If None, the layout from the VPD is used.',
           default=None, optional=True),
       Arg('timeout_secs', int, 'Timeout for the test.', default=30),
       Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
@@ -94,7 +93,7 @@ class KeyboardTest(unittest.TestCase):
                     'Strict sequential press requires one key at a time.')
 
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_KEYBOARD_TEST_DEFAULT_CSS)
 
     # Get the keyboard input device.
@@ -139,11 +138,12 @@ class KeyboardTest(unittest.TestCase):
 
     self.dispatchers = []
     self.keyboard_device.grab()
-    StartDaemonThread(target=self.MonitorEvdevEvent)
-    StartCountdownTimer(self.args.timeout_secs,
-                        lambda: self.ui.CallJSFunction('failTestTimeout'),
-                        self.ui,
-                        _ID_COUNTDOWN_TIMER)
+    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
+    countdown_timer.StartCountdownTimer(
+        self.args.timeout_secs,
+        lambda: self.ui.CallJSFunction('failTestTimeout'),
+        self.ui,
+        _ID_COUNTDOWN_TIMER)
 
   def tearDown(self):
     """Terminates the running process or we'll have trouble stopping the test.
@@ -158,7 +158,7 @@ class KeyboardTest(unittest.TestCase):
       return self.args.layout
 
     # Use the primary keyboard_layout for testing.
-    region = CheckOutput(['vpd', '-g', 'region']).strip()
+    region = process_utils.CheckOutput(['vpd', '-g', 'region']).strip()
     return regions.REGIONS[region].keyboard_mechanical_layout
 
   def ReadBindings(self, layout):

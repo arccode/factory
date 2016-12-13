@@ -11,12 +11,12 @@ import evdev
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 
 _ID_CONTAINER = 'touchscreen-test-container'
@@ -67,7 +67,7 @@ class TouchscreenTest(unittest.TestCase):
   def setUp(self):
     # Initialize frontend presentation
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendHTML(_HTML_TOUCHSCREEN)
     self.ui.CallJSFunction('setupTouchscreenTest', _ID_CONTAINER, _X_SEGMENTS,
                            _Y_SEGMENTS)
@@ -90,7 +90,7 @@ class TouchscreenTest(unittest.TestCase):
           '/dev/input/event%d' % self.args.touchscreen_event_id)
 
     logging.info('start monitor daemon thread')
-    StartDaemonThread(target=self.MonitorEvdevEvent)
+    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
     self.touchscreen_device.grab()
 
   def tearDown(self):
@@ -174,6 +174,6 @@ class TouchscreenTest(unittest.TestCase):
       self.checked = False
 
   def runTest(self):
-    self.ui.BindKey(' ', lambda _: self.OnSpacePressed())
+    self.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
     self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
     self.ui.Run()

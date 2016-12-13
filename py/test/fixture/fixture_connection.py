@@ -17,8 +17,8 @@ import abc
 import serial
 import time
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.utils.serial_utils import OpenSerial, FindTtyByDriver
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.utils import serial_utils
 
 
 class FixtureConnectionError(Exception):
@@ -116,17 +116,17 @@ class SerialFixtureConnection(FixtureConnection):
     Args:
       driver: name of the driver, e.g. pl2303
       serial_delay: delay time in seconds between writing each character to
-        serial port
+          serial port
       serial_params: a dictionary containing the following keys:
-        {
-          'baudrate': 9600,
-          'bytesize': 8,
-          'parity': 'N',
-          'stopbits': 1,
-          'xonxoff': False,
-          'rtscts': False,
-          'timeout': None
-        }
+          {
+            'baudrate': 9600,
+            'bytesize': 8,
+            'parity': 'N',
+            'stopbits': 1,
+            'xonxoff': False,
+            'rtscts': False,
+            'timeout': None
+          }
       response_delay: delay time in seconds before reading the response
       retries: number of retires when write failed
     """
@@ -140,11 +140,11 @@ class SerialFixtureConnection(FixtureConnection):
     self._retries = retries
 
   def Connect(self):
-    port = FindTtyByDriver(self._driver)
+    port = serial_utils.FindTtyByDriver(self._driver)
     if not port:
       raise FixtureConnectionError('Cannot find TTY with driver %s' %
                                    self._driver)
-    self._tty = OpenSerial(port=port, **self._serial_params)
+    self._tty = serial_utils.OpenSerial(port=port, **self._serial_params)
     self._tty.flush()
 
   def Disconnect(self):

@@ -23,38 +23,42 @@ import time
 import unittest
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device.links import ssh
+from cros.factory.test.env import paths
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import gooftools
+from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.env import paths
-from cros.factory.test.event_log import Log
-from cros.factory.test.rules import phase
 from cros.factory.test.utils import deploy_utils
-from cros.factory.test.test_ui import MakeLabel
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils.arg_utils import Arg
 
 
-MSG_CHECKING = MakeLabel('Checking system status for finalization...',
-                         '正在检查系统是否已可执行最终程序...')
-MSG_NOT_READY = MakeLabel('System is not ready.<br>'
-                          'Please fix RED tasks and then press SPACE.',
-                          '系统尚未就绪。<br>'
-                          '请修正红色项目后按空白键重新检查。')
-MSG_NOT_READY_POLLING = MakeLabel('System is NOT ready. Please fix RED tasks.',
-                                  '系统尚未就绪。请修正红色项目。')
-MSG_FORCE = MakeLabel('Press “f” to force starting finalization procedure.',
-                      '按下 「f」 键以强迫开始最终程序。')
-MSG_READY = MakeLabel('System is READY. Press SPACE to start FINALIZATION.',
-                      '系统已準备就绪。 请按空白键开始最终程序!')
-MSG_FINALIZING = MakeLabel(
+MSG_CHECKING = test_ui.MakeLabel(
+    'Checking system status for finalization...',
+    '正在检查系统是否已可执行最终程序...')
+MSG_NOT_READY = test_ui.MakeLabel(
+    'System is not ready.<br>'
+    'Please fix RED tasks and then press SPACE.',
+    '系统尚未就绪。<br>'
+    '请修正红色项目后按空白键重新检查。')
+MSG_NOT_READY_POLLING = test_ui.MakeLabel(
+    'System is NOT ready. Please fix RED tasks.',
+    '系统尚未就绪。请修正红色项目。')
+MSG_FORCE = test_ui.MakeLabel(
+    'Press “f” to force starting finalization procedure.',
+    '按下 「f」 键以强迫开始最终程序。')
+MSG_READY = test_ui.MakeLabel(
+    'System is READY. Press SPACE to start FINALIZATION.',
+    '系统已準备就绪。 请按空白键开始最终程序!')
+MSG_FINALIZING = test_ui.MakeLabel(
     'Finalizing, please wait.<br>'
     'Do not restart the device or terminate this test,<br>'
     'or the device may become unusable.',
@@ -207,14 +211,14 @@ class Finalize(unittest.TestCase):
     with open(self.test_states_path, 'w') as f:
       yaml.dump(test_states, f)
 
-    Log('test_states', test_states=test_states)
+    event_log.Log('test_states', test_states=test_states)
 
     def Go(force=False):
       with self.go_cond:
         if self.ForcePermissions():
           self.force = force
         self.go_cond.notify()
-    self.ui.BindKey(' ', lambda _: Go(False))
+    self.ui.BindKey(test_ui.SPACE_KEY, lambda _: Go(False))
     self.ui.BindKey('F', lambda _: Go(True))
 
     thread = threading.Thread(target=self.Run)
@@ -231,7 +235,7 @@ class Finalize(unittest.TestCase):
       self.RunPreflight()
       self.template.SetState(MSG_FINALIZING)
       self.DoFinalize()
-    except Exception, e:  # pylint: disable=W0703
+    except Exception as e:
       self.ui.Fail('Exception during finalization: %s' % e)
 
   def LogImageVersion(self):
@@ -245,9 +249,9 @@ class Finalize(unittest.TestCase):
       logging.info('factory image version: %s', factory_image_version)
     else:
       self.ui.Fail('Can not determine factory image version')
-    Log('finalize_image_version',
-        factory_image_version=factory_image_version,
-        release_image_version=release_image_version)
+    event_log.Log('finalize_image_version',
+                  factory_image_version=factory_image_version,
+                  release_image_version=release_image_version)
 
   def _CallGoofTool(self, command):
     """Execute a gooftool command, `command`.
@@ -274,8 +278,6 @@ class Finalize(unittest.TestCase):
     return returncode == 0
 
   def RunPreflight(self):
-    power = self.dut.power
-
     def CheckRequiredTests():
       """Returns True if all tests (except waived tests) have passed."""
       test_list = self.test_info.ReadTestList()
@@ -331,43 +333,43 @@ class Finalize(unittest.TestCase):
       return self._CallGoofTool('gooftool verify_switch_dev')
 
     items = [(CheckRequiredTests,
-              MakeLabel('Verify all tests passed',
-                        '确认测试项目都已成功了')),
+              test_ui.MakeLabel('Verify all tests passed',
+                                '确认测试项目都已成功了')),
              (CheckDevSwitch,
-              MakeLabel('Turn off Developer Switch',
-                        '停用开发者开关(DevSwitch)'))]
+              test_ui.MakeLabel('Turn off Developer Switch',
+                                '停用开发者开关(DevSwitch)'))]
 
     if self.args.write_protection:
       def CheckWriteProtect():
         return self._CallGoofTool('gooftool verify_switch_wp')
 
       items += [(CheckWriteProtect,
-                 MakeLabel('Enable write protection pin',
-                           '确认硬体写入保护已开启'))]
+                 test_ui.MakeLabel('Enable write protection pin',
+                                   '确认硬体写入保护已开启'))]
 
     self.template.SetState(
         '<table style="margin: auto; font-size: 150%"><tr><td>' +
         '<div id="finalize-state">%s</div>' % MSG_CHECKING +
         '<table style="margin: auto"><tr><td>' +
         '<ul id="finalize-list" style="margin-top: 1em">' +
-        ''.join(['<li id="finalize-%d">%s' % (i, item[1])
-                 for i, item in enumerate(items)]),
+        ''.join('<li id="finalize-%d">%s' % (i, item[1])
+                for i, item in enumerate(items)),
         '</ul>'
         '</td></tr></table>'
         '</td></tr></table>')
 
     def UpdateState():
-      '''Polls and updates the states of all checklist items.
+      """Polls and updates the states of all checklist items.
 
       Returns:
         True if all have passed.
-      '''
+      """
       all_passed = True
       js = []
       for i, item in enumerate(items):
         try:
           passed = item[0]()
-        except:  # pylint: disable=W0702
+        except:  # pylint: disable=bare-except
           logging.exception('Error evaluating finalization condition')
           passed = False
         js.append('$("finalize-%d").className = "test-status-%s"' % (
@@ -440,7 +442,7 @@ class Finalize(unittest.TestCase):
     command = 'gooftool -v 4 finalize'
     if self.waived_tests:
       self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
-    Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))
+    event_log.Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))
 
     if self.args.enable_shopfloor and self.args.sync_event_logs:
       factory.get_state_instance().FlushEventLogs()
@@ -543,7 +545,7 @@ class Finalize(unittest.TestCase):
     if not self._CallGoofTool(command):
       raise factory.FactoryTestFailure('finalize command failed')
 
-    factory.console.info("wait DUT to finish wiping")
+    factory.console.info('wait DUT to finish wiping')
 
     if not dut_finished.wait(self.FINALIZE_TIMEOUT):
       raise factory.FactoryTestFailure(

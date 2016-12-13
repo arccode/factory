@@ -5,17 +5,18 @@
 # found in the LICENSE file.
 
 
-'''This is a factory test that only pass when battery is charged to specific level.
-'''
+"""This is a factory test that only pass when battery is charged to specific
+level.
+"""
 
 import logging
 import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.event_log import Log
+from cros.factory.test import event_log
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -80,8 +81,8 @@ class ChargerTest(unittest.TestCase):
       charge = self._power.GetChargePct()
 
       if charge >= target_charge:
-        Log('charged', charge=charge, target=target_charge,
-            elapsed=elapsed)
+        event_log.Log('charged', charge=charge, target=target_charge,
+                      elapsed=elapsed)
         return
       self._ui.RunJS('$("batteryIcon").style.backgroundPosition = "-%dpx 0px"' %
                      ((elapsed % 4) * 256))
@@ -97,8 +98,8 @@ class ChargerTest(unittest.TestCase):
                      elapsed / 60)
       time.sleep(1)
 
-    Log('failed_to_charge', charge=charge, target=target_charge,
-        timeout_sec=self.args.timeout_secs)
+    event_log.Log('failed_to_charge', charge=charge, target=target_charge,
+                  timeout_sec=self.args.timeout_secs)
     self.fail('Cannot charge battery to %d%% in %d seconds.' %
               (target_charge, self.args.timeout_secs))
 

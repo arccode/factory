@@ -8,13 +8,13 @@ import logging
 import os
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
+from cros.factory.test.e2e_test import common as e2e_common
 from cros.factory.test.e2e_test import e2e_test
-from cros.factory.test.e2e_test.common import AutomationMode, DEFAULT, CHROOT
 from cros.factory.test.env import paths
 from cros.factory.utils import sys_utils
-from cros.factory.utils.type_utils import MakeList
+from cros.factory.utils import type_utils
 
 
 AUTOMATION_FUNCTION_KWARGS_FILE = os.path.join(
@@ -47,11 +47,11 @@ class AutomatorSetting(object):
   """A class to hold the settings for a board automation function."""
 
   def __init__(self, function, override_dargs=None,
-               automation_mode=AutomationMode.PARTIAL,
+               automation_mode=e2e_common.AutomationMode.PARTIAL,
                wait_for_factory_test=True):
     self.function = function
     self.override_dargs = override_dargs or {}
-    if not automation_mode in AutomationMode:
+    if not automation_mode in e2e_common.AutomationMode:
       raise AutomationError('Invalid automation mode %r' % automation_mode)
     self.automation_mode = automation_mode
     self.wait_for_factory_test = wait_for_factory_test
@@ -78,7 +78,7 @@ class Automator(e2e_test.E2ETest):
            for it to pass.
     """
     if sys_utils.InChroot():
-      board = CHROOT
+      board = e2e_common.CHROOT
     else:
       board = common.ProbeBoard()
 
@@ -86,7 +86,7 @@ class Automator(e2e_test.E2ETest):
     path = self.test_info.path
     mode = self.test_info.automation_mode
 
-    for b in (board, DEFAULT):
+    for b in (board, e2e_common.DEFAULT):
       if b in self.automator_for_board:
         setting = self.automator_for_board[b].get(mode)
         if setting:
@@ -121,8 +121,8 @@ class Automator(e2e_test.E2ETest):
       self.WaitForPass()
 
 
-def AutomationFunction(boards=(DEFAULT,), override_dargs=None,
-                       automation_mode=AutomationMode.PARTIAL,
+def AutomationFunction(boards=(e2e_common.DEFAULT,), override_dargs=None,
+                       automation_mode=e2e_common.AutomationMode.PARTIAL,
                        wait_for_factory_test=True):
   """A decorator to create a test automation function.
 
@@ -130,7 +130,7 @@ def AutomationFunction(boards=(DEFAULT,), override_dargs=None,
     boards: The list of boards this automation function is for.
     override_dargs: A dict of dargs to override.
     automation_mode: The list of automation mode under which this automation
-      function is enabled
+        function is enabled
     wait_for_factory_test: Whether to wait for the factory test to finish.
 
   Returns:
@@ -142,7 +142,7 @@ def AutomationFunction(boards=(DEFAULT,), override_dargs=None,
           ('Invalid automation function: %r: automation function\'s name '
            'must start with "automate"') % automation_function.__name__)
 
-    modes = MakeList(automation_mode)
+    modes = type_utils.MakeList(automation_mode)
 
     for board in boards:
       registry = AutomatorMetaclass.automator_registry

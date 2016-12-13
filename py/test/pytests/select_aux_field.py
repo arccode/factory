@@ -7,26 +7,25 @@ import logging
 import unittest
 
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.utils import debug_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import debug_utils
 
 
 class SelectAuxField(unittest.TestCase):
-  '''Display choices for user to select.
+  """Display choices for user to select.
 
   Choices are displayed as radio buttons and the selected value is stored in
   shopfloor aux_data with the specified aux table name, id, and col name.
-  '''
+  """
 
   ARGS = [
       Arg('label_en', str, 'Name of the model being selected'),
-      Arg(
-          'label_zh', str,
+      Arg('label_zh', str,
           'Chinese name of the model being selected '
           '(defaults to the same as the English label)',
           optional=True),
@@ -34,9 +33,9 @@ class SelectAuxField(unittest.TestCase):
       Arg('aux_table_name', str, 'Name of the auxiliary table'),
       Arg('aux_id', str, 'Name of the auxiliary ID'),
       Arg('col_name', str, 'Column name to store the selected value'),
-      Arg(
-          'choices', dict,
-          'Dictionary consists of pairs of choice label and value to be stored.')]
+      Arg('choices', dict,
+          'Dictionary consists of pairs of choice label and value to be '
+          'stored.')]
 
   def HandleSelectValue(self, event):
     def SetError(label_en, label_zh=None):
@@ -53,12 +52,12 @@ class SelectAuxField(unittest.TestCase):
       shopfloor.save_aux_data(
           self.args.aux_table_name, self.args.aux_id,
           {self.args.col_name: self.args.choices.get(select_value)})
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       logging.exception('save_aux_data failed')
       return SetError(debug_utils.FormatExceptionOnly())
 
     if self.args.event_log_key:
-      Log('select', key=self.args.event_log_key, value=select_value)
+      event_log.Log('select', key=self.args.event_log_key, value=select_value)
 
     self.ui.Pass()
 
@@ -95,7 +94,7 @@ class SelectAuxField(unittest.TestCase):
 
     # Handle selected value when Enter pressed.
     self.ui.BindKeyJS(
-        '\r',
+        test_ui.ENTER_KEY,
         'window.test.sendTestEvent("select_value",'
         'function(){'
         '  choices = document.getElementsByName("select-value");'

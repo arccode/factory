@@ -11,7 +11,7 @@ This test will first check current firmware and switch if necessary.
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf import cellular
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates

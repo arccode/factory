@@ -9,7 +9,7 @@
 import mock
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.pytests.removable_storage import removable_storage as rs
 from cros.factory.utils import sync_utils
@@ -66,9 +66,9 @@ class RemovableStorageE2ETest(e2e_test.E2ETest):
   @mock.patch.object(rs.os, 'write')
   @mock.patch.object(rs.os, 'lseek')
   @mock.patch.object(rs.os, 'fsync')
-  # pylint: disable=W0613
   def testUSB(self, mock_fsync, mock_lseek, mock_write, mock_read, mock_close,
               mock_open, mock_checkoutput, mock_get_partitions):
+    del mock_get_partitions  # Unused.
     mock_read.side_effect = ['\x00' * (
         self.dargs['block_size'] * self.dargs['sequential_block_count'])] * 2
 

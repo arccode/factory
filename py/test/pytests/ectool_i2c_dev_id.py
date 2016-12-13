@@ -10,10 +10,10 @@ It uses ectool to read device ID from periphral and check for correctness.
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import SpawnOutput
+from cros.factory.utils import process_utils
 
 RE_I2C_RESULT = re.compile(
     r'Read from I2C port \d+ at \S+ offset \S+ = (0x\S+)')
@@ -38,7 +38,7 @@ class EctoolI2CDevIdTest(unittest.TestCase):
 
   def CheckDevice(self, bus, addr, reg, expected_value):
     cmd = 'ectool i2cread 8 %d %d %d' % (bus, addr, reg)
-    output = SpawnOutput(cmd.split(), log=True)
+    output = process_utils.SpawnOutput(cmd.split(), log=True)
     match = RE_I2C_RESULT.search(output)
     if not match:
       return False
@@ -46,5 +46,6 @@ class EctoolI2CDevIdTest(unittest.TestCase):
 
   def runTest(self):
     result = [self.CheckDevice(self.args.bus, *spec) for spec in self.args.spec]
-    Log('device_checked', result=result, bus=self.args.bus, spec=self.args.spec)
+    event_log.Log('device_checked',
+                  result=result, bus=self.args.bus, spec=self.args.spec)
     self.assertTrue(any(result), 'Device ID mismatches.')

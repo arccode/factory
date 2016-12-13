@@ -8,11 +8,11 @@ import inspect
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import invocation
+from cros.factory.test.e2e_test import ui_actuator
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.e2e_test import ui_actuator
 from cros.factory.utils.arg_utils import Args
 
 
@@ -30,7 +30,7 @@ class E2ETestMetaclass(type):
     pytest_name and look for one that has the ARGS attribute.  The found ARGS
     attribute is set to the E2ETest subclass.
     """
-    if (getattr(cls, 'pytest_name', None) and not getattr(cls, 'ARGS', None)):
+    if getattr(cls, 'pytest_name', None) and not getattr(cls, 'ARGS', None):
       module = invocation.LoadPytestModule(cls.pytest_name)
       cls.pytest_module = module
 
@@ -120,6 +120,7 @@ class E2ETest(unittest.TestCase):
       else:
         self.pytest_state = factory.TestState.PASSED
 
+    # pylint: disable=access-member-before-definition
     # Update dargs with override dargs.
     if not getattr(self, 'args', None):
       args_dict = {}
@@ -127,7 +128,7 @@ class E2ETest(unittest.TestCase):
       # Convert 'Dargs' object to dict. 'Dargs' object is created by
       # Args.Parse(). It is what we get if the the args object were created
       # through the 'ARGS' attribute of E2ETest class.
-      args_dict = self.args.ToDict()    # pylint: disable=E0203
+      args_dict = self.args.ToDict()
 
     # Set the dargs values of the E2E test as the default args.
     e2e_default_args = getattr(self, 'dargs', {})
@@ -136,7 +137,8 @@ class E2ETest(unittest.TestCase):
     # Override args with the dargs argumnet passed in.
     override_args = dargs or {}
     args_dict.update(override_args)
-    self.args = Args(*self.ARGS).Parse(args_dict)   # pylint: disable=W0201
+    # pylint: disable=attribute-defined-outside-init
+    self.args = Args(*self.ARGS).Parse(args_dict)
 
     self.pytest_thread = threading.Thread(target=FactoryTestThreadInit)
     self.pytest_thread.daemon = True
@@ -154,7 +156,7 @@ class E2ETest(unittest.TestCase):
     Args:
       timeout_secs: Timeout in seconds.
       raise_exception: True to raise exception if factory test does not finish
-        in time.
+          in time.
     """
     self.StartFactoryTest()
 
@@ -175,7 +177,7 @@ class E2ETest(unittest.TestCase):
     Args:
       state: The test state to compare.
       timeout_secs: If not None, wait for at most timeout_secs for the factory
-        test to finish.
+          test to finish.
       msg: A message to include in the error message if the function fails.
     """
     self.StartFactoryTest()
@@ -198,7 +200,7 @@ class E2ETest(unittest.TestCase):
 
     Args:
       timeout_secs: If not None, wait for at most timeout_secs for the factory
-        test to finish.
+          test to finish.
       msg: A message to display if the function fails.
     """
     self.WaitTestStateEquals(factory.TestState.PASSED,
@@ -210,7 +212,7 @@ class E2ETest(unittest.TestCase):
 
     Args:
       timeout_secs: If not None, wait for at most timeout_secs for the factory
-        test to finish.
+          test to finish.
       msg: A message to display if the function fails.
     """
     self.WaitTestStateEquals(factory.TestState.FAILED,
@@ -222,7 +224,7 @@ class E2ETest(unittest.TestCase):
 
     Args:
       timeout_secs: If not None, wait for at most timeout_secs for the factory
-        test to finish.
+          test to finish.
       msg: A message to display if the function fails.
     """
     self.WaitTestStateEquals(factory.TestState.ACTIVE,
@@ -241,7 +243,7 @@ def E2ETestCase(dargs=None):
 
   Args:
     dargs: The dargs to the factory test.  This is directly passed to
-      StartFactoryTest(), which in turn uses it to update the default dargs.
+        StartFactoryTest(), which in turn uses it to update the default dargs.
 
   Returns:
     A decorator to wrap up an E2E test case.
@@ -249,7 +251,8 @@ def E2ETestCase(dargs=None):
   def Decorator(test_case_function):
     # We must go deeper...
     def WrappedTestCaseFunction(self):
-      self._InitFactoryTest(dargs)    # pylint: disable=W0212
+      # pylint: disable=protected-access
+      self._InitFactoryTest(dargs)
       test_case_function(self)
 
     return WrappedTestCaseFunction

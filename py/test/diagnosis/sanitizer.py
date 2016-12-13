@@ -8,21 +8,17 @@ import collections
 import copy
 import re
 
-import factory_common  # pylint: disable=W0611
-
-from cros.factory.test.diagnosis.common import FormatError
-from cros.factory.test.diagnosis.common import INPUT_TYPE
-from cros.factory.test.diagnosis.common import OPTIONS
-from cros.factory.test.diagnosis.common import TOKEN
-from cros.factory.utils.process_utils import SpawnOutput
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.diagnosis import common
+from cros.factory.utils import process_utils
 
 _DEFAULT_INPUT_BOOL_VALUE = True
 _DEFAULT_INPUT_FILE_PATTERN = '.*'
 _DEFAULT_INPUT_FILE_TYPE = 'regular-file'
 
 _DEFAULT_CONFIRM_TITLE = 'Confirm'
-_DEFAULT_CONFIRM_OPTIONS = (OPTIONS.YES, OPTIONS.CANCEL)
-_DEFAULT_CONFIRM_TIMEOUT = (10, OPTIONS.YES)
+_DEFAULT_CONFIRM_OPTIONS = (common.OPTIONS.YES, common.OPTIONS.CANCEL)
+_DEFAULT_CONFIRM_TIMEOUT = (10, common.OPTIONS.YES)
 _DEFAULT_CONFIRM_EXPECTED_OUTPUT = 'yes'
 
 _DEFAULT_TERMINATING_TIMEOUT = 5
@@ -41,7 +37,7 @@ def SanitizeConfig(configs):
   """
   dup_configs = copy.deepcopy(configs)
   if not isinstance(dup_configs, list):
-    raise FormatError('Value of the configurations is not a list')
+    raise common.FormatError('Value of the configurations is not a list')
   return [_SanitizeTask(x) for x in dup_configs]
 
 
@@ -65,26 +61,32 @@ def _SanitizeTask(config):
   Returns:
     A sanitized task element.
   """
-  _SanitizeDefaultValueAndType(config, [(TOKEN.NAME, '', basestring),
-                                        (TOKEN.DESCRIPTION, '', basestring)])
+  _SanitizeDefaultValueAndType(config, [
+      (common.TOKEN.NAME, '', basestring),
+      (common.TOKEN.DESCRIPTION, '', basestring)])
   try:
-    if TOKEN.STEPS in config:
-      if not isinstance(config[TOKEN.STEPS], list):
-        raise FormatError('Value of %r is not a %r' % (TOKEN.STEPS, 'list'))
-      config[TOKEN.STEPS] = [_SanitizeStep(x) for x in config[TOKEN.STEPS]]
-      _SanitizeDefaultValueAndType(config, [(TOKEN.INPUTS, [], list)])
-      config[TOKEN.INPUTS] = _SanitizeInputs(config[TOKEN.INPUTS])
-    if TOKEN.MEMBER in config:
-      if not isinstance(config[TOKEN.MEMBER], list):
-        raise FormatError('Value of %r is not a %r' % (TOKEN.MEMBER, 'list'))
-      config[TOKEN.MEMBER] = [_SanitizeTask(x) for x in config[TOKEN.MEMBER]]
-      count = collections.Counter(x[TOKEN.NAME] for x in config[TOKEN.MEMBER])
+    if common.TOKEN.STEPS in config:
+      if not isinstance(config[common.TOKEN.STEPS], list):
+        raise common.FormatError('Value of %r is not a %r' %
+                                 (common.TOKEN.STEPS, 'list'))
+      config[common.TOKEN.STEPS] = [_SanitizeStep(x)
+                                    for x in config[common.TOKEN.STEPS]]
+      _SanitizeDefaultValueAndType(config, [(common.TOKEN.INPUTS, [], list)])
+      config[common.TOKEN.INPUTS] = _SanitizeInputs(config[common.TOKEN.INPUTS])
+    if common.TOKEN.MEMBER in config:
+      if not isinstance(config[common.TOKEN.MEMBER], list):
+        raise common.FormatError('Value of %r is not a %r' %
+                                 (common.TOKEN.MEMBER, 'list'))
+      config[common.TOKEN.MEMBER] = [_SanitizeTask(x)
+                                     for x in config[common.TOKEN.MEMBER]]
+      count = collections.Counter(x[common.TOKEN.NAME]
+                                  for x in config[common.TOKEN.MEMBER])
       repeat_names = [x for x in count if count[x] > 1]
       for repeat_name in repeat_names:
-        raise FormatError('Same sub-task name: %r' % repeat_name)
+        raise common.FormatError('Same sub-task name: %r' % repeat_name)
     return config
-  except FormatError as e:
-    raise FormatError(config[TOKEN.NAME] + ':' + str(e))
+  except common.FormatError as e:
+    raise common.FormatError(config[common.TOKEN.NAME] + ':' + str(e))
 
 
 def _SanitizeInputs(configs):
@@ -93,12 +95,13 @@ def _SanitizeInputs(configs):
   It will sanitize each input element in it and then fill up the missing var_id.
   """
   configs = [_SanitizeInput(x) for x in configs]
-  num_ids = [x[TOKEN.VAR_ID] for x in configs if x[TOKEN.VAR_ID] is not None]
+  num_ids = [x[common.TOKEN.VAR_ID]
+             for x in configs if x[common.TOKEN.VAR_ID] is not None]
   id_max = max(num_ids) if num_ids else 0
   for config in configs:
-    if config[TOKEN.VAR_ID] is None:
+    if config[common.TOKEN.VAR_ID] is None:
       id_max += 1
-      config[TOKEN.VAR_ID] = id_max
+      config[common.TOKEN.VAR_ID] = id_max
   return configs
 
 
@@ -159,88 +162,89 @@ def _SanitizeInput(config):
   """
   try:
     _SanitizeDefaultValueAndType(config, [
-        (TOKEN.PROMPT, '', basestring),
-        (TOKEN.HELP, '', basestring),
-        (TOKEN.VAR_ID, None, (type(None), int))])
-    config_type = config[TOKEN.TYPE].lower()
-    if config_type == INPUT_TYPE.NUMBER or config_type == INPUT_TYPE.SLIDER:
+        (common.TOKEN.PROMPT, '', basestring),
+        (common.TOKEN.HELP, '', basestring),
+        (common.TOKEN.VAR_ID, None, (type(None), int))])
+    config_type = config[common.TOKEN.TYPE].lower()
+    if (config_type == common.INPUT_TYPE.NUMBER or
+        config_type == common.INPUT_TYPE.SLIDER):
       _SanitizeInputNumberAndSlider(config)
 
-    elif config_type == INPUT_TYPE.CHOICES:
+    elif config_type == common.INPUT_TYPE.CHOICES:
       _SanitizeInputChoices(config)
 
-    elif config_type == INPUT_TYPE.BOOL:
+    elif config_type == common.INPUT_TYPE.BOOL:
       _SanitizeInputBool(config)
 
-    elif config_type == INPUT_TYPE.FILE:
+    elif config_type == common.INPUT_TYPE.FILE:
       _SanitizeInputFile(config)
 
-    elif config_type == INPUT_TYPE.STRING:
+    elif config_type == common.INPUT_TYPE.STRING:
       _SanitizeInputString(config)
 
     else:
-      raise FormatError('Unknown input type: %r.' % config_type)
+      raise common.FormatError('Unknown input type: %r.' % config_type)
 
   except KeyError as e:
-    raise FormatError('Key "%s" not found in the input element.' % str(e))
-  except Exception as e:  # pylint: disable=W0703
-    raise FormatError('Exception: "' + str(e) + '"')
+    raise common.FormatError('Key "%s" not found in the input element.' % e)
+  except Exception as e:
+    raise common.FormatError('Exception: "' + str(e) + '"')
   return config
 
 
 def _SanitizeInputNumberAndSlider(ref):
-  for key in [TOKEN.MIN, TOKEN.MAX, TOKEN.STEP]:
+  for key in [common.TOKEN.MIN, common.TOKEN.MAX, common.TOKEN.STEP]:
     if isinstance(ref[key], (int, float)):
       pass
     elif isinstance(ref[key], basestring) and ref[key].startswith('!'):
       ref[key] = _GetCommandOutput(ref[key][1:], float, 'float')
     else:
-      raise FormatError('Value of %r is neither a number nor a command: %r' %
-                        (key, ref[key]))
+      raise common.FormatError(
+          'Value of %r is neither a number nor a command: %r' % (key, ref[key]))
   _SanitizeDefaultValueAndType(ref, [
-      (TOKEN.VALUE, ref[TOKEN.MIN], (int, float)),
-      (TOKEN.ROUND, 0, (int, float)),
-      (TOKEN.UNIT, '', basestring)])
+      (common.TOKEN.VALUE, ref[common.TOKEN.MIN], (int, float)),
+      (common.TOKEN.ROUND, 0, (int, float)),
+      (common.TOKEN.UNIT, '', basestring)])
 
 
 def _SanitizeInputChoices(ref):
-  key = TOKEN.CHOICES
+  key = common.TOKEN.CHOICES
   if isinstance(ref[key], list):
     pass
   elif isinstance(ref[key], basestring) and ref[key].startswith('!'):
     ref[key] = _GetCommandOutput(ref[key][1:], lambda x: re.split(' |\t|\n', x))
   else:
-    raise FormatError('Value of %r is neither a number nor a command: %r' %
-                      (key, ref[key]))
+    raise common.FormatError(
+        'Value of %r is neither a number nor a command: %r' % (key, ref[key]))
   ref[key] = [str(x) for x in ref[key] if str(x)]
   if not ref[key]:
-    raise FormatError('No valid flag in %r.' % key)
-  ref.setdefault(TOKEN.VALUE, ref[key][0])
-  if ref[TOKEN.VALUE] not in ref[key]:
-    raise FormatError('Default value is not a valid flag: %r.' %
-                      ref[TOKEN.VALUE])
+    raise common.FormatError('No valid flag in %r.' % key)
+  ref.setdefault(common.TOKEN.VALUE, ref[key][0])
+  if ref[common.TOKEN.VALUE] not in ref[key]:
+    raise common.FormatError('Default value is not a valid flag: %r.' %
+                             ref[common.TOKEN.VALUE])
 
 
 def _SanitizeInputBool(ref):
   _SanitizeDefaultValueAndType(ref, [
-      (TOKEN.VALUE, _DEFAULT_INPUT_BOOL_VALUE, bool),
-      (TOKEN.ENABLE_LIST, [], list),
-      (TOKEN.DISABLE_LIST, [], list)])
+      (common.TOKEN.VALUE, _DEFAULT_INPUT_BOOL_VALUE, bool),
+      (common.TOKEN.ENABLE_LIST, [], list),
+      (common.TOKEN.DISABLE_LIST, [], list)])
 
 
 def _SanitizeInputFile(ref):
   _SanitizeDefaultValueAndType(ref, [
-      (TOKEN.PATTERN, _DEFAULT_INPUT_FILE_PATTERN, basestring),
-      (TOKEN.FILE_TYPE, _DEFAULT_INPUT_FILE_TYPE, basestring)])
+      (common.TOKEN.PATTERN, _DEFAULT_INPUT_FILE_PATTERN, basestring),
+      (common.TOKEN.FILE_TYPE, _DEFAULT_INPUT_FILE_TYPE, basestring)])
 
 
 def _SanitizeInputString(ref):
   _SanitizeDefaultValueAndType(ref, [
-      (TOKEN.VALUE, '', basestring),
-      (TOKEN.REGEXP, None, (type(None), list)),
-      (TOKEN.HINT, '', basestring)])
-  if isinstance(ref[TOKEN.REGEXP], list):
-    _SanitizeRegExp(ref[TOKEN.REGEXP], TOKEN.REGEXP)
+      (common.TOKEN.VALUE, '', basestring),
+      (common.TOKEN.REGEXP, None, (type(None), list)),
+      (common.TOKEN.HINT, '', basestring)])
+  if isinstance(ref[common.TOKEN.REGEXP], list):
+    _SanitizeRegExp(ref[common.TOKEN.REGEXP], common.TOKEN.REGEXP)
 
 
 def _SanitizeStep(config):
@@ -269,7 +273,7 @@ def _SanitizeStep(config):
       case 2, A string:
         Whether the command successful or not depends on the stdout text is the
         same as this string.
-      case 2, A list like [string1, string2]:
+      case 3, A list like [string1, string2]:
         Like case 2, but use regular expression (string1 is the expression,
         string2 is the re flags).
 
@@ -280,33 +284,37 @@ def _SanitizeStep(config):
     A sanitized step element.
   """
   found = 0
-  if TOKEN.CONFIRM in config:
-    if not isinstance(config[TOKEN.CONFIRM], basestring):
-      raise FormatError('A confirm content must be a string')
+  if common.TOKEN.CONFIRM in config:
+    if not isinstance(config[common.TOKEN.CONFIRM], basestring):
+      raise common.FormatError('A confirm content must be a string')
     _SanitizeDefaultValueAndType(config, [
-        (TOKEN.TITLE, _DEFAULT_CONFIRM_TITLE, basestring),
-        (TOKEN.OPTIONS, list(_DEFAULT_CONFIRM_OPTIONS), list),
-        (TOKEN.TIMEOUT, list(_DEFAULT_CONFIRM_TIMEOUT), (list, type(None)))])
-    if not config[TOKEN.OPTIONS]:
-      raise FormatError('No options for user to select.')
-    config.setdefault(TOKEN.EXPECTED_OUTPUT, config[TOKEN.OPTIONS][0])
-    if config[TOKEN.EXPECTED_OUTPUT] not in config[TOKEN.OPTIONS]:
-      raise FormatError('expected_output not in the options: %r' %
-                        config[TOKEN.EXPECTED_OUTPUT])
+        (common.TOKEN.TITLE, _DEFAULT_CONFIRM_TITLE, basestring),
+        (common.TOKEN.OPTIONS, list(_DEFAULT_CONFIRM_OPTIONS), list),
+        (common.TOKEN.TIMEOUT, list(_DEFAULT_CONFIRM_TIMEOUT),
+         (list, type(None)))])
+    if not config[common.TOKEN.OPTIONS]:
+      raise common.FormatError('No options for user to select.')
+    config.setdefault(common.TOKEN.EXPECTED_OUTPUT,
+                      config[common.TOKEN.OPTIONS][0])
+    if config[common.TOKEN.EXPECTED_OUTPUT] not in config[common.TOKEN.OPTIONS]:
+      raise common.FormatError('expected_output not in the options: %r' %
+                               config[common.TOKEN.EXPECTED_OUTPUT])
     found += 1
-  for key in [x for x in [TOKEN.COMMAND, TOKEN.FINALLY] if x in config]:
+  for key in (
+      x for x in [common.TOKEN.COMMAND, common.TOKEN.FINALLY] if x in config):
     if not isinstance(config[key], basestring):
-      raise FormatError('A linux shell command must be a string')
+      raise common.FormatError('A linux shell command must be a string')
     _SanitizeDefaultValueAndType(config, [
-        (TOKEN.TERMINATE_TIMEOUT, None, (int, type(None))),
-        (TOKEN.TERMINATING_TIMEOUT, None, (int, type(None))),
-        (TOKEN.EXPECTED_OUTPUT, None, (type(None), basestring, list)),
-        (TOKEN.ERROR_MESSAGE, None, (type(None), basestring))])
-    if isinstance(config[TOKEN.EXPECTED_OUTPUT], list):
-      _SanitizeRegExp(config[TOKEN.EXPECTED_OUTPUT], TOKEN.EXPECTED_OUTPUT)
+        (common.TOKEN.TERMINATE_TIMEOUT, None, (int, type(None))),
+        (common.TOKEN.TERMINATING_TIMEOUT, None, (int, type(None))),
+        (common.TOKEN.EXPECTED_OUTPUT, None, (type(None), basestring, list)),
+        (common.TOKEN.ERROR_MESSAGE, None, (type(None), basestring))])
+    if isinstance(config[common.TOKEN.EXPECTED_OUTPUT], list):
+      _SanitizeRegExp(config[common.TOKEN.EXPECTED_OUTPUT],
+                      common.TOKEN.EXPECTED_OUTPUT)
     found += 1
   if found != 1:
-    raise FormatError('Unknown step type %r.' % config)
+    raise common.FormatError('Unknown step type %r.' % config)
   return config
 
 
@@ -324,14 +332,14 @@ def _GetCommandOutput(command, converter, converted_type_name=None):
     Output data converted by converter
   """
   try:
-    output = SpawnOutput(command, shell=True)
-  except Exception as e:  # pylint: disable=W0703
-    raise FormatError('Runs command %r failed, reason %r' % (command, e))
+    output = process_utils.SpawnOutput(command, shell=True)
+  except Exception as e:
+    raise common.FormatError('Runs command %r failed, reason %r' % (command, e))
   try:
     return converter(output)
-  except Exception as e:  # pylint: disable=W0703
-    raise FormatError('Cannot convert the output of %r to %s: %s' %
-                      (command, converted_type_name, output))
+  except Exception as e:
+    raise common.FormatError('Cannot convert the output of %r to %s: %s' %
+                             (command, converted_type_name, output))
 
 
 def _SanitizeDefaultValueAndType(ref, value_type_list):
@@ -346,7 +354,7 @@ def _SanitizeDefaultValueAndType(ref, value_type_list):
   for (key, default_value, value_type) in value_type_list:
     ref.setdefault(key, default_value)
     if not isinstance(ref[key], value_type):
-      raise FormatError('Value of %r is not a %r' % (key, value_type))
+      raise common.FormatError('Value of %r is not a %r' % (key, value_type))
 
 
 def _SanitizeRegExp(lst, key_name):
@@ -363,7 +371,7 @@ def _SanitizeRegExp(lst, key_name):
     key_name: The key name in the dict (For the error message).
   """
   if not (len(lst) in (1, 2) and all(isinstance(x, basestring) for x in lst)):
-    raise FormatError('Value of %r is not a valid regular expression: %s' %
-                      (key_name, lst))
+    raise common.FormatError(
+        'Value of %r is not a valid regular expression: %s' % (key_name, lst))
   if len(lst) == 1:
     lst.append('')

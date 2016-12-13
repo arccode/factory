@@ -9,7 +9,7 @@ from __future__ import print_function
 import re
 import unittest
 
-import factory_common   # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.rules import phase
 from cros.factory.utils import arg_utils

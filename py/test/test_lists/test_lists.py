@@ -17,7 +17,7 @@ import yaml
 from collections import namedtuple
 from contextlib import contextmanager
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 
@@ -180,7 +180,7 @@ def AutomatedSequence(*args, **kwargs):
 
 def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False,
               dut_options=None, exclusive_resources=None):
-  # pylint: disable=W0622
+  # pylint: disable=redefined-builtin
   """Adds a test group to the current test list.
 
   This should always be used inside a ``with`` keyword, and tests
@@ -245,7 +245,7 @@ def Passed(name):
 
 
 @contextmanager
-def TestList(id, label_en):  # pylint: disable=W0622
+def TestList(id, label_en):  # pylint: disable=redefined-builtin
   """Context manager to create a test list.
 
   This should be used inside a ``CreateTestLists`` function,
@@ -378,7 +378,7 @@ def BuildAllTestLists(force_generic=False):
                    os.path.splitext(os.path.basename(f))[0])
     try:
       module = importlib.import_module(module_name)
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       logging.exception('Unable to import %s', module_name)
       failed_files[f] = sys.exc_info()
       continue
@@ -391,7 +391,7 @@ def BuildAllTestLists(force_generic=False):
         if dups:
           logging.warning('Duplicate test lists: %s', dups)
         test_lists.update(new_test_lists)
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Unable to read test lists from %s', module_name)
         failed_files[f] = sys.exc_info()
 
@@ -414,7 +414,7 @@ def DescribeTestLists(test_lists):
   return ', '.join(ret)
 
 
-def BuildTestList(id):  # pylint: disable=W0622
+def BuildTestList(id):  # pylint: disable=redefined-builtin
   """Builds only a single test list.
 
   Args:
@@ -462,7 +462,7 @@ def GetActiveTestListId():
     return test_list_id
 
 
-def SetActiveTestList(id):  # pylint: disable=W0622
+def SetActiveTestList(id):  # pylint: disable=redefined-builtin
   """Sets the active test list.
 
   This writes the name of the new active test list to ACTIVE_PATH.

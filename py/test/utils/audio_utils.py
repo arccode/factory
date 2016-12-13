@@ -12,8 +12,8 @@ import os
 import re
 import tempfile
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn, SpawnOutput
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import process_utils
 
 from cros.factory.external import dbus
 
@@ -113,7 +113,7 @@ def TrimAudioFile(in_path, out_path, start, end,
   if end is not None:
     cmd += str(end)
 
-  Spawn(cmd.split(' '), log=True, check_call=True)
+  process_utils.Spawn(cmd.split(' '), log=True, check_call=True)
 
 
 # Functions to compose customized sox command, execute it and process the
@@ -135,7 +135,8 @@ def SoxMixerOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
   command = (
       '%s -c 2 %s %s -c 1 %s - remix %s' %
       (SOX_PATH, sox_format, in_file, sox_format, str(remix_channel)))
-  return Spawn(command.split(' '), log=True, read_stdout=True).stdout_data
+  return process_utils.Spawn(
+      command.split(' '), log=True, read_stdout=True).stdout_data
 
 
 def SoxStatOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
@@ -153,7 +154,8 @@ def SoxStatOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
   with tempfile.NamedTemporaryFile(delete=False) as temp_file:
     temp_file.write(sox_output)
   stat_cmd = '%s -c 1 %s %s -n stat' % (SOX_PATH, sox_format, temp_file.name)
-  output = Spawn(stat_cmd.split(' '), read_stderr=True).stderr_data
+  output = process_utils.Spawn(
+      stat_cmd.split(' '), read_stderr=True).stderr_data
   os.unlink(temp_file.name)
   return output
 
@@ -236,11 +238,11 @@ def NoiseReduceFile(in_file, noise_file, out_file,
   f.close()
   prof_cmd = '%s -c 2 %s %s -n noiseprof %s' % (SOX_PATH,
                                                 sox_format, noise_file, f.name)
-  Spawn(prof_cmd.split(' '), check_call=True)
+  process_utils.Spawn(prof_cmd.split(' '), check_call=True)
 
   reduce_cmd = ('%s -c 2 %s %s -c 2 %s %s noisered %s' %
                 (SOX_PATH, sox_format, in_file, sox_format, out_file, f.name))
-  Spawn(reduce_cmd.split(' '), check_call=True)
+  process_utils.Spawn(reduce_cmd.split(' '), check_call=True)
   os.unlink(f.name)
 
 
@@ -257,7 +259,7 @@ def GetCardIndexByName(card_name):
     ValueError when card name does not exist.
   """
   _RE_CARD_INDEX = re.compile(r'^card (\d+):.*?\[(.+?)\]')
-  output = Spawn(['aplay', '-l'], read_stdout=True).stdout_data
+  output = process_utils.Spawn(['aplay', '-l'], read_stdout=True).stdout_data
   for line in output.split('\n'):
     m = _RE_CARD_INDEX.match(line)
     if m is not None and m.group(2) == card_name:
@@ -271,8 +273,10 @@ def GetTotalNumberOfAudioDevices():
   Returns:
     Total number of audio devices.
   """
-  playback_num = int(SpawnOutput('aplay -l | grep ^card | wc -l', shell=True))
-  record_num = int(SpawnOutput('arecord -l | grep ^card | wc -l', shell=True))
+  playback_num = int(
+      process_utils.SpawnOutput('aplay -l | grep ^card | wc -l', shell=True))
+  record_num = int(
+      process_utils.SpawnOutput('arecord -l | grep ^card | wc -l', shell=True))
   return playback_num + record_num
 
 

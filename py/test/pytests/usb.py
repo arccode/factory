@@ -18,10 +18,10 @@ import os
 import pyudev
 import threading
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test import test_ui
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -61,17 +61,15 @@ class USBTest(unittest.TestCase):
   ARGS = [
       Arg('expected_paths', str, 'USB device path', None, optional=True),
       Arg('num_usb_ports', int, 'number of USB port', None, optional=True),
-      Arg(
-          'num_usb2_ports', int, 'number of USB 2.0 ports', None,
+      Arg('num_usb2_ports', int, 'number of USB 2.0 ports', None,
           optional=True),
-      Arg(
-          'num_usb3_ports', int, 'number of USB 3.0 ports', None,
+      Arg('num_usb3_ports', int, 'number of USB 3.0 ports', None,
           optional=True)]
   version = 1
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
 
     self._pyudev_thread = None
     self._expected_paths = self.args.expected_paths
@@ -79,9 +77,9 @@ class USBTest(unittest.TestCase):
     self._num_usb2_ports = self.args.num_usb2_ports
     self._num_usb3_ports = self.args.num_usb3_ports
 
-    self.assertTrue((self._num_usb_ports and (self._num_usb_ports > 0)) or
-                    (self._num_usb2_ports and (self._num_usb2_ports > 0)) or
-                    (self._num_usb3_ports and (self._num_usb3_ports > 0)),
+    self.assertTrue((self._num_usb_ports and self._num_usb_ports > 0) or
+                    (self._num_usb2_ports and self._num_usb2_ports > 0) or
+                    (self._num_usb3_ports and self._num_usb3_ports > 0),
                     'USB port count not specified.')
 
     if not self._num_usb_ports:
@@ -143,10 +141,9 @@ class USBTest(unittest.TestCase):
 
   def runTest(self):
     # Create a daemon pyudev thread to listen to device events
-    self._pyudev_thread = (
-        PyudevThread(
-            self.usb_event_cb, subsystem='usb',
-            device_type='usb_device'))
+    self._pyudev_thread = PyudevThread(
+        self.usb_event_cb, subsystem='usb',
+        device_type='usb_device')
     self._pyudev_thread.daemon = True
     self._pyudev_thread.start()
 

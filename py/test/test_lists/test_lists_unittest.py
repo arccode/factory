@@ -10,7 +10,7 @@ import logging
 import unittest
 
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists.test_lists import (
     BuildTestLists,
     FactoryTest,

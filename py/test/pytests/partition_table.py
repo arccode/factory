@@ -28,10 +28,10 @@ import os
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils import process_utils
 
 
 class PartitionTableTest(unittest.TestCase):
@@ -48,7 +48,8 @@ class PartitionTableTest(unittest.TestCase):
 
   def runTest(self):
     dev = device_utils.CreateDUTInterface().storage.GetMainStorageDevice()
-    stateful = CheckOutput(['cgpt', 'find', '-l', 'STATE', dev], log=True)
+    stateful = process_utils.CheckOutput(['cgpt', 'find', '-l', 'STATE', dev],
+                                         log=True)
 
     match = re.search(r'(\d+)$', stateful)
     self.assertTrue(match,
@@ -57,8 +58,8 @@ class PartitionTableTest(unittest.TestCase):
 
     def CgptShow(flag):
       """Returns the value for 'cgpt show' with the given flag."""
-      return CheckOutput(['cgpt', 'show', '-i', str(stateful_no), dev,
-                          flag]).strip()
+      return process_utils.CheckOutput(
+          ['cgpt', 'show', '-i', str(stateful_no), dev, flag]).strip()
 
     start_sector = int(CgptShow('-b'))
     size_sectors = int(CgptShow('-s'))

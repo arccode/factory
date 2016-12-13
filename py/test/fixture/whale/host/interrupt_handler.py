@@ -8,23 +8,22 @@
 
 import logging
 import optparse
-import sys
-import time
 import os
 import re
+import sys
+import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import serial_client
 from cros.factory.test.fixture.whale import servo_client
 from cros.factory.utils import gpio_utils
-from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import type_utils
 
-ActionType = Enum(['CLOSE_COVER', 'HOOK_COVER', 'PUSH_NEEDLE',
-                   'PLUG_LATERAL', 'FIXTURE_STARTED'])
+ActionType = type_utils.Enum(['CLOSE_COVER', 'HOOK_COVER', 'PUSH_NEEDLE',
+                              'PLUG_LATERAL', 'FIXTURE_STARTED'])
 
 
 def TimeClassMethodDebug(func):
@@ -47,7 +46,6 @@ class InterruptHandler(object):
   GPIO 7, the interrupt pin from Whale's I/O expanders.
   """
   # Shortcuts to Whale's button and control dict.
-  # pylint: disable=E1101
   _BUTTON = servo_client.WHALE_BUTTON
   _CONTROL = servo_client.WHALE_CONTROL
   _FIXTURE_FEEDBACK = servo_client.FIXTURE_FEEDBACK
@@ -70,7 +68,8 @@ class InterruptHandler(object):
   # Used to avoid toggle battery too fast.
   _BATTERY_CEASE_TOGGLE_SECS = 1.0
 
-  _FixtureState = Enum(['WAIT', 'CLOSED', 'ERR_CLOSING', 'CLOSING', 'OPENING'])
+  _FixtureState = type_utils.Enum(
+      ['WAIT', 'CLOSED', 'ERR_CLOSING', 'CLOSING', 'OPENING'])
   # Fixture state to LED light and LCD message (green, red, message).
   _FixtureStateParams = {
       _FixtureState.WAIT: ('on', 'on', 'ready'),
@@ -319,7 +318,7 @@ class InterruptHandler(object):
       self._HandleStopFixture()
       # Disable stop button, and use 'i2cset' to set it back to input mode.
       self._servo.Disable(self._BUTTON.FIXTURE_STOP)
-      Spawn(['i2cset', '-y', '1', '0x77', '0x07', '0xff'])
+      process_utils.Spawn(['i2cset', '-y', '1', '0x77', '0x07', '0xff'])
       return True
 
     if (self._starting_fixture_action != ActionType.FIXTURE_STARTED and
@@ -447,7 +446,8 @@ class InterruptHandler(object):
     """Shows NUC dongle IP on LED second line"""
     nuc_host = '192.168.234.1'
     testing_rsa_path = '/usr/local/factory/board/testing_rsa'
-    get_dongle_eth_script = 'timeout 1s /usr/local/factory/py/test/fixture/get_dongle_eth.sh'
+    get_dongle_eth_script = (
+        'timeout 1s /usr/local/factory/py/test/fixture/get_dongle_eth.sh')
 
     # Make identity file less open to make ssh happy
     os.chmod(testing_rsa_path, 0600)
@@ -466,7 +466,8 @@ class InterruptHandler(object):
       ifconfig_command = 'ifconfig %s' % interface
       ifconfig_result = process_utils.SpawnOutput(
           ssh_command_base + [nuc_host, ifconfig_command]).strip()
-      ip_matcher = re.search(r'inet (\d+\.\d+\.\d+\.\d+)', ifconfig_result, re.MULTILINE)
+      ip_matcher = re.search(r'inet (\d+\.\d+\.\d+\.\d+)', ifconfig_result,
+                             re.MULTILINE)
       if not ip_matcher:
         ip_address = 'dongle not found...'
       else:

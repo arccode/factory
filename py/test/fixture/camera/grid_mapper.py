@@ -25,17 +25,17 @@ def _ComputePairL2Sq(xy1, xy2):
 
 
 def _MatchPoints(src, dst, match_tol):
-  '''Match two points sets based on the Euclidean distance.
+  """Match two points sets based on the Euclidean distance.
 
   Args:
-      src: Point set 1.
-      dst: Point set 2.
-      match_tol: Maximum acceptable distance between two points.
+    src: Point set 1.
+    dst: Point set 2.
+    match_tol: Maximum acceptable distance between two points.
 
   Returns:
-      1: The indexs that each point in src matches to in dst. None if a point
-         can't find any match.
-  '''
+    1: The indexs that each point in src matches to in dst. None if a point
+       can't find any match.
+  """
   n_match = src.shape[0]
 
   # We will work in the squared distance space.
@@ -56,13 +56,13 @@ def _MatchPoints(src, dst, match_tol):
         current = value
     if m[i] == n_match:
       return None
-    taken[j] = True
+    taken[m[i]] = True
   return m
 
 
 def Register(tar_four_corners, tar_corners, ref_four_corners, ref_corners,
              match_tol):
-  '''Register two rectangular grid point sets.
+  """Register two rectangular grid point sets.
 
   The function try to match two point sets with a prespective transformation.
   The four corners of both point grids must be supplied. The algorithm will
@@ -71,21 +71,24 @@ def Register(tar_four_corners, tar_corners, ref_four_corners, ref_corners,
   iterations or the iteration diverged.
 
   Args:
-      tar_four_corners: Four corners of the target point grid.
-      tar_corners: The target point grid.
-      ref_four_corners: Four corners of the reference point grid.
-      ref_corners: The reference point grid.
-      match_tol: Maximum acceptable distance between two points.
+    tar_four_corners: Four corners of the target point grid.
+    tar_corners: The target point grid.
+    ref_four_corners: Four corners of the reference point grid.
+    ref_corners: The reference point grid.
+    match_tol: Maximum acceptable distance between two points.
 
   Returns:
-      1: Succeed or not.
-      2: The estimated homography matrix.
-      3: The indexs that each point in the target image matches to in
-         reference one. None if a point can't find any match.
-  '''
+    1: Succeed or not.
+    2: The estimated homography matrix.
+    3: The indexs that each point in the target image matches to in
+       reference one. None if a point can't find any match.
+  """
   # Stupid dimension extension to fit the opencv interface.
   padded_tar_corners = utils.Pad(tar_corners)
 
+  # TODO(pihsun): mapped is undefined, figure out what this statement really
+  #               wants to do. Remove below pylint comment after fix.
+  # pylint: disable=used-before-assignment
   min_match_num = int(round(mapped.shape[0] *
                             _GRID_REGISTRATION_MIN_MATCH_RATIO))
   min_match_num = max(4, min_match_num)
@@ -94,7 +97,7 @@ def Register(tar_four_corners, tar_corners, ref_four_corners, ref_corners,
   homography, _ = cv2.findHomography(tar_four_corners, ref_four_corners)
 
   # Iteratively register the point grid.
-  for i in range(0, _GRID_REGISTRATION_MAX_ITER_NUM):
+  for unused_i in range(0, _GRID_REGISTRATION_MAX_ITER_NUM):
     # Map and match points.
     mapped = cv2.perspectiveTransform(padded_tar_corners, homography)
     mapped = utils.Unpad(mapped)

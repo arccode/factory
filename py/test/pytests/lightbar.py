@@ -10,12 +10,12 @@
 import logging
 import unittest
 
-import factory_common   # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.utils import process_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 
 
 _TEST_TITLE = test_ui.MakeLabel('Lightbar Test', u'光棒测试')
@@ -46,7 +46,7 @@ class LightbarTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._test_color_index = 0
-    self._ui.BindKey(' ', self.TestNextColorOrPass)
+    self._ui.BindKey(test_ui.SPACE_KEY, self.TestNextColorOrPass)
     self._ui.BindKey('F', self.FailTest)
     self.ECToolLightbar(['on'])
     self.ECToolLightbar(['init'])
@@ -71,7 +71,7 @@ class LightbarTest(unittest.TestCase):
       # Convert each arg to str to make subprocess module happy.
       args = [str(x) for x in args]
       return process_utils.CheckOutput(['ectool', 'lightbar'] + args, log=True)
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:
       raise factory.FactoryTestFailure('Unable to set lightbar: %s' % e)
 
   def TestColor(self, color_index):

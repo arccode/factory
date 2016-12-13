@@ -11,7 +11,7 @@ backgroundable tests.
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.arg_utils import Arg
 
 

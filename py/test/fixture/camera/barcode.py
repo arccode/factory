@@ -5,9 +5,9 @@
 """Encapsulates QR Barcode scanner."""
 
 try:
-  import cv    # pylint: disable=F0401
-  import cv2   # pylint: disable=F0401
-  import zbar  # pylint: disable=F0401
+  import cv
+  import cv2
+  import zbar
 except ImportError:
   pass
 

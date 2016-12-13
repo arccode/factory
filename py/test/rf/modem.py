@@ -4,12 +4,12 @@
 
 """A wrapper for talking with a tty modem."""
 
+import logging
 import re
 import serial
-import logging
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.type_utils import Error
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import type_utils
 
 _COMMAND_RETRY_TIMES = 5
 _RECEIVE_RETRY_TIMES = 10
@@ -26,7 +26,7 @@ class Modem(object):
       timeout: timeout seconds that passed to pyserial
       cancel_echo: AT command to suppress the echo
       disable_operation: Put modem into a non-operation mode so it will
-        not throw unexpected messages.
+          not throw unexpected messages.
     """
     self.ser = serial.Serial('/dev/%s' % port, timeout=timeout)
 
@@ -98,7 +98,7 @@ class Modem(object):
           return response
       else:
         retries += 1
-    raise Error('Cannot get entire response: %r' % (response))
+    raise type_utils.Error('Cannot get entire response: %r' % (response))
 
   def ExpectResponse(self, expected_msg, modem_response):
     """Checks expected messages from modem.
@@ -114,13 +114,14 @@ class Modem(object):
       expected_msg = [expected_msg]
     for msg in expected_msg:
       if msg not in modem_response:
-        raise Error('Expected %r but got %r' % (expected_msg, modem_response))
+        raise type_utils.Error(
+            'Expected %r but got %r' % (expected_msg, modem_response))
 
   def ExpectLine(self, expected_line):
     """Expects a line from the modem."""
     line = self.ReadLine()
     if line != expected_line:
-      raise Error('Expected %r but got %r' % (expected_line, line))
+      raise type_utils.Error('Expected %r but got %r' % (expected_line, line))
 
   def ExpectMultipleLines(self, expected_regex):
     """Expects a multiple line regular expression."""
@@ -128,4 +129,4 @@ class Modem(object):
     for line in lines:
       logging.info('modem[ %r', line)
     if not re.search(expected_regex, ''.join(lines), re.MULTILINE | re.DOTALL):
-      raise Error('Expected %r but got %r' % (expected_regex, lines))
+      raise type_utils.Error('Expected %r but got %r' % (expected_regex, lines))

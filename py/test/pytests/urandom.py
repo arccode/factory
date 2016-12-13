@@ -4,14 +4,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''A factory test to stress CPU.
+"""A factory test to stress CPU.
 
 It stresses CPU by generating random number using /dev/urandom for a specified
 period of time.
 
 Test parameter:
   duration_secs: Number of seconds to stress CPU.
-'''
+"""
 
 import logging
 import time

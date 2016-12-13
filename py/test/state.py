@@ -4,13 +4,13 @@
 # found in the LICENSE file.
 
 
-'''This module provides both client and server side of a XML RPC based server which can be used to handle factory test states (status) and shared persistent data.
-'''
+"""This module provides both client and server side of a XML RPC based server
+which can be used to handle factory test states (status) and shared persistent
+data.
+"""
 
 
 from __future__ import print_function
-
-import factory_common  # pylint: disable=W0611
 
 import glob
 import logging
@@ -22,21 +22,21 @@ import shutil
 import SocketServer
 import threading
 import time
-import yaml
-
 from uuid import uuid4
+import yaml
 
 from jsonrpclib import jsonclass
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
-from cros.factory.test.factory import TestState
+from cros.factory.test import factory
 from cros.factory.utils import net_utils
+from cros.factory.utils import shelve_utils
+from cros.factory.utils import string_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils.shelve_utils import OpenShelfOrBackup
-from cros.factory.utils.string_utils import CleanUTF8
-
 
 DEFAULT_FACTORY_STATE_PORT = 0x0FAC
 DEFAULT_FACTORY_STATE_ADDRESS = net_utils.LOCALHOST
@@ -47,21 +47,21 @@ POST_SHUTDOWN_TAG = '%s.post_shutdown'
 
 
 def _synchronized(f):
-  '''Decorates a function to grab a lock.
-  '''
+  """Decorates a function to grab a lock.
+  """
 
   def wrapped(self, *args, **kw):
-    with self._lock:  # pylint: disable=W0212
+    with self._lock:  # pylint: disable=protected-access
       return f(self, *args, **kw)
   return wrapped
 
 
 def clear_state(state_file_path=None):
-  '''Clears test state (removes the state file path).
+  """Clears test state (removes the state file path).
 
   Args:
     state_file_path: Path to state; uses the default path if None.
-  '''
+  """
   state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
   logging.warn('Clearing state file path %s', state_file_path)
   if os.path.exists(state_file_path):
@@ -75,7 +75,7 @@ class PathResolver(object):
     self._paths = {}
 
   def AddPath(self, url_path, local_path):
-    '''Adds a prefix mapping:
+    """Adds a prefix mapping:
 
     For example,
 
@@ -88,17 +88,17 @@ class PathResolver(object):
 
     Args:
       url_path: The path in the URL
-    '''
+    """
     self._paths[url_path] = local_path
 
   def Resolve(self, url_path):
-    '''Resolves a path mapping.
+    """Resolves a path mapping.
 
     Returns None if no paths match.'
 
     Args:
       url_path: A path in a URL (starting with /).
-    '''
+    """
     if not url_path.startswith('/'):
       return None
 
@@ -116,7 +116,7 @@ class PathResolver(object):
 
 @type_utils.UnicodeToStringClass
 class FactoryState(object):
-  '''The core implementation for factory state control.
+  """The core implementation for factory state control.
 
   The major provided features are:
   SHARED DATA
@@ -139,24 +139,24 @@ class FactoryState(object):
 
   Properties:
     _generated_files: Map from UUID to paths on disk. These are
-      not persisted on disk (though they could be if necessary).
+        not persisted on disk (though they could be if necessary).
     _generated_data: Map from UUID to (mime_type, data) pairs for
-      transient objects to serve.
+        transient objects to serve.
     _generated_data_expiration: Priority queue of expiration times
-      for objects in _generated_data.
-  '''
+        for objects in _generated_data.
+  """
 
   def __init__(self, state_file_path=None):
-    '''Initializes the state server.
+    """Initializes the state server.
 
     Parameters:
       state_file_path:  External file to store the state information.
-    '''
+    """
     state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
     if not os.path.exists(state_file_path):
       os.makedirs(state_file_path)
-    self._tests_shelf = OpenShelfOrBackup(state_file_path + '/tests')
-    self._data_shelf = OpenShelfOrBackup(state_file_path + '/data')
+    self._tests_shelf = shelve_utils.OpenShelfOrBackup(state_file_path + '/tests')
+    self._data_shelf = shelve_utils.OpenShelfOrBackup(state_file_path + '/data')
     self._lock = threading.RLock()
     self.test_list_struct = None
 
@@ -168,41 +168,42 @@ class FactoryState(object):
     # TODO(hungte) Support remote dynamic DUT.
     self._dut = device_utils.CreateDUTInterface()
 
-    if TestState not in jsonclass.supported_types:
-      jsonclass.supported_types.append(TestState)
+    if factory.TestState not in jsonclass.supported_types:
+      jsonclass.supported_types.append(factory.TestState)
 
   @_synchronized
   def close(self):
-    '''Shuts down the state instance.
-    '''
+    """Shuts down the state instance."""
     for shelf in [self._tests_shelf,
                   self._data_shelf]:
       try:
         shelf.close()
-      except:
+      except:  # pylint: disable=bare-except
         logging.exception('Unable to close shelf')
 
   @_synchronized
   def update_test_state(self, path, **kw):
-    '''Updates the state of a test.
+    """Updates the state of a test.
 
-    See TestState.update for the allowable keyword arguments.
+    See factory.TestState.update for the allowable keyword arguments.
 
-    @param path: The path to the test (see FactoryTest for a description
-      of test paths).
-    @param kw: See TestState.update for allowable arguments (e.g.,
-      status and increment_count).
+    Args:
+      path: The path to the test (see FactoryTest for a description
+          of test paths).
+      kw: See factory.TestState.update for allowable arguments (e.g.,
+          status and increment_count).
 
-    @return: A tuple containing the new state, and a boolean indicating
-      whether the state was just changed.
-    '''
+    Returns:
+      A tuple containing the new state, and a boolean indicating whether the
+      state was just changed.
+    """
     state = self._tests_shelf.get(path)
     old_state_repr = repr(state)
     changed = False
 
     if not state:
       changed = True
-      state = TestState()
+      state = factory.TestState()
 
     changed = changed | state.update(**kw)  # Don't short-circuit
 
@@ -216,42 +217,37 @@ class FactoryState(object):
 
   @_synchronized
   def get_test_state(self, path):
-    '''Returns the state of a test.
-    '''
+    """Returns the state of a test."""
     return self._tests_shelf[path]
 
   @_synchronized
   def get_test_paths(self):
-    '''Returns a list of all tests' paths.
-    '''
+    """Returns a list of all tests' paths."""
     return self._tests_shelf.keys()
 
   @_synchronized
   def get_test_states(self):
-    '''Returns a map of each test's path to its state.
-    '''
+    """Returns a map of each test's path to its state."""
     return dict(self._tests_shelf)
 
   @_synchronized
   def clear_test_state(self):
-    '''Clears all test state.
-    '''
+    """Clears all test state."""
     self._tests_shelf.clear()
 
   def get_test_list(self):
-    '''Returns the test list.
-    '''
+    """Returns the test list."""
     return self.test_list.to_struct()
 
   @_synchronized
   def set_shared_data(self, *key_value_pairs):
-    '''Sets shared data items.
+    """Sets shared data items.
 
     Args:
       key_value_pairs: A series of alternating keys and values
-        (k1, v1, k2, v2...). In the simple case this can just
-        be a single key and value.
-    '''
+          (k1, v1, k2, v2...). In the simple case this can just
+          be a single key and value.
+    """
     assert len(key_value_pairs) % 2 == 0, repr(key_value_pairs)
     for i in range(0, len(key_value_pairs), 2):
       self._data_shelf[key_value_pairs[i]] = key_value_pairs[i + 1]
@@ -259,13 +255,12 @@ class FactoryState(object):
 
   @_synchronized
   def get_shared_data(self, key, optional=False):
-    '''Retrieves a shared data item.
+    """Retrieves a shared data item.
 
     Args:
       key: The key whose value to retrieve.
-      optional: True to return None if not found; False to raise
-        a KeyError.
-    '''
+      optional: True to return None if not found; False to raise a KeyError.
+    """
     if optional:
       return self._data_shelf.get(key)
     else:
@@ -273,18 +268,17 @@ class FactoryState(object):
 
   @_synchronized
   def has_shared_data(self, key):
-    '''Returns if a shared data item exists.
-    '''
+    """Returns if a shared data item exists."""
     return key in self._data_shelf
 
   @_synchronized
   def del_shared_data(self, key, optional=False):
-    '''Deletes a shared data item.
+    """Deletes a shared data item.
 
     Args:
       key: The key whose value to retrieve.
       optional: False to raise a KeyError if not found.
-    '''
+    """
     try:
       del self._data_shelf[key]
     except KeyError:
@@ -293,7 +287,7 @@ class FactoryState(object):
 
   @_synchronized
   def update_shared_data_dict(self, key, new_data):
-    '''Updates values a shared data item whose value is a dictionary.
+    """Updates values a shared data item whose value is a dictionary.
 
     This is roughly equivalent to
 
@@ -310,7 +304,7 @@ class FactoryState(object):
 
     Returns:
       The updated value.
-    '''
+    """
     data = self._data_shelf.get(key, {})
     data.update(new_data)
     self._data_shelf[key] = data
@@ -319,7 +313,7 @@ class FactoryState(object):
   @_synchronized
   def delete_shared_data_dict_item(self, shared_data_key,
                                    delete_keys, optional):
-    '''Deletes items from a shared data item whose value is a dict.
+    """Deletes items from a shared data item whose value is a dict.
 
     This is roughly equivalent to
 
@@ -342,7 +336,7 @@ class FactoryState(object):
 
     Returns:
       The updated value.
-    '''
+    """
     data = self._data_shelf.get(shared_data_key, {})
     for key in delete_keys:
       try:
@@ -355,7 +349,7 @@ class FactoryState(object):
 
   @_synchronized
   def append_shared_data_list(self, key, new_item):
-    '''Appends an item to a shared data item whose value is a list.
+    """Appends an item to a shared data item whose value is a list.
 
     This is roughly equivalent to
 
@@ -372,7 +366,7 @@ class FactoryState(object):
 
     Returns:
       The updated value.
-    '''
+    """
     data = self._data_shelf.get(key, [])
     data.append(new_item)
     self._data_shelf[key] = data
@@ -388,7 +382,7 @@ class FactoryState(object):
                                       'metadata')):
         try:
           ret.append(yaml.load(open(f)))
-        except:
+        except:  # pylint: disable=bare-except
           logging.exception('Unable to load test metadata %s', f)
 
     ret.sort(key=lambda item: item.get('init_time', None))
@@ -401,8 +395,8 @@ class FactoryState(object):
 
     log_file = os.path.join(test_dir, 'log')
     try:
-      log = CleanUTF8(open(log_file).read())
-    except:
+      log = string_utils.CleanUTF8(open(log_file).read())
+    except:  # pylint: disable=bare-except
       # Oh well
       logging.exception('Unable to read log file %s', log_file)
       log = None
@@ -412,14 +406,14 @@ class FactoryState(object):
 
   @_synchronized
   def url_for_file(self, path):
-    '''Returns a URL that can be used to serve a local file.
+    """Returns a URL that can be used to serve a local file.
 
     Args:
-     path: path to the local file
+      path: path to the local file
 
     Returns:
-     url: A (possibly relative) URL that refers to the file
-    '''
+      url: A (possibly relative) URL that refers to the file
+    """
     uuid = str(uuid4())
     uri_path = '/generated-files/%s/%s' % (uuid, os.path.basename(path))
     self._resolver.AddPath('/generated-files/%s' % uuid, os.path.dirname(path))
@@ -428,15 +422,15 @@ class FactoryState(object):
 
   @_synchronized
   def url_for_data(self, mime_type, data, expiration_secs=None):
-    '''Returns a URL that can be used to serve a static collection
+    """Returns a URL that can be used to serve a static collection
     of bytes.
 
     Args:
-     mime_type: MIME type for the data
-     data: Data to serve
-     expiration_secs: If not None, the number of seconds in which
-      the data will expire.
-    '''
+      mime_type: MIME type for the data
+      data: Data to serve
+      expiration_secs: If not None, the number of seconds in which
+          the data will expire.
+    """
     uuid = str(uuid4())
     self._generated_data[uuid] = mime_type, data
     if expiration_secs:
@@ -465,12 +459,12 @@ class FactoryState(object):
     self._resolver.AddPath(url_path, local_path)
 
   def get_system_status(self):
-    '''Returns system status information.
+    """Returns system status information.
 
     This may include system load, battery status, etc. See
     cros.factory.device.status.SystemStatus. Return None
     if DUT is not local (station-based).
-    '''
+    """
     if self._dut.link.IsLocal():
       return self._dut.status.Snapshot().__dict__
     return None
@@ -478,14 +472,17 @@ class FactoryState(object):
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
                  port=None):
-  '''Gets an instance (for client side) to access the state server.
+  """Gets an instance (for client side) to access the state server.
 
-  @param address: Address of the server to be connected.
-  @param port: Port of the server to be connected.  Defaults to
-      DEFAULT_FACTORY_STATE_PORT.
-  @return An object with all public functions from FactoryState.
+  Args:
+    address: Address of the server to be connected.
+    port: Port of the server to be connected.  Defaults to
+        DEFAULT_FACTORY_STATE_PORT.
+
+  Returns:
+    An object with all public functions from FactoryState.
     See help(FactoryState) for more information.
-  '''
+  """
   return jsonrpc.ServerProxy('http://%s:%d' % (
       address, port or DEFAULT_FACTORY_STATE_PORT), verbose=False)
 
@@ -501,6 +498,7 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
 
     match = re.match(r'^/generated-data/([-0-9a-f]+)$', self.path)
     if match:
+      # pylint: disable=protected-access
       generated_data = self.server._generated_data.get(match.group(1))
       if not generated_data:
         logging.warn('Unknown or expired generated data %s',
@@ -533,6 +531,7 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
     local_path = None
     match = re.match(r'^/generated-files/([-0-9a-f]+)/', self.path)
     if match:
+      # pylint: disable=protected-access
       local_path = self.server._generated_files.get(match.group(1))
       if not local_path:
         logging.warn('Unknown generated file %s in path %s',
@@ -540,6 +539,7 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
         self.send_response(404)
         return
 
+    # pylint: disable=protected-access
     local_path = self.server._resolver.Resolve(self.path)
     if not local_path or not os.path.exists(local_path):
       logging.warn('File not found: %s', (local_path or self.path))
@@ -556,12 +556,12 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
 
 class ThreadedJSONRPCServer(SocketServer.ThreadingMixIn,
                             SimpleJSONRPCServer.SimpleJSONRPCServer):
-  '''The JSON/RPC server.
+  """The JSON/RPC server.
 
   Properties:
     handlers: A map from URLs to callbacks handling them. (The callback
-      takes a single argument: the request to handle.)
-  '''
+        takes a single argument: the request to handle.)
+  """
 
   def __init__(self, *args, **kwargs):
     SimpleJSONRPCServer.SimpleJSONRPCServer.__init__(self, *args, **kwargs)
@@ -572,15 +572,18 @@ class ThreadedJSONRPCServer(SocketServer.ThreadingMixIn,
 
 
 def create_server(state_file_path=None, bind_address=None, port=None):
-  '''Creates a FactoryState object and an JSON/RPC server to serve it.
+  """Creates a FactoryState object and an JSON/RPC server to serve it.
 
-  @param state_file_path: The path containing the saved state.
-  @param bind_address: Address to bind to, defaulting to
+  Args:
+    state_file_path: The path containing the saved state.
+    bind_address: Address to bind to, defaulting to
     DEFAULT_FACTORY_STATE_BIND_ADDRESS.
-  @param port: Port to bind to, defaulting to DEFAULT_FACTORY_STATE_PORT.
-  @return A tuple of the FactoryState instance and the SimpleJSONRPCServer
-    instance.
-  '''
+    port: Port to bind to, defaulting to DEFAULT_FACTORY_STATE_PORT.
+
+  Returns:
+    A tuple of the FactoryState instance and the SimpleJSONRPCServer instance.
+  """
+  # pylint: disable=protected-access
   # We have some icons in SVG format, but this isn't recognized in
   # the standard Python mimetypes set.
   mimetypes.add_type('image/svg+xml', '.svg')
@@ -600,6 +603,7 @@ def create_server(state_file_path=None, bind_address=None, port=None):
       logRequests=False)
 
   # Give the server the information it needs to resolve URLs.
+  # pylint: disable=attribute-defined-outside-init
   server._generated_files = instance._generated_files
   server._generated_data = instance._generated_data
   server._resolver = instance._resolver

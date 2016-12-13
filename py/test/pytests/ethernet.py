@@ -11,14 +11,14 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.net_utils import DEFAULT_ETHERNET_NAME_PATTERNS
+from cros.factory.utils import net_utils
 
 _MSG_ETHERNET_INFO = test_ui.MakeLabel(
     'Please plug ethernet cable into built-in ethernet port<br>'
@@ -56,7 +56,7 @@ class EthernetTest(unittest.TestCase):
       Arg('iface', str, 'Interface name for testing.', default=None,
           optional=True),
       Arg('interface_name_patterns', list, 'The ethernet interface name patterns',
-          default=DEFAULT_ETHERNET_NAME_PATTERNS, optional=True),
+          default=net_utils.DEFAULT_ETHERNET_NAME_PATTERNS, optional=True),
       Arg('link_only', bool, 'Only test if link is up or not', default=False),
       Arg('use_swconfig', bool, 'Use swconfig for polling link status.',
           default=False),
@@ -72,7 +72,7 @@ class EthernetTest(unittest.TestCase):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_ETHERNET)
     self.template.SetState(_HTML_ETHERNET)
 

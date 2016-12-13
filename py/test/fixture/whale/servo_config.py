@@ -12,14 +12,14 @@ for ryu board.
 import glob
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 SERVO_CONFIG_FILENAME_SPEC = '*_servo_config.py'
 IMPORT_PATH = 'cros.factory.test.fixture.whale.%s'
 
-WHALE_INA = dict()  # Whale's krill INA dict
+WHALE_INA = {}  # Whale's krill INA dict
 WHALE_ADC = []  # Whale's krill ADC list
-FIXTURE_FEEDBACK = dict()  # Whale's fixture feedback dict
+FIXTURE_FEEDBACK = {}  # Whale's fixture feedback dict
 
 def _GetBoardServoConfig():
   """Gets board-dependent servo config file name.

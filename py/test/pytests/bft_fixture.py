@@ -8,9 +8,8 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.fixture.bft_fixture import CreateBFTFixture
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -29,10 +28,10 @@ class BFTFixture(unittest.TestCase):
     while True:
       fixture = None
       try:
-        fixture = CreateBFTFixture(**self.args.bft_fixture)
+        fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
         getattr(fixture, self.args.method)(*self.args.args)
         break  # Success; we're done
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('BFT fixture test failed')
         if not self.args.retry_secs:
           # No retry; raise the exception to fail the test
@@ -41,7 +40,7 @@ class BFTFixture(unittest.TestCase):
         if fixture:
           try:
             fixture.Disconnect()
-          except:  # pylint: disable=W0702
+          except:  # pylint: disable=bare-except
             logging.exception('Unable to disconnect fixture')
 
       logging.info('Will retry in %s secs', self.args.retry_secs)

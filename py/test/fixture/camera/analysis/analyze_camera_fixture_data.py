@@ -11,8 +11,10 @@ it should run with ActivePython on MS-Windows. The external library dependency
 is kept as minimum as possible.
 """
 
+from __future__ import print_function
+
 import argparse
-from collections import defaultdict, namedtuple, OrderedDict
+import collections
 import csv
 import glob
 import numpy as np
@@ -33,11 +35,11 @@ _SN_BLACKLIST = ['NO_SN', 'INVALID_SN']
 
 # Data structure for test pass criteria. Min_value and max_value are floats or
 # None. At least one of min_value and max_value must be None.
-Criteria = namedtuple('Criteria',
-                      ['display_name', 'min_value', 'max_value'])
+Criteria = collections.namedtuple('Criteria',
+                                  ['display_name', 'min_value', 'max_value'])
 
 # ordered dictionary of format field-name => criteria
-_PASS_CRITERIA = OrderedDict([
+_PASS_CRITERIA = collections.OrderedDict([
     ('MedianMTF', Criteria('Median MTF', 0.240, None)),
     ('LowestMTF', Criteria('Lowest MTF', 0.145, None)),
     ('Shift', Criteria('Shift Ratio', None, 0.045)),
@@ -90,10 +92,10 @@ def _PrintStatistics(values, criteria):
   total_count = len(values)
   assert min_value == None or max_value == None
   if min_value:
-    failed_count = len(filter((lambda x: abs(x) < min_value), values))
+    failed_count = len([x for x in values if abs(x) < min_value])
     failed_condition = '< %.3f' % min_value
   elif max_value:
-    failed_count = len(filter((lambda x: abs(x) > max_value), values))
+    failed_count = len([x for x in values if abs(x) > max_value])
     failed_condition = '> %.3f' % max_value
   else:
     failed_condition = None
@@ -124,7 +126,7 @@ def AnalyzeData(data_list):
     print('No test data is found')
     return
 
-  values = defaultdict(list)
+  values = collections.defaultdict(list)
   for row in data_list:
     for field in _FIELDS:
       if row[field] == 'N/A':
@@ -162,7 +164,7 @@ def CollectDataAndExportCSV(data_path, csv_filename):
   Returns:
     A list of dictionaries, where each contains the results of one DUT.
   """
-  data_dict = defaultdict(dict)
+  data_dict = collections.defaultdict(dict)
 
   def _read_attr(lines, attr, pattern, fallback='N/A'):
     matches = [re.search(pattern, l).group(1)
@@ -188,7 +190,7 @@ def CollectDataAndExportCSV(data_path, csv_filename):
         _read_attr(lines, field, pattern)
 
   # Export data_dict to CSV file
-  fields_dict = OrderedDict([(f, f) for f in _FIELDS])
+  fields_dict = collections.OrderedDict((f, f) for f in _FIELDS)
 
   if csv_filename:
     with open(csv_filename, 'w') as csvfile:

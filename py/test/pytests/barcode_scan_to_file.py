@@ -13,7 +13,7 @@ import re
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture.whale import whale_bft_fixture
@@ -28,20 +28,16 @@ class BarcodeScanToFileTest(unittest.TestCase):
   """Scans barcode and saves it to a specific file."""
   ARGS = [
       Arg('label_en', (str, unicode), 'Name of the barcode to scan'),
-      Arg(
-          'label_zh', (str, unicode),
+      Arg('label_zh', (str, unicode),
           'Chinese name of barcode being scanned '
           '(defaults to the same as the English label)',
           optional=True),
-      Arg(
-          'regexp', str, 'Regexp that the scanned value must match',
+      Arg('regexp', str, 'Regexp that the scanned value must match',
           optional=True),
-      Arg(
-          'ignore_case', bool, 'True to ignore case from input.',
+      Arg('ignore_case', bool, 'True to ignore case from input.',
           default=False),
       Arg('save_path', str, 'The file path of saving barcode'),
-      Arg(
-          'bft_params', dict,
+      Arg('bft_params', dict,
           'Parameters to initialize WhaleBFTFixture. It is a dict which '
           'contains at least "host" and "port" that points to BeagleBone '
           'servod.',

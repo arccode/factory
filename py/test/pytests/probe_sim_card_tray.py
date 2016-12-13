@@ -20,15 +20,15 @@ import time
 import unittest
 import uuid
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
+from cros.factory.test import event
 from cros.factory.test import factory
+from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.countdown_timer import StartCountdownTimer
-from cros.factory.test.event import Event
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.file_utils import WriteFile, ReadLines
+from cros.factory.utils import file_utils
 
 
 _TEST_TITLE = test_ui.MakeLabel('SIM Card Tray Test', u'SIM卡卡盘测试')
@@ -92,7 +92,7 @@ class WaitTrayThread(threading.Thread):
     self._on_success()
 
 
-class ProbeTrayTask(FactoryTask):
+class ProbeTrayTask(factory_task.FactoryTask):
   """Probe SIM card tray task."""
   INSERTED = 'Inserted'
   REMOVED = 'Removed'
@@ -120,15 +120,16 @@ class ProbeTrayTask(FactoryTask):
     via event queue to prevent race condition.
     """
     self._disable_timer.set()
-    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
-                             subtype=self._pass_event))
+    self._ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
+                                   subtype=self._pass_event))
 
   def Run(self):
     self._ui.SetHTML(self._instruction, id=_ID_INSTRUCTION)
     self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
     self._wait_tray.start()
-    StartCountdownTimer(self._timeout_secs, self.Timeout,
-                        self._ui, _ID_COUNTDOWN_TIMER, self._disable_timer)
+    countdown_timer.StartCountdownTimer(
+        self._timeout_secs, self.Timeout,
+        self._ui, _ID_COUNTDOWN_TIMER, self._disable_timer)
 
   def Cleanup(self):
     self._disable_timer.set()
@@ -214,7 +215,8 @@ class ProbeSimCardTrayTest(unittest.TestCase):
       return
     export_path = os.path.join(_GPIO_PATH, 'export')
     try:
-      WriteFile(export_path, str(self.args.tray_detection_gpio), log=True)
+      file_utils.WriteFile(export_path, str(self.args.tray_detection_gpio),
+                           log=True)
     except IOError:
       logging.exception('Can not write %s into %s',
                         str(self.args.tray_detection_gpio), export_path)
@@ -222,7 +224,7 @@ class ProbeSimCardTrayTest(unittest.TestCase):
                                self.args.tray_detection_gpio)
     direction_path = os.path.join(self._detection_gpio_path, 'direction')
     try:
-      WriteFile(direction_path, 'out', log=True)
+      file_utils.WriteFile(direction_path, 'out', log=True)
     except IOError:
       logging.exception('Can not write "out" into %s', direction_path)
       raise ProbeTrayException('Can set detection gpio direction to out')
@@ -230,7 +232,7 @@ class ProbeSimCardTrayTest(unittest.TestCase):
   def GetDetection(self):
     """Returns tray status ProbeTrayTask.INSERTED or ProbeTrayTask.REMOVED."""
     value_path = os.path.join(self._detection_gpio_path, 'value')
-    lines = ReadLines(value_path)
+    lines = file_utils.ReadLines(value_path)
     if not lines:
       raise ProbeTrayException('Can not get detection result from %s' %
                                value_path)
@@ -260,7 +262,7 @@ class ProbeSimCardTrayTest(unittest.TestCase):
     self.CheckPresence()
 
     if self.args.only_check_presence:
-      factory.console.info('Passes the test that only checks presence is %s.' %
+      factory.console.info('Passes the test that only checks presence is %s.',
                            self.args.tray_already_present)
       return
 
@@ -278,5 +280,5 @@ class ProbeSimCardTrayTest(unittest.TestCase):
       if self.args.remove:
         task_list.append(RemoveTrayTask(self))
 
-    self._task_manager = FactoryTaskManager(self.ui, task_list)
+    self._task_manager = factory_task.FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()

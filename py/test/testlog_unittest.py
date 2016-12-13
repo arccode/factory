@@ -15,7 +15,7 @@ import subprocess
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
 from cros.factory.test import testlog_utils
@@ -52,7 +52,7 @@ class TestlogEventTest(unittest.TestCase):
       testlog.Event()
     with self.assertRaisesRegexp(
         testlog_utils.TestlogError, 'initialize directly'):
-      testlog._StationBase()  # pylint: disable=W0212
+      testlog._StationBase()  # pylint: disable=protected-access
 
   def testEventSerializeUnserialize(self):
     original = testlog.StationInit()
@@ -87,7 +87,7 @@ class TestlogE2ETest(unittest.TestCase):
   @staticmethod
   def _reset():
     """Deletes state files and resets global variables."""
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     testlog_goofy._device_id = testlog_goofy._installation_id = None
     if testlog._global_testlog:
       testlog._global_testlog.Close()
@@ -106,7 +106,7 @@ class TestlogE2ETest(unittest.TestCase):
       del os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME]
 
   def tearDown(self):
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     if testlog._global_testlog:
       testlog._global_testlog.Close()
 

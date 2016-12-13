@@ -18,10 +18,10 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.event_log import Log
-from cros.factory.test.utils.stress_manager import StressManager
+from cros.factory.test import event_log
+from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -72,28 +72,28 @@ class ThermalLoadTest(unittest.TestCase):
       if not self.heated_up[index] and (
           temperature_value >= self.args.lower_threshold[index]):
         self.heated_up[index] = True
-        Log('heated', temperature_value=temperature_value,
-            lower_threshold=self.args.lower_threshold[index],
-            sensor_index=self.args.sensor_index[index],
-            elapsed_sec=elapsed)
+        event_log.Log('heated', temperature_value=temperature_value,
+                      lower_threshold=self.args.lower_threshold[index],
+                      sensor_index=self.args.sensor_index[index],
+                      elapsed_sec=elapsed)
         logging.info('Sensor %d heated up to %d C in %d seconds.',
                      self.args.sensor_index[index],
                      self.args.lower_threshold[index], elapsed)
 
       if temperature_value > self.args.temperature_limit[index]:
-        Log('over_heated', temperature_value=temperature_value,
-            temperature_limit=self.args.temperature_limit[index],
-            sensor_index=self.args.sensor_index[index],
-            elapsed_sec=elapsed)
+        event_log.Log('over_heated', temperature_value=temperature_value,
+                      temperature_limit=self.args.temperature_limit[index],
+                      sensor_index=self.args.sensor_index[index],
+                      elapsed_sec=elapsed)
         self.fail('Sensor %d temperature got over %d.' % (
             self.args.sensor_index[index], self.args.temperature_limit[index]))
 
       if elapsed >= self.args.heat_up_timeout_secs and (
           not self.heated_up[index]):
-        Log('slow_temp_slope', temperature_value=temperature_value,
-            lower_threshold=self.args.lower_threshold[index],
-            sensor_index=self.args.sensor_index[index],
-            timeout=self.args.heat_up_timeout_secs)
+        event_log.Log('slow_temp_slope', temperature_value=temperature_value,
+                      lower_threshold=self.args.lower_threshold[index],
+                      sensor_index=self.args.sensor_index[index],
+                      timeout=self.args.heat_up_timeout_secs)
         logging.info('temperature track: %r', self.temperatures_track)
         self.fail("Temperature %d didn't go over %d in %s seconds." % (
             self.args.sensor_index[index],
@@ -134,14 +134,14 @@ class ThermalLoadTest(unittest.TestCase):
 
   def runTest(self):
     start_temperatures = self.GetTemperatures()
-    Log('start_temperatures', tempertures=start_temperatures)
+    event_log.Log('start_temperatures', tempertures=start_temperatures)
     logging.info('Starting temperatures are: %s', start_temperatures)
 
     # Check temperatures before heat up to make sure all sensors are normal.
     self.CheckTemperatures(start_temperatures, 0)
     logging.info('Stressing with %d threads...', self.load)
 
-    with StressManager(self.dut).Run(num_threads=self.load):
+    with stress_manager.StressManager(self.dut).Run(num_threads=self.load):
       start_time = time.time()
       while time.time() - start_time < self.args.duration_secs:
         time.sleep(1)
@@ -151,4 +151,4 @@ class ThermalLoadTest(unittest.TestCase):
 
       logging.info('Passed. Maximum temperature seen is %s',
                    self.max_temperature)
-      Log('passed', max_temperature=self.max_temperature)
+      event_log.Log('passed', max_temperature=self.max_temperature)

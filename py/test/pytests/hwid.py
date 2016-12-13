@@ -4,7 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# DESCRIPTION :
 # This is a test to verify HWID during factory flow. The test supports three
 # ways of fetching/probing HWID:
 # 1) Manually select by operator.
@@ -14,21 +13,21 @@
 # To use the auto-probing feature, you have to specify some arguments to the
 # test. Please refer to ARGS below for detailed explanation.
 
-import factory_common  # pylint: disable=W0611
 import logging
 import re
 import unittest
 
-from cros.factory.hwid.v2.hwid_tool import HWID_RE
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.test import factory
+from cros.factory.test import factory_task
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.test.ui_templates import OneSection, SelectBox
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils import process_utils
 
 _MESSAGE_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
     'Fetching HWID from shop floor server...',
@@ -55,11 +54,11 @@ _SELECT_BOX_STYLE = 'font-size: 1.5em; background-color: white;'
 _SELECT_BOX_ID = 'hwid_select'
 _SELECTION_PER_PAGE = 10
 _EVENT_SUBTYPE_HWID_SELECT = 'HWID-Select'
-_JS_HWID_SELECT = '''
+_JS_HWID_SELECT = """
     ele = document.getElementById("%s");
     idx = ele.selectedIndex;
     window.test.sendTestEvent("%s", ele.options[idx].value)
-''' % (_SELECT_BOX_ID, _EVENT_SUBTYPE_HWID_SELECT)
+""" % (_SELECT_BOX_ID, _EVENT_SUBTYPE_HWID_SELECT)
 
 _ERR_HWID_NOT_FOUND = test_ui.MakeLabel('Cannot find matched HWID.',
                                         u'无法找到匹配的 HWID。',
@@ -68,7 +67,7 @@ _ERR_HWID_NOT_FOUND = test_ui.MakeLabel('Cannot find matched HWID.',
 _TEST_TITLE = test_ui.MakeLabel('HWID Test', u'HWID测试')
 
 
-class WriteHWIDTask(FactoryTask):
+class WriteHWIDTask(factory_task.FactoryTask):
   """Writes HWID using gooftool."""
 
   def __init__(self, test):
@@ -85,7 +84,7 @@ class WriteHWIDTask(FactoryTask):
     # When the input is not a complete HWID (i.e., BOM-VARIANT pair), select
     # and derive the complete ID from active HWIDs in current database.
     # Ex: input="BLUE A" => matched to "MARIO BLUE A-B 6868".
-    current_hwid = CheckOutput(['crossystem', 'hwid']).strip()
+    current_hwid = process_utils.CheckOutput(['crossystem', 'hwid']).strip()
     # To save time, only do HWID write if the input HWID is different from
     # the one already on the system.
     if hwid != current_hwid:
@@ -96,7 +95,7 @@ class WriteHWIDTask(FactoryTask):
     self.Stop()
 
 
-class ShopFloorHWIDTask(FactoryTask):
+class ShopFloorHWIDTask(factory_task.FactoryTask):
   """Fetchs HWID from shop floor server."""
 
   def __init__(self, test):
@@ -110,7 +109,7 @@ class ShopFloorHWIDTask(FactoryTask):
     self.Stop()
 
 
-class AutoProbeHWIDTask(FactoryTask):
+class AutoProbeHWIDTask(factory_task.FactoryTask):
   """Automatically probes matched HWID(s) using gooftool."""
 
   def __init__(self, test):
@@ -136,9 +135,9 @@ class AutoProbeHWIDTask(FactoryTask):
 
     if matched_hwids:
       self.test.hwid_list = []
-      # Use hwid_tool.HWID_RE to check the format of probed HWIDs
+      # Use hwid_tool.hwid_tool.HWID_RE to check the format of probed HWIDs
       for i in xrange(0, len(matched_hwids)):
-        match = HWID_RE.search(matched_hwids[i]).group(0)
+        match = hwid_tool.HWID_RE.search(matched_hwids[i]).group(0)
         if match:
           self.test.hwid_list.append(match)
       logging.info('Found matched HWIDs: %s', self.test.hwid_list)
@@ -148,7 +147,7 @@ class AutoProbeHWIDTask(FactoryTask):
     self.Stop()
 
 
-class SelectHWIDTask(FactoryTask):
+class SelectHWIDTask(factory_task.FactoryTask):
   """Shows a list of HWIDs on UI and let operator choose a HWID from the it."""
 
   def __init__(self, test):
@@ -159,7 +158,8 @@ class SelectHWIDTask(FactoryTask):
     self.hwid_list = None
 
   def BuildHWIDList(self):
-    current_hwid = self.test.hwid or CheckOutput(['crossystem', 'hwid']).strip()
+    current_hwid = (self.test.hwid or
+                    process_utils.CheckOutput(['crossystem', 'hwid']).strip())
 
     if self.test.hwid_list:
       known_list = self.test.hwid_list
@@ -185,14 +185,14 @@ class SelectHWIDTask(FactoryTask):
 
   def RenderPage(self):
     self.test.template.SetState(_MESSAGE_CHOOSE_HWID)
-    select_list = SelectBox(_SELECT_BOX_ID, _SELECTION_PER_PAGE,
-                            _SELECT_BOX_STYLE)
+    select_list = ui_templates.SelectBox(_SELECT_BOX_ID, _SELECTION_PER_PAGE,
+                                         _SELECT_BOX_STYLE)
     for data in self.hwid_list:
       select_list.InsertOption(data[0], data[1])
     select_list.SetSelectedIndex(0)
     self.test.template.SetState(select_list.GenerateHTML(), append=True)
     self.test.template.SetState(_MESSAGE_HOW_TO_SELECT, append=True)
-    self.test.ui.BindKeyJS(13, _JS_HWID_SELECT)
+    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_HWID_SELECT)
     self.test.ui.AddEventHandler(_EVENT_SUBTYPE_HWID_SELECT, self.SetHWID)
     self.test.ui.SetFocus(_SELECT_BOX_ID)
 
@@ -211,37 +211,29 @@ class SelectHWIDTask(FactoryTask):
 
 class HWIDTest(unittest.TestCase):
   ARGS = [
-      Arg(
-          'override_hwid', (str, unicode),
+      Arg('override_hwid', (str, unicode),
           'An override HWID which is used during development.', default=None,
           optional=True),
-      Arg(
-          'manual_override', bool,
+      Arg('manual_override', bool,
           'Whether to allow manual HWID selection even '
           'when the shopfloor server is enabled.', default=False,
           optional=True),
-      Arg(
-          'auto_probe', bool, 'Whether to enable HWID auto probe.',
+      Arg('auto_probe', bool, 'Whether to enable HWID auto probe.',
           default=False, optional=True),
-      Arg(
-          'auto_select', bool,
+      Arg('auto_select', bool,
           'Whether to auto select HWID if there is only one match',
           default=True, optional=True),
-      Arg(
-          'missing', list,
+      Arg('missing', list,
           'A list of missing components in the following format:'
           '["comp1", "comp2", ..]', default=None, optional=True),
-      Arg(
-          'comps', list,
+      Arg('comps', list,
           'A list of known component canonicals to pass to gooftool in the'
           'following format: ["comp_canonical1", "comp_canonical2", ...]',
           default=None, optional=True),
-      Arg(
-          'variant', (str, unicode),
+      Arg('variant', (str, unicode),
           'A string indicating the variant code to pass to gooftool',
           default=None, optional=True),
-      Arg(
-          'status', (str, unicode),
+      Arg('status', (str, unicode),
           'A string indicating from what status of HWIDs should the program'
           'find possible match. (deprecated, eol, qualified, supported)',
           default='supported', optional=True)]
@@ -252,7 +244,7 @@ class HWIDTest(unittest.TestCase):
     self.task_list = []
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_TEST_DEFAULT_CSS)
     self.template.SetTitle(_TEST_TITLE)
 
@@ -274,4 +266,4 @@ class HWIDTest(unittest.TestCase):
           self.task_list.append(SelectHWIDTask(self))
     self.task_list.append(WriteHWIDTask(self))
 
-    FactoryTaskManager(self.ui, self.task_list).Run()
+    factory_task.FactoryTaskManager(self.ui, self.task_list).Run()

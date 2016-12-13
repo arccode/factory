@@ -9,16 +9,13 @@ This module provides fast access to "gooftool".
 """
 
 
-import os
-import glob
 import subprocess
-import sys
 import tempfile
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test.test_ui import FactoryTestFailure
+from cros.factory.test import factory
+from cros.factory.test import test_ui
 
 
 GOOFTOOL_HOME = '/usr/local/factory'
@@ -28,14 +25,14 @@ def run(command, ignore_status=False):
   """Runs a gooftool command.
 
   Args:
-      command: Shell command to execute.
-      ignore_status: False to raise exectopion when execution result is not 0.
+    command: Shell command to execute.
+    ignore_status: False to raise exectopion when execution result is not 0.
 
   Returns:
-      (stdout, stderr, return_code) of the execution results.
+    (stdout, stderr, return_code) of the execution results.
 
   Raises:
-      error.TestError: The error message in "ERROR:.*" form by command.
+    error.TestError: The error message in "ERROR:.*" form by command.
   """
 
   factory.log('Running gooftool: ' + command)
@@ -81,6 +78,6 @@ def run(command, ignore_status=False):
     exception_message = '\n'.join(
         [error_message for error_message in err.splitlines()
          if error_message.startswith('ERROR')]) or message
-    raise FactoryTestFailure(exception_message)
+    raise test_ui.FactoryTestFailure(exception_message)
 
   return (out, err, return_code)

@@ -8,12 +8,12 @@ import logging
 import threading
 import time
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_ui import MakeLabel
-from cros.factory.utils.process_utils import StartDaemonThread
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_ui
+from cros.factory.utils import process_utils
 
-_MSG_TIME_REMAINING = lambda t: MakeLabel('Time remaining: %d' % t,
-                                          u'剩余时间：%d' % t)
+_MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel('Time remaining: %d' % t,
+                                                  u'剩余时间：%d' % t)
 
 
 def StartCountdownTimer(timeout_secs, timeout_handler, ui, element_id,
@@ -44,9 +44,9 @@ def StartCountdownTimer(timeout_secs, timeout_handler, ui, element_id,
         args=(timeout_secs, timeout_handler, tick, disable_event))
     thread.start()
   else:
-    StartDaemonThread(target=CountdownTimer,
-                      args=(timeout_secs, timeout_handler, tick),
-                      interrupt_on_crash=True)
+    process_utils.StartDaemonThread(target=CountdownTimer,
+                                    args=(timeout_secs, timeout_handler, tick),
+                                    interrupt_on_crash=True)
 
 
 def CountdownTimer(timeout_secs, timeout_handler, tick=None,

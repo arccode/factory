@@ -4,8 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=W0613,W0622
-
 
 """The creation of generic diagnostic test list.
 
@@ -14,7 +12,7 @@ diagnostic test list.
 """
 
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestGroup
 
@@ -25,6 +23,7 @@ def Diagnostic(args):
   Args:
     args: A TestListArgs object.
   """
+  del args  # Unused.
   group_id = 'Diagnostic'
   with TestGroup(id=group_id, run_if=lambda env: env.InEngineeringMode()):
     OperatorTest(

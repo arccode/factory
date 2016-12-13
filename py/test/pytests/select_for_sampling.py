@@ -14,11 +14,11 @@ import hashlib
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.net_utils import GetWLANMACAddress
+from cros.factory.utils import net_utils
 
 
 class SelectForSamplingTest(unittest.TestCase):
@@ -35,7 +35,7 @@ class SelectForSamplingTest(unittest.TestCase):
     self.assertGreaterEqual(self.args.rate, 0.0)
     self.assertLessEqual(self.args.rate, 1.0)
 
-    mac_address = GetWLANMACAddress()
+    mac_address = net_utils.GetWLANMACAddress()
     digest = hashlib.md5(mac_address).hexdigest()
     value = int(digest, 16)
 
@@ -48,8 +48,8 @@ class SelectForSamplingTest(unittest.TestCase):
     logging.info('Sampling rate: %.5f', self.args.rate)
     logging.info('Selected: %r', selected)
 
-    Log('select_for_sampling',
-        device_data_key=self.args.device_data_key,
-        fraction=fraction, rate=self.args.rate, selected=selected)
+    event_log.Log('select_for_sampling',
+                  device_data_key=self.args.device_data_key,
+                  fraction=fraction, rate=self.args.rate, selected=selected)
 
     shopfloor.UpdateDeviceData({self.args.device_data_key: selected})

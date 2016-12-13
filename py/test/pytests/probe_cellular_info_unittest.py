@@ -13,9 +13,12 @@ Requested data are probed, written to the event log, and saved to device data.
 import mox
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test.pytests import probe_cellular_info
+from cros.factory.test import shopfloor
 from cros.factory.utils.arg_utils import Args
+from cros.factory.utils import process_utils
 
 
 class ProbeCellularInfoTestTest(unittest.TestCase):
@@ -23,9 +26,9 @@ class ProbeCellularInfoTestTest(unittest.TestCase):
   def setUp(self):
     self.test = probe_cellular_info.ProbeCellularInfoTest()
     self.mox = mox.Mox()
-    self.mox.StubOutWithMock(probe_cellular_info, 'CheckOutput')
-    self.mox.StubOutWithMock(probe_cellular_info, 'Log')
-    self.mox.StubOutWithMock(probe_cellular_info, 'UpdateDeviceData')
+    self.mox.StubOutWithMock(process_utils, 'CheckOutput')
+    self.mox.StubOutWithMock(event_log, 'Log')
+    self.mox.StubOutWithMock(shopfloor, 'UpdateDeviceData')
 
   def tearDown(self):
     try:
@@ -41,13 +44,12 @@ Modem /org/chromium/ModemManager/Gobi/1:
     meid: Q9298301CDF827
 """
 
-    probe_cellular_info.CheckOutput(['modem', 'status'], log=True).AndReturn(
-        stdout)
-    probe_cellular_info.Log(
+    process_utils.CheckOutput(['modem', 'status'], log=True).AndReturn(stdout)
+    event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         imei='838293836198373', meid='Q9298301CDF827')
-    probe_cellular_info.UpdateDeviceData({'imei': '838293836198373',
-                                          'meid': 'Q9298301CDF827'})
+    shopfloor.UpdateDeviceData({'imei': '838293836198373',
+                                'meid': 'Q9298301CDF827'})
     self.mox.ReplayAll()
 
     self.test.args = Args(*self.test.ARGS).Parse({})
@@ -100,13 +102,12 @@ Modem /org/freedesktop/ModemManager1/Modem/0:
     OperatorName:
 """
 
-    probe_cellular_info.CheckOutput(['modem', 'status'], log=True).AndReturn(
-        stdout)
-    probe_cellular_info.Log(
+    process_utils.CheckOutput(['modem', 'status'], log=True).AndReturn(stdout)
+    event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         lte_imei='359636040066332', lte_iccid='89148000000328035895')
-    probe_cellular_info.UpdateDeviceData({'lte_imei': '359636040066332',
-                                          'lte_iccid': '89148000000328035895'})
+    shopfloor.UpdateDeviceData({'lte_imei': '359636040066332',
+                                'lte_iccid': '89148000000328035895'})
     self.mox.ReplayAll()
 
     self.test.args = Args(*self.test.ARGS).Parse(
@@ -123,9 +124,8 @@ Modem /org/chromium/ModemManager/Gobi/1:
     meid: Q9298301CDF827
 """
 
-    probe_cellular_info.CheckOutput(['modem', 'status'], log=True).AndReturn(
-        stdout)
-    probe_cellular_info.Log(
+    process_utils.CheckOutput(['modem', 'status'], log=True).AndReturn(stdout)
+    event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         imei=None, meid='Q9298301CDF827')
     self.mox.ReplayAll()
@@ -143,9 +143,8 @@ Modem /org/chromium/ModemManager/Gobi/1:
 """.replace('#', '')
     # Remove hash mark; necessary to make white-space check pass
 
-    probe_cellular_info.CheckOutput(['modem', 'status'], log=True).AndReturn(
-        stdout)
-    probe_cellular_info.Log(
+    process_utils.CheckOutput(['modem', 'status'], log=True).AndReturn(stdout)
+    event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         imei=None, meid='Q9298301CDF827')
     self.mox.ReplayAll()

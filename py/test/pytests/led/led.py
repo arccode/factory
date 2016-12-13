@@ -13,18 +13,15 @@ import random
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import led as led_module
-from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
-from cros.factory.test.factory_task import (FactoryTask, FactoryTaskManager,
-                                            InteractiveFactoryTask)
+from cros.factory.test import factory_task
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See setUp() for more detail.
-from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
-                                                   CreateBFTFixture,
-                                                   TEST_ARG_HELP)
+from cros.factory.test.fixture import bft_fixture
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -124,7 +121,7 @@ strong {
 """
 
 
-class CheckLEDTask(InteractiveFactoryTask):
+class CheckLEDTask(factory_task.InteractiveFactoryTask):
   """An InteractiveFactoryTask that asks operator to check LED color.
 
   Args:
@@ -243,7 +240,7 @@ class CheckLEDTaskChallenge(CheckLEDTask):
     self._ui.RunJS(_JS_OP_RESPONSE)
 
 
-class FixtureCheckLEDTask(FactoryTask):
+class FixtureCheckLEDTask(factory_task.FactoryTask):
   """A FactoryTask that uses fixture to check LED color.
 
   Args:
@@ -281,7 +278,7 @@ class FixtureCheckLEDTask(FactoryTask):
         # Fail later to detect all colors.
         self.Fail('Unable to detect %s LED.' % self._color_label.en,
                   later=_FAIL_LATER)
-    except BFTFixtureException:
+    except bft_fixture.BFTFixtureException:
       logging.exception('Failed to send command to BFT fixture')
       self.Fail('Failed to send command to BFT fixture.')
 
@@ -296,7 +293,7 @@ class FixtureCheckLEDTask(FactoryTask):
 class LEDTest(unittest.TestCase):
   """Tests if the onboard LED can light up with specified colors."""
   ARGS = [
-      Arg('bft_fixture', dict, TEST_ARG_HELP, optional=True),
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, optional=True),
       Arg('challenge', bool, 'Show random LED sequence and let the operator '
           'select LED number instead of pre-defined sequence.', default=False),
       Arg('colors', (list, tuple),
@@ -319,7 +316,7 @@ class LEDTest(unittest.TestCase):
     self._task_manager = None
     self._fixture = None
     if self.args.bft_fixture:
-      self._fixture = CreateBFTFixture(**self.args.bft_fixture)
+      self._fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
 
     self._SetAllLED(self.args.target_leds, LEDColor.OFF)
 
@@ -369,7 +366,7 @@ class LEDTest(unittest.TestCase):
                                         color, color_label,
                                         index, index_label))
 
-    self._task_manager = FactoryTaskManager(self._ui, tasks)
+    self._task_manager = factory_task.FactoryTaskManager(self._ui, tasks)
     self._task_manager.Run()
 
   def _GetIndexLabel(self, index):

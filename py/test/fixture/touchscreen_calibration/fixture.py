@@ -5,14 +5,13 @@
 
 from __future__ import print_function
 
+import collections
 import threading
 import time
 
-from collections import namedtuple
-
-import factory_common     # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
-from cros.factory.test.utils.serial_utils import FindTtyByDriver, SerialDevice
+from cros.factory.test.utils import serial_utils
 
 
 # Define the driver name and the interface protocols to find the arduino ports.
@@ -25,12 +24,13 @@ ARDUINO_DRIVER = 'cdc_acm'
 interface_protocol_dict = {NATIVE_USB_PORT: '00', PROGRAMMING_PORT: '01'}
 
 
-ArduinoCommand = namedtuple('ArduinoCommand', ['DOWN', 'UP', 'STATE', 'RESET'])
+ArduinoCommand = collections.namedtuple(
+    'ArduinoCommand', ['DOWN', 'UP', 'STATE', 'RESET'])
 COMMAND = ArduinoCommand('d', 'u', 's', 'r')
 
-ArduinoState = namedtuple('ArduinoState',
-                          ['INIT', 'STOP_DOWN', 'STOP_UP', 'GOING_DOWN',
-                           'GOING_UP', 'EMERGENCY_STOP'])
+ArduinoState = collections.namedtuple(
+    'ArduinoState', ['INIT', 'STOP_DOWN', 'STOP_UP', 'GOING_DOWN', 'GOING_UP',
+                     'EMERGENCY_STOP'])
 STATE = ArduinoState('i', 'D', 'U', 'd', 'u', 'e')
 
 
@@ -39,7 +39,7 @@ class FixtureException(Exception):
   pass
 
 
-class FixutreNativeUSB(SerialDevice):
+class FixutreNativeUSB(serial_utils.SerialDevice):
   """A native usb port used to monitor the internal state of the fixture."""
 
   def __init__(self, driver=ARDUINO_DRIVER,
@@ -74,7 +74,7 @@ class FixutreNativeUSB(SerialDevice):
     ]
 
   def _GetPort(self):
-    return FindTtyByDriver(self.driver, self.interface_protocol)
+    return serial_utils.FindTtyByDriver(self.driver, self.interface_protocol)
 
   def _Connect(self, port):
     try:
@@ -143,7 +143,7 @@ class FixutreNativeUSB(SerialDevice):
             for i in xrange(len(state_list))]
 
 
-class BaseFixture(SerialDevice):
+class BaseFixture(serial_utils.SerialDevice):
   """A base fixture class."""
 
   def __init__(self, state=None):
@@ -201,7 +201,7 @@ class FixtureSerialDevice(BaseFixture):
                timeout=20):
     super(FixtureSerialDevice, self).__init__()
     try:
-      port = FindTtyByDriver(driver, interface_protocol)
+      port = serial_utils.FindTtyByDriver(driver, interface_protocol)
       self.Connect(port=port, timeout=timeout)
       msg = 'Connect to programming port "%s" for issuing commands.'
       factory.console.info(msg, port)

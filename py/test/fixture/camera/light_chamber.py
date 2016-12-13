@@ -5,16 +5,16 @@
 """Implementation for light chamber connection."""
 
 try:
-  import cv   # pylint: disable=F0401
-  import cv2  # pylint: disable=F0401
+  import cv
+  import cv2
 except ImportError:
   pass
 
 import numpy as np
 import os
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.type_utils import Enum
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import type_utils
 
 
 # Reference test chart image file.
@@ -44,7 +44,7 @@ class LightChamber(object):
     CHARTA: SFR chart 11x7.
     CHARTB: SFR chart 9x7.
   """
-  Charts = Enum(['WHITE', 'SFR', 'CHARTA', 'CHARTB'])
+  Charts = type_utils.Enum(['WHITE', 'SFR', 'CHARTA', 'CHARTB'])
 
   def __init__(self, test_chart_version, mock_mode, device_index,
                image_resolution, fixture_conn=None, fixture_cmd=None):
@@ -57,8 +57,7 @@ class LightChamber(object):
       image_resolution: A tuple (x-res, y-res) for image resolution.
       fixture_conn: A FixtureConnection instance for controlling the fixture.
       fixture_cmd: A mapping between charts listed in LightChamber.Charts and
-                   a list of tuple (cmd, response) required to activate the
-                   chart.
+          a list of tuple (cmd, response) required to activate the chart.
     """
     assert test_chart_version in ('A', 'B', 'White')
     assert mock_mode in (True, False)
@@ -76,7 +75,7 @@ class LightChamber(object):
     """An evil destructor to always close camera device.
 
     Remarks: it happened before that broken USB driver cannot handle the case
-    that camera device is not closed properly.
+        that camera device is not closed properly.
     """
     self.DisableCamera()
 

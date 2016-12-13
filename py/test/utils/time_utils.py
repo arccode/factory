@@ -23,5 +23,4 @@ def SyncDate(dut=None):
   if not dut.link.IsLocal():
     now = datetime.datetime.utcnow()
     # set DUT time
-    dut.CheckCall(
-        ['date', '-u', '{:%m%d%H%M%Y.%S}'.format(now)], log=True)
+    dut.CheckCall(['date', '-u', '{:%m%d%H%M%Y.%S}'.format(now)], log=True)

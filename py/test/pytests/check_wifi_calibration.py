@@ -16,8 +16,8 @@ import pprint
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -29,11 +29,11 @@ EEP_POWER_PATH = '/sys/kernel/debug/ieee80211/phy*/ath9k/dump_eep_power'
 
 
 def IsInRange(observed, min_val, max_val):
-  '''Returns True if min_val <= observed <= max_val.
+  """Returns True if min_val <= observed <= max_val.
 
   If any of min_val or max_val is missing, it means there is no lower or
   upper bounds respectively.
-  '''
+  """
   if min_val and observed < min_val:
     return False
   if max_val and observed > max_val:
@@ -48,9 +48,9 @@ def CheckRefPowerRange(table, expected_range_dict, band_name):
     ref_power = int(single_row[1])
     expected_range = expected_range_dict[chain]
     if not IsInRange(ref_power, expected_range[0], expected_range[1]):
-      factory.console.info('Ref power of %s, row[%d], '
-                           'chain[%d] is out of range' %
-                           (band_name, row_idx, chain))
+      factory.console.info(
+          'Ref power of %s, row[%d], chain[%d] is out of range',
+          band_name, row_idx, chain)
       return False
   return True
 
@@ -59,9 +59,8 @@ def CheckCalibratedUnits(table, min_required_units, band_name):
   """Checks min_required_units presented in calibration table."""
   if len(table) < min_required_units:
     factory.console.info(
-        '%s table has only %d calibrated units, '
-        '%d required' %
-        (band_name, len(table), min_required_units))
+        '%s table has only %d calibrated units, %d required',
+        band_name, len(table), min_required_units)
     return False
   return True
 
@@ -117,12 +116,12 @@ class CheckWifiCalibrationTest(unittest.TestCase):
     high_band_table = self.readCalibrationTable(
         eep_power_path, ANCHOR_FOR_HIGH_BAND_CALIBRATION_DATA)
 
-    factory.console.info('2.4GHz table=%s' %
+    factory.console.info('2.4GHz table=%s',
                          pprint.pformat(low_band_table, width=200))
-    factory.console.info('5GHz table=%s' %
+    factory.console.info('5GHz table=%s',
                          pprint.pformat(high_band_table, width=200))
-    Log('low_band_table', value=low_band_table)
-    Log('high_band_table', value=high_band_table)
+    event_log.Log('low_band_table', value=low_band_table)
+    event_log.Log('high_band_table', value=high_band_table)
 
     # Check numbers of calibrated units.
     failed_flag = False

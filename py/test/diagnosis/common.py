@@ -5,7 +5,7 @@
 import re
 
 
-class INPUT_TYPE(object):  # pylint: disable=W0232
+class INPUT_TYPE(object):
   """Enumeration the type of the input field for user to input data."""
   BOOL = 'bool'
   CHOICES = 'choices'
@@ -15,7 +15,7 @@ class INPUT_TYPE(object):  # pylint: disable=W0232
   STRING = 'string'
 
 
-class TASK_STATE(object):  # pylint: disable=W0232
+class TASK_STATE(object):
   """Enumeration of state of the current task."""
   IDLE = 'idle'
   RUNNING = 'running'
@@ -29,7 +29,7 @@ class TASK_STATE(object):  # pylint: disable=W0232
 _ACCEPTABLE_RE_FLAGS = set('ILMSUX')
 
 
-class TOKEN(object):  # pylint: disable=W0232
+class TOKEN(object):
   """Enumeration of the keys of the YAML configs."""
   CHOICES = 'choices'
   COMMAND = 'command'
@@ -66,7 +66,7 @@ class TOKEN(object):  # pylint: disable=W0232
   VAR_ID = 'var_id'
 
 
-class BACKEND_EVENTS(object):  # pylint: disable=W0232
+class BACKEND_EVENTS(object):
   """Enumeration of the events which are Backend -> Frontend."""
   APPEND_OUTPUT = 'appendOutput'  # Appends some text to the console output.
   CLEAR_OUTPUT = 'clearOutput'  # Clears the console output.
@@ -80,7 +80,7 @@ class BACKEND_EVENTS(object):  # pylint: disable=W0232
   SET_STATE = 'setState'  # Sets the state field in UI.
 
 
-class OPTIONS(object):  # pylint: disable=W0232
+class OPTIONS(object):
   """Some options in the confirm dialog."""
   YES = 'Yes'
   CANCEL = 'Cancel'

@@ -9,8 +9,7 @@ import serial
 import time
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.utils import serial_utils
 from cros.factory.utils import file_utils
@@ -55,7 +54,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
   ports. The testing ports (1 Raiden + 1 USB Type-A) will be paired to proceed
   Raiden testing sequence.
   """
-  # pylint: disable=W0223
+  # pylint: disable=abstract-method
   # There are methods of abstract in class 'BFTFixture' but is not overridden.
 
   # Devices on Plankton-Raiden to be engaged/disengaged.
@@ -460,7 +459,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     """
     self._Recv(0, 'clean buffer')
     self._Send('gpioget %s' % gpio, 'get gpio %s value' % gpio)
-    time.sleep(0.1) # Wait for message output
+    time.sleep(0.1)  # Wait for message output
     read_output = self._Recv(0, 'read output')
     logging.info('read_output = %r', read_output)
     read_value = _RE_GET_GPIO(gpio).findall(read_output)

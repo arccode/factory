@@ -5,11 +5,11 @@
 # found in the LICENSE file.
 
 import datetime
-import unittest
 import logging
 import sys
+import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import testlog_utils
 
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
@@ -39,7 +39,7 @@ class TestlogUtilsTest(unittest.TestCase):
     """Tests conversion to and from JSON date format.
 
     Microseconds should be stripped to precision of 3 decimal points."""
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     output = testlog_utils.FromJSONDateTime(
         testlog_utils.ToJSONDateTime(SAMPLE_DATETIME))
     self.assertEquals(output, SAMPLE_DATETIME_ROUNDED_MIL)
@@ -50,20 +50,20 @@ class TestlogUtilsTest(unittest.TestCase):
 
   def testJSONHandlerDateTime(self):
     obj = SAMPLE_DATETIME
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     output = testlog_utils.JSONHandler(obj)
     self.assertEquals(output, SAMPLE_DATETIME_STRING)
     self.assertEquals(output, testlog_utils.ToJSONDateTime(obj))
 
   def testJSONHandlerDate(self):
     obj = datetime.date(1989, 8, 8)
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     output = testlog_utils.JSONHandler(obj)
     self.assertEquals(output, '1989-08-08')
 
   def testJSONHandlerTime(self):
     obj = datetime.time(22, 10, 10)
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     output = testlog_utils.JSONHandler(obj)
     self.assertEquals(output, '22:10')
 
@@ -72,7 +72,7 @@ class TestlogUtilsTest(unittest.TestCase):
       1 / 0
     except Exception:
       _, ex, tb = sys.exc_info()
-      # pylint: disable=W0212
+      # pylint: disable=protected-access
       output = testlog_utils.JSONHandler(tb)
       self.assertTrue('1 / 0' in output)
       output = testlog_utils.JSONHandler(ex)

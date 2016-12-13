@@ -12,25 +12,19 @@ import evdev
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
-
-from cros.factory.test import test_ui
-from cros.factory.test.countdown_timer import StartCountdownTimer
-from cros.factory.test.utils import audio_utils
-from cros.factory.test.utils import evdev_utils
-
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
+from cros.factory.test import event_log
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See LidSwitchTest.setUp() for more detail.
-from cros.factory.test.fixture.bft_fixture import (BFTFixture,
-                                                   BFTFixtureException,
-                                                   CreateBFTFixture,
-                                                   TEST_ARG_HELP)
-
-from cros.factory.test.ui_templates import OneSection
-from cros.factory.utils import file_utils
+from cros.factory.test.fixture import bft_fixture
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
+from cros.factory.test.utils import audio_utils
+from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 _DEFAULT_TIMEOUT = 30
 _SERIAL_TIMEOUT = 1
@@ -73,7 +67,7 @@ class LidSwitchTest(unittest.TestCase):
           default=100),
       Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
           default=None, optional=True),
-      Arg('bft_fixture', dict, TEST_ARG_HELP,
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP,
           default=None, optional=True),
       Arg('bft_retries', int,
           'Number of retries for BFT lid open / close.',
@@ -115,7 +109,7 @@ class LidSwitchTest(unittest.TestCase):
     audio_utils.CRAS().EnableOutput()
     audio_utils.CRAS().SetActiveOutputNodeVolume(100)
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     if self.args.event_id:
       self.event_dev = evdev.InputDevice('/dev/input/event%d' %
                                          self.args.event_id)
@@ -130,7 +124,7 @@ class LidSwitchTest(unittest.TestCase):
     # Prepare fixture auto test if needed.
     self.fixture = None
     if self.args.bft_fixture:
-      self.fixture = CreateBFTFixture(**self.args.bft_fixture)
+      self.fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
 
     if self.fixture:
       self.ui.SetHTML(_MSG_LID_FIXTURE_CLOSE, id=_ID_PROMPT)
@@ -140,9 +134,9 @@ class LidSwitchTest(unittest.TestCase):
 
     # Create a thread to monitor evdev events.
     self.dispatcher = None
-    StartDaemonThread(target=self.MonitorEvdevEvent)
+    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
     # Create a thread to run countdown timer.
-    StartCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         _DEFAULT_TIMEOUT if self.fixture else self.args.timeout_secs,
         lambda: self.ui.Fail('Lid switch test failed due to timeout.'),
         self.ui,
@@ -164,7 +158,8 @@ class LidSwitchTest(unittest.TestCase):
     if self.fixture:
       self.BFTLid(close=False, fail_test=False)
       self.fixture.Disconnect()
-    Log('lid_wait_sec',
+    event_log.Log(
+        'lid_wait_sec',
         time_to_close_sec=(self._closed_sec - self._start_waiting_sec),
         time_to_open_sec=(self._opened_sec - self._closed_sec),
         use_fixture=bool(self.fixture))
@@ -212,8 +207,8 @@ class LidSwitchTest(unittest.TestCase):
         test_time = time.time() - start_time
 
         backlight = self.fixture.GetSystemStatus(
-            BFTFixture.SystemStatus.BACKLIGHT)
-        if backlight == BFTFixture.Status.OFF:
+            bft_fixture.BFTFixture.SystemStatus.BACKLIGHT)
+        if backlight == bft_fixture.BFTFixture.Status.OFF:
           if test_time >= _TIMESTAMP_BL_ON:
             self.AskForOpenLid()
           else:
@@ -271,9 +266,10 @@ class LidSwitchTest(unittest.TestCase):
     for _ in range(self.args.bft_retries + 1):
       try:
         time.sleep(self.args.bft_pause_secs)
-        self.fixture.SetDeviceEngaged(BFTFixture.Device.LID_MAGNET, close)
+        self.fixture.SetDeviceEngaged(
+            bft_fixture.BFTFixture.Device.LID_MAGNET, close)
         break
-      except BFTFixtureException as e:
+      except bft_fixture.BFTFixtureException as e:
         error = e
     if error is None:
       self.fixture_lid_closed = close

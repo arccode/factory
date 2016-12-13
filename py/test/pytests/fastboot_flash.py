@@ -11,15 +11,14 @@ import re
 import subprocess
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.test_ui import UI
-from cros.factory.utils import sync_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn, SpawnOutput
+from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
 
 _MSG_SWITCH_TO_FASTBOOT = test_ui.MakeLabel(
@@ -67,13 +66,14 @@ class FastbootFlash(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._ui = UI()
+    self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
 
   def IsDeviceInFastboot(self):
     """Check if the device is already in fastboot mode."""
 
-    return bool(SpawnOutput(['fastboot', 'devices'], check_call=True))
+    return bool(process_utils.SpawnOutput(['fastboot', 'devices'],
+                                          check_call=True))
 
   def BootToFastboot(self):
     """Reboot device into fastboot mode if needed."""
@@ -83,7 +83,8 @@ class FastbootFlash(unittest.TestCase):
       return
 
     self._template.SetState(_MSG_SWITCH_TO_FASTBOOT)
-    Spawn(self.args.command_to_fastboot, shell=True, check_call=True, log=True)
+    process_utils.Spawn(self.args.command_to_fastboot,
+                        shell=True, check_call=True, log=True)
     sync_utils.PollForCondition(
         poll_method=self.IsDeviceInFastboot,
         timeout_secs=60,
@@ -92,9 +93,9 @@ class FastbootFlash(unittest.TestCase):
   def BootToNormal(self):
     """Reboot the device back to normal mode from fastboot mode."""
     self._template.SetState(_MSG_SWITCH_TO_NORMAL)
-    Spawn(['fastboot', 'reboot'], check_call=True, log=True)
-    Spawn(self.args.command_to_check_device, shell=True,
-          check_call=True, log=True)
+    process_utils.Spawn(['fastboot', 'reboot'], check_call=True, log=True)
+    process_utils.Spawn(self.args.command_to_check_device, shell=True,
+                        check_call=True, log=True)
 
   def FlashAll(self):
     def _CheckThroughput(fastboot_output):
@@ -136,10 +137,9 @@ class FastbootFlash(unittest.TestCase):
       if not os.path.exists(file_path):
         self.fail('Not able to find required image file %s' % file_path)
       self._template.SetState(GetFlashingMessage(partition, file_path))
-      msg = SpawnOutput(['fastboot', 'flash', partition, file_path],
-                        stderr=subprocess.STDOUT,
-                        check_call=True,
-                        log=True)
+      msg = process_utils.SpawnOutput(
+          ['fastboot', 'flash', partition, file_path],
+          stderr=subprocess.STDOUT, check_call=True, log=True)
       _CheckThroughput(msg)
 
     for image in self.args.images:

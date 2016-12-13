@@ -10,7 +10,7 @@ import re
 import struct
 
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.proto import reg_code_pb2
 from cros.factory.proto.reg_code_pb2 import RegCode
 from cros.factory.utils import type_utils
@@ -158,7 +158,7 @@ def CheckLegacyRegistrationCode(code):
                                     (code, binascii.hexlify(expected_crc)))
 
 
-# pylint: disable=W0622
+# pylint: disable=redefined-builtin
 def CheckRegistrationCode(encoded_string, type=None, device=None):
   """Checks that a registration code is valid.
 

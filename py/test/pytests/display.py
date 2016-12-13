@@ -3,17 +3,17 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""A factory test to test the function of display.
-"""
+
+"""A factory test to test the function of display."""
 
 import os
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
-from cros.factory.utils import file_utils
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 
 _ID_CONTAINER = 'display-test-container'
 
@@ -25,50 +25,48 @@ _HTML_DISPLAY = (
 
 
 class DisplayTest(unittest.TestCase):
-  '''Tests the function of display.
+  """Tests the function of display.
 
   Properties:
-    self.ui: test ui.
-    self.template: ui template handling html layout.
-    self.checked: user has check the display of current subtest.
-    self.fullscreen: the test ui is in fullscreen or not.
-    self.static_dir: string of static file directory.
-  '''
+    ui: test ui.
+    template: ui template handling html layout.
+    checked: user has check the display of current subtest.
+    fullscreen: the test ui is in fullscreen or not.
+    static_dir: string of static file directory.
+  """
   ARGS = [
       Arg('colors', list,
-          """Set colors. Available colors are
-        "solid-gray-170",
-        "solid-gray-127",
-        "solid-gray-63",
-        "solid-red",
-        "solid-green",
-        "solid-blue",
-        "solid-white",
-        "solid-gray",
-        "solid-black",
-        "grid",
-        "rectangle",
-        "gradient-red",
-        "gradient-green",
-        "gradient-blue",
-        "gradient-white"
-        """,
+          'Set colors. Available colors are\n'
+          '        "solid-gray-170",\n'
+          '        "solid-gray-127",\n'
+          '        "solid-gray-63",\n'
+          '        "solid-red",\n'
+          '        "solid-green",\n'
+          '        "solid-blue",\n'
+          '        "solid-white",\n'
+          '        "solid-gray",\n'
+          '        "solid-black",\n'
+          '        "grid",\n'
+          '        "rectangle",\n'
+          '        "gradient-red",\n'
+          '        "gradient-green",\n'
+          '        "gradient-blue",\n'
+          '        "gradient-white"',
           default=['solid-gray-170', 'solid-gray-127', 'solid-gray-63',
                    'solid-red', 'solid-green', 'solid-blue'],
           optional=True),
       Arg('images', list,
-          """Set customized images. Available images are
-        "complex.bmp",
-        "BLACK.BMP",
-        "WHITE.BMP",
-        "CrossTalk(black).bmp",
-        "CrossTalk(white).bmp",
-        "gray(63).bmp",
-        "gray(127).bmp",
-        "gray(170).bmp",
-        "Horizontal(RGBW).bmp",
-        "Vertical(RGBW).bmp"
-        """,
+          'Set customized images. Available images are\n'
+          '        "complex.bmp",\n'
+          '        "BLACK.BMP",\n'
+          '        "WHITE.BMP",\n'
+          '        "CrossTalk(black).bmp",\n'
+          '        "CrossTalk(white).bmp",\n'
+          '        "gray(63).bmp",\n'
+          '        "gray(127).bmp",\n'
+          '        "gray(170).bmp",\n'
+          '        "Horizontal(RGBW).bmp",\n'
+          '        "Vertical(RGBW).bmp"\n',
           default=[],
           optional=True),
   ]
@@ -76,7 +74,7 @@ class DisplayTest(unittest.TestCase):
   def setUp(self):
     """Initializes frontend presentation and properties."""
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
     self.static_dir = self.FindFileStaticDirectory()
     if self.args.images:
@@ -93,18 +91,18 @@ class DisplayTest(unittest.TestCase):
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self.ui.BindKey(' ', self.OnSpacePressed)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
     self.ui.BindKey(test_ui.ENTER_KEY, self.OnEnterPressed)
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
     self.ui.AddEventHandler('OnSpacePressed', self.OnSpacePressed)
     self.ui.Run()
 
   def FindFileStaticDirectory(self):
-    '''Finds static file directory.
+    """Finds static file directory.
 
     Returns:
       String of static file directory
-    '''
+    """
     file_path = os.path.realpath(__file__)
     file_dir, file_name = os.path.split(file_path)
     file_static_dir = os.path.join(file_dir,

@@ -9,20 +9,20 @@ import hashlib
 import httplib
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.external import ws4py
 
 
 def WebSocketHandshake(request):
-  '''Takes a HTTP request and upgrades it to web socket connection.
+  """Takes a HTTP request and upgrades it to web socket connection.
 
   Args:
     request: A RequestHandler object containing the request.
 
   Returns:
     True if the connection is upgraded successfully. Otherwise, False.
-  '''
+  """
   def send_error(msg):
     logging.error('Unable to start WebSocket connection: %s', msg)
     request.send_response(400, msg)

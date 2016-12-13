@@ -2,22 +2,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test.rf import lan_scpi
-from cros.factory.test.rf.lan_scpi import Error
 
 
 class AgilentSCPI(lan_scpi.LANSCPI):
-  '''An Agilent device that supports SCPI.
-  '''
+  """An Agilent device that supports SCPI."""
 
   def __init__(self, expected_model, *args, **kwargs):
     super(AgilentSCPI, self).__init__(*args, **kwargs)
     self.id_fields = [x.strip() for x in self.id.split(',')]
     model = self.id_fields[1]
     if model != expected_model:
-      raise Error('Expected model %s but got %s' % (
+      raise lan_scpi.Error('Expected model %s but got %s' % (
           expected_model, model))
 
   def GetSerialNumber(self):

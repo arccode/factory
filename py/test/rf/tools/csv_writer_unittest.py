@@ -6,18 +6,18 @@
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.rf.tools.csv_writer import WriteCsv
-from cros.factory.utils.file_utils import UnopenedTemporaryFile
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.rf.tools import csv_writer
+from cros.factory.utils import file_utils
 
 
 class CsvWriterTest(unittest.TestCase):
 
   def testReadSingleCell(self):
-    with UnopenedTemporaryFile() as tmp_file:
-      WriteCsv(tmp_file,
-               [{'col_1': 1}, {'col_2': 2}, {'col_3': 3}],
-               ['col_2', 'col_1'])
+    with file_utils.UnopenedTemporaryFile() as tmp_file:
+      csv_writer.WriteCsv(tmp_file,
+                          [{'col_1': 1}, {'col_2': 2}, {'col_3': 3}],
+                          ['col_2', 'col_1'])
       with open(tmp_file, 'r') as fd:
         self.assertEqual(fd.readline().strip(), 'col_2,col_1,col_3')
         self.assertEqual(fd.readline().strip(), ',1,')

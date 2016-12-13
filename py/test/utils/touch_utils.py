@@ -51,7 +51,7 @@ import re
 
 from collections import namedtuple, OrderedDict
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.external import evdev  # pylint: disable=W0611
 # pylint: disable=no-name-in-module,F0401
@@ -88,7 +88,7 @@ class FingerPath(namedtuple('FingerPath', ['slot', 'tid_packets']), object):
       a list of requested attributes extracted from the tid packets
     """
     return [getattr(tid_packet, attr)
-            for tid_packet in self.tid_packets]   # pylint: disable=E1101
+            for tid_packet in self.tid_packets]  # pylint: disable=no-member
 
 
 # Define MTB to hold constants about MTB events.
@@ -208,7 +208,7 @@ class Point(object):
   __nonzero__ = __bool__
 
 
-class MtbEvent(object):                           # pylint: disable=W0232
+class MtbEvent(object):  # pylint: disable=no-init
   """Determine what an MTB event is.
 
   This class is just a bundle of a variety of classmethods about

@@ -6,7 +6,7 @@
 import asyncore
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -44,7 +44,7 @@ class _AbsInfo(object):
 
 
 class StylusTest(unittest.TestCase):
-  '''Stylus factory test.'''
+  """Stylus factory test."""
 
   ARGS = [
       Arg('stylus_event_id', int, 'Stylus input event id.', optional=True),
@@ -121,7 +121,6 @@ class StylusTest(unittest.TestCase):
     process_utils.StartDaemonThread(target=self._Monitor)
 
   def runTest(self):
-    self._ui.BindKey(test_ui.ESCAPE_KEY,
-                     lambda _: self._ui.CallJSFunction('failTest'))
+    self._ui.BindKeyJS(test_ui.ESCAPE_KEY, 'failTest();')
     self._ui.BindKey(test_ui.SPACE_KEY, self._StartTest)
     self._ui.Run()

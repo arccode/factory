@@ -6,7 +6,7 @@ import glob
 import logging
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import sys_utils
 
 DEFAULT_CRASH_PATH = '/var/factory/crash'
@@ -22,7 +22,7 @@ class CoreDumpManager(object):
   Properties:
     crash_dir: The directory of core dump files.
     watchlist: The file patterns to match. E.g. ['*glbench*']. If it is not set
-      in constructor, use [].
+        in constructor, use [].
   """
 
   def __init__(self, watchlist=None, crash_dir=DEFAULT_CRASH_PATH):
@@ -69,7 +69,7 @@ class CoreDumpManager(object):
             os.unlink(os.path.join(root, f))
         for d in dirs:
           os.rmdir(os.path.join(root, d))
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:
       logging.exception('Unable to remove unused core dump files')
       raise CoreDumpManagerException(e)
     if watched_files:
@@ -94,7 +94,7 @@ class CoreDumpManager(object):
         raise CoreDumpManagerException('file path is not correct')
       try:
         os.unlink(f)
-      except Exception as e:  # pylint: disable=W0703
+      except Exception as e:
         logging.exception('Unable to remove used core dump files')
         raise CoreDumpManagerException(e)
       else:

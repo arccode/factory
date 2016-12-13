@@ -16,28 +16,28 @@ import threading
 import unittest
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.rules import privacy
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.rules.privacy import FilterDict
-from cros.factory.utils import debug_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import WaitEvent
+from cros.factory.utils import debug_utils
+from cros.factory.utils import process_utils
 
 
 def UpdateDeviceData(data):
   shopfloor.UpdateDeviceData(data)
-  Log('update_device_data', data=FilterDict(data))
+  event_log.Log('update_device_data', data=privacy.FilterDict(data))
 
 
 def UpdateFactorySharedData(data):
   key, value = data.items()[0]
   factory.set_shared_data(key, value)
   factory.console.info('%s: %s', key, value)
-  Log('update_factory_shared_data', data=data)
+  event_log.Log('update_factory_shared_data', data=data)
 
 
 def UpdateFactorySharedDataWithKeyAndListData(data, key, filter_index):
@@ -113,7 +113,7 @@ class CallShopfloor(unittest.TestCase):
         server_proxy = shopfloor.get_instance(detect=True)
       method = getattr(server_proxy, self.args.method)
 
-      args_to_log = FilterDict(self.args.args)
+      args_to_log = privacy.FilterDict(self.args.args)
       message = 'Invoking %s(%s)' % (
           self.args.method, ', '.join(repr(x) for x in args_to_log))
 
@@ -136,20 +136,21 @@ class CallShopfloor(unittest.TestCase):
             test_ui.MakeLabel('Retry', '重试') +
             '</button>'
         )
-        WaitEvent(self.event)
+        process_utils.WaitEvent(self.event)
         self.event.clear()
 
       try:
         result = method(*args)
-        Log('call_shopfloor',
-            method=self.args.method, args=args_to_log,
-            result=FilterDict(result))
-      except:  # pylint: disable=W0702
+        event_log.Log('call_shopfloor',
+                      method=self.args.method, args=args_to_log,
+                      result=privacy.FilterDict(result))
+      except:  # pylint: disable=bare-except
         logging.exception('Exception invoking shop floor method')
 
         exception_str = debug_utils.FormatExceptionOnly()
-        Log('call_shopfloor',
-            method=self.args.method, args=args_to_log, exception=exception_str)
+        event_log.Log('call_shopfloor',
+                      method=self.args.method,
+                      args=args_to_log, exception=exception_str)
         HandleError(exception_str)
         continue
 
@@ -161,7 +162,7 @@ class CallShopfloor(unittest.TestCase):
           # using action_args.
           action_handler(result, **self.args.action_args)
         break  # All done
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Exception in action handler')
         HandleError(debug_utils.FormatExceptionOnly())
         # Fall through and retry

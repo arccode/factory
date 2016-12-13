@@ -9,8 +9,6 @@ import re
 import tempfile
 import threading
 
-import factory_common  # pylint: disable=W0611
-
 
 class StressManagerError(Exception):
   pass
@@ -144,5 +142,6 @@ class DummyStressManager(object):
     pass
 
   @contextlib.contextmanager
-  def Run(self, *unused_args, **unused_kwargs):
+  def Run(self, *args, **kwargs):
+    del args, kwargs  # Unused.
     yield

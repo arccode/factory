@@ -3,6 +3,7 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
 """A factory test to test the functionality of touchpad.
 
 dargs:
@@ -17,14 +18,15 @@ import fcntl
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory, test_ui
-from cros.factory.test.countdown_timer import StartCountdownTimer
-from cros.factory.test.ui_templates import OneSection
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
+from cros.factory.test import factory
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
-from cros.factory.test.utils.touch_utils import MtbEvent
-from cros.factory.utils import process_utils
+from cros.factory.test.utils import touch_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 
 
 _ID_CONTAINER = 'touchpad-test-container'
@@ -233,14 +235,12 @@ class TouchpadTest(unittest.TestCase):
     self.quadrant: This represents the current quadrant of mouse.
   """
   ARGS = [
-      Arg(
-          'touchpad_event_id', int,
+      Arg('touchpad_event_id', int,
           'Touchpad input event id. The test will probe'
           ' for event id if it is not given.', default=None, optional=True),
       Arg('timeout_secs', int, 'Timeout for the test.', default=20),
       Arg('number_to_click', int, 'Target number to click.', default=10),
-      Arg(
-          'number_to_quadrant', int,
+      Arg('number_to_quadrant', int,
           'Target number to click for each quadrant.', default=3),
       Arg('x_segments', int, 'Number of X axis segments to test.', default=5),
       Arg('y_segments', int, 'Number of Y axis segments to test.', default=5)]
@@ -248,7 +248,7 @@ class TouchpadTest(unittest.TestCase):
   def setUp(self):
     # Initialize frontend presentation
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_TOUCHPAD_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_PROMPT)
 
@@ -272,10 +272,11 @@ class TouchpadTest(unittest.TestCase):
     self.already_alerted = False
 
     logging.info('start countdown timer daemon thread')
-    StartCountdownTimer(self.args.timeout_secs,
-                        lambda: self.ui.CallJSFunction('failTest'),
-                        self.ui,
-                        _ID_COUNTDOWN_TIMER)
+    countdown_timer.StartCountdownTimer(
+        self.args.timeout_secs,
+        lambda: self.ui.CallJSFunction('failTest'),
+        self.ui,
+        _ID_COUNTDOWN_TIMER)
 
   def ProbeEventSource(self):
     """Probes for touch event path.
@@ -341,10 +342,10 @@ class TouchpadTest(unittest.TestCase):
     Args:
       event: an InputEvent.
     """
-    mtb_event = MtbEvent.ConvertFromInputEvent(event)
-    if MtbEvent.IsNewContact(mtb_event):
+    mtb_event = touch_utils.MtbEvent.ConvertFromInputEvent(event)
+    if touch_utils.MtbEvent.IsNewContact(mtb_event):
       self.number_fingers += 1
-    elif MtbEvent.IsFingerLeaving(mtb_event):
+    elif touch_utils.MtbEvent.IsFingerLeaving(mtb_event):
       self.number_fingers -= 1
 
     if not (0 <= self.number_fingers <= 2) and not self.already_alerted:

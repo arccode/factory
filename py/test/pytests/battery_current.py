@@ -5,24 +5,24 @@
 # found in the LICENSE file.
 
 
-'''This is a factory test to test battery charging/discharging current.
+"""This is a factory test to test battery charging/discharging current.
 
 dargs:
   min_charging_current: The minimum allowed charging current. In mA.
   min_discharging_current: The minimum allowed discharging current. In mA.
   timeout_secs: The timeout of detecting required charging/discharging current.
-'''
+"""
 
 import logging
 import textwrap
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.sync_utils import PollForCondition
+from cros.factory.utils import sync_utils
 
 _TEST_TITLE = test_ui.MakeLabel('Battery Current Test', u'充電放電电流測試')
 
@@ -143,19 +143,22 @@ class BatteryCurrentTest(unittest.TestCase):
                            'Starting battery level too high')
     self._ui.Run(blocking=False)
     if self.args.usbpd_info is not None:
-      PollForCondition(poll_method=self._CheckUSBPD, poll_interval_secs=0.5,
-                       condition_name='CheckUSBPD',
-                       timeout_secs=self.args.timeout_secs)
+      sync_utils.PollForCondition(
+          poll_method=self._CheckUSBPD, poll_interval_secs=0.5,
+          condition_name='CheckUSBPD',
+          timeout_secs=self.args.timeout_secs)
     if self.args.min_charging_current:
       self._power.SetChargeState(self._power.ChargeState.CHARGE)
-      PollForCondition(poll_method=self._CheckCharge, poll_interval_secs=0.5,
-                       condition_name='ChargeCurrent',
-                       timeout_secs=self.args.timeout_secs)
+      sync_utils.PollForCondition(
+          poll_method=self._CheckCharge, poll_interval_secs=0.5,
+          condition_name='ChargeCurrent',
+          timeout_secs=self.args.timeout_secs)
     if self.args.min_discharging_current:
       self._power.SetChargeState(self._power.ChargeState.DISCHARGE)
-      PollForCondition(poll_method=self._CheckDischarge, poll_interval_secs=0.5,
-                       condition_name='DischargeCurrent',
-                       timeout_secs=self.args.timeout_secs)
+      sync_utils.PollForCondition(
+          poll_method=self._CheckDischarge, poll_interval_secs=0.5,
+          condition_name='DischargeCurrent',
+          timeout_secs=self.args.timeout_secs)
 
   def tearDown(self):
     # Must enable charger to charge or we will drain the battery!

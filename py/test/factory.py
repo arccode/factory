@@ -11,12 +11,10 @@ allow its use by the autotest control process.
 To log to the factory console, use:
 
  from cros.factory.test import factory
- factory.console.info('...') # Or warn, or error
+ factory.console.info('...')  # Or warn, or error
 """
 
 from __future__ import print_function
-
-# pylint: disable=W0105
 
 import logging
 import os
@@ -24,7 +22,7 @@ import re
 import sys
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import type_utils
 
@@ -50,7 +48,7 @@ _state_instance = None
 
 
 def get_current_test_path():
-  # Returns the path of the currently executing test, if any.
+  """Returns the path of the currently executing test, if any."""
   return os.environ.get('CROS_FACTORY_TEST_PATH')
 
 
@@ -79,7 +77,7 @@ def get_lsb_data():
         return entry[1:-1]
     return entry
 
-  data = dict()
+  data = {}
   for lsb_file in lsb_files:
     if not os.path.exists(lsb_file):
       continue
@@ -152,7 +150,7 @@ def log(message):
 def get_state_instance():
   """Returns a factory state client instance."""
   # Delay loading modules to prevent circular dependency.
-  from cros.factory.test import state  # pylint: disable=W0404
+  from cros.factory.test import state
   return state.get_instance()
 
 
@@ -181,11 +179,10 @@ def init_logging(prefix=None, verbose=False):
   """Initializes logging.
 
   Args:
-    prefix: A prefix to display for each log line, e.g., the program
-      name.
+    prefix: A prefix to display for each log line, e.g., the program name.
     verbose: True for debug logging, false for info logging.
   """
-  global _inited_logging  # pylint: disable=W0603
+  global _inited_logging  # pylint: disable=global-statement
   assert not _inited_logging, 'May only call init_logging once'
   _inited_logging = True
 
@@ -383,15 +380,14 @@ class TestState(object):
   """The complete state of a test.
 
   Properties:
-    status: The status of the test (one of ACTIVE, PASSED,
-      FAILED, or UNTESTED).
+    status: The status of the test (one of ACTIVE, PASSED, FAILED, or UNTESTED).
     count: The number of times the test has been run.
     error_msg: The last error message that caused a test failure.
     shutdown_count: The number of times the test has caused a shutdown.
     visible: Whether the test is the currently visible test.
     invocation: The currently executing invocation.
-    iterations_left: For an active test, the number of remaining
-      iterations after the current one.
+    iterations_left: For an active test, the number of remaining iterations
+        after the current one.
     retries_left: Maximum number of retries allowed to pass the test.
   """
   ACTIVE = 'ACTIVE'
@@ -433,18 +429,16 @@ class TestState(object):
       increment_count: An amount by which to increment count.
       error_msg: If non-None, the new error message for the test.
       shutdown_count: If non-None, the new shutdown count.
-      increment_shutdown_count: An amount by which to increment
-        shutdown_count.
+      increment_shutdown_count: An amount by which to increment shutdown_count.
       visible: If non-None, whether the test should become visible.
       invocation: The currently executing or last invocation, if any.
       iterations_left: If non-None, the new iterations_left.
       decrement_iterations_left: An amount by which to decrement
-        iterations_left.
+          iterations_left.
       retries_left: If non-None, the new retries_left.
-        The case retries_left = -1 means the test had already used the first try
-        and all the retries.
-      decrement_retries_left: An amount by which to decrement
-        retries_left.
+          The case retries_left = -1 means the test had already used the first
+          try and all the retries.
+      decrement_retries_left: An amount by which to decrement retries_left.
       skip: Whether the test should be skipped.
 
     Returns:
@@ -521,8 +515,8 @@ class FactoryTestFailure(Exception):
 
   Args:
     message: The exception message.
-    status: The status to report for the failure (usually FAILED
-      but possibly UNTESTED).
+    status: The status to report for the failure (usually FAILED but possibly
+        UNTESTED).
   """
 
   def __init__(self, message=None, status=TestState.FAILED):
@@ -537,8 +531,8 @@ class RequireRun(object):
     """Constructor.
 
     Args:
-      path: Path to the test that must have been run.  "ALL" is
-        a valid value and refers to the root (all tests).
+      path: Path to the test that must have been run.  "ALL" is a valid value
+          and refers to the root (all tests).
       passed: Whether the test is required to have passed.
     """
     # '' is the key of the root and will resolve to the root node.
@@ -600,7 +594,7 @@ class FactoryTest(object):
                dut_options=None,
                backgroundable=False,
                subtests=None,
-               id=None,  # pylint: disable=W0622
+               id=None,  # pylint: disable=redefined-builtin
                has_ui=None,
                no_host=False,
                never_fails=None,
@@ -800,7 +794,7 @@ class FactoryTest(object):
 
     for subtest in self.subtests:
       subtest.parent = self
-      # pylint: disable=W0212
+      # pylint: disable=protected-access
       subtest._init((self.path + '.' if len(self.path) else ''), path_map)
 
   def _check(self):
@@ -867,7 +861,7 @@ class FactoryTest(object):
       kwargs['shutdown_count'] = 0
 
     ret = TestState.from_dict_or_object(
-        # pylint: disable=W0212
+        # pylint: disable=protected-access
         self.root._update_test_state(self.path, status=status, **kwargs))
     if update_parent and self.parent:
       self.parent.update_status_from_children()
@@ -971,7 +965,7 @@ class FactoryTest(object):
     Args:
       test_arg_env: a cros.factory.goofy.invocation.TestArgEnv object
       get_data: a function to select data by self.run_if_table_name, the
-        function should return a dict like object.
+          function should return a dict like object.
 
     Returns:
       True if this test should be run, otherwise False
@@ -1172,7 +1166,7 @@ class ShutdownStep(OperatorTest):
   Properties:
     iterations: The number of times to reboot.
     operation: The command to run to perform the shutdown (FULL_REBOOT,
-      REBOOT, or HALT).
+        REBOOT, or HALT).
     delay_secs: Number of seconds the operator has to abort the shutdown.
   """
   FULL_REBOOT = 'full_reboot'

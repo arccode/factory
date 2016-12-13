@@ -25,20 +25,20 @@ In mode A, the steps are:
 """
 
 
-import factory_common  # pylint: disable=W0611
 import logging
 import time
 import unittest
 
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
-from cros.factory.test.test_ui import MakeLabel, UI
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE = MakeLabel('Fan Speed Test', zh=u'风扇转速测试')
-_MSG_FAN_SPEED = MakeLabel('Fan speed (RPM):', zh=u'风扇转速(RPM):')
+_TEST_TITLE = test_ui.MakeLabel('Fan Speed Test', zh=u'风扇转速测试')
+_MSG_FAN_SPEED = test_ui.MakeLabel('Fan speed (RPM):', zh=u'风扇转速(RPM):')
 _ID_STATUS = 'fs_status'
 _ID_RPM = 'fs_rpm'
 _TEST_BODY = ('<div id="%s"></div><br>\n'
@@ -84,8 +84,8 @@ class FanSpeedTest(unittest.TestCase):
     self.assertTrue(
         self.args.target_rpm > 0 or self.args.spin_max_then_half,
         'Either set a valid target_rpm or spin_max_then_half=True.')
-    self._ui = UI()
-    self._template = OneSection(self._ui)
+    self._ui = test_ui.UI()
+    self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
     self._fan = device_utils.CreateDUTInterface().fan
@@ -114,7 +114,7 @@ class FanSpeedTest(unittest.TestCase):
         'up' if spin_up else 'down', observed_rpm, target_rpm)
     status_zh = u'风扇%s速: %s -> %d PRM.' % (
         u'加' if spin_up else u'减', observed_rpm, target_rpm)
-    self._ui.SetHTML(MakeLabel(status, status_zh), id=_ID_STATUS)
+    self._ui.SetHTML(test_ui.MakeLabel(status, status_zh), id=_ID_STATUS)
     self._ui.SetHTML(str(observed_rpm), id=_ID_RPM)
     logging.info(status)
 

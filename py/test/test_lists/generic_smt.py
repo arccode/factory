@@ -13,7 +13,7 @@ This file implements SMT method to create SMT test list.
 """
 
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import commands
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists.test_lists import AutomatedSequence

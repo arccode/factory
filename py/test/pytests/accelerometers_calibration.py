@@ -64,12 +64,12 @@ Usage examples::
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
+from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -99,7 +99,7 @@ _CSS = """
 """
 
 
-class HorizontalCalibrationTask(FactoryTask):
+class HorizontalCalibrationTask(factory_task.FactoryTask):
   """Horizontal calibration for accelerometers.
 
   Attributes:
@@ -168,10 +168,10 @@ class HorizontalCalibrationTask(FactoryTask):
   def Run(self):
     """Prompts a message to ask operator to press space."""
     self.template.SetState(_MSG_SPACE)
-    self.test.ui.BindKey(' ', lambda _: self.StartCalibration())
+    self.test.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.StartCalibration())
 
 
-class SixSidedCalibrationTask(FactoryTask):
+class SixSidedCalibrationTask(factory_task.FactoryTask):
   """Six-sided calibration for accelerometers."""
 
   def __init__(self, test):
@@ -255,9 +255,8 @@ class AccelerometersCalibration(unittest.TestCase):
     self.assertEquals(2, len(self.args.spec_offset))
     self.assertEquals(2, len(self.args.spec_ideal_values))
     # Initializes a accelerometer utility class.
-    self.accelerometer_controller = self.dut.accelerometer.GetController(
-        self.args.location
-    )
+    self.accelerometer_controller = (
+        self.dut.accelerometer.GetController(self.args.location))
     self.ui.AppendCSS(_CSS)
     self._task_manager = None
 
@@ -273,5 +272,5 @@ class AccelerometersCalibration(unittest.TestCase):
           self.args.sample_rate_hz)]
     else:
       task_list = [SixSidedCalibrationTask(self.args.orientation)]
-    self._task_manager = FactoryTaskManager(self.ui, task_list)
+    self._task_manager = factory_task.FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()

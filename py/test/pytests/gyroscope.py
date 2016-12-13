@@ -15,22 +15,21 @@ Usage examples::
         dargs={
             'rotation_threshold': 1.0,
             'stop_threshold': 0.1
-            })
-
+        })
 """
 
 import collections
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils.arg_utils import Arg
 
 
 _MSG_SPACE = test_ui.MakeLabel(
@@ -62,7 +61,7 @@ _CSS = """
 """
 
 
-class ReadGyroscopeTask(FactoryTask):
+class ReadGyroscopeTask(factory_task.FactoryTask):
   """Horizontal calibration for accelerometers.
 
   Attributes:
@@ -130,7 +129,7 @@ class ReadGyroscopeTask(FactoryTask):
   def Run(self):
     """Prompts a message to ask operator to press space."""
     self.template.SetState(_MSG_SPACE)
-    self.test.ui.BindKey(' ', lambda _: self.StartTask())
+    self.test.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.StartTask())
 
 
 class Gyroscope(unittest.TestCase):
@@ -163,5 +162,5 @@ class Gyroscope(unittest.TestCase):
                                    self.args.stop_threshold,
                                    self.args.timeout_secs,
                                    self.args.setup_time_secs)]
-    self._task_manager = FactoryTaskManager(self.ui, task_list)
+    self._task_manager = factory_task.FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()

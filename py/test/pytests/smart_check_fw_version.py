@@ -4,22 +4,21 @@
 # found in the LICENSE file.
 
 
-'''Checks firmware version on disk using smartctl.
+"""Checks firmware version on disk using smartctl.
 
-If the test fails, then the test displays an error message and hangs forever.'''
+If the test fails, then the test displays an error message and hangs forever.
+"""
 
 
 import logging
 import re
 import unittest
 
-
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.test_ui import Escape
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
 
 class SMARTCheckFWVersionTest(unittest.TestCase):
@@ -29,8 +28,9 @@ class SMARTCheckFWVersionTest(unittest.TestCase):
   ]
 
   def runTest(self):
-    smartctl = Spawn(['smartctl', '-a', '/dev/%s' % self.args.device],
-                     check_output=True, log=True).stdout_data
+    smartctl = process_utils.Spawn(
+        ['smartctl', '-a', '/dev/%s' % self.args.device],
+        check_output=True, log=True).stdout_data
     logging.info('smartctl output:\n%s', smartctl)
 
     match = re.search('^Firmware Version: (.+)$', smartctl,
@@ -53,9 +53,10 @@ class SMARTCheckFWVersionTest(unittest.TestCase):
         '<div class=test-status-failed style="font-size: 150%">' +
         test_ui.MakeLabel(
             'The SSD firmware version (%s) is incorrect. '
-            '<br>Please run the SSD firmware update tool.' % Escape(fw_version),
-
+            '<br>Please run the SSD firmware update tool.' %
+            test_ui.Escape(fw_version),
             'SSD 韧体版（%s）版本不对。'
-            '<br>必须更新 SSD 韧体并重新安装工厂测试软件。' % Escape(fw_version)) +
+            '<br>必须更新 SSD 韧体并重新安装工厂测试软件。' %
+            test_ui.Escape(fw_version)) +
         '</div>')
     ui.Run()  # Forever

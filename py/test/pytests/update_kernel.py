@@ -11,13 +11,13 @@ import tempfile
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_ui import MakeLabel, UI
-from cros.factory.test.ui_templates import OneScrollableSection
-from cros.factory.utils import process_utils
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 
-_TEST_TITLE = MakeLabel('Update Kernel', u'更新 Kernel')
+_TEST_TITLE = test_ui.MakeLabel('Update Kernel', u'更新 Kernel')
 _CSS = '#state {text-align:left;}'
 
 
@@ -31,8 +31,8 @@ class UpdateFirmwareTest(unittest.TestCase):
   def setUp(self):
     self.assertTrue(os.path.isfile(self.args.kernel_image),
                     msg='%s is missing.' % self.args.kernel_image)
-    self._ui = UI()
-    self._template = OneScrollableSection(self._ui)
+    self._ui = test_ui.UI()
+    self._template = ui_templates.OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendCSS(_CSS)
 

@@ -29,11 +29,11 @@ import numpy as np
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.device.accelerometer import AccelerometerException
+import factory_common  # pylint: disable=unused-import
+from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -112,7 +112,7 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.lock = threading.Lock()
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS)
     self.template.SetState(_HTML_PROMPT)
     self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
@@ -125,9 +125,8 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     self.accelerometers_locations = ['base', 'lid']
     self.accelerometers = {}
     for location in self.accelerometers_locations:
-      self.accelerometers[location] = self.dut.accelerometer.GetController(
-          location
-      )
+      self.accelerometers[location] = (
+          self.dut.accelerometer.GetController(location))
 
   def _CalculateLidAngle(self):
     """ Calculate the lid angle based on the two accelerometers (base/lid).
@@ -151,7 +150,7 @@ class AccelerometersLidAngleTest(unittest.TestCase):
             self.accelerometers[location].GetCalibratedDataAverage(
                 self.args.capture_count,
                 self.args.sample_rate_hz))
-      except AccelerometerException as err:
+      except accelerometer.AccelerometerException as err:
         logging.info(
             'Read %s calibrated data failed: %r.', location, err.args[0])
         return None

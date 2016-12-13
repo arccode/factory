@@ -4,7 +4,7 @@
 
 """An E2E test to test the scan factory test."""
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import shopfloor
 from cros.factory.test.e2e_test import e2e_test
 

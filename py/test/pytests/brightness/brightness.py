@@ -4,17 +4,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''This is a factory test to check the brightness of LCD backlight or LEDs.'''
+"""This is a factory test to check the brightness of LCD backlight or LEDs."""
 
-import unittest
 import time
+import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 
 _MSG_CSS_CLASS = 'brightness-test-info'
@@ -50,13 +50,13 @@ class BrightnessTest(unittest.TestCase):
     self.ui = test_ui.UI()
     self.ui.AppendCSS(_BRIGHTNESS_TEST_DEFAULT_CSS)
     self.ui.BindStandardKeys()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.template.SetState(_HTML_BRIGHTNESS_TEST)
     self.ui.SetHTML(test_ui.MakeLabel(self.args.msg_en, self.args.msg_zh,
                                       _MSG_CSS_CLASS), id=_ID_PROMPT)
     self.ui.SetHTML(_MSG_PASS_FAIL_PROMPT, append=True, id=_ID_PROMPT)
-    StartDaemonThread(target=self._BrightnessChangeLoop)
-    StartDaemonThread(target=self._CountdownTimer)
+    process_utils.StartDaemonThread(target=self._BrightnessChangeLoop)
+    process_utils.StartDaemonThread(target=self._CountdownTimer)
 
   def runTest(self):
     self.ui.Run()
@@ -68,14 +68,14 @@ class BrightnessTest(unittest.TestCase):
     raise NotImplementedError
 
   def _BrightnessChangeLoop(self):
-    '''Starts an infinite loop to change brightness.'''
+    """Starts an infinite loop to change brightness."""
     while True:
       for level in self.args.levels:
         self._SetBrightnessLevel(level)
         time.sleep(self.args.interval_secs)
 
   def _CountdownTimer(self):
-    '''Starts a countdown timer and fails the test if timer reaches zero.'''
+    """Starts a countdown timer and fails the test if timer reaches zero."""
     time_remaining = self.args.timeout_secs
     while time_remaining > 0:
       label = test_ui.MakeLabel(_MSG_TIME_REMAINING[0] % time_remaining,

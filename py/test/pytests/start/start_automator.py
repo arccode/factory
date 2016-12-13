@@ -4,7 +4,7 @@
 
 """Factory test automator for 'start' test."""
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.e2e_test.automator import Automator, AutomationFunction
 

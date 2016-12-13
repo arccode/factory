@@ -2,8 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Implementation for Agilent ENA Series Network Analyzer (E5071C) device.
-'''
+"""Implementation for Agilent ENA Series Network Analyzer (E5071C) device.
+"""
 
 # TODO(itspeter): write unittest and verify it on a real E5071C
 
@@ -12,10 +12,10 @@ import itertools
 import logging
 import urllib
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.rf.agilent_scpi import AgilentSCPI
-from cros.factory.test.rf.lan_scpi import Error, FLOATS
-from cros.factory.utils.type_utils import Enum
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.rf import agilent_scpi
+from cros.factory.test.rf import lan_scpi
+from cros.factory.utils import type_utils
 
 
 def CheckTraceValid(x_values, y_values):
@@ -96,11 +96,10 @@ class Traces(object):
   def __init__(self):
     self.parameters = None
     self.x_axis = None
-    self.traces = dict()
+    self.traces = {}
 
   def __repr__(self):
-    """Returns a representation of the object, including its properties.
-    """
+    """Returns a representation of the object, including its properties."""
     return (self.__class__.__name__ + '(' +
             ', '.join('%s=%s' % (k, repr(getattr(self, k)))
                       for k in sorted(self.__dict__.keys())
@@ -108,7 +107,7 @@ class Traces(object):
             + ')')
 
   def GetFreqResponse(self, freq, parameter):
-    '''Returns corresponding frequency response.
+    """Returns corresponding frequency response.
 
     Returns corresponding frequency response given the parameter.
     If the particular frequency was not sampled, uses linear
@@ -121,16 +120,15 @@ class Traces(object):
 
     Returns:
       A floating point value in dB at freq.
-    '''
+    """
     if parameter not in self.traces:
-      raise Error('No trace available for parameter %s' % parameter)
+      raise lan_scpi.Error('No trace available for parameter %s' % parameter)
     return Interpolate(self.x_axis, self.traces[parameter], freq)
 
 
-class ENASCPI(AgilentSCPI):
-  '''An Agilent ENA (E5071C) device.
-  '''
-  PARAMETERS = Enum(['S11', 'S12', 'S21', 'S22'])
+class ENASCPI(agilent_scpi.AgilentSCPI):
+  """An Agilent ENA (E5071C) device."""
+  PARAMETERS = type_utils.Enum(['S11', 'S12', 'S21', 'S22'])
 
   def __init__(self, *args, **kwargs):
     # The first few commands need some warm up time in real E5071C based
@@ -141,15 +139,15 @@ class ENASCPI(AgilentSCPI):
     super(ENASCPI, self).__init__('E5071C', *args, **kwargs_copy)
 
   def SaveScreen(self, filename):
-    '''Saves the screenshot.
+    """Saves the screenshot.
 
     Saves the current screen to a portable network graphics (PNG) file.
     The default store path in E5071C is under disk D.
-    '''
+    """
     self.Send(':MMEMory:STORe:IMAGe "%s.png"' % filename)
 
   def SetMarker(self, channel, marker_num, marker_freq):
-    '''Sets the marker at channel.
+    """Sets the marker at channel.
 
     The marker will only be showed if it is checked on the ENA already.
     This function is used to set marker position, not to enable markers.
@@ -157,7 +155,7 @@ class ENASCPI(AgilentSCPI):
     Example usage:
       Set marker 5 to 600MHz on channel 1.
       SetMarker(1, 5, 600*1e6)
-    '''
+    """
     # TODO(itspeter): understand why channel doesn't make a difference.
 
     # http://ena.tm.agilent.com/e5061b/manuals/webhelp/eng/
@@ -170,20 +168,20 @@ class ENASCPI(AgilentSCPI):
     self.Send(buffer_str)
 
   def SetLinearSweep(self, min_freq, max_freq):
-    '''Sets linear sweep mode.
+    """Sets linear sweep mode.
 
     Sets the mode to be a linear sweep between min_freq and max_freq.
 
     Args:
       min_freq: The minimum frequency in Hz.
       max_freq: The maximum frequency in Hz.
-    '''
+    """
     self.Send([':SENS:SWEep:TYPE LINear',
                ':SENS:FREQ:STAR %d' % min_freq,
                ':SENS:FREQ:STOP %d' % max_freq])
 
   def SetSweepSegments(self, segments):
-    '''Sets a collection of sweep segments.
+    """Sets a collection of sweep segments.
 
     Args:
       segments: An array of 3-tuples.  Each tuple is of the
@@ -194,7 +192,7 @@ class ENASCPI(AgilentSCPI):
           points: The number of points in the segment.
 
           The frequencies must be monotonically increasing.
-    '''
+    """
     # Check that the segments are all 3-tuples and that they are
     # in increasing order of frequency.
     for i in xrange(len(segments)):
@@ -218,7 +216,7 @@ class ENASCPI(AgilentSCPI):
                 ','.join(str(x) for x in data))])
 
   def GetTraces(self, parameters):
-    '''Collects a set of traces based on the current sweep.
+    """Collects a set of traces based on the current sweep.
 
     Returns:
       A Traces object containing the following attributes:
@@ -230,7 +228,7 @@ class ENASCPI(AgilentSCPI):
       ena.set_linear_sweep(700e6, 2200e6)
       data = ena.get_traces(['S11', 'S12', 'S22'])
       print zip(data.x_axis, data.traces['S11'])
-    '''
+    """
     assert len(parameters) > 0
     assert len(parameters) <= 4
 
@@ -241,17 +239,17 @@ class ENASCPI(AgilentSCPI):
 
     ret = Traces()
     ret.parameters = parameters
-    ret.x_axis = self.Query(':CALC:SEL:DATA:XAX?', FLOATS)
+    ret.x_axis = self.Query(':CALC:SEL:DATA:XAX?', lan_scpi.FLOATS)
     ret.traces = {}
     # Force the FDATA to be updated immediatedly.
     self.Send(':INITiate1:CONTinuous OFF')
     self.Send(':INITiate1:IMMediate')
     for i, p in zip(itertools.count(1), parameters):
       ret.traces[p] = (
-          self.Query(':CALC:TRACE%d:DATA:FDAT?' % i, FLOATS)[0::2])
+          self.Query(':CALC:TRACE%d:DATA:FDAT?' % i, lan_scpi.FLOATS)[0::2])
       if len(ret.x_axis) != len(ret.traces[p]):
-        raise Error('x_axis has %d elements but trace has %d' %
-                    (len(ret.x_axis), len(ret.traces[p])))
+        raise lan_scpi.Error('x_axis has %d elements but trace has %d' %
+                             (len(ret.x_axis), len(ret.traces[p])))
       CheckTraceValid(ret.x_axis, ret.traces[p])
     # Unfreeze the trace.
     self.Send(':INITiate1:CONTinuous ON')

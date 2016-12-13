@@ -12,7 +12,7 @@ import pprint
 import re
 import shutil
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import testlog_utils
 from cros.factory.utils import time_utils
 
@@ -21,7 +21,7 @@ class Validator(object):
   """Wrapper for functions that assign and validate values to Event object."""
   @staticmethod
   def Object(inst, key, value):
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     inst._data[key] = value
 
   @staticmethod
@@ -69,24 +69,24 @@ class Validator(object):
           'Validator.Dict accepts value in form of {%r:..., %r:...}, not %s' % (
               'key', 'value', pprint.pformat(value)))
 
-    # pylint: disable=W0212
-    updated_dict = inst._data[key] if key in inst._data else dict()
+    # pylint: disable=protected-access
+    updated_dict = inst._data[key] if key in inst._data else {}
     sub_key = value['key']
     if sub_key in updated_dict:
       raise ValueError(
           '%r is duplicated for field %s' % (sub_key, key))
     updated_dict[sub_key] = value['value']
     # TODO(itspeter): Check if anything left in value.
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     inst._data[key] = updated_dict
 
   @staticmethod
   def List(inst, key, value):
     logging.debug('Validator.List called with (%s, %s)', key, value)
-    # pylint: disable=W0212
-    updated_list = inst._data[key] if key in inst._data else list()
+    # pylint: disable=protected-access
+    updated_list = inst._data[key] if key in inst._data else []
     updated_list.append(value)
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     inst._data[key] = updated_list
 
   @staticmethod
@@ -138,8 +138,8 @@ class Validator(object):
           mime_type, source_path))
 
     # Check if duplicated keys exist
-    # pylint: disable=W0212
-    updated_dict = inst._data[key] if key in inst._data else dict()
+    # pylint: disable=protected-access
+    updated_dict = inst._data[key] if key in inst._data else {}
     if sub_key in updated_dict:
       raise ValueError(
           '%s is duplicated for field %s' % (sub_key, key))
@@ -174,7 +174,7 @@ class Validator(object):
 
     updated_dict[sub_key] = value_to_insert
     # TODO(itspeter): Check if anything left in value.
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     inst._data[key] = updated_dict
 
   @staticmethod

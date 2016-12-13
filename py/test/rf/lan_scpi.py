@@ -3,10 +3,10 @@
 # found in the LICENSE file.
 
 
-'''SCPI-over-TCP controller.
-'''
+"""SCPI-over-TCP controller."""
 
 
+import contextlib
 import logging
 import math
 import re
@@ -14,16 +14,15 @@ import signal
 import socket
 import struct
 import time
-from contextlib import contextmanager
 
 
 class Error(Exception):
-  '''A SCPI error.
+  """A SCPI error.
 
   Properties:
-      error_id: The numeric SCPI error code, if any.
-      error_msg: The SCPI error message, if any.
-  '''
+    error_id: The numeric SCPI error code, if any.
+    error_msg: The SCPI error message, if any.
+  """
 
   def __init__(self, msg, error_id=None, error_msg=None):
     super(Error, self).__init__(msg)
@@ -43,9 +42,10 @@ def _TruncateForLogging(msg):
   return msg
 
 
-@contextmanager
+@contextlib.contextmanager
 def Timeout(secs):
-  def handler(signum, frame):  # pylint: disable=W0613
+  def handler(signum, frame):
+    del signum, frame  # Unused.
     raise TimeoutError('Timeout')
 
   if secs:
@@ -66,15 +66,15 @@ class LANSCPI(object):
   """A SCPI-over-TCP controller."""
 
   def __init__(self, host, port=5025, timeout=3, retries=5, delay=1):
-    '''Connects to a device using SCPI-over-TCP.
+    """Connects to a device using SCPI-over-TCP.
 
     Parameters:
-        host: Host to connect to.
-        port: Port to connect to.
-        timeout: Timeout in seconds.  (Uses the ALRM signal.)
-        retries: maximum attemptis to connect to the host.
-        delay: Delay in seconds before issuing the first command.
-    '''
+      host: Host to connect to.
+      port: Port to connect to.
+      timeout: Timeout in seconds.  (Uses the ALRM signal.)
+      retries: maximum attemptis to connect to the host.
+      delay: Delay in seconds before issuing the first command.
+    """
     self.timeout = timeout
     self.delay = delay
     self.logger = logging.getLogger('SCPI')
@@ -126,21 +126,20 @@ class LANSCPI(object):
       self.socket.close()
 
   def Reopen(self):
-    '''Closes and reopens the connection.
-    '''
+    """Closes and reopens the connection."""
     self.Close()
     time.sleep(1)
     self._Connect()
 
   def Send(self, commands, wait=True):
-    '''Sends a command or series of commands.
+    """Sends a command or series of commands.
 
     Args:
-        commands: The commands to send.  May be list, or a string if
-            just a single command.
-        wait: If True, issues an *OPC? command after the final
-            command to block until all commands have completed.
-    '''
+      commands: The commands to send.  May be list, or a string if
+          just a single command.
+      wait: If True, issues an *OPC? command after the final
+          command to block until all commands have completed.
+    """
     if type(commands) == str:
       self.Send([commands], wait)
       return
@@ -178,16 +177,16 @@ class LANSCPI(object):
         raise Error('Expected 1 after *OPC? but got %r' % ret)
 
   def Query(self, command, formatter=None):
-    '''Issues a query, returning the result.
+    """Issues a query, returning the result.
 
     Args:
-        command: The command to issue.
-        formatter: If present, a function that will be applied to the query
-            response to parse it.  The formatter may be int(), float(), a
-            function from the "Formatters" section at the bottom of this
-            file, or any other function that accepts a single string
-            argument.
-    '''
+      command: The command to issue.
+      formatter: If present, a function that will be applied to the query
+          response to parse it.  The formatter may be int(), float(), a
+          function from the "Formatters" section at the bottom of this
+          file, or any other function that accepts a single string
+          argument.
+    """
     if '?' not in command:
       raise Error('Called Query with non-query %r' % command)
     self._WriteLine('*CLS')
@@ -216,20 +215,20 @@ class LANSCPI(object):
 
   def QueryWithoutErrorChecking(self, command,
                                 expected_length, formatter=None):
-    '''Issues a query, returning the fixed-length result without error checking.
+    """Issues a query, returning the fixed-length result without error checking.
 
     This is a specialized version of Query(). Error checking is disabled and
     result is assumed to be fixed length to increase the speed.
 
     Args:
-        command: The command to issue.
-        expected_length: expected length of result.
-        formatter: If present, a function that will be applied to the query
-            response to parse it.  The formatter may be int(), float(), a
-            function from the "Formatters" section at the bottom of this
-            file, or any other function that accepts a single string
-            argument.
-    '''
+      command: The command to issue.
+      expected_length: expected length of result.
+      formatter: If present, a function that will be applied to the query
+          response to parse it.  The formatter may be int(), float(), a
+          function from the "Formatters" section at the bottom of this
+          file, or any other function that accepts a single string
+          argument.
+    """
     if '?' not in command:
       raise Error('Called Query with non-query %r' % command)
     self._WriteLine(command)
@@ -239,14 +238,12 @@ class LANSCPI(object):
     return line1
 
   def Quote(self, string):
-    '''Quotes a string.
-    '''
+    """Quotes a string."""
     # TODO(jsalz): Use the real IEEE 488.2 string format.
     return '"%s"' % string
 
   def _ReadLine(self):
-    '''Reads a single line, timing out in self.timeout seconds.
-    '''
+    """Reads a single line, timing out in self.timeout seconds."""
 
     with Timeout(self.timeout):
       if not self.timeout:
@@ -301,8 +298,7 @@ class LANSCPI(object):
       return ret
 
   def _WriteLine(self, command):
-    '''Writes a single line.
-    '''
+    """Writes a single line."""
     if '\n' in command:
       raise Error('Newline in command: %r' % command)
     self.logger.debug('] %s', command)

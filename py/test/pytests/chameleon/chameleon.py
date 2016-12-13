@@ -20,7 +20,7 @@ from PIL import Image
 from PIL import ImageChops
 from PIL import ImageDraw
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -245,12 +245,13 @@ class ChameleonDisplayTest(unittest.TestCase):
         return None
       for info in display_info:
         if info['id'] != original_display['id'] and not info['isInternal']:
-          return (original_display, info)
+          return original_display, info
       return None
 
     display_info = self.goofy_rpc.DeviceGetDisplayInfo()
     ext_display = None
     if len(display_info) == 2:
+      # pylint: disable=unpacking-non-sequence
       orig_display, ext_display = DoProbe()
       if not ext_display:
         # In case where these is no internal display (e.g. Chromebox), we cannot
@@ -269,6 +270,7 @@ class ChameleonDisplayTest(unittest.TestCase):
                    chameleon_port)
       self.chameleon.Plug(chameleon_port)
       sync_utils.WaitFor(lambda: DoProbe() is not None, 10, poll_interval=0.5)
+      # pylint: disable=unpacking-non-sequence
       orig_display, ext_display = DoProbe()
     else:
       self.fail('More than two displays detected; '

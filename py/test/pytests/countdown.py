@@ -13,13 +13,13 @@ import os
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.event_log import Log
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import time_utils
 
 
 class CountDownTest(unittest.TestCase):
@@ -159,8 +159,8 @@ class CountDownTest(unittest.TestCase):
 
     in_grace_period = self._elapsed_secs < self.args.grace_secs
     if warnings:
-      Log('warnings', elapsed_secs=self._elapsed_secs,
-          in_grace_period=in_grace_period, warnings=warnings)
+      event_log.Log('warnings', elapsed_secs=self._elapsed_secs,
+                    in_grace_period=in_grace_period, warnings=warnings)
       if not in_grace_period:
         for w in warnings:
           factory.console.warn(w)
@@ -206,8 +206,8 @@ class CountDownTest(unittest.TestCase):
         sys_status = self._dut.status.Snapshot()
 
       if current_time >= self._next_log_time:
-        Log('system_status', elapsed_secs=self._elapsed_secs,
-            **sys_status.__dict__)
+        event_log.Log('system_status', elapsed_secs=self._elapsed_secs,
+                      **sys_status.__dict__)
         self.DetectAbnormalStatus(sys_status, last_status)
         last_status = sys_status
         self._next_log_time = current_time + self.args.log_interval

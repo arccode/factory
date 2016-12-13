@@ -21,7 +21,7 @@ Usage examples::
             'tolerance': 1.0,
             'controller_options': {
                 'location': 'base'}
-            })
+        })
 
 Another example, the value of y and z axis are ignored in this test::
 
@@ -34,20 +34,20 @@ Another example, the value of y and z axis are ignored in this test::
             'sub_tests': [
                 ('Rotate x axis', u'旋转X轴', {'x': 3}),],
             'tolerance': 1.5,
-            })
+        })
 
 """
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils.arg_utils import Arg
 
 
 _MSG_PASS = test_ui.MakeLabel('PASS', u'成功', 'test-pass')
@@ -62,7 +62,7 @@ _CSS = """
 """
 
 
-class SensorMovementTask(FactoryTask):
+class SensorMovementTask(factory_task.FactoryTask):
   """Movement test for accel/gyro/ecompass.
 
   Args:
@@ -171,5 +171,5 @@ class SensorMovement(unittest.TestCase):
                                     self.args.timeout_secs,
                                     self.args.controller_options)
                  for test in self.args.sub_tests]
-    self._task_manager = FactoryTaskManager(self.ui, task_list)
+    self._task_manager = factory_task.FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()

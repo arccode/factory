@@ -11,7 +11,7 @@ import mock
 import os
 import unittest
 
-import factory_common   # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -29,7 +29,7 @@ class TestUIUnittest(unittest.TestCase):
     os.environ['CROS_FACTORY_TEST_INVOCATION'] = self.invocation
     os.environ['CROS_FACTORY_TEST_PARENT_INVOCATION'] = self.parent_invocation
 
-    self.event_client_patcher = mock.patch.object(test_ui, 'EventClient',
+    self.event_client_patcher = mock.patch.object(event, 'EventClient',
                                                   autospec=True)
     self.mock_event_client = self.event_client_patcher.start()
 

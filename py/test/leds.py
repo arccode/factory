@@ -13,7 +13,7 @@ import os
 import sys
 import threading
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 
 # Constants from /usr/include/linux/kd.h.
@@ -42,12 +42,12 @@ def SetLeds(state):
   the combination of X and autotest.)
 
   Args:
-      pattern: A bitwise OR of zero or more of LED_SCR, LED_NUM, and LED_CAP.
+    pattern: A bitwise OR of zero or more of LED_SCR, LED_NUM, and LED_CAP.
 
   Returns:
-      True if able to set at least one LED, and False otherwise.
+    True if able to set at least one LED, and False otherwise.
   """
-  global _tty_fds
+  global _tty_fds  # pylint: disable=global-statement
   with _tty_fds_lock:
     if _tty_fds is None:
       _tty_fds = []
@@ -55,7 +55,7 @@ def SetLeds(state):
         dev = '/dev/tty%d' % tty
         try:
           _tty_fds.append(os.open(dev, os.O_RDWR))
-        except:
+        except:  # pylint: disable=bare-except
           logging.exception('Unable to open %s', dev)
 
   if not _tty_fds:
@@ -64,7 +64,7 @@ def SetLeds(state):
   for fd in _tty_fds:
     try:
       fcntl.ioctl(fd, KDSETLED, state)
-    except:
+    except:  # pylint: disable=bare-except
       pass
 
   return True
@@ -87,15 +87,15 @@ class Blinker(object):
     """Constructs the blinker (but does not start it).
 
     Args:
-        pattern: A list of tuples.  Each element is (state, duration),
-            where state contains the LEDs that should be lit (a bitwise
-            OR of LED_SCR, LED_NUM, and/or LED_CAP).  For example,
+      pattern: A list of tuples.  Each element is (state, duration),
+          where state contains the LEDs that should be lit (a bitwise
+          OR of LED_SCR, LED_NUM, and/or LED_CAP).  For example,
 
-                ((LED_SCR|LED_NUM|LED_CAP, .2),
-                 (0, .05))
+              ((LED_SCR|LED_NUM|LED_CAP, .2),
+               (0, .05))
 
-            would turn all LEDs on for .2 s, then all off for 0.05 s,
-            ad infinitum.
+          would turn all LEDs on for .2 s, then all off for 0.05 s,
+          ad infinitum.
     """
     self.pattern = pattern
     self.done = threading.Event()
@@ -110,8 +110,7 @@ class Blinker(object):
     self.thread.start()
 
   def Stop(self):
-    """Stops blinking.
-    """
+    """Stops blinking."""
     self.done.set()
     if self.thread:
       self.thread.join()
@@ -120,7 +119,8 @@ class Blinker(object):
   def __enter__(self):
     self.Start()
 
-  def __exit__(self, type, value, traceback):
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type, exc_value, traceback  # Unused.
     self.Stop()
 
   def _Run(self):
@@ -139,7 +139,7 @@ if __name__ == '__main__':
   William Tell otherwise.
   """
   if len(sys.argv) > 1:
-    blinker = Blinker(eval(sys.argv[1]))
+    blinker = Blinker(eval(sys.argv[1]))  # pylint: disable=eval-used
   else:
     DURATION_SCALE = .125
 

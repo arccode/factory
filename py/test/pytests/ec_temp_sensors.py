@@ -13,7 +13,7 @@ Ported from third_party/autotest/files/client/site_tests/hardware_EC.
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 
@@ -46,7 +46,7 @@ class BoardTempSensorsTest(unittest.TestCase):
         'Either num_temp_sensor or temp_sensor_to_test must be set.')
 
     all_sensors_temp = self.dut.thermal.GetTemperatures()
-    logging.info('Get temperature sensors: %s', str(all_sensors_temp))
+    logging.info('Get temperature sensors: %s', all_sensors_temp)
     num_sensors = len(all_sensors_temp)
     for index in temp_sensor_to_test:
       self.assertTrue(0 <= index < num_sensors,

@@ -22,15 +22,11 @@ import os
 import threading
 import yaml
 
-import factory_common  # pylint: disable=W0611
-
-from cros.factory.test.diagnosis.common import BACKEND_EVENTS
-from cros.factory.test.diagnosis.common import OPTIONS
-from cros.factory.test.diagnosis.common import TASK_STATE
-from cros.factory.test.diagnosis.common import TOKEN
-from cros.factory.test.diagnosis.sanitizer import SanitizeConfig
-from cros.factory.test.diagnosis.task import Task
-from cros.factory.test.event import Event
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.diagnosis import common
+from cros.factory.test.diagnosis import sanitizer
+from cros.factory.test.diagnosis import task
+from cros.factory.test import event
 
 _BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -95,7 +91,7 @@ class _ConfirmEventRegister(object):
       selected_option: The option which was selected.
     """
     if identify_number in self._callback_func:
-      (func, args, kwargs) = self._callback_func[identify_number]
+      func, args, kwargs = self._callback_func[identify_number]
       func(selected_option, *args, **kwargs)
       del self._callback_func[identify_number]
 
@@ -125,9 +121,10 @@ class DiagnosisToolUIProxy(object):
       kwargs: Other parameters to post.
     """
     with self._post_event_lock:
-      self._goofy_rpc.PostEvent(Event(Event.Type.DIAGNOSIS_TOOL_EVENT,
-                                      sub_type=event_type,
-                                      **kwargs))
+      self._goofy_rpc.PostEvent(
+          event.Event(event.Event.Type.DIAGNOSIS_TOOL_EVENT,
+                      sub_type=event_type,
+                      **kwargs))
 
   def LoadTask(self, task_id):
     """Asks the UI to load the task.
@@ -135,7 +132,7 @@ class DiagnosisToolUIProxy(object):
     Args:
       task_id: Id of the task.
     """
-    self._PostEvent(BACKEND_EVENTS.LOAD_TASK, task_id=task_id)
+    self._PostEvent(common.BACKEND_EVENTS.LOAD_TASK, task_id=task_id)
 
   def SetMenu(self, menu_config):
     """Sets the task menu in the UI.
@@ -143,7 +140,7 @@ class DiagnosisToolUIProxy(object):
     Args:
       menu_config: Config of the menu.
     """
-    self._PostEvent(BACKEND_EVENTS.SET_MENU, menu=menu_config)
+    self._PostEvent(common.BACKEND_EVENTS.SET_MENU, menu=menu_config)
 
   def SetName(self, name):
     """Sets the task name in the UI.
@@ -151,7 +148,7 @@ class DiagnosisToolUIProxy(object):
     Args:
       name: Tasks name.
     """
-    self._PostEvent(BACKEND_EVENTS.SET_NAME, name=name)
+    self._PostEvent(common.BACKEND_EVENTS.SET_NAME, name=name)
 
   def SetState(self, state):
     """Sets the state in UI.
@@ -159,8 +156,10 @@ class DiagnosisToolUIProxy(object):
     Args:
       state: The state.
     """
-    self._PostEvent(BACKEND_EVENTS.SET_STATE, state=state)
-    if state in (TASK_STATE.DONE, TASK_STATE.FAILED, TASK_STATE.STOPPED):
+    self._PostEvent(common.BACKEND_EVENTS.SET_STATE, state=state)
+    if state in (common.TASK_STATE.DONE,
+                 common.TASK_STATE.FAILED,
+                 common.TASK_STATE.STOPPED):
       self.AppendOutput('\n\n')
 
   def SetDescription(self, description):
@@ -169,7 +168,8 @@ class DiagnosisToolUIProxy(object):
     Args:
       description: Description text.
     """
-    self._PostEvent(BACKEND_EVENTS.SET_DESCRIPTION, description=description)
+    self._PostEvent(common.BACKEND_EVENTS.SET_DESCRIPTION,
+                    description=description)
 
   def SetInputs(self, inputs):
     """Sets the input fields of the current task in UI.
@@ -177,7 +177,7 @@ class DiagnosisToolUIProxy(object):
     Args:
       inputs: Input elements.
     """
-    self._PostEvent(BACKEND_EVENTS.SET_INPUTS, inputs=inputs)
+    self._PostEvent(common.BACKEND_EVENTS.SET_INPUTS, inputs=inputs)
 
   def AppendOutput(self, text):
     """Append some text to the console output in UI.
@@ -185,11 +185,11 @@ class DiagnosisToolUIProxy(object):
     Args:
       text: String which needs to be added to the output field.
     """
-    self._PostEvent(BACKEND_EVENTS.APPEND_OUTPUT, text=text)
+    self._PostEvent(common.BACKEND_EVENTS.APPEND_OUTPUT, text=text)
 
   def ClearOutput(self):
     """Clear the console output in UI."""
-    self._PostEvent(BACKEND_EVENTS.CLEAR_OUTPUT)
+    self._PostEvent(common.BACKEND_EVENTS.CLEAR_OUTPUT)
 
   def Confirm(self, title, content, options, timeout, default_option,
               callback, callback_args=None, callback_kwargs=None):
@@ -212,7 +212,7 @@ class DiagnosisToolUIProxy(object):
     confirm_id = self._confirm_event_register.Register(callback,
                                                        callback_args,
                                                        callback_kwargs)
-    self._PostEvent(BACKEND_EVENTS.CONFIRM_DIALOG,
+    self._PostEvent(common.BACKEND_EVENTS.CONFIRM_DIALOG,
                     id=confirm_id,
                     title=title, content=content, options=options,
                     timeout=timeout, default_option=default_option)
@@ -225,7 +225,7 @@ class DiagnosisToolUIProxy(object):
       confirm_id: Identify number of the confirm dialog.
     """
     self._confirm_event_register.Remove(confirm_id)
-    self._PostEvent(BACKEND_EVENTS.CONFIRM_DIALOG_STOP, id=confirm_id)
+    self._PostEvent(common.BACKEND_EVENTS.CONFIRM_DIALOG_STOP, id=confirm_id)
 
 
 class DiagnosisToolRPC(object):
@@ -270,8 +270,8 @@ class DiagnosisToolRPC(object):
       task_id: Id of the task to be initialized.
     """
     self._current_task_id = task_id
-    self._current_task = Task(self._ui_proxy,
-                              self._task_configs[self._current_task_id])
+    self._current_task = task.Task(self._ui_proxy,
+                                   self._task_configs[self._current_task_id])
     self._ui_proxy.ClearOutput()
     self._ui_proxy.SetName(self._current_task.name)
     self._ui_proxy.SetState(self._current_task.state)
@@ -295,14 +295,15 @@ class DiagnosisToolRPC(object):
     if task_id == self._current_task_id:
       return False
     if self._current_task is not None:
-      if self._current_task.state == TASK_STATE.STOPPING:
+      if self._current_task.state == common.TASK_STATE.STOPPING:
         return False
-      elif self._current_task.state == TASK_STATE.RUNNING:
+      elif self._current_task.state == common.TASK_STATE.RUNNING:
         self._ui_proxy.Confirm(title='Instruction',
                                content='You should stop the task first.',
-                               options=[OPTIONS.STOP_IT, OPTIONS.KEEP_IT],
+                               options=[common.OPTIONS.STOP_IT,
+                                        common.OPTIONS.KEEP_IT],
                                timeout=10,
-                               default_option=OPTIONS.KEEP_IT,
+                               default_option=common.OPTIONS.KEEP_IT,
                                callback=self._LoadTaskConfirmCallback)
         return False
     self._ui_proxy.LoadTask(task_id)
@@ -314,7 +315,7 @@ class DiagnosisToolRPC(object):
     Args:
       option: Option user selected.
     """
-    if option == OPTIONS.STOP_IT:
+    if option == common.OPTIONS.STOP_IT:
       self._current_task.Stop()
 
   def StartTask(self, task_id, inputs):
@@ -326,7 +327,7 @@ class DiagnosisToolRPC(object):
     """
     if task_id != self._current_task_id:
       return
-    if self._current_task.state == TASK_STATE.NOT_APPLICABLE:
+    if self._current_task.state == common.TASK_STATE.NOT_APPLICABLE:
       return
     self._current_task.Start(inputs)
 
@@ -338,14 +339,14 @@ class DiagnosisToolRPC(object):
     """
     if task_id != self._current_task_id:
       return
-    if self._current_task.state != TASK_STATE.RUNNING:
+    if self._current_task.state != common.TASK_STATE.RUNNING:
       return
     self._ui_proxy.Confirm(title='Confirm',
                            content=('Do you really want to stop the task %r?' %
                                     self._current_task.name),
-                           options=[OPTIONS.YES, OPTIONS.CANCEL],
+                           options=[common.OPTIONS.YES, common.OPTIONS.CANCEL],
                            timeout=10,
-                           default_option=OPTIONS.CANCEL,
+                           default_option=common.OPTIONS.CANCEL,
                            callback=self._StopTaskConfirmCallback,
                            callback_args=(task_id,))
 
@@ -358,7 +359,8 @@ class DiagnosisToolRPC(object):
     """
     if task_id != self._current_task_id:
       return
-    if option == OPTIONS.YES and self._current_task.state == TASK_STATE.RUNNING:
+    if (option == common.OPTIONS.YES and
+        self._current_task.state == common.TASK_STATE.RUNNING):
       self._current_task.Stop()
 
   def ConfirmSelected(self, confirm_id, option):
@@ -379,11 +381,11 @@ def _ImportConfigFiles():
   """
   all_configs = []
   for (dirpath, unused_dirnames, filenames) in os.walk(_BASE_PATH):
-    for filename in [x for x in filenames if x[-5:] == '.yaml']:
+    for filename in (x for x in filenames if x[-5:] == '.yaml'):
       try:
         opened_file = open(os.path.join(dirpath, filename), 'r')
         new_configs = yaml.load(opened_file)
-      except Exception as e:  # pylint: disable=W0703
+      except Exception as e:
         logging.exception('Cought an exception while reading and parsing ' +
                           'the yaml config file %r: %s.' % (filename, e))
         raise e
@@ -391,7 +393,7 @@ def _ImportConfigFiles():
         all_configs = all_configs + new_configs
       else:
         all_configs = all_configs + [new_configs]
-  return SanitizeConfig(all_configs)
+  return sanitizer.SanitizeConfig(all_configs)
 
 
 def _TaskPathToId(path):
@@ -425,13 +427,14 @@ def _GetMenuAndTaskConfigs(config):
   tasks = {}
 
   def Tracer(config, path):
-    name = config[TOKEN.NAME]
+    name = config[common.TOKEN.NAME]
     curr_path = path + [name]
     identify = _TaskPathToId(curr_path)
     tasks[identify] = config
-    ret = {TOKEN.TASK_ID: identify, TOKEN.NAME: name}
-    if TOKEN.MEMBER in config:
-      ret[TOKEN.MEMBER] = [Tracer(x, curr_path) for x in config[TOKEN.MEMBER]]
+    ret = {common.TOKEN.TASK_ID: identify, common.TOKEN.NAME: name}
+    if common.TOKEN.MEMBER in config:
+      ret[common.TOKEN.MEMBER] = [Tracer(x, curr_path)
+                                  for x in config[common.TOKEN.MEMBER]]
     return ret
   menu = [Tracer(x, []) for x in config]
   return (menu, tasks)

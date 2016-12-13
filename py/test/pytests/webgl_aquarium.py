@@ -9,11 +9,11 @@
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_ui import UI
-from cros.factory.test.ui_templates import OneSection
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 
 _HTML_WEBGL_AQUARIUM = (
@@ -86,12 +86,12 @@ class WebglAquarium(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.ui = UI()
-    self.template = OneSection(self.ui)
+    self.ui = test_ui.UI()
+    self.template = ui_templates.OneSection(self.ui)
     self.template.SetState(_HTML_WEBGL_AQUARIUM.format(self.ui.test))
     self.ui.RunJS(_JS_WEBGL_AQUARIUM)
     self.end_time = time.time() + self.args.duration_secs
-    StartDaemonThread(target=self.PeriodicCheck)
+    process_utils.StartDaemonThread(target=self.PeriodicCheck)
 
   def FormatSeconds(self, secs):
     hours = int(secs / 3600)

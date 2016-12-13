@@ -18,22 +18,17 @@ Classes:
 import os
 import signal
 import subprocess
-import time
 import threading
+import time
 
-import factory_common  # pylint: disable=W0611
-
-from cros.factory.test.diagnosis.common import CreateRegExp
-from cros.factory.test.diagnosis.common import FormatError
-from cros.factory.test.diagnosis.common import INPUT_TYPE
-from cros.factory.test.diagnosis.common import TASK_STATE
-from cros.factory.test.diagnosis.common import TOKEN
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.diagnosis import common
 from cros.factory.utils import process_utils
 
 _WAIT_TIMEOUT = 0.1
 
 
-class _STEP_STATE(object):  # pylint: disable=W0232
+class _STEP_STATE(object):
   """Enumeration of the states of a step."""
   SUCCESS = 'success'
   FAILED = 'failed'
@@ -64,42 +59,43 @@ class Task(object):
       ui_proxy: Instance of DiagnosisToolUIProxy.
       config: Sanitized config of this task.
     """
-    runnable = (TOKEN.STEPS in config)
+    runnable = (common.TOKEN.STEPS in config)
     self._ui_proxy = ui_proxy
-    self._name = config[TOKEN.NAME]
-    self._description = config[TOKEN.DESCRIPTION]
-    self._state = TASK_STATE.IDLE if runnable else TASK_STATE.NOT_APPLICABLE
+    self._name = config[common.TOKEN.NAME]
+    self._description = config[common.TOKEN.DESCRIPTION]
+    self._state = (common.TASK_STATE.IDLE
+                   if runnable else common.TASK_STATE.NOT_APPLICABLE)
     self._inputs = {}
     self._steps = []
     self._run_steps_thread = None
     self._stopping_lock = threading.Lock()
     self._current_step = None
     if runnable:
-      inputs = config[TOKEN.INPUTS]
+      inputs = config[common.TOKEN.INPUTS]
       for input_element in inputs:
-        self._inputs[input_element[TOKEN.VAR_ID]] = input_element
-      for step_element in config[TOKEN.STEPS]:
-        if TOKEN.CONFIRM in step_element:
-          step = _ConfirmStep(step_element[TOKEN.TITLE],
-                              step_element[TOKEN.CONFIRM],
-                              step_element[TOKEN.OPTIONS],
-                              step_element[TOKEN.TIMEOUT],
-                              step_element[TOKEN.EXPECTED_OUTPUT],
+        self._inputs[input_element[common.TOKEN.VAR_ID]] = input_element
+      for step_element in config[common.TOKEN.STEPS]:
+        if common.TOKEN.CONFIRM in step_element:
+          step = _ConfirmStep(step_element[common.TOKEN.TITLE],
+                              step_element[common.TOKEN.CONFIRM],
+                              step_element[common.TOKEN.OPTIONS],
+                              step_element[common.TOKEN.TIMEOUT],
+                              step_element[common.TOKEN.EXPECTED_OUTPUT],
                               self._ui_proxy.Confirm,
                               self._ui_proxy.ConfirmStop)
-        elif TOKEN.COMMAND in step_element:
-          step = _CommandStep(step_element[TOKEN.COMMAND],
-                              step_element[TOKEN.EXPECTED_OUTPUT],
-                              step_element[TOKEN.TERMINATE_TIMEOUT],
-                              step_element[TOKEN.TERMINATING_TIMEOUT],
-                              step_element[TOKEN.ERROR_MESSAGE],
+        elif common.TOKEN.COMMAND in step_element:
+          step = _CommandStep(step_element[common.TOKEN.COMMAND],
+                              step_element[common.TOKEN.EXPECTED_OUTPUT],
+                              step_element[common.TOKEN.TERMINATE_TIMEOUT],
+                              step_element[common.TOKEN.TERMINATING_TIMEOUT],
+                              step_element[common.TOKEN.ERROR_MESSAGE],
                               self._ui_proxy.AppendOutput)
-        elif TOKEN.FINALLY in step_element:
-          step = _FinallyStep(step_element[TOKEN.FINALLY],
-                              step_element[TOKEN.EXPECTED_OUTPUT],
-                              step_element[TOKEN.TERMINATE_TIMEOUT],
-                              step_element[TOKEN.TERMINATING_TIMEOUT],
-                              step_element[TOKEN.ERROR_MESSAGE],
+        elif common.TOKEN.FINALLY in step_element:
+          step = _FinallyStep(step_element[common.TOKEN.FINALLY],
+                              step_element[common.TOKEN.EXPECTED_OUTPUT],
+                              step_element[common.TOKEN.TERMINATE_TIMEOUT],
+                              step_element[common.TOKEN.TERMINATING_TIMEOUT],
+                              step_element[common.TOKEN.ERROR_MESSAGE],
                               self._ui_proxy.AppendOutput)
         self._steps.append(step)
 
@@ -112,16 +108,15 @@ class Task(object):
     return self._description
 
   @property
-  def inputs(self):  # pylint: disable=E0202
+  def inputs(self):
     return self._inputs.values()
 
   @property
-  def state(self):  # pylint: disable=E0202
+  def state(self):
     return self._state
 
   @state.setter
-  def state(self, new_state):  # pylint: disable=E0202
-                               # Remove above waiver after pylint 0.25.2.
+  def state(self, new_state):
     self._state = new_state
     self._ui_proxy.SetState(new_state)
 
@@ -136,7 +131,7 @@ class Task(object):
     """
     try:
       checked_input_values = self._CheckInputsValid(input_values)
-    except FormatError as e:
+    except common.FormatError as e:
       self._ui_proxy.AppendOutput('%s\n' % e)
       return
 
@@ -149,7 +144,7 @@ class Task(object):
     """Stops the task."""
     with self._stopping_lock:
       if self._run_steps_thread is not None:
-        self.state = TASK_STATE.STOPPING
+        self.state = common.TASK_STATE.STOPPING
         if self._current_step is not None:
           self._current_step.Stop()
 
@@ -174,13 +169,14 @@ class Task(object):
       else:
         value = input_values[js_var_id]
         input_element = self._inputs[var_id]
-        if (input_element[TOKEN.TYPE] == INPUT_TYPE.STRING and
-            input_element[TOKEN.REGEXP] is not None):
-          (regexp, flags) = tuple(input_element[TOKEN.REGEXP])
-          if not CreateRegExp(regexp, flags).search(value):
-            raise FormatError(
+        if (input_element[common.TOKEN.TYPE] == common.INPUT_TYPE.STRING and
+            input_element[common.TOKEN.REGEXP] is not None):
+          (regexp, flags) = tuple(input_element[common.TOKEN.REGEXP])
+          if not common.CreateRegExp(regexp, flags).search(value):
+            raise common.FormatError(
                 'Invalid input field "%s%s", %r not matched (%r, %r)' %
-                (input_element[TOKEN.PROMPT], value, value, regexp, flags))
+                (input_element[common.TOKEN.PROMPT], value, value, regexp,
+                 flags))
         ret[var_id] = value
     return ret
 
@@ -191,13 +187,13 @@ class Task(object):
       inputs: Sanitized input values from UI.
     """
     with self._stopping_lock:
-      if self.state != TASK_STATE.STOPPING:
-        self.state = TASK_STATE.RUNNING
+      if self.state != common.TASK_STATE.STOPPING:
+        self.state = common.TASK_STATE.RUNNING
 
     success = True
     for step in self._steps:
       with self._stopping_lock:
-        if (not step.MUST_BE_RUN and (self.state != TASK_STATE.RUNNING or
+        if (not step.MUST_BE_RUN and (self.state != common.TASK_STATE.RUNNING or
                                       not success)):
           continue
         self._current_step = step
@@ -208,10 +204,11 @@ class Task(object):
         success = False
 
     with self._stopping_lock:
-      if self.state == TASK_STATE.RUNNING:
-        self.state = TASK_STATE.DONE if success else TASK_STATE.FAILED
-      elif self.state == TASK_STATE.STOPPING:
-        self.state = TASK_STATE.STOPPED
+      if self.state == common.TASK_STATE.RUNNING:
+        self.state = (common.TASK_STATE.DONE
+                      if success else common.TASK_STATE.FAILED)
+      elif self.state == common.TASK_STATE.STOPPING:
+        self.state = common.TASK_STATE.STOPPED
       self._run_steps_thread = None
 
 
@@ -236,7 +233,6 @@ class _Step(object):
 
 
 class _ConfirmStep(_Step):
-  MUST_BE_RUN = False
   """A step for confirm dialog.
 
   Attributes:
@@ -256,6 +252,7 @@ class _ConfirmStep(_Step):
     _ui_start_confirm: A function to tell the UI to show the confirm dialog.
     _ui_stop_confirm: A function to tell the UI to close the confirm dialog.
   """
+  MUST_BE_RUN = False
 
   def __init__(self, title, content, options, timeout, expected_output,
                ui_start_confirm, ui_stop_confirm):
@@ -272,7 +269,7 @@ class _ConfirmStep(_Step):
     self._ui_start_confirm = ui_start_confirm
     self._ui_stop_confirm = ui_stop_confirm
     if timeout:
-      (self._timeout, self._default_option) = tuple(timeout)
+      self._timeout, self._default_option = tuple(timeout)
 
   def Init(self):
     self._selected_option = None
@@ -316,7 +313,6 @@ class _ConfirmStep(_Step):
 
 
 class _CommandStep(_Step):
-  MUST_BE_RUN = False
   """A step for running a Linux command.
 
   After starting to run, it will create another two threads:
@@ -340,6 +336,7 @@ class _CommandStep(_Step):
         stopped.
     _stdout_text: A string to store the stdout of the command if needs.
   """
+  MUST_BE_RUN = False
 
   def __init__(self, command, expected_output,
                terminate_timeout, terminating_timeout, error_message,
@@ -398,7 +395,7 @@ class _CommandStep(_Step):
       # Try to send SIGTERM first.
       try:
         os.killpg(proc.pid, signal.SIGTERM)
-      except Exception as unused_e:  # pylint: disable=W0703
+      except Exception:
         pass
       time_sum = 0
       while proc.poll() is None:
@@ -411,7 +408,7 @@ class _CommandStep(_Step):
       if proc.poll() is None:
         try:
           os.killpg(proc.pid, signal.SIGKILL)
-        except Exception as unused_e:  # pylint: disable=W0703
+        except Exception:
           pass
         proc.wait()
     stdout_capturer.join()
@@ -452,7 +449,7 @@ class _CommandStep(_Step):
       return stdout_text == expected_output
     elif isinstance(expected_output, list):
       (regexp, flags) = tuple(expected_output)
-      return CreateRegExp(regexp, flags).search(stdout_text) is not None
+      return common.CreateRegExp(regexp, flags).search(stdout_text) is not None
 
 
 class _FinallyStep(_CommandStep):

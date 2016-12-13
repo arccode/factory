@@ -13,14 +13,13 @@ import asyncore
 import evdev
 import unittest
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
+from cros.factory.test.pytests import tablet_mode_ui
 from cros.factory.test import test_ui
-from cros.factory.test.countdown_timer import StartCountdownTimer
-from cros.factory.test.pytests.tablet_mode_ui import TabletModeUI
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 
 _DEFAULT_TIMEOUT = 30
@@ -56,9 +55,8 @@ class TabletModeTest(unittest.TestCase):
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.tablet_mode_ui = TabletModeUI(self.ui,
-                                       _HTML_COUNTDOWN_TIMER,
-                                       _CSS_COUNTDOWN_TIMER)
+    self.tablet_mode_ui = tablet_mode_ui.TabletModeUI(
+        self.ui, _HTML_COUNTDOWN_TIMER, _CSS_COUNTDOWN_TIMER)
 
     if self.args.event_id:
       self.event_dev = evdev.InputDevice('/dev/input/event%d' %
@@ -72,10 +70,10 @@ class TabletModeTest(unittest.TestCase):
 
     # Create a thread to monitor evdev events.
     self.dispatcher = None
-    StartDaemonThread(target=self.MonitorEvdevEvent)
+    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
 
     # Create a thread to run countdown timer.
-    StartCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self.args.timeout_secs,
         lambda: self.ui.Fail('Lid switch test failed due to timeout.'),
         self.ui,

@@ -10,14 +10,12 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.fixture.bft_fixture import (BFTFixture,
-                                                   CreateBFTFixture,
-                                                   TEST_ARG_HELP)
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -57,7 +55,7 @@ class ACPowerTest(unittest.TestCase):
   ARGS = [
       Arg('power_type', str, 'Type of the power source', optional=True),
       Arg('online', bool, 'True if expecting AC power', default=True),
-      Arg('bft_fixture', dict, TEST_ARG_HELP, optional=True),
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, optional=True),
       Arg('retries', int,
           'Maximum number of retries allowed to pass the test. '
           '0 means only probe once. Default None means probe forever.',
@@ -87,7 +85,7 @@ class ACPowerTest(unittest.TestCase):
         '%s<br>%s<div id="%s"></div>' %
         (instruction, probe_count_message, _AC_STATUS_ID))
 
-    self._power_state = dict()
+    self._power_state = {}
     self._done = threading.Event()
     self._last_type = None
     self._last_ac_present = None
@@ -96,7 +94,7 @@ class ACPowerTest(unittest.TestCase):
     # Prepare fixture auto test if needed.
     self.fixture = None
     if self.args.bft_fixture:
-      self.fixture = CreateBFTFixture(**self.args.bft_fixture)
+      self.fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
 
   def Done(self):
     self._done.set()
@@ -136,7 +134,7 @@ class ACPowerTest(unittest.TestCase):
   def runTest(self):
     self._ui.Run(blocking=False, on_finish=self.Done)
     if self.fixture:
-      self.fixture.SetDeviceEngaged(BFTFixture.Device.AC_ADAPTER,
+      self.fixture.SetDeviceEngaged(bft_fixture.BFTFixture.Device.AC_ADAPTER,
                                     self.args.online)
     num_probes = 0
 

@@ -13,11 +13,11 @@ import logging
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
-from cros.factory.test.shopfloor import UpdateDeviceData
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
+from cros.factory.test import shopfloor
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils import process_utils
 
 
 class ProbeCellularInfoTest(unittest.TestCase):
@@ -30,7 +30,7 @@ class ProbeCellularInfoTest(unittest.TestCase):
   ]
 
   def runTest(self):
-    output = CheckOutput(['modem', 'status'], log=True)
+    output = process_utils.CheckOutput(['modem', 'status'], log=True)
     logging.info('modem status output:\n%s', output)
 
     data = {}
@@ -46,7 +46,7 @@ class ProbeCellularInfoTest(unittest.TestCase):
       match = re.search(r'^\s*' + field + ': (.+)', output, re.M | re.I)
       data[name] = match.group(1) if match else None
 
-    Log('cellular_info', modem_status_stdout=output, **data)
+    event_log.Log('cellular_info', modem_status_stdout=output, **data)
 
     missing = set(k for k, v in data.iteritems() if v is None)
     self.assertFalse(
@@ -54,4 +54,4 @@ class ProbeCellularInfoTest(unittest.TestCase):
         "Missing elements in 'modem status' output: %s" % sorted(missing))
 
     logging.info('Probed data: %s', data)
-    UpdateDeviceData(data)
+    shopfloor.UpdateDeviceData(data)

@@ -23,10 +23,10 @@ dargs:
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import SpawnOutput
+from cros.factory.utils import process_utils
 
 
 class USBProbeTest(unittest.TestCase):
@@ -51,18 +51,18 @@ class USBProbeTest(unittest.TestCase):
     Returns:
       True if the string is found, false if not.
     """
-    response = SpawnOutput(['lsusb', '-v'], log=True)
+    response = process_utils.SpawnOutput(['lsusb', '-v'], log=True)
     if self.args.use_re:
       return bool(re.search(lsusb_string, response))
     else:
-      return (lsusb_string) in response
+      return lsusb_string in response
 
   def runTest(self):
-    if (self.args.search_string):
+    if self.args.search_string:
       usb_string = self.args.search_string
     else:
       usb_string = '%s:%s' % (self.args.vid, self.args.pid)
     probed_result = self._ProbeUSB(usb_string)
-    Log('usb_probed', result=probed_result, usb_string=usb_string)
+    event_log.Log('usb_probed', result=probed_result, usb_string=usb_string)
     self.assertTrue(probed_result,
                     'String: %s was not found in lsusb -v.' % usb_string)

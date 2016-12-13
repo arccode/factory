@@ -9,15 +9,15 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import updater
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils.arg_utils import Arg
 
 _CSS = """
 #state {
@@ -98,9 +98,9 @@ class SyncShopfloor(unittest.TestCase):
                 u'按空白键更新。'))
 
             # Note that updateFactory() will kill this test.
-            ui.BindKeyJS(' ', 'window.test.updateFactory()')
+            ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
             return
-        except:  # pylint: disable=W0702
+        except:  # pylint: disable=bare-except
           exception_string = debug_utils.FormatExceptionOnly()
           # Log only the exception string, not the entire exception,
           # since this may happen repeatedly.

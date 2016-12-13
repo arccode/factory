@@ -3,7 +3,6 @@
 # found in the LICENSE file.
 
 import logging
-import os
 import time
 
 
@@ -133,7 +132,7 @@ class ALSLightChamber(object):
     Args:
       name: name of light specified in fixture_cmd.
     """
-    for i in range(self._retries):
+    for unused_i in range(self._retries):
       for cmd, response in self._fixture_cmd[name]:
         ret = self._fixture_conn.Send(cmd, True)
         if response is None or ret.strip() == response:

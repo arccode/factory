@@ -15,7 +15,7 @@ import json
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
@@ -60,10 +60,12 @@ class AudioDiagnosticTest(unittest.TestCase):
                             json.dumps(self._cras.input_nodes,
                                        default=lambda o: o.__dict__))
 
-  def Fail(self, event):  # pylint:disable=W0613
+  def Fail(self, event):
+    del event  # Unused.
     self._ui.Fail('Fail with bad audio quality')
 
-  def Pass(self, event):  # pylint:disable=W0613
+  def Pass(self, event):
+    del event  # Unused.
     self._ui.Pass()
 
   def runTest(self):

@@ -21,18 +21,16 @@ import subprocess
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
+from cros.factory.test.event_log import Log
 from cros.factory.test import factory
+from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.event_log import Log
-from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
-                                                   CreateBFTFixture,
-                                                   TEST_ARG_HELP)
-from cros.factory.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import time_utils
 
 _STATE_RW_TEST_WAIT_INSERT = 1
 _STATE_RW_TEST_WAIT_REMOVE = 2
@@ -134,76 +132,58 @@ class RemovableStorageTest(unittest.TestCase):
   """The removable storage factory test."""
   ARGS = [
       Arg('media', str, 'Media type'),
-      Arg(
-          'sysfs_path', str,
+      Arg('sysfs_path', str,
           'The expected sysfs path that udev events should '
           'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',
           None),
-      Arg(
-          'block_size', int,
+      Arg('block_size', int,
           'Size of each block in bytes used in read / write test', 1024),
-      Arg(
-          'perform_random_test', bool,
+      Arg('perform_random_test', bool,
           'Whether to run random read / write test', True),
-      Arg(
-          'random_read_threshold', (int, float),
+      Arg('random_read_threshold', (int, float),
           'The lowest random read rate the device should achieve', None,
           optional=True),
-      Arg(
-          'random_write_threshold', (int, float),
+      Arg('random_write_threshold', (int, float),
           'The lowest random write rate the device should achieve', None,
           optional=True),
-      Arg(
-          'random_block_count', int,
+      Arg('random_block_count', int,
           'Number of blocks to test during random read / write test', 3),
-      Arg(
-          'perform_sequential_test', bool,
+      Arg('perform_sequential_test', bool,
           'Whether to run sequential read / write tes', False),
-      Arg(
-          'sequential_read_threshold', (int, float),
+      Arg('sequential_read_threshold', (int, float),
           'The lowest sequential read rate the device should achieve', None,
           optional=True),
-      Arg(
-          'sequential_write_threshold', (int, float),
+      Arg('sequential_write_threshold', (int, float),
           'The lowest sequential write rate the device should achieve', None,
           optional=True),
-      Arg(
-          'sequential_block_count', int,
+      Arg('sequential_block_count', int,
           'Number of blocks to test in sequential read / write test', 1024),
       Arg('perform_locktest', bool, 'Whether to run lock test', False),
-      Arg(
-          'extra_prompt_en', (str, unicode),
+      Arg('extra_prompt_en', (str, unicode),
           'An extra prompt (in English), e.g., to specify which USB port to '
           'use', optional=True),
-      Arg(
-          'extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
+      Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
           optional=True),
-      Arg(
-          'timeout_secs', int,
+      Arg('timeout_secs', int,
           'Timeout in seconds for the test to wait before it fails',
           default=20),
-      Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
-      Arg(
-          'skip_insert_remove', bool,
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None,
+          optional=True),
+      Arg('skip_insert_remove', bool,
           'Skip the step of device insertion and removal', default=False),
-      Arg(
-          'bft_media_device', str,
+      Arg('bft_media_device', str,
           'Device name of BFT used to insert/remove the media.',
           optional=True),
-      Arg(
-          'usbpd_port_polarity', tuple,
+      Arg('usbpd_port_polarity', tuple,
           'A tuple of integers indicating (port, polarity)', optional=True),
-      Arg(
-          'create_partition', bool,
+      Arg('create_partition', bool,
           'Try to create a small partition on the media. This is to check if '
           'all the pins on the sd card reader module are intact. If not '
           'specify, this test will be run for SD card.',
           default=None, optional=True),
-      Arg(
-          'use_busybox_dd', bool,
+      Arg('use_busybox_dd', bool,
           'Use busybox dd. This option can be removed when toybox dd is ready.',
           default=False)]
-  # pylint: disable=E1101
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -257,7 +237,7 @@ class RemovableStorageTest(unittest.TestCase):
     """
     try:
       dev_size = self._dut.CheckOutput(['blockdev', '--getsize64', dev_path])
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       self.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
     if not dev_size:
@@ -280,7 +260,7 @@ class RemovableStorageTest(unittest.TestCase):
     """
     try:
       ro = self._dut.CheckOutput(['blockdev', '--getro', dev_path])
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       self.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
 
     ro = int(ro)
@@ -401,7 +381,7 @@ class RemovableStorageTest(unittest.TestCase):
 
       with self._dut.temp.TempFile() as read_buf:
         with self._dut.temp.TempFile() as write_buf:
-          for x in range(loop):  # pylint: disable=W0612
+          for unused_x in range(loop):
             # Select one random block as starting point.
             random_block = random.randint(random_head, random_tail)
             factory.console.info(
@@ -418,7 +398,7 @@ class RemovableStorageTest(unittest.TestCase):
                                    block_count, self.args.block_size, dev_path)
               output = self._dut.CheckOutput(dd_cmd, stderr=subprocess.STDOUT)
               read_time = _GetExecutionTime(output)
-            except Exception as e:  # pylint: disable=W0703
+            except Exception as e:
               factory.console.error('Failed to read block %s', e)
               ok = False
               break
@@ -456,7 +436,7 @@ class RemovableStorageTest(unittest.TestCase):
                                    block_count, self.args.block_size, dev_path)
               output = self._dut.CheckOutput(dd_cmd, stderr=subprocess.STDOUT)
               write_time = _GetExecutionTime(output)
-            except Exception as e:  # pylint: disable=W0703
+            except Exception as e:
               factory.console.error('Failed to write block %s', e)
               ok = False
               break
@@ -470,7 +450,7 @@ class RemovableStorageTest(unittest.TestCase):
             try:
               self._dut.CheckCall(
                   ' '.join(dd_cmd) + ' | toybox cmp %s -' % write_buf)
-            except Exception as e:  # pylint: disable=W0703
+            except Exception as e:
               factory.console.error('Failed to write block %s', e)
               ok = False
               break
@@ -506,11 +486,11 @@ class RemovableStorageTest(unittest.TestCase):
         update_bin = {}
 
         def _CheckThreshold(test_type, value, threshold):
-          # pylint: disable=W0640
+          # pylint: disable=cell-var-from-loop
           update_bin['%s_speed' % test_type] = value
           logging.info('%s_speed: %.3f MB/s', test_type, value)
           if threshold:
-            # pylint: disable=W0640
+            # pylint: disable=cell-var-from-loop
             update_bin['%s_threshold' % test_type] = threshold
             if value < threshold:
               self._ui.FailLater(_ERR_SPEED_CHECK_FAILED_FMT_STR(
@@ -544,7 +524,7 @@ class RemovableStorageTest(unittest.TestCase):
     if not self.args.skip_insert_remove and self._bft_fixture:
       try:
         self._bft_fixture.SetDeviceEngaged(self._bft_media_device, False)
-      except BFTFixtureException as e:
+      except bft_fixture.BFTFixtureException as e:
         self.Fail(_ERR_BFT_ACTION_STR(
             'remove', self.args.media, self._target_device, e))
 
@@ -596,7 +576,7 @@ class RemovableStorageTest(unittest.TestCase):
       if 'mmcblk' in dev_path:
         dev_path = dev_path + 'p'
       self._dut.path.exists(dev_path + '1')
-    except:   # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       self.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
 
   def VerifyUSBPDPolarity(self):
@@ -749,14 +729,14 @@ class RemovableStorageTest(unittest.TestCase):
 
     # BFT engages device after udev observer start
     if not self.args.skip_insert_remove and self.args.bft_fixture:
-      self._bft_fixture = CreateBFTFixture(**self.args.bft_fixture)
+      self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
       self._bft_media_device = self.args.bft_media_device
       if self._bft_media_device not in self._bft_fixture.Device:
         self.fail('Invalid args.bft_media_device: ' + self._bft_media_device)
       else:
         try:
           self._bft_fixture.SetDeviceEngaged(self._bft_media_device, True)
-        except BFTFixtureException as e:
+        except bft_fixture.BFTFixtureException as e:
           self.fail(_ERR_BFT_ACTION_STR(
               'insert', self.args.media, self._target_device, e))
 

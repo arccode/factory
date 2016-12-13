@@ -47,7 +47,7 @@ looks like this::
           {
             "ssid": "ap",
             "password": "pass1",
-            "min_strength": -20, # inherited from test-level arg
+            "min_strength": -20,  # inherited from test-level arg
             "iperf_host": "10.0.0.1",  # inherited from test-level arg
             "min_tx_throughput": 100,  # inherited from test-level arg
             "min_rx_throughput": 80,
@@ -55,7 +55,7 @@ looks like this::
           {
             "ssid": "ap_5g",
             "password": "pass2",
-            "min_strength": -40, # blocks test-level arg
+            "min_strength": -40,  # blocks test-level arg
             "iperf_host": "10.0.0.1",  # inherited from test-level arg
             "min_tx_throughput": 100,  # inherited from test-level arg
           }
@@ -76,7 +76,7 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import CalledProcessError
 from cros.factory.test import event_log
@@ -126,7 +126,7 @@ def DummyContextManager():
   yield
 
 
-class Iperf3Server():
+class Iperf3Server(object):
   """Provides a context manager for running the iperf3 command as a server."""
 
   def __init__(self, port):
@@ -343,7 +343,7 @@ class _ServiceTest(object):
     self._bind_wifi = bind_wifi
 
   def _Log(self, text, *args):
-    f_name = sys._getframe(1).f_code.co_name  # pylint: disable=W0212
+    f_name = sys._getframe(1).f_code.co_name  # pylint: disable=protected-access
     factory.console.info(u'[%s] INFO [%s] ' + text,
                          self._ap_config.ssid, f_name, *args)
 
@@ -412,18 +412,14 @@ class _ServiceTest(object):
     # Try connecting to the service.  If we can't connect, then don't log
     # connection details, and abort this service's remaining tests.
     try:
-      DoTest(self._Find, abort=True,
-             ssid=ap_config.ssid)
+      DoTest(self._Find, abort=True, ssid=ap_config.ssid)
 
-      DoTest(self._CheckStrength,
-             min_strength=ap_config.min_strength)
+      DoTest(self._CheckStrength, min_strength=ap_config.min_strength)
 
-      DoTest(self._CheckQuality,
-             min_quality=ap_config.min_quality)
+      DoTest(self._CheckQuality, min_quality=ap_config.min_quality)
 
       DoTest(self._Connect, abort=True,
-             ssid=ap_config.ssid,
-             password=ap_config.password)
+             ssid=ap_config.ssid, password=ap_config.password)
 
       DoTest(self._LogConnection)
     except self._TestException:
@@ -627,8 +623,8 @@ class _ServiceTest(object):
         name='%s_%s_avg_bits_per_second' % (ssid, tx_rx.lower()),
         value=iperf_avg['bits_per_second'],
         min=_MbitsToBits(min_throughput) if min_throughput else None,
-        description='Average speed of %s throughput test on AP %s'
-                     % (tx_rx.upper(), ssid),
+        description='Average speed of %s throughput test on AP %s' % (
+            tx_rx.upper(), ssid),
         value_unit='Bits/second')
 
     if min_throughput is not None:
@@ -674,7 +670,7 @@ class _Ui(object):
     self._done.clear()
     self._space_event.clear()
     self._template.SetState(_MSG_SPACE)
-    self._ui.BindKey(' ', lambda _: self.OnSpacePressed())
+    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
     self._ui.Run(blocking=False, on_finish=self.Done)
     self._space_event.wait()
     return self._done.isSet()
@@ -1021,13 +1017,13 @@ class WiFiThroughput(unittest.TestCase):
           if 'intervals' in iperf_data['iperf_%s' % tx_rx]:
             s = testlog.CreateSeries(
                 name='%s_%s' % (ap_config.ssid, tx_rx),
-                description='%s throughput test on AP %s over time'
-                             % (tx_rx.upper(), ap_config.ssid),
+                description='%s throughput test on AP %s over time' % (
+                    tx_rx.upper(), ap_config.ssid),
                 key_unit='seconds',
                 value_unit='Bits/second')
             for interval in iperf_data['iperf_%s' % tx_rx]['intervals']:
-              # Actually this is over the range from ['start'] to ['end'], but we
-              # can only take one key, so we use ['end'].
+              # Actually this is over the range from ['start'] to ['end'], but
+              # we can only take one key, so we use ['end'].
               s.LogValue(key=interval['sum']['end'],
                          value=interval['sum']['bits_per_second'])
 

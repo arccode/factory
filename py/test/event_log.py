@@ -7,17 +7,17 @@
 
 
 import logging
-import re
 import os
+import re
 import threading
 import time
+import uuid
 import yaml
-from uuid import uuid4
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test import testlog_goofy
-from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils import platform_utils
 from cros.factory.utils import time_utils
@@ -205,7 +205,7 @@ def GetGlobalLogger():
     ValueError: if the test path is not defined
   """
 
-  global _global_event_logger  # pylint: disable=W0603
+  global _global_event_logger  # pylint: disable=global-statement
 
   if _global_event_logger is None:
     with _event_logger_lock:
@@ -215,10 +215,10 @@ def GetGlobalLogger():
         if not path:
           raise ValueError("CROS_FACTORY_TEST_PATH environment"
                            "variable is not set")
-        uuid = (os.environ.get("CROS_FACTORY_TEST_PARENT_INVOCATION") or
-                os.environ.get("CROS_FACTORY_TEST_INVOCATION") or
-                time_utils.TimedUUID())
-        _global_event_logger = EventLog(path, uuid)
+        test_uuid = (os.environ.get("CROS_FACTORY_TEST_PARENT_INVOCATION") or
+                     os.environ.get("CROS_FACTORY_TEST_INVOCATION") or
+                     time_utils.TimedUUID())
+        _global_event_logger = EventLog(path, test_uuid)
 
   return _global_event_logger
 
@@ -239,7 +239,7 @@ def SetGlobalLoggerDefaultPrefix(prefix):
       ValueError: if the format of prefix is invalid
   """
 
-  global _default_event_logger_prefix  # pylint: disable=W0603
+  global _default_event_logger_prefix  # pylint: disable=global-statement
 
   if not PREFIX_RE.match(prefix):
     raise ValueError("prefix %r must match re %s" % (
@@ -266,7 +266,7 @@ def GetDeviceId():
   the device ID will change.
   """
   with _event_logger_lock:
-    global _device_id  # pylint: disable=W0603
+    global _device_id  # pylint: disable=global-statement
     if _device_id:
       return _device_id
 
@@ -283,7 +283,7 @@ def GetDeviceId():
         if _device_id:
           break
     else:
-      _device_id = str(uuid4())
+      _device_id = str(uuid.uuid4())
       logging.warning('No device_id available yet: generated %s', _device_id)
 
     # Save the device ID to DEVICE_ID_PATH for future reloading.
@@ -302,12 +302,12 @@ def GetReimageId():
   This is stored in REIMAGE_ID_PATH; one is generated if not available.
   """
   with _event_logger_lock:
-    global _reimage_id  # pylint: disable=W0603
+    global _reimage_id  # pylint: disable=global-statement
     if not _reimage_id:
       if os.path.exists(REIMAGE_ID_PATH):
         _reimage_id = open(REIMAGE_ID_PATH).read().strip()
       if not _reimage_id:
-        _reimage_id = str(uuid4())
+        _reimage_id = str(uuid.uuid4())
         logging.info('No reimage_id available yet: generated %s', _reimage_id)
 
         # Save the reimage ID to REIMAGE_ID_PATH for future reloading.
@@ -332,15 +332,15 @@ def GetBootId():
 
 
 class GlobalSeq(object):
-  '''Manages a global sequence number in a file.
+  """Manages a global sequence number in a file.
 
   flock is used to ensure atomicity.
 
   Args:
     path: Path to the sequence number file (defaults to SEQUENCE_PATH).
     _after_read: A function to call immediately after reading the
-      sequence number (for testing).
-  '''
+        sequence number (for testing).
+  """
 
   def __init__(self, path=None, _after_read=lambda: True):
     path = path or os.path.join(SEQUENCE_PATH)
@@ -408,7 +408,7 @@ class GlobalSeq(object):
     return self._NextOrRaise()
 
   def _FindNextSequenceNumber(self):
-    '''Finds the next sequence number based on the event log file.
+    """Finds the next sequence number based on the event log file.
 
     This is the current maximum sequence number (or 0 if none is found)
     plus SEQ_INCREMENT_ON_BOOT.  We do not perform YAML parsing on the
@@ -419,7 +419,7 @@ class GlobalSeq(object):
 
     Args:
       path: The path to examine (defaults to EVENTS_PATH).
-    '''
+    """
     if not os.path.exists(EVENTS_PATH):
       # There is no events file.  It's safe to start at 0.
       return 0
@@ -436,7 +436,7 @@ class GlobalSeq(object):
           max_seq = max(max_seq, int(match.group(1)))
 
       return max_seq + SEQ_INCREMENT_ON_BOOT + 1
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       # This should really never happen; maybe the events file is
       # so corrupted that a read operation is failing.
       logging.exception("Unable to find next sequence number from "
@@ -462,9 +462,9 @@ class EventLog(object):
     Creates an EventLog object for the running autotest."""
 
     path = os.environ.get("CROS_FACTORY_TEST_PATH", "autotest")
-    uuid = (os.environ.get("CROS_FACTORY_TEST_INVOCATION") or
-            time_utils.TimedUUID())
-    return EventLog(path, uuid)
+    test_uuid = (os.environ.get("CROS_FACTORY_TEST_INVOCATION") or
+                 time_utils.TimedUUID())
+    return EventLog(path, test_uuid)
 
   def __init__(self, prefix, log_id=None, defer=True, seq=None, suppress=False):
     """Creates a new event logger, returning an EventLog instance.
@@ -482,16 +482,16 @@ class EventLog(object):
 
     Args:
       prefix: String to identify this category of EventLog, to help
-        humans differentiate between event log files (since UUIDs all
-        look the same).  If string is not alphanumeric with period and
-        underscore punctuation, raises ValueError.
+          humans differentiate between event log files (since UUIDs all
+          look the same).  If string is not alphanumeric with period and
+          underscore punctuation, raises ValueError.
       log_id: A UUID for the log (or None, in which case TimedUUID() is used)
       defer: If True, then the file will not be written until the first
-        event is logged (if ever).
+          event is logged (if ever).
       seq: The GlobalSeq object to use (creates a new one if None).
       suppress: True to suppress event logging, turning this into a dummy
-        object.  (This may also be be specified by directly modifying the
-        suppress property.)
+          object.  (This may also be be specified by directly modifying the
+          suppress property.)
     """
     self.file = None
     self.suppress = suppress
@@ -533,9 +533,9 @@ class EventLog(object):
     Args:
       event_name: Used to identify event field.
       kwargs: Dict of additional fields for inclusion in the event
-        stanza.  Field keys must be alphanumeric and lowercase. Field
-        values will be automatically yaml-ified.  Other data
-        types will result in a ValueError.
+          stanza.  Field keys must be alphanumeric and lowercase. Field
+          values will be automatically yaml-ified.  Other data
+          types will result in a ValueError.
     """
     if self.suppress:
       return
@@ -552,7 +552,7 @@ class EventLog(object):
     if not os.path.exists(parent_dir):
       try:
         os.makedirs(parent_dir)
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         # Maybe someone else tried to create it simultaneously
         if not os.path.exists(parent_dir):
           raise

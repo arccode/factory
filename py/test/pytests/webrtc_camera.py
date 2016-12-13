@@ -13,11 +13,11 @@ since there is presently no API to disable this access check.
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 _MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
     'Time remaining: %d' % t, u'剩余时间：%d' % t, 'camera-test-info')
@@ -77,12 +77,12 @@ class WebrtcCameraTest(unittest.TestCase):
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_CAMERA_TEST)
     self.template.SetState(_HTML_CAMERA_TEST)
     self.ui.RunJS(_JS_WEBRTC_CAMERA)
     self.ui.EnablePassFailKeys()
-    StartDaemonThread(target=self.CountdownTimer)
+    process_utils.StartDaemonThread(target=self.CountdownTimer)
 
   def CountdownTimer(self):
     """Starts a countdown timer and fails the test if timer reaches zero."""

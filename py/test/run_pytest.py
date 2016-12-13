@@ -21,15 +21,15 @@ import pickle
 import sys
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.utils.pytest_utils import LoadPytestModule
+from cros.factory.test.utils import pytest_utils
 from cros.factory.utils.arg_utils import Args
 
 
 def _GetTestCase(pytest):
   """Returns the first test case class found in a given pytest."""
-  module = LoadPytestModule(pytest)
+  module = pytest_utils.LoadPytestModule(pytest)
   _, test_case = inspect.getmembers(module, lambda obj: (
       inspect.isclass(obj) and issubclass(obj, unittest.TestCase)))[0]
   return test_case
@@ -55,7 +55,7 @@ def _RunPytestGoofy(pytest, args, dut_options):
 
   Args:
     pytest: The name of the test within the pytests module (e.g.,
-      "thermal_slope").
+        "thermal_slope").
     args: The argument dictionary.
 
   Returns:
@@ -82,7 +82,7 @@ def _RunPytestRaw(pytest, args, dut_options):
 
   Args:
     pytest: The name of the test within the pytests module, or the
-      unittest.TestCase object to run.
+        unittest.TestCase object to run.
     args: The unverified argument dictionary.
     dut_options: Any dut_options to be passed to the test.
 
@@ -148,12 +148,12 @@ def main():
   logging.basicConfig(level=logging_level)
 
   # Run the test.
-  # pylint: disable=W0123
+  # pylint: disable=eval-used
   args = (ast.literal_eval(cli_args.args)
           if cli_args.args else {})
   dut_options = (ast.literal_eval(cli_args.dut_options)
                  if cli_args.dut_options else {})
-  # pylint: enable=W0123
+  # pylint: enable=eval-used
   _, error_msg = RunPytest(pytest=cli_args.pytest,
                            args=args,
                            dut_options=dut_options,

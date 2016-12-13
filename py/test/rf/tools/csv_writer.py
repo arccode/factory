@@ -12,7 +12,7 @@ import pprint
 
 
 def WriteCsv(target, list_of_dict, key_orders):
-  '''Writes a list of dict to a CSV file.
+  """Writes a list of dict to a CSV file.
 
   The columns' order are assigned by key_orders. For columns that is not
   listed in key_orders, their order are not guaranteed.
@@ -20,9 +20,9 @@ def WriteCsv(target, list_of_dict, key_orders):
   Args:
     target: the file path of output csv.
     list_of_dict: a list of dicts converts to CSV. Every single dict will
-      contributed as a single row in the CSV.
+        contributed as a single row in the CSV.
     key_orders: columns' order from left to right.
-  '''
+  """
   # Scaning over list_of_dict to extract all the columns.
   fieldnames = set()
   for dict_obj in list_of_dict:
@@ -39,7 +39,7 @@ def WriteCsv(target, list_of_dict, key_orders):
   with open(target, 'wb') as fd:
     writer = csv.DictWriter(fd, key_orders)
     # Workaround for python before 2.7 that doesn't have a writer.writeheader
-    header_dict = dict()
+    header_dict = {}
     for key in key_orders:
       header_dict[key] = key
     writer.writerow(header_dict)

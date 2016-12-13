@@ -64,11 +64,11 @@ def JSONHandler(obj):
 
 
 def IsInRange(observed, min_val, max_val):
-  '''Returns True if min_val <= observed <= max_val.
+  """Returns True if min_val <= observed <= max_val.
 
   If any of min_val or max_val is missing, it means there is no lower or
   upper bounds respectively.
-  '''
+  """
   if min_val and observed < min_val:
     return False
   if max_val and observed > max_val:
@@ -91,8 +91,8 @@ def FlattenAttrs(node, path=u'', allow_types=None, ignore_keys=None):
 
   Args:
     allow_types: A list or tuple of allowed value types.  Any other types will
-      be converted to a string using __repr__.  If set to None, any value types
-      are allowed.
+        be converted to a string using __repr__.  If set to None, any value
+        types are allowed.
 
   Returns:
     A generator list of (key-path, value) tuples.  Key-paths are Unicode

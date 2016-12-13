@@ -3,23 +3,22 @@
 # found in the LICENSE file.
 
 
-'''Implementation for Agilent EPM Series Power Meter (N1914A) device.
+"""Implementation for Agilent EPM Series Power Meter (N1914A) device.
 
 Because N1914A enables up to 4 ports, methods in this class default to
 expose a parameter called port to specify where action will take place.
-'''
+"""
 
 
 import struct
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.rf.agilent_scpi import AgilentSCPI
-from cros.factory.test.rf.lan_scpi import Error
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.rf import agilent_scpi
+from cros.factory.test.rf import lan_scpi
 
 
-class N1914A(AgilentSCPI):
-  '''An Agilent EPM Series Power Meter (N1914A) device.
-  '''
+class N1914A(agilent_scpi.AgilentSCPI):
+  """An Agilent EPM Series Power Meter (N1914A) device."""
 
   def __init__(self, *args, **kwargs):
     super(N1914A, self).__init__('N1914A', *args, **kwargs)
@@ -48,11 +47,12 @@ class N1914A(AgilentSCPI):
     self.SetMode(port, 'FAST')
 
   def SetMode(self, port, mode):
-    '''Wrapper to set sensor's operating mode.
+    """Wrapper to set sensor's operating mode.
 
     Args:
       port: the port to set.
-      mode: the mode, should be one of FAST, DOUBLE or NORMAL.'''
+      mode: the mode, should be one of FAST, DOUBLE or NORMAL.
+    """
     mode_mapping = {'FAST': 'FAST',
                     'DOUBLE': 'DOUBle',
                     'NORMAL': 'NORMal'}
@@ -61,16 +61,16 @@ class N1914A(AgilentSCPI):
 
   # Range related methods.
   def SetRange(self, port, range_setting=None):
-    '''Selects a sensor's range (lower or upper).
+    """Selects a sensor's range (lower or upper).
 
     Args:
       range_setting: None to enable auto-range feature. To speed up the
-        measurement, caller can specify the range manually based on the
-        expected power. To manually set the range, use 0 to indicate a
-        lower range and 1 for the upper range. Because range definition
-        varies from sensor to sensor, check the manual before using this
-        function.
-    '''
+          measurement, caller can specify the range manually based on the
+          expected power. To manually set the range, use 0 to indicate a
+          lower range and 1 for the upper range. Because range definition
+          varies from sensor to sensor, check the manual before using this
+          function.
+    """
     assert range_setting in [None, 0, 1]
     if range_setting is None:
       self.Send('SENSe%d:POWer:AC:RANGe:AUTO 1' % port)
@@ -80,15 +80,15 @@ class N1914A(AgilentSCPI):
 
   # Average related methods.
   def SetAverageFilter(self, port, avg_length):
-    '''Sets the average filter.
+    """Sets the average filter.
 
     There are three different average filters available, averaging disable,
     auto averaging and average with a specific window length.
 
     Args:
       avg_length: Use None for averaging disable, -1 for auto averaging and
-        other positive numbers for specific window length.
-    '''
+          other positive numbers for specific window length.
+    """
     if avg_length is None:
       # Disable the average filter.
       self.Send('SENSe%d:AVERage:STATe 0' % port)
@@ -139,8 +139,8 @@ class N1914A(AgilentSCPI):
     """Performs a single measurement in binary format."""
     def UnpackBinaryInDouble(binary_array):
       if len(binary_array) != 8:
-        raise Error('Binary double must be 8 bytes'
-                    ' not %d bytes.' % len(binary_array))
+        raise lan_scpi.Error('Binary double must be 8 bytes'
+                             ' not %d bytes.' % len(binary_array))
       return struct.unpack('>d', binary_array)[0]
 
     ret = self.QueryWithoutErrorChecking(

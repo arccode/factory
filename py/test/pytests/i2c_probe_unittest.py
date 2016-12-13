@@ -6,7 +6,7 @@
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.pytests import i2c_probe
 
 DEVICE_EXIST_CASES = [

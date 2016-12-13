@@ -17,15 +17,15 @@ import logging
 import time
 import unittest
 
-import factory_common   # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.utils.stress_manager import StressManager
+from cros.factory.test.utils import stress_manager
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils.arg_utils import Arg
 
 
 _TEST_TITLE = test_ui.MakeLabel('Simple Battery Test', u'简单电池测试')
@@ -111,12 +111,12 @@ class SimpleBatteryTest(unittest.TestCase):
     sampled_current = self.SampleBatteryCurrent(duration_secs)
     if self.args.min_charge_current_mA:
       if not any(
-          [c > self.args.min_charge_current_mA for c in sampled_current]):
+          c > self.args.min_charge_current_mA for c in sampled_current):
         raise factory.FactoryTestFailure(
             'Battery charge current did not reach defined threshold %f mA' %
             self.args.min_charge_current_mA)
     else:
-      if not any([c > 0 for c in sampled_current]):
+      if not any(c > 0 for c in sampled_current):
         raise factory.FactoryTestFailure(
             'Battery was not charging during charge test')
 
@@ -137,16 +137,16 @@ class SimpleBatteryTest(unittest.TestCase):
                        timeout_secs=10)
     self._template.SetState(_TESTING_DISCHARGE)
     # Discharge under high system load.
-    with StressManager(self._dut).Run(duration_secs):
+    with stress_manager.StressManager(self._dut).Run(duration_secs):
       sampled_current = self.SampleBatteryCurrent(duration_secs)
     if self.args.min_discharge_current_mA:
       if not any(
-          [c < self.args.min_discharge_current_mA for c in sampled_current]):
+          c < self.args.min_discharge_current_mA for c in sampled_current):
         raise factory.FactoryTestFailure(
             'Battery discharge current did not reach defined threshold %f mA' %
             self.args.min_discharge_current_mA)
     else:
-      if not any([c < 0 for c in sampled_current]):
+      if not any(c < 0 for c in sampled_current):
         raise factory.FactoryTestFailure(
             'Battery was not discharging during charge test')
 

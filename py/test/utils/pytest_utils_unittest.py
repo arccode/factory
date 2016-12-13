@@ -8,7 +8,7 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test import pytests
 from cros.factory.test.utils.pytest_utils import LoadPytestModule

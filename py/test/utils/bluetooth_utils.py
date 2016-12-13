@@ -7,7 +7,7 @@
 
 """Bluetooth utils.
 
-Currently, it supports a partial command set of gatttool, i.e., getteing the
+Currently, it supports a partial command set of gatttool, i.e., getting the
 battery level and the firmware revision string of the target bluetooth device.
 
 This module is mostly inspired by rel_tester.py written by mylesgw@chromium.org
@@ -21,8 +21,8 @@ import logging
 import optparse
 import re
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import CheckOutput
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import process_utils
 
 from cros.factory.external import pexpect
 
@@ -63,7 +63,7 @@ class BtMgmt(object):
     patt = re.compile(
         r'.*\s+addr\s+(.+)\s+version.+manufacturer\s(\d+)\s+class.+')
     hci_device = None
-    for line in CheckOutput(['btmgmt', 'info']).splitlines():
+    for line in process_utils.CheckOutput(['btmgmt', 'info']).splitlines():
       if line.startswith('hci'):
         hci_device = line.split(':')[0]
       # The manufacturer id may or may not be on the same line of

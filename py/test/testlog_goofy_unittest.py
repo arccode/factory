@@ -14,7 +14,7 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import testlog_goofy
 
 MAC_RE = re.compile(r'^([a-f0-9]{2}:){5}[a-f0-9]{2}$')
@@ -33,8 +33,8 @@ class TestlogGoofyTest(unittest.TestCase):
         os.unlink(_)
       except OSError:
         pass
-    testlog_goofy._installation_id = None  # pylint: disable=W0212
-    testlog_goofy._device_id = None  # pylint: disable=W0212
+    testlog_goofy._installation_id = None  # pylint: disable=protected-access
+    testlog_goofy._device_id = None  # pylint: disable=protected-access
 
     self.tmp = tempfile.mkdtemp()
 
@@ -51,13 +51,13 @@ class TestlogGoofyTest(unittest.TestCase):
 
     # Remove device_id and make sure we get the same thing
     # back again, re-reading it from disk or the wlan0 interface
-    testlog_goofy._device_id = None  # pylint: disable=W0212
+    testlog_goofy._device_id = None  # pylint: disable=protected-access
     self.assertEqual(device_id, testlog_goofy.GetDeviceID())
 
     self.assertNotEqual(device_id, testlog_goofy.GetInstallationID())
 
   def testGetDeviceIdFromSearchPath(self):
-    testlog_goofy._device_id = None  # pylint: disable=W0212
+    testlog_goofy._device_id = None  # pylint: disable=protected-access
 
     mock_id = 'MOCK_ID'
     device_id_search_path = os.path.join(self.tmp, '.device_id_search')
@@ -72,7 +72,7 @@ class TestlogGoofyTest(unittest.TestCase):
 
     # Ensure the mock ID remains the same even if search path is gone.
     # i.e. obtains ID from the file
-    testlog_goofy._device_id = None  # pylint: disable=W0212
+    testlog_goofy._device_id = None  # pylint: disable=protected-access
     testlog_goofy.DEVICE_ID_SEARCH_PATHS = []
     self.assertEqual(mock_id, testlog_goofy.GetDeviceID())
 
@@ -82,12 +82,12 @@ class TestlogGoofyTest(unittest.TestCase):
 
     # Remove installation_id and make sure we get the same thing
     # back again, re-reading it from disk
-    testlog_goofy._installation_id = None  # pylint: disable=W0212
+    testlog_goofy._installation_id = None  # pylint: disable=protected-access
     self.assertEqual(installation_id, testlog_goofy.GetInstallationID())
 
     # Remove the installation_id file; now we should get something
     # *different* back.
-    testlog_goofy._installation_id = None  # pylint: disable=W0212
+    testlog_goofy._installation_id = None  # pylint: disable=protected-access
     os.unlink(testlog_goofy.INSTALLATION_ID_PATH)
     self.assertNotEqual(installation_id, testlog_goofy.GetInstallationID())
 

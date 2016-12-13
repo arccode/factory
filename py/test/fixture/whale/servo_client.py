@@ -34,7 +34,7 @@ import re
 import time
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.whale import servo_config
 from cros.factory.utils.net_utils import TimeoutXMLRPCServerProxy
 from cros.factory.utils.type_utils import AttrDict

@@ -9,6 +9,7 @@ import logging
 import os
 import time
 
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 
 # Each boot, the sequence number increases by this amount, to try to
@@ -39,13 +40,13 @@ class SeqGenerator(object):
   Args:
     path: Path to the sequence number file.
     log_file_path: Path to JSON log while recovery tried when absence of
-      sequence number file.
+        sequence number file.
     _after_read: A function to call immediately after reading the sequence
-      number (for testing).
+        number (for testing).
     _filelock_waitsecs: It needs to be longer if lots of threads / processes
-      competing for the same sequence file. Half seconds should be sufficient
-      for most of the cases (expecting 1000 log accesses per second). For
-      special testing purposes, this can be tweaked.
+        competing for the same sequence file. Half seconds should be sufficient
+        for most of the cases (expecting 1000 log accesses per second). For
+        special testing purposes, this can be tweaked.
   """
   def __init__(self, path, log_file_path, _after_read=lambda: True,
                _filelock_waitsecs=_FILELOCK_WAITSECS):

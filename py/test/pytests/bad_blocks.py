@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Tests a storage device by running the badblocks command.
+"""Tests a storage device by running the badblocks command.
 
 By default the unused portion of the stateful partition is used.  (For
 instance, on a device with a 32GB hard drive, cgpt reports that partition 1 is
@@ -13,34 +13,33 @@ run the test on the unused 24 GiB.)
 
 Alternatively one can specify the use of a file in the filesystem allocated by
 the test, or raw mode where a specific file/partition must be provided.
-'''
+"""
 
+from collections import namedtuple
 import logging
 import re
+from select import select
 import subprocess
 import threading
 import time
 import unittest
-from collections import namedtuple
-from select import select
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.event_log import Log
+from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.test_ui import UI, Escape, MakeLabel
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
-from cros.factory.utils.arg_utils import Arg
 
-HTML = '''
+HTML = """
 <div id="bb-phase" style="font-size: 200%"></div>
 <div id="bb-status" style="font-size: 150%"></div>
 <div id="bb-progress"></div>
-'''
+"""
 
 
 class BadBlocksTest(unittest.TestCase):
@@ -82,7 +81,7 @@ class BadBlocksTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = UI()
+    self.ui = test_ui.UI()
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetState(HTML)
     self.template.DrawProgressBar()
@@ -240,8 +239,8 @@ class BadBlocksTest(unittest.TestCase):
         params.sector_size / 1024. ** 2)
 
     self.template.SetInstruction(
-        MakeLabel('Testing %s region of storage' % test_size_mb,
-                  '正在测试 %s 的 存储 空间' % test_size_mb))
+        test_ui.MakeLabel('Testing %s region of storage' % test_size_mb,
+                          '正在测试 %s 的 存储 空间' % test_size_mb))
 
     # Kill any badblocks processes currently running
     self.dut.Call(['killall', 'badblocks'])
@@ -276,10 +275,11 @@ class BadBlocksTest(unittest.TestCase):
     self._LogSmartctl()
 
     def UpdatePhase():
-      Log('start_phase', current_phase=current_phase)
-      self.ui.SetHTML(MakeLabel('Phase', '阶段') + ' %d/%d: ' % (
-          min(current_phase + 1, total_phases), total_phases),
-                      id='bb-phase')
+      event_log.Log('start_phase', current_phase=current_phase)
+      self.ui.SetHTML(
+          test_ui.MakeLabel('Phase', '阶段') + ' %d/%d: ' % (
+              min(current_phase + 1, total_phases), total_phases),
+          id='bb-phase')
     UpdatePhase()
 
     last_drop_caches_time = last_log_time = time.time()
@@ -294,7 +294,7 @@ class BadBlocksTest(unittest.TestCase):
       if end_time - start_time > self.args.log_threshold_secs:
         factory.console.warn('Delay of %.2f s between badblocks progress lines',
                              end_time - start_time)
-        Log('delay', duration_secs=end_time - start_time)
+        event_log.Log('delay', duration_secs=end_time - start_time)
 
       self.assertTrue(
           rlist,
@@ -326,7 +326,7 @@ class BadBlocksTest(unittest.TestCase):
           line = line.rstrip(':')
 
           if line and line != 'done':
-            self.ui.SetHTML(Escape(line), id='bb-status')
+            self.ui.SetHTML(test_ui.Escape(line), id='bb-status')
 
           # Calculate overall percentage done.
           fraction_done = (current_phase / float(total_phases) +
@@ -362,7 +362,7 @@ class BadBlocksTest(unittest.TestCase):
                       last_line)
 
   def _GenerateTestFile(self, file_path, file_bytes):
-    '''Generate a sparse file for testing of a given size.
+    """Generate a sparse file for testing of a given size.
 
     Args:
       file_path: String of the path to the file to generate.
@@ -374,7 +374,7 @@ class BadBlocksTest(unittest.TestCase):
     Raises:
       Assertion if the containing folder does not exist.
       Assertion if the filesystem does not have adequate space.
-    '''
+    """
     folder = self.dut.path.dirname(file_path)
     self.assertTrue(self.dut.path.isdir(folder), 'Folder does not exist.')
 
@@ -392,14 +392,14 @@ class BadBlocksTest(unittest.TestCase):
     return file_bytes
 
   def _GetBlockSize(self, dev_node_path):
-    '''Read the block size of a given device from sysfs.
+    """Read the block size of a given device from sysfs.
 
     Args:
       dev_node_path: String of the path to the dev node of a device.
 
     Returns:
       Int, number of bytes in a block.
-    '''
+    """
     return int(self.dut.CheckOutput(['blockdev', '--getss', dev_node_path]))
 
   def _LogSmartctl(self):
@@ -426,12 +426,12 @@ class BadBlocksTest(unittest.TestCase):
         logging.info('stdout:\n%s', stdout_data)
       if stderr_data:
         logging.info('stderr:\n%s', stderr_data)
-      Log('log_command', command=self.args.extra_log_cmd,
-          stdout=stdout_data, stderr=stderr_data)
+      event_log.Log('log_command', command=self.args.extra_log_cmd,
+                    stdout=stdout_data, stderr=stderr_data)
 
     smartctl_output = self.dut.CheckOutput(
         ['smartctl', '-a', self._filesystem])
-    Log('smartctl', stdout=smartctl_output)
+    event_log.Log('smartctl', stdout=smartctl_output)
     logging.info('smartctl output: %s', smartctl_output)
 
     self.assertTrue(
@@ -482,7 +482,7 @@ class BadBlocksTest(unittest.TestCase):
       # Copy any ATA-related messages to the test log, and put in event logs.
       if not first_time and re.search(r'\bata[0-9.]+:', log_line):
         logging.info('System log message: %s', log_line)
-        Log('system_log_message', log_line=log_line)
+        event_log.Log('system_log_message', log_line=log_line)
 
     if first_time and link_info_events:
       # First time, ignore all but the last
@@ -490,4 +490,4 @@ class BadBlocksTest(unittest.TestCase):
 
     for event in link_info_events:
       logging.info('SATA link info: %r', event)
-      Log('sata_link_info', **event)
+      event_log.Log('sata_link_info', **event)

@@ -3,18 +3,17 @@
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""A factory test to test the function of backlight of display panel.
-"""
+"""A factory test to test the function of backlight of display panel."""
 
 import logging
 import random
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 _ID_CONTAINER = 'backlight-test-container'
@@ -67,7 +66,7 @@ class BacklightTest(unittest.TestCase):
     """Initializes frontend presentation and properties."""
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendHTML(_HTML_BACKLIGHT)
     # Randomly sets the testing sequence.
     self.sequence = ['low', 'high'] if random.randint(0, 1) else ['high', 'low']
@@ -83,7 +82,7 @@ class BacklightTest(unittest.TestCase):
   def runTest(self):
     """Sets the callback function of keys and run the test."""
     self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.ResetBrightness())
-    self.ui.BindKey(' ', lambda _: self.OnAdjustBrightness())
+    self.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnAdjustBrightness())
     self.ui.BindKey('H', lambda _: self.OnAnswerPressed('high'))
     self.ui.BindKey('L', lambda _: self.OnAnswerPressed('low'))
     self.ui.Run()

@@ -10,14 +10,14 @@ import time
 
 # Import WLAN into this module's namespace, since it may be used by
 # some test lists.
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.net_utils import WLAN  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils.net_utils import WLAN  # pylint: disable=unused-import
 
 try:
-  # pylint: disable=W0611
+  # pylint: disable=unused-import
   from cros.factory.test.utils import flimflam_test_path
-  import dbus  # pylint: disable=F0401
-  import flimflam  # pylint: disable=F0401
+  import dbus
+  import flimflam
 except ImportError:
   # E.g., in chroot
   pass
@@ -51,7 +51,7 @@ class ConnectionManagerException(Exception):
 
 
 def GetBaseNetworkManager():
-  ''' Wrapper function of the base network manager constructor.
+  """Wrapper function of the base network manager constructor.
 
   The function returns an object of the real underlying ChromeOS network
   manager (flimflam/shill). Although we are actually using shill right now,
@@ -61,7 +61,7 @@ def GetBaseNetworkManager():
   later. Please note that this is different from the network_manager parameter
   used in the ConnectionManager and is determined only by the Python interface
   provided the OS.
-  '''
+  """
   return flimflam.FlimFlam()
 
 
@@ -75,31 +75,28 @@ class ConnectionManager(object):
                subservices=None,
                profile_path=_PROFILE_LOCATION,
                override_blacklisted_devices=None):
-    '''Constructor.
+    """Constructor.
 
     Args:
       wlans: A list of preferred wireless networks and their properties.
-             Each item should be a WLAN object.
+          Each item should be a WLAN object.
       scan_interval: The desired interval between each wireless network scanning
-                     in seconds. Setting this value to 0 disables periodic
-                     scanning.
+          in seconds. Setting this value to 0 disables periodic scanning.
       network_manager: The name of the network manager in initctl. It
-                       should be either flimflam(old) or shill(new).
+          should be either flimflam(old) or shill(new).
       process_name: The name of the network manager process, which should be
-                    flimflamd or shill. If you are not sure about it, you can
-                    use _UNKNOWN_PROC to let the class auto-detect it.
+          flimflamd or shill. If you are not sure about it, you can use
+          _UNKNOWN_PROC to let the class auto-detect it.
       start_enabled: Whether networking should start enabled.
       depservices: The list of networking-related system services that flimflam/
-                   shill depends on.
+          shill depends on.
       subservices: The list of networking-related system services other than
-                   flimflam/shill and their dependency.
+          flimflam/shill and their dependency.
       profile_path: The file path of the network profile used by flimflam/shill.
       override_blacklisted_devices: Blacklist to override shill's default
-                                    settings.  Should be a list of strings
-                                    (like ['eth0', 'wlan0']), an empty list or
-                                    empty string (block nothing), or None
-                                    (don't override).
-    '''
+          settings.  Should be a list of strings (like ['eth0', 'wlan0']), an
+          empty list or empty string (block nothing), or None (don't override).
+    """
     if depservices is None:
       depservices = _DEPSERVICE_LIST
     if subservices is None:
@@ -157,15 +154,15 @@ class ConnectionManager(object):
     return interfaces
 
   def _ConfigureWifi(self, wlans):
-    '''Configures the wireless network settings.
+    """Configures the wireless network settings.
 
     The setting will let the network manager auto-connect the preferred
     wireless networks.
 
     Args:
       wlans: A list of preferred wireless networks and their properties.
-             Each item should be a WLAN object.
-    '''
+          Each item should be a WLAN object.
+    """
     for wlan in wlans:
       wlan_dict = {
           'Type': 'wifi',
@@ -182,12 +179,12 @@ class ConnectionManager(object):
       self.wlans.append(wlan_dict)
 
   def EnableNetworking(self, reset=True):
-    '''Tells underlying connection manager to try auto-connecting.
+    """Tells underlying connection manager to try auto-connecting.
 
     Args:
       reset: Force a clean restart of the network services. Remove previous
-             states if there is any.
-    '''
+          states if there is any.
+    """
     if reset:
       # Make sure the network services are really stopped.
       self.DisableNetworking()
@@ -238,11 +235,11 @@ class ConnectionManager(object):
     return True
 
   def DisableNetworking(self, clear=True):
-    '''Tells underlying connection manager to terminate any existing connection.
+    """Tells underlying connection manager to terminate any existing connection.
 
     Args:
       clear: clear configured profiles related to services.
-    '''
+    """
     logging.info('Disabling networking')
 
     # Stop network manager.
@@ -264,14 +261,14 @@ class ConnectionManager(object):
                           ' File non-existent?')
 
   def WaitForConnection(self, timeout=_CONNECTION_TIMEOUT_SECS):
-    '''A blocking function that waits until any network is connected.
+    """A blocking function that waits until any network is connected.
 
     The function will raise an Exception if no network is ready when
     the time runs out.
 
     Args:
       timeout: Timeout in seconds.
-    '''
+    """
     t_start = time.clock()
     while not self.IsConnected():
       if time.clock() - t_start > timeout:
@@ -294,9 +291,10 @@ class ConnectionManager(object):
 
 
 class DummyConnectionManager(object):
-  '''A dummy connection manager that always reports being connected.
+  """A dummy connection manager that always reports being connected.
 
-  Useful, e.g., in the chroot.'''
+  Useful, e.g., in the chroot.
+  """
 
   def __init__(self):
     pass
@@ -315,7 +313,7 @@ class DummyConnectionManager(object):
 
 
 def PingHost(host, timeout=_PING_TIMEOUT_SECS):
-  '''Checks if we can reach a host.
+  """Checks if we can reach a host.
 
   Args:
     host: The host address.
@@ -323,7 +321,7 @@ def PingHost(host, timeout=_PING_TIMEOUT_SECS):
 
   Returns:
     True if host is successfully pinged.
-  '''
+  """
   with open(os.devnull, 'w') as fnull:
     return subprocess.call(
         'ping %s -c 1 -w %d' % (host, int(timeout)),

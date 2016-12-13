@@ -13,13 +13,12 @@ correctly.
 import logging
 import os
 import unittest
-import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.l10n import regions
 
 
-# pylint: disable=W0212
+# pylint: disable=protected-access
 
 
 class RegionTest(unittest.TestCase):

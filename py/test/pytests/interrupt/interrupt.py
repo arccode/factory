@@ -13,10 +13,10 @@ dargs:
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import sys_utils
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 
 
 class InterruptTest(unittest.TestCase):
@@ -44,8 +44,8 @@ class InterruptTest(unittest.TestCase):
     count = self._GetInterruptCount(interrupt)
 
     if reload_module:
-      Spawn(['rmmod', reload_module], call=True)
-      Spawn(['modprobe', reload_module], call=True)
+      process_utils.Spawn(['rmmod', reload_module], call=True)
+      process_utils.Spawn(['modprobe', reload_module], call=True)
       # Wait for procfs update
       time.sleep(1)
       count = self._GetInterruptCount(interrupt) - count

@@ -10,7 +10,6 @@ Some eMMC vendors publish device version in proprietary field in ext_csd[].
 
 This test a temporary solution to check device version. It's better if the
 vendor can update eMMC 4.x cid.prv field, which is already probed in HWID.
-
 """
 
 from glob import glob
@@ -19,11 +18,10 @@ import os
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
-
-from cros.factory.test.factory import FactoryTestFailure
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import factory
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput, GetLines
+from cros.factory.utils import process_utils
 
 
 class VerifyMMCFirmware(unittest.TestCase):
@@ -75,9 +73,10 @@ class VerifyMMCFirmware(unittest.TestCase):
     """
     base = byte_index & ~0xf
     offset = byte_index - base
-    lines = GetLines(CheckOutput(['mmc', 'extcsd', 'dump',
-                                  '/dev/' + os.path.basename(syspath)]),
-                     strip=True)
+    lines = process_utils.GetLines(
+        process_utils.CheckOutput(['mmc', 'extcsd', 'dump',
+                                   '/dev/' + os.path.basename(syspath)]),
+        strip=True)
     pattern = re.compile(r'^\s*(\d+):\s*\d+:\s*(.*)$')
     for line in lines:
       m = pattern.match(line)
@@ -107,4 +106,4 @@ class VerifyMMCFirmware(unittest.TestCase):
                      self.args.ext_csd_index, nodes[0], hex(read_value))
 
     if len(failures) > 0:
-      raise FactoryTestFailure('\n'.join(failures))
+      raise factory.FactoryTestFailure('\n'.join(failures))

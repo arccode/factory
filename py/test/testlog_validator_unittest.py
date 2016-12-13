@@ -14,7 +14,7 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
 from cros.factory.test import testlog_utils
@@ -119,7 +119,7 @@ class StationTestRunValidatorTest(unittest.TestCase):
     self.state_dir = testlog_goofy.LOG_ROOT
     self.tmp_dir = tempfile.mkdtemp()
     # Reset testlog if any
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     if testlog._global_testlog:
       testlog._global_testlog.Close()
 

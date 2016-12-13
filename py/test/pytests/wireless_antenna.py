@@ -25,13 +25,13 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import CheckOutput, Spawn
+from cros.factory.utils import process_utils
 
 _DEFAULT_WIRELESS_TEST_CSS = '.wireless-info {font-size: 2em;}'
 
@@ -86,7 +86,7 @@ def IfconfigUp(devname, sleep_time_secs=1):
     devname: Device name.
     sleep_time_secs: The sleeping time after ifconfig up.
   """
-  Spawn(['ifconfig', devname, 'up'], check_call=True, log=True)
+  process_utils.Spawn(['ifconfig', devname, 'up'], check_call=True, log=True)
   # Wait for device to settle down.
   time.sleep(sleep_time_secs)
 
@@ -98,7 +98,7 @@ def IfconfigDown(devname, sleep_time_secs=1):
     devname: Device name.
     sleep_time_secs: The sleeping time after ifconfig down.
   """
-  Spawn(['ifconfig', devname, 'down'], check_call=True, log=True)
+  process_utils.Spawn(['ifconfig', devname, 'down'], check_call=True, log=True)
   # Wait for device to settle down.
   time.sleep(sleep_time_secs)
 
@@ -115,6 +115,7 @@ def IwSetAntenna(devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
     max_retries: The maximum retry time to set antenna.
     switch_antenna_sleep_secs: The sleep time after switching antenna and
         ifconfig up.
+
   Raises:
     IwException if fail to set antenna for max_retries tries.
   """
@@ -122,9 +123,9 @@ def IwSetAntenna(devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
   try_count = 0
   success = False
   while try_count < max_retries:
-    process = Spawn(['iw', 'phy', phyname,
-                     'set', 'antenna', tx_bitmap, rx_bitmap],
-                    read_stdout=True, log_stderr_on_error=True, log=True)
+    process = process_utils.Spawn(
+        ['iw', 'phy', phyname, 'set', 'antenna', tx_bitmap, rx_bitmap],
+        read_stdout=True, log_stderr_on_error=True, log=True)
     retcode = process.returncode
     if retcode == 0:
       success = True
@@ -151,6 +152,7 @@ def IwScan(devname, frequency=None, sleep_retry_time_secs=2, max_retries=10):
     frequency: The desired scan frequency.
     sleep_retry_time_secs: The sleep time before a retry.
     max_retries: The maximum retry time to scan.
+
   Returns:
     scan stdout.
 
@@ -163,11 +165,11 @@ def IwScan(devname, frequency=None, sleep_retry_time_secs=2, max_retries=10):
     cmd += ['freq', str(frequency)]
   try_count = 0
   while try_count < max_retries:
-    process = Spawn(cmd, read_stdout=True, log_stderr_on_error=True,
-                    log=True)
+    process = process_utils.Spawn(
+        cmd, read_stdout=True, log_stderr_on_error=True, log=True)
     stdout, stderr = process.communicate()
     retcode = process.returncode
-    Log('iw_scaned', retcode=retcode, stderr=stderr)
+    event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
     if retcode == 0:
       logging.info('IwScan success.')
       return stdout
@@ -206,12 +208,10 @@ class WirelessTest(unittest.TestCase):
     _done: An event that test has been done.
   """
   ARGS = [
-      Arg(
-          'device_name', str,
+      Arg('device_name', str,
           'Wireless device name to test. '
           'Set this correctly if check_antenna is True.', default='wlan0'),
-      Arg(
-          'services', list,
+      Arg('services', list,
           'A list of (service_ssid, freq) tuples like '
           '``[(SSID1, FREQ1), (SSID2, FREQ2), '
           '(SSID3, FREQ3)]``. The test will only check the service '
@@ -219,35 +219,31 @@ class WirelessTest(unittest.TestCase):
           '(SSID1, FREQ1) has the largest signal among the APs, '
           'then only its results will be checked against the spec values.',
           optional=False),
-      Arg(
-          'strength', dict,
+      Arg('strength', dict,
           'A dict of minimal signal strengths. For example, a dict like '
           '``{"main": strength_1, "aux": strength_2, "all": strength_all}``. '
           'The test will check signal strength according to the different '
           'antenna configurations in this dict.',
           optional=False),
-      Arg(
-          'scan_count', int,
+      Arg('scan_count', int,
           'Number of scans to get average signal strength.', default=5),
-      Arg(
-          'switch_antenna_sleep_secs', int,
+      Arg('switch_antenna_sleep_secs', int,
           'The sleep time after switchingantenna and ifconfig up. Need to '
           'decide this value carefully since itdepends on the platform and '
           'antenna config to test.', default=10),
-      Arg(
-          'disable_switch', bool,
+      Arg('disable_switch', bool,
           'Do not switch antenna, just check "all" '
           'config.', default=False)]
 
   def setUp(self):
     self._ui = test_ui.UI()
-    self._template = OneSection(self._ui)
+    self._template = ui_templates.OneSection(self._ui)
     self._ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
     self._phy_name = self.DetectPhyName()
     logging.info('phy name is %s.', self._phy_name)
-    self._antenna_service_strength = dict()
+    self._antenna_service_strength = {}
     for antenna in _ANTENNA_CONFIG.keys():
-      self._antenna_service_strength[antenna] = dict()
+      self._antenna_service_strength[antenna] = {}
     self.SwitchAntenna('all')
     self._antenna = 'all'
     self._space_event = threading.Event()
@@ -263,7 +259,8 @@ class WirelessTest(unittest.TestCase):
     Returns:
       The phy name for device_name device.
     """
-    output = CheckOutput(['iw', 'dev', self.args.device_name, 'info'])
+    output = process_utils.CheckOutput(
+        ['iw', 'dev', self.args.device_name, 'info'])
     logging.info('info output: %s', output)
     number = GetProp(output, _RE_WIPHY, None)
     return ('phy' + number) if number else None
@@ -284,7 +281,7 @@ class WirelessTest(unittest.TestCase):
       if strength:
         factory.console.info('Service %s signal strength %f.', service,
                              strength)
-        Log('service_signal', service=service, strength=strength)
+        event_log.Log('service_signal', service=service, strength=strength)
         if strength > max_strength:
           max_strength_service, max_strength = service, strength
       else:
@@ -410,7 +407,7 @@ class WirelessTest(unittest.TestCase):
     set_all_freqs = set([service[1] for service in services])
 
     # keys are services and values are lists of each scannd value.
-    scan_results = dict()
+    scan_results = {}
     for service in services:
       scan_results[service] = []
 
@@ -437,7 +434,7 @@ class WirelessTest(unittest.TestCase):
             scan_results[service].append(strength)
 
     # keys are services and values are averages
-    average_results = dict()
+    average_results = {}
     # Averages the scanned strengths
     for service, result in scan_results.iteritems():
       average_results[service] = (sum(result) / len(result)
@@ -472,9 +469,9 @@ class WirelessTest(unittest.TestCase):
     scanned_strength = scanned_service_strength[service]
     spec_strength = spec_antenna_strength[antenna]
 
-    Log('antenna_%s' % antenna, freq=service[1],
-        rssi=scanned_strength,
-        meet=(scanned_strength and scanned_strength > spec_strength))
+    event_log.Log('antenna_%s' % antenna, freq=service[1],
+                  rssi=scanned_strength,
+                  meet=(scanned_strength and scanned_strength > spec_strength))
     if not scanned_strength:
       self.fail(
           'Antenna %s, service: %s: Can not scan signal strength.' %
@@ -491,7 +488,7 @@ class WirelessTest(unittest.TestCase):
   def PromptSpace(self):
     """Prompts a message to ask operator to press space."""
     self._template.SetState(_MSG_SPACE)
-    self._ui.BindKey(' ', lambda _: self.OnSpacePressed())
+    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
     self._ui.Run(blocking=False, on_finish=self.Done)
 
   def Done(self):

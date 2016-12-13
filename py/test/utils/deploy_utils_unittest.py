@@ -6,13 +6,13 @@
 import mock
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.device.boards import chromeos
 from cros.factory.device import component
 from cros.factory.device import link
-from cros.factory.device.boards import chromeos
 from cros.factory.test.utils import deploy_utils
 
-# pylint: disable=W0212
+# pylint: disable=protected-access
 class FactoryPythonArchiveUnittest(unittest.TestCase):
   def setUp(self):
     self.link = mock.Mock(spec=link.DeviceLink)

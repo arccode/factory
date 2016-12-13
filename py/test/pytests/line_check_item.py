@@ -11,14 +11,14 @@ import subprocess
 import unittest
 from collections import namedtuple
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.event_log import Log
-from cros.factory.utils import process_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 
 CheckItem = namedtuple('CheckItem', 'instruction_en instruction_zh'
                        ' command judge_to_pass')
@@ -99,8 +99,8 @@ class LineCheckItemTest(unittest.TestCase):
                                 stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     retcode = process.returncode
-    Log('checked_item', command=command, retcode=retcode, stdout=stdout,
-        stderr=stderr)
+    event_log.Log('checked_item', command=command, retcode=retcode,
+                  stdout=stdout, stderr=stderr)
 
     if retcode:
       factory.console.info('%s: Exit code %d\nstdout: %s\nstderr: %s',
@@ -119,24 +119,27 @@ class LineCheckItemTest(unittest.TestCase):
     self._current = self._current + 1
     self.RunSubTest()
 
-  def EnterKeyPressed(self, unused_event):
+  def EnterKeyPressed(self, event):
     """Handler for enter key pressed by user.
 
     Passes the subtest if this subtest needs to be judged.
     """
+    del event  # Unused.
     if self.NeedToJudgeSubTest():
       self.PassSubTest()
 
-  def EscapeKeyPressed(self, unused_event):
+  def EscapeKeyPressed(self, event):
     """Handler for escape key pressed by user.
 
     Fails the subtest if this subtest needs to be judged.
     """
+    del event  # Unused.
     if self.NeedToJudgeSubTest():
       self._ui.Fail('Judged as fail by operator.')
 
   def PassSubTest(self):
-    """Passes the test if there is no test left, runs the next subtest otherwise.
+    """Passes the test if there is no test left, runs the next subtest
+    otherwise.
     """
     if self._current + 1 == len(self.args.items):
       self._ui.Pass()
@@ -145,7 +148,7 @@ class LineCheckItemTest(unittest.TestCase):
 
   def runTest(self):
     """Main entrance of the test."""
-    self._items = [CheckItem._make(item)  # pylint: disable=W0212
+    self._items = [CheckItem._make(item)  # pylint: disable=protected-access
                    for item in self.args.items]
     self._template.SetTitle(test_ui.MakeLabel(self.args.title_en,
                                               self.args.title_zh))

@@ -4,16 +4,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=W0212
-
-import factory_common  # pylint: disable=W0611
+# pylint: disable=protected-access
 
 import logging
 import mox
 import unittest
 
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.power import Power
-from cros.factory.test.utils.charge_manager import ChargeManager
+from cros.factory.test.utils import charge_manager
 
 
 class ChargeManagerTest(unittest.TestCase):
@@ -23,7 +22,7 @@ class ChargeManagerTest(unittest.TestCase):
     self._power = self.mox.CreateMock(Power)
     # Patch in the ChargeState Enum.
     self._power.ChargeState = Power.ChargeState
-    self._charge_manager = ChargeManager(70, 80, self._power)
+    self._charge_manager = charge_manager.ChargeManager(70, 80, self._power)
 
   def tearDown(self):
     self.mox.UnsetStubs()

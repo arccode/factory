@@ -31,14 +31,13 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import numpy
+from cros.factory.test import event_log
+from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.event_log import Log
-from cros.factory.test.factory_task import FactoryTask
-from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -63,7 +62,7 @@ _CSS = """
 """
 
 
-class CalibrateTouchscreenTask(FactoryTask):
+class CalibrateTouchscreenTask(factory_task.FactoryTask):
   """Recalibrates the touch controller."""
 
   def __init__(self, test):
@@ -81,13 +80,13 @@ class CalibrateTouchscreenTask(FactoryTask):
       self.Fail('Touchscreen calibration failed.')
 
 
-class CheckRawDataTask(FactoryTask):
+class CheckRawDataTask(factory_task.FactoryTask):
   """Checks raw controler data is in an expected range.
 
   Args:
     test: The factory test calling this task.
     data_name: String. A short name of the data type being checked. The name
-               must match the sysfs entries under the I2C device path.
+        must match the sysfs entries under the I2C device path.
     ui_label: String. Formatted HTML to append to the test UI.
     FetchData: The function to call to retrieve the test data to check.
     min_val: Int. The lower bound to check the raw data against.
@@ -129,15 +128,13 @@ class CheckRawDataTask(FactoryTask):
     logging.info('Lowest value: %d', actual_min_val)
     logging.info('Highest value: %d', actual_max_val)
     logging.info('Standard deviation %f', standard_deviation)
-    Log('touchscreen_%s_stats' % self.data_name,
-        **{
-            'allowed_min_val': self.min_val,
-            'allowed_max_val': self.max_val,
-            'acutal_min_val': actual_min_val,
-            'acutal_max_val': actual_max_val,
-            'standard_deviation': standard_deviation,
-            'test_passed': check_passed,
-        })
+    event_log.Log('touchscreen_%s_stats' % self.data_name,
+                  allowed_min_val=self.min_val,
+                  allowed_max_val=self.max_val,
+                  acutal_min_val=actual_min_val,
+                  acutal_max_val=actual_max_val,
+                  standard_deviation=standard_deviation,
+                  test_passed=check_passed)
 
     return check_passed
 
@@ -171,7 +168,7 @@ class CheckDeltasTask(CheckRawDataTask):
         test.args.deltas_max_val)
 
 
-class CheckTouchController(FactoryTask):
+class CheckTouchController(factory_task.FactoryTask):
   """Verifies that the touch controler interface exists."""
 
   def __init__(self, test):
@@ -188,7 +185,7 @@ class CheckTouchController(FactoryTask):
       self.Fail('Touch controller not found.')
 
 
-class WaitTask(FactoryTask):
+class WaitTask(factory_task.FactoryTask):
   """Waits for a specified number of seconds.
 
   Args:
@@ -232,5 +229,5 @@ class TouchscreenUniformity(unittest.TestCase):
         CheckDeltasTask(self),
         WaitTask(_MESSAGE_DELAY_SECS)
     ]
-    task_manager = FactoryTaskManager(self.ui, task_list)
+    task_manager = factory_task.FactoryTaskManager(self.ui, task_list)
     task_manager.Run()

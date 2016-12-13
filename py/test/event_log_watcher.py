@@ -4,18 +4,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=W0611
-
 import collections
 import logging
 import os
 import shelve
 import threading
 
-from cros.factory.test import event_log
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
+from cros.factory.test import event_log
 from cros.factory.utils import debug_utils
-from cros.factory.utils.shelve_utils import OpenShelfOrBackup
+from cros.factory.utils import shelve_utils
 
 EVENT_SEPARATOR = '\n---\n'
 KEY_OFFSET = 'offset'
@@ -26,16 +25,14 @@ class ScanException(Exception):
   pass
 
 
-# Chunk scanned by the log watcher.
-#
-# Properties:
-#
-#   log_name: Name of the log
-#   chunk: Value of the chunk
-#   pos: Position of the chunk within the file
 class Chunk(collections.namedtuple('Chunk', 'log_name chunk pos')):
-  # pylint: disable=W0232
-  # pylint: disable=E1101
+  """Chunk scanned by the log watcher.
+
+  Properties:
+    log_name: Name of the log
+    chunk: Value of the chunk
+    pos: Position of the chunk within the file
+  """
 
   def __str__(self):
     return 'Chunk(log_name=%r, len=%s, pos=%d)' % (
@@ -51,7 +48,7 @@ class EventLogWatcher(object):
                event_log_db_file=EVENT_LOG_DB_FILE,
                handle_event_logs_callback=None,
                num_log_per_callback=0):
-    '''Constructor.
+    """Constructor.
 
     Args:
       watch_period_sec: The time period in seconds between consecutive
@@ -62,11 +59,11 @@ class EventLogWatcher(object):
           found. This is a function which accepts two arguments:
               chunks: A list of Chunk objects.
               periodic: True if this event log handling is periodic.
-                        False if this event log handling is requested by
-                        user calling FlushEventLogs.
+                  False if this event log handling is requested by user calling
+                  FlushEventLogs.
       num_log_per_callback: The maximum number of log files per callback, or 0
           for unlimited number of log files.
-    '''
+    """
     self._watch_period_sec = watch_period_sec
     self._event_log_dir = event_log_dir
     self._event_log_db_file = event_log_db_file
@@ -100,15 +97,15 @@ class EventLogWatcher(object):
       return True
 
   def FlushEventLogs(self):
-    '''Flushes event logs.
+    """Flushes event logs.
 
     Call ScanEventLogs and with suppress_error flag to false.
-    '''
+    """
     with self._scan_lock:
       self.ScanEventLogs(False, False)
 
   def _CallEventLogHandler(self, chunks, suppress_error, periodic):
-    '''Invoke event log handler callback.
+    """Invoke event log handler callback.
 
     Args:
       chunks: A list of Chunks.
@@ -118,7 +115,7 @@ class EventLogWatcher(object):
 
     Raises:
       ScanException: if upload handler throws exception.
-    '''
+    """
     try:
       if self._handle_event_logs_callback is not None:
         self._handle_event_logs_callback(chunks, periodic)
@@ -135,7 +132,7 @@ class EventLogWatcher(object):
             f.flush()
             os.fdatasync(f)
 
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       if suppress_error:
         logging.debug('Upload handler error')
       else:
@@ -150,14 +147,14 @@ class EventLogWatcher(object):
         self._db[chunk.log_name] = log_state
       if not self._use_sync_markers:
         self._db.sync()
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       if suppress_error:
         logging.debug('Upload handler error')
       else:
         raise ScanException(debug_utils.FormatExceptionOnly())
 
   def ScanEventLogs(self, suppress_error=True, periodic=False):
-    '''Scans event logs.
+    """Scans event logs.
 
     Args:
       suppress_error: if set to true then any exception from handle event
@@ -166,7 +163,7 @@ class EventLogWatcher(object):
 
     Raise:
       ScanException: if at least one ScanEventLog call throws exception.
-    '''
+    """
     if not os.path.exists(self._event_log_dir):
       logging.warning('Event log directory %s does not exist yet',
                       self._event_log_dir)
@@ -193,7 +190,7 @@ class EventLogWatcher(object):
             chunk_info = self.ScanEventLog(relative_path)
             if chunk_info is not None:
               chunks.append(chunk_info)
-          except:  # pylint: disable=W0702
+          except:  # pylint: disable=bare-except
             msg = relative_path + ': ' + debug_utils.FormatExceptionOnly()
             if suppress_error:
               logging.info(msg)
@@ -239,7 +236,7 @@ class EventLogWatcher(object):
       try:
         with self._scan_lock:
           self.ScanEventLogs(True, True)
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Error in event log watcher thread')
 
   def GetOrCreateDb(self):
@@ -247,22 +244,22 @@ class EventLogWatcher(object):
     assert not self._use_sync_markers
 
     try:
-      db = OpenShelfOrBackup(self._event_log_db_file)
-    except:  # pylint: disable=W0702
+      db = shelve_utils.OpenShelfOrBackup(self._event_log_db_file)
+    except:  # pylint: disable=bare-except
       logging.exception('Corrupted database, recreating')
       os.unlink(self._event_log_db_file)
       db = shelve.open(self._event_log_db_file)
     return db
 
   def ScanEventLog(self, log_name):
-    '''Scans new generated event log.
+    """Scans new generated event log.
 
     Scans event logs in given file path and flush to our database.
     If the log name has no record, create an empty event log for it.
 
     Args:
       log_name: name of the log file.
-    '''
+    """
     log_state = self._db.get(log_name)
     if not log_state:
       # We haven't seen this file yet since starting up.

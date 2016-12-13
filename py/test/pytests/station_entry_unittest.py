@@ -6,7 +6,7 @@
 # found in the LICENSE file.
 #
 # We need to inject mock objects to protected members of FactoryEntry:
-# pylint: disable=W0212
+# pylint: disable=protected-access
 
 """Unit tests for station_entry factory test."""
 
@@ -14,7 +14,7 @@ import logging
 import mox
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.device import device_utils
 from cros.factory.device.link import DeviceLink
@@ -63,7 +63,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
                                'clear_device_data': True,
                                'timeout_secs': None})
     self.test.setUp()
-    self.assertEqual(self.test._state, mock_state) # pylint: disable=W0212
+    self.assertEqual(self.test._state, mock_state)
 
     self.mox.VerifyAll()
 
@@ -78,7 +78,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test._dut = device_utils.CreateDUTInterface()
     self.test._dut.link = mock_dut_link
     mock_state = self.mox.CreateMock(GoofyRPC)
-    self.test._state = mock_state # pylint: disable=W0212
+    self.test._state = mock_state
     timeout_secs = 123
     self.test.args = FakeArgs({'start_station_tests': False,
                                'prompt_start': False,
@@ -93,7 +93,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mox.StubOutWithMock(self.test, 'SendTestResult')
 
     self.mock_ui.Run(blocking=False)
-    self.mock_ui.BindKey(' ', mox.Func(callable))
+    self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
     shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number',
                                 'all_serial_numbers'],
                                optional=True)
@@ -131,7 +131,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
 
     self.mock_ui.Run(blocking=False)
-    self.mock_ui.BindKey(' ', mox.Func(callable))
+    self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
     shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number',
                                 'all_serial_numbers'],
                                optional=True)

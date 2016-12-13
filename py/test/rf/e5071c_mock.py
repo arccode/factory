@@ -19,11 +19,12 @@ import argparse
 import logging
 import os
 import re
-import threading
 import SimpleHTTPServer
 import SocketServer
+import threading
 
-from scpi_mock import MockServerHandler, MockTestServer
+from scpi_mock import MockServerHandler
+from scpi_mock import MockTestServer
 
 
 class E5601CMock(object):
@@ -32,7 +33,7 @@ class E5601CMock(object):
   _sweep_segment = None
   _x_axis = None
   _trace_config = None
-  _trace_map = dict()
+  _trace_map = {}
 
   # regular expression of SCPI command
   RE_SET_TRIGGER_CONTINUOUS = r':INIT.*(\d):CONT.* (ON|OFF)$'
@@ -85,7 +86,8 @@ class E5601CMock(object):
     cls._sweep_type = match_obj.group(1)
 
   @classmethod
-  def GetSweepType(cls, input_str):  # pylint: disable=W0613
+  def GetSweepType(cls, input_str):
+    del input_str  # Unused.
     return cls._sweep_type + '\n'
 
   @classmethod
@@ -104,8 +106,8 @@ class E5601CMock(object):
         len(cls.SWEEP_SEGMENT_PREFIX) + 1), (
             'Length of parameters is %d, not supported') % len(parameters)
 
-    cls._sweep_segment = list()
-    x_axis_points = list()
+    cls._sweep_segment = []
+    x_axis_points = []
     for idx in xrange(cls.SWEEP_SEGMENT_PREFIX_LEN + 1, len(parameters), 3):
       start_freq = float(parameters[idx])
       end_freq = float(parameters[idx + 1])
@@ -121,8 +123,9 @@ class E5601CMock(object):
     cls._x_axis = sorted(x_axis_points)
 
   @classmethod
-  def GetSweepSegment(cls, input_str):  # pylint: disable=W0613
-    return_strings = list()
+  def GetSweepSegment(cls, input_str):
+    del input_str  # Unused.
+    return_strings = []
     return_strings.extend(cls.SWEEP_SEGMENT_PREFIX)
     return_strings.append(str(len(cls._sweep_segment)))
     for start_freq, end_freq, sample_points in cls._sweep_segment:
@@ -131,7 +134,8 @@ class E5601CMock(object):
     return ','.join(return_strings) + '\n'
 
   @classmethod
-  def GetXAxis(cls, input_str):  # pylint: disable=W0613
+  def GetXAxis(cls, input_str):
+    del input_str  # Unused.
     return ','.join(['%+.11E' % x for x in cls._x_axis]) + '\n'
 
   @classmethod
@@ -139,11 +143,11 @@ class E5601CMock(object):
     match_obj = re.match(cls.RE_SET_TRACE_COUNT, input_str)
     lens = int(match_obj.group(1))
     # Prepare equal length of list for further trace setting
-    # pylint: disable=W0612
-    cls._trace_config = ['UndefinedTrace' for idx in xrange(lens)]
+    cls._trace_config = ['UndefinedTrace' for unused_idx in xrange(lens)]
 
   @classmethod
-  def GetTraceCount(cls, input_str):  # pylint: disable=W0613
+  def GetTraceCount(cls, input_str):
+    del input_str  # Unused.
     return str(len(cls._trace_config)) + '\n'
 
   @classmethod
@@ -176,10 +180,10 @@ class E5601CMock(object):
       logging.info('No existing trace info for %s',
                    cls._trace_config[parameter_idx])
       # Set trace_info to an empty dict so DEFAULT_SIGNAL will be returned
-      trace_info = dict()
+      trace_info = {}
 
-    values = list()
-    for x_pos in sorted(cls._x_axis):  # pylint: disable=W0612
+    values = []
+    for x_pos in sorted(cls._x_axis):
       signal = trace_info.get(x_pos, None)
       if not signal:
         logging.info('Freq %15.2f is not defined in trace, '
@@ -307,6 +311,6 @@ if __name__ == '__main__':
     ServeHttpScreenshot()
   server_port = int(args.port)
   logging.info('Going to start E5071C mock at port %d', server_port)
-  # pylint: disable=E1101
+  # pylint: disable=no-member
   ena_host = MockTestServer(('0.0.0.0', server_port), MockServerHandler)
   ena_host.serve_forever()

@@ -12,7 +12,7 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common   # pylint: disable=unused-import
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.pytests.rf_graphyte import rf_graphyte
 
 

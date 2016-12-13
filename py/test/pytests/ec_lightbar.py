@@ -12,8 +12,8 @@ It is ported from third_party/autotest/files/client/site_tests/hardware_EC.
 import re
 import unittest
 
-import factory_common   # pylint: disable=W0611
-from cros.factory.utils.process_utils import CheckOutput
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import process_utils
 
 
 class ECLightbarTest(unittest.TestCase):
@@ -22,8 +22,9 @@ class ECLightbarTest(unittest.TestCase):
   def runTest(self):
     def _ECLightbar(cmd):
       try:
-        return CheckOutput(['ectool', 'lightbar'] + cmd.split(), log=True)
-      except Exception as e:  # pylint: disable=W0703
+        return process_utils.CheckOutput(['ectool', 'lightbar'] + cmd.split(),
+                                         log=True)
+      except Exception as e:
         self.fail('Unable to set lightbar: %s' % e)
 
     _ECLightbar('on')

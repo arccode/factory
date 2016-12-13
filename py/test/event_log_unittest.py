@@ -22,7 +22,7 @@ import uuid
 
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.external import dbus
 from cros.factory.test import event_log
 from cros.factory.utils import file_utils
@@ -137,11 +137,11 @@ class GlobalSeqTest(unittest.TestCase):
                         seq.Next())
 
   def _testThreads(self, after_read=lambda: True):
-    '''Tests atomicity by doing operations in 10 threads for 1 sec.
+    """Tests atomicity by doing operations in 10 threads for 1 sec.
 
     Args:
       after_read: See GlobalSeq._after_read.
-    '''
+    """
     values = []
 
     start_time = time.time()
@@ -239,7 +239,7 @@ class EventLogTest(unittest.TestCase):
     try:
       log.Log('should-fail')
       self.fail('Expected exception')
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       pass
 
     log_data = list(yaml.load_all(open(event_log.EVENTS_PATH, 'r')))
@@ -307,8 +307,8 @@ class GlobalEventLogTest(unittest.TestCase):
 
   def setUp(self):
     # reset the global event logger
-    event_log._global_event_logger = None  # pylint: disable=W0212
-    # pylint: disable=W0212
+    event_log._global_event_logger = None  # pylint: disable=protected-access
+    # pylint: disable=protected-access
     event_log._default_event_logger_prefix = None
 
     if 'CROS_FACTORY_TEST_PATH' in os.environ:
@@ -351,7 +351,7 @@ class GlobalEventLogTest(unittest.TestCase):
 
   def testSingleton(self):
     os.environ['CROS_FACTORY_TEST_PATH'] = 'FooTest'
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     self.assertEquals(None, event_log._global_event_logger)
     log1 = event_log.GetGlobalLogger()
     log2 = event_log.GetGlobalLogger()

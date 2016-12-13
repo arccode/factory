@@ -34,11 +34,11 @@ dargs:
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
-from cros.factory.test import test_ui
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
 CSS = """
@@ -78,9 +78,7 @@ class Report(unittest.TestCase):
     try:
       fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
       fixture.SetStatusColor(
-          fixture.StatusColor.GREEN
-          if all_pass
-          else fixture.StatusColor.RED)
+          fixture.StatusColor.GREEN if all_pass else fixture.StatusColor.RED)
       fixture.Disconnect()
     except bft_fixture.BFTFixtureException:
       logging.exception('Unable to set status color on BFT fixture')
@@ -118,10 +116,9 @@ class Report(unittest.TestCase):
       self.dut.hooks.OnSummaryGood()
     else:
       self.dut.hooks.OnSummaryBad()
-    """factory.get_state_instance().UpdateStatus(all_pass) will call
-    UpdateStatus in goofy_rpc.py, and notify ui to update the color of
-    dut's tab.
-    """
+    # factory.get_state_instance().UpdateStatus(all_pass) will call
+    # UpdateStatus in goofy_rpc.py, and notify ui to update the color of dut's
+    # tab.
     factory.get_state_instance().UpdateStatus(all_pass)
 
     if self.args.bft_fixture:

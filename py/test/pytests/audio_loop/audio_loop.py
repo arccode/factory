@@ -93,12 +93,11 @@ from __future__ import print_function
 import os
 import re
 import tempfile
-import textwrap
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.device.audio.base import MicJackType
+import factory_common  # pylint: disable=unused-import
+from cros.factory.device.audio import base
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import factory
@@ -106,8 +105,8 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import (PIPE, Spawn)
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 # Default setting
 _DEFAULT_FREQ_HZ = 1000
@@ -159,7 +158,7 @@ _UI_HTML = """
 </h1>
 """
 
-MicSource = Enum(['external', 'panel', 'mlb'])
+MicSource = type_utils.Enum(['external', 'panel', 'mlb'])
 
 
 class AudioLoopTest(unittest.TestCase):
@@ -170,30 +169,24 @@ class AudioLoopTest(unittest.TestCase):
   ARGS = [
       Arg('audio_conf', str, 'Audio config file path', None, optional=True),
       Arg('initial_actions', list, 'List of tuple (card, actions)', []),
-      Arg(
-          'input_dev', tuple,
+      Arg('input_dev', tuple,
           'Input ALSA device. (card_name, sub_device).'
           'For example: ("audio_card", "0").', ('0', '0')),
-      Arg(
-          'output_dev', tuple,
+      Arg('output_dev', tuple,
           'Onput ALSA device. (card_name, sub_device).'
           'For example: ("audio_card", "0").', ('0', '0')),
-      Arg(
-          'output_volume', (int, list),
+      Arg('output_volume', (int, list),
           'An int of output volume or a list of'
           ' output volume candidates', 10),
       Arg('autostart', bool, 'Auto start option', False),
       Arg('require_dongle', bool, 'Require dongle option', False),
-      Arg(
-          'check_dongle', bool,
+      Arg('check_dongle', bool,
           'Check dongle status whether match require_dongle', False),
       Arg('check_cras', bool, 'Do we need to check if CRAS is running',
           True),
-      Arg(
-          'cras_enabled', bool, 'Whether cras should be running or not',
+      Arg('cras_enabled', bool, 'Whether cras should be running or not',
           False),
-      Arg(
-          'mic_source', str, 'Microphone source: external, panel, mlb',
+      Arg('mic_source', str, 'Microphone source: external, panel, mlb',
           'external'),
       Arg('test_title', str,
           'Title on the test screen.'
@@ -204,43 +197,43 @@ class AudioLoopTest(unittest.TestCase):
       Arg('audiofuntest_run_delay', (int, float),
           'Delay between consecutive calls to audiofuntest',
           default=None, optional=True),
-      Arg('tests_to_conduct', list, textwrap.dedent("""
-          A list of dicts. A dict should contain at least one key named
-          **type** indicating the test type, which can be **audiofun**,
-          **sinewav**, or **noise**.
-
-          If type is **audiofun**, the dict can optionally contain:
-            - **iteration**: Iterations to run the test.
-            - **threshold**: The minimum success rate to pass the test.
-            - **output_channels**: A list of output channels to be tested.
-            - **capture_rate**: The capturing sample rate use for testing.
-
-          If type is **sinewav**, the dict can optionally contain:
-            - **duration**: The test duration, in seconds.
-            - **freq_threshold**: Acceptable frequency margin.
-            - **rms_threshold**: A tuple of **(min, max)** that will make
-                  sure the following inequality is true: *min <= recorded
-                  audio RMS (root mean square) value <= max*, otherwise, fail
-                  the test.  Both of **min** and **max** can be set to None,
-                  which means no limit.
-            - **amplitude_threshold**: A tuple of (min, max) and it will make
-                  sure the inequality is true: *min <= minimum measured
-                  amplitude <= maximum measured amplitude <= max*, otherwise,
-                  fail the test.  Both of **min** and **max** can be set to
-                  None, which means no limit.
-
-          If type is **noise**, the dict can optionally contain:
-            - **duration**: The test duration, in seconds.
-            - **rms_threshold**: A tuple of **(min, max)** that will make
-                  sure the following inequality is true: *min <= recorded audio
-                  RMS (root mean square) value <= max*, otherwise, fail the
-                  test.  Both of **min** and **max** can be set to None
-                  which means no limit.
-            - **amplitude_threshold**: A tuple of (min, max) and it will make
-                  sure the inequality is true: *min <= minimum measured
-                  amplitude <= maximum measured amplitude <= max*, otherwise,
-                  fail the test.  Both of **min** and **max** can be set to
-                  None, which means no limit."""), optional=False)]
+      Arg('tests_to_conduct', list,
+          'A list of dicts. A dict should contain at least one key named\n'
+          '**type** indicating the test type, which can be **audiofun**,\n'
+          '**sinewav**, or **noise**.\n'
+          '\n'
+          'If type is **audiofun**, the dict can optionally contain:\n'
+          '  - **iteration**: Iterations to run the test.\n'
+          '  - **threshold**: The minimum success rate to pass the test.\n'
+          '  - **output_channels**: A list of output channels to be tested.\n'
+          '  - **capture_rate**: The capturing sample rate use for testing.\n'
+          '\n'
+          'If type is **sinewav**, the dict can optionally contain:\n'
+          '  - **duration**: The test duration, in seconds.\n'
+          '  - **freq_threshold**: Acceptable frequency margin.\n'
+          '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
+          '        sure the following inequality is true: *min <= recorded\n'
+          '        audio RMS (root mean square) value <= max*, otherwise,\n'
+          '        fail the test.  Both of **min** and **max** can be set to\n'
+          '        None, which means no limit.\n'
+          '  - **amplitude_threshold**: A tuple of (min, max) and it will\n'
+          '        make sure the inequality is true: *min <= minimum measured\n'
+          '        amplitude <= maximum measured amplitude <= max*,\n'
+          '        otherwise, fail the test.  Both of **min** and **max** can\n'
+          '        be set to None, which means no limit.\n'
+          '\n'
+          'If type is **noise**, the dict can optionally contain:\n'
+          '  - **duration**: The test duration, in seconds.\n'
+          '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
+          '        sure the following inequality is true: *min <= recorded\n'
+          '        audio RMS (root mean square) value <= max*, otherwise,\n'
+          '        fail the test.  Both of **min** and **max** can be set to\n'
+          '        None, which means no limit.\n'
+          '  - **amplitude_threshold**: A tuple of (min, max) and it will\n'
+          '        make sure the inequality is true: *min <= minimum measured\n'
+          '        amplitude <= maximum measured amplitude <= max*,\n'
+          '        otherwise, fail the test.  Both of **min** and **max** can\n'
+          '        be set to None, which means no limit.', optional=False)]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -253,7 +246,7 @@ class AudioLoopTest(unittest.TestCase):
     self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
     self._out_device = self.args.output_dev[1]
 
-    # Backward compitable for non-porting case, which use ALSA device name.
+    # Backward compatible for non-porting case, which use ALSA device name.
     # only works on chromebook device
     # TODO(mojahsu) Remove them later.
     self._alsa_input_device = 'hw:%s,%s' % (self._in_card, self._in_device)
@@ -273,13 +266,17 @@ class AudioLoopTest(unittest.TestCase):
     self._test_results = [True] * len(self._output_volumes)
     self._test_message = []
 
-    self._mic_source = {'external': MicSource.external,
-                        'panel': MicSource.panel,
-                        'mlb': MicSource.mlb}[self.args.mic_source]
+    self._mic_source = {
+        'external': MicSource.external,
+        'panel': MicSource.panel,
+        'mlb': MicSource.mlb
+    }[self.args.mic_source]
 
-    self._mic_jack_type = {'nocheck': None,
-                           'lrgm': MicJackType.lrgm,
-                           'lrmg': MicJackType.lrmg}[self.args.mic_jack_type]
+    self._mic_jack_type = {
+        'nocheck': None,
+        'lrgm': base.MicJackType.lrgm,
+        'lrmg': base.MicJackType.lrmg
+    }[self.args.mic_jack_type]
 
     for card, action in self.args.initial_actions:
       if card.isdigit() is False:
@@ -431,7 +428,7 @@ class AudioLoopTest(unittest.TestCase):
           [audio_utils.AUDIOFUNTEST_PATH, '-r', '%d' % capture_rate,
            '-z', config_file, '-T', '%d' % iteration,
            '-A', '%d' % output_channel],
-          stdout=PIPE, stderr=PIPE)
+          stdout=process_utils.PIPE, stderr=process_utils.PIPE)
 
       m = self._MatchPatternLines(process.stdout, _AUDIOFUNTEST_MIC_CHANNEL_RE)
 
@@ -506,7 +503,7 @@ class AudioLoopTest(unittest.TestCase):
       cmd = audio_utils.GetGenerateSineWavArgs(sine_wav_path, channel,
                                                self._freq,
                                                _DEFAULT_SINEWAV_DURATION)
-      Spawn(cmd.split(' '), log=True, check_call=True)
+      process_utils.Spawn(cmd.split(' '), log=True, check_call=True)
       self._dut.link.Push(sine_wav_path, dut_sine_wav_path)
 
       self._dut.audio.PlaybackWavFile(dut_sine_wav_path, self._out_card,
@@ -677,7 +674,8 @@ class AudioLoopTest(unittest.TestCase):
     elif self._mic_source == MicSource.mlb:
       self._dut.audio.EnableMLBDmic(self._in_card)
 
-  def StartRunTest(self, event):  # pylint: disable=W0613
+  def StartRunTest(self, event):
+    del event  # Unused.
     self.CheckDongleStatus()
     self.SetupAudio()
 

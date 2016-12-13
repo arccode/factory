@@ -6,15 +6,13 @@
 
 import logging
 import re
+import subprocess
 
-import factory_common  # pylint: disable=W0611
-
-from cros.factory.test.rf.modem import Modem
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
-from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.type_utils import Error
-
-from subprocess import CalledProcessError
+from cros.factory.test.rf.modem import Modem
+from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 MODEM_STATUS = ['modem', 'status']
 MODEM_IMEI_REG_EX = 'imei: ([0-9]*)'
@@ -29,23 +27,25 @@ DISABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=1'
 
 def GetIMEI():
   """Gets the IMEI of current active modem."""
-  stdout = Spawn(MODEM_STATUS, read_stdout=True,
-                 log_stderr_on_error=True, check_call=True).stdout_data
+  stdout = process_utils.Spawn(
+      MODEM_STATUS, read_stdout=True,
+      log_stderr_on_error=True, check_call=True).stdout_data
   match = re.search(MODEM_IMEI_REG_EX, stdout)
   if not match:
     logging.info('Returned stdout %r', stdout)
-    raise Error('Cannot get IMEI from modem')
+    raise type_utils.Error('Cannot get IMEI from modem')
   return match.group(1)
 
 
 def GetModemFirmware():
   """Returns the firmware info."""
-  stdout = Spawn(MODEM_STATUS, read_stdout=True,
-                 log_stderr_on_error=True, check_call=True).stdout_data
+  stdout = process_utils.Spawn(
+      MODEM_STATUS, read_stdout=True,
+      log_stderr_on_error=True, check_call=True).stdout_data
   match = re.search(MODEM_FIRMWARE_REG_EX, stdout)
   if not match:
     logging.info('Returned stdout %r', stdout)
-    raise Error('Cannot switching firmware')
+    raise type_utils.Error('Cannot switching firmware')
   return match.group(1)
 
 
@@ -60,10 +60,11 @@ def SwitchModemFirmware(target):
   try:
     if firmware_info != target:
       factory.console.info('Switching firmware to %r', target)
-      stdout = Spawn(['modem', 'set-carrier', target], read_stdout=True,
-                     log_stderr_on_error=True, check_call=True).stdout_data
+      stdout = process_utils.Spawn(
+          ['modem', 'set-carrier', target], read_stdout=True,
+          log_stderr_on_error=True, check_call=True).stdout_data
       logging.info('Output when switching to %r =\n%s', target, stdout)
-  except CalledProcessError:
+  except subprocess.CalledProcessError:
     factory.console.info('%r switching failed.', target)
     raise
   return firmware_info

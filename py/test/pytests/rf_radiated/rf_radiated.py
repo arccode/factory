@@ -62,18 +62,17 @@ import unittest
 import xmlrpclib
 import yaml
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
-from cros.factory.test import shopfloor
-from cros.factory.test.env import paths
 from cros.factory.test.rf import n1914a
+from cros.factory.test import shopfloor
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils.arg_utils import Arg
 
 
 class RFRadiatedTest(unittest.TestCase):
@@ -91,7 +90,7 @@ class RFRadiatedTest(unittest.TestCase):
           'Whether to use shopfloor or not.  If True, the test will try to '
           'load config file from and upload aux log to shopfloor server.  If '
           'False, the test will try to load config file from local disk and '
-          'won\'t upload aux log. ',
+          "won't upload aux log. ",
           optional=False),
       Arg('network_config', dict, 'A dict containing keys {interface, ip, '
           'netmask, gateway} to set on the ethernet adapter.', optional=False),

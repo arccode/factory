@@ -79,20 +79,20 @@ Usage examples::
 
 
 import random
-import time
 import tempfile
 import threading
+import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory_task
-from cros.factory.test import test_ui
 from cros.factory.test.fixture.camera import barcode
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import type_utils
 
 from cros.factory.external import cv
 from cros.factory.external import cv2
@@ -165,7 +165,8 @@ _HAAR_CASCADE_PATH = (
     '/usr/local/share/opencv/haarcascades/haarcascade_frontalface_default.xml')
 
 # Test types of capture task.
-CaptureTaskType = Enum(['QR', 'FACE', 'TIMEOUT', 'MANUAL', 'FRAME_COUNT'])
+CaptureTaskType = type_utils.Enum(
+    ['QR', 'FACE', 'TIMEOUT', 'MANUAL', 'FRAME_COUNT'])
 
 
 class CaptureTask(factory_task.InteractiveFactoryTask):
@@ -334,56 +335,42 @@ class LEDTask(factory_task.InteractiveFactoryTask):
 class CameraTest(unittest.TestCase):
   """Main class for camera test."""
   ARGS = [
-      Arg(
-          'do_QR_scan', bool, 'Automates camera check by scanning QR Code.',
+      Arg('do_QR_scan', bool, 'Automates camera check by scanning QR Code.',
           default=False),
-      Arg(
-          'do_facial_recognition', bool,
+      Arg('do_facial_recognition', bool,
           'Automates camera check by using '
           'face recognition.', default=False),
-      Arg(
-          'do_capture_timeout', bool,
+      Arg('do_capture_timeout', bool,
           'Just run camera capturing for '
           "'timeout_secs' without manual intervention of operator. "
           'This is usually used in run-in stress test. ', default=False),
-      Arg(
-          'do_capture_manual', bool,
+      Arg('do_capture_manual', bool,
           'Manually checks if camera capturing is '
           'working.', default=False),
-      Arg(
-          'do_capture_frame_count', bool,
+      Arg('do_capture_frame_count', bool,
           'Just run camera capturing for a given number of frames.',
           default=False),
-      Arg(
-          'do_led_manual', bool, 'Manully tests LED on camera.',
+      Arg('do_led_manual', bool, 'Manully tests LED on camera.',
           default=False),
-      Arg(
-          'num_frames_to_pass', int,
+      Arg('num_frames_to_pass', int,
           'The number of frames with faces, QR code presented or any frames '
           'when do_capture_frame_count to pass the test.', default=10),
-      Arg(
-          'process_rate', (int, float),
+      Arg('process_rate', (int, float),
           'The process rate of face recognition or '
           'QR code scanning in times per second.', default=5),
-      Arg(
-          'QR_string', str, 'Encoded string in QR code.',
+      Arg('QR_string', str, 'Encoded string in QR code.',
           default='Hello ChromeOS!'),
-      Arg(
-          'capture_fps', (int, float),
+      Arg('capture_fps', (int, float),
           'Camera capture rate in frames per second.', default=30),
       Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
-      Arg(
-          'resize_ratio', float,
+      Arg('resize_ratio', float,
           'The resize ratio of captured image '
           'on screen.', default=0.4),
-      Arg(
-          'show_image', bool,
+      Arg('show_image', bool,
           'Whether to actually show the image on screen.', default=True),
-      Arg(
-          'device_index', int, 'Index of video device (0 for default).',
+      Arg('device_index', int, 'Index of video device (0 for default).',
           default=0),
-      Arg(
-          'camera_args', dict, 'Dict of args used for enabling the camera '
+      Arg('camera_args', dict, 'Dict of args used for enabling the camera '
           'device.', optional=True)]
 
   def _CountdownTimer(self):
@@ -416,7 +403,7 @@ class CameraTest(unittest.TestCase):
         self.args.device_index)
 
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_CAMERA_TEST)
     self.template.SetState(_HTML_CAMERA_TEST)
     self.ui.RunJS(_JS_CAMERA_TEST)

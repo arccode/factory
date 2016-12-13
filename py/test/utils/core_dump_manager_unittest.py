@@ -4,9 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=W0212
-
-import factory_common  # pylint: disable=W0611
+# pylint: disable=protected-access
 
 import logging
 import mox
@@ -15,6 +13,7 @@ import shutil
 import tempfile
 import unittest
 
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import core_dump_manager
 
 
@@ -39,8 +38,8 @@ class CoreDumpManagerTest(unittest.TestCase):
 
   def testScan(self):
     logging.info('Test ScanFiles()')
-    core_dump_manager.CoreDumpManager._SetCoreDump = \
-        self.mocker.CreateMockAnything()
+    core_dump_manager.CoreDumpManager._SetCoreDump = (
+        self.mocker.CreateMockAnything())
     core_dump_manager.CoreDumpManager._SetCoreDump()
     self.mocker.ReplayAll()
     manager = core_dump_manager.CoreDumpManager(
@@ -55,8 +54,8 @@ class CoreDumpManagerTest(unittest.TestCase):
 
   def testScanNoWatch(self):
     logging.info('Test ScanFiles()')
-    core_dump_manager.CoreDumpManager._SetCoreDump = \
-        self.mocker.CreateMockAnything()
+    core_dump_manager.CoreDumpManager._SetCoreDump = (
+        self.mocker.CreateMockAnything())
     core_dump_manager.CoreDumpManager._SetCoreDump()
     self.mocker.ReplayAll()
     manager = core_dump_manager.CoreDumpManager(
@@ -70,8 +69,8 @@ class CoreDumpManagerTest(unittest.TestCase):
 
   def testClear(self):
     logging.info('Test ClearFiles()')
-    core_dump_manager.CoreDumpManager._SetCoreDump = \
-        self.mocker.CreateMockAnything()
+    core_dump_manager.CoreDumpManager._SetCoreDump = (
+        self.mocker.CreateMockAnything())
     core_dump_manager.CoreDumpManager._SetCoreDump()
     self.mocker.ReplayAll()
     manager = core_dump_manager.CoreDumpManager(

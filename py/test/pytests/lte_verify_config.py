@@ -20,12 +20,12 @@ Usage example::
               # Single line response example.
               ('AT_COMMAND_1', 'RESPONSE_1'),
               # Multi-line response example.
-              ('AT_COMMAND_2', ['RESPONSE_2_LINE_1', RESPONSE_2_LINE_2]),
+              ('AT_COMMAND_2', ['RESPONSE_2_LINE_1', RESPONSE_2_LINE_2])]})
 """
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.test.rf import modem
 from cros.factory.utils.arg_utils import Arg

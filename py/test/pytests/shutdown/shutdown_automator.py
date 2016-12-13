@@ -6,7 +6,7 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.e2e_test.automator import Automator, AutomationFunction

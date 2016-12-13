@@ -17,13 +17,13 @@ import logging
 import os
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
-from cros.factory.utils import file_utils
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 _RECORD_SEC = 3
 _RECORD_RATE = 48000
@@ -88,12 +88,10 @@ class AudioBasicTest(unittest.TestCase):
           ('Headset', u'外接耳机')),
       Arg('audio_conf', str, 'Audio config file path', optional=True),
       Arg('initial_actions', list, 'List of tuple (card, actions)', []),
-      Arg(
-          'input_dev', tuple,
+      Arg('input_dev', tuple,
           'Input ALSA device. (card_name, sub_device).'
           'For example: ("audio_card", "0").', ('0', '0')),
-      Arg(
-          'output_dev', tuple,
+      Arg('output_dev', tuple,
           'Output ALSA device. (card_name, sub_device).'
           'For example: ("audio_card", "0").', ('0', '0')),
       Arg('output_channels', int, 'number of output channels.', 2),
@@ -118,7 +116,7 @@ class AudioBasicTest(unittest.TestCase):
 
     # Initialize frontend presentation
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_AUDIO)
     self.template.SetState(_HTML_AUDIO)
     self.ui.BindKey('R', self.HandleRecordEvent)
@@ -154,8 +152,9 @@ class AudioBasicTest(unittest.TestCase):
           with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
             # Get channel i from full_wav_path to a stereo wav_path
             # Since most devices support 2 channels.
-            Spawn(['sox', full_wav_path, wav_path, 'remix', str(i + 1),
-                   str(i + 1)], log=True, check_call=True)
+            process_utils.Spawn(
+                ['sox', full_wav_path, wav_path, 'remix', str(i + 1),
+                 str(i + 1)], log=True, check_call=True)
             with self._dut.temp.TempFile() as dut_path:
               self._dut.link.Push(wav_path, dut_path)
               self.ui.SetHTML(GetPlaybackRecordLabel(i + 1), id='audio_info')
@@ -175,15 +174,17 @@ class AudioBasicTest(unittest.TestCase):
       for i in xrange(self.args.output_channels):
         ogg_path = os.path.join(_SOUND_DIRECTORY, '%d_%s.ogg' % (i + 1, lang))
         number_wav_path = '%s.wav' % ogg_path
-        Spawn(['sox', ogg_path, '-c1', number_wav_path], check_call=True)
+        process_utils.Spawn(
+            ['sox', ogg_path, '-c1', number_wav_path], check_call=True)
         with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
           # we will only keep (i + 1) channel and mute others.
           # We use number sound to indicate which channel to be played.
           # Create .wav file with n channels but ony has one channel data.
           remix_option = ['0'] * self.args.output_channels
           remix_option[i] = '1'
-          Spawn(['sox', number_wav_path, wav_path, 'remix'] + remix_option,
-                log=True, check_call=True)
+          process_utils.Spawn(
+              ['sox', number_wav_path, wav_path, 'remix'] + remix_option,
+              log=True, check_call=True)
           with self._dut.temp.TempFile() as dut_path:
             self._dut.link.Push(wav_path, dut_path)
             self.ui.SetHTML(GetPlaybackLabel(i + 1), id='audio_info')

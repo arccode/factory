@@ -51,10 +51,10 @@ import threading
 
 # TODO(itspeter): Find a way to properly pack those as testlog should
 # be able to deploy without factory framework.
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import testlog_seq
-from cros.factory.test import testlog_validator
 from cros.factory.test import testlog_utils
+from cros.factory.test import testlog_validator
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
@@ -110,17 +110,17 @@ class Testlog(object):
 
   Properties:
     last_test_run: In memory object that keep the same content of session_json.
-      They should be the same so when updating the test_run we don't need to
-      read and parse from session_json repeatedly.
+        They should be the same so when updating the test_run we don't need to
+        read and parse from session_json repeatedly.
     log_root: The root folder for logging.
     primary_json: A JSON file that will ingested by Instalog.
     session_json: A temporary JSON file to keep the test_run information.
     flush_mode: Flag for default action on API calls. True to flush the
-      test_run event into primary_json, False to session_json.
+        test_run event into primary_json, False to session_json.
     attachments_folder: The folder for copying / moving binary files.
     uuid: A unique ID for related to the process that using the testlog.
     seq_generator: A sequence file that expected to increase monotonically.
-      during test.
+        during test.
   """
 
   FIELDS = type_utils.Enum([
@@ -134,7 +134,7 @@ class Testlog(object):
       log_root: The path to root folder of testlog.
       uuid: A unique ID for this process.
     """
-    global _global_testlog  # pylint: disable=W0603
+    global _global_testlog  # pylint: disable=global-statement
     assert _global_testlog is None, (
         '_global_testlog should be initialized only once before Close().')
     with _log_related_lock:
@@ -166,9 +166,10 @@ class Testlog(object):
     self.attachments_folder = session_data.pop(self.FIELDS.ATTACHMENTS_FOLDER)
     self.uuid = session_data.pop(self.FIELDS.UUID)
     self.flush_mode = session_data.pop(self.FIELDS.FLUSH_MODE)
-    metadata = session_data.pop(self.FIELDS._METADATA, None)  # pylint: disable=W0212
+    metadata = session_data.pop(
+        self.FIELDS._METADATA, None)  # pylint: disable=protected-access
     if metadata:
-      # pylint: disable=W0212
+      # pylint: disable=protected-access
       self.last_test_run[self.FIELDS._METADATA] = metadata
     assert len(session_data.items()) == 0, 'Not all variable initialized.'
 
@@ -197,7 +198,7 @@ class Testlog(object):
                  self.uuid, logging.getLevelName(level))
 
   def Close(self):
-    # pylint: disable=W0603
+    # pylint: disable=global-statement
     global _global_testlog, _pylogger, _pylogger_handler
     if self.primary_json:
       self.primary_json.Close()
@@ -219,7 +220,8 @@ class Testlog(object):
     metadata = None
     with file_utils.FileLockContextManager(session_json_path, 'r') as fd:
       last_test_run = json.loads(fd.read())
-    metadata = last_test_run.pop(Testlog.FIELDS._METADATA)  # pylint: disable=W0212
+    metadata = last_test_run.pop(
+        Testlog.FIELDS._METADATA)  # pylint: disable=protected-access
     return {
         Testlog.FIELDS.LAST_TEST_RUN: Event.FromDict(last_test_run),
         Testlog.FIELDS.LOG_ROOT: metadata[Testlog.FIELDS.LOG_ROOT],
@@ -229,7 +231,7 @@ class Testlog(object):
             metadata[Testlog.FIELDS.ATTACHMENTS_FOLDER],
         Testlog.FIELDS.UUID: metadata[Testlog.FIELDS.UUID],
         Testlog.FIELDS.FLUSH_MODE: metadata[Testlog.FIELDS.FLUSH_MODE],
-        Testlog.FIELDS._METADATA: metadata}  # pylint: disable=W0212
+        Testlog.FIELDS._METADATA: metadata}  # pylint: disable=protected-access
 
   def _CreateFolders(self):
     for x in [self.log_root, self.attachments_folder]:
@@ -273,11 +275,11 @@ def InitSubSession(log_root, uuid, station_test_run=None):
 
   Args:
     log_root: Root folder that contains testlog.json, session JSONs
-      attachments.
+        attachments.
     uuid: Unique ID for the upcoming test run.
     station_test_run: Any existed fields that need to propagate into the new
-      test session's station.test_run. For example, can be serial numbers or
-      harness-specific information (e.x.: stationDeviceId).
+        test session's station.test_run. For example, can be serial numbers or
+        harness-specific information (e.x.: stationDeviceId).
 
   Returns:
     Path to the session JSON file.
@@ -291,8 +293,8 @@ def InitSubSession(log_root, uuid, station_test_run=None):
         'status': StationTestRun.STATUS.STARTING,
         'testRunId': uuid,
         'startTime': datetime.datetime.utcnow()
-        })
-  # pylint: disable=W0212
+    })
+  # pylint: disable=protected-access
   station_test_run[Testlog.FIELDS._METADATA] = {
       Testlog.FIELDS.LOG_ROOT: log_root,
       Testlog.FIELDS.PRIMARY_JSON:
@@ -302,7 +304,7 @@ def InitSubSession(log_root, uuid, station_test_run=None):
           os.path.join(log_root, _DEFAULT_ATTACHMENTS_FOLDER),
       Testlog.FIELDS.FLUSH_MODE: False,
       Testlog.FIELDS.UUID: uuid
-      }
+  }
   with file_utils.FileLockContextManager(session_log_path, 'w') as fd:
     fd.write(station_test_run.ToJSON())
   return session_log_path
@@ -323,14 +325,15 @@ def LogTestRun(session_json_path, station_test_run=None):
     content = fd.read()
     try:
       session_json = json.loads(content)
-      session_json.pop(Testlog.FIELDS._METADATA) # pylint: disable=W0212
+      session_json.pop(
+          Testlog.FIELDS._METADATA)  # pylint: disable=protected-access
       test_run = StationTestRun()
       test_run.Populate(session_json)
       # Merge the station_test_run information.
       if station_test_run:
         test_run.Populate(station_test_run.ToDict())
       Log(test_run)
-    except Exception:  # pylint: disable=W0703
+    except Exception:
       # Not much we can do here.
       logging.exception('Not able to collect %s. Last read: %s',
                         session_json_path, content)
@@ -398,7 +401,8 @@ def _StationTestRunWrapperInSession(*args, **kwargs):
   """
   method_name = kwargs.pop('_method_name')
   if GetGlobalTestlog().last_test_run:
-    ret = getattr(GetGlobalTestlog().last_test_run, method_name)(*args, **kwargs)
+    ret = getattr(
+        GetGlobalTestlog().last_test_run, method_name)(*args, **kwargs)
     Log(GetGlobalTestlog().last_test_run)
     return ret
   else:
@@ -481,12 +485,12 @@ def CapturePythonLogging(callback, level=logging.DEBUG):
 
   Args:
     callback: Function to be called when the Python logging library is called.
-              It accepts one argument, which will be the StationMessage object
-              as constructed by TestlogLogHandler.
+        It accepts one argument, which will be the StationMessage object as
+        constructed by TestlogLogHandler.
     level: Sets minimum verbosity of log messages that will be sent to the
-           callback.  Default: logging.DEBUG.
+        callback.  Default: logging.DEBUG.
   """
-  global _pylogger, _pylogger_handler  # pylint: disable=W0603
+  global _pylogger, _pylogger_handler  # pylint: disable=global-statement
   if _pylogger:
     # We are already capturing Python logging.
     return _pylogger
@@ -504,10 +508,10 @@ class TestlogLogHandler(logging.Handler):
 
   Properties:
     _callback: Function to be called when we have processed the logging message
-               and created a StationMessage object.  It accepts one argument,
-               which will be the constructed StationMessage object.
+        and created a StationMessage object.  It accepts one argument, which
+        will be the constructed StationMessage object.
     _thread_data: Storage for the local thread.  Used to track whether or not
-                  the thread is currently in an emit call.
+        the thread is currently in an emit call.
   """
 
   def __init__(self, callback):
@@ -583,7 +587,7 @@ class EventBase(object):
   # or the Testlog API Playbook.
   FIELDS = {
       'type': (True, testlog_validator.Validator.String),
-      # pylint: disable=W0212
+      # pylint: disable=protected-access
       Testlog.FIELDS._METADATA: (False, testlog_validator.Validator.Object)
   }
 
@@ -606,7 +610,7 @@ class EventBase(object):
   def __eq__(self, other):
     """Equals operator."""
     if isinstance(other, self.__class__):
-      return self._data == other._data  # pylint: disable=W0212
+      return self._data == other._data  # pylint: disable=protected-access
     else:
       return False
 
@@ -696,7 +700,7 @@ class EventBase(object):
   def _AllSubclasses(cls):
     """Returns all subclasses of this class recursively."""
     subclasses = cls.__subclasses__()
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     return subclasses + [subsub for sub in subclasses
                          for subsub in sub._AllSubclasses()]
 
@@ -924,7 +928,7 @@ class StationTestRun(_StationBase):
 
   def CastFields(self):
     if 'series' in self:
-      s = Series(__METADATA__=dict())
+      s = Series(__METADATA__={})
       s.update(self['series'])
       self['series'] = s
 
@@ -932,7 +936,7 @@ class StationTestRun(_StationBase):
   def _CheckParamArguments(value, description, value_unit,
                            min_val, max_val, regex):
     """Checks types and returns a dict that aligns with Testlog Playbook."""
-    value_dict = dict()
+    value_dict = {}
     if isinstance(value, basestring):
       value_dict['textValue'] = value
       if min_val or max_val:
@@ -969,7 +973,7 @@ class StationTestRun(_StationBase):
     self['parameters'] = {'key': name, 'value': value_dict}
     return self
 
-  # pylint: disable=W0622
+  # pylint: disable=redefined-builtin
   def CheckParam(self, name, value, min=None, max=None, regex=None,
                  description=None, value_unit=None):
     """Checks and logs parameter as specified in Testlog API.
@@ -1025,7 +1029,7 @@ class StationTestRun(_StationBase):
   def CreateSeries(self, name,
                    description=None, key_unit=None, value_unit=None):
     """Returns a Series object as specified in Testlog API."""
-    value_dict = dict()
+    value_dict = {}
     if description:
       value_dict['description'] = description
     if key_unit:
@@ -1070,7 +1074,7 @@ class Series(dict):
       value_dict['expectedMaximum'] = max_val
 
     if 'data' not in self:
-      self['data'] = list()
+      self['data'] = []
     self['data'].append(value_dict)
     # Update the session JSON
     if GetGlobalTestlog().last_test_run:
@@ -1080,7 +1084,8 @@ class Series(dict):
     Series._CheckArguments(key, value, None, None)
     self._LogValue(key, value, None, None, None)
 
-  def CheckValue(self, key, value, min=None, max=None):  # pylint: disable=W0622
+  def CheckValue(self, key, value, min=None, max=None):
+    # pylint: disable=redefined-builtin
     Series._CheckArguments(key, value, min, max)
     result = testlog_utils.IsInRange(value, min_val=min, max_val=max)
     result = 'PASS' if result else 'FAIL'

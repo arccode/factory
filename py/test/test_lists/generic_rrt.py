@@ -16,7 +16,7 @@ This test list can also be used to verify the software stability of base image
 
 import re
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists.test_lists import FactoryTest

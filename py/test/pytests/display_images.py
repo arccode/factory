@@ -25,13 +25,13 @@ import os
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
-from cros.factory.utils import file_utils
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 _IMAGE_ROOT = '/usr/local/factory/misc/'
 _DEFAULT_IMAGE_FILE = 'display_images.tar.gz'
@@ -101,20 +101,20 @@ def GetThumbImageTableTag(paths):
 
 
 class DisplayImageTest(unittest.TestCase):
-  '''Tests the function of display by displaying images.
+  """Tests the function of display by displaying images.
 
   Properties:
-    self._ui: test ui.
-    self._template: ui template handling html layout.
-    self._extract_dir: temp directory for keeping image files on the station.
-    self._station_image_paths: list of image paths for displaying on Station.
-    self._dut_temp_dir: temp directory for keeping image files on DUT.
-    self._dut_image_paths: list of image paths in DUT.
-    self._image_index: index of the image to be displayed.
-    self._uploaded_index: index of the latest uploaded image.
-    self._total_images: number of total images.
-    self._can_pass: check if operator checks all images.
-  '''
+    _ui: test ui.
+    _template: ui template handling html layout.
+    _extract_dir: temp directory for keeping image files on the station.
+    _station_image_paths: list of image paths for displaying on Station.
+    _dut_temp_dir: temp directory for keeping image files on DUT.
+    _dut_image_paths: list of image paths in DUT.
+    _image_index: index of the image to be displayed.
+    _uploaded_index: index of the latest uploaded image.
+    _total_images: number of total images.
+    _can_pass: check if operator checks all images.
+  """
   ARGS = [
       Arg('title', tuple, 'Label Title of the test (en, zh)',
           ('Display', u'显示测试')),
@@ -126,7 +126,7 @@ class DisplayImageTest(unittest.TestCase):
     """Initializes frontend presentation and properties."""
     self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
-    self._template = OneSection(self._ui)
+    self._template = ui_templates.OneSection(self._ui)
 
     self._ui.AppendCSS(_CSS_DISPLAY)
     self._template.SetState(_HTML_DISPLAY)
@@ -142,12 +142,13 @@ class DisplayImageTest(unittest.TestCase):
 
   def tearDown(self):
     self._dut.display.StopDisplayImage()
-    Spawn(['rm', '-rf', self._extract_dir], check_call=True, log=True)
+    process_utils.Spawn(['rm', '-rf', self._extract_dir],
+                        check_call=True, log=True)
     self._dut.Call(['rm', '-rf', self._dut_temp_dir])
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self._ui.BindKey(' ', lambda _: self.OnSpacePressed())
+    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
     self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
     self._ui.Run()
 

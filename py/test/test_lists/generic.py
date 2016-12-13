@@ -14,7 +14,7 @@ The method SetOptions controls the test list options used by goofy.
 """
 
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.test_lists import generic_control_run
 from cros.factory.test.test_lists import generic_diagnostic

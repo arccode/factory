@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import asyncore
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.external import evdev
 
@@ -171,7 +171,8 @@ class InputDeviceDispatcher(asyncore.file_dispatcher):
     self.event_handler = event_handler
     asyncore.file_dispatcher.__init__(self, device)
 
-  def recv(self, ign=None):  # pylint:disable=W0613
+  def recv(self, ign=None):
+    del ign  # Unused.
     return self.device.read()
 
   def handle_read(self):

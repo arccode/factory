@@ -6,24 +6,23 @@
 
 """Shutdown factory test."""
 
+import jsonrpclib
 import logging
 import os
 import time
 import unittest
-from jsonrpclib import ProtocolError
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import event as test_event
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.event import Event, EventClient
-from cros.factory.test.factory import TestState
 from cros.factory.test.utils import audio_utils
-from cros.factory.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import time_utils
 
 
 # File that suppresses reboot if present (e.g., for development).
@@ -137,14 +136,16 @@ class ShutdownTest(unittest.TestCase):
 
     # Create a new (threaded) event client since we
     # don't want to use the event loop for this.
-    with EventClient() as event_client:
+    with test_event.EventClient() as event_client:
       event_client.post_event(
-          Event(Event.Type.PENDING_SHUTDOWN, **pending_shutdown_data))
+          test_event.Event(
+              test_event.Event.Type.PENDING_SHUTDOWN, **pending_shutdown_data))
       aborted = event_client.wait(
-          lambda event: event.type == Event.Type.CANCEL_SHUTDOWN,
+          lambda event: event.type == test_event.Event.Type.CANCEL_SHUTDOWN,
           timeout=self.args.delay_secs) is not None
       if aborted:
-        event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
+        event_client.post_event(
+            test_event.Event(test_event.Event.Type.PENDING_SHUTDOWN))
       return aborted
 
   def Shutdown(self):
@@ -179,7 +180,7 @@ class ShutdownTest(unittest.TestCase):
             'Reboot test in progress...',
             self.args.max_reboot_time_secs,
             'Reboot test failed.')
-    except ProtocolError:
+    except jsonrpclib.ProtocolError:
       # The presenter may be absent (e.g. during run-in). Ignore error
       # in this case.
       pass
@@ -220,12 +221,12 @@ class ShutdownTest(unittest.TestCase):
       event_log.Log('rebooted', status=status, error_msg=error_msg, **kw)
       logging.info('Rebooted: status=%s, %s', status,
                    (('error_msg=%s' % error_msg) if error_msg else None))
-      if status == TestState.FAILED:
+      if status == factory.TestState.FAILED:
         raise ShutdownError(error_msg)
 
     last_shutdown_time = self.goofy.GetLastShutdownTime()
     if not last_shutdown_time:
-      LogAndEndTest(status=TestState.FAILED,
+      LogAndEndTest(status=factory.TestState.FAILED,
                     error_msg=('Unable to read shutdown_time; '
                                'unexpected shutdown during reboot?'))
 
@@ -233,7 +234,7 @@ class ShutdownTest(unittest.TestCase):
     logging.info('%.03f s passed since reboot', now - last_shutdown_time)
 
     if last_shutdown_time > now:
-      LogAndEndTest(status=TestState.FAILED,
+      LogAndEndTest(status=factory.TestState.FAILED,
                     error_msg='Time moved backward during reboot')
     elif (self.args.operation == factory.ShutdownStep.REBOOT and
           self.args.max_reboot_time_secs and
@@ -243,7 +244,7 @@ class ShutdownTest(unittest.TestCase):
       # very long time, and even unplugged with battery backup,
       # thus hosing the clock.)
       LogAndEndTest(
-          status=TestState.FAILED,
+          status=factory.TestState.FAILED,
           error_msg=('More than %d s elapsed during reboot '
                      '(%.03f s, from %s to %s)' % (
                          self.args.max_reboot_time_secs,
@@ -254,15 +255,16 @@ class ShutdownTest(unittest.TestCase):
       self.goofy.LogStartupMessages()
     elif self.test_state.shutdown_count > self.test.iterations:
       # Shut down too many times
-      LogAndEndTest(status=TestState.FAILED, error_msg='Too many shutdowns')
+      LogAndEndTest(status=factory.TestState.FAILED,
+                    error_msg='Too many shutdowns')
       self.goofy.LogStartupMessages()
 
     elif self.args.check_tag_file and self.CheckShutdownFailureTagFile():
-      LogAndEndTest(status=TestState.FAILED,
+      LogAndEndTest(status=factory.TestState.FAILED,
                     error_msg='Found shutdown fail tag file')
 
     # Good!
-    LogAndEndTest(status=TestState.PASSED,
+    LogAndEndTest(status=factory.TestState.PASSED,
                   duration=(now - last_shutdown_time),
                   error_msg=None)
 

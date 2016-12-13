@@ -12,13 +12,16 @@ import mox
 import subprocess
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.pytests import verify_components
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils.deploy_utils import FactoryPythonArchive
+
+# pylint: disable=protected-access
 
 class FakeArgs(object):
   def __init__(self, dargs):
@@ -36,7 +39,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_shopfloor = self._mox.CreateMock(shopfloor)
     self._mock_test.template = self._mox.CreateMock(OneSection)
     self._mock_test._ui = self._mox.CreateMock(test_ui.UI)
-    self._mox.StubOutWithMock(verify_components, 'Log')
+    self._mox.StubOutWithMock(event_log, 'Log')
     self.fake_phase = 'EVT'
 
   def tearDown(self):
@@ -74,7 +77,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
 
-    verify_components.Log('probed_components', results=probed)
+    event_log.Log('probed_components', results=probed)
 
     self._mox.ReplayAll()
     self._mock_test.runTest()
@@ -113,7 +116,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
 
-    verify_components.Log('probed_components', results=probed)
+    event_log.Log('probed_components', results=probed)
 
     self._mox.ReplayAll()
     with self.assertRaises(FactoryTestFailure):

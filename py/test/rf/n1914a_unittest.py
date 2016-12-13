@@ -14,19 +14,17 @@ explicit annotation is given.
 from __future__ import print_function
 
 import logging
+import SocketServer
 import threading
 import unittest
-import SocketServer
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import net_utils
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf.n1914a import N1914A
+from cros.factory.utils import net_utils
 
 NORMAL_ERR_RESPONSE = '+0,"No error"\n'
 NORMAL_ESR_REGISTER = '+0\n'
 NORMAL_OPC_RESPONSE = '+1\n'
-
-# pylint: disable=W0232
 
 
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -41,7 +39,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   Exceptions will be raised if recieves unexpected message from client.
   """
-  responses_lookup = list()
+  responses_lookup = []
 
   @classmethod
   def AddLookup(cls, input_line, response):
@@ -70,7 +68,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   @classmethod
   def ResetLookup(cls):
-    cls.responses_lookup = list()
+    cls.responses_lookup = []
 
   def __init__(self, *args, **kwargs):
     self.lookup = list(self.responses_lookup)
@@ -112,7 +110,7 @@ class N1914ATest(unittest.TestCase):
     server_port = net_utils.FindUnusedTCPPort()
     mock_server = MockTestServer(
         (net_utils.LOCALHOST, server_port), MockServerHandler)
-    # pylint: disable=E1101
+    # pylint: disable=no-member
     server_thread = threading.Thread(target=mock_server.serve_forever)
     server_thread.daemon = True
     server_thread.start()
@@ -255,7 +253,7 @@ class N1914ATest(unittest.TestCase):
 
   def tearDown(self):
     self.n1914a.Close()
-    self.mock_server.shutdown()  # pylint: disable=E1101
+    self.mock_server.shutdown()  # pylint: disable=no-member
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

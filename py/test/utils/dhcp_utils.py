@@ -14,7 +14,7 @@ import random
 import signal
 import sys
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import network
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
@@ -24,7 +24,7 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
 
-class InterfaceProperty(object):  # pylint: disable=R0923
+class InterfaceProperty(object):
   """
   A data structure that stores configurations for an interface
   Properties
@@ -42,16 +42,16 @@ class DHCPManager(object):
 
   Properties set from __init__ arguments:
     interfaces:
-      A list of InterfaceProperty(s) to bind, or None to bind all available
-      interfaces
+        A list of InterfaceProperty(s) to bind, or None to bind all available
+        interfaces
     interface_blacklist:
-      A list of interfaces (str) that shouldn't be managed, note that the
-      default gateway interface is always excluded.
+        A list of interfaces (str) that shouldn't be managed, note that the
+        default gateway interface is always excluded.
     bootp: A tuple (ip, filename, hostname) specifying the boot parameters.
-    on_add: Optional callback function that's called when a client is issued
-      a new IP address. The callback takes the IP address as the only argument.
+    on_add: Optional callback function that's called when a client is issued a
+        new IP address. The callback takes the IP address as the only argument.
     on_old: Similar to on_add, but called when a client is fed an IP address
-      that's previously assigned to it.
+        that's previously assigned to it.
     on_del: Similar to on_del, but called when a lease is revoked.
   """
 
@@ -96,7 +96,7 @@ class DHCPManager(object):
     interfaces = self._interfaces or self._GetAvailibleInterfaces()
     dhcp_ranges = []
 
-    used_range = list(self._exclude_ip_prefix or []) # make a copy
+    used_range = list(self._exclude_ip_prefix or [])  # make a copy
 
     for interface in interfaces:
       ip_mask = net_utils.GetEthernetIp(interface.name, netmask=True)

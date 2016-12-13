@@ -16,10 +16,10 @@ import logging
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.string_utils import ParseDict
+from cros.factory.utils import string_utils
 
 
 class TPMVerifyEK(unittest.TestCase):
@@ -46,7 +46,7 @@ class TPMVerifyEK(unittest.TestCase):
       """
       status_txt = self.dut.CheckOutput(['cryptohome', '--action=tpm_status'],
                                         log=True)
-      status = ParseDict(status_txt.splitlines())
+      status = string_utils.ParseDict(status_txt.splitlines())
       logging.info('TPM status: %r', status)
       return status
 
@@ -76,9 +76,10 @@ class TPMVerifyEK(unittest.TestCase):
 
     # Verify the endorsement key.
     with tempfile.TemporaryFile() as stderr:
-      self.dut.CheckCall(['cryptohome', '--action=tpm_verify_ek'] + (
-          ['--cros_core'] if self.args.is_cros_core else []),
-                         log=True, stderr=stderr)
+      self.dut.CheckCall(
+          ['cryptohome', '--action=tpm_verify_ek'] + (
+              ['--cros_core'] if self.args.is_cros_core else []),
+          log=True, stderr=stderr)
       # Make sure there's no stderr from tpm_verify_ek (since that, plus
       # check_call=True, is the only reliable way to make sure it
       # worked).

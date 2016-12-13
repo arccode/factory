@@ -48,15 +48,15 @@ import zipfile
 import numpy
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory import device
 from cros.factory.device import device_utils
-from cros.factory.device import CalledProcessError
+from cros.factory.test import event_log
 from cros.factory.test import factory
-from cros.factory.test.event_log import Log
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils.arg_utils import Arg
 
 
 START_GLGPS_TIMEOUT = 5
@@ -349,7 +349,7 @@ class GPS(unittest.TestCase):
         self.dut.CheckCall('[[ -n `timeout 1 cat %s` ]]'
                            % self.args.nmea_out_path)
         return True
-      except CalledProcessError:
+      except device.CalledProcessError:
         return False
     if not sync_utils.PollForCondition(poll_method=CheckGLGPSRunning,
                                        timeout_secs=START_GLGPS_TIMEOUT,
@@ -389,7 +389,7 @@ class GPS(unittest.TestCase):
                     filename=filename,
                     backup_dir=self.args.logparser_backup_dir)
     else:
-      Log(EVENT_LOG_NAME, **log_dict)
+      event_log.Log(EVENT_LOG_NAME, **log_dict)
 
     # Check for failures.
     if limit_failures_str:
@@ -409,7 +409,7 @@ class GPS(unittest.TestCase):
     # Stop the glgps with Factory_Test_Track.
     try:
       ps_line = self.dut.CheckOutput('ps | grep %s' % GLGPS_BINARY)
-    except CalledProcessError:
+    except device.CalledProcessError:
       # Process is not running.  Don't kill it!
       factory.console.info('%s already stopped', GLGPS_BINARY)
       return

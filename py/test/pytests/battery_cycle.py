@@ -19,21 +19,20 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.utils.stress_manager import DummyStressManager
-from cros.factory.test.utils.stress_manager import StressManager
+from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import StartDaemonThread
-from cros.factory.utils.debug_utils import FormatExceptionOnly
-from cros.factory.utils.time_utils import FormatElapsedTime
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import debug_utils
+from cros.factory.utils import process_utils
+from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 
-Mode = Enum(['CHARGE', 'DISCHARGE', 'CUTOFF'])
+Mode = type_utils.Enum(['CHARGE', 'DISCHARGE', 'CUTOFF'])
 
 History = collections.namedtuple('History', ['cycle', 'charge', 'discharge'])
 
@@ -118,7 +117,7 @@ class BatteryCycleTest(unittest.TestCase):
 
   def runTest(self):
     if self.args.has_ui:
-      StartDaemonThread(target=self._Run)
+      process_utils.StartDaemonThread(target=self._Run)
       self.ui.Run()
     else:
       self._Run()
@@ -143,10 +142,10 @@ class BatteryCycleTest(unittest.TestCase):
     for h in self.history[-5:]:
       history_lines.append('%d: Charged in %s' %
                            (h.cycle + 1,
-                            FormatElapsedTime(h.charge)))
+                            time_utils.FormatElapsedTime(h.charge)))
       if h.discharge:
         history_lines[-1] += (', discharged in %s' %
-                              FormatElapsedTime(h.discharge))
+                              time_utils.FormatElapsedTime(h.discharge))
 
     if not history_lines:
       history_lines.append('(none)')
@@ -203,7 +202,7 @@ class BatteryCycleTest(unittest.TestCase):
 
     if self.mode in (Mode.CHARGE, Mode.CUTOFF):
       self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)
-      stress_manager = DummyStressManager(self.dut)
+      stress_manager_instance = stress_manager.DummyStressManager(self.dut)
       if self.mode == Mode.CHARGE:
         is_done_now = lambda x: x > target_charge_pct
       else:
@@ -211,16 +210,16 @@ class BatteryCycleTest(unittest.TestCase):
                                  x > self.args.cutoff_charge_pct)
     else:
       self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
-      stress_manager = StressManager(self.dut)
+      stress_manager_instance = stress_manager.StressManager(self.dut)
       is_done_now = lambda x: x < target_charge_pct
 
     phase_start_time = time.time()
     last_log_time = None
-    with stress_manager.Run():
+    with stress_manager_instance.Run():
       while True:
         self.status = self.dut.status.Snapshot()
         now = time.time()
-        if (last_log_time is None) or (
+        if (last_log_time is None or
             now - last_log_time >= self.args.log_interval_secs):
           last_log_time = now
           self._Log('status')
@@ -234,7 +233,7 @@ class BatteryCycleTest(unittest.TestCase):
           logging.info('%s cycle completed in %d seconds',
                        self.mode, now - phase_start_time)
 
-          # pylint: disable=W0212
+          # pylint: disable=protected-access
           if self.history and self.history[-1].discharge is None:
             self.history[-1] = self.history[-1]._replace(
                 discharge=(now - phase_start_time))
@@ -253,7 +252,7 @@ class BatteryCycleTest(unittest.TestCase):
                 self.args.max_duration_hours * 60 * 60 -
                 (now - phase_start_time)
                 if self.args.max_duration_hours else None))):
-          self._UpdateUI(FormatElapsedTime(elapsed_time)
+          self._UpdateUI(time_utils.FormatElapsedTime(elapsed_time)
                          if elapsed_time else u'∞',
                          id=elt_id)
         self._UpdateUI('%.2f%%' % self.dut.power.GetChargePct(get_float=True),
@@ -261,8 +260,7 @@ class BatteryCycleTest(unittest.TestCase):
         self._UpdateUI(
             '(complete in %s s)' % (self.args.charge_threshold_secs -
                                     int(round(now - first_done_time[0])))
-            if first_done_time[0]
-            else '',
+            if first_done_time[0] else '',
             id='bc-phase-complete')
 
         time.sleep(self.args.idle_time_secs)
@@ -307,8 +305,8 @@ class BatteryCycleTest(unittest.TestCase):
 
       self._Log('pass')
       self.Pass()
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       logging.exception('Test failed')
-      error_msg = FormatExceptionOnly()
+      error_msg = debug_utils.FormatExceptionOnly()
       self._Log('fail', error_msg=error_msg)
       self.Fail(error_msg)

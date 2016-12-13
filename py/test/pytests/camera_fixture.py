@@ -188,7 +188,7 @@ Usage examples::
 import base64
 from collections import namedtuple, OrderedDict
 try:
-  import cv2  # pylint: disable=F0401
+  import cv2  # pylint: disable=import-error
 except ImportError:
   pass
 import datetime
@@ -203,27 +203,23 @@ import traceback
 import unittest
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.fixture.camera import als_light_chamber
+from cros.factory.test.fixture.camera import light_chamber
+from cros.factory.test.fixture.camera import perf_tester as camperf
+from cros.factory.test.fixture.camera import renderer as renderer
+from cros.factory.test.fixture import fixture_connection
 from cros.factory.test import leds
 from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test.fixture.fixture_connection import (
-    SerialFixtureConnection, MockFixtureConnection, FixtureConnectionError)
-from cros.factory.test.fixture.camera.als_light_chamber import (
-    ALSLightChamber)
-from cros.factory.test.fixture.camera.light_chamber import (
-    LightChamber, LightChamberError, LightChamberCameraError)
-from cros.factory.test.fixture.camera import perf_tester as camperf
-from cros.factory.test.fixture.camera import renderer as renderer
-from cros.factory.test.utils.camera_utils import EncodeCVImage
-from cros.factory.test.utils.media_utils import (
-    MediaMonitor, MountedMedia, RemovableDiskMonitor)
+from cros.factory.test.utils import camera_utils
+from cros.factory.test.utils import media_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import type_utils
 
 
 # Delay between each frame during calibration.
@@ -309,11 +305,11 @@ LED_PATTERN = ((leds.LED_NUM | leds.LED_CAP, 0.05), (0, 0.05))
 
 
 # Data structures.
-TestType = Enum(['CALI', 'LS', 'IQ', 'ALS'])
-Fixture = Enum(['FULL', 'AB', 'MODULE', 'PANEL', 'ALS'])
-DataMethod = Enum(['SIMPLE', 'USB', 'SF'])
-EventType = Enum(['START_TEST', 'EXIT_TEST'])
-TestStatus = Enum(['PASSED', 'FAILED', 'UNTESTED', 'NA'])
+TestType = type_utils.Enum(['CALI', 'LS', 'IQ', 'ALS'])
+Fixture = type_utils.Enum(['FULL', 'AB', 'MODULE', 'PANEL', 'ALS'])
+DataMethod = type_utils.Enum(['SIMPLE', 'USB', 'SF'])
+EventType = type_utils.Enum(['START_TEST', 'EXIT_TEST'])
+TestStatus = type_utils.Enum(['PASSED', 'FAILED', 'UNTESTED', 'NA'])
 
 InternalEvent = namedtuple('InternalEvent', 'event_type aux_data')
 
@@ -408,7 +404,7 @@ class _TestDelegate(object):
 
     delegate = _TestDelegate(...)
     delegate.LoadParamsAndShowTestScreen()
-    while ...: # loop test iterations
+    while ...:  # loop test iterations
       delegate.RunTest()
 
   """
@@ -480,8 +476,8 @@ class _TestDelegate(object):
     elif self.data_method == DataMethod.SF:
       self.params = self._LoadParamsFromShopfloor()
 
-    MediaMonitor('usb-serial', None).Start(on_insert=self._OnU2SInsertion,
-                                           on_remove=self._OnU2SRemoval)
+    media_utils.MediaMonitor('usb-serial', None).Start(
+        on_insert=self._OnU2SInsertion, on_remove=self._OnU2SRemoval)
 
     # Basic pre-processing of the parameters.
     self._Log('Parameter version: %s\n' % self.params['version'])
@@ -500,15 +496,15 @@ class _TestDelegate(object):
   def _LoadParamsFromUSB(self):
     """Loads parameters from USB drive."""
     self.usb_ready_event = threading.Event()
-    RemovableDiskMonitor().Start(on_insert=self._OnUSBInsertion,
-                                 on_remove=self._OnUSBRemoval)
+    media_utils.RemovableDiskMonitor().Start(on_insert=self._OnUSBInsertion,
+                                             on_remove=self._OnUSBRemoval)
 
     while self.usb_ready_event.wait():
-      with MountedMedia(self.usb_dev_path, 1) as mount_point:
+      with media_utils.MountedMedia(self.usb_dev_path, 1) as mount_point:
         pathname = os.path.join(mount_point, self.param_pathname)
         try:
           with open(pathname, 'r') as f:
-            return eval(f.read())  # pylint: disable=W0123
+            return eval(f.read())  # pylint: disable=eval-used
         except IOError as e:
           self._Log('Error: fail to read %r: %r' % (pathname, e))
       time.sleep(0.5)
@@ -519,7 +515,7 @@ class _TestDelegate(object):
 
     factory.console.info('Reading %s from shopfloor', self.param_pathname)
     shopfloor_client = shopfloor.GetShopfloorConnection()
-    # pylint: disable=W0123
+    # pylint: disable=eval-used
     return eval(shopfloor_client.GetParameter(self.param_pathname).data)
 
   def _CalculateTiming(self):
@@ -546,7 +542,7 @@ class _TestDelegate(object):
       raise RuntimeError("invalid test type '%s'" % self.test_type)
 
     if self.delegator.args.auto_mode:
-      self.delegator._PostInternalQueue(EventType.EXIT_TEST)
+      self.delegator.PostInternalQueue(EventType.EXIT_TEST)
 
     return ret
 
@@ -611,7 +607,7 @@ class _TestDelegate(object):
 
         # Switch to SFR Chart.
         if self.control_chamber:
-          self.chamber.SetChart(LightChamber.Charts.SFR)
+          self.chamber.SetChart(light_chamber.LightChamber.Charts.SFR)
 
         self.chamber.EnableCamera()
         self.chamber.ReadSingleFrame(return_gray_image=False)  # test one image
@@ -627,7 +623,7 @@ class _TestDelegate(object):
 
         # Switch to White chart.
         if self.control_chamber:
-          self.chamber.SetChart(LightChamber.Charts.WHITE)
+          self.chamber.SetChart(light_chamber.LightChamber.Charts.WHITE)
 
         # Wait for AE/AWB.
         time.sleep(self.params['cam_img']['buf_time'])
@@ -638,11 +634,11 @@ class _TestDelegate(object):
 
         # TODO(wnhuang): overlay the calculation of MTF with len shading image
         # taking to reduce cycle time.
-      except LightChamberCameraError as e:
+      except light_chamber.LightChamberCameraError as e:
         update_status(False)
         self._Log('Error: cannot read image %r' % e)
         return False, FAIL_BAD_CAMERA
-      except LightChamberError as e:
+      except light_chamber.LightChamberError as e:
         update_status(False)
         self._Log('Error: %r' % e)
         return False, FAIL_CHAMBER_ERROR
@@ -839,7 +835,7 @@ class _TestDelegate(object):
       # (8) Final test result.
       update_progress(STAGE90_END)
       update_status(True)
-    except FixtureConnectionError:
+    except fixture_connection.FixtureConnectionError:
       update_status(False)
       self._Log('The test fixture was disconnected!')
       return False, FAIL_CHAMBER_ERROR
@@ -940,11 +936,13 @@ class _TestDelegate(object):
     if ((test_passed and self.save_good_image) or
         (not test_passed and self.save_bad_image)):
       if self.original_img is not None:
-        data_files.append((log_prefix + '.bmp',
-                           EncodeCVImage(self.original_img, '.bmp')))
+        data_files.append((
+            log_prefix + '.bmp',
+            camera_utils.EncodeCVImage(self.original_img, '.bmp')))
       if self.analyzed_img is not None:
-        data_files.append((log_prefix + '.jpg',
-                           EncodeCVImage(self.analyzed_img, '.jpg')))
+        data_files.append((
+            log_prefix + '.jpg',
+            camera_utils.EncodeCVImage(self.analyzed_img, '.jpg')))
 
     # Skip saving test data for DataMethod.SIMPLE.
     if self.data_method == DataMethod.USB:
@@ -972,7 +970,7 @@ class _TestDelegate(object):
       Success or not.
     """
     self.usb_ready_event.wait()
-    with MountedMedia(self.usb_dev_path, 1) as mount_point:
+    with media_utils.MountedMedia(self.usb_dev_path, 1) as mount_point:
       folder_path = os.path.join(mount_point,
                                  datetime.date.today().strftime('%Y%m%d'))
       if os.path.exists(folder_path):
@@ -1203,7 +1201,8 @@ class _TestDelegate(object):
     self.usb_ready_event.set()
     self.delegator.ui.CallJSFunction('UpdateUSBStatus', True)
 
-  def _OnUSBRemoval(self, unused_dev_path):
+  def _OnUSBRemoval(self, dev_path):
+    del dev_path  # Unused.
     self.usb_ready_event.clear()
     self.usb_dev_path = None
     self.delegator.ui.CallJSFunction('UpdateUSBStatus', False)
@@ -1328,8 +1327,9 @@ class CameraFixture(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.internal_queue = Queue.Queue()
 
+    # pylint: disable=no-member
     os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %
-                          self.test_info.pytest_name))  # pylint: disable=E1101
+                          self.test_info.pytest_name))
 
     self.test_type = CameraFixture.TEST_TYPES[self.args.test_type]
     self.fixture_type = CameraFixture.FIXTURE_TYPES[self.args.fixture_type]
@@ -1353,12 +1353,13 @@ class CameraFixture(unittest.TestCase):
         script = dict([(k.strip(), v.strip()) for k, v in
                        reduce(lambda a, b: a + b,
                               self.args.chamber_cmd.values(), [])])
-        fixture_conn = MockFixtureConnection(script)
+        fixture_conn = fixture_connection.MockFixtureConnection(script)
       else:
-        fixture_conn = SerialFixtureConnection(**chamber_conn_params)
+        fixture_conn = fixture_connection.SerialFixtureConnection(
+            **chamber_conn_params)
 
     if self.fixture_type == Fixture.ALS:
-      self.chamber = ALSLightChamber(
+      self.chamber = als_light_chamber.ALSLightChamber(
           dut=self.dut,
           val_path=self.args.ALS_val_path,
           scale_path=None,
@@ -1366,7 +1367,7 @@ class CameraFixture(unittest.TestCase):
           fixture_cmd=self.args.chamber_cmd,
           mock_mode=self.args.mock_mode)
     else:
-      self.chamber = LightChamber(
+      self.chamber = light_chamber.LightChamber(
           test_chart_version=self.args.test_chart_version,
           mock_mode=self.args.mock_mode,
           device_index=self.args.device_index,
@@ -1377,13 +1378,13 @@ class CameraFixture(unittest.TestCase):
     self.ui = test_ui.UI()
     self.ui.AddEventHandler(
         'start_test_button_clicked',
-        lambda js_args: self._PostInternalQueue(EventType.START_TEST, js_args))
+        lambda js_args: self.PostInternalQueue(EventType.START_TEST, js_args))
     self.ui.AddEventHandler(
         'exit_test_button_clicked',
-        lambda _: self._PostInternalQueue(EventType.EXIT_TEST))
+        lambda _: self.PostInternalQueue(EventType.EXIT_TEST))
     self.ui.BindKey(
         test_ui.ESCAPE_KEY,
-        lambda _: self._PostInternalQueue(EventType.EXIT_TEST))
+        lambda _: self.PostInternalQueue(EventType.EXIT_TEST))
 
   def runTest(self):
     ui_thread = self.ui.Run(blocking=False)
@@ -1408,7 +1409,6 @@ class CameraFixture(unittest.TestCase):
     If the shift and tilt meet the criteria, it will prompt PASS. Then user can
     click 'Exit Test' button.  Otherwise, it prompts FAIL, and user needs to
     rotate and move the test chart to align it with the golden sample camera.
-
     """
     self.ui.CallJSFunction('InitForCalibration')
     self.ui.CallJSFunction('UpdateTextLabel', MSG_TITLE_CALIBRATION,
@@ -1418,7 +1418,7 @@ class CameraFixture(unittest.TestCase):
     frame_delay = 1.0 / CALIBRATION_FPS
 
     if self.args.control_chamber:
-      self.chamber.SetChart(LightChamber.Charts.SFR)
+      self.chamber.SetChart(light_chamber.LightChamber.Charts.SFR)
 
     self.chamber.EnableCamera()
     try:
@@ -1447,7 +1447,7 @@ class CameraFixture(unittest.TestCase):
             STYLE_PASS if success else STYLE_FAIL))
         logging.info(log_msg)
 
-        event = self._PopInternalQueue(wait=False)
+        event = self.PopInternalQueue(wait=False)
         if event and event.event_type == EventType.EXIT_TEST:
           if success:
             self.ui.Pass()
@@ -1482,7 +1482,7 @@ class CameraFixture(unittest.TestCase):
     end_time = time.time() + self.args.lens_shading_timeout_secs
 
     if self.args.control_chamber:
-      self.chamber.SetChart(LightChamber.Charts.WHITE)
+      self.chamber.SetChart(light_chamber.LightChamber.Charts.WHITE)
 
     self.chamber.EnableCamera()
     try:
@@ -1504,7 +1504,7 @@ class CameraFixture(unittest.TestCase):
         self.ShowTestStatus(msg=log_msg, style=(
             STYLE_PASS if success else STYLE_FAIL))
 
-        event = self._PopInternalQueue(wait=False)
+        event = self.PopInternalQueue(wait=False)
         if (remaining_time <= 0 or success or
             (event and event.event_type == EventType.EXIT_TEST)):
           event_log.Log(EVENT_LENS_SHADING, lens_shading_ratio=ls_ratio)
@@ -1554,7 +1554,7 @@ class CameraFixture(unittest.TestCase):
       self.ui.CallJSFunction('UpdateFixtureStatus', True)
 
     if self.args.auto_mode and delegate.params['cam_sn']['auto_read']:
-      self._PostInternalQueue(EventType.START_TEST)
+      self.PostInternalQueue(EventType.START_TEST)
 
     prefix = 'Camera' if self.args.test_type == TestType.IQ else 'ALS'
 
@@ -1563,14 +1563,14 @@ class CameraFixture(unittest.TestCase):
     # passes or fails depending on the last test result.
     success, fail_cause = False, None
     while True:
-      event = self._PopInternalQueue(wait=True)
+      event = self.PopInternalQueue(wait=True)
       if event.event_type == EventType.START_TEST:
         with leds.Blinker(LED_PATTERN):
-          # pylint: disable=W0633
           input_sn = ''
           if event.aux_data is not None:
             input_sn = event.aux_data.data.get('input_sn', '')
 
+          # pylint: disable=unpacking-non-sequence
           success, fail_cause = delegate.RunTest(input_sn)
 
         if success:
@@ -1587,7 +1587,7 @@ class CameraFixture(unittest.TestCase):
       else:
         raise ValueError('Invalid event type.')
 
-  def _PostInternalQueue(self, event_type, aux_data=None):
+  def PostInternalQueue(self, event_type, aux_data=None):
     """Posts an event to internal queue.
 
     Args:
@@ -1596,7 +1596,7 @@ class CameraFixture(unittest.TestCase):
     """
     self.internal_queue.put(InternalEvent(event_type, aux_data))
 
-  def _PopInternalQueue(self, wait):
+  def PopInternalQueue(self, wait):
     """Pops an event from internal queue.
 
     Args:
@@ -1636,7 +1636,7 @@ class CameraFixture(unittest.TestCase):
     resized_img = cv2.resize(
         img, None, fx=self.args.resize_ratio, fy=self.args.resize_ratio,
         interpolation=cv2.INTER_AREA)
-    data = base64.b64encode(EncodeCVImage(resized_img, '.jpg'))
+    data = base64.b64encode(camera_utils.EncodeCVImage(resized_img, '.jpg'))
     data_len = len(data)
 
     # Send the data in smaller packets due to event message size limit.

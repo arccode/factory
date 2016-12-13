@@ -13,19 +13,18 @@ import os
 import random
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.factory_task import FactoryTaskManager
-from cros.factory.test.factory_task import InteractiveFactoryTask
-from cros.factory.utils import file_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.sync_utils import PollForCondition
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
-_TEST_TITLE = test_ui.MakeLabel('Audio Test',
-                                u'音讯测试')
+_TEST_TITLE = test_ui.MakeLabel('Audio Test', u'音讯测试')
+
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
 _CSS = '#pass_key {font-size:36px; font-weight:bold;}'
@@ -41,7 +40,7 @@ _SOUND_DIRECTORY = os.path.join(
     'static', 'sounds')
 
 
-class AudioDigitPlaybackTask(InteractiveFactoryTask):
+class AudioDigitPlaybackTask(factory_task.InteractiveFactoryTask):
   """Task to verify audio playback function.
 
   It randomly picks a digit to play and checks if the operator presses the
@@ -104,16 +103,18 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
           if self._sample_rate is not None:
             cmd += ['-r %d' % self._sample_rate]
           cmd += [temp_wav_path]
-          Spawn(cmd, log=True, check_call=True)
+          process_utils.Spawn(cmd, log=True, check_call=True)
           if channel == 'left':
-            Spawn(['sox', temp_wav_path, wav_path, 'remix', '1', '0'],
-                  log=True, check_call=True)
+            process_utils.Spawn(
+                ['sox', temp_wav_path, wav_path, 'remix', '1', '0'],
+                log=True, check_call=True)
           elif channel == 'right':
-            Spawn(['sox', temp_wav_path, wav_path, 'remix', '0', '1'],
-                  log=True, check_call=True)
+            process_utils.Spawn(
+                ['sox', temp_wav_path, wav_path, 'remix', '0', '1'],
+                log=True, check_call=True)
           else:
-            Spawn(['mv', temp_wav_path, wav_path],
-                  log=True, check_call=True)
+            process_utils.Spawn(['mv', temp_wav_path, wav_path],
+                                log=True, check_call=True)
 
         with self._dut.temp.TempFile() as dut_wav_path:
           self._dut.link.Push(wav_path, dut_wav_path)
@@ -130,7 +131,7 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     self.UnbindDigitKeys()
 
 
-class DetectHeadphoneTask(InteractiveFactoryTask):
+class DetectHeadphoneTask(factory_task.InteractiveFactoryTask):
   """Task to wait for headphone connect/disconnect.
 
   Args:
@@ -176,8 +177,9 @@ class DetectHeadphoneTask(InteractiveFactoryTask):
 
   def Run(self):
     self._InitUI()
-    PollForCondition(poll_method=self._CheckHeadphone, poll_interval_secs=0.5,
-                     condition_name='CheckHeadphone', timeout_secs=10)
+    sync_utils.PollForCondition(
+        poll_method=self._CheckHeadphone, poll_interval_secs=0.5,
+        condition_name='CheckHeadphone', timeout_secs=10)
     self.Pass()
 
 
@@ -267,7 +269,7 @@ class AudioTest(unittest.TestCase):
 
   def runTest(self):
     self.InitUI()
-    self._task_manager = FactoryTaskManager(
+    self._task_manager = factory_task.FactoryTaskManager(
         self._ui, self.ComposeTasks(),
         update_progress=self._template.SetProgressBarValue)
     self._task_manager.Run()

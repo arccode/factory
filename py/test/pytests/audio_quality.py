@@ -25,20 +25,20 @@ import unittest
 import yaml
 import zipfile
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.goofy.goofy import CACHES_DIR
+from cros.factory.goofy import goofy
+from cros.factory.test.env import paths
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test.env import paths
-from cros.factory.test.event_log import Log
 from cros.factory.test.utils import audio_utils
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 # Host test machine crossover connected to DUT, fix local ip and port for
 # communication in between.
@@ -101,7 +101,7 @@ _RESULT_FAIL_RE = re.compile('(?i)result_fail')
 _VERSION_RE = re.compile('(?i)version')
 _CONFIG_FILE_RE = re.compile('(?i)config_file')
 
-LoopType = Enum(['sox', 'looptest', 'tinyloop', 'hwloop'])
+LoopType = type_utils.Enum(['sox', 'looptest', 'tinyloop', 'hwloop'])
 
 # To optimize execution time. If we have shell script to create loop and restore
 # configuration, we just use it and don't need to do separate actions.
@@ -191,11 +191,12 @@ class AudioQualityTest(unittest.TestCase):
     self._eth = None
     self._test_complete = False
     self._test_passed = False
-    self._loop_type = {'sox': LoopType.sox,
-                       'looptest': LoopType.looptest,
-                       'tinyloop': LoopType.tinyloop,
-                       'hwloop': LoopType.hwloop
-                      }[self.args.loop_type]
+    self._loop_type = {
+        'sox': LoopType.sox,
+        'looptest': LoopType.looptest,
+        'tinyloop': LoopType.tinyloop,
+        'hwloop': LoopType.hwloop
+    }[self.args.loop_type]
 
     self._use_multitone = self.args.use_multitone
     self._loop_buffer_count = self.args.loop_buffer_count
@@ -208,7 +209,7 @@ class AudioQualityTest(unittest.TestCase):
     self._multitone_process = None
     self._tone_process = None
     self._loop_process = None
-    self._caches_dir = os.path.join(CACHES_DIR, 'parameters')
+    self._caches_dir = os.path.join(goofy.CACHES_DIR, 'parameters')
     base = os.path.dirname(os.path.realpath(__file__))
     self._file_path = os.path.join(base, '..', '..', 'goofy', 'static',
                                    'sounds')
@@ -219,12 +220,13 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.AddEventHandler('start_run', self.StartRun)
     self._ui.BindKeyJS(
         test_ui.SPACE_KEY,
-        'test.sendTestEvent("start_run",{});' +
+        'test.sendTestEvent("start_run",{});'
         'document.getElementById("msg-utility").style.display="none";',
         once=True)
     self._ui.AddEventHandler('mock_command', self.MockCommand)
-    Spawn(['iptables', '-A', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
-           '-j', 'ACCEPT'], check_call=True)
+    process_utils.Spawn(
+        ['iptables', '-A', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
+         '-j', 'ACCEPT'], check_call=True)
 
   def runTest(self):
     self._ui.Run()
@@ -312,15 +314,15 @@ class AudioQualityTest(unittest.TestCase):
   def RestoreConfiguration(self):
     """Stops all the running process and restore the mute settings."""
     if self._multitone_process:
-      TerminateOrKillProcess(self._multitone_process)
+      process_utils.TerminateOrKillProcess(self._multitone_process)
       self._multitone_process = None
 
     if self._tone_process:
-      TerminateOrKillProcess(self._tone_process)
+      process_utils.TerminateOrKillProcess(self._tone_process)
       self._tone_process = None
 
     if self._loop_process:
-      TerminateOrKillProcess(self._loop_process)
+      process_utils.TerminateOrKillProcess(self._loop_process)
       self._loop_process = None
       logging.info('Stopped audio loop process')
 
@@ -349,10 +351,9 @@ class AudioQualityTest(unittest.TestCase):
     Args:
       response: response string
       args: This parameter is omitted when we test from FA-utility.
-                 Otherwise, this parameter is passing from
-                 handle_connection
-                 args[0] is socket connection
-                 args[1] is attr_list of handle_connection
+          Otherwise, this parameter is passing from handle_connection
+          args[0] is socket connection
+          args[1] is attr_list of handle_connection
     """
     # because there will not have args from mock_command
     if not args or not args[0] or not args[1][0]:
@@ -387,12 +388,10 @@ class AudioQualityTest(unittest.TestCase):
     try:
       with open(file_path, 'rb') as config_file:
         rawstring = config_file.read()
-        """The format of file content is 'file_name;file_size;file_content'.
-
-        The file size is real file size instead of the size after
-        b2a_hex. Using b2a_hex is to avoid the file content including
-        special character such as '\x03', '\x04', and '\x05'.
-        """  # pylint: disable=W0105
+        # The format of file content is 'file_name;file_size;file_content'.
+        # The file size is real file size instead of the size after
+        # b2a_hex. Using b2a_hex is to avoid the file content including
+        # special character such as '\x03', '\x04', and '\x05'.
         rawdata = (os.path.basename(self._parameters[1]) + ';' +
                    str(len(rawstring)) + ';' +
                    binascii.b2a_hex(rawstring))
@@ -443,7 +442,7 @@ class AudioQualityTest(unittest.TestCase):
       file_path = os.path.join(tempfile.gettempdir(), 'description.yaml')
       with open(file_path, 'r') as f:
         test_result = yaml.load(f)
-      Log('audio_quality_result', **test_result)
+      event_log.Log('audio_quality_result', **test_result)
 
     self.SendResponse(None, args)
 
@@ -470,23 +469,22 @@ class AudioQualityTest(unittest.TestCase):
     # Dump another copy of logs
     logging.info(repr(received_data))
 
-    '''The result logs are stored in filename ending in _[0-9]+.txt.
-
-    Its content looks like:
-    Freq [Hz]   dBV         Phase [Deg]
-    100.00      -60.01      3.00
-    105.93      -64.04      33.85
-    112.20      -68.47      92.10
-    ...
-
-    The column count is variable. There may be up to ten columns in the
-    results. Each column contains 12 characters. Because the spaces on
-    the right side of last colume are stripped. So the number of column
-    is the length of line divides by 12 and plus one.
-
-    Unfortunately, we cannot read the column names in the header row
-    by splitting with spaces.
-    '''  # pylint: disable=W0105
+    # The result logs are stored in filename ending in _[0-9]+.txt.
+    #
+    # Its content looks like:
+    # Freq [Hz]   dBV         Phase [Deg]
+    # 100.00      -60.01      3.00
+    # 105.93      -64.04      33.85
+    # 112.20      -68.47      92.10
+    # ...
+    #
+    # The column count is variable. There may be up to ten columns in the
+    # results. Each column contains 12 characters. Because the spaces on
+    # the right side of last colume are stripped. So the number of column
+    # is the length of line divides by 12 and plus one.
+    #
+    # Unfortunately, we cannot read the column names in the header row
+    # by splitting with spaces.
 
     match = re.search(r'(\d+)_(\d+)_(\d+).txt', file_name)
     match2 = re.search(r'(\d+)_(\d+).txt', file_name)
@@ -521,7 +519,7 @@ class AudioQualityTest(unittest.TestCase):
       test_result['serial_number'] = serial_number
       test_result['timestamp'] = timestamp
 
-      Log(('audio_quality_test_%s' % test_index), **test_result)
+      event_log.Log(('audio_quality_test_%s' % test_index), **test_result)
     elif match2:
       serial_number, timestamp = match2.groups()
 
@@ -530,7 +528,7 @@ class AudioQualityTest(unittest.TestCase):
       final_result['timestamp'] = timestamp
       final_result['data'] = received_data.replace('\r', '')
 
-      Log('audio_quality_final_result', **final_result)
+      event_log.Log('audio_quality_final_result', **final_result)
     else:
       logging.info('Unrecognizable filename %s', file_name)
 
@@ -557,8 +555,9 @@ class AudioQualityTest(unittest.TestCase):
     self._test_complete = True
 
     # Restores the original state before exiting the test.
-    Spawn(['iptables', '-D', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
-           '-j', 'ACCEPT'], check_call=True)
+    process_utils.Spawn(
+        ['iptables', '-D', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
+         '-j', 'ACCEPT'], check_call=True)
     self.RestoreConfiguration()
 
     logging.info('%s run_once finished', self.__class__)
@@ -577,12 +576,12 @@ class AudioQualityTest(unittest.TestCase):
       cmdargs = [audio_utils.SOX_PATH, '-t', 'alsa',
                  self._alsa_input_device, '-t',
                  'alsa', self._alsa_output_device]
-      self._loop_process = Spawn(cmdargs)
+      self._loop_process = process_utils.Spawn(cmdargs)
     elif self._loop_type == LoopType.looptest:
       cmdargs = [audio_utils.AUDIOLOOP_PATH, '-i', self._alsa_input_device,
                  '-o', self._alsa_output_device, '-c',
                  str(self._loop_buffer_count)]
-      self._loop_process = Spawn(cmdargs)
+      self._loop_process = process_utils.Spawn(cmdargs)
     elif self._loop_type == LoopType.tinyloop:
       self._dut.audio.CreateAudioLoop(self._in_card, self._in_subdevice,
                                       self._out_card, self._out_subdevice)
@@ -593,7 +592,7 @@ class AudioQualityTest(unittest.TestCase):
     """Plays the multi-tone wav file."""
     wav_path = os.path.join(self._file_path, '10SEC.wav')
     cmdargs = ['aplay', wav_path]
-    self._multitone_process = Spawn(cmdargs)
+    self._multitone_process = process_utils.Spawn(cmdargs)
     self.SendResponse(None, args)
 
   def HandleLoopJack(self, *args):
@@ -636,8 +635,8 @@ class AudioQualityTest(unittest.TestCase):
     """External mic loop to speaker."""
     factory.console.info('Audio Loop Mic Jack->Speaker')
     self.RestoreConfiguration()
-    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP +
-                            _LABEL_SPEAKER_MUTE_OFF)
+    self._ui.CallJSFunction('setMessage',
+                            _LABEL_AUDIOLOOP + _LABEL_SPEAKER_MUTE_OFF)
     if not self._dut.audio.ApplyAudioConfig(_JACK_SPEAKER_SCRIPT, 0, True):
       self._dut.audio.EnableExtmic(self._in_card)
       self._dut.audio.EnableSpeaker(self._out_card)
@@ -664,7 +663,7 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_LEFT)
     self._dut.audio.MuteLeftHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(1, self._alsa_output_device)
-    self._tone_process = Spawn(cmdargs)
+    self._tone_process = process_utils.Spawn(cmdargs)
     self.SendResponse(None, args)
 
   def HandleXtalkRight(self, *args):
@@ -673,7 +672,7 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_RIGHT)
     self._dut.audio.MuteRightHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(0, self._alsa_output_device)
-    self._tone_process = Spawn(cmdargs)
+    self._tone_process = process_utils.Spawn(cmdargs)
     self.SendResponse(None, args)
 
   def HandleMuteSpeakerLeft(self, *args):
@@ -732,8 +731,8 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
     shopfloor_client = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
     logging.info('Syncing time with shopfloor...')
-    goofy = factory.get_state_instance()
-    goofy.SyncTimeWithShopfloorServer()
+    goofy_instance = factory.get_state_instance()
+    goofy_instance.SyncTimeWithShopfloorServer()
 
     self._ui.CallJSFunction('setMessage', _LABEL_DOWNLOADING_PARAMETERS)
     download_list = []
@@ -750,7 +749,7 @@ class AudioQualityTest(unittest.TestCase):
 
     # Download the list and saved to caches in state directory.
     for filepath in download_list:
-      Spawn(['mkdir', '-p', os.path.join(
+      process_utils.Spawn(['mkdir', '-p', os.path.join(
           self._caches_dir, os.path.dirname(filepath))], check_call=True)
       binary_obj = shopfloor_client.GetParameter(filepath)
       with open(os.path.join(self._caches_dir, filepath), 'wb') as fd:
@@ -786,12 +785,13 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
     shopfloor.UploadAuxLogs(self._auxlogs, dir_name='audio')
 
-  def StartRun(self, event):  # pylint: disable=W0613
+  def StartRun(self, event):
     """Runs the testing flow after user press 'space'.
 
     Args:
       event: event from UI.
     """
+    del event  # Unused.
     self.RunAudioServer()
 
     if self._test_passed:
@@ -801,6 +801,6 @@ class AudioQualityTest(unittest.TestCase):
       if self._use_shopfloor:
         factory.console.info(
             'Test failed. Force to flush event logs...')
-        goofy = factory.get_state_instance()
-        goofy.FlushEventLogs()
+        goofy_instance = factory.get_state_instance()
+        goofy_instance.FlushEventLogs()
       self._ui.Fail(_LABEL_FAIL_LOGS)

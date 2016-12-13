@@ -7,7 +7,7 @@
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg

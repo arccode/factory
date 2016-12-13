@@ -24,12 +24,11 @@ import os
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
 from cros.factory.test import test_ui
-from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.process_utils import StartDaemonThread
+from cros.factory.utils import process_utils
 
 _DEFAULT_SUBTEST_LIST = ['Light sensor dark',
                          'Light sensor exact',
@@ -106,7 +105,7 @@ class iio_generic(object):
   def Config(self):
     """Creates device node if device does not exist."""
     if self._init_cmd:
-      Spawn(self._init_cmd, check_call=True)
+      process_utils.Spawn(self._init_cmd, check_call=True)
     if not os.path.isfile(self._rd):
       raise ValueError('Cannot create %s' % self._rd)
     val = self.Read('first', samples=1)
@@ -216,16 +215,16 @@ class LightSensorTest(unittest.TestCase):
       self.ui.SetHTML(' : UNTESTED', id='result%d' % test)
       test += 1
 
-    StartDaemonThread(target=self.MonitorSensor)
+    process_utils.StartDaemonThread(target=self.MonitorSensor)
 
-  def StartCountDown(self, event):  # pylint: disable=W0613
+  def StartCountDown(self, event):
+    del event  # Unused.
     self._started = True
     self._active_subtest = self._subtest_list[0]
     self.ui.SetHTML(' : ACTIVE', id='result%d' % self._tested)
-    StartCountdownTimer(self._timeout_per_subtest * len(self._subtest_list),
-                        self.TimeoutHandler,
-                        self.ui,
-                        _ID_COUNTDOWN_TIMER)
+    countdown_timer.StartCountdownTimer(
+        self._timeout_per_subtest * len(self._subtest_list),
+        self.TimeoutHandler, self.ui, _ID_COUNTDOWN_TIMER)
 
   def NextSubtest(self):
     self._tested += 1

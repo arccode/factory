@@ -8,12 +8,12 @@
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import SpawnOutput
-from cros.factory.utils.sys_utils import GetI2CBus
+from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 
 _RE_DEVICE_FOUND = re.compile('^(UU|[0-9a-f]{2})$')
 
@@ -29,7 +29,7 @@ class I2CProbeTest(unittest.TestCase):
   def ProbeI2C(self, bus, addr, r_flag):
     cmd = 'i2cdetect %s -y %d 0x%x 0x%x' % ('-r ' if r_flag else '',
                                             bus, addr, addr)
-    return self.DeviceExists(SpawnOutput(cmd.split(), log=True))
+    return self.DeviceExists(process_utils.SpawnOutput(cmd.split(), log=True))
 
   ARGS = [
       Arg('bus', int, 'I2C bus to probe.', optional=True),
@@ -51,14 +51,15 @@ class I2CProbeTest(unittest.TestCase):
     if self.args.auto_detect_device:
       if type(self.args.auto_detect_device) != list:
         self.args.auto_detect_device = [self.args.auto_detect_device]
-      bus = GetI2CBus(self.args.auto_detect_device)
+      bus = sys_utils.GetI2CBus(self.args.auto_detect_device)
       self.assertTrue(type(bus) is int, 'Auto detect bus error')
-      factory.console.info('Auto detect bus: %d' % bus)
+      factory.console.info('Auto detect bus: %d', bus)
 
     if type(addr_list) != list:
       addr_list = [addr_list]
     probed_result = [self.ProbeI2C(bus, addr, r_flag) for addr in addr_list]
-    Log('ic2_probed', result=probed_result, bus=bus, addr_list=addr_list)
+    event_log.Log('ic2_probed',
+                  result=probed_result, bus=bus, addr_list=addr_list)
     self.assertTrue(any(probed_result),
                     'No I2C device on bus %d addr %s' %
                     (bus, ', '.join(['0x%x' % addr for addr in addr_list])))

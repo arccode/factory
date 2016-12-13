@@ -15,7 +15,7 @@ import ctypes
 import mmap
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.external import PIL
 
@@ -464,7 +464,7 @@ class DRMModeFB(DRMModeBaseStruct):
     if self._map:
       return
     map_dumb = self.DRMModeMapDumb()
-    map_dumb.handle = self.handle   # pylint: disable=W0201
+    map_dumb.handle = self.handle  # pylint: disable=W0201
     ret = _GetDRMLibrary().drmIoctl(self.fd, self.DRM_IOCTL_MODE_MAP_DUMB,
                                     ctypes.byref(map_dumb))
     if ret:

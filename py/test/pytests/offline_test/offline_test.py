@@ -5,14 +5,13 @@
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils.arg_utils import Arg
 
 class OfflineTestError(Exception):
   pass
@@ -24,7 +23,7 @@ class OfflineTest(unittest.TestCase):
 
   DEPLOY_ARGS = [
       Arg('shutdown', SHUTDOWN,
-          ('What to do after tests are deployed (One of %s)' % SHUTDOWN)),
+          'What to do after tests are deployed (One of %s)' % SHUTDOWN),
       Arg('test_spec_file', str,
           'A JSON file to specify which tests are running'),
       Arg('start_up_service', bool,
@@ -32,7 +31,7 @@ class OfflineTest(unittest.TestCase):
   ]
 
   ARGS = [
-      Arg('action', ACTION, ('one of %s' % ACTION))
+      Arg('action', ACTION, 'one of %s' % ACTION)
   ] + DEPLOY_ARGS
 
   def setUp(self):

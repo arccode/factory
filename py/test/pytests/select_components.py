@@ -8,18 +8,18 @@
 """Prompts operator to select components, and updates device_data."""
 
 
-import factory_common  # pylint: disable=W0611
 import logging
 import unittest
 
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test import factory
-from cros.factory.test.ui_templates import OneSection, SelectBox, Table
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.string_utils import ParseString
+from cros.factory.utils import string_utils
 
 _MESSAGE_SELECT = test_ui.MakeLabel('Select Components:', u'选择元件：',
                                     'msg-font-size')
@@ -38,8 +38,7 @@ _TEST_TITLE = test_ui.MakeLabel('Select Components', u'选择元件')
 class SelectComponentTest(unittest.TestCase):
   """The main class for this pytest."""
   ARGS = [
-      Arg(
-          'comps', dict,
+      Arg('comps', dict,
           ('A dict from components to (device_data_field, choices). If '
            'component\ncan be found in hwid database, the default choices will'
            ' be available\ncomponents in hwid database. If choices is not '
@@ -57,7 +56,7 @@ class SelectComponentTest(unittest.TestCase):
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_TEST_DEFAULT_CSS)
     self.template.SetTitle(_TEST_TITLE)
     self.device_data = shopfloor.GetDeviceData()
@@ -80,13 +79,13 @@ class SelectComponentTest(unittest.TestCase):
     logging.info('Component selection: %r', event.data)
     for comp in event.data:
       key_name = self.component_device_data[self.fields[comp[0]]]
-      value = ParseString(comp[1])
+      value = string_utils.ParseString(comp[1])
       self.device_data[key_name] = value
       factory.console.info('Update device data %r: %r', key_name, value)
     shopfloor.UpdateDeviceData(self.device_data)
 
   def runTest(self):
-    table = Table(element_id=None, rows=2, cols=len(self.fields))
+    table = ui_templates.Table(element_id=None, rows=2, cols=len(self.fields))
     db = database.Database.Load()
     fields_in_db = [x for x in self.fields
                     if x in db.components.GetRequiredComponents()]
@@ -107,8 +106,8 @@ class SelectComponentTest(unittest.TestCase):
       self.ui.RunJS('addComponentField("%s");' % field)
 
       table.SetContent(0, field_index, field)
-      select_box = SelectBox(_SELECT_BOX_ID(field), _SELECTION_PER_PAGE,
-                             _SELECT_BOX_STYLE)
+      select_box = ui_templates.SelectBox(
+          _SELECT_BOX_ID(field), _SELECTION_PER_PAGE, _SELECT_BOX_STYLE)
       selected = None
       for index, comp_value in enumerate(comp_values[field]):
         select_box.InsertOption(comp_value, comp_value)

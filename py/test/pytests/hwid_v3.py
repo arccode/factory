@@ -11,7 +11,7 @@ import os
 import unittest
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.test.event_log import Log
@@ -140,10 +140,8 @@ class HWIDV3Test(unittest.TestCase):
       encoded_string = self.factory_tools.CheckOutput(['hwid', 'read']).strip()
 
     template.SetState(test_ui.MakeLabel(
-        'Verifying HWID (v3): %s...' % (
-            encoded_string or '(unchanged)'),
-        u'正在验证 HWID (v3): %s...' % (
-            encoded_string or u'（不变）')))
+        'Verifying HWID (v3): %s...' % (encoded_string or '(unchanged)'),
+        u'正在验证 HWID (v3): %s...' % (encoded_string or u'（不变）')))
 
     verify_cmd = ['hwid', 'verify',
                   '--probed-results-file', probed_results_file,

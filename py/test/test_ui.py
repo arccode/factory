@@ -18,10 +18,9 @@ import threading
 import traceback
 import uuid
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event as test_event
 from cros.factory.test import factory
-from cros.factory.test.event import Event, EventClient
-from cros.factory.test.factory import TestState
 from cros.factory.utils import process_utils
 
 
@@ -70,9 +69,9 @@ def MakeLabel(en, zh=None, css_class=None):
   use English version
 
   Args:
-      en: The English-language label.
-      zh: The Chinese-language label (or None if unspecified).
-      css_class: The CSS class to decorate the label (or None if unspecified).
+    en: The English-language label.
+    zh: The Chinese-language label (or None if unspecified).
+    css_class: The CSS class to decorate the label (or None if unspecified).
   """
   return ('<span class="goofy-label-en %s">%s</span>'
           '<span class="goofy-label-zh %s">%s</span>' %
@@ -84,7 +83,7 @@ def MakeTestLabel(test):
   """Returns label for a test name in the active language.
 
   Args:
-     test: A test object from the test list.
+    test: A test object from the test list.
   """
   return MakeLabel(Escape(test.label_en), Escape(test.label_zh))
 
@@ -109,13 +108,13 @@ def MakeStatusLabel(status):
   """Returns label for a test status in the active language.
 
   Args:
-      status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
+    status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
   """
   STATUS_ZH = {
-      TestState.PASSED: u'良好',
-      TestState.FAILED: u'不良',
-      TestState.ACTIVE: u'正在测',
-      TestState.UNTESTED: u'未测'
+      factory.TestState.PASSED: u'良好',
+      factory.TestState.FAILED: u'不良',
+      factory.TestState.ACTIVE: u'正在测',
+      factory.TestState.UNTESTED: u'未测'
   }
   return MakeLabel(status.lower(),
                    STATUS_ZH.get(status, status))
@@ -126,8 +125,9 @@ class UI(object):
 
   def __init__(self, css=None, setup_static_files=True):
     self.lock = threading.RLock()
-    self.event_client = EventClient(callback=self._HandleEvent,
-                                    event_loop=EventClient.EVENT_LOOP_WAIT)
+    self.event_client = test_event.EventClient(
+        callback=self._HandleEvent,
+        event_loop=test_event.EventClient.EVENT_LOOP_WAIT)
     self.test = os.environ['CROS_FACTORY_TEST_PATH']
     self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
     try:
@@ -175,14 +175,12 @@ class UI(object):
 
     def GetAutoload(extension):
       autoload = filter(os.path.exists,
-                        [x + '.' + extension
-                         for x in autoload_bases])
+                        [x + '.' + extension for x in autoload_bases])
       if not autoload:
         return ''
       if len(autoload) > 1:
         raise FactoryTestFailure(
-            'Cannot have both of %s - delete one!' %
-            autoload)
+            'Cannot have both of %s - delete one!' % autoload)
 
       factory.get_state_instance().register_path(
           '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
@@ -195,13 +193,14 @@ class UI(object):
          '<link rel="stylesheet" type="text/css" href="/css/goofy.css">',
          '<link rel="stylesheet" type="text/css" href="/css/test.css">',
          GetAutoload('html')])
-    self.PostEvent(Event(Event.Type.INIT_TEST_UI, html=html))
+    self.PostEvent(
+        test_event.Event(test_event.Event.Type.INIT_TEST_UI, html=html))
 
     js = GetAutoload('js')
     if js:
       self.RunJS(js)
 
-  def SetHTML(self, html, append=False, id=None):  # pylint: disable=W0622
+  def SetHTML(self, html, append=False, id=None):
     """Sets a HTML snippet to the UI in the test pane.
 
     Note that <script> tags are not allowed in SetHTML() and
@@ -213,7 +212,9 @@ class UI(object):
       append: Whether to append the HTML snippet.
       id: If given, writes html to the element identified by id.
     """
-    self.PostEvent(Event(Event.Type.SET_HTML, html=html, append=append, id=id))
+    # pylint: disable=redefined-builtin
+    self.PostEvent(test_event.Event(test_event.Event.Type.SET_HTML,
+                                    html=html, append=append, id=id))
 
   def AppendHTML(self, html, **kwargs):
     """Append to the UI in the test pane."""
@@ -230,13 +231,14 @@ class UI(object):
     Args:
       js: The JavaScript code to execute.
       kwargs: Arguments to pass to the code; they will be
-        available in an "args" dict within the evaluation
-        context.
+          available in an "args" dict within the evaluation
+          context.
 
     Example:
       ui.RunJS('alert(args.msg)', msg='The British are coming')
     """
-    self.PostEvent(Event(Event.Type.RUN_JS, js=js, args=kwargs))
+    self.PostEvent(
+        test_event.Event(test_event.Event.Type.RUN_JS, js=js, args=kwargs))
 
   def CallJSFunction(self, name, *args):
     """Calls a JavaScript function in the test pane.
@@ -248,15 +250,15 @@ class UI(object):
       name: The name of the function to execute.
       args: Arguments to the function.
     """
-    self.PostEvent(Event(Event.Type.CALL_JS_FUNCTION, name=name, args=args))
+    self.PostEvent(test_event.Event(test_event.Event.Type.CALL_JS_FUNCTION,
+                                    name=name, args=args))
 
   def AddEventHandler(self, subtype, handler):
     """Adds an event handler.
 
     Args:
       subtype: The test-specific type of event to be handled.
-      handler: The handler to invoke with a single argument (the event
-        object).
+      handler: The handler to invoke with a single argument (the event object).
     """
     self.event_handlers.setdefault(subtype, []).append(handler)
 
@@ -291,7 +293,7 @@ class UI(object):
       mime_type: MIME type for the data
       data: Data to serve
       expiration: If not None, the number of seconds in which the data will
-        expire.
+          expire.
     """
     return factory.get_state_instance().url_for_data(
         mime_type, data, expiration)
@@ -306,12 +308,14 @@ class UI(object):
 
   def Pass(self):
     """Passes the test."""
-    self.PostEvent(Event(Event.Type.END_TEST, status=TestState.PASSED))
+    self.PostEvent(test_event.Event(test_event.Event.Type.END_TEST,
+                                    status=factory.TestState.PASSED))
 
   def Fail(self, error_msg):
     """Fails the test immediately."""
-    self.PostEvent(Event(Event.Type.END_TEST, status=TestState.FAILED,
-                         error_msg=error_msg))
+    self.PostEvent(test_event.Event(test_event.Event.Type.END_TEST,
+                                    status=factory.TestState.FAILED,
+                                    error_msg=error_msg))
 
   def FailLater(self, error_msg):
     """Appends a error message to the error message list, which causes
@@ -323,7 +327,7 @@ class UI(object):
     """Allows space/enter to pass the test, and escape to fail it."""
     self.BindStandardKeys()
 
-  def SignalHandler(self, signum, unused_frame):
+  def SignalHandler(self, signum, frame):
     """A signal handler to handle SIGINT from UI daemon thread.
 
     When UI is running in non-blocking mode, we use SIGINT to communicate from
@@ -337,6 +341,7 @@ class UI(object):
     Raises:
       FactoryTestFailure if the received signal is SIGINT.
     """
+    del frame  # Unused.
     logging.warn('Signal handler called with signal %s', signum)
     if signum == signal.SIGINT:
       for source, description in exception_list:
@@ -348,29 +353,29 @@ class UI(object):
 
     Args:
       blocking: True if running UI in the same thread. False if creating a
-        dedicated UI thread. Test UI must not be non-blocking if used in
-        autotest.
+          dedicated UI thread. Test UI must not be non-blocking if used in
+          autotest.
       on_finish: Callback function when UI ends. This can be used to notify
-        the test for necessary clean-up (e.g. terminate an event loop.)
+          the test for necessary clean-up (e.g. terminate an event loop.)
     """
 
     def _RunImpl(self, blocking, on_finish):
       event = self.event_client.wait(
           lambda event:
-          (event.type == Event.Type.END_TEST and
+          (event.type == test_event.Event.Type.END_TEST and
            event.invocation == self.invocation and
            event.test == self.test))
       logging.info('Received end test event %r', event)
       if self.task_hook:
         # Let factory task have a chance to do its clean up work.
-        # pylint: disable=W0212
+        # pylint: disable=protected-access
         self.task_hook._Finish(getattr(event, 'error_msg', ''))
       self.event_client.close()
 
       try:
-        if event.status == TestState.PASSED and not self.error_msgs:
+        if event.status == factory.TestState.PASSED and not self.error_msgs:
           pass
-        elif event.status == TestState.FAILED or self.error_msgs:
+        elif event.status == factory.TestState.FAILED or self.error_msgs:
           error_msg = getattr(event, 'error_msg', '')
           if self.error_msgs:
             error_msg += ('\n'.join([''] + self.error_msgs))
@@ -405,7 +410,7 @@ class UI(object):
 
     Args:
       bind_pass_keys: True if binding pass keys, including enter, space,
-        and 'P'.
+          and 'P'.
       bind_fail_keys: True if binding fail keys, including ESC and 'F'.
     """
     items = []
@@ -503,7 +508,7 @@ class UI(object):
 
   def _HandleEvent(self, event):
     """Handles an event sent by a test UI."""
-    if (event.type == Event.Type.TEST_UI_EVENT and
+    if (event.type == test_event.Event.Type.TEST_UI_EVENT and
         event.test == self.test and
         event.invocation == self.invocation):
       with self.lock:
@@ -539,7 +544,7 @@ class UI(object):
 
   def HideTooltips(self):
     """Hides tooltips."""
-    self.PostEvent(Event(Event.Type.HIDE_TOOLTIPS))
+    self.PostEvent(test_event.Event(test_event.Event.Type.HIDE_TOOLTIPS))
 
 
 class DummyUI(object):

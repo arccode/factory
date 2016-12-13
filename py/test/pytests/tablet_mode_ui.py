@@ -9,7 +9,7 @@
 import os
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
@@ -68,10 +68,9 @@ class TabletModeUI(object):
     self.extra_css = extra_css
     # TODO(kitching): Perhaps there should be a better way for a 'UI library'
     #                 to have access to its own static file directory.
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     self.ui._SetupStaticFiles(
         os.path.realpath(__file__))
-    # pylint: enable=W0212
 
   def AskForTabletMode(self, event_callback):
     template = OneSection(self.ui)

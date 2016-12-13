@@ -15,12 +15,10 @@ from __future__ import print_function
 import time
 import unittest
 
-
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import factory_task
 from cros.factory.test import test_ui
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.test.test_ui import MakeLabel, UI
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -31,9 +29,10 @@ CSS_TEMPLATE = """
 _HTML_REMAIN = '<br><div id="remain"></div>'
 
 
-class ShowingTask(FactoryTask):
+class ShowingTask(factory_task.FactoryTask):
   """The task to show message for seconds """
-  def __init__(self, ui, seconds, manual_check):  # pylint: disable=W0231
+  def __init__(self, ui, seconds, manual_check):
+    super(ShowingTask, self).__init__()
     self._ui = ui
     self._seconds = seconds
     self._done = False
@@ -80,32 +79,32 @@ class MessageTest(unittest.TestCase):
            dict(text_size=self.args.text_size,
                 text_color=self.args.text_color,
                 background_color=self.args.background_color))
-    ui = UI(css=css)
-    template = OneSection(ui)
+    ui = test_ui.UI(css=css)
+    template = ui_templates.OneSection(ui)
 
     press_button_hint = ''
     if self.args.show_press_button_hint:
       if self.args.manual_check:
-        press_button_hint = MakeLabel(
+        press_button_hint = test_ui.MakeLabel(
             ('<div>Press <strong>Enter</strong> to continue, '
              'or <strong>ESC</strong> if things are not going right.</div>'),
             (u'<div>按<strong>Enter</strong>继续，'
              u'不正确请按<strong>ESC</strong></div>'), None)
       else:
-        press_button_hint = MakeLabel(
+        press_button_hint = test_ui.MakeLabel(
             '<div>Press <strong>Enter</strong> to continue.</div>',
             u'<div>按<strong>Enter</strong>继续</div>', None)
 
-    template.SetTitle(MakeLabel('Message', u'讯息'))
+    template.SetTitle(test_ui.MakeLabel('Message', u'讯息'))
     template.SetState(
         '<div class="state">' +
-        MakeLabel(self.args.html_en, self.args.html_zh, 'message') +
+        test_ui.MakeLabel(self.args.html_en, self.args.html_zh, 'message') +
         press_button_hint +
         _HTML_REMAIN +
         '</div>')
     if self.args.seconds:
       task = ShowingTask(ui, self.args.seconds, self.args.manual_check)
-      FactoryTaskManager(ui, [task]).Run()
+      factory_task.FactoryTaskManager(ui, [task]).Run()
     else:
       ui.BindStandardKeys(bind_fail_keys=self.args.manual_check)
       ui.Run()

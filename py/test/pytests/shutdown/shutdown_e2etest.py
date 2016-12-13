@@ -10,7 +10,7 @@ import mock
 import re
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.pytests.shutdown import shutdown

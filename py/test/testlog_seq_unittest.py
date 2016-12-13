@@ -9,16 +9,15 @@
 
 
 import json
+import logging
 import os
 import shutil
 import tempfile
-import time
 import threading
+import time
 import unittest
 
-import logging
-
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import testlog_seq
 from cros.factory.utils import file_utils
 
@@ -46,7 +45,7 @@ class BootSequenceTest(unittest.TestCase):
     next_seq = seq.Next()
     current_seq = seq.Current()
     self.assertEquals(next_seq, current_seq)
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     self.assertEquals(
         next_seq, 1 + last_seq + testlog_seq._SEQ_INCREMENT_ON_BOOT)
 

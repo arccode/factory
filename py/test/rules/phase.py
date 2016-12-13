@@ -6,7 +6,7 @@ import functools
 import logging
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 
@@ -94,7 +94,7 @@ def GetPhase():
   If no state has been set, a warning is logged and
   the strictest state ('PVT') is used.
   """
-  global _current_phase  # pylint: disable=W0603
+  global _current_phase  # pylint: disable=global-statement
   if _current_phase:
     return _current_phase
 
@@ -164,7 +164,7 @@ def SetPersistentPhase(phase):
     phase: A Phase object, the name of a phase, or None.
         If None, the file containing the phase is deleted.
   """
-  global _current_phase  # pylint: disable=W0603
+  global _current_phase  # pylint: disable=global-statement
 
   path = GetPhaseStatePath()
 
@@ -191,7 +191,7 @@ def OverridePhase(phase):
         If None, the phase is reset, next GetPhase() call will read from
         persistent state again.
   """
-  global _current_phase
+  global _current_phase  # pylint: disable=global-statement
   if phase:
     _current_phase = Phase(phase)  # Coerce to Phase object
   else:

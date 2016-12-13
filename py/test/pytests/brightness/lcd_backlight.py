@@ -7,13 +7,14 @@
 """This is a factory test to check the functionality of LCD backlight module.
 """
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.pytests.brightness import brightness
-from cros.factory.utils.arg_utils import Arg, MergeArgs
+from cros.factory.utils import arg_utils
+from cros.factory.utils.arg_utils import Arg
 
 
 class LCDBacklightTest(brightness.BrightnessTest):
-  ARGS = MergeArgs(brightness.BrightnessTest.ARGS, [
+  ARGS = arg_utils.MergeArgs(brightness.BrightnessTest.ARGS, [
       Arg('msg_en', str, 'Message (HTML in English)',
           default='Please check if backlight brightness is changing from '
           'dark to bright.'),

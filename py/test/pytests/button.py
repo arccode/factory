@@ -24,18 +24,16 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import countdown_timer
+from cros.factory.test import event_log
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_ui
-from cros.factory.test.countdown_timer import StartCountdownTimer
-from cros.factory.test.event_log import Log
-
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
-from cros.factory.utils.arg_utils import Arg
 
 _DEFAULT_TIMEOUT = 30
 
@@ -88,8 +86,8 @@ class EvtestButton(GenericButton):
     self._name = name
 
   def IsPressed(self):
-    return (self._dut.Call(['evtest', '--query', self._event_dev, 'EV_KEY',
-                            self._name]) != 0)
+    return self._dut.Call(['evtest', '--query', self._event_dev, 'EV_KEY',
+                           self._name]) != 0
 
 
 class GpioButton(GenericButton):
@@ -115,9 +113,9 @@ class GpioButton(GenericButton):
     # Exporting new GPIO may cause device busy for a while.
     for unused_counter in xrange(5):
       try:
-        self._dut.WriteFile(self._dut.path.join(gpio_base, 'gpio%d' % number,
-                                                'active_low'),
-                            '%d' % (0 if is_active_high else 1))
+        self._dut.WriteFile(
+            self._dut.path.join(gpio_base, 'gpio%d' % number, 'active_low'),
+            '%d' % (0 if is_active_high else 1))
         break
       except Exception:
         time.sleep(0.1)
@@ -167,7 +165,7 @@ class ButtonTest(unittest.TestCase):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_BUTTON_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_BUTTON_TEST)
 
@@ -195,7 +193,7 @@ class ButtonTest(unittest.TestCase):
     # Create a thread to monitor button events.
     process_utils.StartDaemonThread(target=self._MonitorButtonEvent)
     # Create a thread to run countdown timer.
-    StartCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self.args.timeout_secs,
         lambda: self.ui.Fail('Button test failed due to timeout.'),
         self.ui,
@@ -205,11 +203,11 @@ class ButtonTest(unittest.TestCase):
   def tearDown(self):
     timestamps = self._action_timestamps + [float('inf')]
     for release_index in xrange(2, len(timestamps), 2):
-      Log('button_wait_sec',
-          time_to_press_sec=(timestamps[release_index - 1] -
-                             timestamps[release_index - 2]),
-          time_to_release_sec=(timestamps[release_index] -
-                               timestamps[release_index - 1]))
+      event_log.Log('button_wait_sec',
+                    time_to_press_sec=(timestamps[release_index - 1] -
+                                       timestamps[release_index - 2]),
+                    time_to_release_sec=(timestamps[release_index] -
+                                         timestamps[release_index - 1]))
     if self._fixture:
       try:
         self._fixture.SimulateButtonRelease(self.args.bft_button_name)

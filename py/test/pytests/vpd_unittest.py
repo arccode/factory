@@ -10,7 +10,7 @@ import mox
 import os
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.boards import chromeos
 from cros.factory.device.vpd import Partition
 from cros.factory.test.factory import FactoryTestFailure

@@ -17,8 +17,6 @@ import re
 import types
 import SocketServer
 
-# pylint: disable=W0232
-
 
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
   allow_reuse_address = True
@@ -35,7 +33,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
   Exceptions will be raised if input cannot match any of the regular expression
   from keys.
   """
-  responses_lookup = list()
+  responses_lookup = []
 
   @classmethod
   def AddLookup(cls, input_line, response):
@@ -44,7 +42,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
     if (isinstance(response, types.StringType) or
         isinstance(response, types.NoneType)):
       is_known_types = True
-    elif (inspect.isfunction(response) or inspect.ismethod(response)):
+    elif inspect.isfunction(response) or inspect.ismethod(response):
       is_known_types = True
     assert is_known_types, (
         'type %r of response is not supported' % type(response))
@@ -65,7 +63,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
           continue
         matched = True
         logging.info('Input %r matched with regexp %r', line, regexp)
-        if (inspect.isfunction(response) or inspect.ismethod(response)):
+        if inspect.isfunction(response) or inspect.ismethod(response):
           response = response(line)
 
         if isinstance(response, types.StringType):

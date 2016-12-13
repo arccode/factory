@@ -9,7 +9,7 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.phase import Phase
@@ -19,7 +19,7 @@ from cros.factory.test.rules.phase import PhaseAssertionError
 
 # Allow access to protected members _state_root_for_testing and _current_phase
 # for white-box testing.
-# pylint: disable=W0212
+# pylint: disable=protected-access
 
 
 class BasicPhaseTest(unittest.TestCase):

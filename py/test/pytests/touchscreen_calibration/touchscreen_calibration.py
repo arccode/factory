@@ -15,7 +15,7 @@ import time
 import unittest
 import xmlrpclib
 
-import factory_common     # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 import sensors_server
 
 from cros.factory.test.event_log import Log

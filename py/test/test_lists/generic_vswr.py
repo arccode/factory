@@ -15,7 +15,7 @@ main groups:
 """
 
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists.station_based_test_list import StationBased
 from cros.factory.test.test_lists.test_lists import OperatorTest
 

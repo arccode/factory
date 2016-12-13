@@ -8,7 +8,7 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -19,16 +19,16 @@ FinishReason = type_utils.Enum(['PASSED', 'FAILED', 'STOPPED'])
 
 
 class FactoryTaskManager(object):
-  '''Manages the execution of factory tasks in the context of the given UI.
+  """Manages the execution of factory tasks in the context of the given UI.
 
   Args:
     ui: The test UI object that the manager depends on.
     task_list: A list of factory tasks to be executed.
     update_progress: Optional callback to update progress bar. Passing
-       percent progress as parameter.
+        percent progress as parameter.
     on_finish: Optional callback to run when ui ends.
         It will be passed to ui.Run().
- '''
+  """
 
   def __init__(self, ui, task_list, update_progress=None,
                on_finish=None):
@@ -47,10 +47,11 @@ class FactoryTaskManager(object):
         self._update_progress(100 * self._num_done_tasks / self._num_tasks)
 
     if self._task_list:
+      # pylint: disable=protected-access
       self._current_task = self._task_list.pop(0)
       self._current_task._task_manager = self
       self._current_task._ui = self._ui
-      self._current_task._Start()  # pylint: disable=W0212
+      self._current_task._Start()
     else:
       self._ui.Pass()
 
@@ -89,16 +90,19 @@ class FactoryTaskManager(object):
 
 
 class FactoryTask(object):
-  '''Base class for factory tasks.
+  """Base class for factory tasks.
 
   Subclass should implement Run(), and possibly Cleanup() if the user
-  wants to do some cleaning jobs.'''
-  # pylint: disable=E1101
+  wants to do some cleaning jobs.
+  """
   _execution_status = TaskState.NOT_STARTED
+  def __init__(self):
+    self._ui = None
+    self._task_manager = None
 
   def _Start(self):
-    assert self._execution_status == TaskState.NOT_STARTED, \
-        'Task %s has been run before.' % self.__class__.__name__
+    assert self._execution_status == TaskState.NOT_STARTED, (
+        'Task %s has been run before.' % self.__class__.__name__)
     logging.info('Start ' + self.__class__.__name__)
 
     # Hook to the test_ui so that the ui can call _Finish when it
@@ -123,7 +127,7 @@ class FactoryTask(object):
     self._execution_status = TaskState.FINISHED
     self._ui.task_hook = None
     self._ui.RunJS('window.test.unbindAllKeys();'
-                   'window.test.removeAllVirtualkeys();');
+                   'window.test.removeAllVirtualkeys();')
     self.Cleanup()
 
   def _IsRunning(self):
@@ -131,20 +135,20 @@ class FactoryTask(object):
 
   def Stop(self):
     self._Finish(FinishReason.STOPPED)
-    self._task_manager.RunNextTask()  # pylint: disable=E1101
+    self._task_manager.RunNextTask()
 
   def Pass(self):
     self._Finish(FinishReason.PASSED)
-    self._task_manager.RunNextTask()  # pylint: disable=E1101
+    self._task_manager.RunNextTask()
 
   def Fail(self, error_msg, later=False):
-    '''Fails the task and perform cleanup.
+    """Fails the task and perform cleanup.
 
     Args:
       error_msg: Error message.
       later: If True, it allows subsequent tasks to execute and fails its
           parent test case later.
-    '''
+    """
     logging.warning('%s FAILED. Reason: %s', self.__class__.__name__, error_msg)
     if not self._IsRunning():
       # Prevent multiple call of _Finish().
@@ -152,10 +156,10 @@ class FactoryTask(object):
 
     self._Finish(FinishReason.FAILED)
     if later:
-      self._ui.FailLater(error_msg)  # pylint: disable=E1101
-      self._task_manager.RunNextTask()  # pylint: disable=E1101
+      self._ui.FailLater(error_msg)
+      self._task_manager.RunNextTask()
     else:
-      self._ui.Fail(error_msg)  # pylint: disable=E1101
+      self._ui.Fail(error_msg)
 
   def Run(self):
     raise NotImplementedError
@@ -186,7 +190,7 @@ class FactoryTask(object):
     return p.returncode == 0
 
 
-class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
+class InteractiveFactoryTask(FactoryTask):  # pylint: disable=abstract-method
   """A FactoryTask class for interactive tasks.
 
   It provides common key binding methods for interactive tasks.

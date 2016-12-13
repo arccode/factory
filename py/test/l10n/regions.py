@@ -16,7 +16,7 @@ import re
 import subprocess
 import sys
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
@@ -66,8 +66,6 @@ class Region(object):
 
   See :ref:`regions-values` for detailed information on how to set these values.
   """
-  # pylint gets confused by some of the docstrings.
-  # pylint: disable=C0322
 
   region_code = None
   """A unique identifier for the region.  This may be a lower-case

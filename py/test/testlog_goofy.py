@@ -9,7 +9,7 @@ import os
 import threading
 from uuid import uuid4
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 
@@ -29,7 +29,8 @@ DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
 # this is the first time we're creating an event log).
 INSTALLATION_ID_PATH = os.path.join(LOG_ROOT, 'installation_id')
 
-# itspeter # File containing the number of times Goofy has been initialized.
+# itspeter
+# File containing the number of times Goofy has been initialized.
 INIT_COUNT_PATH = os.path.join(LOG_ROOT, 'init_count')
 
 # The /var/factory/log directory (or equivalent if in the chroot).
@@ -57,7 +58,7 @@ def GetDeviceID():
   the device ID will change.
   """
   with _testlog_goofy_lock:
-    global _device_id  # pylint: disable=W0603
+    global _device_id  # pylint: disable=global-statement
     if _device_id:
       return _device_id
 
@@ -93,7 +94,7 @@ def GetInstallationID():
   This is stored in INSTALLATION_ID_PATH; one is generated if not available.
   """
   with _testlog_goofy_lock:
-    global _installation_id  # pylint: disable=W0603
+    global _installation_id  # pylint: disable=global-statement
     if not _installation_id:
       if os.path.exists(INSTALLATION_ID_PATH):
         _installation_id = open(INSTALLATION_ID_PATH).read().strip()

@@ -11,18 +11,17 @@ import os
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.env import paths
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.env import paths
-from cros.factory.test.test_ui import MakeLabel
 from cros.factory.utils.arg_utils import Arg
 
 
-_MSG_GET_TEST_RESULT = MakeLabel('Get the final test result...',
-                                 '检查系统最终测试结果...')
+_MSG_GET_TEST_RESULT = test_ui.MakeLabel('Get the final test result...',
+                                         '检查系统最终测试结果...')
 
 
 class FinalizeAccessory(unittest.TestCase):
@@ -76,10 +75,10 @@ class FinalizeAccessory(unittest.TestCase):
                          factory.TestState.ACTIVE])
     test_states = self._state.get_test_states()
     factory.console.debug('states: %s', test_states)
-    failed_results = dict([(path, (s.status, s.error_msg))
-                           for path, s in test_states.iteritems()
-                           if (s.status not in passed_states and
-                               not _IsWaived(path))])
+    failed_results = dict((path, (s.status, s.error_msg))
+                          for path, s in test_states.iteritems()
+                          if (s.status not in passed_states and
+                              not _IsWaived(path)))
 
     if failed_results:
       # The 'FAIL' is defined explicitly for partner's shopfloor.
@@ -91,11 +90,11 @@ class FinalizeAccessory(unittest.TestCase):
       # The 'PASS' is defined explicitly for partner's shopfloor.
       final_test_result = 'PASS'
       factory.console.info('All tests passed!')
-    Log('failed_results', failed_results=failed_results)
+    event_log.Log('failed_results', failed_results=failed_results)
 
     factory.set_shared_data(self.args.final_test_result_key, final_test_result)
-    failed_msgs_dict = dict([(path, error_msg) for path, (status, error_msg) in
-                             failed_results.iteritems()])
+    failed_msgs_dict = dict((path, error_msg) for path, (status, error_msg) in
+                            failed_results.iteritems())
     factory.set_shared_data(self.args.failed_reasons_key, failed_msgs_dict)
     self.ui.Pass()
 

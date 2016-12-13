@@ -9,11 +9,11 @@
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import SpawnOutput
+from cros.factory.utils import process_utils
 
 _MSG_PRESS_SPACE = test_ui.MakeLabel(
     'Hit SPACE to start test...',
@@ -42,17 +42,15 @@ _CSS_RECOVERY_BUTTON = """
 class RecoveryButtonTest(unittest.TestCase):
   """Tests Recovery Button."""
   ARGS = [
-      Arg(
-          'timeout_secs', int, 'Timeout to press recovery button.',
+      Arg('timeout_secs', int, 'Timeout to press recovery button.',
           default=10),
-      Arg(
-          'polling_interval_secs', float,
+      Arg('polling_interval_secs', float,
           'Interval between checking whether recovery buttion is pressed or '
           'not.Valid values: 0.2, 0.5 and 1.0', default=0.5)]
 
   def setUp(self):
     self.ui = test_ui.UI()
-    self.template = OneSection(self.ui)
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_RECOVERY_BUTTON)
     self.template.SetState(_HTML_RECOVERY_BUTTON)
     self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
@@ -65,13 +63,14 @@ class RecoveryButtonTest(unittest.TestCase):
     del event  # Unused.
     polling_iterations_per_second = int(1 / self.args.polling_interval_secs)
     for i in xrange(self.args.timeout_secs):
-      self.ui.SetHTML(_MSG_RECOVERY_BUTTON_TEST(
-          self.args.polling_interval_secs,
-          self.args.timeout_secs - i),
-                      id='recovery_button_title')
+      self.ui.SetHTML(
+          _MSG_RECOVERY_BUTTON_TEST(
+              self.args.polling_interval_secs, self.args.timeout_secs - i),
+          id='recovery_button_title')
       for _ in xrange(polling_iterations_per_second):
         time.sleep(self.args.polling_interval_secs)
-        if '1' == SpawnOutput(['crossystem', 'recoverysw_cur'], log=True):
+        if '1' == process_utils.SpawnOutput(['crossystem', 'recoverysw_cur'],
+                                            log=True):
           self.ui.Pass()
           return
 

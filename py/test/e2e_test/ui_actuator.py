@@ -8,7 +8,7 @@ import logging
 import re
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test import test_ui
 from cros.factory.utils import process_utils
@@ -66,7 +66,7 @@ class UIActuator(test_ui.UI):
     Args:
       js: The JavaScript snippet to execute.
       condition: A callable that takes one arg as the return value from polling
-        and returns True or False.
+          and returns True or False.
       timeout_secs: Timeout in seconds.
 
     Returns:
@@ -123,7 +123,7 @@ class UIActuator(test_ui.UI):
       attribute: The name of the attribute to get content from.
       search_text: If not None, waits until the content contains the given text.
       search_regexp: If not None, waits until the regexp pattern shows in the
-        content.
+          content.
       condition: If not None, waits until the condition evaluates to True.
       timeout_secs: Timeout in seconds.
 
@@ -197,8 +197,8 @@ class UIActuator(test_ui.UI):
     Args:
       key: The key to press.
       event_type: The event type.  Must be one of:
-        (None, "keydown", "keyup", "keypress").  In case of None, the method
-        sends out a series of "keydown", "keypress", "keyup" events.
+          (None, "keydown", "keyup", "keypress").  In case of None, the method
+          sends out a series of "keydown", "keypress", "keyup" events.
       element_id: The id of the DOM element to dispatch the keyboard event to.
       ctrl: Whether to press ctrl.
       alt: Whether to press alt.

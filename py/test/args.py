@@ -10,5 +10,6 @@ for legacy code in private repositories.
 """
 
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.arg_utils import *  # pylint: disable=W0401,W0614
+import factory_common  # pylint: disable=unused-import
+# pylint: disable=wildcard-import, unused-wildcard-import
+from cros.factory.utils.arg_utils import *

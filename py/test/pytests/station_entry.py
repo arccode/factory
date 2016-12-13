@@ -14,15 +14,14 @@ test list.
 import threading
 import unittest
 
-import factory_common # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.utils import sync_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import sync_utils
 
 
 _CSS = """
@@ -113,7 +112,7 @@ class StationEntry(unittest.TestCase):
   def runTest(self):
     self._template.SetState(_STATE_HTML)
     self._ui.Run(blocking=False)
-    self._ui.BindKey(' ', lambda _: self._space_event.set())
+    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self._space_event.set())
 
     if self.args.start_station_tests:
       # Clear dut.info data.
@@ -122,7 +121,7 @@ class StationEntry(unittest.TestCase):
       self.Start()
       # Reload serial numbers by accessing the dut.info field.
       factory.console.info('Loading serial numbers...')
-      self._dut.info.all_serial_numbers
+      self._dut.info.all_serial_numbers  # pylint: disable=pointless-statement
     else:
       self.End()
       # Clear dut.info data.

@@ -4,7 +4,7 @@
 # found in the LICENSE file.
 
 
-'''Suspends and resumes the device an adjustable number of times for
+"""Suspends and resumes the device an adjustable number of times for
 adjustable random lengths of time.
 
 This uses the powerd_suspend utility and the rtc's wakealarm entry in sysfs.
@@ -12,7 +12,7 @@ This uses the powerd_suspend utility and the rtc's wakealarm entry in sysfs.
 Note that the rtc sysfs entry may vary from device to device, the test_list
 must define the path to the correct sysfs entry for the specific device, the
 default assumes a typical /sys/class/rtc/rtc0 entry.
-'''
+"""
 
 
 import errno
@@ -20,20 +20,20 @@ import logging
 import os
 import random
 import re
-import time
 import threading
+import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.event_log import Log
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
+from cros.factory.test import ui_templates
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
-from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.process_utils import Spawn
 
 _TEST_TITLE = test_ui.MakeLabel('Suspend/Resume Test', zh=u'暂停/恢复测试')
 _MSG_CYCLE = test_ui.MakeLabel('Suspend/Resume:', zh=u'暂停/恢复:')
@@ -49,43 +49,32 @@ _MESSAGES = '/var/log/messages'
 class SuspendResumeTest(unittest.TestCase):
   ARGS = [
       Arg('cycles', int, 'Number of cycles to suspend/resume', default=1),
-      Arg(
-          'suspend_delay_max_secs', int,
+      Arg('suspend_delay_max_secs', int,
           'Max time in sec during suspend per '
           'cycle', default=10),
-      Arg(
-          'suspend_delay_min_secs', int,
+      Arg('suspend_delay_min_secs', int,
           'Min time in sec during suspend per '
           'cycle', default=5),
-      Arg(
-          'resume_delay_max_secs', int,
+      Arg('resume_delay_max_secs', int,
           'Max time in sec during resume per cycle', default=10),
-      Arg(
-          'resume_delay_min_secs', int,
+      Arg('resume_delay_min_secs', int,
           'Min time in sec during resume per cycle', default=5),
-      Arg(
-          'resume_early_margin_secs', int,
+      Arg('resume_early_margin_secs', int,
           'The allowable margin for the '
           'DUT to wake early', default=0),
-      Arg(
-          'resume_worst_case_secs', int,
+      Arg('resume_worst_case_secs', int,
           'The worst case time a device is '
           'expected to take to resume', default=30),
-      Arg(
-          'suspend_worst_case_secs', int,
+      Arg('suspend_worst_case_secs', int,
           'The worst case time a device is '
           'expected to take to suspend', default=60),
-      Arg(
-          'wakealarm_path', str, 'Path to the wakealarm file',
+      Arg('wakealarm_path', str, 'Path to the wakealarm file',
           default='/sys/class/rtc/rtc0/wakealarm'),
-      Arg(
-          'time_path', str, 'Path to the time (since_epoch) file',
+      Arg('time_path', str, 'Path to the time (since_epoch) file',
           default='/sys/class/rtc/rtc0/since_epoch'),
-      Arg(
-          'wakeup_count_path', str, 'Path to the wakeup_count file',
+      Arg('wakeup_count_path', str, 'Path to the wakeup_count file',
           default='/sys/power/wakeup_count'),
-      Arg(
-          'suspend_type', str, 'Suspend type',
+      Arg('suspend_type', str, 'Suspend type',
           default='mem')]
 
   def setUp(self):
@@ -107,7 +96,7 @@ class SuspendResumeTest(unittest.TestCase):
     self.goofy = factory.get_state_instance()
 
     self._ui = test_ui.UI()
-    self._template = OneSection(self._ui)
+    self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
 
@@ -168,26 +157,25 @@ class SuspendResumeTest(unittest.TestCase):
                        debug_utils.FormatExceptionOnly())
           break
         if (self._ReadSuspendCount() >= self.initial_suspend_count + self.run
-            and self._ReadCurrentTime() < cur_time +
-            _MIN_SUSPEND_MARGIN_SECS):
+            and self._ReadCurrentTime() < cur_time + _MIN_SUSPEND_MARGIN_SECS):
           logging.info('Attempted wake time extension, but suspended before.')
           break
         self.resume_at = self.resume_at + _MIN_SUSPEND_MARGIN_SECS
         self.actual_wake_extensions += 1
         logging.info('Attempted extending the wake timer %d s, resume is now '
                      'at %d.', _MIN_SUSPEND_MARGIN_SECS, self.resume_at)
-      self.assertGreaterEqual(self.start_time +
-                              self.args.suspend_worst_case_secs,
-                              cur_time, 'Suspend timeout, device did not '
-                              'suspend within %d sec.' %
-                              self.args.suspend_worst_case_secs)
+      self.assertGreaterEqual(
+          self.start_time + self.args.suspend_worst_case_secs,
+          cur_time,
+          'Suspend timeout, device did not suspend within %d sec.' %
+          self.args.suspend_worst_case_secs)
       time.sleep(0.1)
     self.alarm_started.clear()
 
   def _Suspend(self):
     """Suspend the device by writing to /sys/power/state."""
     # Explicitly sync the filesystem
-    Spawn(['sync'], check_call=True, log_stderr_on_error=True)
+    process_utils.Spawn(['sync'], check_call=True, log_stderr_on_error=True)
     # Write out our expected wakeup_count
     try:
       with open(self.args.wakeup_count_path, 'w') as f:
@@ -363,7 +351,7 @@ class SuspendResumeTest(unittest.TestCase):
       try:
         logging.info('Resuming monitoring')
         self.goofy.ResumeDUTMonitoring()
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         # Monitoring suspension will time out eventually
         logging.exception('Failed to resume monitoring. Ignore.')
 
@@ -376,12 +364,13 @@ class SuspendResumeTest(unittest.TestCase):
                                 int(open(self.args.time_path).read().strip()),
                                 'alarm thread did not return within %d sec.' %
                                 self.args.suspend_worst_case_secs)
-      Log('suspend_resume_cycle', run=self.run, start_time=self.start_time,
-          suspend_time=suspend_time, resume_time=resume_time,
-          resume_at=self.resume_at, wakeup_count=self.wakeup_count,
-          suspend_count=self._ReadSuspendCount(),
-          initial_suspend_count=self.initial_suspend_count,
-          attempted_wake_extensions=self.attempted_wake_extensions,
-          actual_wake_extensions=self.actual_wake_extensions,
-          alarm_suspend_delays=alarm_suspend_delays,
-          wake_source=wake_source)
+      event_log.Log('suspend_resume_cycle',
+                    run=self.run, start_time=self.start_time,
+                    suspend_time=suspend_time, resume_time=resume_time,
+                    resume_at=self.resume_at, wakeup_count=self.wakeup_count,
+                    suspend_count=self._ReadSuspendCount(),
+                    initial_suspend_count=self.initial_suspend_count,
+                    attempted_wake_extensions=self.attempted_wake_extensions,
+                    actual_wake_extensions=self.actual_wake_extensions,
+                    alarm_suspend_delays=alarm_suspend_delays,
+                    wake_source=wake_source)

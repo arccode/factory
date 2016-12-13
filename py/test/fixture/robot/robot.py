@@ -27,9 +27,8 @@ For example::
 import argparse
 import logging
 import json
-import textwrap
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import utils as fixture_utils
 
 
@@ -86,15 +85,12 @@ class Robot(object):
 def main(class_name, robot_params):
   cmd_parser = argparse.ArgumentParser(
       prog='', add_help=False,
-      usage=textwrap.dedent("""
-                            Supported commands are as following:
-                                motor {on,off}
-                                device {load,unload}
-                                move <position>
-                                led {on,off}
-                                quit
-                            """)
-      )
+      usage=('Supported commands are as following:\n'
+             '    motor {on,off}\n'
+             '    device {load,unload}\n'
+             '    move <position>\n'
+             '    led {on,off}\n'
+             '    quit'))
 
   subparsers = cmd_parser.add_subparsers(dest='command')
   subparsers.add_parser('motor', add_help=False).add_argument(
@@ -146,8 +142,7 @@ if __name__ == '__main__':
             'json dict with two keys: class_name and params. '
             'The class_name is the robot class to be used. The params is the '
             'arguments for the contructor. See dummy_robot.json '
-            'for example.'
-           ))
+            'for example.'))
 
   args = parser.parse_args()
 

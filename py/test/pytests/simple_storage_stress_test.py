@@ -23,10 +23,10 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils.sys_utils import MountPartition
+from cros.factory.utils import sys_utils
 
 BLOCK_SIZE = 4096
 
@@ -97,7 +97,7 @@ class SimpleStorageStressTest(unittest.TestCase):
 
   def runTest(self):
     if self.args.mount_device:
-      with MountPartition(
+      with sys_utils.MountPartition(
           self.args.mount_device, rw=True, dut=self._dut) as mount_path:
         self.TestReadWriteIn(self._dut.path.join(mount_path, self.args.dir))
     else:
