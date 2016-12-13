@@ -80,9 +80,10 @@ class OutputSocket(plugin_base.OutputPlugin):
       # If no events are available, don't bother sending an empty transmission.
       if not events:
         self.info('No events available for transmission')
-        event_stream.Commit()
+        event_stream.Abort()
         continue
 
+      event_stream_open = True
       try:
         self.GetSocket()
         # Send the number of events followed by each one.
@@ -99,6 +100,7 @@ class OutputSocket(plugin_base.OutputPlugin):
         else:
           self.info('Failure; abort %d events', len(events))
           event_stream.Abort()
+        event_stream_open = False
         elapsed_time = time.time() - start_time
 
         # Size and speed information.
@@ -112,6 +114,8 @@ class OutputSocket(plugin_base.OutputPlugin):
         self._sock.shutdown(socket.SHUT_RDWR)
         self._sock.close()
       except socket.error as e:
+        if event_stream_open:
+          event_stream.Abort()
         if e.errno == 111:  # Connection refused
           self.error('Could not make connection to target server')
         else:
@@ -119,6 +123,8 @@ class OutputSocket(plugin_base.OutputPlugin):
         target_available = False
         self.Sleep(1)
       except Exception:
+        if event_stream_open:
+          event_stream.Abort()
         self.exception('Connection or transfer failed')
         target_available = False
         self.Sleep(1)

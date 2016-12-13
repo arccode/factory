@@ -10,6 +10,7 @@ from __future__ import print_function
 
 import logging
 import mock
+import socket
 import tempfile
 import time
 import unittest
@@ -46,6 +47,7 @@ class TestInputSocket(unittest.TestCase):
   def tearDown(self):
     self.sandbox.Stop(True)
     self.patcher.stop()
+    self.assertTrue(self.core.AllStreamsExpired())
 
   def _GetSentData(self):
     data = ''.join([x[1][0] for x in self.sock.sendall.mock_calls])
@@ -57,6 +59,15 @@ class TestInputSocket(unittest.TestCase):
     self.assertEqual(
         '0\0',  # ping
         self._GetSentData())
+
+  def testMidTransmissionFailure(self):
+    with mock.patch.object(self.plugin, 'Ping', return_value=True):
+      with mock.patch.object(self.sock, 'sendall', side_effect=socket.error):
+        self.core.GetStream(0).Queue([datatypes.Event({})])
+        self.sandbox.Flush(0.1, True)
+      with mock.patch.object(self.sock, 'sendall', side_effect=Exception):
+        self.core.GetStream(0).Queue([datatypes.Event({})])
+        self.sandbox.Flush(0.1, True)
 
   def testInvalidHeader(self):
     self.sock.recv.return_value = 'x'
