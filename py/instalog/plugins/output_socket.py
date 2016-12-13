@@ -79,7 +79,7 @@ class OutputSocket(plugin_base.OutputPlugin):
 
       # If no events are available, don't bother sending an empty transmission.
       if not events:
-        self.info('No events available for transmission')
+        self.debug('No events available for transmission')
         event_stream.Abort()
         continue
 
