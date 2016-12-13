@@ -103,7 +103,7 @@ var DisplayTest = function(container, colors) {
   this.zhUntested = '未经测试';
   this.enInstruct = 'Press Space to display;<br>' +
       'After checking, Enter to pass; Esc to fail.';
-  this.zhInstruct = '按空格键显示;<br>' +
+  this.zhInstruct = '按空白键显示;<br>' +
       '检查后按Enter键通过; 按Esc键失败。';
   this.gridWidth = 10;
   this.gridHeight = 10;

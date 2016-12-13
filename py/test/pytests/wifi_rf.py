@@ -53,7 +53,7 @@ _MSG_CHAMBER_REMOVE = test_ui.MakeLabel(
 
 _MSG_READY_CLOSE = test_ui.MakeLabel(
     'Place device in WiFi chamber. When ready to close chamber, press SPACE.',
-    u'将设备放置在WiFi室。当您准备关闭室，按空格键。')
+    u'将设备放置在WiFi室。当您准备关闭室，按空白键。')
 
 # Here's a command line that can be used to find the USB-serial dongle
 #_CMD_FINDTTY = '/usr/bin/find /sys/bus/usb/drivers/pl2303/2-1.2\:1.0/ '\

@@ -16,7 +16,7 @@ var TouchscreenTest = function(container, xSegments, ySegments) {
   this.display = false;
   this.enInstruct = 'Press Space to display and use one finger to ' +
       'touch each sector; Esc to fail.';
-  this.zhInstruct = '按空格键显示并用一个手指触摸每区; 按Esc键失败。';
+  this.zhInstruct = '按空白键显示并用一个手指触摸每区; 按Esc键失败。';
 };
 
 /**

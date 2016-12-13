@@ -19,7 +19,7 @@ var DisplayPointTest = function(container, arrayNumberPoint, pointSize) {
   this.focusItem = 0;
   this.enInstruct = 'Press Space to display;<br>' +
       'After checking, Enter number of points to pass.';
-  this.zhInstruct = '按空格键显示;<br>' +
+  this.zhInstruct = '按空白键显示;<br>' +
       '检查后按下正确的点数按键通过。';
   this.itemNumber = 2;
   this.backgroundStyleList = [
