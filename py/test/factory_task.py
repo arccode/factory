@@ -223,18 +223,19 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=abstract-method
                          self.__class__.__name__,
                          later=fail_later))
 
-  def BindDigitKeys(self, pass_digit, fail_later=True):
+  def BindDigitKeys(self, pass_digit, max_digit=9, fail_later=True):
     """Binds the pass_digit to pass the task and other digits to fail it.
 
     To prevent operator's cheating by key swiping, we bind the remaining digit
     keys to fail the task.
 
     Arg:
-      pass_digit: a digit [0, 9] to pass the task.
+      pass_digit: a digit [0, max_digit] to pass the task.
+      max_digit: maximum digit to bind. Default 9.
       fail_later: True to fail the parent test case later when the wrong key is
           pressed.
     """
-    for i in xrange(0, 10):
+    for i in xrange(0, max_digit + 1):
       if i == pass_digit:
         self._ui.BindKey(str(i), lambda _: self.Pass())
       else:

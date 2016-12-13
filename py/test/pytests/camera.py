@@ -221,6 +221,9 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
     tock = time.time()
     process_interval = 1.0 / float(self.args.process_rate)
     resize_ratio = self.args.resize_ratio
+    if self.task_type == CaptureTaskType.MANUAL:
+      self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_TEST, id=_ID_PROMPT)
+      self.BindPassFailKeys()
     while not self.finished:
       cv_img = self.camera_test.camera_device.ReadSingleFrame()
       if self.task_type == CaptureTaskType.FRAME_COUNT:
@@ -256,9 +259,6 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
         except AttributeError:
           # The websocket is closed because test has passed/failed.
           return
-      if self.task_type == CaptureTaskType.MANUAL:
-        self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_TEST, id=_ID_PROMPT)
-        self.BindPassFailKeys()
       time.sleep(tick)
 
   def Run(self):
@@ -323,7 +323,7 @@ class LEDTask(factory_task.InteractiveFactoryTask):
     self.camera_test.ui.SetHTML(_MSG_LED_TEST, id=_ID_PROMPT)
     self.camera_test.ui.CallJSFunction('hideImage', True)
     self.BindPassFailKeys(pass_key=False)
-    self.BindDigitKeys(self.pass_key)
+    self.BindDigitKeys(self.pass_key, max_digit=1)
     process_utils.StartDaemonThread(target=self.TestLED,
                                     interrupt_on_crash=True)
 
