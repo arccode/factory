@@ -766,7 +766,7 @@ class DatabaseBuilder(object):
         [yaml.dump(OrderedDict({key: self.db[key]}), default_flow_style=False)
          for key in self.db])
     # Post processing of yaml_tags.
-    yaml_tags.RemoveDummyString(content)
+    content = yaml_tags.RemoveDummyString(content)
     with open(database_path, 'w') as f:
       f.write(content)
     # Update the checksum.
