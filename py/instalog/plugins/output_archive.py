@@ -21,17 +21,22 @@ The archive structure:
         ...
 """
 
+# TODO(kitching): Add a unittest.
+
 from __future__ import print_function
 
 import datetime
 import os
+import shutil
 import StringIO
 import tarfile
 import time
 
 import instalog_common  # pylint: disable=W0611
+from instalog import datatypes
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
+from instalog.utils import file_utils
 from instalog.utils import time_utils
 
 
@@ -50,16 +55,31 @@ class OutputArchive(plugin_base.OutputPlugin):
           'If the total_size bigger than max_size, archive these events.',
           optional=True, default=_DEFAULT_MAX_SIZE),
       Arg('target_dir', (str, unicode),
-          'The directory in which to store archives. '
-          'Uses the plugin\'s data directory by default.',
+          'The directory in which to store archives.  Uses the plugin\'s '
+          'data directory by default.',
           optional=True, default=None),
+      Arg('enable_disk', bool,
+          'Whether or not to save the archive to disk.  True by default.',
+          optional=True, default=True),
+      Arg('enable_emit', bool,
+          'Whether or not to emit the archive as an attachment of a new '
+          'Instalog event.  False by default.',
+          optional=True, default=False),
   ]
 
   def SetUp(self):
     """Sets up the plugin."""
-    if self.args.target_dir is None:
+    if not self.args.enable_disk and self.args.target_dir:
+      raise ValueError('If specifying a `target_dir\', `enable_disk\' must '
+                       'be set to True')
+    if not self.args.enable_disk and not self.args.enable_emit:
+      raise ValueError('Please enable at least one of `enable_disk\' or '
+                       '`enable_emit\'')
+
+    # If saving to disk, ensure that the target_dir exists.
+    if self.args.enable_disk and self.args.target_dir is None:
       self.args.target_dir = self.GetDataDir()
-    if not os.path.isdir(self.args.target_dir):
+    if self.args.target_dir and not os.path.isdir(self.args.target_dir):
       os.makedirs(self.args.target_dir)
 
   def Main(self):
@@ -82,23 +102,43 @@ class OutputArchive(plugin_base.OutputPlugin):
     serialized_events_buffer = StringIO.StringIO()
     att_count = 0
 
-    archive_name = time.strftime('InstalogEvents_%Y%m%d%H%M%S')
-    archive_path = os.path.join(self.args.target_dir, archive_name + '.tar.gz')
-    self.info('Archive %d events in %s', len(events), archive_path)
-    with tarfile.open(archive_path, 'w:gz') as tar:
-      for event in events:
-        for att_id, att_path in event.attachments.iteritems():
-          if os.path.isfile(att_path):
-            att_name = os.path.basename(att_path)
-            att_newpath = 'attachments/%03d/%s' % (att_count, att_name)
-            att_count += 1
-            tar.add(att_path, arcname=os.path.join(archive_name, att_newpath))
-            event.attachments[att_id] = att_newpath
-        serialized_events_buffer.write(event.Serialize() + '\n')
-      info = self.GetEventsTarInfo(os.path.join(archive_name, 'events.json'),
-                                   serialized_events_buffer.len)
-      serialized_events_buffer.seek(0)
-      tar.addfile(info, serialized_events_buffer)
+    cur_time = datetime.datetime.now()
+    archive_name = cur_time.strftime('InstalogEvents_%Y%m%d%H%M%S')
+    archive_filename = '%s.tar.gz' % archive_name
+    with file_utils.UnopenedTemporaryFile(
+        prefix='instalog_archive_') as tmp_path:
+      self.info('Archiving %d events in %s', len(events), archive_name)
+      with tarfile.open(tmp_path, 'w:gz') as tar:
+        for event in events:
+          for att_id, att_path in event.attachments.iteritems():
+            if os.path.isfile(att_path):
+              att_name = os.path.basename(att_path)
+              att_newpath = 'attachments/%03d/%s' % (att_count, att_name)
+              att_count += 1
+              tar.add(att_path, arcname=os.path.join(archive_name, att_newpath))
+              event.attachments[att_id] = att_newpath
+          serialized_events_buffer.write(event.Serialize() + '\n')
+        info = self.GetEventsTarInfo(os.path.join(archive_name, 'events.json'),
+                                     serialized_events_buffer.len)
+        serialized_events_buffer.seek(0)
+        tar.addfile(info, serialized_events_buffer)
+
+      # What should we do with the archive?
+      if self.args.target_dir:
+        target_path = os.path.join(self.args.target_dir, archive_filename)
+        self.info('Saving archive to file %s', target_path)
+        if self.args.enable_emit:
+          # We still need the file for the emit() call.
+          shutil.copyfile(tmp_path, target_path)
+        else:
+          # We don't need the file anymore, so use rename.
+          os.rename(tmp_path, target_path)
+      if self.args.enable_emit:
+        self.info('Emitting event with attachment %s', archive_filename)
+        event = datatypes.Event(
+            {'__archive__': True, 'time': cur_time},
+            {archive_filename: tmp_path})
+        self.Emit([event])
     return True
 
   def PrepareAndArchive(self):
@@ -128,7 +168,10 @@ class OutputArchive(plugin_base.OutputPlugin):
         break
 
     # Commit these events.
-    if len(events) == 0 or (len(events) > 0 and self.Archive(events)):
+    if len(events) == 0:
+      event_stream.Commit()
+      return False
+    elif self.Archive(events):
       self.info('Commit %d events', len(events))
       event_stream.Commit()
       return True

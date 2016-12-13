@@ -21,16 +21,16 @@ The archive structure:
         ...
 """
 
+# TODO(kitching): Add a unittest.
+
 from __future__ import print_function
 
 import glob
-import json
 import os
 import tarfile
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
-from instalog import log_utils
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
