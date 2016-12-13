@@ -56,7 +56,7 @@ The basic steps are:
 3. The factory toolkit, test image, signed release image, and AP/EC firmware are
    installed or updated. Included on disk are two full Chrome OS images: the
    test image and the shipping image.
-4. The system automatically reboots using the test image and and begins
+4. The system automatically reboots using the test image and begins
    manufacturing tests. This test suite is based on [pytest](py/pytests). The
    software supports sequencing tests, configuration, firmware and configuration
    updates, reboots, and other events in a configurable sequence.
@@ -71,9 +71,9 @@ The basic steps are:
    at specific break points. For details, see the Options class in
    src/platform/factory/py/test/factory.py and generic test lists under
    src/platform/factory/py/test/test_lists/* .
-8. The factory image and test image can be combined into an SSD image and imaged
-   onto the internal drive before assembly. The first time the device boots, the
-   sequence starts at step 4 above, using the factory test image.
+8. The factory test image and release image can be combined into an SSD image
+   and imaged onto the internal drive before assembly. The first time the device
+   boots, the sequence starts at step 4 above, using the factory test image.
 
 Building Factory Toolkit
 ------------------------
@@ -99,7 +99,7 @@ Building Test Image
 -------------------
 Under chroot, after [setting up
 board](http://dev.chromium.org/chromium-os/developer-guide), you can get the
-factory shim by running following commands in `trunk/src/scripts`:
+test image by running following commands in `trunk/src/scripts`:
 
     build_packages
     build_image test
@@ -108,10 +108,10 @@ After image is built, you can flash it into an USB stick (assume your USB
 appears as `sdX`):
 
     # outside chroot
-    cros flash usb:// chromiumos_test_shim.bin
+    cros flash usb:// chromiumos_test_image.bin
 
     # outside chroot
-    sudo dd bs=4M if=/path/to/image/chromiumos_test_shim.bin of=/dev/sdX \
+    sudo dd bs=4M if=/path/to/image/chromiumos_test_image.bin of=/dev/sdX \
             iflag=fullblock oflag=dsync
 
 Building Factory (Install) Shim
@@ -166,13 +166,13 @@ You can image directly to a device, or to a .bin file. Available options are:
 Booting your (factory) test image via USB
 -----------------------------------------
 For development and local testing, it is possible to boot the factory test image
-from a USB memory stick rather than using a network install. The following steps
-are optional:
+from a USB memory stick rather than using a network installation. The following
+steps sare optional:
 
 1. Copy the test image to USB storage.
 2. On your device, switch to developer mode. For most recent devices, this is
    done by pressing Esc-F3-Power (F3 is the refresh key on top row) then press
-   Ctrl-D when the screen said that your need to insert a recovery USB stick,
+   Ctrl-D when the screen said that you need to insert a recovery USB stick,
    and press ENTER when the screen asked you to do.
 3. After system reboot, enter VT2 by pressing Ctrl-Alt-F2 (F2 is the right-arrow
    key on top row).
@@ -248,7 +248,7 @@ this repository, and follow this repository's directory structure.
    See `py/README.md` for more information.
 
  - `board/`: Board-specific files (optional and only provided by board overlays,
-    not this repository.in board overlay):
+    not this repository.) in board overlay:
     - `board_setup_factory.sh`: A script to add board-specific arguments when
       starting the Goofy (the factory test harness).
     - Other files needed by board-specific tests.
