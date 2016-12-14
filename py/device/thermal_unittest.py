@@ -105,29 +105,6 @@ class ECToolThermalTest(unittest.TestCase):
     self.assertTrue('CPU' not in self.thermal.GetTemperatureSensorNames())
     self.mox.VerifyAll()
 
-  def testGetFanRPM(self):
-    _MOCK_FAN_RPM = 'Fan 0 RPM: 2974\n'
-    self.board.CallOutput(['ectool', 'pwmgetfanrpm']).AndReturn(_MOCK_FAN_RPM)
-    self.mox.ReplayAll()
-    self.assertEquals(self.thermal.GetFanRPM(), [2974])
-    self.mox.VerifyAll()
-
-  def testSetFanRPM(self):
-    self.board.CheckCall(['ectool', 'pwmsetfanrpm', '12345'])
-    self.board.CheckCall(['ectool', 'pwmsetfanrpm', '1', '12345'])
-    self.mox.ReplayAll()
-    self.thermal.SetFanRPM(12345)
-    self.thermal.SetFanRPM(12345, fan_id=1)
-    self.mox.VerifyAll()
-
-  def testSetFanRPMAuto(self):
-    self.board.CheckCall(['ectool', 'autofanctrl'])
-    self.board.CheckCall(['ectool', 'autofanctrl', '1'])
-    self.mox.ReplayAll()
-    self.thermal.SetFanRPM(self.thermal.AUTO)
-    self.thermal.SetFanRPM(self.thermal.AUTO, fan_id=1)
-    self.mox.VerifyAll()
-
 
 class SysFSThermalTest(unittest.TestCase):
   """Unittest for SysFSThermal."""
@@ -214,31 +191,6 @@ class SysFSThermalTest(unittest.TestCase):
 
     self.mox.ReplayAll()
     self.assertEquals(thermal_obj.GetMainTemperatureIndex(), 0)
-    self.mox.VerifyAll()
-
-  def testGetFanRPM(self):
-    thermal_obj = thermal.SysFSThermal(self.board, 'cpu',
-                                       fans_info=self._FANS_INFO)
-    self.board.ReadFile('/sys/fan/fan1_input').AndReturn('5566')
-    self.mox.ReplayAll()
-    self.assertEquals(thermal_obj.GetFanRPM(), [5566])
-    self.mox.VerifyAll()
-
-  def testSetFanRPMAuto(self):
-    thermal_obj = thermal.SysFSThermal(self.board, 'cpu',
-                                       fans_info=self._FANS_INFO)
-    self.board.WriteFile('/sys/fan/pwm1_enable', '2')
-    self.mox.ReplayAll()
-    thermal_obj.SetFanRPM(thermal_obj.AUTO)
-    self.mox.VerifyAll()
-
-  def testSetFanRPM(self):
-    thermal_obj = thermal.SysFSThermal(self.board, 'cpu',
-                                       fans_info=self._FANS_INFO)
-    self.board.WriteFile('/sys/fan/pwm1_enable', '1')
-    self.board.WriteFile('/sys/fan/pwm1', '5566')
-    self.mox.ReplayAll()
-    thermal_obj.SetFanRPM(5566)
     self.mox.VerifyAll()
 
 

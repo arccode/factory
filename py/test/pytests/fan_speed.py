@@ -19,7 +19,7 @@ In mode A, the steps are:
 1. Sets the fan speed to a target RPM.
 2. Monitors the fan speed for a given period (duration_secs) with sampling
    interval (probe_interval_secs). Then it takes average of the latest
-   #num_samples_to_use samples as the stablized fan speed reading.
+   #num_samples_to_use samples as the stabilized fan speed reading.
 3. Checks that the averaged reading is within range
    [target_rpm - error_margin, target_rpm + error_margin].
 """
@@ -31,7 +31,6 @@ import time
 import unittest
 
 from cros.factory.device import device_utils
-from cros.factory.device import DeviceException
 from cros.factory.test import factory
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneSection
@@ -89,13 +88,13 @@ class FanSpeedTest(unittest.TestCase):
     self._template = OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
-    self._thermal = device_utils.CreateDUTInterface().thermal
+    self._fan = device_utils.CreateDUTInterface().fan
     if isinstance(self.args.target_rpm, int):
       self.args.target_rpm = [self.args.target_rpm]
 
   def tearDown(self):
     logging.info('Set auto fan speed control.')
-    self._thermal.SetFanRPM(self._thermal.AUTO, self.args.fan_id)
+    self._fan.SetFanRPM(self._fan.AUTO, self.args.fan_id)
 
   def SetAndGetFanSpeed(self, target_rpm):
     """Sets fan speed and observes readings for a while (blocking call).
@@ -105,9 +104,9 @@ class FanSpeedTest(unittest.TestCase):
 
     Returns:
       List of fan speed, each fan speed if the average of the latest
-      #num_samples_to_use samples as stablized fan speed reading.
+      #num_samples_to_use samples as stabilized fan speed reading.
     """
-    observed_rpm = self._thermal.GetFanRPM(self.args.fan_id)
+    observed_rpm = self._fan.GetFanRPM(self.args.fan_id)
     fan_count = len(observed_rpm)
     spin_up = target_rpm > _Average(observed_rpm)
 
@@ -120,18 +119,17 @@ class FanSpeedTest(unittest.TestCase):
     logging.info(status)
 
     if self.args.use_percentage:
-      self._thermal.SetFanRPM(int(target_rpm * 100 / self.args.max_rpm),
-                              self.args.fan_id)
+      self._fan.SetFanRPM(int(target_rpm * 100 / self.args.max_rpm),
+                          self.args.fan_id)
     else:
-      self._thermal.SetFanRPM(int(target_rpm),
-                              self.args.fan_id)
+      self._fan.SetFanRPM(int(target_rpm), self.args.fan_id)
     # Probe fan speed for duration_secs seconds with sampling interval
     # probe_interval_secs.
     end_time = time.time() + self.args.duration_secs
     # Samples of all fan speed with sample period: probe_interval_secs.
     ith_fan_samples = [[] for _ in xrange(fan_count)]
     while time.time() < end_time:
-      observed_rpm = self._thermal.GetFanRPM(self.args.fan_id)
+      observed_rpm = self._fan.GetFanRPM(self.args.fan_id)
       for i, ith_fan_rpm in enumerate(observed_rpm):
         ith_fan_samples[i].append(ith_fan_rpm)
       self._ui.SetHTML(str(observed_rpm), id=_ID_RPM)

@@ -116,7 +116,7 @@ class ThermalSlopeTest(unittest.TestCase):
     self.snapshot = self.dut.thermal.GetPowerUsage(
         last=self.snapshot,
         sensor_id=self.args.sensor_id)
-    fan_rpm = self.dut.thermal.GetFanRPM()
+    fan_rpm = self.dut.fan.GetFanRPM()
     elapsed_time = time.time() - self.stage_start_time
     self.log.info(
         u'%s (%.1f s): fan_rpm=%s, temp=%d°C, power=%.3f W' % (
@@ -157,7 +157,7 @@ class ThermalSlopeTest(unittest.TestCase):
 
   def runTest(self):
     self._StartStage('cool_down')
-    self.dut.thermal.SetFanRPM(self.args.cool_down_fan_rpm)
+    self.dut.fan.SetFanRPM(self.args.cool_down_fan_rpm)
     for i in range(self.args.cool_down_max_duration_secs):
       self._Log()
       if (i >= self.args.cool_down_min_duration_secs and
@@ -171,7 +171,7 @@ class ThermalSlopeTest(unittest.TestCase):
         self.fail(u'Temperature never got down to %s°C' %
                   max_temperature_c)
 
-    self.dut.thermal.SetFanRPM(self.args.target_fan_rpm)
+    self.dut.fan.SetFanRPM(self.args.target_fan_rpm)
 
     def RunStage(stage, duration_secs):
       '''Runs a stage.
@@ -238,4 +238,4 @@ class ThermalSlopeTest(unittest.TestCase):
       self.fail(', '.join(errors))
 
   def tearDown(self):
-    self.dut.thermal.SetFanRPM(self.dut.thermal.AUTO)
+    self.dut.fan.SetFanRPM(self.dut.fan.AUTO)

@@ -136,7 +136,7 @@ class LinuxBoard(DeviceBoard):
 
   @DeviceProperty
   def thermal(self):
-    return thermal.ECToolThermal(self)
+    return thermal.Thermal(self)
 
   @DeviceProperty
   def touchscreen(self):

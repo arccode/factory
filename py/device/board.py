@@ -105,6 +105,11 @@ class DeviceBoard(object):
     raise NotImplementedError
 
   @DeviceProperty
+  def fan(self):
+    """Module for fan control."""
+    raise NotImplementedError
+
+  @DeviceProperty
   def gyroscope(self):
     """Gyroscope sensors."""
     raise NotImplementedError

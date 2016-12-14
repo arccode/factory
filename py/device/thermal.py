@@ -5,7 +5,7 @@
 
 """System thermal provider.
 
-This module provides reading and setting system thermal sensors and controllers.
+This module provides reading system thermal sensors and power usage.
 """
 
 from __future__ import print_function
@@ -21,10 +21,10 @@ from cros.factory.utils.type_utils import Enum
 
 
 class Thermal(component.DeviceComponent):
-  """System module for thermal control (temperature sensors, fans)."""
+  """System module for thermal control (temperature sensors, power usage)."""
 
   AUTO = 'auto'
-  """Constant representing automatic fan speed."""
+  """Deprecated by fan.FanControl.AUTO."""
 
   def GetTemperatures(self):
     """Gets a list of temperatures for various sensors.
@@ -45,17 +45,6 @@ class Thermal(component.DeviceComponent):
     """
     raise NotImplementedError
 
-  def GetFanRPM(self, fan_id=None):
-    """Gets the fan RPM.
-
-    Args:
-      fan_id: The id of the fan.
-
-    Returns:
-      A list of int indicating the RPM of each fan.
-    """
-    raise NotImplementedError
-
   def GetTemperatureSensorNames(self):
     """Gets a list of names for temperature sensors.
 
@@ -63,16 +52,7 @@ class Thermal(component.DeviceComponent):
       A list of str containing the names of all temperature sensors.
       The order must be the same as the returned list from GetTemperatures().
     """
-    raise NotImplementedError
-
-  def SetFanRPM(self, rpm, fan_id=None):
-    """Sets the target fan RPM.
-
-    Args:
-      rpm: Target fan RPM, or ECToolThermal.AUTO for auto fan control.
-      fan_id: The id of the fan.
-    """
-    raise NotImplementedError
+    return ['CPU']
 
   def GetPowerUsage(self, last=None, sensor_id=None):
     """Get current power usage.
@@ -88,6 +68,14 @@ class Thermal(component.DeviceComponent):
         'power': Average power use in Watt, optional.
     """
     raise NotImplementedError
+
+  def GetFanRPM(self, fan_id=None):
+    """This function should be deprecated by dut.fan.GetFanRPM."""
+    return self._dut.fan.GetFanRPM(fan_id)
+
+  def SetFanRPM(self, rpm, fan_id=None):
+    """This function should be deprecated by dut.fan.SetFanRPM."""
+    return self._dut.fan.SetFanRPM(rpm, fan_id)
 
 
 class ECToolThermal(Thermal):
@@ -152,24 +140,6 @@ class ECToolThermal(Thermal):
     except Exception as e:  # pylint: disable=W0703
       raise self.Error('Unable to get main temperature index: %s' % e)
 
-  def GetFanRPM(self, fan_id=None):
-    """Gets the fan RPM.
-
-    Args:
-      fan_id: The id of the fan.
-
-    Returns:
-      A list of int indicating the RPM of each fan.
-    """
-    try:
-      ectool_output = self._dut.CallOutput(
-          ['ectool', 'pwmgetfanrpm'] + (['%d' % fan_id] if fan_id is not None
-                                        else []))
-      return [int(rpm[1])
-              for rpm in self.GET_FAN_SPEED_RE.findall(ectool_output)]
-    except Exception as e:  # pylint: disable=W0703
-      raise self.Error('Unable to get fan speed: %s' % e)
-
   def GetTemperatureSensorNames(self):
     """Gets a list of names for temperature sensors.
 
@@ -192,29 +162,6 @@ class ECToolThermal(Thermal):
     except Exception as e:  # pylint: disable=W0703
       raise self.Error('Unable to get temperature sensor names: %s' % e)
 
-  def SetFanRPM(self, rpm, fan_id=None):
-    """Sets the target fan RPM.
-
-    Args:
-      rpm: Target fan RPM, or ECToolThermal.AUTO for auto fan control.
-      fan_id: The id of the fan.
-    """
-    try:
-      # For system with multiple fans, ectool controls all the fans
-      # simultaneously in one command.
-      if rpm == self.AUTO:
-        self._dut.CheckCall((['ectool', 'autofanctrl'] +
-                             (['%d' % fan_id] if fan_id is not None else [])))
-      else:
-        self._dut.CheckCall((['ectool', 'pwmsetfanrpm'] +
-                             (['%d' % fan_id] if fan_id is not None else []) +
-                             ['%d' % rpm]))
-    except Exception as e:  # pylint: disable=W0703
-      if rpm == self.AUTO:
-        raise self.Error('Unable to set auto fan control: %s' % e)
-      else:
-        raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
-
   def GetPowerUsage(self, last=None, sensor_id=None):
     """See Thermal.GetPowerUsage."""
     pkg_energy_status = self._dut.ReadFile('/dev/cpu/0/msr', count=8,
@@ -233,7 +180,7 @@ class ECToolThermal(Thermal):
 
 
 class SysFSThermal(Thermal):
-  """System module for thermal control (temperature sensors, fans).
+  """System module for thermal sensors (temperature sensors, power usage).
 
   Implementation for systems which able to control thermal with sysfs api.
   """
@@ -243,7 +190,7 @@ class SysFSThermal(Thermal):
   Unit = Enum(['MILLI_CELSIUS', 'CELSIUS'])
 
   def __init__(self, dut, main_temperature_sensor_name='tsens_tz_sensor0',
-               unit=Unit.MILLI_CELSIUS, fans_info=None):
+               unit=Unit.MILLI_CELSIUS):
     """Constructor.
 
     Args:
@@ -251,37 +198,12 @@ class SysFSThermal(Thermal):
           GetMainTemperatureIndex(). For example: 'tsens_tz_sensor0' or 'cpu'.
       unit: The unit of the temperature reported in sysfs, in type
           SysFSThermal.Unit.
-      fans_info: A sequence of dicts. Each dict contains information of a fan:
-      - "fan_id": The id used in SetFanRPM/GetFanRPM.
-      - "path": The path containing files for fan operations.
-      - "control_mode_filename": The file to switch auto/manual fan control
-            mode. default is "pwm1_enable".
-      - "get_speed_filename": The file to get fan speed information.
-            default is "fan1_input".
-      - "get_speed_map": A function (str -> int) that translates the content of
-            "get_speed_filename" file to RPM. default is int.
-      - "set_speed_filename": The file to set fan speed. default is "pwm1".
-      - "set_speed_map": A function (int -> str) that produces corresponding
-            content for "set_speed_filename" file with a given RPM. default is
-            str.
     """
     super(SysFSThermal, self).__init__(dut)
     self._thermal_zones = None
     self._temperature_sensor_names = None
     self._main_temperature_sensor_name = main_temperature_sensor_name
     self._unit = unit
-    self._fans = []
-    if fans_info is not None:
-      for fan_info in fans_info:
-        complete_info = fan_info.copy()
-        assert 'fan_id' in complete_info, "'fan_id' is missing in fans_info"
-        assert 'path' in complete_info, "'path' is missing in fans_info"
-        complete_info.setdefault('control_mode_filename', 'pwm1_enable')
-        complete_info.setdefault('get_speed_filename', 'fan1_input')
-        complete_info.setdefault('get_speed_map', int)
-        complete_info.setdefault('set_speed_filename', 'pwm1')
-        complete_info.setdefault('set_speed_map', str)
-        self._fans.append(complete_info)
 
   def _ConvertTemperatureToCelsius(self, value):
     """
@@ -349,39 +271,6 @@ class SysFSThermal(Thermal):
       except component.CalledProcessError as e:
         raise self.Error('Unable to get temperature sensor names: %s' % e)
     return self._temperature_sensor_names
-
-  def GetFanRPM(self, fan_id=None):
-    """See ECToolThermal.GetFanRPM."""
-    try:
-      ret = []
-      for info in self._fans:
-        if fan_id is None or info['fan_id'] == fan_id:
-          buf = self._dut.ReadFile(self._dut.path.join(
-              info['path'], info['get_speed_filename']))
-          ret.append(info['get_speed_map'](buf))
-      return ret
-    except Exception as e:  # pylint: disable=W0703
-      raise self.Error('Unable to get fan speed: %s' % e)
-
-  def SetFanRPM(self, rpm, fan_id=None):
-    """See ECToolThermal.SetFanRPM."""
-    try:
-      for info in self._fans:
-        if fan_id is None or info['fan_id'] == fan_id:
-          if rpm == self.AUTO:
-            self._dut.WriteFile(self._dut.path.join(
-                info['path'], info['control_mode_filename']), '2')
-          else:
-            self._dut.WriteFile(self._dut.path.join(
-                info['path'], info['control_mode_filename']), '1')
-            buf = info['set_speed_map'](rpm)
-            self._dut.WriteFile(self._dut.path.join(
-                info['path'], info['set_speed_filename']), buf)
-    except Exception as e:  # pylint: disable=W0703
-      if rpm == self.AUTO:
-        raise self.Error('Unable to set auto fan control: %s' % e)
-      else:
-        raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
   def GetPowerUsage(self, last=None, sensor_id=''):
     """See Thermal.GetPowerUsage."""
