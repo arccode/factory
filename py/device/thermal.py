@@ -26,6 +26,17 @@ class Thermal(component.DeviceComponent):
   AUTO = 'auto'
   """Deprecated by fan.FanControl.AUTO."""
 
+  def GetMainTemperature(self):
+    """Gets the temperature of main sensor.
+
+    This is typically the CPU temperature.
+
+    Returns:
+      A number indicating the temperature in Celsius.
+    """
+    return int(self._dut.ReadFile(
+        '/sys/class/thermal/thermal_zone0/temp').strip()) / 1000
+
   def GetTemperatures(self):
     """Gets a list of temperatures for various sensors.
 
@@ -33,7 +44,7 @@ class Thermal(component.DeviceComponent):
       A list of int indicating the temperatures in Celsius.
       For those sensors which don't have readings, fill None instead.
     """
-    raise NotImplementedError
+    return [self.GetMainTemperature()]
 
   def GetMainTemperatureIndex(self):
     """Gets the main index in temperatures list that should be logged.
@@ -43,7 +54,7 @@ class Thermal(component.DeviceComponent):
     Returns:
       An int indicating the main temperature index.
     """
-    raise NotImplementedError
+    return 0
 
   def GetTemperatureSensorNames(self):
     """Gets a list of names for temperature sensors.
@@ -231,7 +242,7 @@ class SysFSThermal(Thermal):
     return self._thermal_zones
 
   def GetTemperatures(self):
-    """See ECToolThermal.GetTemperatures."""
+    """See Thermal.GetTemperatures."""
     try:
       temperatures = []
       for path in self._GetThermalZones():
@@ -247,7 +258,7 @@ class SysFSThermal(Thermal):
       raise self.Error('Unable to get temperatures: %s' % e)
 
   def GetMainTemperatureIndex(self):
-    """See ECToolThermal.GetMainTemperatureIndex."""
+    """See Thermal.GetMainTemperatureIndex."""
     try:
       names = self.GetTemperatureSensorNames()
       try:
@@ -259,7 +270,7 @@ class SysFSThermal(Thermal):
       raise self.Error('Unable to get main temperature index: %s' % e)
 
   def GetTemperatureSensorNames(self):
-    """See ECToolThermal.GetTemperatureSensorNames."""
+    """See Thermal.GetTemperatureSensorNames."""
     if self._temperature_sensor_names is None:
       try:
         self._temperature_sensor_names = []
@@ -282,6 +293,7 @@ class SysFSThermal(Thermal):
 def main():
   """Test for local execution."""
   pass
+
 
 if __name__ == '__main__':
   main()
