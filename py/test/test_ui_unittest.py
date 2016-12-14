@@ -53,12 +53,17 @@ class TestUIUnittest(unittest.TestCase):
         factory.FactoryTestFailure, r'Aborted by operator',
         ui.Run, blocking=True)
 
-    # Non-blocking mode. The UI main thread should be terminated by a SIGINT.
+    # Non-blocking mode. The main (non-UI) thread should be terminated by a
+    # SIGINT sent from the UI thread.  The signal may be received before while
+    # the non-blocking UI thread is being created, or it may be received after
+    # ui.Run returns.  Thus we must include both the ui.Run call and a thread
+    # join() call within the assertRaises block.
     ui = test_ui.UI()
     ui.event_client.wait = mock.Mock(return_value=ui_abort_event)
-    self.assertRaisesRegexp(
-        factory.FactoryTestFailure, r'Test aborted by SIGINT',
-        ui.Run, blocking=False)
+    with self.assertRaisesRegexp(factory.FactoryTestFailure,
+                                 r'Test aborted by SIGINT'):
+      t = ui.Run(blocking=False)
+      t.join()
 
 
 if __name__ == '__main__':
