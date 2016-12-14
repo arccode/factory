@@ -126,6 +126,13 @@ class TestEvent(unittest.TestCase):
     self.assertEqual(event['b'], payload['b'])
     self.assertTrue(repr(payload) in repr(event))
     self.assertEqual(('a', 1), event.iteritems().next())
+    event.setdefault('a', 2)
+    event.setdefault('d', 2)
+    self.assertEqual(event['a'], 1)
+    self.assertEqual(event['d'], 2)
+    self.assertEqual(event.get('d'), 2)
+    self.assertEqual(event.get('e'), None)
+    self.assertEqual(event.get('e', 9), 9)
 
     # Test equality operators.
     payload_a = payload.copy()

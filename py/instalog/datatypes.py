@@ -146,12 +146,10 @@ class Event(json_utils.Serializable):
 
   def get(self, key, default=None):
     """Implements dict get function."""
-    # TODO(kitching): Test this method.
     return self.payload.get(key, default)
 
   def __setitem__(self, key, value):
     """Implements dict [] set operator."""
-    # TODO(kitching): Test this method.
     self.payload[key] = value
 
   def __contains__(self, item):
@@ -169,6 +167,10 @@ class Event(json_utils.Serializable):
   def iteritems(self):
     """Implements iteritems function."""
     return self.payload.iteritems()
+
+  def setdefault(self, key, default):
+    """Implements setdefault function."""
+    return self.payload.setdefault(key, default)
 
   def __copy__(self):
     """Implements __copy__ function."""
