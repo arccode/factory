@@ -415,51 +415,50 @@ class AudioLoopTest(unittest.TestCase):
     iteration = self._current_test_args.get(
         'iteration', _DEFAULT_AUDIOFUN_TEST_ITERATION)
 
-    with self._dut.temp.TempFile() as config_file:
-      config_str = (
-          'player-proc=aplay -D %s -r %d -f s16 -t raw -c 2 -B 0 -\n'
-          'recorder-proc=arecord -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
-              self._alsa_output_device, capture_rate,
-              self._alsa_input_device, capture_rate))
+    player_cmd = 'aplay -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
+        self._alsa_output_device, capture_rate)
+    recorder_cmd = 'arecord -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
+        self._alsa_input_device, capture_rate)
 
-      self._dut.WriteFile(config_file, config_str)
+    process = self._dut.Popen(
+        [audio_utils.AUDIOFUNTEST_PATH,
+         '-P', player_cmd,
+         '-R', recorder_cmd,
+         '-r', '%d' % capture_rate,
+         '-T', '%d' % iteration,
+         '-a', '%d' % output_channel],
+        stdout=process_utils.PIPE, stderr=process_utils.PIPE)
 
-      process = self._dut.Popen(
-          [audio_utils.AUDIOFUNTEST_PATH, '-r', '%d' % capture_rate,
-           '-z', config_file, '-T', '%d' % iteration,
-           '-A', '%d' % output_channel],
-          stdout=process_utils.PIPE, stderr=process_utils.PIPE)
+    m = self._MatchPatternLines(process.stdout, _AUDIOFUNTEST_MIC_CHANNEL_RE)
 
-      m = self._MatchPatternLines(process.stdout, _AUDIOFUNTEST_MIC_CHANNEL_RE)
+    if m is None:
+      self.AppendErrorMessage(
+          'Number of channels not found from audiofuntest')
+      process.terminate()
+      return
 
-      if m is None:
-        self.AppendErrorMessage(
-            'Number of channels not found from audiofuntest')
-        process.terminate()
+    num_mic = int(m.group(1))
+
+    last_success_rate = None
+    while self._MatchPatternLines(process.stdout,
+                                  _AUDIOFUNTEST_RUN_START_RE) is not None:
+      last_success_rate = self._ParseSingleRunOutput(process.stdout, num_mic)
+      if last_success_rate is None:
+        self.AppendErrorMessage('Failed to parse audiofuntest output')
         return
+      rate_msg = ', '.join(
+          'Mic %d: %.1f%%' %
+          (channel, rate) for channel, rate in enumerate(last_success_rate))
+      self._ui.CallJSFunction('testInProgress', rate_msg)
 
-      num_mic = int(m.group(1))
-
-      last_success_rate = None
-      while self._MatchPatternLines(process.stdout,
-                                    _AUDIOFUNTEST_RUN_START_RE) is not None:
-        last_success_rate = self._ParseSingleRunOutput(process.stdout, num_mic)
-        if last_success_rate is None:
-          self.AppendErrorMessage('Failed to parse audiofuntest output')
-          return
-        rate_msg = ', '.join(
-            'Mic %d: %.1f%%' %
-            (channel, rate) for channel, rate in enumerate(last_success_rate))
-        self._ui.CallJSFunction('testInProgress', rate_msg)
-
-      threshold = self._current_test_args.get(
-          'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
-      if any(x < threshold for x in last_success_rate):
-        self.AppendErrorMessage(
-            'For output device channel %s, the success rate is "'
-            '%s", too low!' % (output_channel, rate_msg))
-        self._ui.CallJSFunction('testFailResult', rate_msg)
-      time.sleep(1)
+    threshold = self._current_test_args.get(
+        'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
+    if any(x < threshold for x in last_success_rate):
+      self.AppendErrorMessage(
+          'For output device channel %s, the success rate is "'
+          '%s", too low!' % (output_channel, rate_msg))
+      self._ui.CallJSFunction('testFailResult', rate_msg)
+    time.sleep(1)
 
   def AudioFunTest(self):
     """Setup speaker and microphone test pairs and run audiofuntest program."""
