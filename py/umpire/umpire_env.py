@@ -317,7 +317,7 @@ class UmpireEnv(object):
     # contain multiple version/hash strings.
     basename = os.path.basename(file_name).partition('#')[0]
     res_version = TryGetVersion()
-    md5 = file_utils.Md5sumInHex(file_name)[:common.RESOURCE_HASH_DIGITS]
+    md5 = file_utils.MD5InHex(file_name)[:common.RESOURCE_HASH_DIGITS]
 
     res_file_name = os.path.join(
         self.resources_dir,

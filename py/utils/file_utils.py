@@ -29,6 +29,10 @@ from . import time_utils
 from . import type_utils
 
 
+# Block size in bytes for iteratively generating hashes of files.
+_HASH_FILE_READ_BLOCK_SIZE = 1024 * 64  # 64kb
+
+
 def TryMakeDirs(path):
   """Tries to create a directory and its parents.
 
@@ -486,18 +490,50 @@ def AtomicCopy(source, dest):
       shutil.move(temp_path, dest)
 
 
-def Md5sumInHex(filename):
-  """Gets hex coded md5sum of input file."""
-  # pylint: disable=E1101
-  return hashlib.md5(
-      open(filename, 'rb').read()).hexdigest()
+def FileHash(path, algorithm, block_size=_HASH_FILE_READ_BLOCK_SIZE):
+  """Calculates given hash of a local file.
+
+  From: http://stackoverflow.com/questions/1742866/compute-crc-of-file-in-python
+
+  Args:
+    path: Local path of the file.
+    algorithm: Name of algorithm to use.  Should be one of algorithms available
+               in hashlib.algorithms.  For example: md5, sha1
+
+  Returns:
+    Hashlib object representing the given file.
+  """
+  file_hash = hashlib.new(algorithm)
+  with open(path, 'rb') as f:
+    for chunk in iter(lambda: f.read(block_size), ''):
+      file_hash.update(chunk)
+  return file_hash
 
 
-def B64Sha1(filename):
-  """Gets standard base64 coded sha1 sum of input file."""
-  # pylint: disable=E1101
-  return base64.standard_b64encode(hashlib.sha1(
-      open(filename, 'rb').read()).digest())
+def MD5InHex(path):
+  """Returns hex-encoded MD5 sum of given file."""
+  return FileHash(path, 'md5').hexdigest()
+
+
+def MD5InBase64(path):
+  """Returns base64-encoded MD5 sum of given file."""
+  return base64.standard_b64encode(FileHash(path, 'md5').digest())
+
+
+def SHA1InHex(path):
+  """Returns hex-encoded SHA1 sum of given file."""
+  return FileHash(path, 'sha1').hexdigest()
+
+
+def SHA1InBase64(path):
+  """Returns base64-encoded SHA1 sum of given file."""
+  return base64.standard_b64encode(FileHash(path, 'sha1').digest())
+
+
+# Legacy function names for backwards compatibility.
+# TODO(kitching): Remove these functions after M56 stable release.
+Md5sumInHex = MD5InHex
+B64Sha1 = SHA1InBase64
 
 
 class FileLockTimeoutError(Exception):

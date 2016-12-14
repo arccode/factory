@@ -84,7 +84,7 @@ def VerifyResource(res_file):
   if not hashsum:
     logging.error('Ill-formed resource filename: %s', res_file)
     return False
-  calculated_hashsum = file_utils.Md5sumInHex(res_file)
+  calculated_hashsum = file_utils.MD5InHex(res_file)
   return calculated_hashsum.startswith(hashsum)
 
 
@@ -264,7 +264,7 @@ def ComposeDownloadConfig(download_files):
 
     channel = GetChannel(resource_base_name)
     url_name = urllib.quote(resource_name)
-    sha1sum = file_utils.B64Sha1(resource_path)
+    sha1sum = file_utils.SHA1InBase64(resource_path)
     result.append(':'.join([channel, url_name, sha1sum]))
 
   return '\n'.join(result) + '\n'

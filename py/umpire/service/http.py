@@ -122,7 +122,7 @@ class HTTPService(umpire_service.UmpireService):
 
     with file_utils.UnopenedTemporaryFile() as temp_path:
       HTTPService._GenerateLightyConfigImpl(umpire_config, env, temp_path)
-      md5 = file_utils.Md5sumInHex(temp_path)
+      md5 = file_utils.MD5InHex(temp_path)
       config_path = os.path.join(
           env.config_dir,
           LIGHTY_CONFIG_FILENAME % md5[:common.RESOURCE_HASH_DIGITS])

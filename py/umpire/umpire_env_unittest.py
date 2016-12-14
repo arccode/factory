@@ -124,7 +124,7 @@ class UmpireEnvTest(unittest.TestCase):
   def testAddResource(self):
     resource_to_add = os.path.join(self.env.base_dir, 'some_resource')
     file_utils.WriteFile(resource_to_add, 'something')
-    resource_md5 = file_utils.Md5sumInHex(
+    resource_md5 = file_utils.MD5InHex(
         resource_to_add)[:common.RESOURCE_HASH_DIGITS]
 
     resource_path = self.env.AddResource(resource_to_add)
@@ -161,7 +161,7 @@ class UmpireEnvTest(unittest.TestCase):
     file_name = 'firmware.gz'
     resource_to_add = os.path.join(self.env.base_dir, file_name)
     file_utils.WriteFile(resource_to_add, 'firmware')
-    resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+    resource_md5 = file_utils.MD5InHex(resource_to_add)[
         :common.RESOURCE_HASH_DIGITS]
 
     # TODO(deanliao): use real firmware.gz in which Umpire can extract
@@ -186,7 +186,7 @@ class UmpireEnvTest(unittest.TestCase):
     file_name = 'chromeos-firmwareupdate'
     resource_to_add = os.path.join(self.env.base_dir, file_name)
     file_utils.WriteFile(resource_to_add, 'firmware')
-    resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+    resource_md5 = file_utils.MD5InHex(resource_to_add)[
         :common.RESOURCE_HASH_DIGITS]
 
     # TODO(deanliao): use real chromeos-firmwareupdate in which Umpire can
@@ -210,7 +210,7 @@ class UmpireEnvTest(unittest.TestCase):
     file_name = 'rootfs-test.gz'
     resource_to_add = os.path.join(self.env.base_dir, file_name)
     file_utils.WriteFile(resource_to_add, 'rootfs-test')
-    resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+    resource_md5 = file_utils.MD5InHex(resource_to_add)[
         :common.RESOURCE_HASH_DIGITS]
 
     # TODO(deanliao): use real rootfs-test.gz in which Umpire can extract
@@ -233,7 +233,7 @@ class UmpireEnvTest(unittest.TestCase):
     file_name = 'hwid_v3_bundle.sh'
     hwid_version = 'a95cd8def470df2e7a8d549af887897e2d095bb0'
     resource_to_add = os.path.join(TESTDATA_DIR, file_name)
-    resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+    resource_md5 = file_utils.MD5InHex(resource_to_add)[
         :common.RESOURCE_HASH_DIGITS]
 
     resource_path = self.env.AddResource(resource_to_add,
@@ -249,7 +249,7 @@ class UmpireEnvTest(unittest.TestCase):
     hwid_version = 'a95cd8def470df2e7a8d549af887897e2d095bb0'
     resource_to_add = os.path.join(TESTDATA_DIR, file_name)
 
-    resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+    resource_md5 = file_utils.MD5InHex(resource_to_add)[
         :common.RESOURCE_HASH_DIGITS]
 
     resource_path = self.env.AddResource(resource_to_add,
@@ -262,7 +262,7 @@ class UmpireEnvTest(unittest.TestCase):
     file_name = 'install_factory_toolkit.run'
     resource_to_add = os.path.join(self.env.base_dir, file_name)
     file_utils.WriteFile(resource_to_add, 'factory_toolkit')
-    resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+    resource_md5 = file_utils.MD5InHex(resource_to_add)[
         :common.RESOURCE_HASH_DIGITS]
 
     resource_path = self.env.AddResource(

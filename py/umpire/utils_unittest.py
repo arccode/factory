@@ -117,7 +117,7 @@ class VerifyResourceTest(unittest.TestCase):
       test_file = os.path.join(temp_dir, 'test')
       file_utils.WriteFile(test_file, 'test')
 
-      md5sum = file_utils.Md5sumInHex(test_file)
+      md5sum = file_utils.MD5InHex(test_file)
       res_file = '%s##%s' % (test_file, md5sum[:common.RESOURCE_HASH_DIGITS])
       os.rename(test_file, res_file)
 

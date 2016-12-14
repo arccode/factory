@@ -6,7 +6,9 @@
 
 """Unittest for file_utils.py."""
 
+import base64
 import binascii
+import hashlib
 import logging
 import mock
 import mox
@@ -457,15 +459,64 @@ class AtomicCopyTest(unittest.TestCase):
     m.VerifyAll()
 
 
-class Md5sumInHexTest(unittest.TestCase):
+class FileHashTest(unittest.TestCase):
 
-  def runTest(self):
-    temp_file = tempfile.NamedTemporaryFile(delete=False)
-    temp_file.write('Md5sumInHex test')
-    temp_file.close()
-    self.assertEqual('a7edf9375e036698a408c9777de1ebd1',
-                     file_utils.Md5sumInHex(temp_file.name))
-    os.unlink(temp_file.name)
+  def setUp(self):
+    self.test_string = 'FileHash test'
+    f = tempfile.NamedTemporaryFile(delete=False)
+    self.temp_file = f.name
+    f.write(self.test_string)
+    f.close()
+
+  def tearDown(self):
+    os.unlink(self.temp_file)
+
+  def testFileHash(self):
+    self.assertEqual(file_utils.FileHash(self.temp_file, 'md5').hexdigest(),
+                     file_utils.MD5InHex(self.temp_file))
+    self.assertEqual('5e8c0fb0a780eff4947e1d76cfc5ee27',
+                     file_utils.MD5InHex(self.temp_file))
+    self.assertEqual('XowPsKeA7/SUfh12z8XuJw==',
+                     file_utils.MD5InBase64(self.temp_file))
+    self.assertEqual('e7c60cc7247d49ffcac5f7db0176ad7ad5f9795f',
+                     file_utils.SHA1InHex(self.temp_file))
+    self.assertEqual('58YMxyR9Sf/KxffbAXatetX5eV8=',
+                     file_utils.SHA1InBase64(self.temp_file))
+
+  def testMultiBlockHash(self):
+    with open(self.temp_file, 'rb') as f:
+      with mock.patch('__builtin__.open', mock.mock_open()) as m:
+        m_file = m.return_value
+        m_file.read.side_effect = f.read
+
+        # Test with 1 block.
+        block_size = len(self.test_string)
+        one_ret = file_utils.FileHash(
+            self.temp_file, 'md5', block_size=block_size).hexdigest()
+        m_file.read.assert_has_calls([mock.call(block_size)] * 2)
+        f.seek(0)
+
+        # Test with 2 blocks.
+        block_size = len(self.test_string) / 2 + 1
+        two_ret = file_utils.FileHash(
+            self.temp_file, 'md5', block_size=block_size).hexdigest()
+        m_file.read.assert_has_calls([mock.call(block_size)] * 3)
+        f.seek(0)
+
+        self.assertEqual(one_ret, two_ret)
+
+  def testLegacyMatchesMD5InHex(self):
+    # Legacy method calculates the hash all at once.
+    old_hash = hashlib.md5(open(self.temp_file, 'rb').read()).hexdigest()
+    new_hash = file_utils.MD5InHex(self.temp_file)
+    self.assertEqual(old_hash, new_hash)
+
+  def testLegacyMatchesSHA1InBase64(self):
+    # Legacy method calculates the hash all at once.
+    old_hash = base64.standard_b64encode(hashlib.sha1(
+        open(self.temp_file, 'rb').read()).digest())
+    new_hash = file_utils.SHA1InBase64(self.temp_file)
+    self.assertEqual(old_hash, new_hash)
 
 
 class FileLockTest(unittest.TestCase):
