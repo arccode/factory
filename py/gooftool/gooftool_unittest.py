@@ -341,9 +341,13 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.VerifyRootFs('root3')
 
   def testVerifyTPM(self):
+    # Mock os.path.exists to ensure that 3.18+ kernel TPM path does not exist.
+    self.mox.StubOutWithMock(os.path, 'exists')
     self.mox.StubOutWithMock(__builtin__, 'open')
+    os.path.exists('/sys/class/tpm/tpm0/device').AndReturn(False)
     open('/sys/class/misc/tpm0/device/enabled').AndReturn(StringIO('1'))
     open('/sys/class/misc/tpm0/device/owned').AndReturn(StringIO('0'))
+    os.path.exists('/sys/class/tpm/tpm0/device').AndReturn(False)
     open('/sys/class/misc/tpm0/device/enabled').AndReturn(StringIO('1'))
     open('/sys/class/misc/tpm0/device/owned').AndReturn(StringIO('1'))
     self.mox.ReplayAll()
