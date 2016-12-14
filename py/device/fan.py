@@ -13,6 +13,7 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
+from cros.factory.external import numpy
 
 
 class FanControl(component.DeviceComponent):
@@ -91,6 +92,70 @@ class ECToolFanControl(FanControl):
         raise self.Error('Unable to set auto fan control: %s' % e)
       else:
         raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
+
+
+class MosysFanControl(FanControl):
+  """System module for fan control using ChromeOS 'mosys'.
+
+  This is usually found on Chromebox that does not have ectool.
+  """
+
+  _DEFAULT_DUTY_CYCLES = [30, 40, 50, 60, 70, 80, 90, 100]
+
+  def __init__(self, dut, rpms, duty_cycles=None):
+    """Constructor.
+
+    Args:
+      dut: a `cros.factory.device.board.DeviceBoard` instance.
+      rpms: A list of integers for mapping from RPM to duty cycles (device
+          specific), for example [2360, 3040, 3630, 4180, 4655, 5100, 5450,
+          5950].
+      duty_cycles: A list of integers for duty cycles mapped by argument rpms,
+          default to _DEFAULT_DUTY_CYCLES.
+    """
+    super(MosysFanControl, self).__init__(dut)
+    self._rpms = rpms
+    self._duty_cycles = duty_cycles or self._DEFAULT_DUTY_CYCLES
+
+  def GetFanRPM(self, fan_id=None):
+    """Gets the fan RPM.
+
+    Args:
+      fan_id: The id of the fan.
+
+    Returns:
+      A list of int indicating the RPM of each fan.
+    """
+    try:
+      return [int(self._dut.CheckOutput(
+          ['mosys', 'sensor', 'print', 'fantach']).split('|')[2].strip())]
+    except Exception as e:  # pylint: disable=W0703
+      raise self.Error('Unable to get fan speed: %s' % e)
+
+  def SetFanRPM(self, rpm, fan_id=None):
+    """Transfer RPM to PWM duty cycle to set fan speed.
+
+    Args:
+      rpm: This parameter should be a number or self.AUTO.
+    """
+    # xp is RPM table, fp is duty_cycle table.
+    min_rpm = self._rpms[0]
+    if rpm != self.AUTO:
+      if rpm < min_rpm:
+        raise self.Error('RPM should be greater than %d' % min_rpm)
+      else:
+        duty_cycle = str(int(numpy.interp(rpm, self._rpms, self._duty_cycles)))
+    try:
+      self._dut.CheckCall(['mosys', 'sensor', 'set', 'fantach', 'system',
+                           'auto' if rpm == self.AUTO else duty_cycle])
+      if rpm == self.AUTO:
+        # This is a workaround for fan speed. We need this command
+        # when fan mode from manaul to auto.
+        # See more details: http://crosbug.com/p/24562.
+        self._dut.Call(
+            'echo 0 > /sys/class/thermal/cooling_device4/cur_state')
+    except Exception as e: # pylint: disable=W0703
+      raise self.Error('Unable to set fan speed to RPM %s: %s' % (rpm, e))
 
 
 class SysFSFanControl(FanControl):
