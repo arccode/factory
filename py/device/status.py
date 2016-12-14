@@ -148,13 +148,9 @@ class SystemStatus(component.DeviceComponent):
     return self._dut.thermal.GetFanRPM()
 
   @StatusProperty
-  def temperatures(self):
-    """Gets temperatures from sensors."""
-    return self._dut.thermal.GetTemperatures()
-
-  @StatusProperty
-  def main_temperature_index(self):
-    return self._dut.thermal.GetMainTemperatureIndex()
+  def temperature(self):
+    """Gets main (CPU) temperature from thermal sensor."""
+    return self._dut.thermal.GetMainTemperature()
 
   @StatusProperty
   def load_avg(self):

@@ -9,6 +9,7 @@ It shows count down and system loads for run-in period. It also alarms if
 there's any abnormal status detected during run-in.
 """
 
+import collections
 import os
 import time
 import unittest
@@ -165,8 +166,13 @@ class CountDownTest(unittest.TestCase):
         for w in warnings:
           factory.console.warn(w)
 
+  def SnapshotStatus(self):
+    return self.Status(self._dut.thermal.GetTemperatures(),
+                       self._dut.fan.GetFanRPM())
+
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
+    self.Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
 
   def runTest(self):
     # Allow attributes to be defined outside __init__
@@ -189,7 +195,7 @@ class CountDownTest(unittest.TestCase):
     self._remaining_secs = self.args.duration_secs
     self._next_log_time = 0
     self._next_ui_update_time = 0
-    last_status = self._dut.status.Snapshot()
+    last_status = self.SnapshotStatus()
 
     try:
       self.UpdateLegend(self._dut.thermal.GetTemperatureSensorNames())
@@ -203,7 +209,7 @@ class CountDownTest(unittest.TestCase):
       current_time = time.time()
       if (current_time >= self._next_log_time or
           current_time >= self._next_ui_update_time):
-        sys_status = self._dut.status.Snapshot()
+        sys_status = self.SnapshotStatus()
 
       if current_time >= self._next_log_time:
         event_log.Log('system_status', elapsed_secs=self._elapsed_secs,

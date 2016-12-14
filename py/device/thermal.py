@@ -111,6 +111,10 @@ class ECToolThermal(Thermal):
     self._temperature_sensor_names = None
     self._main_temperature_index = None
 
+  def GetMainTemperature(self):
+    # TODO(hungte) Improve this by reading only required value.
+    return self.GetTemperatures()[self.GetMainTemperatureIndex()]
+
   def GetTemperatures(self):
     """Gets a list of temperatures for various sensors.
 
@@ -240,6 +244,10 @@ class SysFSThermal(Thermal):
       self._thermal_zones = self._dut.Glob(self._dut.path.join(
           self._SYSFS_THERMAL_PATH, 'thermal_zone*'))
     return self._thermal_zones
+
+  def GetMainTemperature(self):
+    # TODO(hungte) Improve this by reading only required value.
+    return self.GetTemperatures()[self.GetMainTemperatureIndex()]
 
   def GetTemperatures(self):
     """See Thermal.GetTemperatures."""

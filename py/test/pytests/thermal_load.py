@@ -50,7 +50,7 @@ class ThermalLoadTest(unittest.TestCase):
   def GetTemperatures(self):
     """Gets the temperature reading from specified sensor."""
     temperatures = []
-    system_temperatures = self.dut.status.temperatures
+    system_temperatures = self.dut.thermal.GetTemperatures()
     for sensor_index in self.args.sensor_index:
       temperatures.append(system_temperatures[sensor_index])
     return temperatures
