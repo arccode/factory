@@ -35,8 +35,8 @@ Terminology
 * Factory toolkit: a self-extraction package that contains a set of python
     programs, YAML/JSON configuration, and shell scripts that will install
     itself into /usr/local/factory. This is also considered as the main "factory
-    test program" (build by `emerge-$BOARD chromeos-factory` or running `make
-    BOARD=$BOARD toolkit` inside factory repo).
+    test program" (built by running `emerge-$BOARD factory` or
+    `make BOARD=$BOARD toolkit` inside factory repository).
 * Factory Bundle: An archive containing everything: a release (recovery) image,
   test image, factory shim image, factory toolkit, and few setup programs.
 
@@ -81,10 +81,10 @@ Under chroot, after [setting up
 board](http://dev.chromium.org/chromium-os/developer-guide), you have two ways
 to get factory toolkit.
 
-1. Using emerge. Simply run `emerge chromeos-factory` and find it in
+1. Using emerge. Simply run `emerge-$BOARD factory` and find it in
    `/build/$BOARD/usr/local/factory/bundle/toolkit/install_factory_toolkit.run`
 
-2. Build manually. In factory repo, run `make --board=$BOARD toolkit` and find
+2. Build manually. In factory repo, run `make BOARD=$BOARD toolkit` and find
    it in `build/install_factory_toolkit.run`.
 
 If you encounter build problems, try to update chroot and rebuild necessary
@@ -260,8 +260,9 @@ files in this directory will be included in factory bundles built by
 Buildbot.  For example, the shopfloor and mini-Omaha servers are
 placed into this directory.
 
-Within board overlays, the `chromeos-base/chromeos-factory-board`
-package may overlay files into this directory structure.
+Within board overlays, the `chromeos-base/factory-board` or
+`chromeos-base/chromeos-factory-board` package may overlay files into this
+directory structure.
 
 For instance, a board overlay may install:
 

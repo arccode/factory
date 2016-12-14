@@ -80,7 +80,7 @@ def ContentsDiffer(src_path, dest_path):
 PACKAGES = {
     'factory':
         dict(path='platform/factory',
-             package='chromeos-base/chromeos-factory',
+             package='chromeos-base/factory',
              workon=True),
     'chromeos-factory-board':
         dict(path='%(overlay_relpath)s',

@@ -5,7 +5,7 @@ The files that are required to run the
 fetched from [CPFE](https://www.google.com/chromeos/partner/fe) BCS during
 build. If you want to get the files manually, you can just run:
 
-    emerge-<board> chromeos-factory
+    emerge-<board> factory
 
 and then copy out the files from:
 
