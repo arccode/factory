@@ -12,7 +12,6 @@ from cros.factory.device.chromeos import bluetooth
 from cros.factory.device.chromeos import display
 from cros.factory.device import component
 from cros.factory.device import fan
-from cros.factory.device import thermal
 from cros.factory.device import vpd
 from cros.factory.device import wifi
 
@@ -36,10 +35,6 @@ class ChromeOSBoard(linux.LinuxBoard):
   @component.DeviceProperty
   def fan(self):
     return fan.ECToolFanControl(self)
-
-  @component.DeviceProperty
-  def thermal(self):
-    return thermal.ECToolThermal(self)
 
   @component.DeviceProperty
   def wifi(self):
