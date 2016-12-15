@@ -282,9 +282,11 @@ class Board(django.db.models.Model):
     # An easy way to get IP of the host. It's possible to install python
     # packages such as netifaces or pynetinfo into the container, but that
     # requires gcc to be installed and will thus increase the size of the
-    # container (which we don't want).
+    # container (which we don't want). Alpine itself provides the package as
+    # well, but it's on the edge branch and cannot be easily installed using the
+    # apk command.
     ip = subprocess.check_output(
-        'route | grep default | tr -s " " | cut -d " " -f 2', shell=True)
+        'ip route | grep "^default"', shell=True).split()[2]
     return ip.strip()  # remove the trailing newline
 
   @staticmethod
