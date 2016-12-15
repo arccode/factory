@@ -421,5 +421,5 @@ class Wifi_RF(unittest.TestCase):
 
     self._initflag = True
     self._template.SetState(_MSG_READY_CLOSE)
-    self._ui.BindKey(test_ui.SPACE_KEY, self.RunSubtests)
+    self._ui.BindKey(test_ui.SPACE_KEY, self.RunSubtests, once=True)
     self._ui.Run()
