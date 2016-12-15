@@ -670,7 +670,8 @@ class _Ui(object):
     self._done.clear()
     self._space_event.clear()
     self._template.SetState(_MSG_SPACE)
-    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
+    self._ui.BindKey(
+        test_ui.SPACE_KEY, lambda _: self.OnSpacePressed(), once=True)
     self._ui.Run(blocking=False, on_finish=self.Done)
     self._space_event.wait()
     return self._done.isSet()
