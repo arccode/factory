@@ -48,9 +48,9 @@ class BrightnessTest(unittest.TestCase):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
+    self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_BRIGHTNESS_TEST_DEFAULT_CSS)
     self.ui.BindStandardKeys()
-    self.template = ui_templates.OneSection(self.ui)
     self.template.SetState(_HTML_BRIGHTNESS_TEST)
     self.ui.SetHTML(test_ui.MakeLabel(self.args.msg_en, self.args.msg_zh,
                                       _MSG_CSS_CLASS), id=_ID_PROMPT)
