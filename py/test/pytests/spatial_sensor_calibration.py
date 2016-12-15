@@ -79,6 +79,7 @@ class SpatialSensorCalibration(unittest.TestCase):
     self._ui = test_ui.UI(css=CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._start_event = threading.Event()
+    self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self._start_event.set())
 
   def runTest(self):
     previous_fail = False
@@ -117,7 +118,6 @@ class SpatialSensorCalibration(unittest.TestCase):
         u'请将装置面向上(按 Enter 继续)')
 
     self._template.SetState(test_ui.MakeLabel(prompt_en, prompt_zh))
-    self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self._start_event.set())
 
   def WaitForDevice(self):
     self._template.SetState(test_ui.MakeLabel('Waiting for device...',
@@ -133,8 +133,8 @@ class SpatialSensorCalibration(unittest.TestCase):
         continue
 
       key = self.args.raw_entry_template % axis
-      value = int(self._dut.Read(self._dut.path.join(self.args.device_path,
-                                                     key)))
+      value = int(self._dut.ReadFile(self._dut.path.join(self.args.device_path,
+                                                         key)))
       if value <= _range[0] or value >= _range[1]:
         factory.console.error(
             'Device not in correct position: %s-axis value: %d. '
@@ -162,7 +162,8 @@ class SpatialSensorCalibration(unittest.TestCase):
       self._template.SetState(test_ui.MakeLabel('Writing calibration data...',
                                                 u'正在写入校正结果...'))
       key = self.args.calibbias_entry_template % axis
-      value = self._dut.Read(self._dut.path.join(self.args.device_path, key))
+      value = self._dut.ReadFile(self._dut.path.join(self.args.device_path,
+                                                     key))
       cmd.extend(['-s', '%s=%s' % (key, value.strip())])
 
     self._dut.CheckCall(cmd)
