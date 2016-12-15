@@ -39,6 +39,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 CSS = """
@@ -92,6 +93,7 @@ class Report(unittest.TestCase):
     states = factory.get_state_instance().get_test_states()
 
     ui = test_ui.UI(css=CSS)
+    template = ui_templates.OneSection(ui)
 
     statuses = []
 
@@ -156,6 +158,6 @@ class Report(unittest.TestCase):
     elif all_pass:
       ui.BindStandardKeys(bind_fail_keys=False)
 
-    ui.SetHTML(''.join(html))
+    template.SetState(''.join(html))
     logging.info('starting ui.Run with overall_status %r', overall_status)
     ui.Run()
