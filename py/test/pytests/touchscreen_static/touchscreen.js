@@ -39,6 +39,10 @@ TouchscreenTest.prototype.init = function() {
   caption.className = 'touchscreen-caption';
   appendSpanEnZh(caption, this.enInstruct, this.zhInstruct);
   $(this.container).appendChild(caption);
+  var countdownTimerElement = document.createElement('div');
+  countdownTimerElement.id = 'touchscreen-countdown-timer';
+  countdownTimerElement.className = 'touchscreen-caption';
+  $(this.container).appendChild(countdownTimerElement);
 };
 
 /**
@@ -51,6 +55,9 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
   var touchscreenTable = createTable(this.ySegments, this.xSegments, 'touch',
       'touchscreen-test-sector-untested');
   this.fullScreenElement.appendChild(touchscreenTable);
+  var countdownTimerElement = document.createElement('div');
+  countdownTimerElement.id = 'touchscreen-full-screen-countdown-timer';
+  this.fullScreenElement.appendChild(countdownTimerElement);
   $(this.container).appendChild(this.fullScreenElement);
 };
 

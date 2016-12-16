@@ -11,6 +11,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
@@ -59,7 +60,9 @@ class TouchscreenTest(unittest.TestCase):
   """
   ARGS = [
       Arg('touchscreen_event_id', int, 'Touchscreen input event id.',
-          default=None, optional=True)
+          default=None, optional=True),
+      Arg('timeout_secs', (int, type(None)),
+          'Timeout for the test, None for no timeout.', default=20)
   ]
 
   def setUp(self):
@@ -76,6 +79,7 @@ class TouchscreenTest(unittest.TestCase):
     self.touchscreen_device_name = None
     self.touch_event = TouchEvent()
     self.checked = False
+    self.dispatcher = None
 
     if self.args.touchscreen_event_id is None:
       touchscreen_devices = evdev_utils.GetTouchscreenDevices()
@@ -86,19 +90,19 @@ class TouchscreenTest(unittest.TestCase):
       self.touchscreen_device = evdev.InputDevice(
           '/dev/input/event%d' % self.args.touchscreen_event_id)
 
-    self.GetSpec()
-    self.touchscreen_device.grab()
-    logging.info('start monitor daemon thread')
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(
-        self.touchscreen_device, self.ProcessTouchEvent)
-    self.dispatcher.StartDaemon()
+    if self.args.timeout_secs is not None:
+      logging.info('start countdown timer daemon thread')
+      countdown_timer.StartCountdownTimer(
+          self.args.timeout_secs,
+          lambda: self.ui.CallJSFunction('failTest'),
+          self.ui,
+          ['touchscreen-countdown-timer',
+           'touchscreen-full-screen-countdown-timer'])
 
   def tearDown(self):
-    """Terminates the running process or we'll have trouble stopping the test.
-
-    Also restores the touchscreen at X.
-    """
-    self.dispatcher.close()
+    """Restores the touchscreen."""
+    if self.dispatcher is not None:
+      self.dispatcher.close()
     self.touchscreen_device.ungrab()
 
   def GetSpec(self):
@@ -157,15 +161,25 @@ class TouchscreenTest(unittest.TestCase):
     self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
 
   def OnSpacePressed(self):
-    """Calls JS function to switch display on/off."""
-    self.checked = True
+    """Calls JS function to switch display on/off.
+
+    Delay touchscreen_device.grab() to here so we can use touchscreen to click
+    the space button to start the test.
+    """
     self.ui.CallJSFunction('switchDisplayOnOff')
 
+    if not self.checked:
+      self.checked = True
+      self.GetSpec()
+      self.touchscreen_device.grab()
+      logging.info('start monitor daemon thread')
+      self.dispatcher = evdev_utils.InputDeviceDispatcher(
+          self.touchscreen_device, self.ProcessTouchEvent)
+      self.dispatcher.StartDaemon()
+
   def OnFailPressed(self):
-    """Fails the test only if self.checked is True."""
-    if self.checked:
-      self.ui.CallJSFunction('failTest')
-      self.checked = False
+    """Fails the test."""
+    self.ui.CallJSFunction('failTest')
 
   def runTest(self):
     self.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())

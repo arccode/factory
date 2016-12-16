@@ -16,7 +16,7 @@ _MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel('Time remaining: %d' % t,
                                                   u'剩余时间：%d' % t)
 
 
-def StartCountdownTimer(timeout_secs, timeout_handler, ui, element_id,
+def StartCountdownTimer(timeout_secs, timeout_handler, ui, element_ids,
                         disable_event=None):
   """Starts a thread for CountdownTimer and updates factory UI.
 
@@ -34,10 +34,15 @@ def StartCountdownTimer(timeout_secs, timeout_handler, ui, element_id,
     timeout_secs: (int) #seconds to timeout.
     timeout_handler: (callback) called when timeout reaches.
     ui: a test_ui.UI instance.
-    element_id: The HTML element to place time remaining info.
+    element_ids: The HTML element to place time remaining info, can be a list
+        of element ids.
     disable_event: a threading.Event object to stop timer.
   """
-  tick = lambda t: ui.SetHTML(_MSG_TIME_REMAINING(t), id=element_id)
+  if not isinstance(element_ids, list):
+    element_ids = [element_ids]
+  def tick(t):
+    for element_id in element_ids:
+      ui.SetHTML(_MSG_TIME_REMAINING(t), id=element_id)
   if disable_event:
     thread = threading.Thread(
         target=CountdownTimer,

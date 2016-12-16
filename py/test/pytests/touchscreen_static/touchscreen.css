@@ -5,9 +5,9 @@
  */
 
 .touchscreen-caption {
-  text-align : center;
-  font-size : 35;
-  position : relative; }
+  text-align: center;
+  font-size: 35;
+  position: relative; }
 .touchscreen-full-screen-hide {
   background-color: white;
   position: fixed;
@@ -33,3 +33,15 @@
   background-color: green;
   height: 100%;
   opacity: 0.5; }
+#touchscreen-full-screen-countdown-timer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  opacity: 0.3;
+  z-index: 999;
+  font-size: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center; }
