@@ -13,6 +13,7 @@ import threading
 import time
 
 import instalog_common  # pylint: disable=W0611
+from instalog import flow_policy
 from instalog import json_utils
 from instalog import plugin_sandbox
 from instalog import plugin_base
@@ -42,17 +43,21 @@ class Instalog(plugin_sandbox.CoreAPI):
                 will be stored here.
       cli_hostname: Hostname used for the CLI RPC server.
       cli_port: Port used for the CLI RPC server.
-      buffer_plugin: Configuration dict for the buffer plugin.  The `plugin`
-                     key should point to the plugin filename.
-      input_plugins: List of configuration dicts for input plugins.  The
-                     `plugin` key should point to the plugin filename.
-      output_plugins: List of configuration dicts for output plugins.  The
-                      `plugin` key should point to the plugin filename.
+      buffer_plugin: Configuration dict for the buffer plugin.  Keys should
+                     consist of:
+                     - plugin: Required, plugin module name.
+                     - args: Optional, defines plugin arguments.
+      input_plugins: List of configuration dicts for input plugins.
+                     Configuration dicts should be the same format as
+                     that of buffer_plugin, with the addition of:
+                      - targets: Optional, defines target plugins.
+      output_plugins: List of configuration dicts for output plugins.
+                      - plugin: Required, plugin module name.
+                      - args: Optional, defines plugin arguments.
+                      - allow: Optional, defines flow policy allow rules.
+                      - deny: Optional, defines flow policy deny rules.
+                      - targets: Optional, defines target plugins.
     """
-    # Ensure that plugin IDs don't overlap across input and output.
-    if any([plugin_id in output_plugins for plugin_id in input_plugins]):
-      raise ValueError
-
     self._rpc_lock = threading.Lock()
     self._state = DOWN
 
@@ -65,6 +70,7 @@ class Instalog(plugin_sandbox.CoreAPI):
       os.makedirs(self._data_dir)
 
     # Create plugin sandboxes.
+    self._PreprocessConfigEntries(input_plugins, output_plugins)
     self._buffer = self._ConfigEntryToSandbox(
         plugin_base.BufferPlugin, 'buffer', buffer_plugin)
     self._plugins = {}
@@ -90,6 +96,37 @@ class Instalog(plugin_sandbox.CoreAPI):
     t = threading.Thread(target=ShutdownThread)
     t.start()
 
+  def _PreprocessConfigEntries(self, input_plugins, output_plugins):
+    """Preprocesses config entries to allow the "targets" argument."""
+    # Ensure that plugin IDs don't overlap across input and output.
+    if any([plugin_id in output_plugins for plugin_id in input_plugins]):
+      raise ValueError
+
+    # Next, convert 'targets' entries to corresponding allow policy rule.
+    for dct in [input_plugins, output_plugins]:
+      for plugin_id, plugin_config in dct.iteritems():
+        if 'targets' in plugin_config:
+          targets = plugin_config.pop('targets')
+          if not isinstance(targets, list):
+            targets = [targets]
+          for target in targets:
+            if target not in output_plugins:
+              raise plugin_base.ConfigError(
+                  'Non-existent target output plugin ID `%s\' referenced in '
+                  'plugin `%s\' config' % (target, plugin_id))
+            target_allow = output_plugins[target].setdefault('allow', [])
+            target_allow.append({'rule': 'history',
+                                 'plugin_id': plugin_id})
+
+    # Ensure that all output plugins have at least one event source.
+    for plugin_id, plugin_config in output_plugins.iteritems():
+      if not plugin_config.get('allow'):
+        raise plugin_base.ConfigError(
+            'No plugin is targetting output plugin `%s\'.  Please (1) disable '
+            'this plugin, (2) add allow/deny rules, or (3) configure '
+            '`targets\' of another plugin to point to it.' % plugin_id)
+
+
   def _ConfigEntryToSandbox(self, superclass, plugin_id, config):
     """Parses configuration for a particular plugin entry.
 
@@ -105,6 +142,23 @@ class Instalog(plugin_sandbox.CoreAPI):
           'Plugin %s must have a config dictionary which includes the key '
           '`plugin` to specify which plugin module to load' % plugin_id)
     plugin_type = config.pop('plugin')
+    allow = config.pop('allow', [])
+    deny = config.pop('deny', [])
+    args = config.pop('args', {})
+    # Disallow recursion by default.  Any events emitted by a plugin should
+    # never be processed by that plugin again.
+    enable_recursion = config.pop('enable_recursion', False)
+    if config:
+      raise plugin_base.ConfigError(
+          'Plugin %s has extra arguments: %s' % (plugin_id, ', '.join(config)))
+
+    # Create FlowPolicy object.
+    policy = flow_policy.FlowPolicy(allow, deny)
+    if not enable_recursion:
+      policy.deny.append(
+          flow_policy.HistoryRule(plugin_id=plugin_id,
+                                  node_id=self._node_id))
+    logging.info('%s ----- %r', plugin_id, policy)
 
     # Make sure we have a store_path and data_dir for the plugin.
     store_path = os.path.join(self._data_dir, '%s.json' % plugin_id)
@@ -116,7 +170,8 @@ class Instalog(plugin_sandbox.CoreAPI):
         plugin_type=plugin_type,
         plugin_id=plugin_id,
         superclass=superclass,
-        config=config,
+        config=args,
+        policy=policy,
         store_path=store_path,
         data_dir=data_dir,
         core_api=self)

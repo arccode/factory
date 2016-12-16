@@ -11,9 +11,11 @@ buffer:
 input:
   time:
     plugin: 'input_time'
-    interval: 10
-    num_attachments: 1
-    attachment_bytes: 1024
+    target: 'stdout'
+    args:
+      interval: 10
+      num_attachments: 1
+      attachment_bytes: 1024
 output:
   stdout:
     plugin: 'output_stdout'

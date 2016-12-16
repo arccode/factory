@@ -21,6 +21,7 @@ import time
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
+from instalog import flow_policy
 from instalog import plugin_base
 from instalog import plugin_loader
 from instalog.utils import file_utils
@@ -112,7 +113,7 @@ class PluginSandbox(plugin_base.PluginAPI):
       UNPAUSING: _WAIT}
 
   def __init__(self, plugin_type, plugin_id=None, superclass=None, config=None,
-               store_path=None, data_dir=None, core_api=None,
+               policy=None, store_path=None, data_dir=None, core_api=None,
                _plugin_class=None):
     """Initializes the PluginSandbox.
 
@@ -127,6 +128,8 @@ class PluginSandbox(plugin_base.PluginAPI):
                   will allow any of the three types to be created.
       config: Configuration dict of the plugin entry.  Defaults to an empty
               dict.
+      policy: FlowPolicy object describing the allow/deny policy of this
+              plugin.
       store_path: Path to this plugin's data store file.
       data_dir: Path to the the data directory of this plugin.
       core_api: Reference to an object that implements CoreAPI, usually Core.
@@ -141,6 +144,8 @@ class PluginSandbox(plugin_base.PluginAPI):
     self.plugin_type = plugin_type
     self.plugin_id = plugin_id or plugin_type
     self.config = config or {}
+    # Allow all events by default (usually used by run_plugin or testing).
+    self._policy = policy or flow_policy.FlowPolicy(allow=[{'rule': 'all'}])
     self._store_path = store_path
     if self._store_path:
       self.store = self._LoadStore(self._store_path)
@@ -623,10 +628,22 @@ class PluginSandbox(plugin_base.PluginAPI):
     self.logger.debug('EventStreamNext called with state=%s', self._state)
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
-    ret = self._event_stream_map[plugin_stream].Next()
+    ret = self._NextMatchingEvent(plugin_stream)
     if ret:
       ret.AppendStage(self._process_stage_map[plugin_stream])
     return ret
+
+  def _NextMatchingEvent(self, plugin_stream):
+    """Retrieves the next event matching the plugin's FlowPolicy.
+
+    Returns None if no events are available.
+    """
+    while True:
+      ret = self._event_stream_map[plugin_stream].Next()
+      if ret is None:
+        return None
+      if self._policy.MatchEvent(ret):
+        return ret
 
   def EventStreamCommit(self, plugin, plugin_stream):
     """See PluginAPI.EventStreamCommit."""
@@ -647,4 +664,12 @@ class PluginSandbox(plugin_base.PluginAPI):
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
     self._process_stage_map.pop(plugin_stream)
+    # If no events were processed, use Commit() instead of Abort().  This
+    # accounts for the case where all events were skipped because of the
+    # FlowPolicy.  If no "valid" events are ever encountered, the plugin's
+    # consumer will never advance through the buffer, which could cause it to
+    # grow without the possibility of truncation.  Thus we force Commit() to
+    # make sure any events "hidden" by the FlowPolicy are committed.
+    if plugin_stream.GetCount() == 0:
+      return self._event_stream_map.pop(plugin_stream).Commit()
     return self._event_stream_map.pop(plugin_stream).Abort()

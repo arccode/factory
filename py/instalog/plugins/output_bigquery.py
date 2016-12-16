@@ -260,8 +260,8 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       return True
 
     if event_count == 0:
-      event_stream.Abort()
-      self.info('Abort %d events', event_count)
+      event_stream.Commit()
+      self.info('Commit %d events', event_count)
       return False
 
     # Write the current import job to disk for debugging purposes.
