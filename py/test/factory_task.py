@@ -128,6 +128,7 @@ class FactoryTask(object):
     self._ui.task_hook = None
     self._ui.RunJS('window.test.unbindAllKeys();'
                    'window.test.removeAllVirtualkeys();')
+    self._ui.event_handlers = {}
     self.Cleanup()
 
   def _IsRunning(self):

@@ -69,8 +69,11 @@ function UpdateResult(result) {
 }
 """
 
+_SELECT_COLOR_EVENT = 'led-select-color'
+
 _HTML_KEY_TEMPLATE = """
-<span class="led-btn" style="background-color: %s; color: %s">%d</span>
+<span class="led-btn" style="background-color: %s; color: %s"
+    onclick="window.test.sendTestEvent('%s', %d);">%d</span>
 """
 
 _HTML_RESULT = (
@@ -215,25 +218,28 @@ class CheckLEDTaskChallenge(CheckLEDTask):
         u'请根据 <strong>%s LED</strong> 的颜色按下数字键'
         % (self._nth, self._index_label.zh))
 
-    btn_ui = ''.join([_HTML_KEY_TEMPLATE % (_COLOR_CODE[c] + (j + 1,))
-                      for j, c in enumerate(self._color_options)])
+    btn_ui = ''.join([
+        _HTML_KEY_TEMPLATE % (_COLOR_CODE[c] + (_SELECT_COLOR_EVENT, j, j + 1))
+        for j, c in enumerate(self._color_options)])
 
     ui = [desc, '<br /><br />', btn_ui, _HTML_RESULT]
 
-    def _PassHook(_):
-      self._ui.CallJSFunction('UpdateResult', True)
-      time.sleep(_SHOW_RESULT_SECONDS)
-      self.Pass()
-
-    def _FailHook(_):
-      self._ui.CallJSFunction('UpdateResult', False)
-      time.sleep(_SHOW_RESULT_SECONDS)
-      self.Fail('LED color incorrect or wrong button pressed')
+    def _Judge(event):
+      if event.data == target:
+        self._ui.CallJSFunction('UpdateResult', True)
+        time.sleep(_SHOW_RESULT_SECONDS)
+        self.Pass()
+      else:
+        self._ui.CallJSFunction('UpdateResult', False)
+        time.sleep(_SHOW_RESULT_SECONDS)
+        self.Fail('LED color incorrect or wrong button pressed')
 
     target = self._color_options.index(self._color)
 
+    self._ui.AddEventHandler(_SELECT_COLOR_EVENT, _Judge)
+
     for i, _ in enumerate(self._color_options):
-      self._ui.BindKey(str(i + 1), _PassHook if i == target else _FailHook)
+      self._ui.BindKey(str(i + 1), _Judge, i, virtual_key=False)
 
     self._ui.AppendCSS(_CSS)
     self._template.SetState(''.join(ui))
