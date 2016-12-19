@@ -43,7 +43,7 @@ _DEFAULT_MAX_SIZE = 200 * 1024 * 1024  # 200mb
 class OutputArchive(plugin_base.OutputPlugin):
 
   ARGS = [
-      Arg('interval', int,
+      Arg('interval', (int, float),
           'How long to wait, in seconds, before creating the next archive.',
           optional=True, default=_DEFAULT_INTERVAL),
       Arg('max_size', int,

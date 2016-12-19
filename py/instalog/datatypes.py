@@ -341,7 +341,10 @@ class EventStreamIterator(object):
 
       # No new events available, take appropriate action.
       if self.blocking:
-        time.sleep(self.interval)
+        # The interval may be larger than the remaining time available.  Take
+        # the minimum of the two.
+        time.sleep(min(self.interval,
+                       time_utils.MonotonicTime() - self._start))
         continue
       else:
         raise StopIteration

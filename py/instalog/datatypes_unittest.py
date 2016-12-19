@@ -225,6 +225,12 @@ class TestEventStreamIterator(unittest.TestCase):
     self.plugin_api = FakePluginAPI(self.q)
     self.event_stream = datatypes.EventStream(None, self.plugin_api)
 
+  def testTimeoutSmallerThanInterval(self):
+    """Tests correct behaviour when timeout is smaller than interval."""
+    with RuntimeBound(max=0.5), self.assertRaises(StopIteration):
+      self.event_stream.iter(
+          blocking=True, timeout=0.1, interval=1).next()
+
   def testWaitRetryLoop(self):
     """Stress tests wait-retry loop."""
     with RuntimeBound(min=0.5), self.assertRaises(StopIteration):
