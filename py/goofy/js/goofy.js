@@ -312,7 +312,7 @@ cros.factory.Test.prototype.bindKey = function(keyCode, handler) {
         function(event) {
           handler = this.keyHandlers[event.keyCode];
           if (handler) {
-            handler();
+            handler(event);
           }
         }, false, this);
   }
