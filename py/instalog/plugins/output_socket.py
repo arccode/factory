@@ -55,8 +55,8 @@ class OutputSocket(plugin_base.OutputPlugin):
     while not self.IsStopping():
       # Should we verify the connection first?
       if not target_available and not self.Ping():
-        if ((last_unavailable_time + _FAILED_CONNECTION_INTERVAL) >
-            time_utils.MonotonicTime()):
+        if (time_utils.MonotonicTime() >
+            (last_unavailable_time + _FAILED_CONNECTION_INTERVAL)):
           last_unavailable_time = time_utils.MonotonicTime()
           self.info('Connection to target unavailable')
         self.Sleep(_FAILED_CONNECTION_INTERVAL)
