@@ -98,7 +98,7 @@
       "args": {
         "uplink_hostname": "localhost",
         "uplink_port": 7500,
-        "uplink_use_shopfloor": false
+        "uplink_use_shopfloor": true
       }
     }
   ]

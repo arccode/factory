@@ -18,6 +18,9 @@ from cros.factory.utils import type_utils
 
 
 _DEFAULT_FLUSH_TIMEOUT = 5  # 5sec
+_CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
+_CLI_PORT = 7000
+_TRUNCATE_INTERVAL = 5 * 60  # 5min
 
 
 class Instalog(plugin.Plugin):
@@ -43,8 +46,8 @@ class Instalog(plugin.Plugin):
     data_dir = os.path.join(paths.GetLogRoot(), 'instalog')
     pid_file = os.path.join(paths.GetRuntimeVariableDataPath(), 'instalog.pid')
     log_file = os.path.join(paths.GetLogRoot(), 'instalog.log')
-    cli_hostname = '0.0.0.0'
-    cli_port = 7000
+    cli_hostname = _CLI_HOSTNAME
+    cli_port = _CLI_PORT
     testlog_json_path = goofy.testlog.primary_json.path
     uplink_enabled = (
         uplink_use_shopfloor or uplink_hostname) and uplink_port
@@ -75,18 +78,26 @@ class Instalog(plugin.Plugin):
         },
         'buffer': {
             'plugin': 'buffer_simple_file',
+            'args': {
+              'truncate_interval': _TRUNCATE_INTERVAL,
+            },
         },
         'input': {
             'testlog_json': {
                 'plugin': 'input_testlog_file',
-                'path': testlog_json_path,
+                'targets': 'output_uplink',
+                'args': {
+                  'path': testlog_json_path,
+                },
             },
         },
         'output': {
             'output_uplink': {
                 'plugin': 'output_socket',
-                'hostname': uplink_hostname,
-                'port': uplink_port,
+                'args': {
+                  'hostname': uplink_hostname,
+                  'port': uplink_port,
+                },
             }
         },
     }

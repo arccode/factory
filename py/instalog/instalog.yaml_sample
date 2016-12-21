@@ -4,10 +4,12 @@ instalog:
   pid_file: '/tmp/instalog.pid'
   log_file: '/tmp/instalog.log'
   cli_hostname: 'localhost'
-  cli_port: 8880
+  cli_port: 7000
 buffer:
   plugin: 'buffer_simple_file'
-  copy_attachments: False
+  args:
+    copy_attachments: False
+    truncate_interval: 0
 input:
   time:
     plugin: 'input_time'
