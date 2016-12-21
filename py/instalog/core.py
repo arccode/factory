@@ -4,8 +4,6 @@
 
 from __future__ import print_function
 
-from jsonrpclib import SimpleJSONRPCServer
-
 import datetime
 import logging
 import os
@@ -17,6 +15,8 @@ from instalog import flow_policy
 from instalog import json_utils
 from instalog import plugin_sandbox
 from instalog import plugin_base
+
+from instalog.external.jsonrpclib import SimpleJSONRPCServer
 
 
 # Possible daemon states.

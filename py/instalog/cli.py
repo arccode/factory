@@ -12,9 +12,6 @@ import os
 import signal
 import sys
 import threading
-import yaml
-
-import jsonrpclib
 
 import instalog_common  # pylint: disable=W0611
 from instalog import core
@@ -22,6 +19,9 @@ from instalog import daemon_utils
 from instalog import log_utils
 from instalog.utils import sync_utils
 from instalog.utils import type_utils
+
+from instalog.external import jsonrpclib
+from instalog.external import yaml
 
 
 # The default number of seconds to wait before giving up on a flush.

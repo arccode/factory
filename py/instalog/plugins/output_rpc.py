@@ -12,15 +12,15 @@ Transmits events to an input RPC plugin running on another Instalog node.
 from __future__ import print_function
 
 import base64
-import jsonrpclib
 import socket
-import time
 import zlib
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.utils import time_utils
 from instalog.utils.arg_utils import Arg
+
+from instalog.external import jsonrpclib
 
 
 # TODO(kitching): Find a better way of doing this, since this timeout

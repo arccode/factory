@@ -11,12 +11,12 @@ Subclasses InputLogFile to correctly parse an event_log file.
 
 from __future__ import print_function
 
-import yaml
-
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import plugin_base
 from instalog.plugins import input_log_file
+
+from instalog.external import yaml
 
 
 _EVENT_HEAD = 'EVENT: '

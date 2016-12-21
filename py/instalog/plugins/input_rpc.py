@@ -11,8 +11,6 @@ Waits for events from an output RPC plugin running on another Instalog node.
 
 from __future__ import print_function
 
-from jsonrpclib import SimpleJSONRPCServer
-
 import base64
 import os
 import shutil
@@ -24,6 +22,8 @@ import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
+
+from instalog.external.jsonrpclib import SimpleJSONRPCServer
 
 
 _DEFAULT_HOSTNAME = '0.0.0.0'
