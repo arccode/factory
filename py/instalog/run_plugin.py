@@ -13,6 +13,7 @@ import logging
 import os
 import Queue
 import select
+import shutil
 import sys
 import tempfile
 import time
@@ -22,6 +23,7 @@ from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
 from instalog import plugin_sandbox
+from instalog.utils import file_utils
 from instalog.utils import time_utils
 
 
@@ -86,14 +88,22 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   def __init__(self, logger, plugin_type, config):
     self.logger = logger
     self._plugin_type = plugin_type
+
     # Data directory and JSON store carry across PluginRunner runs.
     self._data_dir = os.path.join(tempfile.gettempdir(),
-                                   'plugin_runner.%s' % plugin_type)
+                                  'plugin_runner.%s' % plugin_type)
     if not os.path.isdir(self._data_dir):
       os.mkdir(self._data_dir)
     self._store_path = os.path.join(self._data_dir, 'store.json')
+
+    # Attachments directory is deleted when PluginRunner ends.
+    self._att_dir = os.path.join(self._data_dir, 'attachments')
+    if not os.path.isdir(self._att_dir):
+      os.mkdir(self._att_dir)
+
     self.logger.info('Saving plugin data to: %s', self._data_dir)
     self.logger.info('Saving plugin store to: %s', self._store_path)
+    self.logger.info('Saving attachments to: %s', self._att_dir)
 
     self._event_queue = Queue.Queue()
     self._plugin = plugin_sandbox.PluginSandbox(
@@ -101,7 +111,10 @@ class PluginRunner(plugin_sandbox.CoreAPI):
         data_dir=self._data_dir, core_api=self)
     self._last_interrupt = 0
     self._last_status_update = time_utils.MonotonicTime()
-    self._current_attachments = {}
+
+  def Close(self):
+    """Performs any final operations."""
+    shutil.rmtree(self._att_dir)
 
   def _GetNextStdinLine(self):
     """Returns next line of input if available."""
@@ -243,6 +256,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
 
     # Stop the plugin.
     self._plugin.Stop(True)
+    self.Close()
 
   ############################################################
   # Functions below implement plugin_base.CoreAPI.
@@ -254,6 +268,17 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     self.logger.info('Emit %d events', len(events))
     self.logger.debug('Emit %d events: %s', len(events), events)
     for event in events:
+      # Move attachments to a temporary directory to simulate buffer.
+      for att_id, att_path in event.attachments.iteritems():
+        # Use a filename that contains the original one for clarity.
+        f, tmp_path = tempfile.mkstemp(
+            prefix=os.path.basename(att_path), dir=self._att_dir)
+        os.close(f)
+        # Relocate the attachment and update the event path.
+        self.logger.debug('Moving attachment %s --> %s...', att_path, tmp_path)
+        os.rename(att_path, tmp_path)
+        event.attachments[att_id] = tmp_path
+
       if '__nodeId__' not in event:
         # Use plugin_type as the node ID.
         event['__nodeId__'] = self._plugin_type
