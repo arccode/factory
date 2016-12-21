@@ -158,7 +158,6 @@ class Instalog(plugin_sandbox.CoreAPI):
       policy.deny.append(
           flow_policy.HistoryRule(plugin_id=plugin_id,
                                   node_id=self._node_id))
-    logging.info('%s ----- %r', plugin_id, policy)
 
     # Make sure we have a store_path and data_dir for the plugin.
     store_path = os.path.join(self._data_dir, '%s.json' % plugin_id)
