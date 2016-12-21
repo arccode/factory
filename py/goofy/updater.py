@@ -57,9 +57,9 @@ def RunRsync(*rsync_command):
 
 
 def TryUpdate(pre_update_hook=None, timeout=15):
-  '''Attempts to update the factory and autotest directory on the device.
+  '''Attempts to update the factory directory on the device.
 
-  Atomically replaces the factory and autotest directory with new contents.
+  Atomically replaces the factory directory with new contents.
   This routine will always fail in the chroot (to avoid destroying
   the user's working directory).
 
@@ -79,7 +79,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     UpdaterException: If update scheme is not rsync when using Umpire, since
       scheme other than rsync is not supported yet.
   '''
-  # On a real device, this will resolve to 'autotest' (since 'client'
+  # On a real device, this will resolve to 'factory' (since 'client'
   # is a symlink to that).  In the chroot, this will resolve to the
   # 'client' directory.
   # Determine whether an update is necessary.
@@ -91,11 +91,10 @@ def TryUpdate(pre_update_hook=None, timeout=15):
       url, current_md5sum)
 
   new_md5sum = None
-  autotest_src_path = None
   factory_src_path = None
 
   # Calls shopfloor method to get new_md5sum and determines if an update
-  # is needed, then sets autotest_src_path, factory_src_path.
+  # is needed, then sets factory_src_path.
   shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
   # Uses GetUpdate API provided by Umpire server.
   if shopfloor_client.use_umpire:
@@ -107,7 +106,6 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     if not update_info.needs_update:
       factory.console.info('Factory software is up to date')
       return False
-    autotest_src_path = '%s/usr/local/autotest' % update_info.url
     factory_src_path = '%s/usr/local/factory' % update_info.url
 
   # Uses GetTestMd5sum API provided by v1 or v2 shopfloor.
@@ -119,29 +117,13 @@ def TryUpdate(pre_update_hook=None, timeout=15):
       return False
     # An update is necessary.  Construct the rsync command.
     update_port = shopfloor_client.GetUpdatePort()
-    autotest_src_path = 'rsync://%s:%d/factory/%s/autotest' % (
-        urlparse(url).hostname,
-        update_port,
-        new_md5sum)
     factory_src_path = 'rsync://%s:%d/factory/%s/factory' % (
         urlparse(url).hostname,
         update_port,
         new_md5sum)
 
-  # /usr/local on the device (parent to both factory and autotest)
+  # /usr/local on the device (parent to factory)
   parent_dir = os.path.dirname(paths.FACTORY_PATH)
-
-  # For autotest, do not use hard links and new directory. Since the
-  # files in autotests are too big. Also, they will be different
-  # binaries than those in the updater if they are from different images.
-  # Just rsync them in place. If it fail, it can still get update again.
-  autotest_path = os.path.join(parent_dir, 'autotest')
-  RunRsync(
-      'rsync',
-      '-a', '--delete', '--stats',
-      '--timeout=%s' % timeout,
-      autotest_src_path,
-      '%s/' % autotest_path)
 
   new_path = os.path.join(parent_dir, 'updater.new')
   # rsync --link-dest considers any existing files to be definitive,
@@ -208,7 +190,7 @@ def CheckForUpdate(timeout, quiet=False):
         available or test environment is not installed on the shopfloor server
         yet.
       needs_update: is True if an update is necessary (i.e., md5sum is not None,
-        and md5sum isn't the same as the MD5SUM in the current autotest
+        and md5sum isn't the same as the MD5SUM in the current factory
         directory).
 
   Raises:
