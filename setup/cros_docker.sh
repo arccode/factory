@@ -85,6 +85,7 @@ upload_to_localmirror() {
 : "${UMPIRE_CONTAINER_NAME:="umpire"}"
 : "${UMPIRE_PORT:="8080"}"  # base port for Umpire
 : "${DOME_PORT:="8000"}"  # port to access Dome
+: "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord
 
 # Base directories
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -97,13 +98,17 @@ BUILD_DIR="${FACTORY_DIR}/build/docker"
 HOST_SHARED_DIR="/docker_shared"
 HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
 HOST_UMPIRE_DIR="/docker_umpire"
+HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
 
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
 DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
 
+DOCKER_OVERLORD_DIR="${DOCKER_BASE_DIR}/bin/overlord"
+DOCKER_OVERLORD_APP_DIR="${DOCKER_OVERLORD_DIR}/app"
+
 DOCKER_IMAGE_NAME="cros/factory_server"
-DOCKER_IMAGE_VERSION="20161215173000"  # timestamp
+DOCKER_IMAGE_VERSION="20161230132435"  # timestamp
 DOCKER_IMAGE_FILENAME="factory-server-${DOCKER_IMAGE_VERSION}-docker-${DOCKER_VERSION}.txz"
 DOCKER_IMAGE_FILEPATH="${SCRIPT_DIR}/${DOCKER_IMAGE_FILENAME}"
 
@@ -258,6 +263,123 @@ umpire_main() {
   esac
 }
 
+# Section for Overlord subcommand
+do_overlord_setup() {
+  check_docker
+
+  local overlord_setup_container_name="overlord_setup"
+
+  echo "Doing setup for Overlord, you'll be asked for root permission ..."
+  sudo rm -rf "${HOST_OVERLORD_DIR}"
+  sudo mkdir -p "${HOST_OVERLORD_DIR}"
+
+  local temp_docker_id
+  temp_docker_id=$(${DOCKER} create ${DOCKER_IMAGE_NAME})
+
+  # We always need sudo for this command for writing permission for
+  # HOST_OVERLORD_DIR.
+  sudo docker cp \
+    "${temp_docker_id}:${DOCKER_OVERLORD_APP_DIR}" \
+    "${HOST_OVERLORD_DIR}"
+  ${DOCKER} rm "${temp_docker_id}"
+
+  echo "Running setup script ..."
+  echo
+
+  ${DOCKER} run \
+    --interactive \
+    --tty \
+    --rm \
+    --name "${overlord_setup_container_name}" \
+    --volume "${host_overlord_app_dir}:${DOCKER_OVERLORD_APP_DIR}" \
+    "${DOCKER_IMAGE_NAME}" \
+    "${DOCKER_OVERLORD_DIR}/setup.sh" || \
+    (echo "Setup failed... removing Overlord settings."; \
+     sudo rm -rf "${HOST_OVERLORD_DIR}"; \
+     die "Overlord setup failed.")
+
+  # Copy the certificate to script directory, and set it's permission to all
+  # readable, so it's easier to use (since the file is owned by root).
+  sudo cp "${HOST_OVERLORD_DIR}/app/cert.pem" "${SCRIPT_DIR}/cert.pem"
+  sudo chmod 644 "${SCRIPT_DIR}/cert.pem"
+
+  echo
+  echo "Setup done!"
+  echo "You can find the generated certificate at ${SCRIPT_DIR}/cert.pem"
+}
+
+do_overlord_run() {
+  check_docker
+
+  local overlord_container_name="overlord"
+  local host_overlord_app_dir="${HOST_OVERLORD_DIR}/app"
+
+  # stop and remove old containers
+  ${DOCKER} stop "${overlord_container_name}" 2>/dev/null || true
+  ${DOCKER} rm "${overlord_container_name}" 2>/dev/null || true
+
+  if [ ! -d "${HOST_OVERLORD_DIR}" ]; then
+    do_overlord_setup
+  fi
+
+  ${DOCKER} run \
+    --detach \
+    --restart unless-stopped \
+    --name "${overlord_container_name}" \
+    --volume "${host_overlord_app_dir}:${DOCKER_OVERLORD_APP_DIR}" \
+    --volume "${HOST_SHARED_DIR}:/mnt" \
+    --publish "4455:4455" \
+    --publish "4456:4456/udp" \
+    --publish "${OVERLORD_HTTP_PORT}:9000" \
+    --workdir "${DOCKER_OVERLORD_DIR}" \
+    "${DOCKER_IMAGE_NAME}" \
+    "./overlordd" -tls "app/cert.pem,app/key.pem" || \
+    (echo "Removing stale container due to error ..."; \
+     ${DOCKER} rm "${overlord_container_name}"; \
+     die "Can't start overlord docker. Possibly wrong port binding?")
+}
+
+overlord_usage() {
+  cat << __EOF__
+Overlord: The Next-Gen Factory Monitor
+
+commands:
+  $0 overlord help
+      Show this help message.
+
+  $0 overlord run
+      Create and start Overlord containers.
+
+      You can change the Overlord http port (default ${OVERLORD_HTTP_PORT}) by
+      assigning the OVERLORD_HTTP_PORT environment variable.
+      For example:
+
+        OVERLORD_HTTP_PORT=9090 $0 overlord run
+
+      will bind port 9090 instead of ${OVERLORD_HTTP_PORT}.
+
+commands for developers:
+  $0 overlord setup
+      Run first-time setup for Overlord. Would reset everything in app
+      directory to the one in docker image.
+__EOF__
+}
+
+overlord_main() {
+  case "$1" in
+    run)
+      do_overlord_run
+      ;;
+    setup)
+      do_overlord_setup
+      ;;
+    *)
+      overlord_usage
+      exit 1
+      ;;
+  esac
+}
+
 # Section for main commands
 do_pull() {
   echo "Pulling Factory Server Docker image ..."
@@ -389,7 +511,7 @@ do_build_umpire_deps() {
 
   # copy the builder's output from container to host
   mkdir -p "${BUILD_DIR}"
-  ${DOCKER} run --name "${deps_builder_container_name}" \
+  ${DOCKER} create --name "${deps_builder_container_name}" \
     "${deps_builder_image_name}"
   ${DOCKER} cp \
     "${deps_builder_container_name}:${builder_workdir}/${builder_output_file}" \
@@ -416,7 +538,37 @@ do_build_dome_deps() {
 
   # copy the builder's output from container to host
   mkdir -p "${BUILD_DIR}"
-  ${DOCKER} run --name "${builder_container_name}" "${builder_image_name}"
+  ${DOCKER} create --name "${builder_container_name}" "${builder_image_name}"
+  ${DOCKER} cp \
+    "${builder_container_name}:${builder_workdir}/${builder_output_file}" \
+    "${BUILD_DIR}"
+  ${DOCKER} rm "${builder_container_name}"
+}
+
+do_build_overlord() {
+  # We're using alpine for factory_server docker image, which is using musl
+  # libc instead of standard glibc, causing overlord compiled on host/chroot
+  # not able to run inside the docker image. So we have to compile it inside
+  # golang:alpine too.
+  check_docker
+
+  local builder_output_file="$1"
+  local builder_workdir="/tmp/build"
+  local builder_dockerfile="${SCRIPT_DIR}/Dockerfile.overlord"
+  local builder_container_name="overlord_builder"
+  local builder_image_name="cros/overlord-builder"
+
+  # build the overlord builder image
+  ${DOCKER} build \
+    --file "${builder_dockerfile}" \
+    --tag "${builder_image_name}" \
+    --build-arg workdir="${builder_workdir}" \
+    --build-arg output_file="${builder_output_file}" \
+    "${FACTORY_DIR}"
+
+  # copy the builder's output from container to host
+  mkdir -p "${BUILD_DIR}"
+  ${DOCKER} create --name "${builder_container_name}" "${builder_image_name}"
   ${DOCKER} cp \
     "${builder_container_name}:${builder_workdir}/${builder_output_file}" \
     "${BUILD_DIR}"
@@ -428,9 +580,11 @@ do_build() {
 
   local umpire_builder_output_file="bins.tar"
   local dome_builder_output_file="frontend.tar"
+  local overlord_output_file="overlord.tar.gz"
 
   do_build_umpire_deps "${umpire_builder_output_file}"
   do_build_dome_deps "${dome_builder_output_file}"
+  do_build_overlord "${overlord_output_file}"
 
   local dockerfile="${SCRIPT_DIR}/Dockerfile"
 
@@ -445,6 +599,7 @@ do_build() {
     --build-arg server_dir="${DOCKER_BASE_DIR}" \
     --build-arg umpire_builder_output_file="${umpire_builder_output_file}" \
     --build-arg dome_builder_output_file="${dome_builder_output_file}" \
+    --build-arg overlord_output_file="${overlord_output_file}" \
     "${FACTORY_DIR}"
 
   echo "${DOCKER_IMAGE_NAME} image successfully built."
@@ -520,6 +675,9 @@ commands for developers:
 
   $0 umpire [subcommand]
       Commands for Umpire, see "$0 umpire help" for detail.
+
+  $0 overlord [subcommand]
+      Commands for Overlord, see "$0 overlord help" for detail.
 __EOF__
 }
 
@@ -549,6 +707,10 @@ main() {
     umpire)
       shift
       umpire_main "$@"
+      ;;
+    overlord)
+      shift
+      overlord_main "$@"
       ;;
     *)
       usage

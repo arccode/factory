@@ -23,11 +23,15 @@ ARG dome_dir="${server_dir}/py/dome"
 # cannot install uwsgi using pip since we don't have compiler
 
 # libstdc++: Dependency of pbzip2 (static binary)
+
+# apache2-utils, openssl: Used by Overlord setup.sh
 RUN apk upgrade --no-cache && apk add --no-cache \
+  apache2-utils \
   gnupg \
   libstdc++ \
   lighttpd \
   nginx \
+  openssl \
   pigz \
   py-flup \
   py-pip \
@@ -62,6 +66,9 @@ ADD "build/docker/${umpire_builder_output_file}" /usr/local/bin/
 COPY py/dome/nginx.conf /etc/nginx/nginx.conf
 COPY py/dome/uwsgi.ini py/dome/manage.py py/dome/requirements.txt "${dome_dir}/"
 RUN pip install --no-cache-dir -r "${dome_dir}/requirements.txt"
+
+ARG overlord_output_file="overlord.tar.gz"
+ADD "build/docker/${overlord_output_file}" "${server_dir}/bin/"
 
 # these files are likely to change often, put them at the end
 ARG dome_builder_output_file="frontend.tar"

@@ -3,3 +3,4 @@
 !py_pkg
 !bin
 !build/docker
+!go/src/overlord
