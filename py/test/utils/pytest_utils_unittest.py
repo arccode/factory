@@ -60,7 +60,7 @@ class LoadPytestModuleTest(unittest.TestCase):
       module = LoadPytestModule(pytest_name)
       self.assertEquals(module.__file__, script_file)
       # remove tmpXXXXXX.pyc
-      os.unlink(script_file + 'c')
+      file_utils.TryUnlink(script_file + 'c')
 
   def testLoadXYZ(self):
     LoadPytestModuleTest.CreateScript(self.tmpdir, 'x/y/z.py')

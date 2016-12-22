@@ -95,6 +95,9 @@ class _TestProc(object):
     # Set SPT_NOENV so that setproctitle doesn't mess up with /proc/PID/environ,
     # and we can kill old tests correctly.
     child_env['SPT_NOENV'] = '1'
+    # Since some tests using `make par` is sensitive to file changes inside py
+    # directory, don't generate .pyc file.
+    child_env['PYTHONDONTWRITEBYTECODE'] = '1'
     self.proc = process_utils.Spawn(self.test_name, stdout=self.log_file,
                                     stderr=STDOUT, env=child_env)
     self.pid = self.proc.pid
