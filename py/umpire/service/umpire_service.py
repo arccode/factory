@@ -95,6 +95,7 @@ class ServiceProcess(protocol.ProcessProtocol):
         'uid': os.getuid(),
         'gid': os.getgid(),
         'ext_args': [],
+        'env': {},
         'restart': False,
         'daemon': False})
     self.nonhash_args = []
@@ -151,6 +152,7 @@ class ServiceProcess(protocol.ProcessProtocol):
           uid - process user id
           gid - process group id
           ext_args - extra command line arguments
+          env - environment variables
           restart - boolean flag for restart on process end
           daemon - boolean flag indicating the process will detach itself
 
@@ -256,7 +258,7 @@ class ServiceProcess(protocol.ProcessProtocol):
         self,                    # processProtocol.
         self.config.executable,  # Full program pathname.
         args,                    # Args list, including executable.
-        {},                      # Env vars.
+        self.config.env,         # Env vars.
         self.config.path,        # Process CWD.
         usePTY=True)
     if not (self.subprocess and self.subprocess.pid):

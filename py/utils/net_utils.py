@@ -375,7 +375,7 @@ def IsPortBeingUsed(port):
   """
   ret = process_utils.Spawn(['lsof', '-i', ':%d' % port],
                             call=True, sudo=True).returncode
-  return True if ret == 0 else False
+  return ret == 0
 
 
 def FindConsecutiveUnusedPorts(port, length):

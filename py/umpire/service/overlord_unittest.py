@@ -14,6 +14,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import config
 from cros.factory.umpire.service import overlord
 from cros.factory.umpire import umpire_env
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
@@ -62,6 +63,13 @@ class OverlordServiceTest(unittest.TestCase):
     svc = overlord.OverlordService()
     self.env.config = config.UmpireConfig(umpire_config)
     procs = svc.CreateProcesses(umpire_config, self.env)
+
+    # set random port for overlord to bind
+    procs[0].config.env = {
+        'OVERLORD_PORT': str(net_utils.GetUnusedPort()),
+        'OVERLORD_LD_PORT': str(net_utils.GetUnusedPort()),
+        'OVERLORD_HTTP_PORT': str(net_utils.GetUnusedPort())
+    }
 
     with self.assertRaises(subprocess.CalledProcessError):
       process_utils.CheckOutput(['pgrep', '-f', overlord.OVERLORDD_BIN])
