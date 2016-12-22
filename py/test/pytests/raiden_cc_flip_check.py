@@ -74,7 +74,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
           'Timeout seconds for operation, set 0 for operator pressing enter '
           'key to finish operation.',
           default=0),
-      Arg('state_src_ready', int, 'State number of pd state SRC_READY.',
+      Arg('state_src_ready', (int, str), 'State number of pd state SRC_READY.',
           default=22),
       Arg('wait_dut_reconnect_secs', int,
           'Wait DUT to reconnect for n seconds after CC flip. This is required '
