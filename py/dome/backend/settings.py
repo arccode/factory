@@ -161,3 +161,30 @@ REST_FRAMEWORK = {
     ]
 }
 
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'default': {
+            'format': '%(asctime)s:%(levelname)s:%(threadName)s:'
+                      '%(name)s:%(funcName)s:%(lineno)d:%(message)s'
+        }
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/var/log/dome/dome.log',
+            'formatter': 'default',
+            'maxBytes': 1024 * 1024,  # 1M
+            'backupCount': 3
+        }
+    },
+    'loggers': {
+        'django': {  # override django's default logger
+            'handlers': ['file'],
+            'level': 'DEBUG'  # allow everything to be logged
+        }
+    }
+}

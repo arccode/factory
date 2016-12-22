@@ -422,6 +422,8 @@ do_run() {
 
   local docker_db_dir="/var/db/factory/dome"
   local db_filename="db.sqlite3"
+  local docker_log_dir="/var/log/dome"
+  local host_log_dir="${HOST_DOME_DIR}/log"
   local uwsgi_container_name="dome_uwsgi"
   local nginx_container_name="dome_nginx"
 
@@ -447,6 +449,7 @@ do_run() {
     --interactive \
     --tty \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
+    --volume "${host_log_dir}:${docker_log_dir}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     python manage.py migrate
@@ -457,6 +460,7 @@ do_run() {
   ${DOCKER} run \
     --rm \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
+    --volume "${host_log_dir}:${docker_log_dir}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     python manage.py shell --command \
@@ -470,6 +474,7 @@ do_run() {
     --volume /var/run/docker.sock:/var/run/docker.sock \
     --volume /run \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
+    --volume "${host_log_dir}:${docker_log_dir}" \
     --volume "${HOST_UMPIRE_DIR}:/var/db/factory/umpire" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
@@ -694,9 +699,6 @@ __EOF__
 }
 
 main() {
-  # TODO(littlecvr): check /docker_shared
-  # TODO(littlecvr): check /docker_umpire
-
   case "$1" in
     pull)
       do_pull
