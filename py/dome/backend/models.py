@@ -15,12 +15,14 @@ TODO(littlecvr): make umpire config complete such that it contains all the
 
 import contextlib
 import errno
+import logging
 import os
 import re
 import shutil
 import stat
 import subprocess
 import tempfile
+import traceback
 import xmlrpclib
 
 import django
@@ -67,6 +69,9 @@ UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 UMPIRE_BASE_DIR = '/var/db/factory/umpire'
 
 UMPIRED_FILEPATH = '/usr/local/factory/bin/umpired'
+
+
+logger = logging.getLogger('django.%s' % __name__)
 
 
 class DomeClientException(rest_framework.exceptions.APIException):
@@ -226,11 +231,15 @@ class Board(django.db.models.Model):
 
   def AddExistingUmpireContainer(self, host, port):
     """Add an existing Umpire container to the database."""
+    container_name = Board.GetUmpireContainerName(self.name)
+    logger.info('Adding Umpire container %r', container_name)
     if not Board.DoesUmpireContainerExist(self.name):
-      raise DomeClientException(
+      error_message = (
           'Container %s does not exist, Dome will not add a non-existing '
           'container into the database, please create a new one instead' %
-          Board.GetUmpireContainerName(self.name))
+          container_name)
+      logger.error(error_message)
+      raise DomeClientException(error_message)
     self.umpire_enabled = True
     self.umpire_host = host
     self.umpire_port = port
@@ -241,10 +250,13 @@ class Board(django.db.models.Model):
     """Create a local Umpire container from a factory toolkit."""
     # make sure the container does not exist
     container_name = Board.GetUmpireContainerName(self.name)
+    logger.info('Creating Umpire container %r', container_name)
     if Board.DoesUmpireContainerExist(self.name):
-      raise DomeClientException(
+      error_message = (
           'Container %s already exists, Dome will not try to create a new one, '
           'please add the existing one instead' % container_name)
+      logger.error(error_message)
+      raise DomeClientException(error_message)
 
     try:
       # create and start a new container
@@ -252,22 +264,26 @@ class Board(django.db.models.Model):
       #                  do_umpire_run() function, we should remove this
       #                  function in that script because this job should be
       #                  done by Dome only
-      subprocess.check_call(
-          ['docker', 'run', '--detach', '--privileged',
-           '--volume', '/etc/localtime:/etc/localtime:ro',
-           '--volume', '%s:/mnt' % DOCKER_SHARED_DIR,
-           '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,
-                                     container_name,
-                                     UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
-           '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
-           '--publish', '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,
-                                   UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
-           '--publish', '%d:%d' % (port + UMPIRE_RSYNC_PORT_OFFSET,
-                                   UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET),
-           '--restart', 'unless-stopped',
-           '--name', container_name,
-           FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH])
+      cmd = [
+          'docker', 'run', '--detach', '--privileged',
+          '--volume', '/etc/localtime:/etc/localtime:ro',
+          '--volume', '%s:/mnt' % DOCKER_SHARED_DIR,
+          '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,
+                                    container_name,
+                                    UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
+          '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
+          '--publish', '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,
+                                  UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
+          '--publish', '%d:%d' % (port + UMPIRE_RSYNC_PORT_OFFSET,
+                                  UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET),
+          '--restart', 'unless-stopped',
+          '--name', container_name,
+          FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH]
+      logger.info('Running command %r', cmd)
+      subprocess.check_call(cmd)
     except Exception:
+      logger.error('Failed to create Umpire container %r', container_name)
+      logger.exception(traceback.format_exc())
       # remove container
       subprocess.call(['docker', 'stop', container_name])
       subprocess.call(['docker', 'rm', container_name])
@@ -277,6 +293,7 @@ class Board(django.db.models.Model):
     return self.AddExistingUmpireContainer('localhost', port)
 
   def DeleteUmpireContainer(self):
+    logger.info('Deleting Umpire container %r', self.name)
     container_name = Board.GetUmpireContainerName(self.name)
     subprocess.call(['docker', 'stop', container_name])
     subprocess.call(['docker', 'rm', container_name])
@@ -311,10 +328,13 @@ class Board(django.db.models.Model):
 
   @staticmethod
   def CreateOne(name, **kwargs):
+    logger.info('Creating new board %r', name)
     board = Board.objects.create(name=name)
     try:
       return Board.UpdateOne(board, **kwargs)
     except Exception:
+      logger.error('Failed to create board %r', name)
+      logger.exception(traceback.format_exc())
       # delete the entry if anything goes wrong
       try:
         Board.objects.get(pk=name).delete()
@@ -325,6 +345,7 @@ class Board(django.db.models.Model):
 
   @staticmethod
   def UpdateOne(board, **kwargs):
+    logger.info('Updating board %r', board.name)
     # enable or disable Umpire if necessary
     if ('umpire_enabled' in kwargs and
         board.umpire_enabled != kwargs['umpire_enabled']):
