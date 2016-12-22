@@ -51,7 +51,6 @@ class ResourceMapWrapper(object):
     self.resourcemap_path = None
 
   def SetPath(self, path):
-    os.chdir(TESTDATA_DIRECTORY)
     logging.debug('Setting resourcemap link to %s', path)
     file_utils.ForceSymlink(path, 'resourcemap')
     self.resourcemap_path = path
@@ -108,7 +107,6 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCServer.SimpleXMLRPCRequestHandler):
 
   def do_POST(self):
     """Extends do_POST to generate error code and message."""
-    os.chdir(TESTDATA_DIRECTORY)
     error_file = 'error_%s' % self.handler_name
     if os.path.exists(error_file):
       error_code, error_message = file_utils.ReadFile(error_file).split(' ', 1)
@@ -200,7 +198,6 @@ def SetHandlerError(handler_name, code, message):
     message:
   """
   logging.debug('Setting handler %s error: %d, %s', handler_name, code, message)
-  os.chdir(TESTDATA_DIRECTORY)
   error_file = 'error_%s' % handler_name
   with open(error_file, 'w') as f:
     f.write('%d %s' % (code, message))
@@ -226,8 +223,6 @@ class UmpireServerProxyTest(unittest.TestCase):
     shopfloor_handler_2_process: Process for shopfloor handler 2.
     mock_resourcemap: A ResourceMapWrapper object to control which resourcemap
       Umpire http server should serve.
-    modified_files: A list of file paths that have been modified. They need
-      to be restored from .backup files in the end of the test.
   """
   umpire_http_server = None
   umpire_base_handler = None
@@ -251,11 +246,16 @@ class UmpireServerProxyTest(unittest.TestCase):
   SHOPFLOOR_SERVER_URI = None
 
   mock_resourcemap = ResourceMapWrapper()
-  modified_files = []
 
   @classmethod
   def setUpClass(cls):
     """Starts servers before running any test of this class."""
+    # Copy testdata to some temporary directory.
+    cls.temp_dir = tempfile.mkdtemp(
+        prefix='umpire_server_proxy_testdata.')
+    cls.temp_testdata_dir = os.path.join(cls.temp_dir, 'testdata')
+    shutil.copytree(TESTDATA_DIRECTORY, cls.temp_testdata_dir)
+    os.chdir(cls.temp_testdata_dir)
     port = net_utils.FindConsecutiveUnusedPorts(
         SEARCH_STARTING_PORT, cls.NUMBER_OF_PORTS)
     logging.debug('Set starting testing port to %r', port)
@@ -270,9 +270,7 @@ class UmpireServerProxyTest(unittest.TestCase):
       file_name: Name of the resource map
       port: The port that should be overwritten to resourcemap.
     """
-    file_path = os.path.join(TESTDATA_DIRECTORY, file_name)
-    backup_file_path = file_path + '.backup'
-    shutil.copyfile(file_path, backup_file_path)
+    file_path = os.path.join(cls.temp_testdata_dir, file_name)
     lines_to_write = []
     for line in open(file_path).readlines():
       line = re.sub(
@@ -280,20 +278,9 @@ class UmpireServerProxyTest(unittest.TestCase):
           'shop_floor_handler: /shop_floor/%d' % port,
           line)
       lines_to_write.append(line)
-    fd, temp_path = tempfile.mkstemp(prefix='umpire_server_proxy', dir='/tmp')
-    os.close(fd)
-    with open(temp_path, 'w') as f:
-      f.write(''.join(lines_to_write))
-    shutil.move(temp_path, file_path)
+    file_utils.WriteFile(file_path, ''.join(lines_to_write))
     logging.debug('Modified content: %r in %r',
                   ''.join(lines_to_write), file_path)
-    cls.modified_files.append(file_path)
-
-  @classmethod
-  def RestoreBackupFile(cls):
-    """Restores backup files."""
-    for file_path in cls.modified_files:
-      shutil.move(file_path + '.backup', file_path)
 
   @classmethod
   def SetTestingPort(cls, umpire_base_handler_port):
@@ -314,7 +301,8 @@ class UmpireServerProxyTest(unittest.TestCase):
   def tearDownClass(cls):
     """Stops servers in after running all test in this class."""
     cls.StopAllServers()
-    cls.RestoreBackupFile()
+    if os.path.isdir(cls.temp_dir):
+      shutil.rmtree(cls.temp_dir)
 
   @classmethod
   def SetupServers(cls):
@@ -350,7 +338,6 @@ class UmpireServerProxyTest(unittest.TestCase):
   @classmethod
   def SetupHTTPServer(cls):
     """Setups http server in its own process."""
-    os.chdir(TESTDATA_DIRECTORY)
     logging.debug('Using UMPIRE_HTTP_SERVER_PORT: %r',
                   cls.UMPIRE_HTTP_SERVER_PORT)
     cls.umpire_http_server = SocketServer.TCPServer(
@@ -417,7 +404,6 @@ class UmpireServerProxyTest(unittest.TestCase):
 
   def ClearErrorFiles(self):
     """Clears obsolete error tag files generated for previous tests."""
-    os.chdir(TESTDATA_DIRECTORY)
     for p in glob.glob('error_*'):
       os.unlink(p)
 
