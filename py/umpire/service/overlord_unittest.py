@@ -20,13 +20,10 @@ from cros.factory.utils import sync_utils
 
 
 class OverlordServiceTest(unittest.TestCase):
-  # since we are not sure if the user has emerge chromeos-factory-overlord
-  # or not, we use the overlordd in factory/go/bin instead
-  OVERLORDD_BIN = '/mnt/host/source/src/platform/factory/go/bin/overlordd'
-
   def setUp(self):
+    self.temp_bin_dir = tempfile.mkdtemp()
     # override default path in overlord module
-    overlord.OVERLORDD_BIN = self.OVERLORDD_BIN
+    overlord.OVERLORDD_BIN = self.temp_bin_dir + '/overlordd'
 
     self.env = umpire_env.UmpireEnv()
     self.temp_dir = tempfile.mkdtemp()
@@ -34,13 +31,15 @@ class OverlordServiceTest(unittest.TestCase):
     os.makedirs(self.env.config_dir)
 
     # build overlord
-    overlordd_dir = os.path.dirname(self.OVERLORDD_BIN)
-    source_dir = os.path.join(overlordd_dir, '..', 'src', 'overlord')
-    subprocess.call('make -C %s' % source_dir, shell=True)
+    source_dir = '/mnt/host/source/src/platform/factory/go/src/overlord'
+    subprocess.call('make -C %s BINDIR=%s' % (source_dir, self.temp_bin_dir),
+                    shell=True)
 
   def tearDown(self):
     if os.path.isdir(self.temp_dir):
       shutil.rmtree(self.temp_dir)
+    if os.path.isdir(self.temp_bin_dir):
+      shutil.rmtree(self.temp_bin_dir)
 
   def testLaunchOverlord(self):
     umpire_config = {
