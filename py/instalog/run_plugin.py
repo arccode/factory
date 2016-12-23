@@ -23,7 +23,6 @@ from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
 from instalog import plugin_sandbox
-from instalog.utils import file_utils
 from instalog.utils import time_utils
 
 
@@ -32,7 +31,7 @@ from instalog.utils import time_utils
 _DOUBLE_SIGINT_INTERVAL = 0.5
 
 # Plugin's state should be printed after every interval.
-_STATUS_UPDATE_INTERVAL = 5
+_STATUS_UPDATE_INTERVAL = 10
 
 # Amount of time to break after each iteration of main loop.
 _MAIN_LOOP_INTERVAL = 1
@@ -54,18 +53,15 @@ class PluginRunnerBufferEventStream(plugin_base.BufferEventStream):
     try:
       ret = self._event_queue.get(False)
       self._retrieved_events.append(ret)
-      self.logger.info('BufferEventStream.Next')
       self.logger.debug('BufferEventStream.Next: %s', ret)
       return ret
     except Queue.Empty:
-      self.logger.info('BufferEventStream.Next: (empty)')
+      self.logger.debug('BufferEventStream.Next: (empty)')
       return None
 
   def Commit(self):
     if self._expired:
       raise plugin_base.EventStreamExpired
-    self.logger.info('BufferEventStream.Commit %d events',
-                     len(self._retrieved_events))
     self.logger.debug('BufferEventStream.Commit %d events: %s',
                       len(self._retrieved_events), self._retrieved_events)
     # TODO(kitching): Delete attachment files to simulate buffer.
@@ -75,8 +71,6 @@ class PluginRunnerBufferEventStream(plugin_base.BufferEventStream):
   def Abort(self):
     if self._expired:
       raise plugin_base.EventStreamExpired
-    self.logger.info('BufferEventStream.Abort %d events',
-                     len(self._retrieved_events))
     self.logger.debug('BufferEventStream.Abort %d events: %s',
                       len(self._retrieved_events), self._retrieved_events)
     # TODO(kitching): Maybe delete attachment files to simulate buffer.
@@ -150,7 +144,6 @@ class PluginRunner(plugin_sandbox.CoreAPI):
       except Exception as e:
         self.logger.exception(e)
       if event:
-        self.logger.info('_GetStdinEvents: New event')
         self.logger.debug('_GetStdinEvents: New event: %s', event)
         events.append(event)
       else:
@@ -169,7 +162,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     if events:
       superclass = self._plugin.GetSuperclass()
       if superclass is plugin_base.BufferPlugin:
-        self.logger.info('BufferPlugin: Calling BufferPlugin.Produce')
+        self.logger.debug('BufferPlugin: Calling BufferPlugin.Produce')
         result = self._plugin.CallPlugin('Produce', events)
         self.logger.info('BufferPlugin: BufferPlugin.Produce returned: %s',
                          result)
@@ -265,7 +258,6 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   def Emit(self, plugin, events):
     """See Core.Emit."""
     del plugin
-    self.logger.info('Emit %d events', len(events))
     self.logger.debug('Emit %d events: %s', len(events), events)
     for event in events:
       # Move attachments to a temporary directory to simulate buffer.
@@ -290,7 +282,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   def NewStream(self, plugin):
     """See Core.NewStream."""
     del plugin
-    self.logger.info('NewStream')
+    self.logger.debug('NewStream')
     return PluginRunnerBufferEventStream(self.logger, self._event_queue)
 
   def GetNodeID(self):
