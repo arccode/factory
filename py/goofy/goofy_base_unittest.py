@@ -74,10 +74,12 @@ class DrainThreadsTest(GoofyBaseTest):
 
   def runTest(self):
     counter = call_counter().next
+    lock = threading.Lock()
 
     def thread_task():
       time.sleep(.5)
-      counter()
+      with lock:
+        counter()
     thread_count = 3
     threads = []
     for i in xrange(thread_count):
