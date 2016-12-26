@@ -134,7 +134,7 @@ class Iperf3Server(object):
     self._process = None
 
   def __enter__(self):
-    factory.console('Start iperf3 server at local side')
+    factory.console.info('Start iperf3 server at local side')
     net_utils.EnablePort(self._port)
     self._process = subprocess.Popen(
         ['iperf3', '--server', '--port', str(self._port)])
@@ -145,7 +145,7 @@ class Iperf3Server(object):
   def __exit__(self, exc_type, exc_value, exc_tb):
     del exc_type, exc_value, exc_tb
     if self._process:
-      factory.console('Stop iperf3 server at local side')
+      factory.console.info('Stop iperf3 server at local side')
       self._process.kill()
       self._process.wait()
 
