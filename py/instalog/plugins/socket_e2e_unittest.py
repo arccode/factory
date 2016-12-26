@@ -46,8 +46,6 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.input_sandbox.Start(True)
     time.sleep(0.5)
     self.output_sandbox.Start(True)
-    self.input = self.input_sandbox._plugin
-    self.output = self.output_sandbox._plugin
 
     # Store a BufferEventStream.
     self.stream = self.core.GetStream(0)
@@ -55,9 +53,6 @@ class TestBufferSimpleFile(unittest.TestCase):
   def tearDown(self):
     self.output_sandbox.Stop(True)
     self.input_sandbox.Stop(True)
-
-  def testPing(self):
-    self.assertTrue(self.output.Ping())
 
   def testOneEvent(self):
     self.stream.Queue([datatypes.Event({})])
