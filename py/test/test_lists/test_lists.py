@@ -108,7 +108,7 @@ def FactoryTest(*args, **kwargs):
       (within the Goofy process).
     kbd_shortcut: The keyboard shortcut for the test.
     dargs: Autotest arguments.
-    backgroundable: Whether the test may run in the background.
+    parallel: Whether the subtests should run in parallel.
     subtests: A list of tests to run inside this test.  In order
       to make conditional construction easier, this may contain None items
       (which are removed) or nested arrays (which are flattened).

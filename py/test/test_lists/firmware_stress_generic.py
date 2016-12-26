@@ -61,13 +61,12 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
     # Runs stress tests in parallel.
     # TODO(bhthompson): add in video and audio tests
-    with AutomatedSequence(id='Stress', label_zh=u'集合压力测试'):
+    with FactoryTest(id='Stress', label_zh=u'集合压力测试', parallel=True):
       # Runs WebGL operations to check graphic chip.
       OperatorTest(
           id='Graphics',
           label_zh=u'图像',
           pytest_name='webgl_aquarium',
-          backgroundable=True,
           dargs=dict(duration_secs=args.run_in_stress_duration_secs))
 
       # Runs camera in parallel with other stress tests so it is easier
@@ -77,7 +76,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
       FactoryTest(
           id='Camera',
           label_zh=u'相机',
-          backgroundable=True,
           pytest_name='camera',
           dargs=dict(
               do_capture_timeout=True,
@@ -90,7 +88,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
           id='StressAppTest',
           label_zh=u'压力测试',
           autotest_name='hardware_SAT',
-          backgroundable=True,
           dargs=dict(
               drop_caches=True,
               free_memory_fraction=0.75,
@@ -103,7 +100,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
       FactoryTest(
           id='Countdown',
           label_zh=u'倒数计时',
-          backgroundable=True,
           pytest_name='countdown',
           dargs=dict(
               title_en='Run-In Tests',
@@ -120,13 +116,13 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
     # Runs StressAppTest in parallel with suspend/resume so it will be easier
     # to detect bad memory.
-    with AutomatedSequence(id='DozingStress', label_zh=u'睡眠内存压力测试'):
+    with AutomatedSequence(id='DozingStress', label_zh=u'睡眠内存压力测试',
+                           parallel=True):
       # if StressAppTest fails here, it's likely memory issue.
       FactoryTest(
           id='StressAppTest',
           label_zh=u'压力测试',
           autotest_name='hardware_SAT',
-          backgroundable=True,
           dargs=dict(
               drop_caches=True,
               free_memory_fraction=0.85,
@@ -140,7 +136,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
               'time' if args.run_in_resume_iterations == 1 else 'times'),
           label_zh=u'睡眠、唤醒 (%s 次)' % args.run_in_resume_iterations,
           pytest_name='suspend_resume',
-          backgroundable=True,
           retries=1,  # workaround for premature awake failure
           dargs=dict(
               cycles=args.run_in_resume_iterations,
@@ -154,7 +149,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
       OperatorTest(
           id='Countdown',
           label_zh=u'倒数计时',
-          backgroundable=True,
           pytest_name='countdown',
           dargs=dict(
               title_en='Dozing Stress Tests',

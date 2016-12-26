@@ -27,45 +27,37 @@ from cros.factory.test.test_lists.test_lists import TestGroup
 
 # SMT test items.
 
-def SMTCharger(args, id_suffix='', backgroundable=False):
+def SMTCharger(args, id_suffix=''):
   """Creates a test for charger type detection and a battery current test.
 
   Args:
     args: A TestListArgs object.
-    id_suffix: The suffix of test group.
-    backgroundable: backgroundable argument passed to battery current test.
-      Make it backgroundable so it can run in parallel with the tests following
-      it.
+    id_suffix: The suffix of charger tests.
   """
-  with OperatorTest(id='Charger' + id_suffix, label_zh=u'充电器' + id_suffix):
-    OperatorTest(
-        id='ChargerTypeDetection',
-        label_zh=u'充电器型号识别',
-        pytest_name='ac_power',
-        # Only CHG12 charger will be identified as 'Mains'.
-        dargs=dict(
-            power_type=args.smt_ac_type,
-            online=True,
-            retries=10))
+  OperatorTest(
+      id='ChargerTypeDetection_' + id_suffix,
+      label_zh=u'充电器型号识别',
+      pytest_name='ac_power',
+      # Only CHG12 charger will be identified as 'Mains'.
+      dargs=dict(
+          power_type=args.smt_ac_type,
+          online=True,
+          retries=10))
 
-    # Checks if battery current can reach certain values when charging
-    # and discharging.
-    charge_discharge_args = dict(
-        id='ChargeDischargeCurrent',
-        label_zh=u'充放电电流測試',
-        exclusive_resources=[plugin.RESOURCE.POWER],
-        pytest_name='battery_current',
-        backgroundable=backgroundable,
-        retries=1,
-        dargs=dict(
-            min_charging_current=150,
-            min_discharging_current=400,
-            timeout_secs=30,
-            max_battery_level=90))
-    if backgroundable:
-      FactoryTest(**charge_discharge_args)
-    else:
-      OperatorTest(**charge_discharge_args)
+  # Checks if battery current can reach certain values when charging
+  # and discharging.
+  charge_discharge_args = dict(
+      id='ChargeDischargeCurrent_' + id_suffix,
+      label_zh=u'充放电电流測試',
+      exclusive_resources=[plugin.RESOURCE.POWER],
+      pytest_name='battery_current',
+      retries=1,
+      dargs=dict(
+          min_charging_current=150,
+          min_discharging_current=400,
+          timeout_secs=30,
+          max_battery_level=90))
+  OperatorTest(**charge_discharge_args)
 
 
 def ManualExtDisplay(args):
@@ -265,7 +257,6 @@ def VerifyComponents(args):
       id='VerifyComponents',
       label_zh=u'验证元件',
       pytest_name='verify_components',
-      backgroundable=True,
       dargs=dict(
           component_list=[
               'audio_codec', 'bluetooth', 'chipset',
@@ -288,7 +279,6 @@ def SMTCountdown(args):
       id='Countdown',
       label_zh=u'倒数计时',
       pytest_name='countdown',
-      backgroundable=True,
       dargs=dict(
           duration_secs=(args.smt_stress_duration_secs +
                          args.smt_thermal_load_duration_secs),
@@ -306,7 +296,6 @@ def SMTStress(args):
       id='StressAppTest',
       label_zh=u'压力测试',
       autotest_name='hardware_SAT',
-      backgroundable=True,
       exclusive_resources=[plugin.RESOURCE.CPU],
       dargs=dict(
           seconds=args.smt_stress_duration_secs,
@@ -323,8 +312,7 @@ def BasicWifi(args):
       id='Wifi',
       label_zh=u'无线网路',
       pytest_name='wireless',
-      retries=args.smt_retries_basic_wifi,
-      backgroundable=True)
+      retries=args.smt_retries_basic_wifi)
 
 
 def I2CProbeThermalSensor(args):
@@ -337,7 +325,6 @@ def I2CProbeThermalSensor(args):
       id='ThermalSensor',
       label_zh=u'温度感应器',
       pytest_name='i2c_probe',
-      backgroundable=True,
       dargs=dict(
           bus=7,
           addr=0x4c))
@@ -353,7 +340,6 @@ def I2CProbeTouchpad(args):
       id='Touchpad',
       label_zh=u'触控板',
       pytest_name='i2c_probe',
-      backgroundable=True,
       dargs=dict(
           bus=1,
           addr=[0x25, 0x4b, 0x67]))
@@ -371,7 +357,6 @@ def I2CProbeTSU671(args):
   FactoryTest(
       id='TSU6721',
       pytest_name='ectool_i2c_dev_id',
-      backgroundable=True,
       dargs=dict(
           bus=0,
           spec=[(0x4a, 0x1, 0xa), (0x4a, 0x1, 0x12)]))
@@ -388,7 +373,6 @@ def CameraProbe(args, retries=None):
       id='CameraProbe',
       label_zh=u'相机',
       pytest_name='usb_probe',
-      backgroundable=True,
       retries=(retries if retries is not None
                else args.smt_retries_camera_probe),
       dargs=dict(search_string='Camera'))
@@ -403,8 +387,7 @@ def SysfsBattery(args):
   FactoryTest(
       id='Battery',
       label_zh=u'电池',
-      pytest_name='sysfs_battery',
-      backgroundable=True)
+      pytest_name='sysfs_battery')
 
 
 def SMT3G(args, retries=None):
@@ -429,8 +412,7 @@ def SMT3G(args, retries=None):
           title_zh=u'3G測試',
           items=[('3G Probing', u'3G測試',
                   'cat /sys/class/net/wwan0/address',
-                  False)]),
-      backgroundable=True)
+                  False)]))
 
 
 def SMTThermalLoad(args, retries=None):
@@ -461,7 +443,7 @@ def SMTComponents(args):
   Args:
     args: A TestListArgs object.
   """
-  with TestGroup(id='Components', label_zh=u'元件'):
+  with FactoryTest(id='Components', label_zh=u'元件', parallel=True):
     SMTCountdown(args)
     SMTStress(args)
     BasicWifi(args)
@@ -599,7 +581,6 @@ def BadBlocks(args):
       id='BadBlocks',
       label_zh=u'毁损扇區',
       pytest_name='bad_blocks',
-      backgroundable=True,
       dargs=dict(max_bytes=30 * 1024 * 1024))
 
 
@@ -611,8 +592,7 @@ def PartitionTable(args):
   """
   FactoryTest(id='PartitionTable',
               label_zh=u'分区表',
-              pytest_name='partition_table',
-              backgroundable=True)
+              pytest_name='partition_table')
 
 
 def VerifyRootPartition(args):
@@ -627,7 +607,6 @@ def VerifyRootPartition(args):
       id='VerifyRootPartition',
       label_zh=u'验证根磁區',
       pytest_name='verify_root_partition',
-      backgroundable=True,
       dargs=dict(max_bytes=1024 * 1024))
 
 
@@ -656,10 +635,10 @@ def ParallelTestGroup(args):
   Args:
     args: A TestListArgs object.
   """
-  with TestGroup(id='ParallelTestGroup', label_zh=u'平行测试群组1'):
-    SMTCharger(args, backgroundable=True)
+  with FactoryTest(id='ParallelTestGroup', label_zh=u'平行测试群组1',
+                   parallel=True):
+    SMTCharger(args)
     VerifyComponents(args)
-    LidSwitch(args)
     PartitionTable(args)
     VerifyRootPartition(args)
     BadBlocks(args)
@@ -701,6 +680,7 @@ def ManualSMTTests(args):
 
   ParallelTestGroup(args)
 
+  LidSwitch(args)
   SMTAudioJack(args, retries=0)
   SMTLed(args)
   SMTComponents(args)

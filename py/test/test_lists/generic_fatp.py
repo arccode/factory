@@ -146,7 +146,6 @@ def FATP(args):
         id='CameraProbe',
         label_zh=u'相机侦测',
         pytest_name='usb_probe',
-        backgroundable=True,
         dargs=dict(
             search_string='Camera'))
 
@@ -232,8 +231,7 @@ def FATP(args):
         id='Wifi',
         label_zh=u'无线网路',
         pytest_name='wireless',
-        retries=args.fatp_retries_basic_wifi,
-        backgroundable=True)
+        retries=args.fatp_retries_basic_wifi)
 
     # Uses the AP set in fatp_ap_map. The test will let DUT
     # connect to that AP, and try to access file at test_url.

@@ -453,12 +453,11 @@ def ClearTPM(args):
 
 def StressTest(args):
   """StressAppTest, graphics and camera tests for each RunIn iteration."""
-  with FactoryTest(id='Stress', label_zh=u'集合压力测试'):
+  with FactoryTest(id='Stress', label_zh=u'集合压力测试', parallel=True):
     OperatorTest(
         id='Graphics',
         label_zh=u'图像',
         pytest_name='webgl_aquarium',
-        backgroundable=True,
         dargs=dict(
             duration_secs=args.run_in_sat_duration_secs))
 
@@ -466,7 +465,6 @@ def StressTest(args):
     FactoryTest(
         id='Camera',
         label_zh=u'相机',
-        backgroundable=True,
         pytest_name='camera',
         dargs=dict(
             timeout_secs=args.run_in_sat_duration_secs,
@@ -476,7 +474,6 @@ def StressTest(args):
     FactoryTest(
         id='RandomNumberGen',
         label_zh=u'乱数产生',
-        backgroundable=True,
         pytest_name='urandom',
         dargs=dict(
             duration_secs=args.run_in_sat_duration_secs))
@@ -484,7 +481,6 @@ def StressTest(args):
     FactoryTest(
         id='StressAppTest',
         label_zh=u'压力测试',
-        backgroundable=True,
         autotest_name='hardware_SAT',
         dargs=dict(
             drop_caches=True,
@@ -497,7 +493,6 @@ def StressTest(args):
     FactoryTest(
         id='Countdown',
         label_zh=u'倒数计时',
-        backgroundable=True,
         pytest_name='countdown',
         dargs=dict(
             title_en='Run-In Tests',
@@ -512,7 +507,6 @@ def StressTest(args):
       FactoryTest(
           id='WLANPingTest',
           label_zh=u'无线网路连线测试',
-          backgroundable=True,
           pytest_name='ping_test',
           dargs=dict(
               host=args.wlan_ping_host,
@@ -525,13 +519,13 @@ def StressTest(args):
 
 def DozingStress(args):
   """Suspend/resume test for each RunIn iteration."""
-  with FactoryTest(id='DozingStress', label_zh=u'睡眠内存压力测试'):
+  with FactoryTest(id='DozingStress', label_zh=u'睡眠内存压力测试',
+                   parallel=True):
     # if StressAppTest fails here, it's likely memory issue.
     FactoryTest(
         id='StressAppTest',
         label_zh=u'压力测试',
         autotest_name='hardware_SAT',
-        backgroundable=True,
         dargs=dict(
             drop_caches=True,
             free_memory_fraction=0.75,
@@ -546,7 +540,6 @@ def DozingStress(args):
             'time' if args.run_in_resume_iterations == 1 else 'times'),
         label_zh=u'睡眠、唤醒 (%s 次)' % args.run_in_resume_iterations,
         pytest_name='suspend_resume',
-        backgroundable=True,
         retries=args.run_in_resume_auto_retries,
         dargs=dict(
             cycles=args.run_in_resume_iterations,
@@ -557,7 +550,6 @@ def DozingStress(args):
     OperatorTest(
         id='Countdown',
         label_zh=u'倒数计时',
-        backgroundable=True,
         pytest_name='countdown',
         dargs=dict(
             title_en='Dozing Stress Tests',

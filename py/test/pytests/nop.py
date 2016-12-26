@@ -4,8 +4,7 @@
 
 """An no-op test.
 
-It is used to wait for previous test before starting the following
-backgroundable tests.
+This test does nothing but sleeps for a given period of time.
 """
 
 import time

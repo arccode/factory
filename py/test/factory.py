@@ -574,7 +574,7 @@ class FactoryTest(object):
   has_ui = False
 
   REPR_FIELDS = ['test_list_id', 'id', 'autotest_name', 'pytest_name', 'dargs',
-                 'dut_options', 'backgroundable', 'never_fails',
+                 'dut_options', 'never_fails', '_parallel',
                  'enable_services', 'disable_services', 'no_host',
                  'exclusive_resources']
 
@@ -592,7 +592,6 @@ class FactoryTest(object):
                kbd_shortcut=None,
                dargs=None,
                dut_options=None,
-               backgroundable=False,
                subtests=None,
                id=None,  # pylint: disable=redefined-builtin
                has_ui=None,
@@ -608,7 +607,6 @@ class FactoryTest(object):
                retries=0,
                prepare=None,
                finish=None,
-               force_background=False,
                waived=False,
                parallel=False,
                action_on_failure=None,
@@ -633,8 +631,6 @@ class FactoryTest(object):
     self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
     self.dargs = dargs or {}
     self.dut_options = dut_options or {}
-    self.backgroundable = backgroundable
-    self.force_background = force_background
     self.no_host = no_host
     self.waived = waived
     if isinstance(exclusive_resources, str):
@@ -736,16 +732,6 @@ class FactoryTest(object):
         # autotest_name is type_NameInCamelCase.
         self.label_en = self.autotest_name.partition('_')[2]
 
-    assert not ((backgroundable or force_background) and (
-        enable_services or disable_services)), (
-            'Test %s may not be backgroundable with enable_services or '
-            'disable_services specified.' % self.id)
-    assert not (force_background and self.has_ui), (
-        'Test %s may not have UI with force background.' % self.id)
-    assert not (force_background and backgroundable), (
-        'Test %s may not set backgroundable and force_background at '
-        'the same time.' % self.id)
-
   @staticmethod
   def pytest_name_to_id(pytest_name):
     """Converts a pytest name to an ID.
@@ -763,7 +749,7 @@ class FactoryTest(object):
     ret = dict(
         (k, getattr(self, k))
         for k in ['id', 'path', 'label_en', 'label_zh', 'dut_options',
-                  'kbd_shortcut', 'backgroundable', 'disable_abort'])
+                  'kbd_shortcut', 'disable_abort', '_parallel'])
     ret['is_shutdown_step'] = isinstance(self, ShutdownStep)
     ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
     return ret
@@ -808,10 +794,18 @@ class FactoryTest(object):
           'action_on_failure must be one of "NEXT", "PARENT", "STOP"')
 
     if self.is_parallel():
+      if not self.subtests:
+        raise TestListError(
+            '`parallel` should be set on test group')
       for subtest in self.subtests:
         if not subtest.is_leaf():
           raise TestListError(
-              'all subtests in a parallel test should be leaf nodes')
+              'Test %s: all subtests in a parallel test should be leaf nodes' %
+              self.id)
+        if subtest.enable_services or subtest.disable_services:
+          raise TestListError(
+              'Test %s cannot be parallel with enable_services or '
+              'disable_services specified.' % subtest.id)
 
     if self.subtests:
       for subtest in self.subtests:
@@ -1178,8 +1172,6 @@ class ShutdownStep(OperatorTest):
     assert not (self.autotest_name or self.pytest_name), (
         'Reboot/halt steps may not have an autotest/pytest')
     assert not self.subtests, 'Reboot/halt steps may not have subtests'
-    assert not self.backgroundable, (
-        'Reboot/halt steps may not be backgroundable')
     assert operation in [self.REBOOT, self.HALT, self.FULL_REBOOT]
     assert delay_secs >= 0
     self.pytest_name = 'shutdown'
