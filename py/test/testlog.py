@@ -45,7 +45,6 @@ import json
 import logging
 import os
 import re
-import shutil
 import threading
 
 
@@ -341,7 +340,7 @@ def LogTestRun(session_json_path, station_test_run=None):
 
 def LogFinalTestRun(session_json_path, station_test_run=None):
   LogTestRun(session_json_path, station_test_run)
-  shutil.rmtree(os.path.dirname(session_json_path))
+  os.unlink(session_json_path)
 
 
 def GetGlobalTestlog():
