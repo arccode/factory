@@ -87,6 +87,9 @@ class SystemLogManager(plugin.Plugin):
     self._queue = Queue.Queue()
     self._suppress_periodic_shopfloor_messages = False
 
+    # For unittest stubbing
+    self._timer = time.time
+
     self._CheckSettings()
 
   def _CheckSettings(self):
@@ -268,7 +271,7 @@ class SystemLogManager(plugin.Plugin):
       logging.debug('Polls once.')
       self._aborted.wait(self._polling_period)
       # Aborts rsync if rsync takes too long and exceeds abort_time.
-      if self._aborted.isSet() or (abort_time and time.time() > abort_time):
+      if self._aborted.isSet() or (abort_time and self._timer() > abort_time):
         TerminateOrKillProcess(rsync)
         logging.warning('System log rsync aborted.')
         return
@@ -306,9 +309,9 @@ class SystemLogManager(plugin.Plugin):
         # of the last sync, not the end time. Also, the last sync might fail.
         if (self._sync_log_period_secs and
             (last_sync_time is None or
-             (time.time() - last_sync_time > self._sync_log_period_secs))):
-          last_sync_time = time.time()
-          self._SyncLogs([], None, time.time() + self._scan_log_period_secs,
+             (self._timer() - last_sync_time > self._sync_log_period_secs))):
+          last_sync_time = self._timer()
+          self._SyncLogs([], None, self._timer() + self._scan_log_period_secs,
                          True)
       else:
         logging.debug('Gets a request with extra_files, callback, clear_only:'
@@ -325,7 +328,7 @@ class SystemLogManager(plugin.Plugin):
 
           if not clear_only:
             # Syncs logs according to the request.
-            last_sync_time = time.time()
+            last_sync_time = self._timer()
             self._SyncLogs(extra_files, callback,
-                           time.time() + self._scan_log_period_secs)
+                           self._timer() + self._scan_log_period_secs)
         self._queue.task_done()
