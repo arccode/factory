@@ -58,7 +58,7 @@ class RestartService(umpire_service.UmpireService):
     config_dict = {
         'executable': '/bin/sh',
         'name': 'P_restart',
-        'args': ['-c', 'ls'],
+        'args': ['-c', 'true'],
         'path': '/tmp',
         'restart': True}
     proc = umpire_service.ServiceProcess(self)
