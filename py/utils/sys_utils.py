@@ -50,24 +50,8 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   local_mode = dut is None
   path = os.path if local_mode else dut.path
 
-  if not mount_point:
-    if local_mode:
-      mount_point = tempfile.mkdtemp(prefix='mount_partition.')
-    else:
-      mount_point = dut.temp.mktemp(is_dir=True, prefix='mount_partition.')
-
-    remove_mount_point = True
-  else:
-    remove_mount_point = False
-
   if not path.exists(source_path):
     raise OSError('Image file %s does not exist' % source_path)
-  if not path.isdir(mount_point):
-    raise OSError('Mount point %s does not exist', mount_point)
-
-  for line in file_utils.ReadLines('/proc/mounts', dut):
-    if line.split()[1] == mount_point:
-      raise OSError('Mount point %s is already mounted' % mount_point)
 
   all_options = ['rw' if rw else 'ro']
   # source_path is a block device.
@@ -110,6 +94,25 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   if options:
     all_options.extend(options)
 
+  if not mount_point:
+    # Put this after all other options, so that no temp directory would be left
+    # if any above raised exception.
+    if local_mode:
+      mount_point = tempfile.mkdtemp(prefix='mount_partition.')
+    else:
+      mount_point = dut.temp.mktemp(is_dir=True, prefix='mount_partition.')
+
+    remove_mount_point = True
+  else:
+    remove_mount_point = False
+
+  if not path.isdir(mount_point):
+    raise OSError('Mount point %s does not exist', mount_point)
+
+  for line in file_utils.ReadLines('/proc/mounts', dut):
+    if line.split()[1] == mount_point:
+      raise OSError('Mount point %s is already mounted' % mount_point)
+
   command = ['toybox'] if (not local_mode and
                            dut.Call(['type', 'toybox']) == 0) else []
   command += ['mount', '-o', ','.join(all_options)]
@@ -117,10 +120,22 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
     command += ['-t', fstype]
   command += [source_path, mount_point]
 
-  if local_mode:
-    process_utils.Spawn(command, log=True, check_call=True, sudo=True)
-  else:
-    dut.CheckCall(command, log=True)
+  try:
+    if local_mode:
+      process_utils.Spawn(command, log=True, check_call=True, sudo=True)
+    else:
+      dut.CheckCall(command, log=True)
+  except Exception:
+    # Remove temporary directory if mount fail.
+    if remove_mount_point:
+      if local_mode:
+        try:
+          os.rmdir(mount_point)
+        except OSError:
+          pass
+      else:
+        dut.Call(['rm', '-rf', mount_point])
+    raise
 
   @contextmanager
   def Unmounter():
