@@ -17,6 +17,7 @@ import time
 import traceback
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
@@ -242,13 +243,21 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
     self._queues = set()
     # A lock guarding the _queues variable.
     self._lock = threading.Lock()
+    self._temp_path = None
     if not path:
       path = tempfile.mktemp(prefix='cros_factory_event.')
       os.environ[CROS_FACTORY_EVENT] = path
       logging.info('Setting %s=%s', CROS_FACTORY_EVENT, path)
+      self._temp_path = path
     # pylint: disable=non-parent-init-called
     SocketServer.UnixStreamServer.__init__(
         self, path, EventServerRequestHandler)
+
+  def server_close(self):
+    """Cleanup temporary file"""
+    SocketServer.ThreadingUnixStreamServer.server_close(self)
+    if self._temp_path is not None:
+      file_utils.TryUnlink(self._temp_path)
 
   def _subscribe(self, queue):
     """Subscribes a queue to receive events.
