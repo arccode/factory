@@ -389,7 +389,7 @@ def EnableFwWp(options):  # pylint: disable=W0613
   # "RO_AT_BOOT" when you request to enable RO (These platforms consider
   # --wp-range with right range identical to --wp-enable), and requires a
   # 'ectool reboot_ec RO at-shutdown; reboot' to let the RO take effect.
-  # After reboot, "flashrom --wp-status" will return right protected range.
+  # After reboot, "flashrom -p host --wp-status" will return protected range.
   # If you don't reboot, returned range will be (0, 0), and running command
   # "ectool flashprotect" will not have RO_NOW.
 

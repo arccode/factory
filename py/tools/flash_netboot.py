@@ -81,7 +81,7 @@ class FlashNetboot(object):
         '***\n' % self._image)
 
   def _Flashrom(self, params):
-    cmd = ['flashrom'] + params
+    cmd = ['flashrom', '-p', 'host'] + params
     if self._on_output is None:
       Spawn(cmd, log=True, check_call=True)
     else:
