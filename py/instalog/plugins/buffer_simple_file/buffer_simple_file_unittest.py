@@ -28,6 +28,8 @@ from instalog import plugin_base
 from instalog.plugins.buffer_simple_file import buffer_simple_file
 from instalog.utils import file_utils
 
+# pylint: disable=protected-access
+
 
 def _WithBufferSize(buffer_size):
   def ModifyFn(fn):
@@ -44,11 +46,14 @@ def _WithBufferSize(buffer_size):
 
 class TestBufferSimpleFile(unittest.TestCase):
 
-  def _CreateBuffer(self, config={}):
+  def _CreateBuffer(self, config=None):
+    # Remove previous temporary folder if any.
+    if self.data_dir is not None:
+      shutil.rmtree(self.data_dir)
     self.data_dir = tempfile.mkdtemp(prefix='simple_file.')
     logging.info('Create state directory: %s', self.data_dir)
     self.sf = buffer_simple_file.BufferSimpleFile(
-        config=config,
+        config={} if config is None else config,
         logger=logging.getLogger('simple_file'),
         store={},
         plugin_api=None)
@@ -59,6 +64,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.e3 = datatypes.Event({'test3': 'event'})
 
   def setUp(self):
+    self.data_dir = None
     self._CreateBuffer()
 
   def tearDown(self):
@@ -68,6 +74,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     """Tests internal format and parse of data.json record."""
     SEQ = 1989
     RECORD = 'hello world'
+    # pylint: disable=unpacking-non-sequence
     seq, record = self.sf._ParseRecord(self.sf._FormatRecord(SEQ, RECORD))
     self.assertEqual(SEQ, seq)
     self.assertEqual(RECORD, record)
@@ -236,10 +243,10 @@ class TestBufferSimpleFile(unittest.TestCase):
   def testMultiThreadProduce(self):
     """Tests for correct output with multiple threads Producing events."""
     def ProducerThread():
-      for i in xrange(10):
+      for _unused_i in xrange(10):
         self.sf.Produce([self.e1, self.e2, self.e3])
     threads = []
-    for i in xrange(10):
+    for _unused_i in xrange(10):
       t = threading.Thread(target=ProducerThread)
       threads.append(t)
       t.start()
@@ -364,8 +371,8 @@ class TestBufferSimpleFile(unittest.TestCase):
     self._CreateBuffer({'copy_attachments': False})
     with file_utils.UnopenedTemporaryFile() as path:
       event = datatypes.Event({}, {
-        'a': path,
-        'b': '/tmp/non_existent_file'})
+          'a': path,
+          'b': '/tmp/non_existent_file'})
       self.assertEqual(False, self.sf.Produce([event]))
       # Make sure source file still exists since Produce failed.
       self.assertTrue(os.path.isfile(path))
