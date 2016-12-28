@@ -6,12 +6,11 @@
 
 import binascii
 import mock
-import os
-import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import edid
+from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 
 
@@ -48,20 +47,13 @@ class EdidFunctionTest(unittest.TestCase):
   FAKE_DATA = 'FAKE_DATA'
   FAKE_OUTPUT = {'foo': 'FOO'}
 
-  def setUp(self):
-    self.tmp_fd, self.tmp_file = tempfile.mkstemp()
-    with open(self.tmp_file, 'w') as f:
-      f.write(self.FAKE_DATA)
-
-  def tearDown(self):
-    if os.path.isfile(self.tmp_file):
-      os.close(self.tmp_fd)
-
   @mock.patch.object(edid, 'Parse', return_value=FAKE_OUTPUT)
   def testEDIDFile(self, MockParse):
-    results = edid.EDIDFunction(path=self.tmp_file)()
-    self.assertEquals(results, [self.FAKE_OUTPUT])
-    MockParse.assert_called_with(self.FAKE_DATA)
+    with file_utils.UnopenedTemporaryFile() as tmp_file:
+      file_utils.WriteFile(tmp_file, self.FAKE_DATA)
+      results = edid.EDIDFunction(path=tmp_file)()
+      self.assertEquals(results, [self.FAKE_OUTPUT])
+      MockParse.assert_called_with(self.FAKE_DATA)
 
   @mock.patch.object(edid, 'LoadFromI2C', return_value=FAKE_OUTPUT)
   @mock.patch.object(sys_utils, 'LoadKernelModule')
