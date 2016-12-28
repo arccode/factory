@@ -45,6 +45,7 @@ import json
 import logging
 import os
 import re
+import tempfile
 import threading
 
 
@@ -78,7 +79,7 @@ _DEFAULT_ATTACHMENTS_FOLDER = 'attachments'
 # The /var/run directory (or something writable by us if in the chroot).
 # TODO(itspeter): Survey if we can find an equivalent folder in Windows.
 #                 Otherwise, the SEQ_INCREMENT_ON_BOOT magic might not work.
-_TMP_DIR = '/tmp' if sys_utils.InChroot() else '/var/run'
+_TMP_DIR = tempfile.gettempdir() if sys_utils.InChroot() else '/var/run'
 
 # File containing the next sequence number to write. This is in
 # /var/run so it is cleared on each boot.

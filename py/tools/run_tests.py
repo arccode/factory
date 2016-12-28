@@ -14,6 +14,7 @@ import signal
 from subprocess import STDOUT
 import sys
 import tempfile
+import threading
 import time
 
 import factory_common  # pylint: disable=W0611
@@ -87,6 +88,8 @@ class _TestProc(object):
     self.log_file = open(log_name, 'w')
     self.start_time = time.time()
     self.cros_factory_root = tempfile.mkdtemp(prefix='cros_factory_root.')
+    self.child_tmp_root = os.path.join(self.cros_factory_root, 'tmp')
+    os.mkdir(self.child_tmp_root)
     child_env = os.environ.copy()
     child_env['CROS_FACTORY_ROOT'] = self.cros_factory_root
     # Set TEST_RUNNER_ENV_VAR so we know to kill it later if
@@ -98,6 +101,10 @@ class _TestProc(object):
     # Since some tests using `make par` is sensitive to file changes inside py
     # directory, don't generate .pyc file.
     child_env['PYTHONDONTWRITEBYTECODE'] = '1'
+    # Change child calls for tempfile.* to be rooted at directory inside
+    # cros_factory_root temporary directory, so it would be removed even if the
+    # test is terminated.
+    child_env['TMPDIR'] = self.child_tmp_root
     self.proc = process_utils.Spawn(self.test_name, stdout=self.log_file,
                                     stderr=STDOUT, env=child_env)
     self.pid = self.proc.pid
@@ -124,7 +131,7 @@ class _TestProc(object):
       logging.exception('Unable to kill %s', self.test_name)
     return
 
-  def __del__(self):
+  def Close(self):
     if os.path.isdir(self.cros_factory_root):
       shutil.rmtree(self.cros_factory_root)
 
@@ -151,11 +158,23 @@ class RunTests(object):
 
     # A dict to store running subprocesses. pid: (_TestProc, test_name).
     self._running_proc = {}
+    self._abort_event = threading.Event()
 
     self._passed_tests = set()  # set of passed test_name
     self._failed_tests = {}  # dict of failed test name -> log file
 
     self._run_counts = {}  # dict of test name -> number of runs so far
+
+    def AbortHandler(sig, frame):
+      del sig, frame  # Unused.
+      if self._abort_event.isSet():
+        # Ignore cleanup and force exit if ctrl-c is pressed twice
+        print '\033[22;31mGot ctrl-c twice, force shutdown!\033[22;0m'
+        raise KeyboardInterrupt()
+      print '\033[1;33mGot ctrl-c, gracefully shutdown.\033[22;0m'
+      self._abort_event.set()
+
+    signal.signal(signal.SIGINT, AbortHandler)
 
   def Run(self):
     """Runs all unittests.
@@ -262,6 +281,23 @@ class RunTests(object):
                         (duration, p.test_name, p.returncode))
       self._failed_tests[p.test_name] = p.log_file.name
 
+  def _TerminateAndCleanupAll(self):
+    """Terminate all running process and cleanup temporary directories.
+
+    Doing terminate gracefully by sending SIGINT to all process first, wait for
+    1 second, and then send SIGKILL to process that is still alive.
+    """
+    for pid in self._running_proc:
+      os.kill(pid, signal.SIGINT)
+    time.sleep(1)
+    for pid, (proc, unused_test_name) in self._running_proc.iteritems():
+      if os.waitpid(pid, os.WNOHANG)[0] == 0:
+        # Test still alive, kill with SIGKILL
+        os.kill(pid, signal.SIGKILL)
+        os.waitpid(pid, 0)
+      proc.Close()
+    raise KeyboardInterrupt()
+
   def _WaitRunningProcessesFewerThan(self, threshold):
     """Waits until #running processes is fewer than specifed.
 
@@ -272,11 +308,19 @@ class RunTests(object):
       threshold: if #running process is fewer than this, the call returns.
     """
     while len(self._running_proc) >= threshold:
-      pid, status = os.wait()
-      p = self._running_proc.pop(pid)[0]
-      p.returncode = os.WEXITSTATUS(status) if os.WIFEXITED(status) else -1
-      self._RecordTestResult(p)
-      self._ShowRunningTest()
+      if self._abort_event.isSet():
+        # Ctrl-c got, cleanup and exit.
+        self._TerminateAndCleanupAll()
+
+      pid, status = os.waitpid(-1, os.WNOHANG)
+      if pid != 0:
+        p = self._running_proc.pop(pid)[0]
+        p.returncode = os.WEXITSTATUS(status) if os.WIFEXITED(status) else -1
+        p.Close()
+        self._RecordTestResult(p)
+        self._ShowRunningTest()
+      else:
+        self._abort_event.wait(0.05)
 
   def _PassMessage(self, message):
     self._ClearLine()

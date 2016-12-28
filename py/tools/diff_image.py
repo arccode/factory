@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
@@ -154,7 +155,8 @@ def main(argv=None, out=sys.stdout):
   args = parser.parse_args(argv or sys.argv)
   logging.basicConfig(level=logging.WARNING - 10 * (args.verbose or 0))
 
-  mount_points = ['/tmp/diff_image_1', '/tmp/diff_image_2']
+  mount_points = [os.path.join(tempfile.gettempdir(), name)
+                  for name in ('diff_image_1', 'diff_image_2')]
   for f in mount_points:
     file_utils.TryMakeDirs(f)
 
