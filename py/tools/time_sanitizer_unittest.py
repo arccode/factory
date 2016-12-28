@@ -16,6 +16,7 @@ from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import time_sanitizer
+from cros.factory.utils import file_utils
 
 
 BASE_TIME = float(
@@ -32,7 +33,6 @@ class TimeSanitizerTestBase(unittest.TestCase):
     self.fake_time = self.mox.CreateMock(time_sanitizer.Time)
     self.fake_shopfloor = self.mox.CreateMockAnything()
 
-    self.state_file = tempfile.NamedTemporaryFile().name
     self.sanitizer = time_sanitizer.TimeSanitizer(
         self.state_file,
         monitor_interval_secs=30,
@@ -41,6 +41,13 @@ class TimeSanitizerTestBase(unittest.TestCase):
     self.sanitizer._time = self.fake_time
     self.sanitizer._suppress_exceptions = False
     self.sanitizer._shopfloor = self.fake_shopfloor
+
+  def run(self, result=None):
+    with file_utils.TempDirectory(
+        prefix='time_sanitizer_unittest.') as temp_dir:
+      # pylint: disable=attribute-defined-outside-init
+      self.state_file = os.path.join(temp_dir, 'state_file')
+      super(TimeSanitizerTestBase, self).run(result)
 
   @contextmanager
   def Mock(self):
