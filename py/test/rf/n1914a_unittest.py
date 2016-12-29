@@ -120,7 +120,7 @@ class N1914ATest(unittest.TestCase):
 
   def _StartTest(self):
     self.mock_server, self.server_port = self._StartMockServer()
-    self.n1914a = N1914A(host=self.HOST, port=self.server_port)
+    self.n1914a = N1914A(host=self.HOST, port=self.server_port, delay=0)
 
   def testSetAsciiFormat(self):
     QUERY = 'FORM?'
