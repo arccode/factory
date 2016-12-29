@@ -25,6 +25,15 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
   def GetTableSchema(self):
     """Returns a list of fields in the table schema."""
     return [
+        # history
+        {'name': 'history', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
+            {'name': 'node_id', 'type': 'STRING'},
+            {'name': 'orig_time', 'type': 'TIMESTAMP'},
+            {'name': 'time', 'type': 'TIMESTAMP'},
+            {'name': 'plugin_id', 'type': 'STRING'},
+            {'name': 'plugin_type', 'type': 'STRING'},
+            {'name': 'target', 'type': 'STRING'}]},
+
         # station
         {'name': 'uuid', 'type': 'STRING'},
         {'name': 'type', 'type': 'STRING'},
@@ -107,6 +116,19 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
 
     row = {}
 
+    # history
+    row['history'] = []
+    for process_stage in event.history:
+      row['history'].append({})
+      row['history'][-1]['node_id'] = process_stage.node_id
+      row['history'][-1]['orig_time'] = DateTimeToUnixTimestamp(
+          process_stage.orig_time)
+      row['history'][-1]['time'] = DateTimeToUnixTimestamp(
+          process_stage.time)
+      row['history'][-1]['plugin_id'] = process_stage.plugin_id
+      row['history'][-1]['plugin_type'] = process_stage.plugin_type
+      row['history'][-1]['target'] = process_stage.target
+
     # station
     row['uuid'] = event.get('uuid')
     row['type'] = event.get('type')
@@ -146,6 +168,19 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     row['endTime'] = DateTimeToUnixTimestamp(event.get('endTime'))
     row['duration'] = event.get('duration')
     row['operatorId'] = event.get('operatorId')
+
+    row['attachments'] = []
+    for key, dct in event.get('attachments', {}).iteritems():
+      row['attachments'].append({})
+      row['attachments'][-1]['key'] = key
+      row['attachments'][-1]['description'] = dct.get('description')
+      row['attachments'][-1]['path'] = dct.get('path')
+      # Check to see whether the attachment path has been modified by some other
+      # Instalog plugin.  If so, use that path instead.
+      if ('__attachments__' in event and
+          key in event['__attachments__']):
+        row['attachments'][-1]['path'] = event['__attachments__'][key]
+      row['attachments'][-1]['mimeType'] = dct.get('mimeType')
 
     row['failures'] = []
     for i, dct in enumerate(event.get('failures', [])):
