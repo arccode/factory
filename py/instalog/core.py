@@ -4,7 +4,6 @@
 
 from __future__ import print_function
 
-import datetime
 import logging
 import os
 import threading
@@ -19,16 +18,16 @@ from instalog import plugin_base
 from instalog.external.jsonrpclib import SimpleJSONRPCServer
 
 
+# Fix for bug b/30904731: Import _strptime manually.  Otherwise,
+# threads may initially raise the exception `AttributeError: _strptime`.
+import _strptime  # pylint: disable=unused-import
+
+
 # Possible daemon states.
 STARTING = 'STARTING'
 UP = 'UP'
 STOPPING = 'STOPPING'
 DOWN = 'DOWN'
-
-
-# Fix for bug b/30904731: Access datetime.datetime.strptime.  Otherwise,
-# threads may sometimes raise the exception `AttributeError: _strptime_time`.
-datetime.datetime.strptime
 
 
 class Instalog(plugin_sandbox.CoreAPI):
