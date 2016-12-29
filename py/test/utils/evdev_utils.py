@@ -7,8 +7,8 @@ from __future__ import print_function
 import asyncore
 
 import factory_common  # pylint: disable=unused-import
-
 from cros.factory.external import evdev
+from cros.factory.utils import process_utils
 
 
 def GetDevices():
@@ -181,3 +181,7 @@ class InputDeviceDispatcher(asyncore.file_dispatcher):
 
   def writable(self):
     return False
+
+  def StartDaemon(self):
+    """Start a daemon thread forwarding events to event_handler."""
+    process_utils.StartDaemonThread(target=asyncore.loop)

@@ -12,7 +12,6 @@ dargs:
 """
 
 import array
-import asyncore
 import evdev
 import fcntl
 import logging
@@ -26,7 +25,6 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 
 
 _ID_CONTAINER = 'touchpad-test-container'
@@ -309,13 +307,6 @@ class TouchpadTest(unittest.TestCase):
       self.dispatcher.close()
     self.touchpad_device.ungrab()
 
-  def MonitorEvdevEvent(self):
-    """Starts to monitor evdev events."""
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(
-        self.touchpad_device, self.HandleEvent)
-    self.GetSpec()
-    asyncore.loop()
-
   def GetSpec(self):
     """Gets device name, btn_right, x_max and y_max."""
     self.touchpad_device_name = self.touchpad_device.name
@@ -556,8 +547,11 @@ class TouchpadTest(unittest.TestCase):
         self.args.y_segments, self.args.number_to_click,
         self.args.number_to_quadrant)
 
+    self.GetSpec()
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.touchpad_device, self.HandleEvent)
     logging.info('start monitor daemon thread')
-    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
+    self.dispatcher.StartDaemon()
 
   def runTest(self):
     self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)

@@ -6,7 +6,6 @@
 
 """Tests lid switch functionality."""
 
-import asyncore
 import datetime
 import evdev
 import time
@@ -24,7 +23,6 @@ from cros.factory.test.utils import audio_utils
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
 
 _DEFAULT_TIMEOUT = 30
 _SERIAL_TIMEOUT = 1
@@ -133,8 +131,9 @@ class LidSwitchTest(unittest.TestCase):
       self.ui.SetHTML(_MSG_PROMPT_CLOSE, id=_ID_PROMPT)
 
     # Create a thread to monitor evdev events.
-    self.dispatcher = None
-    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.event_dev, self.HandleEvent)
+    self.dispatcher.StartDaemon()
     # Create a thread to run countdown timer.
     countdown_timer.StartCountdownTimer(
         _DEFAULT_TIMEOUT if self.fixture else self.args.timeout_secs,
@@ -241,12 +240,6 @@ class LidSwitchTest(unittest.TestCase):
         if self.args.brightness_path is not None:
           self.AdjustBrightness(self._restore_brightness)
         self.ui.Pass()
-
-  def MonitorEvdevEvent(self):
-    """Creates a process to monitor evdev event and checks for lid events."""
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(
-        self.event_dev, self.HandleEvent)
-    asyncore.loop()
 
   def TerminateLoop(self):
     self.dispatcher.close()

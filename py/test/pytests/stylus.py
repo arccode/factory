@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import asyncore
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -12,7 +11,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 
 _ID_CANVAS = 'stylus-test-canvas'
 
@@ -79,6 +77,7 @@ class StylusTest(unittest.TestCase):
     self._x = _AbsInfo(abscaps[evdev.ecodes.ABS_X])
     self._y = _AbsInfo(abscaps[evdev.ecodes.ABS_Y])
     self._touch = False
+    self._dispatcher = None
 
     assert self.args.error_margin >= 0
     assert 0 < self.args.begin_position < self.args.end_position < 1
@@ -105,10 +104,6 @@ class StylusTest(unittest.TestCase):
             self._x.GetNormalizedValue(),
             self._y.GetNormalizedValue())
 
-  def _Monitor(self):
-    evdev_utils.InputDeviceDispatcher(self._device, self._Handler)
-    asyncore.loop()
-
   def _StartTest(self, _):
     self._ui.SetHTML(_HTML)
     self._ui.CallJSFunction('setupStylusTest',
@@ -118,7 +113,13 @@ class StylusTest(unittest.TestCase):
                             self.args.end_position,
                             self.args.step_size)
     self._ui.CallJSFunction('startTest')
-    process_utils.StartDaemonThread(target=self._Monitor)
+    self._dispatcher = evdev_utils.InputDeviceDispatcher(self._device,
+                                                         self._Handler)
+    self._dispatcher.StartDaemon()
+
+  def tearDown(self):
+    if self._dispatcher is not None:
+      self._dispatcher.close()
 
   def runTest(self):
     self._ui.BindKeyJS(test_ui.ESCAPE_KEY, 'failTest();')

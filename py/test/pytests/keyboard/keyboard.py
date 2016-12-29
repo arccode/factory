@@ -9,7 +9,6 @@
 from __future__ import print_function
 
 import ast
-import asyncore
 import evdev
 import logging
 import os
@@ -136,9 +135,10 @@ class KeyboardTest(unittest.TestCase):
                            self.args.strict_sequential_press,
                            self.args.allow_multi_keys)
 
-    self.dispatchers = []
     self.keyboard_device.grab()
-    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(self.keyboard_device,
+                                                        self.HandleEvent)
+    self.dispatcher.StartDaemon()
     countdown_timer.StartCountdownTimer(
         self.args.timeout_secs,
         lambda: self.ui.CallJSFunction('failTestTimeout'),
@@ -148,8 +148,7 @@ class KeyboardTest(unittest.TestCase):
   def tearDown(self):
     """Terminates the running process or we'll have trouble stopping the test.
     """
-    for dispatcher in self.dispatchers:
-      dispatcher.close()
+    self.dispatcher.close()
     self.keyboard_device.ungrab()
 
   def GetKeyboardLayout(self):
@@ -184,13 +183,6 @@ class KeyboardTest(unittest.TestCase):
     with open(key_order_list_filename, 'r') as f:
       key_order_list = ast.literal_eval(f.read())
     return key_order_list
-
-  def MonitorEvdevEvent(self):
-    """Monitors keyboard events from evdev."""
-    self.dispatchers.append(
-        evdev_utils.InputDeviceDispatcher(
-            self.keyboard_device, self.HandleEvent))
-    asyncore.loop()
 
   def HandleEvent(self, event):
     if event.type == evdev.ecodes.EV_KEY:

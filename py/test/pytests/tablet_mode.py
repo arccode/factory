@@ -9,7 +9,6 @@
 Currently, the only thing checked is that the lid switch is not triggered.
 """
 
-import asyncore
 import evdev
 import unittest
 
@@ -19,7 +18,6 @@ from cros.factory.test.pytests import tablet_mode_ui
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 
 
 _DEFAULT_TIMEOUT = 30
@@ -69,8 +67,9 @@ class TabletModeTest(unittest.TestCase):
     self.tablet_mode_ui.AskForTabletMode(self.HandleConfirmTabletMode)
 
     # Create a thread to monitor evdev events.
-    self.dispatcher = None
-    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.event_dev, self.HandleLidSwitch)
+    self.dispatcher.StartDaemon()
 
     # Create a thread to run countdown timer.
     countdown_timer.StartCountdownTimer(
@@ -78,12 +77,6 @@ class TabletModeTest(unittest.TestCase):
         lambda: self.ui.Fail('Lid switch test failed due to timeout.'),
         self.ui,
         _ID_COUNTDOWN_TIMER)
-
-  def MonitorEvdevEvent(self):
-    """Creates a process to monitor evdev event and checks for lid events."""
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(
-        self.event_dev, self.HandleLidSwitch)
-    asyncore.loop()
 
   def HandleLidSwitch(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:

@@ -6,7 +6,6 @@
 
 """A factory test to test the functionality of touchscreen."""
 
-import asyncore
 import evdev
 import logging
 import unittest
@@ -16,7 +15,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 
 
 _ID_CONTAINER = 'touchscreen-test-container'
@@ -78,7 +76,6 @@ class TouchscreenTest(unittest.TestCase):
     self.touchscreen_device_name = None
     self.touch_event = TouchEvent()
     self.checked = False
-    self.dispatcher = None
 
     if self.args.touchscreen_event_id is None:
       touchscreen_devices = evdev_utils.GetTouchscreenDevices()
@@ -89,23 +86,20 @@ class TouchscreenTest(unittest.TestCase):
       self.touchscreen_device = evdev.InputDevice(
           '/dev/input/event%d' % self.args.touchscreen_event_id)
 
-    logging.info('start monitor daemon thread')
-    process_utils.StartDaemonThread(target=self.MonitorEvdevEvent)
+    self.GetSpec()
     self.touchscreen_device.grab()
+    logging.info('start monitor daemon thread')
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.touchscreen_device, self.ProcessTouchEvent)
+    self.dispatcher.StartDaemon()
 
   def tearDown(self):
     """Terminates the running process or we'll have trouble stopping the test.
 
     Also restores the touchscreen at X.
     """
+    self.dispatcher.close()
     self.touchscreen_device.ungrab()
-
-  def MonitorEvdevEvent(self):
-    """Monitors evdev events."""
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(
-        self.touchscreen_device, self.ProcessTouchEvent)
-    self.GetSpec()
-    asyncore.loop()
 
   def GetSpec(self):
     """Gets device name, x_max and y_max from evdev."""
