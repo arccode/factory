@@ -104,7 +104,7 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
       resumable_uri = self.gcs.UploadFile(att_path, target_path)
 
       # Relocate the attachments entry into the event payload.
-      event.setdefault('__attachments__', {})[att_id] = target_path
+      event.setdefault('__attachments__', {})[att_id] = 'gs:/%s' % target_path
 
       if resumable_uri:
         raise IOError('Could not upload file %s successfully: %r'
