@@ -2,7 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import glob
 import logging
+import os
 import subprocess
 
 import factory_common  # pylint: disable=unused-import
@@ -10,9 +12,67 @@ from cros.factory.probe import function
 from cros.factory.utils.arg_utils import Arg
 
 
+SYSFS_I2C_DIR_PATH = '/sys/bus/i2c/devices'
+I2C_BUS_PREFIX = 'i2c-'
 EC_BUS_PREFIX = 'EC-'
 ADDR_START = 0x03
 ADDR_END = 0x77
+
+
+def _GetBusNumber(condition_func):
+  """Gets the I2C numbers which satisfy the condition function.
+
+  Args:
+    condition_func: a function whose input is a path of sysfs node, and returns
+      a boolean value.
+
+  Returns:
+    a list of strings indicating the I2C bus numbers.
+  """
+  ret = []
+  for node in glob.glob(os.path.join(SYSFS_I2C_DIR_PATH, I2C_BUS_PREFIX + '*')):
+    try:
+      if condition_func(node):
+        ret.append(os.path.basename(node)[len(I2C_BUS_PREFIX):])
+    except Exception:
+      pass
+  return ret
+
+
+def GetBusNumberByPath(bus_path):
+  """Gets the I2C numbers by the realpath of the sysfs node."""
+  def ConditionFunc(node):
+    return os.path.realpath(node).startswith(bus_path)
+  return _GetBusNumber(ConditionFunc)
+
+
+def GetBusNumberByName(bus_name):
+  """Gets the I2C numbers by the I2C bus name."""
+  def ConditionFunc(node):
+    with open(os.path.join(node, 'name'), 'r') as f:
+      return f.read().strip() == bus_name
+  return _GetBusNumber(ConditionFunc)
+
+
+def GetBusInfo(bus_number):
+  """Get the extra information of the I2C bus.
+
+  Args:
+    bus_number: the I2C bus number.
+
+  Returns:
+    a dict including the I2C bus name and the real path of the sysfs node.
+  """
+  node_path = os.path.join(SYSFS_I2C_DIR_PATH, I2C_BUS_PREFIX + str(bus_number))
+  if bus_number.startswith(EC_BUS_PREFIX) or not os.path.exists(node_path):
+    return {}
+
+  with open(os.path.join(node_path, 'name'), 'r') as f:
+    bus_name = f.read().strip()
+  bus_path = os.path.dirname(os.path.realpath(node_path))
+  return {
+      'bus_name': bus_name,
+      'bus_path': bus_path}
 
 
 def Hexify(value):
@@ -37,10 +97,18 @@ class I2CFunction(function.ProbeFunction):
   """Probes the I2C device."""
 
   ARGS = [
-      Arg('bus', str,
+      Arg('bus_number', str,
           'The I2C bus number. Every bus will be scanned if it is not '
           'assigned. If the bus is behind EC, then it should have "%s" prefix. '
           'For example: "%s0"' % (EC_BUS_PREFIX, EC_BUS_PREFIX),
+          optional=True),
+      Arg('bus_path', str,
+          'The realpath of the I2C bus sysfs node. Ignored if `bus_number` '
+          'argument is given.',
+          optional=True),
+      Arg('bus_name', str,
+          'The name of the I2C bus sysfs node. Ignored if `bus_number` '
+          'argument is given.',
           optional=True),
       Arg('addr', str,
           'The address of the device. Every address between %s and %s will be '
@@ -53,24 +121,33 @@ class I2CFunction(function.ProbeFunction):
 
   def Probe(self):
     ret = []
-    bus_list = self.GetBusList() if self.args.bus is None else [self.args.bus]
+    if self.args.bus_number:
+      bus_list = [self.args.bus_number]
+    else:
+      bus_list = set(self.GetBusList())
+      if self.args.bus_path:
+        bus_list &= set(GetBusNumberByPath(self.args.bus_path))
+      if self.args.bus_name:
+        bus_list &= set(GetBusNumberByName(self.args.bus_name))
     addr_list = (self.GetAddrList() if self.args.addr is None
                  else [self.args.addr])
-    for bus in bus_list:
+    for bus_number in bus_list:
       for addr in addr_list:
-        logging.debug('Probe I2C %s:%s', bus, addr)
+        logging.debug('Probe I2C %s:%s', bus_number, addr)
         addr = Hexify(addr)
         try:
-          if bus.startswith(EC_BUS_PREFIX):
-            exists = self.ProbeECI2C(bus[len(EC_BUS_PREFIX):], addr)
+          if bus_number.startswith(EC_BUS_PREFIX):
+            exists = self.ProbeECI2C(bus_number[len(EC_BUS_PREFIX):], addr)
           else:
-            exists = self.ProbeI2C(bus, addr)
+            exists = self.ProbeI2C(bus_number, addr)
         except Exception:
           continue
         if exists:
-          ret.append({
-              'bus': bus,
-              'addr': addr})
+          result = {
+              'bus_number': bus_number,
+              'addr': addr}
+          result.update(GetBusInfo(bus_number))
+          ret.append(result)
     return ret
 
   def GetBusList(self):
@@ -120,4 +197,3 @@ class I2CFunction(function.ProbeFunction):
     """
     cmd = ['ectool', 'i2cxfer', bus, addr, '1', '0']
     return subprocess.call(cmd) == 0
-
