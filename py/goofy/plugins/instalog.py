@@ -51,8 +51,6 @@ class Instalog(plugin.Plugin):
     testlog_json_path = goofy.testlog.primary_json.path
     uplink_enabled = (
         uplink_use_shopfloor or uplink_hostname) and uplink_port
-    uplink_hostname = uplink_hostname
-    uplink_port = uplink_port
     if uplink_use_shopfloor:
       url = shopfloor.get_server_url()
       if not url:
