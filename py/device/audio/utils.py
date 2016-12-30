@@ -5,7 +5,6 @@
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device.audio import alsa
-from cros.factory.device.audio import base
 from cros.factory.device.audio import tinyalsa
 from cros.factory.utils import type_utils
 
@@ -14,8 +13,7 @@ from cros.factory.utils import type_utils
 CONTROLLERS = type_utils.Enum(['ALSA', 'TINYALSA'])
 
 
-def CreateAudioControl(dut, config_path=base.DEFAULT_CONFIG_PATH,
-                       controller=None):
+def CreateAudioControl(dut, config_path=None, controller=None):
   """Creates an AudioControl instance.
 
   Args:

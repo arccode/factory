@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "[a-zA-Z0-9_-]+": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+
+        "initial": { "type": "object" },
+        "init_audiojack": { "type": "object" },
+        "init_speakerdmic": { "type": "object" },
+        "init_audioquality": { "type": "object" },
+        "disable_dmic": { "type": "object" },
+        "disable_dmic2": { "type": "object" },
+        "disable_extmic": { "type": "object" },
+        "disable_headphone": { "type": "object" },
+        "disable_mlb_dmic": { "type": "object" },
+        "disable_speaker": { "type": "object" },
+        "enable_dmic": { "type": "object" },
+        "enable_dmic2": { "type": "object" },
+        "enable_extmic": { "type": "object" },
+        "enable_headphone": { "type": "object" },
+        "enable_mlb_dmic": { "type": "object" },
+        "enable_speaker": { "type": "object" },
+        "mute_left_dmic": { "type": "object" },
+        "mute_left_dmic2": { "type": "object" },
+        "mute_left_extmic": { "type": "object" },
+        "mute_left_headphone": { "type": "object" },
+        "mute_left_mlb_dmic": { "type": "object" },
+        "mute_left_speaker": { "type": "object" },
+        "mute_right_dmic": { "type": "object" },
+        "mute_right_dmic2": { "type": "object" },
+        "mute_right_extmic": { "type": "object" },
+        "mute_right_headphone": { "type": "object" },
+        "mute_right_mlb_dmic": { "type": "object" },
+        "mute_right_speaker": { "type": "object" },
+
+        "set_headphone_volume": { "type": "object" },
+        "set_speaker_volume": { "type": "object" },
+
+        "restore_script": { "type": "string" },
+        "dmic_jack_script": { "type": "string" },
+        "kdmic_jack_script": { "type": "string" },
+        "jack_speaker_script": { "type": "string" },
+        "jack_hp_script": { "type": "string" },
+        "dmic2_jack_script": { "type": "string" },
+
+        "headphone_jack_detect": { "type": "string" },
+        "mic_jack_detect": { "type": "string" },
+        "mic_jack_type_detect": { "type": "string" },
+
+        "mic_jack": { "type": "string" },
+        "headphone_jack": { "type": "string" }
+      }
+    }
+  }
+}

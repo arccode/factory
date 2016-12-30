@@ -14,10 +14,12 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import config_utils
+from cros.factory.utils import type_utils
 
 
-DEFAULT_CONFIG_PATH = '/usr/local/factory/py/test/audio.conf'
+DEFAULT_YAML_CONFIG_PATH = '/usr/local/factory/py/test/audio.conf'
+DEFAULT_JSON_CONFIG_NAME = 'audio'
 
 # Strings for key in audio.conf
 HP_JACK_NAME = 'headphone_jack'
@@ -30,7 +32,7 @@ DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
 # The input device event may be on Headphone Jack
 DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
 
-MicJackType = Enum(['none', 'lrgm', 'lrmg'])
+MicJackType = type_utils.Enum(['none', 'lrgm', 'lrmg'])
 # Used for external command return value
 MIC_JACK_TYPE_RETURN_LRGM = '1'
 MIC_JACK_TYPE_RETURN_LRMG = '2'
@@ -45,12 +47,13 @@ WAV_HEADER_SIZE = 44
 class BaseAudioControl(component.DeviceComponent):
   """An abstract class for different target audio utils"""
 
-  def __init__(self, dut, config_path=DEFAULT_CONFIG_PATH):
+  def __init__(self, dut, config_path=None):
     super(BaseAudioControl, self).__init__(dut)
     # used for audio config logging.
     self._playback_process = None
     self._audio_config_sn = 0
     self._restore_mixer_control_stack = []
+    self.audio_config = None
     self.ApplyConfig(config_path)
 
   def _GetPIDByName(self, name):
@@ -62,16 +65,37 @@ class BaseAudioControl(component.DeviceComponent):
     return pids[0] if pids else None
 
   def ApplyConfig(self, config_path):
-    if os.path.exists(config_path):
+    """Loads system config for audio cards.
+
+    The config may come from JSON config (config_utils) or legacy YAML files.
+    If config_path is a string that ends with ".conf", it will be evaluated as
+    YAML; otherwise it will be used as the config name for config_utils.
+
+    Args:
+      config_path: A string for YAML config file path or JSON config name.
+    """
+
+    if config_path is None:
+      # Use YAML file if that exists.
+      config_path = DEFAULT_YAML_CONFIG_PATH
+      if not os.path.exists(config_path):
+        config_path = DEFAULT_JSON_CONFIG_NAME
+
+    if config_path.endswith('.conf'):
       with open(config_path, 'r') as config_file:
-        self.audio_config = yaml.load(config_file)
-      for index in self.audio_config.keys():
-        if index.isdigit() is False:
-          new_index = self.GetCardIndexByName(index)
-          self.audio_config[new_index] = self.audio_config[index]
+        config = yaml.load(config_file)
     else:
-      self.audio_config = {}
-      logging.info('Cannot find configuration file.')
+      config = config_utils.LoadConfig(config_path)
+
+    # Convert names to indexes.
+    card_names = [name for name in config if not name.isdigit()]
+    for name in card_names:
+      index = self.GetCardIndexByName(name)
+      config[index] = config[name]
+
+    if not config:
+      logging.info('audio: No configuration file (%s).', config_path)
+    self.audio_config = config
 
   def GetCardIndexByName(self, card_name):
     """Get audio card index by card name. If the card_name is already an index,

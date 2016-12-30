@@ -49,8 +49,7 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   _RE_CARD_INDEX = re.compile(r'.*(\d+).*?\[(.+?)\]')
 
-  def __init__(self, dut, config_path=base.DEFAULT_CONFIG_PATH,
-               remote_directory='/data'):
+  def __init__(self, dut, config_path=None, remote_directory='/data'):
     super(TinyalsaAudioControl, self).__init__(dut, config_path)
     self._remote_directory = remote_directory
 
