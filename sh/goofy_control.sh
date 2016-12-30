@@ -5,6 +5,10 @@
 
 set -e
 
+# Most projects seem to prefer having unlimited core dump.
+# To disable this, override factory_setup in `board_setup_factory.sh`.
+ulimit -c unlimited || true
+
 . /usr/local/factory/sh/common.sh
 
 FACTORY="$(dirname "$(dirname "$(readlink -f "$0")")")"
