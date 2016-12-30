@@ -15,6 +15,10 @@ To change cut-off options:
    Change values in the config file, and rebuild a new factory toolkit.
    This config file also applies to reset shim.
 
+   We also allow config files written in JSON. Put that in
+   `chromeos-base/chromeos-factory-board/files/py/config/cutoff.json`,
+   using same key names and values.
+
 2. If you want to set a different value for reset shim (for example to reset
    after OQC), modify the `lsb-factory` on reset shim partition 1, using
    `factory_setup/edit_lsb_factory.sh`.
@@ -61,9 +65,23 @@ There are few options you can set:
 The options should be set in same syntax that Linux /etc/lsb-release file is
 using; i.e., `KEY=VALUE`. For example,
 
+```sh
     # Comments here
     CUTOFF_METHOD=battery_cutoff
     CUTOFF_AC_STATE=remove_ac
     CUTOFF_BATTERY_MIN_PERCENTAGE=60
     CUTOFF_BATTERY_MAX_PERCENTAGE=80
     SHOPFLOOR_URL=http://192.168.1.1/
+```
+
+If you want to use JSON (`py/config/cutoff.json`), here's the example:
+
+```json
+    {
+      "CUTOFF_METHOD": "battery_cutoff",
+      "CUTOFF_AC_STATE": "remove_ac",
+      "CUTOFF_BATTERY_MIN_PERCENTAGE": 60,
+      "CUTOFF_BATTERY_MAX_PERCENTAGE": 80,
+      "SHOPFLOOR_URL": "http://192.168.1.1/"
+    }
+```

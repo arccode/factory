@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "CUTOFF_METHOD": {
+      "enum": ["shutdown", "reboot", "battery_cutoff", "ectool_cutoff"]
+    },
+    "CUTOFF_AC_STATE": {
+      "enum": ["connect_ac", "remove_ac"]
+    },
+    "CUTOFF_BATTERY_MIN_PERCENTAGE": {
+      "type": "integer"
+    },
+    "CUTOFF_BATTERY_MAX_PERCENTAGE": {
+      "type": "integer"
+    },
+    "CUTOFF_BATTERY_MIN_VOLTAGE": {
+      "type": "number"
+    },
+    "CUTOFF_BATTERY_MAX_VOLTAGE": {
+      "type": "number"
+    },
+    "SHOPFLOOR_URL": {
+      "type": "string"
+    },
+    "TTY": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

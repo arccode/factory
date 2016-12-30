@@ -141,7 +141,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
       'display_boot_message', 'dumpe2fs', 'ectool', 'flashrom', 'halt',
       'initctl', 'mkfs.ext4', 'mktemp', 'mosys', 'mount', 'mount-encrypted',
       'od', 'pango-view', 'pkill', 'pv', 'python', 'reboot', 'setterm', 'sh',
-      'shutdown', 'stop', 'umount', 'vpd', 'wget', 'lsof']
+      'shutdown', 'stop', 'umount', 'vpd', 'wget', 'lsof', 'jq']
   if os.path.exists('/sbin/frecon'):
     binary_deps.append('/sbin/frecon')
   else:

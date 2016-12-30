@@ -40,19 +40,34 @@ lsbval() {
 }
 
 # Try to read from config file. This file should be using same format that
-# /etc/lsb-release is using and friendly for sh to process.
-# TODO(hungte) Load options in a safer way.
+# /etc/lsb-release is using and friendly for sh to process, or a JSON file.
 # Usage: load_options_file <FILE>
 options_load_file() {
   local file="$1"
   local key value
   if [ -f "${file}" ]; then
+    if [ "${file%.json}" != "${file}" ] &&
+         python -c "import jsonschema" >/dev/null 2>&1; then
+      echo "Checking JSON schema for file ${file}..."
+      python -c "import jsonschema; import json; jsonschema.validate(
+        json.load(open('${file}')),
+        json.load(open('$(dirname "$(readlink -f "$0")")/cutoff.schema.json')))"
+    fi
     echo "Loading options from file ${file}..."
     for key in CUTOFF_METHOD CUTOFF_AC_STATE \
         CUTOFF_BATTERY_MIN_PERCENTAGE CUTOFF_BATTERY_MAX_PERCENTAGE \
         CUTOFF_BATTERY_MIN_VOLTAGE CUTOFF_BATTERY_MAX_VOLTAGE \
         SHOPFLOOR_URL TTY; do
-      value="$(lsbval "${file}" ${key} "$(eval echo "\${${key}}")")"
+      if [ "${file%.json}" != "${file}" ]; then
+        # "jq -n -f" allows more flexible JSON, for example keys without quotes
+        # or comments started with #.
+        value="$(jq -n -f "${file}" | jq -r ".${key}")"
+        if [ "${value}" = "null" ]; then
+          value="$(eval echo "\${${key}}")"
+        fi
+      else
+        value="$(lsbval "${file}" ${key} "$(eval echo "\${${key}}")")"
+      fi
       eval ${key}='${value}'
     done
   fi
@@ -182,11 +197,27 @@ options_parse_command_line() {
   done
 }
 
-# Always load default config file.
-options_load_file "$(dirname $(readlink -f "$0"))/cutoff.conf"
-options_load_file "/mnt/stateful_partition/dev_image/etc/lsb-factory"
+# Loads all known default config files.
+# Usage: options_load_all_default_files
+options_load_all_default_files() {
+  local cutoff_dir="$(dirname "$(readlink -f "$0")")"
+
+  # Default LSB config file.
+  options_load_file "${cutoff_dir}/cutoff.conf"
+
+  # Board-specific JSON config (used by Finalize / in-place-wiping).
+  options_load_file "${cutoff_dir}/../../py/config/cutoff.json"
+
+  # Board-specific JSON config (used by factory shim, copied from py/config).
+  options_load_file "${cutoff_dir}/cutoff.json"
+
+  # Manually modified LSB config on factory shim.
+  options_load_file "/mnt/stateful_partition/dev_image/etc/lsb-factory"
+}
+
+options_load_all_default_files
 
 # Allow debugging options quickly.
-if [ "$(basename $0)" = "options.sh" ]; then
+if [ "$(basename "$0")" = "options.sh" ]; then
   options_check_values
 fi
