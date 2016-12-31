@@ -17,18 +17,6 @@ DEVICE_PACKAGE_ROOT = 'usr/local/factory/py_pkg'
 LOG_FILE_NAME = 'shop_floor.log'
 
 
-class ExistingLogWriter(object):
-  """ExistingLogWriter writes data to existing file only."""
-
-  def __init__(self, path):
-    self._path = path
-
-  def write(self, data):
-    if os.path.isfile(self._path):
-      with open(self._path, 'a') as log:
-        log.write(data)
-
-
 class ShopFloorService(umpire_service.UmpireService):
   """Shop floor service.
 
@@ -53,7 +41,7 @@ class ShopFloorService(umpire_service.UmpireService):
     Returns:
       A list of ServiceProcess.
     """
-    self.log = ExistingLogWriter(os.path.join(env.log_dir, LOG_FILE_NAME))
+    self.log = open(os.path.join(env.log_dir, LOG_FILE_NAME), 'a')
     active_bundles = env.config.GetActiveBundles()
     processes = set()
     for bundle in active_bundles:
@@ -91,9 +79,10 @@ class ShopFloorService(umpire_service.UmpireService):
         # Adds release callbacks on error and stopped state.
 
         def ReleaseResource():
-          # pylint: disable=W0640
+          # pylint: disable=cell-var-from-loop
           logging.debug('Release %s(%d,%s)', bundle['id'], fcgi_port, token)
           env.shop_floor_manager.Release(fcgi_port)
+          self.log.close()
 
         proc.AddStateCallback(umpire_service.State.DESTRUCTING, ReleaseResource)
       processes.add(proc)
