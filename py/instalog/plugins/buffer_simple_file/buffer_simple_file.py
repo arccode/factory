@@ -91,7 +91,7 @@ from instalog.utils import file_utils
 
 
 # The number of bytes to buffer when retrieving events from a file.
-_BUFFER_SIZE_BYTES = 2000
+_BUFFER_SIZE_BYTES = 4 * 1024  # 4kb
 _DEFAULT_TRUNCATE_INTERVAL = 0  # truncating disabled
 _DEFAULT_COPY_ATTACHMENTS = False  # use move instead of copy by default
 
@@ -648,20 +648,27 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
         cur = self.new_pos - self.simple_file.start_pos
         f.seek(cur)
         total_bytes = 0
+        skipped_bytes = 0
         for line in f:
           if total_bytes > _BUFFER_SIZE_BYTES:
             break
           size = len(line)
-          total_bytes += size
           cur += size
           if cur > (self.simple_file.end_pos - self.simple_file.start_pos):
             break
           ret = self.simple_file._ParseRecord(line)
           if ret is None:
             # Parsing of this line failed for some reason.
+            skipped_bytes += size
             continue
+          # Only add to total_bytes for a valid line.
+          total_bytes += size
           seq, record = ret
-          self.read_buf.append((seq, record, size))
+          # Include any skipped bytes from previously skipped records in the
+          # "size" of this record, in order to allow the consumer to skip to the
+          # proper offset.
+          self.read_buf.append((seq, record, size + skipped_bytes))
+          skipped_bytes = 0
     return self.read_buf
 
   def _Next(self):

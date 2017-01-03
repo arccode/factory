@@ -60,8 +60,10 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.sf.GetDataDir = lambda: self.data_dir
     self.sf.SetUp()
     self.e1 = datatypes.Event({'test1': 'event'})
-    self.e2 = datatypes.Event({'test2': 'event'})
-    self.e3 = datatypes.Event({'test3': 'event'})
+    self.e2 = datatypes.Event({'test22': 'event'})
+    self.e3 = datatypes.Event({'test333': 'event'})
+    self.e4 = datatypes.Event({'test4444': 'event'})
+    self.e5 = datatypes.Event({'test55555': 'event'})
 
   def setUp(self):
     self.data_dir = None
@@ -93,6 +95,87 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.sf.AddConsumer('a')
     stream = self.sf.Consume('a')
     self.assertEquals(self.e1, stream.Next())
+
+  def testLongCorruptedRecord(self):
+    """Tests reading from a data store with a long corrupted record."""
+    # Ensure that the size of the event is greater than _BUFFER_SIZE_BYTES.
+    # pylint: disable=protected-access
+    e = datatypes.Event({'data': 'x' * buffer_simple_file._BUFFER_SIZE_BYTES})
+    self.sf.Produce([e])
+    # Purposely corrupt the data file.
+    with open(self.sf.data_path, 'r+') as f:
+      f.seek(1)
+      f.write('x')
+    self.sf.Produce([self.e2])
+    self.sf.AddConsumer('a')
+    stream = self.sf.Consume('a')
+    self.assertEquals(self.e2, stream.Next())
+
+  def testSkippedRecords(self):
+    """Tests recovery from skipped records due to corruption.
+
+    Previously (prior to this test), a bug existed where, after a corrupt record
+    was skipped, its length was not included in calculating "new_pos" for a
+    consumer when processing subsequent records.
+
+    To illustrate this bug, we design a situation where we have two "buffer
+    refills".  The first one includes a garbage event (e2) which will be
+    dropped.  Padding is inserted into event e to ensure that the last event e3
+    is pushed into buffer refill #2.  Events are retrieved sequentially from
+    buffer refill #1.  As long as len(e2) > len(e1), after retrieving the last
+    event from buffer refill #1, the consumer's new_pos will be set to a
+    location *before* the last event in buffer refill #1.  Thus the next buffer
+    will include both e1 and e3.
+
+      |--------------refill buffer #1----------------||---refill buffer #2---|
+       [  e1  ]  [  e2  GARBAGE  ]  [  e  ]  [  e1  ]  [   e3   ]
+
+      To calculate buffer size needed in e:
+       --------   (doesn't count)   -------  -------- +1 to push over "<" limit
+
+    The fix is to ensure that the length of any previous "garbage records" are
+    included in the stored "length" of any event in the buffer.  E.g. in this
+    case, the length of e2(GARBAGE) would be included in the length of event e.
+    """
+    self.sf.Produce([self.e1])
+    with open(self.sf.data_path, 'a') as f:
+      e1_end = f.tell()
+    self.sf.Produce([self.e2])
+    with open(self.sf.data_path, 'a') as f:
+      e2_end = f.tell()
+
+    # Corrupt event e2 by writing garbage at the end.
+    with open(self.sf.data_path, 'r+') as f:
+      f.seek(e2_end - 10)
+      f.write('x' * 5)
+
+    # pylint: disable=protected-access
+    # Ensure that both e and e1 are included in the first buffer refill.  The
+    # length of e can be based off of that of e1 (same base payload).
+    bytes_left = buffer_simple_file._BUFFER_SIZE_BYTES - (e1_end * 3) + 1
+    e = datatypes.Event({'test1': 'event' + ('x' * bytes_left)})
+    self.sf.Produce([e])
+    self.sf.Produce([self.e1])
+    self.sf.Produce([self.e3])
+
+    self.sf.AddConsumer('a')
+    stream = self.sf.Consume('a')
+    self.assertEquals(self.e1, stream.Next())
+    self.assertEquals(e, stream.Next())
+    self.assertEquals(self.e1, stream.Next())
+    self.assertEquals(self.e3, stream.Next())
+
+  def testAppendedJunkStore(self):
+    """Tests reading from a data store that has appended junk."""
+    self.sf.Produce([self.e1])
+    # Purposely append junk to the data store
+    with open(self.sf.data_path, 'a') as f:
+      f.write('xxxxxxxx')
+    self.sf.Produce([self.e2])
+    self.sf.AddConsumer('a')
+    stream = self.sf.Consume('a')
+    self.assertEquals(self.e1, stream.Next())
+    self.assertEquals(self.e2, stream.Next())
 
   def testTwoBufferEventStreams(self):
     """Tries creating two BufferEventStream objects for one Consumer."""
