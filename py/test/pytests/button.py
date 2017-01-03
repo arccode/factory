@@ -51,6 +51,7 @@ _BUTTON_TEST_DEFAULT_CSS = '.button-test-info { font-size: 2em; }'
 
 _KEY_GPIO = 'gpio:'
 _KEY_CROSSYSTEM = 'crossystem:'
+_KEY_ECTOOL = 'ectool:'
 
 
 class GenericButton(object):
@@ -141,6 +142,19 @@ class CrossystemButton(GenericButton):
     return self._dut.Call(['crossystem', '%s?1' % self._name]) == 0
 
 
+class ECToolButton(GenericButton):
+  def __init__(self, dut_instance, name, active_value):
+    super(ECToolButton, self).__init__(dut_instance)
+    self._name = name
+    self._active_value = active_value
+
+  def IsPressed(self):
+    output = self._dut.CallOutput(['ectool', 'gpioget', self._name])
+    # output should be: GPIO <NAME> = <0 | 1>
+    value = int(output.split('=')[1])
+    return value == self._active_value
+
+
 class ButtonTest(unittest.TestCase):
   """Button factory test."""
   ARGS = [
@@ -176,6 +190,16 @@ class ButtonTest(unittest.TestCase):
     elif self.args.button_key_name.startswith(_KEY_CROSSYSTEM):
       self.button = CrossystemButton(
           self.dut, self.args.button_key_name[len(_KEY_CROSSYSTEM):])
+    elif self.args.button_key_name.startswith(_KEY_ECTOOL):
+      gpio_name = self.args.button_key_name[len(_KEY_ECTOOL):]
+      if gpio_name.startswith('-'):
+        gpio_name = gpio_name[1:]
+        active_value = 0
+      else:
+        active_value = 1
+
+      self.button = ECToolButton(
+          self.dut, gpio_name, active_value)
     else:
       self.button = EvtestButton(self.dut, self.args.event_id,
                                  self.args.button_key_name)
