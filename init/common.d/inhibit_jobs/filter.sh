@@ -12,9 +12,14 @@
 # The job directory can't be fetched by using $(readlink -f $0) because this
 # file will be re-mounted in /usr/sbin.
 JOBS_DIR=/usr/local/factory/init/common.d/inhibit_jobs
+JOB_NAME="$1"
+JOB_FILE="${JOBS_DIR}/${JOB_NAME}"
 
 if [ "${disable_inhibit}" = 1 ]; then
-  start "$1"
-elif [ -e "${JOBS_DIR}/$1" ]; then
+  start "${JOB_NAME}"
+elif [ -e "${JOB_FILE}" ]; then
   stop -n "$1"
+  if [ -x "${JOB_FILE}" ]; then
+    "${JOB_FILE}"
+  fi
 fi
