@@ -109,11 +109,11 @@ class ImportBundleTest(unittest.TestCase):
         mox.StrContains('firmware.gz')).MultipleTimes().AndReturn(
             (BIOS_VERSION, EC_VERSION, PD_VERSION))
     get_version.GetReleaseVersionFromOmahaChannelFile(
-        mox.StrContains('rootfs-release.gz'),
-        no_root=True).MultipleTimes().AndReturn(FSI_VERSION)
+        mox.StrContains('rootfs-release.gz')).MultipleTimes().AndReturn(
+            FSI_VERSION)
     get_version.GetReleaseVersionFromOmahaChannelFile(
-        mox.StrContains('rootfs-test.gz'),
-        no_root=True).MultipleTimes().AndReturn(TEST_IMAGE_VERSION)
+        mox.StrContains('rootfs-test.gz')).MultipleTimes().AndReturn(
+            TEST_IMAGE_VERSION)
 
   def testImport(self):
     self.MockOutGetVersion()

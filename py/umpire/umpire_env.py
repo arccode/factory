@@ -301,7 +301,7 @@ class UmpireEnv(object):
       if (res_type == common.ResourceType.ROOTFS_RELEASE or
           res_type == common.ResourceType.ROOTFS_TEST):
         res_version = get_version.GetReleaseVersionFromOmahaChannelFile(
-            file_name, no_root=True)
+            file_name)
         return res_version or ''
 
       if res_type == common.ResourceType.HWID:
