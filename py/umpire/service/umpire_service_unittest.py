@@ -17,6 +17,11 @@ from cros.factory.umpire import umpire_env
 from cros.factory.umpire import utils
 
 
+# Lower the time limit for starting monitor to speed up the test, since the
+# test that are restarting should be restarted super fast.
+umpire_service._STARTTIME_LIMIT = 0.1  # pylint: disable=protected-access
+
+
 class SimpleService(umpire_service.UmpireService):
 
   """Test service that launches /bin/sh ."""
