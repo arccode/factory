@@ -36,8 +36,8 @@ class LineCheckItemTest(unittest.TestCase):
       Arg('title_en', (str, unicode), 'English test title.', optional=False),
       Arg('title_zh', (str, unicode), 'Chinese test title.', optional=False),
       Arg('items', list,
-          ('A list of tuples, each representing an item to check.  Each tuple\n'
-           'is of the format:\n'
+          ('A list of item to check. Each item can be either a simple string\n'
+           'as shell command to execute, or a tuple in the format:\n'
            '\n'
            '  (instruction_en, instruction_zh, command, judge_to_pass)\n'
            '\n'
@@ -148,8 +148,15 @@ class LineCheckItemTest(unittest.TestCase):
 
   def runTest(self):
     """Main entrance of the test."""
-    self._items = [CheckItem._make(item)  # pylint: disable=protected-access
-                   for item in self.args.items]
+
+    def _CommandToLabel(command, length=50):
+        return (command[:length] + ' ...') if len(command) > length else command
+
+    # pylint: disable=protected-access
+    self._items = [CheckItem._make(
+        (_CommandToLabel(item), _CommandToLabel(item), item, False)
+        if isinstance(item, basestring) else item)
+        for item in self.args.items]
     self._template.SetTitle(test_ui.MakeLabel(self.args.title_en,
                                               self.args.title_zh))
     self._ui.BindKeyJS(test_ui.ENTER_KEY,
