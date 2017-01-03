@@ -29,9 +29,8 @@ class PluginController(object):
     plugin_config = config_utils.LoadConfig(
         config_name, 'plugins')
 
-    for plugin_config in plugin_config['backends']:
-      name = plugin_config['name']
-      args = plugin_config.get('args') or {}
+    for name, plugin_args in plugin_config['backends'].iteritems():
+      args = plugin_args.get('args', {})
       args['goofy'] = goofy
       plugin_class = self._GetPluginClass(name)
       if plugin_class:

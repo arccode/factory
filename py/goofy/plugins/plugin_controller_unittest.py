@@ -25,7 +25,7 @@ class PluginControllerTest(unittest.TestCase):
 
     # Load the base plugin class for test.
     self._config = {
-        'backends': [{'name': self.BASE_PLUGIN_MODULE}]}
+        'backends': {self.BASE_PLUGIN_MODULE: {}}}
 
   def CreateController(self):
     with mock.patch('cros.factory.utils.config_utils.LoadConfig') as LoadConfig:
@@ -38,13 +38,12 @@ class PluginControllerTest(unittest.TestCase):
     controller = self.CreateController()
     self.assertTrue(set(controller._plugins.keys()) == set([plugin.Plugin]))
     self._config = {
-        'backends': [{'name': self.BASE_PLUGIN_CLASS}]}
+        'backends': {self.BASE_PLUGIN_CLASS: {}}}
     controller = self.CreateController()
     self.assertTrue(set(controller._plugins.keys()) == set([plugin.Plugin]))
 
   def testInitError(self):
-    self._config['backends'].insert(
-        0, {'name':'not_exist_plugin.NotExistPlugin'})
+    self._config['backends']['not_exist_plugin.NotExistPlugin'] = {}
     controller = self.CreateController()
     self.assertTrue(set(controller._plugins.keys()) == set([plugin.Plugin]))
 

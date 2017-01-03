@@ -4,23 +4,20 @@
   "addtionalProperties": false,
   "properties": {
     "backends": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "addtionalProperties": false,
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "args": {
-            "type": "object",
-            "properties": {}
+      "type": "object",
+      "patternProperties": {
+        "^.+$": {
+          "type": "object",
+          "addtionalProperties": false,
+          "properties": {
+            "args": {
+              "type": "object",
+              "properties": {}
+            }
           }
-        },
-        "required": [
-          "name"
-        ]
-      }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
