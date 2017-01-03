@@ -495,6 +495,7 @@ do_build_umpire_deps() {
   local temp_dir="$(mktemp -d)"
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
 
+  mkdir -p "${BUILD_DIR}"
   if [[ ! -f "${BUILD_DIR}/pbzip2.tgz" ]]; then
     wget "https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz" \
       -O "${BUILD_DIR}/pbzip2.tgz"
@@ -510,7 +511,6 @@ do_build_umpire_deps() {
     "${temp_dir}"
 
   # copy the builder's output from container to host
-  mkdir -p "${BUILD_DIR}"
   ${DOCKER} create --name "${deps_builder_container_name}" \
     "${deps_builder_image_name}"
   ${DOCKER} cp \
