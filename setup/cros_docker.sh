@@ -41,8 +41,13 @@ check_docker() {
     fi
   fi
 
-  # check Docker version
-  local docker_version="$(${DOCKER} version --format '{{.Server.Version}}')"
+  # Check Docker version
+  local docker_version="$(${DOCKER} version --format '{{.Server.Version}}' \
+                          2>/dev/null)"
+  if [ -z "${docker_version}" ]; then
+    # Old Docker (i.e., 1.6.2) does not support --format.
+    docker_version="$(${DOCKER} version | sed -n 's/Server version: //p')"
+  fi
   local error_message="Require Docker version >= ${DOCKER_VERSION} but you have ${docker_version}"
   local required_version=(${DOCKER_VERSION//./ })
   local current_version=(${docker_version//./ })
