@@ -146,7 +146,7 @@ do_umpire_run() {
   if ${DOCKER} ps --all --format '{{.Names}}' | \
       grep -q "^${UMPIRE_CONTAINER_NAME}$"; then
     if ! ${DOCKER} ps --all --format '{{.Names}} {{.Image}}' | \
-        grep "^${UMPIRE_CONTAINER_NAME}\ ${DOCKER_IMAGE_NAME}$)"; then
+        grep "^${UMPIRE_CONTAINER_NAME}\ ${DOCKER_IMAGE_NAME}$"; then
       warn "A container with name ${UMPIRE_CONTAINER_NAME} exists," \
            "but is using an old image."
     fi
