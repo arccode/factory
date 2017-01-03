@@ -310,6 +310,7 @@ class VSWR(unittest.TestCase):
     traces = self._ena.GetTraces(map(_PortName, ports))
     trace = self._SerializeTraces(traces)
 
+    self.test_passed = True
     for port in ports:
       rf_port = _PortName(port)
       antenna_name = measurement_sequence[port]['name']
@@ -350,6 +351,7 @@ class VSWR(unittest.TestCase):
 
       self._results[antenna_name] = (
           factory.TestState.PASSED if all_passed else factory.TestState.FAILED)
+      self.test_passed = self.test_passed and all_passed
 
   def _GenerateFinalResult(self):
     """Generates the final result."""
@@ -458,7 +460,7 @@ class VSWR(unittest.TestCase):
     self._ui.RunJS('showMessageBlock("%s")' % html_id)
 
   def runTest(self):
-    """Runs the test forever or until max_iterations reached.
+    """Runs the test.
 
     At each step, we first call self._ShowMessageBlock(BLOCK_ID) to display the
     message we want. (See the HTML file for all message IDs.) Then we do
@@ -549,6 +551,8 @@ class VSWR(unittest.TestCase):
     self._ShowResults()
     self._ShowMessageBlock('show-result')
     self._WaitForKey(test_ui.ENTER_KEY)
+    if not self.test_passed:
+      self.fail()
 
   def _LogTrace(self, trace, name, min=None, max=None):
     """Uses testlog to log the trace data.
