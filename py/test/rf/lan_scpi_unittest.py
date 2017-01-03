@@ -90,7 +90,7 @@ class LanScpiTest(unittest.TestCase):
   def _StartTest(self):
     self.mock_server, self.server_port = self._StartMockServer()
     self.lan_scpi = lan_scpi.LANSCPI(
-        host=net_utils.LOCALHOST, port=self.server_port)
+        host=net_utils.LOCALHOST, port=self.server_port, timeout=1, delay=0)
 
   def testBasicConnect(self):
     self._StartTest()
