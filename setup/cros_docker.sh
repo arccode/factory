@@ -117,6 +117,13 @@ PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
 
 GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
 
+ensure_dir() {
+  local dir="$1"
+  if [ ! -d "${dir}" ]; then
+    sudo mkdir -p "${dir}"
+  fi
+}
+
 # Section for Umpire subcommand
 do_umpire_run() {
   check_docker
@@ -125,8 +132,8 @@ do_umpire_run() {
   local host_db_dir="${HOST_UMPIRE_DIR}/${UMPIRE_CONTAINER_NAME}"
   local docker_db_dir="/var/db/factory/umpire"
 
-  sudo mkdir -p "${HOST_SHARED_DIR}"
-  sudo mkdir -p "${host_db_dir}"
+  ensure_dir "${HOST_SHARED_DIR}"
+  ensure_dir "${host_db_dir}"
 
   # TODO(pihsun): We should stop old container like what dome run does.
   echo "Starting Umpire container ..."
@@ -271,7 +278,7 @@ do_overlord_setup() {
 
   echo "Doing setup for Overlord, you'll be asked for root permission ..."
   sudo rm -rf "${HOST_OVERLORD_DIR}"
-  sudo mkdir -p "${HOST_OVERLORD_DIR}"
+  ensure_dir "${HOST_OVERLORD_DIR}"
 
   local temp_docker_id
   temp_docker_id=$(${DOCKER} create ${DOCKER_IMAGE_NAME})
@@ -423,7 +430,7 @@ do_run() {
   if [[ ! -f "${HOST_DOME_DIR}/${db_filename}" ]]; then
     echo "Creating docker shared folder (${HOST_DOME_DIR}),"
     echo "and database file, you'll be asked for root permission ..."
-    sudo mkdir -p "${HOST_DOME_DIR}"
+    ensure_dir "${HOST_DOME_DIR}"
     sudo touch "${HOST_DOME_DIR}/${db_filename}"
   fi
 
