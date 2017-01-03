@@ -96,6 +96,7 @@ class BuildBoard(object):
     Raises:
       BuildBoardException if unable to determine board or overlay name.
     """
+    self.board_name = board_name
     if sys_utils.InChroot():
       # The following sanity checks are feasible only in chroot.
       src = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
@@ -143,29 +144,6 @@ class BuildBoard(object):
       if not self.full_name:
         # Oh well, we tried
         raise BuildBoardException('Unknown board %r' % board_name)
-
-      if os.environ.get('ROOT'):
-        # Skip if ROOT env var is set as crossdev does not work with it. This
-        # can happen while running 'emerge-<board>'. Extract arch from
-        # 'emerge-<board> --info' instead.
-        try:
-          emerge_info = process_utils.CheckOutput(
-              ['emerge-%s' % self.full_name, '--info'])
-          self.arch = re.search(r'^ACCEPT_KEYWORDS="(.*)"$', emerge_info,
-                                re.MULTILINE).group(1)
-        except subprocess.CalledProcessError:
-          self.arch = None
-      else:
-        # Try to determine arch through toolchain.
-        chromite = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'chromite')
-        toolchain = process_utils.CheckOutput(
-            [os.path.join(chromite, 'bin', 'cros_setup_toolchains'),
-             '--show-board-cfg=%s' % self.full_name]).split(',')[0].strip()
-        target_cfg = process_utils.CheckOutput(
-            ['/usr/bin/crossdev', '--show-target-cfg', toolchain])
-        self.arch = re.search(r'^arch=(.*)$', target_cfg, re.MULTILINE).group(1)
-        if self.arch == '*':
-          self.arch = None
     else:
       if board_name in [None, 'default']:
         # See if we can get the board name from /etc/lsb-release.
@@ -181,23 +159,8 @@ class BuildBoard(object):
         except IndexError:
           raise BuildBoardException(
               'Cannot determine board from %r' % LSB_RELEASE_FILE)
-
-        # Try to determine arch from 'uname -m'.
-        self.arch = None
-        uname_machine = process_utils.CheckOutput(['uname', '-m'])
-        # Translate the output from 'uname -m' to match the arch definition in
-        # chroot.
-        machine_arch_map = {
-            'x86_64': 'amd64',
-            'arm': 'arm',
-        }
-        for key, value in machine_arch_map.iteritems():
-          if uname_machine.startswith(key):
-            self.arch = value
-            break
       else:
         self.full_name = re.sub('-', '_', board_name).lower()
-        self.arch = None
 
     self.base, _, self.variant = self.full_name.partition('_')
     self.variant = self.variant or None  # Use None, not ''
@@ -223,6 +186,47 @@ class BuildBoard(object):
   def factory_board_files(self):
     return (GetChromeOSFactoryBoardPath(self.full_name) if sys_utils.InChroot()
             else None)
+
+  @type_utils.LazyProperty
+  def arch(self):
+    if sys_utils.InChroot():
+      if os.environ.get('ROOT'):
+        # Skip if ROOT env var is set as crossdev does not work with it. This
+        # can happen while running 'emerge-<board>'. Extract arch from
+        # 'emerge-<board> --info' instead.
+        try:
+          emerge_info = process_utils.CheckOutput(
+              ['emerge-%s' % self.full_name, '--info'])
+          return re.search(r'^ACCEPT_KEYWORDS="(.*)"$', emerge_info,
+                           re.MULTILINE).group(1)
+        except subprocess.CalledProcessError:
+          return None
+      else:
+        # Try to determine arch through toolchain.
+        chromite = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'chromite')
+        toolchain = process_utils.CheckOutput(
+            [os.path.join(chromite, 'bin', 'cros_setup_toolchains'),
+             '--show-board-cfg=%s' % self.full_name]).split(',')[0].strip()
+        target_cfg = process_utils.CheckOutput(
+            ['/usr/bin/crossdev', '--show-target-cfg', toolchain])
+        arch = re.search(r'^arch=(.*)$', target_cfg, re.MULTILINE).group(1)
+        return arch if arch != '*' else None
+    else:
+      if self.board_name not in [None, 'default']:
+        return None
+      # Try to determine arch from 'uname -m'.
+      uname_machine = process_utils.CheckOutput(['uname', '-m'])
+      # Translate the output from 'uname -m' to match the arch definition in
+      # chroot.
+      machine_arch_map = {
+          'x86_64': 'amd64',
+          'arm': 'arm',
+          'aarch64': 'arm64'
+      }
+      for key, value in machine_arch_map.iteritems():
+        if uname_machine.startswith(key):
+          return value
+      return None
 
 
 if __name__ == '__main__':
