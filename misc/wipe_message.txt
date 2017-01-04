@@ -1,5 +1,0 @@
-<span font="Noto Sans UI 60" foreground="Red">Factory Wiping In Progress
-正在進行工廠清除程序
-正在进行工厂清除程序
-工場出荷時設定へのリセット
-공장 데이터 제거 작업 진행중</span>
