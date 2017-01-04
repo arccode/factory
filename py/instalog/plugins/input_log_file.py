@@ -22,7 +22,6 @@ import glob
 import json
 import os
 import Queue
-import time
 import zlib
 
 import instalog_common  # pylint: disable=W0611
