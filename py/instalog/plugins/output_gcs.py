@@ -80,17 +80,20 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
         except Exception:
           self.exception('Exception encountered during upload, aborting')
           success = False
-        else:
-          # Re-emit events with their attachments removed.
-          if self.args.enable_emit:
-            self.Emit(events)
+        finally:
           break
+
+    # Re-emit events with their attachments removed.
+    if success and self.args.enable_emit:
+      if not self.Emit(events):
+        self.error('Unable to emit, aborting')
+        success = False
 
     event_stream.Commit() if success else event_stream.Abort()
     self.debug('Processed batch of %d events', len(events))
 
-    # Return False if no events were processed.
-    return bool(events)
+    # Return False if failure occurred, or if no events were processed.
+    return success and bool(events)
 
   def UploadEvent(self, event):
     """Uploads attachments of given event."""
