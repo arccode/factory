@@ -161,7 +161,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
       row['arguments'][-1]['key'] = key
       row['arguments'][-1]['description'] = dct.get('description')
       # Cast to string since it can be any type.
-      row['arguments'][-1]['value'] = str(dct.get('value'))
+      row['arguments'][-1]['value'] = unicode(dct.get('value'))
 
     row['status'] = event.get('status')
     row['startTime'] = DateTimeToUnixTimestamp(event.get('startTime'))
