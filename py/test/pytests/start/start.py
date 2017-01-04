@@ -176,23 +176,7 @@ class FactoryInstallCompleteTask(FactoryTask):
       factory.console.error('%s is missing', _LSB_FACTORY_PATH)
       self._test.template.SetState(_MSG_INSTALL_INCOMPLETE)
       return
-
-    if self._test.args.has_ectool:
-      version_info = process_utils.CheckOutput(['ectool', 'version'])
-      ro_version_output = re.search(r'^RO version:\s*(\S+)$', version_info,
-                                    re.MULTILINE)
-      rw_version_output = re.search(r'^RW version:\s*(\S+)$', version_info,
-                                    re.MULTILINE)
-      if (ro_version_output is None or rw_version_output is None
-          or ro_version_output.group(1) != rw_version_output.group(1)):
-        self._test.template.SetState(_MSG_INSTALL_INCOMPLETE)
-        factory.console.info(
-            'EC RO and RW version does not match, %s', version_info)
-        return
-      Log('factory_installed', ro_version=ro_version_output.group(1),
-          rw_version=rw_version_output.group(1))
-    else:
-      Log('factory_installed')
+    Log('factory_installed')
     self.Pass()
 
 
@@ -333,8 +317,6 @@ class StartTest(unittest.TestCase):
           'Message to show to the operator when prompting for input.',
           default=('Enter valid serial number:<br/>',
                    u'请输入有效的序号:<br/>'), optional=True),
-      Arg('has_ectool', bool, 'Has ectool utility or not.',
-          default=True, optional=True),
       Arg('init_shared_data', dict, 'the shared data to initialize',
           default={}, optional=True)]
 
