@@ -66,8 +66,15 @@
   margin: 4px;
   padding: 4px;
 }
+#virtualkey-button-container {
+  display: flex;
+  width: 100%;
+}
 #virtualkey-button-container button {
   font-size: 18px;
+  width: auto;
+  max-width: 72px;
+  flex-basis: 100%;
 }
 
 /* For progress bar */
