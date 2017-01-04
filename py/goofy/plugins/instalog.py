@@ -21,6 +21,7 @@ _DEFAULT_FLUSH_TIMEOUT = 5  # 5sec
 _CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
 _CLI_PORT = 7000
 _TRUNCATE_INTERVAL = 5 * 60  # 5min
+_TESTLOG_JSON_MAX_BYTES = 10 * 1024 * 1024  # 10mb
 
 
 class Instalog(plugin.Plugin):
@@ -86,7 +87,12 @@ class Instalog(plugin.Plugin):
                 'targets': 'output_uplink',
                 'args': {
                   'path': testlog_json_path,
+                  'max_bytes': _TESTLOG_JSON_MAX_BYTES,
                 },
+            },
+            'health': {
+                'plugin': 'input_health',
+                'targets': 'output_uplink',
             },
         },
         'output': {
