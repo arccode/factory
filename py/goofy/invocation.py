@@ -735,8 +735,7 @@ class TestInvocation(object):
       log_args = dict(
           path=self.test.path,
           dargs=resolved_dargs,
-          serial_numbers=shopfloor.GetDeviceData().get(
-              'all_serial_numbers', None),
+          serial_numbers=self.goofy.dut.info.GetAllSerialNumbers(),
           invocation=self.uuid)
       if self.test.autotest_name:
         log_args['autotest_name'] = self.test.autotest_name

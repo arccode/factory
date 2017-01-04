@@ -124,17 +124,11 @@ class SystemInfo(component.DeviceComponent):
     """Clears any serial numbers from DeviceData."""
     return shopfloor.DeleteDeviceData(
         ['serial_number',
-         'mlb_serial_number',
-         'all_serial_numbers'], optional=True)
+         'mlb_serial_number'], optional=True)
 
-  @InfoProperty
-  def all_serial_numbers(self):
+  def GetAllSerialNumbers(self):
     """Returns all available serial numbers in a dict."""
-    if not shopfloor.GetDeviceData().get('all_serial_numbers'):
-      serials = {'device': self.serial_number,
-                 'mlb': self.mlb_serial_number}
-      shopfloor.UpdateDeviceData({'all_serial_numbers': serials})
-    return shopfloor.GetDeviceData()['all_serial_numbers']
+    return {'device': self.serial_number, 'mlb': self.mlb_serial_number}
 
   def GetSerialNumber(self, name='serial_number'):
     """Retrieves a serial number from device.

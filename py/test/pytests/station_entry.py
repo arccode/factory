@@ -91,6 +91,12 @@ class StationEntry(unittest.TestCase):
       Arg('disconnect_dut', bool,
           'Ask operator to disconnect DUT or not',
           default=True, optional=True),
+      # TODO(hungte) When device_data and dut_storage has been synced, we should
+      # change this to "clear_dut_storage" since testlog will still try to
+      # reload device data from storage before invocation of next test.
+      Arg('load_dut_storage', bool,
+          'To load DUT storage into station session (DeviceData).',
+          default=True, optional=True),
   ]
 
   def setUp(self):
@@ -117,11 +123,13 @@ class StationEntry(unittest.TestCase):
     if self.args.start_station_tests:
       # Clear dut.info data.
       factory.console.info('Clearing dut.info data...')
+      # TODO(hungte) Rename Reload to Invalidate.
       self._dut.info.Reload()
       self.Start()
-      # Reload serial numbers by accessing the dut.info field.
-      factory.console.info('Loading serial numbers...')
-      self._dut.info.all_serial_numbers  # pylint: disable=pointless-statement
+      # TODO(hungte): Change to reload all dut.storage into device data.
+      if self.args.load_dut_storage:
+        factory.console.info('Loading serial numbers...')
+        self._dut.info.GetAllSerialNumbers()
     else:
       self.End()
       # Clear dut.info data.
@@ -172,4 +180,5 @@ class StationEntry(unittest.TestCase):
         self._space_event.clear()
 
     self._ui.SetHTML(_MSG_RESTART_TESTS, id=_ID_MSG_DIV)
+    # TODO(hungte): Clear all device data.
     self.RestartAllTests()
