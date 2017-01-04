@@ -598,7 +598,7 @@ def CreateReportArchive(device_sn=None, add_file=None):
 
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
   tar_cmd = 'cd %s ; tar cJf %s *' % (event_log.EVENT_LOG_DIR, target_path)
-  tar_cmd += ' --add-file %s' % paths.GetFactoryLogPath()
+  tar_cmd += ' %s' % paths.GetFactoryLogPath()
   if add_file:
     for f in add_file:
       # Require absolute paths since the tar command may change the
@@ -607,7 +607,7 @@ def CreateReportArchive(device_sn=None, add_file=None):
         raise Error('Not an absolute path: %s' % f)
       if not os.path.exists(f):
         raise Error('File does not exist: %s' % f)
-      tar_cmd += ' --add-file %s' % pipes.quote(f)
+      tar_cmd += ' %s' % pipes.quote(f)
   cmd_result = Shell(tar_cmd)
 
   if ((cmd_result.status == 1) and
