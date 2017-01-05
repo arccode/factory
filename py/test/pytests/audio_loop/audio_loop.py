@@ -135,6 +135,8 @@ _DEFAULT_NOISE_TEST_DURATION = 1
 _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 # Default Amplitude thresholds when checking recorded file.
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
+# Default channels of the input_dev to be tested.
+_DEFAULT_AUDIOFUN_TEST_INPUT_CHANNELS = [0, 1]
 # Default channels of the output_dev to be tested.
 _DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS = [0, 1]
 # Default capture sample rate used for audiofuntest.
@@ -172,6 +174,8 @@ class AudioLoopTest(unittest.TestCase):
       Arg('input_dev', tuple,
           'Input ALSA device. (card_name, sub_device).'
           'For example: ("audio_card", "0").', ('0', '0')),
+      Arg('num_input_channels', int,
+          'Number of input channels.', default=2),
       Arg('output_dev', tuple,
           'Onput ALSA device. (card_name, sub_device).'
           'For example: ("audio_card", "0").', ('0', '0')),
@@ -205,6 +209,7 @@ class AudioLoopTest(unittest.TestCase):
           'If type is **audiofun**, the dict can optionally contain:\n'
           '  - **iteration**: Iterations to run the test.\n'
           '  - **threshold**: The minimum success rate to pass the test.\n'
+          '  - **input_channels**: A list of input channels to be tested.\n'
           '  - **output_channels**: A list of output channels to be tested.\n'
           '  - **capture_rate**: The capturing sample rate use for testing.\n'
           '\n'
@@ -378,7 +383,8 @@ class AudioLoopTest(unittest.TestCase):
       all_channel_rate.append(float(m.group(2)))
     return all_channel_rate
 
-  def AudioFunTestWithOutputChannel(self, capture_rate, output_channel):
+  def AudioFunTestWithOutputChannel(self, capture_rate, input_channels,
+                                    output_channel):
     """Runs audiofuntest program to get the frequency from microphone
     immediately according to speaker and microphone setting.
 
@@ -417,8 +423,9 @@ class AudioLoopTest(unittest.TestCase):
 
     player_cmd = 'aplay -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
         self._alsa_output_device, capture_rate)
-    recorder_cmd = 'arecord -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
-        self._alsa_input_device, capture_rate)
+    recorder_cmd = 'arecord -D %s -r %d -f s16 -t raw -c %d -B 0 -' % (
+        self._alsa_input_device, capture_rate,
+        self.args.num_input_channels)
 
     process = self._dut.Popen(
         [audio_utils.AUDIOFUNTEST_PATH,
@@ -426,7 +433,8 @@ class AudioLoopTest(unittest.TestCase):
          '-R', recorder_cmd,
          '-r', '%d' % capture_rate,
          '-T', '%d' % iteration,
-         '-a', '%d' % output_channel],
+         '-a', '%d' % output_channel,
+         '-c', '%d' % self.args.num_input_channels],
         stdout=process_utils.PIPE, stderr=process_utils.PIPE)
 
     m = self._MatchPatternLines(process.stdout, _AUDIOFUNTEST_MIC_CHANNEL_RE)
@@ -453,7 +461,8 @@ class AudioLoopTest(unittest.TestCase):
 
     threshold = self._current_test_args.get(
         'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
-    if any(x < threshold for x in last_success_rate):
+    if any(rate < threshold and channel in input_channels
+           for channel, rate in enumerate(last_success_rate)):
       self.AppendErrorMessage(
           'For output device channel %s, the success rate is "'
           '%s", too low!' % (output_channel, rate_msg))
@@ -466,12 +475,15 @@ class AudioLoopTest(unittest.TestCase):
     factory.console.info('Run audiofuntest from %r to %r',
                          self._alsa_output_device, self._alsa_input_device)
 
+    input_channels = self._current_test_args.get(
+        'input_channels', _DEFAULT_AUDIOFUN_TEST_INPUT_CHANNELS)
     output_channels = self._current_test_args.get(
         'output_channels', _DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS)
     capture_rate = self._current_test_args.get(
         'capture_rate', _DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE)
-    for channel in output_channels:
-      self.AudioFunTestWithOutputChannel(capture_rate, channel)
+    for output_channel in output_channels:
+      self.AudioFunTestWithOutputChannel(capture_rate, input_channels,
+                                         output_channel)
       if self.args.audiofuntest_run_delay is not None:
         time.sleep(self.args.audiofuntest_run_delay)
 
@@ -481,6 +493,10 @@ class AudioLoopTest(unittest.TestCase):
     Args:
       num_channels: Number of channels to test
     """
+    # TODO(phoenixshen): Support quad channels here.
+    # This test assumes number of input channels == number of output channels,
+    # and ID of valid channels should be the same,
+    # Need to redesign the args to provide more flexbility.
     duration = self._current_test_args.get('duration',
                                            _DEFAULT_SINEWAV_TEST_DURATION)
 
