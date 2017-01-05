@@ -141,7 +141,7 @@ class InstalogCLI(object):
                      'instalog.yaml'),
         os.path.join(os.path.expanduser('~'), '.instalog.yaml'),
         os.path.join(os.sep, 'etc', 'instalog.yaml'),
-        os.path.join(os.sep, 'var', 'run', 'instalog.yaml')]
+        os.path.join(os.sep, 'run', 'instalog.yaml')]
     for path in paths:
       logging.debug('Checking %s for config file...', path)
       if os.path.exists(path):
@@ -232,7 +232,7 @@ if __name__ == '__main__':
       '--config', '-c',
       help='config file path; by default, searches: \n'
            '$PWD/instalog.yaml py/instalog/instalog.yaml '
-           '~/.instalog.yaml /etc/instalog.yaml /var/run/instalog.yaml')
+           '~/.instalog.yaml /etc/instalog.yaml /run/instalog.yaml')
   parser.add_argument(
       '--verbose', '-v', action='count', default=0,
       help='increase verbosity')

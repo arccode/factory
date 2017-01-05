@@ -101,9 +101,9 @@ class SuspendResumeTest(unittest.TestCase):
     self._template.SetState(_TEST_BODY)
 
     # Remove lid-opened, which will prevent suspend.
-    file_utils.TryUnlink('/var/run/power_manager/lid_opened')
+    file_utils.TryUnlink('/run/power_manager/lid_opened')
     # Create this directory so powerd_suspend doesn't fail.
-    file_utils.TryMakeDirs('/var/run/power_manager/root')
+    file_utils.TryMakeDirs('/run/power_manager/root')
 
     self.done = False
     self.wakeup_count = ''

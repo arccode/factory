@@ -22,7 +22,7 @@ usage_help() {
       -s | state:   clear state files ($FACTORY_BASE/state)
       -l | log:     clear factory log files ($FACTORY_BASE/log)
       -t | tests:   clear test data ($FACTORY_BASE/tests)
-      -r | run:     clear run data (/var/run/factory)
+      -r | run:     clear run data (/run/factory)
       -a | all:     clear all of the above
       -d | vpd:     clear VPD
       -h | help:    this help screen
@@ -73,11 +73,11 @@ while [ $# -gt 0 ]; do
       delete="$delete $FACTORY_BASE/tests"
       ;;
     -r | run )
-      delete="$delete /var/run/factory"
+      delete="$delete /run/factory"
       ;;
     -a | all )
       delete="$delete $FACTORY_BASE/log $FACTORY_BASE/state"
-      delete="$delete $FACTORY_BASE/tests /var/run/factory"
+      delete="$delete $FACTORY_BASE/tests /run/factory"
       ;;
     -d | vpd )
       clear_vpd=true

@@ -504,7 +504,7 @@ do_run() {
     --detach \
     --restart unless-stopped \
     --name "${uwsgi_container_name}" \
-    --volume /var/run/docker.sock:/var/run/docker.sock \
+    --volume /run/docker.sock:/run/docker.sock \
     --volume /run \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
     --volume "${host_log_dir}:${docker_log_dir}" \

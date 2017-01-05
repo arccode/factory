@@ -42,11 +42,11 @@ EVENT_LOG_DIR = os.path.join(paths.GetStateRoot(), "events")
 # this is the first time we're creating an event log).
 REIMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".reimage_id")
 
-# The /var/run directory (or something writable by us if in the chroot).
+# The /run directory (or something writable by us if in the chroot).
 RUN_DIR = os.path.join(paths.GetRuntimeVariableDataPath(), "factory")
 
 # File containing the next sequence number to write.  This is in
-# /var/run so it is cleared on each boot.
+# /run so it is cleared on each boot.
 SEQUENCE_PATH = os.path.join(RUN_DIR, "event_log_seq")
 
 # The main events file.  Goofy will add "." + reimage_id to this

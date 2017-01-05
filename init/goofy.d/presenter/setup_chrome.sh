@@ -25,7 +25,7 @@ mount -t tmpfs none /home/chronos
 # http://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-tips
 # On ToT, having disable_chrome_restart before job 'ui' starts would block
 # Chrome to execute. Please manually do the line below after Chrome starts.
-# touch /var/run/disable_chrome_restart
+# touch /run/disable_chrome_restart
 # Chromium dumps may fill up system space in early protos so we want to do it
 # manually. Uncomment the line below if you need to get dumps.
 # touch /mnt/stateful_partition/etc/enable_chromium_coredumps

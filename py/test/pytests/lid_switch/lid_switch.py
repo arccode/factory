@@ -153,7 +153,7 @@ class LidSwitchTest(unittest.TestCase):
 
   def tearDown(self):
     self.TerminateLoop()
-    file_utils.TryUnlink('/var/run/power_manager/lid_opened')
+    file_utils.TryUnlink('/run/power_manager/lid_opened')
     if self.fixture:
       self.BFTLid(close=False, fail_test=False)
       self.fixture.Disconnect()

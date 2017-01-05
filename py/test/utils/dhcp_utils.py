@@ -56,7 +56,7 @@ class DHCPManager(object):
   """
 
   # Where run files are placed
-  VARRUN_DIR = '/var/run/dhcp_manager'
+  RUN_DIR = '/run/dhcp_manager'
 
   # Callback file name prefix
   CALLBACK_PREFIX = 'dhcp_manager_cb_'
@@ -131,15 +131,15 @@ class DHCPManager(object):
 
   def StartDHCP(self):
     """Starts DHCP service."""
-    if not os.path.exists(self.VARRUN_DIR):
-      os.makedirs(self.VARRUN_DIR)
+    if not os.path.exists(self.RUN_DIR):
+      os.makedirs(self.RUN_DIR)
     self._callback_port = net_utils.FindUnusedTCPPort()
     self._rpc_server = jsonrpc_utils.JSONRPCServer(
         port=self._callback_port, methods={'Callback': self.DHCPCallback})
     self._rpc_server.Start()
     # __file__ may be a generated .pyc file that's not executable. Use .py.
     callback_file_target = __file__.replace('.pyc', '.py')
-    callback_file_symlink = os.path.join(self.VARRUN_DIR,
+    callback_file_symlink = os.path.join(self.RUN_DIR,
                                          '%s%d' % (self.CALLBACK_PREFIX,
                                                    self._callback_port))
     os.symlink(callback_file_target, callback_file_symlink)
@@ -149,9 +149,9 @@ class DHCPManager(object):
 
     dns_port = net_utils.FindUnusedTCPPort()
     uid = random.getrandbits(64)
-    lease_file = os.path.join(self.VARRUN_DIR,
+    lease_file = os.path.join(self.RUN_DIR,
                               '%s%016x' % (self.LEASE_PREFIX, uid))
-    pid_file = os.path.join(self.VARRUN_DIR,
+    pid_file = os.path.join(self.RUN_DIR,
                             '%s%016x' % (self.PID_PREFIX, uid))
     # Start dnsmasq and have it call back to us on any DHCP event.
 
@@ -185,7 +185,7 @@ class DHCPManager(object):
     self._rpc_server = None
     for interface in self._handled_interfaces:
       net_utils.Ifconfig(interface, enable=False)
-    callback_file_symlink = os.path.join(self.VARRUN_DIR,
+    callback_file_symlink = os.path.join(self.RUN_DIR,
                                          '%s%d' % (self.CALLBACK_PREFIX,
                                                    self._callback_port))
     os.unlink(callback_file_symlink)
@@ -213,12 +213,12 @@ class DHCPManager(object):
   @classmethod
   def CleanupStaleInstance(cls):
     """Kills all running dnsmasq instance and clean up run directory."""
-    if not os.path.exists(cls.VARRUN_DIR):
+    if not os.path.exists(cls.RUN_DIR):
       return
-    for run_file in os.listdir(cls.VARRUN_DIR):
+    for run_file in os.listdir(cls.RUN_DIR):
       if run_file.startswith(cls.PID_PREFIX):
         intf = run_file[len(cls.PID_PREFIX):]
-        full_run_path = os.path.join(cls.VARRUN_DIR, run_file)
+        full_run_path = os.path.join(cls.RUN_DIR, run_file)
         with open(full_run_path, 'r') as f:
           pid = int(f.read())
         try:
@@ -228,7 +228,7 @@ class DHCPManager(object):
         net_utils.Ifconfig(intf, enable=False)
         os.unlink(full_run_path)
       if run_file.startswith(cls.CALLBACK_PREFIX):
-        os.unlink(os.path.join(cls.VARRUN_DIR, run_file))
+        os.unlink(os.path.join(cls.RUN_DIR, run_file))
 
 
 def StartDHCPManager(interfaces=None,
