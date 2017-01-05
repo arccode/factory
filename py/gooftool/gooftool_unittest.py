@@ -236,21 +236,17 @@ class GooftoolTest(unittest.TestCase):
             'BENDER',
             'LEELA',
             {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
-             'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)],
-             'vga': [ProbedComponentResult('vga_1', 'VGA_1', None)]}))
+             'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)]}))
 
     # expect mismatch results
     self.assertEquals(
         {'camera': core.Mismatch(
-            expected=set(['camera_1']), actual=set(['camera_2'])),
-         'vga': core.Mismatch(
-             expected=set(['vga_1']), actual=set(['vga_2']))},
+            expected=set(['camera_1']), actual=set(['camera_2'])),},
         self._gooftool.FindBOMMismatches(
             'BENDER',
             'LEELA',
             {'camera': [ProbedComponentResult('camera_2', 'CAMERA_2', None)],
-             'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)],
-             'vga': [ProbedComponentResult('vga_2', 'VGA_2', None)]}))
+             'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)]}))
 
   def testFindBOMMismatchesMissingDontcare(self):
     self.mox.ReplayAll()

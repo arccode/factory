@@ -39,7 +39,6 @@ class DecoderTest(unittest.TestCase):
                         'bcd': Value('0001')},
                        None)],
         'cellular': [(None, None, "Missing 'cellular' component")],
-        'chipset': [('chipset_0', {'compact_str': Value('cdef:abcd')}, None)],
         'cpu': [('cpu_5',
                  {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
                  None)],

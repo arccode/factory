@@ -25,7 +25,6 @@ pattern:
     - battery_field: 0
     - bluetooth_field: 0
     - camera_field: 0
-    - chipset_field: 0
     - cpu_field: 0
     - display_panel_field: 0
     - embedded_controller_field: 0
@@ -50,8 +49,6 @@ encoded_fields:
   cellular_field:
     0: { cellular: NULL }
     1: { cellular: fake_cellular }
-  chipset_field:
-    0: { chipset: fake_chipset }
   cpu_field:
     0: { cpu: fake_cpu }
   display_panel_field:
@@ -119,10 +116,6 @@ components:
   cellular:
     items:
       fake_cellular:
-        values: { compact_str: !re '.*' }
-  chipset:
-    items:
-      fake_chipset:
         values: { compact_str: !re '.*' }
   cpu:
     items:

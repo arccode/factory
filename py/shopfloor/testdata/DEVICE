@@ -11,7 +11,7 @@
 # 若修改将使设备配置變為无效，并且不得销售此设备。
 #
 #####
-checksum: 1deb4e0832e889e8d6337393dce6a4a5fd3b3263
+checksum: 0f85272199ca4f4b59be4a3b8c4b83951d46c453
 
 ##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
 
@@ -46,7 +46,6 @@ pattern:
     - audio_codec_field: 0
     - battery_field: 0
     - bluetooth_field: 0
-    - chipset_field: 0
     - cpu_field: 0
     - display_panel_field: 0
     - embedded_controller_field: 0
@@ -57,7 +56,6 @@ pattern:
     - wireless_field: 0
 
     - storage_field: 1
-    - power_mgmt_chip_field: 1
 
   - image_ids: [4]
     encoding_scheme: base8192
@@ -70,13 +68,11 @@ pattern:
     - dram_field: 1
     - flash_chip_field: 1
     - storage_field: 2
-    - power_mgmt_chip_field: 1
 
     - audio_codec_field: 0
     - battery_field: 0
     - bluetooth_field: 0
     - camera_field: 0
-    - chipset_field: 0
     - cpu_field: 0
     - display_panel_field: 0
     - embedded_controller_field: 0
@@ -101,8 +97,6 @@ encoded_fields:
   cellular_field:
     0: { cellular: NULL }
     1: { cellular: tubular_modem }
-  chipset_field:
-    0: { chipset: chipset_device }
   cpu_field:
     0: { cpu: cpu_device }
   display_panel_field:
@@ -161,9 +155,6 @@ encoded_fields:
     2: { pcb_vendor: awesome_3 }
   pmic_field:
     0: { pmic: volt_man }
-  power_mgmt_chip_field:
-    0: { power_mgmt_chip: amp_man }
-    1: { power_mgmt_chip: watt_man }
   storage_field:
     0: { storage: tape_16g }
     1: { storage: floppy_16g }
@@ -230,10 +221,6 @@ components:
           idVendor: '2012'
           manufacturer: Tubular Co
           product: Totally Tubular Modem Plus
-  chipset:
-    items:
-      chipset_device:
-        values: { compact_str: 'google,device chipvendor,chip' }
   cpu:
     items:
       cpu_device:
@@ -299,11 +286,6 @@ components:
     items:
       volt_man:
         values: { compact_str: 'vm1234-tt' }
-  power_mgmt_chip:
-    probeable: False
-    items:
-      amp_man: { values: NULL }
-      watt_man: { values: NULL }
   storage:
     items:
       tape_16g:

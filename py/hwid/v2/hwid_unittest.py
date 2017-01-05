@@ -50,10 +50,8 @@ found_probe_value_map:
   board_version: { compact_str: 'PVT' }
   cellular:
     compact_str: '05c6:9215 Qualcomm Incorporated Qualcomm Gobi2000 0002'
-  chipset: { compact_str: '8086:a010' }
   cpu: { compact_str: 'Intel(R) Atom(TM) CPU N570 @ 1.66GHz [4 cores]' }
   customization_id: { compact_str: 'custom' }
-  display_converter: { compact_str: 'ch7036' }
   display_panel: { compact_str: 'AUO:5c20 [1366x768]' }
   dram: { compact_str: '0|2048|DDR3-800,DDR3-1066,DDR3-1333' }
   ec_flash_chip: { compact_str: 'Winbond W25X40' }
@@ -61,7 +59,6 @@ found_probe_value_map:
   ethernet: { compact_str: '0b95:772a ASIX Elec. Corp. AX88x72A 0001' }
   flash_chip: { compact_str: 'Winbond W25Q32' }
   pmic: { compact_str: '99999-pmic' }
-  power_mgmt_chip: { compact_str: '0x7' }
   region: { compact_str: 'us' }
   storage: { compact_str: 'ATA SanDisk SSD P4 1 #31277232' }
   stylus: { compact_str: 'stylus' }
@@ -75,7 +72,6 @@ found_probe_value_map:
   - { compact_str: '8086:27cb' }
   video:
     compact_str: '04f2:b1d8 Sonix Technology Co., Ltd. Chicony 1.3M WebCam 5582'
-  vga: { compact_str: '8086:a011' }
   wireless: { compact_str: '168c:0030' }
 found_volatile_values:
   hash_gbb: { compact_str: 'gv2#af80b996717d4b35ad0fab38974dd6c249dc6be6a7f33' }
@@ -86,7 +82,6 @@ found_volatile_values:
 initial_configs:
   rw_firmware: '9999'
 missing_component_classes:
-- wimax
 - touchscreen
 '''
 

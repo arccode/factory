@@ -209,7 +209,6 @@ class DatabaseTest(unittest.TestCase):
                         'bcd': Value('0001')},
                        None)],
         'cellular': [(None, None, "Missing 'cellular' component")],
-        'chipset': [('chipset_0', {'compact_str': Value('cdef:abcd')}, None)],
         'cpu': [('cpu_5',
                  {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
                  None)],
@@ -258,7 +257,6 @@ class DatabaseTest(unittest.TestCase):
         'battery': 3,
         'bluetooth': 0,
         'cellular': 0,
-        'chipset': 0,
         'cpu': 5,
         'display_panel': 0,
         'dram': 0,
@@ -271,14 +269,12 @@ class DatabaseTest(unittest.TestCase):
         'video': 0}, bom.encoded_fields)
 
     result = yaml.load(result)
-    result['found_probe_value_map']['chipset']['compact_str'] = 'something else'
     result = yaml.dump(result)
     self.assertEquals({
         'audio_codec': 1,
         'battery': 3,
         'bluetooth': 0,
         'cellular': 0,
-        'chipset': None,
         'cpu': 5,
         'display_panel': 0,
         'dram': 0,
@@ -338,8 +334,6 @@ class DatabaseTest(unittest.TestCase):
         'storage', bom.components))
     self.assertEquals(0, self.database._GetFieldIndexFromProbedComponents(
         'cellular', bom.components))
-    self.assertEquals(None, self.database._GetFieldIndexFromProbedComponents(
-        'wimax', bom.components))
 
   def testGetAllIndices(self):
     self.assertEquals([0, 1, 2, 3, 4, 5], self.database._GetAllIndices('cpu'))
@@ -540,7 +534,6 @@ class PatternTest(unittest.TestCase):
              'cellular',
              'keyboard',
              'dram',
-             'chipset',
              'cpu']), self.pattern.GetFieldNames())
 
     # Add a item in image_id [0, 1].
@@ -560,7 +553,6 @@ class PatternTest(unittest.TestCase):
     self.assertEquals(2, length['battery'])
     self.assertEquals(0, length['bluetooth'])
     self.assertEquals(1, length['cellular'])
-    self.assertEquals(0, length['chipset'])
     self.assertEquals(3, length['cpu'])
     self.assertEquals(0, length['display_panel'])
     self.assertEquals(1, length['dram'])
@@ -572,7 +564,6 @@ class PatternTest(unittest.TestCase):
     self.assertEquals(0, length['touchpad'])
     self.assertEquals(0, length['tpm'])
     self.assertEquals(0, length['usb_hosts'])
-    self.assertEquals(0, length['vga'])
     self.assertEquals(0, length['video'])
     self.assertEquals(0, length['wireless'])
     self.assertEquals(5, length['firmware'])

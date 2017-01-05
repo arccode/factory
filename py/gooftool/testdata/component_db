@@ -26,15 +26,6 @@ probeable_components:
   cellular:
     cellular_1: CELLULAR_1
     cellular_2: CELLULAR_2
-  wimax:
-    wimax_1: WIMAX_1
-    wimax_2: WIMAX_2
-  display_converter:
-    display_converter_1: DISPLAY_CONVERTER_1
-    display_converter_2: DISPLAY_CONVERTER_2
-  chipset:
-    chipset_1: CHIPSET_1
-    chipset_2: CHIPSET_2
   cpu:
     cpu_1: CPU_1
     cpu_2: CPU_2
@@ -68,9 +59,6 @@ probeable_components:
   usb_hosts:
     usb_hosts_1: USB_HOSTS_1
     usb_hosts_2: USB_HOSTS_2
-  vga:
-    vga_1: VGA_1
-    vga_2: VGA_2
   wireless:
     wireless_1: WIRELESS_1
     wireless_2: WIRELESS_2
@@ -92,18 +80,6 @@ probeable_components:
   cellular:
     cellular_1: CELLULAR_1
     cellular_2: CELLULAR_2
-  wimax:
-    wimax_1: WIMAX_1
-    wimax_2: WIMAX_2
-  display_converter:
-    display_converter_1: DISPLAY_CONVERTER_1
-    display_converter_2: DISPLAY_CONVERTER_2
-  chipset:
-    chipset_1: CHIPSET_1
-    chipset_2: CHIPSET_2
-  chipset:
-    chipset_1: CHIPSET_1
-    chipset_2: CHIPSET_2
   cpu:
     cpu_1: CPU_1
     cpu_2: CPU_2
@@ -140,9 +116,6 @@ probeable_components:
   usb_hosts:
     usb_hosts_1: USB_HOSTS_1
     usb_hosts_2: USB_HOSTS_2
-  vga:
-    vga_1: VGA_1
-    vga_2: VGA_2
   wireless:
     wireless_1: WIRELESS_1
     wireless_2: WIRELESS_2

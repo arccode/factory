@@ -1036,52 +1036,6 @@ def _ProbeCellular():
   return data
 
 
-@_ComponentProbe('wimax')
-def _ProbeWimax():
-  return _NetworkDevices.ReadSysfsDeviceIds('wimax')
-
-
-@_ComponentProbe('display_converter')
-def _ProbeDisplayConverter():
-  """Try brand-specific probes, return the first viable result."""
-  def ProbeChrontel():
-    """Search style borrowed from the /etc/init/chrontel.conf behavior."""
-    sys_utils.LoadKernelModule('i2c_dev', error_on_fail=False)
-    # i2c-i801 is not available on some devices (ex, ARM).
-    sys_utils.LoadKernelModule('i2c-i801', error_on_fail=False)
-    dev_chrontel = '/dev/i2c-chrontel'
-    if not os.path.exists(dev_chrontel):
-      for dev_path in glob('/sys/class/i2c-adapter/*'):
-        adapter_name = _StripRead(os.path.join(dev_path, 'name'))
-        if adapter_name.startswith('SMBus I801 adapter'):
-          dev_chrontel = os.path.basename(dev_path)
-          break
-    cmd = 'ch7036_monitor -d %s -p' % dev_chrontel
-    if os.path.exists(dev_chrontel) and Shell(cmd).success:
-      return 'ch7036'
-    return None
-  part_id_gen = (probe_fun() for probe_fun in [ProbeChrontel])
-  return next(([x] for x in part_id_gen if x is not None), [])
-
-
-@_ComponentProbe('chipset', 'x86')
-def _ProbeChipsetX86():
-  """On x86, host bridge is always the first PCI device."""
-  device_id = _ReadSysfsDeviceId('/sys/bus/pci/devices/0000:00:00.0')
-  return [device_id] if device_id is not None else []
-
-
-@_ComponentProbe('chipset', 'arm')
-def _ProbeChipsetArm():
-  """On ARM SOC-based systems, use first compatible list in device-tree."""
-  # Format: manufacturer,model [NUL] compat-manufacturer,model [NUL] ...
-  fdt_compatible_file = '/proc/device-tree/compatible'
-  if not os.path.exists(fdt_compatible_file):
-    return []
-  compatible_list = _StripRead(fdt_compatible_file)
-  return [DictCompactProbeStr(compatible_list.strip(chr(0)).split(chr(0)))]
-
-
 @_ComponentProbe('cpu', 'x86')
 def _ProbeCpuX86():
   """Reformat /proc/cpuinfo data."""
@@ -1213,17 +1167,6 @@ def _ProbeEmbeddedController():
     else:
       ret.append(ec_info)
   return ret
-
-
-@_ComponentProbe('power_mgmt_chip')
-def _ProbePowerMgmtChip():
-  tpschrome_ver = re.findall(
-      r'Read from I2C port 0 at 0x90 offset 0x19 = (\w+)',
-      _ShellOutput('ectool i2cread 8 0 0x90 0x19'))
-  if not tpschrome_ver:
-    return []
-  return [{'tpschrome_ver': tpschrome_ver[0],
-           COMPACT_PROBE_STR: tpschrome_ver[0]}]
 
 
 @_ComponentProbe('ethernet')
@@ -1419,12 +1362,6 @@ def _ProbeUsbHosts():
   # Usually there are several USB hosts, so only list the primary information.
   device_id_list = [_ReadSysfsDeviceId(usb_host) for usb_host in usb_host_list]
   return [x for x in device_id_list if x is not None]
-
-
-@_ComponentProbe('vga')
-def _ProbeVga():
-  node_id = _ReadSysfsNodeId('/sys/class/graphics/fb0')
-  return [node_id] if node_id is not None else []
 
 
 @_ComponentProbe('wireless')

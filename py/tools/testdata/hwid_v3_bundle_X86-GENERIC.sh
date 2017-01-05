@@ -205,7 +205,6 @@ X    - battery: 2
 X    - bluetooth: 0
 X    - camera: 0
 X    - cellular: 1
-X    - chipset: 0
 X    - cpu: 1                  # 5 bits
 X    - display_panel: 0
 X    - dram: 1
@@ -223,7 +222,6 @@ X    - battery: 2
 X    - bluetooth: 0
 X    - camera: 0
 X    - cellular: 1
-X    - chipset: 0
 X    - cpu: 1                  # 5 bits
 X    - display_panel: 0
 X    - dram: 1
@@ -259,9 +257,6 @@ X    0:
 X      cellular: NULL
 X    1:
 X      cellular: cellular_0
-X  chipset:
-X    0:
-X      chipset: chipset_0
 X  cpu:
 X    0:
 X      cpu: cpu_0
@@ -378,11 +373,6 @@ X        values:
 X          idVendor: 89ab
 X          idProduct: abcd
 X          name: Cellular Card
-X
-X  chipset:
-X    items:
-X      chipset_0:
-X        values: { compact_str: 'cdef:abcd' }
 X
 X  cpu:
 X    items:

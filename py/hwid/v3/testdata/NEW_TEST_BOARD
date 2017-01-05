@@ -20,7 +20,6 @@ pattern:
     - battery: 2
     - bluetooth: 0
     - cellular: 1
-    - chipset: 0
     - cpu: 1                  # 5 bits
     - display_panel: 0
     - dram: 1
@@ -40,7 +39,6 @@ pattern:
     - battery: 2
     - bluetooth: 0
     - cellular: 1
-    - chipset: 0
     - cpu: 1                  # 5 bits
     - display_panel: 0
     - dram: 1
@@ -61,7 +59,6 @@ pattern:
     - audio_codec: 3
     - battery: 2
     - bluetooth: 0
-    - chipset: 0
     - cpu: 3
     - dram: 2
     - keyboard: 1
@@ -95,9 +92,6 @@ encoded_fields:
       cellular: NULL
     1:
       cellular: cellular_0
-  chipset:
-    0:
-      chipset: chipset_0
   cpu:
     0:
       cpu: cpu_0
@@ -222,11 +216,6 @@ components:
           idVendor: 89ab
           idProduct: abcd
           name: Cellular Card
-
-  chipset:
-    items:
-      chipset_0:
-        values: { compact_str: 'cdef:abcd' }
 
   cpu:
     items:

@@ -84,7 +84,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertEquals(db_builder.GetLatestFields(),
                       set(['region_field', 'customization_id_field',
                            'audio_codec_field', 'battery_field',
-                           'bluetooth_field', 'cellular_field', 'chipset_field',
+                           'bluetooth_field', 'cellular_field',
                            'cpu_field', 'display_panel_field', 'dram_field',
                            'video_field', 'storage_field',
                            'firmware_keys_field', 'ro_main_firmware_field',

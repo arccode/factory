@@ -18,8 +18,6 @@ found_probe_value_map:
   bluetooth: { compact_str: 'BLUETOOTH_1' }
   camera: { compact_str: 'CAMERA_1' }
   cellular: { compact_str: 'CELLULAR_1' }
-  display_converter: { compact_str: 'DISPLAY_CONVERTER_1' }
-  chipset: { compact_str: 'CHIPSET_1' }
   cpu: { compact_str: 'CPU_1' }
   display_panel: { compact_str: 'DISPLAY_PANEL_1' }
   dram: { compact_str: 'DRAM_1' }
@@ -32,8 +30,6 @@ found_probe_value_map:
   touchpad: { compact_str: 'TOUCHPAD_1' }
   tpm: { compact_str: 'TPM_1' }
   usb_hosts: { compact_str: 'USB_HOSTS_1' }
-  vga: { compact_str: 'VGA_1' }
-  wimax: { compact_str: 'WIMAX_1' }
   wireless: { compact_str: 'WIRELESS_1' }
 found_volatile_values:
   hash_gbb: { compact_str: 'HASH_GBB_1' }
@@ -56,8 +52,6 @@ found_probe_value_map:
   bluetooth: { compact_str: 'BLUETOOTH_1' }
   camera: { compact_str: 'CAMERA_1' }
   cellular: { compact_str: 'CELLULAR_1' }
-  display_converter: { compact_str: 'DISPLAY_CONVERTER_1' }
-  chipset: { compact_str: 'CHIPSET_1' }
   cpu: { compact_str: 'CPU_1' }
   display_panel: { compact_str: 'DISPLAY_PANEL_1' }
   dram: { compact_str: 'DRAM_1' }
@@ -70,8 +64,6 @@ found_probe_value_map:
   touchpad: { compact_str: 'TOUCHPAD_1' }
   tpm: { compact_str: 'TPM_1' }
   usb_hosts: { compact_str: 'USB_HOSTS_1' }
-  vga: { compact_str: 'VGA_1' }
-  wimax: { compact_str: 'WIMAX_1' }
   wireless: { compact_str: 'WIRELESS_1' }
 found_volatile_values:
   volatile_1: { compact_str: 'VOLATILE_1' }
@@ -89,8 +81,6 @@ found_probe_value_map:
   bluetooth: { compact_str: 'BLUETOOTH_1' }
   camera: { compact_str: 'CAMERA_1' }
   cellular: { compact_str: 'CELLULAR_1' }
-  display_converter: { compact_str: 'DISPLAY_CONVERTER_1' }
-  chipset: { compact_str: 'CHIPSET_1' }
   cpu: { compact_str: 'CPU_1' }
   display_panel: { compact_str: 'DISPLAY_PANEL_1' }
   dram: { compact_str: 'DRAM_1' }
@@ -103,8 +93,6 @@ found_probe_value_map:
   touchpad: { compact_str: 'TOUCHPAD_1' }
   tpm: { compact_str: 'TPM_1' }
   usb_hosts: { compact_str: 'USB_HOSTS_1' }
-  vga: { compact_str: 'VGA_1' }
-  wimax: { compact_str: 'WIMAX_1' }
   wireless: { compact_str: 'WIRELESS_1' }
 found_volatile_values:
   # Invalid volatile, but using a wildcard volatile so it's OK
@@ -124,8 +112,6 @@ found_probe_value_map:
   bluetooth: { compact_str: 'BLUETOOTH_1' }
   camera: { compact_str: 'CAMERA_1' }
   cellular: { compact_str: 'CELLULAR_1' }
-  display_converter: { compact_str: 'DISPLAY_CONVERTER_1' }
-  chipset: { compact_str: 'CHIPSET_1' }
   cpu: { compact_str: 'CPU_1' }
   display_panel: { compact_str: 'DISPLAY_PANEL_1' }
   dram: { compact_str: 'DRAM_1' }
@@ -138,8 +124,6 @@ found_probe_value_map:
   touchpad: { compact_str: 'TOUCHPAD_1' }
   tpm: { compact_str: 'TPM_1' }
   usb_hosts: { compact_str: 'USB_HOSTS_1' }
-  vga: { compact_str: 'VGA_1' }
-  wimax: { compact_str: 'WIMAX_1' }
   wireless: { compact_str: 'WIRELESS_1' }
 found_volatile_values:
   volatile_1: { compact_str: 'VOLATILE_INVALID' }

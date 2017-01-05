@@ -1,5 +1,5 @@
 # Dummy line before checksum
-checksum: 95897c4070fc9729456fa930477d28a4a2f9921d
+checksum: 31b628b9ecef4a5bff9e12b463191b108653b9b7
 # Dummy line after checksum
 board: CHROMEBOOK
 
@@ -22,7 +22,6 @@ pattern:
     - battery: 2
     - bluetooth: 0
     - cellular: 1
-    - chipset: 0
     - cpu: 1                  # 10 bits
 
     - display_panel: 0
@@ -43,7 +42,6 @@ pattern:
     - battery: 2
     - bluetooth: 0
     - cellular: 1
-    - chipset: 0
     - cpu: 1                  # 10 bits
 
     - display_panel: 0
@@ -78,9 +76,6 @@ encoded_fields:
       cellular: NULL
     1:
       cellular: cellular_0
-  chipset:
-    0:
-      chipset: chipset_0
   cpu:
     0:
       cpu: cpu_0
@@ -198,11 +193,6 @@ components:
           idVendor: 89ab
           idProduct: abcd
           name: Cellular Card
-
-  chipset:
-    items:
-      chipset_0:
-        values: { compact_str: 'cdef:abcd' }
 
   cpu:
     items:

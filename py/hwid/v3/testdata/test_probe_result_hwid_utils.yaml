@@ -9,8 +9,6 @@ found_probe_value_map:
     idVendor: '0123'
     idProduct: abcd
     bcd: '0001'
-  chipset:
-    compact_str: cdef:abcd
   cpu:
     name: CPU @ 2.80GHz
     cores: '4'
@@ -59,8 +57,6 @@ initial_configs:
   rw_fw_key_version: '2'
   storage_fw_version: 11.22.33
 missing_component_classes:
-- wimax
 - cellular
-- display_converter
 - display_panel
 - ethernet

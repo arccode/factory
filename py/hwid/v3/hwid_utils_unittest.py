@@ -352,7 +352,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
     self.assertEquals(
         {'audio_codec': 1, 'battery': 3, 'firmware': 0, 'storage': 0,
          'bluetooth': 0, 'video': 0, 'display_panel': 0, 'cellular': 0,
-         'keyboard': 0, 'dram': 0, 'chipset': 0, 'cpu': 5},
+         'keyboard': 0, 'dram': 0, 'cpu': 5},
         hwid.bom.encoded_fields)
 
     parsed_result = hwid_utils.ParseDecodedHWID(hwid)
@@ -401,8 +401,6 @@ class HWIDv3UtilsTest(unittest.TestCase):
                 'type': Value('SSD', is_re=False),
                 'size': Value('16G', is_re=False)}}],
         'display_panel': [{'display_panel_0': None}],
-        'chipset': [{
-            'chipset_0': {'compact_str': Value('cdef:abcd', is_re=False)}}],
         'ro_ec_firmware':[{
             'ro_ec_firmware_0': {
                 'compact_str': Value('ev2#ro_ec_firmware_0', is_re=False)}}],
