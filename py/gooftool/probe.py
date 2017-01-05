@@ -98,6 +98,11 @@ def DictCompactProbeStr(content):
   return {COMPACT_PROBE_STR: CompactStr(content)}
 
 
+def SingleDictCompactProbeStr(content, key_name='name'):
+  value = CompactStr(content)
+  return {COMPACT_PROBE_STR: value, key_name: value}
+
+
 def ParseKeyValueData(pattern, data):
   """Converts structured text into a {(key, value)} dict.
 
@@ -256,7 +261,7 @@ def _ReadSysfsNodeId(path):
   if os.path.exists(name_path):
     device_id = _StripRead(name_path)
     if device_id:
-      return DictCompactProbeStr(device_id.strip(chr(0)).split(chr(0)))
+      return SingleDictCompactProbeStr(device_id.strip(chr(0)).split(chr(0)))
 
   return None
 
@@ -841,7 +846,8 @@ def _ProbeAudioCodec():
   asoc_path = '/sys/kernel/debug/asoc/codecs'
   if os.path.exists(asoc_path):
     with open(asoc_path) as f:
-      results = [DictCompactProbeStr(codec) for codec in f.read().splitlines()
+      results = [SingleDictCompactProbeStr(codec)
+                 for codec in f.read().splitlines()
                  if codec not in KNOWN_INVALID_CODEC_NAMES]
   else:
     results = []
@@ -850,15 +856,15 @@ def _ProbeAudioCodec():
   match_set = set()
   for line in grep_result.splitlines():
     match_set |= set(re.findall(r'.*Codec:(.*)', line))
-  results += [DictCompactProbeStr(match) for match in sorted(match_set) if
-              match]
+  results += [SingleDictCompactProbeStr(match)
+              for match in sorted(match_set) if match]
   if results:
     return results
 
   # Formatted '00-00: WM??? PCM wm???-hifi-0: ...'
   pcm_data = _StripRead('/proc/asound/pcm').split(' ')
   if len(pcm_data) > 2:
-    return [DictCompactProbeStr(pcm_data[1])]
+    return [SinglDictCompactProbeStr(pcm_data[1])]
   return []
 
 
@@ -1140,10 +1146,10 @@ def _ProbeEcFlashChip():
   ret = []
   ec_chip_id = crosfw.LoadEcFirmware().GetChipId()
   if ec_chip_id is not None:
-    ret.append({COMPACT_PROBE_STR: ec_chip_id})
+    ret.append(SingleDictCompactProbeStr(ec_chip_id))
   pd_chip_id = crosfw.LoadPDFirmware().GetChipId()
-  if pd_chip_id is not None:
-    ret.append({COMPACT_PROBE_STR: pd_chip_id})
+  if pd_chip_id:
+    ret.append(SingleDictCompactProbeStr(pd_chip_id))
   return ret
 
 
@@ -1179,7 +1185,7 @@ def _ProbeEthernet():
 @_ComponentProbe('flash_chip')
 def _ProbeMainFlashChip():
   chip_id = crosfw.LoadMainFirmware().GetChipId()
-  return [{COMPACT_PROBE_STR: chip_id}] if chip_id else []
+  return [SingleDictCompactProbeStr(chip_id)] if chip_id else []
 
 
 def _GetFixedDevices():
@@ -1282,7 +1288,9 @@ def _ProbeStorage():
     sectors = (_StripRead(size_path) if os.path.exists(size_path) else '')
     ata_fields = ['vendor', 'model']
     emmc_fields = ['type', 'name', 'hwrev', 'oemid', 'manfid']
-    optional_fields = ['cid', 'prv']
+    # Another field 'cid' is a combination of all other fields so we should not
+    # include it again.
+    optional_fields = ['prv']
     data = (_ReadSysfsFields(dev_path, ata_fields) or
             _ReadSysfsFields(dev_path, emmc_fields, optional_fields) or
             None)
@@ -1383,7 +1391,7 @@ def _ProbeBoardVersion():
   if board_version is None:
     return []
   else:
-    return [{COMPACT_PROBE_STR: board_version}]
+    return [{COMPACT_PROBE_STR: board_version, 'version': board_version}]
 
 
 @_InitialConfigProbe('cellular_fw_version')
