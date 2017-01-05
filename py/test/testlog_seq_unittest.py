@@ -34,7 +34,7 @@ class BootSequenceTest(unittest.TestCase):
     shutil.rmtree(self.tmp)
 
   def testSimulateReboot(self):
-    """Tests seq recovery functionality."""
+    """Tests seq recovery functionality.  Should use the maximum seq."""
     first_seq = 1986
     last_seq = 1105
     with open(self.json_path, 'w') as fd:
@@ -47,7 +47,39 @@ class BootSequenceTest(unittest.TestCase):
     self.assertEquals(next_seq, current_seq)
     # pylint: disable=protected-access
     self.assertEquals(
-        next_seq, 1 + last_seq + testlog_seq._SEQ_INCREMENT_ON_BOOT)
+        next_seq, 1 + first_seq + testlog_seq._SEQ_INCREMENT_ON_BOOT)
+
+  def testAllCorrupt(self):
+    """Tests seq recovery functionality.  Should use current time."""
+    with open(self.json_path, 'w') as fd:
+      fd.write('corrupt\n')
+      fd.write('corrupt\n')
+      fd.write('\0' * 100)
+    seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)
+    next_seq = seq.Next()
+    cur_time = int(time.time() * 1000)
+    self.assertAlmostEqual(next_seq, cur_time, delta=1000)
+
+  def testSomeCorrupt(self):
+    """Tests seq recovery functionality.
+
+    Should recover from biggest seq value."""
+    last_seq = 1105
+    last_valid_seq = last_seq - 10
+    with open(self.json_path, 'w') as fd:
+      fd.write('\0' * 100)  # corrupt before last valid line should be ignored
+      for i in reversed(xrange(5)):
+        fd.write(json.dumps({'seq': last_valid_seq - i}) + '\n')
+      # last_seq is invalid because this line begins with '\0'
+      fd.write('\0' * 100)
+      fd.write(json.dumps({'seq': last_seq}) + '\n')
+      fd.write('corrupt\n')
+      fd.write('corrupt\n')
+      fd.write('\0' * 100)
+    seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)
+    next_seq = seq.Next()
+    self.assertEquals(
+        next_seq, 1 + last_valid_seq + testlog_seq._SEQ_INCREMENT_ON_BOOT)
 
   def testFailsWhenLocked(self):
     seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)

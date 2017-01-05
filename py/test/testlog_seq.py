@@ -101,17 +101,27 @@ class SeqGenerator(object):
       pass
 
     try:
-      with open(self.log_file_path, 'r') as f:
-        last = None
-        for last in f:
+      max_seq = 0
+      seq = None
+      for l in open(self.log_file_path).readlines():
+        # Attempt to load the JSON to get the seq.
+        try:
+          seq = int(json.loads(l)['seq'])
+          max_seq = max(max_seq, seq)
+        except (ValueError, KeyError):
           pass
-        max_seq = json.loads(last)['seq']
-        return max_seq + 1
-    except (os.error, ValueError):
-      # This should really never happen; maybe the events file is
+      if not seq:
+        # This could potentially happen if the JSON file was very small
+        # and every single line was corrupted.
+        logging.exception('JSON file %s is corrupted, last line is %r',
+                          self.log_file_path, l)
+        return None
+      return max_seq + 1
+    except os.error:
+      # This should really never happen; maybe the JSON file is
       # so corrupted that a read operation is failing.
-      raise ValueError('JSON file %s is corrupted, last line is %r' % (
-          self.log_file_path, last))
+      logging.exception('Failed to read JSON file %s', self.log_file_path)
+      return None
 
   def _FindNextSequenceNumber(self):
     """Recovers the sequence number and add _SEQ_INCREMENT_ON_BOOT."""
