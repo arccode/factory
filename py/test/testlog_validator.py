@@ -164,7 +164,7 @@ class Validator(object):
             'of %s, %s failed to find its way home' % (
                 (1.0/16)**12, source_path))
     if delete_after_move:
-      os.rename(source_path, target_path)
+      shutil.move(source_path, target_path)
     else:
       shutil.copy(source_path, target_path)
 
