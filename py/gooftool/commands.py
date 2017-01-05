@@ -80,25 +80,29 @@ def Command(cmd_name, *args, **kwargs):
 
   This is similar to argparse_utils.Command, but all gooftool commands
   can be waived during `gooftool finalize` or `gooftool verify` using
-  --waive_list option.
+  --waive_list or --skip_list option.
   """
   def Decorate(fun):
-    def CommandWithWaiveCheck(options):
+    def CommandWithWaiveSkipCheck(options):
       waive_list = vars(options).get('waive_list', [])
-      if phase.GetPhase() >= phase.PVT_DOGFOOD and waive_list != []:
+      skip_list = vars(options).get('skip_list', [])
+      if phase.GetPhase() >= phase.PVT_DOGFOOD and (
+          waive_list != [] or skip_list != []):
         raise Error(
-            'waive_list should be empty for phase %s' % phase.GetPhase())
+            'waive_list and skip_list should be empty for phase %s' %
+            phase.GetPhase())
 
-      try:
-        fun(options)
-      except Exception as e:
-        if cmd_name in waive_list:
-          logging.exception(e)
-        else:
-          raise
+      if cmd_name not in skip_list:
+        try:
+          fun(options)
+        except Exception as e:
+          if cmd_name in waive_list:
+            logging.exception(e)
+          else:
+            raise
 
     return argparse_utils.Command(cmd_name, *args, **kwargs)(
-        CommandWithWaiveCheck)
+        CommandWithWaiveSkipCheck)
   return Decorate
 
 
@@ -183,6 +187,12 @@ _waive_list_cmd_arg = CmdArg(
     help='A list of waived checks, serperated by whitespace.'
          'Each item should be a sub-command of gooftool.'
          'e.g. "gooftool verify --waive_list verify_tpm clear_gbb_flags".')
+
+_skip_list_cmd_arg = CmdArg(
+    '--skip_list', nargs='*', default=[], metavar='SUBCMD',
+    help='A list of skipped checks, serperated by whitespace.'
+         'Each item should be a sub-command of gooftool.'
+         'e.g. "gooftool verify --skip_list verify_tpm clear_gbb_flags".')
 
 
 @Command('probe',
@@ -491,7 +501,8 @@ def WipeInit(options):
          _release_rootfs_cmd_arg,
          _firmware_path_cmd_arg,
          _enforced_release_channels_cmd_arg,
-         _waive_list_cmd_arg)
+         _waive_list_cmd_arg,
+         _skip_list_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
 
@@ -682,7 +693,8 @@ def UploadReport(options):
          _station_ip_cmd_arg,
          _station_port_cmd_arg,
          _wipe_finish_token_cmd_arg,
-         _waive_list_cmd_arg)
+         _waive_list_cmd_arg,
+         _skip_list_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 

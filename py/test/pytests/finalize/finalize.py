@@ -143,7 +143,11 @@ class Finalize(unittest.TestCase):
       Arg('gooftool_waive_list', list,
           'A list of waived checks for "gooftool finalize", '
           'see "gooftool finalize --help" for available items.',
-          default=[], optional=True)
+          default=[], optional=True),
+      Arg('gooftool_skip_list', list,
+          'A list of skipped checks for "gooftool finalize", '
+          'see "gooftool finalize --help" for available items.',
+          default=[], optional=True),
       ]
 
   FINALIZE_TIMEOUT = 180
@@ -474,6 +478,8 @@ class Finalize(unittest.TestCase):
           'Enforced release channels: %s.', self.args.enforced_release_channels)
     if self.args.gooftool_waive_list:
       command += ' --waive_list ' + ' '.join(self.args.gooftool_waive_list)
+    if self.args.gooftool_skip_list:
+      command += ' --skip_list ' + ' '.join(self.args.gooftool_skip_list)
     command += ' --phase "%s"' % phase.GetPhase()
 
     if not self.args.inform_shopfloor_after_wipe and shopfloor.is_enabled():
