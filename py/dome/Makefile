@@ -47,9 +47,10 @@ test: test-backend test-frontend
 
 test-backend:
 	../../setup/cros_docker.sh build
+	# TODO(b/34117401): remove hard-coded path
 	docker run \
 		--rm \
-		--volume "$(CURDIR)/../../build/docker:/var/db/factory/dome/build" \
+		--volume "$(CURDIR)/../../build/docker:/usr/local/factory/py/dome/build" \
 		--volume "/docker_shared/dome/test_log:/var/log/dome" \
 		--workdir "${DOME_DIR}" \
 		cros/factory_server \
