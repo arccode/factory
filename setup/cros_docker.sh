@@ -105,6 +105,11 @@ HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
 HOST_UMPIRE_DIR="/docker_umpire"
 HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
 
+# Publish tools
+PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
+PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
+GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
+
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
 DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
@@ -112,15 +117,20 @@ DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
 DOCKER_OVERLORD_DIR="${DOCKER_BASE_DIR}/bin/overlord"
 DOCKER_OVERLORD_APP_DIR="${DOCKER_OVERLORD_DIR}/app"
 
+# DOCKER_IMAGE_{GITHASH,TIMESTAMP} will be updated when you publish.
+DOCKER_IMAGE_GITHASH="88a9ee4b6034d8abbe49ce09c80d18d8a60ee958"
+DOCKER_IMAGE_TIMESTAMP="20170110125847"
 DOCKER_IMAGE_NAME="cros/factory_server"
-DOCKER_IMAGE_VERSION="201701061512"  # timestamp
-DOCKER_IMAGE_FILENAME="factory-server-${DOCKER_IMAGE_VERSION}-docker-${DOCKER_VERSION}.txz"
-DOCKER_IMAGE_FILEPATH="${SCRIPT_DIR}/${DOCKER_IMAGE_FILENAME}"
 
-PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
-PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
-
-GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
+# Configures docker image file information by DOCKER_IMAGE_{GITHASH,TIMESTAMP}.
+set_docker_image_info() {
+  DOCKER_IMAGE_BUILD="${DOCKER_IMAGE_TIMESTAMP}-${DOCKER_IMAGE_GITHASH:0:6}"
+  DOCKER_IMAGE_VERSION="${DOCKER_IMAGE_BUILD}-docker-${DOCKER_VERSION}"
+  DOCKER_IMAGE_FILENAME="factory-server-${DOCKER_IMAGE_VERSION}.txz"
+  DOCKER_IMAGE_FILEPATH="${SCRIPT_DIR}/${DOCKER_IMAGE_FILENAME}"
+}
+# Set DOCKER_IMAGE_* variables immediately.
+set_docker_image_info
 
 ensure_dir() {
   local dir="$1"
@@ -622,8 +632,94 @@ do_build() {
   echo "${DOCKER_IMAGE_NAME} image successfully built."
 }
 
+# This function must run in ${FACTORY_DIR}.
+do_update_docker_image_version() {
+  local script_file="$1"
+
+  # Check local modification.
+  if [ -n "$(git status --porcelain)" ]; then
+    die "Your have uncommitted or untracked changes.  " \
+        "To publish you have to build without local modification."
+  fi
+
+  # Check if the head is already on remotes/cros/master.
+  local head="$(git rev-parse HEAD 2>/dev/null)"
+  local upstream="$(git merge-base remotes/m/master "${head}")"
+
+  if [ "${head}" != "${upstream}" -o -z "${head}" ]; then
+    die "Your latest commit was not merged to upstream (remotes/m/master)." \
+        "To publish you have to build without local commits."
+  fi
+
+  # cros_docker.sh was not in source list otherwise we'll see changes everytime
+  # after we've published.
+  local source_list=(
+      setup/Dockerfile
+      setup/Dockerfile.overlord
+      py/umpire
+      py/dome
+      go/src
+  )
+
+  local changes="$(git log --format=format:%s ${DOCKER_IMAGE_GITHASH}.. \
+                   "${source_list[@]}")"
+  if [ -z "${changes}" ]; then
+    # TODO(hungte) Make an option to allow forced publishing.
+    die "No server related changes since last publish."
+  else
+    echo "Server related changes since last build (${DOCKER_IMAGE_BUILD}):"
+    echo "${changes}"
+    echo "---"
+  fi
+
+  local branch_name="$(git rev-parse --abbrev-ref HEAD)"
+  if [ "${branch_name}" = "HEAD" ]; then
+    # We are on a detached HEAD - should start a new branch to work on so
+    # do_commit_docker_image_version can create a new commit.
+    # This is required before making any changes to ${script_file}.
+    repo start "cros_docker_${new_timestamp}" .
+  fi
+
+  echo "Update publish information in $0..."
+  local new_timestamp="$(date '+%Y%m%d%H%M%S')"
+  sed -i "s/${DOCKER_IMAGE_GITHASH}/${head}/;
+          s/${DOCKER_IMAGE_TIMESTAMP}/${new_timestamp}/" "${script_file}"
+}
+
+do_reload_docker_image_info() {
+  local script_file="$1"
+  DOCKER_IMAGE_GITHASH="$(sed -n 's/^DOCKER_IMAGE_GITHASH="\(.*\)"/\1/p' \
+                          "${script_file}")"
+  DOCKER_IMAGE_TIMESTAMP="$(sed -n 's/^DOCKER_IMAGE_TIMESTAMP="\(.*\)"/\1/p' \
+                            "${script_file}")"
+  set_docker_image_info
+}
+
+do_commit_docker_image_release()
+{
+  git commit -a -s -m \
+    "setup: Publish cros_docker image version ${DOCKER_IMAGE_TIMESTAMP}.
+
+A new release of cros_docker image on ${DOCKER_IMAGE_TIMESTAMP},
+built from source using hash ${DOCKER_IMAGE_GITHASH}.
+
+Published as ${DOCKER_IMAGE_FILENAME}.
+
+BUG=chromium:679609
+TEST=None"
+  git show HEAD
+  echo "Uploading to gerrit..."
+  repo upload --cbr --no-verify .
+}
+
 do_publish() {
   check_gsutil
+
+  local script_file="$(readlink -f "$0")"
+  (cd "${FACTORY_DIR}" && do_update_docker_image_version "${script_file}") ||
+    die "Failed updating docker image version."
+
+  do_reload_docker_image_info "${script_file}"
 
   local factory_server_image_url="${GSUTIL_BUCKET}/${DOCKER_IMAGE_FILENAME}"
   if gsutil stat "${factory_server_image_url}" >/dev/null 2>&1; then
@@ -636,9 +732,10 @@ do_publish() {
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
 
   (cd "${temp_dir}"; do_save)
-  echo "Uploading to chromeos-localmirror ..."
   upload_to_localmirror "${temp_dir}/${DOCKER_IMAGE_FILENAME}" \
     "${factory_server_image_url}"
+
+  (cd "${FACTORY_DIR}" && do_commit_docker_image_release)
 }
 
 do_save() {
