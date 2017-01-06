@@ -33,6 +33,9 @@ class StressAppTest(unittest.TestCase):
       Arg('disk_thread', bool,
           'stress disk using -f argument of stressapptest.',
           default=True),
+      Arg('disk_thread_dir', str,
+          'directory of disk thread file will be placed',
+          default=None),
   ]
 
   def setUp(self):
@@ -49,7 +52,8 @@ class StressAppTest(unittest.TestCase):
           duration_secs=self.args.seconds,
           memory_ratio=self.args.memory_ratio,
           free_memory_only=self.args.free_memory_only,
-          disk_thread=self.args.disk_thread):
+          disk_thread=self.args.disk_thread,
+          disk_thread_dir=self.args.disk_thread_dir):
         pass
     except stress_manager.StressManagerError as e:
       logging.error('StressAppTest failed: %s', e)

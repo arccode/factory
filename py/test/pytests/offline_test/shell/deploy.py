@@ -194,12 +194,16 @@ class ScriptBuilder(object):
 
   @ShellTestCase.Register('stressapptest')
   def TestStressApp(self, memory_ratio, seconds, disk_thread,
-                    shared_memory_path=''):
+                    shared_memory_path='',
+                    disk_thread_dir=None):
     """Generate stressapptest script by formatting `./stressapptest.sh`."""
 
     if disk_thread:
-      disk_thread = ('-f "${tmpdir}/sat.disk_thread.a" '
-                     '-f "${tmpdir}/sat.disk_thread.b"')
+      if not disk_thread_dir:
+        disk_thread_dir = self.dut.storage.GetDataRoot()
+      self.dut.CheckCall(['mkdir', '-p', disk_thread_dir])
+      disk_thread = ('-f "{0}/sat.disk_thread.a" '
+                     '-f "{0}/sat.disk_thread.b"').format(disk_thread_dir)
     else:
       disk_thread = ''
 

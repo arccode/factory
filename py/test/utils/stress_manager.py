@@ -42,7 +42,7 @@ class StressManager(object):
 
   @contextlib.contextmanager
   def Run(self, duration_secs=None, num_threads=None, memory_ratio=0.2,
-          free_memory_only=False, disk_thread=False):
+          free_memory_only=False, disk_thread=False, disk_thread_dir=None):
     """Runs stressapptest.
 
     Runs stressapptest to occupy a specific amount of memory and threads for
@@ -56,6 +56,7 @@ class StressManager(object):
       free_memory_only: Only use free memory for test. If set to True, only
           memory_ratio * free_memory is used for stressapptest.
       disk_thread: stress disk using -f argument of stressapptest.
+      disk_thread_dir: directory of disk thread file will be placed.
 
     Raise:
       StressManagerError when execution fails.
@@ -90,7 +91,7 @@ class StressManager(object):
 
     thread = threading.Thread(target=self._CallStressAppTest,
                               args=(duration_secs, num_threads, mem_usage,
-                                    disk_thread))
+                                    disk_thread, disk_thread_dir))
     # clear output
     self.output = None
     self.stop.clear()
@@ -113,25 +114,30 @@ class StressManager(object):
       raise StressManagerError(self.output)
 
   def _CallStressAppTest(self, duration_secs, num_threads, mem_usage,
-                         disk_thread):
+                         disk_thread, disk_thread_dir):
     assert isinstance(duration_secs, int) or duration_secs is None
     assert isinstance(num_threads, int)
     assert isinstance(mem_usage, int)
     assert isinstance(disk_thread, bool)
+    assert disk_thread_dir is None or isinstance(disk_thread_dir, str)
 
     cmd = ['stressapptest', '-m', str(num_threads), '-M', str(mem_usage), '-s',
            str(duration_secs if duration_secs is not None else 10 ** 8)]
     with tempfile.TemporaryFile() as output:
-      with self._dut.temp.TempDirectory() as tempdir:
-        if disk_thread:
-          for disk_file in ['sat.diskthread.a', 'sat.diskthread.b']:
-            cmd += ['-f', self._dut.path.join(tempdir, disk_file)]
-        process = self._dut.Popen(cmd, stdout=output)
+      if disk_thread:
+        if not disk_thread_dir:
+          disk_thread_dir = self._dut.storage.GetDataRoot()
 
-        if duration_secs is None:
-          self.stop.wait()
-          self._dut.toybox.pkill('stressapptest')
-        process.wait()
+        self._dut.CheckCall(['mkdir', '-p', disk_thread_dir])
+
+        for disk_file in ['sat.diskthread.a', 'sat.diskthread.b']:
+          cmd += ['-f', self._dut.path.join(disk_thread_dir, disk_file)]
+      process = self._dut.Popen(cmd, stdout=output)
+
+      if duration_secs is None:
+        self.stop.wait()
+        self._dut.toybox.pkill('stressapptest')
+      process.wait()
       output.seek(0)
       self.output = output.read()
 
