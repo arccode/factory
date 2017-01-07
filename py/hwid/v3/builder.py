@@ -86,7 +86,7 @@ def DetermineComponentName(comp_cls, value):
     return value['version']
 
   # General components.
-  for key in ['model', 'manufacturer', 'part', 'compact_str']:
+  for key in ['model', 'manufacturer', 'part', 'name', 'compact_str']:
     if key in value:
       return _FilterSpecialCharacter(str(value[key]))
   return comp_cls + '_' + str(uuid.uuid4())[:8]
@@ -415,6 +415,11 @@ class DatabaseBuilder(object):
     if comp_cls in ['ro_main_firmware', 'ro_ec_firmware', 'ro_pd_firmware']:
       for comp_attr in db_comp_items.itervalues():
         comp_attr['status'] = 'deprecated'
+
+    # Deprecate 'compact_str' if possible.
+    if 'compact_str' in comp_value and len(comp_value) > 1:
+        comp_value = comp_value.copy()
+        comp_value.pop('compact_str')
 
     if comp_name is None:
       comp_name = DetermineComponentName(comp_cls, comp_value)
