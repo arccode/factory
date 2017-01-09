@@ -8,6 +8,7 @@ import pipes
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
+from cros.factory.utils import debug_utils
 
 
 class Toybox(component.DeviceComponent):
@@ -40,9 +41,30 @@ class Toybox(component.DeviceComponent):
       'UptimeTuple',
       'current_time uptime users loadavg_1min loadavg_5min loadavg_15min')
 
-  def __init__(self, dut, sudo=False):
+  _PROVIDER_MAP = {'*': 'toybox'}
+  """Map of providers for each command.
+
+  You can override this mapping to use different provider for different
+  commands.  For example, if you'd like to use dd from busybox, df from system,
+  and maybe all others from toolbox, then you should create a toybox instance
+  by:
+
+      toybox = Toybox(
+          dut, provider_map={'*': 'toolbox', 'dd': 'busybox', 'df': None})
+  """
+
+  def __init__(self, dut, sudo=False, provider_map=None):
+    """Constructor
+
+    Args:
+      dut: a DUT instance.
+      sudo: use sudo(8) to execute each command or not.
+      provider_map: override default provider map, see Toybox._PROVIDER_MAP for
+        more details.
+    """
     super(Toybox, self).__init__(dut)
     self._sudo = sudo
+    self._provider_map = provider_map or Toybox._PROVIDER_MAP
 
   def _BuildCommand(self, *args):
     """Builds the real toybox command to invoke in shell.
@@ -51,11 +73,17 @@ class Toybox(component.DeviceComponent):
 
     Returns a list for the final commands.
     """
+    caller = debug_utils.GetCallerName()
+
     def _CommandGenerator():
       if self._sudo:
         yield 'sudo'
 
-      yield 'toybox'
+      default_provider = self._provider_map.get('*', 'toybox')
+      provider = self._provider_map.get(caller, default_provider)
+      if provider:
+        yield provider
+
       for arg in filter(None, args):
         if isinstance(arg, basestring):
           yield arg

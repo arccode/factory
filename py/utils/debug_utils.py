@@ -6,13 +6,14 @@
 
 from __future__ import print_function
 
+import inspect
 import logging
 import os
+import SocketServer
 import sys
 import threading
 import time
 import traceback
-import SocketServer
 
 from . import net_utils
 from . import process_utils
@@ -151,6 +152,25 @@ def SetupLogging(level=logging.WARNING, log_file_name=None):
       **({'filename': log_file_name} if log_file_name else {}))
   logging.Formatter.converter = time.gmtime
   logging.info(time.strftime('%Y.%m.%d %Z', time.gmtime()))
+
+
+def GetCallerName(num_frame=1):
+  """Get the name of function that calls current function.
+
+  For example:
+    def F():
+      print GetCallerName()
+
+    def G():
+      F()
+
+    G()  # output: G
+
+  Args:
+    num_frame: number of frames to go back, num_frame = 1 will returns name of
+        caller, num_frame = 2 will returns name of caller's caller.
+  """
+  return inspect.stack()[num_frame + 1][3]
 
 
 if __name__ == '__main__':

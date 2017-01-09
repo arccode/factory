@@ -11,6 +11,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
+from cros.factory.device import toybox
 
 
 class ToyboxTest(unittest.TestCase):
@@ -52,7 +53,7 @@ class ToyboxTest(unittest.TestCase):
     self.dut.CheckOutput.assert_called_with(['toybox', 'dd', 'if=/dev/null',
                                              'bs=1', 'count=1'])
     self.assertEquals(self.dut.toybox.dd('/dev/null', bs=1, count=1, conv=[]),
-                                         ' ')
+                      ' ')
     self.dut.CheckOutput.assert_called_with(['toybox', 'dd', 'if=/dev/null',
                                              'bs=1', 'count=1'])
 
@@ -200,6 +201,29 @@ class ToyboxTest(unittest.TestCase):
     self.dut.CheckOutput = mock.MagicMock(return_value='root\n')
     self.assertEquals(self.dut.toybox.whoami(), 'root')
     self.dut.CheckOutput.assert_called_with(['toybox', 'whoami'])
+
+  def testOverrideProvider(self):
+    # pylint: disable=protected-access
+    # set default provider to toolbox
+    _toybox = toybox.Toybox(self.dut, provider_map={'*': 'toolbox'})
+    self.dut.CheckOutput = mock.MagicMock(return_value=None)
+    _toybox.dd('/dev/null', bs=1, count=1)
+    self.dut.CheckOutput.assert_called_with(['toolbox', 'dd', 'if=/dev/null',
+                                             'bs=1', 'count=1'])
+
+    # use dd provided by busybox
+    _toybox = toybox.Toybox(self.dut, provider_map={'*': 'toolbox',
+                                                    'dd': 'busybox'})
+    _toybox.dd('/dev/null', bs=1, count=1)
+    self.dut.CheckOutput.assert_called_with(['busybox', 'dd', 'if=/dev/null',
+                                             'bs=1', 'count=1'])
+
+    # use dd provided by system
+    _toybox = toybox.Toybox(self.dut, provider_map={'*': 'toolbox',
+                                                    'dd': None})
+    _toybox.dd('/dev/null', bs=1, count=1)
+    self.dut.CheckOutput.assert_called_with(['dd', 'if=/dev/null',
+                                             'bs=1', 'count=1'])
 
 
 if __name__ == '__main__':
