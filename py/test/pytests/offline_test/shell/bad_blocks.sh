@@ -6,6 +6,14 @@
 task_{%id%} () {
   local output="$(mktemp)"
 
+  if {%is_file%}; then
+    if [ ! -e {%device_path%} ]; then
+      # file not exists, create one
+      touch {%device_path%}
+      truncate -s "$(({%sector_size%} * {%last_block%}))"
+    fi
+  fi
+
   badblocks -fw -b {%sector_size%} -e {%max_errors%} -o "${output}" \
       {%device_path%} {%last_block%} {%first_block%}
   local badblocks_return_value="$?"
