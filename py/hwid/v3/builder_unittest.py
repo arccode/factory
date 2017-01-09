@@ -161,6 +161,12 @@ class DatabaseBuilderTest(unittest.TestCase):
                                   'status': 'unqualified',
                                   'values': {'compact_str': 'FOO_2'}}}}})
 
+    # Add a new component item with extra fields. It should match the original
+    # one instead of adding a new one.
+    name = db_builder.AddComponent('foo', {'compact_str': 'FOO_0',
+                                           'extra_attr': 'LALA'}, 'foo_3')
+    self.assertEquals(name, 'foo_0')
+
   def testAddFirmware(self):
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
     db_comp_items = db_builder.db['components']['ro_main_firmware']['items']

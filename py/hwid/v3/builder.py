@@ -16,7 +16,7 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 # Register "!rule" and "!re" tag to yaml constructor.
-from cros.factory.hwid.v3 import rule as _rule  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import rule as rule_module
 from cros.factory.hwid.v3 import yaml_tags
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
@@ -388,6 +388,17 @@ class DatabaseBuilder(object):
     Returns:
       the component name.
     """
+
+    def _MatchComponentValue(db_comp_value, comp_value):
+      if set(db_comp_value.keys()) - set(comp_value):
+        return False
+      for key, value in db_comp_value.iteritems():
+        rule = (value if isinstance(value, rule_module.Value)
+                else rule_module.Value(value))
+        if not rule.Matches(comp_value[key]):
+          return False
+      return True
+
     if comp_cls not in self.db[DB_KEY.components]:
       self.db[DB_KEY.components][comp_cls] = OrderedDict({
           'items': OrderedDict()})
@@ -395,7 +406,7 @@ class DatabaseBuilder(object):
     # Find the component already exists or not.
     db_comp_items = self.db[DB_KEY.components][comp_cls]['items']
     for name, value in db_comp_items.iteritems():
-      if value['values'] == comp_value:
+      if _MatchComponentValue(value['values'], comp_value):
         logging.debug('Component %s already exists the item with %s. Skip.',
                       comp_cls, comp_value)
         return name
