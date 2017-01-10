@@ -268,7 +268,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
         os.close(f)
         # Relocate the attachment and update the event path.
         self.logger.debug('Moving attachment %s --> %s...', att_path, tmp_path)
-        os.rename(att_path, tmp_path)
+        shutil.move(att_path, tmp_path)
         event.attachments[att_id] = tmp_path
 
       if '__nodeId__' not in event:
