@@ -129,7 +129,7 @@ class Instalog(plugin.Plugin):
       except Exception:
         return False, None, 'Could not parse output: %s' % out
 
-  def FlushInput(self, last_seq_output, timeout=_DEFAULT_FLUSH_TIMEOUT):
+  def FlushInput(self, last_seq_output, timeout=None):
     """Flushes Instalog's Testlog input plugin.
 
     Args:
@@ -140,6 +140,8 @@ class Instalog(plugin.Plugin):
     Returns:
       A tuple of (success, result_string).
     """
+    if timeout is None:
+      timeout = _DEFAULT_FLUSH_TIMEOUT
     def CheckLastSeqProcessed():
       success, last_seq_processed, unused_msg = self._GetLastSeqProcessed()
       return success and last_seq_processed >= last_seq_output
@@ -158,7 +160,7 @@ class Instalog(plugin.Plugin):
     return (last_seq_processed >= last_seq_output,
             'Processed %d / %d events' % (last_seq_processed, last_seq_output))
 
-  def FlushOutput(self, timeout=_DEFAULT_FLUSH_TIMEOUT):
+  def FlushOutput(self, timeout=None):
     """Flushes Instalog's upstream output plugin.
 
     Args:
@@ -167,6 +169,8 @@ class Instalog(plugin.Plugin):
     Returns:
       A tuple of (success, result_string).
     """
+    if timeout is None:
+      timeout = _DEFAULT_FLUSH_TIMEOUT
     p = self._RunCommand(
         ['flush', 'output_uplink', '--timeout', str(timeout)],
         read_stdout=True)
