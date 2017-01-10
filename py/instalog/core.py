@@ -115,7 +115,8 @@ class Instalog(plugin_sandbox.CoreAPI):
                   'plugin `%s\' config' % (target, plugin_id))
             target_allow = output_plugins[target].setdefault('allow', [])
             target_allow.append({'rule': 'history',
-                                 'plugin_id': plugin_id})
+                                 'plugin_id': plugin_id,
+                                 'position': -1})
 
     # Ensure that all output plugins have at least one event source.
     for plugin_id, plugin_config in output_plugins.iteritems():
