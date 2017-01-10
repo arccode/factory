@@ -335,7 +335,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
           os.fsync(dirfd)
           os.close(dirfd)
       except Exception:
-        logging.exception('Exception encountered when copying attachment')
+        self.exception('Exception encountered when copying attachment')
         fail = True
         break
       source_paths.append(att_path)
@@ -427,7 +427,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         self._SaveMetadata()
 
       except Exception:
-        logging.exception('Exception encountered in Produce')
+        self.exception('Exception encountered in Produce')
         for path in delete_on_fail:
           os.unlink(path)
         raise
@@ -438,7 +438,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
           for path in delete_on_success:
             os.unlink(path)
       except Exception:
-        logging.exception('Some of source attachment files could not be '
+        self.exception('Some of source attachment files could not be '
                           'deleted; silently ignoring')
       return True
 
@@ -510,7 +510,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
           self._TruncateAttachments()
 
       except Exception:
-        logging.exception('Exception occurred during Truncate operation')
+        self.exception('Exception occurred during Truncate operation')
         # If any exceptions occurred, restore metadata, to make sure we are
         # using the correct version, since we aren't sure if the write succeeded
         # or not.
