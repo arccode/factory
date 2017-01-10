@@ -787,7 +787,7 @@ class GoofyRPC(object):
     # In second stage, we execute slower commands and return their results.
     else:
       result = (
-          [eval(reload_function)  # pylint: disable=W0123
+          [eval(reload_function)  # pylint: disable=eval-used
            for reload_function in json.loads(reload_function_array)])
 
       return json.dumps(result)
@@ -1333,7 +1333,7 @@ def main():
                  """RunTest('RunIn.Stress.BadBlocks')""")
 
   logging.info('Evaluating expression: %s', args.command)
-  ret = eval(args.command, {},  # pylint: disable=W0123
+  ret = eval(args.command, {},  # pylint: disable=eval-used
              dict((x, getattr(goofy, x))
                   for x in GoofyRPC.__dict__.keys()
                   if not x.startswith('_')))

@@ -148,12 +148,10 @@ def main():
   logging.basicConfig(level=logging_level)
 
   # Run the test.
-  # pylint: disable=eval-used
   args = (ast.literal_eval(cli_args.args)
           if cli_args.args else {})
   dut_options = (ast.literal_eval(cli_args.dut_options)
                  if cli_args.dut_options else {})
-  # pylint: enable=eval-used
   _, error_msg = RunPytest(pytest=cli_args.pytest,
                            args=args,
                            dut_options=dut_options,

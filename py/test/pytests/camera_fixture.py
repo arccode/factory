@@ -185,6 +185,7 @@ Usage examples::
 
 """
 
+import ast
 import base64
 from collections import namedtuple, OrderedDict
 try:
@@ -504,7 +505,7 @@ class _TestDelegate(object):
         pathname = os.path.join(mount_point, self.param_pathname)
         try:
           with open(pathname, 'r') as f:
-            return eval(f.read())  # pylint: disable=eval-used
+            return ast.literal_eval(f.read())
         except IOError as e:
           self._Log('Error: fail to read %r: %r' % (pathname, e))
       time.sleep(0.5)
@@ -515,8 +516,8 @@ class _TestDelegate(object):
 
     factory.console.info('Reading %s from shopfloor', self.param_pathname)
     shopfloor_client = shopfloor.GetShopfloorConnection()
-    # pylint: disable=eval-used
-    return eval(shopfloor_client.GetParameter(self.param_pathname).data)
+    return ast.literal_eval(
+        shopfloor_client.GetParameter(self.param_pathname).data)
 
   def _CalculateTiming(self):
     """Calculates the timing of each test stage to self.timing."""

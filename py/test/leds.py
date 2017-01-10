@@ -7,6 +7,7 @@
 """Routines to modify keyboard LED state.
 """
 
+import ast
 import fcntl
 import logging
 import os
@@ -139,7 +140,7 @@ if __name__ == '__main__':
   William Tell otherwise.
   """
   if len(sys.argv) > 1:
-    blinker = Blinker(eval(sys.argv[1]))  # pylint: disable=eval-used
+    blinker = Blinker(ast.literal_eval(sys.argv[1]))
   else:
     DURATION_SCALE = .125
 

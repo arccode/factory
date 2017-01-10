@@ -7,6 +7,7 @@
 from __future__ import print_function
 
 import argparse
+import ast
 import collections
 import itertools
 import math
@@ -636,7 +637,7 @@ def main():
   args = parser.parse_args()
 
   with open(args.params, 'r') as f:
-    params = eval(f.read())  # pylint: disable=eval-used
+    params = ast.literal_eval(f.read())
 
   try:
     results = CalculateIQ(params, args.sfr, args.white, args.vc, args.mtf)
