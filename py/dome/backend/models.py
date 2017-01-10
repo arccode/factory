@@ -57,6 +57,7 @@ UMPIRE_MATCH_KEY_MAP = {
 FACTORY_SERVER_IMAGE_NAME = 'cros/factory_server'
 DOCKER_SHARED_DIR = '/docker_shared'
 UMPIRE_DOCKER_DIR = '/docker_umpire'
+UMPIRE_DEFAULT_BOARD_FILE = '.default_board'
 UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
 # Mount point of the Umpire data folder in Dome's container. Note: this is not
@@ -281,6 +282,10 @@ class Board(django.db.models.Model):
           FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH]
       logger.info('Running command %r', cmd)
       subprocess.check_call(cmd)
+      # Update default board for 'cros_docker.sh umpire' commands.
+      with open(os.path.join(UMPIRE_BASE_DIR,
+                             UMPIRE_DEFAULT_BOARD_FILE), 'w') as f:
+        f.write(self.name)
     except Exception:
       logger.error('Failed to create Umpire container %r', container_name)
       logger.exception(traceback.format_exc())

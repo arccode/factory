@@ -86,12 +86,6 @@ upload_to_localmirror() {
   gsutil acl ch -u AllUsers:R "${remote_file_url}"
 }
 
-# Things that can be override by environment variable
-: "${UMPIRE_CONTAINER_NAME:="umpire"}"
-: "${UMPIRE_PORT:="8080"}"  # base port for Umpire
-: "${DOME_PORT:="8000"}"  # port to access Dome
-: "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord
-
 # Base directories
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_DIR="$(dirname "${SCRIPT_DIR}")"
@@ -131,6 +125,13 @@ set_docker_image_info() {
 }
 # Set DOCKER_IMAGE_* variables immediately.
 set_docker_image_info
+
+# Things that can be override by environment variable
+: "${BOARD:="$(cat "${HOST_UMPIRE_DIR}/.default_board" 2>/dev/null)"}"
+: "${UMPIRE_CONTAINER_NAME:="umpire${BOARD:+_}${BOARD}"}"
+: "${UMPIRE_PORT:="8080"}"  # base port for Umpire
+: "${DOME_PORT:="8000"}"  # port to access Dome
+: "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord
 
 ensure_dir() {
   local dir="$1"
