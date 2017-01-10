@@ -31,7 +31,7 @@ class A(json_utils.Serializable):
     return {'data': self.data}
 
   @classmethod
-  def FromDict(self, dct):
+  def FromDict(cls, dct):
     return A(dct['data'])
 
 
@@ -44,7 +44,7 @@ class B(json_utils.Serializable):
     return {'data': self.data}
 
   @classmethod
-  def FromDict(self, dct):
+  def FromDict(cls, dct):
     return B(dct['data'])
 
 
@@ -74,6 +74,7 @@ class TestJSONUtils(unittest.TestCase):
 
   def testDuplicateClassName(self):
     with self.assertRaises(RuntimeError):
+      # pylint: disable=redefined-outer-name,abstract-method,unused-variable
       class A(json_utils.Serializable):
 
         pass
@@ -92,6 +93,10 @@ class TestWalkJSONPath(unittest.TestCase):
 
     self.assertEqual(100,
                      json_utils.WalkJSONPath('.hello.world[0]', data))
+    self.assertEqual(200,
+                     json_utils.WalkJSONPath('.hello.world[-1]', data))
+    with self.assertRaises(IndexError):
+      json_utils.WalkJSONPath('.hello.world[-10]', data)
     self.assertEqual([100, 200],
                      json_utils.WalkJSONPath('.hello.world', data))
     self.assertEqual({'hello': {'world': [100, 200]}},

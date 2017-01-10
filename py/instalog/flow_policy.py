@@ -56,9 +56,9 @@ class FlowPolicy(object):
 class RuleMeta(type):
   """Metaclass to collect FlowRule classes into a class registry."""
 
-  def __new__(meta, name, bases, class_dict):
+  def __new__(mcs, name, bases, class_dict):
     """Called when a class is defined."""
-    cls = type.__new__(meta, name, bases, class_dict)
+    cls = type.__new__(mcs, name, bases, class_dict)
     if hasattr(cls, 'NAME'):
       if cls.NAME in _rule_registry:
         raise RuntimeError('Multiple serializable classes with name "%s"'
@@ -143,6 +143,10 @@ class HistoryRule(Rule):
         # Special case for the 'position' key.
         if key == 'position':
           lhs = position
+          # If the specified position is negative, we need to
+          # check against the negated index.
+          if operation.rhs < 0:
+            lhs -= len(event.history)
         else:
           lhs = getattr(process_stage, key)
 

@@ -63,7 +63,7 @@ class TestFlowPolicy(unittest.TestCase):
   def testAllowDoubleMatch(self):
     policy = flow_policy.FlowPolicy(
         allow=[{'rule': 'history', 'node_id': 'node_id2'},
-                     {'rule': 'history', 'plugin_id': 'plugin_id'}])
+               {'rule': 'history', 'plugin_id': 'plugin_id'}])
     self.assertTrue(policy.MatchEvent(_SAMPLE_EVENT))
 
   def testAllowDenyMatch(self):
@@ -102,6 +102,16 @@ class TestHistoryRule(unittest.TestCase):
         node_id='node_id2',
         position=1)
     self.assertTrue(rule.MatchEvent(_SAMPLE_EVENT))
+
+  def testNegativePosition(self):
+    rule1 = flow_policy.HistoryRule(
+        node_id='node_id1',
+        position=-2)
+    self.assertTrue(rule1.MatchEvent(_SAMPLE_EVENT))
+    rule2 = flow_policy.HistoryRule(
+        node_id='node_id2',
+        position=-1)
+    self.assertTrue(rule2.MatchEvent(_SAMPLE_EVENT))
 
   def testPositionMismatch(self):
     rule = flow_policy.HistoryRule(

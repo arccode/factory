@@ -90,8 +90,8 @@ _decoder = JSONDecoder(class_registry=_class_registry)
 class SerializableMeta(type):
   """Metaclass to collect Serializable classes into a class registry."""
 
-  def __new__(meta, name, bases, class_dict):
-    cls = type.__new__(meta, name, bases, class_dict)
+  def __new__(mcs, name, bases, class_dict):
+    cls = type.__new__(mcs, name, bases, class_dict)
     if cls.__name__ in _class_registry:
       raise RuntimeError('Multiple serializable classes with name "%s"'
                          % cls.__name__)
@@ -157,9 +157,10 @@ def WalkJSONPath(json_path, data):
   Example:
     {'hello': {'world': [100, 200]}}
 
-    ".hello.world[0]" ==> 100
-    ".hello.world"    ==> [100, 200]
-    "."               ==> {'hello': {'world': [100, 200]}}
+    ".hello.world[0]"  ==> 100
+    ".hello.world[-1]" ==> 200
+    ".hello.world"     ==> [100, 200]
+    "."                ==> {'hello': {'world': [100, 200]}}
   """
   def ChompNextPart(json_path):
     """Splits the JSON path into the next operator, and everything else."""
