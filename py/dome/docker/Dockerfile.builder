@@ -7,7 +7,7 @@
 # dependencies. The dependencies are really big and we don't want to pull them
 # all into the running image since they are useless after the build.
 
-FROM node:4.5-slim
+FROM node:6.9-slim
 MAINTAINER Mao Huang <littlecvr@google.com>
 
 # mixing ARG and ENV to make CMD able to use the variable, this technique is
