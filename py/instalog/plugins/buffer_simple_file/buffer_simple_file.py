@@ -405,6 +405,10 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         cur_seq = self.last_seq + 1
         cur_pos = self.end_pos - self.start_pos
         with open(self.data_path, 'a') as f:
+          # On some machines, the file handle offset isn't set to EOF until
+          # a write occurs.  Thus we must manually seek to the end to ensure
+          # that f.tell() will return useful results.
+          f.seek(0, 2)  # 2 means use EOF as the reference point.
           assert f.tell() == cur_pos
           for staged_event in staged_events:
             self.debug('Writing event with cur_seq=%d, cur_pos=%d',

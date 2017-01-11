@@ -138,11 +138,9 @@ class TestBufferSimpleFile(unittest.TestCase):
     case, the length of e2(GARBAGE) would be included in the length of event e.
     """
     self.sf.Produce([self.e1])
-    with open(self.sf.data_path, 'a') as f:
-      e1_end = f.tell()
+    e1_end = os.path.getsize(self.sf.data_path)
     self.sf.Produce([self.e2])
-    with open(self.sf.data_path, 'a') as f:
-      e2_end = f.tell()
+    e2_end = os.path.getsize(self.sf.data_path)
 
     # Corrupt event e2 by writing garbage at the end.
     with open(self.sf.data_path, 'r+') as f:
