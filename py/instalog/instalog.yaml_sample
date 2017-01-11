@@ -13,7 +13,7 @@ buffer:
 input:
   time:
     plugin: 'input_time'
-    target: 'stdout'
+    targets: 'stdout'
     args:
       interval: 10
       num_attachments: 1
