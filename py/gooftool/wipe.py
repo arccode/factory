@@ -281,6 +281,13 @@ def _UnmountStatefulPartition(root, state_dev):
     return [int(line)
             for line in process_utils.SpawnOutput(lsof_cmd).splitlines()]
 
+  def _ListMinijail():
+    # Not sure why, but if we use 'minijail0', then we can't find processes that
+    # starts with /sbin/minijail0.
+    list_cmd = ['pgrep', 'minijail']
+    return [int(line)
+            for line in process_utils.SpawnOutput(list_cmd).splitlines()]
+
   proc_list = _ListProcOpening(mount_point_list)
 
   if os.getpid() in proc_list:
@@ -307,11 +314,8 @@ def _UnmountStatefulPartition(root, state_dev):
   proc_list = _ListProcOpening(mount_point_list)
   assert not proc_list, "processes using stateful partition: %s" % proc_list
 
-  os.unlink(os.path.join(root, 'var', 'run'))
-  os.unlink(os.path.join(root, 'var', 'lock'))
-
   def _Unmount(mount_point, critical):
-    logging.info('try to unmount %s' % mount_point)
+    logging.info('try to unmount %s', mount_point)
     for unused_i in xrange(10):
       output = process_utils.Spawn(['umount', '-n', '-R', mount_point],
                                    read_stderr=True, log=True).stderr_data
@@ -320,11 +324,17 @@ def _UnmountStatefulPartition(root, state_dev):
           output.endswith(': not found\n')):
         return
       time.sleep(0.5)
-    logging.error('failed to unmount %s' % mount_point)
+    logging.error('failed to unmount %s', mount_point)
     if critical:
       raise RuntimeError('Unmounting %s is critical. Stop.')
 
   if os.path.exists(os.path.join(root, 'dev', 'mapper', 'encstateful')):
+
+    # minijail will make encstateful busy, but usually we can't just kill them.
+    # Need to list the processes and solve each-by-each.
+    proc_list = _ListMinijail()
+    assert not proc_list, "processes still using minijail: %s" % proc_list
+
     # Doing what 'mount-encrypted umount' should do.
     for mount_point in mount_point_list:
       _Unmount(mount_point, False)
