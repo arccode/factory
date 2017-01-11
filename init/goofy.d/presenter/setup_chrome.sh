@@ -17,6 +17,8 @@ fi
 mount --bind "${conf_file}" /etc/chrome_dev.conf
 
 # For factory environment, we don't need to preserve Chrome session data.
+# /home/chronos may have been mounted by stateful partition and encstateful.
+umount -R /home/chronos || true
 mount -t tmpfs none /home/chronos
 
 # Enable all debug-friendly features, by information from following page:
