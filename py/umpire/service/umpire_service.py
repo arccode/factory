@@ -592,6 +592,7 @@ class UmpireService(object):
       return failure
 
     deferreds = [p.Stop() for p in self.processes]
+    self.processes = set()
     deferred = utils.ConcentrateDeferreds(deferreds)
     deferred.addCallbacks(HandleStopResult, HandleStopFailure)
     return deferred
