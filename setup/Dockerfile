@@ -73,9 +73,12 @@ ADD "build/docker/${umpire_builder_output_file}" /usr/local/bin/
 COPY py/dome/nginx.conf /etc/nginx/nginx.conf
 COPY py/dome/uwsgi.ini py/dome/manage.py py/dome/requirements.txt "${dome_dir}/"
 RUN pip install --no-cache-dir -r "${dome_dir}/requirements.txt"
+COPY py/instalog/requirements.txt "${instalog_dir}/"
+RUN pip install --no-cache-dir -r "${instalog_dir}/requirements.txt"
 
 ARG overlord_output_file="overlord.tar.gz"
 ADD "build/docker/${overlord_output_file}" "${server_dir}/bin/"
+RUN ln -s "${instalog_dir}/cli.py" "/usr/bin/instalog"
 
 # these files are likely to change often, put them at the end
 ARG dome_builder_output_file="frontend.tar"
