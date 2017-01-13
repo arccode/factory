@@ -131,8 +131,8 @@ class OutputArchive(plugin_base.OutputPlugin):
           # We still need the file for the emit() call.
           shutil.copyfile(tmp_path, target_path)
         else:
-          # We don't need the file anymore, so use rename.
-          os.rename(tmp_path, target_path)
+          # We don't need the file anymore, so use move.
+          shutil.move(tmp_path, target_path)
       if self.args.enable_emit:
         self.info('Emitting event with attachment %s', archive_filename)
         event = datatypes.Event(
