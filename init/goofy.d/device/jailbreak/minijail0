@@ -1,17 +1,17 @@
-#!/bin/sh
+#!/usr/bin/env python
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# This is a stub that simulates minijail0, without running process in jail.
-# Strip parameters (-*) and stop if -- was found.
-while [ "$1" != "${1#-}" ]; do
-  if [ "$1" = "--" ]; then
-    # exec accepts "--", no need to shift again.
-    break
-  else
-    shift
-  fi
-done
+import getopt
+import os
+import sys
 
-exec "$@"
+
+# copied from aosp/external/minijail/minijail0.c
+OPT_STRING = 'u:g:sS:c:C:P:b:V:f:m::M::k:a:e::T:vrGhHinNplLtIUKY'
+
+
+if __name__ == '__main__':
+  args = getopt.getopt(sys.argv[1:], OPT_STRING)[1]
+  os.execvp(args[0], args)
