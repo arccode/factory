@@ -39,6 +39,7 @@ main() {
   # TODO(deanliao): make interrupt_handler as a service.
   ${DOLPHIN_SERVER_BIN} ${BOARD} &
   ${WHALE_SERVO_BIN} &
+  wait
 }
 
 main

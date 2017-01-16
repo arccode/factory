@@ -1,8 +1,10 @@
-CrOS Factor Init: Main
-======================
+# CrOS Factory Init: Main
+
 This folder supports running programs when the *factory* service on a
 ChromiumOS factory test image starts. To add your own program, create a
-`NAME.sh` in `main.d` folder.
+`NAME.sh` in `main.d` folder. All these services will run in parallel.
+If you need a service to start (and finish) before all services here,
+put it in the `main.d/pre-start` folder.
 
 If the `NAME.sh` has `+x` file mode set, it's default enabled; otherwise it is
 default disabled (and will be executed by sh).

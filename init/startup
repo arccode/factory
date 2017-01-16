@@ -10,6 +10,7 @@ GOOFY_ROLES=""
 # exists, and the path it points to also exists, the script will try to install
 # factory toolkit from that path.
 INSTALL_REQUEST_FILE="${INIT_BASE}/install"
+IS_PARALLEL=
 
 export INIT_BASE GOOFY_ROLES
 
@@ -54,13 +55,21 @@ execute_rules() {
       log "Skipping disabled ${rule_file}..."
       continue
     fi
-    log "Applying ${rule_file}..."
-    if [ -x "${rule_file}" ]; then
-      "${rule_file}"
+    # In UNIX we cannot wait for grandchildren (which will become children of
+    # init when its parent = our children exists), so we have to put the logic
+    # here.
+    if [ -n "${IS_PARALLEL}" ]; then
+      log "Applying ${rule_file} in parallel..."
+      sh "${rule_file}" &
     else
+      log "Applying ${rule_file}..."
       sh "${rule_file}"
     fi
   done
+}
+
+execute_rules_in_parallel() {
+  IS_PARALLEL=true execute_rules "$@"
 }
 
 factory_install() {
@@ -127,13 +136,16 @@ factory_init() {
 }
 
 factory_main() {
-  log "Starting ChromeOS factory main program..."
-  execute_rules main.d
+  log "Running ChromeOS factory main program pre-start jobs..."
+  execute_rules main.d/pre-start
   # Unlike factory_init, the main programs may need to run in parallel for a
   # long time and occupy the session time of factory.conf so we have to wait
   # until all children processes finished.
+  log "Starting ChromeOS factory main program in parallel..."
+  execute_rules_in_parallel main.d
+  log "All main programs started, waiting to finish..."
   wait
-  log "All main programs finished. Stopped."
+  log "Finished all main programs. Factory job stopped."
 }
 
 main() {
