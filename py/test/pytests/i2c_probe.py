@@ -3,33 +3,24 @@
 # found in the LICENSE file.
 
 """Uses i2cdetect utility to probe for I2C devices on a specific bus.
+
+This pytest will be deprecated and replaced by "probe" pytest later.
 """
 
-import re
+import json
+import logging
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import event_log
+from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test.utils import deploy_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
+from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
-
-_RE_DEVICE_FOUND = re.compile('^(UU|[0-9a-f]{2})$')
 
 
 class I2CProbeTest(unittest.TestCase):
-
-  def DeviceExists(self, i2c_result):
-    """Returns true if i2c_result indicates that the device exists."""
-    # Ignore first line.
-    i2c_result = i2c_result[i2c_result.find('\n'):]
-    return any(_RE_DEVICE_FOUND.match(f) for f in i2c_result.split())
-
-  def ProbeI2C(self, bus, addr, r_flag):
-    cmd = 'i2cdetect %s -y %d 0x%x 0x%x' % ('-r ' if r_flag else '',
-                                            bus, addr, addr)
-    return self.DeviceExists(process_utils.SpawnOutput(cmd.split(), log=True))
 
   ARGS = [
       Arg('bus', int, 'I2C bus to probe.', optional=True),
@@ -44,6 +35,10 @@ class I2CProbeTest(unittest.TestCase):
           optional=True)
   ]
 
+  def setUp(self):
+    self._dut = device_utils.CreateDUTInterface()
+    self.factory_tools = deploy_utils.FactoryPythonArchive(self._dut)
+
   def runTest(self):
     self.assertTrue(self.args.bus is not None or self.args.auto_detect_device,
                     'You should assign bus or enable auto detect')
@@ -57,9 +52,28 @@ class I2CProbeTest(unittest.TestCase):
 
     if type(addr_list) != list:
       addr_list = [addr_list]
-    probed_result = [self.ProbeI2C(bus, addr, r_flag) for addr in addr_list]
-    event_log.Log('ic2_probed',
-                  result=probed_result, bus=bus, addr_list=addr_list)
-    self.assertTrue(any(probed_result),
-                    'No I2C device on bus %d addr %s' %
-                    (bus, ', '.join(['0x%x' % addr for addr in addr_list])))
+
+    probe_config = {'i2c_category':{}}
+    for addr in addr_list:
+      probe_config['i2c_category']['device_%s' % addr] = {
+          'eval': {
+              'i2c': {
+                  'bus_number': str(bus),
+                  'addr': '0x%x' % addr,
+                  'use_r_flag': r_flag}},
+          'expect': {}}
+    logging.info('probe config: %s', probe_config)
+
+    with file_utils.UnopenedTemporaryFile(suffix='.json') as config_file:
+      with open(config_file, 'w') as f:
+        json.dump(probe_config, f)
+
+      # Execute Probe.
+      cmd = ['probe', '-v', 'probe', config_file]
+      factory.console.info('Call the command: %s', ' '.join(cmd))
+      probed_results = json.loads(self.factory_tools.CheckOutput(cmd))
+      count = sum(len(comps) for comps in probed_results['i2c_category'].values())
+      self.assertGreaterEqual(count, 1,
+                              'No I2C device on bus %d addr %s' %
+                              (bus, ', '.join(['0x%x' % addr
+                                               for addr in addr_list])))

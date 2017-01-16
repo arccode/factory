@@ -1,0 +1,26 @@
+{
+  "device_category": {
+    "device_1": {
+      "eval": {
+        "i2c": {
+          "bus_number": "0",
+          "addr": "0x15",
+          "use_r_flag": true
+        }
+      },
+      "expect": {}
+    },
+
+    "device_2": {
+      "eval": {
+        "i2c": {
+          "bus_name": "Google I2C adapter",
+          "bus_path": "/sys/devices/pci0000:00/0000:00:02.0",
+          "addr": "0x15",
+          "use_r_flag": true
+        }
+      },
+      "expect": {}
+    }
+  }
+}
