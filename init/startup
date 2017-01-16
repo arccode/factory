@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-INIT_BASE="$(dirname $(readlink -f $0))"
+INIT_BASE="$(dirname "$(readlink -f "$0")")"
 GOOFY_ROLES=""
 
 # The request file contains the path to the factory toolkit. If this file
@@ -130,7 +130,7 @@ factory_init() {
   log "Goofy roles: ${GOOFY_ROLES}"
 
   for role in ${GOOFY_ROLES}; do
-    execute_rules goofy.d/${role}
+    execute_rules "goofy.d/${role}"
   done
   log "All initialization finished."
 }
@@ -149,11 +149,10 @@ factory_main() {
 }
 
 main() {
-  exec 2>&1
   mkdir -p /var/log
-  log_file=/var/log/factory-init.log
-  local mode="init"
+  local log_file=/var/log/factory-init.log
 
+  local mode="init"
   if [ "$#" -gt 0 ]; then
     mode="$1"
   fi
@@ -162,11 +161,11 @@ main() {
     main )
       # Developers may try to start factory main several times so we want to
       # append the logs.
-      factory_main | tee -a "${log_file}"
+      factory_main 2>&1 | tee -a "${log_file}"
       ;;
     init )
       # Init should be invoked only one time so we want to re-create the logs.
-      factory_init | tee "${log_file}"
+      factory_init 2>&1 | tee "${log_file}"
       ;;
     * )
       log "Unknown mode: ${mode}." | tee "${log_file}"

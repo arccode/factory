@@ -13,7 +13,7 @@ ulimit -c unlimited || true
 
 FACTORY="$(dirname "$(dirname "$(readlink -f "$0")")")"
 FACTORY_LOG_FILE=/var/factory/log/factory.log
-SESSION_LOG_FILE=/var/log/factory_session.log
+SESSION_LOG_FILE=/var/log/factory-session.log
 INTERACTIVE_CONSOLES=""
 LOG_PROCESSES=""
 
@@ -94,7 +94,9 @@ show_interactive_console() {
     if [ "${vt_index}" = "${tty}" ]; then
       continue
     fi
-    chvt "${vt_index}" && return || true
+    if chvt "${vt_index}"; then
+      return
+    fi
   done
 }
 
@@ -106,7 +108,7 @@ load_setup() {
   fi
 
   if [[ -f ${AUTOMATION_MODE_TAG_FILE} ]]; then
-    local mode="$(cat ${AUTOMATION_MODE_TAG_FILE})"
+    local mode="$(cat "${AUTOMATION_MODE_TAG_FILE}")"
     if [[ -n "${mode}" ]]; then
       echo "Enable factory test automation with mode: ${mode}"
       GOOFY_ARGS="${GOOFY_ARGS} --automation-mode=${mode}"
@@ -209,7 +211,7 @@ start_factory() {
 
   check_disk_usage
 
-  if [ -z "$(status ui | grep start)" ]; then
+  if status ui | grep -vq start; then
     echo "Request to start UI..."
     start -n ui &
   fi
@@ -232,6 +234,7 @@ start_factory() {
     fi
     # Note presenter output is only kept in SESSION_LOG_FILE.
     echo "Starting Goofy Presenter... ($PRESENTER_ARGS)"
+    # shellcheck disable=SC2086
     "$FACTORY/bin/goofy_presenter" $PRESENTER_ARGS &
   elif [ ! -f "${tag_device}" ]; then
     # Monolithic mode.
@@ -243,6 +246,7 @@ start_factory() {
     echo "
     --- $(date +'%Y%m%d %H:%M:%S') Starting new Goofy session ($GOOFY_ARGS) ---
          " >>"$FACTORY_LOG_FILE"
+    # shellcheck disable=SC2086
     "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
   fi
 
@@ -252,6 +256,8 @@ start_factory() {
 stop_factory() {
   # Try to kill X, and any other Python scripts, five times.
   echo -n "Stopping factory."
+  local i
+  # shellcheck disable=SC2034
   for i in $(seq 5); do
     pkill 'python' || break
     sleep 1
