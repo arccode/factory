@@ -57,8 +57,9 @@ class RaidenCCFlipCheck(unittest.TestCase):
       Arg('adb_remote_test', bool, 'Run test against remote ADB target.',
           default=False),
       Arg('raiden_index', int, 'Index of DUT raiden port'),
-      Arg('original_enabled_cc', str, 'Original enabled CC line.',
-          default='CC1'),
+      Arg('original_enabled_cc', str, 'Set "CC1" or "CC2" if you want to check '
+          'what CC pin is enabled now. There is no check if it is not set.',
+          optional=True),
       Arg('ask_flip_operation', bool,
           'Determine whether to ask operator to flip cable.',
           default=False),
@@ -182,7 +183,8 @@ class RaidenCCFlipCheck(unittest.TestCase):
       self._ui.Fail('DUT does not detect cable flipped. Was it really flipped?')
 
   def runTest(self):
-    if (self._polarity != self.args.original_enabled_cc and
+    if (self.args.original_enabled_cc is not None and
+        self._polarity != self.args.original_enabled_cc and
         not self._bft_fixture.IsDoubleCCCable()):
       self.fail('Original polarity is wrong (expect: %s, got: %s). '
                 'Does Raiden cable connect in correct direction?' %
