@@ -170,16 +170,9 @@ const startUploadingBundle = data => (dispatch, getState) => {
 
   // send the request
   var description = `Upload bundle "${data.name}"`;
-  var bundleFile = data.bundleFile;
-  delete data.bundleFile;
   dispatch(DomeActions.createTask(
-      description, 'POST', `${baseURL(getState)}/bundles`, data, {
-        onFinish,
-        onCancel,
-        files: {
-          'bundleFileId': bundleFile
-        }
-      }
+      description, 'POST', `${baseURL(getState)}/bundles`, data,
+      {onFinish, onCancel}
   ));
 };
 
@@ -187,8 +180,8 @@ const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
   dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM));
 
   var onCancel = buildOnCancel(dispatch, getState);
-  var srcBundleName = data.srcBundleName;
-  var dstBundleName = data.dstBundleName;
+  var srcBundleName = data.name;
+  var dstBundleName = 'newName' in data ? data.newName : '';
 
   // optimistic update
   var bundle = findBundle(srcBundleName, getState);
@@ -223,16 +216,9 @@ const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
   if (dstBundleName != '') {
     description += ` to bundle "${dstBundleName}"`;
   }
-  var resourceFile = data.resourceFile;
-  delete data.resourceFile;
   dispatch(DomeActions.createTask(
-      description, 'PUT', `${baseURL(getState)}/resources`, data, {
-        onFinish,
-        onCancel,
-        files: {
-          'resourceFileId': resourceFile
-        }
-      }
+      description, 'PUT', `${baseURL(getState)}/bundles/${srcBundleName}`, data,
+      {onFinish, onCancel}
   ));
 };
 

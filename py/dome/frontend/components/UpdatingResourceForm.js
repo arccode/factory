@@ -55,15 +55,22 @@ var UpdatingResourceForm = React.createClass({
       return;
     }
 
-    var data = {
+    let resourceType = this.props.resourceType;
+    let data = {
       board:  this.props.board,
-      isInplaceUpdate:  this.state.isInPlaceUpdate,
-      srcBundleName:  this.props.bundleName,
-      dstBundleName:  this.state.nameInputValue,
+      name:  this.props.bundleName,
       note:  this.state.noteInputValue,
-      resourceType:  this.props.resourceType,
-      resourceFile:  this.fileInput.files[0]
+      resources: {
+        [resourceType]: {
+          'type': resourceType,
+          'file': this.fileInput.files[0]
+        }
+      }
     };
+    if (!this.state.isInPlaceUpdate) {
+      data['newName'] = this.state.nameInputValue;
+    }
+
     this.props.startUpdating(this.props.resourceKey, data);
   },
 

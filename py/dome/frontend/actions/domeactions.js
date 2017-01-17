@@ -9,7 +9,6 @@ import TaskStates from '../constants/TaskStates';
 
 // Objects that cannot be serialized in the store.
 // TODO(littlecvr): probably should move this into a TaskQueue class.
-var _taskFiles = {};
 var _taskBodies = {};
 var _taskOnFinishes = {};
 var _taskOnCancels = {};
@@ -27,6 +26,36 @@ function checkHTTPStatus(response) {
 function buildOnCancel(dispatch, getState) {
   var boardsSnapshot = getState().getIn(['dome', 'boards']).toList().toJS();
   return () => dispatch(receiveBoards(boardsSnapshot));
+}
+
+function recursivelyUploadFileFields(data, queue = null) {
+  if (queue === null) {
+    // create a queue one if none is given
+    queue = Promise.resolve();
+  }
+
+  for (let key in data) {
+    if (!data.hasOwnProperty(key)) {
+      continue;  // only care about own properties
+    }
+    if (data[key] instanceof File) {
+      let formData = new FormData();
+      formData.append('file', data[key]);
+      queue = queue
+          .then(() => fetch('/files/', {method: 'POST', body: formData}))
+          .then(checkHTTPStatus)
+          .then(response => response.json())
+          .then(json => {
+            // replace `${key}` with `${key}Id` and set it to the file ID
+            delete data[key];
+            data[`${key}Id`] = json.id;
+          });
+    } else if (data[key] instanceof Object) {
+      queue = recursivelyUploadFileFields(data[key], queue);
+    }
+  }
+
+  return queue;
 }
 
 const createBoard = name => dispatch => {
@@ -156,8 +185,7 @@ const changeTaskState = (taskID, state) => ({
 //                  complicated
 const createTask = (description, method, url, body, {
                       onCancel = function() {},
-                      onFinish = function() {},
-                      files = {}
+                      onFinish = function() {}
                     } = {}) => (
   (dispatch, getState) => {
     var tasks = getState().getIn(['dome', 'tasks']);
@@ -168,7 +196,6 @@ const createTask = (description, method, url, body, {
       taskID = String(1 + Math.max(...taskIDs.map(x => parseInt(x))));
     }
 
-    _taskFiles[taskID] = files;
     _taskBodies[taskID] = body;
     _taskOnFinishes[taskID] = onFinish;
     _taskOnCancels[taskID] = onCancel;
@@ -197,7 +224,6 @@ const createTask = (description, method, url, body, {
 
 const removeTask = taskID => dispatch => {
   taskID = String(taskID);  // make sure taskID is always a string
-  delete _taskFiles[taskID];
   delete _taskBodies[taskID];
   delete _taskOnFinishes[taskID];
   delete _taskOnCancels[taskID];
@@ -219,18 +245,8 @@ const startTask = taskID => (dispatch, getState) => {
 
   let queue = Promise.resolve();  // task queue powered by Promise
 
-  // upload files first
-  Object.keys(_taskFiles[taskID]).forEach(key => {
-    let formData = new FormData();
-    formData.append('file', _taskFiles[taskID][key]);
-    queue = queue
-        .then(() => fetch('/files/', {method: 'POST', body: formData}))
-        .then(checkHTTPStatus)
-        .then(response => response.json())
-        .then(json => {
-          body[key] = json.id;  // push the uploaded file ID to the end request
-        });
-  });
+  // go through the body and upload files first
+  queue = recursivelyUploadFileFields(body, queue);
 
   // send the end request
   queue = queue.then(() => {
