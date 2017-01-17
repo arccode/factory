@@ -25,7 +25,8 @@ from instalog.external import yaml
 
 
 # The default number of seconds to wait before giving up on a flush.
-_FLUSH_DEFAULT_TIMEOUT = 30
+_DEFAULT_FLUSH_TIMEOUT = 30
+_DEFAULT_STOP_TIMEOUT = 10
 
 
 class InstalogService(daemon_utils.Daemon):
@@ -120,7 +121,7 @@ class InstalogCLI(object):
     if args.cmd == 'start':
       self.Start(args.foreground)
     elif args.cmd == 'stop':
-      self.Stop()
+      self.Stop(args.timeout)
     elif args.cmd == 'restart':
       self.Restart()
     elif args.cmd == 'status':
@@ -150,7 +151,7 @@ class InstalogCLI(object):
 
   def Restart(self):
     """Restarts the daemon."""
-    self.Stop()
+    self.Stop(_DEFAULT_STOP_TIMEOUT)
     self.Start(False)
 
   def Start(self, foreground):
@@ -187,7 +188,7 @@ class InstalogCLI(object):
     print('Daemon could not be brought up, check the logs')
     sys.exit(1)
 
-  def Stop(self):
+  def Stop(self, timeout):
     """Stops the daemon."""
     # First, send the "stop" instruction to the daemon.
     print('Stopping...')
@@ -199,7 +200,7 @@ class InstalogCLI(object):
 
     # Then, wait for the process to come down.
     try:
-      sync_utils.WaitFor(self._service.IsStopped, 10)
+      sync_utils.WaitFor(self._service.IsStopped, timeout)
     except type_utils.TimeoutError:
       print('Still shutting down?')
       sys.exit(1)
@@ -250,6 +251,10 @@ if __name__ == '__main__':
 
   stop_parser = subparsers.add_parser('stop', help='stop Instalog')
   stop_parser.set_defaults(cmd='stop')
+  stop_parser.add_argument(
+      '--timeout', '-w', type=float,
+      required=False, default=_DEFAULT_STOP_TIMEOUT,
+      help='time to wait before giving up')
 
   restart_parser = subparsers.add_parser('restart', help='restart Instalog')
   restart_parser.set_defaults(cmd='restart')
@@ -269,7 +274,7 @@ if __name__ == '__main__':
   flush_parser.set_defaults(cmd='flush')
   flush_parser.add_argument(
       '--timeout', '-w', type=float,
-      required=False, default=_FLUSH_DEFAULT_TIMEOUT,
+      required=False, default=_DEFAULT_FLUSH_TIMEOUT,
       help='time to wait before giving up')
   flush_parser.add_argument(
       'plugin_id', type=str, nargs='?', default=None,
