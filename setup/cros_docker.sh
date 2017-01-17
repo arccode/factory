@@ -103,6 +103,7 @@ HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
 PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
 PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
 GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
+CHANGES_FILE=
 
 # Remote resources
 RESOURCE_PBZIP2_URL="https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz"
@@ -657,6 +658,7 @@ do_build() {
 # This function must run in ${FACTORY_DIR}.
 do_update_docker_image_version() {
   local script_file="$1"
+  local changes_file="$2"
 
   # Check local modification.
   if [ -n "$(git status --porcelain)" ]; then
@@ -683,15 +685,16 @@ do_update_docker_image_version() {
       go/src
   )
 
-  local changes="$(git log --format=format:%s ${DOCKER_IMAGE_GITHASH}.. \
-                   "${source_list[@]}")"
-  if [ -z "${changes}" ]; then
+  git log --oneline ${DOCKER_IMAGE_GITHASH}.. "${source_list[@]}" \
+    >"${changes_file}"
+
+  if [ -s "${changes_file}" ]; then
+    echo "Server related changes since last build (${DOCKER_IMAGE_BUILD}):"
+    cat "${changes_file}"
+    echo "---"
+  else
     # TODO(hungte) Make an option to allow forced publishing.
     die "No server related changes since last publish."
-  else
-    echo "Server related changes since last build (${DOCKER_IMAGE_BUILD}):"
-    echo "${changes}"
-    echo "---"
   fi
 
   local branch_name="$(git rev-parse --abbrev-ref HEAD)"
@@ -724,8 +727,10 @@ do_commit_docker_image_release()
 
 A new release of cros_docker image on ${DOCKER_IMAGE_TIMESTAMP},
 built from source using hash ${DOCKER_IMAGE_GITHASH}.
-
 Published as ${DOCKER_IMAGE_FILENAME}.
+
+Major changes:
+$(cat "${CHANGES_FILE}")
 
 BUG=chromium:679609
 TEST=None"
@@ -738,7 +743,10 @@ do_publish() {
   check_gsutil
 
   local script_file="$(readlink -f "$0")"
-  (cd "${FACTORY_DIR}" && do_update_docker_image_version "${script_file}") ||
+  CHANGES_FILE="$(mktemp)"
+  TEMP_OBJECTS=("${CHANGES_FILE}" "${TEMP_OBJECTS[@]}")
+  (cd "${FACTORY_DIR}" && \
+    do_update_docker_image_version "${script_file}" "${CHANGES_FILE}") ||
     die "Failed updating docker image version."
 
   do_reload_docker_image_info "${script_file}"
