@@ -41,6 +41,7 @@ RUN apk upgrade --no-cache && apk add --no-cache \
   rsync \
   tar \
   unzip \
+  util-linux \
   uwsgi-python \
   && apk add --no-cache \
   --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ \
