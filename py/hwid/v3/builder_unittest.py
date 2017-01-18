@@ -435,16 +435,28 @@ class DatabaseBuilderTest(unittest.TestCase):
                       [{'cpu_field': 1}, {'cpu_field': 1}, {'cpu_field': 1}])
 
   def testAddPattern(self):
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[3])
+    origin_db = self.test_dbs[5]
+    db_builder = builder.DatabaseBuilder(db=origin_db)
+    # Add region and ro_main_firmware.
     db_builder.AddRegions(['us', 'tw'])
+    comp_name = db_builder.AddComponent('ro_main_firmware',
+                                        {'version': 'RO_MAIN_0'})
+    db_builder.AddEncodedField('ro_main_firmware', comp_name)
+
     db_builder._AddPattern(2)
-    self.assertEquals(db_builder.db['pattern'][0]['image_ids'], [0, 1])
+    self.assertEquals(db_builder.db['pattern'][0]['image_ids'],
+                      origin_db['pattern'][0]['image_ids'])
     self.assertEquals(db_builder.db['pattern'][0]['fields'],
-                      [{'cpu_field': 1}, {'cpu_field': 1}])
+                      origin_db['pattern'][0]['fields'])
     self.assertEquals(db_builder.db['pattern'][1]['image_ids'], [2])
     self.assertEquals(db_builder.db['pattern'][1]['fields'],
-                      [{'region_field': 8}, {'cpu_field': 2}])
-
+                      [{'board_version_field': 3},
+                       {'region_field': 5},
+                       {'customization_id_field': 5},
+                       {'cpu_field': 3},
+                       {'storage_field': 5},
+                       {'dram_field': 5},
+                       {'ro_main_firmware_field': 3}])
 
 
 if __name__ == '__main__':

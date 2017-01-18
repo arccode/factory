@@ -1,5 +1,7 @@
 # 0. Regular probed result.
 found_probe_value_map:
+  board_version:
+    name: rev1
   region:
     region_code: us
   customization_id:

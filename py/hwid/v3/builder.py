@@ -26,9 +26,25 @@ DB_KEY = type_utils.Enum(['checksum', 'board', 'encoding_patterns', 'image_id',
                           'pattern', 'encoded_fields', 'components', 'rules'])
 _NEED_IMAGE_ID_MSG = 'Please assign a image_id by adding "--image-id" argument.'
 
+# The components that are always be created at the front of the pattern,
+# even if they don't exist in the probe results.
+ESSENTIAL_COMPS = OrderedDict([
+    ('board_version', 3),
+    ('region', 5),
+    ('customization_id', 5),
+    ('cpu', 3),
+    ('storage', 5),
+    ('dram', 5)])
+
+# The components that are added in order if they exist in the probe results.
+PRIORITY_COMPS = OrderedDict([
+    ('firmware_keys', 3),
+    ('ro_main_firmware', 3),
+    ('ro_ec_firmware', 2)])
+
 
 def DefaultBitSize(comp_cls):
-  """Return the default bit size of the components.
+  """Returns the default bit size of the components.
 
   Args:
     comp_cls: the component class name.
@@ -36,22 +52,11 @@ def DefaultBitSize(comp_cls):
   Returns:
     the default bit size of the componenet.
   """
-  return {
-      'region': 8,
-      'customization_id': 5,
-      'firmware_keys': 3,
-      'ro_main_firmware': 3,
-      'ro_ec_firmware': 3,
-      'ro_pd_firmware': 3,
-      'board_version': 3,
-      'dram': 1,
-      'cpu': 1,
-      'battery': 1,
-      'storage': 1}.get(comp_cls, 0)
+  return ESSENTIAL_COMPS.get(comp_cls, PRIORITY_COMPS.get(comp_cls, 0))
 
 
 def _FilterSpecialCharacter(string):
-  """Filter special case and transfer all seperated character to underline."""
+  """Filters special case and transfer all seperated character to underline."""
   string = re.sub(r'[: .-]+', '_', string)
   string = re.sub(r'[^A-Za-z0-9_]+', '', string)
   string = re.sub(r'[_]+', '_', string)
@@ -62,7 +67,7 @@ def _FilterSpecialCharacter(string):
 
 
 def DetermineComponentName(comp_cls, value):
-  """Determine the componenet name by the value.
+  """Determines the componenet name by the value.
 
   For some specific components, we can determine a meaningful name by the
   component value. For example the value contains the vendor name, or the part
@@ -95,7 +100,7 @@ def DetermineComponentName(comp_cls, value):
 
 
 def PromptAndAsk(question_str, default_answer=True):
-  """Prompt the question and ask user to decide yes or no.
+  """Prompts the question and asks user to decide yes or no.
 
   If the first character user enter is not 'y' nor 'n', the method returns the
   default answer.
@@ -115,7 +120,7 @@ def PromptAndAsk(question_str, default_answer=True):
 
 
 def ChecksumUpdater():
-  """Find the checksum updater in the chromium source tree.
+  """Finds the checksum updater in the chromium source tree.
 
   Returns:
     a function if found. otherwise return None.
@@ -134,7 +139,7 @@ def ChecksumUpdater():
 
 
 def ExtractProbedResult(probed_results):
-  """Extract the useful probed result.
+  """Extracts the useful probed result.
 
   We ignore the data in `initial_configs` and `missing_component_classes`, and
   ignore the value which is not a dict or a list of dicts.
@@ -157,7 +162,7 @@ def ExtractProbedResult(probed_results):
 
 
 class DatabaseBuilder(object):
-  """Build the database.
+  """Builds the database.
 
   We have these restrictions:
   1. Only the latest (maximum) image_id is availible.
@@ -171,9 +176,6 @@ class DatabaseBuilder(object):
       class.
   """
 
-  COMMON_COMPONENT_LIST = [
-      'cpu', 'storage', 'wireless', 'flash_chip',
-      'region', 'firmware_keys', 'ro_main_firmware']
   IGNORED_COMPONENT_SET = set([
       'hash_gbb',  # Bitmap is not stored in GBB, so we don't track hash_gbb.
       'key_root', 'key_recovery',  # firmware_keys is used to track them.
@@ -212,7 +214,7 @@ class DatabaseBuilder(object):
         (DB_KEY.rules, [])])
 
   def _SplitEncodedField(self):
-    """Split encoded_field if it has multiple components."""
+    """Splits encoded_field if it has multiple components."""
     new_field_comps = set()
     for field_cls in self.GetLatestFields():
       comp_set = set()
@@ -364,7 +366,7 @@ class DatabaseBuilder(object):
     return ret
 
   def AddDefaultComponent(self, comp_cls):
-    logging.info('Component %s: add a default item.', comp_cls)
+    logging.info('Component [%s]: add a default item.', comp_cls)
     if comp_cls in self.db[DB_KEY.components]:
       raise ValueError('The component %s already existed. '
                        'It cannot add default item' % comp_cls)
@@ -383,12 +385,12 @@ class DatabaseBuilder(object):
     return comp_name
 
   def AddNullComponent(self, comp_cls):
-    logging.info('Component %s: add a null item.', comp_cls)
+    logging.info('Component [%s]: add a null item.', comp_cls)
     self.AddComponent(comp_cls, None)
     self.AddEncodedField(comp_cls, None)
 
   def AddComponent(self, comp_cls, comp_value, comp_name=None):
-    """Try to add a item in the component, and return the name.
+    """Tries to add a item in the component, and return the name.
 
     If the item already exists, then return the name. Otherwise, add the item
     with the assigned name and return it. If the component value is None, then
@@ -403,7 +405,6 @@ class DatabaseBuilder(object):
     Returns:
       the component name.
     """
-
     def _MatchComponentValue(db_comp_value, comp_value):
       if set(db_comp_value.keys()) - set(comp_value):
         return False
@@ -451,10 +452,16 @@ class DatabaseBuilder(object):
         'status': 'unqualified',
         'values': comp_value})
 
+    # Deprecate the default component.
+    for value in db_comp_items.values():
+      if value.get('default', False) is True:
+        logging.info('Deprecate the default component of %s', comp_cls)
+        value['status'] = 'unsupported'
+
     return comp_name
 
   def DeleteComponentClass(self, comp_cls):
-    """Delete the component class.
+    """Deletes the component class.
 
     When the component does not exist in the device, we should remove it from
     the database. But actually we cannot delete it. So we only set the component
@@ -471,7 +478,7 @@ class DatabaseBuilder(object):
     self.active_fields.discard(field_cls)
 
   def AddEncodedField(self, comp_cls, comp_name):
-    """Add an item to the encoded_field.
+    """Adds an item to the encoded_field.
 
     Args:
       comp_cls: the component class.
@@ -615,34 +622,39 @@ class DatabaseBuilder(object):
         ('image_ids', [image_id_idx]),
         ('encoding_scheme', 'base8192'),
         ('fields', [])])
-    fields_data = []
+    bit_table = {}
     for field_cls in self.active_fields:
       field_count = max(self.db[DB_KEY.encoded_fields][field_cls].keys()) + 1
       bit_count = max(DefaultBitSize(self.GetComponentClass(field_cls)),
                       int(math.ceil(math.log(field_count, 2))))
-      fields_data.append([field_cls, bit_count])
+      bit_table[field_cls] = bit_count
 
-    # Put the priority field first, and align the 5-3-5 bit field.
-    priority_fields_cls = [self.GetFieldClass(comp_cls)
-                           for comp_cls in ['region', 'customization_id']]
-    priority_fields_data = []
-    for field_cls in priority_fields_cls:
-      for idx, data in enumerate(fields_data):
-        if data[0] == field_cls:
-          priority_fields_data.append(data)
-          fields_data.pop(idx)
-          break
+    # Put the essential field first, and align the 5-3-5 bit field.
+    fields_data = []
     bit_iter = itertools.cycle([5, 3, 5])
     bit_iter.next()  # Skip the first field, which is for image_id.
-    for field_data in priority_fields_data:
+    for comp_cls in ESSENTIAL_COMPS:
+      field_cls = self.GetFieldClass(comp_cls)
       count = 0
-      while count < field_data[1]:
+      if field_cls not in bit_table:
+        raise ValueError('Essential field [%s] are missing.' % field_cls)
+      while count < bit_table[field_cls]:
         count += bit_iter.next()
-      field_data[1] = count
+      fields_data.append({field_cls: count})
+      del bit_table[field_cls]
+    # Put the priority components.
+    for comp_cls in PRIORITY_COMPS:
+      field_cls = self.GetFieldClass(comp_cls)
+      if field_cls in bit_table:
+        fields_data.append({field_cls: bit_table[field_cls]})
+        del bit_table[field_cls]
+    # Put remaining components.
+    for field_cls, bit_count in sorted(bit_table.items(),
+                                       key=lambda x: x[1], reverse=True):
+      fields_data.append({field_cls: bit_count})
 
-    fields_data.sort(key=lambda x: x[1], reverse=True)
-    fields_data = priority_fields_data + fields_data
-    new_pattern['fields'] = [{field_cls: bit} for field_cls, bit in fields_data]
+    assert len(fields_data) == len(self.active_fields)
+    new_pattern['fields'] = fields_data
     self.db[DB_KEY.pattern].append(new_pattern)
 
   def _AddImageID(self, image_id):
@@ -674,15 +686,25 @@ class DatabaseBuilder(object):
 
     If the component class has the default item or the null item, or the
     probeable is False, then the result can be missing.
+
+    Args:
+      comp_cls: the component class. It should already exist at the database.
+
+    Returns:
+      True if the component is unprobeable, or it has a default item or a null
+      item.
     """
     if self.db[DB_KEY.components][comp_cls].get('probeable', True) is False:
       return True
     field_cls = self.GetFieldClass(comp_cls)
+    # Has the null item.
     for field_item in self.db[DB_KEY.encoded_fields][field_cls].values():
-      if field_item[comp_cls] is None:  # Null item.
+      if field_item[comp_cls] is None:
         return True
+    # Has the default item.
     for comp_item in self.db[DB_KEY.components][comp_cls]['items'].values():
-      if comp_item.get('default', False) is True:  # Default item.
+      if (comp_item.get('default', False) is True and
+          comp_item.get('status', 'supported') != 'unsupported'):
         return True
     return False
 
@@ -696,19 +718,23 @@ class DatabaseBuilder(object):
       raise ValueError('The probed result should not have the components: %r' %
                        list(error_comps))
 
-    # Check the missing components.
-    common_list = set(self.COMMON_COMPONENT_LIST) - ignore_comps
+    # Check the missing essential components.
+    common_list = set(ESSENTIAL_COMPS.keys()) - ignore_comps
     for comp_cls in common_list:
       if comp_cls not in probed_results:
-        # Ask user to skip or add a default item.
-        add_default = PromptAndAsk(
-            'Component %s: The probe result is missing. '
-            'Do you want to add a default item?\n'
-            'If the probed code is not ready yet, please enter "Y".\n'
-            'If the device does not have the component, please enter "N".'
-            % comp_cls, False)
-        if add_default:
-          self.AddDefaultComponent(comp_cls)
+        if (comp_cls not in self.db[DB_KEY.components] or
+            not self.MayOmitProbeResult(comp_cls)):
+          # Ask user to add a default item or a null item.
+          add_default = PromptAndAsk(
+              'Component [%s] is essential but the probe result is missing. '
+              'Do you want to add a default item?\n'
+              'If the probed code is not ready yet, please enter "Y".\n'
+              'If the device does not have the component, please enter "N".'
+              % comp_cls, default_answer=True)
+          if add_default:
+            self.AddDefaultComponent(comp_cls)
+          else:
+            self.AddNullComponent(comp_cls)
 
     # Check the missing components at the active component list.
     # The active fields might be changed during the loop, so iterate the copy.
@@ -745,7 +771,7 @@ class DatabaseBuilder(object):
 
   def Update(self, probed_results, image_id, add_default_comp, add_null_comp,
              del_comp, region, customization_id):
-    """Update the database by the probed result and arguments.
+    """Updates the database by the probed result and arguments.
 
     Args:
       probed_results: None or a dict containing the probed results generated by
@@ -763,37 +789,47 @@ class DatabaseBuilder(object):
     add_null_comp = set() if add_null_comp is None else set(add_null_comp)
     del_comp = set() if del_comp is None else set(del_comp)
 
-    # Add default items for assigned components.
+    # Add default and null items for assigned components.
     for comp_cls in add_default_comp:
       self.AddDefaultComponent(comp_cls)
     for comp_cls in add_null_comp:
       self.AddNullComponent(comp_cls)
     for comp_cls in del_comp:
+      if comp_cls in ESSENTIAL_COMPS:
+        raise ValueError('Component [%s] is essential, cannot be deleted. '
+                         'Please remove the "--del-component %s" argument.' %
+                         (comp_cls, comp_cls))
       self.DeleteComponentClass(comp_cls)
 
     # Update the value in the probed result.
     if probed_results:
       self._UpdateProbedResult(probed_results, add_default_comp | del_comp)
 
-    # Handle region and customization_id
-    region_set = set()
+    # Handle region. Default: us
+    region_set = set(region) if region else set()
     if 'region' in probed_results:
       region_set.add(probed_results['region']['region_code'])
-    if region:
-      region_set |= set(region)
     if not region_set and 'region' not in self.db[DB_KEY.components]:
-      logging.info('No region is assigned. Set default region "us".')
+      logging.info('No region is assigned. Set default region "%s".',
+                   self.DEFAULT_REGION)
       region_set.add(self.DEFAULT_REGION)
     if region_set:
       self.AddRegions(region_set)
-    if customization_id:
-      self.AddCustomizationID(customization_id)
+    # Handle customization_id. Default: NULL
+    customization_id_set = set(customization_id) if customization_id else set()
+    if 'customization_id' in probed_results:
+      customization_id_set.add(probed_results['customization_id']['id'])
+    if customization_id_set:
+      self.AddCustomizationID(customization_id_set)
+    elif 'customization_id' not in self.db[DB_KEY.components]:
+      logging.info('No customization_id is assigned. Add NULL component.')
+      self.AddNullComponent('customization_id')
 
     # Update the image_id and pattern.
     self.HandleImageIdAndPattern(image_id)
 
   def HandleImageIdAndPattern(self, image_id=None):
-    """Update the image_id and pattern.
+    """Updates the image_id and pattern.
 
     If the active encoded_fields is changed, i.e. there is a new component or
     removed component, then we need a new pattern and a new image_id. Because
@@ -815,7 +851,7 @@ class DatabaseBuilder(object):
     self.Verify()
 
   def Verify(self):
-    """Verify that the database meets the restriction or not.
+    """Verifies that the database meets the restriction or not.
 
     Raises:
       ValueError if any error occurs.
@@ -883,7 +919,7 @@ class DatabaseBuilder(object):
       raise ValueError('\n'.join(error_msg))
 
   def Render(self, database_path):
-    """Render the database to a yaml file.
+    """Renders the database to a yaml file.
 
     Args:
       database_path: the path of the output yaml file.

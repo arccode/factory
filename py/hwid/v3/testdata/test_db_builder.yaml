@@ -534,3 +534,74 @@ components:
 rules:
 - name: device_info.image_id
   evaluate: SetImageId('EVT')
+---
+# 5. Only contains the essential components without region.
+# Dummy line before checksum
+checksum: b59a2d0f33f25f11760b957303026e334c1b8189
+# Dummy line after checksum
+board: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: DVT
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base8192
+    fields:
+    - board_version_field: 3
+    - customization_id_field: 5
+    - cpu_field: 1
+    - storage_field: 5
+    - dram_field: 5
+    - cpu_field: 1
+
+encoded_fields:
+  board_version_field:
+    0:
+      board_version: board_version_0
+  customization_id_field:
+    0:
+      customization_id: cpu_0
+  cpu_field:
+    0:
+      cpu: cpu_0
+  storage_field:
+    0:
+      storage: storage_0
+  dram_field:
+    0:
+      dram: dram_0
+
+components:
+  board_version:
+    items:
+      board_version_0:
+        values: {name: board_version_0}
+  region:
+    items:
+      region_0:
+        values: {name: region_0}
+  customization_id:
+    items:
+      customization_id_0:
+        values: {name: customization_id_0}
+  cpu:
+    items:
+      cpu_0:
+        values: {name: CPU @ 1.80GHz}
+  storage:
+    items:
+      storage_0:
+        values: {name: storage_0}
+  dram:
+    items:
+      dram_0:
+        values: {name: dram_0}
+
+rules:
+- name: device_info.image_id
+  evaluate: SetImageId('DVT')

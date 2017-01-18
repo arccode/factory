@@ -441,30 +441,39 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertEquals(db['image_id'], {0: 'EVT'})
     self.assertEquals(db['pattern'][0]['image_ids'], [0])
     self.assertEquals(db['pattern'][0]['encoding_scheme'], 'base8192')
-    active_fields = [{'region_field': 8},
-                     {'customization_id_field': 5},
-                     {'ro_main_firmware_field': 3},
-                     {'firmware_keys_field': 3},
-                     {'ro_pd_firmware_field': 3},
-                     {'ro_ec_firmware_field': 3},
-                     {'storage_field': 1},
-                     {'cpu_field': 1},
-                     {'dram_field': 1},
-                     {'wireless_field': 0},
-                     {'display_panel_field': 0},
-                     {'tpm_field': 0},
-                     {'flash_chip_field': 0},
-                     {'audio_codec_field': 0},
-                     {'usb_hosts_field': 0},
-                     {'bluetooth_field': 0}]
-    for field in active_fields:
+    priority_fields = [
+        # Essential fields.
+        {'board_version_field': 3},
+        {'region_field': 5},
+        {'customization_id_field': 5},
+        {'cpu_field': 3},
+        {'storage_field': 5},
+        {'dram_field': 5},
+        # Priority fields.
+        {'firmware_keys_field': 3},
+        {'ro_main_firmware_field': 3},
+        {'ro_ec_firmware_field': 2}]
+    other_fields = [
+        {'ro_pd_firmware_field': 0},
+        {'wireless_field': 0},
+        {'display_panel_field': 0},
+        {'tpm_field': 0},
+        {'flash_chip_field': 0},
+        {'audio_codec_field': 0},
+        {'usb_hosts_field': 0},
+        {'bluetooth_field': 0}]
+    # The priority fields should be at the front of the fields in order.
+    self.assertEquals(priority_fields,
+                      db['pattern'][0]['fields'][:len(priority_fields)])
+    # The order of other fields are not guaranteed.
+    for field in other_fields:
       self.assertIn(field, db['pattern'][0]['fields'])
     self.assertEquals(set(db['components'].keys()),
                       set(['dram', 'ro_pd_firmware', 'ro_main_firmware', 'tpm',
                            'storage', 'flash_chip', 'bluetooth', 'wireless',
                            'display_panel', 'audio_codec', 'firmware_keys',
                            'ro_ec_firmware', 'usb_hosts', 'cpu', 'region',
-                           'customization_id']))
+                           'board_version', 'customization_id']))
     self.assertEquals(db['rules'],
                       [{'name': 'device_info.image_id',
                         'evaluate': "SetImageId('EVT')"}])
@@ -504,29 +513,82 @@ class DatabaseBuilderTest(unittest.TestCase):
     # Check the value.
     self.assertEquals(new_db['board'], 'CHROMEBOOK')
     self.assertEquals(new_db['image_id'], {0: 'EVT', 1: 'DVT'})
-    active_fields = [{'region_field': 8},
-                     {'customization_id_field': 5},
-                     {'ro_main_firmware_field': 3},
-                     {'firmware_keys_field': 3},
-                     {'ro_pd_firmware_field': 3},
-                     {'ro_ec_firmware_field': 3},
-                     {'storage_field': 1},
-                     {'cpu_field': 1},
-                     {'dram_field': 1},
-                     {'wireless_field': 0},
-                     {'display_panel_field': 0},
-                     {'tpm_field': 0},
-                     {'flash_chip_field': 0},
-                     {'audio_codec_field': 0},
-                     {'usb_hosts_field': 0}]
-    for field in active_fields:
-      self.assertIn(field, new_db['pattern'][1]['fields'])
     self.assertNotIn({'bluetooth_field': 0}, new_db['pattern'][1]['fields'])
     self.assertIn({'region': 'us'},
                   new_db['encoded_fields']['region_field'].values())
     self.assertIn('NEW', new_db['components']['customization_id']['items'])
     self.assertIn({'customization_id': 'NEW'},
                   new_db['encoded_fields']['customization_id_field'].values())
+
+  def testBuildDatabaseMissingEssentailComponent(self):
+    """Tests the essential component is missing at the probe result."""
+    # Essential component 'board_version' is missing in probed result.
+    probed_result = copy.deepcopy(self.probed_results[0])
+    del probed_result['found_probe_value_map']['board_version']
+
+    # Deleting the essential component is not allowed.
+    with self.assertRaises(ValueError):
+      hwid_utils.BuildDatabase(
+          self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
+          del_comp=['board_version'])
+
+    # Enter "y" to create a default item, or use add_default_comp argument.
+    expected = {
+        'board_version_default': {
+            'default': True,
+            'status': 'unqualified',
+            'values': None}}
+    with mock.patch('__builtin__.raw_input', return_value='y'):
+      hwid_utils.BuildDatabase(
+          self.output_path, probed_result, 'CHROMEBOOK', 'EVT')
+    with open(self.output_path, 'r') as f:
+      db = yaml.load(f.read())
+    self.assertEquals(db['components']['board_version']['items'], expected)
+    hwid_utils.BuildDatabase(
+        self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
+        add_default_comp=['board_version'])
+    with open(self.output_path, 'r') as f:
+      db = yaml.load(f.read())
+    self.assertEquals(db['components']['board_version']['items'], expected)
+
+    # Enter "n" to create a default item, or use add_null_comp argument.
+    with mock.patch('__builtin__.raw_input', return_value='n'):
+      hwid_utils.BuildDatabase(
+          self.output_path, probed_result, 'CHROMEBOOK', 'EVT')
+    with open(self.output_path, 'r') as f:
+      db = yaml.load(f.read())
+    self.assertEquals(db['components']['board_version']['items'], {})
+    self.assertEquals(db['encoded_fields']['board_version_field'],
+                      {0: {'board_version': None}})
+    hwid_utils.BuildDatabase(
+        self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
+        add_null_comp=['board_version'])
+    with open(self.output_path, 'r') as f:
+      db = yaml.load(f.read())
+    self.assertEquals(db['components']['board_version']['items'], {})
+    self.assertEquals(db['encoded_fields']['board_version_field'],
+                      {0: {'board_version': None}})
+
+  def testDeprecateDefaultItem(self):
+    """Tests the default item should be deprecated after adding a item."""
+    probed_result = copy.deepcopy(self.probed_results[0])
+    del probed_result['found_probe_value_map']['board_version']
+    hwid_utils.BuildDatabase(
+        self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
+        add_default_comp=['board_version'])
+    with open(self.output_path, 'r') as f:
+      db = yaml.load(f.read())
+    self.assertEquals(
+        db['components']['board_version']['items']['board_version_default'],
+        {'default': True,
+         'status': 'unqualified',
+         'values': None})
+    hwid_utils.UpdateDatabase(self.output_path, self.probed_results[0], db)
+    self.assertEquals(
+        db['components']['board_version']['items']['board_version_default'],
+        {'default': True,
+         'status': 'unsupported',
+         'values': None})
 
 
 if __name__ == '__main__':
