@@ -7,8 +7,6 @@ MYDIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_BASE="/usr/local/factory"
 
 CONFIG_FILE="${MYDIR}/../run_whale_servo"
-SERVOD_DIR="/var/lib/servod"
-SERVOD_CONFIG="${SERVOD_DIR}/config"
 
 SHILL_BIN="/usr/bin/shill"
 DISABLED_BIN="${FACTORY_BASE}/sh/disabled.sh"
@@ -22,9 +20,7 @@ DOLPHIN_SERVER_BIN="${FACTORY_BASE}/py/test/fixture/whale/host/dolphin_server"
 start_servod() {
   . ${CONFIG_FILE}
   if [ -n "${BOARD}" ]; then
-    mkdir -p ${SERVOD_DIR}
-    echo "BOARD=${BOARD}" >${SERVOD_CONFIG}
-    start servod
+    start servod "BOARD=${BOARD}"
   else
     echo "Unable to resolve BOARD name"
   fi
