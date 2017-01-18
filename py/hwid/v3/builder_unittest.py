@@ -222,13 +222,33 @@ class DatabaseBuilderTest(unittest.TestCase):
       idx = db_builder.AddEncodedField('foo', 'INVALID_NAME')
 
   def testIsNewPatternNeeded(self):  # pylint: disable=
+    # New database with no existed pattern.
     db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
-    self.assertTrue(db_builder._IsNewPatternNeeded())
+    self.assertTrue(db_builder._IsNewPatternNeeded(True))
+    with self.assertRaises(ValueError):
+      db_builder._IsNewPatternNeeded(False)
 
+    # Delete a existed component from database.
     db_builder = builder.DatabaseBuilder(db=copy.deepcopy(self.test_dbs[0]))
-    self.assertFalse(db_builder._IsNewPatternNeeded())
+    self.assertFalse(db_builder._IsNewPatternNeeded(True))
+    self.assertFalse(db_builder._IsNewPatternNeeded(False))
+
     db_builder.DeleteComponentClass('audio_codec')
-    self.assertTrue(db_builder._IsNewPatternNeeded())
+    self.assertTrue(db_builder._IsNewPatternNeeded(True))
+    with self.assertRaises(ValueError):
+      db_builder._IsNewPatternNeeded(False)
+
+    # Add a new component into database.
+    db_builder = builder.DatabaseBuilder(db=copy.deepcopy(self.test_dbs[0]))
+    db_builder.AddDefaultComponent('FAKE_COMPONENT')
+    self.assertTrue(db_builder._IsNewPatternNeeded(True))
+    # The user confirms to add the new component into the existed pattern.
+    with mock.patch('__builtin__.raw_input', return_value='y'):
+      self.assertFalse(db_builder._IsNewPatternNeeded(False))
+    # The user does not confirm to add the new component.
+    with mock.patch('__builtin__.raw_input', return_value='n'):
+      with self.assertRaises(ValueError):
+        db_builder._IsNewPatternNeeded(False)
 
   def testTransferLegacyField(self):
     '''Test the transfering legacy region and customization_id.'''

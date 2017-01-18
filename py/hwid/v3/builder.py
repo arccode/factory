@@ -24,6 +24,8 @@ from cros.factory.utils import type_utils
 
 DB_KEY = type_utils.Enum(['checksum', 'board', 'encoding_patterns', 'image_id',
                           'pattern', 'encoded_fields', 'components', 'rules'])
+_NEED_IMAGE_ID_MSG = 'Please assign a image_id by adding "--image-id" argument.'
+
 
 def DefaultBitSize(comp_cls):
   """Return the default bit size of the components.
@@ -269,6 +271,8 @@ class DatabaseBuilder(object):
 
     # Change the region field name.
     new_field_cls = 'new_' + field_cls
+    logging.info('Change region field name from %s to %s.',
+                 field_cls, new_field_cls)
     self.active_fields.discard(field_cls)
     self.active_fields.add(new_field_cls)
     self.comp_field_map[comp_cls] = new_field_cls
@@ -406,6 +410,8 @@ class DatabaseBuilder(object):
     # Find the component already exists or not.
     db_comp_items = self.db[DB_KEY.components][comp_cls]['items']
     for name, value in db_comp_items.iteritems():
+      if value.get('default', False):  # Ignore the default item.
+        continue
       if _MatchComponentValue(value['values'], comp_value):
         logging.debug('Component %s already exists the item with %s. Skip.',
                       comp_cls, comp_value)
@@ -418,8 +424,8 @@ class DatabaseBuilder(object):
 
     # Deprecate 'compact_str' if possible.
     if 'compact_str' in comp_value and len(comp_value) > 1:
-        comp_value = comp_value.copy()
-        comp_value.pop('compact_str')
+      comp_value = comp_value.copy()
+      comp_value.pop('compact_str')
 
     if comp_name is None:
       comp_name = DetermineComponentName(comp_cls, comp_value)
@@ -445,7 +451,9 @@ class DatabaseBuilder(object):
       return
     self.db[DB_KEY.components][comp_cls]['probeable'] = False
     # Remove from the active_fields
-    self.active_fields.discard(comp_cls + self.FIELD_SUFFIX)
+    field_cls = self.GetFieldClass(comp_cls)
+    logging.info('Remove %s from the active fields.', field_cls)
+    self.active_fields.discard(field_cls)
 
   def AddEncodedField(self, comp_cls, comp_name):
     """Add an item to the encoded_field.
@@ -502,6 +510,7 @@ class DatabaseBuilder(object):
     else:
       for region in regions:
         self.db[DB_KEY.encoded_fields][field_cls].AddRegion(region)
+    logging.info('Enable the encoded_field "%s".', field_cls)
     self.active_fields.add(field_cls)
 
   def AddCustomizationID(self, customization_ids):
@@ -513,25 +522,71 @@ class DatabaseBuilder(object):
     if self.db[DB_KEY.components][comp_cls].get('probeable', True) is False:
       self.db[DB_KEY.components][comp_cls]['probeable'] = True
 
-  def _IsNewPatternNeeded(self):
-    if not self.db[DB_KEY.pattern]:
-      return True
-    return self.active_fields != self.GetLatestFields()
+  def _IsNewPatternNeeded(self, has_new_image_id):
+    """Determines whether the new pattern is needed.
+
+    Args:
+      has_new_image_id: a boolean indicating that a new image_id is assigned.
+
+    Returns:
+      True if the new pattern is needed.
+
+    Raises:
+      ValueError if image_id is None and a new image_id is needed.
+    """
+    latest_fields = self.GetLatestFields()
+    if has_new_image_id:
+      if not self.db[DB_KEY.pattern]:
+        return True
+      return self.active_fields != latest_fields
+    else:
+      if not self.db[DB_KEY.pattern]:
+        raise ValueError()
+      # If any fields is deleted, then we must need a new pattern.
+      deleted_fields = latest_fields - self.active_fields
+      if deleted_fields:
+        raise ValueError('The fields "%s" are deleted. %s',
+                         ', '.join(deleted_fields), _NEED_IMAGE_ID_MSG)
+      extra_fields = self.active_fields - latest_fields
+      if extra_fields:
+        if PromptAndAsk(
+            'WARNING: Extra fields [%s] without assigning a new image_id.\n'
+            'If the fields are added into the current pattern, the index of '
+            'these fields will be encoded to index 0 for all old HWID string. '
+            'Enter "y" if you are sure all old devices with old HWID string '
+            'have the component with index 0.' %
+            ','.join(extra_fields), default_answer=False) is False:
+          raise ValueError(_NEED_IMAGE_ID_MSG)
+      return False
 
   def _UpdatePattern(self, image_id_idx=None):
+    """Updates the latest pattern.
+
+    We count the components for each active field, and add the encoded bits if
+    not enough. If the new image_id is assigned, add the index into the pattern.
+    Adding new fields are allowed while updating the pattern if the user
+    confirms all the old devices have the component with index 0.
+
+    Args:
+      image_id_idx: the index of the new image_id.
+    """
+    logging.info('Update the latest pattern.')
     # Calculate the bit size is enough or not.
     latest_pattern = self.GetLatestPattern()
     bit_count_map = defaultdict(int)
     for field in latest_pattern['fields']:
       field_cls, bits = field.items()[0]
       bit_count_map[field_cls] += bits
-    assert set(bit_count_map.keys()) == self.active_fields
+    # Only check that no field is deleted.
+    assert not set(bit_count_map.keys()) - self.active_fields
 
+    latest_fields = self.GetLatestFields()
     for field_cls in self.active_fields:
       field_count = max(self.db[DB_KEY.encoded_fields][field_cls].keys()) + 1
       bit_count = int(math.ceil(math.log(field_count, 2)))
       bit_increase = bit_count - bit_count_map[field_cls]
-      if bit_increase > 0:
+      if field_cls not in latest_fields or bit_increase > 0:
+        logging.info('Add field "%s": %s bits', field_cls, bit_increase)
         latest_pattern['fields'].append({field_cls: bit_increase})
 
     # Add the image_id index if exists
@@ -539,6 +594,7 @@ class DatabaseBuilder(object):
       latest_pattern['image_ids'].append(image_id_idx)
 
   def _AddPattern(self, image_id_idx):
+    logging.info('Create a new pattern.')
     new_pattern = OrderedDict([
         ('image_ids', [image_id_idx]),
         ('encoding_scheme', 'base8192'),
@@ -574,6 +630,8 @@ class DatabaseBuilder(object):
     self.db[DB_KEY.pattern].append(new_pattern)
 
   def _AddImageID(self, image_id):
+    if image_id is None:
+      return None
     if image_id in self.db[DB_KEY.image_id].values():
       raise ValueError('%s is already in the database.')
     # TODO(akahuang): Determine the build order. Disallow EVT after DVT
@@ -688,18 +746,14 @@ class DatabaseBuilder(object):
       image_id: None or a string containing the new image_id.
 
     Raises:
-      ValueError if image_id is None and a new image_id is needed.
+      ValueError if:
+        1. image_id is already existed in current database.
+        2. image_id is None and a new image_id is needed.
     """
-    if self._IsNewPatternNeeded():
-      logging.info('Create a new pattern.')
-      if image_id is None:
-        raise ValueError('Need new image_id.')
-      image_id_idx = self._AddImageID(image_id)
+    image_id_idx = self._AddImageID(image_id)
+    if self._IsNewPatternNeeded(image_id_idx is not None):
       self._AddPattern(image_id_idx)
     else:
-      image_id_idx = None
-      if image_id is not None:
-        image_id_idx = self._AddImageID(image_id)
       self._UpdatePattern(image_id_idx)
     self.Verify()
 

@@ -8,10 +8,11 @@
 
 import copy
 import logging
+import mock
 import os
+import tempfile
 import unittest
 import yaml
-import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v2 import hwid_tool
@@ -468,15 +469,29 @@ class DatabaseBuilderTest(unittest.TestCase):
                       [{'name': 'device_info.image_id',
                         'evaluate': "SetImageId('EVT')"}])
 
+    # Add a component without a new image_id.
+    probed_result = self.probed_results[0].copy()
+    probed_result['found_probe_value_map']['touchpad'] = {'name': 'G_touchpad'}
+    new_db = copy.deepcopy(db)
+    with mock.patch('__builtin__.raw_input', return_value='n'):
+      with self.assertRaises(ValueError):
+        hwid_utils.UpdateDatabase(self.output_path, probed_result, new_db)
+
+    new_db = copy.deepcopy(db)
+    with mock.patch('__builtin__.raw_input', return_value='y'):
+      hwid_utils.UpdateDatabase(self.output_path, probed_result, new_db)
+    self.assertIn({'touchpad_field': 0}, new_db['pattern'][0]['fields'])
+
     # Delete bluetooth, and add region and customization_id.
+    new_db = copy.deepcopy(db)
     hwid_utils.UpdateDatabase(
-        self.output_path, None, db, 'DVT',
+        self.output_path, None, new_db, 'DVT',
         add_comp=None, del_comp=['bluetooth'],
         region=['us'], customization_id=['NEW'])
     database.Database.LoadFile(self.output_path, verify_checksum)
     # Check the value.
-    self.assertEquals(db['board'], 'CHROMEBOOK')
-    self.assertEquals(db['image_id'], {0: 'EVT', 1: 'DVT'})
+    self.assertEquals(new_db['board'], 'CHROMEBOOK')
+    self.assertEquals(new_db['image_id'], {0: 'EVT', 1: 'DVT'})
     active_fields = [{'region_field': 8},
                      {'customization_id_field': 5},
                      {'ro_main_firmware_field': 3},
@@ -493,13 +508,13 @@ class DatabaseBuilderTest(unittest.TestCase):
                      {'audio_codec_field': 0},
                      {'usb_hosts_field': 0}]
     for field in active_fields:
-      self.assertIn(field, db['pattern'][1]['fields'])
-    self.assertNotIn({'bluetooth_field': 0}, db['pattern'][1]['fields'])
+      self.assertIn(field, new_db['pattern'][1]['fields'])
+    self.assertNotIn({'bluetooth_field': 0}, new_db['pattern'][1]['fields'])
     self.assertIn({'region': 'us'},
-                  db['encoded_fields']['region_field'].values())
-    self.assertIn('NEW', db['components']['customization_id']['items'])
+                  new_db['encoded_fields']['region_field'].values())
+    self.assertIn('NEW', new_db['components']['customization_id']['items'])
     self.assertIn({'customization_id': 'NEW'},
-                  db['encoded_fields']['customization_id_field'].values())
+                  new_db['encoded_fields']['customization_id_field'].values())
 
 
 if __name__ == '__main__':
