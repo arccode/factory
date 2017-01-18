@@ -78,6 +78,11 @@ class Daemon(object):
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
 
+    # Register pidfile.
+    self._RegisterPID()
+
+  def _RegisterPID(self):
+    """Saves the PID and registers a handler to remove the file on exit."""
     # Remove pidfile when exiting.
     atexit.register(self._RemovePID)
 
@@ -129,10 +134,15 @@ class Daemon(object):
       sys.stderr.write(message % self.pidfile)
       sys.exit(1)
 
-    # Start the daemon.
-    if not foreground:
-      if self._Daemonize() == PARENT:
-        return
+    # Foreground mode: Registering the PID is sufficient.Daemonize if necessary.
+    if foreground:
+      self._RegisterPID()
+    # Daemon mode: Daemonize.  The function will fork and return with two
+    # possible values: PARENT or CHILD.
+    #   PARENT is the original process and should return to caller.
+    #   CHILD is the daemon and should invoke self.Run.
+    elif self._Daemonize() == PARENT:
+      return
     self.Run(foreground)
 
   def Stop(self):

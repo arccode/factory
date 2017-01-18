@@ -233,8 +233,8 @@ class Instalog(plugin_sandbox.CoreAPI):
       logging.exception(e)
 
     # In case there was some error in the Run function (exception or otherwise),
-    # call Stop at the end just in case.
-    self.Stop()
+    # call Stop synchronously at the end just in case.
+    self.Stop(True)
     logging.warning('Stopped')
 
   def _Start(self):
@@ -253,9 +253,21 @@ class Instalog(plugin_sandbox.CoreAPI):
     with self._rpc_lock:
       return self._state is UP
 
-  def Stop(self):
+  def Stop(self, sync=False):
+    """Stops Instalog.
+
+    Args:
+      sync: If true, only returns when Instalog has stopped running.
+    """
+    # If a Stop is already in process, return immediately.
     if self._state in (STOPPING, DOWN):
       return
+
+    # If called in asynchronous mode, kick off a thread to perform the stop.
+    if not sync:
+      threading.Thread(target=self.Stop, args=(True,)).start()
+      return
+
     self._ShutdownRPCServer()
     with self._rpc_lock:
       self._state = STOPPING
