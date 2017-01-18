@@ -62,7 +62,7 @@ var BoardsApp = React.createClass({
         textAlign: 'center'
       }}>
         {/* TODO(littlecvr): make a logo! */}
-        <h1 style={{textAlign: 'center'}}>Dome</h1>
+        <h1 style={{textAlign: 'center'}}>Board list</h1>
 
         <div style={style}>
           <Divider />

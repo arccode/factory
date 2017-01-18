@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import {amber300} from 'material-ui/styles/colors';
 import {connect} from 'react-redux';
 import Divider from 'material-ui/Divider';
 import Drawer from 'material-ui/Drawer';
@@ -24,6 +25,19 @@ const _APP_MENU_WIDTH = 250;
 const _BOARD_MENU_ITEM_PADDING_LEFT = 36;
 const _SPACE_BEFORE_TASK_LIST = 24;
 const _SPACE_AFTER_TASK_LIST = 24;
+
+const EmphasizedString = props => (
+  <span style={{fontWeight: 'bold', color: amber300}}>{props.children}</span>
+);
+
+const DomeAppBarTitle = () => (
+  <span>
+    <EmphasizedString>D</EmphasizedString>ome:
+    fact<EmphasizedString>o</EmphasizedString>ry
+    server <EmphasizedString>m</EmphasizedString>anagement
+    consol<EmphasizedString>e</EmphasizedString>
+  </span>
+);
 
 var DomeApp = React.createClass({
   propTypes: {
@@ -85,7 +99,7 @@ var DomeApp = React.createClass({
     return (
       <div style={{paddingBottom}}>
         <FixedAppBar
-          title="Dome"
+          title={<DomeAppBarTitle />}
           onLeftIconButtonTouchTap={this.toggleAppMenu}
           onHeightChange={h => this.setState({appBarHeight: h})}
           zDepth={2}  // above the drawer
