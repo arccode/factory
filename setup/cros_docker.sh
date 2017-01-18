@@ -104,6 +104,12 @@ PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
 PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
 GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
 
+# Remote resources
+RESOURCE_PBZIP2_URL="https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz"
+RESOURCE_PBZIP2_SHA1="f61e65a7616a3492815d18689c202d0685fe167d"
+RESOURCE_DOCKER_URL="https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz"
+RESOURCE_DOCKER_SHA1="a07cc33579a6e0074a53f148b26103723f81dab1"
+
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
 DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
@@ -140,6 +146,18 @@ ensure_dir() {
   local dir="$1"
   if [ ! -d "${dir}" ]; then
     sudo mkdir -p "${dir}"
+  fi
+}
+
+fetch_resource() {
+  local local_name="$1"
+  local url="$2"
+  local sha1="$3"
+
+  if [[ ! -f "${local_name}" ]] || \
+     ! echo "${sha1} ${local_name}" | sha1sum -c; then
+    rm -f "${local_name}"
+    wget "${url}" -O "${local_name}"
   fi
 }
 
@@ -527,10 +545,9 @@ do_build_umpire_deps() {
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
 
   mkdir -p "${BUILD_DIR}"
-  if [[ ! -f "${BUILD_DIR}/pbzip2.tgz" ]]; then
-    wget "https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz" \
-      -O "${BUILD_DIR}/pbzip2.tgz"
-  fi
+  fetch_resource "${BUILD_DIR}/pbzip2.tgz" \
+    "${RESOURCE_PBZIP2_URL}" "${RESOURCE_PBZIP2_SHA1}"
+
   cp "${BUILD_DIR}/pbzip2.tgz" "${temp_dir}"
   cp -r "${host_vboot_dir}" "${temp_dir}"
   cp "${deps_builder_dockerfile}" "${temp_dir}/Dockerfile"
@@ -619,8 +636,8 @@ do_build() {
 
   local dockerfile="${SCRIPT_DIR}/Dockerfile"
 
-  wget "https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz" \
-    -O "${BUILD_DIR}/docker.tgz"
+  fetch_resource "${BUILD_DIR}/docker.tgz" \
+    "${RESOURCE_DOCKER_URL}" "${RESOURCE_DOCKER_SHA1}"
 
   # need to make sure we're using the same version of docker inside the container
   ${DOCKER} build \
