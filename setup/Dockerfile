@@ -10,6 +10,12 @@ ENV PYTHONPATH="/usr/local/lib/python2.7/site-packages"
 
 ARG server_dir="/usr/local/factory"
 ARG dome_dir="${server_dir}/py/dome"
+ARG umpire_dir_in_dome
+
+# Create Umpire mount point. Normally we should mount this (and Docker will
+# create it for us) when calling the run command, but that's not the case for
+# unit tests. Not creating this directory may cause unit tests to fail.
+RUN mkdir -p "${umpire_dir_in_dome}"
 
 # pigz, py-pip, py-twisted, py-yaml, python, lighttpd, tar: Used by Umpire
 # (buzybox tar doesn't support -I, which is used in file_utils.ExtractFile)

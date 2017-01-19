@@ -111,6 +111,9 @@ DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
 DOCKER_OVERLORD_DIR="${DOCKER_BASE_DIR}/bin/overlord"
 DOCKER_OVERLORD_APP_DIR="${DOCKER_OVERLORD_DIR}/app"
 
+# Umpire's db directory mount point in Dome
+DOCKER_UMPIRE_DIR_IN_DOME="/var/db/factory/umpire"
+
 # DOCKER_IMAGE_{GITHASH,TIMESTAMP} will be updated when you publish.
 DOCKER_IMAGE_GITHASH="4084108e45c00bd1029b8b29c0df56de8a6c395d"
 DOCKER_IMAGE_TIMESTAMP="20170117161219"
@@ -486,7 +489,7 @@ do_run() {
     --volume /run \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
     --volume "${host_log_dir}:${docker_log_dir}" \
-    --volume "${HOST_UMPIRE_DIR}:/var/db/factory/umpire" \
+    --volume "${HOST_UMPIRE_DIR}:${DOCKER_UMPIRE_DIR_IN_DOME}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     uwsgi --ini uwsgi.ini
@@ -625,6 +628,7 @@ do_build() {
     --tag "${DOCKER_IMAGE_NAME}" \
     --build-arg dome_dir="${DOCKER_DOME_DIR}" \
     --build-arg server_dir="${DOCKER_BASE_DIR}" \
+    --build-arg umpire_dir_in_dome="${DOCKER_UMPIRE_DIR_IN_DOME}" \
     --build-arg umpire_builder_output_file="${umpire_builder_output_file}" \
     --build-arg dome_builder_output_file="${dome_builder_output_file}" \
     --build-arg overlord_output_file="${overlord_output_file}" \
