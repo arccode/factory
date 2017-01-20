@@ -21,6 +21,12 @@ mount --bind "${conf_file}" /etc/chrome_dev.conf
 umount -R /home/chronos || true
 mount -t tmpfs none /home/chronos
 
+# Chrome uses /var/tmp to create some sqlite database files and would raise
+# profile error if writing to /var/tmp failed (for example, encstateful full).
+# To speed up and ensure Chrome can run without problems, mount /var/tmp as
+# tmpfs.
+mount -t tmpfs none /var/tmp
+
 # Enable all debug-friendly features, by information from following page:
 # http://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-tips
 # On ToT, having disable_chrome_restart before job 'ui' starts would block

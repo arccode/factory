@@ -33,11 +33,16 @@ def GetAllVFSInfo():
   '''
   # Path from each device to the paths it is mounted at
   device_to_path = collections.defaultdict(lambda: [])
+  ignore_list = [
+      'cgroup', 'debugfs', 'devpts', 'devtmpfs', 'fusectl', 'proc', 'pstore',
+      'rootfs', 'selinuxfs', 'sysfs', 'tmpfs']
 
   for line in _Open('/etc/mtab'):
-    device, path, fs_type = line.split()[0:3]
-    if fs_type in [
-        'sysfs', 'proc', 'fusectl', 'debugfs', 'rootfs', 'pstore', 'devpts']:
+    device, path, fs_type, options = line.split()[0:4]
+    if fs_type in ignore_list or options.startswith('ro,'):
+      continue
+    # Remove files from "mount --bind".
+    if os.path.isfile(path):
       continue
     device_to_path[device].append(path)
 

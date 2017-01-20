@@ -124,43 +124,25 @@ load_setup() {
 
 # Checks disk usage and abort if running out of disk space.
 check_disk_usage() {
-  # Show error in red
-  printf "\e[1;31m"
-  if "$FACTORY/bin/disk_space"; then
-    printf "\e[0m"
+  # /tmp should be mounted as tmpfs so it should be always available.
+  local out_dir="$(mktemp -d)"
+
+  local df_output="${out_dir}/df"
+  if "${FACTORY}/bin/disk_space" >"${df_output}"; then
+    cat "${df_output}"
+    rm -rf "${out_dir}"
     return
   fi
-  echo "
-  /-\_     ___                   ___           --------+ +--------|
-  \_  \    / |______     ________| |_________  |+----+ | | +----+ |
-    \  \  /  _____. \    | .______________. |  ||    | | | |    | |
-     \_/ /  /     | |    | |              | |  ||____| | | |____| |
-         | |      | |    | |              | |  | ____  | |  ____  |
-         | |      | |    |_|  /-|   |-\_  |_|  ||    | | | |    | |
- .--.   _|/     __| |       _/  /   \_  \_     ||    | | | |    | |
-  \  \ /_ |    /    /     _/  _/      \   \    ||____| | | |____| |
-   \--\  \/    \___/     /   /         \_  \   | ______| |______  |
-                         ---/            \  |  ||               | |
-         ____________                     \/   ||  ._________.  | |
-         \ ._____.  |    ___________________   ||  | _______ |  | |
-    /-+  | |     |  |    |________ ________|   ||  | |     | |  | |
-    | |  \ |     | /             | |           ||  | |_____| |  | |
-   /  /   | \   _| |             | |           ||  |  _____  |  | |
-   | |    \  \ /  /              | |           ||  | |     | |  | |
-  /  /     \  v  /               | |           ||  | |_____| |  | |
-  | /      _>   <                | |           ||  |_________|  | |
- /  |  ___/  /\  \____   ._______| |________.  ||               | |
- |-/  /_____/  \______\  |__________________|  |/               \_|
 
-    _   _         ____  _     _      ____                       _ _ _
-   | \ | | ___   |  _ \(_)___| | __ / ___| _ __   __ _  ___ ___| | | |
-   |  \| |/ _ \  | | | | / __| |/ / \___ \| ._ \ / _\ |/ __/ _ \ | | |
-   | |\  | (_) | | |_| | \__ \   <   ___) | |_) | (_| | (_|  __/_|_|_|
-   |_| \_|\___/  |____/|_|___/_|\_\ |____/| .__/ \__,_|\___\___(_|_|_)
-                                          |_|
-  "
-  printf "\e[0m"
-  exit 1
+  # Try to setup a HTTP server for Chrome to display.
+  local out_file="${out_dir}/index.html"
+  local template_file="${FACTORY}/misc/no_space.html"
+  mkdir -p "${out_dir}"
+  sed -i -e "s/ \[/\\n [/g" "${df_output}"
+  find /var -size +100M -print0 | xargs -0 du -sh | sort -hr >>"${df_output}"
+  sed -e "/DISK_USAGE_INFO/r ${df_output}" "${template_file}" >"${out_file}"
+  # This should be the port specified by chrome_dev.conf.
+  exec busybox httpd -f -p 4012 -h "${out_dir}"
 }
 
 # Initialize system TTY.
@@ -231,6 +213,10 @@ start_factory() {
     start -n ui &
   fi
   start_system_services &
+
+  # It's hard to display any messages under Frecon, and Chrome usually starts
+  # even when disk is full, so we want to check disk usage after UI started.
+  check_disk_usage
 
   export DISPLAY=":0"
   export XAUTHORITY="/home/chronos/.Xauthority"
