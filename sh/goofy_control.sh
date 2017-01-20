@@ -189,6 +189,21 @@ init_network() {
   ifconfig lo up
 }
 
+start_system_services() {
+  # Wait for server 'ui' to be ready, and send LoginPromptVisible so
+  # boot-complete -> system-services can move on. This was done in Goofy by
+  # waiting for connection, but we've found that on recent systems Chrome may
+  # need system services to be ready before it can start entering main page.
+  while status ui | grep -qv start/running; do
+    sleep 1
+  done
+  echo "Job [ui] is up, sending EmitLoginPromptVisible request..."
+  dbus-send --system --dest=org.chromium.SessionManager \
+    --print-reply /org/chromium/SessionManager \
+    org.chromium.SessionManagerInterface.EmitLoginPromptVisible
+  echo "LoginPromptVisible is fired, system-services will start later."
+}
+
 start_factory() {
   init_output
 
@@ -215,6 +230,7 @@ start_factory() {
     echo "Request to start UI..."
     start -n ui &
   fi
+  start_system_services &
 
   export DISPLAY=":0"
   export XAUTHORITY="/home/chronos/.Xauthority"
