@@ -4,7 +4,9 @@
 # found in the LICENSE file.
 
 import getopt
+import grp
 import os
+import pwd
 import sys
 
 
@@ -13,5 +15,14 @@ OPT_STRING = 'u:g:sS:c:C:P:b:V:f:m::M::k:a:e::T:vrGhHinNplLtIUKY'
 
 
 if __name__ == '__main__':
-  args = getopt.getopt(sys.argv[1:], OPT_STRING)[1]
+  opts, args = getopt.getopt(sys.argv[1:], OPT_STRING)
+  opts = dict(opts)
+  user = opts.get('-u')
+  group = opts.get('-g')
+  if group:
+    gid = grp.getgrnam(group).gr_gid
+    os.setegid(gid)
+  if user:
+    uid = pwd.getpwnam(user).pw_uid
+    os.seteuid(uid)
   os.execvp(args[0], args)

@@ -1,0 +1,2 @@
+permission_broker is an Upstart job running as firewalld plugin and runs under
+minijail0.
