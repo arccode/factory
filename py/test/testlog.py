@@ -140,6 +140,7 @@ class Testlog(object):
     with _log_related_lock:
       _global_testlog = self
     self.instalog_plugin = None
+    self.in_subsession = False
     if log_root and uuid:
       # Indicate it initialized from a harness that no one will collect its
       # session JSON file (so set to None)
@@ -153,6 +154,7 @@ class Testlog(object):
           Testlog.FIELDS.FLUSH_MODE: True}
     elif not log_root and not uuid:
       # Get the related information from the OS environment variable.
+      self.in_subsession = True
       session_data = Testlog._ReadSessionInfo()
     else:
       assert False, (
@@ -192,8 +194,13 @@ class Testlog(object):
   def CaptureLogging(self):
     """Captures calls to logging.* into primary_json."""
     level = logging.getLogger().getEffectiveLevel()
+    def AddTestRunIdAndLog(station_message):
+      # If we are in a subsession, use the UUID as testRunId.
+      if self.in_subsession:
+        station_message['testRunId'] = self.uuid
+      return self.primary_json.Log(station_message)
     CapturePythonLogging(
-        callback=self.primary_json.Log, level=level)
+        callback=AddTestRunIdAndLog, level=level)
     logging.info('Testlog(%s) is capturing logging at level %s',
                  self.uuid, logging.getLevelName(level))
 

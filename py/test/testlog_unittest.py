@@ -83,6 +83,7 @@ class TestlogEventTest(unittest.TestCase):
     self.assertItemsEqual(event.CheckMissingFields(),
                           ['count', 'success', 'uuid', 'apiVersion', 'time'])
 
+
 class TestlogE2ETest(unittest.TestCase):
   @staticmethod
   def _reset():
@@ -115,7 +116,11 @@ class TestlogE2ETest(unittest.TestCase):
     if testlog.TESTLOG_ENV_VARIABLE_NAME not in os.environ:
       return
 
-    logging.info("Running Oataku pytest")
+    # Initialize Testlog -- only needed because we don't have a harness
+    # doing it for us.
+    testlog.Testlog()
+
+    logging.info('SUBPROCESS')
     # Snippet for attachment
     tmp_dir = tempfile.mkdtemp()
     def CreateTextFile():
@@ -128,32 +133,33 @@ class TestlogE2ETest(unittest.TestCase):
 
     # Additional steps that because multiprocessing.Process doesn't provide
     # an argument to set the env like subprocess.Popen.
-    testlog.LogParam(name='Oataku', value=22000,
-                     description='Obtained from http://i.imgur.com/hK0X8.jpg')
+    testlog.LogParam(name='NAME', value=1,
+                     description='DESCRIPTION')
 
     # Move a file normally.
     file_to_attach = CreateTextFile()
-    logging.info("Attaching file:%s", file_to_attach)
     testlog.AttachFile(
         path=os.path.realpath(file_to_attach),
-        name='text1',
+        name='FILE',
         mime_type='text/plain')
 
     # Clean up the tmp directory
     shutil.rmtree(tmp_dir)
 
   def testE2E(self):
+    IN_TAG = '$IN$'
+    OUT_TAG = '$OUT$'
     TestlogE2ETest._reset()
     state_dir = testlog_goofy.LOG_ROOT
     # Assuming we are the harness.
     my_uuid = time_utils.TimedUUID()
     testlog.Testlog(log_root=state_dir, uuid=my_uuid)
-    logging.info("# Simulate the logging of goofy framework start-up.")
+    # Simulate the logging of goofy framework start-up.
     testlog.Log(testlog.StationInit({
-        'count': testlog_goofy.GetInitCount(),
+        'count': 10,
         'success': True}))
 
-    logging.info("# Prepare for another test session.")
+    # Prepare for another test session.
     session_uuid = time_utils.TimedUUID()
     session_test_run = testlog.StationTestRun()
     session_test_run.Populate({
@@ -170,20 +176,52 @@ class TestlogE2ETest(unittest.TestCase):
         station_test_run=session_test_run,
         uuid=session_uuid)
     env_additions = copy.deepcopy(os.environ)
-    env_additions.update({"TESTLOG": session_json_path})
-    logging.info("# Go with %s", env_additions["TESTLOG"])
+    env_additions.update({'TESTLOG': session_json_path})
+    # Go with env_additions['TESTLOG']
+    logging.info(IN_TAG)
     p = subprocess.Popen(
         ['python', os.path.abspath(__file__),
-         "TestlogE2ETest.testSimulatedTestInAnotherProcess"],
+         'TestlogE2ETest.testSimulatedTestInAnotherProcess'],
         env=env_additions)
     p.wait()
-    logging.info('Load back session JSON:\n%s\n',
-                 pprint.pformat(json.loads(open(session_json_path).read())))
+    logging.info(OUT_TAG)
+    session_json = json.loads(open(session_json_path).read())
     # Collect the session log
     testlog.LogFinalTestRun(session_json_path)
-    logging.info('Load back primary JSON:\n%s\n',
-                 open(os.path.join(state_dir, 'testlog.json')).read())
+    primary_json = open(os.path.join(state_dir, 'testlog.json')).readlines()
+    logging.info('Load back session JSON:\n%s\n', pprint.pformat(session_json))
+    logging.info('Load back primary JSON:\n%s\n', ''.join(primary_json))
 
+    expected_events = [
+        {'type': 'station.message', 'seq': 0,
+         'functionName': 'CaptureLogging', 'logLevel': 'INFO'},
+        {'type': 'station.init', 'seq': 1, 'count': 10, 'success': True},
+        {'type': 'station.message', 'seq': 2,
+         'functionName': 'GetDeviceID', 'logLevel': u'WARNING'},
+        {'type': 'station.message', 'seq': 3,
+         'functionName': 'GetInstallationID', 'logLevel': 'INFO'},
+        {'type': 'station.message', 'seq': 4,
+         'functionName': 'testE2E', 'logLevel': 'INFO', 'message': '$IN$'},
+        # Now that we are entering the subprocess, we should expect to see
+        # testRunId == session_uuid.
+        {'type': 'station.message', 'seq': 5,
+         'functionName': 'CaptureLogging',
+         'logLevel': 'INFO', 'testRunId': session_uuid},
+        {'type': 'station.message', 'seq': 6,
+         'functionName': 'testSimulatedTestInAnotherProcess',
+         'logLevel': 'INFO', 'testRunId': session_uuid},
+        # Missing seq=7 and seq=8 because they are sent to primary JSON.
+        {'type': 'station.message', 'seq': 9,
+         'functionName': 'testE2E', 'logLevel': 'INFO', 'message': '$OUT$'},
+        # Don't check attachments since the filename is not deterministic.
+        {'type': 'station.test_run', 'seq': 10,
+         'testName': 'TestlogDemo', 'testRunId': session_uuid,
+         'parameters': {
+             'NAME': {'numericValue': 1, 'description': 'DESCRIPTION'}}},
+    ]
+    for i, json_string in enumerate(primary_json):
+      dct = json.loads(json_string)
+      self.assertDictContainsSubset(expected_events[i], dct)
 
 if __name__ == '__main__':
   logging.basicConfig(
