@@ -42,6 +42,10 @@ _HTTP_POST_PORT_OFFSET = 5
 _SHOPFLOOR_PORTS_OFFSET = 10
 
 
+def GetRsyncPortFromBasePort(base_port):
+  return base_port + _RSYNC_PORT_OFFSET
+
+
 class UmpireEnv(object):
   """Provides accessors of Umpire resources.
 
@@ -127,7 +131,7 @@ class UmpireEnv(object):
 
   @property
   def umpire_rsync_port(self):
-    return self.umpire_base_port + _RSYNC_PORT_OFFSET
+    return GetRsyncPortFromBasePort(self.umpire_base_port)
 
   @property
   def umpire_http_post_port(self):

@@ -8,6 +8,7 @@ import os
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.service import umpire_service
+from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
 RSYNC_BIN = '/usr/bin/rsync'
@@ -84,8 +85,8 @@ class RsyncService(umpire_service.UmpireService):
     return [proc]
 
   # TODO(crosbug.com/p/52705): not needed if the issue has been fixed.
-  def GetServiceURL(self, env):
+  def GetServiceURL(self, ip, base_port):
     return RSYNC_URL_TEMPLATE % {
-        'ip': env.umpire_ip,
-        'port': env.umpire_rsync_port,
+        'ip': ip,
+        'port': umpire_env.GetRsyncPortFromBasePort(base_port),
         'module': TOOLKIT_MODULE}

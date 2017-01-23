@@ -14,13 +14,13 @@ import time
 from twisted.internet import threads
 from twisted.web import xmlrpc
 import urllib
-import urlparse
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import bundle_selector
 from cros.factory.umpire import common
 from cros.factory.umpire.service import umpire_service
+from cros.factory.umpire import umpire_env
 from cros.factory.umpire import umpire_rpc
 from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
@@ -42,6 +42,21 @@ def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
   incorrectly.
   """
   return xmlrpc.Fault(reason, common.UmpireError(message))
+
+
+def GetServerIpPortFromRequest(request, env):
+  server_host = request.requestHeaders.getRawHeaders('host')[0]
+  server_ip, unused_sep, server_port = server_host.partition(':')
+
+  # The Host HTTP header do contains port when using xmlrpclib.ServerProxy,
+  # but it doesn't contains port when using twisted.web.xmlrpc.Proxy.
+  # Since currently the only places that use twisted.web.xmlrpc.Proxy are
+  # all inside unittests, and the returned url is not used in unittests, we
+  # just add some default value to prevent unittest from failing.
+  # TODO(pihsun): Figure out a better way to handle the case when port is
+  # missing from Host header.
+  server_port = int(server_port or env.umpire_base_port)
+  return (server_ip, server_port)
 
 
 class RootDUTCommands(umpire_rpc.UmpireRPC):
@@ -247,6 +262,12 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       # Calculate resource
       resource_scheme = None
       resource_url = None
+
+      # Use the ip and port from request headers, since the ip and port in
+      # self.env.{umpire_ip, umpire_base_port} are ip / port inside docker,
+      # but we need to return the ip / port used outside docker.
+      server_ip, server_port = GetServerIpPortFromRequest(request, self.env)
+
       # TODO(crosbug.com/p/52705): no special case should be allowed here.
       if component == 'device_factory_toolkit':
         # Select first service provides 'toolkit_update' property.
@@ -255,29 +276,15 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
         instance = next(iterable, None)
         if instance and hasattr(instance, 'GetServiceURL'):
           resource_scheme = instance.properties.get('update_scheme', None)
-          resource_url = instance.GetServiceURL(self.env)
+          resource_url = instance.GetServiceURL(server_ip, server_port)
           if resource_url:
-            resource_url = os.path.join(resource_url, resource_hash)
+            resource_url = '%s/%s' % (resource_url, resource_hash)
       else:
         resource_scheme = 'http'
         resource_url = 'http://%(ip)s:%(port)d/res/%(filename)s' % {
-            'ip': self.env.umpire_ip,
-            'port': self.env.umpire_base_port,
+            'ip': server_ip,
+            'port': server_port,
             'filename': urllib.quote(resource_filename)}
-
-      if isinstance(resource_url, basestring):
-        WILD_HOST = '0.0.0.0'
-        parsed_url = urlparse.urlparse(resource_url)
-        if parsed_url.netloc.startswith(WILD_HOST):
-          server_ip = request.requestHeaders.getRawHeaders('host')[0]
-          server_ip = server_ip.split(':')[0]  # may contain port so split it
-          logging.debug('Translate IP %s to %s', WILD_HOST, server_ip)
-          new_parsed_url = urlparse.ParseResult(
-              parsed_url.scheme,
-              parsed_url.netloc.replace(WILD_HOST, server_ip, 1),
-              parsed_url.path, parsed_url.params, parsed_url.query,
-              parsed_url.fragment)
-          resource_url = urlparse.urlunparse(new_parsed_url)
 
       update_matrix[component] = {
           'needs_update': needs_update,
@@ -433,6 +440,9 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     return d
 
   @umpire_rpc.RPCCall
-  def GetFactoryLogPort(self):
+  @xmlrpc.withRequest
+  def GetFactoryLogPort(self, request):
     """Fetches system logs rsync port."""
-    return self.env.umpire_rsync_port
+    unused_server_ip, server_port = GetServerIpPortFromRequest(
+        request, self.env)
+    return umpire_env.GetRsyncPortFromBasePort(server_port)
