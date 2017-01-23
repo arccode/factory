@@ -1,0 +1,2 @@
+mtpd is the daemon for Media Transfer Protocol. We don't need this in factory
+environment, and it's usually crashing that fills up /var/spool/crash.

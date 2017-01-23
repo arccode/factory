@@ -1,0 +1,3 @@
+arc-system-mount is a camera Upstart job for Arc++ environment that should be
+not required for factory environment. It adds many loop mounts that we do want
+to avoid, both for performance and prevent wiping complexity.
