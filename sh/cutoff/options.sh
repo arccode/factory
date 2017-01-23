@@ -112,6 +112,9 @@ option_check_set() {
 # Checks known option values.
 # Usage: options_check_values
 options_check_values() {
+  # umpire server doesn't accept URL in "http://<shopfloor>/" format,
+  # we have to remove trailing "/"
+  SHOPFLOOR_URL="${SHOPFLOOR_URL%/}"
   option_check_set "${CUTOFF_METHOD}" CUTOFF_METHOD \
     shutdown reboot battery_cutoff ectool_cutoff
   option_check_set "${CUTOFF_AC_STATE}" CUTOFF_AC_STATE \

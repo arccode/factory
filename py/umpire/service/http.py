@@ -202,10 +202,6 @@ class HTTPService(umpire_service.UmpireService):
       config_writer.Write({'fastcgi.server': fastcgi_conf})
       # Umpire common RPCs
       umpire_proxy_handlers = {}
-      # python xmlrpclib calls http://host/ for ServerProxy('http://host/')
-      umpire_proxy_handlers['/'] = [{
-          'host': net_utils.LOCALHOST,
-          'port': env.umpire_rpc_port}]
       # python xmlrpclib calls http://host/RPC2 for ServerProxy('http://host')
       umpire_proxy_handlers[ROOT_RPC_PREFIX] = [{
           'host': net_utils.LOCALHOST,
