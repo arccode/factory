@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 
+import collections
 import mox
 import os
 import unittest
@@ -88,6 +89,8 @@ class WriteVPDTaskTest(unittest.TestCase):
   def setUp(self):
     self.test_case = vpd.VPDTest()
     self.test_case.vpd = dict(ro={}, rw={})
+    self.test_case.args = collections.namedtuple(
+        'args', 'override_registration_codes_device')(None)
     self.write_vpd_task = vpd.WriteVPDTask(self.test_case)
     self.mox = mox.Mox()
     self.test_case.dut = chromeos.ChromeOSBoard()
