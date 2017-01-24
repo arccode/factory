@@ -370,7 +370,7 @@ rules:
               'bar': 'BAR',
           }))
 ---
-# 2. Legacy region without rule. Should set "us" only after transfering.
+# 2. Legacy region without rule. Should set "us" only after converting.
 # Dummy line before checksum
 checksum: b59a2d0f33f25f11760b957303026e334c1b8189
 # Dummy line after checksum

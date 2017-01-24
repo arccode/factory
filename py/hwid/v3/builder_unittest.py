@@ -251,8 +251,8 @@ class DatabaseBuilderTest(unittest.TestCase):
       with self.assertRaises(ValueError):
         db_builder._IsNewPatternNeeded(False)
 
-  def testTransferLegacyField(self):
-    '''Test the transfering legacy region and customization_id.'''
+  def testConvertLegacyField(self):
+    """Tests the conversion of legacy region and customization_id."""
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[1])
 
     # Check the new style region encoded_field is created.
@@ -281,8 +281,8 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertNotIn('verify.regions', rule_names)
     self.assertNotIn('device_info.customization_id', rule_names)
 
-  def testTransferLegacyRegionWithoutRule(self):
-    '''Test the transfering legacy region without rule.'''
+  def testConvertLegacyRegionWithoutRule(self):
+    """Test the converting legacy region without rule."""
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[2])
     self.assertIn('new_region_field', db_builder.active_fields)
     self.assertEquals(
@@ -296,7 +296,7 @@ class DatabaseBuilderTest(unittest.TestCase):
         ['us', 'tw', 'jp'])
 
   def testSplitEncodedField(self):
-    '''Test splitting the firmware field into multiple field.'''
+    """Test splitting the firmware field into multiple field."""
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[4])
     # hash_gbb is ignored. key_recovery and key_root should be updated by the
     # probed result so they are also ignored.
@@ -310,7 +310,7 @@ class DatabaseBuilderTest(unittest.TestCase):
                        1: {'ro_main_firmware': 'ro_main_firmware_1'}})
 
   def testAddRegions(self):
-    '''Test the AddRegions method.'''
+    """Test the AddRegions method."""
     db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
     db_builder.AddRegions(['tw', 'jp'])
     self.assertIsInstance(

@@ -56,7 +56,8 @@ def DefaultBitSize(comp_cls):
 
 
 def _FilterSpecialCharacter(string):
-  """Filters special case and transfer all seperated character to underline."""
+  """Filters special cases and converts all seperation characters to underlines.
+  """
   string = re.sub(r'[: .-]+', '_', string)
   string = re.sub(r'[^A-Za-z0-9_]+', '', string)
   string = re.sub(r'[_]+', '_', string)
@@ -198,8 +199,8 @@ class DatabaseBuilder(object):
       self.db = db
       self.active_fields = self.GetLatestFields()
       self._SplitEncodedField()
-      self._TransferLegacyRegion()
-      self._TransferLegacyCustomizationID()
+      self._ConvertLegacyRegion()
+      self._ConvertLegacyCustomizationID()
 
   @staticmethod
   def _BuildEmptyDatabase(board):
@@ -238,7 +239,7 @@ class DatabaseBuilder(object):
         for comp_name in self.db[DB_KEY.components][comp_cls]['items'].keys():
           self.AddEncodedField(comp_cls, comp_name)
 
-  def _TransferLegacyRegion(self):
+  def _ConvertLegacyRegion(self):
     # Check if the region is legacy style.
     comp_cls = 'region'
     field_cls = self.GetFieldClass(comp_cls)
@@ -284,7 +285,7 @@ class DatabaseBuilder(object):
     self.AddRegions(regions)
     return True
 
-  def _TransferLegacyCustomizationID(self):
+  def _ConvertLegacyCustomizationID(self):
     # Check if the customization_id is legacy style.
     comp_cls = 'customization_id'
     field_cls = self.GetFieldClass(comp_cls)

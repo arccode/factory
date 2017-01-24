@@ -1,5 +1,7 @@
 # ChromeOS HWID Database User Guide
 
+[TOC]
+
 This document is aimed at defining the standard way to update the HWID database.
 
 ## Introduction to HWID Database
@@ -27,7 +29,7 @@ these items can be modified:
 - The status of the component item
 - The rules items
 
-### 2. Pattern: Do Not Modify the Set of encoded_field
+### 2. Pattern: Do Not Modify the Set of encoded_field {#rule_encoded_field}
 It's obvious that we are not allowed to remove the field in the pattern. Adding
 a field whose component class is new seems not break the previous HWID, but it
 actually causes ambiguity. After adding the component in the pattern, we would
@@ -44,8 +46,16 @@ Most of the case is 1, the old device doesn't have the component. But we don't
 enforce index 0, which means there is no probed result (or no component)
 currently. So it is weird to allow this happen. The reasonable way is: the
 component set in each pattern cannot be modified. It can prevent this ambiguity
-from happening. In summary, when we need to modify the set of component class,
-create a new pattern.
+from happening.
+
+However, we might lean to relax this rule in the early build. The case (2)
+has a high chance of happening: every old device has the component, but it
+cannot be probed. Creating a new pattern for adding an extra component seems
+overkill. In this case we allow appending the pattern directly.
+
+In summary, if we confirm that all the old device has the same kind of the
+component, then it is allowed to append to the current pattern. Otherwise,
+please create a new pattern when we need to modify the set of component class.
 
 ### 3. Encoded_fields: Do Not Modify Encoded Mapping
 Because `encoded_field` is shared with all patterns, the existed items in the
@@ -57,17 +67,8 @@ can only add new field into `encoded_fields`.
 Because the components items should be encoded in `encoded_field` in normal
 case, we cannot remove them. When we don't allow a component in the new unit,
 use deprecated status. If you don't even allow to match it, use unsupported
-status.
-
-### 5. Meaning of "probeable: False"
-When do we use "probeable: False", it means one of these:
-
-- The component class is removed at the latest pattern.
-- The value is determined at the evaluation time. Set at rule.
-- Exception: If there is only one item in this component class, set the index
-  to 0. It is only for backward compatibility.
-  *Please use "default" argument instead of using this.*
-
+status. Please refer [Status of a Component Item](#component_status) for more
+details.
 
 ## Database Builder
 
@@ -107,7 +108,7 @@ $ hwid build-database \
     --board <board name> \
     --output-database-path <output folder> \
     --probed-results-file <probed result file> \
-    [--image-id <IMAGE_ID>] \  # Name of the image_id, default is 'EVT'.
+    [--image-id <IMAGE_ID>] \  # Name of the image_id, default is 'EVT'
     [--add-default-component COMP [COMP ...]] \  # Add the default item
     [--add-null-component COMP [COMP ...]] \  # Add the null item
     [--del-component COMP [COMP ...]] \  # Delete the component
@@ -150,11 +151,25 @@ manual post-processing.
 Below, we will list some common use cases of HWID database change, and provide
 the recommendation way to do it.
 
-### Create A New HWID Database
+### 1. Create A New HWID Database
 At the beginning of the project, we need to create a new HWID database. The
-easiest way is using the database builder with a valid probe result. We also
-need this information: board name and phase. Here is an example to create a
-product named "GOOGLE" with the phase "EVT".
+easiest way is using the database builder with a valid probe result. The steps
+of generating HWID database are:
+
+1. Confirm the categories of the components that should be encoded into HWID.
+2. Generate the probe result by "gooftool probe"
+3. Confirm the board name and the phase.
+4. (Optional) Check if there are missing components in the probe result. If so,
+   add a default item with the argument "--add-default-component". Please refer
+   [Add a Default Item](#add_default_item) for more details.
+5. (Optional) Check if there are components that do not exist in some SKU. For
+   example, one SKU has cellular and another SKU does not. If so, add a null
+   item with the argument "--add-null-component". Please refer
+   [Add a Null Item](#add_null_item) for more details.
+
+Here is an example to create a product named `GOOGLE` with the phase `EVT`, add
+a default item for `battery` component, and add a null item for `cellular`
+component.
 
 ```shell
 # Get the probe result.
@@ -165,23 +180,41 @@ $ hwid build-database \
     --probed-results-file /tmp/probe.yaml \
     --output-database-path /usr/local/factory/hwid \
     --board GOOGLE \
-    --image-id EVT
+    --image-id EVT \
+    --add-default-component battery \
+    --add-null-component cellular
 ```
 
-### Probing Result Is Not Ready or Confirmed
+### 2. Add Second Source and Update Firmware
+This is the most common update in HWID database. When we introduce second source
+or update firmware version, we need to add new supported component item into
+HWID database. Just append the new item in the component field and check if the
+encoding bit is enough or not. If we update the firmware version, we should mark
+the old one as "deprecated" to ensure all DUTs in the factory use the latest
+firmware.
+
+The command for this scenario is:
+```shell
+# Get the probe result.
+$ gooftool probe --include_vpd > /tmp/probe.yaml
+
+# Update the database at /usr/local/factory/hwid/GOOGLE
+$ hwid update-database \
+    --probed-results-file /tmp/probe.yaml \
+    --output-database-path /usr/local/factory/hwid \
+    --board GOOGLE
+```
+
+### 3. Add a Default Item {#add_default_item}
 When we bring up a device, the probing code for some hardware components might
 not be ready. For example, a device cannot probe cellular in EVT build, and can
-probe it in DVT build. Besides, we still might have no-cellular SKU in DVT
-build. In this case we need to determine:
-1. There is cellular at DUT but we cannot probe in EVT build
-2. No cellular in DVT build
-3. Has cellular in DVT build
-Here we assume that there is only ONE SKU when we cannot probe the component.
-That is, in EVT build we only have one SKU that has the same cellular component.
-Then the HWID database in EVT and DVT should be like:
+probe it later. Before the probing code is ready, please add a **default item**.
+After the probing code is ready, add the component item and deprecate the
+default item.
 
+|||---|||
+#### Before the probing code is ready
 ```yaml
-# EVT
 image_id:
   0: EVT
 
@@ -203,14 +236,14 @@ components:
         status: unqualified
         value: NULL
 ```
+
+#### After the probing code is ready
 ```yaml
-# DVT
 image_id:
   0: EVT
-  1: DVT
 
 pattern:
-- image_ids: [0, 1]
+- image_ids: [0]
   encoding_scheme: base8192
   fields:
   - cellular_field: 3
@@ -219,7 +252,6 @@ encoded_fields:
   cellular_field:
     0: {cellular: cellular_default}
     1: {cellular: aa}
-    2: {cellular: NULL}
 
 components:
   cellular:
@@ -231,70 +263,511 @@ components:
       aa:
         value: {compact_str: aa}
 ```
+|||---|||
 
-### Add Second Source and Update Firmware
-This is the most common update in HWID database. When we introduce second source
-or update firmware version, we need to add new supported component item into
-HWID database. Just append the new item in the component field and check if the
-encoding bit is enough or not. If we update the firmware version, we should mark
-old one "deprecated" to ensure all DUTs in the factory use the latest firmware.
+The command for this scenario is:
 
-<!--- TODO(akahuang): Fill the example.  -->
+```shell
+# Add a default item with "--add-default-component" argument
+$ hwid build-database \
+    --output-database-path /usr/local/factory/hwid \
+    --board GOOGLE \
+    --probed-results-file /tmp/probe.yaml \  # the probe result without cellular
+    --add-default-component cellular
 
-### Deprecate Component Item
-Deprecating the component item is quite easy. Just add "status: deprecated" in
-the target component item. Then the new unit may not use this component item.
+# Update the database by the probed result
+$ hwid update-database \
+    --output-database-path /usr/local/factory/hwid \
+    --board GOOGLE \
+    --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
+```
 
-<!--- TODO(akahuang): Fill the example.  -->
+### 4. Add a Null Item {#add_null_item}
+When we have a special SKU that does not have a component, please add a **null
+item**. For example, we have a SKU with cellular component and another SKU
+without the cellular component. Then the HWID database should be like:
 
-### Add New Component in Device
-We might add new components during the builds. For example, we don't have
-cellular in EVT build, but decide to add cellular in DVT build. To complicate
-the situation even more, in DVT build we might have one SKU that has cellular
-and another SKU that doesn't. In this case, we need to distinguish:
+|||---|||
+#### Before adding the null item
+```yaml
+image_id:
+  0: EVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cellular_field: 3
+
+encoded_fields:
+  cellular_field:
+    0: {cellular: aa}
+
+components:
+  cellular:
+    items:
+      aa:
+        value: {compact_str: aa}
+```
+
+#### After adding the null item
+```yaml
+image_id:
+  0: EVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cellular_field: 3
+
+encoded_fields:
+  cellular_field:
+    0: {cellular: aa}
+    1: {cellular: NULL}
+
+components:
+  cellular:
+    items:
+      aa:
+        value: {compact_str: aa}
+```
+|||---|||
+
+The command for this scenario is:
+```shell
+# Add a default item with "--add-null-component" argument.
+$ hwid update-database \
+    --output-database-path /usr/local/factory/hwid \
+    --board GOOGLE \
+    --add-null-component cellular
+```
+
+### 5. Deprecate a Component Item
+Deprecating the component item is quite easy. Please manually add
+"status: deprecated" in the target component item. Then the new unit may not use
+this component item.
+
+The example below is to deprecate the cellular component item `aa`.
+
+|||---|||
+#### Before deprecating the item
+```yaml
+image_id:
+  0: EVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cellular_field: 3
+
+encoded_fields:
+  cellular_field:
+    0: {cellular: aa}
+    1: {cellular: bb}
+
+components:
+  cellular:
+    items:
+      aa:
+        value: {compact_str: aa}
+      bb:
+        value: {compact_str: bb}
+```
+#### After deprecating the item
+```yaml
+image_id:
+  0: EVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cellular_field: 3
+
+encoded_fields:
+  cellular_field:
+    0: {cellular: aa}
+    1: {cellular: bb}
+
+components:
+  cellular:
+    items:
+      aa:
+        status: deprecated
+        value: {compact_str: aa}
+      bb:
+        value: {compact_str: bb}
+```
+|||---|||
+
+### 6. Add New Component in Device
+When we add new components during the build, we need to create a new `pattern`
+and new `image_id`. Please refer [Update Rule 2](#rule_encoded_field) for more
+details.
+
+For example, we don't have cellular in EVT build, but add cellular in DVT build.
+To complicate the situation even more, in DVT build we might have one SKU that
+has cellular and another SKU that doesn't. In this case, we need to distinguish:
 1. No cellular in EVT build
 2. No cellular in DVT build
 3. Has cellular in DVT build
+
 The difference between 1 and 2 is: in EVT build we don't check the probed result
 of the cellular component. The actual meaning should be "we don't have
-information about cellular" instead of "this device doesn't have cellular".
+information about cellular" instead of "this device doesn't have cellular". To
+distinguish the case 1 and 2, we need to create a new pattern that adds the new
+component, while retaining the old pattern which lacks the component.
 
-To distinguish the case 1 and 2, we need to create a new pattern that adds
-the new component, while retaining the old pattern which lacks the component.
-Please see "Update Rule 2" for detail.
+The HWID database for this example:
+|||---|||
+#### Before adding the cellular component
+```yaml
+image_id:
+  0: EVT
 
-<!--- TODO(akahuang): Fill the example.  -->
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cpu_field: 3
 
-### Delete Existed Component in Device
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_aa}
+
+components:
+  cpu:
+    items:
+      cpu_aa:
+        value: {compact_str: cpu_aa}
+```
+#### After adding the cellular component
+```yaml
+image_id:
+  0: EVT
+  1: DVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cpu_field: 3
+
+- image_ids: [1]
+  encoding_scheme: base8192
+  fields:
+  - cpu_field: 3
+  - cellular_field: 3
+
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_aa}
+  cellular_field:
+    0: {cellular: NULL}
+    1: {cellular: aa}
+
+components:
+  cpu:
+    items:
+      cpu_aa:
+        value: {compact_str: cpu_aa}
+  cellular:
+    items:
+      aa:
+        value: {compact_str: aa}
+```
+|||---|||
+
+The command for this scenario is:
+```shell
+# Create the database at EVT build
+$ hwid build-database \
+    --output-database-path /usr/local/factory/hwid \
+    --board GOOGLE \
+    --image-id EVT \
+    --probed-results-file /tmp/probe.yaml  # the probe result without cellular
+
+# Update the database at DVT build.
+$ hwid update-database \
+    --output-database-path /usr/local/factory/hwid \
+    --board GOOGLE \
+    --image-id DVT \
+    --add-null-component cellular \
+    --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
+```
+
+*** note
+**Note:** If all the old devices have the same kind of the component, then it is
+allowed to append the component in the current pattern.
+***
+
+|||---|||
+#### Before adding the cellular component
+```yaml
+image_id:
+  0: EVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cpu_field: 3
+
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_aa}
+
+components:
+  cpu:
+    items:
+      cpu_aa:
+        value: {compact_str: cpu_aa}
+```
+#### After adding the cellular component
+```yaml
+image_id:
+  0: EVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cpu_field: 3
+  - cellular_field: 3
+
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_aa}
+  cellular_field:
+    0: {cellular: aa}
+
+components:
+  cpu:
+    items:
+      cpu_aa:
+        value: {compact_str: cpu_aa}
+  cellular:
+    items:
+      aa:
+        value: {compact_str: aa}
+```
+|||---|||
+
+The command for this scenario is:
+```shell
+# Update the database without assigning the image_id.
+$ hwid update-database \
+    --output-database-path /usr/local/factory/hwid \
+    --board GOOGLE \
+    --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
+
+WARNING: Extra fields [cellular_field] without assigning a new image_id.
+If the fields are added into the current pattern, the index of these fields will
+be encoded to index 0 for all old HWID string. Enter "y" if you are sure all old
+devices with old HWID string have the component with index 0. [y/N] y
+```
+
+Please choose **"Y"** for the question, then the database builder will append
+the component into the current pattern.
+
+
+### 7. Delete Existed Component in Device
 Similar to adding a new component in the device, we might decide to remove a
 component during the build. For example, the device has cellular in EVT, but we
 decide to remove it in DVT. To ensure that we can still decode the previous
 HWID, we cannot remove it from the encoded field and component. We need to add a
 new pattern without the cellular encoded bits. The HWID database should be like:
 
-<!--- TODO(akahuang): Fill the example.  -->
+|||---|||
+#### Before deleting the cellular component
+```yaml
+image_id:
+  0: EVT
 
-### Transfer Legacy Region Style to List Style
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cpu_field: 3
+  - cellular_field: 3
+
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_aa}
+  cellular_field:
+    0: {cellular: NULL}
+    1: {cellular: aa}
+
+components:
+  cpu:
+    items:
+      cpu_aa:
+        value: {compact_str: cpu_aa}
+  cellular:
+    items:
+      aa:
+        value: {compact_str: aa}
+```
+#### After deleting the cellular component
+```yaml
+image_id:
+  0: EVT
+  1: DVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - cpu_field: 3
+  - cellular_field: 3
+
+- image_ids: [1]
+  encoding_scheme: base8192
+  fields:
+  - cpu_field: 3
+
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_aa}
+  cellular_field:
+    0: {cellular: NULL}
+    1: {cellular: aa}
+
+components:
+  cpu:
+    items:
+      cpu_aa:
+        value: {compact_str: cpu_aa}
+  cellular:
+    probeable: False
+    items:
+      aa:
+        value: {compact_str: aa}
+```
+|||---|||
+
+The command for this scenario is:
+```shell
+$ hwid update-database \
+    --output-database-path /usr/local/factory/hwid \
+    --board GOOGLE \
+    --image-id DVT \  # New image_id must be assigned.
+    --del-component cellular
+```
+
+### 8. Convert Legacy Region Style to List Style
 We use magic tag `"!region_field"` to generate the region encoded field. There
 are two styles: legacy and list style. In legacy style, each region has its own
 index mapping. For example, "us" maps to 29 and "gb" maps to 16. However, in
 list style, only the listed regions are encoded. In the example below,
 "us" maps to 1 and "gb" maps to 2.
 
-<!--- TODO(akahuang): Fill the example.  -->
+```yaml
+encoded_fields:
+  # Legacy style
+  old_region_field: !region_field
+  # List style
+  new_region_field: !region_field ['us', 'gb']
+```
 
 Because the update rule, we cannot just replace the legacy style because the
-encoding mapping is different. If we want to transfer legacy style to list
-style, we need to create another `encoded_field` and remove the old one. For
-example:
+encoding mapping is different. If we want to convert legacy style to list
+style, we should create another `encoded_field` and remove the old one from the
+`pattern`. For example:
 
-<!--- TODO(akahuang): Fill the example.  -->
+|||---|||
+#### Before converting the style
+```yaml
+image_id:
+  0: EVT
 
-### Combine the Component Items
-It's a common issue that the component has multiple probed results, but we don't
-notice it at first. So we create multiple component items for the same
-component. For example, the driver might add ".[1-9].auto" randomly in the
-probed result. For this situation, we should add the correct item and then set
-the wrong items to invisible. Like:
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - region_field: 8
 
-<!--- TODO(akahuang): Fill the example.  -->
+encoded_fields:
+  region_field: !region_field
+
+components:
+  region: !region_component
+```
+#### After converting the style
+```yaml
+image_id:
+  0: EVT
+  1: DVT
+
+pattern:
+- image_ids: [0]
+  encoding_scheme: base8192
+  fields:
+  - region_field: 8
+- image_ids: [1]
+  encoding_scheme: base8192
+  fields:
+  - new_region_field: 5
+
+encoded_fields:
+  region_field: !region_field
+  new_region_field: !region_field ['us']
+
+components:
+  region: !region_component
+```
+|||---|||
+
+The database builder will automatically convert the style if the old database
+uses the legacy style.
+*** note
+**Note:** a new `image_id` is required when converting.
+***
+
+
+## Appendix
+
+### Unprobeable Component
+When a component with the attribute `probeable: False`, it means one of these:
+
+- The component class is removed at the latest pattern.
+- The value is determined at the evaluation time. Set at rule.
+- Exception: If there is only one item in this component class, set the index
+  to 0. It is only for backward compatibility.
+  **Please use "default" argument instead of using this.**
+
+### Default Component Item
+
+If a component item has the attribute `default: True`, it is a default component
+item. The feature of the default component item is:
+
+- It is always matched when generating HWID string, no matter the probe result
+  exists or not.
+- If another component is also matched, then the default component item will be
+  ignored.
+
+### Status of a Component Item {#component_status}
+
+- **supported**
+
+  Default status. The component is currently used to build new units.
+
+- **unqualified**
+
+  The component is now allowed to be used after PVT phase. The components added
+  by the auto-generator should be unqualified. Then SIE or TAM should remove it
+  after the component is confirmed.
+
+- **deprecated**
+
+  The component is no longer being used to build new units, but is supported in
+  RMA process.
+
+- **unsupported**
+
+  The component is not allowed to be used to build new units, and is not
+  supported in RMA process. The component cannot be matched. It is used for the
+  wrong component or the equivalent component but with different probed result.
+
