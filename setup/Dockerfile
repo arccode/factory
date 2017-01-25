@@ -31,8 +31,12 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 # libstdc++: Dependency of pbzip2 (static binary)
 
 # apache2-utils, openssl: Used by Overlord setup.sh
+
+# util-linux: For GNU mount since busybox mount doesn't support offset.
+# coreutils: For GNU mktemp since busybox mktemp doesn't support --tmpdir.
 RUN apk upgrade --no-cache && apk add --no-cache \
   apache2-utils \
+  coreutils \
   gnupg \
   libstdc++ \
   lighttpd \
