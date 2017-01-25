@@ -42,7 +42,7 @@ check_docker() {
     die "Docker not installed, abort."
   fi
   DOCKER="docker"
-  if [ "${USER}" != "root" ]; then
+  if [ "$(id -un)" != "root" ]; then
     if ! echo "begin $(id -Gn) end" | grep -q " docker "; then
       echo "You are neither root nor in the docker group,"
       echo "so you'll be asked for root permission..."
@@ -103,7 +103,8 @@ DOME_DIR="${FACTORY_DIR}/py/dome"
 BUILD_DIR="${FACTORY_DIR}/build/docker"
 
 # Directories on host that would be mounted to docker
-HOST_SHARED_DIR="/docker_shared"
+# This would be overriden in integration tests.
+: "${HOST_SHARED_DIR:="/docker_shared"}"
 HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
 HOST_UMPIRE_DIR="${HOST_SHARED_DIR}/umpire"
 HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
@@ -124,6 +125,7 @@ RESOURCE_DOCKER_SHA1="a07cc33579a6e0074a53f148b26103723f81dab1"
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
 DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
+DOCKER_UMPIRE_DIR="${DOCKER_BASE_DIR}/py/umpire"
 DOCKER_INSTALOG_DIR="${DOCKER_BASE_DIR}/py/instalog"
 
 DOCKER_OVERLORD_DIR="${DOCKER_BASE_DIR}/bin/overlord"
@@ -243,7 +245,7 @@ do_umpire_run() {
   echo "- Host directory ${HOST_SHARED_DIR} is mounted" \
        "under /mnt in the container."
   echo "- Host directory ${host_db_dir} is mounted" \
-       "under ${CONTAINER_DB_DIR} in the container."
+       "under ${docker_db_dir} in the container."
   echo "- Umpire service ports is mapped to the local machine."
 }
 
@@ -279,6 +281,40 @@ do_umpire_shell() {
   ${DOCKER} exec -it "${UMPIRE_CONTAINER_NAME}" sh
 }
 
+do_umpire_test() {
+  check_docker
+
+  do_build
+
+  local umpire_tester_image_name="cros/umpire_tester"
+  local dockerfile="${UMPIRE_DIR}/e2e_test/Dockerfile"
+
+  fetch_resource "${BUILD_DIR}/docker.tgz" \
+    "${RESOURCE_DOCKER_URL}" "${RESOURCE_DOCKER_SHA1}"
+
+  ${DOCKER} build \
+    --file "${dockerfile}" \
+    --tag "${umpire_tester_image_name}" \
+    --build-arg server_dir="${DOCKER_BASE_DIR}" \
+    --build-arg umpire_dir="${DOCKER_UMPIRE_DIR}" \
+    "${FACTORY_DIR}"
+
+  local temp_dir="$(mktemp -d)"
+  TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
+
+  ${DOCKER} run \
+    --rm \
+    --net=host \
+    --volume /etc/localtime:/etc/localtime:ro \
+    --volume "${temp_dir}:${temp_dir}" \
+    --volume /run/docker.sock:/run/docker.sock \
+    --volume /run \
+    --env "TMPDIR=${temp_dir}" \
+    --env "LOG_LEVEL=${LOG_LEVEL}" \
+    "${umpire_tester_image_name}" \
+    "${DOCKER_UMPIRE_DIR}/e2e_test/e2e_test.py" "$@"
+}
+
 umpire_usage() {
   cat << __EOF__
 Umpire: the Unified Factory Server deployment script
@@ -311,6 +347,10 @@ commands for developers:
 
   $0 umpire shell
       Invoke a shell inside Umpire container.
+
+  $0 umpire test [args...]
+      Run integration test for Umpire docker. This would take a while.
+      Extra arguments would be passed to the test script.
 __EOF__
 }
 
@@ -327,6 +367,10 @@ umpire_main() {
       ;;
     shell)
       do_umpire_shell
+      ;;
+    test)
+      shift
+      do_umpire_test "$@"
       ;;
     *)
       umpire_usage
@@ -581,7 +625,7 @@ do_build_umpire_deps() {
     "${RESOURCE_PBZIP2_URL}" "${RESOURCE_PBZIP2_SHA1}"
 
   cp "${BUILD_DIR}/pbzip2.tgz" "${temp_dir}"
-  cp -r "${host_vboot_dir}" "${temp_dir}"
+  rsync -a "${host_vboot_dir}" "${temp_dir}" --exclude tests
   cp "${deps_builder_dockerfile}" "${temp_dir}/Dockerfile"
 
   ${DOCKER} build \

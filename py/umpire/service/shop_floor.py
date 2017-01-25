@@ -83,6 +83,7 @@ class ShopFloorService(umpire_service.UmpireService):
           logging.debug('Release %s(%d,%s)', bundle['id'], fcgi_port, token)
           env.shop_floor_manager.Release(fcgi_port)
           self.log.close()
+          self.log = None
 
         proc.AddStateCallback(umpire_service.State.DESTRUCTING, ReleaseResource)
       processes.add(proc)

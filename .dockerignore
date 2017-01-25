@@ -1,6 +1,11 @@
 *
-!py
-!py_pkg
 !bin
 !build/docker
 !go/src/overlord
+!py
+!py_pkg
+!setup/cros_docker.sh
+py/dome/build
+py/goofy/static
+py/test/fixture
+py/test/pytests

@@ -172,6 +172,8 @@ def GetResourceMap(dut_info, env):
     return None
 
   handler_port, handler_token = env.shop_floor_manager.GetHandler(bundle_id)
+  if handler_port is None:
+    return None
 
   result = ['id: %s' % bundle['id'],
             'note: %s' % bundle['note'],

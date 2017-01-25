@@ -24,7 +24,7 @@ RUN mkdir "${workdir}/build"
 COPY vboot_reference "${workdir}/vboot_reference"
 RUN cd vboot_reference && \
   make clean && \
-  make cgpt STATIC=1 && \
+  make cgpt WERROR= STATIC=1 && \
   cp build/cgpt/cgpt "${workdir}/build"
 
 ADD pbzip2.tgz "${workdir}/"

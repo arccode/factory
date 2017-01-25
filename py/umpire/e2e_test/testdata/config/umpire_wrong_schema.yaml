@@ -1,0 +1,25 @@
+rulesets:
+- bundle_id: empty_init_bundle
+  note: n/a
+  active: true
+services:
+  http: {}
+  rsync: {}
+  shop_floor: {}
+bundles:
+- id: empty_init_bundle
+  note: n/a
+  shop_floor:
+    handler: cros.factory.umpire.no_shop_floor_handler
+  resources:
+    complete_script: none##d41d8cd9
+    device_factory_toolkit: none##d41d8cd9
+    efi_partition: none##d41d8cd9
+    firmware: none##d41d8cd9
+    hwid: none##d41d8cd9
+    netboot_kernel: none##d41d8cd9
+    oem_partition: none##d41d8cd9
+    rootfs_release: none##d41d8cd9
+    rootfs_test: none##d41d8cd9
+    stateful_partition: none##d41d8cd9
+extra_thing: boom!

@@ -106,7 +106,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
       Staging config file's content.
       None if there's no staging config
     """
-    return status_reporter.StatusReporter(self.env).GetStagingConfig()
+    return status_reporter.StatusReporter(self.daemon).GetStagingConfig()
 
   @umpire_rpc.RPCCall
   def UploadConfig(self, basename, content):
@@ -202,7 +202,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
   @umpire_rpc.RPCCall
   def GetStatus(self):
     """Gets Umpire dameon status."""
-    reporter = status_reporter.StatusReporter(self.env)
+    reporter = status_reporter.StatusReporter(self.daemon)
     return reporter.Report()
 
   @umpire_rpc.RPCCall

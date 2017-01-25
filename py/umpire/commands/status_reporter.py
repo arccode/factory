@@ -14,14 +14,15 @@ class StatusReporter(object):
   """Reports Umpire server status.
 
   Usage:
-    reporter = StatusReporter(env)
+    reporter = StatusReporter(daemon)
     status = reporter.Report()
     # You can get active config from status['active_config'].
   """
 
-  def __init__(self, env):
+  def __init__(self, daemon):
     """Constructor."""
-    self._env = env
+    self._daemon = daemon
+    self._env = daemon.env
 
   def Report(self):
     """Gets Umpire status report.
@@ -40,6 +41,7 @@ class StatusReporter(object):
     else:
       result['staging_config_res'] = ''
     result['shop_floor_mapping'] = self.GetShopFloorMapping()
+    result['deploying'] = self._daemon.deploying
     return result
 
   def GetActiveConfig(self):
