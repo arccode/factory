@@ -56,15 +56,15 @@ UMPIRE_MATCH_KEY_MAP = {
 #                  should be pulled out to common config.
 FACTORY_SERVER_IMAGE_NAME = 'cros/factory_server'
 DOCKER_SHARED_DIR = '/docker_shared'
-UMPIRE_DOCKER_DIR = '/docker_umpire'
+UMPIRE_DOCKER_DIR = '/docker_shared/umpire'
 UMPIRE_DEFAULT_BOARD_FILE = '.default_board'
 UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
 # Mount point of the Umpire data folder in Dome's container. Note: this is not
 # Umpire base directory in Umpire's container (which is also
 # '/var/db/factory/umpire', but they have nothing to do with each other). This
-# is also not Umpire's base directory on host (which is '/docker_umpire' for
-# now).
+# is also not Umpire's base directory on host (which is '/docker_shared/umpire'
+# for now).
 # TODO(littlecvr): shared between here and cros_docker.sh, should be pulled out
 #                  to a common config.
 UMPIRE_BASE_DIR = '/var/db/factory/umpire'
@@ -136,11 +136,9 @@ def UmpireAccessibleFile(board, uploaded_file):
     board: name of the board (used to construct Umpire container's name).
     uploaded_file: file field of TemporaryUploadedFile.
   """
-  container_name = Board.GetUmpireContainerName(board)
-
   # TODO(b/31417203): use volume container or named volume instead of
   #                   UMPIRE_BASE_DIR.
-  temp_dir = tempfile.mkdtemp(dir='%s/%s' % (UMPIRE_BASE_DIR, container_name))
+  temp_dir = tempfile.mkdtemp(dir=os.path.join(UMPIRE_BASE_DIR, board))
 
   try:
     new_path = os.path.join(temp_dir, os.path.basename(uploaded_file.name))
@@ -150,11 +148,13 @@ def UmpireAccessibleFile(board, uploaded_file):
     os.chmod(temp_dir, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
     os.chmod(new_path, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
 
-    # The temp folder:
-    #   in Dome:   ${UMPIRE_BASE_DIR}/${container_name}/${temp_dir}
-    #   in Umpire: ${UMPIRE_BASE_DIR}/${temp_dir}
-    # so need to remove "${container_name}/"
-    yield new_path.replace('%s/' % container_name, '')
+    # The temp file:
+    #   in Dome:   ${UMPIRE_BASE_DIR}/${board}/${temp_dir}/${name}
+    #   in Umpire: ${UMPIRE_BASE_DIR}/${temp_dir}/${name}
+    # so need to remove "${board}/"
+    tokens = new_path.split('/')
+    del tokens[-3]
+    yield '/'.join(tokens)
   finally:
     try:
       shutil.rmtree(temp_dir)
@@ -270,7 +270,7 @@ class Board(django.db.models.Model):
           '--volume', '/etc/localtime:/etc/localtime:ro',
           '--volume', '%s:/mnt' % DOCKER_SHARED_DIR,
           '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,
-                                    container_name,
+                                    self.name,
                                     UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
           '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
           '--publish', '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,

@@ -96,7 +96,7 @@ BUILD_DIR="${FACTORY_DIR}/build/docker"
 # Directories on host that would be mounted to docker
 HOST_SHARED_DIR="/docker_shared"
 HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
-HOST_UMPIRE_DIR="/docker_umpire"
+HOST_UMPIRE_DIR="${HOST_SHARED_DIR}/umpire"
 HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
 
 # Publish tools
@@ -138,7 +138,9 @@ set_docker_image_info
 
 # Things that can be override by environment variable
 : "${BOARD:="$(cat "${HOST_UMPIRE_DIR}/.default_board" 2>/dev/null)"}"
-: "${UMPIRE_CONTAINER_NAME:="umpire${BOARD:+_}${BOARD}"}"
+: "${BOARD:="default"}"
+: "${UMPIRE_CONTAINER_NAME:="umpire_${BOARD}"}"
+: "${UMPIRE_CONTAINER_DIR:="${BOARD}"}"
 : "${UMPIRE_PORT:="8080"}"  # base port for Umpire
 : "${DOME_PORT:="8000"}"  # port to access Dome
 : "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord
@@ -167,7 +169,7 @@ do_umpire_run() {
   check_docker
 
   # Separate umpire db for each container.
-  local host_db_dir="${HOST_UMPIRE_DIR}/${UMPIRE_CONTAINER_NAME}"
+  local host_db_dir="${HOST_UMPIRE_DIR}/${UMPIRE_CONTAINER_DIR}"
   local docker_db_dir="/var/db/factory/umpire"
 
   ensure_dir "${HOST_SHARED_DIR}"

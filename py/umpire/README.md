@@ -41,7 +41,7 @@ Currently the recommended approach is using Umpire inside Docker.
 
        *** NOTE ***
        - Host directory /docker_shared is mounted under /mnt in the container.
-       - Host directory /docker_umpire/umpire is mounted under /var/db/factory/umpire in the container.
+       - Host directory /docker_shared/umpire/$BOARD is mounted under /var/db/factory/umpire in the container.
        - Umpire service ports is mapped to the local machine.
 
 Check if Umpire is running properly
@@ -154,14 +154,14 @@ Troubleshooting
 There are two places for logs of Umpire.
 
 1. Services hosted by Umpire, especially shopfloor proxy. The logs are
-   accessible outside Docker. Find them in `/docker_umpire/umpire/log`.
+   accessible outside Docker. Find them in `/docker_shared/umpire/$BOARD/log`.
 
    For example, lighttpd logs are in:
 
-       cd /docker_umpire/umpire/log
+       cd /docker_shared/umpire/$BOARD/log
        less httpd_access.log
        less httpd_error.log
 
 2. Umpire itself. Logs are handled by docker.
 
-       docker logs umpire
+       docker logs umpire_$BOARD
