@@ -36,6 +36,7 @@ import yaml
 UMPIRE_BASE_PORT = 8080
 UMPIRE_RPC_PORT_OFFSET = 2
 UMPIRE_RSYNC_PORT_OFFSET = 4
+UMPIRE_INSTALOG_SOCKET_PORT_OFFSET = 6
 UMPIRE_CONFIG_BASENAME = 'umpire.yaml'
 UMPIRE_RESOURCE_NAME_ALIAS = {
     'device_factory_toolkit': 'factory_toolkit',
@@ -277,6 +278,9 @@ class Board(django.db.models.Model):
                                   UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
           '--publish', '%d:%d' % (port + UMPIRE_RSYNC_PORT_OFFSET,
                                   UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET),
+          '--publish', '%d:%d' % (port + UMPIRE_INSTALOG_SOCKET_PORT_OFFSET,
+                                  UMPIRE_BASE_PORT +
+                                  UMPIRE_INSTALOG_SOCKET_PORT_OFFSET),
           '--restart', 'unless-stopped',
           '--name', container_name,
           FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH]

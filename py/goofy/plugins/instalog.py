@@ -34,9 +34,9 @@ class Instalog(plugin.Plugin):
       goofy: The goofy instance.
       uplink_hostname: Hostname of the target for uploading logs.
       uplink_port: Port of the target for uploading logs.
-      uplink_use_shopfloor: Use the configured Shopfloor's IP instead.  If
-                            unable to properly retrieve the IP, fall back to
-                            uplink_hostname.
+      uplink_use_shopfloor: Use the configured Shopfloor's IP and port instead.
+                            If unable to properly retrieve the IP and port, fall
+                            back to uplink_hostname and uplink_port.
     """
     super(Instalog, self).__init__(goofy)
     self._instalog_process = None
@@ -50,21 +50,21 @@ class Instalog(plugin.Plugin):
     cli_hostname = _CLI_HOSTNAME
     cli_port = _CLI_PORT
     testlog_json_path = goofy.testlog.primary_json.path
-    uplink_enabled = (
-        uplink_use_shopfloor or uplink_hostname) and uplink_port
+    uplink_enabled = uplink_use_shopfloor or (uplink_hostname and uplink_port)
     if uplink_use_shopfloor:
       url = shopfloor.get_server_url()
       if not url:
-        if uplink_hostname:
-          logging.error('Instalog: Could not retrieve Shopfloor IP; falling '
-                        'back to provided uplink hostname "%s"',
-                        uplink_hostname)
+        if uplink_hostname and uplink_port:
+          logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
+                        'falling back to provided uplink "%s:%d"',
+                        uplink_hostname, uplink_port)
         else:
-          logging.error('Instalog: Could not retrieve Shopfloor IP; no '
-                        'fallback provided; disabling uplink functionality')
+          logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
+                        'no fallback provided; disabling uplink functionality')
           uplink_enabled = False
       else:
         uplink_hostname = urlparse.urlparse(url).hostname
+        uplink_port = urlparse.urlparse(url).port
 
     config = {
         'instalog': {

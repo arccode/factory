@@ -6,6 +6,13 @@ services:
   http: {}
   rsync: {}
   shop_floor: {}
+  instalog:
+    archive:
+      enable: True
+      args: {}
+    forward:
+      enable: False
+      args: {}
 bundles:
 - id: empty
   note: n/a

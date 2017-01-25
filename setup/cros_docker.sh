@@ -209,10 +209,12 @@ do_umpire_run() {
     local p1=${UMPIRE_PORT}              # Imaging & Shopfloor
     local p2=$((UMPIRE_PORT + 2))  # CLI RPC
     local p3=$((UMPIRE_PORT + 4))  # Rsync
+    local p4=$((UMPIRE_PORT + 6))  # Instalog input_socket
 
     local umpire_base_port=8080
     local umpire_cli_port=$((umpire_base_port + 2))
     local umpire_rsync_port=$((umpire_base_port + 4))
+    local umpire_instalog_socket_port=$((umpire_base_port + 6))
 
     ${DOCKER} run \
       --detach \
@@ -224,6 +226,7 @@ do_umpire_run() {
       --publish "${p1}:${umpire_base_port}" \
       --publish "${p2}:${umpire_cli_port}" \
       --publish "${p3}:${umpire_rsync_port}" \
+      --publish "${p4}:${umpire_instalog_socket_port}" \
       "${DOCKER_IMAGE_NAME}" \
       "${DOCKER_BASE_DIR}/bin/umpired" || \
       (echo "Removing stale container due to error ..."; \
@@ -289,7 +292,7 @@ commands:
 
       You can change the umpire base port (default ${UMPIRE_PORT}) by assigning
       the UMPIRE_PORT environment variable.
-      Umpire would bind base_port, base_port+2 and base_port+4.
+      Umpire would bind base_port, base_port+2, base_port+4 and base_port+6.
       For example:
 
         UMPIRE_PORT=1234 $0 umpire run

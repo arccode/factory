@@ -18,7 +18,7 @@ CONFIG_SCHEMA = {
     'optional_items': {
         'archive': schema.FixedDict('archive', optional_items={
             'enable': schema.Scalar('enable', bool),
-            'args': schema.FixedDict('args', items={
+            'args': schema.FixedDict('args', optional_items={
                 'interval': schema.Scalar('interval', int)
             })
         }),
@@ -37,8 +37,6 @@ CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
 CLI_PORT = 7000
 NODE_ID = 'shopfloor'
 SERVICE_NAME = 'instalog'
-FORWARD_ENABLE_DEFAULT = False
-ARCHIVE_ENABLE_DEFAULT = True
 
 
 class InstalogService(umpire_service.UmpireService):
@@ -60,14 +58,14 @@ class InstalogService(umpire_service.UmpireService):
       instalog_config: Original Instalog configuration.
       update_info: The Umpire configuration used to update instalog_config.
     """
-    if update_info.get('forward', {}).get('enable', FORWARD_ENABLE_DEFAULT):
+    if update_info.get('forward', {}).get('enable', False):
       instalog_config['output']['forward'] = {
           'plugin': 'output_socket',
           'args': update_info.get('forward', {}).get('args', {}).copy()
       }
       for input_name in instalog_config['input']:
         instalog_config['input'][input_name]['targets'].append('forward')
-    if update_info.get('archive', {}).get('enable', ARCHIVE_ENABLE_DEFAULT):
+    if update_info.get('archive', {}).get('enable', False):
       instalog_config['output']['archive'] = {
           'plugin': 'output_archive',
           'args': update_info.get('archive', {}).get('args', {}).copy()
@@ -105,7 +103,7 @@ class InstalogService(umpire_service.UmpireService):
                 'plugin': 'input_socket',
                 'targets': [],
                 'args': {
-                    'port': 7500
+                    'port': env.umpire_instalog_socket_port
                 }
             },
             'health': {
