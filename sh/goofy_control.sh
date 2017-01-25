@@ -172,18 +172,29 @@ init_network() {
 }
 
 start_system_services() {
-  # Wait for server 'ui' to be ready, and send LoginPromptVisible so
-  # boot-complete -> system-services can move on. This was done in Goofy by
-  # waiting for connection, but we've found that on recent systems Chrome may
-  # need system services to be ready before it can start entering main page.
-  while status ui | grep -qv start/running; do
+  # 'system-services' is started by ui.conf -> session_manager -> Chrome ->
+  # dbus.EmitLoginPromptVisible -> boot-complete -> system-services.
+  # Since we start Chrome without login manager, the dbus event must be sent
+  # explicitly. This was done in Goofy by waiting for connection, but we've
+  # found that on recent systems Chrome may need system services to be ready
+  # before it can start entering main page, so we want to do this as early as
+  # possible, immediately after session manager is ready. Unfortunately there is
+  # no way to find that except directly looking at dbus contents.
+  echo "[LoginPromptVisible] Start trying to emit dbus event..."
+  local retries=30
+  while ! dbus-send --system --dest=org.chromium.SessionManager \
+            --print-reply /org/chromium/SessionManager \
+            org.chromium.SessionManagerInterface.EmitLoginPromptVisible; do
+    if [ "${retries}" -lt 1 ]; then
+      echo "[LoginPromptVisible] Timed out, trying to run in fail-safe mode..."
+      initctl emit login-prompt-visible || true
+      start -n system-services || true
+      return
+    fi
+    retries=$((retries - 1))
     sleep 1
   done
-  echo "Job [ui] is up, sending EmitLoginPromptVisible request..."
-  dbus-send --system --dest=org.chromium.SessionManager \
-    --print-reply /org/chromium/SessionManager \
-    org.chromium.SessionManagerInterface.EmitLoginPromptVisible
-  echo "LoginPromptVisible is fired, system-services will start later."
+  echo "[LoginPromptVisible] Event sent, system-services should start later."
 }
 
 start_factory() {
