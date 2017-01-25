@@ -19,7 +19,7 @@ The step for calibration is as follows:
 
 3) Retrieve the calibration offsets
 
-  - cat /sys/bus/iio/devices/iio:deviceX/in_(accel|gyro)_(x|y|z)_calibbias
+  - cat /sys/bus/iio/devices/iio:deviceX/in_(accel|anglvel)_(x|y|z)_calibbias
 
 4) Save them in VPD.
 """
@@ -38,8 +38,9 @@ from cros.factory.utils import sync_utils
 
 
 DEFAULT_NAME = ('Accelerometer', u'加速度计')
-DEFAULT_SYSPATH = '/sys/bus/iio/devices/iio:device0/'
-DEFAULT_ENTRY_TEMPLATE = 'in_accel_%s_calibbias'
+DEFAULT_RAW_ENTRY_TEMPLATE = 'in_accel_%s_raw'
+DEFAULT_CALIBBIAS_ENTRY_TEMPLATE = 'in_accel_%s_calibbias'
+DEFAULT_VPD_ENTRY_TEMPLATE = 'in_accel_%s_base_calibbias'
 
 CSS = """
 body { font-size: 2em; }
@@ -55,16 +56,19 @@ class SpatialSensorCalibration(unittest.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout in seconds when waiting for device.',
           default=60),
-      Arg('name', tuple, 'Name of the device to calibrate.',
-          default=DEFAULT_NAME),
-      Arg('device_path', str, 'Path to the device IIO sysfs entry.',
-          default=DEFAULT_SYSPATH),
+      Arg('sensor_name', tuple, 'English and simplified Chinese name of the '
+          'sensor to calibrate.', default=DEFAULT_NAME),
+      Arg('device_name', str, 'The "name" atribute of the sensor'),
+      Arg('device_location', str, 'The "location" atribute of the sensor'),
       Arg('raw_entry_template', str,
           'Template for the sysfs raw value entry.',
-          default=DEFAULT_ENTRY_TEMPLATE),
+          default=DEFAULT_RAW_ENTRY_TEMPLATE),
       Arg('calibbias_entry_template', str,
           'Template for the sysfs calibbias value entry.',
-          default=DEFAULT_ENTRY_TEMPLATE),
+          default=DEFAULT_CALIBBIAS_ENTRY_TEMPLATE),
+      Arg('vpd_entry_template', str,
+          'Template for the sysfs calibbias value entry.',
+          default=DEFAULT_VPD_ENTRY_TEMPLATE),
       Arg('stabilize_time', int, 'Time to wait until calibbias stabilize.',
           default=1),
       Arg('prompt', bool, 'Prompt user to put the device in correct facing',
@@ -76,6 +80,22 @@ class SpatialSensorCalibration(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
+    self._device_path = None
+    for path in self._dut.Glob('/sys/bus/iio/devices/iio:device*'):
+      try:
+        name = self._dut.ReadFile(self._dut.path.join(path, 'name')).strip()
+        location = self._dut.ReadFile(
+            self._dut.path.join(path, 'location')).strip()
+      except Exception:
+        continue
+      if (name == self.args.device_name and
+          location == self.args.device_location):
+        self._device_path = path
+    if self._device_path is None:
+      raise factory.FactoryTestFailure('%s at %s not found' %
+                                       (self.args.sensor_name[0],
+                                        self.args.device_location))
+
     self._ui = test_ui.UI(css=CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._start_event = threading.Event()
@@ -102,10 +122,10 @@ class SpatialSensorCalibration(unittest.TestCase):
     self.VerifyDevicePosition()
 
     self._template.SetState(test_ui.MakeLabel(
-        'Calibrating %s...' % self.args.name[0],
-        u'正在校正 %s...' % self.args.name[1]))
+        'Calibrating %s...' % self.args.sensor_name[0],
+        u'正在校正 %s...' % self.args.sensor_name[1]))
 
-    self.EnableAutoCalibration(self.args.device_path)
+    self.EnableAutoCalibration(self._device_path)
     self.RetrieveCalibbiasAndWriteVPD()
     self._ui.Pass()
 
@@ -133,7 +153,7 @@ class SpatialSensorCalibration(unittest.TestCase):
         continue
 
       key = self.args.raw_entry_template % axis
-      value = int(self._dut.ReadFile(self._dut.path.join(self.args.device_path,
+      value = int(self._dut.ReadFile(self._dut.path.join(self._device_path,
                                                          key)))
       if value <= _range[0] or value >= _range[1]:
         factory.console.error(
@@ -145,7 +165,7 @@ class SpatialSensorCalibration(unittest.TestCase):
     RETRIES = 5
     for unused_i in range(RETRIES):
       try:
-        self._dut.Write(self._dut.path.join(path, 'calibrate'), '1')
+        self._dut.WriteFile(self._dut.path.join(path, 'calibrate'), '1')
       except Exception:
         factory.console.info('calibrate activation failed, retrying')
         time.sleep(1)
@@ -161,9 +181,9 @@ class SpatialSensorCalibration(unittest.TestCase):
     for axis in ['x', 'y', 'z']:
       self._template.SetState(test_ui.MakeLabel('Writing calibration data...',
                                                 u'正在写入校正结果...'))
-      key = self.args.calibbias_entry_template % axis
-      value = self._dut.ReadFile(self._dut.path.join(self.args.device_path,
-                                                     key))
-      cmd.extend(['-s', '%s=%s' % (key, value.strip())])
+      calibbias_key = self.args.calibbias_entry_template % axis
+      vpd_key = self.args.vpd_entry_template % axis
+      value = self._dut.ReadFile(self._dut.path.join(self._device_path, calibbias_key))
+      cmd.extend(['-s', '%s=%s' % (vpd_key, value.strip())])
 
     self._dut.CheckCall(cmd)
