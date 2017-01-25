@@ -39,7 +39,7 @@ def GetAllVFSInfo():
 
   for line in _Open('/etc/mtab'):
     device, path, fs_type, options = line.split()[0:4]
-    if fs_type in ignore_list or options.startswith('ro,'):
+    if fs_type in ignore_list or 'ro' in options.split(','):
       continue
     # Remove files from "mount --bind".
     if os.path.isfile(path):
@@ -107,7 +107,7 @@ def GetUsedPercentage(avail, total):
   '''
   if avail == total == 0:
     return 0.0
-  return (100 - 100.0 * avail / total)
+  return 100 - 100.0 * avail / total
 
 
 def GetPartitionUsage(vfs_info):
