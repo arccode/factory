@@ -31,6 +31,19 @@ class SysfsFunctionTest(unittest.TestCase):
     result = func()
     self.assertEquals(result, [{'vendor': 'google', 'device': 'chromebook'}])
 
+  def testOptionalKeys(self):
+    with open(os.path.join(self.tmp_dir, 'device'), 'w') as f:
+      f.write('chromebook\n')
+    with open(os.path.join(self.tmp_dir, 'optional_1'), 'w') as f:
+      f.write('OPTIONAL_1\n')
+
+    func = sysfs.SysfsFunction(
+        dir_path=self.tmp_dir, keys=['device'],
+        optional_keys=['optional_1', 'optional_2'])
+    result = func()
+    self.assertEquals(result, [{'device': 'chromebook',
+                                'optional_1': 'OPTIONAL_1'}])
+
   def testFail(self):
     """Device is not found."""
     with open(os.path.join(self.tmp_dir, 'vendor'), 'w') as f:

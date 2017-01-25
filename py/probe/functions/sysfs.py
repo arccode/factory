@@ -12,16 +12,20 @@ from cros.factory.probe.functions import file as file_module
 from cros.factory.utils.arg_utils import Arg
 
 
-def ReadSysfs(dir_path, keys):
+def ReadSysfs(dir_path, keys, optional_keys=None):
   """Reads the required files in the folder.
 
   Args:
     dir_path: the path of the target folder.
+    key: The required file names in the sysfs folder.
+    optional_keys: The optional file names in the sysfs folder.
 
   Returns:
     a dict mapping from the file name to the content of the file.
     Return None if none of the required files are found.
   """
+  if optional_keys is None:
+    optional_keys = []
   if not os.path.isdir(dir_path):
     return None
   logging.debug('Read sysfs path: %s', dir_path)
@@ -32,6 +36,11 @@ def ReadSysfs(dir_path, keys):
     if content is None:
       return None
     ret[key] = content
+  for key in optional_keys:
+    file_path = os.path.join(dir_path, key)
+    content = file_module.ReadFile(file_path)
+    if content is not None:
+      ret[key] = content
   return ret
 
 
@@ -44,12 +53,14 @@ class SysfsFunction(function.ProbeFunction):
   ARGS = [
       Arg('dir_path', str, 'The path of target sysfs folder.'),
       Arg('keys', list, 'The required file names in the sysfs folder.'),
+      Arg('optional_keys', list, 'The optional file names in the sysfs folder.',
+          optional=True),
   ]
 
   def Probe(self):
     ret = []
     for path in glob.glob(self.args.dir_path):
-      result = ReadSysfs(path, self.args.keys)
+      result = ReadSysfs(path, self.args.keys, self.args.optional_keys)
       if result is not None:
         ret.append(result)
     return ret
