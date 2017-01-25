@@ -102,8 +102,8 @@ class SensorMovementTask(factory_task.FactoryTask):
       raise ValueError('Invalid sensor name')
 
   def _CheckSensorValue(self):
-    raw_data = self.sensor.GetRawDataAverage(self.capture_count)
-    return all(abs(raw_data[k] - v) <= self.tolerance
+    data = self.sensor.GetData(self.capture_count)
+    return all(abs(data[k] - v) <= self.tolerance
                for k, v in self.expected_value.iteritems())
 
   def Run(self):
@@ -137,7 +137,7 @@ class SensorMovement(unittest.TestCase):
           '- expected_value: (dict) A dict of {sensor-name: value} indicates '
           'the expect output of sensors. '
           'The keys of this dict can be a subset of '
-          'sensor.GetRawDataAverage(), non-existing keys are ignored.',
+          'sensor.GetData(), non-existing keys are ignored.',
           optional=False),
       Arg('tolerance', float, 'The tolerance for the output of sensors.',
           optional=False),

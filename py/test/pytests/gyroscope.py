@@ -89,8 +89,8 @@ class ReadGyroscopeTask(factory_task.FactoryTask):
     """Wait until absolute value of all sensors less than stop_threshold."""
 
     def CheckSensorState():
-      raw_data = self.gyroscope.GetRawDataAverage()
-      return all(abs(v) < self.stop_threshold for v in raw_data.values())
+      data = self.gyroscope.GetData()
+      return all(abs(v) < self.stop_threshold for v in data.values())
 
     sync_utils.WaitFor(CheckSensorState, self.timeout_secs)
 
@@ -99,10 +99,10 @@ class ReadGyroscopeTask(factory_task.FactoryTask):
 
     max_values = collections.defaultdict(float)
     def CheckSensorMaxValues():
-      raw_data = self.gyroscope.GetRawDataAverage()
-      for sensor_name in raw_data:
+      data = self.gyroscope.GetData()
+      for sensor_name in data:
         max_values[sensor_name] = max(max_values[sensor_name],
-                                      abs(raw_data[sensor_name]))
+                                      abs(data[sensor_name]))
       return all(abs(v) > self.rotation_threshold for v in max_values.values())
 
     sync_utils.WaitFor(CheckSensorMaxValues, self.timeout_secs)

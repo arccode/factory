@@ -45,20 +45,21 @@ class GyroscopeController(component.DeviceComponent):
     if self._iio_path is None:
       raise GyroscopeException('Gyroscope at %s not found' % location)
 
-  def GetRawDataAverage(self, capture_count=1):
+  def GetData(self, capture_count=1, sample_rate=20):
     """Reads several records of raw data and returns the average.
 
     Args:
       capture_count: how many records to read to compute the average.
+      sample_rate: sample rate in Hz to read data from the sensor.
 
     Returns:
       A dict of the format {'signal_name': average value}
     """
-    ret = {'in_anglvel_x_raw': 0,
-           'in_anglvel_y_raw': 0,
-           'in_anglvel_z_raw': 0}
+    ret = {'in_anglvel_x': 0,
+           'in_anglvel_y': 0,
+           'in_anglvel_z': 0}
     for _ in xrange(capture_count):
-      time.sleep(1 / float(self._sample_rate))
+      time.sleep(1.0 / sample_rate)
       for signal_name in ret:
         ret[signal_name] += float(self._dut.ReadFile(os.path.join(self._iio_path,
                                                                   signal_name)))
@@ -70,9 +71,9 @@ class GyroscopeController(component.DeviceComponent):
 class Gyroscope(component.DeviceComponent):
   """Gyroscope component module."""
 
-  def GetController(self, name='cros-ec-gyro', location='base', sample_rate=60):
+  def GetController(self, location='base'):
     """Gets a controller with specified arguments.
 
     See GyroscopeController for more information.
     """
-    return GyroscopeController(self._dut, name, location, sample_rate)
+    return GyroscopeController(self._dut, 'cros-ec-gyro', location)

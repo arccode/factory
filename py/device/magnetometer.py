@@ -14,11 +14,12 @@ class Magnetometer(component.DeviceComponent):
   def __init__(self, board):
     super(Magnetometer, self).__init__(board)
 
-  def GetRawDataAverage(self, capture_count=1):
+  def GetData(self, capture_count=1, sample_rate=20):
     """Reads several records of raw data and returns the average.
 
     Args:
       capture_count: how many records to read to compute the average.
+      sample_rate: sample rate in Hz to read data from the sensor.
 
     Returns:
       A dict of the format {'signal_name': average value}
