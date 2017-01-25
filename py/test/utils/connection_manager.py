@@ -12,6 +12,8 @@ import time
 # some test lists.
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.net_utils import WLAN  # pylint: disable=unused-import
+from cros.factory.utils import net_utils
+from cros.factory.utils import type_utils
 
 try:
   # pylint: disable=unused-import
@@ -47,7 +49,18 @@ _PROFILE_LOCATION = '/var/cache/%s/default.profile'
 
 
 class ConnectionManagerException(Exception):
-  pass
+  ErrorCode = type_utils.Enum([
+      # shill does not start a service for a device without physical link
+      'NO_PHYSICAL_LINK',
+      'INTERFACE_NOT_FOUND',
+      # there is no service running on that device
+      'NO_SELECTED_SERVICE',
+      'NOT_SPECIFIED', ])
+
+  def __init__(self, message, error_code=ErrorCode.NOT_SPECIFIED):
+    super(ConnectionManagerException, self).__init__(message)
+    self.error_code = error_code
+    self.message = message
 
 
 def GetBaseNetworkManager():
@@ -61,6 +74,9 @@ def GetBaseNetworkManager():
   later. Please note that this is different from the network_manager parameter
   used in the ConnectionManager and is determined only by the Python interface
   provided the OS.
+
+  You can find exposed DBUS API from:
+    https://chromium.googlesource.com/aosp/platform/system/connectivity/shill/+/master/doc/
   """
   return flimflam.FlimFlam()
 
@@ -177,6 +193,76 @@ class ConnectionManager(object):
             'Passphrase': wlan.passphrase
         })
       self.wlans.append(wlan_dict)
+
+  def SetStaticIP(self, interface_or_path, address, prefixlen=None,
+                  gateway=None, mtu=None, name_servers=None):
+    """Tells underlying connection manager to use static IP on an interface.
+
+    Args:
+      interface_or_path: name of the interface (eth0, lan0, ...) or the realpath
+        of /sys/class/net/<device> (should looks like:
+        /sys/devices/pci0000:00/...)
+      address: IP address to set  (string), None to unset
+      prefixlen: IP prefix length  (int), None to unset
+      gateway: network gateway  (string), None to unset
+      mtu: maximum transmission unit  (int), None to unset
+      name_servers: list of name servers  (strings), None to unset
+
+    Raises:
+      ConnectionManagerException: Will raise ConnectionManagerException if we
+        cannot config static IP by shill, the caller can try to config static IP
+        by themselves (e.g.  net_utils.SetEthernetIp(...))
+      DBusException: Exceptions raised from dbus operation.
+    """
+    try:
+      base_manager = GetBaseNetworkManager()
+    except dbus.exceptions.DBusException:
+      logging.exception('Could not find the network manager service')
+      raise
+
+    interface = net_utils.GetNetworkInterfaceByPath(interface_or_path)
+    device = base_manager.FindElementByNameSubstring('Device', interface)
+
+    if device is None:  # Cannot find it.
+      raise ConnectionManagerException(
+          'Cannot find interface %s' % interface,
+          error_code=ConnectionManagerException.ErrorCode.INTERFACE_NOT_FOUND)
+
+    device.Enable()  # Try to enable the device.
+    device_props = device.GetProperties()
+    if not device_props.get('Ethernet.LinkUp', False):
+      # There is no physical link.
+      raise ConnectionManagerException(
+          'No physical link presents on interface %s' % interface,
+          error_code=ConnectionManagerException.ErrorCode.NO_PHYSICAL_LINK)
+
+    service_path = device_props['SelectedService']
+    if service_path == '/':
+      raise ConnectionManagerException(
+          'No service running on interface %s' % interface,
+          error_code=ConnectionManagerException.ErrorCode.NO_SELECTED_SERVICE)
+
+    service = base_manager.FindElementByNameSubstring('Service', service_path)
+
+    config = dbus.Dictionary({}, signature='sv')
+    if address is not None:
+      config['Address'] = dbus.String(address)
+    if prefixlen is not None:
+      config['Prefixlen'] = dbus.Int32(prefixlen)
+    if gateway is not None:
+      config['Gateway'] = dbus.String(gateway)
+    if mtu is not None:
+      config['Mtu'] = dbus.Int32(mtu)
+    if name_servers is not None:
+      if isinstance(name_servers, basestring):
+        name_servers = [name_servers]
+      config['NameServers'] = dbus.Array(name_servers, signature='s')
+
+    service.SetProperty('StaticIPConfig', config)
+
+    # Need to disable / enable device to make it work.
+    device.Disable()
+    device.Enable()
 
   def EnableNetworking(self, reset=True):
     """Tells underlying connection manager to try auto-connecting.

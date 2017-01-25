@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import mock
 import SimpleXMLRPCServer
 import socket
 import threading
@@ -137,6 +138,25 @@ class UtilityFunctionTest(unittest.TestCase):
       ip += 2 ** (32 - prefix_bits)
     with self.assertRaises(RuntimeError):
       network_cidr = net_utils.GetUnusedIPV4RangeCIDR(16, exclude_ip_list)
+
+  def testGetNetworkInterfaceByPath(self):
+    func_under_test = net_utils.GetNetworkInterfaceByPath
+    interface_table = {
+        '/sys/class/net/eth0': '/REAL_PATH/0/net/eth0',
+        '/sys/class/net/eth1': '/REAL_PATH/1/net/eth1'}
+    def MockRealPath(path):
+      return interface_table.get(path, '')
+
+    with mock.patch('glob.glob', return_value=interface_table.keys()):
+      with mock.patch('os.path.realpath', side_effect=MockRealPath):
+        self.assertEquals('eth0', func_under_test('eth0'))
+        self.assertEquals('eth0', func_under_test('/REAL_PATH/0/net'))
+        self.assertEquals('eth1', func_under_test('/REAL_PATH/1/net'))
+        self.assertEquals(None, func_under_test('/WRONG_PATH'))
+
+        self.assertIn(func_under_test('/REAL_PATH', True), ['eth0', 'eth1'])
+        with self.assertRaises(ValueError):
+          func_under_test('/REAL_PATH', False)
 
 
 if __name__ == '__main__':

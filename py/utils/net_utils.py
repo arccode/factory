@@ -290,6 +290,49 @@ def UnsetAliasEthernetIp(alias_index=0, interface=None):
                       call=True, log=True)
 
 
+def GetNetworkInterfaceByPath(interface_path, allow_multiple=False):
+  """Gets the name of the network interface.
+
+  The name of network interface created by USB dongle is unstable. This function
+  gets the current interface name of a certain USB port.
+
+  For example:
+    # realpath /sys/class/net/eth0
+    /sys/devices/pci0000:00/0000:00:14.0/usb1/1-5/1-5:1.0/net/eth0
+  Then
+    GetInterfaceName(
+        '/sys/devices/pci0000:00/0000:00:14.0/usb1/1-5/1-5:1.0/net') => 'eth0'
+
+  Args:
+    interface_path: the name of the network interface or the realpath of the
+      network interface sysfs node.
+
+  Returns:
+    the name of the network interface. None if the path is not found.
+
+  Raises:
+    ValueError if allow_multiple is False and multiple interfaces are found.
+  """
+  if interface_path[0] != '/':  # The name of the network interface.
+    return interface_path
+  valid_interfaces = []
+  for path in glob.glob('/sys/class/net/*'):
+    if os.path.realpath(path).startswith(interface_path):
+      interface = os.path.basename(path)
+      logging.info('Interface "%s" is found.', interface)
+      valid_interfaces.append(interface)
+  if len(valid_interfaces) == 0:
+    logging.warning('No interface is found.')
+    return None
+  if len(valid_interfaces) == 1:
+    return valid_interfaces[0]
+  if allow_multiple:
+    logging.warning('Multiple interfaces are found: %s', valid_interfaces)
+    return valid_interfaces[0]
+  else:
+    raise ValueError('Multiple interfaces are found: %s' % valid_interfaces)
+
+
 def GetWLANMACAddress():
   """Returns the MAC address of the first wireless LAN device.
 
