@@ -500,11 +500,13 @@ do_run() {
     "import backend; backend.models.TemporaryUploadedFile.objects.all().delete()"
 
   # start uwsgi, the bridge between django and nginx
+  # Note 'docker' currently reads from '/var/run/docker.sock', which does not
+  # follow FHS 3.0
   ${DOCKER} run \
     --detach \
     --restart unless-stopped \
     --name "${uwsgi_container_name}" \
-    --volume /run/docker.sock:/run/docker.sock \
+    --volume /var/run/docker.sock:/var/run/docker.sock \
     --volume /run \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
     --volume "${host_log_dir}:${docker_log_dir}" \
