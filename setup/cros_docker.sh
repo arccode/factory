@@ -113,6 +113,7 @@ PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
 PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
 GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
 CHANGES_FILE=
+COMMIT_SUBJECT="setup: Publish cros_docker image version"
 
 # Remote resources
 RESOURCE_PBZIP2_URL="https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz"
@@ -705,18 +706,17 @@ do_update_docker_image_version() {
         "To publish you have to build without local commits."
   fi
 
-  # cros_docker.sh was not in source list otherwise we'll see changes everytime
-  # after we've published.
   local source_list=(
       setup/Dockerfile
       setup/Dockerfile.overlord
+      setup/cros_docker.sh
       py/umpire
       py/dome
       go/src
   )
 
   git log --oneline ${DOCKER_IMAGE_GITHASH}.. "${source_list[@]}" \
-    >"${changes_file}"
+    | grep -v " ${COMMIT_SUBJECT} " >"${changes_file}"
 
   if [ -s "${changes_file}" ]; then
     echo "Server related changes since last build (${DOCKER_IMAGE_BUILD}):"
@@ -753,7 +753,7 @@ do_reload_docker_image_info() {
 do_commit_docker_image_release()
 {
   git commit -a -s -m \
-    "setup: Publish cros_docker image version ${DOCKER_IMAGE_TIMESTAMP}.
+    "${COMMIT_SUBJECT} ${DOCKER_IMAGE_TIMESTAMP}.
 
 A new release of cros_docker image on ${DOCKER_IMAGE_TIMESTAMP},
 built from source using hash ${DOCKER_IMAGE_GITHASH}.
