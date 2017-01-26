@@ -28,6 +28,15 @@ warn() {
   echo "WARNING: $*"
 }
 
+realpath() {
+  # Try to find "realpath" in a portable way.
+  if type python >/dev/null 2>&1; then
+    python -c 'import sys; import os; print os.path.realpath(sys.argv[1])' "$1"
+  else
+    readlink -f "$@"
+  fi
+}
+
 check_docker() {
   if ! type docker >/dev/null 2>&1; then
     die "Docker not installed, abort."
@@ -87,7 +96,7 @@ upload_to_localmirror() {
 }
 
 # Base directories
-SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 FACTORY_DIR="$(dirname "${SCRIPT_DIR}")"
 UMPIRE_DIR="${FACTORY_DIR}/py/umpire"
 DOME_DIR="${FACTORY_DIR}/py/dome"
@@ -152,6 +161,15 @@ ensure_dir() {
   fi
 }
 
+ensure_dir_acl() {
+  local dir="$1"
+  # On Mac, osxfs needs the folder to be owned by current user.
+  if [ "$(uname -s)" = "Darwin" ]; then
+    sudo chown -R "$(id -u)" "${dir}"
+    sudo chgrp -R "$(id -g)" "${dir}"
+  fi
+}
+
 fetch_resource() {
   local local_name="$1"
   local url="$2"
@@ -160,7 +178,7 @@ fetch_resource() {
   if [[ ! -f "${local_name}" ]] || \
      ! echo "${sha1} ${local_name}" | sha1sum -c; then
     rm -f "${local_name}"
-    wget "${url}" -O "${local_name}"
+    curl -L --fail "${url}" -o "${local_name}" || rm -f "${local_name}"
   fi
 }
 
@@ -174,6 +192,7 @@ do_umpire_run() {
 
   ensure_dir "${HOST_SHARED_DIR}"
   ensure_dir "${host_db_dir}"
+  ensure_dir_acl "${HOST_SHARED_DIR}"
 
   # TODO(pihsun): We should stop old container like what dome run does.
   echo "Starting Umpire container ..."
@@ -319,6 +338,7 @@ do_overlord_setup() {
   echo "Doing setup for Overlord, you'll be asked for root permission ..."
   sudo rm -rf "${HOST_OVERLORD_DIR}"
   ensure_dir "${HOST_OVERLORD_DIR}"
+  ensure_dir_acl "${HOST_SHARED_DIR}"
 
   local temp_docker_id
   temp_docker_id=$(${DOCKER} create ${DOCKER_IMAGE_NAME})
@@ -431,10 +451,10 @@ overlord_main() {
 do_pull() {
   echo "Pulling Factory Server Docker image ..."
   if [[ ! -f "${DOCKER_IMAGE_FILEPATH}" ]]; then
-    wget -P "${SCRIPT_DIR}" \
-      "${PREBUILT_IMAGE_DIR_URL}/${DOCKER_IMAGE_FILENAME}" || \
-      (rm -f "${DOCKER_IMAGE_FILEPATH}" ; \
-       die "Failed to pull Factory Server Docker image")
+    curl -L --fail "${PREBUILT_IMAGE_DIR_URL}/${DOCKER_IMAGE_FILENAME}" \
+      -o "${DOCKER_IMAGE_FILEPATH}" || rm -f "${DOCKER_IMAGE_FILEPATH}"
+    [ -f "${DOCKER_IMAGE_FILEPATH}" ] || \
+      die "Failed to pull Factory Server Docker image"
   fi
   echo "Finished pulling Factory Server Docker image"
 
@@ -474,6 +494,7 @@ do_run() {
     echo "and database file, you'll be asked for root permission ..."
     ensure_dir "${HOST_DOME_DIR}"
     sudo touch "${HOST_DOME_DIR}/${db_filename}"
+    ensure_dir_acl "${HOST_SHARED_DIR}"
   fi
 
   # Migrate the database if needed (won't remove any data if the database
@@ -544,7 +565,7 @@ do_build_umpire_deps() {
   local deps_builder_image_name="cros/umpire_deps_builder"
   local deps_builder_container_name="umpire_deps_builder"
 
-  local host_vboot_dir="$(readlink -f "${FACTORY_DIR}/../vboot_reference")"
+  local host_vboot_dir="$(realpath "${FACTORY_DIR}/../vboot_reference")"
 
   local temp_dir="$(mktemp -d)"
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
@@ -746,7 +767,7 @@ TEST=None"
 do_publish() {
   check_gsutil
 
-  local script_file="$(readlink -f "$0")"
+  local script_file="$(realpath "$0")"
   CHANGES_FILE="$(mktemp)"
   TEMP_OBJECTS=("${CHANGES_FILE}" "${TEMP_OBJECTS[@]}")
   (cd "${FACTORY_DIR}" && \
