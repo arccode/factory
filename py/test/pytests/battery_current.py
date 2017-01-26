@@ -60,8 +60,8 @@ class BatteryCurrentTest(unittest.TestCase):
       Arg('max_battery_level', int,
           'maximum allowed starting battery level', optional=True),
       Arg('usbpd_info', tuple, textwrap.dedent("""
-          (usbpd_port, usbpd_port_prompt, min_millivolt) Used to select a
-          particular port from a multi-port DUT.
+          (usbpd_port, usbpd_port_prompt, min_millivolt, max_millivolt)
+          Used to select a particular port from a multi-port DUT.
 
           * ``usbpd_port``: (int) usbpd_port number. Specify which port to
                             insert power line.
@@ -70,6 +70,8 @@ class BatteryCurrentTest(unittest.TestCase):
           * ``usbpd_port_prompt_zh``: (str) prompt operator which port to
                                       insert in Chinese.
           * ``min_millivolt``: (int) The minimum millivolt the power must
+                               provide
+          * ``max_millivolt``: (int) The maximum millivolt the power must
                                provide
           """),
           optional=True)
@@ -89,10 +91,11 @@ class BatteryCurrentTest(unittest.TestCase):
       self._usbpd_prompt_en = self.args.usbpd_info[1]
       self._usbpd_prompt_zh = self.args.usbpd_info[2]
       self._usbpd_min_millivolt = self.args.usbpd_info[3]
+      self._usbpd_max_millivolt = self.args.usbpd_info[4]
 
   def _CheckUSBPDInfoArg(self, info):
-    check_types = (int, basestring, basestring, int)
-    if len(info) != 4:
+    check_types = (int, basestring, basestring, int, int)
+    if len(info) != 5:
       raise ValueError('ERROR: invalid usbpd_info item: ' + str(info))
     for i in xrange(len(info)):
       if not isinstance(info[i], check_types[i]):
@@ -114,11 +117,12 @@ class BatteryCurrentTest(unittest.TestCase):
       logging.info('No millivolt detected in port %d', self._usbpd_port)
       return False
     millivolt = status[self._usbpd_port]['millivolt']
-    logging.info('millivolt %d, min_millivolt %d', millivolt,
-                 self._usbpd_min_millivolt)
+    logging.info('millivolt %d, acceptable range (%d, %d)', millivolt,
+                 self._usbpd_min_millivolt, self._usbpd_max_millivolt)
     self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt_en,
                                               self._usbpd_prompt_zh, millivolt))
-    return millivolt >= self._usbpd_min_millivolt
+    return (self._usbpd_min_millivolt <= millivolt and
+            millivolt <= self._usbpd_max_millivolt)
 
   def _CheckCharge(self):
     current = self._power.GetBatteryCurrent()
