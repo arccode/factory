@@ -17,11 +17,9 @@ from cros.factory.device import component
 
 
 _IIO_DEVICES_PATH = '/sys/bus/iio/devices/'
-SYSFS_VALUE = namedtuple('sysfs_value', ['sysfs', 'value'])
 IIO_SCAN_TYPE = namedtuple('IIO_SCAN_TYPE', ['endianness', 'sign', 'realbits',
                                              'storagebits', 'repeat', 'shift'])
 _IIO_SCAN_TYPE_RE = re.compile(r'^(be|le):(s|u)(\d+)/(\d+)(?:X(\d+))?>>(\d+)$')
-
 _GRAVITY = 9.80665
 
 def _ParseIIOBufferScanType(type_str):
@@ -104,7 +102,7 @@ class AccelerometerController(component.DeviceComponent):
       break
     if self.iio_bus_id is None:
       raise AccelerometerException(
-          'Accelerometer at (%r, %r) not found' % (self.name, self.location))
+          'Accelerometer at (%r, %r) not found' % (name, self.location))
 
     trigger_name = self._GetSysfsValue('trigger/current_trigger')
     for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'trigger*')):
@@ -123,11 +121,10 @@ class AccelerometerController(component.DeviceComponent):
     # Stores the (scan order -> signal name) mapping for later use.
     self.index_to_signal = {}
     for signal_name in self._GenSignalNames(''):
-      index = int(self._dut.ReadFile(os.path.join(scan_elements_path,
-                                                  signal_name + '_index')))
+      index = int(
+          self._GetSysfsValue(signal_name + '_index', scan_elements_path))
       scan_type = _ParseIIOBufferScanType(
-          self._dut.ReadFile(os.path.join(scan_elements_path,
-                                          signal_name + '_type')))
+          self._GetSysfsValue(signal_name + '_type', scan_elements_path))
       self.index_to_signal[index] = dict(name=signal_name, scan_type=scan_type)
 
   def _GetSysfsValue(self, filename, path=None):
@@ -148,16 +145,19 @@ class AccelerometerController(component.DeviceComponent):
     except Exception:
       pass
 
-  def _SetSysfsValues(self, sysfs_values, check_call=True):
+  def _SetSysfsValue(self, filename, value, check_call=True, path=None):
     """Assigns corresponding values to a list of sysfs.
 
     Args:
-      A list of namedtuple SYSFS_VALUE containing the sysfs and
-        it's corresponding value.
+      filename: name of the file to write.
+      value: the value to be write.
+      path: Path to write the given filename, default to the path of
+        current iio device.
     """
+    if path is None:
+      path = self.iio_bus_path
     try:
-      for sysfs_value in sysfs_values:
-        self._dut.WriteFile(sysfs_value.sysfs, sysfs_value.value)
+      self._dut.WriteFile(os.path.join(path, filename), value)
     except Exception:
       if check_call:
         raise
@@ -181,8 +181,7 @@ class AccelerometerController(component.DeviceComponent):
     the calibration to allow reading raw data from a trigger.
     """
     for calibbias in self._GenSignalNames('_calibbias'):
-      self._SetSysfsValues(
-          [SYSFS_VALUE(os.path.join(self.iio_bus_path, calibbias), '0')])
+      self._SetSysfsValue(calibbias, '0')
 
   def GetData(self, capture_count=1, sample_rate=20):
     """Returns average values of the sensor data.
@@ -219,7 +218,6 @@ class AccelerometerController(component.DeviceComponent):
 
     buffer_length_per_record = 6
     FORMAT_RAW_DATA = '<3h'
-    trigger_now_path = os.path.join(self.trigger_path, 'trigger_now')
 
     # Initializes the returned dict.
     ret = dict((signal_name, 0.0) for signal_name in self._GenSignalNames())
@@ -229,7 +227,7 @@ class AccelerometerController(component.DeviceComponent):
     retry_count_per_record = 0
     max_retry_count_per_record = 3
     while data_captured < capture_count:
-      self._SetSysfsValues([SYSFS_VALUE(trigger_now_path, '1')])
+      self._SetSysfsValue('trigger_now', '1', path=self.trigger_path)
       # To prevent obtaining repeated data, add delay between each capture.
       # In addition, need to wait some time after set trigger_now to get
       # the raw data.
@@ -339,6 +337,10 @@ class AccelerometerController(component.DeviceComponent):
     scaled = dict((k, str(int(v * 1024 / _GRAVITY)))
                   for k, v in calib_bias.viewitems())
     self._dut.vpd.ro.Update(scaled)
+    for vpd_entry, sysfs_entry in zip(
+        self._GenSignalNames('_' + self.location + '_calibbias'),
+        self._GenSignalNames('_calibbias')):
+      self._SetSysfsValue(sysfs_entry, scaled[vpd_entry])
 
 
 class Accelerometer(component.DeviceComponent):
