@@ -207,6 +207,9 @@ class ShopFloorBase(object):
         logging.info('Finishing archiving %s to %s',
                      past_day_logs_dir, archive_name)
 
+  def _Timestamp(self):
+    return time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
+
   def SaveReport(self, report_name, report_blob):
     """Saves a report to disk and checks its integrity.
 
@@ -334,22 +337,6 @@ class ShopFloorBase(object):
     """Always returns true (for client to check if server is working)."""
     return True
 
-  def CheckSN(self, serial):
-    """Checks whether a serial number is valid.
-
-    Args:
-      serial: A string of device serial number.
-
-    Returns:
-      True if the serial number provided is considered valid.
-
-    Raises:
-      ValueError if serial is invalid, or other exceptions defined by individual
-      modules. Note this will be converted to xmlrpclib.Fault when being used as
-      a XML-RPC server module.
-    """
-    raise NotImplementedError('CheckSN')
-
   def ListParameters(self, pattern):
     """Lists files that match the pattern in parameters directory.
 
@@ -395,22 +382,6 @@ class ShopFloorBase(object):
 
     return Binary(open(abspath).read())
 
-  def GetHWID(self, serial):
-    """Returns appropriate HWID according to given serial number.
-
-    Args:
-      serial: A string of device serial number.
-
-    Returns:
-      The associated HWID string.
-
-    Raises:
-      ValueError if serial is invalid, or other exceptions defined by individual
-      modules. Note this will be converted to xmlrpclib.Fault when being used as
-      a XML-RPC server module.
-    """
-    raise NotImplementedError('GetHWID')
-
   def GetHWIDUpdater(self):
     """Returns a HWID updater bundle, if available.
 
@@ -424,23 +395,7 @@ class ShopFloorBase(object):
     path = self.update_server.hwid_path
     return Binary(open(path).read()) if path else None
 
-  def GetVPD(self, serial):
-    """Returns VPD data to set (in dictionary format).
-
-    Args:
-      serial: A string of device serial number.
-
-    Returns:
-      VPD data in dict {'ro': dict(), 'rw': dict()}
-
-    Raises:
-      ValueError if serial is invalid, or other exceptions defined by individual
-      modules. Note this will be converted to xmlrpclib.Fault when being used as
-      a XML-RPC server module.
-    """
-    raise NotImplementedError('GetVPD')
-
-  def UploadReport(self, serial, report_blob, report_name=None):
+  def UploadReport(self, serial, report_blob, report_name=None, stage='FA'):
     """Uploads a report file.
 
     Args:
@@ -450,6 +405,7 @@ class ShopFloorBase(object):
       report_name: (Optional) Suggested report file name. This is uslally
           assigned by factory test client programs (ex, gooftool); however
           server implementations still may use other names to store the report.
+      stage: (Optional) Prefix of the default report file name.
 
     Returns:
       True on success.
@@ -459,7 +415,8 @@ class ShopFloorBase(object):
       modules. Note this will be converted to xmlrpclib.Fault when being used as
       a XML-RPC server module.
     """
-    raise NotImplementedError('UploadReport')
+    name = report_name or '%s-%s-%s.rpt.xz' % (stage, serial, self._Timestamp())
+    return self.SaveReport(name, self.UnwrapBlob(report_blob))
 
   def SaveAuxLog(self, name, contents):
     """Saves an auxiliary log into the logs.$(DATE)/aux_logs directory.
@@ -498,36 +455,6 @@ class ShopFloorBase(object):
       a XML-RPC server module.
     """
     raise NotImplementedError('Finalize')
-
-  def GetRegistrationCodeMap(self, serial):
-    """Returns the registration code map for the given serial number.
-
-    Returns:
-      {'user': registration_code, 'group': group_code}
-
-    Raises:
-      ValueError if serial is invalid, or other exceptions defined by individual
-      modules. Note this will be converted to xmlrpclib.Fault when being used as
-      a XML-RPC server module.
-    """
-    raise NotImplementedError('GetRegistrationCode')
-
-  def GetAuxData(self, table_name, id):  # pylint: disable=W0622
-    """Returns a row from an auxiliary table.
-
-    Args:
-      table_name: The table containing the desired row.
-      id: The ID of the row to return.
-
-    Returns:
-      A map of properties from the given table.
-
-    Raises:
-      ValueError if the ID cannot be found in the table.  Note this will be
-      converted to xmlrpclib.Fault when being used as an XML-RPC server
-      module.
-    """
-    raise NotImplementedError('GetAuxData')
 
   def LogRegistrationCodeMap(self, hwid, registration_code_map,
                              log_filename='registration_code_log.csv',

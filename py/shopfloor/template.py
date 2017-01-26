@@ -26,30 +26,6 @@ class ShopFloor(shopfloor.ShopFloorBase):
     self.config = config
     logging.info('Shop floor system started.')
 
-  def CheckSN(self, serial):
-    """See help(ShopFloorBase.CheckSN)"""
-    raise NotImplementedError('CheckSN')
-
-  def GetHWID(self, serial):
-    """See help(ShopFloorBase.GetHWID)"""
-    raise NotImplementedError('GetHWID')
-
-  def GetVPD(self, serial):
-    """See help(ShopFloorBase.GetVPD)"""
-    raise NotImplementedError('GetVPD')
-
-  def UploadReport(self, serial, report_blob, report_name=None):
-    """See help(ShopFloorBase.UploadReport)"""
-    raise NotImplementedError('UploadReport')
-
   def Finalize(self, serial):
     """See help(ShopFloorBase.Finalize)"""
     raise NotImplementedError('Finalize')
-
-  def GetTestMd5sum(self):
-    """See help(ShopFloorBase.GetTestMd5sum)"""
-    raise NotImplementedError('GetTestMd5sum')
-
-  def UploadEvent(self, log_name, chunk):
-    """See help(ShopFloorBase.UploadEvent)"""
-    raise NotImplementedError('UploadEvent')
