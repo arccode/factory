@@ -700,7 +700,7 @@ do_update_docker_image_version() {
   local head="$(git rev-parse HEAD 2>/dev/null)"
   local upstream="$(git merge-base remotes/m/master "${head}")"
 
-  if [ "${head}" != "${upstream}" -o -z "${head}" ]; then
+  if [ "${head}" != "${upstream}" ] || [ -z "${head}" ]; then
     die "Your latest commit was not merged to upstream (remotes/m/master)." \
         "To publish you have to build without local commits."
   fi
@@ -728,6 +728,7 @@ do_update_docker_image_version() {
   fi
 
   local branch_name="$(git rev-parse --abbrev-ref HEAD)"
+  local new_timestamp="$(date '+%Y%m%d%H%M%S')"
   if [ "${branch_name}" = "HEAD" ]; then
     # We are on a detached HEAD - should start a new branch to work on so
     # do_commit_docker_image_version can create a new commit.
@@ -736,7 +737,6 @@ do_update_docker_image_version() {
   fi
 
   echo "Update publish information in $0..."
-  local new_timestamp="$(date '+%Y%m%d%H%M%S')"
   sed -i "s/${DOCKER_IMAGE_GITHASH}/${head}/;
           s/${DOCKER_IMAGE_TIMESTAMP}/${new_timestamp}/" "${script_file}"
 }
