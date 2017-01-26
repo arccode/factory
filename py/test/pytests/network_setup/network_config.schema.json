@@ -1,0 +1,48 @@
+{
+  "required": true,
+  "patternProperties": {
+    ".+": {
+      "required": false,
+      "type": "object",
+      "properties": {
+        "name_servers": {
+          "items": {
+            "required": false,
+            "type": "string",
+            "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+          },
+          "required": false,
+          "type": "array"
+        },
+        "prefixlen": {
+          "required": false,
+          "type": "number"
+        },
+        "mtu": {
+          "required": false,
+          "type": "number"
+        },
+        "gateway": {
+          "required": false,
+          "type": "string",
+          "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+        },
+        "address": {
+          "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+          "required": true,
+          "type": ["string", "null"],
+          "decription": "IP address of the interface, null to use DHCP"
+        },
+        "interface_name": {
+          "required": false,
+          "type": "string",
+          "description": "A short interface name to display."
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-03/schema",
+  "type": "object",
+  "id": "https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/pytests/network_setup/network_config.schema.json"
+}

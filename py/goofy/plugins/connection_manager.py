@@ -43,3 +43,9 @@ class ConnectionManager(plugin.Plugin):
 
   def OnStop(self):
     self._connection_manager.DisableNetworking()
+
+  def SetStaticIP(self, *args, **kwargs):
+    try:
+      self._connection_manager.SetStaticIP(*args, **kwargs)
+    except connection_manager.ConnectionManagerException as e:
+      return e.error_code

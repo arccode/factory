@@ -1315,6 +1315,25 @@ class GoofyRPC(object):
     if self.goofy.link_manager:
       self.goofy.link_manager.UpdateStatus(all_pass)
 
+  def SetStaticIP(self, *args, **kwargs):
+    """Sets static IP for an interface.
+
+    This is a delegate function of
+    cros.factory.test.utils.connection_manager.ConnectionManager.SetStaticIP.
+    """
+    # TODO(sitmim): migrate to plugin RPC
+
+    manager = self.goofy.plugin_controller.GetPluginInstance(
+        'connection_manager')
+    if manager is not None:
+      return manager.SetStaticIP(*args, **kwargs)
+    else:
+      raise GoofyRPCException('connection manager is not running')
+
+  def IsPluginRunning(self, instance_name):
+    instance = self.goofy.plugin_controller.GetPluginInstance(instance_name)
+    return instance is not None
+
 
 def main():
   parser = argparse.ArgumentParser(
