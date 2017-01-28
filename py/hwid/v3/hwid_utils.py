@@ -163,8 +163,7 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
   context = rule.Context(hwid=hwid, vpd=vpd)
   db.rules.EvaluateRules(context, namespace='verify.*')
 
-  mandatory_rules = [
-      # VPD
+  default_rules = [
       {'name': 'verify.vpd.ro',
        'evaluate': ['Assert(ValidVPDValue("ro", "%s"))' % field for field in
                     ('region', 'serial_number')]},
@@ -172,7 +171,9 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
        'evaluate': ['CheckRegistrationCode(GetVPDValue("rw", "%s"))' % field
                     for field in ('gbind_attribute', 'ubind_attribute')]},
   ]
-  database.Rules(mandatory_rules).EvaluateRules(context)
+  executed_rule_names = [r.name for r in db.rules.rule_list]
+  new_rules = [r for r in default_rules if r['name'] not in executed_rule_names]
+  database.Rules(new_rules).EvaluateRules(context)
 
 
 def VerifyComponents(db, probed_results, component_list):
