@@ -265,7 +265,7 @@ def ValidVPDValue(section, key):
 
 # pylint: disable=W0622
 @RuleFunction(['hwid'])
-def CheckRegistrationCode(code, type=None):
+def CheckRegistrationCode(code, type=None, device=None):
   """A wrapper method to verify registration code.
 
   Args:
@@ -286,10 +286,12 @@ def CheckRegistrationCode(code, type=None):
     else:
       raise ValueError('Unknown reg code type %r' % type)
 
-  # Board name is exactly the same as in the HWID, except lowercase (e.g.,
-  # "spring", not "daisy_spring").
-  board = GetContext().hwid.database.board.lower()
-  registration_codes.CheckRegistrationCode(code, type=type, device=board)
+  # Device name is usually exactly the same as in the HWID, except lowercase
+  # (e.g., "spring", not "daisy_spring"). For Zerg devices this may be chassis
+  # or project ID.
+  if device is None:
+    device = GetContext().hwid.database.board.lower()
+  registration_codes.CheckRegistrationCode(code, type=type, device=device)
 
 
 @RuleFunction([])
