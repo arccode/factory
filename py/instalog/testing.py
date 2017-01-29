@@ -68,6 +68,7 @@ class MockCore(plugin_sandbox.CoreAPI):
         shutil.move(att_path, tmp_path)
         event.attachments[att_id] = tmp_path
     self.emit_calls.append(events)
+    return True
 
   def GetStream(self, stream_id):
     """Retrieves the stream with the given ID, creating if necessary."""

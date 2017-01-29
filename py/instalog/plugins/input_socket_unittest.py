@@ -9,7 +9,9 @@
 from __future__ import print_function
 
 import logging
+import mock
 import socket
+import time
 import unittest
 
 import instalog_common  # pylint: disable=W0611
@@ -22,7 +24,7 @@ from instalog.utils import net_utils
 
 class TestInputSocket(unittest.TestCase):
 
-  def _CreatePlugin(self, config={}):
+  def _CreatePlugin(self):
     self.core = testing.MockCore()
     self.hostname = 'localhost'
     self.port = net_utils.GetUnusedPort()
@@ -32,7 +34,7 @@ class TestInputSocket(unittest.TestCase):
     self.sandbox = plugin_sandbox.PluginSandbox(
         'input_socket', config=config, core_api=self.core)
     self.sandbox.Start(True)
-    self.plugin = self.sandbox._plugin
+    self.plugin = self.sandbox._plugin  # pylint: disable=protected-access
 
   def _CreateSocket(self):
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -41,6 +43,12 @@ class TestInputSocket(unittest.TestCase):
   def _AssertSocketClosed(self):
     self.sock.settimeout(0.5)
     self.assertFalse(self.sock.recv(1))
+
+  def _ConfirmTransaction(self):
+    """Performs the confirm transaction handshake."""
+    self.assertEquals('1', self.sock.recv(1))
+    self.sock.sendall('1')
+    self.assertEquals('1', self.sock.recv(1))
 
   def setUp(self):
     self._CreatePlugin()
@@ -64,11 +72,24 @@ class TestInputSocket(unittest.TestCase):
                       '8\0[{}, {}]'
                       '50005107138f95db8dfc3f44a84d607a5fc75669\0'
                       '0\0')
-    self.assertEquals('1', self.sock.recv(1))
+    self._ConfirmTransaction()
     self._AssertSocketClosed()
     # TODO(kitching): Remove when __nodeId__ is deprecated.
     self.core.emit_calls[0][0].payload.pop('__nodeId__', None)
     self.assertEquals(self.core.emit_calls, [[datatypes.Event({})]])
+
+  @mock.patch('socket_common.SOCKET_TIMEOUT', 0.1)
+  def testOutputTimeout(self):
+    self.sock.sendall('1\0'
+                      '8\0[{}, {}]'
+                      '50005107138f95db8dfc3f44a84d607a5fc75669\0'
+                      '0\0')
+    # Don't confirm the transaction.  Simulate network failure by shutting
+    # down the socket.
+    self.sock.shutdown(socket.SHUT_RDWR)
+    self.sock.close()
+    time.sleep(0.2)
+    self.assertFalse(self.core.emit_calls)
 
   def testInvalidChecksum(self):
     self.sock.sendall('1\0'
@@ -87,7 +108,7 @@ class TestInputSocket(unittest.TestCase):
                       '8c18ccf21585d969762e4da67bc890da8672ba5c\0'
                       '10\0XXXXXXXXXX'
                       '1c17e556736c4d23933f99d199e7c2c572895fd2\0')
-    self.assertEquals('1', self.sock.recv(1))
+    self._ConfirmTransaction()
     self._AssertSocketClosed()
     self.assertEqual(1, len(self.core.emit_calls))
     event_list = self.core.emit_calls[0]

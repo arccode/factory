@@ -8,7 +8,6 @@
 
 from __future__ import print_function
 
-import hashlib
 import logging
 import mock
 import socket
@@ -43,7 +42,7 @@ class TestInputSocket(unittest.TestCase):
 
     # Start the plugin.
     self.sandbox.Start(True)
-    self.plugin = self.sandbox._plugin
+    self.plugin = self.sandbox._plugin  # pylint: disable=protected-access
 
   def tearDown(self):
     self.sandbox.Stop(True)
@@ -65,11 +64,12 @@ class TestInputSocket(unittest.TestCase):
   def testMidTransmissionFailure(self):
     with mock.patch.object(self.plugin, 'Ping', return_value=True):
       with mock.patch.object(self.sock, 'sendall', side_effect=socket.error):
-        self.core.GetStream(0).Queue([datatypes.Event({})])
+        self.stream.Queue([datatypes.Event({})])
         self.sandbox.Flush(0.1, True)
       with mock.patch.object(self.sock, 'sendall', side_effect=Exception):
-        self.core.GetStream(0).Queue([datatypes.Event({})])
+        self.stream.Queue([datatypes.Event({})])
         self.sandbox.Flush(0.1, True)
+    self.assertFalse(self.stream.Empty())
 
   def testInvalidHeader(self):
     self.sock.recv.return_value = 'x'
@@ -78,15 +78,17 @@ class TestInputSocket(unittest.TestCase):
   def testOneEvent(self):
     event = datatypes.Event({})
     with mock.patch.object(event, 'Serialize', return_value='EVENT'):
-      self.core.GetStream(0).Queue([event])
+      self.stream.Queue([event])
       self.sandbox.Flush(2, True)
       self.assertEqual('0\0'  # ping
                        '1\0'
                        '5\0'
                        'EVENT'
                        '7c90977a1d83c431f761e4bae201bddd4a6f31d6\0'
-                       '0\0',
+                       '0\0'
+                       '1',  # confirmation
                        self._GetSentData())
+    self.assertTrue(self.stream.Empty())
 
   def testOneEventOneAttachment(self):
     with tempfile.NamedTemporaryFile() as f:
@@ -94,7 +96,7 @@ class TestInputSocket(unittest.TestCase):
       f.flush()
       event = datatypes.Event({}, {'my_attachment': f.name})
       with mock.patch.object(event, 'Serialize', return_value='EVENT'):
-        self.core.GetStream(0).Queue([event])
+        self.stream.Queue([event])
         self.sandbox.Flush(2, True)
         self.assertEqual('0\0'  # ping
                          '1\0'
@@ -105,8 +107,10 @@ class TestInputSocket(unittest.TestCase):
                          '13\0my_attachment'
                          '8c18ccf21585d969762e4da67bc890da8672ba5c\0'
                          '10\0XXXXXXXXXX'
-                         '1c17e556736c4d23933f99d199e7c2c572895fd2\0',
+                         '1c17e556736c4d23933f99d199e7c2c572895fd2\0'
+                         '1',  # confirmation
                          self._GetSentData())
+    self.assertTrue(self.stream.Empty())
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@
 
 Transmits events to an input socket plugin running on another Instalog node.
 
-See input_socket.py for protocol definition.
+See socket_common.py for protocol definition.
 """
 
 from __future__ import print_function
@@ -20,17 +20,14 @@ import time
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
+from instalog.plugins import socket_common
 from instalog.utils.arg_utils import Arg
 from instalog.utils import time_utils
 
 
 _DEFAULT_BATCH_SIZE = 5000
 _DEFAULT_TIMEOUT = 5
-_DEFAULT_PORT = 8893
-_CHUNK_SIZE = 1024
 _FAILED_CONNECTION_INTERVAL = 60
-_SOCKET_TIMEOUT = 20
-_SEPARATOR = '\0'
 
 
 class OutputSocket(plugin_base.OutputPlugin):
@@ -43,7 +40,7 @@ class OutputSocket(plugin_base.OutputPlugin):
       Arg('hostname', (str, unicode), 'Hostname that server should bind to.',
           optional=False),
       Arg('port', int, 'Port that server should bind to.',
-          optional=True, default=_DEFAULT_PORT)
+          optional=True, default=socket_common.DEFAULT_PORT)
   ]
 
   def Main(self):
@@ -93,14 +90,25 @@ class OutputSocket(plugin_base.OutputPlugin):
         for event in events:
           total_bytes += self.SendEvent(event)
 
+        # Confirmation of receipt.
+        self.debug('Waiting for data-received (syn)...')
+        if not self.CheckSuccess(socket_common.DATA_RECEIVED_CHAR):
+          self.info('Failure waiting for data-received (syn); abort %d events',
+                    len(events))
+          raise Exception
+        self.debug('Sending request-emit (ack)...')
+        self._sock.sendall(socket_common.REQUEST_EMIT_CHAR)
+
+
         # Check for success or failure.  Commit or abort the stream.
-        if self.CheckSuccess():
-          self.info('Success; commit %d events', len(events))
+        self.debug('Waiting for emit-success (syn-ack)...')
+        if self.CheckSuccess(socket_common.EMIT_SUCCESS_CHAR):
+          self.debug('Success; commit %d events', len(events))
           event_stream.Commit()
+          event_stream_open = False
         else:
           self.info('Failure; abort %d events', len(events))
-          event_stream.Abort()
-        event_stream_open = False
+          raise Exception
         elapsed_time = time.time() - start_time
 
         # Size and speed information.
@@ -110,9 +118,6 @@ class OutputSocket(plugin_base.OutputPlugin):
             len(events), total_kbytes, elapsed_time,
             total_kbytes / elapsed_time)
 
-        # Shutdown and close the socket.
-        self._sock.shutdown(socket.SHUT_RDWR)
-        self._sock.close()
       except socket.error as e:
         if event_stream_open:
           event_stream.Abort()
@@ -128,13 +133,21 @@ class OutputSocket(plugin_base.OutputPlugin):
         self.exception('Connection or transfer failed')
         target_available = False
         self.Sleep(1)
+      finally:
+        # Shutdown and close the socket.
+        try:
+          self.debug('Closing socket')
+          self._sock.shutdown(socket.SHUT_RDWR)
+          self._sock.close()
+        except Exception:
+          self.exception('Error closing socket')
 
   def Ping(self):
     """Pings the input socket with an empty-length transmission."""
     try:
       self.GetSocket()
       self.SendInt(0)
-      return self.CheckSuccess()
+      return self.CheckSuccess(socket_common.PING_RESPONSE)
     except socket.error:
       return False
     except Exception:
@@ -143,13 +156,14 @@ class OutputSocket(plugin_base.OutputPlugin):
 
   def GetSocket(self):
     """Creates and returns a new socket connection to the target host."""
+    # pylint: disable=attribute-defined-outside-init
     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self._sock.settimeout(_SOCKET_TIMEOUT)
+    self._sock.settimeout(socket_common.SOCKET_TIMEOUT)
     self._sock.connect((self.args.hostname, self.args.port))
 
   def SendItem(self, item):
     """Transmits an item over the socket stream."""
-    self._sock.sendall('%s%s' % (item, _SEPARATOR))
+    self._sock.sendall('%s%s' % (item, socket_common.SEPARATOR))
 
   def SendInt(self, num):
     """Transmits an integer over the socket stream."""
@@ -200,7 +214,7 @@ class OutputSocket(plugin_base.OutputPlugin):
     local_hash = hashlib.sha1()
     with open(att_path) as f:
       while True:
-        read_bytes = f.read(_CHUNK_SIZE)
+        read_bytes = f.read(socket_common.CHUNK_SIZE)
         if not read_bytes:
           break
         local_hash.update(read_bytes)
@@ -208,10 +222,10 @@ class OutputSocket(plugin_base.OutputPlugin):
     self.SendItem(local_hash.hexdigest())
     return att_id_size + att_size
 
-  def CheckSuccess(self):
+  def CheckSuccess(self, expected_char):
     """Checks that the transmission was committed on the remote side."""
     result = self._sock.recv(1)
-    return result == '1'
+    return result == expected_char
 
 
 if __name__ == '__main__':
