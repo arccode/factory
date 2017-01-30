@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Input archive plugin
+"""Input archive plugin.
 
 Import all events from archives which are made by output_archive.
 
@@ -16,8 +16,10 @@ The archive structure:
     InstalogEvents_YYYYmmddHHMMSS/
       events.json
       attachments/  # Will not have this dir if no attachment.
-        000/${ATTACHMENT000_NAME}
-        001/${ATTACHMENT001_NAME}
+        000_${EVENT_0_ATTACHMENT_0_NAME}
+        000_${EVENT_0_ATTACHMENT_1_NAME}
+        001_${EVENT_1_ATTACHMENT_0_NAME}
+        001_${EVENT_1_ATTACHMENT_1_NAME}
         ...
 """
 

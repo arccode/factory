@@ -49,6 +49,7 @@ class TestInputSocket(unittest.TestCase):
     self.sandbox.Stop(True)
     self.patcher.stop()
     self.assertTrue(self.core.AllStreamsExpired())
+    self.core.Close()
 
   def _GetSentData(self):
     data = ''.join([x[1][0] for x in self.sock.sendall.mock_calls])

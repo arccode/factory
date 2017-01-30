@@ -53,6 +53,7 @@ class TestBufferSimpleFile(unittest.TestCase):
   def tearDown(self):
     self.output_sandbox.Stop(True)
     self.input_sandbox.Stop(True)
+    self.core.Close()
 
   def testOneEvent(self):
     self.stream.Queue([datatypes.Event({})])

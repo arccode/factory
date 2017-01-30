@@ -16,21 +16,19 @@ The archive structure:
     InstalogEvents_YYYYmmddHHMMSS/
       events.json
       attachments/  # Will not have this dir if no attachment.
-        000/${ATTACHMENT000_NAME}
-        001/${ATTACHMENT001_NAME}
+        000_${EVENT_0_ATTACHMENT_0_NAME}
+        000_${EVENT_0_ATTACHMENT_1_NAME}
+        001_${EVENT_1_ATTACHMENT_0_NAME}
+        001_${EVENT_1_ATTACHMENT_1_NAME}
         ...
 """
-
-# TODO(kitching): Add a unittest.
 
 from __future__ import print_function
 
 import datetime
 import os
 import shutil
-import StringIO
 import tarfile
-import time
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
@@ -88,58 +86,24 @@ class OutputArchive(plugin_base.OutputPlugin):
       if not self.PrepareAndArchive():
         self.Sleep(1)
 
-  def GetEventsTarInfo(self, name, size):
-    """Makes the file info of events.json."""
-    info = tarfile.TarInfo(name)
-    info.size = size
-    info.mtime = time.time()
-    info.mode = 0644
-    info.type = tarfile.REGTYPE
-    return info
+  def ProcessEvent(self, event_id, event, base_dir):
+    """Copies an event's attachments and returns its serialized form."""
+    for att_id, att_path in event.attachments.iteritems():
+      if os.path.isfile(att_path):
+        att_name = os.path.basename(att_path)
+        att_newpath = os.path.join('attachments',
+                                   '%d_%s' % (event_id, att_name))
+        shutil.copyfile(att_path, os.path.join(base_dir, att_newpath))
+        event.attachments[att_id] = att_newpath
+    return event.Serialize()
 
-  def Archive(self, events):
-    """Archives events."""
-    serialized_events_buffer = StringIO.StringIO()
-    att_count = 0
-
-    cur_time = datetime.datetime.now()
-    archive_name = cur_time.strftime('InstalogEvents_%Y%m%d%H%M%S')
-    archive_filename = '%s.tar.gz' % archive_name
-    with file_utils.UnopenedTemporaryFile(
-        prefix='instalog_archive_') as tmp_path:
-      self.info('Archiving %d events in %s', len(events), archive_name)
-      with tarfile.open(tmp_path, 'w:gz') as tar:
-        for event in events:
-          for att_id, att_path in event.attachments.iteritems():
-            if os.path.isfile(att_path):
-              att_name = os.path.basename(att_path)
-              att_newpath = 'attachments/%03d/%s' % (att_count, att_name)
-              att_count += 1
-              tar.add(att_path, arcname=os.path.join(archive_name, att_newpath))
-              event.attachments[att_id] = att_newpath
-          serialized_events_buffer.write(event.Serialize() + '\n')
-        info = self.GetEventsTarInfo(os.path.join(archive_name, 'events.json'),
-                                     serialized_events_buffer.len)
-        serialized_events_buffer.seek(0)
-        tar.addfile(info, serialized_events_buffer)
-
-      # What should we do with the archive?
-      if self.args.target_dir:
-        target_path = os.path.join(self.args.target_dir, archive_filename)
-        self.info('Saving archive to file %s', target_path)
-        if self.args.enable_emit:
-          # We still need the file for the emit() call.
-          shutil.copyfile(tmp_path, target_path)
-        else:
-          # We don't need the file anymore, so use move.
-          shutil.move(tmp_path, target_path)
-      if self.args.enable_emit:
-        self.info('Emitting event with attachment %s', archive_filename)
-        event = datatypes.Event(
-            {'__archive__': True, 'time': cur_time},
-            {archive_filename: tmp_path})
-        self.Emit([event])
-    return True
+  def GetEventAttachmentSize(self, event):
+    """Returns the total size of given event's attachments."""
+    total_size = 0
+    for _unused_att_id, att_path in event.attachments.iteritems():
+      if os.path.isfile(att_path):
+        total_size += os.path.getsize(att_path)
+    return total_size
 
   def PrepareAndArchive(self):
     """Retrieves events, and archives them."""
@@ -147,38 +111,73 @@ class OutputArchive(plugin_base.OutputPlugin):
     if not event_stream:
       return False
 
-    events = []
-    time_last = time_utils.MonotonicTime()
-    total_size = 0
-    for event in event_stream.iter(timeout=self.args.interval):
-      events.append(event)
-      self.debug('len(events) = %d', len(events))
-      total_size += len(event.Serialize())
-      for att_id, att_path in event.attachments.iteritems():
-        if os.path.isfile(att_path):
-          total_size += os.path.getsize(att_path)
+    with file_utils.TempDirectory(prefix='instalog_archive_') as base_dir:
+      self.info('Creating temporary directory: %s', base_dir)
+      # Create the attachments directory.
+      att_dir = os.path.join(base_dir, 'attachments')
+      os.mkdir(att_dir)
 
-      time_now = time_utils.MonotonicTime()
-      if (time_now - time_last) >= _ARCHIVE_MESSAGE_INTERVAL:
-        time_last = time_now
-        self.info('Currently at %.2f%% of %.2fMB before archiving',
-                  100.0 * total_size / self.args.max_size,
-                  self.args.max_size / 1024.0 / 1024)
-      if total_size >= self.args.max_size:
-        break
+      # In order to save memory, write directly to a temp file on disk.
+      with open(os.path.join(base_dir, 'events.json'), 'w') as events_f:
+        num_events = 0
+        total_size = 0
+        time_last = time_utils.MonotonicTime()
+        for event in event_stream.iter(timeout=self.args.interval):
+          serialized_event = self.ProcessEvent(num_events, event, base_dir)
+          attachment_size = self.GetEventAttachmentSize(event)
+          events_f.write(serialized_event + '\n')
 
-    # Commit these events.
-    if len(events) == 0:
-      event_stream.Commit()
-      return False
-    elif self.Archive(events):
-      self.info('Commit %d events', len(events))
-      event_stream.Commit()
-      return True
-    else:
-      self.info('Abort %d events', len(events))
-      event_stream.Abort()
-      return False
+          total_size += len(serialized_event) + attachment_size
+          num_events += 1
+          self.debug('num_events = %d', num_events)
+
+          # Throttle our status messages.
+          time_now = time_utils.MonotonicTime()
+          if (time_now - time_last) >= _ARCHIVE_MESSAGE_INTERVAL:
+            time_last = time_now
+            self.info('Currently at %.2f%% of %.2fMB before archiving',
+                      100.0 * total_size / self.args.max_size,
+                      self.args.max_size / 1024.0 / 1024)
+          if total_size >= self.args.max_size:
+            break
+
+      # Create the archive.
+      if num_events > 0:
+        cur_time = datetime.datetime.now()
+        archive_name = cur_time.strftime('InstalogEvents_%Y%m%d%H%M%S')
+        archive_filename = '%s.tar.gz' % archive_name
+        with file_utils.UnopenedTemporaryFile(
+            prefix='instalog_archive_', suffix='tar.gz') as tmp_archive:
+          self.info('Creating temporary archive file: %s', tmp_archive)
+          self.info('Archiving %d events in %s', num_events, archive_name)
+          with tarfile.open(tmp_archive, 'w:gz') as tar:
+            tar.add(base_dir, arcname=archive_name)
+
+          # What should we do with the archive?
+          if self.args.target_dir:
+            target_path = os.path.join(self.args.target_dir, archive_filename)
+            self.info('Saving archive to: %s', target_path)
+            if self.args.enable_emit:
+              # We still need the file for the emit() call.
+              shutil.copyfile(tmp_archive, target_path)
+            else:
+              # We don't need the file anymore, so use move.
+              shutil.move(tmp_archive, target_path)
+          if self.args.enable_emit:
+            self.info('Emitting event with attachment: %s', archive_filename)
+            event = datatypes.Event(
+                {'__archive__': True, 'time': cur_time},
+                {archive_filename: tmp_archive})
+
+            # If emit fails, abort the stream.
+            if not self.Emit([event]):
+              self.error('Unable to emit, aborting')
+              event_stream.Abort()
+              return False
+
+    self.info('Commit %d events', num_events)
+    event_stream.Commit()
+    return True
 
 
 if __name__ == '__main__':

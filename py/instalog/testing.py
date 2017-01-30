@@ -9,6 +9,9 @@
 from __future__ import print_function
 
 import logging
+import os
+import shutil
+import tempfile
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
@@ -38,8 +41,13 @@ class MockCore(plugin_sandbox.CoreAPI):
   """
 
   def __init__(self):
+    self._att_dir = tempfile.mkdtemp(prefix='instalog_testing')
     self.emit_calls = []
     self.streams = []
+
+  def Close(self):
+    """Performs any final operations."""
+    shutil.rmtree(self._att_dir)
 
   def AllStreamsExpired(self):
     """Returns True if all streams are currently expired."""
@@ -48,6 +56,17 @@ class MockCore(plugin_sandbox.CoreAPI):
   def Emit(self, plugin, events):
     """Stores the events from this Emit call into self.emit_calls."""
     del plugin
+    for event in events:
+      # Move attachments to a temporary directory to simulate buffer.
+      for att_id, att_path in event.attachments.iteritems():
+        # Use a filename that contains the original one for clarity.
+        f, tmp_path = tempfile.mkstemp(
+            prefix=os.path.basename(att_path), dir=self._att_dir)
+        os.close(f)
+        # Relocate the attachment and update the event path.
+        logging.debug('Moving attachment %s --> %s...', att_path, tmp_path)
+        shutil.move(att_path, tmp_path)
+        event.attachments[att_id] = tmp_path
     self.emit_calls.append(events)
 
   def GetStream(self, stream_id):
@@ -129,7 +148,7 @@ class MockBufferEventStream(plugin_base.BufferEventStream):
       return None
     ret = self.queue.pop(0)
     self.consumed.append(ret)
-    logging.debug('%s: Popping %s...', self, ret)
+    logging.debug('%s: Popping next event...', self)
     return ret
 
   def Commit(self):

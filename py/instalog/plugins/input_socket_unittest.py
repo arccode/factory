@@ -49,6 +49,7 @@ class TestInputSocket(unittest.TestCase):
   def tearDown(self):
     self.sandbox.Stop(True)
     self.assertTrue(self.core.AllStreamsExpired())
+    self.core.Close()
 
   def testPing(self):
     self.sock.sendall('0\0')

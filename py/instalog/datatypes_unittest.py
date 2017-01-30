@@ -9,11 +9,9 @@
 from __future__ import print_function
 
 import copy
-import json
 import logging
 import mock
 import Queue
-import re
 import time
 import unittest
 
@@ -117,7 +115,7 @@ class TestEvent(unittest.TestCase):
 
   def testDict(self):
     """Checks that an event can be accessed just like a dictionary."""
-    payload = {'a': 1, 'b': 2, 'c': {}}
+    payload = {'a': 1, 'b': 2, 'c': {}, '__d__': True}
     event = datatypes.Event(payload)
     self.assertEqual(event.payload, payload)
     self.assertEqual(event.keys(), payload.keys())
@@ -126,6 +124,8 @@ class TestEvent(unittest.TestCase):
     self.assertEqual(event['b'], payload['b'])
     self.assertTrue(repr(payload) in repr(event))
     self.assertEqual(('a', 1), event.iteritems().next())
+    with self.assertRaises(AttributeError):
+      self.assertTrue(event.__d__)
     event.setdefault('a', 2)
     event.setdefault('d', 2)
     self.assertEqual(event['a'], 1)
