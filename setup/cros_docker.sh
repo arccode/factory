@@ -229,6 +229,7 @@ do_umpire_run() {
       --publish "${p2}:${umpire_cli_port}" \
       --publish "${p3}:${umpire_rsync_port}" \
       --publish "${p4}:${umpire_instalog_socket_port}" \
+      --privileged \
       "${DOCKER_IMAGE_NAME}" \
       "${DOCKER_BASE_DIR}/bin/umpired" || \
       (echo "Removing stale container due to error ..."; \
