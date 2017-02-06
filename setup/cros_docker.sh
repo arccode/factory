@@ -123,6 +123,7 @@ RESOURCE_DOCKER_SHA1="a07cc33579a6e0074a53f148b26103723f81dab1"
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
 DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
+DOCKER_INSTALOG_DIR="${DOCKER_BASE_DIR}/py/instalog"
 
 DOCKER_OVERLORD_DIR="${DOCKER_BASE_DIR}/bin/overlord"
 DOCKER_OVERLORD_APP_DIR="${DOCKER_OVERLORD_DIR}/app"
@@ -674,6 +675,7 @@ do_build() {
     --tag "${DOCKER_IMAGE_NAME}" \
     --build-arg dome_dir="${DOCKER_DOME_DIR}" \
     --build-arg server_dir="${DOCKER_BASE_DIR}" \
+    --build-arg instalog_dir="${DOCKER_INSTALOG_DIR}" \
     --build-arg umpire_dir_in_dome="${DOCKER_UMPIRE_DIR_IN_DOME}" \
     --build-arg umpire_builder_output_file="${umpire_builder_output_file}" \
     --build-arg dome_builder_output_file="${dome_builder_output_file}" \

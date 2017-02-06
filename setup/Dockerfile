@@ -10,6 +10,7 @@ ENV PYTHONPATH="/usr/local/lib/python2.7/site-packages"
 
 ARG server_dir="/usr/local/factory"
 ARG dome_dir="${server_dir}/py/dome"
+ARG instalog_dir="${server_dir}/py/instalog"
 ARG umpire_dir_in_dome
 
 # Create Umpire mount point. Normally we should mount this (and Docker will
