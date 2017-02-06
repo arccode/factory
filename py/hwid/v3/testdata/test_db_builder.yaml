@@ -16,7 +16,7 @@ pattern:
     encoding_scheme: base32
     fields:
     - region_field: 8
-    - customization_id_field: 5
+    - chassis_field: 5
     - ro_ec_firmware_field: 3
     - ro_main_firmware_field: 3
     - firmware_keys_field: 2
@@ -114,11 +114,11 @@ encoded_fields:
     1:
       ro_main_firmware: ro_main_firmware_1
   region_field: !region_field ['us', 'tw']
-  customization_id_field:
+  chassis_field:
     0:
-      customization_id: FOO
+      chassis: FOO
     1:
-      customization_id: BAR
+      chassis: BAR
 
 components:
   audio_codec:
@@ -305,7 +305,7 @@ components:
       ro_main_firmware_1:
         values: { compact_str: mv2#ro_main_firmware_1 }
   region: !region_component
-  customization_id:
+  chassis:
     items:
       FOO:
         values:
@@ -553,7 +553,7 @@ pattern:
     encoding_scheme: base8192
     fields:
     - board_version_field: 3
-    - customization_id_field: 5
+    - chassis_field: 5
     - cpu_field: 1
     - storage_field: 5
     - dram_field: 5
@@ -563,9 +563,9 @@ encoded_fields:
   board_version_field:
     0:
       board_version: board_version_0
-  customization_id_field:
+  chassis_field:
     0:
-      customization_id: cpu_0
+      chassis: chassis_0
   cpu_field:
     0:
       cpu: cpu_0
@@ -585,10 +585,10 @@ components:
     items:
       region_0:
         values: {name: region_0}
-  customization_id:
+  chassis:
     items:
-      customization_id_0:
-        values: {name: customization_id_0}
+      chassis_0:
+        values: {name: chassis_0}
   cpu:
     items:
       cpu_0:

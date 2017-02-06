@@ -31,7 +31,7 @@ _NEED_IMAGE_ID_MSG = 'Please assign a image_id by adding "--image-id" argument.'
 ESSENTIAL_COMPS = OrderedDict([
     ('board_version', 3),
     ('region', 5),
-    ('customization_id', 5),
+    ('chassis', 5),
     ('cpu', 3),
     ('storage', 5),
     ('dram', 5)])
@@ -83,7 +83,7 @@ def DetermineComponentName(comp_cls, value):
     the component name.
   """
   # Known specific components.
-  if comp_cls == 'customization_id':
+  if comp_cls == 'chassis':
     return value['id']
   if comp_cls == 'firmware_keys':
     dev_key = {
@@ -180,7 +180,7 @@ class DatabaseBuilder(object):
   IGNORED_COMPONENT_SET = set([
       'hash_gbb',  # Bitmap is not stored in GBB, so we don't track hash_gbb.
       'key_root', 'key_recovery',  # firmware_keys is used to track them.
-      'region', 'customization_id'])  # We handle them in other way.
+      'region', 'chassis'])  # We handle them in other way.
   DEFAULT_REGION = 'us'
 
   FIELD_SUFFIX = '_field'
@@ -537,11 +537,11 @@ class DatabaseBuilder(object):
     logging.info('Enable the encoded_field "%s".', field_cls)
     self.active_fields.add(field_cls)
 
-  def AddCustomizationID(self, customization_ids):
-    comp_cls = 'customization_id'
-    for customization_id in customization_ids:
-      name = self.AddComponent(comp_cls, {'id': customization_id},
-                               customization_id)
+  def AddChassis(self, chassis_ids):
+    comp_cls = 'chassis'
+    for chassis in chassis_ids:
+      name = self.AddComponent(comp_cls, {'id': chassis},
+                               chassis)
       self.AddEncodedField(comp_cls, name)
     if self.db[DB_KEY.components][comp_cls].get('probeable', True) is False:
       self.db[DB_KEY.components][comp_cls]['probeable'] = True
@@ -771,7 +771,7 @@ class DatabaseBuilder(object):
         self.AddEncodedField(comp_cls, comp_names)
 
   def Update(self, probed_results, image_id, add_default_comp, add_null_comp,
-             del_comp, region, customization_id):
+             del_comp, region, chassis):
     """Updates the database by the probed result and arguments.
 
     Args:
@@ -781,7 +781,7 @@ class DatabaseBuilder(object):
       add_comp: a list of component classes which add a default item.
       del_comp: a list of component classes which are removed in latest pattern.
       region: a list of region code that are appended in the database.
-      customization_id: a list of customization ID that are appended in the
+      chassis: a list of chassis identifiers that are appended in the
           database.
     """
     probed_results = ExtractProbedResult(probed_results)
@@ -816,15 +816,16 @@ class DatabaseBuilder(object):
       region_set.add(self.DEFAULT_REGION)
     if region_set:
       self.AddRegions(region_set)
-    # Handle customization_id. Default: NULL
-    customization_id_set = set(customization_id) if customization_id else set()
-    if 'customization_id' in probed_results:
-      customization_id_set.add(probed_results['customization_id']['id'])
-    if customization_id_set:
-      self.AddCustomizationID(customization_id_set)
-    elif 'customization_id' not in self.db[DB_KEY.components]:
-      logging.info('No customization_id is assigned. Add NULL component.')
-      self.AddNullComponent('customization_id')
+
+    # Handle chassis identifier. Default: NULL
+    chassis_set = set(chassis) if chassis else set()
+    if 'chassis' in probed_results:
+      chassis_set.add(probed_results['chassis']['id'])
+    if chassis_set:
+      self.AddChassis(chassis_set)
+    elif 'chassis' not in self.db[DB_KEY.components]:
+      logging.info('No chassis is assigned. Add NULL component.')
+      self.AddNullComponent('chassis')
 
     # Update the image_id and pattern.
     self.HandleImageIdAndPattern(image_id)

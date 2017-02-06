@@ -33,19 +33,19 @@ def _HWIDMode(rma_mode):
 
 def BuildDatabase(database_path, probed_results, board, image_id,
                   add_default_comp=None, add_null_comp=None, del_comp=None,
-                  region=None, customization_id=None):
+                  region=None, chassis=None):
   db_builder = builder.DatabaseBuilder(board=board)
   db_builder.Update(probed_results, image_id, add_default_comp, add_null_comp,
-                    del_comp, region, customization_id)
+                    del_comp, region, chassis)
   db_builder.Render(database_path)
 
 
 def UpdateDatabase(database_path, probed_results, old_db, image_id=None,
                    add_default_comp=None, add_null_comp=None, del_comp=None,
-                   region=None, customization_id=None):
+                   region=None, chassis=None):
   db_builder = builder.DatabaseBuilder(db=old_db)
   db_builder.Update(probed_results, image_id, add_default_comp, add_null_comp,
-                    del_comp, region, customization_id)
+                    del_comp, region, chassis)
   db_builder.Render(database_path)
 
 

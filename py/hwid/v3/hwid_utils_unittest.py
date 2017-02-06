@@ -430,7 +430,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     hwid_utils.BuildDatabase(
         self.output_path, self.probed_results[0], 'CHROMEBOOK', 'EVT',
         add_default_comp=['dram'], del_comp=None,
-        region=['tw', 'jp'], customization_id=['FOO', 'BAR'])
+        region=['tw', 'jp'], chassis=['FOO', 'BAR'])
     # If not in Chroot, the checksum is not updated.
     verify_checksum = sys_utils.InChroot()
     database.Database.LoadFile(self.output_path, verify_checksum)
@@ -445,7 +445,7 @@ class DatabaseBuilderTest(unittest.TestCase):
         # Essential fields.
         {'board_version_field': 3},
         {'region_field': 5},
-        {'customization_id_field': 5},
+        {'chassis_field': 5},
         {'cpu_field': 3},
         {'storage_field': 5},
         {'dram_field': 5},
@@ -473,7 +473,7 @@ class DatabaseBuilderTest(unittest.TestCase):
                            'storage', 'flash_chip', 'bluetooth', 'wireless',
                            'display_panel', 'audio_codec', 'firmware_keys',
                            'ro_ec_firmware', 'usb_hosts', 'cpu', 'region',
-                           'board_version', 'customization_id']))
+                           'board_version', 'chassis']))
     self.assertEquals(db['rules'],
                       [{'name': 'device_info.image_id',
                         'evaluate': "SetImageId('EVT')"}])
@@ -483,12 +483,12 @@ class DatabaseBuilderTest(unittest.TestCase):
     # Choose to add the touchpad without a new image_id.
     with mock.patch('__builtin__.raw_input', return_value='y'):
       hwid_utils.UpdateDatabase(self.output_path, None, new_db,
-                                add_null_comp=['touchpad', 'customization_id'])
+                                add_null_comp=['touchpad', 'chassis'])
     database.Database.LoadFile(self.output_path, verify_checksum)
     self.assertIn({'touchpad': None},
                   new_db['encoded_fields']['touchpad_field'].values())
-    self.assertIn({'customization_id': None},
-                  new_db['encoded_fields']['customization_id_field'].values())
+    self.assertIn({'chassis': None},
+                  new_db['encoded_fields']['chassis_field'].values())
 
     # Add a component without a new image_id.
     probed_result = self.probed_results[0].copy()
@@ -503,12 +503,12 @@ class DatabaseBuilderTest(unittest.TestCase):
       hwid_utils.UpdateDatabase(self.output_path, probed_result, new_db)
     self.assertIn({'touchpad_field': 0}, new_db['pattern'][0]['fields'])
 
-    # Delete bluetooth, and add region and customization_id.
+    # Delete bluetooth, and add region and chassis.
     new_db = copy.deepcopy(db)
     hwid_utils.UpdateDatabase(
         self.output_path, None, new_db, 'DVT',
         add_default_comp=None, del_comp=['bluetooth'],
-        region=['us'], customization_id=['NEW'])
+        region=['us'], chassis=['NEW'])
     database.Database.LoadFile(self.output_path, verify_checksum)
     # Check the value.
     self.assertEquals(new_db['board'], 'CHROMEBOOK')
@@ -516,9 +516,9 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertNotIn({'bluetooth_field': 0}, new_db['pattern'][1]['fields'])
     self.assertIn({'region': 'us'},
                   new_db['encoded_fields']['region_field'].values())
-    self.assertIn('NEW', new_db['components']['customization_id']['items'])
-    self.assertIn({'customization_id': 'NEW'},
-                  new_db['encoded_fields']['customization_id_field'].values())
+    self.assertIn('NEW', new_db['components']['chassis']['items'])
+    self.assertIn({'chassis': 'NEW'},
+                  new_db['encoded_fields']['chassis_field'].values())
 
   def testBuildDatabaseMissingEssentailComponent(self):
     """Tests the essential component is missing at the probe result."""

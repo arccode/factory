@@ -113,7 +113,7 @@ $ hwid build-database \
     [--add-null-component COMP [COMP ...]] \  # Add the null item
     [--del-component COMP [COMP ...]] \  # Delete the component
     [--region REGION [REGION ...]] \  # Add supported regions
-    [--customization-id ID1 [ID2 ...]] \  # Add supported customization_id
+    [--chassis ID1 [ID2 ...]] \  # Add supported chassis
 
 # Update the HWID database
 $ hwid update-database \
@@ -126,7 +126,7 @@ $ hwid update-database \
     [--add-null-component COMP [COMP ...]] \  # Add the null item
     [--del-component COMP [COMP ...]] \  # Delete the component
     [--region REGION [REGION ...]] \  # Add supported regions
-    [--customization-id ID1 [ID2 ...]] \  # Add supported customization_id
+    [--chassis ID1 [ID2 ...]] \  # Add supported chassis
 ```
 
 ### Post-Processing

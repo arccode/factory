@@ -50,8 +50,8 @@ found_probe_value_map:
   board_version: { compact_str: 'PVT' }
   cellular:
     compact_str: '05c6:9215 Qualcomm Incorporated Qualcomm Gobi2000 0002'
+  chassis: { compact_str: 'custom' }
   cpu: { compact_str: 'Intel(R) Atom(TM) CPU N570 @ 1.66GHz [4 cores]' }
-  customization_id: { compact_str: 'custom' }
   display_panel: { compact_str: 'AUO:5c20 [1366x768]' }
   dram: { compact_str: '0|2048|DDR3-800,DDR3-1066,DDR3-1333' }
   ec_flash_chip: { compact_str: 'Winbond W25X40' }

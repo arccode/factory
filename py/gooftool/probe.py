@@ -1042,6 +1042,13 @@ def _ProbeCellular():
   return data
 
 
+@_ComponentProbe('chassis')
+def _ProbeChassis():
+  """Returns chassis identifier."""
+  chassis_id = _ShellOutput('VPD_IGNORE_CACHE=1 mosys platform chassis')
+  return [{'id': chassis_id}] if chassis_id else []
+
+
 @_ComponentProbe('cpu', 'x86')
 def _ProbeCpuX86():
   """Reformat /proc/cpuinfo data."""
@@ -1083,13 +1090,6 @@ def _ProbeCpuArm():
   return [{'model': model, 'cores': cores, 'hardware': hardware,
            COMPACT_PROBE_STR: CompactStr(
                '%s [%s cores] %s' % (model, cores, hardware))}]
-
-
-@_ComponentProbe('customization_id')
-def _ProbeCustomizationId():
-  """Probes the customization_id of the DUT in RO VPD."""
-  customization_id = ReadRoVpd().get('customization_id', None)
-  return [{'id': customization_id}] if customization_id else []
 
 
 @_ComponentProbe('display_panel')
@@ -1767,7 +1767,7 @@ def Probe(target_comp_classes=None,
   missing_component_classes = []
   # TODO(hungte) Extend _ComponentProbe to support filtering flashrom related
   # probing methods.
-  vpd_classes = ['region', 'customization_id']
+  vpd_classes = ['region']
   for comp_class, probe_fun in comp_probes.items():
     if comp_class in vpd_classes and not probe_vpd:
       logging.info('Ignored probing [%s]', comp_class)

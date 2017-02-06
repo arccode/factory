@@ -83,7 +83,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertEquals(db_builder.GetLatestFields(), set())
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
     self.assertEquals(db_builder.GetLatestFields(),
-                      set(['region_field', 'customization_id_field',
+                      set(['region_field', 'chassis_field',
                            'audio_codec_field', 'battery_field',
                            'bluetooth_field', 'cellular_field',
                            'cpu_field', 'display_panel_field', 'dram_field',
@@ -270,16 +270,9 @@ class DatabaseBuilderTest(unittest.TestCase):
     rule_names = [rule['name'] for rule in db_builder.db['rules']]
     self.assertNotIn('verify.regions', rule_names)
 
-    # Check customization_id is probeable and the component has value.
-    db_comp_items = db_builder.db['components']['customization_id']
-    self.assertTrue(db_comp_items.get('probeable', True))
-    self.assertEquals(db_comp_items['items']['FOO']['values'], {'id': 'foo'})
-    self.assertEquals(db_comp_items['items']['BAR']['values'], {'id': 'bar'})
-
-    # Check the rules for region and customization_id are removed.
+    # Check the rules for region is removed.
     rule_names = [rule['name'] for rule in db_builder.db['rules']]
     self.assertNotIn('verify.regions', rule_names)
-    self.assertNotIn('device_info.customization_id', rule_names)
 
   def testConvertLegacyRegionWithoutRule(self):
     """Test the converting legacy region without rule."""
@@ -319,12 +312,12 @@ class DatabaseBuilderTest(unittest.TestCase):
         db_builder.db['encoded_fields']['region_field'].GetRegions(),
         ['tw', 'jp'])
 
-  def testAddCustomizationID(self):
-    # Add customization_id to an empty database.
+  def testAddChassis(self):
+    # Add chassis to an empty database.
     db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
-    db_builder.AddCustomizationID(['FOO', 'BAR'])
+    db_builder.AddChassis(['FOO', 'BAR'])
     self.assertEquals(
-        db_builder.db['components']['customization_id']['items'], {
+        db_builder.db['components']['chassis']['items'], {
             'FOO': {
                 'status': 'unqualified',
                 'values': {'id': 'FOO'}},
@@ -332,16 +325,16 @@ class DatabaseBuilderTest(unittest.TestCase):
                 'status': 'unqualified',
                 'values': {'id': 'BAR'}}})
     self.assertEquals(
-        db_builder.db['encoded_fields']['customization_id_field'],
-        {0: {'customization_id': 'FOO'},
-         1: {'customization_id': 'BAR'}})
+        db_builder.db['encoded_fields']['chassis_field'],
+        {0: {'chassis': 'FOO'},
+         1: {'chassis': 'BAR'}})
     self.assertTrue(
-        db_builder.db['components']['customization_id'].get('probeable', True))
+        db_builder.db['components']['chassis'].get('probeable', True))
 
-    # Add a new customization_id and ignore the repeated one.
-    db_builder.AddCustomizationID(['FOO', 'NEW'])
+    # Add a new chassis and ignore the repeated one.
+    db_builder.AddChassis(['FOO', 'NEW'])
     self.assertEquals(
-        db_builder.db['components']['customization_id']['items'], {
+        db_builder.db['components']['chassis']['items'], {
             'FOO': {
                 'status': 'unqualified',
                 'values': {'id': 'FOO'}},
@@ -352,12 +345,12 @@ class DatabaseBuilderTest(unittest.TestCase):
                 'status': 'unqualified',
                 'values': {'id': 'NEW'}}})
     self.assertEquals(
-        db_builder.db['encoded_fields']['customization_id_field'],
-        {0: {'customization_id': 'FOO'},
-         1: {'customization_id': 'BAR'},
-         2: {'customization_id': 'NEW'}})
+        db_builder.db['encoded_fields']['chassis_field'],
+        {0: {'chassis': 'FOO'},
+         1: {'chassis': 'BAR'},
+         2: {'chassis': 'NEW'}})
     self.assertTrue(
-        db_builder.db['components']['customization_id'].get('probeable', True))
+        db_builder.db['components']['chassis'].get('probeable', True))
 
   def testVerify(self):
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
@@ -452,7 +445,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertEquals(db_builder.db['pattern'][1]['fields'],
                       [{'board_version_field': 3},
                        {'region_field': 5},
-                       {'customization_id_field': 5},
+                       {'chassis_field': 5},
                        {'cpu_field': 3},
                        {'storage_field': 5},
                        {'dram_field': 5},

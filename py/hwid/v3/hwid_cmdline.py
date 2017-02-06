@@ -55,8 +55,8 @@ _DATABASE_BUILDER_COMMON_ARGS = [
            help='Component classes that is deleted from database.\n'),
     CmdArg('--region', default=None, nargs='+',
            help='Supported regions'),
-    CmdArg('--customization-id', default=None, nargs='+',
-           help='Supported customization-id')
+    CmdArg('--chassis', default=None, nargs='+',
+           help='Supported chassis identifiers')
 ]
 
 
@@ -89,7 +89,7 @@ def BuildDatabaseWrapper(options):
   hwid_utils.BuildDatabase(
       database_path, probed_results, options.board, options.image_id,
       options.add_default_comp, options.add_null_comp, options.del_comp,
-      options.region, options.customization_id)
+      options.region, options.chassis)
   logging.info('Output the database to %s', database_path)
 
 
@@ -128,7 +128,7 @@ def UpdateDatabaseWrapper(options):
   hwid_utils.UpdateDatabase(
       database_path, probed_results, old_db, options.image_id,
       options.add_default_comp, options.add_null_comp, options.del_comp,
-      options.region, options.customization_id)
+      options.region, options.chassis)
   logging.info('Output the updated database to %s.', database_path)
 
 

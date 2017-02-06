@@ -4,7 +4,7 @@ found_probe_value_map:
     name: rev1
   region:
     region_code: us
-  customization_id:
+  chassis:
     id: FOO
   audio_codec:
   - compact_str: AUDIO A
