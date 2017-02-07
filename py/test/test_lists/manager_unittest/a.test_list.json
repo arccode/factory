@@ -1,0 +1,62 @@
+{
+  "inherit": ["base.test_list"],
+
+  "constants": {
+    "phase": "EVT",
+    "enable_shopfloor": true,
+    "component_list": ["cpu", "audio", "flash_chip"],
+    "timestamp": 1
+  },
+
+  "options": {
+    "strict_ids": true,
+    "engineering_password_sha1": "dummy_password_sha1",
+    "ui_lang": "zh",
+    "sync_event_log_period_secs": 0,
+    "disable_cros_shortcut_keys": true,
+    "core_dump_watchlist": []
+  },
+
+  "definitions": {
+    "LEDTest": {
+      "inherit": "OperatorTest",
+      "pytest_name": "led",
+      "args": {
+        "colors": ["RED", "GREEN", "BLUE"]
+      }
+    }
+  },
+
+  "tests": [
+    {
+      "id": "SMT",
+      "subtests": [
+        {
+          "inherit": "LEDTest",
+          "id": "FirstLEDTest"
+        },
+        {
+          "inherit": "LEDTest",
+          "id": "SecondLEDTest",
+          "args": {
+            "colors": ["RED", "GREEN"]
+          }
+        },
+        {
+          "id": "VerifyComponents",
+          "pytest_name": "verify_components",
+          "args": {
+            "component_list": "eval! constants.component_list",
+            "skip_shopfloor": "eval! not constants.enable_shopfloor"
+          }
+        },
+        {
+          "id": "Halt",
+          "inherit": "HaltStep"
+        },
+        "LEDTest",
+        "LEDTest"
+      ]
+    }
+  ]
+}

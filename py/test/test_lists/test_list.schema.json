@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "reference: http://goto/cros-factory-test-list, ./TEST_LIST.md, ./JSON_TEST_LIST.md",
+  "definitions": {
+    "test_object": {
+      "type": ["object", "string"],
+      "properties": {
+        "action_on_failure": {
+          "type": "string",
+          "enum": ["NEXT", "PARENT", "STOP"]
+        },
+        "args":  {"type": "object"},
+        "disable_abort": {"type": "boolean"},
+        "disable_services": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "enable_services": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "exclusive_services": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "has_ui": {"type": "boolean"},
+        "id": {"type": "string"},
+        "iterations": {"type": "number"},
+        "label": {"type": ["string", "object"]},
+        "never_fails": {"type": "boolean"},
+        "parallel": {"type": "boolean"},
+        "pytest_name": {"type": "string"},
+        "retries": {"type": "number"},
+        "run_if": {"type": "string"},
+        "subtests": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/test_object"}
+        },
+        "teardown": {"type": "boolean"},
+
+        "inherit": {
+          "type": "string"
+        },
+        "child_action_on_failure": {
+          "type": "string",
+          "enum": ["NEXT", "PARENT", "STOP"]
+        },
+        "__comment": {
+          "description": "this field will be completely ignored by test list loader.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "test_options": {
+      "type": "object"
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "inherit": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+
+    "options": {
+      "$ref": "#/definitions/test_options"
+    },
+
+    "constants": {
+      "type": "object"
+    },
+
+    "definitions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/test_object"
+      }
+    },
+
+    "tests": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/test_object"}
+    },
+
+    "__comment": {
+      "description": "this field will be completely ignored by test list loader",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
