@@ -19,10 +19,13 @@ if __name__ == '__main__':
   opts = dict(opts)
   user = opts.get('-u')
   group = opts.get('-g')
+  gid = 0
   if group:
     gid = grp.getgrnam(group).gr_gid
     os.setegid(gid)
   if user:
+    if '-G' in opts:
+      os.initgroups(user, gid)
     uid = pwd.getpwnam(user).pw_uid
     os.seteuid(uid)
   os.execvp(args[0], args)
