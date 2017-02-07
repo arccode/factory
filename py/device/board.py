@@ -145,6 +145,11 @@ class DeviceBoard(object):
     raise NotImplementedError
 
   @DeviceProperty
+  def magnetometer(self):
+    """Magnetometer / Compass."""
+    raise NotImplementedError
+
+  @DeviceProperty
   def memory(self):
     """Module for memory information."""
     raise NotImplementedError

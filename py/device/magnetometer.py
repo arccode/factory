@@ -6,6 +6,7 @@
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
+from cros.factory.device import sensor_utils
 
 
 class Magnetometer(component.DeviceComponent):
@@ -14,14 +15,13 @@ class Magnetometer(component.DeviceComponent):
   def __init__(self, board):
     super(Magnetometer, self).__init__(board)
 
-  def GetData(self, capture_count=1, sample_rate=20):
-    """Reads several records of raw data and returns the average.
+  def GetController(self, location='base'):
+    """Gets a controller with specified arguments.
 
-    Args:
-      capture_count: how many records to read to compute the average.
-      sample_rate: sample rate in Hz to read data from the sensor.
-
-    Returns:
-      A dict of the format {'signal_name': average value}
+    See sensor_utils.BasicSensorController for more information.
     """
-    raise NotImplementedError
+    return sensor_utils.BasicSensorController(
+        self._dut,
+        'cros-ec-mag',
+        location,
+        ['in_magn_x', 'in_magn_y', 'in_magn_z'])

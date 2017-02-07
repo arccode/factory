@@ -22,6 +22,7 @@ from cros.factory.device import i2c
 from cros.factory.device import info
 from cros.factory.device import init
 from cros.factory.device import led
+from cros.factory.device import magnetometer
 from cros.factory.device import memory
 from cros.factory.device import path as path_module
 from cros.factory.device import partitions
@@ -81,6 +82,10 @@ class LinuxBoard(DeviceBoard):
   @DeviceProperty
   def led(self):
     return led.LED(self)
+
+  @DeviceProperty
+  def magnetometer(self):
+    return magnetometer.Magnetometer(self)
 
   @DeviceProperty
   def memory(self):

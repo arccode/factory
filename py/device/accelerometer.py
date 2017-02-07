@@ -4,7 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import glob
 import logging
 import os
 import re
@@ -14,6 +13,7 @@ from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
+from cros.factory.device import sensor_utils
 
 
 _IIO_DEVICES_PATH = '/sys/bus/iio/devices/'
@@ -83,34 +83,18 @@ class AccelerometerController(component.DeviceComponent):
     """
     super(AccelerometerController, self).__init__(board)
     self.num_signals = 3  # (x, y, z).
-    self.iio_bus_id = None
-    self.iio_bus_path = None
     self.location = location
     self.trigger_path = None
 
-    assert name is not None or location is not None
-    for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'iio:device*')):
-      if (name is not None and
-          name != self._GetSysfsValue('name', path=iio_path)):
-        continue
-      if (location is not None and
-          location != self._GetSysfsValue('location', path=iio_path)):
-        continue
-
-      self.iio_bus_id = os.path.basename(iio_path)
-      self.iio_bus_path = os.path.join(_IIO_DEVICES_PATH, self.iio_bus_id)
-      break
-    if self.iio_bus_id is None:
-      raise AccelerometerException(
-          'Accelerometer at (%r, %r) not found' % (name, self.location))
+    self.iio_bus_path = sensor_utils.FindDevice(
+        self._dut, self._dut.path.join(_IIO_DEVICES_PATH, 'iio:device*'),
+        name=name, location=location)
+    self.iio_bus_id = self._dut.path.basename(self.iio_bus_path)
 
     trigger_name = self._GetSysfsValue('trigger/current_trigger')
-    for iio_path in glob.glob(os.path.join(_IIO_DEVICES_PATH, 'trigger*')):
-      if trigger_name == self._GetSysfsValue('name', path=iio_path):
-        self.trigger_path = iio_path
-        break
-    if self.trigger_path is None:
-      raise AccelerometerException('Trigger not found')
+    self.trigger_path = sensor_utils.FindDevice(
+        self._dut, self._dut.path.join(_IIO_DEVICES_PATH, 'trigger*'),
+        name=trigger_name)
 
     scan_elements_path = os.path.join(
         _IIO_DEVICES_PATH, self.iio_bus_id, 'scan_elements')
@@ -313,8 +297,9 @@ class AccelerometerController(component.DeviceComponent):
     calib_bias = {}
     for signal_name in data:
       ideal_value = _GRAVITY * orientations[signal_name]
-      current_calib_bias = int(self._GetSysfsValue(
-          '%s_calibbias' % signal_name))
+      current_calib_bias = (
+          int(self._GetSysfsValue('%s_calibbias' % signal_name))
+          * _GRAVITY / 1024)
       # Calculate the difference between the ideal value and actual value
       # then store it into _calibbias.  In release image, the raw data will
       # be adjusted by _calibbias to generate the 'post-calibrated' values.
