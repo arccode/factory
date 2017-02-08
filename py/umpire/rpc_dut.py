@@ -446,3 +446,11 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     unused_server_ip, server_port = GetServerIpPortFromRequest(
         request, self.env)
     return umpire_env.GetRsyncPortFromBasePort(server_port)
+
+  @umpire_rpc.RPCCall
+  @xmlrpc.withRequest
+  def GetInstalogPort(self, request):
+    """Fetches Instalog port."""
+    unused_server_ip, server_port = GetServerIpPortFromRequest(
+        request, self.env)
+    return umpire_env.GetInstalogPortFromBasePort(server_port)

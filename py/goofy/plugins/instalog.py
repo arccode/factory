@@ -18,6 +18,7 @@ from cros.factory.utils import type_utils
 
 
 _DEFAULT_FLUSH_TIMEOUT = 5  # 5sec
+_SHOPFLOOR_TIMEOUT = 10  # 10sec
 _CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
 _CLI_PORT = 7000
 _TRUNCATE_INTERVAL = 5 * 60  # 5min
@@ -52,19 +53,25 @@ class Instalog(plugin.Plugin):
     testlog_json_path = goofy.testlog.primary_json.path
     uplink_enabled = uplink_use_shopfloor or (uplink_hostname and uplink_port)
     if uplink_use_shopfloor:
-      url = shopfloor.get_server_url()
-      if not url:
-        if uplink_hostname and uplink_port:
-          logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
-                        'falling back to provided uplink "%s:%d"',
-                        uplink_hostname, uplink_port)
-        else:
-          logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
-                        'no fallback provided; disabling uplink functionality')
-          uplink_enabled = False
-      else:
+      url = None
+      instalog_port = None
+      try:
+        url = shopfloor.get_server_url()
+        proxy = shopfloor.get_instance(timeout=_SHOPFLOOR_TIMEOUT)
+        instalog_port = proxy.GetInstalogPort()
+      except Exception:
+        pass
+      if url and instalog_port:
         uplink_hostname = urlparse.urlparse(url).hostname
-        uplink_port = urlparse.urlparse(url).port
+        uplink_port = instalog_port
+      elif uplink_hostname and uplink_port:
+        logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
+                      'falling back to provided uplink "%s:%d"',
+                      uplink_hostname, uplink_port)
+      else:
+        logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
+                      'no fallback provided; disabling uplink functionality')
+        uplink_enabled = False
 
     config = {
         'instalog': {

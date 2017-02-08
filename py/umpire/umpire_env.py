@@ -47,6 +47,10 @@ def GetRsyncPortFromBasePort(base_port):
   return base_port + _RSYNC_PORT_OFFSET
 
 
+def GetInstalogPortFromBasePort(base_port):
+  return base_port + _INSTALOG_SOCKET_PORT_OFFSET
+
+
 class UmpireEnv(object):
   """Provides accessors of Umpire resources.
 
@@ -140,7 +144,7 @@ class UmpireEnv(object):
 
   @property
   def umpire_instalog_socket_port(self):
-    return self.umpire_base_port + _INSTALOG_SOCKET_PORT_OFFSET
+    return GetInstalogPortFromBasePort(self.umpire_base_port)
 
   @property
   def shopfloor_start_port(self):

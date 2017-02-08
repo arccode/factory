@@ -500,6 +500,10 @@ class ShopFloorBase(object):
     """
     return self.log_server.rsyncd_port if self.log_server else None
 
+  def GetInstalogPort(self):
+    """Returns the port to use for Instalog."""
+    return self.port + 6
+
   def GetTestMd5sum(self):
     """Gets the latest md5sum of dynamic test tarball.
 
