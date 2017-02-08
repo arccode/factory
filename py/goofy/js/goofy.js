@@ -1527,9 +1527,9 @@ cros.factory.Goofy.prototype.makeMenuItem = function(
     labelZh += count + '个' + adjectiveZh;
     if (test.label_zh) {
       // Not the root node; include the name
-      labelZh += '在「' + goog.string.htmlEscape(test.label_zh) + '」里面';
+      labelZh += '在「' + goog.string.htmlEscape(test.label_zh) + '」里面的';
     }
-    labelZh += '的测试';
+    labelZh += '测试';
   }
 
   if (opt_adjectiveAtEnd) {
@@ -1686,7 +1686,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(
     if (test.subtests.length) {
       // Only show for parents.
       menu.addChild(this.makeMenuItem(
-          'Restart', '重跑', 'not passed', '未成功',
+          'Restart', '重跑', 'not passed', '未成功的',
           (numLeavesByStatus['UNTESTED'] || 0) +
           (numLeavesByStatus['ACTIVE'] || 0) +
           (numLeavesByStatus['FAILED'] || 0),
