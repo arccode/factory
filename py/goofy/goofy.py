@@ -116,7 +116,6 @@ class Goofy(GoofyBase):
     event_server_thread: A thread running event_server.
     event_client: A client to the event server.
     plugin_controller: The PluginController object.
-    ui_process: The factory ui process object.
     invocations: A map from FactoryTest objects to the corresponding
       TestInvocations objects representing active tests.
     options: Command-line options.
@@ -150,7 +149,6 @@ class Goofy(GoofyBase):
     self.autotest_prespawner = None
     self.plugin_controller = None
     self.pytest_prespawner = None
-    self.ui_process = None
     self._ui_initialized = False
     self.dummy_shopfloor = None
     self.invocations = {}
@@ -240,9 +238,6 @@ class Goofy(GoofyBase):
     if self.dummy_shopfloor:
       self.dummy_shopfloor.kill()
       self.dummy_shopfloor = None
-    if self.ui_process:
-      process_utils.KillProcessTree(self.ui_process, 'ui')
-      self.ui_process = None
     if self.web_socket_manager:
       logging.info('Stopping web sockets')
       self.web_socket_manager.close()
@@ -331,20 +326,6 @@ class Goofy(GoofyBase):
     self.terminal_manager = TerminalManager()
     self.state_server.add_handler('/pty',
                                   self.terminal_manager.handle_web_socket)
-
-  def start_ui(self):
-    ui_proc_args = [
-        os.path.join(paths.FACTORY_PACKAGE_PATH, 'test', 'ui.py'),
-        self.options.test_list
-    ]
-    if self.options.verbose:
-      ui_proc_args.append('-v')
-    logging.info('Starting ui %s', ui_proc_args)
-    self.ui_process = process_utils.Spawn(ui_proc_args)
-    logging.info('Waiting for UI to come up...')
-    self.event_client.wait(
-        lambda event: event.type == Event.Type.UI_READY)
-    logging.info('UI has started')
 
   def set_visible_test(self, test):
     if self.visible_test == test:
@@ -1522,8 +1503,6 @@ class Goofy(GoofyBase):
     """"Auto-runs" tests that have not been run yet.
 
     Args:
-      starting_at: If provide, only auto-runs tests beginning with
-        this test.
       root: If provided, the root of tests to run. If not provided, the root
         will be test_list (root of all tests).
     """

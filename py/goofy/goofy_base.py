@@ -41,7 +41,7 @@ class GoofyBase(object):
     pass
 
   def run_enqueue(self, val):
-    """ Enqueues an object on the event loop
+    """Enqueues an object on the event loop
 
     Generally this is a function. It may also be None to indicate that the
     run queue should shut down.

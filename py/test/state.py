@@ -158,7 +158,6 @@ class FactoryState(object):
     self._tests_shelf = shelve_utils.OpenShelfOrBackup(state_file_path + '/tests')
     self._data_shelf = shelve_utils.OpenShelfOrBackup(state_file_path + '/data')
     self._lock = threading.RLock()
-    self.test_list_struct = None
 
     self._generated_files = {}
     self._generated_data = {}
@@ -627,7 +626,6 @@ class StubFactoryState(FactoryState):
     self._data_shelf = self.InMemoryShelf()
 
     self._lock = threading.RLock()
-    self.test_list_struct = None
 
     self._generated_files = {}
     self._generated_data = {}
