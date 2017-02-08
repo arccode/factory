@@ -751,13 +751,32 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
     return cls.SynapticsInput(r'SYTS.*', ['fw_version'])
 
   @classmethod
+  def Wacom(cls):
+    def WacomByName():
+      # Using "WCOM" device name to detect WACOM touchscreen
+      # is exist or not.
+      data = cls.GenericInput(r'WCOM.*')
+
+      # Because we need using WACOM tool "wacom_flash" to read correct
+      # touchscreen firmware version
+      place = process_utils.SpawnOutput(
+          'ls -l /sys/bus/i2c/devices/ | grep WCOM | cut -d "/" -f8',
+          shell=True).strip()
+      data.version = process_utils.SpawnOutput(
+          'wacom_flash /dev/null -a %s' % place, shell=True).strip()
+
+      return data
+
+    return WacomByName()
+
+  @classmethod
   def Generic(cls):
     return cls.GenericInput(r'.*[Tt]ouch *[Ss]creen',
                             ['fw_version', 'hw_version', 'config_csum'])
 
   @classmethod
   def Get(cls):
-    return cls.GetGeneric([cls.Elan, cls.Synaptics, cls.Generic])
+    return cls.GetGeneric([cls.Elan, cls.Synaptics, cls.Wacom, cls.Generic])
 
 
 class _StylusData(_TouchInputData):
