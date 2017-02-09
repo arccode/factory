@@ -45,6 +45,8 @@ def GetBoardRepoInfo(options):
   ebuild_path = process_utils.SpawnOutput(
       ['equery-' + board, 'which', 'factory-board'])
   if not ebuild_path:
+    logging.warning('cannot find ebuild for factory-board, '
+                    'rollback to chromeos-factory-board')
     ebuild_path = process_utils.SpawnOutput(
         ['equery-' + board, 'which', 'chromeos-factory-board'])
 
@@ -69,7 +71,7 @@ def GetBoardRepoInfo(options):
   repo_info = process_utils.CheckOutput(['repo', 'info', '.'], cwd=overlay_dir)
   project = [s for s in repo_info.splitlines()
              if s.startswith(PROJECT_LINE_PREFIX)][0]  # find project line
-  project = repo_info[len(PROJECT_LINE_PREFIX):]  # remove prefix
+  project = project[len(PROJECT_LINE_PREFIX):]  # remove prefix
 
   return {
       'url': 'chrome-internal-review.googlesource.com',
@@ -96,6 +98,10 @@ def QueryChanges(info, options):
     param['topic'] = options.topic
   if options.hashtag:
     param['hashtag'] = options.hashtag
+
+  logging.debug('query change list from gerrit: ')
+  logging.debug('  url: %s', info['url'])
+  logging.debug('  param: %r', param)
 
   results = list(
       gerrit_util.GenerateAllChanges(
@@ -238,8 +244,15 @@ def main():
                       help='limit to specific branch')
   parser.add_argument('--board',
                       help='board name (to specify the private overlay)')
+  parser.add_argument('-v', '--verbose',
+                      help='verbose mode', action='store_true')
 
   options = parser.parse_args()
+
+  logging_level = logging.DEBUG if options.verbose else logging.WARNING
+  logging.basicConfig(
+      format=('[%(levelname)s] %(filename)s:%(lineno)d: %(message)s'),
+      level=logging_level)
 
   if not options.topic and not options.hashtag:
     logging.error('At least one of --topic and --hashtag must be specified')
