@@ -52,10 +52,11 @@ class SystemInfo(component.DeviceComponent):
   (e.g., version numbers, serial numbers, etc.).
 
   You can access the information by reading individual properties. However all
-  values are cached by default unless you call Reload(name). Calling Reload()
-  without giving particular name will refresh all properties.
+  values are cached by default unless you call Invalidate(name). Calling
+  Invalidate() without giving particular name will invalidate all properties.
 
   To get a dictionary object of all properties, use GetAll().
+  To refresh, do Invalidate() then GetAll().
   You can also "override" some properties by using Overrides(name, value).
   """
 
@@ -74,10 +75,10 @@ class SystemInfo(component.DeviceComponent):
     return copy.deepcopy(
         dict((name, getattr(self, name)) for name in _INFO_PROP_LIST))
 
-  def Reload(self, name=None):
-    """Reloads a property in system information object.
+  def Invalidate(self, name=None):
+    """Invalidates a property in system information object in cache.
 
-    When name is omitted, reload all properties.
+    When name is omitted, invalidate all properties.
 
     Args:
       name: A string for the property to be refreshed.

@@ -123,8 +123,7 @@ class StationEntry(unittest.TestCase):
     if self.args.start_station_tests:
       # Clear dut.info data.
       factory.console.info('Clearing dut.info data...')
-      # TODO(hungte) Rename Reload to Invalidate.
-      self._dut.info.Reload()
+      self._dut.info.Invalidate()
       self.Start()
       # TODO(hungte): Change to reload all dut.storage into device data.
       if self.args.load_dut_storage:
@@ -134,7 +133,7 @@ class StationEntry(unittest.TestCase):
       self.End()
       # Clear dut.info data.
       factory.console.info('Clearing dut.info data...')
-      self._dut.info.Reload()
+      self._dut.info.Invalidate()
 
   def Start(self):
     self._ui.SetHTML(_MSG_INSERT, id=_ID_MSG_DIV)
