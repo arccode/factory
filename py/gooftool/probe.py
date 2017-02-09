@@ -864,7 +864,7 @@ def _ProbeAudioCodec():
   # Formatted '00-00: WM??? PCM wm???-hifi-0: ...'
   pcm_data = _StripRead('/proc/asound/pcm').split(' ')
   if len(pcm_data) > 2:
-    return [SinglDictCompactProbeStr(pcm_data[1])]
+    return [SingleDictCompactProbeStr(pcm_data[1])]
   return []
 
 
