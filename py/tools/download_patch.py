@@ -3,11 +3,11 @@
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""Download patches from gerrit.
+"""Download patches from Gerrit.
 
-This tool will first checkout BRANCH, and cherry-pick changes on gerrit with
+This tool will first checkout BRANCH, and cherry-pick changes on Gerrit with
 specific topic or hashtag.  If BOARD is given, will also cherry-pick changes in
-private overlay.
+private overlay.  Please refer to tools/README.md for more detailed information.
 """
 
 
