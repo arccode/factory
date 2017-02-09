@@ -78,6 +78,7 @@ TOOLKIT_OUTPUT_DIR = $(BUILD_DIR)
 DOC_TEMP_DIR = $(TEMP_DIR)/docsrc
 DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
 DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
+DOC_PUBLISH_URL = gs://chromeos-factory-docs/sdk
 
 CLOSURE_DIR = py/goofy/static
 CLOSURE_OUTPUT_FILENAMES = js/goofy.js css/closure.css
@@ -123,7 +124,8 @@ PRESUBMIT_TARGETS := \
 .PHONY: \
   .phony default clean closure proto overlord ovl-bin par doc resource toolkit \
   bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
-  lint smartlint smart_lint test testall overlay check-board-resources
+  lint smartlint smart_lint test testall overlay check-board-resources \
+  publish-docs
 
 # This must be the first rule.
 default: closure
@@ -283,6 +285,12 @@ doc:
 	cp -r $(DOC_TEMP_DIR)/_build/html $(DOC_OUTPUT_DIR)
 	(cd $(DOC_OUTPUT_DIR)/..; zip -qr9 - $(notdir $(DOC_OUTPUT_DIR))) \
 	  >$(DOC_ARCHIVE_PATH)
+
+# Publishes doc to https://storage.googleapis.com/chromeos-factory-docs/sdk/
+publish-docs: clean
+	# Force using an empty database to load whole region set from source
+	CROS_REGIONS_DATABASE="/dev/null" $(MAKE) doc
+	gsutil -m rsync -d -r $(DOC_OUTPUT_DIR) $(DOC_PUBLISH_URL)
 
 # Builds everything needed and create the proper bundle folder.
 # Note there may be already few files like HWID, README, and MANIFEST.yaml
