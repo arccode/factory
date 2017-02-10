@@ -142,7 +142,7 @@ class ProbeCmd(SubCommand):
       for comp_name, statement in statement_dict[comp_cls].iteritems():
         logging.info('Probe %s: %s', comp_cls, comp_name)
         results[comp_cls][comp_name] = ProbeStatement(
-            statement['eval'], statement['expect'])
+            statement['eval'], statement.get('expect', {}))
     OutputResults(results, options)
 
 

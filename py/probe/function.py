@@ -75,7 +75,8 @@ def InterpretFunction(func_expression):
 
   The format of the function expression is:
   FUNCTIONS := FUNCTION | <list of FUNCTION>
-  FUNCTION  := "FUNC_NAME:FUNC_ARGS" |  # Valid if FUNC_ARGS is a string.
+  FUNCTION  := "FUNC_NAME" |  # Valid if FUNC_ARGS is a empty dict.
+               "FUNC_NAME:FUNC_ARGS" |  # Valid if FUNC_ARGS is a string.
                {FUNC_NAME: FUNC_ARGS}
   FUNC_NAME := <string>  # The function should be already registered.
   FUNC_ARGS := <string> |  # Valid if there is only one required argument.
@@ -140,12 +141,19 @@ class Function(object):
   def __init__(self, **kwargs):
     """Parse the arguments and set them to self.args."""
     if len(kwargs) == 1 and _FAKE_INDEX in kwargs:
-      required_args = [arg.name for arg in self.ARGS if not arg.optional]
-      if len(required_args) != 1:
+      if len(self.ARGS) == 0:
         raise FunctionException(
-            'Function "%s" requires more than one argument: %s' %
-            (self.__class__.__name__, required_args))
-      kwargs = {required_args[0]: kwargs[_FAKE_INDEX]}
+            'Function "%s" does not require any argument.' %
+            self.__class__.__name__)
+      elif len(self.ARGS) == 1:
+        kwargs = {self.ARGS[0].name: kwargs[_FAKE_INDEX]}
+      else:
+        required_args = [arg.name for arg in self.ARGS if not arg.optional]
+        if len(required_args) != 1:
+          raise FunctionException(
+              'Function "%s" requires more than one argument: %s' %
+              (self.__class__.__name__, required_args))
+        kwargs = {required_args[0]: kwargs[_FAKE_INDEX]}
     self.args = arg_utils.Args(*self.ARGS).Parse(kwargs)
 
   def __call__(self, data=None):

@@ -90,7 +90,8 @@ class InterpretFunctionTest(unittest.TestCase):
 
   def testInterpret(self):
     func = function.InterpretFunction({'mock': {'key': 'foo', 'value': 'bar'}})
-    self.assertEquals(func(), [{'foo': 'bar'}])
+    self.assertEquals(func.args.key, 'foo')
+    self.assertEquals(func.args.value, 'bar')
 
   def testWrongFunction(self):
     with self.assertRaisesRegexp(
@@ -127,13 +128,23 @@ class InterpretFunctionTest(unittest.TestCase):
       function.InterpretFunction({'mock': 'foo'})
 
   def testSyntaxSuger(self):
-    expected_value = [{'default_key': 'bar'}]
+    # A function containing only one argument with default value.
+    class MockFunction(function.Function):
+      ARGS = [
+          Arg('value', str, 'The value of data.', default='DATA')
+      ]
+      def Apply(self, data):
+        pass
+    function.RegisterFunction('mock', MockFunction, force=True)
+
     func = function.InterpretFunction({'mock': {'value': 'bar'}})
-    self.assertEquals(func(), expected_value)
+    self.assertEquals(func.args.value, 'bar')
     func = function.InterpretFunction({'mock': 'bar'})
-    self.assertEquals(func(), expected_value)
+    self.assertEquals(func.args.value, 'bar')
     func = function.InterpretFunction('mock:bar')
-    self.assertEquals(func(), expected_value)
+    self.assertEquals(func.args.value, 'bar')
+    func = function.InterpretFunction('mock')
+    self.assertEquals(func.args.value, 'DATA')
 
 
 class InterpretCombinationFunctionTest(unittest.TestCase):
