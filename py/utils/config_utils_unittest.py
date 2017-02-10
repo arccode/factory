@@ -38,6 +38,15 @@ class ConfigUtilsUnitTest(unittest.TestCase):
     self.assertEqual(config.sample_mapping.contents, 'abc')
     self.assertEqual(config_m.get('sample_runtime', None), None)
 
+  def testLoadConfigStringType(self):
+    config = config_utils.LoadConfig(
+        'testdata/config_utils_unittest', convert_to_str=False)
+    self.assertEqual(type(config['sample_str']), unicode)
+
+    config = config_utils.LoadConfig(
+        'testdata/config_utils_unittest', convert_to_str=True)
+    self.assertEqual(type(config['sample_str']), str)
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)

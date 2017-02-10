@@ -53,6 +53,8 @@ import logging
 import os
 import zipimport
 
+from . import type_utils
+
 # To simplify portability issues, validating JSON schema is optional.
 try:
   import jsonschema
@@ -240,7 +242,7 @@ def _GetLogger():
 
 
 def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
-               default_config_dir=None):
+               default_config_dir=None, convert_to_str=True):
   """Loads a configuration as mapping by given file name.
 
   The config files are retrieved and overridden in order:
@@ -258,6 +260,7 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
     config_name: a string for config file name (without extension) to read.
     schema_name: a string for schema file name (without extension) to read.
     validate_schema: boolean to indicate if schema should be checked.
+    convert_to_str: True to convert the result from unicode to str.
 
   Returns:
     The config as mapping object.
@@ -312,4 +315,7 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
              'Python library not installed.', config_name)
   else:
     logger('Skip validating schema for config <%s>.', config_name)
+
+  if convert_to_str:
+    config = type_utils.UnicodeToString(config)
   return config
