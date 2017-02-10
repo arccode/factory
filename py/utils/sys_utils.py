@@ -84,8 +84,9 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
       """Runs cgpt and returns the integer result."""
       check_output = (process_utils.CheckOutput if local_mode
                       else dut.CheckOutput)
+      cgpt = os.environ.get('CGPT', 'cgpt')
       return int(
-          check_output(['cgpt', 'show', '-i', str(index), option, source_path]))
+          check_output([cgpt, 'show', '-i', str(index), option, source_path]))
     offset = RunCGPT('-b') * 512
     all_options.append('offset=%d' % offset)
     sizelimit = RunCGPT('-s') * 512

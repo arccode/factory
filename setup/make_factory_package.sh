@@ -296,8 +296,14 @@ setup_environment() {
     echo "Creating factory test image from test image and toolkit" \
         "with flags --yes $FLAGS_toolkit_arguments " \
         "(output in $toolkit_output)..."
+    # Check cgpt.
+    if ! image_has_command cgpt; then
+      die "Missing cgpt. Please install cgpt, or run in chroot."
+    fi
     cp "${FLAGS_test}" "${FACTORY_IMAGE}"
-    sudo "${FLAGS_factory_toolkit}" "${FACTORY_IMAGE}" --yes ${FLAGS_toolkit_arguments} >& "${toolkit_output}"
+    sudo CGPT="$(which cgpt)" "${FLAGS_factory_toolkit}" \
+        "${FACTORY_IMAGE}" --yes ${FLAGS_toolkit_arguments} >& \
+        "${toolkit_output}"
   fi
 
   # Override this with path to modified kernel (for non-SSD images)
