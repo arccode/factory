@@ -172,8 +172,7 @@ def LoadFromI2C(path):
         '/dev/i2c-0')
 
   Returns:
-    Parsed I2c output, None if it fails to dump something for the specific
-        I2C.
+    Parsed I2c output, None if it fails to dump something for the specific I2C.
   """
   if isinstance(path, int):
     path = '/dev/i2c-%d' % path
@@ -190,13 +189,28 @@ class EDIDFunction(function.ProbeFunction):
   """Probe EDID information from file or I2C bus."""
   ARGS = [
       Arg('path', str,
-          'EDID file path or the number of I2C bus.'),
+          'EDID file path or the number of I2C bus.',
+          optional=True),
   ]
 
   I2C_DEVICE_PREFIX = '/dev/i2c-'
 
+  def SearchEDIDPath(self):
+    """Search all possible EDID paths."""
+    glob_list = [
+        '/sys/class/drm/*LVDS*/edid',
+        '/sys/kernel/debug/edid*',
+        self.I2C_DEVICE_PREFIX + '[0-9]*'
+    ]
+    path_list = []
+    for path in glob_list:
+      path_list += glob.glob(path)
+    return path_list
+
   def Probe(self):
-    if self.args.path.isdigit():
+    if self.args.path is None:
+      paths = self.SearchEDIDPath()
+    elif self.args.path.isdigit():
       paths = [self.I2C_DEVICE_PREFIX + self.args.path]
     else:
       paths = glob.glob(self.args.path)
@@ -215,8 +229,4 @@ class EDIDFunction(function.ProbeFunction):
     else:
       with open(path, 'r') as f:
         parsed_edid = Parse(f.read())
-
-    if parsed_edid is None:
-      return function.NOTHING
-    else:
-      return parsed_edid
+    return parsed_edid
