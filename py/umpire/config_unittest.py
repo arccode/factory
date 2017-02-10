@@ -255,12 +255,6 @@ class ValidateResourcesTest(unittest.TestCase):
     RenameResourceThenTest(self.hwid1)
     RenameResourceThenTest(self.hwid2)
 
-  def testFileChechsumMismatch(self):
-    file_utils.WriteFile(self.hwid1, 'content changed')
-    self.assertRaisesRegexp(
-        common.UmpireError, 'CHECKSUM MISMATCH.+hwid.gz##9c7de5c7',
-        config.ValidateResources, self.conf, self.env)
-
 
 class ShowDiffTest(unittest.TestCase):
 

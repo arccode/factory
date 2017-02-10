@@ -16,7 +16,6 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
-from cros.factory.umpire import utils
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import List
@@ -163,14 +162,10 @@ def ValidateResources(config, env):
       if resource_filename not in resource_verified:
         resource_verified.add(resource_filename)
         try:
-          resource_path = env.GetResourcePath(resource_filename)
+          env.GetResourcePath(resource_filename)
         except IOError as e:
           error.append('[NOT FOUND] resource %s:%s for bundle %r' % (
               resource_name, e.filename, bundle['id']))
-        else:
-          if not utils.VerifyResource(resource_path):
-            error.append('[CHECKSUM MISMATCH] resource %s:%s for bundle %r' % (
-                resource_name, resource_path, bundle['id']))
   if error:
     raise common.UmpireError('\n'.join(error))
 
