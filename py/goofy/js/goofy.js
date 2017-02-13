@@ -1115,11 +1115,17 @@ cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
  */
 cros.factory.Goofy.prototype.updateCSSClasses = function() {
   this.updateCSSClassesInDocument.call(this, document);
-  goog.object.forEach(this.invocations, function(i) {
-    if (i && i.iframe) {
-      this.updateCSSClassesInDocument.call(this, i.iframe.contentDocument);
-    }
-  }, this);
+  var recursiveUpdate = function(invocations) {
+    goog.object.forEach(invocations, function(i) {
+      if (i && i.iframe) {
+        this.updateCSSClassesInDocument.call(this, i.iframe.contentDocument);
+      }
+      if (i.subInvocations) {
+        recursiveUpdate.call(this, i.subInvocations);
+      }
+    }, this);
+  };
+  recursiveUpdate.call(this, this.invocations);
 };
 
 /**
