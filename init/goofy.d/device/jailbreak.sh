@@ -9,12 +9,22 @@
 
 SCRIPT_PATH="$(readlink -f "$0")"
 TARGETS_DIR="${SCRIPT_PATH%.sh}"
+JAILED_DIR=/run/jailed
 
 main() {
   local target_src target_dest target_name
+  mkdir -p "${JAILED_DIR}"
   for target_src in "${TARGETS_DIR}"/*; do
     target_name="${target_src##*/}"
     target_dest=/sbin/"${target_name}"
+    jailed_path="${JAILED_DIR}/${target_name}"
+    if [ -e "${jailed_path}" ]; then
+      # Already processed.
+      continue
+    fi
+    # JAILED_DIR may be mounted with noexec so we have to re-bind.
+    touch "${jailed_path}"
+    mount --bind "${target_dest}" "${jailed_path}"
     if [ -x "${target_dest}" ]; then
       mount --bind "${target_src}" "${target_dest}"
     fi

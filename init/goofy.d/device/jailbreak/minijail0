@@ -13,9 +13,21 @@ import sys
 # copied from aosp/external/minijail/minijail0.c
 OPT_STRING = 'u:g:sS:c:C:P:b:V:f:m::M::k:a:e::T:vrGhHinNplLtIUKY'
 
+# Only override these programs (find from /etc/init/*.conf)
+WHITELIST = ['/usr/sbin/sslh-fork']
+
+JAILED_DIR = '/run/jailed'
+
 
 if __name__ == '__main__':
   opts, args = getopt.getopt(sys.argv[1:], OPT_STRING)
+  assert(len(args) > 1, "Need at least one param.")
+
+  if args[0] not in WHITELIST:
+    original = os.path.join(JAILED_DIR, os.path.basename(sys.argv[0]))
+    args = [original] + sys.argv[1:]
+    os.execvp(args[0], args)
+
   opts = dict(opts)
   user = opts.get('-u')
   group = opts.get('-g')
@@ -28,4 +40,8 @@ if __name__ == '__main__':
       os.initgroups(user, gid)
     uid = pwd.getpwnam(user).pw_uid
     os.seteuid(uid)
+
+  if '-i' in opts and os.fork() == 0:
+    exit(0)
+
   os.execvp(args[0], args)
