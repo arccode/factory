@@ -32,6 +32,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 
 
 class PartitionTableTest(unittest.TestCase):
@@ -56,13 +57,9 @@ class PartitionTableTest(unittest.TestCase):
                     'Unable to determine partition number from %r' % stateful)
     stateful_no = int(match.group(1))
 
-    def CgptShow(flag):
-      """Returns the value for 'cgpt show' with the given flag."""
-      return process_utils.CheckOutput(
-          ['cgpt', 'show', '-i', str(stateful_no), dev, flag]).strip()
-
-    start_sector = int(CgptShow('-b'))
-    size_sectors = int(CgptShow('-s'))
+    partitions = sys_utils.PartitionManager(dev)
+    start_sector = partitions.GetPartitionOffsetInSector(stateful_no)
+    size_sectors = partitions.GetPartitionSizeInSector(stateful_no)
     end_sector = start_sector + size_sectors
 
     with open('/sys/class/block/%s/size' % os.path.basename(dev)) as f:

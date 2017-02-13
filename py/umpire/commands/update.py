@@ -13,7 +13,6 @@ import os
 import re
 import shutil
 import struct
-import subprocess
 import tempfile
 
 import factory_common  # pylint: disable=W0611
@@ -21,6 +20,7 @@ from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import sys_utils
 
 
 # Mapping of updateable resource type (command string) to ResourceType enum.
@@ -68,25 +68,17 @@ def ConvertChromeOSImageToMiniOmahaFormat(chromeos_image_path,
   If output_path is not None, the content will be written to it. The
   output_path must ends with "rootfs-release.gz", or ValueError will be raised.
   """
-  def Sectors2Size(sectors):
-    return SECTOR_SIZE * sectors
 
-  def GetPartitionOffset(partition_number, image_path):
-    return Sectors2Size(int(subprocess.check_output([
-        'cgpt', 'show', '-i', str(partition_number), '-b', image_path])))
-
-  def GetPartitionSize(partition_number, image_path):
-    return Sectors2Size(int(subprocess.check_output([
-        'cgpt', 'show', '-i', str(partition_number), '-s', image_path])))
-
-  kernel_size = GetPartitionSize(
-      MINI_OMAHA_KERNEL_PART_NUM, chromeos_image_path)
-  kernel_offset = GetPartitionOffset(
-      MINI_OMAHA_KERNEL_PART_NUM, chromeos_image_path)
-  rootfs_size = GetPartitionSize(
-      MINI_OMAHA_ROOTFS_PART_NUM, chromeos_image_path)
-  rootfs_offset = GetPartitionOffset(
-      MINI_OMAHA_ROOTFS_PART_NUM, chromeos_image_path)
+  partitions = sys_utils.PartitionManager(chromeos_image_path)
+  sector_size = partitions.GetSectorSize()
+  kernel_size = sector_size * partitions.GetPartitionSizeInSector(
+      MINI_OMAHA_KERNEL_PART_NUM)
+  kernel_offset = sector_size * partitions.GetPartitionOffsetInSector(
+      MINI_OMAHA_KERNEL_PART_NUM)
+  rootfs_size = sector_size * partitions.GetPartitionSizeInSector(
+      MINI_OMAHA_ROOTFS_PART_NUM)
+  rootfs_offset = sector_size * partitions.GetPartitionOffsetInSector(
+      MINI_OMAHA_ROOTFS_PART_NUM)
 
   if output_path is None:
     temp_dir = tempfile.mkdtemp()

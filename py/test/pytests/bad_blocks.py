@@ -165,7 +165,8 @@ class BadBlocksTest(unittest.TestCase):
                      raw_file_bytes)
         self.args.max_bytes = raw_file_bytes
       if self.args.device_path.startswith('/dev/'):
-        sector_size = self._GetBlockSize(self.args.device_path)
+        partitions = sys_utils.PartitionManager(self.args.device_path, self.dut)
+        sector_size = partitions.GetSectorSize()
       last_block = self.args.max_bytes / sector_size
       logging.info('Using an existing file at %s, size %dB, sector size %dB, '
                    'last block %d.', self.args.device_path, self.args.max_bytes,
@@ -185,12 +186,11 @@ class BadBlocksTest(unittest.TestCase):
       fs_block_count = int(fields['Block count'])
       fs_block_size = int(fields['Block size'])
 
-      # Grok cgpt data to find the partition size
-      cgpt_start_sector, cgpt_sector_count = [
-          int(self.dut.CheckOutput(['cgpt', 'show', self.args.device_path,
-                                    '-i', '1', flag], log=True).strip())
-          for flag in ('-b', '-s')]
-      sector_size = self._GetBlockSize(self.args.device_path)
+      partitions = sys_utils.PartitionManager(self.args.device_path, self.dut)
+      partition_index = 1
+      start_sector = partitions.GetPartitionOffsetInSector(partition_index)
+      sector_count = partitions.GetPartitionSizeInSector(partition_index)
+      sector_size = partitions.GetSectorSize()
 
       # Could get this to work, but for now we assume that fs_block_size is a
       # multiple of sector_size.
@@ -200,8 +200,8 @@ class BadBlocksTest(unittest.TestCase):
 
       first_unused_sector = (fs_first_block + fs_block_count) * (
           fs_block_size / sector_size)
-      first_block = first_unused_sector + cgpt_start_sector
-      sectors_to_test = cgpt_sector_count - first_unused_sector
+      first_block = first_unused_sector + start_sector
+      sectors_to_test = sector_count - first_unused_sector
       if self.args.max_bytes:
         sectors_to_test = min(sectors_to_test,
                               self.args.max_bytes / sector_size)
@@ -210,7 +210,7 @@ class BadBlocksTest(unittest.TestCase):
       logging.info(', '.join(
           ['%s=%s' % (x, locals()[x])
            for x in ['fs_first_block', 'fs_block_count', 'fs_block_size',
-                     'cgpt_start_sector', 'cgpt_sector_count',
+                     'start_sector', 'sector_count',
                      'sector_size',
                      'first_unused_sector',
                      'sectors_to_test',
@@ -390,17 +390,6 @@ class BadBlocksTest(unittest.TestCase):
       file_bytes = free_bytes - pad
     self.dut.Call(['truncate', '-s', str(file_bytes), file_path], log=True)
     return file_bytes
-
-  def _GetBlockSize(self, dev_node_path):
-    """Read the block size of a given device from sysfs.
-
-    Args:
-      dev_node_path: String of the path to the dev node of a device.
-
-    Returns:
-      Int, number of bytes in a block.
-    """
-    return int(self.dut.CheckOutput(['blockdev', '--getss', dev_node_path]))
 
   def _LogSmartctl(self):
     # No smartctl on mmc.

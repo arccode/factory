@@ -209,7 +209,7 @@ class ResourceUpdaterTest(unittest.TestCase):
   # TODO(littlecvr): remove this once mini-omaha changed its protocol.
   def testUpdateFSIFromChromeOSImage(self):
     MOCK_FSI_PARTITIONS = [
-        {'num': 1, 'label': 'STATE', 'type': 'data', 'sectors': 128},
+        {'num': 1, 'label': 'STATE', 'type': 'data', 'sectors': 4096},
         {'num': 2, 'label': 'KERN-A', 'type': 'kernel', 'sectors': 16},
         {'num': 3, 'label': 'ROOT-A', 'type': 'rootfs', 'sectors': 32},
         {'num': 4, 'label': 'KERN-B', 'type': 'kernel', 'sectors': 16},
@@ -241,6 +241,7 @@ class ResourceUpdaterTest(unittest.TestCase):
 
       # cgpt will complain that the header's broken but that's fine
       subprocess.check_call(['cgpt', 'create', input_path])
+      subprocess.check_call(['cgpt', 'boot', '-p', input_path])
 
       current_partition_start = CGPT_HEADER_SECTORS
       for partition in MOCK_FSI_PARTITIONS:
