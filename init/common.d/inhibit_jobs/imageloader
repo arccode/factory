@@ -1,0 +1,2 @@
+imageloader is a service to mount component updated flash that will add one
+device mapper which we don't need in factory.
