@@ -3,31 +3,12 @@
 # found in the LICENSE file.
 
 import glob
-import logging
+import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.probe.functions import sysfs
 from cros.factory.utils.arg_utils import Arg
-
-
-_REQUIRED_FIELDS = ['idVendor', 'idProduct']
-_OPTIONAL_FIELDS = ['manufacturer', 'product', 'bcdDevice']
-
-
-def ReadUSBSysfs(path):
-  logging.debug('Read USB path: %s', path)
-  # Read required fields.
-  ret = sysfs.ReadSysfs(path, _REQUIRED_FIELDS)
-  if not ret:
-    return None
-
-  # Read optional fields.
-  for key in _OPTIONAL_FIELDS:
-    result = sysfs.ReadSysfs(path, [key])
-    if result is not None:
-      ret.update(result)
-  return ret
 
 
 class USBFunction(function.ProbeFunction):
@@ -43,15 +24,27 @@ class USBFunction(function.ProbeFunction):
   """
 
   ARGS = [
-      Arg('dir_path', str, 'The path of target sysfs folder.'),
+      Arg('dir_path', str, 'The path used to search for USB sysfs data. '
+          'First all symlinks are resolved, to the the "real" path. Then '
+          'iteratively search toward parent folder until the remaining path '
+          'contains the relevent data fields.'),
   ]
 
+  REQUIRED_FIELDS = ['idVendor', 'idProduct']
+  OPTIONAL_FIELDS = ['manufacturer', 'product', 'bcdDevice']
 
   def Probe(self):
     ret = []
     for path in glob.glob(self.args.dir_path):
-      result = ReadUSBSysfs(path)
+      path = os.path.realpath(path)
+      # The path of USB sysfs node should contain "/usb*" folder.
+      # Example: /sys/devices/pci0000:00/0000:00:09.0/usb2/2-1
+      while path.find('/usb') > 0:
+        if os.path.exists(os.path.join(path, 'idProduct')):
+          break
+        path = os.path.dirname(path)
+
+      result = sysfs.ReadSysfs(path, self.REQUIRED_FIELDS, self.OPTIONAL_FIELDS)
       if result is not None:
         ret.append(result)
     return ret
-

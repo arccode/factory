@@ -15,7 +15,7 @@ from cros.factory.probe.functions import usb
 
 class USBFunctionTest(unittest.TestCase):
   def setUp(self):
-    self.tmp_dir = tempfile.mkdtemp()
+    self.tmp_dir = tempfile.mkdtemp(prefix='usb')
 
   def tearDown(self):
     if os.path.isdir(self.tmp_dir):
@@ -34,6 +34,19 @@ class USBFunctionTest(unittest.TestCase):
     self._WriteValue(self.tmp_dir, expected_value)
 
     func = usb.USBFunction(dir_path=self.tmp_dir)
+    result = func()
+    self.assertEquals(result, [expected_value])
+
+  def testSubfoler(self):
+    expected_value = {
+        'idVendor': 'google',
+        'idProduct': 'chromebook'}
+    self._WriteValue(self.tmp_dir, expected_value)
+
+    sub_folder = os.path.join(self.tmp_dir, '1-1')
+    os.mkdir(sub_folder)
+
+    func = usb.USBFunction(dir_path=sub_folder)
     result = func()
     self.assertEquals(result, [expected_value])
 
