@@ -48,7 +48,10 @@ kill_tree() {
   if [ -z "${pid}" -o "${pid}" -eq "$$" ]; then
     return
   fi
-  kill -STOP ${pid}  # Stop parent from generating more children
+  # to allow goofy stop gracefully, don't stop parent if we are using SIGINT
+  if [ "${sig}" != "INT" ]; then
+    kill -STOP ${pid}  # Stop parent from generating more children
+  fi
   for child in $(ps -o pid --no-headers --ppid ${pid}); do
     kill_tree ${child} ${sig}
   done
@@ -110,8 +113,17 @@ while [ $# -gt 0 ]; do
 done
 
 goofy_control_pid="$(pgrep goofy_control)"
+
+echo -n "Try to stop goofy gracefully... "
+kill_tree "${goofy_control_pid}" INT
+for sec in 3 2 1; do
+  echo -n "${sec} "
+  sleep 1
+done
+
+# now, force goofy to stop
 echo -n "Stopping factory test programs... "
-kill_tree "$goofy_control_pid"
+kill_tree "$goofy_control_pid" TERM
 for sec in 3 2 1; do
   echo -n "${sec} "
   sleep 1
