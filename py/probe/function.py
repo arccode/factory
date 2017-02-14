@@ -105,7 +105,9 @@ def InterpretFunction(func_expression):
     func_name, unused_sep, kwargs = func_expression.partition(':')
     func_expression = {func_name: {}} if not kwargs else {func_name: kwargs}
 
-  assert len(func_expression) == 1
+  if len(func_expression) != 1:
+    raise FunctionException(
+        'Function expression %s should only contain 1 item.', func_expression)
   func_name, kwargs = func_expression.items()[0]
   if func_name not in _function_map:
     raise FunctionException('Function "%s" is not registered.' % func_name)

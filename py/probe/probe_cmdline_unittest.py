@@ -4,17 +4,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import os
 import json
+import os
 import shutil
 import tempfile
 import unittest
+import yaml
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.utils import process_utils
 from cros.factory.probe import function
 from cros.factory.probe import probe_cmdline
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 
 
 CMD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -54,10 +55,25 @@ class ProbeCmdTest(unittest.TestCase):
     with open(self.tmp_file, 'w') as f:
       f.write('asdf\n')
     expected = {
+        'foo': {
+            'foo_1': []},
         'audio': {
             'Lala': [
-                {'file_raw': 'asdf'}]}}
+                {'file_raw': 'asdf'}]},
+        'bar': {
+            'bar_1': [
+                {'shell_raw': 'hello'}],
+            'bar_2': [
+                {'shell_raw': 'world'}]}}
     statement = {
+        # There is no result in foo.
+        'foo': {
+            'foo_1': {
+                'eval': 'shell:echo hello',
+                'expect': 'asdf'
+            }
+        },
+        # There is 1 result in audio.
         'audio': {
             'Lala': {
                 'eval': {
@@ -68,6 +84,15 @@ class ProbeCmdTest(unittest.TestCase):
                 },
                 'expect': 'asdf'
             }
+        },
+        # There are 2 results in bar.
+        'bar': {
+            'bar_1': {
+                'eval': 'shell:echo hello',
+            },
+            'bar_2': {
+                'eval': 'shell:echo world',
+            }
         }
     }
     statement_path = os.path.join(self.tmp_dir, 'statement.json')
@@ -76,7 +101,7 @@ class ProbeCmdTest(unittest.TestCase):
 
     # Output to file.
     output_file = os.path.join(self.tmp_dir, 'output_file.json')
-    cmd = [CMD_PATH, '--output-json-file', output_file, 'probe', statement_path]
+    cmd = [CMD_PATH, '--output-file', output_file, 'probe', statement_path]
     process_utils.CheckOutput(cmd)
     with open(output_file, 'r') as f:
       file_content = f.read()
@@ -88,8 +113,23 @@ class ProbeCmdTest(unittest.TestCase):
     results = json.loads(process_utils.CheckOutput(cmd))
     self.assertEquals(expected, results)
 
-    cmd = [CMD_PATH, '--output-json-file', '-', 'probe', statement_path]
+    cmd = [CMD_PATH, '--output-file', '-', 'probe', statement_path]
     results = json.loads(process_utils.CheckOutput(cmd))
+    self.assertEquals(expected, results)
+
+    # Output legacy format.
+    expected = {
+        'found_probe_value_map': {
+            # Dictionary if there is only 1 result.
+            'audio': {
+                'file_raw': 'asdf'},
+            # List if there are multiple results, and the results are sorted.
+            'bar': sorted([
+                {'shell_raw': 'hello'},
+                {'shell_raw': 'world'}])},
+        'missing_component_classes': ['foo']}
+    cmd = [CMD_PATH, 'probe', '--legacy-output', statement_path]
+    results = yaml.load(process_utils.CheckOutput(cmd))
     self.assertEquals(expected, results)
 
 
@@ -114,7 +154,7 @@ class EvalFunctionCmdTest(unittest.TestCase):
 
     # Output to file.
     output_file = os.path.join(self.tmp_dir, 'output_file.json')
-    cmd = [CMD_PATH, '--output-json-file', output_file,
+    cmd = [CMD_PATH, '--output-file', output_file,
            'eval-function', 'file', self.tmp_file,
            '--key', 'file_raw', '--split-line']
     process_utils.CheckOutput(cmd)
@@ -124,7 +164,7 @@ class EvalFunctionCmdTest(unittest.TestCase):
     self.assertEquals(results, expected)
 
     # Output to stdout.
-    cmd = [CMD_PATH, '--output-json-file', '-',
+    cmd = [CMD_PATH, '--output-file', '-',
            'eval-function', 'file', self.tmp_file,
            '--key', 'file_raw', '--split-line']
     results = json.loads(process_utils.CheckOutput(cmd))
