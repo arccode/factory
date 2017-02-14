@@ -505,7 +505,7 @@ class CompDb(YamlDatastore):
     components from the input.
     """
     result = Obj(matched=[], unmatched={})
-    # Modify HWID v2 to look at probe.COMPACT_PROBE_STR field of probe results.
+    # Modify HWID v2 to look at COMPACT_PROBE_STR field of probe results.
     for probe_class, pr_data in found_probe_value_map.items():
       if isinstance(pr_data, list):
         probe_values = [pr[COMPACT_PROBE_STR] for pr in pr_data]
@@ -882,10 +882,10 @@ class Device(YamlDatastore):
         matched_volatiles={},
         unmatched_values={},
         matched_tags=[])
-    # Modify HWID v2 to look at probe.COMPACT_PROBE_STR field of probe results.
+    # Modify HWID v2 to look at COMPACT_PROBE_STR field of probe results.
     from cros.factory.gooftool import probe
     for probe_class, pr_data in value_map.items():
-      probe_value = pr_data[probe.COMPACT_PROBE_STR]
+      probe_value = pr_data[COMPACT_PROBE_STR]
       volatile_name = self.reverse_vol_value_map.get(probe_value, None)
       if volatile_name is not None:
         result.matched_volatiles[probe_class] = volatile_name

@@ -139,8 +139,7 @@ class ProbePCIUnittest(unittest.TestCase):
     expected_result = {
         'vendor': '0x0123',
         'device': '0xabcd',
-        'revision_id': '0xef',
-        'compact_str': '0123:abcd (rev ef)'}
+        'revision_id': '0xef'}
     result = probe._ReadSysfsPciFields(self.mock_sysfs)
     self.assertEquals(result, expected_result)
 
