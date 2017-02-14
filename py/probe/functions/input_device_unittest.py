@@ -71,20 +71,6 @@ class InputDeviceFunctionTest(unittest.TestCase):
     devices = input_device.GetInputDevices()
     self.assertEquals(devices, expected)
 
-  def testFilter(self):
-    expected = [
-        {'vendor': '147d',
-         'product': '1020',
-         'version': '0110',
-         'bus': '0003',
-         'name': 'Google Mouse',
-         'sysfs': '/devices/pci0000:00/0000:00:1d.0/usb2/2-1/input/input17',
-         'event': 'event3'}]
-
-    func = input_device.InputDeviceFunction(vendor='147d', product='1020')
-    results = func()
-    self.assertEquals(results, expected)
-
 
 if __name__ == '__main__':
   unittest.main()

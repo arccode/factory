@@ -2,15 +2,22 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
+import logging
+import os
 import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.functions import sysfs
+from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import type_utils
+
+from cros.factory.external import evdev
 
 
 INPUT_DEVICE_PATH = '/proc/bus/input/devices'
+KNOWN_DEVICE_TYPES = type_utils.Enum(['touchscreen', 'touchpad', 'stylus'])
 
 
 def GetInputDevices():
@@ -49,6 +56,19 @@ def GetInputDevices():
   return dataset
 
 
+def GetDeviceType(device):
+  evdev_device = evdev.InputDevice(os.path.join('/dev/input', device['event']))
+  ret = 'unknown'
+  if evdev_utils.IsStylusDevice(evdev_device):
+    ret = KNOWN_DEVICE_TYPES.stylus
+  if evdev_utils.IsTouchpadDevice(evdev_device):
+    ret = KNOWN_DEVICE_TYPES.touchpad
+  if evdev_utils.IsTouchscreenDevice(evdev_device):
+    ret = KNOWN_DEVICE_TYPES.touchscreen
+  logging.debug('device %s type: %s', device['event'], ret)
+  return ret
+
+
 class InputDeviceFunction(function.ProbeFunction):
   """Probes the information of input devices.
 
@@ -57,19 +77,24 @@ class InputDeviceFunction(function.ProbeFunction):
   """
 
   ARGS = [
-      Arg('vendor', str, 'The vendor ID.', optional=True),
-      Arg('product', str, 'The product ID.', optional=True),
-      Arg('name', str, 'The name of the device.', optional=True),
+      Arg('device_type', str, 'The type of input device. '
+          'One of "touchscreen", "touchpad", "stylus".', optional=True),
+      Arg('sysfs_files', list, 'The files in the sysfs node.', optional=True),
   ]
 
   def Probe(self):
     devices = GetInputDevices()
-    for field in ['vendor', 'product', 'name']:
-      devices = self.FilterBy(devices, field, getattr(self.args, field))
+    if self.args.device_type is not None:
+      assert self.args.device_type in KNOWN_DEVICE_TYPES
+      devices = [device for device in devices
+                 if GetDeviceType(device) == self.args.device_type]
+    if self.args.sysfs_files:
+      for device in devices:
+        self.AddSysfsFields(device)
     return devices
 
-  def FilterBy(self, devices, field, value):
-    """Filters for the devices whose fields are equal to certain values."""
-    if value is None:
-      return devices
-    return [device for device in devices if device.get(field) == value]
+  def AddSysfsFields(self, device):
+    sysfs_path = os.path.join('/sys', device['sysfs'].lstrip('/'), 'device')
+    fields = sysfs.ReadSysfs(sysfs_path, self.args.sysfs_files)
+    if fields:
+      device.update(fields)
