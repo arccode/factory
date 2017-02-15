@@ -127,6 +127,7 @@ class VSWR(unittest.TestCase):
     # Clear results.
     self._vswr_detail_results = {}
     self._results = {}
+    self.test_passed = None
 
     # Set up UI.
     self._event_queue = Queue.Queue()
@@ -565,8 +566,7 @@ class VSWR(unittest.TestCase):
     """
     # pylint: disable=redefined-builtin
     log_series = testlog.CreateSeries(name, key_unit='Hz', value_unit='dB')
-    for key, value in trace.iteritems():
-      if min is None and max is None:
-        log_series.LogValue(key, value)
-      else:
-        log_series.CheckValue(key, value, min=min, max=max)
+    if min is None and max is None:
+      log_series.LogSeries(trace)
+    else:
+      log_series.CheckSeries(trace, min=min, max=max)

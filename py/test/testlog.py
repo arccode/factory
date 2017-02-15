@@ -1071,7 +1071,12 @@ class Series(dict):
       if v is not None and not Series.CheckIsNumeric(v):
         raise ValueError('%r is not a numeric or None' % v)
 
-  def _LogValue(self, key, value, status, min_val, max_val):
+  @classmethod
+  def UpdateSession(cls):
+    if GetGlobalTestlog().last_test_run:
+      Log(GetGlobalTestlog().last_test_run)
+
+  def _LogValue(self, key, value, status, min_val, max_val, call_update=True):
     value_dict = {'key': key, 'numericValue': value}
     if status:
       value_dict['status'] = status
@@ -1084,17 +1089,29 @@ class Series(dict):
       self['data'] = []
     self['data'].append(value_dict)
     # Update the session JSON
-    if GetGlobalTestlog().last_test_run:
-      Log(GetGlobalTestlog().last_test_run)
+    if call_update:
+      self.UpdateSession()
 
-  def LogValue(self, key, value):
+  def LogValue(self, key, value, call_update=True):
     Series._CheckArguments(key, value, None, None)
-    self._LogValue(key, value, None, None, None)
+    self._LogValue(key, value, None, None, None, call_update)
 
-  def CheckValue(self, key, value, min=None, max=None):
+  def LogSeries(self, series):
+    for key, value in series.iteritems():
+      self.LogValue(key, value, call_update=False)
+    self.UpdateSession()
+
+  # pylint: disable=redefined-builtin
+  def CheckValue(self, key, value, min=None, max=None, call_update=True):
     # pylint: disable=redefined-builtin
     Series._CheckArguments(key, value, min, max)
     result = testlog_utils.IsInRange(value, min_val=min, max_val=max)
     result = 'PASS' if result else 'FAIL'
-    self._LogValue(key, value, result, min, max)
+    self._LogValue(key, value, result, min, max, call_update)
     return result
+
+  # pylint: disable=redefined-builtin
+  def CheckSeries(self, series, min=None, max=None):
+    for key, value in series.iteritems():
+      self.CheckValue(key, value, min, max, call_update=False)
+    self.UpdateSession()
