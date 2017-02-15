@@ -290,7 +290,7 @@ class HWID(object):
       return results
 
     # We only verify the components listed in the pattern.
-    for comp_cls in self.database.pattern.GetFieldNames(self.bom.image_id):
+    for comp_cls in self.database.GetActiveComponents(self.bom.image_id):
       if comp_cls not in self.database.components.probeable:
         continue
       probed_components = type_utils.MakeSet(

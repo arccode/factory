@@ -350,10 +350,18 @@ class HWIDv3UtilsTest(unittest.TestCase):
   def testDecodeHWID(self):
     """Tests HWID decoding."""
     hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
-    self.assertEquals(
-        {'audio_codec': 1, 'battery': 3, 'firmware': 0, 'storage': 0,
-         'bluetooth': 0, 'video': 0, 'display_panel': 0, 'cellular': 0,
-         'keyboard': 0, 'dram': 0, 'cpu': 5},
+    self.assertEquals({
+        'audio_codec_field': 1,
+        'battery_field': 3,
+        'firmware_field': 0,
+        'storage_field': 0,
+        'bluetooth_field': 0,
+        'video_field': 0,
+        'display_panel_field': 0,
+        'cellular_field': 0,
+        'keyboard_field': 0,
+        'dram_field': 0,
+        'cpu_field': 5},
         hwid.bom.encoded_fields)
 
     parsed_result = hwid_utils.ParseDecodedHWID(hwid)

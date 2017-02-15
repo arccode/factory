@@ -15,48 +15,48 @@ pattern:
   - image_ids: [0, 1]
     encoding_scheme: base32
     fields:
-    - audio_codec: 1
-    - battery: 2
-    - bluetooth: 0
-    - cellular: 1
-    - cpu: 1                  # 5 bits
-    - display_panel: 0
-    - dram: 1
-    - keyboard: 1
-    - video: 0
-    - cpu: 1
-    - storage: 2              # 10 bits
-    - cpu: 1
-    - firmware: 1
-    - firmware: 1
-    - dram: 1                 # 14 bits
+    - audio_codec_field: 1
+    - battery_field: 2
+    - bluetooth_field: 0
+    - cellular_field: 1
+    - cpu_field: 1                  # 5 bits
+    - display_panel_field: 0
+    - dram_field: 1
+    - keyboard_field: 1
+    - video_field: 0
+    - cpu_field: 1
+    - storage_field: 2              # 10 bits
+    - cpu_field: 1
+    - firmware_field: 1
+    - firmware_field: 1
+    - dram_field: 1                 # 14 bits
 
   - image_ids: [2, 3]
     encoding_scheme: base8192
     fields:
-    - audio_codec: 1
-    - battery: 2
-    - bluetooth: 0
-    - cellular: 1
-    - cpu: 1                  # 5 bits
-    - display_panel: 0
-    - dram: 1
-    - keyboard: 1
-    - video: 0
-    - cpu: 1
-    - storage: 2              # 10 bits
-    - cpu: 1
-    - firmware: 1
-    - firmware: 1
-    - dram: 1                 # 14 bits
+    - audio_codec_field: 1
+    - battery_field: 2
+    - bluetooth_field: 0
+    - cellular_field: 1
+    - cpu_field: 1                  # 5 bits
+    - display_panel_field: 0
+    - dram_field: 1
+    - keyboard_field: 1
+    - video_field: 0
+    - cpu_field: 1
+    - storage_field: 2              # 10 bits
+    - cpu_field: 1
+    - firmware_field: 1
+    - firmware_field: 1
+    - dram_field: 1                 # 14 bits
 
 encoded_fields:
-  audio_codec:
+  audio_codec_field:
     0:
       audio_codec: [codec_0, hdmi_0]
     1:
       audio_codec: [codec_1, hdmi_1]
-  battery:
+  battery_field:
     0:
       battery: battery_small
     1:
@@ -65,15 +65,15 @@ encoded_fields:
       battery: battery_large
     3:
       battery: battery_huge
-  bluetooth:
+  bluetooth_field:
     0:
       bluetooth: bluetooth_0
-  cellular:
+  cellular_field:
     0:
       cellular: NULL
     1:
       cellular: cellular_0
-  cpu:
+  cpu_field:
     0:
       cpu: cpu_0
     1:
@@ -86,41 +86,41 @@ encoded_fields:
       cpu: cpu_4
     5:
       cpu: cpu_5
-  display_panel:
+  display_panel_field:
     0:
       display_panel: display_panel_0
-  dram:
+  dram_field:
     0:
       dram: dram_0
     1:
       dram: dram_1
     2:
       dram: dram_2
-  ec_flash_chip:
+  ec_flash_chip_field:
     0:
       ec_flash_chip: ec_flash_chip_0
-  embedded_controller:
+  embedded_controller_field:
     0:
       embedded_controller: embedded_controller_0
-  flash_chip:
+  flash_chip_field:
     0:
       flash_chip: flash_chip_0
-  keyboard:
+  keyboard_field:
     0:
       keyboard: keyboard_us
     1:
       keyboard: keyboard_gb
-  storage:
+  storage_field:
     0:
       storage: storage_0
     1:
       storage: storage_1
     2:
       storage: storage_2
-  video:
+  video_field:
     0:
       video: camera_0
-  firmware:
+  firmware_field:
     0:
       hash_gbb: hash_gbb_0
       key_recovery: key_recovery_mp

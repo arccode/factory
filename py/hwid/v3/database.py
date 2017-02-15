@@ -628,12 +628,10 @@ class Database(object):
     # Ignore unprobeable components if probeable_only is True.
     missing_comp = []
     expected_encoded_fields = self.pattern.GetFieldNames(bom.image_id)
-    for encoded_field_name in expected_encoded_fields:
-      for index_content in self.encoded_fields[encoded_field_name].itervalues():
-        for comp_cls in index_content:
-          if (comp_cls not in bom.components and
-              (comp_cls in self.components.probeable or not probeable_only)):
-            missing_comp.append(comp_cls)
+    for comp_cls in self.GetActiveComponents(bom.image_id):
+      if (comp_cls not in bom.components and
+          (comp_cls in self.components.probeable or not probeable_only)):
+        missing_comp.append(comp_cls)
     if missing_comp:
       raise common.HWIDException('Missing component classes: %r',
                                  ', '.join(sorted(missing_comp)))
@@ -719,6 +717,14 @@ class Database(object):
           sorted(invalid_cls))
     return dict((comp_cls, probed_bom.components[comp_cls]) for comp_cls in
                 comp_list)
+
+  def GetActiveComponents(self, image_id=None):
+    """Returns a list of the components contained at the according pattern."""
+    ret = set()
+    for encoded_field_name in self.pattern.GetFieldNames(image_id):
+      for comp_dict in self.encoded_fields[encoded_field_name].itervalues():
+        ret = ret.union(comp_dict.keys())
+    return list(ret)
 
 
 class EncodingPatterns(dict):
