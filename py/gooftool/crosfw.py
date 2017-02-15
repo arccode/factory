@@ -16,13 +16,11 @@ To get the content of (cacheable) firmware, use LoadMainFirmware() or
 import collections
 import logging
 import re
-
-from tempfile import NamedTemporaryFile
-
-import fmap
+import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.gooftool.common import Shell
+from cros.factory.gooftool import common
+from cros.factory.gooftool import fmap
 
 
 # Names to select target bus.
@@ -53,9 +51,9 @@ class Flashrom(object):
   def _InvokeCommand(self, param, ignore_status=False):
     command = ' '.join(['flashrom', self._TARGET_MAP[self._target], param])
     logging.debug('Flashrom._InvokeCommand: %s', command)
-    result = Shell(command)
+    result = common.Shell(command)
     if not (ignore_status or result.success):
-      raise IOError, 'Failed in command: %s\n%s' % (command, result.stderr)
+      raise IOError('Failed in command: %s\n%s' % (command, result.stderr))
     return result
 
   def GetTarget(self):
@@ -87,7 +85,7 @@ class Flashrom(object):
       Image data read from flash chipset.
     """
     if filename is None:
-      with NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
+      with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
         return self.Read(f.name)
     sections_param = [name % '-i %s' for name in sections or []]
     self._InvokeCommand("-r '%s' %s %s" % (filename, ' '.join(sections_param),
@@ -107,11 +105,11 @@ class Flashrom(object):
             ((data is None) and (filename is not None))), \
                 'Either data or filename should be None.'
     if data is not None:
-      with NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
+      with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
         f.write(data)
         f.flush()
         return self.Write(None, f.name)
-    sections_param = [('-i %s' % name) for name in (sections or [])]
+    sections_param = [('-i %s' % name) for name in sections or []]
     self._InvokeCommand("-w '%s' %s %s" % (filename, ' '.join(sections_param),
                                            self._WRITE_FLAGS))
 
@@ -127,15 +125,15 @@ class Flashrom(object):
     results = self._InvokeCommand('--wp-status').stdout
     status = re.findall(r'WP: write protect is (\w+)\.', results)
     if len(status) != 1:
-      raise IOError, 'Failed getting write protection status'
+      raise IOError('Failed getting write protection status')
     status = status[0]
     if status not in ('enabled', 'disabled'):
-      raise ValueError, 'Unknown write protection status: %s' % status
+      raise ValueError('Unknown write protection status: %s' % status)
 
     wp_range = re.findall(r'WP: write protect range: start=(\w+), len=(\w+)',
                           results)
     if len(wp_range) != 1:
-      raise IOError, 'Failed getting write protection range'
+      raise IOError('Failed getting write protection range')
     wp_range = wp_range[0]
     return WpStatus(True if status == 'enabled' else False,
                     int(wp_range[0], 0),
@@ -150,14 +148,14 @@ class Flashrom(object):
     result = self.GetWriteProtectionStatus()
     if ((not result.enabled) or (result.offset != offset) or
         (result.size != size)):
-      raise IOError, 'Failed to enabled write protection.'
+      raise IOError('Failed to enabled write protection.')
 
   def DisableWriteProtection(self):
     """Tries to Disable whole write protection range and status."""
     self._InvokeCommand('--wp-disable --wp-range 0 0')
     result = self.GetWriteProtectionStatus()
-    if (result.enabled or (result.offset != 0) or (result.size != 0)):
-      raise IOError, 'Failed to disable write protection.'
+    if result.enabled or (result.offset != 0) or (result.size != 0):
+      raise IOError('Failed to disable write protection.')
 
 
 class FirmwareImage(object):
@@ -244,7 +242,7 @@ class FirmwareContent(object):
     if self.GetChipId() is None:
       return None
     if not hasattr(self, 'filename'):
-      fileref = NamedTemporaryFile(prefix='fw_%s_' % self.target)
+      fileref = tempfile.NamedTemporaryFile(prefix='fw_%s_' % self.target)
       self.flashrom.Read(filename=fileref.name)
       self.fileref = fileref
       self.filename = fileref.name
