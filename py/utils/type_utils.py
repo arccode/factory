@@ -21,7 +21,7 @@ class Error(Exception):
 
 class TimeoutError(Error):
   """Timeout error."""
-  def __init__(self, message, output=None):
+  def __init__(self, message='Timed out', output=None):
     Error.__init__(self)
     self.message = message
     self.output = output

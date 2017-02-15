@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import Queue
 import signal
 import threading
 import time
@@ -61,15 +62,15 @@ class WaitForTest(unittest.TestCase):
 
 class TimeoutTest(unittest.TestCase):
 
-  def runTest(self):
-    with sync_utils.Timeout(3):
+  def testSignalTimeout(self):
+    with sync_utils.SignalTimeout(3):
       time.sleep(1)
 
     prev_secs = signal.alarm(10)
     self.assertTrue(prev_secs == 0,
-                    msg='signal.alarm() is in use after "with Timeout()"')
+                    msg='signal.alarm() is in use after "with SignalTimeout()"')
     try:
-      with sync_utils.Timeout(3):
+      with sync_utils.SignalTimeout(3):
         time.sleep(1)
     except AssertionError:
       pass
@@ -78,12 +79,81 @@ class TimeoutTest(unittest.TestCase):
     signal.alarm(0)
 
     try:
-      with sync_utils.Timeout(1):
+      with sync_utils.SignalTimeout(1):
         time.sleep(3)
     except type_utils.TimeoutError:
       pass
     else:
       raise AssertionError("No timeout")
+
+  def testThreadTimeout(self):
+    with sync_utils.ThreadTimeout(0.3):
+      time.sleep(0.1)
+
+    with sync_utils.ThreadTimeout(0.3):
+      with sync_utils.ThreadTimeout(0.2):
+        time.sleep(0.1)
+
+    with sync_utils.ThreadTimeout(0.2):
+      with sync_utils.ThreadTimeout(0.3):
+        time.sleep(0.1)
+
+    with self.assertRaises(type_utils.TimeoutError):
+      with sync_utils.ThreadTimeout(0.1):
+        time.sleep(0.3)
+
+    with self.assertRaises(type_utils.TimeoutError):
+      with sync_utils.ThreadTimeout(0.1):
+        with sync_utils.ThreadTimeout(0.5):
+          time.sleep(0.3)
+
+    with self.assertRaises(type_utils.TimeoutError):
+      with sync_utils.ThreadTimeout(0.5):
+        with sync_utils.ThreadTimeout(0.1):
+          time.sleep(0.3)
+
+  def testThreadTimeoutInOtherThread(self):
+    def WillPass():
+      with sync_utils.ThreadTimeout(0.3):
+        with sync_utils.ThreadTimeout(0.2):
+          time.sleep(0.1)
+
+    def WillTimeout():
+      with sync_utils.ThreadTimeout(0.2):
+        with sync_utils.ThreadTimeout(0.5):
+          time.sleep(0.3)
+
+    def Run(func, queue):
+      try:
+        queue.put((True, func()))
+      except BaseException as e:
+        queue.put((False, e))
+
+    queue = Queue.Queue(1)
+    thread = threading.Thread(target=Run, args=(WillPass, queue))
+    thread.daemon = True
+    thread.start()
+    thread.join(1)
+    self.assertFalse(thread.is_alive())
+    flag, value = queue.get()
+    self.assertTrue(flag)
+    self.assertIsNone(value)
+
+    queue = Queue.Queue(1)
+    thread = threading.Thread(target=Run, args=(WillTimeout, queue))
+    thread.daemon = True
+    thread.start()
+    thread.join(1)
+    self.assertFalse(thread.is_alive())
+    flag, value = queue.get()
+    self.assertFalse(flag)
+    self.assertTrue(isinstance(value, type_utils.TimeoutError))
+
+  def testThreadTimeoutCancelTimeout(self):
+    with sync_utils.ThreadTimeout(0.2) as timer:
+      time.sleep(0.1)
+      timer.CancelTimeout()
+      time.sleep(0.3)
 
 
 DELAY = 0.1

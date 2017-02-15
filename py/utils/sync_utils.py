@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 
+import ctypes
 import inspect
 import logging
 import signal
@@ -132,8 +133,50 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
   return result
 
 
+def Timeout(secs, use_signal=False):
+  """Timeout context manager.
+
+  It will raise TimeoutError after timeout is reached, interrupting execution
+  of the thread.  Since implementation `ThreadTimeout` is more powerful than
+  `SignalTimeout` in most cases, by default, ThreadTimeout will be used.
+
+  You can force using SignalTimeout by setting `use_signal` to True.
+
+  Example::
+
+    with Timeout(0.5):
+      # script in this block has to be done in 0.5 seconds
+
+  Args:
+    secs: Number of seconds to wait before timeout.
+    use_signal: force using SignalTimeout (implemented by signal.alarm)
+  """
+  if use_signal:
+    return SignalTimeout(secs)
+  return ThreadTimeout(secs)
+
+
+def WithTimeout(secs, use_signal=False):
+  """Function decoractor that adds a limited execution time to the function.
+
+  Please see `Timeout`
+
+  Example::
+
+    @WithTimeout(0.5)
+    def func(a, b, c):  # execution time of func will be limited to 0.5 seconds
+      ...
+  """
+  def _Decorate(func):
+    def _Decoracted(*func_args, **func_kwargs):
+      with Timeout(secs, use_signal):
+        return func(*func_args, **func_kwargs)
+    return _Decoracted
+  return _Decorate
+
+
 @contextmanager
-def Timeout(secs):
+def SignalTimeout(secs):
   """Timeout context manager.
 
   It will raise TimeoutError after timeout is reached, interrupting execution
@@ -196,3 +239,59 @@ def Synchronized(f):
     with self._lock:
       return f(self, *args, **kw)
   return wrapped
+
+
+class ThreadTimeout(object):
+  """Timeout context manager.
+
+  It will raise TimeoutError after timeout is reached, interrupting execution
+  of the thread.
+
+  Args:
+    secs: Number of seconds to wait before timeout.
+
+  Raises:
+    TimeoutError if timeout is reached before execution has completed.
+    ValueError if not run in the main thread.
+  """
+  def __init__(self, secs):
+    self._secs = secs
+    self._timer = None
+    self._current_thread = threading.current_thread().ident
+    self._lock = threading.RLock()
+
+  def __enter__(self):
+    with self._lock:
+      self.SetTimeout()
+    return self
+
+  def __exit__(self, exc_type, exc_value, exc_traceback):
+    with self._lock:
+      self.CancelTimeout()
+      return False
+
+  def SetTimeout(self):
+    if self._secs:
+      self._timer = threading.Timer(self._secs, self._RaiseTimeoutException)
+      self._timer.start()
+
+  def CancelTimeout(self):
+    with self._lock:
+      if self._timer:
+        self._timer.cancel()
+      logging.debug('timer cancelled')
+
+  def _RaiseTimeoutException(self):
+    with self._lock:
+      logging.debug('will raise exception')
+      num_modified_threads = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+          ctypes.c_long(self._current_thread),
+          ctypes.py_object(type_utils.TimeoutError))
+      if num_modified_threads == 0:
+        # thread ID is invalid, maybe the thread no longer exists?
+        raise ValueError('Invalid thread ID')
+      if num_modified_threads > 1:
+        # somehow, more than one threads are modified, try to undo
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(
+            ctypes.c_long(self._current_thread), None)
+        raise SystemError('PthreadState_SetAsyncExc failed')
