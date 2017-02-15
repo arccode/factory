@@ -15,6 +15,7 @@ To get the content of (cacheable) firmware, use LoadMainFirmware() or
 
 import collections
 import logging
+import os
 import re
 import tempfile
 
@@ -27,6 +28,8 @@ from cros.factory.gooftool import fmap
 TARGET_MAIN = 'main'
 TARGET_EC = 'ec'
 TARGET_PD = 'pd'
+
+CROS_PD_PATH = '/dev/cros_pd'
 
 # Types of named tuples
 WpStatus = collections.namedtuple('WpStatus', 'enabled offset size')
@@ -50,7 +53,17 @@ class Flashrom(object):
 
   def _InvokeCommand(self, param, ignore_status=False):
     command = ' '.join(['flashrom', self._TARGET_MAP[self._target], param])
-    logging.debug('Flashrom._InvokeCommand: %s', command)
+
+    if self._target == TARGET_PD and not os.path.exists(CROS_PD_PATH):
+      # crbug.com/p/691901: 'flashrom' does not return PD information reliably
+      # using programmer "-p ec:type=pd". As a result, we want to only read PD
+      # information if /dev/cros_pd exists.
+      logging.debug('%s._InvokeCommand: Ignore command because %s does not '
+                    'exist: [%s]', self.__class__, CROS_PD_PATH, command)
+      command = 'false'
+    else:
+      logging.debug('%s._InvokeCommand: %s', self.__class__, command)
+
     result = common.Shell(command)
     if not (ignore_status or result.success):
       raise IOError('Failed in command: %s\n%s' % (command, result.stderr))
