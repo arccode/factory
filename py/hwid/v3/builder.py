@@ -66,8 +66,24 @@ def _FilterSpecialCharacter(string):
     string = 'unknown'
   return string
 
+def DetermineComponentName(comp_cls, value, name_list=None):
+  comp_name = _DetermineComponentName(comp_cls, value)
+  if name_list is None:
+    name_list = []
+  return HandleCollisionName(comp_name, name_list)
 
-def DetermineComponentName(comp_cls, value):
+def HandleCollisionName(comp_name, name_list):
+  # To prevent name collision, add "_n" if the name already exists.
+  if name_list is None:
+    name_list = []
+  if comp_name in name_list:
+    suffix_num = 1
+    while '%s_%d' % (comp_name, suffix_num) in name_list:
+      suffix_num += 1
+    comp_name = '%s_%d' % (comp_name, suffix_num)
+  return comp_name
+
+def _DetermineComponentName(comp_cls, value):
   """Determines the componenet name by the value.
 
   For some specific components, we can determine a meaningful name by the
@@ -82,6 +98,8 @@ def DetermineComponentName(comp_cls, value):
   Returns:
     the component name.
   """
+  if len(value) == 1:
+    return value.values()[0]
   # Known specific components.
   if comp_cls == 'firmware_keys':
     if 'devkeys' in value['key_root']:
@@ -447,13 +465,10 @@ class DatabaseBuilder(object):
       comp_value.pop('compact_str')
 
     if comp_name is None:
-      comp_name = DetermineComponentName(comp_cls, comp_value)
-    # To prevent name collision, add "_n" if the name already exists.
-    if comp_name in db_comp_items:
-      suffix_num = 1
-      while '%s_%d' % (comp_name, suffix_num) in db_comp_items:
-        suffix_num += 1
-      comp_name = '%s_%d' % (comp_name, suffix_num)
+      comp_name = DetermineComponentName(
+          comp_cls, comp_value, db_comp_items.keys())
+    else:
+      comp_name = HandleCollisionName(comp_name, db_comp_items.keys())
     logging.info('Component %s: add an item "%s".', comp_cls, comp_name)
     db_comp_items[comp_name] = OrderedDict({
         'status': 'unqualified',
@@ -772,7 +787,6 @@ class DatabaseBuilder(object):
         comp_values = comp_value
         comp_names = []
         for comp_value in comp_values:
-          comp_name = DetermineComponentName(comp_cls, comp_value)
           comp_names.append(self.AddComponent(comp_cls, comp_value))
         self.AddEncodedField(comp_cls, comp_names)
 

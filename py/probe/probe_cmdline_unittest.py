@@ -12,32 +12,12 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
-from cros.factory.probe import probe_cmdline
-from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
 CMD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         'probe_cmdline.py')
-
-
-class ProbeStatementTest(unittest.TestCase):
-  class MockFunction(function.Function):
-    ARGS = [Arg('data', list, 'help message')]
-    def Apply(self, data):
-      return self.args.data
-
-  def setUp(self):
-    function.RegisterFunction('mock', self.MockFunction, force=True)
-
-  def testNormal(self):
-    results = probe_cmdline.ProbeStatement(
-        {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
-                           {'foo': 'FOO2', 'bar': 'BAR2'}]}},
-        {'foo': 'FOO1'})
-    self.assertEquals(results, [{'foo': 'FOO1', 'bar': 'BAR1'}])
 
 
 class ProbeCmdTest(unittest.TestCase):
@@ -101,7 +81,8 @@ class ProbeCmdTest(unittest.TestCase):
 
     # Output to file.
     output_file = os.path.join(self.tmp_dir, 'output_file.json')
-    cmd = [CMD_PATH, '--output-file', output_file, 'probe', statement_path]
+    cmd = [CMD_PATH, '--output-file', output_file,
+           'probe', '--config-file', statement_path]
     process_utils.CheckOutput(cmd)
     with open(output_file, 'r') as f:
       file_content = f.read()
@@ -109,11 +90,12 @@ class ProbeCmdTest(unittest.TestCase):
     self.assertEquals(results, expected)
 
     # Output to stdout.
-    cmd = [CMD_PATH, 'probe', statement_path]
+    cmd = [CMD_PATH, 'probe', '--config-file', statement_path]
     results = json.loads(process_utils.CheckOutput(cmd))
     self.assertEquals(expected, results)
 
-    cmd = [CMD_PATH, '--output-file', '-', 'probe', statement_path]
+    cmd = [CMD_PATH, '--output-file', '-',
+           'probe', '--config-file', statement_path]
     results = json.loads(process_utils.CheckOutput(cmd))
     self.assertEquals(expected, results)
 
@@ -128,7 +110,8 @@ class ProbeCmdTest(unittest.TestCase):
                 {'shell_raw': 'hello'},
                 {'shell_raw': 'world'}])},
         'missing_component_classes': ['foo']}
-    cmd = [CMD_PATH, 'probe', '--legacy-output', statement_path]
+    cmd = [CMD_PATH, 'probe', '--legacy-output',
+           '--config-file', statement_path]
     results = yaml.load(process_utils.CheckOutput(cmd))
     self.assertEquals(expected, results)
 

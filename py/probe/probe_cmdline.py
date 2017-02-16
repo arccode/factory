@@ -15,8 +15,10 @@ import sys
 import yaml
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.probe import common
 from cros.factory.probe import function
-from cros.factory.probe.functions import match
+from cros.factory.probe import search
+from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
 
 
@@ -130,30 +132,74 @@ class ProbeCmd(SubCommand):
 
   @classmethod
   def _AddArgument(cls, parser):
-    parser.add_argument('config_file',
-                        help='The path of probe statement list.')
+    parser.add_argument('--config-file', default=None,
+                        help='The path of probe statement.')
+    parser.add_argument('--include-generic', default=False, action='store_true',
+                        help='Load the generic probe statement. '
+                        'If "--config-file" argument is not assigned, then '
+                        'this argument will be enabled automatically.')
+    parser.add_argument('--include-volatile', default=False,
+                        action='store_true',
+                        help='Load the volatile probe statement. '
+                        'If "--config-file" argument is not assigned, then '
+                        'this argument will be enabled automatically.')
     parser.add_argument('--legacy-output', default=False, action='store_true',
                         help='Generate the result in legacy YAML format.')
 
   @classmethod
   def EvalCommand(cls, options):
-    with open(options.config_file, 'r') as f:
-      statement_dict = type_utils.UnicodeToString(json.load(f))
+    if options.config_file is None and not options.include_volatile:
+      logging.info('No config file is assigned. '
+                   'Force to load the generic probe statement.')
+      options.include_generic = True
+
+    statement_dict = {}
+    if options.include_generic:
+      statement_dict = common.LoadGenericStatement()
+    if options.include_volatile:
+      config_utils.OverrideConfig(
+          statement_dict, common.LoadVolatileStatement())
+    if options.config_file is not None:
+      # TODO(yhong): use config_utils to load config file as well.
+      with open(options.config_file, 'r') as f:
+        config_utils.OverrideConfig(
+            statement_dict, type_utils.UnicodeToString(json.load(f)))
+
     results = {}
     for comp_cls in statement_dict:
       results[comp_cls] = {}
       for comp_name, statement in statement_dict[comp_cls].iteritems():
         logging.info('Probe %s: %s', comp_cls, comp_name)
-        results[comp_cls][comp_name] = ProbeStatement(
-            statement['eval'], statement.get('expect', {}))
+        results[comp_cls][comp_name] = common.EvaluateStatement(statement)
     OutputResults(results, options)
 
 
-def ProbeStatement(func_expression, rule_expression):
-  """Evaluates the function expression and filters it by the rule expression."""
-  probe_func = function.InterpretFunction(func_expression)
-  match_func = match.MatchFunction(rule=rule_expression)
-  return match_func(probe_func())
+@RegisterCommand
+class SearchCmd(SubCommand):
+  """Search the components in generic way.
+
+  We can use this command to find common components, and generate its probe
+  statement.
+  """
+  CMD_NAME = 'search'
+
+  @classmethod
+  def _AddArgument(cls, parser):
+    parser.add_argument('comps', metavar='COMP', nargs='*',
+                        help='The components to be searched.')
+
+  @classmethod
+  def EvalCommand(cls, options):
+    comps = set(options.comps)
+    if not comps:
+      comps = search.GetGenericComponentClasses()
+    results = {}
+    for comp_cls in comps:
+      if comp_cls not in search.GetGenericComponentClasses():
+        logging.error('Component [%s] cannot be searched.', comp_cls)
+      logging.info('Search component [%s].', comp_cls)
+      results.update(search.GenerateProbeStatement(comp_cls))
+    OutputResults(results, options)
 
 
 def ConvertToLegacyResults(results):

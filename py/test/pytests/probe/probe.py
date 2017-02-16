@@ -113,7 +113,7 @@ class ProbeTest(unittest.TestCase):
       self.fail('Config file %s does not exist.' % self.config_file_path)
 
     # Execute Probe.
-    cmd = ['probe', '-v', 'probe', self.config_file_path]
+    cmd = ['probe', '-v', 'probe', '--config-file', self.config_file_path]
     factory.console.info('Call the command: %s', ' '.join(cmd))
     probed_results = json.loads(self.factory_tools.CheckOutput(cmd))
 

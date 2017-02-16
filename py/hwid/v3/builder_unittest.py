@@ -200,7 +200,7 @@ class DatabaseBuilderTest(unittest.TestCase):
   def testAddComponentWithNameCollision(self):
     db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
     # Add two items whose name is determined the same.
-    with mock.patch.object(builder, 'DetermineComponentName',
+    with mock.patch.object(builder, '_DetermineComponentName',
                            return_value='foo_name'):
       name1 = db_builder.AddComponent('foo', {'compact_str': 'FOO'})
       name2 = db_builder.AddComponent('foo', {'compact_str': 'BAR'})

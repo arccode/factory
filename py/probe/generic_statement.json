@@ -1,0 +1,152 @@
+{
+  "audio_codec": {
+    "generic": {
+      "eval": "generic_audio_codec"
+    }
+  },
+  "battery": {
+    "generic": {
+      "eval": "generic_battery"
+    }
+  },
+  "bluetooth": {
+    "generic": {
+      "eval": "generic_bluetooth"
+    }
+  },
+  "mainboard": {
+    "generic": {
+      "eval": {
+        "shell": {
+          "command": "mosys platform version",
+          "key": "version"
+        }
+      }
+    }
+  },
+  "cellular": {
+    "generic": {
+      "eval": "generic_network_device:cellular"
+    }
+  },
+  "chassis": {
+    "generic": {
+      "eval": {
+        "shell": {
+          "command": "mosys platform chassis",
+          "key": "id"
+        }
+      }
+    }
+  },
+  "cpu": {
+    "generic": {
+      "eval": "generic_cpu"
+    }
+  },
+  "display_panel": {
+    "generic": {
+      "eval": "edid"
+    }
+  },
+  "dram": {
+    "generic": {
+      "eval": "generic_dram"
+    }
+  },
+  "ec_flash_chip": {
+    "generic": {
+      "eval": "flash_chip:ec"
+    }
+  },
+  "embedded_controller": {
+    "generic": {
+      "eval": [
+        {
+          "shell": {
+            "command": "mosys ec info -s vendor",
+            "key": "vendor"
+          }
+        },
+        {
+          "shell": {
+            "command": "mosys ec info -s name",
+            "key": "name"
+          }
+        }
+      ]
+    }
+  },
+  "ethernet": {
+    "generic": {
+      "eval": "generic_network_device:ethernet"
+    }
+  },
+  "flash_chip": {
+    "generic": {
+      "eval": "flash_chip:main"
+    }
+  },
+  "pmic": {
+    "generic": {
+      "eval": {
+        "glob_path": {
+          "pathname": "/sys/bus/platform/devices/*-pmic",
+          "filename_only": true
+        }
+      }
+    }
+  },
+  "storage": {
+    "generic": {
+      "eval": "generic_storage"
+    }
+  },
+  "stylus": {
+    "generic": {
+      "eval": {
+        "input_device": {
+          "device_type": "stylus"
+        }
+      }
+    }
+  },
+  "touchpad": {
+    "generic": {
+      "eval": {
+        "input_device": {
+          "device_type": "touchpad"
+        }
+      }
+    }
+  },
+  "touchscreen": {
+    "generic": {
+      "eval": {
+        "input_device": {
+          "device_type": "touchscreen"
+        }
+      }
+    }
+  },
+  "tpm": {
+    "generic": {
+      "eval": "generic_tpm"
+    }
+  },
+  "usb_hosts": {
+    "generic": {
+      "eval": "generic_usb_hosts"
+    }
+  },
+  "video": {
+    "generic": {
+      "eval": "generic_video"
+    }
+  },
+  "wireless": {
+    "generic": {
+      "eval": "generic_network_device:wireless"
+    }
+  }
+}

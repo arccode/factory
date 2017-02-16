@@ -1,0 +1,32 @@
+{
+  "firmware_keys": {
+    "generic": {
+      "eval": "chromeos_firmware:firmware_keys"
+    }
+  },
+  "region": {
+    "generic": {
+      "eval": {
+        "vpd": {
+          "field": "region",
+          "key": "region_code"
+        }
+      }
+    }
+  },
+  "ro_main_firmware": {
+    "generic": {
+      "eval": "chromeos_firmware:ro_main_firmware"
+    }
+  },
+  "ro_ec_firmware": {
+    "generic": {
+      "eval": "chromeos_firmware:ro_ec_firmware"
+    }
+  },
+  "ro_pd_firmware": {
+    "generic": {
+      "eval": "chromeos_firmware:ro_pd_firmware"
+    }
+  }
+}
