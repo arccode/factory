@@ -226,10 +226,11 @@ def SetRootLogger(verbose):
   level = logging.DEBUG if verbose else logging.INFO
   logging.basicConfig(level=level, stream=sys.stderr)
 
+
 def Main():
   options = ParseOptions()
   SetRootLogger(options.verbose)
-  options._Command(options)
+  options._Command(options)  # pylint: disable=protected-access
 
 
 if __name__ == '__main__':

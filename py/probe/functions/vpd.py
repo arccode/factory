@@ -11,7 +11,8 @@ class VPDFunction(shell.ShellFunction):
   """Reads the information from VPD."""
 
   ARGS = [
-      Arg('key', str, 'The field of VPD.'),
+      Arg('field', str, 'The field of VPD.'),
+      Arg('key', str, 'The key of the result.', default=None),
       Arg('from_rw', bool,
           'True to read from RW_VPD, and False to read from RO_VPD. '
           'Default is to read from RO_VPD.', default=False),
@@ -21,5 +22,7 @@ class VPDFunction(shell.ShellFunction):
     super(VPDFunction, self).__init__(**kwargs)
 
     partition = 'RW_VPD' if self.args.from_rw else 'RO_VPD'
-    self.args.command = 'vpd -i %s -g %s' % (partition, self.args.key)
+    self.args.command = 'vpd -i %s -g %s' % (partition, self.args.field)
     self.args.split_line = False
+    if self.args.key is None:
+      self.args.key = self.args.field
