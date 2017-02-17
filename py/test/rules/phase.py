@@ -98,18 +98,25 @@ def GetPhase():
   if _current_phase:
     return _current_phase
 
+  strictest_phase = Phase(PHASE_NAMES[-1])
+
   # There is a potential for a harmless race condition where we will
   # read the phase twice if GetPhase() is called twice in separate
   # threads.  No big deal.
-
   path = GetPhaseStatePath()
   try:
     with open(path, 'r') as f:
       phase = Phase(f.read())
+
+    if (phase != strictest_phase and
+        os.system('crossystem phase_enforcement?1 >/dev/null 2>&1') == 0):
+      logging.warn('Hardware phase_enforcement activated, '
+                   'enforce phase %s as %s.', phase, strictest_phase)
+      phase = strictest_phase
+
   except IOError:
-    phase = Phase(PHASE_NAMES[-1])
-    logging.warn('Unable to read %s; using strictest phase (%s)',
-                 path, phase)
+    phase = strictest_phase
+    logging.warn('Unable to read %s; using strictest phase (%s)', path, phase)
 
   _current_phase = phase
   return phase
