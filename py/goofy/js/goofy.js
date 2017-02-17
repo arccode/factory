@@ -1120,7 +1120,7 @@ cros.factory.Goofy.prototype.updateCSSClasses = function() {
       if (i && i.iframe) {
         this.updateCSSClassesInDocument.call(this, i.iframe.contentDocument);
       }
-      if (i.subInvocations) {
+      if (i && i.subInvocations) {
         recursiveUpdate.call(this, i.subInvocations);
       }
     }, this);
