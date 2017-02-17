@@ -206,23 +206,21 @@ class SuspendResumeTest(unittest.TestCase):
     """Suspend the device by writing to /sys/power/state."""
     # Explicitly sync the filesystem
     process_utils.Spawn(['sync'], check_call=True, log_stderr_on_error=True)
-    # Write out our expected wakeup_count
-    try:
-      with open(self.args.wakeup_count_path, 'w') as f:
-        f.write(self.wakeup_count)
-    except IOError:
-      # This happens if wakeup_count does not match, typically this means
-      # there was an unexpected early wake event.
-      raise IOError('Failed to write to wakeup_count (early wake): %s' %
-                    debug_utils.FormatExceptionOnly())
 
     prev_suspend_ignore_count = self._GetIgnoredWakeupSourceCount()
     logging.info('Suspending at %d', self._ReadCurrentTime())
+
     try:
+      # Write out our expected wakeup_count
+      with open(self.args.wakeup_count_path, 'w') as f:
+        f.write(self.wakeup_count)
+
+      # Suspend to memory
       with open('/sys/power/state', 'w') as f:
         f.write(self.args.suspend_type)
     except IOError as err:
-      if err.errno == errno.EBUSY:
+      # Both of the write could result in IOError if there is an early wake.
+      if err.errno in [errno.EBUSY, errno.EINVAL]:
         if prev_suspend_ignore_count:
           logging.info('Early wake event when attempting suspend')
           if prev_suspend_ignore_count != self._GetIgnoredWakeupSourceCount():
