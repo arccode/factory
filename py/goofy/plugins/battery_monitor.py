@@ -17,11 +17,11 @@ class BatteryMonitor(periodic_plugin.PeriodicPlugin):
   MIN_BATTERY_LEVEL_FOR_DISK_SYNC = 1.0
 
   def __init__(self, goofy, period_secs, critical_low_battery_pct=None,
-               warning_log_battery_pct=False):
+               warning_low_battery_pct=False):
     super(BatteryMonitor, self).__init__(goofy, period_secs)
 
     self._critical_low_battery_pct = critical_low_battery_pct
-    self._warning_log_battery_pct = warning_log_battery_pct
+    self._warning_low_battery_pct = warning_low_battery_pct
     self._dut = device_utils.CreateDUTInterface()
     self._last_log_message = None
 

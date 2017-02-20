@@ -16,7 +16,7 @@
       "args": {
         "period_secs": 120,
         "critical_low_battery_pct": 5,
-        "warning_log_battery_pct": 10
+        "warning_low_battery_pct": 10
       }
     },
     "charge_manager": {
