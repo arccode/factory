@@ -46,9 +46,11 @@ STATIC ?= false
 BOARD ?=
 # The package names (chromeos-factory-board, factory-board) must be same as
 # RDEPEND listed in virtual/chromeos-bsp-factory.
-BOARD_EBUILD ?= \
+memoized = $(if $(__var_$1),,$(eval __var_$1 := $($1)))$(__var_$1)
+_BOARD_EBUILD = \
   $(if $(BOARD),$(shell equery-$(BOARD) which factory-board 2>/dev/null || \
                         equery-$(BOARD) which chromeos-factory-board))
+BOARD_EBUILD ?= $(call memoized,_BOARD_EBUILD)
 BOARD_PACKAGE_NAME ?= $(notdir $(realpath $(dir $(BOARD_EBUILD))))
 BOARD_PACKAGE_FILE ?= \
   $(if $(BOARD_EBUILD),$(SYSROOT)/packages/chromeos-base/$(basename $(notdir \
