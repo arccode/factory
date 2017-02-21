@@ -7,11 +7,12 @@
 from __future__ import print_function
 
 from BaseHTTPServer import BaseHTTPRequestHandler
-import jsonrpclib
-from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 import inspect
 import threading
 import uuid
+
+import jsonrpclib
+from jsonrpclib import SimpleJSONRPCServer
 
 from . import net_utils
 from .net_utils import TimeoutXMLRPCTransport
@@ -48,8 +49,8 @@ class JSONRPCServer(object):
       self._server.handle_request()
 
   def Start(self):
-    self._server = SimpleJSONRPCServer(('0.0.0.0', self._port),
-                                       logRequests=False)
+    self._server = SimpleJSONRPCServer.SimpleJSONRPCServer(
+        ('0.0.0.0', self._port), logRequests=False)
     self._server.register_function(lambda: True, 'IsAlive')
     self._server.register_function(lambda: self._uuid, 'GetUuid')
     if self._methods:
@@ -90,3 +91,72 @@ def GetJSONRPCCallerIP():
       return caller.client_address[0]
 
   raise RuntimeError('no BaseHTTPRequestHandler found in stack')
+
+class MultiPathJSONRPCRequestHandler(
+    SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
+
+  def is_rpc_path_valid(self):
+    return self.server.is_rpc_path_valid(self.path)
+
+class MultiPathJSONRPCServer(SimpleJSONRPCServer.SimpleJSONRPCServer):
+  """Multipath JSON-RPC Server
+
+  This specialization of SimpleJSONRPCServer allows the user to create
+  multiple Dispatch instances and assign them to different
+  HTTP request paths. This makes it possible to run two or more 'virtual
+  JSON-RPC servers' at the same port.
+
+  Make sure that the requestHandler accepts the paths by setting it's
+  rpc_paths.
+
+  Example usage:
+
+  class MyHandler(SimpleJSONRPCRequestHandler):
+    rpc_paths = []
+
+  class MyServer(SocketServer.ThreadingMixin,
+                 MultiPathJSONRPCServer):
+    pass
+
+  class MyRPCInstance(object):
+    def Foo(self):
+      pass
+
+  server = MyServer(('localhost', 8080), requestHandler=MyHandler)
+
+  dispatcher = SimpleJSONRPCServer.SimpleJSONRPCDispatcher()
+  dispatcher.register_instance(MyRPCInstance())
+  server.add_dispatcher('/MyRPC', dispatcher)
+
+  server.serve_forever()
+
+  # Now client can POST to http://localhost:8080/MyRPC
+  """
+  def __init__(self, addr,
+               requestHandler=MultiPathJSONRPCRequestHandler,
+               *args, **kwargs):
+    SimpleJSONRPCServer.SimpleJSONRPCServer.__init__(
+        self, addr, requestHandler, *args, **kwargs)
+    self.dispatchers = {}
+
+  def add_dispatcher(self, path, dispatcher):
+    self.dispatchers[path] = dispatcher
+    return dispatcher
+
+  def get_dispatcher(self, path):
+    return self.dispatchers[path]
+
+  def is_rpc_path_valid(self, path):
+    return path in self.dispatchers
+
+  def _marshaled_dispatch(self, data, dispatch_method=None):
+    """Dispatch request
+
+    This function is called by SimpleJSONRPCRequestHandler to dispatch request.
+    """
+    # TODO (shunhsingou): find other way instead of using inspect.
+    handler = inspect.currentframe().f_back.f_locals['self']
+    path = handler.path
+    # pylint: disable=protected-access
+    return self.dispatchers[path]._marshaled_dispatch(
+        data, dispatch_method)
