@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 import signal
+import threading
 import time
 import unittest
 
@@ -83,6 +84,36 @@ class TimeoutTest(unittest.TestCase):
       pass
     else:
       raise AssertionError("No timeout")
+
+
+class SynchronizedTest(unittest.TestCase):
+
+  class MyClass(object):
+    DELAY = 0.1
+    def __init__(self):
+      self._lock = threading.RLock()
+      self.data = []
+
+    @sync_utils.Synchronized
+    def A(self):
+      self.data.append('A1')
+      time.sleep(self.DELAY * 2)
+      self.data.append('A2')
+
+    @sync_utils.Synchronized
+    def B(self):
+      time.sleep(self.DELAY)
+      self.data.append('B')
+
+  def setUp(self):
+    self.obj = self.MyClass()
+
+  def testSynchronized(self):
+    thread_a = threading.Thread(target=self.obj.A, name='A')
+    thread_a.start()
+    self.obj.B()
+    thread_a.join()
+    self.assertEqual(['A1', 'A2', 'B'], self.obj.data)
 
 
 if __name__ == '__main__':

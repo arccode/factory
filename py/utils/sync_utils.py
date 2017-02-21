@@ -9,6 +9,7 @@ from __future__ import print_function
 import inspect
 import logging
 import signal
+import threading
 import time
 
 from contextlib import contextmanager
@@ -160,3 +161,38 @@ def Timeout(secs):
     if secs:
       signal.alarm(0)
       signal.signal(signal.SIGALRM, old_handler)
+
+
+def Synchronized(f):
+  """Decorates a member function to run with a lock
+
+  The decorator is for Synchronizing member functions of a class object. To use
+  this decorator, the class must initialize self._lock as threading.RLock in
+  its constructor.
+
+  Example:
+
+  class MyServer(object):
+    def __init__(self):
+      self._lock = threading.RLock()
+
+    @sync_utils.Synchronized
+    def foo(self):
+      ...
+
+    @sync_utils.Synchronized
+    def bar(self):
+      ...
+
+  """
+
+  def wrapped(self, *args, **kw):
+    # pylint: disable=protected-access
+    if not self._lock or not isinstance(self._lock, threading._RLock):
+      raise RuntimeError(
+          ("To use @Synchronized, the class must initialize self._lock as"
+           " threading.RLock in its __init__ function."))
+
+    with self._lock:
+      return f(self, *args, **kw)
+  return wrapped

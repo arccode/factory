@@ -28,18 +28,17 @@ from mox import IgnoreArg
 from ws4py.client import WebSocketBaseClient
 
 from cros.factory.goofy import goofy
-from cros.factory.test import factory
-from cros.factory.test import state
-
 from cros.factory.goofy.goofy import Goofy
 from cros.factory.goofy.prespawner import PytestPrespawner
 from cros.factory.goofy.test_environment import Environment
+from cros.factory.test.env import goofy_proxy
 from cros.factory.test.event import Event
+from cros.factory.test import factory
 from cros.factory.test.factory import TestState
+from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
-
 
 def _BuildTestList(test_items, options):
   """Build a test list
@@ -142,12 +141,13 @@ class GoofyTest(unittest.TestCase):
     # Log the name of the test we're about to run, to make it easier
     # to grok the logs.
     logging.info('*** Running test %s', type(self).__name__)
-    state.DEFAULT_FACTORY_STATE_PORT = net_utils.FindUnusedTCPPort()
+    goofy_proxy.DEFAULT_GOOFY_PORT = net_utils.FindUnusedTCPPort()
+    state.DEFAULT_FACTORY_STATE_PORT = goofy_proxy.DEFAULT_GOOFY_PORT
     logging.info('Using port %d for factory state',
-                 state.DEFAULT_FACTORY_STATE_PORT)
+                 goofy_proxy.DEFAULT_GOOFY_PORT)
     self.mocker = mox.Mox()
     self.env = self.mocker.CreateMock(Environment)
-    self.state = state.get_instance()
+    self.state = goofy_proxy.get_rpc_proxy()
     self.before_init_goofy()
     self.mocker.ReplayAll()
     self.goofy = init_goofy(self.env, self.test_list, self.options,

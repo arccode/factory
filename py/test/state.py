@@ -4,116 +4,55 @@
 # found in the LICENSE file.
 
 
-"""This module provides both client and server side of a XML RPC based server
-which can be used to handle factory test states (status) and shared persistent
-data.
+"""This module handles factory test states (status) and shared persistent data.
 """
 
 
 from __future__ import print_function
 
 import glob
-import logging
-import mimetypes
-import os
-import Queue
-import re
-import shutil
-import SocketServer
-import threading
-import time
-from uuid import uuid4
-import yaml
-
 from jsonrpclib import jsonclass
-from jsonrpclib import jsonrpc
-from jsonrpclib import SimpleJSONRPCServer
+import logging
+import os
+import shutil
+import threading
+import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
+from cros.factory.test.env import goofy_proxy
 from cros.factory.test import factory
-from cros.factory.utils import net_utils
 from cros.factory.utils import shelve_utils
 from cros.factory.utils import string_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
-DEFAULT_FACTORY_STATE_PORT = 0x0FAC
-DEFAULT_FACTORY_STATE_ADDRESS = net_utils.LOCALHOST
-DEFAULT_FACTORY_STATE_BIND_ADDRESS = net_utils.LOCALHOST
+# TODO(shunhsingou): Remove the following legacy code.
+# Support legacy code. Now the port and address information is defined in
+# goofy_proxy module instead of here.
+DEFAULT_FACTORY_STATE_PORT = goofy_proxy.DEFAULT_GOOFY_PORT
+DEFAULT_FACTORY_STATE_ADDRESS = goofy_proxy.DEFAULT_GOOFY_ADDRESS
+
 DEFAULT_FACTORY_STATE_FILE_PATH = paths.GetStateRoot()
 
 POST_SHUTDOWN_TAG = '%s.post_shutdown'
 
 
-def _synchronized(f):
-  """Decorates a function to grab a lock.
-  """
-
-  def wrapped(self, *args, **kw):
-    with self._lock:  # pylint: disable=protected-access
-      return f(self, *args, **kw)
-  return wrapped
-
-
-def clear_state(state_file_path=None):
+def clear_state(state_file_path=DEFAULT_FACTORY_STATE_FILE_PATH):
   """Clears test state (removes the state file path).
 
   Args:
     state_file_path: Path to state; uses the default path if None.
   """
-  state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
   logging.warn('Clearing state file path %s', state_file_path)
   if os.path.exists(state_file_path):
     shutil.rmtree(state_file_path)
 
 
-class PathResolver(object):
-  """Resolves paths in URLs."""
-
-  def __init__(self):
-    self._paths = {}
-
-  def AddPath(self, url_path, local_path):
-    """Adds a prefix mapping:
-
-    For example,
-
-      AddPath('/foo', '/usr/local/docs')
-
-    will cause paths to resolved as follows:
-
-      /foo      -> /usr/local/docs
-      /foo/index.html -> /usr/local/docs/index.html
-
-    Args:
-      url_path: The path in the URL
-    """
-    self._paths[url_path] = local_path
-
-  def Resolve(self, url_path):
-    """Resolves a path mapping.
-
-    Returns None if no paths match.'
-
-    Args:
-      url_path: A path in a URL (starting with /).
-    """
-    if not url_path.startswith('/'):
-      return None
-
-    prefix = url_path
-    while prefix != '':
-      local_prefix = self._paths.get(prefix)
-      if local_prefix:
-        return local_prefix + url_path[len(prefix):]
-      prefix, _, _ = prefix.rpartition('/')
-
-    root_prefix = self._paths.get('/')
-    if root_prefix:
-      return root_prefix + url_path
-
-
+# TODO(shunhsingou): move goofy or dut related functions to goofy_rpc so we can
+# really separate them.
+# TODO(shunhsingou): implement unittest for this class.
 @type_utils.UnicodeToStringClass
 class FactoryState(object):
   """The core implementation for factory state control.
@@ -136,14 +75,6 @@ class FactoryState(object):
   This object is thread-safe.
 
   See help(FactoryState.[methodname]) for more information.
-
-  Properties:
-    _generated_files: Map from UUID to paths on disk. These are
-        not persisted on disk (though they could be if necessary).
-    _generated_data: Map from UUID to (mime_type, data) pairs for
-        transient objects to serve.
-    _generated_data_expiration: Priority queue of expiration times
-        for objects in _generated_data.
   """
 
   def __init__(self, state_file_path=None):
@@ -159,18 +90,13 @@ class FactoryState(object):
     self._data_shelf = shelve_utils.OpenShelfOrBackup(state_file_path + '/data')
     self._lock = threading.RLock()
 
-    self._generated_files = {}
-    self._generated_data = {}
-    self._generated_data_expiration = Queue.PriorityQueue()
-    self._resolver = PathResolver()
-
     # TODO(hungte) Support remote dynamic DUT.
     self._dut = device_utils.CreateDUTInterface()
 
     if factory.TestState not in jsonclass.supported_types:
       jsonclass.supported_types.append(factory.TestState)
 
-  @_synchronized
+  @sync_utils.Synchronized
   def close(self):
     """Shuts down the state instance."""
     for shelf in [self._tests_shelf,
@@ -180,7 +106,7 @@ class FactoryState(object):
       except:  # pylint: disable=bare-except
         logging.exception('Unable to close shelf')
 
-  @_synchronized
+  @sync_utils.Synchronized
   def update_test_state(self, path, **kw):
     """Updates the state of a test.
 
@@ -214,22 +140,22 @@ class FactoryState(object):
 
     return state, changed
 
-  @_synchronized
+  @sync_utils.Synchronized
   def get_test_state(self, path):
     """Returns the state of a test."""
     return self._tests_shelf[path]
 
-  @_synchronized
+  @sync_utils.Synchronized
   def get_test_paths(self):
     """Returns a list of all tests' paths."""
     return self._tests_shelf.keys()
 
-  @_synchronized
+  @sync_utils.Synchronized
   def get_test_states(self):
     """Returns a map of each test's path to its state."""
     return dict(self._tests_shelf)
 
-  @_synchronized
+  @sync_utils.Synchronized
   def clear_test_state(self):
     """Clears all test state."""
     self._tests_shelf.clear()
@@ -238,7 +164,7 @@ class FactoryState(object):
     """Returns the test list."""
     return self.test_list.to_struct()
 
-  @_synchronized
+  @sync_utils.Synchronized
   def set_shared_data(self, *key_value_pairs):
     """Sets shared data items.
 
@@ -252,7 +178,7 @@ class FactoryState(object):
       self._data_shelf[key_value_pairs[i]] = key_value_pairs[i + 1]
     self._data_shelf.sync()
 
-  @_synchronized
+  @sync_utils.Synchronized
   def get_shared_data(self, key, optional=False):
     """Retrieves a shared data item.
 
@@ -265,12 +191,12 @@ class FactoryState(object):
     else:
       return self._data_shelf[key]
 
-  @_synchronized
+  @sync_utils.Synchronized
   def has_shared_data(self, key):
     """Returns if a shared data item exists."""
     return key in self._data_shelf
 
-  @_synchronized
+  @sync_utils.Synchronized
   def del_shared_data(self, key, optional=False):
     """Deletes a shared data item.
 
@@ -284,7 +210,7 @@ class FactoryState(object):
       if not optional:
         raise
 
-  @_synchronized
+  @sync_utils.Synchronized
   def update_shared_data_dict(self, key, new_data):
     """Updates values a shared data item whose value is a dictionary.
 
@@ -309,7 +235,7 @@ class FactoryState(object):
     self._data_shelf[key] = data
     return data
 
-  @_synchronized
+  @sync_utils.Synchronized
   def delete_shared_data_dict_item(self, shared_data_key,
                                    delete_keys, optional):
     """Deletes items from a shared data item whose value is a dict.
@@ -346,7 +272,7 @@ class FactoryState(object):
     self._data_shelf[shared_data_key] = data
     return data
 
-  @_synchronized
+  @sync_utils.Synchronized
   def append_shared_data_list(self, key, new_item):
     """Appends an item to a shared data item whose value is a list.
 
@@ -403,60 +329,6 @@ class FactoryState(object):
     return {'metadata': yaml.load(open(os.path.join(test_dir, 'metadata'))),
             'log': log}
 
-  @_synchronized
-  def url_for_file(self, path):
-    """Returns a URL that can be used to serve a local file.
-
-    Args:
-      path: path to the local file
-
-    Returns:
-      url: A (possibly relative) URL that refers to the file
-    """
-    uuid = str(uuid4())
-    uri_path = '/generated-files/%s/%s' % (uuid, os.path.basename(path))
-    self._resolver.AddPath('/generated-files/%s' % uuid, os.path.dirname(path))
-    self._generated_files[uuid] = path
-    return uri_path
-
-  @_synchronized
-  def url_for_data(self, mime_type, data, expiration_secs=None):
-    """Returns a URL that can be used to serve a static collection
-    of bytes.
-
-    Args:
-      mime_type: MIME type for the data
-      data: Data to serve
-      expiration_secs: If not None, the number of seconds in which
-          the data will expire.
-    """
-    uuid = str(uuid4())
-    self._generated_data[uuid] = mime_type, data
-    if expiration_secs:
-      now = time.time()
-      self._generated_data_expiration.put(
-          (now + expiration_secs, uuid))
-
-      # Reap old items.
-      while True:
-        try:
-          item = self._generated_data_expiration.get_nowait()
-        except Queue.Empty:
-          break
-
-        if item[0] < now:
-          del self._generated_data[item[1]]
-        else:
-          # Not expired yet; put it back and we're done
-          self._generated_data_expiration.put(item)
-          break
-    uri_path = '/generated-data/%s' % uuid
-    return uri_path
-
-  @_synchronized
-  def register_path(self, url_path, local_path):
-    self._resolver.AddPath(url_path, local_path)
-
   def get_system_status(self):
     """Returns system status information.
 
@@ -469,148 +341,19 @@ class FactoryState(object):
     return None
 
 
-def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
-                 port=None):
+def get_instance(address=None, port=None):
   """Gets an instance (for client side) to access the state server.
 
   Args:
     address: Address of the server to be connected.
-    port: Port of the server to be connected.  Defaults to
-        DEFAULT_FACTORY_STATE_PORT.
+    port: Port of the server to be connected.
 
   Returns:
     An object with all public functions from FactoryState.
     See help(FactoryState) for more information.
   """
-  return jsonrpc.ServerProxy('http://%s:%d' % (
-      address, port or DEFAULT_FACTORY_STATE_PORT), verbose=False)
-
-
-class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
-
-  def do_GET(self):
-    logging.debug('HTTP request for path %s', self.path)
-
-    handler = self.server.handlers.get(self.path)
-    if handler:
-      return handler(self)
-
-    match = re.match(r'^/generated-data/([-0-9a-f]+)$', self.path)
-    if match:
-      # pylint: disable=protected-access
-      generated_data = self.server._generated_data.get(match.group(1))
-      if not generated_data:
-        logging.warn('Unknown or expired generated data %s',
-                     match.group(1))
-        self.send_response(404)
-        return
-
-      mime_type, data = generated_data
-
-      self.send_response(200)
-      self.send_header('Content-Type', mime_type)
-      self.send_header('Content-Length', len(data))
-      self.end_headers()
-      self.wfile.write(data)
-
-    if self.path.endswith('/'):
-      self.path += 'index.html'
-
-    if '..' in self.path.split('/'):
-      logging.warn('Invalid path')
-      self.send_response(404)
-      return
-
-    mime_type = mimetypes.guess_type(self.path)
-    if not mime_type:
-      logging.warn('Unable to guess MIME type')
-      self.send_response(404)
-      return
-
-    local_path = None
-    match = re.match(r'^/generated-files/([-0-9a-f]+)/', self.path)
-    if match:
-      # pylint: disable=protected-access
-      local_path = self.server._generated_files.get(match.group(1))
-      if not local_path:
-        logging.warn('Unknown generated file %s in path %s',
-                     match.group(1), self.path)
-        self.send_response(404)
-        return
-
-    # pylint: disable=protected-access
-    local_path = self.server._resolver.Resolve(self.path)
-    if not local_path or not os.path.exists(local_path):
-      logging.warn('File not found: %s', (local_path or self.path))
-      self.send_response(404)
-      return
-
-    self.send_response(200)
-    self.send_header('Content-Type', mime_type[0])
-    self.send_header('Content-Length', os.path.getsize(local_path))
-    self.end_headers()
-    with open(local_path) as f:
-      shutil.copyfileobj(f, self.wfile)
-
-
-class ThreadedJSONRPCServer(SocketServer.ThreadingMixIn,
-                            SimpleJSONRPCServer.SimpleJSONRPCServer):
-  """The JSON/RPC server.
-
-  Properties:
-    handlers: A map from URLs to callbacks handling them. (The callback
-        takes a single argument: the request to handle.)
-  """
-
-  def __init__(self, *args, **kwargs):
-    SimpleJSONRPCServer.SimpleJSONRPCServer.__init__(self, *args, **kwargs)
-    self.handlers = {}
-
-  def add_handler(self, url, callback):
-    self.handlers[url] = callback
-
-
-def create_server(state_file_path=None, bind_address=None, port=None):
-  """Creates a FactoryState object and an JSON/RPC server to serve it.
-
-  Args:
-    state_file_path: The path containing the saved state.
-    bind_address: Address to bind to, defaulting to
-    DEFAULT_FACTORY_STATE_BIND_ADDRESS.
-    port: Port to bind to, defaulting to DEFAULT_FACTORY_STATE_PORT.
-
-  Returns:
-    A tuple of the FactoryState instance and the SimpleJSONRPCServer instance.
-  """
-  # pylint: disable=protected-access
-  # We have some icons in SVG format, but this isn't recognized in
-  # the standard Python mimetypes set.
-  mimetypes.add_type('image/svg+xml', '.svg')
-
-  if not bind_address:
-    bind_address = DEFAULT_FACTORY_STATE_BIND_ADDRESS
-  if not port:
-    port = DEFAULT_FACTORY_STATE_PORT
-  instance = FactoryState(state_file_path)
-  instance._resolver.AddPath(
-      '/',
-      os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static'))
-
-  server = ThreadedJSONRPCServer(
-      (bind_address, port),
-      requestHandler=MyJSONRPCRequestHandler,
-      logRequests=False)
-
-  # Give the server the information it needs to resolve URLs.
-  # pylint: disable=attribute-defined-outside-init
-  server._generated_files = instance._generated_files
-  server._generated_data = instance._generated_data
-  server._resolver = instance._resolver
-
-  server.register_introspection_functions()
-  server.register_instance(instance)
-  server.web_socket_handler = None
-  return instance, server
+  return goofy_proxy.get_rpc_proxy(
+      address, port, goofy_proxy.STATE_URL)
 
 
 class StubFactoryState(FactoryState):
@@ -626,11 +369,6 @@ class StubFactoryState(FactoryState):
     self._data_shelf = self.InMemoryShelf()
 
     self._lock = threading.RLock()
-
-    self._generated_files = {}
-    self._generated_data = {}
-    self._generated_data_expiration = Queue.PriorityQueue()
-    self._resolver = PathResolver()
 
   def get_system_status(self):
     # Mock this function if your unittest needs this.

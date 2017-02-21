@@ -28,6 +28,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
+from cros.factory.goofy import goofy_server
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.plugins import plugin_controller
@@ -40,6 +41,7 @@ from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.e2e_test.common import AutomationModePrompt
 from cros.factory.test.e2e_test.common import ParseAutomationMode
+from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
@@ -84,7 +86,6 @@ MAX_CRASH_FILE_SIZE = 64 * 1024
 Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                           'TERMINATING', 'TERMINATED'])
 
-
 def get_hwid_cfg():
   """Returns the HWID config tag, or an empty string if none can be found."""
   if 'CROS_HWID' in os.environ:
@@ -93,7 +94,6 @@ def get_hwid_cfg():
     with open(HWID_CFG_PATH, 'r') as hwid_cfg_handle:
       return hwid_cfg_handle.read().strip()
   return ''
-
 
 _inited_logging = False
 
@@ -137,8 +137,8 @@ class Goofy(GoofyBase):
     super(Goofy, self).__init__()
     self.uuid = str(uuid.uuid4())
     self.state_instance = None
-    self.state_server = None
-    self.state_server_thread = None
+    self.goofy_server = None
+    self.goofy_server_thread = None
     self.goofy_rpc = None
     self.event_server = None
     self.event_server_thread = None
@@ -242,12 +242,12 @@ class Goofy(GoofyBase):
       logging.info('Stopping web sockets')
       self.web_socket_manager.close()
       self.web_socket_manager = None
-    if self.state_server_thread:
-      logging.info('Stopping state server')
-      self.state_server.shutdown()
-      self.state_server_thread.join()
-      self.state_server.server_close()
-      self.state_server_thread = None
+    if self.goofy_server_thread:
+      logging.info('Stopping goofy server')
+      self.goofy_server.shutdown()
+      self.goofy_server_thread.join()
+      self.goofy_server.server_close()
+      self.goofy_server_thread = None
     if self.state_instance:
       self.state_instance.close()
     if self.event_server_thread:
@@ -291,21 +291,32 @@ class Goofy(GoofyBase):
     logging.info('Done destroying Goofy')
     self.status = Status.TERMINATED
 
-  def start_state_server(self):
+  def start_goofy_server(self):
+    self.goofy_server = goofy_server.GoofyServer(
+        (goofy_proxy.DEFAULT_GOOFY_ADDRESS, goofy_proxy.DEFAULT_GOOFY_PORT))
+    logging.info('Starting goofy server')
+    self.goofy_server_thread = threading.Thread(
+        target=self.goofy_server.serve_forever,
+        name='GoofyServer')
+    self.goofy_server_thread.start()
+
+    # Setup static file path
+    self.goofy_server.RegisterPath(
+        '/', os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static'))
+
+  def init_state_instance(self):
     # Before starting state server, remount stateful partitions with
     # no commit flag.  The default commit time (commit=600) makes corruption
     # too likely.
     sys_utils.ResetCommitTime()
+    self.state_instance = state.FactoryState()
+    self.goofy_server.AddRPCInstance(goofy_proxy.STATE_URL, self.state_instance)
 
-    self.state_instance, self.state_server = (
-        state.create_server(bind_address='0.0.0.0'))
+    # Setup Goofy RPC.
+    # TODO(shunhsingou): separate goofy_rpc and state server instead of
+    # injecting goofy_rpc functions into state.
     self.goofy_rpc = GoofyRPC(self)
     self.goofy_rpc.RegisterMethods(self.state_instance)
-    logging.info('Starting state server')
-    self.state_server_thread = threading.Thread(
-        target=self.state_server.serve_forever,
-        name='StateServer')
-    self.state_server_thread.start()
 
   def start_event_server(self):
     self.event_server = EventServer()
@@ -319,13 +330,13 @@ class Goofy(GoofyBase):
         callback=self.handle_event, event_loop=self.run_queue)
 
     self.web_socket_manager = WebSocketManager(self.uuid)
-    self.state_server.add_handler('/event',
-                                  self.web_socket_manager.handle_web_socket)
+    self.goofy_server.AddHTTPGetHandler(
+        '/event', self.web_socket_manager.handle_web_socket)
 
   def start_terminal_server(self):
     self.terminal_manager = TerminalManager()
-    self.state_server.add_handler('/pty',
-                                  self.terminal_manager.handle_web_socket)
+    self.goofy_server.AddHTTPGetHandler(
+        '/pty', self.terminal_manager.handle_web_socket)
 
   def set_visible_test(self, test):
     if self.visible_test == test:
@@ -1222,7 +1233,8 @@ class Goofy(GoofyBase):
           handshake_timeout=self.options.handshake_timeout,
           standalone=self.options.standalone)
 
-    self.start_state_server()
+    self.start_goofy_server()
+    self.init_state_instance()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
     self.state_instance.set_shared_data('ui_scale_factor',
                                         self.options.ui_scale_factor)

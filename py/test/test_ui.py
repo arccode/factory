@@ -19,6 +19,7 @@ import traceback
 import uuid
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.env import goofy_proxy
 from cros.factory.test import event as test_event
 from cros.factory.test import factory
 from cros.factory.utils import process_utils
@@ -283,7 +284,8 @@ class UI(object):
     Returns:
       url: A (possibly relative) URL that refers to the file
     """
-    return factory.get_state_instance().url_for_file(path)
+    return goofy_proxy.get_rpc_proxy(
+        url=goofy_proxy.GOOFY_SERVER_URL).URLForFile(path)
 
   def URLForData(self, mime_type, data, expiration=None):
     """Returns a URL that can be used to serve a static collection
@@ -295,8 +297,10 @@ class UI(object):
       expiration: If not None, the number of seconds in which the data will
           expire.
     """
-    return factory.get_state_instance().url_for_data(
-        mime_type, data, expiration)
+    return goofy_proxy.get_rpc_proxy(
+        url=goofy_proxy.GOOFY_SERVER_URL).URLForData(mime_type,
+                                                     data,
+                                                     expiration)
 
   def GetStaticDirectoryPath(self):
     """Gets static directory os path.

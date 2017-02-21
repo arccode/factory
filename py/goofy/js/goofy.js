@@ -2833,7 +2833,7 @@ cros.factory.Goofy.prototype.sendRpc = function(
   cros.factory.logger.info('RPC request: ' + request);
   var factoryThis = this;
   goog.net.XhrIo.send(
-      '/', function() {
+      '/goofy', function() {
         cros.factory.logger.info('RPC response for ' + method + ': ' +
             this.getResponseText());
 
