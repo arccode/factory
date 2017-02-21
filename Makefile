@@ -373,8 +373,8 @@ overlay:
 	mkdir -p $@-$(BOARD)
 	rsync -aK --exclude build --exclude overlay-\* ./ $@-$(BOARD)/
 	rsync -aK $(if $(filter $(BOARD),private), \
-			--exclude Makefile ../factory-private/ $@-$(BOARD)/, \
-			"$(BOARD_FILES_DIR)/" $@-$(BOARD)/)
+	  --exclude Makefile ../factory-private/ $@-$(BOARD)/, \
+	  "$(BOARD_FILES_DIR)/" $@-$(BOARD)/)
 
 overlay-%: .phony
 	$(MAKE) overlay BOARD=$(subst overlay-,,$@)
