@@ -162,15 +162,15 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
   OPTIONS = ''
   TEST_LIST = """
-    test_lists.FactoryTest(id='a', autotest_name='t_a')
-    test_lists.FactoryTest(id='b', autotest_name='t_b')
+    test_lists.FactoryTest(id='a', pytest_name='t_a')
+    test_lists.FactoryTest(id='b', pytest_name='t_b')
     with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga')
-      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
+      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
       with test_lists.TestGroup(id='G'):
-        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
-        test_lists.FactoryTest(id='b', autotest_name='t_GGb')
-    test_lists.FactoryTest(id='c', autotest_name='t_c')
+        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
+        test_lists.FactoryTest(id='b', pytest_name='t_GGb')
+    test_lists.FactoryTest(id='c', pytest_name='t_c')
   """
 
   def testInitFromRoot(self):
@@ -260,16 +260,16 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     # switch to new test list
     test_list = self._BuildTestList(
         """
-    test_lists.FactoryTest(id='a', autotest_name='t_a')
-    test_lists.FactoryTest(id='b', autotest_name='t_b')
+    test_lists.FactoryTest(id='a', pytest_name='t_a')
+    test_lists.FactoryTest(id='b', pytest_name='t_b')
     with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga')  # <- at here
-      # test_lists.FactoryTest(id='b', autotest_name='t_Gb')  # removed
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga')  # <- at here
+      # test_lists.FactoryTest(id='b', pytest_name='t_Gb')  # removed
       with test_lists.TestGroup(id='G'):
-        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
-        test_lists.FactoryTest(id='b', autotest_name='t_GGb')
-        test_lists.FactoryTest(id='c', autotest_name='t_GGc')  # new
-    test_lists.FactoryTest(id='c', autotest_name='t_c')
+        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
+        test_lists.FactoryTest(id='b', pytest_name='t_GGb')
+        test_lists.FactoryTest(id='c', pytest_name='t_GGc')  # new
+    test_lists.FactoryTest(id='c', pytest_name='t_c')
         """, self.OPTIONS)
     test_list = self._SetStubStateInstance(test_list)
     iterator.set_test_list(test_list)
@@ -303,12 +303,12 @@ class TestListIteratorBaseTest(TestListIteratorTest):
   def testRunIf(self):
     test_list = self._BuildTestList(
         """
-    test_lists.FactoryTest(id='a', autotest_name='t_a')
+    test_lists.FactoryTest(id='a', pytest_name='t_a')
     with test_lists.FactoryTest(id='G', run_if='foo.a'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga')
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
       with test_lists.TestGroup(id='G'):
-        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
-    test_lists.FactoryTest(id='c', autotest_name='t_c')
+        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
+    test_lists.FactoryTest(id='c', pytest_name='t_c')
         """, self.OPTIONS)
     self._AssertTestSequence(
         test_list,
@@ -329,12 +329,12 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     test_list = self._BuildTestList(
         """
-    test_lists.FactoryTest(id='a', autotest_name='t_a')
+    test_lists.FactoryTest(id='a', pytest_name='t_a')
     with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga', run_if='foo.a')
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga', run_if='foo.a')
       with test_lists.TestGroup(id='G', run_if='!foo.a'):
-        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
-    test_lists.FactoryTest(id='c', autotest_name='t_c')
+        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
+    test_lists.FactoryTest(id='c', pytest_name='t_c')
         """, self.OPTIONS)
     self._AssertTestSequence(
         test_list,
@@ -357,11 +357,11 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list = self._BuildTestList(
         """
     with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga')
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
       with test_lists.FactoryTest(id='G'):
-        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
-        test_lists.FactoryTest(id='b', autotest_name='t_GGa')
-      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
+        test_lists.FactoryTest(id='b', pytest_name='t_GGa')
+      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
         """, self.OPTIONS)
 
     # no filter, all tests should be run
@@ -414,11 +414,11 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list = self._BuildTestList(
         """
     with test_lists.FactoryTest(id='G', run_if='foo.a'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga', run_if='foo.a')
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga', run_if='foo.a')
       with test_lists.TestGroup(id='G', run_if='foo.a'):
-        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
-        test_lists.FactoryTest(id='b', autotest_name='t_GGa')
-      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
+        test_lists.FactoryTest(id='b', pytest_name='t_GGa')
+      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
         """, self.OPTIONS)
 
     def run_test_1(path, aux_data):
@@ -457,8 +457,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     """
     test_list = self._BuildTestList(
         """
-    test_lists.FactoryTest(id='a', autotest_name='t_a')
-    test_lists.FactoryTest(id='b', autotest_name='t_b', run_if='foo.a')
+    test_lists.FactoryTest(id='a', pytest_name='t_a')
+    test_lists.FactoryTest(id='b', pytest_name='t_b', run_if='foo.a')
         """, self.OPTIONS)
 
     # case 1: test 'a' set foo.a to True
@@ -498,18 +498,18 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
 class TestListIteratorParallelTest(TestListIteratorTest):
   TEST_LIST = """
-    test_lists.FactoryTest(id='a', autotest_name='t_a')
-    test_lists.FactoryTest(id='b', autotest_name='t_b')
+    test_lists.FactoryTest(id='a', pytest_name='t_a')
+    test_lists.FactoryTest(id='b', pytest_name='t_b')
     with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga')
-      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
+      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
       with test_lists.FactoryTest(id='G', parallel=True):
-        test_lists.FactoryTest(id='a', autotest_name='t_GGa')
-        test_lists.FactoryTest(id='b', autotest_name='t_GGb')
+        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
+        test_lists.FactoryTest(id='b', pytest_name='t_GGb')
       with test_lists.FactoryTest(id='H'):
-        test_lists.FactoryTest(id='a', autotest_name='t_GHa')
-        test_lists.FactoryTest(id='b', autotest_name='t_GHb')
-    test_lists.FactoryTest(id='c', autotest_name='t_c')
+        test_lists.FactoryTest(id='a', pytest_name='t_GHa')
+        test_lists.FactoryTest(id='b', pytest_name='t_GHb')
+    test_lists.FactoryTest(id='c', pytest_name='t_c')
   """
   def testParallel(self):
     """Test cases for FactoryTest.parallel option.
@@ -530,11 +530,11 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
     test_list = self._BuildTestList(
         """
     with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga',
                              action_on_failure='NEXT')
-      test_lists.FactoryTest(id='b', autotest_name='t_Gb',
+      test_lists.FactoryTest(id='b', pytest_name='t_Gb',
                              action_on_failure='NEXT')
-    test_lists.FactoryTest(id='c', autotest_name='t_Gc',
+    test_lists.FactoryTest(id='c', pytest_name='t_Gc',
                            action_on_failure='NEXT')
         """,
         self.OPTIONS)
@@ -547,10 +547,10 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
     test_list = self._BuildTestList(
         """
     with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga',
                              action_on_failure='PARENT')
-      test_lists.FactoryTest(id='b', autotest_name='t_Gb')
-    test_lists.FactoryTest(id='c', autotest_name='t_Gc')
+      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
+    test_lists.FactoryTest(id='c', pytest_name='t_Gc')
         """,
         self.OPTIONS)
     self._AssertTestSequence(
@@ -563,11 +563,11 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
         """
     with test_lists.FactoryTest(id='G'):
       with test_lists.FactoryTest(id='G', action_on_failure='PARENT'):
-        test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+        test_lists.FactoryTest(id='a', pytest_name='t_Ga',
                                action_on_failure='PARENT')
-        test_lists.FactoryTest(id='b', autotest_name='t_Gb')
-      test_lists.FactoryTest(id='c', autotest_name='t_Gc')
-    test_lists.FactoryTest(id='d', autotest_name='t_Gd')
+        test_lists.FactoryTest(id='b', pytest_name='t_Gb')
+      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
+    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
         """,
         self.OPTIONS)
     self._AssertTestSequence(
@@ -580,11 +580,11 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
         """
     with test_lists.FactoryTest(id='G'):
       with test_lists.FactoryTest(id='G', action_on_failure='STOP'):
-        test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+        test_lists.FactoryTest(id='a', pytest_name='t_Ga',
                                action_on_failure='STOP')
-        test_lists.FactoryTest(id='b', autotest_name='t_Gb')
-      test_lists.FactoryTest(id='c', autotest_name='t_Gc')
-    test_lists.FactoryTest(id='d', autotest_name='t_Gd')
+        test_lists.FactoryTest(id='b', pytest_name='t_Gb')
+      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
+    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
         """,
         self.OPTIONS)
     self._AssertTestSequence(
@@ -609,19 +609,19 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
     with test_lists.FactoryTest(id='G'):
       with test_lists.FactoryTest(id='G'):
         with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', autotest_name='t_Ga')
-          test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+          test_lists.FactoryTest(id='a', pytest_name='t_Ga')
+          test_lists.FactoryTest(id='b', pytest_name='t_Gb')
         with test_lists.Teardowns():
-          test_lists.FactoryTest(id='w', autotest_name='t_W')
-          test_lists.FactoryTest(id='x', autotest_name='t_X')
+          test_lists.FactoryTest(id='w', pytest_name='t_W')
+          test_lists.FactoryTest(id='x', pytest_name='t_X')
           with test_lists.FactoryTest(id='TG'):
             # the subtests of teardown test are teardown tests as well
-            test_lists.FactoryTest(id='y', autotest_name='t_Y')
-            test_lists.FactoryTest(id='z', autotest_name='t_Z')
-      test_lists.FactoryTest(id='c', autotest_name='t_Gc')
+            test_lists.FactoryTest(id='y', pytest_name='t_Y')
+            test_lists.FactoryTest(id='z', pytest_name='t_Z')
+      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
       with test_lists.Teardowns():
-        test_lists.FactoryTest(id='T', autotest_name='t_T')
-    test_lists.FactoryTest(id='d', autotest_name='t_Gd')
+        test_lists.FactoryTest(id='T', pytest_name='t_T')
+    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
         """,
         self.OPTIONS)
 
@@ -637,20 +637,20 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
     with test_lists.FactoryTest(id='G'):
       with test_lists.FactoryTest(id='G'):
         with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', autotest_name='t_Ga',
+          test_lists.FactoryTest(id='a', pytest_name='t_Ga',
                                  action_on_failure='STOP')
-          test_lists.FactoryTest(id='b', autotest_name='t_Gb')
+          test_lists.FactoryTest(id='b', pytest_name='t_Gb')
         with test_lists.Teardowns():
-          test_lists.FactoryTest(id='w', autotest_name='t_W')
-          test_lists.FactoryTest(id='x', autotest_name='t_X')
+          test_lists.FactoryTest(id='w', pytest_name='t_W')
+          test_lists.FactoryTest(id='x', pytest_name='t_X')
           with test_lists.FactoryTest(id='TG'):
             # the subtests of teardown test are teardown tests as well
-            test_lists.FactoryTest(id='y', autotest_name='t_Y')
-            test_lists.FactoryTest(id='z', autotest_name='t_Z')
-      test_lists.FactoryTest(id='c', autotest_name='t_Gc')
+            test_lists.FactoryTest(id='y', pytest_name='t_Y')
+            test_lists.FactoryTest(id='z', pytest_name='t_Z')
+      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
       with test_lists.Teardowns():
-        test_lists.FactoryTest(id='T', autotest_name='t_T')
-    test_lists.FactoryTest(id='d', autotest_name='t_Gd')
+        test_lists.FactoryTest(id='T', pytest_name='t_T')
+    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
         """,
         self.OPTIONS)
 
