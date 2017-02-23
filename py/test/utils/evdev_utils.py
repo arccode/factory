@@ -145,6 +145,19 @@ def FindDevice(*args):
   raise ValueError('Arguments are all None.')
 
 
+def DeviceReopen(dev):
+  """Reopen a device so that the event buffer is cleared.
+
+  Args:
+    dev: evdev.InputDevice
+
+  Returns:
+    A different evdev.InputDevice of the same device but with empty event
+    buffer.
+  """
+  return evdev.InputDevice(dev.fn)
+
+
 class InputDeviceDispatcher(asyncore.file_dispatcher):
   """Extends asyncore.file_dispatcher to read input device."""
 

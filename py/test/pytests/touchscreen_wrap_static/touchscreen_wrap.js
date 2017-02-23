@@ -13,12 +13,13 @@
  *     Negative value means no demo.
  */
 var TouchscreenTest = function(
-    container, numColumns, numRows, maxRetries, demoIntervalMsecs) {
+    container, numColumns, numRows, maxRetries, demoIntervalMsecs, e2e_mode) {
   var _ = cros.factory.i18n.translation;
   this.container = container;
   this.numColumns = numColumns;
   this.numRows = numRows;
   this.maxRetries = maxRetries;
+  this.e2e_mode = e2e_mode;
 
   this.expectSequence = [];
   this.tries = 0;
@@ -55,11 +56,12 @@ var TouchscreenTest = function(
  * @param {number} maxRetries Number of retries.
  * @param {number} demoIntervalMsecs Interval (ms) to show drawing pattern.
  *     Negative value means no demo.
+ * @param {boolean} e2e_mode Perform end-to-end test or not (for touchscreen).
  */
 function setupTouchscreenTest(
-    container, numColumns, numRows, maxRetries, demoIntervalMsecs) {
+    container, numColumns, numRows, maxRetries, demoIntervalMsecs, e2e_mode) {
   window.touchscreenTest = new TouchscreenTest(
-      container, numColumns, numRows, maxRetries, demoIntervalMsecs);
+      container, numColumns, numRows, maxRetries, demoIntervalMsecs, e2e_mode);
   window.touchscreenTest.init();
 }
 
@@ -91,12 +93,14 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
   this.fullScreenElement = document.createElement('div');
   var fullScreen = this.fullScreenElement;
   fullScreen.className = 'touchscreen-full-screen';
-  fullScreen.addEventListener(
-      'touchstart', this.touchStartHandler.bind(this), false);
-  fullScreen.addEventListener(
-      'touchmove', this.touchMoveHandler.bind(this), false);
-  fullScreen.addEventListener(
-      'touchend', this.touchEndHandler.bind(this), false);
+  if(this.e2e_mode) {
+    fullScreen.addEventListener(
+        'touchstart', this.touchStartListener.bind(this), false);
+    fullScreen.addEventListener(
+        'touchmove', this.touchMoveListener.bind(this), false);
+    fullScreen.addEventListener(
+        'touchend', this.touchEndListener.bind(this), false);
+  }
 
   fullScreen.appendChild(createPrompt());
 
@@ -272,19 +276,38 @@ TouchscreenTest.prototype.failThisTry = function() {
   }
 };
 
+function goofyTouchListener(handler_name, normalized_x, normalized_y) {
+  var touch = {screenX: screen.width * normalized_x,
+               screenY: screen.height * normalized_y};
+  window.touchscreenTest[handler_name](touch);
+}
+
+TouchscreenTest.prototype.touchStartListener = function(event) {
+  event.preventDefault();
+  this.touchStartHandler(event.changedTouches[0]);
+};
+
+TouchscreenTest.prototype.touchMoveListener = function(event) {
+  event.preventDefault();
+  this.touchMoveHandler(event.changedTouches[0]);
+};
+
+TouchscreenTest.prototype.touchEndListener = function(event) {
+  event.preventDefault();
+  this.touchEndHandler(event.changedTouches[0]);
+};
+
 /**
  * Handles touchstart event.
  *
  * It checks if the touch starts from block (0, 0).
  * If not, prompt operator to do so.
  *
- * @param {Event} event
+ * @param {Touch} touch
  */
-TouchscreenTest.prototype.touchStartHandler = function(event) {
-  var touch = event.changedTouches[0];
+TouchscreenTest.prototype.touchStartHandler = function(touch) {
   var touchBlockIndex = this.getBlockIndex(touch);
   this.updatePreviousXY(touch);
-  event.preventDefault();
 
   if (touchBlockIndex != 0) {
     this.prompt(this.MSG_START_UPPER_LEFT);
@@ -307,12 +330,10 @@ TouchscreenTest.prototype.touchStartHandler = function(event) {
  * It'll check if the current block is the expected one.
  * If not, it'll prompt operator to restart from upper-left block.
  *
- * @param {Event} event
+ * @param {Touch} touch
  */
-TouchscreenTest.prototype.touchMoveHandler = function(event) {
-  var touch = event.changedTouches[0];
+TouchscreenTest.prototype.touchMoveHandler = function(touch) {
   var touchBlockIndex = this.getBlockIndex(touch);
-  event.preventDefault();
 
   if (!this.checkDirection(touch)) {
     // Failed case. Ask the tester to verify with God's touch test.
@@ -349,12 +370,10 @@ TouchscreenTest.prototype.touchMoveHandler = function(event) {
 
 /**
  * Handles touchend event.
- * @param {Event} event
+ * @param {Touch} touch
  */
-TouchscreenTest.prototype.touchEndHandler = function(event) {
-  var touch = event.changedTouches[0];
+TouchscreenTest.prototype.touchEndHandler = function(touch) {
   var touchBlockIndex = this.getBlockIndex(touch);
-  event.preventDefault();
 
   if (!this.tryFailed) {
     this.prompt(this.MSG_LEAVE_EARLY);
