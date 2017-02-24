@@ -47,7 +47,7 @@ found_probe_value_map:
   audio_codec: { compact_str: 'Realtek ALC271X' }
   battery: { compact_str: 'SANYO AS10B73 Li-ion 4400000' }
   bluetooth: { compact_str: '0cf3:3005 0001' }
-  board_version: { compact_str: 'PVT' }
+  mainboard: { compact_str: 'PVT' }
   cellular:
     compact_str: '05c6:9215 Qualcomm Incorporated Qualcomm Gobi2000 0002'
   chassis: { compact_str: 'custom' }

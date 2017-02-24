@@ -552,7 +552,7 @@ pattern:
   - image_ids: [0, 1]
     encoding_scheme: base8192
     fields:
-    - board_version_field: 3
+    - mainboard_field: 3
     - chassis_field: 5
     - cpu_field: 1
     - storage_field: 5
@@ -560,9 +560,9 @@ pattern:
     - cpu_field: 1
 
 encoded_fields:
-  board_version_field:
+  mainboard_field:
     0:
-      board_version: board_version_0
+      mainboard: mainboard_0
   chassis_field:
     0:
       chassis: chassis_0
@@ -577,10 +577,10 @@ encoded_fields:
       dram: dram_0
 
 components:
-  board_version:
+  mainboard:
     items:
-      board_version_0:
-        values: {name: board_version_0}
+      mainboard_0:
+        values: {version: rev0}
   region:
     items:
       region_0:

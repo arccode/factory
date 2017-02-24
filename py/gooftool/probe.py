@@ -1345,14 +1345,14 @@ def _ProbePmic():
           if pmics else [])
 
 
-@_ComponentProbe('board_version')
-def _ProbeBoardVersion():
+@_ComponentProbe('mainboard')
+def _ProbeMainBoard():
   result = Shell('mosys platform version')
-  board_version = result.stdout.strip() if result.success else None
-  if board_version is None:
+  version = result.stdout.strip() if result.success else None
+  if version is None:
     return []
   else:
-    return [{'version': board_version}]
+    return [{'version': version}]
 
 
 @_InitialConfigProbe('cellular_fw_version')

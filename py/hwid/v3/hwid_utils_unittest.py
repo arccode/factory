@@ -350,7 +350,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
   def testDecodeHWID(self):
     """Tests HWID decoding."""
     hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
-    self.assertEquals({
+    data = {
         'audio_codec_field': 1,
         'battery_field': 3,
         'firmware_field': 0,
@@ -361,8 +361,8 @@ class HWIDv3UtilsTest(unittest.TestCase):
         'cellular_field': 0,
         'keyboard_field': 0,
         'dram_field': 0,
-        'cpu_field': 5},
-        hwid.bom.encoded_fields)
+        'cpu_field': 5}
+    self.assertEquals(data, hwid.bom.encoded_fields)
 
     parsed_result = hwid_utils.ParseDecodedHWID(hwid)
     self.assertEquals(parsed_result['board'], 'CHROMEBOOK')
@@ -451,7 +451,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertEquals(db['pattern'][0]['encoding_scheme'], 'base8192')
     priority_fields = [
         # Essential fields.
-        {'board_version_field': 3},
+        {'mainboard_field': 3},
         {'region_field': 5},
         {'chassis_field': 5},
         {'cpu_field': 3},
@@ -481,7 +481,7 @@ class DatabaseBuilderTest(unittest.TestCase):
                            'storage', 'flash_chip', 'bluetooth', 'wireless',
                            'display_panel', 'audio_codec', 'firmware_keys',
                            'ro_ec_firmware', 'usb_hosts', 'cpu', 'region',
-                           'board_version', 'chassis']))
+                           'mainboard', 'chassis']))
     self.assertEquals(db['rules'],
                       [{'name': 'device_info.image_id',
                         'evaluate': "SetImageId('EVT')"}])
@@ -530,19 +530,19 @@ class DatabaseBuilderTest(unittest.TestCase):
 
   def testBuildDatabaseMissingEssentailComponent(self):
     """Tests the essential component is missing at the probe result."""
-    # Essential component 'board_version' is missing in probed result.
+    # Essential component 'mainboard' is missing in probed result.
     probed_result = copy.deepcopy(self.probed_results[0])
-    del probed_result['found_probe_value_map']['board_version']
+    del probed_result['found_probe_value_map']['mainboard']
 
     # Deleting the essential component is not allowed.
     with self.assertRaises(ValueError):
       hwid_utils.BuildDatabase(
           self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
-          del_comp=['board_version'])
+          del_comp=['mainboard'])
 
     # Enter "y" to create a default item, or use add_default_comp argument.
     expected = {
-        'board_version_default': {
+        'mainboard_default': {
             'default': True,
             'status': 'unqualified',
             'values': None}}
@@ -551,13 +551,13 @@ class DatabaseBuilderTest(unittest.TestCase):
           self.output_path, probed_result, 'CHROMEBOOK', 'EVT')
     with open(self.output_path, 'r') as f:
       db = yaml.load(f.read())
-    self.assertEquals(db['components']['board_version']['items'], expected)
+    self.assertEquals(db['components']['mainboard']['items'], expected)
     hwid_utils.BuildDatabase(
         self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
-        add_default_comp=['board_version'])
+        add_default_comp=['mainboard'])
     with open(self.output_path, 'r') as f:
       db = yaml.load(f.read())
-    self.assertEquals(db['components']['board_version']['items'], expected)
+    self.assertEquals(db['components']['mainboard']['items'], expected)
 
     # Enter "n" to create a default item, or use add_null_comp argument.
     with mock.patch('__builtin__.raw_input', return_value='n'):
@@ -565,35 +565,35 @@ class DatabaseBuilderTest(unittest.TestCase):
           self.output_path, probed_result, 'CHROMEBOOK', 'EVT')
     with open(self.output_path, 'r') as f:
       db = yaml.load(f.read())
-    self.assertEquals(db['components']['board_version']['items'], {})
-    self.assertEquals(db['encoded_fields']['board_version_field'],
-                      {0: {'board_version': None}})
+    self.assertEquals(db['components']['mainboard']['items'], {})
+    self.assertEquals(db['encoded_fields']['mainboard_field'],
+                      {0: {'mainboard': None}})
     hwid_utils.BuildDatabase(
         self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
-        add_null_comp=['board_version'])
+        add_null_comp=['mainboard'])
     with open(self.output_path, 'r') as f:
       db = yaml.load(f.read())
-    self.assertEquals(db['components']['board_version']['items'], {})
-    self.assertEquals(db['encoded_fields']['board_version_field'],
-                      {0: {'board_version': None}})
+    self.assertEquals(db['components']['mainboard']['items'], {})
+    self.assertEquals(db['encoded_fields']['mainboard_field'],
+                      {0: {'mainboard': None}})
 
   def testDeprecateDefaultItem(self):
     """Tests the default item should be deprecated after adding a item."""
     probed_result = copy.deepcopy(self.probed_results[0])
-    del probed_result['found_probe_value_map']['board_version']
+    del probed_result['found_probe_value_map']['mainboard']
     hwid_utils.BuildDatabase(
         self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
-        add_default_comp=['board_version'])
+        add_default_comp=['mainboard'])
     with open(self.output_path, 'r') as f:
       db = yaml.load(f.read())
     self.assertEquals(
-        db['components']['board_version']['items']['board_version_default'],
+        db['components']['mainboard']['items']['mainboard_default'],
         {'default': True,
          'status': 'unqualified',
          'values': None})
     hwid_utils.UpdateDatabase(self.output_path, self.probed_results[0], db)
     self.assertEquals(
-        db['components']['board_version']['items']['board_version_default'],
+        db['components']['mainboard']['items']['mainboard_default'],
         {'default': True,
          'status': 'unsupported',
          'values': None})

@@ -443,7 +443,7 @@ class DatabaseBuilderTest(unittest.TestCase):
                       origin_db['pattern'][0]['fields'])
     self.assertEquals(db_builder.db['pattern'][1]['image_ids'], [2])
     self.assertEquals(db_builder.db['pattern'][1]['fields'],
-                      [{'board_version_field': 3},
+                      [{'mainboard_field': 3},
                        {'region_field': 5},
                        {'chassis_field': 5},
                        {'cpu_field': 3},

@@ -29,7 +29,7 @@ _NEED_IMAGE_ID_MSG = 'Please assign a image_id by adding "--image-id" argument.'
 # The components that are always be created at the front of the pattern,
 # even if they don't exist in the probe results.
 ESSENTIAL_COMPS = OrderedDict([
-    ('board_version', 3),
+    ('mainboard', 3),
     ('region', 5),
     ('chassis', 5),
     ('cpu', 3),
