@@ -160,10 +160,6 @@ class FactoryState(object):
     """Clears all test state."""
     self._tests_shelf.clear()
 
-  def get_test_list(self):
-    """Returns the test list."""
-    return self.test_list.to_struct()
-
   @sync_utils.Synchronized
   def set_shared_data(self, *key_value_pairs):
     """Sets shared data items.
@@ -296,49 +292,6 @@ class FactoryState(object):
     data.append(new_item)
     self._data_shelf[key] = data
     return data
-
-  def get_test_history(self, *test_paths):
-    """Returns metadata for all previous (and current) runs of a test."""
-    ret = []
-
-    for path in test_paths:
-      for f in glob.glob(os.path.join(paths.GetTestDataRoot(),
-                                      path + '-*',
-                                      'metadata')):
-        try:
-          ret.append(yaml.load(open(f)))
-        except:  # pylint: disable=bare-except
-          logging.exception('Unable to load test metadata %s', f)
-
-    ret.sort(key=lambda item: item.get('init_time', None))
-    return ret
-
-  def get_test_history_entry(self, path, invocation):
-    """Returns metadata and log for one test invocation."""
-    test_dir = os.path.join(paths.GetTestDataRoot(),
-                            '%s-%s' % (path, invocation))
-
-    log_file = os.path.join(test_dir, 'log')
-    try:
-      log = string_utils.CleanUTF8(open(log_file).read())
-    except:  # pylint: disable=bare-except
-      # Oh well
-      logging.exception('Unable to read log file %s', log_file)
-      log = None
-
-    return {'metadata': yaml.load(open(os.path.join(test_dir, 'metadata'))),
-            'log': log}
-
-  def get_system_status(self):
-    """Returns system status information.
-
-    This may include system load, battery status, etc. See
-    cros.factory.device.status.SystemStatus. Return None
-    if DUT is not local (station-based).
-    """
-    if self._dut.link.IsLocal():
-      return self._dut.status.Snapshot().__dict__
-    return None
 
 
 def get_instance(address=None, port=None):

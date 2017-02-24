@@ -10,6 +10,7 @@
 from __future__ import print_function
 
 import argparse
+import glob
 import inspect
 import json
 import logging
@@ -21,22 +22,23 @@ import subprocess
 import tempfile
 import time
 import uuid
-import yaml
 from xml.sax import saxutils
+import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.goofy import goofy_remote
-from cros.factory.test import factory
-from cros.factory.test import shopfloor
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event, EventClient
+from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.tools import factory_bug
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import string_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
@@ -1031,6 +1033,10 @@ class GoofyRPC(object):
 
     return ret
 
+  def GetTestList(self):
+    """Returns the test list."""
+    return self.goofy.test_list.to_struct()
+
   def GetGoofyStatus(self):
     """Returns a dictionary containing Goofy status information.
 
@@ -1334,6 +1340,49 @@ class GoofyRPC(object):
     instance = self.goofy.plugin_controller.GetPluginInstance(instance_name)
     return instance is not None
 
+  def GetTestHistory(self, *test_paths):
+    """Returns metadata for all previous (and current) runs of a test."""
+    ret = []
+
+    for path in test_paths:
+      for f in glob.glob(os.path.join(paths.GetTestDataRoot(),
+                                      path + '-*',
+                                      'metadata')):
+        try:
+          ret.append(yaml.load(open(f)))
+        except:  # pylint: disable=bare-except
+          logging.exception('Unable to load test metadata %s', f)
+
+    ret.sort(key=lambda item: item.get('init_time', None))
+    return ret
+
+  def GetTestHistoryEntry(self, path, invocation):
+    """Returns metadata and log for one test invocation."""
+    test_dir = os.path.join(paths.GetTestDataRoot(),
+                            '%s-%s' % (path, invocation))
+
+    log_file = os.path.join(test_dir, 'log')
+    try:
+      log = string_utils.CleanUTF8(open(log_file).read())
+    except:  # pylint: disable=bare-except
+      # Oh well
+      logging.exception('Unable to read log file %s', log_file)
+      log = None
+
+    return {'metadata': yaml.load(open(os.path.join(test_dir, 'metadata'))),
+            'log': log}
+
+  # TODO(shunhsingou): move this to a goofy plugin.
+  def GetSystemStatus(self):
+    """Returns system status information.
+
+    This may include system load, battery status, etc. See
+    cros.factory.device.status.SystemStatus. Return None
+    if DUT is not local (station-based).
+    """
+    if self.goofy.dut.link.IsLocal():
+      return self.goofy.dut.status.Snapshot().__dict__
+    return None
 
 def main():
   parser = argparse.ArgumentParser(

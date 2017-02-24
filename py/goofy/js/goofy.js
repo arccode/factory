@@ -205,7 +205,7 @@ cros.factory.TestListEntry;
 cros.factory.PendingShutdownEvent;
 
 /**
- * Entry in test history returned by get_test_history.
+ * Entry in test history returned by GetTestHistory.
  * @typedef {{init_time: number, end_time: number, status: string,
  *            path: string, invocation: string}}
  */
@@ -972,7 +972,7 @@ cros.factory.Goofy.prototype.init = function() {
   this.sendRpc('GetTestLists', [], function(testLists) {
     this.testLists = testLists;
   });
-  this.sendRpc('get_test_list', [], function(testList) {
+  this.sendRpc('GetTestList', [], function(testList) {
     this.setTestList(testList);
     this.initWebSocket();
   });
@@ -1795,7 +1795,7 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
   loadingItem.setEnabled(false);
   subMenu.addItem(loadingItem);
 
-  this.sendRpc('get_test_history', [path], function(history) {
+  this.sendRpc('GetTestHistory', [path], function(history) {
     if (subMenu.getMenu().indexOfChild(loadingItem) >= 0) {
       subMenu.getMenu().removeChild(loadingItem, true);
     }
@@ -2286,7 +2286,7 @@ cros.factory.Goofy.prototype.FULL_TIME_FORMAT =
  */
 cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
   this.sendRpc(
-      'get_test_history_entry', [path, invocation],
+      'GetTestHistoryEntry', [path, invocation],
       function(untypedEntry) {
         var entry = /** @type {cros.factory.HistoryEntry} */(untypedEntry);
 
@@ -2427,7 +2427,7 @@ cros.factory.Goofy.prototype.updateTestToolTip = function(
  * Sets up the UI for a the test list.  (Should be invoked only once, when
  * the test list is received.)
  * @param {cros.factory.TestListEntry} testList the test list (the return value
- *     of the get_test_list RPC call).
+ *     of the GetTestList RPC call).
  */
 cros.factory.Goofy.prototype.setTestList = function(testList) {
   cros.factory.logger.info('Received test list: ' +
@@ -2883,7 +2883,7 @@ cros.factory.Goofy.prototype.PERCENT_BATTERY_FORMAT = (
  * Gets the system status.
  */
 cros.factory.Goofy.prototype.updateStatus = function() {
-  this.sendRpc('get_system_status', [], function(status) {
+  this.sendRpc('GetSystemStatus', [], function(status) {
     if (!status) status = [];
     this.systemInfo['ips'] = status['ips'];
     this.setSystemInfo(this.systemInfo);
