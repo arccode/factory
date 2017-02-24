@@ -108,24 +108,6 @@ def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
   return new_goofy
 
 
-def mock_autotest(env, name, passed, error_msg):
-  """Adds a side effect that a mock autotest will be executed.
-
-  Args:
-    env: The mock Environment object.
-    name: The name of the autotest to be mocked.
-    passed: Whether the test should pass.
-    error_msg: The error message.
-  """
-  def side_effect(unused_name, unused_args, unused_env_additions, result_file):
-    with open(result_file, 'w') as out:
-      pickle.dump((passed, error_msg), out)
-      return Spawn(['true'])
-
-  env.spawn_autotest(
-      name, IgnoreArg(), IgnoreArg(), IgnoreArg()).WithSideEffects(side_effect)
-
-
 def mock_pytest(spawn, name, test_state, error_msg, func=None):
   """Adds a side effect that a mock pytest will be executed.
 
@@ -207,17 +189,18 @@ class GoofyTest(unittest.TestCase):
   def before_init_goofy(self):
     """Hook invoked before init_goofy."""
 
-  def check_one_test(self, test_id, name, passed, error_msg, trigger=None,
-                     does_not_start=False, setup_mocks=True, expected_count=1):
-    """Runs a single autotest, waiting for it to complete.
+  def check_one_test(self, spawn, test_id, name, passed, error_msg,
+                     trigger=None, does_not_start=False, setup_mocks=True,
+                     expected_count=1):
+    """Runs a single pytest, waiting for it to complete.
 
     Args:
       test_id: The ID of the test expected to run.
-      name: The autotest name of the test expected to run.
-      passed: Whether the test should pass.
+      name: The pytest name of the test expected to run.
+      passed: The TestState that whether the test should pass.
       error_msg: The error message, if any.
       trigger: An optional callable that will be executed after mocks are
-        set up to trigger the autotest.  If None, then the test is
+        set up to trigger the pytest.  If None, then the test is
         expected to start itself.
       does_not_start: If True, checks that the test is not expected to start
         (e.g., due to an unsatisfied require_run).
@@ -225,7 +208,7 @@ class GoofyTest(unittest.TestCase):
       expected_count: The expected run count.
     """
     if setup_mocks and not does_not_start:
-      mock_autotest(self.env, name, passed, error_msg)
+      mock_pytest(spawn, name, passed, error_msg)
     self.mocker.ReplayAll()
     if trigger:
       trigger()
@@ -234,8 +217,7 @@ class GoofyTest(unittest.TestCase):
                      [test.path for test in self.goofy.invocations])
     self._wait()
     test_state = self.state.get_test_state(test_id)
-    self.assertEqual(TestState.PASSED if passed else TestState.FAILED,
-                     test_state.status)
+    self.assertEqual(passed, test_state.status)
     self.assertEqual(0 if does_not_start else expected_count, test_state.count)
     self.assertEqual(error_msg, test_state.error_msg)
 
@@ -292,9 +274,9 @@ class GoofyUITest(GoofyTest):
 
 # A simple test list with three tests.
 ABC_TEST_LIST = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A')
-    test_lists.OperatorTest(id='b', autotest_name='b_B')
-    test_lists.OperatorTest(id='c', autotest_name='c_C')
+    test_lists.OperatorTest(id='a', pytest_name='a_A')
+    test_lists.OperatorTest(id='b', pytest_name='b_B')
+    test_lists.OperatorTest(id='c', pytest_name='c_C')
 """
 
 
@@ -302,10 +284,16 @@ class BasicTest(GoofyTest):
   """A simple test case that checks that tests are run in the correct order."""
   test_list = ABC_TEST_LIST
   def runTest(self):
+    # Stub out PytestPrespawner.spawn to mock pytest invocation.
+    PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
+
     self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
-    self.check_one_test('a', 'a_A', True, '')
-    self.check_one_test('b', 'b_B', False, 'Uh-oh')
-    self.check_one_test('c', 'c_C', False, 'Uh-oh')
+    self.check_one_test(PytestPrespawner.spawn, 'a', 'a_A', TestState.PASSED,
+                        '')
+    self.check_one_test(PytestPrespawner.spawn, 'b', 'b_B', TestState.FAILED,
+                        'Uh-oh')
+    self.check_one_test(PytestPrespawner.spawn, 'c', 'c_C', TestState.FAILED,
+                        'Uh-oh')
     self.assertEqual(
         'id: null\n'
         'path: null\n'
@@ -322,11 +310,18 @@ class WebSocketTest(GoofyUITest):
   """A test case that checks the behavior of web sockets."""
   test_list = ABC_TEST_LIST
   def runTest(self):
+    # Stub out PytestPrespawner.spawn to mock pytest invocation.
+    PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
+
     self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
     self.setUpWebSocketMock()
-    self.check_one_test('a', 'a_A', True, '')
-    self.check_one_test('b', 'b_B', False, 'Uh-oh')
-    self.check_one_test('c', 'c_C', False, 'Uh-oh')
+
+    self.check_one_test(PytestPrespawner.spawn, 'a', 'a_A', TestState.PASSED,
+                        '')
+    self.check_one_test(PytestPrespawner.spawn, 'b', 'b_B', TestState.FAILED,
+                        'Uh-oh')
+    self.check_one_test(PytestPrespawner.spawn, 'c', 'c_C', TestState.FAILED,
+                        'Uh-oh')
 
     # Kill Goofy and wait for the web socket to close gracefully
     self.goofy.destroy()
@@ -358,7 +353,7 @@ class ShutdownTest(GoofyTest):
   """A test case that checks the behavior of shutdown."""
   test_list = """
     test_lists.RebootStep(id='shutdown', iterations=3),
-    test_lists.OperatorTest(id='a', autotest_name='a_A')
+    test_lists.OperatorTest(id='a', pytest_name='a_A')
   """
 
   def runTest(self):
@@ -410,7 +405,8 @@ class ShutdownTest(GoofyTest):
     self._wait()
 
     # No more shutdowns - now 'a' should run.
-    self.check_one_test('a', 'a_A', True, '')
+    self.check_one_test(PytestPrespawner.spawn, 'a', 'a_A', TestState.PASSED,
+                        '')
 
 
 class RebootFailureTest(GoofyTest):
@@ -468,6 +464,9 @@ class NoAutoRunTest(GoofyTest):
   options = 'options.auto_run_on_start = False'
 
   def _runTestB(self):
+    # Stub out PytestPrespawner.spawn to mock pytest invocation.
+    PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
+
     # There shouldn't be anything to do at startup, since auto_run_on_start
     # is unset.
     self.mocker.ReplayAll()
@@ -477,7 +476,7 @@ class NoAutoRunTest(GoofyTest):
 
     # Tell Goofy to run 'b'.
     self.check_one_test(
-        'b', 'b_B', True, '',
+        PytestPrespawner.spawn, 'b', 'b_B', TestState.PASSED, '',
         trigger=lambda: self.goofy.handle_switch_test(
             Event(Event.Type.SWITCH_TEST, path='b')))
 
@@ -546,29 +545,35 @@ class PyLambdaTest(GoofyTest):
 class MultipleIterationsTest(GoofyTest):
   """Tests running a test multiple times."""
   test_list = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A'),
-    test_lists.OperatorTest(id='b', autotest_name='b_B', iterations=3),
-    test_lists.OperatorTest(id='c', autotest_name='c_C', iterations=3),
-    test_lists.OperatorTest(id='d', autotest_name='d_D'),
+    test_lists.OperatorTest(id='a', pytest_name='a_A'),
+    test_lists.OperatorTest(id='b', pytest_name='b_B', iterations=3),
+    test_lists.OperatorTest(id='c', pytest_name='c_C', iterations=3),
+    test_lists.OperatorTest(id='d', pytest_name='d_D'),
   """
 
   def runTest(self):
+    # Stub out PytestPrespawner.spawn to mock pytest invocation.
+    PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
+
     self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
-    self.check_one_test('a', 'a_A', True, '')
+    self.check_one_test(PytestPrespawner.spawn, 'a', 'a_A', TestState.PASSED,
+                        '')
 
-    mock_autotest(self.env, 'b_B', True, '')
-    mock_autotest(self.env, 'b_B', True, '')
-    mock_autotest(self.env, 'b_B', True, '')
-    self.check_one_test('b', 'b_B', True, '', setup_mocks=False,
-                        expected_count=3)
+    mock_pytest(PytestPrespawner.spawn, 'b_B', TestState.PASSED, '')
+    mock_pytest(PytestPrespawner.spawn, 'b_B', TestState.PASSED, '')
+    mock_pytest(PytestPrespawner.spawn, 'b_B', TestState.PASSED, '')
+    self.check_one_test(PytestPrespawner.spawn, 'b', 'b_B', TestState.PASSED,
+                        '', setup_mocks=False, expected_count=3)
 
-    mock_autotest(self.env, 'c_C', True, '')
-    mock_autotest(self.env, 'c_C', False, 'I bent my wookie')
+    mock_pytest(PytestPrespawner.spawn, 'c_C', TestState.PASSED, '')
+    mock_pytest(PytestPrespawner.spawn, 'c_C', TestState.FAILED,
+                'I bent my wookie')
     # iterations=3, but it should stop after the first failed iteration.
-    self.check_one_test('c', 'c_C', False, 'I bent my wookie',
-                        setup_mocks=False, expected_count=2)
+    self.check_one_test(PytestPrespawner.spawn, 'c', 'c_C', TestState.FAILED,
+                        'I bent my wookie', setup_mocks=False, expected_count=2)
 
-    self.check_one_test('d', 'd_D', True, '')
+    self.check_one_test(PytestPrespawner.spawn, 'd', 'd_D', TestState.PASSED,
+                        '')
     self.mockAnything.VerifyAll()
 
 
@@ -578,20 +583,25 @@ class RequireRunTest(GoofyTest):
     options.auto_run_on_start = False
   """
   test_list = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A')
-    test_lists.OperatorTest(id='b', autotest_name='b_B', require_run='a')
+    test_lists.OperatorTest(id='a', pytest_name='a_A')
+    test_lists.OperatorTest(id='b', pytest_name='b_B', require_run='a')
   """
 
   def runTest(self):
+    # Stub out PytestPrespawner.spawn to mock pytest invocation.
+    PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
+
     self.goofy.restart_tests(
         root=self.goofy.test_list.lookup_path('b'))
-    self.check_one_test('b', 'b_B', False,
+    self.check_one_test(PytestPrespawner.spawn, 'b', 'b_B', TestState.FAILED,
                         'Required tests [a] have not been run yet',
                         does_not_start=True)
 
     self.goofy.restart_tests()
-    self.check_one_test('a', 'a_A', True, '')
-    self.check_one_test('b', 'b_B', True, '')
+    self.check_one_test(PytestPrespawner.spawn, 'a', 'a_A', TestState.PASSED,
+                        '')
+    self.check_one_test(PytestPrespawner.spawn, 'b', 'b_B', TestState.PASSED,
+                        '')
 
 
 class RequireRunPassedTest(GoofyTest):
@@ -600,21 +610,27 @@ class RequireRunPassedTest(GoofyTest):
     options.auto_run_on_start = True
   """
   test_list = """
-    test_lists.OperatorTest(id='a', autotest_name='a_A')
-    test_lists.OperatorTest(id='b', autotest_name='b_B',
+    test_lists.OperatorTest(id='a', pytest_name='a_A')
+    test_lists.OperatorTest(id='b', pytest_name='b_B',
                             require_run=test_lists.Passed('a'))
   """
 
   def runTest(self):
+    # Stub out PytestPrespawner.spawn to mock pytest invocation.
+    PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
+
     self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
-    self.check_one_test('a', 'a_A', False, '')
-    self.check_one_test('b', 'b_B', False,
+    self.check_one_test(PytestPrespawner.spawn, 'a', 'a_A', TestState.FAILED,
+                        '')
+    self.check_one_test(PytestPrespawner.spawn, 'b', 'b_B', TestState.FAILED,
                         'Required tests [a] have not been run yet',
                         does_not_start=True)
 
     self.goofy.restart_tests()
-    self.check_one_test('a', 'a_A', True, '', expected_count=2)
-    self.check_one_test('b', 'b_B', True, '')
+    self.check_one_test(PytestPrespawner.spawn, 'a', 'a_A', TestState.PASSED,
+                        '', expected_count=2)
+    self.check_one_test(PytestPrespawner.spawn, 'b', 'b_B', TestState.PASSED,
+                        '')
     self.mockAnything.VerifyAll()
 
 
@@ -627,9 +643,12 @@ class StopOnFailureTest(GoofyTest):
   """
 
   def runTest(self):
+    # Stub out PytestPrespawner.spawn to mock pytest invocation.
+    PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
+
     self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
-    mock_autotest(self.env, 'a_A', True, '')
-    mock_autotest(self.env, 'b_B', False, 'Oops!')
+    mock_pytest(PytestPrespawner.spawn, 'a_A', TestState.PASSED, '')
+    mock_pytest(PytestPrespawner.spawn, 'b_B', TestState.FAILED, 'Oops!')
     self.mocker.ReplayAll()
     # Make sure events are all processed.
     for _ in range(3):
