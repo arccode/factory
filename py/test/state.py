@@ -52,7 +52,6 @@ def clear_state(state_file_path=DEFAULT_FACTORY_STATE_FILE_PATH):
 
 # TODO(shunhsingou): move goofy or dut related functions to goofy_rpc so we can
 # really separate them.
-# TODO(shunhsingou): implement unittest for this class.
 @type_utils.UnicodeToStringClass
 class FactoryState(object):
   """The core implementation for factory state control.
