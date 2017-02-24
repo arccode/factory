@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import argparse
 import glob
 import logging
 import os
@@ -11,9 +12,11 @@ import time
 # Import WLAN into this module's namespace, since it may be used by
 # some test lists.
 import factory_common  # pylint: disable=unused-import
-from cros.factory.utils.net_utils import WLAN  # pylint: disable=unused-import
+from cros.factory.utils import config_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils.net_utils import WLAN  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
+from cros.factory.test import state
 
 try:
   # pylint: disable=unused-import
@@ -412,3 +415,68 @@ def PingHost(host, timeout=_PING_TIMEOUT_SECS):
     return subprocess.call(
         'ping %s -c 1 -w %d' % (host, int(timeout)),
         shell=True, stdout=fnull, stderr=fnull)
+
+
+def LoadNetworkConfig(config_name):
+  """Load network config ``config_name``.
+
+  The schema file is ``./network_config.schema.json``.
+
+  Args:
+    config_name: config file name with or without extension (".json").  If the
+      file name is given in relative path, default directory will be *this*
+      directory (test/utils/).  Absolute path is also allowed.
+  Returns:
+    dict object, the content of config file.
+  """
+  # pylint: disable=protected-access
+  if config_name.endswith(config_utils._CONFIG_FILE_EXT):
+    config_name = config_name[:-len(config_utils._CONFIG_FILE_EXT)]
+  return config_utils.LoadConfig(config_name=config_name,
+                                 schema_name='network_config')
+
+
+def SetupNetworkUsingNetworkConfig(network_config):
+  """Setup network interfaces using ``ConnectionManager``.
+
+  Args:
+    network_config: a dict object which is compatible with
+      ``network_config.schema.json`` (you can load a config file using
+      ``LoadNetworkConfig``)
+  """
+  proxy = state.get_instance()
+  if not proxy.IsPluginRunning('connection_manager'):
+    logging.info('Goofy plugin `connection_manager` is not running')
+    proxy = ConnectionManager()
+
+  def _SetStaticIP(*args, **kwargs):
+    try:
+      return proxy.SetStaticIP(*args, **kwargs)
+    except ConnectionManagerException as e:
+      # if proxy is actually a connection manager instance, error code is raised
+      # as an exception, rather than return value.
+      return e.error_code
+
+  for interface in network_config:
+    interface_name = network_config[interface].pop('interface_name', interface)
+    error_code = _SetStaticIP(interface_or_path=interface,
+                              **network_config[interface])
+    if error_code:
+      logging.error('failed to setup interface %s: %s',
+                    interface_name, error_code)
+
+
+def main():
+  parser = argparse.ArgumentParser(
+      description='setup network interfaces by config file')
+
+  parser.add_argument('--config_path', '-c', help='path to config file',
+                      required=True)
+
+  options = parser.parse_args()
+  network_config = LoadNetworkConfig(os.path.abspath(options.config_path))
+  SetupNetworkUsingNetworkConfig(network_config)
+
+
+if __name__ == '__main__':
+  main()

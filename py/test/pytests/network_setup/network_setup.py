@@ -31,6 +31,7 @@ Usage::
 """
 
 import logging
+import os
 import threading
 import traceback
 import unittest
@@ -42,7 +43,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils import arg_utils
-from cros.factory.utils import config_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
@@ -70,6 +70,7 @@ _PRESS_SPACE = i18n_test_ui.MakeI18nLabel('Press space to continue')
 
 ErrorCode = connection_manager.ConnectionManagerException.ErrorCode
 
+
 def _ErrorCodeToMessage(error_code, interface):
   interface = '<b>%s</b>' % interface
   if error_code == ErrorCode.NO_PHYSICAL_LINK:
@@ -85,7 +86,7 @@ def _ErrorCodeToMessage(error_code, interface):
 
 class NetworkConnectionSetup(unittest.TestCase):
   ARGS = [
-      arg_utils.Arg('config_name', str, 'path to the config file'),
+      arg_utils.Arg('config_path', str, 'path to the config file'),
       arg_utils.Arg('timeout_secs', float,
                     'timeout seconds for each interface, default is no timeout',
                     default=None),
@@ -105,12 +106,15 @@ class NetworkConnectionSetup(unittest.TestCase):
 
   def SetInterfaces(self):
     try:
-      settings = config_utils.LoadConfig(config_name=self.args.config_name,
-                                         schema_name='network_config')
+      # make config_name absolute path, however, this might not work in PAR
+      config_path = os.path.join(os.path.dirname(__file__),
+                                 self.args.config_path)
+      settings = connection_manager.LoadNetworkConfig(config_path)
 
       proxy = state.get_instance()
       if not proxy.IsPluginRunning('connection_manager'):
-        logging.info('Goofy plugin %r is not running, create our own instance')
+        logging.info('Goofy plugin connection_manager is not running, '
+                     'create our own instance')
         proxy = connection_manager.ConnectionManager()
 
       for interface in settings:
@@ -119,8 +123,14 @@ class NetworkConnectionSetup(unittest.TestCase):
                         id=_ID_SUBTITLE_DIV)
 
         def _TryOnce(interface=interface, interface_name=interface_name):
-          error_code = proxy.SetStaticIP(interface_or_path=interface,
-                                         **settings[interface])
+          try:
+            error_code = proxy.SetStaticIP(interface_or_path=interface,
+                                           **settings[interface])
+          except connection_manager.ConnectionManagerException as e:
+            # if proxy is actually a connection manager instance, error code is
+            # raised as an exception, rather than return value.
+            error_code = e.error_code
+
           if error_code is None:
             return True
           # Hint operators what might go wrong.
