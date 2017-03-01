@@ -9,14 +9,11 @@ dargs:
   timeout_secs: Timeout for the test. (default: 20 seconds)
 """
 
-import array
-import fcntl
 import logging
 import unittest
 
-import evdev
-
 import factory_common  # pylint: disable=unused-import
+from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test.i18n import _
@@ -24,7 +21,7 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
-from cros.factory.test.utils import touch_utils
+from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -141,17 +138,48 @@ _TOUCHPAD_TEST_DEFAULT_CSS = """
 """
 
 
-class UpDown(object):
-  """The class to represent Up or Down event for KEY input.
+class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
 
-  The value is the same as value from evtest KEY event, where "0" is up and "1"
-  is down.
-  """
+  def __init__(self, device, test):
+    super(TouchpadMonitor, self).__init__(device)
+    self.test = test
 
-  def __init__(self):
-    pass
-  Up = 0
-  Down = 1
+  def OnKey(self, key_event_code):
+    """See TouchMonitorBase.OnKey."""
+    state = self.GetState()
+    key_event_value = state.keys[key_event_code]
+    if key_event_code == evdev.ecodes.BTN_LEFT and state.num_fingers == 1:
+      self.test.DrawSingleClick(key_event_value)
+    else:
+      if self.test.touchpad_has_right_btn:
+        if key_event_code != evdev.ecodes.BTN_RIGHT:
+          return
+      else:
+        if key_event_code != evdev.ecodes.BTN_LEFT or state.num_fingers != 2:
+          return
+      self.test.DrawDoubleClick(key_event_value)
+
+  def OnNew(self, slot_id):
+    """See MultiTouchMonitor.OnNew."""
+    state = self.GetState()
+    if state.num_fingers <= 2:
+      self.OnMove(slot_id)
+    elif not self.test.already_alerted:
+      self.test.already_alerted = True
+      msg = 'number_fingers = %d' % state.num_fingers
+      logging.error(msg)
+      factory.console.error(msg)
+      self.test.ui.Alert(_(
+          "Please don't put your third finger on the touchpad.\n"
+          "If you didn't do that,\n"
+          "treat this touch panel as a problematic one!!"))
+      self.test.ui.CallJSFunction('failTest')
+
+  def OnMove(self, slot_id):
+    """See MultiTouchMonitor.OnMove."""
+    state = self.GetState()
+    slot = state.slots[slot_id]
+    self.test.DrawMoveEvent(slot.x, slot.y, state.num_fingers)
 
 
 class Quadrant(object):
@@ -179,33 +207,6 @@ class Quadrant(object):
       self.quadrant = 4
 
 
-class MoveEvent(object):
-  """The class to store touchpad move event."""
-
-  def __init__(self):
-    self.x = None
-    self.y = None
-    self.scroll = None
-    self.sync = None
-
-  def Clear(self):
-    self.x = self.y = self.scroll = self.sync = None
-
-
-class ClickEvent(object):
-  """The class to store touchpad click event."""
-
-  def __init__(self):
-    self.btn_left = None
-    self.btn_right = None
-
-  def ClearBtnLeft(self):
-    self.btn_left = None
-
-  def ClearBtnRight(self):
-    self.btn_right = None
-
-
 class TouchpadTest(unittest.TestCase):
   """Tests the function of touchpad.
 
@@ -218,16 +219,7 @@ class TouchpadTest(unittest.TestCase):
   Properties:
     self.ui: test ui.
     self.template: ui template handling html layout.
-    self.x_max: max grid value of horizontal movement.
-    self.y_max: max grid valud of vertical movement.
     self.touchpad_device_name: This can be probed from evdev.
-    self.move_event: the detected move event. The event will be drew
-        and reset upon sync event.
-    self.click_event: the detected click event. The event will be drew for each
-        detected btn_left or btn_right up and down. btn_left or btn_right will
-        get reset upon drawing. Note that double_tap will not get reset
-        upon drawing since we have to keep double_tap value for the case that
-        two fingers stay on the touchpad.
     self.touchpad_has_right_btn: for touchpad with right button, we don't want
         to process double click. We will only process right_btn and left_btn.
     self.quadrant: This represents the current quadrant of mouse.
@@ -251,17 +243,13 @@ class TouchpadTest(unittest.TestCase):
     self.template.SetState(_HTML_PROMPT)
 
     # Initialize properties
-    self.x_max = None
-    self.y_max = None
     self.touchpad_device_name = None
-    self.move_event = MoveEvent()
-    self.click_event = ClickEvent()
     self.touchpad_has_right_btn = False
     self.quadrant = Quadrant()
     self.touchpad_device = evdev_utils.FindDevice(self.args.touchpad_event_id,
                                                   evdev_utils.IsTouchpadDevice)
+    self.monitor = None
     self.dispatcher = None
-    self.number_fingers = 0
     self.already_alerted = False
 
     logging.info('start countdown timer daemon thread')
@@ -271,189 +259,57 @@ class TouchpadTest(unittest.TestCase):
         self.ui,
         _ID_COUNTDOWN_TIMER)
 
-  def ProbeEventSource(self):
-    """Probes for touch event path.
-
-    Touch device has type EV_ABS, and there is a code ABS_MT_POSITION_X in
-    the first element of one of its values.
-    It also has type EV_KEY, in which there is a code BTN_LEFT in its values.
-    """
-    for dev in map(evdev.InputDevice, evdev.list_devices()):
-      event_type_code = dev.capabilities()
-      logging.info('capabilities, %s', event_type_code)
-      if not (evdev.ecodes.EV_KEY in event_type_code and
-              evdev.ecodes.BTN_LEFT in event_type_code[evdev.ecodes.EV_KEY]):
-        continue
-      if evdev.ecodes.EV_ABS in event_type_code:
-        codes = [x[0] for x in event_type_code[evdev.ecodes.EV_ABS]]
-        if evdev.ecodes.ABS_MT_POSITION_X in codes:
-          logging.info('Probed device path: %s; name %s', dev.fn, dev.name)
-          return dev.fn
-
   def tearDown(self):
     """Clean-up stuff.
 
     Terminates the running process or we'll have trouble stopping the
     test.
-
-    Enable the touchpad at X to enable touchpad function in test ui.
     """
     if self.dispatcher is not None:
       self.dispatcher.close()
     self.touchpad_device.ungrab()
 
   def GetSpec(self):
-    """Gets device name, btn_right, x_max and y_max."""
+    """Gets device name, btn_right."""
     self.touchpad_device_name = self.touchpad_device.name
-    if (evdev.ecodes.BTN_RIGHT in
-        self.touchpad_device.capabilities()[evdev.ecodes.EV_KEY]):
+    if evdev.ecodes.BTN_RIGHT in self.monitor.GetState().keys:
       self.touchpad_has_right_btn = True
-    ev_abs_dict = dict(self.touchpad_device.capabilities()[evdev.ecodes.EV_ABS])
-    self.x_max = ev_abs_dict[evdev.ecodes.ABS_MT_POSITION_X].max
-    self.y_max = ev_abs_dict[evdev.ecodes.ABS_MT_POSITION_Y].max
-    logging.info('get device %s spec right_btn = %s, x_max = %s, y_max = %s',
-                 self.touchpad_device_name, self.touchpad_has_right_btn,
-                 self.x_max, self.y_max)
+    logging.info('get device %s spec right_btn = %s',
+                 self.touchpad_device_name, self.touchpad_has_right_btn)
 
-  def HandleEvent(self, event):
-    """Handles evdev events."""
-    self.UpdateNumberFingers(event)
-    self.ProcessMoveEvent(event)
-    self.ProcessClickEvent(event)
-
-  def UpdateNumberFingers(self, event):
-    """Update number_fingers according to the given event. Will alert and fail
-    the test if number_fingers is out of range.
-
-    Args:
-      event: an InputEvent.
-    """
-    mtb_event = touch_utils.MtbEvent.ConvertFromInputEvent(event)
-    if touch_utils.MtbEvent.IsNewContact(mtb_event):
-      self.number_fingers += 1
-    elif touch_utils.MtbEvent.IsFingerLeaving(mtb_event):
-      self.number_fingers -= 1
-
-    if not (0 <= self.number_fingers <= 2) and not self.already_alerted:
-      self.already_alerted = True
-
-      msg = 'number_fingers = %d' % self.number_fingers
-      logging.error(msg)
-      factory.console.error(msg)
-
-      self.ui.Alert(_(
-          "Please don't put your third finger on the touchpad.\n"
-          "If you didn't do that,\n"
-          'treat this touch panel as a problematic one!!'))
-      self.ui.CallJSFunction('failTest')
-
-  def ProcessLeftAndRightClickEvent(self):
-    """Draws left click event or right click event."""
-    self.DrawLeftClick(self.click_event.btn_left)
-    self.click_event.ClearBtnLeft()
-    self.DrawRightClick(self.click_event.btn_right)
-    self.click_event.ClearBtnRight()
-
-  def ProcessSingleAndDoubleClickEvent(self):
-    """Draws single click event or double click event."""
-    if self.number_fingers == 2:
-      self.DrawDoubleClick(self.click_event.btn_left)
-      self.click_event.ClearBtnLeft()
-    elif self.number_fingers == 1:
-      self.DrawSingleClick(self.click_event.btn_left)
-      self.click_event.ClearBtnLeft()
-
-  def ProcessClickEvent(self, event):
-    """Processes a click event.
-
-    Args:
-      event: the event to process.
-    """
-    if event.code == evdev.ecodes.BTN_LEFT:
-      self.click_event.btn_left = event.value
-    elif event.code == evdev.ecodes.BTN_RIGHT:
-      self.click_event.btn_right = event.value
-
-    if self.touchpad_has_right_btn:
-      self.ProcessLeftAndRightClickEvent()
-    else:
-      self.ProcessSingleAndDoubleClickEvent()
-
-  def ProcessMoveEvent(self, event):
-    """Processes a move event.
-
-    Args:
-      event: the event to process.
-    """
-    if event.code == evdev.ecodes.ABS_MT_POSITION_X:
-      self.move_event.x = event.value
-    elif event.code == evdev.ecodes.ABS_MT_POSITION_Y:
-      self.move_event.y = event.value
-    elif event.code == evdev.ecodes.ABS_MT_SLOT:
-      self.move_event.scroll = event.value
-    elif event.code == evdev.ecodes.SYN_REPORT:
-      self.move_event.sync = True
-
-    if self.move_event.sync:
-      self.DrawMoveEvent()
-      self.move_event.Clear()
-
-  def DrawMoveEvent(self):
+  def DrawMoveEvent(self, x, y, num_fingers):
     """Marks a scroll sector as tested or a move sector as tested."""
-    if self.move_event.x:
-      x_ratio = float(self.move_event.x) / float(self.x_max)
-    if self.move_event.y:
-      y_ratio = float(self.move_event.y) / float(self.y_max)
+    self.quadrant.UpdateQuadrant(x, y)
+    if num_fingers == 2:
+      self.MarkScrollSectorTested(y)
+    else:
+      self.MarkSectorTested(x, y)
 
-    if self.move_event.x and self.move_event.y:
-      self.quadrant.UpdateQuadrant(x_ratio, y_ratio)
-
-    if self.move_event.scroll and self.move_event.y:
-      self.MarkScrollSectorTested(y_ratio)
-    elif self.move_event.x and self.move_event.y:
-      self.MarkSectorTested(x_ratio, y_ratio)
-
-  def DrawSingleClick(self, up_down):
+  def DrawSingleClick(self, down):
     """Draws single click event by calling javascript function.
 
     Args:
-      up_down: UpDown.Up or Updown.Down or None.
+      down: bool
     """
-    if up_down == UpDown.Up:
+    if not down:
       logging.info('mark single click up')
       self.ui.CallJSFunction('markSingleClickUp', self.quadrant.quadrant)
-    elif up_down == UpDown.Down:
+    else:
       logging.info('mark single click down')
       self.ui.CallJSFunction('markSingleClickDown', self.quadrant.quadrant)
 
-  def DrawDoubleClick(self, up_down):
+  def DrawDoubleClick(self, down):
     """Draws double click event by calling javascript function.
 
     Args:
-      up_down: UpDown.Up or Updown.Down or None.
+      down: bool
     """
-    if up_down == UpDown.Up:
+    if not down:
       logging.info('mark double click up')
       self.ui.CallJSFunction('markDoubleClickUp')
-    elif up_down == UpDown.Down:
+    else:
       logging.info('mark double click down')
       self.ui.CallJSFunction('markDoubleClickDown')
-
-  def DrawLeftClick(self, up_down):
-    """Draw left click event. For now we reuse DrawSingleClick.
-
-    Args:
-      up_down: UpDown.Up or Updown.Down or None.
-    """
-    self.DrawSingleClick(up_down)
-
-  def DrawRightClick(self, up_down):
-    """Draw right click event. For now we reuse DrawDoubleClick.
-
-    Args:
-      up_down: UpDown.Up or Updown.Down or None.
-    """
-    self.DrawDoubleClick(up_down)
 
   def MarkScrollSectorTested(self, y_ratio):
     """Marks a scroll sector tested.
@@ -476,26 +332,6 @@ class TouchpadTest(unittest.TestCase):
     logging.info('mark x-%d y-%d sector tested', x_segment, y_segment)
     self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
 
-  def IsClear(self):
-    """Check if there is no finger on the touchpad now.
-
-    Returns:
-      True if there is no finger on the touchpad now. Otherwise, False.
-    """
-
-    def EVIOCGMTSLOTS(size):
-      # from linux/input.h
-      return (2 << 30) | (ord('E') << 8) | 0x0a | (size << 16)
-
-    cap = self.touchpad_device.capabilities()
-    ev_abs = dict(cap)[evdev.ecodes.EV_ABS]
-    abs_mt_slot = dict(ev_abs)[evdev.ecodes.ABS_MT_SLOT]
-    num_slots = abs_mt_slot.max - abs_mt_slot.min + 1
-    buf = array.array('i', [evdev.ecodes.ABS_MT_TRACKING_ID] + [0] * num_slots)
-    nbytes = buf.itemsize * len(buf)
-    return fcntl.ioctl(self.touchpad_device.fileno(), EVIOCGMTSLOTS(nbytes),
-                       buf) >= 0 and buf.count(-1) == num_slots
-
   def StartTest(self, event):
     """Start the test if the touchpad is clear.
 
@@ -510,27 +346,16 @@ class TouchpadTest(unittest.TestCase):
 
     self.ui.UnbindKey(test_ui.SPACE_KEY)
 
+    self.touchpad_device = evdev_utils.DeviceReopen(self.touchpad_device)
     self.touchpad_device.grab()
-    if not self.IsClear():
+    self.monitor = TouchpadMonitor(self.touchpad_device, self)
+    if self.monitor.GetState().num_fingers != 0:
       logging.error('Ghost finger detected.')
       self.ui.Alert(_(
           'Ghost finger detected!!\n'
           'Please treat this touch panel as a problematic one!!'))
       self.ui.Fail('Ghost finger detected.')
       return
-
-    # We have to clear the event buffer because we open the device before
-    # the operator presses SPACE key. If the operator puts their finger
-    # on the touchpad when setUp() and we don't clear the event buffer,
-    # we will receive a FingerLeaving event and set number_fingers to -1.
-    try:
-      while len(tuple(self.touchpad_device.read())) != 0:
-        pass
-    except IOError:
-      # For new version of python-evdev, it raises an IOError if we try to
-      # read an event when the buffer is empty, instead of returning a
-      # generator of nothing.
-      pass
 
     self.template.SetState(_HTML_TOUCHPAD)
     self.ui.CallJSFunction(
@@ -539,8 +364,8 @@ class TouchpadTest(unittest.TestCase):
         self.args.number_to_quadrant)
 
     self.GetSpec()
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(
-        self.touchpad_device, self.HandleEvent)
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(self.touchpad_device,
+                                                        self.monitor.Handler)
     logging.info('start monitor daemon thread')
     self.dispatcher.StartDaemon()
 
