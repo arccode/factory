@@ -83,17 +83,12 @@ class ImageCheckTask(factory_task.FactoryTask):
                      flash_netboot.DEFAULT_NETBOOT_FIRMWARE_PATH)
     self._test.template.SetState(_MSG_REIMAGING)
     try:
-      if self.dut.link.IsLocal():
-        self.dut.CheckCall(
-            ['/usr/local/factory/bin/flash_netboot',
-             '-y', '-i', firmware_path, '--no-reboot'], log=True)
-      else:
-        with self.dut.temp.TempFile() as temp_file:
-          self.dut.link.Push(firmware_path, temp_file)
-          factory_par = deploy_utils.FactoryPythonArchive(self.dut)
-          factory_par.CheckCall(
-              ['flash_netboot', '-y', '-i', temp_file, '--no-reboot'],
-              log=True)
+      with self.dut.temp.TempFile() as temp_file:
+        self.dut.link.Push(firmware_path, temp_file)
+        factory_par = deploy_utils.CreateFactoryTools(self.dut)
+        factory_par.CheckCall(
+            ['flash_netboot', '-y', '-i', temp_file, '--no-reboot'],
+            log=True)
 
       self.dut.CheckCall(['reboot'], log=True)
 

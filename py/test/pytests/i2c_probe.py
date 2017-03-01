@@ -37,7 +37,7 @@ class I2CProbeTest(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self.factory_tools = deploy_utils.FactoryPythonArchive(self._dut)
+    self.factory_tools = deploy_utils.CreateFactoryTools(self._dut)
 
   def runTest(self):
     self.assertTrue(self.args.bus is not None or self.args.auto_detect_device,

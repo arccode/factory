@@ -99,7 +99,7 @@ class ProbeTest(unittest.TestCase):
     self._template = ui_templates.OneScrollableSection(self._ui)
 
     self._dut = device_utils.CreateDUTInterface()
-    self.factory_tools = deploy_utils.FactoryPythonArchive(self._dut)
+    self.factory_tools = deploy_utils.CreateFactoryTools(self._dut)
     self.config_file_path = os.path.join(
         LOCAL_CONFIG_DIR, self.args.config_file)
 

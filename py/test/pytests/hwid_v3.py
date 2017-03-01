@@ -57,7 +57,7 @@ class HWIDV3Test(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self.factory_tools = deploy_utils.FactoryPythonArchive(self._dut)
+    self.factory_tools = deploy_utils.CreateFactoryTools(self._dut)
     self.tmpdir = self._dut.temp.mktemp(is_dir=True, prefix='hwid_v3')
 
   def tearDown(self):

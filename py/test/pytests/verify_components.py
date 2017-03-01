@@ -54,7 +54,7 @@ class VerifyComponentsTest(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self.factory_par = deploy_utils.FactoryPythonArchive(self._dut)
+    self.factory_par = deploy_utils.CreateFactoryTools(self._dut)
     self._shopfloor = shopfloor
     self.probed_results = None
     self._allow_unqualified = None

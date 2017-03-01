@@ -151,7 +151,7 @@ class Finalize(unittest.TestCase):
     self.go_cond = threading.Condition()
     self.test_states_path = os.path.join(paths.GetLogRoot(),
                                          'test_states')
-    self.factory_par = deploy_utils.FactoryPythonArchive(self.dut)
+    self.factory_par = deploy_utils.CreateFactoryTools(self.dut)
 
     # variables for remote SSH DUT
     self.dut_response = None
