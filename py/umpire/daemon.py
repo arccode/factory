@@ -237,16 +237,15 @@ class UmpireDaemon(object):
     current_services = set(_GetActiveServiceNames(current_config)
                            if current_config else [])
     deploying_services = set(_GetActiveServiceNames(deploying_config))
-    # Calculate services to stop and start.
+    # Calculate services to stop
     if restart_all:
       stopping_services = current_services
-      starting_services = deploying_services
     else:
       stopping_services = current_services - deploying_services
-      starting_services = deploying_services - current_services
-    # Need to restart shop_floor service.
-    if 'shop_floor' in deploying_services:
-      starting_services.add('shop_floor')
+
+    # umpire_service would handle the case when the service processes are not
+    # changed.
+    starting_services = deploying_services
 
     # Stop unused services and start new services.
     deferred = self.StopServices(stopping_services)

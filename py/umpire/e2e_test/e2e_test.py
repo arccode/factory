@@ -17,6 +17,7 @@ import contextlib
 import glob
 import logging
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -125,7 +126,7 @@ class UmpireDockerTestCase(unittest.TestCase):
     del cls  # Unused.
     if logging.getLogger().isEnabledFor(logging.DEBUG):
       docker_logs = subprocess.check_output(
-          ['docker', 'logs', UMPIRE_CONTAINER_NAME])
+          ['docker', 'logs', UMPIRE_CONTAINER_NAME], stderr=subprocess.STDOUT)
       logging.debug(docker_logs)
     CleanUp()
 
@@ -311,6 +312,39 @@ class UmpireRPCTest(UmpireDockerTestCase):
         'shop_floor_handler:',
         requests.get(
             '%s/resourcemap' % ADDR_BASE, headers={'X-Umpire-DUT': 'x'}).text)
+
+  def testDeployServiceConfigChanged(self):
+    to_deploy_config = self.ReadConfigTestdata('umpire_deploy.yaml')
+    conf = self.proxy.UploadConfig('umpire.yaml', to_deploy_config)
+    self.proxy.StageConfigFile(conf)
+    self.proxy.Deploy(conf)
+
+    to_deploy_config = self.ReadConfigTestdata(
+        'umpire_deploy_service_config_changed.yaml')
+    conf = self.proxy.UploadConfig('umpire.yaml', to_deploy_config)
+    self.proxy.StageConfigFile(conf)
+    self.proxy.Deploy(conf)
+
+    # TODO(pihsun): Figure out a better way to detect if services are restarted
+    # without reading docker logs.
+    docker_logs = subprocess.check_output(
+        ['docker', 'logs', UMPIRE_CONTAINER_NAME],
+        stderr=subprocess.STDOUT).splitlines()
+    restarted_services = []
+    for log_line in reversed(docker_logs):
+      if re.search(r'Config .* validated\. Try deploying', log_line):
+        # Read logs until last deploy.
+        break
+      m = re.search(r'Service (.*) started: \[(.*)\]', log_line)
+      if m is None:
+        continue
+      service = m.group(1)
+      restarted = len(m.group(2)) > 0
+      logging.debug('%s: restarted=%s', service, restarted)
+      if restarted:
+        restarted_services.append(service)
+    # Assert that the only restarted service is instalog.
+    self.assertEqual(['instalog'], restarted_services)
 
   def testDeployConfigFail(self):
     to_deploy_config = self.ReadConfigTestdata('umpire_deploy_fail.yaml')

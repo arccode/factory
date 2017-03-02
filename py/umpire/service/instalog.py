@@ -4,7 +4,9 @@
 
 """Instalog service for log processing."""
 
+import hashlib
 import os
+import pprint
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.service import umpire_service
@@ -91,7 +93,6 @@ class InstalogService(umpire_service.UmpireService):
     root_dir = os.path.join(env.umpire_data_dir, 'instalog')
     if not os.path.isdir(root_dir):
       os.makedirs(root_dir)
-    config_path = os.path.join(root_dir, 'instalog.yaml')
     instalog_config = {
         'instalog': {
             'node_id': NODE_ID,
@@ -125,6 +126,9 @@ class InstalogService(umpire_service.UmpireService):
     }
     self.UpdateConfig(
         instalog_config, umpire_config['services']['instalog'], env)
+    # pprint guarantees the dictionary is sorted.
+    config_hash = hashlib.md5(pprint.pformat(instalog_config)).hexdigest()
+    config_path = os.path.join(root_dir, 'instalog-%s.yaml' % config_hash)
     if os.path.exists(config_path):
       os.remove(config_path)
     with open(config_path, 'w') as f:

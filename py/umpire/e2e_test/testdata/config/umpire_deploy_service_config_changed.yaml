@@ -6,7 +6,9 @@ services:
   http: {}
   rsync: {}
   shop_floor: {}
-  instalog: {}
+  instalog:
+    archive:
+      enable: true
 bundles:
 - id: empty_init_bundle
   note: n/a
