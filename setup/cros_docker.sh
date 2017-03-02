@@ -755,8 +755,9 @@ do_update_docker_image_version() {
       setup/Dockerfile
       setup/Dockerfile.overlord
       setup/cros_docker.sh
-      py/umpire
       py/dome
+      py/instalog
+      py/umpire
       go/src
   )
 
