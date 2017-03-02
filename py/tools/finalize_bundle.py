@@ -24,14 +24,12 @@ from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
 from chromite.lib import gs
-from cros.factory.test.env import paths
 from cros.factory.tools import build_board
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.utils.file_utils import (
-    UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile, Glob,
-    WriteWithSudo)
+    TryUnlink, ExtractFile, Glob, WriteWithSudo)
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
@@ -50,16 +48,6 @@ DELETION_MARKER_SUFFIX = '_DELETED'
 # has_firmware: [EC, BIOS]
 # has_firmware: [EC, BIOS, PD]
 DEFAULT_FIRMWARES = ['BIOS', 'EC']
-
-# Table for translating options from MANIFEST.yaml to lsb-factory.
-CUTOFF_OPTION = {
-    'method': 'CUTOFF_METHOD',
-    'check_ac': 'CUTOFF_AC_STATE',
-    'min_battery_percent': 'CUTOFF_BATTERY_MIN_PERCENTAGE',
-    'max_battery_percent': 'CUTOFF_BATTERY_MAX_PERCENTAGE',
-    'min_battery_voltage': 'CUTOFF_BATTERY_MIN_VOLTAGE',
-    'max_battery_voltage': 'CUTOFF_BATTERY_MAX_VOLTAGE',
-    'shopfloor': 'SHOPFLOOR_URL'}
 
 # Special string to use a local file instead of downloading one
 # (see test_image_version).
@@ -212,7 +200,6 @@ class FinalizeBundle(object):
     self.DeleteFiles()
     self.UpdateNetbootURL()
     self.UpdateInstallShim()
-    self.PatchImage()
     self.ModifyFactoryImage()
     self.MakeUpdateBundle()
     self.MakeFactoryPackages()
@@ -251,13 +238,6 @@ class FinalizeBundle(object):
         '--test-list', dest='test_list', metavar='TEST_LIST',
         help='Set active test_list. e.g. --test-list manual_smt to set active '
              'test_list to test_list.manual_smt')
-    parser.add_argument(
-        '--patch', action='store_true',
-        help=('Invoke patch_image before finalizing (requires '
-              'patch_image_args in MANIFEST.yaml)'))
-    parser.add_argument(
-        '--patch-image-extra-args',
-        help='Extra arguments for patch_image')
 
     parser.add_argument(
         'dir', metavar='DIR',
@@ -273,10 +253,10 @@ class FinalizeBundle(object):
     CheckDictKeys(
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
                         'add_files_to_image', 'delete_files_from_image',
-                        'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
-                        'patch_image_args', 'use_factory_toolkit',
-                        'test_image_version', 'complete_script',
-                        'has_firmware', 'external_presenter'])
+                        'site_tests', 'files', 'mini_omaha_url',
+                        'use_factory_toolkit', 'test_image_version',
+                        'complete_script', 'has_firmware',
+                        'external_presenter'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -594,35 +574,6 @@ class FinalizeBundle(object):
     Spawn([self.factory_toolkit_path, self.factory_image_path, '--yes'] +
           additional_args, check_call=True, env=exec_env)
 
-  def PatchImage(self):
-    if not self.args.patch:
-      return
-
-    patch_image_args = self.manifest.get('patch_image_args')
-    if not patch_image_args:
-      sys.exit('--patch flag was specified, but MANIFEST.yaml has no '
-               'patch_image_args')
-
-    factory_par_path = os.path.join(
-        '/build', self.manifest['board'],
-        'usr', 'local', 'factory', 'bundle', 'shopfloor', 'factory.par')
-
-    factory_par_time_old = os.stat(factory_par_path).st_mtime
-
-    patch_command = ([os.path.join(paths.FACTORY_PATH, 'bin', 'patch_image'),
-                      '--input', self.factory_image_path,
-                      '--output', 'IN_PLACE'] +
-                     patch_image_args.split(' ') +
-                     (self.args.patch_image_extra_args.split(' ')
-                      if self.args.patch_image_extra_args else []))
-    Spawn(patch_command, log=True, check_call=True)
-
-    factory_par_time_new = os.stat(factory_par_path).st_mtime
-    if factory_par_time_old != factory_par_time_new:
-      logging.info('%s has changed; will replace factory.par in bundle',
-                   factory_par_path)
-      self.new_factory_par = factory_par_path
-
   def ModifyFactoryImage(self):
     add_files_to_image = self.manifest.get('add_files_to_image', [])
     delete_files_from_image = self.manifest.get('delete_files_from_image', [])
@@ -662,19 +613,6 @@ class FinalizeBundle(object):
         Spawn(['dd', 'if=/dev/zero', 'of=' + zero_file, 'bs=1M'],
               sudo=True, call=True, log=True, ignore_stderr=True)
         Spawn(['rm', zero_file], sudo=True, log=True, check_call=True)
-
-    # Removes unused site_tests
-    # suite_Factory must be preserved for /usr/local/factory/custom symlink.
-    site_tests = self.manifest.get('site_tests')
-    if site_tests is not None:
-      site_tests.append('suite_Factory')
-      with MountPartition(self.factory_image_path, 1, rw=True) as mount:
-        site_tests_dir = os.path.join(mount, 'dev_image', 'autotest',
-                                      'site_tests')
-        for name in os.listdir(site_tests_dir):
-          path = os.path.join(site_tests_dir, name)
-          if name not in site_tests:
-            Spawn(['rm', '-rf', path], log=True, sudo=True, check_call=True)
 
     if self.args.test_list:
       logging.info('Setting active test_list to test_list.%s',
@@ -745,26 +683,9 @@ class FinalizeBundle(object):
 
   def UpdateInstallShim(self):
     mini_omaha_url = self.manifest.get('mini_omaha_url')
-    cutoff_option = self.manifest.get('cutoff_option', {})
 
-    if not mini_omaha_url and not cutoff_option:
+    if not mini_omaha_url:
       return
-
-    def CheckCutoffOptions(cutoff_option):
-      CheckDictKeys(cutoff_option, CUTOFF_OPTION.keys())
-
-      if 'method' in cutoff_option:
-        assert cutoff_option['method'] in ['shutdown', 'reboot',
-                                           'battery_cutoff',
-                                           'battery_cutoff_at_shutdown']
-
-      if 'check_ac' in cutoff_option:
-        assert cutoff_option['check_ac'] in ['remove_ac', 'connect_ac']
-
-      m = re.compile(r'.*_battery_.*')
-      for key, value in cutoff_option.iteritems():
-        if m.match(key):
-          assert isinstance(value, int)
 
     def PatchLSBFactory(mount):
       """Patches lsb-factory in an image.
@@ -784,19 +705,6 @@ class FinalizeBundle(object):
             lsb_factory)
         if number_of_subs != 2:
           sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
-
-      if cutoff_option:
-        for key, value in cutoff_option.iteritems():
-          if value:
-            arg = '%s=%s\n' % (CUTOFF_OPTION[key], str(value))
-          else:
-            # Delete the argument if there is no value set.
-            arg = ''
-          lsb_factory, number_of_subs = re.subn(
-              r'(?m)^%s=.+\n' % CUTOFF_OPTION[key], arg, lsb_factory)
-
-          if number_of_subs == 0 and value:
-            lsb_factory += arg
 
       if lsb_factory == orig_lsb_factory:
         return False  # No changes
@@ -823,9 +731,6 @@ class FinalizeBundle(object):
         self.install_shim_version = '%s (%s)' % (_GetReleaseVersion(mount),
                                                  GetSigningKey(shim))
 
-    if cutoff_option:
-      CheckCutoffOptions(cutoff_option)
-
     # Patch in the install shim, if present.
     has_install_shim = False
     unsigned_shim = os.path.join(self.bundle_dir, 'factory_shim',
@@ -848,35 +753,6 @@ class FinalizeBundle(object):
 
     if not has_install_shim:
       logging.warning('There is no install shim in the bundle.')
-
-    # Take care of the netboot initrd as well, if present.
-    netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
-                                 'netboot', 'initrd.uimg')
-    if os.path.exists(netboot_image):
-      with UnopenedTemporaryFile(prefix='rootfs.') as rootfs:
-        with open(netboot_image) as netboot_image_in:
-          with open(rootfs, 'w') as rootfs_out:
-            logging.info('Unpacking initrd rootfs')
-            netboot_image_in.seek(64)
-            Spawn(
-                ['gunzip', '-c'],
-                stdin=netboot_image_in, stdout=rootfs_out, check_call=True)
-        with MountPartition(rootfs, rw=True) as mount:
-          lsb_factory_changed = PatchLSBFactory(
-              os.path.join(mount, 'mnt', 'stateful_partition'))
-
-        if lsb_factory_changed:
-          # Success!  Zip it back up.
-          with UnopenedTemporaryFile(prefix='rootfs.') as rootfs_gz:
-            with open(rootfs_gz, 'w') as out:
-              Spawn(['pigz', '-9c', rootfs], stdout=out, log=True, call=True)
-
-            new_netboot_image = netboot_image + '.INPROGRESS'
-            Spawn(['mkimage', '-A', 'x86', '-O', 'linux', '-T', 'ramdisk',
-                   '-a', '0x12008000', '-n', 'Factory Install RootFS',
-                   '-C', 'gzip', '-d', rootfs_gz, new_netboot_image],
-                  check_call=True, log=True)
-            shutil.move(new_netboot_image, netboot_image)
 
   def MakeFactoryPackages(self):
     # TODO(hungte) Remove 'release/' after we've finished migration.
