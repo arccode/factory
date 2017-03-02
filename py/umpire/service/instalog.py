@@ -51,18 +51,24 @@ class InstalogService(umpire_service.UmpireService):
   def __init__(self):
     super(InstalogService, self).__init__()
 
-  def UpdateConfig(self, instalog_config, update_info):
+  def UpdateConfig(self, instalog_config, update_info, env):
     """Updates Instalog plugin config based on Umpire config.
 
     Args:
       instalog_config: Original Instalog configuration.
       update_info: The Umpire configuration used to update instalog_config.
+      env: UmpireEnv object.
     """
     if update_info.get('forward', {}).get('enable', False):
       instalog_config['output']['forward'] = {
           'plugin': 'output_socket',
           'args': update_info.get('forward', {}).get('args', {}).copy()
       }
+      # If no hostname or port is provided, we should fail.
+      if ('hostname' not in instalog_config['output']['forward']['args'] or
+          'port' not in instalog_config['output']['forward']['args']):
+        raise ValueError('Instalog forwarding is enabled; hostname and port '
+                         'must be provided')
       for input_name in instalog_config['input']:
         instalog_config['input'][input_name]['targets'].append('forward')
     if update_info.get('archive', {}).get('enable', False):
@@ -70,6 +76,9 @@ class InstalogService(umpire_service.UmpireService):
           'plugin': 'output_archive',
           'args': update_info.get('archive', {}).get('args', {}).copy()
       }
+      # Set the target_dir.
+      target_dir = os.path.join(env.umpire_data_dir, 'instalog_archives')
+      instalog_config['output']['archive']['args']['target_dir'] = target_dir
       for input_name in instalog_config['input']:
         instalog_config['input'][input_name]['targets'].append('archive')
 
@@ -114,7 +123,8 @@ class InstalogService(umpire_service.UmpireService):
         'output': {
         }
     }
-    self.UpdateConfig(instalog_config, umpire_config['services']['instalog'])
+    self.UpdateConfig(
+        instalog_config, umpire_config['services']['instalog'], env)
     if os.path.exists(config_path):
       os.remove(config_path)
     with open(config_path, 'w') as f:
