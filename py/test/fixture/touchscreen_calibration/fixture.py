@@ -10,6 +10,7 @@ import threading
 import time
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test.utils import serial_utils
 
@@ -176,17 +177,15 @@ class FakeFixture(BaseFixture):
   def DriveProbeDown(self):
     """Drives the probe to the 'down' position."""
     factory.console.info('Drive Probe Down....')
-    self.ui.CallJSFunction('showMessage',
-                           'Pull the lever down.\n'
-                           '拉下把手')
+    self.ui.Alert('Pull the lever down.\n拉下把手')
 
   def DriveProbeUp(self):
     """Drives the probe to the 'up' position."""
     factory.console.info('Drive Probe Up....')
-    self.ui.CallJSFunction('showMessageAndCallback',
-                           'Pull the lever up.\n'
-                           '拉起把手')
+    self.ui.Alert('Pull the lever up.\n拉起把手')
     self.final_calibration_lock.wait(self.TIMEOUT)
+    self.ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
+                                  subtype='FinishTest'))
 
   def DriveProbeUpDone(self):
     """Notify that the DriveProbeUp has been done."""

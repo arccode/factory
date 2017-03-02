@@ -550,6 +550,9 @@ class UI(object):
     """Hides tooltips."""
     self.PostEvent(test_event.Event(test_event.Event.Type.HIDE_TOOLTIPS))
 
+  def Alert(self, html):
+    """Show an alert box."""
+    self.RunJS('window.test.invocation.goofy.alert(%s)' % json.dumps(html))
 
 class DummyUI(object):
   """Dummy UI for offline test."""

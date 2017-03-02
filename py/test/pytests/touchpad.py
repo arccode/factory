@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -341,13 +339,10 @@ class TouchpadTest(unittest.TestCase):
       logging.error(msg)
       factory.console.error(msg)
 
-      self.ui.RunJS('alert("%s")' % (
-          r"Please don't put your third finger on the touchpad.\n"
-          r"If you didn't do that,\n"
-          r"treat this touch panel as a problematic one!!\n\n"
-          ur"请勿将第三根手指放到触控板上。\n"
-          ur"如果你没有那麽做，\n"
-          ur"请将此触控板作为出问题的处理！！"))
+      self.ui.Alert(i18n_test_ui.MakeI18nLabel(
+          "Please don't put your third finger on the touchpad.\n"
+          "If you didn't do that,\n"
+          'treat this touch panel as a problematic one!!'))
       self.ui.CallJSFunction('failTest')
 
   def ProcessLeftAndRightClickEvent(self):
@@ -515,11 +510,9 @@ class TouchpadTest(unittest.TestCase):
     self.touchpad_device.grab()
     if not self.IsClear():
       logging.error('Ghost finger detected.')
-      self.ui.RunJS('alert("%s")' % (
-          r"Ghost finger detected!!\n"
-          r"Please treat this touch panel as a problematic one!!\n\n"
-          ur"侦测到幽灵手指！！\n"
-          ur"请将此触控板作为出问题的处理！！"))
+      self.ui.Alert(i18n_test_ui.MakeI18nLabel(
+          'Ghost finger detected!!\n'
+          'Please treat this touch panel as a problematic one!!'))
       self.ui.Fail('Ghost finger detected.')
       return
 

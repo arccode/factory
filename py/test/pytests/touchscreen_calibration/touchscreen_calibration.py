@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -18,18 +17,21 @@ import xmlrpclib
 import factory_common  # pylint: disable=unused-import
 import sensors_server
 
-from cros.factory.test.event_log import Log
 from cros.factory.device import device_utils
+from cros.factory.test.event_log import Log
 from cros.factory.test import factory
+from cros.factory.test.fixture.touchscreen_calibration.fixture import FakeFixture
+from cros.factory.test.fixture.touchscreen_calibration.fixture import FixtureException
+from cros.factory.test.fixture.touchscreen_calibration.fixture import FixtureSerialDevice
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
-from cros.factory.test.fixture.touchscreen_calibration.fixture import (
-    FixtureException, FakeFixture, FixtureSerialDevice)
 from cros.factory.test.test_ui import UI
 from cros.factory.test.utils.media_utils import MountedMedia
-from cros.factory.utils import process_utils
 from cros.factory.utils.arg_utils import Arg
-from touchscreen_calibration_utils import (
-    IsSuccessful, NetworkStatus, SimpleSystem)
+from cros.factory.utils import process_utils
+from touchscreen_calibration_utils import IsSuccessful
+from touchscreen_calibration_utils import NetworkStatus
+from touchscreen_calibration_utils import SimpleSystem
 
 
 # Temporary file to store stdout for commands executed in this test.
@@ -168,11 +170,10 @@ class TouchscreenCalibration(unittest.TestCase):
     """
 
     def _ShowError():
-      msg = ('Fail to detect the touchscreen.\n'
-             'Insert the traveler board, and restart the test.\n'
-             '无法侦测到面板。\n'
-             '请移除小板後再重新插入小板，并重跑测试')
-      self.ui.CallJSFunction('showMessage', msg)
+      msg = i18n_test_ui.MakeI18nLabel(
+          'Fail to detect the touchscreen.\n'
+          'Insert the traveler board, and restart the test.')
+      self.ui.Alert(msg)
 
     def _CheckStatus(msg):
       """Check the status of the sensor service."""
@@ -187,9 +188,9 @@ class TouchscreenCalibration(unittest.TestCase):
 
     if self.use_sensors_server:
       if not self.sensors_ip:
-        msg = ('Fail to assign DIRECT_SENSORS_IP in ryu.conf\n'
-               '需要在 ryu.conf 指定 DIRECT_SENSORS_IP')
-        self.ui.CallJSFunction('showMessage', msg)
+        msg = i18n_test_ui.MakeI18nLabel(
+            'Fail to assign DIRECT_SENSORS_IP in ryu.conf')
+        self.ui.Alert(msg)
         raise Error('Failed to assign sensors_ip.')
 
       # Connect to the sensors_server at the IP address.
@@ -214,9 +215,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def _AlertFixtureDisconnected(self):
     """Alerts that the fixture is disconnected."""
-    self.ui.CallJSFunction('showMessage',
-                           'Disconnected from controller\n'
-                           '与治具失去联系')
+    self.ui.Alert(i18n_test_ui.MakeI18nLabel('Disconnected from controller'))
     self.ui.CallJSFunction('setControllerStatus', self.fixture is not None)
 
   def _CheckFixtureConnection(self):
@@ -230,9 +229,8 @@ class TouchscreenCalibration(unittest.TestCase):
     self._CheckFixtureConnection()
 
     if not self.fixture.IsStateUp():
-      self.ui.CallJSFunction('showMessage',
-                             'Probe not in initial position, aborted\n'
-                             '治具未就原位, 舍弃')
+      self.ui.Alert(
+          i18n_test_ui.MakeI18nLabel('Probe not in initial position, aborted'))
       raise FixtureException('Fixture not in UP position.')
 
   def ReadTest(self, unused_event):
@@ -264,35 +262,28 @@ class TouchscreenCalibration(unittest.TestCase):
 
     except Exception as e:
       factory.console.info('Refresh fixture serial device exception, %s', e)
-      self.ui.CallJSFunction(
-          'showMessage',
-          'Please check if the USB cable has been connected '
-          'between the test fixture and the control host.\n'
-          'Click "RefreshFixture" button on screen after connecting '
-          'the USB calbe.\n\n'
-          '请确认USB缆线是否已连结制具与控制电脑\n'
-          '请连结USB缆线,并点击萤幕上治具连结的刷新按钮。'
-      )
+      self.ui.Alert(
+          i18n_test_ui.MakeI18nLabel(
+              'Please check if the USB cable has been connected '
+              'between the test fixture and the control host.\n'
+              'Click "RefreshFixture" button on screen after connecting '
+              'the USB cable.'))
       self.fixture = None
 
     fixture_ready = bool(self.fixture) and not self.fixture.IsEmergencyStop()
     self.ui.CallJSFunction('setControllerStatus', fixture_ready)
 
     if self.fixture and self.fixture.IsEmergencyStop():
-      self.ui.CallJSFunction(
-          'showMessage',
-          'The test fixture is not ready.\n'
-          '(1) It is possible that the test fixure is not powered on yet.\n'
-          '    Turn on the power and click "RefreshFixture" button on screen.\n'
-          '(2) The test fixture is already powered on. '
-          'The fixture may be in the emergency stop state.\n'
-          '    Press debug button on the test fixture and '
-          'click "RefreshFixture" button on screen.\n\n'
-          '治具尚未就位，可能原因如下：\n'
-          '(1) 治具电源尚未开启。请开启电源，并点击萤幕上治具连结的刷新按钮。\n'
-          '(2) 治具电源已经开启，但是处於紧急停止状态。'
-          '请按治具左侧的debug按钮一次。\n'
-      )
+      self.ui.Alert(
+          i18n_test_ui.MakeI18nLabel(
+              'The test fixture is not ready.\n'
+              '(1) It is possible that the test fixure is not powered on yet.\n'
+              '    Turn on the power and click "RefreshFixture" button '
+              'on screen.\n'
+              '(2) The test fixture is already powered on. '
+              'The fixture may be in the emergency stop state.\n'
+              '    Press debug button on the test fixture and '
+              'click "RefreshFixture" button on screen.'))
     self._CreateMonitorPort()
 
   def RefreshTouchscreen(self, unused_event):
@@ -403,9 +394,8 @@ class TouchscreenCalibration(unittest.TestCase):
     try:
       self.fixture.DriveProbeDown()
     except Exception as e:
-      self.ui.CallJSFunction('showMessage',
-                             'Probe not in the DOWN position, aborted\n'
-                             '治具未就下位, 舍弃')
+      self.ui.Alert(i18n_test_ui.MakeI18nLabel(
+          'Probe not in the DOWN position, aborted'))
       raise e
 
   def DriveProbeUp(self, unused_event=None):
@@ -413,9 +403,8 @@ class TouchscreenCalibration(unittest.TestCase):
     try:
       self.fixture.DriveProbeUp()
     except Exception as e:
-      self.ui.CallJSFunction('showMessage',
-                             'Probe not in the UP position, aborted\n'
-                             '治具未就上位, 舍弃')
+      self.ui.Alert(i18n_test_ui.MakeI18nLabel(
+          'Probe not in the UP position, aborted'))
       raise e
 
   def _ExecuteCommand(self, command, fail_msg='Failed: '):
@@ -508,7 +497,7 @@ class TouchscreenCalibration(unittest.TestCase):
       return True
 
     if len(sn) != self.sn_length:
-      self.ui.CallJSFunction('showMessage', 'Wrong serial number! 序号错误!')
+      self.ui.Alert(i18n_test_ui.MakeI18nLabel('Wrong serial number!'))
       return False
     return True
 
@@ -709,11 +698,10 @@ class TouchscreenCalibration(unittest.TestCase):
     if not self.sensors.CheckStatus():
       # The kernel module is inserted, but the touch device is not connected.
       self.sensors.PostTest()
-      msg = ('Fail to detect the touchscreen.\n'
-             'Insert the traveler board, and restart the test.\n'
-             '无法侦测到面板。\n'
-             '请移除小板後再重新插入小板，并重跑测试')
-      self.ui.CallJSFunction('showMessage', msg)
+      msg = i18n_test_ui.MakeI18nLabel(
+          'Fail to detect the touchscreen.\n'
+          'Insert the traveler board, and restart the test.')
+      self.ui.Alert(msg)
       return False
     return True
 
@@ -724,11 +712,10 @@ class TouchscreenCalibration(unittest.TestCase):
       self.sensors.kernel_module.Remove()
       factory.console.error('Failed to insert the kernel module: %s.',
                             self.sensors.kernel_module.name)
-      msg = ('Fail to detect the touchscreen.\n'
-             'Remove and re-insert the traveler board. And restart the test.\n'
-             '无法侦测到面板。\n'
-             '请移除小板後再重新插入小板，并重跑测试')
-      self.ui.CallJSFunction('showMessage', msg)
+      msg = i18n_test_ui.MakeI18nLabel(
+          'Fail to detect the touchscreen.\n'
+          'Remove and re-insert the traveler board. And restart the test.')
+      self.ui.Alert(msg)
       return False
     return True
 
@@ -749,9 +736,8 @@ class TouchscreenCalibration(unittest.TestCase):
     """
 
     if self._calibration_thread and self._calibration_thread.isAlive():
-      self.ui.CallJSFunction('showMessage',
-                             'Current calibration has not completed yet\n'
-                             '目前校正尚未结束')
+      self.ui.Alert(i18n_test_ui.MakeI18nLabel(
+          'Current calibration has not completed yet'))
       return
 
     if not self._ConnectTouchDevice():
@@ -759,9 +745,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
     sn = event.data.get('sn', '')
     if len(sn) == 0:
-      self.ui.CallJSFunction('showMessage',
-                             'Please enter SN first\n'
-                             '请先输入序号')
+      self.ui.Alert(i18n_test_ui.MakeI18nLabel('Please enter SN first'))
       self.ui.CallJSFunction('displayDebugData', '[]')
       return
 

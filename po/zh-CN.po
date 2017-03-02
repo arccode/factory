@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-02 13:32+CST\n"
+"POT-Creation-Date: 2017-03-02 17:39+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -1582,6 +1582,24 @@ msgstr "竖立平板电脑使其垂直于桌面，并开始旋转到对齐图片
 msgid "Please take off your fingers and then press SPACE to start testing..."
 msgstr "请将待测物放置于水平面上，并按空白键开始校准。"
 
+#: ../py/test/pytests/touchpad.py
+msgid ""
+"Please don't put your third finger on the touchpad.\n"
+"If you didn't do that,\n"
+"treat this touch panel as a problematic one!!"
+msgstr ""
+"请勿将第三根手指放到触控板上。\n"
+"如果你没有那麽做，\n"
+"请将此触控板作为出问题的处理！！"
+
+#: ../py/test/pytests/touchpad.py
+msgid ""
+"Ghost finger detected!!\n"
+"Please treat this touch panel as a problematic one!!"
+msgstr ""
+"侦测到幽灵手指！！\n"
+"请将此触控板作为出问题的处理！！"
+
 #: ../py/test/pytests/touchpad_hover.py
 msgid "Calibrating touchpad..."
 msgstr "触控面板校正中..."
@@ -1597,6 +1615,77 @@ msgstr "请将悬停测试用具从支架移除"
 #: ../py/test/pytests/touchpad_hover.py
 msgid "Checking for false positive..."
 msgstr "进行假阳性检查..."
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid ""
+"Fail to detect the touchscreen.\n"
+"Insert the traveler board, and restart the test."
+msgstr ""
+"无法侦测到面板。\n"
+"请移除小板後再重新插入小板，并重跑测试"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Fail to assign DIRECT_SENSORS_IP in ryu.conf"
+msgstr "需要在 ryu.conf 指定 DIRECT_SENSORS_IP"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Disconnected from controller"
+msgstr "与治具失去联系"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Probe not in initial position, aborted"
+msgstr "治具未就原位, 舍弃"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid ""
+"Please check if the USB cable has been connected between the test fixture "
+"and the control host.\n"
+"Click \"RefreshFixture\" button on screen after connecting the USB cable."
+msgstr ""
+"请确认USB缆线是否已连结制具与控制电脑\n"
+"请连结USB缆线,并点击萤幕上治具连结的刷新按钮。"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid ""
+"The test fixture is not ready.\n"
+"(1) It is possible that the test fixure is not powered on yet.\n"
+"    Turn on the power and click \"RefreshFixture\" button on screen.\n"
+"(2) The test fixture is already powered on. The fixture may be in the "
+"emergency stop state.\n"
+"    Press debug button on the test fixture and click \"RefreshFixture\" "
+"button on screen."
+msgstr ""
+"治具尚未就位，可能原因如下：\n"
+"(1) 治具电源尚未开启。请开启电源，并点击萤幕上治具连结的刷新按钮。\n"
+"(2) 治具电源已经开启，但是处於紧急停止状态。请按治具左侧的debug按钮一次。"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Probe not in the DOWN position, aborted"
+msgstr "治具未就下位, 舍弃"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Probe not in the UP position, aborted"
+msgstr "治具未就上位, 舍弃"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Wrong serial number!"
+msgstr "序号错误!"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid ""
+"Fail to detect the touchscreen.\n"
+"Remove and re-insert the traveler board. And restart the test."
+msgstr ""
+"无法侦测到面板。\n"
+"请移除小板後再重新插入小板，并重跑测试"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Current calibration has not completed yet"
+msgstr "目前校正尚未结束"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Please enter SN first"
+msgstr "请先输入序号"
 
 #: ../py/test/pytests/touchscreen_uniformity.py
 msgid "Calibrating Touchscreen"
