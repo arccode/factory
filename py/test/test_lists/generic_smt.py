@@ -16,6 +16,7 @@ This file implements SMT method to create SMT test list.
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import commands
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
@@ -151,8 +152,7 @@ def ScanOperatorID(args):
       dargs=dict(
           device_data_key='smt_operator_id',
           event_log_key='smt_operator_id',
-          label_en='Operator ID',
-          label_zh='作业员 ID',
+          label=_('Operator ID'),
           regexp=r'.*'))
 
 
@@ -281,8 +281,7 @@ def SMTCountdown(args):
       dargs=dict(
           duration_secs=(args.smt_stress_duration_secs +
                          args.smt_thermal_load_duration_secs),
-          title_en='Stress/Component Tests',
-          title_zh='压力及元件测试'))
+          title=_('Stress/Component Tests')))
 
 
 def SMTStress(args):

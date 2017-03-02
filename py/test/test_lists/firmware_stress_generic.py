@@ -10,6 +10,7 @@
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -102,8 +103,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
           label_zh=u'倒数计时',
           pytest_name='countdown',
           dargs=dict(
-              title_en='Run-In Tests',
-              title_zh='烧机测试',
+              title=_('Run-In Tests'),
               duration_secs=args.run_in_stress_duration_secs,
               log_interval=args.run_in_countdown_log_interval_secs,
               grace_secs=args.run_in_countdown_grace_secs,
@@ -151,8 +151,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
           label_zh=u'倒数计时',
           pytest_name='countdown',
           dargs=dict(
-              title_en='Dozing Stress Tests',
-              title_zh='睡眠内存压力测试',
+              title=_('Dozing Stress Tests'),
               duration_secs=args.run_in_dozing_stress_duration_secs,
               log_interval=args.run_in_countdown_log_interval_secs,
               grace_secs=args.run_in_countdown_grace_secs,
@@ -193,5 +192,4 @@ def RunIn(args, group_suffix='FirmwareStress'):
           exclusive_resources=[plugin.RESOURCE.POWER],
           never_fails=True,
           dargs=dict(
-              html_en='RunIn tests finished, press SPACE to continue.\n',
-              html_zh='RunIn 测试结束，按下空白键继续\n'))
+              html=_('RunIn tests finished, press SPACE to continue.\n')))

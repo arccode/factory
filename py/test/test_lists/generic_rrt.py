@@ -19,14 +19,15 @@ import re
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
 from cros.factory.test.test_lists.test_lists import TestList
-from cros.factory.utils import sys_utils
 from cros.factory.utils.net_utils import GetWLANInterface
+from cros.factory.utils import sys_utils
 
 HOURS = 60 * 60
 MINUTES = 60
@@ -107,13 +108,9 @@ class TestListArgs(object):
   warm_cold_reboot_iterations = 100
   clear_tpm_iterations = 100
 
-  reboot_warning_en = (
+  reboot_warning = _(
       'This RRT will start reboot stress test and it might take 24+ hours.<br>'
       'Please press space to start the test.')
-
-  reboot_warning_zh = (
-      '重启测试即将开始，大约需 24+ 小时。<br>'
-      '请按下空白键开始测试。')
 
   #####
   #
@@ -124,19 +121,12 @@ class TestListArgs(object):
   #####
   run_in_stress_iterations = 20
 
-  run_in_warning_en = (
+  run_in_warning = _(
       'This RRT will have heavy testing on disk and might wear it out.<br>'
       'Please avoid shipping those devices after running RRT.<br>'
       'You can either set run_in_stress_test_disk=False or <br>'
       'rework a new disk after test.<br><br>'
       'Please press space to start the test.')
-
-  run_in_warning_zh = (
-      '警告：本测试会对硬盘进行压力测试，可能减少其使用寿命。<br>'
-      '请避免销售这些进行过 RRT 测试的设备。<br>'
-      '你可以设置 run_in_stress_test_disk=False 以避免硬盘测试，<br>'
-      '或在测试之后为设备一个更换新的硬盘。<br><br>'
-      '请按下空白键开始测试。')
 
   # Stress test parameters for each iteration.
   run_in_sat_duration_secs = int(8 * HOURS)
@@ -283,8 +273,7 @@ def Barrier(id_suffix='', pass_without_prompt=False,
 
 
 def PressToStart(id_suffix='',
-                 message_en='Please press space to start the test.',
-                 message_zh='请按下空白键开始测试。'):
+                 message=_('Please press space to start the test.')):
   """Display warning messages and ask user to press space to start test."""
   OperatorTest(
       id='PressToStart' + str(id_suffix),
@@ -292,8 +281,7 @@ def PressToStart(id_suffix='',
       pytest_name='message',
       never_fails=True,
       dargs=dict(
-          html_en=message_en,
-          html_zh=message_zh,
+          html=message,
           text_size='200',
           text_color='black',
           background_color='red'))
@@ -308,11 +296,9 @@ def EnlargeStatefulPartition(args):
         pytest_name='line_check_item',
         run_if=args.NeedEnlargeStateful,
         dargs=dict(
-            title_en='ResizeFileSystem',
-            title_zh=u'调整硬盘空间',
+            title=_('ResizeFileSystem'),
             items=[
-                ('ResizeFileSystem',
-                 u'调整硬盘空间',
+                (_('ResizeFileSystem'),
                  'resize2fs %s %dG' % (
                      device_utils.CreateDUTInterface().partitions.STATEFUL.path,
                      args.desired_stateful_size_gb),
@@ -334,9 +320,8 @@ def Idle(id_suffix='', wait_secs=1):
       label_zh=u'闲置等待',
       pytest_name='line_check_item',
       dargs=dict(
-          title_en='Sleep',
-          title_zh=u'睡眠',
-          items=[('Sleep', u'Sleep',
+          title=_('Sleep'),
+          items=[(_('Sleep'),
                   'sleep %d' % wait_secs, False)]))
 
 
@@ -349,9 +334,8 @@ def ColdReset():
         label_zh=u'EC 冷重启',
         pytest_name='line_check_item',
         dargs=dict(
-            title_en='Cold Reset at Shutdown',
-            title_zh=u'关机时冷重启',
-            items=[('EC Reboot', u'EC Reboot',
+            title=_('Cold Reset at Shutdown'),
+            items=[(_('EC Reboot'),
                     'ectool reboot_ec cold at-shutdown', False)]))
 
     HaltStep(
@@ -397,9 +381,8 @@ def WarmColdReboot(args):
             label_zh=u'检查无线网络',
             pytest_name='line_check_item',
             dargs=dict(
-                title_en='CheckWLAN',
-                title_zh=u'检查无线网络',
-                items=[('WLAN command', u'WLAN command',
+                title=_('CheckWLAN'),
+                items=[(_('WLAN command'),
                         'ifconfig %s' % args.wlan_iface, False)]))
 
         FactoryTest(
@@ -407,9 +390,8 @@ def WarmColdReboot(args):
             label_zh=u'检查蓝牙',
             pytest_name='line_check_item',
             dargs=dict(
-                title_en='CheckBT',
-                title_zh=u'检查蓝牙',
-                items=[('BT command', u'BT command',
+                title=_('CheckBT'),
+                items=[(_('BT command'),
                         'hciconfig %s' % args.bluetooth_iface, False)]))
 
         Barrier(pass_without_prompt=True)
@@ -442,9 +424,8 @@ def ClearTPM(args):
             label_zh=u'验证 TPM',
             pytest_name='line_check_item',
             dargs=dict(
-                title_en='VerifyTPM',
-                title_zh=u'验证 TPM',
-                items=[('verify TPM command', u'验证 TPM',
+                title=_('VerifyTPM'),
+                items=[(_('verify TPM command'),
                         'gooftool verify_tpm', False)]))
 
         WarmReboot(id_suffix='RebootAfterVerifyTPM')
@@ -495,8 +476,7 @@ def StressTest(args):
         label_zh=u'倒数计时',
         pytest_name='countdown',
         dargs=dict(
-            title_en='Run-In Tests',
-            title_zh='烧机测试',
+            title=_('Run-In Tests'),
             duration_secs=args.run_in_sat_duration_secs,
             log_interval=args.run_in_countdown_log_interval_secs,
             grace_secs=args.run_in_countdown_grace_secs,
@@ -552,8 +532,7 @@ def DozingStress(args):
         label_zh=u'倒数计时',
         pytest_name='countdown',
         dargs=dict(
-            title_en='Dozing Stress Tests',
-            title_zh='睡眠内存压力测试',
+            title=_('Dozing Stress Tests'),
             duration_secs=args.run_in_dozing_sat_duration_secs,
             log_interval=args.run_in_countdown_log_interval_secs,
             grace_secs=args.run_in_countdown_grace_secs,
@@ -590,8 +569,7 @@ def CreateRebootStressTestList():
                 'Generic Rolling Reliability (Reboot)') as test_list:
     SetOptions(test_list, args)
     PressToStart(id_suffix='RebootStress',
-                 message_en=args.reboot_warning_en,
-                 message_zh=args.reboot_warning_zh)
+                 message=args.reboot_warning)
     EnlargeStatefulPartition(args)
     WarmReboot('StressChrome', args.warm_reboot_iterations)
     WarmColdReboot(args)
@@ -605,8 +583,7 @@ def CreateRunInStressTestList():
                 'Generic Rolling Reliability (Stress)') as test_list:
     SetOptions(test_list, args)
     PressToStart(id_suffix='RunInStress',
-                 message_en=args.run_in_warning_en,
-                 message_zh=args.run_in_warning_zh)
+                 message=args.run_in_warning)
     EnlargeStatefulPartition(args)
     RunInStress(args)
 
@@ -632,6 +609,4 @@ def CreateTestLists():
           id='MessageNotSupport',
           label_zh=u'不支援',
           pytest_name='message',
-          dargs={
-              'html_en': 'This test list does not support station mode.',
-              'html_zh': u'本测试清单不支援测站模式'})
+          dargs={'html': _('This test list does not support station mode.')})

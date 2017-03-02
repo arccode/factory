@@ -15,6 +15,7 @@ This file implements FATP method to create FATP test list.
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -295,8 +296,7 @@ def FATP(args):
           never_fails=True,
           run_if=lambda env: args.HasCellular(env) or args.HasLTE(env),
           dargs=dict(
-              html_en='Press space to start RSSI tests.',
-              html_zh='按下空白键开始RSSI测试',
+              html=_('Press space to start RSSI tests.'),
               text_size='500',
               text_color='black',
               background_color='yellow'))
@@ -420,12 +420,9 @@ def FATP(args):
             run_if=args.SelectedForAnyFixture,
             never_fails=True,
             dargs=dict(
-                html_en='This unit is selected to run fixture tests.<br>'
-                        'Please move this unit to fixture stations.<br>'
-                        'Press space to start fixture tests.',
-                html_zh='这台机器被选中做治具测试,<br>'
-                        '请将这台机器移至治具测试站,<br>'
-                        '按下空白键开始治具测试',
+                html=_('This unit is selected to run fixture tests.<br>'
+                       'Please move this unit to fixture stations.<br>'
+                       'Press space to start fixture tests.'),
                 text_size='500',
                 text_color='black',
                 background_color='yellow'))
@@ -549,12 +546,9 @@ def FATP(args):
             run_if=args.SelectedForAnyFixture,
             never_fails=True,
             dargs=dict(
-                html_en='This unit has finished fixture tests.<br>'
-                        'Please move this unit back to line.<br>'
-                        'Press space to continue.',
-                html_zh='这台机器已完成治具测试,<br>'
-                        '请将这台机器移回产线<br>'
-                        '按下空白键继续',
+                html=_('This unit has finished fixture tests.<br>'
+                       'Please move this unit back to line.<br>'
+                       'Press space to continue.'),
                 text_size='500',
                 text_color='black',
                 background_color='#00FF00'))
@@ -623,7 +617,5 @@ def FATP(args):
                      if args.fatp_require_run_for_finish else None),
         never_fails=True,
         dargs=dict(
-            html_en='FATP tests finished. Press SPACE to run GRT,<br>'
-                    'or switch test list to RRT.',
-            html_zh='FATP 测试结束，按下空白键执行最终程序,<br>'
-                    '或切换测试列表到RRT.'))
+            html=_('FATP tests finished. Press SPACE to run GRT,<br>'
+                   'or switch test list to RRT.')))

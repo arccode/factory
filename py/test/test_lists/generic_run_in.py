@@ -14,6 +14,7 @@ from __future__ import print_function
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -194,8 +195,7 @@ def RunIn(args, group_suffix=''):
               has_automator=True,
               pytest_name='scan',
               dargs=dict(
-                  label_en='Device Serial Number',
-                  label_zh='机器编号',
+                  label=_('Device Serial Number'),
                   check_device_data_key='serial_number',
                   regexp=args.grt_serial_number_format))
 
@@ -222,8 +222,7 @@ def RunIn(args, group_suffix=''):
               dargs=dict(
                   device_data_key='serial_number',
                   event_log_key='serial_number',
-                  label_en='Serial Number',
-                  label_zh='机器编号',
+                  label=_('Serial Number'),
                   regexp=args.grt_serial_number_format))
 
           OperatorTest(
@@ -233,8 +232,7 @@ def RunIn(args, group_suffix=''):
               run_if=args.HasLTE,
               dargs=dict(
                   device_data_key='golden_iccid',
-                  label_en='golden_iccid',
-                  label_zh='机器编号',
+                  label=_('golden_iccid'),
                   regexp=args.run_in_golden_iccid_format))
 
           OperatorTest(
@@ -244,8 +242,7 @@ def RunIn(args, group_suffix=''):
               run_if=args.HasLTE,
               dargs=dict(
                   device_data_key='golden_imei',
-                  label_en='golden_imei',
-                  label_zh='机器编号',
+                  label=_('golden_imei'),
                   regexp=args.run_in_golden_imei_format))
 
           OperatorTest(
@@ -254,8 +251,7 @@ def RunIn(args, group_suffix=''):
               pytest_name='scan',
               dargs=dict(
                   device_data_key='gbind_attribute',
-                  label_en='Group code',
-                  label_zh='Group 编号'))
+                  label=_('Group code')))
 
           OperatorTest(
               id='ScanUbindAttribute',
@@ -263,8 +259,7 @@ def RunIn(args, group_suffix=''):
               pytest_name='scan',
               dargs=dict(
                   device_data_key='ubind_attribute',
-                  label_en='User code',
-                  label_zh='User 编号'))
+                  label=_('User code')))
 
         # For LTE model only. Note that different factory can have different
         # testing sequences of LTE model. The tests set in this test list are
@@ -518,8 +513,7 @@ def RunIn(args, group_suffix=''):
           label_zh=u'倒数计时',
           pytest_name='countdown',
           dargs=dict(
-              title_en='Run-In Tests',
-              title_zh='烧机测试',
+              title=_('Run-In Tests'),
               duration_secs=args.run_in_stress_duration_secs,
               log_interval=args.run_in_countdown_log_interval_secs,
               grace_secs=args.run_in_countdown_grace_secs,
@@ -579,8 +573,7 @@ def RunIn(args, group_suffix=''):
           label_zh=u'倒数计时',
           pytest_name='countdown',
           dargs=dict(
-              title_en='Dozing Stress Tests',
-              title_zh='睡眠内存压力测试',
+              title=_('Dozing Stress Tests'),
               duration_secs=args.run_in_dozing_stress_duration_secs,
               log_interval=args.run_in_countdown_log_interval_secs,
               grace_secs=args.run_in_countdown_grace_secs,
@@ -680,5 +673,4 @@ def RunIn(args, group_suffix=''):
               else None),
           never_fails=True,
           dargs=dict(
-              html_en='RunIn tests finished, press SPACE to continue.\n',
-              html_zh='RunIn 测试结束，按下空白键继续\n'))
+              html=_('RunIn tests finished, press SPACE to continue.\n')))

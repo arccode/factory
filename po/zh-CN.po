@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-01 17:22+CST\n"
+"POT-Creation-Date: 2017-03-02 13:32+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -1674,7 +1674,7 @@ msgstr "机器上并无合法的{vpd_label}"
 msgid "Invalid {vpd_label} value."
 msgstr "输入的{vpd_label}不合法"
 
-#: ../py/test/pytests/vpd.py
+#: ../py/test/pytests/vpd.py ../py/test/test_lists/generic_run_in.py
 msgid "Serial Number"
 msgstr "序号"
 
@@ -1762,3 +1762,145 @@ msgstr "检查频率中..."
 #: ../py/test/pytests/write_device_data_to_vpd.py
 msgid "Writing device data to {vpd_section} VPD..."
 msgstr "机器资料正在写入到 {vpd_section} VPD..."
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Run-In Tests"
+msgstr "烧机测试"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Dozing Stress Tests"
+msgstr "睡眠内存压力测试"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "RunIn tests finished, press SPACE to continue.\n"
+msgstr "RunIn 测试结束，按下空白键继续\n"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Press space to start RSSI tests."
+msgstr "按下空白键开始RSSI测试"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid ""
+"This unit is selected to run fixture tests.<br>Please move this unit to "
+"fixture stations.<br>Press space to start fixture tests."
+msgstr ""
+"这台机器被选中做治具测试,<br>请将这台机器移至治具测试站,<br>按下空白键开始治"
+"具测试"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid ""
+"This unit has finished fixture tests.<br>Please move this unit back to line."
+"<br>Press space to continue."
+msgstr "这台机器已完成治具测试,<br>请将这台机器移回产线<br>按下空白键继续"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid ""
+"FATP tests finished. Press SPACE to run GRT,<br>or switch test list to RRT."
+msgstr "FATP 测试结束，按下空白键执行最终程序,<br>或切换测试列表到RRT."
+
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Device Serial Number"
+msgstr "机器编号"
+
+#: ../py/test/test_lists/generic_grt.py
+msgid "GRT tests finished, press SPACE to finalize.\n"
+msgstr "GRT 测试结束，按下空白键最终程序\n"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid ""
+"This RRT will start reboot stress test and it might take 24+ hours."
+"<br>Please press space to start the test."
+msgstr "重启测试即将开始，大约需 24+ 小时。<br>请按下空白键开始测试。"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid ""
+"This RRT will have heavy testing on disk and might wear it out.<br>Please "
+"avoid shipping those devices after running RRT.<br>You can either set "
+"run_in_stress_test_disk=False or <br>rework a new disk after test."
+"<br><br>Please press space to start the test."
+msgstr ""
+"警告：本测试会对硬盘进行压力测试，可能减少其使用寿命。<br>请避免销售这些进行"
+"过 RRT 测试的设备。<br>你可以设置 run_in_stress_test_disk=False 以避免硬盘测"
+"试，<br>或在测试之后为设备一个更换新的硬盘。<br><br>请按下空白键开始测试。"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Please press space to start the test."
+msgstr "请按下空白键开始测试。"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "ResizeFileSystem"
+msgstr "调整硬盘空间"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Sleep"
+msgstr "睡眠"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Cold Reset at Shutdown"
+msgstr "关机时冷重启"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "EC Reboot"
+msgstr "EC Reboot"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "CheckWLAN"
+msgstr "检查无线网络"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "WLAN command"
+msgstr "WLAN command"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "CheckBT"
+msgstr "检查蓝牙"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "BT command"
+msgstr "BT command"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "VerifyTPM"
+msgstr "验证 TPM"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "verify TPM command"
+msgstr "验证 TPM"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "This test list does not support station mode."
+msgstr "本测试清单不支援测站模式"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "golden_iccid"
+msgstr "机器编号"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "golden_imei"
+msgstr "机器编号"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Group code"
+msgstr "Group 编号"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "User code"
+msgstr "User 编号"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Operator ID"
+msgstr "作业员 ID"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Stress/Component Tests"
+msgstr "压力及元件测试"
+
+#: ../py/test/test_lists/generic_vswr.py
+msgid "Scan the serial number"
+msgstr "扫描序号"

@@ -12,6 +12,7 @@ This file implements GRT method to create generic Google requied test list.
 
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -47,8 +48,7 @@ def GRT(args):
             has_automator=True,
             pytest_name='scan',
             dargs=dict(
-                label_en='Device Serial Number',
-                label_zh='机器编号',
+                label=_('Device Serial Number'),
                 check_device_data_key='serial_number',
                 regexp=args.grt_serial_number_format))
 
@@ -115,8 +115,7 @@ def GRT(args):
                        if args.grt_require_run_for_finish else None),
           never_fails=True,
           dargs=dict(
-              html_en='GRT tests finished, press SPACE to finalize.\n',
-              html_zh='GRT 测试结束，按下空白键最终程序\n'))
+              html=_('GRT tests finished, press SPACE to finalize.\n')))
 
       # THIS IS A GOOGLE REQUIRED TEST.
       # PLEASE DO NOT REMOVE THIS TEST IN PRODUCTION RELEASES.

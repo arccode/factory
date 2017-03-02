@@ -16,6 +16,7 @@ main groups:
 
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.station_based_test_list import StationBased
 from cros.factory.test.test_lists.test_lists import OperatorTest
 
@@ -38,8 +39,7 @@ def CreateTestLists(test_list):
       label_zh='扫描序号',
       pytest_name='scan',
       dargs={
-          'label_en': 'Scan the serial number',
-          'label_zh': u'扫描序号',
+          'label': _('Scan the serial number'),
           'shared_data_key': _SERIAL_NUMBER_KEY})
 
   OperatorTest(
