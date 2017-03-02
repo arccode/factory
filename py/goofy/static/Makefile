@@ -40,16 +40,6 @@ CLOSURE_BUILD=\
     -f \
     --warning_level=VERBOSE
 
-ifneq "$(shell test -e $(CLOSURE_LIB_DIR) && echo yes)" "yes"
-  $(info ***)
-  $(info *** $(CLOSURE_LIB_DIR) does not exist.)
-  $(info *** Perhaps it needs to be manually installed.  Run this in chroot:)
-  $(info ***)
-  $(info ***   sudo emerge closure-library)
-  $(info ***)
-  $(error Terminating)
-endif
-
 .PHONY: all clean
 
 all: $(OUTPUT_JS) $(OUTPUT_CSS)
@@ -57,7 +47,17 @@ all: $(OUTPUT_JS) $(OUTPUT_CSS)
 clean:
 	rm -f $(OUTPUT_JS) $(OUTPUT_CSS)
 
-$(OUTPUT_JS): $(JS_SOURCE_PATHS)
+check_deps:
+	$(if $(wildcard $(CLOSURE_LIB_DIR)),,\
+	  $(info *** $(CLOSURE_LIB_DIR) does not exist.) \
+	  $(info *** Please install it. For example, run this in chroot:) \
+	  $(info ***) \
+	  $(info ***   sudo emerge closure-library) \
+	  $(info ***) \
+	  $(error Terminating))
+
+$(OUTPUT_JS): $(JS_SOURCE_PATHS) | check_deps
+	$(call func-check-closure)
 	mkdir -p "$(shell dirname "$@")"
 	# For now, we just use the compiler (--output_mode=compiled) to check
 	# the correctness of our code, and we actually deploy the version that
@@ -65,7 +65,7 @@ $(OUTPUT_JS): $(JS_SOURCE_PATHS)
 	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null
 	$(CLOSURE_BUILD) --output_mode=script --output_file=$@
 
-$(OUTPUT_CSS): $(CSS_SOURCE_PATHS)
+$(OUTPUT_CSS): $(CSS_SOURCE_PATHS) | check_deps
 	# Replace all references to URLs with resources in this project.
 	mkdir -p "$(shell dirname "$@")"
 	sed -re 's"//ssl\.gstatic\.com/(closure|editor)"/images"g' $^ >$@
