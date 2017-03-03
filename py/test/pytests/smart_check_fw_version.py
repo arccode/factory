@@ -1,4 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,6 +14,7 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -46,17 +46,12 @@ class SMARTCheckFWVersionTest(unittest.TestCase):
 
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
-    template.SetTitle(test_ui.MakeLabel(
-        'SSD Firmware Version Incorrect',
-        'SSD 韧体版本不对'))
+    template.SetTitle(
+        i18n_test_ui.MakeI18nLabel('SSD Firmware Version Incorrect'))
     template.SetState(
         '<div class=test-status-failed style="font-size: 150%">' +
-        test_ui.MakeLabel(
-            'The SSD firmware version (%s) is incorrect. '
-            '<br>Please run the SSD firmware update tool.' %
-            test_ui.Escape(fw_version),
-            'SSD 韧体版（%s）版本不对。'
-            '<br>必须更新 SSD 韧体并重新安装工厂测试软件。' %
-            test_ui.Escape(fw_version)) +
-        '</div>')
+        i18n_test_ui.MakeI18nLabel(
+            'The SSD firmware version ({fw_version}) is incorrect. '
+            '<br>Please run the SSD firmware update tool.',
+            fw_version=test_ui.Escape(fw_version)) + '</div>')
     ui.Run()  # Forever

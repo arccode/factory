@@ -1,6 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -12,6 +10,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import updater
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -67,9 +66,8 @@ class SyncShopfloor(unittest.TestCase):
         return has_update
 
       while True:
-        template.SetState(test_ui.MakeLabel(
-            'Contacting shopfloor server...',
-            '正在与shopfloor server连线...'))
+        template.SetState(
+            i18n_test_ui.MakeI18nLabel('Contacting shopfloor server...'))
         shopfloor_url = shopfloor.get_server_url()
         if shopfloor_url:
           template.SetState('<br>' + shopfloor_url, append=True)
@@ -90,12 +88,9 @@ class SyncShopfloor(unittest.TestCase):
             return
           else:
             # Display message and require update.
-            template.SetState(test_ui.MakeLabel(
-                'A software update is available. '
-                'Press SPACE to update.',
-
-                u'有可用的更新。'
-                u'按空白键更新。'))
+            template.SetState(
+                i18n_test_ui.MakeI18nLabel('A software update is available. '
+                                           'Press SPACE to update.'))
 
             # Note that updateFactory() will kill this test.
             ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
@@ -107,21 +102,17 @@ class SyncShopfloor(unittest.TestCase):
           logging.error('Unable to sync with shopfloor server: %s',
                         exception_string)
 
+        msg = lambda time_left: i18n_test_ui.MakeI18nLabel(
+            'Unable to contact shopfloor server.'
+            ' Will try again in {time_left} seconds.', time_left=time_left)
         template.SetState(
-            test_ui.MakeLabel(
-                ('Unable to contact shopfloor server. '
-                 'Will try again in '),
-                '无法连线到 shopfloor server。') +
-            ('<span id="retry">%d</span>' % retry_secs) +
-            test_ui.MakeLabel(
-                ' seconds.',
-                '秒后自动重试。') +
-            '<div class=sync-detail>' +
-            test_ui.Escape(exception_string) + '</div>')
+            '<span id="retry">' + msg(retry_secs) + '</span>'
+            + '<div class=sync-detail>'
+            + test_ui.Escape(exception_string) + '</div>')
 
         for i in xrange(retry_secs):
           time.sleep(1)
-          ui.SetHTML(str(retry_secs - i - 1), id='retry')
+          ui.SetHTML(msg(retry_secs - i - 1), id='retry')
 
         retry_secs = min(2 * retry_secs, self.args.retry_secs)
 

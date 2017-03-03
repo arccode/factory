@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -26,34 +24,28 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = test_ui.MakeLabel('RMA Factory WiFi RF Test')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('RMA Factory WiFi RF Test')
 
-TestRow = collections.namedtuple('TestRow', 'en_label zh_label freq antenna db')
+TestRow = collections.namedtuple('TestRow', 'freq antenna db')
 _SUBTESTS = []
-_SUBTESTS.append(TestRow(
-    '2.4GHz Antenna 1.', '2.4GHz 天线 1.', '2.4', '1', -65))
-_SUBTESTS.append(TestRow(
-    '2.4GHz Antenna 2.', '2.4GHz 天线 2.', '2.4', '2', -62))
-_SUBTESTS.append(TestRow(
-    '5.5GHz Antenna 1.', '5.5GHz 天线 1.', '5.5', '1', -68))
-_SUBTESTS.append(TestRow(
-    '5.5GHz Antenna 2.', '5.5GHz 天线 2.', '5.5', '2', -57))
+_SUBTESTS.append(TestRow('2.4', '1', -65))
+_SUBTESTS.append(TestRow('2.4', '2', -62))
+_SUBTESTS.append(TestRow('5.5', '1', -68))
+_SUBTESTS.append(TestRow('5.5', '2', -57))
 
 
-_MSG_INSTRUCTION = test_ui.MakeLabel(
-    'WiFi RF Chamber Testing.', u'WiFi RF 测试')
+_MSG_INSTRUCTION = i18n_test_ui.MakeI18nLabel('WiFi RF Chamber Testing.')
 
-_MSG_CHAMBER_REMOVE = test_ui.MakeLabel(
-    'Remove device from chamber. Press SPACE when re-attached to network.',
-    u'将装置从测试箱取出，重新连接网路后按下空白键')
+_MSG_CHAMBER_REMOVE = i18n_test_ui.MakeI18nLabel(
+    'Remove device from chamber. Press SPACE when re-attached to network.')
 
-_MSG_READY_CLOSE = test_ui.MakeLabel(
-    'Place device in WiFi chamber. When ready to close chamber, press SPACE.',
-    u'将设备放置在WiFi室。当您准备关闭室，按空白键。')
+_MSG_READY_CLOSE = i18n_test_ui.MakeI18nLabel(
+    'Place device in WiFi chamber. When ready to close chamber, press SPACE.')
 
 # Here's a command line that can be used to find the USB-serial dongle
 #_CMD_FINDTTY = '/usr/bin/find /sys/bus/usb/drivers/pl2303/2-1.2\:1.0/ '\
@@ -218,8 +210,8 @@ class Wifi_RF(unittest.TestCase):
     """
     # Delay to let operator close RF Chamber door after hitting SPACE key.
     for i in range(5, 0, -1):
-      self._template.SetState(test_ui.MakeLabel(
-          'Countdown', '倒计时') + ': %d ' % i)
+      self._template.SetState(
+          i18n_test_ui.MakeI18nLabel('Countdown') + ': %d ' % i)
       time.sleep(1)
 
     # Have serial port initialization here because the USB-serial dongle

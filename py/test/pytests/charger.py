@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,12 +17,14 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = test_ui.MakeLabel('Charger Test', u'充電放電測試')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Charger Test')
 
 
 def _REGULATE_CHARGE_TEXT(charge, target, timeout, load,
@@ -43,15 +43,15 @@ def _REGULATE_CHARGE_TEXT(charge, target, timeout, load,
     A html label to show in test ui.
   """
   unit = '%' if use_percentage else 'mAh'
-  return test_ui.MakeLabel(
-      ('Discharging' if charge > target else 'Charging') +
-      ' to %.2f%s (Current charge: %.2f%s, battery current: %d mA) under load '
-      '%d.<br>Time remaining: %d sec.' %
-      (target, unit, charge, unit, battery_current, load, timeout),
-      (u'放電' if charge > target else u'充電') +
-      u'至 %.2f%s (目前電量為 %.2f%s, 電池電流 %d mA)'
-      u'負載 %d.<br>剩餘時間: %d 秒.' %
-      (target, unit, charge, unit, battery_current, load, timeout))
+  action = _('Discharging') if charge > target else _('Charging')
+  return i18n_test_ui.MakeI18nLabel(
+      '{action} to {target:.2f}{unit} '
+      '(Current charge: {charge:.2f}{unit},'
+      ' battery current: {battery_current} mA)'
+      ' under load {load}.<br>'
+      'Time remaining: {timeout} sec.',
+      action=action, target=target, unit=unit, charge=charge,
+      battery_current=battery_current, load=load, timeout=timeout)
 
 
 def _MEET_TEXT(target, use_percentage):
@@ -65,11 +65,12 @@ def _MEET_TEXT(target, use_percentage):
     A html label to show in test ui.
   """
   unit = '%' if use_percentage else 'mAh'
-  return test_ui.MakeLabel('OK! Meet %.2f%s' % (target, unit),
-                           u'OK! 達到 %.2f%s' % (target, unit))
+  return i18n_test_ui.MakeI18nLabel(
+      'OK! Meet {target:.2f}{unit}', target=target, unit=unit)
 
-_CHARGE_TEXT = test_ui.MakeLabel('Testing charger', u'測試充電中')
-_DISCHARGE_TEXT = test_ui.MakeLabel('Testing discharge', u'測試放電中')
+
+_CHARGE_TEXT = i18n_test_ui.MakeI18nLabel('Testing charger')
+_DISCHARGE_TEXT = i18n_test_ui.MakeI18nLabel('Testing discharge')
 
 Spec = namedtuple('Spec', 'charge_change timeout_secs load')
 

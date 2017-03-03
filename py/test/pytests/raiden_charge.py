@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -21,6 +19,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
@@ -29,18 +28,15 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
-_TEST_TITLE = test_ui.MakeLabel('Raiden Charging Test', u'Raiden 充电测试')
-_TESTING_ADB_CONNECTION = test_ui.MakeLabel(
-    'Waiting for ADB device connection...',
-    u'等待机器连线...')
-_TESTING_PROTECT = test_ui.MakeLabel(
-    'Checking Plankton INA current for protection...',
-    u'检查电流保护...')
-_TESTING_CHARGE = lambda v: test_ui.MakeLabel(
-    'Testing battery %dV charging...' % v,
-    u'测试电池 %dV 充电中...' % v)
-_TESTING_DISCHARGE = test_ui.MakeLabel('Testing battery discharging...',
-                                       u'测试电池放电中...')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Raiden Charging Test')
+_TESTING_ADB_CONNECTION = i18n_test_ui.MakeI18nLabel(
+    'Waiting for ADB device connection...')
+_TESTING_PROTECT = i18n_test_ui.MakeI18nLabel(
+    'Checking Plankton INA current for protection...')
+_TESTING_CHARGE = lambda voltage: i18n_test_ui.MakeI18nLabel(
+    'Testing battery {voltage}V charging...', voltage=voltage)
+_TESTING_DISCHARGE = i18n_test_ui.MakeI18nLabel(
+    'Testing battery discharging...')
 _CSS = 'body { font-size: 2em; }'
 
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -22,6 +20,7 @@ from PIL import ImageDraw
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -180,7 +179,7 @@ class ChameleonDisplayTest(unittest.TestCase):
                     ('whether to load the reference pattern image; True to '
                      'load the test image in a Chrome window on the external '
                      'display, which may have timing issue to the test caused '
-                     'by Chrome\'s pop-up messages'), default=False),
+                     "by Chrome's pop-up messages"), default=False),
       arg_utils.Arg('ignore_regions', list,
                     ('a list of regions to ignore when comparing captured '
                      'images; each element of the list must be a (x, y, width, '
@@ -204,8 +203,8 @@ class ChameleonDisplayTest(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI(css=DEFAULT_CSS)
     self.ui_template = ui_templates.OneSection(self.ui)
-    self.ui_template.SetTitle(test_ui.MakeLabel(
-        'Automated External Display Test', zh=u'自动外接显示测试'))
+    self.ui_template.SetTitle(
+        i18n_test_ui.MakeI18nLabel('Automated External Display Test'))
     self.chameleon = Chameleon(
         self.args.chameleon_host, self.args.chameleon_port)
     self.goofy_rpc = state.get_instance()
@@ -259,9 +258,8 @@ class ChameleonDisplayTest(unittest.TestCase):
         logging.error('Unable to determine the external display to test.')
         self.fail('Please unplug the display to test.')
     elif len(display_info) == 1:
-      self.ui_template.SetState(test_ui.MakeLabel(
-          'Please plug in the display to test',
-          zh=u'请插上待测屏'))
+      self.ui_template.SetState(
+          i18n_test_ui.MakeI18nLabel('Please plug in the display to test'))
       logging.info('Checking %s physical port on Chameleon...', chameleon_port)
       sync_utils.WaitFor(
           lambda: self.chameleon.IsPhysicallyPlugged(chameleon_port),
@@ -365,11 +363,12 @@ class ChameleonDisplayTest(unittest.TestCase):
     logging.info(
         ('Testing DUT %s port on Chameleon %s port using mode %s...'),
         dut_port, chameleon_port, mode)
-    self.ui_template.SetState(test_ui.MakeLabel(
-        'Testing DUT %s port on Chameleon %s port using mode %s...' %
-        (dut_port, chameleon_port, mode),
-        zh=u'测试 DUT %s 对 Chameleon %s 外接显示 mode: %s...' %
-        (dut_port, chameleon_port, mode)))
+    self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+        'Testing DUT {dut_port} port on Chameleon {chameleon_port} port'
+        ' using mode {mode}...',
+        dut_port=dut_port,
+        chameleon_port=chameleon_port,
+        mode=mode))
 
     if not mode in EDIDS[chameleon_port]:
       self.fail('Invalid mode for %s: %s' % (chameleon_port, mode))
@@ -380,11 +379,10 @@ class ChameleonDisplayTest(unittest.TestCase):
     with self.chameleon.PortEdid(chameleon_port, edid):
       original_display, external_display = self.ProbeDisplay(chameleon_port)
 
-      self.ui_template.SetState(test_ui.MakeLabel(
-          'Automated testing on %s to %s in progress...' %
-          (dut_port, chameleon_port),
-          zh=u'%s 对 %s 自动测试进行中...' %
-          (dut_port, chameleon_port)))
+      self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+          'Automated testing on {dut_port} to {chameleon_port} in progress...',
+          dut_port=dut_port,
+          chameleon_port=chameleon_port))
 
       if self.args.load_test_image:
         with self.NewWindow(
@@ -413,10 +411,9 @@ class ChameleonDisplayTest(unittest.TestCase):
     pixel_diff_margin = 1 if self.args.downscale_to_tv_level else 0
     if sum(histogram[pixel_diff_margin + 1:]) > 0:
       self.ui_template.SetState(
-          test_ui.MakeLabel(
-              'Captured images mismatch', zh=u'撷取的图片不相符') +
-          ('</br></br>'
-           '<image src="%s" width=%d height=%d></image>') %
+          i18n_test_ui.MakeI18nLabel('Captured images mismatch') +
+          '<br><br>' +
+          '<image src="%s" width=%d height=%d></image>' %
           (self.ui.URLForFile(self.DIFF_IMAGE_PATH),
            original_display['workArea']['width'] * self.UI_IMAGE_RESIZE_RATIO,
            original_display['workArea']['height'] * self.UI_IMAGE_RESIZE_RATIO))

@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """A factory test for basic ethernet connectivity."""
 
-import re
 import logging
+import re
 import time
 import unittest
 
@@ -15,17 +13,15 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 
-_MSG_ETHERNET_INFO = test_ui.MakeLabel(
+_MSG_ETHERNET_INFO = i18n_test_ui.MakeI18nLabelWithClass(
     'Please plug ethernet cable into built-in ethernet port<br>'
-    'Press space to start.',
-    zh='请插入网路线到内建网路埠<br>'
-    '压下空白键开始测试',
-    css_class='ethernet-test-info')
+    'Press space to start.', 'ethernet-test-info')
 
 _HTML_ETHERNET = """
 <table style="width: 70%%; margin: auto;">

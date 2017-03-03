@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -31,6 +29,7 @@ from cros.factory.goofy import goofy
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
@@ -54,32 +53,29 @@ _REMOVE_ETHERNET_TIMEOUT_SECS = 30  # Timeout for inserting dongle.
 _FIXTURE_PARAMETERS = ['audio/audio_md5', 'audio/audio.zip']
 
 # Label strings.
-_LABEL_SPACE_TO_START = test_ui.MakeLabel(
-    'Press \'Space\' to start test', u'按空白键开始测试')
-_LABEL_CONNECTED = test_ui.MakeLabel('Connected', u'已连线')
-_LABEL_WAITING = test_ui.MakeLabel('Waiting for command', u'等待指令中')
-_LABEL_AUDIOLOOP = test_ui.MakeLabel('Audio looping', u'音源回放中')
-_LABEL_SPEAKER_MUTE_OFF = test_ui.MakeLabel('Speaker on', u'喇叭开启')
-_LABEL_DMIC_ON = test_ui.MakeLabel('LCD Dmic on', u'LCD mic开启')
-_LABEL_MLBDMIC_ON = test_ui.MakeLabel('MLB Dmic on', u'MLB mic开启')
-_LABEL_PLAYTONE_LEFT = test_ui.MakeLabel(
-    'Playing tone to left channel', u'播音至左声道')
-_LABEL_PLAYTONE_RIGHT = test_ui.MakeLabel(
-    'Playing tone to right channel', u'播音至右声道')
-_LABEL_WAITING_IP = test_ui.MakeLabel(
-    'Waiting for IP address', u'等待 IP 设定')
-_LABEL_CONNECT_SHOPFLOOR = test_ui.MakeLabel(
-    'Connecting to ShopFloor...', u'连接到 ShopFloor 中...')
-_LABEL_DOWNLOADING_PARAMETERS = test_ui.MakeLabel(
-    'Downloading parameters', u'下载测试规格中')
-_LABEL_REMOVE_ETHERNET = test_ui.MakeLabel(
-    'Remove Ethernet connectivity', u'移除网路介面卡')
-_LABEL_WAITING_ETHERNET = test_ui.MakeLabel(
-    'Waiting for Ethernet connectivity to audio fixture',
-    u'等待网路介面卡连接到 audio 置具')
-_LABEL_READY = test_ui.MakeLabel(
-    'Ready for connection', u'準备完成,等待链接')
-_LABEL_UPLOAD_AUXLOG = test_ui.MakeLabel('Upload log', u'上传记录档')
+_LABEL_SPACE_TO_START = i18n_test_ui.MakeI18nLabel(
+    "Press 'Space' to start test")
+_LABEL_CONNECTED = i18n_test_ui.MakeI18nLabel('Connected')
+_LABEL_WAITING = i18n_test_ui.MakeI18nLabel('Waiting for command')
+_LABEL_AUDIOLOOP = i18n_test_ui.MakeI18nLabel('Audio looping')
+_LABEL_SPEAKER_MUTE_OFF = i18n_test_ui.MakeI18nLabel('Speaker on')
+_LABEL_DMIC_ON = i18n_test_ui.MakeI18nLabel('LCD Dmic on')
+_LABEL_MLBDMIC_ON = i18n_test_ui.MakeI18nLabel('MLB Dmic on')
+_LABEL_PLAYTONE_LEFT = i18n_test_ui.MakeI18nLabel(
+    'Playing tone to left channel')
+_LABEL_PLAYTONE_RIGHT = i18n_test_ui.MakeI18nLabel(
+    'Playing tone to right channel')
+_LABEL_WAITING_IP = i18n_test_ui.MakeI18nLabel('Waiting for IP address')
+_LABEL_CONNECT_SHOPFLOOR = i18n_test_ui.MakeI18nLabel(
+    'Connecting to ShopFloor...')
+_LABEL_DOWNLOADING_PARAMETERS = i18n_test_ui.MakeI18nLabel(
+    'Downloading parameters')
+_LABEL_REMOVE_ETHERNET = i18n_test_ui.MakeI18nLabel(
+    'Remove Ethernet connectivity')
+_LABEL_WAITING_ETHERNET = i18n_test_ui.MakeI18nLabel(
+    'Waiting for Ethernet connectivity to audio fixture')
+_LABEL_READY = i18n_test_ui.MakeI18nLabel('Ready for connection')
+_LABEL_UPLOAD_AUXLOG = i18n_test_ui.MakeI18nLabel('Upload log')
 _LABEL_FAIL_LOGS = 'Test fail, find more detail in log.'
 
 # Regular expression to match external commands.

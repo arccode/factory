@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -27,6 +26,9 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -63,12 +65,9 @@ _CSS_DISPLAY = """
   border: 1px solid gray;}
 """
 
-_PROMPT = test_ui.MakeLabel(
+_PROMPT = i18n_test_ui.MakeI18nLabel(
     'Press space to show each image on display<br>'
-    'Press Enter to PASS after showing all images',
-    u'按空白键来拨放影像在萤幕上<br>'
-    u'拨放完所有影像后,压下Enter表示成功'
-)
+    'Press Enter to PASS after showing all images')
 
 
 def GetUploadMsg(name, index, total):
@@ -79,8 +78,11 @@ def GetUploadMsg(name, index, total):
     index: the current index of the file.
     total: total files for uploading.
   """
-  return test_ui.MakeLabel('(%d/%d)Uploading images %s' % (index, total, name),
-                           u'(%d/%d)正在上传图档 %s' % (index, total, name))
+  return i18n_test_ui.MakeI18nLabel(
+      '({index}/{total})Uploading images {name}',
+      index=index,
+      total=total,
+      name=name)
 
 
 def GetThumbImageTableTag(paths):
@@ -116,14 +118,16 @@ class DisplayImageTest(unittest.TestCase):
     _can_pass: check if operator checks all images.
   """
   ARGS = [
-      Arg('title', tuple, 'Label Title of the test (en, zh)',
-          ('Display', u'显示测试')),
+      i18n_arg_utils.I18nArg(
+          'title', 'Label Title of the test',
+          default=_('Display Test'), accept_tuple=True),
       Arg('compressed_image_file', str, 'Compressed image file name.',
           default=_DEFAULT_IMAGE_FILE)
   ]
 
   def setUp(self):
     """Initializes frontend presentation and properties."""
+    i18n_arg_utils.ParseArg(self, 'title')
     self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
@@ -131,7 +135,7 @@ class DisplayImageTest(unittest.TestCase):
     self._ui.AppendCSS(_CSS_DISPLAY)
     self._template.SetState(_HTML_DISPLAY)
     self._ui.SetHTML(
-        test_ui.MakeLabel(self.args.title[0], self.args.title[1]),
+        i18n_test_ui.MakeI18nLabel(self.args.title),
         id='display_title')
     self._ui.SetHTML(_PROMPT, id='prompt')
     self._dut_temp_dir = self._dut.temp.mktemp(True, '', 'display')

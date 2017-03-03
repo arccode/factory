@@ -1,4 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,6 +18,7 @@ import xmlrpclib
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import privacy
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -126,16 +126,11 @@ class CallShopfloor(unittest.TestCase):
 
       def HandleError(trace):
         template.SetState(
-            test_ui.MakeLabel('Shop floor exception:',
-                              'Shop floor 错误:',
-                              'test-status-failed large') +
-            '<p>' +
-            test_ui.Escape(trace) +
-            '<p><br>' +
-            """<button onclick="test.sendTestEvent('retry')">""" +
-            test_ui.MakeLabel('Retry', '重试') +
-            '</button>'
-        )
+            i18n_test_ui.MakeI18nLabelWithClass(
+                'Shop floor exception:',
+                'test-status-failed large') + '<p>' + test_ui.Escape(trace) +
+            '<p><br>' + """<button onclick="test.sendTestEvent('retry')">""" +
+            i18n_test_ui.MakeI18nLabel('Retry') + '</button>')
         process_utils.WaitEvent(self.event)
         self.event.clear()
 

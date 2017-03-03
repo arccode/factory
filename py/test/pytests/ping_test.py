@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -18,7 +16,6 @@ Usage examples::
     # Checks the successful pings are >= 60% at the end of the test.
     OperatorTest(
         id='ping_test',
-        label_zh=u'连线测试',
         pytest_name='ping_test',
         dargs={'host': '192.168.0.1',
                'interval_secs': 10,
@@ -31,7 +28,6 @@ Usage examples::
     # are >= 60% overall.
     OperatorTest(
         id='ping_test',
-        label_zh=u'连线测试',
         pytest_name='ping_test',
         dargs={'host': '192.168.0.1',
                'interval_secs': 10,
@@ -47,13 +43,14 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils
 
-_TEST_TITLE = test_ui.MakeLabel('Ping test', u'连线测试')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Ping test')
 _CSS = '#state {text-align:left;}'
 
 

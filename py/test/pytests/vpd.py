@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -34,6 +32,9 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import factory_task
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.l10n import regions
 from cros.factory.test.rules import branding
 from cros.factory.test.rules import registration_codes
@@ -44,37 +45,31 @@ from cros.factory.tools import build_board
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
 
-_MSG_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
-    'Fetching VPD from shop floor server...',
-    u'从 Shop Floor 服务器抓取 VPD 中...',
-    'vpd-info')
-_MSG_WRITING = test_ui.MakeLabel(
-    'Writing VPD:</br>',
-    u'写入 VPD:</br>',
-    'vpd-info')
-_MSG_SELECT_REGION = test_ui.MakeLabel(
-    'Select region:</br>', u'选择区域代码:</br>', 'vpd-info')
-_MSG_HOW_TO_SELECT = test_ui.MakeLabel(
-    '</br>Select with ENTER', u'</br>按 ENTER 选择', 'vpd-info')
+_MSG_FETCH_FROM_SHOP_FLOOR = i18n_test_ui.MakeI18nLabelWithClass(
+    'Fetching VPD from shop floor server...', 'vpd-info')
+_MSG_WRITING = i18n_test_ui.MakeI18nLabelWithClass(
+    'Writing VPD:<br>', 'vpd-info')
+_MSG_SELECT_REGION = i18n_test_ui.MakeI18nLabelWithClass(
+    'Select region:<br>', 'vpd-info')
+_MSG_HOW_TO_SELECT = i18n_test_ui.MakeI18nLabelWithClass(
+    '<br>Select with ENTER', 'vpd-info')
+_MSG_MANUAL_INPUT_PROMPT = lambda vpd_label: (
+    i18n_test_ui.MakeI18nLabelWithClass(
+        'Enter {vpd_label}: ', 'vpd-info', vpd_label=vpd_label))
+_MSG_MANUAL_SELECT_PROMPT = lambda vpd_label: (
+    i18n_test_ui.MakeI18nLabelWithClass(
+        'Select {vpd_label}: <br>', 'vpd-info', vpd_label=vpd_label))
 # The "ESC" is available primarily for RMA and testing process, when operator
 # does not want to change existing serial number.
-_MSG_MANUAL_INPUT_PROMPT = lambda en, zh: test_ui.MakeLabel(
-    'Enter %s: ' % en, u'输入%s: ' % zh, 'vpd-info')
-_MSG_MANUAL_SELECT_PROMPT = lambda en, zh: test_ui.MakeLabel(
-    'Select %s: </br>' % en, u'选择%s: </br>' % zh, 'vpd-info')
-_MSG_ESC_TO_SKIP = lambda en, zh: test_ui.MakeLabel(
-    '</br>(ESC to re-use current machine %s)' % en,
-    u'</br>(ESC 使用目前已写入机器的%s)' % zh,
-    'vpd-info')
+_MSG_ESC_TO_SKIP = lambda vpd_label: i18n_test_ui.MakeI18nLabelWithClass(
+    '<br>(ESC to re-use current machine {vpd_label})',
+    'vpd-info', vpd_label=vpd_label)
 
-_ERR_NO_VALID_VPD = lambda en, zh: test_ui.MakeLabel(
-    'Found no valid %s on machine.' % en,
-    u'机器上并无合法的%s' % zh,
-    'vpd-info test-error')
-_ERR_INPUT_INVALID = lambda en, zh: test_ui.MakeLabel(
-    'Invalid %s value.' % en,
-    u'输入的%s不合法' % zh,
-    'vpd-info test-error')
+_ERR_NO_VALID_VPD = lambda vpd_label: i18n_test_ui.MakeI18nLabelWithClass(
+    'Found no valid {vpd_label} on machine.',
+    'vpd-info test-error', vpd_label=vpd_label)
+_ERR_INPUT_INVALID = lambda vpd_label: i18n_test_ui.MakeI18nLabelWithClass(
+    'Invalid {vpd_label} value.', 'vpd-info test-error', vpd_label=vpd_label)
 
 _DEFAULT_VPD_TEST_CSS = '.vpd-info {font-size: 2em;}'
 
@@ -131,7 +126,7 @@ class WriteVPDTask(factory_task.FactoryTask):
 
     self.test.template.SetState(_MSG_WRITING)
     self.test.template.SetState('<div class="vpd-info">%s</div>' % (
-        '</br>'.join(vpd_list)), append=True)
+        '<br>'.join(vpd_list)), append=True)
 
     for vpd_type in self.test.vpd:
       partition = self.test.dut.vpd.GetPartition(vpd_type)
@@ -193,19 +188,14 @@ class ShopFloorVPDTask(factory_task.FactoryTask):
 class VPDInfo(object):
   """A class for checking all the manual input VPD fields."""
 
-  def __init__(self, region, key, label_en, label_zh, value_check):
+  def __init__(self, region, key, label, value_check):
     if region not in ['ro', 'rw']:
-      raise ValueError('VPD region must be either \'ro\' or \'rw\'.')
+      raise ValueError("VPD region must be either 'ro' or 'rw'.")
     self.region = region
     if not isinstance(key, str):
       raise TypeError('VPD id must be a string.')
     self.key = key
-    if not isinstance(label_en, (str, unicode)):
-      raise TypeError('VPD English label must be a string or unicode string.')
-    self.label_en = label_en
-    if not isinstance(label_zh, (str, unicode)):
-      raise TypeError('VPD Chinese label must be a string or unicode string.')
-    self.label_zh = label_zh
+    self.label = label
     if not isinstance(value_check, (list, str, type(None))):
       raise TypeError('VPD possible values must be a list of strings, '
                       'a regexp string, no None.')
@@ -252,8 +242,8 @@ class ManualInputTask(factory_task.FactoryTask):
     if vpd_value:
       if (isinstance(self.vpd_info.value_check, _REGEX_TYPE)) and (
           not self.vpd_info.value_check.match(vpd_value)):
-        self.test.ui.SetHTML(_ERR_INPUT_INVALID(
-            self.vpd_info.label_en, self.vpd_info.label_zh), id='errormsg')
+        self.test.ui.SetHTML(_ERR_INPUT_INVALID(self.vpd_info.label),
+                             id='errormsg')
         self.test.ui.SetSelected(self.vpd_info.key)
         return
       self.OnComplete(vpd_value)
@@ -262,8 +252,8 @@ class ManualInputTask(factory_task.FactoryTask):
     vpd_value = self.test.dut.vpd.GetPartition(
         self.vpd_info.region).get(self.vpd_info.key).strip()
     if not vpd_value:
-      self.test.ui.SetHTML(_ERR_NO_VALID_VPD(
-          self.vpd_info.label_en, self.vpd_info.label_zh), id='errormsg')
+      self.test.ui.SetHTML(_ERR_NO_VALID_VPD(self.vpd_info.label),
+                           id='errormsg')
     else:
       self.OnComplete(None)
 
@@ -279,8 +269,7 @@ class ManualInputTask(factory_task.FactoryTask):
 
   def RenderSelectBox(self):
     vpd_event_subtype = _EVENT_SUBTYPE_VPD_PREFIX + self.vpd_info.key
-    self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(
-        self.vpd_info.label_en, self.vpd_info.label_zh))
+    self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(self.vpd_info.label))
     select_box = ui_templates.SelectBox(self.vpd_info.key, _SELECTION_PER_PAGE,
                                         _SELECT_BOX_STYLE)
     for index, value in enumerate(self.vpd_info.value_check):
@@ -295,11 +284,9 @@ class ManualInputTask(factory_task.FactoryTask):
 
   def RenderInputBox(self):
     vpd_event_subtype = _EVENT_SUBTYPE_VPD_PREFIX + self.vpd_info.key
-    self.test.template.SetState(_MSG_MANUAL_INPUT_PROMPT(
-        self.vpd_info.label_en, self.vpd_info.label_zh))
+    self.test.template.SetState(_MSG_MANUAL_INPUT_PROMPT(self.vpd_info.label))
     self._AppendState(_HTML_MANUAL_INPUT(self.vpd_info.key))
-    self._AppendState(_MSG_ESC_TO_SKIP(self.vpd_info.label_en,
-                                       self.vpd_info.label_zh))
+    self._AppendState(_MSG_ESC_TO_SKIP(self.vpd_info.label))
     self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_MANUAL_INPUT(
         self.vpd_info.key, vpd_event_subtype))
     self.test.ui.AddEventHandler(vpd_event_subtype, self.OnEnterPressed)
@@ -386,7 +373,8 @@ class SelectBrandingTask(factory_task.FactoryTask):
     value = self.desc_value_dict[desc]
     # Check the format.
     if not self.regexp.match(value):
-      self.test.template.SetState(_ERR_INPUT_INVALID(self.key, self.key))
+      self.test.template.SetState(
+          _ERR_INPUT_INVALID(i18n.NoTranslation(self.key)))
       self.Fail('Bad format for %s %r (expected it to match regexp %r)' % (
           self.key, value, self.regexp.pattern))
     else:
@@ -395,8 +383,8 @@ class SelectBrandingTask(factory_task.FactoryTask):
 
   def RenderPage(self):
     vpd_event_subtype = _EVENT_SUBTYPE_VPD_PREFIX + self.key
-    self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(
-        self.key, self.key))
+    self.test.template.SetState(
+        _MSG_MANUAL_SELECT_PROMPT(i18n.NoTranslation(self.key)))
     select_box = ui_templates.SelectBox(
         self.key, _SELECTION_PER_PAGE, _SELECT_BOX_STYLE)
     for index, description in enumerate(self.branding_list):
@@ -450,14 +438,15 @@ class VPDTest(unittest.TestCase):
           'value from key should be added to the ro or rw VPD.  This option '
           'only applies if use_shopfloor_device_data is True.', default=[]),
       Arg('manual_input_fields', list,
-          'A list of tuples (vpd_region, key, en_display_name, '
-          'zh_display_name, VALUE_CHECK) indicating the VPD fields that need '
-          'to be manually entered.\nVALUE_CHECK can be a list of strings, a '
-          'regexp string, or None. If VALUE_CHECK is None or a regexp string '
-          'then a text input box will show up to let user input value. The '
-          'entered value will be validated if VALUE_CHECK is a regexp string. '
-          'Otherwise a select box containing all the possible values will be '
-          'used to let user select a value from it.',
+          'A list of tuples (vpd_region, key, display_name, VALUE_CHECK) or '
+          '(vpd_region, key, en_display_name, zh_display_name, VALUE_CHECK) '
+          'indicating the VPD fields that need to be manually entered.\n'
+          'VALUE_CHECK can be a list of strings, a regexp string, or None. '
+          'If VALUE_CHECK is None or a regexp string then a text input box '
+          'will show up to let user input value. The entered value will be '
+          'validated if VALUE_CHECK is a regexp string. Otherwise a select box '
+          'containing all the possible values will be used to let user select '
+          'a value from it.',
           default=[], optional=True),
       Arg('rlz_brand_code', (str, dict),
           'RLZ brand code to write to RO VPD.  This may be any of:\n'
@@ -542,22 +531,28 @@ class VPDTest(unittest.TestCase):
       self.assertIn(i[0], ['ro', 'rw'])
 
     if not (self.args.override_vpd and self.ui.InEngineeringMode()):
+      manual_input_fields = []
+      for v in self.args.manual_input_fields:
+        if len(v) == 5:
+          # TODO(pihsun): This is to maintain backward compatibility. Should be
+          #               removed after test lists are migrated to new format.
+          v = (v[0], v[1], {'en-US': v[2], 'zh-CN': v[3]}, v[4])
+        v = (v[0], v[1], i18n.Translated(v[2], translate=False), v[3])
+        manual_input_fields.append(v)
       if shopfloor.is_enabled():
         # Grab from ShopFloor, then input manual fields (if any).
         if self.args.use_shopfloor_device_data:
           self._ReadShopFloorDeviceData()
         else:
           self.tasks += [ShopFloorVPDTask(self)]
-        for v in self.args.manual_input_fields:
-          self.tasks += [ManualInputTask(
-              self, VPDInfo(v[0], v[1], v[2], v[3], v[4]))]
+        for v in manual_input_fields:
+          self.tasks += [ManualInputTask(self, VPDInfo(*v))]
       else:
         if self.VPDTasks.serial in self.args.task_list:
-          self.args.manual_input_fields.insert(
-              0, ('ro', 'serial_number', 'Serial Number', u'序号', None))
-        for v in self.args.manual_input_fields:
-          self.tasks += [ManualInputTask(
-              self, VPDInfo(v[0], v[1], v[2], v[3], v[4]))]
+          manual_input_fields.insert(
+              0, ('ro', 'serial_number', _('Serial Number'), None))
+        for v in manual_input_fields:
+          self.tasks += [ManualInputTask(self, VPDInfo(*v))]
         if self.VPDTasks.region in self.args.task_list:
           self.tasks += [SelectRegionTask(self)]
       if self.args.override_vpd_entries:

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -30,6 +28,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -39,86 +38,60 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
-_TEST_TITLE = test_ui.MakeLabel('Bluetooth functional Test', u'蓝牙功能测试')
-_MSG_DETECT_ADAPTER = test_ui.MakeLabel(
-    'Detect bluetooth adapter', u'检测蓝牙适配器')
-_MSG_TURN_ON_DEVICE = test_ui.MakeLabel(
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Bluetooth functional Test')
+_MSG_DETECT_ADAPTER = i18n_test_ui.MakeI18nLabel('Detect bluetooth adapter')
+_MSG_TURN_ON_DEVICE = i18n_test_ui.MakeI18nLabelWithClass(
     'Enable the connection ability of bluetooth device and press Enter',
-    u'启用蓝牙装置的连接功能然后按输入键',
     'start-font-size')
-_MSG_INTO_FIXTURE = test_ui.MakeLabel(
+_MSG_INTO_FIXTURE = i18n_test_ui.MakeI18nLabelWithClass(
     'Place the base into the fixture, '
-    'and press the space key on the test host.',
-    u'请把测试键盘放入测试机具中,然後按下电脑的 space 键',
+    'and press the space key on the test host.', 'start-font-size')
+_MSG_RESET_MAGNET = i18n_test_ui.MakeI18nLabelWithClass(
+    'Please re-attach the magnet, and press the space key on the test host.',
     'start-font-size')
-_MSG_RESET_MAGNET = test_ui.MakeLabel(
-    'Please re-attach the magnet.',
-    u'请重新連結磁鐵,然後按下电脑的 space 键',
-    'start-font-size')
-_MSG_START_CHARGE = test_ui.MakeLabel(
+_MSG_START_CHARGE = i18n_test_ui.MakeI18nLabelWithClass(
     'Turn on charging by pressing the green button, '
     'take the keyboard out and put it back, '
-    'and press the space key on the test host.',
-    u'请按下绿色键开始充电, 然後取出再放回键盘, 最後按下电脑的 space 键',
-    'start-font-size')
-_MSG_READ_BATTERY_1 = test_ui.MakeLabel(
-    'Read battery level for the 1st time.',
-    u'第1次读取电池电量',
-    'start-font-size')
-_MSG_READ_BATTERY_2 = test_ui.MakeLabel(
-    'Read battery level for the 2nd time.',
-    u'第2次读取电池电量',
-    'start-font-size')
-_MSG_BATTERY_CHARGE_TEST = test_ui.MakeLabel(
+    'and press the space key on the test host.', 'start-font-size')
+_MSG_READ_BATTERY_1 = i18n_test_ui.MakeI18nLabelWithClass(
+    'Read battery level for the 1st time.', 'start-font-size')
+_MSG_READ_BATTERY_2 = i18n_test_ui.MakeI18nLabelWithClass(
+    'Read battery level for the 2nd time.', 'start-font-size')
+_MSG_BATTERY_CHARGE_TEST = i18n_test_ui.MakeI18nLabelWithClass(
     'Check if the battery has charged to a higher percentage',
-    u'检查充电之後电量是否增加',
     'start-font-size')
-_MSG_CHECK_BATTERY_LEVEL = test_ui.MakeLabel(
-    'Check battery level.',
-    u'检查电池电量',
-    'start-font-size')
-_MSG_STOP_CHARGE = test_ui.MakeLabel(
+_MSG_CHECK_BATTERY_LEVEL = i18n_test_ui.MakeI18nLabelWithClass(
+    'Check battery level.', 'start-font-size')
+_MSG_STOP_CHARGE = i18n_test_ui.MakeI18nLabelWithClass(
     'Press the green button again to stop charging, '
-    'and press the space key on the test host.',
-    u'请按下绿色键以停止充电,然後按下电脑的 space 键',
-    'start-font-size')
-_MSG_OUT_OF_FIXTURE = test_ui.MakeLabel(
+    'and press the space key on the test host.', 'start-font-size')
+_MSG_OUT_OF_FIXTURE = i18n_test_ui.MakeI18nLabelWithClass(
     'Take the base out of the fixture, '
-    'and press the space key on the test host.',
-    u'請把測試鍵盤取出,然後按下电脑的 space 键',
-    'start-font-size')
-_MSG_READ_FIRMWARE_REVISION_STRING = test_ui.MakeLabel(
-    'Read firmware revision string.',
-    u'读取键盘韧体版本',
-    'start-font-size')
-_MSG_SCAN_DEVICE = test_ui.MakeLabel(
-    'Scanning...', u'扫描中...', 'start-font-size')
-_RAW_MSG_DETECT_RSSI = ['Detect RSSI (count %d/%d)', u'侦测RSSI (第 %d/%d 次)',
-                        'start-font-size']
-_MSG_TURN_ON_INPUT_DEVICE = test_ui.MakeLabel(
+    'and press the space key on the test host.', 'start-font-size')
+_MSG_READ_FIRMWARE_REVISION_STRING = i18n_test_ui.MakeI18nLabelWithClass(
+    'Read firmware revision string.', 'start-font-size')
+_MSG_SCAN_DEVICE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Scanning...', 'start-font-size')
+_MSG_DETECT_RSSI = lambda count, total: (
+    i18n_test_ui.MakeI18nLabelWithClass(
+        'Detect RSSI (count {count}/{total})',
+        'start-font-size', count=count, total=total))
+_MSG_TURN_ON_INPUT_DEVICE = i18n_test_ui.MakeI18nLabelWithClass(
     'Enable the connection ability of input bluetooth device and press Enter',
-    u'启用蓝牙输入装置的连接功能然后按输入键',
     'start-font-size')
-_MSG_PAIR_INPUT_DEVICE = test_ui.MakeLabel(
-    'Pairing to input device now...',
-    u'配对到蓝牙输入设备...',
-    'start-font-size')
-_MSG_UNPAIR = test_ui.MakeLabel(
-    'Press shift-p-a-i-r simultaneously on the base.',
-    u'请在在测试键盘上同时按住 shift-p-a-i-r',
-    'start-font-size')
-_MSG_CONNECT_INPUT_DEVICE = test_ui.MakeLabel(
-    'Connecting to input device now...',
-    u'连接到蓝牙输入设备...',
-    'start-font-size')
-_MSG_TEST_INPUT = test_ui.MakeLabel(
+_MSG_PAIR_INPUT_DEVICE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Pairing to input device now...', 'start-font-size')
+_MSG_UNPAIR = i18n_test_ui.MakeI18nLabelWithClass(
+    'Press shift-p-a-i-r simultaneously on the base.', 'start-font-size')
+_MSG_CONNECT_INPUT_DEVICE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Connecting to input device now...', 'start-font-size')
+_MSG_TEST_INPUT = i18n_test_ui.MakeI18nLabelWithClass(
     'Please test input. Press Escape to fail and Enter to pass',
-    u'请测试输入, 如果失败, 请按Esc键，如果成功，请按Enter键',
     'start-font-size')
-_MSG_UNPAIRING = test_ui.MakeLabel('Unpairing', u'取消配对', 'start-font-size')
-_MSG_AUTH_FAILED = test_ui.MakeLabel(
-    'Authentication failed, retrying...',
-    u'验证失败，重试', 'start-font-size')
+_MSG_UNPAIRING = i18n_test_ui.MakeI18nLabelWithClass(
+    'Unpairing', 'start-font-size')
+_MSG_AUTH_FAILED = i18n_test_ui.MakeI18nLabelWithClass(
+    'Authentication failed, retrying...', 'start-font-size')
 
 
 INPUT_MAX_RETRY_TIMES = 10
@@ -148,10 +121,10 @@ def ColonizeMac(mac):
 
 def MakePasskeyLabelPrompt(passkey):
   """Creates a label prompting the operator to enter a passkey"""
-  return test_ui.MakeLabel(
-      'Enter passkey %s then press enter on the base.' % passkey,
-      u'按 %s 再按回车' % passkey,
-      'start-font-size')
+  return i18n_test_ui.MakeI18nLabelWithClass(
+      'Enter passkey {key} then press enter on the base.',
+      'start-font-size',
+      key=passkey)
 
 
 def CheckInputCount():
@@ -250,8 +223,8 @@ def RetryWithProgress(template, template_message, action_string,
   target_result = sync_utils.Retry(max_retry_times, retry_interval,
                                    _UpdateProgressBar, target, *args, **kwargs)
   template.SetProgressBarValue(100)
-  log_msg = ('%s was done.' if target_result else '%s failed.') % action_string
-  logging.info(log_msg)
+  log_msg = '%s was done.' if target_result else '%s failed.'
+  logging.info(log_msg, action_string)
   return target_result
 
 
@@ -533,8 +506,7 @@ class DetectRSSIofTargetMACTask(factory_task.FactoryTask):
 
     rssis = []
     for i in xrange(1, 1 + self._scan_counts):
-      label = test_ui.MakeLabel(*[m % (i, self._scan_counts) if '%' in m else m
-                                  for m in _RAW_MSG_DETECT_RSSI])
+      label = _MSG_DETECT_RSSI(i, self._scan_counts)
       self._test.template.SetState(label)
       self._scan_rssi_event.clear()
       self._progress_thread = SetAndStartScanProgressBar(self._test.template,
@@ -1169,8 +1141,8 @@ class BluetoothTest(unittest.TestCase):
     self._strongest_rssi_mac = None
     self.fixture = None
     if self.args.input_device_mac_key:
-      self._input_device_mac = \
-        ColonizeMac(factory.get_shared_data(self.args.input_device_mac_key))
+      self._input_device_mac = (
+          ColonizeMac(factory.get_shared_data(self.args.input_device_mac_key)))
     else:
       self._input_device_mac = self.args.input_device_mac
 

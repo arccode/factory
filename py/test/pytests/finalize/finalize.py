@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -30,6 +29,7 @@ from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import gooftools
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -41,30 +41,21 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-MSG_CHECKING = test_ui.MakeLabel(
-    'Checking system status for finalization...',
-    '正在检查系统是否已可执行最终程序...')
-MSG_NOT_READY = test_ui.MakeLabel(
+MSG_CHECKING = i18n_test_ui.MakeI18nLabel(
+    'Checking system status for finalization...')
+MSG_NOT_READY = i18n_test_ui.MakeI18nLabel(
     'System is not ready.<br>'
-    'Please fix RED tasks and then press SPACE.',
-    '系统尚未就绪。<br>'
-    '请修正红色项目后按空白键重新检查。')
-MSG_NOT_READY_POLLING = test_ui.MakeLabel(
-    'System is NOT ready. Please fix RED tasks.',
-    '系统尚未就绪。请修正红色项目。')
-MSG_FORCE = test_ui.MakeLabel(
-    'Press “f” to force starting finalization procedure.',
-    '按下 「f」 键以强迫开始最终程序。')
-MSG_READY = test_ui.MakeLabel(
-    'System is READY. Press SPACE to start FINALIZATION.',
-    '系统已準备就绪。 请按空白键开始最终程序!')
-MSG_FINALIZING = test_ui.MakeLabel(
+    'Please fix RED tasks and then press SPACE.')
+MSG_NOT_READY_POLLING = i18n_test_ui.MakeI18nLabel(
+    'System is NOT ready. Please fix RED tasks.')
+MSG_FORCE = i18n_test_ui.MakeI18nLabel(
+    'Press "f" to force starting finalization procedure.')
+MSG_READY = i18n_test_ui.MakeI18nLabel(
+    'System is READY. Press SPACE to start FINALIZATION.')
+MSG_FINALIZING = i18n_test_ui.MakeI18nLabel(
     'Finalizing, please wait.<br>'
     'Do not restart the device or terminate this test,<br>'
-    'or the device may become unusable.',
-    '正在开始最终程序，请稍等.<br>'
-    '不要重启机器或停止测试，<br>'
-    '不然机器将无法开机。')
+    'or the device may become unusable.')
 
 
 class Finalize(unittest.TestCase):
@@ -337,19 +328,16 @@ class Finalize(unittest.TestCase):
       return self._CallGoofTool('gooftool verify_switch_dev')
 
     items = [(CheckRequiredTests,
-              test_ui.MakeLabel('Verify all tests passed',
-                                '确认测试项目都已成功了')),
+              i18n_test_ui.MakeI18nLabel('Verify all tests passed')),
              (CheckDevSwitch,
-              test_ui.MakeLabel('Turn off Developer Switch',
-                                '停用开发者开关(DevSwitch)'))]
+              i18n_test_ui.MakeI18nLabel('Turn off Developer Switch'))]
 
     if self.args.write_protection:
       def CheckWriteProtect():
         return self._CallGoofTool('gooftool verify_switch_wp')
 
       items += [(CheckWriteProtect,
-                 test_ui.MakeLabel('Enable write protection pin',
-                                   '确认硬体写入保护已开启'))]
+                 i18n_test_ui.MakeI18nLabel('Enable write protection pin'))]
 
     self.template.SetState(
         '<table style="margin: auto; font-size: 150%"><tr><td>' +

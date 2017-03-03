@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -12,14 +10,15 @@
 # ports specified.
 
 
-import unittest
 import logging
 import os
 import pyudev
 import threading
+import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -28,10 +27,9 @@ from cros.factory.utils.arg_utils import Arg
 _UDEV_ACTION_INSERT = 'add'
 _UDEV_ACTION_REMOVE = 'remove'
 
-_MSG_PROMPT_FMT = lambda t: test_ui.MakeLabel(
-    'Plug device into each USB port, %d to go...<br>' % t,
-    zh='在每个 USB 端口插入装置, 还有 %d 个待测试...<br>' % t,
-    css_class='usb-test-info')
+_MSG_PROMPT_FMT = lambda num_usb_ports: i18n_test_ui.MakeI18nLabelWithClass(
+    'Plug device into each USB port, {num_usb_ports} to go...<br>',
+    'usb-test-info', num_usb_ports=num_usb_ports)
 
 # The layout contains one div for usb test
 _ID_CONTAINER = 'usb-test-container'

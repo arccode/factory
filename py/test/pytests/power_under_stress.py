@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,6 +10,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
@@ -25,17 +25,14 @@ _HTML = """
 </div>
 """
 
-_VOLTAGE_FMT_STR = lambda v: test_ui.MakeLabel(
-    'Voltage: %d mV' % v,
-    u'电压: %d mV' % v)
+_VOLTAGE_FMT_STR = lambda voltage: i18n_test_ui.MakeI18nLabel(
+    'Voltage: {voltage} mV', voltage=voltage)
 
-_CURRENT_FMT_STR = lambda i: test_ui.MakeLabel(
-    'Current: %d mA' % i,
-    u'电流: %d mA' % i)
+_CURRENT_FMT_STR = lambda current: i18n_test_ui.MakeI18nLabel(
+    'Current: {current} mA', current=current)
 
-_COUNTDOWN_FMT_STR = lambda t: test_ui.MakeLabel(
-    'Count Down: %d s' % t,
-    u'倒数 %d 秒' % t)
+_COUNTDOWN_FMT_STR = lambda secs: i18n_test_ui.MakeI18nLabel(
+    'Count Down: {secs} s', secs=secs)
 
 
 class PowerUnderStressTest(unittest.TestCase):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -13,22 +11,22 @@ VPD data from shop floor / Umpire server by using HTTP GET request.
 
 import time
 import unittest
-import yaml
 import urllib
 import urllib2
 import urlparse
+import yaml
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import schema
 
-_MSG_VPD_INFO = test_ui.MakeLabel(
-    'Please scan the panel serial number and press ENTER.',
-    zh='请扫描面板序号後按下 ENTER',
-    css_class='vpd-info')
+_MSG_VPD_INFO = i18n_test_ui.MakeI18nLabelWithClass(
+    'Please scan the panel serial number and press ENTER.', 'vpd-info')
 
 _HTML_VPD = """
 <div id="vpd_title"></div>
@@ -97,16 +95,16 @@ class GetPanelVPDTest(unittest.TestCase):
         'http', '%s:%d' % (self.args.hostname, self.args.port),
         self.args.service_path, '', '', ''))
 
-  def SetStatus(self, eng_msg, zh_msg):
+  def SetStatus(self, msg):
     """Sets status on the UI."""
-    msg = test_ui.MakeLabel(eng_msg, zh_msg, css_class='vpd-info')
+    msg = i18n_test_ui.MakeI18nLabelWithClass(msg, 'vpd-info')
     self.ui.SetHTML(msg, id='scan-status')
 
   def HandleScanValue(self, event):
     """Handles scaned value."""
     scan_value = str(event.data).strip()
     if not scan_value:
-      self.SetStatus('The scanned value is empty.', '扫描编号是空的。')
+      self.SetStatus(_('The scanned value is empty.'))
       self.ui.CallJSFunction('setClear')
       return
 
@@ -127,12 +125,11 @@ class GetPanelVPDTest(unittest.TestCase):
       data: 'None' string or a yaml format dictionary
     """
     if data == 'None':
-      self.SetStatus('No VPD updated', '没有VPD需要更新')
+      self.SetStatus(_('No VPD updated'))
       time.sleep(1)
       return
     vpd_setting = yaml.load(data)
-    self.SetStatus('Writing to VPD. Please wait…',
-                   '正在写到 VPD，请稍等…')
+    self.SetStatus(_('Writing to VPD. Please wait...'))
     try:
       self.SCHEMA.Validate(vpd_setting)
     except schema.SchemaException as e:

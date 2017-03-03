@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -21,6 +19,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
@@ -29,11 +28,10 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 
 
-_TEST_TITLE = test_ui.MakeLabel('Raiden Display Test', u'Raiden 显示测试')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Raiden Display Test')
 
-_BLACKSCREEN_STR = test_ui.MakeLabel(
-    'Caution: monitor may turn black for a short time.',
-    u'注意: 萤幕可能会有短暂黑屏')
+_BLACKSCREEN_STR = i18n_test_ui.MakeI18nLabel(
+    'Caution: monitor may turn black for a short time.')
 
 _ID_CONTAINER = 'raiden-display-container'
 
@@ -47,19 +45,19 @@ _WAIT_DISPLAY_SIGNAL_SECS = 3
 _WAIT_RETEST_SECS = 2
 
 
-def _GetConnectStr(d):
-  return test_ui.MakeLabel('Connecting BFT display: %s' % d,
-                           u'正在连接 BFT 显示屏: %s' % d)
+def _GetConnectStr(device):
+  return i18n_test_ui.MakeI18nLabel(
+      'Connecting BFT display: {device}', device=device)
 
 
-def _GetVideoStr(d):
-  return test_ui.MakeLabel('BFT display %s is connected. Sending image...' % d,
-                           u'已连接 BFT 显示屏: %s, 正在传送画面' % d)
+def _GetVideoStr(device):
+  return i18n_test_ui.MakeI18nLabel(
+      'BFT display {device} is connected. Sending image...', device=device)
 
 
-def _GetDisconnectStr(d):
-  return test_ui.MakeLabel('Disconnecting BFT display: %s' % d,
-                           u'正在移除 BFT 显示屏: %s' % d)
+def _GetDisconnectStr(device):
+  return i18n_test_ui.MakeI18nLabel(
+      'Disconnecting BFT display: {device}', device=device)
 
 
 class RaidenDisplayTest(unittest.TestCase):

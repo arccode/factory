@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,6 +18,9 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -32,17 +34,15 @@ _SOUND_DIRECTORY = os.path.join(
     'static', 'sounds')
 
 
-_MSG_AUDIO_INFO = test_ui.MakeLabel(
-    'Press \'P\' to first play a sample for each channel to ensure audio '
+_MSG_AUDIO_INFO = i18n_test_ui.MakeI18nLabelWithClass(
+    "Press 'P' to first play a sample for each channel to ensure audio "
     'output works.<br>'
-    'Press \'R\' to record %d seconds, Playback will follow<br>'
-    'Press space to mark pass' % _RECORD_SEC,
-    zh='按 \'P\' 键播放范例<br>'
-    '按 \'R\' 键开始录音%d秒，之后会重播录到的声音<br>'
-    '压下空白表示成功' % _RECORD_SEC,
-    css_class='audio-test-info')
-_MSG_RECORD_INFO = test_ui.MakeLabel('Start recording', u'开始录音',
-                                     css_class='audio-test-info')
+    "Press 'R' to record {record_sec} seconds, Playback will follow<br>"
+    'Press space to mark pass',
+    'audio-test-info',
+    record_sec=_RECORD_SEC)
+_MSG_RECORD_INFO = i18n_test_ui.MakeI18nLabelWithClass('Start recording',
+                                                       'audio-test-info')
 _HTML_AUDIO = """
 <table style="width: 70%%; margin: auto;">
   <tr>
@@ -71,21 +71,23 @@ PASS_VALUE = (PLAY_SAMPLE_VALUE | RECORD_VALUE)
 
 
 def GetPlaybackRecordLabel(channel):
-  return test_ui.MakeLabel('Playback sound (Mic channel %d)' % channel,
-                           u'重播录到的声音(麦克风通道%d)' % channel,
-                           css_class='audio-test-info')
+  return i18n_test_ui.MakeI18nLabelWithClass(
+      'Playback sound (Mic channel {channel})',
+      'audio-test-info',
+      channel=channel)
 
 
 def GetPlaybackLabel(channel):
-  return test_ui.MakeLabel('Playback sound to channel %d' % channel,
-                           u'播放范例到通道%d)' % channel,
-                           css_class='audio-test-info')
+  return i18n_test_ui.MakeI18nLabelWithClass(
+      'Playback sound to channel {channel}', 'audio-test-info', channel=channel)
 
 
 class AudioBasicTest(unittest.TestCase):
   ARGS = [
-      Arg('audio_title', tuple, 'Label Title of audio test (en, zh)',
-          ('Headset', u'外接耳机')),
+      i18n_arg_utils.I18nArg(
+          'audio_title', 'Label Title of audio test',
+          default=_('Headset'),
+          accept_tuple=True),
       Arg('audio_conf', str, 'Audio config file path', optional=True),
       Arg('initial_actions', list, 'List of tuple (card, actions)', []),
       Arg('input_dev', tuple,
@@ -99,6 +101,7 @@ class AudioBasicTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'audio_title')
     self._dut = device_utils.CreateDUTInterface()
     if self.args.audio_conf:
       self._dut.audio.ApplyConfig(self.args.audio_conf)
@@ -123,9 +126,8 @@ class AudioBasicTest(unittest.TestCase):
     self.ui.BindKey('P', self.HandleSampleEvent)
     self.ui.BindKey(test_ui.SPACE_KEY, self.MarkPass)
 
-    msg_audio_title = test_ui.MakeLabel(
-        self.args.audio_title[0], self.args.audio_title[1],
-        css_class='audio-test-info')
+    msg_audio_title = i18n_test_ui.MakeI18nLabelWithClass(
+        self.args.audio_title, 'audio-test-info')
     self.ui.SetHTML(msg_audio_title, id='audio_title')
     self.ui.SetHTML(_MSG_AUDIO_INFO, id='audio_info')
     self.current_process = None

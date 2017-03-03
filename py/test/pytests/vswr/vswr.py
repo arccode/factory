@@ -47,6 +47,9 @@ from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import rf
 from cros.factory.test.rf import e5071c_scpi
 from cros.factory.test import shopfloor
@@ -520,17 +523,15 @@ class VSWR(unittest.TestCase):
       letter = random.choice(string.ascii_uppercase)
       factory.console.info('Press %s to continue', letter)
       # TODO(littlecvr): Should not construct HTML string here.
-      html_string_en = ''
-      html_string_ch = ''
+      html_string = ''
       for port in measurement_sequence:
         antenna_name = measurement_sequence[port]['name']
-        html_string_en += (
-            'Make sure the %s antennta is connected to port %s<br>' % (
-                antenna_name, port))
-        html_string_ch += u'连接 %s 天线至 port %s<br>' % (antenna_name, port)
-      html_string_en += 'Then press key "%s" to next stage.' % letter
-      html_string_ch += u'完成后按 %s 键' % letter
-      html_string = test_ui.MakeLabel(html_string_en, html_string_ch)
+        html_string = i18n.StringJoin(html_string, i18n.StringFormat(
+            _('Make sure the {name} antennta is connected to port {port}<br>'),
+            name=antenna_name, port=port))
+      html_string = i18n.StringJoin(html_string, i18n.StringFormat(
+          _('Then press key "{key}" to next stage.'), key=letter))
+      html_string = i18n_test_ui.MakeI18nLabel(html_string)
       self._ui.SetHTML(html_string, id='state-prepare-antennas')
       self._ShowMessageBlock('prepare-antennas')
       self._WaitForKey(letter)

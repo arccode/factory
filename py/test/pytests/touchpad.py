@@ -20,6 +20,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
@@ -34,9 +35,8 @@ _ID_COUNTDOWN_TIMER = 'touchpad-test-timer'
 # here to make the layout consistent.
 _HTML_TIMER = '<div id="%s">&nbsp;</div>' % _ID_COUNTDOWN_TIMER
 
-_HTML_PROMPT = test_ui.MakeLabel(
+_HTML_PROMPT = i18n_test_ui.MakeI18nLabelWithClass(
     'Please take off your fingers and then press SPACE to start testing...',
-    u'请先将手指远离触控版後按 "空白键" 开始测试...',
     'touchpad-test-prompt') + _HTML_TIMER
 
 # The layout contains one div for touchpad touch and scroll,

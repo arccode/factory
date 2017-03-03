@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,21 +8,20 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_MSG_PRESS_SPACE = test_ui.MakeLabel(
-    'Hit SPACE to start test...',
-    zh=u'按 "空白键" 开始测试...',
-    css_class='recovery-button-info')
+_MSG_PRESS_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Hit SPACE to start test...', 'recovery-button-info')
 
-_MSG_RECOVERY_BUTTON_TEST = lambda s, t: test_ui.MakeLabel(
-    'Please press recovery button for %.1f seconds (%d seconds remaining).' %
-    (s, t),
-    zh=u'请持续按压恢复按钮 %.1f 秒 (剩余时间: %d 秒).' % (s, t),
-    css_class='recovery-button-info')
+_MSG_RECOVERY_BUTTON_TEST = lambda secs, remain_secs: (
+    i18n_test_ui.MakeI18nLabelWithClass(
+        'Please press recovery button for {secs:.1f} seconds '
+        '({remain_secs} seconds remaining).',
+        'recovery-button-info', secs=secs, remain_secs=remain_secs))
 
 _HTML_RECOVERY_BUTTON = """
 <table style="width: 70%; margin: auto;">

@@ -1,6 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -38,6 +36,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -132,21 +131,23 @@ class Report(unittest.TestCase):
     html = ['<div class="test-vcenter-outer"><div class="test-vcenter-inner">']
 
     if not self.args.disable_input_on_fail or all_pass:
-      html = html + ['<a onclick="onclick:window.test.pass()" href="#">',
-                     test_ui.MakeLabel('Click or press SPACE to continue',
-                                       u'点击或按空白键继续'),
-                     '</a><br>']
+      html = html + [
+          '<a onclick="onclick:window.test.pass()" href="#">',
+          i18n_test_ui.MakeI18nLabel('Click or press SPACE to continue'),
+          '</a><br>'
+      ]
     else:
-      html = html + [test_ui.MakeLabel(
-          'Unable to proceed, since some previous tests have not passed.',
-          u'之前所有的测试必须通过才能通过此项目')]
+      html = html + [
+          i18n_test_ui.MakeI18nLabel(
+              'Unable to proceed, since some previous tests have not passed.')
+      ]
 
     html = html + [
-        test_ui.MakeLabel('Test Status for %s:' % test.parent.path,
-                          u'%s 测试结果列表：' % test.parent.path),
-        '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
-            overall_status, test_ui.MakeStatusLabel(overall_status)),
-        '<table>'] + table + ['</table>'] + ['</div></div>']
+        i18n_test_ui.MakeI18nLabel(
+            'Test Status for {test}:', test=test.parent.path),
+        '<div class="test-status-%s" style="font-size: 300%%">%s</div>' %
+        (overall_status, test_ui.MakeStatusLabel(overall_status)), '<table>'
+    ] + table + ['</table>'] + ['</div></div>']
 
     if self.args.accessibility and not all_pass:
       html = ['<div class="test-vcenter-accessibility">'] + html + ['</div>']

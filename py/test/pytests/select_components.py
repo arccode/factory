@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,14 +13,15 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import string_utils
 
-_MESSAGE_SELECT = test_ui.MakeLabel('Select Components:', u'选择元件：',
-                                    'msg-font-size')
+_MESSAGE_SELECT = i18n_test_ui.MakeI18nLabelWithClass('Select Components:',
+                                                      'msg-font-size')
 
 _TEST_DEFAULT_CSS = '.msg-font-size {font-size: 2em;}'
 _SELECT_BOX_STYLE = ('font-size: 1.5em; background-color: white; '
@@ -32,7 +31,7 @@ _SELECT_BOX_ID = lambda x: 'Select-' + x
 _SELECTION_PER_PAGE = 10
 _EVENT_SUBTYPE_SELECT_COMP = 'Select-Components'
 
-_TEST_TITLE = test_ui.MakeLabel('Select Components', u'选择元件')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Select Components')
 
 
 class SelectComponentTest(unittest.TestCase):

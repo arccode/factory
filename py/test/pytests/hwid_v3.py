@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -16,13 +15,15 @@ from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.rules import phase
 from cros.factory.test.utils import deploy_utils
-from cros.factory.utils import file_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 
 # If present,  these files will override the board and probe results
 # (for testing).
@@ -74,9 +75,7 @@ class HWIDV3Test(unittest.TestCase):
     if not self.args.skip_shopfloor:
       shopfloor.update_local_hwid_data(self._dut)
 
-    template.SetState(test_ui.MakeLabel(
-        'Probing components...',
-        '正在探索零件...'))
+    template.SetState(i18n_test_ui.MakeI18nLabel('Probing components...'))
     # check if we are overriding probed results.
     probed_results_file = self._dut.path.join(self.tmpdir,
                                               'probed_results_file')
@@ -105,9 +104,7 @@ class HWIDV3Test(unittest.TestCase):
       self._dut.SendFile(f, device_info_file)
 
     if self.args.generate:
-      template.SetState(test_ui.MakeLabel(
-          'Generating HWID (v3)...',
-          '正在产生 HWID (v3)...'))
+      template.SetState(i18n_test_ui.MakeI18nLabel('Generating HWID (v3)...'))
       generate_cmd = ['hwid', 'generate',
                       '--probed-results-file', probed_results_file,
                       '--device-info-file', device_info_file,
@@ -139,9 +136,10 @@ class HWIDV3Test(unittest.TestCase):
     else:
       encoded_string = self.factory_tools.CheckOutput(['hwid', 'read']).strip()
 
-    template.SetState(test_ui.MakeLabel(
-        'Verifying HWID (v3): %s...' % (encoded_string or '(unchanged)'),
-        u'正在验证 HWID (v3): %s...' % (encoded_string or u'（不变）')))
+    template.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Verifying HWID (v3): {encoded_string}...',
+            encoded_string=(encoded_string or _('(unchanged)'))))
 
     verify_cmd = ['hwid', 'verify',
                   '--probed-results-file', probed_results_file,
@@ -159,7 +157,8 @@ class HWIDV3Test(unittest.TestCase):
     Log('hwid_verified', hwid=encoded_string)
 
     if self.args.generate:
-      template.SetState(test_ui.MakeLabel(
-          'Setting HWID (v3): %s...' % encoded_string,
-          u'正在写入 HWID (v3): %s...' % encoded_string))
+      template.SetState(
+          i18n_test_ui.MakeI18nLabel(
+              'Setting HWID (v3): {encoded_string}...',
+              encoded_string=encoded_string))
       self.factory_tools.CheckCall(['hwid', 'write', encoded_string])

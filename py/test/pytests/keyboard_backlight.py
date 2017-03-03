@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,18 +8,18 @@
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils import process_utils
 
 
-_TEST_TITLE = test_ui.MakeLabel('Keyboard Backlight Test', u'鍵盤背光測試')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Keyboard Backlight Test')
 
-_SUBTESTS = (('lights up', u'亮起', '100'),
-             ('is off', u'熄滅', '0'))
-
-_INSTRUCTION_EN = 'If the keyboard backlight %s, press ENTER. '
-_INSTRUCTION_ZH = u'檢查鍵盤背光是否%s，是請按ENTER。'
+_SUBTESTS = (
+    (_('If the keyboard backlight lights up, press ENTER. '), '100'),
+    (_('If the keyboard backlight is off, press ENTER. '), '0'))
 
 
 class KeyboardBacklightTest(unittest.TestCase):
@@ -32,13 +30,12 @@ class KeyboardBacklightTest(unittest.TestCase):
     self._current = 0
 
   def NextSubTest(self):
-    inst_en = _INSTRUCTION_EN % _SUBTESTS[self._current][0]
-    inst_zh = _INSTRUCTION_ZH % _SUBTESTS[self._current][1]
-    instruction = (test_ui.MakeLabel(inst_en, inst_zh) +
+    inst = _SUBTESTS[self._current][0]
+    instruction = (i18n_test_ui.MakeI18nLabel(inst) +
                    test_ui.MakePassFailKeyLabel(pass_key=False))
     self._template.SetState(instruction)
     process_utils.Spawn(['ectool', 'pwmsetkblight',
-                         _SUBTESTS[self._current][2]], ignore_stdout=True,
+                         _SUBTESTS[self._current][1]], ignore_stdout=True,
                         log_stderr_on_error=True, check_call=True)
     self._current = self._current + 1
 

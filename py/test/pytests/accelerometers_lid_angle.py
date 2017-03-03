@@ -31,20 +31,17 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_MSG_PROMPT_BUILDER = lambda a: test_ui.MakeLabel(
-    'Please open the lid to %s degrees.' % a,
-    u'请将上盖掀开到 %s 度。' % a)
-_MSG_CONFIRM_BUILDER = lambda a: test_ui.MakeLabel(
-    'Confirm %s degrees' % a,
-    u'确认掀开到 %s 度' % a)
-_MSG_CHECKING = test_ui.MakeLabel(
-    'Checking angle...',
-    u'正在确认角度……')
+_MSG_PROMPT_BUILDER = lambda angle: i18n_test_ui.MakeI18nLabel(
+    'Please open the lid to {angle} degrees.', angle=angle)
+_MSG_CONFIRM_BUILDER = lambda angle: i18n_test_ui.MakeI18nLabel(
+    'Confirm {angle} degrees', angle=angle)
+_MSG_CHECKING = i18n_test_ui.MakeI18nLabel('Checking angle...')
 
 _ID_PROMPT = 'prompt'
 _ID_CONFIRM_BUTTON = 'confirm-button'

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,6 +12,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -21,18 +20,17 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
-_MSG_SWITCH_TO_FASTBOOT = test_ui.MakeLabel(
-    'Switching device into fastboot.',
-    u'等待待测物进入fastboot')
+_MSG_SWITCH_TO_FASTBOOT = i18n_test_ui.MakeI18nLabel(
+    'Switching device into fastboot.')
 
-_MSG_SWITCH_TO_NORMAL = test_ui.MakeLabel(
-    'Switching device back to normal mode.',
-    u'等待待测物正常开机')
+_MSG_SWITCH_TO_NORMAL = i18n_test_ui.MakeI18nLabel(
+    'Switching device back to normal mode.')
 
 def GetFlashingMessage(partition, file_path):
-  return test_ui.MakeLabel(
-      'Flashing %s to %s.' % (file_path, partition),
-      u'安装 %s 至 %s.' % (file_path, partition))
+  return i18n_test_ui.MakeI18nLabel(
+      'Flashing {file} to {partition}.',
+      file=file_path,
+      partition=partition)
 
 _RE_SENDING_TIME = re.compile(
     r'^sending.*\(([0-9]+) KB\).*\nOKAY\s*\[\s*([0-9]+\.[0-9]+)s\]',

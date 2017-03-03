@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,6 +15,10 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture.whale import whale_bft_fixture
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -26,12 +28,9 @@ _CHECK_BARCODE_SECS = 0.3
 
 class BarcodeScanToFileTest(unittest.TestCase):
   """Scans barcode and saves it to a specific file."""
-  ARGS = [
-      Arg('label_en', (str, unicode), 'Name of the barcode to scan'),
-      Arg('label_zh', (str, unicode),
-          'Chinese name of barcode being scanned '
-          '(defaults to the same as the English label)',
-          optional=True),
+  ARGS = (i18n_arg_utils.BackwardCompatibleI18nArgs(
+      'label', 'Name of the barcode to scan'
+  ) + [
       Arg('regexp', str, 'Regexp that the scanned value must match',
           optional=True),
       Arg('ignore_case', bool, 'True to ignore case from input.',
@@ -41,11 +40,11 @@ class BarcodeScanToFileTest(unittest.TestCase):
           'Parameters to initialize WhaleBFTFixture. It is a dict which '
           'contains at least "host" and "port" that points to BeagleBone '
           'servod.',
-          optional=True)]
+          optional=True)])
 
-  def ShowError(self, message, message_zh):
-    logging.info('Scan error: %r', message)
-    error_message = test_ui.MakeLabel(message, message_zh)
+  def ShowError(self, message):
+    logging.info('Scan error: %r', message['en-US'])
+    error_message = i18n_test_ui.MakeI18nLabel(message)
     self.ui.SetHTML(
         '<span class="test-error">%s</span>' % error_message,
         id='scan-status')
@@ -62,16 +61,14 @@ class BarcodeScanToFileTest(unittest.TestCase):
       scan_value = scan_value.upper()
     esc_scan_value = test_ui.Escape(scan_value)
     if not scan_value:
-      self.ShowError('The scanned value is empty.',
-                     u'扫描编号是空的。')
+      self.ShowError(_('The scanned value is empty.'))
       return
     if self.args.regexp:
       match = re.match(self.args.regexp, scan_value)
       if not match or match.group(0) != scan_value:
-        self.ShowError(
-            'The scanned value "%s" does not match '
-            'the expected format.' % esc_scan_value,
-            u'所扫描的编号「%s」格式不对。' % esc_scan_value)
+        self.ShowError(i18n.StringFormat(
+            _('The scanned value "{scan_value}" does not match '
+              'the expected format.'), scan_value=esc_scan_value))
         return
 
     # save scan value
@@ -86,6 +83,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
     self.ui.Pass()
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'label')
     self.ui = test_ui.UI()
     self.dut = device_utils.CreateDUTInterface()
     if self.args.bft_params is not None:
@@ -100,20 +98,12 @@ class BarcodeScanToFileTest(unittest.TestCase):
   def runTest(self):
     template = ui_templates.OneSection(self.ui)
 
-    label_zh = self.args.label_zh or self.args.label_en
-    # A workaround that some existing test lists do not use unicode
-    # for Chinese string.
-    if type(label_zh) is str:
-      label_zh = unicode(label_zh, encoding='utf-8')
-
-    template.SetTitle(test_ui.MakeLabel(
-        'Scan %s' % self.args.label_en.title(),
-        u'扫描%s' % label_zh))
+    template.SetTitle(
+        i18n_test_ui.MakeI18nLabel('Scan {label}', label=self.args.label))
 
     template.SetState(
-        test_ui.MakeLabel(
-            'Please scan the %s and press ENTER.' % self.args.label_en,
-            u'请扫描%s后按下 ENTER。' % label_zh) +
+        i18n_test_ui.MakeI18nLabel(
+            'Please scan the {label} and press ENTER.', label=self.args.label) +
         '<br><input id="scan-value" type="text" size="20" tabindex="1">'
         '<p id="scan-status">')
     self.ui.SetFocus('scan-value')

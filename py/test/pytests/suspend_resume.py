@@ -1,4 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -27,6 +26,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -35,8 +35,8 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
-_TEST_TITLE = test_ui.MakeLabel('Suspend/Resume Test', zh=u'暂停/恢复测试')
-_MSG_CYCLE = test_ui.MakeLabel('Suspend/Resume:', zh=u'暂停/恢复:')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Suspend/Resume Test')
+_MSG_CYCLE = i18n_test_ui.MakeI18nLabel('Suspend/Resume:')
 _ID_CYCLES = 'sr_cycles'
 _ID_RUN = 'sr_run'
 _TEST_BODY = ('<font size="20">%s <div id="%s"></div> of \n'

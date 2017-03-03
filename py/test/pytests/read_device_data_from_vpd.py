@@ -1,4 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -13,15 +12,16 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_MSG_READING_VPD = lambda vpd_section: test_ui.MakeLabel(
-    'Reading device data from %s VPD...' % vpd_section.upper(),
-    '正在从 %s VPD 读机器资料...' % vpd_section.upper())
+_MSG_READING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
+    'Reading device data from {vpd_section} VPD...',
+    vpd_section=vpd_section.upper())
 
 
 class CallShopfloor(unittest.TestCase):
@@ -51,7 +51,7 @@ class CallShopfloor(unittest.TestCase):
 
   def runTest(self):
     if self.args.vpd_section not in ['ro', 'rw']:
-      self.fail('Invalid vpd_section:% r, should be %r or %r.' %
+      self.fail('Invalid vpd_section: %r, should be %r or %r.' %
                 (self.args.vpd_section, 'ro', 'rw'))
 
     ui = test_ui.UI()

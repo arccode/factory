@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -18,20 +16,18 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = test_ui.MakeLabel('Raiden CC2 pull test', u'Raiden CC2 电压测试')
-_DISCONNECT = lambda d: test_ui.MakeLabel(
-    'Raiden port is disconnected in %.1f seconds' % d,
-    u'Raiden port 失去连接 %.1f 秒' % d)
-_DISCONNECT_OP = lambda d: test_ui.MakeLabel(
-    'Please remove Raiden cable in %.1f seconds' % d,
-    u'请在 %.1f 秒内移除 Raiden 线' % d)
-_CONNECT_OP = lambda d: test_ui.MakeLabel(
-    'Please attach Raiden cable in %.1f seconds' % d,
-    u'请在 %.1f 秒内连接 Raiden 线' % d)
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Raiden CC2 pull test')
+_DISCONNECT = lambda secs: i18n_test_ui.MakeI18nLabel(
+    'Raiden port is disconnected in {secs:.1f} seconds', secs=secs)
+_DISCONNECT_OP = lambda secs: i18n_test_ui.MakeI18nLabel(
+    'Please remove Raiden cable in {secs:.1f} seconds', secs=secs)
+_CONNECT_OP = lambda secs: i18n_test_ui.MakeI18nLabel(
+    'Please attach Raiden cable in {secs:.1f} seconds', secs=secs)
 _CSS = 'body { font-size: 2em; }'
 
 

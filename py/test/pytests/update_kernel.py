@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -12,12 +10,13 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_TEST_TITLE = test_ui.MakeLabel('Update Kernel', u'更新 Kernel')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Update Kernel')
 _CSS = '#state {text-align:left;}'
 
 

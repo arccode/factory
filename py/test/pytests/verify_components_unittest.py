@@ -14,10 +14,10 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import shopfloor
-from cros.factory.test import test_ui
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.pytests import verify_components
+from cros.factory.test import shopfloor
+from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils.deploy_utils import FactoryPythonArchive
 
@@ -73,7 +73,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
             u'error': None}]}
 
     self._mock_test._ui.Run(blocking=False)
-    self._mock_test.template.SetState(mox.IsA(unicode))
+    self._mock_test.template.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
 
@@ -112,7 +112,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
             u'error': u'Fake error'}]}
 
     self._mock_test._ui.Run(blocking=False)
-    self._mock_test.template.SetState(mox.IsA(unicode))
+    self._mock_test.template.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
 
@@ -137,7 +137,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
                '--phase', self.fake_phase]
 
     self._mock_test._ui.Run(blocking=False)
-    self._mock_test.template.SetState(mox.IsA(unicode))
+    self._mock_test.template.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndRaise(
         subprocess.CalledProcessError(1, 'Fake command'))
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,24 +9,20 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 
-from cros.factory.test import test_ui
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.ui_templates import OneSection
 
 
 _FLASH_STATUS_TIME = 1
 
-_MSG_PROMPT_FLIP_TABLET = test_ui.MakeLabel(
-    'Flip the lid into tablet mode', u'把上盖掀开一圈直到贴合下盖')
-_MSG_PROMPT_FLIP_NOTEBOOK = test_ui.MakeLabel(
-    'Open the lid back to notebook mode', u'把上盖掀开直到正常笔电模式')
-_MSG_CONFIRM_TABLET_MODE = test_ui.MakeLabel(
-    'Confirm tablet mode', u'确认平板模式')
-_MSG_CONFIRM_NOTEBOOK_MODE = test_ui.MakeLabel(
-    'Confirm notebook mode', u'确认笔电模式')
-_MSG_STATUS_SUCCESS = test_ui.MakeLabel(
-    'Success!', u'成功！')
-_MSG_STATUS_FAILURE = test_ui.MakeLabel(
-    'Failure', u'失败')
+_MSG_PROMPT_FLIP_TABLET = i18n_test_ui.MakeI18nLabel(
+    'Flip the lid into tablet mode')
+_MSG_PROMPT_FLIP_NOTEBOOK = i18n_test_ui.MakeI18nLabel(
+    'Open the lid back to notebook mode')
+_MSG_CONFIRM_TABLET_MODE = i18n_test_ui.MakeI18nLabel('Confirm tablet mode')
+_MSG_CONFIRM_NOTEBOOK_MODE = i18n_test_ui.MakeI18nLabel('Confirm notebook mode')
+_MSG_STATUS_SUCCESS = i18n_test_ui.MakeI18nLabel('Success!')
+_MSG_STATUS_FAILURE = i18n_test_ui.MakeI18nLabel('Failure')
 
 _ID_PROMPT = 'lid-test-prompt'
 _ID_CONFIRM_BUTTON = 'confirm-button'

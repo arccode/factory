@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -88,6 +86,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory_task
 from cros.factory.test.fixture.camera import barcode
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -98,41 +97,26 @@ from cros.factory.external import cv
 from cros.factory.external import cv2
 
 
-_MSG_CAMERA_MANUAL_CAPTURE = test_ui.MakeLabel(
-    'Capturing image...',
-    zh=u'拍照中...',
-    css_class='camera-test-info')
-_MSG_CAMERA_MANUAL_TEST = test_ui.MakeLabel(
-    'Press ENTER to pass or ESC to fail.',
-    zh=u'摄像头运作正常请按 ENTER，不正常请按 ESC',
-    css_class='camera-test-info')
-_MSG_CAMERA_TIMEOUT_TEST = test_ui.MakeLabel(
-    'Running the camera until timeout.',
-    zh=u'运行相机直到超时',
-    css_class='camera-test-info')
-_MSG_CAMERA_FRAME_COUNT_TEST = test_ui.MakeLabel(
+_MSG_CAMERA_MANUAL_CAPTURE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Capturing image...', 'camera-test-info')
+_MSG_CAMERA_MANUAL_TEST = i18n_test_ui.MakeI18nLabelWithClass(
+    'Press ENTER to pass or ESC to fail.', 'camera-test-info')
+_MSG_CAMERA_TIMEOUT_TEST = i18n_test_ui.MakeI18nLabelWithClass(
+    'Running the camera until timeout.', 'camera-test-info')
+_MSG_CAMERA_FRAME_COUNT_TEST = i18n_test_ui.MakeI18nLabelWithClass(
     'Running the camera until expected number of frames captured.',
-    zh=u'运行相机直到给订数量',
-    css_class='camera-test-info')
-_MSG_CAMERA_QR_SCAN = test_ui.MakeLabel(
-    'Scanning QR code...',
-    zh=u'侦测 QR 码中...',
-    css_class='camera-test-info')
-_MSG_CAMERA_QR_FOUND_STRING = lambda t: test_ui.MakeLabel(
-    'Scanned QR code: "%s"' % t,
-    zh=u'已侦测 QR 码: "%s"' % t,
-    css_class='camera-test-info')
-_MSG_CAMERA_FACIAL_RECOGNITION = test_ui.MakeLabel(
-    'Detecting faces...',
-    zh=u'侦测人脸中...',
-    css_class='camera-test-info')
-_MSG_LED_TEST = test_ui.MakeLabel(
+    'camera-test-info')
+_MSG_CAMERA_QR_SCAN = i18n_test_ui.MakeI18nLabelWithClass(
+    'Scanning QR code...', 'camera-test-info')
+_MSG_CAMERA_QR_FOUND_STRING = lambda text: i18n_test_ui.MakeI18nLabelWithClass(
+    'Scanned QR code: "{text}"', 'camera-test-info', text=text)
+_MSG_CAMERA_FACIAL_RECOGNITION = i18n_test_ui.MakeI18nLabelWithClass(
+    'Detecting faces...', 'camera-test-info')
+_MSG_LED_TEST = i18n_test_ui.MakeI18nLabelWithClass(
     'Press 0 if LED is flickering, 1 if LED is constantly lit,'
-    '<br/>or ESC to fail.',
-    zh=u'LED 闪烁请按 0，一直亮着请按 1，没亮请按 ESC',
-    css_class='camera-test-info')
-_MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
-    'Time remaining: %d' % t, u'剩余时间：%d' % t, 'camera-test-info')
+    '<br>or ESC to fail.', 'camera-test-info')
+_MSG_TIME_REMAINING = lambda time: i18n_test_ui.MakeI18nLabelWithClass(
+    'Time remaining: {time}', 'camera-test-info', time=time)
 
 _ID_IMAGE = 'camera-test-image'
 _ID_PROMPT = 'camera-test-prompt'

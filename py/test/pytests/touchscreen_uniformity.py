@@ -36,24 +36,25 @@ from cros.factory.device import device_utils
 from cros.factory.external import numpy
 from cros.factory.test import event_log
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_LABEL_CALIBRATING_TOUCHSCREEN = test_ui.MakeLabel('Calibrating Touchscreen',
-                                                   u'触屏校正中', 'test-info')
-_LABEL_NOT_FOUND = test_ui.MakeLabel('ERROR: Touchscreen Not Found',
-                                     u'没有找到触屏', 'test-fail')
-_LABEL_TESTING_REFERENCES = test_ui.MakeLabel('Testing References',
-                                              u'参考值测试中', 'test-info')
-_LABEL_TESTING_DELTAS = test_ui.MakeLabel('Testing Deltas',
-                                          u'差量测试中', 'test-info')
-_LABEL_PASS = test_ui.MakeLabel('PASS', u'成功', 'test-pass')
-_LABEL_FAIL = test_ui.MakeLabel('FAIL', u'失败', 'test-fail')
+_LABEL_CALIBRATING_TOUCHSCREEN = i18n_test_ui.MakeI18nLabelWithClass(
+    'Calibrating Touchscreen', 'test-info')
+_LABEL_NOT_FOUND = i18n_test_ui.MakeI18nLabelWithClass(
+    'ERROR: Touchscreen Not Found', 'test-fail')
+_LABEL_TESTING_REFERENCES = i18n_test_ui.MakeI18nLabelWithClass(
+    'Testing References', 'test-info')
+_LABEL_TESTING_DELTAS = i18n_test_ui.MakeI18nLabelWithClass(
+    'Testing Deltas', 'test-info')
+_LABEL_PASS = i18n_test_ui.MakeI18nLabelWithClass('PASS', 'test-pass')
+_LABEL_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-fail')
 _MESSAGE_DELAY_SECS = 1
 
-_BR = '<br/>'
+_BR = '<br>'
 
 _CSS = """
   .test-info {font-size: 2em;}

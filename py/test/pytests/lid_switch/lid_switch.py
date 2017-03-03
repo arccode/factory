@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,6 +15,7 @@ from cros.factory.test import event_log
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See LidSwitchTest.setUp() for more detail.
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import audio_utils
@@ -27,15 +26,15 @@ from cros.factory.utils import file_utils
 _DEFAULT_TIMEOUT = 30
 _SERIAL_TIMEOUT = 1
 
-_MSG_PROMPT_CLOSE = test_ui.MakeLabel(
-    'Close then open the lid', u'关上接着打开上盖', 'lid-test-info')
-_MSG_PROMPT_OPEN = test_ui.MakeLabel(
-    'Open the lid', u'请打开上盖', 'lid-test-info')
+_MSG_PROMPT_CLOSE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Close then open the lid', 'lid-test-info')
+_MSG_PROMPT_OPEN = i18n_test_ui.MakeI18nLabelWithClass('Open the lid',
+                                                       'lid-test-info')
 
-_MSG_LID_FIXTURE_CLOSE = test_ui.MakeLabel(
-    'Magnetizing lid sensor', u'磁化上盖感应器', 'lid-test-info')
-_MSG_LID_FIXTURE_OPEN = test_ui.MakeLabel(
-    'Demagnetizing lid sensor', u'消磁化上盖感应器', 'lid-test-info')
+_MSG_LID_FIXTURE_CLOSE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Magnetizing lid sensor', 'lid-test-info')
+_MSG_LID_FIXTURE_OPEN = i18n_test_ui.MakeI18nLabelWithClass(
+    'Demagnetizing lid sensor', 'lid-test-info')
 
 _ID_PROMPT = 'lid-test-prompt'
 _ID_COUNTDOWN_TIMER = 'lid-test-timer'

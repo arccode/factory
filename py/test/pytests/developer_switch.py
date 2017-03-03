@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -9,27 +8,24 @@
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
-_MSG_TURN_ON = test_ui.MakeLabel(
-    'Please turn <b class="on">ON</b> Developer Switch.',
-    u'请<b class="on">开启</b> DEV SW 开发者开关。')
+_MSG_TURN_ON = i18n_test_ui.MakeI18nLabel(
+    'Please turn <b class="on">ON</b> Developer Switch.')
 
-_MSG_TURN_OFF = test_ui.MakeLabel(
-    'Please turn <b class="off">OFF</b> Developer Switch.',
-    u'请<b class="off">关闭</b> DEV SW 开发者开关。')
+_MSG_TURN_OFF = i18n_test_ui.MakeI18nLabel(
+    'Please turn <b class="off">OFF</b> Developer Switch.')
 
-_MSG_SW_ON = test_ui.MakeLabel(
-    'Develop switch is currently <b class="on">ON</b>.',
-    u'DEV SW 开发者开关目前为<b class="on">开启</b>状态')
+_MSG_SW_ON = i18n_test_ui.MakeI18nLabel(
+    'Develop switch is currently <b class="on">ON</b>.')
 
-_MSG_SW_OFF = test_ui.MakeLabel(
-    'Develop switch is currently <b class="off">OFF</b>.',
-    u'DEV SW 开发者开关目前为<b class="off">关闭</b>状态')
+_MSG_SW_OFF = i18n_test_ui.MakeI18nLabel(
+    'Develop switch is currently <b class="off">OFF</b>.')
 
 _TEST_PAGE_CSS = """
 .on {

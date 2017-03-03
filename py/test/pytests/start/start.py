@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -18,7 +16,6 @@ The start provides several settings (set via darg):
 
 import logging
 import os
-import re
 import socket
 import sys
 import time
@@ -26,19 +23,23 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.event import Event
+from cros.factory.test.event_log import Log
 from cros.factory.test import factory
+from cros.factory.test.factory_task import FactoryTask
+from cros.factory.test.factory_task import FactoryTaskManager
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.event import Event
-from cros.factory.test.event_log import Log
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.utils import process_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Enum
 
 
-_TEST_TITLE = test_ui.MakeLabel('Start Factory Test', u'开始工厂测试')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Start Factory Test')
 
 _CSS = """
 .start-font-size {
@@ -59,46 +60,26 @@ _CSS = """
 """
 
 # Messages for tasks
-_MSG_INSTALL_INCOMPLETE = test_ui.MakeLabel(
-    '<br/>'.join([
-        'Factory install process did not complete. Auto-testing stopped.<br/>',
-        'Please install the factory test image using the mini-Omaha server',
-        'rather than booting from a USB drive.</br>']),
-    '<br/>'.join([
-        u'安装过程中失败, 停止自動測試。<br/>',
-        u'請使用完整的 mini-Omaha 伺服器安裝測試程式，',
-        u'不要直接從 USB 碟開機執行。<br/>']),
-    'start-font-size test-error')
-_MSG_TASK_POWER = test_ui.MakeLabel(
-    'Plug in external power to continue.',
-    u'请插上外接电源以继续。',
-    'start-font-size')
-_MSG_TASK_SPACE = test_ui.MakeLabel(
-    'Hit SPACE to start testing...',
-    u'按 "空白键" 开始测试...',
-    'start-font-size')
-_MSG_NO_SHOP_FLOOR_SERVER_URL = test_ui.MakeLabel(
-    '<br/>'.join([
-        'No shop floor server URL. Auto-testing stopped.<br/>',
-        'Please install the factory test image using the mini-Omaha server',
-        'rather than booting from a USB drive.</br>',
-        'For debugging or development, use the listed hot-keys to start',
-        'individual tests.']),
-    '<br/>'.join([
-        u'未指定 shop floor 服务器位址，停止自动测试。<br/>',
-        u'请使用完整的 mini-Omaha 服务器安装测试程式，',
-        u'不要直接从 USB 碟开机执行。<br/>',
-        u'若想除错或执行部份测试，请直接按下对应热键。']),
-    'start-font-size test-error')
-_MSG_READING_VPD_SERIAL = test_ui.MakeLabel(
-    'Reading VPD...', u'讀取 VPD 中...', 'start-font-size')
-_MSG_CONTACTING_SERVER = test_ui.MakeLabel(
-    'Contacting shop floor server...', u'正在和 shop floor server 联络...',
-    r'start-contacting-server')
-_MSG_INIT_SHARED_DATA = test_ui.MakeLabel(
-    'Initialize some shared data...',
-    u'重设旧有共用资料...',
-    'start-font-size')
+_MSG_INSTALL_INCOMPLETE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Factory install process did not complete. Auto-testing stopped.<br><br>'
+    'Please install the factory test image using the mini-Omaha server<br>'
+    'rather than booting from a USB drive.<br>', 'start-font-size test-error')
+_MSG_TASK_POWER = i18n_test_ui.MakeI18nLabelWithClass(
+    'Plug in external power to continue.', 'start-font-size')
+_MSG_TASK_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Hit SPACE to start testing...', 'start-font-size')
+_MSG_NO_SHOP_FLOOR_SERVER_URL = i18n_test_ui.MakeI18nLabelWithClass(
+    'No shop floor server URL. Auto-testing stopped.<br><br>'
+    'Please install the factory test image using the mini-Omaha server<br>'
+    'rather than booting from a USB drive.<br><br>'
+    'For debugging or development, use the listed hot-keys to start<br>'
+    'individual tests.', 'start-font-size test-error')
+_MSG_READING_VPD_SERIAL = i18n_test_ui.MakeI18nLabelWithClass('Reading VPD...',
+                                                              'start-font-size')
+_MSG_CONTACTING_SERVER = i18n_test_ui.MakeI18nLabelWithClass(
+    'Contacting shop floor server...', r'start-contacting-server')
+_MSG_INIT_SHARED_DATA = i18n_test_ui.MakeI18nLabelWithClass(
+    'Initialize some shared data...', 'start-font-size')
 
 # Javascripts and HTML for tasks
 _EVENT_SUBTYPE_SHOP_FLOOR = 'Start-Serial'
@@ -196,8 +177,9 @@ class ShopFloorTask(FactoryTask):
 
     self._test.ui.AddEventHandler(_EVENT_SUBTYPE_SHOP_FLOOR,
                                   self.ValidateSerialNumber)
-    prompt_en, prompt_zh = self._test.args.prompt
-    prompt_html = test_ui.MakeLabel(prompt_en, prompt_zh, 'start-font-size')
+    prompt = self._test.args.prompt
+    prompt_html = i18n_test_ui.MakeI18nLabel(
+        prompt, _css_class='start-font-size')
     self._test.template.SetState(prompt_html + _HTML_SHOP_FLOOR)
     self._test.ui.RunJS(_JS_SHOP_FLOOR)
 
@@ -313,14 +295,15 @@ class StartTest(unittest.TestCase):
           'A string or list of strings indicating a set of VPDs that are used '
           'as the key to fetch data from shop floor proxy.',
           default=None, optional=True),
-      Arg('prompt', tuple,
-          'Message to show to the operator when prompting for input.',
-          default=('Enter valid serial number:<br/>',
-                   u'请输入有效的序号:<br/>'), optional=True),
+      i18n_arg_utils.I18nArg(
+          'prompt', 'Message to show to the operator when prompting for input.',
+          default=_('Enter valid serial number:<br>'),
+          accept_tuple=True),
       Arg('init_shared_data', dict, 'the shared data to initialize',
           default={}, optional=True)]
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'prompt')
     self.dut = device_utils.CreateDUTInterface()
     self._task_list = []
     self.ui = test_ui.UI()

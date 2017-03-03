@@ -1,4 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -187,7 +186,8 @@ Usage examples::
 
 import ast
 import base64
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
+from collections import OrderedDict
 try:
   import cv2  # pylint: disable=import-error
 except ImportError:
@@ -213,6 +213,9 @@ from cros.factory.test.fixture.camera import light_chamber
 from cros.factory.test.fixture.camera import perf_tester as camperf
 from cros.factory.test.fixture.camera import renderer as renderer
 from cros.factory.test.fixture import fixture_connection
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import leds
 from cros.factory.test import network
 from cros.factory.test import shopfloor
@@ -270,34 +273,30 @@ ID_MAIN_SCREEN_TITLE = 'main_screen_title'
 
 
 # Text labels.
-MSG_TITLE_CALIBRATION = test_ui.MakeLabel(
-    'Camera Fixture Calibration', u'相机制具校正')
-MSG_TITLE_LENS_SHADING_TEST = test_ui.MakeLabel(
-    'Camera Lens Shading Test', u'相机镜头黑点测试')
-MSG_TITLE_IQ_TEST = test_ui.MakeLabel(
-    'Camera Image Quality Test', u'相机影像品质测试')
-MSG_TITLE_ALS_TEST = test_ui.MakeLabel(
-    'ALS Sensor Calibration', u'光感应器校正')
+MSG_TITLE_CALIBRATION = i18n_test_ui.MakeI18nLabel('Camera Fixture Calibration')
+MSG_TITLE_LENS_SHADING_TEST = i18n_test_ui.MakeI18nLabel(
+    'Camera Lens Shading Test')
+MSG_TITLE_IQ_TEST = i18n_test_ui.MakeI18nLabel('Camera Image Quality Test')
+MSG_TITLE_ALS_TEST = i18n_test_ui.MakeI18nLabel('ALS Sensor Calibration')
 
-# Test stage => (English message, Chinese message).
+# Test stage => message
 MSG_TEST_STATUS = {
-    STAGE00_START: ('Starting the test', u'开始测试'),
-    STAGE10_SN: ('Reading serial number', u'读取序号'),
-    STAGE15_FW: ('Checking firmware version', u'检查韧体版本'),
-    STAGE20_INIT: ('Initializing camera', u'初始化摄像头'),
-    STAGE25_AWB: ('Adjusting white balance', u'白平衡调试'),
-    STAGE30_IMG: ('Reading test image', u'读取测试影像'),
-    STAGE30_ALS_LIGHT1: ('Reading Light1 ALS value', u'读取灯光1 ALS数值'),
-    STAGE40_ALS_LIGHT2: ('Reading Light2 ALS value', u'读取灯光2 ALS数值'),
-    STAGE50_ALS_LIGHT3: ('Reading Light3 ALS value', u'读取灯光3 ALS数值'),
-    STAGE50_VC: ('Locating test pattern', u'定位测试图样'),
-    STAGE60_LS: ('Checking vignetting level', u'检测影像暗角'),
-    STAGE60_ALS_CALCULATION: ('Calculate the ALS line', u'计算ALS结果'),
-    STAGE70_VPD: ('Writing the ALS calibration data to vpd',
-                  u'写入ALS校正结果'),
-    STAGE70_MTF: ('Checking image sharpness', u'检测影像清晰度'),
-    STAGE90_END: ('All tests are complete', u'测试已全部完成'),
-    STAGE100_SAVED: ('Test data saved', u'记录档已写入'),
+    STAGE00_START: _('Starting the test'),
+    STAGE10_SN: _('Reading serial number'),
+    STAGE15_FW: _('Checking firmware version'),
+    STAGE20_INIT: _('Initializing camera'),
+    STAGE25_AWB: _('Adjusting white balance'),
+    STAGE30_IMG: _('Reading test image'),
+    STAGE30_ALS_LIGHT1: _('Reading Light1 ALS value'),
+    STAGE40_ALS_LIGHT2: _('Reading Light2 ALS value'),
+    STAGE50_ALS_LIGHT3: _('Reading Light3 ALS value'),
+    STAGE50_VC: _('Locating test pattern'),
+    STAGE60_LS: _('Checking vignetting level'),
+    STAGE60_ALS_CALCULATION: _('Calculate the ALS line'),
+    STAGE70_VPD: _('Writing the ALS calibration data to vpd'),
+    STAGE70_MTF: _('Checking image sharpness'),
+    STAGE90_END: _('All tests are complete'),
+    STAGE100_SAVED: _('Test data saved'),
 }
 
 
@@ -901,8 +900,8 @@ class _TestDelegate(object):
     Args:
       test_stage: Current test stage.
     """
-    msg, msg_zh = MSG_TEST_STATUS[test_stage]
-    self.delegator.ShowTestStatus(msg, msg_zh)
+    msg = MSG_TEST_STATUS[test_stage]
+    self.delegator.ShowTestStatus(msg)
     self.delegator.ShowProgressBar(self.timing[test_stage])
 
   def _Log(self, text):
@@ -1240,7 +1239,7 @@ class CameraFixture(unittest.TestCase):
           'light chamber.', default=False),
       Arg('assume_chamber_connected', bool, 'Assume chamber is connected on '
           'test startup. This is useful when running fixture-based testing. '
-          'The OP won\'t have to reconnect the fixture everytime.',
+          "The OP won't have to reconnect the fixture everytime.",
           default=False),
       Arg('chamber_conn_params', (dict, str), 'Chamber connection parameters, '
           "either a dict or 'default'", default=None, optional=True),
@@ -1444,7 +1443,7 @@ class CameraFixture(unittest.TestCase):
         else:
           log_msg += 'Incorrect Chart'
 
-        self.ShowTestStatus(msg=log_msg, style=(
+        self.ShowTestStatus(i18n.NoTranslation(log_msg), style=(
             STYLE_PASS if success else STYLE_FAIL))
         logging.info(log_msg)
 
@@ -1502,7 +1501,7 @@ class CameraFixture(unittest.TestCase):
         log_msg = 'PASS: ' if success else 'FAIL: '
         log_msg += 'Remaining %d s. Shading ratio=%.3f ' % (
             remaining_time, ls_ratio)
-        self.ShowTestStatus(msg=log_msg, style=(
+        self.ShowTestStatus(i18n.NoTranslation(log_msg), style=(
             STYLE_PASS if success else STYLE_FAIL))
 
         event = self.PopInternalQueue(wait=False)
@@ -1575,10 +1574,12 @@ class CameraFixture(unittest.TestCase):
           success, fail_cause = delegate.RunTest(input_sn)
 
         if success:
-          self.ShowTestStatus(msg='%s: PASS' % prefix, style=STYLE_PASS)
+          self.ShowTestStatus(i18n.NoTranslation('%s: PASS' % prefix),
+                              style=STYLE_PASS)
         else:
-          self.ShowTestStatus(msg='%s: FAIL %r' % (prefix, fail_cause),
-                              style=STYLE_FAIL)
+          self.ShowTestStatus(
+              i18n.NoTranslation('%s: FAIL %r' % (prefix, fail_cause)),
+              style=STYLE_FAIL)
       elif event.event_type == EventType.EXIT_TEST:
         if success:
           self.ui.Pass()
@@ -1615,15 +1616,14 @@ class CameraFixture(unittest.TestCase):
       except Queue.Empty:
         return None
 
-  def ShowTestStatus(self, msg, msg_zh=None, style=STYLE_INFO):
+  def ShowTestStatus(self, msg, style=STYLE_INFO):
     """Shows test status.
 
     Args:
-      msg: English text.
-      msg_zh: Chinese text.
+      msg: i18n text.
       style: CSS style.
     """
-    label = test_ui.MakeLabel(en=msg, zh=msg_zh, css_class=style)
+    label = i18n_test_ui.MakeI18nLabelWithClass(msg, style)
     self.ui.CallJSFunction('UpdateTextLabel', label, ID_TEST_STATUS)
 
   def ShowImage(self, img, html_id):

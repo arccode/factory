@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -7,7 +5,6 @@
 """Uses ectool to control the onboard LED light, and lets either operator
 or SMT fixture confirm LED functionality."""
 
-from collections import namedtuple
 import logging
 import random
 import time
@@ -17,6 +14,8 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import led as led_module
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See setUp() for more detail.
 from cros.factory.test.fixture import bft_fixture
@@ -25,28 +24,27 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE = test_ui.MakeLabel('LED Test', u'LED 测试')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('LED Test')
 
 # True to test all colors regardless of failure.
 _FAIL_LATER = True
 _SHOW_RESULT_SECONDS = 0.5
 
-I18nLabel = namedtuple('I18nLabel', 'en zh')
 LEDColor = led_module.LED.Color
 LEDIndex = led_module.LED.Index
 _COLOR_LABEL = {
-    LEDColor.YELLOW: I18nLabel('yellow', u'黃色'),
-    LEDColor.GREEN: I18nLabel('green', u'绿色'),
-    LEDColor.RED: I18nLabel('red', u'紅色'),
-    LEDColor.WHITE: I18nLabel('white', u'白色'),
-    LEDColor.BLUE: I18nLabel('blue', u'蓝色'),
-    LEDColor.AMBER: I18nLabel('amber', u'琥珀色'),
-    LEDColor.OFF: I18nLabel('off', u'关闭')}
+    LEDColor.YELLOW: _('yellow'),
+    LEDColor.GREEN: _('green'),
+    LEDColor.RED: _('red'),
+    LEDColor.WHITE: _('white'),
+    LEDColor.BLUE: _('blue'),
+    LEDColor.AMBER: _('amber'),
+    LEDColor.OFF: _('off')}
 _INDEX_LABEL = {
-    None: I18nLabel('', ''),
-    LEDIndex.POWER: I18nLabel('power', u'电源'),
-    LEDIndex.BATTERY: I18nLabel('battery', u'电池'),
-    LEDIndex.ADAPTER: I18nLabel('adapter', u'电源适配器')}
+    None: _('LED'),
+    LEDIndex.POWER: _('power LED'),
+    LEDIndex.BATTERY: _('battery LED'),
+    LEDIndex.ADAPTER: _('adapter LED')}
 
 # Hash values are: (LED color, readable text color).
 _COLOR_CODE = {
@@ -78,7 +76,7 @@ _HTML_KEY_TEMPLATE = """
 
 _HTML_RESULT = (
     '<div class="result-line">' +
-    test_ui.MakeLabel('Result: ', u'测试结果：') +
+    i18n_test_ui.MakeI18nLabel('Result: ') +
     '<span id="result"></span></div>')
 
 _CSS = """
@@ -133,9 +131,9 @@ class CheckLEDTask(factory_task.InteractiveFactoryTask):
     led: dut.led.LED instance to control LED.
     nth: The number of task.
     color: LEDColor to inspect.
-    color_label: I18nLabel for inspected color.
+    color_label: Label for inspected color.
     index: Target LED to inspect. None means default LED.
-    index_label: I18nLabel for inspected index.
+    index_label: Label for inspected index.
   """
 
   def __init__(self, ui, template, led, nth, color, color_label,
@@ -179,17 +177,14 @@ class CheckLEDTaskNormal(CheckLEDTask):
 
   def _InitUI(self):
     if self._color == LEDColor.OFF:
-      instruction = test_ui.MakeLabel(
-          'If the <strong>%s LED</strong> is <strong>off</strong>, '
-          'press ENTER.' % self._index_label.en,
-          u'請檢查 <strong>%s LED</strong> 是否 <strong>关掉</strong> 了，'
-          u'关掉了請按 ENTER。' % self._index_label.zh)
+      instruction = i18n_test_ui.MakeI18nLabel(
+          'If the <strong>{name}</strong> is <strong>off</strong>, '
+          'press ENTER.', name=self._index_label)
     else:
-      instruction = test_ui.MakeLabel(
-          'If the <strong>%s LED</strong> lights up in <strong>%s</strong>, '
-          'press ENTER.' % (self._index_label.en, self._color_label.en),
-          u'請檢查 <strong>%s LED</strong> 是否亮 <strong>%s</strong>，'
-          u'是請按 ENTER。' % (self._index_label.zh, self._color_label.zh))
+      instruction = i18n_test_ui.MakeI18nLabel(
+          'If the <strong>{name}</strong> lights up in '
+          '<strong>{color}</strong>, press ENTER.',
+          name=self._index_label, color=self._color_label)
     self._ui.AppendCSS(_CSS)
     self._template.SetState(instruction)
 
@@ -210,19 +205,17 @@ class CheckLEDTaskChallenge(CheckLEDTask):
     self._color_options = color_options
 
   def _InitUI(self):
-    desc = test_ui.MakeLabel(
-        '<span class="sub-title">Test %d</span><br />'
-        'Please press number key according to the <strong>%s LED</strong> color'
-        % (self._nth, self._index_label.en),
-        u'<span class="sub-title">测试 %d</span><br />'
-        u'请根据 <strong>%s LED</strong> 的颜色按下数字键'
-        % (self._nth, self._index_label.zh))
+    desc = i18n_test_ui.MakeI18nLabel(
+        '<span class="sub-title">Test {test_id}</span><br>'
+        'Please press number key according to the <strong>{name}</strong> '
+        'color',
+        test_id=self._nth, name=self._index_label)
 
     btn_ui = ''.join([
         _HTML_KEY_TEMPLATE % (_COLOR_CODE[c] + (_SELECT_COLOR_EVENT, j, j + 1))
         for j, c in enumerate(self._color_options)])
 
-    ui = [desc, '<br /><br />', btn_ui, _HTML_RESULT]
+    ui = [desc, '<br><br>', btn_ui, _HTML_RESULT]
 
     def _Judge(event):
       if event.data == target:
@@ -253,9 +246,9 @@ class FixtureCheckLEDTask(factory_task.FactoryTask):
     fixture: BFTFixture instance.
     led: dut.led.LED instance to control LED.
     color: LEDColor to inspect.
-    color_label: I18nLabel for inspected color.
+    color_label: Label for inspected color.
     index: Target LED to inspect (unused yet).
-    index_label: I18nLabel for inspected index (unused yet).
+    index_label: Label for inspected index (unused yet).
   """
 
   def __init__(self, fixture, led, color, color_label, index, index_label):
@@ -282,7 +275,7 @@ class FixtureCheckLEDTask(factory_task.FactoryTask):
         self.Pass()
       else:
         # Fail later to detect all colors.
-        self.Fail('Unable to detect %s LED.' % self._color_label.en,
+        self.Fail('Unable to detect %s LED.' % self._color_label['en-US'],
                   later=_FAIL_LATER)
     except bft_fixture.BFTFixtureException:
       logging.exception('Failed to send command to BFT fixture')
@@ -309,11 +302,7 @@ class LEDTest(unittest.TestCase):
                    LEDColor.OFF]),
       Arg('target_leds', (list, tuple),
           'List of LEDs to test. If specified, it turns off all LEDs first, '
-          'and sets them to auto after test.', optional=True),
-      Arg('index_i18n', dict,
-          'Mapping of (index, zh) translations.  If an index is used without '
-          'providing a translation, it will simply show the original index '
-          'name.', optional=True, default={})]
+          'and sets them to auto after test.', optional=True)]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -376,12 +365,10 @@ class LEDTest(unittest.TestCase):
     self._task_manager.Run()
 
   def _GetIndexLabel(self, index):
-    if index in self.args.index_i18n:
-      return I18nLabel(index, self.args.index_i18n[index])
-    elif index in _INDEX_LABEL:
+    if index in _INDEX_LABEL:
       return _INDEX_LABEL[index]
     else:
-      return I18nLabel(index, index)
+      return _(index)
 
   def _SetAllLED(self, leds, color):
     """Sets all LEDs to a given color.

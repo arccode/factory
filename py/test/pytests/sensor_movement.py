@@ -43,6 +43,8 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory_task
+from cros.factory.test import i18n
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -50,10 +52,10 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-_MSG_PASS = test_ui.MakeLabel('PASS', u'成功', 'test-pass')
-_MSG_FAIL = test_ui.MakeLabel('FAIL', u'失败', 'test-fail')
+_MSG_PASS = i18n_test_ui.MakeI18nLabelWithClass('PASS', 'test-pass')
+_MSG_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-fail')
 
-_BR = '<br/>'
+_BR = '<br>'
 
 _CSS = """
   .test-info {font-size: 2em;}
@@ -125,11 +127,14 @@ class SensorMovement(unittest.TestCase):
           'and "magnetometer".',
           optional=False),
       Arg('sub_tests', list,
-          'A list of tuples of the format'
+          'A list of tuples of the format '
+          '(instruction, expected_value) or '
           '(instruction_en, instruction_zh, expected_value), which tells '
           'operator to move the dut, and checks the sensor output.\n'
           '\n'
           'The fields are:\n'
+          '- instruction: instruction on how to move the dut, would be passed '
+          'to i18n.Translated.\n'
           '- instruction_en: (str or unicode) instruction on how to move the '
           'dut in English.\n'
           '- instruction_zh: (str or unicode) instruction on how to move the '
@@ -159,17 +164,23 @@ class SensorMovement(unittest.TestCase):
     self._task_manager = None
 
   def runTest(self):
-    task_list = [SensorMovementTask(self,
-                                    self.dut,
-                                    self.args.sensor_type,
-                                    test_ui.MakeLabel(test[0],
-                                                      test[1],
-                                                      'test-info'),
-                                    test[2],
-                                    self.args.tolerance,
-                                    self.args.capture_count,
-                                    self.args.timeout_secs,
-                                    self.args.controller_options)
-                 for test in self.args.sub_tests]
+    task_list = []
+    for test in self.args.sub_tests:
+      if len(test) == 3:
+        # TODO(pihsun): This is to maintain backward compatibility. Should be
+        #               removed after test lists are migrated to new format.
+        test = ({'en-US': test[0], 'zh-CN': test[1]}, test[2])
+      label = i18n_test_ui.MakeI18nLabelWithClass(
+          i18n.Translated(test[0], translate=False), 'test-info')
+      task_list.append(SensorMovementTask(
+          self,
+          self.dut,
+          self.args.sensor_type,
+          label,
+          test[1],
+          self.args.tolerance,
+          self.args.capture_count,
+          self.args.timeout_secs,
+          self.args.controller_options))
     self._task_manager = factory_task.FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()

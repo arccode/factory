@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -31,13 +29,17 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 
 
-DEFAULT_NAME = ('Accelerometer', u'加速度计')
+DEFAULT_NAME = _('Accelerometer')
 DEFAULT_RAW_ENTRY_TEMPLATE = 'in_accel_%s_raw'
 DEFAULT_CALIBBIAS_ENTRY_TEMPLATE = 'in_accel_%s_calibbias'
 DEFAULT_VPD_ENTRY_TEMPLATE = 'in_accel_%s_base_calibbias'
@@ -56,8 +58,8 @@ class SpatialSensorCalibration(unittest.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout in seconds when waiting for device.',
           default=60),
-      Arg('sensor_name', tuple, 'English and simplified Chinese name of the '
-          'sensor to calibrate.', default=DEFAULT_NAME),
+      i18n_arg_utils.I18nArg('sensor_name', 'name of the sensor to calibrate.',
+                             default=DEFAULT_NAME, accept_tuple=True),
       Arg('device_name', str, 'The "name" atribute of the sensor'),
       Arg('device_location', str, 'The "location" atribute of the sensor'),
       Arg('raw_entry_template', str,
@@ -79,6 +81,7 @@ class SpatialSensorCalibration(unittest.TestCase):
   ]
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'sensor_name')
     self._dut = device_utils.CreateDUTInterface()
     self._device_path = None
     for path in self._dut.Glob('/sys/bus/iio/devices/iio:device*'):
@@ -93,7 +96,7 @@ class SpatialSensorCalibration(unittest.TestCase):
         self._device_path = path
     if self._device_path is None:
       raise factory.FactoryTestFailure('%s at %s not found' %
-                                       (self.args.sensor_name[0],
+                                       (self.args.sensor_name['en-US'],
                                         self.args.device_location))
 
     self._ui = test_ui.UI(css=CSS)
@@ -121,27 +124,26 @@ class SpatialSensorCalibration(unittest.TestCase):
     self.WaitForDevice()
     self.VerifyDevicePosition()
 
-    self._template.SetState(test_ui.MakeLabel(
-        'Calibrating %s...' % self.args.sensor_name[0],
-        u'正在校正 %s...' % self.args.sensor_name[1]))
+    self._template.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Calibrating {sensor_name}...', sensor_name=self.args.sensor_name))
 
     self.EnableAutoCalibration(self._device_path)
     self.RetrieveCalibbiasAndWriteVPD()
     self._ui.Pass()
 
   def Prompt(self, prev_fail=False):
-    prompt_en = '<div class="error">%s</div><br/>%s' % (
-        'Device not in position' if prev_fail else '',
-        'Please put the device in face-up position (press Enter to continue)')
-    prompt_zh = '<div class="error">%s</div><br/>%s' % (
-        u'装置位置不正确' if prev_fail else '',
-        u'请将装置面向上(按 Enter 继续)')
+    prompt = i18n.StringJoin(
+        '<div class="error">',
+        _('Device not in position') if prev_fail else '',
+        '</div><br>',
+        _('Please put the device in face-up position'
+          ' (press Enter to continue)'))
 
-    self._template.SetState(test_ui.MakeLabel(prompt_en, prompt_zh))
+    self._template.SetState(i18n_test_ui.MakeI18nLabel(prompt))
 
   def WaitForDevice(self):
-    self._template.SetState(test_ui.MakeLabel('Waiting for device...',
-                                              u'正在等待装置...'))
+    self._template.SetState(i18n_test_ui.MakeI18nLabel('Waiting for device...'))
     sync_utils.WaitFor(self._dut.IsReady, self.args.timeout_secs)
     if not self._dut.IsReady():
       self.fail('failed to find deivce')
@@ -179,8 +181,8 @@ class SpatialSensorCalibration(unittest.TestCase):
     cmd = ['vpd']
 
     for axis in ['x', 'y', 'z']:
-      self._template.SetState(test_ui.MakeLabel('Writing calibration data...',
-                                                u'正在写入校正结果...'))
+      self._template.SetState(
+          i18n_test_ui.MakeI18nLabel('Writing calibration data...'))
       calibbias_key = self.args.calibbias_entry_template % axis
       vpd_key = self.args.vpd_entry_template % axis
       value = self._dut.ReadFile(self._dut.path.join(self._device_path, calibbias_key))

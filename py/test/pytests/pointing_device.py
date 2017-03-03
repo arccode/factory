@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,29 +13,26 @@ import string
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-_MSG_TEST_TITLE = test_ui.MakeLabel('Non-touchpad Pointing Device Test',
-                                    u'非触控板之指向装置测试')
-_MSG_INSTRUCTION = test_ui.MakeLabel(
-    'Please move the pointer over four quarters.', u'请移動鼠標至此文字四周')
-_MSG_MOVE_HERE = test_ui.MakeLabel('Move Here!', u'移動鼠標至此')
-_MSG_INSTRUCTION_CLICK = test_ui.MakeLabel(
-    'Please click the pointing device.',
-    u'请按下指向装置左键')
-_MSG_INSTRUCTION_RIGHT_CLICK = test_ui.MakeLabel(
-    'Please right-click the pointing device.',
-    u'请按下指向装置右键')
-_MSG_INSTRUCTION_SCROLL_UP = test_ui.MakeLabel(
-    'Please scroll up with the pointing device.',
-    u'请用指向装置向上卷动')
-_MSG_INSTRUCTION_SCROLL_DOWN = test_ui.MakeLabel(
-    'Please scroll down with the pointing device.',
-    u'请用指向装置向下卷动')
+_MSG_TEST_TITLE = i18n_test_ui.MakeI18nLabel(
+    'Non-touchpad Pointing Device Test')
+_MSG_INSTRUCTION = i18n_test_ui.MakeI18nLabel(
+    'Please move the pointer over four quarters.')
+_MSG_MOVE_HERE = i18n_test_ui.MakeI18nLabel('Move Here!')
+_MSG_INSTRUCTION_CLICK = i18n_test_ui.MakeI18nLabel(
+    'Please click the pointing device.')
+_MSG_INSTRUCTION_RIGHT_CLICK = i18n_test_ui.MakeI18nLabel(
+    'Please right-click the pointing device.')
+_MSG_INSTRUCTION_SCROLL_UP = i18n_test_ui.MakeI18nLabel(
+    'Please scroll up with the pointing device.')
+_MSG_INSTRUCTION_SCROLL_DOWN = i18n_test_ui.MakeI18nLabel(
+    'Please scroll down with the pointing device.')
 
 _CSS = """
 .pd-quarter { height: 50%; width: 50%; position: absolute; display: table;}

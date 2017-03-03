@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,26 +9,22 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_MSG_BUZZER_INFO = test_ui.MakeLabel(
+_MSG_BUZZER_INFO = i18n_test_ui.MakeI18nLabelWithClass(
     'How many beeps do you hear? <br>'
     'Press space to start.',
-    zh='你听到几声哔声？<br>'
-    '压下空白键开始测试',
-    css_class='buzzer-test-info')
+    'buzzer-test-info')
 
-_MSG_BUZZER_TEST = test_ui.MakeLabel(
+_MSG_BUZZER_TEST = i18n_test_ui.MakeI18nLabelWithClass(
     'How many beeps do you hear? <br>'
     'Press the number you hear to pass the test.<br>'
-    'Press \'r\' to play again.',
-    zh='你听到几声哔声？<br>'
-    '请按下数字代表你听到几声哔声<br>'
-    '按下 \'r\' 重播',
-    css_class='buzzer-test-info')
+    "Press 'r' to play again.",
+    'buzzer-test-info')
 
 _HTML_BUZZER = """
 <table style="width: 70%%; margin: auto;">

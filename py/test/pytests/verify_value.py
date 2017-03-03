@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -13,23 +11,28 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test import i18n
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-Item = namedtuple('CheckItem', 'name_en name_zh command expected_value')
+Item = namedtuple('CheckItem', 'name command expected_value')
 
 
 class VerifyValueTest(unittest.TestCase):
   ARGS = [
       Arg('items', list,
           'A list of tuples, each representing an item to check. Each tuple\n'
-          'is of the format:\n'
+          'is one of the formats:\n'
+          '\n'
+          '  (name, command/func_name, expected_value)\n'
           '\n'
           '  (name_en, name_zh, command/func_name, expected_value)\n'
           '\n'
           'The fields are:\n'
+          '    - name: name of the check, would be passed to i18n.Translated.\n'
           '    - name_en: (str or unicode) name of the check in English.\n'
           '    - name_zh: (str or unicode) name of the check in Chinese.\n'
           '    - command/func_name: (str or list) Can be one of the following:\n'
@@ -56,8 +59,12 @@ class VerifyValueTest(unittest.TestCase):
 
   def runTest(self):
     for item in self.args.items:
-      item = Item._make(item)
-      name = test_ui.MakeLabel(item.name_en, item.name_zh)
+      if len(item) == 4:
+        # TODO(pihsun): This is to maintain backward compatibility. Should be
+        #               removed after test lists are migrated to new format.
+        item = ({'en-US': item[0], 'zh-CN': item[1]}, item[2], item[3])
+      item = Item(i18n.Translated(item[0], translate=False), item[1], item[2])
+      name = i18n_test_ui.MakeI18nLabel(item.name)
       self._template.SetState(name)
       command = item.command
 
@@ -87,4 +94,4 @@ class VerifyValueTest(unittest.TestCase):
           break
 
       if not match:
-        self.fail('%s is not in %s' % (value_str, str(item.expected_value)))
+        self.fail('%s is not in %s' % (value_str, item.expected_value))

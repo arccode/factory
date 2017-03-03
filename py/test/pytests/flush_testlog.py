@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -9,13 +7,13 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import updater
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils.arg_utils import Arg
 
 _CSS = """
 #state {
@@ -54,9 +52,9 @@ class FlushTestlog(unittest.TestCase):
 
       while True:
         try:
-          template.SetState(test_ui.MakeLabel(
-              'Attempting to flush logs upstream...',
-              '同步测试记录...'))
+          template.SetState(
+              i18n_test_ui.MakeI18nLabel(
+                  'Attempting to flush logs upstream...'))
           msg = goofy.FlushTestlog(timeout=self.args.timeout_secs)
           factory.console.info('Logs flushed successfully: %s', msg)
           ui.Pass()
@@ -67,20 +65,16 @@ class FlushTestlog(unittest.TestCase):
           # since this may happen repeatedly.
           logging.error('Unable to flush logs: %s', exception_string)
 
-        template.SetState(
-            test_ui.MakeLabel(
-                'Unable to flush logs. Will try again in ',
-                '无法同步测试记录，将于 ') +
-            ('<span id="retry">%d</span>' % retry_secs) +
-            test_ui.MakeLabel(
-                ' seconds.',
-                ' 秒后自动重试。') +
-            '<div class=sync-detail>' +
-            test_ui.Escape(exception_string) + '</div>')
+        msg = lambda secs: i18n_test_ui.MakeI18nLabel(
+            'Unable to flush logs. Will try again in {secs} seconds.',
+            secs=secs)
+        template.SetState('<span id="retry">' + msg(retry_secs) + '</span>' +
+                          '<div class=sync-detail>' +
+                          test_ui.Escape(exception_string) + '</div>')
 
         for i in xrange(retry_secs):
           time.sleep(1)
-          ui.SetHTML(str(retry_secs - i - 1), id='retry')
+          ui.SetHTML(msg(retry_secs - i - 1), id='retry')
 
         retry_secs = min(2 * retry_secs, self.args.retry_secs)
 

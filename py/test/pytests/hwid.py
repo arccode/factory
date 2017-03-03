@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -23,29 +21,23 @@ from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.test import factory
 from cros.factory.test import factory_task
 from cros.factory.test import gooftools
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_MESSAGE_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
-    'Fetching HWID from shop floor server...',
-    u'从 Shop Floor 服务器抓取 HWID 中...',
-    'hwid-font-size')
-_MESSAGE_AUTO_PROBE_HWID = test_ui.MakeLabel('Auto probing HWID...',
-                                             u'自动侦测 HWID 中...',
-                                             'hwid-font-size')
-_MESSAGE_WRITING = (
-    lambda hwid: test_ui.MakeLabel(
-        'Writing HWID: %s' % hwid,
-        u'写入 HWID: %s' % hwid, 'hwid-font-size'))
-_MESSAGE_CHOOSE_HWID = test_ui.MakeLabel('Select HWID:</br></br>',
-                                         u'选择 HWID：</br></br>',
-                                         'hwid-font-size')
-_MESSAGE_HOW_TO_SELECT = test_ui.MakeLabel('</br></br>Select with Enter key',
-                                           u'</br></br>使用 Enter 键选择',
-                                           'hwid-font-size')
+_MESSAGE_FETCH_FROM_SHOP_FLOOR = i18n_test_ui.MakeI18nLabelWithClass(
+    'Fetching HWID from shop floor server...', 'hwid-font-size')
+_MESSAGE_AUTO_PROBE_HWID = i18n_test_ui.MakeI18nLabelWithClass(
+    'Auto probing HWID...', 'hwid-font-size')
+_MESSAGE_WRITING = (lambda hwid: i18n_test_ui.MakeI18nLabelWithClass(
+    'Writing HWID: {hwid}', 'hwid-font-size', hwid=hwid))
+_MESSAGE_CHOOSE_HWID = i18n_test_ui.MakeI18nLabelWithClass(
+    'Select HWID:<br><br>', 'hwid-font-size')
+_MESSAGE_HOW_TO_SELECT = i18n_test_ui.MakeI18nLabelWithClass(
+    '<br><br>Select with Enter key', 'hwid-font-size')
 _MESSAGE_CURRENT_VALUE = lambda hwid: '%s (Current Value)' % hwid
 
 _TEST_DEFAULT_CSS = '.hwid-font-size {font-size: 2em;}'
@@ -60,11 +52,10 @@ _JS_HWID_SELECT = """
     window.test.sendTestEvent("%s", ele.options[idx].value)
 """ % (_SELECT_BOX_ID, _EVENT_SUBTYPE_HWID_SELECT)
 
-_ERR_HWID_NOT_FOUND = test_ui.MakeLabel('Cannot find matched HWID.',
-                                        u'无法找到匹配的 HWID。',
-                                        'hwid-font-size test-error')
+_ERR_HWID_NOT_FOUND = i18n_test_ui.MakeI18nLabelWithClass(
+    'Cannot find matched HWID.', 'hwid-font-size test-error')
 
-_TEST_TITLE = test_ui.MakeLabel('HWID Test', u'HWID测试')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('HWID Test')
 
 
 class WriteHWIDTask(factory_task.FactoryTask):

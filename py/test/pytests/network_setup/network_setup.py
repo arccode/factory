@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -37,6 +36,7 @@ import traceback
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -47,7 +47,7 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
-_TITLE = test_ui.MakeLabel('Setup network connection', u'设定网络连线')
+_TITLE = i18n_test_ui.MakeI18nLabel('Setup network connection')
 
 _ID_SUBTITLE_DIV = 'subtitle'
 _ID_MESSAGE_DIV = 'message'
@@ -61,12 +61,11 @@ _STATE_HTML = """
 
 def _GetSubtitleForInterface(interface):
   interface = '<b>%s</b>' % interface
-  return test_ui.MakeLabel(
-      'Setting up interface %s' % interface,
-      u'正在设定网络介面 %s' % interface)
+  return i18n_test_ui.MakeI18nLabel(
+      'Setting up interface {interface}', interface=interface)
 
-_PRESS_SPACE = test_ui.MakeLabel(
-    'Press space to continue', u'请按空白键继续')
+
+_PRESS_SPACE = i18n_test_ui.MakeI18nLabel('Press space to continue')
 
 
 ErrorCode = connection_manager.ConnectionManagerException.ErrorCode
@@ -74,17 +73,14 @@ ErrorCode = connection_manager.ConnectionManagerException.ErrorCode
 def _ErrorCodeToMessage(error_code, interface):
   interface = '<b>%s</b>' % interface
   if error_code == ErrorCode.NO_PHYSICAL_LINK:
-    return test_ui.MakeLabel(
-        'No physical link on %s' % interface,
-        u'%s 没有连接网络线' % interface),
+    return i18n_test_ui.MakeI18nLabel(
+        'No physical link on {interface}', interface=interface),
   if error_code == ErrorCode.INTERFACE_NOT_FOUND:
-    return test_ui.MakeLabel(
-        'Interface %s not found' % interface,
-        u'找不到网络介面 %s' % interface),
+    return i18n_test_ui.MakeI18nLabel(
+        'Interface {interface} not found', interface=interface),
   if error_code == ErrorCode.NO_SELECTED_SERVICE:
-    return test_ui.MakeLabel(
-        'Interface %s not initialized' % interface,
-        u'网络介面 %s 未成功初始化' % interface),
+    return i18n_test_ui.MakeI18nLabel(
+        'Interface {interface} not initialized', interface=interface),
 
 
 class NetworkConnectionSetup(unittest.TestCase):

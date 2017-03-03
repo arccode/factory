@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,11 +15,12 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = test_ui.MakeLabel('Charging', u'充电')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Charging')
 
 
 def FormatTime(seconds):
@@ -29,12 +28,12 @@ def FormatTime(seconds):
 
 
 def MakeChargeTextLabel(start, current, target, elapsed, remaining):
-  _LABEL_EN = ('Charging to %d%% (Start: %d%%. Current: %d%%.)<br>' +
-               'Time elapsed: %s' + '&nbsp;' * 8 + 'Time remaining: %s')
-  _LABEL_ZH = (u'充电至 %d%% (起始电量: %d%%. 当前电量: %d%%.)<br>' +
-               u'经过时间: %s' + u'&nbsp;' * 8 + u'剩余时间: %s')
-  values = (target, start, current, FormatTime(elapsed), FormatTime(remaining))
-  return test_ui.MakeLabel(_LABEL_EN % values, _LABEL_ZH % values)
+  return i18n_test_ui.MakeI18nLabel(
+      'Charging to {target}% (Start: {start}%. Current: {current}%.)<br>'
+      'Time elapsed: {elapsed}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+      'Time remaining: {remaining}',
+      target=target, start=start, current=current,
+      elapsed=FormatTime(elapsed), remaining=FormatTime(remaining))
 
 
 def MakeSpriteHTMLTag(src, height, width):

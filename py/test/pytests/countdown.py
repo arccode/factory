@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -18,17 +17,65 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import time_utils
 
 
+_HTML = ("""
+<div class="test-vcenter-outer">
+<div class="test-vcenter-inner" id="cd-container">
+
+<table>
+  <thead>
+    <tr>
+      <th colspan=2>
+        <span id='cd-title'></span>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>
+""" + i18n_test_ui.MakeI18nLabel('Elapsed time:') + """
+      </th>
+      <td id='cd-elapsed-time'>00:00:00</td>
+    </tr>
+    <tr>
+      <th>
+""" + i18n_test_ui.MakeI18nLabel('Remaining time:') + """
+      </th>
+      <td id='cd-remaining-time'>00:00:00</td>
+    </tr>
+    <tr>
+      <th>
+""" + i18n_test_ui.MakeI18nLabel('Load:') + """
+      </th>
+      <td id='cd-system-load'></span>
+    </tr>
+  </tbody>
+</table>
+
+<div class='cd-log' id='cd-log-panel'>
+</div>
+<div class='cd-legend' id='cd-legend-panel'>
+  <div class='cd-legend-title'>Temperature Sensor Names</div>
+  <div class='cd-legend-item-container' id='cd-legend-item-panel'></div>
+</div>
+
+</div></div>
+""")
+
+
 class CountDownTest(unittest.TestCase):
   """A countdown test that monitors and logs various system status."""
 
-  ARGS = [
-      Arg('title_en', (str, unicode), 'English title.', 'Countdown'),
-      Arg('title_zh', (str, unicode), 'Chinese title.', u'倒數計時'),
+  ARGS = (i18n_arg_utils.BackwardCompatibleI18nArgs(
+      'title', 'title.', default=_('Countdown')
+  ) + [
       Arg('position_top_right', bool,
           'A workaround for some machines on which graphics test would overlay '
           'countdown info.', False),
@@ -53,7 +100,7 @@ class CountDownTest(unittest.TestCase):
           'relation is a text output with warning messages to describe the two '
           'temp sensors in the rule', [], optional=True),
       Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', None,
-          optional=True)]
+          optional=True)])
 
   def FormatSeconds(self, secs):
     hours = int(secs / 3600)
@@ -171,17 +218,19 @@ class CountDownTest(unittest.TestCase):
                        self._dut.fan.GetFanRPM())
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'title')
     self._dut = device_utils.CreateDUTInterface()
     self.Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
 
   def runTest(self):
     # Allow attributes to be defined outside __init__
-    # pylint: disable=W0201
+    # pylint: disable=attribute-defined-outside-init
 
     self._ui = test_ui.UI()
     self._ui.Run(blocking=False)
-    self._ui.SetHTML(self.args.title_en, id='cd-title-en')
-    self._ui.SetHTML(self.args.title_zh, id='cd-title-zh')
+    self._ui.SetHTML(_HTML)
+    self._ui.SetHTML(i18n_test_ui.MakeI18nLabel(self.args.title),
+                     id='cd-title')
 
     # A workaround for some machines in which graphics test would
     # overlay countdown info.

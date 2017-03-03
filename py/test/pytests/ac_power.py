@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,28 +12,28 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE_PLUG = test_ui.MakeLabel('Connect AC', u'连接充电器')
-_TEST_TITLE_UNPLUG = test_ui.MakeLabel('Remove AC', u'移除充电器')
+_TEST_TITLE_PLUG = i18n_test_ui.MakeI18nLabel('Connect AC')
+_TEST_TITLE_UNPLUG = i18n_test_ui.MakeI18nLabel('Remove AC')
 
-_PLUG_AC = lambda x: test_ui.MakeLabel(
-    'Plug in the charger' + (' (%s)' % x if x else ''),
-    u'请连接充电器' + (' (%s)' % x if x else ''))
-_UNPLUG_AC = test_ui.MakeLabel('Unplug the charger.', u'请移除充电器')
+_PLUG_AC = lambda type: (
+    i18n_test_ui.MakeI18nLabel('Plug in the charger ({type})', type=type)
+    if type else i18n_test_ui.MakeI18nLabel('Plug in the charger'))
+_UNPLUG_AC = i18n_test_ui.MakeI18nLabel('Unplug the charger.')
 
 _PROBE_TIMES_ID = 'probed_times'
-_PROBE_TIMES = lambda total: '%s <span id="%s">0</span> / %d' % (
-    test_ui.MakeLabel('Probed', u'侦测次数'), _PROBE_TIMES_ID, total)
+_PROBE_TIMES_MSG = lambda times, total: i18n_test_ui.MakeI18nLabel(
+    'Probed {times} / {total}', times=times, total=total)
 
 _AC_STATUS_ID = 'ac_status'
-_NO_AC = test_ui.MakeLabel('No AC adapter', u'沒有充电器')
-_AC_TYPE_PROBING = test_ui.MakeLabel('Identifying AC adapter...',
-                                     u'充电器型号识别中...')
-_AC_TYPE = test_ui.MakeLabel('AC adapter type: ', u'充电器型号: ')
+_NO_AC = i18n_test_ui.MakeI18nLabel('No AC adapter')
+_AC_TYPE_PROBING = i18n_test_ui.MakeI18nLabel('Identifying AC adapter...')
+_AC_TYPE = i18n_test_ui.MakeI18nLabel('AC adapter type: ')
 
 
 class ACPowerTest(unittest.TestCase):
@@ -80,10 +78,10 @@ class ACPowerTest(unittest.TestCase):
                    if self.args.online else _UNPLUG_AC)
     probe_count_message = ''
     if self.args.retries is not None:
-      probe_count_message = _PROBE_TIMES(self.args.retries)
+      probe_count_message = _PROBE_TIMES_MSG(0, self.args.retries)
     self._template.SetState(
-        '%s<br>%s<div id="%s"></div>' %
-        (instruction, probe_count_message, _AC_STATUS_ID))
+        '%s<br><span id="%s">%s</span><div id="%s"></div>' %
+        (instruction, _PROBE_TIMES_ID, probe_count_message, _AC_STATUS_ID))
 
     self._power_state = {}
     self._done = threading.Event()
@@ -144,7 +142,8 @@ class ACPowerTest(unittest.TestCase):
       if self.args.retries is not None:
         # retries is set.
         num_probes += 1
-        self._ui.SetHTML(str(num_probes), id=_PROBE_TIMES_ID)
+        self._ui.SetHTML(_PROBE_TIMES_MSG(num_probes, self.args.retries),
+                         id=_PROBE_TIMES_ID)
         if self.args.retries < num_probes:
           self.fail('Failed after probing %d times' % num_probes)
       # Prevent busy polling.

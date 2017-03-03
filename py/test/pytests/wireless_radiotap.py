@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -33,6 +31,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -47,24 +46,18 @@ except ImportError:
 
 _DEFAULT_WIRELESS_TEST_CSS = '.wireless-info {font-size: 2em;}'
 
-_MSG_SWITCHING_AP = lambda ap: test_ui.MakeLabel(
-    'Switching to AP %s: ' % ap,
-    u'切换到基地台 %s...' % ap,
-    'wireless-info')
-_MSG_SCANNING = lambda device, freq: test_ui.MakeLabel(
-    'Scanning on device %s frequency %d...' % (device, freq),
-    u'在装置 %s 上扫描频率%d...' % (device, freq),
-    'wireless-info')
-_MSG_SCANNING_DONE = lambda device, freq: test_ui.MakeLabel(
-    'Done scanning on device %s frequency %d...' % (device, freq),
-    u'在装置 %s 上扫描频率%d 完成' % (device, freq),
-    'wireless-info')
-_MSG_SPACE = test_ui.MakeLabel(
-    'Press space to start scanning.',
-    u'请按空白键开始扫描。', 'wireless-info')
-_MSG_PRECHECK = test_ui.MakeLabel(
-    'Checking frequencies...',
-    u'檢查頻率中...', 'wireless-info')
+_MSG_SWITCHING_AP = lambda ap: i18n_test_ui.MakeI18nLabelWithClass(
+    'Switching to AP {ap}: ', 'wireless-info', ap=ap)
+_MSG_SCANNING = lambda device, freq: i18n_test_ui.MakeI18nLabelWithClass(
+    'Scanning on device {device} frequency {freq}...',
+    'wireless-info', device=device, freq=freq)
+_MSG_SCANNING_DONE = lambda device, freq: i18n_test_ui.MakeI18nLabelWithClass(
+    'Done scanning on device {device} frequency {freq}...',
+    'wireless-info', device=device, freq=freq)
+_MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Press space to start scanning.', 'wireless-info')
+_MSG_PRECHECK = i18n_test_ui.MakeI18nLabelWithClass(
+    'Checking frequencies...', 'wireless-info')
 
 _RE_IWSCAN = re.compile(r'freq: (\d+).*SSID: (.+)$')
 _RE_WIPHY = re.compile(r'wiphy (\d+)')

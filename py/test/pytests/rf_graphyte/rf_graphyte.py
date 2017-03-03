@@ -31,6 +31,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.args import Arg
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
@@ -64,18 +65,12 @@ _STATE_HTML = """
   <div id='%s'></div>
 """ % (_ID_MSG_DIV, _ID_DEBUG_DIV)
 
-_MSG_FETCH_CONFIG = test_ui.MakeLabel(
-    'Fetching config files from shopfloor',
-    u'从 shopfloor 下载测试参数',
-    'message')
-_MSG_EXECUTE_GRAPHYTE = test_ui.MakeLabel(
-    'Executing Graphyte',
-    u'執行 Graphyte',
-    'message')
-_MSG_UPLOAD_RESULT = test_ui.MakeLabel(
-    'Uploading result files to shopfloor',
-    u'上傳测试纪录到 shopfloor',
-    'message')
+_MSG_FETCH_CONFIG = i18n_test_ui.MakeI18nLabelWithClass(
+    'Fetching config files from shopfloor', 'message')
+_MSG_EXECUTE_GRAPHYTE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Executing Graphyte', 'message')
+_MSG_UPLOAD_RESULT = i18n_test_ui.MakeI18nLabelWithClass(
+    'Uploading result files to shopfloor', 'message')
 
 class RFGraphyteTest(unittest.TestCase):
 

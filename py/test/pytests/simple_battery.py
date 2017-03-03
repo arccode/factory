@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -20,6 +18,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
@@ -28,13 +27,11 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 
 
-_TEST_TITLE = test_ui.MakeLabel('Simple Battery Test', u'简单电池测试')
-_UNPLUG_AC = test_ui.MakeLabel('Unplug AC to proceed', u'拔除 AC 电源')
-_PLUG_AC = test_ui.MakeLabel('Plug AC to proceed', u'插上 AC 电源')
-_TESTING_CHARGE = test_ui.MakeLabel('Testing battery charge...',
-                                    u'测试电池充电中...')
-_TESTING_DISCHARGE = test_ui.MakeLabel('Testing battery discharge...',
-                                       u'测试电池放电中...')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Simple Battery Test')
+_UNPLUG_AC = i18n_test_ui.MakeI18nLabel('Unplug AC to proceed')
+_PLUG_AC = i18n_test_ui.MakeI18nLabel('Plug AC to proceed')
+_TESTING_CHARGE = i18n_test_ui.MakeI18nLabel('Testing battery charge...')
+_TESTING_DISCHARGE = i18n_test_ui.MakeI18nLabel('Testing battery discharge...')
 _CSS = 'body { font-size: 2em; }'
 
 
@@ -91,7 +88,7 @@ class SimpleBatteryTest(unittest.TestCase):
     while time_utils.MonotonicTime() < end_time:
       sampled_current.append(self._dut.power.GetBatteryCurrent())
       time.sleep(self.args.current_sampling_period_secs)
-    logging.info('Sampled battery current: %s', str(sampled_current))
+    logging.info('Sampled battery current: %s', sampled_current)
     return sampled_current
 
   def TestCharge(self, duration_secs):

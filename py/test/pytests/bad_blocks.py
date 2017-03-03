@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -28,6 +27,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -239,8 +239,9 @@ class BadBlocksTest(unittest.TestCase):
         params.sector_size / 1024. ** 2)
 
     self.template.SetInstruction(
-        test_ui.MakeLabel('Testing %s region of storage' % test_size_mb,
-                          '正在测试 %s 的 存储 空间' % test_size_mb))
+        i18n_test_ui.MakeI18nLabel(
+            'Testing {test_size_mb} region of storage',
+            test_size_mb=test_size_mb))
 
     # Kill any badblocks processes currently running
     self.dut.Call(['killall', 'badblocks'])
@@ -277,8 +278,10 @@ class BadBlocksTest(unittest.TestCase):
     def UpdatePhase():
       event_log.Log('start_phase', current_phase=current_phase)
       self.ui.SetHTML(
-          test_ui.MakeLabel('Phase', '阶段') + ' %d/%d: ' % (
-              min(current_phase + 1, total_phases), total_phases),
+          i18n_test_ui.MakeI18nLabel(
+              'Phase {current_phase}/{total_phases}: ',
+              current_phase=min(current_phase + 1, total_phases),
+              total_phases=total_phases),
           id='bb-phase')
     UpdatePhase()
 

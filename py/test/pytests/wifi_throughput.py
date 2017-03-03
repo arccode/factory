@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -70,27 +68,28 @@ import json
 import logging
 import os
 import string  # pylint: disable=W0402
-import sys
 import subprocess
+import sys
 import threading
 import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import device_utils
 from cros.factory.device import CalledProcessError
+from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.fixture import arduino
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import leds
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
-from cros.factory.test.fixture import arduino
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils import arg_utils
+from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils import arg_utils
-from cros.factory.utils.arg_utils import Arg
 
 
 _WIFI_TIMEOUT_SECS = 20
@@ -99,14 +98,11 @@ _IPERF_TIMEOUT_SECS = 5
 
 _DEFAULT_WIRELESS_TEST_CSS = '.wireless-info {font-size: 2em;}'
 
-_MSG_SPACE = test_ui.MakeLabel(
+_MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
     'Please wait for other DUTs to finish WiFiThroughput test, '
-    'and press spacebar to continue.',
-    u'请等其它的 DUT 完成测试後按空白键继续。',
-    'wireless-info')
-_MSG_RUNNING = test_ui.MakeLabel(
-    'Running, please wait...',
-    u'测试中，请稍後。', 'wireless-info')
+    'and press spacebar to continue.', 'wireless-info')
+_MSG_RUNNING = i18n_test_ui.MakeI18nLabelWithClass('Running, please wait...',
+                                                   'wireless-info')
 
 
 def _MbitsToBits(x):

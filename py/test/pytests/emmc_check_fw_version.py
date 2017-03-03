@@ -1,4 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -26,12 +25,13 @@ PRV: Product revision, 8 bit field in CID register, a vendor specific value
 
 
 import logging
-import re
 import os
+import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -124,18 +124,14 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
     if self.args.emmc_updater_available:
       ui = test_ui.UI()
       template = ui_templates.OneSection(ui)
-      template.SetTitle(test_ui.MakeLabel(
-          'eMMC Firmware Version Incorrect',
-          'eMMC 韧体版本不对'))
+      template.SetTitle(
+          i18n_test_ui.MakeI18nLabel('eMMC Firmware Version Incorrect'))
       template.SetState(
-          '<div class=test-status-failed style="font-size: 150%">' +
-          test_ui.MakeLabel(
-              'The eMMC firmware version (%s) is incorrect. '
-              '<br>Please run the eMMC firmware update tool.' % prv,
-
-              'eMMC 韧体版（%s）版本不对。'
-              '<br>必须更新 eMMC 韧体并重新安装工厂测试软件。' % prv) +
-          '</div>')
+          '<div class=test-status-failed style="font-size: 150%">'
+          + i18n_test_ui.MakeI18nLabel(
+              'The eMMC firmware version ({version}) is incorrect. '
+              '<br>Please run the eMMC firmware update tool.',
+              version=prv) + '</div>')
       ui.Run()  # Forever
     else:
       self.fail('The eMMC firmware version (%s) is incorrect. However, no '

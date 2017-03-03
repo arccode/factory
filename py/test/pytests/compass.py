@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,12 +13,14 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.utils import sync_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import sync_utils
 
-_COMPASS_CSS = '''
+_COMPASS_CSS = """
 .compass {
   width: 300px;
   height: 300px;
@@ -34,9 +35,9 @@ _COMPASS_CSS = '''
   background: #afa;
   font-size: 4em;
 }
-'''
+"""
 
-_STATE_TEMPLATE = '''
+_STATE_TEMPLATE = """
 <div>
   <div style='position: absolute; text-align: left'>
     in_magn_x: {in_magn_x}<br>
@@ -49,10 +50,9 @@ _STATE_TEMPLATE = '''
     <div style='position: absolute; bottom: 0; width: 300px'>S</div>
   </div>
 <div>
-'''
+"""
 
-_MSG_STATUS_SUCCESS = test_ui.MakeLabel(
-    'Success!', u'成功！')
+_MSG_STATUS_SUCCESS = i18n_test_ui.MakeI18nLabel('Success!')
 _HTML_STATUS_SUCCESS = '<div class="success">%s</div>' % _MSG_STATUS_SUCCESS
 
 _NORTH = (0, 1)
@@ -75,7 +75,7 @@ class CompassTest(unittest.TestCase):
     self._template = ui_templates.TwoSections(self.ui)
 
   def runTest(self):
-    self._SetInstruction('north', u'北')
+    self._SetInstruction(_('north'))
     sync_utils.PollForCondition(
         poll_method=lambda: self._CheckDirection(_NORTH),
         timeout_secs=1000,
@@ -83,7 +83,7 @@ class CompassTest(unittest.TestCase):
     self._template.SetState(_HTML_STATUS_SUCCESS)
     time.sleep(_FLASH_STATUS_TIME)
 
-    self._SetInstruction('south', u'南')
+    self._SetInstruction(_('south'))
     sync_utils.PollForCondition(
         poll_method=lambda: self._CheckDirection(_SOUTH),
         timeout_secs=1000,
@@ -91,9 +91,9 @@ class CompassTest(unittest.TestCase):
     self._template.SetState(_HTML_STATUS_SUCCESS)
     time.sleep(_FLASH_STATUS_TIME)
 
-  def _SetInstruction(self, direction_en, direction_zh):
-    label = test_ui.MakeLabel('Put the DUT towards %s' % direction_en,
-                              u'将机器朝向%s方' % direction_zh)
+  def _SetInstruction(self, direction):
+    label = i18n_test_ui.MakeI18nLabel(
+        'Put the DUT towards {direction}', direction=direction)
     self._template.SetTitle(label)
 
   def _CalculateDirection(self, x, y):

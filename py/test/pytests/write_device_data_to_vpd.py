@@ -1,4 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,14 +13,15 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-_MSG_WRITING_VPD = lambda vpd_section: test_ui.MakeLabel(
-    'Writing device data to %s VPD...' % vpd_section.upper(),
-    '机器资料正在写入到 %s VPD...' % vpd_section.upper())
+_MSG_WRITING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
+    'Writing device data to {vpd_section} VPD...',
+    vpd_section=vpd_section.upper())
 
 
 class CallShopfloor(unittest.TestCase):

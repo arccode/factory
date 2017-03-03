@@ -1,4 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,6 +18,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -147,8 +147,8 @@ class CheckWifiCalibrationTest(unittest.TestCase):
 
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
-    template.SetTitle(test_ui.MakeLabel(
-        "Calibration data doesn't meet requirement"))
+    template.SetTitle(
+        i18n_test_ui.MakeI18nLabel("Calibration data doesn't meet requirement"))
     template.SetState(
         '<div class=test-status-failed '
         'style="font-size: 100%; white-space: pre-wrap">' +

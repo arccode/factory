@@ -16,6 +16,9 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -23,17 +26,16 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
-_TEST_TITLE = test_ui.MakeLabel('Audio Test', u'音讯测试')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Audio Test')
 
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
 _CSS = '#pass_key {font-size:36px; font-weight:bold;}'
 
-_INSTRUCTION_AUDIO_RANDOM_TEST = lambda d, k: test_ui.MakeLabel(
-    '</br>'.join(['Press the number you hear from %s to pass the test.' % d,
-                  'Press "%s" to replay.' % k]),
-    '</br>'.join([u'请按你从 %s 输出所听到的数字' % d,
-                  u'按 %s 重播语音' % k]))
+_INSTRUCTION_AUDIO_RANDOM_TEST = lambda device, key: i18n_test_ui.MakeI18nLabel(
+    'Press the number you hear from {device} to pass the test.<br>'
+    'Press "{key}" to replay.',
+    device=device, key=key)
 
 _SOUND_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), '..', '..', 'goofy',
@@ -51,7 +53,7 @@ class AudioDigitPlaybackTask(factory_task.InteractiveFactoryTask):
     _dut: dut instance
     ui: cros.factory.test.test_ui object.
     port_label: Label name of audio port to output. It should be generated
-        using test_ui.MakeLabel to have English/Chinese version.
+        using i18n_test_ui.MakeI18nLabel to have internationalized version.
     title_id: HTML id for placing testing title.
     instruction_id: HTML id for placing instruction.
     card: audio card to output.
@@ -73,9 +75,9 @@ class AudioDigitPlaybackTask(factory_task.InteractiveFactoryTask):
     self._sample_rate = sample_rate
 
     if channel == 'left':
-      self._port_label += test_ui.MakeLabel(' (Left Channel)', u'(左声道)')
+      self._port_label += i18n_test_ui.MakeI18nLabel(' (Left Channel)')
     elif channel == 'right':
-      self._port_label += test_ui.MakeLabel(' (Right Channel)', u'(右声道)')
+      self._port_label += i18n_test_ui.MakeI18nLabel(' (Right Channel)')
 
   def _InitUI(self):
     self._ui.SetHTML(self._port_label, id=self._title_id)
@@ -153,13 +155,12 @@ class DetectHeadphoneTask(factory_task.InteractiveFactoryTask):
     self._instruction_id = instruction_id
     self._wait_for_connect = wait_for_connect
     if wait_for_connect:
-      self._title = test_ui.MakeLabel('Connect Headphone', u'连接耳机')
-      self._instruction = test_ui.MakeLabel('Please plug headphone in.',
-                                            u'请接上耳机')
+      self._title = i18n_test_ui.MakeI18nLabel('Connect Headphone')
+      self._instruction = i18n_test_ui.MakeI18nLabel(
+          'Please plug headphone in.')
     else:
-      self._title = test_ui.MakeLabel('Discnnect Headphone', u'移除耳机')
-      self._instruction = test_ui.MakeLabel('Please unplug headphone.',
-                                            u'请拔下耳机')
+      self._title = i18n_test_ui.MakeI18nLabel('Disconnect Headphone')
+      self._instruction = i18n_test_ui.MakeI18nLabel('Please unplug headphone.')
 
   def _InitUI(self):
     self._ui.SetHTML(self._title, id=self._title_id)
@@ -195,8 +196,10 @@ class AudioTest(unittest.TestCase):
       Arg('output_dev', tuple,
           'Onput ALSA device. (card_name, sub_device).'
           'For example: ("audio_card", "0").', ('0', '0')),
-      Arg('port_label', tuple, 'Label of audio (en, zh).',
-          default=('Internal Speaker', u'内建喇叭')),
+      i18n_arg_utils.I18nArg(
+          'port_label', 'Label of audio.',
+          default=_('Internal Speaker'),
+          accept_tuple=True),
       Arg('test_left_right', bool, 'Test left and right channel.',
           default=True),
       Arg('require_headphone', bool, 'Require headphone option', False),
@@ -208,6 +211,7 @@ class AudioTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'port_label')
     self._dut = device_utils.CreateDUTInterface()
     if self.args.audio_conf:
       self._dut.audio.ApplyConfig(self.args.audio_conf)
@@ -258,7 +262,8 @@ class AudioTest(unittest.TestCase):
       tasks.append(DetectHeadphoneTask(self._dut, self._out_card, self._ui,
                                        self.args.require_headphone, _TITLE_ID,
                                        _INSTRUCTION_ID))
-    args = (self._dut, self._ui, test_ui.MakeLabel(*self.args.port_label),
+    args = (self._dut, self._ui,
+            i18n_test_ui.MakeI18nLabel(self.args.port_label),
             _TITLE_ID, _INSTRUCTION_ID, self._out_card, self._out_device)
     _ComposeLeftRightTasks(tasks, args)
 

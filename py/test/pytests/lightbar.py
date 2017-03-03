@@ -12,16 +12,18 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-_TEST_TITLE = test_ui.MakeLabel('Lightbar Test', u'光棒测试')
-_TEST_PROMPT = lambda color_en, color_zh: test_ui.MakeLabel(
-    'Is the lightbar %s?<br>Press SPACE if yes, "f" if no.' % color_en,
-    u'光棒是否为%s？<br>是请按空白键，不是请按 f 。' % color_zh)
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Lightbar Test')
+_TEST_PROMPT = lambda color: i18n_test_ui.MakeI18nLabel(
+    'Is the lightbar {color}?<br>Press SPACE if yes, "f" if no.', color=color)
 _CSS = 'body { font-size: 2em; }'
 
 
@@ -31,13 +33,13 @@ class LightbarTest(unittest.TestCase):
   ARGS = [
       Arg('colors_to_test', type=(tuple, list),
           help=('a list of colors to test; each element of the list is a tuple '
-                'of ((label_en, label_zh), [LED, RED, GREEN, BLUE])'),
+                'of (label, [LED, RED, GREEN, BLUE])'),
           default=[
-              (('red', u'红色'), [4, 255, 0, 0]),
-              (('green', u'绿色'), [4, 0, 255, 0]),
-              (('blue', u'蓝色'), [4, 0, 0, 255]),
-              (('dark', u'全暗'), [4, 0, 0, 0]),
-              (('white', u'白色'), [4, 255, 255, 255]),
+              (_('red'), [4, 255, 0, 0]),
+              (_('green'), [4, 0, 255, 0]),
+              (_('blue'), [4, 0, 0, 255]),
+              (_('dark'), [4, 0, 0, 0]),
+              (_('white'), [4, 255, 255, 255]),
           ]),
   ]
 
@@ -51,6 +53,10 @@ class LightbarTest(unittest.TestCase):
     self.ECToolLightbar(['on'])
     self.ECToolLightbar(['init'])
     self.ECToolLightbar(['seq', 'stop'])
+    self.args.colors_to_test = [
+        (i18n.Translated(label), color)
+        for label, color in self.args.colors_to_test
+    ]
 
   def tearDown(self):
     self.ECToolLightbar(['seq', 'run'])
@@ -81,8 +87,8 @@ class LightbarTest(unittest.TestCase):
       color_index: The index of self.args.colors_to_test to test.
     """
     labels, lrgb = self.args.colors_to_test[color_index]
-    logging.info('Testing %s (%s)...', labels[0], lrgb)
-    self._template.SetState(_TEST_PROMPT(*labels))
+    logging.info('Testing %s (%s)...', labels['en-US'], lrgb)
+    self._template.SetState(_TEST_PROMPT(labels))
     self.ECToolLightbar(lrgb)
 
   def TestNextColorOrPass(self, _):
@@ -96,7 +102,7 @@ class LightbarTest(unittest.TestCase):
   def FailTest(self, _):
     """Callback function for keypress event of f key."""
     labels, _ = self.args.colors_to_test[self._test_color_index]
-    self._ui.Fail('Lightbar failed to light up in %s' % labels[0])
+    self._ui.Fail('Lightbar failed to light up in %s' % labels['en-US'])
 
   def runTest(self):
     self.TestColor(self._test_color_index)

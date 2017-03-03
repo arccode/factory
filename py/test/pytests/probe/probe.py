@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -45,9 +44,10 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.args import Arg
 from cros.factory.test import factory
-from cros.factory.test.utils import deploy_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.utils import deploy_utils
 
 
 # The config files should be placed in the py/test/pytests/probe/ folder.
@@ -150,7 +150,8 @@ class ProbeTest(unittest.TestCase):
 
     html = [
         table_html.GenerateHTML(), '<br>',
-        test_ui.MakeLabel('Press SPACE to continue', u'按空白键继续', 'prompt')]
+        i18n_test_ui.MakeI18nLabelWithClass('Press SPACE to continue', 'prompt')
+    ]
     self._template.SetState(''.join(html))
     self._ui.BindKeyJS(
         test_ui.SPACE_KEY,

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -25,20 +23,18 @@ from cros.factory.test import countdown_timer
 from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
 
-_TEST_TITLE = test_ui.MakeLabel('SIM Card Tray Test', u'SIM卡卡盘测试')
-_INSERT_TRAY_INSTRUCTION = test_ui.MakeLabel(
-    'Please insert the SIM card tray', u'請插入SIM卡卡盘',
-    'instruction-font-size')
-_REMOVE_TRAY_INSTRUCTION = test_ui.MakeLabel(
-    'Detected! Please remove the SIM card tray',
-    u'已經偵测SIM卡卡盘, 請移除SIM卡卡盘',
-    'instruction-font-size')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('SIM Card Tray Test')
+_INSERT_TRAY_INSTRUCTION = i18n_test_ui.MakeI18nLabelWithClass(
+    'Please insert the SIM card tray', 'instruction-font-size')
+_REMOVE_TRAY_INSTRUCTION = i18n_test_ui.MakeI18nLabelWithClass(
+    'Detected! Please remove the SIM card tray', 'instruction-font-size')
 
 _ID_INSTRUCTION = 'sim-card-tray-test-container'
 _ID_COUNTDOWN_TIMER = 'sim-card-tray-test-timer'

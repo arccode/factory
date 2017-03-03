@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -27,19 +25,18 @@ from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
-_TEST_TITLE = test_ui.MakeLabel('Raiden CC Detect', u'Raiden CC 检查')
-_OPERATION = test_ui.MakeLabel('Flip Raiden cable and plug in again...',
-                               u'将 Raiden port 头反转后再次插入机器...')
-_NO_TIMER = test_ui.MakeLabel('And press Enter key to continue...',
-                              u'并按 Enter 键继续...')
-_WAIT_CONNECTION = test_ui.MakeLabel('Wait DUT to reconnect',
-                                     u'等待 DUT 重新连接')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Raiden CC Detect')
+_OPERATION = i18n_test_ui.MakeI18nLabel(
+    'Flip Raiden cable and plug in again...')
+_NO_TIMER = i18n_test_ui.MakeI18nLabel('And press Enter key to continue...')
+_WAIT_CONNECTION = i18n_test_ui.MakeI18nLabel('Wait DUT to reconnect')
 _CSS = 'body { font-size: 2em; }'
 
 _ID_OPERATION_DIV = 'operation_div'

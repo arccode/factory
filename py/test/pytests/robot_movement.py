@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -7,8 +5,8 @@
 """Task that uses a robot to move the device."""
 
 import logging
-import time
 import threading
+import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -16,6 +14,7 @@ from cros.factory.device import device_utils
 from cros.factory.test.args import Arg
 from cros.factory.test import factory
 from cros.factory.test.fixture import utils as fixture_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -24,41 +23,25 @@ from cros.factory.test import ui_templates
 _TEST_CSS = ('.info {font-size: 2em;}'
              '.warn {font-size: 3em; color: red;}')
 
-_MSG_INIT = test_ui.MakeLabel(
-    'Initializing Robot...',
-    u'正在初始化机器手臂...',
-    'info')
+_MSG_INIT = i18n_test_ui.MakeI18nLabelWithClass('Initializing Robot...', 'info')
 
-_MSG_LOAD = test_ui.MakeLabel(
+_MSG_LOAD = i18n_test_ui.MakeI18nLabelWithClass(
     'Please load DUT onto the robot, connect all cables, '
-    'and press <b>SPACE</b> to continue.',
-    u'将DUT放上机器手臂并接上线路后按下<b>空白键</b>开始。',
-    'info')
+    'and press <b>SPACE</b> to continue.', 'info')
 
-_MSG_PREPARE_MOVEMENT = test_ui.MakeLabel(
-    'Prepare for movement.',
-    u'准备开始移动。',
-    'info')
+_MSG_PREPARE_MOVEMENT = i18n_test_ui.MakeI18nLabelWithClass(
+    'Prepare for movement.', 'info')
 
-_MSG_MOVING_TO_START_POSITION = test_ui.MakeLabel(
-    'Moving to start position...',
-    u'正在移动至起始位置。',
-    'info')
+_MSG_MOVING_TO_START_POSITION = i18n_test_ui.MakeI18nLabelWithClass(
+    'Moving to start position...', 'info')
 
-_MSG_MOVING_TO_LOAD_POSITION = test_ui.MakeLabel(
-    'Moving to LOAD / UNLOAD position...',
-    u'正在移动至卸載位置。',
-    'info')
+_MSG_MOVING_TO_LOAD_POSITION = i18n_test_ui.MakeI18nLabelWithClass(
+    'Moving to LOAD / UNLOAD position...', 'info')
 
-_MSG_COMPUTING = test_ui.MakeLabel(
-    'Computing...',
-    u'校正中...',
-    'info')
+_MSG_COMPUTING = i18n_test_ui.MakeI18nLabelWithClass('Computing...', 'info')
 
-_MSG_PUSHING_RESULT = test_ui.MakeLabel(
-    'Pushing the result...',
-    u'储存结果中...',
-    'info')
+_MSG_PUSHING_RESULT = i18n_test_ui.MakeI18nLabelWithClass(
+    'Pushing the result...', 'info')
 
 
 class RobotMovement(unittest.TestCase):

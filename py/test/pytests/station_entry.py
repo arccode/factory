@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -18,6 +16,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -34,8 +33,8 @@ _CSS = """
 }
 """
 
-_TITLE_START = test_ui.MakeLabel('Start Station Test', u'开始测试')
-_TITLE_END = test_ui.MakeLabel('End Station Test', u'结束测试')
+_TITLE_START = i18n_test_ui.MakeI18nLabel('Start Station Test')
+_TITLE_END = i18n_test_ui.MakeI18nLabel('End Station Test')
 
 _ID_MSG_DIV = 'msg'
 _ID_COUNTDOWN_DIV = 'countdown'
@@ -45,35 +44,23 @@ _STATE_HTML = """
 <div id='%s'></div>
 """ % (_ID_MSG_DIV, _ID_COUNTDOWN_DIV)
 
-_MSG_INSERT = test_ui.MakeLabel(
-    'Please attach DUT.',
-    u'INSERT 请插入测试装置。',
-    'prompt')
+_MSG_INSERT = i18n_test_ui.MakeI18nLabelWithClass(
+    'Please attach DUT.', 'prompt')
 
-_MSG_PRESS_SPACE = test_ui.MakeLabel(
-    'Press SPACE to start the test.',
-    u'请按空白键开始测试。',
-    'prompt')
+_MSG_PRESS_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Press SPACE to start the test.', 'prompt')
 
-_MSG_PRESS_SPACE_TO_END = test_ui.MakeLabel(
-    'Press SPACE to end the test.',
-    u'请按空白键结束测试。',
-    'prompt')
+_MSG_PRESS_SPACE_TO_END = i18n_test_ui.MakeI18nLabelWithClass(
+    'Press SPACE to end the test.', 'prompt')
 
-_MSG_SEND_RESULT = test_ui.MakeLabel(
-    'Sending test results to shopfloor...',
-    u'SENDING 传送测试结果给服务器...',
-    'prompt')
+_MSG_SEND_RESULT = i18n_test_ui.MakeI18nLabelWithClass(
+    'Sending test results to shopfloor...', 'prompt')
 
-_MSG_REMOVE_DUT = test_ui.MakeLabel(
-    'Please remove DUT.',
-    u'REMOVE 请移除测试装置。',
-    'prompt')
+_MSG_REMOVE_DUT = i18n_test_ui.MakeI18nLabelWithClass(
+    'Please remove DUT.', 'prompt')
 
-_MSG_RESTART_TESTS = test_ui.MakeLabel(
-    'Restarting all tests...',
-    u'RESTARTING 测试结束，正在重设测试列表...',
-    'prompt')
+_MSG_RESTART_TESTS = i18n_test_ui.MakeI18nLabelWithClass(
+    'Restarting all tests...', 'prompt')
 
 
 class StationEntry(unittest.TestCase):

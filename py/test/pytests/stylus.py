@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -7,6 +6,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
@@ -18,13 +18,10 @@ _HTML = '<canvas id="%s" style="display: none"></canvas>' % _ID_CANVAS
 
 _MSG_PROMPT_CSS_CLASS = 'stylus-test-css-class'
 _MSG_PROMPT_CSS = '.%s { font-size: 2em; }' % _MSG_PROMPT_CSS_CLASS
-_MSG_PROMPT = test_ui.MakeLabel(
+_MSG_PROMPT = i18n_test_ui.MakeI18nLabelWithClass(
     'Please draw a line with stylus from bottom left corner to top right '
     'corner. Stay between the two red lines.<br>'
-    'Press SPACE to start; Esc to fail.',
-    u'请使用触控笔从左下方画至右上角，不要超出红线区域。<br>'
-    u'按空白键开始测试; Esc 键标记失败',
-    _MSG_PROMPT_CSS_CLASS)
+    'Press SPACE to start; Esc to fail.', _MSG_PROMPT_CSS_CLASS)
 
 
 class _AbsInfo(object):

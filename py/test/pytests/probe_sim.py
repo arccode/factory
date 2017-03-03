@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -27,6 +25,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test import event_log
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -35,13 +34,13 @@ from cros.factory.utils import process_utils
 _SIM_PRESENT_RE = r'IMSI: (\d{14,15})'
 _SIM_NOT_PRESENT_RE = r'SIM: /$'
 
-_TEST_TITLE = test_ui.MakeLabel('SIM Card Test', u'SIM卡测试')
-_INSERT_SIM_INSTRUCTION = test_ui.MakeLabel(
-    'Please insert the SIM card', u'請插入SIM卡')
-_REMOVE_SIM_INSTRUCTION = test_ui.MakeLabel(
-    'Detected! Please remove the SIM card', u'已經偵测SIM卡, 請移除SIM卡')
-_CHECK_SIM_INSTRUCTION = test_ui.MakeLabel(
-    'Checking SIM card is present or not...', u'检查SIM卡是否存在')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('SIM Card Test')
+_INSERT_SIM_INSTRUCTION = i18n_test_ui.MakeI18nLabel(
+    'Please insert the SIM card')
+_REMOVE_SIM_INSTRUCTION = i18n_test_ui.MakeI18nLabel(
+    'Detected! Please remove the SIM card')
+_CHECK_SIM_INSTRUCTION = i18n_test_ui.MakeI18nLabel(
+    'Checking SIM card is present or not...')
 
 _INSERT_CHECK_PERIOD_SECS = 1
 _INSERT_CHECK_MAX_WAIT = 60

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,7 +8,6 @@ Usage examples::
 
     OperatorTest(
         id='Gyroscope',
-        label_zh=u'陀螺仪',
         pytest_name='gyroscope',
         dargs={
             'rotation_threshold': 1.0,
@@ -25,6 +22,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -32,27 +30,26 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-_MSG_SPACE = test_ui.MakeLabel(
+_MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
     'Please put device on a horizontal plane then press space to '
-    'start calibration.',
-    u'按空白键开始測试。', 'test-info')
-_MSG_IN_PROGRESS = test_ui.MakeLabel(
-    'Please do not move the device.',
-    u'请勿移动待测物。', 'test-info')
-_MSG_START_MOVING = test_ui.MakeLabel(
-    'Please rotate the device.',
-    u'请转动待测物。', 'test-info')
+    'start calibration.', 'test-info')
+_MSG_IN_PROGRESS = i18n_test_ui.MakeI18nLabelWithClass(
+    'Please do not move the device.', 'test-info')
+_MSG_START_MOVING = i18n_test_ui.MakeI18nLabelWithClass(
+    'Please rotate the device.', 'test-info')
 
 def GetPreparingMessage(secs):
-  return test_ui.MakeLabel(
-      'Calibration will be started within %d seconds.'
-      'Please do not move device.' % secs,
-      u'测试程序即将于 %d 秒后开始，请勿移动待测物。' % secs, 'test-info')
+  return i18n_test_ui.MakeI18nLabelWithClass(
+      'Calibration will be started within {secs} seconds.'
+      'Please do not move device.',
+      'test-info',
+      secs=secs)
 
-_MSG_PASS = test_ui.MakeLabel('PASS', u'成功', 'test-pass')
-_MSG_FAIL = test_ui.MakeLabel('FAIL', u'失败', 'test-fail')
 
-_BR = '<br/>'
+_MSG_PASS = i18n_test_ui.MakeI18nLabelWithClass('PASS', 'test-pass')
+_MSG_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-fail')
+
+_BR = '<br>'
 
 _CSS = """
   .test-info {font-size: 2em;}

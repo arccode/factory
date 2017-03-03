@@ -15,9 +15,10 @@ insert which port by display_label in display_info::
         pytest_name='ext_display',
         dargs={
             'display_info': [
-                (test_ui.MakeLabel('Left HDMI External Display',
-                                   u'左边HDMI'),
-                 'HDMI-A-1', None, 0)],
+                (i18n_test_ui.MakeI18nLabel({
+                    'en-US': 'Left HDMI External Display',
+                    'zh-CN': '左边HDMI'}),
+                    'HDMI-A-1', None, 0)],
         })
 """
 
@@ -36,6 +37,7 @@ from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test import factory_task
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.pytests import audio
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -43,8 +45,7 @@ from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE = test_ui.MakeLabel('External Display Test',
-                                u'外接显示屏测试')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('External Display Test')
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
 _CSS = '#pass_key {font-size:36px; font-weight:bold;}'
@@ -54,43 +55,42 @@ _CONNECTION_CHECK_PERIOD_SECS = 2
 
 
 # Messages for tasks
-def _GetTitleConnectTest(d):
-  return test_ui.MakeLabel('%s Connect' % d, u'%s 连接' % d)
+def _GetTitleConnectTest(display):
+  return i18n_test_ui.MakeI18nLabel('{display} Connect', display=display)
 
 
-def _GetTitleVideoTest(d):
-  return test_ui.MakeLabel('%s Video' % d, u'%s 视讯' % d)
+def _GetTitleVideoTest(display):
+  return i18n_test_ui.MakeI18nLabel('{display} Video', display=display)
 
 
-def _GetTitleDisconnectTest(d):
-  return test_ui.MakeLabel('%s Disconnect' % d, u'%s 移除' % d)
+def _GetTitleDisconnectTest(display):
+  return i18n_test_ui.MakeI18nLabel('{display} Disconnect', display=display)
 
 
-def _GetMsgConnectTest(d):
-  return test_ui.MakeLabel('Connect external display: %s' % d,
-                           u'请接上外接显示屏: %s' % d)
+def _GetMsgConnectTest(display):
+  return i18n_test_ui.MakeI18nLabel('Connect external display: {display}',
+                                    display=display)
 
 
-def _GetMsgVideoTest(d):
-  return test_ui.MakeLabel('Do you see video on %s?' % d,
-                           u'外接显示屏 %s 是否有画面?' % d)
+def _GetMsgVideoTest(display):
+  return i18n_test_ui.MakeI18nLabel('Do you see video on {display}?',
+                                    display=display)
 
 
-def _GetMsgFixtureVideoTest(d):
-  return test_ui.MakeLabel(
-      'Fixture is checking if video is displayed on %s?' % d,
-      u'治具正在測試外接显示屏 %s 是否有画面?' % d)
+def _GetMsgFixtureVideoTest(display):
+  return i18n_test_ui.MakeI18nLabel(
+      'Fixture is checking if video is displayed on {display}?',
+      display=display)
 
 
-def _GetMsgDisconnectTest(d):
-  return test_ui.MakeLabel('Disconnect external display: %s' % d,
-                           u'移除外接显示屏: %s' % d)
+def _GetMsgDisconnectTest(display):
+  return i18n_test_ui.MakeI18nLabel('Disconnect external display: {display}',
+                                    display=display)
 
 
-def _GetMsgPromptPassKey(k):
-  return test_ui.MakeLabel(
-      'Press <span id="pass_key">%d</span> to pass the test.' % k,
-      u'通过请按 <span id="pass_key">%d</span> 键' % k)
+def _GetMsgPromptPassKey(key):
+  return i18n_test_ui.MakeI18nLabel(
+      'Press <span id="pass_key">{key}</span> to pass the test.', key=key)
 
 
 DISPLAY_INFO_ARG_HELP = """
@@ -562,7 +562,7 @@ class ExtDisplayTest(unittest.TestCase):
   """Main class for external display test."""
   ARGS = [
       Arg('main_display', str,
-          'xrandr/modeprint ID for ChromeBook\'s main display.',
+          "xrandr/modeprint ID for ChromeBook's main display.",
           optional=False),
       Arg('display_info', list, DISPLAY_INFO_ARG_HELP, optional=False),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None,
@@ -627,8 +627,8 @@ class ExtDisplayTest(unittest.TestCase):
           tasks.append(VideoTask(args))
           if args.audio_card:
             tasks.append(AudioSetupTask(self._dut, args.init_actions))
-            audio_label = test_ui.MakeLabel('%s Audio' % args.display_label,
-                                            u' %s 音讯' % args.display_label)
+            audio_label = i18n_test_ui.MakeI18nLabel(
+                '{display_label} Audio', display_label=args.display_label)
             tasks.append(audio.AudioDigitPlaybackTask(
                 self._dut, self._ui, audio_label, 'instruction',
                 'instruction-center', card=args.audio_card,

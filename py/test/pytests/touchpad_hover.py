@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,6 +14,7 @@ from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test.args import Arg
 from cros.factory.test import countdown_timer
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
@@ -22,18 +22,12 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-_MSG_CALIBRATION = test_ui.MakeLabel(
-    'Calibrating touchpad...',
-    u'触控面板校正中...')
-_MSG_PUT_IN = test_ui.MakeLabel(
-    'Please put the hover-tool into the holder.',
-    u'请将悬停测试用具放入支架中')
-_MSG_PULL_OUT = test_ui.MakeLabel(
-    'Please pull out the hover-tool from the holder.',
-    u'请将悬停测试用具从支架移除')
-_MSG_FP_CHECK = test_ui.MakeLabel(
-    'Checking for false positive...',
-    u'进行假阳性检查...')
+_MSG_CALIBRATION = i18n_test_ui.MakeI18nLabel('Calibrating touchpad...')
+_MSG_PUT_IN = i18n_test_ui.MakeI18nLabel(
+    'Please put the hover-tool into the holder.')
+_MSG_PULL_OUT = i18n_test_ui.MakeI18nLabel(
+    'Please pull out the hover-tool from the holder.')
+_MSG_FP_CHECK = i18n_test_ui.MakeI18nLabel('Checking for false positive...')
 
 _ID_PROMPT = 'touchpad-hover-test-prompt'
 _ID_TIMER = 'touchpad-hover-test-timer'

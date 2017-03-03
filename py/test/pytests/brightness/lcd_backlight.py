@@ -8,24 +8,27 @@
 """
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.pytests.brightness import brightness
 from cros.factory.utils import arg_utils
 from cros.factory.utils.arg_utils import Arg
 
 
 class LCDBacklightTest(brightness.BrightnessTest):
-  ARGS = arg_utils.MergeArgs(brightness.BrightnessTest.ARGS, [
-      Arg('msg_en', str, 'Message (HTML in English)',
-          default='Please check if backlight brightness is changing from '
-          'dark to bright.'),
-      Arg('msg_zh', (str, unicode), 'Message (HTML in Chinese)',
-          default=u'请检查萤幕亮度是否由暗变亮'),
-      Arg('levels', (tuple, list), 'A sequence of brightness levels.',
-          optional=True),
-      Arg('interval_secs', (int, float),
-          'Time for each brightness level in seconds.', default=0.5)])
+  ARGS = arg_utils.MergeArgs(
+      brightness.BrightnessTest.ARGS,
+      i18n_arg_utils.BackwardCompatibleI18nArgs(
+          'msg', 'Message HTML',
+          default=_('Please check if backlight brightness is changing from '
+                    'dark to bright.')) +
+      [Arg('levels', (tuple, list), 'A sequence of brightness levels.',
+           optional=True),
+       Arg('interval_secs', (int, float),
+           'Time for each brightness level in seconds.', default=0.5)])
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'msg')
     if self.args.levels is None:
       self.args.levels = [0.2, 0.4, 0.6, 0.8, 1.0]
     super(LCDBacklightTest, self).setUp()

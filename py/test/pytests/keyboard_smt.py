@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,6 +17,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
@@ -31,8 +30,8 @@ _ID_EXPECTED_SEQUENCE = 'expected-sequence'
 _ID_MATCHED_SEQUENCE = 'matched-sequence'
 _ID_COUNTDOWN_TIMER = 'keyboard-test-timer'
 
-_MSG_EXPECTED_SEQUENCE = test_ui.MakeLabel(
-    'Expected keycode sequence:', u'目標鍵序：', 'test-info')
+_MSG_EXPECTED_SEQUENCE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Expected keycode sequence:', 'test-info')
 
 _HTML_KEYBOARD = '<br>\n'.join([
     '<div>%s <span id="%s"></span><span id="%s"></span></div>' % (

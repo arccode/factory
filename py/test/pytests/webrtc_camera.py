@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,13 +12,14 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
-    'Time remaining: %d' % t, u'剩余时间：%d' % t, 'camera-test-info')
+_MSG_TIME_REMAINING = lambda time: i18n_test_ui.MakeI18nLabelWithClass(
+    'Time remaining: {time}', 'camera-test-info', time=time)
 _ID_IMAGE = 'camera-test-image'
 _ID_PROMPT1 = 'camera-test-prompt1'
 _ID_PROMPT2 = 'camera-test-prompt2'
@@ -40,14 +39,11 @@ _HTML_CAMERA_TEST = """
     'id_prompt1': _ID_PROMPT1,
     'id_prompt2': _ID_PROMPT2,
     'id_timer': _ID_COUNTDOWN_TIMER,
-    'prompt1': test_ui.MakeLabel(
-        'Click "Allow" at the top of the screen.',
-        zh=u'点击上面的 "Allow" 按钮'),
-    'prompt2': test_ui.MakeLabel(
-        ('Click <a href="javascript:test.pass()">pass</a> or '
-         '<a href="javascript:test.fail()">fail</a>.'),
-        zh=(u'请点击： <a href="javascript:test.pass()">正常</a> 还是 '
-            u'<a href="javascript:test.fail()">不正常</a>')),
+    'prompt1': i18n_test_ui.MakeI18nLabel(
+        'Click "Allow" at the top of the screen.'),
+    'prompt2': i18n_test_ui.MakeI18nLabel(
+        'Click <a href="javascript:test.pass()">pass</a> or '
+        '<a href="javascript:test.fail()">fail</a>.'),
 }
 
 _JS_WEBRTC_CAMERA = """

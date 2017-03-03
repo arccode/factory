@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -27,6 +25,8 @@ from cros.factory.test import countdown_timer
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -58,34 +58,26 @@ _MIN_PARTITION_SIZE_MB = 1
 _MILLION = 1000000
 
 _RW_TEST_INSERT_FMT_STR = (
-    lambda t, extra_en, extra_zh: test_ui.MakeLabel(
-        '<br/>'.join(['Insert %s drive for read/write test... %s' % (t,
-                                                                     extra_en),
-                      'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!']),
-        '<br/>'.join([u'插入 %s 存储以进行读写测试... %s' % (t, extra_zh),
-                      u'注意: 插入装置上的资料将会被清除!'])))
-_REMOVE_FMT_STR = lambda t: test_ui.MakeLabel('Remove %s drive...' % t,
-                                              u'提取 %s 存储...' % t)
-_TESTING_FMT_STR = lambda t: test_ui.MakeLabel('Testing %s...' % t,
-                                               u'%s 检查中...' % t)
-_TESTING_RANDOM_RW_FMT_STR = lambda loop, bsize: test_ui.MakeLabel(
-    'Performing r/w test on %d %d-byte random blocks...</br>' % (loop, bsize),
-    u'执行 %d 个 %d 字节区块随机读写测试...</br>' % (loop, bsize))
-_TESTING_SEQUENTIAL_RW_FMT_STR = lambda bsize: test_ui.MakeLabel(
-    'Performing sequential r/w test of %d bytes...</br>' % bsize,
-    u'执行 %d 字节区块连续读写测试...</br>' % bsize)
-_LOCKTEST_INSERT_FMT_STR = (
-    lambda t:
-    test_ui.MakeLabel('Toggle lock switch and insert %s drive again...' % t,
-                      u'切换写保护开关并再次插入 %s 存储...' % t))
-_LOCKTEST_REMOVE_FMT_STR = (
-    lambda t:
-    test_ui.MakeLabel('Remove %s drive and toggle lock switch...' % t,
-                      u'提取 %s 存储并关闭写保护开关...' % t))
-_ERR_REMOVE_TOO_EARLY_FMT_STR = (
-    lambda t:
-    test_ui.MakeLabel('Device removed too early (%s).' % t,
-                      u'太早移除外部储存装置 (%s).' % t))
+    lambda media, extra: i18n_test_ui.MakeI18nLabel(
+        'Insert {media} drive for read/write test... {extra}<br>'
+        'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!',
+        media=media, extra=extra))
+_REMOVE_FMT_STR = lambda media: i18n_test_ui.MakeI18nLabel(
+    'Remove {media} drive...', media=media)
+_TESTING_FMT_STR = lambda media: i18n_test_ui.MakeI18nLabel(
+    'Testing {media}...', media=media)
+_TESTING_RANDOM_RW_FMT_STR = lambda count, bsize: i18n_test_ui.MakeI18nLabel(
+    'Performing r/w test on {count} {bsize}-byte random blocks...<br>',
+    count=count,
+    bsize=bsize)
+_TESTING_SEQUENTIAL_RW_FMT_STR = lambda bsize: i18n_test_ui.MakeI18nLabel(
+    'Performing sequential r/w test of {bsize} bytes...<br>', bsize=bsize)
+_LOCKTEST_INSERT_FMT_STR = (lambda media: i18n_test_ui.MakeI18nLabel(
+    'Toggle lock switch and insert {media} drive again...', media=media))
+_LOCKTEST_REMOVE_FMT_STR = (lambda media: i18n_test_ui.MakeI18nLabel(
+    'Remove {media} drive and toggle lock switch...', media=media))
+_ERR_REMOVE_TOO_EARLY_FMT_STR = (lambda media: i18n_test_ui.MakeI18nLabel(
+    'Device removed too early ({media}).', media=media))
 _ERR_TEST_FAILED_FMT_STR = (
     lambda test_name, target_dev:
     'IO error while running %s test on %s.' % (test_name, target_dev))
@@ -113,8 +105,7 @@ _ERR_BFT_ACTION_STR = (
     'BFT fixture failed to %s %s device %s. Reason: %s' % (
         action, test_type, target_dev, reason))
 
-_TEST_TITLE = test_ui.MakeLabel(
-    'Removable Storage Test', u'可移除储存装置测试')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Removable Storage Test')
 
 # Regex used for find execution time from dd output.
 _RE_DD_EXECUTION_TIME = re.compile(
@@ -130,7 +121,7 @@ _IMG_HTML_TAG = (
 
 class RemovableStorageTest(unittest.TestCase):
   """The removable storage factory test."""
-  ARGS = [
+  ARGS = ([
       Arg('media', str, 'Media type'),
       Arg('sysfs_path', str,
           'The expected sysfs path that udev events should '
@@ -159,11 +150,6 @@ class RemovableStorageTest(unittest.TestCase):
       Arg('sequential_block_count', int,
           'Number of blocks to test in sequential read / write test', 1024),
       Arg('perform_locktest', bool, 'Whether to run lock test', False),
-      Arg('extra_prompt_en', (str, unicode),
-          'An extra prompt (in English), e.g., to specify which USB port to '
-          'use', optional=True),
-      Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
-          optional=True),
       Arg('timeout_secs', int,
           'Timeout in seconds for the test to wait before it fails',
           default=20),
@@ -183,9 +169,14 @@ class RemovableStorageTest(unittest.TestCase):
           default=None, optional=True),
       Arg('use_busybox_dd', bool,
           'Use busybox dd. This option can be removed when toybox dd is ready.',
-          default=False)]
+          default=False)
+  ] + i18n_arg_utils.BackwardCompatibleI18nArgs(
+      'extra_prompt',
+      'An extra prompt, e.g., to specify which USB port to use',
+      default=''))
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'extra_prompt')
     self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
@@ -683,8 +674,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._template.SetInstruction(
         _RW_TEST_INSERT_FMT_STR(
             self.args.media,
-            self.args.extra_prompt_en or '',
-            self.args.extra_prompt_zh or self.args.extra_prompt_en or ''))
+            self.args.extra_prompt))
     self._state = _STATE_RW_TEST_WAIT_INSERT
     self._template.SetState(_TEST_HTML)
     self.SetState(_IMG_HTML_TAG(self._insertion_image))

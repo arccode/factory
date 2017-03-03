@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,6 +17,7 @@ from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -30,7 +29,7 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 
 
-_TEST_TITLE = test_ui.MakeLabel('Check Image Version', u'检查映像版本')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Check Image Version')
 
 _CSS = """
 .start-font-size {
@@ -39,23 +38,15 @@ _CSS = """
 """
 
 # Messages for tasks
-_MSG_VERSION_MISMATCH = test_ui.MakeLabel(
+_MSG_VERSION_MISMATCH = i18n_test_ui.MakeI18nLabelWithClass(
     'Factory image version is incorrect. Please re-image this device.',
-    u'映像版本不正确，请重新安装。',
     'start-font-size test-error')
-_MSG_NETWORK = test_ui.MakeLabel(
-    'Please connect to ethernet.',
-    u'请连接到以太网。')
-_MSG_NETBOOT = test_ui.MakeLabel(
-    'Factory image version is incorrect. Press space to re-image.',
-    u'映像版本不正确，请按空白键重新安装。')
-_MSG_REIMAGING = test_ui.MakeLabel(
-    'Flashing netboot firmware...',
-    u'烧录网路开机固件...')
-_MSG_FLASH_ERROR = test_ui.MakeLabel(
-    'Error flashing netboot firmware!',
-    u'烧录网路开机固件失败',
-    'start-font-size test-error')
+_MSG_NETWORK = i18n_test_ui.MakeI18nLabel('Please connect to ethernet.')
+_MSG_NETBOOT = i18n_test_ui.MakeI18nLabel(
+    'Factory image version is incorrect. Press space to re-image.')
+_MSG_REIMAGING = i18n_test_ui.MakeI18nLabel('Flashing netboot firmware...')
+_MSG_FLASH_ERROR = i18n_test_ui.MakeI18nLabelWithClass(
+    'Error flashing netboot firmware!', 'start-font-size test-error')
 
 _LSB_RELEASE_PATH = '/etc/lsb-release'
 

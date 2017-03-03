@@ -61,6 +61,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.pytests import tablet_mode_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -73,10 +74,9 @@ _UNICODE_PICTURES = u'☃☺☎'
 _TEST_DEGREES = [90, 180, 270, 0]
 _POLL_ROTATION_INTERVAL = 0.1
 
-_MSG_PROMPT_ROTATE_TABLET = test_ui.MakeLabel(
+_MSG_PROMPT_ROTATE_TABLET = i18n_test_ui.MakeI18nLabel(
     'Rotate the tablet to correctly align the picture, holding it at an '
-    'upright 90-degree angle.',
-    u'竖立平板电脑使其垂直于桌面，并开始旋转到对齐图片。')
+    'upright 90-degree angle.')
 
 _ID_COUNTDOWN_TIMER = 'countdown-timer'
 _ID_PROMPT = 'prompt'

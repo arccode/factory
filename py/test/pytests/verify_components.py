@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,6 +15,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -24,10 +23,9 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = test_ui.MakeLabel('Components Verification Test',
-                                u'元件验证测试')
-_MESSAGE_CHECKING_COMPONENTS = test_ui.MakeLabel(
-    'Checking components...', u'元件验证中...', 'progress-message')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Components Verification Test')
+_MESSAGE_CHECKING_COMPONENTS = i18n_test_ui.MakeI18nLabelWithClass(
+    'Checking components...', 'progress-message')
 
 
 class VerifyComponentsTest(unittest.TestCase):

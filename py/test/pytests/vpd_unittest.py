@@ -109,8 +109,9 @@ class WriteVPDTaskTest(unittest.TestCase):
     # Stub out self.test.template.SetState().
     self.test_case.template = self.mox.CreateMock(OneSection)
     self.mox.StubOutWithMock(self.test_case.template, 'SetState')
-    self.test_case.template.SetState(mox.IsA(unicode)).AndReturn(0)
-    self.test_case.template.SetState(mox.IsA(str), append=True).AndReturn(0)
+    self.test_case.template.SetState(mox.IsA(basestring)).AndReturn(0)
+    self.test_case.template.SetState(mox.IsA(basestring),
+                                     append=True).AndReturn(0)
     # Stub out BuildBoard().short_name. Actually this is not required for
     # legacy code, we just use 'x86-generic' to pass the unit test.
     src = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
@@ -137,8 +138,9 @@ class WriteVPDTaskTest(unittest.TestCase):
     # Stub out self.test.template.SetState().
     self.test_case.template = self.mox.CreateMock(OneSection)
     self.mox.StubOutWithMock(self.test_case.template, 'SetState')
-    self.test_case.template.SetState(mox.IsA(unicode)).AndReturn(0)
-    self.test_case.template.SetState(mox.IsA(str), append=True).AndReturn(0)
+    self.test_case.template.SetState(mox.IsA(basestring)).AndReturn(0)
+    self.test_case.template.SetState(mox.IsA(basestring),
+                                     append=True).AndReturn(0)
 
     # Stub out vpd.Update()
     self.vpd_ro.Update({}).AndReturn(0)

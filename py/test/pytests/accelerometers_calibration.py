@@ -64,29 +64,29 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_MSG_NOT_SUPPORTED = test_ui.MakeLabel('ERROR: The function is not supported.',
-                                       u'此功能尚未支持。', 'test-fail')
-_MSG_SPACE = test_ui.MakeLabel(
+_MSG_NOT_SUPPORTED = i18n_test_ui.MakeI18nLabelWithClass(
+    'ERROR: The function is not supported.', 'test-fail')
+_MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
     'Please put device on a horizontal plane then press space to '
-    'start calibration.',
-    u'请将待测物放置于水平面上，并按空白键开始校准。', 'test-info')
-_MSG_PREPARING_CALIBRATION = lambda t: test_ui.MakeLabel(
-    'Calibration will be started within %d seconds.'
-    'Please do not move device.' % t,
-    u'校准程序即将于 %d 秒后开始，请勿移动待测物。' % t, 'test-info')
-_MSG_CALIBRATION_IN_PROGRESS = test_ui.MakeLabel(
-    'Calibration is in progress, please do not move device.',
-    u'校准程序进行中，请勿移动待测物。', 'test-info')
-_MSG_PASS = test_ui.MakeLabel('PASS', u'成功', 'test-pass')
-_MSG_FAIL = test_ui.MakeLabel('FAIL', u'失败', 'test-fail')
+    'start calibration.', 'test-info')
+_MSG_PREPARING_CALIBRATION = lambda time: i18n_test_ui.MakeI18nLabelWithClass(
+    'Calibration will be started within {time} seconds.'
+    'Please do not move device.',
+    'test-info',
+    time=time)
+_MSG_CALIBRATION_IN_PROGRESS = i18n_test_ui.MakeI18nLabelWithClass(
+    'Calibration is in progress, please do not move device.', 'test-info')
+_MSG_PASS = i18n_test_ui.MakeI18nLabelWithClass('PASS', 'test-pass')
+_MSG_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-fail')
 _MESSAGE_DELAY_SECS = 1
 
-_BR = '<br/>'
+_BR = '<br>'
 
 _CSS = """
   .test-info {font-size: 2em;}

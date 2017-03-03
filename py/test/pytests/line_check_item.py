@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -7,21 +5,23 @@
 """A factory test to check a list of commands.
 """
 
+from collections import namedtuple
 import subprocess
 import unittest
-from collections import namedtuple
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test import i18n
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-CheckItem = namedtuple('CheckItem', 'instruction_en instruction_zh'
-                       ' command judge_to_pass')
+CheckItem = namedtuple('CheckItem', 'instruction command judge_to_pass')
 
 
 class LineCheckItemTest(unittest.TestCase):
@@ -32,17 +32,18 @@ class LineCheckItemTest(unittest.TestCase):
     _items: A list of CheckItems.
     _current: current test item index in _items.
   """
-  ARGS = [
-      Arg('title_en', (str, unicode), 'English test title.', optional=False),
-      Arg('title_zh', (str, unicode), 'Chinese test title.', optional=False),
+  ARGS = i18n_arg_utils.BackwardCompatibleI18nArgs('title', 'test title.') + [
       Arg('items', list,
           ('A list of item to check. Each item can be either a simple string\n'
-           'as shell command to execute, or a tuple in the format:\n'
+           'as shell command to execute, or a tuple in one of the formats:\n'
+           '\n'
+           '  (instruction, command, judge_to_pass)\n'
            '\n'
            '  (instruction_en, instruction_zh, command, judge_to_pass)\n'
            '\n'
            'The fields are:\n'
            '\n'
+           '- instruction: instruction, would be passed to i18n.Translated.\n'
            '- instruction_en: (str or unicode) instruction in English.\n'
            '- instruction_zh: (str or unicode) instruction in Chinese.\n'
            '- command: (list or str) commands to be passed to Spawn.\n'
@@ -59,17 +60,40 @@ class LineCheckItemTest(unittest.TestCase):
 
   def setUp(self):
     """Initializes _ui, _template, _current, and _items"""
+    i18n_arg_utils.ParseArg(self, 'title')
     self._ui = (test_ui.UI() if self.args.has_ui
                 else test_ui.DummyUI(self))
     self._template = (ui_templates.OneSection(self._ui) if self.args.has_ui
                       else ui_templates.DummyTemplate())
+
+    def _CommandToLabel(command, length=50):
+      return (command[:length] + ' ...') if len(command) > length else command
+
     self._items = []
+    for item in self.args.items:
+      if isinstance(item, basestring):
+        check_item = CheckItem(
+            i18n.NoTranslation(_CommandToLabel(item)), item, False)
+      elif isinstance(item, tuple) and len(item) == 4:
+        # TODO(pihsun): This is to maintain backward compatibility. Should be
+        #               removed after test lists are migrated to new format.
+        check_item = CheckItem(
+            i18n.Translated({'en-US': item[0], 'zh-CN': item[1]},
+                            translate=False),
+            item[2], item[3])
+      elif isinstance(item, tuple) and len(item) == 3:
+        check_item = CheckItem(
+            i18n.Translated(item[0], translate=False), item[1], item[2])
+      else:
+        raise ValueError('Unknown item %r in args.items.' % item)
+      self._items.append(check_item)
+
     self._current = 0
     self._dut = (None if self.args.run_locally else
                  device_utils.CreateDUTInterface())
 
   def NeedToJudgeSubTest(self):
-    """Returns whether current subtest needs user to judege pass/fail or not."""
+    """Returns whether current subtest needs user to judge pass/fail or not."""
     return self._items[self._current].judge_to_pass
 
   def RunSubTest(self):
@@ -79,10 +103,9 @@ class LineCheckItemTest(unittest.TestCase):
     Enter/Esc. If current subtest does not need to be judges, proceed to
     the next subtest.
     """
-    inst_en = self._items[self._current].instruction_en
-    inst_zh = self._items[self._current].instruction_zh
+    inst = self._items[self._current].instruction
     command = self._items[self._current].command
-    instruction = test_ui.MakeLabel(inst_en, inst_zh)
+    instruction = i18n_test_ui.MakeI18nLabel(inst)
     if self.NeedToJudgeSubTest():
       instruction = instruction + '<br>' + test_ui.MakePassFailKeyLabel()
     self._template.SetState(instruction)
@@ -148,17 +171,7 @@ class LineCheckItemTest(unittest.TestCase):
 
   def runTest(self):
     """Main entrance of the test."""
-
-    def _CommandToLabel(command, length=50):
-        return (command[:length] + ' ...') if len(command) > length else command
-
-    # pylint: disable=protected-access
-    self._items = [CheckItem._make(
-        (_CommandToLabel(item), _CommandToLabel(item), item, False)
-        if isinstance(item, basestring) else item)
-        for item in self.args.items]
-    self._template.SetTitle(test_ui.MakeLabel(self.args.title_en,
-                                              self.args.title_zh))
+    self._template.SetTitle(i18n_test_ui.MakeI18nLabel(self.args.title))
     self._ui.BindKeyJS(test_ui.ENTER_KEY,
                        'test.sendTestEvent("enter_key_pressed", {});')
     self._ui.BindKeyJS(test_ui.ESCAPE_KEY,

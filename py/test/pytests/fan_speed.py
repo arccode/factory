@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -32,13 +30,15 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE = test_ui.MakeLabel('Fan Speed Test', zh=u'风扇转速测试')
-_MSG_FAN_SPEED = test_ui.MakeLabel('Fan speed (RPM):', zh=u'风扇转速(RPM):')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Fan Speed Test')
+_MSG_FAN_SPEED = i18n_test_ui.MakeI18nLabel('Fan speed (RPM):')
 _ID_STATUS = 'fs_status'
 _ID_RPM = 'fs_rpm'
 _TEST_BODY = ('<div id="%s"></div><br>\n'
@@ -110,11 +110,15 @@ class FanSpeedTest(unittest.TestCase):
     fan_count = len(observed_rpm)
     spin_up = target_rpm > _Average(observed_rpm)
 
-    status = 'Spin %s fan speed: %s -> %d RPM.' % (
-        'up' if spin_up else 'down', observed_rpm, target_rpm)
-    status_zh = u'风扇%s速: %s -> %d PRM.' % (
-        u'加' if spin_up else u'减', observed_rpm, target_rpm)
-    self._ui.SetHTML(test_ui.MakeLabel(status, status_zh), id=_ID_STATUS)
+    status = (
+        _('Spin up fan speed: {observed_rpm} -> {target_rpm} RPM.')
+        if spin_up
+        else _('Spin down fan speed: {observed_rpm} -> {target_rpm} RPM.'))
+    self._ui.SetHTML(
+        i18n_test_ui.MakeI18nLabel(status,
+                                   observed_rpm=observed_rpm,
+                                   target_rpm=target_rpm),
+        id=_ID_STATUS)
     self._ui.SetHTML(str(observed_rpm), id=_ID_RPM)
     logging.info(status)
 
@@ -127,7 +131,7 @@ class FanSpeedTest(unittest.TestCase):
     # probe_interval_secs.
     end_time = time.time() + self.args.duration_secs
     # Samples of all fan speed with sample period: probe_interval_secs.
-    ith_fan_samples = [[] for _ in xrange(fan_count)]
+    ith_fan_samples = [[] for unused_i in xrange(fan_count)]
     while time.time() < end_time:
       observed_rpm = self._fan.GetFanRPM(self.args.fan_id)
       for i, ith_fan_rpm in enumerate(observed_rpm):

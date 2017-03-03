@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,32 +17,31 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 
-_TEST_TITLE = test_ui.MakeLabel('Battery Current Test', u'充電放電电流測試')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Battery Current Test')
 
 
 def _PROMPT_TEXT(charge, current, target):
-  return test_ui.MakeLabel(
-      'Waiting for %s current to meet %d mA. (Currently %s at %d mA)' %
-      ('charging' if charge else 'discharging',
-       target,
-       'charging' if current >= 0 else 'discharging',
-       abs(current)),
-      u'等待%s电流大于 %d mA. (目前%s中:%d mA)' %
-      (u'充电' if charge else u'放电',
-       target,
-       u'充电' if current >= 0 else u'放电',
-       abs(current)))
+  return i18n_test_ui.MakeI18nLabel(
+      'Waiting for {target_status} current to meet {target_current} mA.'
+      ' (Currently {status} at {current} mA)',
+      target_status=_('charging') if charge else _('discharging'),
+      target_current=target,
+      status=_('charging') if current >= 0 else _('discharging'),
+      current=abs(current))
 
 _CHARGE_TEXT = lambda c, t: _PROMPT_TEXT(True, c, t)
 _DISCHARGE_TEXT = lambda c, t: _PROMPT_TEXT(False, c, t)
-_USBPDPORT_PROMPT = (lambda en, zh, v:
-                     test_ui.MakeLabel('Insert power to %s(%dmV)' % (en, v),
-                                       u'请将电源线插入%s(%dmV)' % (zh, v)))
+_USBPDPORT_PROMPT = (lambda prompt, v: i18n_test_ui.MakeI18nLabel(
+    'Insert power to {prompt}({voltage}mV)', prompt=prompt, voltage=v))
 
 
 class BatteryCurrentTest(unittest.TestCase):
@@ -60,6 +57,7 @@ class BatteryCurrentTest(unittest.TestCase):
       Arg('max_battery_level', int,
           'maximum allowed starting battery level', optional=True),
       Arg('usbpd_info', tuple, textwrap.dedent("""
+          (usbpd_port, min_millivolt, max_millivolt) or
           (usbpd_port, usbpd_port_prompt, min_millivolt, max_millivolt)
           Used to select a particular port from a multi-port DUT.
 
@@ -73,13 +71,21 @@ class BatteryCurrentTest(unittest.TestCase):
                                provide
           * ``max_millivolt``: (int) The maximum millivolt the power must
                                provide
+
+          ``usbpd_prompt`` should be used instead of
+          ``usbpd_port_prompt_{en,zh}``, which doesn't support i18n.
           """),
-          optional=True)
+          optional=True),
+      i18n_arg_utils.I18nArg('usbpd_prompt',
+                             'prompt operator which port to insert',
+                             default='')
   ]
 
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _power."""
+    i18n_arg_utils.ParseArg(self, 'usbpd_prompt')
+
     self._dut = device_utils.CreateDUTInterface()
     self._power = self._dut.power
     self._ui = test_ui.UI()
@@ -88,15 +94,28 @@ class BatteryCurrentTest(unittest.TestCase):
     if self.args.usbpd_info:
       self._CheckUSBPDInfoArg(self.args.usbpd_info)
       self._usbpd_port = self.args.usbpd_info[0]
-      self._usbpd_prompt_en = self.args.usbpd_info[1]
-      self._usbpd_prompt_zh = self.args.usbpd_info[2]
-      self._usbpd_min_millivolt = self.args.usbpd_info[3]
-      self._usbpd_max_millivolt = self.args.usbpd_info[4]
+      # TODO(pihsun): This is to maintain backward compatibility. Should be
+      #               removed after test lists are migrated to new format.
+      if len(self.args.usbpd_info) == 5:
+        self.args.usbpd_prompt = i18n.Translated({
+            'en-US': self.args.usbpd_info[1],
+            'zh-CN': self.args.usbpd_info[2]
+        }, translate=False)
+        self._usbpd_min_millivolt = self.args.usbpd_info[3]
+        self._usbpd_max_millivolt = self.args.usbpd_info[4]
+      else:
+        self._usbpd_min_millivolt = self.args.usbpd_info[1]
+        self._usbpd_max_millivolt = self.args.usbpd_info[2]
+    self._usbpd_prompt = self.args.usbpd_prompt
 
   def _CheckUSBPDInfoArg(self, info):
-    check_types = (int, basestring, basestring, int, int)
-    if len(info) != 5:
+    if len(info) == 5:
+      check_types = (int, basestring, basestring, int, int)
+    elif len(info) == 3:
+      check_types = (int, int, int)
+    else:
       raise ValueError('ERROR: invalid usbpd_info item: ' + str(info))
+
     for i in xrange(len(info)):
       if not isinstance(info[i], check_types[i]):
         logging.error('(%s)usbpd_info[%d] type is not %s', type(info[i]), i,
@@ -111,16 +130,14 @@ class BatteryCurrentTest(unittest.TestCase):
 
   def _CheckUSBPD(self):
     status = self._dut.usb_c.GetPDPowerStatus()
-    self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt_en,
-                                              self._usbpd_prompt_zh, 0))
+    self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt, 0))
     if 'millivolt' not in status[self._usbpd_port]:
       logging.info('No millivolt detected in port %d', self._usbpd_port)
       return False
     millivolt = status[self._usbpd_port]['millivolt']
     logging.info('millivolt %d, acceptable range (%d, %d)', millivolt,
                  self._usbpd_min_millivolt, self._usbpd_max_millivolt)
-    self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt_en,
-                                              self._usbpd_prompt_zh, millivolt))
+    self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt, millivolt))
     return (self._usbpd_min_millivolt <= millivolt and
             millivolt <= self._usbpd_max_millivolt)
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,6 +15,8 @@ from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -27,25 +27,27 @@ from cros.factory.utils import time_utils
 
 # File that suppresses reboot if present (e.g., for development).
 NO_REBOOT_FILE = '/var/log/factory.noreboot'
-_DICT_OPERATION = {
-    'reboot': u'重新启动',
-    'full_reboot': u'深度重启',
-    'halt': u'关机'
+_DICT_OPERATION_LABEL = {
+    'reboot': _('reboot'),
+    'full_reboot': _('full reboot'),
+    'halt': _('halt')
 }
-_SHUTDOWN_COMMENCING_MSG = lambda operation, delay: test_ui.MakeLabel(
-    'System is going to %s in %d seconds.' % (operation, delay),
-    u'系统将在 %d 秒后%s.' %
-    (delay, _DICT_OPERATION.get(operation, operation)))
-_REMOTE_SHUTDOWN_PROGRESS_MSG = lambda operation, delay: test_ui.MakeLabel(
-    'Remote DUT is performing %s, timeout in %d seconds.' % (operation, delay),
-    u'远端测试装置将于 %d 秒內%s.' % (
-        delay, _DICT_OPERATION.get(operation, operation)))
-_SHUTDOWN_COMPLETE_MSG = lambda operation: test_ui.MakeLabel(
-    'Verifying system state after %s' % operation,
-    u'%s后验证系统状态' % _DICT_OPERATION.get(operation, operation))
-_TEST_TITLE = lambda operation: test_ui.MakeLabel(
-    'Shutdown Test (%s)' % operation,
-    u'关机测试 (%s)' % _DICT_OPERATION.get(operation, operation))
+_SHUTDOWN_COMMENCING_MSG = lambda operation, delay: (
+    i18n_test_ui.MakeI18nLabel(
+        'System is going to {operation} in {delay} seconds.',
+        operation=_DICT_OPERATION_LABEL.get(operation, operation),
+        delay=delay))
+_REMOTE_SHUTDOWN_PROGRESS_MSG = lambda operation, delay: (
+    i18n_test_ui.MakeI18nLabel(
+        'Remote DUT is performing {operation}, timeout in {delay} seconds.',
+        operation=_DICT_OPERATION_LABEL.get(operation, operation),
+        delay=delay))
+_SHUTDOWN_COMPLETE_MSG = lambda operation: i18n_test_ui.MakeI18nLabel(
+    'Verifying system state after {operation}',
+    operation=_DICT_OPERATION_LABEL.get(operation, operation))
+_TEST_TITLE = lambda operation: i18n_test_ui.MakeI18nLabel(
+    'Shutdown Test ({operation})',
+    operation=_DICT_OPERATION_LABEL.get(operation, operation))
 _CSS = 'body { font-size: 2em; }'
 
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -29,6 +27,8 @@ from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test import event_log
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -38,8 +38,16 @@ from cros.factory.utils import sync_utils
 _DEFAULT_TIMEOUT = 30
 
 _MSG_PROMPT_CSS_CLASS = 'button-test-info'
-_MSG_PROMPT_PRESS = ('Press the %s button%s', u'按下%s按钮%s')
-_MSG_PROMPT_RELEASE = ('Release the button', u'松开按钮')
+_MSG_PROMPT_PRESS = lambda name, count, total: (
+    i18n_test_ui.MakeI18nLabelWithClass(
+        'Press the {name} button', _MSG_PROMPT_CSS_CLASS,
+        name=name)
+    if total == 1
+    else i18n_test_ui.MakeI18nLabelWithClass(
+        'Press the {name} button ({count}/{total})', _MSG_PROMPT_CSS_CLASS,
+        name=name, count=count, total=total))
+_MSG_PROMPT_RELEASE = i18n_test_ui.MakeI18nLabelWithClass(
+    'Release the button', _MSG_PROMPT_CSS_CLASS)
 
 _ID_PROMPT = 'button-test-prompt'
 _ID_COUNTDOWN_TIMER = 'button-test-timer'
@@ -157,26 +165,24 @@ class ECToolButton(GenericButton):
 
 class ButtonTest(unittest.TestCase):
   """Button factory test."""
-  ARGS = [
+  ARGS = ([
       Arg('timeout_secs', int, 'Timeout value for the test.',
           default=_DEFAULT_TIMEOUT),
       Arg('button_key_name', str, 'Button key name for evdev.',
           optional=False),
       Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
           default=None, optional=True),
-      Arg('button_name_en', (str, unicode),
-          'The name of the button in English.', optional=False),
-      Arg('button_name_zh', (str, unicode),
-          'The name of the button in Chinese.', optional=False),
       Arg('repeat_times', int, 'Number of press/release cycles to test',
           default=1),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP,
           default=None, optional=True),
       Arg('bft_button_name', str, 'Button name for BFT fixture',
           default=None, optional=True),
-      ]
+      ] + i18n_arg_utils.BackwardCompatibleI18nArgs(
+          'button_name', 'The name of the button.'))
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'button_name')
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
@@ -252,24 +258,15 @@ class ButtonTest(unittest.TestCase):
 
   def _MonitorButtonEvent(self):
     for done in xrange(self.args.repeat_times):
-      if self.args.repeat_times == 1:
-        progress = ''
-      else:
-        progress = ' (%d/%d)' % (done, self.args.repeat_times)
-      label = test_ui.MakeLabel(
-          _MSG_PROMPT_PRESS[0] % (self.args.button_name_en, progress),
-          _MSG_PROMPT_PRESS[1] % (self.args.button_name_zh, progress),
-          _MSG_PROMPT_CSS_CLASS)
+      label = _MSG_PROMPT_PRESS(
+          self.args.button_name, done, self.args.repeat_times)
       self.ui.SetHTML(label, id=_ID_PROMPT)
 
       if self._fixture:
         self._fixture.SimulateButtonPress(self.args.bft_button_name, 0)
 
       self._PollForCondition(self.button.IsPressed, 'WaitForPress')
-      label = test_ui.MakeLabel(_MSG_PROMPT_RELEASE[0],
-                                _MSG_PROMPT_RELEASE[1],
-                                _MSG_PROMPT_CSS_CLASS)
-      self.ui.SetHTML(label, id=_ID_PROMPT)
+      self.ui.SetHTML(_MSG_PROMPT_RELEASE, id=_ID_PROMPT)
 
       if self._fixture:
         self._fixture.SimulateButtonRelease(self.args.bft_button_name)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,6 +15,7 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -53,8 +52,7 @@ class MemorySize(unittest.TestCase):
     ui.Run(blocking=False, on_finish=Done)
     ui.AppendCSS('.large { font-size: 200% }')
 
-    template.SetState(test_ui.MakeLabel('Checking memory info...',
-                                        u'正在检查内存大小...'))
+    template.SetState(i18n_test_ui.MakeI18nLabel('Checking memory info...'))
 
     # Get memory info using mosys.
     ret = process_utils.CheckOutput(
@@ -90,16 +88,15 @@ class MemorySize(unittest.TestCase):
 
       def HandleError(trace):
         template.SetState(
-            test_ui.MakeLabel('Shop floor exception:',
-                              'Shop floor 错误:',
-                              'test-status-failed large') +
+            i18n_test_ui.MakeI18nLabelWithClass(
+                'Shop floor exception:',
+                'test-status-failed large') +
             '<p>' +
             test_ui.Escape(trace) +
             '<p><br>' +
             """<button onclick="test.sendTestEvent('retry')">""" +
-            test_ui.MakeLabel('Retry', '重试') +
-            '</button>'
-            )
+            i18n_test_ui.MakeI18nLabel('Retry') +
+            '</button>')
         process_utils.WaitEvent(self._event)
         self._event.clear()
 
