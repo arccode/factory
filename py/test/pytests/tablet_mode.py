@@ -9,10 +9,10 @@
 Currently, the only thing checked is that the lid switch is not triggered.
 """
 
-import evdev
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test.pytests import tablet_mode_ui
 from cros.factory.test import test_ui
@@ -56,14 +56,8 @@ class TabletModeTest(unittest.TestCase):
     self.tablet_mode_ui = tablet_mode_ui.TabletModeUI(
         self.ui, _HTML_COUNTDOWN_TIMER, _CSS_COUNTDOWN_TIMER)
 
-    if self.args.event_id:
-      self.event_dev = evdev.InputDevice('/dev/input/event%d' %
-                                         self.args.event_id)
-    else:
-      lid_event_devices = evdev_utils.GetLidEventDevices()
-      assert len(lid_event_devices) == 1, (
-          'Multiple lid event devices detected')
-      self.event_dev = lid_event_devices[0]
+    self.event_dev = evdev_utils.FindDevice(self.args.event_id,
+                                            evdev_utils.IsLidEventDevice)
     self.tablet_mode_ui.AskForTabletMode(self.HandleConfirmTabletMode)
 
     # Create a thread to monitor evdev events.

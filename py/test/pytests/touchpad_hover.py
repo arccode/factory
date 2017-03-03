@@ -9,7 +9,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test.args import Arg
@@ -63,13 +62,8 @@ class TouchpadHoverTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetState(_HTML)
     self._timer_disabler = None
-    if self.args.touchpad_event_id is not None:
-      self._touchpad = evdev.InputDevice(
-          '/dev/input/event%d' % self.args.touchpad_event_id)
-    else:
-      candidates = evdev_utils.GetTouchpadDevices()
-      assert len(candidates) == 1, 'Multiple touchpad devices detected.'
-      self._touchpad = candidates[0]
+    self._touchpad = evdev_utils.FindDevice(self.args.touchpad_event_id,
+                                            evdev_utils.IsTouchpadDevice)
 
   def _SetMessage(self, msg, timeout_secs):
     self._ui.SetHTML(msg, id=_ID_PROMPT)

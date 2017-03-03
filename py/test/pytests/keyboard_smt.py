@@ -10,10 +10,10 @@ fixture to send out signals to simulate key presses on the key sequence.
 """
 
 from __future__ import print_function
-import evdev
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
@@ -22,7 +22,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 
 
 _ID_CONTAINER = 'keyboard-test-container'
@@ -81,23 +80,21 @@ class KeyboardSMTTest(unittest.TestCase):
       self.fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
 
     # Get the keyboard input device.
-    if self.args.keyboard_event_id is None:
-      keyboard_devices = evdev_utils.GetKeyboardDevices()
-      assert len(keyboard_devices) == 1, 'Multiple keyboards detected.'
-      self.event_dev = keyboard_devices[0]
-    else:
-      self.event_dev = evdev.InputDevice(
-          '/dev/input/event%d' % self.args.keyboard_event_id)
+    self.event_dev = evdev_utils.FindDevice(self.args.keyboard_event_id,
+                                            evdev_utils.IsKeyboardDevice)
 
     # Monitor keyboard event within specified time period.
     self.event_dev.grab()
-    process_utils.StartDaemonThread(target=self.PollEvdevEvent)
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(self.event_dev,
+                                                        self.HandleEvdevEvent)
+    self.dispatcher.StartDaemon()
     if not self.args.debug:
       countdown_timer.StartCountdownTimer(
           self.args.timeout_secs, self.TimeoutHandler, self.ui,
           _ID_COUNTDOWN_TIMER)
 
   def tearDown(self):
+    self.dispatcher.close()
     self.event_dev.ungrab()
 
   def TimeoutHandler(self):
@@ -105,11 +102,6 @@ class KeyboardSMTTest(unittest.TestCase):
     self.ui.CallJSFunction(
         'failTest',
         'Timeout after %d seconds.' % self.args.timeout_secs)
-
-  def PollEvdevEvent(self):
-    """Polls evdev event."""
-    for event in self.event_dev.read_loop():
-      self.HandleEvdevEvent(event)
 
   def HandleEvdevEvent(self, event):
     """Handles evdev event.

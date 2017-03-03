@@ -20,30 +20,29 @@ def GetDevices():
   return [evdev.InputDevice(d) for d in evdev.list_devices()]
 
 
-def GetLidEventDevices():
-  """Gets lid event devices.
+def IsLidEventDevice(dev):
+  """Check if a device is with EV_SW and SW_LID capabilities.
 
-  Looks for devices with EV_SW capabilities and with a SW_LID.
-
-  Returns:
-    A list of evdev.InputDevice() instances of lid event devices.
-  """
-  return [d for d in GetDevices()
-          if (evdev.ecodes.EV_SW in d.capabilities().iterkeys() and
-              evdev.ecodes.SW_LID in d.capabilities()[evdev.ecodes.EV_SW])]
-
-
-def GetKeyboardDevices():
-  """Gets the keyboard device.
-
-  Looks for devices with EV_KEY capabilities and with a KEY_ENTER.
+  Args:
+    dev: evdev.InputDevice
 
   Returns:
-    A list of evdev.InputDevice() instances of the keyboard devices.
+    True if dev is a lid event device.
   """
-  return [d for d in GetDevices()
-          if (evdev.ecodes.EV_KEY in d.capabilities().iterkeys() and
-              evdev.ecodes.KEY_ENTER in d.capabilities()[evdev.ecodes.EV_KEY])]
+  return evdev.ecodes.SW_LID in dev.capabilities().get(evdev.ecodes.EV_SW, [])
+
+
+def IsKeyboardDevice(dev):
+  """Check if a device is with EV_KEY and KEY_ENTER capabilities.
+
+  Args:
+    dev: evdev.InputDevice
+
+  Returns:
+    True if dev is a keyboard device.
+  """
+  return evdev.ecodes.KEY_ENTER in dev.capabilities().get(evdev.ecodes.EV_KEY,
+                                                          [])
 
 
 def SendKeys(key_sequence):
@@ -119,48 +118,31 @@ def IsTouchscreenDevice(dev):
           not IsStylusDevice(dev))
 
 
-def GetTouchDevices():
-  """Gets the touch devices.
+def FindDevice(*args):
+  """Find a device with hints of arguments.
 
-  Looks for touch devices.
-
-  Returns:
-    A list of evdev.InputDevice() instances of the touch devices.
-  """
-  return [d for d in GetDevices() if IsTouchDevice(d)]
-
-
-def GetStylusDevices():
-  """Gets the stylus devices.
-
-  Looks for stylus devices.
+  Args:
+    Each argument should be None (skipped), int (event id), str (pattern to
+    search in evdev name), or a filter function with domain evdev.InputDevice.
 
   Returns:
-    A list of evdev.InputDevice() instances of the stylus devices.
+    An evdev.InputDevice
   """
-  return [d for d in GetDevices() if IsStylusDevice(d)]
-
-
-def GetTouchpadDevices():
-  """Gets the touchpad devices.
-
-  Looks for touchpad devices.
-
-  Returns:
-    A list of evdev.InputDevice() instances of the touchpad devices.
-  """
-  return [d for d in GetDevices() if IsTouchpadDevice(d)]
-
-
-def GetTouchscreenDevices():
-  """Gets the touchscreen devices.
-
-  Looks for touchscreen devices.
-
-  Returns:
-    A list of evdev.InputDevice() instances of the touchscreen devices.
-  """
-  return [d for d in GetDevices() if IsTouchscreenDevice(d)]
+  for item in args:
+    if item is not None:
+      if isinstance(item, int):
+        return evdev.InputDevice('/dev/input/event%d' % item)
+      if isinstance(item, str):
+        # pylint: disable=cell-var-from-loop
+        dev_filter = lambda dev: item in dev.name
+      elif callable(item):
+        dev_filter = item
+      else:
+        raise ValueError('Invalid argument %r' % item)
+      candidates = [dev for dev in GetDevices() if dev_filter(dev)]
+      assert len(candidates) == 1, 'Not having exactly one candidate!'
+      return candidates[0]
+  raise ValueError('Arguments are all None.')
 
 
 class InputDeviceDispatcher(asyncore.file_dispatcher):

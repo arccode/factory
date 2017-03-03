@@ -5,11 +5,11 @@
 """Tests lid switch functionality."""
 
 import datetime
-import evdev
 import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test import event_log
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
@@ -107,14 +107,8 @@ class LidSwitchTest(unittest.TestCase):
     audio_utils.CRAS().SetActiveOutputNodeVolume(100)
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
-    if self.args.event_id:
-      self.event_dev = evdev.InputDevice('/dev/input/event%d' %
-                                         self.args.event_id)
-    else:
-      lid_event_devices = evdev_utils.GetLidEventDevices()
-      assert len(lid_event_devices) == 1, (
-          'Multiple lid event devices detected')
-      self.event_dev = lid_event_devices[0]
+    self.event_dev = evdev_utils.FindDevice(self.args.event_id,
+                                            evdev_utils.IsLidEventDevice)
     self.ui.AppendCSS(_LID_SWITCH_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_LID_SWITCH)
 

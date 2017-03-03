@@ -61,13 +61,8 @@ class StylusTest(unittest.TestCase):
           default=0.01)]
 
   def setUp(self):
-    if self.args.stylus_event_id is not None:
-      self._device = evdev.InputDevice(
-          '/dev/input/event%d' % self.args.stylus_event_id)
-    else:
-      candidates = evdev_utils.GetStylusDevices()
-      assert len(candidates) == 1, 'Not having exactly one candidate.'
-      self._device = candidates[0]
+    self._device = evdev_utils.FindDevice(self.args.stylus_event_id,
+                                          evdev_utils.IsStylusDevice)
     abscaps = {
         pair[0]: pair[1]
         for pair in self._device.capabilities()[evdev.ecodes.EV_ABS]}

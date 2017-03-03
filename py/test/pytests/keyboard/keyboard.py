@@ -9,13 +9,13 @@
 from __future__ import print_function
 
 import ast
-import evdev
 import logging
 import os
 import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test.l10n import regions
@@ -96,13 +96,8 @@ class KeyboardTest(unittest.TestCase):
     self.ui.AppendCSS(_KEYBOARD_TEST_DEFAULT_CSS)
 
     # Get the keyboard input device.
-    keyboard_devices = evdev_utils.GetKeyboardDevices()
-    if self.args.name_fragment:
-      device_matcher = lambda k: self.args.name_fragment in k.name
-      keyboard_devices = filter(device_matcher, keyboard_devices)
-    assert len(keyboard_devices) >= 1, 'No matching keyboards detected.'
-    assert len(keyboard_devices) <= 1, 'Multiple keyboards detected.'
-    self.keyboard_device = keyboard_devices[0]
+    self.keyboard_device = evdev_utils.FindDevice(
+        self.args.name_fragment, evdev_utils.IsKeyboardDevice)
 
     # Initialize keyboard layout and bindings
     self.layout = self.GetKeyboardLayout()

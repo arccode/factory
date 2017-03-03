@@ -258,13 +258,8 @@ class TouchpadTest(unittest.TestCase):
     self.click_event = ClickEvent()
     self.touchpad_has_right_btn = False
     self.quadrant = Quadrant()
-    if self.args.touchpad_event_id is None:
-      touchpad_devices = evdev_utils.GetTouchpadDevices()
-      assert len(touchpad_devices) == 1, 'Multiple touchpad devices detected.'
-      self.touchpad_device = touchpad_devices[0]
-    else:
-      self.touchpad_device = evdev.InputDevice(
-          '/dev/input/event%d' % self.args.touchpad_event_id)
+    self.touchpad_device = evdev_utils.FindDevice(self.args.touchpad_event_id,
+                                                  evdev_utils.IsTouchpadDevice)
     self.dispatcher = None
     self.number_fingers = 0
     self.already_alerted = False

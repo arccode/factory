@@ -23,7 +23,6 @@ insert which port by display_label in display_info::
 """
 
 from __future__ import print_function
-import evdev  # pylint: disable=import-error
 import logging
 import random
 import threading
@@ -33,6 +32,7 @@ import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.external import evdev
 from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test import factory_task

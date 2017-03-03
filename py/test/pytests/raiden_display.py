@@ -7,7 +7,6 @@ port to DP sink. And with Plankton-HDMI as DP sunk to capture DP output to
 verify.
 """
 
-import evdev
 import logging
 import os
 import time
@@ -16,6 +15,7 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.external import evdev
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi

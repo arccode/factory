@@ -6,11 +6,11 @@
 
 """A factory test to test the functionality of touchscreen."""
 
-import evdev
 import logging
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -79,16 +79,9 @@ class TouchscreenTest(unittest.TestCase):
     self.touchscreen_device_name = None
     self.touch_event = TouchEvent()
     self.checked = False
+    self.touchscreen_device = evdev_utils.FindDevice(
+        self.args.touchscreen_event_id, evdev_utils.IsTouchscreenDevice)
     self.dispatcher = None
-
-    if self.args.touchscreen_event_id is None:
-      touchscreen_devices = evdev_utils.GetTouchscreenDevices()
-      assert len(touchscreen_devices) == 1, (
-          'Multiple touchscreen devices detected')
-      self.touchscreen_device = touchscreen_devices[0]
-    else:
-      self.touchscreen_device = evdev.InputDevice(
-          '/dev/input/event%d' % self.args.touchscreen_event_id)
 
     if self.args.timeout_secs is not None:
       logging.info('start countdown timer daemon thread')
