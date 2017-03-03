@@ -1,6 +1,5 @@
 py/argparse.py
 py/gooftool/vblock.py
-py/goofy/invocation.py
 py/goofy/prespawner.py
 py/goofy/test_environment.py
 py/goofy/updater.py

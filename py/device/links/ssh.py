@@ -13,7 +13,6 @@ import subprocess
 import tempfile
 import threading
 import time
-import types
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import link
@@ -432,7 +431,7 @@ class SSHLink(link.DeviceLink):
       self._SetLastDUT()
 
       # invoke callback function
-      if isinstance(self._on_add, types.FunctionType):
+      if callable(self._on_add):
         self._on_add(ip, mac_address)
 
     def _OnDHCPOld(self, ip, mac_address):
@@ -441,7 +440,7 @@ class SSHLink(link.DeviceLink):
       self._SetLastDUT()
 
       # invoke callback function
-      if isinstance(self._on_old, types.FunctionType):
+      if callable(self._on_old):
         self._on_old(ip, mac_address)
 
     def _OnDHCPDel(self, ip, mac_address):
@@ -450,7 +449,7 @@ class SSHLink(link.DeviceLink):
       self._SetLastDUT()
 
       # invoke callback function
-      if isinstance(self._on_del, types.FunctionType):
+      if callable(self._on_del):
         self._on_del(ip, mac_address)
 
     def _StartHDCPServer(self):

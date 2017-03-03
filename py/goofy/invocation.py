@@ -24,13 +24,12 @@ import tempfile
 import threading
 import time
 import traceback
-import types
 import unittest
 import yaml
 from optparse import OptionParser
-from setproctitle import setproctitle
+from setproctitle import setproctitle  # pylint: disable=no-name-in-module
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -133,7 +132,7 @@ def ResolveTestArgs(dargs):
   """
   def ResolveArg(k, v):
     """Resolves a single argument."""
-    if not isinstance(v, types.FunctionType):
+    if not callable(v):
       return v
 
     v = v(TestArgEnv())
@@ -772,6 +771,7 @@ class TestInvocation(object):
     try:
       if status is None:  # dargs are successfully resolved
         if self.test.autotest_name:
+          # pylint: disable=unpacking-non-sequence
           status, error_msg = self._invoke_autotest(resolved_dargs)
         elif self.test.pytest_name:
           status, error_msg = self._invoke_pytest(resolved_dargs)

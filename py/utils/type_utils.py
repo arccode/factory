@@ -8,7 +8,6 @@ import collections
 import inspect
 import Queue
 import re
-import types
 
 
 # The regular expression used by Overrides.
@@ -386,7 +385,7 @@ def UnicodeToStringClass(cls):
   '''A class decorator that converts all arguments of all
   methods in class from Unicode to strings using UnicodeToStringArgs.'''
   for k, v in cls.__dict__.items():
-    if type(v) == types.FunctionType:
+    if callable(v):
       setattr(cls, k, UnicodeToStringArgs(v))
   return cls
 

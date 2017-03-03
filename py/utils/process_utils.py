@@ -17,7 +17,6 @@ import sys
 import threading
 import time
 import traceback
-import types
 from StringIO import StringIO
 
 
@@ -295,7 +294,7 @@ def Spawn(args, **kwargs):
       # No need to communicate; just wait
       process.wait()
 
-    if type(check_call) == types.FunctionType:
+    if callable(check_call):
       failed = not check_call(process.returncode)
     else:
       failed = process.returncode != 0
