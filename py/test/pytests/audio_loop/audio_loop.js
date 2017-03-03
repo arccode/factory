@@ -11,11 +11,11 @@ var init = function(require_dongle, test_title) {
 
 var createLabel = function(enMsg, zhMsg) {
   var enSpan = document.createElement('span');
-  enSpan.className = 'goofy-label-en';
+  enSpan.className = 'goofy-label-en-US';
   enSpan.innerText = enMsg;
 
   var zhSpan = document.createElement('span');
-  zhSpan.className = 'goofy-label-zh';
+  zhSpan.className = 'goofy-label-zh-CN';
   zhSpan.innerText = zhMsg;
 
   var finalDiv = document.createElement('div');

@@ -135,8 +135,8 @@ cros.factory.MAX_LINE_CONSOLE_LOG = 1024;
  * @return {string}
  */
 cros.factory.Label = function(en, zh) {
-  return '<span class="goofy-label-en">' + en + '</span>' +
-      '<span class="goofy-label-zh">' + (zh || en) + '</span>';
+  return '<span class="goofy-label-en-US">' + en + '</span>' +
+      '<span class="goofy-label-zh-CN">' + (zh || en) + '</span>';
 };
 
 /**
@@ -354,8 +354,8 @@ cros.factory.Test.prototype.addVirtualkey = function(keyCode, en, zh) {
   // container may not exist if test is using non-standard template.
   if (container) {
     var button = goog.dom.createDom('button', 'virtualkey-button',
-        goog.dom.createDom('span', 'goofy-label-en', en),
-        goog.dom.createDom('span', 'goofy-label-zh', zh || en));
+        goog.dom.createDom('span', 'goofy-label-en-US', en),
+        goog.dom.createDom('span', 'goofy-label-zh-CN', zh || en));
     this.keyButtons[keyCode] = button;
     goog.events.listen(button, goog.events.EventType.CLICK, function(event) {
       var handler = this.keyHandlers[keyCode];
@@ -1094,8 +1094,8 @@ cros.factory.Goofy.prototype.getOrCreateInvocation = function(
  */
 cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
   if (doc.body) {
-    goog.dom.classes.enable(doc.body, 'goofy-lang-en', !this.zhMode);
-    goog.dom.classes.enable(doc.body, 'goofy-lang-zh', this.zhMode);
+    goog.dom.classes.enable(doc.body, 'goofy-lang-en-US', !this.zhMode);
+    goog.dom.classes.enable(doc.body, 'goofy-lang-zh-CN', this.zhMode);
     goog.dom.classes.enable(
         doc.body, 'goofy-engineering-mode', this.engineeringMode);
     goog.dom.classes.enable(
@@ -2780,9 +2780,9 @@ cros.factory.Goofy.prototype.addToNode = function(parent, test) {
   } else {
     test.label_zh = test.label_zh || test.label_en;
 
-    var label = '<span class="goofy-label-en">' +
+    var label = '<span class="goofy-label-en-US">' +
         goog.string.htmlEscape(test.label_en) + '</span>';
-    label += '<span class="goofy-label-zh">' +
+    label += '<span class="goofy-label-zh-CN">' +
         goog.string.htmlEscape(test.label_zh) + '</span>';
     if (test.kbd_shortcut) {
       label = '<span class="goofy-kbd-shortcut">Alt-' +

@@ -51,9 +51,9 @@ function setupBacklightTest(container) {
 function appendSpanEnZh(div, en, zh) {
   var en_span = document.createElement('span');
   var zh_span = document.createElement('span');
-  en_span.className = 'goofy-label-en';
+  en_span.className = 'goofy-label-en-US';
   en_span.innerHTML = en;
-  zh_span.className = 'goofy-label-zh';
+  zh_span.className = 'goofy-label-zh-CN';
   zh_span.innerHTML = zh;
   div.appendChild(en_span);
   div.appendChild(zh_span);

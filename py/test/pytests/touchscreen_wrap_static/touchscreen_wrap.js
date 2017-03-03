@@ -501,8 +501,8 @@ TouchscreenTest.prototype.prompt = function(message) {
 /**
  * Creates an prompt element.
  *
- * It contains prompt_en and prompt_zh divs, with class goofy-label-en and
- * goofy-label-zh, respectively so that Goofy can switch the language of
+ * It contains prompt_en and prompt_zh divs, with class goofy-label-en-US and
+ * goofy-label-zh-CN, respectively so that Goofy can switch the language of
  * prompt.
  *
  * @param {{en: string, zh: string}} message A message object containing en and
@@ -514,13 +514,13 @@ function createPrompt(message) {
   prompt.className = 'touchscreen-prompt';
 
   var en_span = document.createElement('span');
-  en_span.className = 'goofy-label-en';
+  en_span.className = 'goofy-label-en-US';
   en_span.id = 'prompt_en';
   en_span.innerHTML = message.en;
   prompt.appendChild(en_span);
 
   var zh_span = document.createElement('span');
-  zh_span.className = 'goofy-label-zh';
+  zh_span.className = 'goofy-label-zh-CN';
   zh_span.id = 'prompt_zh';
   zh_span.innerHTML = message.zh;
   prompt.appendChild(zh_span);

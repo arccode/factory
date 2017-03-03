@@ -26,14 +26,14 @@ var g_is_test_running = false;
 // Incrementally loaded image data.
 var g_image_data;
 
-var label_usb_loaded = '<span class="goofy-label-en">LOADED</span>' +
-    '<span class="goofy-label-zh">已载入</span>';
-var label_usb_unloaded = '<span class="goofy-label-en">UNLOADED</span>' +
-    '<span class="goofy-label-zh">未载入</span>';
-var label_fxt_loaded = '<span class="goofy-label-en">OK</span>' +
-    '<span class="goofy-label-zh">已连接</span>';
-var label_fxt_unloaded = '<span class="goofy-label-en">UNAVAILABLE</span>' +
-    '<span class="goofy-label-zh">未连接</span>';
+var label_usb_loaded = '<span class="goofy-label-en-US">LOADED</span>' +
+    '<span class="goofy-label-zh-CN">已载入</span>';
+var label_usb_unloaded = '<span class="goofy-label-en-US">UNLOADED</span>' +
+    '<span class="goofy-label-zh-CN">未载入</span>';
+var label_fxt_loaded = '<span class="goofy-label-en-US">OK</span>' +
+    '<span class="goofy-label-zh-CN">已连接</span>';
+var label_fxt_unloaded = '<span class="goofy-label-en-US">UNAVAILABLE</span>' +
+    '<span class="goofy-label-zh-CN">未连接</span>';
 
 
 ////////////////////////////////////////////////////////////

@@ -30,10 +30,10 @@ time, mark, audio, video {
 
 /* Language-specific labels.  Default to display: none, but set display: inline
    when the respective language class is present. */
-.goofy-label-en, .goofy-label-zh {
+.goofy-label-en-US, .goofy-label-zh-CN {
   display: none;
 }
-.goofy-lang-en .goofy-label-en, .goofy-lang-zh .goofy-label-zh {
+.goofy-lang-en-US .goofy-label-en-US, .goofy-lang-zh-CN .goofy-label-zh-CN {
   display: inline;
 }
 

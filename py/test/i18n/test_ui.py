@@ -56,19 +56,13 @@ def MakeI18nLabelWithClass(_label, _class, **kwargs):
         name=i18n._('example label name'),
         value=i18n.NoTranslation('value'))
   """
-  # TODO(pihsun): Refactor goofy class name to goofy-label-${locale}, so we
-  #               don't need this map.
-  goofy_label_classes = {
-      'en-US': 'goofy-label-en',
-      'zh-CN': 'goofy-label-zh'
-  }
 
   label = translation.Translated(_label)
   label = string_utils.StringFormat(label, **kwargs)
 
   html = []
   for locale, translated_label in label.iteritems():
-    html_class = goofy_label_classes.get(locale, 'goofy-label-' + locale)
+    html_class = 'goofy-label-' + locale
     if _class:
       html_class += ' ' + _class
     html.append(u'<span class="%s">%s</span>' % (html_class, translated_label))

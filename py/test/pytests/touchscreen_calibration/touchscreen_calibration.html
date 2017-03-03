@@ -3,12 +3,12 @@
 
 <div id="main" style="width: 50%">
   <div>
-    <span class="goofy-label-en">Serial number</span>
-    <span class="goofy-label-zh">面板序号</span>
+    <span class="goofy-label-en-US">Serial number</span>
+    <span class="goofy-label-zh-CN">面板序号</span>
     <input id="sn" type="text" autofocus onkeydown="snKeyDown(event)">
     <button onClick="snEntered()">
-      <span class="goofy-label-en">Submit</span>
-      <span class="goofy-label-zh">提交</span>
+      <span class="goofy-label-en-US">Submit</span>
+      <span class="goofy-label-zh-CN">提交</span>
     </button>
   </div>
   <div id='display-area'>Display Area</div>
@@ -17,86 +17,86 @@
 <div id="debug-panel" style="z-index: 10; position: absolute; right: 30;
     top: 30; border-style: solid; border-color: #555;">
   <button onClick="test.sendTestEvent('DriveProbeDown', {})">
-    <span class="goofy-label-en">Probe goes down</span>
-    <span class="goofy-label-zh">关机前治具下位停俥</span>
+    <span class="goofy-label-en-US">Probe goes down</span>
+    <span class="goofy-label-zh-CN">关机前治具下位停俥</span>
   </button>
   <br>
 
   <button onClick="test.sendTestEvent('DriveProbeUp', {})">
-    <span class="goofy-label-en">Probe goes up</span>
-    <span class="goofy-label-zh">测试前治具上位预备</span>
+    <span class="goofy-label-en-US">Probe goes up</span>
+    <span class="goofy-label-zh-CN">测试前治具上位预备</span>
   </button>
   <br><br>
 
   <button onClick="test.sendTestEvent('ReadTest', {})">
-    <span class="goofy-label-en">Read sensor data</span>
-    <span class="goofy-label-zh">手动读取待测资料</span>
+    <span class="goofy-label-en-US">Read sensor data</span>
+    <span class="goofy-label-zh-CN">手动读取待测资料</span>
   </button>
   <br>
 
   <button onClick="test.sendTestEvent('ProbeSelfTest')">
-    <span class="goofy-label-en">Probe self test</span>
-    <span class="goofy-label-zh">手动治具自我测试</span>
+    <span class="goofy-label-en-US">Probe self test</span>
+    <span class="goofy-label-zh-CN">手动治具自我测试</span>
   </button>
 
   <div>
     <div>
-      <span class="goofy-label-en">Controller status</span>
-      <span class="goofy-label-zh">治具连结</span>
+      <span class="goofy-label-en-US">Controller status</span>
+      <span class="goofy-label-zh-CN">治具连结</span>
       <div id="controller-status" style="display:inline">N/A</div>
       <button onClick="test.sendTestEvent('RefreshFixture', {})">
-        <span class="goofy-label-en">Refresh</span>
-        <span class="goofy-label-zh">刷新</span>
+        <span class="goofy-label-en-US">Refresh</span>
+        <span class="goofy-label-zh-CN">刷新</span>
       </button>
     </div>
 
     <div>
-      <span class="goofy-label-en">Touchscreen status</span>
-      <span class="goofy-label-zh">待测物连结</span>
+      <span class="goofy-label-en-US">Touchscreen status</span>
+      <span class="goofy-label-zh-CN">待测物连结</span>
       <div id="touchscreen-status" style="display:inline">N/A</div>
       <button onClick="test.sendTestEvent('RefreshTouchscreen', {})">
-        <span class="goofy-label-en">Refresh</span>
-        <span class="goofy-label-zh">刷新</span>
+        <span class="goofy-label-en-US">Refresh</span>
+        <span class="goofy-label-zh-CN">刷新</span>
       </button>
     </div>
 
     <div>
-      <span class="goofy-label-en">Probe state</span>
-      <span class="goofy-label-zh">治具内部状态</span>
+      <span class="goofy-label-en-US">Probe state</span>
+      <span class="goofy-label-zh-CN">治具内部状态</span>
       <div id="probe-state" style="display:inline">N/A</div>
       <button onClick="test.sendTestEvent('QueryFixtureState', {})">
-        <span class="goofy-label-en">FixtureState</span>
-        <span class="goofy-label-zh">治具状态查询</span>
+        <span class="goofy-label-en-US">FixtureState</span>
+        <span class="goofy-label-zh-CN">治具状态查询</span>
       </button>
     </div>
 
     <div>
-      <span class="goofy-label-en">Host IP</span>
-      <span class="goofy-label-zh">本机网址</span>
+      <span class="goofy-label-en-US">Host IP</span>
+      <span class="goofy-label-zh-CN">本机网址</span>
       <div id="host-network-status" style="display:inline">N/A</div>
       <button onClick="test.sendTestEvent('RefreshNetwork', {})">
-        <span class="goofy-label-en">Refresh</span>
-        <span class="goofy-label-zh">刷新</span>
+        <span class="goofy-label-en-US">Refresh</span>
+        <span class="goofy-label-zh-CN">刷新</span>
       </button>
     </div>
 
     <div>
-      <span class="goofy-label-en">BB IP</span>
-      <span class="goofy-label-zh">BB网址</span>
+      <span class="goofy-label-en-US">BB IP</span>
+      <span class="goofy-label-zh-CN">BB网址</span>
       <div id="bb-network-status" style="display:inline">N/A</div>
       <button onClick="test.sendTestEvent('RefreshNetwork', {})">
-        <span class="goofy-label-en">Refresh</span>
-        <span class="goofy-label-zh">刷新</span>
+        <span class="goofy-label-en-US">Refresh</span>
+        <span class="goofy-label-zh-CN">刷新</span>
       </button>
     </div>
 
     <div>
-      <span class="goofy-label-en">Shopfloor IP</span>
-      <span class="goofy-label-zh">Shopfloor网址</span>
+      <span class="goofy-label-en-US">Shopfloor IP</span>
+      <span class="goofy-label-zh-CN">Shopfloor网址</span>
       <div id="shopfloor-network-status" style="display:inline">N/A</div>
       <button onClick="test.sendTestEvent('RefreshNetwork', {})">
-        <span class="goofy-label-en">Refresh</span>
-        <span class="goofy-label-zh">刷新</span>
+        <span class="goofy-label-en-US">Refresh</span>
+        <span class="goofy-label-zh-CN">刷新</span>
       </button>
     </div>
 
@@ -104,7 +104,7 @@
 
   <br> <br> <br>
   <button onClick="test.sendTestEvent('ShutDown', {})">
-    <span class="goofy-label-en">Shutdown the host</span>
-    <span class="goofy-label-zh">关机</span>
+    <span class="goofy-label-en-US">Shutdown the host</span>
+    <span class="goofy-label-zh-CN">关机</span>
   </button>
 </div>

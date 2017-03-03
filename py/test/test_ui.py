@@ -74,8 +74,8 @@ def MakeLabel(en, zh=None, css_class=None):
     zh: The Chinese-language label (or None if unspecified).
     css_class: The CSS class to decorate the label (or None if unspecified).
   """
-  return ('<span class="goofy-label-en %s">%s</span>'
-          '<span class="goofy-label-zh %s">%s</span>' %
+  return ('<span class="goofy-label-en-US %s">%s</span>'
+          '<span class="goofy-label-zh-CN %s">%s</span>' %
           ('' if css_class is None else css_class, en,
            '' if css_class is None else css_class, zh if zh else en))
 
