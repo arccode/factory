@@ -405,16 +405,21 @@ class TokenEater:
             self.__state = self.__waiting
 
     def __openseen(self, ttype, tstring, lineno):
-        if ttype == tokenize.OP and tstring == ')':
+        if ttype == tokenize.OP and (tstring in [')', ',']):
             # We've seen the last of the translatable strings.  Record the
             # line number of the first line of the strings and update the list
             # of messages seen.  Reset state for the next batch.  If there
             # were no strings inside _(), then just ignore this entry.
             if self.__data:
-                self.__addentry(EMPTYSTRING.join(self.__data))
+                value = EMPTYSTRING.join(self.__data)
+                if value:
+                    self.__addentry(value)
             self.__state = self.__waiting
         elif ttype == tokenize.STRING:
             self.__data.append(safe_eval(tstring))
+        elif ttype == tokenize.NAME and tstring in self.__options.keywords:
+            # To support both Keyword1("str") and Keyword1(Keyword2("str")).
+            self.__state = self.__keywordseen
         elif ttype not in [tokenize.COMMENT, token.INDENT, token.DEDENT,
                            token.NEWLINE, tokenize.NL]:
             # warn if we see anything else than STRING or whitespace
@@ -482,7 +487,7 @@ class TokenEater:
                     locline = '#:'
                     for filename, lineno in v:
                         d = {'filename': filename, 'lineno': lineno}
-                        s = _(' %(filename)s:%(lineno)d') % d
+                        s = _(' %(filename)s') % d
                         if len(locline) + len(s) <= options.width:
                             locline = locline + s
                         else:

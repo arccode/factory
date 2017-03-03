@@ -1,0 +1,188 @@
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+msgid ""
+msgstr ""
+"Project-Id-Version: ChromeOS Factory Software\n"
+"POT-Creation-Date: 2017-02-24 13:41+CST\n"
+"PO-Revision-Date: 2017-01-05 07:36+CST\n"
+"Last-Translator: ChromeOS Factory Team\n"
+"Language-Team: ChromeOS Factory Team\n"
+"Language: Simplified Chinese\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+#: ../py/test/pytests/audio.py
+msgid "Audio Test"
+msgstr "音讯测试"
+
+#: ../py/test/pytests/audio.py
+msgid ""
+"Press the number you hear from {device} to pass the test.<br>Press \"{key}\" "
+"to replay."
+msgstr "请按你从 {device} 输出所听到的数字<br>按 {key} 重播语音"
+
+#: ../py/test/pytests/audio.py
+msgid " (Left Channel)"
+msgstr "(左声道)"
+
+#: ../py/test/pytests/audio.py
+msgid " (Right Channel)"
+msgstr "(右声道)"
+
+#: ../py/test/pytests/audio.py
+msgid "Connect Headphone"
+msgstr "连接耳机"
+
+#: ../py/test/pytests/audio.py
+msgid "Please plug headphone in."
+msgstr "请接上耳机"
+
+#: ../py/test/pytests/audio.py
+msgid "Disconnect Headphone"
+msgstr "移除耳机"
+
+#: ../py/test/pytests/audio.py
+msgid "Please unplug headphone."
+msgstr "请拔下耳机"
+
+#: ../py/test/pytests/audio.py
+msgid "Internal Speaker"
+msgstr "内建喇叭"
+
+#: ../py/test/pytests/brightness/brightness.py
+msgid "<br>Press ENTER to pass, or ESC to fail."
+msgstr "<br>测试正常请按 ENTER ，不正常请按 ESC"
+
+#: ../py/test/pytests/brightness/brightness.py
+msgid "Time remaining: {time}"
+msgstr "剩余时间：{time}"
+
+#: ../py/test/pytests/brightness/lcd_backlight.py
+msgid "Please check if backlight brightness is changing from dark to bright."
+msgstr "请检查萤幕亮度是否由暗变亮"
+
+#: ../py/test/pytests/buzzer.py
+msgid "How many beeps do you hear? <br>Press space to start."
+msgstr "你听到几声哔声？<br>压下空白键开始测试"
+
+#: ../py/test/pytests/buzzer.py
+msgid ""
+"How many beeps do you hear? <br>Press the number you hear to pass the test."
+"<br>Press 'r' to play again."
+msgstr "你听到几声哔声？<br>请按下数字代表你听到几声哔声<br>按下 'r' 重播"
+
+#: ../py/test/pytests/led/led.py
+msgid "LED Test"
+msgstr "LED 测试"
+
+#: ../py/test/pytests/led/led.py
+msgid "yellow"
+msgstr "黄色"
+
+#: ../py/test/pytests/led/led.py ../py/test/pytests/lightbar.py
+msgid "green"
+msgstr "绿色"
+
+#: ../py/test/pytests/led/led.py ../py/test/pytests/lightbar.py
+msgid "red"
+msgstr "红色"
+
+#: ../py/test/pytests/led/led.py ../py/test/pytests/lightbar.py
+msgid "white"
+msgstr "白色"
+
+#: ../py/test/pytests/led/led.py ../py/test/pytests/lightbar.py
+msgid "blue"
+msgstr "蓝色"
+
+#: ../py/test/pytests/led/led.py
+msgid "amber"
+msgstr "琥珀色"
+
+#: ../py/test/pytests/led/led.py
+msgid "off"
+msgstr "关闭"
+
+#: ../py/test/pytests/led/led.py
+msgid "LED"
+msgstr "LED"
+
+#: ../py/test/pytests/led/led.py
+msgid "power LED"
+msgstr "电源 LED"
+
+#: ../py/test/pytests/led/led.py
+msgid "battery LED"
+msgstr "电池 LED"
+
+#: ../py/test/pytests/led/led.py
+msgid "adapter LED"
+msgstr "电源适配器 LED"
+
+#: ../py/test/pytests/led/led.py
+msgid "Result: "
+msgstr "测试结果："
+
+#: ../py/test/pytests/led/led.py
+msgid "If the <strong>{name}</strong> is <strong>off</strong>, press ENTER."
+msgstr ""
+"请检查 <strong>{name}</strong> 是否 <strong>关掉</strong> 了，关掉了请按 "
+"ENTER。"
+
+#: ../py/test/pytests/led/led.py
+msgid ""
+"If the <strong>{name}</strong> lights up in <strong>{color}</strong>, press "
+"ENTER."
+msgstr ""
+"请检查 <strong>{name}</strong> 是否亮 <strong>{color}</strong>，是请按 "
+"ENTER。"
+
+#: ../py/test/pytests/led/led.py
+msgid ""
+"<span class=\"sub-title\">Test {test_id}</span><br />Please press number key "
+"according to the <strong>{name}</strong> color"
+msgstr ""
+"<span class=\"sub-title\">测试 {test_id}</span><br />请根据 <strong>{name}</"
+"strong> 的颜色按下数字键"
+
+#: ../py/test/pytests/lightbar.py
+msgid "Lightbar Test"
+msgstr "光棒测试"
+
+#: ../py/test/pytests/lightbar.py
+msgid "Is the lightbar {color}?<br>Press SPACE if yes, \"f\" if no."
+msgstr "光棒是否为{color}？<br>是请按空白键，不是请按 f 。"
+
+#: ../py/test/pytests/lightbar.py
+msgid "dark"
+msgstr "全暗"
+
+#: ../py/test/pytests/message/message.py
+msgid ""
+"<div>Press <strong>Enter</strong> to continue, or <strong>ESC</strong> if "
+"things are not going right.</div>"
+msgstr ""
+"<div>按<strong>Enter</strong>继续，不正确请按<strong>ESC</strong></div>"
+
+#: ../py/test/pytests/message/message.py
+msgid "<div>Press <strong>Enter</strong> to continue.</div>"
+msgstr "<div>按<strong>Enter</strong>继续</div>"
+
+#: ../py/test/pytests/message/message.py
+msgid "Message"
+msgstr "讯息"
+
+#: ../py/test/pytests/ping_test.py
+msgid "Ping test"
+msgstr "连线测试"
+
+#: ../py/test/pytests/vswr/vswr.py
+msgid "Make sure the {name} antennta is connected to port {port}<br>"
+msgstr "连接 {name} 天线至 port {port}<br>"
+
+#: ../py/test/pytests/vswr/vswr.py
+msgid "Then press key \"{key}\" to next stage."
+msgstr "完成后按 {key} 键"

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,6 +15,8 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory_task
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -56,25 +56,25 @@ class ShowingTask(factory_task.FactoryTask):
 
 class MessageTest(unittest.TestCase):
   """A factory test to display a message."""
-  ARGS = [
-      Arg('html_en', str, 'Message (HTML in English).'),
-      Arg('html_zh', (str, unicode), ' Message (HTML, in Chinese).',
-          optional=True),
-      Arg('text_size', str, 'size of message in percentage', default='200'),
-      Arg('text_color', str, 'color of message (in CSS)', default='black'),
-      Arg('background_color', str, 'background color (in CSS)',
-          default='white'),
-      Arg('seconds', int, 'duration to display message.'
-          'Specify None to show until key press.',
-          default=None, optional=True),
-      Arg('manual_check', bool, 'If set to true, operator can press ESC to '
-          'fail the test case.', default=False, optional=True),
-      Arg('show_press_button_hint', bool, 'If set to true, will show addition '
-          'message to ask operators to press the button.', default=False,
-          optional=True),
-  ]
+  ARGS = (
+      i18n_arg_utils.BackwardCompatibleI18nArgs('html', 'Message in HTML') + [
+          Arg('text_size', str, 'size of message in percentage', default='200'),
+          Arg('text_color', str, 'color of message (in CSS)', default='black'),
+          Arg('background_color', str, 'background color (in CSS)',
+              default='white'),
+          Arg('seconds', int, 'duration to display message.'
+              'Specify None to show until key press.',
+              default=None, optional=True),
+          Arg('manual_check', bool, 'If set to true, operator can press ESC to '
+              'fail the test case.', default=False, optional=True),
+          Arg('show_press_button_hint', bool, 'If set to true, will show '
+              'addition message to ask operators to press the button.',
+              default=False, optional=True),
+      ])
 
   def runTest(self):
+    i18n_arg_utils.ParseArg(self, 'html')
+
     css = (CSS_TEMPLATE %
            dict(text_size=self.args.text_size,
                 text_color=self.args.text_color,
@@ -85,20 +85,17 @@ class MessageTest(unittest.TestCase):
     press_button_hint = ''
     if self.args.show_press_button_hint:
       if self.args.manual_check:
-        press_button_hint = test_ui.MakeLabel(
-            ('<div>Press <strong>Enter</strong> to continue, '
-             'or <strong>ESC</strong> if things are not going right.</div>'),
-            (u'<div>按<strong>Enter</strong>继续，'
-             u'不正确请按<strong>ESC</strong></div>'), None)
+        press_button_hint = i18n_test_ui.MakeI18nLabel(
+            '<div>Press <strong>Enter</strong> to continue, '
+            'or <strong>ESC</strong> if things are not going right.</div>')
       else:
-        press_button_hint = test_ui.MakeLabel(
-            '<div>Press <strong>Enter</strong> to continue.</div>',
-            u'<div>按<strong>Enter</strong>继续</div>', None)
+        press_button_hint = i18n_test_ui.MakeI18nLabel(
+            '<div>Press <strong>Enter</strong> to continue.</div>')
 
-    template.SetTitle(test_ui.MakeLabel('Message', u'讯息'))
+    template.SetTitle(i18n_test_ui.MakeI18nLabel('Message'))
     template.SetState(
         '<div class="state">' +
-        test_ui.MakeLabel(self.args.html_en, self.args.html_zh, 'message') +
+        i18n_test_ui.MakeI18nLabelWithClass(self.args.html, 'message') +
         press_button_hint +
         _HTML_REMAIN +
         '</div>')

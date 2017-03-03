@@ -1,0 +1,93 @@
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+MK_DIR := ../devtools/mk
+include $(MK_DIR)/common.mk
+
+GETTEXT = $(MK_DIR)/pygettext.py
+MSGFMT = msgfmt
+MSGMERGE = msgmerge
+MSGCAT = msgcat
+
+KEYWORDS = -k MakeI18nLabel -k MakeI18nLabelWithClass
+
+DOMAIN = factory
+BUILD_DIR ?= ../build
+PO_DIR ?= .
+OUTPUT_DIR ?= $(BUILD_DIR)/locale
+TEMP_DIR ?= $(BUILD_DIR)/po
+
+BOARD_PO_DIR ?= $(if $(BOARD_FILES_DIR),$(BOARD_FILES_DIR)/po)
+
+func-get-py-list = \
+  $(sort $(wildcard $(1)/goofy/*.py $(1)/goofy/*/*.py \
+    $(1)/test/pytests/*.py $(1)/test/pytests/*/*.py \
+    $(1)/test/test_lists/*.py))
+
+PY_ROOT = ../py
+PY_LIST = $(call func-get-py-list,$(PY_ROOT))
+BOARD_PY_LIST = $(if $(BOARD_FILES_DIR), \
+  $(call func-get-py-list,$(BOARD_FILES_DIR)/py))
+
+SRCS = $(wildcard $(PO_DIR)/*.po) \
+  $(if $(BOARD_PO_DIR),$(wildcard $(BOARD_PO_DIR)/*.po))
+LOCALES = $(sort $(foreach src,$(SRCS),$(basename $(notdir $(src)))))
+
+LOCALE ?=
+TARGET_PO = $(if $(BOARD_PO_DIR),$(BOARD_PO_DIR),$(PO_DIR))/$(LOCALE).po
+
+func-update-po = \
+  $(if $(wildcard $(1)),, \
+    mkdir -p $(dir $(1)) $(\n) \
+    sed "s/PO_REVISION_DATE/$(shell date +'%Y-%m-%d %H:%M+%Z')/; \
+      s/LOCALE/$(basename $(notdir $(1)))/" po-header > $(1) $(\n)) \
+  $(MSGMERGE) $(1) $(TEMP_DIR)/messages.pot -o $(TEMP_DIR)/tmp.po $(\n) \
+  mv -f $(TEMP_DIR)/tmp.po $(1) $(\n)
+
+func-gettext-and-update-po = \
+  $(if $(strip $(2)), \
+    mkdir -p $(TEMP_DIR) $(\n) \
+    $(GETTEXT) $(KEYWORDS) -p $(TEMP_DIR) $(1) $(\n) \
+    $(foreach file,$(2),$(call func-update-po,$(file))))
+
+all: build
+
+init:
+	$(if $(LOCALE),, \
+	  $(error "You must specify locale of target translation."))
+	$(if $(wildcard $(PO_DIR)/$(LOCALE).po), \
+	  $(error "$(PO_DIR)/$(LOCALE).po already exists."))
+	$(if $(and $(BOARD_PO_DIR),$(wildcard $(BOARD_PO_DIR)/$(LOCALE).po)), \
+	  $(error "$(LOCALE).po already exists in board overlay."))
+	$(call func-gettext-and-update-po, \
+	  $(BOARD_PY_LIST) $(PY_LIST),$(TARGET_PO))
+
+update:
+	$(if $(BOARD_PO_DIR), \
+	  $(call func-gettext-and-update-po,$(BOARD_PY_LIST) $(PY_LIST), \
+	    $(foreach locale,$(LOCALES), \
+	      $(if $(wildcard $(PO_DIR)/$(locale).po),, \
+	         $(BOARD_PO_DIR)/$(locale).po))) \
+	  $(call func-gettext-and-update-po,$(BOARD_PY_LIST), \
+	    $(foreach locale,$(LOCALES), \
+	      $(if $(wildcard $(PO_DIR)/$(locale).po), \
+	        $(BOARD_PO_DIR)/$(locale).po))), \
+	  $(call func-gettext-and-update-po,$(PY_LIST), \
+	    $(foreach locale,$(LOCALES),$(PO_DIR)/$(locale).po)))
+
+build:
+	$(foreach locale,$(LOCALES), \
+	  mkdir -p $(OUTPUT_DIR)/$(locale)/LC_MESSAGES $(\n) \
+	  $(MSGCAT) -o - --use-first \
+	    $(wildcard \
+	      $(if $(BOARD_PO_DIR),$(BOARD_PO_DIR)/$(locale).po) \
+	      $(PO_DIR)/$(locale).po) \
+	    | $(MSGFMT) -o $(OUTPUT_DIR)/$(locale)/LC_MESSAGES/$(DOMAIN).mo - \
+	  $(\n))
+
+clean:
+	rm -rf $(TEMP_DIR) $(OUTPUT_DIR)
+
+.PHONY: init build update clean
+.SUFFIXES: .po .mo

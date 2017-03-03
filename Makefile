@@ -27,6 +27,9 @@
 
 # Local environment settings
 MK_DIR := devtools/mk
+
+include $(MK_DIR)/common.mk
+
 BUILD_DIR ?= build
 RESOURCE_DIR ?= $(BUILD_DIR)/resource
 RESOURCE_PATH ?= $(RESOURCE_DIR)/factory.tar
@@ -43,19 +46,10 @@ TARGET_DIR = /usr/local/factory
 
 # Build and board config settings
 STATIC ?= false
-BOARD ?=
-# The package names (chromeos-factory-board, factory-board) must be same as
-# RDEPEND listed in virtual/chromeos-bsp-factory.
-memoized = $(if $(__var_$1),,$(eval __var_$1 := $($1)))$(__var_$1)
-_BOARD_EBUILD = \
-  $(if $(BOARD),$(shell equery-$(BOARD) which factory-board 2>/dev/null || \
-                        equery-$(BOARD) which chromeos-factory-board))
-BOARD_EBUILD ?= $(call memoized,_BOARD_EBUILD)
 BOARD_PACKAGE_NAME ?= $(notdir $(realpath $(dir $(BOARD_EBUILD))))
 BOARD_PACKAGE_FILE ?= \
   $(if $(BOARD_EBUILD),$(SYSROOT)/packages/chromeos-base/$(basename $(notdir \
     $(BOARD_EBUILD))).tbz2)
-BOARD_FILES_DIR ?= $(if $(BOARD_EBUILD),$(dir $(BOARD_EBUILD))/files)
 BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
 SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
@@ -98,19 +92,13 @@ WEBGL_AQUARIUM_URI ?= \
 WEBGL_AQUARIUM_DIR ?= $(BUILD_DIR)/dist/webgl_aquarium_static
 
 LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist)
-LINT_FILES=$(shell find py go -name '*.py' -type f | sort)
+LINT_FILES=$(shell find py go po -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 
-UNITTESTS=$(shell find py go -name '*_unittest.py' | sort)
+UNITTESTS=$(shell find py go po -name '*_unittest.py' | sort)
 UNITTESTS_BLACKLIST=$(shell cat $(MK_DIR)/unittests.blacklist)
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 TEST_EXTRA_FLAGS=
-
-# Special variable (two blank lines) so we can invoke commands with $(foreach).
-define \n
-
-
-endef
 
 # Substitute PRESUBMIT_FILES to relative path (similar to
 # GNU realpath "--relative-to=.", but works on non-GNU realpath).
@@ -127,7 +115,7 @@ PRESUBMIT_TARGETS := \
   .phony default clean closure proto overlord ovl-bin par doc resource toolkit \
   bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
   lint smartlint smart_lint test testall overlay check-board-resources \
-  publish-docs
+  publish-docs po
 
 # This must be the first rule.
 default: closure
@@ -199,12 +187,13 @@ check-board-resources:
 	     [ -e "$(CROS_REGIONS_DATABASE)" ] ))
 
 # Prepare files from source folder into resource folder.
-resource: closure check-board-resources
+resource: closure check-board-resources po
 	@$(info Create resource $(if $(BOARD),for [$(BOARD)],without board).)
 	mkdir -p $(RESOURCE_DIR)
 	tar -cf $(RESOURCE_PATH) -X $(MK_DIR)/resource_exclude.lst \
 	  bin misc py py_pkg sh init \
 	  $(if $(wildcard $(BOARD_FILES_DIR)),-C $(BOARD_FILES_DIR) .)
+	tar -rf $(RESOURCE_PATH) -C $(BUILD_DIR) locale
 	$(if $(LEGACY_BOARD_IN_OUTOFTREE),,\
 	  $(if $(wildcard $(BOARD_FILES_DIR)/bundle), tar \
 	    -cf $(BOARD_BUNDLE_RESOURCE_PATH) -C $(BOARD_FILES_DIR)/bundle .))
@@ -392,3 +381,6 @@ lint-overlay-%: overlay-%
 # Create par of the given board.
 par-overlay-%: overlay-%
 	$(MAKE) -C $< par
+
+po:
+	$(MAKE) -C po build BOARD=$(BOARD) BUILD_DIR=$(abspath $(BUILD_DIR))

@@ -1,0 +1,27 @@
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+msgid ""
+msgstr ""
+"Project-Id-Version: ChromeOS Factory Software\n"
+"POT-Creation-Date: 2017-02-24 15:44+CST\n"
+"PO-Revision-Date: 2017-02-24 15:44+CST\n"
+"Last-Translator: ChromeOS Factory Team\n"
+"Language-Team: ChromeOS Factory Team\n"
+"Language: xx-YY\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+#: text.py
+msgid "text 1"
+msgstr "text-1"
+
+#: text.py
+msgid "text 2"
+msgstr "text-2"
+
+#: text.py
+msgid "format string {str1} {str2} [{val1:05}]"
+msgstr "<{val1:05}>-{str2}-{str1}-format-string"
