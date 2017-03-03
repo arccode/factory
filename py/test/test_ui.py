@@ -168,7 +168,7 @@ class UI(object):
       raise FactoryTestFailure('Cannot have both of %s - delete one!' %
                                static_dirs)
     if static_dirs:
-      factory.get_state_instance().register_path(
+      goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
           '/tests/%s' % self.test, static_dirs[0])
       autoload_bases.append(
           os.path.join(static_dirs[0], os.path.basename(base)))
@@ -183,7 +183,7 @@ class UI(object):
         raise FactoryTestFailure(
             'Cannot have both of %s - delete one!' % autoload)
 
-      factory.get_state_instance().register_path(
+      goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
           '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
           autoload[0])
       return open(autoload[0]).read()
