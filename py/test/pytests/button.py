@@ -24,6 +24,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test import event_log
 from cros.factory.test.fixture import bft_fixture
@@ -31,6 +32,7 @@ from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
@@ -89,13 +91,17 @@ class EvtestButton(GenericButton):
       event_id: /dev/input/event ID.
       name: A string as key name to be captured by evtest.
     """
+
+    def dev_filter(dev):
+      return (evdev.ecodes.__dict__[self._name] in
+              dev.capabilities().get(evdev.ecodes.EV_KEY, []))
+
     super(EvtestButton, self).__init__(dut_instance)
-    # TODO(hungte) Auto-probe if event_id is None.
-    self._event_dev = '/dev/input/event%d' % event_id
     self._name = name
+    self._event_dev = evdev_utils.FindDevice(event_id, dev_filter)
 
   def IsPressed(self):
-    return self._dut.Call(['evtest', '--query', self._event_dev, 'EV_KEY',
+    return self._dut.Call(['evtest', '--query', self._event_dev.fn, 'EV_KEY',
                            self._name]) != 0
 
 
