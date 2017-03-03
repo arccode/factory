@@ -92,6 +92,11 @@ class ProbeTest(unittest.TestCase):
       Arg('overridden_rules', list,
           'List of (category, cmp_function, value) tuple.',
           default=None, optional=True),
+      Arg('show_ui', bool,
+          'Always show the result and prompt if set to True. Always not show '
+          'the result and prompt if set to False. Otherwise, only show the '
+          'result and prompt when the test fails.',
+          default=None, optional=True),
       ]
 
   def setUp(self):
@@ -148,12 +153,17 @@ class ProbeTest(unittest.TestCase):
       table_html.SetContent(
           row_idx, 3, '<div class=test-status-{0}>{0}</div>'.format(status_str))
 
-    html = [
-        table_html.GenerateHTML(), '<br>',
-        i18n_test_ui.MakeI18nLabelWithClass('Press SPACE to continue', 'prompt')
-    ]
-    self._template.SetState(''.join(html))
-    self._ui.BindKeyJS(
-        test_ui.SPACE_KEY,
-        'window.test.pass()' if all_passed else 'window.test.fail()')
-    self._ui.Run()
+    if self.args.show_ui is False:
+      if all_passed is False:
+        self.fail()
+    elif self.args.show_ui is True or not all_passed:
+      html = [
+          table_html.GenerateHTML(), '<br>',
+          i18n_test_ui.MakeI18nLabelWithClass(
+              'Press SPACE to continue', 'prompt')
+      ]
+      self._template.SetState(''.join(html))
+      self._ui.BindKeyJS(
+          test_ui.SPACE_KEY,
+          'window.test.pass()' if all_passed else 'window.test.fail()')
+      self._ui.Run()
