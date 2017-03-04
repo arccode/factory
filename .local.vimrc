@@ -15,4 +15,4 @@ let g:loaded_chromeos_factory_localrc = 1
 let g:localrc_project_root = expand('<sfile>:h')
 
 " Other files are placed under factory/devtools/vim
-exec 'set rtp+=' . join([g:localrc_project_root, 'devtools', 'vim'], '/')
+exec 'set rtp^=' . join([g:localrc_project_root, 'devtools', 'vim'], '/')
