@@ -339,7 +339,8 @@ def _UnmountStatefulPartition(root, state_dev):
     for mount_point in mount_point_list:
       _Unmount(mount_point, False)
     _Unmount(os.path.join(root, 'var'), True)
-    process_utils.Spawn(['dmsetup', 'remove', 'encstateful'], check_call=True)
+    process_utils.Spawn(['dmsetup', 'remove', 'encstateful',
+                         '--noudevrules', '--noudevsync'], check_call=True)
     process_utils.Spawn(['losetup', '-D'], check_call=True)
 
   for mount_point in mount_point_list:
