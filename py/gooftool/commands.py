@@ -8,7 +8,7 @@
 
 """Google Factory Tool.
 
-This tool is indended to be used on factory assembly lines.  It
+This tool is intended to be used on factory assembly lines.  It
 provides all of the Google required test functionality and must be run
 on each device as part of the assembly process.
 """
@@ -184,13 +184,13 @@ _wipe_finish_token_cmd_arg = CmdArg(
 
 _waive_list_cmd_arg = CmdArg(
     '--waive_list', nargs='*', default=[], metavar='SUBCMD',
-    help='A list of waived checks, serperated by whitespace.'
+    help='A list of waived checks, separated by whitespace.'
          'Each item should be a sub-command of gooftool.'
          'e.g. "gooftool verify --waive_list verify_tpm clear_gbb_flags".')
 
 _skip_list_cmd_arg = CmdArg(
     '--skip_list', nargs='*', default=[], metavar='SUBCMD',
-    help='A list of skipped checks, serperated by whitespace.'
+    help='A list of skipped checks, separated by whitespace.'
          'Each item should be a sub-command of gooftool.'
          'e.g. "gooftool verify --skip_list verify_tpm clear_gbb_flags".')
 
@@ -306,7 +306,7 @@ def VerifyTPM(options):  # pylint: disable=W0613
 
 @Command('verify_me_locked')
 def VerifyManagementEngineLocked(options):  # pylint: disable=W0613
-  """Verify Managment Engine is locked."""
+  """Verify Management Engine is locked."""
 
   return GetGooftool(options).VerifyManagementEngineLocked()
 
@@ -371,7 +371,7 @@ def EnableFwWp(options):  # pylint: disable=W0613
     """Calculate protection size, then invoke flashrom.
 
     Our supported chips only allow write protecting half their total
-    size, so we parition the flash chipset space accordingly.
+    size, so we partition the flash chipset space accordingly.
     """
     raw_image = open(fw_file_path, 'rb').read()
     wp_section = 'WP_RO'
@@ -437,7 +437,7 @@ def ClearFactoryVPDEntries(options):  # pylint: disable=W0613
 
 @Command('generate_stable_device_secret')
 def GenerateStableDeviceSecret(options):  # pylint: disable=W0613
-  """Generates a a fresh stable device secret and stores it in the RO VPD."""
+  """Generates a fresh stable device secret and stores it in the RO VPD."""
   GetGooftool(options).GenerateStableDeviceSecret()
   event_log.Log('generate_stable_device_secret')
 

@@ -57,7 +57,7 @@ def _OnError(ip, port, token, state_dev, wipe_in_tmpfs_log=None,
 def Daemonize(logfile=None):
   """Starts a daemon process and terminates current process.
 
-  A daemon process will be started, and continue excuting the following codes.
+  A daemon process will be started, and continue executing the following codes.
   The original process that calls this function will be terminated.
 
   Example::
@@ -117,7 +117,7 @@ def ResetLog(logfile=None):
 
 def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
                 station_port=None, wipe_finish_token=None):
-  """prepare to wipe by pivot root to tmpfs and unmount statefull partition.
+  """prepare to wipe by pivot root to tmpfs and unmount stateful partition.
 
   Args:
     is_fast: whether or not to apply fast wipe.
@@ -126,7 +126,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
 
   Daemonize()
 
-  # Set the defual umask.
+  # Set the default umask.
   os.umask(0022)
 
   logfile = os.path.join('/tmp', WIPE_IN_TMPFS_LOG)

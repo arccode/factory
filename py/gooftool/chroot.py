@@ -32,7 +32,7 @@ class TmpChroot(object):
           be mounted at this point.
       binary_list: Executable or libraries that are required in the new root,
           libraries they depend on will also be copied. For common utilities,
-          `busybox` and `python` are always inclued in the list.
+          `busybox` and `python` are always included in the list.
       file_dir_list: Files and dirs that are required in the new root.
           Since `python` is included in `binary_list`, python lib are included
           in this list.
@@ -63,7 +63,7 @@ class TmpChroot(object):
     """Initialize the new root.
 
     `self.binary_list` and `self.file_dir_list` are copied to new root.
-    Special file systems 'dev', 'proc', 'sys', 'run' binded to new root.
+    Special file systems 'dev', 'proc', 'sys', 'run' bound to new root.
     """
     self.logger.debug('InitializeNewRoot')
 

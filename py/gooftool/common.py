@@ -168,10 +168,10 @@ class Util(object):
         the script's name.
 
     Returns:
-      The result of execusion.
+      The result of execution.
 
     Raises:
-      Error if execusion failed.
+      Error if execution failed.
     """
 
     assert not post_opts or isinstance(post_opts, list)

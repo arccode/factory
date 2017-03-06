@@ -395,7 +395,7 @@ class Gooftool(object):
         raise Error, 'TPM is not cleared.'
 
   def VerifyManagementEngineLocked(self):
-    """Verify Managment Engine is locked."""
+    """Verify Management Engine is locked."""
     mainfw = self._crosfw.LoadMainFirmware().GetFirmwareImage()
     if not mainfw.has_section('SI_ME'):
       logging.info('System does not have Management Engine.')
@@ -566,7 +566,7 @@ class Gooftool(object):
     main_fw.Write(sections=['GBB'])
 
   def VerifyWPSwitch(self):  # pylint: disable=W0613
-    """Verifes hardware write protection switch is enabled.
+    """Verifies hardware write protection switch is enabled.
 
     Raises:
       Error when there is an error.
