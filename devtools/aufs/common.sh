@@ -68,3 +68,7 @@ load_config() {
 drop_cache() {
   sudo mount -o remount "${WORKING_DIR}"
 }
+
+is_simple_mode() {
+  [ "${TEMP_DIR}" == "/dev/null" ]
+}

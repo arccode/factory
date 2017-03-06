@@ -41,7 +41,7 @@ find_file_path_and_diff() {
   local overlay="$(detect_overlay "${relative_path}")"
   overlay="$(convert_overlay_flag_to_path "${overlay}")"
 
-  diff_one_file "${TEMP_DIR}/${relative_path}" "${overlay}/${relative_path}"
+  diff_one_file "${RW_DIR}/${relative_path}" "${overlay}/${relative_path}"
 }
 
 main() {
@@ -55,7 +55,7 @@ main() {
         local relative_path="$3"
 
         overlay="$(convert_overlay_flag_to_path "${overlay}")"
-        diff_one_file "${TEMP_DIR}/${relative_path}" \
+        diff_one_file "${RW_DIR}/${relative_path}" \
                       "${overlay}/${relative_path}"
       }
 

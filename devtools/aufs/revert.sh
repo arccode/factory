@@ -17,10 +17,13 @@ revert_one_file() {
   case "${status}" in
     D)
       local basename="$(basename "${relative_path}")"
-      rm -f "${TEMP_DIR}/$(dirname "${relative_path}")/.wh.${basename}"
+      rm -f "${RW_DIR}/$(dirname "${relative_path}")/.wh.${basename}"
       ;;
     M|A)
-      rm "${TEMP_DIR}/${relative_path}"
+      rm "${RW_DIR}/${relative_path}"
+      ;;
+    *)
+      echo "You cannot revert ${relative_path}, perhaps git can help you?"
       ;;
   esac
 }
@@ -35,8 +38,6 @@ find_file_path_and_revert() {
 
   local overlay="$(detect_overlay "${relative_path}")"
   local status="$(detect_status "${relative_path}" "${overlay}")"
-
-  echo "${status}" "${overlay}" "${relative_path}"
 
   revert_one_file "${status}" "${overlay}" "${relative_path}"
 }

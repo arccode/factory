@@ -30,7 +30,7 @@ sync_one_file() {
         fi
       done
       local basename="$(basename "${relative_path}")"
-      rm -f "${TEMP_DIR}/$(dirname "${relative_path}")/.wh.${basename}"
+      rm -f "${RW_DIR}/$(dirname "${relative_path}")/.wh.${basename}"
       ;;
     M)
       if [ "${FLAGS_interactive}" == "${FLAGS_TRUE}" ]; then
@@ -57,7 +57,7 @@ sync_one_file() {
 
       if [ -n "${overlay}" ]; then
         echo "sync ${relative_path} to ${overlay}"
-        mv "${TEMP_DIR}/${relative_path}" "${overlay}/${relative_path}"
+        mv "${RW_DIR}/${relative_path}" "${overlay}/${relative_path}"
       fi
       ;;
     A)
@@ -72,13 +72,16 @@ sync_one_file() {
       case "${answer}" in
         F|f)
           echo "add ${relative_path} to ${FACTORY_DIR}"
-          mv "${TEMP_DIR}/${relative_path}" "${FACTORY_DIR}/${relative_path}"
+          mv "${RW_DIR}/${relative_path}" "${FACTORY_DIR}/${relative_path}"
           ;;
         O|o)
           echo "add ${relative_path} to ${OVERLAY_DIR}"
-          mv "${TEMP_DIR}/${relative_path}" "${OVERLAY_DIR}/${relative_path}"
+          mv "${RW_DIR}/${relative_path}" "${OVERLAY_DIR}/${relative_path}"
           ;;
       esac
+      ;;
+    *)
+      echo "cannot sync file ${relative_path}"
       ;;
   esac
 }
@@ -94,8 +97,6 @@ find_file_path_and_sync() {
 
   local overlay="$(detect_overlay "${relative_path}")"
   local status="$(detect_status "${relative_path}" "${overlay}")"
-
-  echo "${status}" "${overlay}" "${relative_path}"
 
   sync_one_file "${status}" "${overlay}" "${relative_path}"
 }
@@ -115,6 +116,18 @@ merge_file() {
 main() {
   FLAGS "$@" || exit $?
   eval set -- "${FLAGS_ARGV}"
+
+  if is_simple_mode; then
+    cat << EOF
+You are in simple mode, you should not sync anything from board overlay to
+factory repo, do you want to continue? [y/N]
+EOF
+    read -s -n1 answer
+    if [ "${answer}" != "Y" ] && [ "${answer}" != "y" ]; then
+      echo "cancelled.."
+      exit 0
+    fi
+  fi
   merge_file "$@"
 }
 
