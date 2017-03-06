@@ -86,10 +86,11 @@ class TimeoutTest(unittest.TestCase):
       raise AssertionError("No timeout")
 
 
-class SynchronizedTest(unittest.TestCase):
+DELAY = 0.1
 
+
+class SynchronizedTest(unittest.TestCase):
   class MyClass(object):
-    DELAY = 0.1
     def __init__(self):
       self._lock = threading.RLock()
       self.data = []
@@ -97,12 +98,11 @@ class SynchronizedTest(unittest.TestCase):
     @sync_utils.Synchronized
     def A(self):
       self.data.append('A1')
-      time.sleep(self.DELAY * 2)
+      time.sleep(DELAY * 2)
       self.data.append('A2')
 
     @sync_utils.Synchronized
     def B(self):
-      time.sleep(self.DELAY)
       self.data.append('B')
 
   def setUp(self):
@@ -111,6 +111,7 @@ class SynchronizedTest(unittest.TestCase):
   def testSynchronized(self):
     thread_a = threading.Thread(target=self.obj.A, name='A')
     thread_a.start()
+    time.sleep(DELAY)
     self.obj.B()
     thread_a.join()
     self.assertEqual(['A1', 'A2', 'B'], self.obj.data)
