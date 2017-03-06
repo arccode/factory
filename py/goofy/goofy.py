@@ -59,6 +59,7 @@ from cros.factory.test.test_lists import test_lists
 from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
 from cros.factory.tools.key_filter import KeyFilter
+from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -1185,6 +1186,15 @@ class Goofy(GoofyBase):
     if not _inited_logging:
       factory.init_logging('goofy', verbose=self.options.verbose)
       _inited_logging = True
+
+    try:
+      goofy_default_options = config_utils.LoadConfig(validate_schema=False)
+      for key, value in goofy_default_options.iteritems():
+        if getattr(self.options, key, None) is None:
+          logging.info('self.options.%s = %r', key, value)
+          setattr(self.options, key, value)
+    except Exception:
+      logging.exception('failed to load goofy overriding options')
 
     if self.options.print_test_list:
       test_list = test_lists.BuildTestList(self.options.print_test_list)
