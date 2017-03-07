@@ -48,7 +48,6 @@ DEFAULT_GOOFY_RPC_TIMEOUT_SECS = 10
 REBOOT_AFTER_UPDATE_DELAY_SECS = 5
 PING_SHOPFLOOR_TIMEOUT_SECS = 2
 UPLOAD_FACTORY_LOGS_TIMEOUT_SECS = 20
-VAR_LOG_MESSAGES = '/var/log/messages'
 RunState = type_utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN',
                             'RUNNING', 'FINISHED'])
 
@@ -223,39 +222,25 @@ class GoofyRPC(object):
         'factory_note', note)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
-  def GetVarLogMessages(self, max_length=256 * 1024):
+  # TODO(shunhsingou): move this to a goofy plugin.
+  def GetVarLogMessages(self, *args, **kwargs):
     """Returns the last n bytes of /var/log/messages.
 
     Args:
-      max_length: Maximum number of bytes to return.
+      See sys_utils.GetVarLogMessages.
     """
-    offset = max(0, os.path.getsize(VAR_LOG_MESSAGES) - max_length)
-    with open(VAR_LOG_MESSAGES, 'r') as f:
-      f.seek(offset)
-      if offset != 0:
-        # Skip first (probably incomplete) line
-        offset += len(f.readline())
-      data = f.read()
+    return unicode(sys_utils.GetVarLogMessages(*args, **kwargs),
+                   encoding='utf-8', errors='replace')
 
-    if offset:
-      data = ('<truncated %d bytes>\n' % offset) + data
-
-    return unicode(data, encoding='utf-8', errors='replace')
-
-  def GetVarLogMessagesBeforeReboot(
-      self, lines=100, max_length=5 * 1024 * 1024):
+  # TODO(shunhsingou): move this to a goofy plugin.
+  def GetVarLogMessagesBeforeReboot(self, *args, **kwargs):
     """Returns the last few lines in /var/log/messages before current boot.
 
     Args:
       See sys_utils.GetVarLogMessagesBeforeReboot.
     """
-    lines = sys_utils.GetVarLogMessagesBeforeReboot(lines=lines,
-                                                    max_length=max_length)
-    if lines:
-      return unicode('\n'.join(lines) + '\n',
-                     encoding='utf-8', errors='replace')
-    else:
-      return None
+    return unicode(sys_utils.GetVarLogMessagesBeforeReboot(*args, **kwargs),
+                   encoding='utf-8', errors='replace')
 
   @staticmethod
   def _ReadUptime():
@@ -920,11 +905,6 @@ class GoofyRPC(object):
   def CancelPendingTests(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Cancels all pending tests."""
     self._InRunQueue(self.goofy.cancel_pending_tests,
-                     timeout_secs=timeout_secs)
-
-  def LogStartupMessages(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
-    """Logs the tail of var/log/messages and mosys and EC console logs."""
-    self._InRunQueue(self.goofy.log_startup_messages,
                      timeout_secs=timeout_secs)
 
   def Shutdown(self, operation):

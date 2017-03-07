@@ -4,18 +4,19 @@
 
 """A collective of system-related functions."""
 
+from contextlib import contextmanager
+from distutils import spawn
 import logging
 import os
 import re
 import stat
 import struct
+import subprocess
 import tempfile
-from contextlib import contextmanager
-from distutils import spawn
 
 from . import file_utils
-from . import sync_utils
 from . import process_utils
+from . import sync_utils
 
 
 class MountPartitionException(Exception):
@@ -542,30 +543,64 @@ def IsFreon(dut=None):
           os.path.exists('/sbin/frecon'))
 
 
+def GetVarLogMessages(max_length=256 * 1024,
+                      path='/var/log/messages',
+                      dut=None):
+  """Returns the last n bytes of /var/log/messages.
+
+  Args:
+    max_length: Maximum numberssages.
+    path: path to /var/log/messages.
+    dut: A board instance, Non of bytes to return.
+  """
+  if dut:
+    data = dut.CheckOutput(['tail', '-c', str(max_length), path])
+    size = int(dut.CheckOutput(['stat', '--printf=%s', path]))
+    offset = size - len(data)
+  else:
+    offset = max(0, os.path.getsize(path) - max_length)
+    with open(path) as f:
+      f.seek(offset)
+      data = f.read()
+
+  if offset:
+    # Skip the first (probably incomplete) line
+    skipped_line, unused_sep, data = data.partition('\n')
+    offset += len(skipped_line) + 1
+    data = ('<truncated %d bytes>\n' % offset) + data
+  return data
+
+
 def GetVarLogMessagesBeforeReboot(lines=100,
                                   max_length=5 * 1024 * 1024,
-                                  path='/var/log/messages'):
+                                  path='/var/log/messages',
+                                  dut=None):
   """Returns the last few lines in /var/log/messages before the current boot.
 
   Args:
     lines: number of lines to return.
     max_length: maximum amount of data at end of file to read.
     path: path to /var/log/messages.
+    dut: A board instance, None for local case.
 
   Returns:
-    An array of lines. Empty if the marker indicating kernel boot
-    could not be found.
+    The last few lines in /var/log/messages before the current boot.
+    Empty if the marker indicating kernel boot could not be found.
   """
-  offset = max(0, os.path.getsize(path) - max_length)
-  with open(path) as f:
-    f.seek(offset)
-    data = f.read()
+
+  if dut:
+    data = dut.CheckOutput(['tail', '-c', '%d' % max_length, path])
+  else:
+    offset = max(0, os.path.getsize(path) - max_length)
+    with open(path) as f:
+      f.seek(offset)
+      data = f.read()
 
   # Find the last element matching the RE signaling kernel start.
   matches = list(re.finditer(
       r'^(\S+)\s.*kernel:\s+\[\s+0\.\d+\] Linux version', data, re.MULTILINE))
   if not matches:
-    return []
+    return ''
 
   match = matches[-1]
   tail_lines = data[:match.start()].split('\n')
@@ -581,5 +616,57 @@ def GetVarLogMessagesBeforeReboot(lines=100,
     tail_lines.pop()
 
   # Done! Return the last few lines.
-  return tail_lines[-lines:] + [
+  output = tail_lines[-lines:] + [
       '<after reboot, kernel came up at %s>' % match.group(1)]
+  return '\n'.join(output) + '\n'
+
+
+def GetStartupMessages(dut=None):
+  """Get various startup messages.
+
+  This is usually useful for debugging issues like unexpected reboot during
+  test.
+
+  Args:
+    dut: A board instance.
+
+  Returns: a dict that contains logs.
+  """
+
+  res = {}
+  try:
+    # Grab /var/log/messages for context.
+    var_log_message = GetVarLogMessagesBeforeReboot(dut=dut)
+    res['var_log_messages_before_reboot'] = var_log_message
+  except Exception:
+    logging.exception('Unable to grok /var/log/messages')
+
+  if dut:
+    mosys_log = dut.CallOutput(
+        ['mosys', 'eventlog', 'list'], stderr=subprocess.STDOUT)
+  else:
+    mosys_log = process_utils.SpawnOutput(
+        ['mosys', 'eventlog', 'list'], stderr=subprocess.STDOUT)
+
+  if mosys_log:
+    res['mosys_log'] = mosys_log
+
+  try:
+    if dut:
+      ec_console_log = dut.ec.GetECConsoleLog()
+    else:
+      ec_console_log = process_utils.SpawnOutput(['ectool', 'console'])
+    res['ec_console_log'] = ec_console_log
+  except Exception:
+    logging.exception('Error retrieving EC console log')
+
+  try:
+    if dut:
+      ec_panic_info = dut.ec.GetECPanicInfo()
+    else:
+      ec_panic_info = process_utils.SpawnOutput(['ectool', 'panicinfo'])
+    res['ec_panic_info'] = ec_panic_info
+  except Exception:
+    logging.exception('Error retrieving EC panic info')
+
+  return res

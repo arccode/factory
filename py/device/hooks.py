@@ -4,8 +4,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
+
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
+from cros.factory.utils import sys_utils
 
 
 class DUTHooks(component.DeviceComponent):
@@ -55,3 +58,7 @@ class DUTHooks(component.DeviceComponent):
       test_states: a dict object that maps test paths to test states.
     """
     pass
+
+  def OnUnexpectedReboot(self):
+    """Callback invoked after the device experiences an unexpected reboot."""
+    logging.info(sys_utils.GetStartupMessages(self._dut))

@@ -10,14 +10,15 @@ import mox
 import os
 import subprocess
 import tempfile
-import textwrap
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
+from cros.factory.device import ec
+from cros.factory.device.boards import linux
 from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import sys_utils
 
 
 SAMPLE_INTERRUPTS = """           CPU0       CPU1       CPU2       CPU3
@@ -307,56 +308,131 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
       sys_utils.MountDeviceAndReadFile('no_device', self.file_name, self.dut)
 
 
-class VarLogMessagesTest(unittest.TestCase):
+class TestLogMessagesTest(unittest.TestCase):
 
-  EARLIER_VAR_LOG_MESSAGES = textwrap.dedent('''
-      19:26:17 kernel: That's all, folks.
-      19:26:56 kernel: [  0.000000] Initializing cgroup subsys cpuset
-      19:26:56 kernel: [  0.000000] Initializing cgroup subsys cpu
-      19:26:56 kernel: [  0.000000] Linux version blahblahblah
-      ''')
+  def setUp(self):
+    self.mox = mox.Mox()
 
-  VAR_LOG_MESSAGES = textwrap.dedent('''\
-      19:00:00 kernel: 7 p.m. and all's well.
-      19:27:17 kernel: That's all, folks.
-      19:27:17 kernel: Kernel logging (proc) stopped.
-      19:27:56 kernel: imklog 4.6.2, log source = /proc/kmsg started.
-      19:27:56 rsyslogd: [origin software="rsyslogd" blahblahblah] (re)start
-      19:27:56 kernel: [  0.000000] Initializing cgroup subsys cpuset
-      19:27:56 kernel: [  0.000000] Initializing cgroup subsys cpu
-      19:27:56 kernel: [  0.000000] Linux version blahblahblah
-      19:27:56 kernel: [  0.000000] Command line: blahblahblah
-      ''')
+  def tearDown(self):
+    self.mox.VerifyAll()
+    self.mox.UnsetStubs()
 
-  def _GetMessages(self, data, lines):
-    with tempfile.NamedTemporaryFile() as f:
-      path = f.name
-      f.write(data)
-      f.flush()
+  def testGetVarLogMessages(self):
+    with tempfile.NamedTemporaryFile(bufsize=0) as f:
+      data = ("Captain's log.\xFF\n"  # \xFF = invalid UTF-8
+              'We are in pursuit of a starship of Ferengi design.\n')
+      f.write(('X' * 100) + '\n' + data)
+      # Use max_length=len(data) + 5 so that we'll end up reading
+      # (and discarding) the last 5 bytes of garbage X's.
+      self.assertEquals(
+          '<truncated 101 bytes>\n'
+          "Captain's log.\xFF\n"
+          'We are in pursuit of a starship of Ferengi design.\n',
+          sys_utils.GetVarLogMessages(max_length=(len(data) + 5), path=f.name))
 
-      return sys_utils.GetVarLogMessagesBeforeReboot(path=path, lines=lines)
+      dut = linux.LinuxBoard()
+      self.assertEquals(
+          '<truncated 101 bytes>\n'
+          "Captain's log.\xFF\n"
+          'We are in pursuit of a starship of Ferengi design.\n',
+          sys_utils.GetVarLogMessages(
+              max_length=(len(data) + 5), path=f.name, dut=dut))
 
-  def runTest(self):
-    self.assertEquals([
-        "19:27:17 kernel: That's all, folks.",
-        "19:27:17 kernel: Kernel logging (proc) stopped.",
-        "<after reboot, kernel came up at 19:27:56>",
-    ], self._GetMessages(self.VAR_LOG_MESSAGES, 2))
-    self.assertEquals([
-        "19:27:17 kernel: Kernel logging (proc) stopped.",
-        "<after reboot, kernel came up at 19:27:56>",
-    ], self._GetMessages(self.VAR_LOG_MESSAGES, 1))
-    self.assertEquals([
-        "19:00:00 kernel: 7 p.m. and all's well.",
-        "19:27:17 kernel: That's all, folks.",
-        "19:27:17 kernel: Kernel logging (proc) stopped.",
-        "<after reboot, kernel came up at 19:27:56>",
-    ], self._GetMessages(self.VAR_LOG_MESSAGES, 100))
-    self.assertEquals([
-        "19:26:17 kernel: That's all, folks.",
-        "<after reboot, kernel came up at 19:26:56>",
-    ], self._GetMessages(self.EARLIER_VAR_LOG_MESSAGES, 1))
+  def testGetVarLogMessagesBeforeReboot(self):
+    EARLIER_VAR_LOG_MESSAGES = (
+        "19:26:17 kernel: That's all, folks.\n"
+        "19:26:56 kernel: [  0.000000] Initializing cgroup subsys cpuset\n"
+        "19:26:56 kernel: [  0.000000] Initializing cgroup subsys cpu\n"
+        "19:26:56 kernel: [  0.000000] Linux version blahblahblah\n")
 
+    VAR_LOG_MESSAGES = (
+        "19:00:00 kernel: 7 p.m. and all's well.\n"
+        "19:27:17 kernel: That's all, folks.\n"
+        "19:27:17 kernel: Kernel logging (proc) stopped.\n"
+        "19:27:56 kernel: imklog 4.6.2, log source = /proc/kmsg started.\n"
+        "19:27:56 rsyslogd: "
+        '[origin software="rsyslogd" blahblahblah] (re)start\n'
+        "19:27:56 kernel: [  0.000000] Initializing cgroup subsys cpuset\n"
+        "19:27:56 kernel: [  0.000000] Initializing cgroup subsys cpu\n"
+        "19:27:56 kernel: [  0.000000] Linux version blahblahblah\n"
+        "19:27:56 kernel: [  0.000000] Command line: blahblahblah\n")
+
+    dut = linux.LinuxBoard()
+
+    with tempfile.NamedTemporaryFile(bufsize=0) as f:
+      f.write(VAR_LOG_MESSAGES)
+
+      self.assertEquals(
+          ("19:27:17 kernel: That's all, folks.\n"
+           "19:27:17 kernel: Kernel logging (proc) stopped.\n"
+           "<after reboot, kernel came up at 19:27:56>\n"),
+          sys_utils.GetVarLogMessagesBeforeReboot(
+              path=f.name, lines=2, dut=dut))
+
+      self.assertEquals(
+          ("19:27:17 kernel: That's all, folks.\n"
+           "19:27:17 kernel: Kernel logging (proc) stopped.\n"
+           "<after reboot, kernel came up at 19:27:56>\n"),
+          sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=2))
+
+      self.assertEquals(
+          ("19:27:17 kernel: Kernel logging (proc) stopped.\n"
+           "<after reboot, kernel came up at 19:27:56>\n"),
+          sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=1))
+
+      self.assertEquals(
+          ("19:00:00 kernel: 7 p.m. and all's well.\n"
+           "19:27:17 kernel: That's all, folks.\n"
+           "19:27:17 kernel: Kernel logging (proc) stopped.\n"
+           "<after reboot, kernel came up at 19:27:56>\n"),
+          sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=100))
+
+    with tempfile.NamedTemporaryFile(bufsize=0) as f:
+      f.write(EARLIER_VAR_LOG_MESSAGES)
+      self.assertEquals(
+          ("19:26:17 kernel: That's all, folks.\n"
+           "<after reboot, kernel came up at 19:26:56>\n"),
+          sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=1))
+
+  def testGetStartupMessages(self):
+    output = {
+        'var_log_messages_before_reboot': 'var_log_message',
+        'mosys_log': 'mosys_log',
+        'ec_console_log': 'ec_console_log',
+        'ec_panic_info': 'ec_panic_info'}
+
+    # With DUT.
+    dut = self.mox.CreateMock(linux.LinuxBoard)
+    dut.ec = self.mox.CreateMockAnything(ec.EmbeddedController)
+
+    self.mox.StubOutWithMock(sys_utils, 'GetVarLogMessagesBeforeReboot')
+    sys_utils.GetVarLogMessagesBeforeReboot(dut=dut).AndReturn(
+        output['var_log_messages_before_reboot'])
+    dut.CallOutput(['mosys', 'eventlog', 'list'],
+                   stderr=subprocess.STDOUT).AndReturn(output['mosys_log'])
+    dut.ec.GetECConsoleLog().AndReturn(output['ec_console_log'])
+    dut.ec.GetECPanicInfo().AndReturn(output['ec_panic_info'])
+
+    # Without DUT.
+    self.mox.StubOutWithMock(sys_utils.process_utils, 'SpawnOutput')
+    sys_utils.GetVarLogMessagesBeforeReboot(dut=None).AndReturn(
+        output['var_log_messages_before_reboot'])
+    sys_utils.process_utils.SpawnOutput(
+        ['mosys', 'eventlog', 'list'],
+        stderr=subprocess.STDOUT).AndReturn(output['mosys_log'])
+    sys_utils.process_utils.SpawnOutput(
+        ['ectool', 'console']).AndReturn(output['ec_console_log'])
+    sys_utils.process_utils.SpawnOutput(
+        ['ectool', 'panicinfo']).AndReturn(output['ec_panic_info'])
+
+    self.mox.ReplayAll()
+    self.assertEquals(
+        output,
+        sys_utils.GetStartupMessages(dut))
+
+    self.assertEquals(
+        output,
+        sys_utils.GetStartupMessages())
 
 class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
   def setUp(self):
@@ -409,6 +485,7 @@ class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
     self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(), None)
 
     self.mox.VerifyAll()
+
 
 if __name__ == '__main__':
   unittest.main()

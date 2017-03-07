@@ -8,7 +8,6 @@
 from contextlib import contextmanager
 import mox
 import os
-import tempfile
 import time
 import unittest
 import yaml
@@ -43,6 +42,7 @@ class GoofyRPCTest(unittest.TestCase):
     self.goofy = self.mox.CreateMock(goofy)
     self.goofy_rpc = goofy_rpc.GoofyRPC(self.goofy)
 
+    self.mox.StubOutWithMock(sys_utils, 'GetVarLogMessages')
     self.mox.StubOutWithMock(sys_utils, 'GetVarLogMessagesBeforeReboot')
 
   def tearDown(self):
@@ -50,32 +50,27 @@ class GoofyRPCTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testGetVarLogMessages(self):
-    with tempfile.NamedTemporaryFile(bufsize=0) as f:
-      self.mox.stubs.Set(goofy_rpc, 'VAR_LOG_MESSAGES', f.name)
-      data = ("Captain's log.\xFF\n"  # \xFF = invalid UTF-8
-              'We are in pursuit of a starship of Ferengi design.\n')
-      f.write(('X' * 100) + '\n' + data)
-      # Use max_length=len(data) + 5 so that we'll end up reading
-      # (and discarding) the last 5 bytes of garbage X's.
-      self.assertEquals(
-          u'<truncated 101 bytes>\n'
-          u"Captain's log.\ufffd\n"
-          u'We are in pursuit of a starship of Ferengi design.\n',
-          self.goofy_rpc.GetVarLogMessages(max_length=(len(data) + 5)))
+    var_log_messages = 'foo\xFF\nbar\n'
+    expected_output = u'foo\ufffd\nbar\n'
+
+    sys_utils.GetVarLogMessages(
+        max_length=len(var_log_messages)).AndReturn(var_log_messages)
+    self.mox.ReplayAll()
+
+    self.assertEqual(
+        expected_output,
+        self.goofy_rpc.GetVarLogMessages(max_length=len(var_log_messages)))
 
   def testGetVarLogMessagesBeforeReboot(self):
-    sys_utils.GetVarLogMessagesBeforeReboot(lines=2, max_length=100).AndReturn(
-        ['foo\xFF', 'bar'])
+    var_log_messages = 'foo\xFF\nbar\n'
+    expected_output = u'foo\ufffd\nbar\n'
+    sys_utils.GetVarLogMessagesBeforeReboot(
+        2, len(var_log_messages)).AndReturn(var_log_messages)
     self.mox.ReplayAll()
-    self.assertEquals(u'foo\ufffd\nbar\n',
-                      self.goofy_rpc.GetVarLogMessagesBeforeReboot(2, 100))
 
-  def testGetVarLogMessagesBeforeRebootEmpty(self):
-    sys_utils.GetVarLogMessagesBeforeReboot(lines=2,
-                                            max_length=100).AndReturn([])
-    self.mox.ReplayAll()
-    self.assertEquals(None,
-                      self.goofy_rpc.GetVarLogMessagesBeforeReboot(2, 100))
+    self.assertEquals(
+        expected_output,
+        self.goofy_rpc.GetVarLogMessagesBeforeReboot(2, len(var_log_messages)))
 
   def testGetDmesg(self):
     self.mox.StubOutWithMock(process_utils, 'Spawn')

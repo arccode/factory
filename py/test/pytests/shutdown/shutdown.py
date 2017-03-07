@@ -22,6 +22,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
 
 
@@ -254,12 +255,12 @@ class ShutdownTest(unittest.TestCase):
                          time_utils.TimeString(last_shutdown_time),
                          time_utils.TimeString(now))),
           duration=(now - last_shutdown_time))
-      self.goofy.LogStartupMessages()
+      logging.info(sys_utils.GetStartupMessages(self.dut))
     elif self.test_state.shutdown_count > self.test.iterations:
       # Shut down too many times
       LogAndEndTest(status=factory.TestState.FAILED,
                     error_msg='Too many shutdowns')
-      self.goofy.LogStartupMessages()
+      logging.info(sys_utils.GetStartupMessages(self.dut))
 
     elif self.args.check_tag_file and self.CheckShutdownFailureTagFile():
       LogAndEndTest(status=factory.TestState.FAILED,

@@ -351,73 +351,6 @@ class Goofy(GoofyBase):
       self.visible_test.update_state(visible=False)
     self.visible_test = test
 
-  def log_startup_messages(self):
-    """Logs the tail of var/log/messages and mosys and EC console logs."""
-    # TODO(jsalz): This is mostly a copy-and-paste of code in init_states,
-    # for factory-3004.B only.  Consolidate and merge back to ToT.
-    if sys_utils.InChroot():
-      return
-
-    try:
-      var_log_messages = sys_utils.GetVarLogMessagesBeforeReboot()
-      logging.info(
-          'Tail of /var/log/messages before last reboot:\n'
-          '%s', ('\n'.join(
-              '  ' + x for x in var_log_messages)))
-    except:  # pylint: disable=W0702
-      logging.exception('Unable to grok /var/log/messages')
-
-    try:
-      mosys_log = process_utils.Spawn(
-          ['mosys', 'eventlog', 'list'],
-          read_stdout=True, log_stderr_on_error=True).stdout_data
-      logging.info('System eventlog from mosys:\n%s\n', mosys_log)
-    except:  # pylint: disable=W0702
-      logging.exception('Unable to read mosys eventlog')
-
-    self.log_ec_console()
-    self.log_ec_panic_info()
-
-  @staticmethod
-  def log_ec_console():
-    """Logs EC console log into logging.info.
-
-    It logs an error message in logging.exception if an exception is raised
-    when getting EC console log.
-    For unsupported device, it logs unsupport message in logging.info
-
-    Returns:
-      EC console log string.
-    """
-    try:
-      ec_console_log = device_utils.CreateDUTInterface().ec.GetECConsoleLog()
-      logging.info('EC console log after reboot:\n%s\n', ec_console_log)
-      return ec_console_log
-    except NotImplementedError:
-      logging.info('EC console log not supported')
-    except:  # pylint: disable=W0702
-      logging.exception('Error retrieving EC console log')
-
-  @staticmethod
-  def log_ec_panic_info():
-    """Logs EC panic info into logging.info.
-
-    It logs an error message in logging.exception if an exception is raised
-    when getting EC panic info.
-    For unsupported device, it logs unsupport message in logging.info
-
-    Returns:
-      EC panic info string.
-    """
-    try:
-      ec_panic_info = device_utils.CreateDUTInterface().ec.GetECPanicInfo()
-      logging.info('EC panic info after reboot:\n%s\n', ec_panic_info)
-      return ec_panic_info
-    except NotImplementedError:
-      logging.info('EC panic info is not supported')
-    except:  # pylint: disable=W0702
-      logging.exception('Error retrieving EC panic info')
-
   def shutdown(self, operation):
     """Starts shutdown procedure.
 
@@ -495,10 +428,7 @@ class Goofy(GoofyBase):
       # defaulting to an untested state.
       test.update_state(update_parent=False, visible=False)
 
-    var_log_messages = None
-    mosys_log = None
-    ec_console_log = None
-    ec_panic_info = None
+    is_unexpected_shutdown = False
 
     # Any 'active' tests should be marked as failed now.
     for test in self.test_list.walk():
@@ -514,46 +444,14 @@ class Goofy(GoofyBase):
         # Shutdown while the test was active - that's good.
         self.handle_shutdown_complete(test)
       else:
-        # Unexpected shutdown.  Grab /var/log/messages for context.
-        if var_log_messages is None:
-          try:
-            var_log_messages = sys_utils.GetVarLogMessagesBeforeReboot()
-            # Write it to the log, to make it easier to
-            # correlate with /var/log/messages.
-            logging.info(
-                'Unexpected shutdown. '
-                'Tail of /var/log/messages before last reboot:\n'
-                '%s', ('\n'.join(
-                    '  ' + x for x in var_log_messages)))
-          except:  # pylint: disable=W0702
-            logging.exception('Unable to grok /var/log/messages')
-            var_log_messages = []
-
-        if mosys_log is None and not sys_utils.InChroot():
-          try:
-            mosys_log = process_utils.Spawn(
-                ['mosys', 'eventlog', 'list'],
-                read_stdout=True, log_stderr_on_error=True).stdout_data
-            # Write it to the log also.
-            logging.info('System eventlog from mosys:\n%s\n', mosys_log)
-          except:  # pylint: disable=W0702
-            logging.exception('Unable to read mosys eventlog')
-
-        if ec_console_log is None:
-          ec_console_log = self.log_ec_console()
-
-        if ec_panic_info is None:
-          ec_panic_info = self.log_ec_panic_info()
-
+        is_unexpected_shutdown = True
         error_msg = 'Unexpected shutdown while test was running'
         # TODO(itspeter): Add testlog to collect expired session infos.
         self.event_log.Log('end_test',
                            path=test.path,
                            status=TestState.FAILED,
                            invocation=test.get_state().invocation,
-                           error_msg=error_msg,
-                           var_log_messages='\n'.join(var_log_messages),
-                           mosys_log=mosys_log)
+                           error_msg=error_msg)
         test.update_state(
             status=TestState.FAILED,
             error_msg=error_msg)
@@ -570,6 +468,10 @@ class Goofy(GoofyBase):
           self.state_instance.set_shared_data(
               TESTS_AFTER_SHUTDOWN,
               TestListIterator(None))
+
+    if is_unexpected_shutdown:
+      logging.warning("Unexpected shutdown.")
+      self.dut.hooks.OnUnexpectedReboot()
 
   def handle_event(self, event):
     """Handles an event from the event server."""
