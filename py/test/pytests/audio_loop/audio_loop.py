@@ -358,7 +358,7 @@ class AudioLoopTest(unittest.TestCase):
       if num_lines is not None and num_read >= num_lines:
         return None
 
-  def _ParseSingleRunOutput(self, audiofun_output, num_mic_channel):
+  def _ParseSingleRunOutput(self, audiofun_output, input_channels):
     """Parse a single run output from audiofuntest
 
     Sample single run output:
@@ -367,11 +367,11 @@ class AudioLoopTest(unittest.TestCase):
 
     Args:
       audiofun_output: output stream of audiofuntest to parse from
-      num_mic_channel: number of mics
+      input_channels: a list of mic channels used for testing
     """
 
-    all_channel_rate = []
-    for expected_channel in range(0, num_mic_channel):
+    all_channel_rate = {}
+    for expected_channel in input_channels:
       m = self._MatchPatternLines(
           audiofun_output, _AUDIOFUNTEST_SUCCESS_RATE_RE, 1)
       if m is None or int(m.group(1)) != expected_channel:
@@ -379,7 +379,7 @@ class AudioLoopTest(unittest.TestCase):
             'Failed to get expected %d channel output from audiofuntest'
             % expected_channel)
         return None
-      all_channel_rate.append(float(m.group(2)))
+      all_channel_rate[expected_channel] = float(m.group(2))
     return all_channel_rate
 
   def AudioFunTestWithOutputChannel(self, capture_rate, input_channels,
@@ -433,35 +433,26 @@ class AudioLoopTest(unittest.TestCase):
          '-r', '%d' % capture_rate,
          '-T', '%d' % iteration,
          '-a', '%d' % output_channel,
+         '-m', ','.join(map(str, input_channels)),
          '-c', '%d' % self.args.num_input_channels],
         stdout=process_utils.PIPE, stderr=process_utils.PIPE)
-
-    m = self._MatchPatternLines(process.stdout, _AUDIOFUNTEST_MIC_CHANNEL_RE)
-
-    if m is None:
-      self.AppendErrorMessage(
-          'Number of channels not found from audiofuntest')
-      process.terminate()
-      return
-
-    num_mic = int(m.group(1))
 
     last_success_rate = None
     while self._MatchPatternLines(process.stdout,
                                   _AUDIOFUNTEST_RUN_START_RE) is not None:
-      last_success_rate = self._ParseSingleRunOutput(process.stdout, num_mic)
+      last_success_rate = self._ParseSingleRunOutput(process.stdout,
+                                                     input_channels)
       if last_success_rate is None:
         self.AppendErrorMessage('Failed to parse audiofuntest output')
         return
       rate_msg = ', '.join(
           'Mic %d: %.1f%%' %
-          (channel, rate) for channel, rate in enumerate(last_success_rate))
+          (channel, rate) for channel, rate in last_success_rate.viewitems())
       self._ui.CallJSFunction('testInProgress', rate_msg)
 
     threshold = self._current_test_args.get(
         'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
-    if any(rate < threshold and channel in input_channels
-           for channel, rate in enumerate(last_success_rate)):
+    if any(rate < threshold for rate in last_success_rate.viewvalues()):
       self.AppendErrorMessage(
           'For output device channel %s, the success rate is "'
           '%s", too low!' % (output_channel, rate_msg))
