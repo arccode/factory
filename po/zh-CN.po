@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-02 17:39+CST\n"
+"POT-Creation-Date: 2017-03-10 15:51+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -13,6 +13,16 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
+
+#: ../py/goofy/static/ui_templates/template_one_scrollable_section.html
+#: ../py/goofy/static/ui_templates/template_one_section.html
+#: ../py/goofy/static/ui_templates/template_two_sections.html
+msgid "Mark Failed"
+msgstr "标记失败"
+
+#: ../py/goofy/static/ui_templates/template_two_sections.html
+msgid "Test Progress:"
+msgstr "测试进度:"
 
 #: ../py/test/pytests/ac_power.py
 msgid "Connect AC"
@@ -156,6 +166,66 @@ msgstr "播放范例到通道{channel})"
 #: ../py/test/pytests/audio_basic.py
 msgid "Headset"
 msgstr "外接耳机"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Tone generator"
+msgstr "音频信号发生器"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Tone off"
+msgstr "关闭音频"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Tone On"
+msgstr "播放音频"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Pass"
+msgstr "通过"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Fail"
+msgstr "失败"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Manual record"
+msgstr "手动录音"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Stop record"
+msgstr "停止录音"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Start record"
+msgstr "开始录音"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Stop playback"
+msgstr "停止放音"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Start playback"
+msgstr "开始放音"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Audio loopback"
+msgstr "音频回放"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Loopback off"
+msgstr "停止回放"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Loopback on"
+msgstr "开始回放"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Output Nodes"
+msgstr "输出设备"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Input Nodes"
+msgstr "输入设备"
 
 #: ../py/test/pytests/audio_loop/audio_loop.py
 msgid "Plug in audio jack dongle"
@@ -546,6 +616,50 @@ msgstr "测试已全部完成"
 msgid "Test data saved"
 msgstr "记录档已写入"
 
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Please insert the USB stick to load test parameters"
+msgstr "请插入U盘读取测试参数"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Please insert ethernet dongle to load test parameters"
+msgstr "请插入网路介面卡读取测试参数"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Camera Performance Test and ALS Calibration"
+msgstr "相机效能与ALS校正"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "USB Stick:"
+msgstr "测试参数U盘:"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "UNLOADED"
+msgstr "未载入"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Serial Number:"
+msgstr "待测物序号:"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Fixture:"
+msgstr "制具链接:"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "UNAVAILABLE"
+msgstr "未连接"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Start Test"
+msgstr "开始测试"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Exit Test"
+msgstr "离开测试"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "IDLE"
+msgstr "閒置中"
+
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}<br>"
 msgstr "切换数据机至{target!r}韧体"
@@ -646,21 +760,21 @@ msgstr "南"
 msgid "Put the DUT towards {direction}"
 msgstr "将机器朝向{direction}方"
 
-#: ../py/test/pytests/countdown.py
-msgid "Elapsed time:"
-msgstr "经过时间："
-
-#: ../py/test/pytests/countdown.py
-msgid "Remaining time:"
-msgstr "剩余时间："
-
-#: ../py/test/pytests/countdown.py
-msgid "Load:"
-msgstr "系统负载："
-
 #: ../py/test/pytests/countdown.py ../py/test/pytests/wifi_rf.py
 msgid "Countdown"
 msgstr "倒计时"
+
+#: ../py/test/pytests/countdown_static/countdown.html
+msgid "Elapsed time:"
+msgstr "经过时间："
+
+#: ../py/test/pytests/countdown_static/countdown.html
+msgid "Remaining time:"
+msgstr "剩余时间："
+
+#: ../py/test/pytests/countdown_static/countdown.html
+msgid "Load:"
+msgstr "系统负载："
 
 #: ../py/test/pytests/developer_switch.py
 msgid "Please turn <b class=\"on\">ON</b> Developer Switch."
@@ -913,11 +1027,11 @@ msgstr "键盘背光测试"
 
 #: ../py/test/pytests/keyboard_backlight.py
 msgid "If the keyboard backlight lights up, press ENTER. "
-msgstr "檢查鍵盤背光是否亮起，是請按ENTER。"
+msgstr "检查键盘背光是否亮起，是请按ENTER。"
 
 #: ../py/test/pytests/keyboard_backlight.py
 msgid "If the keyboard backlight is off, press ENTER. "
-msgstr "檢查鍵盤背光是否熄滅，是請按ENTER。"
+msgstr "检查键盘背光是否熄灭，是请按ENTER。"
 
 #: ../py/test/pytests/keyboard_smt.py
 msgid "Expected keycode sequence:"
@@ -1589,7 +1703,7 @@ msgid ""
 "treat this touch panel as a problematic one!!"
 msgstr ""
 "请勿将第三根手指放到触控板上。\n"
-"如果你没有那麽做，\n"
+"如果你没有那么做，\n"
 "请将此触控板作为出问题的处理！！"
 
 #: ../py/test/pytests/touchpad.py
@@ -1616,13 +1730,77 @@ msgstr "请将悬停测试用具从支架移除"
 msgid "Checking for false positive..."
 msgstr "进行假阳性检查..."
 
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Touch screen calibration"
+msgstr "触控萤幕校正"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Serial number"
+msgstr "面板序号"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Submit"
+msgstr "提交"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Probe goes down"
+msgstr "关机前治具下位停俥"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Probe goes up"
+msgstr "测试前治具上位预备"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Read sensor data"
+msgstr "手动读取待测资料"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Probe self test"
+msgstr "手动治具自我测试"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Controller status"
+msgstr "治具连结"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Refresh"
+msgstr "刷新"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Touchscreen status"
+msgstr "待测物连结"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Probe state"
+msgstr "治具内部状态"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "FixtureState"
+msgstr "治具状态查询"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Host IP"
+msgstr "本机网址"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "BB IP"
+msgstr "BB网址"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Shopfloor IP"
+msgstr "Shopfloor网址"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+msgid "Shutdown the host"
+msgstr "关机"
+
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid ""
 "Fail to detect the touchscreen.\n"
 "Insert the traveler board, and restart the test."
 msgstr ""
 "无法侦测到面板。\n"
-"请移除小板後再重新插入小板，并重跑测试"
+"请移除小板后再重新插入小板，并重跑测试"
 
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid "Fail to assign DIRECT_SENSORS_IP in ryu.conf"
@@ -1657,7 +1835,7 @@ msgid ""
 msgstr ""
 "治具尚未就位，可能原因如下：\n"
 "(1) 治具电源尚未开启。请开启电源，并点击萤幕上治具连结的刷新按钮。\n"
-"(2) 治具电源已经开启，但是处於紧急停止状态。请按治具左侧的debug按钮一次。"
+"(2) 治具电源已经开启，但是处于紧急停止状态。请按治具左侧的debug按钮一次。"
 
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid "Probe not in the DOWN position, aborted"
@@ -1677,7 +1855,7 @@ msgid ""
 "Remove and re-insert the traveler board. And restart the test."
 msgstr ""
 "无法侦测到面板。\n"
-"请移除小板後再重新插入小板，并重跑测试"
+"请移除小板后再重新插入小板，并重跑测试"
 
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid "Current calibration has not completed yet"
@@ -1774,6 +1952,63 @@ msgstr "请扫描面板序号后按下 ENTER"
 #: ../py/test/pytests/vpd_from_http.py
 msgid "No VPD updated"
 msgstr "没有VPD需要更新"
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Loading parameters from local disk..."
+msgstr "从本地硬盘载入测试参数中..."
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Downloading parameters from shopfloor..."
+msgstr "从 Shopfloor 下载测试参数中..."
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Setting up network..."
+msgstr "设定网路环境中..."
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Connecting with the ENA..."
+msgstr "与 ENA (E5071C) 连线中..."
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid ""
+"Please fully disconnect all the cable.<br> Then press ENTER to continue."
+msgstr "请完全移除天线后，按 ENTER 继续"
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Checking its calibration status..."
+msgstr "验证仪器矫正状态中..."
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "The ENA needs to be calibrated.<br> Please press ENTER to continue."
+msgstr "请矫正 ENA 并按 ENTER 重新启动测试。"
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Please place the LCD panel into the fixture and then press ENTER."
+msgstr "请放置 LCD 本体在治具上<br>完成后按 ENTER"
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid ""
+"Make sure the main WWAN antennta is connected to Port 1<br> Make sure the "
+"main WLAN antennta is connected to Port 2<br> Then press key \"A\" to next "
+"stage."
+msgstr ""
+"连接主 WWAN 天线至 Port 1<br> 连接主 WLAN 天线至 Port 2<br> 完成后按 A 键"
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Testing..."
+msgstr "测试中..."
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Writing log...."
+msgstr "记录中..."
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Results are listed below:"
+msgstr "测试结果显示如下："
+
+#: ../py/test/pytests/vswr/vswr.html
+msgid "Please disconnect the panel and press ENTER to write log."
+msgstr "请将 AB Panel 移除, 并按 ENTER 完成测试"
 
 #: ../py/test/pytests/vswr/vswr.py
 msgid "Make sure the {name} antennta is connected to port {port}<br>"

@@ -1,40 +1,48 @@
-<h1 id="message" style="position: absolute; top:50%">
-</h1>
-<div id="virtualkey-button-container" style="position: absolute; bottom: 0"></div>
-<br>
-<div id="msg-utility" onClick="toggleFAUtility()">Click to toggle FA utility:</div>
-<div id="fa-utility" style="display: none">
-  <input type="radio" id="loop_0"
-      onClick="testCommand('loop_0')">
-    No audio looping
+<!DOCTYPE html>
+<html>
+<body>
+  <h1 id="message" style="position: absolute; top:50%">
+  </h1>
+  <div id="virtualkey-button-container" style="position: absolute; bottom: 0">
+  </div>
   <br>
-  <input type="radio" id="loop_1"
-      onClick="testCommand('loop_1')">
-    Loop from LCD mic to headphone out
-  <br>
-  <input type="radio" id="loop_2"
-      onClick="testCommand('loop_2')">
-    Loop from headphone in to speaker
-  <br>
-  <input type="radio" id="loop_3"
-      onClick="testCommand('loop_3')">
-    Loop from headphone in to headphone out
-  <br>
-  <input type="radio" id="loop_4"
-      onClick="testCommand('loop_4')">
-    Loop from keyboard mic to headphone out
-  <br>
-  <input type="radio" id="xtalk_l"
-      onClick="testCommand('xtalk_l')">
-    Mute headphone left channel while playing tone
-  <br>
-  <input type="radio" id="xtalk_r"
-      onClick="testCommand('xtalk_r')">
-    Mute headphone right channel while playing tone
-  <br>
-  <input type="radio" id="multitone"
-      onClick="testCommand('multitone')">
-    Play multitone
-  <br>
-  <input type="button" onClick="restore()" value="Restore"/>
-</div>
+  <div id="msg-utility" onClick="toggleFAUtility()">
+    Click to toggle FA utility:
+  </div>
+  <div id="fa-utility" style="display: none">
+    <input type="radio" id="loop_0"
+        onClick="testCommand('loop_0')">
+      No audio looping
+    <br>
+    <input type="radio" id="loop_1"
+        onClick="testCommand('loop_1')">
+      Loop from LCD mic to headphone out
+    <br>
+    <input type="radio" id="loop_2"
+        onClick="testCommand('loop_2')">
+      Loop from headphone in to speaker
+    <br>
+    <input type="radio" id="loop_3"
+        onClick="testCommand('loop_3')">
+      Loop from headphone in to headphone out
+    <br>
+    <input type="radio" id="loop_4"
+        onClick="testCommand('loop_4')">
+      Loop from keyboard mic to headphone out
+    <br>
+    <input type="radio" id="xtalk_l"
+        onClick="testCommand('xtalk_l')">
+      Mute headphone left channel while playing tone
+    <br>
+    <input type="radio" id="xtalk_r"
+        onClick="testCommand('xtalk_r')">
+      Mute headphone right channel while playing tone
+    <br>
+    <input type="radio" id="multitone"
+        onClick="testCommand('multitone')">
+      Play multitone
+    <br>
+    <input type="button" onClick="restore()" value="Restore"/>
+  </div>
+</body>
+</html>

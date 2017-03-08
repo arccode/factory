@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
-
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -16,8 +15,7 @@
       <tr>
         <td class="test-vcenter-inner" style="text-align:center;">
           <div class="text">
-            <span class="color_idle goofy-label-en-US">Please insert the USB stick to load test parameters</span>
-            <span class="color_idle goofy-label-zh-CN">请插入U盘读取测试参数</span>
+            <span class="color_idle i18n-label">Please insert the USB stick to load test parameters</span>
           </div>
         </td>
       </tr>
@@ -29,8 +27,7 @@
       <tr>
         <td class="test-vcenter-inner" style="text-align:center;">
           <div class="text">
-            <span class="color_idle goofy-label-en-US">Please insert ethernet dongle to load test parameters</span>
-            <span class="color_idle goofy-label-zh-CN">请插入网路介面卡读取测试参数</span>
+            <span class="color_idle i18n-label">Please insert ethernet dongle to load test parameters</span>
           </div>
         </td>
       </tr>
@@ -43,8 +40,7 @@
         <tr>
           <td class="test-vcenter-inner">
             <div id="main_screen_title">
-              <span class="goofy-label-en-US">Camera Performance Test and ALS Calibration</span>
-              <span class="goofy-label-zh-CN">相机效能与ALS校正</span>
+              <span class="i18n-label">Camera Performance Test and ALS Calibration</span>
             </div>
           </td>
         </tr>
@@ -56,8 +52,7 @@
 
       <div id="usb_status_panel" hidden>
         <div class="panel_box text_shadow_small font_label" style="height:5%;padding-left:3%">
-          <span class="goofy-label-en-US">USB Stick:</span>
-          <span class="goofy-label-zh-CN">测试参数U盘:</span>
+          <span class="i18n-label">USB Stick:</span>
         </div>
 
         <div id="usb_status" class="panel_bad" style="height:10%;text-align:center">
@@ -65,8 +60,7 @@
             <tr>
               <td class="test-vcenter-inner">
                 <div id="usb_status_text">
-                  <span class="goofy-label-en-US">UNLOADED</span>
-                  <span class="goofy-label-zh-CN">未载入</span>
+                  <span class="i18n-label">UNLOADED</span>
                 </div>
               </td>
             </tr>
@@ -76,7 +70,7 @@
 
       <div id="sn_status_panel" hidden>
         <div class="panel_box text_shadow_small font_label" style="height:5%;padding-left:3%">
-          <span class="goofy-label-en-US">Serial Number:</span><span class="goofy-label-zh-CN">待测物序号:</span>
+          <span class="i18n-label">Serial Number:</span>
         </div>
 
         <div style="height:10%;text-align:center;">
@@ -87,8 +81,7 @@
 
       <div id="fixture_status_panel" hidden>
         <div id="fixture_label" class="panel_box text_shadow_small font_label" style="height:5%;padding-left:3%">
-          <span class="goofy-label-en-US">Fixture:</span>
-          <span class="goofy-label-zh-CN">制具链接:</span>
+          <span class="i18n-label">Fixture:</span>
         </div>
 
         <div id="fixture_status" class="panel_bad" style="height:10%;text-align:center">
@@ -96,8 +89,7 @@
             <tr>
               <td class="test-vcenter-inner">
                 <div id="fixture_status_text">
-                  <span class="goofy-label-en-US">UNAVAILABLE</span>
-                  <span class="goofy-label-zh-CN">未连接</span>
+                  <span class="i18n-label">UNAVAILABLE</span>
                 </div>
               </td>
             </tr>
@@ -109,15 +101,13 @@
 
       <div style="height:20%;text-align:center">
         <button id="button_start_test" class="button black" type="button" onclick="OnButtonStartTestClick();" style="width:100%;height:97%;font-size:140%">
-          <span class="goofy-label-en-US">Start Test</span>
-          <span class="goofy-label-zh-CN">开始测试</span>
+          <span class="i18n-label">Start Test</span>
         </button>
       </div><!-- Exit Test Button. -->
 
       <div style="height:20%;text-align:center">
         <button id="button_exit_test" class="button black" type="button" onclick="OnButtonExitTestClick();" style="width:100%;height:97%;font-size:140%">
-          <span class="goofy-label-en-US">Exit Test</span>
-          <span class="goofy-label-zh-CN">离开测试</span>
+          <span class="i18n-label">Exit Test</span>
         </button>
       </div>
     </div><!-- Main Screen - Right Pane. -->
@@ -142,8 +132,7 @@
           <td class="test-vcenter-inner" style="text-align:center;">
             <div class="progress">
               <div id="test_status" class="text">
-                <span class="color_idle goofy-label-en-US">IDLE</span>
-                <span class="color_idle goofy-label-zh-CN">閒置中</span>
+                <span class="color_idle i18n-label">IDLE</span>
               </div>
               <div class="bar_holder">
                 <div id="progress_bar" class="bar pgray stripes"></div>

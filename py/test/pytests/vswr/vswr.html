@@ -1,92 +1,77 @@
-<link rel="stylesheet" type="text/css" href="vswr.css">
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="vswr.css">
+</head>
+<body>
+  <div class="test-vcenter-outer">
+  <div class="test-vcenter-inner">
 
-<div class="test-vcenter-outer">
-<div class="test-vcenter-inner">
-
-<div id="state">
-  <div id="state-load-parameters-from-local-disk">
-    <span class="goofy-label-en-US">Loading parameters from local disk...</span>
-    <span class="goofy-label-zh-CN">从本地硬盘载入测试参数中...</span>
-  </div>
-  <div id="state-download-parameters-from-shopfloor">
-    <span class="goofy-label-en-US">Downloading parameters from shopfloor...</span>
-    <span class="goofy-label-zh-CN">从 Shopfloor 下载测试参数中...</span>
-  </div>
-  <div id="state-set-up-network">
-    <span class="goofy-label-en-US">Setting up network...</span>
-    <span class="goofy-label-zh-CN">设定网路环境中...</span>
-  </div>
-  <div id="state-connect-to-ena">
-    <span class="goofy-label-en-US">Connecting with the ENA...</span>
-    <span class="goofy-label-zh-CN">与 ENA (E5071C) 连线中...</span>
-  </div>
-  <div id="state-prepare-calibration">
-    <span class="goofy-label-en-US">
-      Please fully disconnect all the cable.<br>
-      Then press ENTER to continue.</span>
-    <span class="goofy-label-zh-CN">
-      请完全移除天线后，按 ENTER 继续 </span>
-  </div>
-  <div id="state-check-calibration">
-    <span class="goofy-label-en-US">Checking its calibration status...</span>
-    <span class="goofy-label-zh-CN">验证仪器矫正状态中...</span>
-  </div>
-  <div id="state-need-calibration">
-    <span class="goofy-label-en-US" style="color: red">
-      The ENA needs to be calibrated.<br/>
-      Please press ENTER to continue.</span>
-    <span class="goofy-label-zh-CN" style="color: red">
-      请矫正 ENA 並按 ENTER 重新啟動測試。</span>
-  </div>
-  <div id="state-prepare-panel">
-    <span class="goofy-label-en-US">
-      Please place the LCD panel into the fixture and then press ENTER.</span>
-    <span class="goofy-label-zh-CN">
-      请放置 LCD 本体在治具上<br>
-      完成后按 ENTER</span>
-  </div>
-  <div id="state-prepare-antennas">
-    <span class="goofy-label-en-US">
-      Make sure the main WWAN antennta is connected to Port 1<br>
-      Make sure the main WLAN antennta is connected to Port 2<br>
-      Then press key "A" to next stage.</span>
-    <span class="goofy-label-zh-CN">
-      连接主 WWAN 天线至 Port 1<br>
-      连接主 WLAN 天线至 Port 2<br>
-      完成后按 A 键</span>
-  </div>
-  <div id="state-test-antennas">
-    <span class="goofy-label-en-US">Testing...</span>
-    <span class="goofy-label-zh-CN">测试中...</span>
-  </div>
-  <div id="state-save-log">
-    <span class="goofy-label-en-US">Writing log....</span>
-    <span class="goofy-label-zh-CN">记录中...</span>
-  </div>
-  <div id="state-show-result">
-    <span class="goofy-label-en-US">
-      Results are listed below:</span>
-    <span class="goofy-label-zh-CN">
-      测试结果显示如下：</span>
-    <div>Serial Number: <span id="result-serial-number"></span></div>
-    <div id="result">
-      <table id="result-table" style="margin: 0 auto">
-        <tr><td>1</td><td>LTE Antenna (MAIN)</td>
-          <td>PASSED</td></tr>
-        <tr><td>2</td><td>LTE Antenna (AUX)</td>
-          <td id="result-lte-aux"></td></tr>
-        <tr><td>3</td><td>WiFi Antenna (MAIN)</td>
-          <td id="result-wifi-main"></td></tr>
-        <tr><td>4</td><td>WiFi Antenna (AUX)</td>
-          <td id="result-wifi-aux"></td></tr>
-      </table>
+  <div id="state">
+    <div id="state-load-parameters-from-local-disk">
+      <span class="i18n-label">Loading parameters from local disk...</span>
     </div>
-    <span class="goofy-label-en-US">
-      Please disconnect the panel and press ENTER to write log.</span>
-    <span class="goofy-label-zh-CN">
-      请将 AB Panel 移除, 并按 ENTER 完成测试</span>
+    <div id="state-download-parameters-from-shopfloor">
+      <span class="i18n-label">Downloading parameters from shopfloor...</span>
+    </div>
+    <div id="state-set-up-network">
+      <span class="i18n-label">Setting up network...</span>
+    </div>
+    <div id="state-connect-to-ena">
+      <span class="i18n-label">Connecting with the ENA...</span>
+    </div>
+    <div id="state-prepare-calibration">
+      <span class="i18n-label">
+        Please fully disconnect all the cable.<br>
+        Then press ENTER to continue.</span>
+    </div>
+    <div id="state-check-calibration">
+      <span class="i18n-label">Checking its calibration status...</span>
+    </div>
+    <div id="state-need-calibration">
+      <span class="i18n-label" style="color: red">
+        The ENA needs to be calibrated.<br>
+        Please press ENTER to continue.</span>
+    </div>
+    <div id="state-prepare-panel">
+      <span class="i18n-label">
+        Please place the LCD panel into the fixture and then press ENTER.
+      </span>
+    </div>
+    <div id="state-prepare-antennas">
+      <span class="i18n-label">
+        Make sure the main WWAN antennta is connected to Port 1<br>
+        Make sure the main WLAN antennta is connected to Port 2<br>
+        Then press key "A" to next stage.</span>
+    </div>
+    <div id="state-test-antennas">
+      <span class="i18n-label">Testing...</span>
+    </div>
+    <div id="state-save-log">
+      <span class="i18n-label">Writing log....</span>
+    </div>
+    <div id="state-show-result">
+      <span class="i18n-label">
+        Results are listed below:</span>
+      <div>Serial Number: <span id="result-serial-number"></span></div>
+      <div id="result">
+        <table id="result-table" style="margin: 0 auto">
+          <tr><td>1</td><td>LTE Antenna (MAIN)</td>
+            <td>PASSED</td></tr>
+          <tr><td>2</td><td>LTE Antenna (AUX)</td>
+            <td id="result-lte-aux"></td></tr>
+          <tr><td>3</td><td>WiFi Antenna (MAIN)</td>
+            <td id="result-wifi-main"></td></tr>
+          <tr><td>4</td><td>WiFi Antenna (AUX)</td>
+            <td id="result-wifi-aux"></td></tr>
+        </table>
+      </div>
+      <span class="i18n-label">
+        Please disconnect the panel and press ENTER to write log.</span>
+    </div>
   </div>
-</div>
 
-</div>
-</div>
+  </div>
+  </div>
+</body>
+</html>

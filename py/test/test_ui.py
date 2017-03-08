@@ -22,6 +22,8 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test import event as test_event
 from cros.factory.test import factory
+from cros.factory.test.i18n import html_translator
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
@@ -174,11 +176,11 @@ class UI(object):
           os.path.join(static_dirs[0], os.path.basename(base)))
       self.static_dir_path = static_dirs[0]
 
-    def GetAutoload(extension):
+    def GetAutoload(extension, default=''):
       autoload = filter(os.path.exists,
                         [x + '.' + extension for x in autoload_bases])
       if not autoload:
-        return ''
+        return default
       if len(autoload) > 1:
         raise FactoryTestFailure(
             'Cannot have both of %s - delete one!' % autoload)
@@ -186,14 +188,33 @@ class UI(object):
       goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
           '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
           autoload[0])
-      return open(autoload[0]).read()
+      return file_utils.ReadFile(autoload[0]).decode('UTF-8')
 
-    html = '\n'.join(
-        ['<head id="head">',
-         '<base href="/tests/%s/">' % self.test,
-         '<link rel="stylesheet" type="text/css" href="/css/goofy.css">',
-         '<link rel="stylesheet" type="text/css" href="/css/test.css">',
-         GetAutoload('html')])
+    class AddGoofyHeaderTransformer(html_translator.BaseHTMLTransformer):
+      def __init__(self, test):
+        super(AddGoofyHeaderTransformer, self).__init__()
+        self.test = test
+        self.goofy_header = (
+            '<base href="/tests/%s/">\n'
+            '<link rel="stylesheet" type="text/css" href="/css/goofy.css">\n'
+            '<link rel="stylesheet" type="text/css" href="/css/test.css">\n' % (
+                self.test))
+        self.head_seen = False
+
+      def handle_starttag(self, tag, attrs):
+        if tag == 'head':
+          attrs = self._AddKeyValueToAttrs(attrs, 'id', 'head')
+          self.head_seen = True
+        elif tag == 'body' and not self.head_seen:
+          self._EmitOutput('<head id="head">%s</head>' % self.goofy_header)
+          self.head_seen = True
+        super(AddGoofyHeaderTransformer, self).handle_starttag(tag, attrs)
+        if tag == 'head':
+          self._EmitOutput(self.goofy_header)
+
+    html = GetAutoload('html', '<html><body></body></html>')
+    html = AddGoofyHeaderTransformer(self.test).Run(html)
+    html = html_translator.TranslateHTML(html)
     self.PostEvent(
         test_event.Event(test_event.Event.Type.INIT_TEST_UI, html=html))
 

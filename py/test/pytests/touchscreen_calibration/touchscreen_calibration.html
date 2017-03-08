@@ -1,110 +1,96 @@
-<h2>Touch screen calibration 触控萤幕校正</h2>
-<br>
+<!DOCTYPE html>
+<html>
+<body>
+  <h2 class="i18n-label">Touch screen calibration</h2>
+  <br>
 
-<div id="main" style="width: 50%">
-  <div>
-    <span class="goofy-label-en-US">Serial number</span>
-    <span class="goofy-label-zh-CN">面板序号</span>
-    <input id="sn" type="text" autofocus onkeydown="snKeyDown(event)">
-    <button onClick="snEntered()">
-      <span class="goofy-label-en-US">Submit</span>
-      <span class="goofy-label-zh-CN">提交</span>
+  <div id="main" style="width: 50%">
+    <div>
+      <span class="i18n-label">Serial number</span>
+      <input id="sn" type="text" autofocus onkeydown="snKeyDown(event)">
+      <button onclick="snEntered()">
+        <span class="i18n-label">Submit</span>
+      </button>
+    </div>
+    <div id='display-area'>Display Area</div>
+  </div>
+
+  <div id="debug-panel" style="z-index: 10; position: absolute; right: 30;
+      top: 30; border-style: solid; border-color: #555;">
+    <button onclick="test.sendTestEvent('DriveProbeDown', {})">
+      <span class="i18n-label">Probe goes down</span>
+    </button>
+    <br>
+
+    <button onclick="test.sendTestEvent('DriveProbeUp', {})">
+      <span class="i18n-label">Probe goes up</span>
+    </button>
+    <br><br>
+
+    <button onclick="test.sendTestEvent('ReadTest', {})">
+      <span class="i18n-label">Read sensor data</span>
+    </button>
+    <br>
+
+    <button onclick="test.sendTestEvent('ProbeSelfTest')">
+      <span class="i18n-label">Probe self test</span>
+    </button>
+
+    <div>
+      <div>
+        <span class="i18n-label">Controller status</span>
+        <div id="controller-status" style="display:inline">N/A</div>
+        <button onclick="test.sendTestEvent('RefreshFixture', {})">
+          <span class="i18n-label">Refresh</span>
+        </button>
+      </div>
+
+      <div>
+        <span class="i18n-label">Touchscreen status</span>
+        <div id="touchscreen-status" style="display:inline">N/A</div>
+        <button onclick="test.sendTestEvent('RefreshTouchscreen', {})">
+          <span class="i18n-label">Refresh</span>
+        </button>
+      </div>
+
+      <div>
+        <span class="i18n-label">Probe state</span>
+        <div id="probe-state" style="display:inline">N/A</div>
+        <button onclick="test.sendTestEvent('QueryFixtureState', {})">
+          <span class="i18n-label">FixtureState</span>
+        </button>
+      </div>
+
+      <div>
+        <span class="i18n-label">Host IP</span>
+        <div id="host-network-status" style="display:inline">N/A</div>
+        <button onclick="test.sendTestEvent('RefreshNetwork', {})">
+          <span class="i18n-label">Refresh</span>
+        </button>
+      </div>
+
+      <div>
+        <span class="i18n-label">BB IP</span>
+        <div id="bb-network-status" style="display:inline">N/A</div>
+        <button onclick="test.sendTestEvent('RefreshNetwork', {})">
+          <span class="i18n-label">Refresh</span>
+        </button>
+      </div>
+
+      <div>
+        <span class="i18n-label">Shopfloor IP</span>
+        <div id="shopfloor-network-status" style="display:inline">N/A</div>
+        <button onclick="test.sendTestEvent('RefreshNetwork', {})">
+          <span class="i18n-label">Refresh</span>
+        </button>
+      </div>
+
+    </div>
+
+    <br> <br> <br>
+    <button onclick="test.sendTestEvent('ShutDown', {})">
+      <span class="i18n-label">Shutdown the host</span>
     </button>
   </div>
-  <div id='display-area'>Display Area</div>
-</div>
-
-<div id="debug-panel" style="z-index: 10; position: absolute; right: 30;
-    top: 30; border-style: solid; border-color: #555;">
-  <button onClick="test.sendTestEvent('DriveProbeDown', {})">
-    <span class="goofy-label-en-US">Probe goes down</span>
-    <span class="goofy-label-zh-CN">关机前治具下位停俥</span>
-  </button>
-  <br>
-
-  <button onClick="test.sendTestEvent('DriveProbeUp', {})">
-    <span class="goofy-label-en-US">Probe goes up</span>
-    <span class="goofy-label-zh-CN">测试前治具上位预备</span>
-  </button>
-  <br><br>
-
-  <button onClick="test.sendTestEvent('ReadTest', {})">
-    <span class="goofy-label-en-US">Read sensor data</span>
-    <span class="goofy-label-zh-CN">手动读取待测资料</span>
-  </button>
-  <br>
-
-  <button onClick="test.sendTestEvent('ProbeSelfTest')">
-    <span class="goofy-label-en-US">Probe self test</span>
-    <span class="goofy-label-zh-CN">手动治具自我测试</span>
-  </button>
-
-  <div>
-    <div>
-      <span class="goofy-label-en-US">Controller status</span>
-      <span class="goofy-label-zh-CN">治具连结</span>
-      <div id="controller-status" style="display:inline">N/A</div>
-      <button onClick="test.sendTestEvent('RefreshFixture', {})">
-        <span class="goofy-label-en-US">Refresh</span>
-        <span class="goofy-label-zh-CN">刷新</span>
-      </button>
-    </div>
-
-    <div>
-      <span class="goofy-label-en-US">Touchscreen status</span>
-      <span class="goofy-label-zh-CN">待测物连结</span>
-      <div id="touchscreen-status" style="display:inline">N/A</div>
-      <button onClick="test.sendTestEvent('RefreshTouchscreen', {})">
-        <span class="goofy-label-en-US">Refresh</span>
-        <span class="goofy-label-zh-CN">刷新</span>
-      </button>
-    </div>
-
-    <div>
-      <span class="goofy-label-en-US">Probe state</span>
-      <span class="goofy-label-zh-CN">治具内部状态</span>
-      <div id="probe-state" style="display:inline">N/A</div>
-      <button onClick="test.sendTestEvent('QueryFixtureState', {})">
-        <span class="goofy-label-en-US">FixtureState</span>
-        <span class="goofy-label-zh-CN">治具状态查询</span>
-      </button>
-    </div>
-
-    <div>
-      <span class="goofy-label-en-US">Host IP</span>
-      <span class="goofy-label-zh-CN">本机网址</span>
-      <div id="host-network-status" style="display:inline">N/A</div>
-      <button onClick="test.sendTestEvent('RefreshNetwork', {})">
-        <span class="goofy-label-en-US">Refresh</span>
-        <span class="goofy-label-zh-CN">刷新</span>
-      </button>
-    </div>
-
-    <div>
-      <span class="goofy-label-en-US">BB IP</span>
-      <span class="goofy-label-zh-CN">BB网址</span>
-      <div id="bb-network-status" style="display:inline">N/A</div>
-      <button onClick="test.sendTestEvent('RefreshNetwork', {})">
-        <span class="goofy-label-en-US">Refresh</span>
-        <span class="goofy-label-zh-CN">刷新</span>
-      </button>
-    </div>
-
-    <div>
-      <span class="goofy-label-en-US">Shopfloor IP</span>
-      <span class="goofy-label-zh-CN">Shopfloor网址</span>
-      <div id="shopfloor-network-status" style="display:inline">N/A</div>
-      <button onClick="test.sendTestEvent('RefreshNetwork', {})">
-        <span class="goofy-label-en-US">Refresh</span>
-        <span class="goofy-label-zh-CN">刷新</span>
-      </button>
-    </div>
-
-  </div>
-
-  <br> <br> <br>
-  <button onClick="test.sendTestEvent('ShutDown', {})">
-    <span class="goofy-label-en-US">Shutdown the host</span>
-    <span class="goofy-label-zh-CN">关机</span>
-  </button>
-</div>
+</body>
+</html>

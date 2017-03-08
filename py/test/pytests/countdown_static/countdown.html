@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="countdown.css">
+</head>
+<body>
+  <div class="test-vcenter-outer">
+  <div class="test-vcenter-inner" id="cd-container">
+
+  <table>
+    <thead>
+      <tr>
+        <th colspan=2>
+          <span id='cd-title'></span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>
+          <span class='i18n-label'>Elapsed time:</span>
+        </th>
+        <td id='cd-elapsed-time'>00:00:00</td>
+      </tr>
+      <tr>
+        <th>
+          <span class='i18n-label'>Remaining time:</span>
+        </th>
+        <td id='cd-remaining-time'>00:00:00</td>
+      </tr>
+      <tr>
+        <th>
+          <span class='i18n-label'>Load:</span>
+        </th>
+        <td id='cd-system-load'></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class='cd-log' id='cd-log-panel'>
+  </div>
+  <div class='cd-legend' id='cd-legend-panel'>
+    <div class='cd-legend-title'>Temperature Sensor Names</div>
+    <div class='cd-legend-item-container' id='cd-legend-item-panel'></div>
+  </div>
+
+  </div>
+  </div>
+</body>
+</html>

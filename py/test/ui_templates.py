@@ -1,6 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,7 +9,9 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
+from cros.factory.test.i18n import html_translator
 from cros.factory.test import test_ui
+from cros.factory.utils import file_utils
 
 _UI_TEMPLATE_PATH = '/ui_templates'
 
@@ -146,7 +146,8 @@ class BaseTemplate(object):
         'Template %s does not exist.' % template_name)
 
     # Load template HTML
-    self._ui.SetHTML(open(html_file).read())
+    self._ui.SetHTML(html_translator.TranslateHTML(
+        file_utils.ReadFile(html_file)))
 
     # Load template JS if it exists
     js_file = os.path.join(template_base, template_name + '.js')

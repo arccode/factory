@@ -7,8 +7,8 @@
 from __future__ import print_function
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import string_utils
+from cros.factory.test.i18n import translation
 
 
 def MakeI18nLabel(_label, **kwargs):
@@ -61,7 +61,8 @@ def MakeI18nLabelWithClass(_label, _class, **kwargs):
   label = string_utils.StringFormat(label, **kwargs)
 
   html = []
-  for locale, translated_label in label.iteritems():
+  for locale in translation.LOCALES:
+    translated_label = label[locale]
     html_class = 'goofy-label-' + locale
     if _class:
       html_class += ' ' + _class

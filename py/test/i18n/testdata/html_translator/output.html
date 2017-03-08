@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <div id="main">
+      <span class="i18n-label goofy-label-en-US">text 1</span><span class="i18n-label goofy-label-zh-CN">text-1</span>
+      <span class="i18n-label goofy-label-en-US">untranslated</span><span class="i18n-label goofy-label-zh-CN">untranslated</span>
+      <span class="large i18n-label goofy-label-en-US">text 2</span><span class="large i18n-label goofy-label-zh-CN">text-2</span>
+      <span class="i18n-label other-class goofy-label-en-US" id="id-here" style="style">some space<br> some other strings</span><span class="i18n-label other-class goofy-label-zh-CN" id="id-here" style="style">some space<br> some other strings</span>
+      <span class="i18n-label goofy-label-en-US">Weird things like &gt; and &#x65; and <b>Bold!</b> inside.</span><span class="i18n-label goofy-label-zh-CN">Weird things like &gt; and &#x65; and <b>Bold!</b> inside.</span>
+      <span class="i18n-label goofy-label-en-US"><a onclick="alert(&quot;space   between&quot;)">...</a> <h1>next element</h1></span><span class="i18n-label goofy-label-zh-CN"><a onclick="alert(&quot;space   between&quot;)">...</a> <h1>next element</h1></span>
+      some &nbsp; and some &#x65; should be passed through.
+      <!-- also comment should be preserved -->
+    </div>
+  </body>
+</html>

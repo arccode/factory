@@ -1,148 +1,128 @@
 <!DOCTYPE html>
 <html>
+<head>
   <link rel="stylesheet" type="text/css" href="audio_diagnostic.css">
-  <body onload="init()">
-    <table>
-    <tr>
-      <td colspan="2">
-        <div id="tone_gen" class="ctl-panel">
-          <h2>
-            <span class="goofy-label-en-US">Tone generator</span>
-            <span class="goofy-label-zh-CN">音频信号发生器</span>
-          </h2>
-          <table style="width: 100%">
-            <tr>
-              <td class="tonegen-main-cell">
-                <button id="tone_btn" class="btn-off"
-                    onclick="toneButtonClicked()">
-                  <div class="goofy-label-en-US">
-                    <span class="btn-on-text">Tone off</span>
-                    <span class="btn-off-text">Tone On</span>
-                  </div>
-                  <div class="goofy-label-zh-CN">
-                    <span class="btn-on-text">关闭音频</span>
-                    <span class="btn-off-text">播放音频</span>
-                  </div>
-                </button>
-                <select id="tone_type" onchange="toneTypeChanged()">
-                  <option value="sine">Sine / 弦波</option>
-                  <option value="square">Square / 方波</option>
-                  <option value="triangle">Triangle / 三角波</option>
-                </select>
-                <div>
-                  <input id="freq_bar" type="range" min="1" max="500"
-                    style="width: 100%" onchange="freqBarChanged(this.value)"/>
-                  <div id='freq' align="center" class='edit-off'>
-                    <span id="freq_curr">ff</span>
-                    /
-                    <span id="freq_max_label" class='freq-max-label'
-                        onclick="editMax(true)">mm</span>
-                    <input id="freq_max_edit" class='freq-max-edit'
-                        onblur="editMax(false)"
-                        onkeydown="if (event.keyCode == 13) editMax(false);"/>
-                    Hz
-                  </div>
+</head>
+<body onload="init()">
+  <table>
+  <tr>
+    <td colspan="2">
+      <div id="tone_gen" class="ctl-panel">
+        <h2>
+          <span class="i18n-label">Tone generator</span>
+        </h2>
+        <table style="width: 100%">
+          <tr>
+            <td class="tonegen-main-cell">
+              <button id="tone_btn" class="btn-off"
+                  onclick="toneButtonClicked()">
+                <span class="btn-on-text">
+                  <span class="i18n-label">Tone off</span>
+                </span>
+                <span class="btn-off-text">
+                  <span class="i18n-label">Tone On</span>
+                </span>
+              </button>
+              <select id="tone_type" onchange="toneTypeChanged()">
+                <!-- TODO(pihsun): option can't be styled, thus can't be
+                properly i18n using i18n-label. -->
+                <option value="sine">Sine / 弦波</option>
+                <option value="square">Square / 方波</option>
+                <option value="triangle">Triangle / 三角波</option>
+              </select>
+              <div>
+                <input id="freq_bar" type="range" min="1" max="500"
+                  style="width: 100%" onchange="freqBarChanged(this.value)"/>
+                <div id='freq' align="center" class='edit-off'>
+                  <span id="freq_curr">ff</span>
+                  /
+                  <span id="freq_max_label" class='freq-max-label'
+                      onclick="editMax(true)">mm</span>
+                  <input id="freq_max_edit" class='freq-max-edit'
+                      onblur="editMax(false)"
+                      onkeydown="if (event.keyCode == 13) editMax(false);"/>
+                  Hz
                 </div>
-              </td>
-              <td class="tonegen-vol-cell">
-                <input type="range" min="1" max="20" value="10"
-                    onchange="leftGain(this.value);"/>
-                <input type="range" min="1" max="20" value="10"
-                    onchange="rightGain(this.value);"/>
-                <br>
-                L  /  R
-              </td>
-            </tr>
-          </table>
-        </div>
-      </td>
-      <td rowspan="2">
-        <div id="test_result" class="ctl-panel">
-          <button onclick="test.sendTestEvent('pass')">
-            <div class="goofy-label-en-US">
-              Pass
-            </div>
-            <div class="goofy-label-zh-CN">
-              通过
-            </div>
-          </button>
-          <button onclick="test.sendTestEvent('fail')">
-            <div class="goofy-label-en-US">
-              Fail
-            </div>
-            <div class="goofy-label-zh-CN">
-              失败
-            </div>
-          </button>
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <div id="recorder" class="ctl-panel">
-          <h2>
-            <span class="goofy-label-en-US">Manual record</span>
-            <span class="goofy-label-zh-CN">手动录音</span>
-          </h2>
-          <button id="record_btn" class="btn-off" onclick="recordButtonClicked()">
-            <div class="goofy-label-en-US">
-              <span class="btn-on-text">Stop record</span>
-              <span class="btn-off-text">Start record</span>
-            </div>
-            <div class="goofy-label-zh-CN">
-              <span class="btn-on-text">停止录音</span>
-              <span class="btn-off-text">开始录音</span>
-            </div>
-          </button>
-          <button id="record_playback_btn" class="btn-off"
-              onclick="recordPlaybackButtonClicked()">
-            <div class="goofy-label-en-US">
-              <span class="btn-on-text">Stop playback</span>
-              <span class="btn-off-text">Start playback</span>
-            </div>
-            <div class="goofy-label-zh-CN">
-              <span class="btn-on-text">停止放音</span>
-              <span class="btn-off-text">开始放音</span>
-            </div>
-          </button>
-        </div>
-      </td>
-      <td>
-        <div id="loopback" class="ctl-panel">
-          <h2>
-            <span class="goofy-label-en-US">Audio loopback</span>
-            <span class="goofy-label-zh-CN">音频回放</span>
-          </h2>
-          <button id="loopback_btn" class="btn-off" onclick="loopbackButtonClicked()">
-            <div class="goofy-label-en-US">
-              <span class="btn-on-text">Loopback off</span>
-              <span class="btn-off-text">Loopback On</span>
-            </div>
-            <div class="goofy-label-zh-CN">
-              <span class="btn-on-text">停止回放</span>
-              <span class="btn-off-text">开始回放</span>
-            </div>
-          </button>
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td class="ctl-panel">
+              </div>
+            </td>
+            <td class="tonegen-vol-cell">
+              <input type="range" min="1" max="20" value="10"
+                  onchange="leftGain(this.value);"/>
+              <input type="range" min="1" max="20" value="10"
+                  onchange="rightGain(this.value);"/>
+              <br>
+              L  /  R
+            </td>
+          </tr>
+        </table>
+      </div>
+    </td>
+    <td rowspan="2">
+      <div id="test_result" class="ctl-panel">
+        <button onclick="test.sendTestEvent('pass')">
+          <div class="i18n-label">Pass</div>
+        </button>
+        <button onclick="test.sendTestEvent('fail')">
+          <div class="i18n-label">Fail</div>
+        </button>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <div id="recorder" class="ctl-panel">
         <h2>
-          <span class="goofy-label-en-US">Output Nodes</span>
-          <span class="goofy-label-zh-CN">输出设备</span>
+          <span class="i18n-label">Manual record</span>
         </h2>
-        <div id="output-nodes"/>
-      </td>
-      <td class="ctl-panel">
+        <button id="record_btn" class="btn-off" onclick="recordButtonClicked()">
+          <span class="btn-on-text">
+            <span class="i18n-label">Stop record</span>
+          </span>
+          <span class="btn-off-text">
+            <span class="i18n-label">Start record</span>
+          </span>
+        </button>
+        <button id="record_playback_btn" class="btn-off"
+            onclick="recordPlaybackButtonClicked()">
+          <span class="btn-on-text">
+            <span class="i18n-label">Stop playback</span>
+          </span>
+          <span class="btn-off-text">
+            <span class="i18n-label">Start playback</span>
+          </span>
+        </button>
+      </div>
+    </td>
+    <td>
+      <div id="loopback" class="ctl-panel">
         <h2>
-          <span class="goofy-label-en-US">Input Nodes</span>
-          <span class="goofy-label-zh-CN">输入设备</span>
+          <span class="i18n-label">Audio loopback</span>
         </h2>
-        <div id="input-nodes"/>
-        </div>
-      </td>
-    </tr>
-    </table>
-  </body>
+        <button id="loopback_btn" class="btn-off" onclick="loopbackButtonClicked()">
+          <span class="btn-on-text">
+            <span class="i18n-label">Loopback off</span>
+          </span>
+          <span class="btn-off-text">
+            <span class="i18n-label">Loopback on</span>
+          </span>
+        </button>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td class="ctl-panel">
+      <h2>
+        <span class="i18n-label">Output Nodes</span>
+      </h2>
+      <div id="output-nodes"></div>
+    </td>
+    <td class="ctl-panel">
+      <h2>
+        <span class="i18n-label">Input Nodes</span>
+      </h2>
+      <div id="input-nodes"></div>
+    </td>
+  </tr>
+  </table>
+</body>
 </html>

@@ -18,9 +18,9 @@ DOMAIN = 'factory'
 DEFAULT_LOCALE = 'en-US'
 
 LOCALE_DIR = os.path.join(paths.FACTORY_PATH, 'locale')
-# All supported locales by Goofy
-LOCALES = [DEFAULT_LOCALE] + [os.path.basename(p)
-                              for p in glob.glob(os.path.join(LOCALE_DIR, '*'))]
+# All supported locales by Goofy.
+LOCALES = [DEFAULT_LOCALE] + sorted(
+    [os.path.basename(p) for p in glob.glob(os.path.join(LOCALE_DIR, '*'))])
 
 # gettext.Translations objects for all supported locales.
 # Note: For locale = en-US, we don't actually have a translation file for

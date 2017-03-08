@@ -10,8 +10,8 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.i18n import translation
 from cros.factory.test.env import paths
+from cros.factory.test.i18n import translation
 from cros.factory.utils import process_utils
 
 
@@ -40,9 +40,9 @@ class I18nTestCase(unittest.TestCase):
         check_call=True, ignore_stdout=True, ignore_stderr=True)
 
     translation.LOCALE_DIR = cls.locale_dir
-    translation.LOCALES = [translation.DEFAULT_LOCALE] + [
+    translation.LOCALES = [translation.DEFAULT_LOCALE] + sorted([
         os.path.basename(p)
-        for p in glob.glob(os.path.join(cls.locale_dir, '*'))]
+        for p in glob.glob(os.path.join(cls.locale_dir, '*'))])
     # Force reload translations
     translation._TRANSLATIONS_DICT = {}  # pylint: disable=protected-access
 

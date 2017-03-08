@@ -25,51 +25,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import time_utils
 
 
-_HTML = ("""
-<div class="test-vcenter-outer">
-<div class="test-vcenter-inner" id="cd-container">
-
-<table>
-  <thead>
-    <tr>
-      <th colspan=2>
-        <span id='cd-title'></span>
-      </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>
-""" + i18n_test_ui.MakeI18nLabel('Elapsed time:') + """
-      </th>
-      <td id='cd-elapsed-time'>00:00:00</td>
-    </tr>
-    <tr>
-      <th>
-""" + i18n_test_ui.MakeI18nLabel('Remaining time:') + """
-      </th>
-      <td id='cd-remaining-time'>00:00:00</td>
-    </tr>
-    <tr>
-      <th>
-""" + i18n_test_ui.MakeI18nLabel('Load:') + """
-      </th>
-      <td id='cd-system-load'></span>
-    </tr>
-  </tbody>
-</table>
-
-<div class='cd-log' id='cd-log-panel'>
-</div>
-<div class='cd-legend' id='cd-legend-panel'>
-  <div class='cd-legend-title'>Temperature Sensor Names</div>
-  <div class='cd-legend-item-container' id='cd-legend-item-panel'></div>
-</div>
-
-</div></div>
-""")
-
-
 class CountDownTest(unittest.TestCase):
   """A countdown test that monitors and logs various system status."""
 
@@ -228,7 +183,6 @@ class CountDownTest(unittest.TestCase):
 
     self._ui = test_ui.UI()
     self._ui.Run(blocking=False)
-    self._ui.SetHTML(_HTML)
     self._ui.SetHTML(i18n_test_ui.MakeI18nLabel(self.args.title),
                      id='cd-title')
 

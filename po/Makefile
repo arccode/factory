@@ -10,7 +10,7 @@ MSGFMT = msgfmt
 MSGMERGE = msgmerge
 MSGCAT = msgcat
 
-KEYWORDS = -k MakeI18nLabel -k MakeI18nLabelWithClass
+KEYWORDS = -k _ -k MakeI18nLabel -k MakeI18nLabelWithClass -c i18n-label
 
 DOMAIN = factory
 BUILD_DIR ?= ../build
@@ -20,15 +20,17 @@ TEMP_DIR ?= $(BUILD_DIR)/po
 
 BOARD_PO_DIR ?= $(if $(BOARD_FILES_DIR),$(BOARD_FILES_DIR)/po)
 
-func-get-py-list = \
+func-get-source-list = \
   $(sort $(wildcard $(1)/goofy/*.py $(1)/goofy/*/*.py \
     $(1)/test/pytests/*.py $(1)/test/pytests/*/*.py \
-    $(1)/test/test_lists/*.py))
+    $(1)/test/test_lists/*.py \
+    $(1)/test/pytests/*.html $(1)/test/pytests/*/*.html \
+    $(1)/goofy/static/ui_templates/*.html))
 
 PY_ROOT = ../py
-PY_LIST = $(call func-get-py-list,$(PY_ROOT))
-BOARD_PY_LIST = $(if $(BOARD_FILES_DIR), \
-  $(call func-get-py-list,$(BOARD_FILES_DIR)/py))
+SRC_LIST = $(call func-get-source-list,$(PY_ROOT))
+BOARD_SRC_LIST = $(if $(BOARD_FILES_DIR), \
+  $(call func-get-source-list,$(BOARD_FILES_DIR)/py))
 
 SRCS = $(wildcard $(PO_DIR)/*.po) \
   $(if $(BOARD_PO_DIR),$(wildcard $(BOARD_PO_DIR)/*.po))
@@ -48,7 +50,7 @@ func-update-po = \
 func-gettext-and-update-po = \
   $(if $(strip $(2)), \
     mkdir -p $(TEMP_DIR) $(\n) \
-    $(GETTEXT) $(KEYWORDS) -p $(TEMP_DIR) $(1) $(\n) \
+    $(GETTEXT) $(KEYWORDS) -o $(TEMP_DIR)/messages.pot $(1) $(\n) \
     $(foreach file,$(2),$(call func-update-po,$(file))))
 
 all: build
@@ -61,19 +63,19 @@ init:
 	$(if $(and $(BOARD_PO_DIR),$(wildcard $(BOARD_PO_DIR)/$(LOCALE).po)), \
 	  $(error "$(LOCALE).po already exists in board overlay."))
 	$(call func-gettext-and-update-po, \
-	  $(BOARD_PY_LIST) $(PY_LIST),$(TARGET_PO))
+	  $(BOARD_SRC_LIST) $(SRC_LIST),$(TARGET_PO))
 
 update:
 	$(if $(BOARD_PO_DIR), \
-	  $(call func-gettext-and-update-po,$(BOARD_PY_LIST) $(PY_LIST), \
+	  $(call func-gettext-and-update-po,$(BOARD_SRC_LIST) $(SRC_LIST), \
 	    $(foreach locale,$(LOCALES), \
 	      $(if $(wildcard $(PO_DIR)/$(locale).po),, \
 	         $(BOARD_PO_DIR)/$(locale).po))) \
-	  $(call func-gettext-and-update-po,$(BOARD_PY_LIST), \
+	  $(call func-gettext-and-update-po,$(BOARD_SRC_LIST), \
 	    $(foreach locale,$(LOCALES), \
 	      $(if $(wildcard $(PO_DIR)/$(locale).po), \
 	        $(BOARD_PO_DIR)/$(locale).po))), \
-	  $(call func-gettext-and-update-po,$(PY_LIST), \
+	  $(call func-gettext-and-update-po,$(SRC_LIST), \
 	    $(foreach locale,$(LOCALES),$(PO_DIR)/$(locale).po)))
 
 build:
