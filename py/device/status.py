@@ -21,7 +21,6 @@ _PROP_LIST = []
 
 def StatusProperty(f):
   """Decoration function for SystemStatus properties."""
-  global _PROP_LIST
   name = f.__name__
   if not name.startswith('_'):
     _PROP_LIST.append(name)

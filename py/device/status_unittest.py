@@ -15,8 +15,8 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import board as board_module
 from cros.factory.device import power
-from cros.factory.device import thermal
 from cros.factory.device import status as status_module
+from cros.factory.device import thermal
 
 
 class SystemStatusTest(unittest.TestCase):
