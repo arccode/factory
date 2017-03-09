@@ -21,23 +21,23 @@ ReplacePattern = namedtuple('ReplacePattern',
                             ['old_substring', 'new_substring'])
 
 DESCRIPTION = """Migrates a board-specific folder from one board to
-another board. For example, copying chromeos-factory-board folder
+another board. For example, copying factory-board folder
 under one private overlay to another private overlay. It also renames
 board-specific folder/file names and renames board-specific strings
 in files.
 """
 
 EXAMPLES = r"""Examples:
-  1. Migrating chromeos-factory-board folder from rambi private overlay
+  1. Migrating factory-board folder from rambi private overlay
      to cranky private overlay:
 
      py/tools/migrate_board_dir.py \
          --src_board_name rambi \
          --dst_board_name cranky \
          --src_dir ~/trunk/src/private-overlays/overlay-rambi-private/\
-chromeos-base/chromeos-factory-board \
+chromeos-base/factory-board \
          --dst_dir ~/trunk/src/private-overlays/overlay-cranky-private/\
-chromeos-base/chromeos-factory-board \
+chromeos-base/factory-board \
          --reset_ebuild_file
 
   2. Migrating chromeos-bsp-rambi folder (for battery cutoff scripts) from

@@ -19,15 +19,21 @@ import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
+from cros.factory.tools import build_board
 from cros.factory.utils import process_utils
 
 
 try:
-  sys.path.append('/mnt/host/depot_tools')
+  DEPOT_TOOLS_PATH = os.path.join(
+      os.path.dirname(os.environ.get('CROS_WORKON_SRCROOT',
+                                     '/mnt/host/source')),
+      'depot_tools')
+  if DEPOT_TOOLS_PATH not in sys.path:
+    sys.path.append(DEPOT_TOOLS_PATH)
   import gerrit_util  # pylint: disable=import-error
 except ImportError:
   logging.exception('cannot find module gerrit_util, which should be found '
-                    'under /mnt/host/depot_tools, are you in chroot?')
+                    'under %s, are you in chroot?', DEPOT_TOOLS_PATH)
   raise
 
 
@@ -41,19 +47,11 @@ def GetFactoryRepoInfo(options):
 
 def GetBoardRepoInfo(options):
   board = options.board
-
-  ebuild_path = process_utils.SpawnOutput(
-      ['equery-' + board, 'which', 'factory-board'])
-  if not ebuild_path:
-    logging.warning('cannot find ebuild for factory-board, '
-                    'rollback to chromeos-factory-board')
-    ebuild_path = process_utils.SpawnOutput(
-        ['equery-' + board, 'which', 'chromeos-factory-board'])
-
-  if not ebuild_path:
+  files_dir = build_board.GetChromeOSFactoryBoardPath(board)
+  if not files_dir:
     raise RuntimeError('cannot find private overlay for board: ' + board)
 
-  overlay_dir = os.path.dirname(ebuild_path)
+  overlay_dir = os.path.dirname(files_dir)
 
   # expected output would be like:
   #

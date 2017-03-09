@@ -1171,10 +1171,7 @@ class FinalizeBundle(object):
     logging.info(
         "IMPORTANT: If you modified the README or MANIFEST.yaml, don't forget "
         'to check your changes into %s.',
-        os.path.join(os.environ['CROS_WORKON_SRCROOT'],
-                     'src', self.build_board.overlay_relpath,
-                     'chromeos-base', 'chromeos-factory-board',
-                     'files', 'bundle'))
+        os.path.join(self.build_board.factory_board_files, 'bundle'))
 
   def _SubstVars(self, input_str):
     """Substitutes variables into a string.

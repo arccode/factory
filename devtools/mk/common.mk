@@ -16,7 +16,7 @@ define \n
 endef
 
 BOARD ?=
-# The package names (chromeos-factory-board, factory-board) must be same as
+# The package names (factory-board, chromeos-factory-board) must be same as
 # RDEPEND listed in virtual/chromeos-bsp-factory.
 _BOARD_EBUILD = \
   $(if $(BOARD),$(shell equery-$(BOARD) which factory-board 2>/dev/null || \

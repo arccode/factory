@@ -11,12 +11,12 @@ To change cut-off options:
 
 1. If you are changing the cut-off options for the finalization (factory wipe),
    copy the `cutoff.conf.default` to your board overlay into file path
-   `chromeos-base/chromeos-factory-board/files/sh/cutoff/cutoff.conf`.
+   `chromeos-base/factory-board/files/sh/cutoff/cutoff.conf`.
    Change values in the config file, and rebuild a new factory toolkit.
    This config file also applies to reset shim.
 
    We also allow config files written in JSON. Put that in
-   `chromeos-base/chromeos-factory-board/files/py/config/cutoff.json`,
+   `chromeos-base/factory-board/files/py/config/cutoff.json`,
    using same key names and values.
 
 2. If you want to set a different value for reset shim (for example to reset
@@ -26,7 +26,7 @@ To change cut-off options:
 Dependency Isolation
 --------------------
 This folder is shared by Chrome OS Factory Toolkit (complete execution
-enviroment with Python) and Factory Reset Shim (also known as factory_install
+environment with Python) and Factory Reset Shim (also known as factory_install
 image, using a very limited root file system without Python) so it must not have
 any dependency with other files outside this folder.
 
@@ -43,8 +43,8 @@ As explained in previous section, the factory software may execute cutoff
 scripts using different approaches that you may override execution options.
 
 But the most easy way would be to create a per-board configuration file so it
-will be shared as default value. To do that, go chromeos-factory-board in your
-board overlay and put the files in `files/sh/cutoff/cutoff.conf`.
+will be shared as default value. To do that, go `chromeos-base/factory-board`
+in your board overlay and put the files in `files/sh/cutoff/cutoff.conf`.
 
 There are few options you can set:
 

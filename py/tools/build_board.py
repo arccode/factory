@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tools to get variaous representations of a board name."""
+"""Tools to get various representations of a board name."""
 
 import logging
 import os
@@ -12,6 +12,7 @@ import subprocess
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils import type_utils
 
 
 # List of all source path that could be used for overlay project.
@@ -25,15 +26,26 @@ OVERLAY_PATH = [
 
 
 def GetChromeOSFactoryBoardPath(board):
-  try:
-    ebuild_path = process_utils.CheckOutput(
-        ['equery-%s' % board, 'which', 'chromeos-factory-board'])
-  except process_utils.CalledProcessError as error:
-    logging.warn("Failed to find ebuild for chromeos-factory-board.")
-    logging.exception(error)
-    return None
-
-  return os.path.dirname(ebuild_path)
+  # The packages here must be in same order as defined in
+  # virtual/chromeos-bsp-factory.
+  package_names = ['factory-board', 'chromeos-factory-board']
+  for package in package_names:
+    try:
+      ebuild_path = process_utils.SpawnOutput(
+          ['equery-%s' % board, 'which', package])
+    except OSError:
+      logging.error('Fail to execute equery-%s. Try to run inside chroot'
+                    ' and do "setup_board --board %s" first.', board, board)
+      return None
+    if ebuild_path:
+      files_dir = os.path.join(os.path.dirname(ebuild_path), 'files')
+      # Some packages, for example the fallback one in chromiumos-overlay,
+      # may not have 'files' so we have to check again.
+      if os.path.exists(files_dir):
+        return files_dir
+    logging.warning('no ebuild [%s] for board [%s].', package, board)
+  logging.warning('cannot find any board packages for board [%s].')
+  return None
 
 
 class BuildBoardException(Exception):
@@ -55,6 +67,9 @@ class BuildBoard(object):
       name used in branches (like "spring" in factory-spring-1234.B).
     gsutil_name: The base name, plus '-'+variant if set.  GSUtil uses
       'base-variant' as bucket names.
+    factory_board_files: A folder to FILESDIR in factory board package
+      (chromeos-factory-board or factory-board). This is available only
+      when the module is invoked in chroot.
     overlay_relpath: Relative patch the overlay within the source root
       (like "overlays/overlay-variant-tegra2-dev-board" for
       "tegra2_dev-board").  This is available only when this module is
@@ -191,7 +206,8 @@ class BuildBoard(object):
 
     if sys_utils.InChroot():
       # Only get overlay relative path in chroot.
-      overlay = self.base if not self.variant else '%s-%s' % (self.base, self.variant)
+      overlay = (self.base if not self.variant else
+                 '%s-%s' % (self.base, self.variant))
 
       try_overlays = [path % overlay for path in OVERLAY_PATH]
       overlay_paths = [os.path.join(src, d) for d in try_overlays]
@@ -202,6 +218,11 @@ class BuildBoard(object):
       self.overlay_relpath = os.path.relpath(existing_overlays[0], src)
     else:
       self.overlay_relpath = None
+
+  @type_utils.LazyProperty
+  def factory_board_files(self):
+    return (GetChromeOSFactoryBoardPath(self.full_name) if sys_utils.InChroot()
+            else None)
 
 
 if __name__ == '__main__':

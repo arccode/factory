@@ -86,6 +86,10 @@ PACKAGES = {
         dict(path='%(overlay_relpath)s',
              package='chromeos-base/chromeos-factory-board',
              workon=False),
+    'factory-board':
+        dict(path='%(overlay_relpath)s',
+             package='chromeos-base/factory-board',
+             workon=False),
     'autotest-private-board':
         dict(path='%(overlay_relpath)s',
              package='chromeos-base/autotest-private-board',

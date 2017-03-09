@@ -17,8 +17,8 @@ from cros.factory.tools import build_board
 from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 
-# The extra path prefix for factory files under overlays.
-OVERLAY_FACTORY_FOLDER = 'chromeos-base/chromeos-factory-board/files/'
+RE_PACKAGE_FILES = re.compile(r'.*?files/')
+
 
 def GetFileToLint(path=None):
   output = CheckOutput(
@@ -26,11 +26,13 @@ def GetFileToLint(path=None):
       log=True)
 
   # Remove first three characters, and anything up to the -> for renames.
-  uncommitted = [re.sub('^...(.+ -> )?', '', x)
-                 for x in output.splitlines()]
-  remove_len = len(OVERLAY_FACTORY_FOLDER) if path else 0
-  uncommitted = [x[remove_len:] for x in uncommitted
-                 if x.endswith('.py') and '#' not in x]
+  uncommitted = [re.sub(r'^...(.+ -> )?', '', x) for x in output.splitlines()]
+
+  # The output contains full path as
+  # chromeos-base/{chromeos-,}factory-board/files/py/device/boards/test.py
+  # and we want to strip until 'files/'.
+  uncommitted = [re.sub(RE_PACKAGE_FILES, '', x) if path else x
+                 for x in uncommitted if x.endswith('.py') and '#' not in x]
   logging.info('Uncommitted files: %r', uncommitted)
 
   all_files = set(uncommitted)
@@ -51,7 +53,7 @@ def GetFileToLint(path=None):
     for f in files:
       file_path = os.path.join(path, f) if path else f
       if f.endswith('.py') and os.path.exists(file_path):
-        all_files.add(f[remove_len:])
+        all_files.add(re.sub(RE_PACKAGE_FILES, '', f) if path else f)
 
   return all_files
 

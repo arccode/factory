@@ -5,8 +5,10 @@
 
 """This is sample code of a board specific test.
 
-Board specific test should be put in board overlay, e.g.
-~/trunk/src/private-overlays/overlay-${BOARD}-private/chromeos-base/chromeos-factory-board/files/py/pytests/
+Board specific test should be put in board overlay. For example, if the overlay
+is ~/trunk/src/private-overlays/overlay-${BOARD}-private then you have to create
+the factory-board package and put files under relative path
+chromeos-base/factory-board/files/py/pytests/.
 
 To avoid file name conflict, please name the python script as "${BOARD}_xxx.py".
 For example, if you are implementing your own touchscreen test for board ABC, a

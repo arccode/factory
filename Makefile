@@ -11,7 +11,7 @@
 # - bundle: everything for deployment, including doc, toolkit, setup, ... etc.
 
 # Some targets, including 'par' and 'toolkit', are using a 'resource system'.
-# Source files from factory repo and chromeos-factory-board/files were collected
+# Source files from factory repo and factory-board/files were collected
 # when building the 'resource' target. Other portage packages can also put what
 # should be added into toolkit and par into BOARD_RESOURCES_DIR
 # (/build/$BOARD/var/lib/factory/resources) - for example files downloaded from

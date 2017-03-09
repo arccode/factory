@@ -103,7 +103,7 @@ declares a test with with the ID ``main``.
 In general, you will want to create the test list for your board by
 copying the generic test list into your board overlay: use a file name
 like
-``private-overlays/overlay-foo/chromeos-base/chromeos-factory-board/files/py/test/test_lists/main.py``
+``private-overlays/overlay-foo/chromeos-base/factory-board/files/py/test/test_lists/main.py``
 to create a :py:mod:`cros.factory.test.test_lists.main` module there.
 
 In order to declare test lists, your module must provide a
@@ -184,7 +184,7 @@ To add a new new-style test list, you have two options:
     Naturally, this test list would apply to all boards.
 
   * In the board overlay
-    (:samp:`src/private-overlays/overlay-{board}-private/chromeos-base/chromeos-factory-board/files/py/test/test_lists/{test_list_name}.py`).
+    (:samp:`src/private-overlays/overlay-{board}-private/chromeos-base/factory-board/files/py/test/test_lists/{test_list_name}.py`).
 
   Note that the module name (:samp:`{test_list_name}` in the examples
   above) is not necessarily the test list's ID: since a single module

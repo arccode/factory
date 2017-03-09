@@ -37,7 +37,7 @@ project. To do so:
    :py:class:`cros.factory.device.boards.chromeos.ChromeOSBoard`
    in the :py:mod:`cros.factory.device.boards` package.  In general,
    for a board named :samp:`{xxx}`, you will add a
-   file :samp:`private-overlays/overlay-{xxx}-private/chromeos-base/chromeos-factory-board/files/py/device/boards/{xxx}.py`
+   file :samp:`private-overlays/overlay-{xxx}-private/chromeos-base/factory-board/files/py/device/boards/{xxx}.py`
    containing the following::
 
      import factory_common  # pylint: disable=W0611
@@ -67,14 +67,14 @@ project. To do so:
    :py:class:`cros.factory.device.board.DeviceBoard`.
 
 #. Specify that your implementation should be used.  To do this, in
-   :samp:`private-overlays/overlay-{board}-private/chromeos-base/chromeos-factory-board/files/board/board_setup_factory.sh`,
-   write a Python dict expression to specify the board and link to use just like
-   the following::
+   :samp:`private-overlays/overlay-{board}-private/chromeos-base/factory-board/files/py/config/devices.json`,
+   write a JSON configuration to specify the type of board and link to use just
+   like the following::
 
-     export CROS_FACTORY_DUT_OPTIONS="{'board_class':'XXXBoard','link_class':'XXXLink'}"
+     {"dut": {"board_class": "XXXBoard", "link_class": "XXXLink"}}
 
-   board_class refers to the class name under `cros.factory.device.boards`,
-   and link_class refers to the class name under `cros.factory.device.links`.
+   `board_class` refers to the class name under `cros.factory.device.boards`,
+   and `link_class` refers to the class name under `cros.factory.device.links`.
 
 Adding new modules to the Board class
 -------------------------------------

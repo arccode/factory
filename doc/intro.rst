@@ -40,7 +40,7 @@ Make targets include:
 * :samp:`overlay-{board}`: Creates a directory called `overlay-{board}`
   containing the contents of the factory source, overlayed with contents
   from the board overlay (e.g., in
-  :samp:`third_party/private-overlays/overlay-{board}-private/chromeos-board/chromeos-factory-board/files`).
+  :samp:`third_party/private-overlays/overlay-{board}-private/chromeos-board/factory-board/files`).
   This is useful to pull in board-specific files such as test lists.
 * :samp:`overlay-{board}-lint`: Runs the :samp:`overlay-{board}-lint`
   target, and further runs ``make lint`` within the overlay directory.

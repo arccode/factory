@@ -22,9 +22,6 @@ from cros.factory.utils.process_utils import CheckOutput
 NUM_COMMITS_PER_REPO = 50
 
 SRC = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
-REPOS = ['platform/factory',
-         'third_party/autotest/files',
-         '%OVERLAY%/chromeos-base/chromeos-factory-board/files']
 MERGED_MSG = ['Reviewed-on', 'Marking set of ebuilds as stable']
 
 
@@ -65,11 +62,10 @@ def main():
                       help='The board to check overlay repositories for.')
   args = parser.parse_args()
 
-  overlay_root = BuildBoard(args.board).overlay_relpath
-  for repo in REPOS:
-    if '%OVERLAY%' in repo and overlay_root is None:
+  repos = ['platform/factory', BuildBoard(args.board).factory_board_files]
+  for repo_path in repos:
+    if not repo_path:
       raise ValueError('No overlay available for %s!' % args.board)
-    repo_path = repo.replace('%OVERLAY%', overlay_root)
     print 'Repository %s' % repo_path
     repo_full_path = os.path.join(SRC, repo_path)
 
