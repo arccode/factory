@@ -285,7 +285,7 @@ def SMTCountdown(args):
 
 
 def SMTStress(args):
-  """Creates a hardware_SAT test to run StressAppTest for a short while.
+  """Creates a stressapptest test to run StressAppTest for a short while.
 
   Args:
     args: A TestListArgs object.
@@ -293,11 +293,10 @@ def SMTStress(args):
   FactoryTest(
       id='StressAppTest',
       label_zh=u'压力测试',
-      autotest_name='hardware_SAT',
+      pytest_name='stressapptest',
       exclusive_resources=[plugin.RESOURCE.CPU],
       dargs=dict(
-          seconds=args.smt_stress_duration_secs,
-          free_memory_fraction=0.9))
+          seconds=args.smt_stress_duration_secs))
 
 
 def BasicWifi(args):

@@ -114,7 +114,7 @@ class TestListArgs(object):
 
   #####
   #
-  # Parameters for RunIn stress tests.  Please notice that hardware_SAT
+  # Parameters for RunIn stress tests.  Please notice that stressapptest
   # might wear out internal storage.  You can disable it by set
   # run_in_stress_test_disk = False.
   #
@@ -130,7 +130,7 @@ class TestListArgs(object):
 
   # Stress test parameters for each iteration.
   run_in_sat_duration_secs = int(8 * HOURS)
-  # Whether to enable disk thread in hardware_SAT test.
+  # Whether to enable disk thread in stressapptest test.
   run_in_stress_test_disk = True
 
   # The interval of logging events in seconds during run-in.
@@ -462,10 +462,8 @@ def StressTest(args):
     FactoryTest(
         id='StressAppTest',
         label_zh=u'压力测试',
-        autotest_name='hardware_SAT',
+        pytest_name='stressapptest',
         dargs=dict(
-            drop_caches=True,
-            free_memory_fraction=0.75,
             seconds=args.run_in_sat_duration_secs,
             # Wait for memory usage of other tests to stablize.
             wait_secs=60,
@@ -505,10 +503,8 @@ def DozingStress(args):
     FactoryTest(
         id='StressAppTest',
         label_zh=u'压力测试',
-        autotest_name='hardware_SAT',
+        pytest_name='stressapptest',
         dargs=dict(
-            drop_caches=True,
-            free_memory_fraction=0.75,
             seconds=args.run_in_dozing_sat_duration_secs,
             disk_thread=args.run_in_stress_test_disk))
 

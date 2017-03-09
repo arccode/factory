@@ -88,10 +88,8 @@ def RunIn(args, group_suffix='FirmwareStress'):
       FactoryTest(
           id='StressAppTest',
           label_zh=u'压力测试',
-          autotest_name='hardware_SAT',
+          pytest_name='stressapptest',
           dargs=dict(
-              drop_caches=True,
-              free_memory_fraction=0.75,
               seconds=args.run_in_stress_duration_secs,
               wait_secs=60))
 
@@ -122,10 +120,8 @@ def RunIn(args, group_suffix='FirmwareStress'):
       FactoryTest(
           id='StressAppTest',
           label_zh=u'压力测试',
-          autotest_name='hardware_SAT',
+          pytest_name='stressapptest',
           dargs=dict(
-              drop_caches=True,
-              free_memory_fraction=0.85,
               seconds=args.run_in_dozing_stress_duration_secs))
 
       # Takes about 30 minutes for 60 iterations

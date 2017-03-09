@@ -26,7 +26,7 @@ class StressAppTest(unittest.TestCase):
       Arg('free_memory_only', bool,
           'Only use free memory for test. When set to True, only '
           'memory_radio * free_memory are used for stressapptest.',
-          default=False),
+          default=True),
       Arg('wait_secs', int,
           'Time to wait in seconds before executing stressapptest.',
           default=0),
