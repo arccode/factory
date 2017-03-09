@@ -20,7 +20,7 @@ import shutil
 import sys
 import tempfile
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.env import paths
 from cros.factory.tools import install_symlinks
@@ -217,7 +217,7 @@ class FactoryToolkitInstaller(object):
         file "factory/init/main.d/@app.sh" is not executable.
 
     Therefore, we enable an app by removing file "disable-@app" and creating
-    file "enable-@app", and vise versa.
+    file "enable-@app", and vice versa.
     """
     app_enable = os.path.join(self._usr_local_dest,
                               'factory', 'init', 'main.d', 'enable-' + app)
@@ -379,7 +379,7 @@ def ExtractOverlord(src_root, output_dir):
 
   # Give overlordd execution permission
   os.chmod(os.path.join(output_dir, 'overlordd'), 0755)
-  print "Extarcted overlord under '%s'" % output_dir
+  print "Extracted overlord under '%s'" % output_dir
 
 
 def main():
@@ -450,7 +450,7 @@ def main():
   parser.add_argument('--apps', type=lambda s: s.split(','), default=None,
                       help=('Enable or disable some apps under '
                             'factory/init/main.d/. Use prefix "-" to disable, '
-                            'prefix "+" to enable, and use "," to seperate. '
+                            'prefix "+" to enable, and use "," to separate. '
                             'For example: --apps="-goofy,+whale_servo"'))
 
   args = parser.parse_args()
@@ -520,7 +520,7 @@ def main():
       installer.Install()
 
 if __name__ == '__main__':
-  # makself inteprets "LICENSE" environment variable string as license text and
+  # makself interprets "LICENSE" environment variable string as license text and
   # will prompt user to accept before installation. For factory toolkit, we
   # don't want any user interaction in installation and the license is already
   # covered by ebuild or download platform like CPFE.

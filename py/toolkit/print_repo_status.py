@@ -79,7 +79,7 @@ def main():
 
     uncommitted = GetUncommittedFiles(repo_full_path)
     if uncommitted:
-      print '  >>> Repository contains uncommited changes:'
+      print '  >>> Repository contains uncommitted changes:'
       for changed_file in uncommitted:
         print '\t%s' % changed_file
 
