@@ -7,6 +7,7 @@
 from __future__ import print_function
 import gettext
 import glob
+import json
 import logging
 import os
 
@@ -116,3 +117,25 @@ def Translated(obj, translate=True, backward_compatible=True):
   else:
     obj = (_(obj) if translate else NoTranslation(obj))
   return obj
+
+
+def GetAllTranslations():
+  """Get translations for all available text."""
+  all_keys = set()
+  for locale in LOCALES:
+    translations = _GetTranslations(locale)
+    if not isinstance(translations, gettext.GNUTranslations):
+      continue
+    # pylint: disable=protected-access
+    all_keys.update(translations._catalog)
+
+  all_translations = []
+  for key in all_keys:
+    if key:
+      all_translations.append(_(key))
+  return all_translations
+
+
+def GetAllI18nDataJS():
+  """Return a javascript that contains all i18n-related things."""
+  return json.dumps({'translations': GetAllTranslations(), 'locales': LOCALES})

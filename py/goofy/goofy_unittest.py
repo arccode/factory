@@ -206,6 +206,8 @@ class GoofyTest(unittest.TestCase):
       server.AddRPCInstance(goofy_proxy.STATE_URL, self.state).InAnyOrder()
       server.AddHTTPGetHandler('/event', IgnoreArg()).InAnyOrder()
       server.AddHTTPGetHandler('/pty', IgnoreArg()).InAnyOrder()
+      server.AddHTTPGetHandler(
+          '/js/goofy-translations.js', IgnoreArg()).InAnyOrder()
 
     if self.test_list:
       test_list = _BuildTestList(self.test_list, self.options)

@@ -52,6 +52,7 @@ from cros.factory.test.event_log import GetBootSequence
 from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
+from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import state
@@ -313,6 +314,17 @@ class Goofy(GoofyBase):
     # injecting goofy_rpc functions into state.
     self.goofy_rpc = GoofyRPC(self)
     self.goofy_rpc.RegisterMethods(self.state_instance)
+
+  def init_i18n(self):
+    js_data = 'var goofy_i18n_data = %s;' % translation.GetAllI18nDataJS()
+    def _ResponseJS(request):
+      request.send_response(200)
+      request.send_header('Content-Type', 'application/javascript')
+      request.send_header('Content-Length', len(js_data))
+      request.end_headers()
+      request.wfile.write(js_data)
+    self.goofy_server.AddHTTPGetHandler(
+        '/js/goofy-translations.js', _ResponseJS)
 
   def start_event_server(self):
     self.event_server = EventServer()
@@ -1140,6 +1152,7 @@ class Goofy(GoofyBase):
 
     self.start_goofy_server()
     self.init_state_instance()
+    self.init_i18n()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
     self.state_instance.set_shared_data('ui_scale_factor',
                                         self.options.ui_scale_factor)

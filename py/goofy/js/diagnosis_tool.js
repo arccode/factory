@@ -6,6 +6,7 @@ goog.provide('cros.factory.DiagnosisTool');
 goog.provide('cros.factory.DiagnosisTool.Inputs');
 goog.provide('cros.factory.DiagnosisTool.Inputs.InputField');
 
+goog.require('cros.factory.i18n');
 goog.require('goog.array');
 goog.require('goog.dom');
 goog.require('goog.string');
@@ -227,7 +228,7 @@ cros.factory.DiagnosisTool.getStateId = function(state) {
 cros.factory.DiagnosisTool.prototype.sendRpc = function(
     method, args, callback, opt_errorCallback) {
   this.goofy.sendRpc('DiagnosisToolRpc', goog.array.concat([method], args),
-                     callback, opt_errorCallback);
+      callback, opt_errorCallback);
 };
 
 
@@ -262,14 +263,15 @@ cros.factory.DiagnosisTool.prototype.initWindow = function() {
   this.mainWindow_.setModal(false);
   this.mainWindow_.setTitle('Diagnosis Tool');
   this.mainWindow_.createDom();
-  var viewportSize = goog.dom.getViewportSize(goog.dom.getWindow(document) ||
-                                              window);
+  var viewportSize = goog.dom.getViewportSize(
+      goog.dom.getWindow(document) || window);
   var width = viewportSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var height = viewportSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  goog.style.setBorderBoxSize(this.mainWindow_.getContentElement(),
-                              new goog.math.Size(width, height));
-  goog.dom.setProperties(this.mainWindow_.getElement(),
-                         {'id': cros.factory.DiagnosisTool.MAIN_WINDOW_ID});
+  goog.style.setBorderBoxSize(
+      this.mainWindow_.getContentElement(), new goog.math.Size(width, height));
+  goog.dom.setProperties(
+      this.mainWindow_.getElement(),
+      {'id': cros.factory.DiagnosisTool.MAIN_WINDOW_ID});
   this.mainWindow_.setButtonSet(null);
   this.goofy.registerDialog(this.mainWindow_);
   this.mainWindow_.setDisposeOnHide(false);
@@ -315,8 +317,8 @@ cros.factory.DiagnosisTool.prototype.initWindowRightPart = function() {
       this.initWindowRightUpperPart(),
       this.initWindowRightLowerPart(),
       goog.ui.SplitPane.Orientation.VERTICAL);
-  var viewportSize = goog.dom.getViewportSize(goog.dom.getWindow(document) ||
-                                              window);
+  var viewportSize = goog.dom.getViewportSize(
+      goog.dom.getWindow(document) || window);
   var height = viewportSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var upSize = height * (1 - cros.factory.DiagnosisTool.OUTPUT_HEIGHT_FACTOR);
   verticalSplitpane.setInitialSize(upSize);
@@ -330,10 +332,6 @@ cros.factory.DiagnosisTool.prototype.initWindowRightPart = function() {
  * It includes name, state, description, input, etc.
  */
 cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
-  var Label = function(en, zh) {
-    return goog.dom.htmlToDocumentFragment(cros.factory.Label(en, zh));
-  };
-
   var all = new goog.ui.Component();
   all.createDom();
   var all_element = /** @type {!Node} */(all.getElement());
@@ -344,7 +342,8 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
   this.stateRowComponent_ = new goog.ui.Component();
   all.addChild(this.stateRowComponent_, true);
   var row_element = /** @type {!Node} */(this.stateRowComponent_.getElement());
-  goog.dom.appendChild(row_element, Label('State:', '状态:'));
+  goog.dom.appendChild(
+      row_element, cros.factory.i18n.i18nLabelElement('State:'));
   for (var key in cros.factory.DiagnosisTool.State) {
     var value = cros.factory.DiagnosisTool.State[key];
     var stateId = cros.factory.DiagnosisTool.getStateId(value);
@@ -354,20 +353,20 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
     stateElement.style['display'] = 'none';
   }
 
-  this.descriptionPromptElement_ = goog.dom.createDom('div', {},
-                                                      Label('Description:',
-                                                            '说明/描述:'));
-  this.descriptionElement_ = goog.dom.createDom('div', {'class':'description'});
+  this.descriptionPromptElement_ = goog.dom.createDom(
+      'div', {}, cros.factory.i18n.i18nLabelElement('Description:'));
+  this.descriptionElement_ = goog.dom.createDom(
+      'div', {'class': 'description'});
   goog.dom.appendChild(all_element, this.descriptionPromptElement_);
   goog.dom.appendChild(all_element, this.descriptionElement_);
 
-  this.inputsPromptElement_ = goog.dom.createDom('div', {}, Label('Input:',
-                                                                  '输入:'));
+  this.inputsPromptElement_ = goog.dom.createDom(
+      'div', {}, cros.factory.i18n.i18nLabelElement('Input:'));
   this.inputsComponent_ = new goog.ui.Component();
   goog.dom.appendChild(all_element, this.inputsPromptElement_);
   all.addChild(this.inputsComponent_, true);
-  goog.dom.setProperties(this.inputsComponent_.getElement(),
-                         {'class': 'inputs'});
+  goog.dom.setProperties(
+      this.inputsComponent_.getElement(), {'class': 'inputs'});
   this.inputs_ = new cros.factory.DiagnosisTool.Inputs(this.inputsComponent_);
 
   this.startButton_ = new goog.ui.Button('start');
@@ -377,21 +376,24 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
 
   this.clearButton_ = new goog.ui.Button('clear');
   all.addChild(this.clearButton_, true);
-  goog.dom.setProperties(this.clearButton_.getElement(),
-                         {'id': 'diagnosis-tool-clear-button'})
+  goog.dom.setProperties(
+      this.clearButton_.getElement(), {'id': 'diagnosis-tool-clear-button'});
 
-  goog.events.listen(this.startButton_, goog.ui.Component.EventType.ACTION,
-                     function(event) {
-                       this.userRequestStartTask();
-                     }, false, this);
-  goog.events.listen(this.stopButton_, goog.ui.Component.EventType.ACTION,
-                     function(event) {
-                       this.userRequestStopTask();
-                     }, false, this);
-  goog.events.listen(this.clearButton_, goog.ui.Component.EventType.ACTION,
-                     function(event) {
-                       this.userClearOutput();
-                     }, false, this);
+  goog.events.listen(
+      this.startButton_, goog.ui.Component.EventType.ACTION,
+      function(event) {
+        this.userRequestStartTask();
+      }, false, this);
+  goog.events.listen(
+      this.stopButton_, goog.ui.Component.EventType.ACTION,
+      function(event) {
+        this.userRequestStopTask();
+      }, false, this);
+  goog.events.listen(
+      this.clearButton_, goog.ui.Component.EventType.ACTION,
+      function(event) {
+        this.userClearOutput();
+      }, false, this);
   return all;
 };
 
@@ -444,11 +446,11 @@ cros.factory.DiagnosisTool.prototype.setMenu = function(config) {
   }
   this.menuComponent_.expandAll();
   for (var id in this.menuNodes_) {
-    goog.events.listen(this.menuNodes_[id].getLabelElement(),
-                       goog.events.EventType.CLICK,
-                       function(id) {
-                         return function(evt) { this.userRequestLoadTask(id); };
-                       }(id), false, this);
+    goog.events.listen(
+        this.menuNodes_[id].getLabelElement(), goog.events.EventType.CLICK,
+        function(id) {
+          return function(evt) { this.userRequestLoadTask(id); };
+        }(id), false, this);
   }
 };
 
@@ -486,17 +488,17 @@ cros.factory.DiagnosisTool.prototype.userClearOutput = function() {
  */
 cros.factory.DiagnosisTool.prototype.userRequestLoadTask = function(id) {
   this.sendRpc('LoadTask', [id],
-               goog.bind(function(b) {
-                 // If the return value of DiagnosisToolLoadTask() in
-                 // the backend is false, which means that the backend
-                 // thinks that it will not load another task immediately,
-                 // we need to switch back to the task menu.
-                 if (!b) {
-                   // Selects to the original node so it will be looked
-                   // like nothing happened.
-                   this.menuComponent_.setSelectedItem(this.currentMenuNode_);
-                 }
-               }, this));
+      goog.bind(function(b) {
+        // If the return value of DiagnosisToolLoadTask() in
+        // the backend is false, which means that the backend
+        // thinks that it will not load another task immediately,
+        // we need to switch back to the task menu.
+        if (!b) {
+          // Selects to the original node so it will be looked
+          // like nothing happened.
+          this.menuComponent_.setSelectedItem(this.currentMenuNode_);
+        }
+      }, this));
 };
 
 
@@ -517,15 +519,15 @@ cros.factory.DiagnosisTool.prototype.loadTask = function(id) {
  * @param {number} id ID of this confirm dialog.
  * @param {string} title Dialog window title.
  * @param {string} content Dialog window content.
- * @param {number|null} timeout Timeout.  Null means unlimited.
+ * @param {?number} timeout Timeout.  Null means unlimited.
  * @param {Array.<string>} options Options.
- * @param {string|null} defaultOption Default option.
+ * @param {?string} defaultOption Default option.
  */
 cros.factory.DiagnosisTool.prototype.confirmDialog = function(
     id, title, content, timeout, options, defaultOption) {
   var dialog = new goog.ui.Dialog();
   dialog.createDom();
-  var dialogContent = /** @type {!Node} */(dialog.getContentElement());
+  var dialogContent = /** @type {!Element} */(dialog.getContentElement());
   // Dialog setting
   dialog.setHasTitleCloseButton(false);
   dialog.setTitle(title);
@@ -552,12 +554,10 @@ cros.factory.DiagnosisTool.prototype.confirmDialog = function(
     this.confirmDialog_[id] = null;
   }, this);
   goog.events.listen(dialog, goog.ui.Dialog.EventType.SELECT,
-                     function(e) { callback(e.key); }, false, this);
+      function(e) { callback(e.key); }, false, this);
   if (timeout) {
-    var timeoutText = goog.dom.createDom('span');
+    var timeoutText = cros.factory.i18n.i18nLabelElement('Time remaining: ');
     var timeoutTime = goog.dom.createDom('span');
-    timeoutText.innerHTML = cros.factory.Label('Time remaining: ',
-                                               '剩余时间: ');
     timeoutTime.innerHTML = timeout;
     goog.dom.append(dialogContent, timeoutText, timeoutTime);
     timer = new goog.Timer(1000);  // Sets tick interval to 1000 ms (1s).
@@ -699,9 +699,9 @@ cros.factory.DiagnosisTool.prototype.handleBackendEvent = function(message) {
     this.clearOutput();
 
   } else if (message[BACKEND_EVENT] == 'confirmDialog') {
-    this.confirmDialog(message['id'],
-                       message['title'], message['content'], message['timeout'],
-                       message['options'], message['default_option']);
+    this.confirmDialog(
+        message['id'], message['title'], message['content'], message['timeout'],
+        message['options'], message['default_option']);
 
   } else if (message[BACKEND_EVENT] == 'confirmDialogStop') {
     this.confirmDialogStop(message['id']);
@@ -773,10 +773,11 @@ cros.factory.DiagnosisTool.Inputs.addFieldPrompt = function(
     prefix, suffix, helpText, input) {
   var ret = new goog.ui.Component();
   ret.createDom();
-  goog.dom.append(/** @type {!Node} */(ret.getElement()),
-                  goog.dom.htmlToDocumentFragment(prefix),
-                  input,
-                  goog.dom.htmlToDocumentFragment(suffix));
+  goog.dom.append(
+      /** @type {!Element} */(ret.getElement()),
+      goog.dom.htmlToDocumentFragment(prefix),
+      input,
+      goog.dom.htmlToDocumentFragment(suffix));
   if (helpText.length > 0) {
     var tp = new goog.ui.Tooltip(ret.getElement(), helpText);
   }
@@ -816,20 +817,17 @@ cros.factory.DiagnosisTool.Inputs.prototype.setInputs = function(inputs) {
     var ret;
     if (type == cros.factory.DiagnosisTool.Inputs.InputType.NUMBER) {
       ret = this.addNumberField(prpt, help,
-                                input['value'],
-                                input['min'], input['max'], input['step'],
-                                input['round'], input['unit']);
+          input['value'], input['min'], input['max'], input['step'],
+          input['round'], input['unit']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.SLIDER) {
       ret = this.addSliderField(prpt, help,
-                                input['value'],
-                                input['min'], input['max'], input['step'],
-                                input['round'], input['unit']);
+          input['value'], input['min'], input['max'], input['step'],
+          input['round'], input['unit']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.CHOICES) {
       ret = this.addChoicesField(prpt, help, input['value'], input['choices']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.BOOL) {
       ret = this.addBoolField(prpt, help,
-                              input['value'],
-                              input['enable_list'], input['disable_list']);
+          input['value'], input['enable_list'], input['disable_list']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.FILE) {
       ret = this.addFileField(prpt, help, input['pattern'], input['file_type']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.STRING) {
@@ -913,19 +911,21 @@ cros.factory.DiagnosisTool.Inputs.prototype.addSliderField = function(
   slider.setValue(value);
   slider.render();
   var sliderClassName = 'input-slider-horizontal-line';
-  goog.dom.append(/** @type {!Node} */(slider.getElement()),
-                  goog.dom.createDom('div', {'class': sliderClassName}));
+  goog.dom.append(
+      /** @type {!Element} */(slider.getElement()),
+      goog.dom.createDom('div', {'class': sliderClassName}));
   var text = goog.dom.createDom('span');
-  var all = goog.dom.createDom('div', {'class': 'input-div'},
-                               slider.getElement(), text);
+  var all = goog.dom.createDom(
+      'div', {'class': 'input-div'}, slider.getElement(), text);
   var box = cros.factory.DiagnosisTool.Inputs.addFieldPrompt(
       prpt, unit, help, all);
   this.component_.addChild(box, true);
-  goog.events.listen(slider, goog.ui.Component.EventType.CHANGE,
-                     function(event) {
-                       var val = Number(this.slider.getValue());
-                       this.text.innerHTML = val.toFixed(round);
-                     }, false, {'slider': slider, 'text': text});
+  goog.events.listen(
+      slider, goog.ui.Component.EventType.CHANGE,
+      function(event) {
+        var val = Number(this.slider.getValue());
+        this.text.innerHTML = val.toFixed(round);
+      }, false, {'slider': slider, 'text': text});
   goog.events.dispatchEvent(slider, goog.ui.Component.EventType.CHANGE);
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
@@ -1006,8 +1006,9 @@ cros.factory.DiagnosisTool.Inputs.prototype.addBoolField = function(
       }
     }
   };
-  goog.events.listen(checkBox, goog.ui.Component.EventType.CHANGE,
-                     function(event) { onChange(); }, false, this);
+  goog.events.listen(
+      checkBox, goog.ui.Component.EventType.CHANGE,
+      function(event) { onChange(); }, false, this);
   this.component_.addChild(box, true);
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
@@ -1051,11 +1052,12 @@ cros.factory.DiagnosisTool.Inputs.prototype.addFileField = function(
   // Here it just calls a very simple file manager which only contains a prompt
   // dialog for user to input a path name.
   var filename = '';
-  var p = new goog.ui.Prompt('Simple File Manager', 'Input a path name',
-                             function(str) {
-                               label.innerHTML = goog.string.htmlEscape(str);
-                               filename = str;
-                             });
+  var p = new goog.ui.Prompt(
+      'Simple File Manager', 'Input a path name',
+      function(str) {
+        label.innerHTML = goog.string.htmlEscape(str);
+        filename = str;
+      });
   goog.events.listen(button, goog.ui.Component.EventType.ACTION, function(e) {
     p.setVisible(true);
   }, false, this);

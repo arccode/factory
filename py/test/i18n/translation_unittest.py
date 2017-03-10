@@ -68,5 +68,15 @@ class TranslationTest(unittest_test_case.I18nTestCase):
     self.assertEqual({'en-US': 'en', 'zh-CN': 'zh'},
                      translation.Translated(('en', 'zh')))
 
+  def testGetAllTranslations(self):
+    self.assertItemsEqual([
+        {'en-US': 'text 1', 'zh-CN': 'text-1'},
+        {'en-US': 'text 2', 'zh-CN': 'text-2'},
+        {
+            'en-US': 'format string {str1} {str2} [{val1:05}]',
+            'zh-CN': '<{val1:05}>-{str2}-{str1}-format-string'
+        }
+    ], translation.GetAllTranslations())
+
 if __name__ == '__main__':
   unittest.main()

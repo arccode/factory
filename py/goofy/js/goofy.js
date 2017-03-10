@@ -6,6 +6,7 @@ goog.provide('cros.factory.Goofy');
 
 goog.require('cros.factory.DeviceManager');
 goog.require('cros.factory.DiagnosisTool');
+goog.require('cros.factory.i18n');
 goog.require('goog.Uri');
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
@@ -132,61 +133,42 @@ cros.factory.ENABLE_DIAGNOSIS_TOOL = false;
 cros.factory.MAX_LINE_CONSOLE_LOG = 1024;
 
 /**
- * Makes a label that displays English (or optionally Chinese).
- * @param {string} en
- * @param {string=} zh
- * @return {string}
- */
-cros.factory.Label = function(en, zh) {
-  return '<span class="goofy-label-en-US">' + en + '</span>' +
-      '<span class="goofy-label-zh-CN">' + (zh || en) + '</span>';
-};
-
-/**
- * Makes control content that displays English (or optionally Chinese).
- *
- * @param {string} en
- * @param {string=} zh
- * @return {Node}
- */
-cros.factory.Content = function(en, zh) {
-  var span = document.createElement('span');
-  span.innerHTML = cros.factory.Label(en, zh);
-  return span;
-};
-
-/**
  * Labels for items in system info.
  * @type {Array.<Object.<string, string>>}
  */
 cros.factory.SYSTEM_INFO_LABELS = [
-  {key: 'mlb_serial_number', label: cros.factory.Label('MLB Serial Number')},
-  {key: 'serial_number', label: cros.factory.Label('Serial Number')},
-  {key: 'stage', label: cros.factory.Label('Stage')},
+  {key: 'mlb_serial_number',
+   label: cros.factory.i18n.i18nLabel('MLB Serial Number')},
+  {key: 'serial_number',
+   label: cros.factory.i18n.i18nLabel('Serial Number')},
+  {key: 'stage',
+   label: cros.factory.i18n.i18nLabel('Stage')},
   {key: 'factory_image_version',
-   label: cros.factory.Label('Factory Image Version')},
+   label: cros.factory.i18n.i18nLabel('Factory Image Version')},
   {key: 'toolkit_version',
-   label: cros.factory.Label('Factory Toolkit Version')},
+   label: cros.factory.i18n.i18nLabel('Factory Toolkit Version')},
   {key: 'release_image_version',
-   label: cros.factory.Label('Release Image Version')},
-  {key: 'wlan0_mac', label: cros.factory.Label('WLAN MAC')},
-  {key: 'ips', label: cros.factory.Label('IP Addresses')},
-  {key: 'kernel_version', label: cros.factory.Label('Kernel')},
-  {key: 'architecture', label: cros.factory.Label('Architecture')},
-  {key: 'ec_version', label: cros.factory.Label('EC')},
-  {key: 'pd_version', label: cros.factory.Label('PD')},
-  {key: 'firmware_version', label: cros.factory.Label('Main Firmware')},
-  {key: 'root_device', label: cros.factory.Label('Root Device')},
-  {key: 'factory_md5sum', label: cros.factory.Label('Factory MD5SUM'),
+   label: cros.factory.i18n.i18nLabel('Release Image Version')},
+  {key: 'wlan0_mac', label: cros.factory.i18n.i18nLabel('WLAN MAC')},
+  {key: 'ips', label: cros.factory.i18n.i18nLabel('IP Addresses')},
+  {key: 'kernel_version', label: cros.factory.i18n.i18nLabel('Kernel')},
+  {key: 'architecture', label: cros.factory.i18n.i18nLabel('Architecture')},
+  {key: 'ec_version', label: cros.factory.i18n.i18nLabel('EC')},
+  {key: 'pd_version', label: cros.factory.i18n.i18nLabel('PD')},
+  {key: 'firmware_version',
+   label: cros.factory.i18n.i18nLabel('Main Firmware')},
+  {key: 'root_device', label: cros.factory.i18n.i18nLabel('Root Device')},
+  {key: 'factory_md5sum', label: cros.factory.i18n.i18nLabel('Factory MD5SUM'),
    transform: function(value) {
-     return value || cros.factory.Label('(no update)');
+     return value || cros.factory.i18n.i18nLabel('(no update)');
    }},
   {key: 'hwid_database_version',
-   label: cros.factory.Label('HWID Database Version')}
+   label: cros.factory.i18n.i18nLabel('HWID Database Version')}
 ];
 
+/** @type {string} */
 cros.factory.UNKNOWN_LABEL = '<span class="goofy-unknown">' +
-    cros.factory.Label('Unknown') + '</span>';
+    cros.factory.i18n.i18nLabel('Unknown') + '</span>';
 
 /**
  * An item in the test list.
@@ -543,7 +525,7 @@ cros.factory.CriticalNoteDisplay = function(goofy, notes) {
   });
   titleDiv.appendChild(titleImg);
   titleDiv.appendChild(
-      cros.factory.Content('Factory tests stopped', '工厂测试已停止'));
+      cros.factory.i18n.i18nLabelElement('Factory tests stopped'));
   innerDiv.appendChild(titleDiv);
 
   var noteDiv = goog.dom.createDom('div', 'goofy-fullnote-note');
@@ -732,12 +714,26 @@ cros.factory.Goofy = function() {
 };
 
 /**
- * Sets the title of a modal dialog as HTML.
+ * Sets the title of a modal dialog.
  * @param {goog.ui.Dialog} dialog
- * @param {string} titleHTML
+ * @param {string|Node} title
  */
-cros.factory.Goofy.setDialogTitleHTML = function(dialog, titleHTML) {
-  dialog.getTitleTextElement().innerHTML = titleHTML;
+cros.factory.Goofy.setDialogTitle = function(dialog, title) {
+  goog.dom.removeChildren(dialog.getTitleTextElement());
+  if (typeof title === 'string') {
+    title = goog.dom.createTextNode(title);
+  }
+  goog.dom.appendChild(dialog.getTitleTextElement(), title);
+};
+
+/**
+ * Sets the content of a modal dialog.
+ * @param {goog.ui.Dialog} dialog
+ * @param {Node} content
+ */
+cros.factory.Goofy.setDialogContent = function(dialog, content) {
+  goog.dom.removeChildren(dialog.getContentElement());
+  goog.dom.appendChild(dialog.getContentElement(), content);
 };
 
 /**
@@ -994,12 +990,10 @@ cros.factory.Goofy.prototype.init = function() {
       'get_shared_data', ['startup_error'],
       function(error) {
         this.alert(
-            cros.factory.Label(
-                ('An error occurred while starting ' +
+            cros.factory.i18n.i18nLabel(
+                'An error occurred while starting ' +
                     'the factory test system.<br>' +
-                    'Factory testing cannot proceed.'),
-                ('开工厂测试系统时发生错误.<br>' +
-                    '没办法继续测试.')) +
+                    'Factory testing cannot proceed.') +
             '<div class="goofy-startup-error">' +
             goog.string.htmlEscape(error) +
             '</div>');
@@ -1150,10 +1144,10 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
     table.push('<tr><th>' + item.label + '</th><td>' + html + '</td></tr>');
   });
   table.push(
-      '<tr><th>' + cros.factory.Label('Host Based', 'Host based') +
+      '<tr><th>' + cros.factory.i18n.i18nLabel('Host Based') +
       '</th><td>1</td></th></tr>');
   table.push(
-      '<tr><th>' + cros.factory.Label('System time', '系统时间') +
+      '<tr><th>' + cros.factory.i18n.i18nLabel('System time') +
       '</th><td id="goofy-time"></td></th></tr>');
   table.push('</table>');
   this.infoTooltip.setHtml(table.join(''));
@@ -1227,12 +1221,12 @@ cros.factory.Goofy.prototype.viewNotes = function() {
   var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
 
+  dialog.setTitle('Factory Notes');
   dialog.setContent('<div class="goofy-note-container" style="max-width: ' +
       maxWidth + '; max-height: ' + maxHeight + '">' +
       this.getNotesView() + '</div>');
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);
-  cros.factory.Goofy.setDialogTitleHTML(dialog, 'Factory Notes');
 };
 
 /**
@@ -1368,27 +1362,23 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
     return;
   }
 
-  var verbEn = shutdownInfo.operation == 'reboot' ?
-      'Rebooting' : 'Shutting down';
-  var verbZh = shutdownInfo.operation == 'reboot' ? '重开机' : '关机';
+  var _ = cros.factory.i18n.translation;
+  var action = shutdownInfo.operation == 'reboot' ?
+      _('Rebooting') : _('Shutting down');
 
-  var timesEn = shutdownInfo.iterations == 1 ? 'once' : (
-      shutdownInfo.iteration + ' of ' + shutdownInfo.iterations + ' times');
-  var timesZh = shutdownInfo.iterations == 1 ? '1次' : (
-      shutdownInfo.iterations + '次' + verbZh + '测试中的第' +
-      shutdownInfo.iteration + '次');
+  var timesText = shutdownInfo.iterations == 1 ? _('once') :
+    cros.factory.i18n.stringFormat(_('{count} of {total} times'),
+        {count: shutdownInfo.iteration, total: shutdownInfo.iterations});
 
   this.shutdownDialog = new goog.ui.Dialog();
   this.registerDialog(this.shutdownDialog);
-  this.shutdownDialog.setContent(
-      '<p>' + verbEn + ' in <span class="goofy-shutdown-secs"></span> ' +
-      'second<span class="goofy-shutdown-secs-plural"></span> (' + timesEn +
-      ').<br>' +
-      'To cancel, press the Escape key or ' +
-      '<a href="#" onclick="window.goofy.cancelShutdown()">HERE</a>.</p>' +
-      '<p>将会在<span class="goofy-shutdown-secs"></span>秒内' + verbZh +
-      '（' + timesZh + '）.<br>按ESC键或' +
-      '<a href="#" onclick="window.goofy.cancelShutdown()">这裡</a>取消.</p>');
+  cros.factory.Goofy.setDialogContent(this.shutdownDialog,
+      cros.factory.i18n.i18nLabelElement(
+          '<p>{action} in <span class="goofy-shutdown-secs"></span> ' +
+          'seconds ({times_text}).<br>' +
+          'To cancel, press the Escape key or ' +
+          '<a href="#" onclick="window.goofy.cancelShutdown()">HERE</a>.</p>',
+          {action: action, times_text: timesText}));
 
   var progressBar = new goog.ui.ProgressBar();
   progressBar.render(this.shutdownDialog.getContentElement());
@@ -1410,14 +1400,9 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
           function(elt) {
             elt.innerHTML = secondsLeft;
           }, this);
-      goog.array.forEach(
-          goog.dom.getElementsByClass('goofy-shutdown-secs-plural'),
-          function(elt) {
-            elt.innerHTML = secondsLeft == 1 ? '' : 's';
-          }, this);
     } else if (now - endTime < shutdownInfo.wait_shutdown_secs) {
-      shutdownDialog.setContent(
-          '<p>Shutting down...<br></p><p>关机中...</p>');
+      cros.factory.Goofy.setDialogContent(shutdownDialog,
+          cros.factory.i18n.i18nLabelElement('<p>Shutting down...</p>'));
     } else {
       this.setPendingShutdown(false);
       return;
@@ -1492,64 +1477,25 @@ cros.factory.Goofy.prototype.startAutoTest = function() {
 /**
  * Makes a menu item for a context-sensitive menu.
  *
- * TODO(jsalz): Figure out the correct logic for this and how to localize this.
- * (Please just consider this a rough cut for now!)
- *
- * @param {string} verbEn the action in English.
- * @param {string} verbZh the action in Chinese.
- * @param {string} adjectiveEn a descriptive adjective for the tests (e.g.,
- *     'failed').
- * @param {string} adjectiveZh the adjective in Chinese.
+ * @param {string|cros.factory.i18n.TranslationDict} text the text to
+ *     display for non-leaf node.
+ * @param {string|cros.factory.i18n.TranslationDict} text_leaf the text to
+ *     display for leaf node.
  * @param {number} count the number of tests.
- * @param {cros.factory.TestListEntry} test the name of the root node containing
- *     the tests.
+ * @param {cros.factory.TestListEntry} test the root node containing the tests.
  * @param {function(goog.ui.Component.EventType)} handler the handler function
  *     (see goog.events.listen).
- * @param {boolean=} opt_adjectiveAtEnd put the adjective at the end in English
- *     (e.g., tests that have *not passed*)
- * @param {string=} opt_suffixEn a suffix in English (e.g.,
- *     ' and continue testing')
- * @param {string=} opt_suffixZh a suffix in Chinese (e.g., '並繼續')
  * @return {goog.ui.MenuItem}
  */
 cros.factory.Goofy.prototype.makeMenuItem = function(
-    verbEn, verbZh, adjectiveEn, adjectiveZh, count, test, handler,
-    opt_adjectiveAtEnd, opt_suffixEn, opt_suffixZh) {
+    text, text_leaf, count, test, handler) {
+  // TODO(pihsun): Properly i18n this after we change test metadata format.
+  var test_label = cros.factory.i18n.translated({
+    'en-US': test.label_en, 'zh-CN': test.label_zh || test.label_en});
 
-  var labelEn = verbEn + ' ';
-  var labelZh = verbZh;
-  if (!test.subtests.length) {
-    // Leaf node (there will always be both a label_en and label_zh)
-    labelEn += (opt_adjectiveAtEnd ? '' : adjectiveEn) +
-        ' test “' + test.label_en + '”';
-    labelZh += adjectiveZh + '测试' + '「' + test.label_zh + '」';
-  } else {
-    labelEn += count + ' ' + (opt_adjectiveAtEnd ? '' : adjectiveEn) + ' ' +
-        (count == 1 ? 'test' : 'tests');
-    if (test.label_en) {
-      // Not the root node; include the name
-      labelEn += ' in "' + goog.string.htmlEscape(test.label_en) + '"';
-    }
-
-    labelZh += count + '个' + adjectiveZh;
-    if (test.label_zh) {
-      // Not the root node; include the name
-      labelZh += '在「' + goog.string.htmlEscape(test.label_zh) + '」里面的';
-    }
-    labelZh += '测试';
-  }
-
-  if (opt_adjectiveAtEnd) {
-    labelEn += ' that ' + (count == 1 ? 'has' : 'have') + ' not passed';
-  }
-  if (opt_suffixEn) {
-    labelEn += opt_suffixEn;
-  }
-  if (opt_suffixZh) {
-    labelZh += opt_suffixZh;
-  }
-
-  var item = new goog.ui.MenuItem(cros.factory.Content(labelEn, labelZh));
+  var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelElement(
+      test.subtests.length == 0 ? text_leaf : text,
+      {count: count, test: test_label}));
   item.setEnabled(count != 0);
   goog.events.listen(
       item, goog.ui.Component.EventType.ACTION, handler, true, this);
@@ -1605,6 +1551,7 @@ cros.factory.Goofy.prototype.allTestsRunBefore = function(test) {
 cros.factory.Goofy.prototype.showTestPopup = function(
     path, labelElement, extraItems) {
   var test = this.pathTestMap[path];
+  var _ = cros.factory.i18n.translation;
 
   if (path == this.lastContextMenuPath &&
       (goog.now() - this.lastContextMenuHideTime <
@@ -1659,41 +1606,41 @@ cros.factory.Goofy.prototype.showTestPopup = function(
   countLeaves(test);
 
   if (this.noteDisplay) {
-    var item = new goog.ui.MenuItem(cros.factory.Content(
-        'Critical factory note; cannot run tests',
-        '工厂测试已停止'));
+    var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelElement(
+        'Critical factory note; cannot run tests'));
     menu.addChild(item, true);
     item.setEnabled(false);
   } else if (!this.engineeringMode && !this.allTestsRunBefore(test)) {
-    var item = new goog.ui.MenuItem(cros.factory.Content(
-        'Not in engineering mode; cannot skip tests',
-        '工程模式才能跳过测试'));
+    var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelElement(
+        'Not in engineering mode; cannot skip tests'));
     menu.addChild(item, true);
     item.setEnabled(false);
   } else {
-    var allUntested = numLeavesByStatus['UNTESTED'] == numLeaves;
-    var restartOrRunEn = allUntested ? 'Run' : 'Restart';
-    var restartOrRunZh = allUntested ? '执行' : '重跑';
-    if (numLeaves > 1) {
-      restartOrRunEn += ' all';
-      restartOrRunZh += '所有的';
-    }
     if (this.engineeringMode ||
         (!test.subtests.length && test.state.status != 'PASSED')) {
       // Allow user to restart all tests under a particular node if
       // (a) in engineering mode, or (b) if this is a single non-passed
       // test.  If neither of these is true, it's too easy to
       // accidentally re-run a bunch of tests and wipe their state.
-      menu.addChild(this.makeMenuItem(
-          restartOrRunEn, restartOrRunZh, '', '', numLeaves, test,
-          function(event) {
-            this.sendEvent('goofy:restart_tests', {'path': path});
-          }), true);
+      var allUntested = numLeavesByStatus['UNTESTED'] == numLeaves;
+      var handler = function(event) {
+        this.sendEvent('goofy:restart_tests', {'path': path});
+      };
+      if (allUntested) {
+        menu.addChild(this.makeMenuItem(
+            _('Run all {count} tests in "{test}"'),
+            _('Run test "{test}"'), numLeaves, test, handler), true);
+      } else {
+        menu.addChild(this.makeMenuItem(
+            _('Restart all {count} tests in "{test}"'),
+            _('Restart test "{test}"'), numLeaves, test, handler), true);
+      }
     }
     if (test.subtests.length) {
       // Only show for parents.
       menu.addChild(this.makeMenuItem(
-          'Restart', '重跑', 'not passed', '未成功的',
+          _('Restart {count} tests in "{test}" that have not passed'),
+          '',
           (numLeavesByStatus['UNTESTED'] || 0) +
           (numLeavesByStatus['ACTIVE'] || 0) +
           (numLeavesByStatus['FAILED'] || 0),
@@ -1702,18 +1649,20 @@ cros.factory.Goofy.prototype.showTestPopup = function(
               'status': ['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'],
               'path': path
             });
-          }, /*opt_adjectiveAtEnd=*/true), true);
+          }), true);
     }
     if (this.engineeringMode) {
       menu.addChild(this.makeMenuItem(
-          'Clear status of', '清除', '', '', numLeaves, test,
-          function(event) {
+          _('Clear status of {count} tests in "{test}"'),
+          _('Clear status of test "{test}"'),
+          numLeaves, test, function(event) {
             this.sendEvent('goofy:clear_state', {'path': path});
-          }, false, '', '的狀態'), true);
+          }), true);
     }
     if (this.engineeringMode && test.subtests.length) {
       menu.addChild(this.makeMenuItem(
-          'Run', '执行', 'untested', '未测的',
+          _('Run {count} untested tests in "{test}"'),
+          '',
           (numLeavesByStatus['UNTESTED'] || 0) +
           (numLeavesByStatus['ACTIVE'] || 0),
           test, function(event) {
@@ -1723,9 +1672,8 @@ cros.factory.Goofy.prototype.showTestPopup = function(
   }
   addSeparator();
 
-  var stopAllItem = new goog.ui.MenuItem(cros.factory.Content(
-      'Stop all tests',
-      '停止所有的测试'));
+  var stopAllItem = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelElement(
+      'Stop all tests'));
   stopAllItem.setEnabled(numLeavesByStatus['ACTIVE'] > 0);
   menu.addChild(stopAllItem, true);
   goog.events.listen(
@@ -1741,13 +1689,13 @@ cros.factory.Goofy.prototype.showTestPopup = function(
   if (numLeavesByStatus['ACTIVE'] &&
       (this.engineeringMode || !activeAndDisableAbort)) {
     menu.addChild(this.makeMenuItem(
-        'Abort', '取消', 'active', '執行中的',
-        numLeavesByStatus['ACTIVE'] || 0,
-        test, function(event) {
+        _('Abort {count} active tests in "{test}" and continue testing'),
+        _('Abort active test "{test}" and continue testing'),
+        numLeavesByStatus['ACTIVE'] || 0, test, function(event) {
           this.sendEvent('goofy:stop', {
             'path': path, 'fail': true,
             'reason': 'Operator requested abort'});
-        }, false, ' and continue testing', '並繼續'), true);
+        }), true);
   }
 
   if (this.engineeringMode && !test.subtests.length) {
@@ -1863,10 +1811,10 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
 
 /**
  * Displays a dialog containing logs.
- * @param {string} titleHTML
+ * @param {string|Element} title
  * @param {string} data text to show in the dialog.
  */
-cros.factory.Goofy.prototype.showLogDialog = function(titleHTML, data) {
+cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
   var dialog = new goog.ui.Dialog();
   this.registerDialog(dialog);
   dialog.setModal(false);
@@ -1885,7 +1833,7 @@ cros.factory.Goofy.prototype.showLogDialog = function(titleHTML, data) {
       '<div class="goofy-log-time"></div>');
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);
-  cros.factory.Goofy.setDialogTitleHTML(dialog, titleHTML);
+  cros.factory.Goofy.setDialogTitle(dialog, title);
 
   var logDataElement = goog.dom.getElementByClass(
       'goofy-log-data', dialog.getContentElement());
@@ -1897,7 +1845,7 @@ cros.factory.Goofy.prototype.showLogDialog = function(titleHTML, data) {
   goog.events.listen(timer, goog.Timer.TICK, function(event) {
     // Show time in the same format as in the logs
     logTimeElement.innerHTML = (
-        cros.factory.Label('System time: ', '系统时间：') +
+        cros.factory.i18n.i18nLabel('System time: ') +
         new goog.date.DateTime().toUTCIsoString(true, true).replace(' ', 'T'));
   }, false, this);
   timer.dispatchTick();
@@ -1930,8 +1878,8 @@ cros.factory.Goofy.prototype.viewVarLogMessagesBeforeReboot = function() {
       function(data) {
         data = data || 'Unable to find log message indicating reboot.';
         this.showLogDialog(
-            cros.factory.Label('/var/log/messages before last reboot',
-                '上次重开机前的 /var/log/messages'),
+            cros.factory.i18n.i18nLabelElement(
+                '/var/log/messages before last reboot'),
             data);
       });
 };
@@ -1987,20 +1935,20 @@ cros.factory.Goofy.prototype.showNoteDialog = function() {
   noteTable.push('<table class="goofy-addnote-table">');
   noteTable.push(
       '<tr><th>' +
-      cros.factory.Content('Your Name', '你的名字').innerHTML +
+      cros.factory.i18n.i18nLabel('Your Name') +
       '</th><td>' +
       '<input id="goofy-addnote-name" style="max-width: ' +
       maxWidth + '"></td></tr>');
   noteTable.push(
       '<tr><th>' +
-      cros.factory.Content('Note Content', '注记内容').innerHTML +
+      cros.factory.i18n.i18nLabel('Note Content') +
       '</th><td>' +
       '<textarea id="goofy-addnote-text" style="max-width: ' +
       maxWidth + '; max-height: ' + maxHeight + '">' +
       '</textarea></td></tr>');
   noteTable.push(
       '<tr><th>' +
-      cros.factory.Content('Severity', '严重性').innerHTML +
+      cros.factory.i18n.i18nLabel('Severity') +
       '</th><td>' +
       '<select id="goofy-addnote-level">');
   goog.array.forEach(cros.factory.NOTE_LEVEL, function(lvl) {
@@ -2017,8 +1965,8 @@ cros.factory.Goofy.prototype.showNoteDialog = function() {
   var buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
   dialog.setButtonSet(buttons);
   dialog.setVisible(true);
-  cros.factory.Goofy.setDialogTitleHTML(
-      dialog, cros.factory.Content('Add Note', '新增注记').innerHTML);
+  cros.factory.Goofy.setDialogTitle(
+      dialog, cros.factory.i18n.i18nLabelElement('Add Note'));
 
   var nameBox = document.getElementById('goofy-addnote-name');
   var textBox = document.getElementById('goofy-addnote-text');
@@ -2043,14 +1991,11 @@ cros.factory.Goofy.prototype.uploadFactoryLogs = function(
     name, serial, description, onSuccess) {
   var dialog = new goog.ui.Dialog();
   this.registerDialog(dialog);
-  var content = cros.factory.Content(
-      'Uploading factory logs...',
-      '正在上载工厂记录...');
-  cros.factory.Goofy.setDialogTitleHTML(dialog, content.outerHTML);
-  dialog.setContent(
-      cros.factory.Label(
-          'Uploading factory logs.  Please wait...',
-          '正在上载工厂记录 。 请 稍等...') + '<br>');
+  cros.factory.Goofy.setDialogTitle(
+      dialog, cros.factory.i18n.i18nLabelElement('Uploading factory logs...'));
+  cros.factory.Goofy.setDialogContent(
+      dialog, cros.factory.i18n.i18nLabelElement(
+          'Uploading factory logs.  Please wait...'));
 
   dialog.setButtonSet(null);
   dialog.setVisible(true);
@@ -2107,23 +2052,23 @@ cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
   table.push('<table class="goofy-ul-table">');
   table.push(
       '<tr><th>' +
-      cros.factory.Content('Your Name', '你的名字').innerHTML +
+      cros.factory.i18n.i18nLabel('Your Name') +
       '</th><td>' +
       '<input id="goofy-ul-name" size="30">' +
       '</td></tr>');
   table.push(
       '<tr><th>' +
-      cros.factory.Content('Serial Number', '编号').innerHTML +
+      cros.factory.i18n.i18nLabel('Serial Number') +
       '</th><td>' +
       '<input id="goofy-ul-serial" size="30" value="' +
       goog.string.htmlEscape(
-          /** @type {string} */(this.systemInfo['serial_number']) ||
-          /** @type {string} */(this.systemInfo['mlb_serial_number']) ||
+          this.systemInfo['serial_number'] ||
+          this.systemInfo['mlb_serial_number'] ||
           '') +
       '"></td></tr>');
   table.push(
       '<tr><th>' +
-      cros.factory.Content('Bug Description', 'Bug 描述').innerHTML +
+      cros.factory.i18n.i18nLabel('Bug Description') +
       '</th><td>' +
       '<input id="goofy-ul-description" size="50">' +
       '</td></tr>');
@@ -2132,8 +2077,8 @@ cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
   dialog.setContent(table.join(''));
   var buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
   dialog.setButtonSet(buttons);
-  cros.factory.Goofy.setDialogTitleHTML(dialog,
-      cros.factory.Content('Upload Factory Logs', '上载工厂记录').outerHTML);
+  cros.factory.Goofy.setDialogTitle(
+      dialog, cros.factory.i18n.i18nLabelElement('Upload Factory Logs'));
   dialog.setVisible(true);
 
   var nameElt = document.getElementById('goofy-ul-name');
@@ -2174,8 +2119,8 @@ cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
  * Saves factory logs to a USB drive.
  */
 cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
-  var titleContentHTML = cros.factory.Content(
-      'Save Factory Logs to USB', '保存工厂记录到 U盘').outerHTML;
+  var titleElement = cros.factory.i18n.i18nLabelElement(
+      'Save Factory Logs to USB');
 
   function doSave() {
     function callback(id) {
@@ -2186,10 +2131,9 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
 
       var dialog = new goog.ui.Dialog();
       this.registerDialog(dialog);
-      cros.factory.Goofy.setDialogTitleHTML(dialog, titleContentHTML);
+      cros.factory.Goofy.setDialogTitle(dialog, titleElement);
       dialog.setContent(
-          cros.factory.Label('Saving factory logs to USB drive...',
-              '正在保存工厂记录到 U盘...'));
+          cros.factory.i18n.i18nLabel('Saving factory logs to USB drive...'));
       dialog.setButtonSet(null);
       dialog.setVisible(true);
       this.positionOverConsole(dialog.getElement());
@@ -2200,16 +2144,17 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
             var size = info[2];
             var temporary = info[3];
 
-            dialog.setContent(
-                cros.factory.Label(
-                    'Success! Saved factory logs (' + size +
-                    ' bytes) to ' + dev + ' as<br>' + filename + '.' +
-                    (temporary ? ' The drive has been unmounted.' : ''),
-                    '保存工厂记录 (' + size +
-                    ' bytes) 到 U盘 ' +
-                    dev + ' 已成功，文件叫<br>' +
-                    filename + '。' +
-                    (temporary ? 'U盘已卸载。' : '')));
+            if (temporary) {
+              dialog.setContent(cros.factory.i18n.i18nLabel(
+                  'Success! Saved factory logs ({size}) bytes) to {dev} as' +
+                  '<br>{filename}. The drive has been unmounted.',
+                  {size: size.toString(), dev: dev, filename: filename}));
+            } else {
+              dialog.setContent(cros.factory.i18n.i18nLabel(
+                  'Success! Saved factory logs ({size}) bytes) to {dev} as' +
+                  '<br>{filename}.',
+                  {size: size.toString(), dev: dev, filename: filename}));
+            }
             dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
             this.positionOverConsole(dialog.getElement());
           }, function(response) {
@@ -2221,15 +2166,12 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
           });
     }
 
-    var idDialog = new goog.ui.Prompt(
-        '',
-        cros.factory.Label(
+    var idDialog = new goog.ui.Prompt('', '', goog.bind(callback, this));
+    cros.factory.Goofy.setDialogTitle(idDialog, titleElement);
+    goog.dom.insertChildAt(idDialog.getContentElement(),
+        cros.factory.i18n.i18nLabelElement(
             'Enter an optional identifier for the archive ' +
-            '(or press Enter for none):',
-            '请输入识別号给工厂记录文件，' +
-            '或按回车键不选：'),
-        goog.bind(callback, this));
-    cros.factory.Goofy.setDialogTitleHTML(idDialog, titleContentHTML);
+            '(or press Enter for none):'), 0);
     this.registerDialog(idDialog);
     idDialog.setVisible(true);
     goog.dom.classlist.add(idDialog.getElement(),
@@ -2242,15 +2184,14 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
 
   var waitForUSBDialog = new goog.ui.Dialog();
   this.registerDialog(waitForUSBDialog);
-  waitForUSBDialog.setContent(
-      cros.factory.Label(
-          'Please insert a formatted USB stick<br>' +
-          'and wait a moment for it to be mounted.',
-          '请插入 U盘后稍等掛载。'));
+  cros.factory.Goofy.setDialogContent(waitForUSBDialog,
+      cros.factory.i18n.i18nLabelElement(
+          'Please insert a formatted USB stick' +
+          ' and wait a moment for it to be mounted.'));
   waitForUSBDialog.setButtonSet(
       new goog.ui.Dialog.ButtonSet().addButton(
           goog.ui.Dialog.ButtonSet.DefaultButtons.CANCEL, false, true));
-  cros.factory.Goofy.setDialogTitleHTML(waitForUSBDialog, titleContentHTML);
+  cros.factory.Goofy.setDialogTitle(waitForUSBDialog, titleElement);
 
   function waitForUSB() {
     function restartWaitForUSB() {
@@ -2500,55 +2441,44 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
 
               var extraItems = [];
               var addExtraItem = goog.bind(
-                  function(labelEn, labelZh, action) {
+                  function(label, action) {
                     var item = new goog.ui.MenuItem(
-                        cros.factory.Content(labelEn, labelZh));
+                        cros.factory.i18n.i18nLabelElement(label));
                     goog.events.listen(
                         item,
                         goog.ui.Component.EventType.ACTION,
                         action, false, this);
                     extraItems.push(item);
                   }, this);
+              var _ = cros.factory.i18n.translation;
 
               if (this.engineeringMode) {
-                addExtraItem('Update factory software',
-                    '更新工厂软体',
-                    this.updateFactory);
+                addExtraItem(_('Update factory software'), this.updateFactory);
                 extraItems.push(this.makeSwitchTestListMenu());
                 extraItems.push(new goog.ui.MenuSeparator());
-                addExtraItem('Save note on device', '注记',
-                    this.showNoteDialog);
-                addExtraItem('View notes', '检视注记', this.viewNotes);
+                addExtraItem(_('Save note on device'), this.showNoteDialog);
+                addExtraItem(_('View notes'), this.viewNotes);
                 extraItems.push(new goog.ui.MenuSeparator());
-                addExtraItem('View /var/log/messages',
-                    '检视 /var/log/messages',
+                addExtraItem(_('View /var/log/messages'),
                     this.viewVarLogMessages);
-                addExtraItem('View /var/log/messages ' +
-                    'before last reboot',
-                    '检视上次重开机前的 ' +
-                    '/var/log/messages',
+                addExtraItem(_('View /var/log/messages before last reboot'),
                     this.viewVarLogMessagesBeforeReboot);
-                addExtraItem('View dmesg', '检视 dmesg', this.viewDmesg);
-                addExtraItem('Device manager', '检视硬件',
-                    function() { this.deviceManager.showWindow(); });
+                addExtraItem(_('View dmesg'), this.viewDmesg);
+                addExtraItem(_('Device manager'), goog.bind(
+                    this.deviceManager.showWindow, this.deviceManager));
                 if (cros.factory.ENABLE_DIAGNOSIS_TOOL) {
-                  addExtraItem('Diagnosis Tool', '诊断工具',
-                      goog.bind(
-                          this.diagnosisTool.showWindow,
-                          this.diagnosisTool));
+                  addExtraItem(_('Diagnosis Tool'), goog.bind(
+                      this.diagnosisTool.showWindow, this.diagnosisTool));
                 }
               }
 
-              addExtraItem('Save factory logs to USB drive...',
-                  '保存工厂记录到 U盘',
+              addExtraItem(_('Save factory logs to USB drive...'),
                   this.saveFactoryLogsToUSB);
-              addExtraItem('Upload factory logs...',
-                  '上载工厂记录',
+              addExtraItem(_('Upload factory logs...'),
                   function() {
                     this.pingShopFloorServer(this.showUploadFactoryLogsDialog);
                   });
-              addExtraItem('Toggle engineering mode',
-                  '切换工程模式',
+              addExtraItem(_('Toggle engineering mode'),
                   this.promptEngineeringPassword);
 
               this.showTestPopup(
@@ -2575,8 +2505,9 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
  * @return {goog.ui.SubMenu}
  */
 cros.factory.Goofy.prototype.makeSwitchTestListMenu = function() {
-  var subMenu = new goog.ui.SubMenu(cros.factory.Content(
-      'Switch test list', '切换测试列表'));
+  var subMenu = new goog.ui.SubMenu(cros.factory.i18n.i18nLabelElement(
+      'Switch test list'));
+  var _ = cros.factory.i18n.translation;
   goog.object.forEach(this.testLists, function(testList) {
     var item = new goog.ui.MenuItem(testList.name);
     item.setSelectable(true);
@@ -2591,48 +2522,40 @@ cros.factory.Goofy.prototype.makeSwitchTestListMenu = function() {
         goog.ui.Component.EventType.ACTION,
         function() {
           var dialog = new goog.ui.Dialog();
+          var escapeTestListName = goog.string.htmlEscape(testList.name);
           this.registerDialog(dialog);
-          dialog.setContent(
-              cros.factory.Label(
-                  'Warning: Switching to test list “' +
-                  goog.string.htmlEscape(testList.name) +
-                  '” will clear all test state.<br>' +
+          var title = cros.factory.i18n.stringFormat(
+              _('Switch Test List: {test_list}'),
+              {test_list: escapeTestListName});
+          cros.factory.Goofy.setDialogTitle(dialog,
+              cros.factory.i18n.i18nLabelElement(title));
+          cros.factory.Goofy.setDialogContent(dialog,
+              cros.factory.i18n.i18nLabelElement(
+                  'Warning: Switching to test list "{test_list}"' +
+                  ' will clear all test state.<br>' +
                   'Are you sure you want to proceed?',
-                  '警示：切換至测试列表「' +
-                  goog.string.htmlEscape(testList.name) +
-                  '」将清除所有测试状态。<br>' +
-                  '确定要继续吗？'));
+                  {test_list: escapeTestListName}));
 
           var buttonSet = new goog.ui.Dialog.ButtonSet();
           buttonSet.set(
               goog.ui.Dialog.DefaultButtonKeys.OK,
-              cros.factory.Content(
-                  'Yes, clear state and restart',
-                  '确定，清除测试状态並重啓'));
+              cros.factory.i18n.i18nLabelElement(
+                  'Yes, clear state and restart'));
           buttonSet.set(
               goog.ui.Dialog.DefaultButtonKeys.CANCEL,
-              cros.factory.Content('Cancel', '取消'),
+              cros.factory.i18n.i18nLabelElement('Cancel'),
               true, true);
           dialog.setButtonSet(buttonSet);
           dialog.setVisible(true);
 
-          var titleEn = 'Switch Test List: ' +
-              goog.string.htmlEscape(testList.name);
-          var titleZh = '切换测试列表：' +
-              goog.string.htmlEscape(testList.name);
-
-          cros.factory.Goofy.setDialogTitleHTML(
-              dialog, cros.factory.Label(titleEn, titleZh));
           dialog.reposition();
 
           goog.events.listen(
               dialog, goog.ui.Dialog.EventType.SELECT, function(e) {
                 if (e.key == goog.ui.Dialog.DefaultButtonKeys.OK) {
                   var dialog = this.showIndefiniteActionDialog(
-                      titleEn,
-                      'Switching test list.  Please wait...',
-                      titleZh,
-                      '正在切换测试列表，请稍等...');
+                      title,
+                      _('Switching test list.  Please wait...'));
                   this.sendRpc(
                       'SwitchTestList', [testList.id],
                       null,  // No action on success; wait to die.
@@ -2651,22 +2574,21 @@ cros.factory.Goofy.prototype.makeSwitchTestListMenu = function() {
 
 /**
  * Displays a dialog for an operation that should never return.
- * @param {string} titleEn
- * @param {string} labelEn
- * @param {string=} titleZh
- * @param {string=} labelZh
+ * @param {string|cros.factory.i18n.TranslationDict} title
+ * @param {string|cros.factory.i18n.TranslationDict} label
  * @return {goog.ui.Dialog}
  */
 cros.factory.Goofy.prototype.showIndefiniteActionDialog = function(
-    titleEn, labelEn, titleZh, labelZh) {
+    title, label) {
   var dialog = new goog.ui.Dialog();
   this.registerDialog(dialog);
   dialog.setHasTitleCloseButton(false);
-  dialog.setContent(cros.factory.Label(labelEn, labelZh));
+  cros.factory.Goofy.setDialogTitle(dialog,
+      cros.factory.i18n.i18nLabelElement(title));
+  cros.factory.Goofy.setDialogContent(dialog,
+      cros.factory.i18n.i18nLabelElement(label));
   dialog.setButtonSet(null);
   dialog.setVisible(true);
-  cros.factory.Goofy.setDialogTitleHTML(
-      dialog, cros.factory.Label(titleEn, titleZh));
   dialog.reposition();
   return dialog;
 };
@@ -2676,11 +2598,10 @@ cros.factory.Goofy.prototype.showIndefiniteActionDialog = function(
  * @export
  */
 cros.factory.Goofy.prototype.updateFactory = function() {
+  var _ = cros.factory.i18n.translation;
   var dialog = this.showIndefiniteActionDialog(
-      'Software update',
-      'Updating factory software. Please wait...',
-      '更新工厂软体',
-      '正在更新工厂软体，请稍等...');
+      _('Software update'),
+      _('Updating factory software. Please wait...'));
 
   this.sendRpc(
       'UpdateFactory', [], function(ret) {
@@ -2691,19 +2612,19 @@ cros.factory.Goofy.prototype.updateFactory = function() {
 
         if (updated) {
           dialog.setTitle('Update succeeded');
-          dialog.setContent(cros.factory.Label(
-                  'Update succeeded. Restarting.',
-                  '更新已成功，' +
-                  '将会在几秒钟之内重新启动。'));
+          cros.factory.Goofy.setDialogContent(dialog,
+              cros.factory.i18n.i18nLabelElement(
+                  'Update succeeded. Restarting.'));
         } else if (success) {  // but not updated
-          dialog.setContent(cros.factory.Label(
-              'No update is currently necessary.',
-              '目前不用更新工厂软体'));
+          cros.factory.Goofy.setDialogContent(dialog,
+              cros.factory.i18n.i18nLabelElement(
+              'No update is currently necessary.'));
           dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
         } else {
-          dialog.setContent(cros.factory.Label(
-              'Update failed:', '更新失败了：') +
-              '<pre>' + goog.string.htmlEscape(errorMsg) + '</pre>');
+          cros.factory.Goofy.setDialogContent(dialog,
+              cros.factory.i18n.i18nLabelElement(
+                  'Update failed:<pre>{error}</pre>',
+                  {error: goog.string.htmlEscape(errorMsg)}));
           dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
         }
         dialog.reposition();

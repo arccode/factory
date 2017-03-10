@@ -16,8 +16,8 @@
 # directory (including globbing chars, important for Win32).
 # Made docstring fit in 80 chars wide displays using pydoc.
 
-# This file was modified to support Python and HTML strings in Chrome OS
-# factory software.
+# This file was modified to support Python, HTML and Javascript strings in
+# Chrome OS factory software.
 # The original version is from Python source repository:
 # https://hg.python.org/cpython/file/2.7/Tools/i18n/pygettext.py
 
@@ -28,7 +28,9 @@ import cgi
 import HTMLParser
 import os
 import re
+import subprocess
 import sys
+import tempfile
 import time
 import token
 import tokenize
@@ -242,9 +244,12 @@ def main():
       help=('HTML classes to look for in HTML. '
             'You can have multiple -c flags on the command line.'))
   parser.add_argument(
+      '-j', '--js-keyword', dest='js_keywords', action='append', default=[],
+      help=('Keywords to look for in javascript source code. '
+            'You can have multiple -j flags on the command line.'))
+  parser.add_argument(
       '-o', '--output', default='messages.pot', dest='output_file',
-      help=('Rename the default output file from messages.pot to filename.  If'
-            'filename is - then the output is sent to standard out.'))
+      help='Rename the default output file from messages.pot to filename.')
   parser.add_argument(
       '-v', '--verbose', action='store_true',
       help='Print the names of the files being processed.')
@@ -260,44 +265,77 @@ def main():
   MakeEscapes()
 
   messages = []
+  # Gather javascript sources together, since we'll be calling xgettext for
+  # them.
+  js_sources = []
   for filename in options.input_file:
     if options.verbose:
       print 'Working on %s' % filename
-    with open(filename) as fp:
-      ext = os.path.splitext(filename)[1]
-      if ext == '.py':
-        eater = PyTokenEater(options.keywords)
-        try:
+    ext = os.path.splitext(filename)[1]
+    if ext == '.py':
+      eater = PyTokenEater(options.keywords)
+      try:
+        with open(filename) as fp:
           tokenize.tokenize(fp.readline, eater)
-          messages.extend(((filename, lineno), msg)
-                          for lineno, msg in eater.messages)
-        except tokenize.TokenError as e:
-          print >> sys.stderr, '%s: %s, line %d, column %d' % (
-              e[0], filename, e[1][0], e[1][1])
-      elif ext == '.html':
-        parser = HTMLMessageParser(options.html_classes)
-        try:
+        messages.extend(((filename, lineno), msg)
+                        for lineno, msg in eater.messages)
+      except tokenize.TokenError as e:
+        print >> sys.stderr, '%s: %s, line %d, column %d' % (
+            e[0], filename, e[1][0], e[1][1])
+    elif ext == '.html':
+      parser = HTMLMessageParser(options.html_classes)
+      try:
+        with open(filename) as fp:
           parser.feed(fp.read())
-          parser.close()
-          messages.extend(((filename, lineno), msg)
-                          for lineno, msg in parser.messages)
-        except Exception as e:
-          print >> sys.stderr, '%s: %s' % (filename, e)
-      else:
-        print >> sys.stderr, 'Unknown file type %s for file %s' % (
-            ext, filename)
+        parser.close()
+        messages.extend(((filename, lineno), msg)
+                        for lineno, msg in parser.messages)
+      except Exception as e:
+        print >> sys.stderr, '%s: %s' % (filename, e)
+    elif ext == '.js':
+      js_sources.append(filename)
+    else:
+      print >> sys.stderr, 'Unknown file type %s for file %s' % (
+          ext, filename)
 
-  if options.output_file == '-':
-    fp = sys.stdout
-    closep = 0
-  else:
-    fp = open(options.output_file, 'w')
-    closep = 1
-  try:
+  with open(options.output_file, 'w') as fp:
     WritePot(fp, messages, options.width)
-  finally:
-    if closep:
-      fp.close()
+
+  if js_sources:
+    # Use xgettext to extract translatable text from javascript sources, and
+    # merge them with our output.
+    temp_fd, temp_filename = tempfile.mkstemp(prefix='pygettext')
+    os.close(temp_fd)
+    keyword_args = ['-k' + keyword for keyword in options.js_keywords]
+    cmd = [
+        'xgettext', '--from-code=UTF-8', '--language=javascript', '-o',
+        temp_filename, '--omit-header', '-k']
+    cmd.extend(keyword_args)
+    cmd.append('--')
+    cmd.extend(js_sources)
+    try:
+      subprocess.check_call(cmd)
+      # There's no option for xgettext to disable line number, so we have to
+      # read and filter line numbers from output file manually.
+      filtered_po = []
+      with open(temp_filename) as fp:
+        for line in fp:
+          if not line.startswith('#: '):
+            filtered_po.append(line)
+            continue
+          files = re.findall(r'(\S+?):\d+', line)
+          filtered_po.append('#: ' + ' '.join(files) + '\n')
+      with open(temp_filename, 'w') as fp:
+        fp.writelines(filtered_po)
+      # Can't sure if it's good to have msgcat output file in input file list,
+      # better be safe and do this in two step.
+      merged_po = subprocess.check_output(['msgcat', '-o', '-',
+                                           options.output_file, temp_filename])
+      with open(options.output_file, 'w') as fp:
+        fp.write(merged_po)
+    finally:
+      if os.path.exists(temp_filename):
+        os.remove(temp_filename)
 
 if __name__ == '__main__':
   main()

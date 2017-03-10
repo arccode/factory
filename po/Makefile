@@ -10,7 +10,8 @@ MSGFMT = msgfmt
 MSGMERGE = msgmerge
 MSGCAT = msgcat
 
-KEYWORDS = -k _ -k MakeI18nLabel -k MakeI18nLabelWithClass -c i18n-label
+KEYWORDS = -k _ -k MakeI18nLabel -k MakeI18nLabelWithClass -c i18n-label \
+  -j _ -j i18nLabel -j i18nLabelElement
 
 DOMAIN = factory
 BUILD_DIR ?= ../build
@@ -25,7 +26,8 @@ func-get-source-list = \
     $(1)/test/pytests/*.py $(1)/test/pytests/*/*.py \
     $(1)/test/test_lists/*.py \
     $(1)/test/pytests/*.html $(1)/test/pytests/*/*.html \
-    $(1)/goofy/static/ui_templates/*.html))
+    $(1)/goofy/static/ui_templates/*.html \
+    $(1)/goofy/js/*.js))
 
 PY_ROOT = ../py
 SRC_LIST = $(call func-get-source-list,$(PY_ROOT))

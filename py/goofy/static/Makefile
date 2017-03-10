@@ -13,9 +13,10 @@ CLOSURE_COMPILER_JAR = /opt/closure-compiler-bin-0/lib/closure-compiler-bin.jar
 JS_SOURCES = \
     goofy.js \
     device_manager.js \
-    diagnosis_tool.js
+    diagnosis_tool.js \
+    i18n.js
 
-JS_SOURCE_PATHS=$(addprefix ../js/,$(JS_SOURCES))
+JS_SOURCE_PATHS = $(addprefix ../js/,$(JS_SOURCES))
 
 CSS_SOURCES = \
     goog/css/checkbox.css \
@@ -28,9 +29,9 @@ CSS_SOURCES = \
     goog/css/tooltip.css \
     goog/css/tree.css
 
-CSS_SOURCE_PATHS=$(addprefix $(CLOSURE_LIB_DIR)/closure/,$(CSS_SOURCES))
+CSS_SOURCE_PATHS = $(addprefix $(CLOSURE_LIB_DIR)/closure/,$(CSS_SOURCES))
 
-CLOSURE_BUILD=\
+CLOSURE_BUILD = \
     python $(CLOSURE_LIB_DIR)/closure/bin/build/closurebuilder.py \
     --root $(CLOSURE_LIB_DIR) \
     --root ../js \
@@ -57,14 +58,13 @@ check_deps:
 	  $(error Terminating))
 
 $(OUTPUT_JS): $(JS_SOURCE_PATHS) | check_deps
-	$(call func-check-closure)
 	mkdir -p "$(shell dirname "$@")"
 	# For now, we just use the compiler (--output_mode=compiled) to check
 	# the correctness of our code, and we actually deploy the version that
 	# is the concatenation of all the dependencies (--output_mode=script).
 	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null \
-		--compiler_flags="--language_in=ECMASCRIPT6_STRICT" \
-		--compiler_flags="--language_out=ECMASCRIPT5_STRICT"
+	  --compiler_flags="--language_in=ECMASCRIPT6_STRICT" \
+	  --compiler_flags="--language_out=ECMASCRIPT5_STRICT"
 	$(CLOSURE_BUILD) --output_mode=script --output_file=$@
 
 $(OUTPUT_CSS): $(CSS_SOURCE_PATHS) | check_deps

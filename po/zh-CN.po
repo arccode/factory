@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-10 15:51+CST\n"
+"POT-Creation-Date: 2017-03-13 17:44+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -1942,6 +1942,7 @@ msgid "Invalid {vpd_label} value."
 msgstr "输入的{vpd_label}不合法"
 
 #: ../py/test/pytests/vpd.py ../py/test/test_lists/generic_run_in.py
+#: ../py/goofy/js/goofy.js
 msgid "Serial Number"
 msgstr "序号"
 
@@ -2228,3 +2229,348 @@ msgstr "压力及元件测试"
 #: ../py/test/test_lists/generic_vswr.py
 msgid "Scan the serial number"
 msgstr "扫描序号"
+
+#: ../py/goofy/js/diagnosis_tool.js
+msgid "State:"
+msgstr "状态:"
+
+#: ../py/goofy/js/diagnosis_tool.js
+msgid "Description:"
+msgstr "说明/描述:"
+
+#: ../py/goofy/js/diagnosis_tool.js
+msgid "Input:"
+msgstr "输入:"
+
+#: ../py/goofy/js/diagnosis_tool.js
+msgid "Time remaining: "
+msgstr "剩余时间: "
+
+#: ../py/goofy/js/goofy.js
+msgid "MLB Serial Number"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Stage"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Factory Image Version"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Factory Toolkit Version"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Release Image Version"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "WLAN MAC"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "IP Addresses"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Kernel"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Architecture"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "EC"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "PD"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Main Firmware"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Root Device"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Factory MD5SUM"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "(no update)"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "HWID Database Version"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Unknown"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Factory tests stopped"
+msgstr "工厂测试已停止"
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"An error occurred while starting the factory test system.<br>Factory testing "
+"cannot proceed."
+msgstr "开工厂测试系统时发生错误.<br>没办法继续测试."
+
+#: ../py/goofy/js/goofy.js
+msgid "Host Based"
+msgstr "Host based"
+
+#: ../py/goofy/js/goofy.js
+msgid "System time"
+msgstr "系统时间"
+
+#: ../py/goofy/js/goofy.js
+msgid "Rebooting"
+msgstr "重开机"
+
+#: ../py/goofy/js/goofy.js
+msgid "Shutting down"
+msgstr "关机"
+
+#: ../py/goofy/js/goofy.js
+msgid "once"
+msgstr "1次"
+
+#: ../py/goofy/js/goofy.js
+msgid "{count} of {total} times"
+msgstr "{total}次测试中的第{count}次"
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"<p>{action} in <span class=\"goofy-shutdown-secs\"></span> seconds "
+"({times_text}).<br>To cancel, press the Escape key or <a href=\"#\" onclick="
+"\"window.goofy.cancelShutdown()\">HERE</a>.</p>"
+msgstr ""
+"<p>将会在<span class=\"goofy-shutdown-secs\"></span>秒内{action}"
+"（{times_text}）.<br>按ESC键或<a href=\"#\" onclick=\"window.goofy."
+"cancelShutdown()\">这裡</a>取消.</p>"
+
+#: ../py/goofy/js/goofy.js
+msgid "<p>Shutting down...</p>"
+msgstr "<p>关机中...</p>"
+
+#: ../py/goofy/js/goofy.js
+msgid "Critical factory note; cannot run tests"
+msgstr "工厂测试已停止"
+
+#: ../py/goofy/js/goofy.js
+msgid "Not in engineering mode; cannot skip tests"
+msgstr "工程模式才能跳过测试"
+
+#: ../py/goofy/js/goofy.js
+msgid "Run all {count} tests in \"{test}\""
+msgstr "执行所有{count}个在「{test}」里面的测试"
+
+#: ../py/goofy/js/goofy.js
+msgid "Run test \"{test}\""
+msgstr "执行测试「{test}」"
+
+#: ../py/goofy/js/goofy.js
+msgid "Restart all {count} tests in \"{test}\""
+msgstr "重跑所有{count}个在「{test}」里面的测试"
+
+#: ../py/goofy/js/goofy.js
+msgid "Restart test \"{test}\""
+msgstr "重跑测试「{test}」"
+
+#: ../py/goofy/js/goofy.js
+msgid "Restart {count} tests in \"{test}\" that have not passed"
+msgstr "重跑{count}个在「{test}」里面未成功的测试"
+
+#: ../py/goofy/js/goofy.js
+msgid "Clear status of {count} tests in \"{test}\""
+msgstr "清除{count}个在「{test}」里面的测试的狀態"
+
+#: ../py/goofy/js/goofy.js
+msgid "Clear status of test \"{test}\""
+msgstr "清除测试「{test}」的狀態"
+
+#: ../py/goofy/js/goofy.js
+msgid "Run {count} untested tests in \"{test}\""
+msgstr "执行{count}个在「{test}」里面未测的测试"
+
+#: ../py/goofy/js/goofy.js
+msgid "Stop all tests"
+msgstr "停止所有的测试"
+
+#: ../py/goofy/js/goofy.js
+msgid "Abort {count} active tests in \"{test}\" and continue testing"
+msgstr "取消{count}个在「{test}」里面執行中的测试並繼續"
+
+#: ../py/goofy/js/goofy.js
+msgid "Abort active test \"{test}\" and continue testing"
+msgstr "取消執行中的测试「{test}」並繼續"
+
+#: ../py/goofy/js/goofy.js
+msgid "System time: "
+msgstr "系统时间："
+
+#: ../py/goofy/js/goofy.js
+msgid "/var/log/messages before last reboot"
+msgstr "上次重开机前的 /var/log/messages"
+
+#: ../py/goofy/js/goofy.js
+msgid "Your Name"
+msgstr "你的名字"
+
+#: ../py/goofy/js/goofy.js
+msgid "Note Content"
+msgstr "注记内容"
+
+#: ../py/goofy/js/goofy.js
+msgid "Severity"
+msgstr "严重性"
+
+#: ../py/goofy/js/goofy.js
+msgid "Add Note"
+msgstr "新增注记"
+
+#: ../py/goofy/js/goofy.js
+msgid "Uploading factory logs..."
+msgstr "正在上载工厂记录..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Uploading factory logs.  Please wait..."
+msgstr "正在上载工厂记录 。 请稍等..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Bug Description"
+msgstr "Bug 描述"
+
+#: ../py/goofy/js/goofy.js
+msgid "Upload Factory Logs"
+msgstr "上载工厂记录"
+
+#: ../py/goofy/js/goofy.js
+msgid "Save Factory Logs to USB"
+msgstr "保存工厂记录到 U盘"
+
+#: ../py/goofy/js/goofy.js
+msgid "Saving factory logs to USB drive..."
+msgstr "正在保存工厂记录到 U盘..."
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Success! Saved factory logs ({size}) bytes) to {dev} as<br>{filename}. The "
+"drive has been unmounted."
+msgstr ""
+"保存工厂记录 ({size} bytes) 到 U盘 {dev} 已成功，文件叫<br>{filename}。U盘已"
+"卸载。"
+
+#: ../py/goofy/js/goofy.js
+msgid "Success! Saved factory logs ({size}) bytes) to {dev} as<br>{filename}."
+msgstr ""
+"保存工厂记录 ({size} bytes) 到 U盘 {dev} 已成功，文件叫<br>{filename}。"
+
+#: ../py/goofy/js/goofy.js
+msgid "Enter an optional identifier for the archive (or press Enter for none):"
+msgstr "请输入识別号给工厂记录文件，或按回车键不选："
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Please insert a formatted USB stick and wait a moment for it to be mounted."
+msgstr "请插入 U盘后稍等掛载。"
+
+#: ../py/goofy/js/goofy.js
+msgid "Update factory software"
+msgstr "更新工厂软体"
+
+#: ../py/goofy/js/goofy.js
+msgid "Save note on device"
+msgstr "注记"
+
+#: ../py/goofy/js/goofy.js
+msgid "View notes"
+msgstr "检视注记"
+
+#: ../py/goofy/js/goofy.js
+msgid "View /var/log/messages"
+msgstr "检视 /var/log/messages"
+
+#: ../py/goofy/js/goofy.js
+msgid "View /var/log/messages before last reboot"
+msgstr "检视上次重开机前的 /var/log/messages"
+
+#: ../py/goofy/js/goofy.js
+msgid "View dmesg"
+msgstr "检视 dmesg"
+
+#: ../py/goofy/js/goofy.js
+msgid "Device manager"
+msgstr "检视硬件"
+
+#: ../py/goofy/js/goofy.js
+msgid "Diagnosis Tool"
+msgstr "诊断工具"
+
+#: ../py/goofy/js/goofy.js
+msgid "Save factory logs to USB drive..."
+msgstr "保存工厂记录到 U盘"
+
+#: ../py/goofy/js/goofy.js
+msgid "Upload factory logs..."
+msgstr "上载工厂记录"
+
+#: ../py/goofy/js/goofy.js
+msgid "Toggle engineering mode"
+msgstr "切换工程模式"
+
+#: ../py/goofy/js/goofy.js
+msgid "Switch test list"
+msgstr "切换测试列表"
+
+#: ../py/goofy/js/goofy.js
+msgid "Switch Test List: {test_list}"
+msgstr "切换测试列表：{test_list}"
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Warning: Switching to test list \"{test_list}\" will clear all test state."
+"<br>Are you sure you want to proceed?"
+msgstr ""
+"警示：切換至测试列表「{test_list}」将清除所有测试状态。<br>确定要继续吗？"
+
+#: ../py/goofy/js/goofy.js
+msgid "Yes, clear state and restart"
+msgstr "确定，清除测试状态並重啓"
+
+#: ../py/goofy/js/goofy.js
+msgid "Cancel"
+msgstr "取消"
+
+#: ../py/goofy/js/goofy.js
+msgid "Switching test list.  Please wait..."
+msgstr "正在切换测试列表，请稍等..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Software update"
+msgstr "更新工厂软体"
+
+#: ../py/goofy/js/goofy.js
+msgid "Updating factory software. Please wait..."
+msgstr "正在更新工厂软体，请稍等..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Update succeeded. Restarting."
+msgstr "更新已成功，将会在几秒钟之内重新启动。"
+
+#: ../py/goofy/js/goofy.js
+msgid "No update is currently necessary."
+msgstr "目前不用更新工厂软体"
+
+#: ../py/goofy/js/goofy.js
+msgid "Update failed:<pre>{error}</pre>"
+msgstr "更新失败了：<pre>{error}</pre>"
