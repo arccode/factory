@@ -16,7 +16,7 @@ goog.require('goog.debug.ErrorHandler');
 goog.require('goog.debug.FancyWindow');
 goog.require('goog.debug.Logger');
 goog.require('goog.dom');
-goog.require('goog.dom.classes');
+goog.require('goog.dom.classlist');
 goog.require('goog.dom.iframe');
 goog.require('goog.events');
 goog.require('goog.events.EventHandler');
@@ -43,7 +43,10 @@ goog.require('goog.ui.SubMenu');
 goog.require('goog.ui.tree.TreeControl');
 goog.require('goog.window');
 
-cros.factory.logger = goog.debug.Logger.getLogger('cros.factory');
+/**
+ * @type {goog.debug.Logger}
+ */
+cros.factory.logger = goog.log.getLogger('cros.factory');
 
 /**
  * @define {boolean} Whether to automatically collapse items once tests have
@@ -142,13 +145,9 @@ cros.factory.Label = function(en, zh) {
 /**
  * Makes control content that displays English (or optionally Chinese).
  *
- * Note that this actually returns a Node, but we call it an unknown
- * type so it will be accepted by various buggy methods such as
- * goog.ui.Dialog.setTitle.
- *
  * @param {string} en
  * @param {string=} zh
- * @return {?}
+ * @return {Node}
  */
 cros.factory.Content = function(en, zh) {
   var span = document.createElement('span');
@@ -242,13 +241,13 @@ cros.factory.Test = function(invocation) {
 
   /**
    * Map of char codes to handlers.  Null if not yet initialized.
-   * @type {?Object.<number, function()>}
+   * @type {?Object<number, function(goog.events.KeyEvent)>}
    */
   this.keyHandlers = null;
 
   /**
    * Map of char codes to virtualkey buttons.
-   * @type {!Object.<number, !Element>}
+   * @type {!Object<number, !Element>}
    */
   this.keyButtons = new Object();
 };
@@ -299,7 +298,8 @@ cros.factory.Test.prototype.sendTestEvent = function(subtype, data) {
 /**
  * Binds a key to a handler.
  * @param {number} keyCode the key code to bind.
- * @param {function()} handler the function to call when the key is pressed.
+ * @param {function(goog.events.KeyEvent)} handler the function to call when
+ *     the key is pressed.
  * @export
  */
 cros.factory.Test.prototype.bindKey = function(keyCode, handler) {
@@ -307,9 +307,8 @@ cros.factory.Test.prototype.bindKey = function(keyCode, handler) {
     this.keyHandlers = new Object();
     // Set up the listener.
     goog.events.listen(
-        this.invocation.iframe.contentWindow,
-        goog.events.EventType.KEYUP,
-        function(event) {
+        this.invocation.iframe.contentWindow, goog.events.EventType.KEYUP,
+        function(/** goog.events.KeyEvent */ event) {
           handler = this.keyHandlers[event.keyCode];
           if (handler) {
             handler(event);
@@ -360,7 +359,8 @@ cros.factory.Test.prototype.addVirtualkey = function(keyCode, en, zh) {
     goog.events.listen(button, goog.events.EventType.CLICK, function(event) {
       var handler = this.keyHandlers[keyCode];
       if (handler) {
-        handler();
+        // Not a key event, passing null in.
+        handler(null);
       }
     }, false, this);
     container.appendChild(button);
@@ -384,10 +384,10 @@ cros.factory.Test.prototype.removeVirtualkey = function(keyCode) {
  * @export
  */
 cros.factory.Test.prototype.removeAllVirtualkeys = function() {
-  for (var keyCode in this.keyButtons) {
-    goog.dom.removeNode(this.keyButtons[keyCode]);
-    delete this.keyButtons[keyCode];
-  }
+  goog.object.forEach(this.keyButtons, function(button) {
+    goog.dom.removeNode(button);
+  });
+  this.keyButtons = {};
 };
 
 /**
@@ -404,7 +404,7 @@ cros.factory.Test.prototype.updateFactory = function() {
  * @param {boolean} enable fullscreen iframe or not.
  */
 cros.factory.Test.prototype.setFullScreen = function(enable) {
-  goog.dom.classes.enable(this.invocation.iframe, 'goofy-test-fullscreen',
+  goog.dom.classlist.enable(this.invocation.iframe, 'goofy-test-fullscreen',
       enable);
 };
 
@@ -457,8 +457,8 @@ cros.factory.Invocation = function(goofy, path, uuid, parentUuid) {
      * @type {HTMLIFrameElement}
      */
     this.iframe = goog.dom.iframe.createBlank(new goog.dom.DomHelper(document));
-    goog.dom.classes.add(this.iframe, 'goofy-test-iframe');
-    goog.dom.classes.enable(
+    goog.dom.classlist.add(this.iframe, 'goofy-test-iframe');
+    goog.dom.classlist.enable(
         this.iframe, 'goofy-test-visible',
         /** @type {boolean} */(goofy.pathTestMap[path].state.visible));
     document.getElementById('goofy-main').appendChild(this.iframe);
@@ -487,13 +487,14 @@ cros.factory.Invocation.prototype.dispose = function() {
     this.subInvocations[i] = null;
   }
   if (this.iframe) {
-    cros.factory.logger.info('Cleaning up invocation ' + this.uuid);
+    goog.log.info(cros.factory.logger, 'Cleaning up invocation ' + this.uuid);
     goog.dom.removeNode(this.iframe);
     this.iframe = null;
   }
   if (!this.parentUuid) {
     this.goofy.invocations[this.uuid] = null;
-    cros.factory.logger.info('Top-level invocation ' + this.uuid + ' disposed');
+    goog.log.info(cros.factory.logger,
+        'Top-level invocation ' + this.uuid + ' disposed');
   }
 };
 
@@ -682,7 +683,7 @@ cros.factory.Goofy = function() {
 
   /**
    * Last system info received.
-   * @type {Object.<string, Object>}
+   * @type {Object.<string, string>}
    */
   this.systemInfo = {};
 
@@ -736,8 +737,7 @@ cros.factory.Goofy = function() {
  * @param {string} titleHTML
  */
 cros.factory.Goofy.setDialogTitleHTML = function(dialog, titleHTML) {
-  goog.dom.getElementByClass(
-      'modal-dialog-title-text', dialog.getElement()).innerHTML = titleHTML;
+  dialog.getTitleTextElement().innerHTML = titleHTML;
 };
 
 /**
@@ -985,7 +985,7 @@ cros.factory.Goofy.prototype.init = function() {
         // If no password, enable eng mode, and don't
         // show the 'disable' link, since there is no way to
         // enable it.
-        goog.style.showElement(
+        goog.style.setElementShown(
             document.getElementById('goofy-disable-engineering-mode'),
             this.engineeringPasswordSHA1 != null);
         this.setEngineeringMode(this.engineeringPasswordSHA1 == null);
@@ -1094,15 +1094,15 @@ cros.factory.Goofy.prototype.getOrCreateInvocation = function(
  */
 cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
   if (doc.body) {
-    goog.dom.classes.enable(doc.body, 'goofy-lang-en-US', !this.zhMode);
-    goog.dom.classes.enable(doc.body, 'goofy-lang-zh-CN', this.zhMode);
-    goog.dom.classes.enable(
+    goog.dom.classlist.enable(doc.body, 'goofy-lang-en-US', !this.zhMode);
+    goog.dom.classlist.enable(doc.body, 'goofy-lang-zh-CN', this.zhMode);
+    goog.dom.classlist.enable(
         doc.body, 'goofy-engineering-mode', this.engineeringMode);
-    goog.dom.classes.enable(
+    goog.dom.classlist.enable(
         doc.body, 'goofy-operator-mode', !this.engineeringMode);
-    goog.dom.classes.enable(
+    goog.dom.classlist.enable(
         doc.body, 'goofy-enable-automation', this.automationEnabled);
-    goog.dom.classes.enable(
+    goog.dom.classlist.enable(
         document.getElementById('goofy-terminal'),
         'goofy-engineering-mode',
         this.engineeringMode);
@@ -1159,7 +1159,7 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
   this.infoTooltip.setHtml(table.join(''));
   this.updateTime();
 
-  goog.dom.classes.enable(
+  goog.dom.classlist.enable(
       document.body, 'goofy-update-available', !!systemInfo['update_md5sum']);
 };
 
@@ -1172,7 +1172,7 @@ cros.factory.Goofy.prototype.updateNote = function(notes) {
   var currentLevel = notes ? notes[notes.length - 1].level : '';
 
   goog.array.forEach(cros.factory.NOTE_LEVEL, function(lvl) {
-    goog.dom.classes.enable(
+    goog.dom.classlist.enable(
         document.getElementById('goofy-logo'),
         'goofy-note-' + lvl['name'].toLowerCase(),
         currentLevel == lvl['name']);
@@ -1287,7 +1287,7 @@ cros.factory.Goofy.prototype.alert = function(messageHtml) {
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setContent(messageHtml);
   dialog.setVisible(true);
-  goog.dom.classes.add(dialog.getElement(), 'goofy-alert');
+  goog.dom.classlist.add(dialog.getElement(), 'goofy-alert');
 };
 
 /**
@@ -1338,7 +1338,7 @@ cros.factory.Goofy.prototype.promptEngineeringPassword = function() {
       }, this));
   this.registerDialog(this.engineeringModeDialog);
   this.engineeringModeDialog.setVisible(true);
-  goog.dom.classes.add(this.engineeringModeDialog.getElement(),
+  goog.dom.classlist.add(this.engineeringModeDialog.getElement(),
       'goofy-engineering-mode-dialog');
   this.engineeringModeDialog.reposition();
   this.positionOverConsole(this.engineeringModeDialog.getElement());
@@ -1445,7 +1445,7 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
   this.shutdownDialog.setButtonSet(null);
   this.shutdownDialog.setHasTitleCloseButton(false);
   this.shutdownDialog.setEscapeToCancel(false);
-  goog.dom.classes.add(
+  goog.dom.classlist.add(
       this.shutdownDialog.getElement(), 'goofy-shutdown-dialog');
   this.shutdownDialog.setVisible(true);
   // The dialog has no close box or buttons, so focus is a little weird.
@@ -1503,7 +1503,8 @@ cros.factory.Goofy.prototype.startAutoTest = function() {
  * @param {number} count the number of tests.
  * @param {cros.factory.TestListEntry} test the name of the root node containing
  *     the tests.
- * @param {Object} handler the handler function (see goog.events.listen).
+ * @param {function(goog.ui.Component.EventType)} handler the handler function
+ *     (see goog.events.listen).
  * @param {boolean=} opt_adjectiveAtEnd put the adjective at the end in English
  *     (e.g., tests that have *not passed*)
  * @param {string=} opt_suffixEn a suffix in English (e.g.,
@@ -2045,7 +2046,7 @@ cros.factory.Goofy.prototype.uploadFactoryLogs = function(
   var content = cros.factory.Content(
       'Uploading factory logs...',
       '正在上载工厂记录...');
-  dialog.setTitle(content);
+  cros.factory.Goofy.setDialogTitleHTML(dialog, content.outerHTML);
   dialog.setContent(
       cros.factory.Label(
           'Uploading factory logs.  Please wait...',
@@ -2131,8 +2132,8 @@ cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
   dialog.setContent(table.join(''));
   var buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
   dialog.setButtonSet(buttons);
-  dialog.setTitle(
-      cros.factory.Content('Upload Factory Logs', '上载工厂记录'));
+  cros.factory.Goofy.setDialogTitleHTML(dialog,
+      cros.factory.Content('Upload Factory Logs', '上载工厂记录').outerHTML);
   dialog.setVisible(true);
 
   var nameElt = document.getElementById('goofy-ul-name');
@@ -2173,8 +2174,8 @@ cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
  * Saves factory logs to a USB drive.
  */
 cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
-  var titleContent = cros.factory.Content(
-      'Save Factory Logs to USB', '保存工厂记录到 U盘');
+  var titleContentHTML = cros.factory.Content(
+      'Save Factory Logs to USB', '保存工厂记录到 U盘').outerHTML;
 
   function doSave() {
     function callback(id) {
@@ -2185,7 +2186,7 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
 
       var dialog = new goog.ui.Dialog();
       this.registerDialog(dialog);
-      dialog.setTitle(titleContent);
+      cros.factory.Goofy.setDialogTitleHTML(dialog, titleContentHTML);
       dialog.setContent(
           cros.factory.Label('Saving factory logs to USB drive...',
               '正在保存工厂记录到 U盘...'));
@@ -2221,16 +2222,17 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
     }
 
     var idDialog = new goog.ui.Prompt(
-        titleContent,
+        '',
         cros.factory.Label(
             'Enter an optional identifier for the archive ' +
             '(or press Enter for none):',
             '请输入识別号给工厂记录文件，' +
             '或按回车键不选：'),
         goog.bind(callback, this));
+    cros.factory.Goofy.setDialogTitleHTML(idDialog, titleContentHTML);
     this.registerDialog(idDialog);
     idDialog.setVisible(true);
-    goog.dom.classes.add(idDialog.getElement(),
+    goog.dom.classlist.add(idDialog.getElement(),
         'goofy-log-identifier-prompt');
     this.positionOverConsole(idDialog.getElement());
   }
@@ -2248,7 +2250,7 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
   waitForUSBDialog.setButtonSet(
       new goog.ui.Dialog.ButtonSet().addButton(
           goog.ui.Dialog.ButtonSet.DefaultButtons.CANCEL, false, true));
-  waitForUSBDialog.setTitle(titleContent);
+  cros.factory.Goofy.setDialogTitleHTML(waitForUSBDialog, titleContentHTML);
 
   function waitForUSB() {
     function restartWaitForUSB() {
@@ -2405,7 +2407,7 @@ cros.factory.Goofy.prototype.updateTestToolTip = function(
       goog.events.listen(
           link, goog.events.EventType.CLICK,
           function(event) {
-            goog.dom.classes.add(tooltip.getElement(),
+            goog.dom.classlist.add(tooltip.getElement(),
                 'goofy-test-failure-expanded');
             tooltip.reposition();
           }, true, this);
@@ -2432,7 +2434,7 @@ cros.factory.Goofy.prototype.updateTestToolTip = function(
 cros.factory.Goofy.prototype.setTestList = function(testList) {
   cros.factory.logger.info('Received test list: ' +
       goog.debug.expose(testList));
-  goog.style.showElement(document.getElementById('goofy-loading'), false);
+  goog.style.setElementShown(document.getElementById('goofy-loading'), false);
 
   this.addToNode(null, testList);
   // expandAll is necessary to get all the elements to actually be
@@ -2602,14 +2604,14 @@ cros.factory.Goofy.prototype.makeSwitchTestListMenu = function() {
                   '确定要继续吗？'));
 
           var buttonSet = new goog.ui.Dialog.ButtonSet();
-          buttonSet.addButton(
-              {key: goog.ui.Dialog.DefaultButtonKeys.OK,
-               caption: cros.factory.Content(
-                   'Yes, clear state and restart',
-                   '确定，清除测试状态並重啓')});
-          buttonSet.addButton(
-              {key: goog.ui.Dialog.DefaultButtonKeys.CANCEL,
-               caption: cros.factory.Content('Cancel', '取消')},
+          buttonSet.set(
+              goog.ui.Dialog.DefaultButtonKeys.OK,
+              cros.factory.Content(
+                  'Yes, clear state and restart',
+                  '确定，清除测试状态並重啓'));
+          buttonSet.set(
+              goog.ui.Dialog.DefaultButtonKeys.CANCEL,
+              cros.factory.Content('Cancel', '取消'),
               true, true);
           dialog.setButtonSet(buttonSet);
           dialog.setVisible(true);
@@ -2717,7 +2719,8 @@ cros.factory.Goofy.prototype.updateFactory = function() {
 cros.factory.Goofy.prototype.setTestState = function(path, state) {
   var node = this.pathNodeMap[path];
   if (!node) {
-    cros.factory.logger.warning('No node found for test path ' + path);
+    goog.log.warning(
+        cros.factory.logger, 'No node found for test path ' + path);
     return;
   }
 
@@ -2727,22 +2730,23 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
 
   // Assign the appropriate class to the node, and remove all other
   // status classes.
-  goog.dom.classes.addRemove(
+  goog.dom.classlist.removeAll(
       elt,
       goog.array.filter(
-          goog.dom.classes.get(elt),
+          goog.dom.classlist.get(elt),
           function(cls) {
             return goog.string.startsWith(cls, 'goofy-status-') && cls;
-          }),
-      'goofy-status-' + state.status.toLowerCase().replace(/_/g, '-'));
+          }));
+  goog.dom.classlist.add(
+      elt, 'goofy-status-' + state.status.toLowerCase().replace(/_/g, '-'));
 
-  goog.dom.classes.enable(elt, 'goofy-skip', state.skip);
+  goog.dom.classlist.enable(elt, 'goofy-skip', state.skip);
 
   var visible = state.visible;
-  goog.dom.classes.enable(elt, 'goofy-test-visible', visible);
+  goog.dom.classlist.enable(elt, 'goofy-test-visible', visible);
   goog.object.forEach(this.invocations, function(invoc, uuid) {
     if (invoc && invoc.path == path) {
-      goog.dom.classes.enable(invoc.iframe, 'goofy-test-visible', visible);
+      goog.dom.classlist.enable(invoc.iframe, 'goofy-test-visible', visible);
       if (visible) {
         invoc.iframe.contentWindow.focus();
       }
@@ -2814,7 +2818,7 @@ cros.factory.Goofy.prototype.sendEvent = function(type, properties) {
   var dict = goog.object.clone(properties);
   dict.type = type;
   var serialized = goog.json.serialize(dict);
-  cros.factory.logger.info('Sending event: ' + serialized);
+  goog.log.info(cros.factory.logger, 'Sending event: ' + serialized);
   if (this.ws.isOpen()) {
     this.ws.send(serialized);
   }
@@ -2830,7 +2834,7 @@ cros.factory.Goofy.prototype.sendEvent = function(type, properties) {
 cros.factory.Goofy.prototype.sendRpc = function(
     method, args, callback, opt_errorCallback) {
   var request = goog.json.serialize({method: method, params: args, id: 1});
-  cros.factory.logger.info('RPC request: ' + request);
+  goog.log.info(cros.factory.logger, 'RPC request: ' + request);
   var factoryThis = this;
   goog.net.XhrIo.send(
       '/goofy', function() {
@@ -2890,7 +2894,7 @@ cros.factory.Goofy.prototype.updateStatus = function() {
 
     function setValue(id, value) {
       var element = document.getElementById(id);
-      goog.dom.classes.enable(element, 'goofy-value-known', value != null);
+      goog.dom.classlist.enable(element, 'goofy-value-known', value != null);
       goog.dom.getElementByClass('goofy-value', element).innerHTML = value;
     }
 
@@ -2932,7 +2936,7 @@ cros.factory.Goofy.prototype.updateStatus = function() {
       }
     }
     setValue('goofy-percent-battery', percent);
-    goog.dom.classes.set(
+    goog.dom.classlist.set(
         chargeIndicator, 'goofy-battery-' + batteryChargeState);
 
     var temperature = status['temperature'];
@@ -2943,10 +2947,10 @@ cros.factory.Goofy.prototype.updateStatus = function() {
     setValue('goofy-temperature', temp);
 
     var eth_indicator = document.getElementById('goofy-eth-indicator');
-    goog.dom.classes.enable(eth_indicator, 'goofy-eth-enabled',
+    goog.dom.classlist.enable(eth_indicator, 'goofy-eth-enabled',
         status['eth_on']);
     var wlan_indicator = document.getElementById('goofy-wlan-indicator');
-    goog.dom.classes.enable(wlan_indicator, 'goofy-wlan-enabled',
+    goog.dom.classlist.enable(wlan_indicator, 'goofy-wlan-enabled',
         status['wlan_on']);
 
     this.lastStatus = status;
@@ -2961,7 +2965,7 @@ cros.factory.Goofy.prototype.updateStatus = function() {
  */
 cros.factory.Goofy.prototype.logToConsole = function(message, opt_attributes) {
   var div = goog.dom.createDom('div', opt_attributes);
-  goog.dom.classes.add(div, 'goofy-log-line');
+  goog.dom.classlist.add(div, 'goofy-log-line');
   div.appendChild(document.createTextNode(message));
   this.console.appendChild(div);
 
@@ -2988,6 +2992,7 @@ cros.factory.Goofy.prototype.logInternal = function(message) {
 
 /**
  * Hides tooltips, and cancels pending shows.
+ * @suppress {accessControls}
  */
 cros.factory.Goofy.prototype.hideTooltips = function() {
   goog.array.forEach(this.tooltips, function(tooltip) {
@@ -3002,14 +3007,18 @@ cros.factory.Goofy.prototype.hideTooltips = function() {
  * @param {string} jsonMessage the message as a JSON string.
  */
 cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
-  cros.factory.logger.info('Got message: ' + jsonMessage);
-  var message = /** @type {Object.<string, Object>} */ (
+  goog.log.info(cros.factory.logger, 'Got message: ' + jsonMessage);
+  var message = /**
+                 * @type {{type: string, uuid: string, invocation: string,
+                 *     parent_invocation: string, state: cros.factory.TestState,
+                 *     path: string, append: boolean, is_response: boolean,
+                 *     html: string, js: string, args: Object}} */(
       goog.json.unsafeParse(jsonMessage));
 
   if (message.type == 'goofy:hello') {
     if (this.uuid && message.uuid != this.uuid) {
       // The goofy process has changed; reload the page.
-      cros.factory.logger.info('Incorrect UUID; reloading');
+      goog.log.info(cros.factory.logger, 'Incorrect UUID; reloading');
       window.location.reload();
       return;
     } else {
@@ -3026,10 +3035,8 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
     var invocation = this.getOrCreateInvocation(
         message.test, message.invocation, message.parent_invocation);
     if (invocation && invocation.iframe) {
-      goog.dom.iframe.writeContent(
-          invocation.iframe,
-          /** @type {string} */(message['html']));
-          this.updateCSSClassesInDocument(invocation.iframe.contentDocument);
+      goog.dom.iframe.writeContent(invocation.iframe, message['html']);
+      this.updateCSSClassesInDocument(invocation.iframe.contentDocument);
       // In the content window's evaluation context, add our keydown
       // listener.
       invocation.iframe.contentWindow.eval(
@@ -3069,8 +3076,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
       // in the window and load it directly in the eval command.
       invocation.iframe.contentWindow.__goofy_args = message['args'];
       invocation.iframe.contentWindow.eval(
-          'var args = window.__goofy_args;' +
-              /** @type {string} */ (message['js']));
+          'var args = window.__goofy_args;' + message['js']);
       if (invocation && invocation.iframe) {
         delete invocation.iframe.contentWindow.__goofy_args;
       }
@@ -3131,28 +3137,65 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
 
 /**
  * @constructor
- * @param {Object} text
+ * @param {Object} setting
  */
-function Terminal(text) {
-  this.on = function(x, y) {};
-  this.open = function(x) {};
-  this.refresh = function(x, y) {};
-  this.resize = function(x, y) {};
-  this.write = function(x) {};
-  this.cols = /** @type {number} */ (undefined);
-  this.rows = /** @type {number} */ (undefined);
-  this.element = /** @type {Object} */ (undefined);
-}
+var Terminal = function(setting) {};
 
-var Base64 = {
-  decode: function() {},
-  encode: function() {}
-};
-/**
- * @param {Object} text
- * @return {Object}
- */
-function jQuery(text) { return /** @type {Object} */ (undefined); }
+/** @type {function(string, function(string))} */
+Terminal.prototype.on;
+
+/** @type {function(Element)} */
+Terminal.prototype.open;
+
+/** @type {function(string)} */
+Terminal.prototype.write;
+
+/** @type {function(number, number)} */
+Terminal.prototype.resize;
+
+/** @type {function(number, number)} */
+Terminal.prototype.refresh;
+
+/** @type {number} */
+Terminal.prototype.cols;
+
+/** @type {number} */
+Terminal.prototype.rows;
+
+/** @type {Element} */
+Terminal.prototype.element;
+
+var Base64 = {};
+
+/** @type {function(string): string} */
+Base64.encode = function() {};
+
+/** @type {function(string): string} */
+Base64.decode = function() {};
+
+/** @type {function(Element): jQuery.Type} */
+var jQuery = function() {};
+
+/** @constructor */
+jQuery.Type = function() {};
+
+/** @type function(string): jQuery.Type */
+jQuery.Type.prototype.find;
+
+/** @type function(Object) */
+jQuery.Type.prototype.draggable;
+
+/** @type function(string, string=) */
+jQuery.Type.prototype.css;
+
+/** @type function(): number */
+jQuery.Type.prototype.width;
+
+/** @type function() */
+jQuery.Type.prototype.resizable;
+
+/** @type function(string, function()) */
+jQuery.Type.prototype.bind;
 
 /**
  * Start the terminal session.
@@ -3161,7 +3204,7 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
   this.sendEvent('goofy:key_filter_mode', {'enabled': false});
 
   if (typeof(this.terminal_win) != 'undefined') {
-    goog.style.showElement(this.terminal_win, true);
+    goog.style.setElementShown(this.terminal_win, true);
     goog.style.setStyle(
         document.getElementById('goofy-terminal'), 'opacity', 1.0);
     return;
@@ -3189,7 +3232,7 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
   this.terminal_win = win;
 
   sock.onerror = function(e) {
-    cros.factory.logger.info('socket error', e);
+    goog.log.info(cros.factory.logger, 'socket error', e);
   };
   jQuery(win).draggable({cancel: '.terminal'});
   sock.onopen = function(e) {
@@ -3270,7 +3313,7 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
     });
   };
   sock.onclose = goog.bind(function(e) {
-    this.closeTerminal();
+    this.closeTerminal(e);
   }, this);
 };
 
@@ -3285,7 +3328,7 @@ cros.factory.Goofy.prototype.closeTerminal = function(e) {
 };
 
 cros.factory.Goofy.prototype.hideTerminal = function(e) {
-  goog.style.showElement(this.terminal_win, false);
+  goog.style.setElementShown(this.terminal_win, false);
   goog.style.setStyle(
       document.getElementById('goofy-terminal'), 'opacity', 0.5);
   this.sendEvent('goofy:key_filter_mode', {'enabled': true});

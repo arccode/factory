@@ -62,7 +62,9 @@ $(OUTPUT_JS): $(JS_SOURCE_PATHS) | check_deps
 	# For now, we just use the compiler (--output_mode=compiled) to check
 	# the correctness of our code, and we actually deploy the version that
 	# is the concatenation of all the dependencies (--output_mode=script).
-	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null
+	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null \
+		--compiler_flags="--language_in=ECMASCRIPT6_STRICT" \
+		--compiler_flags="--language_out=ECMASCRIPT5_STRICT"
 	$(CLOSURE_BUILD) --output_mode=script --output_file=$@
 
 $(OUTPUT_CSS): $(CSS_SOURCE_PATHS) | check_deps
