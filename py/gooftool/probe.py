@@ -240,7 +240,7 @@ def _ReadSysfsNodeId(path):
   if os.path.exists(name_path):
     device_id = _StripRead(name_path)
     if device_id:
-      return {'name': device_id.strip(chr(0)).split(chr(0))}
+      return {'name': ' '.join(device_id.replace(chr(0), ' ').split())}
 
   return None
 
@@ -621,9 +621,10 @@ class _TouchInputData(object):  # pylint: disable=W0232
     if not os.path.exists(rmi4update_program):
       return data
 
-    devs = glob(os.path.join('/sys/bus/hid/devices/', '*:%s:%s.*'
-                             % (data.vendor_id.upper(), data.product_id.upper()),
-                             'hidraw/hidraw*'))
+    devs = glob(os.path.join(
+        '/sys/bus/hid/devices/',
+        '*:%s:%s.*' % (data.vendor_id.upper(), data.product_id.upper()),
+        'hidraw/hidraw*'))
     if not devs:
       return data
 
