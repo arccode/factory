@@ -321,7 +321,3 @@ class StubFactoryState(FactoryState):
     self._data_shelf = self.InMemoryShelf()
 
     self._lock = threading.RLock()
-
-  def get_system_status(self):
-    # Mock this function if your unittest needs this.
-    raise NotImplementedError

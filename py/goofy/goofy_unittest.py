@@ -19,6 +19,7 @@ import imp
 import logging
 import math
 import mox
+import os
 import subprocess
 import threading
 import time
@@ -32,6 +33,7 @@ from cros.factory.goofy.goofy import Goofy
 from cros.factory.goofy.prespawner import PytestPrespawner
 from cros.factory.goofy.test_environment import Environment
 from cros.factory.test.env import goofy_proxy
+from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
@@ -133,11 +135,13 @@ class GoofyTest(unittest.TestCase):
   options = ''
   ui = 'none'
   test_list = None  # Overridden by subclasses
+  mock_goofy_server = True
 
   def setUp(self):
     # Some test cases might stub out PytestPrespawner.spawn. To restore it
     # after each test case, we need to save it now.
     self.original_spawn = PytestPrespawner.spawn
+    self.original_get_state_instance = state.get_instance
     # Log the name of the test we're about to run, to make it easier
     # to grok the logs.
     logging.info('*** Running test %s', type(self).__name__)
@@ -147,8 +151,18 @@ class GoofyTest(unittest.TestCase):
                  goofy_proxy.DEFAULT_GOOFY_PORT)
     self.mocker = mox.Mox()
     self.env = self.mocker.CreateMock(Environment)
-    self.state = goofy_proxy.get_rpc_proxy()
+    self.state = state.StubFactoryState()
+
+    if self.mock_goofy_server:
+      self.mocker.StubOutClassWithMocks(goofy.goofy_server, 'GoofyServer')
+      state.get_instance = lambda: self.state
+    self.mocker.StubOutClassWithMocks(goofy, 'PresenterLinkManager')
+    self.mocker.StubOutWithMock(state, 'clear_state')
+    self.mocker.StubOutWithMock(state, 'FactoryState')
+
     self.before_init_goofy()
+
+    self.record_goofy_init()
     self.mocker.ReplayAll()
     self.goofy = init_goofy(self.env, self.test_list, self.options,
                             ui=self.ui)
@@ -157,24 +171,65 @@ class GoofyTest(unittest.TestCase):
     self.mockAnything = mox.MockAnything()
 
   def tearDown(self):
-    self.goofy.destroy()
+    try:
+      self.mocker.VerifyAll()
+      self.mocker.ResetAll()
 
-    # Make sure we're not leaving any extra threads hanging around
-    # after a second.
-    for _ in range(10):
-      extra_threads = [t for t in threading.enumerate()
-                       if t != threading.current_thread()]
-      if not extra_threads:
-        break
-      logging.info('Waiting for %d threads to die', len(extra_threads))
+      self.record_goofy_destroy()
+      self.mocker.ReplayAll()
 
-      # Wait another 100 ms
-      time.sleep(.1)
+      self.goofy.destroy()
+      self.mocker.VerifyAll()
+      self.mocker.ResetAll()
 
-    self.assertEqual([], extra_threads)
+      # Make sure we're not leaving any extra threads hanging around
+      # after a second.
+      for _ in range(10):
+        extra_threads = [t for t in threading.enumerate()
+                         if t != threading.current_thread()]
+        if not extra_threads:
+          break
+        logging.info('Waiting for %d threads to die', len(extra_threads))
 
-    # Restore PytestPrespawner.spawn
-    PytestPrespawner.spawn = self.original_spawn
+        # Wait another 100 ms
+        time.sleep(.1)
+
+      self.assertEqual([], extra_threads)
+    finally:
+      # Restore PytestPrespawner.spawn
+      PytestPrespawner.spawn = self.original_spawn
+      state.get_instance = self.original_get_state_instance
+      self.mocker.UnsetStubs()
+
+  def record_goofy_init(self, restart=True):
+    goofy.PresenterLinkManager(
+        check_interval=1,
+        handshake_timeout=0.3,
+        standalone=False)
+
+    if restart:
+      state.clear_state()
+
+    state.FactoryState().AndReturn(self.state)
+
+    if self.mock_goofy_server:
+      server = goofy.goofy_server.GoofyServer((
+          goofy_proxy.DEFAULT_GOOFY_ADDRESS,
+          goofy_proxy.DEFAULT_GOOFY_PORT))
+      server.serve_forever().InAnyOrder()
+      server.RegisterPath(
+          '/',
+          os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static')).InAnyOrder()
+      server.AddRPCInstance(goofy_proxy.STATE_URL, self.state).InAnyOrder()
+      server.AddHTTPGetHandler('/event', IgnoreArg()).InAnyOrder()
+      server.AddHTTPGetHandler('/pty', IgnoreArg()).InAnyOrder()
+
+  def record_goofy_destroy(self):
+    if self.goofy.link_manager:
+      self.goofy.link_manager.Stop()
+    if self.mock_goofy_server:
+      self.goofy.goofy_server.shutdown()
+      self.goofy.goofy_server.server_close()
 
   def _wait(self):
     """Waits for any pending invocations in Goofy to complete.
@@ -224,6 +279,7 @@ class GoofyTest(unittest.TestCase):
 
 class GoofyUITest(GoofyTest):
   ui = 'chrome'
+  mock_goofy_server = False
 
   def __init__(self, *args, **kwargs):
     super(GoofyUITest, self).__init__(*args, **kwargs)
@@ -324,6 +380,8 @@ class WebSocketTest(GoofyUITest):
                         'Uh-oh')
 
     # Kill Goofy and wait for the web socket to close gracefully
+    self.record_goofy_destroy()
+    self.mocker.ReplayAll()
     self.goofy.destroy()
     self.waitForWebSocketClose()
 
@@ -388,6 +446,8 @@ class ShutdownTest(GoofyTest):
       mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.ACTIVE,
                   '', func=lambda: self.goofy.shutdown('reboot'))
       self.env.shutdown('reboot').AndReturn(True)
+      self.record_goofy_destroy()
+      self.record_goofy_init(restart=False)
       self.mocker.ReplayAll()
       self.goofy.destroy()
       self.goofy = init_goofy(self.env, self.test_list, restart=False)
@@ -398,6 +458,8 @@ class ShutdownTest(GoofyTest):
     self.mocker.ResetAll()
     # Goofy should invoke shutdown test to do post-shutdown verification.
     mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.PASSED, '')
+    self.record_goofy_destroy()
+    self.record_goofy_init(restart=False)
     self.mocker.ReplayAll()
     self.goofy.destroy()
     self.goofy = init_goofy(self.env, self.test_list, restart=False)
@@ -440,12 +502,15 @@ class RebootFailureTest(GoofyTest):
 
     # Kill and restart Goofy to simulate a reboot.
     # Goofy should fail the test since it has been too long.
+    self.record_goofy_destroy()
+    self.mocker.ReplayAll()
     self.goofy.destroy()
 
     self.mocker.ResetAll()
     # Mock a failed shutdown post-shutdown verification.
     mock_pytest(PytestPrespawner.spawn, 'shutdown', TestState.FAILED,
                 'Reboot failed.')
+    self.record_goofy_init(restart=False)
     self.mocker.ReplayAll()
     self.goofy = init_goofy(self.env, self.test_list, restart=False)
     self.goofy.run_once()
@@ -503,6 +568,8 @@ class PyTestTest(GoofyTest):
         dargs={'script': ("assert 'Pa-TAY-to' == 'Pa-TAH-to', "
                           "'Let\\\\\'s call the whole thing off'")})
   """
+
+  mock_goofy_server = False
 
   def runTest(self):
     self.goofy.run_once()
