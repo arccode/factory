@@ -37,6 +37,7 @@ _MSG_IN_PROGRESS = i18n_test_ui.MakeI18nLabelWithClass(
     'Please do not move the device.', 'test-info')
 _MSG_START_MOVING = i18n_test_ui.MakeI18nLabelWithClass(
     'Please rotate the device.', 'test-info')
+_MSG_SUBTESTS = '<div class="{state}">{key}={value}</div>'
 
 def GetPreparingMessage(secs):
   return i18n_test_ui.MakeI18nLabelWithClass(
@@ -82,6 +83,15 @@ class ReadGyroscopeTask(factory_task.FactoryTask):
     self.setup_time_secs = setup_time_secs
     self.template = test.template
 
+  def _UpdateState(self, max_values):
+    state_msg = ''.join(
+        _MSG_SUBTESTS.format(state=('test-pass' if v > self.rotation_threshold
+                                    else 'test-fail'),
+                             key=k, value=v)
+        for k, v in max_values.items())
+
+    self.template.SetState(state_msg)
+
   def _WaitForDeviceStop(self):
     """Wait until absolute value of all sensors less than stop_threshold."""
 
@@ -100,6 +110,7 @@ class ReadGyroscopeTask(factory_task.FactoryTask):
       for sensor_name in data:
         max_values[sensor_name] = max(max_values[sensor_name],
                                       abs(data[sensor_name]))
+      self._UpdateState(max_values)
       return all(abs(v) > self.rotation_threshold for v in max_values.values())
 
     sync_utils.WaitFor(CheckSensorMaxValues, self.timeout_secs)
@@ -111,10 +122,10 @@ class ReadGyroscopeTask(factory_task.FactoryTask):
       time.sleep(1)
 
     try:
-      self.template.SetState(_MSG_IN_PROGRESS)
+      self.template.SetInstruction(_MSG_IN_PROGRESS)
       self._WaitForDeviceStop()
 
-      self.template.SetState(_MSG_START_MOVING)
+      self.template.SetInstruction(_MSG_START_MOVING)
       self._WaitForDeviceRotate()
     except type_utils.TimeoutError as e:
       self.Fail(e.message)
@@ -149,7 +160,7 @@ class Gyroscope(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.gyroscope = self.dut.gyroscope.GetController()
     self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
+    self.template = ui_templates.TwoSections(self.ui)
     self.ui.AppendCSS(_CSS)
     self._task_manager = None
 
