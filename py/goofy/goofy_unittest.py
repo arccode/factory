@@ -79,36 +79,6 @@ def CreateTestLists():
   return created_test_lists.values()[0]
 
 
-def _MockGetTestList(goofy_instance, test_list):
-  """Mock "GetTestList" function in goofy.
-
-  Mock "GetTestList" function in goofy, so the active test list will always be
-  the given one.
-  """
-  def _GetTestList(test_list_id):
-    del test_list_id
-    return test_list
-
-  goofy_instance.GetTestList = _GetTestList
-
-
-def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
-  """Initializes and returns a Goofy."""
-  new_goofy = Goofy()
-  args = ['--ui', ui]
-  if restart:
-    args.append('--restart')
-  if test_list:
-    test_list = _BuildTestList(test_list, options)
-    _MockGetTestList(new_goofy, test_list)
-
-  logging.info('Running goofy with args %r', args)
-  new_goofy.dut.info.Overrides('mlb_serial_number', 'mlb_sn_123456789')
-  new_goofy.dut.info.Overrides('serial_number', 'sn_123456789')
-  new_goofy.init(args, env or Environment())
-  return new_goofy
-
-
 def mock_pytest(spawn, name, test_state, error_msg, func=None):
   """Adds a side effect that a mock pytest will be executed.
 
@@ -159,13 +129,13 @@ class GoofyTest(unittest.TestCase):
     self.mocker.StubOutClassWithMocks(goofy, 'PresenterLinkManager')
     self.mocker.StubOutWithMock(state, 'clear_state')
     self.mocker.StubOutWithMock(state, 'FactoryState')
+    self.mocker.StubOutWithMock(goofy.test_lists, 'BuildAllTestLists')
 
     self.before_init_goofy()
 
     self.record_goofy_init()
     self.mocker.ReplayAll()
-    self.goofy = init_goofy(self.env, self.test_list, self.options,
-                            ui=self.ui)
+    self.init_goofy()
     self.mocker.VerifyAll()
     self.mocker.ResetAll()
     self.mockAnything = mox.MockAnything()
@@ -201,6 +171,19 @@ class GoofyTest(unittest.TestCase):
       state.get_instance = self.original_get_state_instance
       self.mocker.UnsetStubs()
 
+  def init_goofy(self, restart=True):
+    """Initializes and returns a Goofy."""
+    new_goofy = Goofy()
+    args = ['--ui', self.ui, '--test_list', 'test']
+    if restart:
+      args.append('--restart')
+
+    logging.info('Running goofy with args %r', args)
+    new_goofy.dut.info.Overrides('mlb_serial_number', 'mlb_sn_123456789')
+    new_goofy.dut.info.Overrides('serial_number', 'sn_123456789')
+    new_goofy.init(args, self.env or Environment())
+    self.goofy = new_goofy
+
   def record_goofy_init(self, restart=True):
     goofy.PresenterLinkManager(
         check_interval=1,
@@ -223,6 +206,11 @@ class GoofyTest(unittest.TestCase):
       server.AddRPCInstance(goofy_proxy.STATE_URL, self.state).InAnyOrder()
       server.AddHTTPGetHandler('/event', IgnoreArg()).InAnyOrder()
       server.AddHTTPGetHandler('/pty', IgnoreArg()).InAnyOrder()
+
+    if self.test_list:
+      test_list = _BuildTestList(self.test_list, self.options)
+      goofy.test_lists.BuildAllTestLists(force_generic=True).AndReturn(
+          ({'test': test_list}, {}))
 
   def record_goofy_destroy(self):
     if self.goofy.link_manager:
@@ -450,7 +438,7 @@ class ShutdownTest(GoofyTest):
       self.record_goofy_init(restart=False)
       self.mocker.ReplayAll()
       self.goofy.destroy()
-      self.goofy = init_goofy(self.env, self.test_list, restart=False)
+      self.init_goofy(restart=False)
       self.goofy.run_once()
       self._wait()
 
@@ -462,7 +450,7 @@ class ShutdownTest(GoofyTest):
     self.record_goofy_init(restart=False)
     self.mocker.ReplayAll()
     self.goofy.destroy()
-    self.goofy = init_goofy(self.env, self.test_list, restart=False)
+    self.init_goofy(restart=False)
     self.goofy.run_once()
     self._wait()
 
@@ -512,7 +500,7 @@ class RebootFailureTest(GoofyTest):
                 'Reboot failed.')
     self.record_goofy_init(restart=False)
     self.mocker.ReplayAll()
-    self.goofy = init_goofy(self.env, self.test_list, restart=False)
+    self.init_goofy(restart=False)
     self.goofy.run_once()
     self._wait()
 
