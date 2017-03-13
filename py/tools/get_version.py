@@ -62,7 +62,7 @@ def GetFirmwareVersions(updater):
 
   versions = []
   for label in FIRMWARE_LABELS:
-    match = re.search('^' + label + r' version:\s+(.+)$', stdout, re.MULTILINE)
+    match = re.search('^' + label + r' version:\s*(.+)$', stdout, re.MULTILINE)
     versions.append(match.group(1) if match else None)
   return tuple(versions)
 
