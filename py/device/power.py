@@ -330,18 +330,6 @@ class Power(DeviceComponent):
       ports.append(USBPortInfo(port_id, port_state, voltage, current))
     return ports
 
-  def GetBatteryRegisters(self):
-    """Gets battery registers on board.
-
-    Returns:
-      A dict with register offset as key and register value as value.
-      Both key and value are integers.
-
-    Raises:
-      DeviceException if any register is not available.
-    """
-    raise NotImplementedError
-
   def GetInfoDict(self):
     """Returns a dict containing information about the battery.
 
@@ -459,7 +447,3 @@ class ECToolPower(Power):
   def GetBatteryDesignCapacity(self):
     """See Power.GetBatteryDesignCapacity"""
     return self._GetECToolBatteryAttribute('Design capacity:')
-
-  def GetBatteryRegisters(self):
-    """See Power.GetBatteryRegisters"""
-    raise NotImplementedError
