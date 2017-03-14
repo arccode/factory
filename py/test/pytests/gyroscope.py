@@ -21,6 +21,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import event
 from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -136,8 +137,13 @@ class ReadGyroscopeTask(factory_task.FactoryTask):
 
   def Run(self):
     """Prompts a message to ask operator to press space."""
-    self.template.SetState(_MSG_SPACE)
-    self.test.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.StartTask())
+    if self.test.args.autostart:
+      self.test.ui.AddEventHandler('StartTask', lambda _: self.StartTask())
+      self.test.ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
+                                         subtype='StartTask'))
+    else:
+      self.template.SetState(_MSG_SPACE)
+      self.test.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.StartTask())
 
 
 class Gyroscope(unittest.TestCase):
@@ -154,7 +160,9 @@ class Gyroscope(unittest.TestCase):
           default=30, optional=True),
       Arg('setup_time_secs', int,
           'Seconds to wait before starting the test.',
-          default=2, optional=True)]
+          default=2, optional=True),
+      Arg('autostart', bool, 'Auto start this test.',
+          default=False, optional=True)]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
