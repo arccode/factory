@@ -222,8 +222,8 @@ cros.factory.DiagnosisTool.getStateId = function(state) {
  * Calls an RPC function using goofy.sendRpc() function.
  * @param {string} method
  * @param {Object} args
- * @param {Object=} callback
- * @param {Object=} opt_errorCallback
+ * @param {function(?)=} callback
+ * @param {function(?)=} opt_errorCallback
  */
 cros.factory.DiagnosisTool.prototype.sendRpc = function(
     method, args, callback, opt_errorCallback) {
@@ -343,7 +343,7 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
   all.addChild(this.stateRowComponent_, true);
   var row_element = /** @type {!Node} */(this.stateRowComponent_.getElement());
   goog.dom.appendChild(
-      row_element, cros.factory.i18n.i18nLabelElement('State:'));
+      row_element, cros.factory.i18n.i18nLabelNode('State:'));
   for (var key in cros.factory.DiagnosisTool.State) {
     var value = cros.factory.DiagnosisTool.State[key];
     var stateId = cros.factory.DiagnosisTool.getStateId(value);
@@ -354,14 +354,14 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
   }
 
   this.descriptionPromptElement_ = goog.dom.createDom(
-      'div', {}, cros.factory.i18n.i18nLabelElement('Description:'));
+      'div', {}, cros.factory.i18n.i18nLabelNode('Description:'));
   this.descriptionElement_ = goog.dom.createDom(
       'div', {'class': 'description'});
   goog.dom.appendChild(all_element, this.descriptionPromptElement_);
   goog.dom.appendChild(all_element, this.descriptionElement_);
 
   this.inputsPromptElement_ = goog.dom.createDom(
-      'div', {}, cros.factory.i18n.i18nLabelElement('Input:'));
+      'div', {}, cros.factory.i18n.i18nLabelNode('Input:'));
   this.inputsComponent_ = new goog.ui.Component();
   goog.dom.appendChild(all_element, this.inputsPromptElement_);
   all.addChild(this.inputsComponent_, true);
@@ -556,7 +556,7 @@ cros.factory.DiagnosisTool.prototype.confirmDialog = function(
   goog.events.listen(dialog, goog.ui.Dialog.EventType.SELECT,
       function(e) { callback(e.key); }, false, this);
   if (timeout) {
-    var timeoutText = cros.factory.i18n.i18nLabelElement('Time remaining: ');
+    var timeoutText = cros.factory.i18n.i18nLabelNode('Time remaining: ');
     var timeoutTime = goog.dom.createDom('span');
     timeoutTime.innerHTML = timeout;
     goog.dom.append(dialogContent, timeoutText, timeoutTime);

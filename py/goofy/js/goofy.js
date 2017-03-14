@@ -22,6 +22,8 @@ goog.require('goog.dom.iframe');
 goog.require('goog.events');
 goog.require('goog.events.EventHandler');
 goog.require('goog.events.KeyCodes');
+goog.require('goog.html.SafeHtml');
+goog.require('goog.html.SafeStyle');
 goog.require('goog.i18n.DateTimeFormat');
 goog.require('goog.i18n.NumberFormat');
 goog.require('goog.json');
@@ -134,7 +136,8 @@ cros.factory.MAX_LINE_CONSOLE_LOG = 1024;
 
 /**
  * Labels for items in system info.
- * @type {Array.<Object.<string, string>>}
+ * @type {Array<{key: string, label: !goog.html.SafeHtml,
+ *     transform: ?function(?string): !goog.html.SafeHtml}>}
  */
 cros.factory.SYSTEM_INFO_LABELS = [
   {key: 'mlb_serial_number',
@@ -160,15 +163,18 @@ cros.factory.SYSTEM_INFO_LABELS = [
   {key: 'root_device', label: cros.factory.i18n.i18nLabel('Root Device')},
   {key: 'factory_md5sum', label: cros.factory.i18n.i18nLabel('Factory MD5SUM'),
    transform: function(value) {
-     return value || cros.factory.i18n.i18nLabel('(no update)');
+     if (value == undefined) {
+       return cros.factory.i18n.i18nLabel('(no update)');
+     }
+     return goog.html.SafeHtml.htmlEscape(value);
    }},
   {key: 'hwid_database_version',
    label: cros.factory.i18n.i18nLabel('HWID Database Version')}
 ];
 
-/** @type {string} */
-cros.factory.UNKNOWN_LABEL = '<span class="goofy-unknown">' +
-    cros.factory.i18n.i18nLabel('Unknown') + '</span>';
+/** @type {!goog.html.SafeHtml} */
+cros.factory.UNKNOWN_LABEL = goog.html.SafeHtml.create(
+    'span', {class: 'goofy-unknown'}, cros.factory.i18n.i18nLabel('Unknown'));
 
 /**
  * An item in the test list.
@@ -334,9 +340,10 @@ cros.factory.Test.prototype.addVirtualkey = function(keyCode, en, zh) {
       'virtualkey-button-container');
   // container may not exist if test is using non-standard template.
   if (container) {
+    var text = {'en-US': en, 'zh-CN': zh || en};
+    var html = cros.factory.i18n.i18nLabel(text);
     var button = goog.dom.createDom('button', 'virtualkey-button',
-        goog.dom.createDom('span', 'goofy-label-en-US', en),
-        goog.dom.createDom('span', 'goofy-label-zh-CN', zh || en));
+        goog.dom.safeHtmlToNode(html));
     this.keyButtons[keyCode] = button;
     goog.events.listen(button, goog.events.EventType.CLICK, function(event) {
       var handler = this.keyHandlers[keyCode];
@@ -424,7 +431,7 @@ cros.factory.Invocation = function(goofy, path, uuid, parentUuid) {
 
   /**
    * Sub-invocations of this invocation.
-   * @type {Object.<string, cros.factory.Invocation>}
+   * @type {Object<string, cros.factory.Invocation>}
    */
   this.subInvocations = {};
 
@@ -482,12 +489,12 @@ cros.factory.Invocation.prototype.dispose = function() {
 
 /**
  * Types of notes.
- * @type {Array.<string, string>}
+ * @type {Array<string, string>}
  */
 cros.factory.NOTE_LEVEL = [
-  {'name': 'INFO', 'message': 'Informative message only'},
-  {'name': 'WARNING', 'message': 'Displays a warning icon'},
-  {'name': 'CRITICAL', 'message': 'Testing is stopped indefinitely'}];
+  {name: 'INFO', message: 'Informative message only'},
+  {name: 'WARNING', message: 'Displays a warning icon'},
+  {name: 'CRITICAL', message: 'Testing is stopped indefinitely'}];
 
 /**
  * Constructor for Note.
@@ -508,7 +515,7 @@ cros.factory.Note = function(name, text, timestamp, level) {
  * UI for displaying critical factory notes.
  * @constructor
  * @param {cros.factory.Goofy} goofy
- * @param {Array.<cros.factory.Note>} notes
+ * @param {Array<cros.factory.Note>} notes
  */
 cros.factory.CriticalNoteDisplay = function(goofy, notes) {
   this.goofy = goofy;
@@ -520,12 +527,12 @@ cros.factory.CriticalNoteDisplay = function(goofy, notes) {
 
   var titleDiv = goog.dom.createDom('div', 'goofy-fullnote-title');
   var titleImg = goog.dom.createDom('img', {
-    'class': 'goofy-fullnote-logo',
-    'src': '/images/warning.svg'
+    class: 'goofy-fullnote-logo',
+    src: '/images/warning.svg'
   });
   titleDiv.appendChild(titleImg);
   titleDiv.appendChild(
-      cros.factory.i18n.i18nLabelElement('Factory tests stopped'));
+      cros.factory.i18n.i18nLabelNode('Factory tests stopped'));
   innerDiv.appendChild(titleDiv);
 
   var noteDiv = goog.dom.createDom('div', 'goofy-fullnote-note');
@@ -587,12 +594,13 @@ cros.factory.Goofy = function() {
 
   /**
    * All tooltips that we have created.
-   * @type {Array.<goog.ui.AdvancedTooltip>}
+   * @type {Array<goog.ui.AdvancedTooltip>}
    */
   this.tooltips = [];
 
   /**
    * The test tree.
+   * @type {goog.ui.tree.TreeControl}
    */
   this.testTree = new goog.ui.tree.TreeControl('Tests');
   this.testTree.setShowRootNode(false);
@@ -600,19 +608,19 @@ cros.factory.Goofy = function() {
 
   /**
    * A map from test path to the tree node for each test.
-   * @type {Object.<string, goog.ui.tree.BaseNode>}
+   * @type {Object<string, goog.ui.tree.BaseNode>}
    */
   this.pathNodeMap = new Object();
 
   /**
    * A map from test path to the entry in the test list for that test.
-   * @type {Object.<string, cros.factory.TestListEntry>}
+   * @type {Object<string, cros.factory.TestListEntry>}
    */
   this.pathTestMap = new Object();
 
   /**
    * A map from test path to the tree node html id for external reference.
-   * @type {Object.<string, string>}
+   * @type {Object<string, string>}
    */
   this.pathNodeIdMap = new Object();
 
@@ -635,7 +643,7 @@ cros.factory.Goofy = function() {
 
   /**
    * UIs for individual test invocations (by UUID).
-   * @type {Object.<string, cros.factory.Invocation>}
+   * @type {Object<string, cros.factory.Invocation>}
    */
   this.invocations = {};
 
@@ -653,7 +661,7 @@ cros.factory.Goofy = function() {
 
   /**
    * Visible dialogs.
-   * @type {Array.<goog.ui.Dialog>}
+   * @type {Array<goog.ui.Dialog>}
    */
   this.dialogs = [];
 
@@ -665,7 +673,7 @@ cros.factory.Goofy = function() {
 
   /**
    * Last system info received.
-   * @type {Object.<string, string>}
+   * @type {Object<string, string>}
    */
   this.systemInfo = {};
 
@@ -693,7 +701,7 @@ cros.factory.Goofy = function() {
 
   /**
    * Various tests lists that can be enabled in engineering mode.
-   * @type {Array.<cros.factory.TestListInfo>}
+   * @type {Array<cros.factory.TestListInfo>}
    */
   this.testLists = [];
 
@@ -716,24 +724,22 @@ cros.factory.Goofy = function() {
 /**
  * Sets the title of a modal dialog.
  * @param {goog.ui.Dialog} dialog
- * @param {string|Node} title
+ * @param {string|!goog.html.SafeHtml} title
  */
 cros.factory.Goofy.setDialogTitle = function(dialog, title) {
-  goog.dom.removeChildren(dialog.getTitleTextElement());
-  if (typeof title === 'string') {
-    title = goog.dom.createTextNode(title);
-  }
-  goog.dom.appendChild(dialog.getTitleTextElement(), title);
+  goog.dom.safe.setInnerHtml(
+      /** @type {!Element} */ (dialog.getTitleTextElement()),
+      goog.html.SafeHtml.htmlEscapePreservingNewlines(title));
 };
 
 /**
  * Sets the content of a modal dialog.
  * @param {goog.ui.Dialog} dialog
- * @param {Node} content
+ * @param {string|!goog.html.SafeHtml} content
  */
 cros.factory.Goofy.setDialogContent = function(dialog, content) {
-  goog.dom.removeChildren(dialog.getContentElement());
-  goog.dom.appendChild(dialog.getContentElement(), content);
+  dialog.setSafeHtmlContent(
+      goog.html.SafeHtml.htmlEscapePreservingNewlines(content));
 };
 
 /**
@@ -989,14 +995,14 @@ cros.factory.Goofy.prototype.init = function() {
   this.sendRpc(
       'get_shared_data', ['startup_error'],
       function(error) {
-        this.alert(
+        var alertHtml = goog.html.SafeHtml.concat(
             cros.factory.i18n.i18nLabel(
-                'An error occurred while starting ' +
-                    'the factory test system.<br>' +
-                    'Factory testing cannot proceed.') +
-            '<div class="goofy-startup-error">' +
-            goog.string.htmlEscape(error) +
-            '</div>');
+                'An error occurred while starting the factory test system\n' +
+                'Factory testing cannot proceed.'),
+            goog.html.SafeHtml.create('div', {class: 'goofy-startup-error'},
+                error)
+        );
+        this.alert(alertHtml);
       },
       function() {
         // Unable to retrieve the key; that's fine, no startup error!
@@ -1124,33 +1130,36 @@ cros.factory.Goofy.prototype.updateCSSClasses = function() {
 
 /**
  * Updates the system info tooltip.
- * @param {Object.<string, string>} systemInfo
+ * @param {Object<string, string>} systemInfo
  */
 cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
   this.systemInfo = systemInfo;
 
-  var table = [];
-  table.push('<table id="goofy-system-info">');
+  var rows = [];
   goog.array.forEach(cros.factory.SYSTEM_INFO_LABELS, function(item) {
     var value = systemInfo[item.key];
     var html;
     if (item.transform) {
       html = item.transform(value);
     } else {
-      html = value == undefined ?
-          cros.factory.UNKNOWN_LABEL :
-          goog.string.htmlEscape(value);
+      html = value == undefined ? cros.factory.UNKNOWN_LABEL : value;
     }
-    table.push('<tr><th>' + item.label + '</th><td>' + html + '</td></tr>');
+    rows.push(goog.html.SafeHtml.create('tr', {}, [
+      goog.html.SafeHtml.create('th', {}, item.label),
+      goog.html.SafeHtml.create('td', {}, html)]));
   });
-  table.push(
-      '<tr><th>' + cros.factory.i18n.i18nLabel('Host Based') +
-      '</th><td>1</td></th></tr>');
-  table.push(
-      '<tr><th>' + cros.factory.i18n.i18nLabel('System time') +
-      '</th><td id="goofy-time"></td></th></tr>');
-  table.push('</table>');
-  this.infoTooltip.setHtml(table.join(''));
+  rows.push(goog.html.SafeHtml.create('tr', {}, [
+    goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Host Based')),
+    goog.html.SafeHtml.create('td', {}, '1')]));
+  rows.push(goog.html.SafeHtml.create('tr', {}, [
+    goog.html.SafeHtml.create('th', {},
+        cros.factory.i18n.i18nLabel('System time')),
+    goog.html.SafeHtml.create('td', {id: 'goofy-time'})]));
+
+  var table = goog.html.SafeHtml.create('table', {id: 'goofy-system-info'},
+      rows);
+  this.infoTooltip.setSafeHtml(table);
   this.updateTime();
 
   goog.dom.classlist.enable(
@@ -1159,7 +1168,7 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
 
 /**
  * Updates notes.
- * @param {Array.<cros.factory.Note>} notes
+ * @param {Array<cros.factory.Note>} notes
  */
 cros.factory.Goofy.prototype.updateNote = function(notes) {
   this.notes = notes;
@@ -1184,26 +1193,24 @@ cros.factory.Goofy.prototype.updateNote = function(notes) {
 
 cros.factory.Goofy.prototype.MDHMS_TIME_FORMAT = (
     new goog.i18n.DateTimeFormat('MM/dd HH:mm:ss'));
+
 /**
  * Gets factory notes list.
- * @return {string}
+ * @return {!goog.html.SafeHtml}
  */
 cros.factory.Goofy.prototype.getNotesView = function() {
-  var table = [];
-  table.push('<table id="goofy-note-list">');
+  var rows = [];
   goog.array.forEachRight(this.notes, function(item) {
     var d = new Date(0);
     d.setUTCSeconds(item.timestamp);
-    table.push('<tr><td class="goofy-note-time">' +
-        this.MDHMS_TIME_FORMAT.format(d) +
-        '</td><th class="goofy-note-name">' +
-        goog.string.htmlEscape(item.name) +
-        '</th><td class="goofy-note-text">' +
-        goog.string.htmlEscape(item.text) +
-        '</td></tr>');
+    rows.push(goog.html.SafeHtml.create('tr', {}, [
+      goog.html.SafeHtml.create('td', {}, this.MDHMS_TIME_FORMAT.format(d)),
+      goog.html.SafeHtml.create('th', {}, item.name),
+      goog.html.SafeHtml.create('td', {}, item.text)]));
   }, this);
-  table.push('</table>');
-  return table.join('');
+  var table = goog.html.SafeHtml.create('table', {id: 'goofy-note-list'},
+      rows);
+  return table;
 };
 
 /**
@@ -1222,9 +1229,12 @@ cros.factory.Goofy.prototype.viewNotes = function() {
   var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
 
   dialog.setTitle('Factory Notes');
-  dialog.setContent('<div class="goofy-note-container" style="max-width: ' +
-      maxWidth + '; max-height: ' + maxHeight + '">' +
-      this.getNotesView() + '</div>');
+  var style = goog.html.SafeStyle.create(
+      {'max-width': maxWidth.toString(), 'max-height': maxHeight.toString()});
+  cros.factory.Goofy.setDialogContent(dialog,
+      goog.html.SafeHtml.create('div',
+          {class: 'goofy-note-container', style: style},
+          this.getNotesView()));
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);
 };
@@ -1272,14 +1282,14 @@ cros.factory.Goofy.prototype.registerDialog = function(dialog) {
 
 /**
  * Displays an alert.
- * @param {string} messageHtml
+ * @param {string|!goog.html.SafeHtml} message
  */
-cros.factory.Goofy.prototype.alert = function(messageHtml) {
+cros.factory.Goofy.prototype.alert = function(message) {
   var dialog = new goog.ui.Dialog();
   this.registerDialog(dialog);
   dialog.setTitle('Alert');
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-  dialog.setContent(messageHtml);
+  cros.factory.Goofy.setDialogContent(dialog, message);
   dialog.setVisible(true);
   goog.dom.classlist.add(dialog.getElement(), 'goofy-alert');
 };
@@ -1372,13 +1382,8 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
 
   this.shutdownDialog = new goog.ui.Dialog();
   this.registerDialog(this.shutdownDialog);
-  cros.factory.Goofy.setDialogContent(this.shutdownDialog,
-      cros.factory.i18n.i18nLabelElement(
-          '<p>{action} in <span class="goofy-shutdown-secs"></span> ' +
-          'seconds ({times_text}).<br>' +
-          'To cancel, press the Escape key or ' +
-          '<a href="#" onclick="window.goofy.cancelShutdown()">HERE</a>.</p>',
-          {action: action, times_text: timesText}));
+  var messageDiv = goog.dom.createDom('div');
+  goog.dom.appendChild(this.shutdownDialog.getContentElement(), messageDiv);
 
   var progressBar = new goog.ui.ProgressBar();
   progressBar.render(this.shutdownDialog.getContentElement());
@@ -1395,19 +1400,21 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
       progressBar.setValue(goog.math.clamp(fraction, 0, 1) * 100);
 
       var secondsLeft = 1 + Math.floor(Math.max(0, endTime - now));
-      goog.array.forEach(
-          goog.dom.getElementsByClass('goofy-shutdown-secs'),
-          function(elt) {
-            elt.innerHTML = secondsLeft;
-          }, this);
+      goog.dom.safe.setInnerHtml(messageDiv,
+          cros.factory.i18n.i18nLabel(
+              '{action} in {seconds_left} seconds ({times_text}).\n' +
+              'To cancel, press the Escape key.',
+              {action: action, times_text: timesText,
+                  seconds_left: secondsLeft}));
     } else if (now - endTime < shutdownInfo.wait_shutdown_secs) {
       cros.factory.Goofy.setDialogContent(shutdownDialog,
-          cros.factory.i18n.i18nLabelElement('<p>Shutting down...</p>'));
+          cros.factory.i18n.i18nLabel('Shutting down...'));
     } else {
       this.setPendingShutdown(false);
       return;
     }
   }
+  tick();
 
   var timer = new goog.Timer(20);
   goog.events.listen(timer, goog.Timer.TICK, tick, false, this);
@@ -1427,14 +1434,25 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
   goog.events.listen(this.shutdownDialog.getElement(),
       goog.events.EventType.KEYDOWN, onKey, false, this);
 
-  this.shutdownDialog.setButtonSet(null);
+  var buttonSet = new goog.ui.Dialog.ButtonSet();
+  buttonSet.set(
+      goog.ui.Dialog.DefaultButtonKeys.CANCEL,
+      cros.factory.i18n.i18nLabelNode('Cancel'),
+      true, true);
+  this.shutdownDialog.setButtonSet(buttonSet);
+
+  goog.events.listen(
+      this.shutdownDialog, goog.ui.Dialog.EventType.SELECT, function(e) {
+        if (e.key == goog.ui.Dialog.DefaultButtonKeys.CANCEL) {
+          window.goofy.cancelShutdown();
+        }
+      }, false, this);
+
   this.shutdownDialog.setHasTitleCloseButton(false);
   this.shutdownDialog.setEscapeToCancel(false);
   goog.dom.classlist.add(
       this.shutdownDialog.getElement(), 'goofy-shutdown-dialog');
   this.shutdownDialog.setVisible(true);
-  // The dialog has no close box or buttons, so focus is a little weird.
-  // If it does lose focus, return it to the dialog.
   goog.events.listen(
       this.shutdownDialog.getElement(), goog.events.EventType.BLUR,
       function(event) {
@@ -1493,7 +1511,7 @@ cros.factory.Goofy.prototype.makeMenuItem = function(
   var test_label = cros.factory.i18n.translated({
     'en-US': test.label_en, 'zh-CN': test.label_zh || test.label_en});
 
-  var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelElement(
+  var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode(
       test.subtests.length == 0 ? text_leaf : text,
       {count: count, test: test_label}));
   item.setEnabled(count != 0);
@@ -1544,7 +1562,7 @@ cros.factory.Goofy.prototype.allTestsRunBefore = function(test) {
  *     displayed.
  * @param {Element} labelElement the label element of the node in the test
  *     tree.
- * @param {Array.<goog.ui.Control>=} extraItems items to prepend to the
+ * @param {Array<goog.ui.Control>=} extraItems items to prepend to the
  *     menu.
  * @return {boolean}
  */
@@ -1565,7 +1583,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(
   if (test.state.status == 'ACTIVE' &&
       !/** @type {boolean} */(test.state.visible) &&
       !test.subtests.length) {
-    this.sendEvent('goofy:set_visible_test', {'path': path});
+    this.sendEvent('goofy:set_visible_test', {path: path});
   }
 
   // Hide all tooltips so that they don't fight with the context menu.
@@ -1606,12 +1624,12 @@ cros.factory.Goofy.prototype.showTestPopup = function(
   countLeaves(test);
 
   if (this.noteDisplay) {
-    var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelElement(
+    var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode(
         'Critical factory note; cannot run tests'));
     menu.addChild(item, true);
     item.setEnabled(false);
   } else if (!this.engineeringMode && !this.allTestsRunBefore(test)) {
-    var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelElement(
+    var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode(
         'Not in engineering mode; cannot skip tests'));
     menu.addChild(item, true);
     item.setEnabled(false);
@@ -1624,7 +1642,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(
       // accidentally re-run a bunch of tests and wipe their state.
       var allUntested = numLeavesByStatus['UNTESTED'] == numLeaves;
       var handler = function(event) {
-        this.sendEvent('goofy:restart_tests', {'path': path});
+        this.sendEvent('goofy:restart_tests', {path: path});
       };
       if (allUntested) {
         menu.addChild(this.makeMenuItem(
@@ -1656,7 +1674,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(
           _('Clear status of {count} tests in "{test}"'),
           _('Clear status of test "{test}"'),
           numLeaves, test, function(event) {
-            this.sendEvent('goofy:clear_state', {'path': path});
+            this.sendEvent('goofy:clear_state', {path: path});
           }), true);
     }
     if (this.engineeringMode && test.subtests.length) {
@@ -1666,13 +1684,13 @@ cros.factory.Goofy.prototype.showTestPopup = function(
           (numLeavesByStatus['UNTESTED'] || 0) +
           (numLeavesByStatus['ACTIVE'] || 0),
           test, function(event) {
-            this.sendEvent('goofy:auto_run', {'path': path});
+            this.sendEvent('goofy:auto_run', {path: path});
           }), true);
     }
   }
   addSeparator();
 
-  var stopAllItem = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelElement(
+  var stopAllItem = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode(
       'Stop all tests'));
   stopAllItem.setEnabled(numLeavesByStatus['ACTIVE'] > 0);
   menu.addChild(stopAllItem, true);
@@ -1811,7 +1829,7 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
 
 /**
  * Displays a dialog containing logs.
- * @param {string|Element} title
+ * @param {string|!goog.html.SafeHtml} title
  * @param {string} data text to show in the dialog.
  */
 cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
@@ -1824,13 +1842,14 @@ cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
   var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
 
-  dialog.setContent(
-      '<div class="goofy-log-data"' +
-      ' style="max-width: ' + maxWidth +
-      '; max-height: ' + maxHeight + '">' +
-      goog.string.htmlEscape(data) +
-      '</div>' +
-      '<div class="goofy-log-time"></div>');
+  var style = goog.html.SafeStyle.create(
+      {'max-width': maxWidth.toString(), 'max-height': maxHeight.toString()});
+  cros.factory.Goofy.setDialogContent(dialog,
+      goog.html.SafeHtml.concat(
+          goog.html.SafeHtml.create('div',
+              {class: 'goofy-log-data', style: style},
+              data),
+          goog.html.SafeHtml.create('div', {class: 'goofy-log-time'})));
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);
   cros.factory.Goofy.setDialogTitle(dialog, title);
@@ -1844,9 +1863,12 @@ cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
   var timer = new goog.Timer(1000);
   goog.events.listen(timer, goog.Timer.TICK, function(event) {
     // Show time in the same format as in the logs
-    logTimeElement.innerHTML = (
-        cros.factory.i18n.i18nLabel('System time: ') +
-        new goog.date.DateTime().toUTCIsoString(true, true).replace(' ', 'T'));
+    var timeStr = new goog.date.DateTime().toUTCIsoString(true, true).replace(
+        ' ', 'T');
+    goog.dom.safe.setInnerHtml(/** @type {!Element} */ (logTimeElement),
+        goog.html.SafeHtml.concat(
+            cros.factory.i18n.i18nLabel('System time: '),
+            goog.html.SafeHtml.htmlEscape(timeStr)));
   }, false, this);
   timer.dispatchTick();
   timer.start();
@@ -1878,8 +1900,7 @@ cros.factory.Goofy.prototype.viewVarLogMessagesBeforeReboot = function() {
       function(data) {
         data = data || 'Unable to find log message indicating reboot.';
         this.showLogDialog(
-            cros.factory.i18n.i18nLabelElement(
-                '/var/log/messages before last reboot'),
+            cros.factory.i18n.i18nLabel('/var/log/messages before last reboot'),
             data);
       });
 };
@@ -1931,42 +1952,54 @@ cros.factory.Goofy.prototype.showNoteDialog = function() {
   var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
 
-  var noteTable = [];
-  noteTable.push('<table class="goofy-addnote-table">');
-  noteTable.push(
-      '<tr><th>' +
-      cros.factory.i18n.i18nLabel('Your Name') +
-      '</th><td>' +
-      '<input id="goofy-addnote-name" style="max-width: ' +
-      maxWidth + '"></td></tr>');
-  noteTable.push(
-      '<tr><th>' +
-      cros.factory.i18n.i18nLabel('Note Content') +
-      '</th><td>' +
-      '<textarea id="goofy-addnote-text" style="max-width: ' +
-      maxWidth + '; max-height: ' + maxHeight + '">' +
-      '</textarea></td></tr>');
-  noteTable.push(
-      '<tr><th>' +
-      cros.factory.i18n.i18nLabel('Severity') +
-      '</th><td>' +
-      '<select id="goofy-addnote-level">');
-  goog.array.forEach(cros.factory.NOTE_LEVEL, function(lvl) {
-    noteTable.push('<option value="' + lvl['name'] + '"');
-    if (lvl['name'] == 'INFO') {
-      noteTable.push(' default');
-    }
-    noteTable.push('>' + lvl['name'] + ': ' + lvl['message'] + '</option>');
-  }, this);
-  noteTable.push('</td></tr>');
-  noteTable.push('</table>');
+  var style = goog.html.SafeStyle.create(
+      {'max-width': maxWidth.toString(), 'max-height': maxHeight.toString()});
 
-  dialog.setContent(noteTable.join(''));
+  var widthStyle = goog.html.SafeStyle.create(
+      {'max-width': maxWidth.toString()});
+
+  var rows = [];
+  rows.push(goog.html.SafeHtml.create('tr', {}, [
+    goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Your Name')),
+    goog.html.SafeHtml.create(
+        'td', {},
+        goog.html.SafeHtml.create(
+            'input', {id: 'goofy-addnote-name', style: widthStyle}))
+  ]));
+  rows.push(goog.html.SafeHtml.create('tr', {}, [
+    goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Note Content')),
+    goog.html.SafeHtml.create(
+        'td', {},
+        goog.html.SafeHtml.create(
+            'textarea', {id: 'goofy-addnote-text', style: style}))
+  ]));
+
+  var options = [];
+  goog.array.forEach(cros.factory.NOTE_LEVEL, function(lvl) {
+    var selected = lvl['name'] == 'INFO' ? 'selected' : null;
+    options.push(goog.html.SafeHtml.create(
+        'option', {value: lvl['name'], selected: selected},
+        lvl['name'] + ': ' + lvl['message']));
+  }, this);
+  rows.push(goog.html.SafeHtml.create('tr', {}, [
+    goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Severity')),
+    goog.html.SafeHtml.create(
+        'td', {},
+        goog.html.SafeHtml.create(
+            'select', {id: 'goofy-addnote-level'}, options))
+  ]));
+
+  var table = goog.html.SafeHtml.create('table', {class: 'goofy-addnote-table'},
+      rows);
+  cros.factory.Goofy.setDialogContent(dialog, table);
   var buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
   dialog.setButtonSet(buttons);
   dialog.setVisible(true);
   cros.factory.Goofy.setDialogTitle(
-      dialog, cros.factory.i18n.i18nLabelElement('Add Note'));
+      dialog, cros.factory.i18n.i18nLabel('Add Note'));
 
   var nameBox = document.getElementById('goofy-addnote-name');
   var textBox = document.getElementById('goofy-addnote-text');
@@ -1992,37 +2025,41 @@ cros.factory.Goofy.prototype.uploadFactoryLogs = function(
   var dialog = new goog.ui.Dialog();
   this.registerDialog(dialog);
   cros.factory.Goofy.setDialogTitle(
-      dialog, cros.factory.i18n.i18nLabelElement('Uploading factory logs...'));
+      dialog, cros.factory.i18n.i18nLabel('Uploading factory logs...'));
   cros.factory.Goofy.setDialogContent(
-      dialog, cros.factory.i18n.i18nLabelElement(
-          'Uploading factory logs.  Please wait...'));
+      dialog,
+      cros.factory.i18n.i18nLabel('Uploading factory logs.  Please wait...'));
 
   dialog.setButtonSet(null);
   dialog.setVisible(true);
 
-  this.sendRpc('UploadFactoryLogs', [name, serial, description],
+  this.sendRpc(
+      'UploadFactoryLogs', [name, serial, description],
       function(info) {
         var filename = /** @type {string} */(info[0]);
         var size = /** @type {number} */(info[1]);
         var key = /** @type {string} */(info[2]);
 
-        dialog.setContent(
-            'Success! Uploaded factory logs (' +
-            size + ' bytes).<br><br>' +
-            'The archive key is ' +
-            '<span class="goofy-ul-archive-key">' +
-            goog.string.htmlEscape(key) + '</span>.<br>' +
-            'Please use this key when filing bugs<br>' +
-            'or corresponding with the factory team.');
+        cros.factory.Goofy.setDialogContent(
+            dialog,
+            goog.html.SafeHtml.concat(
+                goog.html.SafeHtml.htmlEscapePreservingNewlines(
+                    'Success! Uploaded factory logs (' + size + ' bytes).\n' +
+                    'The archive key is '),
+                goog.html.SafeHtml.create(
+                    'span', {class: 'goofy-ul-archive-key'}, key),
+                goog.html.SafeHtml.htmlEscapePreservingNewlines(
+                    '.\nPlease use this key when filing bugs\n' +
+                    'or corresponding with the factory team.')));
         dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
         dialog.reposition();
 
         onSuccess();
       },
       function(response) {
-        dialog.setContent(
-            'Unable to upload factory logs:<br>' +
-            goog.string.htmlEscape(response.error.message));
+        cros.factory.Goofy.setDialogContent(
+            dialog,
+            'Unable to upload factory logs:\n' + response.error.message);
         dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
         dialog.reposition();
       });
@@ -2035,8 +2072,8 @@ cros.factory.Goofy.prototype.uploadFactoryLogs = function(
 cros.factory.Goofy.prototype.pingShopFloorServer = function(onSuccess) {
   this.sendRpc('PingShopFloorServer', [], onSuccess,
       function(response) {
-        this.alert('Unable to contact shopfloor server.<br>' +
-            goog.string.htmlEscape(response.error.message));
+        this.alert('Unable to contact shopfloor server.\n' +
+            response.error.message);
       });
 };
 
@@ -2048,37 +2085,43 @@ cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
   this.registerDialog(dialog);
   dialog.setModal(true);
 
-  var table = [];
-  table.push('<table class="goofy-ul-table">');
-  table.push(
-      '<tr><th>' +
-      cros.factory.i18n.i18nLabel('Your Name') +
-      '</th><td>' +
-      '<input id="goofy-ul-name" size="30">' +
-      '</td></tr>');
-  table.push(
-      '<tr><th>' +
-      cros.factory.i18n.i18nLabel('Serial Number') +
-      '</th><td>' +
-      '<input id="goofy-ul-serial" size="30" value="' +
-      goog.string.htmlEscape(
-          this.systemInfo['serial_number'] ||
-          this.systemInfo['mlb_serial_number'] ||
-          '') +
-      '"></td></tr>');
-  table.push(
-      '<tr><th>' +
-      cros.factory.i18n.i18nLabel('Bug Description') +
-      '</th><td>' +
-      '<input id="goofy-ul-description" size="50">' +
-      '</td></tr>');
-  table.push('</table>');
+  var rows = [];
+  rows.push(goog.html.SafeHtml.create('tr', {}, [
+    goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Your Name')),
+    goog.html.SafeHtml.create(
+        'td', {},
+        goog.html.SafeHtml.create(
+            'input', {id: 'goofy-ul-name', size: 30}))
+  ]));
+  rows.push(goog.html.SafeHtml.create('tr', {}, [
+    goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Serial Number')),
+    goog.html.SafeHtml.create('td', {}, goog.html.SafeHtml.create('input', {
+      id: 'goofy-ul-serial',
+      size: 30,
+      value: this.systemInfo['serial_number'] ||
+          this.systemInfo['mlb_serial_number'] || ''
+    }))
+  ]));
+  rows.push(goog.html.SafeHtml.create('tr', {}, [
+    goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Bug Description')),
+    goog.html.SafeHtml.create('td', {}, goog.html.SafeHtml.create('input', {
+      id: 'goofy-ul-description',
+      size: 50
+    }))
+  ]));
 
-  dialog.setContent(table.join(''));
+  var table =
+      goog.html.SafeHtml.create('table', {class: 'goofy-ul-table'}, rows);
+  cros.factory.Goofy.setDialogContent(dialog, table);
+
   var buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
   dialog.setButtonSet(buttons);
+
   cros.factory.Goofy.setDialogTitle(
-      dialog, cros.factory.i18n.i18nLabelElement('Upload Factory Logs'));
+      dialog, cros.factory.i18n.i18nLabel('Upload Factory Logs'));
   dialog.setVisible(true);
 
   var nameElt = document.getElementById('goofy-ul-name');
@@ -2119,8 +2162,7 @@ cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
  * Saves factory logs to a USB drive.
  */
 cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
-  var titleElement = cros.factory.i18n.i18nLabelElement(
-      'Save Factory Logs to USB');
+  var title = cros.factory.i18n.i18nLabel('Save Factory Logs to USB');
 
   function doSave() {
     function callback(id) {
@@ -2131,13 +2173,15 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
 
       var dialog = new goog.ui.Dialog();
       this.registerDialog(dialog);
-      cros.factory.Goofy.setDialogTitle(dialog, titleElement);
-      dialog.setContent(
+      cros.factory.Goofy.setDialogTitle(dialog, title);
+      cros.factory.Goofy.setDialogContent(
+          dialog,
           cros.factory.i18n.i18nLabel('Saving factory logs to USB drive...'));
       dialog.setButtonSet(null);
       dialog.setVisible(true);
       this.positionOverConsole(dialog.getElement());
-      this.sendRpc('SaveLogsToUSB', [id],
+      this.sendRpc(
+          'SaveLogsToUSB', [id],
           function(info) {
             var dev = info[0];
             var filename = info[1];
@@ -2145,33 +2189,39 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
             var temporary = info[3];
 
             if (temporary) {
-              dialog.setContent(cros.factory.i18n.i18nLabel(
-                  'Success! Saved factory logs ({size}) bytes) to {dev} as' +
-                  '<br>{filename}. The drive has been unmounted.',
-                  {size: size.toString(), dev: dev, filename: filename}));
+              cros.factory.Goofy.setDialogContent(
+                  dialog,
+                  cros.factory.i18n.i18nLabel(
+                      'Success! Saved factory logs ({size}) bytes) to {dev} ' +
+                          'as\n{filename}. The drive has been unmounted.',
+                      {size: size.toString(), dev: dev, filename: filename}));
             } else {
-              dialog.setContent(cros.factory.i18n.i18nLabel(
-                  'Success! Saved factory logs ({size}) bytes) to {dev} as' +
-                  '<br>{filename}.',
-                  {size: size.toString(), dev: dev, filename: filename}));
+              cros.factory.Goofy.setDialogContent(
+                  dialog,
+                  cros.factory.i18n.i18nLabel(
+                      'Success! Saved factory logs ({size}) bytes) to {dev} ' +
+                          'as\n{filename}.',
+                      {size: size.toString(), dev: dev, filename: filename}));
             }
             dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
             this.positionOverConsole(dialog.getElement());
-          }, function(response) {
-            dialog.setContent(
-                'Unable to save logs: ' +
-                goog.string.htmlEscape(response.error.message));
+          },
+          function(response) {
+            cros.factory.Goofy.setDialogContent(
+                dialog, 'Unable to save logs: ' + response.error.message);
             dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
             this.positionOverConsole(dialog.getElement());
           });
     }
 
     var idDialog = new goog.ui.Prompt('', '', goog.bind(callback, this));
-    cros.factory.Goofy.setDialogTitle(idDialog, titleElement);
-    goog.dom.insertChildAt(idDialog.getContentElement(),
-        cros.factory.i18n.i18nLabelElement(
+    cros.factory.Goofy.setDialogTitle(idDialog, title);
+    goog.dom.insertChildAt(
+        idDialog.getContentElement(),
+        cros.factory.i18n.i18nLabelNode(
             'Enter an optional identifier for the archive ' +
-            '(or press Enter for none):'), 0);
+            '(or press Enter for none):'),
+        0);
     this.registerDialog(idDialog);
     idDialog.setVisible(true);
     goog.dom.classlist.add(idDialog.getElement(),
@@ -2184,14 +2234,15 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
 
   var waitForUSBDialog = new goog.ui.Dialog();
   this.registerDialog(waitForUSBDialog);
-  cros.factory.Goofy.setDialogContent(waitForUSBDialog,
-      cros.factory.i18n.i18nLabelElement(
+  cros.factory.Goofy.setDialogContent(
+      waitForUSBDialog,
+      cros.factory.i18n.i18nLabel(
           'Please insert a formatted USB stick' +
           ' and wait a moment for it to be mounted.'));
   waitForUSBDialog.setButtonSet(
       new goog.ui.Dialog.ButtonSet().addButton(
           goog.ui.Dialog.ButtonSet.DefaultButtons.CANCEL, false, true));
-  cros.factory.Goofy.setDialogTitle(waitForUSBDialog, titleElement);
+  cros.factory.Goofy.setDialogTitle(waitForUSBDialog, title);
 
   function waitForUSB() {
     function restartWaitForUSB() {
@@ -2238,8 +2289,7 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
         var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
         var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
 
-        var metadataTable = [];
-        metadataTable.push('<table class="goofy-history-metadata>"');
+        var metadataRows = [];
         goog.array.forEach(
             [['status', 'Status'],
              ['init_time', 'Creation time'],
@@ -2255,10 +2305,10 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
                 if (goog.string.endsWith(name, '_time')) {
                   value = this.FULL_TIME_FORMAT.format(new Date(value * 1000));
                 }
-                metadataTable.push(
-                    '<tr><th>' + title + '</th><td>' +
-                    goog.string.htmlEscape(value) +
-                    '</td></tr>');
+                metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
+                  goog.html.SafeHtml.create('th', {}, title),
+                  goog.html.SafeHtml.create('td', {}, value)
+                ]));
               }
             }, this);
 
@@ -2274,28 +2324,34 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
           if (goog.isObject(value)) {
             value = goog.json.serialize(value);
           }
-          metadataTable.push('<tr><th>' + key + '</th><td>' +
-              goog.string.htmlEscape(value) +
-              '</td></tr>');
+          metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
+            goog.html.SafeHtml.create('th', {}, key),
+            goog.html.SafeHtml.create('td', {}, value)
+          ]));
         }, this);
 
-        metadataTable.push('</table>');
+        var metadataTable = goog.html.SafeHtml.create(
+            'table', {class: 'goofy-history-metadata'}, metadataRows);
 
         var dialog = new goog.ui.Dialog();
         this.registerDialog(dialog);
         dialog.setTitle(entry.metadata.path +
             ' (invocation ' + entry.metadata.invocation + ')');
         dialog.setModal(false);
-        dialog.setContent(
-            '<div class="goofy-history" style="max-width: ' +
-            maxWidth + '; max-height: ' + maxHeight + '">' +
-            '<div class=goofy-history-header>Test Info</div>' +
-            metadataTable.join('') +
-            '<div class=goofy-history-header>Log</div>' +
-            '<div class=goofy-history-log>' +
-            goog.string.htmlEscape(entry.log) +
-            '</div>' +
-            '</div>');
+        var style = goog.html.SafeStyle.create(
+            {'max-width': maxWidth, 'max-height': maxHeight});
+        cros.factory.Goofy.setDialogContent(
+            dialog,
+            goog.html.SafeHtml.concat(
+                goog.html.SafeHtml.create(
+                    'div', {class: 'goofy-history', style: style}),
+                goog.html.SafeHtml.create(
+                    'div', {class: 'goofy-history-header'}, 'Test Info'),
+                metadataTable,
+                goog.html.SafeHtml.create(
+                    'div', {class: 'goofy-history-header'}, 'Log'),
+                goog.html.SafeHtml.create(
+                    'div', {class: 'goofy-history-log'}, entry.log)));
         dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
         dialog.setVisible(true);
       });
@@ -2313,34 +2369,40 @@ cros.factory.Goofy.prototype.updateTestToolTip = function(
     path, tooltip, event) {
   var test = this.pathTestMap[path];
 
-  tooltip.setHtml('');
+  tooltip.setText('');
 
   var errorMsg = test.state['error_msg'];
   if ((test.state.status != 'FAILED' ||
       test.state.status != 'FAILED_AND_WAIVED') ||
       this.contextMenu || !errorMsg) {
     // Just show the test path, with a very short hover delay.
-    tooltip.setHtml(test.path);
+    tooltip.setText(test.path);
     tooltip.setHideDelayMs(cros.factory.NON_FAILING_TEST_HOVER_DELAY_MSEC);
   } else {
     // Show the last failure.
     var lines = errorMsg.split('\n');
-    var html = (test.path + ' failed:' +
-        '<div class="goofy-test-failure">' +
-        goog.string.htmlEscape(lines.shift()) + '</span>');
+    var html = [];
+    html.push(
+        goog.html.SafeHtml.htmlEscape(test.path + ' failed:'),
+        goog.html.SafeHtml.create(
+            'div', {class: 'goofy-test-failure'}, lines.shift()));
 
     if (lines.length) {
-      html += ('<div class="goofy-test-failure-detail-link">' +
-          'Show more detail...</div>' +
-          '<div class="goofy-test-failure-detail">' +
-          goog.string.htmlEscape(lines.join('\n')) + '</div>');
+      html.push(
+          goog.html.SafeHtml.create(
+              'div', {class: 'goofy-test-failure-detail-link'},
+              'Show more detail...'),
+          goog.html.SafeHtml.create(
+              'div', {class: 'goofy-test-failure-detail'},
+              goog.html.SafeHtml.htmlEscapePreservingNewlines(
+                  lines.join('\n'))));
     }
     if (test.state.invocation) {
-      html += ('<div class="goofy-test-failure-view-log-link">' +
-          'View log...</div>');
+      html.push(goog.html.SafeHtml.create(
+          'div', {class: 'goofy-test-failure-view-log-link'}, 'View log...'));
     }
 
-    tooltip.setHtml(html);
+    tooltip.setSafeHtml(goog.html.SafeHtml.concat(html));
 
     if (lines.length) {
       var link = goog.dom.getElementByClass(
@@ -2443,7 +2505,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
               var addExtraItem = goog.bind(
                   function(label, action) {
                     var item = new goog.ui.MenuItem(
-                        cros.factory.i18n.i18nLabelElement(label));
+                        cros.factory.i18n.i18nLabelNode(label));
                     goog.events.listen(
                         item,
                         goog.ui.Component.EventType.ACTION,
@@ -2505,7 +2567,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
  * @return {goog.ui.SubMenu}
  */
 cros.factory.Goofy.prototype.makeSwitchTestListMenu = function() {
-  var subMenu = new goog.ui.SubMenu(cros.factory.i18n.i18nLabelElement(
+  var subMenu = new goog.ui.SubMenu(cros.factory.i18n.i18nLabelNode(
       'Switch test list'));
   var _ = cros.factory.i18n.translation;
   goog.object.forEach(this.testLists, function(testList) {
@@ -2522,28 +2584,27 @@ cros.factory.Goofy.prototype.makeSwitchTestListMenu = function() {
         goog.ui.Component.EventType.ACTION,
         function() {
           var dialog = new goog.ui.Dialog();
-          var escapeTestListName = goog.string.htmlEscape(testList.name);
           this.registerDialog(dialog);
           var title = cros.factory.i18n.stringFormat(
               _('Switch Test List: {test_list}'),
-              {test_list: escapeTestListName});
+              {test_list: testList.name});
           cros.factory.Goofy.setDialogTitle(dialog,
-              cros.factory.i18n.i18nLabelElement(title));
+              cros.factory.i18n.i18nLabel(title));
           cros.factory.Goofy.setDialogContent(dialog,
-              cros.factory.i18n.i18nLabelElement(
+              cros.factory.i18n.i18nLabel(
                   'Warning: Switching to test list "{test_list}"' +
-                  ' will clear all test state.<br>' +
+                  ' will clear all test state.\n' +
                   'Are you sure you want to proceed?',
-                  {test_list: escapeTestListName}));
+                  {test_list: testList.name}));
 
           var buttonSet = new goog.ui.Dialog.ButtonSet();
           buttonSet.set(
               goog.ui.Dialog.DefaultButtonKeys.OK,
-              cros.factory.i18n.i18nLabelElement(
+              cros.factory.i18n.i18nLabelNode(
                   'Yes, clear state and restart'));
           buttonSet.set(
               goog.ui.Dialog.DefaultButtonKeys.CANCEL,
-              cros.factory.i18n.i18nLabelElement('Cancel'),
+              cros.factory.i18n.i18nLabelNode('Cancel'),
               true, true);
           dialog.setButtonSet(buttonSet);
           dialog.setVisible(true);
@@ -2555,15 +2616,15 @@ cros.factory.Goofy.prototype.makeSwitchTestListMenu = function() {
                 if (e.key == goog.ui.Dialog.DefaultButtonKeys.OK) {
                   var dialog = this.showIndefiniteActionDialog(
                       title,
-                      _('Switching test list.  Please wait...'));
+                      _('Switching test list. Please wait...'));
                   this.sendRpc(
                       'SwitchTestList', [testList.id],
                       null,  // No action on success; wait to die.
                       function(response) {
                         dialog.dispose();
                         this.alert(
-                            'Unable to switch test list:<br>' +
-                            goog.string.htmlEscape(response.error.message));
+                            'Unable to switch test list:\n' +
+                            response.error.message);
                       });
                 }
               }, false, this);
@@ -2584,9 +2645,9 @@ cros.factory.Goofy.prototype.showIndefiniteActionDialog = function(
   this.registerDialog(dialog);
   dialog.setHasTitleCloseButton(false);
   cros.factory.Goofy.setDialogTitle(dialog,
-      cros.factory.i18n.i18nLabelElement(title));
+      cros.factory.i18n.i18nLabel(title));
   cros.factory.Goofy.setDialogContent(dialog,
-      cros.factory.i18n.i18nLabelElement(label));
+      cros.factory.i18n.i18nLabel(label));
   dialog.setButtonSet(null);
   dialog.setVisible(true);
   dialog.reposition();
@@ -2613,18 +2674,16 @@ cros.factory.Goofy.prototype.updateFactory = function() {
         if (updated) {
           dialog.setTitle('Update succeeded');
           cros.factory.Goofy.setDialogContent(dialog,
-              cros.factory.i18n.i18nLabelElement(
-                  'Update succeeded. Restarting.'));
+              cros.factory.i18n.i18nLabel('Update succeeded. Restarting.'));
         } else if (success) {  // but not updated
           cros.factory.Goofy.setDialogContent(dialog,
-              cros.factory.i18n.i18nLabelElement(
-              'No update is currently necessary.'));
+              cros.factory.i18n.i18nLabel('No update is currently necessary.'));
           dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
         } else {
           cros.factory.Goofy.setDialogContent(dialog,
-              cros.factory.i18n.i18nLabelElement(
-                  'Update failed:<pre>{error}</pre>',
-                  {error: goog.string.htmlEscape(errorMsg)}));
+              goog.html.SafeHtml.concat(
+                  cros.factory.i18n.i18nLabel('Update failed:'),
+                  goog.html.SafeHtml.create('pre', {}, errorMsg)));
           dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
         }
         dialog.reposition();
@@ -2705,16 +2764,17 @@ cros.factory.Goofy.prototype.addToNode = function(parent, test) {
   } else {
     test.label_zh = test.label_zh || test.label_en;
 
-    var label = '<span class="goofy-label-en-US">' +
-        goog.string.htmlEscape(test.label_en) + '</span>';
-    label += '<span class="goofy-label-zh-CN">' +
-        goog.string.htmlEscape(test.label_zh) + '</span>';
+    var text = {'en-US': test.label_en, 'zh-CN': test.label_zh};
+    var html = cros.factory.i18n.i18nLabel(text);
     if (test.kbd_shortcut) {
-      label = '<span class="goofy-kbd-shortcut">Alt-' +
-          goog.string.htmlEscape(test.kbd_shortcut.toUpperCase()) +
-          '</span>' + label;
+      html = goog.html.SafeHtml.concat(
+          goog.html.SafeHtml.create(
+              'span', {class: 'goofy-kbd-shortcut'},
+              'Alt-' + test.kbd_shortcut.toUpperCase()),
+          html);
     }
-    node = this.testTree.createNode(label);
+    node = this.testTree.createNode();
+    node.setSafeHtml(html);
     parent.addChild(node);
   }
   goog.array.forEach(test.subtests, function(subtest) {
@@ -2749,8 +2809,8 @@ cros.factory.Goofy.prototype.sendEvent = function(type, properties) {
  * Calls an RPC function and invokes callback with the result.
  * @param {string} method
  * @param {Object} args
- * @param {Object=} callback
- * @param {Object=} opt_errorCallback
+ * @param {?function(?)=} callback
+ * @param {?function(?)=} opt_errorCallback
  */
 cros.factory.Goofy.prototype.sendRpc = function(
     method, args, callback, opt_errorCallback) {
@@ -2794,7 +2854,7 @@ cros.factory.Goofy.prototype.sendRpc = function(
  */
 cros.factory.Goofy.prototype.keepAlive = function() {
   if (this.ws.isOpen()) {
-    this.sendEvent('goofy:keepalive', {'uuid': this.uuid});
+    this.sendEvent('goofy:keepalive', {uuid: this.uuid});
   }
 };
 
@@ -2816,7 +2876,8 @@ cros.factory.Goofy.prototype.updateStatus = function() {
     function setValue(id, value) {
       var element = document.getElementById(id);
       goog.dom.classlist.enable(element, 'goofy-value-known', value != null);
-      goog.dom.getElementByClass('goofy-value', element).innerHTML = value;
+      goog.dom.setTextContent(
+          goog.dom.getElementByClass('goofy-value', element), value);
     }
 
     function canCalculateCpuStatus(oldStatus, newStatus) {
@@ -2881,7 +2942,7 @@ cros.factory.Goofy.prototype.updateStatus = function() {
 /**
  * Writes a message to the console log.
  * @param {string} message
- * @param {Object|Array.<string>|string=} opt_attributes attributes to add
+ * @param {Object|Array<string>|string=} opt_attributes attributes to add
  *     to the div element containing the log entry.
  */
 cros.factory.Goofy.prototype.logToConsole = function(message, opt_attributes) {
@@ -2933,7 +2994,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
                  * @type {{type: string, uuid: string, invocation: string,
                  *     parent_invocation: string, state: cros.factory.TestState,
                  *     path: string, append: boolean, is_response: boolean,
-                 *     html: string, js: string, args: Object}} */(
+                 *     html: string, js: string, args: Object}} */ (
       goog.json.unsafeParse(jsonMessage));
 
   if (message.type == 'goofy:hello') {
@@ -3122,7 +3183,7 @@ jQuery.Type.prototype.bind;
  * Start the terminal session.
  */
 cros.factory.Goofy.prototype.launchTerminal = function() {
-  this.sendEvent('goofy:key_filter_mode', {'enabled': false});
+  this.sendEvent('goofy:key_filter_mode', {enabled: false});
 
   if (typeof(this.terminal_win) != 'undefined') {
     goog.style.setElementShown(this.terminal_win, true);
@@ -3131,14 +3192,14 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
     return;
   }
 
-  var mini = goog.dom.createDom('div', {'class': 'goofy-terminal-minimize'});
-  var close = goog.dom.createDom('div', {'class': 'goofy-terminal-close'});
+  var mini = goog.dom.createDom('div', {class: 'goofy-terminal-minimize'});
+  var close = goog.dom.createDom('div', {class: 'goofy-terminal-close'});
   var win = goog.dom.createDom(
       'div',
-      {'class': 'goofy-terminal-window', 'id': 'goofy-terminal-window'},
-      goog.dom.createDom('div', {'class': 'goofy-terminal-title'}, 'Terminal'),
+      {class: 'goofy-terminal-window', id: 'goofy-terminal-window'},
+      goog.dom.createDom('div', {class: 'goofy-terminal-title'}, 'Terminal'),
       goog.dom.createDom(
-          'div', {'class': 'goofy-terminal-control'}, mini, close));
+          'div', {class: 'goofy-terminal-control'}, mini, close));
 
   goog.events.listen(close, goog.events.EventType.MOUSEUP,
       this.closeTerminal.bind(this));
@@ -3244,7 +3305,7 @@ cros.factory.Goofy.prototype.closeTerminal = function(e) {
     this.terminal_sock.close();
     this.terminal_win = undefined;
     this.terminal_sock = undefined;
-    this.sendEvent('goofy:key_filter_mode', {'enabled': true});
+    this.sendEvent('goofy:key_filter_mode', {enabled: true});
   }
 };
 
@@ -3252,7 +3313,7 @@ cros.factory.Goofy.prototype.hideTerminal = function(e) {
   goog.style.setElementShown(this.terminal_win, false);
   goog.style.setStyle(
       document.getElementById('goofy-terminal'), 'opacity', 0.5);
-  this.sendEvent('goofy:key_filter_mode', {'enabled': true});
+  this.sendEvent('goofy:key_filter_mode', {enabled: true});
 };
 
 goog.events.listenOnce(window, goog.events.EventType.LOAD, function() {

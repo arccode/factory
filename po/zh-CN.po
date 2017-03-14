@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-13 17:44+CST\n"
+"POT-Creation-Date: 2017-03-14 17:33+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2320,9 +2320,11 @@ msgstr "工厂测试已停止"
 
 #: ../py/goofy/js/goofy.js
 msgid ""
-"An error occurred while starting the factory test system.<br>Factory testing "
-"cannot proceed."
-msgstr "开工厂测试系统时发生错误.<br>没办法继续测试."
+"An error occurred while starting the factory test system\n"
+"Factory testing cannot proceed."
+msgstr ""
+"开工厂测试系统时发生错误.\n"
+"没办法继续测试."
 
 #: ../py/goofy/js/goofy.js
 msgid "Host Based"
@@ -2350,17 +2352,19 @@ msgstr "{total}次测试中的第{count}次"
 
 #: ../py/goofy/js/goofy.js
 msgid ""
-"<p>{action} in <span class=\"goofy-shutdown-secs\"></span> seconds "
-"({times_text}).<br>To cancel, press the Escape key or <a href=\"#\" onclick="
-"\"window.goofy.cancelShutdown()\">HERE</a>.</p>"
+"{action} in {seconds_left} seconds ({times_text}).\n"
+"To cancel, press the Escape key."
 msgstr ""
-"<p>将会在<span class=\"goofy-shutdown-secs\"></span>秒内{action}"
-"（{times_text}）.<br>按ESC键或<a href=\"#\" onclick=\"window.goofy."
-"cancelShutdown()\">这裡</a>取消.</p>"
+"将会在{seconds_left}秒内{action}（{times_text}）.\n"
+"按ESC键取消."
 
 #: ../py/goofy/js/goofy.js
-msgid "<p>Shutting down...</p>"
-msgstr "<p>关机中...</p>"
+msgid "Shutting down..."
+msgstr "关机中..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Cancel"
+msgstr "取消"
 
 #: ../py/goofy/js/goofy.js
 msgid "Critical factory note; cannot run tests"
@@ -2464,16 +2468,19 @@ msgstr "正在保存工厂记录到 U盘..."
 
 #: ../py/goofy/js/goofy.js
 msgid ""
-"Success! Saved factory logs ({size}) bytes) to {dev} as<br>{filename}. The "
-"drive has been unmounted."
+"Success! Saved factory logs ({size}) bytes) to {dev} as\n"
+"{filename}. The drive has been unmounted."
 msgstr ""
-"保存工厂记录 ({size} bytes) 到 U盘 {dev} 已成功，文件叫<br>{filename}。U盘已"
-"卸载。"
+"保存工厂记录 ({size} bytes) 到 U盘 {dev} 已成功，文件叫\n"
+"{filename}。U盘已卸载。"
 
 #: ../py/goofy/js/goofy.js
-msgid "Success! Saved factory logs ({size}) bytes) to {dev} as<br>{filename}."
+msgid ""
+"Success! Saved factory logs ({size}) bytes) to {dev} as\n"
+"{filename}."
 msgstr ""
-"保存工厂记录 ({size} bytes) 到 U盘 {dev} 已成功，文件叫<br>{filename}。"
+"保存工厂记录 ({size} bytes) 到 U盘 {dev} 已成功，文件叫\n"
+"{filename}。"
 
 #: ../py/goofy/js/goofy.js
 msgid "Enter an optional identifier for the archive (or press Enter for none):"
@@ -2538,21 +2545,18 @@ msgstr "切换测试列表：{test_list}"
 
 #: ../py/goofy/js/goofy.js
 msgid ""
-"Warning: Switching to test list \"{test_list}\" will clear all test state."
-"<br>Are you sure you want to proceed?"
+"Warning: Switching to test list \"{test_list}\" will clear all test state.\n"
+"Are you sure you want to proceed?"
 msgstr ""
-"警示：切換至测试列表「{test_list}」将清除所有测试状态。<br>确定要继续吗？"
+"警示：切換至测试列表「{test_list}」将清除所有测试状态。\n"
+"确定要继续吗？"
 
 #: ../py/goofy/js/goofy.js
 msgid "Yes, clear state and restart"
 msgstr "确定，清除测试状态並重啓"
 
 #: ../py/goofy/js/goofy.js
-msgid "Cancel"
-msgstr "取消"
-
-#: ../py/goofy/js/goofy.js
-msgid "Switching test list.  Please wait..."
+msgid "Switching test list. Please wait..."
 msgstr "正在切换测试列表，请稍等..."
 
 #: ../py/goofy/js/goofy.js
@@ -2572,5 +2576,5 @@ msgid "No update is currently necessary."
 msgstr "目前不用更新工厂软体"
 
 #: ../py/goofy/js/goofy.js
-msgid "Update failed:<pre>{error}</pre>"
-msgstr "更新失败了：<pre>{error}</pre>"
+msgid "Update failed:"
+msgstr "更新失败了："

@@ -11,7 +11,7 @@ MSGMERGE = msgmerge
 MSGCAT = msgcat
 
 KEYWORDS = -k _ -k MakeI18nLabel -k MakeI18nLabelWithClass -c i18n-label \
-  -j _ -j i18nLabel -j i18nLabelElement
+  -j _ -j i18nLabel -j i18nLabelNode
 
 DOMAIN = factory
 BUILD_DIR ?= ../build

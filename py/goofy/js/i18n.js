@@ -5,6 +5,7 @@
 goog.provide('cros.factory.i18n');
 
 goog.require('goog.dom');
+goog.require('goog.html.SafeHtml');
 
 /**
  * @typedef {function(!Object<string, string>): string}
@@ -196,27 +197,26 @@ cros.factory.i18n.stringFormat = function(format, dict) {
  * Make a translated label.
  * @param {string|cros.factory.i18n.TranslationDict} text
  * @param {!Object<string, string>=} dict
- * @return {Element}
+ * @return {!goog.html.SafeHtml}
  */
-cros.factory.i18n.i18nLabelElement = function(text, dict={}) {
+cros.factory.i18n.i18nLabel = function(text, dict={}) {
   let label = cros.factory.i18n.stringFormat(text, dict);
   let children = [];
   for (const locale of cros.factory.i18n.locales) {
     const translated_label = label[locale];
     const html_class = 'goofy-label-' + locale;
-    const dom = goog.dom.createDom('span', html_class);
-    dom.innerHTML = translated_label;
-    children.push(dom);
+    children.push(goog.html.SafeHtml.create('span', {class: html_class},
+        translated_label));
   }
-  return goog.dom.createDom('span', null, children);
+  return goog.html.SafeHtml.concat(children);
 };
 
 /**
  * Make a translated label.
  * @param {string|cros.factory.i18n.TranslationDict} text
  * @param {!Object<string, string>=} dict
- * @return {string}
+ * @return {!Node}
  */
-cros.factory.i18n.i18nLabel = function(text, dict={}) {
-  return cros.factory.i18n.i18nLabelElement(text, dict).innerHTML;
+cros.factory.i18n.i18nLabelNode = function(text, dict={}) {
+  return goog.dom.safeHtmlToNode(cros.factory.i18n.i18nLabel(text, dict));
 };
