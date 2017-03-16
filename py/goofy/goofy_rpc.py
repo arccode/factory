@@ -158,7 +158,8 @@ class GoofyRPC(object):
     """Performs a factory update.
 
     Returns:
-      [success, updated, restart_time, error_msg] where:
+      {'success': success, 'updated': updated, 'restart_time': restart_time,
+       'error_msg': error_msg} where:
         success: Whether the operation was successful.
         updated: Whether the update was a success and the system will reboot.
         restart_time: The time at which the system will restart (on success).
@@ -188,7 +189,10 @@ class GoofyRPC(object):
       # After update, wait REBOOT_AFTER_UPDATE_DELAY_SECS before the
       # update, and return a value to the caller.
       now = time.time()
-      ret_value.put([True, True, now + REBOOT_AFTER_UPDATE_DELAY_SECS, None])
+      ret_value.put({
+          'success': True, 'updated': True,
+          'restart_time': now + REBOOT_AFTER_UPDATE_DELAY_SECS,
+          'error_msg': None})
       time.sleep(REBOOT_AFTER_UPDATE_DELAY_SECS)
 
     def Target():
@@ -197,11 +201,15 @@ class GoofyRPC(object):
             auto_run_on_restart=True,
             post_update_hook=PostUpdateHook)
         # Returned... which means that no update was necessary.
-        ret_value.put([True, False, None, None])
+        ret_value.put({
+            'success': True, 'updated': False, 'restart_time': None,
+            'error_msg': None})
       except:  # pylint: disable=W0702
         # There was an update available, but we couldn't get it.
         logging.exception('Update failed')
-        ret_value.put([False, False, None, debug_utils.FormatExceptionOnly()])
+        ret_value.put({
+            'success': False, 'updated': False, 'restart_time': None,
+            'error_msg': debug_utils.FormatExceptionOnly()})
 
     self.goofy.run_queue.put(Target)
     return ret_value.get()
@@ -794,7 +802,8 @@ class GoofyRPC(object):
     """Saves logs to a USB stick.
 
     Returns:
-      [dev, archive_name, archive_size, temporary]:
+      {'dev': dev, 'name': archive_name, 'size': archive_size,
+       'temporary': temporary}:
         dev: The device that was mounted or used
         archive_name: The file name of the archive
         archive_size: The size of the archive
@@ -804,9 +813,10 @@ class GoofyRPC(object):
       with factory_bug.MountUSB() as mount:
         output_file = factory_bug.SaveLogs(mount.mount_point,
                                            archive_id=archive_id)
-        return [mount.dev, os.path.basename(output_file),
-                os.path.getsize(output_file),
-                mount.temporary]
+        return {'dev': mount.dev,
+                'name': os.path.basename(output_file),
+                'size': os.path.getsize(output_file),
+                'temporary': mount.temporary}
     except:
       logging.exception('Unable to save logs to USB')
       raise
@@ -824,7 +834,7 @@ class GoofyRPC(object):
     """Uploads logs to the shopfloor server.
 
     Returns:
-      [archive_name, archive_size, archive_key]
+      {'name': archive_name, 'size': archive_size, 'key': archive_key}
         archive_name: The uploaded file name.
         archive_size: The size of the archive.
         archive_key: A "key" that may later be used to refer to the archive.
@@ -842,8 +852,9 @@ class GoofyRPC(object):
           detect=True, timeout=UPLOAD_FACTORY_LOGS_TIMEOUT_SECS
       ).SaveAuxLog(os.path.basename(output_file),
                    shopfloor.Binary(data))
-      return [os.path.basename(output_file), os.path.getsize(output_file),
-              archive_key]
+      return {'name': os.path.basename(output_file),
+              'size': os.path.getsize(output_file),
+              'key': archive_key}
     finally:
       file_utils.TryUnlink(output_file)
 

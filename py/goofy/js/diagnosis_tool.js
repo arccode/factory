@@ -33,6 +33,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores each confirm dialog.  We need to store this data because user can
    * stop the task when it is showing a confirm dialog.
    * @type {?Object}
+   * @private
    */
   this.confirmDialog_ = {};
 
@@ -40,6 +41,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * The main window component of the diagnosis tool.  It will be initialized
    * in initWindow().
    * @type {?goog.ui.Component}
+   * @private
    */
   this.mainWindow_ = null;
 
@@ -47,6 +49,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * The component of the tree view of the tasks for user to select which task
    * to run.  It will be initialized in initWindowTaskMenu().
    * @type {?goog.ui.tree.TreeControl}
+   * @private
    */
   this.menuComponent_ = null;
 
@@ -54,6 +57,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores the name of the current task.  It will be initialized in
    * initWindowRightUpperPart().
    * @type {?Element}
+   * @private
    */
   this.nameElement_ = null;
 
@@ -61,6 +65,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores the element of state. It will be initialized in
    * initWindowRightUpperPart().
    * @type {?goog.ui.Component}
+   * @private
    */
   this.stateRowComponent_ = null;
 
@@ -68,6 +73,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores the description of the current task.  It will be initialized in
    * initWindowRightUpperPart().
    * @type {?Element}
+   * @private
    */
   this.descriptionElement_ = null;
 
@@ -75,6 +81,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores the prompt string of the descriptionElement.  It will be initialized
    * in initWindowRightUpperPart().
    * @type {?Element}
+   * @private
    */
   this.descriptionPromptElement_ = null;
 
@@ -82,6 +89,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores the input fields of the current task.  It will be initialized
    * in initWindowRightUpperPart().
    * @type {?goog.ui.Component}
+   * @private
    */
   this.inputsComponent_ = null;
 
@@ -89,6 +97,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores the prompt string of the inputsComponent_.  It will be initialized
    * in initWindowRightUpperPart().
    * @type {?Element}
+   * @private
    */
   this.inputsPromptElement_ = null;
 
@@ -96,6 +105,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores the output text of the tasks.  It will be initialized in
    * initWindowRightLowerPart().
    * @type {?Element}
+   * @private
    */
   this.outputElement_ = null;
 
@@ -103,6 +113,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * A button to start the current task.  It will be initialized in
    * initWindowRightUpperPart().
    * @type {?goog.ui.Button}
+   * @private
    */
   this.startButton_ = null;
 
@@ -110,6 +121,7 @@ cros.factory.DiagnosisTool = function(goofy) {
    * A button to clear the output of the current task.  It will be initialized
    * in initWindowRightUpperPart().
    * @type {?goog.ui.Button}
+   * @private
    */
   this.clearButton_ = null;
 
@@ -117,30 +129,35 @@ cros.factory.DiagnosisTool = function(goofy) {
    * A button to stop the current task.  It will be initialized in
    * initWindowRightUpperPart().
    * @type {?goog.ui.Button}
+   * @private
    */
   this.stopButton_ = null;
 
   /**
    * Stores the current state.
    * @type {?Element}
+   * @private
    */
   this.currentState_ = null;
 
   /**
    * Stores the id of the current task.
    * @type {?string}
+   * @private
    */
   this.currentTaskId_ = null;
 
   /**
    * Stores the current menu node.
    * @type {?goog.ui.tree.TreeNode}
+   * @private
    */
   this.currentMenuNode_ = null;
 
   /**
    * Stores the menu nodes with keys as the task id.
-   * @type {?Object.<string, goog.ui.tree.TreeNode>}
+   * @type {?Object<string, goog.ui.tree.TreeNode>}
+   * @private
    */
   this.menuNodes_ = {};
 
@@ -148,12 +165,14 @@ cros.factory.DiagnosisTool = function(goofy) {
    * Stores all the input fields.  It will be initialized in
    * initWindowRightUpperPart().
    * @type {?cros.factory.DiagnosisTool.Inputs}
+   * @private
    */
   this.inputs_ = null;
 
   /**
    * Whether the compontents has been initialized or not.
    * @type {boolean}
+   * @private
    */
   this.initialized_ = false;
 };
@@ -162,7 +181,7 @@ cros.factory.DiagnosisTool = function(goofy) {
 /**
  * Width of the menu of the diagnosis tool, as a fraction of the dialog size.
  * @const
- * @type number
+ * @type {number}
  */
 cros.factory.DiagnosisTool.FUNC_MENU_WIDTH_FACTOR = 0.35;
 
@@ -171,7 +190,7 @@ cros.factory.DiagnosisTool.FUNC_MENU_WIDTH_FACTOR = 0.35;
  * Height of the output console of the diagnosis tool, as a fraction of the
  * dialog size.
  * @const
- * @type number
+ * @type {number}
  */
 cros.factory.DiagnosisTool.OUTPUT_HEIGHT_FACTOR = 0.4;
 
@@ -179,7 +198,7 @@ cros.factory.DiagnosisTool.OUTPUT_HEIGHT_FACTOR = 0.4;
 /**
  * The ID property of the main window element.
  * @const
- * @type string
+ * @type {string}
  */
 cros.factory.DiagnosisTool.MAIN_WINDOW_ID = 'diagnosis-tool';
 
@@ -187,7 +206,7 @@ cros.factory.DiagnosisTool.MAIN_WINDOW_ID = 'diagnosis-tool';
 /**
  * Prefix string of the ID property of the element about states.
  * @const
- * @type string
+ * @type {string}
  */
 cros.factory.DiagnosisTool.COMMAND_STATE_ID_PREFIX = 'diagnosis-tool-state-';
 
@@ -203,15 +222,16 @@ cros.factory.DiagnosisTool.State = {
   STOPPING: 'stopping',
   STOPPED: 'stopped',
   IDLE: 'idle',  // If the task has not been run yet and it is runnable.
-  NOT_APPLICABLE: 'not-applicable'  /* If the task is not runnable (which may
-                                     * be just a group of other tasks).
-                                     */
+  NOT_APPLICABLE: 'not-applicable' /* If the task is not runnable (which may
+                                    * be just a group of other tasks).
+                                    */
 };
 
 
 /**
  * Gets the html tag id property for a specified state.
  * @param {string} state
+ * @return {string}
  */
 cros.factory.DiagnosisTool.getStateId = function(state) {
   return cros.factory.DiagnosisTool.COMMAND_STATE_ID_PREFIX + state;
@@ -222,13 +242,14 @@ cros.factory.DiagnosisTool.getStateId = function(state) {
  * Calls an RPC function using goofy.sendRpc() function.
  * @param {string} method
  * @param {Object} args
- * @param {function(?)=} callback
- * @param {function(?)=} opt_errorCallback
+ * @param {function(this:cros.factory.Goofy, ?)=} callback
+ * @param {function(this:cros.factory.Goofy, ?)=} opt_errorCallback
  */
 cros.factory.DiagnosisTool.prototype.sendRpc = function(
     method, args, callback, opt_errorCallback) {
-  this.goofy.sendRpc('DiagnosisToolRpc', goog.array.concat([method], args),
-      callback, opt_errorCallback);
+  this.goofy.sendRpc(
+      'DiagnosisToolRpc', goog.array.concat([method], args), callback,
+      opt_errorCallback);
 };
 
 
@@ -263,8 +284,8 @@ cros.factory.DiagnosisTool.prototype.initWindow = function() {
   this.mainWindow_.setModal(false);
   this.mainWindow_.setTitle('Diagnosis Tool');
   this.mainWindow_.createDom();
-  var viewportSize = goog.dom.getViewportSize(
-      goog.dom.getWindow(document) || window);
+  var viewportSize =
+      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
   var width = viewportSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var height = viewportSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   goog.style.setBorderBoxSize(
@@ -277,8 +298,7 @@ cros.factory.DiagnosisTool.prototype.initWindow = function() {
   this.mainWindow_.setDisposeOnHide(false);
   // Split the window into left/right pane.
   var horizontalSplitpane = new goog.ui.SplitPane(
-      this.initWindowMenu(),
-      new goog.ui.Component(),
+      this.initWindowMenu(), new goog.ui.Component(),
       goog.ui.SplitPane.Orientation.HORIZONTAL);
   var leftWidth = width * cros.factory.DiagnosisTool.FUNC_MENU_WIDTH_FACTOR;
   horizontalSplitpane.setInitialSize(leftWidth);
@@ -287,9 +307,9 @@ cros.factory.DiagnosisTool.prototype.initWindow = function() {
   var rightPart = this.initWindowRightPart();
   horizontalSplitpane.getChildAt(1).addChild(rightPart, true);
   var classNames = [
-      'goog-splitpane-first-container',
-      'goog-splitpane-second-container',
-      'goog-splitpane-handle'];
+    'goog-splitpane-first-container', 'goog-splitpane-second-container',
+    'goog-splitpane-handle'
+  ];
   for (var i in classNames) {
     var className = classNames[i];
     var element = rightPart.getElement().getElementsByClassName(className)[0];
@@ -301,6 +321,7 @@ cros.factory.DiagnosisTool.prototype.initWindow = function() {
 
 /**
  * Creates the components for the menu.
+ * @return {!goog.ui.tree.TreeControl}
  */
 cros.factory.DiagnosisTool.prototype.initWindowMenu = function() {
   this.menuComponent_ = new goog.ui.tree.TreeControl('');
@@ -311,14 +332,14 @@ cros.factory.DiagnosisTool.prototype.initWindowMenu = function() {
 
 /**
  * Creates the components at the right part of the window.
+ * @return {!goog.ui.SplitPane}
  */
 cros.factory.DiagnosisTool.prototype.initWindowRightPart = function() {
   var verticalSplitpane = new goog.ui.SplitPane(
-      this.initWindowRightUpperPart(),
-      this.initWindowRightLowerPart(),
+      this.initWindowRightUpperPart(), this.initWindowRightLowerPart(),
       goog.ui.SplitPane.Orientation.VERTICAL);
-  var viewportSize = goog.dom.getViewportSize(
-      goog.dom.getWindow(document) || window);
+  var viewportSize =
+      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
   var height = viewportSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var upSize = height * (1 - cros.factory.DiagnosisTool.OUTPUT_HEIGHT_FACTOR);
   verticalSplitpane.setInitialSize(upSize);
@@ -330,20 +351,20 @@ cros.factory.DiagnosisTool.prototype.initWindowRightPart = function() {
  * Creates the components at the right upper part of the window.
  *
  * It includes name, state, description, input, etc.
+ * @return {!goog.ui.Component}
  */
 cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
   var all = new goog.ui.Component();
   all.createDom();
-  var all_element = /** @type {!Node} */(all.getElement());
+  var all_element = /** @type {!Node} */ (all.getElement());
 
   this.nameElement_ = goog.dom.createDom('div', {'class': 'name'});
   goog.dom.appendChild(all_element, this.nameElement_);
 
   this.stateRowComponent_ = new goog.ui.Component();
   all.addChild(this.stateRowComponent_, true);
-  var row_element = /** @type {!Node} */(this.stateRowComponent_.getElement());
-  goog.dom.appendChild(
-      row_element, cros.factory.i18n.i18nLabelNode('State:'));
+  var row_element = /** @type {!Node} */ (this.stateRowComponent_.getElement());
+  goog.dom.appendChild(row_element, cros.factory.i18n.i18nLabelNode('State:'));
   for (var key in cros.factory.DiagnosisTool.State) {
     var value = cros.factory.DiagnosisTool.State[key];
     var stateId = cros.factory.DiagnosisTool.getStateId(value);
@@ -355,13 +376,13 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
 
   this.descriptionPromptElement_ = goog.dom.createDom(
       'div', {}, cros.factory.i18n.i18nLabelNode('Description:'));
-  this.descriptionElement_ = goog.dom.createDom(
-      'div', {'class': 'description'});
+  this.descriptionElement_ =
+      goog.dom.createDom('div', {'class': 'description'});
   goog.dom.appendChild(all_element, this.descriptionPromptElement_);
   goog.dom.appendChild(all_element, this.descriptionElement_);
 
-  this.inputsPromptElement_ = goog.dom.createDom(
-      'div', {}, cros.factory.i18n.i18nLabelNode('Input:'));
+  this.inputsPromptElement_ =
+      goog.dom.createDom('div', {}, cros.factory.i18n.i18nLabelNode('Input:'));
   this.inputsComponent_ = new goog.ui.Component();
   goog.dom.appendChild(all_element, this.inputsPromptElement_);
   all.addChild(this.inputsComponent_, true);
@@ -381,25 +402,20 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
 
   goog.events.listen(
       this.startButton_, goog.ui.Component.EventType.ACTION,
-      function(event) {
-        this.userRequestStartTask();
-      }, false, this);
+      function(event) { this.userRequestStartTask(); }, false, this);
   goog.events.listen(
       this.stopButton_, goog.ui.Component.EventType.ACTION,
-      function(event) {
-        this.userRequestStopTask();
-      }, false, this);
+      function(event) { this.userRequestStopTask(); }, false, this);
   goog.events.listen(
       this.clearButton_, goog.ui.Component.EventType.ACTION,
-      function(event) {
-        this.userClearOutput();
-      }, false, this);
+      function(event) { this.userClearOutput(); }, false, this);
   return all;
 };
 
 
 /**
  * Creates the component for the output console.
+ * @return {!goog.ui.Component}
  */
 cros.factory.DiagnosisTool.prototype.initWindowRightLowerPart = function() {
   var outputComponent = new goog.ui.Component();
@@ -428,6 +444,7 @@ cros.factory.DiagnosisTool.prototype.showWindow = function() {
 
 /**
  * Sets the menu.
+ * @param {!Array<!Object<string, string>>} config
  */
 cros.factory.DiagnosisTool.prototype.setMenu = function(config) {
   var createMenu = goog.bind(function(tree, nodeParent, config) {
@@ -447,8 +464,8 @@ cros.factory.DiagnosisTool.prototype.setMenu = function(config) {
   this.menuComponent_.expandAll();
   for (var id in this.menuNodes_) {
     goog.events.listen(
-        this.menuNodes_[id].getLabelElement(), goog.events.EventType.CLICK,
-        function(id) {
+        this.menuNodes_[id].getLabelElement(),
+        goog.events.EventType.CLICK, function(id) {
           return function(evt) { this.userRequestLoadTask(id); };
         }(id), false, this);
   }
@@ -487,18 +504,17 @@ cros.factory.DiagnosisTool.prototype.userClearOutput = function() {
  * @param {string} id Identity of the task.
  */
 cros.factory.DiagnosisTool.prototype.userRequestLoadTask = function(id) {
-  this.sendRpc('LoadTask', [id],
-      goog.bind(function(b) {
-        // If the return value of DiagnosisToolLoadTask() in
-        // the backend is false, which means that the backend
-        // thinks that it will not load another task immediately,
-        // we need to switch back to the task menu.
-        if (!b) {
-          // Selects to the original node so it will be looked
-          // like nothing happened.
-          this.menuComponent_.setSelectedItem(this.currentMenuNode_);
-        }
-      }, this));
+  this.sendRpc('LoadTask', [id], goog.bind(function(b) {
+    // If the return value of DiagnosisToolLoadTask() in
+    // the backend is false, which means that the backend
+    // thinks that it will not load another task immediately,
+    // we need to switch back to the task menu.
+    if (!b) {
+      // Selects to the original node so it will be looked
+      // like nothing happened.
+      this.menuComponent_.setSelectedItem(this.currentMenuNode_);
+    }
+  }, this));
 };
 
 
@@ -520,14 +536,14 @@ cros.factory.DiagnosisTool.prototype.loadTask = function(id) {
  * @param {string} title Dialog window title.
  * @param {string} content Dialog window content.
  * @param {?number} timeout Timeout.  Null means unlimited.
- * @param {Array.<string>} options Options.
+ * @param {!Array<string>} options Options.
  * @param {?string} defaultOption Default option.
  */
 cros.factory.DiagnosisTool.prototype.confirmDialog = function(
     id, title, content, timeout, options, defaultOption) {
   var dialog = new goog.ui.Dialog();
   dialog.createDom();
-  var dialogContent = /** @type {!Element} */(dialog.getContentElement());
+  var dialogContent = /** @type {!Element} */ (dialog.getContentElement());
   // Dialog setting
   dialog.setHasTitleCloseButton(false);
   dialog.setTitle(title);
@@ -553,8 +569,9 @@ cros.factory.DiagnosisTool.prototype.confirmDialog = function(
     this.sendRpc('ConfirmSelected', [id, key]);
     this.confirmDialog_[id] = null;
   }, this);
-  goog.events.listen(dialog, goog.ui.Dialog.EventType.SELECT,
-      function(e) { callback(e.key); }, false, this);
+  goog.events.listen(dialog, goog.ui.Dialog.EventType.SELECT, function(e) {
+    callback(e.key);
+  }, false, this);
   if (timeout) {
     var timeoutText = cros.factory.i18n.i18nLabelNode('Time remaining: ');
     var timeoutTime = goog.dom.createDom('span');
@@ -571,10 +588,7 @@ cros.factory.DiagnosisTool.prototype.confirmDialog = function(
       }
     }, false, this);
   }
-  this.confirmDialog_[id] = {
-    'dialog': dialog,
-    'timer': timer
-  };
+  this.confirmDialog_[id] = {'dialog': dialog, 'timer': timer};
 };
 
 
@@ -622,12 +636,11 @@ cros.factory.DiagnosisTool.prototype.setState = function(state) {
   }
   this.startButton_.setVisible(
       state != cros.factory.DiagnosisTool.State.RUNNING &&
-      state != cros.factory.DiagnosisTool.State.STOPPING &&
-      state != cros.factory.DiagnosisTool.State.NOT_APPLICABLE,
+          state != cros.factory.DiagnosisTool.State.STOPPING &&
+          state != cros.factory.DiagnosisTool.State.NOT_APPLICABLE,
       true);
   this.stopButton_.setVisible(
-      state == cros.factory.DiagnosisTool.State.RUNNING,
-      true);
+      state == cros.factory.DiagnosisTool.State.RUNNING, true);
 };
 
 
@@ -649,6 +662,7 @@ cros.factory.DiagnosisTool.prototype.setDescription = function(desc) {
 
 /**
  * Sets the input fields.
+ * @param {!Array<Object>} inputs
  */
 cros.factory.DiagnosisTool.prototype.setInputs = function(inputs) {
   var has_inputs = (this.inputs_.setInputs(inputs) > 0);
@@ -688,7 +702,7 @@ cros.factory.DiagnosisTool.prototype.clearOutput = function() {
 
 /**
  * Handles the event coming from the backend.
- * @param {Object} message event
+ * @param {!Object} message event
  */
 cros.factory.DiagnosisTool.prototype.handleBackendEvent = function(message) {
   var BACKEND_EVENT = 'sub_type';
@@ -736,11 +750,13 @@ cros.factory.DiagnosisTool.Inputs = function(comp) {
   /**
    * The component to display the input fields.
    * @type {goog.ui.Component}
+   * @private
    */
   this.component_ = comp;
 
   /**
    * Stores all the input fields.
+   * @private
    */
   this.fields_ = {};
 };
@@ -766,7 +782,7 @@ cros.factory.DiagnosisTool.Inputs.InputType = {
  * @param {string} prefix
  * @param {string} suffix
  * @param {string} helpText
- * @param {Object} input an DOM element
+ * @param {Node} input an DOM element
  * @return {goog.ui.Component}
  */
 cros.factory.DiagnosisTool.Inputs.addFieldPrompt = function(
@@ -774,9 +790,8 @@ cros.factory.DiagnosisTool.Inputs.addFieldPrompt = function(
   var ret = new goog.ui.Component();
   ret.createDom();
   goog.dom.append(
-      /** @type {!Element} */(ret.getElement()),
-      goog.dom.htmlToDocumentFragment(prefix),
-      input,
+      /** @type {!Element} */ (ret.getElement()),
+      goog.dom.htmlToDocumentFragment(prefix), input,
       goog.dom.htmlToDocumentFragment(suffix));
   if (helpText.length > 0) {
     var tp = new goog.ui.Tooltip(ret.getElement(), helpText);
@@ -787,6 +802,7 @@ cros.factory.DiagnosisTool.Inputs.addFieldPrompt = function(
 
 /**
  * Gets all the value of the fields.
+ * @return {!Object<string, string>}
  */
 cros.factory.DiagnosisTool.Inputs.prototype.getValues = function() {
   var ret = {};
@@ -802,7 +818,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.getValues = function() {
 
 /**
  * Sets the input fields.
- * @param {Array.<Object>} inputs An array contain the inputs to be added.
+ * @param {Array<Object>} inputs An array contain the inputs to be added.
  * @return {number} Number of the input fields was added.
  */
 cros.factory.DiagnosisTool.Inputs.prototype.setInputs = function(inputs) {
@@ -816,18 +832,19 @@ cros.factory.DiagnosisTool.Inputs.prototype.setInputs = function(inputs) {
     var help = input['help'];
     var ret;
     if (type == cros.factory.DiagnosisTool.Inputs.InputType.NUMBER) {
-      ret = this.addNumberField(prpt, help,
-          input['value'], input['min'], input['max'], input['step'],
+      ret = this.addNumberField(
+          prpt, help, input['value'], input['min'], input['max'], input['step'],
           input['round'], input['unit']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.SLIDER) {
-      ret = this.addSliderField(prpt, help,
-          input['value'], input['min'], input['max'], input['step'],
+      ret = this.addSliderField(
+          prpt, help, input['value'], input['min'], input['max'], input['step'],
           input['round'], input['unit']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.CHOICES) {
       ret = this.addChoicesField(prpt, help, input['value'], input['choices']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.BOOL) {
-      ret = this.addBoolField(prpt, help,
-          input['value'], input['enable_list'], input['disable_list']);
+      ret = this.addBoolField(
+          prpt, help, input['value'], input['enable_list'],
+          input['disable_list']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.FILE) {
       ret = this.addFileField(prpt, help, input['pattern'], input['file_type']);
     } else if (type == cros.factory.DiagnosisTool.Inputs.InputType.STRING) {
@@ -858,7 +875,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.setInputs = function(inputs) {
  * @param {number} step Step number.
  * @param {number} round Number of decimal places.
  * @param {string} unit Unit.
- * @return {cros.factory.DiagnosisTool.Inputs.InputField}
+ * @return {!cros.factory.DiagnosisTool.Inputs.InputField}
  */
 cros.factory.DiagnosisTool.Inputs.prototype.addNumberField = function(
     prpt, help, value, min, max, step, round, unit) {
@@ -867,7 +884,8 @@ cros.factory.DiagnosisTool.Inputs.prototype.addNumberField = function(
     'min': String(min),
     'max': String(max),
     'step': String(step),
-    'value': String(value)});
+    'value': String(value)
+  });
   var promptText = prpt + '[' + min + '~' + max + ']: ';
   var box = cros.factory.DiagnosisTool.Inputs.addFieldPrompt(
       promptText, unit, help, input);
@@ -878,13 +896,13 @@ cros.factory.DiagnosisTool.Inputs.prototype.addNumberField = function(
           return null;
         }
         var val = Number(input.value);
-        if (val < min) val = min;
-        if (max < val) val = max;
+        if (val < min)
+          val = min;
+        if (max < val)
+          val = max;
         return val.toFixed(round);
       },
-      function(b) { input['disabled'] = b; },
-      null,
-      box);
+      function(b) { input['disabled'] = b; }, null, box);
 };
 
 
@@ -899,7 +917,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.addNumberField = function(
  * @param {number} step Step number.
  * @param {number} round Number of decimal places.
  * @param {string} unit Unit.
- * @return {cros.factory.DiagnosisTool.Inputs.InputField}
+ * @return {!cros.factory.DiagnosisTool.Inputs.InputField}
  */
 cros.factory.DiagnosisTool.Inputs.prototype.addSliderField = function(
     prpt, help, value, min, max, step, round, unit) {
@@ -912,17 +930,16 @@ cros.factory.DiagnosisTool.Inputs.prototype.addSliderField = function(
   slider.render();
   var sliderClassName = 'input-slider-horizontal-line';
   goog.dom.append(
-      /** @type {!Element} */(slider.getElement()),
+      /** @type {!Element} */ (slider.getElement()),
       goog.dom.createDom('div', {'class': sliderClassName}));
   var text = goog.dom.createDom('span');
   var all = goog.dom.createDom(
       'div', {'class': 'input-div'}, slider.getElement(), text);
-  var box = cros.factory.DiagnosisTool.Inputs.addFieldPrompt(
-      prpt, unit, help, all);
+  var box =
+      cros.factory.DiagnosisTool.Inputs.addFieldPrompt(prpt, unit, help, all);
   this.component_.addChild(box, true);
   goog.events.listen(
-      slider, goog.ui.Component.EventType.CHANGE,
-      function(event) {
+      slider, goog.ui.Component.EventType.CHANGE, function(event) {
         var val = Number(this.slider.getValue());
         this.text.innerHTML = val.toFixed(round);
       }, false, {'slider': slider, 'text': text});
@@ -934,8 +951,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.addSliderField = function(
         enabled = b;
         slider.setEnabled(b);
       },
-      null,
-      box);
+      null, box);
 };
 
 
@@ -945,8 +961,8 @@ cros.factory.DiagnosisTool.Inputs.prototype.addSliderField = function(
  * @param {string} prpt Prompt string.
  * @param {string} help Help text.
  * @param {string} value Default value.
- * @param {Array.<string>} choices Allowed choices.
- * @return {cros.factory.DiagnosisTool.Inputs.InputField}
+ * @param {Array<string>} choices Allowed choices.
+ * @return {!cros.factory.DiagnosisTool.Inputs.InputField}
  */
 cros.factory.DiagnosisTool.Inputs.prototype.addChoicesField = function(
     prpt, help, value, choices) {
@@ -970,8 +986,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.addChoicesField = function(
         enabled = b;
         select.setEnabled(b);
       },
-      null,
-      box);
+      null, box);
 };
 
 
@@ -980,10 +995,10 @@ cros.factory.DiagnosisTool.Inputs.prototype.addChoicesField = function(
  *
  * @param {string} prpt Prompt string.
  * @param {string} help Help text.
- * @param {boolean|null} value Default value.
- * @param {Array.<number>} enable_list Which input should be enabled when true.
- * @param {Array.<number>} disable_list Which input should be disable when true.
- * @return {cros.factory.DiagnosisTool.Inputs.InputField}
+ * @param {?boolean} value Default value.
+ * @param {Array<number>} enable_list Which input should be enabled when true.
+ * @param {Array<number>} disable_list Which input should be disable when true.
+ * @return {!cros.factory.DiagnosisTool.Inputs.InputField}
  */
 cros.factory.DiagnosisTool.Inputs.prototype.addBoolField = function(
     prpt, help, value, enable_list, disable_list) {
@@ -1022,8 +1037,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.addBoolField = function(
         enabled = b;
         checkBox.setEnabled(b);
       },
-      onChange,
-      box);
+      onChange, box);
 };
 
 
@@ -1034,7 +1048,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.addBoolField = function(
  * @param {string} help Help text.
  * @param {string} pattern A regular expression pattern.
  * @param {string} type File type.
- * @return {cros.factory.DiagnosisTool.Inputs.InputField}
+ * @return {!cros.factory.DiagnosisTool.Inputs.InputField}
  */
 cros.factory.DiagnosisTool.Inputs.prototype.addFileField = function(
     prpt, help, pattern, type) {
@@ -1044,8 +1058,8 @@ cros.factory.DiagnosisTool.Inputs.prototype.addFileField = function(
   goog.dom.setProperties(all, {'class': 'input-div'});
   button.render();
   goog.dom.append(all, button.getElement(), label);
-  var box = cros.factory.DiagnosisTool.Inputs.addFieldPrompt(
-      prpt, '', help, all);
+  var box =
+      cros.factory.DiagnosisTool.Inputs.addFieldPrompt(prpt, '', help, all);
   this.component_.addChild(box, true);
   // TODO(yhong): use a real file manager.
   // -- File manager (start) --
@@ -1053,8 +1067,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.addFileField = function(
   // dialog for user to input a path name.
   var filename = '';
   var p = new goog.ui.Prompt(
-      'Simple File Manager', 'Input a path name',
-      function(str) {
+      'Simple File Manager', 'Input a path name', function(str) {
         label.innerHTML = goog.string.htmlEscape(str);
         filename = str;
       });
@@ -1065,9 +1078,11 @@ cros.factory.DiagnosisTool.Inputs.prototype.addFileField = function(
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
       function() { return enabled ? filename : null; },
-      function(b) { enabled = b; button.setEnabled(b); },
-      null,
-      box);
+      function(b) {
+        enabled = b;
+        button.setEnabled(b);
+      },
+      null, box);
 };
 
 
@@ -1078,7 +1093,7 @@ cros.factory.DiagnosisTool.Inputs.prototype.addFileField = function(
  * @param {string} help Help text.
  * @param {string} value Default value.
  * @param {string} hint Hint.
- * @return {cros.factory.DiagnosisTool.Inputs.InputField}
+ * @return {!cros.factory.DiagnosisTool.Inputs.InputField}
  */
 cros.factory.DiagnosisTool.Inputs.prototype.addStringField = function(
     prpt, help, value, hint) {
@@ -1090,19 +1105,21 @@ cros.factory.DiagnosisTool.Inputs.prototype.addStringField = function(
   this.component_.addChild(box, true);
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
-      function() { return enabled ? field.getValue(): null; },
-      function(b) { enabled = b; field.setEnabled(b); },
-      null,
-      box);
+      function() { return enabled ? field.getValue() : null; },
+      function(b) {
+        enabled = b;
+        field.setEnabled(b);
+      },
+      null, box);
 };
 
 
 /**
  * An simple object for storing information about a input field.
  * @constructor
- * @param {null|function():*} getValue Gets the value of this field.
- * @param {null|function(boolean):*} setEnabled Sets enabled of this field.
- * @param {null|function():*} onChange A function which will be called after the
+ * @param {?function():*} getValue Gets the value of this field.
+ * @param {?function(boolean):*} setEnabled Sets enabled of this field.
+ * @param {?function():*} onChange A function which will be called after the
  *     value be changed.
  * @param {goog.ui.Component} comp The component of this field.
  */

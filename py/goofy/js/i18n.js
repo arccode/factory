@@ -24,19 +24,19 @@ cros.factory.i18n.formatCache = Object.create(null);
  * @return {cros.factory.i18n.FormatFunc}
  */
 cros.factory.i18n.stringFormatImpl = function(format) {
-  const strs = [''];
-  const vars = [];
+  let /** Array<string> */ strs = [''];
+  let /** Array<string> */ vars = [];
   let i = 0;
   while (i < format.length) {
-    if (format[i] == '{') {
+    if (format.charAt(i) == '{') {
       if (i + 1 < format.length && format[i + 1] == '{') {
-        strs[strs.length - 1] += format[i];
+        strs[strs.length - 1] += format.charAt(i);
         i += 2;
       } else {
         let var_name = '';
         i++;
-        while (i < format.length && format[i] != '}') {
-          var_name += format[i];
+        while (i < format.length && format.charAt(i) != '}') {
+          var_name += format.charAt(i);
           i++;
         }
         if (i == format.length) {
@@ -46,18 +46,18 @@ cros.factory.i18n.stringFormatImpl = function(format) {
         strs.push('');
         i++;
       }
-    } else if (format[i] == '}') {
+    } else if (format.charAt(i) == '}') {
       if (i + 1 == format.length || format[i + 1] != '}') {
         throw new Error('} should be escaped by }}.');
       }
-      strs[strs.length - 1] += format[i];
+      strs[strs.length - 1] += format.charAt(i);
       i += 2;
     } else {
-      strs[strs.length - 1] += format[i];
+      strs[strs.length - 1] += format.charAt(i);
       i++;
     }
   }
-  return (function(dict) {
+  return (function(/** !Object<string, string> */ dict) {
     let ret = strs[0];
     for (let i = 0; i < vars.length; i++) {
       ret += dict[vars[i]];
@@ -113,7 +113,8 @@ cros.factory.i18n.locales = [cros.factory.i18n.DEFAULT_LOCALE];
 cros.factory.i18n.translations_ = Object.create(null);
 if (window['goofy_i18n_data']) {
   cros.factory.i18n.locales = window['goofy_i18n_data']['locales'];
-  for (const text of window['goofy_i18n_data']['translations']) {
+  for (const text of /** @type !Array<cros.factory.i18n.TranslationDict> */ (
+           window['goofy_i18n_data']['translations'])) {
     const key = text[cros.factory.i18n.DEFAULT_LOCALE];
     cros.factory.i18n.translations_[key] = text;
   }
@@ -153,7 +154,7 @@ cros.factory.i18n.translation = function(text) {
  *     noTranslation.
  * @return {cros.factory.i18n.TranslationDict}
  */
-cros.factory.i18n.translated = function(obj, translate=true) {
+cros.factory.i18n.translated = function(obj, translate = true) {
   // Because of type checking for dict object is MUCH harder in JS, we assume
   // that passed in obj is a TranslationDict if it's an object.
   if (typeof obj === 'object') {
@@ -165,7 +166,7 @@ cros.factory.i18n.translated = function(obj, translate=true) {
     return ret;
   } else {
     return translate ? cros.factory.i18n.translation(obj) :
-      cros.factory.i18n.noTranslation(obj);
+                       cros.factory.i18n.noTranslation(obj);
   }
 };
 
@@ -187,8 +188,8 @@ cros.factory.i18n.stringFormat = function(format, dict) {
     for (const key of Object.keys(translated_dict)) {
       args[key] = translated_dict[key][locale];
     }
-    ret[locale] = cros.factory.i18n.stringFormatCached(
-        format_dict[locale])(args);
+    ret[locale] =
+        cros.factory.i18n.stringFormatCached(format_dict[locale])(args);
   }
   return ret;
 };
@@ -199,14 +200,14 @@ cros.factory.i18n.stringFormat = function(format, dict) {
  * @param {!Object<string, string>=} dict
  * @return {!goog.html.SafeHtml}
  */
-cros.factory.i18n.i18nLabel = function(text, dict={}) {
+cros.factory.i18n.i18nLabel = function(text, dict = {}) {
   let label = cros.factory.i18n.stringFormat(text, dict);
   let children = [];
   for (const locale of cros.factory.i18n.locales) {
     const translated_label = label[locale];
     const html_class = 'goofy-label-' + locale;
-    children.push(goog.html.SafeHtml.create('span', {class: html_class},
-        translated_label));
+    children.push(goog.html.SafeHtml.create(
+        'span', {class: html_class}, translated_label));
   }
   return goog.html.SafeHtml.concat(children);
 };
@@ -217,6 +218,6 @@ cros.factory.i18n.i18nLabel = function(text, dict={}) {
  * @param {!Object<string, string>=} dict
  * @return {!Node}
  */
-cros.factory.i18n.i18nLabelNode = function(text, dict={}) {
+cros.factory.i18n.i18nLabelNode = function(text, dict = {}) {
   return goog.dom.safeHtmlToNode(cros.factory.i18n.i18nLabel(text, dict));
 };

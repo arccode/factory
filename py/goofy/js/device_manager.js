@@ -16,7 +16,10 @@ goog.require('goog.ui.Dialog.ButtonSet');
 goog.require('goog.ui.DrilldownRow');
 goog.require('goog.ui.FlatButtonRenderer');
 
-/** @constructor */
+/**
+ * @constructor
+ * @param {cros.factory.Goofy} goofy
+ */
 cros.factory.DeviceManager = function(goofy) {
 
   /**
@@ -57,7 +60,7 @@ cros.factory.DeviceManager = function(goofy) {
    * @type {Array}
    */
   this.slowCommandsBackendFunction = [];
-}
+};
 
 /**
  * Recursively process data to data structure.
@@ -96,8 +99,8 @@ cros.factory.DeviceManager.prototype.processData = function(
   var deviceDataTable =
       goog.dom.createDom('table', {'class': 'two-column-table'});
 
-  for (var childNode = node.firstChild;
-       childNode != null; childNode = childNode.nextSibling) {
+  for (var childNode = node.firstChild; childNode != null;
+       childNode = childNode.nextSibling) {
     if (childNode.nodeName == 'description') {
       continue;
     }
@@ -112,15 +115,14 @@ cros.factory.DeviceManager.prototype.processData = function(
 
     var firstRow = goog.dom.createElement('tr');
     goog.dom.appendChild(
-        firstRow,
-        goog.dom.createDom('td', null, childNode.nodeName));
+        firstRow, goog.dom.createDom('td', null, childNode.nodeName));
 
     if (!childNode.hasChildNodes) {
       continue;
     }
 
-    for (var iterNode = childNode.firstChild;
-         iterNode != null; iterNode = iterNode.nextSibling) {
+    for (var iterNode = childNode.firstChild; iterNode != null;
+         iterNode = iterNode.nextSibling) {
       if (iterNode.nodeName == 'node') {
         continue;
       }
@@ -128,7 +130,7 @@ cros.factory.DeviceManager.prototype.processData = function(
       var itemData = goog.dom.createElement('td');
 
       if (iterNode.textContent == '') {
-        for (var j = 0; j < iterNode.attributes.length; j ++) {
+        for (var j = 0; j < iterNode.attributes.length; j++) {
           goog.dom.append(itemData, iterNode.attributes[j].value + ' ');
         }
       } else {
@@ -151,12 +153,12 @@ cros.factory.DeviceManager.prototype.processData = function(
   this.mapToDeviceData[fullPath] = deviceDataHtml;
   this.mapToSubnode[fullPath] = subnode;
 
-  for (var i = 0; i < subnode.length; i ++) {
+  for (var i = 0; i < subnode.length; i++) {
     var childNodePath = nodePath + '/node[@id=\'' + subnode[i].id + '\']';
     var childFullPath = fullPath + '/node[@id=\'' + subnode[i].id + '\']';
     this.processData(xmlData, childNodePath, childFullPath);
   }
-}
+};
 
 /**
  * Creates a button of the device node in the menu to show its data.
@@ -175,12 +177,10 @@ cros.factory.DeviceManager.prototype.createButton = function(fullPath) {
   }
 
   goog.events.listen(
-      showButton,
-      goog.ui.Component.EventType.ACTION,
-      function() {
+      showButton, goog.ui.Component.EventType.ACTION, function() {
         goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
         goog.dom.append(
-            /** @type {!Node} */(
+            /** @type {!Node} */ (
                 goog.dom.getElement('goofy-device-data-area')),
             goog.dom.createDom(
                 'div', {'class': 'device-name'},
@@ -189,7 +189,7 @@ cros.factory.DeviceManager.prototype.createButton = function(fullPath) {
             goog.dom.getElement('goofy-device-data-area'),
             this.mapToDeviceData[fullPath]);
       }, false, this);
-}
+};
 
 /**
  * Recursively creates a drilldown menu for each item of device manager.
@@ -200,19 +200,20 @@ cros.factory.DeviceManager.prototype.createButton = function(fullPath) {
 cros.factory.DeviceManager.prototype.createDrilldownMenu = function(
     itemMenuParent, fullPath) {
 
-  var itemMenuSubnode = new goog.ui.DrilldownRow(
-      {html: '<tr><td><div id="show-button-' + fullPath +
-             '" style="display:inline-table"></div></td></tr>'});
+  var itemMenuSubnode = new goog.ui.DrilldownRow({
+    html: '<tr><td><div id="show-button-' + fullPath +
+        '" style="display:inline-table"></div></td></tr>'
+  });
   itemMenuParent.addChild(itemMenuSubnode, true);
 
   this.createButton(fullPath);
 
-  for (var i = 0; i < this.mapToSubnode[fullPath].length; i ++) {
+  for (var i = 0; i < this.mapToSubnode[fullPath].length; i++) {
     this.createDrilldownMenu(
         itemMenuSubnode,
         fullPath + '/node[@id=\'' + this.mapToSubnode[fullPath][i].id + '\']');
   }
-}
+};
 
 /**
  * Initializes the drilldown menu area and creates the list.
@@ -222,14 +223,13 @@ cros.factory.DeviceManager.prototype.makeMenu = function() {
   var tree = goog.dom.getElement('tree-menu-area');
   goog.dom.removeChildren(tree);
   tree.insertAdjacentHTML(
-      'afterBegin',
-      '<tr id="tree-menu-root"><td>Device Manager</td></tr>');
+      'afterBegin', '<tr id="tree-menu-root"><td>Device Manager</td></tr>');
 
   var itemMenu = new goog.ui.DrilldownRow({});
   itemMenu.decorate(goog.dom.getElement('tree-menu-root'));
 
   this.createDrilldownMenu(itemMenu, '/list');
-}
+};
 
 /**
  * Gets device info from backend and creates the whole device manager.
@@ -245,34 +245,31 @@ cros.factory.DeviceManager.prototype.getDeviceData = function() {
           'Loading Device Manager...'));
 
   // Executes general commands and ignores slower ones in first stage.
-  this.goofy.sendRpc(
-      'GetDeviceInfo', [],
-      function(data) {
-        this.deviceManager.processData(
-            goog.dom.xml.loadXml(data), '/list', '/list');
-        this.deviceManager.makeMenu();
-        goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
+  this.goofy.sendRpc('GetDeviceInfo', [], function(data) {
+    this.deviceManager.processData(
+        goog.dom.xml.loadXml(data), '/list', '/list');
+    this.deviceManager.makeMenu();
+    goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
 
-        // Executes slower commands in second stage.
-        this.sendRpc(
-            'GetDeviceInfo',
-            [JSON.stringify(this.deviceManager.slowCommandsBackendFunction)],
-            function(data) {
-              var parsedData = JSON.parse(data);
+    // Executes slower commands in second stage.
+    this.sendRpc(
+        'GetDeviceInfo',
+        [JSON.stringify(this.deviceManager.slowCommandsBackendFunction)],
+        function(data) {
+          var parsedData = JSON.parse(data);
 
-              for (var i = 0; i < parsedData.length; i ++) {
-                this.deviceManager.processData(
-                    goog.dom.xml.loadXml(parsedData[i]),
-                    '/node',
-                    this.deviceManager.slowCommandsFullPath[i]);
-              }
+          for (var i = 0; i < parsedData.length; i++) {
+            this.deviceManager.processData(
+                goog.dom.xml.loadXml(parsedData[i]), '/node',
+                this.deviceManager.slowCommandsFullPath[i]);
+          }
 
-              goog.dom.removeChildren(
-                  goog.dom.getElement('goofy-device-data-area'));
-              this.deviceManager.makeMenu();
-            } );
-      } );
-}
+          goog.dom.removeChildren(
+              goog.dom.getElement('goofy-device-data-area'));
+          this.deviceManager.makeMenu();
+        });
+  });
+};
 
 /**
  * Creates a new dialog to display the device manager.
@@ -283,8 +280,8 @@ cros.factory.DeviceManager.prototype.showWindow = function() {
   this.goofy.registerDialog(dialog);
   dialog.setModal(false);
 
-  var viewSize = goog.dom.getViewportSize(
-      goog.dom.getWindow(document) || window);
+  var viewSize =
+      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
   var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
 
@@ -299,27 +296,26 @@ cros.factory.DeviceManager.prototype.showWindow = function() {
 
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);
-  goog.dom.getElementByClass(
-      'modal-dialog-title-text', dialog.getElement()).innerHTML =
-          'Device Manager';
+  goog.dom.getElementByClass('modal-dialog-title-text', dialog.getElement())
+      .innerHTML = 'Device Manager';
 
   var refreshButton = new goog.ui.Button(
-      [goog.dom.createDom(
-           'div', {'id': 'goofy-device-manager-refresh-icon'}),
-       goog.dom.createDom(
-           'div', {'id': 'goofy-device-manager-refresh-text'}, 'refresh')],
+      [
+        goog.dom.createDom('div', {'id': 'goofy-device-manager-refresh-icon'}),
+        goog.dom.createDom(
+            'div', {'id': 'goofy-device-manager-refresh-text'}, 'refresh')
+      ],
       goog.ui.FlatButtonRenderer.getInstance());
   refreshButton.render(goog.dom.getElement('goofy-device-manager-refresh'));
 
   this.getDeviceData();
 
   goog.events.listen(
-      refreshButton, goog.ui.Component.EventType.ACTION,
-      function() {
+      refreshButton, goog.ui.Component.EventType.ACTION, function() {
         this.mapToSubnode = {};
         this.mapToDeviceData = {};
         this.mapToDescription = {};
 
         this.getDeviceData();
       }, false, this);
-}
+};
