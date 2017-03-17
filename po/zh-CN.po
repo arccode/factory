@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-17 13:13+CST\n"
+"POT-Creation-Date: 2017-03-17 13:37+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -23,6 +23,10 @@ msgstr "标记失败"
 #: ../py/goofy/static/ui_templates/template_two_sections.html
 msgid "Test Progress:"
 msgstr "测试进度:"
+
+#: ../py/test/countdown_timer.py
+msgid "Time remaining: {time:.0f}"
+msgstr "剩余时间：{time:.0f}"
 
 #: ../py/test/pytests/ac_power.py
 msgid "Connect AC"

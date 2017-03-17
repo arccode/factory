@@ -9,11 +9,11 @@ import threading
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import test_ui
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.utils import process_utils
 
-_MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel('Time remaining: %d' % t,
-                                                  u'剩余时间：%d' % t)
+_MSG_TIME_REMAINING = lambda t: i18n_test_ui.MakeI18nLabel(
+    'Time remaining: {time:.0f}', time=t)
 
 
 def StartCountdownTimer(timeout_secs, timeout_handler, ui, element_ids,
