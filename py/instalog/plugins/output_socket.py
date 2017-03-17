@@ -80,7 +80,6 @@ class OutputSocket(plugin_base.OutputPlugin):
         event_stream.Commit()
         continue
 
-      event_stream_open = True
       try:
         self.GetSocket()
         # Send the number of events followed by each one.
@@ -105,7 +104,6 @@ class OutputSocket(plugin_base.OutputPlugin):
         if self.CheckSuccess(socket_common.EMIT_SUCCESS_CHAR):
           self.debug('Success; commit %d events', len(events))
           event_stream.Commit()
-          event_stream_open = False
         else:
           self.info('Failure; abort %d events', len(events))
           raise Exception
@@ -119,8 +117,7 @@ class OutputSocket(plugin_base.OutputPlugin):
             total_kbytes / elapsed_time)
 
       except socket.error as e:
-        if event_stream_open:
-          event_stream.Abort()
+        event_stream.Abort()
         if e.errno == 111:  # Connection refused
           self.error('Could not make connection to target server')
         else:
@@ -128,8 +125,7 @@ class OutputSocket(plugin_base.OutputPlugin):
         target_available = False
         self.Sleep(1)
       except Exception:
-        if event_stream_open:
-          event_stream.Abort()
+        event_stream.Abort()
         self.exception('Connection or transfer failed')
         target_available = False
         self.Sleep(1)

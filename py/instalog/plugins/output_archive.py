@@ -92,7 +92,7 @@ class OutputArchive(plugin_base.OutputPlugin):
       if os.path.isfile(att_path):
         att_name = os.path.basename(att_path)
         att_newpath = os.path.join('attachments',
-                                   '%d_%s' % (event_id, att_name))
+                                   '%03d_%s' % (event_id, att_name))
         shutil.copyfile(att_path, os.path.join(base_dir, att_newpath))
         event.attachments[att_id] = att_newpath
     return event.Serialize()

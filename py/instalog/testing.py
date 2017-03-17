@@ -41,7 +41,7 @@ class MockCore(plugin_sandbox.CoreAPI):
   """
 
   def __init__(self):
-    self._att_dir = tempfile.mkdtemp(prefix='instalog_testing')
+    self._att_dir = tempfile.mkdtemp(prefix='instalog_testing_')
     self.emit_calls = []
     self.streams = []
 
@@ -61,7 +61,7 @@ class MockCore(plugin_sandbox.CoreAPI):
       for att_id, att_path in event.attachments.iteritems():
         # Use a filename that contains the original one for clarity.
         f, tmp_path = tempfile.mkstemp(
-            prefix=os.path.basename(att_path), dir=self._att_dir)
+            prefix=os.path.basename(att_path) + '_', dir=self._att_dir)
         os.close(f)
         # Relocate the attachment and update the event path.
         logging.debug('Moving attachment %s --> %s...', att_path, tmp_path)
