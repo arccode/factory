@@ -17,6 +17,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.device.links import adb
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -43,8 +44,6 @@ _CSS = 'body { font-size: 2em; }'
 class RaidenChargeBFTTest(unittest.TestCase):
   """Tests raiden port charge functionality."""
   ARGS = [
-      Arg('adb_remote_test', bool, 'Run test against remote ADB target.',
-          default=False),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
       Arg('charge_duration_secs', (int, float),
           'The duration in seconds to charge the battery', default=5),
@@ -125,7 +124,8 @@ class RaidenChargeBFTTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
-    self._adb_remote_test = self.args.adb_remote_test
+    self._adb_remote_test = isinstance(self._dut.link, adb.ADBLink)
+    self._remote_test = not self._dut.link.IsLocal()
     if self._adb_remote_test:
       self._template.SetState(_TESTING_ADB_CONNECTION)
       self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
@@ -191,16 +191,16 @@ class RaidenChargeBFTTest(unittest.TestCase):
     sampled_ina_voltage = []
     end_time = time_utils.MonotonicTime() + duration_secs
     while time_utils.MonotonicTime() < end_time:
-      # Skip sampling ADB target current while discharging since we lose ADB
-      # connection during that time.
-      if not (self._adb_remote_test and not charging):
+      # Skip sampling remote target current while discharging since we might
+      # loss connection during that time.
+      if not (self._remote_test and not charging):
         sampled_battery_current.append(self._power.GetBatteryCurrent())
       ina_values = self._bft_fixture.ReadINAValues()
       sampled_ina_current.append(ina_values['current'])
       sampled_ina_voltage.append(ina_values['voltage'])
       time.sleep(self.args.current_sampling_period_secs)
 
-    if not (self._adb_remote_test and not charging):
+    if not (self._remote_test and not charging):
       logging.info('Sampled battery current: %s', str(sampled_battery_current))
     logging.info('Sampled ina current: %s', str(sampled_ina_current))
     logging.info('Sampled ina voltage: %s', str(sampled_ina_voltage))
@@ -337,7 +337,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
             'INA voltage did not meet the expected one.')
       return
 
-    if self._adb_remote_test:
+    if self._remote_test:
       (_, sampled_ina_current, sampled_ina_voltage) = (
           self.SampleCurrentAndVoltage(self.args.discharge_duration_secs,
                                        charging=False))
@@ -424,9 +424,9 @@ class RaidenChargeBFTTest(unittest.TestCase):
         int(self._power.GetBatteryAttribute('current_max').strip()) == 0):
       raise factory.FactoryTestFailure('Battery current max is zero')
 
-    if self._adb_remote_test:
-      # Get adb target battery capacity and warn if almost full
-      capacity = self._power.GetBatteryCapacity()
+    if self._remote_test:
+      # Get remote target battery capacity and warn if almost full
+      capacity = self._power.GetChargePct()
       factory.console.info('Current battery capacity = %d %%', capacity)
       if capacity > 95:
         factory.console.warning('Current battery capacity is almost full. '
