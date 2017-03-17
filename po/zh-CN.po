@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-17 13:37+CST\n"
+"POT-Creation-Date: 2017-03-17 14:34+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2245,6 +2245,30 @@ msgstr "ESC"
 #: ../py/test/test_ui.py
 msgid "Space"
 msgstr "空白"
+
+#: ../py/test/test_ui.py
+msgid "Press Enter to pass."
+msgstr "通過請按ENTER鍵。"
+
+#: ../py/test/test_ui.py
+msgid "Press ESC to fail."
+msgstr "失敗請按ESC鍵。"
+
+#: ../py/test/test_ui.py
+msgid "passed"
+msgstr "良好"
+
+#: ../py/test/test_ui.py
+msgid "failed"
+msgstr "不良"
+
+#: ../py/test/test_ui.py
+msgid "active"
+msgstr "正在测"
+
+#: ../py/test/test_ui.py
+msgid "untested"
+msgstr "未测"
 
 #: ../py/goofy/js/diagnosis_tool.js
 msgid "State:"

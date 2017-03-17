@@ -72,7 +72,10 @@ def MakeLabel(en, zh=None, css_class=None):
   """Returns a label which will appear in the active language.
 
   For optional zh, if it is None or empty, the Chinese label will fallback to
-  use English version
+  use English version.
+
+  This function is deprecated and cros.factory.i18n.test_ui.MakeI18nLabel should
+  be used instead. This function is keep here for some old codes in overlay.
 
   Args:
     en: The English-language label.
@@ -100,14 +103,12 @@ def MakePassFailKeyLabel(pass_key=True, fail_key=True):
   """
   if not pass_key and not fail_key:
     return ''
-  en, zh = '', ''
+  label = ''
   if pass_key:
-    en += 'Press Enter to pass. '
-    zh += u'通過請按ENTER鍵  '
+    label = i18n.StringJoin(label, _('Press Enter to pass.'))
   if fail_key:
-    en += 'Press ESC to fail.'
-    zh += u'失敗請按ESC鍵'
-  return MakeLabel(en, zh)
+    label = i18n.StringJoin(label, _('Press ESC to fail.'))
+  return i18n_test_ui.MakeI18nLabel(label)
 
 
 def MakeStatusLabel(status):
@@ -116,14 +117,13 @@ def MakeStatusLabel(status):
   Args:
     status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
   """
-  STATUS_ZH = {
-      factory.TestState.PASSED: u'良好',
-      factory.TestState.FAILED: u'不良',
-      factory.TestState.ACTIVE: u'正在测',
-      factory.TestState.UNTESTED: u'未测'
+  STATUS_LABEL = {
+      factory.TestState.PASSED: _('passed'),
+      factory.TestState.FAILED: _('failed'),
+      factory.TestState.ACTIVE: _('active'),
+      factory.TestState.UNTESTED: _('untested')
   }
-  return MakeLabel(status.lower(),
-                   STATUS_ZH.get(status, status))
+  return i18n_test_ui.MakeI18nLabel(STATUS_LABEL.get(status, status))
 
 
 class UI(object):
