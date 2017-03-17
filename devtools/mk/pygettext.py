@@ -32,8 +32,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import token
-import tokenize
 
 
 POT_HEADER = r"""# SOME DESCRIPTIVE TITLE.
@@ -115,47 +113,28 @@ def WritePot(fp, messages, width):
     print >> fp, 'msgstr ""\n'
 
 
-class PyTokenEater(object):
+class PyAstVisitor(ast.NodeVisitor):
   def __init__(self, keywords):
+    super(PyAstVisitor, self).__init__()
     self.messages = []
-    self.state = self._Waiting
-    self.data = []
     self.keywords = keywords
 
-  def IsWhiteSpace(self, ttype):
-    return ttype in [tokenize.COMMENT, token.INDENT, token.DEDENT,
-                     token.NEWLINE, tokenize.NL]
+  def visit_Call(self, node):
+    # The function should either be the form of Keyword (ast.Name) or
+    # module.Keyword (ast.Attribute).
+    func_name = None
+    if isinstance(node.func, ast.Name):
+      func_name = node.func.id
+    elif isinstance(node.func, ast.Attribute):
+      func_name = node.func.attr
 
-  def __call__(self, ttype, tstring, stup, etup, line):
-    del etup, line  # Unused.
-    self.state(ttype, tstring, stup[0])
+    if func_name is not None and func_name in self.keywords and node.args:
+      first_arg = node.args[0]
+      if isinstance(first_arg, ast.Str):
+        self.messages.append((first_arg.lineno, first_arg.s))
 
-  def _Waiting(self, ttype, tstring, lineno):
-    del lineno  # Unused.
-    if ttype == tokenize.NAME and tstring in self.keywords:
-      self.state = self._KeywordSeen
-
-  def _KeywordSeen(self, ttype, tstring, lineno):
-    del lineno  # Unused.
-    if ttype == tokenize.OP and tstring == '(':
-      self.data = []
-      self.state = self._OpenSeen
-    elif not self.IsWhiteSpace(ttype):
-      self.state = self._Waiting
-
-  def _OpenSeen(self, ttype, tstring, lineno):
-    if ttype == tokenize.OP and (tstring in [')', ',']):
-      value = ''.join(self.data)
-      if value:
-        self.messages.append((lineno, value))
-      self.state = self._Waiting
-    elif ttype == tokenize.STRING:
-      self.data.append(ast.literal_eval(tstring))
-    elif ttype == tokenize.NAME and tstring in self.keywords:
-      # To support both Keyword1("str") and Keyword1(Keyword2("str")).
-      self.state = self._KeywordSeen
-    elif not self.IsWhiteSpace(ttype):
-      self.state = self._Waiting
+    # Continue visit in all case.
+    super(PyAstVisitor, self).generic_visit(node)
 
 
 VOID_ELEMENTS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
@@ -273,15 +252,18 @@ def main():
       print 'Working on %s' % filename
     ext = os.path.splitext(filename)[1]
     if ext == '.py':
-      eater = PyTokenEater(options.keywords)
+      visitor = PyAstVisitor(options.keywords)
+      with open(filename) as fp:
+        source = fp.read()
       try:
-        with open(filename) as fp:
-          tokenize.tokenize(fp.readline, eater)
-        messages.extend(((filename, lineno), msg)
-                        for lineno, msg in eater.messages)
-      except tokenize.TokenError as e:
+        node = ast.parse(source, filename)
+      except SyntaxError as e:
         print >> sys.stderr, '%s: %s, line %d, column %d' % (
-            e[0], filename, e[1][0], e[1][1])
+            e.text, filename, e.lineno, e.offset)
+        continue
+      visitor.visit(node)
+      messages.extend(((filename, lineno), msg)
+                      for lineno, msg in visitor.messages)
     elif ext == '.html':
       parser = HTMLMessageParser(options.html_classes)
       try:

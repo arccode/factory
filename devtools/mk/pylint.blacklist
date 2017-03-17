@@ -32,5 +32,4 @@ py/test/fixture/camera/grid_mapper.py
 py/minijack/%
 py/proto/%_pb2.py
 py/umpire/e2e_test/testdata/umpire/toolkits/device/%
-devtools/mk/pygettext.py
 doc/conf.py
