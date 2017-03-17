@@ -65,9 +65,10 @@ class Scan(unittest.TestCase):
       Arg('bft_save_barcode', bool,
           'True to trigger BFT barcode scanner and save in BFT.',
           default=False),
-      Arg('bft_get_barcode', bool,
+      Arg('bft_get_barcode', (bool, str),
           'True to get barcode from BFT. BFT stores barcode in advance so this '
-          'obtains barcode immidiately.', default=False),
+          'obtains barcode immidiately. If a string is given, will override '
+          'default path (`nuc_dut_serial_path`)', default=False),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None,
           optional=True),
       Arg('barcode_scan_interval_secs', (int, float),
@@ -258,7 +259,10 @@ class Scan(unittest.TestCase):
       process_utils.StartDaemonThread(target=self.BFTScanSaveBarcode)
     elif self.args.bft_get_barcode:
       logging.info('Getting barcode from BFT...')
-      barcode = self.fixture.ScanBarcode()
+      saved_barcode_path = None
+      if isinstance(self.args.bft_get_barcode, str):
+        saved_barcode_path = self.args.bft_get_barcode
+      barcode = self.fixture.ScanBarcode(saved_barcode_path)
       self.ui.RunJS(
           'window.test.sendTestEvent("scan_value", "%s")' % barcode)
 

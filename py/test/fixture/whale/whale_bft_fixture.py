@@ -154,22 +154,26 @@ class WhaleBFTFixture(bft.BFTFixture):
   def GetFixtureId(self):
     raise NotImplementedError
 
-  def ScanBarcode(self):
+  # pylint: disable=arguments-differ
+  def ScanBarcode(self, saved_barcode_path=None):
     _UNSPECIFIED_ERROR = 'unspecified %s in BFT params'
     if not self._nuc_host:
       raise bft.BFTFixtureException(_UNSPECIFIED_ERROR % 'nuc_host')
-    if not self._nuc_dut_serial_path:
+    if not self._nuc_dut_serial_path and not saved_barcode_path:
       raise bft.BFTFixtureException(_UNSPECIFIED_ERROR % 'nuc_dut_serial_path')
     if not self._testing_rsa_path:
       raise bft.BFTFixtureException(_UNSPECIFIED_ERROR % 'testing_rsa_path')
 
+    if not saved_barcode_path:
+      saved_barcode_path = self._nuc_dut_serial_path
+
     ssh_command_base = ssh_utils.BuildSSHCommand(
         identity_file=self._testing_rsa_path)
     mlbsn = process_utils.SpawnOutput(
-        ssh_command_base + [self._nuc_host, 'cat', self._nuc_dut_serial_path])
+        ssh_command_base + [self._nuc_host, 'cat', saved_barcode_path])
     if not mlbsn:
       raise bft.BFTFixtureException('Unable to read barcode from %s:%s' %
-                                    (self._nuc_host, self._nuc_dut_serial_path))
+                                    (self._nuc_host, saved_barcode_path))
     return mlbsn.strip()
 
   def IsLEDColor(self, color):
