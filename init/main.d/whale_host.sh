@@ -19,10 +19,10 @@ serve_whale_host() {
 
   # Start DP servers.
   "${FACTORY_BASE}/bin/dolphin_uno_server" --hdmi --checkhdmi --port=9997 \
-      --debug --uvc_port=2-1 --uvc_device_name=Left_Raiden \
+      --debug --uvc_port=2-4 --uvc_device_name=Left_Raiden \
       >"$DPSERVER_LEFT_LOG" 2>&1 &
   "${FACTORY_BASE}/bin/dolphin_uno_server" --hdmi --checkhdmi --port=9998 \
-      --debug --uvc_port=2-2 --uvc_device_name=Right_Raiden \
+      --debug --uvc_port=2-3 --uvc_device_name=Right_Raiden \
       >"$DPSERVER_RIGHT_LOG" 2>&1 &
 }
 
