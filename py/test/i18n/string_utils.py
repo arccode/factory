@@ -6,6 +6,8 @@
 
 from __future__ import print_function
 
+import cgi
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
 
@@ -56,3 +58,15 @@ def StringJoin(*strs):
       locale: ''.join(s.get(locale) for s in strs)
       for locale in translation.LOCALES
   }
+
+
+def HTMLEscape(text):
+  """HTML-escape all entries in a given translation dict.
+
+  Args:
+    text: The translation dict to be HTML-escaped.
+
+  Returns:
+    The new translation dict with all values HTML-escaped.
+  """
+  return {locale: cgi.escape(value) for locale, value in text.iteritems()}

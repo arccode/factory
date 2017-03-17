@@ -1016,7 +1016,7 @@ class GoofyRPC(object):
     ret = []
     for k, v in self.goofy.test_lists.iteritems():
       ret.append(
-          dict(id=k, name=v.label_en,
+          dict(id=k, name=v.label,
                enabled=(k == self.goofy.test_list.test_list_id)))
 
     # Sort by name.

@@ -188,7 +188,7 @@ cros.factory.UNKNOWN_LABEL = goog.html.SafeHtml.create(
 
 /**
  * An item in the test list.
- * @typedef {{path: string, label_en: string, label_zh: string,
+ * @typedef {{path: string, label: cros.factory.i18n.TranslationDict,
  *     kbd_shortcut: string, disable_abort: boolean,
  *     subtests: !Array<cros.factory.TestListEntry>,
  *     state: cros.factory.TestState}}
@@ -1578,9 +1578,7 @@ cros.factory.Goofy.prototype.startAutoTest = function() {
  */
 cros.factory.Goofy.prototype.makeMenuItem = function(
     text, text_leaf, count, test, handler) {
-  // TODO(pihsun): Properly i18n this after we change test metadata format.
-  var test_label = cros.factory.i18n.translated(
-      {'en-US': test.label_en, 'zh-CN': test.label_zh || test.label_en});
+  var test_label = cros.factory.i18n.translated(test.label);
 
   var item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode(
       test.subtests.length == 0 ? text_leaf : text,
@@ -2858,9 +2856,6 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
 /**
  * Adds a test node to the tree.
  *
- * Also normalizes the test node by adding label_zh if not present.  (The root
- * node will have neither label.)
- *
  * @param {goog.ui.tree.BaseNode} parent
  * @param {cros.factory.TestListEntry} test
  */
@@ -2869,10 +2864,7 @@ cros.factory.Goofy.prototype.addToNode = function(parent, test) {
   if (parent == null) {
     node = this.testTree;
   } else {
-    test.label_zh = test.label_zh || test.label_en;
-
-    var text = {'en-US': test.label_en, 'zh-CN': test.label_zh};
-    var html = cros.factory.i18n.i18nLabel(text);
+    var html = cros.factory.i18n.i18nLabel(test.label);
     if (test.kbd_shortcut) {
       html = goog.html.SafeHtml.concat(
           goog.html.SafeHtml.create(

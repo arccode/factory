@@ -25,6 +25,7 @@ from cros.factory.test import factory
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import html_translator
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -90,7 +91,7 @@ def MakeTestLabel(test):
   Args:
     test: A test object from the test list.
   """
-  return MakeLabel(Escape(test.label_en), Escape(test.label_zh))
+  return i18n_test_ui.MakeI18nLabel(i18n.HTMLEscape(test.label))
 
 
 def MakePassFailKeyLabel(pass_key=True, fail_key=True):

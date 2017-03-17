@@ -13,3 +13,4 @@ NoTranslation = translation.NoTranslation
 Translated = translation.Translated
 StringFormat = string_utils.StringFormat
 StringJoin = string_utils.StringJoin
+HTMLEscape = string_utils.HTMLEscape

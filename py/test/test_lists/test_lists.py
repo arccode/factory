@@ -131,8 +131,9 @@ def FactoryTest(*args, **kwargs):
   """Adds a factory test to the test list.
 
   Args:
-    label_en: An English label.
-    label_zh: A Chinese label.
+    label: A i18n label.
+    label_en: Deprecated. An English label.
+    label_zh: Deprecated. A Chinese label.
     pytest_name: The name of the pytest to run (relative to
       cros.factory.test.pytests).
     invocation_target: The function to execute to run the test
@@ -209,9 +210,7 @@ def AutomatedSequence(*args, **kwargs):
   return Add(factory.AutomatedSequence(*args, **kwargs))
 
 
-def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False,
-              dut_options=None, exclusive_resources=None):
-  # pylint: disable=redefined-builtin
+def TestGroup(*args, **kwargs):
   """Adds a test group to the current test list.
 
   This should always be used inside a ``with`` keyword, and tests
@@ -228,17 +227,15 @@ def TestGroup(id, label_en='', label_zh='', run_if=None, no_host=False,
 
   Args:
     id: The ID of the test (see :ref:`test-paths`).
-    label_en: The label of the group, in English.  This defaults
+    label: The i18n label of the group.
+    label_en: Deprecated. The label of the group, in English.  This defaults
       to the value of ``id`` if none is specified.
-    label_zh: The label of the group, in Chinese.  This defaults
+    label_zh: Deprecated. The label of the group, in Chinese.  This defaults
       to the value of ``label_en`` if none is specified.
     run_if: Condition under which the test should be run. Checks the docstring
       of FactoryTest.
   """
-  return Add(factory.TestGroup(id=id, label_en=label_en, label_zh=label_zh,
-                               run_if=run_if, no_host=no_host,
-                               dut_options=(dut_options or {}),
-                               exclusive_resources=exclusive_resources))
+  return Add(factory.TestGroup(*args, **kwargs))
 
 
 def OperatorTest(*args, **kwargs):

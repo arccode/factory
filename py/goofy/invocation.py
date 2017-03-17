@@ -251,8 +251,7 @@ class TestInvocation(object):
       self.update_metadata(path=test.path,
                            init_time=time.time(),
                            invocation=str(self.uuid),
-                           label_en=test.label_en,
-                           label_zh=test.label_zh)
+                           label=test.label)
 
     self.count = None
     self.log_path = os.path.join(self.output_dir, 'log')
@@ -272,8 +271,7 @@ class TestInvocation(object):
   def load_metadata(self):
     def _ValidateMetadata(metadata):
       REQUIRED_FIELDS = ['path', 'dargs', 'invocation',
-                         'label_en', 'label_zh',
-                         'init_time', 'start_time']
+                         'label', 'init_time', 'start_time']
       for field in REQUIRED_FIELDS:
         if field not in metadata:
           raise Exception('metadata missing field %s' % field)

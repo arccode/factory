@@ -25,6 +25,7 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
+from cros.factory.test import i18n
 from cros.factory.utils import type_utils
 
 
@@ -581,6 +582,7 @@ class FactoryTest(object):
   RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
 
   def __init__(self,
+               label=None,
                label_en='',
                label_zh='',
                has_automator=False,
@@ -615,9 +617,6 @@ class FactoryTest(object):
     See cros.factory.test.test_lists.FactoryTest for argument
     documentation.
     """
-    self.label_en = label_en
-    self.label_zh = (label_zh if isinstance(label_zh, unicode)
-                     else label_zh.decode('utf-8'))
     self.has_automator = has_automator
     self.pytest_name = pytest_name
     self.invocation_target = invocation_target
@@ -720,10 +719,13 @@ class FactoryTest(object):
     if disable_abort is not None:
       self.disable_abort = disable_abort
 
-    # Auto-assign label text.
-    if not self.label_en:
-      if self.id:
-        self.label_en = self.id
+    if label is None:
+      # Auto-assign label text.
+      label_en = label_en or self.id
+      label_zh = label_zh or label_en
+      label = {'en-US': label_en, 'zh-CN': label_zh}
+
+    self.label = i18n.Translated(label)
 
   @staticmethod
   def pytest_name_to_id(pytest_name):
@@ -741,7 +743,7 @@ class FactoryTest(object):
     """Returns the node as a struct suitable for JSONification."""
     ret = dict(
         (k, getattr(self, k))
-        for k in ['id', 'path', 'label_en', 'label_zh', 'dut_options',
+        for k in ['id', 'path', 'label', 'dut_options',
                   'kbd_shortcut', 'disable_abort', '_parallel'])
     ret['is_shutdown_step'] = isinstance(self, ShutdownStep)
     ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
@@ -1081,7 +1083,7 @@ class FactoryTestList(FactoryTest):
     self.test_list_id = test_list_id
     self.state_change_callback = None
     self.options = options
-    self.label_en = label_en or 'untitled'
+    self.label = label_en or 'untitled'
     self.source_path = None
 
     if finish_construction:
