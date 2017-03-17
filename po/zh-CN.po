@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-14 17:33+CST\n"
+"POT-Creation-Date: 2017-03-17 13:13+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2229,6 +2229,18 @@ msgstr "压力及元件测试"
 #: ../py/test/test_lists/generic_vswr.py
 msgid "Scan the serial number"
 msgstr "扫描序号"
+
+#: ../py/test/test_ui.py
+msgid "Enter"
+msgstr "ENTER"
+
+#: ../py/test/test_ui.py
+msgid "ESC"
+msgstr "ESC"
+
+#: ../py/test/test_ui.py
+msgid "Space"
+msgstr "空白"
 
 #: ../py/goofy/js/diagnosis_tool.js
 msgid "State:"

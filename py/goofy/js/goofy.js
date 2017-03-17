@@ -353,17 +353,15 @@ cros.factory.Test.prototype.unbindAllKeys = function() {
  * Add a virtualkey button.
  * @param {number} keyCode the keycode which handler should be triggered when
  *     clicking the button.
- * @param {string} en English label of the button.
- * @param {?string} zh Chinese label of the button, would use en if omitted.
+ * @param {cros.factory.i18n.TranslationDict} label label of the button.
  * @export
  */
-cros.factory.Test.prototype.addVirtualkey = function(keyCode, en, zh) {
+cros.factory.Test.prototype.addVirtualkey = function(keyCode, label) {
   var container = this.invocation.iframe.contentDocument.getElementById(
       'virtualkey-button-container');
   // container may not exist if test is using non-standard template.
   if (container) {
-    var text = {'en-US': en, 'zh-CN': zh || en};
-    var html = cros.factory.i18n.i18nLabel(text);
+    var html = cros.factory.i18n.i18nLabel(label);
     var button = goog.dom.createDom(
         'button', 'virtualkey-button', goog.dom.safeHtmlToNode(html));
     this.keyButtons[keyCode] = button;

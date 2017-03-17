@@ -22,6 +22,8 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test import event as test_event
 from cros.factory.test import factory
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
 from cros.factory.test.i18n import html_translator
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -36,9 +38,9 @@ ESCAPE_KEY = 27
 SPACE_KEY = 32
 
 _KEY_NAME_MAP = {
-    ENTER_KEY: ('Enter', 'ENTER'),
-    ESCAPE_KEY: ('ESC', 'ESC'),
-    SPACE_KEY: ('Space', '空白')
+    ENTER_KEY: _('Enter'),
+    ESCAPE_KEY: _('ESC'),
+    SPACE_KEY: _('Space')
 }
 
 
@@ -450,12 +452,12 @@ class UI(object):
     self.BindKeysJS(virtual_key_items, virtual_key=True)
 
   def _GetKeyName(self, key_code):
-    """Get English and Chinese names to be displayed for key_code.
+    """Get i18n names to be displayed for key_code.
 
     Args:
       key: An integer character code.
     """
-    return _KEY_NAME_MAP.get(key_code, (chr(key_code), chr(key_code)))
+    return _KEY_NAME_MAP.get(key_code, i18n.NoTranslation(chr(key_code)))
 
   def BindKeysJS(self, items, once=False, virtual_key=True):
     """Binds keys to JavaScript code.
@@ -483,9 +485,9 @@ class UI(object):
       js_list.append('window.test.bindKey(%d, function(event) { %s });' %
                      (key_code, js))
       if virtual_key:
-        en_key, zh_key = self._GetKeyName(key_code)
-        js_list.append('window.test.addVirtualkey(%d, "%s", "%s");' %
-                       (key_code, en_key, zh_key))
+        key_name = self._GetKeyName(key_code)
+        js_list.append('window.test.addVirtualkey(%d, %s);' %
+                       (key_code, json.dumps(key_name)))
     self.RunJS(''.join(js_list))
 
   def BindKeyJS(self, key, js, once=False, virtual_key=True):
