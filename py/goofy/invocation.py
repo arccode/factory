@@ -4,17 +4,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Classes and Methods related to invoking a pytest or autotest."""
+"""Classes and Methods related to invoking a test."""
 
 from __future__ import print_function
 
 import copy
 import datetime
-import fnmatch
 import logging
 import os
 import cPickle as pickle
-import pipes
 import pprint
 import re
 import signal
@@ -279,8 +277,6 @@ class TestInvocation(object):
       for field in REQUIRED_FIELDS:
         if field not in metadata:
           raise Exception('metadata missing field %s' % field)
-      if self.test.autotest_name and 'autotest_name' not in metadata:
-        raise Exception('metadata missing field autotest_name')
       if self.test.pytest_name and 'pytest_name' not in metadata:
         raise Exception('metadata missing field pytest_name')
       return True
@@ -309,7 +305,7 @@ class TestInvocation(object):
       self._aborted_reason = reason
       process = self._process
     if process:
-      process_utils.KillProcessTree(process, 'autotest')
+      process_utils.KillProcessTree(process, 'pytest')
     if self.thread:
       self.thread.join()
     with self._lock:
@@ -325,108 +321,7 @@ class TestInvocation(object):
     return 'Aborted' + (
         (': ' + self._aborted_reason) if self._aborted_reason else '')
 
-  def _invoke_autotest(self, resolved_dargs):
-    """Invokes an autotest test.
-
-    This method encapsulates all the magic necessary to run a single
-    autotest test using the 'autotest' command-line tool and get a
-    sane pass/fail status and error message out.  It may be better
-    to just write our own command-line wrapper for job.run_test
-    instead.
-
-    Returns:
-      tuple of status (TestState.PASSED or TestState.FAILED) and error message,
-      if any
-    """
-    assert self.test.autotest_name
-
-    test_tag = '%s_%s' % (self.test.path, self.count)
-    dargs = dict(resolved_dargs)
-    dargs.update({
-        'tag': test_tag,
-        'test_list_path': self.goofy.options.test_list
-    })
-
-    status = TestState.FAILED
-    error_msg = 'Unknown'
-
-    try:
-      # Symlink client.INFO to the log path.
-      os.symlink('results/default/debug/client.INFO',
-                 self.log_path)
-      tmp_dir = tempfile.mkdtemp(prefix='tmp', dir=self.output_dir)
-
-      control_file = os.path.join(tmp_dir, 'control')
-      result_file = os.path.join(tmp_dir, 'result')
-      args_file = os.path.join(tmp_dir, 'args')
-
-      with open(args_file, 'w') as f:
-        pickle.dump(dargs, f)
-
-      # Create a new control file to use to run the test
-      with open(control_file, 'w') as f:
-        print('import common, traceback, utils', file=f)
-        print('import cPickle as pickle', file=f)
-        print("msg = job.run_test_detail('%s', **pickle.load(open('%s')))" % (
-            self.test.autotest_name, args_file), file=f)
-
-        print('success = (msg == "GOOD")', file=f)
-        print(
-            'pickle.dump((success, msg if not success else None), '
-            "open('%s', 'w'), protocol=2)"
-            % result_file, file=f)
-
-      args = [os.path.join(os.path.dirname(paths.FACTORY_PATH),
-                           'autotest/bin/autotest'),
-              '--output_dir', self.output_dir,
-              control_file]
-
-      logging.debug('Test command line: %s', ' '.join(
-          [pipes.quote(arg) for arg in args]))
-
-      self.env_additions['CROS_PROC_TITLE'] = (
-          '%s.py (factory autotest %s)' % (
-              self.test.autotest_name, self.output_dir))
-
-      with self._lock:
-        with self.goofy.env.lock:
-          self._process = self.goofy.env.spawn_autotest(
-              self.test.autotest_name, args, self.env_additions,
-              result_file)
-
-      returncode = self._process.wait()
-      with self._lock:
-        if self._aborted:
-          error_msg = self._aborted_message()
-          return
-
-      if returncode:
-        # Only happens when there is an autotest-level problem (not when
-        # the test actually failed).
-        error_msg = 'autotest returned with code %d' % returncode
-        return
-
-      with open(result_file) as f:
-        try:
-          success, error_msg = pickle.load(f)
-        except:
-          logging.exception('Unable to retrieve autotest results')
-          error_msg = 'Unable to retrieve autotest results'
-          return
-
-      if success:
-        status = TestState.PASSED
-        error_msg = ''
-    except Exception:  # pylint: disable=W0703
-      logging.exception('Exception in autotest driver')
-      # Make sure Goofy reports the exception upon destruction
-      # (e.g., for testing)
-      self.goofy.record_exception(traceback.format_exception_only(
-          *sys.exc_info()[:2]))
-    finally:
-      self.clean_autotest_logs()
-      return status, error_msg  # pylint: disable=W0150
-
+  #TODO(yllin): Drop PytestPrespawner. (see http://crbug.com/677368#c5)
   def _invoke_pytest(self, resolved_dargs):
     """Invokes a pyunittest-based test."""
     assert self.test.pytest_name
@@ -553,36 +448,6 @@ class TestInvocation(object):
 
       return status, traceback.format_exc()
 
-  def clean_autotest_logs(self):
-    globs = self.goofy.test_list.options.preserve_autotest_results
-    if '*' in globs:
-      # Keep everything
-      return
-
-    deleted_count = 0
-    preserved_count = 0
-    for root, unused_dirs, files in os.walk(self.output_dir, topdown=False):
-      for f in files:
-        if f in ['log', 'metadata'] or any(fnmatch.fnmatch(f, g)
-                                           for g in globs):
-          # Keep it
-          preserved_count = 1
-        else:
-          try:
-            os.unlink(os.path.join(root, f))
-            deleted_count += 1
-          except:
-            logging.exception('Unable to remove %s',
-                              os.path.join(root, f))
-      try:
-        # Try to remove the directory (in case it's empty now)
-        os.rmdir(root)
-      except OSError:
-        # Not empty; that's OK
-        pass
-    logging.info('Preserved %d files matching %s and removed %d',
-                 preserved_count, globs, deleted_count)
-
   def _convert_log_args(self, log_args, status):
     """Converts log_args dictionary into a station.test_run event object.
 
@@ -609,8 +474,7 @@ class TestInvocation(object):
     log_args.pop('status', None)  # Discard the status
     log_args.pop('invocation')  # Discard the invocation
     test_name = log_args.pop('path')
-    test_type = log_args.pop('pytest_name',
-                             log_args.pop('autotest_name', None))
+    test_type = log_args.pop('pytest_name')
 
     # If the status is not in _status_conversion, assume it is already a Testlog
     # StationTestRun status.
@@ -705,8 +569,6 @@ class TestInvocation(object):
           dargs=resolved_dargs,
           serial_numbers=self.metadata['serial_numbers'],
           invocation=self.uuid)
-      if self.test.autotest_name:
-        log_args['autotest_name'] = self.metadata['autotest_name']
       if self.test.pytest_name:
         log_args['pytest_name'] = self.metadata['pytest_name']
 
@@ -736,8 +598,6 @@ class TestInvocation(object):
           dargs=resolved_dargs,
           serial_numbers=self.goofy.dut.info.GetAllSerialNumbers(),
           invocation=self.uuid)
-      if self.test.autotest_name:
-        log_args['autotest_name'] = self.test.autotest_name
       if self.test.pytest_name:
         log_args['pytest_name'] = self.test.pytest_name
 
@@ -770,17 +630,13 @@ class TestInvocation(object):
 
     try:
       if status is None:  # dargs are successfully resolved
-        if self.test.autotest_name:
-          # pylint: disable=unpacking-non-sequence
-          status, error_msg = self._invoke_autotest(resolved_dargs)
-        elif self.test.pytest_name:
+        if self.test.pytest_name:
           status, error_msg = self._invoke_pytest(resolved_dargs)
         elif self.test.invocation_target:
           status, error_msg = self._invoke_target()
         else:
           status = TestState.FAILED
-          error_msg = (
-              'No autotest_name, pytest_name, or invocation_target')
+          error_msg = 'No pytest_name, or invocation_target'
     finally:
       if error_msg:
         error_msg = DecodeUTF8(error_msg)

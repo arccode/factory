@@ -148,8 +148,6 @@ def main():
                       default=None, help='set shopfloor port')
   parser.add_argument('--board', '-b', dest='board',
                       help='board to use (default: auto-detect')
-  parser.add_argument('--autotest', dest='autotest', action='store_true',
-                      help='also rsync autotest directory')
   parser.add_argument('--norestart', dest='restart', action='store_false',
                       help="don't restart Goofy")
   parser.add_argument('--hwid', action='store_true',
@@ -205,13 +203,6 @@ def main():
   Spawn(['make', '--quiet'], cwd=paths.FACTORY_PATH,
         check_call=True, log=True)
   board = args.board or GetBoard(args.host)
-
-  if args.autotest:
-    SpawnRsyncToDUT(
-        ['-azC', '--exclude', 'tests'] +
-        [os.path.join(SRCROOT, 'src/third_party/autotest/files/client/'),
-         '%s:/usr/local/autotest/' % args.host],
-        check_call=True, log=True)
 
   # We need to rsync the public factory repo first to set up goofy symlink.
   # We need --force to remove the original goofy directory if it's not a

@@ -147,7 +147,6 @@ class Goofy(GoofyBase):
     self.log_watcher = None
     self.event_log = None
     self.testlog = None
-    self.autotest_prespawner = None
     self.plugin_controller = None
     self.pytest_prespawner = None
     self._ui_initialized = False
@@ -261,10 +260,6 @@ class Goofy(GoofyBase):
       if self.log_watcher.IsThreadStarted():
         self.log_watcher.StopWatchThread()
       self.log_watcher = None
-    if self.autotest_prespawner:
-      logging.info('Stopping autotest prespawner')
-      self.autotest_prespawner.stop()
-      self.autotest_prespawner = None
     if self.pytest_prespawner:
       logging.info('Stopping pytest prespawner')
       self.pytest_prespawner.stop()
@@ -1120,8 +1115,6 @@ class Goofy(GoofyBase):
       self.env = env
     elif sys_utils.InChroot():
       self.env = test_environment.FakeChrootEnvironment()
-      logging.warn(
-          'Using chroot environment: will not actually run autotests')
     elif self.options.ui == 'chrome':
       self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
@@ -1261,19 +1254,10 @@ class Goofy(GoofyBase):
     # Only after this point the Goofy backend is ready for UI connection.
     self.ready_for_ui_connection = True
 
-    # Create download path for autotest beforehand or autotests run at
-    # the same time might fail due to race condition.
-    if not sys_utils.InChroot():
-      file_utils.TryMakeDirs(os.path.join('/usr/local/autotest', 'tests',
-                                          'download'))
-
     def state_change_callback(test, test_state):
       self.event_client.post_event(
           Event(Event.Type.STATE_CHANGE, path=test.path, state=test_state))
     self.test_list.state_change_callback = state_change_callback
-
-    self.autotest_prespawner = prespawner.AutotestPrespawner()
-    self.autotest_prespawner.start()
 
     self.pytest_prespawner = prespawner.PytestPrespawner()
     self.pytest_prespawner.start()
@@ -1315,9 +1299,7 @@ class Goofy(GoofyBase):
     """Checks log rotation file presence/absence according to test_list option.
 
     Touch /var/lib/cleanup_logs_paused if test_list.options.disable_log_rotation
-    is True, delete it otherwise. This must be done in idle loop because
-    autotest client will touch /var/lib/cleanup_logs_paused each time it runs
-    an autotest.
+    is True, delete it otherwise.
     """
     if sys_utils.InChroot():
       return

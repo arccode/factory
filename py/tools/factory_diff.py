@@ -47,7 +47,6 @@ FACTORY_REPO_LIST = ['src/platform/factory', 'src/platform/chromeos-hwid']
 # Please add the repo if you think it is important in factory.
 OTHER_REPO_LIST = ['src/platform/touch_updater', 'src/platform/mosys',
                    'src/platform/factory_installer', 'src/platform/ec',
-                   'src/third_party/autotest/files',
                    'src/third_party/xf86-video-armsoc', 'src/third_party/adhd',
                    'src/third_party/chromiumos-overlay']
 

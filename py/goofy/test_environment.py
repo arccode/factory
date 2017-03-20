@@ -26,8 +26,7 @@ from cros.factory.utils.service_utils import Status
 
 
 class Environment(object):
-  """Abstract base class for external test operations, e.g., run an autotest,
-  shutdown, or reboot.
+  """Abstract base class for external test operations, e.g., shutdown or reboot.
 
   The Environment is assumed not to be thread-safe: callers must grab the lock
   before calling any methods.  This is primarily necessary because we mock out
@@ -58,17 +57,6 @@ class Environment(object):
 
     Returns:
       The Chrome subprocess (or None if none).
-    """
-    raise NotImplementedError()
-
-  def spawn_autotest(self, name, args, env_additions, result_file):
-    """Spawns a process to run an autotest.
-
-    Args:
-      name: Name of the autotest to spawn.
-      args: Command-line arguments.
-      env_additions: Additions to the environment.
-      result_file: Expected location of the result file.
     """
     raise NotImplementedError()
 
@@ -114,9 +102,6 @@ class DUTEnvironment(Environment):
     time.sleep(30)
     assert False, 'Never reached (should %s)' % operation
 
-  def spawn_autotest(self, name, args, env_additions, result_file):
-    return self.goofy.autotest_prespawner.spawn(args, env_additions)
-
   def override_chrome_start_pages(self):
     # TODO(hungte) Remove this workaround (mainly for crbug.com/431645).
     override_chrome_start_file = '/usr/local/factory/init/override_chrome_start'
@@ -151,25 +136,12 @@ class DUTEnvironment(Environment):
 
 
 class FakeChrootEnvironment(Environment):
-  """A chroot environment that doesn't actually shutdown or run autotests."""
+  """A chroot environment that doesn't actually shutdown."""
 
   def shutdown(self, operation):
     assert operation in ['reboot', 'full_reboot', 'halt']
     logging.warn('In chroot: skipping %s', operation)
     return False
-
-  def spawn_autotest(self, name, args, env_additions, result_file):
-    logging.warn('In chroot: skipping autotest %s', name)
-    # Mark it as passed with 75% probability, or failed with 25%
-    # probability (depending on a hash of the autotest name).
-    pseudo_random = ord(hashlib.sha1(name).digest()[0]) / 256.0
-    passed = pseudo_random > .25
-
-    with open(result_file, 'w') as out:
-      pickle.dump((passed, '' if passed else 'Simulated failure'), out)
-    # Start a process that will return with a true exit status in
-    # 2 seconds (just like a happy autotest).
-    return subprocess.Popen(['sleep', '2'])
 
   def launch_chrome(self):
     logging.warn('In chroot; not launching Chrome. '

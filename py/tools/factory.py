@@ -260,8 +260,6 @@ class DumpTestListCommand(Subcommand):
         if t.is_leaf():
           if t.pytest_name:
             module = t.pytest_name
-          elif t.autotest_name:
-            module = t.autotest_name
           elif t.invocation_target:
             module = repr(t.invocation_target)
           else:

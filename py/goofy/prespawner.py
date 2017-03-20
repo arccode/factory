@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 
-'''A library to prespawn autotest/pytest processes to minimize startup overhead.
+'''A library to prespawn pytest processes to minimize startup overhead.
 '''
 
 import cPickle as pickle
@@ -20,7 +20,6 @@ from cros.factory.utils.process_utils import Spawn
 
 
 NUM_PRESPAWNED_PROCESSES = 1
-AUTOTEST_PRESPAWNER_PATH = '/usr/local/autotest/bin/prespawner.py'
 PYTEST_PRESPAWNER_PATH = os.path.join(paths.FACTORY_PATH,
                                       'py/goofy/invocation.py')
 
@@ -48,13 +47,13 @@ class Prespawner(object):
 
     process = self.prespawned.get()
     # Write the environment and argv to the process's stdin; it will launch
-    # autotest once these are received.
+    # test once these are received.
     pickle.dump((new_env, args), process.stdin, protocol=2)
     process.stdin.close()
     return process
 
   def start(self):
-    '''Starts a thread to pre-spawn autotests.
+    '''Starts a thread to pre-spawn pytests.
     '''
     def run():
       while not self.terminated:
@@ -98,13 +97,7 @@ class Prespawner(object):
       self.thread = None
 
 
-class AutotestPrespawner(Prespawner):
-
-  def __init__(self):
-    super(AutotestPrespawner, self).__init__(
-        AUTOTEST_PRESPAWNER_PATH, ['--prespawn_autotest'], pipe_stdout=False)
-
-
+#TODO(yllin): Drop PytestPrespawner. (see http://crbug.com/677368#c5)
 class PytestPrespawner(Prespawner):
 
   def __init__(self):
