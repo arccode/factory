@@ -121,6 +121,7 @@ RESOURCE_PBZIP2_URL="https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.
 RESOURCE_PBZIP2_SHA1="f61e65a7616a3492815d18689c202d0685fe167d"
 RESOURCE_DOCKER_URL="https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz"
 RESOURCE_DOCKER_SHA1="a07cc33579a6e0074a53f148b26103723f81dab1"
+RESOURCE_CROS_DOCKER_URL="https://chromium.googlesource.com/chromiumos/platform/factory/+/master/setup/cros_docker.sh?format=TEXT"
 
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
@@ -853,19 +854,45 @@ do_save() {
   echo "Umpire docker image saved to ${PWD}/${DOCKER_IMAGE_FILENAME}"
 }
 
+do_update() {
+  local script_file="$(realpath "$0")"
+  local temp_file="$(mktemp)"
+  local prefix="sudo"
+  TEMP_OBJECTS=("${temp_file}" "${TEMP_OBJECTS[@]}")
+
+  curl -L --fail "${RESOURCE_CROS_DOCKER_URL}" | base64 -d >"${temp_file}"
+  [ -s "${temp_file}" ] || die "Failed to download deployment script."
+  chmod +x "${temp_file}"
+  "${temp_file}" version || die "Failed to verify deployment script."
+  echo "Successfully downloaded latest deployment script."
+  if [ -w "${script_file}" ]; then
+    # No need to run sudo.
+    prefix=
+  fi
+
+  # Can't keep running anything in the script.
+  exec ${prefix} mv -f "${temp_file}" "${script_file}"
+}
+
 usage() {
   cat << __EOF__
-Dome: the Factory Server Management Console deployment script
+Chrome OS Factory Server Deployment Script
 
 commands:
   $0 help
       Show this help message.
+
+  $0 update
+      Update deployment script itself.
 
   $0 pull
       Pull factory server docker images.
 
   $0 install
       Load factory server docker images.
+
+  $0 version
+      Print target factory server docker image file version.
 
   $0 run
       Create and start Dome containers.
@@ -920,6 +947,12 @@ main() {
       ;;
     save)
       do_save
+      ;;
+    update)
+      do_update
+      ;;
+    version)
+      echo "Chrome OS Factory Server: ${DOCKER_IMAGE_VERSION}"
       ;;
     umpire)
       shift
