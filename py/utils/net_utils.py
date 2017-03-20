@@ -381,7 +381,8 @@ def GetEthernetInterfaces(name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
   """Returns the interfaces for Ethernet.
 
   Args:
-    name_patterns: A list that contains all name patterns of ethernet interfaces.
+    name_patterns: A list that contains all name patterns of ethernet
+                   interfaces.
 
   Returns:
     A list like ['eth0', 'eth1'] if those Ethernet interfaces are available.
@@ -587,17 +588,41 @@ def GetDefaultGatewayInterface():
   """Return the default gateway interface.
 
   `route -n` has the output in the form of:
+  Kernel IP routing table
   Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
   0.0.0.0         192.168.0.1     0.0.0.0         UG    600    0        0 wlan0
 
-  Flag UG means the route is Up, and it's the Gateway. We can simply extract the
-  eighth column `Iface` to get the default gateway interface.
+  Flag UG means the route is Up, and it's the Gateway.
+
+  Returns:
+    The default gateway interface if it exists.
+
+  Raises:
+    ValueError if the output of `route -n` is unexpected.
   """
-  output = process_utils.CheckOutput('route -n | grep UG', shell=True)
-  if output:
-    return output.split()[7]
+  output = process_utils.CheckOutput(['route', '-n'])
+  lines = output.splitlines()
+
+  # Find the title line.
+  for line_idx, line in enumerate(lines):
+    try:
+      title = line.split()
+      flag_idx = title.index('Flags')
+      iface_idx = title.index('Iface')
+      dest_idx = title.index('Destination')
+      break
+    except ValueError:
+      pass
   else:
-    raise RuntimeError('no default gateway found')
+    raise ValueError('Output of `route -n` is unexpected.\n%s' % output)
+
+  for line in lines[line_idx + 1:]:
+    data = line.split()
+    if len(data) < max(flag_idx, iface_idx, dest_idx):
+      continue
+    if data[flag_idx] == 'UG' and data[dest_idx] == '0.0.0.0':
+      return data[iface_idx]
+  return None
 
 
 def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,

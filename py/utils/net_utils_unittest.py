@@ -17,6 +17,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import net_utils
+from cros.factory.utils import process_utils
 
 
 class TimeoutXMLRPCTest(unittest.TestCase):
@@ -157,6 +158,47 @@ class UtilityFunctionTest(unittest.TestCase):
         self.assertIn(func_under_test('/REAL_PATH', True), ['eth0', 'eth1'])
         with self.assertRaises(ValueError):
           func_under_test('/REAL_PATH', False)
+
+  def testGetDefaultGatewayInterface(self):
+    # Successful case.
+    mock_value = '''\
+    Kernel IP routing table
+    Destination     Gateway         Genmask        Flags Metric Ref    Use Iface
+    0.0.0.0         192.168.0.1     0.0.0.0        UG    600    0        0 wlan0
+    '''
+    with mock.patch.object(process_utils, 'CheckOutput',
+                           return_value=mock_value):
+      ret = net_utils.GetDefaultGatewayInterface()
+      self.assertEquals('wlan0', ret)
+
+    # Duplicate case. It should return the first interface.
+    mock_value = '''\
+    Kernel IP routing table
+    Destination     Gateway         Genmask        Flags Metric Ref    Use Iface
+    0.0.0.0         192.168.0.1     0.0.0.0        UG    600    0        0 wlan0
+    0.0.0.0         192.168.1.1     0.0.0.0        UG    600    0        0 eth0
+    '''
+    with mock.patch.object(process_utils, 'CheckOutput',
+                           return_value=mock_value):
+      ret = net_utils.GetDefaultGatewayInterface()
+      self.assertEquals('wlan0', ret)
+
+    # Empty case.
+    mock_value = '''\
+    Kernel IP routing table
+    Destination     Gateway         Genmask        Flags Metric Ref    Use Iface
+    '''
+    with mock.patch.object(process_utils, 'CheckOutput',
+                           return_value=mock_value):
+      ret = net_utils.GetDefaultGatewayInterface()
+      self.assertEquals(None, ret)
+
+    # Failure case.
+    mock_value = '''Wrong content.'''
+    with mock.patch.object(process_utils, 'CheckOutput',
+                           return_value=mock_value):
+      with self.assertRaises(ValueError):
+        ret = net_utils.GetDefaultGatewayInterface()
 
 
 if __name__ == '__main__':

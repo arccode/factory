@@ -246,12 +246,7 @@ def StartDHCPManager(interfaces=None,
                        service_utils.Status.START, 15)
 
   # Get bootp parameters from gateway DHCP server
-  def _GetDefaultGatewayInterface():
-    try:
-      return net_utils.GetDefaultGatewayInterface()
-    except RuntimeError:
-      return False
-  default_iface = sync_utils.WaitFor(_GetDefaultGatewayInterface, 10)
+  default_iface = sync_utils.WaitFor(net_utils.GetDefaultGatewayInterface, 10)
   bootp_params = network.GetDHCPBootParameters(default_iface)
 
   # arguments for DHCP manager
