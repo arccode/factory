@@ -977,12 +977,6 @@ class Goofy(GoofyBase):
     if self.test_list:
       self.test_list.state_instance = self.state_instance
 
-      # Prepare DUT link.
-      if self.test_list.options.dut_options:
-        logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
-                     self.test_list.options.dut_options)
-      device_utils.PrepareDUTLink(**self.test_list.options.dut_options)
-
     # Show all startup errors.
     if startup_errors:
       self.state_instance.set_shared_data(
@@ -1239,6 +1233,21 @@ class Goofy(GoofyBase):
     self.plugin_controller = plugin_controller.PluginController(
         self.test_list.options.plugin_config_name, self)
     self.plugin_controller.StartAllPlugins()
+
+    # TODO(akahuang): Move this part into a pytest.
+    # Prepare DUT link after the plugins start running, because the link might
+    # need the network connection.
+    if success:
+      try:
+        if self.test_list.options.dut_options:
+          logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
+                       self.test_list.options.dut_options)
+        device_utils.PrepareDUTLink(**self.test_list.options.dut_options)
+      except Exception:
+        logging.exception('Unable to prepare DUT link.')
+        self.state_instance.set_shared_data(
+            'startup_error',
+            'Unable to prepare DUT link.\n%s' % traceback.format_exc())
 
     # Set reference to the Instalog plugin.
     self.testlog.SetInstalogPlugin(

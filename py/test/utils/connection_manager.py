@@ -293,6 +293,7 @@ class ConnectionManager(object):
           self.override_blacklisted_devices is not None):
         cmd += ' BLACKLISTED_DEVICES="%s"' % (
             ','.join(self.override_blacklisted_devices))
+      logging.info('Call cmd: %s', cmd)
       subprocess.call(cmd, shell=True, stdout=self.fnull, stderr=self.fnull)
 
     # Configure the network manager to auto-connect wireless networks.
