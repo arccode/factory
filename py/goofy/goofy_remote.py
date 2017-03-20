@@ -225,8 +225,7 @@ def main():
       cwd=paths.FACTORY_PATH, check_call=True, log=True)
   SetHostBasedRole()
 
-  private_path = os.path.join(
-      build_board.GetChromeOSFactoryBoardPath(board), 'files')
+  private_path = build_board.GetChromeOSFactoryBoardPath(board)
   if private_path:
     SpawnRsyncToDUT(
         ['-azlKC', '--exclude', 'bundle'] +
