@@ -35,7 +35,7 @@ from cros.factory.test.test_lists import test_lists
 from cros.factory.utils.net_utils import WLAN
 
 def CreateTestLists():
-  with test_lists.TestList(id='stub_test_list', label_en='label') as test_list:
+  with test_lists.TestList(id='stub_test_list', label='label') as test_list:
     options = test_list.options
 
     # Load dummy plugin config as default.

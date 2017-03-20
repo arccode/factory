@@ -22,8 +22,7 @@ case for those exception cases.
 
     FactoryTest(
         id='ProbeComponent',
-        label_zh=u'侦测元件',
-        label_en=u'Probe Components',
+        label=_('Probe Components'),
         pytest_name='probe',
         dargs={
             'config_file': 'probe_board_smt.json',

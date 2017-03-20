@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,6 +8,7 @@
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
@@ -32,7 +31,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
   with TestGroup(id=group_id):
     OperatorTest(
         id='Start',
-        label_zh=u'开始',
+        label=_('Start'),
         has_automator=True,
         pytest_name='start',
         never_fails=True,
@@ -49,7 +48,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
     # and we have to use 'file' mode.
     OperatorTest(
         id='BadBlocks',
-        label_zh=u'毁损扇區',
+        label=_('Bad Blocks'),
         pytest_name='bad_blocks',
         # When run alone, this takes ~.5s/MiB (for four passes).  We'll do a
         # gigabyte, which takes about about 9 minutes.
@@ -62,11 +61,11 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
     # Runs stress tests in parallel.
     # TODO(bhthompson): add in video and audio tests
-    with FactoryTest(id='Stress', label_zh=u'集合压力测试', parallel=True):
+    with FactoryTest(id='Stress', label='Stress', parallel=True):
       # Runs WebGL operations to check graphic chip.
       OperatorTest(
           id='Graphics',
-          label_zh=u'图像',
+          label=_('Graphics'),
           pytest_name='webgl_aquarium',
           dargs=dict(duration_secs=args.run_in_stress_duration_secs))
 
@@ -76,7 +75,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # operation.
       FactoryTest(
           id='Camera',
-          label_zh=u'相机',
+          label=_('Camera'),
           pytest_name='camera',
           dargs=dict(
               do_capture_timeout=True,
@@ -87,8 +86,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # Runs StressAppTest to stresses CPU and checks memory and storage.
       FactoryTest(
           id='StressAppTest',
-          label_zh=u'压力测试',
-          pytest_name='stressapptest',
+          label=_('Stress App Test'),
           dargs=dict(
               seconds=args.run_in_stress_duration_secs,
               wait_secs=60))
@@ -98,7 +96,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # The test will fail and stop all tests.
       FactoryTest(
           id='Countdown',
-          label_zh=u'倒数计时',
+          label=_('Countdown'),
           pytest_name='countdown',
           dargs=dict(
               title=_('Run-In Tests'),
@@ -114,12 +112,12 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
     # Runs StressAppTest in parallel with suspend/resume so it will be easier
     # to detect bad memory.
-    with AutomatedSequence(id='DozingStress', label_zh=u'睡眠内存压力测试',
+    with AutomatedSequence(id='DozingStress', label=_('Dozing Stress'),
                            parallel=True):
       # if StressAppTest fails here, it's likely memory issue.
       FactoryTest(
           id='StressAppTest',
-          label_zh=u'压力测试',
+          label=_('Stress App Test'),
           pytest_name='stressapptest',
           dargs=dict(
               seconds=args.run_in_dozing_stress_duration_secs))
@@ -127,10 +125,8 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # Takes about 30 minutes for 60 iterations
       FactoryTest(
           id='SuspendResume',
-          label_en='SuspendResume (%d %s)' % (
-              args.run_in_resume_iterations,
-              'time' if args.run_in_resume_iterations == 1 else 'times'),
-          label_zh=u'睡眠、唤醒 (%s 次)' % args.run_in_resume_iterations,
+          label=i18n.StringFormat(_('SuspendResume ({count} times)'),
+                                  count=args.run_in_resume_iterations),
           pytest_name='suspend_resume',
           retries=1,  # workaround for premature awake failure
           dargs=dict(
@@ -144,7 +140,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # The test will fail and stop all tests.
       OperatorTest(
           id='Countdown',
-          label_zh=u'倒数计时',
+          label=_('Countdown'),
           pytest_name='countdown',
           dargs=dict(
               title=_('Dozing Stress Tests'),
@@ -161,16 +157,14 @@ def RunIn(args, group_suffix='FirmwareStress'):
     # Stress test for reboot.
     RebootStep(
         id='Reboot2',
-        label_en='Reboot (%s %s)' % (
-            args.run_in_reboot_seq_iterations,
-            'time' if args.run_in_reboot_seq_iterations == 1 else 'times'),
-        label_zh=u'重新开机 (%s 次)' % args.run_in_reboot_seq_iterations,
+        label=i18n.StringFormat(_('Reboot ({count} times)'),
+                                count=args.run_in_reboot_seq_iterations),
         iterations=args.run_in_reboot_seq_iterations)
 
     # Charges battery to args.run_in_blocking_charge_pct.
     OperatorTest(
         id='Charge',
-        label_zh=u'充电',
+        label=_('Charge'),
         pytest_name='blocking_charge',
         exclusive_resources=[plugin.RESOURCE.POWER],
         dargs=dict(
@@ -182,7 +176,7 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # leave RunIn.
       OperatorTest(
           id='Finish',
-          label_zh=u'结束',
+          label=_('Finish'),
           has_automator=True,
           pytest_name='message',
           exclusive_resources=[plugin.RESOURCE.POWER],

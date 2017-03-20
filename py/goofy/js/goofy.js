@@ -225,7 +225,8 @@ cros.factory.TestState;
 
 /**
  * Information about a test list.
- * @typedef {{id: string, name: string, enabled: boolean}}
+ * @typedef {{id: string, name: cros.factory.i18n.TranslationDict,
+ *     enabled: boolean}}
  */
 cros.factory.TestListInfo;
 
@@ -2679,7 +2680,8 @@ cros.factory.Goofy.prototype.makeSwitchTestListMenu = function() {
       new goog.ui.SubMenu(cros.factory.i18n.i18nLabelNode('Switch test list'));
   var _ = cros.factory.i18n.translation;
   goog.object.forEach(this.testLists, function(testList) {
-    var item = new goog.ui.MenuItem(testList.name);
+    var item =
+        new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode(testList.name));
     item.setSelectable(true);
     item.setSelected(testList.enabled);
     subMenu.addItem(item);

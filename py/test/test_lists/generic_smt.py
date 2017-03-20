@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -37,7 +35,7 @@ def SMTCharger(args, id_suffix=''):
   """
   OperatorTest(
       id='ChargerTypeDetection_' + id_suffix,
-      label_zh=u'充电器型号识别',
+      label=_('Charger Type Detection'),
       pytest_name='ac_power',
       # Only CHG12 charger will be identified as 'Mains'.
       dargs=dict(
@@ -49,7 +47,7 @@ def SMTCharger(args, id_suffix=''):
   # and discharging.
   charge_discharge_args = dict(
       id='ChargeDischargeCurrent_' + id_suffix,
-      label_zh=u'充放电电流測試',
+      label=_('Charge Discharge Current'),
       exclusive_resources=[plugin.RESOURCE.POWER],
       pytest_name='battery_current',
       retries=1,
@@ -69,7 +67,7 @@ def ManualExtDisplay(args):
   """
   OperatorTest(
       id='ExtDisplay',
-      label_zh=u'外接显示(人工測試)',
+      label=_('External Display (Manual Test)'),
       has_automator=True,
       pytest_name='ext_display',
       dargs=dict(
@@ -85,7 +83,7 @@ def ManualSMTStart(args):
   """
   OperatorTest(
       id='Start',
-      label_zh=u'开始',
+      label=_('Start'),
       has_automator=True,
       pytest_name='start',
       never_fails=True,
@@ -107,7 +105,7 @@ def ReadDeviceDataFromVPD(args):
   """
   OperatorTest(
       id='ReadDeviceDataFromVPD',
-      label_zh='从 VPD 读机器资料',
+      label=_('Read Device Data From VPD'),
       pytest_name='read_device_data_from_vpd')
 
 
@@ -122,13 +120,12 @@ def ScanMLB(args):
   dargs = dict(
       device_data_key='mlb_serial_number',
       event_log_key='mlb_serial_number',
-      label_en='MLB Serial Number',
-      label_zh='母板编号',
+      label=_('MLB Serial Number'),
       regexp=args.smt_mlb_serial_number_pattern)
 
   OperatorTest(
       id='ScanMLB',
-      label_zh=u'扫描母板编号',
+      label=_('Scan MLB'),
       has_automator=True,
       pytest_name='scan',
       run_if='!device_data.smt_complete',
@@ -145,7 +142,7 @@ def ScanOperatorID(args):
   """
   OperatorTest(
       id='ScanOperatorID',
-      label_zh=u'扫描作业员 ID',
+      label=_('Scan Operator ID'),
       has_automator=True,
       pytest_name='scan',
       run_if='!device_data.smt_complete',
@@ -181,16 +178,16 @@ def UpdateFirmware(args):
   if args.smt_update_firmware:
     with OperatorTest(
         id='FirmwareUpdate',
-        label_zh=u'韧体更新'):
+        label=_('Firmware Update')):
 
       OperatorTest(
           id='FirmwareUpdate',
-          label_zh=u'韧体更新',
+          label=_('Firmware Update'),
           pytest_name='update_firmware')
 
       RebootStep(
           id='RebootAfterFirmwareUpdate',
-          label_zh=u'重新开机',
+          label=_('Reboot'),
           iterations=1)
 
 
@@ -210,7 +207,7 @@ def SMTShopFloor2(args):
     # SMT tests. However, this DUT has not uploaded the report yet.
     OperatorTest(
         id='UpdateDeviceData',
-        label_zh='更新机器资料',
+        label=_('Update Device Data'),
         pytest_name='update_device_data',
         dargs=dict(data=dict(smt_complete=True)))
 
@@ -218,7 +215,7 @@ def SMTShopFloor2(args):
     # retained upon re-imaging.
     OperatorTest(
         id='WriteDeviceDataToVPD',
-        label_zh='机器资料写入到 VPD',
+        label=_('Write Device Data To VPD'),
         pytest_name='write_device_data_to_vpd',
         require_run=Passed(
             args.smt_test_group_id + '.ShopFloor2.UpdateDeviceData'),
@@ -255,7 +252,7 @@ def VerifyComponents(args):
   """
   FactoryTest(
       id='VerifyComponents',
-      label_zh=u'验证元件',
+      label=_('Verify Components'),
       pytest_name='verify_components',
       dargs=dict(
           component_list=[
@@ -276,7 +273,7 @@ def SMTCountdown(args):
   """
   OperatorTest(
       id='Countdown',
-      label_zh=u'倒数计时',
+      label=_('Countdown'),
       pytest_name='countdown',
       dargs=dict(
           duration_secs=(args.smt_stress_duration_secs +
@@ -292,7 +289,7 @@ def SMTStress(args):
   """
   FactoryTest(
       id='StressAppTest',
-      label_zh=u'压力测试',
+      label=_('Stress App Test'),
       pytest_name='stressapptest',
       exclusive_resources=[plugin.RESOURCE.CPU],
       dargs=dict(
@@ -307,7 +304,7 @@ def BasicWifi(args):
   """
   FactoryTest(
       id='Wifi',
-      label_zh=u'无线网路',
+      label=_('Wifi'),
       pytest_name='wireless',
       retries=args.smt_retries_basic_wifi)
 
@@ -320,7 +317,7 @@ def I2CProbeThermalSensor(args):
   """
   FactoryTest(
       id='ThermalSensor',
-      label_zh=u'温度感应器',
+      label=_('Thermal Sensor'),
       pytest_name='i2c_probe',
       dargs=dict(
           bus=7,
@@ -335,7 +332,7 @@ def I2CProbeTouchpad(args):
   """
   FactoryTest(
       id='Touchpad',
-      label_zh=u'触控板',
+      label=_('Touchpad'),
       pytest_name='i2c_probe',
       dargs=dict(
           bus=1,
@@ -368,7 +365,7 @@ def CameraProbe(args, retries=None):
   """
   FactoryTest(
       id='CameraProbe',
-      label_zh=u'相机',
+      label=_('Probe Camera'),
       pytest_name='usb_probe',
       retries=(retries if retries is not None
                else args.smt_retries_camera_probe),
@@ -383,7 +380,7 @@ def SysfsBattery(args):
   """
   FactoryTest(
       id='Battery',
-      label_zh=u'电池',
+      label=_('Battery'),
       pytest_name='sysfs_battery')
 
 
@@ -405,11 +402,8 @@ def SMT3G(args, retries=None):
       retries=(retries if retries is not None
                else args.smt_retries_3g),
       dargs=dict(
-          title_en='3G Probing',
-          title_zh=u'3G測試',
-          items=[('3G Probing', u'3G測試',
-                  'cat /sys/class/net/wwan0/address',
-                  False)]))
+          title=_('3G Probing'),
+          items=[(_('3G Probing'), 'cat /sys/class/net/wwan0/address', False)]))
 
 
 def SMTThermalLoad(args, retries=None):
@@ -423,7 +417,7 @@ def SMTThermalLoad(args, retries=None):
   """
   FactoryTest(
       id='ThermalLoad',
-      label_zh=u'温度压力',
+      label=_('Thermal Load'),
       pytest_name='thermal_load',
       retries=(retries if retries is not None
                else args.smt_retries_thermal_load),
@@ -440,7 +434,7 @@ def SMTComponents(args):
   Args:
     args: A TestListArgs object.
   """
-  with FactoryTest(id='Components', label_zh=u'元件', parallel=True):
+  with FactoryTest(id='Components', label=_('Components'), parallel=True):
     SMTCountdown(args)
     SMTStress(args)
     BasicWifi(args)
@@ -462,7 +456,7 @@ def SMTLed(args):
   """
   OperatorTest(
       id='LED',
-      label_zh=u'LED',
+      label=_('LED'),
       has_automator=True,
       pytest_name='led')
 
@@ -475,7 +469,7 @@ def Keyboard(args):
   """
   OperatorTest(
       id='Keyboard',
-      label_zh=u'键盘',
+      label=_('Keyboard'),
       has_automator=True,
       pytest_name='keyboard',
       dargs=dict(
@@ -495,7 +489,7 @@ def SMTAudioJack(args, retries=None):
   """
   OperatorTest(
       id='AudioJack',
-      label_zh=u'音源孔',
+      label=_('Audio Jack'),
       has_automator=True,
       pytest_name='audio_loop',
       dargs={'require_dongle': True,
@@ -518,7 +512,7 @@ def SpeakerDMic(args):
   """
   OperatorTest(
       id='SpeakerDMic',
-      label_zh=u'喇叭/麦克风',
+      label=_('Speaker/Microphone'),
       has_automator=True,
       pytest_name='audio_loop',
       dargs={'require_dongle': False,
@@ -541,7 +535,7 @@ def LidSwitch(args, retries=3):
   """
   OperatorTest(
       id='LidSwitch',
-      label_zh=u'上盖开关',
+      label=_('Lid Switch'),
       has_automator=True,
       pytest_name='lid_switch',
       retries=retries)
@@ -555,7 +549,7 @@ def MicroUSBPerformance(args):
   """
   OperatorTest(
       id='MicroUSBPerformance',
-      label_zh=u'微型 USB 效能测试',
+      label=_('Micro USB Performance'),
       has_automator=True,
       pytest_name='removable_storage',
       retries=1,
@@ -576,7 +570,7 @@ def BadBlocks(args):
   """
   FactoryTest(
       id='BadBlocks',
-      label_zh=u'毁损扇區',
+      label=_('Bad Blocks'),
       pytest_name='bad_blocks',
       dargs=dict(max_bytes=30 * 1024 * 1024))
 
@@ -588,7 +582,7 @@ def PartitionTable(args):
     args: A TestListArgs object.
   """
   FactoryTest(id='PartitionTable',
-              label_zh=u'分区表',
+              label=_('Partition Table'),
               pytest_name='partition_table')
 
 
@@ -602,7 +596,7 @@ def VerifyRootPartition(args):
   """
   FactoryTest(
       id='VerifyRootPartition',
-      label_zh=u'验证根磁區',
+      label=_('Verify Root Partition'),
       pytest_name='verify_root_partition',
       dargs=dict(max_bytes=1024 * 1024))
 
@@ -615,15 +609,14 @@ def SMTFinish(args):
   """
   OperatorTest(
       id='Finish',
-      label_zh=u'结束',
+      label=_('Finish'),
       has_automator=True,
       pytest_name='message',
       require_run=(Passed(args.smt_test_group_id + '.BarrierSMT')
                    if args.smt_require_run_for_finish else None),
       never_fails=True,
       dargs=dict(
-          html_en='SMT tests finished, press SPACE to shutdown.\n',
-          html_zh='SMT 测试结束，按下空白键关机\n'))
+          html=_('SMT tests finished, press SPACE to shutdown.\n')))
 
 
 def ParallelTestGroup(args):
@@ -632,7 +625,8 @@ def ParallelTestGroup(args):
   Args:
     args: A TestListArgs object.
   """
-  with FactoryTest(id='ParallelTestGroup', label_zh=u'平行测试群组1',
+  with FactoryTest(id='ParallelTestGroup',
+                   label=_('Parallel Test Group 1'),
                    parallel=True):
     SMTCharger(args)
     VerifyComponents(args)
@@ -650,18 +644,18 @@ def TPM(args):
   """
   # Checks the endorsement key in TPM. This might not be enabled in earlier
   # build.
-  with TestGroup(id='TPMVerifyEK', label_zh=u'TPM 证书'):
+  with TestGroup(id='TPMVerifyEK', label=_('TPM Verify EK')):
     FactoryTest(
         id='RequestClearTPM',
-        label_zh=u'请求清除 TPM',
+        label=_('Request Clear TPM'),
         pytest_name='clear_tpm_owner_request')
     RebootStep(
         id='RebootToClearTPM',
-        label_zh=u'重新开机',
+        label=_('Reboot To Clear TPM'),
         iterations=1)
     FactoryTest(
         id='VerifyEK',
-        label_zh=u'TPM 证书',
+        label=_('Verify EK'),
         pytest_name='tpm_verify_ek')
 
 
@@ -695,7 +689,7 @@ def ManualSMTTests(args):
     SMTShopFloor2(args)
   args.Barrier('SMT')
   SMTFinish(args)
-  HaltStep(id='Shutdown', label_zh=u'关机', has_automator=True)
+  HaltStep(id='Shutdown', label=_('Shutdown'), has_automator=True)
 
 
 def SMT(args):

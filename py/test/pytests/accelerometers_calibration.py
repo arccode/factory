@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -46,7 +44,7 @@ Usage examples::
 
     OperatorTest(
         id='AccelerometersCalibration',
-        label_zh=u'加速度计校准',
+        label=_('Accelerometers Calibration'),
         pytest_name='accelerometers_calibration',
         dargs={'orientation': {
                    'in_accel_x': 0,

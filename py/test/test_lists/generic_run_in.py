@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,6 +12,7 @@ from __future__ import print_function
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
@@ -37,7 +36,7 @@ def RunIn(args, group_suffix=''):
   with TestGroup(id=group_id):
     OperatorTest(
         id='Start',
-        label_zh=u'开始',
+        label=_('Start'),
         has_automator=True,
         pytest_name='start',
         never_fails=True,
@@ -52,7 +51,7 @@ def RunIn(args, group_suffix=''):
     # the designated type, this test is not necessary.
     OperatorTest(
         id='ChargerTypeDetection',
-        label_zh=u'充电器型号识别',
+        label=_('Charger Type Detection'),
         pytest_name='ac_power',
         # Only CHG12 charger will be identified as 'Mains'.
         dargs=dict(
@@ -70,21 +69,20 @@ def RunIn(args, group_suffix=''):
       # and Run-In can be several monthgs. In this station we can let DUT do
       # image re-install using netboot.
       if args.run_in_update_image_version:
-        with OperatorTest(
-            id='ImageUpdate',
-            label_zh=u'映像更新'):
+        with OperatorTest(id='ImageUpdate', label=_('Image Update')):
           args.SyncShopFloor(update_without_prompt=True)
 
           # Writes mlb_serial_number and smt_complete into VPD
           # (Vital Product Data) so it will be availabe after re-imaging.
           OperatorTest(
               id='WriteDeviceDataToVPD',
-              label_zh='机器资料写入到 VPD',
+              label=_('Write Device Data To VPD'),
               pytest_name='write_device_data_to_vpd',
               dargs=dict(
                   device_data_keys=[
                       ('factory.device_data.', 'mlb_serial_number'),
-                      ('factory.device_data.', 'smt_complete')],
+                      ('factory.device_data.', 'smt_complete')
+                  ],
                   vpd_section='rw'))
 
           # Checks image version is not lower than certain version. If it is,
@@ -92,7 +90,7 @@ def RunIn(args, group_suffix=''):
           # Note that VPD will be retained using flash_netboot tool.
           OperatorTest(
               id='CheckVersion',
-              label_zh=u'检查版本',
+              label=_('Check Version'),
               pytest_name='check_image_version',
               dargs=dict(
                   min_version=args.run_in_update_image_version,
@@ -100,18 +98,16 @@ def RunIn(args, group_suffix=''):
                   require_space=False))
 
       if args.run_in_update_firmware:
-        with OperatorTest(
-            id='FirmwareUpdate',
-            label_zh=u'韧体更新'):
+        with OperatorTest(id='FirmwareUpdate', label=_('Firmware Update')):
 
           OperatorTest(
               id='FirmwareUpdate',
-              label_zh=u'韧体更新',
+              label=_('Firmware Update'),
               pytest_name='update_firmware')
 
           RebootStep(
               id='RebootAfterFirmwareUpdate',
-              label_zh=u'重新开机',
+              label=_('Reboot'),
               iterations=1)
 
     if args.factory_environment:
@@ -130,7 +126,7 @@ def RunIn(args, group_suffix=''):
         # hooks.
         OperatorTest(
             id='ReadDeviceDataFromVPD',
-            label_zh='从 VPD 读机器资料',
+            label=_('Read Device Data From VPD'),
             pytest_name='read_device_data_from_vpd')
 
         # Note that if there is any device info that is needed from shopfloor,
@@ -191,7 +187,7 @@ def RunIn(args, group_suffix=''):
           # shopfloor server using MLB serial number as key.
           OperatorTest(
               id='Scan',
-              label_zh=u'扫描机器编号',
+              label=_('Scan'),
               has_automator=True,
               pytest_name='scan',
               dargs=dict(
@@ -202,22 +198,18 @@ def RunIn(args, group_suffix=''):
         else:
           OperatorTest(
               id='SetDeviceInfo',
-              label_en='Set DeviceInfo',
-              label_zh='设定机器资讯',
+              label=_('Set Device Info'),
               pytest_name='select_components',
-              dargs=dict(
-                  comps=dict(
-                      has_cellular=('component.has_cellular',
-                                    ['true', 'false']),
-                      has_lte=('component.has_lte', ['true', 'false']),
-                      color=('color',
-                             ['red', 'green', 'blue', 'yellow', 'black']),
-                      line=('line', ['A', 'B', 'C', 'D']),
-                      region=('region', ['us', 'gb']))))
+              dargs=dict(comps=dict(
+                  has_cellular=('component.has_cellular', ['true', 'false']),
+                  has_lte=('component.has_lte', ['true', 'false']),
+                  color=('color', ['red', 'green', 'blue', 'yellow', 'black']),
+                  line=('line', ['A', 'B', 'C', 'D']),
+                  region=('region', ['us', 'gb']))))
 
           OperatorTest(
               id='ScanSerialNumber',
-              label_zh=u'扫描机器编号',
+              label=_('Scan Serial Number'),
               pytest_name='scan',
               dargs=dict(
                   device_data_key='serial_number',
@@ -227,7 +219,7 @@ def RunIn(args, group_suffix=''):
 
           OperatorTest(
               id='ScanGoldenICCID',
-              label_zh=u'扫描 GoldenICCID',
+              label=_('Scan GoldenICCID'),
               pytest_name='scan',
               run_if=args.HasLTE,
               dargs=dict(
@@ -237,7 +229,7 @@ def RunIn(args, group_suffix=''):
 
           OperatorTest(
               id='ScanGoldenIMEI',
-              label_zh=u'扫描 GoldenIMEI',
+              label=_('Scan GoldenIMEI'),
               pytest_name='scan',
               run_if=args.HasLTE,
               dargs=dict(
@@ -247,19 +239,17 @@ def RunIn(args, group_suffix=''):
 
           OperatorTest(
               id='ScanGbindAttribute',
-              label_zh=u'扫描 gbind_attribute',
+              label=_('Scan Gbind Attribute'),
               pytest_name='scan',
               dargs=dict(
-                  device_data_key='gbind_attribute',
-                  label=_('Group code')))
+                  device_data_key='gbind_attribute', label=_('Group code')))
 
           OperatorTest(
               id='ScanUbindAttribute',
-              label_zh=u'扫描 ubind_attribute',
+              label=_('Scan Ubind Attribute'),
               pytest_name='scan',
               dargs=dict(
-                  device_data_key='ubind_attribute',
-                  label=_('User code')))
+                  device_data_key='ubind_attribute', label=_('User code')))
 
         # For LTE model only. Note that different factory can have different
         # testing sequences of LTE model. The tests set in this test list are
@@ -268,7 +258,7 @@ def RunIn(args, group_suffix=''):
         # This test checks SIM card tray detection pin is already high.
         OperatorTest(
             id='CheckLTESIMCardTray',
-            label_zh=u'检查 LTE SIM 卡盘',
+            label=_('Check LTE SIM Card Tray'),
             pytest_name='probe_sim_card_tray',
             dargs=dict(tray_already_present=True),
             run_if=args.HasLTE)
@@ -280,7 +270,7 @@ def RunIn(args, group_suffix=''):
         # to golden IMEI and golden ICCID fetched from shopfloor.
         OperatorTest(
             id='ProbeLTEIMEIICCID',
-            label_zh=u'提取 LTE IMEI ICCID',
+            label=_('Probe LTE IMEI ICCID'),
             pytest_name='probe_cellular_info',
             run_if=args.HasLTE,
             dargs=dict(
@@ -293,7 +283,7 @@ def RunIn(args, group_suffix=''):
         # 'serial_number', 'region', 'ubind_attribute', 'gbind_attribute'.
         OperatorTest(
             id='VPD',
-            label_zh=u'产品资讯 (VPD)',
+            label=_('VPD'),
             pytest_name='vpd',
             dargs=dict(
                 use_shopfloor_device_data=True,
@@ -305,7 +295,7 @@ def RunIn(args, group_suffix=''):
         # mode.
         FactoryTest(
             id='SwitchToWCDMAFirmware',
-            label_zh=u'切换数据机至 WCDMA 韧体',
+            label=_('Switch To WCDMA Firmware'),
             pytest_name='cellular_switch_firmware',
             run_if=args.HasCellular,
             dargs=dict(target='Generic UMTS'))
@@ -315,8 +305,7 @@ def RunIn(args, group_suffix=''):
         # scan so unit gets serial number in their device_data.
         if args.run_in_control_run_update_image_version:
           with OperatorTest(
-              id='ImageUpdateControlRun',
-              label_zh=u'映像更新 ControlRun'):
+              id='ImageUpdateControlRun', label=_('Image Update ControlRun')):
 
             # Only availabe on DUT which satifies
             # args.SelectedForControlRunImageUpdate.
@@ -324,13 +313,14 @@ def RunIn(args, group_suffix=''):
             # availabe after re-imaging.
             OperatorTest(
                 id='WriteDeviceDataToVPD',
-                label_zh='机器资料写入到 VPD',
+                label=_('Write Device Data To VPD'),
                 pytest_name='write_device_data_to_vpd',
                 run_if=args.SelectedForControlRunImageUpdate,
                 dargs=dict(
                     device_data_keys=[
                         ('factory.device_data.', 'mlb_serial_number'),
-                        ('factory.device_data.', 'smt_complete')],
+                        ('factory.device_data.', 'smt_complete')
+                    ],
                     vpd_section='rw'))
 
             # Checks image version is not lower than certain version. If it is,
@@ -340,7 +330,7 @@ def RunIn(args, group_suffix=''):
             # Note that VPD will be retained using flash_netboot tool.
             OperatorTest(
                 id='CheckVersion',
-                label_zh=u'检查版本',
+                label=_('Check Version'),
                 pytest_name='check_image_version',
                 run_if=args.SelectedForControlRunImageUpdate,
                 dargs=dict(
@@ -355,21 +345,19 @@ def RunIn(args, group_suffix=''):
         if args.run_in_control_run_firmware_update:
           OperatorTest(
               id='FirmwareUpdate',
-              label_zh=u'韧体更新',
+              label=_('Firmware Update'),
               pytest_name='update_firmware',
               run_if=args.SelectedForControlRunFirmwareUpdate)
 
           RebootStep(
               id='RebootAfterFirmwareUpdate',
-              label_zh=u'重新开机',
+              label=_('Reboot'),
               iterations=1,
               run_if=args.SelectedForControlRunFirmwareUpdate)
 
         # Write HWID to check components are correct.
         OperatorTest(
-            id='WriteHWID',
-            label_zh=u'硬体代号',
-            pytest_name='hwid_v3')
+            id='WriteHWID', label=_('Write HWID'), pytest_name='hwid_v3')
 
         # Machine will be on carousel after this point.
         # Prompt to continue.
@@ -380,7 +368,7 @@ def RunIn(args, group_suffix=''):
     # After putting on carousel, we need to make sure charger is working.
     OperatorTest(
         id='ChargerTypeDetectionCarousel',
-        label_zh=u'充电器型号识别',
+        label=_('Charger Type Detection'),
         pytest_name='ac_power',
         # Only CHG12 charger will be identified as 'Mains'.
         dargs=dict(
@@ -396,7 +384,7 @@ def RunIn(args, group_suffix=''):
     # For 3G model only. There should be no sim card tray at this point.
     OperatorTest(
         id='ProbeSIMCardTrayNotPresent',
-        label_zh=u'SIM 卡卡盘不存在',
+        label=_('Probe SIM Card Tray Not Present'),
         pytest_name='probe_sim_card_tray',
         dargs=dict(tray_already_present=False),
         run_if=args.HasCellular)
@@ -408,7 +396,7 @@ def RunIn(args, group_suffix=''):
     # Checks hardware write protect is on.
     FactoryTest(
         id='WriteProtectSwitch',
-        label_zh=u'硬体写入保护开关',
+        label=_('Write Protect Switch'),
         pytest_name='write_protect_switch')
 
     args.Barrier('RunInWriteProtectSwitch',
@@ -419,11 +407,9 @@ def RunIn(args, group_suffix=''):
     # test.
     FactoryTest(
         id='ThermalSensor',
-        label_zh=u'温度感应器',
+        label=_('Thermal Sensor'),
         pytest_name='i2c_probe',
-        dargs=dict(
-            bus=7,
-            addr=0x4c))
+        dargs=dict(bus=7, addr=0x4c))
 
     args.Barrier('RunInThermalSensor',
                  pass_without_prompt=True,
@@ -433,7 +419,7 @@ def RunIn(args, group_suffix=''):
     if args.fully_imaged:
       OperatorTest(
           id='VerifyRootPartition',
-          label_zh=u'验证根磁區',
+          label=_('Verify Root Partition'),
           pytest_name='verify_root_partition')
 
       args.Barrier('RunInVerifyRootPartition',
@@ -446,7 +432,7 @@ def RunIn(args, group_suffix=''):
     # and we have to use 'file' mode.
     OperatorTest(
         id='BadBlocks',
-        label_zh=u'毁损扇區',
+        label=_('Bad Blocks'),
         pytest_name='bad_blocks',
         # When run alone, this takes ~.5s/MiB (for four passes).  We'll do a
         # gigabyte, which takes about about 9 minutes.
@@ -454,8 +440,8 @@ def RunIn(args, group_suffix=''):
             timeout_secs=120,
             log_threshold_secs=10,
             max_bytes=1024 * 1024 * 1024,
-            mode=('stateful_partition_free_space' if args.fully_imaged
-                  else 'file')))
+            mode=('stateful_partition_free_space'
+                  if args.fully_imaged else 'file')))
 
     args.Barrier('RunInBadBlocks',
                  pass_without_prompt=True,
@@ -465,18 +451,15 @@ def RunIn(args, group_suffix=''):
     # might not want to add this step if we are trying to find what might
     # be wrong if machine is not in a fresh state.
     RebootStep(
-        id='RebootBeforeStress',
-        label_zh=u'重新开机',
-        iterations=1)
+        id='RebootBeforeStress', label=_('Reboot'), iterations=1)
 
     # Runs stress tests in parallel.
     # TODO(bhthompson): add in video and audio tests
-    with AutomatedSequence(id='Stress', label_zh=u'集合压力测试',
-                           parallel=True):
+    with AutomatedSequence(id='Stress', label=_('Stress'), parallel=True):
       # Runs WebGL operations to check graphic chip.
       OperatorTest(
           id='Graphics',
-          label_zh=u'图像',
+          label=_('Graphics'),
           pytest_name='webgl_aquarium',
           dargs=dict(duration_secs=args.run_in_stress_duration_secs))
 
@@ -486,7 +469,7 @@ def RunIn(args, group_suffix=''):
       # operation.
       FactoryTest(
           id='Camera',
-          label_zh=u'相机',
+          label=_('Camera'),
           pytest_name='camera',
           dargs=dict(
               do_capture_timeout=True,
@@ -497,7 +480,7 @@ def RunIn(args, group_suffix=''):
       # Runs StressAppTest to stresses CPU and checks memory and storage.
       FactoryTest(
           id='StressAppTest',
-          label_zh=u'压力测试',
+          label=_('Stress App Test'),
           pytest_name='stressapptest',
           dargs=dict(
               seconds=args.run_in_stress_duration_secs,
@@ -508,7 +491,7 @@ def RunIn(args, group_suffix=''):
       # The test will fail and stop all tests.
       FactoryTest(
           id='Countdown',
-          label_zh=u'倒数计时',
+          label=_('Countdown'),
           pytest_name='countdown',
           dargs=dict(
               title=_('Run-In Tests'),
@@ -525,10 +508,7 @@ def RunIn(args, group_suffix=''):
     # Reboots before dozing stress test so DUT is in a fresh state. Note that we
     # might not want to add this step if we are trying to find what might
     # be wrong if machine is not in a fresh state.
-    RebootStep(
-        id='Reboot1',
-        label_zh=u'重新开机',
-        iterations=1)
+    RebootStep(id='Reboot1', label=_('Reboot'), iterations=1)
 
     args.Barrier('RunInReboot1',
                  pass_without_prompt=True,
@@ -536,12 +516,12 @@ def RunIn(args, group_suffix=''):
 
     # Runs StressAppTest in parallel with suspend/resume so it will be easier
     # to detect bad memory.
-    with AutomatedSequence(id='DozingStress', label_zh=u'睡眠内存压力测试',
-                           parallel=True):
+    with AutomatedSequence(
+        id='DozingStress', label=_('Dozing Stress'), parallel=True):
       # if StressAppTest fails here, it's likely memory issue.
       FactoryTest(
           id='StressAppTest',
-          label_zh=u'压力测试',
+          label=_('Stress App Test'),
           pytest_name='stressapptest',
           dargs=dict(
               seconds=args.run_in_dozing_stress_duration_secs))
@@ -549,10 +529,8 @@ def RunIn(args, group_suffix=''):
       # Takes about 30 minutes for 60 iterations
       FactoryTest(
           id='SuspendResume',
-          label_en='SuspendResume (%d %s)' % (
-              args.run_in_resume_iterations,
-              'time' if args.run_in_resume_iterations == 1 else 'times'),
-          label_zh=u'睡眠、唤醒 (%s 次)' % args.run_in_resume_iterations,
+          label=i18n.StringFormat(_('SuspendResume ({count} times)'),
+                                  count=args.run_in_resume_iterations),
           pytest_name='suspend_resume',
           retries=1,  # workaround for premature awake failure
           dargs=dict(
@@ -566,7 +544,7 @@ def RunIn(args, group_suffix=''):
       # The test will fail and stop all tests.
       OperatorTest(
           id='Countdown',
-          label_zh=u'倒数计时',
+          label=_('Countdown'),
           pytest_name='countdown',
           dargs=dict(
               title=_('Dozing Stress Tests'),
@@ -583,10 +561,9 @@ def RunIn(args, group_suffix=''):
     # Stress test for reboot.
     RebootStep(
         id='Reboot2',
-        label_en='Reboot (%s %s)' % (
-            args.run_in_reboot_seq_iterations,
-            'time' if args.run_in_reboot_seq_iterations == 1 else 'times'),
-        label_zh=u'重新开机 (%s 次)' % args.run_in_reboot_seq_iterations,
+        label=i18n.StringFormat(
+            _('Reboot ({count} times)'),
+            count=args.run_in_reboot_seq_iterations),
         iterations=args.run_in_reboot_seq_iterations)
 
     args.Barrier('RunInReboot2',
@@ -597,7 +574,7 @@ def RunIn(args, group_suffix=''):
     # charging and discharging speed.
     OperatorTest(
         id='Charger',
-        label_zh=u'充电器',
+        label=_('Charger'),
         exclusive_resources=[plugin.RESOURCE.POWER],
         pytest_name='charger',
         dargs=dict(
@@ -630,11 +607,9 @@ def RunIn(args, group_suffix=''):
     if args.fully_imaged:
       OperatorTest(
           id='VerifyRootPartition2',
-          label_zh=u'验证根磁區2',
+          label=_('Verify Root Partition'),
           pytest_name='verify_root_partition',
-          dargs=dict(
-              kern_a_device='mmcblk0p4',
-              root_device='mmcblk0p5'))
+          dargs=dict(kern_a_device='mmcblk0p4', root_device='mmcblk0p5'))
 
       args.Barrier('RunInVerifyRootPartition2',
                    pass_without_prompt=True,
@@ -644,7 +619,7 @@ def RunIn(args, group_suffix=''):
     # charge before leaving RunIn.
     OperatorTest(
         id='Charge',
-        label_zh=u'充电',
+        label=_('Charge'),
         pytest_name='blocking_charge',
         exclusive_resources=[plugin.RESOURCE.POWER],
         dargs=dict(
@@ -660,13 +635,12 @@ def RunIn(args, group_suffix=''):
       # leave RunIn.
       OperatorTest(
           id='Finish',
-          label_zh=u'结束',
+          label=_('Finish'),
           pytest_name='message',
           exclusive_resources=[plugin.RESOURCE.POWER],
-          require_run=(
-              Passed(group_id + '.BarrierRunIn')
-              if args.run_in_require_run_for_finish and args.enable_barriers
-              else None),
+          require_run=(Passed(group_id + '.BarrierRunIn')
+                       if args.run_in_require_run_for_finish and
+                       args.enable_barriers else None),
           never_fails=True,
           dargs=dict(
               html=_('RunIn tests finished, press SPACE to continue.\n')))

@@ -1,36 +1,35 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=unused-import
 
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestGroup
 from cros.factory.test.test_lists.test_lists import TestList
 
-def StartStationTest(test_list_id, label_en, label_zh, prompt_start):
+def StartStationTest(test_list_id, label, prompt_start):
   OperatorTest(
       id='StartStationTest_%s' % test_list_id,
-      label_en=u'Start %s' % label_en,
-      label_zh=u'开始 %s' % label_zh,
+      label=i18n.StringFormat(_('Start {label}'), label=label),
       pytest_name='station_entry',
       dargs={'prompt_start': prompt_start})
 
 
-def EndStationTest(test_list_id, label_en, label_zh, disconnect_dut):
+def EndStationTest(test_list_id, label, disconnect_dut):
   OperatorTest(
       id='EndStationTest_%s' % test_list_id,
-      label_en=u'End %s' % label_en,
-      label_zh=u'结束 %s' % label_zh,
+      label=i18n.StringFormat(_('End {label}'), label=label),
       pytest_name='station_entry',
       dargs={'start_station_tests': False,
              'disconnect_dut': disconnect_dut})
 
 
-def StationBased(test_list_id, label_en, label_zh,
+def StationBased(test_list_id, label, label_zh=None,
                  dut_options=None,
                  automated_sequence=True,
                  prompt_start=True,
@@ -52,7 +51,7 @@ def StationBased(test_list_id, label_en, label_zh,
   ::
 
     dut_options = {'link_class': SSHLink, 'host': None}
-    @StationBased('main', 'CoolProduct EVT', dut_options,
+    @StationBased('main', 'CoolProduct EVT', dut_options=dut_options,
                   prestart_steps=ScanBarcode)
     def CreateTestLists(test_list):
       # dut_options is automatically set to test_list,
@@ -77,24 +76,29 @@ def StationBased(test_list_id, label_en, label_zh,
   if not dut_options:
     dut_options = {}
 
+  # TODO(pihsun): argument label_zh is for backward-compatibility, and should
+  #     be removed when all test lists are using the new format.
+  if label_zh is not None:
+    label = i18n.Translated({'en-US': label, 'zh-CN': label_zh})
+
   def Wrap(CreateTestLists):
     def CreateStationTestList():
-      with TestList(test_list_id, label_en) as test_list:
+      with TestList(test_list_id, label) as test_list:
         test_list.options.dut_options = dut_options
 
         if automated_sequence:
           group = AutomatedSequence(
-              id=test_list_id, label_en=label_en, label_zh=label_zh)
+              id=test_list_id, label=label)
         else:
           group = TestGroup(
-              id=test_list_id, label_en=label_en, label_zh=label_zh)
+              id=test_list_id, label=label)
 
         with group:
           if prestart_steps:
             for step in prestart_steps:
               step()
-          StartStationTest(test_list_id, label_en, label_zh, prompt_start)
+          StartStationTest(test_list_id, label, prompt_start)
           CreateTestLists(test_list)
-          EndStationTest(test_list_id, label_en, label_zh, disconnect_dut)
+          EndStationTest(test_list_id, label, disconnect_dut)
     return CreateStationTestList
   return Wrap

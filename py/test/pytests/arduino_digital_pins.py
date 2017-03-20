@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,7 +17,7 @@ should be high here.
 The following example sets pin 3 and 5 to HIGH:
   FactoryTest(
       id='SwitchAntenna',
-      label_zh=u'切换天线',
+      label=_('Switch Antenna'),
       pytest_name='arduino_digital_pins',
       dargs=dict(high_pins=[3, 5]]))
 """

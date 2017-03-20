@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -8,21 +6,21 @@
 
 Usage examples::
 
-    with AutomatedSequence(id='MRCCache', label_zh=u'MRC Cache'):
+    with AutomatedSequence(id='MRCCache', label=_('MRC Cache')):
       FactoryTest(
           id='Create',
-          label_zh=u'产生 Cache',
+          label=_('Create Cache'),
           pytest_name='mrc_cache',
           dargs={'mode': 'create'})
 
       RebootStep(
           id='Reboot',
-          label_zh=u'重新开机',
+          label=_('Reboot'),
           iterations=1)
 
       FactoryTest(
           id='Verify',
-          label_zh=u'验证',
+          label=_('Verify'),
           pytest_name='mrc_cache',
           dargs={'mode': 'verify'})
 

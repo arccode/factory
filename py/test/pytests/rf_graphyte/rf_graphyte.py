@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -9,7 +8,7 @@ Usage example::
 
   FactoryTest(
       id='RFConductive',
-      label_zh=u'射频传导测试',
+      label=_('RF Conductive'),
       pytest_name='rf_graphyte',
       dargs={
           'graphyte_config_file': 'conductive_config.json',

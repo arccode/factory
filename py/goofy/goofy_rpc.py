@@ -30,8 +30,10 @@ from cros.factory.device import device_utils
 from cros.factory.goofy import goofy_remote
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.test.env import paths
-from cros.factory.test.event import Event, EventClient
+from cros.factory.test.event import Event
+from cros.factory.test.event import EventClient
 from cros.factory.test import factory
+from cros.factory.test import i18n
 from cros.factory.test import shopfloor
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.tools import factory_bug
@@ -1020,7 +1022,7 @@ class GoofyRPC(object):
                enabled=(k == self.goofy.test_list.test_list_id)))
 
     # Sort by name.
-    ret.sort(key=lambda x: x['name'].lower())
+    ret.sort(key=lambda x: i18n.Translated(x['name'])['en-US'].lower())
 
     return ret
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -26,7 +24,7 @@ Usage examples::
 
     FactoryTest(
         id='BacklightMaxBrightnessVPD',
-        label_zh=u'背光最大亮度VPD',
+        label=_('Backlight Max Brightness VPD'),
         pytest_name='backlight_max_brightness_vpd',
         dargs={'brightness_values': [('2d04', 'LGD', 250),
                                      ('2c13', 'AUO', 200)]})

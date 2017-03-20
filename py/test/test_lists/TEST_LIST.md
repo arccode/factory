@@ -20,18 +20,15 @@ def CreateTestLists():
 
     with test_lists.FactoryTest(
         id='SMT',
-        label_en='SMT Tests',
-        label_zh=u'SMT 测试',
+        label=_('SMT Tests'),
         action_on_failure='STOP'):
       with test_lists.FactoryTest(
           id='ProbeComponents',
-          label_en='Probe Components',
-          label_zh=u'侦测元件',
+          label=_('Probe Components'),
           parallel=True):
         test_lists.FactoryTest(
             id='ProbeAccelerometer',
-            label_en='Probe Accelerometer',
-            label_zh=u'侦测加速度计',
+            label=_('Probe Accelerometer'),
             pytest_name='i2c_probe',
             dargs={
                 'bus': 1,
@@ -39,8 +36,7 @@ def CreateTestLists():
             })
         test_lists.FactoryTest(
             id='ProbeCamera',
-            label_en='Probe Camera',
-            label_zh=u'侦测相机',
+            label=_('Probe Camera'),
             pytest_name='i2c_probe',
             dargs={
                 'bus': 1,
@@ -49,8 +45,7 @@ def CreateTestLists():
       test_lists.RebootStep(id='Reboot')
       test_lists.FactoryTest(
           id='LED',
-          label_en='LED Test',
-          label_zh=u'LED 测试',
+          label=_('LED Test'),
           pytest_name='led',
           action_on_failure='PARENT',
           has_ui=True,
@@ -61,13 +56,11 @@ def CreateTestLists():
 
     with test_lists.FactoryTest(
         id='RunIn',
-        label_en='RunIn Tests',
-        label_zh=u'RunIn 測試',
+        label=_('RunIn Tests'),
         action_on_failure='STOP'):
       test_lists.FactoryTest(
           id='StressAppTest',
-          label_en='StressAppTest'
-          label_zh=u'压力测试',
+          label=_('StressAppTest'),
           pytest_name='stressapptest',
           dargs=dict(seconds=30 * 60,
                      memory_ratio=0.75,
@@ -116,8 +109,8 @@ For example, the test group `SMT` will have test path `SMT`, and the test item
 **Each test path must be unique in a test list.**  That is, you can have several
 test with ID `Shutdown`, but they have to have different test path.
 
-## label_en and label_zh
-Label is a string that will be shown on UI.  Remember to use `u'中文'` for
+## label
+`label` is a string that will be shown on UI. Remember to use `u'中文'` for
 Chinese.
 
 ## pytest_name and dargs

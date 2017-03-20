@@ -11,7 +11,7 @@ insert which port by display_label in display_info::
 
     OperatorTest(
         id='ExtDisplay',
-        label_zh=u'外接显示',
+        label=_('External Display'),
         pytest_name='ext_display',
         dargs={
             'display_info': [

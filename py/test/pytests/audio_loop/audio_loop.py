@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -29,7 +27,7 @@ Here are some test list examples for different test cases::
     # Audiofuntest for all mics of input_dev and all speakers of output_dev.
     OperatorTest(
         id='SpeakerDMic',
-        label_zh=u'喇叭/麦克风',
+        label=_('SpeakerDMic'),
         pytest_name='audio_loop',
         dargs={'require_dongle': False,
                'check_dongle': True,
@@ -45,7 +43,7 @@ Here are some test list examples for different test cases::
     # output_dev.
     OperatorTest(
         id='Speaker0DMicMlb',
-        label_zh=u'喇叭0/MLB麦克风',
+        label=_('Speaker0DMicMlb'),
         pytest_name='audio_loop',
         dargs={'require_dongle': False,
                'check_dongle': True,
@@ -61,7 +59,7 @@ Here are some test list examples for different test cases::
 
     OperatorTest(
         id='Noise',
-        label_zh=u'喇叭/麦克风',
+        label=_('Noise'),
         pytest_name='audio_loop',
         dargs={'require_dongle': False,
                'check_dongle': True,
@@ -75,7 +73,7 @@ Here are some test list examples for different test cases::
 
     OperatorTest(
         id='AudioJack',
-        label_zh=u'音源孔',
+        label=_('Audio Jack'),
         pytest_name='audio_loop',
         dargs={'require_dongle': True,
                'check_dongle': True,

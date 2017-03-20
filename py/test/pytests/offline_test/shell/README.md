@@ -49,7 +49,7 @@ booting.
 
     FactoryTest(
         id='DeployRunInTest',
-        label_zh=u'部屬 Run-In 測試',
+        label=_('Deploy RunIn Test'),
         pytest_name='offline_test.shell.deploy',
         dargs=dict(
             test_spec=test_spec,

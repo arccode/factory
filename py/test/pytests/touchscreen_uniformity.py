@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,7 +13,7 @@ Sample test_list entry::
 
   OperatorTest(
     id='TouchscreenUniformity',
-    label_zh=u'触屏均一性测试',
+    label=_('Touchscreen Uniformity'),
     run_if='device_data.component.has_touchscreen',
     pytest_name='touchscreen_uniformity',
     dargs={'deltas_max_val': 40,

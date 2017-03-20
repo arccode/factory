@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -33,7 +31,7 @@ def FATP(args):
   with TestGroup(id='FATP'):
     OperatorTest(
         id='Start',
-        label_zh=u'开始',
+        label=_('Start'),
         pytest_name='start',
         never_fails=True,
         dargs=dict(
@@ -45,7 +43,7 @@ def FATP(args):
     # Decides if DUT is sampled for audio fixture test.
     FactoryTest(
         id='SelectForAudioFixture',
-        label_zh=u'Audio 採樣',
+        label=_('Select For Audio Fixture'),
         pytest_name='select_for_sampling',
         dargs=dict(
             rate=args.fatp_sampling_rate['fatp_audio_fixture'].rate,
@@ -55,7 +53,7 @@ def FATP(args):
     # Decides if DUT is sampled for camera fixture test.
     FactoryTest(
         id='SelectForCameraFixture',
-        label_zh=u'Camera 採樣',
+        label=_('Select For Camera Fixture'),
         pytest_name='select_for_sampling',
         dargs=dict(
             rate=args.fatp_sampling_rate['fatp_camera_fixture'].rate,
@@ -65,7 +63,7 @@ def FATP(args):
     # Decides if DUT is sampled for RF fixture test.
     FactoryTest(
         id='SelectForRFFixture',
-        label_zh=u'RF 採樣',
+        label=_('Select For RF Fixture'),
         pytest_name='select_for_sampling',
         dargs=dict(
             rate=args.fatp_sampling_rate['fatp_rf_fixture'].rate,
@@ -76,7 +74,7 @@ def FATP(args):
     # LTE Model has different sampling rate for RF fixture.
     FactoryTest(
         id='SelectForRFFixtureLTEModel',
-        label_zh=u'RF 採樣 LTE 机器',
+        label=_('Select For RF Fixture LTE Model'),
         pytest_name='select_for_sampling',
         run_if=args.HasLTE,
         dargs=dict(
@@ -87,7 +85,7 @@ def FATP(args):
     # Decides if DUT is sampled for LTE fixture test.
     FactoryTest(
         id='SelectForLTEFixture',
-        label_zh=u'LTE 採樣',
+        label=_('Select For LTE Fixture'),
         pytest_name='select_for_sampling',
         run_if=args.HasLTE,
         dargs=dict(
@@ -98,13 +96,13 @@ def FATP(args):
     # Write-protect screw should be on.
     OperatorTest(
         id='WriteProtectSwitch',
-        label_zh=u'写入保护开关',
+        label=_('Write Protect Switch'),
         pytest_name='write_protect_switch')
 
     # Tests micro USB port using on-the-go dongle and a USB key.
     OperatorTest(
         id='MicroUSBPerformance',
-        label_zh=u'微型 USB 效能测试',
+        label=_('Micro USB Performance'),
         pytest_name='removable_storage',
         dargs=dict(
             media='USB',
@@ -117,13 +115,13 @@ def FATP(args):
     # Checks Lid switch signal.
     OperatorTest(
         id='LidSwitch',
-        label_zh=u'上盖开关',
+        label=_('Lid Switch'),
         pytest_name='lid_switch')
 
     # Checks display for black dots and white dots.
     OperatorTest(
         id='DisplayPoint',
-        label_zh=u'显示点',
+        label=_('Display Point'),
         pytest_name='display_point',
         dargs=dict(
             point_size=3,
@@ -132,13 +130,13 @@ def FATP(args):
     # Lets operator check display quality under different colors.
     OperatorTest(
         id='Display',
-        label_zh=u'显示',
+        label=_('Display'),
         pytest_name='display')
 
     # Lets operator check backlight brightness can be changed.
     OperatorTest(
         id='Backlight',
-        label_zh=u'背光亮度',
+        label=_('Backlight'),
         pytest_name='backlight',
         dargs=dict(
             brightness_path='/sys/class/backlight/ps8622-backlight/brightness'))
@@ -146,7 +144,7 @@ def FATP(args):
     # Checks if camera is connected to USB.
     FactoryTest(
         id='CameraProbe',
-        label_zh=u'相机侦测',
+        label=_('Camera Probe'),
         pytest_name='usb_probe',
         dargs=dict(
             search_string='Camera'))
@@ -154,7 +152,7 @@ def FATP(args):
     # Lets operator check camera and camera light function.
     OperatorTest(
         id='Camera',
-        label_zh=u'相机',
+        label=_('Camera'),
         pytest_name='camera',
         dargs=dict(
             do_capture_manual=True,
@@ -165,7 +163,7 @@ def FATP(args):
     # Lets operator check LED function.
     OperatorTest(
         id='LED',
-        label_zh=u'LED',
+        label=_('LED'),
         pytest_name='led')
 
     # Lets operator check keyboard function.
@@ -173,14 +171,14 @@ def FATP(args):
     # keyboard_device_name.
     OperatorTest(
         id='Keyboard',
-        label_zh=u'键盘',
+        label=_('Keyboard'),
         pytest_name='keyboard',
         dargs=dict(
             keyboard_device_name='cros-ec-i2c',
             sequential_press=True,
             skip_power_key=False))
 
-    with AutomatedSequence(id='SIMCard', label_zh=u'SIM 卡'):
+    with AutomatedSequence(id='SIMCard', label=_('SIM Card')):
       # For 3G model only. Note that different factory can have different
       # testing sequences of 3G model. The tests set in this test list
       # are just examples.
@@ -191,7 +189,7 @@ def FATP(args):
       # is high.
       OperatorTest(
           id='InsertSIMCardTray',
-          label_zh=u'插入 SIM 卡和卡盘',
+          label=_('Insert SIM Card Tray'),
           pytest_name='probe_sim_card_tray',
           dargs=dict(
               tray_already_present=False,
@@ -205,7 +203,7 @@ def FATP(args):
       # between modem and SIM card.
       OperatorTest(
           id='ProbeSIM',
-          label_zh=u'SIM 卡',
+          label=_('Probe SIM'),
           pytest_name='probe_sim',
           run_if=args.HasCellular)
 
@@ -213,7 +211,7 @@ def FATP(args):
       # at this station. They will be put back in the packing station.
       OperatorTest(
           id='CheckNoSIMCardTray',
-          label_zh=u'检查是否无 SIM 卡盘',
+          label=_('Check No SIM Card Tray'),
           pytest_name='probe_sim_card_tray',
           dargs=dict(tray_already_present=False),
           run_if=args.HasCellular)
@@ -221,7 +219,7 @@ def FATP(args):
       # For 3G model only. Probe modem IMEI value and log it.
       OperatorTest(
           id='ProbeIMEI',
-          label_zh=u'提取 IMEI',
+          label=_('Probe IMEI'),
           pytest_name='probe_cellular_info',
           run_if=args.HasCellular,
           dargs=dict(probe_meid=False))
@@ -231,7 +229,7 @@ def FATP(args):
     # be skipped.
     FactoryTest(
         id='Wifi',
-        label_zh=u'无线网路',
+        label=_('Wifi'),
         pytest_name='wireless',
         retries=args.fatp_retries_basic_wifi)
 
@@ -242,7 +240,7 @@ def FATP(args):
     OperatorTest(
         exclusive_resources=[plugin.RESOURCE.NETWORK],
         id='WirelessConnection',
-        label_zh=u'无线测试',
+        label=_('Wireless Connection'),
         pytest_name='wireless',
         dargs=dict(
             services=lambda env: [
@@ -253,13 +251,13 @@ def FATP(args):
             test_url=('http://%s/testdata/test' % args.shopfloor_host),
             md5sum='097daa256e3a4569305db580df900d8d'))
 
-    with TestGroup(id='RSSI', label_zh='RSSI 测试'):
+    with TestGroup(id='RSSI', label=_('RSSI Test')):
       # DUT will switch antenna and scan for different AP based on 'line'
       # in device_data.
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
           id='WirelessRSSI24G',
-          label_zh=u'天線 2.4G',
+          label=_('Wireless RSSI 2.4G'),
           pytest_name='wireless_antenna',
           dargs=dict(
               device_name='mlan0',
@@ -274,7 +272,7 @@ def FATP(args):
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
           id='WirelessRSSI5G',
-          label_zh=u'天線 5G',
+          label=_('Wireless RSSI 5G'),
           pytest_name='wireless_antenna',
           dargs=dict(
               device_name='mlan0',
@@ -291,7 +289,7 @@ def FATP(args):
       # lte_rssi tests.
       OperatorTest(
           id='PromptBeforeRSSI',
-          label_zh=u'RSSI 测试开始',
+          label=_('Begin RSSI Test'),
           pytest_name='message',
           never_fails=True,
           run_if=lambda env: args.HasCellular(env) or args.HasLTE(env),
@@ -306,7 +304,7 @@ def FATP(args):
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
           id='CellularRSSI',
-          label_zh=u'3G 信号接收强度',
+          label=_('Cellular RSSI'),
           pytest_name='cellular_gobi_rssi',
           run_if=args.HasCellular,
           dargs=dict(
@@ -320,7 +318,7 @@ def FATP(args):
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
           id='LTERSSI',
-          label_zh=u'LTE 信号接收强度',
+          label=_('LTE RSSI'),
           pytest_name='lte_rssi',
           run_if=args.HasLTE,
           dargs=dict(
@@ -331,7 +329,7 @@ def FATP(args):
     # Checks Received signal strength indication (RSSI) for bluetooth signal.
     OperatorTest(
         id='Bluetooth',
-        label_zh=u'藍牙',
+        label=_('Bluetooth'),
         pytest_name='bluetooth',
         dargs=dict(
             expected_adapter_count=1,
@@ -345,8 +343,7 @@ def FATP(args):
     OperatorTest(
         exclusive_resources=[plugin.RESOURCE.NETWORK],
         id='WriteLTEChromebookSpecificParameters',
-        label_zh=u'写入 LTE Chromebook 特有参数',
-        label_en='WriteLTEChromebookSpecificParameters',
+        label=_('Write LTE Chromebook Specific Parameters'),
         pytest_name='lte_smt',
         run_if=args.HasLTE,
         dargs=dict(
@@ -356,7 +353,7 @@ def FATP(args):
     # Checks audio jack using a loopback dongle.
     OperatorTest(
         id='AudioJack',
-        label_zh=u'音源孔',
+        label=_('Audio Jack'),
         pytest_name='audio_loop',
         dargs={'require_dongle': True,
                'check_dongle': True,
@@ -371,7 +368,7 @@ def FATP(args):
     # Checks speaker and digital mic.
     OperatorTest(
         id='SpeakerDMic',
-        label_zh=u'喇叭/麦克风',
+        label=_('Speaker/Microphone'),
         pytest_name='audio_loop',
         dargs={'require_dongle': False,
                'check_dongle': True,
@@ -387,13 +384,13 @@ def FATP(args):
     # single clicking and double clicking.
     OperatorTest(
         id='Touchpad',
-        label_zh=u'触控板',
+        label=_('Touchpad'),
         pytest_name='touchpad')
 
     # Checks touchscreen using one finger moving.
     OperatorTest(
         id='Touchscreen',
-        label_zh=u'触控面板',
+        label=_('Touchscreen'),
         pytest_name='touchscreen')
 
     # Checks external display. Note that the reboot might not be needed if
@@ -402,7 +399,7 @@ def FATP(args):
     # refresh on external display.
     OperatorTest(
         id='ExtDisplay',
-        label_zh=u'外接显示',
+        label=_('External Display'),
         pytest_name='ext_display',
         dargs=dict(
             main_display='eDP-1',
@@ -410,12 +407,12 @@ def FATP(args):
 
     # We groups fixture tests in this TestGroup.
     if args.enable_fixture_tests:
-      with TestGroup(id='Fixtures', label_zh=u'治具测试'):
+      with TestGroup(id='Fixtures', label=_('Fixture Test')):
         # If there is any fixture tests selected, prompts a message to ask
         # operator to take this DUT to fixture stations.
         OperatorTest(
             id='FixtureStart',
-            label_zh=u'治具测试开始',
+            label=_('Fixture Start'),
             pytest_name='message',
             run_if=args.SelectedForAnyFixture,
             never_fails=True,
@@ -430,14 +427,14 @@ def FATP(args):
         # Checks audio quality.
         OperatorTest(
             id='AudioQuality',
-            label_zh=u'音源品質',
+            label=_('Audio Quality'),
             pytest_name='audio_quality',
             run_if=args.SelectedForSampling('fatp_audio_fixture'))
 
         # Checks camera performance.
         OperatorTest(
             id='CameraPerformance',
-            label_zh=u'相机效能',
+            label=_('Camera Performance'),
             pytest_name='camera_fixture',
             run_if=args.SelectedForSampling('fatp_camera_fixture'),
             dargs=dict(
@@ -459,7 +456,7 @@ def FATP(args):
         OperatorTest(
             exclusive_resources=[plugin.RESOURCE.NETWORK],
             id='WifiRadiated',
-            label_zh=u'WiFi 信号发送强度',
+            label=_('Wifi Radiated'),
             pytest_name='radiated_wifi',
             run_if=lambda env: (
                 args.SelectedForSampling('fatp_rf_fixture')(env) and
@@ -482,7 +479,7 @@ def FATP(args):
         OperatorTest(
             exclusive_resources=[plugin.RESOURCE.NETWORK],
             id='ComboRadiated',
-            label_zh=u'WiFi 及 3G 信号发送强度',
+            label=_('Wifi and 3G Radiated'),
             pytest_name='radiated_combo',
             run_if=lambda env: (
                 args.SelectedForSampling('fatp_rf_fixture')(env) and
@@ -512,8 +509,7 @@ def FATP(args):
         OperatorTest(
             exclusive_resources=[plugin.RESOURCE.NETWORK],
             id='LTERadiated',
-            label_en='LTERadiated',
-            label_zh=u'LTE 信号发送强度',
+            label=_('LTE Radiated'),
             run_if=lambda env: (
                 args.SelectedForSampling('fatp_lte_fixture')(env) and
                 args.HasLTE(env)),
@@ -541,7 +537,7 @@ def FATP(args):
         # fixture stations.
         OperatorTest(
             id='FixtureEnd',
-            label_zh=u'治具测试结束',
+            label=_('Fixture End'),
             pytest_name='message',
             run_if=args.SelectedForAnyFixture,
             never_fails=True,
@@ -558,7 +554,7 @@ def FATP(args):
     # It should match the hierachy shown in 'lsusb -t' command.
     OperatorTest(
         id='USBPerformanceNearMicroUSB',
-        label_zh=u'USB 效能测试 MicroUSB 旁',
+        label=_('USB Performance Near Micro USB'),
         pytest_name='removable_storage',
         dargs=dict(
             media='USB',
@@ -573,7 +569,7 @@ def FATP(args):
     # It should match the hierachy shown in 'lsusb -t' command.
     OperatorTest(
         id='USBPerformanceNearAudioJack',
-        label_zh=u'USB 效能测试耳机孔旁',
+        label=_('USB Performance Near Audio Jack'),
         pytest_name='removable_storage',
         dargs=dict(
             media='USB',
@@ -585,21 +581,21 @@ def FATP(args):
 
     # This takes a long time (~30s) to execute, can be moved to run-in if
     # necessary.
-    with AutomatedSequence(id='MRCCache', label_zh=u'MRC Cache'):
+    with AutomatedSequence(id='MRCCache', label=_('MRCCache')):
       FactoryTest(
           id='Create',
-          label_zh=u'产生 Cache',
+          label=_('Create Cache'),
           pytest_name='mrc_cache',
           dargs={'mode': 'create'})
 
       RebootStep(
           id='Reboot',
-          label_zh=u'重新开机',
+          label=_('Reboot'),
           iterations=1)
 
       FactoryTest(
           id='Verify',
-          label_zh=u'验证',
+          label=_('Verify'),
           pytest_name='mrc_cache',
           dargs={'mode': 'verify'})
 
@@ -611,7 +607,7 @@ def FATP(args):
     # Google Required Tests (GRT).
     OperatorTest(
         id='Finish',
-        label_zh=u'结束',
+        label=_('Finish'),
         pytest_name='message',
         require_run=(Passed('FATP.BarrierFATP')
                      if args.fatp_require_run_for_finish else None),

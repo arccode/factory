@@ -5,16 +5,15 @@
 """An E2E test to test the scan factory test."""
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import shopfloor
 from cros.factory.test.e2e_test import e2e_test
+from cros.factory.test import shopfloor
 
 
 class ScanE2ETest(e2e_test.E2ETest):
   """The scan E2E test."""
   pytest_name = 'scan'
   dargs = dict(
-      label_en='Serial Number',
-      label_zh='Serial Number',
+      label='Serial Number',
       device_data_key='serial_number',
       regexp='^[A-Z0-9]{5}$')
 

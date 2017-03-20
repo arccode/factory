@@ -1055,8 +1055,8 @@ class FactoryTestList(FactoryTest):
         if known.  For new-style test lists only.
   """
 
-  def __init__(self, subtests, state_instance, options,
-               test_list_id=None, label_en=None, finish_construction=True):
+  def __init__(self, subtests, state_instance, options, test_list_id=None,
+               label_en=None, label=None, finish_construction=True):
     """Constructor.
 
     Args:
@@ -1070,7 +1070,9 @@ class FactoryTestList(FactoryTest):
           None for test lists, to preserve the invariant that a test's
           path is always starts with the concatenation of all 'id's of its
           ancestors.
-      label_en: An optional label for the test list.
+      label_en: An optional label for the test list. Deprecated, use label
+          instead.
+      label: An optional label for the test list.
       finish_construction: Whether to immediately finalize the test
           list.  If False, the caller may add modify subtests,
           state_instance, and options and then call FinishConstruction().
@@ -1083,7 +1085,7 @@ class FactoryTestList(FactoryTest):
     self.test_list_id = test_list_id
     self.state_change_callback = None
     self.options = options
-    self.label = label_en or 'untitled'
+    self.label = i18n.Translated(label or label_en or 'untitled')
     self.source_path = None
 
     if finish_construction:

@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -9,6 +7,8 @@
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
 from cros.factory.test.test_lists import firmware_stress_generic
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestList
@@ -201,7 +201,8 @@ class TestListArgs(object):
     OperatorTest(
         id='SyncShopFloor' + suffix_str,
         pytest_name='flush_event_logs',
-        label_zh=u'同步事件记录 ' + suffix_str,
+        label=i18n.StringFormat(
+            _('Sync Shopfloor {suffix}'), suffix=suffix_str),
         run_if=run_if,
         dargs=dict(
             update_without_prompt=update_without_prompt,
@@ -221,7 +222,7 @@ class TestListArgs(object):
     if self.enable_barriers:
       OperatorTest(
           id='Barrier' + str(id_suffix),
-          label_zh=u'检查关卡' + str(id_suffix),
+          label=i18n.StringFormat(_('Barrier{suffix}'), suffix=id_suffix),
           has_automator=True,
           pytest_name='summary',
           run_if=run_if,

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,7 +13,7 @@ Usage examples::
 
     OperatorTest(
         id='accelerometers_lid_angle',
-        label_zh=u'上盖角度测试',
+        label=_('Accelerometers Lid Angle Test'),
         pytest_name='accelerometers_lid_angle',
         dargs={'angle': 180,
                'tolerance': 5,

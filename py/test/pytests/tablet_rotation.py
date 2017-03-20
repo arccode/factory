@@ -15,7 +15,7 @@ Usage example::
     # Only test ChromeOS rotation value.
     OperatorTest(
         id='TabletRotation',
-        label_zh=u'平板电脑旋转测试',
+        label=_('Tablet Rotation'),
         pytest_name='tablet_rotation',
         dargs={
             'timeout_secs': HOURS_24,

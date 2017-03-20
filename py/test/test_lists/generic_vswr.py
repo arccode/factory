@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -26,7 +24,7 @@ _DEFAULT_TIMEZONE = 'Asia/Taipei'
 _SERIAL_NUMBER_KEY = 'antenna_serial_number'
 
 
-@StationBased('vswr_station', 'VSWR Station', u'VSWR 天线测试')
+@StationBased('vswr_station', _('VSWR Station'))
 def CreateTestLists(test_list):
   # If you're using old shopfloor then add a slash at the end of the URL:
   # 'http://%s:%s/'.  If you're using umpire then don't add the slash.
@@ -35,17 +33,16 @@ def CreateTestLists(test_list):
 
   OperatorTest(
       id='scan',
-      label_en='Scan the serial number',
-      label_zh='扫描序号',
+      label=_('Scan the serial number'),
       pytest_name='scan',
       dargs={
           'label': _('Scan the serial number'),
-          'shared_data_key': _SERIAL_NUMBER_KEY})
+          'shared_data_key': _SERIAL_NUMBER_KEY
+      })
 
   OperatorTest(
       id='VSWR',
-      label_en='VSWR Antenna Test',
-      label_zh=u'VSWR 天线测试',
+      label=_('VSWR Antenna Test'),
       pytest_name='vswr',
       dargs={
           'event_log_name': 'vswr_sample',
@@ -53,19 +50,18 @@ def CreateTestLists(test_list):
           'config_path': 'vswr_config.sample.yaml',
           'serial_number_key': _SERIAL_NUMBER_KEY,
           'timezone': _DEFAULT_TIMEZONE,
-          'load_from_shopfloor': False})
+          'load_from_shopfloor': False
+      })
 
   OperatorTest(
       id='SyncShopfloor',
-      label_en='Sync Shopfloor',
-      label_zh=u'同步事件记录',
+      label=_('Sync Shopfloor'),
       pytest_name='flush_event_logs',
       dargs={'disable_update': True})
 
   OperatorTest(
       id='Barrier',
-      label_en='Barrier',
-      label_zh=u'检查关卡',
+      label=_('Barrier'),
       pytest_name='summary',
       never_fails=True,
       disable_abort=True,
@@ -73,4 +69,5 @@ def CreateTestLists(test_list):
           'disable_input_on_fail': False,
           'bft_fixture': None,
           'pass_without_prompt': False,
-          'accessibility': False})
+          'accessibility': False
+      })

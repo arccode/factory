@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -23,8 +22,7 @@ Usage example::
   FactoryTest(
       id='WiFiRadiated',
       exclusive_resources=[plugin.RESOURCE.NETWORK],
-      label_en='WiFi Radiated',
-      label_zh=u'WiFi 发送测试',
+      label=_('WiFi Radiated'),
       pytest_name='wifi_radiated',
       dargs={
           'config_file_path': 'rf/wifi_radiated/wifi_radiated_config.yaml',
@@ -38,8 +36,7 @@ Usage example::
   FactoryTest(
       id='LTERadiated',
       exclusive_resources=[plugin.RESOURCE.NETWORK],
-      label_en='LTE Radiated',
-      label_zh=u'LTE 发送测试',
+      label=_('LTE Radiated'),
       run_if='device_data.component.has_lte',
       pytest_name='lte_radiated',
       dargs={

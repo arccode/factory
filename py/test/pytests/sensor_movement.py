@@ -10,7 +10,7 @@ Usage examples::
 
     OperatorTest(
         id='AccelerometerMovement',
-        label_en='Accelerometer Movement',
+        label=_('Accelerometer Movement'),
         pytest_name='sensor_movement',
         dargs={
             'sensor_type': 'accelerometer',
@@ -27,7 +27,7 @@ Another example, the value of y and z axis are ignored in this test::
 
     OperatorTest(
         id='GyroscopeMovement',
-        label_en='Gyroscope Movement',
+        label=_('Gyroscope Movement'),
         pytest_name='sensor_movement',
         dargs={
             'sensor_type': 'gyroscope',

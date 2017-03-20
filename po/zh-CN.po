@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-17 14:34+CST\n"
+"POT-Creation-Date: 2017-03-21 13:45+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -542,7 +542,7 @@ msgstr "LED 闪烁请按 0，一直亮着请按 1，没亮请按 ESC"
 
 #: ../py/test/pytests/camera_fixture.py
 msgid "Camera Fixture Calibration"
-msgstr "相机制具校正"
+msgstr "相机治具校正"
 
 #: ../py/test/pytests/camera_fixture.py
 msgid "Camera Lens Shading Test"
@@ -646,7 +646,7 @@ msgstr "待测物序号:"
 
 #: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "Fixture:"
-msgstr "制具链接:"
+msgstr "治具链接:"
 
 #: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "UNAVAILABLE"
@@ -765,8 +765,12 @@ msgid "Put the DUT towards {direction}"
 msgstr "将机器朝向{direction}方"
 
 #: ../py/test/pytests/countdown.py ../py/test/pytests/wifi_rf.py
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Countdown"
-msgstr "倒计时"
+msgstr "倒数计时"
 
 #: ../py/test/pytests/countdown_static/countdown.html
 msgid "Elapsed time:"
@@ -1073,7 +1077,8 @@ msgstr "琥珀色"
 msgid "off"
 msgstr "关闭"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led/led.py ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "LED"
 msgstr "LED"
 
@@ -1824,7 +1829,7 @@ msgid ""
 "and the control host.\n"
 "Click \"RefreshFixture\" button on screen after connecting the USB cable."
 msgstr ""
-"请确认USB缆线是否已连结制具与控制电脑\n"
+"请确认USB缆线是否已连结治具与控制电脑\n"
 "请连结USB缆线,并点击萤幕上治具连结的刷新按钮。"
 
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
@@ -2092,6 +2097,47 @@ msgstr "检查频率中..."
 msgid "Writing device data to {vpd_section} VPD..."
 msgstr "机器资料正在写入到 {vpd_section} VPD..."
 
+#: ../py/test/test_lists/firmware_stress.py ../py/test/test_lists/generic.py
+msgid "Sync Shopfloor {suffix}"
+msgstr "同步事件记录 {suffix}"
+
+#: ../py/test/test_lists/firmware_stress.py ../py/test/test_lists/generic.py
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Barrier{suffix}"
+msgstr "检查关卡{suffix}"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Start"
+msgstr "开始"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Bad Blocks"
+msgstr "毁损扇区"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Graphics"
+msgstr "图像"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Camera"
+msgstr "相机"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Stress App Test"
+msgstr "压力测试"
+
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_rrt.py
 #: ../py/test/test_lists/generic_run_in.py
@@ -2101,17 +2147,200 @@ msgstr "烧机测试"
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_rrt.py
 #: ../py/test/test_lists/generic_run_in.py
+msgid "Dozing Stress"
+msgstr "睡眠内存压力测试"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "SuspendResume ({count} times)"
+msgstr "睡眠、唤醒 ({count} 次)"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Dozing Stress Tests"
 msgstr "睡眠内存压力测试"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_experiment.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Reboot ({count} times)"
+msgstr "重新开机 ({count} 次)"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Charge"
+msgstr "充电"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Finish"
+msgstr "结束"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_run_in.py
 msgid "RunIn tests finished, press SPACE to continue.\n"
 msgstr "RunIn 测试结束，按下空白键继续\n"
 
+#: ../py/test/test_lists/generic_diagnostic.py
+msgid "Audio Diagnostic"
+msgstr "音效诊断"
+
+#: ../py/test/test_lists/generic_experiment.py
+#: ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Reboot"
+msgstr "重新开机"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Select For Audio Fixture"
+msgstr "Audio 採样"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Select For Camera Fixture"
+msgstr "Camera 採样"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Select For RF Fixture"
+msgstr "RF 採样"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Select For RF Fixture LTE Model"
+msgstr "RF 採样 LTE 机器"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Select For LTE Fixture"
+msgstr "LTE 採样"
+
+#: ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Write Protect Switch"
+msgstr "写入保护开关"
+
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
+msgid "Micro USB Performance"
+msgstr "微型 USB 效能测试"
+
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
+msgid "Lid Switch"
+msgstr "上盖开关"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Display Point"
+msgstr "显示点"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Display"
+msgstr "显示"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Backlight"
+msgstr "背光亮度"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Camera Probe"
+msgstr "相机侦测"
+
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
+msgid "Keyboard"
+msgstr "键盘"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "SIM Card"
+msgstr "SIM 卡"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Insert SIM Card Tray"
+msgstr "插入 SIM 卡和卡盘"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Probe SIM"
+msgstr "SIM 卡"
+
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_grt.py
+msgid "Check No SIM Card Tray"
+msgstr "检查是否无 SIM 卡盘"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Probe IMEI"
+msgstr "提取 IMEI"
+
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
+msgid "Wifi"
+msgstr "无线网路"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Wireless Connection"
+msgstr "无线测试"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "RSSI Test"
+msgstr "RSSI 测试"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Wireless RSSI 2.4G"
+msgstr "天线 2.4G"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Wireless RSSI 5G"
+msgstr "天线 5G"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Begin RSSI Test"
+msgstr "RSSI 测试开始"
+
 #: ../py/test/test_lists/generic_fatp.py
 msgid "Press space to start RSSI tests."
 msgstr "按下空白键开始RSSI测试"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Cellular RSSI"
+msgstr "3G 信号接收强度"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "LTE RSSI"
+msgstr "LTE 信号接收强度"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Bluetooth"
+msgstr "蓝牙"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Write LTE Chromebook Specific Parameters"
+msgstr "写入 LTE Chromebook 特有参数"
+
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
+msgid "Audio Jack"
+msgstr "音源孔"
+
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
+msgid "Speaker/Microphone"
+msgstr "喇叭/麦克风"
+
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
+msgid "Touchpad"
+msgstr "触控板"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Touchscreen"
+msgstr "触控面板"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "External Display"
+msgstr "外接显示"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Fixture Test"
+msgstr "治具测试"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Fixture Start"
+msgstr "治具测试开始"
 
 #: ../py/test/test_lists/generic_fatp.py
 msgid ""
@@ -2122,10 +2351,54 @@ msgstr ""
 "具测试"
 
 #: ../py/test/test_lists/generic_fatp.py
+msgid "Audio Quality"
+msgstr "音源品质"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Camera Performance"
+msgstr "相机效能"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Wifi Radiated"
+msgstr "WiFi 信号发送强度"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Wifi and 3G Radiated"
+msgstr "WiFi 及 3G 信号发送强度"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "LTE Radiated"
+msgstr "LTE 信号发送强度"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Fixture End"
+msgstr "治具测试结束"
+
+#: ../py/test/test_lists/generic_fatp.py
 msgid ""
 "This unit has finished fixture tests.<br>Please move this unit back to line."
 "<br>Press space to continue."
 msgstr "这台机器已完成治具测试,<br>请将这台机器移回产线<br>按下空白键继续"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "USB Performance Near Micro USB"
+msgstr "USB 效能测试 MicroUSB 旁"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "USB Performance Near Audio Jack"
+msgstr "USB 效能测试耳机孔旁"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "MRCCache"
+msgstr "MRC Cache"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Create Cache"
+msgstr "产生 Cache"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "Verify"
+msgstr "验证"
 
 #: ../py/test/test_lists/generic_fatp.py
 msgid ""
@@ -2134,12 +2407,54 @@ msgstr "FATP 测试结束，按下空白键执行最终程序,<br>或切换测�
 
 #: ../py/test/test_lists/generic_grt.py
 #: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Verify Root Partition"
+msgstr "验证根磁区"
+
+#: ../py/test/test_lists/generic_grt.py
+msgid "ShopFloor"
+msgstr "ShopFloor"
+
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Scan Serial Number"
+msgstr "扫描机器编号"
+
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Device Serial Number"
 msgstr "机器编号"
 
 #: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Write HWID"
+msgstr "硬体代号"
+
+#: ../py/test/test_lists/generic_grt.py
+msgid "Check SIM Card Not Present"
+msgstr "检查 SIM 卡不存在"
+
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Probe LTE IMEI ICCID"
+msgstr "提取 LTE IMEI ICCID"
+
+#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Request Clear TPM"
+msgstr "请求清除 TPM"
+
+#: ../py/test/test_lists/generic_grt.py
+msgid "Reboot To Clean TPM"
+msgstr "重新开机"
+
+#: ../py/test/test_lists/generic_grt.py
 msgid "GRT tests finished, press SPACE to finalize.\n"
 msgstr "GRT 测试结束，按下空白键最终程序\n"
+
+#: ../py/test/test_lists/generic_grt.py
+msgid "Finalize"
+msgstr "最终程序"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid ""
@@ -2163,12 +2478,36 @@ msgid "Please press space to start the test."
 msgstr "请按下空白键开始测试。"
 
 #: ../py/test/test_lists/generic_rrt.py
-msgid "ResizeFileSystem"
+msgid "PressToStart{suffix}"
+msgstr "测试开始{suffix}"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Enlarge Stateful Partition"
+msgstr "扩大硬盘空间"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Resize File System"
 msgstr "调整硬盘空间"
+
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_smt.py
+msgid "Update Device Data"
+msgstr "更新机器资料"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Idle"
+msgstr "闲置等待"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Sleep"
 msgstr "睡眠"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Cold Reset"
+msgstr "冷重启"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "EC Cold Reset"
+msgstr "EC 冷重启"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Cold Reset at Shutdown"
@@ -2179,7 +2518,19 @@ msgid "EC Reboot"
 msgstr "EC Reboot"
 
 #: ../py/test/test_lists/generic_rrt.py
-msgid "CheckWLAN"
+msgid "Halt"
+msgstr "关机"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "WarmColdReboot ({count} times)"
+msgstr "冷热重启测试 ({count} 次)"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "WarmColdReboot{i}"
+msgstr "冷热重启{i}"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Check WLAN"
 msgstr "检查无线网络"
 
 #: ../py/test/test_lists/generic_rrt.py
@@ -2187,7 +2538,7 @@ msgid "WLAN command"
 msgstr "WLAN command"
 
 #: ../py/test/test_lists/generic_rrt.py
-msgid "CheckBT"
+msgid "Check Bluetooth"
 msgstr "检查蓝牙"
 
 #: ../py/test/test_lists/generic_rrt.py
@@ -2195,7 +2546,19 @@ msgid "BT command"
 msgstr "BT command"
 
 #: ../py/test/test_lists/generic_rrt.py
-msgid "VerifyTPM"
+msgid "Clear TPM ({count} times)"
+msgstr "清除 TPM ({count} 次)"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Clear TPM {i}"
+msgstr "清除 TPM {i}"
+
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_smt.py
+msgid "TPM Verify EK"
+msgstr "TPM 证书"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Verify TPM"
 msgstr "验证 TPM"
 
 #: ../py/test/test_lists/generic_rrt.py
@@ -2203,36 +2566,242 @@ msgid "verify TPM command"
 msgstr "验证 TPM"
 
 #: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Stress"
+msgstr "集合压力测试"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Random Number Generation"
+msgstr "乱数产生"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "WLAN Ping Test"
+msgstr "无线网路连线测试"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "RunInStress ({count} times)"
+msgstr "压力测试 ({count} 次)"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "RunInStress{i}"
+msgstr "压力测试{i}"
+
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Not Supported"
+msgstr "不支援"
+
+#: ../py/test/test_lists/generic_rrt.py
 msgid "This test list does not support station mode."
 msgstr "本测试清单不支援测站模式"
+
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Charger Type Detection"
+msgstr "充电器型号识别"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Image Update"
+msgstr "映像更新"
+
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Write Device Data To VPD"
+msgstr "机器资料写入到 VPD"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Check Version"
+msgstr "检查版本"
+
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Firmware Update"
+msgstr "韧体更新"
+
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Read Device Data From VPD"
+msgstr "从 VPD 读机器资料"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Scan"
+msgstr "扫描机器编号"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Set Device Info"
+msgstr "设定机器资讯"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Scan GoldenICCID"
+msgstr "扫描 GoldenICCID"
 
 #: ../py/test/test_lists/generic_run_in.py
 msgid "golden_iccid"
 msgstr "机器编号"
 
 #: ../py/test/test_lists/generic_run_in.py
+msgid "Scan GoldenIMEI"
+msgstr "扫描 GoldenIMEI"
+
+#: ../py/test/test_lists/generic_run_in.py
 msgid "golden_imei"
 msgstr "机器编号"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Scan Gbind Attribute"
+msgstr "扫描 gbind_attribute"
 
 #: ../py/test/test_lists/generic_run_in.py
 msgid "Group code"
 msgstr "Group 编号"
 
 #: ../py/test/test_lists/generic_run_in.py
+msgid "Scan Ubind Attribute"
+msgstr "扫描 ubind_attribute"
+
+#: ../py/test/test_lists/generic_run_in.py
 msgid "User code"
 msgstr "User 编号"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Check LTE SIM Card Tray"
+msgstr "检查 LTE SIM 卡盘"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "VPD"
+msgstr "产品资讯 (VPD)"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Switch To WCDMA Firmware"
+msgstr "切换数据机至 WCDMA 韧体"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Image Update ControlRun"
+msgstr "映像更新 ControlRun"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Probe SIM Card Tray Not Present"
+msgstr "SIM 卡卡盘不存在"
+
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Thermal Sensor"
+msgstr "温度感应器"
+
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Charger"
+msgstr "充电器"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Charge Discharge Current"
+msgstr "充放电电流测试"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "External Display (Manual Test)"
+msgstr "外接显示(人工测试)"
+
+#: ../py/test/test_lists/generic_smt.py ../py/goofy/js/goofy.js
+msgid "MLB Serial Number"
+msgstr "母板编号"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Scan MLB"
+msgstr "扫描母板编号"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Scan Operator ID"
+msgstr "扫描作业员 ID"
 
 #: ../py/test/test_lists/generic_smt.py
 msgid "Operator ID"
 msgstr "作业员 ID"
 
 #: ../py/test/test_lists/generic_smt.py
+msgid "Verify Components"
+msgstr "验证元件"
+
+#: ../py/test/test_lists/generic_smt.py
 msgid "Stress/Component Tests"
 msgstr "压力及元件测试"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Probe Camera"
+msgstr "相机"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Battery"
+msgstr "电池"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "3G Probing"
+msgstr "3G测试"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Thermal Load"
+msgstr "温度压力"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Components"
+msgstr "元件"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Partition Table"
+msgstr "分区表"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "SMT tests finished, press SPACE to shutdown.\n"
+msgstr "SMT 测试结束，按下空白键关机\n"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Parallel Test Group 1"
+msgstr "平行测试群组1"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Reboot To Clear TPM"
+msgstr "重新开机"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Verify EK"
+msgstr "TPM 证书"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "Shutdown"
+msgstr "关机"
+
+#: ../py/test/test_lists/generic_tsab.py
+msgid "Touchscreen Calibration Sequence"
+msgstr "触控面板校正程序"
+
+#: ../py/test/test_lists/generic_tsab.py
+msgid "Touchscreen Calibration"
+msgstr "触控面板校正"
+
+#: ../py/test/test_lists/generic_tsab.py ../py/test/test_lists/generic_vswr.py
+msgid "Sync Shopfloor"
+msgstr "同步事件记录"
+
+#: ../py/test/test_lists/generic_vswr.py
+msgid "VSWR Station"
+msgstr "VSWR 天线测试"
 
 #: ../py/test/test_lists/generic_vswr.py
 msgid "Scan the serial number"
 msgstr "扫描序号"
+
+#: ../py/test/test_lists/generic_vswr.py
+msgid "VSWR Antenna Test"
+msgstr "VSWR 天线测试"
+
+#: ../py/test/test_lists/generic_vswr.py
+msgid "Barrier"
+msgstr "检查关卡"
+
+#: ../py/test/test_lists/station_based_test_list.py
+msgid "Start {label}"
+msgstr "开始 {label}"
+
+#: ../py/test/test_lists/station_based_test_list.py
+msgid "End {label}"
+msgstr "结束 {label}"
 
 #: ../py/test/test_ui.py
 msgid "Enter"
@@ -2248,11 +2817,11 @@ msgstr "空白"
 
 #: ../py/test/test_ui.py
 msgid "Press Enter to pass."
-msgstr "通過請按ENTER鍵。"
+msgstr "通过请按ENTER键。"
 
 #: ../py/test/test_ui.py
 msgid "Press ESC to fail."
-msgstr "失敗請按ESC鍵。"
+msgstr "失败请按ESC键。"
 
 #: ../py/test/test_ui.py
 msgid "passed"
@@ -2285,10 +2854,6 @@ msgstr "输入:"
 #: ../py/goofy/js/diagnosis_tool.js
 msgid "Time remaining: "
 msgstr "剩余时间: "
-
-#: ../py/goofy/js/goofy.js
-msgid "MLB Serial Number"
-msgstr ""
 
 #: ../py/goofy/js/goofy.js
 msgid "Stage"
@@ -2436,11 +3001,11 @@ msgstr "重跑{count}个在「{test}」里面未成功的测试"
 
 #: ../py/goofy/js/goofy.js
 msgid "Clear status of {count} tests in \"{test}\""
-msgstr "清除{count}个在「{test}」里面的测试的狀態"
+msgstr "清除{count}个在「{test}」里面的测试的状态"
 
 #: ../py/goofy/js/goofy.js
 msgid "Clear status of test \"{test}\""
-msgstr "清除测试「{test}」的狀態"
+msgstr "清除测试「{test}」的状态"
 
 #: ../py/goofy/js/goofy.js
 msgid "Run {count} untested tests in \"{test}\""
@@ -2452,11 +3017,11 @@ msgstr "停止所有的测试"
 
 #: ../py/goofy/js/goofy.js
 msgid "Abort {count} active tests in \"{test}\" and continue testing"
-msgstr "取消{count}个在「{test}」里面執行中的测试並繼續"
+msgstr "取消{count}个在「{test}」里面执行中的测试并继续"
 
 #: ../py/goofy/js/goofy.js
 msgid "Abort active test \"{test}\" and continue testing"
-msgstr "取消執行中的测试「{test}」並繼續"
+msgstr "取消执行中的测试「{test}」并继续"
 
 #: ../py/goofy/js/goofy.js
 msgid "System time: "
@@ -2524,12 +3089,12 @@ msgstr ""
 
 #: ../py/goofy/js/goofy.js
 msgid "Enter an optional identifier for the archive (or press Enter for none):"
-msgstr "请输入识別号给工厂记录文件，或按回车键不选："
+msgstr "请输入识别号给工厂记录文件，或按回车键不选："
 
 #: ../py/goofy/js/goofy.js
 msgid ""
 "Please insert a formatted USB stick and wait a moment for it to be mounted."
-msgstr "请插入 U盘后稍等掛载。"
+msgstr "请插入 U盘后稍等挂载。"
 
 #: ../py/goofy/js/goofy.js
 msgid "Update factory software"
@@ -2588,12 +3153,12 @@ msgid ""
 "Warning: Switching to test list \"{test_list}\" will clear all test state.\n"
 "Are you sure you want to proceed?"
 msgstr ""
-"警示：切換至测试列表「{test_list}」将清除所有测试状态。\n"
+"警示：切换至测试列表「{test_list}」将清除所有测试状态。\n"
 "确定要继续吗？"
 
 #: ../py/goofy/js/goofy.js
 msgid "Yes, clear state and restart"
-msgstr "确定，清除测试状态並重啓"
+msgstr "确定，清除测试状态并重啓"
 
 #: ../py/goofy/js/goofy.js
 msgid "Switching test list. Please wait..."

@@ -11,7 +11,7 @@ argument. For example::
 
   FactoryTest(
       id='Probe',
-      label_zh=u'Probe',
+      label=_('Probe'),
       pytest_name='probe',
       dargs={
           'config_file': 'probe_rule.json',

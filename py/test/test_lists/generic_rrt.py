@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,6 +17,7 @@ import re
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
@@ -261,7 +260,7 @@ def Barrier(id_suffix='', pass_without_prompt=False,
   """
   OperatorTest(
       id='Barrier' + str(id_suffix),
-      label_zh=u'检查关卡' + str(id_suffix),
+      label=i18n.StringFormat(_('Barrier{suffix}'), suffix=id_suffix),
       pytest_name='summary',
       never_fails=True,
       disable_abort=True,
@@ -277,7 +276,7 @@ def PressToStart(id_suffix='',
   """Display warning messages and ask user to press space to start test."""
   OperatorTest(
       id='PressToStart' + str(id_suffix),
-      label_zh=u'测试开始' + str(id_suffix),
+      label=i18n.StringFormat(_('PressToStart{suffix}'), suffix=id_suffix),
       pytest_name='message',
       never_fails=True,
       dargs=dict(
@@ -289,16 +288,17 @@ def PressToStart(id_suffix='',
 
 def EnlargeStatefulPartition(args):
   """Enlarge stateful partition to prevent disk full during long run tests."""
-  with TestGroup(id='EnlargeStatefulPartition', label_zh=u'扩大硬盘空间'):
+  with TestGroup(id='EnlargeStatefulPartition',
+                 label=_('Enlarge Stateful Partition')):
     FactoryTest(
         id='ResizeFileSystem',
-        label_zh=u'调整硬盘空间',
+        label=_('Resize File System'),
         pytest_name='line_check_item',
         run_if=args.NeedEnlargeStateful,
         dargs=dict(
-            title=_('ResizeFileSystem'),
+            title=_('Resize File System'),
             items=[
-                (_('ResizeFileSystem'),
+                (_('Resize File System'),
                  'resize2fs %s %dG' % (
                      device_utils.CreateDUTInterface().partitions.STATEFUL.path,
                      args.desired_stateful_size_gb),
@@ -307,7 +307,7 @@ def EnlargeStatefulPartition(args):
     # EnlargeStatefulPartition.
     OperatorTest(
         id='UpdateDeviceData',
-        label_zh='更新机器资料',
+        label=_('Update Device Data'),
         pytest_name='update_device_data',
         dargs=dict(data=dict(resize_complete=True)))
 
@@ -316,8 +316,7 @@ def Idle(id_suffix='', wait_secs=1):
   """Sleep for seconds."""
   FactoryTest(
       id='Idle' + str(id_suffix),
-      label_en='Idle',
-      label_zh=u'闲置等待',
+      label=_('Idle'),
       pytest_name='line_check_item',
       dargs=dict(
           title=_('Sleep'),
@@ -327,11 +326,10 @@ def Idle(id_suffix='', wait_secs=1):
 
 def ColdReset():
   """Triggers a cold reset via embedded controller (EC)."""
-  with TestGroup(id='ColdReset', label_zh=u'冷重启'):
+  with TestGroup(id='ColdReset', label=_('Cold Reset')):
     FactoryTest(
         id='ECReset',
-        label_en='EC Cold Reset',
-        label_zh=u'EC 冷重启',
+        label=_('EC Cold Reset'),
         pytest_name='line_check_item',
         dargs=dict(
             title=_('Cold Reset at Shutdown'),
@@ -340,16 +338,14 @@ def ColdReset():
 
     HaltStep(
         id='Halt',
-        label_zh=u'关机')
+        label=_('Halt'))
 
 
 def WarmReboot(id_suffix='', iterations=1):
   """Tests warm reboot for multiple iterations."""
   RebootStep(
       id='Reboot' + str(id_suffix),
-      label_en='Reboot (%s %s)' % (
-          iterations, 'time' if iterations == 1 else 'times'),
-      label_zh=u'重新开机 (%s 次)' % iterations,
+      label=i18n.StringFormat(_('Reboot ({count} times)'), count=iterations),
       iterations=iterations)
 
 
@@ -365,11 +361,11 @@ def WarmColdReboot(args):
     return
   iterations = args.warm_cold_reboot_iterations
   with TestGroup(id='WarmColdReboot',
-                 label_en='WarmColdReboot (%s %s)' % (
-                     iterations, 'time' if iterations == 1 else 'times'),
-                 label_zh=u'冷热重启测试 (%s 次)' % iterations):
+                 label=i18n.StringFormat(_('WarmColdReboot ({count} times)'),
+                                         count=iterations)):
     for i in range(iterations):
-      with TestGroup(id='WarmColdReboot%d' % i, label_zh=u'冷热重启%d' % i):
+      with TestGroup(id='WarmColdReboot%d' % i,
+                     label=i18n.StringFormat(_('WarmColdReboot{i}'), i=i)):
         if i % 2 == 0:
           ColdReset()
         else:
@@ -378,19 +374,19 @@ def WarmColdReboot(args):
 
         FactoryTest(
             id='CheckWLAN',
-            label_zh=u'检查无线网络',
+            label=_('Check WLAN'),
             pytest_name='line_check_item',
             dargs=dict(
-                title=_('CheckWLAN'),
+                title=_('Check WLAN'),
                 items=[(_('WLAN command'),
                         'ifconfig %s' % args.wlan_iface, False)]))
 
         FactoryTest(
             id='CheckBT',
-            label_zh=u'检查蓝牙',
+            label=_('Check Bluetooth'),
             pytest_name='line_check_item',
             dargs=dict(
-                title=_('CheckBT'),
+                title=_('Check Bluetooth'),
                 items=[(_('BT command'),
                         'hciconfig %s' % args.bluetooth_iface, False)]))
 
@@ -401,19 +397,19 @@ def ClearTPM(args):
   """Tests clear TPM for multiple iterations."""
   iterations = args.clear_tpm_iterations
   with TestGroup(id='ClearTPM',
-                 label_en='ClearTPM (%s %s)' % (
-                     iterations, 'time' if iterations == 1 else 'times'),
-                 label_zh=u'清除 TPM (%s 次)' % iterations):
+                 label=i18n.StringFormat(_('Clear TPM ({count} times)'),
+                                         count=iterations)):
     for i in range(iterations):
-      with TestGroup(id='ClearTPM%d' % i, label_zh=u'清除 TPM%d' % i):
+      with TestGroup(id='ClearTPM%d' % i,
+                     label=i18n.StringFormat(_('Clear TPM {i}'), i=i)):
         FactoryTest(
             id='TPMVerifyEK',
-            label_zh=u'TPM 证书',
+            label=_('TPM Verify EK'),
             pytest_name='tpm_verify_ek')
 
         FactoryTest(
             id='RequestClearTPM',
-            label_zh=u'请求清除 TPM',
+            label=_('Request Clear TPM'),
             pytest_name='clear_tpm_owner_request')
 
         WarmReboot(id_suffix='RebootAfterClearTPM')
@@ -421,10 +417,10 @@ def ClearTPM(args):
 
         FactoryTest(
             id='VerifyTPM',
-            label_zh=u'验证 TPM',
+            label=_('Verify TPM'),
             pytest_name='line_check_item',
             dargs=dict(
-                title=_('VerifyTPM'),
+                title=_('Verify TPM'),
                 items=[(_('verify TPM command'),
                         'gooftool verify_tpm', False)]))
 
@@ -434,10 +430,10 @@ def ClearTPM(args):
 
 def StressTest(args):
   """StressAppTest, graphics and camera tests for each RunIn iteration."""
-  with FactoryTest(id='Stress', label_zh=u'集合压力测试', parallel=True):
+  with FactoryTest(id='Stress', label=_('Stress'), parallel=True):
     OperatorTest(
         id='Graphics',
-        label_zh=u'图像',
+        label=_('Graphics'),
         pytest_name='webgl_aquarium',
         dargs=dict(
             duration_secs=args.run_in_sat_duration_secs))
@@ -445,7 +441,7 @@ def StressTest(args):
     # Watch if the LED light of camera is on.
     FactoryTest(
         id='Camera',
-        label_zh=u'相机',
+        label=_('Camera'),
         pytest_name='camera',
         dargs=dict(
             timeout_secs=args.run_in_sat_duration_secs,
@@ -454,14 +450,14 @@ def StressTest(args):
 
     FactoryTest(
         id='RandomNumberGen',
-        label_zh=u'乱数产生',
+        label=_('Random Number Generation'),
         pytest_name='urandom',
         dargs=dict(
             duration_secs=args.run_in_sat_duration_secs))
 
     FactoryTest(
         id='StressAppTest',
-        label_zh=u'压力测试',
+        label=_('Stress App Test'),
         pytest_name='stressapptest',
         dargs=dict(
             seconds=args.run_in_sat_duration_secs,
@@ -471,7 +467,7 @@ def StressTest(args):
 
     FactoryTest(
         id='Countdown',
-        label_zh=u'倒数计时',
+        label=_('Countdown'),
         pytest_name='countdown',
         dargs=dict(
             title=_('Run-In Tests'),
@@ -484,7 +480,7 @@ def StressTest(args):
     if args.wlan_periodic_ping_test:
       FactoryTest(
           id='WLANPingTest',
-          label_zh=u'无线网路连线测试',
+          label=_('WLAN Ping Test'),
           pytest_name='ping_test',
           dargs=dict(
               host=args.wlan_ping_host,
@@ -497,12 +493,12 @@ def StressTest(args):
 
 def DozingStress(args):
   """Suspend/resume test for each RunIn iteration."""
-  with FactoryTest(id='DozingStress', label_zh=u'睡眠内存压力测试',
+  with FactoryTest(id='DozingStress', label=_('Dozing Stress'),
                    parallel=True):
     # if StressAppTest fails here, it's likely memory issue.
     FactoryTest(
         id='StressAppTest',
-        label_zh=u'压力测试',
+        label=_('Stress App Test'),
         pytest_name='stressapptest',
         dargs=dict(
             seconds=args.run_in_dozing_sat_duration_secs,
@@ -511,10 +507,8 @@ def DozingStress(args):
     # Takes about 30 minutes for 60 iterations
     FactoryTest(
         id='SuspendResume',
-        label_en='SuspendResume (%d %s)' % (
-            args.run_in_resume_iterations,
-            'time' if args.run_in_resume_iterations == 1 else 'times'),
-        label_zh=u'睡眠、唤醒 (%s 次)' % args.run_in_resume_iterations,
+        label=i18n.StringFormat(_('SuspendResume ({count} times)'),
+                                count=args.run_in_resume_iterations),
         pytest_name='suspend_resume',
         retries=args.run_in_resume_auto_retries,
         dargs=dict(
@@ -525,7 +519,7 @@ def DozingStress(args):
 
     OperatorTest(
         id='Countdown',
-        label_zh=u'倒数计时',
+        label=_('Countdown'),
         pytest_name='countdown',
         dargs=dict(
             title=_('Dozing Stress Tests'),
@@ -540,11 +534,11 @@ def RunInStress(args):
   """RunIn Stress tests for multiple iterations."""
   iterations = args.run_in_stress_iterations
   with TestGroup(id='RunInStress',
-                 label_en='RunInStress (%s %s)' % (
-                     iterations, 'time' if iterations == 1 else 'times'),
-                 label_zh=u'压力测试 (%s 次)' % iterations):
+                 label=i18n.StringFormat(_('RunInStress ({count} times)'),
+                                         count=iterations)):
     for i in range(iterations):
-      with TestGroup(id='RunInStress%d' % i, label_zh='压力测试%d' %i):
+      with TestGroup(id='RunInStress%d' % i,
+                     label=i18n.StringFormat(_('RunInStress{i}'), i=i)):
         StressTest(args)
         Barrier('Stress', pass_without_prompt=True)
         WarmReboot(id_suffix='AfterStress')
@@ -603,6 +597,6 @@ def CreateTestLists():
     with TestList('generic_rrt', 'Generic Rolling Reliability'):
       OperatorTest(
           id='MessageNotSupport',
-          label_zh=u'不支援',
+          label=_('Not Supported'),
           pytest_name='message',
           dargs={'html': _('This test list does not support station mode.')})

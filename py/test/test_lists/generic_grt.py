@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -31,7 +29,7 @@ def GRT(args):
     if args.fully_imaged:
       OperatorTest(
           id='VerifyRootPartition',
-          label_zh=u'验证根磁區',
+          label=_('Verify Root Partition'),
           pytest_name='verify_root_partition')
 
       args.Barrier('GrtVerifyRootPartition',
@@ -39,12 +37,12 @@ def GRT(args):
                    accessibility=True)
 
     if args.factory_environment:
-      with OperatorTest(id='ShopFloor', label_zh=u'ShopFloor'):
+      with OperatorTest(id='ShopFloor', label=_('ShopFloor')):
         # Double checks the serial number is correct.
         # The one in device_data matches the one on the sticker.
         OperatorTest(
             id='Scan',
-            label_zh=u'扫描机器编号',
+            label=_('Scan Serial Number'),
             has_automator=True,
             pytest_name='scan',
             dargs=dict(
@@ -56,7 +54,7 @@ def GRT(args):
         # database change.
         OperatorTest(
             id='WriteHWID',
-            label_zh=u'硬体代号',
+            label=_('Write HWID'),
             pytest_name='hwid_v3')
 
         args.Barrier('GRTVerifyHWID', pass_without_prompt=True)
@@ -65,7 +63,7 @@ def GRT(args):
       # 3G model only. Checks there is no sim card tray.
       OperatorTest(
           id='CheckNoSIMCardTray',
-          label_zh=u'检查是否无 SIM 卡盘',
+          label=_('Check No SIM Card Tray'),
           pytest_name='probe_sim_card_tray',
           dargs=dict(tray_already_present=False),
           run_if=args.HasCellular)
@@ -73,7 +71,7 @@ def GRT(args):
       # 3G model only. Checks there is no sim card.
       OperatorTest(
           id='CheckSIMCardNotPresent',
-          label_zh=u'检查 SIM 卡不存在',
+          label=_('Check SIM Card Not Present'),
           pytest_name='probe_sim',
           run_if=args.HasCellular,
           dargs=dict(only_check_simcard_not_present=True))
@@ -82,7 +80,7 @@ def GRT(args):
       # LTE sim card or module was replaced before finalize.
       OperatorTest(
           id='ProbeLTEIMEIICCID',
-          label_zh=u'提取 LTE IMEI ICCID',
+          label=_('Probe LTE IMEI ICCID'),
           pytest_name='probe_cellular_info',
           run_if=args.HasLTE,
           dargs=dict(
@@ -94,13 +92,13 @@ def GRT(args):
     # Requests to clear TPM at next boot.
     FactoryTest(
         id='RequestClearTPM',
-        label_zh=u'请求清除 TPM',
+        label=_('Request Clear TPM'),
         pytest_name='clear_tpm_owner_request')
 
     # Reboot to clear TPM.
     RebootStep(
         id='RebootToClearTPM',
-        label_zh=u'重新开机',
+        label=_('Reboot To Clean TPM'),
         iterations=1)
 
     args.Barrier('GRTReadyToFinalize', pass_without_prompt=True)
@@ -108,7 +106,7 @@ def GRT(args):
     if args.factory_environment:
       OperatorTest(
           id='Finish',
-          label_zh=u'结束',
+          label=_('Finish'),
           has_automator=True,
           pytest_name='message',
           require_run=(Passed('GoogleRequiredTests.BarrierGRTReadyToFinalize')
@@ -121,7 +119,7 @@ def GRT(args):
       # PLEASE DO NOT REMOVE THIS TEST IN PRODUCTION RELEASES.
       OperatorTest(
           id='Finalize',
-          label_zh=u'最终程序',
+          label=_('Finalize'),
           has_automator=True,
           pytest_name='finalize',
           dargs=dict(

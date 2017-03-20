@@ -15,7 +15,7 @@ them are installed into the system.
 
     FactoryTest(
         id='RFConductive',
-        label_zh=u'射频传导测试',
+        label=_('RF Conductive'),
         pytest_name='rf_graphyte',
         dargs={
             'graphyte_config_file': 'conductive_config.json',

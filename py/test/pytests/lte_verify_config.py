@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,7 +9,7 @@ Usage example::
   FactoryTest(
       exclusive=[plugin.RESOURCE.NETWORKING],
       id='LTEVerifyConfig',
-      label_zh=u'确认 LTE 参数',
+      label=_('LTE Verify Config'),
       pytest_name='lte_verify_config',
       dargs={
           'modem_path': 'ttyACM0',
