@@ -52,6 +52,8 @@ th, td {
 }
 """
 
+_EXTERNAL_DIR = '/run/factory/external'
+
 
 class Report(unittest.TestCase):
   """A factory test to report test status."""
@@ -72,6 +74,10 @@ class Report(unittest.TestCase):
       Arg('accessibility', bool,
           'Display bright red background when the overall status is not PASSED',
           default=False, optional=True),
+      Arg('run_factory_external_name', str,
+          'Notify DUT that external test is over, will use DUT interface to '
+          'write result file under /run/factory/external/<NAME>.',
+          default=None, optional=True),
   ]
 
   def _SetFixtureStatusLight(self, all_pass):
@@ -124,6 +130,20 @@ class Report(unittest.TestCase):
 
     if self.args.bft_fixture:
       self._SetFixtureStatusLight(all_pass)
+
+    if self.args.run_factory_external_name:
+      file_path = self.dut.path.join(_EXTERNAL_DIR,
+                                     self.args.run_factory_external_name)
+      if all_pass:
+        self.dut.WriteFile(file_path, 'PASS')
+      else:
+        report = ''
+        for t in test.parent.walk():
+          if not t.is_leaf():
+            continue
+          state = states.get(t.path)
+          report += '%s: %s\n' % (t.path, state.status)
+        self.dut.WriteFile(file_path, report)
 
     if all_pass and self.args.pass_without_prompt:
       return
