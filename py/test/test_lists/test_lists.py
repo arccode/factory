@@ -133,18 +133,17 @@ def FactoryTest(*args, **kwargs):
   Args:
     label_en: An English label.
     label_zh: A Chinese label.
-    autotest_name: The name of the autotest to run.
     pytest_name: The name of the pytest to run (relative to
       cros.factory.test.pytests).
     invocation_target: The function to execute to run the test
       (within the Goofy process).
     kbd_shortcut: The keyboard shortcut for the test.
-    dargs: Autotest arguments.
+    dargs: pytest arguments.
     parallel: Whether the subtests should run in parallel.
     subtests: A list of tests to run inside this test.  In order
       to make conditional construction easier, this may contain None items
       (which are removed) or nested arrays (which are flattened).
-    id: A unique ID for the test (defaults to the autotest name).
+    id: A unique ID for the test.
     has_ui: True if the test has a UI. (This defaults to True for
       OperatorTest.) If has_ui is not True, then when the test is
       running, the statuses of the test and its siblings will be shown in

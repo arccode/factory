@@ -259,9 +259,6 @@ class Options(object):
   """The default UI language (must be ``'en'`` for English or ``'zh'``
   for Chinese."""
 
-  preserve_autotest_results = ['*.DEBUG', '*.INFO']
-  """Discard all autotest results that do not match these globs."""
-
   engineering_password_sha1 = None
   """SHA1 hash for a engineering password in the UI.  Use None to
   always enable engingeering mode.
@@ -574,7 +571,7 @@ class FactoryTest(object):
   # display the summary of running tests.
   has_ui = False
 
-  REPR_FIELDS = ['test_list_id', 'id', 'autotest_name', 'pytest_name', 'dargs',
+  REPR_FIELDS = ['test_list_id', 'id', 'pytest_name', 'dargs',
                  'dut_options', 'never_fails', '_parallel', '_teardown',
                  'enable_services', 'disable_services', 'no_host',
                  'exclusive_resources', 'action_on_failure']
@@ -587,7 +584,6 @@ class FactoryTest(object):
                label_en='',
                label_zh='',
                has_automator=False,
-               autotest_name=None,
                pytest_name=None,
                invocation_target=None,
                kbd_shortcut=None,
@@ -623,7 +619,6 @@ class FactoryTest(object):
     self.label_zh = (label_zh if isinstance(label_zh, unicode)
                      else label_zh.decode('utf-8'))
     self.has_automator = has_automator
-    self.autotest_name = autotest_name
     self.pytest_name = pytest_name
     self.invocation_target = invocation_target
     # TODO(henryhsu): prepare and finish should support TestGroup also
@@ -698,8 +693,6 @@ class FactoryTest(object):
 
       if id:
         self.id = id
-      elif autotest_name:
-        self.id = autotest_name
       elif pytest_name:
         self.id = self.pytest_name_to_id(pytest_name)
       else:
@@ -716,8 +709,8 @@ class FactoryTest(object):
 
     assert len(filter(
         None,
-        [autotest_name, pytest_name, invocation_target,
-         subtests])) <= 1, ('No more than one of autotest_name, pytest_name, '
+        [pytest_name, invocation_target,
+         subtests])) <= 1, ('No more than one of pytest_name, '
                             'invocation_target, and subtests must be specified')
 
     if has_ui is not None:
@@ -729,11 +722,8 @@ class FactoryTest(object):
 
     # Auto-assign label text.
     if not self.label_en:
-      if self.id and (self.id != self.autotest_name):
+      if self.id:
         self.label_en = self.id
-      elif self.autotest_name:
-        # autotest_name is type_NameInCamelCase.
-        self.label_en = self.autotest_name.partition('_')[2]
 
   @staticmethod
   def pytest_name_to_id(pytest_name):
@@ -1170,18 +1160,12 @@ class TestGroup(FactoryTest):
   pass
 
 
-class FactoryAutotestTest(FactoryTest):
-  """Autotest-based factory test."""
-  pass
-
-
-class OperatorTest(FactoryAutotestTest):
+class OperatorTest(FactoryTest):
   """Factory test with UI to interact with operators."""
   has_ui = True
 
 
 AutomatedSequence = FactoryTest
-AutomatedSubTest = FactoryAutotestTest
 
 
 class ShutdownStep(OperatorTest):
@@ -1199,8 +1183,7 @@ class ShutdownStep(OperatorTest):
 
   def __init__(self, operation, delay_secs=5, **kwargs):
     super(ShutdownStep, self).__init__(**kwargs)
-    assert not (self.autotest_name or self.pytest_name), (
-        'Reboot/halt steps may not have an autotest/pytest')
+    assert not self.pytest_name, 'Reboot/halt steps may not have an pytest'
     assert not self.subtests, 'Reboot/halt steps may not have subtests'
     assert operation in [self.REBOOT, self.HALT, self.FULL_REBOOT]
     assert delay_secs >= 0
