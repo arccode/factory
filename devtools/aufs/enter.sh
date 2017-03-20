@@ -11,6 +11,21 @@ DEFINE_boolean simple "${FLAGS_TRUE}" \
     "will mount OVERLAY_DIR as writable, TEMP_DIR will not be mounted" "s"
 
 
+equery_outside_chroot() {
+  local ebuild_name="$1"
+
+  local equery_cmd="equery-${BOARD} which ${ebuild_name}"
+  local sed_cmd='sed "s@${CROS_WORKON_SRCROOT}@${EXTERNAL_TRUNK_PATH}@"'
+
+  # Since cros_sdk use an interactive shell to execute our command, there might
+  # be other outputs (e.g. output while loading bashrc).  We only keep the last
+  # line which ends with ebuild
+  (set -o pipefail
+   (cros_sdk sh -c "set -o pipefail; ${equery_cmd} | ${sed_cmd}") | \
+       grep 'ebuild$' | tail -n 1)
+}
+
+
 main() {
   FLAGS "$@" || exit $?
   eval set -- "${FLAGS_ARGV}"
@@ -22,8 +37,15 @@ main() {
     else
       echo "${BOARD}"
     fi
-    EBUILD_PATH="$("equery-${BOARD}" which factory-board || \
-                   "equery-${BOARD}" which chromeos-factory-board)"
+
+    if [ -n "${CROS_WORKON_SRCROOT}" ]; then
+      # We are inside chroot
+      EBUILD_PATH="$("equery-${BOARD}" which factory-board || \
+                     "equery-${BOARD}" which chromeos-factory-board)"
+    else
+      EBUILD_PATH="$(equery_outside_chroot factory-board || \
+                     equery_outside_chroot chromeos-factory-board)"
+    fi
     OVERLAY_DIR="$(realpath "$(dirname "${EBUILD_PATH}")/files")"
   fi
 
