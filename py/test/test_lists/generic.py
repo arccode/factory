@@ -573,7 +573,7 @@ def SetOptions(options, args):
                                          'a795d7b')
 
     # - Default to Chinese language
-    options.ui_lang = 'zh'
+    options.ui_locale = 'zh-CN'
 
     # Enable/Disable background event log syncing
     # Set to None or 0 to disable it.
@@ -623,7 +623,7 @@ def CreateExperimentTestList():
     test_list.options.auto_run_on_start = False
     test_list.options.stop_on_failure = True
     test_list.options.engineering_password_sha1 = None
-    test_list.options.ui_lang = 'zh'
+    test_list.options.ui_locale = 'zh-CN'
     generic_experiment.Experiment(args)
     generic_run_in.RunIn(args)
 

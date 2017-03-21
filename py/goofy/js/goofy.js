@@ -647,14 +647,11 @@ cros.factory.Goofy = function() {
   this.pathNodeIdMap = {};
 
   /**
-   * Whether Chinese mode is currently enabled.
+   * What locale is currently enabled.
    *
-   * TODO(jsalz): Generalize this to multiple languages (but this isn't
-   * really necessary now).
-   *
-   * @type {boolean}
+   * @type {string}
    */
-  this.zhMode = false;
+  this.locale = 'en-US';
 
   /**
    * The tooltip for version number information.
@@ -1016,7 +1013,7 @@ cros.factory.Goofy.prototype.preInit = function() {
  * Starts the UI.
  */
 cros.factory.Goofy.prototype.init = function() {
-  this.initLanguageSelector();
+  this.initLocaleSelector();
   this.initSplitPanes();
 
   // Listen for keyboard shortcuts.
@@ -1078,22 +1075,24 @@ cros.factory.Goofy.prototype.init = function() {
 };
 
 /**
- * Sets up the language selector.
+ * Sets up the locale selector.
  */
-cros.factory.Goofy.prototype.initLanguageSelector = function() {
+cros.factory.Goofy.prototype.initLocaleSelector = function() {
   goog.events.listen(
-      document.getElementById('goofy-language-selector'),
+      document.getElementById('goofy-locale-selector'),
       goog.events.EventType.CLICK, function(event) {
-        this.zhMode = !this.zhMode;
+        // TODO(pihsun): Do this properly when we have a better locale selector.
+        this.locale = this.locale == 'en-US' ? 'zh-CN' : 'en-US';
         this.updateCSSClasses();
-        this.sendRpc('set_shared_data', ['ui_lang', this.zhMode ? 'zh' : 'en']);
+        this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
       }, false, this);
 
   this.updateCSSClasses();
-  this.sendRpc('get_shared_data', ['ui_lang'], function(/** string */ lang) {
-    this.zhMode = lang == 'zh';
-    this.updateCSSClasses();
-  });
+  this.sendRpc(
+      'get_shared_data', ['ui_locale'], function(/** string */ locale) {
+        this.locale = locale;
+        this.updateCSSClasses();
+      });
 };
 
 /**
@@ -1149,14 +1148,15 @@ cros.factory.Goofy.prototype.getOrCreateInvocation = function(
 };
 
 /**
- * Updates language classes in a document based on the current value of
- * zhMode.
+ * Updates classes in a document based on the current settings.
  * @param {Document} doc
  */
 cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
   if (doc.body) {
-    goog.dom.classlist.enable(doc.body, 'goofy-lang-en-US', !this.zhMode);
-    goog.dom.classlist.enable(doc.body, 'goofy-lang-zh-CN', this.zhMode);
+    for (const locale of cros.factory.i18n.locales) {
+      goog.dom.classlist.enable(
+          doc.body, 'goofy-locale-' + locale, locale == this.locale);
+    }
     goog.dom.classlist.enable(
         doc.body, 'goofy-engineering-mode', this.engineeringMode);
     goog.dom.classlist.enable(
@@ -1170,8 +1170,7 @@ cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
 };
 
 /**
- * Updates language classes in the UI based on the current value of
- * zhMode.
+ * Updates classes in the UI based on the current settings.
  */
 cros.factory.Goofy.prototype.updateCSSClasses = function() {
   this.updateCSSClassesInDocument.call(this, document);

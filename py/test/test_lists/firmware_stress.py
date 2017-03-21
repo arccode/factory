@@ -310,7 +310,7 @@ def SetOptions(test_list, args):
         '8c19cad459f97de3f8c836c794d9a0060a795d7b')
 
     # - Default to English language
-    options.ui_lang = 'en'
+    options.ui_locale = 'en-US'
 
     # Enable/Disable background event log syncing
     # Set to None or 0 to disable it.

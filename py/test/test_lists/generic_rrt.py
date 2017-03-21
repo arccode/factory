@@ -232,7 +232,7 @@ def SetOptions(test_list, args):
     #   engineering mode
     options.engineering_password_sha1 = args.engineering_password_sha1
     # - Default to Chinese language
-    options.ui_lang = 'zh'
+    options.ui_locale = 'zh-CN'
 
     # Enable system log rotation.
     options.disable_log_rotation = False

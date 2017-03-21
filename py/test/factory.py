@@ -256,9 +256,12 @@ class Options(object):
   """If set to True, the test harness will perform an auto-run whenever
   the operator switches to any test."""
 
-  ui_lang = 'en'
+  ui_lang = None
   """The default UI language (must be ``'en'`` for English or ``'zh'``
-  for Chinese."""
+  for Chinese. Deprecated."""
+
+  ui_locale = 'en-US'
+  """The default UI locale."""
 
   engineering_password_sha1 = None
   """SHA1 hash for a engineering password in the UI.  Use None to

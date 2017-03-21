@@ -546,9 +546,13 @@ class UI(object):
           except Exception as e:
             self.Fail(str(e))
 
+  def GetUILocale(self):
+    """Returns current enabled locale in UI."""
+    return factory.get_shared_data('ui_locale')
+
   def GetUILanguage(self):
     """Returns current enabled language in UI."""
-    return factory.get_shared_data('ui_lang')
+    return self.GetUILocale().split('-')[0]
 
   def PlayAudioFile(self, audio_file):
     """Plays an audio file in the given path."""
