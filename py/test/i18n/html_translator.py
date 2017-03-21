@@ -201,4 +201,6 @@ def TranslateHTML(html, keyword_classes=None):
   Raises:
     ValueError: If the input HTML contains unbalanced tag.
   """
+  if isinstance(html, str):
+    html = html.decode('UTF-8')
   return HTMLTranslator(keyword_classes).Run(html)

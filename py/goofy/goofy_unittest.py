@@ -203,11 +203,12 @@ class GoofyTest(unittest.TestCase):
       server.RegisterPath(
           '/',
           os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static')).InAnyOrder()
+      server.RegisterData('/index.html', 'text/html', IgnoreArg()).InAnyOrder()
       server.AddRPCInstance(goofy_proxy.STATE_URL, self.state).InAnyOrder()
       server.AddHTTPGetHandler('/event', IgnoreArg()).InAnyOrder()
       server.AddHTTPGetHandler('/pty', IgnoreArg()).InAnyOrder()
-      server.AddHTTPGetHandler(
-          '/js/goofy-translations.js', IgnoreArg()).InAnyOrder()
+      server.RegisterData('/js/goofy-translations.js', 'application/javascript',
+                          IgnoreArg()).InAnyOrder()
 
     if self.test_list:
       test_list = _BuildTestList(self.test_list, self.options)

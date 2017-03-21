@@ -52,6 +52,7 @@ from cros.factory.test.event_log import GetBootSequence
 from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
+from cros.factory.test.i18n import html_translator
 from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
@@ -300,6 +301,11 @@ class Goofy(GoofyBase):
     # Setup static file path
     self.goofy_server.RegisterPath(
         '/', os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static'))
+    # index.html needs to be preprocessed.
+    index_path = os.path.join(paths.FACTORY_PACKAGE_PATH,
+                              'goofy/static/index.html')
+    index_html = html_translator.TranslateHTML(file_utils.ReadFile(index_path))
+    self.goofy_server.RegisterData('/index.html', 'text/html', index_html)
 
   def init_state_instance(self):
     # Before starting state server, remount stateful partitions with
@@ -317,14 +323,8 @@ class Goofy(GoofyBase):
 
   def init_i18n(self):
     js_data = 'var goofy_i18n_data = %s;' % translation.GetAllI18nDataJS()
-    def _ResponseJS(request):
-      request.send_response(200)
-      request.send_header('Content-Type', 'application/javascript')
-      request.send_header('Content-Length', len(js_data))
-      request.end_headers()
-      request.wfile.write(js_data)
-    self.goofy_server.AddHTTPGetHandler(
-        '/js/goofy-translations.js', _ResponseJS)
+    self.goofy_server.RegisterData('/js/goofy-translations.js',
+                                   'application/javascript', js_data)
 
   def start_event_server(self):
     self.event_server = EventServer()

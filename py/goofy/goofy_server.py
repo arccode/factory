@@ -240,6 +240,7 @@ class GoofyServer(SocketServer.ThreadingMixIn,
     return uri_path
 
   @sync_utils.Synchronized
+  @type_utils.UnicodeToStringArgs
   def URLForData(self, mime_type, data, expiration_secs=None):
     """Returns a URL that can be used to serve a static collection of bytes.
 
@@ -250,20 +251,8 @@ class GoofyServer(SocketServer.ThreadingMixIn,
           the data will expire.
     """
     uuid = str(uuid4())
-    expiration_deadline = None
-
-    if expiration_secs:
-      now = time.time()
-      expiration_deadline = now + expiration_secs
-      self._generated_data_expiration.put((expiration_deadline, uuid))
-
     uri_path = '%s/%s' % (self._PREFIX_GENERATED_DATA, uuid)
-    self._resolver.AddHandler(
-        uri_path,
-        lambda handler: self._HandleGetGeneratedData(
-            handler, mime_type, data, expiration_deadline))
-
-    self._CheckGeneratedDataExpired()
+    self.RegisterData(uri_path, mime_type, data, expiration_secs)
     return uri_path
 
   def _HandleGetGeneratedData(self, handler, mime_type, data,
@@ -292,8 +281,7 @@ class GoofyServer(SocketServer.ThreadingMixIn,
         break
 
       if item[0] < now:
-        self._resolver.RemoveHandler(
-            '%s/%s' % (self._PREFIX_GENERATED_DATA, item[1]))
+        self._resolver.RemoveHandler(item[1])
       else:
         # Not expired yet; put it back and we're done
         self._generated_data_expiration.put(item)
@@ -303,6 +291,34 @@ class GoofyServer(SocketServer.ThreadingMixIn,
   def RegisterPath(self, url_path, local_path):
     """Register url_path to the local_path on the real file system"""
     self._resolver.AddPath(url_path, local_path)
+
+  @sync_utils.Synchronized
+  @type_utils.UnicodeToStringArgs
+  def RegisterData(self, url_path, mime_type, data, expiration_secs=None):
+    """Register url_path to the data.
+
+    URLForData should be used unless control for url_path is necessary.
+
+    Args:
+      url_path: The path to register
+      mime_type: MIME type for the data
+      data: Data to serve
+      expiration_secs: If not None, the number of seconds in which
+          the data will expire.
+    """
+    expiration_deadline = None
+
+    if expiration_secs is not None:
+      now = time.time()
+      expiration_deadline = now + expiration_secs
+      self._generated_data_expiration.put((expiration_deadline, url_path))
+
+    self._resolver.AddHandler(
+        url_path,
+        lambda handler: self._HandleGetGeneratedData(
+            handler, mime_type, data, expiration_deadline))
+
+    self._CheckGeneratedDataExpired()
 
 class GoofyServerRPC(object):
   """Native functions supported by GoofyServer."""

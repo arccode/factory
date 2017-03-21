@@ -152,6 +152,30 @@ class GoofyServerTest(unittest.TestCase):
     self.assertEqual(data, response.read())
     response.close()
 
+  def testRegisterData(self):
+    data = u'<html><body><h1>Hello</h1></body></html>'
+
+    url = '/some/page.html'
+    self.server.RegisterData(url, 'text/html', data)
+
+    response = urllib2.urlopen(
+        'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
+    self.assertEqual(200, response.getcode())
+    self.assertEqual(data, response.read())
+    response.close()
+
+  def testRegisterDataUnicode(self):
+    data = u'<html><body><h1>Hello\u4e16\u754c</h1></body></html>'
+
+    url = '/some/page.html'
+    self.server.RegisterData(url, 'text/html', data)
+
+    response = urllib2.urlopen(
+        'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
+    self.assertEqual(200, response.getcode())
+    self.assertEqual(data, response.read().decode('UTF-8'))
+    response.close()
+
   def testGoofyServerRPC(self):
     proxy = jsonrpc.ServerProxy(
         'http://%s:%d/' % (net_utils.LOCALHOST, self.port))

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-03-21 13:45+CST\n"
+"POT-Creation-Date: 2017-03-21 17:06+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -13,6 +13,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
+
+#: ../py/goofy/static/index.html
+msgid "Engineering mode"
+msgstr "工程模式"
+
+#: ../py/goofy/static/index.html
+msgid "Update available. Click to update."
+msgstr "有可用的更新。点击更新"
 
 #: ../py/goofy/static/ui_templates/template_one_scrollable_section.html
 #: ../py/goofy/static/ui_templates/template_one_section.html
