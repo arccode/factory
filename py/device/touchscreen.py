@@ -17,8 +17,20 @@ _I2C_DEVICES_PATH = '/sys/bus/i2c/devices'
 class Touchscreen(component.DeviceComponent):
   """Touchscreen Component."""
 
-  def __init__(self, dut):
-    super(Touchscreen, self).__init__(dut)
+  def GetController(self, index):
+    """Gets the touchscreen controller with specified index.
+
+    Args:
+      index: index of the touchscreen device.
+
+    Returns:
+      The corresponding touchscreen controller.
+    """
+    raise NotImplementedError
+
+
+class TouchscreenController(component.DeviceComponent):
+  """Touchscreen Controller."""
 
   def SetSubmatrixSize(self, matrix_size):
     """Specify the size of submatrix that we want to check.
@@ -61,11 +73,11 @@ class Touchscreen(component.DeviceComponent):
     raise NotImplementedError
 
 
-class AtmelTouchscreen(Touchscreen):
+class AtmelTouchscreenController(TouchscreenController):
   """Touchscreen component for Atmel 1664s touch controller."""
 
   def __init__(self, dut, i2c_bus_id=None):
-    super(AtmelTouchscreen, self).__init__(dut)
+    super(AtmelTouchscreenController, self).__init__(dut)
     if i2c_bus_id is None:
       i2c_bus_id = self._ProbeI2CBusId()
     i2c_device_path = dut.path.join(_I2C_DEVICES_PATH, i2c_bus_id)
