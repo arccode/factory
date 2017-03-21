@@ -19,20 +19,21 @@ class ScanAutomator(Automator):
                                        AutomationMode.FULL))
   def automateScanDefault(self, mlb_serial_number=None, serial_number=None,
                           operator_id=None):
+    data_key = self.args.device_data_key or self.args.check_device_data_key
     # For scanning MLB serial number.
-    if self.args.label_en == 'MLB Serial Number':
+    if data_key == 'mlb_serial_number':
       self.uictl.SetElementValue(
           'scan-value',
           (mlb_serial_number or 'TESTMLB-%s' % net_utils.GetWLANMACAddress()))
 
     # For scanning device serial number.
-    elif self.args.label_en == 'Device Serial Number':
+    elif data_key == 'serial_number':
       self.uictl.SetElementValue(
           'scan-value',
           (serial_number or 'TESTDEV-%s' % net_utils.GetWLANMACAddress()))
 
     # For scanning operator ID.
-    elif self.args.label_en == 'Operator ID':
+    elif data_key == 'smt_operator_id':
       self.uictl.SetElementValue('scan-value', (operator_id or 'Automator'))
 
     self.uictl.PressKey(self.uictl.KEY_ENTER)
