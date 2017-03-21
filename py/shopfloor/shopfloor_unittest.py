@@ -28,6 +28,9 @@ from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
 
 
+TESTDATA_MD5SUM = 'd9d51c02d1b40da5c7ddae311ff52597'
+
+
 class ShopFloorServerTest(unittest.TestCase):
 
   def setUp(self):
@@ -120,7 +123,7 @@ class ShopFloorServerTest(unittest.TestCase):
                             'rf/wifi/calibration_config.2'])
     cell_production = set(['rf/cell/parameters.production'])
 
-    for filename in (wifi_production | wifi_calibration | cell_production):
+    for filename in wifi_production | wifi_calibration | cell_production:
       self._CreateFileAndContextAsFilename(
           os.path.join(self.parameters_dir, filename))
     self.assertEqual(set(self.proxy.ListParameters('rf/wifi/*')),
@@ -356,7 +359,7 @@ class ShopFloorServerTest(unittest.TestCase):
     for _ in xrange(20):
       md5sum = self.proxy.GetTestMd5sum()
       if md5sum:
-        self.assertEqual('18cac06201e65e060f757193c153cacb', md5sum)
+        self.assertEqual(TESTDATA_MD5SUM, md5sum)
         break
       time.sleep(0.1)
     else:

@@ -18,6 +18,7 @@ from cros.factory.shopfloor import factory_update_server
 
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+TESTDATA_MD5SUM = 'd9d51c02d1b40da5c7ddae311ff52597'
 
 
 class BasicTests(unittest.TestCase):
@@ -25,7 +26,7 @@ class BasicTests(unittest.TestCase):
   def testMd5sumCalculation(self):
     md5sum = factory_update_server.CalculateMd5sum(
         os.path.join(BASE_DIR, 'testdata/factory.tar.bz2'))
-    self.assertEqual(md5sum, '18cac06201e65e060f757193c153cacb')
+    self.assertEqual(md5sum, TESTDATA_MD5SUM)
 
 
 class FactoryUpdateServerTest(unittest.TestCase):
@@ -67,7 +68,7 @@ class FactoryUpdateServerTest(unittest.TestCase):
     self.assertTrue(self.update_server.NeedsUpdate(None))
     # Test with current md5sum
     self.assertFalse(self.update_server.NeedsUpdate(
-        '18cac06201e65e060f757193c153cacb'))
+        TESTDATA_MD5SUM))
     # Test with a different md5sum
     self.assertTrue(self.update_server.NeedsUpdate(
         'bb51d673f53129a2cc454e95e958e43e'))
@@ -83,7 +84,7 @@ class FactoryUpdateServerTest(unittest.TestCase):
     self.assertTrue(self.update_server.NeedsUpdate(None))
     # Test with current md5sum
     self.assertFalse(self.update_server.NeedsUpdate(
-        '18cac06201e65e060f757193c153cacb'))
+        TESTDATA_MD5SUM))
     # Test with a different md5sum in blacklist
     self.assertFalse(self.update_server.NeedsUpdate(
         'bb51d673f53129a2cc454e95e958e43e'))
@@ -116,9 +117,9 @@ class FactoryUpdateServerTest(unittest.TestCase):
     # extracted.
     self.assertTrue(os.path.isfile(md5file), md5file)
     with open(md5file, 'r') as f:
-      self.assertEqual('18cac06201e65e060f757193c153cacb', f.read().strip())
+      self.assertEqual(TESTDATA_MD5SUM, f.read().strip())
     self.assertTrue(os.path.isdir(os.path.join(
-        self.work_dir, 'factory/18cac06201e65e060f757193c153cacb')))
+        self.work_dir, 'factory/' + TESTDATA_MD5SUM)))
     self.assertEqual(1, self.update_server._update_count)
 
     # Kick the update server again.  Nothing should happen.
@@ -133,7 +134,7 @@ class FactoryUpdateServerTest(unittest.TestCase):
     self._CreateUpdateServer()
     self.update_server.RunOnce()
     with open(md5file, 'r') as f:
-      self.assertEqual('18cac06201e65e060f757193c153cacb', f.read().strip())
+      self.assertEqual(TESTDATA_MD5SUM, f.read().strip())
 
 if __name__ == '__main__':
   unittest.main()

@@ -28,7 +28,6 @@ from cros.factory.utils.server_utils import (RsyncModule, StartRsyncServer,
 
 
 FACTORY_DIR = 'factory'
-AUTOTEST_DIR = 'autotest'
 TARBALL_NAME = 'factory.tar.bz2'
 BLACKLIST_NAME = 'blacklist'
 LATEST_SYMLINK = 'latest'
@@ -90,7 +89,7 @@ class ChangeDetector(object):
              (last_stat.st_mtime, last_stat.st_size)))
 
 
-class FactoryUpdateServer():
+class FactoryUpdateServer(object):
   """The class to handle factory update bundle
 
   Properties:
@@ -187,7 +186,10 @@ class FactoryUpdateServer():
       return f.readline().strip()
 
   def NeedsUpdate(self, device_md5sum):
-    """Checks if the device with device_md5sum needs to get the update of current_md5sum subjected to blacklist.
+    """Checks if the device need to update.
+
+    Checks if the device with device_md5sum needs to get the update of
+    current_md5sum subjected to blacklist.
 
     Args:
       device_md5sum: The md5sum of factory environment on device.
@@ -254,11 +256,8 @@ class FactoryUpdateServer():
                         new_subfolder)
           return
 
-        missing_dirs = [
-            d for d in (FACTORY_DIR, AUTOTEST_DIR)
-            if not os.path.exists(os.path.join(new_subfolder, d))]
-        if missing_dirs:
-          logging.error('Tarball is missing directories: %r', missing_dirs)
+        if not os.path.exists(os.path.join(new_subfolder, FACTORY_DIR)):
+          logging.error('Tarball is missing directory: %r', FACTORY_DIR)
           return
 
         factory_dir = os.path.join(new_subfolder, FACTORY_DIR)
