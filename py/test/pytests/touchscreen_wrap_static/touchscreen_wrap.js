@@ -14,6 +14,7 @@
  */
 var TouchscreenTest = function(
     container, numColumns, numRows, maxRetries, demoIntervalMsecs) {
+  var _ = cros.factory.i18n.translation;
   this.container = container;
   this.numColumns = numColumns;
   this.numRows = numRows;
@@ -30,24 +31,16 @@ var TouchscreenTest = function(
   this.demoIntervalMsecs = demoIntervalMsecs;
   console.log('demo interval: ' + demoIntervalMsecs);
 
-  this.MSG_INSTRUCTION = {
-    en: 'Draw blocks from upper-left corner in sequence; Esc to fail.',
-    zh: '从左上角开始依序画格子; 按 Esc 键标记失败'};
-  this.MSG_START_UPPER_LEFT = {
-    en: 'Please start drawing from upper-left corner.',
-    zh: '请从左上角开始画格子'};
-  this.MSG_OUT_OF_SEQUENCE = {
-    en: 'Fails to draw blocks in sequence. Please try again.',
-    zh: '没依照顺序画格子！请重来'};
-  this.MSG_OUT_OF_SEQUENCE_MULTIPLE = {
-    en: 'Please leave your finger and restart from upper-left block.',
-    zh: '请移开手指并从左上角开始重画'};
-  this.MSG_LEAVE_EARLY = {
-    en: 'Finger leaving too early. Please try again.',
-    zh: '手指太早离开！请重来'};
-  this.MSG_CHECK_GODS_TOUCH = {
-    en: 'Test failed! Please test this panel carefully with Gods Touch test.',
-    zh: '触控面板测试失败. 请以Gods Touch测试软体加以仔细验证'};
+  this.MSG_INSTRUCTION =
+      _('Draw blocks from upper-left corner in sequence; Esc to fail.');
+  this.MSG_START_UPPER_LEFT = _('Please start drawing from upper-left corner.');
+  this.MSG_OUT_OF_SEQUENCE =
+      _('Fails to draw blocks in sequence. Please try again.');
+  this.MSG_OUT_OF_SEQUENCE_MULTIPLE =
+      _('Please leave your finger and restart from upper-left block.');
+  this.MSG_LEAVE_EARLY = _('Finger leaving too early. Please try again.');
+  this.MSG_CHECK_GODS_TOUCH =
+      _('Test failed! Please test this panel carefully with Gods Touch test.');
 
   this.previousX = 0;
   this.previousY = 0;
@@ -105,13 +98,14 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
   fullScreen.addEventListener(
       'touchend', this.touchEndHandler.bind(this), false);
 
-  fullScreen.appendChild(createPrompt(this.MSG_INSTRUCTION));
+  fullScreen.appendChild(createPrompt());
 
   var touchscreenTable = createTable(this.numRows, this.numColumns, 'touch',
       'touchscreen-test-block-untested');
   fullScreen.appendChild(touchscreenTable);
   $(this.container).appendChild(fullScreen);
 
+  this.prompt(this.MSG_INSTRUCTION);
   window.test.setFullScreen(true);
 };
 
@@ -491,40 +485,23 @@ TouchscreenTest.prototype.failTest = function() {
 
 /**
  * Sets prompt message
- * @param {Object} message A message object containing en and zh messages.
+ * @param {cros.factory.i18n.TranslationDict} message A message object
+ *     containing i18n messages.
  */
 TouchscreenTest.prototype.prompt = function(message) {
-  $('prompt_en').innerHTML = message.en;
-  $('prompt_zh').innerHTML = message.zh;
+  goog.dom.safe.setInnerHtml(
+      $('touchscreen_prompt'), cros.factory.i18n.i18nLabel(message));
 };
 
 /**
  * Creates an prompt element.
  *
- * It contains prompt_en and prompt_zh divs, with class goofy-label-en-US and
- * goofy-label-zh-CN, respectively so that Goofy can switch the language of
- * prompt.
- *
- * @param {{en: string, zh: string}} message A message object containing en and
- *     zh messages.
  * @return {Element} prompt div.
  */
-function createPrompt(message) {
+function createPrompt() {
   var prompt = document.createElement('div');
   prompt.className = 'touchscreen-prompt';
-
-  var en_span = document.createElement('span');
-  en_span.className = 'goofy-label-en-US';
-  en_span.id = 'prompt_en';
-  en_span.innerHTML = message.en;
-  prompt.appendChild(en_span);
-
-  var zh_span = document.createElement('span');
-  zh_span.className = 'goofy-label-zh-CN';
-  zh_span.id = 'prompt_zh';
-  zh_span.innerHTML = message.zh;
-  prompt.appendChild(zh_span);
-
+  prompt.id = 'touchscreen_prompt';
   return prompt;
 }
 

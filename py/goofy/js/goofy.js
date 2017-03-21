@@ -474,6 +474,9 @@ cros.factory.Invocation = function(goofy, path, uuid, parentUuid) {
     this.iframe.contentWindow.$ = goog.bind(function(/** string */ id) {
       return this.iframe.contentDocument.getElementById(id);
     }, this);
+    // Export the libraries to test iframe.
+    this.iframe.contentWindow.cros = cros;
+    this.iframe.contentWindow.goog = goog;
     this.iframe.contentWindow.test = this.test;
     this.iframe.contentWindow.focus();
   }
