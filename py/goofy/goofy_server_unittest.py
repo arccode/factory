@@ -77,6 +77,7 @@ class GoofyServerTest(unittest.TestCase):
         (net_utils.LOCALHOST, self.port))
     self.server_thread = threading.Thread(
         target=self.server.serve_forever,
+        args=(0.01,),
         name='GoofyServer')
     self.server_thread.start()
 
