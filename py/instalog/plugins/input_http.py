@@ -6,7 +6,7 @@
 
 """Input HTTP plugin.
 
-Receives events from HTTP requests.
+Receives events from output HTTP plugin or HTTP requests.
 Can easily send one event by curl:
 $ curl -i -X POST -F 'event={Payload}' TARGET_HOSTNAME:TARGET_PORT
 $ curl -i -X POST \
@@ -172,11 +172,11 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
       return f.name
 
   def log_request(self, code='-', size='-'):
-    """Override log_request to Instalog format."""
+    """Overrides log_request to Instalog format."""
     self.info('Send response: %s %d', self.requestline, code)
 
   def log_message(self, format, *args):  # pylint: disable=W0622
-    """Override log_message to Instalog format."""
+    """Overrides log_message to Instalog format."""
     self.warning('%s - %s', self.client_address[0], format % args)
 
 

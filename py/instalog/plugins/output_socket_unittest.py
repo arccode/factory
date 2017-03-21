@@ -22,7 +22,7 @@ from instalog import plugin_sandbox
 from instalog import testing
 
 
-class TestInputSocket(unittest.TestCase):
+class TestOutputSocket(unittest.TestCase):
 
   def setUp(self):
     self.core = testing.MockCore()

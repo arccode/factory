@@ -19,7 +19,7 @@ from instalog import testing
 from instalog.utils import net_utils
 
 
-class TestBufferSimpleFile(unittest.TestCase):
+class TestSocket(unittest.TestCase):
 
   def setUp(self):
     self.core = testing.MockCore()
