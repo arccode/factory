@@ -12,7 +12,7 @@ with the content (including empty file).
 
 The labels can use %(name)s that will be replaced by run_factory_external_name.
 
-Example:
+Example::
 
     # Test list
     OperatorTest(
@@ -37,7 +37,6 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -86,9 +85,9 @@ class WaitExternalTest(unittest.TestCase):
     self._name = self.args.run_factory_external_name
     info = {'name': self._name}
     instruction = [
-            (self.args.msg_en or 'Please run external test: %(name)s') % info,
-            (self.args.msg_zh or u'請執行外部測試: %(name)s') % info,
-            'instruction-font-size']
+        (self.args.msg_en or 'Please run external test: %(name)s') % info,
+        (self.args.msg_zh or u'請執行外部測試: %(name)s') % info,
+        'instruction-font-size']
     self.ui.SetHTML(test_ui.MakeLabel(*instruction), id=_ID_INSTRUCTION)
     self._file_path = os.path.join(
         _EXTERNAL_DIR, self.args.run_factory_external_name)
