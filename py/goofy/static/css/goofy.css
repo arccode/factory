@@ -28,15 +28,6 @@ time, mark, audio, video {
   background: transparent;
 }
 
-/* Locale-specific labels.  Default to display: none, but set display: inline
-   when the respective locale class is present. */
-.goofy-label-en-US, .goofy-label-zh-CN {
-  display: none;
-}
-.goofy-locale-en-US .goofy-label-en-US, .goofy-locale-zh-CN .goofy-label-zh-CN {
-  display: inline;
-}
-
 #goofy-div-wait {
   font-family: sans-serif;
   font-size: 300%;
@@ -239,17 +230,23 @@ h1 {
 }
 #goofy-upper-right {
   float: right;
-  padding: 4px 5px;
+  padding: 8px 5px 4px;
+  min-width: 25%;
+  display: flex;
+  align-items: center;
 }
 #goofy-locale-selector {
-  display: inline-table;
-  text-align: center;
-  vertical-align: 10px;
+  display: inline-block;
+  flex-grow: 1;
   padding-right: 4px;
-  margin-top: -8px;
 }
-#goofy-locale-selector td {
-  font-size: 55%;
+.goofy-locale-toggle {
+  text-align: center;
+  font-size: 0.6em;
+}
+.goofy-locale-dropdown {
+  text-align: left;
+  font-size: 0.8em;
 }
 #goofy-go, #goofy-terminal, #goofy-locale-selector {
   cursor: pointer;

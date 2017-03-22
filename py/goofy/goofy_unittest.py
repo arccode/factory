@@ -171,6 +171,7 @@ class GoofyTest(unittest.TestCase):
       server.AddHTTPGetHandler('/pty', IgnoreArg()).InAnyOrder()
       server.RegisterData('/js/goofy-translations.js', 'application/javascript',
                           IgnoreArg()).InAnyOrder()
+      server.RegisterData('/css/i18n.css', 'text/css', IgnoreArg()).InAnyOrder()
 
     if self.test_list:
       test_list = test_lists.BuildTestListFromString(self.test_list,

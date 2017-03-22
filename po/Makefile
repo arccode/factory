@@ -86,6 +86,7 @@ update:
 	    $(foreach locale,$(LOCALES),$(PO_DIR)/$(locale).po)))
 
 build:
+	rm -rf $(OUTPUT_DIR)
 	$(foreach locale,$(LOCALES), \
 	  mkdir -p $(OUTPUT_DIR)/$(locale)/LC_MESSAGES $(\n) \
 	  $(MSGCAT) -o - --use-first \

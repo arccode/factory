@@ -207,7 +207,8 @@ cros.factory.i18n.i18nLabel = function(text, dict = {}) {
     const translated_label = label[locale];
     const html_class = 'goofy-label-' + locale;
     children.push(goog.html.SafeHtml.create(
-        'span', {class: html_class}, translated_label));
+        'span', {class: html_class},
+        goog.html.SafeHtml.htmlEscapePreservingNewlines(translated_label)));
   }
   return goog.html.SafeHtml.concat(children);
 };
@@ -220,4 +221,27 @@ cros.factory.i18n.i18nLabel = function(text, dict = {}) {
  */
 cros.factory.i18n.i18nLabelNode = function(text, dict = {}) {
   return goog.dom.safeHtmlToNode(cros.factory.i18n.i18nLabel(text, dict));
+};
+
+/**
+ * Get a translation dict of all locales name in respected locale.
+ * For example: {'en-US': 'English', 'zh-CN': '中文'}
+ * @return {cros.factory.i18n.TranslationDict}
+ */
+cros.factory.i18n.getLocaleNames = function() {
+  const _ = cros.factory.i18n.translation;
+  // Note: this should be translated to, for example,
+  // 'currentLocaleName#zh-CN#中文'.
+  let dict = _('currentLocaleName#en-US#English');
+  for (const locale of cros.factory.i18n.locales) {
+    const val = dict[locale];
+    const idx = val.indexOf('#' + locale + '#');
+    if (idx == -1) {
+      // The entry is probably not translated, fallback to use the locale name.
+      dict[locale] = locale;
+    } else {
+      dict[locale] = val.substr(idx + 2 + locale.length);
+    }
+  }
+  return dict;
 };

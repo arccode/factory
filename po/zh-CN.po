@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-05-18 14:02+CST\n"
+"POT-Creation-Date: 2017-05-19 12:20+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -41,6 +41,18 @@ msgid ""
 msgstr ""
 "开工厂测试系统时发生错误.\n"
 "没办法继续测试."
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Switch to\n"
+"{target_locale}"
+msgstr ""
+"切换至\n"
+"{target_locale}"
+
+#: ../py/goofy/js/goofy.js
+msgid "Language"
+msgstr "语言"
 
 #: ../py/goofy/js/goofy.js
 msgid "Rebooting"
@@ -272,6 +284,10 @@ msgstr "目前不用更新工厂软体"
 #: ../py/goofy/js/goofy.js
 msgid "Update failed:"
 msgstr "更新失败了："
+
+#: ../py/goofy/js/i18n.js
+msgid "currentLocaleName#en-US#English"
+msgstr "currentLocaleName#zh-CN#中文"
 
 #: ../py/goofy/plugins/device_manager.py
 msgid "View /var/log/messages"

@@ -978,14 +978,90 @@ cros.factory.Goofy.prototype.init = function() {
  * Sets up the locale selector.
  */
 cros.factory.Goofy.prototype.initLocaleSelector = function() {
-  goog.events.listen(
-      document.getElementById('goofy-locale-selector'),
-      goog.events.EventType.CLICK, function(event) {
-        // TODO(pihsun): Do this properly when we have a better locale selector.
-        this.locale = this.locale == 'en-US' ? 'zh-CN' : 'en-US';
-        this.updateCSSClasses();
-        this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
-      }, false, this);
+  var locales = cros.factory.i18n.locales;
+  var _ = cros.factory.i18n.translation;
+  var rootNode = /** @type {!Element} */ (
+      document.getElementById('goofy-locale-selector'));
+  var localeNames = cros.factory.i18n.getLocaleNames();
+  if (locales.length == 2) {
+    var locale0 = locales[0], locale1 = locales[1];
+    // There are only two locales, a simple toggle button is enough.
+    var label = cros.factory.i18n.stringFormat(
+        _('Switch to\n{target_locale}'), {target_locale: localeNames});
+    // We have to swap the two values, so we show the other locale's prompt when
+    // in one locale.
+    var value0 = label[locale0], value1 = label[locale1];
+    label[locale0] = value1;
+    label[locale1] = value0;
+    goog.dom.appendChild(
+        rootNode,
+        goog.dom.createDom(
+            'div', {class: 'goofy-locale-toggle'},
+            cros.factory.i18n.i18nLabelNode(label)));
+    goog.events.listen(
+        rootNode,
+        goog.events.EventType.CLICK, function(event) {
+          this.locale = this.locale == locale0 ? locale1 : locale0;
+          this.updateCSSClasses();
+          this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
+        }, false, this);
+  } else if (locales.length > 2) {
+    // Show a dropdown menu for locale selection.
+    goog.dom.appendChild(
+        rootNode,
+        goog.dom.createDom(
+            'div', {class: 'goofy-locale-dropdown'},
+            cros.factory.i18n.i18nLabelNode('Language')));
+    goog.events.listen(
+        rootNode,
+        [goog.events.EventType.MOUSEDOWN, goog.events.EventType.CONTEXTMENU],
+        function(event) {
+          // We reuse the same lastContextMenu{Path, HideTime} with
+          // showTestPopup. Choose some path that would never collide with any
+          // test.
+          var localeSelectorPath = '..fake.path.localeSelector';
+          if (localeSelectorPath == this.lastContextMenuPath &&
+              (goog.now() - this.lastContextMenuHideTime <
+               goog.ui.PopupBase.DEBOUNCE_DELAY_MS)) {
+            // We just hid it; don't reshow.
+            return false;
+          }
+          this.lastContextMenuPath = localeSelectorPath;
+
+          var menu = new goog.ui.PopupMenu();
+          for (var locale of locales) {
+            var item = new goog.ui.MenuItem(localeNames[locale]);
+            goog.events.listen(
+                item, goog.ui.Component.EventType.ACTION, (function(locale) {
+                  return (function(event) {
+                    this.locale = locale;
+                    this.updateCSSClasses();
+                    this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
+                  });
+                })(locale),
+                false, this);
+            menu.addChild(item, true);
+          }
+
+          menu.render();
+          menu.showAtElement(
+              rootNode, goog.positioning.Corner.BOTTOM_LEFT,
+              goog.positioning.Corner.TOP_LEFT);
+          goog.events.listen(
+              menu, goog.ui.Component.EventType.HIDE,
+              function(/** goog.events.Event */ event) {
+                menu.dispose();
+                this.lastContextMenuHideTime = goog.now();
+                // Return focus to visible test, if any.
+                this.focusInvocation();
+              },
+              true, this);
+
+          event.stopPropagation();
+          event.preventDefault();
+        },
+        false, this);
+  }
 
   this.updateCSSClasses();
   this.sendRpc(

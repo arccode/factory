@@ -198,6 +198,7 @@ class UI(object):
         self.goofy_header = (
             '<base href="/tests/%s/">\n'
             '<link rel="stylesheet" type="text/css" href="/css/goofy.css">\n'
+            '<link rel="stylesheet" type="text/css" href="/css/i18n.css">\n'
             '<link rel="stylesheet" type="text/css" href="/css/test.css">\n' % (
                 self.test))
         self.head_seen = False

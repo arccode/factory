@@ -68,3 +68,17 @@ def MakeI18nLabelWithClass(_label, _class, **kwargs):
       html_class += ' ' + _class
     html.append(u'<span class="%s">%s</span>' % (html_class, translated_label))
   return ''.join(html)
+
+
+def GetStyleSheet():
+  """Return a stylesheet that can be used to style i18n labels properly."""
+  styles = []
+  for locale in translation.LOCALES:
+    styles.append("""
+    .goofy-label-{locale} {{
+      display: none;
+    }}
+    .goofy-locale-{locale} .goofy-label-{locale} {{
+      display: inline;
+    }}""".format(locale=locale))
+  return '\n'.join(styles)

@@ -50,6 +50,7 @@ from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.i18n import html_translator
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
@@ -318,6 +319,8 @@ class Goofy(GoofyBase):
     js_data = 'var goofy_i18n_data = %s;' % translation.GetAllI18nDataJS()
     self.goofy_server.RegisterData('/js/goofy-translations.js',
                                    'application/javascript', js_data)
+    self.goofy_server.RegisterData('/css/i18n.css',
+                                   'text/css', i18n_test_ui.GetStyleSheet())
 
   def start_event_server(self):
     self.event_server = EventServer()
