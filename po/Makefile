@@ -48,7 +48,8 @@ func-update-po = \
     mkdir -p $(dir $(1)) $(\n) \
     sed "s/PO_REVISION_DATE/$(shell date +'%Y-%m-%d %H:%M+%Z')/; \
       s/LOCALE/$(basename $(notdir $(1)))/" po-header > $(1) $(\n)) \
-  $(MSGMERGE) $(1) $(TEMP_DIR)/messages.pot -o $(TEMP_DIR)/tmp.po $(\n) \
+  $(MSGMERGE) --force-po $(1) $(TEMP_DIR)/messages.pot \
+    -o $(TEMP_DIR)/tmp.po $(\n) \
   mv -f $(TEMP_DIR)/tmp.po $(1) $(\n)
 
 func-gettext-and-update-po = \
