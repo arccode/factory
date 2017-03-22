@@ -28,12 +28,15 @@ class TemperaturesMonitor(object):
     self._last_success = False
     self._last_temperatures = []
     self._sensor_array_changed = False
+    self._dut = device_utils.CreateDUTInterface()
 
   def _GetThermalData(self):
     temperatures = []
     self._sensor_array_changed = False
     try:
-      temperatures = device_utils.CreateDUTInterface().thermal.GetTemperatures()
+      if not self._dut.link.IsLocal():
+        self._dut = device_utils.CreateDUTInterface()
+      temperatures = self._dut.thermal.GetTemperatures()
       self._last_success = True
       # Looking at the len in case the any sensor is broken during the
       # monitoring. In such case, the monitor data should be showed.
