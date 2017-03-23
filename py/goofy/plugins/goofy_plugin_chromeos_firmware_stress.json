@@ -1,46 +1,38 @@
 {
-  "backends": [
-    {
-      "name": "time_sanitizer",
+  "backends": {
+    "time_sanitizer": {
       "args": {
         "base_time_files": ["/usr/local/etc/lsb-factory",
                             "/etc/lsb-release"]
       }
     },
-    {
-      "name": "disk_monitor",
+    "disk_monitor": {
       "args": {
         "period_secs": 120,
         "stateful_usage_threshold": 90
       }
     },
-    {
-      "name": "battery_monitor",
+    "battery_monitor": {
       "args": {
         "period_secs": 120,
         "critical_low_battery_pct": 5,
         "warning_low_battery_pct": 10
       }
     },
-    {
-      "name": "charge_manager",
+    "charge_manager": {
       "args": {
         "period_secs": 120,
         "min_charge_pct": 88,
         "max_charge_pct": 89
       }
     },
-    {
-      "name": "cpu_usage_monitor",
+    "cpu_usage_monitor": {
       "args": {
         "period_secs": 120
       }
     },
-    {
-      "name": "cpu_freq_manager"
-    },
-    {
-      "name": "connection_manager",
+    "cpu_freq_manager": {},
+    "connection_manager": {
       "args": {
         "wlans": [
           {
@@ -58,15 +50,13 @@
         "scan_wifi_periods_secs": 10
       }
     },
-    {
-      "name": "thermal_monitor",
+    "thermal_monitor": {
       "args": {
         "period_secs": 120,
         "delta_threshold": 1.1
       }
     },
-    {
-      "name": "system_log_manager",
+    "system_log_manager": {
       "args": {
         "scan_log_period_secs": 120,
         "sync_log_period_secs": 600,
@@ -88,11 +78,10 @@
         "enable_foreground_sync": true
       }
     },
-    {
-      "name": "core_dump_manager",
+    "core_dump_manager": {
       "args": {
         "period_secs": 120
       }
     }
-  ]
+  }
 }

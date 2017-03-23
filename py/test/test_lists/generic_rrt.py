@@ -246,7 +246,7 @@ def SetOptions(test_list, args):
 
     options.disable_cros_shortcut_keys = True
 
-    options.plugin_config_name = 'chromeos_rrt'
+    options.plugin_config_name = 'goofy_plugin_chromeos_rrt'
 
 
 def Barrier(id_suffix='', pass_without_prompt=False,

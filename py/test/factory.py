@@ -350,7 +350,7 @@ class Options(object):
   {'link_class': 'SSHLink', 'host': TARGET_IP},  # To run tests over SSH.
   See :py:attr:`cros.factory.device.device_utils` for more information."""
 
-  plugin_config_name = 'chromeos'
+  plugin_config_name = 'goofy_plugin_chromeos'
   """Name of the config to be loaded for running Goofy plugins."""
 
   _types['plugin_config_name'] = (type(None), str)

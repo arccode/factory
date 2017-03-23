@@ -39,7 +39,7 @@ def CreateTestLists():
     options = test_list.options
 
     # Load dummy plugin config as default.
-    options.plugin_config_name = 'goofy_unittest'
+    options.plugin_config_name = 'goofy_plugin_goofy_unittest'
     {options}
     {test_items}
   """

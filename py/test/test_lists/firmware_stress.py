@@ -324,7 +324,7 @@ def SetOptions(test_list, args):
 
     test_list.exclusive_resources = [plugin.RESOURCE.CPU]
 
-    options.plugin_config_name = 'chromeos_firmware_stress'
+    options.plugin_config_name = 'goofy_plugin_chromeos_firmware_stress'
 
 
 def CreateFirmwareStressSmallTestList():
