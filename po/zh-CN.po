@@ -1336,7 +1336,7 @@ msgstr "正在移除 BFT 显示屏: {device}"
 
 #: ../py/test/pytests/read_device_data_from_vpd.py
 msgid "Reading device data from {vpd_section} VPD..."
-msgstr "正在从 {vpd_secion} VPD 读机器资料..."
+msgstr "正在从 {vpd_section} VPD 读机器资料..."
 
 #: ../py/test/pytests/recovery_button.py
 msgid "Hit SPACE to start test..."
