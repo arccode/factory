@@ -4,12 +4,53 @@
 # found in the LICENSE file.
 
 
+import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import string_utils
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import unittest_test_case
+
+
+class SafeFormatterTest(unittest.TestCase):
+
+  def setUp(self):
+    self.formatter = string_utils.SafeFormatter()
+    self.formatter.Warn = lambda msg, *args: self.warnings.append(msg % args)
+    self.warnings = []
+
+  def AssertHasWarningRegexp(self, pattern):
+    found = any(re.search(pattern, msg) for msg in self.warnings)
+    self.assertTrue(found, '"%s" not found in warning messages.' % pattern)
+
+  def testFormat(self):
+    self.assertEqual("a 'b' 1",
+                     self.formatter.format(
+                         '{a} {b!r} {c:.0f}', a='a', b='b', c=1.234))
+
+  def testVariableNotFound(self):
+    self.assertEqual('[?]', self.formatter.format('{foo}'))
+    self.AssertHasWarningRegexp('Key foo not found')
+
+    self.assertEqual('[?] [?]',
+                     self.formatter.format('{bar!s} {baz:3}',
+                                           {'bar!s': 1, 'baz:3': 2}))
+    self.AssertHasWarningRegexp('Key bar not found')
+    self.AssertHasWarningRegexp('Key baz not found')
+
+  def testPositionalArg(self):
+    self.assertEqual('[?] 1 [?]', self.formatter.format('{-1} {0} {1}', 1))
+    self.AssertHasWarningRegexp('Key -1 not found')
+    self.AssertHasWarningRegexp(
+        r'Using positional argument \{0\} is not recommended')
+    self.AssertHasWarningRegexp(
+        r'Using positional argument \{1\} is not recommended')
+
+  def testEmptyPositionalArg(self):
+    self.assertEqual('[?]', self.formatter.format('{}', 1))
+    self.AssertHasWarningRegexp(
+        r'Using positional argument \{\} is not supported')
 
 
 class StringUtilsTest(unittest_test_case.I18nTestCase):
@@ -50,11 +91,14 @@ class StringUtilsTest(unittest_test_case.I18nTestCase):
                             string_utils.StringFormat, {'zh-CN': 'a'})
     self.assertRaisesRegexp(ValueError, "doesn't contains default locale",
                             string_utils.StringFormat, '{s}', s={'zh-CN': 'a'})
-    self.assertRaisesRegexp(KeyError, 'str',
-                            string_utils.StringFormat, '{str}')
-    self.assertRaisesRegexp(KeyError, 'str1',
-                            string_utils.StringFormat,
-                            {'en-US': '{str}', 'zh-CN': '{str1}'}, str='str')
+    self.assertEqual(
+        {'en-US': '[?]', 'zh-CN': '[?]'},
+        string_utils.StringFormat('{str}'))
+    self.assertEqual(
+        {'en-US': 'str', 'zh-CN': '[?]'},
+        string_utils.StringFormat({'en-US': '{str}', 'zh-CN': '{str1}'},
+                                  str='str'))
+
 
 if __name__ == '__main__':
   unittest.main()

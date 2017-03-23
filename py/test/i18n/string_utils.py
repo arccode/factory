@@ -7,9 +7,45 @@
 from __future__ import print_function
 
 import cgi
+import logging
+import string
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
+
+
+class SafeFormatter(string.Formatter):
+  """A string formatter that would put a placeholder for unknown key."""
+  def __init__(self, placeholder='[?]'):
+    super(SafeFormatter, self).__init__()
+    self.placeholder = placeholder
+    self.current_format_string = None
+
+  def Warn(self, msg, *args):
+    logging.warning('%r: ' + msg, self.current_format_string,
+                    *args)
+
+  def parse(self, format_string):
+    self.current_format_string = format_string
+    return super(SafeFormatter, self).parse(format_string)
+
+  def get_value(self, key, args, kwargs):
+    if isinstance(key, basestring):
+      if not key:
+        self.Warn('Using positional argument {} is not supported,'
+                  ' use named argument instead.')
+      elif key not in kwargs:
+        self.Warn('Key %s not found.', key)
+      return kwargs.get(key, self.placeholder)
+    else:
+      self.Warn('Using positional argument {%d} is not recommended,'
+                ' use named argument instead.', key)
+      if 0 <= key < len(args):
+        return args[key]
+      return self.placeholder
+
+
+_FORMATTER = SafeFormatter()
 
 
 def StringFormat(_format_string, **kwargs):
@@ -38,7 +74,7 @@ def StringFormat(_format_string, **kwargs):
             for name, val in kwargs.iteritems()}
   for locale, format_str in _format_string.iteritems():
     format_args = {name: val[locale] for name, val in kwargs.iteritems()}
-    ret[locale] = format_str.format(**format_args)
+    ret[locale] = _FORMATTER.vformat(format_str, [], format_args)
   return ret
 
 
