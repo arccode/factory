@@ -1,0 +1,4 @@
+{
+  "inherit": "testdata/config_utils_unittest_base",
+  "sample_base_str_overrided": "middle_a"
+}

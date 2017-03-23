@@ -2,8 +2,20 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
   "properties": {
+    "inherit": {
+      "oneOf": [
+        {"type": "string"},
+        {"type": "array"}
+      ]
+    },
     "sample_int": {
       "type": "integer"
+    },
+    "sample_base_int": {
+      "type": "integer"
+    },
+    "sample_base_str_overrided": {
+      "type": "string"
     },
     "sample_str": {
       "type": "string"

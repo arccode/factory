@@ -26,13 +26,18 @@ class ConfigUtilsUnitTest(unittest.TestCase):
     self.assertEqual(val['a']['b'], val_tuple.a.b)
 
   def testLoadConfig(self):
-    config_m = config_utils.LoadConfig('testdata/config_utils_unittest')
+    config_m = config_utils.LoadConfig(
+        'testdata/config_utils_unittest', allow_inherit=True)
     config = config_utils.GetNamedTuple(config_m)
 
     # default values from ./config_utils_unittest.json
     self.assertEqual(config.sample_int, 1)
     self.assertEqual(config.sample_str, 'test')
     self.assertEqual(config.sample_mapping.contents, 'abc')
+
+    # the inherited value.
+    self.assertEqual(config.sample_base_int, 10)
+    self.assertEqual(config.sample_base_str_overrided, "middle_b")
 
     # build values from ../config/config_utils_unittest.json
     self.assertEqual(config.sample_mapping.contents, 'abc')
@@ -46,6 +51,14 @@ class ConfigUtilsUnitTest(unittest.TestCase):
     config = config_utils.LoadConfig(
         'testdata/config_utils_unittest', convert_to_str=True)
     self.assertEqual(type(config['sample_str']), str)
+
+  def testLoopDetection(self):
+    with self.assertRaisesRegexp(
+        AssertionError, 'Detected loop inheritance dependency .*'):
+      config_utils.LoadConfig(
+          'testdata/config_utils_unittest_loop',
+          validate_schema=False,
+          allow_inherit=True)
 
 
 if __name__ == '__main__':

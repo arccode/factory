@@ -76,6 +76,9 @@ _CONFIG_NAME_LOGGING = 'Logging'
 # Cache of configuration for config_utils itself.
 _CACHED_CONFIG_UTILS_CONFIG = None
 
+# Dummy cache for loop dependency detection.
+_DUMMY_CACHE = object()
+
 
 def _DummyLogger(*unused_arg, **unused_kargs):
   """A dummy log function."""
@@ -242,7 +245,8 @@ def _GetLogger():
 
 
 def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
-               default_config_dir=None, convert_to_str=True):
+               default_config_dir=None, convert_to_str=True,
+               allow_inherit=False, cached_configs=None):
   """Loads a configuration as mapping by given file name.
 
   The config files are retrieved and overridden in order:
@@ -261,10 +265,40 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
     schema_name: a string for schema file name (without extension) to read.
     validate_schema: boolean to indicate if schema should be checked.
     convert_to_str: True to convert the result from unicode to str.
+    allow_inherit: if set to True, try to read 'inherit' from the
+        config loaded. It should be the name of the parent config to be loaded,
+        and will then be overrided by the current config. It can also be a list
+        of parent config names, and will be overrided in reversed order.
+
+        For example, if we're loading config "A" with:
+        1. {"inherit": "B"}
+           "B" will be loaded and overrided by "A".
+        2. {"inherit": ["B", "C", "D"]},
+           "D" will be loaded first, overrided by "C", and by "B",
+           and then by "A".
+
+        Note that this is done after all the directory-based overriding is
+        finished.
+
+        Schema check is performed after overriding if validate_schema is True.
+
+    cached_configs: a dict of config names to already loaded configs to
+        reduce the loading time. If a config is still in loading
+        process, cached_configs[config_name] should be marked as _DUMMY_CACHE
+        for loop detection.
 
   Returns:
     The config as mapping object.
   """
+  cached_configs = cached_configs or {}
+  if config_name in cached_configs:
+    assert cached_configs[config_name] != _DUMMY_CACHE, (
+        'Detected loop inheritance dependency of %s' % config_name)
+    return cached_configs[config_name]
+
+  # Mark the current config in loading.
+  cached_configs[config_name] = _DUMMY_CACHE
+
   config = {}
   schema = {}
   caller = inspect.stack()[1]
@@ -301,6 +335,25 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
       schema = new_schema
   assert found_config, 'No configuration files found for %s.' % config_name
 
+  if allow_inherit and isinstance(config, dict):
+    parents = config.get('inherit')
+    if isinstance(parents, basestring):
+      parents = [parents]
+    # Ignore if 'inherit' is not a list of parent names.
+    if isinstance(parents, list):
+      parent_config = {}
+      for parent in reversed(parents):
+        current_config = LoadConfig(
+            config_name=parent,
+            schema_name=None,
+            validate_schema=False,
+            default_config_dir=default_config_dir,
+            convert_to_str=convert_to_str,
+            allow_inherit=allow_inherit,
+            cached_configs=cached_configs)
+        OverrideConfig(parent_config, current_config)
+      config = OverrideConfig(parent_config, config)
+
   # Ideally we should enforce validating schema, but currently many environments
   # where our factory software needs to live (i.e., old ChromeOS test images,
   # Windows, Ubuntu, or Android) may not have jsonschema library installed, so
@@ -318,4 +371,5 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
 
   if convert_to_str:
     config = type_utils.UnicodeToString(config)
+  cached_configs[config_name] = config
   return config
