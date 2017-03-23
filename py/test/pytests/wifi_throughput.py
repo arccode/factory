@@ -711,7 +711,12 @@ class WiFiThroughput(unittest.TestCase):
   _SHARED_ARGS = [
       Arg('iperf_host', str,
           'Host running iperf3 in server mode, used for testing data '
-          'transmission speed.',
+          'transmission speed. If it is CIDR format (IP/prefix), then '
+          'interfaces will be scanned to find the one with an IP within the '
+          'given CIDR, and iperf_host will take on this value. Useful for '
+          'cases where the host\'s IP may change (from using DHCP). '
+          'The CIDR format is valid only when `enable_iperf_server` argument '
+          'is enabled.',
           optional=True, default=None),
       Arg('enable_iperf_server', bool,
           'Start iperf server locally. In station-based testing we can run '
@@ -856,6 +861,27 @@ class WiFiThroughput(unittest.TestCase):
     "service-level" arguments inherit from "test-level" arguments.  See the
     documentation of this class for details.
     """
+    # When Iperf server is executed on the host machine, and the IP is retrieved
+    # from DHCP server, we can fill the CIDR at iperf_host first, then replace
+    # it with the DHCP IP when running the pytest.
+    if isinstance(self.args.iperf_host, str) and '/' in self.args.iperf_host:
+      if not self.args.enable_iperf_server:
+        self.fail('CIDR format is valid only when '
+                  '`enable_iperf_server` argument is enabled')
+      ip, _unused_char, prefix = self.args.iperf_host.partition('/')
+      cidr = net_utils.CIDR(ip, int(prefix))
+      factory.console.info('Try to find the host IP in CIDR: %s...', cidr)
+      for interface in net_utils.GetNetworkInterfaces():
+        ip = net_utils.GetEthernetIp(interface)
+        if ip is None:
+          continue
+        if net_utils.IP(ip).IsIn(cidr):
+          factory.console.info('Set the iperf host IP: %s', ip)
+          self.args.iperf_host = str(ip)
+          break
+      else:
+        self.fail('There is no host IP in CIDR: %s' % cidr)
+
     # If only one service is provided as a dict, wrap a list around it.
     # Ensure that each service SSID is only specified once.
     if not isinstance(self.args.services, list):
