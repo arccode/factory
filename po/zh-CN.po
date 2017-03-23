@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-04-21 12:55+CST\n"
+"POT-Creation-Date: 2017-05-09 13:58+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2402,6 +2402,14 @@ msgstr "连接 {name} 天线至 port {port}<br>"
 #: ../py/test/pytests/vswr/vswr.py
 msgid "Then press key \"{key}\" to next stage."
 msgstr "完成后按 {key} 键"
+
+#: ../py/test/pytests/wait_external_test.py
+msgid "Wait for external test"
+msgstr "等待外部測試"
+
+#: ../py/test/pytests/wait_external_test.py
+msgid "Please run external test: {name}"
+msgstr "請執行外部測試: {name}"
 
 #: ../py/test/pytests/webrtc_camera.py
 msgid "Click \"Allow\" at the top of the screen."

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -20,8 +18,7 @@ Example::
         pytest_name='wait_external_test',
         dargs={
             'run_factory_external_name': 'RF1',
-            'label_en': 'Move DUT to station %(name)s',
-            'label_zh': u'等待 %(name)s Test 執行中'
+            'msg': _('Move DUT to station {name}')
         })
 
     # External host
@@ -36,7 +33,10 @@ import os
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -46,7 +46,7 @@ from cros.factory.utils import sync_utils
 
 
 _EXTERNAL_DIR = '/run/factory/external'
-_TEST_TITLE = test_ui.MakeLabel('Wait for external test', u'等待外部測試')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Wait for external test')
 _ID_INSTRUCTION = 'external-test-instruction'
 _ID_COUNTDOWN_TIMER = 'external-test-timer'
 
@@ -70,11 +70,10 @@ class WaitExternalTest(unittest.TestCase):
   """Wait for a test by external fixture to finish."""
   ARGS = [
       Arg('run_factory_external_name', str,
-          'File name to check in /run/factory/external.', optional=False),
-      Arg('msg_en', (str, unicode),
-          'Instruction for running external test', optional=True),
-      Arg('msg_zh', (str, unicode),
-          'Instruction for running external test', optional=True)]
+          'File name to check in /run/factory/external.', optional=False)
+  ] + i18n_arg_utils.BackwardCompatibleI18nArgs(
+      'msg', 'Instruction for running external test',
+      default=_('Please run external test: {name}'))
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -83,12 +82,10 @@ class WaitExternalTest(unittest.TestCase):
     self.template.SetState(_HTML_EXTERNAL_TEST)
     self.ui.AppendCSS(_CSS)
     self._name = self.args.run_factory_external_name
-    info = {'name': self._name}
-    instruction = [
-        (self.args.msg_en or 'Please run external test: %(name)s') % info,
-        (self.args.msg_zh or u'請執行外部測試: %(name)s') % info,
-        'instruction-font-size']
-    self.ui.SetHTML(test_ui.MakeLabel(*instruction), id=_ID_INSTRUCTION)
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabelWithClass(
+            self.args.msg, 'instruction-font-size', name=self._name),
+        id=_ID_INSTRUCTION)
     self._file_path = os.path.join(
         _EXTERNAL_DIR, self.args.run_factory_external_name)
     self.RemoveFile(self._file_path)
