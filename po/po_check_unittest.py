@@ -1,0 +1,120 @@
+#!/usr/bin/python
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+
+import collections
+import glob
+import logging
+import os
+import re
+import shutil
+import string
+import tempfile
+import unittest
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import translation
+from cros.factory.utils import process_utils
+
+
+SCRIPT_DIR = os.path.dirname(__file__)
+
+
+class _MockValue(object):
+  """A mock value that accepts all format_spec for __format__."""
+  def __format__(self, format_spec):
+    del format_spec  # Unused.
+    return ''
+
+
+class PoCheckTest(unittest.TestCase):
+  """Basic sanity check for po files."""
+
+  @classmethod
+  def setUpClass(cls):
+    cls.temp_dir = tempfile.mkdtemp(prefix='po_check_test.')
+    cls.po_dir = os.path.join(cls.temp_dir, 'po')
+    cls.build_dir = os.path.join(cls.temp_dir, 'build')
+    cls.locale_dir = os.path.join(cls.build_dir, 'locale')
+
+    po_files = glob.glob(os.path.join(SCRIPT_DIR, '*.po'))
+    os.makedirs(cls.po_dir)
+    for po_file in po_files:
+      shutil.copy(po_file, cls.po_dir)
+
+    env = {'PO_DIR': cls.po_dir, 'BUILD_DIR': cls.build_dir}
+    process_utils.Spawn(['make', '-C', SCRIPT_DIR, 'build'],
+                        ignore_stdout=True, ignore_stderr=True,
+                        env=env, check_call=True)
+
+    translation.LOCALES = [translation.DEFAULT_LOCALE] + [
+        os.path.splitext(os.path.basename(po_file))[0] for po_file in po_files]
+    translation.LOCALE_DIR = cls.locale_dir
+
+  @classmethod
+  def tearDownClass(cls):
+    if os.path.exists(cls.temp_dir):
+      shutil.rmtree(cls.temp_dir)
+
+  def setUp(self):
+    self.formatter = string.Formatter()
+    self.errors = []
+
+  def tearDown(self):
+    if self.errors:
+      raise AssertionError('\n'.join(self.errors).encode('UTF-8'))
+
+  def AddError(self, err):
+    self.errors.append(err)
+
+  def testFormatStringVariablesMatch(self):
+    all_translations = translation.GetAllTranslations()
+
+    for text in all_translations:
+      default_text = text[translation.DEFAULT_LOCALE]
+      default_vars = self._ExtractVariablesFromFormatString(
+          default_text, translation.DEFAULT_LOCALE)
+      for locale in translation.LOCALES:
+        if locale == translation.DEFAULT_LOCALE:
+          continue
+        used_vars = self._ExtractVariablesFromFormatString(text[locale], locale)
+        unknown_vars = used_vars - default_vars
+        if unknown_vars:
+          self.AddError(u'[%s] "%s": Unknown vars %r' %
+                        (locale, text[locale], list(unknown_vars)))
+
+        unused_vars = default_vars - used_vars
+        if unused_vars:
+          logging.warn(u'[%s] "%s": Unused vars %r', locale, text[locale],
+                       list(unused_vars))
+
+  def testFormatStringFormat(self):
+    all_translations = translation.GetAllTranslations()
+
+    kwargs = collections.defaultdict(_MockValue)
+    for text in all_translations:
+      for locale in translation.LOCALES:
+        try:
+          self.formatter.vformat(text[locale], [], kwargs)
+        except Exception as e:
+          self.AddError('[%s] "%s": %s' % (locale, text[locale], e))
+
+  def _ExtractVariablesFromFormatString(self, format_str, locale):
+    ret = set()
+    for unused_text, field_name, unused_format_spec, unused_conversion in (
+        self.formatter.parse(format_str)):
+      if field_name is None:
+        continue
+      var_name = re.match('[a-zA-Z0-9_]*', field_name).group(0)
+      if not var_name or re.match('[0-9]+$', var_name):
+        self.AddError(u'[%s] "%s": Positional argument {%s} found' %
+                      (locale, format_str, var_name))
+      else:
+        ret.add(var_name)
+    return ret
+
+
+if __name__ == '__main__':
+  unittest.main()
