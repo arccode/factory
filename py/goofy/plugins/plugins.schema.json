@@ -3,6 +3,9 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "inherit": {
+      "type": "string"
+    },
     "backends": {
       "type": "object",
       "patternProperties": {

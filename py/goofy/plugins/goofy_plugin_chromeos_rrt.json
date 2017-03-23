@@ -1,71 +1,9 @@
 {
+  "inherit": "goofy_plugin_chromeos",
   "backends": {
-    "time_sanitizer": {
-      "args": {
-        "base_time_files": ["/usr/local/etc/lsb-factory",
-                            "/etc/lsb-release"]
-      }
-    },
-    "disk_monitor": {
-      "args": {
-        "period_secs": 120,
-        "stateful_usage_threshold": 90
-      }
-    },
-    "battery_monitor": {
-      "args": {
-        "period_secs": 120,
-        "critical_low_battery_pct": 5,
-        "warning_low_battery_pct": 10
-      }
-    },
-    "charge_manager": {
-      "args": {
-        "period_secs": 120,
-        "min_charge_pct": 88,
-        "max_charge_pct": 89
-      }
-    },
-    "cpu_usage_monitor": {
-      "args": {
-        "period_secs": 120
-      }
-    },
-    "cpu_freq_manager": {},
-    "connection_manager": {
-      "args": {
-        "wlans": [
-          {
-            "ssid": "crosfactory20",
-            "security": "psk",
-            "passphrase": "crosfactory"
-          },
-          {
-            "ssid": "crosfactory21",
-            "security": "psk",
-            "passphrase": "crosfactory"
-          }
-        ],
-        "shuffle_wlans": true,
-        "scan_wifi_periods_secs": 10
-      }
-    },
-    "thermal_monitor": {
-      "args": {
-        "period_secs": 120,
-        "delta_threshold": 1.1
-      }
-    },
     "system_log_manager": {
       "args": {
-        "scan_log_period_secs": 120,
         "sync_log_period_secs": 300,
-        "sync_log_paths": [
-          "/var/factory/log/",
-          "/var/log/messages",
-          "/var/log/Xorg.0.log",
-          "/var/log/bios_info.txt",
-          "/var/log/ec_info.txt"],
         "clear_log_paths": [
           "/var/log/connectivity.log",
           "/var/log/connectivity.bak",
@@ -74,14 +12,7 @@
           "/var/log/messages*",
           "/var/log/ui/*",
           "/var/log/chrome/*"],
-        "clear_log_excluded_paths": [
-          "/var/log/messages", "/var/log/messages.[12]"],
         "enable_foreground_sync": false
-      }
-    },
-    "core_dump_manager": {
-      "args": {
-        "period_secs": 120
       }
     }
   }
