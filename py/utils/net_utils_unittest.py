@@ -70,6 +70,13 @@ class IPTest(unittest.TestCase):
     assert (net_utils.IP('2401:fa00:1:b:42a8:f0ff:fe3d:3ac1') ==
             net_utils.IP(0x2401fa000001000b42a8f0fffe3d3ac1, 6))
 
+  def testIn(self):
+    ip = net_utils.IP('192.168.1.50')
+    cidr = net_utils.CIDR('192.168.0.0', 24)
+    self.assertFalse(ip.IsIn(cidr))
+    cidr = net_utils.CIDR('192.168.0.0', 16)
+    self.assertTrue(ip.IsIn(cidr))
+
 
 class CIDRTest(unittest.TestCase):
   def testSelectIP(self):

@@ -75,6 +75,11 @@ class IP(object):
   def __eq__(self, obj):
     return self._ip == obj._ip  # pylint: disable=W0212
 
+  def IsIn(self, cidr):
+    """Checks the IP is contained in CIDR."""
+    netmask = int(cidr.Netmask())
+    return int(self) & netmask == int(cidr.IP) & netmask
+
 
 class CIDR(object):
   """A class storing IP ranges in the CIDR format."""
