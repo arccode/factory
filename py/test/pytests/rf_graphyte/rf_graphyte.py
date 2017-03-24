@@ -108,6 +108,7 @@ class RFGraphyteTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetState(_STATE_HTML)
     self._dut = device_utils.CreateDUTInterface()
+    self.process = None
     if self.args.enable_shopfloor:
       self._shopfloor_proxy = shopfloor.GetShopfloorConnection()
 
@@ -117,7 +118,14 @@ class RFGraphyteTest(unittest.TestCase):
     self.result_file_path = self.GetLogPath(timestamp, RESULT_FILENAME)
     self.log_file_path = self.GetLogPath(timestamp, LOG_FILENAME)
 
+  def tearDown(self):
+    if self.process:
+      logging.info('Graphyte process still exists, kill the process (pid: %s).',
+                   self.process.pid)
+      self.process.kill()
+
   def runTest(self):
+    self._ui.Run(blocking=False)
     # Update the config file from shopfloor.
     self.FetchConfigFromShopfloor()
 
@@ -146,17 +154,18 @@ class RFGraphyteTest(unittest.TestCase):
     if self.args.verbose:
       cmd.append('-v')
     factory.console.info('Call the Graphyte command: %s', ' '.join(cmd))
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
     # Output to UI
     debug_str = ''
     while True:
-      line = process.stdout.readline()
+      line = self.process.stdout.readline()
       if not line:
         break
       # Keep 8Kb data.
       debug_str = (test_ui.Escape(line) + debug_str)[:8 * 1024]
       self._ui.SetHTML(debug_str, id=_ID_DEBUG_DIV)
+    self.process = None
 
     # Save the log file.
     if os.path.exists(self.log_file_path):
