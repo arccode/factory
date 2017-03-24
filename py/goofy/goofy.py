@@ -930,6 +930,13 @@ class Goofy(GoofyBase):
           '%r is not a valid test list ID (available IDs are [%s])' % (
               test_list_id, ', '.join(sorted(self.test_lists.keys()))))
 
+  def _RecordStartError(self, error_message):
+    """Appends the startup error message into the shared data."""
+    KEY = 'startup_error'
+    data = self.state_instance.get_shared_data(KEY, optional=True)
+    new_data = '%s\n\n%s' % (data, error_message) if data else error_message
+    self.state_instance.set_shared_data(KEY, new_data)
+
   def InitTestLists(self):
     """Reads in all test lists and sets the active test list.
 
@@ -979,8 +986,7 @@ class Goofy(GoofyBase):
 
     # Show all startup errors.
     if startup_errors:
-      self.state_instance.set_shared_data(
-          'startup_error', '\n\n'.join(startup_errors))
+      self._RecordStartError('\n\n'.join(startup_errors))
 
     # Only return False if failed to load the active test list.
     return bool(self.test_list)
@@ -1173,10 +1179,8 @@ class Goofy(GoofyBase):
     if not success:
       if exc_info:
         logging.exception('Unable to initialize test lists')
-        self.state_instance.set_shared_data(
-            'startup_error',
-            'Unable to initialize test lists\n%s' % (
-                traceback.format_exc()))
+        self._RecordStartError(
+            'Unable to initialize test lists\n%s' % traceback.format_exc())
       if self.options.ui == 'chrome':
         # Create an empty test list with default options so that the rest of
         # startup can proceed.
@@ -1197,8 +1201,7 @@ class Goofy(GoofyBase):
     # For netboot firmware, mainfw_type should be 'netboot'.
     if (self.dut.info.mainfw_type != 'nonchrome' and
         self.dut.info.firmware_version is None):
-      self.state_instance.set_shared_data(
-          'startup_error',
+      self._RecordStartError(
           'Netboot firmware detected\n'
           'Connect Ethernet and reboot to re-image.\n'
           u'侦测到网路开机固件\n'
@@ -1245,8 +1248,7 @@ class Goofy(GoofyBase):
         device_utils.PrepareDUTLink(**self.test_list.options.dut_options)
       except Exception:
         logging.exception('Unable to prepare DUT link.')
-        self.state_instance.set_shared_data(
-            'startup_error',
+        self._RecordStartError(
             'Unable to prepare DUT link.\n%s' % traceback.format_exc())
 
     # Set reference to the Instalog plugin.
