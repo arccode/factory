@@ -13,6 +13,7 @@ dargs:
 
 import logging
 import textwrap
+import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -129,17 +130,21 @@ class BatteryCurrentTest(unittest.TestCase):
       logging.info('Discharging current = %d mA', -current)
 
   def _CheckUSBPD(self):
-    status = self._dut.usb_c.GetPDPowerStatus()
-    self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt, 0))
-    if 'millivolt' not in status[self._usbpd_port]:
-      logging.info('No millivolt detected in port %d', self._usbpd_port)
-      return False
-    millivolt = status[self._usbpd_port]['millivolt']
-    logging.info('millivolt %d, acceptable range (%d, %d)', millivolt,
-                 self._usbpd_min_millivolt, self._usbpd_max_millivolt)
-    self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt, millivolt))
-    return (self._usbpd_min_millivolt <= millivolt and
-            millivolt <= self._usbpd_max_millivolt)
+    for unused_i in range(10):
+      status = self._dut.usb_c.GetPDPowerStatus()
+      self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt, 0))
+      if 'millivolt' not in status[self._usbpd_port]:
+        logging.info('No millivolt detected in port %d', self._usbpd_port)
+        return False
+      millivolt = status[self._usbpd_port]['millivolt']
+      logging.info('millivolt %d, acceptable range (%d, %d)', millivolt,
+                   self._usbpd_min_millivolt, self._usbpd_max_millivolt)
+      self._template.SetState(_USBPDPORT_PROMPT(self._usbpd_prompt, millivolt))
+      if not (self._usbpd_min_millivolt <= millivolt and
+              millivolt <= self._usbpd_max_millivolt):
+        return False
+      time.sleep(0.1)
+    return True
 
   def _CheckCharge(self):
     current = self._power.GetBatteryCurrent()
