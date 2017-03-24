@@ -145,19 +145,23 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     """
     # Dolphin(Whale) initialization
     if 'dolphin_host' in port_params:
-      remote = 'http://%s:%s' % (
-          port_params['dolphin_host'], port_params['dolphin_port'])
-      self._plankton_conn = xmlrpclib.ServerProxy(
-          remote, verbose=False, allow_none=True)
-      self._use_proxy = True
-      self._raiden_index = port_params['raiden_index']
-      self._i2c_address = (self._I2C_ADDR_LEFT if self._raiden_index == 0
-                           else self._I2C_ADDR_RIGHT)
-      # Initialize serial connection on server first
-      self._plankton_conn.InitConnection(self._raiden_index)
-      self.SetDefault('set default')
-      self.SetOutputBufferChannel(0)  # channel 0: command only
-      return
+      try:
+        remote = 'http://%s:%s' % (
+            port_params['dolphin_host'], port_params['dolphin_port'])
+        self._plankton_conn = xmlrpclib.ServerProxy(
+            remote, verbose=False, allow_none=True)
+        self._use_proxy = True
+        self._raiden_index = port_params['raiden_index']
+        self._i2c_address = (self._I2C_ADDR_LEFT if self._raiden_index == 0
+                             else self._I2C_ADDR_RIGHT)
+        # Initialize serial connection on server first
+        self._plankton_conn.InitConnection(self._raiden_index)
+        self.SetDefault('set default')
+        self.SetOutputBufferChannel(0)  # channel 0: command only
+        return
+      except Exception as e:
+        raise bft_fixture.BFTFixtureException(
+            'Failed to Init(). Reason: %s' % e)
 
     # Dolphin Mini initialization
     self._ProbeFTDIDriver(port_params['product_id'])
