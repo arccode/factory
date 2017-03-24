@@ -12,10 +12,13 @@ import argparse
 import logging
 import syslog
 import time
+import uuid
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
+from cros.factory.test.env import paths
 from cros.factory.test import factory
+from cros.factory.test import testlog
 
 
 class TemperaturesMonitor(object):
@@ -25,7 +28,6 @@ class TemperaturesMonitor(object):
     self._last_success = False
     self._last_temperatures = []
     self._sensor_array_changed = False
-    factory.init_logging()
 
   def _GetThermalData(self):
     temperatures = []
@@ -79,12 +81,25 @@ def main():
   parser.add_argument('--delta', '-d',
                       help='Changes less than delta will be supressed',
                       type=float, required=False, default=0)
+  parser.add_argument('--use_testlog', '-t',
+                      help='Use testlog to log information.',
+                      action='store_true', required=False)
   args = parser.parse_args()
   syslog.syslog('Monitoring thermal with period %.2f, delta %.2f' % (
       args.period_secs, args.delta))
   if args.period_secs <= 0:
     syslog.syslog('Disable monitoring.')
     return
+
+  factory.init_logging()
+
+  # Initialize testlog.
+  if args.use_testlog:
+    testlog_instance = testlog.Testlog(
+        log_root=paths.GetLogRoot(), uuid=str(uuid.uuid4()))
+    testlog.CapturePythonLogging(
+        callback=testlog_instance.primary_json.Log,
+        level=logging.getLogger().getEffectiveLevel())
 
   monitor = TemperaturesMonitor(args.period_secs, args.delta)
   monitor.CheckForever()

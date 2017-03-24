@@ -12,25 +12,30 @@ from cros.factory.utils import process_utils
 class ThermalMonitor(plugin.Plugin):
   """Dump thermal information of the device with at the given interval."""
 
-  def __init__(self, goofy, period_secs, delta_threshold):
+  def __init__(self, goofy, period_secs, delta_threshold, use_testlog=True):
     """Constructor
 
     Args:
       period_secs: dump thermal data at the given interval.
       delta_threshold: dump thermal data only if a value greater than
           delta observed.
+      use_testlog: use testlog to log thermal data.
     """
     super(ThermalMonitor, self).__init__(goofy)
     self._period_secs = period_secs
     self._delta_threshold = delta_threshold
     self._thermal_watcher = None
+    self._use_testlog = use_testlog
 
   def OnStart(self):
+    cmd = ['py/tools/thermal_monitor.py',
+           '-p', str(self._period_secs),
+           '-d', str(self._delta_threshold)]
+    if self._use_testlog:
+      cmd.append('-t')
+
     self._thermal_watcher = process_utils.Spawn(
-        ['py/tools/thermal_monitor.py',
-         '-p', str(self._period_secs),
-         '-d', str(self._delta_threshold)],
-        cwd=paths.FACTORY_PATH)
+        cmd, cwd=paths.FACTORY_PATH)
 
   def OnStop(self):
     self._thermal_watch.terminate()
