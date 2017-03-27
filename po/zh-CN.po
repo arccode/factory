@@ -546,6 +546,18 @@ msgid "Tone On"
 msgstr "播放音频"
 
 #: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Sine wave"
+msgstr "弦波"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Square wave"
+msgstr "方波"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Triangle wave"
+msgstr "三角波"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
 msgid "Pass"
 msgstr "通过"
 

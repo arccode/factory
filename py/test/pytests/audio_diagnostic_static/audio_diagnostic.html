@@ -24,11 +24,9 @@
                 </span>
               </button>
               <select id="tone_type" onchange="toneTypeChanged()">
-                <!-- TODO(pihsun): option can't be styled, thus can't be
-                properly i18n using i18n-label. -->
-                <option value="sine">Sine / 弦波</option>
-                <option value="square">Square / 方波</option>
-                <option value="triangle">Triangle / 三角波</option>
+                <option value="sine" class="i18n-label">Sine wave</option>
+                <option value="square" class="i18n-label">Square wave</option>
+                <option value="triangle" class="i18n-label">Triangle wave</option>
               </select>
               <div>
                 <input id="freq_bar" type="range" min="1" max="500"

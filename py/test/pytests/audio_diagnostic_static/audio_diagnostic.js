@@ -93,7 +93,7 @@ ToneGenerator.prototype.setFreqMax = function(freq_max) {
  * @param {string} type of 'sine', 'square' or 'triangle'
  */
 ToneGenerator.prototype.setToneType = function(type) {
-  toneGen.tone_type = type;
+  this.tone_type = type;
   if (this.osc) {
     this.osc.type = type;
   }

@@ -1126,6 +1126,36 @@ cros.factory.Goofy.prototype.getOrCreateInvocation = function(
 };
 
 /**
+ * For each select in document, if the selected option is hidden (probably
+ * because locale is switched), try to find another shown option with same
+ * value and select it.
+ * @param {Document} doc
+ */
+cros.factory.Goofy.prototype.fixSelectElements = function(doc) {
+  var isDisplayNone = function(node) {
+    return goog.style.getComputedStyle(node, 'display') == 'none';
+  };
+  goog.array.forEach(
+      goog.dom.getElementsByTagNameAndClass(goog.dom.TagName.SELECT, null, doc),
+      function(/** !HTMLSelectElement */ selectDom) {
+        if (!selectDom.selectedOptions.length) {
+          return;
+        }
+        var selectedOption = selectDom.selectedOptions[0];
+        if (isDisplayNone(selectedOption)) {
+          var value = selectedOption.value;
+          goog.array.some(selectDom.options, function(option, index) {
+            if (option.value == value && !isDisplayNone(option)) {
+              selectDom.selectedIndex = index;
+              return true;
+            }
+            return false;
+          });
+        }
+      });
+};
+
+/**
  * Updates classes in a document based on the current settings.
  * @param {Document} doc
  */
@@ -1148,10 +1178,12 @@ cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
 };
 
 /**
- * Updates classes in the UI based on the current settings.
+ * Updates classes in the UI based on the current settings, and fix select
+ * element if the selected option is hidden.
  */
 cros.factory.Goofy.prototype.updateCSSClasses = function() {
-  this.updateCSSClassesInDocument.call(this, document);
+  this.updateCSSClassesInDocument(document);
+  this.fixSelectElements(document);
   /**
    * @this {cros.factory.Goofy}
    * @param {Object<string, cros.factory.Invocation>} invocations
@@ -1159,7 +1191,8 @@ cros.factory.Goofy.prototype.updateCSSClasses = function() {
   var recursiveUpdate = function(invocations) {
     goog.object.forEach(invocations, function(i) {
       if (i && i.iframe) {
-        this.updateCSSClassesInDocument.call(this, i.iframe.contentDocument);
+        this.updateCSSClassesInDocument(i.iframe.contentDocument);
+        this.fixSelectElements(i.iframe.contentDocument);
       }
       if (i && i.subInvocations) {
         recursiveUpdate.call(this, i.subInvocations);
@@ -3105,6 +3138,9 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
     if (invocation && invocation.iframe) {
       goog.dom.iframe.writeContent(invocation.iframe, message['html']);
       this.updateCSSClassesInDocument(invocation.iframe.contentDocument);
+      invocation.iframe.onload = goog.bind(function() {
+        this.fixSelectElements(invocation.iframe.contentDocument);
+      }, this);
       // In the content window's evaluation context, add our keydown
       // listener.
       invocation.iframe.contentWindow.eval(
