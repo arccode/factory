@@ -317,7 +317,7 @@ presubmit-lint:
 	@$(MAKE) lint LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" 2>/dev/null
 
 presubmit-deps:
-	@if ! py/tools/deps.py $(PRESUBMIT_FILES); then \
+	@if ! py/tools/deps.py $(filter py/%,$(PRESUBMIT_FILES)); then \
 	  $(MK_DIR)/die.sh "Dependency check failed." \
 	    "Please read py/tools/deps.conf for more information." ; \
 	fi
