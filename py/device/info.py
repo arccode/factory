@@ -181,7 +181,7 @@ class SystemInfo(component.DeviceComponent):
     for eth_path in eth_paths:
       address_path = self._dut.path.join(eth_path, 'address')
       if self._dut.path.exists(address_path):
-        macs[self._dut.path.basename(eth_path)] = self._dut.ReadFile(
+        macs[self._dut.path.basename(eth_path)] = self._dut.ReadSpecialFile(
             address_path).strip()
     return macs
 
