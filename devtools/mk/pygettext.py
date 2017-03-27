@@ -361,7 +361,7 @@ def main():
       '-w', '--width', default=78, type=int,
       help='Set width of output to columns.')
   parser.add_argument(
-      'input_files', nargs='+',
+      'input_files', nargs='*',
       help='Input file. Can either be python source code or HTML.')
   options = parser.parse_args()
 

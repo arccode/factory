@@ -19,17 +19,35 @@ from cros.factory.utils import process_utils
 SCRIPT_DIR = os.path.dirname(__file__)
 DOMAIN = 'factory'
 
+MOCK_PO_HEADER = r"""
+msgid ""
+msgstr ""
+"Project-Id-Version: ChromeOS Factory Software\n"
+"POT-Creation-Date: 2017-01-05 07:36+CST\n"
+"PO-Revision-Date: 2017-01-05 07:36+CST\n"
+"Last-Translator: ChromeOS Factory Team\n"
+"Language-Team: ChromeOS Factory Team\n"
+"Language: Some language\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"""
+MOCK_MSGID = '__mocked_msgid_e2e_unittest'
+MOCK_MSGSTR = '__mocked_msgstr_e2e_unittest'
+NONEXIST_LOCALE = 'nonexist_locale'
+
 
 class MakeTest(unittest.TestCase):
   """Integration test for Makefile of po file."""
-
-  # TODO(pihsun): Mock and test the argument BOARD.
 
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp(prefix='po_make_e2etest.')
     self.po_dir = os.path.join(self.temp_dir, 'po')
     self.build_dir = os.path.join(self.temp_dir, 'build')
     self.locale_dir = os.path.join(self.build_dir, 'locale')
+    self.board_files_dir = os.path.join(self.temp_dir, 'board')
+    self.board_po_dir = os.path.join(self.board_files_dir, 'po')
 
     po_files = glob.glob(os.path.join(SCRIPT_DIR, '*.po'))
     os.makedirs(self.po_dir)
@@ -52,10 +70,9 @@ class MakeTest(unittest.TestCase):
     self.assertEqual(0, self.RunMake(*args, **kwargs))
 
   def testMakeInit(self):
-    nonexist_locale = 'nonexist_locale'
-    po_path = os.path.join(self.po_dir, nonexist_locale + '.po')
+    po_path = os.path.join(self.po_dir, NONEXIST_LOCALE + '.po')
 
-    self.AssertMakeSuccess('init', LOCALE=nonexist_locale)
+    self.AssertMakeSuccess('init', LOCALE=NONEXIST_LOCALE)
     self.assertTrue(os.path.exists(po_path))
     self.assertIn('PO-Revision-Date: ', file_utils.ReadFile(po_path))
 
@@ -73,6 +90,45 @@ class MakeTest(unittest.TestCase):
       # Assert that metadata for po file can be read.
       self.assertIn('PO-Revision-Date: ', translation.ugettext(''))
 
+  def testBoardMakeInit(self):
+    po_path = os.path.join(self.board_po_dir, NONEXIST_LOCALE + '.po')
+
+    self.AssertMakeSuccess(
+        'init', LOCALE=NONEXIST_LOCALE, BOARD_FILES_DIR=self.board_files_dir)
+    self.assertTrue(os.path.exists(po_path))
+    self.assertIn('PO-Revision-Date: ', file_utils.ReadFile(po_path))
+
+  def testBoardMakeInitExistLocale(self):
+    for locale in self.locales:
+      self.assertNotEqual(0, self.RunMake(
+          'init', LOCALE=locale, BOARD_FILES_DIR=self.board_files_dir))
+
+  def testBoardMakeUpdateExistLocale(self):
+    for locale in self.locales:
+      po_path = os.path.join(self.board_po_dir, locale + '.po')
+      self.AssertMakeSuccess(
+          'update', LOCALE=locale, BOARD_FILES_DIR=self.board_files_dir)
+      self.assertTrue(os.path.exists(po_path))
+      self.assertIn('PO-Revision-Date: ', file_utils.ReadFile(po_path))
+
+  def PrepareBoardMockPoFiles(self):
+    for locale in self.locales + [NONEXIST_LOCALE]:
+      po_path = os.path.join(self.board_po_dir, locale + '.po')
+      file_utils.TryMakeDirs(os.path.dirname(po_path))
+      with open(po_path, 'a') as fp:
+        fp.write('%s\n\nmsgid "%s"\nmsgstr "%s"\n' %
+                 (MOCK_PO_HEADER, MOCK_MSGID, MOCK_MSGSTR))
+
+  def testBoardMakeBuild(self):
+    self.PrepareBoardMockPoFiles()
+    self.AssertMakeSuccess('build', BOARD_FILES_DIR=self.board_files_dir)
+
+    for locale in self.locales + [NONEXIST_LOCALE]:
+      translation = gettext.translation(DOMAIN, self.locale_dir, [locale])
+      # Assert that metadata for po file can be read and the mocked po file is
+      # merged.
+      self.assertIn('PO-Revision-Date: ', translation.ugettext(''))
+      self.assertEqual(MOCK_MSGSTR, translation.ugettext(MOCK_MSGID))
 
 if __name__ == '__main__':
   unittest.main()
