@@ -1,5 +1,11 @@
 {
   "backends": {
+    "time_sanitizer": {
+      "args": {
+        "base_time_files": ["/usr/local/etc/lsb-factory",
+                            "/etc/lsb-release"]
+      }
+    },
     "system_log_manager": {
       "args": {
         "scan_log_period_secs": 120,
