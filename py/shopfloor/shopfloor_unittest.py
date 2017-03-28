@@ -74,6 +74,8 @@ class ShopFloorServerTest(unittest.TestCase):
         '-q', '-a', net_utils.LOCALHOST, '-p', str(self.server_port),
         '-m', 'cros.factory.shopfloor.simple_shopfloor',
         '-d', self.data_dir,
+        '--updater', 'cros.factory.shopfloor.dummy_updater',
+        '--updater-dir', os.path.join(self.data_dir, 'update'),
         '--auto-archive-logs', os.path.join(self.auto_archive_logs,
                                             'logs.DATE.tar.bz2')])
     self.process = Spawn(cmd, log=True)
@@ -81,7 +83,7 @@ class ShopFloorServerTest(unittest.TestCase):
         'http://%s:%s' % (net_utils.LOCALHOST, self.server_port),
         allow_none=True)
     # Waits the server to be ready, up to 1 second.
-    for _ in xrange(10):
+    for unused_i in xrange(10):
       try:
         self.proxy.Ping()
         break
@@ -313,6 +315,7 @@ class ShopFloorServerTest(unittest.TestCase):
       self.assertEqual(events[1], 'EVENT_1')
 
   def testUploadReport(self):
+    self.proxy.SetReportHourlyRotation(False)
     # Upload simple blob
     blob = self._MakeTarFile(paths.FACTORY_LOG_PATH_ON_DEVICE)
 

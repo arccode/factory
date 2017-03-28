@@ -22,9 +22,8 @@ import subprocess
 import threading
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.server_utils import (RsyncModule, StartRsyncServer,
-                                             StopRsyncServer)
+from cros.factory.utils import process_utils
+from cros.factory.utils import server_utils
 
 
 FACTORY_DIR = 'factory'
@@ -122,7 +121,7 @@ class FactoryUpdateServer(object):
 
     Args:
       state_dir: Update state directory (generally shopfloor_data/update).
-      rsyncd_addr: Address on which to open rsyncd.
+      rsyncd_addr: Address on which to open rsyncd, or None to not start rsyncd.
       rsyncd_port: Port on which to open rsyncd.
       on_idle: If non-None, a function to call on idle (generally every
         second).
@@ -132,15 +131,19 @@ class FactoryUpdateServer(object):
     self.rsyncd_addr = rsyncd_addr
     self.rsyncd_port = rsyncd_port
     if not os.path.exists(self.factory_dir):
-      os.mkdir(self.factory_dir)
+      os.makedirs(self.factory_dir)
     self.hwid_path = None
     self.on_idle = on_idle
 
     self._stop_event = threading.Event()
-    self._rsyncd = StartRsyncServer(
-        rsyncd_port, state_dir,
-        [RsyncModule(module='factory', path=self.factory_dir, read_only=True)],
-        address=self.rsyncd_addr)
+    if self.rsyncd_addr is not None:
+      self._rsyncd = server_utils.StartRsyncServer(
+          rsyncd_port, state_dir,
+          [server_utils.RsyncModule(
+              module='factory', path=self.factory_dir, read_only=True)],
+          address=self.rsyncd_addr)
+    else:
+      self._rsyncd = None
     self._tarball_path = os.path.join(self.state_dir, TARBALL_NAME)
     self._blacklist_path = os.path.join(state_dir, BLACKLIST_NAME)
     self._blacklist = []
@@ -165,7 +168,7 @@ class FactoryUpdateServer(object):
 
   def Stop(self):
     if self._rsyncd:
-      StopRsyncServer(self._rsyncd)
+      server_utils.StopRsyncServer(self._rsyncd)
       self._rsyncd = None
 
     self._stop_event.set()
@@ -304,8 +307,9 @@ class FactoryUpdateServer(object):
         if self._factory_detector.path:
           logging.info('Verifying integrity of tarball %s',
                        self._factory_detector.path)
-          process = Spawn(['tar', '-tjf', self._tarball_path],
-                          ignore_stdout=True, ignore_stderr=True, call=True)
+          process = process_utils.Spawn(
+              ['tar', '-tjf', self._tarball_path],
+              ignore_stdout=True, ignore_stderr=True, call=True)
           if process.returncode == 0:
             # Re-stat in case it finished being written while we were
             # verifying it.
