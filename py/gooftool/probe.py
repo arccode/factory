@@ -533,6 +533,15 @@ class _InputDevices(object):
     return evdev.InputDevice(os.path.join('/dev/input', data.Event))
 
   @classmethod
+  def GetI2cId(cls, entry):
+    """Return the i2c id of an entry returned from FindByNamePattern."""
+    path = os.path.realpath(os.path.join('/sys', entry.Sysfs.lstrip('/')))
+    result = re.search(r'/i2c-(\d+)(/.*)?$', path)
+    if result:
+      return int(result.group(1))
+    raise ValueError('Unable to find i2c id in "%s"' % path)
+
+  @classmethod
   def IsStylusDevice(cls, dev):
     """Check if a device is a stylus device.
 
@@ -575,7 +584,8 @@ class _TouchInputData(object):  # pylint: disable=W0232
   """Base class for collecting touchpad and touchscreen information."""
 
   @classmethod
-  def GenericInput(cls, name_pattern, sysfs_files=None, filter_rule=None):
+  def GenericInput(
+      cls, name_pattern, sysfs_files=None, filter_rule=None, customizer=None):
     """A generic touch device resolver."""
     data = _InputDevices.FindByNamePattern(name_pattern)
 
@@ -607,6 +617,9 @@ class _TouchInputData(object):  # pylint: disable=W0232
       path = os.path.join('/sys', entry.Sysfs.lstrip('/'), 'device', name)
       if os.path.exists(path):
         result[name] = _StripRead(path)
+
+    if customizer:
+      customizer(result, entry)
 
     return Obj(**result)
 
@@ -752,22 +765,12 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
 
   @classmethod
   def Wacom(cls):
-    def WacomByName():
-      # Using "WCOM" device name to detect WACOM touchscreen
-      # is exist or not.
-      data = cls.GenericInput(r'WCOM.*')
-
-      # Because we need using WACOM tool "wacom_flash" to read correct
-      # touchscreen firmware version
-      place = process_utils.SpawnOutput(
-          'ls -l /sys/bus/i2c/devices/ | grep WCOM | cut -d "/" -f8',
+    def put_version(result, entry):
+      result['version'] = process_utils.SpawnOutput(
+          'wacom_flash /dev/null -a i2c-%d' % _InputDevices.GetI2cId(entry),
           shell=True).strip()
-      data.version = process_utils.SpawnOutput(
-          'wacom_flash /dev/null -a %s' % place, shell=True).strip()
-
-      return data
-
-    return WacomByName()
+    # Using "WCOM" device name to detect if WACOM touchscreen exists or not.
+    return cls.GenericInput(r'WCOM.*', customizer=put_version)
 
   @classmethod
   def Generic(cls):
