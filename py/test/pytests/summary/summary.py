@@ -132,6 +132,7 @@ class Report(unittest.TestCase):
       self._SetFixtureStatusLight(all_pass)
 
     if self.args.run_factory_external_name:
+      self.dut.CheckCall(['mkdir', '-p', _EXTERNAL_DIR])
       file_path = self.dut.path.join(_EXTERNAL_DIR,
                                      self.args.run_factory_external_name)
       if all_pass:
