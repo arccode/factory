@@ -1,6 +1,4 @@
 #!/usr/bin/python -u
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,8 +15,8 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import network
 from cros.factory.test.env import paths
+from cros.factory.test import network
 from cros.factory.test.utils import dhcp_utils
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
@@ -48,6 +46,7 @@ class PingServer(object):
 
   def Stop(self):
     self._process.terminate()
+    self._process.wait()
 
 
 class LinkDownError(Exception):
@@ -90,17 +89,14 @@ class PresenterLinkManager(object):
     self._ping_server = None
     self.StartPingServer()
     self._thread = threading.Thread(target=self.MonitorLink)
+    self._thread.daemon = True
     self._thread.start()
 
   def __getattr__(self, name):
     """A wrapper that proxies the RPC calls to the real server proxy."""
     if not self._presenter_connected:
       raise LinkDownError()
-    try:
-      return self._presenter_proxy.__getattr__(name)
-    except AttributeError:
-      # _presenter_proxy is None. Link is probably down.
-      raise LinkDownError()
+    return self._presenter_proxy.__getattr__(name)
 
   def StartPingServer(self):
     """Starts ping server."""
@@ -133,16 +129,16 @@ class PresenterLinkManager(object):
   def ResumeMonitoring(self):
     """Immediately resume suspended monitoring of connection."""
     self._suspend_deadline = None
-    self.Kick()
+    self._kick_event.set()
     self._presenter_proxy.ResumeMonitoring(self._my_ip)
 
-  def PresenterIsAlive(self):
+  def PresenterIsConnected(self):
     """Pings the presenter."""
     if not self._presenter_connected:
       return False
     try:
-      return self._presenter_ping_proxy.IsAlive()
-    except (socket.error, socket.timeout, AttributeError):
+      return self._presenter_proxy.ConnectionGood(self._my_ip)
+    except (socket.error, socket.timeout):
       return False
 
   def _PresenterAnnounce(self, my_ip, presenter_ip):
@@ -150,11 +146,10 @@ class PresenterLinkManager(object):
     self._kick_event.set()
 
   def _HandlePresenterAnnouncement(self):
-    my_ip, presenter_ip = self._presenter_announcement # pylint: disable=W0633
-    self._presenter_announcement = None
-    self._MakePresenterConnection(my_ip, presenter_ip)
-    if self._presenter_connected:
-      return
+    if self._presenter_announcement is not None:
+      # pylint: disable=unpacking-non-sequence
+      my_ip, presenter_ip = self._presenter_announcement
+      self._MakePresenterConnection(my_ip, presenter_ip)
 
   def _MakePresenterConnection(self, my_ip, presenter_ip):
     """Attempts to connect the the presenter.
@@ -201,7 +196,7 @@ class PresenterLinkManager(object):
           if self._connect_hook:
             self._connect_hook(presenter_ip)
           return
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Failed to register DUT as %s', my_ip)
 
     except (socket.error, socket.timeout):
@@ -222,32 +217,34 @@ class PresenterLinkManager(object):
     If the connection is down, put ourselves into disconnected state and attempt
     to establish the connection again.
     """
-    if self._presenter_connected:
-      if self.PresenterIsAlive():
-        return  # everything's fine
-      else:
-        logging.info('Lost connection to presenter %s', self._presenter_ip)
-        self._presenter_connected = False
-        self._presenter_ip = None
-        self._presenter_proxy = None
-        self._my_ip = None
-        if self._disconnect_hook:
-          self._disconnect_hook()
+    if self.PresenterIsConnected():
+      return  # everything's fine
+    else:
+      logging.info('Lost connection to presenter %s', self._presenter_ip)
+      self._presenter_connected = False
+      self._presenter_ip = None
+      self._presenter_proxy = None
+      self._presenter_ping_proxy = None
+      self._my_ip = None
+      if self._disconnect_hook:
+        self._disconnect_hook()
 
   def MonitorLink(self):
     while True:
+      if self._suspend_deadline is not None:
+        if time.time() < self._suspend_deadline:
+          continue
+        self._suspend_deadline = None
+
+      if self._presenter_connected:
+        self.CheckPresenterConnection()
+      else:
+        self._HandlePresenterAnnouncement()
+
       self._kick_event.wait(self._check_interval)
       self._kick_event.clear()
       if self._abort_event.isSet():
         return
-      if self._suspend_deadline:
-        if time.time() > self._suspend_deadline:
-          self._suspend_deadline = None
-      else:
-        if self._presenter_announcement:
-          self._HandlePresenterAnnouncement()
-        else:
-          self.CheckPresenterConnection()
 
 
 class DUTLinkManager(object):
@@ -316,7 +313,6 @@ class DUTLinkManager(object):
                           'ConnectionGood': self.DUTIsAlive,
                           'SuspendMonitoring': self.SuspendMonitoring,
                           'ResumeMonitoring': self.ResumeMonitoring})
-    self._reported_announcement = set()
     self._dut_ips = []
     self._duts = {}
     self._lock = threading.Lock()
@@ -326,53 +322,44 @@ class DUTLinkManager(object):
                                  methods=self._methods)
     self._ping_server = PingServer(PRESENTER_PING_PORT)
     self._thread = threading.Thread(target=self.MonitorLink)
+    self._thread.daemon = True
 
     self._dhcp_server = None
-    self._dhcp_event_ip = None
+    self._to_announce_ips = set()
     self._relay_process = None
 
   def __getattr__(self, name):
-    """A wrapper that proxies the RPC calls to the real server proxy."""
+    """A wrapper that proxies the RPC calls to the real DUT proxy."""
     if not self._dut_ips:
       raise LinkDownError()
 
     dut_ip = self._dut_ips[-1]
-    try:
-      dut_proxy = self._duts[dut_ip].GetProxy()
-      return dut_proxy.__getattr__(name)
-    except AttributeError:
-      # _dut_proxies is None. Link is probably down.
+    dut_proxy = self._duts[dut_ip].GetProxy()
+    if dut_proxy is None:
+      # dut_proxy is None. Link is probably down.
       raise LinkDownError()
+    return dut_proxy.__getattr__(name)
 
   def OnDHCPEvent(self, ip, dongle_mac_address):
     """Call backs on 'add' or 'old' events from DHCP server."""
     logging.info('DHCP event: %s', ip)
     # Save the IP address and try to talk to it. If it fails, the device may
     # be booting and is not ready for connection. Retry later.
-    self._dhcp_event_ip = ip
-    if ip not in self._duts:
-      # calling OnDHCPEvent twice may set _dut_proxy and _dut_ping_proxy to None
+    self._to_announce_ips.add(ip)
+    if ip not in self._dut_ips:
       self._duts[ip] = self.DUT(ip, dongle_mac_address)
-    self.AnnounceToLastDUT()
+    self.Kick()
 
-  def AnnounceToLastDUT(self):
+  def AnnounceToDUT(self):
     """Make announcement to the last DHCP event client."""
-    if not self._dhcp_event_ip:
-      return
-
-    if self._dut_ips:
-      dut_ip = self._dut_ips[-1]
-      if (dut_ip == self._dhcp_event_ip and
-          self._duts[dut_ip].ProxyConnected()):
-        return
-    proxy = MakeTimeoutServerProxy(self._dhcp_event_ip, DUT_LINK_RPC_PORT,
-                                   timeout=0.05)
-    dhcp_subnet = self._dhcp_event_ip.rsplit('.', 1)[0]
-    my_ip = dhcp_subnet + '.1'
-    try:
-      proxy.Announce(self._dhcp_event_ip, my_ip)
-    except: # pylint: disable=W0702
-      pass
+    for dut_ip in list(self._to_announce_ips):
+      proxy = MakeTimeoutServerProxy(dut_ip, DUT_LINK_RPC_PORT, timeout=0.05)
+      dhcp_subnet = dut_ip.rsplit('.', 1)[0]
+      my_ip = dhcp_subnet + '.1'
+      try:
+        proxy.Announce(dut_ip, my_ip)
+      except: # pylint: disable=bare-except
+        pass
 
   def _StartDHCPServer(self):
     self._dhcp_server = dhcp_utils.StartDHCPManager(
@@ -393,14 +380,15 @@ class DUTLinkManager(object):
   def _StopOverlordRelay(self):
     if self._relay_process is not None:
       self._relay_process.terminate()
+      self._relay_process.wait()
 
   def Start(self):
     """Starts services."""
     self._server.Start()
     self._thread.start()
     if self._standalone:
-      self._dhcp_event_ip = LOCALHOST
       self._duts[LOCALHOST] = self.DUT(LOCALHOST, STANDALONE)
+      self._to_announce_ips.add(LOCALHOST)
     else:
       self._StartDHCPServer()
       self._StartOverlordRelay()
@@ -450,12 +438,13 @@ class DUTLinkManager(object):
         dut.Ping()
 
         logging.info('DUT %s registered', dut_ip)
-        self._reported_announcement.clear()
         if self._connect_hook:
           self._connect_hook(dut_ip, self._duts[dut_ip].GetDongleMacAddress())
 
         if dut_ip not in self._dut_ips:
           self._dut_ips.append(dut_ip)
+        if dut_ip in self._to_announce_ips:
+          self._to_announce_ips.remove(dut_ip)
       except (socket.error, socket.timeout):
         self.RemoveDUT(dut_ip)
 
@@ -489,20 +478,16 @@ class DUTLinkManager(object):
 
   def MonitorLink(self):
     while True:
-      if self._dut_ips:
-        for dut_ip in self._dut_ips:
-          suspend_deadline = self._duts[dut_ip].GetSuspendDeadline()
-          if suspend_deadline:
-            if time.time() > suspend_deadline:
-              self._duts[dut_ip].SetSuspendDeadline(None)
-          else:
-            self.CheckDUTConnection(dut_ip)
-      else:
-        # If we are running in standalone mode, OnDHCPEvent is never triggered
-        # and thus AnnouceToLastDUT will also never be called. If no DUT is
-        # connected, we call AnnouceToLastDUT manually to try to connect to
-        # localhost.
-        self.AnnounceToLastDUT()
+      for dut_ip in list(self._dut_ips):
+        suspend_deadline = self._duts[dut_ip].GetSuspendDeadline()
+        if suspend_deadline is not None:
+          if time.time() < suspend_deadline:
+            continue
+          self._duts[dut_ip].SetSuspendDeadline(None)
+        self.CheckDUTConnection(dut_ip)
+
+      self.AnnounceToDUT()
+
       self._kick_event.wait(self._check_interval)
       self._kick_event.clear()
       if self._abort_event.isSet():
