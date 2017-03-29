@@ -88,6 +88,20 @@ class ValidHWIDDBsTest(unittest.TestCase):
                                board_name + '_test.yaml')
       title = '%s %s:%s' % (board_name, commit, db_path)
       logging.info('Checking %s', title)
+
+      try:
+        test_samples = yaml.load_all(process_utils.CheckOutput(
+            ['git', 'show', '%s:%s' % (commit, test_path)],
+            cwd=hwid_dir, ignore_stderr=True))
+      except subprocess.CalledProcessError as e:
+        if e.returncode == 128:
+          logging.info('Cannot find %s. Skip encoding / decoding test for %s.',
+                       test_path, board_name)
+          continue
+        logging.error('%s: Load testdata failed.', board_name)
+        exception_list.append((title, sys.exc_info()))
+        continue
+
       try:
         db_raw = process_utils.CheckOutput(
             ['git', 'show', '%s:%s' % (commit, db_path)],
@@ -121,19 +135,6 @@ class ValidHWIDDBsTest(unittest.TestCase):
             strict=bool(expected_checksum))
       except Exception:
         logging.error('%s: Load database failed.', board_name)
-        exception_list.append((title, sys.exc_info()))
-        continue
-
-      try:
-        test_samples = yaml.load_all(process_utils.CheckOutput(
-            ['git', 'show', '%s:%s' % (commit, test_path)],
-            cwd=hwid_dir, ignore_stderr=True))
-      except subprocess.CalledProcessError as e:
-        if e.returncode == 128:
-          logging.info('Cannot find %s. Skip encoding / decoding test for %s.',
-                       test_path, board_name)
-          continue
-        logging.error('%s: Load testdata failed.', board_name)
         exception_list.append((title, sys.exc_info()))
         continue
 
