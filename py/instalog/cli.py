@@ -36,22 +36,22 @@ class InstalogService(daemon_utils.Daemon):
     self._config = config
     self._logging_level = logging_level
     self._core = None
-    self._signal_handler_lock = threading.Lock()
     super(InstalogService, self).__init__(
         pidfile=config['instalog']['pid_file'])
 
   def _SignalHandler(self, signal_num, frame):
-    """Signal handler to stop Instalog on SIGINT."""
-    logging.debug('_SignalHandler called with signalnum=%s', signal_num)
+    """Signal handler to stop Instalog on SIGINT or SIGTERM."""
     del frame
-    if signal_num is not signal.SIGINT:
+    logging.debug('_SignalHandler called with signalnum=%s', signal_num)
+    if signal_num not in [signal.SIGINT, signal.SIGTERM]:
       return
-    self._signal_handler_lock.acquire(False)
     if self._core:
-      logging.warning('SIGINT detected, stopping')
+      # No need for a lock since _SignalHandler will only ever be called from
+      # Instalog's main thread.
+      signal_string = 'SIGINT' if signal_num == signal.SIGINT else 'SIGTERM'
+      logging.warning('%s detected, stopping', signal_string)
       self._core.Stop()
       self._core = None
-    self._signal_handler_lock.release()
 
   def _InitLogging(self):
     """Sets up logging."""
@@ -85,8 +85,8 @@ class InstalogService(daemon_utils.Daemon):
     """Starts Instalog."""
     self._InitLogging()
 
-    if foreground:
-      signal.signal(signal.SIGINT, self._SignalHandler)
+    signal.signal(signal.SIGINT, self._SignalHandler)
+    signal.signal(signal.SIGTERM, self._SignalHandler)
 
     self._core = core.Instalog(
         node_id=self._config['instalog']['node_id'],

@@ -259,17 +259,23 @@ class Instalog(plugin_sandbox.CoreAPI):
     Args:
       sync: If true, only returns when Instalog has stopped running.
     """
-    # If a Stop is already in process, return immediately.
-    if self._state in (STOPPING, DOWN):
-      return
-
     # If called in asynchronous mode, kick off a thread to perform the stop.
     if not sync:
       threading.Thread(target=self.Stop, args=(True,)).start()
       return
 
-    self._ShutdownRPCServer()
     with self._rpc_lock:
+      # If Instalog is still starting up, wait for it to finish.
+      while self._state is STARTING:
+        time.sleep(0.5)
+
+      # Check for _state here just in case of multiple Stop calls.
+      if self._state is STOPPING:
+        while self._state is not DOWN:
+          time.sleep(0.5)
+      if self._state is DOWN:
+        return
+
       self._state = STOPPING
       for plugin in self._plugins.values():
         if plugin.IsLoaded():
@@ -284,6 +290,7 @@ class Instalog(plugin_sandbox.CoreAPI):
       self._buffer.Stop()
       logging.info('Stopped buffer')
       self._state = DOWN
+      self._ShutdownRPCServer()
 
   def Inspect(self, plugin_id, json_path):
     with self._rpc_lock:
