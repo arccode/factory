@@ -773,14 +773,23 @@ class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
     return cls.GenericInput(r'WCOM.*', customizer=put_version)
 
   @classmethod
+  def Weida(cls):
+    # Using "WDHT" device name to detect if Weida touchscreen exists or not.
+    data = cls.GenericInput(r'WDHT.*')
+    if data:
+      data.version = process_utils.SpawnOutput('wdt_util -v -c',
+                                               shell=True).strip()
+    return data
+
+  @classmethod
   def Generic(cls):
     return cls.GenericInput(r'.*[Tt]ouch *[Ss]creen',
                             ['fw_version', 'hw_version', 'config_csum'])
 
   @classmethod
   def Get(cls):
-    return cls.GetGeneric([cls.Elan, cls.Synaptics, cls.Wacom, cls.Generic])
-
+    return cls.GetGeneric([cls.Elan, cls.Synaptics, cls.Wacom, cls.Weida,
+                           cls.Generic])
 
 class _StylusData(_TouchInputData):
   """Return Obj with hw_ident and fw_ident string fields."""
