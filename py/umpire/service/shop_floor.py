@@ -9,7 +9,14 @@ import os
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.service import umpire_service
+from cros.factory.utils import schema
 
+
+CONFIG_SCHEMA = {
+    'optional_items': {
+         'bundle_id': schema.Scalar('Stick on given bundle', str),
+    }
+}
 
 # TODO(rongchang): Check why symlink doesn't work.
 SHOP_FLOOR_FCGI = 'py/umpire/shop_floor_launcher.py'
@@ -31,7 +38,7 @@ class ShopFloorService(umpire_service.UmpireService):
     self.properties['num_shopfloor_handlers'] = 0
     self.log = None
 
-  def CreateProcesses(self, dummy_config, env):
+  def CreateProcesses(self, umpire_config, env):
     """Creates list of shop floor processes via config.
 
     Args:
@@ -42,7 +49,12 @@ class ShopFloorService(umpire_service.UmpireService):
       A list of ServiceProcess.
     """
     self.log = open(os.path.join(env.log_dir, LOG_FILE_NAME), 'a')
-    active_bundles = env.config.GetActiveBundles()
+    bundle_id = umpire_config['services']['shop_floor'].get('bundle_id', None)
+    if bundle_id:
+      active_bundles = [env.config.GetBundle(bundle_id)]
+    else:
+      active_bundles = env.config.GetActiveBundles()
+
     processes = set()
     for bundle in active_bundles:
       # Get toolkit path and shop floor handler.
