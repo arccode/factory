@@ -54,6 +54,10 @@ class OutputRPC(plugin_base.OutputPlugin):
           optional=True, default=_DEFAULT_MAX_BYTES)
   ]
 
+  def __init__(self, *args, **kwargs):
+    self.rpc_server = None
+    super(OutputRPC, self).__init__(*args, **kwargs)
+
   def SetUp(self):
     """Stores handler to input RPC server."""
     # TODO(kitching): Find a better way of doing this, since this timeout

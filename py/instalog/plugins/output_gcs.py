@@ -8,7 +8,7 @@
 
 from __future__ import print_function
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
@@ -42,6 +42,10 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
           'Strip events of their attachments and re-emit.',
           optional=False, default=False),
   ]
+
+  def __init__(self, *args, **kwargs):
+    self.gcs = None
+    super(OutputCloudStorage, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Authenticates the connection to Cloud Storage."""
@@ -80,8 +84,7 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
         except Exception:
           self.exception('Exception encountered during upload, aborting')
           success = False
-        finally:
-          break
+        break
 
     # Re-emit events with their attachments removed.
     if success and self.args.enable_emit:
@@ -89,7 +92,10 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
         self.error('Unable to emit, aborting')
         success = False
 
-    event_stream.Commit() if success else event_stream.Abort()
+    if success:
+      event_stream.Commit()
+    else:
+      event_stream.Abort()
     self.debug('Processed batch of %d events', len(events))
 
     # Return False if failure occurred, or if no events were processed.

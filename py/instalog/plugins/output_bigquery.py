@@ -25,9 +25,10 @@ import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 
-from apiclient.http import MediaIoBaseUpload
-from apiclient.discovery import build
-from apiclient.errors import HttpError
+from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+# pylint: disable=no-name-in-module
 from oauth2client.service_account import ServiceAccountCredentials
 
 
@@ -59,6 +60,10 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       Arg('table_id', (str, unicode), 'BigQuery target table name.',
           optional=False)
   ]
+
+  def __init__(self, *args, **kwargs):
+    self.service = None
+    super(OutputBigQuery, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Stores the service object to run BigQuery API calls."""
@@ -214,10 +219,9 @@ class OutputBigQuery(plugin_base.OutputPlugin):
                      exc_info=True)
       if exception_count != _BIGQUERY_REQUEST_MAX_FAILURES:
         time.sleep(_BIGQUERY_REQUEST_INTERVAL)
-    else:
-      self.error(
-          'Give up retrieving load job %s result after %d attempts',
-          job_id, exception_count)
+    self.error(
+        'Give up retrieving load job %s result after %d attempts',
+        job_id, exception_count)
     return False
 
   def ConvertEventToRow(self, event):

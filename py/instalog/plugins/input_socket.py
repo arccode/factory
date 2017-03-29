@@ -15,14 +15,13 @@ See input_socket_unittest.py for reference examples.
 from __future__ import print_function
 
 import hashlib
-import os
 import shutil
 import socket
 import tempfile
 import threading
 import time
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
@@ -47,11 +46,12 @@ class InputSocket(plugin_base.InputPlugin):
           optional=True, default=socket_common.DEFAULT_PORT)
   ]
 
-  # Default class instance variables.
-  _sock = None
-  _accept_thread = None
-  _tmp_dir = None
-  _threads = {}
+  def __init__(self, *args, **kwargs):
+    self._sock = None
+    self._accept_thread = None
+    self._tmp_dir = None
+    self._threads = {}
+    super(InputSocket, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Sets up the plugin."""
@@ -108,7 +108,8 @@ class InputSocket(plugin_base.InputPlugin):
     """Tears down the plugin."""
     if self._sock:
       self.info('Closing socket and shutting down accept thread...')
-      # Initiate a fake connection in order to break a blocking sock.accept call.
+      # Initiate a fake connection in order to break a blocking sock.accept
+      # call.
       socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(
           (self.args.hostname, self.args.port))
       self._sock.shutdown(socket.SHUT_RDWR)

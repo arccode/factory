@@ -15,7 +15,7 @@ import datetime
 import json
 import os
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import plugin_base
 from instalog.plugins import input_log_file

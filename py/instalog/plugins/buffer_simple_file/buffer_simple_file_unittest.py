@@ -37,7 +37,7 @@ import tempfile
 import threading
 import unittest
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
@@ -93,7 +93,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     SEQ = 1989
     RECORD = 'hello world'
     # pylint: disable=unpacking-non-sequence
-    seq, record = self.sf._ParseRecord(self.sf._FormatRecord(SEQ, RECORD))
+    seq, record = self.sf.ParseRecord(self.sf._FormatRecord(SEQ, RECORD))
     self.assertEqual(SEQ, seq)
     self.assertEqual(RECORD, record)
 
@@ -358,10 +358,9 @@ class TestBufferSimpleFile(unittest.TestCase):
     cur_seq = 1
     record_count = collections.defaultdict(int)
     while True:
-      ret = stream._Next()
-      if not ret:
+      seq, record = stream._Next()
+      if not seq:
         break
-      seq, record = ret
       # Make sure the sequence numbers are correct.
       self.assertEqual(cur_seq, seq)
       cur_seq += 1

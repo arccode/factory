@@ -140,21 +140,12 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
           optional=True, default=_DEFAULT_COPY_ATTACHMENTS),
   ]
 
-  def SetUp(self):
-    """Sets up the plugin."""
-    self.data_path = os.path.join(
-        self.GetDataDir(), 'data.json')
-    self.metadata_path = os.path.join(
-        self.GetDataDir(), 'metadata.json')
-    self.consumers_list_path = os.path.join(
-        self.GetDataDir(), 'consumers.json')
-    self.consumer_path_format = os.path.join(
-        self.GetDataDir(), 'consumer_%s.json')
-    self.attachments_dir = os.path.join(
-        self.GetDataDir(), 'attachments')
-
-    if not os.path.exists(self.attachments_dir):
-      os.makedirs(self.attachments_dir)
+  def __init__(self, *args, **kwargs):
+    self.data_path = None
+    self.metadata_path = None
+    self.consumers_list_path = None
+    self.consumer_path_format = None
+    self.attachments_dir = None
 
     # Lock for writing to the self.data_path file.  Used by
     # Produce and Truncate.
@@ -176,6 +167,24 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     self.last_seq = 0
     self.start_pos = 0
     self.end_pos = 0
+
+    super(BufferSimpleFile, self).__init__(*args, **kwargs)
+
+  def SetUp(self):
+    """Sets up the plugin."""
+    self.data_path = os.path.join(
+        self.GetDataDir(), 'data.json')
+    self.metadata_path = os.path.join(
+        self.GetDataDir(), 'metadata.json')
+    self.consumers_list_path = os.path.join(
+        self.GetDataDir(), 'consumers.json')
+    self.consumer_path_format = os.path.join(
+        self.GetDataDir(), 'consumer_%s.json')
+    self.attachments_dir = os.path.join(
+        self.GetDataDir(), 'attachments')
+
+    if not os.path.exists(self.attachments_dir):
+      os.makedirs(self.attachments_dir)
 
     # Try restoring metadata, if it exists.
     self._RestoreMetadata()
@@ -266,7 +275,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     cur_pos = 0
     with open(self.data_path, 'r') as f:
       for line in f:
-        ret = self._ParseRecord(line)
+        ret = self.ParseRecord(line)
         if not first_record and ret:
           self.first_seq = ret[0]
           self.start_pos = cur_pos
@@ -319,7 +328,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     checksum = GetChecksum(data)
     return '[%s, %s]\n' % (data, checksum)
 
-  def _ParseRecord(self, line):
+  def ParseRecord(self, line):
     """Parses and returns a line from disk as a record.
 
     Returns:
@@ -403,7 +412,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         self.debug('Truncating attachment (<seq=%d): %s', self.first_seq, fname)
         os.unlink(fpath)
 
-  def _ExternalizeEvent(self, event):
+  def ExternalizeEvent(self, event):
     """Modifies attachment paths of given event to be absolute."""
     for att_id in event.attachments.keys():
       # Reconstruct the full path to the attachment on disk.
@@ -454,7 +463,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
           assert f.tell() == cur_pos
           for staged_event in staged_events:
             self.debug('Writing event with cur_seq=%d, cur_pos=%d',
-                          cur_seq, cur_pos)
+                       cur_seq, cur_pos)
             output = self._FormatRecord(cur_seq, staged_event.Serialize())
 
             # Store the version for SaveMetadata to use.
@@ -481,7 +490,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
             os.unlink(path)
       except Exception:
         self.exception('Some of source attachment files could not be '
-                          'deleted; silently ignoring')
+                       'deleted; silently ignoring')
       return True
 
   def _GetFirstUnconsumedRecord(self):
@@ -512,7 +521,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         return
       try:
         for consumer in self.consumers.values():
-          consumer._read_lock.acquire()
+          consumer.read_lock.acquire()
         min_seq, min_pos = self._GetFirstUnconsumedRecord()
         self.debug('Will truncate up until seq=%d, pos=%d', min_seq, min_pos)
 
@@ -562,7 +571,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         # Ensure that regardless of any errors, locks are released.
         for consumer in self.consumers.values():
           try:
-            consumer._read_lock.release()
+            consumer.read_lock.release()
           except Exception:
             pass
 
@@ -624,7 +633,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     self.logger = logger
 
     self._lock = threading.Lock()
-    self._read_lock = threading.Lock()
+    self.read_lock = threading.Lock()
     self.read_buf = []
 
     self.cur_seq = simple_file.first_seq
@@ -701,8 +710,8 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     # Does the buffer already have data in it?
     if not self.simple_file.version:
       return self.read_buf
-    self.debug('_Buffer: waiting for _read_lock')
-    with self._read_lock:
+    self.debug('_Buffer: waiting for read_lock')
+    with self.read_lock:
       with open(self.simple_file.data_path, 'r') as f:
         cur = self.new_pos - self.simple_file.start_pos
         f.seek(cur)
@@ -715,7 +724,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
           cur += size
           if cur > (self.simple_file.end_pos - self.simple_file.start_pos):
             break
-          ret = self.simple_file._ParseRecord(line)
+          ret = self.simple_file.ParseRecord(line)
           if ret is None:
             # Parsing of this line failed for some reason.
             skipped_bytes += size
@@ -734,13 +743,13 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     """Helper for _Next, also used for testing purposes.
 
     Returns:
-      A tuple of (seq, record), or None if no records available.
+      A tuple of (seq, record), or (None, None) if no records available.
     """
     if not self._lock.locked():
       raise plugin_base.EventStreamExpired
     buf = self._Buffer()
     if not buf:
-      return None
+      return None, None
     seq, record, size = buf.pop(0)
     self.new_seq = seq + 1
     self.new_pos += size
@@ -748,12 +757,11 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
 
   def Next(self):
     """See BufferEventStream.Next."""
-    data = self._Next()
-    if not data:
+    seq, record = self._Next()
+    if not seq:
       return None
-    _, record = data
     event = datatypes.Event.Deserialize(record)
-    return self.simple_file._ExternalizeEvent(event)
+    return self.simple_file.ExternalizeEvent(event)
 
   def Commit(self):
     """See BufferEventStream.Commit."""

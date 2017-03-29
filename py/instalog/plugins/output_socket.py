@@ -43,6 +43,10 @@ class OutputSocket(plugin_base.OutputPlugin):
           optional=True, default=socket_common.DEFAULT_PORT)
   ]
 
+  def __init__(self, *args, **kwargs):
+    self._sock = None
+    super(OutputSocket, self).__init__(*args, **kwargs)
+
   def Main(self):
     """Main thread of the plugin."""
     # Boolean flag to indicate whether or not the target is currently available.
@@ -152,7 +156,6 @@ class OutputSocket(plugin_base.OutputPlugin):
 
   def GetSocket(self):
     """Creates and returns a new socket connection to the target host."""
-    # pylint: disable=attribute-defined-outside-init
     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self._sock.settimeout(socket_common.SOCKET_TIMEOUT)
     self._sock.connect((self.args.hostname, self.args.port))

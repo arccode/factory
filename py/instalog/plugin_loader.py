@@ -16,7 +16,7 @@ import inspect
 import logging
 import sys
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.utils import arg_utils
 

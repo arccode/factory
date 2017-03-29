@@ -128,7 +128,7 @@ class InputEventlogFile(input_log_file.InputLogFile):
       return None
 
     # Verify that our output has the required keys.
-    if ('EVENT' not in output or 'TIME' not in output):
+    if 'EVENT' not in output or 'TIME' not in output:
       end_line = event_str.count('\n')
       LogError(self.logger, 'Dropped event due to missing required KEY',
                end_line)

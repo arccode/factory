@@ -26,13 +26,14 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     """Returns a list of fields in the table schema."""
     return [
         # history
-        {'name': 'history', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-            {'name': 'node_id', 'type': 'STRING'},
-            {'name': 'orig_time', 'type': 'TIMESTAMP'},
-            {'name': 'time', 'type': 'TIMESTAMP'},
-            {'name': 'plugin_id', 'type': 'STRING'},
-            {'name': 'plugin_type', 'type': 'STRING'},
-            {'name': 'target', 'type': 'STRING'}]},
+        {'name': 'history', 'type': 'RECORD', 'mode': 'REPEATED',
+         'fields': [
+             {'name': 'node_id', 'type': 'STRING'},
+             {'name': 'orig_time', 'type': 'TIMESTAMP'},
+             {'name': 'time', 'type': 'TIMESTAMP'},
+             {'name': 'plugin_id', 'type': 'STRING'},
+             {'name': 'plugin_type', 'type': 'STRING'},
+             {'name': 'target', 'type': 'STRING'}]},
 
         # station
         {'name': 'uuid', 'type': 'STRING'},
@@ -59,51 +60,58 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
 
         # station.test_run
         {'name': 'testType', 'type': 'STRING'},
-        {'name': 'arguments', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-            {'name': 'key', 'type': 'STRING'},
-            {'name': 'description', 'type': 'STRING'},
-            {'name': 'value', 'type': 'STRING'}]},
+        {'name': 'arguments', 'type': 'RECORD', 'mode': 'REPEATED',
+         'fields': [
+             {'name': 'key', 'type': 'STRING'},
+             {'name': 'description', 'type': 'STRING'},
+             {'name': 'value', 'type': 'STRING'}]},
         {'name': 'status', 'type': 'STRING'},
         {'name': 'startTime', 'type': 'TIMESTAMP'},
         {'name': 'endTime', 'type': 'TIMESTAMP'},
         {'name': 'duration', 'type': 'FLOAT'},
         {'name': 'operatorId', 'type': 'STRING'},
-        {'name': 'attachments', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-            {'name': 'key', 'type': 'STRING'},
-            {'name': 'description', 'type': 'STRING'},
-            {'name': 'path', 'type': 'STRING'},
-            {'name': 'mimeType', 'type': 'STRING'}]},
-        {'name': 'failures', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-            {'name': 'id', 'type': 'INTEGER'},
-            {'name': 'code', 'type': 'STRING'},
-            {'name': 'details', 'type': 'STRING'}]},
-        {'name': 'serialNumbers', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-            {'name': 'key', 'type': 'STRING'},
-            {'name': 'value', 'type': 'STRING'}]},
-        {'name': 'parameters', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-            {'name': 'key', 'type': 'STRING'},
-            {'name': 'description', 'type': 'STRING'},
-            {'name': 'group', 'type': 'STRING'},
-            {'name': 'status', 'type': 'STRING'},
-            {'name': 'valueUnit', 'type': 'STRING'},
-            {'name': 'numericValue', 'type': 'FLOAT'},
-            {'name': 'expectedMinimum', 'type': 'FLOAT'},
-            {'name': 'expectedMaximum', 'type': 'FLOAT'},
-            {'name': 'textValue', 'type': 'STRING'},
-            {'name': 'expectedRegex', 'type': 'STRING'}]},
-        {'name': 'series', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-            {'name': 'key', 'type': 'STRING'},
-            {'name': 'description', 'type': 'STRING'},
-            {'name': 'group', 'type': 'STRING'},
-            {'name': 'keyUnit', 'type': 'STRING'},
-            {'name': 'valueUnit', 'type': 'STRING'},
-            {'name': 'data', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-                {'name': 'id', 'type': 'INTEGER'},
-                {'name': 'key', 'type': 'FLOAT'},
-                {'name': 'status', 'type': 'STRING'},
-                {'name': 'numericValue', 'type': 'FLOAT'},
-                {'name': 'expectedMinimum', 'type': 'FLOAT'},
-                {'name': 'expectedMaximum', 'type': 'FLOAT'}]}]},
+        {'name': 'attachments', 'type': 'RECORD', 'mode': 'REPEATED',
+         'fields': [
+             {'name': 'key', 'type': 'STRING'},
+             {'name': 'description', 'type': 'STRING'},
+             {'name': 'path', 'type': 'STRING'},
+             {'name': 'mimeType', 'type': 'STRING'}]},
+        {'name': 'failures', 'type': 'RECORD', 'mode': 'REPEATED',
+         'fields': [
+             {'name': 'id', 'type': 'INTEGER'},
+             {'name': 'code', 'type': 'STRING'},
+             {'name': 'details', 'type': 'STRING'}]},
+        {'name': 'serialNumbers', 'type': 'RECORD', 'mode': 'REPEATED',
+         'fields': [
+             {'name': 'key', 'type': 'STRING'},
+             {'name': 'value', 'type': 'STRING'}]},
+        {'name': 'parameters', 'type': 'RECORD', 'mode': 'REPEATED',
+         'fields': [
+             {'name': 'key', 'type': 'STRING'},
+             {'name': 'description', 'type': 'STRING'},
+             {'name': 'group', 'type': 'STRING'},
+             {'name': 'status', 'type': 'STRING'},
+             {'name': 'valueUnit', 'type': 'STRING'},
+             {'name': 'numericValue', 'type': 'FLOAT'},
+             {'name': 'expectedMinimum', 'type': 'FLOAT'},
+             {'name': 'expectedMaximum', 'type': 'FLOAT'},
+             {'name': 'textValue', 'type': 'STRING'},
+             {'name': 'expectedRegex', 'type': 'STRING'}]},
+        {'name': 'series', 'type': 'RECORD', 'mode': 'REPEATED',
+         'fields': [
+             {'name': 'key', 'type': 'STRING'},
+             {'name': 'description', 'type': 'STRING'},
+             {'name': 'group', 'type': 'STRING'},
+             {'name': 'keyUnit', 'type': 'STRING'},
+             {'name': 'valueUnit', 'type': 'STRING'},
+             {'name': 'data', 'type': 'RECORD', 'mode': 'REPEATED',
+              'fields': [
+                  {'name': 'id', 'type': 'INTEGER'},
+                  {'name': 'key', 'type': 'FLOAT'},
+                  {'name': 'status', 'type': 'STRING'},
+                  {'name': 'numericValue', 'type': 'FLOAT'},
+                  {'name': 'expectedMinimum', 'type': 'FLOAT'},
+                  {'name': 'expectedMaximum', 'type': 'FLOAT'}]}]},
         {'name': 'serialized', 'type': 'STRING'}]
 
   def ConvertEventToRow(self, event):

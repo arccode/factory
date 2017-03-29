@@ -15,7 +15,6 @@ import datetime
 import os
 import shutil
 import tempfile
-import time
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
@@ -44,6 +43,10 @@ class InputTime(plugin_base.InputPlugin):
       Arg('attachment_bytes', int, 'Size in bytes of each attachment file.',
           optional=True, default=_DEFAULT_ATTACHMENT_BYTES),
   ]
+
+  def __init__(self, *args, **kwargs):
+    self._tmp_dir = None
+    super(InputTime, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Sets up the plugin."""

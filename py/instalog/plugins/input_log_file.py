@@ -73,9 +73,9 @@ class InputLogFile(plugin_base.InputPlugin):
           optional=True, default=_DEFAULT_MAX_BYTES)
   ]
 
-  def SetUp(self):
-    """Sets up the plugin."""
+  def __init__(self, *args, **kwargs):
     self.log_files = {}
+    super(InputLogFile, self).__init__(*args, **kwargs)
 
   def ScanLogFiles(self):
     """Updates the internal LogFile objects based on glob results.
@@ -152,7 +152,7 @@ class InputLogFile(plugin_base.InputPlugin):
       self.exception('Exception while accessing file, check permissions')
       pause_time = self.args.error_pause_time
     return [(time_utils.MonotonicTime() + pause_time, self.ProcessLogFileTask,
-           [log_file])]
+             [log_file])]
 
   def Main(self):
     """Main thread of the plugin.

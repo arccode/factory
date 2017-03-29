@@ -12,7 +12,6 @@ Waits for events from an output RPC plugin running on another Instalog node.
 from __future__ import print_function
 
 import base64
-import os
 import shutil
 import tempfile
 import threading
@@ -23,6 +22,7 @@ from instalog import datatypes
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 
+# pylint: disable=no-name-in-module
 from instalog.external.jsonrpclib import SimpleJSONRPCServer
 
 
@@ -33,7 +33,8 @@ _DEFAULT_PORT = 8880
 class InputRPC(plugin_base.InputPlugin):
 
   ARGS = [
-      Arg('hostname', (str, unicode), 'Hostname that RPC server should bind to.',
+      Arg('hostname', (str, unicode),
+          'Hostname that RPC server should bind to.',
           optional=True, default=_DEFAULT_HOSTNAME),
       Arg('port', int, 'Port that RPC server should bind to.',
           optional=True, default=_DEFAULT_PORT)
@@ -42,6 +43,8 @@ class InputRPC(plugin_base.InputPlugin):
   def __init__(self, *args, **kwargs):
     # Store reference to the JSON RPC server.
     self.server = None
+    self.server_thread = None
+    self._tmp_dir = None
     super(InputRPC, self).__init__(*args, **kwargs)
 
   def SetUp(self):
