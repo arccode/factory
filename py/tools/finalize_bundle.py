@@ -9,6 +9,7 @@
 from __future__ import print_function
 
 import argparse
+import errno
 import glob
 import logging
 import os
@@ -123,11 +124,6 @@ like the following:
   # Files to delete if present.
   delete_files:
   - install_shim/factory_install_shim.bin
-  # Files that are expected to be in the bundle.
-  files:
-  - MANIFEST.yaml  # This file!
-  - README
-  - ...
 
 The bundle must be in a directory named
 factory_bundle_${board}_${self.bundle_name} (where board and self.bundle_name
@@ -149,8 +145,6 @@ class FinalizeBundle(object):
       simple_board == board if board is not a variant board.
       This name is used in firmware and hwid.
     manifest: Parsed YAML manifest.
-    expected_files: List of files expected to be in the bundle (relative paths).
-    all_files: Set of files actually present in the bundle (relative paths).
     readme_path: Path to the README file within the bundle.
     factory_image_base_version: Build of the factory image (e.g., 3004.100.0)
     release_image_path: Path to the release image.
@@ -173,8 +167,6 @@ class FinalizeBundle(object):
   board = None
   simple_board = None
   manifest = None
-  expected_files = None
-  all_files = None
   readme_path = None
   factory_image_base_version = None
   install_shim_version = None
@@ -204,7 +196,7 @@ class FinalizeBundle(object):
     self.MakeUpdateBundle()
     self.MakeFactoryPackages()
     self.FixFactoryPar()
-    self.CheckFiles()
+    self.RemoveUnnecessaryFiles()
     self.UpdateReadme()
     self.Archive()
 
@@ -225,11 +217,6 @@ class FinalizeBundle(object):
         '--no-make-factory-packages', dest='make_factory_package',
         action='store_false',
         help="Don't call make_factory_package (for testing only)")
-    parser.add_argument(
-        '--no-check-files', dest='check_files',
-        action='store_false',
-        help=("Don't check for missing or extra files in the bundle "
-              '(for testing only)'))
     parser.add_argument(
         '--tip-of-branch', dest='tip_of_branch', action='store_true',
         help='Use tip version of release image, install shim, and '
@@ -253,9 +240,8 @@ class FinalizeBundle(object):
     CheckDictKeys(
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
                         'add_files_to_image', 'delete_files_from_image',
-                        'site_tests', 'files', 'mini_omaha_url',
-                        'use_factory_toolkit', 'test_image_version',
-                        'complete_script', 'has_firmware',
+                        'site_tests', 'mini_omaha_url', 'use_factory_toolkit',
+                        'test_image_version', 'complete_script', 'has_firmware',
                         'external_presenter'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
@@ -331,7 +317,6 @@ class FinalizeBundle(object):
         logging.info('Factory image version: %s',
                      self.factory_image_base_version)
 
-    self.expected_files = set(map(self._SubstVars, self.manifest['files']))
     self.readme_path = os.path.join(self.bundle_dir, 'README')
     self.has_firmware = self.manifest.get('has_firmware', DEFAULT_FIRMWARES)
 
@@ -352,6 +337,20 @@ class FinalizeBundle(object):
   def Download(self):
     need_test_image = (
         self.test_image_version and self.test_image_version != LOCAL)
+
+    # Check whether a test image exists and is the correct version. If yes, we
+    # can skip the download step to speed up.
+    if re.match(r'\d+\.\d+\.\d+$', self.test_image_version):
+      try:
+        with MountPartition(self.test_image_path, 3) as m:
+          existing_test_image_version = _GetReleaseVersion(m)
+          if existing_test_image_version == self.test_image_version:
+            logging.info('Requested test image version is %s, an existing test '
+                         'image with the same version is found, skipping '
+                         'download.', self.test_image_version)
+            need_test_image = False
+      except Exception:
+        pass  # doesn't matter, just download
 
     if not 'add_files' in self.manifest and not need_test_image:
       return
@@ -405,6 +404,10 @@ class FinalizeBundle(object):
       if not os.path.exists(self.test_image_path):
         raise Exception('No test image at %s' % self.test_image_path)
 
+    # TODO(b/36702884): should also download recovery image if needed.
+
+    # TODO(b/36702884): remove this section once finalize_bundle supports
+    #                   grabbing firmware from different sources
     for f in self.manifest['add_files']:
       CheckDictKeys(f, ['install_into', 'source', 'extract_files'])
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
@@ -437,14 +440,10 @@ class FinalizeBundle(object):
         if self.args.download:
           ExtractFile(cached_file, install_into,
                       only_extracts=f['extract_files'])
-        for f in f['extract_files']:
-          self.expected_files.add(os.path.relpath(os.path.join(install_into, f),
-                                                  self.bundle_dir))
       else:
         dest_path = os.path.join(dest_dir, os.path.basename(source))
         if self.args.download:
           shutil.copyfile(cached_file, dest_path)
-        self.expected_files.add(os.path.relpath(dest_path, self.bundle_dir))
 
   def _ChangeTipVersion(self, add_file):
     """Changes image to the latest version for testing tip of branch.
@@ -860,42 +859,22 @@ class FinalizeBundle(object):
       logging.info('Copying %s to %s', self.new_factory_par, factory_par_path)
       shutil.copy2(self.new_factory_par, factory_par_path)
 
-  def CheckFiles(self):
-    # Check that the set of files is correct
-    self.all_files = set()
+  def RemoveUnnecessaryFiles(self):
+    logging.info('Removing unnecessary files')
     for root, dirs, files in os.walk(self.bundle_dir):
-      for f in files:
-        # Remove backup files and compiled Python files.
+      for f in files:  # Remove backup files and compiled Python files.
         if f.endswith('~') or f.endswith('.pyc'):
-          os.unlink(os.path.join(root, f))
-          continue
-        self.all_files.add(
-            os.path.relpath(os.path.join(root, f), self.bundle_dir))
-      for d in dirs:
-        # Remove any empty directories
+          path = os.path.join(root, f)
+          os.unlink(path)
+          logging.info('Removed file %r', path)
+      for d in dirs:  # Remove any empty directories
         try:
-          os.rmdir(d)
-        except OSError:
-          pass
-
-    if not self.args.check_files:
-      logging.info('Skip files checking')
-      return
-
-    missing_files = self.expected_files - self.all_files
-    extra_files = self.all_files - self.expected_files
-    if missing_files:
-      logging.error('Missing files in bundle: %s',
-                    ' '.join(sorted(missing_files)))
-      logging.error("If the files really shouldn't be there, remove them from "
-                    'the "files" section in MANIFEST.yaml')
-    if extra_files:
-      logging.error('Unexpected extra files in bundle: %s',
-                    ' '.join(sorted(extra_files)))
-      logging.error('If the files are really expected, '
-                    'add them to the "files" section of MANIFEST.yaml')
-    if missing_files or extra_files:
-      sys.exit('Incorrect file set; terminating')
+          path = os.path.join(root, d)
+          os.rmdir(path)
+          logging.info('Removed empty directory %r', path)
+        except OSError as e:
+          if e.errno != errno.ENOTEMPTY:
+            raise
 
   def UpdateReadme(self):
     # Grok the README file; we'll be modifying it.
@@ -974,22 +953,23 @@ class FinalizeBundle(object):
 
     # If we have any firmware in the tree, add them to the vitals.
     firmwareupdates = []
-    for f in self.all_files:
-      path = os.path.join(self.bundle_dir, f)
-      if os.path.basename(f) == 'chromeos-firmwareupdate':
-        firmwareupdates.append(path)
-        vitals.extend(_ExtractFirmwareVersions(path, f))
-      elif os.path.basename(f) == 'ec.bin':
-        version = get_version.GetFirmwareBinaryVersion(path)
-        if not version:
-          sys.exit('Unable to find EC version in %s' % path)
-        vitals.append((f, version))
-      elif any(os.path.basename(f).startswith(prefix)
-               for prefix in ('nv_image', 'image.net')):
-        version = get_version.GetFirmwareBinaryVersion(path)
-        if not version:
-          sys.exit('Unable to find BIOS version in %s' % path)
-        vitals.append((f, version))
+    for root, unused_dirs, files in os.walk(self.bundle_dir):
+      for f in files:
+        path = os.path.join(root, f)
+        relpath = os.path.relpath(path, self.bundle_dir)
+        if f == 'chromeos-firmwareupdate':
+          firmwareupdates.append(path)
+          vitals.extend(_ExtractFirmwareVersions(path, relpath))
+        elif f == 'ec.bin':
+          version = get_version.GetFirmwareBinaryVersion(path)
+          if not version:
+            sys.exit('Unable to find EC version in %s' % path)
+          vitals.append((relpath, version))
+        elif any(f.startswith(prefix) for prefix in ('nv_image', 'image.net')):
+          version = get_version.GetFirmwareBinaryVersion(path)
+          if not version:
+            sys.exit('Unable to find BIOS version in %s' % path)
+          vitals.append((relpath, version))
 
     vital_lines = []
     max_key_length = max(len(k) for k, v in vitals)
