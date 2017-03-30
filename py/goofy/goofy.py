@@ -1219,10 +1219,6 @@ class Goofy(GoofyBase):
         self._RecordStartError(
             'Unable to prepare DUT link.\n%s' % traceback.format_exc())
 
-    # Set reference to the Instalog plugin.
-    self.testlog.SetInstalogPlugin(
-        self.plugin_controller.GetPluginInstance('instalog'))
-
     # Note that we create a log watcher even if
     # sync_event_log_period_secs isn't set (no background
     # syncing), since we may use it to flush event logs as well.

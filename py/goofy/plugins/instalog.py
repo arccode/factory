@@ -86,7 +86,7 @@ class Instalog(plugin.Plugin):
         'buffer': {
             'plugin': 'buffer_simple_file',
             'args': {
-              'truncate_interval': _TRUNCATE_INTERVAL,
+                'truncate_interval': _TRUNCATE_INTERVAL,
             },
         },
         'input': {
@@ -94,8 +94,8 @@ class Instalog(plugin.Plugin):
                 'plugin': 'input_testlog_file',
                 'targets': 'output_uplink',
                 'args': {
-                  'path': testlog_json_path,
-                  'max_bytes': _TESTLOG_JSON_MAX_BYTES,
+                    'path': testlog_json_path,
+                    'max_bytes': _TESTLOG_JSON_MAX_BYTES,
                 },
             },
             'health': {
@@ -107,8 +107,8 @@ class Instalog(plugin.Plugin):
             'output_uplink': {
                 'plugin': 'output_socket',
                 'args': {
-                  'hostname': uplink_hostname,
-                  'port': uplink_port,
+                    'hostname': uplink_hostname,
+                    'port': uplink_port,
                 },
             }
         },
@@ -119,6 +119,9 @@ class Instalog(plugin.Plugin):
     logging.info('Instalog: Saving config YAML to: %s', self._config_path)
     with open(self._config_path, 'w') as f:
       yaml.dump(config, f, default_flow_style=False)
+
+    # Set reference to the Instalog plugin for testlog
+    self.goofy.testlog.SetInstalogPlugin(self)
 
   def _GetLastSeqProcessed(self):
     """Retrieves the last sequence number processed by Testlog input plugin.
