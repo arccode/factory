@@ -970,7 +970,9 @@ def main():
 
   factory.init_logging(info.path)
   if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
-    testlog.Testlog()
+    testlog.Testlog(
+        stationDeviceId=testlog_goofy.GetDeviceID(),
+        stationInstallationId=testlog_goofy.GetInstallationID())
   else:
     # If the testlog.TESTLOG_ENV_VARIABLE_NAME environment variable doesn't
     # exist, assume invocation is being called by run_test.py.  In this case,

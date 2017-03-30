@@ -127,12 +127,15 @@ class Testlog(object):
       'LAST_TEST_RUN', 'LOG_ROOT', 'PRIMARY_JSON', 'SESSION_JSON',
       'ATTACHMENTS_FOLDER', 'UUID', 'FLUSH_MODE', '_METADATA'])
 
-  def __init__(self, log_root=None, uuid=None):
+  def __init__(self, log_root=None, uuid=None,
+               stationDeviceId=None, stationInstallationId=None):
     """Initializes the Testlog singleton.
 
     Args:
       log_root: The path to root folder of testlog.
       uuid: A unique ID for this process.
+      stationDeviceId: To use in saving Python logging calls.
+      stationInstallationId: To use in saving Python logging calls.
     """
     global _global_testlog  # pylint: disable=global-statement
     assert _global_testlog is None, (
@@ -189,18 +192,22 @@ class Testlog(object):
           uuid=self.uuid, seq_generator=self.seq_generator,
           path=self.primary_json, mode='a')
     # Initialize testlog._pylogger
-    self.CaptureLogging()
+    self.CaptureLogging(stationDeviceId, stationInstallationId)
 
-  def CaptureLogging(self):
+  def CaptureLogging(self, stationDeviceId=None, stationInstallationId=None):
     """Captures calls to logging.* into primary_json."""
     level = logging.getLogger().getEffectiveLevel()
-    def AddTestRunIdAndLog(station_message):
+    def AnnotateAndLog(station_message):
+      if stationDeviceId:
+        station_message['stationDeviceId'] = stationDeviceId
+      if stationInstallationId:
+        station_message['stationInstallationId'] = stationInstallationId
       # If we are in a subsession, use the UUID as testRunId.
       if self.in_subsession:
         station_message['testRunId'] = self.uuid
       return self.primary_json.Log(station_message)
     CapturePythonLogging(
-        callback=AddTestRunIdAndLog, level=level)
+        callback=AnnotateAndLog, level=level)
     logging.info('Testlog(%s) is capturing logging at level %s',
                  self.uuid, logging.getLevelName(level))
 

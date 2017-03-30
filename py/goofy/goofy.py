@@ -1117,11 +1117,9 @@ class Goofy(GoofyBase):
     # that device_id, reimage_id, etc. are all set up.
     self.event_log = EventLog('goofy', defer=False)
     self.testlog = testlog.Testlog(
-        log_root=paths.GetLogRoot(), uuid=self.uuid)
-    # Direct the logging calls to testlog as well.
-    testlog.CapturePythonLogging(
-        callback=self.testlog.primary_json.Log,
-        level=logging.getLogger().getEffectiveLevel())
+        log_root=paths.GetLogRoot(), uuid=self.uuid,
+        stationDeviceId=testlog_goofy.GetDeviceID(),
+        stationInstallationId=testlog_goofy.GetInstallationID())
 
     if env:
       self.env = env
