@@ -854,16 +854,11 @@ class Goofy(GoofyBase):
         post_update_hook()
       self.env.shutdown('reboot')
 
-  def handle_sigint(self, dummy_signum, dummy_frame):   # pylint: disable=W0613
-    logging.error('Received SIGINT')
+  def handle_signal(self, signum, frame):
+    del signum, frame
+    logging.error('Received SIGINT or SIGKILL')
     self.run_enqueue(None)
     raise KeyboardInterrupt()
-
-  def handle_sigterm(self, dummy_signum, dummy_frame):  # pylint: disable=W0613
-    logging.error('Received SIGTERM')
-    self.env.terminate()
-    self.run_queue.put(None)
-    raise RuntimeError('Received SIGTERM')
 
   def find_kcrashes(self):
     """Finds kcrash files, logs them, and marks them as seen."""
@@ -1082,7 +1077,8 @@ class Goofy(GoofyBase):
                       help='Run in monolithic mode (without presenter)')
     (self.options, self.args) = parser.parse_args(args)
 
-    signal.signal(signal.SIGINT, self.handle_sigint)
+    signal.signal(signal.SIGINT, self.handle_signal)
+    signal.signal(signal.SIGTERM, self.handle_signal)
     # TODO(hungte) SIGTERM does not work properly without Telemetry and should
     # be fixed.
 

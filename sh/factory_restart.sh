@@ -41,21 +41,15 @@ clear_files() {
 }
 
 kill_tree() {
-  local pid="$1"
-  local sig="${2:-TERM}"
+  signal="${1:-TERM}"
+  shift
 
-  # We don't kill ourself.
-  if [ -z "${pid}" -o "${pid}" -eq "$$" ]; then
-    return
-  fi
-  # to allow goofy stop gracefully, don't stop parent if we are using SIGINT
-  if [ "${sig}" != "INT" ]; then
-    kill -STOP ${pid}  # Stop parent from generating more children
-  fi
-  for child in $(ps -o pid --no-headers --ppid ${pid}); do
-    kill_tree ${child} ${sig}
+  until [ -z "$1" ]; do
+    echo -n "$1 "
+    kill_tree ${signal} $(ps -o pid --no-headers --ppid $1)
+    kill -${signal} $1 2>/dev/null
+    shift
   done
-  kill -${sig} ${pid} 2>/dev/null
 }
 
 clear_vpd=false
@@ -113,22 +107,19 @@ while [ $# -gt 0 ]; do
 done
 
 goofy_control_pid="$(pgrep goofy_control)"
+# Instalog runs under a separate process session by design.
+instalog_pid="$(pgrep -f instalog/cli.py)"
 
-echo -n "Try to stop goofy gracefully... "
-kill_tree "${goofy_control_pid}" INT
+echo -n "Attempt to stop gracefully... "
+# save pids in case their parents die and they are orphaned
+all_pids=$(kill_tree TERM $goofy_control_pid $instalog_pid)
 for sec in 3 2 1; do
   echo -n "${sec} "
   sleep 1
 done
 
-# now, force goofy to stop
 echo -n "Stopping factory test programs... "
-kill_tree "$goofy_control_pid" TERM
-for sec in 3 2 1; do
-  echo -n "${sec} "
-  sleep 1
-done
-kill_tree "$goofy_control_pid" KILL
+kill_tree KILL $all_pids > /dev/null
 echo "done."
 
 for d in $delete; do
