@@ -37,6 +37,7 @@ class ShopFloorServiceTest(unittest.TestCase):
 
   def testGenerateProcesses(self):
     umpire_config = {
+        'services': {'shop_floor': {}},
         # 4 active rulesets, 3 active.
         'rulesets': [
             {'bundle_id': 'bundle_1', 'note': 'note_1', 'active': True},
@@ -68,7 +69,7 @@ class ShopFloorServiceTest(unittest.TestCase):
       os.makedirs(os.path.join(self.env.device_toolkits_dir, h))
     # Create processes.
     service = shop_floor.ShopFloorService()
-    processes = service.CreateProcesses(None, self.env)
+    processes = service.CreateProcesses(umpire_config, self.env)
     # Check process count.
     num_actives = sum([b['active'] for b in umpire_config['rulesets']])
     logging.debug('process config:\n%s',
