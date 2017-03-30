@@ -94,19 +94,6 @@ class GPS(unittest.TestCase):
       Arg('fixture_id', str,
           'Name of the fixture.  This will be saved in event_logs.',
           optional=False),
-      Arg('use_logparser', bool,
-          'Use Logparser to route event_logs to shopfloor.',
-          optional=True, default=False),
-      Arg('logparser_backup_dir', str,
-          'Directory to backup Logparser archives.  If set to None, no backups '
-          'are saved.  Defaults to ./logparser.',
-          optional=True, default='logparser'),
-      Arg('shopfloor_ip', str,
-          '  Required for Logparser uploads.',
-          optional=True),
-      Arg('shopfloor_port', int,
-          'Port of Shopfloor XML-RPC server.  Required for Logparser uploads.',
-          optional=True),
       Arg('init_timeout', (int, float),
           'How long to poll for good data before giving up.  '
           'Default %d seconds.' % DEFAULT_INIT_TIMEOUT,
@@ -150,12 +137,6 @@ class GPS(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-
-    # Check arguments.
-    if self.args.use_logparser and not (
-        self.args.shopfloor_ip and self.args.shopfloor_port):
-      self.fail('If using Logparser, must provide shopfloor_ip '
-                'and shopfloor_port arguments.')
 
     # Store the serial numbers for later use.
     self._mlb_serial_number = (self.dut.info.mlb_serial_number or
@@ -367,7 +348,7 @@ class GPS(unittest.TestCase):
     field_stats, limit_results, limit_failures_str = (
         self._CheckLimits(all_values))
 
-    # Log directly to event_log or through Logparser.
+    # Log directly to event_log.
     # The 'results' value format is:
     #    {'signal_strength.min > -130.0': {'test_value': -120.0,
     #                                      'passed': True},
@@ -381,15 +362,7 @@ class GPS(unittest.TestCase):
         'failures': self._failures,
         'stats': field_stats,
         'results': limit_results}
-    if self.args.use_logparser:
-      description, filename = self._FormatEventlogForLogparser(log_dict)
-      _LogparserLog(shopfloor_ip=self.args.shopfloor_ip,
-                    shopfloor_port=self.args.shopfloor_port,
-                    description=description,
-                    filename=filename,
-                    backup_dir=self.args.logparser_backup_dir)
-    else:
-      event_log.Log(EVENT_LOG_NAME, **log_dict)
+    event_log.Log(EVENT_LOG_NAME, **log_dict)
 
     # Check for failures.
     if limit_failures_str:
@@ -421,143 +394,3 @@ class GPS(unittest.TestCase):
       factory.console.info('Killing %s pid %d...', GLGPS_BINARY, int(glgps_pid))
       self.dut.CheckOutput(['kill', glgps_pid])
       # TODO(kitching): Join the GLGPS thread before sending a kill signal?
-
-
-  def _FormatEventlogForLogparser(self, log_dict):
-    """Wraps Eventlog fields inside of Logparser description dict.
-
-    We don't actually need to use Logparser's FIXTURE_ID and PANEL_SERIAL, since
-    we store everything internally inside of log_dict.  However, (a) we can't
-    leave them empty, since Logparser does error-checking against them, and (b)
-    it would be useful to have meaningful archive names uploaded to Logparser
-    that are then stored on Shopfloor.
-
-    We want our archive files to look like this:
-      [fixture_id][station_name]_
-          [mlb_serial_number][serial_number]_[timestamp].zip
-    e.g.
-      GPSFIXTURE3GPSSMT_
-          SEL0R1K0NSSTC5604001085613000182_20150608161109903.zip
-
-    Logparser's archive file names are based off of these fields:
-      FIXTUREID_PANELSERIAL_TIMESTAMP.zip
-
-    Therefore we give Logparser fake FIXTURE_ID and PANEL_SERIAL fields,
-    ensuring to remove underscores from all of our own field values:
-      FIXTURE_ID => [fixture_id][station_name]
-      PANEL_SERIAL => [mlb_serial_number][serial_number]
-
-    Args:
-      log_dict: The log dict that normally gets sent to event_log.
-
-    Returns:
-      A tuple (description, filename), where filename is the expected filename
-      of the Logparser archive (without its file extension), and where
-      description is the Logparser description dict, which is normally then
-      written to description.yaml inside of a Logparser archive.
-    """
-    # Use the current time.
-    timestamp = datetime.datetime.now()
-    # Logparser FIXTURE_ID should be set to:
-    #   [fixture_id][station_name]
-    fixture_id = '%s%s' % (log_dict['fixture_id'].replace('_', ''),
-                           log_dict['station_name'].replace('_', ''))
-    # Logparser PANEL_SERIAL should be set to
-    #   [mlb_serial_number][serial_number]
-    panel_serial = '%s%s' % (log_dict['mlb_serial_number'].replace('_', ''),
-                             log_dict['serial_number'].replace('_', ''))
-    # Logparser expects PASSED or FAILED.
-    status = _LOGPARSER_PASS if log_dict['passed'] else _LOGPARSER_FAIL
-
-    # Format the archive filename.
-    # Logparser filenames expect a TIMESTAMP that looks like this:
-    # 20150608161109903
-    filename_timestamp = timestamp.strftime('%Y%m%d%H%M%S%f')[:-3]
-    filename = '%s_%s_%s' % (fixture_id,
-                             panel_serial,
-                             filename_timestamp)
-
-    description = {
-        'timestamp': timestamp,  # required: maps to event_log.TIME
-        'fixture_id': fixture_id,  # required to match against filename
-        'panel_serial': panel_serial,  # required to match against filename
-        'status': status,  # required (PASSED or FAILED)
-        # We don't use the duration field, so send 0.
-        'duration': 0,  # required (integer or float)
-        # We don't use Logparser rawdata, so send an empty list.
-        'rawdata': [],  # required (at least empty list)
-        'events': log_dict}
-    return (description, filename)
-
-
-# TODO(kitching): Refactor into goofy library code.
-def _LogparserLog(shopfloor_ip, shopfloor_port,
-                  description, filename, backup_dir=None):
-  """Sends a request to Logparser.
-
-  Args:
-    shopfloor_ip: IP address of Shopfloor server.
-    shopfloor_port: Port of Shopfloor XML-RPC server.
-    description: The dict contents of the Logparser description.yaml file.
-    filename: The filename of the Logparser archive, without its file extension.
-    backup_dir: Directory to backup Logparser archives.
-
-  Raises:
-    OSError if backup_dir cannot be created
-    IOError if improper permissions on backup_dir
-    EnvironmentError if upload fails
-  """
-  # Check backup_dir existence.
-  if backup_dir:
-    try:
-      os.makedirs(backup_dir)
-    except OSError:
-      if not os.path.isdir(backup_dir):
-        raise
-
-  with _LogparserCreateArchive(description, filename) as archive_path:
-    # Copy file to backup_dir.
-    if backup_dir:
-      shutil.copy(archive_path, backup_dir)
-
-    curl_cmd = ['curl', '--connect-timeout', str(10),
-                '-F', 'file=@%s' % archive_path,
-                'http://%s:%s/logparser' % (shopfloor_ip, shopfloor_port)]
-    # Logparser outputs 'PASSED' on success.  sync_utils.Retry returns on a
-    # non-None and non-False output value.  Thus, if we get some text other than
-    # 'PASSED', don't retry, since we may have bigger problems.
-    if _LOGPARSER_PASS != sync_utils.Retry(max_retry_times=5,
-                                           interval=1,
-                                           callback=None,
-                                           target=subprocess.check_output,
-                                           args=curl_cmd):
-      raise EnvironmentError('Could not upload to Logparser')
-
-
-# TODO(kitching): Refactor into goofy library code.
-@contextmanager
-def _LogparserCreateArchive(description, filename):
-  """Creates an archive file which can be uploaded to Logparser.
-
-  Should be used in a 'with' block.  Archive will be removed from filesystem
-  when this block has completed running (including in the case of an exception
-  being raised).
-
-  Args:
-    description: The dict contents of the Logparser description.yaml file.
-    filename: The filename of the Logparser archive, without its file extension.
-
-  Yields: Path to the created archive.
-  """
-  logging.info('Preparing Logparser archive file...')
-  _DESCRIPTION_YAML = 'description.yaml'
-  with file_utils.TempDirectory() as tmp_path:
-    # Prepare the archive file in tmp_path.
-    zip_file_path = os.path.join(tmp_path, '%s.zip' % filename)
-    yaml_contents = yaml.dump(description, default_flow_style=False)
-    with zipfile.ZipFile(zip_file_path, 'w') as f:
-      f.writestr(_DESCRIPTION_YAML, yaml_contents)
-    logging.info('Archive file created: %s', zip_file_path)
-
-    # Return the path to the archive.
-    yield zip_file_path
