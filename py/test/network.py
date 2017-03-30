@@ -266,7 +266,8 @@ def GetDHCPBootParameters(interface):
   # Send two renew requests to make sure tcmpdump can capture the response.
   for _ in range(2):
     if not RenewDhcpLease(interface):
-      return RuntimeError('can not find DHCP server on %s' % interface)
+      logging.error('can not find DHCP server on %s' % interface)
+      return None
     time.sleep(0.5)
 
   p.wait()
