@@ -2436,16 +2436,16 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
             {'max-width': maxWidth, 'max-height': maxHeight});
         cros.factory.Goofy.setDialogContent(
             dialog,
-            goog.html.SafeHtml.concat(
-                goog.html.SafeHtml.create(
-                    'div', {class: 'goofy-history', style: style}),
-                goog.html.SafeHtml.create(
-                    'div', {class: 'goofy-history-header'}, 'Test Info'),
-                metadataTable,
-                goog.html.SafeHtml.create(
-                    'div', {class: 'goofy-history-header'}, 'Log'),
-                goog.html.SafeHtml.create(
-                    'div', {class: 'goofy-history-log'}, entry.log)));
+            goog.html.SafeHtml.concat(goog.html.SafeHtml.create(
+                'div', {class: 'goofy-history', style: style}, [
+                  goog.html.SafeHtml.create(
+                      'div', {class: 'goofy-history-header'}, 'Test Info'),
+                  metadataTable,
+                  goog.html.SafeHtml.create(
+                      'div', {class: 'goofy-history-header'}, 'Log'),
+                  goog.html.SafeHtml.create(
+                      'div', {class: 'goofy-history-log'}, entry.log)
+                ])));
         dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
         dialog.setVisible(true);
       });
