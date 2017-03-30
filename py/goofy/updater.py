@@ -155,7 +155,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   if new_md5sum != new_md5sum_from_fs:
     raise UpdaterException(
         'Unexpected MD5SUM in %s: expected %s but found %s' %
-        new_md5sum_path, new_md5sum, new_md5sum_from_fs)
+        (new_md5sum_path, new_md5sum, new_md5sum_from_fs))
 
   if sys_utils.InChroot():
     raise UpdaterException('Aborting update: In chroot')
