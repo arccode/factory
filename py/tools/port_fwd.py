@@ -36,6 +36,7 @@ class SSHPortForwarder(object):
   _DEFAULT_DISCONNECT_WAIT = 1
   _DEFAULT_EXP_FACTOR = 0
   _DEFAULT_BLOCKING = False
+  _DEFAULT_FORWARD_HOST = '127.0.0.1'
   _DEBUG_INTERVAL = 2
 
   CONNECTING = 1
@@ -63,6 +64,8 @@ class SSHPortForwarder(object):
                identity_file,
                host,
                port=_DEFAULT_PORT,
+               src_host=None,
+               dst_host=None,
                extra_args=None,
                retries=None,
                retry_on_forward_failure=None,
@@ -75,13 +78,15 @@ class SSHPortForwarder(object):
 
     Args:
       forward_to: Which direction to forward traffic: REMOTE or LOCAL.
-      src_port: Source port for traffic forwarding.
-      dst_port: Destination port for traffic forwarding.
+      src_port: Bind to source port for traffic forwarding.
+      dst_port: Send traffic to destination port for traffic forwarding.
       user: Username on remote server.
       identity_file: Identity file for passwordless authentication on remote
           server.
       host: Host of remote server.
       port: Port of remote server.
+      src_host: Bind to source hostname for traffic forwarding.
+      dst_host: Send traffic to destination hostname for traffic forwarding.
       extra_args: Extra arguments to pass to SSH.  Should be an array of
           strings.
       retries: The number of times to retry before reporting a failed
@@ -116,10 +121,12 @@ class SSHPortForwarder(object):
     self._forward_to = forward_to
     self._src_port = src_port
     self._dst_port = dst_port
-    self._host = host
     self._user = user
     self._identity_file = identity_file
+    self._host = host
     self._port = ValidateArg(port, self._DEFAULT_PORT)
+    self._src_host = ValidateArg(src_host, self._DEFAULT_FORWARD_HOST)
+    self._dst_host = ValidateArg(dst_host, self._DEFAULT_FORWARD_HOST)
     self._extra_args = extra_args or []
 
     # Configuration arguments.
@@ -155,16 +162,21 @@ class SSHPortForwarder(object):
       state_str = 'failed'
 
     # Port forward representation.
+    src = str(self._src_port) + (
+        ':%s' % self._src_host if self._src_host else '')
+    dst = str(self._dst_port) + (
+        ':%s' % self._dst_host if self._dst_host else '')
     if self._forward_to == self.REMOTE:
-      fwd_str = '%d->%d' % (self._src_port, self._dst_port)
+      fwd_str = '%s->%s' % (src, dst)
     else:
-      fwd_str = '%d<-%d' % (self._dst_port, self._src_port)
+      fwd_str = '%s<-%s' % (dst, src)
 
     return 'SSHPortForwarder(%s,%s)' % (state_str, fwd_str)
 
   def _ForwardArgs(self):
     flag = '-L' if self._forward_to == self.REMOTE else '-R'
-    return [flag, '%d:127.0.0.1:%d' % (self._src_port, self._dst_port)]
+    return [flag, '%s:%d:%s:%d' % (
+      self._src_host, self._src_port, self._dst_host, self._dst_port)]
 
   def _RunSSHCmd(self):
     """Runs the SSH command, storing the exception on failure."""
@@ -311,6 +323,14 @@ if __name__ == '__main__':
       'extra_args', nargs=argparse.REMAINDER,
       help='extra arguments to pass to SSH')
   parser.add_argument(
+      '-s', '--src-host', type=str,
+      help='bind to hostname on the source for traffic forwarding; NOTE: '
+           'for this to work correctly on a remote host, the remote sshd '
+           'configuration must have GatewayPorts set to "clientspecified"')
+  parser.add_argument(
+      '-d', '--dst-host', type=str,
+      help='send traffic to hostname on the destination for traffic forwarding')
+  parser.add_argument(
       '-p', '--port', type=int,
       help='port of remote server')
   parser.add_argument(
@@ -361,6 +381,8 @@ if __name__ == '__main__':
         identity_file=args.identity_file,
         host=args.host,
         port=args.port,
+        src_host=args.src_host,
+        dst_host=args.dst_host,
         extra_args=args.extra_args,
         retries=args.retries,
         retry_on_forward_failure=not args.exit_on_forward_failure,
