@@ -27,14 +27,8 @@ RUN cd vboot_reference && \
   make cgpt WERROR= STATIC=1 && \
   cp build/cgpt/cgpt "${workdir}/build"
 
-ADD pbzip2.tgz "${workdir}/"
-RUN cd pbzip2-* && \
-  cp /usr/lib/libbz2.a . && \
-  make pbzip2-static && \
-  cp pbzip2 "${workdir}/build"
-
 ARG output_file="bins.tar"
-RUN cd build && tar cvf "${workdir}/${output_file}" cgpt pbzip2
+RUN cd build && tar cvf "${workdir}/${output_file}" cgpt
 
 # Nothing to do here
 CMD ["echo"]

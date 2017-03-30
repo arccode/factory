@@ -117,8 +117,6 @@ CHANGES_FILE=
 COMMIT_SUBJECT="setup: Publish cros_docker image version"
 
 # Remote resources
-RESOURCE_PBZIP2_URL="https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz"
-RESOURCE_PBZIP2_SHA1="f61e65a7616a3492815d18689c202d0685fe167d"
 RESOURCE_DOCKER_URL="https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz"
 RESOURCE_DOCKER_SHA1="a07cc33579a6e0074a53f148b26103723f81dab1"
 RESOURCE_CROS_DOCKER_URL="https://chromium.googlesource.com/chromiumos/platform/factory/+/master/setup/cros_docker.sh?format=TEXT"
@@ -622,10 +620,6 @@ do_build_umpire_deps() {
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
 
   mkdir -p "${BUILD_DIR}"
-  fetch_resource "${BUILD_DIR}/pbzip2.tgz" \
-    "${RESOURCE_PBZIP2_URL}" "${RESOURCE_PBZIP2_SHA1}"
-
-  cp "${BUILD_DIR}/pbzip2.tgz" "${temp_dir}"
   rsync -a "${host_vboot_dir}" "${temp_dir}" --exclude tests
   cp "${deps_builder_dockerfile}" "${temp_dir}/Dockerfile"
 

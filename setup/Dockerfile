@@ -29,8 +29,6 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 # nginx, uwsgi-python: Used by Dome
 # cannot install uwsgi using pip since we don't have compiler
 
-# libstdc++: Dependency of pbzip2 (static binary)
-
 # apache2-utils, openssl: Used by Overlord setup.sh
 
 # util-linux: For GNU mount since busybox mount doesn't support offset.
@@ -39,7 +37,6 @@ RUN apk upgrade --no-cache && apk add --no-cache \
   apache2-utils \
   coreutils \
   gnupg \
-  libstdc++ \
   lighttpd \
   nginx \
   openssl \
@@ -57,6 +54,8 @@ RUN apk upgrade --no-cache && apk add --no-cache \
   && apk add --no-cache \
   --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ \
   py-protobuf \
+  lbzip2 \
+  && ln -s /usr/bin/lbzip2 /usr/bin/pbzip2 \
   && pip install \
   python-gnupg
 
@@ -68,7 +67,7 @@ COPY bin "${server_dir}/bin/"
 # only the small client to communicate with the host's docker server)
 ADD build/docker/docker.tgz /
 
-# Use pre-built static binaries (cgpt, pbzip2), since there's no package for
+# Use pre-built static binaries (cgpt), since there's no package for
 # those in alpine.
 ARG umpire_builder_output_file="bins.tar"
 ADD "build/docker/${umpire_builder_output_file}" /usr/local/bin/
