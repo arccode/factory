@@ -9,11 +9,11 @@
 from __future__ import print_function
 
 import argparse
+import contextlib
 import errno
 import glob
 import logging
 import os
-import pipes
 import re
 import shutil
 import sys
@@ -21,7 +21,6 @@ import time
 import urlparse
 import yaml
 from distutils.version import LooseVersion
-from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import build_board
@@ -29,7 +28,7 @@ from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.utils.file_utils import (
-    TryUnlink, ExtractFile, Glob, WriteWithSudo)
+    TryUnlink, ExtractFile, WriteWithSudo)
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
@@ -49,12 +48,24 @@ DELETION_MARKER_SUFFIX = '_DELETED'
 # has_firmware: [EC, BIOS, PD]
 DEFAULT_FIRMWARES = ['BIOS', 'EC']
 
-# Special string to use a local file instead of downloading one
-# (see test_image_version).
+# Special string to use a local file instead of downloading one.
 LOCAL = 'local'
 
 # Netboot install shims that we are using at the moment.
 NETBOOT_SHIMS = ('vmlinuz', 'vmlinux.bin')
+
+
+# Legacy: resources may live in different places due to historical reason. To
+# maintain backward compatibility, we have to search for a set of directories.
+# TODO(crbug.com/706756): once we completely remove the old directories, we can
+#                         simple make this a string instead of a list of
+#                         strings.
+TEST_IMAGE_SEARCH_DIRS = ['test_image', 'factory_test']
+RELEASE_IMAGE_SEARCH_DIRS = ['release_image', 'release']
+TOOLKIT_SEARCH_DIRS = ['toolkit', 'factory_toolkit']
+
+# When version is fixed, we'll try to find the resource in the following order.
+RESOURCE_CHANNELS = ['stable', 'beta', 'dev', 'canary']
 
 
 def _GetReleaseVersion(mount_point):
@@ -92,26 +103,19 @@ Finalizes a factory bundle.  This script checks to make sure that the
 bundle is valid, outputs version information into the README file, and
 tars up the bundle.
 
-The bundle directory (the DIR argument) must have a MANIFEST.yaml file
-like the following:
+The input is a MANIFEST.yaml file like the following:
 
   board: link
   bundle_name: 20121115_pvt
-  mini_omaha_url: http://192.168.4.1:8080/update
 
-  # True to build a factory image based on the test image and a
-  # factory toolkit.  (If false, the prebuilt factory image is used.)
-  use_factory_toolkit: true
+  # Specify the version of test image directly.
+  test_image: 9876.0.0
 
-  # Use a particular test image version to build the factory image
-  # (applies only if use_factory_toolkit is true).  This may be:
-  #
-  #   - unspecified to use the same version as the factory toolkit
-  #   - a particular version (e.g., 5123.0.0)
-  #   - a GS URL (to a .tar.xz tarball)
-  #   - the string 'local' to use the chromiumos_test_image.bin file
-  #     already present in the bundle
-  test_image_version: 5123.0.0
+  # Specify that a local release image should be used.
+  release_image: local
+
+  # Specify the version of factory toolkit directly.
+  toolkit: 9678.12.0
 
   # Files to download and add to the bundle.
   add_files:
@@ -120,13 +124,6 @@ like the following:
   - install_into: firmware
     extract_files: [ec.bin, nv_image-link.bin]
     source: 'gs://.../ChromeOS-firmware-...tar.bz2'
-  # Files to delete if present.
-  delete_files:
-  - install_shim/factory_install_shim.bin
-
-The bundle must be in a directory named
-factory_bundle_${board}_${self.bundle_name} (where board and self.bundle_name
-are the same as above).
 """
 
 
@@ -146,15 +143,19 @@ class FinalizeBundle(object):
     manifest: Parsed YAML manifest.
     readme_path: Path to the README file within the bundle.
     factory_image_base_version: Build of the factory image (e.g., 3004.100.0)
-    release_image_path: Path to the release image.
     install_shim_version: Build of the install shim.
     netboot_install_shim_version: Build of the netboot install shim.
     mini_omaha_script_path: Path to the script used to start the mini-Omaha
       server.
     new_factory_par: Path to a replacement factory.par.
-    factory_toolkit_path: Path to the factory toolkit.
+    test_image_source: Source (LOCAL or a version) of the test image.
     test_image_path: Path to the test image.
     test_image_version: Version of the test image.
+    release_image_source : Source (LOCAL or a version) of the release image.
+    release_image_path: Path to the release image.
+    release_image_version: Version of the release image.
+    toolkit_source: Source (LOCAL or a version) of the factory toolkit.
+    toolkit_path: Path to the factory toolkit.
     toolkit_version: Version of the factory toolkit.
     gsutil: A GSUtil object.
   """
@@ -170,12 +171,16 @@ class FinalizeBundle(object):
   factory_image_base_version = None
   install_shim_version = None
   netboot_install_shim_version = None
-  release_image_path = None
   mini_omaha_script_path = None
   new_factory_par = None
-  factory_toolkit_path = None
+  test_image_source = None
   test_image_path = None
   test_image_version = None
+  release_image_source = None
+  release_image_path = None
+  release_image_version = None
+  toolkit_source = None
+  toolkit_path = None
   toolkit_version = None
   gsutil = None
   has_firmware = DEFAULT_FIRMWARES
@@ -183,9 +188,10 @@ class FinalizeBundle(object):
   def Main(self):
     self.ParseArgs()
     self.LoadManifest()
-    self.Download()
+    self.LocateResources()
+    self.DownloadResources()
+    self.GetAndSetResourceVersions()
     self.BuildFactoryImage()
-    self.DeleteFiles()
     self.UpdateNetbootURL()
     self.UpdateInstallShim()
     self.ModifyFactoryImage()
@@ -214,31 +220,24 @@ class FinalizeBundle(object):
         action='store_false',
         help="Don't call make_factory_package (for testing only)")
     parser.add_argument(
-        '--tip-of-branch', dest='tip_of_branch', action='store_true',
-        help='Use tip version of release image, install shim, and '
-             'netboot install shim on the branch (for testing only)')
-    parser.add_argument(
         '--test-list', dest='test_list', metavar='TEST_LIST',
         help='Set active test_list. e.g. --test-list manual_smt to set active '
              'test_list to test_list.manual_smt')
 
-    parser.add_argument(
-        'dir', metavar='DIR',
-        help='Directory containing the bundle')
+    parser.add_argument('manifest', metavar='MANIFEST',
+                        help='Path to the manifest file')
+    parser.add_argument('dir', metavar='DIR', nargs='?',
+                        default=os.getcwd(), help='Working directory')
+
     self.args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
-    self.bundle_dir = os.path.realpath(self.args.dir)
 
   def LoadManifest(self):
-    yaml.add_constructor('!glob', Glob.Construct)
-    self.manifest = yaml.load(open(
-        os.path.join(self.args.dir, 'MANIFEST.yaml')))
-    CheckDictKeys(
-        self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
-                        'add_files_to_image', 'delete_files_from_image',
-                        'site_tests', 'mini_omaha_url', 'use_factory_toolkit',
-                        'test_image_version', 'complete_script', 'has_firmware',
-                        'external_presenter'])
+    with open(self.args.manifest) as f:
+      self.manifest = yaml.load(f)
+    CheckDictKeys(self.manifest,
+                  ['board', 'bundle_name', 'add_files', 'add_files_to_image',
+                   'mini_omaha_url', 'toolkit', 'test_image', 'release_image',
+                   'complete_script', 'has_firmware', 'external_presenter'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -247,76 +246,145 @@ class FinalizeBundle(object):
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'^\d{8}_', self.bundle_name):
-      sys.exit("The self.bundle_name (currently %r) should be today's date, "
+      sys.exit("The bundle_name (currently %r) should be today's date, "
                'plus an underscore, plus a description of the build, e.g.: %r' %
                (self.bundle_name, time.strftime('%Y%m%d_proto')))
 
-    expected_dir_name = 'factory_bundle_' + self.board + '_' + self.bundle_name
-    if expected_dir_name != os.path.basename(self.bundle_dir):
-      sys.exit(
-          'bundle_name in manifest is %s, so directory name should be %s, '
-          'but it is %s' % (
-              self.bundle_name, expected_dir_name,
-              os.path.basename(self.bundle_dir)))
-
-    self.factory_image_path = os.path.join(
-        self.bundle_dir, 'factory_test', 'chromiumos_factory_image.bin')
-
-    # Get the version from the factory test image, or from the factory toolkit
-    # and test image if we will be using those
-    if self.manifest.get('use_factory_toolkit'):
-      # Try make directory here since 'factory_test' is removed due to
-      # deprecation of factory test image.
-      file_utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
-
-      self.factory_toolkit_path = None
-      for path in ('toolkit', 'factory_toolkit', 'factory_test'):
-        # On older factory branches factory toolkit is put in factory_test/
-        # or factory_toolkit/ directory. On ToT, we deprecated factory test
-        # image and factory toolkit is moved to toolkit/.
-        self.factory_toolkit_path = os.path.join(
-            self.bundle_dir, path, 'install_factory_toolkit.run')
-        if os.path.isfile(self.factory_toolkit_path):
-          break
-      if not os.path.isfile(self.factory_toolkit_path):
-        raise Exception('Unable to find factory toolkit in the bundle')
-      output = Spawn([self.factory_toolkit_path, '--info'],
-                     check_output=True).stdout_data
-      match = re.match(
-          r'^Identification: .+ Factory Toolkit (.+)$',
-          output, re.MULTILINE)
-      assert match, 'Unable to parse toolkit info: %r' % output
-
-      self.toolkit_version = match.group(1)  # May be None if locally built
-      logging.info('Toolkit version: %s', self.toolkit_version)
-
-      # Use test image version in the MANIFEST if specified; otherwise use
-      # the same one as the toolkit
-      self.test_image_version = self.manifest.get('test_image_version')
-      if self.test_image_version:
-        logging.info('Test image version: %s, as specified in manifest',
-                     self.test_image_version)
-      else:
-        if not self.toolkit_version:
-          raise Exception(
-              'Toolkit was built locally or by a tryjob; unable to '
-              'automatically determine which test image to download')
-        self.test_image_version = self.toolkit_version
-        logging.info('Test image version: %s, same as the toolkit, since '
-                     'no version was specified in the manifest',
-                     self.test_image_version)
-      self.test_image_path = os.path.join(
-          self.bundle_dir, 'factory_test', 'chromiumos_test_image.bin')
+    # If the basename of the working directory is equal to the expected name, we
+    # believe that the user intentionally wants to make the bundle in the
+    # working directory (this is also needed if any of the resource is assigned
+    # as local). Otherwise, we'll create a directory with expected name under
+    # the working directory.
+    expected_dir_name = 'factory_bundle_%s_%s' % (self.board, self.bundle_name)
+    logging.info('Expected bundle directory name is %r', expected_dir_name)
+    if expected_dir_name == os.path.basename(self.args.dir):
+      self.bundle_dir = self.args.dir
+      logging.info('The working directory name matches the expected bundle '
+                   'directory name, will finalized bundle directly in the '
+                   'working directory %r', self.bundle_dir)
     else:
-      with MountPartition(self.factory_image_path, 3) as mount:
-        self.factory_image_base_version = _GetReleaseVersion(mount)
-        logging.info('Factory image version: %s',
-                     self.factory_image_base_version)
+      self.bundle_dir = os.path.join(self.args.dir, expected_dir_name)
+      logging.info('The working directory name does not match the expected '
+                   'bundle directory name, will create a new directoy and '
+                   'finalize bundle in %r', self.bundle_dir)
+    self.bundle_dir = os.path.realpath(self.bundle_dir)
+    file_utils.TryMakeDirs(self.bundle_dir)
+
+    self.test_image_source = self.manifest.get('test_image')
+    self.release_image_source = self.manifest.get('release_image')
+    self.toolkit_source = self.manifest.get('toolkit')
 
     self.readme_path = os.path.join(self.bundle_dir, 'README')
     self.has_firmware = self.manifest.get('has_firmware', DEFAULT_FIRMWARES)
 
-  def CheckGSUtilVersion(self):
+  def _GetImageVersion(self, image_path):
+    """Returns version of the image."""
+    with MountPartition(image_path, 3) as m:
+      return _GetReleaseVersion(m)
+
+  def _MatchImageVersion(self, image_path, requested_version):
+    """Returns True if an image matches the requested version, False
+    otherwise."""
+    logging.info('Checking whether the version of image %r is %r',
+                 image_path, requested_version)
+    image_version = self._GetImageVersion(image_path)
+    logging.info('Version of image %r is %r', image_path, image_version)
+    return image_version == requested_version
+
+  def _LocateOneResource(self, resource_name, resource_source, search_dirs,
+                         version_checker):
+    """Locates a resource under all search directories.
+
+    This function tries to locate a local resource under all search_dirs
+    (relative to self.bundle_dir). If multiple resources were found, an
+    exception will be raised. If resource_source is LOCAL but no resource was
+    found, an exception will also be raised. See details below.
+
+    Resource source can be LOCAL or non-LOCAL; found entries can be 0, 1, or
+    multiple, and here's how we should react to each case:
+
+    found   LOCAL    non-LOCAL
+    ------------------------------------------------------------
+       =0   reject   accept (will download later)
+       =1   accept   accept if version matches, reject otherwise
+       >1   reject   reject
+
+    Args:
+      resource_name: name of the resource, such as 'test image' or
+          'factory toolkit'.
+      resource_source: source of the resource, LOCAL or a version string.
+      search_dirs: a list of directories under self.bundle_dir to search. Every
+          element in this list will be joined to self.bundle_dir first.
+      version_checker: a callable that with signature
+          (resource_path, requested_version) that returns True if the resource
+          matches the requested_version, False otherwise.
+
+    Returns:
+      Path to the resource (if only one is found and its version matches).
+    """
+    abs_search_dirs = [os.path.join(self.bundle_dir, d) for d in search_dirs]
+
+    # TODO(crbug.com/706756): once the directory structure has been fixed, we
+    #                         can just build up the path instead of searching
+    #                         through all search_dirs.
+    logging.info('Searching %s in %r', resource_name, search_dirs)
+    found_entries = FinalizeBundle._ListAllFilesIn(abs_search_dirs)
+
+    if len(found_entries) > 1:
+      raise Exception(
+          'There should be only one %s in %r but found multiple: %r' % (
+              resource_name, search_dirs, found_entries))
+
+    resource_path = None
+    if len(found_entries) == 1:
+      resource_path = found_entries[0]
+      logging.info(
+          'A local copy of %s is found at %r', resource_name, resource_path)
+
+    if resource_source == LOCAL and len(found_entries) == 0:
+      raise Exception(
+          '%s source is specified as %r but no one found under %r' % (
+              resource_name.capitalize(), LOCAL, search_dirs))
+
+    if (resource_source != LOCAL and len(found_entries) == 1 and
+        not version_checker(resource_path, resource_source)):
+      raise Exception(
+          'Requested %s version is %r but found a local one with different '
+          'version at %r' % (resource_name, resource_source, resource_path))
+
+    return resource_path
+
+  def LocateResources(self):
+    """Locates test image, release image, and factory toolkit.
+
+    This function tries to locate test image, release image, and factory toolkit
+    in self.bundle_dir, and sets the following attributes respectively:
+    - self.test_image_path
+    - self.releases_image_path
+    - self.toolkit_path
+
+    If a resource is found, the corresponding attribute is set to its path; it
+    it's not found, the attribute is set to None (and we'll raise an error if
+    the source of the resource is set to LOCAL in this case).
+    """
+    self.test_image_path = self._LocateOneResource(
+        'test image', self.test_image_source, TEST_IMAGE_SEARCH_DIRS,
+        self._MatchImageVersion)
+    self.release_image_path = self._LocateOneResource(
+        'release image', self.release_image_source, RELEASE_IMAGE_SEARCH_DIRS,
+        self._MatchImageVersion)
+
+    # TODO(crbug.com/707155): see #c1. Unlike images, we don't handle non-local
+    #     case even if a local toolkit is found. It's not possible to be certain
+    #     that the version of the local toolkit matches the requested one
+    #     because we should not only consider the toolkit but also other
+    #     resources. We have to always download. So the version_checker should
+    #     always return True.
+    self.toolkit_path = self._LocateOneResource(
+        'factory toolkit', self.toolkit_source, TOOLKIT_SEARCH_DIRS,
+        lambda unused_path, unused_version: True)
+
+  def _CheckGSUtilVersion(self):
     # Check for gsutil >= 3.32.
     version = self.gsutil.GetVersion()
     # Remove 'pre...' string at the end, if any
@@ -330,93 +398,64 @@ class FinalizeBundle(object):
           'make sure this is in your PATH before the system gsutil.' % (
               '.'.join(str(x) for x in REQUIRED_GSUTIL_VERSION), version))
 
-  def Download(self):
-    need_test_image = (
-        self.test_image_version and self.test_image_version != LOCAL)
+  def DownloadResources(self):
+    """Downloads test image, release image, factory toolkit if needed."""
 
-    # Check whether a test image exists and is the correct version. If yes, we
-    # can skip the download step to speed up.
-    if re.match(r'\d+\.\d+\.\d+$', self.test_image_version):
-      try:
-        with MountPartition(self.test_image_path, 3) as m:
-          existing_test_image_version = _GetReleaseVersion(m)
-          if existing_test_image_version == self.test_image_version:
-            logging.info('Requested test image version is %s, an existing test '
-                         'image with the same version is found, skipping '
-                         'download.', self.test_image_version)
-            need_test_image = False
-      except Exception:
-        pass  # doesn't matter, just download
+    need_test_image = (self.test_image_source != LOCAL and
+                       self.test_image_path is None)
+    need_release_image = (self.release_image_source != LOCAL and
+                          self.release_image_path is None)
 
-    if not 'add_files' in self.manifest and not need_test_image:
+    # TODO(crbug.com/707155): see #c1. We have to always download the factory
+    #                         toolkit unless the "toolkit" source in config
+    #                         refers to only the toolkit version instead of
+    #                         factory.zip.
+    need_toolkit = (self.toolkit_source != LOCAL)
+
+    if (not 'add_files' in self.manifest and
+        not need_test_image and not need_release_image and not need_toolkit):
       return
 
     # Make sure gsutil is up to date; older versions are pretty broken.
-    self.CheckGSUtilVersion()
+    self._CheckGSUtilVersion()
 
-    if self.args.download and need_test_image:
-      # We need to download the test image, since it is not included in the
-      # bundle.
-      channels = ['stable', 'beta', 'canary', 'dev']
-
-      if self.test_image_version.startswith('gs://'):
-        try_urls = [self.test_image_version]
-      else:
-        try_urls = []
-        for channel in channels:
-          url = (
-              'gs://chromeos-releases/%(channel)s-channel/%(board)s/'
-              '%(version)s/ChromeOS-test-*-%(version)s-%(board)s.tar.xz' %
-              dict(channel=channel,
-                   board=self.build_board.gsutil_name,
-                   version=self.test_image_version))
-          try_urls.append(url)
-
-      for url in try_urls:
-        try:
-          logging.info('Looking for test image at %s', url)
-          output = self.gsutil.LS(url)
-        except gsutil.NoSuchKey:
-          # Not found; try next channel
-          continue
-
-        assert len(output) == 1, (
-            'Expected %r to matched 1 file, but it matched %r' %
-            (url, output))
-
-        # Found.  Download it!
-        cached_file = self.gsutil.GSDownload(output[0].strip())
-        break
-      else:
-        raise Exception('Unable to download test image from %r' % try_urls)
-
-      # Untar the test image into place
-      TryUnlink(self.test_image_path)
-      test_image_dir = os.path.dirname(self.test_image_path)
-      logging.info('Extracting test image into %s...', test_image_dir)
-      Spawn(['tar', '-xvvf', cached_file, '-C', test_image_dir],
-            check_call=True)
-
+    if self.args.download:
+      if need_test_image:
+        self.test_image_path = self._DownloadTestImage(
+            self.test_image_source,
+            os.path.join(self.bundle_dir, TEST_IMAGE_SEARCH_DIRS[0]))
       if not os.path.exists(self.test_image_path):
         raise Exception('No test image at %s' % self.test_image_path)
 
-    # TODO(b/36702884): should also download recovery image if needed.
+      if need_release_image:
+        self.release_image_path = self._DownloadReleaseImage(
+            self.release_image_source,
+            os.path.join(self.bundle_dir, RELEASE_IMAGE_SEARCH_DIRS[0]))
+      if not os.path.exists(self.release_image_path):
+        raise Exception('No release image at %s' % self.release_image_path)
+
+      if need_toolkit:
+        self.toolkit_path = self._DownloadFactoryToolkit(self.toolkit_source,
+                                                         self.bundle_dir)
 
     # TODO(b/36702884): remove this section once finalize_bundle supports
     #                   grabbing firmware from different sources
+    # TODO(littlecvr): merge LocateResources(), DownloadResources(), and
+    #                  GetAndSetResourceVersions(). If this section is removed,
+    #                  DownloadResources() becomes simple enough to be merged.
+    #                  One thing to note is that we should make finalize_bundle
+    #                  workable without gsutil if all resources come from LOCAL.
+    #                  Therefore, when merging these function, make sure we
+    #                  don't call self._CheckGSUtilVersion() if not necessary.
     for f in self.manifest['add_files']:
       CheckDictKeys(f, ['install_into', 'source', 'extract_files'])
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
       file_utils.TryMakeDirs(dest_dir)
 
-      if self.args.tip_of_branch:
-        f['source'] = self._SubstVars(f['source'])
-        self._ChangeTipVersion(f)
-
       source = self._SubstVars(f['source'])
 
       if self.args.download:
-        cached_file = self.gsutil.GSDownload(source)
+        cached_file = self._DownloadResource([source])
 
       if f.get('extract_files'):
         # Gets netboot install shim version from source url since version
@@ -441,118 +480,27 @@ class FinalizeBundle(object):
         if self.args.download:
           shutil.copyfile(cached_file, dest_path)
 
-  def _ChangeTipVersion(self, add_file):
-    """Changes image to the latest version for testing tip of branch.
+  def GetAndSetResourceVersions(self):
+    """Gets and sets versions of test, release image, and factory toolkit."""
+    self.test_image_version = self._GetImageVersion(self.test_image_path)
+    logging.info('Test image version: %s', self.test_image_version)
 
-    Changes install shim, release image, netboot install shim (vmlinuz or
-    vmlinux.bin) to the latest version of original branch for testing. Check
-    _GSGetLatestVersion for the detail of choosing the tip version on the
-    branch.
-    """
-    if add_file['install_into'] in ['factory_shim', 'release_image', 'release']:
-      latest_source = self._GSGetLatestVersion(add_file['source'])
-      logging.info('Changing %s source from %s to %s for testing tip of branch',
-                   add_file['install_into'], add_file['source'], latest_source)
-      self._CheckFileExistsOrDie(add_file['install_into'], latest_source)
-      add_file['source'] = latest_source
-    if (add_file.get('extract_files') and
-        any(any(shim in f for shim in NETBOOT_SHIMS)
-            for f in add_file['extract_files'])):
-      latest_source = self._GSGetLatestVersion(add_file['source'])
-      logging.info('Changing netboot install shim source from %s to %s for '
-                   'testing tip of branch', add_file['source'], latest_source)
-      self._CheckFileExistsOrDie('netboot install shim', latest_source)
-      add_file['source'] = latest_source
+    self.release_image_version = self._GetImageVersion(self.release_image_path)
+    logging.info('Release image version: %s', self.release_image_version)
 
-  def _CheckFileExistsOrDie(self, image, url):
-    if not self._GSFileExists(url):
-      sys.exit(('The %s image source on tip of branch is not there, '
-                '%s does not exist. Perhaps buildbot is still building it '
-                'or build failed?' % (image, url)))
-
-  def _GSFileExists(self, url):
-    try:
-      self.gsutil.LS(url)
-    except gsutil.NoSuchKey:
-      return False
-    else:
-      return True
-
-  def _GSGetLatestVersion(self, url):
-    """Gets the latest version of image on the branch of url.
-    Finds the latest version of image on the branch specified in url.
-    This function only cares if input image is on master branch or not.
-    If input image has a zero minor version, it is on master branch.
-    For input image on master branch, the function returns the url of the
-    latest image on master branch. For input image not on master branch,
-    this function returns the url of the image with the same major version
-    and the largest minor version. For example, there are these images
-    available:
-
-    4100.0.0 (On master branch)
-      4100.1.0  (Start of 4100.B branch)
-      ...
-      4100.38.0
-        4100.38.1  (Start of 4100.38.B branch)
-        ...
-        4100.38.5
-        4100.38.6
-      4100.39.0
-    4101.0.0
-    ...
-    4120.0.0
-      4120.1.0  (Start of 4120.B branch)
-      4120.2.0
-
-    Example    input       output      Description
-           4100.0.0       4120.0.0    On master branch.
-           4100.1.0       4100.39.0   On 4100.B branch.
-           4100.38.0      4100.39.0   On 4100.B branch.
-           4100.38.5      4100.39.0   On 4100.38.B branch but we decide
-                                      4100.39.0 and 4100.38.6 should be
-                                      compared together as sub-branch of 4100.B.
-           4101.0.0       4120.0.0    On master branch.
-           4120.1.0       4120.2.0    On 4120.B branch.
-    """
-    # Use LooseVersion instead of StrictVersion because we want to preserve the
-    # trailing 0 like 4100.0.0 instead of truncating it to 4100.0.
-    version = LooseVersion(os.path.basename(os.path.dirname(url)))
-    parsed_version = parse_version(str(version))
-    major_version = parsed_version[0]
-    minor_version = parsed_version[1] if len(parsed_version) > 2 else None
-    board_directory = os.path.dirname(os.path.dirname(url))
-    version_url_list = self.gsutil.LS(board_directory)
-    latest_version = version
-    for version_url in version_url_list:
-      version_url = version_url.rstrip('/')
-      candidate_version = LooseVersion(os.path.basename(version_url))
-      parsed_candidate_version = parse_version(str(candidate_version))
-      major_candidate_version = parsed_candidate_version[0]
-      minor_candidate_version = (parsed_candidate_version[1]
-                                 if len(parsed_candidate_version) > 2 else None)
-      if minor_version and major_candidate_version != major_version:
-        continue
-      if not minor_version and minor_candidate_version:
-        continue
-      if candidate_version > latest_version:
-        latest_version = candidate_version
-    return url.replace(str(version), str(latest_version))
-
-  def DeleteFiles(self):
-    if not 'delete_files' in self.manifest:
-      return
-    for f in self.manifest['delete_files']:
-      path = os.path.join(self.bundle_dir, f)
-      if os.path.exists(path):
-        os.unlink(path)
+    output = Spawn([self.toolkit_path, '--info'], check_output=True).stdout_data
+    match = re.match(r'^Identification: .+ Factory Toolkit (.+)$', output, re.M)
+    assert match, 'Unable to parse toolkit info: %r' % output
+    self.toolkit_version = match.group(1)  # May be None if locally built
+    logging.info('Toolkit version: %s', self.toolkit_version)
 
   def BuildFactoryImage(self):
-    if not self.manifest.get('use_factory_toolkit', False):
-      return
-
+    self.factory_image_path = os.path.join(self.bundle_dir, 'factory_image',
+                                           'chromiumos_factory_image.bin')
     logging.info('Creating %s image from %s...',
                  os.path.basename(self.factory_image_path),
                  os.path.basename(self.test_image_path))
+    file_utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
     shutil.copyfile(self.test_image_path, self.factory_image_path)
 
     # PYTHONPATH is set when finalize_bundle is executing from a par file.
@@ -566,48 +514,18 @@ class FinalizeBundle(object):
     if self.manifest.get('external_presenter', False):
       additional_args = ['--no-enable-presenter']
 
-    Spawn([self.factory_toolkit_path, self.factory_image_path, '--yes'] +
+    Spawn([self.toolkit_path, self.factory_image_path, '--yes'] +
           additional_args, check_call=True, env=exec_env)
 
   def ModifyFactoryImage(self):
     add_files_to_image = self.manifest.get('add_files_to_image', [])
-    delete_files_from_image = self.manifest.get('delete_files_from_image', [])
-    if add_files_to_image or delete_files_from_image:
+    if add_files_to_image:
       with MountPartition(self.factory_image_path, 1, rw=True) as mount:
         for f in add_files_to_image:
           dest_dir = os.path.join(mount, 'dev_image', f['install_into'])
           Spawn(['mkdir', '-p', dest_dir], log=True, sudo=True, check_call=True)
           Spawn(['cp', '-a', os.path.join(self.bundle_dir, f['source']),
                  dest_dir], log=True, sudo=True, check_call=True)
-
-        to_delete = []
-        for f in delete_files_from_image:
-          if isinstance(f, Glob):
-            to_delete.extend(f.Match(mount))
-          else:
-            path = os.path.join(mount, f)
-            if os.path.exists(path):
-              to_delete.append(path)
-
-        for f in sorted(to_delete):
-          # For every file x we delete, we'll leave a file called
-          # 'x_DELETED' so that it's clear why the file is missing.
-          # But we don't want to delete any of these marker files!
-          if f.endswith(DELETION_MARKER_SUFFIX):
-            continue
-          Spawn('echo Deleted by finalize_bundle > %s' %
-                pipes.quote(f + DELETION_MARKER_SUFFIX),
-                sudo=True, shell=True, log=True,
-                check_call=True)
-          Spawn(['rm', '-rf', f], sudo=True, log=True)
-
-        # Write and delete a giant file full of zeroes to clear
-        # all the blocks that we've just deleted.
-        zero_file = os.path.join(mount, 'ZERO')
-        # This will fail eventually (no space left on device)
-        Spawn(['dd', 'if=/dev/zero', 'of=' + zero_file, 'bs=1M'],
-              sudo=True, call=True, log=True, ignore_stderr=True)
-        Spawn(['rm', zero_file], sudo=True, log=True, check_call=True)
 
     if self.args.test_list:
       logging.info('Setting active test_list to %s', self.args.test_list)
@@ -618,6 +536,7 @@ class FinalizeBundle(object):
         with open(active, 'w') as f:
           f.write(self.args.test_list)
 
+  # TODO(littlecvr): remove this function once shopfloor has been deprecated.
   def MakeUpdateBundle(self):
     # Make the factory update bundle
     if self.args.updater:
@@ -739,20 +658,12 @@ class FinalizeBundle(object):
       logging.warning('There is no install shim in the bundle.')
 
   def MakeFactoryPackages(self):
-    # TODO(hungte) Remove 'release/' after we've finished migration.
-    release_images = (
-        glob.glob(os.path.join(self.bundle_dir, 'release_image/*.bin')) or
-        glob.glob(os.path.join(self.bundle_dir, 'release/*.bin')))
-    if len(release_images) != 1:
-      sys.exit('Expected one release image but found %d' % len(release_images))
-    self.release_image_path = release_images[0]
-
     setup_dir = os.path.join(self.bundle_dir, 'setup')
     make_factory_package = [
         './make_factory_package.sh',
         '--board', self.board,
         '--release', os.path.relpath(self.release_image_path, setup_dir),
-        '--factory', '../factory_test/chromiumos_factory_image.bin',
+        '--factory', os.path.relpath(self.factory_image_path, setup_dir),
         '--hwid_updater', '../hwid/hwid_v3_bundle_%s.sh' %
         self.simple_board.upper()]
 
@@ -777,14 +688,13 @@ class FinalizeBundle(object):
     firmware_updater = os.path.join(
         self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
     if os.path.exists(firmware_updater):
-      make_factory_package += [
-          '--firmware_updater', os.path.relpath(
-              firmware_updater, setup_dir)]
+      make_factory_package += ['--firmware_updater',
+                               os.path.relpath(firmware_updater, setup_dir)]
 
     if self.args.make_factory_package:
-      Spawn(make_factory_package, cwd=setup_dir,
-            check_call=True, log=True)
+      Spawn(make_factory_package, cwd=setup_dir, check_call=True, log=True)
 
+    # TODO(littlecvr): should be pulled outside of this file.
     # Build the mini-Omaha startup script.
     self.mini_omaha_script_path = os.path.join(
         self.bundle_dir, 'start_download_server.sh')
@@ -811,8 +721,7 @@ class FinalizeBundle(object):
 
     (Certain files may have been turned into real files by the buildbots.)
     """
-    factory_par_path = os.path.join(self.bundle_dir,
-                                    'shopfloor', 'factory.par')
+    factory_par_path = os.path.join(self.bundle_dir, 'shopfloor', 'factory.par')
     with open(factory_par_path) as f:
       factory_par_data = f.read()
 
@@ -845,6 +754,7 @@ class FinalizeBundle(object):
       shutil.copy2(self.new_factory_par, factory_par_path)
 
   def RemoveUnnecessaryFiles(self):
+    """Removes vim backup files, pyc files, and empty directories."""
     logging.info('Removing unnecessary files')
     for root, dirs, files in os.walk(self.bundle_dir):
       for f in files:  # Remove backup files and compiled Python files.
@@ -905,11 +815,11 @@ class FinalizeBundle(object):
     if self.toolkit_version:
       vitals.append(('Factory toolkit', self.toolkit_version))
 
-    if self.test_image_version == LOCAL:
+    if self.test_image_source == LOCAL:
       with MountPartition(self.factory_image_path, 3) as f:
         vitals.append(('Test image', '%s (local)' % _GetReleaseVersion(f)))
-    elif self.test_image_version:
-      vitals.append(('Test image', self.test_image_version))
+    elif self.test_image_source:
+      vitals.append(('Test image', self.test_image_source))
 
     with MountPartition(self.factory_image_path, 1) as f:
       vitals.append(('Factory updater MD5SUM', open(
@@ -1033,6 +943,143 @@ class FinalizeBundle(object):
     return re.sub(r'\$\{(\w+)\}', lambda match: subst_vars[match.group(1)],
                   input_str)
 
+  @contextlib.contextmanager
+  def _DownloadResource(self, possible_urls, resource_name=None):
+    """Downloads a resource file from given URLs.
+
+    This function downloads a resource from a list of possible URLs (only the
+    first one found by the function will be downloaded). If no file is found at
+    all possible URLs, an exception will be raised.
+
+    Args:
+      possible_urls: a single or a list of possible GS URLs to search.
+      resource_name: a human readable name of the resource, just for logging,
+          won't affect the behavior of downloading.
+    """
+    resource_name = resource_name or 'resource'
+
+    if not isinstance(possible_urls, list):
+      possible_urls = [possible_urls]
+
+    found_url = None
+    # ls to see if a given URL exists.
+    for url in possible_urls:
+      try:
+        logging.info('Looking for %s at %s', resource_name, url)
+        output = self.gsutil.LS(url)
+      except gsutil.NoSuchKey:  # Not found; try next
+        continue
+
+      assert len(output) == 1, (
+          'Expected %r to matched 1 files, but it matched %r', url, output)
+
+      # Found. Download it!
+      found_url = output[0].strip()
+      break
+
+    if found_url is None:
+      raise Exception('No %s found in %r' % (resource_name, possible_urls))
+    downloaded_path = self.gsutil.GSDownload(found_url)
+
+    try:
+      yield (downloaded_path, found_url)
+    finally:
+      TryUnlink(downloaded_path)
+
+  def _DownloadAndExtractImage(self, image_name, possible_urls, target_dir):
+    with self._DownloadResource(
+        possible_urls, image_name) as (downloaded_path, found_url):
+      try:
+        file_utils.TryMakeDirs(target_dir)
+        image_basename = os.path.basename(found_url)
+        if image_basename.endswith('.bin'):  # just move
+          dst_path = os.path.join(target_dir, image_basename)
+          logging.info('Moving %r to %r', downloaded_path, dst_path)
+          shutil.move(downloaded_path, dst_path)
+        elif image_basename.endswith('.tar.xz'):
+          logging.info('Extracting %s image into %s...', image_name, target_dir)
+          file_utils.ExtractFile(downloaded_path, target_dir)
+
+          extracted_path = os.listdir(target_dir)
+          assert len(extracted_path) == 1, (
+              'Expect only one file in %r but found multiple' % target_dir)
+          extracted_path = os.path.join(target_dir, extracted_path[0])
+
+          # Replace '.tar.xz' with the extracted ext name ('.bin' normally).
+          unused_name, ext = os.path.splitext(extracted_path)
+          dst_path = os.path.join(target_dir, image_basename[:-7] + '.' + ext)
+          shutil.move(extracted_path, dst_path)
+        else:
+          raise ValueError(
+              "Don't know how to handle file extension of %r" % downloaded_path)
+        return dst_path
+      finally:
+        TryUnlink(downloaded_path)
+
+  def _DownloadTestImage(self, requested_version, target_dir):
+    possible_urls = []
+    for channel in RESOURCE_CHANNELS:
+      url = '%s/%s' % (
+          FinalizeBundle._ResourceBaseURL(
+              channel, self.build_board.gsutil_name, requested_version),
+          '*test*.tar.xz')
+      possible_urls.append(url)
+    return self._DownloadAndExtractImage('test image', possible_urls,
+                                         target_dir)
+
+  def _DownloadReleaseImage(self, requested_version, target_dir):
+    possible_urls = []
+    # Signed recovery image ends with .bin and takes higher priority, so .bin
+    # must be searched first. Unsigned recovery image ends with .tar.xz.
+    for ext in ['.bin', '.tar.xz']:
+      for channel in RESOURCE_CHANNELS:
+        url = '%s/%s%s' % (
+            FinalizeBundle._ResourceBaseURL(
+                channel, self.build_board.gsutil_name, requested_version),
+            '*recovery*', ext)
+        possible_urls.append(url)
+    return self._DownloadAndExtractImage('release image', possible_urls,
+                                         target_dir)
+
+  def _DownloadFactoryToolkit(self, requested_version, target_dir):
+    possible_urls = []
+    for channel in RESOURCE_CHANNELS:
+      url = '%s/%s' % (
+          FinalizeBundle._ResourceBaseURL(
+              channel, self.build_board.gsutil_name, requested_version),
+          '*factory*.zip')
+      possible_urls.append(url)
+    with self._DownloadResource(
+        possible_urls, 'factory toolkit') as (downloaded_path, unused_url):
+      file_utils.ExtractFile(downloaded_path, target_dir)
+
+    return self._LocateOneResource(
+        'factory toolkit', LOCAL, TOOLKIT_SEARCH_DIRS,
+        lambda unused_path, unused_version: True)
+
+  @staticmethod
+  def _ResourceBaseURL(channel, board, version):
+    return (
+        'gs://chromeos-releases/%(channel)s-channel/%(board)s/%(version)s' %
+        dict(channel=channel, board=board, version=version))
+
+  @staticmethod
+  def _ListAllFilesIn(search_dirs):
+    """Returns all files under search_dirs.
+
+    Args:
+      search_dirs: a list of directories to search.
+    """
+    found_entries = []
+    for d in search_dirs:
+      if os.path.isdir(d):
+        for f in os.listdir(d):
+          p = os.path.join(d, f)
+          if os.path.isfile(p):
+            found_entries.append(p)
+    return found_entries
+
 
 if __name__ == '__main__':
+  logging.basicConfig(level=logging.INFO)
   FinalizeBundle().Main()
