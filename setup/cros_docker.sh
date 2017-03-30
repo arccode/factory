@@ -603,41 +603,6 @@ do_run() {
   echo "Open the browser to http://localhost:${DOME_PORT}/ and enjoy!"
 }
 
-do_build_umpire_deps() {
-  check_docker
-
-  local builder_output_file="$1"
-  local builder_workdir="/tmp/build"
-  local static_bins_filepath="${BUILD_DIR}/${builder_output_file}"
-
-  local deps_builder_dockerfile="${UMPIRE_DIR}/docker/Dockerfile.deps"
-  local deps_builder_image_name="cros/umpire_deps_builder"
-  local deps_builder_container_name="umpire_deps_builder"
-
-  local host_vboot_dir="$(realpath "${FACTORY_DIR}/../vboot_reference")"
-
-  local temp_dir="$(mktemp -d)"
-  TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
-
-  mkdir -p "${BUILD_DIR}"
-  rsync -a "${host_vboot_dir}" "${temp_dir}" --exclude tests
-  cp "${deps_builder_dockerfile}" "${temp_dir}/Dockerfile"
-
-  ${DOCKER} build \
-    --tag "${deps_builder_image_name}" \
-    --build-arg workdir="${builder_workdir}" \
-    --build-arg output_file="${builder_output_file}" \
-    "${temp_dir}"
-
-  # copy the builder's output from container to host
-  ${DOCKER} create --name "${deps_builder_container_name}" \
-    "${deps_builder_image_name}"
-  ${DOCKER} cp \
-    "${deps_builder_container_name}:${builder_workdir}/${builder_output_file}" \
-    "${static_bins_filepath}"
-  ${DOCKER} rm "${deps_builder_container_name}"
-}
-
 do_build_dome_deps() {
   check_docker
 
@@ -697,11 +662,9 @@ do_build_overlord() {
 do_build() {
   check_docker
 
-  local umpire_builder_output_file="bins.tar"
   local dome_builder_output_file="frontend.tar"
   local overlord_output_file="overlord.tar.gz"
 
-  do_build_umpire_deps "${umpire_builder_output_file}"
   do_build_dome_deps "${dome_builder_output_file}"
   do_build_overlord "${overlord_output_file}"
 
@@ -718,7 +681,6 @@ do_build() {
     --build-arg server_dir="${DOCKER_BASE_DIR}" \
     --build-arg instalog_dir="${DOCKER_INSTALOG_DIR}" \
     --build-arg umpire_dir_in_dome="${DOCKER_UMPIRE_DIR_IN_DOME}" \
-    --build-arg umpire_builder_output_file="${umpire_builder_output_file}" \
     --build-arg dome_builder_output_file="${dome_builder_output_file}" \
     --build-arg overlord_output_file="${overlord_output_file}" \
     "${FACTORY_DIR}"

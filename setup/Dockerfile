@@ -79,11 +79,6 @@ COPY bin "${server_dir}/bin/"
 # only the small client to communicate with the host's docker server)
 ADD build/docker/docker.tgz /
 
-# Use pre-built static binaries (cgpt), since there's no package for
-# those in alpine.
-ARG umpire_builder_output_file="bins.tar"
-ADD "build/docker/${umpire_builder_output_file}" /usr/local/bin/
-
 # these files are unlikely to change often, put them here to take advantage of
 # docker's cache
 COPY py/dome/nginx.conf /etc/nginx/nginx.conf
