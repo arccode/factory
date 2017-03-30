@@ -171,7 +171,10 @@ def GetResourceMap(dut_info, env):
   if not bundle:
     return None
 
-  handler_port, handler_token = env.shop_floor_manager.GetHandler(bundle_id)
+  shopfloor_bundle_id = env.config['services']['shop_floor'].get('bundle_id',
+                                                                 bundle_id)
+  handler_port, handler_token = env.shop_floor_manager.GetHandler(
+      shopfloor_bundle_id)
   if handler_port is None:
     return None
 
