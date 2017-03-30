@@ -30,7 +30,8 @@ from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.utils.file_utils import (
-    UnopenedTemporaryFile, TryUnlink, ExtractFile, Glob, WriteWithSudo)
+    UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile, Glob,
+    WriteWithSudo)
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
@@ -702,9 +703,7 @@ class FinalizeBundle(object):
           self.bundle_dir, 'shopfloor', 'shopfloor_data', 'update',
           'factory.tar.bz2')
       file_utils.TryMakeDirs(os.path.dirname(updater_path))
-      MakeUpdateBundle(self.factory_image_path,
-                       file_utils.MD5InHex(self.factory_toolkit_path),
-                       updater_path)
+      MakeUpdateBundle(self.factory_image_path, updater_path)
 
   def UpdateNetbootURL(self):
     """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware."""

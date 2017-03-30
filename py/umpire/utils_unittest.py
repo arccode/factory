@@ -59,8 +59,7 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
     expected_md5sum_path = os.path.join(expected_toolkit_dir, 'usr', 'local',
                                         'factory', 'MD5SUM')
     self.assertTrue(os.path.exists(expected_md5sum_path))
-    self.assertEqual(file_utils.MD5InHex(TOOLKIT_PATH),
-                     file_utils.ReadFile(expected_md5sum_path).strip())
+    self.assertEqual(TOOLKIT_MD5, file_utils.ReadFile(expected_md5sum_path))
 
   def testNoUnpackDestExist(self):
     expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
