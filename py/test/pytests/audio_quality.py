@@ -34,6 +34,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
+from cros.factory.test.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -745,8 +746,7 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
     shopfloor_client = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
     logging.info('Syncing time with shopfloor...')
-    goofy_instance = state.get_instance()
-    goofy_instance.SyncTimeWithShopfloorServer()
+    time_utils.SyncTimeWithShopfloorServer()
 
     self._ui.CallJSFunction('setMessage', _LABEL_DOWNLOADING_PARAMETERS)
     download_list = []

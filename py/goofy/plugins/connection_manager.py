@@ -47,6 +47,7 @@ class ConnectionManager(plugin.Plugin):
   def OnStop(self):
     self._connection_manager.DisableNetworking()
 
+  @plugin.RPCFunction
   def SetStaticIP(self, *args, **kwargs):
     try:
       self._connection_manager.SetStaticIP(*args, **kwargs)

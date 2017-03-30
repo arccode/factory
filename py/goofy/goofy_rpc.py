@@ -861,14 +861,6 @@ class GoofyRPC(object):
     finally:
       file_utils.TryUnlink(output_file)
 
-  def SyncTimeWithShopfloorServer(self):
-    # TODO(shunhsingou): remove this function when we have unified RPC interface
-    # for goofy plugin.
-    time_sanitizer = self.goofy.plugin_controller.GetPluginInstance(
-        'time_sanitizer.TimeSanitizer')
-    if time_sanitizer:
-      time_sanitizer.SyncTimeWithShopfloorServer()
-
   def PostEvent(self, event):
     """Posts an event."""
     self.goofy.event_client.post_event(event)
@@ -1314,25 +1306,6 @@ class GoofyRPC(object):
     """
     if self.goofy.link_manager:
       self.goofy.link_manager.UpdateStatus(all_pass)
-
-  def SetStaticIP(self, *args, **kwargs):
-    """Sets static IP for an interface.
-
-    This is a delegate function of
-    cros.factory.test.utils.connection_manager.ConnectionManager.SetStaticIP.
-    """
-    # TODO(sitmim): migrate to plugin RPC
-
-    manager = self.goofy.plugin_controller.GetPluginInstance(
-        'connection_manager')
-    if manager is not None:
-      return manager.SetStaticIP(*args, **kwargs)
-    else:
-      raise GoofyRPCException('connection manager is not running')
-
-  def IsPluginRunning(self, instance_name):
-    instance = self.goofy.plugin_controller.GetPluginInstance(instance_name)
-    return instance is not None
 
   def GetTestHistory(self, *test_paths):
     """Returns metadata for all previous (and current) runs of a test."""

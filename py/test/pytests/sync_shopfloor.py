@@ -15,6 +15,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
@@ -77,7 +78,9 @@ class SyncShopfloor(unittest.TestCase):
           goofy = state.get_instance()
           if self.args.sync_event_logs:
             goofy.FlushEventLogs()
-          goofy.SyncTimeWithShopfloorServer()
+
+          time_utils.SyncTimeWithShopfloorServer()
+
           if self.args.disable_update or not needs_update():
             # No update necessary; pass.
             ui.Pass()

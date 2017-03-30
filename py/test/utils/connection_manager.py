@@ -12,11 +12,11 @@ import time
 # Import WLAN into this module's namespace, since it may be used by
 # some test lists.
 import factory_common  # pylint: disable=unused-import
+from cros.factory.goofy.plugins import plugin_controller
 from cros.factory.utils import config_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.net_utils import WLAN  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
-from cros.factory.test import state
 
 try:
   # pylint: disable=unused-import
@@ -49,6 +49,15 @@ _SUBSERVICE_LIST = ['shill_respawn', 'modemmanager']
 
 # %s is the network manager process name, i.e. flimflam or shill.
 _PROFILE_LOCATION = '/var/cache/%s/default.profile'
+
+
+def GetConnectionManagerProxy():
+  proxy = plugin_controller.GetPluginRPCProxy('connection_manager')
+  if proxy is None:
+    logging.info('Goofy plugin connection_manager is not running, '
+                 'create our own instance')
+    proxy = ConnectionManager()
+  return proxy
 
 
 class ConnectionManagerException(Exception):
@@ -445,10 +454,7 @@ def SetupNetworkUsingNetworkConfig(network_config):
       ``network_config.schema.json`` (you can load a config file using
       ``LoadNetworkConfig``)
   """
-  proxy = state.get_instance()
-  if not proxy.IsPluginRunning('connection_manager'):
-    logging.info('Goofy plugin `connection_manager` is not running')
-    proxy = ConnectionManager()
+  proxy = GetConnectionManagerProxy()
 
   def _SetStaticIP(*args, **kwargs):
     try:

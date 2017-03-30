@@ -64,6 +64,7 @@ class TimeSanitizer(plugin.Plugin):
       if self._time_synced or self._stop_event.wait(self._sync_period_secs):
         return
 
+  @plugin.RPCFunction
   def SyncTimeWithShopfloorServer(self):
     """Syncs time with shopfloor server.
 

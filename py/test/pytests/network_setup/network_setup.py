@@ -30,7 +30,6 @@ Usage::
       })
 """
 
-import logging
 import os
 import threading
 import traceback
@@ -38,7 +37,6 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import connection_manager
@@ -111,11 +109,7 @@ class NetworkConnectionSetup(unittest.TestCase):
                                  self.args.config_path)
       settings = connection_manager.LoadNetworkConfig(config_path)
 
-      proxy = state.get_instance()
-      if not proxy.IsPluginRunning('connection_manager'):
-        logging.info('Goofy plugin connection_manager is not running, '
-                     'create our own instance')
-        proxy = connection_manager.ConnectionManager()
+      proxy = connection_manager.GetConnectionManagerProxy()
 
       for interface in settings:
         interface_name = settings[interface].pop('interface_name', interface)
