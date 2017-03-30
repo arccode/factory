@@ -8,6 +8,22 @@
 
 # TODO(kitching): Add tests that deal with "out of disk space" situations.
 # TODO(kitching): Add tests for reading data from corrupted databases.
+#                 - data.json is smaller than pos in metadata.json
+#                 - metadata.json does not contain the right version
+#                 - metadata.json is an empty dict {}
+#                 - metadata.json does not exist
+#                 - data.json does not exist
+#                 - metadata recovery: uncorrupted data.json
+#                 - metadata recovery: corruptions at the beginning of data.json
+#                 - metadata recovery: corruptions at the end of data.json
+#                 - metadata recovery: fully corrupted data.json
+#                 - consumer metadata: seq smaller than first_seq
+#                 - consumer metadata: seq larger than last_seq
+#                 - consumer metadata: pos smaller than start_pos
+#                 - consumer metadata: pos larger than end_pos
+#                 - consumer metadata: pos not synchronized with seq
+#                 - consumer metadata is an empty dict {}
+#                 - consumer metadata missing cur_pos or cur_seq
 # TODO(kitching): Add tests for failure during Truncate operation.
 
 from __future__ import print_function

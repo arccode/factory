@@ -187,7 +187,6 @@ class Instalog(plugin_sandbox.CoreAPI):
     return plugins
 
   def _StartBuffer(self):
-    logging.info('Starting buffer...')
     self._buffer.Start(True)
     self._SyncConsumerList()
 

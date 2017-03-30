@@ -179,6 +179,8 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
 
     # Try restoring metadata, if it exists.
     self._RestoreMetadata()
+    if self.version:
+      self._SaveMetadata()
     self._RestoreConsumers()
 
     # Try truncating any attachments from any partial Truncate operations.
@@ -229,8 +231,18 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     If the metadata file does not exist, will silently return.
     """
     data = TryLoadJSON(self.metadata_path, self.logger)
-    if data:
-      self._RestoreVersionFromDisk()
+    if data is not None:
+      try:
+        self._RestoreVersionFromDisk()
+      except Exception:
+        self.error('Data file unexpectedly missing; resetting metadata')
+        return
+      if self.version not in data:
+        self.error('Could not find metadata version %s (available: %s); '
+                   'recovering metadata from data file',
+                   self.version, ', '.join(data.keys()))
+        self._RecoverMetadata()
+        return
       if len(data) > 1:
         self.info('Metadata contains multiple versions %s; choosing %s',
                   ', '.join(data.keys()), self.version)
@@ -238,6 +250,33 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
       self.last_seq = data[self.version]['last_seq']
       self.start_pos = data[self.version]['start_pos']
       self.end_pos = data[self.version]['end_pos']
+      # Check that end_pos <= actual size of data_path.
+      if self.end_pos > os.path.getsize(self.data_path):
+        self.error('end_pos in restored metadata is larger than data file; '
+                   'recovering metadata from data file')
+        self._RecoverMetadata()
+
+  def _RecoverMetadata(self):
+    """Recovers metadata from the main data file on disk.
+
+    Uses the first valid record for first_seq and start_pos, and the last
+    valid record for last_seq and end_pos.
+    """
+    first_record = False
+    cur_pos = 0
+    with open(self.data_path, 'r') as f:
+      for line in f:
+        ret = self._ParseRecord(line)
+        if not first_record and ret:
+          self.first_seq = ret[0]
+          self.start_pos = cur_pos
+          first_record = True
+        cur_pos += len(line)
+        if ret:
+          self.last_seq = ret[0]
+          self.end_pos = cur_pos
+    self.info('Finished recovering metadata; sequence range found: %d to %d',
+              self.first_seq, self.last_seq)
 
   def _SaveConsumers(self):
     """Saves the current list of active Consumers to disk."""
@@ -260,6 +299,9 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     """Restores version from the main data file on disk.
 
     See file-level docstring for more information about versions.
+
+    Raises:
+      Exception if the file could not be opened or read correctly.
     """
     with open(self.data_path, 'r') as f:
       self._StoreVersion(f.readline())
@@ -287,10 +329,10 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     data, _, checksum = line_inner.rpartition(', ')
     seq, _, record = data.partition(', ')
     if not seq or not record:
-      self.warning('Parsing error for record %s' % line)
+      self.warning('Parsing error for record %s', line.rstrip())
       return None
     if checksum != GetChecksum(data):
-      self.warning('Checksum error for record %s' % line)
+      self.warning('Checksum error for record %s', line.rstrip())
       return None
     return int(seq), record
 
@@ -526,7 +568,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
 
   def _CreateConsumer(self, name):
     """Returns a new Consumer object with the given name."""
-    return Consumer(self, self.consumer_path_format % name, self.logger)
+    return Consumer(name, self, self.consumer_path_format % name, self.logger)
 
   def AddConsumer(self, name):
     """See BufferPlugin.AddConsumer."""
@@ -575,7 +617,8 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
   acquired before any of Next, Commit, or Abort can be used.
   """
 
-  def __init__(self, simple_file, metadata_path, logger):
+  def __init__(self, name, simple_file, metadata_path, logger):
+    self.name = name
     self.simple_file = simple_file
     self.metadata_path = metadata_path
     self.logger = logger
@@ -591,6 +634,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
 
     # Try restoring metadata, if it exists.
     self._RestoreMetadata()
+    self._SaveMetadata()
 
   def CreateStream(self):
     """Creates a BufferEventStream object to be used by Instalog core.
@@ -621,10 +665,21 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     If the metadata file does not exist, will silently return.
     """
     data = TryLoadJSON(self.metadata_path, self.logger)
-    if data:
+    if data is not None:
+      if 'cur_seq' not in data or 'cur_pos' not in data:
+        self.error('Consumer %s metadata file invalid; resetting', self.name)
+        return
       # Make sure we are still ahead of simple_file.
-      self.cur_seq = max(self.simple_file.first_seq, data['cur_seq'])
-      self.cur_pos = max(self.simple_file.start_pos, data['cur_pos'])
+      self.cur_seq = min(max(self.simple_file.first_seq, data['cur_seq']),
+                         self.simple_file.last_seq + 1)
+      self.cur_pos = min(max(self.simple_file.start_pos, data['cur_pos']),
+                         self.simple_file.end_pos)
+      if (data['cur_seq'] < self.simple_file.first_seq or
+          data['cur_seq'] > (self.simple_file.last_seq + 1)):
+        self.error('Consumer %s cur_seq=%d is out of buffer range %d to %d, '
+                   'correcting to %d', self.name, data['cur_seq'],
+                   self.simple_file.first_seq, self.simple_file.last_seq + 1,
+                   self.cur_seq)
       self.new_seq = self.cur_seq
       self.new_pos = self.cur_pos
 
