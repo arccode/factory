@@ -16,6 +16,7 @@ import os
 import pipes
 import re
 import shutil
+import subprocess
 import sys
 import time
 import urlparse
@@ -24,7 +25,6 @@ from distutils.version import LooseVersion
 from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
-from chromite.lib import gs
 from cros.factory.tools import build_board
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
@@ -322,7 +322,7 @@ class FinalizeBundle(object):
 
   def CheckGSUtilVersion(self):
     # Check for gsutil >= 3.32.
-    version = self.gsutil.gs_context.gsutil_version
+    version = self.gsutil.GetVersion()
     # Remove 'pre...' string at the end, if any
     version = re.sub('pre.*', '', version)
     version_split = [int(x) for x in version.split('.')]
@@ -379,14 +379,14 @@ class FinalizeBundle(object):
       for url in try_urls:
         try:
           logging.info('Looking for test image at %s', url)
-          output = self.gsutil.gs_context.LS(url)
-        except gs.GSNoSuchKey:
+          output = self.gsutil.LS(url)
+        except subprocess.CalledProcessError:
           # Not found; try next channel
           continue
 
         assert len(output) == 1, (
-            'Expected %r to matched 1 files, but it matched %r',
-            url, output)
+            'Expected %r to matched 1 file, but it matched %r' %
+            (url, output))
 
         # Found.  Download it!
         cached_file = self.gsutil.GSDownload(output[0].strip())
@@ -476,8 +476,8 @@ class FinalizeBundle(object):
 
   def _GSFileExists(self, url):
     try:
-      self.gsutil.gs_context.LS(url)
-    except gs.GSNoSuchKey:
+      self.gsutil.LS(url)
+    except subprocess.CalledProcessError:
       return False
     else:
       return True
@@ -525,7 +525,7 @@ class FinalizeBundle(object):
     major_version = parsed_version[0]
     minor_version = parsed_version[1] if len(parsed_version) > 2 else None
     board_directory = os.path.dirname(os.path.dirname(url))
-    version_url_list = self.gsutil.gs_context.LS(board_directory)
+    version_url_list = self.gsutil.LS(board_directory)
     latest_version = version
     for version_url in version_url_list:
       version_url = version_url.rstrip('/')

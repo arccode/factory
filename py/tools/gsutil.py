@@ -12,10 +12,10 @@ import shutil
 from distutils import version
 
 import factory_common   # pylint: disable=W0611
-from chromite.lib import gs
 from cros.factory.test import factory
 from cros.factory.tools import build_board
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 
@@ -30,9 +30,19 @@ class GSUtil(object):
   IMAGE_TYPES = type_utils.Enum(['factory', 'firmware', 'recovery', 'test'])
 
   def __init__(self, board):
-    self.gs_context = gs.GSContext()
     self.board = build_board.BuildBoard(board)
     self.gs_output_cache = {}
+
+  def LS(self, pattern):
+    return process_utils.CheckOutput(
+        ['gsutil', 'ls', pattern]).strip().split('\n')
+
+  def CP(self, src, dest):
+    process_utils.Spawn(['gsutil', 'cp', src, dest], check_call=True)
+
+  def GetVersion(self):
+    output = process_utils.CheckOutput(['gsutil', 'version'])
+    return re.search(r'gsutil version: (\d+\.\d+)', output).group(1)
 
   def GetGSPrefix(self, channel):
     """Gets the common prefix of a Google storage URI for a given channel.
@@ -66,7 +76,7 @@ class GSUtil(object):
         raise GSUtilError('branch must be a string of format: %s' % branch_re)
     gs_url_pattern = self.GetGSPrefix(channel)
     if gs_url_pattern not in self.gs_output_cache:
-      self.gs_output_cache[gs_url_pattern] = self.gs_context.LS(gs_url_pattern)
+      self.gs_output_cache[gs_url_pattern] = self.LS(gs_url_pattern)
     gs_path_list = self.gs_output_cache[gs_url_pattern]
 
     if branch:
@@ -129,7 +139,7 @@ class GSUtil(object):
               filetype=filetype, board=self.board.gsutil_name,
               fileext=fileext[filetype]))
 
-    gs_builds_output = self.gs_context.LS(gs_dir)
+    gs_builds_output = self.LS(gs_dir)
     logging.debug('Output of `gsutil ls %s`\n: %s', gs_dir, gs_builds_output)
 
     logging.debug('Looking for filespec %s', filespec_re.pattern)
@@ -234,6 +244,6 @@ class GSUtil(object):
       return cached_path
 
     in_progress_path = cached_path + '.INPROGRESS'
-    self.gs_context.Copy(uri, 'file://' + in_progress_path)
+    self.CP(uri, 'file://' + in_progress_path)
     shutil.move(in_progress_path, cached_path)
     return cached_path

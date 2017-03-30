@@ -119,7 +119,7 @@ class GsutilUnittest(unittest.TestCase):
     self.gsutil = gsutil.GSUtil('spring')
     self.gs_url_pattern = self.gsutil.GetGSPrefix('canary')
 
-  @mock.patch.object(gsutil.gs.GSContext, 'LS',
+  @mock.patch.object(gsutil.GSUtil, 'LS',
                      return_value=FAKE_GS_LS_OUTPUT)
   def testGetLatestBuildPath(self, mock_ls):
     self.assertEquals(
@@ -132,7 +132,7 @@ class GsutilUnittest(unittest.TestCase):
         self.gsutil.GetLatestBuildPath('canary', '4262'))
     mock_ls.assert_called_with(self.gs_url_pattern)
 
-  @mock.patch.object(gsutil.gs.GSContext, 'LS',
+  @mock.patch.object(gsutil.GSUtil, 'LS',
                      return_value=FAKE_GS_BUILDS_OUTPUT_FACTORY_BRANCH)
   def testGetBinaryURI(self, mock_ls):
     gs_dir = 'gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/'
@@ -170,7 +170,7 @@ class GsutilUnittest(unittest.TestCase):
         self.gsutil.GetBinaryURI(gs_dir, self.gsutil.IMAGE_TYPES.test))
     mock_ls.assert_called_with(gs_dir)
 
-  @mock.patch.object(gsutil.gs.GSContext, 'LS',
+  @mock.patch.object(gsutil.GSUtil, 'LS',
                      return_value=FAKE_GS_BUILDS_OUTPUT_FIRMWARE_BRANCH)
   def testGetBinaryURIForFirmware(self, mock_ls):
     gs_dir = 'gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/'
