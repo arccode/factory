@@ -199,7 +199,9 @@ class GoofyTest(unittest.TestCase):
       server = goofy.goofy_server.GoofyServer((
           goofy_proxy.DEFAULT_GOOFY_ADDRESS,
           goofy_proxy.DEFAULT_GOOFY_PORT))
-      server.serve_forever().InAnyOrder()
+      # We do not use mox for server.serve_forever, since the method is run in
+      # another thread, and mox object are NOT thread safe.
+      server.serve_forever = lambda *args, **kwargs: None
       server.RegisterPath(
           '/',
           os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static')).InAnyOrder()
