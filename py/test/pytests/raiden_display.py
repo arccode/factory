@@ -236,11 +236,7 @@ class RaidenDisplayTest(unittest.TestCase):
       self._image_matched = self._camera_device.CaptureCompare(
           self._golden_image_path, self.args.corr_value_threshold)
     else:
-      corr_values = self._verify_server.VerifyDP(True)
-      self._image_matched = all(
-          c >= t for c, t in zip(corr_values, self.args.corr_value_threshold))
-      logging.info('CompareHist correlation result = b: %.4f, g: %.4f, r: %.4f',
-                   corr_values[0], corr_values[1], corr_values[2])
+      self._image_matched = self._verify_server.VerifyDP(False)
 
     if self.args.verify_display_switch:
       self._ui.CallJSFunction('switchDisplayOnOff')

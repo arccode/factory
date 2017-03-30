@@ -107,6 +107,7 @@ def RegisterPlanktonHDMI(server, golden, uvc_port):
   # and move VerifyDP() into PlanktonHDMI.
   golden_image_path = golden if golden else _PrepareGoldenImage()
 
+  # TODO(stimim): setting return_corr=True does nothing now, should fix it.
   def VerifyDP(return_corr=False):
     """Verifies DP output.
 
