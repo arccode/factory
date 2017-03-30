@@ -27,6 +27,7 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 #  (buzybox tar doesn't support -I, which is used in file_utils.ExtractFile)
 #  gnupg, python-gnupg: Used by umpire/service/dkps and archiver
 #  rsync: Used by umpire/service/rsync
+#  jq: Will be used by umpire in future.
 #
 #  py-protobuf: Dependencies that are used by some board's shop_floor
 #
@@ -40,6 +41,7 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     apache2-utils \
     coreutils \
     gnupg \
+    jq \
     lighttpd \
     nginx \
     openssl \
