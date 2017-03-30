@@ -60,10 +60,10 @@ RUN apk upgrade --no-cache && apk add --no-cache \
 
 
 # Prepare requirements file and install pip packages.
-COPY py/dome/uwsgi.ini py/dome/manage.py py/dome/requirements.txt "${dome_dir}/"
+COPY py/dome/requirements.txt "${dome_dir}/"
 COPY py/instalog/requirements.txt "${instalog_dir}/"
 # TODO(hungte) Move Umpire packages to its own requirements file.
-RUN pip install --upgrade pip && \
+RUN pip install --no-cache-dir --upgrade pip setuptools && \
     pip install --no-cache-dir \
       protobuf==3.2.0 \
       python-gnupg==0.4.0 \
@@ -81,6 +81,7 @@ ADD build/docker/docker.tgz /
 
 # these files are unlikely to change often, put them here to take advantage of
 # docker's cache
+COPY py/dome/uwsgi.ini py/dome/manage.py "${dome_dir}/"
 COPY py/dome/nginx.conf /etc/nginx/nginx.conf
 
 ARG overlord_output_file="overlord.tar.gz"
