@@ -361,12 +361,12 @@ class GlobalSeq(object):
       contents = f.read()
       if contents:
         try:
-          dummy_value = int(contents)
+          _unused_value = int(contents)
           return  # It's all good
         except ValueError:
           logging.exception(
               "Sequence number file %s contains non-integer %r",
-              self.path, dummy_value)
+              self.path, contents)
 
       value = self._FindNextSequenceNumber()
       f.write(str(value))
