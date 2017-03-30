@@ -61,6 +61,16 @@ class Plugin(object):
     """Called when Goofy is going to be shutdown."""
     pass
 
+  def GetRPCInstance(self):
+    """Called by Goofy to get RPC instance of the plugin.
+
+    This is for plugin to share public functions to tests or other plugins
+    across different threads and processes. An object with all supported public
+    functions should be returned. Returns None if no public function is
+    supported.
+    """
+    return None
+
   @debug_utils.CatchException('Plugin')
   def Start(self):
     """Starts running the plugin."""

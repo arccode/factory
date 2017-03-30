@@ -77,6 +77,27 @@ class PluginControllerTest(unittest.TestCase):
     self.assertIsNotNone(controller.GetPluginInstance(self.BASE_PLUGIN_MODULE))
     self.assertIsNone(controller.GetPluginInstance('not_exist_plugin'))
 
+  def testGetPluginClass(self):
+    self.assertEqual(plugin_controller.GetPluginClass('plugin'), plugin.Plugin)
+    self.assertEqual(
+        plugin_controller.GetPluginClass('plugin.Plugin'), plugin.Plugin)
+
+  def testGetPluginRPCPath(self):
+    # pylint: disable=protected-access
+    self.assertEqual(
+        plugin_controller._GetPluginRPCPath(
+            plugin_controller.GetPluginClass('plugin')),
+        '/plugin/plugin_Plugin')
+
+  @mock.patch('cros.factory.goofy.plugins.plugin_controller.goofy_proxy')
+  def testGetPluginProxy(self, goofy_proxy):
+    proxy = mock.Mock()
+    goofy_proxy.get_rpc_proxy.return_value = proxy
+    self.assertEqual(plugin_controller.GetPluginRPCProxy('plugin'), proxy)
+    goofy_proxy.get_rpc_proxy.assert_called_once_with(
+        None, None, '/plugin/plugin_Plugin')
+    proxy.system.listMethods.assert_called_once_with()
+
 
 if __name__ == '__main__':
   unittest.main()

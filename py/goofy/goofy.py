@@ -1211,6 +1211,7 @@ class Goofy(GoofyBase):
     self.plugin_controller = plugin_controller.PluginController(
         self.test_list.options.plugin_config_name, self)
     self.plugin_controller.StartAllPlugins()
+    self.plugin_controller.RegisterRPC(self.goofy_server)
 
     # TODO(akahuang): Move this part into a pytest.
     # Prepare DUT link after the plugins start running, because the link might
