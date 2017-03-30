@@ -103,7 +103,9 @@ class Daemon(object):
     try:
       with open(self.pidfile, 'r') as f:
         return int(f.read().strip())
-    except IOError:
+    except (IOError, ValueError):
+      if os.path.exists(self.pidfile):
+        os.remove(self.pidfile)
       return None
 
   def IsRunning(self):
