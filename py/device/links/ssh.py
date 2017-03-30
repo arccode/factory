@@ -32,6 +32,35 @@ class ClientNotExistError(Exception):
     return 'There is no DHCP client registered.'
 
 
+class SSHProcess(object):
+  ERROR_CONNECTION_TIMEOUT = 255
+  MAX_RETRY = 3
+  INTERVAL = 1
+
+  def __init__(self, *args, **kwargs):
+    self.__args = args
+    self.__kwargs = kwargs
+    self.__process = self._create_process()
+    self.__retry_count = 0
+
+  def __getattr__(self, attr):
+    return getattr(self.__process, attr)
+
+  def _create_process(self):
+    return subprocess.Popen(*self.__args, **self.__kwargs)
+
+  def wait(self):
+    returncode = self.__process.wait()
+    if (returncode == self.ERROR_CONNECTION_TIMEOUT and
+        self.__retry_count < self.MAX_RETRY):
+      time.sleep(self.INTERVAL)
+      self.__retry_count += 1
+      self.__process = self._create_process()
+      return self.wait()
+    else:
+      return returncode
+
+
 class SSHLink(link.DeviceLink):
   """A DUT target that is connected via SSH interface.
 
@@ -219,10 +248,9 @@ class SSHLink(link.DeviceLink):
       shell = False
 
     logging.debug('SSHLink: Run [%r]', command)
-    proc = subprocess.Popen(command, shell=shell, close_fds=True, stdin=stdin,
-                            stdout=stdout, stderr=stderr)
+    proc = SSHProcess(command, shell=shell, close_fds=True, stdin=stdin,
+                      stdout=stdout, stderr=stderr)
     self._StartWatcher(proc)
-
     return proc
 
   def IsReady(self):
@@ -403,8 +431,8 @@ class SSHLink(link.DeviceLink):
             a path to the file of blacklist, each line represents an interface
             (e.g. eth0, wlan1, ...)
           exclude_ip_prefix:
-            some IP range cannot be used becase of system settings, this argument
-            should be a list of tuple of (ip, prefix_bits).
+            some IP range cannot be used becase of system settings, this
+            argument should be a list of tuple of (ip, prefix_bits).
           on_add, on_old, on_del:
             callback functions for DHCP servers.
       """
