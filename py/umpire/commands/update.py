@@ -33,8 +33,11 @@ _RESOURCE_TYPE_MAP = {
 # TODO(crosbug.com/p/51534): remove this once mini-omaha changed its protocol.
 SECTOR_SIZE = 512
 MINI_OMAHA_FSI_EXPECTED_NAME = 'rootfs-release.gz'
+# Usually ROOTFS = KERNEL+1, but for a ChromeOS bootable disk image has recovery
+# bootable kernel in 2, rootfs in 3, and normal/dev bootable kernel in 4. In
+# other words, we have to use the "other" kernel.
 MINI_OMAHA_KERNEL_PART_NUM = 4
-MINI_OMAHA_ROOTFS_PART_NUM = 5
+MINI_OMAHA_ROOTFS_PART_NUM = 3
 
 
 # TODO(crosbug.com/p/51534): remove this once mini-omaha changed its protocol.
