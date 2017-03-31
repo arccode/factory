@@ -23,6 +23,9 @@ from cros.factory.umpire import utils
 # test that are restarting should be restarted super fast.
 umpire_service._STARTTIME_LIMIT = 0.1  # pylint: disable=protected-access
 
+# Lower the time limit for stopping monitor to speed up the test, since the
+# test should be stopped fast when SIGTERM is received (except NoStopService).
+umpire_service._STOPTIME_LIMIT = 0.5  # pylint: disable=protected-access
 
 class SimpleService(umpire_service.UmpireService):
   """Test service that launches /bin/sh ."""
@@ -96,6 +99,21 @@ class SleepRestartService(umpire_service.UmpireService):
         'args': ['-c', 'sleep 0.2'],
         'path': '/tmp',
         'restart': True}
+    proc = umpire_service.ServiceProcess(self)
+    proc.SetConfig(config_dict)
+    return [proc]
+
+
+class NoStopService(umpire_service.UmpireService):
+  """A process that catches SIGTERM / SIGINT and doesn't terminate."""
+
+  def CreateProcesses(self, umpire_config, env):
+    del umpire_config, env  # Unused.
+    config_dict = {
+        'executable': '/bin/sh',
+        'name': 'P_nostop',
+        'args': ['-c', 'trap "" SIGTERM; trap "" SIGINT; sleep 1000'],
+        'path': '/tmp'}
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(config_dict)
     return [proc]
@@ -242,6 +260,24 @@ class ServiceTest(unittest.TestCase):
       del failure  # Unused.
       raise common.UmpireError(
           'testServiceRestartStop expects success callback')
+
+    deferred.addCallbacks(HandleStartResult, HandleStartFailure)
+    return deferred
+
+  def testServiceStopSlow(self):
+    svc = NoStopService()
+    self.services.append(svc)
+    deferred = svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
+
+    def HandleStartResult(result):
+      del result  # Unused.
+      deferred = defer.Deferred()
+      reactor.callLater(0.3, lambda: svc.Stop().chainDeferred(deferred))
+      return deferred
+
+    def HandleStartFailure(failure):
+      del failure  # Unused.
+      raise common.UmpireError('testServiceStopSlow expects success callback')
 
     deferred.addCallbacks(HandleStartResult, HandleStartFailure)
     return deferred

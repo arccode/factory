@@ -35,6 +35,8 @@ from cros.factory.utils import type_utils
 _SERVICE_PACKAGE = 'cros.factory.umpire.service'
 # Service restart within _STARTTIME_LIMIT seconds is considered abnormal.
 _STARTTIME_LIMIT = 1.2
+# Service not terminated within _STOPTIME_LIMIT seconds would be killed.
+_STOPTIME_LIMIT = 20
 # The maximum retries before cancel restarting external service.
 _MAX_RESTART_COUNT = 3
 # The maximum line of stdout and stderr messages for error logging.
@@ -95,6 +97,7 @@ class ServiceProcess(protocol.ProcessProtocol):
     self.subprocess = None
     self.state = State.INIT
     self.start_monitor = None
+    self.stop_monitor = None
     self.deferred_start = None
     self.deferred_stop = None
     self.process_name = None
@@ -179,6 +182,10 @@ class ServiceProcess(protocol.ProcessProtocol):
       if self.start_monitor.active():
         self.start_monitor.cancel()
       self.start_monitor = None
+    if self.stop_monitor is not None:
+      if self.stop_monitor.active():
+        self.stop_monitor.cancel()
+      self.stop_monitor = None
 
   def Start(self):
     """Starts process.
@@ -230,6 +237,11 @@ class ServiceProcess(protocol.ProcessProtocol):
     self._Info('stopping')
     self._ChangeState(State.STOPPING)
 
+    def KillChild():
+      self._Info('Process %d not stopped after %f seconds, sending SIGKILL' %
+                 (self.subprocess.pid, _STOPTIME_LIMIT))
+      self.subprocess.signalProcess('KILL')
+    self.stop_monitor = reactor.callLater(_STOPTIME_LIMIT, KillChild)
 
     self._Info('Sending SIGTERM to %d' % self.subprocess.pid)
     self.subprocess.signalProcess('TERM')
