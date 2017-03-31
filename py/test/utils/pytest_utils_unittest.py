@@ -5,14 +5,16 @@
 
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-
-from cros.factory.test import pytests
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.utils import file_utils
+
+
+_PYTEST_MODULES = ['cros', 'factory', 'test', 'pytests']
 
 
 class LoadPytestModuleTest(unittest.TestCase):
@@ -46,12 +48,39 @@ class LoadPytestModuleTest(unittest.TestCase):
     file_utils.TouchFile(os.path.join(tmpdir, script_path))
 
 
+  def ReloadPytestModules(self):
+    module = sys.modules[_PYTEST_MODULES[0]]
+    reload(module)
+    for submodule in _PYTEST_MODULES[1:]:
+      module = getattr(module, submodule)
+      reload(module)
+
+
   def setUp(self):
-    self.pytests_root = os.path.dirname(pytests.__file__)
+    self.tmp_root = tempfile.mkdtemp(prefix='pytest_utils_unittest.')
+
+    # Some hack for python modules to make sure that our test module in temp
+    # directory is used.
+    sys.path.insert(0, self.tmp_root)
+
+    self.pytests_root = os.path.join(self.tmp_root, *_PYTEST_MODULES)
+    os.makedirs(self.pytests_root)
+
+    path = self.tmp_root
+    for name in _PYTEST_MODULES:
+      path = os.path.join(path, name)
+      file_utils.TouchFile(os.path.join(path, '__init__.py'))
+
+    # Make sure that the module is imported.
+    __import__('.'.join(_PYTEST_MODULES))
+    self.ReloadPytestModules()
+
     self.tmpdir = tempfile.mkdtemp(dir=self.pytests_root)
 
   def tearDown(self):
-    shutil.rmtree(self.tmpdir)
+    shutil.rmtree(self.tmp_root)
+    sys.path.pop(0)
+    self.ReloadPytestModules()
 
   def testLoadX(self):
     with file_utils.UnopenedTemporaryFile(
