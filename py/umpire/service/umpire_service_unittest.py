@@ -9,6 +9,8 @@ import logging
 import os
 import re
 from twisted.trial import unittest
+from twisted.internet import defer
+from twisted.internet import reactor
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
@@ -23,7 +25,6 @@ umpire_service._STARTTIME_LIMIT = 0.1  # pylint: disable=protected-access
 
 
 class SimpleService(umpire_service.UmpireService):
-
   """Test service that launches /bin/sh ."""
 
   def CreateProcesses(self, umpire_config, env):
@@ -38,7 +39,6 @@ class SimpleService(umpire_service.UmpireService):
 
 
 class MultiProcService(umpire_service.UmpireService):
-
   """Multiple process service."""
 
   def CreateProcesses(self, umpire_config, env):
@@ -55,7 +55,6 @@ class MultiProcService(umpire_service.UmpireService):
 
 
 class RestartService(umpire_service.UmpireService):
-
   """A process that restarts fast."""
 
   def CreateProcesses(self, umpire_config, env):
@@ -71,8 +70,38 @@ class RestartService(umpire_service.UmpireService):
     return [proc]
 
 
-class DupProcService(umpire_service.UmpireService):
+class SleepService(umpire_service.UmpireService):
+  """A process that ends after some time."""
 
+  def CreateProcesses(self, umpire_config, env):
+    del umpire_config, env  # Unused.
+    config_dict = {
+        'executable': '/bin/sh',
+        'name': 'P_sleep',
+        'args': ['-c', 'sleep 0.2'],
+        'path': '/tmp'}
+    proc = umpire_service.ServiceProcess(self)
+    proc.SetConfig(config_dict)
+    return [proc]
+
+
+class SleepRestartService(umpire_service.UmpireService):
+  """A process that ends after some time."""
+
+  def CreateProcesses(self, umpire_config, env):
+    del umpire_config, env  # Unused.
+    config_dict = {
+        'executable': '/bin/sh',
+        'name': 'P_sleep',
+        'args': ['-c', 'sleep 0.2'],
+        'path': '/tmp',
+        'restart': True}
+    proc = umpire_service.ServiceProcess(self)
+    proc.SetConfig(config_dict)
+    return [proc]
+
+
+class DupProcService(umpire_service.UmpireService):
   """Service contains duplicate processes."""
 
   def CreateProcesses(self, umpire_config, env):
@@ -155,10 +184,66 @@ class ServiceTest(unittest.TestCase):
       # failure.trap(common.UmpireError)
       message = failure.getErrorMessage()
       logging.debug('Restart Errback() got: %s', message)
-      self.assertTrue(re.search(r'^.+restart.+failed.+$', message))
+      self.assertTrue(re.search(r'respawn too fast', message))
       return 'OK'
 
     deferred.addCallbacks(HandleRestartResult, HandleRestartFailure)
+    return deferred
+
+  def testServiceStop(self):
+    svc = SimpleService()
+    self.services.append(svc)
+    deferred = svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
+
+    def HandleStartResult(result):
+      del result  # Unused.
+      deferred = defer.Deferred()
+      reactor.callLater(0.2, lambda: svc.Stop().chainDeferred(deferred))
+      return deferred
+
+    def HandleStartFailure(failure):
+      del failure  # Unused.
+      raise common.UmpireError('testServiceStop expects success callback')
+
+    deferred.addCallbacks(HandleStartResult, HandleStartFailure)
+    return deferred
+
+  def testServiceStoppedUnexpectedly(self):
+    svc = SleepService()
+    self.services.append(svc)
+    deferred = svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
+
+    def HandleStartResult(result):
+      del result  # Unused.
+      deferred = defer.Deferred()
+      reactor.callLater(0.4, lambda: svc.Stop().chainDeferred(deferred))
+      return deferred
+
+    def HandleStartFailure(failure):
+      del failure  # Unused.
+      raise common.UmpireError(
+          'testServiceStoppedUnexpectedly expects success callback')
+
+    deferred.addCallbacks(HandleStartResult, HandleStartFailure)
+    return deferred
+
+  def testServiceRestartStop(self):
+    svc = SleepRestartService()
+    self.services.append(svc)
+    deferred = svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
+
+    def HandleStartResult(result):
+      del result  # Unused.
+      deferred = defer.Deferred()
+      reactor.callLater(0.3, lambda: svc.Stop().chainDeferred(deferred))
+      return deferred
+
+    def HandleStartFailure(failure):
+      del failure  # Unused.
+      raise common.UmpireError(
+          'testServiceRestartStop expects success callback')
+
+    deferred.addCallbacks(HandleStartResult, HandleStartFailure)
     return deferred
 
 

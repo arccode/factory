@@ -18,7 +18,6 @@ import importlib
 import inspect
 import logging
 import os
-import time
 from twisted.internet import defer
 from twisted.internet import protocol
 from twisted.internet import reactor
@@ -50,15 +49,9 @@ _INSTANCE_MAP = {}
 
 
 # Process and service state
-class State(object):  # pylint: disable=W0232
-  INIT = 'init'
-  STARTING = 'starting'
-  RESTARTING = 'restarting'
-  STARTED = 'started'
-  STOPPING = 'stopping'
-  STOPPED = 'stopped'
-  ERROR = 'error'
-  DESTRUCTING = 'destructing'
+State = type_utils.Enum([
+    'INIT', 'STARTING', 'STARTED', 'STOPPING', 'STOPPED', 'ERROR', 'DESTRUCTING'
+])
 
 
 class ServiceProcess(protocol.ProcessProtocol):
@@ -75,7 +68,6 @@ class ServiceProcess(protocol.ProcessProtocol):
   Attributes:
     config: process configuration, check SetConfig() for detail.
     nonhash_args: list of args ignored when calculate config hash.
-    pid: system process ID.
     restart_count: counts the service restarting within _STARTTIME_LIMIT.
     start_time: record external executable's start time.
     subprocess: twisted transport object to control spawned process.
@@ -96,15 +88,14 @@ class ServiceProcess(protocol.ProcessProtocol):
         'gid': os.getgid(),
         'ext_args': [],
         'env': {},
-        'restart': False,
-        'daemon': False})
+        'restart': False})
     self.nonhash_args = []
-    self.pid = None
     self.restart_count = 0
     self.service = service
-    self.start_time = 0
     self.subprocess = None
     self.state = State.INIT
+    self.start_monitor = None
+    self.deferred_start = None
     self.deferred_stop = None
     self.process_name = None
     self.messages = None
@@ -154,7 +145,6 @@ class ServiceProcess(protocol.ProcessProtocol):
           ext_args - extra command line arguments
           env - environment variables
           restart - boolean flag for restart on process end
-          daemon - boolean flag indicating the process will detach itself
 
     Raises:
       ValueError() on required key not found, unknown keys or value type
@@ -184,63 +174,24 @@ class ServiceProcess(protocol.ProcessProtocol):
     """Sets nonhash args."""
     self.nonhash_args = args
 
-  def Start(self, restart=False):
-    """Starts process.
+  def CancelAllMonitors(self):
+    if self.start_monitor is not None:
+      if self.start_monitor.active():
+        self.start_monitor.cancel()
+      self.start_monitor = None
 
-    Args:
-      restart: Indicates the process is started in a restart session.
-               No need to generate new deferred object.
+  def Start(self):
+    """Starts process.
 
     Returns:
       Twisted Deferred object. If no error found, the success callback
       will be fired after short period of time. Error callback is called
-      when process creating failed.
+      when process creation failed.
 
       Deferred's callback result can be any value or objects other than
       Exception instance. The start deferred returns process pid as result.
-
-      Note that if restart is set to True, returns None instead of Deferred
-      object.
     """
-    def Monitor(deferred):
-      """Monitors process start up.
-
-      This timer callback checks process state. When the state looks
-      good, it calls success callback and changes process state.
-
-      Args:
-        deferred: The deferred object to track process start.
-
-      Scoped var:
-        self: The process protocol object.
-      """
-      # Stop monitor if the process daemonized, or ended early.
-      if deferred.called:
-        logging.debug('%s deferred was called', self.process_name)
-      elif self.state == State.RESTARTING:
-        # Check the newly restart process after _STARTTIME_LIMIT.
-        self._ChangeState(State.STARTING)
-        reactor.callLater(_STARTTIME_LIMIT, Monitor, deferred)
-      elif self.state == State.STARTING:
-        self._ChangeState(State.STARTED)
-        deferred.callback(self.pid)
-      elif self.state == State.STOPPED:
-        # When starting a daemon, the process double forks itself and exit.
-        deferred.callback(self.pid)
-      elif self.state == State.STOPPING:
-        # Someone else is stopping the process, don't change the state to error.
-        message = '%s failed to start: is stopping' % self.process_name
-        self._Info(message)
-        deferred.errback(common.UmpireError(message))
-      else:
-        # The process is in unexpected state, call error handler.
-        deferred.errback(self._Error(
-            '%s failed to start: unexpected state %s' %
-            (self.process_name, self.state)))
-      # End of nested function.
-
-    if self.state not in [State.INIT, State.RESTARTING, State.STOPPED,
-                          State.ERROR]:
+    if self.state not in [State.INIT, State.STOPPED, State.ERROR]:
       return defer.fail(self._Error(
           'Can not start process %s in state %s' %
           (self.process_name, self.state)))
@@ -249,32 +200,10 @@ class ServiceProcess(protocol.ProcessProtocol):
             os.access(self.config.executable, os.X_OK)):
       return defer.fail(self._Error(
           'Executable does not exist: %s' % self.config.executable))
-    args = ([self.config.executable] + self.config.args + self.config.ext_args
-            + self.nonhash_args)
-    logging.info('%s starting, executable %s args %r', self.process_name,
-                 self.config.executable, args)
-    self.start_time = time.time()
-    self.subprocess = reactor.spawnProcess(
-        self,                    # processProtocol.
-        self.config.executable,  # Full program pathname.
-        args,                    # Args list, including executable.
-        self.config.env,         # Env vars.
-        self.config.path,        # Process CWD.
-        usePTY=True)
-    if not (self.subprocess and self.subprocess.pid):
-      if restart:
-        return None
-      return defer.fail(self._Error('%s creation failed' % self.process_name))
-    self.pid = self.subprocess.pid
-
-    if not restart:
-      self._ChangeState(State.STARTING)
-      deferred_start = defer.Deferred()
-      reactor.callLater(_STARTTIME_LIMIT, Monitor, deferred_start)
-      return deferred_start
-    # Restart is triggered in processEnded event. Hence caller will not get.
-    # a new deferred. Return None here.
-    return None
+    self.deferred_start = defer.Deferred()
+    self._ChangeState(State.STARTING)
+    self._SpawnProcess()
+    return self.deferred_start
 
   def Stop(self):
     """Stops background service.
@@ -285,31 +214,42 @@ class ServiceProcess(protocol.ProcessProtocol):
     """
     def HandleStopResult(result):
       self._ChangeState(State.STOPPED)
-      self.pid = None
       return result
 
     def HandleStopFailure(failure):
       self._Error(repr(failure))
       return failure
 
-    if self.state not in [State.STARTING, State.STARTED, State.RESTARTING]:
+    if self.state not in [State.STARTING, State.STARTED]:
       self._Info('Ignored stop process %s in state %s' %
                  (self.process_name, self.state))
       return defer.succeed(-1)
 
+    self.CancelAllMonitors()
+
     self._Info('stopping')
     self._ChangeState(State.STOPPING)
 
-    if not self.subprocess:
-      self._Info('stopped')
-      self._ChangeState(State.STOPPED)
-      return defer.succeed(-1)
 
-    self._Debug('SIGTERM')
-    self.transport.signalProcess('TERM')
+    self._Info('Sending SIGTERM to %d' % self.subprocess.pid)
+    self.subprocess.signalProcess('TERM')
     self.deferred_stop = defer.Deferred()
     self.deferred_stop.addCallbacks(HandleStopResult, HandleStopFailure)
     return self.deferred_stop
+
+  def _SpawnProcess(self):
+    args = ([self.config.executable] + self.config.args + self.config.ext_args
+            + self.nonhash_args)
+    self._Info('%s starting, executable %s args %r' %
+               (self.process_name, self.config.executable, args))
+    s = reactor.spawnProcess(
+        self,  # processProtocol.
+        self.config.executable,  # Full program pathname.
+        args,  # Args list, including executable.
+        self.config.env,  # Env vars.
+        self.config.path,  # Process CWD.
+        usePTY=True)
+    self._Info('%r' % s)
 
   def AddStateCallback(self, states, cb, *args, **kwargs):
     """Attaches the callback to state change events.
@@ -326,6 +266,15 @@ class ServiceProcess(protocol.ProcessProtocol):
       self.callbacks[state].append((cb, args, kwargs))
 
   # Twisted process protocol callbacks.
+  def makeConnection(self, process):
+    self._Debug('makeConnection %s' % process)
+    self.subprocess = process
+    def Started():
+      self._ChangeState(State.STARTED)
+      self.deferred_start.callback(self.subprocess.pid)
+    self.start_monitor = reactor.callLater(_STARTTIME_LIMIT, Started)
+    return protocol.ProcessProtocol.makeConnection(self, process)
+
   def connectionMade(self):
     """On process start."""
     self._Debug('connection made')
@@ -355,75 +304,43 @@ class ServiceProcess(protocol.ProcessProtocol):
   def errConnectionLost(self):
     """On stderr close."""
     self._Debug('stderr lost')
-    # Workaround to ensure process is reaped.
-    if self._timer is None:
-      def _ReapProcess():
-        self._Info('reaping')
-        if self.subprocess:
-          self.subprocess.reapProcess()
-          if self.subprocess.pid:
-            self._timer = reactor.callLater(0.1, _ReapProcess)
-
-      self._timer = reactor.callLater(0.1, _ReapProcess)
 
   def processEnded(self, status):
-    """Subprocess has been ended"""
-    # Stop the process reaping timer.
-    if self._timer and not self._timer.cancelled and not self._timer.called:
-      self._timer.cancel()
-      self._timer = None
-
+    """Subprocess has been ended."""
+    del status  # Unused.
     self.subprocess = None
-
-    self._Info('ended')
-    # If the external process daemonize itself, it detaches from parent
-    # Umpire process. We can ignore the process ended event.
-    if self.config.daemon:
-      if isinstance(status.value, protocol.ProcessDone):
-        self._Info('daemonized')
-        self._ChangeState(State.STOPPED)
-      else:
-        if isinstance(status.value, protocol.ProcessTerminated):
-          terminated = status.value
-          if terminated.exitCode:
-            self._Info('terminated error code %d' % terminated.exitCode)
-          if terminated.signal:
-            self._Info('terminated on signal %s' % terminated.signal)
-        self._Error(repr(terminated))
-      return
+    self.CancelAllMonitors()
 
     if self.state == State.STOPPING:
       self._Info('stopped successfully')
       self._ChangeState(State.STOPPED)
-      if self.deferred_stop:
-        deferred_stop, self.deferred_stop = self.deferred_stop, None
-        deferred_stop.callback(self.pid)
+      self.deferred_stop.callback(None)
       return
 
     if self.config.restart:
-      # Allows _MAX_RESTART_COUNT restarts within _STARTTIME_LIMIT seconds.
       self._Info('restarting')
-
-      if time.time() - self.start_time < _STARTTIME_LIMIT:
+      if self.state == State.STARTING:
         self.restart_count += 1
       else:
+        self.deferred_start = defer.Deferred()
         self.restart_count = 0
 
       if self.restart_count >= _MAX_RESTART_COUNT:
-        self._Error('respawn too fast')
+        self.deferred_start.errback(self._Error('respawn too fast'))
       else:
         self._Info('restart count %d' % self.restart_count)
-        self._ChangeState(State.RESTARTING)
-        self.Start(restart=True)
+        self._ChangeState(State.STARTING)
+        self._SpawnProcess()
       return
-    # For process stoped unexpectedly (state != STOPPING) and is not allow
+
+    # For process stopped unexpectedly (state != STOPPING) and is not allow
     # to restart. Change process state to ERROR and log the message.
-    error = self._Error('ended unexpectedly. messages: \n%s' %
-                        '\n'.join(self.messages))
-    if self.deferred_stop:
-      deferred_stop = self.deferred_stop
-      self.deferred_stop = None
-      deferred_stop.errback(error)
+    error_message = ('ended unexpectedly. messages: \n%s' %
+                     '\n'.join(self.messages))
+    if self.state == State.STARTING:
+      self.deferred_start.errback(self._Error(error_message))
+    else:
+      self._Error(error_message)
 
   # Local helper functions.
   def _ChangeState(self, state):
@@ -459,7 +376,8 @@ class ServiceProcess(protocol.ProcessProtocol):
 
     lineno = frame.f_lineno
     func = frame.f_code.co_name
-    message = '%s(%s) %s' % (self.process_name, self.pid, message)
+    message = '%s(%s) %s' % (self.process_name, self.subprocess.pid
+                             if self.subprocess else None, message)
 
     logger = logging.getLogger()
     record = logger.makeRecord(

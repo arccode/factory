@@ -10,7 +10,6 @@ import pprint
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.service import umpire_service
-from cros.factory.utils import process_utils
 from cros.factory.utils import schema
 
 from cros.factory.external import yaml
@@ -162,9 +161,4 @@ class InstalogService(umpire_service.UmpireService):
         'path': '/tmp'}
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(proc_config)
-    def StopInstalog():
-      cmd_args = [cli_path, '--config', config_path, 'stop', '--timeout', '60']
-      process_utils.Spawn(cmd_args, call=True)
-    proc.AddStateCallback(umpire_service.State.STOPPING, StopInstalog)
-    proc.AddStateCallback(umpire_service.State.ERROR, StopInstalog)
     return [proc]
