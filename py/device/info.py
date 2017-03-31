@@ -129,7 +129,8 @@ class SystemInfo(component.DeviceComponent):
 
   def GetAllSerialNumbers(self):
     """Returns all available serial numbers in a dict."""
-    return {'device': self.serial_number, 'mlb': self.mlb_serial_number}
+    return {'device': self.GetSerialNumber(),
+            'mlb': self.GetSerialNumber('mlb_serial_number')}
 
   def GetSerialNumber(self, name='serial_number'):
     """Retrieves a serial number from device.
