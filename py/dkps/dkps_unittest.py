@@ -16,6 +16,8 @@ import gnupg
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.dkps import dkps
+from cros.factory.utils import net_utils
+from cros.factory.utils import sync_utils
 
 
 FNULL = open(os.devnull, 'w')  # for hiding unnecessary messages from subprocess
@@ -110,6 +112,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
           self.requester_key_fingerprint, True))
 
     self.server_process = None
+    self.port = net_utils.FindUnusedTCPPort()
 
   def runTest(self):
     self.dkps.AddProject(
@@ -132,8 +135,11 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
          '--log_file_path', self.log_file_path,
          '--database_file_path', self.database_file_path,
          '--gnupg_homedir', self.server_gnupg_homedir,
-         'listen', '--port', str(dkps.DEFAULT_BIND_PORT)],
+         'listen', '--port', str(self.port)],
         stdout=FNULL, stderr=FNULL)
+
+    sync_utils.WaitFor(lambda: net_utils.ProbeTCPPort(net_utils.LOCALHOST,
+                                                      self.port), 2)
 
     # Upload DRM keys.
     drm_keys_file_path = os.path.join(self.temp_dir, 'mock_drm_keys')
@@ -193,7 +199,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     return subprocess.check_output(
         ['python', os.path.join(SCRIPT_DIR, 'helpers.py'),
          '--server_ip', 'localhost',
-         '--server_port', str(dkps.DEFAULT_BIND_PORT),
+         '--server_port', str(self.port),
          '--client_key_file_path', client_key_file_path,
          '--server_key_file_path', self.server_key_file_path,
          '--passphrase_file_path', self.passphrase_file_path,
