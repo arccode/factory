@@ -113,9 +113,9 @@ def IsTouchscreenDevice(dev):
   Returns:
     True if dev is a touchscreen device.
   """
-  return (IsTouchDevice(dev) and
-          not IsTouchpadDevice(dev) and
-          not IsStylusDevice(dev))
+  return (not IsTouchpadDevice(dev) and
+          evdev.ecodes.ABS_MT_SLOT in dict(
+              dev.capabilities().get(evdev.ecodes.EV_ABS, [])))
 
 
 def FindDevice(*args):
