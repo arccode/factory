@@ -107,7 +107,9 @@ WHALE_CONTROL = AttrDict(dict(
     DEVICE_PWR_BUTTON='krill_btn_r_pwr',
     LID_HALL_MAGNET='whale_electro_magnet',
     BASE_HALL_MAGNET='krill_lid_present_hall',
-    BASE_CHARGER='krill_charge_en_r'))
+    BASE_CHARGER='krill_charge_en_r',
+    DEVICE_VOLU_BUTTON='krill_btn_r_volu',
+    DEVICE_VOLD_BUTTON='krill_btn_r_vold'))
 
 # Whale's krill INA, specified in servo_config.py in private overlays.
 WHALE_INA = servo_config.WHALE_INA
