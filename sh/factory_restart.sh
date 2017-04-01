@@ -107,12 +107,10 @@ while [ $# -gt 0 ]; do
 done
 
 goofy_control_pid="$(pgrep goofy_control)"
-# Instalog runs under a separate process session by design.
-instalog_pid="$(pgrep -f instalog/cli.py)"
 
 echo -n "Attempt to stop gracefully... "
 # save pids in case their parents die and they are orphaned
-all_pids=$(kill_tree TERM $goofy_control_pid $instalog_pid)
+all_pids=$(kill_tree TERM $goofy_control_pid)
 for sec in 3 2 1; do
   echo -n "${sec} "
   sleep 1

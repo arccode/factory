@@ -210,7 +210,11 @@ class InstalogCLI(object):
   def Status(self):
     """Prints the status of the daemon."""
     running = self._service.IsRunning()
-    print('UP' if running else 'DOWN')
+    if running:
+      up = self._core.IsUp()
+      print('UP' if up else 'STARTING')
+    else:
+      print('DOWN')
 
   def Inspect(self, plugin_id, json_path):
     """Inspects the store of a given plugin."""
