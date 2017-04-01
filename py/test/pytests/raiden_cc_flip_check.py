@@ -102,6 +102,8 @@ class RaidenCCFlipCheck(unittest.TestCase):
         self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
       else:
         self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
+        self._bft_fixture.SetFakeDisconnection(1)
+        time.sleep(1)
     self._polarity = self.GetCCPolarityWithRetry(
         self.args.init_cc_state_retry_times)
     logging.info('Initial polarity: %s', self._polarity)

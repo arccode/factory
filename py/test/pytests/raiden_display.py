@@ -145,7 +145,7 @@ class RaidenDisplayTest(unittest.TestCase):
   def tearDown(self):
     # Make sure to disable camera of dp_verify_server in the end of test.
     if self._server_camera_enabled:
-      self._verify_server.DisableCamera()
+      self._DisableServerCamera()
     self._bft_fixture.Disconnect()
     self.RemoveTestImage()
     return
@@ -319,6 +319,16 @@ class RaidenDisplayTest(unittest.TestCase):
     """
     return self._dut.display.GetPortInfo()[self._testing_display].connected
 
+  def _DisableServerCamera(self):
+    if not self._server_camera_enabled:
+      return
+    def _PingDPVerifyServer():
+      return self._dut.Call(
+          ['wget', self.args.dp_verify_server, '-T', '1']) == 8
+    sync_utils.WaitFor(_PingDPVerifyServer, timeout_secs=30)
+    self._verify_server.DisableCamera()
+    self._server_camera_enabled = False
+
   def runTest(self):
     """Runs display test."""
     # Sanity check
@@ -348,7 +358,7 @@ class RaidenDisplayTest(unittest.TestCase):
     if self._verify_locally:
       self._camera_device.DisableCamera()
     else:
-      self._verify_server.DisableCamera()
+      self._DisableServerCamera()
       self._server_camera_enabled = False
 
     self._finished = True
