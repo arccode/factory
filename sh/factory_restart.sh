@@ -35,13 +35,13 @@ usage_help() {
 }
 
 clear_files() {
-  enabled="$1"
-  dir="$2"
+  local enabled="$1"
+  local dir="$2"
   [ -n "$enabled" ] && echo rm -rf "$FACTORY_BASE/$dir/*"
 }
 
 kill_tree() {
-  signal="${1:-TERM}"
+  local signal="${1:-TERM}"
   shift
 
   until [ -z "$1" ]; do
