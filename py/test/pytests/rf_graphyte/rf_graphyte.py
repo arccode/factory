@@ -233,8 +233,12 @@ class RFGraphyteTest(unittest.TestCase):
     To keep the output file for every DUT, we add serial number and timestamp to
     make the file name unique.
     """
+    # Workaround: Get the serial number without InfoProperty.
+    # https://bugs.chromium.org/p/chromium/issues/detail?id=707200
+    # Revert it after the issue is resolved.
+    mlb_serial_number = self._dut.vpd.ro.get('mlb_serial_number', 'unknown')
     file_name = '%s_%s_%s' % (
-        self._dut.info.mlb_serial_number, timestamp, suffix)
+        mlb_serial_number, timestamp, suffix)
     # save the log under /var/factory/tests/<TestID>-<UUID>/
     current_test_dir = os.path.join(paths.DATA_TESTS_DIR,
                                     factory.get_current_test_path())
