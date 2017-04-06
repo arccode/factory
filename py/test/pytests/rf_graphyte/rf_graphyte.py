@@ -196,6 +196,10 @@ class RFGraphyteTest(unittest.TestCase):
       result_data = result_file.read()
       logging.debug('Graphyte result: %s', result_data)
       factory.console.info('Graphyte result:\n%s', result_data)
+      failed_results = [result for result in result_data.splitlines()
+                        if 'FAIL' in result]
+      if failed_results:
+        factory.console.error('Failed result:\n%s', '\n'.join(failed_results))
 
     # Upload the log to shopfloor and testlog.
     try:
