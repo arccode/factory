@@ -800,3 +800,16 @@ def ProbeTCPPort(address, port):
     return True
   except Exception:
     return False
+
+
+def ShutdownTCPServer(server):
+  """Shutdown a TCPServer in serve_forever loop in another thread.
+
+  This is done by setting shutdown flag, and connect to the server to wake up
+  the select in serve_forever, so the shutdown can run faster than
+  poll_interval.
+  """
+  # pylint: disable=protected-access
+  server._BaseServer__shutdown_request = True
+  ProbeTCPPort(*server.server_address)
+  server._BaseServer__is_shut_down.wait()

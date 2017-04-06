@@ -4,14 +4,14 @@
 # found in the LICENSE file.
 
 
-'''This file starts a server for factory shop floor system.
+"""This file starts a server for factory shop floor system.
 
 To use it, invoke as a standalone program and assign the shop floor system
 module you want to use (modules are located in "shopfloor" subdirectory).
 
 Example:
   ./shopfloor_server -m cros.factory.shopfloor.simple_shopfloor
-'''
+"""
 
 
 import glob
@@ -30,6 +30,7 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 from cros.factory.utils import debug_utils
+from cros.factory.utils import net_utils
 
 
 DEFAULT_SERVER_PORT = 8082
@@ -51,27 +52,27 @@ SHOPFLOOR_PORT_ENV_VAR = 'CROS_SHOPFLOOR_PORT'
 
 
 def _LoadShopFloorModule(module_name):
-  '''Loads a specified python module.
+  """Loads a specified python module.
 
   Args:
     module_name: Name of module containing a ShopFloor class.
 
   Returns:
     Module reference.
-  '''
+  """
   logging.debug('_LoadShopFloorModule: trying %s', module_name)
   return __import__(module_name, fromlist=['ShopFloor']).ShopFloor
 
 
 def _LoadFactoryUpdater(updater_name):
-  '''Loads factory updater module.
+  """Loads factory updater module.
 
   Args:
     updater_name: Name of updater module containing a FactoryUpdateServer class.
 
   Returns:
     Module reference.
-  '''
+  """
   logging.debug('_LoadUpdater: trying %s', updater_name)
   return __import__(updater_name,
                     fromlist=['FactoryUpdater']).FactoryUpdater
@@ -123,8 +124,8 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     SimpleXMLRPCRequestHandler.do_POST(self)
 
 
-def _RunAsServer(address, port, instance):
-  '''Starts a XML-RPC server in given address and port.
+def _GetServer(address, port, instance):
+  """Get a XML-RPC server in given address and port.
 
   Args:
     address: Address to bind server.
@@ -132,18 +133,15 @@ def _RunAsServer(address, port, instance):
     instance: Server instance for incoming XML RPC requests.
 
   Returns:
-    Never returns if the server is started successfully, otherwise some
-    exception will be raised.
-  '''
+    The XML-RPC server.
+  """
   server = MyXMLRPCServer((address, port),
                           MyXMLRPCRequestHandler,
                           allow_none=True,
                           logRequests=False)
   server.register_introspection_functions()
   server.register_instance(instance)
-  logging.info('Server started: http://%s:%s "%s" version %s',
-               address, port, instance.NAME, instance.VERSION)
-  server.serve_forever()
+  return server
 
 
 def GetDefaultShopFloorModule():
@@ -213,8 +211,6 @@ def main():
                     help=('run dummy shopfloor server, using simple shopfloor '
                           'server and data from testdata directory (implies '
                           '--simple)'))
-  parser.add_option('-f', '--fcgi', dest='fastcgi', action='store_true',
-                    default=False, help='run as a FastCGI process')
   parser.add_option('-u', '--updater', dest='updater', metavar='UPDATER',
                     default=None,
                     help=('factory updater module to load, in'
@@ -319,27 +315,29 @@ def main():
     logging.exception('Failed loading module: %s', options.module)
     exit(1)
 
-  def handler(signum, frame):  # pylint: disable=W0613
+  def handler(signum, frame):
+    del signum, frame  # Unused.
     raise SystemExit
-  signal.signal(signal.SIGTERM, handler)
 
+  signal.signal(signal.SIGTERM, handler)
+  signal.signal(signal.SIGINT, handler)
+
+  server = _GetServer(
+      address=options.address, port=options.port, instance=instance)
   try:
     instance._StartBase()
-    if options.fastcgi:
-      logging.debug('Starting RPC FastCGI...')
-      # TODO(rong): move FastCGI import back to file header and purge
-      #             standalone web server.
-      # Shopfloor server can be ran in standalone mode without frontend. To
-      # keep it compatible to v1 environment, the import is delayed until
-      # we do need it.
-      from cros.factory.shopfloor.launcher.fcgi_shopfloor import RunAsFastCGI
-      RunAsFastCGI(address=options.address, port=options.port,
-                   instance=instance)
-    else:
-      logging.debug('Starting RPC server...')
-      _RunAsServer(address=options.address, port=options.port,
-                   instance=instance)
+    logging.debug('Starting RPC server...')
+    thread = threading.Thread(target=server.serve_forever)
+    thread.daemon = True
+    thread.start()
+    logging.info('Server started: http://%s:%s "%s" version %s',
+                 options.address, options.port, instance.NAME,
+                 instance.VERSION)
+    signal.pause()
   finally:
+    logging.debug('Stopping RPC Server')
+    net_utils.ShutdownTCPServer(server)
+    thread.join()
     instance._StopBase()
 
 
