@@ -207,8 +207,6 @@ class RaidenCCFlipCheck(unittest.TestCase):
            self._polarity != self.args.double_cc_flip_target)):
       disable_event = threading.Event()
 
-      self._ui.Run(blocking=False)
-
       if self.args.timeout_secs:
         countdown_timer.StartCountdownTimer(
             self.args.timeout_secs,
@@ -217,15 +215,25 @@ class RaidenCCFlipCheck(unittest.TestCase):
             _ID_COUNTDOWN_DIV,
             disable_event=disable_event)
 
-      factory.console.info('Double CC test, doing CC flip...')
-      self._bft_fixture.SetMuxFlip(0)
-      time.sleep(1)
-      if self._adb_remote_test and not self._double_cc_quick_check:
-        # For remote test, keep adb connection enabled.
-        self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
-      self._polarity = self.GetCCPolarity()
-      factory.console.info('polarity after flip: %s', self._polarity)
-      disable_event.set()
-      self._ui.Pass()
+      def do_flip():
+        factory.console.info('Double CC test, doing CC flip...')
+        self._bft_fixture.SetDeviceEngaged('CHARGE_5V', True)
+        time.sleep(2)
+        self._bft_fixture.SetMuxFlip(0)
+        time.sleep(1)
+        if self._adb_remote_test and not self._double_cc_quick_check:
+          # For remote test, keep adb connection enabled.
+          self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
+
+        new_polarity = self.GetCCPolarityWithRetry(5)
+        disable_event.set()
+
+        if new_polarity != self._polarity:
+          self._ui.Pass()
+        else:
+          self._ui.Fail('Unexpected polarity')
+
+      process_utils.StartDaemonThread(target=do_flip)
+      self._ui.Run(blocking=True)
 
     logging.info('Detect polarity: %s', self._polarity)
