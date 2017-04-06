@@ -129,6 +129,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mox.StubOutWithMock(shopfloor, 'DeleteDeviceData')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
+    self.mox.StubOutWithMock(self.test._dut.info, 'GetAllSerialNumbers')
 
     self.mock_ui.Run(blocking=False)
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
@@ -137,6 +138,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mock_template.SetState(mox.IsA(basestring))
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()
+    self.test._dut.info.GetAllSerialNumbers()
     sync_utils.WaitFor(mox.IsA(type(lambda: None)), timeout_secs,
                        poll_interval=1)
 
