@@ -784,3 +784,17 @@ class CallbackSocketServer(object):
 
   def __getattr__(self, name):
     return getattr(self._server, name)
+
+
+def ProbeTCPPort(address, port):
+  """Probes whether a TCP connection can be made to the given address and port.
+
+  Args:
+    address: The IP address to probe.
+    port: The port to probe.
+  """
+  try:
+    socket.create_connection((address, port)).close()
+    return True
+  except Exception:
+    return False
