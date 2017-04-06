@@ -490,10 +490,24 @@ def GetUnusedPort():
 
 
 def FindUnusedTCPPort():
-  """Returns an unused TCP port for testing."""
-  server = SocketServer.TCPServer((LOCALHOST, 0),
-                                  SocketServer.BaseRequestHandler)
-  return server.server_address[1]
+  """Returns a TCP port that is unused on all interfaces for testing.
+
+  There would always be a time window between checking a port is unused to
+  actually binding the port, that would cause race condition if other use this
+  port in between. So this method should be considered as a convenient method
+  for use in testing.
+
+  If race condition need to be avoided, caller should bind to port 0 directly,
+  and the kernel would do the right job.
+  """
+  # We use AF_INET6 to bind to both IPv4 and IPv6, so the returned port would
+  # be unused for both.
+  socket_obj = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+  socket_obj.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+  socket_obj.bind(('', 0))
+  port = socket_obj.getsockname()[1]
+  socket_obj.close()
+  return port
 
 
 def EnablePort(port, protocol='tcp', priority=None, interface=None):
@@ -621,7 +635,7 @@ def GetDefaultGatewayInterface():
   else:
     raise ValueError('Output of `route -n` is unexpected.\n%s' % output)
 
-  for line in lines[line_idx + 1:]:
+  for line in lines[line_idx + 1:]:  # pylint: disable=undefined-loop-variable
     data = line.split()
     if len(data) < max(flag_idx, iface_idx, dest_idx):
       continue
