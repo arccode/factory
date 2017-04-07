@@ -84,6 +84,12 @@ class StationEntry(unittest.TestCase):
       Arg('load_dut_storage', bool,
           'To load DUT storage into station session (DeviceData).',
           default=True, optional=True),
+      Arg('invalidate_dut_info', bool,
+          'To invoke dut.info.Invalidate() or not',
+          default=True, optional=True),
+      Arg('clear_serial_numbers', bool,
+          'To invoke dut.info.ClearSerialNumbers() or not',
+          default=True, optional=True),
   ]
 
   def setUp(self):
@@ -109,8 +115,12 @@ class StationEntry(unittest.TestCase):
 
     if self.args.start_station_tests:
       # Clear dut.info data.
-      factory.console.info('Clearing dut.info data...')
-      self._dut.info.Invalidate()
+      if self.args.invalidate_dut_info:
+        factory.console.info('Clearing dut.info data...')
+        self._dut.info.Invalidate()
+      if self.args.clear_serial_numbers:
+        factory.console.info('Clearing DUT serial numbers')
+        self._dut.info.ClearSerialNumbers()
       self.Start()
       # TODO(hungte): Change to reload all dut.storage into device data.
       if self.args.load_dut_storage:
@@ -119,8 +129,12 @@ class StationEntry(unittest.TestCase):
     else:
       self.End()
       # Clear dut.info data.
-      factory.console.info('Clearing dut.info data...')
-      self._dut.info.Invalidate()
+      if self.args.invalidate_dut_info:
+        factory.console.info('Clearing dut.info data...')
+        self._dut.info.Invalidate()
+      if self.args.clear_serial_numbers:
+        factory.console.info('Clearing DUT serial numbers')
+        self._dut.info.ClearSerialNumbers()
 
   def Start(self):
     self._ui.SetHTML(_MSG_INSERT, id=_ID_MSG_DIV)

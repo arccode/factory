@@ -83,7 +83,6 @@ class SystemInfo(component.DeviceComponent):
     Args:
       name: A string for the property to be refreshed.
     """
-    self.ClearSerialNumbers()
     if name is not None:
       self._cached.pop(name, None)
     else:

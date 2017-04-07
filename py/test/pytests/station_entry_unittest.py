@@ -25,6 +25,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test.pytests import station_entry
 from cros.factory.utils import sync_utils
 
+
 class FakeArgs(object):
   def __init__(self, dargs):
     for (key, value) in dargs.iteritems():
@@ -60,8 +61,9 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.test.args = FakeArgs({'start_station_tests': True,
                                'prompt_start': False,
-                               'clear_device_data': True,
-                               'timeout_secs': None})
+                               'timeout_secs': None,
+                               'invalidate_dut_info': True,
+                               'clear_serial_numbers': True, })
     self.test.setUp()
     self.assertEqual(self.test._state, mock_state)
 
@@ -82,9 +84,10 @@ class FactoryEntryUnitTest(unittest.TestCase):
     timeout_secs = 123
     self.test.args = FakeArgs({'start_station_tests': False,
                                'prompt_start': False,
-                               'clear_device_data': True,
                                'timeout_secs': timeout_secs,
-                               'disconnect_dut': True})
+                               'disconnect_dut': True,
+                               'invalidate_dut_info': True,
+                               'clear_serial_numbers': True, })
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
 
@@ -124,8 +127,9 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test.args = FakeArgs({'start_station_tests': True,
                                'prompt_start': False,
                                'load_dut_storage': True,
-                               'clear_device_data': True,
-                               'timeout_secs': timeout_secs})
+                               'timeout_secs': timeout_secs,
+                               'invalidate_dut_info': True,
+                               'clear_serial_numbers': True, })
 
     self.mox.StubOutWithMock(shopfloor, 'DeleteDeviceData')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
