@@ -239,6 +239,17 @@ class WhaleBFTFixture(bft.BFTFixture):
       raise bft.BFTFixtureException(
           'Failed to press %s. Reason: %s' % (button, e))
 
+  def SimulateButtonRelease(self, button):
+    logging.debug('release %s', button)
+    whale_device = self._WHALE_DEVICE.get(button)
+    if not whale_device:
+      raise bft.BFTFixtureException('Unsupported device: ' + whale_device)
+    try:
+      self._servo.Set(whale_device, 'off')
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException(
+          'Failed to press %s. Reason: %s' % (button, e))
+
   def SetLcmText(self, row, message):
     try:
       self._lcm.SetLcmText(row, message)
