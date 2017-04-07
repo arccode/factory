@@ -52,6 +52,8 @@ class Scan(unittest.TestCase):
           'Key to use to store in scanned value in RO VPD', optional=True),
       Arg('rw_vpd_key', str,
           'Key to use to store in scanned value in RW VPD', optional=True),
+      Arg('save_path', str, 'The file path of saving scanned value',
+          optional=True),
       Arg('regexp', str, 'Regexp that the scanned value must match',
           optional=True),
       Arg('check_device_data_key', str,
@@ -180,6 +182,15 @@ class Scan(unittest.TestCase):
           self.dut.vpd.ro.Update({self.args.ro_vpd_key: scan_value})
       except:  # pylint: disable=bare-except
         logging.exception('Setting VPD failed')
+        return SetError(debug_utils.FormatExceptionOnly())
+
+    if self.args.save_path:
+      try:
+        dirname = self.dut.path.dirname(self.args.save_path)
+        self.dut.CheckCall(['mkdir', '-p', dirname])
+        self.dut.WriteFile(self.args.save_path, scan_value)
+      except:  # pylint: disable=bare-except
+        logging.exception('Save file failed')
         return SetError(debug_utils.FormatExceptionOnly())
 
     self.ui.event_client.post_event(
