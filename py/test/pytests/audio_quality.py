@@ -96,6 +96,7 @@ _RESULT_PASS_RE = re.compile('(?i)result_pass')
 _RESULT_FAIL_RE = re.compile('(?i)result_fail')
 _VERSION_RE = re.compile('(?i)version')
 _CONFIG_FILE_RE = re.compile('(?i)config_file')
+_PLAYBACK_WAV_FILE_RE = re.compile('(?i)playback_wav_file')
 
 LoopType = type_utils.Enum(['sox', 'looptest', 'tinyloop', 'hwloop'])
 
@@ -132,6 +133,8 @@ class AudioQualityTest(unittest.TestCase):
       Arg('network_setting', dict, 'Network setting to define *local_ip*, \n'
           '*port*, *gateway_ip*', {}, optional=True),
       Arg('audio_conf', str, 'Audio config file path', None, optional=True),
+      Arg('wav_file', str, 'Wav file path for playback_wav_file command.',
+          None, optional=True),
   ]
 
   def setUpAudioDevice(self):
@@ -177,6 +180,7 @@ class AudioQualityTest(unittest.TestCase):
     self._handlers[_MULTITONE_RE] = self.HandleMultitone
     self._handlers[_VERSION_RE] = self.HandleVersion
     self._handlers[_CONFIG_FILE_RE] = self.HandleConfigFile
+    self._handlers[_PLAYBACK_WAV_FILE_RE] = self.HandlePlaybackWavFile
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -202,7 +206,7 @@ class AudioQualityTest(unittest.TestCase):
     self._port = self.args.network_setting.get('port', _PORT)
 
     self._listen_thread = None
-    self._multitone_process = None
+    self._aplay_process = None
     self._tone_process = None
     self._loop_process = None
     self._caches_dir = os.path.join(goofy.CACHES_DIR, 'parameters')
@@ -309,9 +313,9 @@ class AudioQualityTest(unittest.TestCase):
 
   def RestoreConfiguration(self):
     """Stops all the running process and restore the mute settings."""
-    if self._multitone_process:
-      process_utils.TerminateOrKillProcess(self._multitone_process)
-      self._multitone_process = None
+    if self._aplay_process:
+      process_utils.TerminateOrKillProcess(self._aplay_process)
+      self._aplay_process = None
 
     if self._tone_process:
       process_utils.TerminateOrKillProcess(self._tone_process)
@@ -587,9 +591,13 @@ class AudioQualityTest(unittest.TestCase):
   def HandleMultitone(self, *args):
     """Plays the multi-tone wav file."""
     wav_path = os.path.join(self._file_path, '10SEC.wav')
-    cmdargs = ['aplay', wav_path]
-    self._multitone_process = process_utils.Spawn(cmdargs)
+    self.PlayWav(wav_path)
     self.SendResponse(None, args)
+
+  def PlayWav(self, wav_path):
+    """Play wav file by aplay command, require cras service enabled."""
+    cmdargs = ['aplay', wav_path]
+    self._aplay_process = process_utils.Spawn(cmdargs)
 
   def HandleLoopJack(self, *args):
     """External mic loop to headphone."""
@@ -600,6 +608,8 @@ class AudioQualityTest(unittest.TestCase):
       self._dut.audio.EnableHeadphone(self._out_card)
     if self._use_multitone:
       self.HandleMultitone()
+    elif self.args.wav_file is not None:
+      self.HandlePlaybackWavFile()
     else:
       self.HandleLoop()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP)
@@ -638,6 +648,8 @@ class AudioQualityTest(unittest.TestCase):
       self._dut.audio.EnableSpeaker(self._out_card)
     if self._use_multitone:
       self.HandleMultitone()
+    elif self.args.wav_file is not None:
+      self.HandlePlaybackWavFile()
     else:
       self.HandleLoop()
     self.SendResponse(None, args)
@@ -681,6 +693,11 @@ class AudioQualityTest(unittest.TestCase):
     """Mute Left Speaker."""
     factory.console.info('Mute Speaker Right')
     self._dut.audio.MuteRightSpeaker(self._out_card)
+    self.SendResponse(None, args)
+
+  def HandlePlaybackWavFile(self, *args):
+    """Play a specific wav file."""
+    self.PlayWav(self.args.wav_file)
     self.SendResponse(None, args)
 
   def ListenForever(self, sock):
