@@ -51,7 +51,7 @@ class SubCommand(object):
         cls.CMD_NAME,
         description=cls.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    subparser.set_defaults(command=cls.EvalCommand)
+    subparser.set_defaults(_Command=cls.EvalCommand)
     cls._AddArgument(subparser)
 
   @classmethod
@@ -229,7 +229,7 @@ def SetRootLogger(verbose):
 def Main():
   options = ParseOptions()
   SetRootLogger(options.verbose)
-  options.command(options)
+  options._Command(options)
 
 
 if __name__ == '__main__':

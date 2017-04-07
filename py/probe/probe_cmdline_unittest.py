@@ -175,6 +175,13 @@ class EvalFunctionCmdTest(unittest.TestCase):
     results = json.loads(process_utils.CheckOutput(cmd))
     self.assertEquals(expected, results)
 
+  def testShellCommand(self):
+    expected = [
+        {'shell_raw': 'hello'}]
+    cmd = [CMD_PATH, 'eval-function', 'shell', 'echo hello']
+    results = json.loads(process_utils.CheckOutput(cmd))
+    self.assertEquals(expected, results)
+
 
 if __name__ == '__main__':
   unittest.main()
