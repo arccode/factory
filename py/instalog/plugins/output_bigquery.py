@@ -33,7 +33,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 _HTTP_TIMEOUT = 60
 _JSON_MIMETYPE = 'application/json'
-_UPLOAD_CHUNK_SIZE = 1024 * 1204  # 1mb
+_UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1mb
 _JOB_NAME_PREFIX = 'instalog_'
 _BIGQUERY_REQUEST_INTERVAL = 5
 _BIGQUERY_REQUEST_MAX_FAILURES = 20
