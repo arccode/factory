@@ -49,6 +49,9 @@ class RaidenChargeBFTTest(unittest.TestCase):
           'The duration in seconds to charge the battery', default=5),
       Arg('discharge_duration_secs', (int, float),
           'The duration in seconds to discharge the battery', default=5),
+      Arg('wait_after_engage_secs', (int, float),
+          'The duration in seconds to wait after engage / disengage '
+          'charge device', default=0),
       Arg('min_charge_5V_current_mA', (int, float),
           'The minimum charge current in mA that the battery '
           'needs to reach during charge-5V test, if is None, '
@@ -288,6 +291,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
 
     # Plankton-Raiden board setting: engage
     self._bft_fixture.SetDeviceEngaged(command_device, engage=True)
+    time.sleep(self.args.wait_after_engage_secs)
 
     if self.args.monitor_plankton_voltage_only:
       if not self.MonitorINAVoltage(self.args.charge_duration_secs,
@@ -330,6 +334,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
     logging.info('Testing discharge...')
     self._template.SetState(_TESTING_DISCHARGE)
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=False)
+    time.sleep(self.args.wait_after_engage_secs)
 
     if self.args.monitor_plankton_voltage_only:
       if not self.MonitorINAVoltage(self.args.charge_duration_secs, 5):
