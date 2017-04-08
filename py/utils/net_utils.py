@@ -4,6 +4,7 @@
 
 """Networking-related utilities."""
 
+import fnmatch
 import glob
 import httplib
 import logging
@@ -310,9 +311,12 @@ def GetNetworkInterfaceByPath(interface_path, allow_multiple=False):
     GetInterfaceName(
         '/sys/devices/pci0000:00/0000:00:14.0/usb1/1-5/1-5:1.0/net') => 'eth0'
 
+  interface_path can also be a pattern.  The realpath of a interface will be
+  matched with the pattern you provided by 'fnmatch'.
+
   Args:
     interface_path: the name of the network interface or the realpath of the
-      network interface sysfs node.
+      network interface sysfs node or the pattern that realpath should match.
 
   Returns:
     the name of the network interface. None if the path is not found.
@@ -323,8 +327,11 @@ def GetNetworkInterfaceByPath(interface_path, allow_multiple=False):
   if interface_path[0] != '/':  # The name of the network interface.
     return interface_path
   valid_interfaces = []
+
   for path in glob.glob('/sys/class/net/*'):
-    if os.path.realpath(path).startswith(interface_path):
+    realpath = os.path.realpath(path)
+    if (realpath.startswith(interface_path) or
+        fnmatch.fnmatch(realpath, interface_path)):
       interface = os.path.basename(path)
       logging.info('Interface "%s" is found.', interface)
       valid_interfaces.append(interface)
