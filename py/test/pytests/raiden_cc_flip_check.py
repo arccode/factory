@@ -219,10 +219,17 @@ class RaidenCCFlipCheck(unittest.TestCase):
 
       def do_flip():
         factory.console.info('Double CC test, doing CC flip...')
-        self._bft_fixture.SetDeviceEngaged('CHARGE_5V', True)
-        time.sleep(2)
-        self._bft_fixture.SetMuxFlip(0)
-        time.sleep(1)
+        #TODO(yllin): Remove this if solve the plankton firmware issue
+        def charge_check_flip():
+          self._bft_fixture.SetDeviceEngaged('CHARGE_5V', True)
+          time.sleep(2)
+          new_polarity = self.GetCCPolarityWithRetry(5)
+          if new_polarity != self._polarity:
+            return
+          self._bft_fixture.SetMuxFlip(0)
+          time.sleep(2)
+
+        charge_check_flip()
         if self._adb_remote_test and not self._double_cc_quick_check:
           # For remote test, keep adb connection enabled.
           self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
