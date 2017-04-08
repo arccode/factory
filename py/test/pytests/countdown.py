@@ -47,11 +47,11 @@ class CountDownTest(unittest.TestCase):
           'sensor.', None, optional=True),
       Arg('temp_criteria', (list, tuple),
           'A list of rules to check that temperature is under the given range, '
-          'rule format: (name, temp_index, warning_temp, critical_temp)', [],
+          'rule format: (name, temp_sensor, warning_temp, critical_temp)', [],
           optional=True),
       Arg('relative_temp_criteria', (list, tuple),
           'A list of rules to check the difference between two temp sensors, '
-          'rule format: (relation, first_index, second_index, max_diff). '
+          'rule format: (relation, first_sensor, second_sensor, max_diff). '
           'relation is a text output with warning messages to describe the two '
           'temp sensors in the rule', [], optional=True),
       Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', None,
@@ -75,8 +75,9 @@ class CountDownTest(unittest.TestCase):
         id='cd-system-load')
 
   def UpdateUILog(self, sys_status):
-    log_items = [time_utils.TimeString(),
-                 'Temperatures: %s' % sys_status.temperatures,
+    # Simplify thermal output by the order of self._sensors
+    log_items = [time_utils.TimeString(), 'Temperatures: %s' %
+                 [sys_status.temperatures[sensor] for sensor in self._sensors],
                  'Fan RPM: %s' % sys_status.fan_rpm]
     log_str = '.  '.join(log_items)
     self._verbose_log.write(log_str + os.linesep)
@@ -86,17 +87,20 @@ class CountDownTest(unittest.TestCase):
                    '$("cd-log-panel").scrollHeight;')
 
   def UpdateLegend(self, sensor_names):
-    for idx in xrange(len(sensor_names)):
+    for i, sensor in enumerate(sensor_names):
       self._ui.AppendHTML('<div class="cd-legend-item">[%d] %s</div>' %
-                          (idx, sensor_names[idx]),
-                          id='cd-legend-item-panel')
+                          (i, sensor), id='cd-legend-item-panel')
     if sensor_names:
       self._ui.RunJS('$("cd-legend-panel").style.display = "block";')
 
   def DetectAbnormalStatus(self, status, last_status):
-    def GetTemperature(index):
+    def GetTemperature(sensor):
       try:
-        return status.temperatures[index]
+        if sensor is None:
+          sensor = self._main_sensor  # _main_sensor is basestring.
+        if isinstance(sensor, int):
+          sensor = self._sensors_index[sensor]
+        return status.temperatures[sensor]
       except IndexError:
         return None
 
@@ -107,8 +111,10 @@ class CountDownTest(unittest.TestCase):
         warnings.append(
             'Number of temperature sensors differ (current: %d, last: %d) ' %
             (len(status.temperatures), len(last_status.temperatures)))
-      for index, (current, last) in enumerate(
-          zip(status.temperatures, last_status.temperatures)):
+
+      for sensor in status.temperatures:
+        current = status.temperatures[sensor]
+        last = last_status.temperatures[sensor]
         # Ignore the case when both are None since it could just mean the
         # sensor doesn't exist. If only one of them is None, then there
         # is a problem.
@@ -116,15 +122,15 @@ class CountDownTest(unittest.TestCase):
           continue
         elif last is None or current is None:
           warnings.append(
-              'Cannot read temperature index %d (current: %r, last: %r)' %
-              (index, current, last))
+              'Cannot read temperature sensor %s (current: %r, last: %r)' %
+              (sensor, current, last))
         elif abs(current - last) > self.args.temp_max_delta:
           warnings.append(
-              'Temperature index %d delta over %d (current: %d, last: %d)' %
-              (index, self.args.temp_max_delta, current, last))
+              'Temperature sensor %s delta over %d (current: %d, last: %d)' %
+              (sensor, self.args.temp_max_delta, current, last))
 
-    for name, index, warning_temp, critical_temp in self.args.temp_criteria:
-      temp = GetTemperature(index)
+    for name, sensor, warning_temp, critical_temp in self.args.temp_criteria:
+      temp = GetTemperature(sensor)
       if temp is None:
         warnings.append('%s temperature unavailable' % name)
       elif temp >= critical_temp:
@@ -134,20 +140,20 @@ class CountDownTest(unittest.TestCase):
         warnings.append('%s over warning temperature (now: %d, warning: %d)' %
                         (name, temp, warning_temp))
 
-    for (relation, first_index, second_index,
+    for (relation, first_sensor, second_sensor,
          max_diff) in self.args.relative_temp_criteria:
-      first_temp = GetTemperature(first_index)
-      second_temp = GetTemperature(second_index)
+      first_temp = GetTemperature(first_sensor)
+      second_temp = GetTemperature(second_sensor)
       if first_temp is None or second_temp is None:
-        unavailable_index = []
+        unavailable_sensor = []
         if first_temp is None:
-          unavailable_index.append(first_index)
+          unavailable_sensor.append(first_sensor)
         if second_temp is None:
-          unavailable_index.append(second_index)
+          unavailable_sensor.append(second_sensor)
         warnings.append(
             'Cannot measure temperature difference between %s: '
             'temperature %s unavailable' %
-            (relation, ', '.join(unavailable_index)))
+            (relation, ', '.join(unavailable_sensor)))
       else:
         if abs(first_temp - second_temp) > max_diff:
           warnings.append('Temperature difference between %s over %d '
@@ -169,13 +175,21 @@ class CountDownTest(unittest.TestCase):
           factory.console.warn(w)
 
   def SnapshotStatus(self):
-    return self.Status(self._dut.thermal.GetTemperatures(),
+    return self.Status(self._dut.thermal.GetAllTemperatures(),
                        self._dut.fan.GetFanRPM())
 
   def setUp(self):
     i18n_arg_utils.ParseArg(self, 'title')
-    self._dut = device_utils.CreateDUTInterface()
     self.Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
+    self._dut = device_utils.CreateDUTInterface()
+    self._main_sensor = self._dut.thermal.GetMainSensorName()
+    # Normalize the sensors so main sensor is always the first one.
+    sensors = self._dut.thermal.GetAllSensorNames()
+    sensors.sort()
+    sensors.insert(0, sensors.pop(sensors.index(self._main_sensor)))
+    self._sensors = sensors
+    # TODO(hungte) Remove the fixed-order when migration is finished.
+    self._sensors_index = self._dut.thermal.GetTemperatureSensorNames()
 
   def runTest(self):
     # Allow attributes to be defined outside __init__
@@ -201,7 +215,7 @@ class CountDownTest(unittest.TestCase):
     last_status = self.SnapshotStatus()
 
     try:
-      self.UpdateLegend(self._dut.thermal.GetTemperatureSensorNames())
+      self.UpdateLegend(self._sensors)
     except NotImplementedError:
       pass
 

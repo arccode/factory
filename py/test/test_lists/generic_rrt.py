@@ -81,23 +81,6 @@ class TestListArgs(object):
   # Need to enlarge stateful partition size for long-run stress tests.
   desired_stateful_size_gb = 4
 
-  # Main temperature sensor index.
-  @property
-  def main_temp_sensor_index(self):
-    if sys_utils.InChroot():  # For unittest
-      return 0
-    else:
-      return device_utils.CreateDUTInterface().thermal.GetMainTemperatureIndex()
-
-  # List of temperature sensors to test.
-  @property
-  def temp_sensors_to_test(self):
-    if sys_utils.InChroot():  # For unittest
-      return [0]
-    else:
-      thermal = device_utils.CreateDUTInterface().thermal
-      return range(len(thermal.GetTemperatureSensorNames()))
-
   #####
   #
   # Parameter for warm reboot, warm/cold reboot and clear TPM stress tests.
@@ -141,10 +124,10 @@ class TestListArgs(object):
   # The duration of stress test during run-in (suggested 10+ mins).
 
   # A list of rules to check that temperature is under the given range
-  # rule format: (name, temp_index, warning_temp, critical_temp)
+  # rule format: (name, temp_sensor, warning_temp, critical_temp)
   @property
   def run_in_countdown_temp_criteria(self):
-    return [('CPU', self.main_temp_sensor_index, 90, 100)]
+    return [('CPU', None, 90, 100)]
 
   # Number of suspend/resume tests for each iteration.
   run_in_resume_iterations = 15
