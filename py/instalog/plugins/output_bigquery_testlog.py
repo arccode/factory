@@ -233,7 +233,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
       row['series'][-1]['key'] = key
       row['series'][-1]['description'] = dct.get('description')
       row['series'][-1]['group'] = dct.get('group')
-      row['series'][-1]['keyUnit'] = dct.get('valueUnit')
+      row['series'][-1]['keyUnit'] = dct.get('keyUnit')
       row['series'][-1]['valueUnit'] = dct.get('valueUnit')
       row['series'][-1]['data'] = []
       for i, data_dct in enumerate(dct.get('data', [])):
