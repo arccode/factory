@@ -226,6 +226,7 @@ class Thermal(component.DeviceComponent):
   Attributes:
     _sensors: A cached dictionary {sensor_name: source} by `_SetupSensors`.
     _main_sensor: A string indicating system main sensor or None.
+    _sources: A cached list of sensor sources.
     _sensor_list: An ordered list of sensor names.
   """
 
@@ -243,6 +244,7 @@ class Thermal(component.DeviceComponent):
     super(Thermal, self).__init__(dut)
     self._sensors = None
     self._main_sensor = None
+    self._sources = []
     # TODO(hungte): sensors_list is a special list for GetTemperatures
     # to work. We may drop it in future.
     self._sensors_list = None
@@ -255,7 +257,11 @@ class Thermal(component.DeviceComponent):
     Args:
       source: An instance of `ThermalSensorSource`.
     """
-    self._sensors.update(dict((name, source) for name in source.GetSensors()))
+    sensors = dict((name, source) for name in source.GetSensors())
+    if not sensors:
+      return
+    self._sensors.update(sensors)
+    self._sources.append(source)
     if not self._main_sensor:
       self._main_sensor = source.GetMainSensorName()
 
@@ -267,6 +273,7 @@ class Thermal(component.DeviceComponent):
     """
     self._sensors = {}
     self._main_sensor = None
+    self._sources = []
 
     # CoreTemp should be considered as the better alternative than ThermalZone.
     self._AddThermalSensorSource(CoreTempSensors(self._dut))
@@ -279,24 +286,14 @@ class Thermal(component.DeviceComponent):
     """Gets (cached) available sensors."""
     if self._sensors is not None:
       return self._sensors
-    self._sensors = {}
     try:
       self._SetupSensors()
     except Exception:
       logging.debug('%s: Failed setting up sensors.', self.__class__.__name__)
+    assert len(set(self._sensors.values())) == len(self._sources), (
+        'Sensor source cache does not match logged sensors')
     self._sensors_list = self._sensors.keys()
     return self._sensors
-
-  def GetTemperature(self, sensor_name):
-    """Gets current temperature of specified sensor.
-
-    Args:
-      name: The name of sensor to read.
-
-    Returns:
-      A number indicating the temperature in Celsius.
-    """
-    return self._GetSensors()[sensor_name].GetValue(sensor_name)
 
   def GetMainSensorName(self):
     """Returns the name of main sensor.
@@ -310,18 +307,47 @@ class Thermal(component.DeviceComponent):
     self._GetSensors()
     return self._main_sensor
 
+  def GetAllSensorNames(self):
+    """Returns names of all available sensors."""
+    return self._GetSensors().keys()
+
+  def GetTemperature(self, sensor_name=None):
+    """Gets current temperature of specified sensor.
+
+    Args:
+      sensor_name: The name of sensor to read. Default to main sensor.
+
+    Returns:
+      A number indicating the temperature in Celsius.
+    """
+    if sensor_name is None:
+      sensor_name = self.GetMainSensorName()
+    return self._GetSensors()[sensor_name].GetValue(sensor_name)
+
+  def GetAllTemperatures(self):
+    """Gets temperature from all sensors.
+
+    Returns:
+      A mapping from sensor name to temperature in Celsius.
+    """
+    self._GetSensors()
+    values = {}
+    for source in self._sources:
+      values.update(source.GetAllValues())
+    return values
+
   def GetMainTemperature(self):
-    """Gets the temperature of main sensor.
+    """Deprecated. Gets the temperature of main sensor.
 
     This is typically the CPU temperature.
 
     Returns:
       A number indicating the temperature in Celsius.
     """
-    return self.GetTemperature(self.GetMainSensorName())
+    return self.GetTemperature()
 
   def GetTemperatures(self):
-    """Gets a list of temperatures for various sensors.
+    """Deprecated. Gets a list of temperatures for various sensors.
 
     The list is using same order as `GetTemperatureSensorNames`
 
@@ -329,13 +355,11 @@ class Thermal(component.DeviceComponent):
       A list of int indicating the temperatures in Celsius.
       For those sensors which don't have readings, fill None instead.
     """
-    values = {}
-    for source in set(self._GetSensors().values()):
-      values.update(source.GetAllValues())
+    values = self.GetAllTemperatures()
     return [values[name] for name in self.GetTemperatureSensorNames()]
 
   def GetMainTemperatureIndex(self):
-    """Gets the index of main temperature sensor in `GetTemperatures`.
+    """Deprecated. Gets the index of main sensor in `GetTemperatures`.
 
     The list is using same order as `GetTemperatureSensorNames`
 
@@ -346,7 +370,7 @@ class Thermal(component.DeviceComponent):
         self.GetMainSensorName())
 
   def GetTemperatureSensorNames(self):
-    """Gets a list of names for temperature sensors.
+    """Deprecated. Gets a list of names for temperature sensors.
 
     The list is in fixed order.
 

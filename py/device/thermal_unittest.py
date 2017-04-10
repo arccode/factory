@@ -172,13 +172,21 @@ class ThermalTest(unittest.TestCase):
     self.board.ReadFile(self.coretemp1_path).AndReturn('38000')
     self.board.CallOutput('ectool temps 1').AndReturn(
         'Reading temperature...332')
+    self.board.ReadFile(self.coretemp1_path).AndReturn('34000')
+    self.board.CallOutput('ectool temps all').AndReturn(
+        '1: 331')
     self.mox.ReplayAll()
     self.assertEquals(self.thermal.GetMainSensorName(), 'coretemp.0 Package 0')
-    self.assertEquals(self.thermal.GetMainTemperature(), 37)
+    self.assertItemsEqual(self.thermal.GetAllSensorNames(),
+                          ['coretemp.0 Package 0', 'ectool ECInternal'])
+    self.assertEquals(self.thermal.GetTemperature(), 37)
     self.assertEquals(
         self.thermal.GetTemperature(self.thermal.GetMainSensorName()), 38)
     self.assertEquals(
         self.thermal.GetTemperature('ectool ECInternal'), 59)
+    self.assertItemsEqual(self.thermal.GetAllTemperatures(),
+                          {'coretemp.0 Package 0': 34,
+                           'ectool ECInternal': 58})
     self.mox.VerifyAll()
 
   def testOldListAPIs(self):
