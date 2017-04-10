@@ -28,6 +28,8 @@ main() {
   if [ "$#" != 6 ]; then
     die "Usage: $0 bundle_dir toolkit par doc_zip setup sysroot"
   fi
+  # We want all files and directories created to be readable by world.
+  umask 022
 
   local bundle_dir="$1"
   local toolkit="$2"
@@ -61,6 +63,9 @@ main() {
   # reading region database from local folder inside PAR.
   cp -f "${sysroot}/usr/share/misc/cros-regions.json" \
     "${bundle_dir}/shopfloor/."
+
+  # Last chance to make sure all bundle files are world readable.
+  chmod -R ugo+rX "${bundle_dir}"
 
   mk_success
 }
