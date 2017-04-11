@@ -103,8 +103,6 @@ class ThermalSlopeTest(unittest.TestCase):
     self.stage_start_time = None
     # Last time we slept.
     self.last_sleep = None
-    self.main_temperature_index = (
-        self.dut.thermal.GetMainTemperatureIndex())
 
   def _Log(self):
     """Logs the current stage and status.
@@ -127,7 +125,7 @@ class ThermalSlopeTest(unittest.TestCase):
     event_log.Log('sample',
                   stage=self.stage,
                   fan_rpm=fan_rpm,
-                  temperature=self.dut.thermal.GetTemperatures(),
+                  temperature=self.dut.thermal.GetAllTemperatures(),
                   energy_j=self.snapshot['energy'],
                   power_w=self.snapshot['power'])
 
@@ -139,7 +137,7 @@ class ThermalSlopeTest(unittest.TestCase):
 
   def _MainTemperature(self):
     """Returns the main temperature."""
-    return self.dut.thermal.GetTemperatures()[self.main_temperature_index]
+    return self.dut.thermal.GetTemperature()
 
   def _Sleep(self):
     """Sleeps one second since the last sleep.
