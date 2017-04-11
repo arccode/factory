@@ -1,0 +1,4 @@
+Upstart hangs on 'stop conntrackd' sometimes.
+(https://bugs.chromium.org/p/chromium/issues/detail?id=684014)
+This bug blocks finalize.
+Disable conntrackd until the bug is fixed.
