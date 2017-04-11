@@ -7,7 +7,6 @@
 """Test for temperature sensors control.
 
 The test uses cros.factory.device.thermal to probe temperature sensors.
-Ported from third_party/autotest/files/client/site_tests/hardware_EC.
 """
 
 import logging
@@ -21,40 +20,43 @@ from cros.factory.utils.arg_utils import Arg
 class BoardTempSensorsTest(unittest.TestCase):
   """Tests communication with temperature sensors."""
   ARGS = [
-      Arg('num_temp_sensor', int,
-          'Number of temperature sensor(s). '
-          'Only used when temp_sensor_to_test is unset.',
-          default=0),
-      Arg('temp_sensor_to_test', list,
-          'List of temperature sensor(s) to test. '
-          'If None, it tests all sensors in [0, ..., num_temp_sensor - 1].',
+      Arg('temp_sensor_to_test', (str, list),
+          'List of temperature sensor(s) to test, "*" for all sensors. '
+          'Default to test only the main sensor (usually CPU).',
           default=None, optional=True),
       Arg('temp_range', tuple, 'A tuple of (min_temp, max_temp) in Celsius.',
           default=(0, 100)),
   ]
 
+  def GetTemperature(self, name):
+    """Gets temperature from a reference (name or index).
+
+    Args:
+      name: An integer for index of sensor or string for sensor name to read.
+
+    Returns:
+      Temperature of given sensor.
+    """
+    # TODO(hungte) Deprecate the legacy index API.
+    if isinstance(name, int):
+      name = self.thermal.GetTemperatureSensorNames()[name]
+    return self.thermal.GetTemperature(name)
+
   def setUp(self):
-    self.dut = device_utils.CreateDUTInterface()
+    self.thermal = device_utils.CreateDUTInterface().thermal
 
   def runTest(self):
-    temp_sensor_to_test = self.args.temp_sensor_to_test
-    if temp_sensor_to_test is None:
-      temp_sensor_to_test = xrange(self.args.num_temp_sensor)
+    sensors = self.args.temp_sensor_to_test
+    if sensors == '*':
+      values = self.thermal.GetAllTemperatures()
+    else:
+      if sensors is None:
+        sensors = [self.thermal.GetMainSensorName()]
+      values = dict((name, self.GetTemperature(name)) for name in sensors)
 
-    self.assertTrue(
-        len(temp_sensor_to_test) > 0,
-        'Either num_temp_sensor or temp_sensor_to_test must be set.')
-
-    all_sensors_temp = self.dut.thermal.GetTemperatures()
-    logging.info('Get temperature sensors: %s', all_sensors_temp)
-    num_sensors = len(all_sensors_temp)
-    for index in temp_sensor_to_test:
-      self.assertTrue(0 <= index < num_sensors,
-                      'Cannot get temperature sensor %d.' % index)
-      temperature = all_sensors_temp[index]
-      self.assertFalse(temperature is None,
-                       'Cannot get temperature reading from sensor %d.' % index)
+    logging.info('Got temperatures: %r', values)
+    min_temp, max_temp = self.args.temp_range
+    for name, temperature in values.iteritems():
       self.assertTrue(
-          self.args.temp_range[0] <= temperature <= self.args.temp_range[1],
-          'Abnormal temperature reading on sensor %d: %d' %
-          (index, temperature))
+          min_temp <= temperature <= max_temp,
+          'Abnormal temperature reading on sensor %s: %s' % (name, temperature))
