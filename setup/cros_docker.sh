@@ -223,6 +223,7 @@ do_umpire_run() {
       --detach \
       --restart unless-stopped \
       --name "${UMPIRE_CONTAINER_NAME}" \
+      --tmpfs "/run:rw,size=16384k" \
       --volume /etc/localtime:/etc/localtime:ro \
       --volume "${HOST_SHARED_DIR}:/mnt" \
       --volume "${host_db_dir}:${docker_db_dir}" \

@@ -310,6 +310,7 @@ class Board(django.db.models.Model):
       #                  done by Dome only
       cmd = [
           'docker', 'run', '--detach', '--privileged',
+          '--tmpfs', '/run:rw,size=16384k',
           '--volume', '/etc/localtime:/etc/localtime:ro',
           '--volume', '%s:/mnt' % DOCKER_SHARED_DIR,
           '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,

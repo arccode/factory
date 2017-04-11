@@ -97,7 +97,7 @@ class InstalogService(umpire_service.UmpireService):
         'instalog': {
             'node_id': NODE_ID,
             'data_dir': os.path.join(root_dir, 'data'),
-            'pid_file': os.path.join(root_dir, 'instalog.pid'),
+            'pid_file': os.path.join(os.sep, 'run', 'instalog.pid'),
             'log_file': os.path.join(root_dir, 'instalog.log'),
             'cli_hostname': CLI_HOSTNAME,
             'cli_port': CLI_PORT
