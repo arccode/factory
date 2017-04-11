@@ -83,18 +83,21 @@ def DetermineComponentName(comp_cls, value):
     the component name.
   """
   # Known specific components.
-  if comp_cls == 'chassis':
-    return value['id']
   if comp_cls == 'firmware_keys':
-    dev_key = {
-        'key_root': 'b11d74edd286c144e1135b49e7f0bc20cf041f10',
-        'key_recovery': 'c14bd720b70d97394257e3e826bd8f43de48d4ed'}
-    return 'firmware_keys_dev' if value == dev_key else 'firmware_keys_non_dev'
-  if comp_cls in ['ro_main_firmware', 'ro_ec_firmware', 'ro_pd_firmware']:
-    return value['version']
+    if 'devkeys' in value['key_root']:
+      return 'firmware_keys_dev'
+    else:
+      return 'firmware_keys_non_dev'
 
   # General components.
-  for key in ['model', 'manufacturer', 'part', 'name', 'compact_str']:
+  if len(value) == 1:
+    return _FilterSpecialCharacter(str(value.values()[0]))
+  try:
+    return '%s_%smb_%s' % (value['part'], value['size'], value['slot'])
+  except KeyError:
+    pass
+  for key in ['id', 'version', 'model', 'manufacturer', 'part', 'name',
+              'compact_str']:
     if key in value:
       return _FilterSpecialCharacter(str(value[key]))
   return comp_cls + '_' + str(uuid.uuid4())[:8]

@@ -21,6 +21,35 @@ from cros.factory.utils import yaml_utils
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
+class DetermineComponentNameTest(unittest.TestCase):
+
+  def testMainboard(self):
+    comp_cls = 'mainboard'
+    value = {
+        'version': 'rev2'}
+    expected = 'rev2'
+    self.assertEquals(expected, builder.DetermineComponentName(comp_cls, value))
+
+  def testFirmwareKeys(self):
+    comp_cls = 'firmware_keys'
+    value = {
+        'key_recovery':
+            'c14bd720b70d97394257e3e826bd8f43de48d4ed#devkeys/recovery',
+        'key_root': 'b11d74edd286c144e1135b49e7f0bc20cf041f10#devkeys/rootkey'}
+    expected = 'firmware_keys_dev'
+    self.assertEquals(expected, builder.DetermineComponentName(comp_cls, value))
+
+  def testDRAM(self):
+    comp_cls = 'dram'
+    value = {
+        'part': 'ABCD',
+        'size': '2048',
+        'slot': '0',
+        'timing': 'DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600'}
+    expected = 'ABCD_2048mb_0'
+    self.assertEquals(expected, builder.DetermineComponentName(comp_cls, value))
+
+
 class BuilderMethodTest(unittest.TestCase):
 
   def testFilterSpecialCharacter(self):
