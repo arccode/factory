@@ -9,21 +9,7 @@ import logging
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
 from cros.factory.device import power
-from cros.factory.device import thermal
 from cros.factory.device.boards import chromeos
-
-
-class PitThermal(thermal.ECToolThermal):
-
-  def GetTemperatures(self):
-    raw = self._dut.ReadFile('/sys/class/thermal/thermal_zone0/temp')
-    return [int(raw.splitlines()[0].rstrip()) / 1000]
-
-  def GetMainTemperatureIndex(self):
-    return 0
-
-  def GetTemperatureSensorNames(self):
-    return ['CPU']
 
 
 class PitPower(power.Power):
@@ -42,7 +28,3 @@ class PitBoard(chromeos.ChromeOSBoard):
   @component.DeviceProperty
   def power(self):
     return PitPower(self)
-
-  @component.DeviceProperty
-  def thermal(self):
-    return PitThermal(self)

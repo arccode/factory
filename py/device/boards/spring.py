@@ -7,27 +7,7 @@
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
 from cros.factory.device import power
-from cros.factory.device import thermal
 from cros.factory.device.boards import chromeos
-
-
-class SpringThermal(thermal.ECToolThermal):
-
-  def GetTemperatures(self):
-    raw = self._dut.ReadFile('/sys/class/thermal/thermal_zone0/temp')
-    return [int(raw.splitlines()[0].rstrip()) / 1000]
-
-  def GetMainTemperatureIndex(self):
-    return 0
-
-  def GetTemperatureSensorNames(self):
-    return ['CPU']
-
-  def GetFanRPM(self, fan_id=None):
-    raise NotImplementedError
-
-  def SetFanRPM(self, rpm, fan_id=None):
-    raise NotImplementedError
 
 
 class SpringPower(power.Power):
@@ -91,7 +71,3 @@ class SpringBoard(chromeos.ChromeOSBoard):
   @component.DeviceProperty
   def power(self):
     return SpringPower(self)
-
-  @component.DeviceProperty
-  def thermal(self):
-    return SpringThermal(self)
