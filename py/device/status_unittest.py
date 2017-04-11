@@ -40,7 +40,7 @@ class SystemStatusTest(unittest.TestCase):
     board.power.GetInfoDict().AndReturn({})
     board.thermal = self.mox.CreateMock(thermal.ECToolThermal)
     board.thermal.GetFanRPM().AndReturn([2000])
-    board.thermal.GetMainTemperature().AndReturn(37)
+    board.thermal.GetTemperature().AndReturn(37)
     netifaces.interfaces().AndReturn(['lo', 'eth0', 'wlan0'])
     netifaces.ifaddresses('eth0').AndReturn(
         {netifaces.AF_INET6: [{'addr': 'aa:aa:aa:aa:aa:aa'}],

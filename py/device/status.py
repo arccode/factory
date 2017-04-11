@@ -149,7 +149,7 @@ class SystemStatus(component.DeviceComponent):
   @StatusProperty
   def temperature(self):
     """Gets main (CPU) temperature from thermal sensor."""
-    return self._dut.thermal.GetMainTemperature()
+    return self._dut.thermal.GetTemperature()
 
   @StatusProperty
   def load_avg(self):
