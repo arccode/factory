@@ -33,7 +33,7 @@ class ThermalLoadTest(unittest.TestCase):
            'system.'),
           optional=True, default=None),
       Arg('heat_up_timeout_secs', int, 'Timeout interval in seconds for '
-          'tepmerature to go over lower_threshold', optional=True, default=40),
+          'temperature to go over lower_threshold', optional=True, default=40),
       Arg('duration_secs', int, 'Time in seconds for the test to run',
           optional=True, default=80),
       Arg('lower_threshold', (int, list), 'Minimum temperature value required '
@@ -41,27 +41,31 @@ class ThermalLoadTest(unittest.TestCase):
       Arg('temperature_limit', (int, list),
           'Maximum temperature value allowed throughout the entire test.',
           optional=True, default=75),
-      Arg('sensor_index', (int, list), 'The index of temperature sensor to use',
-          optional=True, default=0),
+      Arg('sensors', (str, list), 'List of temperature sensors to test. '
+          'Default to main sensor, or "*" for all sensors.', optional=True,
+          default=None),
       Arg('temperatures_difference', int, 'The difference of temperatures '
           'should be under a specified limit.', optional=True),
+      # TODO(hungte) Deprecate sensor_index by sensors.
+      Arg('sensor_index', (int, list), 'The index of temperature sensor to use,'
+          ' deprecated by sensors.', optional=True, default=0),
   ]
 
   def GetTemperatures(self):
-    """Gets the temperature reading from specified sensor."""
-    temperatures = []
-    system_temperatures = self.dut.thermal.GetTemperatures()
-    for sensor_index in self.args.sensor_index:
-      temperatures.append(system_temperatures[sensor_index])
-    return temperatures
+    """Gets the temperature reading from specified sensors."""
+    if len(self.sensors) == 1:
+      return [self.dut.thermal.GetTemperature(self.sensors[0])]
+
+    values = self.dut.thermal.GetAllTemperatures()
+    return [values[name] for name in self.sensors]
 
   def CheckTemperatures(self, temperatures, elapsed):
     """Check criterion for all specified temperatures.
-    1. Make sure tempertures are under limit.
+    1. Make sure temperatures are under limit.
     2. Make sure the differences of all temperatures are in the range.
 
     Args:
-      temperatures: A list of temperstures in different sensors.
+      temperatures: A list of temperatures in different sensors.
       elapsed: elapsed time since heat up.
     """
     for index in xrange(len(temperatures)):
@@ -74,29 +78,29 @@ class ThermalLoadTest(unittest.TestCase):
         self.heated_up[index] = True
         event_log.Log('heated', temperature_value=temperature_value,
                       lower_threshold=self.args.lower_threshold[index],
-                      sensor_index=self.args.sensor_index[index],
+                      sensor=self.sensors[index],
                       elapsed_sec=elapsed)
-        logging.info('Sensor %d heated up to %d C in %d seconds.',
-                     self.args.sensor_index[index],
+        logging.info('Sensor %s heated up to %d C in %d seconds.',
+                     self.sensors[index],
                      self.args.lower_threshold[index], elapsed)
 
       if temperature_value > self.args.temperature_limit[index]:
         event_log.Log('over_heated', temperature_value=temperature_value,
                       temperature_limit=self.args.temperature_limit[index],
-                      sensor_index=self.args.sensor_index[index],
+                      sensor=self.sensors[index],
                       elapsed_sec=elapsed)
-        self.fail('Sensor %d temperature got over %d.' % (
-            self.args.sensor_index[index], self.args.temperature_limit[index]))
+        self.fail('Sensor %s temperature got over %d.' % (
+            self.sensors[index], self.args.temperature_limit[index]))
 
       if elapsed >= self.args.heat_up_timeout_secs and (
           not self.heated_up[index]):
         event_log.Log('slow_temp_slope', temperature_value=temperature_value,
                       lower_threshold=self.args.lower_threshold[index],
-                      sensor_index=self.args.sensor_index[index],
+                      sensor=self.sensors[index],
                       timeout=self.args.heat_up_timeout_secs)
         logging.info('temperature track: %r', self.temperatures_track)
-        self.fail("Temperature %d didn't go over %d in %s seconds." % (
-            self.args.sensor_index[index],
+        self.fail("Temperature %s didn't go over %d in %s seconds." % (
+            self.args.sensors[index],
             self.args.lower_threshold[index],
             self.args.heat_up_timeout_secs))
 
@@ -115,21 +119,35 @@ class ThermalLoadTest(unittest.TestCase):
                     'heat_up_timeout_secs must not be greater than '
                     'duration_secs.')
 
-    if type(self.args.sensor_index) is int:
-      self.args.sensor_index = [self.args.sensor_index]
+    # Migration check: user can either special sensors or sensor_index.
+    assert self.args.sensors is None or self.args.sensor_index == 0, (
+        'You can either specify sensors or sensor_index.')
+
+    if self.args.sensor_index == 0:
+      # Use legacy sensor_index to build sensors.
+      indexes = self.args.sensor_index
+      if type(indexes) is int:
+        indexes = [indexes]
+      names = self.dut.thermal.GetTemperatureSensorNames()
+      sensors = [names[i] for i in indexes]
+    else:
+      sensors = self.args.sensors or [self.dut.thermal.GetMainSensorName()]
+
+    self.sensors = sensors
+
     if type(self.args.lower_threshold) is int:
       self.args.lower_threshold = [self.args.lower_threshold]
     if type(self.args.temperature_limit) is int:
       self.args.temperature_limit = [self.args.temperature_limit]
 
     self.assertTrue(
-        len(self.args.sensor_index) == len(self.args.lower_threshold) and (
-            len(self.args.sensor_index) == len(self.args.temperature_limit)),
+        len(sensors) == len(self.args.lower_threshold) and (
+            len(sensors) == len(self.args.temperature_limit)),
         'The number of sensor_index, lower_threshold, and temperature_limit '
         'should be the same.')
 
-    self.heated_up = [False] * len(self.args.sensor_index)
-    self.max_temperature = [0] * len(self.args.sensor_index)
+    self.heated_up = [False] * len(sensors)
+    self.max_temperature = [0] * len(sensors)
     self.temperatures_track = []
 
   def runTest(self):
