@@ -26,9 +26,19 @@ class TemperaturesMonitor(object):
     self._period_secs = period_secs
     self._delta = delta
     self._last_success = False
-    self._last_temperatures = []
+    self._last_temperatures = {}
+    self._sensor_array = []
     self._sensor_array_changed = False
     self._dut = device_utils.CreateDUTInterface()
+
+  def _GetSensorArray(self, sensors):
+    """Returns a sorted, well-formatted array of sensor names."""
+    sensors = sensors.keys()
+    sensors.sort()
+    # Move main sensor to be the first thermal element.
+    main_sensor = self._dut.thermal.GetMainSensorName()
+    sensors.insert(0, sensors.pop(sensors.index(main_sensor)))
+    return sensors
 
   def _GetThermalData(self):
     temperatures = []
@@ -36,13 +46,14 @@ class TemperaturesMonitor(object):
     try:
       if not self._dut.link.IsLocal():
         self._dut = device_utils.CreateDUTInterface()
-      temperatures = self._dut.thermal.GetTemperatures()
+      temperatures = self._dut.thermal.GetAllTemperatures()
       self._last_success = True
-      # Looking at the len in case the any sensor is broken during the
+      # Looking at the sensors in case the any sensor is broken during the
       # monitoring. In such case, the monitor data should be showed.
-      if len(self._last_temperatures) != len(temperatures):
+      if set(self._last_temperatures) != set(temperatures):
         self._last_temperatures = temperatures
         self._sensor_array_changed = True
+        self._sensor_array = self._GetSensorArray(temperatures)
     except:  # pylint: disable=W0702
       syslog.syslog('Unable to get all temperatures.')
       logging.exception('Unable to get all temperatures.')
@@ -55,20 +66,22 @@ class TemperaturesMonitor(object):
     if self._last_success:
       worth_to_output = False
       if self._sensor_array_changed == True:
-        syslog.syslog('Sensors changed (added or removed).')
         worth_to_output = True
+        syslog.syslog('Sensors changed (added or removed): %s' %
+                      self._sensor_array)
       else:
         # In order not to overflow the logs, only output if the
         # delta is larger than we expected. The _sensor_array_changed
         # guaranteed that length will be the same to compare.
         worth_to_output = any(
             [abs(self._last_temperatures[i] - current_temperatures[i]) >=
-             self._delta for i in xrange(len(self._last_temperatures))])
+             self._delta for i in self._sensor_array])
 
       if worth_to_output:
         self._last_temperatures = current_temperatures
-        syslog.syslog('Temperatures: %s' % current_temperatures)
-        logging.info('Temperatures: %s', current_temperatures)
+        values = [current_temperatures[i] for i in self._sensor_array]
+        syslog.syslog('Temperatures: %s' % values)
+        logging.info('Temperatures: %s', values)
 
   def CheckForever(self):
     while True:
@@ -76,7 +89,7 @@ class TemperaturesMonitor(object):
       time.sleep(self._period_secs)
 
 def main():
-  parser = argparse.ArgumentParser(description='Monitor CPU usage')
+  parser = argparse.ArgumentParser(description='Monitor temperature sensors')
   syslog.openlog('factory_thermal_monitor')
 
   parser.add_argument('--period_secs', '-p', help='Interval between checks',
