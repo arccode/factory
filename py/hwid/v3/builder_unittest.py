@@ -168,6 +168,18 @@ class DatabaseBuilderTest(unittest.TestCase):
                                            'extra_attr': 'LALA'}, 'foo_3')
     self.assertEquals(name, 'foo_0')
 
+  def testAddComponentWithNameCollision(self):
+    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    # Add two items whose name is determined the same.
+    with mock.patch.object(builder, 'DetermineComponentName',
+                           return_value='foo_name'):
+      name1 = db_builder.AddComponent('foo', {'compact_str': 'FOO'})
+      name2 = db_builder.AddComponent('foo', {'compact_str': 'BAR'})
+      name3 = db_builder.AddComponent('foo', {'compact_str': 'BAZ'})
+      self.assertEquals('foo_name', name1)
+      self.assertEquals('foo_name_1', name2)
+      self.assertEquals('foo_name_2', name3)
+
   def testAddFirmware(self):
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
     db_comp_items = db_builder.db['components']['ro_main_firmware']['items']

@@ -445,9 +445,12 @@ class DatabaseBuilder(object):
 
     if comp_name is None:
       comp_name = DetermineComponentName(comp_cls, comp_value)
-    # To prevent name collision, add "_" if the name already exists.
-    while comp_name in db_comp_items:
-      comp_name += '_'
+    # To prevent name collision, add "_n" if the name already exists.
+    if comp_name in db_comp_items:
+      suffix_num = 1
+      while '%s_%d' % (comp_name, suffix_num) in db_comp_items:
+        suffix_num += 1
+      comp_name = '%s_%d' % (comp_name, suffix_num)
     logging.info('Component %s: add an item "%s".', comp_cls, comp_name)
     db_comp_items[comp_name] = OrderedDict({
         'status': 'unqualified',
