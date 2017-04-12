@@ -493,9 +493,12 @@ class Bundle(object):
   def _UploadAndDeployConfig(board_name, config, force=False):
     """Upload and deploy config atomically."""
     umpire_server = GetUmpireServer(board_name)
+
+    logger.info('Uploading Umpire config')
     staging_config_path = umpire_server.UploadConfig(
         UMPIRE_CONFIG_BASENAME, yaml.dump(config, default_flow_style=False))
 
+    logger.info('Staging Umpire config')
     try:
       umpire_server.StageConfigFile(staging_config_path, force)
     except Exception as e:
@@ -504,9 +507,18 @@ class Bundle(object):
           'at the same time, and there is no staging config exists. Error '
           'message: %r' % e)
 
+    logger.info('Deploying Umpire config')
     try:
       umpire_server.Deploy(staging_config_path)
     except xmlrpclib.Fault as e:
+      logger.error('Deploying failed, will unstage Umpire config now, '
+                   'error message from Umpire: %r', e.faultString)
+      try:
+        umpire_server.UnstageConfigFile()
+      except xmlrpclib.Fault as e:
+        logger.warning("Unstaging failed, doesn't matter, ignored, "
+                       'error message from Umpire: %r', e.faultString)
+
       # TODO(littlecvr): we should probably refine Umpire's error message so
       #                  Dome has to forward the message to the user only
       #                  without knowing what's really happened
