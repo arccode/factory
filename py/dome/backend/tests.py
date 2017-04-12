@@ -139,13 +139,14 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                 umpire_host=cls.BOARD_WITH_UMPIRE_HOST,
                                 umpire_port=cls.BOARD_WITH_UMPIRE_PORT)
 
+    os.mkdir(os.path.join(models.UMPIRE_BASE_DIR, cls.BOARD_WITH_UMPIRE_NAME))
+
   def setUp(self):
     self.maxDiff = None  # developer friendly setting
 
     ENTITIES_TO_MOCK = ['subprocess.call',
                         'subprocess.check_call',
                         'subprocess.check_output',
-                        'tempfile.mkdtemp',
                         'shutil.copy',
                         'shutil.rmtree',
                         'os.chmod',

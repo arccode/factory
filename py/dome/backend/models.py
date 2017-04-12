@@ -23,6 +23,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 import traceback
 import xmlrpclib
 
@@ -153,8 +154,11 @@ def UmpireAccessibleFile(board, uploaded_file):
   temp_dir = tempfile.mkdtemp(dir=os.path.join(UMPIRE_BASE_DIR, board))
 
   try:
+    old_path = UploadedFilePath(uploaded_file)
     new_path = os.path.join(temp_dir, os.path.basename(uploaded_file.name))
-    shutil.copy(UploadedFilePath(uploaded_file), new_path)
+    logger.info('Making file accessible by Umpire, copying %r to %r',
+                old_path, new_path)
+    shutil.copy(old_path, new_path)
 
     # make sure they're readable to umpire
     os.chmod(temp_dir, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
@@ -188,6 +192,31 @@ def GetUmpireStatus(board_name):
   return GetUmpireServer(board_name).GetStatus()
 
 
+def GenerateUploadToPath(unused_instance, filename):
+  """Generate a unique file path string in django's media root.
+
+  This callable is used by the file field of TemporaryUploadedFile. The main
+  purpose of using a callable instead of a simple string is to preserve the
+  original file name uploaded by the user. If using a simple string, and
+  multiple files with the same name were uploaded at the same time, django would
+  add a random suffix to the later one, making it losing its original file name.
+  """
+  # create media root if needed, or mkdtemp would fail
+  try:
+    os.makedirs(django.conf.settings.MEDIA_ROOT)
+  except OSError as e:
+    if e.errno != errno.EEXIST:
+      raise
+
+  # add a time string as prefix for better debugging experience
+  temp_dir = tempfile.mkdtemp(prefix='%s-' % time.strftime('%Y%m%d%H%M%S'),
+                              dir=django.conf.settings.MEDIA_ROOT)
+  path = os.path.relpath(os.path.join(temp_dir, filename),
+                         django.conf.settings.MEDIA_ROOT)
+  logger.info('Uploading file to %r', path)
+  return path
+
+
 class TemporaryUploadedFile(django.db.models.Model):
   """Model to hold temporary uploaded files from user.
 
@@ -219,10 +248,8 @@ class TemporaryUploadedFile(django.db.models.Model):
      in JSON.
   """
 
-  file = django.db.models.FileField(upload_to='%Y%m%d')
+  file = django.db.models.FileField(upload_to=GenerateUploadToPath)
   created = django.db.models.DateTimeField(auto_now_add=True)
-
-  # TODO(littlecvr): remove outdated files automatically
 
 
 class Board(django.db.models.Model):
