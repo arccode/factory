@@ -7,7 +7,7 @@
 
 SCRIPT="$0"
 
-. /usr/local/factory/sh/common.sh
+. "$(dirname "$(readlink -f "${SCRIPT}")")"/common.sh
 
 # Restart without session ID, the parent process may be one of the
 # processes we plan to kill.
@@ -16,6 +16,10 @@ if [ -z "$_DAEMONIZED" ]; then
   exit $?
 fi
 
+# Add /sbin to PATH; that's usually where stop and start are, and
+# /sbin may not be in the path.
+PATH=/sbin:"$PATH"
+
 usage_help() {
   echo "usage: $SCRIPT [options]
     options:
@@ -23,7 +27,7 @@ usage_help() {
       -l | log:     clear factory log files ($FACTORY_BASE/log)
       -t | tests:   clear test data ($FACTORY_BASE/tests)
       -r | run:     clear run data (/run/factory)
-      -a | all:     clear all of the above
+      -a | all:     clear all of the above data
       -d | vpd:     clear VPD
       -h | help:    this help screen
       --automation-mode MODE:
@@ -34,123 +38,157 @@ usage_help() {
   "
 }
 
-clear_files() {
-  local enabled="$1"
-  local dir="$2"
-  [ -n "$enabled" ] && echo rm -rf "$FACTORY_BASE/$dir/*"
-}
-
 kill_tree() {
   local signal="${1:-TERM}"
+  local pid
   shift
 
-  until [ -z "$1" ]; do
-    echo -n "$1 "
-    kill_tree ${signal} $(ps -o pid --no-headers --ppid $1)
-    kill -${signal} $1 2>/dev/null
-    shift
+  # $* may contain spaces so we cannot quote it.
+  # shellcheck disable=SC2048
+  for pid in $*; do
+    printf "%s " "${pid}"
+    # ps output may contain leading space so we have to unquote it.
+    kill_tree "${signal}" "$(ps -o pid --no-headers --ppid "${pid}")"
+    kill "-${signal}" "${pid}" 2>/dev/null
   done
 }
 
-clear_vpd=false
-automation_mode=none
-stop_auto_run_on_start=false
-delete=""
-while [ $# -gt 0 ]; do
-  opt="$1"
-  shift
-  case "$opt" in
-    -l | log )
-      delete="$delete $FACTORY_BASE/log"
-      ;;
-    -s | state )
-      delete="$delete $FACTORY_BASE/state"
-      ;;
-    -t | tests )
-      delete="$delete $FACTORY_BASE/tests"
-      ;;
-    -r | run )
-      delete="$delete /run/factory"
-      ;;
-    -a | all )
-      delete="$delete $FACTORY_BASE/log $FACTORY_BASE/state"
-      delete="$delete $FACTORY_BASE/tests /run/factory"
-      ;;
-    -d | vpd )
-      clear_vpd=true
-      ;;
-    -h | help )
-      usage_help
-      exit 0
-      ;;
-    --automation-mode )
-      case "$1" in
-        none | partial | full )
-          automation_mode="$1"
-          shift
-          ;;
-        * )
-          usage_help
-          exit 1
-          ;;
-      esac
-      ;;
-    --no-auto-run-on-start )
-      stop_auto_run_on_start=true
-      ;;
-    * )
-      echo "Unknown option: $opt"
-      usage_help
-      exit 1
-      ;;
-  esac
-done
+clear_vpd() {
+  local region
 
-goofy_control_pid="$(pgrep goofy_control)"
+  # $* may contain spaces so we cannot quote it.
+  # shellcheck disable=SC2048
+  for region in $*; do
+    echo "Clearing ${region} VPD region..."
+    vpd -i "${region}_VPD" -O
+  done
+}
 
-echo -n "Attempt to stop gracefully... "
-# save pids in case their parents die and they are orphaned
-all_pids=$(kill_tree TERM $goofy_control_pid)
-for sec in 3 2 1; do
-  echo -n "${sec} "
-  sleep 1
-done
-
-echo -n "Stopping factory test programs... "
-kill_tree KILL $all_pids > /dev/null
-echo "done."
-
-for d in $delete; do
-  rm -rf "$d"
-  mkdir -p "$d"
-done
-
-if $clear_vpd; then
-  echo Clearing RO VPD...
-  vpd -i RO_VPD -O
-  echo Clearing RW VPD...
-  vpd -i RW_VPD -O
-fi
-
-find ${FACTORY_BASE} -wholename "${AUTOMATION_MODE_TAG_FILE}" -delete
-if [ "${automation_mode}" != "none" ]; then
-  echo Enable factory test automation with mode: ${automation_mode}
-  echo "${automation_mode}" > ${AUTOMATION_MODE_TAG_FILE}
-  if ${stop_auto_run_on_start}; then
-    touch ${STOP_AUTO_RUN_ON_START_TAG_FILE}
-  else
-    rm -f ${STOP_AUTO_RUN_ON_START_TAG_FILE}
+clear_data() {
+  local data
+  if [ -z "$*" ]; then
+    return
   fi
-fi
 
-echo "Restarting factory tests..."
-# Ensure full stop (instead of 'restart'), we don't want to have the same
-# factory process recycled after we've been killing bits of it. Also because we
-# need two jobs (factory and ui) both restarted.
-#
-# Add /sbin to PATH; that's usually where stop and start are, and
-# /sbin may not be in the path.
-export PATH=/sbin:"$PATH"
-(status factory | grep -q 'stop/waiting') || stop factory
-(status ui | grep -q 'stop/waiting') || stop ui
-start factory
+  echo "Clear data: $*"
+  # $* may contain spaces so we cannot quote it.
+  # shellcheck disable=SC2048
+  for data in $*; do
+    rm -rf "${data}"
+    mkdir -p "${data}"
+  done
+}
+
+stop_services() {
+  local service
+  # Ensure full stop (instead of 'restart'), we don't want to have the same
+  # factory process recycled after we've been killing bits of it. Also because we
+  # need two jobs (factory and ui) both restarted.
+
+  # $* may contain spaces so we cannot quote it.
+  # shellcheck disable=SC2048
+  for service in $*; do
+    (status "${service}" | grep -q 'stop/waiting') || stop "${service}"
+  done
+}
+
+stop_session() {
+  local goofy_control_pid="$(pgrep goofy_control)"
+  local sec
+
+  printf "Attempt to stop gracefully... "
+  # save pids in case their parents die and they are orphaned
+  local all_pids="$(kill_tree TERM "${goofy_control_pid}")"
+  for sec in 3 2 1; do
+    printf "%s " "${sec}"
+    sleep 1
+  done
+
+  printf "Stopping factory test programs... "
+  # all_pids must be passed as individual parameters so we should not quote it.
+  kill_tree KILL "${all_pids}" > /dev/null
+  echo "done."
+}
+
+enable_automation() {
+  local automation_mode="$1"
+  local stop_auto_run_on_start="$2"
+
+  find "${FACTORY_BASE}" -wholename "${AUTOMATION_MODE_TAG_FILE}" -delete
+  if [ "${automation_mode}" != "none" ]; then
+    echo "Enable factory test automation with mode: ${automation_mode}"
+    echo "${automation_mode}" > "${AUTOMATION_MODE_TAG_FILE}"
+    if "${stop_auto_run_on_start}"; then
+      touch "${STOP_AUTO_RUN_ON_START_TAG_FILE}"
+    else
+      rm -f "${STOP_AUTO_RUN_ON_START_TAG_FILE}"
+    fi
+  fi
+}
+
+main() {
+  local data=""
+  local vpd=""
+  local services="factory ui"
+  local stop_auto_run_on_start=false automation_mode="none"
+
+  while [ $# -gt 0 ]; do
+    opt="$1"
+    shift
+    case "${opt}" in
+      -l | log )
+        data="${data} ${FACTORY_BASE}/log"
+        ;;
+      -s | state )
+        data="${data} ${FACTORY_BASE}/state"
+        ;;
+      -t | tests )
+        data="${data} ${FACTORY_BASE}/tests"
+        ;;
+      -r | run )
+        data="${data} /run/factory"
+        ;;
+      -a | all )
+        data="${data} ${FACTORY_BASE}/log ${FACTORY_BASE}/state"
+        data="${data} ${FACTORY_BASE}/tests /run/factory"
+        ;;
+      -d | vpd )
+        vpd="${vpd} RO RW"
+        ;;
+      -h | help )
+        usage_help
+        exit 0
+        ;;
+      --automation-mode )
+        case "$1" in
+          none | partial | full )
+            automation_mode="$1"
+            shift
+            ;;
+          * )
+            usage_help
+            exit 1
+            ;;
+        esac
+        ;;
+      --no-auto-run-on-start )
+        stop_auto_run_on_start=true
+        ;;
+      * )
+        echo "Unknown option: $opt"
+        usage_help
+        exit 1
+        ;;
+    esac
+  done
+
+  stop_session
+  stop_services "${services}"
+  clear_data "${data}"
+  clear_vpd "${vpd}"
+  enable_automation "${automation_mode}" "${stop_auto_run_on_start}"
+
+  echo "Restarting factory session..."
+  start factory
+}
+main "$@"
