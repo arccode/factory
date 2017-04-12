@@ -99,12 +99,13 @@ class DomeServerException(DomeException):
 
 @contextlib.contextmanager
 def UploadedFile(temporary_uploaded_file_id):
-  f = TemporaryUploadedFile.objects.get(pk=temporary_uploaded_file_id).file
+  """Get corresponding file object based on its ID."""
+  f = TemporaryUploadedFile.objects.get(pk=temporary_uploaded_file_id)
   try:
-    yield f
+    yield f.file
   finally:
-    f.close()
-    path = UploadedFilePath(f)
+    f.delete()  # delete the entry in database
+    path = UploadedFilePath(f.file)
     try:
       os.unlink(path)  # once the file has been used it can be removed
     except OSError as e:
@@ -118,6 +119,7 @@ def UploadedFile(temporary_uploaded_file_id):
 
 
 def UploadedFilePath(uploaded_file):
+  """Return path to the uploaded file."""
   return os.path.join(django.conf.settings.MEDIA_ROOT, uploaded_file.name)
 
 
@@ -138,7 +140,7 @@ def UmpireAccessibleFile(board, uploaded_file):
   to tell what the files actually are. Also, due to the way Umpire Docker is
   designed, it's not possible to move the file instead of copy now.
 
-  TODO(littlecvr): make Umpire support renaming when updating.
+  TODO(b/37257641): make Umpire support renaming when updating.
   TODO(b/31417203): provide an argument to choose from moving file instead of
                     copying (after the issue has been solved).
 
