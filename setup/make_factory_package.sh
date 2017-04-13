@@ -83,6 +83,8 @@ DEFINE_string toolkit "" \
 DEFINE_string toolkit_arguments "" \
   "If set, additional arguments will be passed into the factory toolkit installer. "\
 "Must be used with --toolkit."
+DEFINE_boolean cros_payload ${FLAGS_FALSE} \
+  "Generate the Omaha data using new CrosPayload format."
 DEFINE_string factory_toolkit "" \
   "Deprecated by --toolkit. "
 # Usage Help
@@ -107,6 +109,12 @@ fi
 
 on_exit() {
   image_clean_temp
+}
+
+on_error() {
+  trap - EXIT
+  error "Failed to complete $0."
+  on_exit
 }
 
 # Param checking and validation
@@ -294,23 +302,25 @@ setup_environment() {
   RELEASE_DIR="$(dirname "${FLAGS_release}")"
   RELEASE_IMAGE="$(basename "${FLAGS_release}")"
 
-  if [ -n "${FLAGS_factory}" ]; then
-    FACTORY_IMAGE="${FLAGS_factory}"
-  elif [ -n "$build_factory" ]; then
-    FACTORY_IMAGE="$(mktemp --tmpdir)"
-    image_add_temp "${FACTORY_IMAGE}"
-    local toolkit_output=$(mktemp --tmpdir)
-    echo "Creating factory test image from test image and toolkit" \
-        "with flags --yes $FLAGS_toolkit_arguments " \
-        "(output in $toolkit_output)..."
-    # Check cgpt.
-    if ! image_has_command cgpt; then
-      die "Missing cgpt. Please install cgpt, or run in chroot."
+  if [ "${FLAGS_cros_payload}" = "${FLAGS_FALSE}" ]; then
+    if [ -n "${FLAGS_factory}" ]; then
+      FACTORY_IMAGE="${FLAGS_factory}"
+    elif [ -n "$build_factory" ]; then
+      FACTORY_IMAGE="$(mktemp --tmpdir)"
+      image_add_temp "${FACTORY_IMAGE}"
+      local toolkit_output=$(mktemp --tmpdir)
+      echo "Creating factory test image from test image and toolkit" \
+          "with flags --yes $FLAGS_toolkit_arguments " \
+          "(output in $toolkit_output)..."
+      # Check cgpt.
+      if ! image_has_command cgpt; then
+        die "Missing cgpt. Please install cgpt, or run in chroot."
+      fi
+      cp "${FLAGS_test}" "${FACTORY_IMAGE}"
+      sudo CGPT="$(which cgpt)" "${FLAGS_toolkit}" \
+          "${FACTORY_IMAGE}" --yes ${FLAGS_toolkit_arguments} >& \
+          "${toolkit_output}"
     fi
-    cp "${FLAGS_test}" "${FACTORY_IMAGE}"
-    sudo CGPT="$(which cgpt)" "${FLAGS_toolkit}" \
-        "${FACTORY_IMAGE}" --yes ${FLAGS_toolkit_arguments} >& \
-        "${toolkit_output}"
   fi
 
   # Override this with path to modified kernel (for non-SSD images)
@@ -320,6 +330,154 @@ setup_environment() {
   if ! image_has_part_tools; then
     die "Missing partition tools. Please install cgpt/parted, or run in chroot."
   fi
+}
+
+# Builds cros_payloads into a folder.
+build_payloads() {
+  local dest="$1"
+
+  [ -n "$FLAGS_board" ] || die "Need --board parameter for payloads."
+  [ -n "$FLAGS_test" ] || die "Need --test parameter for payloads."
+  [ -n "$FLAGS_release" ] || die "Need --release parameter for payloads."
+  [ -n "$FLAGS_factory_toolkit" ] || die "Need --factory_toolkit for payloads."
+
+  # Clean up stale config and data files.
+  local json_path="${dest}/${FLAGS_board}.json"
+  local cros_payload="${SCRIPT_DIR}/cros_payload"
+  echo "{}" >"${json_path}"
+  local empty_file="$(mktemp)"
+  image_add_temp "${empty_file}"
+
+  if [ "${ENABLE_FIRMWARE_UPDATER}" = "${FLAGS_TRUE}" ] &&
+     [ -z "${FLAGS_firmware_updater}" ]; then
+    info "Preparing firmware updater from release image..."
+    local fwupdater_tmp_dir="$(mktemp -d --tmpdir)"
+    image_add_temp "${fwupdater_tmp_dir}"
+    "${SCRIPT_DIR}/extract_firmware_updater.sh" -i "${FLAGS_release}" \
+      -o "${fwupdater_tmp_dir}"
+    FLAGS_firmware_updater="${fwupdater_tmp_dir}/chromeos-firmwareupdate"
+  fi
+
+  local i component resource
+  local components=(test_image release_image toolkit firmware hwid complete)
+  local resources=("${FLAGS_test}" "${FLAGS_release}" "${FLAGS_factory_toolkit}"
+                   "${FLAGS_firmware_updater}" "${FLAGS_hwid_updater}"
+                   "${FLAGS_complete_script}")
+  for i in ${!components[@]}; do
+    component="${components[$i]}"
+    resource="${resources[$i]}"
+    if [ -n "${resource}" ]; then
+      echo "Generating ${component} payloads from ${resource}..."
+      "${cros_payload}" add "${json_path}" "${component}" "${resource}"
+    else
+      echo "Adding empty ${component} payload..."
+      "${cros_payload}" add "${json_path}" "${component}" "${empty_file}"
+    fi
+  done
+}
+
+generate_omaha2() {
+  # Clean up stale config and data files.
+  prepare_dir "${OMAHA_DATA_DIR}"
+  build_payloads "${OMAHA_DATA_DIR}"
+  echo 'config = [ {} ]' >"${OMAHA_CONF}"
+
+  local data_dir_param=""
+  if [ -n "${FLAGS_omaha_data_dir}" ]; then
+      data_dir_param="--data_dir ${OMAHA_DATA_DIR}"
+  fi
+  info "The miniomaha/cros_payload server lives in: ${OMAHA_DATA_DIR}
+  To run the server:
+    python ${OMAHA_PROGRAM} ${data_dir_param}"
+}
+
+generate_usbimg2() {
+  # TODO(hungte) Read board from release image if needed.
+  [ -n "$FLAGS_board" ] || die "Need --board parameter."
+
+  if ! type cgpt >/dev/null 2>&1; then
+    die "Missing 'cgpt'. Please install cgpt, or run inside chroot."
+  fi
+
+  # It is possible to enlarge the disk by calculating sizes of all input files,
+  # create cros_payloads folder in the disk image file, to minimize execution
+  # time. However, that implies we have to shrink disk image later (due to gz),
+  # and run build_payloads using root, which are not easy. As a result, here we
+  # want to create payloads in temporary folder then copy into disk image.
+
+  info "Generating cros_payloads.."
+  local payloads_dir="$(mktemp -d --tmpdir)"
+  image_add_temp "${payloads_dir}"
+  build_payloads "${payloads_dir}"
+
+  local payloads_size="$(du -sk "${payloads_dir}" | cut -f 1)"
+  info "cros_payloads size: $((payloads_size / 1024))M."
+
+  info "Preparing new USB image from ${FLAGS_install_shim}..."
+  cp -f "${FLAGS_install_shim}" "${FLAGS_usbimg}"
+  local old_size="$(stat --printf="%s" "${FLAGS_usbimg}")"
+  local new_size="$((payloads_size * 1024 + old_size))"
+
+  info "Size changed: $((new_size / 1048576))M => $((old_size / 1048576))M."
+  truncate -s "${new_size}" "${FLAGS_usbimg}"
+  "${SCRIPT_DIR}/pygpt" repair --expand "${FLAGS_usbimg}"
+
+  local state_dev="$(image_map_partition "${FLAGS_usbimg}" 1)"
+  local failure=0
+  sudo e2fsck -f "${state_dev}" || failure=$?
+  sudo resize2fs "${state_dev}" || failure=$?
+  image_unmap_partition "${state_dev}" || true
+  if [ "${failure}" != 0 ]; then
+    die "Failed to resize stateful partition."
+  fi
+
+  local stateful_dir="$(mktemp -d --tmpdir)"
+  image_add_temp "${stateful_dir}"
+  image_mount_partition "${FLAGS_usbimg}" 1 "${stateful_dir}" "rw"
+
+  local stateful_payloads="${stateful_dir}/cros_payloads"
+  sudo mkdir -m 0755 -p "${stateful_payloads}"
+  info "Moving payload files to disk image..."
+  sudo mv -f "${payloads_dir}"/* "${stateful_payloads}"
+
+  local lsb_path="/dev_image/etc/lsb-factory"
+  echo "FACTORY_INSTALL_FROM_USB=1" | sudo tee -a "${stateful_dir}${lsb_path}"
+  sudo df -h "${stateful_dir}"
+  image_umount_partition "${stateful_dir}"
+
+  info "Generated USB image at ${FLAGS_usbimg}."
+  info "Done"
+}
+
+generate_img2() {
+  prepare_img
+
+  local build_tmp="$(mktemp -d --tmpdir)"
+  image_add_temp "${build_tmp}"
+  build_payloads "${build_tmp}"
+
+  local cros_payload="${SCRIPT_DIR}/cros_payload"
+  local json_path="${build_tmp}/${FLAGS_board}.json"
+  local failure=0
+  # TODO(hungte) "losetup -P" needs Ubuntu 15 and we need an alternative for 14.
+  local outdev="$(sudo losetup --find --show -P "${FLAGS_diskimg}")"
+
+  sudo "${cros_payload}" install "${json_path}" "${outdev}" \
+    test_image release_image toolkit hwid || failure=$?
+  sudo losetup -d "${outdev}"
+
+  echo "Updating files in stateful partition"
+  # Add /etc/lsb-factory into diskimg if not exists.
+  image_mount_partition "${outdev}" 1 "${build_tmp}" "rw"
+  sudo touch "${build_tmp}"/dev_image/etc/lsb-factory
+  image_umount_partition "${build_tmp}"
+
+  if [ "${failure}" != 0 ]; then
+    die "Installation to ${FLAGS_diskimg} failed."
+  fi
+
+  echo "Generated Image at ${FLAGS_diskimg}."
+  echo "Done"
 }
 
 # Prepares release image source by checking image type, and creates modified
@@ -936,11 +1094,11 @@ check_empty_normal_params() {
 
 main() {
   set -e
-  trap on_exit EXIT
   if [ "$#" != 0 ]; then
     flags_help
     exit 1
   fi
+  trap on_error EXIT
 
   if [ -n "$FLAGS_config" ]; then
     [ -z "$MFP_SUBPROCESS" ] ||
@@ -957,27 +1115,44 @@ main() {
 
     parse_and_run_config "$FLAGS_config"
     [ "$FLAGS_run_omaha" = $FLAGS_FALSE ] || run_omaha
+    trap on_exit EXIT
     exit
   fi
 
   check_parameters
   setup_environment
 
-  if [ "$FLAGS_detect_release_image" = $FLAGS_TRUE ]; then
-    prepare_release_image "$FLAGS_release"
-  fi
-  if [ "$ENABLE_FIRMWARE_UPDATER" = $FLAGS_TRUE ]; then
-    prepare_firmware_updater "$FLAGS_release"
-  fi
+  if [ "${FLAGS_cros_payload}" = "${FLAGS_TRUE}" ]; then
 
-  if [ -n "$FLAGS_usbimg" ]; then
-    generate_usbimg
-  elif [ -n "$FLAGS_diskimg" ]; then
-    generate_img
+    if [ -n "$FLAGS_usbimg" ]; then
+      generate_usbimg2
+    elif [ -n "$FLAGS_diskimg" ]; then
+      generate_img2
+    else
+      generate_omaha2
+      [ "$FLAGS_run_omaha" = $FLAGS_FALSE ] || run_omaha
+    fi
+
   else
-    generate_omaha
-    [ "$FLAGS_run_omaha" = $FLAGS_FALSE ] || run_omaha
+
+    # Image preparation is only needed in non-cros_payload system.
+    if [ "$FLAGS_detect_release_image" = $FLAGS_TRUE ]; then
+      prepare_release_image "$FLAGS_release"
+    fi
+    if [ "$ENABLE_FIRMWARE_UPDATER" = $FLAGS_TRUE ]; then
+      prepare_firmware_updater "$FLAGS_release"
+    fi
+
+    if [ -n "$FLAGS_usbimg" ]; then
+      generate_usbimg
+    elif [ -n "$FLAGS_diskimg" ]; then
+      generate_img
+    else
+      generate_omaha
+      [ "$FLAGS_run_omaha" = $FLAGS_FALSE ] || run_omaha
+    fi
   fi
+  trap on_exit EXIT
 }
 
 main "$@"

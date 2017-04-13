@@ -383,7 +383,7 @@ image_clean_temp() {
   for object in $temp_list; do
     if [ -d "$object" ]; then
       sudo umount "$object" >/dev/null 2>&1 || true
-      sudo rmdir "$object" >/dev/null 2>&1 || true
+      sudo rm -rf "$object" >/dev/null 2>&1 || true
     else
       rm -f "$object" >/dev/null 2>&1 || true
     fi
