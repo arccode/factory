@@ -654,10 +654,10 @@ class FinalizeBundle(object):
     target_bootfile = 'vmlinuz-%s' % self.board
     target_argsfile = 'cmdline-%s' % self.board
     if os.path.exists(netboot_firmware_image):
-      update_firmware_settings = os.path.join(
+      netboot_firmware_settings = os.path.join(
           self.bundle_dir, 'setup', 'netboot_firmware_settings.py')
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
-      Spawn([update_firmware_settings,
+      Spawn([netboot_firmware_settings,
              '--argsfile', target_argsfile,
              '--bootfile', target_bootfile,
              '--input', netboot_firmware_image,

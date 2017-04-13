@@ -81,7 +81,6 @@ files:
 - setup/miniomaha_engine.py
 - setup/miniomaha_test.py
 - setup/mk_memento_images.sh
-- setup/modify_netboot_ip.sh
 - setup/mount_partition.sh
 - setup/netboot_firmware_settings.py
 - factory_shim/netboot/vmlinuz

@@ -137,11 +137,11 @@ class ModifyBundle(FactoryFlowCommand):
     netboot_firmware_image = os.path.join(
         self.options.bundle, 'netboot_firmware', 'image.net.bin')
     if os.path.exists(netboot_firmware_image):
-      update_firmware_settings = (
+      netboot_firmware_settings = (
           os.path.join(
               self.options.bundle, 'setup', 'netboot_firmware_settings.py'))
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
-      process_utils.Spawn([update_firmware_settings,
+      process_utils.Spawn([netboot_firmware_settings,
                            '--bootfile', 'vmlinuz',
                            '--input', netboot_firmware_image,
                            '--output', new_netboot_firmware_image,

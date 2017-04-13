@@ -1,1 +1,0 @@
-netboot_firmware_settings.py
