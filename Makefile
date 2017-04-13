@@ -311,7 +311,8 @@ smart_lint-%: .phony
 	bin/smart_lint --overlay $(@:smart_lint-%=%)
 
 presubmit-chroot:
-	$(foreach target,$(PRESUBMIT_TARGETS),$(MAKE) -s $(target)${\n})
+	$(foreach target,$(PRESUBMIT_TARGETS),\
+	  PYTHONDONTWRITEBYTECODE=true $(MAKE) -s $(target)${\n})
 
 presubmit-lint:
 	@$(MAKE) lint LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" 2>/dev/null
