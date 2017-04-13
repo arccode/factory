@@ -58,7 +58,7 @@ class WiFi(component.DeviceComponent):
     self.tmp_dir = tmp_dir
 
   def _NewConnection(self, *args, **kwargs):
-    """Create a new Connection object with the given arguments.
+    """Creates a new Connection object with the given arguments.
 
     Can be overridden in a subclass to send custom arguments to the Connection
     class.
@@ -66,7 +66,7 @@ class WiFi(component.DeviceComponent):
     return Connection(*args, dhcp_method=Connection.DHCP_DHCPCD, **kwargs)
 
   def GetInterfaces(self, name_patterns=None):
-    """Return the interfaces for wireless LAN devices.
+    """Returns the interfaces for wireless LAN devices.
 
     Args:
       name_patterns: A list that contains all name patterns of WiFi interfaces.
@@ -84,7 +84,7 @@ class WiFi(component.DeviceComponent):
     return interfaces
 
   def _ValidateInterface(self, interface=None):
-    """Return either provided interface, or one retrieved from system."""
+    """Returns either provided interface, or one retrieved from system."""
     if interface:
       return interface
 
@@ -95,37 +95,29 @@ class WiFi(component.DeviceComponent):
     # Arbitrarily choose first interface.
     return interfaces[0]
 
-  def _AllAccessPoints(self, interface=None, scan_timeout=None):
-    """Retrieve a list of AccessPoint objects."""
-    if scan_timeout is None:
-      scan_timeout = self._SCAN_TIMEOUT_SECS
+  def _AllAccessPoints(self, interface):
+    """Retrieves a list of AccessPoint objects.
 
-    # First, bring the device up.  If it is already up, this will succeed
-    # anyways.
-    logging.debug('Bringing up ifconfig...')
-    self._dut.CheckCall(['ifconfig', interface, 'up'])
+    Args:
+      interface: the interface name to find the access points.
 
-    # Grab output from the iw 'scan' command on the requested interface.  This
-    # sometimes fails if the device is busy, so we may need to retry it a few
-    # times before getting output.
-    def TryScan():
-      try:
-        return self._dut.CheckOutput(['iw', 'dev', interface, 'scan'])
-      except component.CalledProcessError:
-        return False
-    output = sync_utils.PollForCondition(
-        poll_method=TryScan,
-        timeout_secs=scan_timeout,
-        poll_interval_secs=0,
-        condition_name='Attempting iw scan...').decode('string_escape')
+    Returns:
+      a list of the found access points objects.
+    """
+    try:
+      # First, bring the device up.  If it is already up, this will succeed
+      # anyways.
+      logging.debug('Bringing up interface %s...', interface)
+      self._dut.CheckCall(['ifconfig', interface, 'up'])
 
-    if not output:
-      raise WiFiError('Unable to scan device for access points')
-
-    return self._ParseScanResult(output)
+      output = self._dut.CheckOutput(
+          ['iw', 'dev', interface, 'scan']).decode('string_escape')
+      return self._ParseScanResult(output)
+    except component.CalledProcessError:
+      return []
 
   def _ParseScanResult(self, output):
-    """Parse output from iw scan into AccessPoint objects."""
+    """Parses output from iw scan into AccessPoint objects."""
     # Split access points into a list.  Since we split on a string encountered
     # at the very beginning of the output, the first element is blank (thus
     # we skip the first element).  Remaining elements are in groups of three,
@@ -144,7 +136,7 @@ class WiFi(component.DeviceComponent):
     return aps
 
   def _ParseScanAccessPoint(self, bssid, active, output):
-    """Parse a particular AP in iw scan output into an AccessPoint object.
+    """Parses a particular AP in iw scan output into an AccessPoint object.
 
     Some of the logic in this function was derived from information here:
     https://wiki.archlinux.org/index.php/Wireless_network_configuration
@@ -205,42 +197,82 @@ class WiFi(component.DeviceComponent):
 
     return ap
 
-  def FindAccessPoint(
-      self, ssid=None, active=None, encrypted=None, interface=None,
-      scan_timeout=_SCAN_TIMEOUT_SECS):
-    """Retrieve the first AccessPoint object with the given criteria."""
-    interface = self._ValidateInterface(interface)
-    matches = self.FilterAccessPoints(
+  def FindAccessPoint(self, ssid=None, active=None, encrypted=None,
+                      interface=None, scan_timeout=_SCAN_TIMEOUT_SECS):
+    """Retrieves the first AccessPoint object with the given criteria.
+
+    Args:
+      ssid: the SSID of target access point. None to accept all SSIDs.
+      active: a boolean indicating the target AP is currently associated or not.
+          None to accept both cases.
+      encrypted: a boolean indicating the target AP is encrypted or not. None to
+          accept both cases.
+      interface: the WiFi interface name used to connect APs. None to use the
+          one retrieved from system.
+      scan_timeout: timeout to find the target APs.
+
+    Returns:
+      the first AccessPoint object that match the criteria.
+
+    Raises:
+      WiFiError if no matching access point is found in scan_timeout seconds.
+    """
+    return self.FilterAccessPoints(
         interface=interface,
         ssid=ssid,
         active=active,
         encrypted=encrypted,
-        scan_timeout=scan_timeout)
-    if not matches:
-      raise WiFiError('No matching access points found')
-    return matches[0]
+        scan_timeout=scan_timeout)[0]
 
-  def FilterAccessPoints(
-      self, ssid=None, active=None, encrypted=None, interface=None,
-      scan_timeout=None):
-    """Retrieve a list of AccessPoint objects matching criteria."""
+  def FilterAccessPoints(self, ssid=None, active=None, encrypted=None,
+                         interface=None, scan_timeout=_SCAN_TIMEOUT_SECS):
+    """Retrieves a list of AccessPoint objects matching criteria.
+
+    Args:
+      ssid: the SSID of target access point. None to accept all SSIDs.
+      active: a boolean indicating the target AP is currently associated or not.
+          None to accept both cases.
+      encrypted: a boolean indicating the target AP is encrypted or not. None to
+          accept both cases.
+      interface: the WiFi interface name used to connect APs. None to use the
+          one retrieved from system.
+      scan_timeout: timeout to find the target APs.
+
+    Returns:
+      a list of AccessPoint objects that match the criteria.
+
+    Raises:
+      WiFiError if no matching access point is found in scan_timeout seconds.
+    """
     interface = self._ValidateInterface(interface)
-    return [ap for ap in self._AllAccessPoints(interface=interface,
-                                               scan_timeout=scan_timeout)
-            if ((ssid is None or ssid == ap.ssid) and
-                (active is None or active == ap.active) and
-                (encrypted is None or encrypted == ap.encrypted))]
+    def _TryGetAccessPoints():
+      return [ap for ap in self._AllAccessPoints(interface=interface)
+              if ((ssid is None or ssid == ap.ssid) and
+                  (active is None or active == ap.active) and
+                  (encrypted is None or encrypted == ap.encrypted))]
+
+    # Grab output from the iw 'scan' command on the requested interface.  This
+    # sometimes fails if the device is busy, and the AP might be unstable to
+    # scan. So we may need to retry it a few times before getting output.
+    try:
+      return sync_utils.PollForCondition(
+          poll_method=_TryGetAccessPoints,
+          timeout_secs=scan_timeout,
+          poll_interval_secs=0,
+          condition_name='Attempting filter access points...')
+    except type_utils.TimeoutError:
+      raise WiFiError('No matching access points found')
 
   def Connect(self, ap, interface=None, passkey=None,
               connect_timeout=None, connect_attempt_timeout=None,
               dhcp_timeout=None):
-    """Connect to a given AccessPoint.
+    """Connects to a given AccessPoint.
 
     Returns:
       A connected Connection object.
     """
     if not isinstance(ap, AccessPoint):
-      raise WiFiError('Expected AccessPoint for ap argument')
+      raise WiFiError('Expected AccessPoint for ap argument: %s' % ap)
     interface = self._ValidateInterface(interface)
     conn = self._NewConnection(
         dut=self._dut, interface=interface,
@@ -255,7 +287,7 @@ class WiFi(component.DeviceComponent):
   def FindAndConnectToAccessPoint(
       self, ssid=None, interface=None, passkey=None, scan_timeout=None,
       connect_timeout=None, dhcp_timeout=None, **kwargs):
-    """Try to find the given AccessPoint and connect to it.
+    """Tries to find the given AccessPoint and connect to it.
 
     Returns:
       A connected Connection object.
@@ -342,7 +374,7 @@ class WiFiChromeOS(WiFi):
   _DHCLIENT_SCRIPT_PATH = '/usr/local/sbin/dhclient-script'
 
   def _NewConnection(self, *args, **kwargs):
-    """Create a new Connection object with the given arguments.
+    """Creates a new Connection object with the given arguments.
 
     Selects dhclient DHCP method for Chrome OS devices.
     Disables wpasupplicant when making a connection to an AP.
@@ -405,14 +437,14 @@ class Connection(object):
     self._dhcp_args = {'dhclient_script_path': dhclient_script_path}
 
   def _DisconnectAP(self):
-    """Disconnect from the current AP."""
+    """Disconnects from the current AP."""
     disconnect_command = 'iw dev {interface} disconnect'.format(
         interface=self.interface)
     # This call may fail if we are not connected to any network.
     self._dut.Call(disconnect_command)
 
   def _Connect(self, connect_fn=None):
-    """Retry the given function to connect to the AP."""
+    """Retries the given function to connect to the AP."""
     connect_fn = connect_fn or (lambda: True)
     def AttemptConnect():
       # Scan first, and then connect directly afterwards.  We do this because
@@ -427,7 +459,7 @@ class Connection(object):
     return sync_utils.WaitFor(AttemptConnect, self._connect_timeout)
 
   def _WaitConnect(self):
-    """Block until authenticated and connected to the AP."""
+    """Blocks until authenticated and connected to the AP."""
     CHECK_SUCCESS_PREFIX = 'Connected to'
     check_command = 'iw dev {interface} link'.format(interface=self.interface)
     logging.info('Waiting to connect to AP...')
@@ -440,7 +472,7 @@ class Connection(object):
       return False
 
   def Connect(self):
-    """Connect to the AP."""
+    """Connects to the AP."""
     if self.ap.encrypted and not self.passkey:
       raise WiFiError('Require passkey to connect to encrypted network')
     self._DisconnectAP()
@@ -475,7 +507,7 @@ class Connection(object):
     self._dhcp_process = dhcp_process
 
   def Disconnect(self):
-    """Disconnect from the AP."""
+    """Disconnects from the AP."""
     if not self._auth_process or not self._dhcp_process:
       raise WiFiError('Must connect before disconnecting')
 
@@ -491,7 +523,7 @@ class Connection(object):
       self._tmp_dir = None
 
   def _LeasedIP(self):
-    """Return current leased IP.
+    """Returns current leased IP.
 
     Returns:
       Leased IP as a string or False if not yet leased.
@@ -507,7 +539,7 @@ class Connection(object):
     return out.split()[1].split('/')[0]
 
   def _RunDHCPCD(self, **kwargs):
-    """Grab an IP for the device using the dhcpcd command."""
+    """Grabs an IP for the device using the dhcpcd command."""
     del kwargs
     clear_ifconfig_command = 'ifconfig {interface} 0.0.0.0'.format(
         interface=self.interface)
@@ -548,7 +580,7 @@ class Connection(object):
     yield  # We have released the IP.
 
   def _RunDHCPClient(self, dhclient_script_path=None, **kwargs):
-    """Grab an IP for the device using the dhclient command."""
+    """Grabs an IP for the device using the dhclient command."""
     del kwargs
     PID_FILE = os.path.join(self._tmp_dir, 'dhclient.pid')
     clear_ifconfig_command = 'ifconfig {interface} 0.0.0.0'.format(
@@ -592,7 +624,7 @@ class Connection(object):
     yield  # We have released the IP.
 
   def _AuthenticateOpen(self):
-    """Connect to an open network."""
+    """Connects to an open network."""
     # TODO(kitching): Escape quotes in ssid properly.
     connect_command = u'iw dev {interface} connect {ssid}'.format(
         interface=self.interface,
@@ -613,7 +645,7 @@ class Connection(object):
     yield  # We have disconnected.
 
   def _AuthenticateWEP(self):
-    """Authenticate and connect to a WEP network."""
+    """Authenticates and connect to a WEP network."""
     # TODO(kitching): Escape quotes in ssid and passkey properly.
     connect_command = (
         u'iw dev {interface} connect {ssid} key 0:{passkey}'.format(
@@ -636,7 +668,7 @@ class Connection(object):
     yield  # We have disconnected.
 
   def _AuthenticateWPA(self):
-    """Authenticate and connect to a WPA network."""
+    """Authenticates and connect to a WPA network."""
     if self.passkey is None:
       raise WiFiError('Passkey is needed for WPA/WPA2 authentication')
 

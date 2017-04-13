@@ -398,6 +398,7 @@ class _ServiceTest(object):
           factory.console.info('[%s] PASS [%s] %s',
                                ap_config.ssid, fn.__name__, status)
       except self._TestException as e:
+        logging.exception('Failed to run %s(**kwargs=%s)', fn.__name__, kwargs)
         e.message = '[%s] FAIL [%s] %s' % (
             ap_config.ssid, fn.__name__, e.message)
         self._log['failures'].append(e.message)
@@ -462,14 +463,10 @@ class _ServiceTest(object):
     # Look for requested service.
     self._Log(u'Trying to connect to service %s...', ssid)
     try:
-      self._ap = sync_utils.PollForCondition(
-          poll_method=lambda: self._wifi.FindAccessPoint(
-              interface=self._interface,
-              ssid=ssid,
-              scan_timeout=_WIFI_TIMEOUT_SECS),
-          timeout_secs=_WIFI_TIMEOUT_SECS,
-          poll_interval_secs=_DEFAULT_POLL_INTERVAL_SECS,
-          condition_name='Looking for service %s...' % ssid)
+      self._ap = self._wifi.FindAccessPoint(
+          interface=self._interface,
+          ssid=ssid,
+          scan_timeout=_WIFI_TIMEOUT_SECS)
     except Exception:
       raise self._TestException(u'Unable to find service %s' % ssid)
     return u'Found service %s' % ssid
@@ -508,9 +505,12 @@ class _ServiceTest(object):
           passkey=password,
           connect_timeout=_WIFI_TIMEOUT_SECS,
           dhcp_timeout=_WIFI_TIMEOUT_SECS)
-    except self._wifi.WiFiError as e:
-      raise self._TestException('Unable to connect to %s: %s'
-                                % (ssid, e.message))
+    except self._wifi.WiFiError:
+      unused_exc_class, exc, tb = sys.exc_info()
+      exc_message = '%s: %s' % (exc.__class__.__name__, str(exc))
+      new_exc = self._TestException('Unable to connect to %s: %s'
+                                    % (ssid, exc_message))
+      raise new_exc.__class__, new_exc, tb
     else:
       return 'Successfully connected to %s' % ssid
 
