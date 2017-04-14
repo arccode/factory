@@ -619,6 +619,10 @@ class FactoryTest(object):
     See cros.factory.test.test_lists.FactoryTest for argument
     documentation.
     """
+    # The next test under its parent, this value will be updated by
+    # FactoryTestList object
+    self.next_sibling = None
+
     self.has_automator = has_automator
     self.pytest_name = pytest_name
     self.invocation_target = invocation_target
@@ -805,6 +809,10 @@ class FactoryTest(object):
       subtest.parent = self
       # pylint: disable=protected-access
       subtest._init((self.path + '.' if len(self.path) else ''), path_map)
+
+    # next_sibling should point to next test
+    for u, v in zip(self.subtests, self.subtests[1:]):
+      u.next_sibling = v
 
   def _check(self):
     """recursively checks if each test are valid.
@@ -1063,6 +1071,9 @@ class FactoryTest(object):
     state = self.get_state()
     return (state.status == TestState.PASSED and
             state.error_msg == TestState.SKIPPED_MSG)
+
+  def get_next_sibling(self):
+    return self.next_sibling
 
 
 class FactoryTestList(FactoryTest):

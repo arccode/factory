@@ -6,7 +6,10 @@
 """Test list builder."""
 
 
+from collections import namedtuple
+from contextlib import contextmanager
 import glob
+import imp
 import importlib
 import logging
 import os
@@ -14,8 +17,6 @@ import re
 import sys
 import threading
 import yaml
-from collections import namedtuple
-from contextlib import contextmanager
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
@@ -317,6 +318,42 @@ def TestList(id, label_en=None, label=None): # pylint: disable=redefined-builtin
   finally:
     popped = builder_state.stack.pop()
     assert test_list == popped
+
+
+def BuildTestListFromString(test_items, options=''):
+  """Build a test list from string for *unittests*.
+
+  Args:
+    test_items: the body of "with test_lists.TestList(...)" statement.  The
+      'test_lists' module is imported, so you can use test_lists.FactoryTest or
+      other functions to generate test items.  The top level should indent "4"
+      spaces.
+    options: set test list options, the "options" variable is imported.  Should
+      indent "4" spaces.
+  """
+
+  _TEST_LIST_TEMPLATE = """
+import factory_common
+from cros.factory.test.test_lists import test_lists
+from cros.factory.utils.net_utils import WLAN
+
+def CreateTestLists():
+  with test_lists.TestList(id='stub_test_list', label='label') as test_list:
+    options = test_list.options
+
+    # Load dummy plugin config as default.
+    options.plugin_config_name = 'goofy_plugin_goofy_unittest'
+    {options}
+    {test_items}
+  """
+  source = _TEST_LIST_TEMPLATE.format(test_items=test_items, options=options)
+  module = imp.new_module('stub_test_list')
+  module.__file__ = '/dev/null'
+  exec source in module.__dict__
+
+  created_test_lists = BuildTestLists(module)
+  assert len(created_test_lists) == 1
+  return created_test_lists.values()[0]
 
 
 def BuildTestLists(module):

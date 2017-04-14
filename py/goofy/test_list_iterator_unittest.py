@@ -6,52 +6,14 @@
 
 
 import cPickle as pickle
-import imp
 import logging
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import test_list_iterator
-from cros.factory.test import state
 from cros.factory.test import factory
+from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
-
-
-def _BuildTestList(test_items, options):
-  """Build a test list
-
-  Args:
-    test_items: the body of "with test_lists.TestList(...)" statement.  The
-      'test_lists' module is imported, so you can use test_lists.FactoryTest or
-      other functions to generate test items.  The top level should indent "4"
-      spaces.
-    options: set test list options, the "options" variable is imported.  Should
-      indent "4" spaces.
-  """
-
-  _TEST_LIST_TEMPLATE = """
-import factory_common
-from cros.factory.test.test_lists import test_lists
-from cros.factory.utils.net_utils import WLAN
-
-def CreateTestLists():
-  with test_lists.TestList(id='stub_test_list', label='label') as test_list:
-    options = test_list.options
-
-    # Load dummy plugin config as default.
-    options.plugin_config_name = 'goofy_plugin_goofy_unittest'
-    {options}
-    {test_items}
-  """
-
-  source = _TEST_LIST_TEMPLATE.format(test_items=test_items, options=options)
-  module = imp.new_module('stub_test_list')
-  module.__file__ = '/dev/null'
-  exec source in module.__dict__
-
-  created_test_lists = test_lists.BuildTestLists(module)
-  assert len(created_test_lists) == 1
-  return created_test_lists.values()[0]
 
 
 class TestListIteratorTest(unittest.TestCase):
@@ -63,7 +25,7 @@ class TestListIteratorTest(unittest.TestCase):
     self.test_list = self._BuildTestList(self.TEST_LIST, self.OPTIONS)
 
   def _BuildTestList(self, test_list_code, options_code):
-    return _BuildTestList(test_list_code, options_code)
+    return test_lists.BuildTestListFromString(test_list_code, options_code)
 
   def _SetStubStateInstance(self, test_list):
     state_instance = state.StubFactoryState()
