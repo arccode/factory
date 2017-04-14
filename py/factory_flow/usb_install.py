@@ -2,6 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# TODO(hungte) This is temporarily broken after the make_factory_package.sh has
+# changed from --factory_image to --test_image + --toolkit. We may need to
+# fix or remove this module in future.
+
 """A module for running factory install on a DUT with a USB disk on a servo."""
 
 from __future__ import print_function
@@ -131,6 +135,7 @@ class USBInstall(FactoryFlowCommand):
       usb_image_path = os.path.join(
           self.options.bundle, 'usb_image.bin')
 
+      # TODO(hungte) Fix the --factory or deprecate this file.
       make_factory_package = [
           os.path.join(self.options.bundle, 'setup', 'make_factory_package.sh'),
           '--board', self.options.board.full_name,

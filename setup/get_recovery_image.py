@@ -4,6 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# TODO(hungte) The 'release only' mode is actually broken after cros_payload
+# system is introduced. We may revise or remove this module in future.
+
 """ Script for auto fetching the latest stable images on-line
 and setup the environment for miniomaha server.
 """
@@ -66,7 +69,8 @@ class OmahaPreparer(object):
         [os.path.join(self.script_dir, 'make_factory_package.sh'),
          '--board=%s' % board_name,
          '--release=%s' % file_path,
-         '--factory=none',
+         '--test=none',
+         '--toolkit=none',
          '--hwid=none',
          '--omaha_data_dir=%s' % data_dir])
     if return_value:

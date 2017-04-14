@@ -35,37 +35,49 @@ setup_cros_sdk_environment() {
 
 setup_cros_sdk_environment
 FLAGS_NONE='none'
-
 # Flags
 DEFINE_string board "${DEFAULT_BOARD}" "Board for which the image was built"
-DEFINE_string factory "" \
-  "Directory and file containing factory image:"\
-" /path/chromiumos_test_image.bin"\
-" or '$FLAGES_NONE' to prevent running factroy test."
-DEFINE_string firmware_updater "" \
-  "Firmware updater (shellball) into the server configuration,"\
-" or leave empty (default) for the updater in release image (--release), "\
+
+# Flags for key input components
+DEFINE_string release_image "" \
+  "Path to a ChromiumOS release (or recovery) image."
+DEFINE_string test_image "" \
+  "Path to a ChromiumOS test image (build_image test) chromiumos_test_image.bin"
+DEFINE_string toolkit "" \
+  "Path to a factory toolkit to use (install_factory_toolkit.run)."
+DEFINE_string install_shim "" \
+"Path to a factory shim (build_image factory_install) factory_install_shim.bin"
+
+# Flags for optional input components
+DEFINE_string firmware "" \
+  "Path to a firmware updater (shellball) chromeos-firmwareupdate,"\
+" or leave empty (default) for the updater in release image (--release_image),"\
 " or '$FLAGS_NONE' to prevent running firmware updater."
-DEFINE_string hwid_updater "" \
-  "The component list updater for HWID validation,"\
-" or '$FLAGS_NONE' to prevent updating the component list files."
+DEFINE_string hwid "" \
+  "Path to a HWID bundle updating the HWID database config files,"\
+" or '$FLAGS_NONE' to prevent updating the HWID config file."
 DEFINE_string complete_script "" \
   "If set, include the script for the last-step execution of factory install"
-DEFINE_string release "" \
-  "Directory and file containing release image: /path/chromiumos_image.bin"
-DEFINE_string omaha_data_dir "" \
-  "Directory to place all generated data"
-DEFINE_string subfolder "" \
-  "If set, the name of the subfolder to put the payload items inside"
+
+DEFINE_string toolkit_arguments "" \
+  "If set, additional arguments will be passed to factory toolkit installer. "
+
+# Flags for output modes.
+DEFINE_boolean cros_payload ${FLAGS_FALSE} \
+  "Generate the output data using new cros_payload format."
 DEFINE_string usbimg "" \
-  "If set, the name of the USB installation disk image file to output"
-DEFINE_string install_shim "" \
-  "Directory and file containing factory install shim for --usbimg"
+  "If set, the name of the USB installation disk image file to output."
 DEFINE_string diskimg "" \
-  "If set, the name of the diskimage file to output"
+  "If set, the name of the diskimage file to output."
 DEFINE_boolean preserve ${FLAGS_FALSE} \
   "If set, reuse the diskimage file, if available"
-DEFINE_integer sectors 31277232  "Size of image in sectors"
+DEFINE_integer sectors 31277232  "Size of image in sectors."
+DEFINE_string omaha_data_dir "" \
+  "Directory to place all generated data in Omaha mode."
+
+# Flags for legacy Omaha mode.
+DEFINE_string subfolder "" \
+  "If set, the name of the subfolder to put the payload items inside"
 DEFINE_boolean detect_release_image ${FLAGS_TRUE} \
   "If set, try to auto-detect the type of release image and convert if required"
 DEFINE_string config "" \
@@ -74,19 +86,12 @@ DEFINE_string config "" \
 'config file itself) in config file to use relative path'
 DEFINE_boolean run_omaha ${FLAGS_FALSE} \
   "Run mini-omaha server after factory package setup completed."
-DEFINE_string test "" \
-  "If set, path to a test image to use to create a factory test image. "\
-"Must be used with --toolkit. Mutually exclusive with --factory."
-DEFINE_string toolkit "" \
-  "If set, path to a factory toolkit to use to create a factory test image. "\
-"Must be used with --test. Mutually exclusive with --factory."
-DEFINE_string toolkit_arguments "" \
-  "If set, additional arguments will be passed into the factory toolkit installer. "\
-"Must be used with --toolkit."
-DEFINE_boolean cros_payload ${FLAGS_FALSE} \
-  "Generate the Omaha data using new CrosPayload format."
+
+# Deprecated flags
 DEFINE_string factory_toolkit "" \
   "Deprecated by --toolkit. "
+DEFINE_string factory "" \
+  "Deprecated by --test_image and --toolkit."
 # Usage Help
 FLAGS_HELP="Prepares factory resources (mini-omaha server, RMA/usb/disk images)
 
@@ -105,6 +110,10 @@ eval set -- "${FLAGS_ARGV}"
 # Convert legacy options
 if [ -z "${FLAGS_toolkit}" ] && [ -n "${FLAGS_factory_toolkit}" ]; then
   FLAGS_toolkit="${FLAGS_factory_toolkit}"
+  warn "--factory_toolkit is deprecated by --toolkit."
+fi
+if [ -n "${FLAGS_factory}" ]; then
+  die "--factory is deprecated by --test_image TEST_IMAGE --toolkit TOOLKIT."
 fi
 
 on_exit() {
@@ -177,10 +186,18 @@ check_false_param() {
 }
 
 check_parameters() {
-  check_file_param FLAGS_release ""
+  # TODO(hungte) Auto-collect files from sub-folders in bundle.
+  check_file_param FLAGS_release_image ""
+  check_file_param FLAGS_test_image ""
+  check_file_param FLAGS_toolkit ""
+  check_file_param_or_none FLAGS_hwid ""
+
+  # --usbimg and --diskimg need complete_script to be empty, but that is fine
+  # for check_optional_file_param.
+  check_optional_file_param FLAGS_complete_script ""
 
   # Pre-parse parameter default values
-  case "${FLAGS_firmware_updater}" in
+  case "${FLAGS_firmware}" in
     $FLAGS_NONE )
       ENABLE_FIRMWARE_UPDATER=$FLAGS_FALSE
       ;;
@@ -190,55 +207,25 @@ check_parameters() {
       if [ -n "${FLAGS_diskimg}" ]; then
         ENABLE_FIRMWARE_UPDATER=$FLAGS_FALSE
       else
-        FLAGS_firmware_updater=$FLAGS_NONE
+        FLAGS_firmware=$FLAGS_NONE
       fi
       ;;
   esac
 
   # All remaining parameters must be checked:
-  # install_shim, firmware, hwid_updater, complete_script.
-
-  # Check that incompatible combinations of --factory, --test, and
-  # --toolkit are not provided.
-  if [ -n "${FLAGS_test}" -o -n "${FLAGS_toolkit}" ]; then
-    [ -n "${FLAGS_test}" -a -n "${FLAGS_toolkit}" ] || \
-      die "--test and --toolkit must be used together."
-    [ -z "${FLAGS_factory}" ] || \
-      die "If --test and --toolkit are used, --factory may not be used."
-    build_factory=1
-  fi
-
-  # Check if toolkit_arguments is used with toolkit.
-  if [ -n "${FLAGS_toolkit_arguments}" -a -z "${FLAGS_toolkit}" ]; then
-      die "--toolkit_arguments must used with --toolkit."
-  fi
-
+  # install_shim, firmware, complete_script.
   if [ -n "${FLAGS_usbimg}" ]; then
     [ -z "${FLAGS_diskimg}" ] ||
       die "--usbimg and --diskimg cannot be used at the same time."
-    check_file_param_or_none FLAGS_firmware_updater "in --usbimg mode"
-    check_file_param_or_none FLAGS_hwid_updater "in --usbimg mode"
-    check_empty_param FLAGS_complete_script "in --usbimg mode"
     check_file_param FLAGS_install_shim "in --usbimg mode"
+    check_file_param_or_none FLAGS_firmware "in --usbimg mode"
+    check_empty_param FLAGS_complete_script "in --usbimg mode"
     check_false_param FLAGS_run_omaha "in --usbimg mode"
-    if [ -n "$build_factory" ]; then
-      check_file_param FLAGS_test "in --usbimg mode"
-      check_file_param FLAGS_toolkit "in --usbimg mode"
-    else
-      check_file_param FLAGS_factory "in --usbimg mode"
-    fi
   elif [ -n "${FLAGS_diskimg}" ]; then
-    check_empty_param FLAGS_firmware_updater "in --diskimg mode"
-    check_file_param_or_none FLAGS_hwid_updater "in --diskimg mode"
-    check_empty_param FLAGS_complete_script "in --diskimg mode"
     check_empty_param FLAGS_install_shim "in --diskimg mode"
+    check_empty_param FLAGS_firmware "in --diskimg mode"
+    check_empty_param FLAGS_complete_script "in --diskimg mode"
     check_false_param FLAGS_run_omaha "in --diskimg mode"
-    if [ -n "$build_factory" ]; then
-      check_file_param FLAGS_test "in --diskimg mode"
-      check_file_param FLAGS_toolkit "in --diskimg mode"
-    else
-      check_file_param FLAGS_factory "in --diskimg mode"
-    fi
     if [ -b "${FLAGS_diskimg}" -a ! -w "${FLAGS_diskimg}" ] &&
        [ -z "$MFP_SUDO" -a "$(id -u)" != "0" ]; then
       # Restart the command with original parameters with sudo for writing to
@@ -247,16 +234,8 @@ check_parameters() {
       MFP_SUDO=TRUE exec sudo "$0" $ORIGINAL_PARAMS
     fi
   else
-    check_file_param_or_none FLAGS_firmware_updater "in mini-omaha mode"
-    check_file_param_or_none FLAGS_hwid_updater "in mini-omaha mode"
-    check_optional_file_param FLAGS_complete_script "in mini-omaha mode"
     check_empty_param FLAGS_install_shim "in mini-omaha mode"
-    if [ -n "$build_factory" ]; then
-      check_file_param FLAGS_test "in mini-omaha mode"
-      check_file_param FLAGS_toolkit "in mini-omaha mode"
-    else
-      check_file_param_or_none FLAGS_factory "in mini-omaha mode"
-    fi
+    check_file_param_or_none FLAGS_firmware "in mini-omaha mode"
   fi
 }
 
@@ -299,28 +278,24 @@ setup_environment() {
   fi
 
   # Use this image as the source image to copy
-  RELEASE_DIR="$(dirname "${FLAGS_release}")"
-  RELEASE_IMAGE="$(basename "${FLAGS_release}")"
+  RELEASE_DIR="$(dirname "${FLAGS_release_image}")"
+  RELEASE_IMAGE="$(basename "${FLAGS_release_image}")"
 
   if [ "${FLAGS_cros_payload}" = "${FLAGS_FALSE}" ]; then
-    if [ -n "${FLAGS_factory}" ]; then
-      FACTORY_IMAGE="${FLAGS_factory}"
-    elif [ -n "$build_factory" ]; then
-      FACTORY_IMAGE="$(mktemp --tmpdir)"
-      image_add_temp "${FACTORY_IMAGE}"
-      local toolkit_output=$(mktemp --tmpdir)
-      echo "Creating factory test image from test image and toolkit" \
-          "with flags --yes $FLAGS_toolkit_arguments " \
-          "(output in $toolkit_output)..."
-      # Check cgpt.
-      if ! image_has_command cgpt; then
-        die "Missing cgpt. Please install cgpt, or run in chroot."
-      fi
-      cp "${FLAGS_test}" "${FACTORY_IMAGE}"
-      sudo CGPT="$(which cgpt)" "${FLAGS_toolkit}" \
-          "${FACTORY_IMAGE}" --yes ${FLAGS_toolkit_arguments} >& \
-          "${toolkit_output}"
+    FACTORY_IMAGE="$(mktemp --tmpdir)"
+    image_add_temp "${FACTORY_IMAGE}"
+    local toolkit_output=$(mktemp --tmpdir)
+    echo "Creating factory test image from test image and toolkit" \
+        "with flags --yes $FLAGS_toolkit_arguments " \
+        "(output in $toolkit_output)..."
+    # Check cgpt.
+    if ! image_has_command cgpt; then
+      die "Missing cgpt. Please install cgpt, or run in chroot."
     fi
+    cp "${FLAGS_test_image}" "${FACTORY_IMAGE}"
+    sudo CGPT="$(which cgpt)" "${FLAGS_toolkit}" \
+        "${FACTORY_IMAGE}" --yes ${FLAGS_toolkit_arguments} >& \
+        "${toolkit_output}"
   fi
 
   # Override this with path to modified kernel (for non-SSD images)
@@ -337,9 +312,9 @@ build_payloads() {
   local dest="$1"
 
   [ -n "$FLAGS_board" ] || die "Need --board parameter for payloads."
-  [ -n "$FLAGS_test" ] || die "Need --test parameter for payloads."
-  [ -n "$FLAGS_release" ] || die "Need --release parameter for payloads."
-  [ -n "$FLAGS_factory_toolkit" ] || die "Need --factory_toolkit for payloads."
+  [ -n "$FLAGS_test_image" ] || die "Need --test_image parameter for payloads."
+  [ -n "$FLAGS_release_image" ] || die "Need --release_image for payloads."
+  [ -n "$FLAGS_toolkit" ] || die "Need --toolkit for payloads."
 
   # Clean up stale config and data files.
   local json_path="${dest}/${FLAGS_board}.json"
@@ -349,19 +324,19 @@ build_payloads() {
   image_add_temp "${empty_file}"
 
   if [ "${ENABLE_FIRMWARE_UPDATER}" = "${FLAGS_TRUE}" ] &&
-     [ -z "${FLAGS_firmware_updater}" ]; then
+     [ -z "${FLAGS_firmware}" ]; then
     info "Preparing firmware updater from release image..."
     local fwupdater_tmp_dir="$(mktemp -d --tmpdir)"
     image_add_temp "${fwupdater_tmp_dir}"
-    "${SCRIPT_DIR}/extract_firmware_updater.sh" -i "${FLAGS_release}" \
+    "${SCRIPT_DIR}/extract_firmware_updater.sh" -i "${FLAGS_release_image}" \
       -o "${fwupdater_tmp_dir}"
-    FLAGS_firmware_updater="${fwupdater_tmp_dir}/chromeos-firmwareupdate"
+    FLAGS_firmware="${fwupdater_tmp_dir}/chromeos-firmwareupdate"
   fi
 
   local i component resource
   local components=(test_image release_image toolkit firmware hwid complete)
-  local resources=("${FLAGS_test}" "${FLAGS_release}" "${FLAGS_factory_toolkit}"
-                   "${FLAGS_firmware_updater}" "${FLAGS_hwid_updater}"
+  local resources=("${FLAGS_test_image}" "${FLAGS_release_image}" \
+                   "${FLAGS_toolkit}" "${FLAGS_firmware}" "${FLAGS_hwid}" \
                    "${FLAGS_complete_script}")
   for i in ${!components[@]}; do
     component="${components[$i]}"
@@ -550,7 +525,7 @@ prepare_release_image() {
 # Prepares firmware updater from specified file source or release rootfs.
 prepare_firmware_updater() {
   local image="$(readlink -f "$1")"
-  if [ -f "$FLAGS_firmware_updater" ]; then
+  if [ -f "$FLAGS_firmware" ]; then
     return
   fi
 
@@ -570,7 +545,7 @@ prepare_firmware_updater() {
     die "Failed to copy firmware updater from release image $image."
   image_umount_partition "$temp_mount"
   info "Prepared firmware updater from release image: $image:3#$updater_path"
-  FLAGS_firmware_updater="$fwupdater"
+  FLAGS_firmware="$fwupdater"
 }
 
 prepare_img() {
@@ -581,7 +556,7 @@ prepare_img() {
   echo "Fetch PMBR"
   local pmbrcode="$(mktemp --tmpdir)"
   image_add_temp "$pmbrcode"
-  sudo dd bs=512 count=1 if="${FLAGS_release}" of="${pmbrcode}" status=noxfer
+  sudo dd bs=512 count=1 if="${FLAGS_release_image}" of="${pmbrcode}" status=noxfer
 
   echo "Prepare base disk image"
   # Create an output file if requested, or if none exists.
@@ -602,7 +577,7 @@ prepare_img() {
   local chromeos_common_path="${root_fs_dir}/usr/share/misc/chromeos-common.sh"
 
   image_add_temp "${root_fs_dir}"
-  image_mount_partition "${FLAGS_release}" "3" "${root_fs_dir}" "ro" "-t ext2"
+  image_mount_partition "${FLAGS_release_image}" "3" "${root_fs_dir}" "ro" "-t ext2"
 
   if [ ! -f "${write_gpt_path}" ]; then
     die "This script no longer works on legacy images without write_gpt.sh"
@@ -679,7 +654,7 @@ tar_unencrypted() {
 
   local release_stateful_dir="$(mktemp -d --tmpdir)"
   image_add_temp "${release_stateful_dir}"
-  image_mount_partition "${FLAGS_release}" "1" "${release_stateful_dir}" "ro"
+  image_mount_partition "${FLAGS_release_image}" "1" "${release_stateful_dir}" "ro"
   if [ -d "${release_stateful_dir}/unencrypted" ]; then
     echo "Creating stateful_files.tar.xz in stateful partition..."
     local factory_stateful_dir="$(mktemp -d --tmpdir)"
@@ -711,7 +686,7 @@ generate_usbimg() {
     die "Missing 'cgpt'. Please install cgpt, or run inside chroot."
   fi
   local builder="$(dirname "$SCRIPT")/make_universal_factory_shim.sh"
-  local release_file="$FLAGS_release"
+  local release_file="$FLAGS_release_image"
 
   if [ -n "$RELEASE_KERNEL" ]; then
     # TODO(hungte) Improve make_universal_factory_shim to support assigning
@@ -720,17 +695,17 @@ generate_usbimg() {
     release_file="$(mktemp --tmpdir)"
     image_add_temp "${release_file}"
     if image_has_part_tools pv; then
-      pv -B 16M "${FLAGS_release}" >"${release_file}"
+      pv -B 16M "${FLAGS_release_image}" >"${release_file}"
     else
-      cp -f "${FLAGS_release}" "${release_file}"
+      cp -f "${FLAGS_release_image}" "${release_file}"
     fi
     image_partition_copy_from_file "${RELEASE_KERNEL}" "${release_file}" 2
   fi
 
   "$builder" -m "${FACTORY_IMAGE}" -f "${FLAGS_usbimg}" \
     "${FLAGS_install_shim}" "${FACTORY_IMAGE}" "${release_file}"
-  apply_hwid_updater "${FLAGS_hwid_updater}" "${FLAGS_usbimg}"
-  tar_unencrypted "${FLAGS_release}" "${FLAGS_usbimg}"
+  apply_hwid_updater "${FLAGS_hwid}" "${FLAGS_usbimg}"
+  tar_unencrypted "${FLAGS_release_image}" "${FLAGS_usbimg}"
 
   # Extract and modify lsb-factory from original install shim
   local lsb_path="/dev_image/etc/lsb-factory"
@@ -743,9 +718,9 @@ generate_usbimg() {
   image_mount_partition "${FLAGS_usbimg}" 1 "${new_dir}" "rw"
   # Copy firmware updater, if available
   local updater_settings=""
-  if [ -n "${FLAGS_firmware_updater}" ]; then
+  if [ -n "${FLAGS_firmware}" ]; then
     local updater_new_path="${new_dir}/chromeos-firmwareupdate"
-    sudo cp -f "${FLAGS_firmware_updater}" "${updater_new_path}"
+    sudo cp -f "${FLAGS_firmware}" "${updater_new_path}"
     sudo chmod a+rx "${updater_new_path}"
     updater_settings="FACTORY_INSTALL_FIRMWARE=/mnt/stateful_partition"
     updater_settings="$updater_settings/$(basename $updater_new_path)"
@@ -774,10 +749,10 @@ generate_usbimg() {
 generate_img() {
   local outdev="$(readlink -f "$FLAGS_diskimg")"
   local sectors="$FLAGS_sectors"
-  local hwid_updater="${FLAGS_hwid_updater}"
+  local hwid_updater="${FLAGS_hwid}"
 
-  if [ -n "${FLAGS_hwid_updater}" ]; then
-    hwid_updater="$(readlink -f "$FLAGS_hwid_updater")"
+  if [ -n "${FLAGS_hwid}" ]; then
+    hwid_updater="$(readlink -f "$FLAGS_hwid")"
   fi
 
   prepare_img
@@ -849,7 +824,7 @@ generate_omaha() {
   # Clean up stale config and data files.
   prepare_dir "${OMAHA_DATA_DIR}"
 
-  echo "Generating omaha release image from ${FLAGS_release}"
+  echo "Generating omaha release image from ${FLAGS_release_image}"
   if [ -n "${FACTORY_IMAGE}" ]; then
     echo "Generating omaha factory image from ${FACTORY_IMAGE}"
   fi
@@ -864,17 +839,17 @@ generate_omaha() {
     echo "Creating temporary test image..."
     cp "${FACTORY_IMAGE}" "${final_factory_image}"
     # Add the unencrypted bits from the release stateful partition
-    tar_unencrypted "${FLAGS_release}" "${final_factory_image}"
+    tar_unencrypted "${FLAGS_release_image}" "${final_factory_image}"
   fi
 
-  kernel="${RELEASE_KERNEL:-${FLAGS_release}:2}"
-  rootfs="${FLAGS_release}:3"
-  stateful_efi_source="${FLAGS_release}"
+  kernel="${RELEASE_KERNEL:-${FLAGS_release_image}:2}"
+  rootfs="${FLAGS_release_image}:3"
+  stateful_efi_source="${FLAGS_release_image}"
   release_hash="$(compress_and_hash_memento_image "$kernel" "$rootfs" \
                   "${OMAHA_DATA_DIR}/rootfs-release.gz")"
   echo "release: ${release_hash}"
 
-  oem_hash="$(compress_and_hash_partition "${FLAGS_release}" 8 \
+  oem_hash="$(compress_and_hash_partition "${FLAGS_release_image}" 8 \
               "${OMAHA_DATA_DIR}/oem.gz")"
   echo "oem: ${oem_hash}"
 
@@ -896,14 +871,14 @@ generate_omaha() {
 
   echo "efi: ${efi_hash}"
 
-  if [ -n "${FLAGS_firmware_updater}" ]; then
-    firmware_hash="$(compress_and_hash_file "${FLAGS_firmware_updater}" \
+  if [ -n "${FLAGS_firmware}" ]; then
+    firmware_hash="$(compress_and_hash_file "${FLAGS_firmware}" \
                      "${OMAHA_DATA_DIR}/firmware.gz")"
     echo "firmware: ${firmware_hash}"
   fi
 
-  if [ -n "${FLAGS_hwid_updater}" ]; then
-    hwid_hash="$(compress_and_hash_file "${FLAGS_hwid_updater}" \
+  if [ -n "${FLAGS_hwid}" ]; then
+    hwid_hash="$(compress_and_hash_file "${FLAGS_hwid}" \
                  "${OMAHA_DATA_DIR}/hwid.gz")"
     echo "hwid: ${hwid_hash}"
   fi
@@ -965,13 +940,13 @@ generate_omaha() {
    'factory_checksum': '${test_hash}'," >>"${OMAHA_CONF}"
   fi
 
-  if [ -n "${FLAGS_firmware_updater}" ]  ; then
+  if [ -n "${FLAGS_firmware}" ]  ; then
     echo -n "
    'firmware_image': '${subfolder}firmware.gz',
    'firmware_checksum': '${firmware_hash}'," >>"${OMAHA_CONF}"
   fi
 
-  if [ -n "${FLAGS_hwid_updater}" ]  ; then
+  if [ -n "${FLAGS_hwid}" ]  ; then
     echo -n "
    'hwid_image': '${subfolder}hwid.gz',
    'hwid_checksum': '${hwid_hash}'," >>"${OMAHA_CONF}"
@@ -1138,10 +1113,10 @@ main() {
 
     # Image preparation is only needed in non-cros_payload system.
     if [ "$FLAGS_detect_release_image" = $FLAGS_TRUE ]; then
-      prepare_release_image "$FLAGS_release"
+      prepare_release_image "$FLAGS_release_image"
     fi
     if [ "$ENABLE_FIRMWARE_UPDATER" = $FLAGS_TRUE ]; then
-      prepare_firmware_updater "$FLAGS_release"
+      prepare_firmware_updater "$FLAGS_release_image"
     fi
 
     if [ -n "$FLAGS_usbimg" ]; then
