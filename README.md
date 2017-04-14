@@ -153,7 +153,7 @@ A generic factory package can be built from a release image and a factory image:
 
     ./make_factory_package.sh --diskimg=ssd_image.bin \
       --test=/path/to/chromiumos_test_image.bin \
-      --factory_toolkit=/path/to/install_factory_toolkit.run \
+      --toolkit=/path/to/install_factory_toolkit.run \
       --release=/path/to/chromiumos_image.bin \
       --hwid=/path/to/hwid_bundle.sh
 
@@ -194,7 +194,7 @@ as follows:
     # (cros-chroot)
     ~/trunk/src/scripts/make_factory_package.sh \
       --test=/path/to/chromiumos_test_image.bin \
-      --factory_toolkit=path/to/install_factory_toolkit.run \
+      --toolkit=path/to/install_factory_toolkit.run \
       --release=/path/to/chromiumos_image.bin \
       --hwid=/path/to/hwid_bundle.sh
 

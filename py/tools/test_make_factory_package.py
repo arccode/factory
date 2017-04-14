@@ -126,8 +126,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
 
     self.base_args = [
         self.make_factory_package,
-        '--factory_toolkit',
-        'unpacked/factory_toolkit/install_factory_toolkit.run',
+        '--toolkit', 'unpacked/factory_toolkit/install_factory_toolkit.run',
         '--test', 'unpacked/chromiumos_test_image.bin',
         '--release', 'unpacked/chromiumos_base_image.bin',
         '--hwid_updater', self.hwid,

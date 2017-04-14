@@ -76,13 +76,15 @@ DEFINE_boolean run_omaha ${FLAGS_FALSE} \
   "Run mini-omaha server after factory package setup completed."
 DEFINE_string test "" \
   "If set, path to a test image to use to create a factory test image. "\
-"Must be used with --factory_toolkit. Mutually exclusive with --factory."
-DEFINE_string factory_toolkit "" \
+"Must be used with --toolkit. Mutually exclusive with --factory."
+DEFINE_string toolkit "" \
   "If set, path to a factory toolkit to use to create a factory test image. "\
 "Must be used with --test. Mutually exclusive with --factory."
 DEFINE_string toolkit_arguments "" \
   "If set, additional arguments will be passed into the factory toolkit installer. "\
-"Must be used with --factory_toolkit."
+"Must be used with --toolkit."
+DEFINE_string factory_toolkit "" \
+  "Deprecated by --toolkit. "
 # Usage Help
 FLAGS_HELP="Prepares factory resources (mini-omaha server, RMA/usb/disk images)
 
@@ -97,6 +99,11 @@ ENABLE_FIRMWARE_UPDATER=$FLAGS_TRUE
 FLAGS "$@" || exit 1
 ORIGINAL_PARAMS="$@"
 eval set -- "${FLAGS_ARGV}"
+
+# Convert legacy options
+if [ -z "${FLAGS_toolkit}" ] && [ -n "${FLAGS_factory_toolkit}" ]; then
+  FLAGS_toolkit="${FLAGS_factory_toolkit}"
+fi
 
 on_exit() {
   image_clean_temp
@@ -184,18 +191,18 @@ check_parameters() {
   # install_shim, firmware, hwid_updater, complete_script.
 
   # Check that incompatible combinations of --factory, --test, and
-  # --factory_toolkit are not provided.
-  if [ -n "${FLAGS_test}" -o -n "${FLAGS_factory_toolkit}" ]; then
-    [ -n "${FLAGS_test}" -a -n "${FLAGS_factory_toolkit}" ] || \
-      die "--test and --factory_toolkit must be used together."
+  # --toolkit are not provided.
+  if [ -n "${FLAGS_test}" -o -n "${FLAGS_toolkit}" ]; then
+    [ -n "${FLAGS_test}" -a -n "${FLAGS_toolkit}" ] || \
+      die "--test and --toolkit must be used together."
     [ -z "${FLAGS_factory}" ] || \
-      die "If --test and --factory_toolkit are used, --factory may not be used."
+      die "If --test and --toolkit are used, --factory may not be used."
     build_factory=1
   fi
 
-  # Check if toolkit_arguments is used with factory_toolkit.
-  if [ -n "${FLAGS_toolkit_arguments}" -a -z "${FLAGS_factory_toolkit}" ]; then
-      die "--toolkit_arguments must used with --factory_toolkit."
+  # Check if toolkit_arguments is used with toolkit.
+  if [ -n "${FLAGS_toolkit_arguments}" -a -z "${FLAGS_toolkit}" ]; then
+      die "--toolkit_arguments must used with --toolkit."
   fi
 
   if [ -n "${FLAGS_usbimg}" ]; then
@@ -208,7 +215,7 @@ check_parameters() {
     check_false_param FLAGS_run_omaha "in --usbimg mode"
     if [ -n "$build_factory" ]; then
       check_file_param FLAGS_test "in --usbimg mode"
-      check_file_param FLAGS_factory_toolkit "in --usbimg mode"
+      check_file_param FLAGS_toolkit "in --usbimg mode"
     else
       check_file_param FLAGS_factory "in --usbimg mode"
     fi
@@ -220,7 +227,7 @@ check_parameters() {
     check_false_param FLAGS_run_omaha "in --diskimg mode"
     if [ -n "$build_factory" ]; then
       check_file_param FLAGS_test "in --diskimg mode"
-      check_file_param FLAGS_factory_toolkit "in --diskimg mode"
+      check_file_param FLAGS_toolkit "in --diskimg mode"
     else
       check_file_param FLAGS_factory "in --diskimg mode"
     fi
@@ -238,7 +245,7 @@ check_parameters() {
     check_empty_param FLAGS_install_shim "in mini-omaha mode"
     if [ -n "$build_factory" ]; then
       check_file_param FLAGS_test "in mini-omaha mode"
-      check_file_param FLAGS_factory_toolkit "in mini-omaha mode"
+      check_file_param FLAGS_toolkit "in mini-omaha mode"
     else
       check_file_param_or_none FLAGS_factory "in mini-omaha mode"
     fi
@@ -301,7 +308,7 @@ setup_environment() {
       die "Missing cgpt. Please install cgpt, or run in chroot."
     fi
     cp "${FLAGS_test}" "${FACTORY_IMAGE}"
-    sudo CGPT="$(which cgpt)" "${FLAGS_factory_toolkit}" \
+    sudo CGPT="$(which cgpt)" "${FLAGS_toolkit}" \
         "${FACTORY_IMAGE}" --yes ${FLAGS_toolkit_arguments} >& \
         "${toolkit_output}"
   fi
