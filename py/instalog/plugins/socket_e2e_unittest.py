@@ -58,8 +58,6 @@ class TestBufferSimpleFile(unittest.TestCase):
   def testOneEvent(self):
     self.stream.Queue([datatypes.Event({})])
     self.output_sandbox.Flush(2, True)
-    # TODO(kitching): Remove when __nodeId__ is deprecated.
-    self.core.emit_calls[0][0].payload.pop('__nodeId__', None)
     self.assertEquals(self.core.emit_calls, [[datatypes.Event({})]])
 
   def testOneEventOneAttachment(self):
@@ -72,8 +70,6 @@ class TestBufferSimpleFile(unittest.TestCase):
       self.assertEqual(1, len(self.core.emit_calls))
       event_list = self.core.emit_calls[0]
       self.assertEqual(1, len(event_list))
-      # TODO(kitching): Remove when __nodeId__ is deprecated.
-      event_list[0].payload.pop('__nodeId__', None)
       self.assertEqual({}, event_list[0].payload)
       self.assertEqual(1, len(event_list[0].attachments))
       self.assertEqual('my_attachment', event_list[0].attachments.keys()[0])

@@ -593,12 +593,6 @@ class PluginSandbox(plugin_base.PluginAPI):
     for event in events:
       # Add the current step in this event's processing history.
       event.AppendStage(process_stage)
-      # TODO(kitching): Remove the '__nodeId__' entry from the payload itself.
-      #                 Deprecated with event processing history.
-      # Add our node ID to the payload.
-      if '__nodeId__' not in event:
-        event['__nodeId__'] = self._core_api.GetNodeID()
-
     return self._core_api.Emit(self, events)
 
   def NewStream(self, plugin):

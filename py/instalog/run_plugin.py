@@ -271,9 +271,6 @@ class PluginRunner(plugin_sandbox.CoreAPI):
         shutil.move(att_path, tmp_path)
         event.attachments[att_id] = tmp_path
 
-      if '__nodeId__' not in event:
-        # Use plugin_type as the node ID.
-        event['__nodeId__'] = self._plugin_type
       # TODO(kitching): May result in `IOError: Broken pipe`.  Investigate
       #                 and fix.
       print(event.Serialize())
