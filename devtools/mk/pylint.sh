@@ -7,7 +7,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "${SCRIPT_DIR}/common.sh" || exit 1
 
 : ${PYTHONPATH:=py_pkg:py:setup}
-: ${PYLINT_MSG_TEMPLATE:='{path}:{line}: {msg_id}: {msg}'}
+: ${PYLINT_MSG_TEMPLATE:='{path}:{line}: {symbol}: {msg}'}
 : ${PYLINT_RC_FILE:="${SCRIPT_DIR}/pylint.rc"}
 : ${PYLINT_OPTIONS:=}
 
