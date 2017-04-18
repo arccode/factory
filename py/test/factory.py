@@ -773,6 +773,24 @@ class FactoryTest(object):
       self.root = self.parent.root
 
     self.path = prefix + (self.id or '')
+    if self.path in path_map:
+      # duplicate test path, resolve it by appending an index,
+
+      # first of all, count how many duplicated siblings
+      count = 1
+      for subtest in self.parent.subtests:
+        if subtest == self:
+          break
+        # '-' will only appear when we try to resolve duplicate path issue,
+        # so if the id contains '-', it must be followed by a number.
+        if subtest.id.partition('-')[0] == self.id:
+          count += 1
+      assert count > 1
+      # this is the new ID, since FactoryTest constructor will assert ID only
+      # contains [a-zA-Z0-9_], the new ID must be unique.
+      self.id += '-' + str(count)
+      self.path = prefix + (self.id or '')
+
     assert self.path not in path_map, 'Duplicate test path %s' % (self.path)
     path_map[self.path] = self
 
