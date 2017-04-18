@@ -158,7 +158,7 @@ ovl-bin:
 	virtualenv $(BUILD_DIR)/.env
 	# Build ovl binary with pyinstaller
 	cd $(BUILD_DIR); \
-	  source $(BUILD_DIR)/.env/bin/activate; \
+	  source .env/bin/activate; \
 	  pip install jsonrpclib ws4py pyinstaller; \
 	  pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
 
