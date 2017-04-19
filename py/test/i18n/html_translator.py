@@ -43,7 +43,12 @@ class BaseHTMLTransformer(HTMLParser.HTMLParser, object):
     return result
 
   def _MakeStartTag(self, tag, attrs, self_closing=False):
-    attrs_str = ''.join(' %s="%s"' % (key, cgi.escape(value, quote=True))
+    def FormatAttribute(key, value):
+      if value is None:
+        # value is None for boolean attribute. (e.g. `checked` for input tag)
+        return key
+      return '%s="%s"' % (key, cgi.escape(value, quote=True))
+    attrs_str = ''.join(' ' + FormatAttribute(key, value)
                         for key, value in attrs)
     return '<%s%s%s>' % (tag, attrs_str, '/' if self_closing else '')
 
