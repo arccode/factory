@@ -189,8 +189,7 @@ cros.factory.UNKNOWN_LABEL = goog.html.SafeHtml.create(
 /**
  * An item in the test list.
  * @typedef {{path: string, label: cros.factory.i18n.TranslationDict,
- *     kbd_shortcut: string, disable_abort: boolean,
- *     subtests: !Array<cros.factory.TestListEntry>,
+ *     disable_abort: boolean, subtests: !Array<cros.factory.TestListEntry>,
  *     state: cros.factory.TestState}}
  */
 cros.factory.TestListEntry;
@@ -1016,16 +1015,6 @@ cros.factory.Goofy.prototype.init = function() {
   this.initLocaleSelector();
   this.initSplitPanes();
 
-  // Listen for keyboard shortcuts.
-  goog.events.listen(
-      window, goog.events.EventType.KEYDOWN,
-      function(/** goog.events.KeyEvent */ event) {
-        if (event.altKey || event.ctrlKey) {
-          this.handleShortcut(String.fromCharCode(event.keyCode));
-        }
-      },
-      false, this);
-
   this.sendRpc(
       'GetTestLists', [],
       function(/** Array<cros.factory.TestListInfo> */ testLists) {
@@ -1542,21 +1531,6 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
 cros.factory.Goofy.prototype.cancelShutdown = function() {
   this.sendEvent('goofy:cancel_shutdown', {});
   // Wait for Goofy to reset the pending_shutdown data.
-};
-
-/**
- * Handles a keyboard shortcut.
- * @param {string} key the key that was depressed (e.g., 'a' for Alt-A).
- */
-cros.factory.Goofy.prototype.handleShortcut = function(key) {
-  for (var path in this.pathTestMap) {
-    var test = this.pathTestMap[path];
-    if (test.kbd_shortcut &&
-        test.kbd_shortcut.toLowerCase() == key.toLowerCase()) {
-      this.sendEvent('goofy:restart_tests', {path: path});
-      return;
-    }
-  }
 };
 
 /**
@@ -2871,13 +2845,6 @@ cros.factory.Goofy.prototype.addToNode = function(parent, test) {
     node = this.testTree;
   } else {
     var html = cros.factory.i18n.i18nLabel(test.label);
-    if (test.kbd_shortcut) {
-      html = goog.html.SafeHtml.concat(
-          goog.html.SafeHtml.create(
-              'span', {class: 'goofy-kbd-shortcut'},
-              'Alt-' + test.kbd_shortcut.toUpperCase()),
-          html);
-    }
     node = this.testTree.createNode();
     node.setSafeHtml(html);
     parent.addChild(node);

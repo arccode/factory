@@ -591,7 +591,6 @@ class FactoryTest(object):
                has_automator=False,
                pytest_name=None,
                invocation_target=None,
-               kbd_shortcut=None,
                dargs=None,
                dut_options=None,
                subtests=None,
@@ -627,7 +626,6 @@ class FactoryTest(object):
     #    instead of test case only
     self.prepare = prepare
     self.finish = finish
-    self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
     self.dargs = dargs or {}
     self.dut_options = dut_options or {}
     self.no_host = no_host
@@ -747,7 +745,7 @@ class FactoryTest(object):
     ret = dict(
         (k, getattr(self, k))
         for k in ['id', 'path', 'label', 'dut_options',
-                  'kbd_shortcut', 'disable_abort', '_parallel'])
+                  'disable_abort', '_parallel'])
     ret['is_shutdown_step'] = isinstance(self, ShutdownStep)
     ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
     return ret

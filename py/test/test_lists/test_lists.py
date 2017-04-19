@@ -138,7 +138,6 @@ def FactoryTest(*args, **kwargs):
       cros.factory.test.pytests).
     invocation_target: The function to execute to run the test
       (within the Goofy process).
-    kbd_shortcut: The keyboard shortcut for the test.
     dargs: pytest arguments.
     parallel: Whether the subtests should run in parallel.
     subtests: A list of tests to run inside this test.  In order
