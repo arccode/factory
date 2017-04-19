@@ -182,9 +182,6 @@ class FinalizeBundle(object):
   has_firmware = DEFAULT_FIRMWARES
 
   def Main(self):
-    if not sys_utils.InChroot():
-      sys.exit('Please run this script from within the chroot.')
-
     self.ParseArgs()
     self.LoadManifest()
     self.Download()
@@ -899,9 +896,9 @@ class FinalizeBundle(object):
     # Make sure that the CHANGES section contains this version.
     expected_str = '%s changes:' % self.bundle_name
     if expected_str not in readme_sections[readme_section_index['CHANGES']][2]:
-      sys.exit('The string %r was not found in the CHANGES section. '
-               'Please add a section for it (if this is the first '
-               'version, just say "initial release").' % expected_str)
+      logging.warning('The string %r was not found in the CHANGES section. '
+                      'Please add a section for it (if this is the first '
+                      'version, just say "initial release").', expected_str)
 
     def _ExtractFirmwareVersions(updater_file, updater_name):
       firmware_versions = _GetFirmwareVersions(updater_file, self.has_firmware)
@@ -1023,10 +1020,15 @@ class FinalizeBundle(object):
 
     logging.info('The README file (%s) has been updated.  Make sure to check '
                  'that it is correct!', self.readme_path)
+    if sys_utils.InChroot():
+      factory_board_bundle_path = (
+          os.path.join(self.build_board.factory_board_files, 'bundle'))
+    else:
+      factory_board_bundle_path = 'factory-board'
     logging.info(
         "IMPORTANT: If you modified the README or MANIFEST.yaml, don't forget "
         'to check your changes into %s.',
-        os.path.join(self.build_board.factory_board_files, 'bundle'))
+        factory_board_bundle_path)
 
   def _SubstVars(self, input_str):
     """Substitutes variables into a string.

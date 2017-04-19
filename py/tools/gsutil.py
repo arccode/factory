@@ -12,10 +12,10 @@ import shutil
 from distutils import version
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.test import factory
 from cros.factory.tools import build_board
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
@@ -225,7 +225,7 @@ class GSUtil(object):
       filename.
     """
     def GetDefaultGSUtilCacheDir():
-      if factory.get_lsb_data():
+      if sys_utils.InCrOSDevice():
         # On CROS DUT, set gsutil cache to stateful partition.
         base_cache_dir = '/usr/local'
       else:
