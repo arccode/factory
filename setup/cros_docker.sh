@@ -6,7 +6,7 @@
 set -e
 
 # Utility functions
-DOCKER_VERSION="1.9.1"
+DOCKER_VERSION="1.10.3"
 TEMP_OBJECTS=()
 
 on_exit() {
@@ -118,7 +118,7 @@ COMMIT_SUBJECT="setup: Publish cros_docker image version"
 
 # Remote resources
 RESOURCE_DOCKER_URL="https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz"
-RESOURCE_DOCKER_SHA1="a07cc33579a6e0074a53f148b26103723f81dab1"
+RESOURCE_DOCKER_SHA1="0b2619a77d0513d4e503120ad17e2ca09e6176ad"
 RESOURCE_CROS_DOCKER_URL="https://chromium.googlesource.com/chromiumos/platform/factory/+/master/setup/cros_docker.sh?format=TEXT"
 
 # Directories inside docker
