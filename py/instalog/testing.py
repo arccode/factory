@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import copy
 import logging
 import os
 import shutil
@@ -150,7 +151,7 @@ class MockBufferEventStream(plugin_base.BufferEventStream):
     ret = self.queue.pop(0)
     self.consumed.append(ret)
     logging.debug('%s: Popping next event...', self)
-    return ret
+    return copy.deepcopy(ret)
 
   def Commit(self):
     """Marks the EventStream as committed and expired."""
