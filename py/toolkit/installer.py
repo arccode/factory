@@ -16,7 +16,6 @@ import argparse
 from contextlib import contextmanager
 import glob
 import os
-import pipes
 import shutil
 import sys
 import tempfile
@@ -25,9 +24,8 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.env import paths
 from cros.factory.tools import install_symlinks
-from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
-from cros.factory.utils import process_utils
+from cros.factory.utils.process_utils import Spawn
 
 
 INSTALLER_PATH = 'usr/local/factory/py/toolkit/installer.py'
@@ -199,14 +197,11 @@ class FactoryToolkitInstaller(object):
     """Install or remove a tag file."""
     if enabled:
       print '*** Installing %s enabled tag...' % name
-      process_utils.Spawn(['touch', path],
-                          sudo=True, log=True, check_call=True)
-      process_utils.Spawn(['chmod', 'go+r', path],
-                          sudo=True, log=True, check_call=True)
+      Spawn(['touch', path], sudo=True, log=True, check_call=True)
+      Spawn(['chmod', 'go+r', path], sudo=True, log=True, check_call=True)
     else:
       print '*** Removing %s enabled tag...' % name
-      process_utils.Spawn(['rm', '-f', path],
-                          sudo=True, log=True, check_call=True)
+      Spawn(['rm', '-f', path], sudo=True, log=True, check_call=True)
 
   def _SetDeviceID(self):
     if self._device_id is not None:
@@ -230,16 +225,14 @@ class FactoryToolkitInstaller(object):
                                'factory', 'init', 'main.d', 'disable-' + app)
     if enabled:
       print '*** Enabling {app} ***'.format(app=app)
-      process_utils.Spawn(['rm', '-f', app_disable],
-                          sudo=self._sudo, log=True, check_call=True)
-      process_utils.Spawn(['touch', app_enable],
-                          sudo=self._sudo, log=True, check_call=True)
+      Spawn(['rm', '-f', app_disable], sudo=self._sudo, log=True,
+            check_call=True)
+      Spawn(['touch', app_enable], sudo=self._sudo, log=True, check_call=True)
     else:
       print '*** Disabling {app} ***'.format(app=app)
-      process_utils.Spawn(['touch', app_disable],
-                          sudo=self._sudo, log=True, check_call=True)
-      process_utils.Spawn(['rm', '-f', app_enable],
-                          sudo=self._sudo, log=True, check_call=True)
+      Spawn(['touch', app_disable], sudo=self._sudo, log=True, check_call=True)
+      Spawn(['rm', '-f', app_enable], sudo=self._sudo, log=True,
+            check_call=True)
 
   def _EnableApps(self):
     if not self._apps:
@@ -266,19 +259,19 @@ class FactoryToolkitInstaller(object):
       sub_dir_src = os.path.join(self._src, 'usr', 'local', 'factory',
                                  sub_dir_name)
       try:
-        process_utils.Spawn(['mkdir', '-p', sub_dir_dest],
-                            sudo=True, log=True, check_call=True)
+        Spawn(['mkdir', '-p', sub_dir_dest], sudo=True, log=True,
+              check_call=True)
       except OSError as e:
         print str(e)
         return
 
-      process_utils.Spawn(['rsync', '-a', '--force', '-v',
-                           sub_dir_src + '/', sub_dir_dest],
-                          sudo=self._sudo, log=True, check_call=True)
-      process_utils.Spawn(['chown', '-R', 'root', sub_dir_dest],
-                          sudo=self._sudo, log=True, check_call=True)
-      process_utils.Spawn(['chmod', '-R', 'go+rX', sub_dir_dest],
-                          sudo=self._sudo, log=True, check_call=True)
+      Spawn(['rsync', '-a', '--force', '-v',
+             sub_dir_src + '/', sub_dir_dest],
+            sudo=self._sudo, log=True, check_call=True)
+      Spawn(['chown', '-R', 'root', sub_dir_dest],
+            sudo=self._sudo, log=True, check_call=True)
+      Spawn(['chmod', '-R', 'go+rX', sub_dir_dest],
+            sudo=self._sudo, log=True, check_call=True)
 
     for sub_dir_name in sub_dirs:
       _InstallOneSubDir(sub_dir_name)
@@ -296,11 +289,10 @@ class FactoryToolkitInstaller(object):
     # necessary to allow goofy directory from prior toolkit installations to
     # be overwritten by the goofy symlink.
     print '***   %s -> %s' % (self._usr_local_src, self._usr_local_dest)
-    process_utils.Spawn(['rsync', '-a', '--no-owner', '--no-group',
-                         '--chmod=ugo+rX', '--force'] + SERVER_FILE_MASK +
-                        [self._usr_local_src + '/', self._usr_local_dest],
-                        sudo=self._sudo, log=True, check_output=True,
-                        cwd=self._usr_local_src)
+    Spawn(['rsync', '-a', '--no-owner', '--no-group', '--chmod=ugo+rX',
+           '--force'] + SERVER_FILE_MASK + [self._usr_local_src + '/',
+                                            self._usr_local_dest],
+          sudo=self._sudo, log=True, check_output=True, cwd=self._usr_local_src)
 
     print '*** Ensure SSH keys file permission...'
     sshkeys_dir = os.path.join(self._usr_local_dest, 'factory/misc/sshkeys')
@@ -308,8 +300,8 @@ class FactoryToolkitInstaller(object):
     ssh_public_keys = glob.glob(os.path.join(sshkeys_dir, '*.pub'))
     ssh_private_keys = list(set(sshkeys) - set(ssh_public_keys))
     if ssh_private_keys:
-      process_utils.Spawn(['chmod', '600'] + ssh_private_keys,
-                          log=True, check_call=True, sudo=self._sudo)
+      Spawn(['chmod', '600'] + ssh_private_keys, log=True, check_call=True,
+            sudo=self._sudo)
 
     print '*** Installing symlinks...'
     install_symlinks.InstallSymlinks(
@@ -346,10 +338,8 @@ def PrintBuildInfo(src_root):
 
 def PackFactoryToolkit(src_root, output_path, enable_device, enable_presenter):
   """Packs the files containing this script into a factory toolkit."""
-
   with open(os.path.join(src_root, 'VERSION'), 'r') as f:
     version = f.read().strip()
-
   with tempfile.NamedTemporaryFile() as help_header:
     help_header.write(version + '\n' + HELP_HEADER + HELP_HEADER_MAKESELF)
     help_header.flush()
@@ -360,27 +350,7 @@ def PackFactoryToolkit(src_root, output_path, enable_device, enable_presenter):
       cmd.append('--no-enable-device')
     if not enable_presenter:
       cmd.append('--no-enable-presenter')
-    process_utils.Spawn(cmd, check_call=True, log=True)
-
-  excluded_files = ['MD5SUM', 'TOOLKIT_VERSION', 'factory.par']
-  tar_arguments = '--owner=0 --group=0 --mode=g-rwx,o-rwx --mtime=0 %s' % (
-      ' '.join(['--exclude=%s' % pipes.quote(fn) for fn in excluded_files]))
-  md5sum = process_utils.CheckOutput(
-      'tar -cC %s %s . | md5sum' % (
-          pipes.quote(os.path.join(src_root, 'usr', 'local', 'factory')),
-          tar_arguments),
-      shell=True, log=True).split()[0]
-  # Call makeself twice to append MD5SUM because we don't want to change the
-  # files in src_root (and it might be read only) or copy files to a temporary
-  # directory.
-  with file_utils.TempDirectory() as tmp_dir:
-    file_path = os.path.join(tmp_dir, 'usr', 'local', 'factory', 'MD5SUM')
-    os.makedirs(os.path.dirname(file_path))
-    with open(file_path, 'w') as f:
-      f.write('%s\n' % md5sum)
-    cmd = [cmd[0], '--append', tmp_dir, output_path]
-    process_utils.Spawn(cmd, check_call=True, log=True)
-
+    Spawn(cmd, check_call=True, log=True)
   print ('\n'
          '  Factory toolkit generated at %s.\n'
          '\n'
@@ -514,9 +484,8 @@ def main():
   if args.repack:
     if args.pack_into is None:
       parser.error('Must specify --pack-into when using --repack.')
-    process_utils.Spawn([os.path.join(args.repack, INSTALLER_PATH),
-                         '--pack-into', args.pack_into],
-                        check_call=True, log=True)
+    Spawn([os.path.join(args.repack, INSTALLER_PATH),
+           '--pack-into', args.pack_into], check_call=True, log=True)
     return
 
   if args.build_info:
