@@ -384,6 +384,8 @@ def update_local_hwid_data(dut, target_dir='/usr/local/factory/hwid'):
         dut.CheckCall([hwid_updater_sh, target_dir],
                       stdout=log, stderr=log)
         dut.CheckCall('sync')
+      # TODO(youcheng): invalidate cache of dut instance in goofy properly
+      dut.info.Invalidate('hwid_database_version')
     return True
   else:
     factory.log('No HWID update available from shopfloor server')

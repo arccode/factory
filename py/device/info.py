@@ -13,7 +13,8 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
-from cros.factory import hwid
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
@@ -257,12 +258,10 @@ class SystemInfo(component.DeviceComponent):
   @InfoProperty
   def hwid_database_version(self):
     """Uses checksum of hwid file as hwid database version."""
-    hwid_file_path = self._dut.path.join(hwid.common.DEFAULT_HWID_DATA_PATH,
-                                         hwid.common.ProbeBoard().upper())
-    if self._dut.path.exists(hwid_file_path):
-      # TODO(hungte) Support remote DUT.
-      return hwid.hwid_utils.ComputeDatabaseChecksum(hwid_file_path)
-    return None
+    hwid_file_path = self._dut.path.join(common.DEFAULT_HWID_DATA_PATH,
+                                         common.ProbeBoard().upper())
+    # TODO(hungte) Support remote DUT.
+    return hwid_utils.ComputeDatabaseChecksum(hwid_file_path)
 
   @InfoProperty
   def has_virtual_dev_switch(self):
