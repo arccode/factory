@@ -12,6 +12,7 @@ import copy
 import logging
 import mock
 import Queue
+import tempfile
 import time
 import unittest
 
@@ -135,14 +136,25 @@ class TestEvent(unittest.TestCase):
     self.assertEqual(event.get('e', 9), 9)
 
     # Test equality operators.
-    payload_a = payload.copy()
-    payload_b = payload.copy()
-    attachments_a = {'file_id': '/path/to/file'}
-    attachments_b = attachments_a.copy()
-    event_a = datatypes.Event(payload_a, attachments_a)
-    event_b = datatypes.Event(payload_b, attachments_b)
-    self.assertEqual(event_a, event_b)
-    self.assertFalse(event_a != event_b)
+    CONTENT = 'ASDFGHJKL!@#$%^&* :"'
+    with tempfile.NamedTemporaryFile() as f1:
+      with tempfile.NamedTemporaryFile() as f2:
+        f1.write(CONTENT)
+        f1.flush()
+        f2.write(CONTENT)
+        f2.flush()
+        payload_a = payload.copy()
+        payload_b = payload.copy()
+        attachments_a = {'file_id': f1.name}
+        attachments_b = {'file_id': f2.name}
+        event_a = datatypes.Event(payload_a, attachments_a)
+        event_b = datatypes.Event(payload_b, attachments_b)
+        self.assertEqual(event_a, event_b)
+        self.assertFalse(event_a != event_b)
+        f1.write(' ')
+        f1.flush()
+        self.assertTrue(event_a != event_b)
+        self.assertNotEqual(event_a, event_b)
 
     # Test copy.
     new_event = event.Copy()

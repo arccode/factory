@@ -11,6 +11,7 @@ iterating through it.
 from __future__ import print_function
 
 import copy
+import filecmp
 import logging
 import time
 
@@ -133,8 +134,17 @@ class Event(json_utils.Serializable):
 
   def __eq__(self, other):
     """Implements == operator."""
-    return (self.payload == other.payload and
-            self.attachments == other.attachments)
+    if not self.payload == other.payload:
+      return False
+    if not len(self.attachments) == len(other.attachments):
+      return False
+    for att_id, att_path in self.attachments.iteritems():
+      if att_id not in other.attachments:
+        return False
+      other_path = other.attachments[att_id]
+      if att_path != other_path and not filecmp.cmp(att_path, other_path):
+        return False
+    return True
 
   def __ne__(self, other):
     """Implements != operator."""
