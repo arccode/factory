@@ -253,14 +253,12 @@ toolkit: $(WEBGL_AQUARIUM_DIR) resource par
 	$(if $(OUTOFTREE_BUILD),,$(if $(BOARD),\
 	  py/toolkit/print_repo_status.py -b $(BOARD) \
 	    >$(TOOLKIT_TEMP_DIR)/REPO_STATUS))
-	echo "$(BOARD) Factory Toolkit $(TOOLKIT_VERSION)" \
-	  >$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/TOOLKIT_VERSION
-	ln -s .$(TARGET_DIR)/TOOLKIT_VERSION $(TOOLKIT_TEMP_DIR)/VERSION
 	# Install factory test enabled flag.
 	touch $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/enabled
 	chmod -R go=rX $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)
 	$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/toolkit/installer.py \
-	  --pack-into $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)
+	  --pack-into $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME) \
+	  --version "$(BOARD) Factory Toolkit $(TOOLKIT_VERSION)"
 
 # Creates build/doc and build/doc.zip, containing the factory SDK docs.
 doc:
