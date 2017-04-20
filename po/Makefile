@@ -11,7 +11,7 @@ MSGMERGE = msgmerge
 MSGCAT = msgcat
 
 KEYWORDS = -k _ -k MakeI18nLabel -k MakeI18nLabelWithClass -c i18n-label \
-  -j _ -j i18nLabel -j i18nLabelNode
+  -j _ -j i18nLabel -j i18nLabelNode -J "i18n! "
 
 DOMAIN = factory
 BUILD_DIR ?= ../build
@@ -22,12 +22,14 @@ TEMP_DIR ?= $(BUILD_DIR)/po
 BOARD_PO_DIR ?= $(if $(BOARD_FILES_DIR),$(BOARD_FILES_DIR)/po)
 
 func-get-source-list = \
-  $(sort $(wildcard $(1)/goofy/*.py $(1)/goofy/*/*.py \
-    $(1)/test/pytests/*.py $(1)/test/pytests/*/*.py \
-    $(1)/test/*.py $(1)/test/test_lists/*.py \
+  $(sort $(wildcard \
+    $(1)/goofy/*.py $(1)/goofy/*/*.py \
+    $(1)/test/*.py $(1)/test/pytests/*.py \
+    $(1)/test/pytests/*/*.py $(1)/test/test_lists/*.py \
     $(1)/test/pytests/*.html $(1)/test/pytests/*/*.html \
-    $(1)/goofy/static/index.html $(1)/goofy/static/ui_templates/*.html \
-    $(1)/test/pytests/*/*.js $(1)/goofy/js/*.js))
+    $(1)/goofy/js/*.js $(1)/goofy/static/index.html \
+    $(1)/goofy/static/ui_templates/*.html $(1)/test/pytests/*/*.js \
+    $(1)/test/test_lists/*.test-list.json))
 
 PY_ROOT = ../py
 SRC_LIST = $(call func-get-source-list,$(PY_ROOT))

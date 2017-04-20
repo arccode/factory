@@ -25,7 +25,9 @@
 import argparse
 import ast
 import cgi
+import collections
 import HTMLParser
+import json
 import os
 import re
 import subprocess
@@ -52,24 +54,25 @@ msgstr ""
 """
 
 
-escapes = []
-
-
-def MakeEscapes():
-  for i in range(256):
-    if 32 <= i <= 126:
-      escapes.append(chr(i))
-    else:
-      escapes.append("\\%03o" % i)
-  escapes[ord('\\')] = r'\\'
-  escapes[ord('\t')] = r'\t'
-  escapes[ord('\r')] = r'\r'
-  escapes[ord('\n')] = r'\n'
-  escapes[ord('\"')] = r'\"'
+ESCAPE_CHAR_MAP = {
+    '\\': r'\\', '\t': r'\t', '\r': r'\r', '\n': r'\n', '\"': r'\"'
+}
 
 
 def Escape(s):
-  return ''.join(escapes[ord(c)] for c in s)
+  def EscapeChar(c):
+    if 32 <= ord(c) <= 126:
+      return ESCAPE_CHAR_MAP.get(c, c)
+    return '\\%03o' % ord(c)
+  return ''.join(EscapeChar(c) for c in s)
+
+
+def Unescape(s):
+  def UnescapeChar(match):
+    escape_char = next((k for k, v in ESCAPE_CHAR_MAP.iteritems()
+                        if v == match.group(0)), None)
+    return escape_char or chr(int(match.group(1), 8))
+  return re.sub(r'\\([\\trn"]|[0-7]{3})', UnescapeChar, s)
 
 
 def Normalize(s):
@@ -99,7 +102,7 @@ def WritePot(fp, messages, width):
 
   for files, text in messages:
     locline = '#:'
-    filenames = set(filename for filename, unused_lineno in files)
+    filenames = set(filename for filename, unused_index in files)
     for filename in sorted(list(filenames)):
       s = ' ' + filename
       if len(locline) + len(s) <= width:
@@ -131,10 +134,23 @@ class PyAstVisitor(ast.NodeVisitor):
     if func_name is not None and func_name in self.keywords and node.args:
       first_arg = node.args[0]
       if isinstance(first_arg, ast.Str):
-        self.messages.append((first_arg.lineno, first_arg.s))
+        self.messages.append(first_arg.s)
 
     # Continue visit in all case.
     super(PyAstVisitor, self).generic_visit(node)
+
+  @classmethod
+  def ParseFile(cls, filename, options):
+    visitor = cls(options.py_keywords)
+    with open(filename) as fp:
+      source = fp.read()
+    try:
+      node = ast.parse(source, filename)
+    except SyntaxError as e:
+      raise RuntimeError('line %d, column %d: %s' %
+                         (e.lineno, e.offset, e.text))
+    visitor.visit(node)
+    return visitor.messages
 
 
 VOID_ELEMENTS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
@@ -182,7 +198,7 @@ class HTMLMessageParser(HTMLParser.HTMLParser, object):
       if is_keyword:
         msg = ''.join(self.data).strip()
         if msg:
-          self.messages.append((self.getpos()[0], msg))
+          self.messages.append(msg)
         self.data = []
         self.in_keyword_tag = False
 
@@ -210,12 +226,117 @@ class HTMLMessageParser(HTMLParser.HTMLParser, object):
     if self.tags:
       raise ValueError('Found unclosed tags: %r' % ([t[0] for t in self.tags]))
 
+  @classmethod
+  def ParseFile(cls, filename, options):
+    parser = cls(options.html_classes)
+    with open(filename) as fp:
+      parser.feed(fp.read())
+    parser.close()
+    return parser.messages
+
+
+def GetPotMessages(pot_filename):
+  def ParseFileComments(comment):
+    return [(filename, int(lineno))
+            for filename, lineno in re.findall(r'(\S+?):(\d+)', comment)]
+
+  def ParseMsgId(msgid):
+    return ''.join(Unescape(s[1:-1]) for s in msgid.splitlines(False))
+
+  with open(pot_filename) as fp:
+    pot = fp.read()
+
+  match = re.findall(r"""
+  ((?:^\#:\ .*\n)+)  # The filename:lineno reference comment
+  ^msgid\ (".*"\n(?:^".*"\n)*)  # The msgid
+  """, pot, re.MULTILINE | re.VERBOSE)
+  return [(filename, ParseMsgId(msgid))
+          for comment, msgid in match
+          for filename in ParseFileComments(comment)]
+
+
+def ParseJSFiles(files, options):
+  if not files:
+    return []
+
+  # Use xgettext to extract translatable text from javascript sources, and
+  # merge them with our output.
+  temp_fd, temp_filename = tempfile.mkstemp(prefix='pygettext')
+  os.close(temp_fd)
+  keyword_args = ['-k' + keyword for keyword in options.js_keywords]
+  cmd = [
+      'xgettext', '--from-code=UTF-8', '--language=javascript', '-o',
+      temp_filename, '--omit-header', '-k']
+  cmd.extend(keyword_args)
+  cmd.append('--')
+  cmd.extend(files)
+
+  try:
+    if options.verbose:
+      print 'Running xgettext on JS files %r' % files
+    subprocess.check_call(cmd)
+    return GetPotMessages(temp_filename)
+  finally:
+    if os.path.exists(temp_filename):
+      os.remove(temp_filename)
+
+
+def ParseJSONTestList(filename, options):
+  prefixes = options.json_prefixes
+  with open(filename, 'r') as fp:
+    test_list = json.load(fp)
+
+  messages = []
+
+  def RecursiveFindMessages(obj):
+    # json.load strings are always unicode.
+    if isinstance(obj, unicode):
+      for prefix in prefixes:
+        if obj.startswith(prefix):
+          messages.append(obj[len(prefix):])
+          break
+    elif isinstance(obj, list):
+      for item in obj:
+        RecursiveFindMessages(item)
+    elif isinstance(obj, dict):
+      for item in obj.itervalues():
+        RecursiveFindMessages(item)
+
+  RecursiveFindMessages(test_list)
+
+  # TODO(pihsun): Implement syntax sugar for test labels.
+  return messages
+
+
+def ParseMultipleFilesWrapper(func):
+  def Inner(files, options):
+    messages = []
+    for filename in files:
+      if options.verbose:
+        print 'Working on %s' % filename
+      try:
+        new_messages = func(filename, options)
+        messages.extend(((filename, i), msg)
+                        for i, msg in enumerate(new_messages))
+      except Exception as e:
+        print >> sys.stderr, 'ERROR %s: %s' % (filename, e)
+    return messages
+  return Inner
+
+
+PARSERS = {
+    '.py': ParseMultipleFilesWrapper(PyAstVisitor.ParseFile),
+    '.html': ParseMultipleFilesWrapper(HTMLMessageParser.ParseFile),
+    '.json': ParseMultipleFilesWrapper(ParseJSONTestList),
+    '.js': ParseJSFiles
+}
+
 
 def main():
   parser = argparse.ArgumentParser(
       description='pygettext -- Python equivalent of xgettext(1)')
   parser.add_argument(
-      '-k', '--keyword', dest='keywords', action='append', default=[],
+      '-k', '--keyword', dest='py_keywords', action='append', default=[],
       help=('Keywords to look for in python source code. '
             'You can have multiple -k flags on the command line.'))
   parser.add_argument(
@@ -227,6 +348,10 @@ def main():
       help=('Keywords to look for in javascript source code. '
             'You can have multiple -j flags on the command line.'))
   parser.add_argument(
+      '-J', '--json-prefix', dest='json_prefixes', action='append', default=[],
+      help=('Prefix to look for in JSON test lists. '
+            'You can have multiple -J flags on the command line.'))
+  parser.add_argument(
       '-o', '--output', default='messages.pot', dest='output_file',
       help='Rename the default output file from messages.pot to filename.')
   parser.add_argument(
@@ -236,88 +361,25 @@ def main():
       '-w', '--width', default=78, type=int,
       help='Set width of output to columns.')
   parser.add_argument(
-      'input_file', nargs='+',
+      'input_files', nargs='+',
       help='Input file. Can either be python source code or HTML.')
   options = parser.parse_args()
 
-  # calculate escapes
-  MakeEscapes()
-
-  messages = []
-  # Gather javascript sources together, since we'll be calling xgettext for
-  # them.
-  js_sources = []
-  for filename in options.input_file:
-    if options.verbose:
-      print 'Working on %s' % filename
+  input_files_by_type = collections.defaultdict(list)
+  for filename in options.input_files:
     ext = os.path.splitext(filename)[1]
-    if ext == '.py':
-      visitor = PyAstVisitor(options.keywords)
-      with open(filename) as fp:
-        source = fp.read()
-      try:
-        node = ast.parse(source, filename)
-      except SyntaxError as e:
-        print >> sys.stderr, '%s: %s, line %d, column %d' % (
-            e.text, filename, e.lineno, e.offset)
-        continue
-      visitor.visit(node)
-      messages.extend(((filename, lineno), msg)
-                      for lineno, msg in visitor.messages)
-    elif ext == '.html':
-      parser = HTMLMessageParser(options.html_classes)
-      try:
-        with open(filename) as fp:
-          parser.feed(fp.read())
-        parser.close()
-        messages.extend(((filename, lineno), msg)
-                        for lineno, msg in parser.messages)
-      except Exception as e:
-        print >> sys.stderr, '%s: %s' % (filename, e)
-    elif ext == '.js':
-      js_sources.append(filename)
+    if ext in PARSERS:
+      input_files_by_type[ext].append(filename)
     else:
       print >> sys.stderr, 'Unknown file type %s for file %s' % (
           ext, filename)
 
+  messages = []
+  for filetype, files in input_files_by_type.iteritems():
+    messages.extend(PARSERS[filetype](files, options))
+
   with open(options.output_file, 'w') as fp:
     WritePot(fp, messages, options.width)
-
-  if js_sources:
-    # Use xgettext to extract translatable text from javascript sources, and
-    # merge them with our output.
-    temp_fd, temp_filename = tempfile.mkstemp(prefix='pygettext')
-    os.close(temp_fd)
-    keyword_args = ['-k' + keyword for keyword in options.js_keywords]
-    cmd = [
-        'xgettext', '--from-code=UTF-8', '--language=javascript', '-o',
-        temp_filename, '--omit-header', '-k']
-    cmd.extend(keyword_args)
-    cmd.append('--')
-    cmd.extend(js_sources)
-    try:
-      subprocess.check_call(cmd)
-      # There's no option for xgettext to disable line number, so we have to
-      # read and filter line numbers from output file manually.
-      filtered_po = []
-      with open(temp_filename) as fp:
-        for line in fp:
-          if not line.startswith('#: '):
-            filtered_po.append(line)
-            continue
-          files = re.findall(r'(\S+?):\d+', line)
-          filtered_po.append('#: ' + ' '.join(files) + '\n')
-      with open(temp_filename, 'w') as fp:
-        fp.writelines(filtered_po)
-      # Can't sure if it's good to have msgcat output file in input file list,
-      # better be safe and do this in two step.
-      merged_po = subprocess.check_output(['msgcat', '-o', '-',
-                                           options.output_file, temp_filename])
-      with open(options.output_file, 'w') as fp:
-        fp.write(merged_po)
-    finally:
-      if os.path.exists(temp_filename):
-        os.remove(temp_filename)
 
 if __name__ == '__main__':
   main()
