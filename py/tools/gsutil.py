@@ -24,6 +24,11 @@ class GSUtilError(Exception):
   pass
 
 
+class NoSuchKey(GSUtilError):
+  """Thrown when error message=NoSuchKey."""
+  pass
+
+
 class GSUtil(object):
   """A class that wraps gsutil."""
   CHANNELS = type_utils.Enum(['beta', 'canary', 'dev', 'stable'])
@@ -33,15 +38,28 @@ class GSUtil(object):
     self.board = build_board.BuildBoard(board)
     self.gs_output_cache = {}
 
+  def _InvokeCommand(self, *args):
+    process = process_utils.Spawn(['gsutil'] + list(args),
+                                  read_stdout=True, read_stderr=True)
+    if process.returncode == 0:
+      return process.stdout_data
+    else:
+      stderr = process.stderr_data
+      if ('CommandException: No URLs matched' in stderr or
+          'NotFoundException:' in stderr or
+          'One or more URLs matched no objects' in stderr):
+        raise NoSuchKey(stderr)
+      else:
+        raise GSUtilError(stderr)
+
   def LS(self, pattern):
-    return process_utils.CheckOutput(
-        ['gsutil', 'ls', pattern]).strip().split('\n')
+    return self._InvokeCommand('ls', pattern).strip().split('\n')
 
   def CP(self, src, dest):
-    process_utils.Spawn(['gsutil', 'cp', src, dest], check_call=True)
+    self._InvokeCommand('cp', src, dest)
 
   def GetVersion(self):
-    output = process_utils.CheckOutput(['gsutil', 'version'])
+    output = self._InvokeCommand('version')
     return re.search(r'gsutil version: (\d+\.\d+)', output).group(1)
 
   def GetGSPrefix(self, channel):
@@ -146,7 +164,7 @@ class GSUtil(object):
     result = [path for path in gs_builds_output if filespec_re.search(path)]
 
     if not result:
-      raise GSUtilError('Unable to get binary URI for %r from %r' % (
+      raise NoSuchKey('Unable to get binary URI for %r from %r' % (
           filetype, gs_dir))
 
     if len(result) > 1:

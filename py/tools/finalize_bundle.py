@@ -377,7 +377,7 @@ class FinalizeBundle(object):
         try:
           logging.info('Looking for test image at %s', url)
           output = self.gsutil.LS(url)
-        except subprocess.CalledProcessError:
+        except gsutil.NoSuchKey:
           # Not found; try next channel
           continue
 
@@ -474,7 +474,7 @@ class FinalizeBundle(object):
   def _GSFileExists(self, url):
     try:
       self.gsutil.LS(url)
-    except subprocess.CalledProcessError:
+    except gsutil.NoSuchKey:
       return False
     else:
       return True
