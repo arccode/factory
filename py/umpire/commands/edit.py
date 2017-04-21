@@ -75,8 +75,8 @@ class ConfigEditor(object):
     """Edits an Umpire config file.
 
     Args:
-      config_file: path to config file. If omitted, retrives staging config from
-          Umpire daemon.
+      config_file: path to config file. If omitted, retrieves staging config
+          from Umpire daemon.
     """
     self._PrepareConfigToEdit(config_file)
 

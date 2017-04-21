@@ -111,7 +111,7 @@ def SelectRuleset(config, dut_info):
     """
     if name not in common.RANGE_MATCHERS:
       return True
-    dut_value = dut_info.get(name[:-6])  # remove '_range' postifix
+    dut_value = dut_info.get(name[:-6])  # remove '_range' postfix
     if dut_value is None:
       return False
     (start, end) = value_range

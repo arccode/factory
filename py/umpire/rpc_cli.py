@@ -27,7 +27,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
   Command returns:
     defer.Deferred: The server waits for the callback/errback and returns
                     the what callback/errback function returns.
-    xmlrpc.Fault(): The raised exception will be catched by umpire.web.xmlrpc
+    xmlrpc.Fault(): The raised exception will be caught by umpire.web.xmlrpc
                     and translate to xmlrpc.Fault with exception info.
     Other values: return to caller.
   """
@@ -94,7 +94,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
       file_name: either full path or file name.
 
     Returns:
-      True if the file is in resources respository.
+      True if the file is in resources repository.
     """
     return self.env.InResource(file_name)
 
@@ -201,7 +201,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
 
   @umpire_rpc.RPCCall
   def GetStatus(self):
-    """Gets Umpire dameon status."""
+    """Gets Umpire daemon status."""
     reporter = status_reporter.StatusReporter(self.daemon)
     return reporter.Report()
 

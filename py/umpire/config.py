@@ -306,7 +306,7 @@ class UmpireConfig(dict):
     """Loads an UmpireConfig and validates it.
 
     If validate is set, it validates config with ValidateConfig() and checks
-    default bundle's existance.
+    default bundle's existence.
 
     Args:
       config: path to an Umpire config file or config content or an

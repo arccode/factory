@@ -30,7 +30,7 @@ def RPCCall(method):
     method: a class method.
 
   Returns:
-    decorated method with is_rpc_method attrubute set to True.
+    decorated method with is_rpc_method attribute set to True.
   """
   setattr(method, RPC_METHOD_ATTRIBUTE, True)
   return method

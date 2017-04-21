@@ -36,7 +36,7 @@ SYNC_URL = '%{scheme}s://%{ip}s:%{port}d/%{path}s/%{toolkit_md5sum}s/'
 
 
 def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
-  """Instanciates an XMLRPC Fault() object.
+  """Instantiates an XMLRPC Fault() object.
 
   xmlrpc.Fault() notifies the RPC client that remote function was terminated
   incorrectly.
@@ -62,7 +62,7 @@ def GetServerIpPortFromRequest(request, env):
 class RootDUTCommands(umpire_rpc.UmpireRPC):
   """Root DUT (Device Under Test) remote procedures.
 
-  Root commands for v1 and v2 compatiblilities.
+  Root commands for v1 and v2 compatibilities.
 
   RPC URL:
     http://umpire_server_address:umpire_port/RPC2
@@ -170,7 +170,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
 
   @staticmethod
   def _IsTagEqual(component, component_tag, resource_tag):
-    """Compares component tag and resouce tag."""
+    """Compares component tag and resource tag."""
     if component_tag is None:
       return False
     if component in HASH_COMPONENTS:
@@ -308,7 +308,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     return True
 
   def _UnwrapBlob(self, blob):
-    """Umwraps a blob object."""
+    """Unwraps a blob object."""
     return blob.data if isinstance(blob, xmlrpclib.Binary) else blob
 
   def _Now(self):

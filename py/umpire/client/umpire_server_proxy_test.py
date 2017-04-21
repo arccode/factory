@@ -76,7 +76,7 @@ class UmpireServerProxyCLI(object):
   """The main class of Umpire server proxy command line tool.
 
   This tool let user test Umpire server proxy and Umpire server
-  connection and method calls. Fake client info can be spcified in the test
+  connection and method calls. Fake client info can be specified in the test
   data yaml file. Method can be specified in command line argument.
   If the method to call has arguments, they can be specified in test data yaml
   file.

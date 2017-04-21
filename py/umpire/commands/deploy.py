@@ -139,7 +139,7 @@ class ConfigDeployer(object):
           with open(temp_conf_path, 'w') as f:
             f.write(header)
             f.write(new_conf)
-          # Add resoruce inside TempDirectory context.
+          # Add resource inside TempDirectory context.
           new_download_conf_path = self._env.AddResource(temp_conf_path)
         resources['download_conf'] = os.path.basename(new_download_conf_path)
         logging.info('Composes new download_conf in %r', new_download_conf_path)

@@ -227,7 +227,7 @@ class UmpireDaemon(object):
     if self.deploying:
       return defer.fail(common.UmpireError('Another deployment in progress'))
 
-    # Switch to deploying state, this flag will be cleard in callback/errback.
+    # Switch to deploying state, this flag will be cleared in callback/errback.
     self.deploying = True
     stopping_services = None
     starting_services = None

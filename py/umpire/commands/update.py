@@ -23,7 +23,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 
 
-# Mapping of updateable resource type (command string) to ResourceType enum.
+# Mapping of updatable resource type (command string) to ResourceType enum.
 _RESOURCE_TYPE_MAP = {
     'factory_toolkit': common.ResourceType.FACTORY_TOOLKIT,
     'firmware': common.ResourceType.FIRMWARE,
@@ -65,7 +65,7 @@ def ConvertChromeOSImageToMiniOmahaFormat(chromeos_image_path,
   If output_path is None, this function creates a temp folder and converts the
   input image to a file called "rootfs-release.gz" under that temp folder. The
   path to the "rootfs-release.gz" is returned, and can be used by mini-omaha
-  directly. Note that in this case, it's the caller's reponsibility to remove
+  directly. Note that in this case, it's the caller's responsibility to remove
   the temp folder.
 
   If output_path is not None, the content will be written to it. The
@@ -91,7 +91,7 @@ def ConvertChromeOSImageToMiniOmahaFormat(chromeos_image_path,
       raise ValueError(
           'basename of output_path must be %s' % MINI_OMAHA_FSI_EXPECTED_NAME)
 
-  # Write signature, kernal, rootfs to "rootfs-release.gz" in the temp folder.
+  # Write signature, kernel, rootfs to "rootfs-release.gz" in the temp folder.
   with gzip.open(output_path, 'wb', compresslevel=9) as fout:
     # signature
     fout.write(struct.pack('>q', kernel_size))

@@ -153,7 +153,7 @@ class UmpireEnv(object):
   def ReadConfig(self, custom_path=None):
     """Reads Umpire config.
 
-    It jsut returns config. It doens't change config in property.
+    It just returns config. It doesn't change config in property.
 
     Args:
       custom_path: If specified, load the config file custom_path pointing to.

@@ -38,7 +38,7 @@ The test flow is as follows when `cros_docker.sh umpire test` is executed.
   py_pkg/, bin/, /setup/cros_docker.sh` into `/usr/local/factory` in Test
   Docker.
 * Start a new Test Docker instance, with a temporary folder on Host stored in
-  environment varaible `TMPDIR`, and mounted on same path inside Test Docker.
+  environment variable `TMPDIR`, and mounted on same path inside Test Docker.
 * Inside Test Docker, for each set of test, a new Umpire Docker is created on
   setUpClass, and destroyed on tearDownClass.
 * Inside Test Docker, when creating a new Umpire Docker, copy

@@ -462,7 +462,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO1')
     # When proxy tries to call method, Umpire_client_info.Update() returns
-    # True, so proxy needs to request resourse map again.
+    # True, so proxy needs to request resource map again.
     self.fake_umpire_client_info.Update().AndReturn(True)
     self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO2')
 
@@ -479,7 +479,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap2')
 
     # Proxy thinks it is talking to shopfloor 1, but actually it will talk
-    # to shopfloor 2 after requesing resource map.
+    # to shopfloor 2 after requesting resource map.
     result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
     self.assertEqual(result,
                      'Handler: %s; message: %s' %
@@ -509,7 +509,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     # Lets shopfloor handler 1 generate 410 Gone error.
     SetHandlerError('shopfloor_handler1', 410, 'Gone')
     # Proxy thinks it is talking to shopfloor 1, but actually it will talk
-    # to shopfloor 2 after requesing resource map.
+    # to shopfloor 2 after requesting resource map.
     result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
     # It talks to shopfloor_handler2 actually.
     self.assertEqual(
@@ -574,7 +574,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     # Clear error files so base handler will not return 111 error.
     self.ClearErrorFiles()
 
-    # to shopfloor 1 after requesing resource map.
+    # to shopfloor 1 after requesting resource map.
     result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
     # It talks to shopfloor_handler2 actually.
     self.assertEqual(

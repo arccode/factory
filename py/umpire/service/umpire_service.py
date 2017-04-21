@@ -10,7 +10,7 @@ for all service module.
 """
 
 # The attributes of Twisted reactor and type_utils.AttrDict object are changing
-# dynamically at run time. To supress warnings, pylint: disable=E1101
+# dynamically at run time. To suppress warnings, pylint: disable=E1101
 
 import collections
 import copy

@@ -124,7 +124,7 @@ class UmpireClientInfo(object):
     return changed
 
   def _GetComponentsDict(self):
-    """Gets infomation needed for Umpire GetUpdate call.
+    """Gets information needed for Umpire GetUpdate call.
 
     Returns:
       A component dict:

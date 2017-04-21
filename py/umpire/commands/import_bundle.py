@@ -167,7 +167,7 @@ class BundleImporter(object):
   It reads a factory bundle and copies resources to Umpire.
 
   It also updates active UmpireConfig and saves it to staging. Note that if
-  staging config alreay exists, it refuses to import the bundle.
+  staging config already exists, it refuses to import the bundle.
 
   Usage:
     with BundleImporter(env) as bundle_importer:
@@ -180,7 +180,7 @@ class BundleImporter(object):
     Args:
       env: UmpireEnv object.
     """
-    # Define _temp_dir before checking staging file. Otherwise, undefiend
+    # Define _temp_dir before checking staging file. Otherwise, undefined
     # _temp_dir will fail Close, too.
     self._temp_dir = None
 

@@ -64,7 +64,7 @@ class IndentTextWriter(object):
   def DecIndent(self):
     """Decreases indentation level.
 
-    Lowerst indentation level is indent specified in ctor."""
+    Lowest indentation level is indent specified in ctor."""
     self._indent = max(self._indent_base, self._indent - self._indent_space)
 
   def EnterBlock(self, bracket=None):

@@ -115,7 +115,7 @@ class DaemonTest(unittest.TestCase):
     Response headers and body will be stored in AttrDict session.
 
     Args:
-      session: AttrDict to store results of this requst session.
+      session: AttrDict to store results of this request session.
 
     Returns:
       Deferred object.
@@ -139,7 +139,7 @@ class DaemonTest(unittest.TestCase):
     """Event handler for web user agent request.i
 
     Args:
-      session: AttrDict to store results of this requst session.
+      session: AttrDict to store results of this request session.
 
     Returns:
       Deferred object.

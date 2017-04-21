@@ -14,7 +14,7 @@ from cros.factory.utils.schema import Scalar
 
 CONFIG_SCHEMA = {
     'optional_items': {
-        'lan_disc_iface': Scalar('LAN discovery iterface', str),
+        'lan_disc_iface': Scalar('LAN discovery interface', str),
         'noauth': Scalar('Disable authentication', bool),
         'tls': Scalar('TLS settings', str)}}
 

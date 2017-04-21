@@ -135,7 +135,7 @@ class HTTPService(umpire_service.UmpireService):
 
   @staticmethod
   def _GenerateLightyConfigImpl(umpire_config, env, config_path):
-    """Real implemtation of GenerateLightyConfig.
+    """Real implementation of GenerateLightyConfig.
 
     It writes config to config_path.
 

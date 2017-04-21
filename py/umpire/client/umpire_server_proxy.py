@@ -35,10 +35,10 @@ ERROR_TOKEN_INVALID = UmpireServerError(410, 'Gone')
 
 
 def CheckProtocolError(protocol_error, umpire_server_error):
-  """Checks if an xmlrpclib.ProtocalError equals to an UmpireServerError.
+  """Checks if an xmlrpclib.ProtocolError equals to an UmpireServerError.
 
   Args:
-    protocol_error: An xmlrpclib.ProtocalError.
+    protocol_error: An xmlrpclib.ProtocolError.
     umpire_server_error: An UmpireServerError.
 
   Returns:
@@ -92,7 +92,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
   to determine the server version. After that, base class will connect to
   Umpire XMLRPC handler. If server version can not be determined at init time,
   It should be determined when user calls methods (through _Request method
-  implicitely).
+  implicitly).
   This class maintains an object which implements UmpireClientInfoInterface
   and a token.
   If client info is updated, or token is invalid, it will fetch resource map and
@@ -635,7 +635,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     self._token = None
 
   def __getattr__(self, name):
-    # Same magic dispatcher as that in xmpliclib.ServerProxybase but using
+    # Same magic dispatcher as that in xmlrpclib.ServerProxybase but using
     # self._Request instead of _request in the base class.
     return xmlrpclib._Method(self._Request, name)  # pylint: disable=W0212
 
