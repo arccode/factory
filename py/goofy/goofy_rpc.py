@@ -979,7 +979,7 @@ class GoofyRPC(object):
 
   def _GetTests(self):
     """Helper method to get a list of all tests and their states."""
-    paths_to_run = set(self.goofy.test_list_iterator.get_pending_tests())
+    paths_to_run = set(self.goofy.test_list_iterator.GetPendingTests())
     ret = []
     states = self.goofy.state_instance.get_test_states()
     for t in self.goofy.test_list.Walk(in_order=True):
@@ -1102,7 +1102,7 @@ class GoofyRPC(object):
         ret_val['run_id'] = self.goofy.run_id,
         ret_val['scheduled_tests'] = scheduled_tests_status
 
-        if (self.goofy.test_list_iterator.get_pending_tests() or
+        if (self.goofy.test_list_iterator.GetPendingTests() or
             any(t['status'] == factory.TestState.ACTIVE
                 for t in scheduled_tests_status)):
           ret_val['status'] = RunState.RUNNING

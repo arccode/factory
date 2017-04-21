@@ -1,17 +1,54 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-# Copyright 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 
-import itertools
 import logging
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import invocation
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.utils import type_utils
+
+
+class PickableFrame(object):
+  """Represent a frame of call stack.
+
+  This object is used to store a frame of recursive call, for example:
+
+    def compute_gcd(a, b):
+      if b != 0:
+        return compute_gcd(b, a % b)
+      else:
+        return a
+
+  The call stack when this function is called by a=10, b=5 will be:
+
+    compute_gcd(5, 10)
+      compute_gcd(10, 5)
+        compute_gcd(5, 0)
+          return 5
+
+  Each recursive call will create a new frame and the frame will store necessary
+  variables to allow interrupting and resuming.
+
+  Fields:
+    node: the argument of this frame, the meaning of each frame.node should be
+      the same, for example, in `compute_gcd`, all of them will be a tuple of
+      integers.
+    next_step: the recursive function can have several checkpoints.  This
+      variable represents the current checkpoint (i.e, the next step in
+      recursive function)
+    locals: all other variables that need to be stored should be saved here.
+  """
+
+  def __init__(self, node):
+    self.node = node
+    self.next_step = TestListIterator.OnEnter.__name__
+    self.locals = {}
 
 
 class TestListIterator(object):
@@ -19,18 +56,20 @@ class TestListIterator(object):
 
   https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md
 
-  * The iterator will return next test to run when "next()" is called.
+  * The iterator will return the test to be run next when "next()" is called.
   * A status filter can be applied to skip some tests according to their states.
   * The iterator is loosely bind to FactoryTestList, that is you can change the
     test list object of the iterator.  If the iterator can find the last test it
-    returned, the iterator will continue on next test in the new test list.
-  * This object should implement pickle protocol to be able to save and reload
-    by python shelve.
+    just returned, the iterator will continue on next test in the new test list.
+    Otherwise, a StopIteration exception will be raised.
+  * This object must implement pickle protocol to be able to save and reload by
+    python shelve.
     (https://docs.python.org/2/library/pickle.html#pickle-protocol)
 
-  The iterator will go through each tests in the test list start from a given
+  The iterator will go through each test in the test list, starting from a given
   node in depth first search order.
-  self.stack is the execution stack of the iterator.
+  self.stack is the execution stack of the iterator.  Each element of self.stack
+  is a PickableFrame object.
 
   For example, consider a test list like this:
 
@@ -38,17 +77,50 @@ class TestListIterator(object):
     A (path='a')
     G (path='G')
       B (path='G.b')
-      G (path='G.H')
+      H (path='G.H')
         C (path='G.H.c')
 
-  If we start at root, then `self.stack = ['']` initially, and will become
-  `self.stack = ['', 'G', 'G.H', 'G.H.c']` when we reach test C.
+  If we start at root, then `self.stack = [Frame('')]` initially.  And the stack
+  will become `self.stack = [Frame(''), Frame('G'), Frame('G.H'),
+  Frame('G.H.c')]` when we reach test C.
 
-  If we start at test G, then `self.stack = ['G']` initially, and will become
-  `self.stack = ['G', 'G.H', 'G.H.c']` when we reach test C.
+  If we start at test G, then `self.stack = ['G']` initially.  And the stack
+  will become `self.stack = [Frame('G'), Frame('G.H'), Frame('G.H.c')]` when we
+  reach test C.
+
+  TestListIterator implements the behavior of following depth first search
+  function::
+
+      def dfs(node):
+        if not OnEnter(node):
+          return
+        while Continue(node):
+          Body(node)
+        OnLeave(node)
   """
 
-  _SERIALIZE_FIELDS = ('stack', 'status_filter', 'inited', 'teardown_only')
+  Frame = PickableFrame
+
+  _SERIALIZE_FIELDS = ('stack', 'status_filter', 'teardown_only')
+  """fields in self.__dict__ that should be serialized."""
+
+  RETURN_CODE = type_utils.Enum(
+      ['POP_FRAME', 'NEW_FRAME', 'CONTINUE', 'RETURN'])
+  """Represents how state transistion should be done to the state machine.
+
+  Each transition function should return a tuple of (return_code, value).
+  TestListIterator will call a transition function (decided by next_step of top
+  frame) and receive a tuple.  And the TestListIterator will do the following
+  according to the return_code:
+
+  POP_FRAME: the top frame should be popped, `value` is ignored.  The state
+    machine should try to make transition again.
+  NEW_FRAME: a new frame is pushed according to `value`.  The state machine
+    should try to make transition again.
+  CONTINUE: don't push or pop a frame, just try to make another transition.
+    `value` is ignored.
+  RETURN: return `value`
+  """
 
   def __init__(self, root=None, status_filter=None, test_list=None):
     """Constructor of TestListIterator.
@@ -61,22 +133,24 @@ class TestListIterator(object):
         The filter only applies on leaf tests (tests without subtests) or
         parallel tests, doesn't apply on test groups.
       test_list: a FactoryTestList object this iterator should iterate.  Can be
-        updated by `set_test_list()` function.
+        updated by `SetTestList()` function.
     """
+    self.stack = []
+    self.test_list = test_list
+    self.status_filter = status_filter or []
+    self.teardown_only = False
+
     if isinstance(root, factory.FactoryTest):
-      self.stack = [root.path]
-    elif isinstance(root, str):
-      self.stack = [root]
+      self.Push(root.path)
+    elif isinstance(root, basestring):
+      self.Push(root)
     elif root is None:
       self.stack = []
     else:
-      raise ValueError('root must be one of FactoryTest, string or None')
+      raise ValueError(
+          'root must be one of FactoryTest, string or None (got %r)' % root)
 
-    self.status_filter = status_filter
-    self.test_list = test_list
-    self.inited = False
-    self.teardown_only = False
-
+  # define __getstate__ and __setstate__ to make this object pickable
   def __getstate__(self):
     return {key: self.__dict__[key] for key in self._SERIALIZE_FIELDS}
 
@@ -85,163 +159,14 @@ class TestListIterator(object):
       self.__dict__[key] = pickled_state[key]
     self.test_list = None  # we didn't serialize the test_list, set it to None
 
-  def set_test_list(self, test_list):
-    assert isinstance(test_list, factory.FactoryTestList)
-    self.test_list = test_list
+  def Push(self, node):
+    self.stack.append(self.Frame(node))
 
-  def check_skip(self, test):
-    if isinstance(test, str):
-      test = self.test_list.LookupPath(test)
-    if self.status_filter:
-      # status filter only applies to leaf tests
-      if ((test.IsLeaf() or test.IsParallel()) and
-          not self._check_status_filter(test)):
-        logging.info('test %s is filtered (skipped) because its status',
-                     test.path)
-        logging.info('%s (skip list: %r)',
-                     test.GetState().status, self.status_filter)
-        return True
-    if not self._check_run_if(test):
-      logging.info('test %s is skipped because run_if evaluated to False',
-                   test.path)
-      test.UpdateState(skip=True)
-      return True
-    elif test.IsSkipped():
-      # this test was skipped before, but now we might need to run it
-      test.UpdateState(status=factory.TestState.UNTESTED, error_msg='')
-      # check again (for status filter)
-      return self.check_skip(test)
-    return False
+  def Pop(self):
+    self.stack.pop()
 
-  # pylint: disable=method-hidden
-  # This function will be mocked in `self.get_pending_tests`.
-  def _check_run_if(self, test, test_arg_env=None, get_data=None):
-    if test_arg_env is None:
-      test_arg_env = invocation.TestArgEnv()
-    if get_data is None:
-      get_data = shopfloor.get_selected_aux_data
-    return test.EvaluateRunIf(test_arg_env, get_data)
-
-  def _check_status_filter(self, test):
-    if not self.status_filter:
-      return True
-    status = test.GetState().status
-    # an active test should always pass the filter (to resume a previous test)
-    return status == factory.TestState.ACTIVE or status in self.status_filter
-
-  def get(self):
-    """Returns the current test item.
-
-    If self.next() is never called before (self.inited == False), this function
-    will return None.
-
-    If the last invocation of self.next() returned a test path, then this
-    function will return the same test path.
-
-    If the last invocation of self.next() raised `StopIteration` exception, this
-    function will return None.
-    """
-    if not self.inited:
-      return None
-    if not self.stack:
-      return None
+  def Top(self):
     return self.stack[-1]
-
-  def _find_first_valid_test_in_subtree(self):
-    """Find first valid test in the subtree.
-
-    Assume that currently we have `self.stack = ['G', 'G.H', 'G.H.I']`.
-    This function will check if G.H.I is a valid test to run, if yes, just
-    return True.  If it's not valid because it contains subtests, this function
-    will recursively search the subtests.
-
-    Returns:
-      True if a valid test is found, `self.stack` will indicate the test it
-      found, e.g. `self.stack = ['G', 'G.H', 'G.H.I', 'G.H.I.J', 'G.H.I.J.x']`
-
-      False if no valid test found.  In this case, `self.stack` will not be
-      changed.
-    """
-    assert self.stack, "stack cannot be empty"
-
-    path = self.stack[-1]
-    test = self.test_list.LookupPath(path)
-    if test.IsLeaf() or test.IsParallel():
-      if not self.check_skip(test):
-        return True
-
-    for subtest in test.subtests:
-      if not self.check_skip(subtest):
-        self.stack.append(subtest.path)
-        if self._find_first_valid_test_in_subtree():
-          return True
-        # none of the test in the subtree is valid
-        self.stack.pop()
-    # cannot find anything
-    return False
-
-  def _continue_depth_first_search(self):
-    """Continue the depth first search starting from current node.
-
-    Assume that currently we have `self.stack = ['G', 'G.H', 'G.H.I']`.
-    This function will skip any subtests of G.H.I, and go to G.H.J (the next
-    subtest of G.H after G.H.I).
-
-    Returns:
-      True if we found next test to run.  `self.stack` will indicate the test it
-      found, e.g. `self.stack = ['G', 'G.H', 'G.H.J', 'G.H.J.K', 'G.H.J.K.x']`
-
-    Raises:
-      StopIteration if no next test found.
-    """
-    while self.stack:
-      path = self.stack.pop()
-      test = self.test_list.LookupPath(path)
-      jump_to_teardown = False
-
-      if not test:
-        # cannot find the test we were running, maybe the test list is changed
-        # between serialization and deserialization, just stop
-        raise StopIteration
-
-      if not self.stack:
-        # oh, there is no parent
-        raise StopIteration
-
-      success = test.GetState().status != factory.TestState.FAILED
-      if not success:
-        # create an alias
-        ACTION_ON_FAILURE = factory.FactoryTest.ACTION_ON_FAILURE
-        if test.action_on_failure == ACTION_ON_FAILURE.NEXT:
-          pass  # does nothing, just find the next test
-        elif test.action_on_failure == ACTION_ON_FAILURE.PARENT:
-          jump_to_teardown = True
-        elif test.action_on_failure == ACTION_ON_FAILURE.STOP:
-          jump_to_teardown = True
-          self.teardown_only = True
-
-      subtests = iter(test.parent.subtests)
-      if jump_to_teardown or self.teardown_only:
-        # we only want to run teardown tests, filter out normal tests,
-        # however, to make the checking code easier to implement, current test
-        # is not filtered.
-        subtests = itertools.ifilter(
-            lambda subtest: subtest.path == path or subtest.IsTeardown(),
-            subtests)
-
-      # find next test in parent
-      found_current_test = False
-      for subtest in subtests:
-        if found_current_test:
-          if not self.check_skip(subtest.path):
-            self.stack.append(subtest.path)
-            if self._find_first_valid_test_in_subtree():
-              return True
-            self.stack.pop()
-        if path == subtest.path:
-          # find current test, the next one is what we want
-          found_current_test = True
-      assert found_current_test
 
   def next(self):
     """Returns path to the test that should start now.
@@ -251,54 +176,246 @@ class TestListIterator(object):
     all of them will be run in parallel).
 
     Returns:
-      a string the is the path of the test (use test_list.lookup_path(path) to
+      a string the is the path of the test (use test_list.LookupPath(path) to
       get the real test object).
     """
-    assert isinstance(self.test_list, factory.FactoryTestList), (
-        'test_list is not set (call set_test_list() to set test list)')
-
     if not self.stack:
       raise StopIteration
 
-    if not self.inited:
-      # this is a special case, we try to find a test under current node first.
-      # if we failed to do so, find next test as normal.
-      self.inited = True
-      if self._find_first_valid_test_in_subtree():
-        return self.stack[-1]
+    frame = self.Top()
 
-    self._continue_depth_first_search()
-    return self.stack[-1]
+    # check if frame.node is still a valid test in self.test_list
+    if not self._GetTestFromFrame(frame):
+      raise StopIteration
 
-  def stop(self):
-    self.stack = []
+    func = getattr(self, frame.next_step)
 
-  def copy(self):
-    # make a copy of myself
-    it = TestListIterator(None, self.status_filter, self.test_list)
-    it.stack = list(self.stack)
-    return it
+    returncode, value = func()
 
-  def __iter__(self):
-    return self
+    if returncode == self.RETURN_CODE.POP_FRAME:
+      self.Pop()
+      return self.next()
+    if returncode == self.RETURN_CODE.NEW_FRAME:
+      self.Push(value)
+      return self.next()
+    if returncode == self.RETURN_CODE.CONTINUE:
+      return self.next()
+    if returncode == self.RETURN_CODE.RETURN:
+      return value
 
-  def __repr__(self):
-    return repr(self.__getstate__())
+  #####################
+  # Exposed Functions #
+  #####################
+  def Get(self):
+    """Get current test.
 
-  def get_pending_tests(self):
-    """List all tests that *might* be run.
-
-    This function will return a list of test paths that are the tests that
-    will be run if their run_if functions return True.
-
-    That is, the status filter will apply correctly, but we assume that run_if
-    function will return True.  So the returned list is a super set of the tests
-    that are actually going to be run.
-
-    Returns:
-      list of str, which are test paths.
+    Returns current test, which should be the same value returned by previous
+    next() call.  If next() is never called before, the return value is
+    undefined.
     """
-    it = self.copy()
-    # pylint: disable=protected-access
-    it._check_run_if = lambda *args, **kwargs: True
-    return list(it)
+    if not self.stack:
+      return None
+    test = self._GetTestFromFrame(self.Top())
+    return test.path
+
+  def SetTestList(self, test_list):
+    """Set test list of iterator.
+
+    Since we are not serializing test list when pickling TestListIterator, users
+    need to invoke SetTestList to set current test list of the runner.
+    """
+    self.test_list = test_list
+
+  def Stop(self, subtree_root=None):
+    """Stops all tests under `subtree_root`.
+
+    for example, a test list looks like:
+    ''
+      'G'
+        'G.a'
+        'G.b'
+      'H'
+        'H.b'
+
+    when the TestListIterator is running 'G.a', and calling Stop('G'), the next
+    test to run will be 'H.b'.
+    """
+    if subtree_root is None:
+      subtree_root = ''
+
+    if isinstance(subtree_root, basestring):
+      subtree_root = self.test_list.LookupPath(subtree_root)
+
+    while self.stack:
+      test = self._GetTestFromFrame(self.Top())
+      if test.HasAncestor(subtree_root):
+        self.Pop()
+      else:
+        break
+
+  def GetPendingTests(self):
+    if not self.stack:
+      return []
+    root = self._GetTestFromFrame(self.stack[0])
+    return [test.path for test in root.Walk() if test.IsLeaf()]
+
+  def RestartLastTest(self):
+    assert self.Top().next_step == self.CheckContinue.__name__
+    self.Top().next_step = self.Body.__name__
+
+  ###########################
+  # State Machine Functions #
+  ###########################
+  def OnEnter(self):
+    frame = self.Top()
+    test = self._GetTestFromFrame(frame)
+
+    if self.CheckSkip(test):
+      return self.RETURN_CODE.POP_FRAME, None
+
+    self._ResetIterations(test)
+    frame.next_step = self.CheckContinue.__name__
+    return self.RETURN_CODE.CONTINUE, None
+
+  def CheckContinue(self):
+    frame = self.Top()
+    test = self._GetTestFromFrame(frame)
+
+    if frame.locals.get('executed', False):
+      success = self._DetermineSuccess(test)
+      if success:
+        test.UpdateState(decrement_iterations_left=1)
+      else:
+        state = test.UpdateState(decrement_retries_left=1)
+        if state.retries_left >= 0:
+          # since you allow try, let's reset teardown_only flags
+          self.teardown_only = False
+          frame.locals.pop('teardown_only', None)
+
+    state = test.GetState()
+    if state.iterations_left > 0 and state.retries_left >= 0:
+      # should continue
+      frame.next_step = self.Body.__name__
+      return self.RETURN_CODE.CONTINUE, None
+    else:
+      # should not continue
+      frame.next_step = self.OnLeave.__name__
+      return self.RETURN_CODE.CONTINUE, None
+
+  def Body(self):
+    frame = self.Top()
+    frame.locals['executed'] = True
+
+    test = self._GetTestFromFrame(frame)
+
+    if self._IsRunnableTest(test):
+      frame.next_step = self.CheckContinue.__name__
+      return self.RETURN_CODE.RETURN, test.path
+
+    subtest = frame.locals.get('subtest', None)
+    if subtest is None:
+      next_subtest = test.subtests[0]
+    else:
+      subtest = self.test_list.LookupPath(subtest)
+      next_subtest = subtest.GetNextSibling()
+
+      # result of previous subtest
+      success = self._DetermineSuccess(subtest)
+      if not success:
+        # create an alias
+        ACTION_ON_FAILURE = factory.FactoryTest.ACTION_ON_FAILURE
+        if subtest.action_on_failure == ACTION_ON_FAILURE.NEXT:
+          pass  # does nothing, just find the next test
+        elif subtest.action_on_failure == ACTION_ON_FAILURE.PARENT:
+          # stop executing normal tests under this test, only teardown tests can
+          # be run.
+          frame.locals['teardown_only'] = True
+        elif subtest.action_on_failure == ACTION_ON_FAILURE.STOP:
+          # stop executing normal tests under *root*, only teardown tests can be
+          # run.
+          frame.locals['teardown_only'] = True
+          self.teardown_only = True
+
+    while next_subtest:
+      # if we can only run teardown tests, skip next_subtest until we find a
+      # teardown test.
+      if self.teardown_only or frame.locals.get('teardown_only', False):
+        if not next_subtest.IsTeardown():
+          next_subtest = next_subtest.GetNextSibling()
+          continue
+      # okay, this is a valid test (any test when teardown_only == False,
+      # teardown test when teardown_only == True).  Let's update local variable
+      # and create a new frame (recursive call).
+      frame.locals['subtest'] = next_subtest.path
+      return self.RETURN_CODE.NEW_FRAME, next_subtest.path
+
+    # no next subtest, go to CheckContinue to check if we need to run again
+    frame.next_step = self.CheckContinue.__name__
+    # unset local variable subtest
+    frame.locals.pop('subtest', None)
+
+    return self.RETURN_CODE.CONTINUE, None
+
+  def OnLeave(self):
+    return self.RETURN_CODE.POP_FRAME, None
+
+  ####################
+  # Helper Functions #
+  ####################
+  def CheckSkip(self, test):
+    if self.status_filter:
+      # status filter only applies to leaf tests
+      if (self._IsRunnableTest(test) and
+          not self.CheckStatusFilter(test)):
+        logging.info('test %s is filtered (skipped) because its status',
+                     test.path)
+        logging.info('%s (skip list: %r)',
+                     test.GetState().status, self.status_filter)
+        return True  # we need to skip it
+    if not self.CheckRunIf(test):
+      logging.info('test %s is skipped because run_if evaluated to False',
+                   test.path)
+      test.UpdateState(skip=True)
+      return True  # we need to skip it
+    elif test.IsSkipped():
+      # this test was skipped before, but now we might need to run it
+      test.UpdateState(status=factory.TestState.UNTESTED, error_msg='')
+      # check again (for status filter)
+      return self.CheckSkip(test)
+    return False
+
+  def CheckStatusFilter(self, test):
+    if not self.status_filter:
+      return True
+    status = test.GetState().status
+    # an active test should always pass the filter (to resume a previous test)
+    return status == factory.TestState.ACTIVE or status in self.status_filter
+
+  def CheckRunIf(self, test, test_arg_env=None, get_data=None):
+    if test_arg_env is None:
+      test_arg_env = invocation.TestArgEnv()
+    if get_data is None:
+      get_data = shopfloor.get_selected_aux_data
+    return test.EvaluateRunIf(test_arg_env, get_data)
+
+  def _ResetIterations(self, test):
+    test.UpdateState(iterations_left=test.iterations,
+                     retries_left=test.retries)
+
+  def _GetTestFromFrame(self, frame):
+    """Returns test object corresponding to `frame`.
+
+    :rtype: cros.factory.test.factory.FactoryTest
+    """
+    return self.test_list.LookupPath(frame.node)
+
+  def _IsRunnableTest(self, test):
+    return test.IsLeaf() or test.IsParallel()
+
+  def _DetermineSuccess(self, test):
+    """Determines success / fail of a test.
+
+    A test is considered fail iff. it really FAILED.  All other statuses
+    (SKIPPED, FAILED_AND_WAIVED, UNTESTED) are not.
+    """
+    return test.GetState().status != factory.TestState.FAILED

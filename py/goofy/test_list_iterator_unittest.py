@@ -17,7 +17,6 @@ from cros.factory.test.test_lists import test_lists
 
 
 class TestListIteratorTest(unittest.TestCase):
-  """Base class for TestListIterator unittests"""
   OPTIONS = ''  # Overriden by subclasses
   TEST_LIST = ''  # Overriden by subclasses
 
@@ -44,14 +43,15 @@ class TestListIteratorTest(unittest.TestCase):
     deserialized_object = pickle.loads(pickled_string)
     self.assertTrue(isinstance(deserialized_object,
                                test_list_iterator.TestListIterator))
-    self.assertListEqual(iterator.stack, deserialized_object.stack)
+    self.assertListEqual(
+        [frame.__dict__ for frame in iterator.stack],
+        [frame.__dict__ for frame in deserialized_object.stack])
     self.assertEqual(iterator.status_filter,
                      deserialized_object.status_filter)
     return deserialized_object
 
   def _AssertTestSequence(self, test_list, expected_sequence,
-                          root=None, max_iteration=10,
-                          test_persistency=False, aux_data=None,
+                          root=None, test_persistency=False, aux_data=None,
                           run_test=None, set_state=True, status_filter=None):
     """Helper function to check the test order.
 
@@ -59,7 +59,6 @@ class TestListIteratorTest(unittest.TestCase):
       test_list: the test_list to run
       expected_sequence: the expected test order
       root: starting from which test
-      max_iteration: a big enough number that should exhaust the iterator.
       test_persistency: will serialize and deserialize the iterator between each
           next call.
       aux_data: initial stub aux_data
@@ -81,17 +80,18 @@ class TestListIteratorTest(unittest.TestCase):
     if not run_test:
       run_test = lambda unused_path, unused_aux_data: True
 
-    # mock _check_run_if
-    # pylint: disable=protected-access
+    # mock CheckRunIf
     def _GetData(db_name):
       return aux_data.get(db_name, {})
     def _MockedCheckRunIf(path):
-      return test_list_iterator.TestListIterator._check_run_if(
+      return test_list_iterator.TestListIterator.CheckRunIf(
           iterator,
           path,
           test_arg_env={},
           get_data=_GetData)
-    iterator._check_run_if = _MockedCheckRunIf
+    iterator.CheckRunIf = _MockedCheckRunIf
+
+    max_iteration = len(expected_sequence) + 1
 
     try:
       with self.assertRaises(StopIteration):
@@ -109,7 +109,7 @@ class TestListIteratorTest(unittest.TestCase):
             # `cros.factory.goofy.goofy`
             # and `cros.factory.test.state`.  We assume that it just works.
             # So the test list itself won't be changed.
-            iterator.set_test_list(test_list)
+            iterator.SetTestList(test_list)
     except Exception:
       logging.error('actual_sequence: %r', actual_sequence)
       raise
@@ -140,23 +140,23 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     iterator = test_list_iterator.TestListIterator(root_path)
 
     self._testPickleSerializable(iterator)
-    self.assertListEqual([root_path], iterator.stack)
+    self.assertListEqual([root_path], [frame.node for frame in iterator.stack])
 
     iterator = test_list_iterator.TestListIterator(self.test_list)
     self._testPickleSerializable(iterator)
-    self.assertListEqual([root_path], iterator.stack)
+    self.assertListEqual([root_path], [frame.node for frame in iterator.stack])
 
   def testInitFromNonRoot(self):
     # 1. specify starting test by path string
     root_path = self.test_list.subtests[0].path
     iterator = test_list_iterator.TestListIterator(root_path)
     self._testPickleSerializable(iterator)
-    self.assertListEqual([root_path], iterator.stack)
+    self.assertListEqual([root_path], [frame.node for frame in iterator.stack])
 
     # 2. specify starting test by test object
     iterator = test_list_iterator.TestListIterator(self.test_list.subtests[0])
     self._testPickleSerializable(iterator)
-    self.assertListEqual([root_path], iterator.stack)
+    self.assertListEqual([root_path], [frame.node for frame in iterator.stack])
 
   def testInitWithStatusFilter(self):
     for status_filter in ([],
@@ -164,9 +164,31 @@ class TestListIteratorBaseTest(TestListIteratorTest):
                           [factory.TestState.FAILED,
                            factory.TestState.UNTESTED]):
       iterator = test_list_iterator.TestListIterator(
-          self.test_list, status_filter)
+          root=self.test_list, status_filter=status_filter)
       self.assertListEqual(status_filter, iterator.status_filter)
       self._testPickleSerializable(iterator)
+
+  def testStop(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G', iterations=2):
+      with test_lists.FactoryTest(id='G', iterations=2):
+        with test_lists.Subtests():
+          test_lists.FactoryTest(id='a', pytest_name='t_Ga', iterations=2)
+          test_lists.FactoryTest(id='b', pytest_name='t_Gb', iterations=2)
+      with test_lists.FactoryTest(id='H', iterations=2):
+        with test_lists.Subtests():
+          test_lists.FactoryTest(id='a', pytest_name='t_Ga', iterations=2)
+          test_lists.FactoryTest(id='b', pytest_name='t_Gb', iterations=2)
+        """, self.OPTIONS)
+    test_list = self._SetStubStateInstance(test_list)
+    iterator = test_list_iterator.TestListIterator(
+        root=test_list, test_list=test_list)
+    self.assertEqual('G.G.a', iterator.next())
+    self.assertEqual('G.G.a', iterator.next())
+    iterator.Stop('G.G')
+    self.assertEqual('G.H.a', iterator.next())
+    self.assertEqual('G.H.a', iterator.next())
 
   def testNext(self):
     self._AssertTestSequence(
@@ -234,7 +256,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_lists.FactoryTest(id='c', pytest_name='t_c')
         """, self.OPTIONS)
     test_list = self._SetStubStateInstance(test_list)
-    iterator.set_test_list(test_list)
+    iterator.SetTestList(test_list)
 
     with self.assertRaises(StopIteration):
       for unused_i in xrange(10):
@@ -251,16 +273,14 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     iterator = test_list_iterator.TestListIterator(
         self.test_list, test_list=self.test_list)
 
-    # in the beginning, the iterator is not initialized, shall return None
-    self.assertIsNone(iterator.get())
     with self.assertRaises(StopIteration):
       for unused_i in xrange(10):
         test_path = iterator.next()
-        # get() shall return the same value as previous next()
+        # Get() shall return the same value as previous next()
         for unused_j in xrange(2):
-          self.assertEqual(test_path, iterator.get())
-    # get() shall return None when we reach the end (StopIteration).
-    self.assertIsNone(iterator.get())
+          self.assertEqual(test_path, iterator.Get())
+    # Get() shall return None when we reach the end (StopIteration).
+    self.assertIsNone(iterator.Get())
 
   def testRunIf(self):
     test_list = self._BuildTestList(
@@ -619,6 +639,119 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.T'],
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+
+
+class TestListIteratorIterationTest(TestListIteratorTest):
+  def testIterations(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G', iterations=2):
+      with test_lists.FactoryTest(id='G', iterations=2):
+        with test_lists.Subtests():
+          test_lists.FactoryTest(id='a', pytest_name='t_Ga', iterations=2)
+          test_lists.FactoryTest(id='b', pytest_name='t_Gb', iterations=2)
+        """,
+        self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
+        root='G')
+
+  def testRetries(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G', retries=1):
+      with test_lists.FactoryTest(id='G', retries=1):
+        with test_lists.Subtests():
+          test_lists.FactoryTest(id='a', pytest_name='t_Ga', retries=1)
+          test_lists.FactoryTest(id='b', pytest_name='t_Gb', retries=1)
+        """,
+        self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
+        run_test=lambda unused_path, unused_aux_data: False)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
+        root='G',
+        run_test=lambda unused_path, unused_aux_data: False)
+
+  def testRetriesWithTeardown(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G', retries=1):
+      with test_lists.FactoryTest(id='G', retries=1):
+        with test_lists.Subtests():
+          test_lists.FactoryTest(id='a', pytest_name='t_Ga', retries=1)
+        with test_lists.Teardowns():
+          test_lists.FactoryTest(id='b', pytest_name='t_Ga', retries=1)
+        """,
+        self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.a', 'G.G.b'] * 4,
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.a', 'G.G.b'] * 4,
+        root='G',
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+
+  def testActionOnFailureStop(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G', retries=1):
+      with test_lists.FactoryTest(id='G', retries=1,
+                                  action_on_failure='STOP'):
+        test_lists.FactoryTest(id='a',
+                               pytest_name='t_Ga',
+                               action_on_failure='STOP')
+        test_lists.FactoryTest(id='b', pytest_name='t_Gb')
+      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
+    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
+        """,
+        self.OPTIONS)
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a'] * 4,
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.b'] * 4,
+        run_test=lambda path, unused_aux_data: path not in set(['G.G.b']))
+
+  def testTeardownAfterStop(self):
+    test_list = self._BuildTestList(
+        """
+    with test_lists.FactoryTest(id='G', retries=1):
+      with test_lists.FactoryTest(id='G'):
+        with test_lists.Subtests():
+          test_lists.FactoryTest(id='a', pytest_name='t_Ga',
+                                 action_on_failure='STOP')
+          test_lists.FactoryTest(id='b', pytest_name='t_Gb')
+        with test_lists.Teardowns():
+          test_lists.FactoryTest(id='w', pytest_name='t_W')
+          test_lists.FactoryTest(id='x', pytest_name='t_X')
+          with test_lists.FactoryTest(id='TG'):
+            # the subtests of teardown test are teardown tests as well
+            test_lists.FactoryTest(id='y', pytest_name='t_Y')
+            test_lists.FactoryTest(id='z', pytest_name='t_Z')
+      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
+      with test_lists.Teardowns():
+        test_lists.FactoryTest(id='T', pytest_name='t_T')
+    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
+        """,
+        self.OPTIONS)
+
+    self._AssertTestSequence(
+        test_list,
+        ['G.G.a', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.T'] * 2,
         run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
 
 

@@ -10,7 +10,6 @@
 from __future__ import print_function
 
 import glob
-import itertools
 import logging
 from optparse import OptionParser
 import os
@@ -418,8 +417,7 @@ class Goofy(GoofyBase):
       self.state_instance.set_shared_data(
           TESTS_AFTER_SHUTDOWN, TestListIterator(test))
     else:
-      # unset inited, so we will start from the reboot test.
-      tests_after_shutdown.inited = False
+      tests_after_shutdown.RestartLastTest()
       self.state_instance.set_shared_data(
           TESTS_AFTER_SHUTDOWN, tests_after_shutdown)
 
@@ -522,7 +520,7 @@ class Goofy(GoofyBase):
 
     if self.check_critical_factory_note():
       logging.info('has critical factory note, stop running')
-      self.test_list_iterator.stop()
+      self.test_list_iterator.Stop()
       return
 
     while True:
@@ -612,7 +610,7 @@ class Goofy(GoofyBase):
         # for example, stressapptest and countdown test.
 
         # Make sure we don't need to skip it:
-        if not self.test_list_iterator.check_skip(subtest):
+        if not self.test_list_iterator.CheckSkip(subtest):
           self._run_test(subtest, subtest.iterations, subtest.retries)
 
   def check_plugins(self):
@@ -670,7 +668,7 @@ class Goofy(GoofyBase):
     """Sets active run id and the list of scheduled tests."""
     self.run_id = str(uuid.uuid4())
     # try our best to predict which tests will be run.
-    self.scheduled_run_tests = self.test_list_iterator.get_pending_tests()
+    self.scheduled_run_tests = self.test_list_iterator.GetPendingTests()
     self.state_instance.set_shared_data('run_id', self.run_id)
     self.state_instance.set_shared_data('scheduled_run_tests',
                                         self.scheduled_run_tests)
@@ -762,13 +760,7 @@ class Goofy(GoofyBase):
   def stop(self, root=None, fail=False, reason=None):
     self.kill_active_tests(fail, root, reason)
 
-    if not root:
-      self.test_list_iterator.stop()
-    else:
-      # only skip tests under `root`
-      self.test_list_iterator = itertools.dropwhile(
-          lambda path: self.test_list.LookupPath(path).HasAncestor(root),
-          self.test_list_iterator)
+    self.test_list_iterator.Stop(root)
     self.run_next_test()
 
   def clear_state(self, root=None):
@@ -1269,7 +1261,7 @@ class Goofy(GoofyBase):
     if not force_auto_run and tests_after_shutdown is not None:
       logging.info('Resuming tests after shutdown: %r', tests_after_shutdown)
       self.test_list_iterator = tests_after_shutdown
-      self.test_list_iterator.set_test_list(self.test_list)
+      self.test_list_iterator.SetTestList(self.test_list)
       self.run_enqueue(self.run_next_test)
     elif force_auto_run or self.test_list.options.auto_run_on_start:
       # If automation mode is enabled, allow suppress auto_run_on_start.

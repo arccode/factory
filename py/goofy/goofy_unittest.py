@@ -15,7 +15,6 @@ from __future__ import print_function
 import factory_common  # pylint: disable=W0611
 
 import cPickle as pickle
-import imp
 import logging
 import math
 import mox
@@ -346,18 +345,22 @@ class WebSocketTest(GoofyUITest):
     # There should be one hello event
     self.assertEqual(1, len(events_by_type[Event.Type.HELLO]))
 
-    # Each test should have a transition to active, a transition to
-    # active + visible, and then to its final state
+    # Each test will first reset their iteration count (status == UNTESTED), And
+    # then have a transition to active, a transition to active + visible, and
+    # then to its final state.  But since the first test (a) starts before
+    # websocket is connected, our websocket won't receive the first event.
     for path, final_status in (('a', TestState.PASSED),
                                ('b', TestState.FAILED),
                                ('c', TestState.FAILED)):
+      expected = ['UNTESTED', 'ACTIVE', 'ACTIVE', final_status]
       statuses = [
           event.state['status']
           for event in events_by_type[Event.Type.STATE_CHANGE]
           if event.path == path]
-      self.assertEqual(
-          ['ACTIVE', 'ACTIVE', final_status],
-          statuses)
+      if path == 'a':
+        self.assertEqual(expected[1:], statuses)
+      else:
+        self.assertEqual(expected, statuses)
     self.mockAnything.VerifyAll()
 
 
@@ -387,7 +390,7 @@ class ShutdownTest(GoofyTest):
     # There should be a list of tests to run on wake-up.
     test_list_iterator = self.state.get_shared_data(
         goofy.TESTS_AFTER_SHUTDOWN, True)
-    self.assertEqual('shutdown', test_list_iterator.stack[-1])
+    self.assertEqual('shutdown', test_list_iterator.Top().node)
     self._wait()
 
     # Kill and restart Goofy to simulate the first two shutdown iterations.
