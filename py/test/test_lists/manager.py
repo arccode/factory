@@ -20,7 +20,7 @@ import sys
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
-from cros.factory.test.i18n import _
+from cros.factory.test import i18n
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
@@ -28,6 +28,24 @@ from cros.factory.utils import type_utils
 
 # used for loop detection
 _DUMMY_CACHE = object()
+
+
+def MayTranslate(string, force=False):
+  """Translate a string if it starts with 'i18n! ' or force=True.
+
+  Args:
+    force: force translation even if the string does not start with 'i18n! '.
+
+  Returns:
+    A translation dict or string
+  """
+  if not isinstance(string, basestring):
+    raise TypeError('not a string')
+  prefix = 'i18n! '
+  if string.startswith(prefix):
+    return i18n.Translated(string[len(prefix):])
+  else:
+    return i18n.Translated(string) if force else string
 
 
 class TestListConfig(object):
@@ -132,8 +150,7 @@ class ITestList(object):
         return self.EvaluateExpression(
             expression, dut, station, constants, options)
 
-      # otherwise, this is a normal string
-      return value
+      return MayTranslate(value)
     return {k: ResolveArg(k, v) for k, v in test_args.iteritems()}
 
   @staticmethod
@@ -202,7 +219,7 @@ class TestList(ITestList):
     self._cached_test_list = factory.FactoryTestList(
         subtests, self._state_instance, self.options,
         test_list_id=self._config.test_list_id,
-        label=_(self._config['label']),
+        label=MayTranslate(self._config['label'], force=True),
         finish_construction=True)
     self._cached_test_list.state_change_callback = self._state_change_callback
     return self._cached_test_list
@@ -222,8 +239,6 @@ class TestList(ITestList):
       test_object['action_on_failure'] = default_action_on_failure
     default_action_on_failure = test_object.pop('child_action_on_failure',
                                                 default_action_on_failure)
-    # TODO(stimim):
-    #   * auto derive label / id from pytest name
     kwargs = copy.deepcopy(test_object)
     class_name = kwargs.pop('inherit', 'FactoryTest')
 
@@ -243,6 +258,9 @@ class TestList(ITestList):
         kwargs['id'] = kwargs['pytest_name']
       elif subtests:
         kwargs['id'] = 'TestGroup'
+
+    if kwargs.get('label'):
+      kwargs['label'] = MayTranslate(kwargs['label'], force=True)
 
     return getattr(factory, class_name)(**kwargs)
 
