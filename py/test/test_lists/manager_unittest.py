@@ -9,6 +9,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import collections
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import manager
@@ -97,6 +98,34 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertItemsEqual(
         ['a', 'b', 'base'],
         self.loader.FindTestListIDs())
+
+  def testChildActionOnFailure(self):
+    """Test if `child_action_on_failure` is properly propagated."""
+    test_list = self.manager.GetTestListByID('b')
+    factory_test_list = test_list.ToFactoryTestList()
+
+    expected = collections.OrderedDict([
+        ('SMT.Reboot', 'PARENT'),
+        ('SMT.Group.Reboot', 'PARENT'),
+        ('SMT.Group.Reboot-2', 'PARENT'),
+        ('SMT.Group-2.Reboot', 'STOP'),
+        ('SMT.Group-2.Reboot-2', 'STOP'),
+        ('SMT.Reboot-2', 'PARENT'),
+        ('SMT.Reboot-3', 'PARENT'),
+        ('SMT.Reboot-4', 'STOP')])
+
+    self.assertListEqual(
+        expected.keys(),
+        [test.path for test in factory_test_list.Walk() if test.IsLeaf()])
+
+    for key, value in expected.iteritems():
+      self.assertEqual(
+          value,
+          factory_test_list.LookupPath(key).action_on_failure)
+
+    self.assertEqual(
+        'NEXT',
+        factory_test_list.LookupPath('SMT.Group').action_on_failure)
 
 
 class CheckerTest(unittest.TestCase):
