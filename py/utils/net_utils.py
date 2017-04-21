@@ -500,9 +500,11 @@ def FindUnusedTCPPort():
   If race condition need to be avoided, caller should bind to port 0 directly,
   and the kernel would do the right job.
   """
-  # We use AF_INET6 to bind to both IPv4 and IPv6, so the returned port would
-  # be unused for both.
-  socket_obj = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+  # If python support IPV6, then we use AF_INET6 to bind to both IPv4 and IPv6,
+  # so the returned port would be unused for both. If python doesn't, we only
+  # bind IPV4.
+  socket_family = socket.AF_INET6 if socket.has_ipv6 else socket.AF_INET
+  socket_obj = socket.socket(socket_family, socket.SOCK_STREAM)
   socket_obj.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   socket_obj.bind(('', 0))
   port = socket_obj.getsockname()[1]
