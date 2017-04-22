@@ -206,7 +206,7 @@ def UnpackFactoryToolkit(env, toolkit_resource):
   # Extract to temp directory first then move the directory to prevent
   # keeping a broken toolkit.
   with file_utils.TempDirectory() as temp_dir:
-    process_utils.Spawn([toolkit_path, '--noexec', '--target', temp_dir],
+    process_utils.Spawn(['sh', toolkit_path, '--noexec', '--target', temp_dir],
                         check_call=True, log=True)
 
     # Create toolkit directory's base directory first.
