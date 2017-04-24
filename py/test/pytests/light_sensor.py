@@ -27,6 +27,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
 from cros.factory.test import test_ui
+from cros.factory.test import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
@@ -202,7 +203,8 @@ class LightSensorTest(unittest.TestCase):
     self._current_iter_remained = self._iter_req_per_subtest
     self._cumulative_val = 0
 
-    self._tested = 0
+    self._current_test_idx = -1
+    self._active_series = None
     self._started = False
     self._active_subtest = self._subtest_list[0]
 
@@ -220,31 +222,35 @@ class LightSensorTest(unittest.TestCase):
   def StartCountDown(self, event):
     del event  # Unused.
     self._started = True
-    self._active_subtest = self._subtest_list[0]
-    self.ui.SetHTML(' : ACTIVE', id='result%d' % self._tested)
+    self.NextSubtest()
     countdown_timer.StartCountdownTimer(
         self._timeout_per_subtest * len(self._subtest_list),
         self.TimeoutHandler, self.ui, _ID_COUNTDOWN_TIMER)
 
   def NextSubtest(self):
-    self._tested += 1
-    if self._tested >= len(self._subtest_list):
+    self._current_test_idx += 1
+    if self._current_test_idx >= len(self._subtest_list):
       self.ui.Pass()
       return False
-    self._active_subtest = self._subtest_list[self._tested]
-    self.ui.SetHTML(' : ACTIVE', id='result%d' % self._tested)
+    self._active_subtest = self._subtest_list[self._current_test_idx]
+    self._active_series = testlog.CreateSeries(
+        name=self._active_subtest,
+        description=('Light sensor values over time for subtest "%s"' %
+                     self._active_subtest),
+        key_unit='seconds')  # no value unit
+    self.ui.SetHTML(' : ACTIVE', id='result%d' % self._current_test_idx)
     self._current_iter_remained = self._iter_req_per_subtest
     self._cumulative_val = 0
     return True
 
   def TimeoutHandler(self):
-    self.ui.SetHTML(' : FAILED', id='result%d' % self._tested)
+    self.ui.SetHTML(' : FAILED', id='result%d' % self._current_test_idx)
     self.ui.Fail('Timeout on subtest "%s"' % self._active_subtest)
 
   def PassOneIter(self, name):
     self._current_iter_remained -= 1
     if self._current_iter_remained is 0:
-      self.ui.SetHTML(' : PASSED', id='result%d' % self._tested)
+      self.ui.SetHTML(' : PASSED', id='result%d' % self._current_test_idx)
       self._current_iter_remained = self._iter_req_per_subtest
       mean_val = self._cumulative_val / self._iter_req_per_subtest
       logging.info('Passed subtest "%s" with mean value %d.', name, mean_val)
@@ -259,21 +265,24 @@ class LightSensorTest(unittest.TestCase):
       cfg = self._subtest_cfg[name]
       passed = False
       if 'above' in cfg:
-        if val > cfg['above']:
-          logging.info('Passed checking "above" %d > %d',
-                       val, cfg['above'])
-          passed = True
+        passed = self._active_series.CheckValue(
+            key=time.time(), value=val, min=cfg['above'])
+        logging.info('%s checking "above" %d > %d',
+                     'PASSED' if passed else 'FAILED',
+                     val, cfg['above'])
       elif 'below' in cfg:
-        if val < cfg['below']:
-          logging.info('Passed checking "below" %d < %d',
-                       val, cfg['below'])
-          passed = True
+        passed = self._active_series.CheckValue(
+            key=time.time(), value=val, max=cfg['below'])
+        logging.info('%s checking "below" %d < %d',
+                     'PASSED' if passed else 'FAILED',
+                     val, cfg['below'])
       elif 'between' in cfg:
         lb, ub = cfg['between']
-        if val > lb and val < ub:
-          logging.info('Passed checking "between" %d < %d < %d',
-                       lb, val, ub)
-          passed = True
+        passed = self._active_series.CheckValue(
+            key=time.time(), value=val, min=lb, max=ub)
+        logging.info('%s checking "between" %d < %d < %d',
+                     'PASSED' if passed else 'FAILED',
+                     lb, val, ub)
       if passed:
         self._cumulative_val += val
         self.PassOneIter(name)

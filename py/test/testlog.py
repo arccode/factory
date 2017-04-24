@@ -1113,8 +1113,8 @@ class Series(dict):
     # pylint: disable=redefined-builtin
     Series._CheckArguments(key, value, min, max)
     result = testlog_utils.IsInRange(value, min_val=min, max_val=max)
-    result = 'PASS' if result else 'FAIL'
-    self._LogValue(key, value, result, min, max, call_update)
+    status = 'PASS' if result else 'FAIL'
+    self._LogValue(key, value, status, min, max, call_update)
     return result
 
   # pylint: disable=redefined-builtin
