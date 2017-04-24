@@ -1024,7 +1024,6 @@ cros.factory.Goofy.prototype.init = function() {
       'GetTestList', [], function(/** cros.factory.TestListEntry */ testList) {
         this.setTestList(testList);
         document.getElementById('goofy-div-wait').style.display = 'none';
-        document.getElementById('goofy-div').style.display = 'block';
         this.initWebSocket();
       });
   this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);

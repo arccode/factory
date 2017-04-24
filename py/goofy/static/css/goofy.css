@@ -37,6 +37,18 @@ time, mark, audio, video {
   display: inline;
 }
 
+#goofy-div-wait {
+  font-family: sans-serif;
+  font-size: 300%;
+  background-color: white;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+}
+
 /* Top-level UI elements. */
 html {
   width: 100%;
