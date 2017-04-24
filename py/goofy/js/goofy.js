@@ -905,18 +905,6 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
         mainAndConsole.setFirstComponentSize(
             mainAndConsole.getFirstComponentSize());
         propagate = true;
-
-        var rect = mainComponent.getElement().getBoundingClientRect();
-        this.sendRpc(
-            'get_shared_data', ['ui_scale_factor'],
-            function(/** number */ uiScaleFactor) {
-              this.sendRpc('set_shared_data', [
-                'test_widget_size',
-                [rect.width * uiScaleFactor, rect.height * uiScaleFactor],
-                'test_widget_position',
-                [rect.left * uiScaleFactor, rect.top * uiScaleFactor]
-              ]);
-            });
       }, false, this);
   mainAndConsole.setFirstComponentSize(mainAndConsole.getFirstComponentSize());
   goog.events.listen(window, goog.events.EventType.RESIZE, function(event) {

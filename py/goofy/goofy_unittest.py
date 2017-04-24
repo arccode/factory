@@ -309,10 +309,6 @@ class GoofyUITest(GoofyTest):
 
     def open_web_socket():
       ws.connect()
-      # Simulate setting the test widget size/position, since goofy
-      # waits for it.
-      factory.set_shared_data('test_widget_size', [100, 200],
-                              'test_widget_position', [300, 400])
       ws.run()
       self.ws_done.set()
     # pylint: disable=W0108

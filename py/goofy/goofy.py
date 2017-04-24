@@ -1011,19 +1011,6 @@ class Goofy(GoofyBase):
       logging.info('Waiting for a web socket connection')
       self.web_socket_manager.wait()
 
-      # Wait for the test widget size to be set; this is done in
-      # an asynchronous RPC so there is a small chance that the
-      # web socket might be opened first.
-      for _ in range(100):  # 10 s
-        try:
-          if self.state_instance.get_shared_data('test_widget_size'):
-            break
-        except KeyError:
-          pass  # Retry
-        time.sleep(0.1)  # 100 ms
-      else:
-        logging.warn('Never received test_widget_size from UI')
-
   def init(self, args=None, env=None):
     """Initializes Goofy.
 
@@ -1047,10 +1034,6 @@ class Goofy(GoofyBase):
                       choices=['none', 'chrome'],
                       default='chrome',
                       help='UI to use')
-    parser.add_option('--ui_scale_factor', dest='ui_scale_factor',
-                      type='int', default=1,
-                      help=('Factor by which to scale UI '
-                            '(Chrome UI only)'))
     parser.add_option('--test_list', dest='test_list',
                       metavar='TEST_LIST_ID',
                       help='Use test list whose id is TEST_LIST_ID')
@@ -1131,11 +1114,6 @@ class Goofy(GoofyBase):
     if self.options.restart:
       state.clear_state()
 
-    if self.options.ui_scale_factor != 1 and sys_utils.InQEMU():
-      logging.warn(
-          'In QEMU; ignoring ui_scale_factor argument')
-      self.options.ui_scale_factor = 1
-
     logging.info('Started')
 
     if not self.options.monolithic:
@@ -1148,8 +1126,6 @@ class Goofy(GoofyBase):
     self.init_state_instance()
     self.init_i18n()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
-    self.state_instance.set_shared_data('ui_scale_factor',
-                                        self.options.ui_scale_factor)
     self.last_shutdown_time = (
         self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
