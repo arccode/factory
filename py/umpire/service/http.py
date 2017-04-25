@@ -4,17 +4,14 @@
 
 """HTTP service for static image and shopfloor frontend."""
 
-import multiprocessing
 import os
 import shutil
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire import config
-from cros.factory.umpire.service import indent_text_writer
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
-from cros.factory.utils import net_utils
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import List
 from cros.factory.utils.schema import Scalar
@@ -28,20 +25,18 @@ CONFIG_SCHEMA = {
                       items={'proxy_addr': Scalar('IP address', str),
                              'remoteip': Scalar('DUT ip range', str)}))}}
 
-HTTP_BIN = '/usr/sbin/lighttpd'
+HTTP_BIN = '/usr/sbin/nginx'
 HTTP_SERVICE_NAME = 'httpsvc'
-LIGHTY_MODULES = ['mod_access', 'mod_accesslog', 'mod_alias', 'mod_fastcgi',
-                  'mod_proxy', 'mod_rewrite', 'mod_redirect']
 
-# Lighty config filename with hash of the file.
-LIGHTY_CONFIG_FILENAME = 'lighttpd_#%s#.conf'
+# Nginx config filename with hash of the file.
+NGINX_CONFIG_FILENAME = 'nginx_#%s#.conf'
 
 # String template for handlers.
 # %d is the binding port of its corresponding shop floor handler XMLRPC
 # running locally.
 SHOP_FLOOR_HANDLER_PATH = common.HANDLER_BASE + '/%d/'
 
-# Prefixes use in lighty proxy config:
+# Prefixes use in nginx proxy config:
 # Handles RPC requests to / and /RPC2.
 ROOT_RPC_PREFIX = '/RPC2'
 # Handles Umpire RPC.
@@ -52,21 +47,70 @@ RESOURCEMAP_APP_PREFIX = '/resourcemap'
 POST_PREFIX = '/post'
 LEGACY_POST_PREFIX = '/upload'
 
-# Maximum number of file descriptors when run as root
-HTTPD_MAX_FDS = 32768
-# Maximum number of connections
-HTTPD_MAX_CONN = HTTPD_MAX_FDS / 2
+NGINX_CONFIG_TEMPLATE = """
+user root;
+worker_processes auto;
+daemon off;
 
+error_log %(error_log)s warn;
+pid %(pid_file)s;
 
-class LightyConditional(str):
-  """A str wrapper to tag the string as a Lighty conditional.
+events {
+  worker_connections 1024;
+}
 
-  For ordinary (key, value), its output is "key = value".
-  For Lighty conditional (key, value), its output is "key value".
-  Note that the key should be of the form "<field> <operator> <value>",
-  e.g. '$SERVER["socket"] == ":8080"'.
-  """
-  pass
+http {
+  include /etc/nginx/mime.types;
+
+  log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                  '$status $body_bytes_sent "$http_referer" '
+                  '"$http_user_agent" "$http_x_forwarded_for"';
+  access_log %(access_log)s main;
+
+  sendfile on;
+  tcp_nopush on;
+
+  keepalive_timeout 65;
+
+  gzip on;
+  autoindex on;
+
+  geo $reverse_proxy_ip_range {
+    default 0;
+    %(reverse_proxy_ips)s
+  }
+
+  server {
+    listen %(http_port)s;
+
+    server_name localhost;
+    charset utf-8;
+
+    client_max_body_size 8G;
+
+    location /res {
+      %(reverse_proxies)s
+
+      alias %(resources_dir)s;
+    }
+
+    %(http_proxies)s
+  }
+}
+"""
+
+NGINX_PROXY_TEMPLATE = """
+location %(prefix)s {
+  proxy_pass http://localhost:%(port)d;
+  proxy_set_header Host $http_host;
+}
+"""
+
+NGINX_REVERSE_PROXY_TEMPLATE = """
+if ($reverse_proxy_ip_range = %(reverse_proxy_ip_index)d) {
+  return 307 $scheme://%(proxy_addr)s$request_uri;
+}
+"""
 
 
 class HTTPService(umpire_service.UmpireService):
@@ -78,9 +122,6 @@ class HTTPService(umpire_service.UmpireService):
     svc.Start(procs)
   """
 
-  def __init__(self):
-    super(HTTPService, self).__init__()
-
   def CreateProcesses(self, umpire_config, env):
     """Creates list of processes via config.
 
@@ -91,41 +132,41 @@ class HTTPService(umpire_service.UmpireService):
     Returns:
       A list of ServiceProcess.
     """
-    lighty_conf = self.GenerateLightyConfig(umpire_config, env)
+    nginx_conf = self.GenerateNginxConfig(umpire_config, env)
     # Shall we raise UmpireError if there's no http server?
-    if not lighty_conf:
+    if not nginx_conf:
       return []
     proc_config = {
         'executable': HTTP_BIN,
         'name': HTTP_SERVICE_NAME,
-        'args': ['-D', '-f', lighty_conf],
+        'args': ['-c', nginx_conf],
         'path': '/tmp'}
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(proc_config)
     return [proc]
 
   @staticmethod
-  def GenerateLightyConfig(umpire_config, env):
-    """Generates a lighty config.
+  def GenerateNginxConfig(umpire_config, env):
+    """Generates a nginx config.
 
     Args:
       umpire_config: Umpire config dict.
       env: UmpireEnv object.
 
     Returns:
-      Path to lighty config (w/ the config's hash in filename).
-      None if a lighty config failed to generate.
+      Path to nginx config (w/ the config's hash in filename).
+      None if a nginx config failed to generate.
     """
     if ('services' not in umpire_config or
         'http' not in umpire_config['services']):
       return None
 
     with file_utils.UnopenedTemporaryFile() as temp_path:
-      HTTPService._GenerateLightyConfigImpl(umpire_config, env, temp_path)
+      HTTPService._GenerateNginxConfigImpl(umpire_config, env, temp_path)
       md5 = file_utils.MD5InHex(temp_path)
       config_path = os.path.join(
           env.config_dir,
-          LIGHTY_CONFIG_FILENAME % md5[:common.RESOURCE_HASH_DIGITS])
+          NGINX_CONFIG_FILENAME % md5[:common.RESOURCE_HASH_DIGITS])
       # Use shutil.move() instead of os.rename(). os.rename calls OS
       # rename() function. And under Linux-like OSes, this system call
       # creates and removes hardlink, that only works when source path and
@@ -134,8 +175,8 @@ class HTTPService(umpire_service.UmpireService):
     return config_path
 
   @staticmethod
-  def _GenerateLightyConfigImpl(umpire_config, env, config_path):
-    """Real implementation of GenerateLightyConfig.
+  def _GenerateNginxConfigImpl(umpire_config, env, config_path):
+    """Real implementation of GenerateNginxConfig.
 
     It writes config to config_path.
 
@@ -145,225 +186,50 @@ class HTTPService(umpire_service.UmpireService):
       config_path: path to config file to write.
     """
     http_config = umpire_config['services']['http']
-    httpd_bind_address = '0.0.0.0'
     httpd_port = int(env.umpire_base_port)
     shopfloor_port = env.shopfloor_start_port
-    cpu_count = multiprocessing.cpu_count()
 
-    with LightyConfigWriter(config_path) as config_writer:
-      # A minimal lighty config
-      lighty_conf = {
-          # Network binding.
-          'server.bind': httpd_bind_address,
-          'server.port': httpd_port,
-          # Aliases.
-          'alias.url': {'/res': env.resources_dir},
-          # Server tag and modules.
-          'server.tag': 'usf-httpd',
-          'server.modules': LIGHTY_MODULES,
-          # Document root, files and dirs.
-          # TODO(deanliao): check if the document-root is still valid.
-          'index-file.names': ['index.html'],
-          'dir-listing.activate': 'enable',
-          'server.follow-symlink': 'enable',
-          'server.range-requests': 'enable',
-          'server.document-root': os.path.join(env.base_dir, 'dashboard'),
-          # Required for POST requests.
-          'server.reject-expect-100-with-417': 'disable',
-          # PID and logs
-          'server.pid-file': os.path.join(env.pid_dir, 'httpd.pid'),
-          'accesslog.filename': os.path.join(env.log_dir, 'httpd_access.log'),
-          'server.errorlog': os.path.join(env.log_dir, 'httpd_error.log'),
-          # Performance options
-          'server.max-worker': cpu_count * 2,
-          'server.max-fds': HTTPD_MAX_FDS,
-          'server.max-connections': HTTPD_MAX_CONN,
-          'connection.kbytes-per-second': 0,
-          'server.kbytes-per-second': 0,
-      }
+    # Umpire common RPCs
+    umpire_proxy_handlers = []
+    # python xmlrpclib calls http://host/RPC2 for ServerProxy('http://host')
+    umpire_proxy_handlers.append((ROOT_RPC_PREFIX, env.umpire_rpc_port))
+    umpire_proxy_handlers.append((UMPIRE_RPC_PREFIX, env.umpire_rpc_port))
+    # Web applications
+    umpire_proxy_handlers.append(
+        (RESOURCEMAP_APP_PREFIX, env.umpire_webapp_port))
+    # POSTrequests
+    umpire_proxy_handlers.append((POST_PREFIX, env.umpire_http_post_port))
+    # POST (legacy URL)
+    umpire_proxy_handlers.append(
+        (LEGACY_POST_PREFIX, env.umpire_http_post_port))
+    # Shop floor handlers XMLRPC proxy bindings.
+    for port in xrange(shopfloor_port,
+                       shopfloor_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
+      match_path = SHOP_FLOOR_HANDLER_PATH % port
+      umpire_proxy_handlers.append((match_path, port))
 
-      config_writer.Write(lighty_conf)
+    config_proxies_str = [
+        NGINX_PROXY_TEMPLATE % {'prefix': prefix, 'port': port}
+        for prefix, port in umpire_proxy_handlers]
 
-      # Service FastCGI bindings.
-      fastcgi_conf = {}
-      for instance in umpire_service.FindServicesWithProperty(
-          env.config, 'fastcgi_handlers'):
-        for handler in instance.properties['fastcgi_handlers']:
-          match_path = handler.get('path', None)
-          port_offset = handler.get('port_offset', None)
-          if match_path and port_offset:
-            fastcgi_conf[match_path] = [{
-                'host': net_utils.LOCALHOST,
-                'port': port_offset + env.umpire_base_port,
-                'check-local': 'disable'}]
-          else:
-            raise common.UmpireError('empty fastcgi handler in %s' %
-                                     instance.modulename)
-      config_writer.Write({'fastcgi.server': fastcgi_conf})
-      # Umpire common RPCs
-      umpire_proxy_handlers = {}
-      # python xmlrpclib calls http://host/RPC2 for ServerProxy('http://host')
-      umpire_proxy_handlers[ROOT_RPC_PREFIX] = [{
-          'host': net_utils.LOCALHOST,
-          'port': env.umpire_rpc_port}]
-      umpire_proxy_handlers[UMPIRE_RPC_PREFIX] = [{
-          'host': net_utils.LOCALHOST,
-          'port': env.umpire_rpc_port}]
-      # Web applications
-      umpire_proxy_handlers[RESOURCEMAP_APP_PREFIX] = [{
-          'host': net_utils.LOCALHOST,
-          'port': env.umpire_webapp_port}]
-      # POSTrequests
-      umpire_proxy_handlers[POST_PREFIX] = [{
-          'host': net_utils.LOCALHOST,
-          'port': env.umpire_http_post_port}]
-      # POST (legacy URL)
-      umpire_proxy_handlers[LEGACY_POST_PREFIX] = [{
-          'host': net_utils.LOCALHOST,
-          'port': env.umpire_http_post_port}]
-      # Shop floor handlers XMLRPC proxy bindings.
-      for port in xrange(shopfloor_port,
-                         shopfloor_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
-        match_path = SHOP_FLOOR_HANDLER_PATH % port
-        umpire_proxy_handlers[match_path] = [{
-            'host': net_utils.LOCALHOST,
-            'port': port}]
-      config_writer.Write({'proxy.server': umpire_proxy_handlers})
+    reverse_proxy_ips = []
+    reverse_proxies_str = []
 
-      # Generate conditional HTTP accelerator blocks.
-      if 'reverse_proxies' in http_config:
-        reverse_proxy_conf = {}
-        for proxy in http_config['reverse_proxies']:
-          cond = LightyConditional(
-              '$HTTP["remoteip"] == "%s"' % proxy['remoteip'])
-          redirect = {'url.redirect': {
-              '^/res/(.*)': 'http://%s/res/$1' % proxy['proxy_addr']}}
-          reverse_proxy_conf[cond] = redirect
-        config_writer.Write(reverse_proxy_conf)
+    if 'reverse_proxies' in http_config:
+      for idx, proxy in enumerate(http_config['reverse_proxies'], start=1):
+        reverse_proxy_ips.append('%s %d;' % (proxy['remoteip'], idx))
+        reverse_proxies_str.append(
+            NGINX_REVERSE_PROXY_TEMPLATE %
+            {'reverse_proxy_ip_index': idx, 'proxy_addr': proxy['proxy_addr']})
 
-
-class LightyConfigWriter(object):
-  """Writer for Lighty httpd config.
-
-  It opens a file for write (or append) in constructor, and uses Write() to
-  write a top-level Lighty config (key-value pairs) to the file.
-
-  Usage:
-    writer = LightyConfigWriter('/var/umpire/conf/httpd.conf')
-    conf = {'server.bind': '10.0.0.1',
-            'server.port': 9001,
-            ...}
-    writer.Write(conf)
-    writer.Close()
-  """
-
-  def __init__(self, path, append=False):
-    """Opens a file for http config.
-
-    Args:
-      path: path to Lighty config file.
-      append: True to append the config.
-    """
-    self._file = open(path, 'a' if append else 'w')
-    self._writer = indent_text_writer.IndentTextWriter(indent_first_line=False)
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    del exc_type, exc_value, traceback  # Unused.
-    self.Close()
-
-  def Close(self):
-    """Closes the file."""
-    if self._file:
-      self._file.close()
-
-  def Write(self, conf):
-    """Writes a top-level Lighty config into lighty config file.
-
-    Args:
-      conf: a top-level Lighty config in key-value pairs.
-    """
-    self._file.write(self.LightyBlock(conf, self._writer, top_block=True))
-    self._file.write('\n')
-
-  @staticmethod
-  def LightyBlock(input_dict, parent_writer, top_block=False):
-    """Converts an input dict to a Lighty config block.
-
-    If it is not top-level block, the block is indented and a pair of bracket
-    is added before and after the block. Also, for each item, a ',' is appended
-    in each key-value pair, too.
-
-    Args:
-      input_dict: input to convert.
-      parent_writer: its parent's IndentTextWriter. Used to set indentation
-          level and base indentation for the block.
-      top_block: True to set it as top-level block.
-
-    Returns:
-      A string in Lighty config block format.
-    """
-    if top_block:
-      writer = parent_writer
-      colon = ''
-    else:
-      writer = indent_text_writer.IndentTextWriter.Factory(parent_writer)
-      colon = ','
-      writer.EnterBlock('{}')
-
-    # Sort key for deterministic output.
-    for key in sorted(input_dict):
-      if isinstance(key, LightyConditional):
-        op = ' '
-        value = LightyConfigWriter.LightyBlock(input_dict[key], writer)
-      else:
-        op = ' = '
-        value = LightyConfigWriter.LightyAuto(input_dict[key], writer)
-      writer.Write(''.join([key, op, value, colon]))
-
-    if not top_block:
-      writer.ExitBlock()
-    return writer.Flush()
-
-  @staticmethod
-  def LightyAuto(input_value, parent_writer):
-    """Detects input value type and converts to a Lighty config string.
-
-    Args:
-      input_value: input value.
-      parent_writer: its parent's indent_text_writer.IndentTextWriter.
-
-    Returns:
-      A string in Lighty config format.
-    """
-    def LightyDict():
-      writer = indent_text_writer.IndentTextWriter.Factory(parent_writer)
-      writer.EnterBlock('()')
-      # Sort key for deterministic output.
-      for key in sorted(input_value):
-        writer.Write('"%s" => %s,' % (
-            key,
-            LightyConfigWriter.LightyAuto(input_value[key], writer)))
-      writer.ExitBlock()
-      return writer.Flush()
-
-    def LightyList():
-      writer = indent_text_writer.IndentTextWriter.Factory(parent_writer)
-      writer.EnterBlock('()')
-      for v in input_value:
-        writer.Write('%s,' % LightyConfigWriter.LightyAuto(v, writer))
-      writer.ExitBlock()
-      return writer.Flush()
-
-    if isinstance(input_value, dict):
-      return LightyDict()
-    elif isinstance(input_value, list):
-      return LightyList()
-    elif isinstance(input_value, (int, long)):
-      return str(input_value)
-    elif isinstance(input_value, basestring):
-      return '"%s"' % input_value
-    else:
-      raise ValueError('Invalid Lighty configuration value')
+    config_str = NGINX_CONFIG_TEMPLATE % {
+        'pid_file': os.path.join(env.pid_dir, 'httpd.pid'),
+        'http_port': httpd_port,
+        'access_log': os.path.join(env.log_dir, 'httpd_access.log'),
+        'error_log': os.path.join(env.log_dir, 'httpd_error.log'),
+        'resources_dir': env.resources_dir,
+        'reverse_proxy_ips': '\n'.join(reverse_proxy_ips),
+        'http_proxies': '\n'.join(config_proxies_str),
+        'reverse_proxies': '\n'.join(reverse_proxies_str)
+    }
+    file_utils.WriteFile(config_path, config_str)

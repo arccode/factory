@@ -1,0 +1,28 @@
+rulesets:
+- bundle_id: empty_init_bundle
+  note: n/a
+  active: true
+services:
+  http:
+    reverse_proxies:
+      - remoteip: 0.0.0.0/0
+        proxy_addr: 11.22.33.44
+  rsync: {}
+  shop_floor: {}
+  instalog: {}
+bundles:
+- id: empty_init_bundle
+  note: n/a
+  shop_floor:
+    handler: cros.factory.umpire.test_shop_floor_handler
+  resources:
+    complete_script: complete.gz##c6a844fb
+    device_factory_toolkit: install_factory_toolkit.run##94aa34ec
+    efi_partition: none##d41d8cd9
+    firmware: none##d41d8cd9
+    hwid: none##d41d8cd9
+    netboot_kernel: none##d41d8cd9
+    oem_partition: none##d41d8cd9
+    rootfs_release: none##d41d8cd9
+    rootfs_test: none##d41d8cd9
+    stateful_partition: none##d41d8cd9

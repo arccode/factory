@@ -156,7 +156,7 @@ There are two places for logs of Umpire.
 1. Services hosted by Umpire, especially shopfloor proxy. The logs are
    accessible outside Docker. Find them in `/docker_shared/umpire/$BOARD/log`.
 
-   For example, lighttpd logs are in:
+   For example, nginx logs are in:
 
        cd /docker_shared/umpire/$BOARD/log
        less httpd_access.log

@@ -23,9 +23,9 @@ import subprocess
 import time
 import unittest
 import xmlrpclib
-import yaml
 
 import requests  # pylint: disable=import-error
+import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.client import umpire_server_proxy
@@ -437,6 +437,26 @@ class UmpireRPCTest(UmpireDockerTestCase):
         self.assertIn('update match rule in ruleset', ruleset['note'])
 
 
+class UmpireHTTPTest(UmpireDockerTestCase):
+  """Tests for Umpire http features."""
+  def setUp(self):
+    super(UmpireHTTPTest, self).setUp()
+    self.proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
+
+  def testReverseProxy(self):
+    to_deploy_config = file_utils.ReadFile(
+        os.path.join(CONFIG_TESTDATA_DIR, 'umpire_deploy_proxy.yaml'))
+    conf = self.proxy.UploadConfig('umpire.yaml', to_deploy_config)
+    self.proxy.StageConfigFile(conf)
+    self.proxy.Deploy(conf)
+
+    response = requests.get(
+        'http://localhost:%d/res/test' % PORT, allow_redirects=False)
+    self.assertEqual(307, response.status_code)
+    self.assertEqual('http://11.22.33.44/res/test',
+                     response.headers['Location'])
+
+
 class RPCDUTTest(UmpireDockerTestCase):
   """Tests for Umpire DUT RPC."""
   def setUp(self):
@@ -595,4 +615,3 @@ class UmpireServerProxyTest(UmpireDockerTestCase):
 if __name__ == '__main__':
   logging.getLogger().setLevel(int(os.environ.get('LOG_LEVEL') or logging.INFO))
   unittest.main()
-

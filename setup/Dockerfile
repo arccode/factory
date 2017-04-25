@@ -23,7 +23,7 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 # However, uwsgi-python from pip needs to build from source, Twisted has
 # package signing problem, so we will install them using apk.
 #
-#  pigz, py-pip, py-twisted, py-yaml, python, lighttpd, tar: Used by Umpire
+#  pigz, py-pip, py-twisted, py-yaml, python, tar: Used by Umpire
 #  (buzybox tar doesn't support -I, which is used in file_utils.ExtractFile)
 #  gnupg, python-gnupg: Used by umpire/service/dkps and archiver
 #  rsync: Used by umpire/service/rsync
@@ -42,7 +42,6 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     coreutils \
     gnupg \
     jq \
-    lighttpd \
     nginx \
     openssl \
     pigz \
