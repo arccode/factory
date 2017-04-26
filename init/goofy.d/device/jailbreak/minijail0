@@ -11,7 +11,7 @@ import sys
 
 
 # copied from aosp/external/minijail/minijail0.c
-OPT_STRING = 'u:g:sS:c:C:P:b:V:f:m::M::k:a:e::T:vrGhHinNplLtIUKY'
+OPT_STRING = 'u:g:sS:c:C:P:b:V:f:m::M::k:a:e::T:vrGhHinNplLt::IUKwyY'
 
 # Only override these programs (find from /etc/init/*.conf)
 WHITELIST = ['/usr/sbin/sslh-fork']
