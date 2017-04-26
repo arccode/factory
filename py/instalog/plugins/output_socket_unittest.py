@@ -77,7 +77,7 @@ class TestInputSocket(unittest.TestCase):
 
   def testOneEvent(self):
     event = datatypes.Event({})
-    with mock.patch.object(event, 'Serialize', return_value='EVENT'):
+    with mock.patch.object(datatypes.Event, 'Serialize', return_value='EVENT'):
       self.stream.Queue([event])
       self.sandbox.Flush(2, True)
       self.assertEqual('0\0'  # ping
@@ -95,7 +95,8 @@ class TestInputSocket(unittest.TestCase):
       f.write('XXXXXXXXXX')
       f.flush()
       event = datatypes.Event({}, {'my_attachment': f.name})
-      with mock.patch.object(event, 'Serialize', return_value='EVENT'):
+      with mock.patch.object(datatypes.Event, 'Serialize',
+                             return_value='EVENT'):
         self.stream.Queue([event])
         self.sandbox.Flush(2, True)
         self.assertEqual('0\0'  # ping
