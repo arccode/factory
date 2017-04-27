@@ -1,5 +1,6 @@
 {
   "inherit": ["base.test_list"],
+  "label": "A",
 
   "constants": {
     "phase": "EVT",
@@ -42,7 +43,6 @@
           }
         },
         {
-          "id": "VerifyComponents",
           "pytest_name": "verify_components",
           "args": {
             "component_list": "eval! constants.component_list",

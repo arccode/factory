@@ -60,6 +60,10 @@
 
   "type": "object",
   "properties": {
+    "label": {
+      "type": "string"
+    },
+
     "inherit": {
       "type": "array",
       "items": {"type": "string"}

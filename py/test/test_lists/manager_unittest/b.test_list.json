@@ -1,0 +1,37 @@
+{
+  "inherit": ["base.test_list"],
+  "label": "B",
+
+  "tests": [
+    {
+      "id": "SMT",
+      "child_action_on_failure": "PARENT",
+      "subtests": [
+        "RebootStep",
+        {
+          "id": "Group",
+          "action_on_failure": "NEXT",
+          "subtests": [
+            "RebootStep",
+            "RebootStep"
+          ]
+        },
+        {
+          "id": "Group",
+          "action_on_failure": "NEXT",
+          "child_action_on_failure": "STOP",
+          "subtests": [
+            "RebootStep",
+            "RebootStep"
+          ]
+        },
+        "RebootStep",
+        "RebootStep",
+        {
+          "inherit": "RebootStep",
+          "action_on_failure": "STOP"
+        }
+      ]
+    }
+  ]
+}

@@ -1208,10 +1208,12 @@ class ShutdownStep(OperatorTest):
   REBOOT = 'reboot'
   HALT = 'halt'
 
-  def __init__(self, operation, delay_secs=5, **kwargs):
+  def __init__(self, operation=None, delay_secs=5, **kwargs):
     super(ShutdownStep, self).__init__(**kwargs)
     assert not self.pytest_name, 'Reboot/halt steps may not have an pytest'
     assert not self.subtests, 'Reboot/halt steps may not have subtests'
+    if not operation:
+      operation = kwargs.get('dargs', {}).get('operation', None)
     assert operation in [self.REBOOT, self.HALT, self.FULL_REBOOT]
     assert delay_secs >= 0
     self.pytest_name = 'shutdown'
