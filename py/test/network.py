@@ -128,7 +128,8 @@ def RenewDhcpLease(interface, timeout=3):
     with open(conf_file, "w") as f:
       f.write("timeout %d;" % timeout)
     try:
-      p = process_utils.Spawn(['dhclient', '-1', '-cf', conf_file, interface])
+      p = process_utils.Spawn(['dhclient', '-1', '-d', '-cf', conf_file,
+                               interface])
     except OSError:  # No such file or directory
       return False
     # Allow one second for dhclient to gracefully exit
@@ -266,7 +267,8 @@ def GetDHCPBootParameters(interface):
   # Send two renew requests to make sure tcmpdump can capture the response.
   for _ in range(2):
     if not RenewDhcpLease(interface):
-      logging.error('can not find DHCP server on %s' % interface)
+      logging.error('can not find DHCP server on %s', interface)
+      p.terminate()
       return None
     time.sleep(0.5)
 
