@@ -6,12 +6,14 @@
 
 import cPickle as pickle
 import logging
+import mock
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import test_list_iterator
 from cros.factory.test import factory
 from cros.factory.test import state
+from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import shelve_utils
 
@@ -21,10 +23,13 @@ class TestListIteratorTest(unittest.TestCase):
   TEST_LIST = ''  # Overriden by subclasses
 
   def setUp(self):
+    self.test_list_manager = mock.MagicMock(spec=manager.Manager)
     self.test_list = self._BuildTestList(self.TEST_LIST, self.OPTIONS)
 
   def _BuildTestList(self, test_list_code, options_code):
-    return test_lists.BuildTestListFromString(test_list_code, options_code)
+    return manager.LegacyTestList(
+        test_lists.BuildTestListFromString(test_list_code, options_code),
+        self.test_list_manager)
 
   def _SetStubStateInstance(self, test_list):
     state_instance = state.StubFactoryState()
@@ -137,7 +142,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
   """
 
   def testInitFromRoot(self):
-    root_path = self.test_list.path
+    root_path = self.test_list.ToFactoryTestList().path
     iterator = test_list_iterator.TestListIterator(root_path)
 
     self._testPickleSerializable(iterator)
@@ -149,13 +154,14 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
   def testInitFromNonRoot(self):
     # 1. specify starting test by path string
-    root_path = self.test_list.subtests[0].path
+    root_test = self.test_list.ToFactoryTestList().subtests[0]
+    root_path = root_test.path
     iterator = test_list_iterator.TestListIterator(root_path)
     self._testPickleSerializable(iterator)
     self.assertListEqual([root_path], [frame.node for frame in iterator.stack])
 
     # 2. specify starting test by test object
-    iterator = test_list_iterator.TestListIterator(self.test_list.subtests[0])
+    iterator = test_list_iterator.TestListIterator(root_test)
     self._testPickleSerializable(iterator)
     self.assertListEqual([root_path], [frame.node for frame in iterator.stack])
 

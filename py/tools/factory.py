@@ -31,6 +31,7 @@ from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
 from cros.factory.test import state
+from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import debug_utils
 from cros.factory.utils.process_utils import Spawn
@@ -254,7 +255,10 @@ class DumpTestListCommand(Subcommand):
         'id', metavar='ID', help='ID of test list to dump')
 
   def Run(self):
-    test_list = test_lists.BuildTestList(self.args.id)
+    mgr = manager.Manager()
+    all_test_lists, unused_errors = mgr.BuildAllTestLists()
+    test_list = all_test_lists[self.args.id].ToFactoryTestList()
+
     if self.args.format == 'csv':
       writer = csv.writer(sys.stdout)
       writer.writerow(('id', 'module'))
@@ -300,9 +304,10 @@ class TestListCommand(Subcommand):
         help='If restarting goofy, clear all state (like factory_restart -a)')
 
   def Run(self):
-    if self.args.id:
-      all_test_lists, _ = test_lists.BuildAllTestLists(force_generic=True)
+    mgr = manager.Manager()
+    all_test_lists, unused_errors = mgr.BuildAllTestLists()
 
+    if self.args.id:
       if self.args.id not in all_test_lists:
         sys.exit('Unknown test list ID %r (use "factory test-list --list" to '
                  'see available test lists' % self.args.id)
@@ -314,7 +319,6 @@ class TestListCommand(Subcommand):
       print test_lists.GetActiveTestListId()
 
     if self.args.list:
-      all_test_lists, _ = test_lists.BuildAllTestLists(force_generic=True)
       active_id = test_lists.GetActiveTestListId()
 
       line_format = '%-8s %-20s %s'

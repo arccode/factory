@@ -51,6 +51,7 @@ from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import state
+from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test import testlog_goofy
 from cros.factory.testlog import testlog
@@ -158,6 +159,8 @@ class Goofy(GoofyBase):
     self.link_manager = None
     self.is_restart_requested = False
     self.test_list_iterator = None
+
+    self.test_list_manager = manager.Manager()
 
     # TODO(hungte) Support controlling remote DUT.
     self.dut = device_utils.CreateDUTInterface()
@@ -874,8 +877,9 @@ class Goofy(GoofyBase):
       True if the active test list could be set, False if failed.
     """
     startup_errors = []
-    self.test_lists, failed_files = test_lists.BuildAllTestLists(
-        force_generic=(self.options.automation_mode is not None))
+
+    self.test_lists, failed_files = self.test_list_manager.BuildAllTestLists()
+
     logging.info('Loaded test lists: [%s]',
                  test_lists.DescribeTestLists(self.test_lists))
 
@@ -1020,7 +1024,9 @@ class Goofy(GoofyBase):
       logging.exception('failed to load goofy overriding options')
 
     if self.options.print_test_list:
-      test_list = test_lists.BuildTestList(self.options.print_test_list)
+      all_test_lists, unused_errors = self.test_list_manager.BuildAllTestLists()
+      test_list = (
+          all_test_lists[self.options.print_test_list].ToFactoryTestList())
       print(test_list.__repr__(recursive=True))
       sys.exit(0)
 

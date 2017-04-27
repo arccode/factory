@@ -697,7 +697,7 @@ class Manager(object):
 
   def BuildAllLegacyTestLists(self):
     """Build all legacy test lists (test lists in python)."""
-    test_lists_, legacy_failed_files = test_lists.BuildAllTestLists()
+    test_lists_, legacy_failed_files = test_lists.BuildAllTestLists(True)
 
     legacy_test_lists = {}
 

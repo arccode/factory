@@ -9,6 +9,7 @@ import logging
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import invocation
 from cros.factory.test import factory
+from cros.factory.test.test_lists import manager
 from cros.factory.utils import type_utils
 
 
@@ -142,11 +143,14 @@ class TestListIterator(object):
       self.Push(root.path)
     elif isinstance(root, basestring):
       self.Push(root)
+    elif isinstance(root, manager.ITestList):
+      self.Push('')  # root of test list should always have path ''
     elif root is None:
       self.stack = []
     else:
       raise ValueError(
-          'root must be one of FactoryTest, string or None (got %r)' % root)
+          'root must be one of ITestList, FactoryTest, string or None '
+          '(got %r)' % root)
 
   # define __getstate__ and __setstate__ to make this object pickable
   def __getstate__(self):
@@ -222,6 +226,7 @@ class TestListIterator(object):
     Since we are not serializing test list when pickling TestListIterator, users
     need to invoke SetTestList to set current test list of the runner.
     """
+    assert isinstance(test_list, (factory.FactoryTestList, manager.ITestList))
     self.test_list = test_list
 
   def Stop(self, subtree_root=None):

@@ -28,6 +28,7 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
@@ -35,8 +36,7 @@ from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test import state
-from cros.factory.test import device_data
-from cros.factory.test.test_lists.test_lists import BuildAllTestLists
+from cros.factory.test.test_lists import manager
 from cros.factory.test import test_ui
 from cros.factory.test import testlog_goofy
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
@@ -191,9 +191,18 @@ class PytestInfo(object):
 
   def ReadTestList(self):
     """Reads and returns the test list."""
-    all_test_lists, _ = BuildAllTestLists(
-        force_generic=(self.automation_mode is not None))
-    test_list = all_test_lists[self.test_list]
+    mgr = manager.Manager()
+
+    test_list = mgr.GetTestListByID(self.test_list)
+
+    if test_list is None:
+      # the test list is not available, try to load legacy test lists
+      # (test list v2).  We need to build *all* test lists because in legacy
+      # test lists, a python file can define multiple test lists (with different
+      # IDs, of course).
+      legacy_test_lists, unused_errors = mgr.BuildAllLegacyTestLists()
+      test_list = legacy_test_lists[self.test_list]
+
     return test_list
 
 

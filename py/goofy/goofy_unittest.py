@@ -35,6 +35,7 @@ from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test import state
+from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
@@ -92,6 +93,8 @@ class GoofyTest(unittest.TestCase):
     self.mocker.StubOutWithMock(state, 'FactoryState')
     self.mocker.StubOutWithMock(goofy.test_lists, 'BuildAllTestLists')
 
+    self.test_list_manager = self.mocker.CreateMock(manager.Manager)
+
     self.before_init_goofy()
 
     self.record_goofy_init()
@@ -143,6 +146,7 @@ class GoofyTest(unittest.TestCase):
     new_goofy.dut.info.Overrides(device_data.NAME_MLB_SERIAL_NUMBER,
                                  'mlb_sn_123456789')
     new_goofy.dut.info.Overrides(device_data.NAME_SERIAL_NUMBER, 'sn_123456789')
+    new_goofy.test_list_manager = self.test_list_manager
     new_goofy.init(args, self.env or Environment())
     self.goofy = new_goofy
 
@@ -177,7 +181,8 @@ class GoofyTest(unittest.TestCase):
     if self.test_list:
       test_list = test_lists.BuildTestListFromString(self.test_list,
                                                      self.options)
-      goofy.test_lists.BuildAllTestLists(force_generic=True).AndReturn(
+      test_list = manager.LegacyTestList(test_list, self.test_list_manager)
+      self.test_list_manager.BuildAllTestLists().AndReturn(
           ({'test': test_list}, {}))
 
   def record_goofy_destroy(self):
@@ -309,7 +314,7 @@ class BasicTest(GoofyTest):
         '- {count: 1, error_msg: null, id: a, path: a, status: PASSED}\n'
         '- {count: 1, error_msg: Uh-oh, id: b, path: b, status: FAILED}\n'
         '- {count: 1, error_msg: Uh-oh, id: c, path: c, status: FAILED}\n',
-        self.goofy.test_list.AsYaml(
+        self.goofy.test_list.ToFactoryTestList().AsYaml(
             state.get_instance().get_test_states()))
     self.mockAnything.VerifyAll()
 
