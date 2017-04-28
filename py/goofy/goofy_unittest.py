@@ -346,7 +346,7 @@ class BasicTest(GoofyTest):
         '- {count: 1, error_msg: null, id: a, path: a, status: PASSED}\n'
         '- {count: 1, error_msg: Uh-oh, id: b, path: b, status: FAILED}\n'
         '- {count: 1, error_msg: Uh-oh, id: c, path: c, status: FAILED}\n',
-        self.goofy.test_list.as_yaml(
+        self.goofy.test_list.AsYaml(
             factory.get_state_instance().get_test_states()))
     self.mockAnything.VerifyAll()
 
@@ -648,7 +648,7 @@ class RequireRunTest(GoofyTest):
     PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
 
     self.goofy.restart_tests(
-        root=self.goofy.test_list.lookup_path('b'))
+        root=self.goofy.test_list.LookupPath('b'))
     self.check_one_test(PytestPrespawner.spawn, 'b', 'b_B', TestState.FAILED,
                         'Required tests [a] have not been run yet',
                         does_not_start=True)

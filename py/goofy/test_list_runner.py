@@ -244,11 +244,11 @@ class TestListRunner(object):
       subtree_root = ''
 
     if isinstance(subtree_root, basestring):
-      subtree_root = self.test_list.lookup_path(subtree_root)
+      subtree_root = self.test_list.LookupPath(subtree_root)
 
     while self.stack:
       test = self._GetTestFromFrame(self.Top())
-      if test.has_ancestor(subtree_root):
+      if test.HasAncestor(subtree_root):
         self.Pop()
       else:
         break
@@ -274,15 +274,15 @@ class TestListRunner(object):
     if frame.locals.get('executed', False):
       success = self._DetermineSuccess(test)
       if success:
-        test.update_state(decrement_iterations_left=1)
+        test.UpdateState(decrement_iterations_left=1)
       else:
-        state = test.update_state(decrement_retries_left=1)
+        state = test.UpdateState(decrement_retries_left=1)
         if state.retries_left >= 0:
           # since you allow try, let's reset teardown_only flags
           self.teardown_only = False
           frame.locals.pop('teardown_only', None)
 
-    state = test.get_state()
+    state = test.GetState()
     if state.iterations_left > 0 and state.retries_left >= 0:
       # should continue
       frame.next_step = self.Body.__name__
@@ -306,8 +306,8 @@ class TestListRunner(object):
     if subtest is None:
       next_subtest = test.subtests[0]
     else:
-      subtest = self.test_list.lookup_path(subtest)
-      next_subtest = subtest.get_next_sibling()
+      subtest = self.test_list.LookupPath(subtest)
+      next_subtest = subtest.GetNextSibling()
 
       # result of previous subtest
       success = self._DetermineSuccess(subtest)
@@ -330,8 +330,8 @@ class TestListRunner(object):
       # if we can only run teardown tests, skip next_subtest until we find a
       # teardown test.
       if self.teardown_only or frame.locals.get('teardown_only', False):
-        if not next_subtest.is_teardown():
-          next_subtest = next_subtest.get_next_sibling()
+        if not next_subtest.IsTeardown():
+          next_subtest = next_subtest.GetNextSibling()
           continue
       # okay, this is a valid test (any test when teardown_only == False,
       # teardown test when teardown_only == True).  Let's update local variable
@@ -360,16 +360,16 @@ class TestListRunner(object):
         logging.info('test %s is filtered (skipped) because its status',
                      test.path)
         logging.info('%s (skip list: %r)',
-                     test.get_state().status, self.status_filter)
+                     test.GetState().status, self.status_filter)
         return True  # we need to skip it
     if not self.CheckRunIf(test):
       logging.info('test %s is skipped because run_if evaluated to False',
                    test.path)
-      test.update_state(skip=True)
+      test.UpdateState(skip=True)
       return True  # we need to skip it
-    elif test.is_skipped():
+    elif test.IsSkipped():
       # this test was skipped before, but now we might need to run it
-      test.update_state(status=factory.TestState.UNTESTED, error_msg='')
+      test.UpdateState(status=factory.TestState.UNTESTED, error_msg='')
       # check again (for status filter)
       return self.CheckSkip(test)
     return False
@@ -377,7 +377,7 @@ class TestListRunner(object):
   def CheckStatusFilter(self, test):
     if not self.status_filter:
       return True
-    status = test.get_state().status
+    status = test.GetState().status
     # an active test should always pass the filter (to resume a previous test)
     return status == factory.TestState.ACTIVE or status in self.status_filter
 
@@ -386,21 +386,21 @@ class TestListRunner(object):
       test_arg_env = invocation.TestArgEnv()
     if get_data is None:
       get_data = shopfloor.get_selected_aux_data
-    return test.evaluate_run_if(test_arg_env, get_data)
+    return test.EvaluateRunIf(test_arg_env, get_data)
 
   def _ResetIterations(self, test):
-    test.update_state(iterations_left=test.iterations,
-                      retries_left=test.retries)
+    test.UpdateState(iterations_left=test.iterations,
+                     retries_left=test.retries)
 
   def _GetTestFromFrame(self, frame):
     """Returns test object corresponding to `frame`.
 
     :rtype: cros.factory.test.factory.FactoryTest
     """
-    return self.test_list.lookup_path(frame.node)
+    return self.test_list.LookupPath(frame.node)
 
   def _IsRunnableTest(self, test):
-    return test.is_leaf() or test.is_parallel()
+    return test.IsLeaf() or test.IsParallel()
 
   def _DetermineSuccess(self, test):
     """Determines success / fail of a test.
@@ -408,4 +408,4 @@ class TestListRunner(object):
     A test is considered fail iff. it really FAILED.  All other statuses
     (SKIPPED, FAILED_AND_WAIVED, UNTESTED) are not.
     """
-    return test.get_state().status != factory.TestState.FAILED
+    return test.GetState().status != factory.TestState.FAILED

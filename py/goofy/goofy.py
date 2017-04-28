@@ -196,9 +196,9 @@ class Goofy(GoofyBase):
         path = None
 
       if path:
-        test = self.test_list.lookup_path(path)
+        test = self.test_list.LookupPath(path)
         if parent_or_group:
-          test = test.get_top_level_parent_or_group()
+          test = test.GetTopLevelParentOrGroup()
         return test
       else:
         return self.test_list
@@ -221,10 +221,10 @@ class Goofy(GoofyBase):
                                     reason=getattr(event, 'reason', None)),
         Event.Type.SET_VISIBLE_TEST:
             lambda event: self.set_visible_test(
-                self.test_list.lookup_path(event.path)),
+                self.test_list.LookupPath(event.path)),
         Event.Type.CLEAR_STATE:
             lambda event: self.clear_state(
-                self.test_list.lookup_path(event.path)),
+                self.test_list.LookupPath(event.path)),
         Event.Type.KEY_FILTER_MODE: self.handle_key_filter_mode,
     }
 
@@ -353,9 +353,9 @@ class Goofy(GoofyBase):
       return
 
     if test:
-      test.update_state(visible=True)
+      test.UpdateState(visible=True)
     if self.visible_test:
-      self.visible_test.update_state(visible=False)
+      self.visible_test.UpdateState(visible=False)
     self.visible_test = test
 
   def shutdown(self, operation):
@@ -365,11 +365,11 @@ class Goofy(GoofyBase):
       operation: The shutdown operation (reboot, full_reboot, or halt).
     """
     active_tests = []
-    for test in self.test_list.walk():
-      if not test.is_leaf():
+    for test in self.test_list.Walk():
+      if not test.IsLeaf():
         continue
 
-      test_state = test.get_state()
+      test_state = test.GetState()
       if test_state.status == TestState.ACTIVE:
         active_tests.append(test)
 
@@ -405,7 +405,7 @@ class Goofy(GoofyBase):
     Args:
       test: The ShutdownStep.
     """
-    test_state = test.update_state(increment_shutdown_count=1)
+    test_state = test.UpdateState(increment_shutdown_count=1)
     logging.info('Detected shutdown (%d of %d)',
                  test_state.shutdown_count, test.iterations)
 
@@ -430,21 +430,21 @@ class Goofy(GoofyBase):
 
   def init_states(self):
     """Initializes all states on startup."""
-    for test in self.test_list.get_all_tests():
+    for test in self.test_list.GetAllTests():
       # Make sure the state server knows about all the tests,
       # defaulting to an untested state.
-      test.update_state(update_parent=False, visible=False)
+      test.UpdateState(update_parent=False, visible=False)
 
     is_unexpected_shutdown = False
 
     # Any 'active' tests should be marked as failed now.
-    for test in self.test_list.walk():
-      if not test.is_leaf():
+    for test in self.test_list.Walk():
+      if not test.IsLeaf():
         # Don't bother with parents; they will be updated when their
         # children are updated.
         continue
 
-      test_state = test.get_state()
+      test_state = test.GetState()
       if test_state.status != TestState.ACTIVE:
         continue
       if isinstance(test, factory.ShutdownStep):
@@ -457,9 +457,9 @@ class Goofy(GoofyBase):
         self.event_log.Log('end_test',
                            path=test.path,
                            status=TestState.FAILED,
-                           invocation=test.get_state().invocation,
+                           invocation=test.GetState().invocation,
                            error_msg=error_msg)
-        test.update_state(
+        test.UpdateState(
             status=TestState.FAILED,
             error_msg=error_msg)
         # Trigger the OnTestFailure callback.
@@ -528,7 +528,7 @@ class Goofy(GoofyBase):
     while True:
       try:
         path = self.test_list_iterator.next()
-        test = self.test_list.lookup_path(path)
+        test = self.test_list.LookupPath(path)
       except StopIteration:
         logging.info('no next test, stop running')
         return
@@ -536,12 +536,12 @@ class Goofy(GoofyBase):
       # check if we have run all required tests
       untested = set()
       for requirement in test.require_run:
-        for i in requirement.test.walk():
+        for i in requirement.test.Walk():
           if i == test:
             # We've hit this test itself; stop checking
             break
-          if ((i.get_state().status == TestState.UNTESTED) or
-              (requirement.passed and i.get_state().status !=
+          if ((i.GetState().status == TestState.UNTESTED) or
+              (requirement.passed and i.GetState().status !=
                TestState.PASSED)):
             # Found an untested test; move on to the next
             # element in require_run.
@@ -563,8 +563,8 @@ class Goofy(GoofyBase):
                        % untested_paths)
           factory.console.error('Not running %s: %s',
                                 test.path, error_msg)
-          test.update_state(status=TestState.FAILED,
-                            error_msg=error_msg)
+          test.UpdateState(status=TestState.FAILED,
+                           error_msg=error_msg)
           continue
 
       # okay, let's run the test
@@ -587,14 +587,14 @@ class Goofy(GoofyBase):
     The argument `test` should be either a leaf test (no subtests) or a parallel
     test (all subtests should be run in parallel).
     """
-    if not self._ui_initialized and not test.is_no_host():
+    if not self._ui_initialized and not test.IsNoHost():
       self.init_ui()
 
-    if test.is_leaf():
+    if test.IsLeaf():
       invoc = TestInvocation(
           self, test, on_completion=self.invocation_completion,
           on_test_failure=lambda: self.test_fail(test))
-      new_state = test.update_state(
+      new_state = test.UpdateState(
           status=TestState.ACTIVE, increment_count=1, error_msg='',
           invocation=invoc.uuid, iterations_left=iterations_left,
           retries_left=retries_left,
@@ -606,7 +606,7 @@ class Goofy(GoofyBase):
       self.check_plugins()
       invoc.start()
     else:
-      assert test.is_parallel()
+      assert test.IsParallel()
       for subtest in test.subtests:
         # TODO(stimim): what if the subtests *must* be run in parallel?
         # for example, stressapptest and countdown test.
@@ -620,7 +620,7 @@ class Goofy(GoofyBase):
     exclusive_resources = set()
     for test in self.invocations:
       exclusive_resources = exclusive_resources.union(
-          test.get_exclusive_resources())
+          test.GetExclusiveResources())
     self.plugin_controller.PauseAndResumePluginByResource(exclusive_resources)
 
   def check_for_updates(self):
@@ -701,7 +701,7 @@ class Goofy(GoofyBase):
     for t, v in dict(self.invocations).iteritems():
       if v.is_completed():
         test_completed = True
-        new_state = t.update_state(**v.update_state_on_completion)
+        new_state = t.UpdateState(**v.update_state_on_completion)
         del self.invocations[t]
 
         # Stop on failure if flag is true and there is no retry chances.
@@ -729,7 +729,7 @@ class Goofy(GoofyBase):
         self.visible_test not in self.invocations):
       self.set_visible_test(None)
       # Make the first running test, if any, the visible test
-      for t in self.test_list.walk():
+      for t in self.test_list.Walk():
         if t in self.invocations:
           self.set_visible_test(t)
           break
@@ -746,17 +746,17 @@ class Goofy(GoofyBase):
     self.reap_completed_tests()
     # since we remove objects while iterating, make a copy
     for test, invoc in dict(self.invocations).iteritems():
-      if root and not test.has_ancestor(root):
+      if root and not test.HasAncestor(root):
         continue
 
       factory.console.info('Killing active test %s...', test.path)
       invoc.abort_and_join(reason)
       factory.console.info('Killed %s', test.path)
-      test.update_state(**invoc.update_state_on_completion)
+      test.UpdateState(**invoc.update_state_on_completion)
       del self.invocations[test]
 
       if not abort:
-        test.update_state(status=TestState.UNTESTED)
+        test.UpdateState(status=TestState.UNTESTED)
     self.reap_completed_tests()
 
   def stop(self, root=None, fail=False, reason=None):
@@ -767,7 +767,7 @@ class Goofy(GoofyBase):
     else:
       # only skip tests under `root`
       self.test_list_iterator = itertools.dropwhile(
-          lambda path: self.test_list.lookup_path(path).has_ancestor(root),
+          lambda path: self.test_list.LookupPath(path).HasAncestor(root),
           self.test_list_iterator)
     self.run_next_test()
 
@@ -775,9 +775,9 @@ class Goofy(GoofyBase):
     if root is None:
       root = self.test_list
     self.stop(root, reason='Clearing test state')
-    for f in root.walk():
-      if f.is_leaf():
-        f.update_state(status=TestState.UNTESTED)
+    for f in root.Walk():
+      if f.IsLeaf():
+        f.UpdateState(status=TestState.UNTESTED)
 
   def abort_active_tests(self, reason=None):
     self.kill_active_tests(True, reason=reason)
@@ -1400,8 +1400,8 @@ class Goofy(GoofyBase):
     root = root or self.test_list
 
     self.abort_active_tests('Operator requested restart of certain tests')
-    for test in root.walk():
-      test.update_state(status=TestState.UNTESTED)
+    for test in root.Walk():
+      test.UpdateState(status=TestState.UNTESTED)
     self.run_tests(root)
 
   def auto_run(self, root=None):
@@ -1421,7 +1421,7 @@ class Goofy(GoofyBase):
     Args:
       event: The SWITCH_TEST event.
     """
-    test = self.test_list.lookup_path(event.path)
+    test = self.test_list.LookupPath(event.path)
     if not test:
       logging.error('Unknown test %r', event.key)
       return
@@ -1435,8 +1435,8 @@ class Goofy(GoofyBase):
       return
 
     self.abort_active_tests('Operator requested abort (switch_test)')
-    for t in test.walk():
-      t.update_state(status=TestState.UNTESTED)
+    for t in test.Walk():
+      t.UpdateState(status=TestState.UNTESTED)
 
     self.run_tests(test)
 

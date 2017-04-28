@@ -30,8 +30,8 @@ class TestListIteratorTest(unittest.TestCase):
   def _SetStubStateInstance(self, test_list):
     state_instance = state.StubFactoryState()
     test_list.state_instance = state_instance
-    for test in test_list.get_all_tests():
-      test.update_state(update_parent=False, visible=False)
+    for test in test_list.GetAllTests():
+      test.UpdateState(update_parent=False, visible=False)
     return test_list
 
   def _testPickleSerializable(self, iterator):
@@ -98,11 +98,11 @@ class TestListIteratorTest(unittest.TestCase):
         for unused_i in xrange(max_iteration):
           test_path = iterator.next()
           actual_sequence.append(test_path)
-          test = test_list.lookup_path(test_path)
+          test = test_list.LookupPath(test_path)
           if run_test(test_path, aux_data):
-            test.update_state(status=factory.TestState.PASSED)
+            test.UpdateState(status=factory.TestState.PASSED)
           else:
-            test.update_state(status=factory.TestState.FAILED)
+            test.UpdateState(status=factory.TestState.FAILED)
           if test_persistency:
             iterator = self._testPickleSerializable(iterator)
             # the persistency of state instance is provided by
@@ -214,8 +214,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     for unused_i in xrange(3):
       test_path = iterator.next()
       actual_sequence.append(test_path)
-      test = test_list.lookup_path(test_path)
-      test.update_state(status=factory.TestState.PASSED)
+      test = test_list.LookupPath(test_path)
+      test.UpdateState(status=factory.TestState.PASSED)
 
     self.assertListEqual(['a', 'b', 'G.a'], actual_sequence)
 
@@ -240,8 +240,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
       for unused_i in xrange(10):
         test_path = iterator.next()
         actual_sequence.append(test_path)
-        test = test_list.lookup_path(test_path)
-        test.update_state(status=factory.TestState.PASSED)
+        test = test_list.LookupPath(test_path)
+        test.UpdateState(status=factory.TestState.PASSED)
 
     self.assertListEqual(
         ['a', 'b', 'G.a', 'G.G.a', 'G.G.b', 'G.G.c', 'c'], actual_sequence)
@@ -328,8 +328,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     # no filter, all tests should be run
     test_list = self._SetStubStateInstance(test_list)
-    test_list.lookup_path('G.a').update_state(status=factory.TestState.PASSED)
-    test_list.lookup_path('G.G.a').update_state(status=factory.TestState.FAILED)
+    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
+    test_list.LookupPath('G.G.a').UpdateState(status=factory.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
         ['G.a', 'G.G.a', 'G.G.b', 'G.b'],
@@ -338,8 +338,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     # only UNTESTED tests will be run
     test_list = self._SetStubStateInstance(test_list)
-    test_list.lookup_path('G.a').update_state(status=factory.TestState.PASSED)
-    test_list.lookup_path('G.G.a').update_state(status=factory.TestState.FAILED)
+    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
+    test_list.LookupPath('G.G.a').UpdateState(status=factory.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
         ['G.G.b', 'G.b'],
@@ -348,8 +348,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     # UNTESTED or FAILED
     test_list = self._SetStubStateInstance(test_list)
-    test_list.lookup_path('G.a').update_state(status=factory.TestState.PASSED)
-    test_list.lookup_path('G.G.a').update_state(status=factory.TestState.FAILED)
+    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
+    test_list.LookupPath('G.G.a').UpdateState(status=factory.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.b', 'G.b'],
@@ -358,9 +358,9 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     # filter doesn't apply on non-leaf tests
     test_list = self._SetStubStateInstance(test_list)
-    test_list.lookup_path('G.a').update_state(status=factory.TestState.PASSED)
-    test_list.lookup_path('G.G.a').update_state(status=factory.TestState.FAILED)
-    test_list.lookup_path('G').update_state(status=factory.TestState.FAILED)
+    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
+    test_list.LookupPath('G.G.a').UpdateState(status=factory.TestState.FAILED)
+    test_list.LookupPath('G').UpdateState(status=factory.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.b', 'G.b'],

@@ -94,7 +94,7 @@ class Report(unittest.TestCase):
 
   def runTest(self):
     test_list = self.test_info.ReadTestList()
-    test = test_list.lookup_path(self.test_info.path)
+    test = test_list.LookupPath(self.test_info.path)
     states = factory.get_state_instance().get_test_states()
 
     ui = test_ui.UI(css=CSS)
@@ -139,8 +139,8 @@ class Report(unittest.TestCase):
         self.dut.WriteFile(file_path, 'PASS')
       else:
         report = ''
-        for t in test.parent.walk():
-          if not t.is_leaf():
+        for t in test.parent.Walk():
+          if not t.IsLeaf():
             continue
           state = states.get(t.path)
           report += '%s: %s\n' % (t.path, state.status)

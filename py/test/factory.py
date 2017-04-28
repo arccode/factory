@@ -698,7 +698,7 @@ class FactoryTest(object):
       if id:
         self.id = id
       elif pytest_name:
-        self.id = self.pytest_name_to_id(pytest_name)
+        self.id = self.PytestNameToId(pytest_name)
       else:
         self.id = _default_id
 
@@ -733,7 +733,7 @@ class FactoryTest(object):
     self.label = i18n.Translated(label)
 
   @staticmethod
-  def pytest_name_to_id(pytest_name):
+  def PytestNameToId(pytest_name):
     """Converts a pytest name to an ID.
 
     Removes all but the rightmost dot-separated component, removes
@@ -744,14 +744,14 @@ class FactoryTest(object):
                   lambda match: match.group(1).upper(),
                   name)
 
-  def to_struct(self):
+  def ToStruct(self):
     """Returns the node as a struct suitable for JSONification."""
     ret = dict(
         (k, getattr(self, k))
         for k in ['id', 'path', 'label', 'dut_options',
                   'disable_abort', '_parallel'])
     ret['is_shutdown_step'] = isinstance(self, ShutdownStep)
-    ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
+    ret['subtests'] = [subtest.ToStruct() for subtest in self.subtests]
     return ret
 
   def __repr__(self, recursive=False):
@@ -797,13 +797,13 @@ class FactoryTest(object):
     path_map[self.path] = self
 
     # subtests of a teardown test should be part of teardown as well
-    if self.is_teardown():
+    if self.IsTeardown():
       if self.action_on_failure != self.ACTION_ON_FAILURE.NEXT:
         logging.warning('`action_on_failure` of a teardown test must be `NEXT`')
         logging.warning('The value will be overwritten.')
         self.action_on_failure = self.ACTION_ON_FAILURE.NEXT
       for subtest in self.subtests:
-        subtest.set_teardown()
+        subtest.SetTeardown()
 
     for subtest in self.subtests:
       subtest.parent = self
@@ -827,12 +827,12 @@ class FactoryTest(object):
       raise TestListError(
           'action_on_failure must be one of "NEXT", "PARENT", "STOP"')
 
-    if self.is_parallel():
+    if self.IsParallel():
       if not self.subtests:
         raise TestListError(
             '`parallel` should be set on test group')
       for subtest in self.subtests:
-        if not subtest.is_leaf():
+        if not subtest.IsLeaf():
           raise TestListError(
               'Test %s: all subtests in a parallel test should be leaf nodes' %
               self.id)
@@ -843,56 +843,56 @@ class FactoryTest(object):
 
     # all subtests should come before teardown tests
     it = iter(self.subtests)
-    if not self.is_teardown():
+    if not self.IsTeardown():
       # find first teardown test
-      it = itertools.dropwhile(lambda subtest: not subtest.is_teardown(), it)
+      it = itertools.dropwhile(lambda subtest: not subtest.IsTeardown(), it)
     for subtest in it:
-      if not subtest.is_teardown():
+      if not subtest.IsTeardown():
         raise TestListError(
             '%s: all subtests should come before teardown tests' % self.id)
 
     for subtest in self.subtests:
       subtest._check()  # pylint: disable=protected-access
 
-  def depth(self):
+  def Depth(self):
     """Returns the depth of the node (0 for the root)."""
     return self.path.count('.') + (self.parent is not None)
 
-  def is_leaf(self):
+  def IsLeaf(self):
     """Returns true if this is a leaf node."""
     return not self.subtests
 
-  def is_parallel(self):
+  def IsParallel(self):
     return self._parallel
 
-  def is_teardown(self):
+  def IsTeardown(self):
     return self._teardown
 
-  def set_teardown(self, value=True):
+  def SetTeardown(self, value=True):
     self._teardown = bool(value)
 
-  def has_ancestor(self, other):
+  def HasAncestor(self, other):
     """Returns True if other is an ancestor of this test (or is that test
     itself).
     """
-    return (self == other) or (self.parent and self.parent.has_ancestor(other))
+    return (self == other) or (self.parent and self.parent.HasAncestor(other))
 
-  def get_ancestors(self):
+  def GetAncestors(self):
     """Returns list of ancestors, ordered by seniority."""
     if self.parent is not None:
-      return self.parent.get_ancestors() + [self.parent]
+      return self.parent.GetAncestors() + [self.parent]
     return []
 
-  def get_ancestor_groups(self):
+  def GetAncestorGroups(self):
     """Returns list of ancestors that are groups, ordered by seniority."""
-    return [node for node in self.get_ancestors() if node.is_group()]
+    return [node for node in self.GetAncestors() if node.IsGroup()]
 
-  def get_state(self):
+  def GetState(self):
     """Returns the current test state from the state instance."""
     return TestState.from_dict_or_object(
         self.root.state_instance.get_test_state(self.path))
 
-  def update_state(self, update_parent=True, status=None, **kwargs):
+  def UpdateState(self, update_parent=True, status=None, **kwargs):
     """Updates the test state.
 
     See TestState.update for allowable kwargs arguments.
@@ -907,10 +907,10 @@ class FactoryTest(object):
         # pylint: disable=protected-access
         self.root._update_test_state(self.path, status=status, **kwargs))
     if update_parent and self.parent:
-      self.parent.update_status_from_children()
+      self.parent.UpdateStatusFromChildren()
     return ret
 
-  def update_status_from_children(self):
+  def UpdateStatusFromChildren(self):
     """Updates the status based on children's status.
 
     A test is active if any children are active; else failed if
@@ -922,11 +922,11 @@ class FactoryTest(object):
 
     # If there are any active tests, consider it active; if any failed,
     # consider it failed, etc. The order is important!
-    status = overall_status([x.get_state().status for x in self.subtests])
-    if status != self.get_state().status:
-      self.update_state(status=status)
+    status = overall_status([x.GetState().status for x in self.subtests])
+    if status != self.GetState().status:
+      self.UpdateState(status=status)
 
-  def walk(self, in_order=False):
+  def Walk(self, in_order=False):
     """Yields this test and each sub-test.
 
     Args:
@@ -936,50 +936,50 @@ class FactoryTest(object):
       # Walking in order - yield self first.
       yield self
     for subtest in self.subtests:
-      for f in subtest.walk(in_order):
+      for f in subtest.Walk(in_order):
         yield f
     if not in_order:
       # Walking depth first - yield self last.
       yield self
 
-  def is_group(self):
+  def IsGroup(self):
     """Returns true if this node is a test group."""
     return isinstance(self, TestGroup)
 
-  def is_top_level_test(self):
+  def IsTopLevelTest(self):
     """Returns true if this node is a top-level test.
 
     A 'top-level test' is a test directly underneath the root or a
     TestGroup, e.g., a node under which all tests must be run
     together to be meaningful.
     """
-    return ((not self.is_group()) and
+    return ((not self.IsGroup()) and
             self.parent and
-            (self.parent == self.root or self.parent.is_group()))
+            (self.parent == self.root or self.parent.IsGroup()))
 
-  def get_top_level_parent_or_group(self):
-    if self.is_group() or self.is_top_level_test() or not self.parent:
+  def GetTopLevelParentOrGroup(self):
+    if self.IsGroup() or self.IsTopLevelTest() or not self.parent:
       return self
-    return self.parent.get_top_level_parent_or_group()
+    return self.parent.GetTopLevelParentOrGroup()
 
-  def get_top_level_tests(self):
+  def GetTopLevelTests(self):
     """Returns a list of top-level tests."""
-    return [node for node in self.walk() if node.is_top_level_test()]
+    return [node for node in self.Walk() if node.IsTopLevelTest()]
 
-  def get_exclusive_resources(self):
+  def GetExclusiveResources(self):
     """Returns a set of resources to be exclusively used."""
     res = set(self.exclusive_resources)
     if self.parent:
-      res |= self.parent.get_exclusive_resources()
+      res |= self.parent.GetExclusiveResources()
     return res
 
-  def is_no_host(self):
+  def IsNoHost(self):
     """Returns true if the test or any parent is marked 'no_host'."""
     if self.no_host:
       return True
-    return any([node.no_host for node in self.get_ancestor_groups()])
+    return any([node.no_host for node in self.GetAncestorGroups()])
 
-  def as_dict(self, state_map=None):
+  def AsDict(self, state_map=None):
     """Returns this node and children in a dictionary suitable for
     YAMLification.
     """
@@ -992,14 +992,14 @@ class FactoryTest(object):
     # Convert to string, in case state_map has Unicode stuff from an RPC call
     node = type_utils.UnicodeToString(node)
     if self.subtests:
-      node['subtests'] = [x.as_dict(state_map) for x in self.subtests]
+      node['subtests'] = [x.AsDict(state_map) for x in self.subtests]
     return node
 
-  def as_yaml(self, state_map=None):
+  def AsYaml(self, state_map=None):
     """Returns this node and children in YAML format."""
-    return yaml.dump(self.as_dict(state_map))
+    return yaml.dump(self.AsDict(state_map))
 
-  def evaluate_run_if(self, test_arg_env, get_data):
+  def EvaluateRunIf(self, test_arg_env, get_data):
     """Evaluate the run_if value of this test.
 
     Evaluates run_if argument to decide skipping the test or not.  If run_if
@@ -1033,7 +1033,7 @@ class FactoryTest(object):
     else:  # run_if is not set
       return True
 
-  def disable_by_run_if(self):
+  def DisableByRunIf(self):
     """Overwrites properties related to run_if to disable a test.
 
     Modifies run_if_expr, run_if_not, run_if_table_name so the run_if evaluation
@@ -1043,7 +1043,7 @@ class FactoryTest(object):
     self.run_if_not = False
     self.run_if_table_name = None
 
-  def skip(self):
+  def Skip(self):
     """Skips this test and any subtests that have not already passed.
 
     Subtests that have passed are not modified.  If any subtests were
@@ -1051,11 +1051,11 @@ class FactoryTest(object):
     """
     # Modifies run_if argument of this test so it will not be enabled again
     # when its run_if is evaluated.
-    self.disable_by_run_if()
+    self.DisableByRunIf()
     skipped_tests = []
-    for test in self.walk():
-      if not test.subtests and test.get_state().status != TestState.PASSED:
-        test.update_state(status=TestState.PASSED, skip=True,
+    for test in self.Walk():
+      if not test.subtests and test.GetState().status != TestState.PASSED:
+        test.UpdateState(status=TestState.PASSED, skip=True,
                           error_msg=TestState.SKIPPED_MSG)
         skipped_tests.append(test.path)
     if skipped_tests:
@@ -1063,16 +1063,16 @@ class FactoryTest(object):
       if self.subtests:
         logging.info('Marking %s as skipped, since subtests were skipped',
                      self.path)
-        self.update_state(status=TestState.PASSED, skip=True,
+        self.UpdateState(status=TestState.PASSED, skip=True,
                           error_msg=TestState.SKIPPED_MSG)
 
-  def is_skipped(self):
+  def IsSkipped(self):
     """Returns True if this test was skipped."""
-    state = self.get_state()
+    state = self.GetState()
     return (state.status == TestState.PASSED and
             state.error_msg == TestState.SKIPPED_MSG)
 
-  def get_next_sibling(self):
+  def GetNextSibling(self):
     return self.next_sibling
 
 
@@ -1139,9 +1139,9 @@ class FactoryTestList(FactoryTest):
     self._init('', self.path_map)
 
     # Resolve require_run paths to the actual test objects.
-    for test in self.walk():
+    for test in self.Walk():
       for requirement in test.require_run:
-        requirement.test = self.lookup_path(requirement.path)
+        requirement.test = self.LookupPath(requirement.path)
         if not requirement.test:
           raise TestListError(
               "Unknown test %s in %s's require_run argument (note "
@@ -1150,7 +1150,7 @@ class FactoryTestList(FactoryTest):
 
     if self.options.strict_ids:
       bad_implicit_ids = []
-      for test in self.walk():
+      for test in self.Walk():
         if test.implicit_id:
           bad_implicit_ids.append(test.path)
       if bad_implicit_ids:
@@ -1158,19 +1158,19 @@ class FactoryTestList(FactoryTest):
                             'explicitly specified IDs' % bad_implicit_ids)
     self._check()
 
-  def get_all_tests(self):
+  def GetAllTests(self):
     """Returns all FactoryTest objects."""
     return self.path_map.values()
 
-  def get_state_map(self):
+  def GetStateMap(self):
     """Returns a map of all FactoryTest objects to their TestStates."""
     # The state instance may return a dict (for the XML/RPC proxy)
     # or the TestState object itself. Convert accordingly.
     return dict(
-        (self.lookup_path(k), TestState.from_dict_or_object(v))
+        (self.LookupPath(k), TestState.from_dict_or_object(v))
         for k, v in self.state_instance.get_test_states().iteritems())
 
-  def lookup_path(self, path):
+  def LookupPath(self, path):
     """Looks up a test from its path."""
     return self.path_map.get(path, None)
 
@@ -1183,7 +1183,7 @@ class FactoryTestList(FactoryTest):
     ret, changed = self.state_instance.update_test_state(path=path, **kwargs)
     if changed and self.state_change_callback:
       self.state_change_callback(  # pylint: disable=E1102
-          self.lookup_path(path), ret)
+          self.LookupPath(path), ret)
     return ret
 
 

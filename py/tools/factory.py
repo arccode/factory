@@ -256,8 +256,8 @@ class DumpTestListCommand(Subcommand):
     if self.args.format == 'csv':
       writer = csv.writer(sys.stdout)
       writer.writerow(('id', 'module'))
-      for t in test_list.walk():
-        if t.is_leaf():
+      for t in test_list.Walk():
+        if t.IsLeaf():
           if t.pytest_name:
             module = t.pytest_name
           elif t.invocation_target:

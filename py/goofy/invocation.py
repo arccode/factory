@@ -530,12 +530,12 @@ class TestInvocation(object):
     if self.test.iterations > 1:
       iteration_string = ' [%s/%s]' % (
           self.test.iterations -
-          self.test.get_state().iterations_left + 1,
+          self.test.GetState().iterations_left + 1,
           self.test.iterations)
     if self.test.retries > 0:
       retries_string = ' [retried %s/%s]' % (
           self.test.retries -
-          self.test.get_state().retries_left,
+          self.test.GetState().retries_left,
           self.test.retries)
     logging.info('Running test %s%s%s', self.test.path,
                  iteration_string, retries_string)

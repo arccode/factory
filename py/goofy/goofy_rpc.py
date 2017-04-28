@@ -889,10 +889,10 @@ class GoofyRPC(object):
 
   def RunTest(self, path, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Runs a test."""
-    test = self.goofy.test_list.lookup_path(path)
+    test = self.goofy.test_list.LookupPath(path)
     if not test:
       raise GoofyRPCException('Unknown test path %r' % path)
-    test = test.get_top_level_parent_or_group()
+    test = test.GetTopLevelParentOrGroup()
 
     self._InRunQueue(lambda: self.goofy.restart_tests(root=test),
                      timeout_secs=timeout_secs)
@@ -982,7 +982,7 @@ class GoofyRPC(object):
     paths_to_run = set(self.goofy.test_list_iterator.get_pending_tests())
     ret = []
     states = self.goofy.state_instance.get_test_states()
-    for t in self.goofy.test_list.walk(in_order=True):
+    for t in self.goofy.test_list.Walk(in_order=True):
       test_state = states.get(t.path)
       ret.append(dict(path=t.path,
                       parent=(t.subtests != []),
@@ -1028,7 +1028,7 @@ class GoofyRPC(object):
 
   def GetTestList(self):
     """Returns the test list."""
-    return self.goofy.test_list.to_struct()
+    return self.goofy.test_list.ToStruct()
 
   def GetGoofyStatus(self):
     """Returns a dictionary containing Goofy status information.

@@ -200,7 +200,7 @@ class Finalize(unittest.TestCase):
                                   re.compile(w[1], re.MULTILINE))
 
     test_list = self.test_info.ReadTestList()
-    test_states = test_list.as_dict(
+    test_states = test_list.AsDict(
         factory.get_state_instance().get_test_states())
 
     with open(self.test_states_path, 'w') as f:
@@ -281,7 +281,7 @@ class Finalize(unittest.TestCase):
       self.waived_tests = set()
 
       for k, v in state_map.iteritems():
-        test = test_list.lookup_path(k)
+        test = test_list.LookupPath(k)
         if not test:
           # Test has been removed (e.g., by updater).
           continue

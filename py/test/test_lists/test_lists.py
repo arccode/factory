@@ -86,7 +86,7 @@ def Add(test):
   if not builder_state.stack:
     raise TestListError('Cannot add test %r: not within a test list' % test.id)
   if builder_state.in_teardown:
-    test.set_teardown()
+    test.SetTeardown()
   builder_state.stack[-1].subtests.append(test)
   return Context(test)
 
@@ -601,7 +601,7 @@ def YamlDumpTestListDestructive(test_list, stream=None):
   del test_list.path_map
   del test_list.state_instance
   del test_list.test_list_id
-  for t in test_list.walk():
+  for t in test_list.Walk():
     del t.parent
     del t.root
     for r in t.require_run:

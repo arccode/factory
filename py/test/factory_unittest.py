@@ -33,7 +33,7 @@ class FactoryModuleTest(unittest.TestCase):
                           ('ab', 'Ab'),
                           ('a_b', 'AB'),
                           ('foo_bar', 'FooBar')):
-      self.assertEqual(test_id, factory.FactoryTest.pytest_name_to_id(name))
+      self.assertEqual(test_id, factory.FactoryTest.PytestNameToId(name))
 
 
 class FactoryTestListTest(unittest.TestCase):
@@ -47,12 +47,12 @@ class FactoryTestListTest(unittest.TestCase):
         test_lists.FactoryTest(id='b', pytest_name='t_GGa')
       test_lists.FactoryTest(id='b', pytest_name='t_Gb')
         """, '')
-    test = test_list.lookup_path('G.G')
-    self.assertEqual(test.get_next_sibling(), test_list.lookup_path('G.b'))
-    test = test_list.lookup_path('G.G.a')
-    self.assertEqual(test.get_next_sibling(), test_list.lookup_path('G.G.b'))
-    test = test_list.lookup_path('G.G.b')
-    self.assertIsNone(test.get_next_sibling())
+    test = test_list.LookupPath('G.G')
+    self.assertEqual(test.GetNextSibling(), test_list.LookupPath('G.b'))
+    test = test_list.LookupPath('G.G.a')
+    self.assertEqual(test.GetNextSibling(), test_list.LookupPath('G.G.b'))
+    test = test_list.LookupPath('G.G.b')
+    self.assertIsNone(test.GetNextSibling())
 
 
 if __name__ == '__main__':

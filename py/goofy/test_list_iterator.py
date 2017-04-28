@@ -91,24 +91,24 @@ class TestListIterator(object):
 
   def check_skip(self, test):
     if isinstance(test, str):
-      test = self.test_list.lookup_path(test)
+      test = self.test_list.LookupPath(test)
     if self.status_filter:
       # status filter only applies to leaf tests
-      if ((test.is_leaf() or test.is_parallel()) and
+      if ((test.IsLeaf() or test.IsParallel()) and
           not self._check_status_filter(test)):
         logging.info('test %s is filtered (skipped) because its status',
                      test.path)
         logging.info('%s (skip list: %r)',
-                     test.get_state().status, self.status_filter)
+                     test.GetState().status, self.status_filter)
         return True
     if not self._check_run_if(test):
       logging.info('test %s is skipped because run_if evaluated to False',
                    test.path)
-      test.update_state(skip=True)
+      test.UpdateState(skip=True)
       return True
-    elif test.is_skipped():
+    elif test.IsSkipped():
       # this test was skipped before, but now we might need to run it
-      test.update_state(status=factory.TestState.UNTESTED, error_msg='')
+      test.UpdateState(status=factory.TestState.UNTESTED, error_msg='')
       # check again (for status filter)
       return self.check_skip(test)
     return False
@@ -120,12 +120,12 @@ class TestListIterator(object):
       test_arg_env = invocation.TestArgEnv()
     if get_data is None:
       get_data = shopfloor.get_selected_aux_data
-    return test.evaluate_run_if(test_arg_env, get_data)
+    return test.EvaluateRunIf(test_arg_env, get_data)
 
   def _check_status_filter(self, test):
     if not self.status_filter:
       return True
-    status = test.get_state().status
+    status = test.GetState().status
     # an active test should always pass the filter (to resume a previous test)
     return status == factory.TestState.ACTIVE or status in self.status_filter
 
@@ -165,8 +165,8 @@ class TestListIterator(object):
     assert self.stack, "stack cannot be empty"
 
     path = self.stack[-1]
-    test = self.test_list.lookup_path(path)
-    if test.is_leaf() or test.is_parallel():
+    test = self.test_list.LookupPath(path)
+    if test.IsLeaf() or test.IsParallel():
       if not self.check_skip(test):
         return True
 
@@ -196,7 +196,7 @@ class TestListIterator(object):
     """
     while self.stack:
       path = self.stack.pop()
-      test = self.test_list.lookup_path(path)
+      test = self.test_list.LookupPath(path)
       jump_to_teardown = False
 
       if not test:
@@ -208,7 +208,7 @@ class TestListIterator(object):
         # oh, there is no parent
         raise StopIteration
 
-      success = test.get_state().status != factory.TestState.FAILED
+      success = test.GetState().status != factory.TestState.FAILED
       if not success:
         # create an alias
         ACTION_ON_FAILURE = factory.FactoryTest.ACTION_ON_FAILURE
@@ -226,7 +226,7 @@ class TestListIterator(object):
         # however, to make the checking code easier to implement, current test
         # is not filtered.
         subtests = itertools.ifilter(
-            lambda subtest: subtest.path == path or subtest.is_teardown(),
+            lambda subtest: subtest.path == path or subtest.IsTeardown(),
             subtests)
 
       # find next test in parent
