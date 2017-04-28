@@ -13,6 +13,7 @@ from __future__ import print_function
 
 import atexit
 from distutils import sysconfig
+import fnmatch
 import importlib
 import os
 import re
@@ -143,7 +144,7 @@ def CheckDependencyList(module, depends, rules, package_top, standard_lib,
     if package == 'cros' and path.endswith('__init__.pyc'):
       # Allow only this implicitly loaded file in 'cros' package.
       continue
-    if package not in rule:
+    if not any(fnmatch.fnmatch(package, r) for r in rule):
       result.add('%s (%s)' % (package, path))
   return list(result)
 
