@@ -23,7 +23,6 @@ import os
 import re
 import string  # pylint: disable=W0402
 import struct
-import subprocess
 import sys
 
 from array import array
@@ -1160,15 +1159,12 @@ def _ProbeEmbeddedController():
   ret = []
   info_keys = ('vendor', 'name')
   for name in ('ec', 'pd'):
-    try:
-      ec_info = dict(
-          (key, _ShellOutput(['mosys', name, 'info', '-s', key]))
-          for key in info_keys)
-    except subprocess.CalledProcessError:
-      # The EC type is not supported on this board.
-      pass
-    else:
-      ret.append(ec_info)
+    ec_info = dict(
+        (key, _ShellOutput(['mosys', name, 'info', '-s', key], on_error=None))
+        for key in info_keys)
+    if None in ec_info.values():
+      continue
+    ret.append(ec_info)
   return ret
 
 
