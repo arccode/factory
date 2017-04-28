@@ -63,7 +63,7 @@ class TestInputHTTP(unittest.TestCase):
     """Tests that a request thread should terminate before shutting down."""
     event = datatypes.Event({}, {'att_id': 'att'})
     big_data = {'event': datatypes.Event.Serialize(event),
-                'att': '!' * 1024 * 1024 * 1024}  # 1gb
+                'att': '!' * 512 * 1024 * 1024}  # 512mb
     # Use a queue to get the request object out of the thread.
     q = Queue.Queue()
     def PostBig():
@@ -120,7 +120,7 @@ class TestInputHTTP(unittest.TestCase):
 
   def testOneEvent(self):
     event = datatypes.Event({'AA': 'BB'}, {'att_id': 'att'})
-    att = os.urandom(1024 * 1024)  # 1mb data
+    att = os.urandom(1024)  # 1kb data
     data = {'event': datatypes.Event.Serialize(event),
             'att': att}
     r = requests.post('http://localhost:' + str(self.port), files=data)
@@ -134,7 +134,7 @@ class TestInputHTTP(unittest.TestCase):
   def testHTTPlibEvent(self):
     client = httplib.HTTPConnection('localhost', self.port, timeout=180)
     event = datatypes.Event({'AA': 'BB'}, {'att_id': 'att'})
-    att = os.urandom(1024 * 1024)  # 1mb data
+    att = os.urandom(1024)  # 1kb data
     params = urllib.urlencode({'event': datatypes.Event.Serialize(event),
                                'att': att})
     client.request('POST', '/', params)
@@ -164,6 +164,51 @@ class TestInputHTTP(unittest.TestCase):
     with open(self.core.emit_calls[0][2].attachments['att_id']) as f:
       self.assertEqual(att2, f.read())
 
+  def testMultithreadedServing(self):
+    """Tests that the server has multithreading enabled."""
+    event1 = datatypes.Event({'size': 'big'}, {'att_id': 'att'})
+    event2 = datatypes.Event({'size': 'small'}, {'att_id': 'att'})
+    big_data = {'event': datatypes.Event.Serialize(event1),
+                'att': '!' * 512 * 1024 * 1024}  # 512mb
+    small_data = {'event': datatypes.Event.Serialize(event2),
+                  'att': '!' * 1024}  # 1kb
+
+    # Use a queue to get the request object out of the thread.
+    q = Queue.Queue()
+    def PostBig():
+      r = requests.post('http://localhost:' + str(self.port), files=big_data)
+      q.put(r)
+    t = threading.Thread(target=PostBig)
+    t.daemon = False
+    t.start()
+    time.sleep(0.2)  # Give the big file thread a chance to start up.
+
+    r = requests.post('http://localhost:' + str(self.port), files=small_data)
+    t.join()
+
+    self.assertEqual(200, r.status_code)
+    self.assertEqual(200, q.get().status_code)
+    self.assertEqual(2, len(self.core.emit_calls))
+    self.assertEqual(1, len(self.core.emit_calls[0]))
+    self.assertEqual('small', self.core.emit_calls[0][0]['size'])
+    self.assertEqual(1, len(self.core.emit_calls[1]))
+    self.assertEqual('big', self.core.emit_calls[1][0]['size'])
+
+  def testCurlCommand(self):
+    fd, att_path = tempfile.mkstemp(dir=self._tmp_dir)
+    att = os.urandom(1024)  # 1kb
+    with os.fdopen(fd, 'w') as f:
+      f.write(att)
+    os.system('curl -X POST -F \'event=[{"GG": "HH"}, {"att_id": "att"}]\' '
+              '-F \'att=@%s\' localhost:%d' %
+              (att_path, self.port))
+    self.assertEqual(1, len(self.core.emit_calls))
+    self.assertEqual(1, len(self.core.emit_calls[0]))
+    self.assertEqual({'GG': 'HH'}, self.core.emit_calls[0][0].payload)
+    with open(self.core.emit_calls[0][0].attachments['att_id']) as f:
+      self.assertEqual(att, f.read())
+
+  @unittest.skip('This test run too slow, please run it manually.')
   def testOneHugeAttachment(self):
     """Tests the ability to transfer one huge attachment."""
     # Since it can be slow to transfer 1 GB of data, only perform one
@@ -176,49 +221,6 @@ class TestInputHTTP(unittest.TestCase):
     self.assertEqual(200, r.status_code)
     self.assertEqual(1, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[0]))
-    with open(self.core.emit_calls[0][0].attachments['att_id']) as f:
-      self.assertEqual(att, f.read())
-
-  def testMultithreadedServing(self):
-    """Tests that the server has multithreading enabled."""
-    event = datatypes.Event({}, {'att_id': 'att'})
-    big_data = {'event': datatypes.Event.Serialize(event),
-                'att': '!' * 1024 * 1024 * 200}  # 200mb
-    small_data = {'event': datatypes.Event.Serialize(event),
-                  'att': '!' * 1024 * 1024}  # 1mb
-
-    # Use a queue to get the request object out of the thread.
-    q = Queue.Queue()
-    def PostBig():
-      r = requests.post('http://localhost:' + str(self.port), files=big_data)
-      q.put(r)
-    t = threading.Thread(target=PostBig)
-    t.daemon = False
-    t.start()
-    time.sleep(0.2)  # Give the big file thread a chance to start up.
-
-    start = time.time()
-    r = requests.post('http://localhost:' + str(self.port), files=small_data)
-    elapsed = time.time() - start
-    t.join()
-
-    self.assertEqual(200, r.status_code)
-    self.assertEqual(200, q.get().status_code)
-    logging.info('Time elapsed transferring small file: %s sec', elapsed)
-    self.assertTrue(elapsed < 0.5)  # Should take less than a half second.
-    self.assertEqual(2, len(self.core.emit_calls))
-
-  def testCurlCommand(self):
-    fd, att_path = tempfile.mkstemp(dir=self._tmp_dir)
-    att = os.urandom(1024 * 1024)  # 1mb
-    with os.fdopen(fd, 'w') as f:
-      f.write(att)
-    os.system('curl -X POST -F \'event=[{"GG": "HH"}, {"att_id": "att"}]\' '
-              '-F \'att=@%s\' localhost:%d' %
-              (att_path, self.port))
-    self.assertEqual(1, len(self.core.emit_calls))
-    self.assertEqual(1, len(self.core.emit_calls[0]))
-    self.assertEqual({'GG': 'HH'}, self.core.emit_calls[0][0].payload)
     with open(self.core.emit_calls[0][0].attachments['att_id']) as f:
       self.assertEqual(att, f.read())
 

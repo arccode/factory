@@ -31,6 +31,7 @@ from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
+from instalog.utils import net_utils
 
 
 _DEFAULT_MAX_BYTES = 2 * 1024 * 1024 * 1024  # 2gb
@@ -174,7 +175,7 @@ class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
 
   def StopServer(self):
     """Stops the HTTP server."""
-    self.shutdown()
+    net_utils.ShutdownTCPServer(self)
     self._handle_request_thread.join()
     # Wait the process request threads not yet finished.
     threads_copy = self._threads.copy()
