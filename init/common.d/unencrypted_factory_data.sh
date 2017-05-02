@@ -19,6 +19,10 @@ main() {
   local overlay="${ROOT}/var_overlay/factory"
   local dest="/var/factory"
 
+  if [ ! -e /dev/mapper/encstateful ]; then
+    return
+  fi
+
   # Ensure the mount point still exist.
   mkdir -p "${dest}"
 
