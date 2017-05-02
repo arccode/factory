@@ -39,6 +39,7 @@ _RPC_PORT_OFFSET = 3
 _RSYNC_PORT_OFFSET = 4
 _HTTP_POST_PORT_OFFSET = 5
 _INSTALOG_SOCKET_PORT_OFFSET = 6
+_INSTALOG_HTTP_PORT_OFFSET = 7
 # shopfloor XMLRPC port ranges starts at base_port + _SHOPFLOOR_PORTS_OFFSET.
 _SHOPFLOOR_PORTS_OFFSET = 10
 
@@ -145,6 +146,10 @@ class UmpireEnv(object):
   @property
   def umpire_instalog_socket_port(self):
     return GetInstalogPortFromBasePort(self.umpire_base_port)
+
+  @property
+  def umpire_instalog_http_port(self):
+    return self.umpire_base_port + _INSTALOG_HTTP_PORT_OFFSET
 
   @property
   def shopfloor_start_port(self):

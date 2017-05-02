@@ -50,6 +50,12 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
                                                    client_address, server)
 
+  def _SendResponse(self, status_code, resp_reason):
+    """Responds status code, reason and Maximum-Bytes header to client."""
+    self.send_response(status_code, resp_reason)
+    self.send_header('Maximum-Bytes', self._max_bytes)
+    self.end_headers()
+
   def do_POST(self):
     """Processes when receiving POST request."""
     content_type = self.headers.getheader('Content-Type', '')
@@ -58,20 +64,17 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     # 'application/x-www-form-urlencoded' may use about 81 times of data size
     # of memory.
     if not content_type.startswith('multipart/form-data'):
-      self.send_response(406, 'Not Acceptable: Only accept Content-Type = '
+      self._SendResponse(406, 'Not Acceptable: Only accept Content-Type = '
                               'multipart/form-data, please use output HTTP '
                               'plugin or curl command')
-      self.send_header('Maximum-Bytes', self._max_bytes)
       return
     if not content_length:
-      self.send_response(411, 'Length Required: Need header Content-Length')
-      self.send_header('Maximum-Bytes', self._max_bytes)
+      self._SendResponse(411, 'Length Required: Need header Content-Length')
       return
     # Content-Length may be wrong, and may cause some security issue.
     if int(content_length) > self._max_bytes:
-      self.send_response(413, 'Request Entity Too Large: The request is bigger '
+      self._SendResponse(413, 'Request Entity Too Large: The request is bigger '
                               'than %d bytes' % self._max_bytes)
-      self.send_header('Maximum-Bytes', self._max_bytes)
       return
     # Create the temporary directory for attachments.
     self._tmp_dir = tempfile.mkdtemp(prefix='input_http_')
@@ -79,8 +82,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self.info('Received POST request from %s:%d',
               self.client_address[0], self.client_address[1])
     status_code, resp_reason = self._ProcessRequest()
-    self.send_response(status_code, resp_reason)
-    self.send_header('Maximum-Bytes', self._max_bytes)
+    self._SendResponse(status_code, resp_reason)
 
     # Remove the temporary directory.
     self.debug('Removing temporary directory %s...', self._tmp_dir)

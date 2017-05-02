@@ -46,6 +46,8 @@ RESOURCEMAP_APP_PREFIX = '/resourcemap'
 # Handles POST request
 POST_PREFIX = '/post'
 LEGACY_POST_PREFIX = '/upload'
+# Handles Instalog HTTP plugin request
+INSTALOG_PREFIX = '/instalog'
 
 NGINX_CONFIG_TEMPLATE = """
 user root;
@@ -202,6 +204,9 @@ class HTTPService(umpire_service.UmpireService):
     # POST (legacy URL)
     umpire_proxy_handlers.append(
         (LEGACY_POST_PREFIX, env.umpire_http_post_port))
+    # Instalog HTTP plugin
+    umpire_proxy_handlers.append(
+        (INSTALOG_PREFIX, env.umpire_instalog_http_port))
     # Shop floor handlers XMLRPC proxy bindings.
     for port in xrange(shopfloor_port,
                        shopfloor_port + config.NUMBER_SHOP_FLOOR_HANDLERS):

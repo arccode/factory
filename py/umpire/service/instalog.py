@@ -115,6 +115,13 @@ class InstalogService(umpire_service.UmpireService):
                     'port': env.umpire_instalog_socket_port
                 }
             },
+            'http_in': {
+                'plugin': 'input_http',
+                'targets': [],
+                'args': {
+                    'port': env.umpire_instalog_http_port
+                }
+            },
             'health': {
                 'plugin': 'input_health',
                 'targets': []
