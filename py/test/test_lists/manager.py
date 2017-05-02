@@ -450,12 +450,16 @@ class Loader(object):
       :rtype: TestListConfig
     """
     config_name = self._GetConfigName(test_list_id)
-    loaded_config = config_utils.LoadConfig(
-        config_name=config_name,
-        schema_name=self.schema_name,
-        validate_schema=True,
-        default_config_dir=self.config_dir,
-        allow_inherit=True)
+    try:
+      loaded_config = config_utils.LoadConfig(
+          config_name=config_name,
+          schema_name=self.schema_name,
+          validate_schema=True,
+          default_config_dir=self.config_dir,
+          allow_inherit=True)
+    except Exception:
+      logging.exception('Cannot load test list "%s"', test_list_id)
+      return None
 
     timestamp = os.stat(self.GetConfigPath(test_list_id)).st_mtime
 

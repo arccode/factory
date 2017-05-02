@@ -119,49 +119,68 @@ class TestArgEnv(object):
     return state.get_shared_data('engineering_mode')
 
 
-def ResolveTestArgs(dargs):
-  """Resolves an argument dictionary by evaluating any functions.
+def ResolveTestArgs(goofy, dargs, test_list_id, dut_options):
+  """Resolves an argument dictionary.
 
-  For instance, in a test list:
+  For LegacyTestList, value can be callable, which has function signature:
 
-    OperatorTest(
-      ...
-      dargs={
-          'method': 'Foo',
-          'args': lambda env: [
-              env.GetSerialNumber('mlb_serial_number'),
-              env.GetSerialNumber(),
-              env.GetMACAddress('wlan0'),
-          ]
-      })
+    lambda env: body
 
-  This will be resolved to something like this before the test is run:
+  Where env will be a TestArgEnv object.  These callable values will be
+  executed, and replaced by evaluation result.
 
-    OperatorTest(
-      ...
-      dargs={
-          'method': 'Foo',
-          'args': ['MLB12345', 'X67890', '00:11:22:33:44:55']
-      })
+  For instance:
+
+    dargs={
+        'method': 'eval! constants.method_name',
+        'args': lambda env: [
+            env.GetSerialNumber('mlb_serial_number'),
+            env.GetSerialNumber(),
+            env.GetMACAddress('wlan0'),
+        ]
+    }
+
+  This will be resolved to:
+
+    dargs={
+        'method': 'eval! constants.method_name',
+        'args': ['MLB12345', 'X67890', '00:11:22:33:44:55']
+    }
+
+  Then the dargs will be passed to test_list.ResolveTestArgs(), which will
+  evaluate values start with 'eval! ' and 'i18n! '.
 
   Args:
     dargs: An test argument dictionary from the test list.
 
   Returns:
-    dargs, except that any values that are lambdas are replaced with the
-      results of evaluating them with a single argument, 'env',
-      which is an instance of the TestArgEnv class.
+    Resolved dargs dictionary object.
   """
-  def ResolveArg(k, v):
-    """Resolves a single argument."""
-    if not callable(v):
+  try:
+    test_list = goofy.GetTestList(test_list_id)
+  except Exception:
+    logging.exception('Goofy does not have test list `%s`', test_list_id)
+    raise
+
+  if isinstance(test_list, manager.LegacyTestList):
+    # TODO(stimim): remove all lambda functions in generic test list.
+    def ResolveArg(k, v):
+      """Resolves a single argument if it is callable."""
+      if not callable(v):
+        return v
+
+      v = v(TestArgEnv())
+      logging.info('Resolved argument %s to %r', k, FilterDict(v))
       return v
 
-    v = v(TestArgEnv())
-    logging.info('Resolved argument %s to %r', k, FilterDict(v))
-    return v
+    # resolve all lambda functions
+    dargs = dict((k, ResolveArg(k, v)) for k, v in dargs.iteritems())
 
-  return dict((k, ResolveArg(k, v)) for k, v in dargs.iteritems())
+  dut_options = dut_options or {}
+  dut = device_utils.CreateDUTInterface(**dut_options)
+  # TODO(stimim): might need to override station options?
+  station = device_utils.CreateStationInterface()
+  return test_list.ResolveTestArgs(dargs, dut=dut, station=station)
 
 
 class PytestInfo(object):
@@ -202,7 +221,6 @@ class PytestInfo(object):
       # IDs, of course).
       legacy_test_lists, unused_errors = mgr.BuildAllLegacyTestLists()
       test_list = legacy_test_lists[self.test_list]
-
     return test_list
 
 
@@ -289,6 +307,7 @@ class TestInvocation(object):
     self.count = None
     self.log_path = os.path.join(self.output_dir, 'log')
     self.update_state_on_completion = {}
+    self.dut_options = self._resolve_dut_options()
 
     self._lock = threading.Lock()
     # The following properties are guarded by the lock.
@@ -352,6 +371,23 @@ class TestInvocation(object):
     return 'Aborted' + (
         (': ' + self._aborted_reason) if self._aborted_reason else '')
 
+  def _resolve_dut_options(self):
+    """Resolve dut_options.
+
+    Climb the tree of test options and choose the first non-empty dut_options
+    encountered. Note we are not stacking the options because most DUT targets
+    don't share any options.
+    """
+    dut_options = {}
+    test_node = self.test
+    while test_node and not dut_options:
+      dut_options = test_node.dut_options
+      test_node = test_node.parent
+    if not dut_options:
+      # Use the options in test list (via test.root).
+      dut_options = self.test.root.options.dut_options or {}
+    self.dut_options = dut_options
+
   #TODO(yllin): Drop PytestPrespawner. (see http://crbug.com/677368#c5)
   def _invoke_pytest(self, resolved_dargs):
     """Invokes a pyunittest-based test."""
@@ -406,18 +442,6 @@ class TestInvocation(object):
             return TestState.FAILED, (
                 'Before starting: %s' % self._aborted_message())
 
-          # Resolve dut_options: Climb the tree of test options and choose the
-          # first non-empty dut_options encountered. Note we are not stacking
-          # the options because most DUT targets don't share any options.
-          dut_options = {}
-          test_node = self.test
-          while test_node and not dut_options:
-            dut_options = test_node.dut_options
-            test_node = test_node.parent
-          if not dut_options:
-            # Use the options in test list (via test.root).
-            dut_options = self.test.root.options.dut_options or {}
-
           self._process = self.goofy.pytest_prespawner.spawn(
               PytestInfo(test_list=self.goofy.options.test_list,
                          path=self.test.path,
@@ -425,7 +449,7 @@ class TestInvocation(object):
                          args=resolved_dargs,
                          results_path=results_path,
                          automation_mode=self.goofy.options.automation_mode,
-                         dut_options=dut_options),
+                         dut_options=self.dut_options),
               self.env_additions)
 
         # Tee process's stderr to both the log and our stderr; this
@@ -634,7 +658,12 @@ class TestInvocation(object):
     else:
       logging.debug('Resolving self.test.dargs...')
       try:
-        resolved_dargs = ResolveTestArgs(self.test.dargs)
+        logging.info('test list: %s', self.goofy.options.test_list)
+        resolved_dargs = ResolveTestArgs(
+            self.goofy,
+            self.test.dargs,
+            test_list_id=self.goofy.options.test_list,
+            dut_options=self.dut_options)
       except Exception as e:
         logging.exception('Unable to resolve test arguments')
         # Although the test is considered failed already,
