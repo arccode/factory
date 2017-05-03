@@ -5,6 +5,7 @@
 """Module to handle internationalization in goofy tests."""
 
 from __future__ import print_function
+
 import gettext
 import glob
 import json
@@ -13,6 +14,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
+from cros.factory.utils import string_utils
 
 
 DOMAIN = 'factory'
@@ -113,7 +115,10 @@ def Translated(obj, translate=True, backward_compatible=True):
       raise ValueError("%r doesn't contains default locale %s." % (
           obj, DEFAULT_LOCALE))
     default = obj.get(DEFAULT_LOCALE)
-    obj = {locale: obj.get(locale, default) for locale in LOCALES}
+    obj = {
+        locale: string_utils.DecodeUTF8(obj.get(locale, default))
+        for locale in LOCALES
+    }
   else:
     obj = (_(obj) if translate else NoTranslation(obj))
   return obj

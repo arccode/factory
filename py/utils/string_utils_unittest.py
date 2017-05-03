@@ -39,6 +39,7 @@ class DecodeUTF8Test(unittest.TestCase):
     self.assertEquals(u'abc', DecodeUTF8('abc'))
     self.assertEquals(u'abc', DecodeUTF8(u'abc'))
     self.assertEquals(u'TEST 測試', DecodeUTF8(u'TEST 測試'))
+    self.assertEquals(1, DecodeUTF8(1))
 
 
 class ParseDictTest(unittest.TestCase):
