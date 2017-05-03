@@ -478,7 +478,7 @@ install_file() {
     mkdir -p "${out_dir}"
     output="${out_dir}/${component}.gz"
     fetch "${remote_url}" "${output}"
-    install_add_stub "${output}" "${component}"
+    install_add_stub "${out_dir}" "${component}"
     umount "${mount_point}"
   elif [ "${dest%.gz}" = "${dest}" ]; then
     # The destination is an uncompressed file.
