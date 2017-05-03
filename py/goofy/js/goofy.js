@@ -89,7 +89,7 @@ cros.factory.CONTROL_PANEL_WIDTH_FRACTION = 0.21;
  * Minimum width of the control panel, in pixels.
  * @type {number}
  */
-cros.factory.CONTROL_PANEL_MIN_WIDTH = 275;
+cros.factory.CONTROL_PANEL_MIN_WIDTH = 320;
 
 /**
  * Height of the log pane, as a fraction of the viewport size.
