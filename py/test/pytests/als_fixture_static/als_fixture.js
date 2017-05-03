@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+// Copyright 2017 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -38,39 +38,9 @@ var label_fxt_unloaded = cros.factory.i18n.i18nLabelNode('Fixture UNAVAILABLE');
 
 
 /**
- * Init layout for calibration of camera test fixture.
- */
-function InitForCalibration() {
-  document.getElementById('main_screen').hidden = false;
-  GetStartTestButton().style.visibility = 'hidden';
-  document.getElementById('preview_image').hidden = false;
-}
-
-
-/**
- * Init layout for standalone camera lens shading test.
- */
-function InitForLensShadingTest() {
-  document.getElementById('main_screen').hidden = false;
-  GetStartTestButton().style.visibility = 'hidden';
-  document.getElementById('preview_image').hidden = false;
-}
-
-
-/**
- * Init layout for standalone QR Code test.
- */
-function InitForQRCodeTest() {
-  document.getElementById('main_screen').hidden = false;
-  GetStartTestButton().style.visibility = 'hidden';
-  document.getElementById('preview_image').hidden = false;
-}
-
-
-/**
- * Init layout for IQ test on light chamber.
+ * Init layout for ALS test on light chamber.
  *
- * @param {string} data_method Data method defined in CameraFixture.ARGS[]
+ * @param {string} data_method Data method defined in ALSFixture.ARGS[]
  * @param {boolean} control_chamber Whether or not DUT controls the chamber
  */
 function InitForTest(data_method, control_chamber) {
@@ -99,7 +69,7 @@ function InitForTest(data_method, control_chamber) {
 
 
 /**
- * Shows main test screen for IQ test.
+ * Shows main test screen for ALS test.
  *
  * @param {boolean} manual_sn_input Whether to input serial number manually.
  * @param {string} sn_format Regexp format of serial number.
@@ -123,57 +93,6 @@ function ShowMainTestScreen(manual_sn_input, sn_format) {
   document.getElementById('main_screen').hidden = false;
   document.getElementById('prompt_usb').hidden = true;
   document.getElementById('prompt_ethernet').hidden = true;
-}
-
-
-/**
- * Clears image data.
- */
-function ClearImageData() {
-  g_image_data = '';
-}
-
-
-/**
- * Appends data for camera_image. This function may be used multiple times to
- * send an image to JavaScript due to the limitation of message size.
- * @param {string} data Base64-encoded image data
- */
-function AddImageData(data) {
-  g_image_data += data;
-}
-
-
-/**
- * Updates the image data after AddImageData() and show it.
- * @param {string} html_id The HTML id of the image to show.
- */
-function UpdateAndShowImage(html_id) {
-  var element = document.getElementById(html_id);
-  element.src = 'data:image/jpeg;base64,' + g_image_data;
-
-  /*
-   * camera_image and analyzed_image both have 'position' = 'absolute' so that
-   * they can overlap with each other.
-   *
-   * Align them to the center manually. This may show translation animation due
-   * to -webkit-transition style, but it's okay.
-   */
-  if (html_id == 'camera_image' || html_id == 'analyzed_image') {
-    element.style.marginTop = '-' + (element.height / 2) + 'px';
-    element.style.marginLeft = '-' + (element.width / 2) + 'px';
-  }
-
-  element.hidden = false;
-}
-
-
-/**
- * Hides an image.
- * @param {string} html_id The HTML id of the image to hide.
- */
-function HideImage(html_id) {
-  document.getElementById(html_id).hidden = true;
 }
 
 

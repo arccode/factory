@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-05-22 17:26+CST\n"
+"POT-Creation-Date: 2017-05-23 10:14+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -492,6 +492,121 @@ msgstr "确认掀开到 {angle} 度"
 msgid "Checking angle..."
 msgstr "正在确认角度……"
 
+#: ../py/test/pytests/als_fixture.py
+msgid "ALS Sensor Calibration"
+msgstr "光感应器校正"
+
+#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+msgid "Starting the test"
+msgstr "开始测试"
+
+#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+msgid "Reading serial number"
+msgstr "读取序号"
+
+#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+msgid "Initializing camera"
+msgstr "初始化摄像头"
+
+#: ../py/test/pytests/als_fixture.py
+msgid "Reading Light1 ALS value"
+msgstr "读取灯光1 ALS数值"
+
+#: ../py/test/pytests/als_fixture.py
+msgid "Reading Light2 ALS value"
+msgstr "读取灯光2 ALS数值"
+
+#: ../py/test/pytests/als_fixture.py
+msgid "Reading Light3 ALS value"
+msgstr "读取灯光3 ALS数值"
+
+#: ../py/test/pytests/als_fixture.py
+msgid "Calculate the ALS line"
+msgstr "计算ALS结果"
+
+#: ../py/test/pytests/als_fixture.py
+msgid "Writing the ALS calibration data to vpd"
+msgstr "写入ALS校正结果"
+
+#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+msgid "All tests are complete"
+msgstr "测试已全部完成"
+
+#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+msgid "Test data saved"
+msgstr "记录档已写入"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Please insert the USB stick to load test parameters"
+msgstr "请插入U盘读取测试参数"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Please insert ethernet dongle to load test parameters"
+msgstr "请插入网路介面卡读取测试参数"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+msgid "ALS Calibration"
+msgstr "光感应器校正"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "USB Stick:"
+msgstr "测试参数U盘:"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/als_fixture_static/als_fixture.js
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
+msgid "USB UNLOADED"
+msgstr "U盘已载入"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Serial Number:"
+msgstr "待测物序号:"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Fixture:"
+msgstr "治具链接:"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "UNAVAILABLE"
+msgstr "未连接"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Start Test"
+msgstr "开始测试"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "Exit Test"
+msgstr "离开测试"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+msgid "IDLE"
+msgstr "閒置中"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.js
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
+msgid "USB LOADED"
+msgstr "U盘未载入"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.js
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
+msgid "Fixture CONNECTED"
+msgstr "治具已连接"
+
+#: ../py/test/pytests/als_fixture_static/als_fixture.js
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
+msgid "Fixture UNAVAILABLE"
+msgstr "治具未连接"
+
 #: ../py/test/pytests/audio.py
 msgid "Audio Test"
 msgstr "音讯测试"
@@ -974,24 +1089,8 @@ msgid "Camera Image Quality Test"
 msgstr "相机影像品质测试"
 
 #: ../py/test/pytests/camera_fixture.py
-msgid "ALS Sensor Calibration"
-msgstr "光感应器校正"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Starting the test"
-msgstr "开始测试"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Reading serial number"
-msgstr "读取序号"
-
-#: ../py/test/pytests/camera_fixture.py
 msgid "Checking firmware version"
 msgstr "检查韧体版本"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Initializing camera"
-msgstr "初始化摄像头"
 
 #: ../py/test/pytests/camera_fixture.py
 msgid "Adjusting white balance"
@@ -1002,18 +1101,6 @@ msgid "Reading test image"
 msgstr "读取测试影像"
 
 #: ../py/test/pytests/camera_fixture.py
-msgid "Reading Light1 ALS value"
-msgstr "读取灯光1 ALS数值"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Reading Light2 ALS value"
-msgstr "读取灯光2 ALS数值"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Reading Light3 ALS value"
-msgstr "读取灯光3 ALS数值"
-
-#: ../py/test/pytests/camera_fixture.py
 msgid "Locating test pattern"
 msgstr "定位测试图样"
 
@@ -1022,78 +1109,12 @@ msgid "Checking vignetting level"
 msgstr "检测影像暗角"
 
 #: ../py/test/pytests/camera_fixture.py
-msgid "Calculate the ALS line"
-msgstr "计算ALS结果"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Writing the ALS calibration data to vpd"
-msgstr "写入ALS校正结果"
-
-#: ../py/test/pytests/camera_fixture.py
 msgid "Checking image sharpness"
 msgstr "检测影像清晰度"
 
-#: ../py/test/pytests/camera_fixture.py
-msgid "All tests are complete"
-msgstr "测试已全部完成"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Test data saved"
-msgstr "记录档已写入"
-
 #: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "Please insert the USB stick to load test parameters"
-msgstr "请插入U盘读取测试参数"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "Please insert ethernet dongle to load test parameters"
-msgstr "请插入网路介面卡读取测试参数"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "Camera Performance Test and ALS Calibration"
-msgstr "相机效能与ALS校正"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "USB Stick:"
-msgstr "测试参数U盘:"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
-msgid "UNLOADED"
-msgstr "未载入"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "Serial Number:"
-msgstr "待测物序号:"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "Fixture:"
-msgstr "治具链接:"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
-msgid "UNAVAILABLE"
-msgstr "未连接"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "Start Test"
-msgstr "开始测试"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "Exit Test"
-msgstr "离开测试"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "IDLE"
-msgstr "閒置中"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
-msgid "LOADED"
-msgstr "已载入"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
-msgid "OK"
-msgstr "已连接"
+msgid "Camera Performance Test"
+msgstr "相机效能测试"
 
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}<br>"
@@ -1197,7 +1218,8 @@ msgstr "将机器朝向{direction}方"
 
 #: ../py/test/pytests/countdown.py ../py/test/pytests/wifi_rf.py
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 #: ../py/test/test_lists/generic_smt.py
 msgid "Countdown"
 msgstr "倒数计时"
@@ -2490,6 +2512,7 @@ msgstr "触控面板测试失败. 请以Gods Touch测试软体加以仔细验证
 msgid "TPM Self-diagnosis"
 msgstr "TPM 自我诊断"
 
+#: ../py/test/pytests/update_cr50_firmware.py
 #: ../py/test/pytests/update_firmware.py
 msgid "Update Firmware"
 msgstr "更新韧体"
@@ -2707,17 +2730,20 @@ msgstr "检查关卡{suffix}"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_fatp.py
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Start"
 msgstr "开始"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Bad Blocks"
 msgstr "毁损扇区"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Graphics"
 msgstr "图像"
 
@@ -2728,34 +2754,40 @@ msgid "Camera"
 msgstr "相机"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 #: ../py/test/test_lists/generic_smt.py
 msgid "Stress App Test"
 msgstr "压力测试"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Run-In Tests"
 msgstr "烧机测试"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Dozing Stress"
 msgstr "睡眠内存压力测试"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "SuspendResume ({count} times)"
 msgstr "睡眠、唤醒 ({count} 次)"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Dozing Stress Tests"
 msgstr "睡眠内存压力测试"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_experiment.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Reboot ({count} times)"
 msgstr "重新开机 ({count} 次)"
 
@@ -2766,7 +2798,8 @@ msgstr "充电"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_grt.py
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Finish"
 msgstr "结束"
 
@@ -2781,7 +2814,8 @@ msgstr "音效诊断"
 
 #: ../py/test/test_lists/generic_experiment.py
 #: ../py/test/test_lists/generic_fatp.py
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Reboot"
 msgstr "重新开机"
 
@@ -2993,7 +3027,8 @@ msgid ""
 "FATP tests finished. Press SPACE to run GRT,<br>or switch test list to RRT."
 msgstr "FATP 测试结束，按下空白键执行最终程序,<br>或切换测试列表到RRT."
 
-#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
 #: ../py/test/test_lists/generic_smt.py
 msgid "Verify Root Partition"
 msgstr "验证根磁区"
@@ -3002,15 +3037,18 @@ msgstr "验证根磁区"
 msgid "ShopFloor"
 msgstr "ShopFloor"
 
-#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Scan Serial Number"
 msgstr "扫描机器编号"
 
-#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Device Serial Number"
 msgstr "机器编号"
 
-#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Write HWID"
 msgstr "硬体代号"
 
@@ -3018,7 +3056,8 @@ msgstr "硬体代号"
 msgid "Check SIM Card Not Present"
 msgstr "检查 SIM 卡不存在"
 
-#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Probe LTE IMEI ICCID"
 msgstr "提取 LTE IMEI ICCID"
 
@@ -3148,7 +3187,8 @@ msgstr "验证 TPM"
 msgid "verify TPM command"
 msgstr "验证 TPM"
 
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Stress"
 msgstr "集合压力测试"
 
@@ -3176,7 +3216,8 @@ msgstr "不支援"
 msgid "This test list does not support station mode."
 msgstr "本测试清单不支援测站模式"
 
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Charger Type Detection"
 msgstr "充电器型号识别"
 
@@ -3184,7 +3225,8 @@ msgstr "充电器型号识别"
 msgid "Image Update"
 msgstr "映像更新"
 
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Write Device Data To VPD"
 msgstr "机器资料写入到 VPD"
 
@@ -3192,11 +3234,13 @@ msgstr "机器资料写入到 VPD"
 msgid "Check Version"
 msgstr "检查版本"
 
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Firmware Update"
 msgstr "韧体更新"
 
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Read Device Data From VPD"
 msgstr "从 VPD 读机器资料"
 
@@ -3260,7 +3304,8 @@ msgstr "映像更新 ControlRun"
 msgid "Probe SIM Card Tray Not Present"
 msgstr "SIM 卡卡盘不存在"
 
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
 msgid "Thermal Sensor"
 msgstr "温度感应器"
 

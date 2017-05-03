@@ -74,20 +74,6 @@
     ('cam_data_saved', 0)
     ],
 
-  # Expected time duration of each test stage (used for progress bar).
-  'chk_point_ALS': [
-    ('cam_start', 0.1),
-    ('cam_sn', 0.1),
-    ('cam_init', 0.1),
-    ('cam_als_light1', 2.00),
-    ('cam_als_light2', 2.00),
-    ('cam_als_light3', 2.00),
-    ('cam_als_calculation', 1.00),
-    ('cam_als_vpd', 0.5),
-    ('cam_end', 0.5),
-    ('cam_data_saved', 0)
-    ],
-
   # The following params references py/test/fixture/camera/static/iq.params
   # If you the structure of any of them, please make sure you update iq.params
   # as well.
@@ -146,31 +132,5 @@
 
     # Number of threads running concurrently (depends on CPU core count).
     'n_thread': 4
-    },
-
-  # ALS sensor parameters
-  'cam_als': {
-    # Light seq command
-    # sequence of light name defined in chamber_cmd of ALS test argument
-    'light_seq': ['LUX1', 'LUX2', 'LUX3', 'OFF'],
-
-    # Number of samples to read
-    'n_samples': 1,
-
-    # Delay betwen each sample
-    'read_delay': 2.0,
-
-    # Time for wait light switch
-    'light_delay': 3.0,
-
-    # List of light intensity to test
-    'luxs': [30, 500, 1000],
-
-    'slope_limit': (-1000, 1000),
-    'intercept_limit': (-1000, 1000),
-
-    # Command for saving measured result into VPD
-    # The first argument is slope and the second is the intercept.
-    'save_vpd': 'vpd -s "als_cal_slope"="%f"; vpd -s "als_cal_intercept"="%f"',
-  }
+    }
 }
