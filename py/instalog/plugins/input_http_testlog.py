@@ -54,6 +54,7 @@ from __future__ import print_function
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.plugins import input_http
+from instalog.testlog import testlog
 
 
 class InputHTTPTestlog(input_http.InputHTTP):
@@ -74,7 +75,10 @@ class InputHTTPTestlog(input_http.InputHTTP):
     elif len(event.attachments) != 0:
       raise ValueError('event[\'attachment\'] are not consistent with '
                        'attachments in requests.')
-    # TODO(chuntsen): Should check the event is following Testlog format.
+
+    # This will raise exception when the event is invalid.
+    testlog.EventBase.FromDict(event.payload)
+    event['__testlog__'] = True
 
 
 if __name__ == '__main__':

@@ -116,7 +116,7 @@ class InstalogService(umpire_service.UmpireService):
                 }
             },
             'http_in': {
-                'plugin': 'input_http',
+                'plugin': 'input_http_testlog',
                 'targets': [],
                 'args': {
                     'port': env.umpire_instalog_http_port

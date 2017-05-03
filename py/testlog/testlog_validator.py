@@ -137,26 +137,19 @@ class Validator(object):
     delete_after_move = value.get('delete', True)
     value = value['value']
 
-    source_path = value.pop(PATH, None)
+    source_path = value[PATH]
     if not source_path:
       raise ValueError('path field cannot be found')
     # Check if source_path exists
     # TODO(itspeter): Consider doing a lsof sanity check.
     if not os.path.exists(source_path):
       raise ValueError('not able to find file %s' % source_path)
-    mime_type = value.pop(MIME_TYPE, None)
+    mime_type = value[MIME_TYPE]
     if not isinstance(mime_type, basestring) or (
         not re.match(r'^[-\+\w]+/[-\+\w]+$', mime_type)):
       raise ValueError('mimeType(%r) is incorrect for file %s' % (
           mime_type, source_path))
 
-    # Check if duplicated keys exist
-    # pylint: disable=protected-access
-    updated_dict = inst._data[key] if key in inst._data else {}
-    if sub_key in updated_dict:
-      raise ValueError(
-          '%s is duplicated for field %s' % (sub_key, key))
-    value_to_insert = {MIME_TYPE: mime_type}
     # Move the attachment file.
     folder = testlog_getter_fn().attachments_folder
 
@@ -180,15 +173,8 @@ class Validator(object):
       shutil.move(source_path, target_path)
     else:
       shutil.copy(source_path, target_path)
-
-    value_to_insert[PATH] = os.path.realpath(target_path)
-    if DESCRIPTION in value:
-      value_to_insert[DESCRIPTION] = value[DESCRIPTION]
-
-    updated_dict[sub_key] = value_to_insert
+    value[PATH] = target_path
     # TODO(itspeter): Check if anything left in value.
-    # pylint: disable=protected-access
-    inst._data[key] = updated_dict
 
   @staticmethod
   def Status(inst, key, value):

@@ -694,6 +694,9 @@ class EventBase(object):
       The event being modified (self).
     """
     for key in data.iterkeys():
+      # Ignore keys that start with an underscore.
+      if key.startswith('_'):
+        continue
       data_type = type(data[key])
       # TODO(chuntsen): raise exception when the empty list/dict has wrong key.
       if data_type == list:
@@ -732,7 +735,7 @@ class EventBase(object):
     """Determines the appropriate Event subclass for a particular dataset."""
     try:
       return cls._TypeClassMap()[data['type']]
-    except testlog_utils.TestlogError:
+    except (testlog_utils.TestlogError, KeyError):
       raise testlog_utils.TestlogError(
           'Input event does not have a valid `type`.')
 
@@ -983,13 +986,15 @@ class StationTestRun(_StationBase):
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
-  def _ValidatorAttachmentWrapper(*args, **kwargs):
-    # pylint: disable=no-method-argument
-    # Because the FIELDS map must be assigned at the time of loading the
-    # module. However, Testlog singleton is not ready yet, we pass the
-    # function that get the singleton instead.
-    kwargs['testlog_getter_fn'] = GetGlobalTestlog
-    return testlog_validator.Validator.Attachment(*args, **kwargs)
+  def _ValidatorAttachmentWrapper(*args, **kwargs):  # pylint: disable=E0211
+    SCHEMA = schema.FixedDict(
+        'attachments.value',
+        items={'path': schema.Scalar('path', basestring),
+               'mimeType': schema.Scalar('mimeType', basestring)},
+        optional_items={
+            'description': schema.Scalar('description', basestring)})
+    kwargs['schema'] = SCHEMA
+    return testlog_validator.Validator.Dict(*args, **kwargs)
 
   FIELDS = {
       'testRunId': (True, testlog_validator.Validator.String),
@@ -1094,7 +1099,12 @@ class StationTestRun(_StationBase):
                   'path': path}
     if description:
       value_dict.update({'description': description})
-    self['attachments'] = {'key': name, 'value': value_dict, 'delete': delete}
+    value = {'key': name, 'value': value_dict, 'delete': delete}
+    testlog_validator.Validator.Attachment(self,
+                                           'attachments',
+                                           value,
+                                           GetGlobalTestlog)
+    self['attachments'] = {'key': name, 'value': value_dict}
     return self
 
   def AddArgument(self, key, value, description=None):

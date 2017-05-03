@@ -108,7 +108,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
 
   def ConvertEventToRow(self, event):
     """Converts an event to its corresponding BigQuery table row JSON string."""
-    if '__testlog__' not in event:
+    if event.get('__testlog__', False) != True:
       return None
 
     def DateTimeToUnixTimestamp(obj):
