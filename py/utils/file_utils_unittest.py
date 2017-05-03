@@ -690,6 +690,10 @@ class AtomicWriteTest(unittest.TestCase):
     os.chdir(self.orig_cwd)
     shutil.rmtree(self.tmp_dir)
 
+  def testCurrentDirectory(self):
+    with file_utils.AtomicWrite('dummy'):
+      pass
+
   def testRelativePathWithDirectory(self):
     """Tests using a relative path with a file contained in a subdirectory."""
     SUBDIR_NAME = 'subdir'

@@ -870,7 +870,8 @@ def AtomicWrite(path, binary=False, fsync=True):
   #                 although this relies on filesystem support and won't work
   #                 with FAT32.
   mode = 'wb' if binary else 'w'
-  path_dir, path_file = os.path.split(path)
+  path_dir = os.path.abspath(os.path.dirname(path))
+  path_file = os.path.basename(path)
   assert path_file != ''  # Make sure path contains a file.
   with UnopenedTemporaryFile(prefix='%s_atomicwrite_' % path_file,
                              dir=path_dir) as tmp_path:
