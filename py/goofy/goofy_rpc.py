@@ -1351,6 +1351,15 @@ class GoofyRPC(object):
       return self.goofy.dut.status.Snapshot().__dict__
     return None
 
+  def GetPluginMenuItems(self):
+    """Returns menu items supported by plugins."""
+    return self.goofy.plugin_controller.GetPluginMenuItems()
+
+  def OnPluginMenuItemClicked(self, item_id):
+    """Called when a plugin menu item is clicked."""
+    return self.goofy.plugin_controller.OnMenuItemClicked(item_id)
+
+
 def main():
   parser = argparse.ArgumentParser(
       description='Sends an RPC to Goofy.')

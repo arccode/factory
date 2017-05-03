@@ -238,6 +238,17 @@ cros.factory.TestListInfo;
 cros.factory.SystemStatus;
 
 /**
+ * @typedef {{text: cros.factory.i18n.TranslationDict,
+ *     id: string, eng_mode_only: boolean}}
+ */
+cros.factory.PluginMenuItem;
+
+/**
+ * @typedef {{action: string, data: string}}
+ */
+cros.factory.PluginMenuReturnData;
+
+/**
  * Public API for tests.
  * @constructor
  * @param {cros.factory.Invocation} invocation
@@ -764,6 +775,11 @@ cros.factory.Goofy = function() {
    */
   this.lastStatus = null;
 
+  /**
+   * @type {Array<cros.factory.PluginMenuItem>}
+   */
+  this.pluginMenuItems = null
+
   // Set up magic keyboard shortcuts.
   goog.events.listen(
       window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
@@ -1014,6 +1030,11 @@ cros.factory.Goofy.prototype.init = function() {
         document.getElementById('goofy-div-wait').style.display = 'none';
         this.initWebSocket();
       });
+  this.sendRpc(
+    'GetPluginMenuItems', [],
+    function(/** Array<cros.factory.PluginMenuItem> */ menuItems) {
+      this.pluginMenuItems = menuItems;
+    });
   this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
   this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
   this.sendRpc(
@@ -1916,7 +1937,7 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
 
 /**
  * Displays a dialog containing logs.
- * @param {string|!goog.html.SafeHtml} title
+ * @param {string|cros.factory.i18n.TranslationDict} title
  * @param {string} data text to show in the dialog.
  */
 cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
@@ -1934,11 +1955,13 @@ cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
   cros.factory.Goofy.setDialogContent(
       dialog, goog.html.SafeHtml.concat(
                   goog.html.SafeHtml.create(
-                      'div', {class: 'goofy-log-data', style: style}, data),
+                      'div', {class: 'goofy-log-data', style: style},
+                      cros.factory.i18n.i18nLabel(data)),
                   goog.html.SafeHtml.create('div', {class: 'goofy-log-time'})));
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);
-  cros.factory.Goofy.setDialogTitle(dialog, title);
+  cros.factory.Goofy.setDialogTitle(
+    dialog, cros.factory.i18n.i18nLabel(title));
 
   var logDataElement =
       goog.dom.getElementByClass('goofy-log-data', dialog.getContentElement());
@@ -1979,11 +2002,12 @@ cros.factory.Goofy.prototype.viewVarLogMessages = function() {
  * before the last reboot.
  */
 cros.factory.Goofy.prototype.viewVarLogMessagesBeforeReboot = function() {
+  var _ = cros.factory.i18n.translation;
   this.sendRpc(
       'GetVarLogMessagesBeforeReboot', [], function(/** ?string */ data) {
         data = data || 'Unable to find log message indicating reboot.';
         this.showLogDialog(
-            cros.factory.i18n.i18nLabel('/var/log/messages before last reboot'),
+            _('/var/log/messages before last reboot'),
             data);
       });
 };
@@ -2647,6 +2671,30 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
               });
               addExtraItem(
                   _('Toggle engineering mode'), this.promptEngineeringPassword);
+
+              if (this.pluginMenuItems) {
+                extraItems.push(new goog.ui.MenuSeparator());
+                var engineeringMode = this.engineeringMode;
+                goog.object.forEach(this.pluginMenuItems, function(item) {
+                  if (item.eng_mode_only && !engineeringMode) return;
+                  addExtraItem(item.text, function() {
+                    this.sendRpc(
+                      'OnPluginMenuItemClicked', [item.id],
+                      function(
+                          /** cros.factory.PluginMenuReturnData */
+                          return_data) {
+                        if (return_data.action == 'SHOW_IN_DIALOG') {
+                          this.showLogDialog(item.text, return_data.data);
+                        } else if (return_data.action == 'RUN_AS_JS') {
+                          eval(return_data.data);
+                        } else {
+                          this.alert("Unknonw return action: " +
+                                     return_data.action);
+                        }
+                      });
+                  });
+                });
+              }
 
               this.showTestPopup(
                   '', document.getElementById('goofy-logo-text'), extraItems);

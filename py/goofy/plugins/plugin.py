@@ -2,7 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
 import inspect
+import logging
+import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import debug_utils
@@ -11,6 +14,89 @@ from cros.factory.utils import type_utils
 
 # Type of resources that can be used by plugins.
 RESOURCE = type_utils.Enum(['CPU', 'POWER', 'NETWORK'])
+
+# Base package name of Goofy plugins.
+_PLUGIN_MODULE_BASE = 'cros.factory.goofy.plugins'
+
+
+def GetPluginClass(plugin_name):
+  """Returns the class of the plugin.
+
+  This function searches `cros.factory.goofy.plugins.{plugin_name}`.
+
+  If a module name is provided, the module should contain only one class that
+  is derived from `cros.factory.goofy.plugins.plugin.Plugin`, and the class
+  would be returned by this function.
+
+  For example, if `plugin_name` is 'time_sanitizer',
+  class `cros.factory.goofy.plugins.time_sanitizer.TimeSanitizer` is returned.
+
+  If a class name is provided, the class would be returned.
+  For example, `plugin_name` can be 'time_sanitizer.TimeSanitizer'
+
+  Args:
+    plugin_name: the class or module name of the plugin under
+        `cros.factory.goofy.plugins`
+  """
+  full_name = '.'.join([_PLUGIN_MODULE_BASE, plugin_name])
+  prefix, target_name = full_name.rsplit('.', 1)
+  target_name = str(target_name)  # Convert from unicode.
+  try:
+    target = getattr(__import__(prefix, fromlist=[target_name]), target_name)
+  except Exception:
+    logging.exception('Failed to import %s', plugin_name)
+    return None
+
+  if inspect.isclass(target):
+    return target
+  else:
+    target_class = None
+    for unused_name, obj in inspect.getmembers(target):
+      if (inspect.isclass(obj) and
+          obj.__module__ == full_name and
+          issubclass(obj, Plugin)):
+        assert target_class is None, (
+            'Multiple plugins class found in %s' % plugin_name)
+        target_class = obj
+    return target_class
+
+
+def GetPluginNameFromClass(plugin_class):
+  """Returns the path of the given plugin class.
+
+  Returns the full path of the plugin class *after*
+  `cros.factory.goofy.plugins`.
+  """
+  fullpath = '.'.join([plugin_class.__module__, plugin_class.__name__])
+  return fullpath[len(_PLUGIN_MODULE_BASE) + 1:]
+
+
+class MenuItem(object):
+  """Menu item used by Plugin.
+
+  Properties:
+    id: A unique ID used for identify each plugin menu item.
+    text: The text to be shown in the menu list.
+    callback: The callback function called when the item is click. The callback
+      function should always return `ReturnData`.
+    eng_mode_only: Only show the item in engineering mode.
+  """
+
+  Action = type_utils.Enum(['SHOW_IN_DIALOG', 'RUN_AS_JS'])
+  """Action to be executed in Goofy frontend after callback finished."""
+
+  ReturnData = collections.namedtuple('ReturnData', ['action', 'data'])
+  """Data to be returned after the execution of menu item callback.
+
+  `action` should be one of the action defined in `Action`, and the `data` would
+  be used by the frontend according to `action`.
+  """
+
+  def __init__(self, text, callback, eng_mode_only=False):
+    self.id = str(uuid.uuid4())
+    self.text = text
+    self.callback = callback
+    self.eng_mode_only = eng_mode_only
 
 
 def RPCFunction(func):
@@ -82,6 +168,10 @@ class Plugin(object):
           self._rpc_instance.__dict__[name] = attr
 
     return self._rpc_instance
+
+  def GetMenuItems(self):
+    """Returns menu items supported by this plugin."""
+    return []
 
   @debug_utils.CatchException('Plugin')
   def Start(self):

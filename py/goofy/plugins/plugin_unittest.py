@@ -126,6 +126,14 @@ class PluginTest(unittest.TestCase):
       self.assertEqual(rpc_instance.A(), expected_value[idx][0])
       self.assertEqual(rpc_instance.B(), expected_value[idx][1])
 
+  def testGetPluginClass(self):
+    self.assertEqual(plugin.GetPluginClass('plugin'), plugin.Plugin)
+    self.assertEqual(plugin.GetPluginClass('plugin.Plugin'), plugin.Plugin)
+
+  def testGetPluginPathFromClass(self):
+    self.assertEqual(
+        plugin.GetPluginNameFromClass(plugin.GetPluginClass('plugin')),
+        'plugin.Plugin')
 
 if __name__ == '__main__':
   unittest.main()

@@ -3,7 +3,6 @@
 # found in the LICENSE file.
 
 
-import inspect
 import logging
 from xmlrpclib import ProtocolError
 
@@ -17,67 +16,28 @@ from cros.factory.utils import config_utils
 PLUGIN_PREFIX = '/plugin'
 
 
-# Base package name of Goofy plugins."""
-_PLUGIN_MODULE_BASE = 'cros.factory.goofy.plugins'
+def _GetPluginRPCPath(plugin_path):
+  """Returns the RPC path that should be used by a given plugin path.
 
-
-def GetPluginClass(plugin_name):
-  """Returns the class of the plugin.
-
-  This function searches `cros.factory.goofy.plugins.{plugin_name}`.
-
-  If a module name is provided, the module should contain only one class that
-  is derived from `cros.factory.goofy.plugins.plugin.Plugin`, and the class
-  would be returned by this function.
-
-  For example, if `plugin_name` is 'time_sanitizer',
-  class `cros.factory.goofy.plugins.time_sanitizer.TimeSanitizer` is returned.
-
-  If a class name is provided, the class would be returned.
-  For example, `plugin_name` can be 'time_sanitizer.TimeSanitizer'
-
-  Args:
-    plugin_name: the class or module name of the plugin under
-        `cros.factory.goofy.plugins`
+  The input argument should be the full path of the plugin class *after*
+  `cros.factory.goofy.plugins`.
   """
-  full_name = '.'.join([_PLUGIN_MODULE_BASE, plugin_name])
-  prefix, target_name = full_name.rsplit('.', 1)
-  target_name = str(target_name)  # Convert from unicode.
-  try:
-    target = getattr(__import__(prefix, fromlist=[target_name]), target_name)
-  except Exception:
-    logging.exception('Failed to import %s', plugin_name)
-    return None
-
-  if inspect.isclass(target):
-    return target
-  else:
-    target_class = None
-    for obj in inspect.getmembers(target):
-      if (inspect.isclass(obj[1]) and
-          obj[1].__module__ == full_name and
-          issubclass(obj[1], plugin.Plugin)):
-        assert target_class is None, (
-            'Multiple plugins class found in %s' % plugin_name)
-        target_class = obj[1]
-    return target_class
-
-
-def _GetPluginRPCPath(plugin_class):
-  """Returns the RPC path that should be used by a given plugin class"""
-  subpath = '%s.%s' % (plugin_class.__module__, plugin_class.__name__)
-  subpath = subpath[len(_PLUGIN_MODULE_BASE) + 1:]
-  subpath = subpath.replace('.', '_')
-  return "%s/%s" % (PLUGIN_PREFIX, subpath)
+  subpath = plugin_path.replace('.', '_')
+  return '%s/%s' % (PLUGIN_PREFIX, subpath)
 
 
 def GetPluginRPCProxy(plugin_name, address=None, port=None):
-  """Returns the PRC proxy of a plugin.
+  """Returns the RPC proxy of a plugin.
 
   Returns None if no such plugin running in goofy.
   """
+  plugin_class = plugin.GetPluginClass(plugin_name)
+  if plugin_class is None:
+    return None
+
   proxy = goofy_proxy.get_rpc_proxy(
-      address, port, _GetPluginRPCPath(GetPluginClass(plugin_name)))
+      address, port,
+      _GetPluginRPCPath(plugin.GetPluginNameFromClass(plugin_class)))
   try:
     # Try listing methods to check if the path exists.
     proxy.system.listMethods()
@@ -102,6 +62,7 @@ class PluginController(object):
       goofy: the goofy instance.
     """
     self._plugins = {}
+    self._menu_items = {}
 
     plugin_config = config_utils.LoadConfig(
         config_name, 'plugins')
@@ -109,10 +70,16 @@ class PluginController(object):
     for name, plugin_args in plugin_config['backends'].iteritems():
       args = plugin_args.get('args', {})
       args['goofy'] = goofy
-      plugin_class = GetPluginClass(name)
+      plugin_class = plugin.GetPluginClass(name)
       if plugin_class:
         try:
-          self._plugins[plugin_class] = plugin_class(**args)
+          plugin_instance = plugin_class(**args)
+          plugin_path = plugin.GetPluginNameFromClass(plugin_class)
+
+          for menu_item in plugin_instance.GetMenuItems():
+            self._menu_items[menu_item.id] = menu_item
+
+          self._plugins[plugin_path] = plugin_instance
         except Exception as error:
           logging.error('Failed to load plugin: %s', name)
           logging.exception(error)
@@ -126,11 +93,11 @@ class PluginController(object):
 
   def RegisterRPC(self, goofy_server):
     """Registers plugins to Goofy server."""
-    for plugin_class, plugin_instance in self._plugins.iteritems():
+    for plugin_path, plugin_instance in self._plugins.iteritems():
       rpc_instance = plugin_instance.GetRPCInstance()
       if rpc_instance is not None:
         goofy_server.AddRPCInstance(
-            _GetPluginRPCPath(plugin_class), rpc_instance)
+            _GetPluginRPCPath(plugin_path), rpc_instance)
 
   def StopAndDestroyAllPlugins(self):
     """Stops and destroys all plugins."""
@@ -158,5 +125,15 @@ class PluginController(object):
 
     Returns the plugin instance, or None if no plugin found.
     """
-    plugin_class = GetPluginClass(plugin_name)
-    return self._plugins.get(plugin_class) if plugin_class else None
+    plugin_class = plugin.GetPluginClass(plugin_name)
+    if not plugin_class:
+      return None
+    return self._plugins.get(plugin.GetPluginNameFromClass(plugin_class))
+
+  def GetPluginMenuItems(self):
+    """Returns a list all plugins menu items."""
+    return self._menu_items.values()
+
+  def OnMenuItemClicked(self, item_id):
+    """Called when a plugin menu item is clicked."""
+    return self._menu_items[item_id].callback()

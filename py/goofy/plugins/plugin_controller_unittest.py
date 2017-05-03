@@ -36,28 +36,28 @@ class PluginControllerTest(unittest.TestCase):
 
   def testInit(self):
     controller = self.CreateController()
-    self.assertTrue(set(controller._plugins.keys()) == set([plugin.Plugin]))
+    self.assertTrue(set(controller._plugins.keys()) == set(['plugin.Plugin']))
     self._config = {
         'backends': {self.BASE_PLUGIN_CLASS: {}}}
     controller = self.CreateController()
-    self.assertTrue(set(controller._plugins.keys()) == set([plugin.Plugin]))
+    self.assertTrue(set(controller._plugins.keys()) == set(['plugin.Plugin']))
 
   def testInitError(self):
     self._config['backends']['not_exist_plugin.NotExistPlugin'] = {}
     controller = self.CreateController()
-    self.assertTrue(set(controller._plugins.keys()) == set([plugin.Plugin]))
+    self.assertTrue(set(controller._plugins.keys()) == set(['plugin.Plugin']))
 
   def testStartAllPlugins(self):
     mock_plugin = mock.Mock(plugin.Plugin)
     controller = self.CreateController()
-    controller._plugins[type(mock_plugin)] = mock_plugin
+    controller._plugins['mock_plugin.MockPlugin'] = mock_plugin
     controller.StartAllPlugins()
     mock_plugin.Start.assert_called_with()
 
   def testStopAndDestroyAllPlugins(self):
     mock_plugin = mock.Mock(plugin.Plugin)
     controller = self.CreateController()
-    controller._plugins[type(mock_plugin)] = mock_plugin
+    controller._plugins['mock_plugin.MockPlugin'] = mock_plugin
     controller.StopAndDestroyAllPlugins()
     mock_plugin.Stop.assert_called_with()
     mock_plugin.Destroy.assert_called_with()
@@ -66,7 +66,7 @@ class PluginControllerTest(unittest.TestCase):
     mock_plugin = mock.Mock(plugin.Plugin)
     mock_plugin.used_resources = ['TEST_RESOURCE']
     controller = self.CreateController()
-    controller._plugins[type(mock_plugin)] = mock_plugin
+    controller._plugins['mock_plugin.MockPlugin'] = mock_plugin
     controller.PauseAndResumePluginByResource(set(['TEST_RESOURCE']))
     mock_plugin.Stop.assert_called_once_with()
     controller.PauseAndResumePluginByResource(set(['OTHER_RESOURCE']))
@@ -77,16 +77,10 @@ class PluginControllerTest(unittest.TestCase):
     self.assertIsNotNone(controller.GetPluginInstance(self.BASE_PLUGIN_MODULE))
     self.assertIsNone(controller.GetPluginInstance('not_exist_plugin'))
 
-  def testGetPluginClass(self):
-    self.assertEqual(plugin_controller.GetPluginClass('plugin'), plugin.Plugin)
-    self.assertEqual(
-        plugin_controller.GetPluginClass('plugin.Plugin'), plugin.Plugin)
-
   def testGetPluginRPCPath(self):
     # pylint: disable=protected-access
     self.assertEqual(
-        plugin_controller._GetPluginRPCPath(
-            plugin_controller.GetPluginClass('plugin')),
+        plugin_controller._GetPluginRPCPath('plugin.Plugin'),
         '/plugin/plugin_Plugin')
 
   @mock.patch('cros.factory.goofy.plugins.plugin_controller.goofy_proxy')
@@ -98,6 +92,19 @@ class PluginControllerTest(unittest.TestCase):
         None, None, '/plugin/plugin_Plugin')
     proxy.system.listMethods.assert_called_once_with()
 
+  def testOnMenuItemClicked(self):
+    controller = self.CreateController()
+    mock_callback = mock.Mock()
+    item = plugin.MenuItem('test', mock_callback)
+    controller._menu_items[item.id] = item
+    controller.OnMenuItemClicked(item.id)
+    mock_callback.assert_called_once_with()
+
+  def testGetPluginMenuItems(self):
+    controller = self.CreateController()
+    item = plugin.MenuItem('test', None)
+    controller._menu_items[item.id] = item
+    self.assertEqual([item], controller.GetPluginMenuItems())
 
 if __name__ == '__main__':
   unittest.main()
