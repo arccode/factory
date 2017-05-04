@@ -291,7 +291,7 @@ add_image_part() {
   info "Adding component ${component} part ${nr} ($((sectors / 2048))M)..."
   md5sum="$(
     dd if="${file}" bs=512 skip="${start}" count="${sectors}" 2>/dev/null | \
-    "${GZIP}" -qc | tee "${tmp_file}" | md5sum -b)"
+    ${GZIP} -qcn | tee "${tmp_file}" | md5sum -b)"
 
   commit_payload "${component}" "part${nr}" "${md5sum%% *}" \
     "${tmp_file}" "${output_dir}"
@@ -348,7 +348,7 @@ add_file_component() {
     # gzip and copy at the same time. If we want to prevent storing original
     # file name, add -n.
     info "Adding component ${component} (${file_size})..."
-    md5sum="$("${GZIP}" -qc "${file}" | tee "${tmp_file}" | md5sum -b)"
+    md5sum="$(${GZIP} -qcn "${file}" | tee "${tmp_file}" | md5sum -b)"
   fi
   commit_payload "${component}" "" "${md5sum%% *}" "${tmp_file}" "${output_dir}"
 }
@@ -408,7 +408,7 @@ install_partition() {
     # TODO(hungte) Support better dd/pv, pre-fetch size.
     # bs is fixed on 1048576 because many dd implementations do not support
     # units like '1M' or '1m'.
-    fetch "${remote_url}" | "${GZIP}" -d | \
+    fetch "${remote_url}" | ${GZIP} -d | \
       dd of="${dest_part_dev}" bs=1048576 iflag=fullblock oflag=dsync
   done
 }
@@ -436,7 +436,7 @@ install_add_stub() {
   esac
 
   # Decompress now to reduce installer dependency.
-  "${GZIP}" -d "${payloads_dir}/${component}.gz"
+  ${GZIP} -d "${payloads_dir}/${component}.gz"
 
   mkdir -m 0755 -p "${output_dir}"
   echo '#!/bin/sh' >"${stub}"
@@ -484,7 +484,7 @@ install_file() {
     # The destination is an uncompressed file.
     output="${dest}"
     echo "Installing from ${component} to ${output} ..."
-    fetch "${remote_url}" | "${GZIP}" -d >"${output}"
+    fetch "${remote_url}" | ${GZIP} -d >"${output}"
   else
     # The destination is a compressed file.
     output="${dest}.gz"
@@ -594,7 +594,8 @@ main() {
   trap "die Execution failed." EXIT
 
   if has_tool pigz; then
-    GZIP="pigz"
+    # -n in pigz controls only file name, not modtime.
+    GZIP="pigz -T"
   fi
   if has_tool jq; then
     JQ="jq"
