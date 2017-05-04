@@ -198,6 +198,7 @@ import numpy as np
 import os
 import Queue
 import re
+import string
 import threading
 import time
 import traceback
@@ -1100,9 +1101,12 @@ class _TestDelegate(object):
     Returns:
       Tuple of (success, read data).
     """
+    def _FilterNonPrintable(s):
+      return ''.join(c for c in s if c in string.printable)
+
     try:
-      with open(pathname, 'r') as f:
-        read_data = f.read().rstrip()
+      read_data = _FilterNonPrintable(
+          self.delegator.dut.ReadSpecialFile(pathname)).rstrip()
     except IOError as e:
       self._Log('Fail to read %r: %r' % (pathname, e))
       return False, None
