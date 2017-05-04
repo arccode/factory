@@ -578,6 +578,7 @@ class FileLock(object):
   def Acquire(self):
     self._fd = os.open(self._lockfile, os.O_RDWR | os.O_CREAT)
 
+    remaining_secs = self._timeout_secs
     while True:
       try:
         self._sys_lock(self._fd, is_exclusive=True, is_blocking=False)
@@ -590,8 +591,8 @@ class FileLock(object):
           # We don't want to use real system time because the sleep may
           # be longer due to system busy or suspend/resume.
           time.sleep(self._retry_secs)
-          self._timeout_secs -= self._retry_secs
-          if self._timeout_secs < 0:
+          remaining_secs -= self._retry_secs
+          if remaining_secs < 0:
             raise FileLockTimeoutError(
                 'Could not acquire file lock of %s in %s second(s)' %
                 (self._lockfile, self._timeout_secs))
