@@ -45,7 +45,7 @@ class ALSLightChamber(object):
     if self._mock_mode:
       return True
 
-    if self._dut.Shell(['test', '-e', self._val_path]):
+    if self._dut.Call(['test', '-e', self._val_path]):
       logging.info('ALS val_path does not exist')
       return False
 
@@ -54,7 +54,7 @@ class ALSLightChamber(object):
     # not supported.
     if self._scale_path is None:
       logging.info('ALS scaling is not supported')
-    elif self._dut.Shell(['test', '-e', self._scale_path]):
+    elif self._dut.Call(['test', '-e', self._scale_path]):
       # The user specified scale path, but it does not exist.
       logging.info('ALS scale_path does not exist')
       return False
@@ -65,7 +65,7 @@ class ALSLightChamber(object):
     pass
 
   def _ReadCore(self):
-    return int(self._dut.Pull(self._val_path).rstrip())
+    return int(self._dut.ReadSpecialFile(self._val_path).rstrip())
 
   def _Read(self, delay=None, samples=1):
     """Reads the light sensor value.
@@ -111,7 +111,7 @@ class ALSLightChamber(object):
       raise RuntimeError('ALS scaling is not supported')
 
     try:
-      self._dut.Shell('echo %d >%s' % (int(round(scale)), self._scale_path))
+      self._dut.CheckCall('echo %d >%s' % (int(round(scale)), self._scale_path))
     except Exception:
       return False
 
