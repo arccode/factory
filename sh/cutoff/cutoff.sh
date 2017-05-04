@@ -15,6 +15,12 @@ reset_activate_date() {
   activate_date --clean
 }
 
+# Resets the recovery_count to 0 in RW_VPD.
+reset_recovery_count() {
+  echo "Deleting recovery_count from vpd."
+  vpd -i RW_VPD -d "recovery_count"
+}
+
 has_battery() {
   ( type ectool && ectool battery ) >/dev/null 2>&1
 }
@@ -125,6 +131,8 @@ main() {
   export TTY  # for display_wipe_message to use same TTY settings.
 
   reset_activate_date
+
+  reset_recovery_count
 
   if has_battery; then
     # Needed by 'ectool battery'.
