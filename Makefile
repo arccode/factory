@@ -36,6 +36,9 @@ RESOURCE_PATH ?= $(RESOURCE_DIR)/factory.tar
 BUNDLE_DIR ?= \
   $(if $(DESTDIR),$(DESTDIR)/$(TARGET_DIR)/bundle,$(BUILD_DIR)/bundle)
 BOARD_BUNDLE_RESOURCE_PATH ?= $(RESOURCE_DIR)/bundle-board.tar
+# INSTALLER_RESOURCE_PATH is created to share cros_payload and cutoff with
+# chromeos-base/factory_installer.
+INSTALLER_RESOURCE_PATH ?= $(RESOURCE_DIR)/installer.tar
 TEMP_DIR ?= $(BUILD_DIR)/tmp
 
 # Global environment settings
@@ -208,6 +211,11 @@ resource: closure check-board-resources po
 	             $(BOARD_RESOURCES_DIR)/factory-*.tar),\
 	  $(info - Found board resource file $(file)) \
 	  tar -Af $(RESOURCE_PATH) $(file)${\n})
+	tar -cf $(INSTALLER_RESOURCE_PATH) -h \
+	  --transform 's"^sh/"./share/";s"^bin/"./&"' bin/cros_payload sh/cutoff
+	$(if $(wildcard $(BOARD_FILES_DIR)/py/config/cutoff.json), tar -rf \
+	  $(INSTALLER_RESOURCE_PATH) --transform 's"^"./share/cutoff/"' \
+	  -C $(BOARD_FILES_DIR)/py/config cutoff.json)
 
 # Apply files from BOARD_RESOURCES_DIR to particular folder.
 # Usage: $(call func-apply-board-resources,RESOURCE_TYPE,OUTPUT_FOLDER)
