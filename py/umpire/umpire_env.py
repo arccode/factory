@@ -307,13 +307,8 @@ class UmpireEnv(object):
         return ''
 
       if res_type == common.ResourceType.FIRMWARE:
-        bios, ec, pd = None, None, None
-        # pylint: disable=W0632
-        if file_name.endswith('.gz'):
-          bios, ec, pd = get_version.GetFirmwareVersionsFromOmahaChannelFile(
-              file_name)
-        else:
-          bios, ec, pd = get_version.GetFirmwareVersions(file_name)
+        # pylint: disable=unbalanced-tuple-unpacking
+        bios, ec, pd = get_version.GetFirmwareVersions(file_name)
         return '%s:%s:%s' % (bios or '', ec or '', pd or '')
 
       if (res_type == common.ResourceType.ROOTFS_RELEASE or

@@ -176,12 +176,11 @@ class ResourceUpdaterTest(unittest.TestCase):
     # TODO(deanliao): use real firmware.gz/rootfs-release.gz in which
     #     Umpire can extract version from.
     mox_obj = mox.Mox()
-    mox_obj.StubOutWithMock(
-        get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
+    mox_obj.StubOutWithMock(get_version, 'GetFirmwareVersions')
     mox_obj.StubOutWithMock(
         get_version, 'GetReleaseVersionFromOmahaChannelFile')
 
-    get_version.GetFirmwareVersionsFromOmahaChannelFile(
+    get_version.GetFirmwareVersions(
         firmware_path).AndReturn((BIOS_VERSION, EC_VERSION, PD_VERSION))
     get_version.GetReleaseVersionFromOmahaChannelFile(
         fsi_path).AndReturn(FSI_VERSION)

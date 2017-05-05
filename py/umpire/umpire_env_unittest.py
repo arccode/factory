@@ -166,12 +166,11 @@ class UmpireEnvTest(unittest.TestCase):
 
     # TODO(deanliao): use real firmware.gz in which Umpire can extract
     #     version from.
-    self.mox.StubOutWithMock(
-        get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
+    self.mox.StubOutWithMock(get_version, 'GetFirmwareVersions')
     BIOS_VERSION = 'bios_0.0.1'
     EC_VERSION = 'ec_0.0.2'
     PD_VERSION = 'pd_0.0.3'
-    get_version.GetFirmwareVersionsFromOmahaChannelFile(
+    get_version.GetFirmwareVersions(
         resource_to_add).AndReturn((BIOS_VERSION, EC_VERSION, PD_VERSION))
     self.mox.ReplayAll()
 

@@ -72,7 +72,8 @@ class LoadBundleManifestTest(unittest.TestCase):
     with file_utils.TempDirectory() as bundle_dir:
       file_utils.WriteFile(os.path.join(bundle_dir, 'MANIFEST.yaml'),
                            'illformed: yaml: file:')
-      self.assertRaisesRegexp(common.UmpireError, 'Failed to load MANIFEST.yaml',
+      self.assertRaisesRegexp(common.UmpireError,
+                              'Failed to load MANIFEST.yaml',
                               self.bundle.Load, bundle_dir)
 
 
@@ -100,12 +101,12 @@ class ImportBundleTest(unittest.TestCase):
     # TODO(deanliao): use real firmware.gz/rootfs-release.gz in which
     #     Umpire can extract version from.
     self.mox.StubOutWithMock(
-        get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
+        get_version, 'GetFirmwareVersions')
     self.mox.StubOutWithMock(
         get_version, 'GetReleaseVersionFromOmahaChannelFile')
 
     # pylint: disable=E1101
-    get_version.GetFirmwareVersionsFromOmahaChannelFile(
+    get_version.GetFirmwareVersions(
         mox.StrContains('firmware.gz')).MultipleTimes().AndReturn(
             (BIOS_VERSION, EC_VERSION, PD_VERSION))
     get_version.GetReleaseVersionFromOmahaChannelFile(

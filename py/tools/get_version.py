@@ -13,9 +13,8 @@ import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.utils.file_utils import (
-    GunzipSingleFile, SetFileExecutable, TempDirectory)
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils.sys_utils import MountPartition
 
 
@@ -44,7 +43,10 @@ def GetReleaseVersion(mount_point):
 
 
 def GetFirmwareVersions(updater):
-  """Gets the firmware versions in firmware updater.
+  """Gets the firmware versions in firmware updater. Supports gzipped file.
+
+  Omaha channel file (gzipped) is often in
+  <bundle_dir>/setup/static/firmware.gz
 
   Args:
     updater: Path to a firmware updater.
@@ -53,18 +55,26 @@ def GetFirmwareVersions(updater):
     (bios_version, ec_version, pd_version). If no firmware/EC/PD version is
     found, sets version to None.
   """
-  try:
-    command = [updater, '-V']
-    stdout = Spawn(command, log=True, check_output=True).stdout_data
-  except Exception as e:
-    logging.error('Unable to run "%s", reason: %s', ' '.join(command), e)
-    return EMPTY_FIRMWARE_TUPLE
+  def _GetFirmwareVersions(updater):
+    try:
+      command = ['sh', updater, '-V']
+      stdout = process_utils.CheckOutput(command, log=True)
+    except Exception as e:
+      logging.error('Unable to run "%s", reason: %s', ' '.join(command), e)
+      return EMPTY_FIRMWARE_TUPLE
 
-  versions = []
-  for label in FIRMWARE_LABELS:
-    match = re.search('^' + label + r' version:\s*(.+)$', stdout, re.MULTILINE)
-    versions.append(match.group(1) if match else None)
-  return tuple(versions)
+    versions = []
+    for label in FIRMWARE_LABELS:
+      match = re.search('^' + label + r' version:\s*(.+)$', stdout,
+                        re.MULTILINE)
+      versions.append(match.group(1) if match else None)
+    return tuple(versions)
+
+  if file_utils.IsGzippedFile(updater):
+    with file_utils.GunzipSingleFile(updater) as unzip_path:
+      return _GetFirmwareVersions(unzip_path)
+  else:
+    return _GetFirmwareVersions(updater)
 
 
 def GetFirmwareVersionsWithLabel(updater):
@@ -78,24 +88,6 @@ def GetFirmwareVersionsWithLabel(updater):
     If the firmware is not found, the version will be None.
   """
   return dict(zip(FIRMWARE_LABELS, GetFirmwareVersions(updater)))
-
-
-def GetFirmwareVersionsFromOmahaChannelFile(path):
-  """Gets firmware versions from Omaha channel file.
-
-  Omaha channel file (gzipped) is often in
-  <bundle_dir>/setup/static/firmware.gz
-
-  Args:
-    path: Channel file path.
-
-  Returns:
-    (bios_version, ec_version). If no firmware/EC version is found,
-    sets version to None.
-  """
-  with GunzipSingleFile(path) as unzip_path:
-    SetFileExecutable(unzip_path)
-    return GetFirmwareVersions(unzip_path)
 
 
 def GetFirmwareBinaryVersion(path):
@@ -114,9 +106,9 @@ def GetFirmwareBinaryVersion(path):
   binary_path = os.path.abspath(path)
   result = None
   try:
-    with TempDirectory(prefix='dump_fmap') as temp_dir:
-      Spawn(['dump_fmap', '-x', binary_path], ignore_stdout=True, log=True,
-            cwd=temp_dir, check_call=True)
+    with file_utils.TempDirectory(prefix='dump_fmap') as temp_dir:
+      process_utils.Spawn(['dump_fmap', '-x', binary_path], ignore_stdout=True,
+                          log=True, cwd=temp_dir, check_call=True)
       with open(os.path.join(temp_dir, 'RO_FRID')) as f:
         result = f.read().strip('\x00')   # Strip paddings.
   except (subprocess.CalledProcessError, IOError):
@@ -157,7 +149,7 @@ def GetReleaseVersionFromOmahaChannelFile(path, no_root=False):
       return None
     return match.group(1)
 
-  with GunzipSingleFile(path) as unzip_path:
+  with file_utils.GunzipSingleFile(path) as unzip_path:
     with MountPartition(unzip_path, is_omaha_channel=True) as mount_point:
       return GetReleaseVersion(mount_point)
 
@@ -190,7 +182,7 @@ def GetHWIDVersion(path):
     return None
 
   if path.endswith('.gz'):
-    with GunzipSingleFile(path) as unzip_path:
+    with file_utils.GunzipSingleFile(path) as unzip_path:
       return _GetHWIDVersion(unzip_path)
   else:
     return _GetHWIDVersion(path)
