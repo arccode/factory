@@ -477,7 +477,7 @@ class RPCDUTTest(UmpireDockerTestCase):
     self.assertEqual({'version': 3}, version)
 
   def testGetUpdate(self):
-    # Deploy a config that have resourcees with proper versions for GetUpdate
+    # Deploy a config that have resources with proper versions for GetUpdate
     # to work.
     rpc_proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
     conf = rpc_proxy.UploadConfig('umpire.yaml', file_utils.ReadFile(
@@ -509,6 +509,20 @@ class RPCDUTTest(UmpireDockerTestCase):
         self.assertTrue(requests.get(info['url']).ok)
       elif info['scheme'] == 'rsync':
         subprocess.check_output(['rsync', info['url']])
+
+  def testGetUpdateError(self):
+    device_info = {
+        'x_umpire_dut': {
+            'mac': 'aa:bb:cc:dd:ee:ff',
+            'sn': '0C1234567890',
+            'mlb_sn': 'SN001',
+            'stage': 'SMT'},
+        'components': {
+            'fake_component': 'test'}}
+    with self.assertRPCRaises(
+        'is not in update component list',
+        fault_code=xmlrpclib.INVALID_METHOD_PARAMS):
+      self.proxy.GetUpdate(device_info)
 
   def testGetFactoryLogPort(self):
     self.assertEqual(PORT + 4, self.proxy.GetFactoryLogPort())

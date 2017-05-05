@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# pylint: disable=E1101
+# pylint: disable=no-member
 
 """Common Umpire RPC Commands."""
 
@@ -11,12 +11,13 @@ import logging
 import os
 import shutil
 import time
-from twisted.internet import threads
-from twisted.web import xmlrpc
 import urllib
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
+from twisted.internet import threads
+from twisted.web import xmlrpc
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import bundle_selector
 from cros.factory.umpire import common
 from cros.factory.umpire.service import umpire_service
@@ -41,7 +42,7 @@ def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
   xmlrpc.Fault() notifies the RPC client that remote function was terminated
   incorrectly.
   """
-  return xmlrpc.Fault(reason, common.UmpireError(message))
+  return xmlrpc.Fault(reason, message)
 
 
 def GetServerIpPortFromRequest(request, env):
