@@ -165,24 +165,25 @@ def GetHWIDVersion(path):
   Returns:
     HWID checksum as version. None if file is not found or checksum failed.
   """
-  def _GetHWIDVersion(hwid_path):
-    with open(hwid_path) as f:
-      hwid = f.read()
-      match = re.search(r'^checksum: (.*)$\n?', hwid, flags=re.MULTILINE)
-      if match:
-        expected_checksum = match.group(1)
-        actual_checksum = hwid_utils.ComputeDatabaseChecksum(hwid_path)
-        if expected_checksum == actual_checksum:
-          return expected_checksum
-        else:
-          logging.warning('HWID verification failed: expected: %s actual: %s',
-                          expected_checksum, actual_checksum)
-      else:
-        logging.warning('Cannot extract checksum from HWID: %s', path)
-    return None
-
-  if path.endswith('.gz'):
+  if file_utils.IsGzippedFile(path):
     with file_utils.GunzipSingleFile(path) as unzip_path:
-      return _GetHWIDVersion(unzip_path)
-  else:
-    return _GetHWIDVersion(path)
+      return GetHWIDVersion(unzip_path)
+  if file_utils.ReadFile(path).startswith('#!/bin/sh\n'):
+    with file_utils.TempDirectory() as tmp_dir:
+      process_utils.Spawn(['sh', path, tmp_dir], log=True, check_call=True,
+                          ignore_stdout=True)
+      process_utils.Spawn('mv -f * hwid', cwd=tmp_dir, log=True, shell=True,
+                          check_call=True)
+      return GetHWIDVersion(os.path.join(tmp_dir, 'hwid'))
+  hwid = file_utils.ReadFile(path)
+  match = re.search(r'^checksum: (.*)$', hwid, flags=re.MULTILINE)
+  if not match:
+    logging.warning('Cannot extract checksum from HWID: %s', path)
+    return None
+  expected_checksum = match.group(1)
+  actual_checksum = hwid_utils.ComputeDatabaseChecksum(path)
+  if expected_checksum != actual_checksum:
+    logging.warning('HWID verification failed: expected: %s actual: %s',
+                    expected_checksum, actual_checksum)
+    return None
+  return expected_checksum
