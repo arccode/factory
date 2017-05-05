@@ -319,6 +319,19 @@ def GetFileSizeInBytes(path, follow_link=False, dut=None):
       return f.tell()
 
 
+def IsGzippedFile(path):
+  """Check if the given file is gzipped. (Not 100% accurate)
+
+  Args:
+    path: path to the file to check.
+
+  Returns:
+    True if it looks like a gzipped file.
+  """
+  with open(path, 'rb') as f:
+    return f.read(2) == '\x1f\x8b'
+
+
 @contextlib.contextmanager
 def GunzipSingleFile(gzip_path, output_path=None):
   """Extracts a gzip file which contains only one file.
