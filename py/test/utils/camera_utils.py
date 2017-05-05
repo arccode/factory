@@ -11,6 +11,7 @@ import glob
 import logging
 import os
 import re
+import string
 import tempfile
 
 import factory_common  # pylint: disable=unused-import
@@ -75,8 +76,9 @@ def ReadImageFile(filename):
   return img
 
 
-class CameraDeviceBase(object):
-  """Abstract camera device."""
+# TODO(yllin): Support device interface for Readers.
+class CameraReaderBase(object):
+  """Abstract camera reader."""
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
@@ -119,14 +121,13 @@ class CameraDeviceBase(object):
     raise NotImplementedError
 
 
-class CVCameraDevice(CameraDeviceBase):
-  """Camera device via OpenCV V4L2 interface."""
+class CVCameraReader(CameraReaderBase):
+  """Camera device reader via OpenCV V4L2 interface."""
 
-  def __init__(self, index=-1):
-    """Constructor."""
-    super(CVCameraDevice, self).__init__()
+  def __init__(self, device_index=-1):
+    super(CVCameraReader, self).__init__()
 
-    self._device_index = index
+    self._device_index = device_index
     if self._device_index < 0:
       self._device_index = self._SearchDevice()
     self._device = None
@@ -182,8 +183,8 @@ class CVCameraDevice(CameraDeviceBase):
     return int(re.search(r'video([0-9]+)$', uvc_vid_dirs[0]).group(1))
 
 
-class MockCameraDevice(CameraDeviceBase):
-  """Mocked camera device."""
+class MockCameraReader(CameraReaderBase):
+  """Mocked camera device reader."""
 
   def __init__(self, resolution, qr=False):
     """Constructor.
@@ -192,7 +193,7 @@ class MockCameraDevice(CameraDeviceBase):
       resolution: (width, height) tuple of capture resolution.
       qr: Whether to show QR code.
     """
-    super(MockCameraDevice, self).__init__()
+    super(MockCameraReader, self).__init__()
     if qr:
       image_name = _MOCK_IMAGE_QR
     elif resolution == (1280, 720):
@@ -220,7 +221,7 @@ class MockCameraDevice(CameraDeviceBase):
     return self._enabled
 
 
-class YavtaCameraDevice(CameraDeviceBase):
+class YavtaCameraReader(CameraReaderBase):
   """Captures image with yavta."""
 
   _RAW_PATH = '/tmp/yavta_output.raw'
@@ -234,7 +235,7 @@ class YavtaCameraDevice(CameraDeviceBase):
     Args:
       device_index: Index of video device.
     """
-    super(YavtaCameraDevice, self).__init__()
+    super(YavtaCameraReader, self).__init__()
     self._device_index = device_index
     self._enabled = False
     self._resolution = None
@@ -282,3 +283,145 @@ class YavtaCameraDevice(CameraDeviceBase):
 
   def IsEnabled(self):
     return self._enabled
+
+
+class CameraDevice(object):
+  """Base class for camera devices."""
+  def __init__(self, dut, sn_format=None, reader=None):
+    """Constructor of CameraDevice
+
+    Args:
+      dut: A DUT board object.
+      sn_format: A regex string describes the camera's serial number format.
+      reader: A CameraReader object, defaults to CVCameraReader()
+    """
+    super(CameraDevice, self).__init__()
+    self._dut = dut
+    self._reader = reader or CVCameraReader()
+    self._sn_format = None if sn_format is None else re.compile(sn_format)
+
+  def EnableCamera(self, **kwargs):
+    """Enables camera device.
+
+    Raise:
+      CameraError on error.
+    """
+    return self._reader.EnableCamera(**kwargs)
+
+  def DisableCamera(self):
+    """Disabled camera device.
+
+    Raise:
+      CameraError on error.
+    """
+    return self._reader.DisableCamera()
+
+  def ReadSingleFrame(self):
+    """Reads a single frame from camera device.
+
+    Returns:
+      An OpenCV image.
+
+    Raise:
+      CameraError on error.
+    """
+    return self._reader.ReadSingleFrame()
+
+  def IsEnabled(self):
+    """Checks if the camera device enabled.
+
+    Returns:
+      Boolean.
+    """
+    return self._reader.IsEnabled()
+
+  def IsValidSerialNumber(self, serial):
+    """Validate the given serial number.
+
+    Args:
+      serial: A serial number string.
+
+    Returns:
+      A bool, True for validated.
+    """
+    if self._sn_format is None:
+      assert False
+      return True
+    return bool(self._sn_format.match(serial))
+
+  def GetSerialNumber(self):
+    """Get the camera serial number.
+
+    Returns:
+      serial: An one-line stripped string for serial number.
+
+    Raises:
+      CameraError if retreiving SN fails.
+    """
+    raise NotImplementedError
+
+
+class USBCameraDevice(CameraDevice):
+  """System module for USB camera device."""
+  def __init__(self, dut, sn_sysfs_path, sn_format=None, reader=None):
+    """Initialize an instance of USBCamera
+
+    Args:
+      sn_format: A regex string describes the camera's serial number format.
+      sn_sysfs_path: A string represents the SN path in sysfs.
+    """
+    super(USBCameraDevice, self).__init__(dut, sn_format, reader)
+    self._sn_sysfs_path = sn_sysfs_path
+
+  def GetSerialNumber(self):
+    def _FilterNonPrintable(s):
+      """Filter non-printable characters in serial numbers.
+
+      It is found that some devices has non-printable ascii characters at the
+      beginning of the serial number read from sysfs, so we make sure to filter
+      it out here.
+      """
+      return ''.join(c for c in s if c in string.printable)
+
+    try:
+      serial = _FilterNonPrintable(
+          self._dut.ReadSpecialFile(self._sn_sysfs_path)).rstrip()
+    except IOError as e:
+      raise CameraError('Fail to read %r: %r', self._sn_sysfs_path, e)
+    if serial.find('\n') >= 0:
+      raise CameraError('%r contains multi-line data: %r',
+                        self._sn_sysfs_path, serial)
+    return serial
+
+
+class MIPICameraDevice(CameraDevice):
+  """System module for MIPI camera device."""
+  def __init__(self, dut, sn_i2c_param, sn_format=None, reader=None):
+    """Initialize an instance of MIPICamera
+
+    Args:
+      sn_format: A regex string describes the camera's serial number format.
+      sn_i2c_param: A dictionary represnts i2c's parameters,
+          including the following keys:
+          'dev_node': A string to device node path, e.g. '/dev/video0'
+          'bus': An int for bus channel, e.g. 1
+          'chip_addr': A int represents the chip addr, e.g. 0x37
+          'data_addr': A int represents the data addr, e.g. 0x3508
+          'length': An int for the requested data length in bytes, e.g. 11
+    """
+    super(MIPICameraDevice, self).__init__(dut, sn_format, reader)
+    self._sn_i2c_param = sn_i2c_param
+
+  def GetSerialNumber(self):
+    try:
+      # Power on camera so we can read from I2C
+      fd = os.open(self._sn_i2c_param['dev_node'], os.O_RDWR)
+      slave = self._dut.i2c.GetSlave(self._sn_i2c_param['bus'],
+                                     self._sn_i2c_param['chip_addr'],
+                                     16)
+      return slave.Read(self._sn_i2c_param['data_addr'],
+                        self._sn_i2c_param['length'])[::-2]
+    except Exception as e:
+      raise CameraError('Fail to read serial number: %r', e)
+    finally:
+      os.close(fd)

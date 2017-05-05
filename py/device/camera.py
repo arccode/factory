@@ -11,7 +11,8 @@ This module provides accessing camera devices.
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
-from cros.factory.test.utils.camera_utils import CVCameraDevice
+from cros.factory.test.utils.camera_utils import CameraDevice
+from cros.factory.test.utils.camera_utils import CVCameraReader
 
 
 class Camera(component.DeviceComponent):
@@ -21,9 +22,10 @@ class Camera(component.DeviceComponent):
     defualt camera opened by OpenCV.
 
     Subclass should override GetCameraDevice(index).
-    """
+  """
 
   def __init__(self, dut):
+    """System module for camera devices."""
     super(Camera, self).__init__(dut)
     self._devices = {}
 
@@ -35,6 +37,7 @@ class Camera(component.DeviceComponent):
 
     Returns:
       Camera device object that implements
-      cros.factory.test.utils.camera_utils.CameraDeviceBase.
+      cros.factory.test.utils.camera_utils.CameraDevice.
     """
-    return self._devices.setdefault(index, CVCameraDevice(index))
+    return self._devices.setdefault(index, CameraDevice(
+        dut=self._dut, sn_format=None, reader=CVCameraReader(index)))

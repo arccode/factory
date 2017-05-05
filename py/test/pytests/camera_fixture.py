@@ -277,7 +277,7 @@ LED_PATTERN = ((leds.LED_NUM | leds.LED_CAP, 0.05), (0, 0.05))
 TestType = type_utils.Enum(['CALI', 'LS', 'IQ'])
 Fixture = type_utils.Enum(['FULL', 'AB', 'MODULE', 'PANEL'])
 DataMethod = type_utils.Enum(['SIMPLE', 'USB', 'SF'])
-EventType = type_utils.Enum(['START_TEST', 'EXIT_TEST'])
+EventType = type_utils.Enum(['START_TEST', 'EXIT_TEST', 'VALIDATE_SN'])
 TestStatus = type_utils.Enum(['PASSED', 'FAILED', 'UNTESTED', 'NA'])
 
 InternalEvent = namedtuple('InternalEvent', 'event_type aux_data')
@@ -445,8 +445,7 @@ class _IQTestDelegate(object):
       self.delegator.ui.BindKeyJS(
           key, 'if(event)event.preventDefault();\nOnButtonStartTestClick();')
     self.delegator.ui.CallJSFunction('ShowMainTestScreen',
-                                     not self.params['cam_sn']['auto_read'],
-                                     self.params['cam_sn']['format'])
+                                     not self.params['sn']['auto_read'])
 
   def _LoadParamsFromUSB(self):
     """Loads parameters from USB drive."""
@@ -784,70 +783,20 @@ class _IQTestDelegate(object):
     Args:
       input_sn: Serial number input on UI.
     """
-    if self.params['cam_sn']['auto_read']:
-      success, input_sn = self._GetModuleSN()
-    else:
-      success = True
-
-    if success:
-      self.module_sn = input_sn
-      self._Log('Serial number: %s' % self.module_sn)
-      if not re.match(self.params['cam_sn']['format'], self.module_sn):
-        success = False
-        self._Log('Error: invalid serial number.')
-
-    return success
-
-  def _GetModuleSN(self):
-    """Read module serial number.
-
-    The module serial number can be read from sysfs for USB camera or from
-    i2c for MIPI camera or using a custom command.
-    """
-
-    if self.params['cam_sn']['source'] == 'sysfs':
-      return self._GetModuleSNSysfs()
-    elif self.params['cam_sn']['source'] == 'i2c':
-      return self._GetModuleSNI2C()
-    elif self.params['cam_sn']['source'] == 'command':
-      return self._GetModuleSNCommand()
-    else:
-      raise RuntimeError('Invalid camera SN source.')
-
-  def _GetModuleSNSysfs(self):
-    success, input_sn = self._ReadSysfs(self.params['cam_sn']['sysfs_path'])
-
-    if success:
-      self._Log('Serial number: %s' % input_sn)
-      if not re.match(self.params['cam_sn']['format'], input_sn):
-        self._Log('Error: invalid serial number.')
-        return False, None
-    else:
-      return False, None
-
-    return True, input_sn
-
-  def _GetModuleSNI2C(self):
-    i2c_param = self.params['cam_sn']['i2c_param']
-
     try:
-      # Power on camera so we can read from I2C
-      fd = os.open(i2c_param['dev_node'], os.O_RDWR)
-
-      slave = self.delegator.dut.i2c.GetSlave(
-          i2c_param['bus'], i2c_param['chip_addr'], 16)
-      return True, slave.Read(i2c_param['data_addr'], i2c_param['length'])[::-1]
-    finally:
-      os.close(fd)
-
-  def _GetModuleSNCommand(self):
-    command = self.params['cam_sn']['command']
-    try:
-      result = self.delegator.dut.CheckOutput(command).strip()
+      if self.params['cam_sn']['auto_read']:
+        input_sn = self.delegator.camera_dev.GetSerialNumber()
     except Exception:
-      return False, None
-    else:
-      return True, result
+      self._Log('Error: fails to read serial number.')
+      return False
+
+    self.module_sn = input_sn
+    self._Log('Serial number: %s' % self.module_sn)
+    if not self.delegator.camera_dev.IsValidSerialNumber(self.module_sn):
+      self._Log('Error: invalid serial number.')
+      return False
+
+    return True
 
   def _CheckCameraFirmware(self):
     if self.params['cam_fw']['fw_check']:
@@ -1078,6 +1027,7 @@ class CameraFixture(unittest.TestCase):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.internal_queue = Queue.Queue()
+    self.camera_dev = self.dut.GetCameraDevice(self.args.device_index)
 
     # pylint: disable=no-member
     os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %
@@ -1125,6 +1075,9 @@ class CameraFixture(unittest.TestCase):
     self.ui.AddEventHandler(
         'exit_test_button_clicked',
         lambda _: self.PostInternalQueue(EventType.EXIT_TEST))
+    self.ui.AddEventHandler(
+        'sn_input_box_on_input',
+        lambda js_args: self.PostInternalQueue(EventType.VALIDATE_SN, js_args))
     self.ui.BindKey(
         test_ui.ESCAPE_KEY,
         lambda _: self.PostInternalQueue(EventType.EXIT_TEST))
@@ -1322,6 +1275,11 @@ class CameraFixture(unittest.TestCase):
         else:
           self.fail('Test Camera failed - fail cause = %r.' % fail_cause)
         break
+      elif event.event_type == EventType.VALIDATE_SN:
+        if event.aux_data is not None:
+          input_sn = event.aux_data.data.get('input_sn', '')
+          self.ui.CallJSFunction('UpdateStartTestButtonStatus',
+                                 self.camera_dev.IsValidSerialNumber(input_sn))
       else:
         raise ValueError('Invalid event type.')
 

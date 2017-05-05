@@ -15,29 +15,8 @@
     },
 
   'cam_sn': {
-    # Regular expression format for serial number.
-    'format': r'^[a-zA-Z0-9]{4}$',
-
-    # Whether to auto read serial number from sysfs.
+    # Whether to auto read serial number.
     'auto_read': False,
-
-    # source: could be either 'sysfs' or 'i2c' or 'command'
-    'source': 'i2c',
-
-    # if source is sysfs
-    'sysfs_path': '',
-
-    # if source is i2c, you must specify these parameters
-    'i2c_param': {
-      'dev_node': '/dev/video0',
-      'bus': 1,
-      'chip_addr': 0x37,
-      'data_addr': 0x3508,
-      'length': 12
-    },
-
-    # if source is command, specify the command to reterive serial number
-    'command': 'cat /data/factory/serial_number',
   },
 
   'cam_fw': {

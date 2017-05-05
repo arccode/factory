@@ -72,9 +72,8 @@ function InitForTest(data_method, control_chamber) {
  * Shows main test screen for ALS test.
  *
  * @param {boolean} manual_sn_input Whether to input serial number manually.
- * @param {string} sn_format Regexp format of serial number.
  */
-function ShowMainTestScreen(manual_sn_input, sn_format) {
+function ShowMainTestScreen(manual_sn_input) {
   var sn_status_panel = document.getElementById('sn_status_panel');
   var sn_input_box = GetSnInputBox();
 
@@ -84,7 +83,6 @@ function ShowMainTestScreen(manual_sn_input, sn_format) {
     sn_status_panel.hidden = false;
     sn_input_box.disabled = false;
     sn_input_box.autofocus = true;
-    sn_input_box.pattern = sn_format;
     sn_input_box.focus();
   }
 
@@ -161,6 +159,24 @@ function UpdateFixtureStatus(is_loaded) {
 }
 
 
+/**
+ * Updates StartTestButton status.
+ * @param {boolean} is_sn_valid Whether Input SN is valid.
+ */
+function UpdateStartTestButtonStatus(is_sn_valid) {
+  var button = GetStartTestButton();
+  var sn_input_box = GetSnInputBox();
+  if (!g_is_test_running &&
+      (!g_use_usb || g_is_usb_loaded) &&
+      (!g_use_fxt || g_is_fxt_loaded) &&
+      (!g_use_sn_input || is_sn_valid)) {
+    button.disabled = false;
+  } else {
+    button.disabled = true;
+  }
+}
+
+
 ////////////////////////////////////////////////////////////
 // Event handlers
 ////////////////////////////////////////////////////////////
@@ -216,22 +232,15 @@ function OnTestCompleted() {
  *
  * This function should be called whenever the internal status is changed.
  *
- * Also used as the 'oninput' handler of 'sn_input_box' element to check
- * validity of serial number when user types something.
+ * Also send an event back to ui thread to handle the validity of serial number
+ * when user types something. If everything ready, the event handler will
+ * call back to js layer to make StartTestButton pressable.
  */
 function OnCheckButtonState() {
-  var button = GetStartTestButton();
   var sn_input_box = GetSnInputBox();
 
-  if (!g_is_test_running &&
-      (!g_use_usb || g_is_usb_loaded) &&
-      (!g_use_fxt || g_is_fxt_loaded) &&
-      (!g_use_sn_input ||
-       (sn_input_box.validity.valid && sn_input_box.value.length > 0))) {
-    button.disabled = false;
-  } else {
-    button.disabled = true;
-  }
+  window.test.sendTestEvent('sn_input_box_on_input',
+                            {'input_sn': sn_input_box.value});
 }
 
 
