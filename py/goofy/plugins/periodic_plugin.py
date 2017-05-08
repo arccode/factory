@@ -9,6 +9,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 class PeriodicPlugin(plugin.Plugin):
@@ -38,6 +39,7 @@ class PeriodicPlugin(plugin.Plugin):
     self._run_times = 0
     self._run_task = self._RunTaskWithCatch if catch_exception else self.RunTask
 
+  @type_utils.Overrides
   def OnStart(self):
     self._stop_event.clear()
     self._run_times = 0
@@ -62,5 +64,6 @@ class PeriodicPlugin(plugin.Plugin):
     """Wrapper of `Run()` that catches any exception."""
     self.RunTask()
 
+  @type_utils.Overrides
   def OnStop(self):
     self._stop_event.set()

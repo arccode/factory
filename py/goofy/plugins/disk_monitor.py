@@ -11,6 +11,7 @@ from cros.factory.test import event_log
 from cros.factory.tools import disk_space
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 class DiskMonitor(periodic_plugin.PeriodicPlugin):
@@ -25,6 +26,7 @@ class DiskMonitor(periodic_plugin.PeriodicPlugin):
     self._last_log_disk_space_message = None
 
   @debug_utils.CatchException('DiskMonitor')
+  @type_utils.Overrides
   def RunTask(self):
     # Upload event if stateful partition usage is above threshold.
     # Stateful partition is mounted on /usr/local, while

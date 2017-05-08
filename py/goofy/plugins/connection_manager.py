@@ -9,6 +9,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils import net_utils
+from cros.factory.utils import type_utils
 
 
 class ConnectionManager(plugin.Plugin):
@@ -38,9 +39,11 @@ class ConnectionManager(plugin.Plugin):
         scan_interval=scan_wifi_periods_secs,
         override_blacklisted_devices=override_blacklisted_network_devices)
 
+  @type_utils.Overrides
   def OnStart(self):
     self._connection_manager.EnableNetworking()
 
+  @type_utils.Overrides
   def OnStop(self):
     self._connection_manager.DisableNetworking()
 

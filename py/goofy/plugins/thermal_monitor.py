@@ -7,6 +7,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 class ThermalMonitor(plugin.Plugin):
@@ -27,6 +28,7 @@ class ThermalMonitor(plugin.Plugin):
     self._thermal_watcher = None
     self._use_testlog = use_testlog
 
+  @type_utils.Overrides
   def OnStart(self):
     cmd = ['py/tools/thermal_monitor.py',
            '-p', str(self._period_secs),
@@ -37,5 +39,6 @@ class ThermalMonitor(plugin.Plugin):
     self._thermal_watcher = process_utils.Spawn(
         cmd, cwd=paths.FACTORY_PATH)
 
+  @type_utils.Overrides
   def OnStop(self):
     self._thermal_watch.terminate()

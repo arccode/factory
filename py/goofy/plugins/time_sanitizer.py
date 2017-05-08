@@ -10,6 +10,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.tools import time_sanitizer
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 class TimeSanitizer(plugin.Plugin):
@@ -40,11 +41,13 @@ class TimeSanitizer(plugin.Plugin):
     self._lock = threading.Lock()
     self._stop_event = threading.Event()
 
+  @type_utils.Overrides
   def OnStart(self):
     if self._sync_period_secs and not self._time_synced:
       self._stop_event.clear()
       self._thread = process_utils.StartDaemonThread(target=self._RunTarget)
 
+  @type_utils.Overrides
   def OnStop(self):
     if self._threading:
       self._stop_event.set()

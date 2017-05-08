@@ -21,6 +21,8 @@ from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.utils.debug_utils import CatchException
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
+from cros.factory.utils import type_utils
+
 
 KickRequest = namedtuple('KickRequest',
                          ['extra_files', 'callback', 'clear_only'])
@@ -157,6 +159,7 @@ class SystemLogManager(plugin.Plugin):
     self._queue.put(KickRequest(extra_files, callback, False))
     logging.debug('Puts extra_files: %r.', extra_files)
 
+  @type_utils.Overrides
   def OnStart(self):
     """Starts SystemLogManager _main_thread with _RunForever method."""
     logging.info('Start SystemLogManager thread.')
@@ -165,6 +168,7 @@ class SystemLogManager(plugin.Plugin):
                                          name='SystemLogManager')
     self._main_thread.start()
 
+  @type_utils.Overrides
   def OnStop(self):
     """Stops SystemLogManager _main_thread."""
     logging.debug('Sets aborted event to SystemLogManager main thread.')

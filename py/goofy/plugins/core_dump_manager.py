@@ -7,6 +7,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import periodic_plugin
 from cros.factory.test.utils import core_dump_manager
 from cros.factory.utils import debug_utils
+from cros.factory.utils import type_utils
 
 
 class CoreDumpManager(periodic_plugin.PeriodicPlugin):
@@ -24,6 +25,7 @@ class CoreDumpManager(periodic_plugin.PeriodicPlugin):
         core_dump_watchlist)
 
   @debug_utils.CatchException('CoreDumpManager')
+  @type_utils.Overrides
   def RunTask(self):
     """Checks if there is any core dumped file.
 

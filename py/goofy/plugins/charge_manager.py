@@ -7,6 +7,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.goofy.plugins import periodic_plugin
 from cros.factory.test.utils import charge_manager
+from cros.factory.utils import type_utils
 
 
 class ChargeManager(periodic_plugin.PeriodicPlugin):
@@ -17,9 +18,11 @@ class ChargeManager(periodic_plugin.PeriodicPlugin):
     self._charge_manager = charge_manager.ChargeManager(min_charge_pct,
                                                         max_charge_pct)
 
+  @type_utils.Overrides
   def RunTask(self):
     self._charge_manager.AdjustChargeState()
 
+  @type_utils.Overrides
   def OnStop(self):
     super(ChargeManager, self).OnStop()
     self._charge_manager.StartCharging()

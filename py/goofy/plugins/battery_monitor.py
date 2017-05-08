@@ -9,6 +9,8 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.plugins import periodic_plugin
+from cros.factory.utils import type_utils
+
 
 class BatteryMonitor(periodic_plugin.PeriodicPlugin):
   # Sync disks when battery level is higher than this value.
@@ -25,6 +27,7 @@ class BatteryMonitor(periodic_plugin.PeriodicPlugin):
     self._dut = device_utils.CreateDUTInterface()
     self._last_log_message = None
 
+  @type_utils.Overrides
   def RunTask(self):
     self._CheckBattery()
 

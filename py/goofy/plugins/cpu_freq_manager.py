@@ -6,6 +6,7 @@
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
+from cros.factory.utils import type_utils
 
 
 class CPUFreqManager(plugin.Plugin):
@@ -14,11 +15,14 @@ class CPUFreqManager(plugin.Plugin):
     super(CPUFreqManager, self).__init__(goofy, [plugin.RESOURCE.CPU])
     self._cpu_freq_manager = CpufreqManager(event_log=goofy.event_log)
 
+  @type_utils.Overrides
   def OnStart(self):
     self._cpu_freq_manager.SetEnabled(True)
 
+  @type_utils.Overrides
   def OnStop(self):
     self._cpu_freq_manager.SetEnabled(False)
 
-  def OnDestory(self):
+  @type_utils.Overrides
+  def OnDestroy(self):
     self._cpu_freq_manager.stop()

@@ -192,11 +192,13 @@ class Instalog(plugin.Plugin):
     log_fn('Instalog: Running command: %s', ' '.join(cmd_args))
     return process_utils.Spawn(cmd_args, cwd=paths.FACTORY_PATH, **kwargs)
 
+  @type_utils.Overrides
   def OnStart(self):
     """Called when the plugin starts."""
     self._RunCommand(['start', '--no-daemon'],
                      stdout=_DEV_NULL, stderr=_DEV_NULL)
 
+  @type_utils.Overrides
   def OnStop(self):
     """Called when the plugin stops."""
     self._RunCommand(['stop'], check_output=True, verbose=True)

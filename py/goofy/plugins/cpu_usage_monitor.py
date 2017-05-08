@@ -7,6 +7,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 class CPUUsageMonitor(plugin.Plugin):
@@ -16,11 +17,13 @@ class CPUUsageMonitor(plugin.Plugin):
     self._period_secs = period_secs
     self._cpu_usage_monitor = None
 
+  @type_utils.Overrides
   def OnStart(self):
     self._cpu_usage_monitor = process_utils.Spawn(
         ['py/tools/cpu_usage_monitor.py', '-p', str(self._period_secs)],
         cwd=paths.FACTORY_PATH)
 
+  @type_utils.Overrides
   def OnStop(self):
     if self._cpu_usage_monitor:
       self._cpu_usage_monitor.terminate()
