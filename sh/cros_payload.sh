@@ -32,7 +32,7 @@
 : "${DEBUG:=}"
 
 # Constants
-COMPONENTS_ALL="test_image release_image toolkit hwid firmware"
+COMPONENTS_ALL="test_image release_image toolkit hwid firmware complete"
 
 # A variable for the file name of tracking temp files.
 TMP_OBJECTS=""
@@ -45,9 +45,9 @@ cleanup() {
   if [ -n "${TMP_OBJECTS}" ]; then
     while read object; do
       if [ -d "${object}" ]; then
-        umount -d "${object}" 2>/dev/null
+        umount -d "${object}" 2>/dev/null || true
       fi
-      rm -f "${object}"
+      rm -rf "${object}"
     done <"${TMP_OBJECTS}"
     rm -f "${TMP_OBJECTS}"
   fi
@@ -371,7 +371,7 @@ cmd_add() {
     release_image | test_image)
       add_image_component "${json_path}" "${component}" "${file}"
       ;;
-    firmware | hwid | toolkit)
+    toolkit | hwid | firmware | complete)
       add_file_component "${json_path}" "${component}" "${file}"
       ;;
     *)
@@ -427,7 +427,7 @@ install_add_stub() {
 
   case "${component}" in
     toolkit)
-      command="sh ./${component} --yes"
+      command="sh ./${component} -- --yes"
       ;;
     hwid)
       ;;
@@ -436,7 +436,7 @@ install_add_stub() {
   esac
 
   # Decompress now to reduce installer dependency.
-  ${GZIP} -d "${payloads_dir}/${component}.gz"
+  ${GZIP} -df "${payloads_dir}/${component}.gz"
 
   mkdir -m 0755 -p "${output_dir}"
   echo '#!/bin/sh' >"${stub}"
@@ -558,7 +558,7 @@ cmd_install() {
           "4 4" "3 5" \
           "6 6" "7 7" "8 8" "9 9" "10 10" "11 11" "12 12"
         ;;
-      toolkit | hwid | firmware)
+      toolkit | hwid | firmware | complete)
         install_file \
           "${json_url}" "${dest}" "${json_file}" "${component}" \
           ""
