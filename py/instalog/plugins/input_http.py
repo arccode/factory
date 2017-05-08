@@ -177,6 +177,7 @@ class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
 
   def StopServer(self):
     """Stops the HTTP server."""
+    self.server_close()
     net_utils.ShutdownTCPServer(self)
     self._handle_request_thread.join()
     # Wait the process request threads not yet finished.

@@ -15,7 +15,6 @@ import Queue
 import shutil
 import tempfile
 import threading
-import time
 import unittest
 import urllib
 
@@ -25,6 +24,7 @@ from instalog import log_utils
 from instalog import plugin_sandbox
 from instalog import testing
 from instalog.utils import net_utils
+from instalog.utils import sync_utils
 
 from instalog.external import requests
 
@@ -48,16 +48,21 @@ class TestInputHTTP(unittest.TestCase):
     self._tmp_dir = tempfile.mkdtemp(prefix='input_http_unittest_')
 
   def tearDown(self):
-    self.sandbox.Stop(True)
-    self.assertTrue(self.core.AllStreamsExpired())
-    self.core.Close()
+    if self.sandbox.GetState() != plugin_sandbox.DOWN:
+      self.sandbox.Stop(True)
+      self.assertTrue(self.core.AllStreamsExpired())
+      self.core.Close()
     shutil.rmtree(self._tmp_dir)
 
   def testConnect(self):
-    r = requests.post('http://localhost:' + str(self.port), files={'':''})
+    r = requests.post('http://localhost:' + str(self.port), files={'': ''})
     self.assertEqual(200, r.status_code)
     self.assertIn('Maximum-Bytes', r.headers)
     self.assertEqual(0, len(self.core.emit_calls))
+
+  def _ClientConnected(self):
+    # pylint: disable=protected-access
+    return len(self.plugin._http_server._threads) > 0
 
   def testShutdown(self):
     """Tests that a request thread should terminate before shutting down."""
@@ -75,12 +80,19 @@ class TestInputHTTP(unittest.TestCase):
     t = threading.Thread(target=PostBig)
     t.daemon = False
     t.start()
-    time.sleep(0.2)  # Give the thread a chance to start up.
+    sync_utils.WaitFor(self._ClientConnected, 10)
     self.sandbox.Stop(True)
     self.assertTrue(self.core.AllStreamsExpired())
     self.core.Close()
     self.assertEqual(400, q.get().status_code)
-    self._CreatePlugin()  # For tearDown to stop.
+    t.join()
+
+  def testShutdownServerClose(self):
+    self.sandbox.Stop(True)
+    self.assertTrue(self.core.AllStreamsExpired())
+    self.core.Close()
+    with self.assertRaises(requests.ConnectionError):
+      requests.post('http://localhost:' + str(self.port), timeout=1)
 
   def testUnsupportedMethod(self):
     r = requests.get('http://localhost:' + str(self.port))
@@ -181,9 +193,10 @@ class TestInputHTTP(unittest.TestCase):
     t = threading.Thread(target=PostBig)
     t.daemon = False
     t.start()
-    time.sleep(0.2)  # Give the big file thread a chance to start up.
 
-    r = requests.post('http://localhost:' + str(self.port), files=small_data)
+    sync_utils.WaitFor(self._ClientConnected, 10)
+    r = requests.post(
+        'http://localhost:' + str(self.port), files=small_data, timeout=1)
     t.join()
 
     self.assertEqual(200, r.status_code)
