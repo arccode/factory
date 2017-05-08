@@ -115,6 +115,10 @@ fi
 if [ -n "${FLAGS_factory}" ]; then
   die "--factory is deprecated by --test_image TEST_IMAGE --toolkit TOOLKIT."
 fi
+if [ -n "${FLAGS_diskimg}" ] || [ -n "${FLAGS_usbimg}" ]; then
+  # Currently --diskimg and --usbimg both need cros_payload.
+  FLAGS_cros_payload="${FLAGS_TRUE}"
+fi
 
 on_exit() {
   image_clean_temp
@@ -366,7 +370,7 @@ generate_omaha2() {
     python ${OMAHA_PROGRAM} ${data_dir_param}"
 }
 
-generate_usbimg2() {
+generate_usbimg() {
   # TODO(hungte) Read board from release image if needed.
   [ -n "$FLAGS_board" ] || die "Need --board parameter."
 
@@ -425,7 +429,7 @@ generate_usbimg2() {
   info "Done"
 }
 
-generate_img2() {
+generate_img() {
   prepare_img
 
   local build_tmp="$(mktemp -d --tmpdir)"
@@ -627,20 +631,6 @@ prepare_dir() {
   fi
 }
 
-# Applies HWID component list files updater into stateful partition
-apply_hwid_updater() {
-  local hwid_updater="$1"
-  local outdev="$2"
-  local hwid_result="0"
-
-  if [ -n "$hwid_updater" ]; then
-    local state_dev="$(image_map_partition "${outdev}" 1)"
-    sudo sh "$hwid_updater" "$state_dev" || hwid_result="$?"
-    image_unmap_partition "$state_dev" || true
-    [ $hwid_result = "0" ] || die "Failed to update HWID ($hwid_result). abort."
-  fi
-}
-
 # Copies "unencrypted" files (such as the CRX cache) from release
 # stateful partition into the target stateful partition.
 #
@@ -679,143 +669,6 @@ tar_unencrypted() {
   [ $result = "0" ] ||
     die "tar of release stateful partition's unencrypted dir failed " \
         "($result). aborting."
-}
-
-generate_usbimg() {
-  if ! type cgpt >/dev/null 2>&1; then
-    die "Missing 'cgpt'. Please install cgpt, or run inside chroot."
-  fi
-  local builder="$(dirname "$SCRIPT")/make_universal_factory_shim.sh"
-  local release_file="$FLAGS_release_image"
-
-  if [ -n "$RELEASE_KERNEL" ]; then
-    # TODO(hungte) Improve make_universal_factory_shim to support assigning
-    # a modified kernel to prevent creating temporary image here
-    info "Creating temporary SSD-type release image, please wait..."
-    release_file="$(mktemp --tmpdir)"
-    image_add_temp "${release_file}"
-    if image_has_part_tools pv; then
-      pv -B 16M "${FLAGS_release_image}" >"${release_file}"
-    else
-      cp -f "${FLAGS_release_image}" "${release_file}"
-    fi
-    image_partition_copy_from_file "${RELEASE_KERNEL}" "${release_file}" 2
-  fi
-
-  "$builder" -m "${FACTORY_IMAGE}" -f "${FLAGS_usbimg}" \
-    "${FLAGS_install_shim}" "${FACTORY_IMAGE}" "${release_file}"
-  apply_hwid_updater "${FLAGS_hwid}" "${FLAGS_usbimg}"
-  tar_unencrypted "${FLAGS_release_image}" "${FLAGS_usbimg}"
-
-  # Extract and modify lsb-factory from original install shim
-  local lsb_path="/dev_image/etc/lsb-factory"
-  local src_dir="$(mktemp -d --tmpdir)"
-  local src_lsb="${src_dir}${lsb_path}"
-  local new_dir="$(mktemp -d --tmpdir)"
-  local new_lsb="${new_dir}${lsb_path}"
-  image_add_temp "$src_dir" "$new_dir"
-  image_mount_partition "${FLAGS_install_shim}" 1 "${src_dir}" ""
-  image_mount_partition "${FLAGS_usbimg}" 1 "${new_dir}" "rw"
-  # Copy firmware updater, if available
-  local updater_settings=""
-  if [ -n "${FLAGS_firmware}" ]; then
-    local updater_new_path="${new_dir}/chromeos-firmwareupdate"
-    sudo cp -f "${FLAGS_firmware}" "${updater_new_path}"
-    sudo chmod a+rx "${updater_new_path}"
-    updater_settings="FACTORY_INSTALL_FIRMWARE=/mnt/stateful_partition"
-    updater_settings="$updater_settings/$(basename $updater_new_path)"
-  fi
-  # We put the install shim kernel and rootfs into partition #2 and #3, so
-  # the factory and release image partitions must be moved to +2 location.
-  # USB_OFFSET=2 tells factory_installer/factory_install.sh this information.
-  (cat "$src_lsb" &&
-    echo "FACTORY_INSTALL_FROM_USB=1" &&
-    echo "FACTORY_INSTALL_USB_OFFSET=2" &&
-    echo "$updater_settings") |
-    sudo dd of="${new_lsb}"
-  image_umount_partition "$new_dir"
-  image_umount_partition "$src_dir"
-
-  # Deactivate all kernel partitions except installer slot
-  local i=""
-  for i in 4 5 6 7; do
-    cgpt add -P 0 -T 0 -S 0 -t data -i "$i" "${FLAGS_usbimg}"
-  done
-
-  info "Generated Image at ${FLAGS_usbimg}."
-  info "Done"
-}
-
-generate_img() {
-  local outdev="$(readlink -f "$FLAGS_diskimg")"
-  local sectors="$FLAGS_sectors"
-  local hwid_updater="${FLAGS_hwid}"
-
-  if [ -n "${FLAGS_hwid}" ]; then
-    hwid_updater="$(readlink -f "$FLAGS_hwid")"
-  fi
-
-  prepare_img
-
-  # Get the release image.
-  local release_image="${RELEASE_DIR}/${RELEASE_IMAGE}"
-  echo "Release Kernel"
-  if [ -n "$RELEASE_KERNEL" ]; then
-    image_partition_copy_from_file "${RELEASE_KERNEL}" "${outdev}" 4
-  else
-    image_partition_copy "${release_image}" 2 "${outdev}" 4
-  fi
-  echo "Release Rootfs"
-  image_partition_overwrite "${release_image}" 3 "${outdev}" 5
-  echo "OEM parition"
-  image_partition_overwrite "${release_image}" 8 "${outdev}" 8
-
-  # Go to retrieve the factory test image.
-  echo "Factory Kernel"
-  image_partition_copy "${FACTORY_IMAGE}" 2 "${outdev}" 2
-  echo "Factory Rootfs"
-  image_partition_overwrite "${FACTORY_IMAGE}" 3 "${outdev}" 3
-  echo "Factory Stateful"
-  image_partition_overwrite "${FACTORY_IMAGE}" 1 "${outdev}" 1
-  echo "EFI Partition"
-  image_partition_copy "${FACTORY_IMAGE}" 12 "${outdev}" 12
-  apply_hwid_updater "${hwid_updater}" "${outdev}"
-  tar_unencrypted "${release_image}" "${outdev}"
-
-  # TODO(nsanders, wad): consolidate this code into some common code
-  # when cleaning up kernel commandlines. There is code that touches
-  # this in postint/chromeos-setimage and build_image. However none
-  # of the preexisting code actually does what we want here.
-  local tmpesp="$(mktemp -d --tmpdir)"
-  image_add_temp "$tmpesp"
-  image_mount_partition "${outdev}" 12 "$tmpesp" "rw"
-
-  # Edit boot device default for legacy boot loaders, if available.
-  if [ -d "${tmpesp}/syslinux" ]; then
-    # Support both vboot and regular boot.
-    sudo sed -i "s/chromeos-usb.A/chromeos-hd.A/" \
-      "${tmpesp}"/syslinux/default.cfg
-    sudo sed -i "s/chromeos-vusb.A/chromeos-vhd.A/" \
-      "${tmpesp}"/syslinux/default.cfg
-    # Edit root fs default for legacy.
-    # Since legacy loader currently exists only on x86 platforms, we can assume
-    # the rootfs is always sda3.
-    sudo sed -i "s'HDROOTA'/dev/sda3'g" \
-      "${tmpesp}"/syslinux/root.A.cfg
-  fi
-
-  image_umount_partition "$tmpesp"
-
-  echo "Updating files in Factory Stateful"
-  # Add /etc/lsb-factory into diskimg if not exists.
-  local tmp_factory_stateful="$(mktemp -d --tmpdir)"
-  image_add_temp "${tmp_factory_stateful}"
-  image_mount_partition "${outdev}" 1 "${tmp_factory_stateful}" "rw"
-  sudo touch "${tmp_factory_stateful}"/dev_image/etc/lsb-factory
-  image_umount_partition "$tmp_factory_stateful"
-
-  echo "Generated Image at $outdev."
-  echo "Done"
 }
 
 generate_omaha() {
@@ -1101,9 +954,9 @@ main() {
   if [ "${FLAGS_cros_payload}" = "${FLAGS_TRUE}" ]; then
 
     if [ -n "$FLAGS_usbimg" ]; then
-      generate_usbimg2
+      generate_usbimg
     elif [ -n "$FLAGS_diskimg" ]; then
-      generate_img2
+      generate_img
     else
       generate_omaha2
       [ "$FLAGS_run_omaha" = $FLAGS_FALSE ] || run_omaha
@@ -1119,14 +972,8 @@ main() {
       prepare_firmware_updater "$FLAGS_release_image"
     fi
 
-    if [ -n "$FLAGS_usbimg" ]; then
-      generate_usbimg
-    elif [ -n "$FLAGS_diskimg" ]; then
-      generate_img
-    else
-      generate_omaha
-      [ "$FLAGS_run_omaha" = $FLAGS_FALSE ] || run_omaha
-    fi
+    generate_omaha
+    [ "$FLAGS_run_omaha" = $FLAGS_FALSE ] || run_omaha
   fi
   trap on_exit EXIT
 }

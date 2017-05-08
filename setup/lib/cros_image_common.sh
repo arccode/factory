@@ -27,30 +27,6 @@ image_die() {
   exit 1
 }
 
-# Finds the best gzip compressor and invoke it
-image_gzip_compress() {
-  # -n (and -T for pigz) omits name/time from the header so that the
-  # resultant files are deterministic and hashes do not change each
-  # time.
-  if image_has_command pigz; then
-    # echo " ** Using parallel gzip **" >&2
-    # Tested with -b 32, 64, 128(default), 256, 1024, 16384, and -b 32 (max
-    # window size of Deflate) seems to be the best in output size.
-    pigz -nT -b 32 "$@"
-  else
-    gzip -n "$@"
-  fi
-}
-
-# Finds the best bzip2 compressor and invoke it
-image_bzip2_compress() {
-  if image_has_command pbzip2; then
-    pbzip2 "$@"
-  else
-    bzip2 "$@"
-  fi
-}
-
 # Finds if current system has tools for part_* commands
 image_has_part_tools() {
   image_has_command cgpt || image_has_command parted
