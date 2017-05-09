@@ -193,11 +193,13 @@ print(json.dumps(base))
 }
 
 # Gets the value of specified query command.
-json_get_value() {
+json_get_file_value() {
   local query="$1"
   local json_file="$2"
   if [ -n "${JQ}" ]; then
-    "${JQ}" -r "${query}" "${json_file}"
+    "${JQ}" -r \
+      "if ${query}|type == \"object\" then ${query}.file else ${query} end" \
+      "${json_file}"
     return
   fi
 
@@ -208,6 +210,8 @@ import sys
 j = json.load(open(sys.argv[2]))
 for k in sys.argv[1].split('.')[1:]:
   j = j.get(k) if j else None
+if isinstance(j, dict):
+  j = j['file']
 print('null' if j is None else j)" "${query}" "${json_file}"
 }
 
@@ -250,11 +254,11 @@ commit_payload() {
 
   if [ -n "${subtype}" ]; then
     output_name="${component}_${subtype}_${md5sum}.gz"
-    json="{\"${component}\": {\"${subtype}\": \"${output_name}\"}}"
   else
     output_name="${component}_${md5sum}.gz"
-    json="{\"${component}\": \"${output_name}\"}"
+    subtype="file"
   fi
+  json="{\"${component}\": {\"${subtype}\": \"${output_name}\"}}"
   local output="${dir}/${output_name}"
 
   # Ideally TEMP_PAYLOAD should be deleted by cleanup, and we do want to prevent
@@ -398,7 +402,7 @@ install_partition() {
     part_from="${mapping% *}"
     part_to="${mapping#* }"
     remote_file="$( \
-      json_get_value ".${component}.part${part_from}" "${json_file}")"
+      json_get_file_value ".${component}.part${part_from}" "${json_file}")"
     if [ "${remote_file}" = "null" ]; then
       die "Missing payload ${component}.part${part_from} from ${json_url}."
     fi
@@ -456,7 +460,7 @@ install_file() {
   local json_url_base="$(dirname "${json_url}")"
   local output=""
 
-  local remote_file="$(json_get_value ".${component}" "${json_file}")"
+  local remote_file="$(json_get_file_value ".${component}" "${json_file}")"
   local remote_url="${json_url_base}/${remote_file}"
 
   local download_msg="Installing"
