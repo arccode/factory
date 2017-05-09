@@ -1989,39 +1989,6 @@ cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
 
 
 /**
- * Displays a dialog containing the contents of /var/log/messages.
- */
-cros.factory.Goofy.prototype.viewVarLogMessages = function() {
-  this.sendRpc('GetVarLogMessages', [], function(/** string */ data) {
-    this.showLogDialog('/var/log/messages', data);
-  });
-};
-
-/**
- * Displays a dialog containing the contents of /var/log/messages
- * before the last reboot.
- */
-cros.factory.Goofy.prototype.viewVarLogMessagesBeforeReboot = function() {
-  var _ = cros.factory.i18n.translation;
-  this.sendRpc(
-      'GetVarLogMessagesBeforeReboot', [], function(/** ?string */ data) {
-        data = data || 'Unable to find log message indicating reboot.';
-        this.showLogDialog(
-            _('/var/log/messages before last reboot'),
-            data);
-      });
-};
-
-/**
- * Displays a dialog containing the contents of dmesg.
- */
-cros.factory.Goofy.prototype.viewDmesg = function() {
-  this.sendRpc('GetDmesg', [], function(/** string */ data) {
-    this.showLogDialog('dmesg', data);
-  });
-};
-
-/**
  * Add a factory note.
  * @param {string} name
  * @param {string} note
@@ -2645,16 +2612,6 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                 addExtraItem(_('Save note on device'), this.showNoteDialog);
                 addExtraItem(_('View notes'), this.viewNotes);
                 extraItems.push(new goog.ui.MenuSeparator());
-                addExtraItem(
-                    _('View /var/log/messages'), this.viewVarLogMessages);
-                addExtraItem(
-                    _('View /var/log/messages before last reboot'),
-                    this.viewVarLogMessagesBeforeReboot);
-                addExtraItem(_('View dmesg'), this.viewDmesg);
-                addExtraItem(
-                    _('Device manager'),
-                    goog.bind(
-                        this.deviceManager.showWindow, this.deviceManager));
                 if (cros.factory.ENABLE_DIAGNOSIS_TOOL) {
                   addExtraItem(
                       _('Diagnosis Tool'),

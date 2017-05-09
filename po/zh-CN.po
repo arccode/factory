@@ -212,10 +212,6 @@ msgid "System time: "
 msgstr "系统时间："
 
 #: ../py/goofy/js/goofy.js
-msgid "/var/log/messages before last reboot"
-msgstr "上次重开机前的 /var/log/messages"
-
-#: ../py/goofy/js/goofy.js
 msgid "Your Name"
 msgstr "你的名字"
 
@@ -293,22 +289,6 @@ msgid "View notes"
 msgstr "检视注记"
 
 #: ../py/goofy/js/goofy.js
-msgid "View /var/log/messages"
-msgstr "检视 /var/log/messages"
-
-#: ../py/goofy/js/goofy.js
-msgid "View /var/log/messages before last reboot"
-msgstr "检视上次重开机前的 /var/log/messages"
-
-#: ../py/goofy/js/goofy.js
-msgid "View dmesg"
-msgstr "检视 dmesg"
-
-#: ../py/goofy/js/goofy.js
-msgid "Device manager"
-msgstr "检视硬件"
-
-#: ../py/goofy/js/goofy.js
 msgid "Diagnosis Tool"
 msgstr "诊断工具"
 
@@ -367,6 +347,22 @@ msgstr "目前不用更新工厂软体"
 #: ../py/goofy/js/goofy.js
 msgid "Update failed:"
 msgstr "更新失败了："
+
+#: ../py/goofy/plugins/device_manager.py
+msgid "View /var/log/messages"
+msgstr "检视 /var/log/messages"
+
+#: ../py/goofy/plugins/device_manager.py
+msgid "View /var/log/messages before last reboot"
+msgstr "检视上次重开机前的 /var/log/messages"
+
+#: ../py/goofy/plugins/device_manager.py
+msgid "View dmesg"
+msgstr "检视 dmesg"
+
+#: ../py/goofy/plugins/device_manager.py
+msgid "Device manager"
+msgstr "检视硬件"
 
 #: ../py/goofy/static/index.html
 msgid "Engineering mode"

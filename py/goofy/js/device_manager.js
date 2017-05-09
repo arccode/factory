@@ -245,14 +245,16 @@ cros.factory.DeviceManager.prototype.getDeviceData = function() {
           'Loading Device Manager...'));
 
   // Executes general commands and ignores slower ones in first stage.
-  this.goofy.sendRpc('GetDeviceInfo', [], function(data) {
+  this.goofy.sendRpcToPlugin(
+      'device_manager.DeviceManager', 'GetDeviceInfo', [], function(data) {
     this.deviceManager.processData(
         goog.dom.xml.loadXml(data), '/list', '/list');
     this.deviceManager.makeMenu();
     goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
 
     // Executes slower commands in second stage.
-    this.sendRpc(
+    this.sendRpcToPlugin(
+        'device_manager.DeviceManager',
         'GetDeviceInfo',
         [JSON.stringify(this.deviceManager.slowCommandsBackendFunction)],
         function(data) {

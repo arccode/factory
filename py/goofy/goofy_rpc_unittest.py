@@ -8,7 +8,6 @@
 from contextlib import contextmanager
 import mox
 import os
-import time
 import unittest
 import yaml
 
@@ -18,7 +17,6 @@ from cros.factory.goofy import goofy_rpc
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.device import board
 from cros.factory.device import link
@@ -48,43 +46,6 @@ class GoofyRPCTest(unittest.TestCase):
   def tearDown(self):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
-
-  def testGetVarLogMessages(self):
-    var_log_messages = 'foo\xFF\nbar\n'
-    expected_output = u'foo\ufffd\nbar\n'
-
-    sys_utils.GetVarLogMessages(
-        max_length=len(var_log_messages)).AndReturn(var_log_messages)
-    self.mox.ReplayAll()
-
-    self.assertEqual(
-        expected_output,
-        self.goofy_rpc.GetVarLogMessages(max_length=len(var_log_messages)))
-
-  def testGetVarLogMessagesBeforeReboot(self):
-    var_log_messages = 'foo\xFF\nbar\n'
-    expected_output = u'foo\ufffd\nbar\n'
-    sys_utils.GetVarLogMessagesBeforeReboot(
-        2, len(var_log_messages)).AndReturn(var_log_messages)
-    self.mox.ReplayAll()
-
-    self.assertEquals(
-        expected_output,
-        self.goofy_rpc.GetVarLogMessagesBeforeReboot(2, len(var_log_messages)))
-
-  def testGetDmesg(self):
-    self.mox.StubOutWithMock(process_utils, 'Spawn')
-    self.mox.StubOutWithMock(self.goofy_rpc, '_ReadUptime')
-    self.mox.StubOutWithMock(time, 'time')
-    process_utils.Spawn(['dmesg'], check_call=True, read_stdout=True).AndReturn(
-        type('', (object,), dict(stdout_data=('[ 123.0] A\n'
-                                              '[2345.0] B\n'))))
-    self.goofy_rpc._ReadUptime().AndReturn('3000.0')  # pylint: disable=W0212
-    time.time().AndReturn(1343806777.0)
-    self.mox.ReplayAll()
-    self.assertEquals('2012-08-01T06:51:40.000Z [ 123.0] A\n'
-                      '2012-08-01T07:28:42.000Z [2345.0] B\n',
-                      self.goofy_rpc.GetDmesg())
 
   def testGetTestList(self):
     test_list = "data"

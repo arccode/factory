@@ -88,6 +88,7 @@
         "uplink_port": 8086,
         "uplink_use_shopfloor": true
       }
-    }
+    },
+    "device_manager": {}
   }
 }
