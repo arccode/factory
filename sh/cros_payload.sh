@@ -225,6 +225,16 @@ json_get_keys() {
   python -c "import json; import sys; print('\n'.join(json.load(sys.stdin)))"
 }
 
+# Encodes a string from argument to single JSON string.
+json_encode_str() {
+  if [ -n "${JQ}" ]; then
+    # shellcheck disable=SC2016
+    jq -n --arg input "$1" '$input'
+    return
+  fi
+  python -c "import json; import sys; print(json.dumps(sys.argv[1]))" "$1"
+}
+
 # Updates JSON data to specified config.
 update_json() {
   local json_path="$1"
@@ -239,13 +249,14 @@ update_json() {
 }
 
 # Commits a payload into given location.
-# Usage: commit_payload COMPONENT SUBTYPE MD5SUM TEMP_PAYLOAD DIR
+# Usage: commit_payload COMPONENT SUBTYPE MD5SUM TEMP_PAYLOAD DIR VERSION
 commit_payload() {
   local component="$1"
   local subtype="$2"
   local md5sum="$3"
   local temp_payload="$4"
   local dir="$5"
+  local version="$6"
   local json output_name
 
   # Derived variables
@@ -258,7 +269,10 @@ commit_payload() {
     output_name="${component}_${md5sum}.gz"
     subtype="file"
   fi
-  json="{\"${component}\": {\"${subtype}\": \"${output_name}\"}}"
+  if [ -n "${version}" ]; then
+    version="\"version\": $(json_encode_str "${version}"),"
+  fi
+  json="{\"${component}\": {${version} \"${subtype}\": \"${output_name}\"}}"
   local output="${dir}/${output_name}"
 
   # Ideally TEMP_PAYLOAD should be deleted by cleanup, and we do want to prevent
@@ -286,21 +300,31 @@ add_image_part() {
   local sectors="$6"
 
   local md5sum=""
+  local version=""
   local output=""
   local output_dir="$(dirname "$(readlink -f "${json_path}")")"
 
   local tmp_file="$(mktemp -p "${output_dir}" tmp_XXXXXX.gz)"
   register_tmp_object "${tmp_file}"
 
-  # TODO(hungte) if nr is 3, fetch lsb-release version.
   info "Adding component ${component} part ${nr} ($((sectors / 2048))M)..."
   md5sum="$(
     dd if="${file}" bs=512 skip="${start}" count="${sectors}" 2>/dev/null | \
     ${GZIP} -qcn | tee "${tmp_file}" | md5sum -b)"
 
-  commit_payload "${component}" "part${nr}" "${md5sum%% *}" \
-    "${tmp_file}" "${output_dir}"
+  if [ "${nr}" = 3 ]; then
+    # Read version from /etc/lsb-release#CHROMEOS_RELEASE_DESCRIPTION
+    local rootfs_dir="$(mktemp -d)"
+    register_tmp_object "${rootfs_dir}"
+    sudo mount "${file}" "${rootfs_dir}" -t ext2 -o \
+      ro,offset=$((start * 512)),sizelimit=$((sectors * 512))
+    version="$(sed -n 's/^CHROMEOS_RELEASE_DESCRIPTION=//p' \
+      "${rootfs_dir}/etc/lsb-release")"
+    sudo umount "${rootfs_dir}"
+  fi
 
+  commit_payload "${component}" "part${nr}" "${md5sum%% *}" \
+    "${tmp_file}" "${output_dir}" "${version}"
 }
 
 # Adds an disk image type payload.
@@ -310,6 +334,7 @@ add_image_component() {
   local component="$2"
   local file="$3"
   local nr start sectors uuid part_command
+  local rootfs_start rootfs_sectors
 
   # TODO(hungte) Support image in compressed form (for example, test image in
   # tar.xz) using tar -O.
@@ -330,6 +355,27 @@ add_image_component() {
   done
 }
 
+# Gets the version info from specified file component.
+# Usage: get_file_component_version COMPONENT FILE
+get_file_component_version() {
+  local component="$1"
+  local file="$2"
+  # TODO(hungte) Process gzipped file.
+  case "${component}" in
+    toolkit)
+      # TODO(hungte) Replace with --lsm.
+      sh "${file}" --info | sed -n 's/Identification: //p'
+      ;;
+    firmware)
+      head -n 50 "${file}" | sed -n 's/^ *TARGET_.*FWID="\(.*\)"/\1/p' | \
+        uniq | paste -sd ';' -
+      ;;
+    hwid)
+      sed -n 's/^checksum: //p' "${file}"
+      ;;
+  esac
+}
+
 # Adds a simple file type payload.
 # Usage: add_file_component JSON_PATH COMPONENT FILE
 add_file_component() {
@@ -339,6 +385,7 @@ add_file_component() {
 
   local md5sum=""
   local output=""
+  local version=""
   local file_size="$(($(stat -c "%s" "${file}") / 1048576))M"
   local output_dir="$(dirname "$(readlink -f "${json_path}")")"
 
@@ -355,7 +402,9 @@ add_file_component() {
     info "Adding component ${component} (${file_size})..."
     md5sum="$(${GZIP} -qcn "${file}" | tee "${tmp_file}" | md5sum -b)"
   fi
-  commit_payload "${component}" "" "${md5sum%% *}" "${tmp_file}" "${output_dir}"
+  version="$(get_file_component_version "${component}" "${file}")"
+  commit_payload "${component}" "" "${md5sum%% *}" "${tmp_file}" \
+    "${output_dir}" "${version}"
 }
 
 # Command "add", to add a component into payloads.
