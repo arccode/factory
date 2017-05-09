@@ -442,6 +442,7 @@ generate_usbimg2() {
 
   local lsb_path="/dev_image/etc/lsb-factory"
   echo "FACTORY_INSTALL_FROM_USB=1" | sudo tee -a "${stateful_dir}${lsb_path}"
+  echo "USE_CROS_PAYLOAD=1" | sudo tee -a "${stateful_dir}${lsb_path}"
   sudo df -h "${stateful_dir}"
   image_umount_partition "${stateful_dir}"
 
