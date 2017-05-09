@@ -10,7 +10,6 @@ import logging
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import invocation
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
 from cros.factory.utils import type_utils
 
 
@@ -395,7 +394,17 @@ class TestListIterator(object):
     if test_arg_env is None:
       test_arg_env = invocation.TestArgEnv()
     if get_data is None:
-      get_data = shopfloor.get_selected_aux_data
+      state_instance = self.test_list.state_instance
+
+      def select_table(table_name):
+        class Table(object):
+          def __init__(self, table_name):
+            self.table_name = table_name
+          def get(self, key):
+            return state_instance.get_shared_data(table_name + '.' + key, True)
+        return Table(table_name)
+
+      get_data = select_table
     return test.EvaluateRunIf(test_arg_env, get_data)
 
   def _ResetIterations(self, test):

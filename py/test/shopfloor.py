@@ -59,10 +59,6 @@ SESSION_ENABLED = 'enabled'
 API_GET_HWID = 'GetHWID'
 API_GET_VPD = 'GetVPD'
 
-# A key that can be used in get_aux_data() to refer to the
-# motherboard.
-AUX_TABLE_MLB = 'mlb'
-
 # Default port number from shopfloor_server.py.
 DEFAULT_SERVER_PORT = 8082
 
@@ -236,41 +232,6 @@ def get_shopfloor_handler_uri():
   return uri
 
 
-def save_aux_data(table_name, id, data):  # pylint: disable=redefined-builtin
-  """Saves data from an auxiliary table."""
-  logging.info('Setting aux data for table %r to ID %r, value %r',
-               table_name, id, data)
-  factory.set_shared_data(_get_aux_shared_data_key(table_name),
-                          (id, data))
-
-
-def select_aux_data(table_name, id):  # pylint: disable=redefined-builtin
-  """Selects a row in an auxiliary table.
-
-  This row's data will be returned for future invocations of
-  get_selected_aux_data.
-
-  For instance, one might call:
-
-    select_aux_data('mlb', 'MLB00001')
-
-  ...and from then on,
-
-    get_selected_aux_data('mlb')
-
-  will return the data from the 'mlb' table corresponding to ID 'MLB00001'.
-
-  Returns:
-    The data for that row.
-
-  Raises:
-    ValueError if the row cannot be found in the shopfloor server.
-  """
-  data = get_aux_data(table_name, id)
-  save_aux_data(table_name, id, data)
-  return data
-
-
 @_server_api
 def check_server_status(instance=None):
   """Checks if the given instance is successfully connected.
@@ -402,39 +363,6 @@ def get_vpd():
 def get_registration_code_map():
   """Gets registration codes associated with current pinned serial number."""
   return get_instance().GetRegistrationCodeMap(get_serial_number())
-
-
-@_server_api
-def get_aux_data(table_name, id):  # pylint: disable=redefined-builtin
-  """Fetches a row from an auxiliary table.
-
-  Args:
-    table_name: The auxiliary table from which to return data.
-    id: The ID of the row.
-
-  See GetAuxData in py/shopfloor/__init__.py for details.
-  """
-  return get_instance().GetAuxData(table_name, id)
-
-
-def get_selected_aux_data(table_name):
-  """Returns the previously selected row from an auxiliary table.
-
-  Args:
-    table_name: The auxiliary table from which to return data; or
-        device_data to use the device data dict.
-
-  Raises:
-    ValueError: If select_aux_data has not yet succeeded for this table.
-  """
-  if table_name == 'device_data':
-    return GetDeviceData()
-
-  _, data = factory.get_shared_data(
-      _get_aux_shared_data_key(table_name), default=(None, None))
-  if not data:
-    raise ValueError('No aux data selected for table %s' % table_name)
-  return data
 
 
 @_server_api

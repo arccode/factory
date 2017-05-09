@@ -36,8 +36,6 @@ class Scan(unittest.TestCase):
       'label',
       'Name of the ID or serial number being scanned, e.g., "MLB serial number"'
   ) + [
-      Arg('aux_table_name', str,
-          'Name of the auxiliary table containing the device', optional=True),
       Arg('event_log_key', str, 'Key to use for event log', optional=True),
       Arg('shared_data_key', str,
           'Key to use to store in scanned value in shared data',
@@ -114,26 +112,6 @@ class Scan(unittest.TestCase):
                 _('The scanned value "{value}" does not match '
                   'the expected format.'),
                 value=esc_scan_value))
-
-    if self.args.aux_table_name:
-      try:
-        shopfloor.select_aux_data(self.args.aux_table_name,
-                                  scan_value)
-      except shopfloor.ServerFault:
-        logging.exception('select_aux_data failed')
-        return SetError(
-            i18n.StringFormat(
-                _('The scanned value "{value}" is not a known {label}.'),
-                value=esc_scan_value, label=self.args.label))
-      except socket.error as e:
-        logging.exception('select_aux_data failed')
-        return SetError(
-            i18n.StringFormat(
-                _('Unable to contact shopfloor server: {exception}'),
-                exception=e))
-      except:  # pylint: disable=bare-except
-        logging.exception('select_aux_data failed')
-        return SetError(i18n.NoTranslation(debug_utils.FormatExceptionOnly()))
 
     if self.args.event_log_key:
       event_log.Log('scan', key=self.args.event_log_key, value=scan_value)
