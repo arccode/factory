@@ -143,34 +143,6 @@ class ImportBundleTest(unittest.TestCase):
         GetStdout())
 
 
-class ImportResourceTest(unittest.TestCase):
-  BUNDLE_PATH = os.path.join(TESTDATA_DIR, 'init_bundle')
-
-  def setUp(self):
-    self.args = type_utils.Obj(resources=[])
-    self.mox = mox.Mox()
-    self.mock_cli = self.mox.CreateMockAnything()
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
-
-  def testImportResource(self):
-    with file_utils.TempDirectory() as temp_dir:
-      res_1 = os.path.join(temp_dir, 'res_1')
-      file_utils.WriteFile(res_1, '1')
-      res_2 = os.path.join(temp_dir, 'res_1')
-      file_utils.WriteFile(res_1, '2')
-
-      # Expect XMLRPC call.
-      self.mock_cli.AddResource(res_1)
-      self.mock_cli.AddResource(res_2)
-      self.mox.ReplayAll()
-
-      self.args.resources = [res_1, res_2]
-      umpire.ImportResource(self.args, self.mock_cli)
-
-
 class DeployTest(unittest.TestCase):
   ACTIVE_CONFIG_PATH = os.path.join(
       TESTDATA_DIR, 'minimal_empty_services_with_enable_update_umpire.yaml')

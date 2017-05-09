@@ -205,21 +205,6 @@ def Unstage(args, umpire_cli):
   print 'Unstage config %r successfully.' % umpire_cli.UnstageConfigFile()
 
 
-@Command('import-resource',
-         CmdArg('resources', nargs='+',
-                help='Path to resource file(s).'))
-def ImportResource(args, umpire_cli):
-  """Imports file(s) to resources folder."""
-  # Find out absolute path of resources and perform simple sanity check.
-  for path in args.resources:
-    resource_path = os.path.abspath(path)
-    file_utils.CheckPath(resource_path, 'resource')
-
-    print 'Adding %r to resources' % resource_path
-    resource_name = umpire_cli.AddResource(resource_path)
-    print 'Resource added as %r' % resource_name
-
-
 @Command('start-service',
          CmdArg('services',
                 help='Comma separate list of services to start.'))
