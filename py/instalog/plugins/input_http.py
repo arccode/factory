@@ -6,13 +6,21 @@
 
 """Input HTTP plugin.
 
-Receives events from some HTTP requests.
-Can easily send events by curl:
+Receives events from HTTP requests.
+Can easily send one event by curl:
+$ curl -i -X POST -F 'event={Payload}' TARGET_HOSTNAME:TARGET_PORT
+$ curl -i -X POST \
+       -F 'event={"name": "value", ...}' \
+       -F 'att_0=@/path/to/attachment_name' \
+       TARGET_HOSTNAME:TARGET_PORT
+
+Also can send multiple events by adding header through curl:
 $ curl -i -X POST \
        -F 'event={Payload}' \
        -F 'event=[{Payload}, {Attachments}]' \
        -F 'event=[{"name": "value"}, {"0": "att_0"}]' \
        -F 'att_0=@/path/to/attachment_name' \
+       -H 'Multi-Event: True' \
        TARGET_HOSTNAME:TARGET_PORT
 (See datatypes.py Event.Deserialize for details of event format.)
 """
@@ -46,7 +54,9 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self.logger = server.context['logger']
     self._plugin_api = server.context['plugin_api']
     self._max_bytes = server.context['max_bytes']
+    self._check_format = server.context['check_format']
     self._tmp_dir = None
+    self._enable_multi_event = False
     BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
                                                    client_address, server)
 
@@ -55,6 +65,12 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self.send_response(status_code, resp_reason)
     self.send_header('Maximum-Bytes', self._max_bytes)
     self.end_headers()
+
+  def do_GET(self):
+    """Checks the server is online or not."""
+    self._SendResponse(200, 'OK')
+    self.wfile.write('Instalog input HTTP plugin is online now.\n')
+    self.wfile.close()
 
   def do_POST(self):
     """Processes when receiving POST request."""
@@ -76,6 +92,8 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
       self._SendResponse(413, 'Request Entity Too Large: The request is bigger '
                               'than %d bytes' % self._max_bytes)
       return
+    if self.headers.getheader('Multi-Event', 'False') == 'True':
+      self._enable_multi_event = True
     # Create the temporary directory for attachments.
     self._tmp_dir = tempfile.mkdtemp(prefix='input_http_')
     self.debug('Temporary directory for attachments: %s', self._tmp_dir)
@@ -101,16 +119,36 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
           headers=self.headers,
           environ={'REQUEST_METHOD': 'POST'}
       )
+      remaining_att = set(form.keys())
       event_list = form.getlist('event')
+      remaining_att.remove('event')
+      # To avoid confusion, we only allow processing one event per request.
+      if not self._enable_multi_event and len(event_list) > 1:
+        raise ValueError('One request should not exceed one event')
       for serialize_event in event_list:
         event = datatypes.Event.Deserialize(serialize_event)
-        for att_id, att_path in event.attachments.iteritems():
-          if att_path not in form or isinstance(form[att_path], list):
-            raise Exception('att_path should have exactly one in the request')
-          event.attachments[att_id] = self._RecvAttachment(form[att_path])
+        if not self._enable_multi_event:
+          if len(event.attachments) != 0:
+            raise ValueError('Please follow the format: event={Payload}')
+          requests_keys = form.keys()
+          for key in requests_keys:
+            if key != 'event':
+              event.attachments[key] = key
+        for att_id, att_key in event.attachments.iteritems():
+          if att_key not in form or isinstance(form[att_key], list):
+            raise ValueError('Attachment(%s) should have exactly one in the '
+                             'request' % att_key)
+          if att_key not in remaining_att:
+            raise ValueError('Attachment(%s) should be used by one event' %
+                             att_key)
+          remaining_att.remove(att_key)
+          event.attachments[att_id] = self._RecvAttachment(form[att_key])
+        self._check_format(event)
         events.append(event)
+      if remaining_att:
+        raise ValueError('Additional fields: %s' % list(remaining_att))
     except Exception as e:
-      self.warning('Bad request with error: %s', repr(e))
+      self.warning('Bad request with exception: %s', repr(e))
       return 400, 'Bad request: ' + repr(e)
     if len(events) == 0:
       return 200, 'OK'
@@ -139,7 +177,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
   def log_message(self, format, *args):  # pylint: disable=W0622
     """Override log_message to Instalog format."""
-    self.error("%s - %s", self.client_address[0], format % args)
+    self.warning('%s - %s', self.client_address[0], format % args)
 
 
 class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
@@ -208,7 +246,8 @@ class InputHTTP(plugin_base.InputPlugin):
     self._http_server.context = {
         'max_bytes': self.args.max_bytes,
         'logger': self.logger,
-        'plugin_api': self}
+        'plugin_api': self,
+        'check_format': self._CheckFormat}
     self._http_server.StartServer()
     self.info('http now listening on %s:%d...',
               self.args.hostname, self.args.port)
@@ -217,6 +256,14 @@ class InputHTTP(plugin_base.InputPlugin):
     """Tears down the plugin."""
     self._http_server.StopServer()
     self.info('Shutdown complete')
+
+  def _CheckFormat(self, event):
+    """Checks the event is following the format or not.
+
+    Raises:
+      Exception: the event is not conform to the format.
+    """
+    pass
 
 
 if __name__ == '__main__':

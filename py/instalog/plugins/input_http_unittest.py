@@ -70,7 +70,9 @@ class TestInputHTTP(unittest.TestCase):
     return path
 
   def _CurlPost(self, *fields):
-    curl_args = ['-X', 'POST', '-s', '-o', '/dev/null', '-w', '%{http_code}']
+    curl_args = ['-X', 'POST', '--silent', '--output', '/dev/null',
+                 '--write-out', '%{http_code}',
+                 '--header', 'Multi-Event: True']
     for field in fields:
       curl_args.append('-F')
       curl_args.append(field)
@@ -78,8 +80,14 @@ class TestInputHTTP(unittest.TestCase):
         ['curl'] + curl_args + ['localhost:%d' % self.port], ignore_stderr=True)
     return int(status_code_str)
 
+  def _RequestsPost(self, files=None, multi_event=True, timeout=None):
+    # To avoid requests use content-type application/x-www-form-urlencoded
+    return requests.post(url='http://localhost:' + str(self.port), files=files,
+                         headers={'Multi-Event': str(multi_event)},
+                         timeout=timeout)
+
   def testConnect(self):
-    r = requests.post('http://localhost:' + str(self.port), files={'': ''})
+    r = requests.get(url='http://localhost:' + str(self.port), timeout=2)
     self.assertEqual(200, r.status_code)
     self.assertIn('Maximum-Bytes', r.headers)
     self.assertEqual(0, len(self.core.emit_calls))
@@ -114,11 +122,9 @@ class TestInputHTTP(unittest.TestCase):
     self.assertTrue(self.core.AllStreamsExpired())
     self.core.Close()
     with self.assertRaises(requests.ConnectionError):
-      requests.post('http://localhost:' + str(self.port), timeout=1)
+      self._RequestsPost(timeout=1)
 
   def testUnsupportedMethod(self):
-    r = requests.get('http://localhost:' + str(self.port))
-    self.assertEqual(501, r.status_code)
     r = requests.put('http://localhost:' + str(self.port))
     self.assertEqual(501, r.status_code)
     r = requests.delete('http://localhost:' + str(self.port))
@@ -133,10 +139,10 @@ class TestInputHTTP(unittest.TestCase):
   def testNoAttachment(self):
     event = datatypes.Event({}, {'att_id': 'att'})
     data = {'event': datatypes.Event.Serialize(event)}
-    r = requests.post('http://localhost:' + str(self.port), files=data)
+    r = self._RequestsPost(files=data)
     self.assertEqual(400, r.status_code)
-    self.assertEqual('Bad request: Exception(\'att_path should have exactly '
-                     'one in the request\',)', r.reason)
+    self.assertEqual('Bad request: ValueError(u\'Attachment(att) should have '
+                     'exactly one in the request\',)', r.reason)
     self.assertEqual(0, len(self.core.emit_calls))
 
   def testSameNameAttachment(self):
@@ -146,23 +152,86 @@ class TestInputHTTP(unittest.TestCase):
     data = [('event', datatypes.Event.Serialize(event)),
             ('att', att1),
             ('att', att2)]
-    r = requests.post('http://localhost:' + str(self.port), files=data)
+    r = self._RequestsPost(files=data)
     self.assertEqual(400, r.status_code)
-    self.assertEqual('Bad request: Exception(\'att_path should have exactly '
-                     'one in the request\',)', r.reason)
+    self.assertEqual('Bad request: ValueError(u\'Attachment(att) should have '
+                     'exactly one in the request\',)', r.reason)
     self.assertEqual(0, len(self.core.emit_calls))
+
+  def testUseSameAttachment(self):
+    event1 = datatypes.Event({}, {'att_id': 'att'})
+    event2 = datatypes.Event({}, {'att_id': 'att'})
+    att = 'THISISATT'
+    data = [('event', datatypes.Event.Serialize(event1)),
+            ('event', datatypes.Event.Serialize(event2)),
+            ('att', att)]
+    r = self._RequestsPost(files=data)
+    self.assertEqual(400, r.status_code)
+    self.assertEqual('Bad request: ValueError(u\'Attachment(att) should be '
+                     'used by one event\',)', r.reason)
+    self.assertEqual(0, len(self.core.emit_calls))
+
+  def testAdditionalAttachment(self):
+    event = datatypes.Event({}, {'att_id': 'att1'})
+    att1 = 'THISISATT1'
+    att2 = 'THISISATT2'
+    data = [('event', datatypes.Event.Serialize(event)),
+            ('att1', att1),
+            ('att2', att2)]
+    r = self._RequestsPost(files=data)
+    self.assertEqual(400, r.status_code)
+    self.assertEqual('Bad request: ValueError("Additional fields: '
+                     '[\'att2\']",)', r.reason)
+    self.assertEqual(0, len(self.core.emit_calls))
+
+  def testInvalidSingleEvent(self):
+    """Tests that event.attachment has additional attachment"""
+    event = datatypes.Event({'type': 'other', 'AA': 'BB'}, {'att': 'att'})
+    att = os.urandom(1024)  # 1kb data
+    data = {'event': datatypes.Event.Serialize(event),
+            'att': att}
+    r = self._RequestsPost(files=data, multi_event=False)
+    self.assertEqual(400, r.status_code)
+    self.assertEqual('Bad request: ValueError(\'Please follow the format: '
+                     'event={Payload}\',)', r.reason)
+
+    event = datatypes.Event(
+        {'type': 'other', 'AA': 'BB', 'attachments': {'att_key1':{},
+                                                      'att_key2':{}}},
+        {'att_key2': 'att_key2'})
+    att1 = os.urandom(1024)  # 1kb data
+    att2 = os.urandom(1024)  # 1kb data
+    data = {'event': datatypes.Event.Serialize(event),
+            'att_key1': att1,
+            'att_key2': att2}
+    r = self._RequestsPost(files=data, multi_event=False)
+    self.assertEqual(400, r.status_code)
+    self.assertEqual('Bad request: ValueError(\'Please follow the format: '
+                     'event={Payload}\',)', r.reason)
 
   def testOneEvent(self):
     event = datatypes.Event({'AA': 'BB'}, {'att_id': 'att'})
     att = os.urandom(1024)  # 1kb data
     data = {'event': datatypes.Event.Serialize(event),
             'att': att}
-    r = requests.post('http://localhost:' + str(self.port), files=data)
+    r = self._RequestsPost(files=data)
     self.assertEqual(200, r.status_code)
     self.assertEqual(1, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[0]))
     self.assertEqual(event.payload, self.core.emit_calls[0][0].payload)
     with open(self.core.emit_calls[0][0].attachments['att_id']) as f:
+      self.assertEqual(att, f.read())
+
+    event = datatypes.Event({'AA': 'BB'})
+    att = os.urandom(1024)  # 1kb data
+    data = {'event': datatypes.Event.Serialize(event),
+            'att': att}
+    r = self._RequestsPost(files=data, multi_event=False)
+    self.assertEqual(200, r.status_code)
+    self.assertEqual(2, len(self.core.emit_calls))
+    self.assertEqual(1, len(self.core.emit_calls[1]))
+    self.assertEqual(event.payload, self.core.emit_calls[1][0].payload)
+    with open(self.core.emit_calls[1][0].attachments['att']) as f:
       self.assertEqual(att, f.read())
 
   def testHTTPlibEvent(self):
@@ -186,7 +255,13 @@ class TestInputHTTP(unittest.TestCase):
             ('event', datatypes.Event.Serialize(event3)),
             ('att1', att1),
             ('att2', att2)]
-    r = requests.post('http://localhost:' + str(self.port), files=data)
+    r = self._RequestsPost(files=data, multi_event=False)
+    self.assertEqual(400, r.status_code)
+    self.assertEqual('Bad request: ValueError(\'One request should not exceed '
+                     'one event\',)', r.reason)
+    self.assertEqual(0, len(self.core.emit_calls))
+
+    r = self._RequestsPost(files=data)
     self.assertEqual(200, r.status_code)
     self.assertEqual(1, len(self.core.emit_calls))
     self.assertEqual(3, len(self.core.emit_calls[0]))
@@ -218,8 +293,7 @@ class TestInputHTTP(unittest.TestCase):
     t.start()
 
     sync_utils.WaitFor(self._ClientConnected, 10, poll_interval=0.02)
-    r = requests.post(
-        'http://localhost:' + str(self.port), files=small_data, timeout=1)
+    r = self._RequestsPost(files=small_data, timeout=1)
     t.join()
 
     self.assertEqual(200, r.status_code)
@@ -243,7 +317,6 @@ class TestInputHTTP(unittest.TestCase):
 
   @unittest.skip('This test cause a heavy load on disk write, '
                  'and slow down other tests. Please run it manually.')
-  @unittest.skipIf(_TempAvailSpaceMB() < 2048, 'Test requires 2gb disk space.')
   def testOneHugeAttachment(self):
     """Tests the ability to transfer one huge attachment."""
     event = datatypes.Event({}, {'att_id': 'att'})
@@ -259,5 +332,5 @@ class TestInputHTTP(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
+  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
   unittest.main()
