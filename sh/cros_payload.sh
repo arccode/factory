@@ -145,7 +145,8 @@ cmd_help() {
 
   Commands:
       add      JSON_PATH COMPONENT FILE
-      install  JSON_URL  DEST     [COMPONENTS...]
+      install  JSON_URL  DEST      COMPONENTS...
+      download JSON_URL  DEST      COMPONENTS...
       list     JSON_URL
 
   COMPONENT: ${COMPONENTS_ALL}
@@ -446,7 +447,7 @@ install_add_stub() {
 }
 
 # Installs a file type payload to given location.
-# Usage: install_file JSON_URL DEST COMPONENT
+# Usage: install_file JSON_URL DEST JSON_FILE COMPONENT
 install_file() {
   local json_url="$1"; shift
   local dest="$1"; shift
@@ -458,10 +459,15 @@ install_file() {
   local remote_file="$(json_get_value ".${component}" "${json_file}")"
   local remote_url="${json_url_base}/${remote_file}"
 
+  local download_msg="Installing"
+  if [ -z "${DO_INSTALL}" ]; then
+    download_msg="Downloading"
+  fi
+
   if [ -d "${dest}" ]; then
     # The destination is a directory.
     output="${dest}/${component}.gz"
-    echo "Installing from ${component} to ${output} ..."
+    echo "${download_msg} from ${component} to ${output} ..."
     fetch "${remote_url}" "${dest}/${component}.gz"
   elif [ -b "${dest}" ]; then
     local dev="$(get_partition_dev "${dest}" 1)"
@@ -473,22 +479,24 @@ install_file() {
     register_tmp_object "${mount_point}"
     mount "${dev}" "${mount_point}"
 
-    echo "Installing from ${component} to ${dev}!cros_payloads/${component}.gz"
     local out_dir="${mount_point}/cros_payloads"
     mkdir -p "${out_dir}"
     output="${out_dir}/${component}.gz"
+    echo "${download_msg} from ${component} to ${dev}!${output#${mount_point}/}"
     fetch "${remote_url}" "${output}"
-    install_add_stub "${out_dir}" "${component}"
+    if [ -n "${DO_INSTALL}" ]; then
+      install_add_stub "${out_dir}" "${component}"
+    fi
     umount "${mount_point}"
   elif [ "${dest%.gz}" = "${dest}" ]; then
     # The destination is an uncompressed file.
     output="${dest}"
-    echo "Installing from ${component} to ${output} ..."
+    echo "${download_msg} from ${component} to ${output} ..."
     fetch "${remote_url}" | ${GZIP} -d >"${output}"
   else
     # The destination is a compressed file.
     output="${dest}.gz"
-    echo "Installing from ${component} to ${output} ..."
+    echo "${download_msg} from ${component} to ${output} ..."
     fetch "${remote_url}" "${output}"
   fi
 }
@@ -511,10 +519,13 @@ get_canonical_url() {
   esac
 }
 
-# Command "install", to allow installing components to target.
-# Usage: cmd_install JSON_URL DEST_DEV [COMPONENTS...]
-# When not specified, try to install all components available.
-cmd_install() {
+# Downloads (and installs if DO_INSTALL is set) components to given destination.
+# If DEST_DEV is a folder, download components to the folder.
+# If DEST_DEV is a partition (block device), download components to a sub folder
+#  "cros_payloads" inside that partition.
+# If DEST_DEV is a disk device, use its first partition as block device mode.
+# Usage: install_components JSON_URL DEST_DEV [COMPONENTS...]
+install_components() {
   local json_url="$1"; shift
   local dest="$1"; shift
   [ -n "${json_url}" ] || die "Need JSON URL."
@@ -526,26 +537,27 @@ cmd_install() {
 
   local json_file="$(mktemp)"
   register_tmp_object "${json_file}"
-
-  if [ -z "${components}" ]; then
-    components="${COMPONENTS_ALL}"
-  fi
   json_url="$(get_canonical_url "${json_url}")"
-
   info "Getting JSON config from ${json_url}..."
   fetch "${json_url}" "${json_file}"
 
-  # All ChromeOS USB image sources have
-  #  2 = Recovery Kernel
-  #  3 = Root FS
-  #  4 = Normal Kernel
-  # And the installation on fixed storage should be
-  #  2 = Test Image Normal Kernel
-  #  3 = Test Image Root FS
-  #  4 = Release Image Normal Kernel
-  #  5 = Release Image Root FS
-
   for component in ${components}; do
+    if [ -z "${DO_INSTALL}" ]; then
+      install_file "${json_url}" "${dest}" "${json_file}" "${component}"
+      continue
+    fi
+
+    # All ChromeOS USB image sources have
+    #  2 = Recovery Kernel
+    #  3 = Root FS
+    #  4 = Normal Kernel
+    # And the installation on fixed storage should be
+    #  2 = Test Image Normal Kernel
+    #  3 = Test Image Root FS
+    #  4 = Release Image Normal Kernel
+    #  5 = Release Image Root FS
+
+    # Download and install.
     case "${component}" in
       test_image)
         install_partition \
@@ -559,18 +571,24 @@ cmd_install() {
           "6 6" "7 7" "8 8" "9 9" "10 10" "11 11" "12 12"
         ;;
       toolkit | hwid | firmware | complete)
-        install_file \
-          "${json_url}" "${dest}" "${json_file}" "${component}" \
-          ""
+        install_file "${json_url}" "${dest}" "${json_file}" "${component}"
         ;;
       *)
-        # TODO(hungte) In future we may be able to install arbitrary component
-        # from JSON file.
         die "Unknown component: ${component}"
     esac
   done
+}
 
-  # TODO(hungte) Complete installation.
+# Command "download", to allow downloading components to target.
+# Usage: cmd_download JSON_URL DEST_DEV COMPONENTS...
+cmd_download() {
+  DO_INSTALL="" install_components "$@"
+}
+
+# Command "install", to allow installing components to target.
+# Usage: cmd_install JSON_URL DEST_DEV COMPONENTS...
+cmd_install() {
+  DO_INSTALL=1 install_components "$@"
 }
 
 # Lists available components on JSON URL.
@@ -611,6 +629,10 @@ main() {
     install)
       shift
       cmd_install "$@"
+      ;;
+    download)
+      shift
+      cmd_download "$@"
       ;;
     list)
       shift
