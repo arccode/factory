@@ -330,6 +330,8 @@ class TestBufferSimpleFile(unittest.TestCase):
     stream2.Commit()
 
     self.sf.Truncate()
+    # Verify that the metadata is consistent after running Truncate.
+    self.sf.SetUp()
 
     self.sf.AddConsumer('a')
     stream3 = self.sf.Consume('a')

@@ -250,10 +250,10 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
       self.last_seq = data[self.version]['last_seq']
       self.start_pos = data[self.version]['start_pos']
       self.end_pos = data[self.version]['end_pos']
-      # Check that end_pos <= actual size of data_path.
-      if self.end_pos > os.path.getsize(self.data_path):
-        self.error('end_pos in restored metadata is larger than data file; '
-                   'recovering metadata from data file')
+      # Check that end_pos <= start_pos + size of data_path.
+      if self.end_pos > self.start_pos + os.path.getsize(self.data_path):
+        self.error('end_pos in restored metadata is larger than start_pos + '
+                   'data file; recovering metadata from data file')
         self._RecoverMetadata()
 
   def _RecoverMetadata(self):
