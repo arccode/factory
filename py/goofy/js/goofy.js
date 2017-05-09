@@ -2952,13 +2952,14 @@ cros.factory.Goofy.prototype.sendEvent = function(type, properties) {
  * @param {Object} args
  * @param {?function(this:cros.factory.Goofy, ?)=} callback
  * @param {?function(this:cros.factory.Goofy, ?)=} opt_errorCallback
+ * @param {string} path
  */
 cros.factory.Goofy.prototype.sendRpc = function(
-    method, args, callback, opt_errorCallback) {
+    method, args, callback, opt_errorCallback, path='/goofy') {
   var request = goog.json.serialize({method: method, params: args, id: 1});
   goog.log.info(cros.factory.logger, 'RPC request: ' + request);
   var factoryThis = this;
-  goog.net.XhrIo.send('/goofy', function() {
+  goog.net.XhrIo.send(path, function() {
     cros.factory.logger.info(
         'RPC response for ' + method + ': ' + this.getResponseText());
 
@@ -2990,6 +2991,20 @@ cros.factory.Goofy.prototype.sendRpc = function(
     }
   }, 'POST', request);
 };
+
+/**
+ * Calls an RPC function and invokes callback with the result.
+ * @param {string} pluginName
+ * @param {string} method
+ * @param {Object} args
+ * @param {?function(this:cros.factory.Goofy, ?)=} callback
+ * @param {?function(this:cros.factory.Goofy, ?)=} opt_errorCallback
+ */
+cros.factory.Goofy.prototype.sendRpcToPlugin = function(
+    pluginName, method, args, callback, opt_errorCallback) {
+  this.sendRpc(method, args, callback, opt_errorCallback,
+               '/plugin/' + pluginName.replace('.', '_'));
+}
 
 /**
  * Sends a keepalive event if the web socket is open.
