@@ -71,6 +71,61 @@ class PluginTest(unittest.TestCase):
     self._plugin.Stop()
     self._plugin.Destroy()
 
+  def testGetRPCInstance(self):
+
+    # The basic class to be tested, also try to access data member to make sure
+    # the function is bound to the correct instance.
+    class PluginA(plugin.Plugin):
+      def __init__(self, goofy_instance):
+        super(PluginA, self).__init__(goofy_instance)
+        self.data_a = 1
+        self.data_b = 2
+
+      @plugin.RPCFunction
+      def A(self):
+        return self.data_a
+
+      @plugin.RPCFunction
+      def B(self):
+        return self.data_b
+
+    # Another class to be tested with the same function name as PluginA. This
+    # is to ensure functions between classes won't be overrided.
+    class PluginB(plugin.Plugin):
+      def __init__(self, goofy_instance):
+        super(PluginB, self).__init__(goofy_instance)
+        self.data_a = 3
+        self.data_b = 4
+
+      @plugin.RPCFunction
+      def A(self):
+        return self.data_a
+
+      @plugin.RPCFunction
+      def B(self):
+        return self.data_b
+
+    # Make sure inheritance also works.
+    class PluginC(PluginA):
+      @plugin.RPCFunction
+      def A(self):
+        return 3
+
+    classes = [PluginA, PluginB, PluginC]
+    plugins = []
+    for cls in classes:
+      plugins.append(cls(mock.Mock(goofy.Goofy)))
+
+    rpc_instances = []
+    for p in plugins:
+      rpc_instances.append(p.GetRPCInstance())
+
+    expected_value = [[1, 2], [3, 4], [3, 2]]
+    for idx, rpc_instance in enumerate(rpc_instances):
+      self.assertItemsEqual(rpc_instance.__dict__.keys(), ['A', 'B'])
+      self.assertEqual(rpc_instance.A(), expected_value[idx][0])
+      self.assertEqual(rpc_instance.B(), expected_value[idx][1])
+
 
 if __name__ == '__main__':
   unittest.main()

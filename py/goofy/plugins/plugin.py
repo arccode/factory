@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import inspect
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import debug_utils
@@ -10,6 +11,12 @@ from cros.factory.utils import type_utils
 
 # Type of resources that can be used by plugins.
 RESOURCE = type_utils.Enum(['CPU', 'POWER', 'NETWORK'])
+
+
+def RPCFunction(func):
+  """Decorator used in `Plugin` to expose a function to Goofy server."""
+  func.__rpc_function__ = True
+  return func
 
 
 class Plugin(object):
@@ -37,6 +44,9 @@ class Plugin(object):
   - DESTORYED: `OnDestory` is called and Goofy is going to shutdown.
   """
 
+  class RPCInstance(object):
+    pass
+
   def __init__(self, goofy, used_resources=None):
     """Constructor
 
@@ -48,6 +58,7 @@ class Plugin(object):
     self.goofy = goofy
     self.used_resources = used_resources or []
     self._state = self.STATE.STOPPED
+    self._rpc_instance = None
 
   def OnStart(self):
     """Called when Goofy starts or resumes the plugin."""
@@ -62,14 +73,15 @@ class Plugin(object):
     pass
 
   def GetRPCInstance(self):
-    """Called by Goofy to get RPC instance of the plugin.
+    """Returns RPC instance of the plugin."""
 
-    This is for plugin to share public functions to tests or other plugins
-    across different threads and processes. An object with all supported public
-    functions should be returned. Returns None if no public function is
-    supported.
-    """
-    return None
+    if self._rpc_instance is None:
+      self._rpc_instance = self.RPCInstance()
+      for name, attr in inspect.getmembers(self):
+        if getattr(attr, '__rpc_function__', False):
+          self._rpc_instance.__dict__[name] = attr
+
+    return self._rpc_instance
 
   @debug_utils.CatchException('Plugin')
   def Start(self):
