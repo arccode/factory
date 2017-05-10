@@ -26,6 +26,8 @@
 
 # Environment settings for utilities to invoke.
 : "${GZIP:="gzip"}"
+: "${BZIP2:="bzip2"}"
+: "${CROS_PAYLOAD_FORMAT:=gz}"
 : "${JQ:=""}"
 
 # Debug settings
@@ -82,23 +84,48 @@ register_tmp_object() {
   echo "$*" >>"${TMP_OBJECTS}"
 }
 
-# Checks if given file is already compressed by gzip.
-# Usage: is_gzipped FILE
-is_gzipped() {
+# Returns the compression format of input file.
+# Usage: get_compression_format FILE
+get_compression_format() {
   local input="$1"
 
   # The 'file' command needs special database, so we want to directly read the
   # magic value.
-  local magic="$(od -An -N2 -x "${input}")"
-  local gzip_magic=" 8b1f"
-
-  [ "${magic}" = "${gzip_magic}" ]
+  local magic="$(od -An -N3 -t x1 "${input}")"
+  case "${magic}" in
+    " 1f 8b"*)
+      echo "gz"
+      ;;
+    " 42 5a 68"*)
+      echo "bz2"
+      ;;
+  esac
 }
 
 # Checks if a tool program is already available on path.
 # Usage: has_tool PROGRAM
 has_tool() {
   type "$1" >/dev/null 2>&1
+}
+
+# Compresses or decompresses an input file or stream. The ARGS should be options
+# (-dkf) or file.
+# Usage: do_compress URL ARGS
+do_compress() {
+  local url="$1"
+  local format="${url##*.}"
+  shift
+
+  case "${format}" in
+    gz)
+      ${GZIP} -qn "$@"
+      ;;
+    bz2)
+      ${BZIP2} -q "$@"
+      ;;
+    *)
+      die "Unknown compression for ${url}."
+  esac
 }
 
 # Downloads from given URL. If output is not given, use STDOUT.
@@ -140,8 +167,11 @@ cmd_help() {
   echo "Usage: $0 command [args...]
 
   '$(basename "$0")' is an utility for manipulating payload-type resources.
-  All the payloads will be stored as gzipped file with MD5SUM in
-  file name. A JSON file manages the mapping to individual files.
+  All the payloads will be stored as compressed file with MD5SUM in file name.
+  A JSON file manages the mapping to individual files.
+
+  The selected compression is ${CROS_PAYLOAD_FORMAT}. To change that, override
+  environment variable CROS_PAYLOAD_FORMAT to 'gz' or 'bz2'.
 
   Commands:
       add      JSON_PATH COMPONENT FILE
@@ -149,11 +179,14 @@ cmd_help() {
       download JSON_URL  DEST      COMPONENTS...
       list     JSON_URL
 
-  COMPONENT: ${COMPONENTS_ALL}
+  COMPONENT: The type of file resource. Known values: ${COMPONENTS_ALL}
   JSON_PATH: A path to local JSON config file.
-  JSON_URL:  A URL to remote or local JSON config file.
+  JSON_URL:  An URL to remote or local JSON config file.
   FILE:      A path to local file resource.
-  DEST:      Destination (usually a folder or a block device like /dev/sda).
+  DEST:      Destination (a folder, file, or block device like /dev/sda).
+
+  Command 'install' will fetch, decompress, and create install stubs if needed.
+  Command 'download' will simply fetch and keep file in compressed form.
   "
 }
 
@@ -262,11 +295,12 @@ commit_payload() {
   # Derived variables
   [ -n "${md5sum}" ] || die "Fail to get MD5 for ${component}.${subtype}."
   [ -e "${temp_payload}" ] || die "Fail to find temporary file ${temp_payload}."
+  local ext="${temp_payload##*.}"
 
   if [ -n "${subtype}" ]; then
-    output_name="${component}_${subtype}_${md5sum}.gz"
+    output_name="${component}_${subtype}_${md5sum}.${ext}"
   else
-    output_name="${component}_${md5sum}.gz"
+    output_name="${component}_${md5sum}.${ext}"
     subtype="file"
   fi
   if [ -n "${version}" ]; then
@@ -304,13 +338,14 @@ add_image_part() {
   local output=""
   local output_dir="$(dirname "$(readlink -f "${json_path}")")"
 
-  local tmp_file="$(mktemp -p "${output_dir}" tmp_XXXXXX.gz)"
+  local tmp_file="$(mktemp -p "${output_dir}" \
+    tmp_XXXXXX."${CROS_PAYLOAD_FORMAT}")"
   register_tmp_object "${tmp_file}"
 
   info "Adding component ${component} part ${nr} ($((sectors / 2048))M)..."
   md5sum="$(
     dd if="${file}" bs=512 skip="${start}" count="${sectors}" 2>/dev/null | \
-    ${GZIP} -qcn | tee "${tmp_file}" | md5sum -b)"
+    do_compress "${CROS_PAYLOAD_FORMAT}" | tee "${tmp_file}" | md5sum -b)"
 
   if [ "${nr}" = 3 ]; then
     # Read version from /etc/lsb-release#CHROMEOS_RELEASE_DESCRIPTION
@@ -360,7 +395,7 @@ add_image_component() {
 get_file_component_version() {
   local component="$1"
   local file="$2"
-  # TODO(hungte) Process gzipped file.
+  # TODO(hungte) Process compressed file.
   case "${component}" in
     toolkit)
       sh "${file}" --lsm
@@ -387,19 +422,27 @@ add_file_component() {
   local version=""
   local file_size="$(($(stat -c "%s" "${file}") / 1048576))M"
   local output_dir="$(dirname "$(readlink -f "${json_path}")")"
+  local compressed=""
 
-  local tmp_file="$(mktemp -p "${output_dir}" tmp_XXXXXX.gz)"
+  local ext="$(get_compression_format "${file}")"
+  if [ -n "${ext}" ]; then
+    compressed="${ext}-compressed"
+  else
+    ext="${CROS_PAYLOAD_FORMAT}"
+  fi
+
+  local tmp_file="$(mktemp -p "${output_dir}" tmp_XXXXXX."${ext}")"
   register_tmp_object "${tmp_file}"
 
-  if is_gzipped "${file}"; then
+  if [ -n "${compressed}" ]; then
     # Simply copy to destination
-    info "Adding component ${component} (${file_size}, gzipped)..."
+    info "Adding component ${component} (${file_size}, ${compressed})..."
     md5sum="$(tee "${tmp_file}" <"${file}" | md5sum -b)"
   else
-    # gzip and copy at the same time. If we want to prevent storing original
-    # file name, add -n.
+    # Compress and copy at the same time.
     info "Adding component ${component} (${file_size})..."
-    md5sum="$(${GZIP} -qcn "${file}" | tee "${tmp_file}" | md5sum -b)"
+    md5sum="$(do_compress "${CROS_PAYLOAD_FORMAT}" -c "${file}" | \
+      tee "${tmp_file}" | md5sum -b)"
   fi
   version="$(get_file_component_version "${component}" "${file}")"
   commit_payload "${component}" "" "${md5sum%% *}" "${tmp_file}" \
@@ -461,17 +504,17 @@ install_partition() {
     # TODO(hungte) Support better dd/pv, pre-fetch size.
     # bs is fixed on 1048576 because many dd implementations do not support
     # units like '1M' or '1m'.
-    fetch "${remote_url}" | ${GZIP} -d | \
+    fetch "${remote_url}" | do_compress "${remote_url}" -d | \
       dd of="${dest_part_dev}" bs=1048576 iflag=fullblock oflag=dsync
   done
 }
 
 # Adds a stub file for component installation.
-# Usage: install_add_stub DIR COMPONENT
+# Usage: install_add_stub COMPONENT FILE
 install_add_stub() {
-  local payloads_dir="$1"
-  local component="$2"
-  local output_dir="${payloads_dir}/install"
+  local component="$1"
+  local file="$2"
+  local output_dir="$(dirname "${file}")/install"
   # Chrome OS test images may disable symlink and +exec on stateful partition,
   # so we have to implement the stub as pure shell scripts, and invoke the
   # component via shell.
@@ -487,9 +530,6 @@ install_add_stub() {
     *)
       return
   esac
-
-  # Decompress now to reduce installer dependency.
-  ${GZIP} -df "${payloads_dir}/${component}.gz"
 
   mkdir -m 0755 -p "${output_dir}"
   echo '#!/bin/sh' >"${stub}"
@@ -507,49 +547,58 @@ install_file() {
   local component="$1"; shift
   local json_url_base="$(dirname "${json_url}")"
   local output=""
+  local output_display=""
 
   local remote_file="$(json_get_file_value ".${component}" "${json_file}")"
   local remote_url="${json_url_base}/${remote_file}"
-
-  local download_msg="Installing"
-  if [ -z "${DO_INSTALL}" ]; then
-    download_msg="Downloading"
-  fi
+  local file_ext="${remote_file##*.}"
+  local output_is_final=""
+  local mount_point
 
   if [ -d "${dest}" ]; then
     # The destination is a directory.
-    output="${dest}/${component}.gz"
-    echo "${download_msg} from ${component} to ${output} ..."
-    fetch "${remote_url}" "${dest}/${component}.gz"
+    output="${dest}/${component}.${file_ext}"
   elif [ -b "${dest}" ]; then
+    # The destination is a block device file for disk or partition.
     local dev="$(get_partition_dev "${dest}" 1)"
     if [ ! -b "${dev}" ]; then
-      # The destination is a block device file for partition.
       dev="${dest}"
     fi
-    local mount_point="$(mktemp -d)"
+    mount_point="$(mktemp -d)"
     register_tmp_object "${mount_point}"
     mount "${dev}" "${mount_point}"
 
     local out_dir="${mount_point}/cros_payloads"
     mkdir -p "${out_dir}"
-    output="${out_dir}/${component}.gz"
-    echo "${download_msg} from ${component} to ${dev}!${output#${mount_point}/}"
-    fetch "${remote_url}" "${output}"
-    if [ -n "${DO_INSTALL}" ]; then
-      install_add_stub "${out_dir}" "${component}"
-    fi
-    umount "${mount_point}"
-  elif [ "${dest%.gz}" = "${dest}" ]; then
-    # The destination is an uncompressed file.
-    output="${dest}"
-    echo "${download_msg} from ${component} to ${output} ..."
-    fetch "${remote_url}" | ${GZIP} -d >"${output}"
+    output="${out_dir}/${component}.${file_ext}"
+    output_display="${dev}!${output#${mount_point}}"
   else
-    # The destination is a compressed file.
-    output="${dest}.gz"
-    echo "${download_msg} from ${component} to ${output} ..."
+    # Destination is probably a file path to overwrite.
+    output="${dest}"
+    output_is_final="true"
+  fi
+
+  if [ -z "${output_display}" ]; then
+    output_display="${output}"
+  fi
+  if [ -n "${DO_INSTALL}" ] && [ -z "${output_is_final}" ]; then
+    output="${output%.${file_ext}}"
+    output_display="${output_display%.${file_ext}}"
+  fi
+
+  if [ -n "${DO_INSTALL}" ]; then
+    echo "Installing from ${component} to ${output_display} ..."
+    fetch "${remote_url}" | do_compress "${remote_url}" -d >"${output}"
+    if [ -n "${mount_point}" ]; then
+      install_add_stub "${component}" "${output}"
+    fi
+  else
+    echo "Downloading from ${component} to ${output_display} ..."
     fetch "${remote_url}" "${output}"
+  fi
+
+  if [ -n "${mount_point}" ]; then
+    umount "${mount_point}"
   fi
 }
 
@@ -667,9 +716,21 @@ main() {
     # -n in pigz controls only file name, not modtime.
     GZIP="pigz -T"
   fi
+  if has_tool lbzip2; then
+    BZIP2="lbzip2"
+  elif has_tool pbzip2; then
+    BZIP2="pbzip2"
+  fi
   if has_tool jq; then
     JQ="jq"
   fi
+  case "${CROS_PAYLOAD_FORMAT}" in
+    gz | bz2)
+      ;;
+    *)
+      die "CROS_PAYLOAD_FORMAT must be either gz or bz2."
+      ;;
+  esac
   umask 022
 
   TMP_OBJECTS="$(mktemp)"
