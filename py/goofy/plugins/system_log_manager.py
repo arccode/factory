@@ -6,21 +6,25 @@
 """SystemLogManager scans system logs periodically and clear/sync them."""
 
 
+from collections import namedtuple
 import glob
 import logging
 import os
 import Queue
+import shutil
 import threading
 import time
-from collections import namedtuple
 from urlparse import urlparse
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.utils.debug_utils import CatchException
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
+from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
@@ -29,6 +33,9 @@ KickRequest = namedtuple('KickRequest',
 
 
 MIN_SYNC_LOG_PERIOD_SECS = 120
+
+
+MAX_CRASH_FILE_SIZE = 64 * 1024
 
 
 class SystemLogManagerException(Exception):
@@ -163,6 +170,7 @@ class SystemLogManager(plugin.Plugin):
   def OnStart(self):
     """Starts SystemLogManager _main_thread with _RunForever method."""
     logging.info('Start SystemLogManager thread.')
+    self._FindKcrash()
     self._ClearLogs()
     self._main_thread = threading.Thread(target=self._RunForever,
                                          name='SystemLogManager')
@@ -336,3 +344,56 @@ class SystemLogManager(plugin.Plugin):
             self._SyncLogs(extra_files, callback,
                            self._timer() + self._scan_log_period_secs)
         self._queue.task_done()
+
+  def _FindKcrash(self):
+    """Finds kcrash files, logs them, and marks them as seen."""
+    seen_crashes = set(
+        self.goofy.state_instance.get_shared_data('seen_crashes', optional=True)
+        or [])
+
+    for path in glob.glob('/var/spool/crash/*'):
+      if not os.path.isfile(path):
+        continue
+      if path in seen_crashes:
+        continue
+      try:
+        stat = os.stat(path)
+        mtime = time_utils.TimeString(stat.st_mtime)
+        logging.info(
+            'Found new crash file %s (%d bytes at %s)',
+            path, stat.st_size, mtime)
+        extra_log_args = {}
+
+        try:
+          _, ext = os.path.splitext(path)
+          if ext in ['.kcrash', '.meta']:
+            ext = ext.replace('.', '')
+            with open(path) as f:
+              data = f.read(MAX_CRASH_FILE_SIZE)
+              tell = f.tell()
+            logging.info(
+                'Contents of %s%s:%s',
+                path,
+                ('' if tell == stat.st_size
+                 else '(truncated to %d bytes)' % MAX_CRASH_FILE_SIZE),
+                ('\n' + data).replace('\n', '\n  ' + ext + '> '))
+            extra_log_args['data'] = data
+
+            # Copy to /var/factory/kcrash for posterity
+            kcrash_dir = paths.GetFactoryRoot('kcrash')
+            file_utils.TryMakeDirs(kcrash_dir)
+            shutil.copy(path, kcrash_dir)
+            logging.info('Copied to %s',
+                         os.path.join(kcrash_dir, os.path.basename(path)))
+        finally:
+          # Even if something goes wrong with the above, still try to
+          # log to event log
+          self.goofy.event_log.Log('crash_file',
+                                   path=path, size=stat.st_size, mtime=mtime,
+                                   **extra_log_args)
+      except:  # pylint: disable=W0702
+        logging.exception('Unable to handle crash files %s', path)
+      seen_crashes.add(path)
+
+    self.goofy.state_instance.set_shared_data(
+        'seen_crashes', list(seen_crashes))

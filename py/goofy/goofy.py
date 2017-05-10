@@ -9,11 +9,9 @@
 
 from __future__ import print_function
 
-import glob
 import logging
 from optparse import OptionParser
 import os
-import shutil
 import signal
 import sys
 import syslog
@@ -66,7 +64,6 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
-from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
@@ -81,9 +78,6 @@ FORCE_AUTO_RUN = 'force_auto_run'
 
 # Key to load the test list iterator after shutdown test
 TESTS_AFTER_SHUTDOWN = 'tests_after_shutdown'
-
-
-MAX_CRASH_FILE_SIZE = 64 * 1024
 
 Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                           'TERMINATING', 'TERMINATED'])
@@ -852,58 +846,6 @@ class Goofy(GoofyBase):
     self.run_enqueue(None)
     raise KeyboardInterrupt()
 
-  def find_kcrashes(self):
-    """Finds kcrash files, logs them, and marks them as seen."""
-    seen_crashes = set(
-        self.state_instance.get_shared_data('seen_crashes', optional=True)
-        or [])
-
-    for path in glob.glob('/var/spool/crash/*'):
-      if not os.path.isfile(path):
-        continue
-      if path in seen_crashes:
-        continue
-      try:
-        stat = os.stat(path)
-        mtime = time_utils.TimeString(stat.st_mtime)
-        logging.info(
-            'Found new crash file %s (%d bytes at %s)',
-            path, stat.st_size, mtime)
-        extra_log_args = {}
-
-        try:
-          _, ext = os.path.splitext(path)
-          if ext in ['.kcrash', '.meta']:
-            ext = ext.replace('.', '')
-            with open(path) as f:
-              data = f.read(MAX_CRASH_FILE_SIZE)
-              tell = f.tell()
-            logging.info(
-                'Contents of %s%s:%s',
-                path,
-                ('' if tell == stat.st_size
-                 else '(truncated to %d bytes)' % MAX_CRASH_FILE_SIZE),
-                ('\n' + data).replace('\n', '\n  ' + ext + '> '))
-            extra_log_args['data'] = data
-
-            # Copy to /var/factory/kcrash for posterity
-            kcrash_dir = paths.GetFactoryRoot('kcrash')
-            file_utils.TryMakeDirs(kcrash_dir)
-            shutil.copy(path, kcrash_dir)
-            logging.info('Copied to %s',
-                         os.path.join(kcrash_dir, os.path.basename(path)))
-        finally:
-          # Even if something goes wrong with the above, still try to
-          # log to event log
-          self.event_log.Log('crash_file',
-                             path=path, size=stat.st_size, mtime=mtime,
-                             **extra_log_args)
-      except:  # pylint: disable=W0702
-        logging.exception('Unable to handle crash files %s', path)
-      seen_crashes.add(path)
-
-    self.state_instance.set_shared_data('seen_crashes', list(seen_crashes))
-
   def GetTestList(self, test_list_id):
     """Returns the test list with the given ID.
 
@@ -1233,8 +1175,6 @@ class Goofy(GoofyBase):
 
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
-
-    self.find_kcrashes()
 
     # Should not move earlier.
     self.hooks.OnStartup()

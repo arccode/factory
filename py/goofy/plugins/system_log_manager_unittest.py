@@ -22,6 +22,7 @@ from urlparse import urlparse
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import event_log
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 
@@ -189,6 +190,8 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.StubOutWithMock(system_log_manager, 'TerminateOrKillProcess')
     self.fake_shopfloor = self.mox.CreateMockAnything()
     self.fake_process = self.mox.CreateMockAnything()
+    self.goofy = self.mox.CreateMockAnything()
+    self.goofy.state_instance = state.StubFactoryState()
 
   def AddExtraFilesToRsync(self, extra_files):
     """Inserts extra_files into rsync command before destination part."""
