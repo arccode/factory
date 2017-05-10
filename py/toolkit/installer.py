@@ -368,7 +368,8 @@ def PackFactoryToolkit(src_root, output_path, initial_version,
     version_path = os.path.join(tmp_dir, VERSION_PATH)
     os.makedirs(os.path.dirname(version_path))
     file_utils.WriteFile(version_path, complete_version)
-    Spawn([cmd[0], '--append', tmp_dir, output_path], check_call=True, log=True)
+    Spawn([cmd[0], '--lsm', version_path, '--append', tmp_dir, output_path],
+          check_call=True, log=True)
   print ('\n'
          '  Factory toolkit generated at %s.\n'
          '\n'
