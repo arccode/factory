@@ -363,8 +363,7 @@ get_file_component_version() {
   # TODO(hungte) Process gzipped file.
   case "${component}" in
     toolkit)
-      # TODO(hungte) Replace with --lsm.
-      sh "${file}" --info | sed -n 's/Identification: //p'
+      sh "${file}" --lsm
       ;;
     firmware)
       head -n 50 "${file}" | sed -n 's/^ *TARGET_.*FWID="\(.*\)"/\1/p' | \
