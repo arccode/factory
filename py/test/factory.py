@@ -46,8 +46,6 @@ ID_REGEXP = re.compile(r'^\w+$')
 # Special value for require_run meaning "all tests".
 ALL = 'all'
 
-_state_instance = None
-
 
 def get_current_test_path():
   """Returns the path of the currently executing test, if any."""
@@ -147,31 +145,6 @@ def log(message):
   TODO(jsalz): Remove references throughout factory tests.
   """
   console.info(message)
-
-
-def get_state_instance():
-  """Returns a factory state client instance."""
-  # Delay loading modules to prevent circular dependency.
-  from cros.factory.test import state
-  return state.get_instance()
-
-
-def get_shared_data(key, default=None):
-  if not get_state_instance().has_shared_data(key):
-    return default
-  return get_state_instance().get_shared_data(key)
-
-
-def set_shared_data(*key_value_pairs):
-  return get_state_instance().set_shared_data(*key_value_pairs)
-
-
-def has_shared_data(key):
-  return get_state_instance().has_shared_data(key)
-
-
-def del_shared_data(key):
-  return get_state_instance().del_shared_data(key)
 
 
 _inited_logging = False
@@ -1056,7 +1029,7 @@ class FactoryTest(object):
     for test in self.Walk():
       if not test.subtests and test.GetState().status != TestState.PASSED:
         test.UpdateState(status=TestState.PASSED, skip=True,
-                          error_msg=TestState.SKIPPED_MSG)
+                         error_msg=TestState.SKIPPED_MSG)
         skipped_tests.append(test.path)
     if skipped_tests:
       logging.info('Skipped tests %s', skipped_tests)
@@ -1064,7 +1037,7 @@ class FactoryTest(object):
         logging.info('Marking %s as skipped, since subtests were skipped',
                      self.path)
         self.UpdateState(status=TestState.PASSED, skip=True,
-                          error_msg=TestState.SKIPPED_MSG)
+                         error_msg=TestState.SKIPPED_MSG)
 
   def IsSkipped(self):
     """Returns True if this test was skipped."""

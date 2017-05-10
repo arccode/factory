@@ -113,7 +113,7 @@ class ShutdownTest(unittest.TestCase):
     self.ui = test_ui.UI(css=_CSS)
     self.template = ui_templates.OneSection(self.ui)
     self.template.SetTitle(_TEST_TITLE(self.args.operation))
-    self.goofy = factory.get_state_instance()
+    self.goofy = state.get_instance()
     self.test = self.test_info.ReadTestList().LookupPath(self.test_info.path)
     self.test_state = self.goofy.get_test_state(self.test_info.path)
     self.remaining_time = 0

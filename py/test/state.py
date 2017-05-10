@@ -308,6 +308,25 @@ def get_instance(address=None, port=None):
       address, port, goofy_proxy.STATE_URL)
 
 
+# helper functions
+def get_shared_data(key, default=None):
+  if not get_instance().has_shared_data(key):
+    return default
+  return get_instance().get_shared_data(key)
+
+
+def set_shared_data(*key_value_pairs):
+  return get_instance().set_shared_data(*key_value_pairs)
+
+
+def has_shared_data(key):
+  return get_instance().has_shared_data(key)
+
+
+def del_shared_data(key):
+  return get_instance().del_shared_data(key)
+
+
 class StubFactoryState(FactoryState):
   class InMemoryShelf(dict):
     def sync(self):

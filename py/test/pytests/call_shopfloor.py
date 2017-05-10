@@ -21,6 +21,7 @@ from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import privacy
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -35,7 +36,7 @@ def UpdateDeviceData(data):
 
 def UpdateFactorySharedData(data):
   key, value = data.items()[0]
-  factory.set_shared_data(key, value)
+  state.set_shared_data(key, value)
   factory.console.info('%s: %s', key, value)
   event_log.Log('update_factory_shared_data', data=data)
 

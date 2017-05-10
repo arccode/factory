@@ -60,9 +60,9 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
-from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.pytests import tablet_mode_ui
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -174,7 +174,7 @@ class TabletRotationTest(unittest.TestCase):
       self.accel_controller = self.dut.accelerometer.GetController()
 
     self.ui = test_ui.UI()
-    self.state = factory.get_state_instance()
+    self.state = state.get_instance()
     self.tablet_mode_ui = tablet_mode_ui.TabletModeUI(self.ui,
                                                       _HTML_COUNTDOWN_TIMER,
                                                       _CSS_COUNTDOWN_TIMER)

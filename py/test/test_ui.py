@@ -26,6 +26,7 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import html_translator
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import state
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -532,7 +533,7 @@ class UI(object):
 
   def InEngineeringMode(self):
     """Returns True if in engineering mode."""
-    return factory.get_shared_data('engineering_mode')
+    return state.get_shared_data('engineering_mode')
 
   def _HandleEvent(self, event):
     """Handles an event sent by a test UI."""
@@ -548,7 +549,7 @@ class UI(object):
 
   def GetUILocale(self):
     """Returns current enabled locale in UI."""
-    return factory.get_shared_data('ui_locale')
+    return state.get_shared_data('ui_locale')
 
   def GetUILanguage(self):
     """Returns current enabled language in UI."""

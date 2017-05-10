@@ -9,6 +9,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -44,7 +45,7 @@ class FlushTestlog(unittest.TestCase):
   def runTest(self):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
-    goofy = factory.get_state_instance()
+    goofy = state.get_instance()
     ui.AppendCSS(_CSS)
 
     def target():

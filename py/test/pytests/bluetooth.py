@@ -30,6 +30,7 @@ from cros.factory.test import factory
 from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import bluetooth_utils
@@ -529,7 +530,7 @@ class DetectRSSIofTargetMACTask(factory_task.FactoryTask):
                 self._mac_to_scan)
     else:
       average_rssi = float(sum(rssis)) / len(rssis)
-      factory.set_shared_data(self._input_device_rssi_key, average_rssi)
+      state.set_shared_data(self._input_device_rssi_key, average_rssi)
       logging.info('RSSIs at MAC %s: %s', self._mac_to_scan, rssis)
       factory.console.info('Average RSSI: %.2f', average_rssi)
 
@@ -725,17 +726,17 @@ class ReadBatteryLevelTask(factory_task.FactoryTask):
       self.Fail('%s failed to get battery level: %s' % (self._step, e))
       return
 
-    old_battery_level = factory.get_shared_data(self._step)
+    old_battery_level = state.get_shared_data(self._step)
     if (self._step == READ_BATTERY_STEP_1 and
         (old_battery_level is None or battery_level < old_battery_level)):
       # If the battery level at step 1 becomes higher over different rounds
       # (when the operator keeps retesting it for any reasons),
       # we only keep the lowest one. This is because we want to test if the
       # battery could charge to a higher level at step 2 than step 1.
-      factory.set_shared_data(self._step, battery_level)
+      state.set_shared_data(self._step, battery_level)
     elif self._step == READ_BATTERY_STEP_2:
       # We keep the latest battery level read at step 2.
-      factory.set_shared_data(self._step, battery_level)
+      state.set_shared_data(self._step, battery_level)
 
     if self._step == READ_BATTERY_STEP_1:
       data = ('\nSN: %s\nMAC: %s\n' %
@@ -769,8 +770,8 @@ class CheckBatteryLevelTask(factory_task.FactoryTask):
   def Run(self):
     self._test.template.SetState(_MSG_BATTERY_CHARGE_TEST)
 
-    battery_level_1 = factory.get_shared_data(READ_BATTERY_STEP_1)
-    battery_level_2 = factory.get_shared_data(READ_BATTERY_STEP_2)
+    battery_level_1 = state.get_shared_data(READ_BATTERY_STEP_1)
+    battery_level_2 = state.get_shared_data(READ_BATTERY_STEP_2)
     factory.console.info('%s: %s', READ_BATTERY_STEP_1, str(battery_level_1))
     factory.console.info('%s: %s', READ_BATTERY_STEP_2, str(battery_level_2))
 
@@ -815,7 +816,7 @@ class ChargeTestTask(factory_task.FactoryTask):
     if self._step == READ_BATTERY_STEP_1:
       self._test.template.SetState(_MSG_READ_BATTERY_1)
       battery_level = self.ReadBatteryLevel(self._step)
-      factory.set_shared_data(BATTERY_LEVEL_KEY, battery_level)
+      state.set_shared_data(BATTERY_LEVEL_KEY, battery_level)
       self.Pass()
 
     elif self._step == READ_BATTERY_STEP_2:
@@ -823,11 +824,11 @@ class ChargeTestTask(factory_task.FactoryTask):
         battery_level2 = self.ReadBatteryLevel(self._step)
         result = battery_level2 > battery_level1
         if result:
-          factory.set_shared_data(BATTERY_LEVEL_KEY, battery_level2)
+          state.set_shared_data(BATTERY_LEVEL_KEY, battery_level2)
         return result
 
       self._test.template.SetState(_MSG_READ_BATTERY_2)
-      battery_level1 = factory.get_shared_data(BATTERY_LEVEL_KEY)
+      battery_level1 = state.get_shared_data(BATTERY_LEVEL_KEY)
 
       # Check if the battery is charging for up to READ_BATTERY_MAX_RETRY_TIMES.
       # Note: the magnet needs to be taken away and re-applied each time.
@@ -874,7 +875,7 @@ class CheckFirmwareRevisionTestTask(factory_task.FactoryTask):
     factory.console.info('Expected firmware: %s',
                          self._test.args.firmware_revision_string)
     factory.console.info('Actual firmware: %s', fw)
-    factory.set_shared_data(self._test.args.firmware_revision_string_key, fw)
+    state.set_shared_data(self._test.args.firmware_revision_string_key, fw)
 
     data = 'FW: %s\n' % fw
     _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
@@ -1142,7 +1143,7 @@ class BluetoothTest(unittest.TestCase):
     self.fixture = None
     if self.args.input_device_mac_key:
       self._input_device_mac = (
-          ColonizeMac(factory.get_shared_data(self.args.input_device_mac_key)))
+          ColonizeMac(state.get_shared_data(self.args.input_device_mac_key)))
     else:
       self._input_device_mac = self.args.input_device_mac
 

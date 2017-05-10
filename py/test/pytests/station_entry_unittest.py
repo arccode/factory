@@ -18,7 +18,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.device import device_utils
 from cros.factory.device.link import DeviceLink
-from cros.factory.test import factory
+from cros.factory.test import state
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -46,12 +46,12 @@ class FactoryEntryUnitTest(unittest.TestCase):
   def testSetUpForStartTesting(self):
     mock_state = self.mox.CreateMock(GoofyRPC)
 
-    self.mox.StubOutWithMock(factory, 'get_state_instance')
+    self.mox.StubOutWithMock(state, 'get_instance')
     self.mox.StubOutWithMock(test_ui, 'UI')
     self.mox.StubOutWithMock(ui_templates, 'OneSection')
 
     # for start testing
-    factory.get_state_instance().AndReturn(mock_state)
+    state.get_instance().AndReturn(mock_state)
     test_ui.UI().AndReturn(self.mock_ui)
     self.mock_ui.AppendCSS(mox.IsA(str))
     ui_templates.OneSection(self.mock_ui).AndReturn(self.mock_template)

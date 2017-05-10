@@ -32,6 +32,7 @@ from cros.factory.test import gooftools
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
@@ -201,7 +202,7 @@ class Finalize(unittest.TestCase):
 
     test_list = self.test_info.ReadTestList()
     test_states = test_list.AsDict(
-        factory.get_state_instance().get_test_states())
+        state.get_instance().get_test_states())
 
     with open(self.test_states_path, 'w') as f:
       yaml.dump(test_states, f)
@@ -276,7 +277,7 @@ class Finalize(unittest.TestCase):
     def CheckRequiredTests():
       """Returns True if all tests (except waived tests) have passed."""
       test_list = self.test_info.ReadTestList()
-      state_map = factory.get_state_instance().get_test_states()
+      state_map = state.get_instance().get_test_states()
 
       self.waived_tests = set()
 
@@ -437,7 +438,7 @@ class Finalize(unittest.TestCase):
     event_log.Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))
 
     if self.args.enable_shopfloor and self.args.sync_event_logs:
-      factory.get_state_instance().FlushEventLogs()
+      state.get_instance().FlushEventLogs()
 
     if not self.args.write_protection:
       self.Warn('WRITE PROTECTION IS DISABLED.')

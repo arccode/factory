@@ -53,6 +53,7 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import rf
 from cros.factory.test.rf import e5071c_scpi
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
 from cros.factory.test.utils import connection_manager
@@ -89,7 +90,7 @@ class VSWR(unittest.TestCase):
 
   def setUp(self):
     self._station = device_utils.CreateStationInterface()
-    self._serial_number = factory.get_shared_data(self.args.serial_number_key)
+    self._serial_number = state.get_shared_data(self.args.serial_number_key)
     if self._serial_number is None:
       self.fail('Serial number does not exist.')
     self.log = {

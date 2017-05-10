@@ -311,7 +311,7 @@ class BasicTest(GoofyTest):
         '- {count: 1, error_msg: Uh-oh, id: b, path: b, status: FAILED}\n'
         '- {count: 1, error_msg: Uh-oh, id: c, path: c, status: FAILED}\n',
         self.goofy.test_list.AsYaml(
-            factory.get_state_instance().get_test_states()))
+            state.get_instance().get_test_states()))
     self.mockAnything.VerifyAll()
 
 
@@ -473,7 +473,7 @@ class RebootFailureTest(GoofyTest):
     self.goofy.run_once()
     self._wait()
 
-    test_state = factory.get_state_instance().get_test_state('shutdown')
+    test_state = state.get_instance().get_test_state('shutdown')
     self.assertEquals(TestState.FAILED, test_state.status)
     logging.info('%s', test_state.error_msg)
     self.assertTrue(test_state.error_msg.startswith(
@@ -535,13 +535,13 @@ class PyTestTest(GoofyTest):
     self.goofy.wait()
     self.assertEquals(
         TestState.PASSED,
-        factory.get_state_instance().get_test_state('a').status)
+        state.get_instance().get_test_state('a').status)
 
     self.goofy.run_once()
     self.assertEquals(['b'],
                       [test.id for test in self.goofy.invocations])
     self.goofy.wait()
-    failed_state = factory.get_state_instance().get_test_state('b')
+    failed_state = state.get_instance().get_test_state('b')
     self.assertEquals(TestState.FAILED, failed_state.status)
     self.assertTrue(
         """Let's call the whole thing off""" in failed_state.error_msg,
@@ -559,7 +559,7 @@ class PyLambdaTest(GoofyTest):
   def runTest(self):
     self.goofy.run_once()
     self.goofy.wait()
-    failed_state = factory.get_state_instance().get_test_state('a')
+    failed_state = state.get_instance().get_test_state('a')
     self.assertEquals(TestState.FAILED, failed_state.status)
     self.assertTrue(
         """ItFailed""" in failed_state.error_msg,
@@ -679,7 +679,7 @@ class StopOnFailureTest(GoofyTest):
       self.assertTrue(self.goofy.run_once())
       self.goofy.wait()
 
-    state_instance = factory.get_state_instance()
+    state_instance = state.get_instance()
     self.assertEquals(
         [TestState.PASSED, TestState.FAILED, TestState.UNTESTED],
         [state_instance.get_test_state(x).status for x in ['a', 'b', 'c']])
@@ -736,7 +736,7 @@ class WaivedTestTest(GoofyTest):
       self.assertTrue(self.goofy.run_once())
       self.goofy.wait()
 
-    state_instance = factory.get_state_instance()
+    state_instance = state.get_instance()
     self.assertEquals(
         [TestState.FAILED_AND_WAIVED, TestState.PASSED],
         [state_instance.get_test_state(x).status for x in ['waived', 'normal']])
@@ -762,7 +762,7 @@ class NoHostTest(GoofyUITest):
     self._wait()
     self.assertEquals(
         TestState.PASSED,
-        factory.get_state_instance().get_test_state('a').status)
+        state.get_instance().get_test_state('a').status)
 
     # Start the UI for test 'b'
     self.setUpWebSocketMock()
@@ -771,7 +771,7 @@ class NoHostTest(GoofyUITest):
     self._wait()
     self.assertEquals(
         TestState.PASSED,
-        factory.get_state_instance().get_test_state('b').status)
+        state.get_instance().get_test_state('b').status)
 
 
 if __name__ == '__main__':

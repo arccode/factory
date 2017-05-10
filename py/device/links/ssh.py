@@ -16,7 +16,7 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import link
-from cros.factory.test import factory
+from cros.factory.test import state
 from cros.factory.test.utils import dhcp_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -115,12 +115,14 @@ class SSHLink(link.DeviceLink):
     self.connect_timeout = connect_timeout
     self.control_persist = control_persist
 
+    self._state = state.get_instance()
+
   @property
   def host(self):
     if self._host == None:
-      if not factory.has_shared_data(_DEVICE_DATA_KEY):
+      if not state.has_shared_data(_DEVICE_DATA_KEY):
         raise ClientNotExistError()
-      return factory.get_shared_data(_DEVICE_DATA_KEY)
+      return state.get_shared_data(_DEVICE_DATA_KEY)
     else:
       return self._host
 
@@ -270,12 +272,12 @@ class SSHLink(link.DeviceLink):
 
   @classmethod
   def SetLinkIP(cls, ip):
-    factory.set_shared_data(_DEVICE_DATA_KEY, ip)
+    state.set_shared_data(_DEVICE_DATA_KEY, ip)
 
   @classmethod
   def ResetLinkIP(cls):
-    if factory.has_shared_data(_DEVICE_DATA_KEY):
-      factory.del_shared_data(_DEVICE_DATA_KEY)
+    if state.has_shared_data(_DEVICE_DATA_KEY):
+      state.del_shared_data(_DEVICE_DATA_KEY)
 
   # pylint: disable=arguments-differ
   @classmethod

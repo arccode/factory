@@ -34,11 +34,11 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test import event
-from cros.factory.test import factory
 from cros.factory.test import factory_task
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.pytests import audio
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
@@ -194,7 +194,7 @@ class WaitDisplayThread(threading.Thread):
 
       port_info = self._dut.display.GetPortInfo()
       if port_info[self._display_id].connected == self._connect:
-        display_info = factory.get_state_instance().DeviceGetDisplayInfo()
+        display_info = state.get_instance().DeviceGetDisplayInfo()
         # In the case of connecting an external display, make sure there
         # is an item in display_info with 'isInternal' False.
         # On the other hand, in the case of disconnecting an external display,
@@ -411,7 +411,7 @@ class VideoTask(ExtDisplayTask):
                                     pass_key=False)
 
   def _GetDisplayId(self, is_primary=True):
-    for info in factory.get_state_instance().DeviceGetDisplayInfo():
+    for info in state.get_instance().DeviceGetDisplayInfo():
       if bool(info['isPrimary']) == is_primary:
         return info['id']
     self.Fail('Fail to get display ID')
@@ -427,7 +427,7 @@ class VideoTask(ExtDisplayTask):
       recover_original: True to set the original display as main;  False to
           set the other (external) display as main.
     """
-    display_info = factory.get_state_instance().DeviceGetDisplayInfo()
+    display_info = state.get_instance().DeviceGetDisplayInfo()
     if len(display_info) == 1:
       # Fail the test if we see only one display and it's the internal one.
       if display_info[0]['isInternal']:

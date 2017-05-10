@@ -37,6 +37,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -95,7 +96,7 @@ class Report(unittest.TestCase):
   def runTest(self):
     test_list = self.test_info.ReadTestList()
     test = test_list.LookupPath(self.test_info.path)
-    states = factory.get_state_instance().get_test_states()
+    states = state.get_instance().get_test_states()
 
     ui = test_ui.UI(css=CSS)
     template = ui_templates.OneSection(ui)
@@ -107,13 +108,13 @@ class Report(unittest.TestCase):
       if t == test:
         break
 
-      state = states.get(t.path)
+      test_state = states.get(t.path)
 
       table.append('<tr class="test-status-%s"><th>%s</th><td>%s</td></tr>'
-                   % (state.status.replace('_', '-'),
+                   % (test_state.status.replace('_', '-'),
                       test_ui.MakeTestLabel(t),
-                      test_ui.MakeStatusLabel(state.status)))
-      statuses.append(state.status)
+                      test_ui.MakeStatusLabel(test_state.status)))
+      statuses.append(test_state.status)
 
     overall_status = factory.overall_status(statuses)
     all_pass = overall_status in (factory.TestState.PASSED,
@@ -123,10 +124,9 @@ class Report(unittest.TestCase):
       self.dut.hooks.OnSummaryGood()
     else:
       self.dut.hooks.OnSummaryBad()
-    # factory.get_state_instance().UpdateStatus(all_pass) will call
-    # UpdateStatus in goofy_rpc.py, and notify ui to update the color of dut's
-    # tab.
-    factory.get_state_instance().UpdateStatus(all_pass)
+    # state.get_instance().UpdateStatus(all_pass) will call UpdateStatus in
+    # goofy_rpc.py, and notify ui to update the color of dut's tab.
+    state.get_instance().UpdateStatus(all_pass)
 
     if self.args.bft_fixture:
       self._SetFixtureStatusLight(all_pass)
@@ -142,8 +142,8 @@ class Report(unittest.TestCase):
         for t in test.parent.Walk():
           if not t.IsLeaf():
             continue
-          state = states.get(t.path)
-          report += '%s: %s\n' % (t.path, state.status)
+          test_state = states.get(t.path)
+          report += '%s: %s\n' % (t.path, test_state.status)
         self.dut.WriteFile(file_path, report)
 
     if all_pass and self.args.pass_without_prompt:

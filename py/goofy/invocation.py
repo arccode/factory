@@ -75,7 +75,7 @@ class TestArgEnv(object):
   """
 
   def __init__(self):
-    self.state = factory.get_state_instance()
+    self.state = state.get_instance()
     self.device_data = None
 
   def GetMACAddress(self, interface):
@@ -92,7 +92,7 @@ class TestArgEnv(object):
 
   def InEngineeringMode(self):
     """Returns if goofy is in engineering mode."""
-    return factory.get_shared_data('engineering_mode')
+    return state.get_shared_data('engineering_mode')
 
 
 def ResolveTestArgs(dargs):
@@ -208,11 +208,11 @@ class TestInvocation(object):
     self.resume_test = False
     self.session_json_path = None
     post_shutdown_tag = state.POST_SHUTDOWN_TAG % test.path
-    if factory.get_shared_data(post_shutdown_tag):
+    if state.get_shared_data(post_shutdown_tag):
       # If this is going to be a post-shutdown run of an active shutdown test,
       # reuse the existing invocation as uuid so that we can accumulate all the
       # logs in the same log file.
-      self.uuid = factory.get_shared_data(post_shutdown_tag)
+      self.uuid = state.get_shared_data(post_shutdown_tag)
     else:
       self.uuid = time_utils.TimedUUID()
     self.output_dir = os.path.join(paths.GetTestDataRoot(),
@@ -239,7 +239,7 @@ class TestInvocation(object):
                           'CROS_FACTORY_TEST_METADATA': self.metadata_file}
 
     # Resuming from an active shutdown test, try to restore its metadata file.
-    if factory.get_shared_data(post_shutdown_tag):
+    if state.get_shared_data(post_shutdown_tag):
       try:
         self.load_metadata()
       except:

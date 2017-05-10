@@ -15,6 +15,7 @@ from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -47,7 +48,7 @@ class FinalizeAccessory(unittest.TestCase):
   def setUp(self):
     self.ui = test_ui.UI()
     self._template = ui_templates.OneSection(self.ui)
-    self._state = factory.get_state_instance()
+    self._state = state.get_instance()
     self.test_states_path = os.path.join(paths.GetLogRoot(), 'test_states')
 
   def _GetFinalTestResult(self):
@@ -92,10 +93,10 @@ class FinalizeAccessory(unittest.TestCase):
       factory.console.info('All tests passed!')
     event_log.Log('failed_results', failed_results=failed_results)
 
-    factory.set_shared_data(self.args.final_test_result_key, final_test_result)
+    state.set_shared_data(self.args.final_test_result_key, final_test_result)
     failed_msgs_dict = dict((path, error_msg) for path, (status, error_msg) in
                             failed_results.iteritems())
-    factory.set_shared_data(self.args.failed_reasons_key, failed_msgs_dict)
+    state.set_shared_data(self.args.failed_reasons_key, failed_msgs_dict)
     self.ui.Pass()
 
   def runTest(self):

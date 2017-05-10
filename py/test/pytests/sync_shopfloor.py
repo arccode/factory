@@ -12,6 +12,7 @@ from cros.factory.goofy import updater
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -73,7 +74,7 @@ class SyncShopfloor(unittest.TestCase):
           template.SetState('<br>' + shopfloor_url, append=True)
 
         try:
-          goofy = factory.get_state_instance()
+          goofy = state.get_instance()
           if self.args.sync_event_logs:
             goofy.FlushEventLogs()
           goofy.SyncTimeWithShopfloorServer()

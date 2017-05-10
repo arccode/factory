@@ -34,6 +34,7 @@ from cros.factory.test.env import paths
 from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test.rules import privacy
+from cros.factory.test import state
 from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import debug_utils
@@ -115,21 +116,21 @@ def _fetch_current_session():
 
   If no session is stored yet, create a new default session.
   """
-  if factory.has_shared_data(KEY_SHOPFLOOR_SESSION):
-    session = factory.get_shared_data(KEY_SHOPFLOOR_SESSION)
+  if state.has_shared_data(KEY_SHOPFLOOR_SESSION):
+    session = state.get_shared_data(KEY_SHOPFLOOR_SESSION)
   else:
     session = {
         SESSION_SERIAL_NUMBER: None,
         SESSION_SERVER_URL: None,
         SESSION_ENABLED: False,
     }
-    factory.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
+    state.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
   return session
 
 
 def _set_session(key, value):
   """Sets shop floor session value to factory states shared data."""
-  # Currently there's no locking/transaction mechanism in factory shared_data,
+  # Currently there's no locking/transaction mechanism in state shared_data,
   # so there may be race-condition issue if multiple background tests try to
   # set shop floor session data at the same time. However since shop floor
   # session should be singularily configured in the very beginning, let's fix
@@ -137,7 +138,7 @@ def _set_session(key, value):
   session = _fetch_current_session()
   assert key in session, 'Unknown session key: %s' % key
   session[key] = value
-  factory.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
+  state.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
 
 
 def _get_session(key):
@@ -149,8 +150,8 @@ def _get_session(key):
 
 def reset():
   """Resets session data from factory states shared data."""
-  if factory.has_shared_data(KEY_SHOPFLOOR_SESSION):
-    factory.del_shared_data(KEY_SHOPFLOOR_SESSION)
+  if state.has_shared_data(KEY_SHOPFLOOR_SESSION):
+    state.del_shared_data(KEY_SHOPFLOOR_SESSION)
 
 
 def is_enabled():
@@ -386,7 +387,7 @@ def finalize():
 
 def GetDeviceData():
   """Returns the accumulated dictionary of device data."""
-  return factory.get_shared_data(KEY_DEVICE_DATA, {})
+  return state.get_shared_data(KEY_DEVICE_DATA, {})
 
 
 def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
@@ -402,7 +403,7 @@ def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
     The updated dictionary.
   """
   logging.info('Deleting device data: %s', delete_keys)
-  data = factory.get_state_instance().delete_shared_data_dict_item(
+  data = state.get_instance().delete_shared_data_dict_item(
       KEY_DEVICE_DATA, delete_keys, optional)
   if 'serial_number' in delete_keys:
     set_serial_number(None)
@@ -430,7 +431,7 @@ def UpdateDeviceData(new_device_data, post_update_event=True):
                privacy.FilterDict(new_device_data))
   if 'serial_number' in new_device_data:
     set_serial_number(new_device_data['serial_number'])
-  data = factory.get_state_instance().update_shared_data_dict(
+  data = state.get_instance().update_shared_data_dict(
       KEY_DEVICE_DATA, new_device_data)
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))

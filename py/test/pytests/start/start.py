@@ -32,6 +32,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -132,10 +133,10 @@ class ExternalPowerTask(FactoryTask):
     self.Pass()
 
   def CheckEvent(self):
-    state = self.GetExternalPowerState()
-    logging.info('power state: %s', state)
-    Log('power_state', state=state)
-    if state == self.AC_CONNECTED:
+    power_state = self.GetExternalPowerState()
+    logging.info('power state: %s', power_state)
+    Log('power_state', state=power_state)
+    if power_state == self.AC_CONNECTED:
       return True
     return False
 
@@ -270,7 +271,7 @@ class InitializeSharedData(FactoryTask):
     self._test.template.SetState(_MSG_INIT_SHARED_DATA)
     for key, value in self._test.args.init_shared_data.iteritems():
       factory.console.debug('set_shared_data[%s] = "%s"', key, value)
-      factory.set_shared_data(key, value)
+      state.set_shared_data(key, value)
     self.Pass()
 
 

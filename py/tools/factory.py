@@ -26,9 +26,10 @@ from setproctitle import setproctitle  # pylint: disable=no-name-in-module
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
+from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import debug_utils
 from cros.factory.utils.process_utils import Spawn
@@ -96,7 +97,7 @@ class RunCommand(Subcommand):
         help='ID of the test to run')
 
   def Run(self):
-    run_id = factory.get_state_instance().RunTest(self.args.id)
+    run_id = state.get_instance().RunTest(self.args.id)
     print 'Running test %s' % self.args.id
     print 'Active test run ID: %s' % run_id
 
@@ -116,7 +117,7 @@ class WaitCommand(Subcommand):
     last_test_dict = None
 
     while True:
-      tests = factory.get_state_instance().GetTests()
+      tests = state.get_instance().GetTests()
       test_dict = {}
       for t in tests:
         # Don't bother showing parent nodes.
@@ -156,7 +157,7 @@ class RunStatusCommand(Subcommand):
         '--id', default=None, help='ID of the test run')
 
   def Run(self):
-    goofy = factory.get_state_instance()
+    goofy = state.get_instance()
     run_status = goofy.GetTestRunStatus(self.args.id)
     print 'status: %s' % run_status['status']
     if 'run_id' in run_status:
@@ -189,7 +190,7 @@ class TestsCommand(Subcommand):
         help='Show only information about current active run')
 
   def Run(self):
-    goofy = factory.get_state_instance()
+    goofy = state.get_instance()
     tests = goofy.GetTests()
 
     # Ignore parents
@@ -227,7 +228,7 @@ class ClearCommand(Subcommand):
   help = 'Stop all tests and clear test state'
 
   def Run(self):
-    factory.get_state_instance().ClearState()
+    state.get_instance().ClearState()
 
 
 class StopCommand(Subcommand):
@@ -235,7 +236,7 @@ class StopCommand(Subcommand):
   help = 'Stop all tests'
 
   def Run(self):
-    factory.get_state_instance().StopTest()
+    state.get_instance().StopTest()
 
 
 class DumpTestListCommand(Subcommand):
@@ -320,7 +321,7 @@ class TestListCommand(Subcommand):
         print line_format % (is_active, k, v.source_path)
 
     if self.args.restart:
-      goofy = factory.get_state_instance()
+      goofy = state.get_instance()
 
       # Get goofy's current UUID
       try:
@@ -457,7 +458,7 @@ class ScreenshotCommand(Subcommand):
               'If not provided, defaults to /var/log/screenshot_<TIME>.png.'))
 
   def Run(self):
-    factory.get_state_instance().DeviceTakeScreenshot(self.args.output_file)
+    state.get_instance().DeviceTakeScreenshot(self.args.output_file)
 
 
 class PhaseCommand(Subcommand):

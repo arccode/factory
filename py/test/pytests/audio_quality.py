@@ -31,6 +31,7 @@ from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
@@ -744,7 +745,7 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
     shopfloor_client = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
     logging.info('Syncing time with shopfloor...')
-    goofy_instance = factory.get_state_instance()
+    goofy_instance = state.get_instance()
     goofy_instance.SyncTimeWithShopfloorServer()
 
     self._ui.CallJSFunction('setMessage', _LABEL_DOWNLOADING_PARAMETERS)
@@ -814,6 +815,6 @@ class AudioQualityTest(unittest.TestCase):
       if self._use_shopfloor:
         factory.console.info(
             'Test failed. Force to flush event logs...')
-        goofy_instance = factory.get_state_instance()
+        goofy_instance = state.get_instance()
         goofy_instance.FlushEventLogs()
       self._ui.Fail(_LABEL_FAIL_LOGS)

@@ -20,11 +20,12 @@ import sensors_server
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
-from cros.factory.test.fixture.touchscreen_calibration.fixture import FakeFixture
-from cros.factory.test.fixture.touchscreen_calibration.fixture import FixtureException
-from cros.factory.test.fixture.touchscreen_calibration.fixture import FixtureSerialDevice
+from cros.factory.test.fixture.touchscreen_calibration.fixture import FakeFixture  # pylint: disable=line-too-long
+from cros.factory.test.fixture.touchscreen_calibration.fixture import FixtureException  # pylint: disable=line-too-long
+from cros.factory.test.fixture.touchscreen_calibration.fixture import FixtureSerialDevice  # pylint: disable=line-too-long
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test.test_ui import UI
 from cros.factory.test.utils.media_utils import MountedMedia
 from cros.factory.utils.arg_utils import Arg
@@ -306,13 +307,13 @@ class TouchscreenCalibration(unittest.TestCase):
       except Exception as e:
         factory.console.info('Exception at refreshing touch screen: %s', e)
       finally:
-        factory.set_shared_data('touchscreen_status', self.touchscreen_status)
-        factory.set_shared_data('num_tx', self.num_tx)
-        factory.set_shared_data('num_rx', self.num_rx)
+        state.set_shared_data('touchscreen_status', self.touchscreen_status)
+        state.set_shared_data('num_tx', self.num_tx)
+        state.set_shared_data('num_rx', self.num_rx)
     else:
-      self.touchscreen_status = factory.get_shared_data('touchscreen_status')
-      self.num_tx = factory.get_shared_data('num_tx')
-      self.num_rx = factory.get_shared_data('num_rx')
+      self.touchscreen_status = state.get_shared_data('touchscreen_status')
+      self.num_tx = state.get_shared_data('num_tx')
+      self.num_rx = state.get_shared_data('num_rx')
 
     factory.console.info('tx = %d, rx = %d', self.num_tx, self.num_rx)
     self.ui.CallJSFunction('setTouchscreenStatus', self.touchscreen_status)
@@ -371,11 +372,11 @@ class TouchscreenCalibration(unittest.TestCase):
       else:
         shopfloor_status = 'Skipped for debugging'
 
-      factory.set_shared_data('bb_status', bb_status)
-      factory.set_shared_data('shopfloor_status', shopfloor_status)
+      state.set_shared_data('bb_status', bb_status)
+      state.set_shared_data('shopfloor_status', shopfloor_status)
     else:
-      bb_status = factory.get_shared_data('bb_status')
-      shopfloor_status = factory.get_shared_data('shopfloor_status')
+      bb_status = state.get_shared_data('bb_status')
+      shopfloor_status = state.get_shared_data('shopfloor_status')
 
     factory.console.info('host_ips: %s', str(self.host_ip_dict))
     factory.console.info('bb_status: %s', bb_status)

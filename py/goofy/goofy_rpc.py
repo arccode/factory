@@ -35,6 +35,7 @@ from cros.factory.test.event import EventClient
 from cros.factory.test import factory
 from cros.factory.test import i18n
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.tools import factory_bug
 from cros.factory.utils import debug_utils
@@ -1386,7 +1387,7 @@ def main():
             """RunTest('RunIn.Stress.BadBlocks')"""))
   args = parser.parse_args()
 
-  goofy = factory.get_state_instance()
+  goofy = state.get_instance()
   logging.basicConfig(level=logging.INFO)
 
   if '(' not in args.command:

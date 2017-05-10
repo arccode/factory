@@ -25,8 +25,8 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -101,7 +101,7 @@ class SuspendResumeTest(unittest.TestCase):
                             self.args.resume_delay_min_secs, 'Invalid resume '
                             'timings provided in test_list (max < min).')
 
-    self.goofy = factory.get_state_instance()
+    self.goofy = state.get_instance()
 
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)

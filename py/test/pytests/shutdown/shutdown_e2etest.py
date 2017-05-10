@@ -11,9 +11,10 @@ import re
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
 from cros.factory.test.e2e_test import e2e_test
+from cros.factory.test import factory
 from cros.factory.test.pytests.shutdown import shutdown
+from cros.factory.test import state
 
 
 # Goofy RPC mock.
@@ -49,7 +50,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     self.post_shutdown_tag = '%s.post_shutdown' % self.test_info.path
 
   @e2e_test.E2ETestCase()
-  @mock.patch.object(factory, 'get_state_instance',
+  @mock.patch.object(state, 'get_instance',
                      return_value=_goofy)
   @mock.patch.object(shutdown, 'EventClient',
                      return_value=_event_client)
@@ -67,7 +68,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     _goofy.Shutdown.assert_called_with('reboot')
 
   @e2e_test.E2ETestCase()
-  @mock.patch.object(factory, 'get_state_instance',
+  @mock.patch.object(state, 'get_instance',
                      return_value=_goofy)
   @mock.patch.object(shutdown, 'EventClient',
                      return_value=_event_client)
@@ -84,7 +85,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     _goofy.get_shared_data.assert_called_with(self.post_shutdown_tag, True)
 
   @e2e_test.E2ETestCase()
-  @mock.patch.object(factory, 'get_state_instance',
+  @mock.patch.object(state, 'get_state_instance',
                      return_value=_goofy)
   @mock.patch.object(shutdown.event_log, 'Log')
   def testPostShutdown(self, mock_log, mock_get_state_instance):
@@ -104,7 +105,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     _goofy.del_shared_data.assert_called_with(self.post_shutdown_tag)
 
   @e2e_test.E2ETestCase()
-  @mock.patch.object(factory, 'get_state_instance',
+  @mock.patch.object(state, 'get_instance',
                      return_value=_goofy)
   @mock.patch.object(shutdown.event_log, 'Log')
   def testNoShutdownTime(self, mock_log, mock_get_state_instance):
@@ -124,7 +125,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     _goofy.del_shared_data.assert_called_with(self.post_shutdown_tag)
 
   @e2e_test.E2ETestCase()
-  @mock.patch.object(factory, 'get_state_instance',
+  @mock.patch.object(state, 'get_state_instance',
                      return_value=_goofy)
   @mock.patch.object(shutdown.event_log, 'Log')
   def testClockMovingBackward(self, mock_log, mock_get_state_instance):
@@ -143,7 +144,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     _goofy.del_shared_data.assert_called_with(self.post_shutdown_tag)
 
   @e2e_test.E2ETestCase(dargs={'max_reboot_time_secs': 10})
-  @mock.patch.object(factory, 'get_state_instance',
+  @mock.patch.object(state, 'get_instance',
                      return_value=_goofy)
   @mock.patch.object(shutdown.event_log, 'Log')
   def testRebootTakeTooLong(self, mock_log, mock_get_state_instance):

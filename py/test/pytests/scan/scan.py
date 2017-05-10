@@ -15,13 +15,13 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log
-from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.tools import ghost
@@ -117,8 +117,7 @@ class Scan(unittest.TestCase):
       event_log.Log('scan', key=self.args.event_log_key, value=scan_value)
 
     if self.args.shared_data_key:
-      factory.set_shared_data(self.args.shared_data_key,
-                              scan_value)
+      state.set_shared_data(self.args.shared_data_key, scan_value)
 
     if self.args.device_data_key:
       shopfloor.UpdateDeviceData({self.args.device_data_key: scan_value})

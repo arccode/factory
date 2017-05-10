@@ -219,6 +219,7 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import leds
 from cros.factory.test import network
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import camera_utils
 from cros.factory.test.utils import media_utils
@@ -1176,7 +1177,7 @@ class _TestDelegate(object):
 
   def _FlushEventLogs(self):
     if self.data_method == DataMethod.SF:
-      goofy = factory.get_state_instance()
+      goofy = state.get_instance()
       goofy.FlushEventLogs()
 
   def _FormatOrderedDict(self, ordered_dict):
