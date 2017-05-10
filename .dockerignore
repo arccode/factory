@@ -5,6 +5,7 @@
 !py
 !py_pkg
 !setup/cros_docker.sh
+!sh/cros_payload.sh
 py/dome/build
 py/goofy/static
 py/test/fixture

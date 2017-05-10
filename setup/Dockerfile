@@ -95,6 +95,8 @@ COPY py/umpire/docker/default_umpire.yaml \
   "${server_dir}/default_umpire.yaml"
 COPY py "${server_dir}/py/"
 
+COPY sh/cros_payload.sh "${server_dir}/sh/"
+
 CMD ["echo", "-e", \
      "\\n", \
      "You need to specify a command.\\n", \
