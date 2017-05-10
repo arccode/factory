@@ -15,14 +15,14 @@ class VPDFunctionTest(unittest.TestCase):
 
   @mock.patch('cros.factory.utils.process_utils.CheckOutput', return_value='tw')
   def testSimpleCommand(self, MockCheckOutput):
-    results = vpd.VPDFunction(key='region')()
-    self.assertEquals(results, [{'region': 'tw'}])
+    results = vpd.VPDFunction(field='region', key='region_code')()
+    self.assertEquals(results, [{'region_code': 'tw'}])
     MockCheckOutput.assert_called_once_with(
         'vpd -i RO_VPD -g region', shell=True, log=True)
 
   @mock.patch('cros.factory.utils.process_utils.CheckOutput', return_value='')
   def testNoResult(self, MockCheckOutput):
-    results = vpd.VPDFunction(key='FAKE', from_rw=True)()
+    results = vpd.VPDFunction(field='FAKE', from_rw=True)()
     self.assertEquals(results, [])
     MockCheckOutput.assert_called_once_with(
         'vpd -i RW_VPD -g FAKE', shell=True, log=True)
