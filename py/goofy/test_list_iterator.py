@@ -409,7 +409,8 @@ class TestListIterator(object):
 
   def _ResetIterations(self, test):
     test.UpdateState(iterations_left=test.iterations,
-                     retries_left=test.retries)
+                     retries_left=test.retries,
+                     shutdown_count=0)
 
   def _GetTestFromFrame(self, frame):
     """Returns test object corresponding to `frame`.
