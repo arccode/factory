@@ -13,7 +13,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -69,4 +69,4 @@ class CallShopfloor(unittest.TestCase):
             device_data[device_data_key] = (vpd_data[key].upper() == 'TRUE')
           else:
             device_data[device_data_key] = vpd_data[key]
-    shopfloor.UpdateDeviceData(device_data)
+    state.UpdateDeviceData(device_data)

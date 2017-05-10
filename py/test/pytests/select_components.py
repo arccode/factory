@@ -14,7 +14,7 @@ from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -58,7 +58,7 @@ class SelectComponentTest(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_TEST_DEFAULT_CSS)
     self.template.SetTitle(_TEST_TITLE)
-    self.device_data = shopfloor.GetDeviceData()
+    self.device_data = state.GetDeviceData()
     # The component names.
     self.fields = self.args.comps.keys()
     self.component_device_data = dict((k, self.args.comps[k][0])
@@ -81,7 +81,7 @@ class SelectComponentTest(unittest.TestCase):
       value = string_utils.ParseString(comp[1])
       self.device_data[key_name] = value
       factory.console.info('Update device data %r: %r', key_name, value)
-    shopfloor.UpdateDeviceData(self.device_data)
+    state.UpdateDeviceData(self.device_data)
 
   def runTest(self):
     table = ui_templates.Table(element_id=None, rows=2, cols=len(self.fields))

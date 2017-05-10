@@ -20,7 +20,6 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -120,13 +119,13 @@ class Scan(unittest.TestCase):
       state.set_shared_data(self.args.shared_data_key, scan_value)
 
     if self.args.device_data_key:
-      shopfloor.UpdateDeviceData({self.args.device_data_key: scan_value})
+      state.UpdateDeviceData({self.args.device_data_key: scan_value})
 
     if self.args.dut_data_key:
       self.dut.storage.UpdateDict({self.args.dut_data_key: scan_value})
 
     if self.args.check_device_data_key:
-      expected_value = shopfloor.GetDeviceData().get(
+      expected_value = state.GetDeviceData().get(
           self.args.check_device_data_key)
 
       if self.args.match_the_last_few_chars != 0:

@@ -67,6 +67,7 @@ from cros.factory.test import factory
 from cros.factory.test import leds
 from cros.factory.test.rf import n1914a
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
@@ -235,7 +236,7 @@ class RFRadiatedTest(unittest.TestCase):
     # First, find antenna model.  Use 'generic' and give it a warning if no
     # antenna model specified.  This will be used later to query thresholds
     # table because different antenna models may have different thresholds.
-    antenna_model = shopfloor.GetDeviceData().get('component.antenna')
+    antenna_model = state.GetDeviceData().get('component.antenna')
     if antenna_model is None or len(antenna_model) == 0:
       antenna_model = 'generic'
       factory.console.warning(

@@ -23,6 +23,7 @@ from cros.factory.test import factory_task
 from cros.factory.test import gooftools
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -248,7 +249,7 @@ class HWIDTest(unittest.TestCase):
         self.task_list.append(SelectHWIDTask(self))
       else:
         if shopfloor.is_enabled():
-          device_data = shopfloor.GetDeviceData()
+          device_data = state.GetDeviceData()
           if 'hwid' in device_data:
             self.hwid = device_data['hwid']
           else:

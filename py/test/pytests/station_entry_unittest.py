@@ -18,7 +18,6 @@ from cros.factory.device import device_utils
 from cros.factory.device.link import DeviceLink
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.test.pytests import station_entry
-from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -90,13 +89,13 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
 
-    self.mox.StubOutWithMock(shopfloor, 'DeleteDeviceData')
+    self.mox.StubOutWithMock(state, 'DeleteDeviceData')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
     self.mox.StubOutWithMock(self.test, 'SendTestResult')
 
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
-    shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
-                               optional=True)
+    state.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
+                           optional=True)
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()
 
@@ -129,13 +128,13 @@ class FactoryEntryUnitTest(unittest.TestCase):
                                'invalidate_dut_info': True,
                                'clear_serial_numbers': True, })
 
-    self.mox.StubOutWithMock(shopfloor, 'DeleteDeviceData')
+    self.mox.StubOutWithMock(state, 'DeleteDeviceData')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
     self.mox.StubOutWithMock(self.test._dut.info, 'GetAllSerialNumbers')
 
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
-    shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
-                               optional=True)
+    state.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
+                           optional=True)
     self.mock_template.SetState(mox.IsA(basestring))
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()

@@ -28,7 +28,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
-from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import debug_utils
@@ -427,10 +426,10 @@ class DeviceDataCommand(Subcommand):
             pass  # No sweat
 
         update[key] = value
-      shopfloor.UpdateDeviceData(update, post_update_event=False)
+      state.UpdateDeviceData(update, post_update_event=False)
 
     if self.args.delete:
-      shopfloor.DeleteDeviceData(self.args.delete, post_update_event=False)
+      state.DeleteDeviceData(self.args.delete, post_update_event=False)
 
     if self.args.set_yaml:
       if self.args.set_yaml == '-':
@@ -440,10 +439,10 @@ class DeviceDataCommand(Subcommand):
           update = yaml.load(f)
       if type(update) != dict:
         sys.exit('Expected a dict but got a %r' % type(update))
-      shopfloor.UpdateDeviceData(update, post_update_event=False)
+      state.UpdateDeviceData(update, post_update_event=False)
 
     sys.stdout.write(
-        yaml.safe_dump(shopfloor.GetDeviceData(),
+        yaml.safe_dump(state.GetDeviceData(),
                        default_flow_style=False))
 
 

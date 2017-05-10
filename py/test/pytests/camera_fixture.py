@@ -954,7 +954,7 @@ class _TestDelegate(object):
 
   def _GetLogFilePrefix(self):
     if self.fixture_type == Fixture.FULL:
-      device_sn = shopfloor.get_serial_number() or 'MISSING_SN'
+      device_sn = state.GetSerialNumber() or 'MISSING_SN'
       return '_'.join([re.sub(r'\W+', '_', x) for x in
                        [os.environ.get('CROS_FACTORY_TEST_PATH'),
                         device_sn,

@@ -16,7 +16,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 
@@ -52,4 +52,4 @@ class SelectForSamplingTest(unittest.TestCase):
                   device_data_key=self.args.device_data_key,
                   fraction=fraction, rate=self.args.rate, selected=selected)
 
-    shopfloor.UpdateDeviceData({self.args.device_data_key: selected})
+    state.UpdateDeviceData({self.args.device_data_key: selected})

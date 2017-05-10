@@ -16,7 +16,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.pytests import probe_cellular_info
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.utils.arg_utils import Args
 from cros.factory.utils import process_utils
 
@@ -28,7 +28,7 @@ class ProbeCellularInfoTestTest(unittest.TestCase):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(process_utils, 'CheckOutput')
     self.mox.StubOutWithMock(event_log, 'Log')
-    self.mox.StubOutWithMock(shopfloor, 'UpdateDeviceData')
+    self.mox.StubOutWithMock(state, 'UpdateDeviceData')
 
   def tearDown(self):
     try:
@@ -48,8 +48,8 @@ Modem /org/chromium/ModemManager/Gobi/1:
     event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         imei='838293836198373', meid='Q9298301CDF827')
-    shopfloor.UpdateDeviceData({'imei': '838293836198373',
-                                'meid': 'Q9298301CDF827'})
+    state.UpdateDeviceData({'imei': '838293836198373',
+                            'meid': 'Q9298301CDF827'})
     self.mox.ReplayAll()
 
     self.test.args = Args(*self.test.ARGS).Parse({})
@@ -106,8 +106,8 @@ Modem /org/freedesktop/ModemManager1/Modem/0:
     event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         lte_imei='359636040066332', lte_iccid='89148000000328035895')
-    shopfloor.UpdateDeviceData({'lte_imei': '359636040066332',
-                                'lte_iccid': '89148000000328035895'})
+    state.UpdateDeviceData({'lte_imei': '359636040066332',
+                            'lte_iccid': '89148000000328035895'})
     self.mox.ReplayAll()
 
     self.test.args = Args(*self.test.ARGS).Parse(

@@ -17,7 +17,7 @@ from cros.factory.device.vpd import Partition
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.factory_task import FactoryTask
 from cros.factory.test.pytests import vpd
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils.type_utils import LazyProperty
 from cros.factory.utils.type_utils import Obj
@@ -36,7 +36,7 @@ class VPDBrandingFieldsTest(unittest.TestCase):
     self.test_case.vpd = dict(ro={})
     self.device_data = {}
     self.mox = mox.Mox()
-    self.mox.StubOutWithMock(shopfloor, 'GetDeviceData')
+    self.mox.StubOutWithMock(state, 'GetDeviceData')
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -64,8 +64,8 @@ class VPDBrandingFieldsTest(unittest.TestCase):
   def testFromShopFloor(self):
     self.test_case.args = Obj(rlz_brand_code=vpd.FROM_DEVICE_DATA,
                               customization_id=vpd.FROM_DEVICE_DATA)
-    shopfloor.GetDeviceData().AndReturn(dict(rlz_brand_code='ABCD',
-                                             customization_id='FOO-BAR'))
+    state.GetDeviceData().AndReturn(dict(rlz_brand_code='ABCD',
+                                         customization_id='FOO-BAR'))
     self.mox.ReplayAll()
     self.test_case.ReadBrandingFields()
     self.assertEquals(dict(rlz_brand_code='ABCD', customization_id='FOO-BAR'),

@@ -39,6 +39,7 @@ from cros.factory.test.l10n import regions
 from cros.factory.test.rules import branding
 from cros.factory.test.rules import registration_codes
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.tools import build_board
@@ -476,7 +477,7 @@ class VPDTest(unittest.TestCase):
           '  written into VPD.', default=None, optional=True)]
 
   def _ReadShopFloorDeviceData(self):
-    device_data = shopfloor.GetDeviceData()
+    device_data = state.GetDeviceData()
     required_keys = set(['serial_number', 'region',
                          'ubind_attribute', 'gbind_attribute'] +
                         [x[1] for x in self.args.extra_device_data_fields])
@@ -577,7 +578,7 @@ class VPDTest(unittest.TestCase):
 
       if arg_value == FROM_DEVICE_DATA:
         if cached_device_data is None:
-          cached_device_data = shopfloor.GetDeviceData()
+          cached_device_data = state.GetDeviceData()
         value = cached_device_data.get(attr)
         if value is None:
           raise ValueError('%s not present in device data' % attr)

@@ -14,7 +14,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -48,7 +48,7 @@ class CallShopfloor(unittest.TestCase):
     template = ui_templates.OneSection(ui)
     template.SetState(_MSG_WRITING_VPD(self.args.vpd_section))
 
-    device_data = shopfloor.GetDeviceData()
+    device_data = state.GetDeviceData()
     data_to_write = {}
     for prefix, key in self.args.device_data_keys:
       data_to_write[prefix + key] = device_data.get(key)

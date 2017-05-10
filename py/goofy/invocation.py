@@ -30,7 +30,6 @@ from setproctitle import setproctitle  # pylint: disable=no-name-in-module
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import testlog
@@ -71,7 +70,7 @@ class TestArgEnv(object):
 
   Properties:
     state: Instance to obtain factory test.
-    device_data: Cached device data from shopfloor.
+    device_data: Cached device data from state_instance.
   """
 
   def __init__(self):
@@ -82,12 +81,12 @@ class TestArgEnv(object):
     return open('/sys/class/net/%s/address' % interface).read().strip()
 
   def GetDeviceData(self):
-    """Returns shopfloor.GetDeviceData().
+    """Returns state.GetDeviceData().
 
     The value is cached to avoid extra calls to GetDeviceData().
     """
     if self.device_data is None:
-      self.device_data = shopfloor.GetDeviceData()
+      self.device_data = state.GetDeviceData()
     return self.device_data
 
   def InEngineeringMode(self):
@@ -106,7 +105,7 @@ def ResolveTestArgs(dargs):
           'method': 'Foo',
           'args': lambda env: [
               env.state.get_shared_data('mlb_serial_number'),
-              env.shopfloor.get_serial_number(),
+              env.state.GetSerialNumber(),
               env.GetMACAddress('wlan0'),
           ]
       })

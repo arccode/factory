@@ -15,7 +15,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
@@ -54,4 +54,4 @@ class ProbeCellularInfoTest(unittest.TestCase):
         "Missing elements in 'modem status' output: %s" % sorted(missing))
 
     logging.info('Probed data: %s', data)
-    shopfloor.UpdateDeviceData(data)
+    state.UpdateDeviceData(data)

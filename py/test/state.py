@@ -10,23 +10,22 @@
 
 from __future__ import print_function
 
-import glob
 from jsonrpclib import jsonclass
 import logging
 import os
 import shutil
 import threading
-import yaml
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import device_utils
 from cros.factory.test.env import paths
+from cros.factory.test import event
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test import factory
+from cros.factory.test.rules import privacy
 from cros.factory.utils import shelve_utils
-from cros.factory.utils import string_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
+
 
 # TODO(shunhsingou): Remove the following legacy code.
 # Support legacy code. Now the port and address information is defined in
@@ -37,6 +36,12 @@ DEFAULT_FACTORY_STATE_ADDRESS = goofy_proxy.DEFAULT_GOOFY_ADDRESS
 DEFAULT_FACTORY_STATE_FILE_PATH = paths.GetStateRoot()
 
 POST_SHUTDOWN_TAG = '%s.post_shutdown'
+
+# Key for device data.  This is a dictionary of accumulated data usually from
+# shopfloor calls with information about the configuration of the device.
+KEY_DEVICE_DATA = 'device'
+
+KEY_SERIAL_NUMBER = 'serial_number'
 
 
 def clear_state(state_file_path=DEFAULT_FACTORY_STATE_FILE_PATH):
@@ -85,12 +90,11 @@ class FactoryState(object):
     state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
     if not os.path.exists(state_file_path):
       os.makedirs(state_file_path)
-    self._tests_shelf = shelve_utils.OpenShelfOrBackup(state_file_path + '/tests')
-    self._data_shelf = shelve_utils.OpenShelfOrBackup(state_file_path + '/data')
+    self._tests_shelf = shelve_utils.OpenShelfOrBackup(
+        state_file_path + '/tests')
+    self._data_shelf = shelve_utils.OpenShelfOrBackup(
+        state_file_path + '/data')
     self._lock = threading.RLock()
-
-    # TODO(hungte) Support remote dynamic DUT.
-    self._dut = device_utils.CreateDUTInterface()
 
     if factory.TestState not in jsonclass.supported_types:
       jsonclass.supported_types.append(factory.TestState)
@@ -301,6 +305,8 @@ def get_instance(address=None, port=None):
     port: Port of the server to be connected.
 
   Returns:
+    :rtype: cros.factory.test.state.FactoryState
+
     An object with all public functions from FactoryState.
     See help(FactoryState) for more information.
   """
@@ -308,7 +314,8 @@ def get_instance(address=None, port=None):
       address, port, goofy_proxy.STATE_URL)
 
 
-# helper functions
+# ---------------------------------------------------------------------------
+# Helper functions for shared data
 def get_shared_data(key, default=None):
   if not get_instance().has_shared_data(key):
     return default
@@ -325,6 +332,72 @@ def has_shared_data(key):
 
 def del_shared_data(key):
   return get_instance().del_shared_data(key)
+
+
+# ---------------------------------------------------------------------------
+# Helper functions for device data
+def GetDeviceData():
+  """Returns the accumulated dictionary of device data."""
+  return get_shared_data(KEY_DEVICE_DATA, {})
+
+
+def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
+  """Returns the accumulated dictionary of device data.
+
+  Args:
+    delete_keys: A list of keys to be deleted.
+    post_update_event: If True, posts an UPDATE_SYSTEM_INFO event to
+        update the test list.
+    optional: False to raise a KeyError if not found.
+
+  Returns:
+    The updated dictionary.
+  """
+  logging.info('Deleting device data: %s', delete_keys)
+  data = get_instance().delete_shared_data_dict_item(
+      KEY_DEVICE_DATA, delete_keys, optional)
+  if 'serial_number' in delete_keys:
+    SetSerialNumber(None)
+  logging.info('Updated device data; complete device data is now %s',
+               privacy.FilterDict(data))
+  if post_update_event:
+    with event.EventClient() as event_client:
+      event_client.post_event(event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+  return data
+
+
+def UpdateDeviceData(new_device_data, post_update_event=True):
+  """Returns the accumulated dictionary of device data.
+
+  Args:
+    new_device_data: A dict with key/value pairs to update.  Old values
+        are overwritten.
+    post_update_event: If True, posts an UPDATE_SYSTEM_INFO event to
+        update the test list.
+
+  Returns:
+    The updated dictionary.
+  """
+  logging.info('Updating device data: setting %s',
+               privacy.FilterDict(new_device_data))
+  data = get_instance().update_shared_data_dict(
+      KEY_DEVICE_DATA, new_device_data)
+  logging.info('Updated device data; complete device data is now %s',
+               privacy.FilterDict(data))
+  if post_update_event:
+    with event.EventClient() as event_client:
+      event_client.post_event(event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+  return data
+
+
+# ---------------------------------------------------------------------------
+# Helper functions for serial numbers
+def SetSerialNumber(serial_number):
+  UpdateDeviceData({KEY_SERIAL_NUMBER: serial_number})
+
+
+def GetSerialNumber():
+  return GetDeviceData().get(KEY_SERIAL_NUMBER)
 
 
 class StubFactoryState(FactoryState):

@@ -10,7 +10,7 @@
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -20,4 +20,4 @@ class CallShopfloor(unittest.TestCase):
   ]
 
   def runTest(self):
-    shopfloor.UpdateDeviceData(self.args.data)
+    state.UpdateDeviceData(self.args.data)

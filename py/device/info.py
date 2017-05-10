@@ -16,7 +16,7 @@ from cros.factory.device import component
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
 
 
@@ -123,7 +123,7 @@ class SystemInfo(component.DeviceComponent):
 
   def ClearSerialNumbers(self):
     """Clears any serial numbers from DeviceData."""
-    return shopfloor.DeleteDeviceData(
+    return state.DeleteDeviceData(
         ['serial_number',
          'mlb_serial_number'], optional=True)
 
@@ -138,10 +138,10 @@ class SystemInfo(component.DeviceComponent):
     Tries to load the serial number from DeviceData.  If not found, loads
     from DUT storage, and caches into DeviceData.
     """
-    if not shopfloor.GetDeviceData().get(name):
+    if not state.GetDeviceData().get(name):
       serial = self._dut.storage.LoadDict().get(name)
-      shopfloor.UpdateDeviceData({name: serial})
-    return shopfloor.GetDeviceData()[name]
+      state.UpdateDeviceData({name: serial})
+    return state.GetDeviceData()[name]
 
   @InfoProperty
   def serial_number(self):
@@ -156,7 +156,7 @@ class SystemInfo(component.DeviceComponent):
   @InfoProperty
   def stage(self):
     """Manufacturing build stage. Examples: PVT, EVT, DVT."""
-    return shopfloor.GetDeviceData()['stage']
+    return state.GetDeviceData()['stage']
 
   @InfoProperty
   def factory_image_version(self):

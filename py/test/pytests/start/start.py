@@ -204,7 +204,7 @@ class ShopFloorTask(FactoryTask):
       shopfloor.check_serial_number(serial.strip())
       Log('mlb_serial_number', serial_number=serial)
       logging.info('Serial number: %s', serial)
-      shopfloor.set_serial_number(serial)
+      state.SetSerialNumber(serial)
       self._test.ui.event_client.post_event(
           Event(Event.Type.UPDATE_SYSTEM_INFO))
       self.Pass()
@@ -256,7 +256,7 @@ class ReadVPDSerialTask(FactoryTask):
             serial_number[v] = vpd_value
 
     Log('mlb_serial_number', serial_number=serial_number)
-    shopfloor.set_serial_number(serial_number)
+    state.SetSerialNumber(serial_number)
     self._test.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
     self.Pass()
 

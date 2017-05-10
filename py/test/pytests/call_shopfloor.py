@@ -30,7 +30,7 @@ from cros.factory.utils import process_utils
 
 
 def UpdateDeviceData(data):
-  shopfloor.UpdateDeviceData(data)
+  state.UpdateDeviceData(data)
   event_log.Log('update_device_data', data=privacy.FilterDict(data))
 
 

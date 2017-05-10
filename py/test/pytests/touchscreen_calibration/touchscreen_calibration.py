@@ -712,7 +712,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def GetSerialNumber(self, unused_event=None):
     """Get the DUT's serial number from the shopfloor."""
-    sn = shopfloor.get_serial_number()
+    sn = state.GetSerialNumber()
     self.ui.CallJSFunction('fillInSerialNumber', sn)
     self.StartCalibration(Event({'sn': sn}))
 

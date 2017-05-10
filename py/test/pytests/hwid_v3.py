@@ -19,6 +19,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
@@ -98,7 +99,7 @@ class HWIDV3Test(unittest.TestCase):
 
     # pass device info to DUT
     device_info_file = self._dut.path.join(self.tmpdir, 'device_info')
-    device_info = shopfloor.GetDeviceData()
+    device_info = state.GetDeviceData()
     with file_utils.UnopenedTemporaryFile() as f:
       yaml.dump(device_info, open(f, 'w'))
       self._dut.SendFile(f, device_info_file)
@@ -132,7 +133,7 @@ class HWIDV3Test(unittest.TestCase):
       Log('hwid', hwid=encoded_string,
           hwdb_checksum=hwid['hwdb_checksum'],
           components=decoded_hwid)
-      shopfloor.UpdateDeviceData({'hwid': encoded_string})
+      state.UpdateDeviceData({'hwid': encoded_string})
     else:
       encoded_string = self.factory_tools.CheckOutput(['hwid', 'read']).strip()
 
