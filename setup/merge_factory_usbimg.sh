@@ -44,27 +44,16 @@ usage_die() {
 }
 
 # Merge multiple USB installation disk images.
-# A typical layout of an USB disk image:
-# ---------------------
-#  1 stateful
-#  2 kernel   [install]
-#  3 rootfs   [install]
-#  4 kernel   [factory]
-#  5 rootfs   [factory]
-#  6 kernel   [release]
-#  7 rootfs   [release]
-#  8 oem
-# 12 efi
-# ---------------------
 #
-# This function extracts partitions 1, 4-8 and 12 from each input image
-# and put them into a resource file. Then invoke make_universal_factory_shim.sh
-# to generate the output image by merging the resource file to partition 1 and
-# merging partition 2/3 of each input image.
+# The usbimg should have factory_install kernel and rootfs in (2, 3) and
+# resources in stateful partition cros_payloads.
+# This function extracts merges all stateful partitions and invoke
+# make_universal_factory_shim.sh to generate the output image by merging the
+# resource file to partition 1 and merging partition 2/3 of each input image.
 #
 # The layout of the merged output image:
 # --------------------------------
-#    1 resource  [Partitions 1, 4-8, 12 of each usbimgX]
+#    1 stateful  [cros_payloads from all usbimgX]
 #    2 kernel    [install-usbimg1]
 #    3 rootfs    [install-usbimg1]
 #    4 kernel    [install-usbimg2]
@@ -80,43 +69,43 @@ usage_die() {
 # --------------------------------
 merge_images() {
   local output_file="$1"
+  local image_file
   shift
 
-  local compressor="$SCRIPT_DIR/make_image_resource.sh"
-  local builder="$SCRIPT_DIR/make_universal_factory_shim.sh"
-  local save_partitions="1,4,5,6,7,8,12"
+  # Basically the output file should be sized in sum of all input files.
+  info "Scanning input files..."
+  local master_size="$(stat --format="%s" "$1")"
+  local new_sectors=$((master_size / 512))
+  : $((new_sectors -= $("${SCRIPT_DIR}/pygpt" show -i 1 -s "$1") ))
+  for image_file in "$@"; do
+    : $((new_sectors += $("${SCRIPT_DIR}/pygpt" show -i 1 -s "${image_file}") ))
+  done
+  local new_size_K="$((new_sectors / 2))"
+  info "Creating a new image file in $((new_size_K / 1024))M..."
+  cp -f "$1" "${output_file}"
+  truncate -s "${new_size_K}K" "${output_file}"
+  "${SCRIPT_DIR}/pygpt" repair --expand "${output_file}"
 
-  # The partition resource files generated are stored in directories named
-  # by partition GUID in $RESOURCE_FILE. We need to preserve GUID when
-  # making the universal shim image. Otherwise, the factory installer
-  # cannot find the corresponding partition images.
-  "$compressor" --force --save_partitions="$save_partitions" \
-                --output "$RESOURCE_FILE" "$@"
-  UNIVERSAL_SHIM_PRESERVE_GUID="YES" \
-    "$builder" -m "$RESOURCE_FILE" -f "$output_file" "$@"
-}
+  local image all_payloads="$(mktemp -d)" stateful="$(mktemp -d)"
+  image_add_temp "${all_payloads}"
+  image_add_temp "${stateful}"
 
-# lsb file is required for factory shim bootstrapping.
-generate_lsb() {
-  local image_file="$1"
-  local temp_mount="$(mktemp -d)"
-  local lsb_file="${temp_mount}/dev_image/etc/lsb-factory"
+  image_mount_partition "${output_file}" 1 "${all_payloads}" "rw"
+  mkdir -p "${all_payloads}/cros_payloads"
+  for image_file in "$@"; do
+    info "Collecting RMA payloads from ${image_file}..."
+    image_mount_partition "${image_file}" 1 "${stateful}" "ro"
+    cp -pr "${stateful}"/cros_payloads/* "${all_payloads}/cros_payloads/."
+    image_umount_partition "${stateful}"
+  done
+  image_umount_partition "${all_payloads}"
 
-  image_add_temp "${temp_mount}"
-  image_mount_partition "${image_file}" "1" "${temp_mount}" "rw" ||
-    die "Failed to mount partition 1 in ${image_file}"
+  local temp_master="${output_file}.wip"
+  mv -f "${output_file}" "${temp_master}"
+  image_add_temp "${temp_master}"
 
-  # INSTALL_FROM_USB=1 tells factory_installer/factory_install.sh to install
-  # images from USB drive instead of mini-omaha server.
-  # Install shim kernel and rootfs are in partition #2 and #3 in a usbimg,
-  # and the factory and release image partitions are moved to +2 location.
-  # USB_OFFSET=2 tells factory_installer/factory_install.sh this information.
-  sudo mkdir -p "$(dirname "${lsb_file}")"
-  (echo "FACTORY_INSTALL_FROM_USB=1" &&
-    echo "FACTORY_INSTALL_USB_OFFSET=2") |
-    sudo dd of="${lsb_file}"
-
-  image_umount_partition "${temp_mount}"
+  local builder="${SCRIPT_DIR}/make_universal_factory_shim.sh"
+  "${builder}" -m "${temp_master}" -f "${output_file}" "$@"
 }
 
 main() {
@@ -150,7 +139,6 @@ main() {
   # Use double quote to expand the local variable ${output} now.
   trap "check_output_on_exit ${output}" EXIT
   merge_images "$output" "$@"
-  generate_lsb "$output"
 }
 
 set -e
