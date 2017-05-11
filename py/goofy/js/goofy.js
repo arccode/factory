@@ -7,6 +7,7 @@ goog.provide('cros.factory.Goofy');
 goog.require('cros.factory.DeviceManager');
 goog.require('cros.factory.DiagnosisTool');
 goog.require('cros.factory.i18n');
+goog.require('cros.factory.Plugin');
 goog.require('goog.Uri');
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
@@ -1035,6 +1036,7 @@ cros.factory.Goofy.prototype.init = function() {
     function(/** Array<cros.factory.PluginMenuItem> */ menuItems) {
       this.pluginMenuItems = menuItems;
     });
+  this.sendRpc('GetPluginFrontendURLs', [], this.setPluginUI);
   this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
   this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
   this.sendRpc(
@@ -3483,6 +3485,23 @@ cros.factory.Goofy.prototype.hideTerminal = function() {
       document.getElementById('goofy-terminal'), 'opacity', 0.5);
   this.sendEvent('goofy:key_filter_mode', {enabled: true});
 };
+
+cros.factory.Goofy.prototype.setPluginUI = function(
+    /** Array<string> */ urls) {
+  var goofy = this;
+  urls.forEach(function(/** string */ url) {
+    var pluginArea = document.getElementById('goofy-plugin-area');
+    var newPlugin = goog.dom.createDom('div', {'class': 'goofy-plugin'});
+    var iframe = goog.dom.createDom(
+        'iframe', {'class': 'goofy-plugin-iframe', 'src': url});
+    pluginArea.appendChild(newPlugin);
+    newPlugin.appendChild(iframe);
+    iframe.contentWindow.plugin = new cros.factory.Plugin(goofy, newPlugin);
+    iframe.contentWindow.cros = cros;
+    iframe.contentWindow.goog = goog;
+    iframe.contentWindow.goofy = goofy;
+  });
+}
 
 goog.events.listenOnce(window, goog.events.EventType.LOAD, function() {
   window.goofy = new cros.factory.Goofy();

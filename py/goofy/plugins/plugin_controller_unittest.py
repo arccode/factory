@@ -6,26 +6,28 @@
 
 
 import mock
+import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy
+from cros.factory.goofy import goofy_server
 from cros.factory.goofy.plugins import plugin
 from cros.factory.goofy.plugins import plugin_controller
+from cros.factory.test.env import paths
 
 
 # pylint: disable=protected-access
 class PluginControllerTest(unittest.TestCase):
 
-  BASE_PLUGIN_MODULE = 'plugin'
-  BASE_PLUGIN_CLASS = 'plugin.Plugin'
+  BASE_PLUGIN_MODULE = 'mock_plugin.mock_plugin'
 
   def setUp(self):
     self._goofy = mock.Mock(goofy.Goofy)
+    self._goofy.goofy_server = mock.Mock(goofy_server.GoofyServer)
 
     # Load the base plugin class for test.
-    self._config = {
-        'backends': {self.BASE_PLUGIN_MODULE: {}}}
+    self._config = {'plugins': {self.BASE_PLUGIN_MODULE: {}}}
 
   def CreateController(self):
     with mock.patch('cros.factory.utils.config_utils.LoadConfig') as LoadConfig:
@@ -36,16 +38,19 @@ class PluginControllerTest(unittest.TestCase):
 
   def testInit(self):
     controller = self.CreateController()
-    self.assertTrue(set(controller._plugins.keys()) == set(['plugin.Plugin']))
-    self._config = {
-        'backends': {self.BASE_PLUGIN_CLASS: {}}}
-    controller = self.CreateController()
-    self.assertTrue(set(controller._plugins.keys()) == set(['plugin.Plugin']))
+    self.assertItemsEqual(controller._plugins.keys(), [self.BASE_PLUGIN_MODULE])
+    self.assertItemsEqual(
+        controller._frontend_urls,
+        ['/plugin/mock_plugin_mock_plugin/mock_plugin.html'])
+    self._goofy.goofy_server.RegisterPath.assert_called_once_with(
+        '/plugin/mock_plugin_mock_plugin',
+        os.path.join(paths.FACTORY_PACKAGE_PATH,
+                     'goofy', 'plugins', 'mock_plugin', 'static'))
 
   def testInitError(self):
-    self._config['backends']['not_exist_plugin.NotExistPlugin'] = {}
+    self._config['plugins']['not_exist_plugin.NotExistPlugin'] = {}
     controller = self.CreateController()
-    self.assertTrue(set(controller._plugins.keys()) == set(['plugin.Plugin']))
+    self.assertItemsEqual(controller._plugins.keys(), [self.BASE_PLUGIN_MODULE])
 
   def testStartAllPlugins(self):
     mock_plugin = mock.Mock(plugin.Plugin)
@@ -80,8 +85,7 @@ class PluginControllerTest(unittest.TestCase):
   def testGetPluginRPCPath(self):
     # pylint: disable=protected-access
     self.assertEqual(
-        plugin_controller._GetPluginRPCPath('plugin.Plugin'),
-        '/plugin/plugin_Plugin')
+        plugin_controller._GetPluginRPCPath('plugin'), '/plugin/plugin')
 
   @mock.patch('cros.factory.goofy.plugins.plugin_controller.goofy_proxy')
   def testGetPluginProxy(self, goofy_proxy):
@@ -89,7 +93,7 @@ class PluginControllerTest(unittest.TestCase):
     goofy_proxy.get_rpc_proxy.return_value = proxy
     self.assertEqual(plugin_controller.GetPluginRPCProxy('plugin'), proxy)
     goofy_proxy.get_rpc_proxy.assert_called_once_with(
-        None, None, '/plugin/plugin_Plugin')
+        None, None, '/plugin/plugin')
     proxy.system.listMethods.assert_called_once_with()
 
   def testOnMenuItemClicked(self):
@@ -105,6 +109,12 @@ class PluginControllerTest(unittest.TestCase):
     item = plugin.MenuItem('test', None)
     controller._menu_items[item.id] = item
     self.assertEqual([item], controller.GetPluginMenuItems())
+
+  def testGetFrontendURLs(self):
+    controller = self.CreateController()
+    url = '/plugin/mock_plugin_mock_plugin/mock_plugin.html'
+    controller._frontend_urls = [url]
+    self.assertEqual([url], controller.GetFrontendURLs())
 
 if __name__ == '__main__':
   unittest.main()

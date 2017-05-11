@@ -6,7 +6,7 @@
     "inherit": {
       "type": "string"
     },
-    "backends": {
+    "plugins": {
       "type": "object",
       "patternProperties": {
         "^.+$": {
@@ -24,6 +24,6 @@
     }
   },
   "required": [
-    "backends"
+    "plugins"
   ]
 }

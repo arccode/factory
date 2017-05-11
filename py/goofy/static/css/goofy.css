@@ -85,9 +85,9 @@ body {
   background-color: #cddff0;
 }
 #goofy-control {
-  position: absolute;
-  top: 45px; left: 0; right: 0; bottom: 20px;
   padding: 5px 0;
+  width: 100%;
+  flex: 1;
 }
 #goofy-control, #goofy-status-bar {
   cursor: default;
@@ -102,8 +102,7 @@ body {
 #goofy-status-bar {
   border-top: 1px solid lightgray;
   font-size: 75%;
-  height: 20px; left: 0; right: 0; bottom: 0;
-  position: absolute;
+  width: 100%;
 }
 #goofy-status-bar-main {
   padding-top: 1px;
@@ -130,6 +129,25 @@ body {
 .goofy-status-bar-item.goofy-value-known .goofy-unknown {
   display: none;
 }
+.goofy-plugin {
+  height: 24px; width: 100%;
+  border-top: 1px solid lightgray;
+  position: relative;
+}
+.goofy-plugin iframe {
+  height: 100%; width: 100%;
+  background-color: white;
+}
+.goofy-plugin-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 0%;
+  visibility: hidden;
+  z-index: 10000;
+  background: #ffe;
+  padding: 4px;
+  border: 1px solid lightgray;
+}
 .goofy-battery-charging:before {
   content: '↑';
 }
@@ -141,17 +159,6 @@ body {
 }
 .goofy-battery-full:before {
   content: 'F';
-}
-.goofy-engineering-mode #goofy-status-bar,
-.goofy-update-available #goofy-status-bar {
-  /* Status bar contains one indicator. */
-  height: 44px;
-  /* No border necessary. */
-  border-top: 0px;
-}
-.goofy-engineering-mode.goofy-update-available #goofy-status-bar {
-  /* Status bar contains both indicators. */
-  height: 68px;
 }
 .goofy-indicator {
   color: white;
@@ -177,13 +184,6 @@ body {
 }
 .goofy-update-available #goofy-update-available-indicator {
   display: block;
-}
-.goofy-engineering-mode #goofy-control,
-.goofy-update-available #goofy-control {
-  bottom: 44px;
-}
-.goofy-engineering-mode.goofy-update-available #goofy-control {
-  bottom: 68px;
 }
 #goofy-disable-engineering-mode {
   border: none;
@@ -603,9 +603,12 @@ button {
 .goog-splitpane-handle-vertical {
   cursor: row-resize;
 }
+.goog-splitpane-first-container {
+  display: flex;
+  flex-flow: column;
+}
 .goog-splitpane-first-container,
 .goog-splitpane-second-container {
-  overflow: hidden;
   position: absolute;
 }
 .progress-bar-vertical,

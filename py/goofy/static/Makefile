@@ -11,10 +11,11 @@ CLOSURE_LIB_DIR = /opt/closure-library
 CLOSURE_COMPILER_JAR = /opt/closure-compiler-bin-0/lib/closure-compiler-bin.jar
 
 JS_SOURCES = \
-    goofy.js \
     device_manager.js \
     diagnosis_tool.js \
-    i18n.js
+    goofy.js \
+    i18n.js \
+    plugin.js
 
 JS_SOURCE_PATHS = $(addprefix ../js/,$(JS_SOURCES))
 
@@ -37,6 +38,7 @@ CLOSURE_BUILD = \
     --root ../js \
     -n cros.factory.Goofy \
     -n cros.factory.DeviceManager \
+    -n cros.factory.Plugin \
     --compiler_jar=$(CLOSURE_COMPILER_JAR) \
     -f \
     --warning_level=VERBOSE

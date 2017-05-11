@@ -1,6 +1,6 @@
 {
   "inherit": "goofy_plugin_chromeos",
-  "backends": {
+  "plugins": {
     "system_log_manager": {
       "args": {
         "clear_log_paths": [

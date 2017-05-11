@@ -1,5 +1,5 @@
 {
-  "backends": {
+  "plugins": {
     "time_sanitizer": {
       "args": {
         "base_time_files": ["/usr/local/etc/lsb-factory",

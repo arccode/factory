@@ -798,6 +798,10 @@ class GoofyRPC(object):
     """Called when a plugin menu item is clicked."""
     return self.goofy.plugin_controller.OnMenuItemClicked(item_id)
 
+  def GetPluginFrontendURLs(self):
+    """Returns a list of URLs of all plugin's UI."""
+    return self.goofy.plugin_controller.GetFrontendURLs()
+
 
 def main():
   parser = argparse.ArgumentParser(

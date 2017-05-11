@@ -2,13 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 import logging
+import os
 from xmlrpclib import ProtocolError
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import goofy_proxy
+from cros.factory.test.env import paths
 from cros.factory.utils import config_utils
 
 
@@ -63,35 +64,70 @@ class PluginController(object):
     """
     self._plugins = {}
     self._menu_items = {}
+    self._frontend_urls = []
 
     plugin_config = config_utils.LoadConfig(
         config_name, 'plugins')
 
-    for name, plugin_args in plugin_config['backends'].iteritems():
+    for name, plugin_args in plugin_config['plugins'].iteritems():
       args = plugin_args.get('args', {})
       args['goofy'] = goofy
       plugin_class = plugin.GetPluginClass(name)
       if plugin_class:
         try:
           plugin_instance = plugin_class(**args)
-          plugin_path = plugin.GetPluginNameFromClass(plugin_class)
+          plugin_name = plugin.GetPluginNameFromClass(plugin_class)
 
-          for menu_item in plugin_instance.GetMenuItems():
-            self._menu_items[menu_item.id] = menu_item
-
-          self._plugins[plugin_path] = plugin_instance
-        except Exception as error:
-          logging.error('Failed to load plugin: %s', name)
-          logging.exception(error)
+          self._plugins[plugin_name] = plugin_instance
+        except Exception:
+          logging.exception('Failed to load plugin: %s', name)
       else:
         logging.error('Failed to load plugin class: %s', name)
+
+    self._RegisterMenuItem()
+    self._RegisterRPC(goofy.goofy_server)
+    self._RegisterFrontendPath(goofy.goofy_server)
+
+  def _RegisterMenuItem(self):
+    """Registers plugins' menu items."""
+    for name, instance in self._plugins.iteritems():
+      try:
+        for menu_item in instance.GetMenuItems():
+          self._menu_items[menu_item.id] = menu_item
+      except Exception:
+        logging.exception('Failed to get menu items from %s', name)
+
+  def _RegisterFrontendPath(self, goofy_server):
+    base = os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy', 'plugins')
+    for name, instance in self._plugins.iteritems():
+      plugin_paths = name.split('.')
+      if len(plugin_paths) < 2:
+        continue
+
+      dirname = os.path.join(*plugin_paths[:-1])
+      full_file_path = os.path.join(base, dirname, 'static')
+
+      if not os.path.exists(full_file_path):
+        continue
+
+      url_base_path = _GetPluginRPCPath(name)
+      goofy_server.RegisterPath(url_base_path, full_file_path)
+
+      try:
+        if not instance.HasUI():
+          continue
+        self._frontend_urls.append(
+            '%s/%s.html' % (url_base_path, plugin_paths[-1]))
+      except Exception:
+        logging.exception('Failed to check HasUI from %s.', name)
+
 
   def StartAllPlugins(self):
     """Starts all plugins."""
     for plugin_instance in self._plugins.values():
       plugin_instance.Start()
 
-  def RegisterRPC(self, goofy_server):
+  def _RegisterRPC(self, goofy_server):
     """Registers plugins to Goofy server."""
     for plugin_path, plugin_instance in self._plugins.iteritems():
       rpc_instance = plugin_instance.GetRPCInstance()
@@ -133,6 +169,10 @@ class PluginController(object):
   def GetPluginMenuItems(self):
     """Returns a list all plugins menu items."""
     return self._menu_items.values()
+
+  def GetFrontendURLs(self):
+    """Returns a list of URLs of all plugin's UI."""
+    return self._frontend_urls
 
   def OnMenuItemClicked(self, item_id):
     """Called when a plugin menu item is clicked."""

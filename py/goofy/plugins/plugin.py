@@ -62,13 +62,22 @@ def GetPluginClass(plugin_name):
 
 
 def GetPluginNameFromClass(plugin_class):
-  """Returns the path of the given plugin class.
+  """Returns the 'name' of the given plugin class.
 
-  Returns the full path of the plugin class *after*
-  `cros.factory.goofy.plugins`.
+  The name is defined as the plugin module path *after*
+  `cros.factory.goofy.plugins` and *without* the class name.
+
+  For example, for a plugin class StatusMonitor that is implemented under
+  //py/goofy/plugins/status_monitor/status_monitor.py, the name would be
+  'status_monitor.status_monitor'.
+
+  For a plugin class TimeSanitizer that is implemented under
+  //py/goofy/plugins/time_saniitzer.py, the name would be 'time_sanitizer'.
   """
-  fullpath = '.'.join([plugin_class.__module__, plugin_class.__name__])
-  return fullpath[len(_PLUGIN_MODULE_BASE) + 1:]
+  if (not issubclass(plugin_class, Plugin) or
+      not plugin_class.__module__.startswith(_PLUGIN_MODULE_BASE)):
+    raise RuntimeError('%r is not a valid Goofy plugin' % plugin_class)
+  return plugin_class.__module__[len(_PLUGIN_MODULE_BASE) + 1:]
 
 
 class MenuItem(object):
@@ -172,6 +181,23 @@ class Plugin(object):
   def GetMenuItems(self):
     """Returns menu items supported by this plugin."""
     return []
+
+  def HasUI(self):
+    """Returns True if the plugin contains UI components
+
+    The default implementation returns False. Subclass should implement this
+    if it has frontend UI. The static files should be in a folder name 'static'
+    under the same folder of the python implementation. And the entry point
+    would be a HTML file with the same name of the plugin folder.
+
+    For example, a plugin call StatusMonitor can have following setup:
+
+    //py/goofy/plugins/status_monitor/status_monitor.py
+    //py/goofy/plugins/status_monitor/static/status_monitor.html
+    //py/goofy/plugins/status_monitor/static/status_monitor.js
+    //py/goofy/plugins/status_monitor/static/status_monitor.css
+    """
+    return False
 
   @debug_utils.CatchException('Plugin')
   def Start(self):

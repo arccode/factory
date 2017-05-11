@@ -133,7 +133,7 @@ class PluginTest(unittest.TestCase):
   def testGetPluginPathFromClass(self):
     self.assertEqual(
         plugin.GetPluginNameFromClass(plugin.GetPluginClass('plugin')),
-        'plugin.Plugin')
+        'plugin')
 
 if __name__ == '__main__':
   unittest.main()

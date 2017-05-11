@@ -23,13 +23,14 @@ BOARD_PO_DIR ?= $(if $(BOARD_FILES_DIR),$(BOARD_FILES_DIR)/po)
 
 func-get-source-list = \
   $(sort $(wildcard \
-    $(1)/goofy/*.py $(1)/goofy/*/*.py \
+    $(1)/goofy/*.py $(1)/goofy/*/*.py $(1)/goofy/plugins/*/*.py \
     $(1)/test/*.py $(1)/test/pytests/*.py \
     $(1)/test/pytests/*/*.py $(1)/test/test_lists/*.py \
     $(1)/test/pytests/*.html $(1)/test/pytests/*/*.html \
     $(1)/goofy/js/*.js $(1)/goofy/static/index.html \
     $(1)/goofy/static/ui_templates/*.html $(1)/test/pytests/*/*.js \
-    $(1)/test/test_lists/*.test-list.json))
+    $(1)/test/test_lists/*.test-list.json \
+    $(1)/goofy/plugins/*/*/*.js $(1)/goofy/plugins/*/*/*.html))
 
 PY_ROOT = ../py
 SRC_LIST = $(call func-get-source-list,$(PY_ROOT))
