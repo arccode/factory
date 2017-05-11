@@ -20,7 +20,6 @@
 # TODO(hungte) List of todo:
 # - Quick check dependency before starting to run.
 # - Add partitions in parallel if pigz cannot be found.
-# - Consider using xz/pixz instead of gz.
 # - Support adding or removing single partition directly.
 # - Add part0 as GPT itself.
 
@@ -192,13 +191,13 @@ cmd_help() {
 
 # JSON helper functions - using jq or python.
 
-# Merges two json arguments into out.
+# Merges two json files into stdout.
 json_merge() {
   local base_path="$1"
   local update_path="$2"
 
   if [ -n "${JQ}" ]; then
-    jq -s '.[0] * .[1]' "${base_path}" "${update_path}"
+    "${JQ}" -s '.[0] * .[1]' "${base_path}" "${update_path}"
     return
   fi
 
@@ -216,7 +215,6 @@ def merge(base, delta):
       merge(new_value, value)
     else:
       base[key] = value
-  return base
 
 base = json.load(get_fd(sys.argv[1]))
 delta = json.load(get_fd(sys.argv[2]))
@@ -262,7 +260,7 @@ json_get_keys() {
 json_encode_str() {
   if [ -n "${JQ}" ]; then
     # shellcheck disable=SC2016
-    jq -n --arg input "$1" '$input'
+    "${JQ}" -n --arg input "$1" '$input'
     return
   fi
   python -c "import json; import sys; print(json.dumps(sys.argv[1]))" "$1"
@@ -298,9 +296,9 @@ commit_payload() {
   local ext="${temp_payload##*.}"
 
   if [ -n "${subtype}" ]; then
-    output_name="${component}_${subtype}_${md5sum}.${ext}"
+    output_name="${component}.${subtype}.${md5sum}.${ext}"
   else
-    output_name="${component}_${md5sum}.${ext}"
+    output_name="${component}.${md5sum}.${ext}"
     subtype="file"
   fi
   if [ -n "${version}" ]; then
@@ -501,9 +499,11 @@ install_partition() {
     dest_part_dev="$(get_partition_dev "${dest}" "${part_to}")"
     [ -b "${dest_part_dev}" ] || die "Not a block device: ${dest_part_dev}"
     info "Installing from ${component}#${part_from} to ${dest_part_dev} ..."
-    # TODO(hungte) Support better dd/pv, pre-fetch size.
     # bs is fixed on 1048576 because many dd implementations do not support
-    # units like '1M' or '1m'.
+    # units like '1M' or '1m'. Larger bs may slightly increase the speed for gz
+    # payloads (for a test_image component, execution time reduced from 72s to
+    # 59s for bs=2M), but that does not help bz2 payloads and also makes it
+    # harder to install small partitions.
     fetch "${remote_url}" | do_compress "${remote_url}" -d | \
       dd of="${dest_part_dev}" bs=1048576 iflag=fullblock oflag=dsync
   done
