@@ -23,10 +23,18 @@ from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_sandbox
 from instalog import testing
+from instalog.utils import file_utils
 from instalog.utils import net_utils
+from instalog.utils import process_utils
 from instalog.utils import sync_utils
 
 from instalog.external import requests
+
+
+def _TempAvailSpaceMB():
+  output = process_utils.CheckOutput(
+      ['df', '--output=avail', '--block-size=1M', tempfile.gettempdir()])
+  return int(output.splitlines()[1])
 
 
 class TestInputHTTP(unittest.TestCase):
@@ -54,6 +62,22 @@ class TestInputHTTP(unittest.TestCase):
       self.core.Close()
     shutil.rmtree(self._tmp_dir)
 
+  def _GeneratePayload(self, mbytes):
+    fd, path = tempfile.mkstemp(dir=self._tmp_dir)
+    os.close(fd)
+    process_utils.Spawn(
+        ['truncate', '-s', str(mbytes * 1024 * 1024), path], check_call=True)
+    return path
+
+  def _CurlPost(self, *fields):
+    curl_args = ['-X', 'POST', '-s', '-o', '/dev/null', '-w', '%{http_code}']
+    for field in fields:
+      curl_args.append('-F')
+      curl_args.append(field)
+    status_code_str = process_utils.CheckOutput(
+        ['curl'] + curl_args + ['localhost:%d' % self.port], ignore_stderr=True)
+    return int(status_code_str)
+
   def testConnect(self):
     r = requests.post('http://localhost:' + str(self.port), files={'': ''})
     self.assertEqual(200, r.status_code)
@@ -64,27 +88,25 @@ class TestInputHTTP(unittest.TestCase):
     # pylint: disable=protected-access
     return len(self.plugin._http_server._threads) > 0
 
+  @unittest.skipIf(_TempAvailSpaceMB() < 256, 'Test requires 256mb disk space.')
   def testShutdown(self):
     """Tests that a request thread should terminate before shutting down."""
     event = datatypes.Event({}, {'att_id': 'att'})
-    big_data = {'event': datatypes.Event.Serialize(event),
-                'att': '!' * 512 * 1024 * 1024}  # 512mb
+    big_att_path = self._GeneratePayload(128)  # 128mb
     # Use a queue to get the request object out of the thread.
     q = Queue.Queue()
     def PostBig():
-      try:
-        r = requests.post('http://localhost:' + str(self.port), files=big_data)
-        q.put(r)
-      except Exception as e:
-        q.put(e)
+      event_str = datatypes.Event.Serialize(event)
+      r = self._CurlPost('event=%s' % event_str, 'att=@%s' % big_att_path)
+      q.put(r)
     t = threading.Thread(target=PostBig)
     t.daemon = False
     t.start()
-    sync_utils.WaitFor(self._ClientConnected, 10)
+    sync_utils.WaitFor(self._ClientConnected, 10, poll_interval=0.02)
     self.sandbox.Stop(True)
     self.assertTrue(self.core.AllStreamsExpired())
     self.core.Close()
-    self.assertEqual(400, q.get().status_code)
+    self.assertEqual(400, q.get())
     t.join()
 
   def testShutdownServerClose(self):
@@ -176,31 +198,32 @@ class TestInputHTTP(unittest.TestCase):
     with open(self.core.emit_calls[0][2].attachments['att_id']) as f:
       self.assertEqual(att2, f.read())
 
+  @unittest.skipIf(_TempAvailSpaceMB() < 256, 'Test requires 256mb disk space.')
   def testMultithreadedServing(self):
     """Tests that the server has multithreading enabled."""
     event1 = datatypes.Event({'size': 'big'}, {'att_id': 'att'})
     event2 = datatypes.Event({'size': 'small'}, {'att_id': 'att'})
-    big_data = {'event': datatypes.Event.Serialize(event1),
-                'att': '!' * 512 * 1024 * 1024}  # 512mb
+    big_att_path = self._GeneratePayload(128)  # 128mb
     small_data = {'event': datatypes.Event.Serialize(event2),
                   'att': '!' * 1024}  # 1kb
 
     # Use a queue to get the request object out of the thread.
     q = Queue.Queue()
     def PostBig():
-      r = requests.post('http://localhost:' + str(self.port), files=big_data)
+      event_str = datatypes.Event.Serialize(event1)
+      r = self._CurlPost('event=%s' % event_str, 'att=@%s' % big_att_path)
       q.put(r)
     t = threading.Thread(target=PostBig)
     t.daemon = False
     t.start()
 
-    sync_utils.WaitFor(self._ClientConnected, 10)
+    sync_utils.WaitFor(self._ClientConnected, 10, poll_interval=0.02)
     r = requests.post(
         'http://localhost:' + str(self.port), files=small_data, timeout=1)
     t.join()
 
     self.assertEqual(200, r.status_code)
-    self.assertEqual(200, q.get().status_code)
+    self.assertEqual(200, q.get())
     self.assertEqual(2, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[0]))
     self.assertEqual('small', self.core.emit_calls[0][0]['size'])
@@ -208,34 +231,31 @@ class TestInputHTTP(unittest.TestCase):
     self.assertEqual('big', self.core.emit_calls[1][0]['size'])
 
   def testCurlCommand(self):
-    fd, att_path = tempfile.mkstemp(dir=self._tmp_dir)
-    att = os.urandom(1024)  # 1kb
-    with os.fdopen(fd, 'w') as f:
-      f.write(att)
-    os.system('curl -X POST -F \'event=[{"GG": "HH"}, {"att_id": "att"}]\' '
-              '-F \'att=@%s\' localhost:%d' %
-              (att_path, self.port))
+    att_path = self._GeneratePayload(1)  # 1mb
+    self._CurlPost('event=[{"GG": "HH"}, {"att_id": "att"}]',
+                   'att=@%s' % att_path)
     self.assertEqual(1, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[0]))
     self.assertEqual({'GG': 'HH'}, self.core.emit_calls[0][0].payload)
-    with open(self.core.emit_calls[0][0].attachments['att_id']) as f:
-      self.assertEqual(att, f.read())
+    uploaded_path = self.core.emit_calls[0][0].attachments['att_id']
+    self.assertEqual(
+        file_utils.ReadFile(uploaded_path), file_utils.ReadFile(att_path))
 
-  @unittest.skip('This test run too slow, please run it manually.')
+  @unittest.skip('This test cause a heavy load on disk write, '
+                 'and slow down other tests. Please run it manually.')
+  @unittest.skipIf(_TempAvailSpaceMB() < 2048, 'Test requires 2gb disk space.')
   def testOneHugeAttachment(self):
     """Tests the ability to transfer one huge attachment."""
-    # Since it can be slow to transfer 1 GB of data, only perform one
-    # iteration of the test.
-    att = '!' * 1024 * 1024 * 1024  # 1gb
     event = datatypes.Event({}, {'att_id': 'att'})
-    data = {'event': datatypes.Event.Serialize(event),
-            'att': att}
-    r = requests.post('http://localhost:' + str(self.port), files=data)
-    self.assertEqual(200, r.status_code)
+    att_path = self._GeneratePayload(1024)  # 1gb
+    event_str = datatypes.Event.Serialize(event)
+    r = self._CurlPost('event=%s' % event_str, 'att=@%s' % att_path)
+    self.assertEqual(200, r)
     self.assertEqual(1, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[0]))
-    with open(self.core.emit_calls[0][0].attachments['att_id']) as f:
-      self.assertEqual(att, f.read())
+    uploaded_path = self.core.emit_calls[0][0].attachments['att_id']
+    process_utils.Spawn(
+        ['cmp', '-s', uploaded_path, att_path], check_call=True)
 
 
 if __name__ == '__main__':
