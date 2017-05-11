@@ -71,7 +71,7 @@ class TestlogEventTest(unittest.TestCase):
 
   def testPopulateReturnsSelf(self):
     event = testlog.StationInit()
-    self.assertEquals(event.Populate({}), event)
+    self.assertIs(event.Populate({}), event)
 
   def testInvalidStatusTestRun(self):
     with self.assertRaises(ValueError):
@@ -82,6 +82,18 @@ class TestlogEventTest(unittest.TestCase):
     event['failureMessage'] = 'Missed fields'
     self.assertItemsEqual(event.CheckMissingFields(),
                           ['count', 'success', 'uuid', 'apiVersion', 'time'])
+
+  def testAddArgument(self):
+    event = testlog.StationTestRun()
+    event.AddArgument('K1', 'V1')
+    event.AddArgument('K2', 2.2, 'D2')
+    self.assertEquals(
+        testlog.StationTestRun({
+            'type': 'station.test_run',
+            'arguments': {
+                'K1': {'value': 'V1'},
+                'K2': {'value': 2.2, 'description': 'D2'}}}),
+        event)
 
 
 class TestlogE2ETest(unittest.TestCase):

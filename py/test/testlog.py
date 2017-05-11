@@ -1020,11 +1020,10 @@ class StationTestRun(_StationBase):
 
   def AddArgument(self, key, value, description=None):
     """Adds arguments."""
-    # TODO(itspeter): Unittest.
-    value_dict = {'key': key, 'value': value}
+    value_dict = {'value': value}
     if description:
       value_dict['description'] = description
-    self['arguments'] = value_dict
+    self['arguments'] = {'key': key, 'value': value_dict}
     return self
 
   def AddFailure(self, code, details):
