@@ -89,6 +89,7 @@
         "uplink_use_shopfloor": true
       }
     },
-    "device_manager": {}
+    "device_manager": {},
+    "status_monitor.status_monitor": {}
   }
 }

@@ -67,13 +67,6 @@ cros.factory.AUTO_COLLAPSE = false;
 cros.factory.KEEP_ALIVE_INTERVAL_MSEC = 30000;
 
 /**
- * Interval at which to update system status.
- * @const
- * @type {number}
- */
-cros.factory.SYSTEM_STATUS_INTERVAL_MSEC = 5000;
-
-/**
  * Interval at which to try mounting the USB drive.
  * @const
  * @type {number}
@@ -136,58 +129,6 @@ cros.factory.ENABLE_DIAGNOSIS_TOOL = false;
 cros.factory.MAX_LINE_CONSOLE_LOG = 1024;
 
 /**
- * Labels for items in system info.
- * @type {Array<{key: string, label: !goog.html.SafeHtml,
- *     transform: ?function(?string): !goog.html.SafeHtml}>}
- */
-cros.factory.SYSTEM_INFO_LABELS = [
-  {
-    key: 'mlb_serial_number',
-    label: cros.factory.i18n.i18nLabel('MLB Serial Number')
-  },
-  {key: 'serial_number', label: cros.factory.i18n.i18nLabel('Serial Number')},
-  {key: 'stage', label: cros.factory.i18n.i18nLabel('Stage')}, {
-    key: 'factory_image_version',
-    label: cros.factory.i18n.i18nLabel('Factory Image Version')
-  },
-  {
-    key: 'toolkit_version',
-    label: cros.factory.i18n.i18nLabel('Factory Toolkit Version')
-  },
-  {
-    key: 'release_image_version',
-    label: cros.factory.i18n.i18nLabel('Release Image Version')
-  },
-  {key: 'wlan0_mac', label: cros.factory.i18n.i18nLabel('WLAN MAC')},
-  {key: 'ips', label: cros.factory.i18n.i18nLabel('IP Addresses')},
-  {key: 'kernel_version', label: cros.factory.i18n.i18nLabel('Kernel')},
-  {key: 'architecture', label: cros.factory.i18n.i18nLabel('Architecture')},
-  {key: 'ec_version', label: cros.factory.i18n.i18nLabel('EC')},
-  {key: 'pd_version', label: cros.factory.i18n.i18nLabel('PD')}, {
-    key: 'firmware_version',
-    label: cros.factory.i18n.i18nLabel('Main Firmware')
-  },
-  {key: 'root_device', label: cros.factory.i18n.i18nLabel('Root Device')}, {
-    key: 'factory_md5sum',
-    label: cros.factory.i18n.i18nLabel('Factory MD5SUM'),
-    transform: function(/** ?string */ value) {
-      if (value == null) {
-        return cros.factory.i18n.i18nLabel('(no update)');
-      }
-      return goog.html.SafeHtml.htmlEscape(value);
-    }
-  },
-  {
-    key: 'hwid_database_version',
-    label: cros.factory.i18n.i18nLabel('HWID Database Version')
-  }
-];
-
-/** @type {!goog.html.SafeHtml} */
-cros.factory.UNKNOWN_LABEL = goog.html.SafeHtml.create(
-    'span', {class: 'goofy-unknown'}, cros.factory.i18n.i18nLabel('Unknown'));
-
-/**
  * An item in the test list.
  * @typedef {{path: string, label: cros.factory.i18n.TranslationDict,
  *     disable_abort: boolean, subtests: !Array<cros.factory.TestListEntry>,
@@ -229,14 +170,6 @@ cros.factory.TestState;
  *     enabled: boolean}}
  */
 cros.factory.TestListInfo;
-
-/**
- * @typedef {{charge_manager: Object,
- *     battery: ?{charge_fraction: ?number, charge_state: ?string},
- *     fan_rpm: ?number, temperature: number, load_avg: Array<number>,
- *     cpu: ?Array<number>, ips: string, eth_on: boolean, wlan_on: boolean}}
- */
-cros.factory.SystemStatus;
 
 /**
  * @typedef {{text: cros.factory.i18n.TranslationDict,
@@ -665,13 +598,6 @@ cros.factory.Goofy = function() {
   this.locale = 'en-US';
 
   /**
-   * The tooltip for version number information.
-   */
-  this.infoTooltip = new goog.ui.AdvancedTooltip(
-      document.getElementById('goofy-system-info-hover'));
-  this.infoTooltip.setHtml('Version information not yet available.');
-
-  /**
    * UIs for individual test invocations (by UUID).
    * @type {Object<string, cros.factory.Invocation>}
    */
@@ -700,12 +626,6 @@ cros.factory.Goofy = function() {
    * @type {boolean}
    */
   this.engineeringMode = false;
-
-  /**
-   * Last system info received.
-   * @type {Object<string, string>}
-   */
-  this.systemInfo = {};
 
   /**
    * SHA1 hash of password to take UI out of operator mode.  If
@@ -770,11 +690,6 @@ cros.factory.Goofy = function() {
    * @type {WebSocket}
    */
   this.terminal_sock = null;
-
-  /**
-   * @type {?cros.factory.SystemStatus}
-   */
-  this.lastStatus = null;
 
   /**
    * @type {Array<cros.factory.PluginMenuItem>}
@@ -991,10 +906,6 @@ cros.factory.Goofy.prototype.initWebSocket = function() {
       false, this);
   window.setInterval(
       goog.bind(this.keepAlive, this), cros.factory.KEEP_ALIVE_INTERVAL_MSEC);
-  window.setInterval(
-      goog.bind(this.updateStatus, this),
-      cros.factory.SYSTEM_STATUS_INTERVAL_MSEC);
-  this.updateStatus();
   this.ws.open('ws://' + window.location.host + '/event');
 };
 
@@ -1037,7 +948,6 @@ cros.factory.Goofy.prototype.init = function() {
       this.pluginMenuItems = menuItems;
     });
   this.sendRpc('GetPluginFrontendURLs', [], this.setPluginUI);
-  this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
   this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
   this.sendRpc(
       'get_shared_data', ['test_list_options'],
@@ -1069,10 +979,6 @@ cros.factory.Goofy.prototype.init = function() {
       'get_shared_data', ['automation_mode'],
       function(/** string */ mode) { this.setAutomationMode(mode); });
 
-  var timer = new goog.Timer(1000);
-  goog.events.listen(timer, goog.Timer.TICK, this.updateTime, false, this);
-  timer.dispatchTick();
-  timer.start();
 };
 
 /**
@@ -1226,47 +1132,6 @@ cros.factory.Goofy.prototype.updateCSSClasses = function() {
 };
 
 /**
- * Updates the system info tooltip.
- * @param {Object<string, string>} systemInfo
- */
-cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
-  this.systemInfo = systemInfo;
-
-  var rows = [];
-  goog.array.forEach(cros.factory.SYSTEM_INFO_LABELS, function(item) {
-    var value = systemInfo[item.key];
-    var html;
-    if (item.transform) {
-      html = item.transform(value);
-    } else {
-      html = value == undefined ? cros.factory.UNKNOWN_LABEL : value;
-    }
-    rows.push(goog.html.SafeHtml.create('tr', {}, [
-      goog.html.SafeHtml.create('th', {}, item.label),
-      goog.html.SafeHtml.create('td', {}, html)
-    ]));
-  });
-  rows.push(goog.html.SafeHtml.create('tr', {}, [
-    goog.html.SafeHtml.create(
-        'th', {}, cros.factory.i18n.i18nLabel('Host Based')),
-    goog.html.SafeHtml.create('td', {}, '1')
-  ]));
-  rows.push(goog.html.SafeHtml.create('tr', {}, [
-    goog.html.SafeHtml.create(
-        'th', {}, cros.factory.i18n.i18nLabel('System time')),
-    goog.html.SafeHtml.create('td', {id: 'goofy-time'})
-  ]));
-
-  var table =
-      goog.html.SafeHtml.create('table', {id: 'goofy-system-info'}, rows);
-  this.infoTooltip.setSafeHtml(table);
-  this.updateTime();
-
-  goog.dom.classlist.enable(
-      document.body, 'goofy-update-available', !!systemInfo['update_md5sum']);
-};
-
-/**
  * Updates notes.
  * @param {Array<cros.factory.Note>} notes
  */
@@ -1340,16 +1205,6 @@ cros.factory.Goofy.prototype.viewNotes = function() {
                   this.getNotesView()));
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);
-};
-
-/**
- * Updates the current time.
- */
-cros.factory.Goofy.prototype.updateTime = function() {
-  var element = document.getElementById('goofy-time');
-  if (element) {
-    element.innerHTML = new goog.date.DateTime().toUTCIsoString(true) + ' UTC';
-  }
 };
 
 /**
@@ -2177,9 +2032,7 @@ cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
         'th', {}, cros.factory.i18n.i18nLabel('Serial Number')),
     goog.html.SafeHtml.create('td', {}, goog.html.SafeHtml.create('input', {
       id: 'goofy-ul-serial',
-      size: 30,
-      value: this.systemInfo['serial_number'] ||
-          this.systemInfo['mlb_serial_number'] || ''
+      size: 30
     }))
   ]));
   rows.push(goog.html.SafeHtml.create('tr', {}, [
@@ -2980,100 +2833,6 @@ cros.factory.Goofy.prototype.keepAlive = function() {
   }
 };
 
-/** @type {goog.i18n.NumberFormat} */
-cros.factory.Goofy.LOAD_AVERAGE_FORMAT = new goog.i18n.NumberFormat('0.00');
-
-/** @type {goog.i18n.NumberFormat} */
-cros.factory.Goofy.PERCENT_CPU_FORMAT = new goog.i18n.NumberFormat('0.0%');
-
-/** @type {goog.i18n.NumberFormat} */
-cros.factory.Goofy.PERCENT_BATTERY_FORMAT = new goog.i18n.NumberFormat('0%');
-
-/**
- * Gets the system status.
- */
-cros.factory.Goofy.prototype.updateStatus = function() {
-  this.sendRpc(
-      'GetSystemStatus', [],
-      function(/** cros.factory.SystemStatus */ systemStatus) {
-        var status = systemStatus || {};
-        this.systemInfo['ips'] = status['ips'];
-        this.setSystemInfo(this.systemInfo);
-
-        function setValue(/** string */ id, /** ?string */ value) {
-          var element = document.getElementById(id);
-          goog.dom.classlist.enable(
-              element, 'goofy-value-known', value != null);
-          goog.dom.setTextContent(
-              goog.dom.getElementByClass('goofy-value', element), value || '');
-        }
-
-        /**
-         * @param {?cros.factory.SystemStatus} oldStatus
-         * @param {?cros.factory.SystemStatus} newStatus
-         * @return {boolean}
-         */
-        function canCalculateCpuStatus(oldStatus, newStatus) {
-          return !!oldStatus && !!oldStatus['cpu'] && !!newStatus['cpu'];
-        }
-
-        setValue(
-            'goofy-load-average', status['load_avg'] ?
-                cros.factory.Goofy.LOAD_AVERAGE_FORMAT.format(
-                    status['load_avg'][0]) :
-                null);
-
-        if (canCalculateCpuStatus(this.lastStatus, status)) {
-          var lastCpu = goog.math.sum.apply(this, this.lastStatus['cpu']);
-          var currentCpu = goog.math.sum.apply(this, status['cpu']);
-          var /** number */ lastIdle = this.lastStatus['cpu'][3];
-          var /** number */ currentIdle = status['cpu'][3];
-          var deltaIdle = currentIdle - lastIdle;
-          var deltaTotal = currentCpu - lastCpu;
-          setValue(
-              'goofy-percent-cpu', cros.factory.Goofy.PERCENT_CPU_FORMAT.format(
-                                       (deltaTotal - deltaIdle) / deltaTotal));
-        } else {
-          setValue('goofy-percent-cpu', null);
-        }
-
-        var chargeIndicator =
-            document.getElementById('goofy-battery-charge-indicator');
-        var percent = null;
-        var batteryChargeState = 'unknown';
-        if (status.battery) {
-          if (status.battery.charge_fraction != null) {
-            percent = cros.factory.Goofy.PERCENT_BATTERY_FORMAT.format(
-                status.battery.charge_fraction);
-          }
-          if (goog.array.contains(
-                  ['Full', 'Charging', 'Discharging'],
-                  status.battery.charge_state)) {
-            batteryChargeState = status.battery.charge_state.toLowerCase();
-          }
-        }
-        setValue('goofy-percent-battery', percent);
-        goog.dom.classlist.set(
-            chargeIndicator, 'goofy-battery-' + batteryChargeState);
-
-        var /** ?number */ temperature = status['temperature'];
-        var temp = null;
-        if (temperature != null) {
-          temp = Math.round(temperature) + '°C';
-        }
-        setValue('goofy-temperature', temp);
-
-        var eth_indicator = document.getElementById('goofy-eth-indicator');
-        goog.dom.classlist.enable(
-            eth_indicator, 'goofy-eth-enabled', status['eth_on']);
-        var wlan_indicator = document.getElementById('goofy-wlan-indicator');
-        goog.dom.classlist.enable(
-            wlan_indicator, 'goofy-wlan-enabled', status['wlan_on']);
-
-        this.lastStatus = status;
-      });
-};
-
 /**
  * Writes a message to the console log.
  * @param {string} message
@@ -3274,10 +3033,6 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
     if (invocation) {
       invocation.dispose();
     }
-  } else if (messageType == 'goofy:system_info') {
-    const message =
-        /** @type {{system_info: Object<string, string>}} */ (untypedMessage);
-    this.setSystemInfo(message['system_info']);
   } else if (messageType == 'goofy:pending_shutdown') {
     const message =
         /** @type {cros.factory.PendingShutdownEvent} */ (untypedMessage);

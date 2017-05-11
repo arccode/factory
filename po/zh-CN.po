@@ -30,79 +30,6 @@ msgstr "输入:"
 msgid "Time remaining: "
 msgstr "剩余时间: "
 
-#: ../py/goofy/js/goofy.js ../py/test/test_lists/generic_smt.py
-msgid "MLB Serial Number"
-msgstr "母板编号"
-
-#: ../py/goofy/js/goofy.js ../py/test/pytests/vpd.py
-#: ../py/test/test_lists/generic_run_in.py
-msgid "Serial Number"
-msgstr "序号"
-
-#: ../py/goofy/js/goofy.js
-msgid "Stage"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Factory Image Version"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Factory Toolkit Version"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Release Image Version"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "WLAN MAC"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "IP Addresses"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Kernel"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Architecture"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "EC"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "PD"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Main Firmware"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Root Device"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Factory MD5SUM"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "(no update)"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "HWID Database Version"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
-msgid "Unknown"
-msgstr ""
-
 #: ../py/goofy/js/goofy.js
 msgid "Factory tests stopped"
 msgstr "工厂测试已停止"
@@ -114,14 +41,6 @@ msgid ""
 msgstr ""
 "开工厂测试系统时发生错误.\n"
 "没办法继续测试."
-
-#: ../py/goofy/js/goofy.js
-msgid "Host Based"
-msgstr "Host based"
-
-#: ../py/goofy/js/goofy.js
-msgid "System time"
-msgstr "系统时间"
 
 #: ../py/goofy/js/goofy.js
 msgid "Rebooting"
@@ -234,6 +153,12 @@ msgstr "正在上载工厂记录..."
 #: ../py/goofy/js/goofy.js
 msgid "Uploading factory logs.  Please wait..."
 msgstr "正在上载工厂记录 。 请稍等..."
+
+#: ../py/goofy/js/goofy.js
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+#: ../py/test/pytests/vpd.py ../py/test/test_lists/generic_run_in.py
+msgid "Serial Number"
+msgstr "序号"
 
 #: ../py/goofy/js/goofy.js
 msgid "Bug Description"
@@ -364,13 +289,90 @@ msgstr "检视 dmesg"
 msgid "Device manager"
 msgstr "检视硬件"
 
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.html
+msgid "Update available. Click to update."
+msgstr "有可用的更新。点击更新"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+#: ../py/test/test_lists/generic_smt.py
+msgid "MLB Serial Number"
+msgstr "母板编号"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Stage"
+msgstr "阶段"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Factory Image Version"
+msgstr "工厂作业系统版本"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Factory Toolkit Version"
+msgstr "测试工具版本"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Release Image Version"
+msgstr "出厂作业系统版本"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "WLAN MAC"
+msgstr ""
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "IP Addresses"
+msgstr "IP 位置"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Kernel"
+msgstr "内核版本"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Architecture"
+msgstr "架构"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "EC"
+msgstr ""
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "PD"
+msgstr ""
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Main Firmware"
+msgstr "主轫体"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Root Device"
+msgstr "根目录装置"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Factory MD5SUM"
+msgstr ""
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "(no update)"
+msgstr "(没有更新)"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "HWID Database Version"
+msgstr "HWID 资料库版本"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Unknown"
+msgstr "未知"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Host Based"
+msgstr "Host based"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "System time"
+msgstr "系统时间"
+
 #: ../py/goofy/static/index.html
 msgid "Engineering mode"
 msgstr "工程模式"
-
-#: ../py/goofy/static/index.html
-msgid "Update available. Click to update."
-msgstr "有可用的更新。点击更新"
 
 #: ../py/goofy/static/ui_templates/template_one_scrollable_section.html
 #: ../py/goofy/static/ui_templates/template_one_section.html

@@ -17,10 +17,6 @@ from cros.factory.goofy import goofy_rpc
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
-from cros.factory.device import board
-from cros.factory.device import link
-from cros.factory.device import status
 
 
 @contextmanager
@@ -39,9 +35,6 @@ class GoofyRPCTest(unittest.TestCase):
     self.mox = mox.Mox()
     self.goofy = self.mox.CreateMock(goofy)
     self.goofy_rpc = goofy_rpc.GoofyRPC(self.goofy)
-
-    self.mox.StubOutWithMock(sys_utils, 'GetVarLogMessages')
-    self.mox.StubOutWithMock(sys_utils, 'GetVarLogMessagesBeforeReboot')
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -100,27 +93,6 @@ class GoofyRPCTest(unittest.TestCase):
         {'metadata': data,
          'log': log},
         self.goofy_rpc.GetTestHistoryEntry(path, invocation))
-
-  def testGetSystemStatus(self):
-    class Data(object):
-      def __init__(self):
-        self.data = '123'
-
-    # pylint: disable=protected-access
-    self.goofy.dut = self.mox.CreateMock(board.DeviceBoard)
-    self.goofy.dut.link = self.mox.CreateMock(link.DeviceLink)
-    self.goofy.dut.status = self.mox.CreateMock(status.SystemStatus)
-
-    snapshot = Data()
-    self.goofy.dut.link.IsLocal().AndReturn(True)
-    self.goofy.dut.status.Snapshot().AndReturn(snapshot)
-    self.mox.ReplayAll()
-    self.assertTrue(snapshot.__dict__, self.goofy_rpc.GetSystemStatus())
-
-    self.goofy.dut.link = self.mox.CreateMock(link.DeviceLink)
-    self.goofy.dut.link.IsLocal().AndReturn(False)
-    self.mox.ReplayAll()
-    self.assertIsNone(self.goofy_rpc.GetSystemStatus())
 
 
 if __name__ == '__main__':

@@ -104,31 +104,6 @@ body {
   font-size: 75%;
   width: 100%;
 }
-#goofy-status-bar-main {
-  padding-top: 1px;
-  width: 100%;
-  font-size: 90%;
-}
-#goofy-status-bar-main img {
-  padding-left: .15em;
-  padding-right: .1em;
-}
-#goofy-status-bar-main img {
-  vertical-align: -4px;
-}
-.goofy-status-bar-section {
-  display: inline-block;
-  min-width: 20%;
-}
-.goofy-status-bar-item#goofy-load-average {
-  display: none;
-}
-.goofy-status-bar-item:not(.goofy-value-known) .goofy-value {
-  display: none;
-}
-.goofy-status-bar-item.goofy-value-known .goofy-unknown {
-  display: none;
-}
 .goofy-plugin {
   height: 24px; width: 100%;
   border-top: 1px solid lightgray;
@@ -176,13 +151,7 @@ body {
   font-weight: bold;
   font-size: 150%;
 }
-#goofy-update-available-indicator {
-  background-color: green;
-}
 .goofy-engineering-mode #goofy-engineering-mode-indicator {
-  display: block;
-}
-.goofy-update-available #goofy-update-available-indicator {
   display: block;
 }
 #goofy-disable-engineering-mode {
@@ -381,21 +350,6 @@ table + .goofy-history-header {
 .goofy-log-time {
   font-size: 75%;
   padding-top: 0.5em;
-}
-#goofy-system-info th, #goofy-system-info td {
-  font-size: 75%;
-  text-align: left;
-  padding: 0 .1em 0 .1em;
-  white-space: nowrap;
-}
-#goofy-system-info th {
-  padding-right: 1em;
-}
-.goofy-status-bar-icons {
-  float: right;
-}
-#goofy-system-info-hover {
-  margin-top: -1px;
 }
 .goofy-note-name {
   font-size: 75%;

@@ -778,18 +778,6 @@ class GoofyRPC(object):
     return {'metadata': yaml.load(open(os.path.join(test_dir, 'metadata'))),
             'log': log}
 
-  # TODO(shunhsingou): move this to a goofy plugin.
-  def GetSystemStatus(self):
-    """Returns system status information.
-
-    This may include system load, battery status, etc. See
-    cros.factory.device.status.SystemStatus. Return None
-    if DUT is not local (station-based).
-    """
-    if self.goofy.dut.link.IsLocal():
-      return self.goofy.dut.status.Snapshot().__dict__
-    return None
-
   def GetPluginMenuItems(self):
     """Returns menu items supported by plugins."""
     return self.goofy.plugin_controller.GetPluginMenuItems()
