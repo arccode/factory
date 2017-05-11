@@ -10,17 +10,19 @@ import base64
 import binascii
 import hashlib
 import logging
-import mock
-import mox
 import multiprocessing
 import os
 import re
 import shutil
 import tempfile
+import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mock
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -521,7 +523,8 @@ class FileHashTest(unittest.TestCase):
 class FileLockTest(unittest.TestCase):
 
   def setUp(self):
-    self.temp_file = tempfile.mkstemp()[1]
+    fd, self.temp_file = tempfile.mkstemp()
+    os.close(fd)
 
   def tearDown(self):
     os.unlink(self.temp_file)
@@ -596,6 +599,27 @@ class FileLockTest(unittest.TestCase):
       c = file_utils.FileLock(self.temp_file)
       c.Acquire()
       c.Release()
+
+
+class FileLockContextManagerTest(unittest.TestCase):
+  def setUp(self):
+    fd, self.temp_file = tempfile.mkstemp()
+    os.close(fd)
+    self.manager = file_utils.FileLockContextManager(self.temp_file, 'w')
+
+  def tearDown(self):
+    os.unlink(self.temp_file)
+
+  def testMultithreadClose(self):
+    start_event = threading.Event()
+    def Target():
+      with self.manager as f:
+        start_event.set()
+        f.write('!' * 1024 * 1024)
+    t = threading.Thread(target=Target)
+    t.start()
+    start_event.wait()
+    self.manager.Close()
 
 
 class ReadWriteFileTest(unittest.TestCase):

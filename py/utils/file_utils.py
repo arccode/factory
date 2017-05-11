@@ -17,9 +17,9 @@ import pipes
 import shutil
 import stat
 import subprocess
-import time
 import tempfile
 import threading
+import time
 import zipfile
 import zipimport
 
@@ -831,16 +831,16 @@ class FileLockContextManager(object):
 
   def __enter__(self):
     """Locks the associated file."""
-    with self._lock:
-      self._OpenUnlocked()
-      self._filelock(self.file.fileno(), True)
-      return self.file
+    self._lock.acquire()
+    self._OpenUnlocked()
+    self._filelock(self.file.fileno(), True)
+    return self.file
 
   def __exit__(self, ex_type, value, tb):
     """Unlocks the associated file."""
     del ex_type, value, tb
-    with self._lock:
-      self._filelock(self.file.fileno(), False)
+    self._filelock(self.file.fileno(), False)
+    self._lock.release()
 
   def Close(self):
     """Closes associated file."""
