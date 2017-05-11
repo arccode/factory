@@ -11,6 +11,7 @@ import pipes
 import sys
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountPartition
 
@@ -38,7 +39,7 @@ def MakeUpdateBundle(factory_image, output):
                       rw=True):
     # factory/misc/sshkeys/testing_rsa has permission 600 required by ssh,
     # so we need sudo here.
-    Spawn(['tar', 'cf', output, '-I', 'pbzip2',
+    Spawn(['tar', 'cf', output, '-I', file_utils.GetCompressor('bz2'),
            '-C', os.path.join(BUNDLE_MOUNT_POINT, 'dev_image'),
            '--exclude', 'factory/MD5SUM',
            'factory', 'autotest'],

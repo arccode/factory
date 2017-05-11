@@ -997,7 +997,7 @@ class FinalizeBundle(object):
       for mini in [True, False]:
         output_file = self.bundle_dir + ('.mini' if mini else '') + '.tar.bz2'
         Spawn(['tar', '-cf', output_file,
-               '-I', 'pbzip2',
+               '-I', file_utils.GetCompressor('bz2'),
                '-C', os.path.dirname(self.bundle_dir)] +
               (['--exclude', '*.bin'] if mini else []) +
               [os.path.basename(self.bundle_dir)],

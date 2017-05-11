@@ -371,6 +371,30 @@ class ExtractFileError(Exception):
   pass
 
 
+def GetCompressor(file_format, allow_parallel=True):
+  """Returns a compressor program for given file format.
+
+  Args:
+    file_format: A string for compression format (bz2, gz, xz).
+    allow_parallel: True to return best compressor in multi-thread.
+
+  Returns:
+    A string for compressor program name, or None if nothing found.
+  """
+  program_map = {
+      'gz': ['pigz', 'gzip'],
+      'bz2': ['lbzip2', 'pbzip2', 'bzip2'],
+      'xz': ['pixz', 'xz'],
+  }
+  program_list = program_map[file_format]
+  if not allow_parallel:
+    program_list = program_list[-1:]
+  for program in program_list:
+    if os.system('type %s >/dev/null 2>&1' % program) == 0:
+      return program
+  return None
+
+
 def ExtractFile(compressed_file, output_dir, only_extracts=None,
                 overwrite=True, quiet=False, use_parallel=False):
   """Extracts compressed file to output folder.
@@ -383,19 +407,11 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
     overwrite: Whether to overwrite existing files without prompt.  Defaults to
       True.
     quiet: Whether to suppress output.
-    use_parallel: Use pigz/pbzip2/pixz to shorten decompression time.
+    use_parallel: Allow using parallel compressor to shorten execution time.
 
   Raises:
     ExtractFileError if the method fails to extract the file.
   """
-
-  def has_command(command):
-    try:
-      process_utils.Spawn('type %s' % command, shell=True, check_call=True,
-                          log=True, ignore_stdout=True, ignore_stderr=True)
-    except subprocess.CalledProcessError:
-      return False
-    return True
 
   if not os.path.exists(compressed_file):
     raise ExtractFileError('Missing compressed file %r' % compressed_file)
@@ -417,11 +433,11 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
   else:
     formats = (
         (['.tar'], None),
-        (['.tar.gz', '.tgz'], 'pigz'),
-        (['.tar.bz2', '.tbz2'], 'pbzip2'),
-        (['.tar.xz', '.txz'], 'pixz'))
+        (['.tar.gz', '.tgz'], 'gz'),
+        (['.tar.bz2', '.tbz2'], 'bz2'),
+        (['.tar.xz', '.txz'], 'xz'))
     unsupported = True
-    for suffixes, parallel_compressor in formats:
+    for suffixes, file_format in formats:
       if any(compressed_file.endswith(suffix) for suffix in suffixes):
         unsupported = False
         cmd = ['tar', '-xf', compressed_file, '-C', output_dir]
@@ -429,9 +445,8 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
           cmd += ['--keep-old-files']
         if not quiet:
           cmd += ['-vv']
-        if (use_parallel and parallel_compressor and
-            has_command(parallel_compressor)):
-          cmd += ['-I', parallel_compressor]
+        if use_parallel:
+          cmd += ['-I', GetCompressor(file_format, use_parallel)]
         cmd += only_extracts
         break
     if unsupported:

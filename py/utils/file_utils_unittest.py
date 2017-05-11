@@ -293,7 +293,8 @@ class ExtractFileTest(unittest.TestCase):
           log=True, check_call=True)
 
   @mock.patch.object(process_utils, 'Spawn', return_value=True)
-  def testExtractTar(self, mock_spawn):
+  @mock.patch.object(os, 'system', return_value=0)
+  def testExtractTar(self, mock_spawn, mock_system):
     with file_utils.TempDirectory() as temp_dir:
       output_dir = os.path.join(temp_dir, 'extracted')
 
@@ -325,12 +326,10 @@ class ExtractFileTest(unittest.TestCase):
           log=True, check_call=True)
 
       file_utils.ExtractFile(tbz2, output_dir, use_parallel=True)
+      mock_system.assert_called_with('type lbzip2 >/dev/null 2>&1')
       mock_spawn.assert_has_calls([
           mock.call(
-              'type pbzip2', shell=True, log=True, check_call=True,
-              ignore_stdout=True, ignore_stderr=True),
-          mock.call(
-              ['tar', '-xf', tbz2, '-C', output_dir, '-vv', '-I', 'pbzip2'],
+              ['tar', '-xf', tbz2, '-C', output_dir, '-vv', '-I', 'lbzip2'],
               log=True, check_call=True)])
 
   def testMissingCompressFile(self):

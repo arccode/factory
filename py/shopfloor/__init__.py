@@ -194,11 +194,7 @@ class ShopFloorBase(object):
         in_progress_name = archive_name + IN_PROGRESS_SUFFIX
         logging.info('Archiving %s to %s', past_day_logs_dir, archive_name)
 
-        have_pbzip2 = Spawn(
-            ['which', 'pbzip2'],
-            ignore_stdout=True, ignore_stderr=True, call=True).returncode == 0
-
-        Spawn(['tar', '-I', 'pbzip2' if have_pbzip2 else 'bzip2',
+        Spawn(['tar', '-I', file_utils.GetCompressor('bz2'),
                '-cf', in_progress_name,
                '-C', os.path.join(self.data_dir, REPORTS_DIR),
                past_day_logs_dir_name],
