@@ -19,6 +19,8 @@ from cros.factory.utils import net_utils
 _LOCALHOST = '127.0.0.1'
 _STANDALONE = 'standalone'
 
+_WAIT_TIMEOUT = 1
+
 class LinkManagerTest(unittest.TestCase):
 
   def setUp(self):
@@ -84,7 +86,7 @@ class LinkManagerTest(unittest.TestCase):
     self.StartPresenter()
     self.StartDUT()
 
-    self.assertTrue(self.presenter_connect_event.wait(0.5))
+    self.assertTrue(self.presenter_connect_event.wait(_WAIT_TIMEOUT))
     self.assertTrue(self.dut_connect_event.isSet())
     self.assertTrue(self.dut_link.DUTIsAlive(_LOCALHOST))
     self.assertTrue(self.presenter_link.PresenterIsConnected())
@@ -93,14 +95,14 @@ class LinkManagerTest(unittest.TestCase):
 
     self.StopDUT()
 
-    self.assertTrue(self.dut_disconnect_event.wait(0.5))
+    self.assertTrue(self.dut_disconnect_event.wait(_WAIT_TIMEOUT))
     self.assertFalse(self.dut_link.DUTIsAlive(_LOCALHOST))
     self.assertRaises(LinkDownError, lambda: self.dut_link.Echo('test'))
 
     self.ClearEvents()
     self.StartDUT()
 
-    self.assertTrue(self.presenter_connect_event.wait(0.5))
+    self.assertTrue(self.presenter_connect_event.wait(_WAIT_TIMEOUT))
     self.assertTrue(self.dut_connect_event.isSet())
     self.assertTrue(self.dut_link.DUTIsAlive(_LOCALHOST))
     self.assertTrue(self.presenter_link.PresenterIsConnected())
@@ -111,10 +113,10 @@ class LinkManagerTest(unittest.TestCase):
     self.ClearEvents()
     self.presenter_link.SuspendMonitoring(1)
     self.StopDUT()
-    self.assertFalse(self.presenter_disconnect_event.wait(0.5))
+    self.assertFalse(self.presenter_disconnect_event.wait(_WAIT_TIMEOUT))
 
     self.StartDUT()
-    self.assertTrue(self.presenter_connect_event.wait(0.5))
+    self.assertTrue(self.presenter_connect_event.wait(_WAIT_TIMEOUT))
     self.assertTrue(self.dut_connect_event.isSet())
 
     self.assertTrue(self.dut_link.DUTIsAlive(_LOCALHOST))
@@ -126,12 +128,12 @@ class LinkManagerTest(unittest.TestCase):
     # A glitch in DUT ping response
     self.ClearEvents()
     self.presenter_link.StopPingServer()
-    self.assertTrue(self.dut_disconnect_event.wait(0.5))
-    self.assertTrue(self.presenter_disconnect_event.wait(0.5))
+    self.assertTrue(self.dut_disconnect_event.wait(_WAIT_TIMEOUT))
+    self.assertTrue(self.presenter_disconnect_event.wait(_WAIT_TIMEOUT))
 
     self.presenter_link.StartPingServer()
-    self.assertTrue(self.dut_connect_event.wait(0.5))
-    self.assertTrue(self.presenter_connect_event.wait(0.5))
+    self.assertTrue(self.dut_connect_event.wait(_WAIT_TIMEOUT))
+    self.assertTrue(self.presenter_connect_event.wait(_WAIT_TIMEOUT))
     self.assertTrue(self.dut_link.DUTIsAlive(_LOCALHOST))
     self.assertTrue(self.presenter_link.PresenterIsConnected())
 
