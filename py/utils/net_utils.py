@@ -788,6 +788,17 @@ class CallbackSocketServer(object):
     return getattr(self._server, name)
 
 
+def _ProbePort(address, socket_family, socket_type):
+  s = socket.socket(socket_family, socket_type)
+  try:
+    s.connect(address)
+    return True
+  except socket.error:
+    return False
+  finally:
+    s.close()
+
+
 def ProbeTCPPort(address, port):
   """Probes whether a TCP connection can be made to the given address and port.
 
@@ -795,11 +806,7 @@ def ProbeTCPPort(address, port):
     address: The IP address to probe.
     port: The port to probe.
   """
-  try:
-    socket.create_connection((address, port)).close()
-    return True
-  except Exception:
-    return False
+  return _ProbePort((address, port), socket.AF_INET, socket.SOCK_STREAM)
 
 
 def ShutdownTCPServer(server):
@@ -811,5 +818,5 @@ def ShutdownTCPServer(server):
   """
   # pylint: disable=protected-access
   server._BaseServer__shutdown_request = True
-  ProbeTCPPort(*server.server_address)
+  _ProbePort(server.server_address, server.address_family, server.socket_type)
   server._BaseServer__is_shut_down.wait()

@@ -253,7 +253,7 @@ class Goofy(GoofyBase):
       self.state_instance.close()
     if self.event_server_thread:
       logging.info('Stopping event server')
-      self.event_server.shutdown()  # pylint: disable=E1101
+      net_utils.ShutdownTCPServer(self.event_server)
       self.event_server_thread.join()
       self.event_server.server_close()
       self.event_server_thread = None
